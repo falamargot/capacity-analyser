@@ -1,6 +1,6 @@
 import React, { useCallback, useRef, useEffect } from 'react';
 import { Viewer, Entity, PolygonGraphics, PolylineGraphics, EllipseGraphics, ScreenSpaceEventHandler, ScreenSpaceEvent } from 'resium';
-import { Cartesian2, Cartesian3, Cartographic, Color, Math as CesiumMath, Viewer as CesiumViewerType, ScreenSpaceEventType, defined, VerticalOrigin, JulianDate, CallbackProperty, CallbackPositionProperty, EasingFunction, ColorMaterialProperty, PolygonHierarchy } from 'cesium';
+import { Cartesian2, Cartesian3, Cartographic, Color, Math as CesiumMath, Viewer as CesiumViewerType, ScreenSpaceEventType, defined, VerticalOrigin, JulianDate, CallbackProperty, CallbackPositionProperty, EasingFunction, ColorMaterialProperty, PolygonHierarchy, Ion } from 'cesium';
 import { Feature, Geometry, GeoJsonProperties } from 'geojson';
 import { format } from 'date-fns';
 import * as satellite from 'satellite.js';
@@ -124,6 +124,14 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
             scene.globe.depthTestAgainstTerrain = true;
         }
     }, [enableLighting]);
+
+    // Configure Cesium ION token
+    useEffect(() => {
+        const ionToken = import.meta.env.VITE_CESIUM_ION_ACCESS_TOKEN;
+        if (ionToken) {
+            Ion.defaultAccessToken = ionToken;
+        }
+    }, []);
 
     // Notify parent when viewer is ready
     useEffect(() => {
