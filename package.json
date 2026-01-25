@@ -1,0 +1,34 @@
+{
+  "name": "eutelsat-capacity-analyser",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "lint": "eslint .",
+    "test": "vitest run",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "cesium": "1.135.0",
+    "date-fns": "^4.1.0",
+    "lucide-react": "^0.562.0",
+    "react": "19.2.1",
+    "react-dom": "19.2.1",
+    "resium": "1.19.2",
+    "satellite.js": "^6.0.2"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.1.18",
+    "@types/geojson": "^7946.0.16",
+    "@types/react": "^19.2.8",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^4.3.1",
+    "autoprefixer": "^10.4.18",
+    "postcss": "^8.4.35",
+    "tailwindcss": "^4.0.0",
+    "vite": "^7.3.1",
+    "vite-plugin-cesium": "^1.2.23"
+  }
+}

@@ -1,0 +1,145 @@
+import { EARTH_RADIUS_KM } from '../utils/capacityCalculator';
+
+// Double-Zone footprint constants for 1200km altitude
+export const STANDARD_ELEVATION_DEG = 37; // Standard service zone  
+export const BACKHAUL_ELEVATION_DEG = 15; // Backhaul/visibility zone
+
+// Pre-calculated radii for 1200km altitude
+export const STANDARD_RADIUS_KM = 1100; // 37° elevation
+export const BACKHAUL_RADIUS_KM = 2500; // 15° elevation
+
+// Capacity values per zone
+export const STANDARD_CAPACITY_GBPS = 6;
+
+function toRad(deg: number): number {
+  return (deg * Math.PI) / 180;
+}
+
+function toDeg(rad: number): number {
+  return (rad * 180) / Math.PI;
+}
+
+export function haversineDistanceKm(
+  a: { lat: number; lng: number },
+  b: { lat: number; lng: number }
+): number {
+  const lat1 = toRad(a.lat);
+  const lon1 = toRad(a.lng);
+  const lat2 = toRad(b.lat);
+  const lon2 = toRad(b.lng);
+
+  const dLat = lat2 - lat1;
+  const dLon = lon2 - lon1;
+
+  const sinDLat = Math.sin(dLat / 2);
+  const sinDLon = Math.sin(dLon / 2);
+
+  const h = sinDLat * sinDLat + Math.cos(lat1) * Math.cos(lat2) * sinDLon * sinDLon;
+  const c = 2 * Math.asin(Math.min(1, Math.sqrt(h)));
+  return EARTH_RADIUS_KM * c;
+}
+
+/**
+ * Returns true if `point` is within the circular footprint centered on `subSat`.
+ * `radiusKm` is a ground distance on the Earth surface (great-circle distance).
+ */
+export function isPointInFootprint(
+  point: { lat: number; lng: number },
+  subSat: { lat: number; lng: number },
+  radiusKm: number
+): boolean {
+  if (!Number.isFinite(radiusKm) || radiusKm <= 0) return false;
+  return haversineDistanceKm(point, subSat) <= radiusKm;
+}
+
+/**
+ * Compute the radius (in km) of the ground footprint of a LEO satellite assuming:
+ * - spherical Earth (radius R)
+ * - satellite at altitude h above the surface
+ * - a minimum elevation mask E (deg) at the ground point
+ *
+ * This implementation is physically consistent:
+ * - E = 0° returns the geometric horizon footprint
+ * - Increasing E monotonically shrinks the footprint
+ */
+export function footprintRadiusKm(altKm: number, minElevationDeg: number): number {
+  if (!Number.isFinite(altKm) || altKm <= 0) return 0;
+  if (!Number.isFinite(minElevationDeg) || minElevationDeg < 0 || minElevationDeg >= 90) return 0;
+
+  const R = EARTH_RADIUS_KM;
+  const h = altKm;
+  const E = toRad(minElevationDeg);
+
+  // Central angle at the horizon (E = 0): cos(theta_h) = R / (R + h)
+  const thetaH = Math.acos(Math.min(1, Math.max(-1, R / (R + h))));
+  if (minElevationDeg === 0) return R * thetaH;
+
+  // Elevation at a given central angle theta (radians)
+  const elevAt = (theta: number): number => {
+    // Ground point (in the plane containing Earth center and satellite)
+    const gx = R * Math.sin(theta);
+    const gz = R * Math.cos(theta);
+
+    // Satellite directly above sub-satellite point
+    const sx = 0;
+    const sz = R + h;
+
+    // Line-of-sight vector from ground to satellite
+    const vx = sx - gx;
+    const vz = sz - gz;
+
+    // Local zenith at ground (radial outward)
+    const ux = gx / R;
+    const uz = gz / R;
+
+    const vNorm = Math.hypot(vx, vz);
+    if (vNorm === 0) return Math.PI / 2; // 90°
+
+    // Angle between LOS and zenith
+    const cosAng = Math.min(1, Math.max(-1, (vx / vNorm) * ux + (vz / vNorm) * uz));
+    const angleFromZenith = Math.acos(cosAng);
+    return Math.PI / 2 - angleFromZenith; // elevation (rad)
+  };
+
+  // Bisection on theta in [0, thetaH] such that elevAt(theta) = E
+  let lo = 0;
+  let hi = thetaH;
+
+  // Numerical guard: if even the horizon elevation is above target (shouldn't happen), clamp
+  if (elevAt(hi) > E) lo = hi;
+
+  for (let i = 0; i < 60; i++) {
+    const mid = (lo + hi) / 2;
+    if (elevAt(mid) > E) lo = mid;
+    else hi = mid;
+  }
+
+  return R * ((lo + hi) / 2);
+}
+
+// Helper function to calculate destination point from bearing and distance
+export function destinationPoint(
+  start: { lat: number; lng: number },
+  bearingDeg: number,
+  distanceKm: number
+): { lat: number; lng: number } {
+  const R = EARTH_RADIUS_KM;
+  const d = distanceKm / R; // angular distance in radians
+  const bearing = toRad(bearingDeg);
+  const lat1 = toRad(start.lat);
+  const lng1 = toRad(start.lng);
+
+  const lat2 = Math.asin(
+    Math.sin(lat1) * Math.cos(d) +
+    Math.cos(lat1) * Math.sin(d) * Math.cos(bearing)
+  );
+  const lng2 = lng1 + Math.atan2(
+    Math.sin(bearing) * Math.sin(d) * Math.cos(lat1),
+    Math.cos(d) - Math.sin(lat1) * Math.sin(d) * Math.cos(bearing)
+  );
+
+  return {
+    lat: toDeg(lat2),
+    lng: toDeg(lng2)
+  };
+}

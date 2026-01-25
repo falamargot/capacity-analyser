@@ -1,0 +1,49 @@
+@import "tailwindcss";
+
+/* En v4, on définit les variables de thème directement dans le bloc @theme */
+@theme {
+  --color-primary: #2563eb;
+  --color-secondary: #db2777;
+}
+
+body {
+  /* @apply fonctionne toujours, mais nécessite @import "tailwindcss" au début */
+  @apply bg-gray-50;
+  overflow-x: hidden;
+}
+
+.globe-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+/* Styles pour le mode plein écran */
+.fixed.inset-4 {
+  margin: 1rem;
+  border-radius: 0.5rem;
+}
+
+/* Custom scrollbar - Version moderne 2026 */
+.overflow-y-auto {
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 transparent;
+}
+
+/* Les pseudo-éléments Webkit restent nécessaires pour certains navigateurs */
+.overflow-y-auto::-webkit-scrollbar {
+  width: 6px;
+}
+
+.overflow-y-auto::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.overflow-y-auto::-webkit-scrollbar-thumb {
+  background-color: #cbd5e1;
+  border-radius: 3px;
+}
+
+.overflow-y-auto::-webkit-scrollbar-thumb:hover {
+  background-color: #94a3b8;
+}
