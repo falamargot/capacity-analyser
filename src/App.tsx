@@ -7,6 +7,7 @@ import SatelliteScopeFilter, { SatelliteScope } from './components/SatelliteScop
 import { Search, Satellite } from 'lucide-react';
 import { calculatePosition, fetchSatellites } from './services/satelliteService';
 import { SatelliteData } from './types/satellites';
+import type { GEOBeam, SelectedSNP } from './types/analysis';
 import { calculateCoverages, destinationPoint } from './utils/coverageCalculator';
 import { footprintRadiusKm, BACKHAUL_ELEVATION_DEG, STANDARD_ELEVATION_DEG } from './utils/leoFootprint';
 import { Feature, Geometry, GeoJsonProperties } from 'geojson';
@@ -15,6 +16,7 @@ import { calculateElevationAngle } from './utils/capacityCalculator';
 import { useAirTraffic, useAirTrafficInterpolation } from './modules/airTraffic';
 import { Aircraft } from './modules/airTraffic/airTrafficService';
 
+// Analysis position for earth-click or aircraft selection
 interface AnalysisPosition {
   lat: number;
   lng: number;
@@ -26,17 +28,16 @@ interface AnalysisPosition {
 const App: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [satellites, setSatellites] = useState<SatelliteData[]>([]);
-  const [coverageFeatures, setCoverageFeatures] = useState<Feature<Geometry, GeoJsonProperties>[]>([]);
   const [loading, setLoading] = useState(true);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
   const [selectedPosition, setSelectedPosition] = useState<{ lat: number; lng: number; altitude?: number } | null>(null);
-  const [analysisPosition, setAnalysisPosition] = useState<{ lat: number; lng: number; altitude?: number } | null>(null);
+  const [analysisPosition, setAnalysisPosition] = useState<AnalysisPosition | null>(null);
   const [cameraTarget, setCameraTarget] = useState<{ lat: number; lng: number; alt: number } | null>(null);
   const [selectedSatellite, setSelectedSatellite] = useState<SatelliteData | null>(null);
   const [autoSelectedLEOId, setAutoSelectedLEOId] = useState<string | null>(null);
   const [autoSelectedGEOId, setAutoSelectedGEOId] = useState<string | null>(null);
-  const [selectedSNP, setSelectedSNP] = useState<any>(null);
-  const [selectedGEOBeam, setSelectedGEOBeam] = useState<any>(null);
+  const [selectedSNP, setSelectedSNP] = useState<SelectedSNP>(null);
+  const [selectedGEOBeam, setSelectedGEOBeam] = useState<GEOBeam | null>(null);
   const [selectedAircraft, setSelectedAircraft] = useState<Aircraft | null>(null);
   const [hoveredSatelliteId, setHoveredSatelliteId] = useState<string | null>(null);
   const [hoveredSnpName, setHoveredSnpName] = useState<string | null>(null);
@@ -265,7 +266,7 @@ const App: React.FC = () => {
         let visibleSNPCount = 0;
         let bestSNP = null;
         let bestSNPElevation = -1;
-        
+
         for (const snp of SNPS_DATA) {
           const snpElevation = calculateElevationAngle(
             { lat: snp.lat, lng: snp.lng }, sat
@@ -306,23 +307,23 @@ const App: React.FC = () => {
         // This handles the case where a location has only LEO satellites without any SNP connection
         const visibleLEO = leoSatellites.filter(sat => {
           const elevation = calculateElevationAngle(userLocation, sat);
-          
+
           // Rule 1: User-to-satellite elevation angle ≥ 37° (STANDARD coverage requirement)
           if (elevation < STANDARD_ELEVATION_DEG) return false;
-          
+
           // Rule 2: Satellite is visible above user horizon (elevation > 0°)
           if (elevation <= 0) return false;
-          
+
           return true;
         });
-        
+
         if (visibleLEO.length > 0) {
           // Select the best visible LEO satellite based on elevation only (no SNP available)
           const satellitesWithElevation = visibleLEO.map(sat => ({
             satellite: sat,
             elevation: calculateElevationAngle(userLocation, sat)
           }));
-          
+
           satellitesWithElevation.sort((a, b) => b.elevation - a.elevation);
           autoSelectedLEOSat = satellitesWithElevation[0].satellite;
           // No SNP selected - this indicates LEO-only connectivity without ground station
@@ -470,15 +471,13 @@ const App: React.FC = () => {
     return features;
   }, [filteredSatellites, selectedPosition, analysisPosition, liveSelectedSatellite, resolvedAutoLEO, resolvedAutoGEO, selectedGEOBeam, hoveredSatelliteId, hoveredSnpName, satelliteScope]);
 
-  // Performance optimization: Update coverage features only when they actually change
-  useEffect(() => {
-    setCoverageFeatures(coverageFeaturesMemo);
-  }, [coverageFeaturesMemo]);
+
+  // coverageFeaturesMemo is used directly - no need to copy to state
 
   // Handle satellite scope change with state reset
   const handleSatelliteScopeChange = useCallback((newScope: SatelliteScope) => {
     setSatelliteScope(newScope);
-    
+
     // If currently selected satellite exists AND its type is NOT compatible with the new scope
     if (selectedSatellite && selectedSatellite.orbitType !== newScope && newScope !== 'ALL') {
       // Deselect the satellite
@@ -518,10 +517,10 @@ const App: React.FC = () => {
     if (satellite && viewerRef.current) {
       // Get current camera altitude
       const currentAlt = viewerRef.current.camera.positionCartographic.height / 1000; // Convert to km
-      
+
       // Calculate satellite altitude
       const satAlt = satellite.position.alt || (satellite.type === 'EUTELSAT' ? 35786 : 800);
-      
+
       // Only reset altitude if satellite is higher than current camera altitude
       if (satAlt > currentAlt) {
         const targetAlt = satellite.type === 'EUTELSAT' ? 40000 : 8000;
@@ -529,10 +528,10 @@ const App: React.FC = () => {
       } else {
         // Keep current altitude, just center on satellite position
         const cartographic = viewerRef.current.camera.positionCartographic;
-        setCameraTarget({ 
-          lat: satellite.position.lat, 
-          lng: satellite.position.lng, 
-          alt: cartographic.height / 1000 
+        setCameraTarget({
+          lat: satellite.position.lat,
+          lng: satellite.position.lng,
+          alt: cartographic.height / 1000
         });
       }
     }
@@ -551,9 +550,8 @@ const App: React.FC = () => {
     setSelectedSNP(snpName);
   }, []);
 
-  const handleAircraftHover = useCallback((aircraft: Aircraft | null) => {
-    // Implement aircraft hover logic if needed
-    console.log('Aircraft hovered:', aircraft?.callsign);
+  const handleAircraftHover = useCallback((_aircraft: Aircraft | null) => {
+    // Aircraft hover logic - currently a no-op
   }, []);
 
   const handleSnpHover = useCallback((snpName: string | null) => {
@@ -572,30 +570,30 @@ const App: React.FC = () => {
   // Unified function to handle analysis position changes (from earth click or aircraft)
   const updateAnalysisPosition = useCallback((position: AnalysisPosition | null) => {
     setAnalysisPosition(position);
-    
+
     if (position) {
       // Clear any manual satellite selection when analysis position changes
       setSelectedSatellite(null);
-      
+
       // Auto-resolve BEST connectivity according to business rules
       const { autoSelectedLEOSat, autoSelectedGEOSat, selectedSNP } = resolveAutoSelectedSatellites(
         { lat: position.lat, lng: position.lng },
         satellites,
         satelliteScope
       );
-      
+
       // Store results ONLY as IDs (never store objects)
       setAutoSelectedLEOId(autoSelectedLEOSat?.id || null);
       setAutoSelectedGEOId(autoSelectedGEOSat?.id || null);
       setSelectedSNP(selectedSNP);
-      
+
       // Auto-select GEO beam if GEO satellite is available
       if (autoSelectedGEOSat && autoSelectedGEOSat.coverages && autoSelectedGEOSat.coverages.length > 0) {
         // Find the best coverage beam for this position
         const userLocation = { lat: position.lat, lng: position.lng };
         let bestBeam = null;
         let bestElevation = -1;
-        
+
         for (const coverage of autoSelectedGEOSat.coverages) {
           if (coverage.feature && coverage.feature.geometry) {
             // Simple check: if point is within coverage polygon
@@ -612,17 +610,17 @@ const App: React.FC = () => {
             }
           }
         }
-        
+
         // If no beam contains the point, use the first beam as fallback
         if (!bestBeam && autoSelectedGEOSat.coverages.length > 0) {
           bestBeam = autoSelectedGEOSat.coverages[0];
         }
-        
+
         setSelectedGEOBeam(bestBeam);
       } else {
         setSelectedGEOBeam(null);
       }
-      
+
       // Additional safeguard: if no satellites are auto-selected, clear all related states
       if (!autoSelectedLEOSat && !autoSelectedGEOSat) {
         setAutoSelectedLEOId(null);
@@ -662,12 +660,12 @@ const App: React.FC = () => {
         satellites,
         satelliteScope
       );
-      
+
       // Update states with new resolution
       setAutoSelectedLEOId(autoSelectedLEOSat?.id || null);
       setAutoSelectedGEOId(autoSelectedGEOSat?.id || null);
       setSelectedSNP(newSelectedSNP);
-      
+
       // Clear GEO beam if no GEO satellite is selected
       if (!autoSelectedGEOSat) {
         setSelectedGEOBeam(null);
@@ -678,13 +676,13 @@ const App: React.FC = () => {
   // Handle geographic point click (earth-based analysis)
   const handlePointClick = useCallback((lat: number, lng: number) => {
     const userLocation = { lat, lng };
-    
+
     // Set selected position for UI compatibility
     setSelectedPosition(userLocation);
-    
+
     // Clear aircraft selection when switching to earth-based analysis
     setSelectedAircraft(null);
-    
+
     // Update unified analysis position
     updateAnalysisPosition({
       lat,
@@ -696,11 +694,11 @@ const App: React.FC = () => {
   // Handle aircraft selection (aircraft-based analysis)
   const handleAircraftSelect = useCallback((aircraft: Aircraft | null, fromComboBox: boolean = false) => {
     setSelectedAircraft(aircraft);
-    
+
     if (aircraft && aircraft.latitude && aircraft.longitude) {
       // Clear earth-based position when switching to aircraft-based analysis
       setSelectedPosition(null);
-      
+
       // Update unified analysis position with aircraft data
       updateAnalysisPosition({
         lat: aircraft.latitude,
@@ -709,7 +707,7 @@ const App: React.FC = () => {
         source: 'aircraft',
         aircraftCallsign: aircraft.callsign || undefined
       });
-      
+
       // Only set camera target when selected from combobox, not from globe click
       if (fromComboBox) {
         setCameraTarget({ lat: aircraft.latitude, lng: aircraft.longitude, alt: 3000 });
@@ -730,10 +728,10 @@ const App: React.FC = () => {
         aircraft => aircraft.icao24 === selectedAircraft!.icao24
       );
 
-      if (currentAircraftData && 
-          currentAircraftData.latitude && 
-          currentAircraftData.longitude) {
-        
+      if (currentAircraftData &&
+        currentAircraftData.latitude &&
+        currentAircraftData.longitude) {
+
         // Update the analysis position with the latest interpolated aircraft data
         updateAnalysisPosition({
           lat: currentAircraftData.latitude,
@@ -852,7 +850,7 @@ const App: React.FC = () => {
             }`}>
             <MapViewSwitcher
               satellites={filteredSatellites}
-              coverageFeatures={coverageFeatures}
+              coverageFeatures={coverageFeaturesMemo}
               onPointClick={handlePointClick}
               selectedPosition={selectedPosition}
               onSatelliteClick={handleSatelliteClick}
