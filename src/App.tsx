@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import MapViewSwitcher from './components/MapViewSwitcher';
 import CapacityDetails from './components/CapacityDetails';
-import AircraftDetails from './components/AircraftDetails';
 import SatelliteSelector from './components/SatelliteSelector';
+import AircraftSelector from './components/AircraftSelector';
 import SatelliteScopeFilter, { SatelliteScope } from './components/SatelliteScopeFilter';
-import { Search, Satellite, Plane, Settings, ChevronDown } from 'lucide-react';
+import { Search, Satellite } from 'lucide-react';
 import { calculatePosition, fetchSatellites } from './services/satelliteService';
 import { SatelliteData } from './types/satellites';
 import { calculateCoverages, destinationPoint } from './utils/coverageCalculator';
@@ -37,18 +37,14 @@ const App: React.FC = () => {
   const [autoSelectedGEOId, setAutoSelectedGEOId] = useState<string | null>(null);
   const [selectedSNP, setSelectedSNP] = useState<any>(null);
   const [selectedGEOBeam, setSelectedGEOBeam] = useState<any>(null);
+  const [selectedAircraft, setSelectedAircraft] = useState<Aircraft | null>(null);
   const [hoveredSatelliteId, setHoveredSatelliteId] = useState<string | null>(null);
   const [hoveredSnpName, setHoveredSnpName] = useState<string | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [satelliteScope, setSatelliteScope] = useState<SatelliteScope>('ALL');
   const [airTrafficEnabled, setAirTrafficEnabled] = useState(false);
-  const [aircraft, setAircraft] = useState<Aircraft[]>([]);
-  const [selectedAircraft, setSelectedAircraft] = useState<Aircraft | null>(null);
-  const [is2D, setIs2D] = useState(false);
-  const [enableLighting, setEnableLighting] = useState(false);
   const [showSatelliteTrajectory, setShowSatelliteTrajectory] = useState(false);
   const [satelliteHighlight, setSatelliteHighlight] = useState(false);
-  const [showDisplayOptions, setShowDisplayOptions] = useState(false);
   const viewerRef = useRef<any>(null);
 
   // Store viewer reference when ready
@@ -698,7 +694,7 @@ const App: React.FC = () => {
   }, [updateAnalysisPosition]);
 
   // Handle aircraft selection (aircraft-based analysis)
-  const handleAircraftSelect = useCallback((aircraft: Aircraft | null) => {
+  const handleAircraftSelect = useCallback((aircraft: Aircraft | null, fromComboBox: boolean = false) => {
     setSelectedAircraft(aircraft);
     
     if (aircraft && aircraft.latitude && aircraft.longitude) {
@@ -714,13 +710,49 @@ const App: React.FC = () => {
         aircraftCallsign: aircraft.callsign || undefined
       });
       
-      // Set camera target to follow aircraft
-      setCameraTarget({ lat: aircraft.latitude, lng: aircraft.longitude, alt: 3000 });
+      // Only set camera target when selected from combobox, not from globe click
+      if (fromComboBox) {
+        setCameraTarget({ lat: aircraft.latitude, lng: aircraft.longitude, alt: 3000 });
+      }
     } else {
       // Clear analysis position when aircraft is deselected
       updateAnalysisPosition(null);
     }
   }, [updateAnalysisPosition]);
+
+  // Real-time updates for selected aircraft position and altitude
+  useEffect(() => {
+    if (!selectedAircraft || !airTrafficEnabled) return;
+
+    const updateSelectedAircraftPosition = () => {
+      // Find the current aircraft data from the interpolated aircraft list
+      const currentAircraftData = interpolatedAircraft.find(
+        aircraft => aircraft.icao24 === selectedAircraft!.icao24
+      );
+
+      if (currentAircraftData && 
+          currentAircraftData.latitude && 
+          currentAircraftData.longitude) {
+        
+        // Update the analysis position with the latest interpolated aircraft data
+        updateAnalysisPosition({
+          lat: currentAircraftData.latitude,
+          lng: currentAircraftData.longitude,
+          altitude: currentAircraftData.altitude_km || undefined,
+          source: 'aircraft',
+          aircraftCallsign: currentAircraftData.callsign || selectedAircraft!.callsign
+        });
+      }
+    };
+
+    // Update immediately
+    updateSelectedAircraftPosition();
+
+    // Set up interval for real-time updates (every 5 seconds)
+    const interval = setInterval(updateSelectedAircraftPosition, 5000);
+
+    return () => clearInterval(interval);
+  }, [selectedAircraft, airTrafficEnabled, interpolatedAircraft, updateAnalysisPosition]);
 
   const handleSearchInput = useCallback(async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -802,80 +834,13 @@ const App: React.FC = () => {
                   />
                 </form>
               </div>
-              <div className="flex flex-wrap gap-2">
-                <button
-                  onClick={() => {
-                    setAirTrafficEnabled(!airTrafficEnabled);
-                  }}
-                  className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${airTrafficEnabled
-                    ? 'bg-blue-600 text-white hover:bg-blue-700'
-                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                    }`}
-                  title={airTrafficEnabled ? 'Hide commercial flights' : 'Show commercial flights'}
-                >
-                  <Plane className="h-4 w-4" />
-                  <span className="hidden sm:inline">Commercial Flights</span>
-                  <span className="sm:hidden">Flights</span>
-                </button>
-                
-                {/* Map display Options Dropdown */}
-                <div className="relative">
-                  <button
-                    onClick={() => setShowDisplayOptions(!showDisplayOptions)}
-                    className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                      showDisplayOptions 
-                        ? 'bg-gray-800 text-white' 
-                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                      }`}
-                    title="Map display options"
-                  >
-                    <Settings className="h-4 w-4" />
-                    <span className="hidden sm:inline">Map display Options</span>
-                    <span className="sm:hidden">Options</span>
-                    <ChevronDown className={`h-3 w-3 transition-transform ${showDisplayOptions ? 'rotate-180' : ''}`} />
-                  </button>
-                  
-                  {showDisplayOptions && (
-                    <div className="absolute top-full left-0 mt-1 w-56 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
-                      <div className="py-1">
-                        <button
-                          onClick={() => {
-                            setShowSatelliteTrajectory(!showSatelliteTrajectory);
-                            setShowDisplayOptions(false);
-                          }}
-                          className={`w-full flex items-center gap-3 px-4 py-2 text-sm hover:bg-gray-50 transition-colors ${
-                            showSatelliteTrajectory ? 'text-purple-600 font-medium' : 'text-gray-700'
-                          }`}
-                          title={showSatelliteTrajectory 
-                            ? "Hide the complete orbital path of the selected satellite" 
-                            : "Show the complete orbital path of the selected satellite over one full period"
-                          }
-                        >
-                          <span>🛰️ Satellite Trajectory</span>
-                          {showSatelliteTrajectory && <span className="ml-auto">✓</span>}
-                        </button>
-                        
-                        <button
-                          onClick={() => {
-                            setSatelliteHighlight(!satelliteHighlight);
-                            setShowDisplayOptions(false);
-                          }}
-                          className={`w-full flex items-center gap-3 px-4 py-2 text-sm hover:bg-gray-50 transition-colors ${
-                            satelliteHighlight ? 'text-yellow-600 font-medium' : 'text-gray-700'
-                          }`}
-                          title={satelliteHighlight 
-                            ? "Disable 4x size enhancement for all satellites" 
-                            : "Enable 4x size enhancement for all satellites to improve visibility"
-                          }
-                        >
-                          <span>✨ Satellite Highlight</span>
-                          {satelliteHighlight && <span className="ml-auto">✓</span>}
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
+              <AircraftSelector
+                aircraft={airTraffic.aircraft}
+                selectedAircraft={selectedAircraft}
+                onSelect={(aircraft) => handleAircraftSelect(aircraft, true)}
+                liveModeEnabled={airTrafficEnabled}
+                onToggleLiveMode={() => setAirTrafficEnabled(!airTrafficEnabled)}
+              />
             </div>
           </div>
         </div>
@@ -910,35 +875,28 @@ const App: React.FC = () => {
               onCameraReady={handleCameraReady}
               showSatelliteTrajectory={showSatelliteTrajectory}
               satelliteHighlight={satelliteHighlight}
+              onToggleSatelliteTrajectory={() => setShowSatelliteTrajectory(!showSatelliteTrajectory)}
+              onToggleSatelliteHighlight={() => setSatelliteHighlight(!satelliteHighlight)}
             />
           </div>
           <div className={`${isMobile ? 'w-full' : 'flex-shrink-0 w-[500px]'} bg-white rounded-lg shadow-lg overflow-hidden`}>
             {!isFullscreen && (
               <div
-                className={`w-full ${!selectedPosition && !selectedSatellite && !airTrafficEnabled && isMobile ? 'hidden' : ''
+                className={`w-full ${!selectedPosition && !selectedSatellite && !selectedAircraft && isMobile ? 'hidden' : ''
                   } overflow-y-auto max-h-[calc(100vh-8rem)]`}
               >
-                {airTrafficEnabled ? (
-                  <AircraftDetails
-                    aircraft={interpolatedAircraft}
-                    selectedAircraft={selectedAircraft}
-                    onAircraftSelect={handleAircraftSelect}
-                    enabled={airTrafficEnabled}
-                  />
-                ) : (
-                  <CapacityDetails
-                    satellites={filteredSatellites}
-                    selectedPoint={analysisPosition || selectedPosition}
-                    selectedSatellite={selectedSatellite}
-                    autoSelectedLEOSatellite={resolvedAutoLEO}
-                    autoSelectedGEOSatellite={resolvedAutoGEO}
-                    satelliteScope={satelliteScope}
-                    onSelectedGEOBeamChange={handleSelectedGEOBeamChange}
-                    analysisSource={analysisPosition ? 'earth' : selectedAircraft ? 'aircraft' : undefined}
-                    aircraftCallsign={selectedAircraft?.callsign}
-                    selectedSNP={selectedSNP}
-                  />
-                )}
+                <CapacityDetails
+                  satellites={filteredSatellites}
+                  selectedPoint={analysisPosition || selectedPosition}
+                  selectedSatellite={selectedSatellite}
+                  autoSelectedLEOSatellite={resolvedAutoLEO}
+                  autoSelectedGEOSatellite={resolvedAutoGEO}
+                  satelliteScope={satelliteScope}
+                  onSelectedGEOBeamChange={handleSelectedGEOBeamChange}
+                  analysisSource={selectedAircraft ? 'aircraft' : analysisPosition ? 'earth' : undefined}
+                  aircraftCallsign={selectedAircraft?.callsign}
+                  selectedSNP={selectedSNP}
+                />
               </div>
             )}
           </div>

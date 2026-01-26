@@ -6,7 +6,6 @@ import React, { useState } from 'react';
 import { Feature, Geometry, GeoJsonProperties } from 'geojson';
 import { SatelliteData } from '../types/satellites';
 import { SatelliteScope } from './SatelliteScopeFilter';
-
 import { Aircraft } from '../modules/airTraffic/airTrafficService';
 
 interface MapViewSwitcherProps {
@@ -34,6 +33,8 @@ interface MapViewSwitcherProps {
   onCameraReady?: (viewer: any) => void;
   showSatelliteTrajectory?: boolean;
   satelliteHighlight?: boolean;
+  onToggleSatelliteTrajectory?: () => void;
+  onToggleSatelliteHighlight?: () => void;
 }
 
 const MapViewSwitcher: React.FC<MapViewSwitcherProps> = ({
@@ -61,13 +62,16 @@ const MapViewSwitcher: React.FC<MapViewSwitcherProps> = ({
   onCameraReady,
   showSatelliteTrajectory,
   satelliteHighlight,
+  onToggleSatelliteTrajectory,
+  onToggleSatelliteHighlight,
 }) => {
   const [view, setView] = useState<'globe' | 'map'>('globe');
   const [enableLighting, setEnableLighting] = useState(false);
 
   return (
     <div className="relative w-full h-full">
-      <div className="absolute bottom-4 left-4 z-10 flex gap-2">
+
+      <div className="absolute bottom-2 left-2 z-10 flex gap-2">
         <button
           type="button"
           onClick={() => setView(view === 'globe' ? 'map' : 'globe')}
@@ -84,6 +88,36 @@ const MapViewSwitcher: React.FC<MapViewSwitcherProps> = ({
             }`}
         >
           {enableLighting ? '☀ Sun Light: ON' : '☀ Sun Light: OFF'}
+        </button>
+        <button
+          type="button"
+          onClick={() => onToggleSatelliteTrajectory?.()}
+          className={`px-3 py-1.5 rounded-md shadow-sm text-sm font-medium transition-colors ${
+            showSatelliteTrajectory 
+              ? 'bg-purple-100 text-purple-700 border border-purple-200' 
+              : 'bg-white/90 backdrop-blur-sm text-gray-700 hover:text-gray-900'
+          }`}
+          title={showSatelliteTrajectory 
+            ? "Hide the complete orbital path of the selected satellite" 
+            : "Show the complete orbital path of the selected satellite over one full period"
+          }
+        >
+          🛰️ Trajectory
+        </button>
+        <button
+          type="button"
+          onClick={() => onToggleSatelliteHighlight?.()}
+          className={`px-3 py-1.5 rounded-md shadow-sm text-sm font-medium transition-colors ${
+            satelliteHighlight 
+              ? 'bg-yellow-100 text-yellow-700 border border-yellow-200' 
+              : 'bg-white/90 backdrop-blur-sm text-gray-700 hover:text-gray-900'
+          }`}
+          title={satelliteHighlight 
+            ? "Disable 4x size enhancement for all satellites" 
+            : "Enable 4x size enhancement for all satellites to improve visibility"
+          }
+        >
+          🛰️ Highlight
         </button>
       </div>
 

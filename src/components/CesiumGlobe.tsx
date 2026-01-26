@@ -1,12 +1,13 @@
 import React, { useCallback, useRef, useEffect } from 'react';
 import { Viewer, Entity, PolygonGraphics, PolylineGraphics, EllipseGraphics, ScreenSpaceEventHandler, ScreenSpaceEvent } from 'resium';
-import { Cartesian2, Cartesian3, Cartographic, Color, Math as CesiumMath, Viewer as CesiumViewerType, ScreenSpaceEventType, defined, VerticalOrigin, JulianDate, CallbackProperty, CallbackPositionProperty, EasingFunction, ColorMaterialProperty, PolygonHierarchy, Ion } from 'cesium';
+import { Cartesian2, Cartesian3, Cartographic, Color, Math as CesiumMath, Viewer as CesiumViewerType, ScreenSpaceEventType, defined, VerticalOrigin, JulianDate, CallbackProperty, CallbackPositionProperty, EasingFunction, ColorMaterialProperty, PolygonHierarchy, Ion, PolylineDashMaterialProperty } from 'cesium';
 import { Feature, Geometry, GeoJsonProperties } from 'geojson';
 import { format } from 'date-fns';
 import * as satellite from 'satellite.js';
 import { SatelliteData } from '../types/satellites';
 import { SNPS_DATA } from './globe/GlobeConfig';
 import { calculateGSOAvoidanceAngle } from '../utils/oneWebComb';
+import { formatCoordinates } from '../utils/formatters';
 import FullscreenButton from './FullscreenButton';
 import { Aircraft } from '../modules/airTraffic/airTrafficService';
 import { getCoverageColor } from '../services/coverageService';
@@ -318,14 +319,34 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
 
     return (
         <div className="relative w-full h-full">
-            <div className="absolute top-4 left-4 z-10 bg-white/80 px-3 py-1 rounded-md shadow-sm">
-                <span className="text-gray-700 font-medium">
-                    {format(new Date(), "yyyy-MM-dd HH:mm:ss 'UTC'")}
-                </span>
+            <div className="absolute top-2 left-2 z-10 bg-white/80 px-3 py-1 rounded-md shadow-sm">
+                <div className="flex items-center gap-4">
+                    <span className="text-gray-700 font-medium">
+                        {format(new Date(), "yyyy-MM-dd HH:mm:ss 'UTC'")}
+                    </span>
+                    {(selectedPosition || selectedAircraft) && (
+                        <span className="text-gray-600 text-sm">
+                            Position: {formatCoordinates({
+                                lat: selectedAircraft?.latitude || selectedPosition?.lat || 0,
+                                lng: selectedAircraft?.longitude || selectedPosition?.lng || 0
+                            })}
+                            {selectedAircraft?.altitude_km && (
+                                <span className="ml-1">
+                                    ({selectedAircraft.altitude_km.toFixed(1)} km)
+                                </span>
+                            )}
+                            {selectedPosition?.altitude && (
+                                <span className="ml-1">
+                                    ({selectedPosition.altitude.toFixed(1)} km)
+                                </span>
+                            )}
+                        </span>
+                    )}
+                </div>
             </div>
 
             {/* Satellite indicators - positioned at top */}
-            <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-10">
+            <div className="absolute top-2 left-1/2 transform -translate-x-1/2 z-10">
                 {selectedSatellite ? (
                     <div className={`backdrop-blur-sm px-3 py-1.5 rounded-md shadow-sm border ${selectedSatellite.type === 'ONEWEB' && currentGSOAvoidanceActive
                         ? "bg-orange-100/90 border-orange-300" : "bg-green-100/90 border-green-300"
@@ -369,91 +390,86 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                 ) : null}
             </div>
 
-            <div className="absolute top-4 right-4 z-10 flex items-center gap-4">
-                {selectedPosition && !selectedSatellite && (
-                    <div className="bg-white/90 backdrop-blur-sm px-3 py-1.5 rounded-md shadow-sm">
-                        <span className="text-gray-700 font-medium">
-                            {selectedPosition.lat.toFixed(2)}°, {selectedPosition.lng.toFixed(2)}°
-                        </span>
-                    </div>
-                )}
-                <div className="flex flex-col gap-2">
+            <div className="absolute top-2 right-2 z-10 flex flex-col items-end gap-2">
+                {/* Line 1: Zoom controls and Fullscreen - horizontal row */}
+                <div className="flex items-center gap-1">
+                    <button
+                        onClick={() => {
+                            if (viewerRef.current) {
+                                const camera = viewerRef.current.camera;
+                                const currentHeight = camera.positionCartographic.height;
+                                const targetHeight = currentHeight * 1.3; // Zoom out by 30%
+                                const destination = Cartesian3.fromDegrees(
+                                    CesiumMath.toDegrees(camera.positionCartographic.longitude),
+                                    CesiumMath.toDegrees(camera.positionCartographic.latitude),
+                                    targetHeight
+                                );
+                                camera.flyTo({
+                                    destination,
+                                    duration: 0.5, // 0.5 second animation
+                                    easingFunction: EasingFunction.LINEAR_NONE
+                                });
+                            }
+                        }}
+                        className="bg-white/90 backdrop-blur-sm p-2 rounded-md shadow-sm hover:bg-white/100 transition-colors"
+                        title="Zoom arrière"
+                    >
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <circle cx="11" cy="11" r="8"></circle>
+                            <path d="m21 21-4.35-4.35"></path>
+                            <line x1="8" y1="11" x2="14" y2="11"></line>
+                        </svg>
+                    </button>
+                    
+                    <button
+                        onClick={() => {
+                            if (viewerRef.current) {
+                                viewerRef.current.camera.flyTo({
+                                    destination: Cartesian3.fromDegrees(0, 0, 20000000), // Position initiale: centre du globe, altitude 20,000km
+                                    duration: 1.5, // 1.5 secondes pour l'animation
+                                    easingFunction: EasingFunction.LINEAR_NONE
+                                });
+                            }
+                        }}
+                        className="bg-white/90 backdrop-blur-sm p-2 rounded-md shadow-sm hover:bg-white/100 transition-colors"
+                        title="Initialiser la vue"
+                    >
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
+                            <path d="M3 3v5h5"></path>
+                        </svg>
+                    </button>
+                    
+                    <button
+                        onClick={() => {
+                            if (viewerRef.current) {
+                                const camera = viewerRef.current.camera;
+                                const currentHeight = camera.positionCartographic.height;
+                                const targetHeight = currentHeight * 0.7; // Zoom in by 30%
+                                const destination = Cartesian3.fromDegrees(
+                                    CesiumMath.toDegrees(camera.positionCartographic.longitude),
+                                    CesiumMath.toDegrees(camera.positionCartographic.latitude),
+                                    targetHeight
+                                );
+                                camera.flyTo({
+                                    destination,
+                                    duration: 0.5, // 0.5 second animation
+                                    easingFunction: EasingFunction.LINEAR_NONE
+                                });
+                            }
+                        }}
+                        className="bg-white/90 backdrop-blur-sm p-2 rounded-md shadow-sm hover:bg-white/100 transition-colors"
+                        title="Zoom avant"
+                    >
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <circle cx="11" cy="11" r="8"></circle>
+                            <path d="m21 21-4.35-4.35"></path>
+                            <line x1="11" y1="8" x2="11" y2="14"></line>
+                            <line x1="8" y1="11" x2="14" y2="11"></line>
+                        </svg>
+                    </button>
+                    
                     <FullscreenButton isFullscreen={isFullscreen} onClick={onToggleFullscreen} />
-                    <div className="flex flex-col gap-1">
-                        <button
-                            onClick={() => {
-                                if (viewerRef.current) {
-                                    const camera = viewerRef.current.camera;
-                                    const currentHeight = camera.positionCartographic.height;
-                                    const targetHeight = currentHeight * 0.7; // Zoom in by 30%
-                                    const destination = Cartesian3.fromDegrees(
-                                        CesiumMath.toDegrees(camera.positionCartographic.longitude),
-                                        CesiumMath.toDegrees(camera.positionCartographic.latitude),
-                                        targetHeight
-                                    );
-                                    camera.flyTo({
-                                        destination,
-                                        duration: 0.5, // 0.5 second animation
-                                        easingFunction: EasingFunction.LINEAR_NONE
-                                    });
-                                }
-                            }}
-                            className="bg-white/90 backdrop-blur-sm p-2 rounded-md shadow-sm hover:bg-white/100 transition-colors"
-                            title="Zoom avant"
-                        >
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <circle cx="11" cy="11" r="8"></circle>
-                                <path d="m21 21-4.35-4.35"></path>
-                                <line x1="11" y1="8" x2="11" y2="14"></line>
-                                <line x1="8" y1="11" x2="14" y2="11"></line>
-                            </svg>
-                        </button>
-                        <button
-                            onClick={() => {
-                                if (viewerRef.current) {
-                                    viewerRef.current.camera.flyTo({
-                                        destination: Cartesian3.fromDegrees(0, 0, 20000000), // Position initiale: centre du globe, altitude 20,000km
-                                        duration: 1.5, // 1.5 secondes pour l'animation
-                                        easingFunction: EasingFunction.LINEAR_NONE
-                                    });
-                                }
-                            }}
-                            className="bg-white/90 backdrop-blur-sm p-2 rounded-md shadow-sm hover:bg-white/100 transition-colors"
-                            title="Initialiser la vue"
-                        >
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
-                                <path d="M3 3v5h5"></path>
-                            </svg>
-                        </button>
-                        <button
-                            onClick={() => {
-                                if (viewerRef.current) {
-                                    const camera = viewerRef.current.camera;
-                                    const currentHeight = camera.positionCartographic.height;
-                                    const targetHeight = currentHeight * 1.3; // Zoom out by 30%
-                                    const destination = Cartesian3.fromDegrees(
-                                        CesiumMath.toDegrees(camera.positionCartographic.longitude),
-                                        CesiumMath.toDegrees(camera.positionCartographic.latitude),
-                                        targetHeight
-                                    );
-                                    camera.flyTo({
-                                        destination,
-                                        duration: 0.5, // 0.5 second animation
-                                        easingFunction: EasingFunction.LINEAR_NONE
-                                    });
-                                }
-                            }}
-                            className="bg-white/90 backdrop-blur-sm p-2 rounded-md shadow-sm hover:bg-white/100 transition-colors"
-                            title="Zoom arrière"
-                        >
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <circle cx="11" cy="11" r="8"></circle>
-                                <path d="m21 21-4.35-4.35"></path>
-                                <line x1="8" y1="11" x2="14" y2="11"></line>
-                            </svg>
-                        </button>
-                    </div>
                 </div>
             </div>
 
@@ -683,10 +699,10 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                                 <EllipseGraphics
                                     semiMajorAxis={horizonRadius}
                                     semiMinorAxis={horizonRadius}
-                                    material={backhaulColor}
+                                    material={Color.TRANSPARENT}
                                     outline={true}
-                                    outlineColor={backhaulColor.withAlpha(0.5)}
-                                    outlineWidth={2}
+                                    outlineColor={backhaulColor.withAlpha(1)}
+                                    outlineWidth={3}
                                     height={0}
                                 />
                             </Entity>
@@ -770,10 +786,6 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                     );
                 })()}
 
-
-
-
-
                 {/* Transmission Links */}
                 {(selectedPosition || selectedAircraft) && (
                     <>
@@ -806,8 +818,11 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                                             }
                                             return [startPos, endPos];
                                         }, false)}
-                                        width={1}
-                                        material={Color.PALEVIOLETRED}
+                                        width={3}
+                                        material={new PolylineDashMaterialProperty({
+                                            color: Color.PALEVIOLETRED,
+                                            dashPattern: 3855
+                                        })}
                                     />
                                 </Entity>
                                 {/* LEO Satellite → SNP (Backhaul) */}
@@ -833,8 +848,11 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                                                 })(),
                                                 getPosition(selectedSNP.lat, selectedSNP.lng, 0.01)
                                             ], false)}
-                                            width={1}
-                                            material={Color.PALEVIOLETRED}
+                                            width={3}
+                                            material={new PolylineDashMaterialProperty({
+                                                color: Color.PALEVIOLETRED,
+                                                dashPattern: 3855
+                                            })}
                                             clampToGround={false}
                                         />
                                     </Entity>
@@ -868,7 +886,10 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                                         return [startPos, endPos];
                                     }, false)}
                                     width={3}
-                                    material={Color.ROYALBLUE}
+                                    material={new PolylineDashMaterialProperty({
+                                        color: Color.ROYALBLUE,
+                                        dashPattern: 3855
+                                    })}
                                 />
                             </Entity>
                         )}
@@ -896,9 +917,12 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                                         })(),
                                         getPosition(dedicatedSNPForSelectedLEO.lat, dedicatedSNPForSelectedLEO.lng, 0)
                                     ], false)}
-                                    width={2}
+                                    width={3}
                                     clampToGround={false}
-                                    material={Color.PALEVIOLETRED}
+                                    material={new PolylineDashMaterialProperty({
+                                        color: Color.PALEVIOLETRED,
+                                        dashPattern: 3855
+                                    })}
                                 />
                             </Entity>
                         )}

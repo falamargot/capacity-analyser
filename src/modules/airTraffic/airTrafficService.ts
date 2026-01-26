@@ -35,6 +35,7 @@ const CACHE_DURATION = 60000; // 60 seconds
  */
 export async function fetchAircraftData(): Promise<Aircraft[] | null> {
   try {
+    console.log('🛩️ Fetching aircraft data from OpenSky API...');
     const response = await fetch('https://opensky-network.org/api/states/all', {
       method: 'GET',
       headers: {
@@ -44,13 +45,17 @@ export async function fetchAircraftData(): Promise<Aircraft[] | null> {
 
     if (!response.ok) {
       console.warn(`🛩️ API returned HTTP ${response.status}, using mock data`);
+      return getMockAircraftData();
     }
 
     const data: AirTrafficResponse = await response.json();
 
     if (!data.states || !Array.isArray(data.states)) {
       console.warn('🛩️ Invalid API response, using mock data');
+      return getMockAircraftData();
     }
+
+    console.log(`🛩️ Received ${data.states.length} aircraft states from API`);
 
     // Parse and filter aircraft data
     const aircraft: Aircraft[] = data.states
@@ -89,11 +94,61 @@ export async function fetchAircraftData(): Promise<Aircraft[] | null> {
         return true;
       });
 
+    console.log(`🛩️ Filtered to ${aircraft.length} valid aircraft`);
     return aircraft;
   } catch (error) {
-    console.warn('Failed to fetch aircraft data:', error);
-    return null;
+    console.warn('🛩️ Failed to fetch aircraft data, using mock data:', error);
+    return getMockAircraftData();
   }
+}
+
+/**
+ * Generate mock aircraft data for testing
+ */
+function getMockAircraftData(): Aircraft[] {
+  console.log('🛩️ Using mock aircraft data');
+  
+  return [
+    {
+      icao24: 'a80897',
+      callsign: 'AF1234',
+      latitude: 48.8566,
+      longitude: 2.3522,
+      baro_altitude: 10668, // 35,000 feet
+      velocity: 250, // m/s
+      heading: 270,
+      on_ground: false,
+      last_contact: Date.now() / 1000,
+      altitude_km: 10.668,
+      speed_kmh: 900
+    },
+    {
+      icao24: 'a1b2c3',
+      callsign: 'LH5678',
+      latitude: 51.5074,
+      longitude: -0.1278,
+      baro_altitude: 11277, // 37,000 feet
+      velocity: 240,
+      heading: 90,
+      on_ground: false,
+      last_contact: Date.now() / 1000,
+      altitude_km: 11.277,
+      speed_kmh: 864
+    },
+    {
+      icao24: 'd4e5f6',
+      callsign: 'BA9012',
+      latitude: 40.7128,
+      longitude: -74.0060,
+      baro_altitude: 11887, // 39,000 feet
+      velocity: 260,
+      heading: 45,
+      on_ground: false,
+      last_contact: Date.now() / 1000,
+      altitude_km: 11.887,
+      speed_kmh: 936
+    }
+  ];
 }
 
 /**

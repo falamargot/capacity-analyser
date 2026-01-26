@@ -151,10 +151,79 @@ export function useAirTrafficInterpolation(
   enabled: boolean = true
 ) {
   const [interpolatedAircraft, setInterpolatedAircraft] = useState<Aircraft[]>(aircraft);
+  const previousAircraftRef = useRef<Aircraft[]>([]);
+  const animationFrameRef = useRef<number | null>(null);
 
-  // Update state immediately when aircraft data changes
+  // Smooth interpolation between previous and new positions
   useEffect(() => {
-    setInterpolatedAircraft(aircraft);
+    if (!enabled) {
+      setInterpolatedAircraft(aircraft);
+      return;
+    }
+
+    // Cancel any existing animation
+    if (animationFrameRef.current) {
+      cancelAnimationFrame(animationFrameRef.current);
+    }
+
+    const previousAircraft = previousAircraftRef.current;
+    previousAircraftRef.current = [...aircraft];
+
+    // If no previous data, set immediately
+    if (previousAircraft.length === 0) {
+      setInterpolatedAircraft(aircraft);
+      return;
+    }
+
+    let startTime: number | null = null;
+    const duration = 2000; // 2 seconds for smooth transition
+
+    const interpolate = (timestamp: number) => {
+      if (!startTime) startTime = timestamp;
+      const progress = Math.min((timestamp - startTime) / duration, 1);
+
+      // Use easing function for smoother motion
+      const easeProgress = 1 - Math.pow(1 - progress, 3); // Cubic ease-out
+
+      const updatedAircraft = aircraft.map(newAc => {
+        const prevAc = previousAircraft.find(p => p.icao24 === newAc.icao24);
+        
+        if (!prevAc) {
+          // New aircraft, fade in
+          return { ...newAc };
+        }
+
+        // Interpolate position
+        const lat = (prevAc.latitude || 0) + ((newAc.latitude || 0) - (prevAc.latitude || 0)) * easeProgress;
+        const lng = (prevAc.longitude || 0) + ((newAc.longitude || 0) - (prevAc.longitude || 0)) * easeProgress;
+        const alt = (prevAc.altitude_km || 0) + ((newAc.altitude_km || 0) - (prevAc.altitude_km || 0)) * easeProgress;
+        const speed = (prevAc.speed_kmh || 0) + ((newAc.speed_kmh || 0) - (prevAc.speed_kmh || 0)) * easeProgress;
+        const heading = (prevAc.heading || 0) + ((newAc.heading || 0) - (prevAc.heading || 0)) * easeProgress;
+
+        return {
+          ...newAc,
+          latitude: lat,
+          longitude: lng,
+          altitude_km: alt,
+          speed_kmh: speed,
+          heading: heading
+        };
+      });
+
+      setInterpolatedAircraft(updatedAircraft);
+
+      if (progress < 1) {
+        animationFrameRef.current = requestAnimationFrame(interpolate);
+      }
+    };
+
+    animationFrameRef.current = requestAnimationFrame(interpolate);
+
+    return () => {
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+      }
+    };
   }, [aircraft, enabled]);
 
   return interpolatedAircraft;

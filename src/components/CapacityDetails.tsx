@@ -28,13 +28,27 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
     coveredSatellites: []
   });
 
-  type TerminalType = 'fixed' | 'portable' | 'aviation' | 'maritime';
+  type TerminalType = 'fixed' | 'mobile' | 'aviation' | 'maritime';
 
   const [terminalType, setTerminalType] = useState<TerminalType>('fixed');
+  const [previousAnalysisSource, setPreviousAnalysisSource] = useState<'earth' | 'aircraft' | undefined>(undefined);
+
+  // Auto-select aviation terminal type when aircraft is selected
+  useEffect(() => {
+    if (analysisSource === 'aircraft' && terminalType !== 'aviation') {
+      setTerminalType('aviation');
+    } else if (analysisSource === 'earth' && previousAnalysisSource === 'aircraft' && terminalType === 'aviation') {
+      // Reset to fixed only when switching from aircraft to earth analysis
+      setTerminalType('fixed');
+    }
+    
+    // Update previous analysis source for next comparison
+    setPreviousAnalysisSource(analysisSource);
+  }, [analysisSource, terminalType, previousAnalysisSource]);
 
   const TERMINAL_PROFILES: Record<TerminalType, { label: string; maxDlGbps: number; maxUlGbps: number }> = {
     fixed: { label: 'Fixed', maxDlGbps: 0.25, maxUlGbps: 0.05 },
-    portable: { label: 'Portable', maxDlGbps: 0.10, maxUlGbps: 0.02 },
+    mobile: { label: 'Mobile', maxDlGbps: 0.10, maxUlGbps: 0.02 },
     aviation: { label: 'Aviation', maxDlGbps: 0.15, maxUlGbps: 0.03 },
     maritime: { label: 'Maritime', maxDlGbps: 0.20, maxUlGbps: 0.04 }
   };
@@ -565,10 +579,26 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
                     Position: ({formatCoordinates({lat: selectedSNP.lat, lng: selectedSNP.lng})})
                   </div>
                 </div>
-              ) : nearestLocation && (
+              ) : analysisSource === 'aircraft' && aircraftCallsign ? (
+                <div className="text-sm text-gray-500 mt-0.1">
+                  <span>Aircraft: {aircraftCallsign}</span>
+                  <span className="ml-2 text-xs text-gray-400">
+                    Altitude: {activePoint?.altitude ? `${activePoint.altitude.toFixed(1)} km` : 'Unknown'}
+                  </span>
+                </div>
+              ) : nearestLocation ? (
                 <div className="text-sm text-gray-500 mt-0.1">
                   {nearestLocation.country}
                   {nearestLocation.city && ` (Near ${nearestLocation.city})`}
+                  <div className="text-xs text-gray-400 mt-0.5">
+                    Altitude: {activePoint?.altitude ? `${activePoint.altitude.toFixed(1)} km` : 'Ground level'}
+                  </div>
+                </div>
+              ) : (
+                <div className="text-sm text-gray-500 mt-0.1">
+                  <div className="text-xs text-gray-400 mt-0.5">
+                    Altitude: {activePoint?.altitude ? `${activePoint.altitude.toFixed(1)} km` : 'Ground level'}
+                  </div>
                 </div>
               )}
             </div>
@@ -586,18 +616,20 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
                     value={terminalType}
                     onChange={(e) => setTerminalType(e.target.value as TerminalType)}
                     className="flex-1 pl-3 pr-8 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none bg-white text-sm"
+                    disabled={analysisSource === 'aircraft'}
                     style={{
-                      backgroundImage: `url("data:image/svg+xml;charset=US-ASCII,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 4 5'%3E%3Cpath fill='%236B7280' d='M2 0L0 2h4zm0 5L0 3h4z'/%3E%3C/svg>")`,
+                      backgroundImage: analysisSource === 'aircraft' ? 'none' : `url("data:image/svg+xml;charset=US-ASCII,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 4 5'%3E%3Cpath fill='%236B7280' d='M2 0L0 2h4zm0 5L0 3h4z'/%3E%3C/svg>")`,
                       backgroundRepeat: 'no-repeat',
                       backgroundPosition: 'right .5rem center',
-                      backgroundSize: '.8em .8em'
+                      backgroundSize: '.8em .8em',
+                      opacity: analysisSource === 'aircraft' ? 0.5 : 1
                     }}
                   >
                     {Object.entries(TERMINAL_PROFILES).map(([key, p]) => (
                       <option key={key} value={key}>
                         {(() => {
                           const icon = key === 'fixed' ? '🏠 ' : 
-                                       key === 'portable' ? '🚐 ' : 
+                                       key === 'mobile' ? '🚐 ' : 
                                        key === 'aviation' ? '✈️ ' : '🚢 ';
                           return `${icon}${p.label}`;
                         })()}
@@ -652,7 +684,7 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
                       }}
                       disabled={terminalType === 'aviation'}
                     />
-                    <span>Auto</span>
+                    <span>Real</span>
                   </label>
                 </div>
               </div>
