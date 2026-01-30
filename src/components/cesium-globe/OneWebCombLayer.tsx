@@ -127,11 +127,11 @@ const OneWebCombLayer: React.FC<OneWebCombLayerProps> = ({
                 <EllipseGraphics
                     semiMajorAxis={horizonRadius}
                     semiMinorAxis={horizonRadius}
-                    material={Color.TRANSPARENT}
+                    material={backhaulColor.withAlpha(0)}
                     outline={true}
                     outlineColor={backhaulColor.withAlpha(1)}
                     outlineWidth={3}
-                    height={0}
+                    height={2500}
                 />
             </Entity>
 
@@ -140,11 +140,11 @@ const OneWebCombLayer: React.FC<OneWebCombLayerProps> = ({
                 <EllipseGraphics
                     semiMajorAxis={STANDARD_RADIUS_KM * 1000}
                     semiMinorAxis={STANDARD_RADIUS_KM * 1000}
-                    material={standardColorFill}
+                    material={standardColorFill.withAlpha(0.3)}
                     outline={true}
-                    outlineColor={standardColorOutline}
+                    outlineColor={standardColorOutline.withAlpha(1)}
                     outlineWidth={2}
-                    height={0}
+                    height={1000}
                 />
             </Entity>
 

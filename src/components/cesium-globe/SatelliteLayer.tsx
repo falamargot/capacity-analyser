@@ -85,7 +85,7 @@ const SatelliteEntity = React.memo<{
         ? Color.RED
         : sat.type === 'EUTELSAT'
             ? Color.ROYALBLUE
-            : Color.PALEVIOLETRED;
+            : Color.DEEPPINK;
 
     return (
         <Entity

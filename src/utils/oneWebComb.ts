@@ -8,7 +8,7 @@ export const BEAM_LENGTH_KM = 1080;
 export const TOTAL_SWATH_WIDTH_KM = BEAM_WIDTH_KM * TOTAL_BEAMS; // 1080 km
 
 // Colors
-const COLOR_STANDARD_GREEN = Color.fromBytes(20, 147, 67, 255);
+const COLOR_STANDARD_PINK = Color.fromBytes(219, 39, 119, 255);
 
 /**
  * Calculate the pitch angle for GSO Avoidance detection
@@ -206,7 +206,7 @@ export function getBeamColor(
 ): Color {
     const isEven = beamIndex % 2 === 0;
     const alpha = isEven ? 0.45 : 0.6;
-    return COLOR_STANDARD_GREEN.withAlpha(alpha);
+    return COLOR_STANDARD_PINK.withAlpha(alpha);
 }
 
 export const DUMMY_COMB_GEOMETRY = [

@@ -37,6 +37,7 @@ import AircraftLayer from './cesium-globe/AircraftLayer';
 import SnpLayer from './cesium-globe/SnpLayer';
 import CoverageLayer from './cesium-globe/CoverageLayer';
 import OneWebCombLayer from './cesium-globe/OneWebCombLayer';
+import AggregatedCoverageVolumeLayer from './cesium-globe/AggregatedCoverageVolumeLayer';
 import TransmissionLinks from './cesium-globe/TransmissionLinks';
 import TrajectoryLayer from './cesium-globe/TrajectoryLayer';
 
@@ -323,6 +324,14 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                 {/* OneWeb Comb Layer */}
                 <OneWebCombLayer
                     targetSat={oneWebTargetSat}
+                    viewerRef={viewerRef}
+                />
+
+                {/* Aggregated coverage volume (manual satellite selection only) */}
+                <AggregatedCoverageVolumeLayer
+                    selectedSatellite={selectedSatellite}
+                    satellites={satellites}
+                    coverageFeatures={coverageFeatures}
                     viewerRef={viewerRef}
                 />
 

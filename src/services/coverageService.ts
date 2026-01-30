@@ -71,14 +71,14 @@ export const getCoverageColor = (
   //   -> all coverages are GRAY (neutral color for no service)
 
   if (type === 'ONEWEB_STANDARD') {
-    // Dark green if SNP covered, gray otherwise
-    const baseColor = hasSNP ? '20, 147, 67' : '107, 114, 128'; // Green vs Gray
+    // Dark pink if SNP covered, gray otherwise
+    const baseColor = hasSNP ? '219, 39, 119' : '107, 114, 128'; // Pink vs Gray
     return `rgba(${baseColor}, ${opacity})`;
   }
 
   if (type === 'ONEWEB_BACKHAUL') {
-    // Light green if SNP covered, light gray otherwise
-    const baseColor = hasSNP ? '20, 147, 67' : '156, 163, 175'; // Green vs Light Gray
+    // Light pink if SNP covered, light gray otherwise
+    const baseColor = hasSNP ? '219, 39, 119' : '156, 163, 175'; // Pink vs Light Gray
     return `rgba(${baseColor}, ${opacity * 0.3})`;
   }
 
