@@ -5,9 +5,11 @@ import SatelliteSelector from './components/SatelliteSelector';
 import AircraftSelector from './components/AircraftSelector';
 import SatelliteScopeFilter, { SatelliteScope } from './components/SatelliteScopeFilter';
 import { Search, Satellite } from 'lucide-react';
+import BottomSheet from './components/layout/BottomSheet';
+import MobileAnalysisSummary from './components/layout/MobileAnalysisSummary';
 import { calculatePosition, fetchSatellites } from './services/satelliteService';
 import { SatelliteData } from './types/satellites';
-import type { GEOBeam, SelectedSNP } from './types/analyzis';
+import type { GEOBeam, SelectedSNP } from './types/analysis';
 import { calculateCoverages, destinationPoint } from './utils/coverageCalculator';
 import { footprintRadiusKm, BACKHAUL_ELEVATION_DEG, STANDARD_ELEVATION_DEG } from './utils/leoFootprint';
 import { Feature, Geometry, GeoJsonProperties } from 'geojson';
@@ -46,6 +48,7 @@ const App: React.FC = () => {
   const [airTrafficEnabled, setAirTrafficEnabled] = useState(false);
   const [showSatelliteTrajectory, setShowSatelliteTrajectory] = useState(false);
   const [sizeScale, setSizeScale] = useState(1); // 0.5, 1, 2, 4, 8
+  const [mobileSheetSnap, setMobileSheetSnap] = useState<0 | 1 | 2>(0);
   const viewerRef = useRef<any>(null);
   const globeContainerRef = useRef<HTMLDivElement>(null);
 
@@ -113,6 +116,23 @@ const App: React.FC = () => {
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+
+  useEffect(() => {
+    if (!isMobile) return;
+    if (isFullscreen) return;
+
+    const hasSelection = !!(selectedPosition || analyzisPosition || selectedSatellite || selectedAircraft);
+    if (!hasSelection) {
+      setMobileSheetSnap(0);
+    }
+  }, [
+    isMobile,
+    isFullscreen,
+    selectedPosition,
+    analyzisPosition,
+    selectedSatellite,
+    selectedAircraft,
+  ]);
 
   useEffect(() => {
     const loadSatellites = async () => {
@@ -415,15 +435,9 @@ const App: React.FC = () => {
       // Display LEO coverage ONLY from resolved auto-selected LEO
       resolvedAutoLEO.coverages.forEach((c: any) => features.push(c.feature));
     } else if (satelliteScope === 'GEO' && resolvedAutoGEO) {
-      // Display GEO coverage - if satellite is manually selected, show all coverages
-      if (liveSelectedSatellite && liveSelectedSatellite.type === 'EUTELSAT') {
-        // Satellite inspection mode: show all coverages of manually selected GEO satellite
-        liveSelectedSatellite.coverages.forEach(c => features.push(c.feature));
-      } else {
-        // Auto-selection mode: show only selected beam
-        if (selectedGEOBeam) {
-          features.push(selectedGEOBeam.feature);
-        }
+      // Auto-selection mode: show only selected beam
+      if (selectedGEOBeam) {
+        features.push(selectedGEOBeam.feature);
       }
     } else if (satelliteScope === 'ALL') {
       // Display both LEO and GEO coverage from resolved auto-selected satellites
@@ -431,14 +445,9 @@ const App: React.FC = () => {
         resolvedAutoLEO.coverages.forEach((c: any) => features.push(c.feature));
       }
       if (resolvedAutoGEO) {
-        if (liveSelectedSatellite && liveSelectedSatellite.type === 'EUTELSAT') {
-          // Satellite inspection mode: show all coverages of manually selected GEO satellite
-          liveSelectedSatellite.coverages.forEach((c: any) => features.push(c.feature));
-        } else {
-          // Auto-selection mode: show only selected beam
-          if (selectedGEOBeam) {
-            features.push(selectedGEOBeam.feature);
-          }
+        // Auto-selection mode: show only selected beam
+        if (selectedGEOBeam) {
+          features.push(selectedGEOBeam.feature);
         }
       }
     }
@@ -558,7 +567,17 @@ const App: React.FC = () => {
 
   // Performance optimization: Memoize event handlers to prevent unnecessary re-renders
   const handleSnpClick = useCallback((snpName: string | { lat: number; lng: number; name: string } | null) => {
-    setSelectedSNP(snpName);
+    if (!snpName) {
+      setSelectedSNP(null);
+      return;
+    }
+
+    if (typeof snpName === 'string') {
+      setSelectedSNP(SNPS_DATA.find(snp => snp.name === snpName) ?? null);
+      return;
+    }
+
+    setSelectedSNP(SNPS_DATA.find(snp => snp.name === snpName.name) ?? null);
   }, []);
 
   const handleAircraftHover = useCallback((_aircraft: Aircraft | null) => {
@@ -814,87 +833,148 @@ const App: React.FC = () => {
     <div className="min-h-screen bg-gray-50">
       <header className="bg-white shadow-sm">
         <div className="max-w-[1920px] mx-auto px-4 py-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-            <div className="flex items-center">
-              <Satellite className="h-8 w-8 text-blue-600" />
-              <h1 className="ml-2 text-2xl font-bold text-gray-900">Eutelsat Capacity Analyzer</h1>
-            </div>
-            <div className="flex items-center w-full sm:w-auto gap-4">
-              <SatelliteScopeFilter
-                currentScope={satelliteScope}
-                onScopeChange={handleSatelliteScopeChange}
-              />
-              <SatelliteSelector
-                satellites={satellites}
-                onSelect={handleSatelliteSelectFromUI}
-                selectedSatellite={selectedSatellite}
-                satelliteScope={satelliteScope}
-              />
-              <div className="relative flex-1 sm:flex-none">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-                <form onSubmit={handleSearchInput}>
-                  <input
-                    type="text"
-                    name="search"
-                    placeholder="Search location..."
-                    className="w-full sm:w-64 pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                  />
-                </form>
+          {isMobile ? (
+            <div className="flex flex-col gap-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center min-w-0">
+                  <Satellite className="h-7 w-7 text-blue-600 flex-shrink-0" />
+                  <h1 className="ml-2 text-lg font-bold text-gray-900 truncate">Capacity Analyzer</h1>
+                </div>
               </div>
-              <AircraftSelector
-                aircraft={airTraffic.aircraft}
-                selectedAircraft={selectedAircraft}
-                onSelect={(aircraft) => handleAircraftSelect(aircraft, true)}
-                liveModeEnabled={airTrafficEnabled}
-                onToggleLiveMode={() => setAirTrafficEnabled(!airTrafficEnabled)}
-              />
+              <div className="flex items-center gap-3 overflow-x-auto pb-1">
+                <div className="flex-shrink-0">
+                  <SatelliteScopeFilter
+                    currentScope={satelliteScope}
+                    onScopeChange={handleSatelliteScopeChange}
+                  />
+                </div>
+                <div className="flex-shrink-0 w-56">
+                  <SatelliteSelector
+                    satellites={satellites}
+                    onSelect={handleSatelliteSelectFromUI}
+                    selectedSatellite={selectedSatellite}
+                    satelliteScope={satelliteScope}
+                  />
+                </div>
+                <div className="relative flex-shrink-0 w-44">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                  <form onSubmit={handleSearchInput}>
+                    <input
+                      type="text"
+                      name="search"
+                      placeholder="Search"
+                      className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                    />
+                  </form>
+                </div>
+                <div className="flex-shrink-0">
+                  <AircraftSelector
+                    aircraft={airTraffic.aircraft}
+                    selectedAircraft={selectedAircraft}
+                    onSelect={(aircraft) => handleAircraftSelect(aircraft, true)}
+                    liveModeEnabled={airTrafficEnabled}
+                    onToggleLiveMode={() => setAirTrafficEnabled(!airTrafficEnabled)}
+                  />
+                </div>
+              </div>
             </div>
-          </div>
+          ) : (
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="flex items-center">
+                <Satellite className="h-8 w-8 text-blue-600" />
+                <h1 className="ml-2 text-2xl font-bold text-gray-900">Eutelsat Capacity Analyzer</h1>
+              </div>
+              <div className="flex items-center w-full sm:w-auto gap-4">
+                <SatelliteScopeFilter
+                  currentScope={satelliteScope}
+                  onScopeChange={handleSatelliteScopeChange}
+                />
+                <SatelliteSelector
+                  satellites={satellites}
+                  onSelect={handleSatelliteSelectFromUI}
+                  selectedSatellite={selectedSatellite}
+                  satelliteScope={satelliteScope}
+                />
+                <div className="relative flex-1 sm:flex-none">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                  <form onSubmit={handleSearchInput}>
+                    <input
+                      type="text"
+                      name="search"
+                      placeholder="Search location..."
+                      className="w-full sm:w-64 pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                    />
+                  </form>
+                </div>
+                <AircraftSelector
+                  aircraft={airTraffic.aircraft}
+                  selectedAircraft={selectedAircraft}
+                  onSelect={(aircraft) => handleAircraftSelect(aircraft, true)}
+                  liveModeEnabled={airTrafficEnabled}
+                  onToggleLiveMode={() => setAirTrafficEnabled(!airTrafficEnabled)}
+                />
+              </div>
+            </div>
+          )}
         </div>
       </header>
 
-      <main className="px-4 py-6 sm:px-6 lg:px-8">
-        <div className={`flex ${isMobile ? 'flex-col' : 'flex-row'} gap-8 h-[calc(100vh-8rem)]`}>
-          <div className={`flex-1 bg-white rounded-lg shadow-lg overflow-hidden transition-all duration-300 ${isFullscreen ? 'fixed top-[6rem] bottom-4 left-4 right-4 z-50' : ''
-            }`}>
-            <MapViewSwitcher
-              satellites={filteredSatellites}
-              coverageFeatures={coverageFeaturesMemo}
-              onPointClick={handlePointClick}
-              selectedPosition={selectedPosition}
-              onSatelliteClick={handleSatelliteClick}
-              onSatelliteHover={handleSatelliteHover}
-              onSnpClick={handleSnpClick}
-              onSnpHover={handleSnpHover}
-              selectedSatellite={selectedSatellite}
-              autoSelectedLEOSatellite={resolvedAutoLEO}
-              autoSelectedGEOSatellite={resolvedAutoGEO}
-              selectedSNP={selectedSNP}
-              dedicatedSNPForSelectedLEO={null}
-              isFullscreen={isFullscreen}
-              onToggleFullscreen={() => setIsFullscreen(!isFullscreen)}
-              satelliteScope={satelliteScope}
-              airTrafficEnabled={airTrafficEnabled}
-              aircraft={interpolatedAircraft}
-              selectedAircraft={selectedAircraft}
-              onAircraftClick={handleAircraftSelect}
-              onAircraftHover={handleAircraftHover}
-              cameraTarget={cameraTarget}
-              onCameraReady={handleCameraReady}
-              onGlobeContainerReady={handleGlobeContainerReady}
-              showSatelliteTrajectory={showSatelliteTrajectory}
-              sizeScale={sizeScale}
-              onToggleSatelliteTrajectory={() => setShowSatelliteTrajectory(!showSatelliteTrajectory)}
-              onSizeScaleChange={setSizeScale}
-            />
-          </div>
-          <div className={`${isMobile ? 'w-full' : 'flex-shrink-0 w-[500px]'} bg-white rounded-lg shadow-lg overflow-hidden`}>
-            {!isFullscreen && (
-              <div
-                className={`w-full ${!selectedPosition && !selectedSatellite && !selectedAircraft && isMobile ? 'hidden' : ''
-                  } overflow-y-auto max-h-[calc(100vh-8rem)]`}
+      {isMobile ? (
+        <main className="px-0 py-0 sm:px-0 sm:py-0 lg:px-0 lg:py-0">
+          <div className="relative h-[calc(100vh-7rem)]">
+            <div
+              className={`absolute inset-0 bg-white overflow-hidden transition-all duration-300 ${isFullscreen ? 'fixed inset-0 z-50' : ''}`}
+            >
+              <MapViewSwitcher
+                satellites={filteredSatellites}
+                coverageFeatures={coverageFeaturesMemo}
+                onPointClick={handlePointClick}
+                selectedPosition={selectedPosition}
+                onSatelliteClick={handleSatelliteClick}
+                onSatelliteHover={handleSatelliteHover}
+                onSnpClick={handleSnpClick}
+                onSnpHover={handleSnpHover}
+                selectedSatellite={selectedSatellite}
+                autoSelectedLEOSatellite={resolvedAutoLEO}
+                autoSelectedGEOSatellite={resolvedAutoGEO}
+                selectedSNP={selectedSNP}
+                dedicatedSNPForSelectedLEO={null}
+                isFullscreen={isFullscreen}
+                onToggleFullscreen={() => setIsFullscreen(!isFullscreen)}
+                satelliteScope={satelliteScope}
+                airTrafficEnabled={airTrafficEnabled}
+                aircraft={interpolatedAircraft}
+                selectedAircraft={selectedAircraft}
+                onAircraftClick={handleAircraftSelect}
+                onAircraftHover={handleAircraftHover}
+                cameraTarget={cameraTarget}
+                onCameraReady={handleCameraReady}
+                onGlobeContainerReady={handleGlobeContainerReady}
+                showSatelliteTrajectory={showSatelliteTrajectory}
+                sizeScale={sizeScale}
+                onToggleSatelliteTrajectory={() => setShowSatelliteTrajectory(!showSatelliteTrajectory)}
+                onSizeScaleChange={setSizeScale}
+              />
+            </div>
+
+            {!isFullscreen && (selectedPosition || analyzisPosition || selectedSatellite || selectedAircraft) && (
+              <BottomSheet
+                snap={mobileSheetSnap}
+                onSnapChange={setMobileSheetSnap}
+                snapPoints={[0.18, 0.5, 0.88]}
+                header={(
+                  <MobileAnalysisSummary
+                    satellites={filteredSatellites}
+                    selectedPoint={analyzisPosition || selectedPosition}
+                    selectedSatellite={selectedSatellite}
+                    autoSelectedLEOSatellite={resolvedAutoLEO}
+                    autoSelectedGEOSatellite={resolvedAutoGEO}
+                  />
+                )}
               >
                 <CapacityDetails
                   satellites={filteredSatellites}
@@ -904,17 +984,72 @@ const App: React.FC = () => {
                   autoSelectedGEOSatellite={resolvedAutoGEO}
                   satelliteScope={satelliteScope}
                   onSelectedGEOBeamChange={handleSelectedGEOBeamChange}
-                  analyzisSource={selectedAircraft ? 'aircraft' : analyzisPosition ? 'earth' : undefined}
+                  analysisSource={selectedAircraft ? 'aircraft' : analyzisPosition ? 'earth' : undefined}
                   aircraftCallsign={selectedAircraft?.callsign}
                   selectedSNP={selectedSNP}
-                  globeRef={globeContainerRef}
-                  cesiumViewer={viewerRef.current}
                 />
-              </div>
+              </BottomSheet>
             )}
           </div>
-        </div>
-      </main>
+        </main>
+      ) : (
+        <main className="px-4 py-6 sm:px-6 lg:px-8">
+          <div className={`flex flex-row gap-8 h-[calc(100vh-8rem)]`}>
+            <div
+              className={`flex-1 bg-white rounded-lg shadow-lg overflow-hidden transition-all duration-300 ${isFullscreen ? 'fixed top-[6rem] bottom-4 left-4 right-4 z-50' : ''}`}
+            >
+              <MapViewSwitcher
+                satellites={filteredSatellites}
+                coverageFeatures={coverageFeaturesMemo}
+                onPointClick={handlePointClick}
+                selectedPosition={selectedPosition}
+                onSatelliteClick={handleSatelliteClick}
+                onSatelliteHover={handleSatelliteHover}
+                onSnpClick={handleSnpClick}
+                onSnpHover={handleSnpHover}
+                selectedSatellite={selectedSatellite}
+                autoSelectedLEOSatellite={resolvedAutoLEO}
+                autoSelectedGEOSatellite={resolvedAutoGEO}
+                selectedSNP={selectedSNP}
+                dedicatedSNPForSelectedLEO={null}
+                isFullscreen={isFullscreen}
+                onToggleFullscreen={() => setIsFullscreen(!isFullscreen)}
+                satelliteScope={satelliteScope}
+                airTrafficEnabled={airTrafficEnabled}
+                aircraft={interpolatedAircraft}
+                selectedAircraft={selectedAircraft}
+                onAircraftClick={handleAircraftSelect}
+                onAircraftHover={handleAircraftHover}
+                cameraTarget={cameraTarget}
+                onCameraReady={handleCameraReady}
+                onGlobeContainerReady={handleGlobeContainerReady}
+                showSatelliteTrajectory={showSatelliteTrajectory}
+                sizeScale={sizeScale}
+                onToggleSatelliteTrajectory={() => setShowSatelliteTrajectory(!showSatelliteTrajectory)}
+                onSizeScaleChange={setSizeScale}
+              />
+            </div>
+            <div className="flex-shrink-0 w-[500px] bg-white rounded-lg shadow-lg overflow-hidden">
+              {!isFullscreen && (
+                <div className="w-full overflow-y-auto max-h-[calc(100vh-8rem)]">
+                  <CapacityDetails
+                    satellites={filteredSatellites}
+                    selectedPoint={analyzisPosition || selectedPosition}
+                    selectedSatellite={selectedSatellite}
+                    autoSelectedLEOSatellite={resolvedAutoLEO}
+                    autoSelectedGEOSatellite={resolvedAutoGEO}
+                    satelliteScope={satelliteScope}
+                    onSelectedGEOBeamChange={handleSelectedGEOBeamChange}
+                    analysisSource={selectedAircraft ? 'aircraft' : analyzisPosition ? 'earth' : undefined}
+                    aircraftCallsign={selectedAircraft?.callsign}
+                    selectedSNP={selectedSNP}
+                  />
+                </div>
+              )}
+            </div>
+          </div>
+        </main>
+      )}
     </div>
   );
 };
