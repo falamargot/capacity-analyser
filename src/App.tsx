@@ -4,7 +4,7 @@ import CapacityDetails from './components/CapacityDetails';
 import SatelliteSelector from './components/SatelliteSelector';
 import AircraftSelector from './components/AircraftSelector';
 import SatelliteScopeFilter, { SatelliteScope } from './components/SatelliteScopeFilter';
-import { Search, Satellite } from 'lucide-react';
+import { Search, Satellite, X } from 'lucide-react';
 import BottomSheet from './components/layout/BottomSheet';
 import MobileAnalysisSummary from './components/layout/MobileAnalysisSummary';
 import { calculatePosition, fetchSatellites } from './services/satelliteService';
@@ -32,6 +32,7 @@ const App: React.FC = () => {
   const [satellites, setSatellites] = useState<SatelliteData[]>([]);
   const [loading, setLoading] = useState(true);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
+  const [isPhone, setIsPhone] = useState(window.innerWidth < 768);
   const [selectedPosition, setSelectedPosition] = useState<{ lat: number; lng: number; altitude?: number } | null>(null);
   const [analyzisPosition, setAnalyzisPosition] = useState<AnalyzisPosition | null>(null);
   const [cameraTarget, setCameraTarget] = useState<{ lat: number; lng: number; alt: number } | null>(null);
@@ -49,6 +50,7 @@ const App: React.FC = () => {
   const [showSatelliteTrajectory, setShowSatelliteTrajectory] = useState(false);
   const [sizeScale, setSizeScale] = useState(1); // 0.5, 1, 2, 4, 8
   const [mobileSheetSnap, setMobileSheetSnap] = useState<0 | 1 | 2>(0);
+  const [isSatelliteModalOpen, setIsSatelliteModalOpen] = useState(false);
   const viewerRef = useRef<any>(null);
   const globeContainerRef = useRef<HTMLDivElement>(null);
 
@@ -112,7 +114,10 @@ const App: React.FC = () => {
   };
 
   useEffect(() => {
-    const handleResize = () => setIsMobile(window.innerWidth < 1024);
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 1024);
+      setIsPhone(window.innerWidth < 768);
+    };
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
@@ -832,54 +837,79 @@ const App: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       <header className="bg-white shadow-sm">
-        <div className="max-w-[1920px] mx-auto px-4 py-4 sm:px-6 lg:px-8">
+        <div className="max-w-[1920px] mx-auto px-4 py-0 md:py-4 sm:px-6 lg:px-8">
           {isMobile ? (
-            <div className="flex flex-col gap-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center min-w-0">
-                  <Satellite className="h-7 w-7 text-blue-600 flex-shrink-0" />
-                  <h1 className="ml-2 text-lg font-bold text-gray-900 truncate">Capacity Analyzer</h1>
+            isPhone ? (
+              <div className="h-14 flex items-center justify-between gap-3">
+                <div className="flex items-center flex-shrink-0">
+                  <Satellite className="h-6 w-6 text-blue-600" />
                 </div>
-              </div>
-              <div className="flex items-center gap-3 overflow-x-auto pb-1">
-                <div className="flex-shrink-0">
+
+                <div className="flex-1 min-w-0 flex items-center justify-center">
                   <SatelliteScopeFilter
                     currentScope={satelliteScope}
                     onScopeChange={handleSatelliteScopeChange}
+                    compact={true}
                   />
                 </div>
-                <div className="flex-shrink-0 w-56">
-                  <SatelliteSelector
-                    satellites={satellites}
-                    onSelect={handleSatelliteSelectFromUI}
-                    selectedSatellite={selectedSatellite}
-                    satelliteScope={satelliteScope}
-                  />
+
+                <button
+                  type="button"
+                  onClick={() => setIsSatelliteModalOpen(true)}
+                  className="flex-shrink-0 p-2 rounded-lg bg-gray-100 text-gray-800"
+                  aria-label="Open satellite selection"
+                >
+                  <Satellite className="h-5 w-5" />
+                </button>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center min-w-0">
+                    <Satellite className="h-7 w-7 text-blue-600 flex-shrink-0" />
+                    <h1 className="ml-2 text-lg font-bold text-gray-900 truncate">Capacity Analyzer</h1>
+                  </div>
                 </div>
-                <div className="relative flex-shrink-0 w-44">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-                  <form onSubmit={handleSearchInput}>
-                    <input
-                      type="text"
-                      name="search"
-                      placeholder="Search"
-                      className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
+                <div className="flex items-center gap-3 overflow-x-auto pb-1">
+                  <div className="flex-shrink-0">
+                    <SatelliteScopeFilter
+                      currentScope={satelliteScope}
+                      onScopeChange={handleSatelliteScopeChange}
                     />
-                  </form>
-                </div>
-                <div className="flex-shrink-0">
-                  <AircraftSelector
-                    aircraft={airTraffic.aircraft}
-                    selectedAircraft={selectedAircraft}
-                    onSelect={(aircraft) => handleAircraftSelect(aircraft, true)}
-                    liveModeEnabled={airTrafficEnabled}
-                    onToggleLiveMode={() => setAirTrafficEnabled(!airTrafficEnabled)}
-                  />
+                  </div>
+                  <div className="flex-shrink-0 w-56">
+                    <SatelliteSelector
+                      satellites={satellites}
+                      onSelect={handleSatelliteSelectFromUI}
+                      selectedSatellite={selectedSatellite}
+                      satelliteScope={satelliteScope}
+                    />
+                  </div>
+                  <div className="relative flex-shrink-0 w-44">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                    <form onSubmit={handleSearchInput}>
+                      <input
+                        type="text"
+                        name="search"
+                        placeholder="Search"
+                        className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                      />
+                    </form>
+                  </div>
+                  <div className="flex-shrink-0">
+                    <AircraftSelector
+                      aircraft={airTraffic.aircraft}
+                      selectedAircraft={selectedAircraft}
+                      onSelect={(aircraft) => handleAircraftSelect(aircraft, true)}
+                      liveModeEnabled={airTrafficEnabled}
+                      onToggleLiveMode={() => setAirTrafficEnabled(!airTrafficEnabled)}
+                    />
+                  </div>
                 </div>
               </div>
-            </div>
+            )
           ) : (
             <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
               <div className="flex items-center">
@@ -923,9 +953,62 @@ const App: React.FC = () => {
         </div>
       </header>
 
+      {isMobile && isPhone && isSatelliteModalOpen && (
+        <div className="fixed inset-0 z-[60] bg-white">
+          <div className="h-14 flex items-center justify-between px-4 border-b border-gray-200">
+            <div className="text-sm font-semibold text-gray-900">Controls</div>
+            <button
+              type="button"
+              onClick={() => setIsSatelliteModalOpen(false)}
+              className="p-2 rounded-lg bg-gray-100 text-gray-800"
+              aria-label="Close"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+
+          <div className="p-4 flex flex-col gap-4">
+            <SatelliteSelector
+              satellites={satellites}
+              onSelect={(sat) => {
+                handleSatelliteSelectFromUI(sat);
+                setIsSatelliteModalOpen(false);
+              }}
+              selectedSatellite={selectedSatellite}
+              satelliteScope={satelliteScope}
+            />
+
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+              <form onSubmit={handleSearchInput}>
+                <input
+                  type="text"
+                  name="search"
+                  placeholder="Search"
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+              </form>
+            </div>
+
+            <AircraftSelector
+              aircraft={airTraffic.aircraft}
+              selectedAircraft={selectedAircraft}
+              onSelect={(aircraft) => {
+                handleAircraftSelect(aircraft, true);
+                setIsSatelliteModalOpen(false);
+              }}
+              liveModeEnabled={airTrafficEnabled}
+              onToggleLiveMode={() => setAirTrafficEnabled(!airTrafficEnabled)}
+            />
+          </div>
+        </div>
+      )}
+
       {isMobile ? (
         <main className="px-0 py-0 sm:px-0 sm:py-0 lg:px-0 lg:py-0">
-          <div className="relative h-[calc(100vh-7rem)]">
+          <div className="relative h-[calc(100vh-3.5rem)] md:h-[calc(100vh-7rem)]">
             <div
               className={`absolute inset-0 bg-white overflow-hidden transition-all duration-300 ${isFullscreen ? 'fixed inset-0 z-50' : ''}`}
             >
@@ -958,6 +1041,7 @@ const App: React.FC = () => {
                 sizeScale={sizeScale}
                 onToggleSatelliteTrajectory={() => setShowSatelliteTrajectory(!showSatelliteTrajectory)}
                 onSizeScaleChange={setSizeScale}
+                isPhone={isPhone}
               />
             </div>
 
@@ -965,7 +1049,8 @@ const App: React.FC = () => {
               <BottomSheet
                 snap={mobileSheetSnap}
                 onSnapChange={setMobileSheetSnap}
-                snapPoints={[0.18, 0.5, 0.88]}
+                snapPoints={isPhone ? [0.13, 0.5, 0.88] : [0.18, 0.5, 0.88]}
+                compact={isPhone}
                 header={(
                   <MobileAnalysisSummary
                     satellites={filteredSatellites}
@@ -973,6 +1058,7 @@ const App: React.FC = () => {
                     selectedSatellite={selectedSatellite}
                     autoSelectedLEOSatellite={resolvedAutoLEO}
                     autoSelectedGEOSatellite={resolvedAutoGEO}
+                    compact={isPhone}
                   />
                 )}
               >

@@ -1,7 +1,7 @@
 /**
  * GlobeControls - Zoom and navigation controls for the Cesium viewer
  */
-import React, { useCallback } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
     Cartesian3,
     EasingFunction,
@@ -9,18 +9,36 @@ import {
     Viewer as CesiumViewerType
 } from 'cesium';
 import FullscreenButton from '../FullscreenButton';
+import { Settings2 } from 'lucide-react';
 
 interface GlobeControlsProps {
     viewerRef: React.RefObject<CesiumViewerType | null>;
     isFullscreen: boolean;
     onToggleFullscreen: () => void;
+    isPhone?: boolean;
+    enableLighting?: boolean;
+    onToggleLighting?: () => void;
+    showSatelliteTrajectory?: boolean;
+    onToggleSatelliteTrajectory?: () => void;
+    sizeScale?: number;
+    onSizeScaleChange?: (scale: number) => void;
 }
 
 const GlobeControls: React.FC<GlobeControlsProps> = ({
     viewerRef,
     isFullscreen,
-    onToggleFullscreen
+    onToggleFullscreen,
+    isPhone = false,
+    enableLighting,
+    onToggleLighting,
+    showSatelliteTrajectory,
+    onToggleSatelliteTrajectory,
+    sizeScale,
+    onSizeScaleChange,
 }) => {
+    const [isMapOptionsOpen, setIsMapOptionsOpen] = useState(false);
+    const popoverRef = useRef<HTMLDivElement | null>(null);
+
     const handleZoomOut = useCallback(() => {
         if (!viewerRef.current) return;
 
@@ -67,9 +85,23 @@ const GlobeControls: React.FC<GlobeControlsProps> = ({
         });
     }, [viewerRef]);
 
+    useEffect(() => {
+        if (!isMapOptionsOpen) return;
+
+        const onDocPointerDown = (e: PointerEvent) => {
+            const el = popoverRef.current;
+            if (!el) return;
+            if (e.target instanceof Node && el.contains(e.target)) return;
+            setIsMapOptionsOpen(false);
+        };
+
+        document.addEventListener('pointerdown', onDocPointerDown);
+        return () => document.removeEventListener('pointerdown', onDocPointerDown);
+    }, [isMapOptionsOpen]);
+
     return (
         <div className="absolute top-2 right-2 z-10 flex flex-col items-end gap-2">
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1" ref={popoverRef}>
                 <button
                     onClick={handleZoomOut}
                     className="bg-white/90 backdrop-blur-sm p-2 rounded-md shadow-sm hover:bg-white/100 transition-colors"
@@ -105,6 +137,66 @@ const GlobeControls: React.FC<GlobeControlsProps> = ({
                         <line x1="8" y1="11" x2="14" y2="11"></line>
                     </svg>
                 </button>
+
+                {isPhone && onToggleLighting && onToggleSatelliteTrajectory && typeof onSizeScaleChange === 'function' && (
+                    <div className="relative">
+                        <button
+                            type="button"
+                            onClick={() => setIsMapOptionsOpen((v) => !v)}
+                            className="p-2 text-gray-600 hover:text-gray-900 bg-white/90 rounded-lg shadow-sm backdrop-blur-sm transition-colors"
+                            title="Map options"
+                            aria-label="Map options"
+                        >
+                            <Settings2 size={20} />
+                        </button>
+
+                        {isMapOptionsOpen && (
+                            <div className="absolute right-0 mt-2 w-56 rounded-lg bg-white/95 backdrop-blur-sm shadow-lg border border-gray-200 p-3">
+                                <div className="text-xs font-semibold text-gray-700 mb-2">Map Options</div>
+
+                                <button
+                                    type="button"
+                                    onClick={onToggleLighting}
+                                    className="w-full flex items-center justify-between py-2 text-sm text-gray-800"
+                                >
+                                    <span>Sun Light</span>
+                                    <span className={`text-xs font-semibold ${enableLighting ? 'text-yellow-700' : 'text-gray-500'}`}>
+                                        {enableLighting ? 'ON' : 'OFF'}
+                                    </span>
+                                </button>
+
+                                <button
+                                    type="button"
+                                    onClick={onToggleSatelliteTrajectory}
+                                    className="w-full flex items-center justify-between py-2 text-sm text-gray-800"
+                                >
+                                    <span>Trajectory</span>
+                                    <span className={`text-xs font-semibold ${showSatelliteTrajectory ? 'text-purple-700' : 'text-gray-500'}`}>
+                                        {showSatelliteTrajectory ? 'ON' : 'OFF'}
+                                    </span>
+                                </button>
+
+                                <div className="pt-2">
+                                    <div className="flex items-center justify-between">
+                                        <div className="text-sm text-gray-800">Size</div>
+                                        <div className="text-xs font-semibold text-gray-600">{sizeScale ?? 1}x</div>
+                                    </div>
+                                    <input
+                                        type="range"
+                                        min="0.25"
+                                        max="8"
+                                        step="0.25"
+                                        value={sizeScale ?? 1}
+                                        onChange={(e) => onSizeScaleChange(parseFloat(e.target.value))}
+                                        onDoubleClick={() => onSizeScaleChange(1)}
+                                        className="w-full mt-2 h-1 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                                        title="Adjust object size (0.25x to 8x) - Double-click to reset to 1x"
+                                    />
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                )}
 
                 <FullscreenButton isFullscreen={isFullscreen} onClick={onToggleFullscreen} />
             </div>

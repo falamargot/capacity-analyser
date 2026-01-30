@@ -8,6 +8,7 @@ interface MobileAnalysisSummaryProps {
     selectedSatellite: SatelliteData | null;
     autoSelectedLEOSatellite: SatelliteData | null;
     autoSelectedGEOSatellite: SatelliteData | null;
+    compact?: boolean;
 }
 
 function formatRttMs(v: number | null): string {
@@ -26,6 +27,7 @@ const MobileAnalysisSummary: React.FC<MobileAnalysisSummaryProps> = ({
     selectedSatellite,
     autoSelectedLEOSatellite,
     autoSelectedGEOSatellite,
+    compact = false,
 }) => {
     const point = selectedPoint;
 
@@ -65,32 +67,50 @@ const MobileAnalysisSummary: React.FC<MobileAnalysisSummaryProps> = ({
     }, [satellites, point?.lat, point?.lng, selectedSatellite]);
 
     return (
-        <div className="flex flex-col gap-2">
-            <div className="flex items-center justify-between">
-                <div className="text-sm font-semibold text-gray-900 truncate pr-3">{satelliteLabel}</div>
-                <div className="text-xs text-gray-500 whitespace-nowrap">RTT</div>
-            </div>
-
-            <div className="flex items-center justify-between">
-                <div className="text-xs text-gray-600">
-                    <span className="font-semibold" style={{ color: '#db2777' }}>LEO</span>
-                    <span className="ml-2">{formatRttMs(rtt.leo)}</span>
+        compact ? (
+            <div className="flex flex-col gap-1">
+                <div className="flex items-baseline justify-between gap-3">
+                    <div className="min-w-0 text-xs font-semibold truncate" style={{ color: '#db2777' }}>
+                        {autoSelectedLEOSatellite?.name ?? '--'}
+                    </div>
+                    <div className="text-xs font-semibold text-gray-900 whitespace-nowrap">{formatRttMs(rtt.leo)}</div>
                 </div>
-                <div className="text-xs text-gray-600">
-                    <span className="font-semibold" style={{ color: '#2563eb' }}>GEO</span>
-                    <span className="ml-2">{formatRttMs(rtt.geo)}</span>
+
+                <div className="flex items-baseline justify-between gap-3">
+                    <div className="min-w-0 text-xs font-semibold truncate" style={{ color: '#2563eb' }}>
+                        {autoSelectedGEOSatellite?.name ?? '--'}
+                    </div>
+                    <div className="text-xs font-semibold text-gray-900 whitespace-nowrap">{formatRttMs(rtt.geo)}</div>
                 </div>
             </div>
+        ) : (
+            <div className="flex flex-col gap-2">
+                <div className="flex items-center justify-between">
+                    <div className="text-sm font-semibold text-gray-900 truncate pr-3">{satelliteLabel}</div>
+                    <div className="text-xs text-gray-500 whitespace-nowrap">RTT</div>
+                </div>
 
-            <div className="flex items-center justify-between">
-                <div className="text-xs text-gray-600">Throughput</div>
-                <div className="text-xs text-gray-700 font-semibold whitespace-nowrap">{formatMbpsFromGbps(throughput.totalGbps)}</div>
+                <div className="flex items-center justify-between">
+                    <div className="text-xs text-gray-600">
+                        <span className="font-semibold" style={{ color: '#db2777' }}>LEO</span>
+                        <span className="ml-2">{formatRttMs(rtt.leo)}</span>
+                    </div>
+                    <div className="text-xs text-gray-600">
+                        <span className="font-semibold" style={{ color: '#2563eb' }}>GEO</span>
+                        <span className="ml-2">{formatRttMs(rtt.geo)}</span>
+                    </div>
+                </div>
+
+                <div className="flex items-center justify-between">
+                    <div className="text-xs text-gray-600">Throughput</div>
+                    <div className="text-xs text-gray-700 font-semibold whitespace-nowrap">{formatMbpsFromGbps(throughput.totalGbps)}</div>
+                </div>
+                <div className="flex items-center justify-between">
+                    <div className="text-xs text-gray-600">Covered sats</div>
+                    <div className="text-xs text-gray-700 font-semibold whitespace-nowrap">{throughput.coveredCount}</div>
+                </div>
             </div>
-            <div className="flex items-center justify-between">
-                <div className="text-xs text-gray-600">Covered sats</div>
-                <div className="text-xs text-gray-700 font-semibold whitespace-nowrap">{throughput.coveredCount}</div>
-            </div>
-        </div>
+        )
     );
 };
 

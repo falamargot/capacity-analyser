@@ -70,11 +70,15 @@ interface CesiumGlobeProps {
     onAircraftHover?: (_aircraft: Aircraft | null) => void;
     is2D?: boolean;
     enableLighting?: boolean;
+    onToggleLighting?: () => void;
     cameraTarget?: { lat: number; lng: number; alt: number } | null;
     onCameraReady?: (viewer: any) => void;
     showSatelliteTrajectory?: boolean;
     sizeScale?: number;
+    onToggleSatelliteTrajectory?: () => void;
+    onSizeScaleChange?: (scale: number) => void;
     onGlobeContainerReady?: (ref: React.RefObject<HTMLDivElement | null>) => void;
+    isPhone?: boolean;
 }
 
 const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
@@ -101,11 +105,15 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
     onAircraftHover,
     is2D = false,
     enableLighting = false,
+    onToggleLighting,
     cameraTarget,
     onCameraReady,
     showSatelliteTrajectory = false,
     sizeScale = 1,
+    onToggleSatelliteTrajectory,
+    onSizeScaleChange,
     onGlobeContainerReady,
+    isPhone = false,
 }) => {
     const viewerRef = useRef<CesiumViewerType | null>(null);
     const globeContainerRef = useRef<HTMLDivElement>(null);
@@ -233,22 +241,33 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
     return (
         <div className="relative w-full h-full">
             {/* UI Overlays */}
-            <PositionDisplay
-                selectedPosition={selectedPosition}
-                selectedAircraft={selectedAircraft}
-            />
+            {!isPhone && (
+                <PositionDisplay
+                    selectedPosition={selectedPosition}
+                    selectedAircraft={selectedAircraft}
+                />
+            )}
 
-            <SatelliteIndicator
-                selectedSatellite={selectedSatellite}
-                autoSelectedLEOSatellite={autoSelectedLEOSatellite}
-                autoSelectedGEOSatellite={autoSelectedGEOSatellite}
-                viewerRef={viewerRef}
-            />
+            {!isPhone && (
+                <SatelliteIndicator
+                    selectedSatellite={selectedSatellite}
+                    autoSelectedLEOSatellite={autoSelectedLEOSatellite}
+                    autoSelectedGEOSatellite={autoSelectedGEOSatellite}
+                    viewerRef={viewerRef}
+                />
+            )}
 
             <GlobeControls
                 viewerRef={viewerRef}
                 isFullscreen={isFullscreen}
                 onToggleFullscreen={onToggleFullscreen}
+                isPhone={isPhone}
+                enableLighting={enableLighting}
+                onToggleLighting={onToggleLighting}
+                showSatelliteTrajectory={showSatelliteTrajectory}
+                onToggleSatelliteTrajectory={onToggleSatelliteTrajectory}
+                sizeScale={sizeScale}
+                onSizeScaleChange={onSizeScaleChange}
             />
 
             {/* Cesium Viewer */}

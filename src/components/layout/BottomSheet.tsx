@@ -10,6 +10,7 @@ interface BottomSheetProps {
     snapPoints?: SnapPoints;
     header: React.ReactNode;
     children: React.ReactNode;
+    compact?: boolean;
 }
 
 const clamp = (v: number, min: number, max: number) => Math.min(max, Math.max(min, v));
@@ -20,6 +21,7 @@ const BottomSheet: React.FC<BottomSheetProps> = ({
     snapPoints = [0.2, 0.5, 0.98],
     header,
     children,
+    compact = false,
 }) => {
     const sheetRef = useRef<HTMLDivElement | null>(null);
     const [sheetHeight, setSheetHeight] = useState(0);
@@ -116,7 +118,7 @@ const BottomSheet: React.FC<BottomSheetProps> = ({
                 }}
             >
                 <div
-                    className="pt-2 pb-2 px-4 flex flex-col gap-2"
+                    className={`${compact ? 'pt-1 pb-1 px-3 gap-1' : 'pt-2 pb-2 px-4 gap-2'} flex flex-col`}
                 >
                     <div
                         className="w-full flex items-center justify-center"
@@ -126,11 +128,11 @@ const BottomSheet: React.FC<BottomSheetProps> = ({
                         onPointerCancel={handlePointerUp}
                         style={{ touchAction: 'none' }}
                     >
-                        <div className="h-1.5 w-12 rounded-full bg-gray-300" />
+                        <div className={`${compact ? 'h-1.5 w-14' : 'h-1.5 w-12'} rounded-full bg-gray-300`} />
                     </div>
                     {header}
                 </div>
-                <div className="flex-1 min-h-0 overflow-y-auto px-4 pb-4">
+                <div className={`flex-1 min-h-0 overflow-y-auto ${compact ? 'px-3 pb-3' : 'px-4 pb-4'}`}>
                     {children}
                 </div>
             </div>
