@@ -1,14 +1,14 @@
 /**
- * Types for analysis state and related data structures
+ * Types for analyzis state and related data structures
  */
 import type { Aircraft } from '../modules/airTraffic/airTrafficService';
 import type { SatelliteData } from './satellites';
 import type { SNPData } from '../components/globe/GlobeConfig';
 
 /**
- * Analysis position - either from clicking the earth or selecting an aircraft
+ * Analyzis position - either from clicking the earth or selecting an aircraft
  */
-export interface AnalysisPosition {
+export interface AnalyzisPosition {
     lat: number;
     lng: number;
     altitude?: number;

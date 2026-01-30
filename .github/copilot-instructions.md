@@ -1,4 +1,4 @@
-# Eutelsat Capacity Analyser - AI Agent Instructions
+# Eutelsat Capacity Analyzer - AI Agent Instructions
 
 ## Project Overview
 A React+TypeScript satellite capacity visualization tool that analyzes coverage and connectivity for EUTELSAT (GEO) and ONEWEB (LEO) satellite constellations. Displays 3D/2D maps with real-time satellite positions, coverage footprints, and air traffic overlays.
@@ -9,7 +9,7 @@ A React+TypeScript satellite capacity visualization tool that analyzes coverage 
 1. **Satellite Data** → `src/services/satelliteService.ts` fetches TLE data, computes orbital positions via `satellite.js`
 2. **Coverage Calculation** → `src/utils/leoFootprint.ts` & `coverageCalculator.ts` compute elevation-based footprints
 3. **User Selection** → Click point/satellite in `App.tsx` (state hub)
-4. **Capacity Analysis** → `CapacityDetails.tsx` computes latency, throughput, connectivity chains
+4. **Capacity Analyzis** → `CapacityDetails.tsx` computes latency, throughput, connectivity chains
 
 ### Key Type System
 - `SatelliteData` ([src/types/satellites.ts](src/types/satellites.ts#L1)): id, name, noradId, position, capacity, coverages (array of GeoJSON features)
@@ -26,7 +26,7 @@ App.tsx (state manager, satellite updates)
 │  │  ├─ SNPs (Strategic Network Points) as markers
 │  │  └─ AirTrafficLayer (aircraft as 3D objects + tooltips)
 │  └─ Map2D.tsx (pigeon-maps 2D fallback)
-├─ CapacityDetails.tsx (connectivity analysis panel)
+├─ CapacityDetails.tsx (connectivity analyzis panel)
 │  └─ SatelliteDetails.tsx (beam/coverage selection)
 └─ AircraftDetails.tsx (commercial flights table)
 ```
@@ -325,7 +325,7 @@ export default defineConfig({
 - [ ] Verify TLE data freshness (check Celestrak file timestamp)
 - [ ] Test OpenSky fallback (disconnect network, confirm mock data works)
 - [ ] Configure CORS headers if API calls fail from frontend domain
-- [ ] Set BASE in vite.config if deploying to non-root path: `base: '/capacity-analyser/'`
+- [ ] Set BASE in vite.config if deploying to non-root path: `base: '/capacity-analyzer/'`
 - [ ] Enable gzip compression on server (dist/ files)
 - [ ] Cache-bust assets with Vite's automatic `?t=timestamp` query params
 

@@ -20,6 +20,7 @@ interface AircraftLayerProps {
     onAircraftClick?: (aircraft: Aircraft | null) => void;
     onAircraftHover?: (aircraft: Aircraft | null) => void;
     viewerRef: React.RefObject<CesiumViewerType | null>;
+    aircraftSizeScale?: number;
 }
 
 const AircraftEntity = React.memo<{
@@ -29,13 +30,15 @@ const AircraftEntity = React.memo<{
     viewerRef: React.RefObject<CesiumViewerType | null>;
     onAircraftClick?: (aircraft: Aircraft | null) => void;
     onAircraftHover?: (aircraft: Aircraft | null) => void;
+    aircraftSizeScale?: number;
 }>(({
     ac,
     isSelected,
     positionCallback,
     viewerRef,
     onAircraftClick,
-    onAircraftHover
+    onAircraftHover,
+    aircraftSizeScale = 1
 }) => {
     // Create stable scale callback
     const scaleCallback = useMemo(() => {
@@ -51,9 +54,9 @@ const AircraftEntity = React.memo<{
             const dynamicScale = calculateDynamicScale(cameraHeight, DPR_FACTOR);
 
             const baseScale = dynamicScale * 2000000 / Math.max(distance, 2000000);
-            return isSelected ? baseScale * 1.5 : baseScale;
+            return baseScale * aircraftSizeScale;
         }, false);
-    }, [ac.icao24, isSelected, positionCallback, viewerRef]);
+    }, [ac.icao24, isSelected, positionCallback, viewerRef, aircraftSizeScale]);
 
     const handleClick = useCallback(() => onAircraftClick?.(ac), [ac, onAircraftClick]);
     const handleMouseEnter = useCallback(() => onAircraftHover?.(ac), [ac, onAircraftHover]);
@@ -88,7 +91,8 @@ const AircraftLayer: React.FC<AircraftLayerProps> = ({
     selectedAircraft,
     onAircraftClick,
     onAircraftHover,
-    viewerRef
+    viewerRef,
+    aircraftSizeScale = 1
 }) => {
     const { getAircraftPositionCallback } = usePositionCallbacks([], aircraft);
 
@@ -107,6 +111,7 @@ const AircraftLayer: React.FC<AircraftLayerProps> = ({
                     viewerRef={viewerRef}
                     onAircraftClick={onAircraftClick}
                     onAircraftHover={onAircraftHover}
+                    aircraftSizeScale={aircraftSizeScale}
                 />
             );
         });
@@ -116,7 +121,8 @@ const AircraftLayer: React.FC<AircraftLayerProps> = ({
         getAircraftPositionCallback,
         viewerRef,
         onAircraftClick,
-        onAircraftHover
+        onAircraftHover,
+        aircraftSizeScale
     ]);
 
     return <>{aircraftEntities}</>;

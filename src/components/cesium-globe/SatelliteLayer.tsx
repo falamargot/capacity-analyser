@@ -22,7 +22,7 @@ interface SatelliteLayerProps {
     onSatelliteClick: (satellite: SatelliteData | null) => void;
     onSatelliteHover: (satelliteId: string | null) => void;
     viewerRef: React.RefObject<CesiumViewerType | null>;
-    satelliteHighlight?: boolean;
+    satelliteSizeScale?: number;
 }
 
 const SatelliteEntity = React.memo<{
@@ -31,7 +31,7 @@ const SatelliteEntity = React.memo<{
     isAutoSelected: boolean;
     positionCallback: any;
     viewerRef: React.RefObject<CesiumViewerType | null>;
-    satelliteHighlight: boolean;
+    satelliteSizeScale: number;
     onSatelliteClick: (satellite: SatelliteData | null) => void;
     onSatelliteHover: (satelliteId: string | null) => void;
 }>(({
@@ -40,7 +40,7 @@ const SatelliteEntity = React.memo<{
     isAutoSelected,
     positionCallback,
     viewerRef,
-    satelliteHighlight,
+    satelliteSizeScale,
     onSatelliteClick,
     onSatelliteHover
 }) => {
@@ -69,14 +69,13 @@ const SatelliteEntity = React.memo<{
             const cameraHeight = viewerRef.current.camera.positionCartographic.height;
             const dynamicScale = calculateDynamicScale(cameraHeight, DPR_FACTOR);
 
-            // Apply satellite highlight (4x size) and selection highlight
-            const highlightMultiplier = satelliteHighlight ? 4 : 1;
+            // Apply satellite size scale (no extra size for selected satellites)
             const baseScale =
-                dynamicScale * (sat.type === 'EUTELSAT' ? 10000000 : 2000000) / Math.max(distance, 2000000 * highlightMultiplier);
+                dynamicScale * (sat.type === 'EUTELSAT' ? 10000000 : 2000000) / Math.max(distance, 2000000);
 
-            return isHighlighted ? baseScale * 1.6 * highlightMultiplier : baseScale * highlightMultiplier;
+            return baseScale * satelliteSizeScale;
         }, false);
-    }, [sat.id, sat.type, sat.position.lat, sat.position.lng, sat.position.alt, isHighlighted, satelliteHighlight, positionCallback, viewerRef]);
+    }, [sat.id, sat.type, sat.position.lat, sat.position.lng, sat.position.alt, isHighlighted, satelliteSizeScale, positionCallback, viewerRef]);
 
     const handleClick = useCallback(() => onSatelliteClick(sat), [sat, onSatelliteClick]);
     const handleMouseEnter = useCallback(() => onSatelliteHover(sat.id), [sat.id, onSatelliteHover]);
@@ -115,7 +114,7 @@ const SatelliteLayer: React.FC<SatelliteLayerProps> = ({
     onSatelliteClick,
     onSatelliteHover,
     viewerRef,
-    satelliteHighlight = false
+    satelliteSizeScale = 1
 }) => {
     const { getSatellitePositionCallback } = usePositionCallbacks(satellites, []);
 
@@ -134,7 +133,7 @@ const SatelliteLayer: React.FC<SatelliteLayerProps> = ({
                     isAutoSelected={isAutoSelected}
                     positionCallback={positionCallback}
                     viewerRef={viewerRef}
-                    satelliteHighlight={satelliteHighlight}
+                    satelliteSizeScale={satelliteSizeScale}
                     onSatelliteClick={onSatelliteClick}
                     onSatelliteHover={onSatelliteHover}
                 />
@@ -147,7 +146,7 @@ const SatelliteLayer: React.FC<SatelliteLayerProps> = ({
         autoSelectedGEOSatellite?.id,
         getSatellitePositionCallback,
         viewerRef,
-        satelliteHighlight,
+        satelliteSizeScale,
         onSatelliteClick,
         onSatelliteHover
     ]);

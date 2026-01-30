@@ -7,7 +7,7 @@ import SatelliteScopeFilter, { SatelliteScope } from './components/SatelliteScop
 import { Search, Satellite } from 'lucide-react';
 import { calculatePosition, fetchSatellites } from './services/satelliteService';
 import { SatelliteData } from './types/satellites';
-import type { GEOBeam, SelectedSNP } from './types/analysis';
+import type { GEOBeam, SelectedSNP } from './types/analyzis';
 import { calculateCoverages, destinationPoint } from './utils/coverageCalculator';
 import { footprintRadiusKm, BACKHAUL_ELEVATION_DEG, STANDARD_ELEVATION_DEG } from './utils/leoFootprint';
 import { Feature, Geometry, GeoJsonProperties } from 'geojson';
@@ -16,8 +16,8 @@ import { calculateElevationAngle } from './utils/capacityCalculator';
 import { useAirTraffic, useAirTrafficInterpolation } from './modules/airTraffic';
 import { Aircraft } from './modules/airTraffic/airTrafficService';
 
-// Analysis position for earth-click or aircraft selection
-interface AnalysisPosition {
+// Analyzis position for earth-click or aircraft selection
+interface AnalyzisPosition {
   lat: number;
   lng: number;
   altitude?: number;
@@ -31,7 +31,7 @@ const App: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
   const [selectedPosition, setSelectedPosition] = useState<{ lat: number; lng: number; altitude?: number } | null>(null);
-  const [analysisPosition, setAnalysisPosition] = useState<AnalysisPosition | null>(null);
+  const [analyzisPosition, setAnalyzisPosition] = useState<AnalyzisPosition | null>(null);
   const [cameraTarget, setCameraTarget] = useState<{ lat: number; lng: number; alt: number } | null>(null);
   const [selectedSatellite, setSelectedSatellite] = useState<SatelliteData | null>(null);
   const [autoSelectedLEOId, setAutoSelectedLEOId] = useState<string | null>(null);
@@ -45,12 +45,23 @@ const App: React.FC = () => {
   const [satelliteScope, setSatelliteScope] = useState<SatelliteScope>('ALL');
   const [airTrafficEnabled, setAirTrafficEnabled] = useState(false);
   const [showSatelliteTrajectory, setShowSatelliteTrajectory] = useState(false);
-  const [satelliteHighlight, setSatelliteHighlight] = useState(false);
+  const [sizeScale, setSizeScale] = useState(1); // 0.5, 1, 2, 4, 8
   const viewerRef = useRef<any>(null);
+  const globeContainerRef = useRef<HTMLDivElement>(null);
 
   // Store viewer reference when ready
   const handleCameraReady = useCallback((viewer: any) => {
     viewerRef.current = viewer;
+  }, []);
+
+  // Store globe container reference when ready
+  const handleGlobeContainerReady = useCallback((ref: React.RefObject<HTMLDivElement | null>) => {
+    console.log('App: handleGlobeContainerReady called');
+    console.log('App: ref parameter:', ref);
+    console.log('App: ref.current:', ref.current);
+    
+    globeContainerRef.current = ref.current;
+    console.log('App: globeContainerRef.current set to:', globeContainerRef.current);
   }, []);
 
   // Performance optimization: Cache previous values to prevent unnecessary recalculations
@@ -375,7 +386,7 @@ const App: React.FC = () => {
   );
 
 
-  // Update coverage features based on analysis position or manual satellite selection
+  // Update coverage features based on analyzis position or manual satellite selection
   const coverageFeaturesMemo = useMemo(() => {
     const features: Feature<Geometry, GeoJsonProperties>[] = [];
 
@@ -394,8 +405,8 @@ const App: React.FC = () => {
       return features;
     }
 
-    // Only show coverage when analysis position is set (connectivity analysis mode)
-    if (!analysisPosition && !selectedPosition) {
+    // Only show coverage when analyzis position is set (connectivity analyzis mode)
+    if (!analyzisPosition && !selectedPosition) {
       return features;
     }
 
@@ -469,7 +480,7 @@ const App: React.FC = () => {
     }
 
     return features;
-  }, [filteredSatellites, selectedPosition, analysisPosition, liveSelectedSatellite, resolvedAutoLEO, resolvedAutoGEO, selectedGEOBeam, hoveredSatelliteId, hoveredSnpName, satelliteScope]);
+  }, [filteredSatellites, selectedPosition, analyzisPosition, liveSelectedSatellite, resolvedAutoLEO, resolvedAutoGEO, selectedGEOBeam, hoveredSatelliteId, hoveredSnpName, satelliteScope]);
 
 
   // coverageFeaturesMemo is used directly - no need to copy to state
@@ -489,7 +500,7 @@ const App: React.FC = () => {
       setSelectedSNP(null);
       setSelectedGEOBeam(null);
       setSelectedPosition(null);
-      setAnalysisPosition(null);
+      setAnalyzisPosition(null);
       setSelectedAircraft(null);
     }
   }, [satelliteScope, selectedSatellite]);
@@ -501,8 +512,8 @@ const App: React.FC = () => {
     setSelectedAircraft(null);
     // Clear selectedPosition when satellite is selected to avoid SNP/satellite conflict
     setSelectedPosition(null);
-    // Clear analysis position when satellite is manually selected (satellite inspection mode)
-    setAnalysisPosition(null);
+    // Clear analyzis position when satellite is manually selected (satellite inspection mode)
+    setAnalyzisPosition(null);
     // Clear auto-selected GEO beam when entering satellite inspection mode
     setSelectedGEOBeam(null);
     // Clear selected SNP when entering satellite inspection mode
@@ -546,7 +557,7 @@ const App: React.FC = () => {
   }, []); // Hover handler for satellites
 
   // Performance optimization: Memoize event handlers to prevent unnecessary re-renders
-  const handleSnpClick = useCallback((snpName: string | null) => {
+  const handleSnpClick = useCallback((snpName: string | { lat: number; lng: number; name: string } | null) => {
     setSelectedSNP(snpName);
   }, []);
 
@@ -567,12 +578,12 @@ const App: React.FC = () => {
     setSelectedGEOBeam(beam);
   }, []);
 
-  // Unified function to handle analysis position changes (from earth click or aircraft)
-  const updateAnalysisPosition = useCallback((position: AnalysisPosition | null) => {
-    setAnalysisPosition(position);
+  // Unified function to handle analyzis position changes (from earth click or aircraft)
+  const updateAnalyzisPosition = useCallback((position: AnalyzisPosition | null) => {
+    setAnalyzisPosition(position);
 
     if (position) {
-      // Clear any manual satellite selection when analysis position changes
+      // Clear any manual satellite selection when analyzis position changes
       setSelectedSatellite(null);
 
       // Auto-resolve BEST connectivity according to business rules
@@ -629,7 +640,7 @@ const App: React.FC = () => {
         setSelectedGEOBeam(null);
       }
     } else {
-      // Clear auto-selected satellites and GEO beam when no analysis position
+      // Clear auto-selected satellites and GEO beam when no analyzis position
       setAutoSelectedLEOId(null);
       setAutoSelectedGEOId(null);
       setSelectedSNP(null);
@@ -640,8 +651,8 @@ const App: React.FC = () => {
   // Real-time updates when aircraft is selected
   useEffect(() => {
     if (selectedAircraft && selectedAircraft.latitude && selectedAircraft.longitude) {
-      // Update analysis position as aircraft moves
-      updateAnalysisPosition({
+      // Update analyzis position as aircraft moves
+      updateAnalyzisPosition({
         lat: selectedAircraft.latitude,
         lng: selectedAircraft.longitude,
         altitude: selectedAircraft.altitude_km || undefined,
@@ -649,14 +660,14 @@ const App: React.FC = () => {
         aircraftCallsign: selectedAircraft.callsign || undefined
       });
     }
-  }, [selectedAircraft, updateAnalysisPosition]);
+  }, [selectedAircraft, updateAnalyzisPosition]);
 
   // Clear auto-selected satellites when filter scope changes and makes them invalid
   useEffect(() => {
-    if (analysisPosition) {
+    if (analyzisPosition) {
       // Re-resolve connectivity with new filter to check if current satellites are still valid
       const { autoSelectedLEOSat, autoSelectedGEOSat, selectedSNP: newSelectedSNP } = resolveAutoSelectedSatellites(
-        { lat: analysisPosition.lat, lng: analysisPosition.lng },
+        { lat: analyzisPosition.lat, lng: analyzisPosition.lng },
         satellites,
         satelliteScope
       );
@@ -671,36 +682,36 @@ const App: React.FC = () => {
         setSelectedGEOBeam(null);
       }
     }
-  }, [satelliteScope, analysisPosition, satellites]);
+  }, [satelliteScope, analyzisPosition, satellites]);
 
-  // Handle geographic point click (earth-based analysis)
+  // Handle geographic point click (earth-based analyzis)
   const handlePointClick = useCallback((lat: number, lng: number) => {
     const userLocation = { lat, lng };
 
     // Set selected position for UI compatibility
     setSelectedPosition(userLocation);
 
-    // Clear aircraft selection when switching to earth-based analysis
+    // Clear aircraft selection when switching to earth-based analyzis
     setSelectedAircraft(null);
 
-    // Update unified analysis position
-    updateAnalysisPosition({
+    // Update unified analyzis position
+    updateAnalyzisPosition({
       lat,
       lng,
       source: 'earth'
     });
-  }, [updateAnalysisPosition]);
+  }, [updateAnalyzisPosition]);
 
-  // Handle aircraft selection (aircraft-based analysis)
+  // Handle aircraft selection (aircraft-based analyzis)
   const handleAircraftSelect = useCallback((aircraft: Aircraft | null, fromComboBox: boolean = false) => {
     setSelectedAircraft(aircraft);
 
     if (aircraft && aircraft.latitude && aircraft.longitude) {
-      // Clear earth-based position when switching to aircraft-based analysis
+      // Clear earth-based position when switching to aircraft-based analyzis
       setSelectedPosition(null);
 
-      // Update unified analysis position with aircraft data
-      updateAnalysisPosition({
+      // Update unified analyzis position with aircraft data
+      updateAnalyzisPosition({
         lat: aircraft.latitude,
         lng: aircraft.longitude,
         altitude: aircraft.altitude_km || undefined,
@@ -713,10 +724,10 @@ const App: React.FC = () => {
         setCameraTarget({ lat: aircraft.latitude, lng: aircraft.longitude, alt: 3000 });
       }
     } else {
-      // Clear analysis position when aircraft is deselected
-      updateAnalysisPosition(null);
+      // Clear analyzis position when aircraft is deselected
+      updateAnalyzisPosition(null);
     }
-  }, [updateAnalysisPosition]);
+  }, [updateAnalyzisPosition]);
 
   // Real-time updates for selected aircraft position and altitude
   useEffect(() => {
@@ -732,8 +743,8 @@ const App: React.FC = () => {
         currentAircraftData.latitude &&
         currentAircraftData.longitude) {
 
-        // Update the analysis position with the latest interpolated aircraft data
-        updateAnalysisPosition({
+        // Update the analyzis position with the latest interpolated aircraft data
+        updateAnalyzisPosition({
           lat: currentAircraftData.latitude,
           lng: currentAircraftData.longitude,
           altitude: currentAircraftData.altitude_km || undefined,
@@ -750,7 +761,7 @@ const App: React.FC = () => {
     const interval = setInterval(updateSelectedAircraftPosition, 5000);
 
     return () => clearInterval(interval);
-  }, [selectedAircraft, airTrafficEnabled, interpolatedAircraft, updateAnalysisPosition]);
+  }, [selectedAircraft, airTrafficEnabled, interpolatedAircraft, updateAnalyzisPosition]);
 
   const handleSearchInput = useCallback(async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -770,11 +781,11 @@ const App: React.FC = () => {
           setSelectedPosition(userLocation);
           setCameraTarget({ lat, lng, alt: 10000 }); // Trigger FlyTo for search
 
-          // Clear aircraft selection when switching to earth-based analysis
+          // Clear aircraft selection when switching to earth-based analyzis
           setSelectedAircraft(null);
 
-          // Update unified analysis position
-          updateAnalysisPosition({
+          // Update unified analyzis position
+          updateAnalyzisPosition({
             lat,
             lng,
             source: 'earth'
@@ -786,7 +797,7 @@ const App: React.FC = () => {
         console.error('Error searching location:', error);
       }
     }
-  }, [searchQuery, updateAnalysisPosition]);
+  }, [searchQuery, updateAnalyzisPosition]);
 
   if (loading) {
     return (
@@ -806,7 +817,7 @@ const App: React.FC = () => {
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="flex items-center">
               <Satellite className="h-8 w-8 text-blue-600" />
-              <h1 className="ml-2 text-2xl font-bold text-gray-900">Eutelsat Capacity Analyser</h1>
+              <h1 className="ml-2 text-2xl font-bold text-gray-900">Eutelsat Capacity Analyzer</h1>
             </div>
             <div className="flex items-center w-full sm:w-auto gap-4">
               <SatelliteScopeFilter
@@ -861,6 +872,7 @@ const App: React.FC = () => {
               autoSelectedLEOSatellite={resolvedAutoLEO}
               autoSelectedGEOSatellite={resolvedAutoGEO}
               selectedSNP={selectedSNP}
+              dedicatedSNPForSelectedLEO={null}
               isFullscreen={isFullscreen}
               onToggleFullscreen={() => setIsFullscreen(!isFullscreen)}
               satelliteScope={satelliteScope}
@@ -871,10 +883,11 @@ const App: React.FC = () => {
               onAircraftHover={handleAircraftHover}
               cameraTarget={cameraTarget}
               onCameraReady={handleCameraReady}
+              onGlobeContainerReady={handleGlobeContainerReady}
               showSatelliteTrajectory={showSatelliteTrajectory}
-              satelliteHighlight={satelliteHighlight}
+              sizeScale={sizeScale}
               onToggleSatelliteTrajectory={() => setShowSatelliteTrajectory(!showSatelliteTrajectory)}
-              onToggleSatelliteHighlight={() => setSatelliteHighlight(!satelliteHighlight)}
+              onSizeScaleChange={setSizeScale}
             />
           </div>
           <div className={`${isMobile ? 'w-full' : 'flex-shrink-0 w-[500px]'} bg-white rounded-lg shadow-lg overflow-hidden`}>
@@ -885,15 +898,17 @@ const App: React.FC = () => {
               >
                 <CapacityDetails
                   satellites={filteredSatellites}
-                  selectedPoint={analysisPosition || selectedPosition}
+                  selectedPoint={analyzisPosition || selectedPosition}
                   selectedSatellite={selectedSatellite}
                   autoSelectedLEOSatellite={resolvedAutoLEO}
                   autoSelectedGEOSatellite={resolvedAutoGEO}
                   satelliteScope={satelliteScope}
                   onSelectedGEOBeamChange={handleSelectedGEOBeamChange}
-                  analysisSource={selectedAircraft ? 'aircraft' : analysisPosition ? 'earth' : undefined}
+                  analyzisSource={selectedAircraft ? 'aircraft' : analyzisPosition ? 'earth' : undefined}
                   aircraftCallsign={selectedAircraft?.callsign}
                   selectedSNP={selectedSNP}
+                  globeRef={globeContainerRef}
+                  cesiumViewer={viewerRef.current}
                 />
               </div>
             )}

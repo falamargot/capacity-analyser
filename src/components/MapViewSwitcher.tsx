@@ -15,26 +15,28 @@ interface MapViewSwitcherProps {
   onPointClick: (lat: number, lng: number) => void;
   onSatelliteClick: (satellite: SatelliteData | null) => void;
   onSatelliteHover: (satelliteId: string | null) => void;
-  onSnpClick: (snpName: string | { lat: number; lng: number; name: string }) => void;
+  onSnpClick: (snpName: string | { lat: number; lng: number; name: string } | null) => void;
   onSnpHover: (snpName: string | null) => void;
   selectedSatellite: SatelliteData | null;
   autoSelectedLEOSatellite?: SatelliteData | null;
   autoSelectedGEOSatellite?: SatelliteData | null;
   selectedSNP?: string | { lat: number; lng: number; name: string } | null;
+  dedicatedSNPForSelectedLEO?: any;
   isFullscreen: boolean;
   onToggleFullscreen: () => void;
   satelliteScope: SatelliteScope;
   airTrafficEnabled?: boolean;
   aircraft?: Aircraft[];
   selectedAircraft?: Aircraft | null;
-  onAircraftClick?: (aircraft: Aircraft) => void;
+  onAircraftClick?: (aircraft: Aircraft | null) => void;
   onAircraftHover?: (aircraft: Aircraft | null) => void;
   cameraTarget?: { lat: number; lng: number; alt: number } | null;
   onCameraReady?: (viewer: any) => void;
+  onGlobeContainerReady?: (ref: React.RefObject<HTMLDivElement | null>) => void;
   showSatelliteTrajectory?: boolean;
-  satelliteHighlight?: boolean;
+  sizeScale?: number;
   onToggleSatelliteTrajectory?: () => void;
-  onToggleSatelliteHighlight?: () => void;
+  onSizeScaleChange?: (scale: number) => void;
 }
 
 const MapViewSwitcher: React.FC<MapViewSwitcherProps> = ({
@@ -42,14 +44,15 @@ const MapViewSwitcher: React.FC<MapViewSwitcherProps> = ({
   coverageFeatures,
   selectedPosition,
   onPointClick,
+  selectedSatellite,
+  autoSelectedLEOSatellite,
+  autoSelectedGEOSatellite,
   onSatelliteClick,
   onSatelliteHover,
   onSnpClick,
   onSnpHover,
-  selectedSatellite,
-  autoSelectedLEOSatellite,
-  autoSelectedGEOSatellite,
   selectedSNP,
+  dedicatedSNPForSelectedLEO,
   isFullscreen,
   onToggleFullscreen,
   satelliteScope,
@@ -60,10 +63,11 @@ const MapViewSwitcher: React.FC<MapViewSwitcherProps> = ({
   onAircraftHover,
   cameraTarget,
   onCameraReady,
+  onGlobeContainerReady,
   showSatelliteTrajectory,
-  satelliteHighlight,
+  sizeScale,
   onToggleSatelliteTrajectory,
-  onToggleSatelliteHighlight,
+  onSizeScaleChange,
 }) => {
   const [view, setView] = useState<'globe' | 'map'>('globe');
   const [enableLighting, setEnableLighting] = useState(false);
@@ -104,21 +108,23 @@ const MapViewSwitcher: React.FC<MapViewSwitcherProps> = ({
         >
           🛰️ Trajectory
         </button>
-        <button
-          type="button"
-          onClick={() => onToggleSatelliteHighlight?.()}
-          className={`px-3 py-1.5 rounded-md shadow-sm text-sm font-medium transition-colors ${
-            satelliteHighlight 
-              ? 'bg-yellow-100 text-yellow-700 border border-yellow-200' 
-              : 'bg-white/90 backdrop-blur-sm text-gray-700 hover:text-gray-900'
-          }`}
-          title={satelliteHighlight 
-            ? "Disable 4x size enhancement for all satellites" 
-            : "Enable 4x size enhancement for all satellites to improve visibility"
-          }
-        >
-          🛰️ Highlight
-        </button>
+        
+        {/* Size Scale Slider */}
+        <div className="flex items-center gap-2 px-3 py-1.5 rounded-md shadow-sm bg-white/90 backdrop-blur-sm">
+          <span className="text-sm font-medium text-gray-700">📏 Size:</span>
+          <input
+            type="range"
+            min="0.25"
+            max="8"
+            step="0.25"
+            value={sizeScale || 1}
+            onChange={(e) => onSizeScaleChange?.(parseFloat(e.target.value))}
+            onDoubleClick={() => onSizeScaleChange?.(1)}
+            className="w-20 h-1 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+            title="Adjust object size (0.25x to 8x) - Double-click to reset to 1x"
+          />
+          <span className="text-xs text-gray-600 w-8">{sizeScale}x</span>
+        </div>
       </div>
 
       {view === 'globe' ? (
@@ -147,8 +153,9 @@ const MapViewSwitcher: React.FC<MapViewSwitcherProps> = ({
           enableLighting={enableLighting}
           cameraTarget={cameraTarget}
           onCameraReady={onCameraReady}
+          onGlobeContainerReady={onGlobeContainerReady}
           showSatelliteTrajectory={showSatelliteTrajectory}
-          satelliteHighlight={satelliteHighlight}
+          sizeScale={sizeScale}
         />
       ) : (
         <CesiumGlobe
@@ -176,8 +183,9 @@ const MapViewSwitcher: React.FC<MapViewSwitcherProps> = ({
           enableLighting={enableLighting}
           cameraTarget={cameraTarget}
           onCameraReady={onCameraReady}
+          onGlobeContainerReady={onGlobeContainerReady}
           showSatelliteTrajectory={showSatelliteTrajectory}
-          satelliteHighlight={satelliteHighlight}
+          sizeScale={sizeScale}
         />
       )}
     </div>

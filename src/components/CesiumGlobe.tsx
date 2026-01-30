@@ -72,7 +72,8 @@ interface CesiumGlobeProps {
     cameraTarget?: { lat: number; lng: number; alt: number } | null;
     onCameraReady?: (viewer: any) => void;
     showSatelliteTrajectory?: boolean;
-    satelliteHighlight?: boolean;
+    sizeScale?: number;
+    onGlobeContainerReady?: (ref: React.RefObject<HTMLDivElement | null>) => void;
 }
 
 const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
@@ -102,9 +103,11 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
     cameraTarget,
     onCameraReady,
     showSatelliteTrajectory = false,
-    satelliteHighlight = false,
+    sizeScale = 1,
+    onGlobeContainerReady,
 }) => {
     const viewerRef = useRef<CesiumViewerType | null>(null);
+    const globeContainerRef = useRef<HTMLDivElement>(null);
     const [viewerReady, setViewerReady] = useState(false);
 
     // Handle viewer initialization via callback ref
@@ -121,6 +124,23 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
             onCameraReady(viewerRef.current);
         }
     }, [viewerReady, onCameraReady]);
+
+    // Notify parent when globe container is ready
+    useEffect(() => {
+        console.log('CesiumGlobe: onGlobeContainerReady callback check');
+        console.log('CesiumGlobe: globeContainerRef.current:', globeContainerRef.current);
+        console.log('CesiumGlobe: onGlobeContainerReady function:', !!onGlobeContainerReady);
+        
+        if (onGlobeContainerReady && globeContainerRef.current) {
+            console.log('CesiumGlobe: Calling onGlobeContainerReady with ref');
+            // Petit délai pour s'assurer que le DOM est complètement prêt
+            setTimeout(() => {
+                onGlobeContainerReady(globeContainerRef);
+            }, 100);
+        } else {
+            console.log('CesiumGlobe: Not calling callback - missing ref or function');
+        }
+    }, [onGlobeContainerReady]);
 
     // Configure scene settings
     useEffect(() => {
@@ -231,21 +251,23 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
             />
 
             {/* Cesium Viewer */}
-            <Viewer
-                full
-                ref={handleViewerRef}
-                timeline={false}
-                animation={false}
-                shouldAnimate={true}
-                navigationHelpButton={false}
-                sceneModePicker={false}
-                baseLayerPicker={true}
-                homeButton={false}
-                geocoder={false}
-                fullscreenButton={false}
-                selectionIndicator={false}
-                infoBox={false}
-            >
+            <div ref={globeContainerRef} className="w-full h-full">
+                <Viewer
+                    full
+                    ref={handleViewerRef}
+                    timeline={false}
+                    animation={false}
+                    shouldAnimate={true}
+                    infoBox={false}
+                    selectionIndicator={false}
+                    homeButton={false}
+                    navigationHelpButton={false}
+                    sceneModePicker={false}
+                    baseLayerPicker={false}
+                    geocoder={false}
+                    fullscreenButton={isFullscreen ? false : true}
+                    vrButton={false}
+                >
                 <ScreenSpaceEventHandler>
                     <ScreenSpaceEvent action={handleMapClick} type={ScreenSpaceEventType.LEFT_CLICK} />
                 </ScreenSpaceEventHandler>
@@ -275,7 +297,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                     onSatelliteClick={onSatelliteClick}
                     onSatelliteHover={onSatelliteHover}
                     viewerRef={viewerRef}
-                    satelliteHighlight={satelliteHighlight}
+                    satelliteSizeScale={sizeScale}
                 />
 
                 {/* SNP Layer */}
@@ -324,9 +346,11 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                         onAircraftClick={onAircraftClick}
                         onAircraftHover={onAircraftHover}
                         viewerRef={viewerRef}
+                        aircraftSizeScale={sizeScale}
                     />
                 )}
             </Viewer>
+            </div>
         </div>
     );
 };
