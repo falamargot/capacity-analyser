@@ -205,7 +205,7 @@ export function getBeamColor(
     _userElevation: number | null
 ): Color {
     const isEven = beamIndex % 2 === 0;
-    const alpha = isEven ? 0.45 : 0.6;
+    const alpha = isEven ? 0.3 : 0.4;
     return COLOR_STANDARD_PINK.withAlpha(alpha);
 }
 

@@ -1024,6 +1024,7 @@ const App: React.FC = () => {
                 selectedSatellite={selectedSatellite}
                 autoSelectedLEOSatellite={resolvedAutoLEO}
                 autoSelectedGEOSatellite={resolvedAutoGEO}
+                selectedGEOBeam={selectedGEOBeam}
                 selectedSNP={selectedSNP}
                 dedicatedSNPForSelectedLEO={null}
                 isFullscreen={isFullscreen}
@@ -1096,6 +1097,7 @@ const App: React.FC = () => {
                 selectedSatellite={selectedSatellite}
                 autoSelectedLEOSatellite={resolvedAutoLEO}
                 autoSelectedGEOSatellite={resolvedAutoGEO}
+                selectedGEOBeam={selectedGEOBeam}
                 selectedSNP={selectedSNP}
                 dedicatedSNPForSelectedLEO={null}
                 isFullscreen={isFullscreen}

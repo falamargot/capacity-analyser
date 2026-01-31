@@ -1,16 +1,25 @@
 import React, { useEffect, useMemo, useRef } from 'react';
 import {
     BoundingSphere, Cartesian3, Color, ColorGeometryInstanceAttribute, ComponentDatatype,
-    Geometry, GeometryAttribute, GeometryInstance, JulianDate, Matrix4, PerInstanceColorAppearance,
-    Primitive, PrimitiveType, Transforms
+    Cartographic, Geometry, GeometryAttribute, GeometryInstance, JulianDate, Math as CesiumMath,
+    Matrix4, PerInstanceColorAppearance, Primitive, PrimitiveType, Transforms
 } from 'cesium';
 import type { Feature, Geometry as GeoJsonGeometry, GeoJsonProperties } from 'geojson';
 import type { SatelliteData } from '../../types/satellites';
+import type { Aircraft } from '../../modules/airTraffic/airTrafficService';
 import { getCoverageColor } from '../../services/coverageService';
+import { EARTH_RADIUS_KM } from '../../utils/capacityCalculator';
+import { STANDARD_RADIUS_KM } from '../../utils/leoFootprint';
 import { useCombGeometry } from './hooks';
+import { calculateDeadReckoning } from './utils';
 
 interface Props {
     selectedSatellite: SatelliteData | null;
+    selectedBeamFeature?: Feature<GeoJsonGeometry, GeoJsonProperties> | null;
+    beamSatellite?: SatelliteData | null;
+    autoSelectedSatellite?: SatelliteData | null;
+    selectedPosition?: { lat: number; lng: number; altitude?: number } | null;
+    selectedAircraft?: Aircraft | null;
     satellites: SatelliteData[];
     coverageFeatures: Feature<GeoJsonGeometry, GeoJsonProperties>[];
     viewerRef: React.RefObject<any>;
@@ -132,19 +141,143 @@ function pickFootprintPoints(
     return pts;
 }
 
-const AggregatedCoverageVolumeLayer: React.FC<Props> = ({ selectedSatellite, satellites, coverageFeatures, viewerRef }) => {
+const isPointInPolygon = (point: { lat: number; lng: number }, ring: Array<[number, number]>): boolean => {
+    let inside = false;
+    for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+        const [xi, yi] = ring[i];
+        const [xj, yj] = ring[j];
+        const intersect = ((yi > point.lat) !== (yj > point.lat))
+            && (point.lng < (xj - xi) * (point.lat - yi) / (yj - yi) + xi);
+        if (intersect) inside = !inside;
+    }
+    return inside;
+};
+
+function stripDuplicateClosure(poly: Cartesian3[]): Cartesian3[] {
+    if (poly.length < 2) return poly;
+    const a = poly[0];
+    const b = poly[poly.length - 1];
+    if (Cartesian3.equalsEpsilon(a, b, 0, 1e-6)) return poly.slice(0, -1);
+    return poly;
+}
+
+function pickServingOneWebBeamRing(
+    sat: SatelliteData,
+    time: JulianDate,
+    getCombGeometries: (sat: SatelliteData, time: JulianDate) => Cartesian3[][] | null,
+    selectedPosition: { lat: number; lng: number } | null,
+    selectedAircraft: Aircraft | null
+): Cartesian3[] {
+    if (sat.type !== 'ONEWEB') return [];
+    if (!selectedPosition && !selectedAircraft) return [];
+
+    const geometries = getCombGeometries(sat, time);
+    if (!geometries) return [];
+
+    let point: { lat: number; lng: number } | null = null;
+    if (selectedAircraft) {
+        const p = calculateDeadReckoning(selectedAircraft, time);
+        const c = Cartographic.fromCartesian(p);
+        point = { lat: CesiumMath.toDegrees(c.latitude), lng: CesiumMath.toDegrees(c.longitude) };
+    } else if (selectedPosition) {
+        point = { lat: selectedPosition.lat, lng: selectedPosition.lng };
+    }
+    if (!point) return [];
+
+    for (let i = 0; i < geometries.length; i++) {
+        const poly = geometries[i];
+        if (!poly || poly.length < 3) continue;
+        const ring: Array<[number, number]> = poly.map((p) => {
+            const c = Cartographic.fromCartesian(p);
+            return [CesiumMath.toDegrees(c.longitude), CesiumMath.toDegrees(c.latitude)];
+        });
+        if (isPointInPolygon(point, ring)) return stripDuplicateClosure(poly);
+    }
+    return [];
+}
+
+function buildStandardFootprintRing(subSat: { lat: number; lng: number }, segments = 64): Cartesian3[] {
+    const lat1 = CesiumMath.toRadians(subSat.lat);
+    const lon1 = CesiumMath.toRadians(subSat.lng);
+    const d = STANDARD_RADIUS_KM / EARTH_RADIUS_KM;
+
+    const ring: Cartesian3[] = [];
+    for (let i = 0; i < segments; i++) {
+        const brng = (i / segments) * (Math.PI * 2);
+        const sinLat1 = Math.sin(lat1);
+        const cosLat1 = Math.cos(lat1);
+
+        const sinD = Math.sin(d);
+        const cosD = Math.cos(d);
+        const sinLat2 = sinLat1 * cosD + cosLat1 * sinD * Math.cos(brng);
+        const lat2 = Math.asin(Math.max(-1, Math.min(1, sinLat2)));
+        const y = Math.sin(brng) * sinD * cosLat1;
+        const x = cosD - sinLat1 * Math.sin(lat2);
+        const lon2 = lon1 + Math.atan2(y, x);
+
+        ring.push(Cartesian3.fromDegrees(CesiumMath.toDegrees(lon2), CesiumMath.toDegrees(lat2), 0));
+    }
+    return ring;
+}
+
+function pickBeamFootprintPoints(
+    beamFeature: Feature<GeoJsonGeometry, GeoJsonProperties>
+): Cartesian3[] {
+    if (beamFeature.geometry?.type !== 'Polygon') return [];
+    const coords = (beamFeature.geometry.coordinates?.[0] ?? []) as unknown as number[][];
+    const pts: Cartesian3[] = [];
+    for (const coord of coords) {
+        const lng = coord[0];
+        const lat = coord[1];
+        if (!isFinite(lat) || !isFinite(lng)) continue;
+        pts.push(Cartesian3.fromDegrees(lng, lat, 0));
+    }
+    // Some polygons repeat the first coordinate as last - remove duplicate to avoid degenerate triangle
+    if (pts.length >= 2) {
+        const a = pts[0];
+        const b = pts[pts.length - 1];
+        if (Cartesian3.equalsEpsilon(a, b, 0, 1e-6)) {
+            pts.pop();
+        }
+    }
+    return pts;
+}
+
+const AggregatedCoverageVolumeLayer: React.FC<Props> = ({
+    selectedSatellite,
+    selectedBeamFeature = null,
+    beamSatellite = null,
+    autoSelectedSatellite = null,
+    selectedPosition = null,
+    selectedAircraft = null,
+    satellites,
+    coverageFeatures,
+    viewerRef
+}) => {
     const { getCombGeometries } = useCombGeometry();
     const selectedSatelliteRef = useRef<SatelliteData | null>(null);
+    const selectedBeamFeatureRef = useRef<Feature<GeoJsonGeometry, GeoJsonProperties> | null>(null);
+    const beamSatelliteRef = useRef<SatelliteData | null>(null);
+    const autoSelectedSatelliteRef = useRef<SatelliteData | null>(null);
+    const selectedPositionRef = useRef<{ lat: number; lng: number; altitude?: number } | null>(null);
+    const selectedAircraftRef = useRef<Aircraft | null>(null);
     const satellitesRef = useRef<SatelliteData[]>([]);
     const coverageFeaturesRef = useRef<Feature<GeoJsonGeometry, GeoJsonProperties>[]>([]);
     const getCombGeometriesRef = useRef(getCombGeometries);
     const baseColor = useMemo(() => {
-        if (!selectedSatellite) return null;
-        const colorHex = getCoverageColor(selectedSatellite.type, 0.1, selectedSatellite);
+        const satForColor = selectedSatellite ?? beamSatellite ?? autoSelectedSatellite;
+        if (!satForColor) return null;
+        const typeForColor = (selectedBeamFeature as any)?.properties?.type ?? satForColor.type;
+        const colorHex = getCoverageColor(typeForColor, 0.1, satForColor);
         return Color.fromCssColorString(colorHex);
-    }, [selectedSatellite?.id, selectedSatellite?.type]);
+    }, [selectedSatellite?.id, selectedSatellite?.type, beamSatellite?.id, autoSelectedSatellite?.id, autoSelectedSatellite?.type, (selectedBeamFeature as any)?.properties?.type]);
     const baseColorRef = useRef<Color | null>(null);
     useEffect(() => { selectedSatelliteRef.current = selectedSatellite; }, [selectedSatellite]);
+    useEffect(() => { selectedBeamFeatureRef.current = selectedBeamFeature; }, [selectedBeamFeature]);
+    useEffect(() => { beamSatelliteRef.current = beamSatellite; }, [beamSatellite]);
+    useEffect(() => { autoSelectedSatelliteRef.current = autoSelectedSatellite; }, [autoSelectedSatellite]);
+    useEffect(() => { selectedPositionRef.current = selectedPosition; }, [selectedPosition]);
+    useEffect(() => { selectedAircraftRef.current = selectedAircraft; }, [selectedAircraft]);
     useEffect(() => { satellitesRef.current = satellites; }, [satellites]);
     useEffect(() => { coverageFeaturesRef.current = coverageFeatures; }, [coverageFeatures]);
     useEffect(() => { getCombGeometriesRef.current = getCombGeometries; }, [getCombGeometries]);
@@ -159,7 +292,17 @@ const AggregatedCoverageVolumeLayer: React.FC<Props> = ({ selectedSatellite, sat
         const tick = () => {
             const now: JulianDate = viewer.clock?.currentTime;
             const selected = selectedSatelliteRef.current;
-            const sat = selected?.id ? satellitesRef.current.find(s => s.id === selected.id) ?? selected : null;
+            const beamFeature = selectedBeamFeatureRef.current;
+            const beamSat = beamSatelliteRef.current;
+            const autoSat = autoSelectedSatelliteRef.current;
+
+            // Mode selection priority:
+            // 1) Manual selection (selectedSatellite)
+            // 2) Auto beam mode (beamSatellite + selectedBeamFeature)
+            // 3) Auto satellite mode (e.g. LEO auto-selected satellite)
+            const sat = selected?.id
+                ? satellitesRef.current.find(s => s.id === selected.id) ?? selected
+                : (beamSat && beamFeature ? beamSat : (autoSat ?? null));
             const currentBaseColor = baseColorRef.current;
             if (!sat || !currentBaseColor) { state.targetAlpha = 0; } else { state.targetAlpha = 0.1; }
             if (now) {
@@ -173,11 +316,39 @@ const AggregatedCoverageVolumeLayer: React.FC<Props> = ({ selectedSatellite, sat
             if (!shouldExist) { if (state.primitive) { scene.primitives.remove(state.primitive); state.primitive = null; } state.satId = sat?.id ?? null; return; }
             const needsRebuild = !state.primitive || state.satId !== sat!.id || !state.lastGeometryUpdateTime || (now && JulianDate.secondsDifference(now, state.lastGeometryUpdateTime) > 0.75);
             if (needsRebuild && now) {
-                const footprintPoints = pickFootprintPoints(sat!, now, getCombGeometriesRef.current, coverageFeaturesRef.current);
-                const hull = computeLocalHull(footprintPoints);
-                if (hull.length >= 3) {
+                const useBeamMode = !selectedSatelliteRef.current && !!beamFeature && !!beamSat;
+                const useOneWebServingBeamMode = !selectedSatelliteRef.current
+                    && !useBeamMode
+                    && sat!.type === 'ONEWEB'
+                    && (!!selectedPositionRef.current || !!selectedAircraftRef.current);
+
+                const footprintPoints = useBeamMode
+                    ? pickBeamFootprintPoints(beamFeature!)
+                    : pickFootprintPoints(sat!, now, getCombGeometriesRef.current, coverageFeaturesRef.current);
+
+                const servingRing = useOneWebServingBeamMode
+                    ? pickServingOneWebBeamRing(
+                        sat!,
+                        now,
+                        getCombGeometriesRef.current,
+                        selectedPositionRef.current ? { lat: selectedPositionRef.current.lat, lng: selectedPositionRef.current.lng } : null,
+                        selectedAircraftRef.current
+                    )
+                    : [];
+
+                const oneWebBaseRing = useOneWebServingBeamMode
+                    ? (servingRing.length >= 3
+                        ? servingRing
+                        : buildStandardFootprintRing({ lat: sat!.position.lat, lng: sat!.position.lng }))
+                    : [];
+
+                const baseRing = useBeamMode
+                    ? footprintPoints
+                    : (useOneWebServingBeamMode ? oneWebBaseRing : computeLocalHull(footprintPoints));
+
+                if (baseRing.length >= 3) {
                     const apex = Cartesian3.fromDegrees(sat!.position.lng, sat!.position.lat, (sat!.position.alt ?? 0) * 1000);
-                    const geometry = buildSideOnlyConeGeometry(apex, hull);
+                    const geometry = buildSideOnlyConeGeometry(apex, baseRing);
                     if (geometry) {
                         if (state.primitive) { scene.primitives.remove(state.primitive); state.primitive = null; }
                         const instanceId = 'aggregated-coverage-volume';

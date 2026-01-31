@@ -24,6 +24,8 @@ interface GlobeControlsProps {
     onSizeScaleChange?: (scale: number) => void;
     view?: 'globe' | 'map';
     onViewChange?: (view: 'globe' | 'map') => void;
+    sceneMode?: '2D' | '3D';
+    onSceneModeChange?: (mode: '2D' | '3D') => void;
 }
 
 const GlobeControls: React.FC<GlobeControlsProps> = ({
@@ -39,6 +41,8 @@ const GlobeControls: React.FC<GlobeControlsProps> = ({
     onSizeScaleChange,
     view = 'globe',
     onViewChange,
+    sceneMode = '3D',
+    onSceneModeChange,
 }) => {
     const [isMapOptionsOpen, setIsMapOptionsOpen] = useState(false);
     const popoverRef = useRef<HTMLDivElement | null>(null);
@@ -109,15 +113,15 @@ const GlobeControls: React.FC<GlobeControlsProps> = ({
                 <>
                     {/* First row: Switch Globe/Map, Map Settings, Fullscreen */}
                     <div className="flex items-center gap-1" ref={popoverRef}>
-                        {onViewChange && (
+                        {onSceneModeChange && (
                             <button
                                 type="button"
-                                onClick={() => onViewChange(view === 'globe' ? 'map' : 'globe')}
+                                onClick={() => onSceneModeChange(sceneMode === '3D' ? '2D' : '3D')}
                                 className="bg-white/90 backdrop-blur-sm p-2 rounded-md shadow-sm hover:bg-white/100 transition-colors"
-                                title={view === 'globe' ? 'Switch to Map view' : 'Switch to Globe view'}
-                                aria-label={view === 'globe' ? 'Switch to Map view' : 'Switch to Globe view'}
+                                title={sceneMode === '3D' ? 'Switch to 2D Map' : 'Switch to 3D Globe'}
+                                aria-label={sceneMode === '3D' ? 'Switch to 2D Map' : 'Switch to 3D Globe'}
                             >
-                                {view === 'globe' ? <Map className="h-5 w-5" /> : <Globe className="h-5 w-5" />}
+                                {sceneMode === '3D' ? <Map className="h-4 w-4" /> : <Globe className="h-4 w-4" />}
                             </button>
                         )}
 
@@ -223,45 +227,122 @@ const GlobeControls: React.FC<GlobeControlsProps> = ({
                     </div>
                 </>
             ) : (
-                <div className="flex items-center gap-1" ref={popoverRef}>
-                    <button
-                        onClick={handleZoomOut}
-                        className="bg-white/90 backdrop-blur-sm p-2 rounded-md shadow-sm hover:bg-white/100 transition-colors"
-                        title="Zoom arrière"
-                    >
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <circle cx="11" cy="11" r="8"></circle>
-                            <path d="m21 21-4.35-4.35"></path>
-                            <line x1="8" y1="11" x2="14" y2="11"></line>
-                        </svg>
-                    </button>
+                <>
+                    {/* First row: Switch Globe/Map, Map Settings, Fullscreen */}
+                    <div className="flex items-center gap-1" ref={popoverRef}>
+                        {onSceneModeChange && (
+                            <button
+                                type="button"
+                                onClick={() => onSceneModeChange(sceneMode === '3D' ? '2D' : '3D')}
+                                className="bg-white/90 backdrop-blur-sm p-2 rounded-md shadow-sm hover:bg-white/100 transition-colors"
+                                title={sceneMode === '3D' ? 'Switch to 2D Map' : 'Switch to 3D Globe'}
+                                aria-label={sceneMode === '3D' ? 'Switch to 2D Map' : 'Switch to 3D Globe'}
+                            >
+                                {sceneMode === '3D' ? <Map className="h-4 w-4" /> : <Globe className="h-4 w-4" />}
+                            </button>
+                        )}
 
-                    <button
-                        onClick={handleReset}
-                        className="bg-white/90 backdrop-blur-sm p-2 rounded-md shadow-sm hover:bg-white/100 transition-colors"
-                        title="Initialiser la vue"
-                    >
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
-                            <path d="M3 3v5h5"></path>
-                        </svg>
-                    </button>
+                        {/* Map Settings button */}
+                        <div className="relative">
+                            <button
+                                type="button"
+                                onClick={() => setIsMapOptionsOpen((v) => !v)}
+                                className="p-2 text-gray-600 hover:text-gray-900 bg-white/90 rounded-lg shadow-sm backdrop-blur-sm transition-colors"
+                                title="Map options"
+                                aria-label="Map options"
+                            >
+                                <Settings2 size={20} />
+                            </button>
 
-                    <button
-                        onClick={handleZoomIn}
-                        className="bg-white/90 backdrop-blur-sm p-2 rounded-md shadow-sm hover:bg-white/100 transition-colors"
-                        title="Zoom avant"
-                    >
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <circle cx="11" cy="11" r="8"></circle>
-                            <path d="m21 21-4.35-4.35"></path>
-                            <line x1="11" y1="8" x2="11" y2="14"></line>
-                            <line x1="8" y1="11" x2="14" y2="11"></line>
-                        </svg>
-                    </button>
+                            {isMapOptionsOpen && (
+                                <div className="absolute right-0 mt-2 w-56 rounded-lg bg-white/95 backdrop-blur-sm shadow-lg border border-gray-200 p-3">
+                                    <div className="text-xs font-semibold text-gray-700 mb-2">Map Options</div>
 
-                    <FullscreenButton isFullscreen={isFullscreen} onClick={onToggleFullscreen} />
-                </div>
+                                    <button
+                                        type="button"
+                                        onClick={onToggleLighting}
+                                        className="w-full flex items-center justify-between py-2 text-sm text-gray-800"
+                                    >
+                                        <span>Sun Light</span>
+                                        <span className={`text-xs font-semibold ${enableLighting ? 'text-yellow-700' : 'text-gray-500'}`}>
+                                            {enableLighting ? 'ON' : 'OFF'}
+                                        </span>
+                                    </button>
+
+                                    <button
+                                        type="button"
+                                        onClick={onToggleSatelliteTrajectory}
+                                        className="w-full flex items-center justify-between py-2 text-sm text-gray-800"
+                                    >
+                                        <span>Satellite Trajectory</span>
+                                        <span className={`text-xs font-semibold ${showSatelliteTrajectory ? 'text-purple-700' : 'text-gray-500'}`}>
+                                            {showSatelliteTrajectory ? 'ON' : 'OFF'}
+                                        </span>
+                                    </button>
+
+                                    <div className="pt-2 border-t border-gray-200">
+                                        <div className="flex items-center justify-between py-2">
+                                            <span className="text-sm text-gray-800">Size</span>
+                                            <input
+                                                type="range"
+                                                min="0.25"
+                                                max="8"
+                                                step="0.25"
+                                                value={sizeScale || 1}
+                                                onChange={(e) => onSizeScaleChange?.(parseFloat(e.target.value))}
+                                                onDoubleClick={() => onSizeScaleChange?.(1)}
+                                                className="w-20 h-1 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                                                title="Adjust object size (0.25x to 8x) - Double-click to reset to 1x"
+                                            />
+                                        </div>
+                                        <div className="text-xs text-gray-600 text-right">{sizeScale}x</div>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        <FullscreenButton isFullscreen={isFullscreen} onClick={onToggleFullscreen} />
+                    </div>
+
+                    {/* Second row: Zoom -, Reset, Zoom + */}
+                    <div className="flex items-center gap-1">
+                        <button
+                            onClick={handleZoomOut}
+                            className="bg-white/90 backdrop-blur-sm p-2 rounded-md shadow-sm hover:bg-white/100 transition-colors"
+                            title="Zoom arrière"
+                        >
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <circle cx="11" cy="11" r="8"></circle>
+                                <path d="m21 21-4.35-4.35"></path>
+                                <line x1="8" y1="11" x2="14" y2="11"></line>
+                            </svg>
+                        </button>
+
+                        <button
+                            onClick={handleReset}
+                            className="bg-white/90 backdrop-blur-sm p-2 rounded-md shadow-sm hover:bg-white/100 transition-colors"
+                            title="Initialiser la vue"
+                        >
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
+                                <path d="M3 3v5h5"></path>
+                            </svg>
+                        </button>
+
+                        <button
+                            onClick={handleZoomIn}
+                            className="bg-white/90 backdrop-blur-sm p-2 rounded-md shadow-sm hover:bg-white/100 transition-colors"
+                            title="Zoom avant"
+                        >
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <circle cx="11" cy="11" r="8"></circle>
+                                <path d="m21 21-4.35-4.35"></path>
+                                <line x1="11" y1="8" x2="11" y2="14"></line>
+                                <line x1="8" y1="11" x2="14" y2="11"></line>
+                            </svg>
+                        </button>
+                    </div>
+                </>
             )}
         </div>
     );

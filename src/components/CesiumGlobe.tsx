@@ -23,12 +23,14 @@ import {
     Viewer as CesiumViewerType,
     ScreenSpaceEventType,
     defined,
-    CallbackProperty
+    CallbackProperty,
+    SceneMode
 } from 'cesium';
 import { Feature, Geometry, GeoJsonProperties } from 'geojson';
 import type { SatelliteData } from '../types/satellites';
 import type { Aircraft } from '../modules/airTraffic/airTrafficService';
 import type { SatelliteScope } from './SatelliteScopeFilter';
+import type { GEOBeam } from '../types/analysis';
 import { getPosition, DPR_FACTOR, calculateDynamicScale } from './cesium-globe/utils';
 
 // Layer components
@@ -68,6 +70,7 @@ interface CesiumGlobeProps {
     selectedAircraft?: Aircraft | null;
     onAircraftClick?: (aircraft: Aircraft | null) => void;
     onAircraftHover?: (aircraft: Aircraft | null) => void;
+    selectedGEOBeam?: GEOBeam | null;
     cameraTarget?: { lat: number; lng: number; alt: number } | null;
     onCameraReady?: (viewer: any) => void;
     onGlobeContainerReady?: (ref: React.RefObject<HTMLDivElement | null>) => void;
@@ -76,8 +79,8 @@ interface CesiumGlobeProps {
     onToggleSatelliteTrajectory?: () => void;
     onSizeScaleChange?: (scale: number) => void;
     isPhone?: boolean;
-    view?: 'globe' | 'map';
-    onViewChange?: (view: 'globe' | 'map') => void;
+    sceneMode?: '2D' | '3D';
+    onSceneModeChange?: (mode: '2D' | '3D') => void;
 }
 
 const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
@@ -102,26 +105,34 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
     selectedAircraft,
     onAircraftClick,
     onAircraftHover,
+    selectedGEOBeam,
     cameraTarget,
     onCameraReady,
+    onGlobeContainerReady,
     showSatelliteTrajectory = false,
-    sizeScale = 1,
+    sizeScale,
     onToggleSatelliteTrajectory,
     onSizeScaleChange,
-    onGlobeContainerReady,
-    isPhone = false,
-    view = 'globe',
-    onViewChange,
+    isPhone,
+    sceneMode = '3D',
+    onSceneModeChange,
 }) => {
-    // Convert view to is2D for backward compatibility
-    const is2D = view === 'map';
-    // We need to pass the lighting state properly
     const [localEnableLighting, setLocalEnableLighting] = useState(false);
     const enableLighting = localEnableLighting;
-    const onToggleLighting = () => setLocalEnableLighting(!localEnableLighting);
+    const onToggleLighting = () => setLocalEnableLighting(!enableLighting);
     const viewerRef = useRef<CesiumViewerType | null>(null);
     const globeContainerRef = useRef<HTMLDivElement>(null);
     const [viewerReady, setViewerReady] = useState(false);
+
+    // Handle scene mode changes
+    useEffect(() => {
+        if (viewerRef.current && onSceneModeChange) {
+            const targetMode = sceneMode === '2D' ? SceneMode.SCENE2D : SceneMode.SCENE3D;
+            if (viewerRef.current.scene.mode !== targetMode) {
+                viewerRef.current.scene.mode = targetMode;
+            }
+        }
+    }, [sceneMode, onSceneModeChange]);
 
     // Handle viewer initialization via callback ref
     const handleViewerRef = useCallback((e: any) => {
@@ -138,20 +149,10 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         }
     }, [viewerReady, onCameraReady]);
 
-    // Notify parent when globe container is ready
+    // Notify parent when container is ready
     useEffect(() => {
-        console.log('CesiumGlobe: onGlobeContainerReady callback check');
-        console.log('CesiumGlobe: globeContainerRef.current:', globeContainerRef.current);
-        console.log('CesiumGlobe: onGlobeContainerReady function:', !!onGlobeContainerReady);
-        
-        if (onGlobeContainerReady && globeContainerRef.current) {
-            console.log('CesiumGlobe: Calling onGlobeContainerReady with ref');
-            // Petit délai pour s'assurer que le DOM est complètement prêt
-            setTimeout(() => {
-                onGlobeContainerReady(globeContainerRef);
-            }, 100);
-        } else {
-            console.log('CesiumGlobe: Not calling callback - missing ref or function');
+        if (globeContainerRef.current && onGlobeContainerReady) {
+            onGlobeContainerReady(globeContainerRef);
         }
     }, [onGlobeContainerReady]);
 
@@ -159,22 +160,18 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
     useEffect(() => {
         if (!viewerRef.current) return;
 
-        const scene = viewerRef.current.scene;
-        // Ensure clock is running for CallbackProperty to work
-        viewerRef.current.clock.shouldAnimate = true;
-
+        const viewer = viewerRef.current;
+        
+        // Set scene mode
+        const targetMode = sceneMode === '2D' ? SceneMode.SCENE2D : SceneMode.SCENE3D;
+        if (viewer.scene.mode !== targetMode) {
+            viewer.scene.mode = targetMode;
+        } 
         // Apply lighting settings
-        scene.globe.enableLighting = enableLighting;
-        scene.globe.depthTestAgainstTerrain = true;
-        viewerRef.current.shadows = enableLighting;
-
-        // Handle 2D/3D mode
-        if (is2D) {
-            scene.morphTo2D(0);
-        } else {
-            scene.morphTo3D(0);
-        }
-    }, [is2D, enableLighting, viewerReady]);
+        viewer.scene.globe.enableLighting = enableLighting;
+        viewer.scene.globe.depthTestAgainstTerrain = true;
+        viewer.shadows = enableLighting;
+    }, [sceneMode, enableLighting, viewerReady]);
 
     // Handle camera target flyTo
     useEffect(() => {
@@ -226,6 +223,22 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         return null;
     }, [selectedSatellite, autoSelectedLEOSatellite]);
 
+    const highlightServingFootprint = useMemo(() => {
+        // Only highlight in auto-selection context (no manual satellite selected)
+        if (selectedSatellite) return false;
+        if (!autoSelectedLEOSatellite) return false;
+        return true;
+    }, [selectedSatellite?.id, autoSelectedLEOSatellite?.id]);
+
+    const geoBeamCone = useMemo(() => {
+        // Only render the beam cone in auto-selection context (no manual satellite selected)
+        if (selectedSatellite) return { beamFeature: null, sat: null };
+        if (!autoSelectedGEOSatellite) return { beamFeature: null, sat: null };
+        const beamFeature = selectedGEOBeam?.feature ?? null;
+        if (!beamFeature) return { beamFeature: null, sat: null };
+        return { beamFeature, sat: autoSelectedGEOSatellite };
+    }, [selectedSatellite?.id, autoSelectedGEOSatellite?.id, selectedGEOBeam?.feature]);
+
     // Create stable pixel size callback for selected position marker
     const positionMarkerPixelSize = useMemo(() => {
         return new CallbackProperty(() => {
@@ -270,8 +283,8 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                 onToggleSatelliteTrajectory={onToggleSatelliteTrajectory}
                 sizeScale={sizeScale}
                 onSizeScaleChange={onSizeScaleChange}
-                view={view}
-                onViewChange={onViewChange}
+                sceneMode={sceneMode}
+                onSceneModeChange={onSceneModeChange}
             />
 
             {/* Cesium Viewer */}
@@ -348,11 +361,19 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                 <OneWebCombLayer
                     targetSat={oneWebTargetSat}
                     viewerRef={viewerRef}
+                    selectedPosition={selectedPosition}
+                    selectedAircraft={selectedAircraft}
+                    highlightServingFootprint={highlightServingFootprint}
                 />
 
                 {/* Aggregated coverage volume (manual satellite selection only) */}
                 <AggregatedCoverageVolumeLayer
                     selectedSatellite={selectedSatellite}
+                    selectedBeamFeature={geoBeamCone.beamFeature}
+                    beamSatellite={geoBeamCone.sat}
+                    autoSelectedSatellite={autoSelectedLEOSatellite}
+                    selectedPosition={selectedPosition}
+                    selectedAircraft={selectedAircraft}
                     satellites={satellites}
                     coverageFeatures={coverageFeatures}
                     viewerRef={viewerRef}
@@ -365,7 +386,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                     selectedSatellite={selectedSatellite}
                     autoSelectedLEOSatellite={autoSelectedLEOSatellite}
                     autoSelectedGEOSatellite={autoSelectedGEOSatellite}
-                    selectedSNP={selectedSNP}
+                    selectedSNP={typeof selectedSNP === 'string' ? { lat: 0, lng: 0, name: selectedSNP } : selectedSNP}
                     dedicatedSNPForSelectedLEO={dedicatedSNPForSelectedLEO}
                     satelliteScope={satelliteScope}
                 />

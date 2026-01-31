@@ -15,16 +15,32 @@ import {
     Viewer as CesiumViewerType
 } from 'cesium';
 import type { SatelliteData } from '../../types/satellites';
+import type { Aircraft } from '../../modules/airTraffic/airTrafficService';
 import { getBeamColor, TOTAL_BEAMS } from '../../utils/oneWebComb';
 import { footprintRadiusKm, BACKHAUL_ELEVATION_DEG, STANDARD_RADIUS_KM } from '../../utils/leoFootprint';
 import { getCoverageColor } from '../../services/coverageService';
 import { useCombGeometry } from './hooks';
-import { getPosition, DUMMY_POLYGON, propagateSatellite } from './utils';
+import { getPosition, DUMMY_POLYGON, propagateSatellite, calculateDeadReckoning } from './utils';
 
 interface OneWebCombLayerProps {
     targetSat: SatelliteData | null;
     viewerRef: React.RefObject<CesiumViewerType | null>;
+    selectedPosition?: { lat: number; lng: number; altitude?: number } | null;
+    selectedAircraft?: Aircraft | null;
+    highlightServingFootprint?: boolean;
 }
+
+const isPointInPolygon = (point: { lat: number; lng: number }, ring: Array<[number, number]>): boolean => {
+    let inside = false;
+    for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+        const [xi, yi] = ring[i];
+        const [xj, yj] = ring[j];
+        const intersect = ((yi > point.lat) !== (yj > point.lat))
+            && (point.lng < (xj - xi) * (point.lat - yi) / (yj - yi) + xi);
+        if (intersect) inside = !inside;
+    }
+    return inside;
+};
 
 const BeamPolygon = React.memo<{
     beamIndex: number;
@@ -85,7 +101,10 @@ BeamPolygon.displayName = 'BeamPolygon';
 
 const OneWebCombLayer: React.FC<OneWebCombLayerProps> = ({
     targetSat,
-    viewerRef
+    viewerRef,
+    selectedPosition,
+    selectedAircraft,
+    highlightServingFootprint = false
 }) => {
     const { getCombGeometries } = useCombGeometry();
 
@@ -109,6 +128,84 @@ const OneWebCombLayer: React.FC<OneWebCombLayerProps> = ({
         }, false);
     }, [targetSat?.id, targetSat?.satrec]);
 
+    const highlight = useMemo(() => {
+        if (!highlightServingFootprint) {
+            return {
+                show: new CallbackProperty(() => false, false),
+                hierarchy: new CallbackProperty(() => new PolygonHierarchy(DUMMY_POLYGON), false)
+            };
+        }
+
+        const show = new CallbackProperty((time?: JulianDate) => {
+            if (!time || !viewerRef.current || !targetSat) return false;
+            if (!selectedPosition && !selectedAircraft) return false;
+
+            const geometries = getCombGeometries(targetSat, time);
+            if (!geometries) return false;
+
+            let point: { lat: number; lng: number } | null = null;
+            if (selectedAircraft) {
+                const p = calculateDeadReckoning(selectedAircraft, time);
+                const c = Cartographic.fromCartesian(p);
+                point = { lat: CesiumMath.toDegrees(c.latitude), lng: CesiumMath.toDegrees(c.longitude) };
+            } else if (selectedPosition) {
+                point = { lat: selectedPosition.lat, lng: selectedPosition.lng };
+            }
+            if (!point) return false;
+
+            for (let i = 0; i < geometries.length; i++) {
+                const poly = geometries[i];
+                if (!poly || poly.length < 3) continue;
+
+                const ring: Array<[number, number]> = poly.map((p: any) => {
+                    const c = Cartographic.fromCartesian(p);
+                    return [CesiumMath.toDegrees(c.longitude), CesiumMath.toDegrees(c.latitude)];
+                });
+
+                if (isPointInPolygon(point, ring)) return true;
+            }
+
+            return false;
+        }, false);
+
+        const hierarchy = new CallbackProperty((time?: JulianDate) => {
+            const dummyHierarchy = new PolygonHierarchy(DUMMY_POLYGON);
+            if (!time || !viewerRef.current || !targetSat) return dummyHierarchy;
+            if (!selectedPosition && !selectedAircraft) return dummyHierarchy;
+
+            const geometries = getCombGeometries(targetSat, time);
+            if (!geometries) return dummyHierarchy;
+
+            let point: { lat: number; lng: number } | null = null;
+            if (selectedAircraft) {
+                const p = calculateDeadReckoning(selectedAircraft, time);
+                const c = Cartographic.fromCartesian(p);
+                point = { lat: CesiumMath.toDegrees(c.latitude), lng: CesiumMath.toDegrees(c.longitude) };
+            } else if (selectedPosition) {
+                point = { lat: selectedPosition.lat, lng: selectedPosition.lng };
+            }
+            if (!point) return dummyHierarchy;
+
+            for (let i = 0; i < geometries.length; i++) {
+                const poly = geometries[i];
+                if (!poly || poly.length < 3) continue;
+
+                const ring: Array<[number, number]> = poly.map((p: any) => {
+                    const c = Cartographic.fromCartesian(p);
+                    return [CesiumMath.toDegrees(c.longitude), CesiumMath.toDegrees(c.latitude)];
+                });
+
+                if (isPointInPolygon(point, ring)) {
+                    return new PolygonHierarchy(poly);
+                }
+            }
+
+            return dummyHierarchy;
+        }, false);
+
+        return { show, hierarchy };
+    }, [highlightServingFootprint, viewerRef, targetSat?.id, selectedPosition?.lat, selectedPosition?.lng, selectedAircraft?.icao24, getCombGeometries]);
+
     // Early return AFTER all hooks have been called
     if (!targetSat || !targetSat.satrec) {
         return null;
@@ -118,7 +215,7 @@ const OneWebCombLayer: React.FC<OneWebCombLayerProps> = ({
     const horizonRadius = footprintRadiusKm(targetSat.position.alt || 1200, BACKHAUL_ELEVATION_DEG) * 1000;
     const backhaulColorStr = getCoverageColor('ONEWEB_BACKHAUL', 0.2, targetSat);
     const backhaulColor = Color.fromCssColorString(backhaulColorStr);
-    const standardColorFill = Color.fromCssColorString(getCoverageColor('ONEWEB_STANDARD', 0.15, targetSat));
+    const standardColorFill = Color.fromCssColorString(getCoverageColor('ONEWEB_STANDARD', 0.1, targetSat));
     const standardColorOutline = Color.fromCssColorString(getCoverageColor('ONEWEB_STANDARD', 0.6, targetSat));
 
 
@@ -142,8 +239,8 @@ const OneWebCombLayer: React.FC<OneWebCombLayerProps> = ({
                 <EllipseGraphics
                     semiMajorAxis={STANDARD_RADIUS_KM * 1000}
                     semiMinorAxis={STANDARD_RADIUS_KM * 1000}
-                    material={standardColorFill.withAlpha(0.3)}
-                    outline={true}
+                    material={standardColorFill}
+                    outline={false}
                     outlineColor={standardColorOutline.withAlpha(1)}
                     outlineWidth={2}
                     height={1000}
@@ -160,6 +257,17 @@ const OneWebCombLayer: React.FC<OneWebCombLayerProps> = ({
                     viewerRef={viewerRef}
                 />
             ))}
+
+            <Entity name="Serving Footprint Highlight">
+                <PolygonGraphics
+                    show={highlight.show}
+                    hierarchy={highlight.hierarchy}
+                    material={Color.PALEVIOLETRED.withAlpha(0.5)}
+                    outline={true}
+                    outlineColor={Color.WHITE.withAlpha(0.9)}
+                    outlineWidth={3}
+                />
+            </Entity>
         </>
     );
 };
