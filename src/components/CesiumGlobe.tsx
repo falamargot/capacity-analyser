@@ -52,13 +52,13 @@ interface CesiumGlobeProps {
     selectedPosition?: { lat: number; lng: number; altitude?: number } | null;
     onPointClick: (lat: number, lng: number) => void;
     onSatelliteClick: (satellite: SatelliteData | null) => void;
-    onSatelliteHover: (_satelliteId: string | null) => void;
-    onSnpClick: (snpName: string | null) => void;
-    onSnpHover: (_snpName: string | null) => void;
+    onSatelliteHover: (satelliteId: string | null) => void;
+    onSnpClick: (snpName: string | { lat: number; lng: number; name: string } | null) => void;
+    onSnpHover: (snpName: string | null) => void;
     selectedSatellite: SatelliteData | null;
     autoSelectedLEOSatellite?: SatelliteData | null;
     autoSelectedGEOSatellite?: SatelliteData | null;
-    selectedSNP?: any;
+    selectedSNP?: string | { lat: number; lng: number; name: string } | null;
     dedicatedSNPForSelectedLEO?: any;
     isFullscreen: boolean;
     onToggleFullscreen: () => void;
@@ -67,18 +67,17 @@ interface CesiumGlobeProps {
     aircraft?: Aircraft[];
     selectedAircraft?: Aircraft | null;
     onAircraftClick?: (aircraft: Aircraft | null) => void;
-    onAircraftHover?: (_aircraft: Aircraft | null) => void;
-    is2D?: boolean;
-    enableLighting?: boolean;
-    onToggleLighting?: () => void;
+    onAircraftHover?: (aircraft: Aircraft | null) => void;
     cameraTarget?: { lat: number; lng: number; alt: number } | null;
     onCameraReady?: (viewer: any) => void;
+    onGlobeContainerReady?: (ref: React.RefObject<HTMLDivElement | null>) => void;
     showSatelliteTrajectory?: boolean;
     sizeScale?: number;
     onToggleSatelliteTrajectory?: () => void;
     onSizeScaleChange?: (scale: number) => void;
-    onGlobeContainerReady?: (ref: React.RefObject<HTMLDivElement | null>) => void;
     isPhone?: boolean;
+    view?: 'globe' | 'map';
+    onViewChange?: (view: 'globe' | 'map') => void;
 }
 
 const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
@@ -103,9 +102,6 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
     selectedAircraft,
     onAircraftClick,
     onAircraftHover,
-    is2D = false,
-    enableLighting = false,
-    onToggleLighting,
     cameraTarget,
     onCameraReady,
     showSatelliteTrajectory = false,
@@ -114,7 +110,15 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
     onSizeScaleChange,
     onGlobeContainerReady,
     isPhone = false,
+    view = 'globe',
+    onViewChange,
 }) => {
+    // Convert view to is2D for backward compatibility
+    const is2D = view === 'map';
+    // We need to pass the lighting state properly
+    const [localEnableLighting, setLocalEnableLighting] = useState(false);
+    const enableLighting = localEnableLighting;
+    const onToggleLighting = () => setLocalEnableLighting(!localEnableLighting);
     const viewerRef = useRef<CesiumViewerType | null>(null);
     const globeContainerRef = useRef<HTMLDivElement>(null);
     const [viewerReady, setViewerReady] = useState(false);
@@ -241,21 +245,19 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
     return (
         <div className="relative w-full h-full">
             {/* UI Overlays */}
-            {!isPhone && (
-                <PositionDisplay
-                    selectedPosition={selectedPosition}
-                    selectedAircraft={selectedAircraft}
-                />
-            )}
+            <PositionDisplay
+                selectedPosition={selectedPosition}
+                selectedAircraft={selectedAircraft}
+                isPhone={isPhone}
+            />
 
-            {!isPhone && (
-                <SatelliteIndicator
-                    selectedSatellite={selectedSatellite}
-                    autoSelectedLEOSatellite={autoSelectedLEOSatellite}
-                    autoSelectedGEOSatellite={autoSelectedGEOSatellite}
-                    viewerRef={viewerRef}
-                />
-            )}
+            <SatelliteIndicator
+                selectedSatellite={selectedSatellite}
+                autoSelectedLEOSatellite={autoSelectedLEOSatellite}
+                autoSelectedGEOSatellite={autoSelectedGEOSatellite}
+                viewerRef={viewerRef}
+                isPhone={isPhone}
+            />
 
             <GlobeControls
                 viewerRef={viewerRef}
@@ -268,6 +270,8 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                 onToggleSatelliteTrajectory={onToggleSatelliteTrajectory}
                 sizeScale={sizeScale}
                 onSizeScaleChange={onSizeScaleChange}
+                view={view}
+                onViewChange={onViewChange}
             />
 
             {/* Cesium Viewer */}

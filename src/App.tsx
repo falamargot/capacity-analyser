@@ -31,8 +31,8 @@ const App: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [satellites, setSatellites] = useState<SatelliteData[]>([]);
   const [loading, setLoading] = useState(true);
-  const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
-  const [isPhone, setIsPhone] = useState(window.innerWidth < 768);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 1100);
+  const [isPhone, setIsPhone] = useState(window.innerWidth < 920);
   const [selectedPosition, setSelectedPosition] = useState<{ lat: number; lng: number; altitude?: number } | null>(null);
   const [analyzisPosition, setAnalyzisPosition] = useState<AnalyzisPosition | null>(null);
   const [cameraTarget, setCameraTarget] = useState<{ lat: number; lng: number; alt: number } | null>(null);
@@ -115,8 +115,8 @@ const App: React.FC = () => {
 
   useEffect(() => {
     const handleResize = () => {
-      setIsMobile(window.innerWidth < 1024);
-      setIsPhone(window.innerWidth < 768);
+      setIsMobile(window.innerWidth < 1100);
+      setIsPhone(window.innerWidth < 920);
     };
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
@@ -837,7 +837,7 @@ const App: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       <header className="bg-white shadow-sm">
-        <div className="max-w-[1920px] mx-auto px-4 py-0 md:py-4 sm:px-6 lg:px-8">
+        <div className="max-w-[1920px] mx-auto px-2 py-0 md:py-4 sm:px-4 lg:px-8">
           {isMobile ? (
             isPhone ? (
               <div className="h-14 flex items-center justify-between gap-3">
@@ -863,14 +863,14 @@ const App: React.FC = () => {
                 </button>
               </div>
             ) : (
-              <div className="flex flex-col gap-3">
+              <div className="flex flex-col gap-1">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center min-w-0">
                     <Satellite className="h-7 w-7 text-blue-600 flex-shrink-0" />
                     <h1 className="ml-2 text-lg font-bold text-gray-900 truncate">Capacity Analyzer</h1>
                   </div>
                 </div>
-                <div className="flex items-center gap-3 overflow-x-auto pb-1">
+                <div className="flex items-center gap-1 overflow-x-auto pb-1">
                   <div className="flex-shrink-0">
                     <SatelliteScopeFilter
                       currentScope={satelliteScope}
@@ -1113,6 +1113,7 @@ const App: React.FC = () => {
                 sizeScale={sizeScale}
                 onToggleSatelliteTrajectory={() => setShowSatelliteTrajectory(!showSatelliteTrajectory)}
                 onSizeScaleChange={setSizeScale}
+                isPhone={false}
               />
             </div>
             <div className="flex-shrink-0 w-[500px] bg-white rounded-lg shadow-lg overflow-hidden">

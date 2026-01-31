@@ -9,11 +9,13 @@ import { formatCoordinates } from '../../utils/formatters';
 interface PositionDisplayProps {
     selectedPosition?: { lat: number; lng: number; altitude?: number } | null;
     selectedAircraft?: Aircraft | null;
+    isPhone?: boolean;
 }
 
 const PositionDisplay: React.FC<PositionDisplayProps> = ({
     selectedPosition,
-    selectedAircraft
+    selectedAircraft,
+    isPhone = false
 }) => {
     // Update time every second
     const [currentTime, setCurrentTime] = useState(() => new Date());
@@ -26,8 +28,8 @@ const PositionDisplay: React.FC<PositionDisplayProps> = ({
     }, []);
 
     const formattedTime = useMemo(
-        () => format(currentTime, "yyyy-MM-dd HH:mm:ss 'UTC'"),
-        [currentTime]
+        () => isPhone ? format(currentTime, "HH:mm:ss") : format(currentTime, "yyyy-MM-dd HH:mm:ss 'UTC'"),
+        [currentTime, isPhone]
     );
 
     const positionInfo = useMemo(() => {
@@ -50,14 +52,14 @@ const PositionDisplay: React.FC<PositionDisplayProps> = ({
     ]);
 
     return (
-        <div className="absolute top-2 left-2 z-10 bg-white/80 px-3 py-1 rounded-md shadow-sm">
-            <div className="flex items-center gap-4">
-                <span className="text-gray-700 font-medium">
+        <div className={`absolute top-2 left-2 z-10 ${isPhone ? 'bg-white/90 px-2 py-1 rounded-md shadow-sm' : 'bg-white/80 px-3 py-1 rounded-md shadow-sm'}`}>
+            <div className={`flex items-center ${isPhone ? 'gap-2' : 'gap-4'}`}>
+                <span className={`${isPhone ? 'text-gray-700 text-xs font-medium' : 'text-gray-700 font-medium'}`}>
                     {formattedTime}
                 </span>
                 {positionInfo && (
-                    <span className="text-gray-600 text-sm">
-                        Position: {positionInfo.coords}
+                    <span className={`${isPhone ? 'text-gray-600 text-xs' : 'text-gray-600 text-sm'}`}>
+                        {isPhone ? '' : 'Position: '}{positionInfo.coords}
                         {positionInfo.altitude && (
                             <span className="ml-1">
                                 ({positionInfo.altitude.toFixed(1)} km)
