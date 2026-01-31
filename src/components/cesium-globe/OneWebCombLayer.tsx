@@ -4,10 +4,12 @@
 import React, { useMemo } from 'react';
 import { Entity, PolygonGraphics, EllipseGraphics } from 'resium';
 import {
+    Cartographic,
     Color,
     CallbackProperty,
     CallbackPositionProperty,
     ColorMaterialProperty,
+    Math as CesiumMath,
     PolygonHierarchy,
     JulianDate,
     Viewer as CesiumViewerType
@@ -17,7 +19,7 @@ import { getBeamColor, TOTAL_BEAMS } from '../../utils/oneWebComb';
 import { footprintRadiusKm, BACKHAUL_ELEVATION_DEG, STANDARD_RADIUS_KM } from '../../utils/leoFootprint';
 import { getCoverageColor } from '../../services/coverageService';
 import { useCombGeometry } from './hooks';
-import { getPosition, DUMMY_POLYGON } from './utils';
+import { getPosition, DUMMY_POLYGON, propagateSatellite } from './utils';
 
 interface OneWebCombLayerProps {
     targetSat: SatelliteData | null;
@@ -98,14 +100,14 @@ const OneWebCombLayer: React.FC<OneWebCombLayerProps> = ({
             if (!time || !targetSat) {
                 return getPosition(targetSat?.position.lat || 0, targetSat?.position.lng || 0, 0);
             }
-            // Coverage circles follow the static ground projection of the satellite
-            return getPosition(
-                targetSat.position.lat,
-                targetSat.position.lng,
-                0
-            );
+            // Coverage circles follow the ground projection of the satellite in real-time
+            const satCartesian = propagateSatellite(targetSat, time);
+            const cartographic = Cartographic.fromCartesian(satCartesian);
+            const lat = CesiumMath.toDegrees(cartographic.latitude);
+            const lng = CesiumMath.toDegrees(cartographic.longitude);
+            return getPosition(lat, lng, 0);
         }, false);
-    }, [targetSat?.id, targetSat?.position.lat, targetSat?.position.lng]);
+    }, [targetSat?.id, targetSat?.satrec]);
 
     // Early return AFTER all hooks have been called
     if (!targetSat || !targetSat.satrec) {

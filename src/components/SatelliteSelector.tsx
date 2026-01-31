@@ -38,9 +38,9 @@ const SatelliteSelector: React.FC<SatelliteSelectorProps> = ({
             onSelect(satellite);
           }
         }}
-        className="w-full sm:w-64 pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none bg-white"
+        className="w-full sm:w-48 pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none bg-white"
       >
-        <option value="">Select a satellite...</option>
+        <option value="">Select a satellite</option>
         {sortedSatellites.map(sat => (
           <option key={sat.id} value={sat.id}>
             {sat.name}
