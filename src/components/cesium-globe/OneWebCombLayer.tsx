@@ -16,7 +16,7 @@ import {
 } from 'cesium';
 import type { SatelliteData } from '../../types/satellites';
 import type { Aircraft } from '../../modules/airTraffic/airTrafficService';
-import { getBeamColor, TOTAL_BEAMS } from '../../utils/oneWebComb';
+import { getBeamColor, TOTAL_BEAMS, calculateGSOAvoidanceAngle } from '../../utils/oneWebComb';
 import { footprintRadiusKm, BACKHAUL_ELEVATION_DEG, STANDARD_RADIUS_KM } from '../../utils/leoFootprint';
 import { getCoverageColor } from '../../services/coverageService';
 import { useCombGeometry } from './hooks';
@@ -78,10 +78,16 @@ const BeamPolygon = React.memo<{
 
     // Create stable color callback
     const colorCallback = useMemo(() => {
-        return new ColorMaterialProperty(new CallbackProperty(() => {
-            return getBeamColor(beamIndex, null);
+        return new ColorMaterialProperty(new CallbackProperty((time?: JulianDate) => {
+            if (!time || !targetSat.satrec) {
+                return getBeamColor(beamIndex, null, false);
+            }
+            
+            // Check if satellite is in blanking zone
+            const { isBlankingZone } = calculateGSOAvoidanceAngle(targetSat.satrec, time);
+            return getBeamColor(beamIndex, null, isBlankingZone);
         }, false));
-    }, [beamIndex]);
+    }, [beamIndex, targetSat.id, targetSat.satrec]);
 
     return (
         <Entity name="Combined Beam">
@@ -229,8 +235,8 @@ const OneWebCombLayer: React.FC<OneWebCombLayerProps> = ({
                     material={backhaulColor.withAlpha(0)}
                     outline={true}
                     outlineColor={backhaulColor.withAlpha(1)}
-                    outlineWidth={3}
-                    height={2500}
+                    outlineWidth={2}
+                    height={2000}
                 />
             </Entity>
 
@@ -262,7 +268,7 @@ const OneWebCombLayer: React.FC<OneWebCombLayerProps> = ({
                 <PolygonGraphics
                     show={highlight.show}
                     hierarchy={highlight.hierarchy}
-                    material={Color.PALEVIOLETRED.withAlpha(0.5)}
+                    material={Color.PALEVIOLETRED.withAlpha(0.4)}
                     outline={true}
                     outlineColor={Color.WHITE.withAlpha(0.9)}
                     outlineWidth={3}

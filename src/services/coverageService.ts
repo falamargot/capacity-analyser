@@ -4,6 +4,8 @@ import { isPointInCoverage } from '../utils/coverageCalculator';
 import { SatelliteData } from '../types/satellites';
 import { haversineDistanceKm } from '../utils/leoFootprint';
 import { EARTH_RADIUS_KM, SPEED_OF_LIGHT_RADIO_KM_S } from '../utils/capacityCalculator';
+import { calculateGSOAvoidanceAngle } from '../utils/oneWebComb';
+import { JulianDate } from 'cesium';
 
 const POINTS_IN_CIRCLE = 16; // Increased number of points for smoother circles
 
@@ -148,6 +150,23 @@ export const getNearestSNPInBackhaul = (satellite: SatelliteData): { name: strin
     return null;
   }
 
+  // Check if satellite is in GSO exclusion zone (blanking zone)
+  // If in blanking zone, satellite cannot be used for transmission
+  if (satellite.satrec) {
+    try {
+      const now = new Date();
+      const time = JulianDate.fromDate(now);
+      const { isBlankingZone } = calculateGSOAvoidanceAngle(satellite.satrec, time);
+      
+      if (isBlankingZone) {
+        return null; // Satellite in exclusion zone, not available for connectivity
+      }
+    } catch (error) {
+      console.warn('Error checking GSO exclusion zone:', error);
+      // Continue with normal processing if error occurs
+    }
+  }
+
   const satellitePosition = { lat: satellite.position.lat, lng: satellite.position.lng, alt: satellite.position.alt };
   let nearestSNP: { name: string; distance: number; latency: number } | null = null;
   let minDistance = Infinity;
@@ -176,6 +195,23 @@ export const hasSNPInCoverage = (satellite: SatelliteData): boolean => {
   // Only check for LEO satellites (ONEWEB)
   if (satellite.type !== 'ONEWEB') {
     return false;
+  }
+
+  // Check if satellite is in GSO exclusion zone (blanking zone)
+  // If in blanking zone, satellite cannot provide any connectivity
+  if (satellite.satrec) {
+    try {
+      const now = new Date();
+      const time = JulianDate.fromDate(now);
+      const { isBlankingZone } = calculateGSOAvoidanceAngle(satellite.satrec, time);
+      
+      if (isBlankingZone) {
+        return false; // Satellite in exclusion zone, no connectivity available
+      }
+    } catch (error) {
+      console.warn('Error checking GSO exclusion zone:', error);
+      // Continue with normal processing if error occurs
+    }
   }
 
   // Check if any SNP is in the satellite's coverage

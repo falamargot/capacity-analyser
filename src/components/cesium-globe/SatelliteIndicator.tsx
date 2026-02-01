@@ -46,8 +46,8 @@ const SatelliteIndicator: React.FC<SatelliteIndicatorProps> = ({
             try {
                 const now = new Date();
                 const time = JulianDate.fromDate(now);
-                const { isActive } = calculateGSOAvoidanceAngle(trackedSatellite.satrec, time);
-                setGsoAvoidanceActive(isActive);
+                const { isGSOAvoidance } = calculateGSOAvoidanceAngle(trackedSatellite.satrec, time);
+                setGsoAvoidanceActive(isGSOAvoidance);
             } catch {
                 setGsoAvoidanceActive(false);
             }
@@ -79,7 +79,7 @@ const SatelliteIndicator: React.FC<SatelliteIndicatorProps> = ({
                     <span className={`${isPhone ? 'text-xs' : ''} font-medium ${textClass}`}>
                         {selectedSatellite.name}
                         {selectedSatellite.type === 'ONEWEB' && !isPhone && (
-                            <> ({gsoAvoidanceActive ? "GSO Avoidance Active" : "Normal Ops"})</>
+                            <> {gsoAvoidanceActive ? "(GSO Avoidance)" : ""}</>
                         )}
                     </span>
                 </div>
@@ -106,7 +106,7 @@ const SatelliteIndicator: React.FC<SatelliteIndicatorProps> = ({
                     <span className={`${isPhone ? 'text-xs' : ''} font-medium ${textClass}`}>
                         {autoSelectedLEOSatellite.name}
                         {autoSelectedLEOSatellite.type === 'ONEWEB' && !isPhone && (
-                            <> ({gsoAvoidanceActive ? "GSO Avoidance Active" : "Normal Ops"})</>
+                            <> {gsoAvoidanceActive ? "(GSO Avoidance)" : ""}</>
                         )}
                     </span>
                 </div>

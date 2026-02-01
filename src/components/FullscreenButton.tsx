@@ -10,10 +10,10 @@ const FullscreenButton: React.FC<FullscreenButtonProps> = ({ isFullscreen, onCli
   return (
     <button
       onClick={onClick}
-      className="p-2 text-gray-600 hover:text-gray-900 bg-white/90 rounded-lg shadow-sm backdrop-blur-sm transition-colors"
+      className="p-2 text-gray-600 hover:text-gray-900 bg-white/90 rounded-md shadow-sm backdrop-blur-sm transition-colors"
       title={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
     >
-      {isFullscreen ? <Minimize2 size={20} /> : <Maximize2 size={20} />}
+      {isFullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
     </button>
   );
 };

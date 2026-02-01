@@ -17,15 +17,16 @@ const COLOR_STANDARD_PINK = Color.fromBytes(219, 39, 119, 255);
 export function calculateGSOAvoidanceAngle(
     satrec: any,
     time: JulianDate
-): { pitchAngleRad: number; isActive: boolean } {
-    if (!satrec) return { pitchAngleRad: 0, isActive: false };
+): { pitchAngleRad: number; isGSOAvoidance: boolean; isBlankingZone: boolean } {
+    if (!satrec) return { pitchAngleRad: 0, isGSOAvoidance: false, isBlankingZone: false };
 
     const date = JulianDate.toDate(time);
     const positionAndVelocity = satellite.propagate(satrec, date);
     const gmst = satellite.gstime(date);
 
-    if (!positionAndVelocity || !positionAndVelocity.position || !positionAndVelocity.velocity) {
-        return { pitchAngleRad: 0, isActive: false };
+    if (!positionAndVelocity || !positionAndVelocity.position || !positionAndVelocity.velocity || 
+        typeof positionAndVelocity.position === 'boolean' || typeof positionAndVelocity.velocity === 'boolean') {
+        return { pitchAngleRad: 0, isGSOAvoidance: false, isBlankingZone: false };
     }
 
     const eciPos = positionAndVelocity.position;
@@ -43,24 +44,42 @@ export function calculateGSOAvoidanceAngle(
     const forward = Cartesian3.cross(nadir, crossTrack, new Cartesian3());
 
     let pitchAngleRad = 0;
-    if (Math.abs(satLatDeg) < 24.0) {
-        const pitchDeg = 10.0;
-        const forwardNorthComponent = forward.z;
+    const PITCH_START_LAT = 45.0; // Seuil officiel
+    const MAX_PITCH_DEG = 17.0;   // Angle max à l'équateur
 
-        // Progressive transition: 0° at 24° latitude to 10° at 23° latitude
-        const transitionFactor = Math.max(0, Math.min(1, (24.0 - Math.abs(satLatDeg)) / 1.0));
-        const adjustedPitchDeg = pitchDeg * transitionFactor;
+    if (Math.abs(satLatDeg) < PITCH_START_LAT) {
+        // FORMULE CORRIGÉE : Max à 0°, Zéro à 45° (Courbe de protection GSO)
+        // Cos(0) = 1, Cos(90°) = 0
+        const progress = Math.abs(satLatDeg) / PITCH_START_LAT;
+        const currentPitchDeg = MAX_PITCH_DEG * Math.cos(progress * (Math.PI / 2));
 
+        // Détection du sens de marche (Z > 0 signifie mouvement vers le Nord)
+        const isMovingNorth = forward.z > 0;
+
+        /**
+         * RÈGLE DE DIRECTION :
+         * Si Lat > 0 (Nord) : Le satellite doit regarder vers le NORD.
+         * Si Lat < 0 (Sud)  : Le satellite doit regarder vers le SUD.
+         */
         if (satLatDeg > 0) {
-            pitchAngleRad = (forwardNorthComponent > 0) ? CesiumMath.toRadians(adjustedPitchDeg) : CesiumMath.toRadians(-adjustedPitchDeg);
+            // Dans le Nord, si on avance vers le Nord, on pitche vers l'AVANT (positif)
+            // Si on avance vers le Sud, on pitche vers l'ARRIÈRE (négatif)
+            pitchAngleRad = isMovingNorth 
+                ? CesiumMath.toRadians(-currentPitchDeg) 
+                : CesiumMath.toRadians(currentPitchDeg);
         } else {
-            pitchAngleRad = (forwardNorthComponent < 0) ? CesiumMath.toRadians(adjustedPitchDeg) : CesiumMath.toRadians(-adjustedPitchDeg);
+            // Dans le Sud, si on avance vers le Sud, on pitche vers l'AVANT (positif)
+            // Si on avance vers le Nord, on pitche vers l'ARRIÈRE (négatif)
+            pitchAngleRad = !isMovingNorth 
+                ? CesiumMath.toRadians(-currentPitchDeg) 
+                : CesiumMath.toRadians(currentPitchDeg);
         }
     }
 
     return {
         pitchAngleRad,
-        isActive: pitchAngleRad !== 0
+        isGSOAvoidance: Math.abs(pitchAngleRad) > 0.01, // Seuil de détection d'activité GSO Avoidance
+        isBlankingZone: Math.abs(satLatDeg) <= 2.0 // GSO Exclusion Zone
     };
 }
 
@@ -202,10 +221,14 @@ function destinationPointGeodesic(lat: number, lng: number, brng: number, distKm
 
 export function getBeamColor(
     beamIndex: number,
-    _userElevation: number | null
+    _userElevation: number | null,
+    isBlankingZone: boolean = false
 ): Color {
+    if (isBlankingZone) {
+        return Color.GRAY.withAlpha(0.3);
+    }
     const isEven = beamIndex % 2 === 0;
-    const alpha = isEven ? 0.3 : 0.4;
+    const alpha = isEven ? 0.4 : 0.5;
     return COLOR_STANDARD_PINK.withAlpha(alpha);
 }
 

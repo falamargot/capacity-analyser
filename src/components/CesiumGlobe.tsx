@@ -242,7 +242,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
     // Create stable pixel size callback for selected position marker
     const positionMarkerPixelSize = useMemo(() => {
         return new CallbackProperty(() => {
-            if (!viewerRef.current || !selectedPosition) return 8;
+            if (!viewerRef.current || !selectedPosition) return 6;
 
             const position = getPosition(selectedPosition.lat, selectedPosition.lng, 0.01);
             const cameraPosition = viewerRef.current.camera.position;

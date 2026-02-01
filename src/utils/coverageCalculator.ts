@@ -1,6 +1,8 @@
 import { Coverage, SatelliteData } from '../types/satellites';
 import { isPointInFootprint, STANDARD_RADIUS_KM, BACKHAUL_RADIUS_KM } from './leoFootprint';
 import { EARTH_RADIUS_KM } from './capacityCalculator';
+import { calculateGSOAvoidanceAngle } from './oneWebComb';
+import { JulianDate } from 'cesium';
 
 // Performance optimization: Cache coverage calculations to prevent expensive recomputation
 const coverageCache = new Map<string, Coverage[]>();
@@ -172,6 +174,23 @@ export function isPointInCoverage(
   satellitePosition: { lat: number; lng: number; alt: number; } | null
 ): number[] {
   if (!point) return [];
+
+  // Check if satellite is in GSO exclusion zone (blanking zone)
+  // If in blanking zone, satellite cannot provide any connectivity
+  if (satellite.type === 'ONEWEB' && satellite.satrec) {
+    try {
+      const now = new Date();
+      const time = JulianDate.fromDate(now);
+      const { isBlankingZone } = calculateGSOAvoidanceAngle(satellite.satrec, time);
+      
+      if (isBlankingZone) {
+        return []; // Satellite in exclusion zone, no connectivity available
+      }
+    } catch (error) {
+      console.warn('Error checking GSO exclusion zone:', error);
+      // Continue with normal processing if error occurs
+    }
+  }
 
   // ONEWEB coverage uses double-zone footprint model (nadir LEO footprint), not the GeoJSON beam polygons.
   if (satellite.type === 'ONEWEB') {

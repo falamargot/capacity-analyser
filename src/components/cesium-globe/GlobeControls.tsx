@@ -130,11 +130,11 @@ const GlobeControls: React.FC<GlobeControlsProps> = ({
                             <button
                                 type="button"
                                 onClick={() => setIsMapOptionsOpen((v) => !v)}
-                                className="p-2 text-gray-600 hover:text-gray-900 bg-white/90 rounded-lg shadow-sm backdrop-blur-sm transition-colors"
+                                className="p-2 text-gray-600 hover:text-gray-900 bg-white/90 rounded-md shadow-sm backdrop-blur-sm transition-colors"
                                 title="Map options"
                                 aria-label="Map options"
                             >
-                                <Settings2 size={20} />
+                                <Settings2 size={16} />
                             </button>
 
                             {isMapOptionsOpen && (
@@ -247,11 +247,11 @@ const GlobeControls: React.FC<GlobeControlsProps> = ({
                             <button
                                 type="button"
                                 onClick={() => setIsMapOptionsOpen((v) => !v)}
-                                className="p-2 text-gray-600 hover:text-gray-900 bg-white/90 rounded-lg shadow-sm backdrop-blur-sm transition-colors"
+                                className="p-2 text-gray-600 hover:text-gray-900 bg-white/90 rounded-md shadow-sm backdrop-blur-sm transition-colors"
                                 title="Map options"
                                 aria-label="Map options"
                             >
-                                <Settings2 size={20} />
+                                <Settings2 size={16} />
                             </button>
 
                             {isMapOptionsOpen && (

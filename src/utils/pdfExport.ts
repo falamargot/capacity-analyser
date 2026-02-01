@@ -162,17 +162,18 @@ function createComparisonPage(pdf: jsPDF, data: PDFExportData): void {
   pdf.setFont('helvetica', 'normal');
   
   if (leoData) {
-    pdf.text(`LEO Radio Path: ${leoData.radioPath}`, 20, currentY);
+    pdf.text(`LEO Radio Path:`, 20, currentY);
     currentY += 6;
+    pdf.text(`. ${leoData.radioPath}`, 20, currentY);
+    currentY += 10;
   }
   
   if (geoData) {
-    pdf.text(`GEO Radio Path: ${geoData.radioPath}`, 20, currentY);
+    pdf.text(`GEO Radio Path:`, 20, currentY);
     currentY += 6;
+    pdf.text(`. ${geoData.radioPath}`, 20, currentY);
+    currentY += 10;
   }
-  
-  // Ajouter un peu d'espace avant le footer
-  currentY += 5;
   
   // Footer
   pdf.setFontSize(8);

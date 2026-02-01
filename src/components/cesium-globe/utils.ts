@@ -116,7 +116,7 @@ export const calculateDynamicScale = (
     // Inverse scaling: higher altitude = smaller icons
     const distanceFactor = 1.5 - (clampedAltitude * 1.2);
 
-    // Combine DPR and distance factors
+    // Use DPR factor directly (not inverse) for proper high-DPI scaling
     const scaleFactor = dprFactor * distanceFactor;
 
     // Ensure minimum visibility
@@ -125,8 +125,9 @@ export const calculateDynamicScale = (
 
 /**
  * DPR factor - computed once at module load
+ * Now returns the actual DPR for proper scaling on high-DPI displays
  */
-export const DPR_FACTOR = 1 / Math.max(window.devicePixelRatio || 1, 1.0);
+export const DPR_FACTOR = Math.max(window.devicePixelRatio || 1, 1.0);
 
 /**
  * Satellite glyph SVG as data URI

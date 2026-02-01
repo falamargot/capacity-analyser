@@ -1,6 +1,127 @@
 import { SatelliteData } from '../types/satellites';
 import { formatCoordinates } from '../utils/formatters';
 import { getNearestSNPInBackhaul } from '../services/coverageService';
+import { calculateGSOAvoidanceAngle } from '../utils/oneWebComb';
+import { JulianDate } from 'cesium';
+import { useState, useEffect, useMemo } from 'react';
+import * as satellite from 'satellite.js';
+
+// Pitch Monitoring Chart Component
+const PitchMonitoringChart: React.FC<{ currentLatitude: number; currentPitch: number }> = ({
+  currentLatitude,
+  currentPitch
+}) => {
+  const PITCH_START_LAT = 45.0;
+  const MAX_PITCH_DEG = 17.0;
+  
+  // Generate Safety Dome curve points using same formula as calculateGSOAvoidanceAngle
+  const curvePoints = useMemo(() => {
+    const points: string[] = [];
+    for (let lat = -90; lat <= 90; lat += 1) {
+      // Safety Dome formula: pitch = MAX_PITCH * cos((lat / 45) * (PI / 2))
+      const progress = Math.abs(lat) / PITCH_START_LAT;
+      const pitchMagnitude = progress <= 1 ? MAX_PITCH_DEG * Math.cos(progress * (Math.PI / 2)) : 0;
+      
+      // Apply direction based on hemisphere and movement (simplified for visualization)
+      const pitch = lat >= 0 ? pitchMagnitude : -pitchMagnitude;
+      
+      const x = 30 + ((lat + 90) / 180) * 270; // Map -90 to 90 onto 0-280px
+      const y = 97 - (Math.abs(pitch) / 20) * 94; // Map 0-20° onto 107-13px (absolute pitch)
+      points.push(`${x},${y}`);
+    }
+    return points.join(' ');
+  }, []);
+
+  // Calculate current position on curve using same formula
+  const currentX = 30 + ((currentLatitude + 90) / 180) * 270;
+  const currentY = 97 - (Math.abs(currentPitch) / 20) * 94;
+
+  return (
+    <div className="relative w-full h-full">
+      <svg width="100%" height="100%" viewBox="0 0 320 120" className="overflow-visible">
+        {/* Grid lines */}
+        <defs>
+          <pattern id="grid" width="15" height="24" patternUnits="userSpaceOnUse">
+            <path d="M 15 0 L 0 0 0 24" fill="none" stroke="#e5e7eb" strokeWidth="1"/>
+          </pattern>
+        </defs>
+        <rect x="30" y="0" width="272" height="94" fill="url(#grid)" />
+        
+        {/* Axes */}
+        <line x1="30" y1="97" x2="300" y2="97" stroke="#9ca3af" strokeWidth="1" />
+        <line x1="30" y1="0" x2="30" y2="97" stroke="#9ca3af" strokeWidth="1" />
+        
+        {/* Equator line with flip visualization */}
+        <text x="170" y="-3" textAnchor="middle" fill="#ecb54fff" fontSize="9" fontWeight="medium">GSO Arc Protection</text>
+        
+        {/* Exclusion Zone - between -2° and +2° */}
+        <rect x="163" y="0" width="5" height="97" fill="#6b7280" opacity="0.3" />
+        <text x="160" y="68" textAnchor="middle" fill="#374151" fontSize="8" fontWeight="medium" opacity="0.8" transform="rotate(-90 160 60)">EXCLUSION</text>
+        
+        {/* Dome curve */}
+        <polyline
+          points={curvePoints}
+          fill="none"
+          stroke="#ec4899"
+          strokeWidth="2"
+        />
+      
+        {/* Avoidance Zone - between -45° and +45° */}
+        <rect x="97" y="0" width="137" height="97" fill="#ecb54fff" opacity="0.2" />
+        
+        {/* Current position dot - snapped to curve */}
+        <circle
+          cx={currentX}
+          cy={currentY}
+          r="4"
+          fill={Math.abs(currentLatitude) <= 2 ? "#6b7280" : "#ec4899"}
+          stroke="white"
+          strokeWidth="2"
+        />
+        
+        {/* Tooltip with calculated values */}
+        <g transform={`translate(${currentX}, ${currentY - 10})`}>
+          <rect
+            x="-30"
+            y="-13"
+            width="60"
+            height="14"
+            fill="white"
+            stroke="#e5e7eb"
+            strokeWidth="1"
+            rx="2"
+          />
+          <text
+            x="2"
+            y="-3"
+            textAnchor="middle"
+            fill="#374151"
+            fontSize="9"
+            fontWeight="medium"
+          >
+            {currentLatitude.toFixed(1)}° | {Math.abs(currentPitch).toFixed(1)}°
+          </text>
+        </g>
+        
+        {/* Axis labels */}
+        <text x="168" y="115" textAnchor="middle" fill="#6b7280" fontSize="10">Latitude</text>
+        <text x="10" y="50" textAnchor="middle" fill="#6b7280" fontSize="10" transform="rotate(-90 10 50)">Pitch</text>
+        
+        {/* X-axis labels */}
+        <text x="30" y="105" textAnchor="middle" fill="#6b7280" fontSize="8">-90°</text>
+        <text x="98" y="105" textAnchor="middle" fill="#6b7280" fontSize="8">-45°</text>
+        <text x="168" y="105" textAnchor="middle" fill="#6b7280" fontSize="8">0°</text>
+        <text x="233" y="105" textAnchor="middle" fill="#6b7280" fontSize="8">+45°</text>
+        <text x="300" y="105" textAnchor="middle" fill="#6b7280" fontSize="8">+90°</text>
+        
+        {/* Y-axis labels */}
+        <text x="25" y="102" textAnchor="end" fill="#6b7280" fontSize="8">0°</text>
+        <text x="25" y="53" textAnchor="end" fill="#6b7280" fontSize="8">10°</text>
+        <text x="25" y="07" textAnchor="end" fill="#6b7280" fontSize="8">20°</text>
+      </svg>
+    </div>
+  );
+};
 
 interface SatelliteDetailsProps {
   satellites: SatelliteData[];
@@ -18,6 +139,54 @@ const SatelliteDetails: React.FC<SatelliteDetailsProps> = ({ satellites, selecte
   
   // Calculate nearest SNP for LEO satellites using current position (real-time)
   const nearestSNP = currentSatellite?.type === 'ONEWEB' ? getNearestSNPInBackhaul(currentSatellite) : null;
+
+  // Track GSO Avoidance state for ONEWEB satellites
+  const [gsoAvoidanceData, setGsoAvoidanceData] = useState<{ 
+    pitchAngleDeg: number; 
+    isGSOAvoidance: boolean; 
+    latitude: number;
+    isBlankingZone: boolean;
+  } | null>(null);
+
+  useEffect(() => {
+    if (selectedSatellite.type !== 'ONEWEB' || !selectedSatellite.satrec) {
+      setGsoAvoidanceData(null);
+      return;
+    }
+
+    const updateGSOAvoidance = () => {
+      try {
+        const now = new Date();
+        const time = JulianDate.fromDate(now);
+        const { pitchAngleRad, isGSOAvoidance, isBlankingZone } = calculateGSOAvoidanceAngle(selectedSatellite.satrec, time);
+        
+        // Get satellite latitude for equatorial detection
+        const positionAndVelocity = satellite.propagate(selectedSatellite.satrec, now);
+        const gmst = satellite.gstime(now);
+        let latitude = 0;
+        
+        if (positionAndVelocity?.position) {
+          const geodetic = satellite.eciToGeodetic(positionAndVelocity.position, gmst);
+          latitude = satellite.degreesLat(geodetic.latitude);
+        }
+        
+        setGsoAvoidanceData({
+          pitchAngleDeg: Math.abs(pitchAngleRad * (180 / Math.PI)),
+          isGSOAvoidance,
+          latitude,
+          isBlankingZone
+        });
+      } catch (error) {
+        console.error(error);
+        setGsoAvoidanceData(null);
+      }
+    };
+
+    updateGSOAvoidance();
+    const interval = setInterval(updateGSOAvoidance, 1000);
+
+    return () => clearInterval(interval);
+  }, [selectedSatellite.id, selectedSatellite.satrec]);
 
   return (
     <div className="h-full bg-white rounded-lg shadow-lg overflow-hidden flex flex-col">
@@ -78,6 +247,58 @@ const SatelliteDetails: React.FC<SatelliteDetailsProps> = ({ satellites, selecte
                 <p className="text-sm text-gray-600">
                   Nearest SNP: <span className="font-medium text-gray-500">None</span>
                 </p>
+              )}
+              {gsoAvoidanceData && (
+                <div className="mt-3 pt-3 border-t border-gray-200 space-y-2">
+                  {/* Mode Indicator Badge */}
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-gray-600">Mode:</span>
+                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                      gsoAvoidanceData.isBlankingZone 
+                        ? 'bg-red-100 text-red-800 border border-red-200 animate-pulse'
+                        : gsoAvoidanceData.isGSOAvoidance 
+                          ? 'bg-orange-100 text-orange-800 border border-orange-200' 
+                          : 'bg-green-100 text-green-800 border border-green-200'
+                    }`}>
+                      {gsoAvoidanceData.isBlankingZone 
+                        ? 'OFF (EXCLUSION ZONE)' 
+                        : gsoAvoidanceData.isGSOAvoidance 
+                          ? 'GSO Avoidance' 
+                          : 'Nadir Pointing'
+                      }
+                    </span>
+                  </div>
+
+                  {/* Equatorial Transition Alert */}
+                  {Math.abs(gsoAvoidanceData.latitude) <= 2.0 && (
+                    <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-2">
+                      <p className="text-xs font-medium text-yellow-800 flex items-center">
+                        ⚠️ EQUATORIAL FLIP IN PROGRESS
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Real-time Pitch Value */}
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-gray-600">Pitch:</span>
+                    <span className={`font-medium text-sm ${
+                      gsoAvoidanceData.isGSOAvoidance ? 'text-orange-600' : 'text-green-600'
+                    }`}>
+                      {gsoAvoidanceData.pitchAngleDeg.toFixed(1)}°
+                    </span>
+                  </div>
+
+                  {/* Pitch Monitoring Chart */}
+                  <div className="mt-4">
+                    <h4 className="text-sm font-medium text-gray-700 mb-2">Pitch Monitoring</h4>
+                    <div className="bg-white border border-gray-200 rounded-lg p-3" style={{ height: '200px' }}>
+                      <PitchMonitoringChart 
+                        currentLatitude={gsoAvoidanceData.latitude}
+                        currentPitch={gsoAvoidanceData.pitchAngleDeg}
+                      />
+                    </div>
+                  </div>
+                </div>
               )}
             </div>
           </div>
