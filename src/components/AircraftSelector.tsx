@@ -10,8 +10,8 @@ interface AircraftSelectorProps {
   onToggleLiveMode: () => void;
 }
 
-const AircraftSelector: React.FC<AircraftSelectorProps> = ({ 
-  aircraft, 
+const AircraftSelector: React.FC<AircraftSelectorProps> = ({
+  aircraft,
   selectedAircraft,
   onSelect,
   liveModeEnabled,
@@ -24,7 +24,7 @@ const AircraftSelector: React.FC<AircraftSelectorProps> = ({
   const getAircraftType = (callsign: string): string => {
     // Extract airline code from callsign (first 2-3 characters)
     const airlineCode = callsign.substring(0, callsign.match(/^[A-Z]{2}\d+/) ? 2 : 3);
-    
+
     // Map common airline codes to aircraft types
     const airlineTypes: Record<string, string> = {
       'AF': 'A320',      // Air France
@@ -50,7 +50,7 @@ const AircraftSelector: React.FC<AircraftSelectorProps> = ({
       'FR': 'B737',      // Ryanair alternative
       'U2': 'A320',      // easyJet alternative
     };
-    
+
     return airlineTypes[airlineCode] || '';
   };
 
@@ -79,7 +79,7 @@ const AircraftSelector: React.FC<AircraftSelectorProps> = ({
           value={selectedAircraft?.icao24 || ''}
           onChange={(e) => handleAircraftSelect(e.target.value)}
           disabled={!liveModeEnabled}
-          className="w-full sm:w-48 pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none bg-white disabled:bg-gray-100 disabled:cursor-not-allowed"
+          className="w-full sm:w-48 pl-10 pr-4 py-2 border border-gray-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none bg-white dark:bg-slate-800 text-gray-900 dark:text-gray-100 disabled:bg-gray-100 dark:disabled:bg-slate-900 disabled:cursor-not-allowed transition-colors"
         >
           <option value="">
             {liveModeEnabled ? 'Select aircraft...' : 'Enable live mode'}
@@ -100,13 +100,13 @@ const AircraftSelector: React.FC<AircraftSelectorProps> = ({
           </svg>
         </div>
       </div>
-      
+
       <button
         onClick={onToggleLiveMode}
         className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
           liveModeEnabled
             ? 'bg-green-600 text-white hover:bg-green-700'
-            : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+            : 'text-gray-700 bg-gray-200 hover:bg-gray-300 dark:bg-slate-700 dark:text-gray-300 dark:hover:bg-slate-600'
         }`}
         title={liveModeEnabled ? 'Disable live aircraft data' : 'Enable live aircraft data'}
       >

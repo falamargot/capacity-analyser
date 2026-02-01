@@ -110,7 +110,7 @@ const BottomSheet: React.FC<BottomSheetProps> = ({
             style={{ height: '90vh' }}
         >
             <div
-                className="h-full w-full rounded-t-2xl bg-white shadow-2xl border border-gray-200 flex flex-col pointer-events-auto"
+                className="h-full w-full rounded-t-2xl bg-white dark:bg-slate-950 shadow-2xl border border-gray-200 dark:border-slate-800 flex flex-col pointer-events-auto"
                 style={{
                     transform: `translateY(${translateY}px)`,
                     transition: isDragging ? undefined : 'transform 220ms cubic-bezier(0.2, 0.8, 0.2, 1)',
@@ -128,7 +128,7 @@ const BottomSheet: React.FC<BottomSheetProps> = ({
                         onPointerCancel={handlePointerUp}
                         style={{ touchAction: 'none' }}
                     >
-                        <div className={`${compact ? 'h-1.5 w-14' : 'h-1.5 w-12'} rounded-full bg-gray-300`} />
+                        <div className={`${compact ? 'h-1.5 w-14' : 'h-1.5 w-12'} rounded-full bg-gray-300 dark:bg-slate-600`} />
                     </div>
                     {header}
                 </div>

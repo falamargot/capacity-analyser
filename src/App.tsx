@@ -5,6 +5,7 @@ import SatelliteSelector from './components/SatelliteSelector';
 import AircraftSelector from './components/AircraftSelector';
 import SatelliteScopeFilter, { SatelliteScope } from './components/SatelliteScopeFilter';
 import { Search, Satellite, X } from 'lucide-react';
+import { ThemeSelector } from './components/ThemeSelector';
 import BottomSheet from './components/layout/BottomSheet';
 import MobileAnalysisSummary from './components/layout/MobileAnalysisSummary';
 import { calculatePosition, fetchSatellites } from './services/satelliteService';
@@ -64,7 +65,7 @@ const App: React.FC = () => {
     console.log('App: handleGlobeContainerReady called');
     console.log('App: ref parameter:', ref);
     console.log('App: ref.current:', ref.current);
-    
+
     globeContainerRef.current = ref.current;
     console.log('App: globeContainerRef.current set to:', globeContainerRef.current);
   }, []);
@@ -825,7 +826,7 @@ const App: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center bg-white dark:bg-slate-950">
         <div className="text-center">
           <Satellite className="h-12 w-12 text-blue-600 animate-spin mx-auto mb-4" />
           <p className="text-lg font-semibold text-gray-700">Loading satellite data...</p>
@@ -835,8 +836,8 @@ const App: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-white shadow-sm">
+    <div className="min-h-screen bg-white dark:bg-slate-950 transition-colors duration-300">
+      <header className="bg-white dark:bg-slate-900 shadow-sm transition-colors duration-300">
         <div className="max-w-[1920px] mx-auto px-2 py-0 md:py-4 sm:px-4 lg:px-8">
           {isMobile ? (
             isPhone ? (
@@ -861,13 +862,15 @@ const App: React.FC = () => {
                 >
                   <Satellite className="h-5 w-5" />
                 </button>
+
+                <ThemeSelector isMobile />
               </div>
             ) : (
               <div className="flex flex-col gap-1">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center min-w-0">
                     <Satellite className="h-7 w-7 text-blue-600 flex-shrink-0" />
-                    <h1 className="ml-2 text-lg font-bold text-gray-900 truncate">Capacity Analyzer</h1>
+                    <h1 className="ml-2 text-lg font-bold text-gray-900 dark:text-white truncate">Capacity Analyzer</h1>
                   </div>
                 </div>
                 <div className="flex items-center gap-1 overflow-x-auto pb-1">
@@ -886,13 +889,13 @@ const App: React.FC = () => {
                     />
                   </div>
                   <div className="relative flex-shrink-0 w-44">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-500" />
                     <form onSubmit={handleSearchInput}>
                       <input
                         type="text"
                         name="search"
                         placeholder="Search a location..."
-                        className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-slate-800 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                       />
@@ -914,7 +917,7 @@ const App: React.FC = () => {
             <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
               <div className="flex items-center">
                 <Satellite className="h-8 w-8 text-blue-600" />
-                <h1 className="ml-2 text-2xl font-bold text-gray-900">Eutelsat Capacity Analyzer</h1>
+                <h1 className="ml-2 text-2xl font-bold text-gray-900 dark:text-gray-100">Eutelsat Capacity Analyzer</h1>
               </div>
               <div className="flex items-center w-full sm:w-auto gap-4">
                 <SatelliteScopeFilter
@@ -928,7 +931,7 @@ const App: React.FC = () => {
                   satelliteScope={satelliteScope}
                 />
                 <div className="relative flex-1 sm:flex-none">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-500" />
                   <form onSubmit={handleSearchInput}>
                     <input
                       type="text"
@@ -947,6 +950,9 @@ const App: React.FC = () => {
                   liveModeEnabled={airTrafficEnabled}
                   onToggleLiveMode={() => setAirTrafficEnabled(!airTrafficEnabled)}
                 />
+                <div className="flex-shrink-0">
+                  <ThemeSelector />
+                </div>
               </div>
             </div>
           )}
@@ -954,13 +960,13 @@ const App: React.FC = () => {
       </header>
 
       {isMobile && isPhone && isSatelliteModalOpen && (
-        <div className="fixed inset-0 z-[60] bg-white">
-          <div className="h-14 flex items-center justify-between px-4 border-b border-gray-200">
-            <div className="text-sm font-semibold text-gray-900">Controls</div>
+        <div className="fixed inset-0 z-[60] bg-white dark:bg-slate-900">
+          <div className="h-14 flex items-center justify-between px-4 border-b border-gray-200 dark:border-slate-700">
+            <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">Controls</div>
             <button
               type="button"
               onClick={() => setIsSatelliteModalOpen(false)}
-              className="p-2 rounded-lg bg-gray-100 text-gray-800"
+              className="p-2 rounded-lg bg-gray-100 dark:bg-slate-800 text-gray-800 dark:text-gray-200"
               aria-label="Close"
             >
               <X className="h-5 w-5" />
@@ -979,13 +985,13 @@ const App: React.FC = () => {
             />
 
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-500" />
               <form onSubmit={handleSearchInput}>
                 <input
                   type="text"
                   name="search"
                   placeholder="Search a location..."
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-slate-800 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
@@ -1118,7 +1124,7 @@ const App: React.FC = () => {
                 isPhone={false}
               />
             </div>
-            <div className="flex-shrink-0 w-[500px] bg-white rounded-lg shadow-lg overflow-hidden">
+            <div className="flex-shrink-0 w-[500px] bg-white dark:bg-slate-950 rounded-lg shadow-lg overflow-hidden">
               {!isFullscreen && (
                 <div className="w-full overflow-y-auto max-h-[calc(100vh-8rem)]">
                   <CapacityDetails

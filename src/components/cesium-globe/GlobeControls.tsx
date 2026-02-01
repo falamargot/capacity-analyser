@@ -39,8 +39,8 @@ const GlobeControls: React.FC<GlobeControlsProps> = ({
     onToggleSatelliteTrajectory,
     sizeScale,
     onSizeScaleChange,
-    view = 'globe',
-    onViewChange,
+    // view = 'globe',
+    // onViewChange,
     sceneMode = '3D',
     onSceneModeChange,
 }) => {
@@ -117,7 +117,7 @@ const GlobeControls: React.FC<GlobeControlsProps> = ({
                             <button
                                 type="button"
                                 onClick={() => onSceneModeChange(sceneMode === '3D' ? '2D' : '3D')}
-                                className="bg-white/90 backdrop-blur-sm p-2 rounded-md shadow-sm hover:bg-white/100 transition-colors"
+                                className="bg-white/90 dark:bg-slate-900/95 backdrop-blur-sm p-2 rounded-md shadow-sm hover:bg-white/100 dark:hover:bg-slate-800 transition-colors text-gray-700 dark:text-gray-100"
                                 title={sceneMode === '3D' ? 'Switch to 2D Map' : 'Switch to 3D Globe'}
                                 aria-label={sceneMode === '3D' ? 'Switch to 2D Map' : 'Switch to 3D Globe'}
                             >
@@ -125,12 +125,14 @@ const GlobeControls: React.FC<GlobeControlsProps> = ({
                             </button>
                         )}
 
+
+
                         {/* Always show Map Settings in phone mode */}
                         <div className="relative">
                             <button
                                 type="button"
                                 onClick={() => setIsMapOptionsOpen((v) => !v)}
-                                className="p-2 text-gray-600 hover:text-gray-900 bg-white/90 rounded-md shadow-sm backdrop-blur-sm transition-colors"
+                                className="p-2 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white bg-white/90 dark:bg-slate-900/95 rounded-md shadow-sm backdrop-blur-sm transition-colors"
                                 title="Map options"
                                 aria-label="Map options"
                             >
@@ -138,16 +140,16 @@ const GlobeControls: React.FC<GlobeControlsProps> = ({
                             </button>
 
                             {isMapOptionsOpen && (
-                                <div className="absolute right-0 mt-2 w-56 rounded-lg bg-white/95 backdrop-blur-sm shadow-lg border border-gray-200 p-3">
-                                    <div className="text-xs font-semibold text-gray-700 mb-2">Map Options</div>
+                                <div className="absolute right-0 top-full mt-2 w-56 rounded-lg bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm shadow-lg border border-gray-200 dark:border-slate-700 p-3 z-20">
+                                    <div className="text-xs font-semibold text-gray-700 dark:text-gray-200 mb-2">Map Options</div>
 
                                     <button
                                         type="button"
                                         onClick={onToggleLighting}
-                                        className="w-full flex items-center justify-between py-2 text-sm text-gray-800"
+                                        className="w-full flex items-center justify-between py-2 text-sm text-gray-800 dark:text-gray-200"
                                     >
                                         <span>Sun Light</span>
-                                        <span className={`text-xs font-semibold ${enableLighting ? 'text-yellow-700' : 'text-gray-500'}`}>
+                                        <span className={`text-xs font-semibold ${enableLighting ? 'text-yellow-700 dark:text-yellow-400' : 'text-gray-500 dark:text-gray-400'}`}>
                                             {enableLighting ? 'ON' : 'OFF'}
                                         </span>
                                     </button>
@@ -155,18 +157,18 @@ const GlobeControls: React.FC<GlobeControlsProps> = ({
                                     <button
                                         type="button"
                                         onClick={onToggleSatelliteTrajectory}
-                                        className="w-full flex items-center justify-between py-2 text-sm text-gray-800"
+                                        className="w-full flex items-center justify-between py-2 text-sm text-gray-800 dark:text-gray-200"
                                     >
                                         <span>Trajectory</span>
-                                        <span className={`text-xs font-semibold ${showSatelliteTrajectory ? 'text-purple-700' : 'text-gray-500'}`}>
+                                        <span className={`text-xs font-semibold ${showSatelliteTrajectory ? 'text-purple-700 dark:text-purple-400' : 'text-gray-500 dark:text-gray-400'}`}>
                                             {showSatelliteTrajectory ? 'ON' : 'OFF'}
                                         </span>
                                     </button>
 
                                     <div className="pt-2">
                                         <div className="flex items-center justify-between">
-                                            <div className="text-sm text-gray-800">Size</div>
-                                            <div className="text-xs font-semibold text-gray-600">{sizeScale ?? 1}x</div>
+                                            <div className="text-sm text-gray-800 dark:text-gray-200">Size</div>
+                                            <div className="text-xs font-semibold text-gray-600 dark:text-gray-400">{sizeScale ?? 1}x</div>
                                         </div>
                                         <input
                                             type="range"
@@ -176,7 +178,7 @@ const GlobeControls: React.FC<GlobeControlsProps> = ({
                                             value={sizeScale ?? 1}
                                             onChange={(e) => onSizeScaleChange?.(parseFloat(e.target.value))}
                                             onDoubleClick={() => onSizeScaleChange?.(1)}
-                                            className="w-full mt-2 h-1 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                                            className="w-full mt-2 h-1 bg-gray-200 dark:bg-slate-600 rounded-lg appearance-none cursor-pointer"
                                             title="Adjust object size (0.25x to 8x) - Double-click to reset to 1x"
                                         />
                                     </div>
@@ -191,7 +193,7 @@ const GlobeControls: React.FC<GlobeControlsProps> = ({
                     <div className="flex items-center gap-1">
                         <button
                             onClick={handleZoomOut}
-                            className="bg-white/90 backdrop-blur-sm p-2 rounded-md shadow-sm hover:bg-white/100 transition-colors"
+                            className="bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm p-2 rounded-md shadow-sm hover:bg-white/100 dark:hover:bg-slate-700 transition-colors text-gray-700 dark:text-gray-200"
                             title="Zoom arrière"
                         >
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -203,7 +205,7 @@ const GlobeControls: React.FC<GlobeControlsProps> = ({
 
                         <button
                             onClick={handleReset}
-                            className="bg-white/90 backdrop-blur-sm p-2 rounded-md shadow-sm hover:bg-white/100 transition-colors"
+                            className="bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm p-2 rounded-md shadow-sm hover:bg-white/100 dark:hover:bg-slate-700 transition-colors text-gray-700 dark:text-gray-200"
                             title="Initialiser la vue"
                         >
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -214,7 +216,7 @@ const GlobeControls: React.FC<GlobeControlsProps> = ({
 
                         <button
                             onClick={handleZoomIn}
-                            className="bg-white/90 backdrop-blur-sm p-2 rounded-md shadow-sm hover:bg-white/100 transition-colors"
+                            className="bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm p-2 rounded-md shadow-sm hover:bg-white/100 dark:hover:bg-slate-700 transition-colors text-gray-700 dark:text-gray-200"
                             title="Zoom avant"
                         >
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -234,7 +236,7 @@ const GlobeControls: React.FC<GlobeControlsProps> = ({
                             <button
                                 type="button"
                                 onClick={() => onSceneModeChange(sceneMode === '3D' ? '2D' : '3D')}
-                                className="bg-white/90 backdrop-blur-sm p-2 rounded-md shadow-sm hover:bg-white/100 transition-colors"
+                                className="bg-white/90 dark:bg-slate-900/95 backdrop-blur-sm p-2 rounded-md shadow-sm hover:bg-white/100 dark:hover:bg-slate-800 transition-colors text-gray-700 dark:text-gray-100"
                                 title={sceneMode === '3D' ? 'Switch to 2D Map' : 'Switch to 3D Globe'}
                                 aria-label={sceneMode === '3D' ? 'Switch to 2D Map' : 'Switch to 3D Globe'}
                             >
@@ -242,12 +244,14 @@ const GlobeControls: React.FC<GlobeControlsProps> = ({
                             </button>
                         )}
 
+
+
                         {/* Map Settings button */}
                         <div className="relative">
                             <button
                                 type="button"
                                 onClick={() => setIsMapOptionsOpen((v) => !v)}
-                                className="p-2 text-gray-600 hover:text-gray-900 bg-white/90 rounded-md shadow-sm backdrop-blur-sm transition-colors"
+                                className="p-2 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white bg-white/90 dark:bg-slate-900/95 rounded-md shadow-sm backdrop-blur-sm transition-colors"
                                 title="Map options"
                                 aria-label="Map options"
                             >
@@ -255,16 +259,16 @@ const GlobeControls: React.FC<GlobeControlsProps> = ({
                             </button>
 
                             {isMapOptionsOpen && (
-                                <div className="absolute right-0 mt-2 w-56 rounded-lg bg-white/95 backdrop-blur-sm shadow-lg border border-gray-200 p-3">
-                                    <div className="text-xs font-semibold text-gray-700 mb-2">Map Options</div>
+                                <div className="absolute right-0 top-full mt-2 w-56 rounded-lg bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm shadow-lg border border-gray-200 dark:border-slate-700 p-3 z-20">
+                                    <div className="text-xs font-semibold text-gray-700 dark:text-gray-200 mb-2">Map Options</div>
 
                                     <button
                                         type="button"
                                         onClick={onToggleLighting}
-                                        className="w-full flex items-center justify-between py-2 text-sm text-gray-800"
+                                        className="w-full flex items-center justify-between py-2 text-sm text-gray-800 dark:text-gray-200"
                                     >
                                         <span>Sun Light</span>
-                                        <span className={`text-xs font-semibold ${enableLighting ? 'text-yellow-700' : 'text-gray-500'}`}>
+                                        <span className={`text-xs font-semibold ${enableLighting ? 'text-yellow-700 dark:text-yellow-400' : 'text-gray-500 dark:text-gray-400'}`}>
                                             {enableLighting ? 'ON' : 'OFF'}
                                         </span>
                                     </button>
@@ -272,17 +276,17 @@ const GlobeControls: React.FC<GlobeControlsProps> = ({
                                     <button
                                         type="button"
                                         onClick={onToggleSatelliteTrajectory}
-                                        className="w-full flex items-center justify-between py-2 text-sm text-gray-800"
+                                        className="w-full flex items-center justify-between py-2 text-sm text-gray-800 dark:text-gray-200"
                                     >
                                         <span>Satellite Trajectory</span>
-                                        <span className={`text-xs font-semibold ${showSatelliteTrajectory ? 'text-purple-700' : 'text-gray-500'}`}>
+                                        <span className={`text-xs font-semibold ${showSatelliteTrajectory ? 'text-purple-700 dark:text-purple-400' : 'text-gray-500 dark:text-gray-400'}`}>
                                             {showSatelliteTrajectory ? 'ON' : 'OFF'}
                                         </span>
                                     </button>
 
-                                    <div className="pt-2 border-t border-gray-200">
+                                    <div className="pt-2 border-t border-gray-200 dark:border-slate-700">
                                         <div className="flex items-center justify-between py-2">
-                                            <span className="text-sm text-gray-800">Size</span>
+                                            <span className="text-sm text-gray-800 dark:text-gray-200">Size</span>
                                             <input
                                                 type="range"
                                                 min="0.25"
@@ -291,11 +295,11 @@ const GlobeControls: React.FC<GlobeControlsProps> = ({
                                                 value={sizeScale || 1}
                                                 onChange={(e) => onSizeScaleChange?.(parseFloat(e.target.value))}
                                                 onDoubleClick={() => onSizeScaleChange?.(1)}
-                                                className="w-20 h-1 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                                                className="w-20 h-1 bg-gray-200 dark:bg-slate-600 rounded-lg appearance-none cursor-pointer"
                                                 title="Adjust object size (0.25x to 8x) - Double-click to reset to 1x"
                                             />
                                         </div>
-                                        <div className="text-xs text-gray-600 text-right">{sizeScale}x</div>
+                                        <div className="text-xs text-gray-600 dark:text-gray-400 text-right">{sizeScale}x</div>
                                     </div>
                                 </div>
                             )}
@@ -308,7 +312,7 @@ const GlobeControls: React.FC<GlobeControlsProps> = ({
                     <div className="flex items-center gap-1">
                         <button
                             onClick={handleZoomOut}
-                            className="bg-white/90 backdrop-blur-sm p-2 rounded-md shadow-sm hover:bg-white/100 transition-colors"
+                            className="bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm p-2 rounded-md shadow-sm hover:bg-white/100 dark:hover:bg-slate-700 transition-colors text-gray-700 dark:text-gray-200"
                             title="Zoom arrière"
                         >
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -320,7 +324,7 @@ const GlobeControls: React.FC<GlobeControlsProps> = ({
 
                         <button
                             onClick={handleReset}
-                            className="bg-white/90 backdrop-blur-sm p-2 rounded-md shadow-sm hover:bg-white/100 transition-colors"
+                            className="bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm p-2 rounded-md shadow-sm hover:bg-white/100 dark:hover:bg-slate-700 transition-colors text-gray-700 dark:text-gray-200"
                             title="Initialiser la vue"
                         >
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -331,7 +335,7 @@ const GlobeControls: React.FC<GlobeControlsProps> = ({
 
                         <button
                             onClick={handleZoomIn}
-                            className="bg-white/90 backdrop-blur-sm p-2 rounded-md shadow-sm hover:bg-white/100 transition-colors"
+                            className="bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm p-2 rounded-md shadow-sm hover:bg-white/100 dark:hover:bg-slate-700 transition-colors text-gray-700 dark:text-gray-200"
                             title="Zoom avant"
                         >
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">

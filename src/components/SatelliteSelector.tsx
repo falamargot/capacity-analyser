@@ -10,8 +10,8 @@ interface SatelliteSelectorProps {
   satelliteScope: SatelliteScope;
 }
 
-const SatelliteSelector: React.FC<SatelliteSelectorProps> = ({ 
-  satellites, 
+const SatelliteSelector: React.FC<SatelliteSelectorProps> = ({
+  satellites,
   onSelect,
   selectedSatellite,
   satelliteScope
@@ -29,7 +29,7 @@ const SatelliteSelector: React.FC<SatelliteSelectorProps> = ({
 
   return (
     <div className="relative flex-1 sm:flex-none">
-      <Satellite className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+      <Satellite className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-500" />
       <select
         value={selectedSatellite?.id || ''}
         onChange={(e) => {
@@ -38,7 +38,7 @@ const SatelliteSelector: React.FC<SatelliteSelectorProps> = ({
             onSelect(satellite);
           }
         }}
-        className="w-full sm:w-48 pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none bg-white"
+        className="w-full sm:w-48 pl-10 pr-4 py-2 border border-gray-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none bg-white dark:bg-slate-800 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
       >
         <option value="">Select a satellite</option>
         {sortedSatellites.map(sat => (

@@ -4,6 +4,7 @@ import { createRoot } from 'react-dom/client';
 import "cesium/Build/Cesium/Widgets/widgets.css";
 import { Ion } from 'cesium';
 import App from './App';
+import { ThemeProvider } from './contexts/ThemeContext';
 import './index.css';
 
 // Configure Cesium ION token at app startup (before any components render)
@@ -21,6 +22,8 @@ if (!rootElement) {
 // React 19 : createRoot est toujours la méthode standard
 createRoot(rootElement).render(
   <React.StrictMode>
-    <App />
+    <ThemeProvider defaultTheme="system" storageKey="vite-ui-theme">
+      <App />
+    </ThemeProvider>
   </React.StrictMode>
 );

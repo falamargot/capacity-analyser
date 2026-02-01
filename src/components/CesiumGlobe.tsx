@@ -32,6 +32,7 @@ import type { Aircraft } from '../modules/airTraffic/airTrafficService';
 import type { SatelliteScope } from './SatelliteScopeFilter';
 import type { GEOBeam } from '../types/analysis';
 import { getPosition, DPR_FACTOR, calculateDynamicScale } from './cesium-globe/utils';
+import { useCesiumTheme } from '../hooks/useCesiumTheme';
 
 // Layer components
 import SatelliteLayer from './cesium-globe/SatelliteLayer';
@@ -124,6 +125,9 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
     const globeContainerRef = useRef<HTMLDivElement>(null);
     const [viewerReady, setViewerReady] = useState(false);
 
+    // Apply theme to Cesium viewer
+    useCesiumTheme(viewerRef);
+
     // Handle scene mode changes
     useEffect(() => {
         if (viewerRef.current && onSceneModeChange) {
@@ -161,12 +165,12 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         if (!viewerRef.current) return;
 
         const viewer = viewerRef.current;
-        
+
         // Set scene mode
         const targetMode = sceneMode === '2D' ? SceneMode.SCENE2D : SceneMode.SCENE3D;
         if (viewer.scene.mode !== targetMode) {
             viewer.scene.mode = targetMode;
-        } 
+        }
         // Apply lighting settings
         viewer.scene.globe.enableLighting = enableLighting;
         viewer.scene.globe.depthTestAgainstTerrain = true;
@@ -305,104 +309,104 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                     fullscreenButton={isFullscreen ? false : true}
                     vrButton={false}
                 >
-                <ScreenSpaceEventHandler>
-                    <ScreenSpaceEvent action={handleMapClick} type={ScreenSpaceEventType.LEFT_CLICK} />
-                </ScreenSpaceEventHandler>
+                    <ScreenSpaceEventHandler>
+                        <ScreenSpaceEvent action={handleMapClick} type={ScreenSpaceEventType.LEFT_CLICK} />
+                    </ScreenSpaceEventHandler>
 
-                {/* Selected Position Marker */}
-                {selectedPosition && !selectedSatellite && (
-                    <Entity
-                        position={getPosition(selectedPosition.lat, selectedPosition.lng, 0.01)}
-                        point={{
-                            pixelSize: positionMarkerPixelSize,
-                            color: Color.RED,
-                            outlineColor: Color.WHITE,
-                            outlineWidth: 2,
-                            disableDepthTestDistance: 0
-                        }}
-                        name="Selected Position"
-                        description={`Lat: ${selectedPosition.lat.toFixed(4)}, Lng: ${selectedPosition.lng.toFixed(4)}`}
-                    />
-                )}
+                    {/* Selected Position Marker */}
+                    {selectedPosition && !selectedSatellite && (
+                        <Entity
+                            position={getPosition(selectedPosition.lat, selectedPosition.lng, 0.01)}
+                            point={{
+                                pixelSize: positionMarkerPixelSize,
+                                color: Color.RED,
+                                outlineColor: Color.WHITE,
+                                outlineWidth: 2,
+                                disableDepthTestDistance: 0
+                            }}
+                            name="Selected Position"
+                            description={`Lat: ${selectedPosition.lat.toFixed(4)}, Lng: ${selectedPosition.lng.toFixed(4)}`}
+                        />
+                    )}
 
-                {/* Satellite Layer */}
-                <SatelliteLayer
-                    satellites={satellites}
-                    selectedSatellite={selectedSatellite}
-                    autoSelectedLEOSatellite={autoSelectedLEOSatellite}
-                    autoSelectedGEOSatellite={autoSelectedGEOSatellite}
-                    onSatelliteClick={onSatelliteClick}
-                    onSatelliteHover={onSatelliteHover}
-                    viewerRef={viewerRef}
-                    satelliteSizeScale={sizeScale}
-                />
-
-                {/* SNP Layer */}
-                <SnpLayer
-                    satelliteScope={satelliteScope}
-                    onSnpClick={onSnpClick}
-                    onSnpHover={onSnpHover}
-                    viewerRef={viewerRef}
-                />
-
-                {/* Trajectory Layer */}
-                <TrajectoryLayer
-                    satellite={selectedSatellite}
-                    show={showSatelliteTrajectory}
-                />
-
-                {/* Coverage Layer */}
-                <CoverageLayer
-                    coverageFeatures={coverageFeatures}
-                    satellites={satellites}
-                />
-
-                {/* OneWeb Comb Layer */}
-                <OneWebCombLayer
-                    targetSat={oneWebTargetSat}
-                    viewerRef={viewerRef}
-                    selectedPosition={selectedPosition}
-                    selectedAircraft={selectedAircraft}
-                    highlightServingFootprint={highlightServingFootprint}
-                />
-
-                {/* Aggregated coverage volume (manual satellite selection only) */}
-                <AggregatedCoverageVolumeLayer
-                    selectedSatellite={selectedSatellite}
-                    selectedBeamFeature={geoBeamCone.beamFeature}
-                    beamSatellite={geoBeamCone.sat}
-                    autoSelectedSatellite={autoSelectedLEOSatellite}
-                    selectedPosition={selectedPosition}
-                    selectedAircraft={selectedAircraft}
-                    satellites={satellites}
-                    coverageFeatures={coverageFeatures}
-                    viewerRef={viewerRef}
-                />
-
-                {/* Transmission Links */}
-                <TransmissionLinks
-                    selectedPosition={selectedPosition}
-                    selectedAircraft={selectedAircraft}
-                    selectedSatellite={selectedSatellite}
-                    autoSelectedLEOSatellite={autoSelectedLEOSatellite}
-                    autoSelectedGEOSatellite={autoSelectedGEOSatellite}
-                    selectedSNP={typeof selectedSNP === 'string' ? { lat: 0, lng: 0, name: selectedSNP } : selectedSNP}
-                    dedicatedSNPForSelectedLEO={dedicatedSNPForSelectedLEO}
-                    satelliteScope={satelliteScope}
-                />
-
-                {/* Aircraft Layer */}
-                {airTrafficEnabled && (
-                    <AircraftLayer
-                        aircraft={aircraft}
-                        selectedAircraft={selectedAircraft}
-                        onAircraftClick={onAircraftClick}
-                        onAircraftHover={onAircraftHover}
+                    {/* Satellite Layer */}
+                    <SatelliteLayer
+                        satellites={satellites}
+                        selectedSatellite={selectedSatellite}
+                        autoSelectedLEOSatellite={autoSelectedLEOSatellite}
+                        autoSelectedGEOSatellite={autoSelectedGEOSatellite}
+                        onSatelliteClick={onSatelliteClick}
+                        onSatelliteHover={onSatelliteHover}
                         viewerRef={viewerRef}
-                        aircraftSizeScale={sizeScale}
+                        satelliteSizeScale={sizeScale}
                     />
-                )}
-            </Viewer>
+
+                    {/* SNP Layer */}
+                    <SnpLayer
+                        satelliteScope={satelliteScope}
+                        onSnpClick={onSnpClick}
+                        onSnpHover={onSnpHover}
+                        viewerRef={viewerRef}
+                    />
+
+                    {/* Trajectory Layer */}
+                    <TrajectoryLayer
+                        satellite={selectedSatellite}
+                        show={showSatelliteTrajectory}
+                    />
+
+                    {/* Coverage Layer */}
+                    <CoverageLayer
+                        coverageFeatures={coverageFeatures}
+                        satellites={satellites}
+                    />
+
+                    {/* OneWeb Comb Layer */}
+                    <OneWebCombLayer
+                        targetSat={oneWebTargetSat}
+                        viewerRef={viewerRef}
+                        selectedPosition={selectedPosition}
+                        selectedAircraft={selectedAircraft}
+                        highlightServingFootprint={highlightServingFootprint}
+                    />
+
+                    {/* Aggregated coverage volume (manual satellite selection only) */}
+                    <AggregatedCoverageVolumeLayer
+                        selectedSatellite={selectedSatellite}
+                        selectedBeamFeature={geoBeamCone.beamFeature}
+                        beamSatellite={geoBeamCone.sat}
+                        autoSelectedSatellite={autoSelectedLEOSatellite}
+                        selectedPosition={selectedPosition}
+                        selectedAircraft={selectedAircraft}
+                        satellites={satellites}
+                        coverageFeatures={coverageFeatures}
+                        viewerRef={viewerRef}
+                    />
+
+                    {/* Transmission Links */}
+                    <TransmissionLinks
+                        selectedPosition={selectedPosition}
+                        selectedAircraft={selectedAircraft}
+                        selectedSatellite={selectedSatellite}
+                        autoSelectedLEOSatellite={autoSelectedLEOSatellite}
+                        autoSelectedGEOSatellite={autoSelectedGEOSatellite}
+                        selectedSNP={typeof selectedSNP === 'string' ? { lat: 0, lng: 0, name: selectedSNP } : selectedSNP}
+                        dedicatedSNPForSelectedLEO={dedicatedSNPForSelectedLEO}
+                        satelliteScope={satelliteScope}
+                    />
+
+                    {/* Aircraft Layer */}
+                    {airTrafficEnabled && (
+                        <AircraftLayer
+                            aircraft={aircraft}
+                            selectedAircraft={selectedAircraft}
+                            onAircraftClick={onAircraftClick}
+                            onAircraftHover={onAircraftHover}
+                            viewerRef={viewerRef}
+                            aircraftSizeScale={sizeScale}
+                        />
+                    )}
+                </Viewer>
             </div>
         </div>
     );

@@ -1,15 +1,70 @@
 @import "tailwindcss";
 
+/* Force "class" strategy for dark mode (Tailwind v4 defaults to media) */
+@custom-variant dark (&:where(.dark, .dark *));
+
 /* En v4, on définit les variables de thème directement dans le bloc @theme */
 @theme {
   --color-primary: #2563eb;
   --color-secondary: #db2777;
 }
 
+:root {
+  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+
+  color-scheme: light dark;
+
+  /* Day Mode Tokens */
+  --bg-primary: #ffffff;
+  /* white - Restored from gray-50 */
+  --bg-secondary: #f9fafb;
+  /* gray-50 - Used for secondary panels if needed */
+  --text-primary: #111827;
+  /* gray-900 */
+  --text-secondary: #4b5563;
+  /* gray-600 */
+  --border-color: #e5e7eb;
+  /* gray-200 */
+
+  color: var(--text-primary);
+  background-color: var(--bg-primary);
+  /* Fallback */
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Night Mode Tokens */
+.dark {
+  --bg-primary: #020617;
+  /* slate-950 - Deep dark blue/black */
+  --bg-secondary: #0f172a;
+  /* slate-900 - Slightly lighter for panels */
+  --text-primary: #f3f4f6;
+  /* gray-100 */
+  --text-secondary: #94a3b8;
+  /* slate-400 */
+  --border-color: #1e293b;
+  /* slate-800 */
+}
+
 body {
   /* @apply fonctionne toujours, mais nécessite @import "tailwindcss" au début */
-  @apply bg-gray-50;
+  @apply bg-white dark:bg-slate-950 text-gray-900 dark:text-gray-100 transition-colors duration-300;
   overflow-x: hidden;
+}
+
+/* Smooth transition for theme switching */
+*,
+*::before,
+*::after {
+  transition-property: background-color, border-color, color, fill, stroke;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 300ms;
 }
 
 .globe-container {
