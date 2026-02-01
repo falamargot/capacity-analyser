@@ -109,7 +109,7 @@ const AircraftSelector: React.FC<AircraftSelectorProps> = ({
             : 'text-gray-700 bg-gray-200 hover:bg-gray-300 dark:bg-slate-700 dark:text-gray-300 dark:hover:bg-slate-600'
         }`}
         title={liveModeEnabled ? 'Disable live aircraft data' : 'Enable live aircraft data'}
-      >
+      > 
         <Power className="h-4 w-4" />
         <span className="hidden sm:inline">Live</span>
       </button>

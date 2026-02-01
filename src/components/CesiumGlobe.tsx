@@ -306,7 +306,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                     sceneModePicker={false}
                     baseLayerPicker={false}
                     geocoder={false}
-                    fullscreenButton={isFullscreen ? false : true}
+                    fullscreenButton={false}
                     vrButton={false}
                 >
                     <ScreenSpaceEventHandler>

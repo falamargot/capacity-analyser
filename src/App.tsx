@@ -52,6 +52,12 @@ const App: React.FC = () => {
   const [sizeScale, setSizeScale] = useState(1); // 0.5, 1, 2, 4, 8
   const [mobileSheetSnap, setMobileSheetSnap] = useState<0 | 1 | 2>(0);
   const [isSatelliteModalOpen, setIsSatelliteModalOpen] = useState(false);
+  const [mobileMetrics, setMobileMetrics] = useState<{
+    leo: { rtt: number; downlinkGbps: number } | null;
+    geo: { rtt: number; downlinkGbps: number } | null;
+    totalGbps: number;
+    coveredCount: number;
+  }>({ leo: null, geo: null, totalGbps: 0, coveredCount: 0 });
   const viewerRef = useRef<any>(null);
   const globeContainerRef = useRef<HTMLDivElement>(null);
 
@@ -857,7 +863,7 @@ const App: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setIsSatelliteModalOpen(true)}
-                  className="flex-shrink-0 p-2 rounded-lg bg-gray-100 text-gray-800"
+                  className="flex-shrink-0 p-2 rounded-lg bg-gray-100 text-gray-800 dark:bg-slate-800 dark:text-gray-200"
                   aria-label="Open satellite selection"
                 >
                   <Satellite className="h-5 w-5" />
@@ -1060,12 +1066,11 @@ const App: React.FC = () => {
                 compact={isPhone}
                 header={(
                   <MobileAnalysisSummary
-                    satellites={filteredSatellites}
-                    selectedPoint={analyzisPosition || selectedPosition}
                     selectedSatellite={selectedSatellite}
                     autoSelectedLEOSatellite={resolvedAutoLEO}
                     autoSelectedGEOSatellite={resolvedAutoGEO}
-                    compact={isPhone}
+                    compact={true}
+                    metrics={mobileMetrics}
                   />
                 )}
               >
@@ -1080,6 +1085,7 @@ const App: React.FC = () => {
                   analysisSource={selectedAircraft ? 'aircraft' : analyzisPosition ? 'earth' : undefined}
                   aircraftCallsign={selectedAircraft?.callsign}
                   selectedSNP={selectedSNP}
+                  onMetricsChange={setMobileMetrics}
                 />
               </BottomSheet>
             )}
@@ -1138,6 +1144,7 @@ const App: React.FC = () => {
                     analysisSource={selectedAircraft ? 'aircraft' : analyzisPosition ? 'earth' : undefined}
                     aircraftCallsign={selectedAircraft?.callsign}
                     selectedSNP={selectedSNP}
+                  // onMetricsChange is not needed for desktop sidebar
                   />
                 </div>
               )}

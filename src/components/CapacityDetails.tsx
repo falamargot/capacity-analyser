@@ -19,7 +19,6 @@ interface CapacityDetailsProps {
   analysisSource?: 'earth' | 'aircraft';
   aircraftCallsign?: string;
   selectedSNP?: any;
-  selectedPoint?: { lat: number; lng: number; altitude?: number } | null;
 }
 
 // Performance optimization: Memoize component to prevent unnecessary re-renders
@@ -356,7 +355,7 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
 
         if (!cancelled) {
           setWeatherType(nextType);
-          // setLastWeatherSource('auto');
+          setLastWeatherSource('auto');
         }
       } catch (e) {
         // If the API fails, keep the existing selection
@@ -552,7 +551,7 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
 
   if (!selectedPoint && !selectedSatellite) {
     return (
-      <div className="h-full bg-white dark:bg-slate-950 rounded-lg shadow-lg p-6 flex items-center justify-center text-gray-500 dark:text-gray-400 border border-gray-100 dark:border-slate-800 transition-colors duration-300">
+      <div className="h-full bg-white dark:bg-slate-900 rounded-lg shadow-lg p-6 flex items-center justify-center text-gray-500 dark:text-gray-400 border border-gray-100 dark:border-slate-800 transition-colors duration-300">
         <p className="text-lg text-center">Click on the globe to analyze satellite capacity</p>
       </div>
     );
@@ -564,7 +563,7 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
 
   // New user-centric structure for USER_LOCATION_SELECTED
   return (
-    <div className="h-full bg-white dark:bg-slate-950 rounded-lg shadow-lg overflow-hidden flex flex-col transition-colors duration-300">
+    <div className="h-full bg-white dark:bg-slate-900 rounded-lg shadow-lg overflow-hidden flex flex-col transition-colors duration-300">
       <div className="p-4 flex flex-col h-full">
         <div className="flex-none">
           <div className="flex items-center justify-between mb-2">
