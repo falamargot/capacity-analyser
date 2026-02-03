@@ -16,6 +16,8 @@ import { footprintRadiusKm, BACKHAUL_ELEVATION_DEG, STANDARD_ELEVATION_DEG } fro
 import { Feature, Geometry, GeoJsonProperties } from 'geojson';
 import { SNPS_DATA } from './components/globe/GlobeConfig';
 import { calculateElevationAngle } from './utils/capacityCalculator';
+import { isLEOSatelliteActive } from './utils/oneWebComb';
+import { JulianDate } from 'cesium';
 import { useAirTraffic, useAirTrafficInterpolation } from './modules/airTraffic';
 import { Aircraft } from './modules/airTraffic/airTrafficService';
 
@@ -273,6 +275,17 @@ const App: React.FC = () => {
 
       // Apply hard eligibility rules
       const eligibleLEO = leoSatellites.filter(sat => {
+        // Rule 0: Satellite must be activated (not all beams turned off)
+        // A LEO satellite is inactive when all 16 beams are turned off (grayed out)
+        // This happens when the satellite is in exclusion zone
+        if (sat.satrec) {
+          const now = new Date();
+          const time = JulianDate.fromDate(now);
+          if (!isLEOSatelliteActive(sat.satrec, time)) {
+            return false; // Satellite is inactive (all beams are off)
+          }
+        }
+
         const elevation = calculateElevationAngle(userLocation, sat);
 
         // Rule 1: User-to-satellite elevation angle ≥ 37° (STANDARD coverage requirement)

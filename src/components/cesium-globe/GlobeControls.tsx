@@ -177,7 +177,7 @@ const GlobeControls: React.FC<GlobeControlsProps> = ({
                                             onChange={(e) => onSizeScaleChange?.(parseFloat(e.target.value))}
                                             onDoubleClick={() => onSizeScaleChange?.(1)}
                                             className="w-full mt-2 h-1 bg-gray-200 dark:bg-slate-600 rounded-lg appearance-none cursor-pointer"
-                                            title="Adjust object size (0.25x to 8x) - Double-click to reset to 1x"
+                                            title="Adjust marker size (0.25x to 8x) - Affects satellites, SNP stations, and position markers - Double-click to reset to 1x"
                                         />
                                     </div>
                                 </div>
@@ -294,7 +294,7 @@ const GlobeControls: React.FC<GlobeControlsProps> = ({
                                                 onChange={(e) => onSizeScaleChange?.(parseFloat(e.target.value))}
                                                 onDoubleClick={() => onSizeScaleChange?.(1)}
                                                 className="w-20 h-1 bg-gray-200 dark:bg-slate-600 rounded-lg appearance-none cursor-pointer"
-                                                title="Adjust object size (0.25x to 8x) - Double-click to reset to 1x"
+                                                title="Adjust marker size (0.25x to 8x) - Affects satellites, SNP stations, and position markers - Double-click to reset to 1x"
                                             />
                                         </div>
                                         <div className="text-xs text-gray-600 dark:text-gray-400 text-right">{sizeScale}x</div>

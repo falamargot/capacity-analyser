@@ -18,6 +18,7 @@ interface SnpLayerProps {
     onSnpClick: (snpName: string | null) => void;
     onSnpHover: (snpName: string | null) => void;
     viewerRef: React.RefObject<CesiumViewerType | null>;
+    sizeScale?: number;
 }
 
 const SnpEntity = React.memo<{
@@ -25,11 +26,13 @@ const SnpEntity = React.memo<{
     viewerRef: React.RefObject<CesiumViewerType | null>;
     onSnpClick: (snpName: string | null) => void;
     onSnpHover: (snpName: string | null) => void;
+    sizeScale: number;
 }>(({
     snp,
     viewerRef,
     onSnpClick,
-    onSnpHover
+    onSnpHover,
+    sizeScale
 }) => {
     const position = useMemo(
         () => getPosition(snp.lat, snp.lng, 0.01),
@@ -48,9 +51,9 @@ const SnpEntity = React.memo<{
             const dynamicScale = calculateDynamicScale(cameraHeight, DPR_FACTOR);
 
             const baseScale = dynamicScale * 3000000 / Math.max(distance, 2000000);
-            return baseScale * 20;
+            return baseScale * 20 * sizeScale;
         }, false);
-    }, [snp.lat, snp.lng, viewerRef]);
+    }, [snp.lat, snp.lng, viewerRef, sizeScale]);
 
     const handleClick = useCallback(() => onSnpClick(snp.name), [snp.name, onSnpClick]);
     const handleMouseEnter = useCallback(() => onSnpHover(snp.name), [snp.name, onSnpHover]);
@@ -78,7 +81,8 @@ const SnpLayer: React.FC<SnpLayerProps> = ({
     satelliteScope,
     onSnpClick,
     onSnpHover,
-    viewerRef
+    viewerRef,
+    sizeScale = 1
 }) => {
     // Don't render SNPs for GEO-only scope
     if (satelliteScope === 'GEO') {
@@ -94,9 +98,10 @@ const SnpLayer: React.FC<SnpLayerProps> = ({
                 viewerRef={viewerRef}
                 onSnpClick={onSnpClick}
                 onSnpHover={onSnpHover}
+                sizeScale={sizeScale}
             />
         ));
-    }, [viewerRef, onSnpClick, onSnpHover]);
+    }, [viewerRef, onSnpClick, onSnpHover, sizeScale]);
 
     return <>{snpEntities}</>;
 };

@@ -18,7 +18,7 @@ import type { SatelliteData } from '../../types/satellites';
 import type { Aircraft } from '../../modules/airTraffic/airTrafficService';
 import { getBeamColor, TOTAL_BEAMS, calculateGSOAvoidanceAngle } from '../../utils/oneWebComb';
 import { footprintRadiusKm, BACKHAUL_ELEVATION_DEG, STANDARD_RADIUS_KM } from '../../utils/leoFootprint';
-import { getCoverageColor } from '../../services/coverageService';
+import { getCoverageColor, hasSNPInCoverage } from '../../services/coverageService';
 import { useCombGeometry } from './hooks';
 import { getPosition, DUMMY_POLYGON, propagateSatellite, calculateDeadReckoning } from './utils';
 
@@ -47,7 +47,8 @@ const BeamPolygon = React.memo<{
     targetSat: SatelliteData;
     getCombGeometries: (sat: SatelliteData, time: JulianDate) => any;
     viewerRef: React.RefObject<CesiumViewerType | null>;
-}>(({ beamIndex, targetSat, getCombGeometries, viewerRef }) => {
+    hasBackhaul: boolean;
+}>(({ beamIndex, targetSat, getCombGeometries, viewerRef, hasBackhaul }) => {
     // Create stable show callback
     const showCallback = useMemo(() => {
         return new CallbackProperty((time?: JulianDate) => {
@@ -82,12 +83,21 @@ const BeamPolygon = React.memo<{
             if (!time || !targetSat.satrec) {
                 return getBeamColor(beamIndex, null, false);
             }
-            
-            // Check if satellite is in blanking zone
-            const { isBlankingZone } = calculateGSOAvoidanceAngle(targetSat.satrec, time);
-            return getBeamColor(beamIndex, null, isBlankingZone);
+
+            // Check if satellite is in blanking zone or GSO Avoidance
+            const { isBlankingZone, isGSOAvoidance, isMovingNorth, satLatDeg } = calculateGSOAvoidanceAngle(targetSat.satrec, time);
+
+            return getBeamColor(
+                beamIndex,
+                null,
+                isBlankingZone,
+                hasBackhaul,
+                isGSOAvoidance,
+                satLatDeg,
+                isMovingNorth
+            );
         }, false));
-    }, [beamIndex, targetSat.id, targetSat.satrec]);
+    }, [beamIndex, targetSat.id, targetSat.satrec, hasBackhaul]);
 
     return (
         <Entity name="Combined Beam">
@@ -224,6 +234,11 @@ const OneWebCombLayer: React.FC<OneWebCombLayerProps> = ({
     const standardColorFill = Color.fromCssColorString(getCoverageColor('ONEWEB_STANDARD', 0.1, targetSat));
     const standardColorOutline = Color.fromCssColorString(getCoverageColor('ONEWEB_STANDARD', 0.6, targetSat));
 
+    // Calculate Backhaul Status (this frame, using latest static position)
+    // Note: Live updates depending on position change require time-based checks within Callback, 
+    // but calculating coverage polygon intersections every frame is expensive. 
+    // We rely on the periodic update of targetSat.position from parent components.
+    const hasBackhaul = hasSNPInCoverage(targetSat);
 
     return (
         <>
@@ -261,6 +276,7 @@ const OneWebCombLayer: React.FC<OneWebCombLayerProps> = ({
                     targetSat={targetSat}
                     getCombGeometries={getCombGeometries}
                     viewerRef={viewerRef}
+                    hasBackhaul={hasBackhaul}
                 />
             ))}
 

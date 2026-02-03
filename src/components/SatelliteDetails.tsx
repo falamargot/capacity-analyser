@@ -1,7 +1,8 @@
 import { SatelliteData } from '../types/satellites';
 import { formatCoordinates } from '../utils/formatters';
 import { getNearestSNPInBackhaul } from '../services/coverageService';
-import { calculateGSOAvoidanceAngle } from '../utils/oneWebComb';
+import { calculateGSOAvoidanceAngle, getActiveBeamCount } from '../utils/oneWebComb';
+import { isRestrictedTerritory } from '../services/regulatoryService';
 import { JulianDate } from 'cesium';
 import { useState, useEffect, useMemo } from 'react';
 import * as satellite from 'satellite.js';
@@ -146,6 +147,7 @@ const SatelliteDetails: React.FC<SatelliteDetailsProps> = ({ satellites, selecte
     isGSOAvoidance: boolean;
     latitude: number;
     isBlankingZone: boolean;
+    restrictedTerritory?: string;
   } | null>(null);
 
   useEffect(() => {
@@ -164,17 +166,26 @@ const SatelliteDetails: React.FC<SatelliteDetailsProps> = ({ satellites, selecte
         const positionAndVelocity = satellite.propagate(selectedSatellite.satrec, now);
         const gmst = satellite.gstime(now);
         let latitude = 0;
+        let restrictedTerritoryName: string | undefined;
 
         if (positionAndVelocity?.position) {
           const geodetic = satellite.eciToGeodetic(positionAndVelocity.position, gmst);
           latitude = satellite.degreesLat(geodetic.latitude);
+          const longitude = satellite.degreesLong(geodetic.longitude);
+
+          // Check for regulatory restrictions
+          const { isRestricted, territoryName } = isRestrictedTerritory(latitude, longitude);
+          if (isRestricted) {
+            restrictedTerritoryName = territoryName;
+          }
         }
 
         setGsoAvoidanceData({
           pitchAngleDeg: Math.abs(pitchAngleRad * (180 / Math.PI)),
           isGSOAvoidance,
           latitude,
-          isBlankingZone
+          isBlankingZone,
+          restrictedTerritory: restrictedTerritoryName
         });
       } catch (error) {
         console.error(error);
@@ -201,8 +212,8 @@ const SatelliteDetails: React.FC<SatelliteDetailsProps> = ({ satellites, selecte
             </div>
           </div>
           <span className={`px-3 py-1 rounded-full text-sm font-medium ${selectedSatellite.type === 'EUTELSAT'
-              ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-200'
-              : 'bg-pink-100 dark:bg-pink-900/40 text-pink-800 dark:text-pink-200'
+            ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-200'
+            : 'bg-pink-100 dark:bg-pink-900/40 text-pink-800 dark:text-pink-200'
             }`}>
             {selectedSatellite.type}
           </span>
@@ -253,10 +264,10 @@ const SatelliteDetails: React.FC<SatelliteDetailsProps> = ({ satellites, selecte
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-gray-600 dark:text-gray-300">Mode:</span>
                     <span className={`px-2 py-1 rounded-full text-xs font-medium ${gsoAvoidanceData.isBlankingZone
-                        ? 'bg-red-100 dark:bg-red-900/40 text-red-800 dark:text-red-200 border border-red-200 dark:border-red-800 animate-pulse'
-                        : gsoAvoidanceData.isGSOAvoidance
-                          ? 'bg-orange-100 dark:bg-orange-900/40 text-orange-800 dark:text-orange-200 border border-orange-200 dark:border-orange-800'
-                          : 'bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-200 border border-green-200 dark:border-green-800'
+                      ? 'bg-red-100 dark:bg-red-900/40 text-red-800 dark:text-red-200 border border-red-200 dark:border-red-800 animate-pulse'
+                      : gsoAvoidanceData.isGSOAvoidance
+                        ? 'bg-orange-100 dark:bg-orange-900/40 text-orange-800 dark:text-orange-200 border border-orange-200 dark:border-orange-800'
+                        : 'bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-200 border border-green-200 dark:border-green-800'
                       }`}>
                       {gsoAvoidanceData.isBlankingZone
                         ? 'OFF (EXCLUSION ZONE)'
@@ -266,6 +277,40 @@ const SatelliteDetails: React.FC<SatelliteDetailsProps> = ({ satellites, selecte
                       }
                     </span>
                   </div>
+
+                  {/* Beam Activation Status - Hierarchical Logic */}
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-gray-600 dark:text-gray-300">Active Beams:</span>
+                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${!nearestSNP || gsoAvoidanceData.isBlankingZone || gsoAvoidanceData.restrictedTerritory
+                      ? 'bg-gray-100 dark:bg-gray-900/40 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-700'
+                      : gsoAvoidanceData.isGSOAvoidance
+                        ? 'bg-yellow-100 dark:bg-yellow-900/40 text-yellow-800 dark:text-yellow-200 border border-yellow-200 dark:border-yellow-800'
+                        : 'bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-200 border border-green-200 dark:border-green-800'
+                      }`}>
+                      {!nearestSNP
+                        ? 'OFF (NO BACKHAUL)'
+                        : gsoAvoidanceData.restrictedTerritory
+                          ? `OFF (RESTRICTED - ${gsoAvoidanceData.restrictedTerritory.toUpperCase()})`
+                          : gsoAvoidanceData.isBlankingZone
+                            ? 'OFF (EXCLUSION ZONE)'
+                            : `${getActiveBeamCount(gsoAvoidanceData.latitude)}/16`
+                      }
+                    </span>
+                  </div>
+
+                  {/* Technical Justification */}
+                  <p className="text-xs text-slate-500 italic mt-1">
+                    {!nearestSNP
+                      ? "Satellite has no active backhaul link to a valid SNP."
+                      : gsoAvoidanceData.restrictedTerritory
+                        ? "Operations suspended over restricted territory."
+                        : gsoAvoidanceData.isBlankingZone
+                          ? "Satellite is crossing the Geostationary (GSO) Arc."
+                          : gsoAvoidanceData.isGSOAvoidance
+                            ? "Beams reduced to avoid GSO interference."
+                            : "Normal operation."
+                    }
+                  </p>
 
                   {/* Equatorial Transition Alert */}
                   {Math.abs(gsoAvoidanceData.latitude) <= 2.0 && (
@@ -280,8 +325,8 @@ const SatelliteDetails: React.FC<SatelliteDetailsProps> = ({ satellites, selecte
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-gray-600 dark:text-gray-300">Pitch:</span>
                     <span className={`font-medium text-sm ${gsoAvoidanceData.isGSOAvoidance
-                        ? 'text-orange-600 dark:text-orange-400'
-                        : 'text-green-600 dark:text-green-400'
+                      ? 'text-orange-600 dark:text-orange-400'
+                      : 'text-green-600 dark:text-green-400'
                       }`}>
                       {gsoAvoidanceData.pitchAngleDeg.toFixed(1)}°
                     </span>

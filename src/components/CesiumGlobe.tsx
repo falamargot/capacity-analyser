@@ -254,10 +254,10 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
             const cameraHeight = viewerRef.current.camera.positionCartographic.height;
             const dynamicScale = calculateDynamicScale(cameraHeight, DPR_FACTOR);
 
-            const baseScale = dynamicScale * 3000000 / Math.max(distance, 2000000);
-            return baseScale * 25; // Slightly larger than SNPs for visibility
+            const baseScale = dynamicScale * 50000000 / Math.max(distance, 2000000);
+            return baseScale * (sizeScale || 1);
         }, false);
-    }, [selectedPosition?.lat, selectedPosition?.lng]);
+    }, [selectedPosition?.lat, selectedPosition?.lng, selectedPosition?.altitude, sizeScale, viewerRef]);
 
     return (
         <div className="relative w-full h-full">
@@ -347,6 +347,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                         onSnpClick={onSnpClick}
                         onSnpHover={onSnpHover}
                         viewerRef={viewerRef}
+                        sizeScale={sizeScale}
                     />
 
                     {/* Trajectory Layer */}
