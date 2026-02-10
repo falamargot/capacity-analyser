@@ -106,7 +106,6 @@ export const ThemeSelector: React.FC<ThemeSelectorProps> = ({ isMobile }) => {
                 title="System Preference"
             >
                 <Monitor size={14} />
-                <span>Auto</span>
             </button>
             <button
                 onClick={() => setTheme('light')}
@@ -114,7 +113,6 @@ export const ThemeSelector: React.FC<ThemeSelectorProps> = ({ isMobile }) => {
                 title="Light Mode"
             >
                 <Sun size={14} />
-                <span>Day</span>
             </button>
             <button
                 onClick={() => setTheme('dark')}
@@ -122,7 +120,6 @@ export const ThemeSelector: React.FC<ThemeSelectorProps> = ({ isMobile }) => {
                 title="Dark Mode"
             >
                 <Moon size={14} />
-                <span>Night</span>
             </button>
         </div>
     );

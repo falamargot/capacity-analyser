@@ -72,7 +72,7 @@ const AircraftSelector: React.FC<AircraftSelectorProps> = ({
   };
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex items-center gap-2 p-1 bg-gray-50 dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700">
       <div className="relative flex-1 sm:flex-none">
         <Plane className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
         <select
@@ -103,7 +103,7 @@ const AircraftSelector: React.FC<AircraftSelectorProps> = ({
 
       <button
         onClick={onToggleLiveMode}
-        className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+        className={`flex items-center justify-center px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
           liveModeEnabled
             ? 'bg-green-600 text-white hover:bg-green-700'
             : 'text-gray-700 bg-gray-200 hover:bg-gray-300 dark:bg-slate-700 dark:text-gray-300 dark:hover:bg-slate-600'
@@ -111,7 +111,6 @@ const AircraftSelector: React.FC<AircraftSelectorProps> = ({
         title={liveModeEnabled ? 'Disable live aircraft data' : 'Enable live aircraft data'}
       > 
         <Power className="h-4 w-4" />
-        <span className="hidden sm:inline">Live</span>
       </button>
     </div>
   );

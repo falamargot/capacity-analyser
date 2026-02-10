@@ -6,6 +6,7 @@ import { Feature, Geometry, GeoJsonProperties } from 'geojson';
 import { SatelliteData } from '../types/satellites';
 import { SatelliteScope } from './SatelliteScopeFilter';
 import { Aircraft } from '../modules/airTraffic/airTrafficService';
+import { Vessel } from '../modules/maritimeTraffic/maritimeTrafficService';
 import type { GEOBeam } from '../types/analysis';
 
 interface MapViewSwitcherProps {
@@ -30,6 +31,11 @@ interface MapViewSwitcherProps {
   selectedAircraft?: Aircraft | null;
   onAircraftClick?: (aircraft: Aircraft | null) => void;
   onAircraftHover?: (aircraft: Aircraft | null) => void;
+  maritimeTrafficEnabled?: boolean;
+  vessels?: Vessel[];
+  selectedVessel?: Vessel | null;
+  onVesselClick?: (vessel: Vessel | null) => void;
+  onVesselHover?: (vessel: Vessel | null) => void;
   selectedGEOBeam?: GEOBeam | null;
   cameraTarget?: { lat: number; lng: number; alt: number } | null;
   onCameraReady?: (viewer: any) => void;
@@ -63,6 +69,11 @@ const MapViewSwitcher: React.FC<MapViewSwitcherProps> = ({
   selectedAircraft,
   onAircraftClick,
   onAircraftHover,
+  maritimeTrafficEnabled,
+  vessels,
+  selectedVessel,
+  onVesselClick,
+  onVesselHover,
   selectedGEOBeam,
   cameraTarget,
   onCameraReady,
@@ -100,6 +111,11 @@ const MapViewSwitcher: React.FC<MapViewSwitcherProps> = ({
         selectedAircraft={selectedAircraft}
         onAircraftClick={onAircraftClick}
         onAircraftHover={onAircraftHover}
+        maritimeTrafficEnabled={maritimeTrafficEnabled}
+        vessels={vessels}
+        selectedVessel={selectedVessel}
+        onVesselClick={onVesselClick}
+        onVesselHover={onVesselHover}
         selectedGEOBeam={selectedGEOBeam}
         cameraTarget={cameraTarget}
         onCameraReady={onCameraReady}

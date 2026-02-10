@@ -29,6 +29,7 @@ import {
 import { Feature, Geometry, GeoJsonProperties } from 'geojson';
 import type { SatelliteData } from '../types/satellites';
 import type { Aircraft } from '../modules/airTraffic/airTrafficService';
+import type { Vessel } from '../modules/maritimeTraffic/maritimeTrafficService';
 import type { SatelliteScope } from './SatelliteScopeFilter';
 import type { GEOBeam } from '../types/analysis';
 import { getPosition, DPR_FACTOR, calculateDynamicScale } from './cesium-globe/utils';
@@ -37,6 +38,7 @@ import { useCesiumTheme } from '../hooks/useCesiumTheme';
 // Layer components
 import SatelliteLayer from './cesium-globe/SatelliteLayer';
 import AircraftLayer from './cesium-globe/AircraftLayer';
+import VesselLayer from './cesium-globe/VesselLayer';
 import SnpLayer from './cesium-globe/SnpLayer';
 import CoverageLayer from './cesium-globe/CoverageLayer';
 import OneWebCombLayer from './cesium-globe/OneWebCombLayer';
@@ -71,6 +73,11 @@ interface CesiumGlobeProps {
     selectedAircraft?: Aircraft | null;
     onAircraftClick?: (aircraft: Aircraft | null) => void;
     onAircraftHover?: (aircraft: Aircraft | null) => void;
+    maritimeTrafficEnabled?: boolean;
+    vessels?: Vessel[];
+    selectedVessel?: Vessel | null;
+    onVesselClick?: (vessel: Vessel | null) => void;
+    onVesselHover?: (vessel: Vessel | null) => void;
     selectedGEOBeam?: GEOBeam | null;
     cameraTarget?: { lat: number; lng: number; alt: number } | null;
     onCameraReady?: (viewer: any) => void;
@@ -106,6 +113,11 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
     selectedAircraft,
     onAircraftClick,
     onAircraftHover,
+    maritimeTrafficEnabled = false,
+    vessels = [],
+    selectedVessel,
+    onVesselClick,
+    onVesselHover,
     selectedGEOBeam,
     cameraTarget,
     onCameraReady,
@@ -207,6 +219,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
             onSatelliteClick(null);
             onSnpClick(null);
             onAircraftClick?.(null);
+            onVesselClick?.(null);
             return;
         }
 
@@ -214,7 +227,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         const lat = CesiumMath.toDegrees(cartographic.latitude);
         const lng = CesiumMath.toDegrees(cartographic.longitude);
         onPointClick(lat, lng);
-    }, [onPointClick, onSatelliteClick, onSnpClick, onAircraftClick]);
+    }, [onPointClick, onSatelliteClick, onSnpClick, onAircraftClick, onVesselClick]);
 
     // Determine target satellite for OneWeb comb layer
     const oneWebTargetSat = useMemo(() => {
@@ -405,6 +418,18 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                             onAircraftHover={onAircraftHover}
                             viewerRef={viewerRef}
                             aircraftSizeScale={sizeScale}
+                        />
+                    )}
+
+                    {/* Vessel Layer */}
+                    {maritimeTrafficEnabled && (
+                        <VesselLayer
+                            vessels={vessels}
+                            selectedVessel={selectedVessel}
+                            onVesselClick={onVesselClick}
+                            onVesselHover={onVesselHover}
+                            viewerRef={viewerRef}
+                            vesselSizeScale={sizeScale}
                         />
                     )}
                 </Viewer>

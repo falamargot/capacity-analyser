@@ -30,14 +30,14 @@ const SatelliteScopeFilter: React.FC<SatelliteScopeFilterProps> = ({
   };
 
   return (
-    <div className={`flex bg-gray-100 dark:bg-slate-800 rounded-lg ${compact ? 'p-0.5' : 'p-1'} border border-gray-200 dark:border-slate-700`}>
+    <div className={`flex bg-gray-100 dark:bg-slate-800 rounded-lg ${compact ? 'p-0.5' : 'p-0.5'} border border-gray-200 dark:border-slate-700`}>
       {scopes.map((scope) => (
         <button
           key={scope}
           onClick={() => onScopeChange(scope)}
           className={`
             rounded-md font-medium transition-all duration-200
-            ${compact ? 'px-2.5 py-1 text-xs' : 'px-4 py-2 text-sm'}
+            ${compact ? 'px-2.5 py-2 text-xs' : 'px-4 py-2 text-sm'}
             ${currentScope === scope
               ? 'bg-white dark:bg-slate-600 shadow-sm text-gray-900 dark:text-gray-100 dark:ring-1 dark:ring-slate-500'
               : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-slate-700'

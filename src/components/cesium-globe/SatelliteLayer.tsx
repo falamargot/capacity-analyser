@@ -71,7 +71,7 @@ const SatelliteEntity = React.memo<{
 
             // Apply satellite size scale (no extra size for selected satellites)
             const baseScale =
-                dynamicScale * (sat.type === 'EUTELSAT' ? 10000000 : 2000000) / Math.max(distance, 2000000);
+                dynamicScale * (sat.type === 'EUTELSAT' ? 8000000 : 1500000) / Math.max(distance, 2000000);
 
             return baseScale * satelliteSizeScale;
         }, false);

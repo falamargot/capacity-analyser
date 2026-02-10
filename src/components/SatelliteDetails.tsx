@@ -297,9 +297,8 @@ const SatelliteDetails: React.FC<SatelliteDetailsProps> = ({ satellites, selecte
                       }
                     </span>
                   </div>
-
                   {/* Technical Justification */}
-                  <p className="text-xs text-slate-500 italic mt-1">
+                  <p className="text-xs text-slate-500 italic mt-0">
                     {!nearestSNP
                       ? "Satellite has no active backhaul link to a valid SNP."
                       : gsoAvoidanceData.restrictedTerritory
