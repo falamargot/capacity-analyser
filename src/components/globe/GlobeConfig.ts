@@ -55,6 +55,22 @@ export const SNPS_DATA: SNPData[] = [
   { name: 'South Tarawa', lat: 1.32, lng: 172.97, region: 'Pacific & Australia' },
 ];
 
+export interface GeoGatewayData {
+  name: string;
+  lat: number;
+  lng: number;
+  region: string;
+}
+
+export const GEO_GATEWAYS: GeoGatewayData[] = [
+  { name: 'Rambouillet', lat: 48.5178, lng: 1.7617, region: 'Europe' },
+  { name: 'Cagliari', lat: 39.2154, lng: 9.1093, region: 'Europe' },
+  { name: 'Turin', lat: 45.0709, lng: 7.6843, region: 'Europe' },
+  { name: 'Madeira', lat: 32.7402, lng: -16.7348, region: 'Europe' },
+  { name: 'Mexico', lat: 19.3574, lng: -99.0671, region: 'Americas' },
+  { name: 'Martinique', lat: 14.6000, lng: -61.0000, region: 'Americas' }
+];
+
 export const GLOBE_CONFIG = {
   EARTH_TEXTURE: '//unpkg.com/three-globe/example/img/earth-blue-marble.jpg',
   TOPOLOGY_TEXTURE: '//unpkg.com/three-globe/example/img/earth-topology.png',

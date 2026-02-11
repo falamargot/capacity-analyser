@@ -26,6 +26,9 @@ interface GlobeControlsProps {
     onViewChange?: (view: 'globe' | 'map') => void;
     sceneMode?: '2D' | '3D';
     onSceneModeChange?: (mode: '2D' | '3D') => void;
+    showAggregatedConnectivity?: boolean;
+    onToggleAggregatedConnectivity?: () => void;
+    satelliteScope?: 'LEO' | 'GEO' | 'ALL';
 }
 
 const GlobeControls: React.FC<GlobeControlsProps> = ({
@@ -43,6 +46,9 @@ const GlobeControls: React.FC<GlobeControlsProps> = ({
     // onViewChange,
     sceneMode = '3D',
     onSceneModeChange,
+    showAggregatedConnectivity,
+    onToggleAggregatedConnectivity,
+    satelliteScope
 }) => {
     const [isMapOptionsOpen, setIsMapOptionsOpen] = useState(false);
     const popoverRef = useRef<HTMLDivElement | null>(null);
@@ -163,6 +169,21 @@ const GlobeControls: React.FC<GlobeControlsProps> = ({
                                         </span>
                                     </button>
 
+                                    {onToggleAggregatedConnectivity && (
+                                        <button
+                                            type="button"
+                                            onClick={() => satelliteScope !== 'ALL' && onToggleAggregatedConnectivity()}
+                                            disabled={satelliteScope === 'ALL'}
+                                            className={`w-full flex items-center justify-between py-2 text-sm ${satelliteScope === 'ALL' ? 'opacity-50 cursor-not-allowed text-gray-400 dark:text-gray-500' : 'text-gray-800 dark:text-gray-200'}`}
+                                            title={satelliteScope === 'ALL' ? "Not available in ALL scope" : "Show aggregated connectivity feasibility envelope"}
+                                        >
+                                            <span>Aggregated Connectivity</span>
+                                            <span className={`text-xs font-semibold ${showAggregatedConnectivity && satelliteScope !== 'ALL' ? 'text-blue-600 dark:text-blue-400' : 'text-gray-500 dark:text-gray-400'}`}>
+                                                {showAggregatedConnectivity && satelliteScope !== 'ALL' ? 'ON' : 'OFF'}
+                                            </span>
+                                        </button>
+                                    )}
+
                                     <div className="pt-2">
                                         <div className="flex items-center justify-between">
                                             <div className="text-sm text-gray-800 dark:text-gray-200">Size</div>
@@ -242,8 +263,6 @@ const GlobeControls: React.FC<GlobeControlsProps> = ({
                             </button>
                         )}
 
-
-
                         {/* Map Settings button */}
                         <div className="relative">
                             <button
@@ -281,6 +300,21 @@ const GlobeControls: React.FC<GlobeControlsProps> = ({
                                             {showSatelliteTrajectory ? 'ON' : 'OFF'}
                                         </span>
                                     </button>
+
+                                    {onToggleAggregatedConnectivity && (
+                                        <button
+                                            type="button"
+                                            onClick={() => satelliteScope !== 'ALL' && onToggleAggregatedConnectivity()}
+                                            disabled={satelliteScope === 'ALL'}
+                                            className={`w-full flex items-center justify-between py-2 text-sm ${satelliteScope === 'ALL' ? 'opacity-50 cursor-not-allowed text-gray-400 dark:text-gray-500' : 'text-gray-800 dark:text-gray-200'}`}
+                                            title={satelliteScope === 'ALL' ? "Not available in ALL scope" : "Show aggregated connectivity feasibility envelope"}
+                                        >
+                                            <span>Aggregated Connectivity</span>
+                                            <span className={`text-xs font-semibold ${showAggregatedConnectivity && satelliteScope !== 'ALL' ? 'text-blue-600 dark:text-blue-400' : 'text-gray-500 dark:text-gray-400'}`}>
+                                                {showAggregatedConnectivity && satelliteScope !== 'ALL' ? 'ON' : 'OFF'}
+                                            </span>
+                                        </button>
+                                    )}
 
                                     <div className="pt-2 border-t border-gray-200 dark:border-slate-700">
                                         <div className="flex items-center justify-between py-2">

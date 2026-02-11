@@ -7,7 +7,8 @@ import {
     Color,
     CallbackProperty,
     JulianDate,
-    PolylineDashMaterialProperty
+    PolylineDashMaterialProperty,
+    ArcType
 } from 'cesium';
 import type { SatelliteData } from '../../types/satellites';
 import type { Aircraft } from '../../modules/airTraffic/airTrafficService';
@@ -125,6 +126,7 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
                         positions={leoUplinkCallback}
                         width={3}
                         material={leoDashMaterial}
+                        arcType={ArcType.NONE}
                     />
                 </Entity>
             )}
@@ -137,6 +139,7 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
                         width={3}
                         material={leoDashMaterial}
                         clampToGround={false}
+                        arcType={ArcType.NONE}
                     />
                 </Entity>
             )}
@@ -148,6 +151,7 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
                         positions={geoLinkCallback}
                         width={3}
                         material={geoDashMaterial}
+                        arcType={ArcType.NONE}
                     />
                 </Entity>
             )}
@@ -160,6 +164,7 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
                         width={3}
                         clampToGround={false}
                         material={leoDashMaterial}
+                        arcType={ArcType.NONE}
                     />
                 </Entity>
             )}

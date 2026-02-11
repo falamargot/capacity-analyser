@@ -45,6 +45,8 @@ import OneWebCombLayer from './cesium-globe/OneWebCombLayer';
 import AggregatedCoverageVolumeLayer from './cesium-globe/AggregatedCoverageVolumeLayer';
 import TransmissionLinks from './cesium-globe/TransmissionLinks';
 import TrajectoryLayer from './cesium-globe/TrajectoryLayer';
+import GeoGatewayLayer from './cesium-globe/GeoGatewayLayer';
+import AggregatedConnectivityLayer from './cesium-globe/AggregatedConnectivityLayer';
 
 // UI components
 import GlobeControls from './cesium-globe/GlobeControls';
@@ -133,9 +135,17 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
     const [localEnableLighting, setLocalEnableLighting] = useState(false);
     const enableLighting = localEnableLighting;
     const onToggleLighting = () => setLocalEnableLighting(!enableLighting);
+    const [showAggregatedConnectivity, setShowAggregatedConnectivity] = useState(false);
     const viewerRef = useRef<CesiumViewerType | null>(null);
     const globeContainerRef = useRef<HTMLDivElement>(null);
     const [viewerReady, setViewerReady] = useState(false);
+
+    // Reset Aggregated Connectivity when switching to ALL scope
+    useEffect(() => {
+        if (satelliteScope === 'ALL') {
+            setShowAggregatedConnectivity(false);
+        }
+    }, [satelliteScope]);
 
     // Apply theme to Cesium viewer
     useCesiumTheme(viewerRef);
@@ -302,6 +312,9 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                 onSizeScaleChange={onSizeScaleChange}
                 sceneMode={sceneMode}
                 onSceneModeChange={onSceneModeChange}
+                showAggregatedConnectivity={showAggregatedConnectivity}
+                onToggleAggregatedConnectivity={() => setShowAggregatedConnectivity(!showAggregatedConnectivity)}
+                satelliteScope={satelliteScope}
             />
 
             {/* Cesium Viewer */}
@@ -342,6 +355,15 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                         />
                     )}
 
+                    {/* Aggregated Connectivity Layer (Bottom most coverage layer) */}
+                    <AggregatedConnectivityLayer
+                        satelliteScope={satelliteScope}
+                        satellites={satellites}
+                        coverageFeatures={coverageFeatures}
+                        viewerRef={viewerRef}
+                        show={showAggregatedConnectivity}
+                    />
+
                     {/* Satellite Layer */}
                     <SatelliteLayer
                         satellites={satellites}
@@ -359,6 +381,15 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                         satelliteScope={satelliteScope}
                         onSnpClick={onSnpClick}
                         onSnpHover={onSnpHover}
+                        viewerRef={viewerRef}
+                        sizeScale={sizeScale}
+                    />
+
+                    {/* GEO Gateway Layer */}
+                    <GeoGatewayLayer
+                        satelliteScope={satelliteScope}
+                        onGatewayClick={onSnpClick}
+                        onGatewayHover={onSnpHover}
                         viewerRef={viewerRef}
                         sizeScale={sizeScale}
                     />
