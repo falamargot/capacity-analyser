@@ -10,21 +10,19 @@ import ExportButton from './ExportButton';
 
 interface CapacityDetailsProps {
   satellites: SatelliteData[];
-  selectedPoint: { lat: number; lng: number; altitude?: number } | null;
   onNavigateToLoc?: (lat: number, lng: number, height: number) => void;
   selectedSatellite: SatelliteData | null;
   autoSelectedLEOSatellite: SatelliteData | null;
   autoSelectedGEOSatellite: SatelliteData | null;
   satelliteScope: SatelliteScope;
   onSelectedGEOBeamChange?: (beam: any) => void;
-  onSatelliteClick?: (satellite: SatelliteData) => void;
   analysisSource?: 'earth' | 'aircraft';
   aircraftCallsign?: string;
   selectedSNP?: any;
 }
 
 // Performance optimization: Memoize component to prevent unnecessary re-renders
-const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint, selectedSatellite, autoSelectedLEOSatellite, autoSelectedGEOSatellite, satelliteScope, onSelectedGEOBeamChange, onSatelliteClick, analysisSource, aircraftCallsign, selectedSNP: propSelectedSNP }) => {
+const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint, selectedSatellite, autoSelectedLEOSatellite, autoSelectedGEOSatellite, satelliteScope, onSelectedGEOBeamChange, analysisSource, aircraftCallsign, selectedSNP: propSelectedSNP }) => {
   const [nearestLocation, setNearestLocation] = useState<{ city: string; country: string } | null>(null);
   const [realTimeData, setRealTimeData] = useState<RealTimeCapacityData>({
     totalCapacity: 0,
@@ -707,37 +705,9 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
                   {resolvedLEOConnectivity ? (
                     <div className="text-sm text-gray-700 dark:text-gray-300 text-center space-y-3">
                       {resolvedLEOConnectivity.snp ? (
-                        <div>
-                          {analysisSource === 'aircraft' && aircraftCallsign ? aircraftCallsign : 'User'} → 
-                          <button
-                            onClick={() => onSatelliteClick?.(resolvedLEOConnectivity.satellite)}
-                            className="mx-1 text-pink-600 dark:text-pink-400 hover:text-pink-800 dark:hover:text-pink-300 underline font-medium"
-                            title={`View details for ${resolvedLEOConnectivity.satellite.name}`}
-                          >
-                            {resolvedLEOConnectivity.satellite.name}
-                          </button>
-                          → {resolvedLEOConnectivity.snp.name} → 
-                          <button
-                            onClick={() => onSatelliteClick?.(resolvedLEOConnectivity.satellite)}
-                            className="mx-1 text-pink-600 dark:text-pink-400 hover:text-pink-800 dark:hover:text-pink-300 underline font-medium"
-                            title={`View details for ${resolvedLEOConnectivity.satellite.name}`}
-                          >
-                            {resolvedLEOConnectivity.satellite.name}
-                          </button>
-                          → {analysisSource === 'aircraft' && aircraftCallsign ? aircraftCallsign : 'User'}
-                        </div>
+                        <div>{analysisSource === 'aircraft' && aircraftCallsign ? aircraftCallsign : 'User'} → {resolvedLEOConnectivity.satellite.name} → {resolvedLEOConnectivity.snp.name} → {resolvedLEOConnectivity.satellite.name} → {analysisSource === 'aircraft' && aircraftCallsign ? aircraftCallsign : 'User'}</div>
                       ) : (
-                        <div>
-                          {analysisSource === 'aircraft' && aircraftCallsign ? aircraftCallsign : 'User'} → 
-                          <button
-                            onClick={() => onSatelliteClick?.(resolvedLEOConnectivity.satellite)}
-                            className="mx-1 text-pink-600 dark:text-pink-400 hover:text-pink-800 dark:hover:text-pink-300 underline font-medium"
-                            title={`View details for ${resolvedLEOConnectivity.satellite.name}`}
-                          >
-                            {resolvedLEOConnectivity.satellite.name}
-                          </button>
-                          (→ No SNP connectivity)
-                        </div>
+                        <div>{analysisSource === 'aircraft' && aircraftCallsign ? aircraftCallsign : 'User'} → {resolvedLEOConnectivity.satellite.name} (→ No SNP connectivity)</div>
                       )}
                       {resolvedLEOConnectivity.snp ? (
                         <div className="text-xs text-gray-500 dark:text-gray-400 space-y-2 text-left">
@@ -855,16 +825,7 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
                   <h4 className="text-sm font-semibold mb-3" style={{ color: '#2563eb' }}>Radio Path (GEO)</h4>
                   {resolvedGEOConnectivity ? (
                     <div className="text-sm text-gray-700 dark:text-gray-300 text-center space-y-3">
-                      <div>
-                        {analysisSource === 'aircraft' && aircraftCallsign ? aircraftCallsign : 'User'} ↔ 
-                        <button
-                          onClick={() => onSatelliteClick?.(resolvedGEOConnectivity.satellite)}
-                          className="mx-1 text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 underline font-medium"
-                          title={`View details for ${resolvedGEOConnectivity.satellite.name}`}
-                        >
-                          {resolvedGEOConnectivity.satellite.name}
-                        </button>
-                      </div>
+                      <div>{analysisSource === 'aircraft' && aircraftCallsign ? aircraftCallsign : 'User'} ↔ {resolvedGEOConnectivity.satellite.name}</div>
                       <div className="text-xs text-gray-500 dark:text-gray-400 text-left">
                         <div>→ Elevation: {resolvedGEOConnectivity.elevation.toFixed(1)}° | Distance: {resolvedGEOConnectivity.distance.toFixed(0)} km ({resolvedGEOConnectivity.rtt} ms)</div>
                         {resolvedGEOConnectivity.beam && (

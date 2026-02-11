@@ -19,19 +19,15 @@ import { calculateElevationAngle } from './utils/capacityCalculator';
 import { isLEOSatelliteActive } from './utils/oneWebComb';
 import { JulianDate } from 'cesium';
 import { useAirTraffic, useAirTrafficInterpolation } from './modules/airTraffic';
-import { useMaritimeTraffic, useMaritimeTrafficInterpolation } from './modules/maritimeTraffic';
 import { Aircraft } from './modules/airTraffic/airTrafficService';
-import { Vessel } from './modules/maritimeTraffic/maritimeTrafficService';
-import VesselSelector from './components/VesselSelector';
 
 // Analyzis position for earth-click or aircraft selection
 interface AnalyzisPosition {
   lat: number;
   lng: number;
   altitude?: number;
-  source: 'earth' | 'aircraft' | 'vessel';
+  source: 'earth' | 'aircraft';
   aircraftCallsign?: string;
-  vesselName?: string;
 }
 
 const App: React.FC = () => {
@@ -54,8 +50,6 @@ const App: React.FC = () => {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [satelliteScope, setSatelliteScope] = useState<SatelliteScope>('ALL');
   const [airTrafficEnabled, setAirTrafficEnabled] = useState(false);
-  const [maritimeTrafficEnabled, setMaritimeTrafficEnabled] = useState(false);
-  const [selectedVessel, setSelectedVessel] = useState<Vessel | null>(null);
   const [showSatelliteTrajectory, setShowSatelliteTrajectory] = useState(false);
   const [sizeScale, setSizeScale] = useState(1); // 0.5, 1, 2, 4, 8
   const [mobileSheetSnap, setMobileSheetSnap] = useState<0 | 1 | 2>(0);
@@ -414,30 +408,6 @@ const App: React.FC = () => {
     airTrafficEnabled
   );
 
-  // Maritime traffic data fetching and filtering
-  const maritimeTraffic = useMaritimeTraffic(
-    { enabled: maritimeTrafficEnabled },
-    null, // camera bounds - will be implemented with globe integration
-    selectedPosition // focus point for distance filtering
-  );
-
-  // Maritime traffic position interpolation
-  const interpolatedVessels = useMaritimeTrafficInterpolation(
-    maritimeTraffic.vessels,
-    maritimeTrafficEnabled
-  );
-
-  // Debug logs for maritime traffic
-  console.log('🚢 Maritime traffic state:', {
-    enabled: maritimeTrafficEnabled,
-    vesselsCount: maritimeTraffic.vessels.length,
-    interpolatedCount: interpolatedVessels.length,
-    isLoading: maritimeTraffic.isLoading,
-    error: maritimeTraffic.error,
-    totalCount: maritimeTraffic.totalCount,
-    selectedVessel: selectedVessel?.name || null
-  });
-
   // Performance optimization: Memoize expensive coverage calculations
   // Resolve auto-selected satellites from live satellite data (never use stored objects)
   const resolvedAutoLEO = useMemo(() => {
@@ -768,9 +738,6 @@ const App: React.FC = () => {
     // Clear aircraft selection when switching to earth-based analyzis
     setSelectedAircraft(null);
 
-    // Clear vessel selection when switching to earth-based analyzis
-    setSelectedVessel(null);
-
     // Update unified analyzis position
     updateAnalyzisPosition({
       lat,
@@ -802,43 +769,6 @@ const App: React.FC = () => {
       }
     } else {
       // Clear analyzis position when aircraft is deselected
-      updateAnalyzisPosition(null);
-    }
-
-    // Clear vessel selection when selecting aircraft
-    setSelectedVessel(null);
-  }, [updateAnalyzisPosition]);
-
-  // Handle vessel hover
-  const handleVesselHover = useCallback((_vessel: Vessel | null) => {
-    // Vessel hover logic - currently a no-op
-  }, []);
-
-  // Handle vessel selection (vessel-based analyzis)
-  const handleVesselSelect = useCallback((vessel: Vessel | null, fromComboBox: boolean = false) => {
-    setSelectedVessel(vessel);
-
-    if (vessel && vessel.latitude && vessel.longitude) {
-      // Clear earth-based position when switching to vessel-based analyzis
-      setSelectedPosition(null);
-      // Clear aircraft selection
-      setSelectedAircraft(null);
-
-      // Update unified analyzis position with vessel data
-      updateAnalyzisPosition({
-        lat: vessel.latitude,
-        lng: vessel.longitude,
-        altitude: 0, // Sea level
-        source: 'vessel',
-        vesselName: vessel.name || undefined
-      });
-
-      // Only set camera target when selected from combobox, not from globe click
-      if (fromComboBox) {
-        setCameraTarget({ lat: vessel.latitude, lng: vessel.longitude, alt: 3000 });
-      }
-    } else {
-      // Clear analyzis position when vessel is deselected
       updateAnalyzisPosition(null);
     }
   }, [updateAnalyzisPosition]);
@@ -877,40 +807,6 @@ const App: React.FC = () => {
     return () => clearInterval(interval);
   }, [selectedAircraft, airTrafficEnabled, interpolatedAircraft, updateAnalyzisPosition]);
 
-  // Real-time updates for selected vessel position
-  useEffect(() => {
-    if (!selectedVessel || !maritimeTrafficEnabled) return;
-
-    const updateSelectedVesselPosition = () => {
-      // Find the current vessel data from the interpolated vessel list
-      const currentVesselData = interpolatedVessels.find(
-        vessel => vessel.mmsi === selectedVessel!.mmsi
-      );
-
-      if (currentVesselData &&
-        currentVesselData.latitude &&
-        currentVesselData.longitude) {
-
-        // Update the analyzis position with the latest interpolated vessel data
-        updateAnalyzisPosition({
-          lat: currentVesselData.latitude,
-          lng: currentVesselData.longitude,
-          altitude: 0, // Sea level
-          source: 'vessel',
-          vesselName: currentVesselData.name || selectedVessel!.name
-        });
-      }
-    };
-
-    // Update immediately
-    updateSelectedVesselPosition();
-
-    // Set up interval for real-time updates (every 5 seconds)
-    const interval = setInterval(updateSelectedVesselPosition, 5000);
-
-    return () => clearInterval(interval);
-  }, [selectedVessel, maritimeTrafficEnabled, interpolatedVessels, updateAnalyzisPosition]);
-
   const handleSearchInput = useCallback(async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (searchQuery.trim()) {
@@ -931,9 +827,6 @@ const App: React.FC = () => {
 
           // Clear aircraft selection when switching to earth-based analyzis
           setSelectedAircraft(null);
-
-          // Clear vessel selection when switching to earth-based analyzis
-          setSelectedVessel(null);
 
           // Update unified analyzis position
           updateAnalyzisPosition({
@@ -993,53 +886,18 @@ const App: React.FC = () => {
               </div>
             ) : (
               <div className="flex flex-col gap-1">
-                <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-                  <div className="flex items-center w-full sm:w-auto gap-4">
-                    <Satellite className="h-5 w-5 text-blue-600" />
-                    <h1 className="ml-2 text-sm font-bold text-gray-900 dark:text-gray-100">Eutelsat Capacity Analyzer</h1>
-                    <div className="flex-shrink-0">
-                      <SatelliteScopeFilter
-                        currentScope={satelliteScope}
-                        onScopeChange={handleSatelliteScopeChange}
-                      />
-                    </div>
-                    <div className="flex-shrink-0 w-56">
-                      <SatelliteSelector
-                        satellites={satellites}
-                        onSelect={handleSatelliteSelectFromUI}
-                        selectedSatellite={selectedSatellite}
-                        satelliteScope={satelliteScope}
-                      />
-                    </div>
-                    <div className="relative flex-shrink-0 w-44">
-                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-500" />
-                      <form onSubmit={handleSearchInput}>
-                        <input
-                          type="text"
-                          name="search"
-                          placeholder="Search a location..."
-                          className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-slate-800 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
-                          value={searchQuery}
-                          onChange={(e) => setSearchQuery(e.target.value)}
-                        />
-                      </form>
-                    </div>
-                    <div className="flex-shrink-0">
-                      <AircraftSelector
-                        aircraft={airTraffic.aircraft}
-                        selectedAircraft={selectedAircraft}
-                        onSelect={(aircraft) => handleAircraftSelect(aircraft, true)}
-                        liveModeEnabled={airTrafficEnabled}
-                        onToggleLiveMode={() => setAirTrafficEnabled(!airTrafficEnabled)}
-                      />
-                      <VesselSelector
-                        vessels={maritimeTraffic.vessels}
-                        selectedVessel={selectedVessel}
-                        onSelect={(vessel) => handleVesselSelect(vessel, true)}
-                        liveModeEnabled={maritimeTrafficEnabled}
-                        onToggleLiveMode={() => setMaritimeTrafficEnabled(!maritimeTrafficEnabled)}
-                      />
-                    </div>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center min-w-0">
+                    <Satellite className="h-7 w-7 text-blue-600 flex-shrink-0" />
+                    <h1 className="ml-2 text-lg font-bold text-gray-900 dark:text-white truncate">Capacity Analyzer</h1>
+                  </div>
+                </div>
+                <div className="flex items-center gap-1 overflow-x-auto pb-1">
+                  <div className="flex-shrink-0">
+                    <SatelliteScopeFilter
+                      currentScope={satelliteScope}
+                      onScopeChange={handleSatelliteScopeChange}
+                    />
                   </div>
                   <div className="flex-shrink-0 w-56">
                     <SatelliteSelector
@@ -1070,24 +928,15 @@ const App: React.FC = () => {
                       liveModeEnabled={airTrafficEnabled}
                       onToggleLiveMode={() => setAirTrafficEnabled(!airTrafficEnabled)}
                     />
-                    <VesselSelector
-                      vessels={maritimeTraffic.vessels}
-                      selectedVessel={selectedVessel}
-                      onSelect={(vessel) => handleVesselSelect(vessel, true)}
-                      liveModeEnabled={maritimeTrafficEnabled}
-                      onToggleLiveMode={() => setMaritimeTrafficEnabled(!maritimeTrafficEnabled)}
-                    />
                   </div>
                 </div>
               </div>
             )
           ) : (
-            <div className="flex flex-col gap-1">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center">
-                  <Satellite className="h-5 w-5 text-blue-600" />
-                  <h1 className="ml-1 text-sm font-bold text-gray-900 dark:text-gray-100">Eutelsat Capacity Analyzer</h1>
-                </div>
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="flex items-center">
+                <Satellite className="h-8 w-8 text-blue-600" />
+                <h1 className="ml-2 text-2xl font-bold text-gray-900 dark:text-gray-100">Eutelsat Capacity Analyzer</h1>
               </div>
               <div className="flex items-center w-full sm:w-auto gap-4">
                 <SatelliteScopeFilter
@@ -1119,13 +968,6 @@ const App: React.FC = () => {
                   onSelect={(aircraft) => handleAircraftSelect(aircraft, true)}
                   liveModeEnabled={airTrafficEnabled}
                   onToggleLiveMode={() => setAirTrafficEnabled(!airTrafficEnabled)}
-                />
-                <VesselSelector
-                  vessels={maritimeTraffic.vessels}
-                  selectedVessel={selectedVessel}
-                  onSelect={(vessel) => handleVesselSelect(vessel, true)}
-                  liveModeEnabled={maritimeTrafficEnabled}
-                  onToggleLiveMode={() => setMaritimeTrafficEnabled(!maritimeTrafficEnabled)}
                 />
                 <div className="flex-shrink-0">
                   <ThemeSelector />
@@ -1185,16 +1027,6 @@ const App: React.FC = () => {
               liveModeEnabled={airTrafficEnabled}
               onToggleLiveMode={() => setAirTrafficEnabled(!airTrafficEnabled)}
             />
-            <VesselSelector
-              vessels={maritimeTraffic.vessels}
-              selectedVessel={selectedVessel}
-              onSelect={(vessel) => {
-                handleVesselSelect(vessel, true);
-                setIsSatelliteModalOpen(false);
-              }}
-              liveModeEnabled={maritimeTrafficEnabled}
-              onToggleLiveMode={() => setMaritimeTrafficEnabled(!maritimeTrafficEnabled)}
-            />
           </div>
         </div>
       )}
@@ -1228,11 +1060,6 @@ const App: React.FC = () => {
                 selectedAircraft={selectedAircraft}
                 onAircraftClick={handleAircraftSelect}
                 onAircraftHover={handleAircraftHover}
-                maritimeTrafficEnabled={maritimeTrafficEnabled}
-                vessels={interpolatedVessels}
-                selectedVessel={selectedVessel}
-                onVesselClick={handleVesselSelect}
-                onVesselHover={handleVesselHover}
                 cameraTarget={cameraTarget}
                 onCameraReady={handleCameraReady}
                 onGlobeContainerReady={handleGlobeContainerReady}
@@ -1268,10 +1095,10 @@ const App: React.FC = () => {
                   autoSelectedGEOSatellite={resolvedAutoGEO}
                   satelliteScope={satelliteScope}
                   onSelectedGEOBeamChange={handleSelectedGEOBeamChange}
-                  onSatelliteClick={handleSatelliteClick}
                   analysisSource={selectedAircraft ? 'aircraft' : analyzisPosition ? 'earth' : undefined}
                   aircraftCallsign={selectedAircraft?.callsign}
                   selectedSNP={selectedSNP}
+                  onMetricsChange={setMobileMetrics}
                 />
               </BottomSheet>
             )}
@@ -1306,11 +1133,6 @@ const App: React.FC = () => {
                 selectedAircraft={selectedAircraft}
                 onAircraftClick={handleAircraftSelect}
                 onAircraftHover={handleAircraftHover}
-                maritimeTrafficEnabled={maritimeTrafficEnabled}
-                vessels={interpolatedVessels}
-                selectedVessel={selectedVessel}
-                onVesselClick={handleVesselSelect}
-                onVesselHover={handleVesselHover}
                 cameraTarget={cameraTarget}
                 onCameraReady={handleCameraReady}
                 onGlobeContainerReady={handleGlobeContainerReady}
@@ -1332,7 +1154,6 @@ const App: React.FC = () => {
                     autoSelectedGEOSatellite={resolvedAutoGEO}
                     satelliteScope={satelliteScope}
                     onSelectedGEOBeamChange={handleSelectedGEOBeamChange}
-                    onSatelliteClick={handleSatelliteClick}
                     analysisSource={selectedAircraft ? 'aircraft' : analyzisPosition ? 'earth' : undefined}
                     aircraftCallsign={selectedAircraft?.callsign}
                     selectedSNP={selectedSNP}

@@ -359,8 +359,6 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                     <AggregatedConnectivityLayer
                         satelliteScope={satelliteScope}
                         satellites={satellites}
-                        coverageFeatures={coverageFeatures}
-                        viewerRef={viewerRef}
                         show={showAggregatedConnectivity}
                     />
 

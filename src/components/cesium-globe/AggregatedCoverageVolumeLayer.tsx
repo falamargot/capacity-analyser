@@ -11,7 +11,7 @@ import { getCoverageColor } from '../../services/coverageService';
 import { EARTH_RADIUS_KM } from '../../utils/capacityCalculator';
 import { STANDARD_RADIUS_KM } from '../../utils/leoFootprint';
 import { useCombGeometry } from './hooks';
-import { calculateDeadReckoning } from './utils';
+import { calculateDeadReckoning, propagateSatellite } from './utils';
 
 interface Props {
     selectedSatellite: SatelliteData | null;
@@ -347,7 +347,8 @@ const AggregatedCoverageVolumeLayer: React.FC<Props> = ({
                     : (useOneWebServingBeamMode ? oneWebBaseRing : computeLocalHull(footprintPoints));
 
                 if (baseRing.length >= 3) {
-                    const apex = Cartesian3.fromDegrees(sat!.position.lng, sat!.position.lat, (sat!.position.alt ?? 0) * 1000);
+                    // Use propagated position for the apex to match the satellite entity
+                    const apex = propagateSatellite(sat!, now);
                     const geometry = buildSideOnlyConeGeometry(apex, baseRing);
                     if (geometry) {
                         if (state.primitive) { scene.primitives.remove(state.primitive); state.primitive = null; }

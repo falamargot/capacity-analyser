@@ -53,7 +53,7 @@ const AircraftEntity = React.memo<{
             const cameraHeight = viewerRef.current.camera.positionCartographic.height;
             const dynamicScale = calculateDynamicScale(cameraHeight, DPR_FACTOR);
 
-            const baseScale = dynamicScale * 1000000 / Math.max(distance, 2000000);
+            const baseScale = dynamicScale * 2000000 / Math.max(distance, 2000000);
             return baseScale * aircraftSizeScale;
         }, false);
     }, [ac.icao24, isSelected, positionCallback, viewerRef, aircraftSizeScale]);

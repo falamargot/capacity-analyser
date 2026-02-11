@@ -103,7 +103,6 @@ export const calculateDeadReckoning = (ac: Aircraft, time: JulianDate): Cartesia
 
 /**
  * Calculate dynamic scale factor based on camera distance
- * Optimized for FullHD displays while maintaining visibility on Retina
  */
 export const calculateDynamicScale = (
     cameraHeight: number,
@@ -117,11 +116,8 @@ export const calculateDynamicScale = (
     // Inverse scaling: higher altitude = smaller icons
     const distanceFactor = 1.5 - (clampedAltitude * 1.2);
 
-    // Use a reduced DPR factor for FullHD optimization
-    // FullHD (DPR=1): use 0.8, Retina (DPR=2): use 1.0, higher DPR: cap at 1.2
-    const adjustedDprFactor = dprFactor <= 1 ? 0.8 : Math.min(dprFactor * 0.5, 1.2);
-    
-    const scaleFactor = adjustedDprFactor * distanceFactor;
+    // Use DPR factor directly (not inverse) for proper high-DPI scaling
+    const scaleFactor = dprFactor * distanceFactor;
 
     // Ensure minimum visibility
     return Math.max(0.1, scaleFactor);
