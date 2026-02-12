@@ -4,7 +4,7 @@ import { formatCoordinates } from '../utils/formatters';
 
 import { getNearestSNPInBackhaul } from '../services/coverageService';
 
-import { calculateGSOAvoidanceAngle } from '../utils/oneWebComb';
+import { calculateGSOAvoidanceAngle, getActiveBeamCount, TOTAL_BEAMS } from '../utils/oneWebComb';
 
 import { JulianDate } from 'cesium';
 
@@ -294,6 +294,8 @@ const SatelliteDetails: React.FC<SatelliteDetailsProps> = ({ satellites, selecte
 
     isBlankingZone: boolean;
 
+    activeBeamCount: number;
+
   } | null>(null);
 
 
@@ -319,6 +321,8 @@ const SatelliteDetails: React.FC<SatelliteDetailsProps> = ({ satellites, selecte
         const time = JulianDate.fromDate(now);
 
         const { pitchAngleRad, isGSOAvoidance, isBlankingZone } = calculateGSOAvoidanceAngle(selectedSatellite.satrec, time);
+
+        const { count: activeBeamCount } = getActiveBeamCount(selectedSatellite.satrec, time);
 
 
 
@@ -350,7 +354,9 @@ const SatelliteDetails: React.FC<SatelliteDetailsProps> = ({ satellites, selecte
 
           latitude,
 
-          isBlankingZone
+          isBlankingZone,
+
+          activeBeamCount
 
         });
 
@@ -543,8 +549,7 @@ const SatelliteDetails: React.FC<SatelliteDetailsProps> = ({ satellites, selecte
                     <span className="text-sm text-gray-600 dark:text-gray-300">Beams:</span>
 
                     <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-
-                      gsoAvoidanceData.isBlankingZone
+gsoAvoidanceData.isBlankingZone
 
                         ? 'bg-gray-100 dark:bg-gray-900/40 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-700'
 
@@ -554,9 +559,9 @@ const SatelliteDetails: React.FC<SatelliteDetailsProps> = ({ satellites, selecte
 
                       {gsoAvoidanceData.isBlankingZone
 
-                        ? '16 BEAMS OFF'
+                        ? `${TOTAL_BEAMS} BEAMS OFF`
 
-                        : '16 BEAMS ACTIVE'
+                        : `${gsoAvoidanceData.activeBeamCount} BEAMS ACTIVE`
 
                       }
 

@@ -17,8 +17,8 @@ const COLOR_STANDARD_PINK = Color.fromBytes(219, 39, 119, 255);
 export function calculateGSOAvoidanceAngle(
     satrec: any,
     time: JulianDate
-): { pitchAngleRad: number; isGSOAvoidance: boolean; isBlankingZone: boolean } {
-    if (!satrec) return { pitchAngleRad: 0, isGSOAvoidance: false, isBlankingZone: false };
+): { pitchAngleRad: number; isGSOAvoidance: boolean; isBlankingZone: boolean; satLatDeg: number; isMovingNorth: boolean } {
+    if (!satrec) return { pitchAngleRad: 0, isGSOAvoidance: false, isBlankingZone: false, satLatDeg: 0, isMovingNorth: false };
 
     const date = JulianDate.toDate(time);
     const positionAndVelocity = satellite.propagate(satrec, date);
@@ -26,7 +26,7 @@ export function calculateGSOAvoidanceAngle(
 
     if (!positionAndVelocity || !positionAndVelocity.position || !positionAndVelocity.velocity || 
         typeof positionAndVelocity.position === 'boolean' || typeof positionAndVelocity.velocity === 'boolean') {
-        return { pitchAngleRad: 0, isGSOAvoidance: false, isBlankingZone: false };
+        return { pitchAngleRad: 0, isGSOAvoidance: false, isBlankingZone: false, satLatDeg: 0, isMovingNorth: false };
     }
 
     const eciPos = positionAndVelocity.position;
@@ -43,6 +43,8 @@ export function calculateGSOAvoidanceAngle(
     const crossTrack = Cartesian3.normalize(Cartesian3.cross(velocityDir, nadir, new Cartesian3()), new Cartesian3());
     const forward = Cartesian3.cross(nadir, crossTrack, new Cartesian3());
 
+    const isMovingNorth = forward.z > 0;
+
     let pitchAngleRad = 0;
     const PITCH_START_LAT = 45.0; // Seuil officiel
     const MAX_PITCH_DEG = 17.0;   // Angle max à l'équateur
@@ -52,9 +54,6 @@ export function calculateGSOAvoidanceAngle(
         // Cos(0) = 1, Cos(90°) = 0
         const progress = Math.abs(satLatDeg) / PITCH_START_LAT;
         const currentPitchDeg = MAX_PITCH_DEG * Math.cos(progress * (Math.PI / 2));
-
-        // Détection du sens de marche (Z > 0 signifie mouvement vers le Nord)
-        const isMovingNorth = forward.z > 0;
 
         /**
          * RÈGLE DE DIRECTION :
@@ -79,7 +78,9 @@ export function calculateGSOAvoidanceAngle(
     return {
         pitchAngleRad,
         isGSOAvoidance: Math.abs(pitchAngleRad) > 0.01, // Seuil de détection d'activité GSO Avoidance
-        isBlankingZone: Math.abs(satLatDeg) <= 2.0 // GSO Exclusion Zone
+        isBlankingZone: Math.abs(satLatDeg) <= 2.0, // GSO Exclusion Zone
+        satLatDeg,
+        isMovingNorth
     };
 }
 
@@ -221,12 +222,26 @@ function destinationPointGeodesic(lat: number, lng: number, brng: number, distKm
 
 export function getBeamColor(
     beamIndex: number,
-    _userElevation: number | null,
-    isBlankingZone: boolean = false
+    isBlankingZone: boolean = false,
+    isGSOAvoidance: boolean = false,
+    satLatDeg: number = 0,
+    isMovingNorth: boolean = false
 ): Color {
     if (isBlankingZone) {
         return Color.GRAY.withAlpha(0.3);
     }
+
+    if (isGSOAvoidance) {
+        const shouldActivateNorthernBeams = (satLatDeg > 0) === isMovingNorth;
+        const isActiveBeam = shouldActivateNorthernBeams
+            ? beamIndex >= 0 && beamIndex <= 7
+            : beamIndex >= 8 && beamIndex <= 15;
+          
+        if (!isActiveBeam) {
+            return Color.GRAY.withAlpha(0.15);
+        }
+    }
+
     const isEven = beamIndex % 2 === 0;
     const alpha = isEven ? 0.4 : 0.5;
     return COLOR_STANDARD_PINK.withAlpha(alpha);
@@ -248,6 +263,30 @@ export function isLEOSatelliteActive(satrec: any, time: JulianDate): boolean {
         console.warn('Error checking LEO satellite activation status:', error);
         // Default to active if we can't determine status
         return true;
+    }
+}
+
+export function getActiveBeamCount(
+    satrec: any,
+    time: JulianDate
+): number {
+    if (!satrec) return 0;
+
+    try {
+        const { isBlankingZone, isGSOAvoidance } = calculateGSOAvoidanceAngle(satrec, time);
+
+        if (isBlankingZone) {
+            return 0;
+        }
+
+        if (isGSOAvoidance) {
+            return 8;
+        }
+
+        return TOTAL_BEAMS;
+    } catch (error) {
+        console.warn('Error calculating active beam count:', error);
+        return TOTAL_BEAMS;
     }
 }
 

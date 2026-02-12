@@ -81,7 +81,7 @@ const BeamPolygon = React.memo<{
     const colorCallback = useMemo(() => {
         return new ColorMaterialProperty(new CallbackProperty((time?: JulianDate) => {
             if (!time || !targetSat.satrec) {
-                return getBeamColor(beamIndex, null, false);
+                return getBeamColor(beamIndex, false);
             }
 
             // Check if satellite is in blanking zone or GSO Avoidance
@@ -89,9 +89,7 @@ const BeamPolygon = React.memo<{
 
             return getBeamColor(
                 beamIndex,
-                null,
                 isBlankingZone,
-                hasBackhaul,
                 isGSOAvoidance,
                 satLatDeg,
                 isMovingNorth
