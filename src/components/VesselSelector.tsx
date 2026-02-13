@@ -63,7 +63,7 @@ const VesselSelector: React.FC<VesselSelectorProps> = ({
                     value={selectedVessel?.mmsi || ''}
                     onChange={(e) => handleVesselSelect(e.target.value)}
                     disabled={!liveModeEnabled}
-                    className="w-full sm:w-48 pl-10 pr-4 py-2 border border-gray-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none bg-white dark:bg-slate-800 text-gray-900 dark:text-gray-100 disabled:bg-gray-100 dark:disabled:bg-slate-900 disabled:cursor-not-allowed transition-colors"
+                    className="w-full sm:w-48 pl-10 pr-4 py-2 border border-gray-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none bg-gray-100 dark:bg-slate-900 text-gray-900 dark:text-gray-100 disabled:bg-white dark:disabled:bg-slate-800 disabled:cursor-not-allowed transition-colors"
                 >
                     <option value="">
                         {liveModeEnabled
@@ -91,7 +91,7 @@ const VesselSelector: React.FC<VesselSelectorProps> = ({
             <button
                 onClick={onToggleLiveMode}
                 className={`flex items-center justify-center px-3 py-2 rounded-lg text-sm font-medium transition-colors ${liveModeEnabled
-                        ? 'bg-cyan-600 text-white hover:bg-cyan-700'
+                        ? 'bg-green-600 text-white hover:bg-green-700'
                         : 'text-gray-700 bg-gray-200 hover:bg-gray-300 dark:bg-slate-700 dark:text-gray-300 dark:hover:bg-slate-600'
                     }`}
                 title={liveModeEnabled ? 'Disable live vessel data' : 'Enable live vessel data'}

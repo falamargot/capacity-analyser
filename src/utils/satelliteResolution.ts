@@ -8,6 +8,7 @@ import { SNPS_DATA } from '../components/globe/GlobeConfig';
 import { calculateElevationAngle } from './capacityCalculator';
 import { isPointInGEOCoverage } from './geoUtils';
 import { STANDARD_ELEVATION_DEG } from './leoFootprint';
+import { getConnectivityStatus, hasRFConnectivity } from './rfConnectivity';
 
 export interface SatelliteResolutionResult {
     autoSelectedLEOSat: SatelliteData | null;
@@ -22,7 +23,8 @@ export interface SatelliteResolutionResult {
 export const resolveAutoSelectedSatellites = (
     userLocation: { lat: number; lng: number },
     satellites: SatelliteData[],
-    satelliteScope: SatelliteScope
+    satelliteScope: SatelliteScope,
+    time?: any // JulianDate from Cesium
 ): SatelliteResolutionResult => {
     let autoSelectedGEOSat: SatelliteData | null = null;
     let autoSelectedLEOSat: SatelliteData | null = null;
@@ -58,17 +60,16 @@ export const resolveAutoSelectedSatellites = (
     if (satelliteScope === 'ALL' || satelliteScope === 'LEO') {
         const leoSatellites = satellites.filter(sat => sat.orbitType === 'LEO');
 
-        // Apply hard eligibility rules
+        // Apply RF connectivity requirement - satellite must have active beam covering user
         const eligibleLEO = leoSatellites.filter(sat => {
-            const elevation = calculateElevationAngle(userLocation, sat);
+            if (!time) return false; // Need time for RF connectivity check
+            
+            // Rule 1: RF connectivity (user must be inside active beam)
+            if (!hasRFConnectivity(userLocation, sat, time)) {
+                return false;
+            }
 
-            // Rule 1: User-to-satellite elevation angle ≥ 37° (STANDARD coverage requirement)
-            if (elevation < STANDARD_ELEVATION_DEG) return false;
-
-            // Rule 2: Satellite is visible above user horizon (elevation > 0°)
-            if (elevation <= 0) return false;
-
-            // Rule 3: Satellite sees at least one SNP (gateway) simultaneously with SNP elevation ≥ 15°
+            // Rule 2: Satellite sees at least one SNP (gateway) simultaneously with SNP elevation ≥ 15°
             let hasVisibleSNP = false;
             for (const snp of SNPS_DATA) {
                 const snpElevation = calculateElevationAngle(
@@ -87,6 +88,9 @@ export const resolveAutoSelectedSatellites = (
         // Score eligible LEO satellites
         const scoredLEO = eligibleLEO.map(sat => {
             const elevation = calculateElevationAngle(userLocation, sat);
+
+            // Get RF connectivity status for service quality scoring
+            const connectivityStatus = time ? getConnectivityStatus(userLocation, sat, time) : null;
 
             // Scoring criteria (normalized, deterministic)
             const elevationScore = elevation / 90;
@@ -110,13 +114,22 @@ export const resolveAutoSelectedSatellites = (
                 }
             }
             const snpScore = visibleSNPCount >= 2 ? 1.0 : 0.8;
+            
+            // Service quality score based on active beam count
+            let serviceQualityScore = 1.0;
+            if (connectivityStatus && connectivityStatus.hasRFConnectivity) {
+                const beamRatio = connectivityStatus.activeBeamCount / 16; // Full capacity = 16 beams
+                serviceQualityScore = 0.7 + (0.3 * beamRatio); // Range: 0.7-1.0
+            }
+            
             const loadScore = 0.5;
 
-            // Global score
+            // Global score with service quality weighting
             const totalScore =
-                0.45 * elevationScore +
-                0.25 * persistenceScore +
-                0.20 * snpScore +
+                0.35 * elevationScore +           // Reduced from 0.45
+                0.20 * persistenceScore +          // Reduced from 0.25  
+                0.15 * snpScore +               // Reduced from 0.20
+                0.20 * serviceQualityScore +        // NEW: Service quality component
                 0.10 * loadScore;
 
             return {
@@ -133,22 +146,21 @@ export const resolveAutoSelectedSatellites = (
             autoSelectedLEOSat = scoredLEO[0].satellite;
             selectedSNP = scoredLEO[0].bestSNP;
         } else {
-            // Fallback: Check if there are LEO satellites visible but without SNP connectivity
-            const visibleLEO = leoSatellites.filter(sat => {
-                const elevation = calculateElevationAngle(userLocation, sat);
-
-                // Rule 1: User-to-satellite elevation angle ≥ 37° (STANDARD coverage requirement)
-                if (elevation < STANDARD_ELEVATION_DEG) return false;
-
-                // Rule 2: Satellite is visible above user horizon (elevation > 0°)
-                if (elevation <= 0) return false;
+            // Fallback: Check if there are LEO satellites with RF connectivity but without SNP connectivity
+            const rfConnectedLEO = leoSatellites.filter(sat => {
+                if (!time) return false; // Need time for RF connectivity check
+                
+                // Rule 1: RF connectivity (user must be inside active beam)
+                if (!hasRFConnectivity(userLocation, sat, time)) {
+                    return false;
+                }
 
                 return true;
             });
 
-            if (visibleLEO.length > 0) {
-                // Select the best visible LEO satellite based on elevation only (no SNP available)
-                const satellitesWithElevation = visibleLEO.map(sat => ({
+            if (rfConnectedLEO.length > 0) {
+                // Select best RF-connected LEO satellite based on elevation only (no SNP available)
+                const satellitesWithElevation = rfConnectedLEO.map(sat => ({
                     satellite: sat,
                     elevation: calculateElevationAngle(userLocation, sat)
                 }));

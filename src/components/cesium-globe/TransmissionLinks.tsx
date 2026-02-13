@@ -14,6 +14,7 @@ import type { SatelliteData } from '../../types/satellites';
 import type { Aircraft } from '../../modules/airTraffic/airTrafficService';
 import type { SatelliteScope } from '../SatelliteScopeFilter';
 import { getPosition, propagateSatellite, calculateDeadReckoning } from './utils';
+import { hasRFConnectivity } from '../../utils/rfConnectivity';
 
 interface TransmissionLinksProps {
     selectedPosition?: { lat: number; lng: number; altitude?: number } | null;
@@ -60,6 +61,16 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
             const startPos = selectedAircraft
                 ? calculateDeadReckoning(selectedAircraft, time)
                 : getPosition(selectedPosition!.lat, selectedPosition!.lng, selectedPosition!.altitude || 0);
+            
+            // Get user location for RF connectivity check
+            const userLocation = selectedAircraft 
+                ? { lat: 0, lng: 0 } // TODO: Get actual position from dead reckoning
+                : { lat: selectedPosition!.lat, lng: selectedPosition!.lng };
+
+            // Check RF connectivity before rendering link
+            if (!hasRFConnectivity(userLocation, autoSelectedLEOSatellite, time)) {
+                return []; // No link if no RF connectivity
+            }
 
             // Point B: LEO Satellite
             const endPos = propagateSatellite(autoSelectedLEOSatellite, time);
