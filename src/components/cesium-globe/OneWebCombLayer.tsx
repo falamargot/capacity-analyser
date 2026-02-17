@@ -1,9 +1,13 @@
 /**
  * OneWebCombLayer - Renders dynamic OneWeb satellite coverage beams
+ * with realistic radial power gradient (concentric rings) and
+ * frequency-reuse color coding.
  */
 import React, { useMemo } from 'react';
 import { Entity, PolygonGraphics, EllipseGraphics } from 'resium';
 import {
+    Cartesian2,
+    Cartesian3,
     Cartographic,
     Color,
     CallbackProperty,
@@ -16,11 +20,38 @@ import {
 } from 'cesium';
 import type { SatelliteData } from '../../types/satellites';
 import type { Aircraft } from '../../modules/airTraffic/airTrafficService';
-import { getBeamColor, TOTAL_BEAMS, calculateGSOAvoidanceAngle } from '../../utils/oneWebComb';
+import { getBeamColor, TOTAL_BEAMS, calculateGSOAvoidanceAngle, isPointInOverlapZone } from '../../utils/oneWebComb';
 import { footprintRadiusKm, BACKHAUL_ELEVATION_DEG, STANDARD_RADIUS_KM } from '../../utils/leoFootprint';
 import { getCoverageColor, hasSNPInCoverage } from '../../services/coverageService';
 import { useCombGeometry } from './hooks';
 import { getPosition, DUMMY_POLYGON, propagateSatellite, calculateDeadReckoning } from './utils';
+import {
+    GRADIENT_RENDERING,
+    getBeamBaseColor,
+} from '../../config/beamVisualization';
+import { LabelGraphics } from 'resium';
+import { VerticalOrigin, HorizontalOrigin } from 'cesium';
+
+
+// ─── Geometry helper ────────────────────────────────────────────────
+/**
+ * Scale a polygon toward its centroid by `factor` (0–1).
+ * factor=1 → original polygon, factor=0 → single point at centroid.
+ */
+function scalePolygon(vertices: Cartesian3[], factor: number): Cartesian3[] {
+    if (factor >= 1.0) return vertices;
+
+    // Compute centroid
+    const cx = vertices.reduce((s, v) => s + v.x, 0) / vertices.length;
+    const cy = vertices.reduce((s, v) => s + v.y, 0) / vertices.length;
+    const cz = vertices.reduce((s, v) => s + v.z, 0) / vertices.length;
+
+    return vertices.map(v => new Cartesian3(
+        cx + (v.x - cx) * factor,
+        cy + (v.y - cy) * factor,
+        cz + (v.z - cz) * factor,
+    ));
+}
 
 interface OneWebCombLayerProps {
     targetSat: SatelliteData | null;
@@ -42,76 +73,126 @@ const isPointInPolygon = (point: { lat: number; lng: number }, ring: Array<[numb
     return inside;
 };
 
-const BeamPolygon = React.memo<{
+// ─── Single ring of a gradient beam ────────────────────────────────
+const BeamRing = React.memo<{
     beamIndex: number;
+    ringIndex: number;
+    scaleFactor: number;
+    ringOpacity: number;
     targetSat: SatelliteData;
     getCombGeometries: (sat: SatelliteData, time: JulianDate) => any;
     viewerRef: React.RefObject<CesiumViewerType | null>;
-    hasBackhaul: boolean;
-}>(({ beamIndex, targetSat, getCombGeometries, viewerRef, hasBackhaul }) => {
-    // Create stable show callback
+}>(({ beamIndex, ringIndex, scaleFactor, ringOpacity, targetSat, getCombGeometries, viewerRef }) => {
+
     const showCallback = useMemo(() => {
         return new CallbackProperty((time?: JulianDate) => {
             if (!time || !viewerRef.current) return false;
-
             const geometries = getCombGeometries(targetSat, time);
             return !!(geometries && geometries[beamIndex] && geometries[beamIndex].length >= 3);
         }, false);
     }, [beamIndex, targetSat.id, getCombGeometries, viewerRef]);
 
-    // Create stable hierarchy callback
     const hierarchyCallback = useMemo(() => {
         return new CallbackProperty((time?: JulianDate) => {
             const dummyHierarchy = new PolygonHierarchy(DUMMY_POLYGON);
             try {
                 if (!time || !viewerRef.current) return dummyHierarchy;
-
                 const geometries = getCombGeometries(targetSat, time);
                 if (geometries && geometries[beamIndex] && geometries[beamIndex].length >= 3) {
-                    return new PolygonHierarchy(geometries[beamIndex]);
+                    const scaled = scalePolygon(geometries[beamIndex], scaleFactor);
+                    return new PolygonHierarchy(scaled);
                 }
             } catch (e) {
-                console.error('Error in hierarchy callback', e);
+                console.error('Error in gradient hierarchy callback', e);
             }
             return dummyHierarchy;
         }, false);
-    }, [beamIndex, targetSat.id, getCombGeometries, viewerRef]);
+    }, [beamIndex, scaleFactor, targetSat.id, getCombGeometries, viewerRef]);
 
-    // Create stable color callback
     const colorCallback = useMemo(() => {
         return new ColorMaterialProperty(new CallbackProperty((time?: JulianDate) => {
             if (!time || !targetSat.satrec) {
                 return getBeamColor(beamIndex, false);
             }
 
-            // Check if satellite is in blanking zone or GSO Avoidance
-            const { isBlankingZone, isGSOAvoidance, isMovingNorth, satLatDeg } = calculateGSOAvoidanceAngle(targetSat.satrec, time);
+            const { isBlankingZone, isGSOAvoidance, isMovingNorth, satLatDeg } =
+                calculateGSOAvoidanceAngle(targetSat.satrec, time);
 
-            return getBeamColor(
-                beamIndex,
-                isBlankingZone,
-                isGSOAvoidance,
-                satLatDeg,
-                isMovingNorth
-            );
+            // Inactive beam → gray, no gradient
+            if (isBlankingZone) return Color.GRAY.withAlpha(0.3 * (ringOpacity / 0.75));
+
+            if (isGSOAvoidance) {
+                const shouldActivateNorthernBeams = (satLatDeg > 0) === isMovingNorth;
+                const isActiveBeam = shouldActivateNorthernBeams
+                    ? beamIndex >= 0 && beamIndex <= 7
+                    : beamIndex >= 8 && beamIndex <= 15;
+                if (!isActiveBeam) return Color.GRAY.withAlpha(0.15 * (ringOpacity / 0.75));
+            }
+
+            // Active beam → frequency-reuse color with gradient opacity
+            const baseColor = getBeamBaseColor(beamIndex);
+            return baseColor.withAlpha(ringOpacity);
         }, false));
-    }, [beamIndex, targetSat.id, targetSat.satrec, hasBackhaul]);
+    }, [beamIndex, ringOpacity, targetSat.id, targetSat.satrec]);
 
     return (
-        <Entity name="Combined Beam">
+        <Entity name={`Beam ${beamIndex} ring ${ringIndex}`}>
             <PolygonGraphics
                 show={showCallback}
                 hierarchy={hierarchyCallback}
                 material={colorCallback}
-                outline={true}
-                outlineColor={Color.WHITE.withAlpha(0.2)}
+                outline={ringIndex === 0} // outline only on outermost ring
+                outlineColor={Color.WHITE.withAlpha(0.15)}
                 outlineWidth={1}
             />
         </Entity>
     );
 });
+BeamRing.displayName = 'BeamRing';
 
-BeamPolygon.displayName = 'BeamPolygon';
+// ─── Gradient beam (multiple rings) ────────────────────────────────
+const GradientBeamPolygon = React.memo<{
+    beamIndex: number;
+    targetSat: SatelliteData;
+    getCombGeometries: (sat: SatelliteData, time: JulianDate) => any;
+    viewerRef: React.RefObject<CesiumViewerType | null>;
+    hasBackhaul: boolean;
+}>(({ beamIndex, targetSat, getCombGeometries, viewerRef }) => {
+
+    if (!GRADIENT_RENDERING.ENABLE_GRADIENT) {
+        // Fallback: single flat polygon (original behaviour)
+        return (
+            <BeamRing
+                beamIndex={beamIndex}
+                ringIndex={0}
+                scaleFactor={1.0}
+                ringOpacity={0.4}
+                targetSat={targetSat}
+                getCombGeometries={getCombGeometries}
+                viewerRef={viewerRef}
+            />
+        );
+    }
+
+    return (
+        <>
+            {GRADIENT_RENDERING.RINGS.map((ring, idx) => (
+                <BeamRing
+                    key={`beam-${beamIndex}-ring-${idx}`}
+                    beamIndex={beamIndex}
+                    ringIndex={idx}
+                    scaleFactor={ring.scaleFactor}
+                    ringOpacity={ring.opacity}
+                    targetSat={targetSat}
+                    getCombGeometries={getCombGeometries}
+                    viewerRef={viewerRef}
+                />
+            ))}
+        </>
+    );
+});
+GradientBeamPolygon.displayName = 'GradientBeamPolygon';
+
 
 const OneWebCombLayer: React.FC<OneWebCombLayerProps> = ({
     targetSat,
@@ -141,6 +222,50 @@ const OneWebCombLayer: React.FC<OneWebCombLayerProps> = ({
             return getPosition(lat, lng, 0);
         }, false);
     }, [targetSat?.id, targetSat?.satrec]);
+
+    // ─── Handover Detection logic ──────────────────────────────────
+    const isHandoverImminent = useMemo(() => {
+        return new CallbackProperty((time?: JulianDate) => {
+            if (!time || !targetSat || !targetSat.satrec || (!selectedPosition && !selectedAircraft)) return false;
+
+            const beamPolygons = getCombGeometries(targetSat, time);
+            if (!beamPolygons) return false;
+
+            let point: { lat: number; lng: number } | null = null;
+            if (selectedAircraft) {
+                const p = calculateDeadReckoning(selectedAircraft, time);
+                const c = Cartographic.fromCartesian(p);
+                point = { lat: CesiumMath.toDegrees(c.latitude), lng: CesiumMath.toDegrees(c.longitude) };
+            } else if (selectedPosition) {
+                point = { lat: selectedPosition.lat, lng: selectedPosition.lng };
+            }
+            if (!point) return false;
+
+            const { isBlankingZone, isGSOAvoidance, satLatDeg, isMovingNorth } = calculateGSOAvoidanceAngle(targetSat.satrec, time);
+
+            return isPointInOverlapZone(
+                point,
+                beamPolygons,
+                isBlankingZone,
+                isGSOAvoidance,
+                satLatDeg,
+                isMovingNorth,
+                isPointInPolygon
+            );
+        }, false);
+    }, [targetSat?.id, targetSat?.satrec, selectedPosition, selectedAircraft, getCombGeometries]);
+
+    const handoverPosition = useMemo(() => {
+        return new CallbackPositionProperty((time?: JulianDate) => {
+            if (selectedAircraft && time) {
+                return calculateDeadReckoning(selectedAircraft, time);
+            }
+            if (selectedPosition) {
+                return getPosition(selectedPosition.lat, selectedPosition.lng, 1000);
+            }
+            return Cartesian3.ZERO;
+        }, false);
+    }, [selectedPosition, selectedAircraft]);
 
     const highlight = useMemo(() => {
         if (!highlightServingFootprint) {
@@ -240,7 +365,31 @@ const OneWebCombLayer: React.FC<OneWebCombLayerProps> = ({
 
     return (
         <>
+            {/* Handover Indicator */}
+            <Entity
+                position={handoverPosition}
+                show={!!targetSat && (!!selectedPosition || !!selectedAircraft)}
+            >
+                <LabelGraphics
+                    text="HANDOVER IMMINENT"
+                    show={isHandoverImminent as any}
+                    font="bold 14px Inter, sans-serif"
+                    fillColor={Color.YELLOW}
+                    outlineColor={Color.BLACK}
+                    outlineWidth={3}
+                    style={2} // Cesium.LabelStyle.FILL_AND_OUTLINE
+                    showBackground={true}
+                    backgroundColor={Color.BLACK.withAlpha(0.7)}
+                    backgroundPadding={new Cartesian2(8, 4)}
+                    pixelOffset={new Cartesian2(0, -40)}
+                    verticalOrigin={VerticalOrigin.BOTTOM}
+                    horizontalOrigin={HorizontalOrigin.CENTER}
+                    disableDepthTestDistance={Number.POSITIVE_INFINITY}
+                />
+            </Entity>
+
             {/* Backhaul Horizon Circle */}
+
             <Entity position={positionCallback!} name="Backhaul Coverage (Gateway Visibility)">
                 <EllipseGraphics
                     semiMajorAxis={horizonRadius}
@@ -266,9 +415,9 @@ const OneWebCombLayer: React.FC<OneWebCombLayerProps> = ({
                 />
             </Entity>
 
-            {/* Beam polygons */}
-            {beamIndices.map((i) => (
-                <BeamPolygon
+            {/* Beam polygons with gradient */}
+            {beamIndices.map((i: number) => (
+                <GradientBeamPolygon
                     key={`comb-beam-${i}`}
                     beamIndex={i}
                     targetSat={targetSat}
@@ -277,6 +426,7 @@ const OneWebCombLayer: React.FC<OneWebCombLayerProps> = ({
                     hasBackhaul={hasBackhaul}
                 />
             ))}
+
 
             <Entity name="Serving Footprint Highlight">
                 <PolygonGraphics

@@ -6,9 +6,10 @@ import type { SatelliteScope } from '../components/SatelliteScopeFilter';
 import type { SNPData } from '../components/globe/GlobeConfig';
 import { SNPS_DATA } from '../components/globe/GlobeConfig';
 import { calculateElevationAngle } from './capacityCalculator';
-import { isPointInGEOCoverage } from './geoUtils';
-import { STANDARD_ELEVATION_DEG } from './leoFootprint';
+import { isPointInGEOCoverage, isPointInPolygon } from './geoUtils';
+
 import { getConnectivityStatus, hasRFConnectivity } from './rfConnectivity';
+import { type CoveragePolicy } from './leoFootprint';
 
 export interface SatelliteResolutionResult {
     autoSelectedLEOSat: SatelliteData | null;
@@ -24,7 +25,8 @@ export const resolveAutoSelectedSatellites = (
     userLocation: { lat: number; lng: number },
     satellites: SatelliteData[],
     satelliteScope: SatelliteScope,
-    time?: any // JulianDate from Cesium
+    time?: any, // JulianDate from Cesium
+    policy: CoveragePolicy = { type: "DB_THRESHOLD", thresholdDb: -10 }
 ): SatelliteResolutionResult => {
     let autoSelectedGEOSat: SatelliteData | null = null;
     let autoSelectedLEOSat: SatelliteData | null = null;
@@ -63,9 +65,9 @@ export const resolveAutoSelectedSatellites = (
         // Apply RF connectivity requirement - satellite must have active beam covering user
         const eligibleLEO = leoSatellites.filter(sat => {
             if (!time) return false; // Need time for RF connectivity check
-            
+
             // Rule 1: RF connectivity (user must be inside active beam)
-            if (!hasRFConnectivity(userLocation, sat, time)) {
+            if (!hasRFConnectivity(userLocation, sat, time, policy)) {
                 return false;
             }
 
@@ -114,14 +116,14 @@ export const resolveAutoSelectedSatellites = (
                 }
             }
             const snpScore = visibleSNPCount >= 2 ? 1.0 : 0.8;
-            
+
             // Service quality score based on active beam count
             let serviceQualityScore = 1.0;
             if (connectivityStatus && connectivityStatus.hasRFConnectivity) {
                 const beamRatio = connectivityStatus.activeBeamCount / 16; // Full capacity = 16 beams
                 serviceQualityScore = 0.7 + (0.3 * beamRatio); // Range: 0.7-1.0
             }
-            
+
             const loadScore = 0.5;
 
             // Global score with service quality weighting
@@ -149,9 +151,9 @@ export const resolveAutoSelectedSatellites = (
             // Fallback: Check if there are LEO satellites with RF connectivity but without SNP connectivity
             const rfConnectedLEO = leoSatellites.filter(sat => {
                 if (!time) return false; // Need time for RF connectivity check
-                
+
                 // Rule 1: RF connectivity (user must be inside active beam)
-                if (!hasRFConnectivity(userLocation, sat, time)) {
+                if (!hasRFConnectivity(userLocation, sat, time, policy)) {
                     return false;
                 }
 
@@ -198,7 +200,7 @@ export const findBestGEOBeam = (
         if (coverage.feature?.geometry?.type === 'Polygon') {
             const ring = coverage.feature.geometry.coordinates[0] as unknown as number[][];
             // Simple point-in-polygon check
-            const { isPointInPolygon } = require('./geoUtils');
+            // isPointInPolygon imported from geoUtils at top of file
             if (isPointInPolygon(position, ring)) {
                 const elevation = calculateElevationAngle(position, satellite);
                 if (elevation > bestElevation) {

@@ -24,10 +24,10 @@ const SatelliteIndicator: React.FC<SatelliteIndicatorProps> = ({
     const [gsoAvoidanceActive, setGsoAvoidanceActive] = useState(false);
     const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-    // Determine which satellite to track for GSO avoidance
+    // Determine which satellite to track for GSO Protection
     const trackedSatellite = selectedSatellite || autoSelectedLEOSatellite;
 
-    // Track satellite GSO Avoidance state
+    // Track satellite GSO Protection state
     useEffect(() => {
         // Clear previous interval
         if (intervalRef.current) {
@@ -79,7 +79,7 @@ const SatelliteIndicator: React.FC<SatelliteIndicatorProps> = ({
                     <span className={`${isPhone ? 'text-xs' : ''} font-medium ${textClass}`}>
                         {selectedSatellite.name}
                         {selectedSatellite.type === 'ONEWEB' && !isPhone && (
-                            <> {gsoAvoidanceActive ? "(GSO Avoidance)" : ""}</>
+                            <> {gsoAvoidanceActive ? "(GSO Protection)" : ""}</>
                         )}
                     </span>
                 </div>
@@ -106,7 +106,7 @@ const SatelliteIndicator: React.FC<SatelliteIndicatorProps> = ({
                     <span className={`${isPhone ? 'text-xs' : ''} font-medium ${textClass}`}>
                         {autoSelectedLEOSatellite.name}
                         {autoSelectedLEOSatellite.type === 'ONEWEB' && !isPhone && (
-                            <> {gsoAvoidanceActive ? "(GSO Avoidance)" : ""}</>
+                            <> {gsoAvoidanceActive ? "(GSO Protection)" : ""}</>
                         )}
                     </span>
                 </div>

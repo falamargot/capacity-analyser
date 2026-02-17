@@ -1,18 +1,17 @@
-import { Cartesian3, Matrix3, JulianDate, Color, Math as CesiumMath, Quaternion } from 'cesium';
+import { Cartesian3, Matrix3, JulianDate, Color, Math as CesiumMath, Quaternion, Cartographic } from 'cesium';
 import * as satellite from 'satellite.js';
 import { EARTH_RADIUS_KM } from './capacityCalculator';
+import { getRadiusAtPowerLevel } from './leoFootprint';
 
 export const BEAM_WIDTH_KM = 67.5;
 export const TOTAL_BEAMS = 16;
 export const BEAM_LENGTH_KM = 1080;
 export const TOTAL_SWATH_WIDTH_KM = BEAM_WIDTH_KM * TOTAL_BEAMS; // 1080 km
 
-// Colors
-const COLOR_STANDARD_PINK = Color.fromBytes(219, 39, 119, 255);
 
 /**
- * Calculate the pitch angle for GSO Avoidance detection
- * Returns the pitch angle in radians and whether GSO Avoidance is active
+ * Calculate the pitch angle for GSO Protection detection
+ * Returns the pitch angle in radians and whether GSO Protection is active
  */
 export function calculateGSOAvoidanceAngle(
     satrec: any,
@@ -24,7 +23,7 @@ export function calculateGSOAvoidanceAngle(
     const positionAndVelocity = satellite.propagate(satrec, date);
     const gmst = satellite.gstime(date);
 
-    if (!positionAndVelocity || !positionAndVelocity.position || !positionAndVelocity.velocity || 
+    if (!positionAndVelocity || !positionAndVelocity.position || !positionAndVelocity.velocity ||
         typeof positionAndVelocity.position === 'boolean' || typeof positionAndVelocity.velocity === 'boolean') {
         return { pitchAngleRad: 0, isGSOAvoidance: false, isBlankingZone: false, satLatDeg: 0, isMovingNorth: false };
     }
@@ -50,7 +49,7 @@ export function calculateGSOAvoidanceAngle(
     const MAX_PITCH_DEG = 17.0;   // Angle max à l'équateur
 
     if (Math.abs(satLatDeg) < PITCH_START_LAT) {
-        // FORMULE CORRIGÉE : Max à 0°, Zéro à 45° (Courbe de protection GSO)
+        // FORMULE CORRIGÉE : Max à 0°, Zéro à 45° (Courbe de Protection GSO)
         // Cos(0) = 1, Cos(90°) = 0
         const progress = Math.abs(satLatDeg) / PITCH_START_LAT;
         const currentPitchDeg = MAX_PITCH_DEG * Math.cos(progress * (Math.PI / 2));
@@ -63,21 +62,21 @@ export function calculateGSOAvoidanceAngle(
         if (satLatDeg > 0) {
             // Dans le Nord, si on avance vers le Nord, on pitche vers l'AVANT (positif)
             // Si on avance vers le Sud, on pitche vers l'ARRIÈRE (négatif)
-            pitchAngleRad = isMovingNorth 
-                ? CesiumMath.toRadians(-currentPitchDeg) 
+            pitchAngleRad = isMovingNorth
+                ? CesiumMath.toRadians(-currentPitchDeg)
                 : CesiumMath.toRadians(currentPitchDeg);
         } else {
             // Dans le Sud, si on avance vers le Sud, on pitche vers l'AVANT (positif)
             // Si on avance vers le Nord, on pitche vers l'ARRIÈRE (négatif)
-            pitchAngleRad = !isMovingNorth 
-                ? CesiumMath.toRadians(-currentPitchDeg) 
+            pitchAngleRad = !isMovingNorth
+                ? CesiumMath.toRadians(-currentPitchDeg)
                 : CesiumMath.toRadians(currentPitchDeg);
         }
     }
 
     return {
         pitchAngleRad,
-        isGSOAvoidance: Math.abs(pitchAngleRad) > 0.01, // Seuil de détection d'activité GSO Avoidance
+        isGSOAvoidance: Math.abs(pitchAngleRad) > 0.01, // Seuil de détection d'activité GSO Protection
         isBlankingZone: Math.abs(satLatDeg) <= 2.0, // GSO Exclusion Zone
         satLatDeg,
         isMovingNorth
@@ -89,12 +88,13 @@ export function calculateGSOAvoidanceAngle(
  * 
  * @param satrec - The satellite record (SGP4).
  * @param time - The current simulation time (JulianDate).
- * @param userPosition - (Optional) The user's position for elevation-based coloring.
+ * @param thresholdDb - Power threshold in dB for beam coverage (default: -10 dB).
  * @returns An array of 16 Cartesian3 arrays (one for each polygon hierarchy).
  */
 export function calculateCombGeometry(
     satrec: any,
-    time: JulianDate
+    time: JulianDate,
+    thresholdDb: number = -10
 ): Cartesian3[][] | null {
     if (!satrec) return null;
 
@@ -165,9 +165,16 @@ export function calculateCombGeometry(
     // Add 90° rotation to the entire footprint group
     const rotatedBearingRad = bearingRad + (Math.PI / 2);
 
-    const semiMajorAxisKm = 540; // 1080km / 2 (length)
-    const semiMinorAxisKm = 33.75; // 67.5km / 2 (width)
-    const beamCenterStepKm = BEAM_WIDTH_KM; // 67.5km spacing between centers
+    // Calculate scale factor based on threshold
+    // At -10 dB, we keep current dimensions as reference
+    const referenceRadiusKm = getRadiusAtPowerLevel(-10);
+    const currentRadiusKm = getRadiusAtPowerLevel(thresholdDb);
+    const scaleFactor = currentRadiusKm / referenceRadiusKm;
+
+    // Dimensions adjusted according to threshold
+    const semiMajorAxisKm = (1270 / 2) * scaleFactor;
+    const semiMinorAxisKm = (102 / 2) * scaleFactor;
+    const beamCenterStepKm = 67.5; // 67.5km spacing between centers (constant)
     const ellipseSegments = 32; // Number of points to approximate ellipse
 
     const middle = (TOTAL_BEAMS - 1) / 2;
@@ -185,10 +192,10 @@ export function calculateCombGeometry(
 
         for (let j = 0; j <= ellipseSegments; j++) {
             const angle = (j / ellipseSegments) * 2 * Math.PI;
-            
+
             const localX = semiMajorAxisKm * Math.cos(angle);
             const localY = semiMinorAxisKm * Math.sin(angle);
-            
+
             const dist = Math.hypot(localX, localY);
             const angleFromMajorAxis = Math.atan2(localY, localX);
             // Use rotated bearing for ellipse orientation
@@ -220,6 +227,8 @@ function destinationPointGeodesic(lat: number, lng: number, brng: number, distKm
     };
 }
 
+import { getBeamBaseColor } from '../config/beamVisualization';
+
 export function getBeamColor(
     beamIndex: number,
     isBlankingZone: boolean = false,
@@ -236,16 +245,64 @@ export function getBeamColor(
         const isActiveBeam = shouldActivateNorthernBeams
             ? beamIndex >= 0 && beamIndex <= 7
             : beamIndex >= 8 && beamIndex <= 15;
-          
+
         if (!isActiveBeam) {
             return Color.GRAY.withAlpha(0.15);
         }
     }
 
+    // Use centralized frequency-reuse colors
+    const baseColor = getBeamBaseColor(beamIndex);
     const isEven = beamIndex % 2 === 0;
     const alpha = isEven ? 0.4 : 0.5;
-    return COLOR_STANDARD_PINK.withAlpha(alpha);
+    return baseColor.withAlpha(alpha);
 }
+
+/**
+ * Checks if a point is in an overlap zone (covered by more than one active beam).
+ * This is used for handover visualization.
+ */
+export function isPointInOverlapZone(
+    point: { lat: number; lng: number },
+    beamPolygons: Cartesian3[][],
+    isBlankingZone: boolean,
+    isGSOAvoidance: boolean,
+    satLatDeg: number,
+    isMovingNorth: boolean,
+    isPointInPolygonFn: (point: { lat: number; lng: number }, ring: Array<[number, number]>) => boolean
+): boolean {
+    if (isBlankingZone || !beamPolygons) return false;
+
+    let coverCount = 0;
+    for (let i = 0; i < beamPolygons.length; i++) {
+        const poly = beamPolygons[i];
+        if (!poly || poly.length < 3) continue;
+
+        // Check if beam is active
+        let isActive = true;
+        if (isGSOAvoidance) {
+            const shouldActivateNorthernBeams = (satLatDeg > 0) === isMovingNorth;
+            isActive = shouldActivateNorthernBeams
+                ? i >= 0 && i <= 7
+                : i >= 8 && i <= 15;
+        }
+
+        if (isActive) {
+            // Need to convert Cartesian3[] to [lng, lat][] for the intersection fn
+            const ring: Array<[number, number]> = poly.map((p: any) => {
+                const c = Cartographic.fromCartesian(p);
+                return [CesiumMath.toDegrees(c.longitude), CesiumMath.toDegrees(c.latitude)];
+            });
+
+            if (isPointInPolygonFn(point, ring)) {
+                coverCount++;
+                if (coverCount > 1) return true; // Overlap detected
+            }
+        }
+    }
+    return false;
+}
+
 
 /**
  * Check if a LEO satellite is active (not all beams are turned off)
@@ -254,7 +311,7 @@ export function getBeamColor(
  */
 export function isLEOSatelliteActive(satrec: any, time: JulianDate): boolean {
     if (!satrec) return false;
-    
+
     try {
         const { isBlankingZone } = calculateGSOAvoidanceAngle(satrec, time);
         // If satellite is in blanking zone, all beams are off (inactive)

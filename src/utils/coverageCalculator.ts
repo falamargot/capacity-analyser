@@ -72,16 +72,16 @@ export function calculateCoverages(satellite: SatelliteData): Coverage[] {
   // ONEWEB: build metadata-only features for "The Comb" visualization
   // The actual geometry is dynamic and rendered via CesiumGlobe using CallbackProperty
   if (satellite.type === 'ONEWEB') {
-    // 1. Service area (Center beams)
+    // 1. Service Zone (37° elevation)
     newcoverages.push({
-      name: `Service area`,
+      name: `Service Zone`,
       feature: {
         type: 'Feature',
         properties: {
           satelliteId: satellite.name,
-          name: 'Service area',
-          type: 'ONEWEB_PREMIUM',
-          coverageType: 'premium'
+          name: 'Service Zone',
+          type: 'ONEWEB_SERVICE_ZONE',
+          coverageType: 'service'
         } as any,
         geometry: {
           type: 'Polygon',

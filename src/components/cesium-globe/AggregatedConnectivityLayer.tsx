@@ -6,6 +6,7 @@ import {
 import type { SatelliteData } from '../../types/satellites';
 import type { SatelliteScope } from '../SatelliteScopeFilter';
 import { generateCoverageGrid } from './utils/gridCoverage';
+import { useSimulation } from '../../contexts/SimulationContext';
 
 interface AggregatedConnectivityLayerProps {
     satelliteScope: SatelliteScope;
@@ -18,6 +19,8 @@ const AggregatedConnectivityLayer: React.FC<AggregatedConnectivityLayerProps> = 
     satellites,
     show
 }) => {
+    const { coveragePolicy } = useSimulation();
+    
     // Generate the binary grid
     // Memoized to avoid re-calculation on every frame, only when satellites move/update
     // Note: Satellites update every second (throttled). This might be heavy.
@@ -25,8 +28,8 @@ const AggregatedConnectivityLayer: React.FC<AggregatedConnectivityLayerProps> = 
     // Ideally we only update grid when satellites move significantly, but for now strict reactivity is required.
     const gridRectangles = useMemo(() => {
         if (!show) return [];
-        return generateCoverageGrid(satellites, satelliteScope);
-    }, [satellites, satelliteScope, show]);
+        return generateCoverageGrid(satellites, satelliteScope, coveragePolicy);
+    }, [satellites, satelliteScope, show, coveragePolicy]);
 
     if (!show || satelliteScope === 'ALL') {
         return null;

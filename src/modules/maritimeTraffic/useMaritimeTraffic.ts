@@ -77,6 +77,7 @@ export function useMaritimeTraffic(
 
     // Update displayed vessels based on filters
     const updateDisplayedVessels = useCallback(() => {
+        if (!finalConfig.enabled) return;
         const allVessels = Array.from(vesselMapRef.current.values());
         const filteredVessels = filterVesselsByView(
             allVessels,
@@ -85,18 +86,19 @@ export function useMaritimeTraffic(
             finalConfig.maxVessels
         );
 
-        console.log('🚢 Vessel update:', {
-            totalVessels: allVessels.length,
-            filteredVessels: filteredVessels.length,
-            enabled: finalConfig.enabled,
-            minPriority: finalConfig.minPriority,
-            sampleVessel: filteredVessels[0] ? {
-                name: filteredVessels[0].name,
-                lat: filteredVessels[0].latitude,
-                lng: filteredVessels[0].longitude,
-                vesselType: filteredVessels[0].vesselType
-            } : null
-        });
+        if (allVessels.length > 0 || filteredVessels.length > 0) {
+            console.log('🚢 Vessel update:', {
+                totalVessels: allVessels.length,
+                filteredVessels: filteredVessels.length,
+                minPriority: finalConfig.minPriority,
+                sampleVessel: filteredVessels[0] ? {
+                    name: filteredVessels[0].name,
+                    lat: filteredVessels[0].latitude,
+                    lng: filteredVessels[0].longitude,
+                    vesselType: filteredVessels[0].vesselType
+                } : null
+            });
+        }
 
         setState(prev => ({
             ...prev,
@@ -106,7 +108,7 @@ export function useMaritimeTraffic(
             totalCount: allVessels.length,
             displayedCount: filteredVessels.length,
         }));
-    }, [cameraBounds, finalConfig.minPriority, finalConfig.maxVessels]);
+    }, [cameraBounds, finalConfig.enabled, finalConfig.minPriority, finalConfig.maxVessels]);
 
     // Start/stop WebSocket based on enabled state
     useEffect(() => {
@@ -137,24 +139,18 @@ export function useMaritimeTraffic(
         setState(prev => ({ ...prev, isLoading: true, error: null }));
 
         try {
-            // Connect to AISStream (or use mock data if no API key)
-            cleanupRef.current = connectAISStream(handleVesselUpdate);
+            // Connect to AISStream (or use mock data if no API key).
+            // connectAISStream already pushes mock vessels when key is missing, so we only need to trigger display.
+            cleanupRef.current = connectAISStream(handleVesselUpdate, updateDisplayedVessels);
 
-            // If no API key, load mock data directly
-            const apiKey = import.meta.env.VITE_AISSTREAM_API_KEY;
+            const apiKey = typeof import.meta.env.VITE_AISSTREAM_API_KEY === 'string' && import.meta.env.VITE_AISSTREAM_API_KEY.trim().length > 0;
             if (!apiKey) {
-                const mockVessels = getMockVesselData();
-                mockVessels.forEach(v => vesselMapRef.current.set(v.mmsi, v));
                 updateDisplayedVessels();
             }
 
-            // Set up periodic update of displayed vessels
-            intervalRef.current = window.setInterval(() => {
-                updateDisplayedVessels();
-            }, finalConfig.updateInterval);
-
-            // Initial update
+            intervalRef.current = window.setInterval(updateDisplayedVessels, finalConfig.updateInterval);
             setTimeout(updateDisplayedVessels, 100);
+            setTimeout(updateDisplayedVessels, 800);
 
         } catch (error) {
             console.error('🚢 Maritime traffic: Connection error:', error);

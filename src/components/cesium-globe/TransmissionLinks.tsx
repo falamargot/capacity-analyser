@@ -8,13 +8,16 @@ import {
     CallbackProperty,
     JulianDate,
     PolylineDashMaterialProperty,
-    ArcType
+    ArcType,
+    Cartographic,
+    Math as CesiumMath
 } from 'cesium';
 import type { SatelliteData } from '../../types/satellites';
 import type { Aircraft } from '../../modules/airTraffic/airTrafficService';
 import type { SatelliteScope } from '../SatelliteScopeFilter';
 import { getPosition, propagateSatellite, calculateDeadReckoning } from './utils';
 import { hasRFConnectivity } from '../../utils/rfConnectivity';
+import { useSimulation } from '../../contexts/SimulationContext';
 
 interface TransmissionLinksProps {
     selectedPosition?: { lat: number; lng: number; altitude?: number } | null;
@@ -48,6 +51,7 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
     dedicatedSNPForSelectedLEO,
     satelliteScope
 }) => {
+    const { coveragePolicy } = useSimulation();
     const hasUserSelection = !!(selectedPosition || selectedAircraft);
 
     // LEO Uplink positions callback
@@ -64,11 +68,18 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
             
             // Get user location for RF connectivity check
             const userLocation = selectedAircraft 
-                ? { lat: 0, lng: 0 } // TODO: Get actual position from dead reckoning
+                ? (() => {
+                    const pos = calculateDeadReckoning(selectedAircraft, time);
+                    const carto = Cartographic.fromCartesian(pos);
+                    return {
+                        lat: CesiumMath.toDegrees(carto.latitude),
+                        lng: CesiumMath.toDegrees(carto.longitude)
+                    };
+                  })()
                 : { lat: selectedPosition!.lat, lng: selectedPosition!.lng };
 
             // Check RF connectivity before rendering link
-            if (!hasRFConnectivity(userLocation, autoSelectedLEOSatellite, time)) {
+            if (!hasRFConnectivity(userLocation, autoSelectedLEOSatellite, time, coveragePolicy)) {
                 return []; // No link if no RF connectivity
             }
 
@@ -77,7 +88,7 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
 
             return [startPos, endPos];
         }, false);
-    }, [autoSelectedLEOSatellite?.id, selectedAircraft?.icao24, selectedPosition?.lat, selectedPosition?.lng, hasUserSelection]);
+    }, [autoSelectedLEOSatellite?.id, selectedAircraft?.icao24, selectedPosition?.lat, selectedPosition?.lng, hasUserSelection, coveragePolicy]);
 
     // LEO Backhaul positions callback (to SNP)
     const leoBackhaulCallback = useMemo(() => {
@@ -130,24 +141,24 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
 
     return (
         <>
-            {/* LEO Uplink/Downlink */}
-            {leoUplinkCallback && satelliteScope !== 'GEO' && selectedSNP && (
+            {/* LEO Uplink/Downlink - User to Satellite */}
+            {leoUplinkCallback && satelliteScope !== 'GEO' && (
                 <Entity name="LEO Uplink/Downlink">
                     <PolylineGraphics
                         positions={leoUplinkCallback}
-                        width={3}
+                        width={2}
                         material={leoDashMaterial}
                         arcType={ArcType.NONE}
                     />
                 </Entity>
             )}
 
-            {/* LEO Backhaul to SNP */}
-            {leoBackhaulCallback && satelliteScope !== 'GEO' && (
+            {/* LEO Backhaul to SNP - Satellite to Gateway */}
+            {leoBackhaulCallback && satelliteScope !== 'GEO' && selectedSNP && (
                 <Entity name="LEO Backhaul">
                     <PolylineGraphics
                         positions={leoBackhaulCallback}
-                        width={3}
+                        width={2}
                         material={leoDashMaterial}
                         clampToGround={false}
                         arcType={ArcType.NONE}
@@ -160,7 +171,7 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
                 <Entity name="GEO Uplink/Downlink">
                     <PolylineGraphics
                         positions={geoLinkCallback}
-                        width={3}
+                        width={2}
                         material={geoDashMaterial}
                         arcType={ArcType.NONE}
                     />
@@ -172,7 +183,7 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
                 <Entity name="LEO Satellite → Dedicated SNP">
                     <PolylineGraphics
                         positions={dedicatedSnpCallback}
-                        width={3}
+                        width={2}
                         clampToGround={false}
                         material={leoDashMaterial}
                         arcType={ArcType.NONE}

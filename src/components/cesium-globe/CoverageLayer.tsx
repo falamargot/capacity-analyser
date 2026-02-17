@@ -21,7 +21,7 @@ const CoveragePolygon = React.memo<{
     if (feature.geometry.type !== 'Polygon') return null;
 
     // Skip OneWeb Comb placeholders - they are rendered by OneWebCombLayer
-    if (feature.properties?.type === 'ONEWEB_SWATH' || feature.properties?.type === 'ONEWEB_PREMIUM') {
+    if (feature.properties?.type === 'ONEWEB_SWATH' || feature.properties?.type === 'ONEWEB_SERVICE_ZONE') {
         return null;
     }
 
@@ -65,7 +65,7 @@ const CoverageLayer: React.FC<CoverageLayerProps> = ({
                 // Filter out OneWeb comb placeholders and non-polygons
                 if (feature.geometry.type !== 'Polygon') return false;
                 if (feature.properties?.type === 'ONEWEB_SWATH') return false;
-                if (feature.properties?.type === 'ONEWEB_PREMIUM') return false;
+                if (feature.properties?.type === 'ONEWEB_SERVICE_ZONE') return false;
                 return true;
             })
             .map((feature, index) => (

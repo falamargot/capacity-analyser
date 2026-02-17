@@ -1,24 +1,71 @@
 import { SatelliteData } from '../../../types/satellites';
 import { SatelliteScope } from '../../SatelliteScopeFilter';
 import { isSatelliteConnectedToGateway } from '../../../utils/connectivityRules';
-import { isLEOSatelliteActive } from '../../../utils/oneWebComb';
-import { STANDARD_RADIUS_KM, isPointInFootprint } from '../../../utils/leoFootprint';
-import { JulianDate, Rectangle, Math as CesiumMath } from 'cesium';
+import { isLEOSatelliteActive, calculateCombGeometry, calculateGSOAvoidanceAngle, TOTAL_BEAMS } from '../../../utils/oneWebComb';
+import { isRfCoverageSatisfied, footprintRadiusKm, STANDARD_ELEVATION_DEG, type CoveragePolicy } from '../../../utils/leoFootprint';
+
+import { JulianDate, Rectangle, Math as CesiumMath, Cartographic } from 'cesium';
 
 // Grid configuration
 const GRID_RES_DEG = 0.5; // 0.5 degree resolution for smoother edges
 // const GRID_RES_DEG = 1.0; // 1 degree resolution (~110km) - Higher precision, more CPU
 
 /**
+ * Determines if a beam is active based on GSO Protection state
+ */
+function isBeamActive(
+    beamIndex: number,
+    isBlankingZone: boolean,
+    isGSOAvoidance: boolean,
+    satLatDeg: number,
+    isMovingNorth: boolean
+): boolean {
+    if (isBlankingZone) return false;
+    
+    if (isGSOAvoidance) {
+        const shouldActivateNorthernBeams = (satLatDeg > 0) === isMovingNorth;
+        return shouldActivateNorthernBeams
+            ? beamIndex >= 0 && beamIndex <= 7
+            : beamIndex >= 8 && beamIndex <= 15;
+    }
+    
+    return true;
+}
+
+/**
+ * Point-in-polygon test using ray-casting algorithm
+ */
+function isPointInBeamPolygon(
+    point: { lat: number; lng: number },
+    polygon: { lat: number; lng: number }[]
+): boolean {
+    let inside = false;
+    for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+        const xi = polygon[i].lng;
+        const yi = polygon[i].lat;
+        const xj = polygon[j].lng;
+        const yj = polygon[j].lat;
+        
+        const intersect = ((yi > point.lat) !== (yj > point.lat))
+            && (point.lng < (xj - xi) * (point.lat - yi) / (yj - yi) + xi);
+        
+        if (intersect) inside = !inside;
+    }
+    return inside;
+}
+
+/**
  * Generates a set of non-overlapping Rectangles representing the binary coverage mask.
  * 
  * @param satellites List of all satellites
  * @param scope "LEO", "GEO" or "ALL"
+ * @param policy Coverage policy (DB_THRESHOLD or ONEWEB_SERVICE_ZONE)
  * @returns Array of Cesium Rectangle objects
  */
 export function generateCoverageGrid(
     satellites: SatelliteData[],
-    scope: SatelliteScope
+    scope: SatelliteScope,
+    policy: CoveragePolicy
 ): Rectangle[] {
     const activeCells = new Set<string>(); // "latIdx,lonIdx"
     const now = new Date();
@@ -60,58 +107,171 @@ export function generateCoverageGrid(
     const lonSteps = Math.ceil(360 / GRID_RES_DEG);
 
     relevantSatellites.forEach(sat => {
-        // LEO Logic: Circular Footprint
+        // LEO Logic: Different approaches based on coverage policy
         if (sat.orbitType === 'LEO') {
-            // Determine bounding box of the footprint (Standard Radius)
-            // Approx simple bounding box in degrees
-            // 1 degree lat ~ 111km. 1 degree lon ~ 111km * cos(lat)
-            const radiusDegLat = (STANDARD_RADIUS_KM / 111.0) + GRID_RES_DEG; // Add buffer
-
-            const minLat = Math.max(-90, sat.position.lat - radiusDegLat);
-            const maxLat = Math.min(90, sat.position.lat + radiusDegLat);
-
-            // Longitude is trickier near poles, but for grid marking we can be generous
-            // Max secant(lat) limited to ~85 deg
-            const cosLat = Math.cos(CesiumMath.toRadians(Math.min(85, Math.abs(sat.position.lat))));
-            const radiusDegLon = (STANDARD_RADIUS_KM / (111.0 * cosLat)) + GRID_RES_DEG;
-
-            let minLon = sat.position.lng - radiusDegLon;
-            let maxLon = sat.position.lng + radiusDegLon;
-
-            // Handle anti-meridian wrapping loosely or strictly
-            // Simple iteration loop
-
-            const startLatIdx = Math.floor((minLat + 90) / GRID_RES_DEG);
-            const endLatIdx = Math.ceil((maxLat + 90) / GRID_RES_DEG);
-
-            // Wrap Longitude
-            const startLonIdxRaw = Math.floor((minLon + 180) / GRID_RES_DEG);
-            const endLonIdxRaw = Math.ceil((maxLon + 180) / GRID_RES_DEG);
-
-            for (let latIdx = startLatIdx; latIdx < endLatIdx; latIdx++) {
-                // Check valid lat index
-                if (latIdx < 0 || latIdx >= latSteps) continue;
-
-                // Calculate cell center Lat
-                const cellCenterLat = -90 + (latIdx * GRID_RES_DEG) + (GRID_RES_DEG / 2);
-
-                for (let lonIdxRaw = startLonIdxRaw; lonIdxRaw < endLonIdxRaw; lonIdxRaw++) {
-                    // Wrap lon index
-                    let lonIdx = lonIdxRaw % lonSteps;
-                    if (lonIdx < 0) lonIdx += lonSteps;
-
-                    const cellId = getCellId(latIdx, lonIdx);
-                    if (activeCells.has(cellId)) continue; // Already marked
-
-                    // Check if cell center is covered
-                    const cellCenterLon = -180 + (lonIdx * GRID_RES_DEG) + (GRID_RES_DEG / 2);
-
-                    if (isPointInFootprint(
-                        { lat: cellCenterLat, lng: cellCenterLon },
-                        { lat: sat.position.lat, lng: sat.position.lng },
-                        STANDARD_RADIUS_KM
-                    )) {
-                        activeCells.add(cellId);
+            if (!sat.satrec) return;
+            
+            if (policy.type === "SERVICE_ZONE") {
+                // SERVICE_ZONE Mode: Simple circular footprint based on 37° elevation (Service Zone)
+                // More efficient than beam-by-beam calculations
+                
+                const radius = footprintRadiusKm(sat.position.alt, STANDARD_ELEVATION_DEG);
+                const centerLat = sat.position.lat;
+                const centerLng = sat.position.lng;
+                
+                // Convert radius to degrees (approximation for bounding box)
+                const radiusDeg = radius / 111; // 111 km ≈ 1° at equator
+                
+                // Safety check: if radius is unreasonably large, skip this satellite
+                if (radiusDeg > 50 || !Number.isFinite(radiusDeg)) {
+                    console.warn(`Satellite ${sat.id}: abnormal footprint radius ${radiusDeg}°, skipping`);
+                    return;
+                }
+                
+                // Calculate bounding box for latitude (straightforward)
+                const minLat = Math.max(-90, centerLat - radiusDeg);
+                const maxLat = Math.min(90, centerLat + radiusDeg);
+                
+                // Calculate bounding box for longitude (handle polar regions specially)
+                let startLonIdxRaw: number;
+                let endLonIdxRaw: number;
+                let cellsToTest: number;
+                
+                // Near poles (within 10° of ±90°), the footprint might wrap significantly
+                if (Math.abs(centerLat) > 80) {
+                    // Very close to pole - test all longitudes for affected latitudes
+                    startLonIdxRaw = 0;
+                    endLonIdxRaw = lonSteps;
+                    cellsToTest = lonSteps;
+                } else {
+                    // Normal case: calculate longitude range accounting for latitude
+                    // Use more conservative estimate at high latitudes
+                    const latCorrectionFactor = Math.max(0.1, Math.cos(centerLat * Math.PI / 180));
+                    const lngRadiusDeg = Math.min(
+                        180, // Never exceed 180° (half the globe)
+                        radiusDeg / latCorrectionFactor
+                    );
+                    
+                    const minLon = centerLng - lngRadiusDeg;
+                    const maxLon = centerLng + lngRadiusDeg;
+                    
+                    startLonIdxRaw = Math.floor((minLon + 180) / GRID_RES_DEG);
+                    endLonIdxRaw = Math.ceil((maxLon + 180) / GRID_RES_DEG);
+                    cellsToTest = endLonIdxRaw - startLonIdxRaw;
+                }
+                
+                // Safety limit: if we're about to test more than 10000 cells, something is wrong
+                const latCells = Math.ceil((maxLat - minLat) / GRID_RES_DEG);
+                const totalCells = latCells * cellsToTest;
+                if (totalCells > 10000) {
+                    console.warn(`Satellite ${sat.id}: bounding box too large (${totalCells} cells), skipping`);
+                    return;
+                }
+                
+                // Calculate grid indices for latitude
+                const startLatIdx = Math.floor((minLat + 90) / GRID_RES_DEG);
+                const endLatIdx = Math.ceil((maxLat + 90) / GRID_RES_DEG);
+                
+                // Test each cell in the bounding box
+                for (let latIdx = startLatIdx; latIdx < endLatIdx; latIdx++) {
+                    if (latIdx < 0 || latIdx >= latSteps) continue;
+                    const cellCenterLat = -90 + (latIdx * GRID_RES_DEG) + (GRID_RES_DEG / 2);
+                    
+                    for (let lonIdxRaw = startLonIdxRaw; lonIdxRaw < endLonIdxRaw; lonIdxRaw++) {
+                        // Handle longitude wrapping
+                        let lonIdx = lonIdxRaw % lonSteps;
+                        if (lonIdx < 0) lonIdx += lonSteps;
+                        
+                        const cellId = getCellId(latIdx, lonIdx);
+                        if (activeCells.has(cellId)) continue;
+                        
+                        const cellCenterLon = -180 + (lonIdx * GRID_RES_DEG) + (GRID_RES_DEG / 2);
+                        
+                        // Check if cell center is within circular coverage
+                        if (isRfCoverageSatisfied(
+                            { lat: cellCenterLat, lng: cellCenterLon },
+                            { lat: centerLat, lng: centerLng },
+                            sat.position.alt,
+                            policy
+                        )) {
+                            activeCells.add(cellId);
+                        }
+                    }
+                }
+            } else if (policy.type === "DB_THRESHOLD") {
+                // DB_THRESHOLD Mode: Use actual beam geometries
+                
+                // 1. Calculate the 16 beam geometries with the specified threshold
+                const beamGeometries = calculateCombGeometry(sat.satrec, time, policy.thresholdDb);
+                if (!beamGeometries || beamGeometries.length === 0) return;
+                
+                // 2. Determine GSO Protection status
+                const { isGSOAvoidance, isBlankingZone, satLatDeg, isMovingNorth } = 
+                    calculateGSOAvoidanceAngle(sat.satrec, time);
+                
+                // 3. Iterate over the 16 beams
+                for (let beamIndex = 0; beamIndex < TOTAL_BEAMS; beamIndex++) {
+                    const beamGeometry = beamGeometries[beamIndex];
+                    
+                    // Check if this beam is active
+                    if (!isBeamActive(beamIndex, isBlankingZone, isGSOAvoidance, satLatDeg, isMovingNorth)) {
+                        continue; // Skip inactive beams
+                    }
+                    
+                    // 4. Convert Cartesian3[] to lat/lng[]
+                    const beamPoints: { lat: number; lng: number }[] = [];
+                    for (const cartesian of beamGeometry) {
+                        const cartographic = Cartographic.fromCartesian(cartesian);
+                        beamPoints.push({
+                            lat: CesiumMath.toDegrees(cartographic.latitude),
+                            lng: CesiumMath.toDegrees(cartographic.longitude)
+                        });
+                    }
+                    
+                    // 5. Calculate bounding box of the beam
+                    let minLat = 90, maxLat = -90, minLon = 180, maxLon = -180;
+                    for (const point of beamPoints) {
+                        minLat = Math.min(minLat, point.lat);
+                        maxLat = Math.max(maxLat, point.lat);
+                        minLon = Math.min(minLon, point.lng);
+                        maxLon = Math.max(maxLon, point.lng);
+                    }
+                    
+                    // Add buffer to avoid edge cases
+                    const buffer = GRID_RES_DEG * 2;
+                    minLat = Math.max(-90, minLat - buffer);
+                    maxLat = Math.min(90, maxLat + buffer);
+                    minLon = Math.max(-180, minLon - buffer);
+                    maxLon = Math.min(180, maxLon + buffer);
+                    
+                    // 6. Calculate grid indices
+                    const startLatIdx = Math.floor((minLat + 90) / GRID_RES_DEG);
+                    const endLatIdx = Math.ceil((maxLat + 90) / GRID_RES_DEG);
+                    const startLonIdxRaw = Math.floor((minLon + 180) / GRID_RES_DEG);
+                    const endLonIdxRaw = Math.ceil((maxLon + 180) / GRID_RES_DEG);
+                    
+                    // 7. Test each cell in the bounding box
+                    for (let latIdx = startLatIdx; latIdx < endLatIdx; latIdx++) {
+                        if (latIdx < 0 || latIdx >= latSteps) continue;
+                        const cellCenterLat = -90 + (latIdx * GRID_RES_DEG) + (GRID_RES_DEG / 2);
+                        
+                        for (let lonIdxRaw = startLonIdxRaw; lonIdxRaw < endLonIdxRaw; lonIdxRaw++) {
+                            let lonIdx = lonIdxRaw % lonSteps;
+                            if (lonIdx < 0) lonIdx += lonSteps;
+                            
+                            const cellId = getCellId(latIdx, lonIdx);
+                            if (activeCells.has(cellId)) continue; // Already marked
+                            
+                            const cellCenterLon = -180 + (lonIdx * GRID_RES_DEG) + (GRID_RES_DEG / 2);
+                            
+                            // Test point-in-polygon with the actual beam
+                            if (isPointInBeamPolygon(
+                                { lat: cellCenterLat, lng: cellCenterLon },
+                                beamPoints
+                            )) {
+                                activeCells.add(cellId);
+                            }
+                        }
                     }
                 }
             }

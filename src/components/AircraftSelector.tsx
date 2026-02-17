@@ -79,7 +79,7 @@ const AircraftSelector: React.FC<AircraftSelectorProps> = ({
           value={selectedAircraft?.icao24 || ''}
           onChange={(e) => handleAircraftSelect(e.target.value)}
           disabled={!liveModeEnabled}
-          className="w-full sm:w-48 pl-10 pr-4 py-2 border border-gray-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none bg-gray-100 dark:bg-slate-900 text-gray-900 dark:text-gray-100 disabled:bg-white dark:disabled:bg-slate-800 disabled:cursor-not-allowed transition-colors"
+          className="w-full sm:w-48 pl-10 pr-4 py-2 border border-gray-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none bg-white dark:bg-slate-900 text-gray-900 dark:text-gray-100 disabled:bg-gray-100 dark:disabled:bg-slate-800 disabled:cursor-not-allowed transition-colors"
         >
           <option value="">
             {liveModeEnabled ? 'Select aircraft...' : 'Enable live mode'}

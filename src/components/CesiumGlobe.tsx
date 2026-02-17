@@ -34,6 +34,7 @@ import type { SatelliteScope } from './SatelliteScopeFilter';
 import type { GEOBeam } from '../types/analysis';
 import { getPosition, DPR_FACTOR, calculateDynamicScale } from './cesium-globe/utils';
 import { useCesiumTheme } from '../hooks/useCesiumTheme';
+import { useSimulation } from '../contexts/SimulationContext';
 
 // Layer components
 import SatelliteLayer from './cesium-globe/SatelliteLayer';
@@ -42,6 +43,7 @@ import VesselLayer from './cesium-globe/VesselLayer';
 import SnpLayer from './cesium-globe/SnpLayer';
 import CoverageLayer from './cesium-globe/CoverageLayer';
 import OneWebCombLayer from './cesium-globe/OneWebCombLayer';
+import PremiumCoverageLayer from './cesium-globe/PremiumCoverageLayer';
 import AggregatedCoverageVolumeLayer from './cesium-globe/AggregatedCoverageVolumeLayer';
 import TransmissionLinks from './cesium-globe/TransmissionLinks';
 import TrajectoryLayer from './cesium-globe/TrajectoryLayer';
@@ -132,6 +134,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
     sceneMode = '3D',
     onSceneModeChange,
 }) => {
+    const { coveragePolicy } = useSimulation();
     const [localEnableLighting, setLocalEnableLighting] = useState(false);
     const enableLighting = localEnableLighting;
     const onToggleLighting = () => setLocalEnableLighting(!enableLighting);
@@ -404,7 +407,9 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                         satellites={satellites}
                     />
 
-                    {/* OneWeb Comb Layer */}
+                    {/* OneWeb Comb Layer - Always shown for selected satellite */}
+                    {/* In ONEWEB_PREMIUM mode: shows coverage circles only (no individual beams) */}
+                    {/* In DB_THRESHOLD mode: shows coverage circles + individual beams */}
                     <OneWebCombLayer
                         targetSat={oneWebTargetSat}
                         viewerRef={viewerRef}

@@ -135,52 +135,50 @@ export function calculateB2BPriority(vessel: Partial<Vessel>): number {
 
 /**
  * Parse AIS message from AISStream.io WebSocket
+ * Handles PositionReport; MetaData may use latitude/longitude (lowercase) or position from Message
  */
 function parseAISMessage(message: any): Vessel | null {
   try {
     const { MetaData, Message } = message;
-    
-    if (!MetaData || !Message?.PositionReport) {
-      return null;
-    }
+    const pos = Message?.PositionReport;
+    if (!MetaData || !pos) return null;
 
-    const pos = Message.PositionReport;
-    const mmsi = String(MetaData.MMSI);
-    const name = MetaData.ShipName?.trim() || `Vessel ${mmsi}`;
-    const shipType = MetaData.ShipType || 0;
-    const length = MetaData.length || null;
+    const mmsi = String(MetaData.MMSI ?? pos.UserID ?? '');
+    if (!mmsi) return null;
 
-    // Classify vessel type
+    const name = (MetaData.ShipName ?? MetaData.shipName)?.trim() || `Vessel ${mmsi}`;
+    const shipType = MetaData.ShipType ?? MetaData.shipType ?? 0;
+    const length = MetaData.length ?? null;
+
     const vesselType = classifyVesselType(shipType, length, name);
 
-    // Skip non-B2B vessel types
-    if (vesselType === VesselType.UNKNOWN) {
-      return null;
-    }
+    // Use position from PositionReport first, then MetaData (API may use lowercase lat/lon in MetaData)
+    const lat = pos.Latitude ?? (MetaData as any).latitude ?? null;
+    const lon = pos.Longitude ?? (MetaData as any).longitude ?? null;
+    if (lat == null || lon == null) return null;
 
     const vessel: Vessel = {
       mmsi,
       name,
       shipType,
       vesselType,
-      latitude: pos.Latitude ?? null,
-      longitude: pos.Longitude ?? null,
-      speed: pos.Sog ?? null, // Speed over ground in knots
-      heading: pos.TrueHeading !== 511 ? pos.TrueHeading : (pos.Cog ?? null),
+      latitude: lat,
+      longitude: lon,
+      speed: pos.Sog ?? null,
+      heading: pos.TrueHeading !== 511 && pos.TrueHeading != null ? pos.TrueHeading : (pos.Cog ?? null),
       course: pos.Cog ?? null,
-      length: MetaData.length ?? null,
+      length: length ?? MetaData.length ?? null,
       width: MetaData.width ?? null,
       draught: MetaData.Draught ?? null,
       destination: MetaData.Destination?.trim() || null,
       eta: MetaData.ETA || null,
-      passengers: estimatePassengers(vesselType, length),
-      speed_kmh: pos.Sog ? pos.Sog * 1.852 : null, // Convert knots to km/h
+      passengers: estimatePassengers(vesselType, length ?? MetaData.length ?? null),
+      speed_kmh: pos.Sog != null ? pos.Sog * 1.852 : null,
       b2bPriority: 0,
       lastUpdate: Date.now()
     };
 
-    vessel.b2bPriority = calculateB2BPriority(vessel);
-
+    vessel.b2bPriority = vesselType === VesselType.UNKNOWN ? 70 : calculateB2BPriority(vessel);
     return vessel;
   } catch (error) {
     console.warn('🚢 Failed to parse AIS message:', error);
@@ -209,36 +207,67 @@ function estimatePassengers(vesselType: VesselType, length: number | null): numb
   }
 }
 
+/** Read AISStream API key and log status (do not log the value). */
+function getAISStreamApiKey(): string | undefined {
+  const key = import.meta.env.VITE_AISSTREAM_API_KEY;
+  const value = typeof key === 'string' ? key.trim() : '';
+  const present = value.length > 0;
+  if (present) {
+    console.log('🚢 AISStream API key: present (live vessel data)');
+  } else {
+    console.warn(
+      '🚢 AISStream API key: missing — using 4 mock vessels. Set VITE_AISSTREAM_API_KEY in .env and restart the dev server.'
+    );
+  }
+  return present ? value : undefined;
+}
+
 /**
  * Connect to AISStream.io WebSocket
+ * @param onVesselUpdate - called for each vessel (live or mock)
+ * @param onFallbackToMock - called when falling back to mock data so the UI can refresh immediately
  */
-export function connectAISStream(onVesselUpdate: (vessel: Vessel) => void): () => void {
-  const apiKey = import.meta.env.VITE_AISSTREAM_API_KEY;
+export function connectAISStream(
+  onVesselUpdate: (vessel: Vessel) => void,
+  onFallbackToMock?: () => void
+): () => void {
+  const apiKey = getAISStreamApiKey();
 
   if (!apiKey) {
-    console.warn('🚢 No AISStream API key found, using mock data');
-    // Return mock data instead
     const mockVessels = getMockVesselData();
     mockVessels.forEach(onVesselUpdate);
+    onFallbackToMock?.();
     return () => {};
   }
 
   try {
+    let connected = false;
+    let fallbackApplied = false;
+    const applyMockFallback = () => {
+      if (fallbackApplied) return;
+      fallbackApplied = true;
+      console.warn(
+        '🚢 AISStream does not support direct browser connections (connection lost or refused). Using sample vessels. For live data, use a backend proxy to AISStream.'
+      );
+      getMockVesselData().forEach(onVesselUpdate);
+      onFallbackToMock?.();
+    };
+
     websocket = new WebSocket('wss://stream.aisstream.io/v0/stream');
 
     websocket.onopen = () => {
+      connected = true;
       console.log('🚢 AISStream WebSocket connected');
-      
-      // Subscribe to vessel position updates
+      // API expects APIKey and BoundingBoxes as [[lat, lon], [lat, lon]] per corner
       const subscriptionMessage = {
-        Apikey: apiKey,
+        APIKey: apiKey,
         BoundingBoxes: [
-          // Mediterranean Sea
-          [[-6, 30], [36, 45]],
-          // North Atlantic shipping lanes
-          [[-80, 20], [0, 60]],
+          // Mediterranean: [[south, west], [north, east]]
+          [[30, -6], [45, 36]],
+          // North Atlantic
+          [[20, -80], [60, 0]],
           // Caribbean
-          [[-100, 10], [-60, 30]]
+          [[10, -100], [30, -60]]
         ],
         FiltersShipMMSI: [],
         FilterMessageTypes: ['PositionReport', 'ShipStaticData']
@@ -249,9 +278,12 @@ export function connectAISStream(onVesselUpdate: (vessel: Vessel) => void): () =
 
     websocket.onmessage = (event) => {
       try {
-        const message = JSON.parse(event.data);
-        const vessel = parseAISMessage(message);
-        
+        const data = JSON.parse(event.data);
+        if (data.error) {
+          console.error('🚢 AISStream API error:', data.error);
+          return;
+        }
+        const vessel = parseAISMessage(data);
         if (vessel && vessel.b2bPriority >= 70) {
           vesselCache.set(vessel.mmsi, vessel);
           onVesselUpdate(vessel);
@@ -261,12 +293,13 @@ export function connectAISStream(onVesselUpdate: (vessel: Vessel) => void): () =
       }
     };
 
-    websocket.onerror = (error) => {
-      console.error('🚢 AISStream WebSocket error:', error);
+    websocket.onerror = () => {
+      if (!connected) applyMockFallback();
     };
 
     websocket.onclose = () => {
-      console.log('🚢 AISStream WebSocket closed');
+      if (connected) console.log('🚢 AISStream WebSocket closed');
+      else if (!fallbackApplied) applyMockFallback();
     };
 
     // Return cleanup function
@@ -278,9 +311,9 @@ export function connectAISStream(onVesselUpdate: (vessel: Vessel) => void): () =
     };
   } catch (error) {
     console.error('🚢 Failed to connect to AISStream:', error);
-    // Fallback to mock data
     const mockVessels = getMockVesselData();
     mockVessels.forEach(onVesselUpdate);
+    onFallbackToMock?.();
     return () => {};
   }
 }

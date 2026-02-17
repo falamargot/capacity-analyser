@@ -1,5 +1,10 @@
 import { EARTH_RADIUS_KM } from '../utils/capacityCalculator';
 
+// Coverage policy types for centralized RF connectivity decisions
+export type CoveragePolicy =
+  | { type: "DB_THRESHOLD"; thresholdDb: number }
+  | { type: "SERVICE_ZONE" };
+
 // Double-Zone footprint constants for 1200km altitude
 export const STANDARD_ELEVATION_DEG = 37; // Standard service zone  
 export const BACKHAUL_ELEVATION_DEG = 15; // Backhaul/visibility zone
@@ -10,6 +15,64 @@ export const BACKHAUL_RADIUS_KM = 2500; // 15° elevation
 
 // Capacity values per zone
 export const STANDARD_CAPACITY_GBPS = 6;
+
+/**
+ * Returns the ground-distance radius (km) at which the beam power
+ * has dropped to `powerLevelDb` relative to boresight (beam center).
+ *
+ * Uses the cos^n antenna model:
+ *   Power(r) = cos^n(π/2 · r / R_max)
+ *   → r = R_max · (2/π) · arccos( 10^(dB/20) )^(1/n)
+ *
+ * @param powerLevelDb  Negative value, e.g. -3, -6, -10
+ * @param cosineExponent  The `n` in cos^n (default 8)
+ * @returns radius in km (always ≤ STANDARD_RADIUS_KM)
+ */
+export function getRadiusAtPowerLevel(
+  powerLevelDb: number,
+  cosineExponent: number = 8
+): number {
+  if (powerLevelDb >= 0) return STANDARD_RADIUS_KM; // 0 dB = full radius
+  // Linear power from dB: 10^(dB/20) for field amplitude
+  const linearPower = Math.pow(10, powerLevelDb / 20);
+  // Invert cos^n: angle = arccos(linearPower^(1/n))
+  const angle = Math.acos(Math.pow(linearPower, 1 / cosineExponent));
+  // Normalize: angle runs from 0 (center) to π/2 (edge of STANDARD_RADIUS_KM)
+  const radiusRatio = angle / (Math.PI / 2);
+  return STANDARD_RADIUS_KM * radiusRatio;
+}
+
+/**
+ * Centralized RF connectivity decision function.
+ * All RF connectivity decisions must go through this function.
+ * 
+ * @param point - User position (lat, lng)
+ * @param subSat - Satellite sub-point position (lat, lng)
+ * @param altKm - Satellite altitude in km
+ * @param policy - Coverage policy to apply
+ * @returns true if point satisfies the coverage policy
+ */
+export function isRfCoverageSatisfied(
+  point: { lat: number; lng: number },
+  subSat: { lat: number; lng: number },
+  altKm: number,
+  policy: CoveragePolicy
+): boolean {
+  let radiusKm: number;
+
+  if (policy.type === "SERVICE_ZONE") {
+    // SERVICE_ZONE: Based on STANDARD_ELEVATION_DEG (37°) - Service Zone
+    radiusKm = footprintRadiusKm(altKm, STANDARD_ELEVATION_DEG);
+  } else if (policy.type === "DB_THRESHOLD") {
+    // DB_THRESHOLD: Use existing threshold-based logic
+    radiusKm = getRadiusAtPowerLevel(policy.thresholdDb);
+  } else {
+    // Should never happen with TypeScript, but safety guard
+    return false;
+  }
+
+  return isPointInFootprint(point, subSat, radiusKm);
+}
 
 function toRad(deg: number): number {
   return (deg * Math.PI) / 180;

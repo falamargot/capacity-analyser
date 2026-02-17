@@ -10,20 +10,23 @@ import ExportButton from './ExportButton';
 
 interface CapacityDetailsProps {
   satellites: SatelliteData[];
+  selectedPoint: { lat: number; lng: number; altitude?: number } | null;
   onNavigateToLoc?: (lat: number, lng: number, height: number) => void;
   selectedSatellite: SatelliteData | null;
   autoSelectedLEOSatellite: SatelliteData | null;
   autoSelectedGEOSatellite: SatelliteData | null;
   satelliteScope: SatelliteScope;
   onSelectedGEOBeamChange?: (beam: any) => void;
+  onMetricsChange?: (metrics: any) => void;
   analysisSource?: 'earth' | 'aircraft';
   aircraftCallsign?: string;
   selectedSNP?: any;
 }
 
 // Performance optimization: Memoize component to prevent unnecessary re-renders
-const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint, selectedSatellite, autoSelectedLEOSatellite, autoSelectedGEOSatellite, satelliteScope, onSelectedGEOBeamChange, analysisSource, aircraftCallsign, selectedSNP: propSelectedSNP }) => {
+const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint, selectedSatellite, autoSelectedLEOSatellite, satelliteScope, onSelectedGEOBeamChange, analysisSource, aircraftCallsign, selectedSNP: propSelectedSNP }) => {
   const [nearestLocation, setNearestLocation] = useState<{ city: string; country: string } | null>(null);
+
   const [realTimeData, setRealTimeData] = useState<RealTimeCapacityData>({
     totalCapacity: 0,
     coveredSatellites: []
@@ -355,8 +358,8 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
 
         if (!cancelled) {
           setWeatherType(nextType);
-          setLastWeatherSource('auto');
         }
+
       } catch (e) {
         // If the API fails, keep the existing selection
         // (Do not force a change; fail silently)

@@ -5,6 +5,7 @@ import "cesium/Build/Cesium/Widgets/widgets.css";
 import { Ion } from 'cesium';
 import App from './App';
 import { ThemeProvider } from './contexts/ThemeContext';
+import { SimulationProvider } from './contexts/SimulationContext';
 import './index.css';
 
 // Configure Cesium ION token at app startup (before any components render)
@@ -23,7 +24,9 @@ if (!rootElement) {
 createRoot(rootElement).render(
   <React.StrictMode>
     <ThemeProvider defaultTheme="system" storageKey="vite-ui-theme">
-      <App />
+      <SimulationProvider>
+        <App />
+      </SimulationProvider>
     </ThemeProvider>
   </React.StrictMode>
 );
