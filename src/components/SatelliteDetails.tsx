@@ -345,40 +345,29 @@ const SatelliteDetails: React.FC<SatelliteDetailsProps> = ({ satellites, selecte
             <CoveragePolicyDisplay policy={coveragePolicy} />
           )}
 
-          <div className="mb-4">
-            <h3 className="text-lg font-semibold mb-2 text-gray-900 dark:text-gray-100">Frequency Bands</h3>
-            <div className="bg-gray-50 dark:bg-slate-800/50 rounded-lg p-4 border border-gray-100 dark:border-slate-700">
-              <div className="space-y-3">
-                {Object.entries(selectedSatellite.capacity.bandwidth).map(([band, bandwidth]) => (
-                  <div key={band} className="flex items-center justify-between">
-                    <span className="text-gray-600 dark:text-gray-300 capitalize">{band.toUpperCase()}-band</span>
-                    <span className="font-medium text-gray-900 dark:text-gray-100">{bandwidth} MHz</span>
-                  </div>
-                ))}
+          {/* Coverage Areas - only for GEO satellites */}
+          {selectedSatellite.type === 'EUTELSAT' && (
+            <div className="mb-4">
+              <h3 className="text-lg font-semibold mb-2 text-gray-900 dark:text-gray-100">Coverage Areas</h3>
+              <div className="bg-gray-50 dark:bg-slate-800/50 rounded-lg p-4 border border-gray-100 dark:border-slate-700">
+                {selectedSatellite.coverages && selectedSatellite.coverages.length > 0 ? (
+                  <ul className="space-y-1">
+                    {selectedSatellite.coverages.map((coverage, index) => (
+                      <li
+                        key={index}
+                        className="text-sm text-gray-700 dark:text-gray-300 flex items-center"
+                      >
+                        <span className="w-2 h-2 rounded-full bg-blue-500 mr-2"></span>
+                        {coverage.name}
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-sm text-gray-500 dark:text-gray-400 italic">No coverage areas defined</p>
+                )}
               </div>
             </div>
-          </div>
-
-          <div className="mb-4">
-            <h3 className="text-lg font-semibold mb-2 text-gray-900 dark:text-gray-100">Coverage Areas</h3>
-            <div className="bg-gray-50 dark:bg-slate-800/50 rounded-lg p-4 border border-gray-100 dark:border-slate-700">
-              {selectedSatellite.coverages && selectedSatellite.coverages.length > 0 ? (
-                <ul className="space-y-1">
-                  {selectedSatellite.coverages.map((coverage, index) => (
-                    <li
-                      key={index}
-                      className="text-sm text-gray-700 dark:text-gray-300 flex items-center"
-                    >
-                      <span className="w-2 h-2 rounded-full bg-blue-500 mr-2"></span>
-                      {coverage.name}
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="text-sm text-gray-500 dark:text-gray-400 italic">No coverage areas defined</p>
-              )}
-            </div>
-          </div>
+          )}
         </div>
       </div>
     </div>

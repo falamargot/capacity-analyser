@@ -8,14 +8,14 @@ const BeamLegend: React.FC = () => {
                 LEO Frequency Reuse
             </div>
             <div className="flex items-center gap-4">
-                {Object.entries(FREQUENCY_REUSE.COLORS).map(([group, color], idx) => (
+                {Object.entries(FREQUENCY_REUSE.COLORS).map(([group, color]) => (
                     <div key={`legend-${group}`} className="flex items-center gap-2">
                         <div
                             className="w-3 h-3 rounded-full border border-white/20"
                             style={{ backgroundColor: color.toCssColorString() }}
                         />
                         <span className="text-xs font-medium text-gray-700 dark:text-gray-200">
-                            Group {idx + 1}
+                            {group.slice(-1)}
                         </span>
                     </div>
                 ))}

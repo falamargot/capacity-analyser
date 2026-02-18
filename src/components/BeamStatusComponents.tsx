@@ -5,6 +5,7 @@
 
 import React from 'react';
 import { getRadiusAtPowerLevel, type CoveragePolicy } from '../utils/leoFootprint';
+import { getBeamFrequency, FREQUENCY_REUSE } from '../config/beamVisualization';
 
 // ─────────────────────────────────────────────────────────────────
 // BeamStatusGrid Component
@@ -41,7 +42,36 @@ export const BeamStatusGrid: React.FC<BeamStatusGridProps> = ({
   };
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-3">
+      {/* Frequency Summary */}
+      <div className="bg-gray-50 dark:bg-slate-800/50 rounded-lg p-3 border border-gray-200 dark:border-slate-700">
+        <h5 className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-2">Frequency Assignment Summary</h5>
+        <div className="grid grid-cols-2 gap-2 text-xs">
+          {Object.entries(FREQUENCY_REUSE.FREQUENCIES).map(([group, freq]) => {
+            const groupBeams = Array.from({ length: 4 }, (_, i) => i * 4 + Object.keys(FREQUENCY_REUSE.FREQUENCIES).indexOf(group));
+            const color = FREQUENCY_REUSE.COLORS[group as keyof typeof FREQUENCY_REUSE.COLORS];
+            return (
+              <div key={group} className="flex items-center gap-2">
+                <div 
+                  className="w-3 h-3 rounded-full border border-white/20" 
+                  style={{ backgroundColor: `rgb(${color.red}, ${color.green}, ${color.blue})` }}
+                />
+                <div>
+                  <span className="font-medium" style={{ color: `rgb(${color.red}, ${color.green}, ${color.blue})` }}>{group.slice(-1)}:</span>
+                  <span className="ml-1 text-gray-600 dark:text-gray-400">{freq.band}</span>
+                  <div className="text-gray-500 dark:text-gray-500">
+                    ↓{freq.downlink} GHz
+                  </div>
+                  <div className="text-gray-500 dark:text-gray-500">
+                    {groupBeams.map(b => `B${b}`).join(', ')}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
       {/* Summary */}
       <div className="flex items-center justify-between pb-2 border-b border-gray-200 dark:border-slate-700">
         <span className="text-xs text-gray-600 dark:text-gray-400">
@@ -79,7 +109,7 @@ export const BeamStatusGrid: React.FC<BeamStatusGridProps> = ({
                       ? 'bg-orange-500 text-white shadow-sm'
                       : 'bg-gray-300 dark:bg-gray-700 text-gray-600 dark:text-gray-400'
                   }`}
-                  title={`Beam ${i}: ${status === 'active' ? 'Active' : status === 'gso-half' ? 'GSO Mode' : 'Inactive'}`}
+                  title={`Beam ${i}: ${status === 'active' ? 'Active' : status === 'gso-half' ? 'GSO Mode' : 'Inactive'} | ${getBeamFrequency(i).band}-band | ${getBeamFrequency(i).downlink} GHz downlink`}
                 >
                   {i}
                 </div>
@@ -107,7 +137,7 @@ export const BeamStatusGrid: React.FC<BeamStatusGridProps> = ({
                       ? 'bg-orange-500 text-white shadow-sm'
                       : 'bg-gray-300 dark:bg-gray-700 text-gray-600 dark:text-gray-400'
                   }`}
-                  title={`Beam ${beamIndex}: ${status === 'active' ? 'Active' : status === 'gso-half' ? 'GSO Mode' : 'Inactive'}`}
+                  title={`Beam ${beamIndex}: ${status === 'active' ? 'Active' : status === 'gso-half' ? 'GSO Mode' : 'Inactive'} | ${getBeamFrequency(beamIndex).band}-band | ${getBeamFrequency(beamIndex).downlink} GHz downlink`}
                 >
                   {beamIndex}
                 </div>

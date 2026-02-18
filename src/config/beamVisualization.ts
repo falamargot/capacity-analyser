@@ -44,7 +44,7 @@ export const GRADIENT_RENDERING = {
 } as const;
 
 // ────────────────────────────────────────────────────────────────────
-// Frequency-reuse 4-color scheme
+// Frequency-reuse 4-color scheme with frequency assignments
 // ────────────────────────────────────────────────────────────────────
 export const FREQUENCY_REUSE = {
     ENABLED: true,
@@ -57,6 +57,14 @@ export const FREQUENCY_REUSE = {
         GROUP_B: Color.fromBytes(236, 72, 153, 255),   // Rose clair
         GROUP_C: Color.fromBytes(168, 85, 247, 255),   // Violet
         GROUP_D: Color.fromBytes(217, 70, 239, 255),   // Magenta
+    },
+
+    /** Frequency assignments for each group (in GHz) */
+    FREQUENCIES: {
+        GROUP_A: { uplink: '10.75-11.20', downlink: '13.80-14.25', band: 'Ku' },
+        GROUP_B: { uplink: '11.20-11.65', downlink: '14.25-14.70', band: 'Ku' },
+        GROUP_C: { uplink: '17.30-17.80', downlink: '19.70-20.20', band: 'Ka' },
+        GROUP_D: { uplink: '17.80-18.30', downlink: '20.20-20.70', band: 'Ka' },
     },
 } as const;
 
@@ -75,6 +83,12 @@ export function getBeamBaseColor(beamIndex: number): Color {
     }
     const group = getFrequencyGroup(beamIndex);
     return FREQUENCY_REUSE.COLORS[group].clone();
+}
+
+/** Return frequency information for a beam based on its frequency-reuse group */
+export function getBeamFrequency(beamIndex: number): typeof FREQUENCY_REUSE.FREQUENCIES[keyof typeof FREQUENCY_REUSE.FREQUENCIES] {
+    const group = getFrequencyGroup(beamIndex);
+    return FREQUENCY_REUSE.FREQUENCIES[group];
 }
 
 // ────────────────────────────────────────────────────────────────────
