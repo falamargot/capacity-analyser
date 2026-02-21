@@ -84,10 +84,10 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
   };
 
   const WEATHER_PROFILES: Record<WeatherType, { label: string; condition: WeatherCondition }> = {
-    clear:      { label: 'Clear Sky',   condition: 'CLEAR' },
-    light_rain: { label: 'Clouds',      condition: 'CLOUDS' },
-    heavy_rain: { label: 'Rain',        condition: 'RAIN' },
-    storm:      { label: 'Rain (Heavy)',condition: 'RAIN' },
+    clear: { label: 'Clear Sky', condition: 'CLEAR' },
+    light_rain: { label: 'Clouds', condition: 'CLOUDS' },
+    heavy_rain: { label: 'Rain', condition: 'RAIN' },
+    storm: { label: 'Rain (Heavy)', condition: 'RAIN' },
   };
 
   // Physics-based factor: 10^(dB/10) as linear power ratio
@@ -423,33 +423,59 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
       });
     }
 
+    // --- Beam index detection: find which of the 16 beams contains the user point ---
+    // Reuses the exact same ellipse geometry as calculateLEOPerformance; computed once.
+    const sat = activeLEOSat!; // activeLEOSat is always set here (null-check done above via early returns)
+    const beamA = BEAM_LENGTH_KM / 2;
+    const beamB = BEAM_WIDTH_KM / 2;
+    const bKmPerDegLat = 111.32;
+    const bLat0Rad = (sat.position.lat * Math.PI) / 180;
+    const bKmPerDegLng = bKmPerDegLat * Math.cos(bLat0Rad);
+    const bDxKm = (activePoint.lng - sat.position.lng) * bKmPerDegLng;
+    const bDyKm = (activePoint.lat - sat.position.lat) * bKmPerDegLat;
+    const bMiddle = (TOTAL_BEAMS - 1) / 2;
+    let connectedBeamIndex: number | null = null;
+    let beamBestR2 = Infinity;
+    for (let i = 0; i < TOTAL_BEAMS; i++) {
+      const offsetY = (i - bMiddle) * BEAM_WIDTH_KM;
+      const bx = bDxKm;
+      const by = bDyKm - offsetY;
+      const r2 = (bx * bx) / (beamA * beamA) + (by * by) / (beamB * beamB);
+      if (r2 <= 1 && r2 < beamBestR2) {
+        beamBestR2 = r2;
+        connectedBeamIndex = i;
+      }
+    }
+
     // Check if we have a connected SNP (from auto-selection)
     if (!propSelectedSNP) {
       // No SNP connectivity - return satellite only
       return {
-        satellite: activeLEOSat,
+        satellite: sat,
         snp: null,
-        userLEOElevation: calculateElevationAngle(activePoint, activeLEOSat),
+        userLEOElevation: calculateElevationAngle(activePoint, sat),
         snpLEOElevation: null,
-        userLEODistance: compute3DDistanceKm(activePoint, { lat: activeLEOSat.position.lat, lng: activeLEOSat.position.lng, alt: activeLEOSat.position.alt }),
-        snpLEODistance: null
+        userLEODistance: compute3DDistanceKm(activePoint, { lat: sat.position.lat, lng: sat.position.lng, alt: sat.position.alt }),
+        snpLEODistance: null,
+        connectedBeamIndex
       };
     }
 
     // We have SNP connectivity - use the selected SNP
-    const userLEOElevation = calculateElevationAngle(activePoint, activeLEOSat);
-    const snpLEOElevation = calculateElevationAngle({ lat: propSelectedSNP.lat, lng: propSelectedSNP.lng }, activeLEOSat);
+    const userLEOElevation = calculateElevationAngle(activePoint, sat);
+    const snpLEOElevation = calculateElevationAngle({ lat: propSelectedSNP.lat, lng: propSelectedSNP.lng }, sat);
 
-    const userLEODistance = compute3DDistanceKm(activePoint, { lat: activeLEOSat.position.lat, lng: activeLEOSat.position.lng, alt: activeLEOSat.position.alt });
-    const snpLEODistance = compute3DDistanceKm({ lat: propSelectedSNP.lat, lng: propSelectedSNP.lng }, { lat: activeLEOSat.position.lat, lng: activeLEOSat.position.lng, alt: activeLEOSat.position.alt });
+    const userLEODistance = compute3DDistanceKm(activePoint, { lat: sat.position.lat, lng: sat.position.lng, alt: sat.position.alt });
+    const snpLEODistance = compute3DDistanceKm({ lat: propSelectedSNP.lat, lng: propSelectedSNP.lng }, { lat: sat.position.lat, lng: sat.position.lng, alt: sat.position.alt });
 
     return {
-      satellite: activeLEOSat,
+      satellite: sat,
       snp: propSelectedSNP,
       userLEOElevation,
       snpLEOElevation,
       userLEODistance,
-      snpLEODistance
+      snpLEODistance,
+      connectedBeamIndex
     };
   }, [activePoint, satellites, autoSelectedLEOSatellite, propSelectedSNP]);
 
@@ -731,7 +757,12 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
               <div className="space-y-4">
                 {/* LEO Radio Path */}
                 <div className="bg-gray-50 dark:bg-slate-800/50 rounded-lg p-4 mt-1 border border-gray-100 dark:border-slate-700">
-                  <h4 className="text-sm font-semibold mb-3" style={{ color: '#db2777' }}>Radio Path (LEO)</h4>
+                  <h4 className="text-sm font-semibold mb-3" style={{ color: '#db2777' }}>
+                    Radio Path
+                    {resolvedLEOConnectivity && (
+                      <span className="font-normal text-gray-500 dark:text-gray-400"> ({resolvedLEOConnectivity.satellite.name}{resolvedLEOConnectivity.connectedBeamIndex !== null ? ` · Beam ${resolvedLEOConnectivity.connectedBeamIndex + 1}` : ''})</span>
+                    )}
+                  </h4>
                   {resolvedLEOConnectivity ? (
                     <div className="text-sm text-gray-700 dark:text-gray-300 text-center space-y-3">
                       {resolvedLEOConnectivity.snp ? (
