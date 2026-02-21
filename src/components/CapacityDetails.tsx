@@ -6,6 +6,8 @@ import SatelliteDetails from './SatelliteDetails';
 import { EARTH_RADIUS_KM, SPEED_OF_LIGHT_RADIO_KM_S, calculateRealTimeCapacity, RealTimeCapacityData, calculateElevationAngle, compute3DDistanceKm } from '../utils/capacityCalculator';
 import { SNPS_DATA } from './globe/GlobeConfig';
 import { BEAM_LENGTH_KM, TOTAL_BEAMS, BEAM_WIDTH_KM } from '../utils/oneWebComb';
+import { findConnectedBeamIndex } from '../utils/rfConnectivity';
+import { JulianDate } from 'cesium';
 import ExportButton from './ExportButton';
 import {
   getBeamPerformance,
@@ -423,29 +425,15 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
       });
     }
 
-    // --- Beam index detection: find which of the 16 beams contains the user point ---
-    // Reuses the exact same ellipse geometry as calculateLEOPerformance; computed once.
     const sat = activeLEOSat!; // activeLEOSat is always set here (null-check done above via early returns)
-    const beamA = BEAM_LENGTH_KM / 2;
-    const beamB = BEAM_WIDTH_KM / 2;
-    const bKmPerDegLat = 111.32;
-    const bLat0Rad = (sat.position.lat * Math.PI) / 180;
-    const bKmPerDegLng = bKmPerDegLat * Math.cos(bLat0Rad);
-    const bDxKm = (activePoint.lng - sat.position.lng) * bKmPerDegLng;
-    const bDyKm = (activePoint.lat - sat.position.lat) * bKmPerDegLat;
-    const bMiddle = (TOTAL_BEAMS - 1) / 2;
-    let connectedBeamIndex: number | null = null;
-    let beamBestR2 = Infinity;
-    for (let i = 0; i < TOTAL_BEAMS; i++) {
-      const offsetY = (i - bMiddle) * BEAM_WIDTH_KM;
-      const bx = bDxKm;
-      const by = bDyKm - offsetY;
-      const r2 = (bx * bx) / (beamA * beamA) + (by * by) / (beamB * beamB);
-      if (r2 <= 1 && r2 < beamBestR2) {
-        beamBestR2 = r2;
-        connectedBeamIndex = i;
-      }
-    }
+
+    // --- Beam index detection: which of the 16 beams covers the user point ---
+    // Uses the exact same real Cesium beam polygons as the globe rendering (via rfConnectivity.ts).
+    const connectedBeamIndex = findConnectedBeamIndex(
+      activePoint,
+      sat,
+      JulianDate.fromDate(new Date())
+    );
 
     // Check if we have a connected SNP (from auto-selection)
     if (!propSelectedSNP) {
@@ -760,7 +748,7 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
                   <h4 className="text-sm font-semibold mb-3" style={{ color: '#db2777' }}>
                     Radio Path
                     {resolvedLEOConnectivity && (
-                      <span className="font-normal text-gray-500 dark:text-gray-400"> ({resolvedLEOConnectivity.satellite.name}{resolvedLEOConnectivity.connectedBeamIndex !== null ? ` · Beam ${resolvedLEOConnectivity.connectedBeamIndex + 1}` : ''})</span>
+                      <span className="font-normal text-gray-500 dark:text-gray-400"> ({resolvedLEOConnectivity.satellite.name}{resolvedLEOConnectivity.connectedBeamIndex !== null ? ` · Beam ${resolvedLEOConnectivity.connectedBeamIndex}` : ''})</span>
                     )}
                   </h4>
                   {resolvedLEOConnectivity ? (

@@ -4,10 +4,10 @@ import { calculateElevationAngle } from './capacityCalculator';
 import { calculateGSOAvoidanceAngle, getActiveBeamCount, calculateCombGeometry } from './oneWebComb';
 import { isRfCoverageSatisfied, getPhysicsAwareBeamRadius, type CoveragePolicy } from './leoFootprint';
 import {
-  getBeamPerformance,
-  throughputRatioFromPowerDb,
-  type WeatherCondition,
-  DEFAULT_BEAM_HEALTH,
+    getBeamPerformance,
+    throughputRatioFromPowerDb,
+    type WeatherCondition,
+    DEFAULT_BEAM_HEALTH,
 } from './realisticSimulation';
 
 /**
@@ -55,7 +55,7 @@ function isUserInActiveBeam(
         // For SERVICE_ZONE, use centralized coverage check instead of beam polygons
         if (policy.type === "SERVICE_ZONE") {
             if (isBlankingZone) return false;
-            
+
             return isRfCoverageSatisfied(
                 userPosition,
                 { lat: satellite.position.lat, lng: satellite.position.lng },
@@ -272,42 +272,42 @@ export function calculateLinkQuality(
 // ─────────────────────────────────────────────────────────────────────────────
 
 export interface LinkBudgetInput {
-    userPosition:    { lat: number; lng: number };
-    beamIndex:       number;
+    userPosition: { lat: number; lng: number };
+    beamIndex: number;
     beamCenterPosition: { lat: number; lng: number };
     activeBeamCount: number;
-    healthFactor:    number;          // Pillar 3: [0, 1]
-    weather:         WeatherCondition; // Pillar 5
-    thresholdDb?:    number;           // Default -10 dB
+    healthFactor: number;          // Pillar 3: [0, 1]
+    weather: WeatherCondition; // Pillar 5
+    thresholdDb?: number;           // Default -10 dB
 }
 
 export interface LinkBudgetOutput {
     /** True if user is within the physics-aware beam footprint */
-    isInBeam:                boolean;
+    isInBeam: boolean;
     /** Normalized radial distance from boresight [0, 1] */
-    normalizedDistance:      number;
+    normalizedDistance: number;
     /** Distance from user to beam center (km) */
-    distanceKm:              number;
+    distanceKm: number;
     /** Effective beam radius incorporating all impairments (km) */
-    effectiveBeamRadiusKm:   number;
+    effectiveBeamRadiusKm: number;
     /** Power at user position relative to boresight (dB) */
-    powerAtUserDb:           number;
+    powerAtUserDb: number;
     /** Delivered throughput to user (Mbps) */
     deliveredThroughputMbps: number;
     /** Throughput ratio [0, 1] */
-    throughputRatio:         number;
+    throughputRatio: number;
     /** Effective EIRP at beam boresight (dBW) */
-    effectiveEirpDb:         number;
+    effectiveEirpDb: number;
     /** Scan loss at this beam (dB) */
-    scanLossDb:              number;
+    scanLossDb: number;
     /** Power boost from active beam count (dB) */
-    powerBoostDb:            number;
+    powerBoostDb: number;
     /** Weather attenuation (dB) */
-    weatherAttenuationDb:    number;
+    weatherAttenuationDb: number;
     /** Health degradation (dB) */
-    healthDb:                number;
+    healthDb: number;
     /** Link quality zone */
-    linkQuality:             'BORESIGHT' | 'STRICT' | 'STANDARD' | 'EXTENDED' | 'NO_SIGNAL';
+    linkQuality: 'BORESIGHT' | 'STRICT' | 'STANDARD' | 'EXTENDED' | 'NO_SIGNAL';
 }
 
 /**
@@ -357,15 +357,15 @@ export function calculateLink(input: LinkBudgetInput): LinkBudgetOutput {
         normalizedDistance,
         distanceKm,
         effectiveBeamRadiusKm,
-        powerAtUserDb:           isInBeam ? perf.powerAtUserDb : -Infinity,
+        powerAtUserDb: isInBeam ? perf.powerAtUserDb : -Infinity,
         deliveredThroughputMbps: isInBeam ? perf.deliveredThroughputMbps : 0,
-        throughputRatio:         isInBeam ? perf.throughputRatio : 0,
-        effectiveEirpDb:         perf.effectiveEirpDb,
-        scanLossDb:              perf.scanLossDb,
-        powerBoostDb:            perf.powerBoostDb,
-        weatherAttenuationDb:    perf.weatherAttenuationDb,
-        healthDb:                perf.healthDb,
-        linkQuality:             isInBeam ? perf.linkQuality : 'NO_SIGNAL',
+        throughputRatio: isInBeam ? perf.throughputRatio : 0,
+        effectiveEirpDb: perf.effectiveEirpDb,
+        scanLossDb: perf.scanLossDb,
+        powerBoostDb: perf.powerBoostDb,
+        weatherAttenuationDb: perf.weatherAttenuationDb,
+        healthDb: perf.healthDb,
+        linkQuality: isInBeam ? perf.linkQuality : 'NO_SIGNAL',
     };
 }
 
@@ -380,11 +380,11 @@ export function calculateLink(input: LinkBudgetInput): LinkBudgetOutput {
  * @param weather         Current weather
  */
 export function getBestBeamLink(
-    userPosition:    { lat: number; lng: number },
-    beamCenters:     Array<{ lat: number; lng: number }>,
+    userPosition: { lat: number; lng: number },
+    beamCenters: Array<{ lat: number; lng: number }>,
     activeBeamCount: number,
-    healthFactors:   Map<number, number>,
-    weather:         WeatherCondition
+    healthFactors: Map<number, number>,
+    weather: WeatherCondition
 ): (LinkBudgetOutput & { beamIndex: number }) | null {
     let best: (LinkBudgetOutput & { beamIndex: number }) | null = null;
 
@@ -408,4 +408,43 @@ export function getBestBeamLink(
     }
 
     return best;
+}
+
+/**
+ * Finds the beam index (0-15, N to S) that covers the user position.
+ * Uses the real physics-accurate Cesium beam polygons from calculateCombGeometry,
+ * identical to the logic in hasRFConnectivity / isUserInActiveBeam.
+ * Returns null if the user is not inside any active beam.
+ */
+export function findConnectedBeamIndex(
+    userPosition: { lat: number; lng: number },
+    satellite: SatelliteData,
+    time: JulianDate,
+    policy: CoveragePolicy = { type: "DB_THRESHOLD", thresholdDb: -10 }
+): number | null {
+    if (!satellite || satellite.type !== 'ONEWEB' || !satellite.satrec) return null;
+
+    try {
+        const { isBlankingZone, isGSOAvoidance, satLatDeg, isMovingNorth } =
+            calculateGSOAvoidanceAngle(satellite.satrec, time);
+
+        if (isBlankingZone) return null;
+        if (policy.type === "SERVICE_ZONE") return null; // No individual beams in this mode
+
+        const thresholdDb = policy.type === "DB_THRESHOLD" ? policy.thresholdDb : -10;
+        const beamPolygons = calculateCombGeometry(satellite.satrec, time, thresholdDb);
+        if (!beamPolygons || beamPolygons.length === 0) return null;
+
+        for (let beamIndex = 0; beamIndex < beamPolygons.length; beamIndex++) {
+            if (!isBeamActive(beamIndex, isBlankingZone, isGSOAvoidance, satLatDeg, isMovingNorth)) continue;
+            if (isPointInPolygon(userPosition, beamPolygons[beamIndex])) {
+                return beamIndex; // Beams are ordered 0 (North) → 15 (South)
+            }
+        }
+
+        return null;
+    } catch (error) {
+        console.warn('Error finding connected beam index:', error);
+        return null;
+    }
 }
