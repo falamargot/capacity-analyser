@@ -1,4 +1,10 @@
 import { EARTH_RADIUS_KM } from '../utils/capacityCalculator';
+import {
+  type WeatherCondition,
+  WEATHER_ATTENUATION_DB,
+  getScanLossLinear,
+  getPowerBoostLinear,
+} from './realisticSimulation';
 
 // Coverage policy types for centralized RF connectivity decisions
 export type CoveragePolicy =
@@ -40,6 +46,45 @@ export function getRadiusAtPowerLevel(
   // Normalize: angle runs from 0 (center) to π/2 (edge of STANDARD_RADIUS_KM)
   const radiusRatio = angle / (Math.PI / 2);
   return STANDARD_RADIUS_KM * radiusRatio;
+}
+
+/**
+ * Physics-aware beam radius incorporating scan loss, power boost, health factor,
+ * and weather attenuation (Pillars 1-3 & 5).
+ *
+ * This is the authoritative radius used for visualization so the beam footprint
+ * on the map is mathematically linked to all real-world impairments.
+ *
+ * @param beamIndex       Beam index 0-15 (peripheral beams get extra scan loss)
+ * @param activeBeamCount Currently active beam count (8 or 16)
+ * @param healthFactor    Per-beam health [0,1]
+ * @param weather         Atmospheric condition
+ * @param thresholdDb     Coverage threshold (default -10 dB)
+ */
+export function getPhysicsAwareBeamRadius(
+  beamIndex: number,
+  activeBeamCount: number,
+  healthFactor: number,
+  weather: WeatherCondition,
+  thresholdDb: number = -10
+): number {
+  // Base radius at the given dB threshold
+  const baseRadius = getRadiusAtPowerLevel(thresholdDb);
+
+  // Scan loss scale (pillar 1) – peripheral beams are smaller
+  const scanScale = getScanLossLinear(beamIndex);
+
+  // Power boost (pillar 2) – fewer beams → larger effective coverage radius
+  const boostScale = Math.sqrt(getPowerBoostLinear(activeBeamCount));
+
+  // Health factor (pillar 3) – degraded beams have smaller reach
+  const healthScale = Math.sqrt(Math.max(0, healthFactor));
+
+  // Weather attenuation (pillar 5) – rain shrinks usable beam radius
+  const weatherDb     = WEATHER_ATTENUATION_DB[weather];
+  const weatherScale  = Math.sqrt(Math.pow(10, weatherDb / 10));
+
+  return baseRadius * scanScale * boostScale * healthScale * weatherScale;
 }
 
 /**

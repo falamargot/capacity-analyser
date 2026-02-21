@@ -2,7 +2,13 @@ import { JulianDate, Cartographic } from 'cesium';
 import type { SatelliteData } from '../types/satellites';
 import { calculateElevationAngle } from './capacityCalculator';
 import { calculateGSOAvoidanceAngle, getActiveBeamCount, calculateCombGeometry } from './oneWebComb';
-import { isRfCoverageSatisfied, type CoveragePolicy } from './leoFootprint';
+import { isRfCoverageSatisfied, getPhysicsAwareBeamRadius, type CoveragePolicy } from './leoFootprint';
+import {
+  getBeamPerformance,
+  throughputRatioFromPowerDb,
+  type WeatherCondition,
+  DEFAULT_BEAM_HEALTH,
+} from './realisticSimulation';
 
 /**
  * Checks if a user position has RF connectivity to a LEO satellite
@@ -259,4 +265,147 @@ export function calculateLinkQuality(
     }
 
     return { powerDb, quality };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// calculateLink – unified 5-pillar link budget for a user position + beam
+// ─────────────────────────────────────────────────────────────────────────────
+
+export interface LinkBudgetInput {
+    userPosition:    { lat: number; lng: number };
+    beamIndex:       number;
+    beamCenterPosition: { lat: number; lng: number };
+    activeBeamCount: number;
+    healthFactor:    number;          // Pillar 3: [0, 1]
+    weather:         WeatherCondition; // Pillar 5
+    thresholdDb?:    number;           // Default -10 dB
+}
+
+export interface LinkBudgetOutput {
+    /** True if user is within the physics-aware beam footprint */
+    isInBeam:                boolean;
+    /** Normalized radial distance from boresight [0, 1] */
+    normalizedDistance:      number;
+    /** Distance from user to beam center (km) */
+    distanceKm:              number;
+    /** Effective beam radius incorporating all impairments (km) */
+    effectiveBeamRadiusKm:   number;
+    /** Power at user position relative to boresight (dB) */
+    powerAtUserDb:           number;
+    /** Delivered throughput to user (Mbps) */
+    deliveredThroughputMbps: number;
+    /** Throughput ratio [0, 1] */
+    throughputRatio:         number;
+    /** Effective EIRP at beam boresight (dBW) */
+    effectiveEirpDb:         number;
+    /** Scan loss at this beam (dB) */
+    scanLossDb:              number;
+    /** Power boost from active beam count (dB) */
+    powerBoostDb:            number;
+    /** Weather attenuation (dB) */
+    weatherAttenuationDb:    number;
+    /** Health degradation (dB) */
+    healthDb:                number;
+    /** Link quality zone */
+    linkQuality:             'BORESIGHT' | 'STRICT' | 'STANDARD' | 'EXTENDED' | 'NO_SIGNAL';
+}
+
+/**
+ * Full 5-pillar link budget calculation for a user position within a specific beam.
+ *
+ * This is the primary entry point for all throughput and coverage decisions:
+ *  - Pillar 1: Phased array scan loss (peripheral beams smaller + lower EIRP)
+ *  - Pillar 2: Dynamic power boost (GSO Protection halves beams → +3 dB/beam)
+ *  - Pillar 3: Hardware health factor (degrades EIRP + shrinks radius)
+ *  - Pillar 4: SNR-based throughput roll-off (capacity ↓ away from boresight)
+ *  - Pillar 5: Weather attenuation (rain/clouds shrink radius + reduce Mbps)
+ */
+export function calculateLink(input: LinkBudgetInput): LinkBudgetOutput {
+    const { userPosition, beamIndex, beamCenterPosition, activeBeamCount, healthFactor, weather } = input;
+    const thresholdDb = input.thresholdDb ?? -10;
+
+    // Haversine distance from user to beam center
+    const toRad = (d: number) => (d * Math.PI) / 180;
+    const lat1 = toRad(userPosition.lat);
+    const lat2 = toRad(beamCenterPosition.lat);
+    const dLat = lat2 - lat1;
+    const dLon = toRad(beamCenterPosition.lng - userPosition.lng);
+    const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLon / 2) ** 2;
+    const distanceKm = 6371 * 2 * Math.asin(Math.min(1, Math.sqrt(a)));
+
+    // Physics-aware beam radius (Pillars 1, 2, 3, 5)
+    const effectiveBeamRadiusKm = getPhysicsAwareBeamRadius(
+        beamIndex, activeBeamCount, healthFactor, weather, thresholdDb
+    );
+
+    const isInBeam = distanceKm < effectiveBeamRadiusKm && effectiveBeamRadiusKm > 0;
+    const normalizedDistance = effectiveBeamRadiusKm > 0
+        ? Math.min(1, distanceKm / effectiveBeamRadiusKm)
+        : 1;
+
+    // Run the 5-pillar beam performance engine
+    const perf = getBeamPerformance({
+        beamIndex,
+        activeBeamCount,
+        healthFactor,
+        weather,
+        normalizedDistance,
+    });
+
+    return {
+        isInBeam,
+        normalizedDistance,
+        distanceKm,
+        effectiveBeamRadiusKm,
+        powerAtUserDb:           isInBeam ? perf.powerAtUserDb : -Infinity,
+        deliveredThroughputMbps: isInBeam ? perf.deliveredThroughputMbps : 0,
+        throughputRatio:         isInBeam ? perf.throughputRatio : 0,
+        effectiveEirpDb:         perf.effectiveEirpDb,
+        scanLossDb:              perf.scanLossDb,
+        powerBoostDb:            perf.powerBoostDb,
+        weatherAttenuationDb:    perf.weatherAttenuationDb,
+        healthDb:                perf.healthDb,
+        linkQuality:             isInBeam ? perf.linkQuality : 'NO_SIGNAL',
+    };
+}
+
+/**
+ * Convenience wrapper: find the best beam covering the user position and
+ * return its full link budget. Returns null if no beam covers the user.
+ *
+ * @param userPosition    User ground coordinates
+ * @param beamCenters     Array of 16 beam center coordinates (index = beam index)
+ * @param activeBeamCount From GSO Protection logic
+ * @param healthFactors   Map of beamIndex → health factor
+ * @param weather         Current weather
+ */
+export function getBestBeamLink(
+    userPosition:    { lat: number; lng: number },
+    beamCenters:     Array<{ lat: number; lng: number }>,
+    activeBeamCount: number,
+    healthFactors:   Map<number, number>,
+    weather:         WeatherCondition
+): (LinkBudgetOutput & { beamIndex: number }) | null {
+    let best: (LinkBudgetOutput & { beamIndex: number }) | null = null;
+
+    for (let i = 0; i < beamCenters.length; i++) {
+        const hf = healthFactors.get(i) ?? 1.0;
+        const result = calculateLink({
+            userPosition,
+            beamIndex: i,
+            beamCenterPosition: beamCenters[i],
+            activeBeamCount,
+            healthFactor: hf,
+            weather,
+        });
+
+        if (result.isInBeam) {
+            // Prefer the beam where the user is closest to boresight (best SNR)
+            if (!best || result.normalizedDistance < best.normalizedDistance) {
+                best = { ...result, beamIndex: i };
+            }
+        }
+    }
+
+    return best;
 }

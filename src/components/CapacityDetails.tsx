@@ -7,6 +7,13 @@ import { EARTH_RADIUS_KM, SPEED_OF_LIGHT_RADIO_KM_S, calculateRealTimeCapacity, 
 import { SNPS_DATA } from './globe/GlobeConfig';
 import { BEAM_LENGTH_KM, TOTAL_BEAMS, BEAM_WIDTH_KM } from '../utils/oneWebComb';
 import ExportButton from './ExportButton';
+import {
+  getBeamPerformance,
+  WEATHER_ATTENUATION_DB,
+  WEATHER_LABELS,
+  type WeatherCondition,
+  throughputRatioFromPowerDb,
+} from '../utils/realisticSimulation';
 
 interface CapacityDetailsProps {
   satellites: SatelliteData[];
@@ -61,17 +68,33 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
     maritime: { label: 'Maritime', maxDlGbps: 0.20, maxUlGbps: 0.04 }
   };
 
-  // Weather selector state and profiles
+  // ── Pillar 5: Physics-based weather attenuation ───────────────────────────
+  // Maps UI weather type → real dB loss → linear power ratio
+  // Clear Sky: 0 dB  | Clouds: -1.5 dB  | Rain: -5.0 dB
   type WeatherType = 'clear' | 'light_rain' | 'heavy_rain' | 'storm';
 
   const [weatherType, setWeatherType] = useState<WeatherType>('clear');
   const [autoWeatherEnabled, setAutoWeatherEnabled] = useState<boolean>(true);
 
-  const WEATHER_PROFILES: Record<WeatherType, { label: string; factor: number }> = {
-    clear: { label: 'Clear sky', factor: 1.0 },
-    light_rain: { label: 'Light rain', factor: 0.85 },
-    heavy_rain: { label: 'Heavy rain', factor: 0.65 },
-    storm: { label: 'Storm', factor: 0.45 }
+  // Map legacy UI weather types to physics conditions
+  const toWeatherCondition = (wt: WeatherType): WeatherCondition => {
+    if (wt === 'clear') return 'CLEAR';
+    if (wt === 'light_rain') return 'CLOUDS'; // Light rain → cloud-level attenuation
+    return 'RAIN'; // heavy_rain / storm → full rain attenuation
+  };
+
+  const WEATHER_PROFILES: Record<WeatherType, { label: string; condition: WeatherCondition }> = {
+    clear:      { label: 'Clear Sky',   condition: 'CLEAR' },
+    light_rain: { label: 'Clouds',      condition: 'CLOUDS' },
+    heavy_rain: { label: 'Rain',        condition: 'RAIN' },
+    storm:      { label: 'Rain (Heavy)',condition: 'RAIN' },
+  };
+
+  // Physics-based factor: 10^(dB/10) as linear power ratio
+  const getWeatherFactor = (wt: WeatherType, isAviation: boolean): number => {
+    if (isAviation) return 1.0; // Aviation terminals above clouds
+    const condition = toWeatherCondition(wt);
+    return Math.pow(10, WEATHER_ATTENUATION_DB[condition] / 10);
   };
 
   // Calculate GEO oblique distance using proper geometry
@@ -141,7 +164,7 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
     const MAX_USER_DL_Gbps = profile.maxDlGbps;
     const MAX_USER_UL_Gbps = profile.maxUlGbps;
     // Aviation terminals are above clouds, so weather factor is always 1.0
-    const weatherFactor = terminalType === 'aviation' ? 1.0 : WEATHER_PROFILES[weatherType].factor;
+    const weatherFactor = getWeatherFactor(weatherType, terminalType === 'aviation');
 
     // Limiting link = the weaker geometry between user<->sat and snp<->sat
     const limitingElevation = Math.min(userLEOElevation, snpLEOElevation);
@@ -268,7 +291,7 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
   const calculateGEOPerformance = useCallback((elevationDeg: number) => {
     const profile = TERMINAL_PROFILES[terminalType];
     // Aviation terminals are above clouds, so weather factor is always 1.0
-    const weatherFactor = terminalType === 'aviation' ? 1.0 : WEATHER_PROFILES[weatherType].factor;
+    const weatherFactor = getWeatherFactor(weatherType, terminalType === 'aviation');
 
     // Not usable below 10° elevation
     if (elevationDeg < 10) {
@@ -670,15 +693,19 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
                         <option key={key} value={key}>
                           {(() => {
                             const icon = key === 'clear' ? '☀️ ' :
-                              key === 'light_rain' ? '🌦️ ' :
+                              key === 'light_rain' ? '☁️ ' :
                                 key === 'heavy_rain' ? '🌧️ ' : '⛈️ ';
-                            return `${icon}${p.label}`;
+                            const db = WEATHER_ATTENUATION_DB[p.condition];
+                            const dbStr = db === 0 ? '0 dB' : `${db.toFixed(1)} dB`;
+                            return `${icon}${p.label} (${dbStr})`;
                           })()}
                         </option>
                       ))}
                     </select>
                     <span className="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">
-                      x {terminalType === 'aviation' ? '1.00' : WEATHER_PROFILES[weatherType].factor.toFixed(2)}
+                      {terminalType === 'aviation'
+                        ? '0 dB'
+                        : `${WEATHER_ATTENUATION_DB[toWeatherCondition(weatherType)].toFixed(1)} dB`}
                     </span>
                     <label className={`flex items-center space-x-1 text-xs whitespace-nowrap ${terminalType === 'aviation' ? 'text-gray-400 dark:text-gray-600' : 'text-gray-500 dark:text-gray-400'}`}>
                       <input

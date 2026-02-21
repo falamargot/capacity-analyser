@@ -2,6 +2,12 @@ import { Cartesian3, Matrix3, JulianDate, Color, Math as CesiumMath, Quaternion,
 import * as satellite from 'satellite.js';
 import { EARTH_RADIUS_KM } from './capacityCalculator';
 import { getRadiusAtPowerLevel } from './leoFootprint';
+import {
+  getScanLossLinear,
+  getPowerBoostLinear,
+  WEATHER_ATTENUATION_DB,
+  type WeatherCondition,
+} from './realisticSimulation';
 
 export const BEAM_WIDTH_KM = 67.5;
 export const TOTAL_BEAMS = 16;
@@ -86,15 +92,27 @@ export function calculateGSOAvoidanceAngle(
 /**
  * Calculates the OneWeb "Comb" geometry: 16 adjacent rectangular beams.
  * 
- * @param satrec - The satellite record (SGP4).
- * @param time - The current simulation time (JulianDate).
- * @param thresholdDb - Power threshold in dB for beam coverage (default: -10 dB).
- * @returns An array of 16 Cartesian3 arrays (one for each polygon hierarchy).
+ * Now integrates real-world physics (Pillars 1-3 & 5):
+ *  - Each beam's dimensions are individually scaled by scan loss
+ *  - Power boost from active beam count scales all beams uniformly
+ *  - Per-beam health factors shrink individual beams
+ *  - Weather attenuation shrinks all beams
+ *
+ * @param satrec        - The satellite record (SGP4).
+ * @param time          - The current simulation time (JulianDate).
+ * @param thresholdDb   - Power threshold in dB for beam coverage (default: -10 dB).
+ * @param activeBeams   - Number of currently active beams (8 or 16); used for power boost.
+ * @param healthFactors - Map of beamIndex → health factor [0,1].
+ * @param weather       - Current weather condition.
+ * @returns An array of 16 Cartesian3 arrays (one per beam polygon).
  */
 export function calculateCombGeometry(
     satrec: any,
     time: JulianDate,
-    thresholdDb: number = -10
+    thresholdDb: number = -10,
+    activeBeams: number = TOTAL_BEAMS,
+    healthFactors: Map<number, number> = new Map(),
+    weather: WeatherCondition = 'CLEAR'
 ): Cartesian3[][] | null {
     if (!satrec) return null;
 
@@ -165,21 +183,37 @@ export function calculateCombGeometry(
     // Add 90° rotation to the entire footprint group
     const rotatedBearingRad = bearingRad + (Math.PI / 2);
 
-    // Calculate scale factor based on threshold
-    // At -10 dB, we keep current dimensions as reference
+    // Reference scale from threshold (kept for backward compat)
     const referenceRadiusKm = getRadiusAtPowerLevel(-10);
     const currentRadiusKm = getRadiusAtPowerLevel(thresholdDb);
-    const scaleFactor = currentRadiusKm / referenceRadiusKm;
+    const thresholdScaleFactor = currentRadiusKm / referenceRadiusKm;
 
-    // Dimensions adjusted according to threshold
-    const semiMajorAxisKm = (1270 / 2) * scaleFactor;
-    const semiMinorAxisKm = (102 / 2) * scaleFactor;
+    // ── Pillar 2: Power boost scale (uniform across all active beams) ──────
+    const powerBoostScale = Math.sqrt(getPowerBoostLinear(activeBeams));
+
+    // ── Pillar 5: Weather attenuation scale (uniform) ──────────────────────
+    const weatherDb = WEATHER_ATTENUATION_DB[weather];
+    const weatherScale = Math.sqrt(Math.pow(10, weatherDb / 10));
+
     const beamCenterStepKm = 67.5; // 67.5km spacing between centers (constant)
     const ellipseSegments = 32; // Number of points to approximate ellipse
 
     const middle = (TOTAL_BEAMS - 1) / 2;
 
     for (let i = 0; i < TOTAL_BEAMS; i++) {
+        // ── Pillar 1: Per-beam scan loss (peripheral beams are smaller) ────
+        const scanScale = getScanLossLinear(i);
+
+        // ── Pillar 3: Per-beam health factor ──────────────────────────────
+        const health = healthFactors.get(i) ?? 1.0;
+        const healthScale = Math.sqrt(Math.max(0, health));
+
+        // Combined per-beam scale factor
+        const beamScale = thresholdScaleFactor * scanScale * powerBoostScale * healthScale * weatherScale;
+
+        // Dimensions adjusted by all physics factors
+        const semiMajorAxisKm = (1270 / 2) * beamScale;
+        const semiMinorAxisKm = (102 / 2) * beamScale;
         const yOffsetKm = (i - middle) * beamCenterStepKm;
 
         // Use rotated bearing for beam center positioning
