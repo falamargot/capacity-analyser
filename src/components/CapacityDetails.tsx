@@ -747,9 +747,6 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
                 <div className="bg-gray-50 dark:bg-slate-800/50 rounded-lg p-4 mt-1 border border-gray-100 dark:border-slate-700">
                   <h4 className="text-sm font-semibold mb-3" style={{ color: '#db2777' }}>
                     Radio Path
-                    {resolvedLEOConnectivity && (
-                      <span className="font-normal text-gray-500 dark:text-gray-400"> ({resolvedLEOConnectivity.satellite.name}{resolvedLEOConnectivity.connectedBeamIndex !== null ? ` · Beam ${resolvedLEOConnectivity.connectedBeamIndex}` : ''})</span>
-                    )}
                   </h4>
                   {resolvedLEOConnectivity ? (
                     <div className="text-sm text-gray-700 dark:text-gray-300 text-center space-y-3">
@@ -761,7 +758,7 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
                       {resolvedLEOConnectivity.snp ? (
                         <div className="text-xs text-gray-500 dark:text-gray-400 space-y-2 text-left">
                           <div>
-                            <div>{analysisSource === 'aircraft' && aircraftCallsign ? aircraftCallsign : 'User'} → {resolvedLEOConnectivity.satellite.name}</div>
+                            <div>{analysisSource === 'aircraft' && aircraftCallsign ? aircraftCallsign : 'User'} → {resolvedLEOConnectivity.satellite.name}{resolvedLEOConnectivity.connectedBeamIndex !== null ? ` · Beam ${resolvedLEOConnectivity.connectedBeamIndex}` : ''}</div>
                             <div className="ml-4">→ Elevation: {resolvedLEOConnectivity.userLEOElevation?.toFixed(1)}° | Distance: {resolvedLEOConnectivity.userLEODistance?.toFixed(0)} km ({(resolvedLEOConnectivity.userLEODistance * 2 / SPEED_OF_LIGHT_RADIO_KM_S * 1000).toFixed(1)} ms)</div>
                           </div>
                           <div>
