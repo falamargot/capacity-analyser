@@ -81,11 +81,13 @@ const SatelliteEntity = React.memo<{
     const handleMouseEnter = useCallback(() => onSatelliteHover(sat.id), [sat.id, onSatelliteHover]);
     const handleMouseLeave = useCallback(() => onSatelliteHover(null), [onSatelliteHover]);
 
+    const leoColor = useMemo(() => Color.DEEPPINK, []);
+
     const billboardColor = isManuallySelected
         ? Color.RED
         : sat.type === 'EUTELSAT'
             ? Color.ROYALBLUE
-            : Color.DEEPPINK;
+            : leoColor;
 
     return (
         <Entity

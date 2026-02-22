@@ -24,7 +24,6 @@ interface BeamStatusGridProps {
   isBlankingZone: boolean;
   isGSOAvoidance: boolean;
   latitude: number;
-  isMovingNorth: boolean;
   beamHealthFactors: BeamHealthData[];
   onHealthChange: (beamIndex: number, value: number) => void;
   onReset: () => void;
@@ -36,7 +35,6 @@ export const BeamStatusGrid: React.FC<BeamStatusGridProps> = ({
   isBlankingZone,
   isGSOAvoidance,
   latitude,
-  isMovingNorth,
   beamHealthFactors,
   onHealthChange,
   onReset,
@@ -58,7 +56,11 @@ export const BeamStatusGrid: React.FC<BeamStatusGridProps> = ({
     if (isBlankingZone) return 'inactive';
 
     if (isGSOAvoidance) {
-      const shouldActivateNorthernBeams = (latitude > 0) === isMovingNorth;
+      // In GSO avoidance, the satellite turns off the beams pointing towards the equator
+      // to avoid illuminating the geostationary arc.
+      // Therefore, in the Northern hemisphere, Northern beams remain active (pointing away from equator).
+      // In the Southern hemisphere, Southern beams remain active.
+      const shouldActivateNorthernBeams = latitude >= 0;
       const isActive = shouldActivateNorthernBeams
         ? beamIndex >= 0 && beamIndex <= 7
         : beamIndex >= 8 && beamIndex <= 15;
@@ -112,24 +114,25 @@ export const BeamStatusGrid: React.FC<BeamStatusGridProps> = ({
       {/* Summary */}
       <div className="flex items-center justify-between pb-2 border-b border-gray-200 dark:border-slate-700">
         <div className="flex flex-col gap-1">
-          <span className="text-xs text-gray-600 dark:text-gray-400">
-            Total: {activeBeams} / 16 beams
-          </span>
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-gray-600 dark:text-gray-400">
+              Total: {activeBeams} / 16 beams
+            </span>
+            {/* Exclusive status messages - only one should display */}
+            {isBlankingZone ? (
+              <span className="text-xs text-red-600 dark:text-red-400 font-medium">
+                All beams off (Exclusion zone)
+              </span>
+            ) : isGSOAvoidance ? (
+              <span className="text-xs text-orange-600 dark:text-orange-400 font-medium">
+                8 beams active (GSO Protection)
+              </span>
+            ) : null}
+          </div>
           <span className="text-xs font-semibold text-blue-700 dark:text-blue-400">
-            Total Power: {Math.round(currentTotalPower)} (Payload: {Math.round(payloadPower)}W + Backhaul: {KA_BACKHAUL_CONSUMPTION}W) / {MAX_PAYLOAD_POWER} W
+            Power: {Math.round(currentTotalPower)} (Payload: {Math.round(payloadPower)}W + Backhaul: {KA_BACKHAUL_CONSUMPTION}W) / {MAX_PAYLOAD_POWER} W
           </span>
         </div>
-
-        {/* Exclusive status messages - only one should display */}
-        {isBlankingZone ? (
-          <span className="text-xs text-red-600 dark:text-red-400 font-medium">
-            All beams off (Exclusion zone)
-          </span>
-        ) : isGSOAvoidance ? (
-          <span className="text-xs text-orange-600 dark:text-orange-400 font-medium">
-            8 beams active (GSO Protection)
-          </span>
-        ) : null}
       </div>
 
       {/* Beam Grid - 2 rows of 8 beams */}

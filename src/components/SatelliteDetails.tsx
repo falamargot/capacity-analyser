@@ -330,7 +330,6 @@ const SatelliteDetails: React.FC<SatelliteDetailsProps> = ({ satellites, selecte
                           isBlankingZone={gsoAvoidanceData.isBlankingZone}
                           isGSOAvoidance={gsoAvoidanceData.isGSOAvoidance}
                           latitude={gsoAvoidanceData.latitude}
-                          isMovingNorth={gsoAvoidanceData.isMovingNorth}
                           beamHealthFactors={beamHealthFactors}
                           onHealthChange={setBeamHealthFactor}
                           onReset={resetBeamHealth}
