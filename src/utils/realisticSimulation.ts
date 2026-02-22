@@ -6,7 +6,7 @@
  *
  *  1. Phased Array Scan Loss  – G(θ) = G_max · cos(θ)^1.3
  *  2. Dynamic Power Budgeting – Power Boost when only 8 beams are active
- *  3. Hardware Health Factor  – per-beam HealthFactor ∈ [0,1] degrades EIRP & radius
+ *  3. Beam Health Factor  – per-beam HealthFactor ∈ [0,1] degrades EIRP & radius
  *  4. SNR-based Throughput Roll-off – capacity decreases away from boresight
  *  5. Real-world Weather Attenuation – dB-loss maps to radius shrink + Mbps drop
  */
@@ -40,6 +40,19 @@ export const BEAM_SPACING_KM = 67.5;
 export const PERIPHERAL_BEAM_INDICES: ReadonlySet<number> = new Set([0, 7, 8, 15]);
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Dynamic Power Management Constraints
+// ─────────────────────────────────────────────────────────────────────────────
+
+export const MAX_PAYLOAD_POWER = 450.0; // Watts
+export const KA_BACKHAUL_CONSUMPTION = 70.0; // Watts
+export const AVAILABLE_USER_POWER = MAX_PAYLOAD_POWER - KA_BACKHAUL_CONSUMPTION; // 380 W
+export const MAX_ACTIVE_BEAM_POWER = 35.0; // Watts
+export const STANDBY_BEAM_POWER = 0.5; // Watts
+
+// Nominal baseline is 23.75W per beam
+export const NOMINAL_BEAM_POWER = AVAILABLE_USER_POWER / TOTAL_BEAMS;
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Pillar 5 – Weather Attenuation
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -47,15 +60,15 @@ export type WeatherCondition = 'CLEAR' | 'CLOUDS' | 'RAIN';
 
 /** Mapping from weather condition to Ka/Ku-band rain-fade loss (dB, negative) */
 export const WEATHER_ATTENUATION_DB: Record<WeatherCondition, number> = {
-  CLEAR:  0.0,
+  CLEAR: 0.0,
   CLOUDS: -1.5,
-  RAIN:   -5.0,
+  RAIN: -5.0,
 };
 
 export const WEATHER_LABELS: Record<WeatherCondition, string> = {
-  CLEAR:  'Clear Sky',
+  CLEAR: 'Clear Sky',
   CLOUDS: 'Clouds',
-  RAIN:   'Rain',
+  RAIN: 'Rain',
 };
 
 /**
@@ -114,7 +127,7 @@ export function getScanLossDb(beamIndex: number): number {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Pillar 3 – Hardware Health Factor
+// Pillar 3 – Beam Health Factor
 // ─────────────────────────────────────────────────────────────────────────────
 
 export interface BeamHealthData {
@@ -147,22 +160,66 @@ export const DEFAULT_BEAM_HEALTH: BeamHealthData[] = Array.from(
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * Nominal total satellite EIRP budget (linear sum reference = 16 beams × 1).
- * When fewer beams are active the remaining beams receive proportionally more.
+ * Calculate the power allocated to a single beam (in Watts).
+ * Incorporates GSO protection states (fewer active beams) and weather
+ * (Uplink Power Control during rain).
  */
-export function getPowerBoostLinear(activeBeamCount: number): number {
+export function calculateBeamPowerAllocation(
+  isBeamActive: boolean,
+  totalActiveBeams: number,
+  weather: WeatherCondition
+): number {
+  if (!isBeamActive) {
+    return STANDBY_BEAM_POWER;
+  }
+
+  // Determine baseline target power
+  let targetPower = 0;
+  if (totalActiveBeams >= TOTAL_BEAMS) {
+    targetPower = NOMINAL_BEAM_POWER; // 23.75W
+  } else {
+    // Fewer beams active (e.g. 8 for GSO), boost baseline
+    targetPower = 28.0; // Boost mode baseline
+  }
+
+  // Uplink Power Control: attempt to increase power during rain fade
+  if (weather === 'RAIN') {
+    targetPower += 7.0;
+  }
+
+  // What is the mathematical maximum we can give an active beam?
+  const inactiveBeamsCount = TOTAL_BEAMS - totalActiveBeams;
+  const powerUsedByInactive = inactiveBeamsCount * STANDBY_BEAM_POWER;
+  const remainingPool = AVAILABLE_USER_POWER - powerUsedByInactive;
+  const poolLimitPerBeam = remainingPool / totalActiveBeams;
+
+  // Final allocation is the minimum of target, pool share, and hardware cap
+  return Math.min(targetPower, poolLimitPerBeam, MAX_ACTIVE_BEAM_POWER);
+}
+
+/**
+ * Nominal total satellite EIRP budget based on allocated Wattage.
+ * Scale is 1.0 when drawing NOMINAL_BEAM_POWER (23.75W).
+ */
+export function getPowerBoostLinear(
+  activeBeamCount: number,
+  weather: WeatherCondition = 'CLEAR'
+): number {
   if (activeBeamCount <= 0) return 0;
-  // Total power is constant; spread over fewer beams → each beam gets more
-  return TOTAL_BEAMS / activeBeamCount;
+
+  // Power boost is driven by physical Wattage over nominal Wattage
+  const allocatedPower = calculateBeamPowerAllocation(true, activeBeamCount, weather);
+  return allocatedPower / NOMINAL_BEAM_POWER;
 }
 
 /**
  * Power boost expressed in dB.
- * Full 16 beams → 0 dB boost.
- * 8 beams (GSO Protection) → +3 dB boost.
  */
-export function getPowerBoostDb(activeBeamCount: number): number {
-  return 10 * Math.log10(getPowerBoostLinear(activeBeamCount));
+export function getPowerBoostDb(
+  activeBeamCount: number,
+  weather: WeatherCondition = 'CLEAR'
+): number {
+  return 10 * Math.log10(getPowerBoostLinear(activeBeamCount, weather));
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -180,8 +237,8 @@ export function getPowerBoostDb(activeBeamCount: number): number {
  *  -12 dB (Ext)   | -12 dB               | 0.15  ( 15%)
  */
 export const SNR_ROLLOFF_ZONES = [
-  { powerDb:   0, throughputRatio: 1.00 },
-  { powerDb:  -3, throughputRatio: 0.75 },
+  { powerDb: 0, throughputRatio: 1.00 },
+  { powerDb: -3, throughputRatio: 0.75 },
   { powerDb: -10, throughputRatio: 0.30 },
   { powerDb: -12, throughputRatio: 0.15 },
 ] as const;
@@ -192,7 +249,7 @@ export const SNR_ROLLOFF_ZONES = [
  * Returns 0 below -12 dB (minimum viable link threshold).
  */
 export function throughputRatioFromPowerDb(powerDb: number): number {
-  if (powerDb >= 0)   return 1.00;
+  if (powerDb >= 0) return 1.00;
   if (powerDb <= -12) return 0.00; // below minimum viable link
 
   // Interpolate between adjacent zones
@@ -227,9 +284,9 @@ export function getEffectiveEirpDb(
   activeBeamCount: number,
   healthFactor: number
 ): number {
-  const scanLossDb   = getScanLossDb(beamIndex);
+  const scanLossDb = getScanLossDb(beamIndex);
   const powerBoostDb = getPowerBoostDb(activeBeamCount);
-  const healthDb     = 20 * Math.log10(Math.max(1e-6, healthFactor));
+  const healthDb = 20 * Math.log10(Math.max(1e-6, healthFactor));
   return NOMINAL_EIRP_DBW + scanLossDb + powerBoostDb + healthDb;
 }
 
@@ -272,8 +329,8 @@ export function getEffectiveBeamRadiusKm(
   // 2. Health factor scale (direct radius shrink proportional to EIRP change)
   const healthScale = Math.sqrt(Math.max(0, healthFactor));
 
-  // 3. Power boost compensates for fewer active beams
-  const boostLinear = Math.sqrt(getPowerBoostLinear(activeBeamCount)); // sqrt for field amplitude
+  // 3. Power boost compensates for fewer active beams (and handles weather power control)
+  const boostLinear = Math.sqrt(getPowerBoostLinear(activeBeamCount, weather)); // sqrt for field amplitude
 
   // 4. Weather attenuation (linear, proportional to field amplitude)
   const weatherLinear = Math.sqrt(weatherDbToLinear(weather));
@@ -297,9 +354,9 @@ export function getEffectiveBeamMajorAxisKm(
 ): number {
   const NOMINAL_MAJOR_KM = 635;
   const scanLossLinear = getScanLossLinear(beamIndex);
-  const healthScale    = Math.sqrt(Math.max(0, healthFactor));
-  const boostLinear    = Math.sqrt(getPowerBoostLinear(activeBeamCount));
-  const weatherLinear  = Math.sqrt(weatherDbToLinear(weather));
+  const healthScale = Math.sqrt(Math.max(0, healthFactor));
+  const boostLinear = Math.sqrt(getPowerBoostLinear(activeBeamCount, weather));
+  const weatherLinear = Math.sqrt(weatherDbToLinear(weather));
   return NOMINAL_MAJOR_KM * scanLossLinear * healthScale * boostLinear * weatherLinear;
 }
 
@@ -386,7 +443,7 @@ export function getBeamPerformance(input: BeamPerformanceInput): BeamPerformance
     8 // POWER_DECAY.COSINE_EXPONENT
   );
   const powerAtUserDb = 20 * Math.log10(Math.max(antennaLinearPower, 1e-10))
-                        + weatherAttenuationDb; // weather reduces signal at user
+    + weatherAttenuationDb; // weather reduces signal at user
 
   // Throughput ratio from SNR roll-off table
   const throughputRatio = throughputRatioFromPowerDb(powerAtUserDb);
@@ -399,11 +456,11 @@ export function getBeamPerformance(input: BeamPerformanceInput): BeamPerformance
 
   // Link quality zone classification
   let linkQuality: BeamPerformanceOutput['linkQuality'];
-  if (powerAtUserDb > -3)       linkQuality = 'BORESIGHT';
+  if (powerAtUserDb > -3) linkQuality = 'BORESIGHT';
   else if (powerAtUserDb > -10) linkQuality = 'STRICT';
   else if (powerAtUserDb > -12) linkQuality = 'STANDARD';
   else if (powerAtUserDb > -15) linkQuality = 'EXTENDED';
-  else                          linkQuality = 'NO_SIGNAL';
+  else linkQuality = 'NO_SIGNAL';
 
   return {
     effectiveEirpDb,
@@ -434,10 +491,10 @@ export interface BeamCharacteristics {
 /** Returns display-ready characteristics for each beam (scan angle, loss, etc.) */
 export function getAllBeamCharacteristics(): BeamCharacteristics[] {
   return Array.from({ length: TOTAL_BEAMS }, (_, i) => ({
-    beamIndex:    i,
+    beamIndex: i,
     isPeripheral: PERIPHERAL_BEAM_INDICES.has(i),
     scanAngleDeg: (getScanAngleRad(i) * 180) / Math.PI,
-    scanLossDb:   getScanLossDb(i),
+    scanLossDb: getScanLossDb(i),
     nominalRadius: getEffectiveBeamRadiusKm(i, TOTAL_BEAMS, 1.0, 'CLEAR'),
   }));
 }

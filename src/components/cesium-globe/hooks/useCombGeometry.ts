@@ -4,7 +4,7 @@
 import { useRef, useEffect, useCallback } from 'react';
 import { Cartesian3, JulianDate } from 'cesium';
 import type { SatelliteData } from '../../../types/satellites';
-import { calculateCombGeometry } from '../../../utils/oneWebComb';
+import { calculateCombGeometry, getActiveBeamCount } from '../../../utils/oneWebComb';
 import { useSimulation } from '../../../contexts/SimulationContext';
 
 interface CombGeometryCache {
@@ -12,6 +12,8 @@ interface CombGeometryCache {
     satId: string;
     policyType: "DB_THRESHOLD" | "SERVICE_ZONE";
     thresholdDb?: number;
+    healthString: string;
+    weather: string;
     geometries: Cartesian3[][] | null;
 }
 
@@ -22,7 +24,7 @@ interface CombGeometryCache {
  */
 export function useCombGeometry() {
     const cacheRef = useRef<CombGeometryCache | null>(null);
-    const { coveragePolicy } = useSimulation();
+    const { coveragePolicy, beamHealthFactors, weatherCondition } = useSimulation();
 
     // Cleanup on unmount
     useEffect(() => {
@@ -52,17 +54,36 @@ export function useCombGeometry() {
         const thresholdDb = coveragePolicy.thresholdDb;
         const cache = cacheRef.current;
 
-        // Check if cache is valid (includes policy check)
+        // Create a comparable string of health factors to detect changes
+        const currentHealthString = JSON.stringify(beamHealthFactors.map(f => f.healthFactor));
+
+        // Check if cache is valid (includes policy check and physics check)
         if (cache &&
             cache.satId === sat.id &&
             cache.policyType === coveragePolicy.type &&
             cache.thresholdDb === thresholdDb &&
+            cache.healthString === currentHealthString &&
+            cache.weather === weatherCondition &&
             JulianDate.equals(time, cache.time)) {
             return cache.geometries;
         }
 
-        // Calculate new geometries with current threshold
-        const geometries = calculateCombGeometry(sat.satrec, time, thresholdDb);
+        // Prepare physics variables
+        const activeBeamCount = getActiveBeamCount(sat.satrec, time);
+
+        // Convert beamHealthFactors array to a Map<number, number>
+        const healthFactorsMap = new Map<number, number>();
+        beamHealthFactors.forEach(f => healthFactorsMap.set(f.beamIndex, f.healthFactor));
+
+        // Calculate new geometries with current threshold and physics settings
+        const geometries = calculateCombGeometry(
+            sat.satrec,
+            time,
+            thresholdDb,
+            activeBeamCount,
+            healthFactorsMap,
+            weatherCondition
+        );
 
         // Update cache
         cacheRef.current = {
@@ -70,11 +91,13 @@ export function useCombGeometry() {
             satId: sat.id,
             policyType: coveragePolicy.type,
             thresholdDb,
+            healthString: currentHealthString,
+            weather: weatherCondition,
             geometries
         };
 
         return geometries;
-    }, [coveragePolicy]);
+    }, [coveragePolicy, beamHealthFactors, weatherCondition]);
 
     /**
      * Clear the cache (call when satellite selection changes significantly)

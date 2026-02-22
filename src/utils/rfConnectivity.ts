@@ -316,7 +316,7 @@ export interface LinkBudgetOutput {
  * This is the primary entry point for all throughput and coverage decisions:
  *  - Pillar 1: Phased array scan loss (peripheral beams smaller + lower EIRP)
  *  - Pillar 2: Dynamic power boost (GSO Protection halves beams → +3 dB/beam)
- *  - Pillar 3: Hardware health factor (degrades EIRP + shrinks radius)
+ *  - Pillar 3: Beam health factor (degrades EIRP + shrinks radius)
  *  - Pillar 4: SNR-based throughput roll-off (capacity ↓ away from boresight)
  *  - Pillar 5: Weather attenuation (rain/clouds shrink radius + reduce Mbps)
  */

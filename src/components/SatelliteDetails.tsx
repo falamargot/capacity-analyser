@@ -143,7 +143,7 @@ const getSelectedSatellitePosition = (satellites: SatelliteData[], selectedSatel
 
 const SatelliteDetails: React.FC<SatelliteDetailsProps> = ({ satellites, selectedSatellite }) => {
   // NEW: Get coverage policy from simulation context
-  const { coveragePolicy } = useSimulation();
+  const { coveragePolicy, beamHealthFactors, setBeamHealthFactor, resetBeamHealth, weatherCondition } = useSimulation();
 
   // Get current satellite position from satellites array (real-time)
   const currentSatellite = satellites.find(sat => sat.id === selectedSatellite.id);
@@ -171,9 +171,9 @@ const SatelliteDetails: React.FC<SatelliteDetailsProps> = ({ satellites, selecte
       try {
         const now = new Date();
         const julianDate = JulianDate.fromDate(now);
-        
+
         const positionAndVelocity = satellite.propagate(selectedSatellite.satrec, now);
-        
+
         if (!positionAndVelocity || !positionAndVelocity.position || typeof positionAndVelocity.position === 'boolean') {
           return;
         }
@@ -221,8 +221,8 @@ const SatelliteDetails: React.FC<SatelliteDetailsProps> = ({ satellites, selecte
               </div>
             </div>
             <span className={`px-3 py-1 rounded-full text-sm font-medium ${selectedSatellite.type === 'EUTELSAT'
-                ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-200'
-                : 'bg-pink-100 dark:bg-pink-900/40 text-pink-800 dark:text-pink-200'
+              ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-200'
+              : 'bg-pink-100 dark:bg-pink-900/40 text-pink-800 dark:text-pink-200'
               }`}>
               {selectedSatellite.type}
             </span>
@@ -273,10 +273,10 @@ const SatelliteDetails: React.FC<SatelliteDetailsProps> = ({ satellites, selecte
                     <div className="flex items-center justify-between">
                       <span className="text-sm text-gray-600 dark:text-gray-300">Mode:</span>
                       <span className={`px-2 py-1 rounded-full text-xs font-medium ${gsoAvoidanceData.isBlankingZone
-                          ? 'bg-red-100 dark:bg-red-900/40 text-red-800 dark:text-red-200 border border-red-200 dark:border-red-800 animate-pulse'
-                          : gsoAvoidanceData.isGSOAvoidance
-                            ? 'bg-orange-100 dark:bg-orange-900/40 text-orange-800 dark:text-orange-200 border border-orange-200 dark:border-orange-800'
-                            : 'bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-200 border border-green-200 dark:border-green-800'
+                        ? 'bg-red-100 dark:bg-red-900/40 text-red-800 dark:text-red-200 border border-red-200 dark:border-red-800 animate-pulse'
+                        : gsoAvoidanceData.isGSOAvoidance
+                          ? 'bg-orange-100 dark:bg-orange-900/40 text-orange-800 dark:text-orange-200 border border-orange-200 dark:border-orange-800'
+                          : 'bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-200 border border-green-200 dark:border-green-800'
                         }`}>
                         {gsoAvoidanceData.isBlankingZone
                           ? 'OFF (EXCLUSION ZONE)'
@@ -287,7 +287,7 @@ const SatelliteDetails: React.FC<SatelliteDetailsProps> = ({ satellites, selecte
                       </span>
                     </div>
 
-                    
+
                     {/* Equatorial Transition Alert */}
                     {Math.abs(gsoAvoidanceData.latitude) <= 2.0 && (
                       <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-2">
@@ -301,8 +301,8 @@ const SatelliteDetails: React.FC<SatelliteDetailsProps> = ({ satellites, selecte
                     <div className="flex items-center justify-between">
                       <span className="text-sm text-gray-600 dark:text-gray-300">Pitch:</span>
                       <span className={`font-medium text-sm ${gsoAvoidanceData.isGSOAvoidance
-                          ? 'text-orange-600 dark:text-orange-400'
-                          : 'text-green-600 dark:text-green-400'
+                        ? 'text-orange-600 dark:text-orange-400'
+                        : 'text-green-600 dark:text-green-400'
                         }`}>
                         {gsoAvoidanceData.pitchAngleDeg.toFixed(1)}°
                       </span>
@@ -331,6 +331,10 @@ const SatelliteDetails: React.FC<SatelliteDetailsProps> = ({ satellites, selecte
                           isGSOAvoidance={gsoAvoidanceData.isGSOAvoidance}
                           latitude={gsoAvoidanceData.latitude}
                           isMovingNorth={gsoAvoidanceData.isMovingNorth}
+                          beamHealthFactors={beamHealthFactors}
+                          onHealthChange={setBeamHealthFactor}
+                          onReset={resetBeamHealth}
+                          weatherCondition={weatherCondition}
                         />
                       </div>
                     </div>

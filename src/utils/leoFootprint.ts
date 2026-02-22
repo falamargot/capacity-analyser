@@ -75,14 +75,14 @@ export function getPhysicsAwareBeamRadius(
   const scanScale = getScanLossLinear(beamIndex);
 
   // Power boost (pillar 2) – fewer beams → larger effective coverage radius
-  const boostScale = Math.sqrt(getPowerBoostLinear(activeBeamCount));
+  const boostScale = Math.sqrt(getPowerBoostLinear(activeBeamCount, weather));
 
   // Health factor (pillar 3) – degraded beams have smaller reach
   const healthScale = Math.sqrt(Math.max(0, healthFactor));
 
   // Weather attenuation (pillar 5) – rain shrinks usable beam radius
-  const weatherDb     = WEATHER_ATTENUATION_DB[weather];
-  const weatherScale  = Math.sqrt(Math.pow(10, weatherDb / 10));
+  const weatherDb = WEATHER_ATTENUATION_DB[weather];
+  const weatherScale = Math.sqrt(Math.pow(10, weatherDb / 10));
 
   return baseRadius * scanScale * boostScale * healthScale * weatherScale;
 }

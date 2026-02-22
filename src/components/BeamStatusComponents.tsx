@@ -6,6 +6,14 @@
 import React from 'react';
 import { getRadiusAtPowerLevel, type CoveragePolicy } from '../utils/leoFootprint';
 import { getBeamFrequency, FREQUENCY_REUSE } from '../config/beamVisualization';
+import {
+  type BeamHealthData,
+  PERIPHERAL_BEAM_INDICES,
+  calculateBeamPowerAllocation,
+  MAX_PAYLOAD_POWER,
+  KA_BACKHAUL_CONSUMPTION,
+  type WeatherCondition
+} from '../utils/realisticSimulation';
 
 // ─────────────────────────────────────────────────────────────────
 // BeamStatusGrid Component
@@ -17,6 +25,10 @@ interface BeamStatusGridProps {
   isGSOAvoidance: boolean;
   latitude: number;
   isMovingNorth: boolean;
+  beamHealthFactors: BeamHealthData[];
+  onHealthChange: (beamIndex: number, value: number) => void;
+  onReset: () => void;
+  weatherCondition: WeatherCondition;
 }
 
 export const BeamStatusGrid: React.FC<BeamStatusGridProps> = ({
@@ -24,12 +36,27 @@ export const BeamStatusGrid: React.FC<BeamStatusGridProps> = ({
   isBlankingZone,
   isGSOAvoidance,
   latitude,
-  isMovingNorth
+  isMovingNorth,
+  beamHealthFactors,
+  onHealthChange,
+  onReset,
+  weatherCondition
 }) => {
+  const getHealth = (beamIndex: number): number => {
+    const entry = beamHealthFactors.find(b => b.beamIndex === beamIndex);
+    return entry ? entry.healthFactor : 1.0;
+  };
+
+  const getHealthColor = (h: number): string => {
+    if (h >= 0.90) return 'bg-green-500';
+    if (h >= 0.70) return 'bg-amber-500';
+    return 'bg-red-500';
+  };
+
   // Determine which beams are active based on GSO Protection logic
   const getBeamStatus = (beamIndex: number): 'active' | 'inactive' | 'gso-half' => {
     if (isBlankingZone) return 'inactive';
-    
+
     if (isGSOAvoidance) {
       const shouldActivateNorthernBeams = (latitude > 0) === isMovingNorth;
       const isActive = shouldActivateNorthernBeams
@@ -37,9 +64,19 @@ export const BeamStatusGrid: React.FC<BeamStatusGridProps> = ({
         : beamIndex >= 8 && beamIndex <= 15;
       return isActive ? 'gso-half' : 'inactive';
     }
-    
+
     return 'active';
   };
+
+  // Calculate total power
+  let payloadPower = 0;
+  for (let i = 0; i < 16; i++) {
+    const status = getBeamStatus(i);
+    const isBeamActive = status !== 'inactive';
+    const beamPower = calculateBeamPowerAllocation(isBeamActive, activeBeams, weatherCondition);
+    payloadPower += beamPower;
+  }
+  const currentTotalPower = payloadPower + KA_BACKHAUL_CONSUMPTION;
 
   return (
     <div className="space-y-3">
@@ -52,8 +89,8 @@ export const BeamStatusGrid: React.FC<BeamStatusGridProps> = ({
             const color = FREQUENCY_REUSE.COLORS[group as keyof typeof FREQUENCY_REUSE.COLORS];
             return (
               <div key={group} className="flex items-center gap-2">
-                <div 
-                  className="w-3 h-3 rounded-full border border-white/20" 
+                <div
+                  className="w-3 h-3 rounded-full border border-white/20"
                   style={{ backgroundColor: `rgb(${color.red}, ${color.green}, ${color.blue})` }}
                 />
                 <div>
@@ -74,9 +111,15 @@ export const BeamStatusGrid: React.FC<BeamStatusGridProps> = ({
 
       {/* Summary */}
       <div className="flex items-center justify-between pb-2 border-b border-gray-200 dark:border-slate-700">
-        <span className="text-xs text-gray-600 dark:text-gray-400">
-          Total: {activeBeams} / 16 beams
-        </span>
+        <div className="flex flex-col gap-1">
+          <span className="text-xs text-gray-600 dark:text-gray-400">
+            Total: {activeBeams} / 16 beams
+          </span>
+          <span className="text-xs font-semibold text-blue-700 dark:text-blue-400">
+            Total Power: {Math.round(currentTotalPower)} (Payload: {Math.round(payloadPower)}W + Backhaul: {KA_BACKHAUL_CONSUMPTION}W) / {MAX_PAYLOAD_POWER} W
+          </span>
+        </div>
+
         {/* Exclusive status messages - only one should display */}
         {isBlankingZone ? (
           <span className="text-xs text-red-600 dark:text-red-400 font-medium">
@@ -90,28 +133,81 @@ export const BeamStatusGrid: React.FC<BeamStatusGridProps> = ({
       </div>
 
       {/* Beam Grid - 2 rows of 8 beams */}
-      <div className="space-y-1">
+      <div className="space-y-4">
         {/* Northern Beams (0-7) */}
-        <div className="flex items-center gap-1">
-          <span className="text-xs text-gray-500 dark:text-gray-400 w-14 font-medium">
+        <div className="flex items-end gap-1">
+          <span className="text-xs text-gray-500 dark:text-gray-400 w-14 font-medium mb-10">
             N (0-7)
           </span>
           <div className="flex gap-1 flex-1">
             {Array.from({ length: 8 }, (_, i) => {
               const status = getBeamStatus(i);
+              const h = getHealth(i);
+              const isPeripheral = PERIPHERAL_BEAM_INDICES.has(i);
+              const pct = Math.round(h * 100);
+              const isBeamActive = status !== 'inactive';
+              const beamPower = calculateBeamPowerAllocation(isBeamActive, activeBeams, weatherCondition);
+
               return (
                 <div
                   key={i}
-                  className={`flex-1 h-7 rounded flex items-center justify-center text-xs font-medium transition-colors ${
-                    status === 'active'
+                  className="flex-1 flex flex-col items-center gap-1"
+                >
+                  {/* Operational Status Badge */}
+                  <div
+                    className={`w-full h-6 rounded flex items-center justify-center text-[10px] font-medium transition-colors ${status === 'active'
                       ? 'bg-green-500 text-white shadow-sm'
                       : status === 'gso-half'
-                      ? 'bg-orange-500 text-white shadow-sm'
-                      : 'bg-gray-300 dark:bg-gray-700 text-gray-600 dark:text-gray-400'
-                  }`}
-                  title={`Beam ${i}: ${status === 'active' ? 'Active' : status === 'gso-half' ? 'GSO Mode' : 'Inactive'} | ${getBeamFrequency(i).band}-band | ${getBeamFrequency(i).downlink} GHz downlink`}
-                >
-                  {i}
+                        ? 'bg-orange-500 text-white shadow-sm'
+                        : 'bg-gray-300 dark:bg-gray-700 text-gray-600 dark:text-gray-400'
+                      }`}
+                    title={`Beam ${i}: ${status === 'active' ? 'Active' : status === 'gso-half' ? 'GSO Mode' : 'Inactive'} | ${getBeamFrequency(i).band}-band | ${getBeamFrequency(i).downlink} GHz downlink`}
+                  >
+                    <span className={isPeripheral && isBeamActive ? 'font-bold underline decoration-2 underline-offset-2' : ''}>{i}</span>
+                  </div>
+
+                  {/* Health Body */}
+                  <div className={`w-full flex flex-col items-center gap-1 transition-opacity duration-300 ${!isBeamActive ? 'opacity-30 grayscale' : 'opacity-100'}`}>
+
+                    {/* Interactive Health bar */}
+                    <div className="relative w-full bg-gray-200 dark:bg-gray-700 rounded-sm overflow-hidden" style={{ height: '40px' }}>
+                      <div
+                        className={`absolute bottom-0 w-full rounded-sm transition-all duration-300 ${getHealthColor(h)}`}
+                        style={{ height: `${pct}%` }}
+                      />
+
+                      {/* Text Inside Bar */}
+                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                        <span className="text-[10px] font-bold text-white drop-shadow-[0_1px_1px_rgba(0,0,0,0.8)]">
+                          {pct}%
+                        </span>
+                      </div>
+
+                      {/* Invisible Interactive Slider Layer */}
+                      {isBeamActive && (
+                        <input
+                          type="range"
+                          min={0}
+                          max={1}
+                          step={0.01}
+                          value={h}
+                          onChange={e => onHealthChange(i, parseFloat(e.target.value))}
+                          title={`Beam ${i} health: ${pct}%`}
+                          className="absolute inset-0 w-full h-full opacity-0 cursor-ns-resize m-0 p-0"
+                          style={{
+                            WebkitAppearance: 'slider-vertical' as any,
+                            appearance: 'slider-vertical' as any
+                          }}
+                        />
+                      )}
+                    </div>
+
+                    {/* Wattage */}
+                    <span className="text-[10px] text-blue-700 dark:text-blue-400 font-bold">
+                      {beamPower.toFixed(1)}W
+                    </span>
+
+                  </div>
                 </div>
               );
             })}
@@ -119,27 +215,80 @@ export const BeamStatusGrid: React.FC<BeamStatusGridProps> = ({
         </div>
 
         {/* Southern Beams (8-15) */}
-        <div className="flex items-center gap-1">
-          <span className="text-xs text-gray-500 dark:text-gray-400 w-14 font-medium">
+        <div className="flex items-end gap-1">
+          <span className="text-xs text-gray-500 dark:text-gray-400 w-14 font-medium mb-10">
             S (8-15)
           </span>
           <div className="flex gap-1 flex-1">
             {Array.from({ length: 8 }, (_, i) => {
               const beamIndex = i + 8;
               const status = getBeamStatus(beamIndex);
+              const h = getHealth(beamIndex);
+              const isPeripheral = PERIPHERAL_BEAM_INDICES.has(beamIndex);
+              const pct = Math.round(h * 100);
+              const isBeamActive = status !== 'inactive';
+              const beamPower = calculateBeamPowerAllocation(isBeamActive, activeBeams, weatherCondition);
+
               return (
                 <div
                   key={beamIndex}
-                  className={`flex-1 h-7 rounded flex items-center justify-center text-xs font-medium transition-colors ${
-                    status === 'active'
+                  className="flex-1 flex flex-col items-center gap-1"
+                >
+                  {/* Operational Status Badge */}
+                  <div
+                    className={`w-full h-6 rounded flex items-center justify-center text-[10px] font-medium transition-colors ${status === 'active'
                       ? 'bg-green-500 text-white shadow-sm'
                       : status === 'gso-half'
-                      ? 'bg-orange-500 text-white shadow-sm'
-                      : 'bg-gray-300 dark:bg-gray-700 text-gray-600 dark:text-gray-400'
-                  }`}
-                  title={`Beam ${beamIndex}: ${status === 'active' ? 'Active' : status === 'gso-half' ? 'GSO Mode' : 'Inactive'} | ${getBeamFrequency(beamIndex).band}-band | ${getBeamFrequency(beamIndex).downlink} GHz downlink`}
-                >
-                  {beamIndex}
+                        ? 'bg-orange-500 text-white shadow-sm'
+                        : 'bg-gray-300 dark:bg-gray-700 text-gray-600 dark:text-gray-400'
+                      }`}
+                    title={`Beam ${beamIndex}: ${status === 'active' ? 'Active' : status === 'gso-half' ? 'GSO Mode' : 'Inactive'} | ${getBeamFrequency(beamIndex).band}-band | ${getBeamFrequency(beamIndex).downlink} GHz downlink`}
+                  >
+                    <span className={isPeripheral && isBeamActive ? 'font-bold underline decoration-2 underline-offset-2' : ''}>{beamIndex}</span>
+                  </div>
+
+                  {/* Health Body */}
+                  <div className={`w-full flex flex-col items-center gap-1 transition-opacity duration-300 ${!isBeamActive ? 'opacity-30 grayscale' : 'opacity-100'}`}>
+
+                    {/* Interactive Health bar */}
+                    <div className="relative w-full bg-gray-200 dark:bg-gray-700 rounded-sm overflow-hidden" style={{ height: '40px' }}>
+                      <div
+                        className={`absolute bottom-0 w-full rounded-sm transition-all duration-300 ${getHealthColor(h)}`}
+                        style={{ height: `${pct}%` }}
+                      />
+
+                      {/* Text Inside Bar */}
+                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                        <span className="text-[10px] font-bold text-white drop-shadow-[0_1px_1px_rgba(0,0,0,0.8)]">
+                          {pct}%
+                        </span>
+                      </div>
+
+                      {/* Invisible Interactive Slider Layer */}
+                      {isBeamActive && (
+                        <input
+                          type="range"
+                          min={0}
+                          max={1}
+                          step={0.01}
+                          value={h}
+                          onChange={e => onHealthChange(beamIndex, parseFloat(e.target.value))}
+                          title={`Beam ${beamIndex} health: ${pct}%`}
+                          className="absolute inset-0 w-full h-full opacity-0 cursor-ns-resize m-0 p-0"
+                          style={{
+                            WebkitAppearance: 'slider-vertical' as any,
+                            appearance: 'slider-vertical' as any
+                          }}
+                        />
+                      )}
+                    </div>
+
+                    {/* Wattage */}
+                    <span className="text-[10px] text-blue-700 dark:text-blue-400 font-bold">
+                      {beamPower.toFixed(1)}W
+                    </span>
+
+                  </div>
                 </div>
               );
             })}
@@ -147,21 +296,60 @@ export const BeamStatusGrid: React.FC<BeamStatusGridProps> = ({
         </div>
       </div>
 
-      {/* Legend */}
-      <div className="flex items-center gap-3 pt-2 border-t border-gray-200 dark:border-slate-700 text-xs">
-        <div className="flex items-center gap-1">
-          <div className="w-3 h-3 rounded bg-green-500 shadow-sm"></div>
-          <span className="text-gray-600 dark:text-gray-400">Active</span>
-        </div>
-        {isGSOAvoidance && (
-          <div className="flex items-center gap-1">
-            <div className="w-3 h-3 rounded bg-orange-500 shadow-sm"></div>
-            <span className="text-gray-600 dark:text-gray-400">GSO Mode</span>
+      {/* Legends and Controls */}
+      <div className="flex flex-col gap-2 pt-3 border-t border-gray-200 dark:border-slate-700">
+        <div className="flex items-center justify-between text-[11px]">
+          {/* Status Legend */}
+          <div className="flex items-center gap-3">
+            <span className="font-semibold text-gray-700 dark:text-gray-300">Status:</span>
+            <div className="flex items-center gap-1">
+              <div className="w-2.5 h-2.5 rounded-sm bg-green-500 shadow-sm"></div>
+              <span className="text-gray-600 dark:text-gray-400">Active</span>
+            </div>
+            {isGSOAvoidance && (
+              <div className="flex items-center gap-1">
+                <div className="w-2.5 h-2.5 rounded-sm bg-orange-500 shadow-sm"></div>
+                <span className="text-gray-600 dark:text-gray-400">GSO Mode</span>
+              </div>
+            )}
+            <div className="flex items-center gap-1">
+              <div className="w-2.5 h-2.5 rounded-sm bg-gray-300 dark:bg-gray-700"></div>
+              <span className="text-gray-600 dark:text-gray-400">Off</span>
+            </div>
           </div>
-        )}
-        <div className="flex items-center gap-1">
-          <div className="w-3 h-3 rounded bg-gray-300 dark:bg-gray-700"></div>
-          <span className="text-gray-600 dark:text-gray-400">Off</span>
+
+          {/* Peripheral label indicator */}
+          <span className="text-gray-500 dark:text-gray-400">
+            <span className="font-bold underline decoration-2 underline-offset-2 text-gray-700 dark:text-gray-300 mr-1">#</span> = peripheral
+          </span>
+        </div>
+
+        <div className="flex items-center justify-between text-[11px]">
+          {/* Health Legend */}
+          <div className="flex items-center gap-3">
+            <span className="font-semibold text-gray-700 dark:text-gray-300">Health:</span>
+            <div className="flex items-center gap-1">
+              <div className="w-2.5 h-2.5 rounded-sm bg-green-500" />
+              <span className="text-gray-600 dark:text-gray-400">≥ 90%</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <div className="w-2.5 h-2.5 rounded-sm bg-amber-500" />
+              <span className="text-gray-600 dark:text-gray-400">70–89%</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <span className="text-red-600 dark:text-red-400">&lt; 70%</span>
+            </div>
+          </div>
+
+          {/* Controls */}
+          <div className="flex items-center gap-2">
+            <button
+              onClick={onReset}
+              className="px-2 py-0.5 rounded bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-slate-600 transition-colors"
+            >
+              Reset Health
+            </button>
+          </div>
         </div>
       </div>
     </div>

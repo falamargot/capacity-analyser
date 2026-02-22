@@ -20,17 +20,6 @@ const BeamLegend: React.FC = () => {
                     </div>
                 ))}
             </div>
-
-            <div className="mt-1 flex items-center gap-4 border-t border-gray-100 dark:border-slate-800 pt-2">
-                <div className="flex items-center gap-1.5">
-                    <div className="w-8 h-3 rounded-sm bg-gradient-to-r from-gray-400 to-transparent opacity-50" />
-                    <span className="text-[10px] text-gray-500">Power Decay (Gradient)</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                    <div className="w-3 h-3 rounded-full bg-yellow-400 animate-pulse border border-black/20" />
-                    <span className="text-[10px] text-gray-500">Handover Zone</span>
-                </div>
-            </div>
         </div>
     );
 };

@@ -3,10 +3,10 @@ import * as satellite from 'satellite.js';
 import { EARTH_RADIUS_KM } from './capacityCalculator';
 import { getRadiusAtPowerLevel } from './leoFootprint';
 import {
-  getScanLossLinear,
-  getPowerBoostLinear,
-  WEATHER_ATTENUATION_DB,
-  type WeatherCondition,
+    getScanLossLinear,
+    getPowerBoostLinear,
+    WEATHER_ATTENUATION_DB,
+    type WeatherCondition,
 } from './realisticSimulation';
 
 export const BEAM_WIDTH_KM = 67.5;
@@ -189,7 +189,7 @@ export function calculateCombGeometry(
     const thresholdScaleFactor = currentRadiusKm / referenceRadiusKm;
 
     // ── Pillar 2: Power boost scale (uniform across all active beams) ──────
-    const powerBoostScale = Math.sqrt(getPowerBoostLinear(activeBeams));
+    const powerBoostScale = Math.sqrt(getPowerBoostLinear(activeBeams, weather));
 
     // ── Pillar 5: Weather attenuation scale (uniform) ──────────────────────
     const weatherDb = WEATHER_ATTENUATION_DB[weather];
