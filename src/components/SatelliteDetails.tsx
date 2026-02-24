@@ -334,6 +334,7 @@ const SatelliteDetails: React.FC<SatelliteDetailsProps> = ({ satellites, selecte
                           onHealthChange={setBeamHealthFactor}
                           onReset={resetBeamHealth}
                           weatherCondition={weatherCondition}
+                          isMovingNorth={gsoAvoidanceData.isMovingNorth}
                         />
                       </div>
                     </div>

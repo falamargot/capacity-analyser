@@ -42,7 +42,7 @@ const SnpEntity = React.memo<{
     // Create stable pixel size callback
     const pixelSizeCallback = useMemo(() => {
         return new CallbackProperty(() => {
-            if (!viewerRef.current) return 8;
+            if (!viewerRef.current) return 6;
 
             const snpPosition = getPosition(snp.lat, snp.lng, 0.01);
             const cameraPosition = viewerRef.current.camera.position;

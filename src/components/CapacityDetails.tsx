@@ -27,13 +27,14 @@ interface CapacityDetailsProps {
   satelliteScope: SatelliteScope;
   onSelectedGEOBeamChange?: (beam: any) => void;
   onMetricsChange?: (metrics: any) => void;
+  onSatelliteClick?: (satellite: SatelliteData | null) => void;
   analysisSource?: 'earth' | 'aircraft';
   aircraftCallsign?: string;
   selectedSNP?: any;
 }
 
 // Performance optimization: Memoize component to prevent unnecessary re-renders
-const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint, selectedSatellite, autoSelectedLEOSatellite, satelliteScope, onSelectedGEOBeamChange, analysisSource, aircraftCallsign, selectedSNP: propSelectedSNP }) => {
+const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint, selectedSatellite, autoSelectedLEOSatellite, satelliteScope, onSelectedGEOBeamChange, onSatelliteClick, analysisSource, aircraftCallsign, selectedSNP: propSelectedSNP }) => {
   const [nearestLocation, setNearestLocation] = useState<{ city: string; country: string } | null>(null);
 
   const [realTimeData, setRealTimeData] = useState<RealTimeCapacityData>({
@@ -751,9 +752,9 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
                   {resolvedLEOConnectivity ? (
                     <div className="text-sm text-gray-700 dark:text-gray-300 text-center space-y-3">
                       {resolvedLEOConnectivity.snp ? (
-                        <div>{analysisSource === 'aircraft' && aircraftCallsign ? aircraftCallsign : 'User'} → {resolvedLEOConnectivity.satellite.name} → {resolvedLEOConnectivity.snp.name} → {resolvedLEOConnectivity.satellite.name} → {analysisSource === 'aircraft' && aircraftCallsign ? aircraftCallsign : 'User'}</div>
+                        <div>{analysisSource === 'aircraft' && aircraftCallsign ? aircraftCallsign : 'User'} → <button onClick={() => onSatelliteClick?.(resolvedLEOConnectivity.satellite)} className="underline hover:no-underline text-pink-600 dark:text-pink-400 font-medium cursor-pointer">{resolvedLEOConnectivity.satellite.name}</button> → {resolvedLEOConnectivity.snp.name} → <button onClick={() => onSatelliteClick?.(resolvedLEOConnectivity.satellite)} className="underline hover:no-underline text-pink-600 dark:text-pink-400 font-medium cursor-pointer">{resolvedLEOConnectivity.satellite.name}</button> → {analysisSource === 'aircraft' && aircraftCallsign ? aircraftCallsign : 'User'}</div>
                       ) : (
-                        <div>{analysisSource === 'aircraft' && aircraftCallsign ? aircraftCallsign : 'User'} → {resolvedLEOConnectivity.satellite.name} (→ No SNP connectivity)</div>
+                        <div>{analysisSource === 'aircraft' && aircraftCallsign ? aircraftCallsign : 'User'} → <button onClick={() => onSatelliteClick?.(resolvedLEOConnectivity.satellite)} className="underline hover:no-underline text-pink-600 dark:text-pink-400 font-medium cursor-pointer">{resolvedLEOConnectivity.satellite.name}</button> (→ No SNP connectivity)</div>
                       )}
                       {resolvedLEOConnectivity.snp ? (
                         <div className="text-xs text-gray-500 dark:text-gray-400 space-y-2 text-left">
@@ -871,7 +872,7 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
                   <h4 className="text-sm font-semibold mb-3" style={{ color: '#2563eb' }}>Radio Path (GEO)</h4>
                   {resolvedGEOConnectivity ? (
                     <div className="text-sm text-gray-700 dark:text-gray-300 text-center space-y-3">
-                      <div>{analysisSource === 'aircraft' && aircraftCallsign ? aircraftCallsign : 'User'} ↔ {resolvedGEOConnectivity.satellite.name}</div>
+                      <div>{analysisSource === 'aircraft' && aircraftCallsign ? aircraftCallsign : 'User'} ↔ <button onClick={() => onSatelliteClick?.(resolvedGEOConnectivity.satellite)} className="underline hover:no-underline text-blue-600 dark:text-blue-400 font-medium cursor-pointer">{resolvedGEOConnectivity.satellite.name}</button></div>
                       <div className="text-xs text-gray-500 dark:text-gray-400 text-left">
                         <div>→ Elevation: {resolvedGEOConnectivity.elevation.toFixed(1)}° | Distance: {resolvedGEOConnectivity.distance.toFixed(0)} km ({resolvedGEOConnectivity.rtt} ms)</div>
                         {resolvedGEOConnectivity.beam && (

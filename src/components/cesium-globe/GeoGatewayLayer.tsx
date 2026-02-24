@@ -42,7 +42,7 @@ const GeoGatewayEntity = React.memo<{
     // Create stable pixel size callback
     const pixelSizeCallback = useMemo(() => {
         return new CallbackProperty(() => {
-            if (!viewerRef.current) return 8;
+            if (!viewerRef.current) return 6;
 
             const gatewayPosition = getPosition(gateway.lat, gateway.lng, 0.01);
             const cameraPosition = viewerRef.current.camera.position;
@@ -50,16 +50,8 @@ const GeoGatewayEntity = React.memo<{
             const cameraHeight = viewerRef.current.camera.positionCartographic.height;
             const dynamicScale = calculateDynamicScale(cameraHeight, DPR_FACTOR);
 
-            /*
-              Base scale calculation:
-              - dynamicScale: adjusts for DPR
-              - 3000000: base size factor
-              - distance: scales down as camera moves away
-              - sizeScale: global user setting
-              - * 25: base pixel size multiplier (slightly larger than SNPs)
-             */
             const baseScale = dynamicScale * 3000000 / Math.max(distance, 2000000);
-            return baseScale * 25 * (sizeScale || 1);
+            return baseScale * 20 * (sizeScale || 1);
         }, false);
     }, [gateway.lat, gateway.lng, viewerRef, sizeScale]);
 
@@ -73,8 +65,6 @@ const GeoGatewayEntity = React.memo<{
             point={{
                 pixelSize: pixelSizeCallback,
                 color: Color.CYAN, // Distinct color for Eutelsat gateways
-                outlineColor: Color.BLACK,
-                outlineWidth: 2,
                 disableDepthTestDistance: 0
             }}
             name={`${gateway.name} (Teleport)`}
@@ -94,8 +84,8 @@ const GeoGatewayLayer: React.FC<GeoGatewayLayerProps> = ({
     viewerRef,
     sizeScale = 1
 }) => {
-    // Only render Gateways for GEO scope
-    if (satelliteScope !== 'GEO') {
+    // Only render Gateways for GEO scope or ALL scope
+    if (satelliteScope !== 'GEO' && satelliteScope !== 'ALL') {
         return null;
     }
 

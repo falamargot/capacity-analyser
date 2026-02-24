@@ -59,12 +59,19 @@ export const FREQUENCY_REUSE = {
         GROUP_D: Color.fromBytes(217, 70, 239, 255),   // Magenta
     },
 
-    /** Frequency assignments for each group (in GHz) */
+    /** Frequency assignments for each group (in GHz) - OneWeb Gen 1 FDD specs */
     FREQUENCIES: {
-        GROUP_A: { uplink: '10.75-11.20', downlink: '13.80-14.25', band: 'Ku' },
-        GROUP_B: { uplink: '11.20-11.65', downlink: '14.25-14.70', band: 'Ku' },
-        GROUP_C: { uplink: '17.30-17.80', downlink: '19.70-20.20', band: 'Ka' },
-        GROUP_D: { uplink: '17.80-18.30', downlink: '20.20-20.70', band: 'Ka' },
+        GROUP_A: { downlink: '10.70-11.20', uplink: '14.00-14.12', band: 'Ku', polarization: 'LHCP' }, // Beams 0, 4, 8, 12
+        GROUP_B: { downlink: '11.20-11.70', uplink: '14.12-14.25', band: 'Ku', polarization: 'RHCP' }, // Beams 1, 5, 9, 13
+        GROUP_C: { downlink: '11.70-12.20', uplink: '14.25-14.37', band: 'Ku', polarization: 'LHCP' }, // Beams 2, 6, 10, 14
+        GROUP_D: { downlink: '12.20-12.70', uplink: '14.37-14.50', band: 'Ku', polarization: 'RHCP' }, // Beams 3, 7, 11, 15
+    },
+
+    /** Gateway/Backhaul Ka-band frequencies */
+    GATEWAY: {
+        downlink: '17.80-19.30', // Backhaul DL
+        uplink: '27.50-30.00',   // Backhaul UL
+        band: 'Ka'
     },
 } as const;
 

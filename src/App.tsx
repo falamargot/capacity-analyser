@@ -973,6 +973,7 @@ const App: React.FC = () => {
                   autoSelectedGEOSatellite={resolvedAutoGEO}
                   satelliteScope={satelliteScope}
                   onSelectedGEOBeamChange={handleSelectedGEOBeamChange}
+                  onSatelliteClick={handleSatelliteClick}
                   analysisSource={selectedAircraft ? 'aircraft' : analyzisPosition ? 'earth' : undefined}
                   aircraftCallsign={selectedAircraft?.callsign}
                   selectedSNP={selectedSNP}
@@ -986,7 +987,7 @@ const App: React.FC = () => {
         <main className="px-4 py-6 sm:px-6 lg:px-8">
           <div className={`flex flex-row gap-8 h-[calc(100vh-8rem)]`}>
             <div
-              className={`flex-1 relative bg-white rounded-lg shadow-lg overflow-hidden transition-all duration-300 ${isFullscreen ? 'fixed top-[6rem] bottom-4 left-4 right-4 z-50' : ''}`}
+              className={`flex-1 relative bg-white rounded-lg shadow-lg overflow-hidden transition-all duration-300 ${isFullscreen ? 'fixed inset-0 z-50' : ''}`}
             >
               <MapViewSwitcher
                 satellites={filteredSatellites}
@@ -1024,7 +1025,7 @@ const App: React.FC = () => {
             </div>
 
 
-            <div className="flex-shrink-0 w-[500px] bg-white dark:bg-slate-950 rounded-lg shadow-lg overflow-hidden">
+            <div className={`flex-shrink-0 w-[500px] bg-white dark:bg-slate-950 rounded-lg shadow-lg overflow-hidden ${isFullscreen ? 'hidden' : ''}`}>
               {!isFullscreen && (
                 <div className="w-full overflow-y-auto max-h-[calc(100vh-8rem)]">
                   <CapacityDetails
@@ -1035,6 +1036,7 @@ const App: React.FC = () => {
                     autoSelectedGEOSatellite={resolvedAutoGEO}
                     satelliteScope={satelliteScope}
                     onSelectedGEOBeamChange={handleSelectedGEOBeamChange}
+                    onSatelliteClick={handleSatelliteClick}
                     analysisSource={selectedAircraft ? 'aircraft' : analyzisPosition ? 'earth' : undefined}
                     aircraftCallsign={selectedAircraft?.callsign}
                     selectedSNP={selectedSNP}

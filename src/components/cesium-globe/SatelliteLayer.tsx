@@ -11,7 +11,7 @@ import {
     Viewer as CesiumViewerType
 } from 'cesium';
 import type { SatelliteData } from '../../types/satellites';
-import { SATELLITE_GLYPH, DPR_FACTOR, calculateDynamicScale, getPosition } from './utils';
+import { SATELLITE_GLYPH, LEO_SMOKED_GLYPH, DPR_FACTOR, calculateDynamicScale, getPosition } from './utils';
 import { usePositionCallbacks } from './hooks';
 
 interface SatelliteLayerProps {
@@ -71,7 +71,7 @@ const SatelliteEntity = React.memo<{
 
             // Apply satellite size scale (no extra size for selected satellites)
             const baseScale =
-                dynamicScale * (sat.type === 'EUTELSAT' ? 10000000 : 2000000) / Math.max(distance, 2000000);
+                dynamicScale * (sat.type === 'EUTELSAT' ? 10000000 : 3000000) / Math.max(distance, 2000000);
 
             return baseScale * satelliteSizeScale;
         }, false);
@@ -93,7 +93,7 @@ const SatelliteEntity = React.memo<{
         <Entity
             position={positionCallback}
             billboard={{
-                image: SATELLITE_GLYPH,
+                image: sat.type === 'ONEWEB' ? LEO_SMOKED_GLYPH : SATELLITE_GLYPH,
                 scale: scaleCallback,
                 color: billboardColor,
                 verticalOrigin: VerticalOrigin.CENTER

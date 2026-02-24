@@ -5,7 +5,7 @@
 
 import React from 'react';
 import { getRadiusAtPowerLevel, type CoveragePolicy } from '../utils/leoFootprint';
-import { getBeamFrequency, FREQUENCY_REUSE } from '../config/beamVisualization';
+import { getBeamFrequency, getBeamBaseColor, FREQUENCY_REUSE } from '../config/beamVisualization';
 import {
   type BeamHealthData,
   PERIPHERAL_BEAM_INDICES,
@@ -14,6 +14,15 @@ import {
   KA_BACKHAUL_CONSUMPTION,
   type WeatherCondition
 } from '../utils/realisticSimulation';
+
+// Helper to get polarization display
+const getPolarizationDisplay = (polarization: string): string => {
+  switch (polarization) {
+    case 'LHCP': return 'LHCP';
+    case 'RHCP': return 'RHCP';
+    default: return polarization;
+  }
+};
 
 // ─────────────────────────────────────────────────────────────────
 // BeamStatusGrid Component
@@ -28,6 +37,7 @@ interface BeamStatusGridProps {
   onHealthChange: (beamIndex: number, value: number) => void;
   onReset: () => void;
   weatherCondition: WeatherCondition;
+  isMovingNorth?: boolean; // Ajouter la direction de mouvement
 }
 
 export const BeamStatusGrid: React.FC<BeamStatusGridProps> = ({
@@ -38,7 +48,8 @@ export const BeamStatusGrid: React.FC<BeamStatusGridProps> = ({
   beamHealthFactors,
   onHealthChange,
   onReset,
-  weatherCondition
+  weatherCondition,
+  isMovingNorth = false // Direction de déplacement du satellite
 }) => {
   const getHealth = (beamIndex: number): number => {
     const entry = beamHealthFactors.find(b => b.beamIndex === beamIndex);
@@ -50,6 +61,22 @@ export const BeamStatusGrid: React.FC<BeamStatusGridProps> = ({
     if (h >= 0.70) return 'bg-amber-500';
     return 'bg-red-500';
   };
+
+  // Convert Cesium Color to RGB string for CSS
+  const getBeamColorRgb = (beamIndex: number): string => {
+    const cesiumColor = getBeamBaseColor(beamIndex);
+    const red = Math.round(cesiumColor.red * 255);
+    const green = Math.round(cesiumColor.green * 255);
+    const blue = Math.round(cesiumColor.blue * 255);
+    return `rgb(${red}, ${green}, ${blue})`;
+  };
+
+  // Determine satellite movement direction for arrow display
+  const getMovementDirection = (): 'north' | 'south' => {
+    return isMovingNorth ? 'north' : 'south';
+  };
+
+  const movementDirection = getMovementDirection();
 
   // Determine which beams are active based on GSO Protection logic
   const getBeamStatus = (beamIndex: number): 'active' | 'inactive' | 'gso-half' => {
@@ -99,7 +126,13 @@ export const BeamStatusGrid: React.FC<BeamStatusGridProps> = ({
                   <span className="font-medium" style={{ color: `rgb(${color.red}, ${color.green}, ${color.blue})` }}>{group.slice(-1)}:</span>
                   <span className="ml-1 text-gray-600 dark:text-gray-400">{freq.band}</span>
                   <div className="text-gray-500 dark:text-gray-500">
-                    ↓{freq.downlink} GHz
+                    ↓ {freq.downlink} GHz
+                  </div>
+                  <div className="text-gray-500 dark:text-gray-500">
+                    ↑ {freq.uplink} GHz
+                  </div>
+                  <div className="text-gray-500 dark:text-gray-500">
+                    {getPolarizationDisplay(freq.polarization)}
                   </div>
                   <div className="text-gray-500 dark:text-gray-500">
                     {groupBeams.map(b => `B${b}`).join(', ')}
@@ -108,6 +141,23 @@ export const BeamStatusGrid: React.FC<BeamStatusGridProps> = ({
               </div>
             );
           })}
+        </div>
+        
+        {/* Gateway/Backhaul Information */}
+        <div className="mt-3 pt-3 border-t border-gray-200 dark:border-slate-700">
+          <div className="flex items-center gap-2">
+            <div className="w-3 h-3 rounded-full bg-orange-500 border border-white/20"></div>
+            <div>
+              <span className="font-medium text-orange-600 dark:text-orange-400">Gateway (Backhaul):</span>
+              <span className="ml-1 text-gray-600 dark:text-gray-400">{FREQUENCY_REUSE.GATEWAY.band}</span>
+              <div className="text-gray-500 dark:text-gray-500">
+                ↓ {FREQUENCY_REUSE.GATEWAY.downlink} GHz
+              </div>
+              <div className="text-gray-500 dark:text-gray-500">
+                ↑ {FREQUENCY_REUSE.GATEWAY.uplink} GHz
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -135,166 +185,182 @@ export const BeamStatusGrid: React.FC<BeamStatusGridProps> = ({
         </div>
       </div>
 
-      {/* Beam Grid - 2 rows of 8 beams */}
-      <div className="space-y-4">
-        {/* Northern Beams (0-7) */}
-        <div className="flex items-end gap-1">
-          <span className="text-xs text-gray-500 dark:text-gray-400 w-14 font-medium mb-10">
-            N (0-7)
-          </span>
-          <div className="flex gap-1 flex-1">
-            {Array.from({ length: 8 }, (_, i) => {
-              const status = getBeamStatus(i);
-              const h = getHealth(i);
-              const isPeripheral = PERIPHERAL_BEAM_INDICES.has(i);
-              const pct = Math.round(h * 100);
-              const isBeamActive = status !== 'inactive';
-              const beamPower = calculateBeamPowerAllocation(isBeamActive, activeBeams, weatherCondition);
-
-              return (
-                <div
-                  key={i}
-                  className="flex-1 flex flex-col items-center gap-1"
-                >
-                  {/* Operational Status Badge */}
-                  <div
-                    className={`w-full h-6 rounded flex items-center justify-center text-[10px] font-medium transition-colors ${status === 'active'
-                      ? 'bg-green-500 text-white shadow-sm'
-                      : status === 'gso-half'
-                        ? 'bg-orange-500 text-white shadow-sm'
-                        : 'bg-gray-300 dark:bg-gray-700 text-gray-600 dark:text-gray-400'
-                      }`}
-                    title={`Beam ${i}: ${status === 'active' ? 'Active' : status === 'gso-half' ? 'GSO Mode' : 'Inactive'} | ${getBeamFrequency(i).band}-band | ${getBeamFrequency(i).downlink} GHz downlink`}
-                  >
-                    <span className={isPeripheral && isBeamActive ? 'font-bold underline decoration-2 underline-offset-2' : ''}>{i}</span>
-                  </div>
-
-                  {/* Health Body */}
-                  <div className={`w-full flex flex-col items-center gap-1 transition-opacity duration-300 ${!isBeamActive ? 'opacity-30 grayscale' : 'opacity-100'}`}>
-
-                    {/* Interactive Health bar */}
-                    <div className="relative w-full bg-gray-200 dark:bg-gray-700 rounded-sm overflow-hidden" style={{ height: '40px' }}>
-                      <div
-                        className={`absolute bottom-0 w-full rounded-sm transition-all duration-300 ${getHealthColor(h)}`}
-                        style={{ height: `${pct}%` }}
-                      />
-
-                      {/* Text Inside Bar */}
-                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                        <span className="text-[10px] font-bold text-white drop-shadow-[0_1px_1px_rgba(0,0,0,0.8)]">
-                          {pct}%
-                        </span>
-                      </div>
-
-                      {/* Invisible Interactive Slider Layer */}
-                      {isBeamActive && (
-                        <input
-                          type="range"
-                          min={0}
-                          max={1}
-                          step={0.01}
-                          value={h}
-                          onChange={e => onHealthChange(i, parseFloat(e.target.value))}
-                          title={`Beam ${i} health: ${pct}%`}
-                          className="absolute inset-0 w-full h-full opacity-0 cursor-ns-resize m-0 p-0"
-                          style={{
-                            WebkitAppearance: 'slider-vertical' as any,
-                            appearance: 'slider-vertical' as any
-                          }}
-                        />
-                      )}
-                    </div>
-
-                    {/* Wattage */}
-                    <span className="text-[10px] text-blue-700 dark:text-blue-400 font-bold">
-                      {beamPower.toFixed(1)}W
-                    </span>
-
-                  </div>
-                </div>
-              );
-            })}
+      {/* Beam Grid - 2 rows of 8 beams with single arrow */}
+      <div className="flex gap-1">
+        {/* Single arrow showing satellite movement direction */}
+        <div className="flex flex-col items-center justify-center">
+          <div className="text-lg text-gray-300">
+            {movementDirection === 'north' ? '↑' : '↓'}
           </div>
         </div>
+        
+        {/* Beams container */}
+        <div className="flex-1 space-y-4">
+          {/* Beams (0-7) */}
+          <div className="flex items-end gap-1">
+            <span className="text-xs text-gray-500 dark:text-gray-400 w-14 font-medium mb-10">
+              (0-7)
+            </span>
+            <div className="flex gap-1 flex-1">
+              {Array.from({ length: 8 }, (_, i) => {
+                const status = getBeamStatus(i);
+                const h = getHealth(i);
+                const isPeripheral = PERIPHERAL_BEAM_INDICES.has(i);
+                const pct = Math.round(h * 100);
+                const isBeamActive = status !== 'inactive';
+                const beamPower = calculateBeamPowerAllocation(isBeamActive, activeBeams, weatherCondition);
 
-        {/* Southern Beams (8-15) */}
-        <div className="flex items-end gap-1">
-          <span className="text-xs text-gray-500 dark:text-gray-400 w-14 font-medium mb-10">
-            S (8-15)
-          </span>
-          <div className="flex gap-1 flex-1">
-            {Array.from({ length: 8 }, (_, i) => {
-              const beamIndex = i + 8;
-              const status = getBeamStatus(beamIndex);
-              const h = getHealth(beamIndex);
-              const isPeripheral = PERIPHERAL_BEAM_INDICES.has(beamIndex);
-              const pct = Math.round(h * 100);
-              const isBeamActive = status !== 'inactive';
-              const beamPower = calculateBeamPowerAllocation(isBeamActive, activeBeams, weatherCondition);
-
-              return (
-                <div
-                  key={beamIndex}
-                  className="flex-1 flex flex-col items-center gap-1"
-                >
-                  {/* Operational Status Badge */}
+                return (
                   <div
-                    className={`w-full h-6 rounded flex items-center justify-center text-[10px] font-medium transition-colors ${status === 'active'
-                      ? 'bg-green-500 text-white shadow-sm'
-                      : status === 'gso-half'
-                        ? 'bg-orange-500 text-white shadow-sm'
-                        : 'bg-gray-300 dark:bg-gray-700 text-gray-600 dark:text-gray-400'
-                      }`}
-                    title={`Beam ${beamIndex}: ${status === 'active' ? 'Active' : status === 'gso-half' ? 'GSO Mode' : 'Inactive'} | ${getBeamFrequency(beamIndex).band}-band | ${getBeamFrequency(beamIndex).downlink} GHz downlink`}
+                    key={i}
+                    className="flex-1 flex flex-col items-center gap-1"
                   >
-                    <span className={isPeripheral && isBeamActive ? 'font-bold underline decoration-2 underline-offset-2' : ''}>{beamIndex}</span>
-                  </div>
-
-                  {/* Health Body */}
-                  <div className={`w-full flex flex-col items-center gap-1 transition-opacity duration-300 ${!isBeamActive ? 'opacity-30 grayscale' : 'opacity-100'}`}>
-
-                    {/* Interactive Health bar */}
-                    <div className="relative w-full bg-gray-200 dark:bg-gray-700 rounded-sm overflow-hidden" style={{ height: '40px' }}>
-                      <div
-                        className={`absolute bottom-0 w-full rounded-sm transition-all duration-300 ${getHealthColor(h)}`}
-                        style={{ height: `${pct}%` }}
-                      />
-
-                      {/* Text Inside Bar */}
-                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                        <span className="text-[10px] font-bold text-white drop-shadow-[0_1px_1px_rgba(0,0,0,0.8)]">
-                          {pct}%
-                        </span>
-                      </div>
-
-                      {/* Invisible Interactive Slider Layer */}
-                      {isBeamActive && (
-                        <input
-                          type="range"
-                          min={0}
-                          max={1}
-                          step={0.01}
-                          value={h}
-                          onChange={e => onHealthChange(beamIndex, parseFloat(e.target.value))}
-                          title={`Beam ${beamIndex} health: ${pct}%`}
-                          className="absolute inset-0 w-full h-full opacity-0 cursor-ns-resize m-0 p-0"
-                          style={{
-                            WebkitAppearance: 'slider-vertical' as any,
-                            appearance: 'slider-vertical' as any
-                          }}
-                        />
-                      )}
+                    {/* Operational Status Badge */}
+                    <div
+                      className={`w-full h-6 rounded flex items-center justify-center text-[10px] font-medium transition-colors ${status === 'active'
+                        ? 'text-white shadow-sm'
+                        : status === 'gso-half'
+                          ? 'text-white shadow-sm'
+                          : 'bg-gray-300 dark:bg-gray-700 text-gray-600 dark:text-gray-400'
+                        }`}
+                      style={{
+                        backgroundColor: status !== 'inactive' ? getBeamColorRgb(i) : undefined
+                      }}
+                      title={`Beam ${i}: ${status === 'active' ? 'Active' : status === 'gso-half' ? 'GSO Mode' : 'Inactive'} | ${getBeamFrequency(i).band}-band | ${getBeamFrequency(i).downlink} GHz downlink`}
+                    >
+                      <span className={isPeripheral && isBeamActive ? 'font-bold underline decoration-2 underline-offset-2' : ''}>{i}</span>
                     </div>
 
-                    {/* Wattage */}
-                    <span className="text-[10px] text-blue-700 dark:text-blue-400 font-bold">
-                      {beamPower.toFixed(1)}W
-                    </span>
+                    {/* Health Body */}
+                    <div className={`w-full flex flex-col items-center gap-1 transition-opacity duration-300 ${!isBeamActive ? 'opacity-30 grayscale' : 'opacity-100'}`}>
 
+                      {/* Interactive Health bar */}
+                      <div className="relative w-full bg-gray-200 dark:bg-gray-700 rounded-sm overflow-hidden" style={{ height: '40px' }}>
+                        <div
+                          className={`absolute bottom-0 w-full rounded-sm transition-all duration-300 ${getHealthColor(h)}`}
+                          style={{ height: `${pct}%` }}
+                        />
+
+                        {/* Text Inside Bar */}
+                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                          <span className="text-[10px] font-bold text-white drop-shadow-[0_1px_1px_rgba(0,0,0,0.8)]">
+                            {pct}%
+                          </span>
+                        </div>
+
+                        {/* Invisible Interactive Slider Layer */}
+                        {isBeamActive && (
+                          <input
+                            type="range"
+                            min={0}
+                            max={1}
+                            step={0.01}
+                            value={h}
+                            onChange={e => onHealthChange(i, parseFloat(e.target.value))}
+                            title={`Beam ${i} health: ${pct}%`}
+                            className="absolute inset-0 w-full h-full opacity-0 cursor-ns-resize m-0 p-0"
+                            style={{
+                              WebkitAppearance: 'slider-vertical' as any,
+                              appearance: 'slider-vertical' as any
+                            }}
+                          />
+                        )}
+                      </div>
+
+                      {/* Wattage */}
+                      <span className="text-[10px] text-blue-700 dark:text-blue-400 font-bold">
+                        {beamPower.toFixed(1)}W
+                      </span>
+
+                    </div>
                   </div>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Beams (8-15) */}
+          <div className="flex items-end gap-1">
+            <span className="text-xs text-gray-500 dark:text-gray-400 w-14 font-medium mb-10">
+              (8-15)
+            </span>
+            <div className="flex gap-1 flex-1">
+              {Array.from({ length: 8 }, (_, i) => {
+                const beamIndex = i + 8;
+                const status = getBeamStatus(beamIndex);
+                const h = getHealth(beamIndex);
+                const isPeripheral = PERIPHERAL_BEAM_INDICES.has(beamIndex);
+                const pct = Math.round(h * 100);
+                const isBeamActive = status !== 'inactive';
+                const beamPower = calculateBeamPowerAllocation(isBeamActive, activeBeams, weatherCondition);
+
+                return (
+                  <div
+                    key={beamIndex}
+                    className="flex-1 flex flex-col items-center gap-1"
+                  >
+                    {/* Operational Status Badge */}
+                    <div
+                      className={`w-full h-6 rounded flex items-center justify-center text-[10px] font-medium transition-colors ${status === 'active'
+                        ? 'text-white shadow-sm'
+                        : status === 'gso-half'
+                          ? 'text-white shadow-sm'
+                          : 'bg-gray-300 dark:bg-gray-700 text-gray-600 dark:text-gray-400'
+                        }`}
+                      style={{
+                        backgroundColor: status !== 'inactive' ? getBeamColorRgb(beamIndex) : undefined
+                      }}
+                      title={`Beam ${beamIndex}: ${status === 'active' ? 'Active' : status === 'gso-half' ? 'GSO Mode' : 'Inactive'} | ${getBeamFrequency(beamIndex).band}-band | ${getBeamFrequency(beamIndex).downlink} GHz downlink`}
+                    >
+                      <span className={isPeripheral && isBeamActive ? 'font-bold underline decoration-2 underline-offset-2' : ''}>{beamIndex}</span>
+                    </div>
+
+                    {/* Health Body */}
+                    <div className={`w-full flex flex-col items-center gap-1 transition-opacity duration-300 ${!isBeamActive ? 'opacity-30 grayscale' : 'opacity-100'}`}>
+
+                      {/* Interactive Health bar */}
+                      <div className="relative w-full bg-gray-200 dark:bg-gray-700 rounded-sm overflow-hidden" style={{ height: '40px' }}>
+                        <div
+                          className={`absolute bottom-0 w-full rounded-sm transition-all duration-300 ${getHealthColor(h)}`}
+                          style={{ height: `${pct}%` }}
+                        />
+
+                        {/* Text Inside Bar */}
+                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                          <span className="text-[10px] font-bold text-white drop-shadow-[0_1px_1px_rgba(0,0,0,0.8)]">
+                            {pct}%
+                          </span>
+                        </div>
+
+                        {/* Invisible Interactive Slider Layer */}
+                        {isBeamActive && (
+                          <input
+                            type="range"
+                            min={0}
+                            max={1}
+                            step={0.01}
+                            value={h}
+                            onChange={e => onHealthChange(beamIndex, parseFloat(e.target.value))}
+                            title={`Beam ${beamIndex} health: ${pct}%`}
+                            className="absolute inset-0 w-full h-full opacity-0 cursor-ns-resize m-0 p-0"
+                            style={{
+                              WebkitAppearance: 'slider-vertical' as any,
+                              appearance: 'slider-vertical' as any
+                            }}
+                          />
+                        )}
+                      </div>
+
+                      {/* Wattage */}
+                      <span className="text-[10px] text-blue-700 dark:text-blue-400 font-bold">
+                        {beamPower.toFixed(1)}W
+                      </span>
+
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </div>
       </div>
@@ -306,12 +372,12 @@ export const BeamStatusGrid: React.FC<BeamStatusGridProps> = ({
           <div className="flex items-center gap-3">
             <span className="font-semibold text-gray-700 dark:text-gray-300">Status:</span>
             <div className="flex items-center gap-1">
-              <div className="w-2.5 h-2.5 rounded-sm bg-green-500 shadow-sm"></div>
+              <div className="w-2.5 h-2.5 rounded-sm shadow-sm" style={{ backgroundColor: getBeamColorRgb(0) }}></div>
               <span className="text-gray-600 dark:text-gray-400">Active</span>
             </div>
             {isGSOAvoidance && (
               <div className="flex items-center gap-1">
-                <div className="w-2.5 h-2.5 rounded-sm bg-orange-500 shadow-sm"></div>
+                <div className="w-2.5 h-2.5 rounded-sm shadow-sm" style={{ backgroundColor: getBeamColorRgb(0) }}></div>
                 <span className="text-gray-600 dark:text-gray-400">GSO Mode</span>
               </div>
             )}
