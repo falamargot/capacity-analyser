@@ -109,6 +109,22 @@ const BottomSheet: React.FC<BottomSheetProps> = ({
             className="absolute inset-x-0 bottom-0 z-50 pointer-events-none"
             style={{ height: '90vh' }}
         >
+            {/* Always visible handle indicator */}
+            <div className="absolute inset-x-0 bottom-0 flex justify-center pointer-events-auto">
+                <div
+                    className="bg-white dark:bg-slate-950 rounded-t-2xl shadow-lg border border-gray-200 dark:border-slate-800 px-4 py-2 flex items-center gap-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-900 transition-colors"
+                    onPointerDown={handlePointerDown}
+                    onPointerMove={handlePointerMove}
+                    onPointerUp={handlePointerUp}
+                    onPointerCancel={handlePointerUp}
+                    style={{ touchAction: 'none' }}
+                >
+                    <div className="h-2 w-16 rounded-full bg-gray-400 dark:bg-slate-500 shadow-md" />
+                    <span className="text-xs text-gray-600 dark:text-gray-400 font-medium">Capacity Analysis</span>
+                    <div className="h-2 w-16 rounded-full bg-gray-400 dark:bg-slate-500 shadow-md" />
+                </div>
+            </div>
+            
             <div
                 className="h-full w-full rounded-t-2xl bg-white dark:bg-slate-950 shadow-2xl border border-gray-200 dark:border-slate-800 flex flex-col pointer-events-auto"
                 style={{
@@ -118,17 +134,17 @@ const BottomSheet: React.FC<BottomSheetProps> = ({
                 }}
             >
                 <div
-                    className={`${compact ? 'pt-1 pb-1 px-3 gap-1' : 'pt-2 pb-2 px-4 gap-2'} flex flex-col`}
+                    className={`${compact ? 'pt-2 pb-1 px-3 gap-2' : 'pt-3 pb-2 px-4 gap-3'} flex flex-col`}
                 >
                     <div
-                        className="w-full flex items-center justify-center"
+                        className="w-full flex items-center justify-center py-1"
                         onPointerDown={handlePointerDown}
                         onPointerMove={handlePointerMove}
                         onPointerUp={handlePointerUp}
                         onPointerCancel={handlePointerUp}
                         style={{ touchAction: 'none' }}
                     >
-                        <div className={`${compact ? 'h-1.5 w-14' : 'h-1.5 w-12'} rounded-full bg-gray-300 dark:bg-slate-600`} />
+                        <div className={`${compact ? 'h-2 w-16' : 'h-2.5 w-20'} rounded-full bg-gray-400 dark:bg-slate-500 shadow-md hover:bg-gray-500 dark:hover:bg-slate-400 transition-colors cursor-pointer`} />
                     </div>
                     {header}
                 </div>
