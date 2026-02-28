@@ -1,10 +1,24 @@
 import { SatelliteData } from '../../../types/satellites';
 import { SatelliteScope } from '../../SatelliteScopeFilter';
-import { isSatelliteConnectedToGateway } from '../../../utils/connectivityRules';
+import { getBestConnectedGateway } from '../../../utils/connectivityRules';
+import type { SNPData } from '../../globe/GlobeConfig';
 import { isLEOSatelliteActive, calculateCombGeometry, calculateGSOAvoidanceAngle, TOTAL_BEAMS } from '../../../utils/oneWebComb';
 import { isRfCoverageSatisfied, footprintRadiusKm, STANDARD_ELEVATION_DEG, type CoveragePolicy } from '../../../utils/leoFootprint';
 
 import { JulianDate, Rectangle, Math as CesiumMath, Cartographic } from 'cesium';
+
+/** A Satellite→SNP backhaul pair, used for rendering link lines in Aggregated Connectivity mode */
+export interface BackhaulLink {
+    satellite: SatelliteData;
+    snp: SNPData;
+}
+
+/** Result of generateCoverageGrid */
+export interface CoverageGridResult {
+    rectangles: Rectangle[];
+    /** Active satellite→SNP backhaul pairs visible at this moment (LEO only) */
+    backhaulLinks: BackhaulLink[];
+}
 
 // Grid configuration
 const GRID_RES_DEG = 0.5; // 0.5 degree resolution for smoother edges
@@ -21,14 +35,14 @@ function isBeamActive(
     isMovingNorth: boolean
 ): boolean {
     if (isBlankingZone) return false;
-    
+
     if (isGSOAvoidance) {
         const shouldActivateNorthernBeams = (satLatDeg > 0) === isMovingNorth;
         return shouldActivateNorthernBeams
             ? beamIndex >= 0 && beamIndex <= 7
             : beamIndex >= 8 && beamIndex <= 15;
     }
-    
+
     return true;
 }
 
@@ -45,33 +59,35 @@ function isPointInBeamPolygon(
         const yi = polygon[i].lat;
         const xj = polygon[j].lng;
         const yj = polygon[j].lat;
-        
+
         const intersect = ((yi > point.lat) !== (yj > point.lat))
             && (point.lng < (xj - xi) * (point.lat - yi) / (yj - yi) + xi);
-        
+
         if (intersect) inside = !inside;
     }
     return inside;
 }
 
 /**
- * Generates a set of non-overlapping Rectangles representing the binary coverage mask.
- * 
+ * Generates a set of non-overlapping Rectangles representing the binary coverage mask,
+ * plus the active backhaul links (Satellite→SNP) for rendering in Aggregated Connectivity mode.
+ *
  * @param satellites List of all satellites
  * @param scope "LEO", "GEO" or "ALL"
  * @param policy Coverage policy (DB_THRESHOLD or ONEWEB_SERVICE_ZONE)
- * @returns Array of Cesium Rectangle objects
+ * @returns CoverageGridResult with rectangles and backhaulLinks
  */
 export function generateCoverageGrid(
     satellites: SatelliteData[],
     scope: SatelliteScope,
     policy: CoveragePolicy
-): Rectangle[] {
+): CoverageGridResult {
     const activeCells = new Set<string>(); // "latIdx,lonIdx"
+    const backhaulLinks: BackhaulLink[] = [];
     const now = new Date();
     const time = JulianDate.fromDate(now);
 
-    // 1. Filter relevant satellites
+    // 1. Filter relevant satellites and collect backhaul links
     const relevantSatellites = satellites.filter(sat => {
         if (scope === 'LEO' && sat.orbitType !== 'LEO') return false;
         if (scope === 'GEO' && sat.orbitType !== 'GEO') return false;
@@ -82,16 +98,16 @@ export function generateCoverageGrid(
             if (sat.satrec && !isLEOSatelliteActive(sat.satrec, time)) {
                 return false;
             }
-            // Gateway Connectivity check
-            if (!isSatelliteConnectedToGateway(sat, 15)) {
-                return false;
-            }
+            // Gateway Connectivity check — also collect best SNP for backhaul link display
+            const bestGateway = getBestConnectedGateway(sat, 15);
+            if (!bestGateway) return false;
+            backhaulLinks.push({ satellite: sat, snp: bestGateway.snp });
         }
 
         return true;
     });
 
-    if (relevantSatellites.length === 0) return [];
+    if (relevantSatellites.length === 0) return { rectangles: [], backhaulLinks: [] };
 
     // Helper to get cell ID
     const getCellId = (latIdx: number, lonIdx: number) => `${latIdx},${lonIdx}`;
@@ -110,33 +126,33 @@ export function generateCoverageGrid(
         // LEO Logic: Different approaches based on coverage policy
         if (sat.orbitType === 'LEO') {
             if (!sat.satrec) return;
-            
+
             if (policy.type === "SERVICE_ZONE") {
                 // SERVICE_ZONE Mode: Simple circular footprint based on 37° elevation (Service Zone)
                 // More efficient than beam-by-beam calculations
-                
+
                 const radius = footprintRadiusKm(sat.position.alt, STANDARD_ELEVATION_DEG);
                 const centerLat = sat.position.lat;
                 const centerLng = sat.position.lng;
-                
+
                 // Convert radius to degrees (approximation for bounding box)
                 const radiusDeg = radius / 111; // 111 km ≈ 1° at equator
-                
+
                 // Safety check: if radius is unreasonably large, skip this satellite
                 if (radiusDeg > 50 || !Number.isFinite(radiusDeg)) {
                     console.warn(`Satellite ${sat.id}: abnormal footprint radius ${radiusDeg}°, skipping`);
                     return;
                 }
-                
+
                 // Calculate bounding box for latitude (straightforward)
                 const minLat = Math.max(-90, centerLat - radiusDeg);
                 const maxLat = Math.min(90, centerLat + radiusDeg);
-                
+
                 // Calculate bounding box for longitude (handle polar regions specially)
                 let startLonIdxRaw: number;
                 let endLonIdxRaw: number;
                 let cellsToTest: number;
-                
+
                 // Near poles (within 10° of ±90°), the footprint might wrap significantly
                 if (Math.abs(centerLat) > 80) {
                     // Very close to pole - test all longitudes for affected latitudes
@@ -151,15 +167,15 @@ export function generateCoverageGrid(
                         180, // Never exceed 180° (half the globe)
                         radiusDeg / latCorrectionFactor
                     );
-                    
+
                     const minLon = centerLng - lngRadiusDeg;
                     const maxLon = centerLng + lngRadiusDeg;
-                    
+
                     startLonIdxRaw = Math.floor((minLon + 180) / GRID_RES_DEG);
                     endLonIdxRaw = Math.ceil((maxLon + 180) / GRID_RES_DEG);
                     cellsToTest = endLonIdxRaw - startLonIdxRaw;
                 }
-                
+
                 // Safety limit: if we're about to test more than 10000 cells, something is wrong
                 const latCells = Math.ceil((maxLat - minLat) / GRID_RES_DEG);
                 const totalCells = latCells * cellsToTest;
@@ -167,26 +183,26 @@ export function generateCoverageGrid(
                     console.warn(`Satellite ${sat.id}: bounding box too large (${totalCells} cells), skipping`);
                     return;
                 }
-                
+
                 // Calculate grid indices for latitude
                 const startLatIdx = Math.floor((minLat + 90) / GRID_RES_DEG);
                 const endLatIdx = Math.ceil((maxLat + 90) / GRID_RES_DEG);
-                
+
                 // Test each cell in the bounding box
                 for (let latIdx = startLatIdx; latIdx < endLatIdx; latIdx++) {
                     if (latIdx < 0 || latIdx >= latSteps) continue;
                     const cellCenterLat = -90 + (latIdx * GRID_RES_DEG) + (GRID_RES_DEG / 2);
-                    
+
                     for (let lonIdxRaw = startLonIdxRaw; lonIdxRaw < endLonIdxRaw; lonIdxRaw++) {
                         // Handle longitude wrapping
                         let lonIdx = lonIdxRaw % lonSteps;
                         if (lonIdx < 0) lonIdx += lonSteps;
-                        
+
                         const cellId = getCellId(latIdx, lonIdx);
                         if (activeCells.has(cellId)) continue;
-                        
+
                         const cellCenterLon = -180 + (lonIdx * GRID_RES_DEG) + (GRID_RES_DEG / 2);
-                        
+
                         // Check if cell center is within circular coverage
                         if (isRfCoverageSatisfied(
                             { lat: cellCenterLat, lng: cellCenterLon },
@@ -200,24 +216,24 @@ export function generateCoverageGrid(
                 }
             } else if (policy.type === "DB_THRESHOLD") {
                 // DB_THRESHOLD Mode: Use actual beam geometries
-                
+
                 // 1. Calculate the 16 beam geometries with the specified threshold
                 const beamGeometries = calculateCombGeometry(sat.satrec, time, policy.thresholdDb);
                 if (!beamGeometries || beamGeometries.length === 0) return;
-                
+
                 // 2. Determine GSO Protection status
-                const { isGSOAvoidance, isBlankingZone, satLatDeg, isMovingNorth } = 
+                const { isGSOAvoidance, isBlankingZone, satLatDeg, isMovingNorth } =
                     calculateGSOAvoidanceAngle(sat.satrec, time);
-                
+
                 // 3. Iterate over the 16 beams
                 for (let beamIndex = 0; beamIndex < TOTAL_BEAMS; beamIndex++) {
                     const beamGeometry = beamGeometries[beamIndex];
-                    
+
                     // Check if this beam is active
                     if (!isBeamActive(beamIndex, isBlankingZone, isGSOAvoidance, satLatDeg, isMovingNorth)) {
                         continue; // Skip inactive beams
                     }
-                    
+
                     // 4. Convert Cartesian3[] to lat/lng[]
                     const beamPoints: { lat: number; lng: number }[] = [];
                     for (const cartesian of beamGeometry) {
@@ -227,7 +243,7 @@ export function generateCoverageGrid(
                             lng: CesiumMath.toDegrees(cartographic.longitude)
                         });
                     }
-                    
+
                     // 5. Calculate bounding box of the beam
                     let minLat = 90, maxLat = -90, minLon = 180, maxLon = -180;
                     for (const point of beamPoints) {
@@ -236,34 +252,34 @@ export function generateCoverageGrid(
                         minLon = Math.min(minLon, point.lng);
                         maxLon = Math.max(maxLon, point.lng);
                     }
-                    
+
                     // Add buffer to avoid edge cases
                     const buffer = GRID_RES_DEG * 2;
                     minLat = Math.max(-90, minLat - buffer);
                     maxLat = Math.min(90, maxLat + buffer);
                     minLon = Math.max(-180, minLon - buffer);
                     maxLon = Math.min(180, maxLon + buffer);
-                    
+
                     // 6. Calculate grid indices
                     const startLatIdx = Math.floor((minLat + 90) / GRID_RES_DEG);
                     const endLatIdx = Math.ceil((maxLat + 90) / GRID_RES_DEG);
                     const startLonIdxRaw = Math.floor((minLon + 180) / GRID_RES_DEG);
                     const endLonIdxRaw = Math.ceil((maxLon + 180) / GRID_RES_DEG);
-                    
+
                     // 7. Test each cell in the bounding box
                     for (let latIdx = startLatIdx; latIdx < endLatIdx; latIdx++) {
                         if (latIdx < 0 || latIdx >= latSteps) continue;
                         const cellCenterLat = -90 + (latIdx * GRID_RES_DEG) + (GRID_RES_DEG / 2);
-                        
+
                         for (let lonIdxRaw = startLonIdxRaw; lonIdxRaw < endLonIdxRaw; lonIdxRaw++) {
                             let lonIdx = lonIdxRaw % lonSteps;
                             if (lonIdx < 0) lonIdx += lonSteps;
-                            
+
                             const cellId = getCellId(latIdx, lonIdx);
                             if (activeCells.has(cellId)) continue; // Already marked
-                            
+
                             const cellCenterLon = -180 + (lonIdx * GRID_RES_DEG) + (GRID_RES_DEG / 2);
-                            
+
                             // Test point-in-polygon with the actual beam
                             if (isPointInBeamPolygon(
                                 { lat: cellCenterLat, lng: cellCenterLon },
@@ -386,7 +402,7 @@ export function generateCoverageGrid(
         }
     }
 
-    return rectangles;
+    return { rectangles, backhaulLinks };
 }
 
 // Helper: Ray-casting algorithm for Point-in-Polygon

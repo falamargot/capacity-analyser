@@ -1,4 +1,5 @@
 import { Feature, FeatureCollection } from 'geojson';
+import type { CoverageData } from '../services/coverageService';
 
 export interface SatelliteData {
   id: string;
@@ -24,9 +25,10 @@ export interface SatelliteData {
     };
     availability: number;
   };
-  referenced_coverages: FeatureCollection;
+  referenced_coverages: CoverageData | FeatureCollection;
   coverages: Coverage[];
 }
+
 
 export interface Coverage {
   name: string;
