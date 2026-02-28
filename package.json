@@ -21,6 +21,7 @@
     "react-dom": "19.2.1",
     "resium": "1.19.2",
     "satellite.js": "^6.0.2",
+    "typescript": "^5.9.3",
     "vite": "^7.3.1",
     "vite-plugin-cesium": "^1.2.23"
   },

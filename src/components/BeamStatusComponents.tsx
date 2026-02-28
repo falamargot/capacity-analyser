@@ -120,15 +120,15 @@ export const BeamStatusGrid: React.FC<BeamStatusGridProps> = ({
               <div key={group} className="flex items-center gap-2">
                 <div
                   className="w-3 h-3 rounded-full border border-white/20"
-                  style={{ backgroundColor: `rgb(${color.red}, ${color.green}, ${color.blue})` }}
+                  style={{ backgroundColor: color.toCssColorString() }}
                 />
                 <div>
-                  <span className="font-medium" style={{ color: `rgb(${color.red}, ${color.green}, ${color.blue})` }}>{group.slice(-1)}:</span>
+                  <span className="font-medium" style={{ color: color.toCssColorString() }}>{group.slice(-1)}:</span>
                   <span className="ml-1 text-gray-600 dark:text-gray-400">{freq.band}</span>
-                  <div className="text-gray-500 dark:text-gray-500">
+                  <div style={{ color: color.toCssColorString() }}>
                     ↓ {freq.downlink} GHz
                   </div>
-                  <div className="text-gray-500 dark:text-gray-500">
+                  <div style={{ color: color.toCssColorString() }}>
                     ↑ {freq.uplink} GHz
                   </div>
                   <div className="text-gray-500 dark:text-gray-500">
@@ -142,7 +142,7 @@ export const BeamStatusGrid: React.FC<BeamStatusGridProps> = ({
             );
           })}
         </div>
-        
+
         {/* Gateway/Backhaul Information */}
         <div className="mt-3 pt-3 border-t border-gray-200 dark:border-slate-700">
           <div className="flex items-center gap-2">
@@ -193,7 +193,7 @@ export const BeamStatusGrid: React.FC<BeamStatusGridProps> = ({
             {movementDirection === 'north' ? '↑' : '↓'}
           </div>
         </div>
-        
+
         {/* Beams container */}
         <div className="flex-1 space-y-4">
           {/* Beams (0-7) */}

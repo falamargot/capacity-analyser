@@ -34,7 +34,6 @@ import type { SatelliteScope } from './SatelliteScopeFilter';
 import type { GEOBeam } from '../types/analysis';
 import { getPosition, DPR_FACTOR, calculateDynamicScale } from './cesium-globe/utils';
 import { useCesiumTheme } from '../hooks/useCesiumTheme';
-import { useSimulation } from '../contexts/SimulationContext';
 
 // Layer components
 import SatelliteLayer from './cesium-globe/SatelliteLayer';
@@ -43,7 +42,6 @@ import VesselLayer from './cesium-globe/VesselLayer';
 import SnpLayer from './cesium-globe/SnpLayer';
 import CoverageLayer from './cesium-globe/CoverageLayer';
 import OneWebCombLayer from './cesium-globe/OneWebCombLayer';
-import PremiumCoverageLayer from './cesium-globe/PremiumCoverageLayer';
 import AggregatedCoverageVolumeLayer from './cesium-globe/AggregatedCoverageVolumeLayer';
 import TransmissionLinks from './cesium-globe/TransmissionLinks';
 import TrajectoryLayer from './cesium-globe/TrajectoryLayer';
@@ -134,7 +132,6 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
     sceneMode = '3D',
     onSceneModeChange,
 }) => {
-    const { coveragePolicy } = useSimulation();
     const [localEnableLighting, setLocalEnableLighting] = useState(false);
     const enableLighting = localEnableLighting;
     const onToggleLighting = () => setLocalEnableLighting(!enableLighting);
@@ -225,8 +222,22 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
             }
         }
 
+        const viewer = viewerRef.current;
+        const scene = viewer.scene;
+
+        // 1. Raycast to hit the terrain surface accurately
+        const ray = scene.camera.getPickRay(movement.position);
+        let cartesian = undefined;
+        if (ray) {
+            cartesian = scene.globe.pick(ray, scene);
+        }
+
+        // 2. Fallback to idealized ellipsoid if raycast fails (e.g. at the edges or in 2D)
+        if (!cartesian) {
+            cartesian = scene.camera.pickEllipsoid(movement.position, scene.globe.ellipsoid);
+        }
+
         // Check if we clicked on empty space (no earth)
-        const cartesian = viewerRef.current.camera.pickEllipsoid(movement.position);
         if (!cartesian) {
             // Clicked on empty space - deselect everything
             onSatelliteClick(null);

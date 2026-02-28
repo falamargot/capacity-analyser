@@ -710,9 +710,7 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
                             const icon = key === 'clear' ? '☀️ ' :
                               key === 'light_rain' ? '☁️ ' :
                                 key === 'heavy_rain' ? '🌧️ ' : '⛈️ ';
-                            const db = WEATHER_ATTENUATION_DB[p.condition];
-                            const dbStr = db === 0 ? '0 dB' : `${db.toFixed(1)} dB`;
-                            return `${icon}${p.label} (${dbStr})`;
+                            return `${icon}${p.label}`;
                           })()}
                         </option>
                       ))}
@@ -760,11 +758,11 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
                         <div className="text-xs text-gray-500 dark:text-gray-400 space-y-2 text-left">
                           <div>
                             <div>{analysisSource === 'aircraft' && aircraftCallsign ? aircraftCallsign : 'User'} → {resolvedLEOConnectivity.satellite.name}{resolvedLEOConnectivity.connectedBeamIndex !== null ? ` · Beam ${resolvedLEOConnectivity.connectedBeamIndex}` : ''}</div>
-                            <div className="ml-4">→ Elevation: {resolvedLEOConnectivity.userLEOElevation?.toFixed(1)}° | Distance: {resolvedLEOConnectivity.userLEODistance?.toFixed(0)} km ({(resolvedLEOConnectivity.userLEODistance * 2 / SPEED_OF_LIGHT_RADIO_KM_S * 1000).toFixed(1)} ms)</div>
+                            <div className="ml-4">→ Elevation: {resolvedLEOConnectivity.userLEOElevation?.toFixed(1)}° | Distance: {resolvedLEOConnectivity.userLEODistance?.toFixed(0)} km ({(resolvedLEOConnectivity.userLEODistance / SPEED_OF_LIGHT_RADIO_KM_S * 1000).toFixed(1)} ms)</div>
                           </div>
                           <div>
                             <div>{resolvedLEOConnectivity.snp.name} → {resolvedLEOConnectivity.satellite.name}</div>
-                            <div className="ml-4">→ Elevation: {resolvedLEOConnectivity.snpLEOElevation?.toFixed(1)}° | Distance: {resolvedLEOConnectivity.snpLEODistance?.toFixed(0)} km ({((resolvedLEOConnectivity.snpLEODistance || 0) * 2 / SPEED_OF_LIGHT_RADIO_KM_S * 1000).toFixed(1)} ms)</div>
+                            <div className="ml-4">→ Elevation: {resolvedLEOConnectivity.snpLEOElevation?.toFixed(1)}° | Distance: {resolvedLEOConnectivity.snpLEODistance?.toFixed(0)} km ({((resolvedLEOConnectivity.snpLEODistance || 0) / SPEED_OF_LIGHT_RADIO_KM_S * 1000).toFixed(1)} ms)</div>
                           </div>
                         </div>
                       ) : (
@@ -874,7 +872,7 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
                     <div className="text-sm text-gray-700 dark:text-gray-300 text-center space-y-3">
                       <div>{analysisSource === 'aircraft' && aircraftCallsign ? aircraftCallsign : 'User'} ↔ <button onClick={() => onSatelliteClick?.(resolvedGEOConnectivity.satellite)} className="underline hover:no-underline text-blue-600 dark:text-blue-400 font-medium cursor-pointer">{resolvedGEOConnectivity.satellite.name}</button></div>
                       <div className="text-xs text-gray-500 dark:text-gray-400 text-left">
-                        <div>→ Elevation: {resolvedGEOConnectivity.elevation.toFixed(1)}° | Distance: {resolvedGEOConnectivity.distance.toFixed(0)} km ({resolvedGEOConnectivity.rtt} ms)</div>
+                        <div>→ Elevation: {resolvedGEOConnectivity.elevation.toFixed(1)}° | Distance: {resolvedGEOConnectivity.distance.toFixed(0)} km ({(resolvedGEOConnectivity.distance / SPEED_OF_LIGHT_RADIO_KM_S * 1000).toFixed(1)} ms)</div>
                         {resolvedGEOConnectivity.beam && (
                           <div className="mt-1">→ Direct Beam: {resolvedGEOConnectivity.beam.name}</div>
                         )}

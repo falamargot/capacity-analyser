@@ -5,9 +5,7 @@ import { calculateGSOAvoidanceAngle, getActiveBeamCount, calculateCombGeometry }
 import { isRfCoverageSatisfied, getPhysicsAwareBeamRadius, type CoveragePolicy } from './leoFootprint';
 import {
     getBeamPerformance,
-    throughputRatioFromPowerDb,
     type WeatherCondition,
-    DEFAULT_BEAM_HEALTH,
 } from './realisticSimulation';
 
 /**
@@ -25,6 +23,15 @@ export function hasRFConnectivity(
     }
 
     try {
+        // FAST PATH & SANITY CHECK:
+        // A user cannot possibly have RF connectivity if the satellite is below the horizon.
+        // This effectively shields the 2D polygon engine from antimeridian wrapping bugs 
+        // that mistakenly validate satellites on the other side of the Earth.
+        const elevation = calculateElevationAngle(userPosition, satellite);
+        if (elevation < 0) {
+            return false;
+        }
+
         // Check if satellite has any active beams (not in blanking zone)
         const activeBeamCount = getActiveBeamCount(satellite.satrec, time);
         if (activeBeamCount === 0) {
@@ -425,6 +432,13 @@ export function findConnectedBeamIndex(
     if (!satellite || satellite.type !== 'ONEWEB' || !satellite.satrec) return null;
 
     try {
+        // FAST PATH & SANITY CHECK:
+        // Shield the 2D polygon engine from distant/antimeridian false positives
+        const elevation = calculateElevationAngle(userPosition, satellite);
+        if (elevation < 0) {
+            return null;
+        }
+
         const { isBlankingZone, isGSOAvoidance, satLatDeg, isMovingNorth } =
             calculateGSOAvoidanceAngle(satellite.satrec, time);
 
