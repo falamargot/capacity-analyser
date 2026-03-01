@@ -79,6 +79,14 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
   const [weatherType, setWeatherType] = useState<WeatherType>('clear');
   const [autoWeatherEnabled, setAutoWeatherEnabled] = useState<boolean>(true);
 
+  // Force Clear Sky for aviation terminals and disable auto-weather
+  useEffect(() => {
+    if (terminalType === 'aviation') {
+      setWeatherType('clear');
+      setAutoWeatherEnabled(false);
+    }
+  }, [terminalType]);
+
   // Map legacy UI weather types to physics conditions
   const toWeatherCondition = (wt: WeatherType): WeatherCondition => {
     if (wt === 'clear') return 'CLEAR';
@@ -660,7 +668,7 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
                   <select
                     value={terminalType}
                     onChange={(e) => setTerminalType(e.target.value as TerminalType)}
-                    className="flex-1 pl-3 pr-8 py-2 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none bg-white dark:bg-slate-700 text-sm text-gray-900 dark:text-gray-100 transition-colors"
+                    className="w-56 pl-3 pr-8 py-2 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none bg-white dark:bg-slate-700 text-sm text-gray-900 dark:text-gray-100 transition-colors"
                     disabled={analysisSource === 'aircraft'}
                     style={{
                       backgroundImage: analysisSource === 'aircraft' ? 'none' : `url("data:image/svg+xml;charset=US-ASCII,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 4 5'%3E%3Cpath fill='%236B7280' d='M2 0L0 2h4zm0 5L0 3h4z'/%3E%3C/svg>")`,
@@ -694,7 +702,7 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
                         setWeatherType(e.target.value as WeatherType);
                         setAutoWeatherEnabled(false);
                       }}
-                      className="flex-1 pl-3 pr-8 py-2 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none bg-white dark:bg-slate-700 text-sm text-gray-900 dark:text-gray-100 transition-colors"
+                      className="w-56 pl-3 pr-8 py-2 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none bg-white dark:bg-slate-700 text-sm text-gray-900 dark:text-gray-100 transition-colors"
                       disabled={terminalType === 'aviation'}
                       style={{
                         backgroundImage: terminalType === 'aviation' ? 'none' : `url("data:image/svg+xml;charset=US-ASCII,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 4 5'%3E%3Cpath fill='%236B7280' d='M2 0L0 2h4zm0 5L0 3h4z'/%3E%3Csvg>")`,
