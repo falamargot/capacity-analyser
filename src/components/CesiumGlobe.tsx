@@ -24,6 +24,8 @@ import {
     ScreenSpaceEventType,
     defined,
     CallbackProperty,
+    HorizontalOrigin,
+    VerticalOrigin,
     SceneMode
 } from 'cesium';
 import { Feature, Geometry, GeoJsonProperties } from 'geojson';
@@ -52,6 +54,8 @@ import AggregatedConnectivityLayer from './cesium-globe/AggregatedConnectivityLa
 import GlobeControls from './cesium-globe/GlobeControls';
 import PositionDisplay from './cesium-globe/PositionDisplay';
 import SatelliteIndicator from './cesium-globe/SatelliteIndicator';
+import { LabelGraphics } from 'resium';
+import { formatCoordinates } from '../utils/formatters';
 
 interface CesiumGlobeProps {
     satellites: SatelliteData[];
@@ -269,7 +273,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         if (selectedSatellite) return false;
         if (!autoSelectedLEOSatellite) return false;
         return true;
-    }, [selectedSatellite?.id, autoSelectedLEOSatellite?.id]);
+    }, [selectedSatellite, autoSelectedLEOSatellite]);
 
     const geoBeamCone = useMemo(() => {
         // Only render the beam cone in auto-selection context (no manual satellite selected)
@@ -278,7 +282,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         const beamFeature = selectedGEOBeam?.feature ?? null;
         if (!beamFeature) return { beamFeature: null, sat: null };
         return { beamFeature, sat: autoSelectedGEOSatellite };
-    }, [selectedSatellite?.id, autoSelectedGEOSatellite?.id, selectedGEOBeam?.feature]);
+    }, [selectedSatellite, autoSelectedGEOSatellite, selectedGEOBeam]);
 
     // Create stable pixel size callback for selected position marker
     const positionMarkerPixelSize = useMemo(() => {
@@ -291,10 +295,10 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
             const cameraHeight = viewerRef.current.camera.positionCartographic.height;
             const dynamicScale = calculateDynamicScale(cameraHeight, DPR_FACTOR);
 
-            const baseScale = dynamicScale * 50000000 / Math.max(distance, 2000000);
+            const baseScale = dynamicScale * 50000000 / Math.max(distance, 5000000);
             return baseScale * (sizeScale || 1);
         }, false);
-    }, [selectedPosition?.lat, selectedPosition?.lng, selectedPosition?.altitude, sizeScale, viewerRef]);
+    }, [selectedPosition, sizeScale]);
 
     return (
         <div className="relative w-full h-full">
@@ -360,13 +364,28 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                             point={{
                                 pixelSize: positionMarkerPixelSize,
                                 color: Color.RED,
-                                outlineColor: Color.WHITE,
+                                outlineColor: Color.RED,
                                 outlineWidth: 2,
                                 disableDepthTestDistance: 0
                             }}
                             name="Selected Position"
                             description={`Lat: ${selectedPosition.lat.toFixed(4)}, Lng: ${selectedPosition.lng.toFixed(4)}`}
-                        />
+                        >
+                            <LabelGraphics
+                                text={formatCoordinates({ lat: selectedPosition.lat, lng: selectedPosition.lng })}
+                                font="600 13px Inter, sans-serif"
+                                fillColor={Color.WHITE}
+                                outlineWidth={3}
+                                style={2}
+                                showBackground={true}
+                                backgroundColor={Color.RED.withAlpha(0.7)}
+                                backgroundPadding={new Cartesian2(7, 4)}
+                                pixelOffset={new Cartesian2(0, -20)}
+                                verticalOrigin={VerticalOrigin.BOTTOM}
+                                horizontalOrigin={HorizontalOrigin.CENTER}
+                                disableDepthTestDistance={Number.POSITIVE_INFINITY}
+                            />
+                        </Entity>
                     )}
 
                     {/* Aggregated Connectivity Layer (Bottom most coverage layer) */}
@@ -395,6 +414,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                         onSnpHover={onSnpHover}
                         viewerRef={viewerRef}
                         sizeScale={sizeScale}
+                        autoSelectedSnpName={typeof selectedSNP === 'string' ? selectedSNP : (selectedSNP?.name ?? null)}
                     />
 
                     {/* GEO Gateway Layer */}

@@ -52,7 +52,7 @@ const TrajectoryLayer: React.FC<TrajectoryLayerProps> = ({
 
             return trajectoryPoints;
         }, false);
-    }, [sat?.id, sat?.satrec, sat?.type, show]);
+    }, [sat?.satrec, sat?.type, show]);
 
     if (!sat?.satrec || !show || !positionsCallback) {
         return null;

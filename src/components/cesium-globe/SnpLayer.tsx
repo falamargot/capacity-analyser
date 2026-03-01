@@ -2,11 +2,14 @@
  * SnpLayer - Renders SNP (Satellite Network Portal) ground stations
  */
 import React, { useMemo, useCallback } from 'react';
-import { Entity } from 'resium';
+import { Entity, LabelGraphics } from 'resium';
 import {
     Cartesian3,
+    Cartesian2,
     Color,
     CallbackProperty,
+    VerticalOrigin,
+    HorizontalOrigin,
     Viewer as CesiumViewerType
 } from 'cesium';
 import { SNPS_DATA, SNPData } from '../globe/GlobeConfig';
@@ -19,6 +22,7 @@ interface SnpLayerProps {
     onSnpHover: (snpName: string | null) => void;
     viewerRef: React.RefObject<CesiumViewerType | null>;
     sizeScale?: number;
+    autoSelectedSnpName?: string | null;
 }
 
 const SnpEntity = React.memo<{
@@ -27,12 +31,14 @@ const SnpEntity = React.memo<{
     onSnpClick: (snpName: string | null) => void;
     onSnpHover: (snpName: string | null) => void;
     sizeScale: number;
+    isAutoSelected: boolean;
 }>(({
     snp,
     viewerRef,
     onSnpClick,
     onSnpHover,
-    sizeScale
+    sizeScale,
+    isAutoSelected
 }) => {
     const position = useMemo(
         () => getPosition(snp.lat, snp.lng, 0.01),
@@ -50,7 +56,7 @@ const SnpEntity = React.memo<{
             const cameraHeight = viewerRef.current.camera.positionCartographic.height;
             const dynamicScale = calculateDynamicScale(cameraHeight, DPR_FACTOR);
 
-            const baseScale = dynamicScale * 3000000 / Math.max(distance, 2000000);
+            const baseScale = dynamicScale * 3000000 / Math.max(distance, 5000000);
             return baseScale * 20 * sizeScale;
         }, false);
     }, [snp.lat, snp.lng, viewerRef, sizeScale]);
@@ -71,7 +77,24 @@ const SnpEntity = React.memo<{
             onClick={handleClick}
             onMouseEnter={handleMouseEnter}
             onMouseLeave={handleMouseLeave}
-        />
+        >
+            {isAutoSelected && (
+                <LabelGraphics
+                    text={snp.name}
+                    font="600 13px Inter, sans-serif"
+                    fillColor={Color.WHITE}
+                    outlineWidth={3}
+                    style={2}
+                    showBackground={true}
+                    backgroundColor={Color.ORANGE.withAlpha(0.7)}
+                    backgroundPadding={new Cartesian2(7, 4)}
+                    pixelOffset={new Cartesian2(0, -20)}
+                    verticalOrigin={VerticalOrigin.BOTTOM}
+                    horizontalOrigin={HorizontalOrigin.CENTER}
+                    disableDepthTestDistance={Number.POSITIVE_INFINITY}
+                />
+            )}
+        </Entity>
     );
 });
 
@@ -82,14 +105,10 @@ const SnpLayer: React.FC<SnpLayerProps> = ({
     onSnpClick,
     onSnpHover,
     viewerRef,
-    sizeScale = 1
+    sizeScale = 1,
+    autoSelectedSnpName = null
 }) => {
-    // Don't render SNPs for GEO-only scope
-    if (satelliteScope === 'GEO') {
-        return null;
-    }
-
-    // Memoize SNP entities
+    // Memoize SNP entities (hooks must run unconditionally)
     const snpEntities = useMemo(() => {
         return SNPS_DATA.map((snp) => (
             <SnpEntity
@@ -99,9 +118,15 @@ const SnpLayer: React.FC<SnpLayerProps> = ({
                 onSnpClick={onSnpClick}
                 onSnpHover={onSnpHover}
                 sizeScale={sizeScale}
+                isAutoSelected={!!autoSelectedSnpName && snp.name === autoSelectedSnpName}
             />
         ));
-    }, [viewerRef, onSnpClick, onSnpHover, sizeScale]);
+    }, [viewerRef, onSnpClick, onSnpHover, sizeScale, autoSelectedSnpName]);
+
+    // Don't render SNPs for GEO-only scope
+    if (satelliteScope === 'GEO') {
+        return null;
+    }
 
     return <>{snpEntities}</>;
 };

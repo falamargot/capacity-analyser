@@ -2,11 +2,13 @@
  * SatelliteLayer - Renders all satellite entities with optimized callbacks
  */
 import React, { useMemo, useCallback } from 'react';
-import { Entity } from 'resium';
+import { Entity, LabelGraphics } from 'resium';
 import {
     Cartesian3,
     Color,
     VerticalOrigin,
+    HorizontalOrigin,
+    Cartesian2,
     CallbackProperty,
     Viewer as CesiumViewerType
 } from 'cesium';
@@ -71,38 +73,57 @@ const SatelliteEntity = React.memo<{
 
             // Apply satellite size scale (no extra size for selected satellites)
             const baseScale =
-                dynamicScale * (sat.type === 'EUTELSAT' ? 10000000 : 3000000) / Math.max(distance, 2000000);
+                dynamicScale * (sat.type === 'EUTELSAT' ? 10000000 : 3000000) / Math.max(distance, 5000000);
 
             return baseScale * satelliteSizeScale;
         }, false);
-    }, [sat.id, sat.type, sat.position.lat, sat.position.lng, sat.position.alt, isHighlighted, satelliteSizeScale, positionCallback, viewerRef]);
+    }, [sat.type, sat.position.lat, sat.position.lng, sat.position.alt, satelliteSizeScale, positionCallback, viewerRef]);
 
     const handleClick = useCallback(() => onSatelliteClick(sat), [sat, onSatelliteClick]);
     const handleMouseEnter = useCallback(() => onSatelliteHover(sat.id), [sat.id, onSatelliteHover]);
     const handleMouseLeave = useCallback(() => onSatelliteHover(null), [onSatelliteHover]);
 
-    const leoColor = useMemo(() => Color.DEEPPINK, []);
-
-    const billboardColor = isManuallySelected
+    const baseBillboardColor = isManuallySelected
         ? Color.RED
         : sat.type === 'EUTELSAT'
             ? Color.ROYALBLUE
-            : leoColor;
+            : Color.DEEPPINK;
+
+    const billboardColor = baseBillboardColor;
 
     return (
-        <Entity
-            position={positionCallback}
-            billboard={{
-                image: sat.type === 'ONEWEB' ? LEO_SMOKED_GLYPH : SATELLITE_GLYPH,
-                scale: scaleCallback,
-                color: billboardColor,
-                verticalOrigin: VerticalOrigin.CENTER
-            }}
-            name={sat.name}
-            onClick={handleClick}
-            onMouseEnter={handleMouseEnter}
-            onMouseLeave={handleMouseLeave}
-        />
+        <>
+            <Entity
+                position={positionCallback}
+                billboard={{
+                    image: sat.type === 'ONEWEB' ? LEO_SMOKED_GLYPH : SATELLITE_GLYPH,
+                    scale: scaleCallback,
+                    color: billboardColor,
+                    verticalOrigin: VerticalOrigin.CENTER
+                }}
+                name={sat.name}
+                onClick={handleClick}
+                onMouseEnter={handleMouseEnter}
+                onMouseLeave={handleMouseLeave}
+            >
+                {isHighlighted && (
+                    <LabelGraphics
+                        text={sat.name}
+                        font="600 13px Inter, sans-serif"
+                        fillColor={Color.WHITE}
+                        outlineWidth={3}
+                        style={2}
+                        showBackground={true}
+                        backgroundColor={sat.type === 'ONEWEB' ? Color.DEEPPINK.withAlpha(0.7) : Color.ROYALBLUE.withAlpha(0.7)}
+                        backgroundPadding={new Cartesian2(7, 4)}
+                        pixelOffset={new Cartesian2(0, -24)}
+                        verticalOrigin={VerticalOrigin.BOTTOM}
+                        horizontalOrigin={HorizontalOrigin.CENTER}
+                        disableDepthTestDistance={Number.POSITIVE_INFINITY}
+                    />
+                )}
+            </Entity>
+        </>
     );
 });
 

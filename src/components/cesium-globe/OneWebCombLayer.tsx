@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 /**
  * OneWebCombLayer - Renders dynamic OneWeb satellite coverage beams
  * with realistic radial power gradient (concentric rings) and
@@ -6,7 +7,6 @@
 import React, { useMemo } from 'react';
 import { Entity, PolygonGraphics, EllipseGraphics } from 'resium';
 import {
-    Cartesian2,
     Cartesian3,
     Cartographic,
     Color,
@@ -20,7 +20,7 @@ import {
 } from 'cesium';
 import type { SatelliteData } from '../../types/satellites';
 import type { Aircraft } from '../../modules/airTraffic/airTrafficService';
-import { getBeamColor, TOTAL_BEAMS, calculateGSOAvoidanceAngle, isPointInOverlapZone } from '../../utils/oneWebComb';
+import { getBeamColor, TOTAL_BEAMS, calculateGSOAvoidanceAngle } from '../../utils/oneWebComb';
 import { footprintRadiusKm, BACKHAUL_ELEVATION_DEG, STANDARD_RADIUS_KM } from '../../utils/leoFootprint';
 import { getCoverageColor, hasSNPInCoverage } from '../../services/coverageService';
 import { useCombGeometry } from './hooks';
@@ -29,8 +29,6 @@ import {
     GRADIENT_RENDERING,
     getBeamBaseColor,
 } from '../../config/beamVisualization';
-import { LabelGraphics } from 'resium';
-import { VerticalOrigin, HorizontalOrigin } from 'cesium';
 
 
 // ─── Geometry helper ────────────────────────────────────────────────
@@ -223,50 +221,6 @@ const OneWebCombLayer: React.FC<OneWebCombLayerProps> = ({
         }, false);
     }, [targetSat?.id, targetSat?.satrec]);
 
-    // ─── Handover Detection logic ──────────────────────────────────
-    const isHandoverImminent = useMemo(() => {
-        return new CallbackProperty((time?: JulianDate) => {
-            if (!time || !targetSat || !targetSat.satrec || (!selectedPosition && !selectedAircraft)) return false;
-
-            const beamPolygons = getCombGeometries(targetSat, time);
-            if (!beamPolygons) return false;
-
-            let point: { lat: number; lng: number } | null = null;
-            if (selectedAircraft) {
-                const p = calculateDeadReckoning(selectedAircraft, time);
-                const c = Cartographic.fromCartesian(p);
-                point = { lat: CesiumMath.toDegrees(c.latitude), lng: CesiumMath.toDegrees(c.longitude) };
-            } else if (selectedPosition) {
-                point = { lat: selectedPosition.lat, lng: selectedPosition.lng };
-            }
-            if (!point) return false;
-
-            const { isBlankingZone, isGSOAvoidance, satLatDeg, isMovingNorth } = calculateGSOAvoidanceAngle(targetSat.satrec, time);
-
-            return isPointInOverlapZone(
-                point,
-                beamPolygons,
-                isBlankingZone,
-                isGSOAvoidance,
-                satLatDeg,
-                isMovingNorth,
-                isPointInPolygon
-            );
-        }, false);
-    }, [targetSat?.id, targetSat?.satrec, selectedPosition, selectedAircraft, getCombGeometries]);
-
-    const handoverPosition = useMemo(() => {
-        return new CallbackPositionProperty((time?: JulianDate) => {
-            if (selectedAircraft && time) {
-                return calculateDeadReckoning(selectedAircraft, time);
-            }
-            if (selectedPosition) {
-                return getPosition(selectedPosition.lat, selectedPosition.lng, 1000);
-            }
-            return Cartesian3.ZERO;
-        }, false);
-    }, [selectedPosition, selectedAircraft]);
-
     const highlight = useMemo(() => {
         if (!highlightServingFootprint) {
             return {
@@ -365,29 +319,6 @@ const OneWebCombLayer: React.FC<OneWebCombLayerProps> = ({
 
     return (
         <>
-            {/* Handover Indicator */}
-            <Entity
-                position={handoverPosition}
-                show={!!targetSat && (!!selectedPosition || !!selectedAircraft)}
-            >
-                <LabelGraphics
-                    text="HANDOVER IMMINENT"
-                    show={isHandoverImminent as any}
-                    font="bold 14px Inter, sans-serif"
-                    fillColor={Color.YELLOW}
-                    outlineColor={Color.BLACK}
-                    outlineWidth={3}
-                    style={2} // Cesium.LabelStyle.FILL_AND_OUTLINE
-                    showBackground={true}
-                    backgroundColor={Color.BLACK.withAlpha(0.7)}
-                    backgroundPadding={new Cartesian2(8, 4)}
-                    pixelOffset={new Cartesian2(0, -40)}
-                    verticalOrigin={VerticalOrigin.BOTTOM}
-                    horizontalOrigin={HorizontalOrigin.CENTER}
-                    disableDepthTestDistance={Number.POSITIVE_INFINITY}
-                />
-            </Entity>
-
             {/* Backhaul Horizon Circle */}
 
             <Entity position={positionCallback!} name="Backhaul Coverage (Gateway Visibility)">

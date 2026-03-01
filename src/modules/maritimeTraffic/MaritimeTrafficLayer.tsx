@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 /**
  * Maritime Traffic Layer Component
  * Renders vessels as objects on the globe with tooltips and orientation

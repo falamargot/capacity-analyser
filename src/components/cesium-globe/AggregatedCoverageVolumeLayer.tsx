@@ -270,7 +270,7 @@ const AggregatedCoverageVolumeLayer: React.FC<Props> = ({
         const typeForColor = (selectedBeamFeature as any)?.properties?.type ?? satForColor.type;
         const colorHex = getCoverageColor(typeForColor, 0.1, satForColor);
         return Color.fromCssColorString(colorHex);
-    }, [selectedSatellite?.id, selectedSatellite?.type, beamSatellite?.id, autoSelectedSatellite?.id, autoSelectedSatellite?.type, (selectedBeamFeature as any)?.properties?.type]);
+    }, [selectedSatellite, beamSatellite, autoSelectedSatellite, selectedBeamFeature]);
     const baseColorRef = useRef<Color | null>(null);
     useEffect(() => { selectedSatelliteRef.current = selectedSatellite; }, [selectedSatellite]);
     useEffect(() => { selectedBeamFeatureRef.current = selectedBeamFeature; }, [selectedBeamFeature]);

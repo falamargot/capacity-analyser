@@ -88,7 +88,7 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
 
             return [startPos, endPos];
         }, false);
-    }, [autoSelectedLEOSatellite?.id, selectedAircraft?.icao24, selectedPosition?.lat, selectedPosition?.lng, hasUserSelection, coveragePolicy]);
+    }, [autoSelectedLEOSatellite, selectedAircraft, selectedPosition, hasUserSelection, coveragePolicy]);
 
     // LEO Backhaul positions callback (to SNP)
     const leoBackhaulCallback = useMemo(() => {
@@ -102,7 +102,7 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
 
             return [satPos, snpPos];
         }, false);
-    }, [autoSelectedLEOSatellite?.id, selectedSNP?.lat, selectedSNP?.lng]);
+    }, [autoSelectedLEOSatellite, selectedSNP]);
 
     // GEO Link positions callback
     const geoLinkCallback = useMemo(() => {
@@ -119,7 +119,7 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
 
             return [startPos, endPos];
         }, false);
-    }, [autoSelectedGEOSatellite?.id, selectedAircraft?.icao24, selectedPosition?.lat, selectedPosition?.lng, hasUserSelection]);
+    }, [autoSelectedGEOSatellite, selectedAircraft, selectedPosition, hasUserSelection]);
 
     // Dedicated SNP link for manually selected LEO satellite
     const dedicatedSnpCallback = useMemo(() => {
@@ -133,7 +133,7 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
 
             return [satPos, snpPos];
         }, false);
-    }, [selectedSatellite?.id, selectedSatellite?.type, dedicatedSNPForSelectedLEO?.lat, dedicatedSNPForSelectedLEO?.lng]);
+    }, [selectedSatellite, dedicatedSNPForSelectedLEO]);
 
     if (!hasUserSelection && !dedicatedSnpCallback) {
         return null;

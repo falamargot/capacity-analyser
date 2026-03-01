@@ -42,14 +42,7 @@ const PositionDisplay: React.FC<PositionDisplayProps> = ({
             coords: formatCoordinates({ lat, lng }),
             altitude: selectedAircraft?.altitude_km || selectedPosition?.altitude
         };
-    }, [
-        selectedAircraft?.latitude,
-        selectedAircraft?.longitude,
-        selectedAircraft?.altitude_km,
-        selectedPosition?.lat,
-        selectedPosition?.lng,
-        selectedPosition?.altitude
-    ]);
+    }, [selectedAircraft, selectedPosition]);
 
     return (
         <div className={`absolute top-2 left-2 z-10 ${isPhone ? 'bg-white/90 px-2 py-1 rounded-md shadow-sm' : 'bg-white/80 px-3 py-1 rounded-md shadow-sm'}`}>

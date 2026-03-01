@@ -50,7 +50,7 @@ const GeoGatewayEntity = React.memo<{
             const cameraHeight = viewerRef.current.camera.positionCartographic.height;
             const dynamicScale = calculateDynamicScale(cameraHeight, DPR_FACTOR);
 
-            const baseScale = dynamicScale * 3000000 / Math.max(distance, 2000000);
+            const baseScale = dynamicScale * 3000000 / Math.max(distance, 5000000);
             return baseScale * 20 * (sizeScale || 1);
         }, false);
     }, [gateway.lat, gateway.lng, viewerRef, sizeScale]);
@@ -84,12 +84,7 @@ const GeoGatewayLayer: React.FC<GeoGatewayLayerProps> = ({
     viewerRef,
     sizeScale = 1
 }) => {
-    // Only render Gateways for GEO scope or ALL scope
-    if (satelliteScope !== 'GEO' && satelliteScope !== 'ALL') {
-        return null;
-    }
-
-    // Memoize Gateway entities
+    // Memoize Gateway entities (hooks must run unconditionally)
     const gatewayEntities = useMemo(() => {
         return GEO_GATEWAYS.map((gateway) => (
             <GeoGatewayEntity
@@ -101,7 +96,12 @@ const GeoGatewayLayer: React.FC<GeoGatewayLayerProps> = ({
                 sizeScale={sizeScale}
             />
         ));
-    }, [viewerRef, onGatewayClick, onGatewayHover, sizeScale, satelliteScope]);
+    }, [viewerRef, onGatewayClick, onGatewayHover, sizeScale]);
+
+    // Only render Gateways for GEO scope or ALL scope
+    if (satelliteScope !== 'GEO' && satelliteScope !== 'ALL') {
+        return null;
+    }
 
     return <>{gatewayEntities}</>;
 };

@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import React, { createContext, useContext, useState, useMemo, ReactNode } from 'react';
 import { type CoveragePolicy } from '../utils/leoFootprint';
 import {

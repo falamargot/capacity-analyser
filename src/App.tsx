@@ -20,7 +20,6 @@ import { Feature, Geometry, GeoJsonProperties } from 'geojson';
 import { SNPS_DATA } from './components/globe/GlobeConfig';
 
 import { resolveAutoSelectedSatellites, findBestGEOBeam } from './utils/satelliteResolution';
-import { type CoveragePolicy } from './utils/leoFootprint';
 import { JulianDate } from 'cesium';
 import { useAirTraffic, useAirTrafficInterpolation } from './modules/airTraffic';
 import { Aircraft } from './modules/airTraffic/airTrafficService';
@@ -39,11 +38,6 @@ interface AnalyzisPosition {
 
 const App: React.FC = () => {
   const { coveragePolicy } = useSimulation();
-  
-  // Helper function to convert CoveragePolicy to legacy threshold for backwards compatibility
-  const getCoveragePolicy = useCallback((): CoveragePolicy => {
-    return coveragePolicy;
-  }, [coveragePolicy]);
   const [searchQuery, setSearchQuery] = useState('');
   const [satellites, setSatellites] = useState<SatelliteData[]>([]);
   const [loading, setLoading] = useState(true);
@@ -164,10 +158,11 @@ const App: React.FC = () => {
           const newPosition = calculatePosition(sat);
 
           // Performance optimization: Only recalculate coverage if selection changed or position moved significantly
-          const positionChanged = prevSatellitesRef.current.length > 0 &&
+          const positionChanged = prevSatellitesRef.current.length > 0 && (
             prevSatellitesRef.current.find(prev => prev.id === sat.id)?.position.alt !== newPosition.alt ||
             prevSatellitesRef.current.find(prev => prev.id === sat.id)?.position.lat !== newPosition.lat ||
-            prevSatellitesRef.current.find(prev => prev.id === sat.id)?.position.lng !== newPosition.lng;
+            prevSatellitesRef.current.find(prev => prev.id === sat.id)?.position.lng !== newPosition.lng
+          );
 
           const isSatelliteSelected = currentSelectedId === sat.id;
           const isSatelliteHovered = hoveredSatelliteId === sat.id;
@@ -204,7 +199,7 @@ const App: React.FC = () => {
         clearTimeout(satelliteUpdateTimeoutRef.current);
       }
     };
-  }, [selectedSatellite?.id]); // Only depend on satellite ID, not entire object
+  }, [selectedSatellite?.id, hoveredSatelliteId]); // Depend on hovered satellite id as it's used inside
 
   // Filter satellites based on satellite scope
   const filteredSatellites = useMemo(() => {
@@ -369,7 +364,7 @@ const App: React.FC = () => {
       setAnalyzisPosition(null);
       setSelectedAircraft(null);
     }
-  }, [satelliteScope, selectedSatellite]);
+  }, [selectedSatellite]);
 
   // Performance optimization: Memoize event handlers to prevent unnecessary re-renders
   const handleSatelliteClick = useCallback((satellite: SatelliteData | null) => {
@@ -469,7 +464,7 @@ const App: React.FC = () => {
         satellites,
         satelliteScope,
         now,
-        getCoveragePolicy()
+        coveragePolicy
       );
 
       // Store results ONLY as IDs (never store objects)
@@ -502,7 +497,7 @@ const App: React.FC = () => {
       setSelectedSNP(null);
       setSelectedGEOBeam(null);
     }
-  }, [satellites, satelliteScope]);
+  }, [satellites, satelliteScope, coveragePolicy]);
 
   // Real-time updates when aircraft is selected
   useEffect(() => {
@@ -528,7 +523,7 @@ const App: React.FC = () => {
         satellites,
         satelliteScope,
         now,
-        getCoveragePolicy()
+        coveragePolicy
       );
 
       // Update states with new resolution

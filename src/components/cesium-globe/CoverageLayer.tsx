@@ -18,15 +18,13 @@ const CoveragePolygon = React.memo<{
     index: number;
     satellites: SatelliteData[];
 }>(({ feature, index, satellites }) => {
-    if (feature.geometry.type !== 'Polygon') return null;
+    const isPolygon = feature.geometry.type === 'Polygon';
+    const isOneWebPlaceholder = feature.properties?.type === 'ONEWEB_SWATH' || feature.properties?.type === 'ONEWEB_SERVICE_ZONE';
 
-    // Skip OneWeb Comb placeholders - they are rendered by OneWebCombLayer
-    if (feature.properties?.type === 'ONEWEB_SWATH' || feature.properties?.type === 'ONEWEB_SERVICE_ZONE') {
-        return null;
-    }
+    const coords = isPolygon ? (feature.geometry.coordinates[0] as any) : null;
 
-    const coords = feature.geometry.coordinates[0];
     const hierarchy = useMemo(() => {
+        if (!coords) return null;
         try {
             return Cartesian3.fromDegreesArray(coords.flat() as number[]);
         } catch {
@@ -34,14 +32,16 @@ const CoveragePolygon = React.memo<{
         }
     }, [coords]);
 
-    if (!hierarchy) return null;
-
     const satName = feature.properties?.satelliteId;
     const sat = satellites.find(s => s.name === satName);
+
     const color = useMemo(() => {
+        if (!isPolygon || isOneWebPlaceholder) return null;
         const colorHex = getCoverageColor(feature.properties?.type, 0.4, sat);
         return Color.fromCssColorString(colorHex);
-    }, [feature.properties?.type, sat]);
+    }, [feature.properties?.type, sat, isPolygon, isOneWebPlaceholder]);
+
+    if (!isPolygon || isOneWebPlaceholder || !hierarchy || !color) return null;
 
     return (
         <Entity key={`coverage-${index}`} name={feature.properties?.name}>

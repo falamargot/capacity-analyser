@@ -47,7 +47,17 @@ export function useAirTraffic(
   cameraBounds: CameraBounds | null = null,
   focusPoint: FocusPoint | null = null
 ) {
-  const finalConfig = useMemo(() => ({ ...DEFAULT_CONFIG, ...config }), [config]);
+  const finalConfig = useMemo(() => (
+    {
+      ...DEFAULT_CONFIG,
+      ...config
+    }
+  ), [
+    config.enabled,
+    config.updateInterval,
+    config.maxDistanceKm,
+    config.maxAircraft
+  ]);
   
   const [state, setState] = useState<AirTrafficState>({
     aircraft: [],
@@ -56,7 +66,7 @@ export function useAirTraffic(
     lastUpdate: 0,
   });
 
-  const intervalRef = useRef<number | null>(null);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Update aircraft data
   const updateAircraft = useCallback(async () => {
@@ -123,7 +133,7 @@ export function useAirTraffic(
         intervalRef.current = null;
       }
     };
-  }, [finalConfig.enabled, finalConfig.updateInterval]);
+  }, [finalConfig.enabled, finalConfig.updateInterval, updateAircraft]);
 
 
   // Cleanup on unmount

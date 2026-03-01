@@ -56,11 +56,12 @@ export function usePositionCallbacks(
         }
     }, [currentSatelliteIds, currentAircraftIds]);
 
-    // Cleanup all on unmount
+    // Cleanup all on unmount — capture the current cache to avoid ref-change warnings
     useEffect(() => {
+        const cache = cacheRef.current;
         return () => {
-            cacheRef.current.satellites.clear();
-            cacheRef.current.aircraft.clear();
+            cache.satellites.clear();
+            cache.aircraft.clear();
         };
     }, []);
 

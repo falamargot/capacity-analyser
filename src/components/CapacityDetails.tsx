@@ -10,12 +10,33 @@ import { findConnectedBeamIndex } from '../utils/rfConnectivity';
 import { JulianDate } from 'cesium';
 import ExportButton from './ExportButton';
 import {
-  getBeamPerformance,
   WEATHER_ATTENUATION_DB,
-  WEATHER_LABELS,
   type WeatherCondition,
-  throughputRatioFromPowerDb,
 } from '../utils/realisticSimulation';
+
+// Module-level stable definitions to avoid recreating inside component and
+// to keep hook dependency arrays clean.
+type TerminalType = 'fixed' | 'mobile' | 'aviation' | 'maritime';
+const TERMINAL_PROFILES: Record<TerminalType, { label: string; maxDlGbps: number; maxUlGbps: number }> = {
+  fixed: { label: 'Fixed', maxDlGbps: 0.25, maxUlGbps: 0.05 },
+  mobile: { label: 'Mobile', maxDlGbps: 0.10, maxUlGbps: 0.02 },
+  aviation: { label: 'Aviation', maxDlGbps: 0.15, maxUlGbps: 0.03 },
+  maritime: { label: 'Maritime', maxDlGbps: 0.20, maxUlGbps: 0.04 }
+};
+
+type WeatherType = 'clear' | 'light_rain' | 'heavy_rain' | 'storm';
+const WEATHER_PROFILES: Record<WeatherType, { label: string; condition: WeatherCondition }> = {
+  clear: { label: 'Clear Sky', condition: 'CLEAR' },
+  light_rain: { label: 'Clouds', condition: 'CLOUDS' },
+  heavy_rain: { label: 'Rain', condition: 'RAIN' },
+  storm: { label: 'Rain (Heavy)', condition: 'RAIN' },
+};
+
+const toWeatherCondition = (wt: WeatherType): WeatherCondition => {
+  if (wt === 'clear') return 'CLEAR';
+  if (wt === 'light_rain') return 'CLOUDS';
+  return 'RAIN';
+};
 
 interface CapacityDetailsProps {
   satellites: SatelliteData[];
@@ -46,8 +67,6 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
   const globeContainerRef = useRef<HTMLDivElement>(null);
   const viewerRef = useRef<any>(null);
 
-  type TerminalType = 'fixed' | 'mobile' | 'aviation' | 'maritime';
-
   const [terminalType, setTerminalType] = useState<TerminalType>('fixed');
   const [previousAnalysisSource, setPreviousAnalysisSource] = useState<'earth' | 'aircraft' | undefined>(undefined);
 
@@ -64,18 +83,10 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
     setPreviousAnalysisSource(analysisSource);
   }, [analysisSource, terminalType, previousAnalysisSource]);
 
-  const TERMINAL_PROFILES: Record<TerminalType, { label: string; maxDlGbps: number; maxUlGbps: number }> = {
-    fixed: { label: 'Fixed', maxDlGbps: 0.25, maxUlGbps: 0.05 },
-    mobile: { label: 'Mobile', maxDlGbps: 0.10, maxUlGbps: 0.02 },
-    aviation: { label: 'Aviation', maxDlGbps: 0.15, maxUlGbps: 0.03 },
-    maritime: { label: 'Maritime', maxDlGbps: 0.20, maxUlGbps: 0.04 }
-  };
 
   // ── Pillar 5: Physics-based weather attenuation ───────────────────────────
   // Maps UI weather type → real dB loss → linear power ratio
   // Clear Sky: 0 dB  | Clouds: -1.5 dB  | Rain: -5.0 dB
-  type WeatherType = 'clear' | 'light_rain' | 'heavy_rain' | 'storm';
-
   const [weatherType, setWeatherType] = useState<WeatherType>('clear');
   const [autoWeatherEnabled, setAutoWeatherEnabled] = useState<boolean>(true);
 
@@ -107,6 +118,12 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
     const condition = toWeatherCondition(wt);
     return Math.pow(10, WEATHER_ATTENUATION_DB[condition] / 10);
   };
+
+  // Wrap module-level constants/functions in stable refs/memos for hook deps
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const WEATHER_PROFILES_MEMO = useMemo(() => WEATHER_PROFILES, []);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const getWeatherFactorMemo = useCallback((wt: WeatherType, isAviation: boolean) => getWeatherFactor(wt, isAviation), []);
 
   // Calculate GEO oblique distance using proper geometry
   const calculateGEODistanceKm = (userPoint: { lat: number; lng: number }, satellite: SatelliteData): number => {
@@ -175,7 +192,7 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
     const MAX_USER_DL_Gbps = profile.maxDlGbps;
     const MAX_USER_UL_Gbps = profile.maxUlGbps;
     // Aviation terminals are above clouds, so weather factor is always 1.0
-    const weatherFactor = getWeatherFactor(weatherType, terminalType === 'aviation');
+    const weatherFactor = getWeatherFactorMemo(weatherType, terminalType === 'aviation');
 
     // Limiting link = the weaker geometry between user<->sat and snp<->sat
     const limitingElevation = Math.min(userLEOElevation, snpLEOElevation);
@@ -295,14 +312,14 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
       performanceFactor,
       footprintFactor,
       weatherFactor,
-      weatherLabel: WEATHER_PROFILES[weatherType].label
+      weatherLabel: WEATHER_PROFILES_MEMO[weatherType].label
     };
-  }, [terminalType, weatherType]);
+  }, [terminalType, weatherType, WEATHER_PROFILES_MEMO, getWeatherFactorMemo]);
 
   const calculateGEOPerformance = useCallback((elevationDeg: number) => {
     const profile = TERMINAL_PROFILES[terminalType];
     // Aviation terminals are above clouds, so weather factor is always 1.0
-    const weatherFactor = getWeatherFactor(weatherType, terminalType === 'aviation');
+    const weatherFactor = getWeatherFactorMemo(weatherType, terminalType === 'aviation');
 
     // Not usable below 10° elevation
     if (elevationDeg < 10) {
@@ -312,7 +329,7 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
         stability: 'Unstable',
         performanceFactor: 0,
         weatherFactor,
-        weatherLabel: WEATHER_PROFILES[weatherType].label
+        weatherLabel: WEATHER_PROFILES_MEMO[weatherType].label
       };
     }
 
@@ -340,9 +357,9 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
       stability,
       performanceFactor,
       weatherFactor,
-      weatherLabel: WEATHER_PROFILES[weatherType].label
+      weatherLabel: WEATHER_PROFILES_MEMO[weatherType].label
     };
-  }, [terminalType, weatherType]);
+  }, [terminalType, weatherType, WEATHER_PROFILES_MEMO, getWeatherFactorMemo]);
 
   // Simple point-in-polygon check
   const isPointInPolygon = (point: { lat: number; lng: number }, ring: number[][]): boolean => {

@@ -53,34 +53,40 @@ const AircraftEntity = React.memo<{
             const cameraHeight = viewerRef.current.camera.positionCartographic.height;
             const dynamicScale = calculateDynamicScale(cameraHeight, DPR_FACTOR);
 
-            const baseScale = dynamicScale * 2000000 / Math.max(distance, 2000000);
+            const baseScale = dynamicScale * 2000000 / Math.max(distance, 5000000);
             return baseScale * aircraftSizeScale;
         }, false);
-    }, [ac.icao24, isSelected, positionCallback, viewerRef, aircraftSizeScale]);
+    }, [positionCallback, viewerRef, aircraftSizeScale]);
 
     const handleClick = useCallback(() => onAircraftClick?.(ac), [ac, onAircraftClick]);
     const handleMouseEnter = useCallback(() => onAircraftHover?.(ac), [ac, onAircraftHover]);
     const handleMouseLeave = useCallback(() => onAircraftHover?.(null), [onAircraftHover]);
 
-    const billboardColor = isSelected ? Color.RED : Color.LIGHTGOLDENRODYELLOW;
+    const baseBillboardColor = isSelected ? Color.RED : Color.LIGHTGOLDENRODYELLOW;
+
+    const billboardColor = useMemo(() => {
+        return baseBillboardColor;
+    }, [baseBillboardColor]);
     const rotation = -CesiumMath.toRadians(ac.heading || 0);
 
     return (
-        <Entity
-            position={positionCallback}
-            billboard={{
-                image: PLANE_ICON,
-                scale: scaleCallback,
-                color: billboardColor,
-                rotation: rotation,
-                alignedAxis: Cartesian3.UNIT_Z
-            }}
-            name={ac.callsign || ac.icao24}
-            description={`Heading: ${ac.heading || 'N/A'}°, Alt: ${ac.altitude_km?.toFixed(1) || 'N/A'}km, Speed: ${ac.speed_kmh?.toFixed(0) || 'N/A'}km/h`}
-            onClick={handleClick}
-            onMouseEnter={handleMouseEnter}
-            onMouseLeave={handleMouseLeave}
-        />
+        <>
+            <Entity
+                position={positionCallback}
+                billboard={{
+                    image: PLANE_ICON,
+                    scale: scaleCallback,
+                    color: billboardColor,
+                    rotation: rotation,
+                    alignedAxis: Cartesian3.UNIT_Z
+                }}
+                name={ac.callsign || ac.icao24}
+                description={`Heading: ${ac.heading || 'N/A'}°, Alt: ${ac.altitude_km?.toFixed(1) || 'N/A'}km, Speed: ${ac.speed_kmh?.toFixed(0) || 'N/A'}km/h`}
+                onClick={handleClick}
+                onMouseEnter={handleMouseEnter}
+                onMouseLeave={handleMouseLeave}
+            />
+        </>
     );
 });
 

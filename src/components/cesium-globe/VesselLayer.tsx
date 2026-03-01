@@ -121,7 +121,7 @@ const VesselEntity = React.memo<{
         return new CallbackProperty((time) => {
             return calculateVesselDeadReckoning(vessel, time as JulianDate);
         }, false) as CallbackPositionProperty;
-    }, [vessel.mmsi, vessel.latitude, vessel.longitude, vessel.speed, vessel.heading, vessel.lastUpdate]);
+    }, [vessel]);
 
     // Create stable scale callback
     const scaleCallback = useMemo(() => {
@@ -140,7 +140,7 @@ const VesselEntity = React.memo<{
             const baseScale = dynamicScale * 1500000 / Math.max(distance, 1000000); // Reduced from 3000000
             return baseScale * vesselSizeScale;
         }, false);
-    }, [vessel.mmsi, isSelected, positionCallback, viewerRef, vesselSizeScale]);
+    }, [positionCallback, viewerRef, vesselSizeScale]);
 
     const handleClick = useCallback(() => onVesselClick?.(vessel), [vessel, onVesselClick]);
     const handleMouseEnter = useCallback(() => onVesselHover?.(vessel), [vessel, onVesselHover]);
