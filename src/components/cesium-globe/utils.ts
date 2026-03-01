@@ -37,10 +37,10 @@ export const propagateSatellite = (
             const geoPosition = satellite.eciToGeodetic(positionAndVelocity.position, gmst);
             const lat = satellite.degreesLat(geoPosition.latitude);
             const lng = satellite.degreesLong(geoPosition.longitude);
-            const alt = geoPosition.height * 1000; // to meters
+            const altKm = geoPosition.height;
 
-            if (isFinite(lat) && isFinite(lng) && isFinite(alt)) {
-                return Cartesian3.fromDegrees(lng, lat, alt);
+            if (isFinite(lat) && isFinite(lng) && isFinite(altKm)) {
+                return getPosition(lat, lng, altKm);
             }
         }
     } catch {
