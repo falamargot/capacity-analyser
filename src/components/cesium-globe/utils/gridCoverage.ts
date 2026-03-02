@@ -24,8 +24,9 @@ export interface CoverageGridResult {
 }
 
 // Grid configuration
-const GRID_RES_DEG = 0.5; // 0.5 degree resolution for smoother edges
-// const GRID_RES_DEG = 1.0; // 1 degree resolution (~110km) - Higher precision, more CPU
+// NOTE: Aggregated grid must stay cheap enough to run in the UI thread.
+// 0.5° + per-cell connectivity checks can freeze on slower machines.
+const GRID_RES_DEG = 1.0; // 1 degree resolution (~110km)
 
 // M-01 fix: isBeamActive imported from oneWebComb (canonical implementation, see above).
 // M-02 fix: isPointInPolygon imported from geoUtils (canonical implementation).
@@ -287,12 +288,18 @@ function _computeCoverageGrid(
 
                             const cellCenterLon = -180 + (lonIdx * GRID_RES_DEG) + (GRID_RES_DEG / 2);
 
-                            // Test point-in-polygon with the actual beam
-                            if (isPointInBeamPolygon(
-                                { lat: cellCenterLat, lng: cellCenterLon },
-                                beamPoints
-                            )) {
-                                activeCells.add(cellId);
+                            const userPosition = { lat: cellCenterLat, lng: cellCenterLon };
+
+                            // Business-rule connectivity (aggregated view): require a visible gateway (SNP).
+                            // RF is approximated here by:
+                            // - beam polygon inclusion at this time
+                            // - isBeamActive gating (GSO / avoidance)
+                            // Full RF checks (power / additional policies) are too expensive at grid scale.
+                            if (isPointInBeamPolygon(userPosition, beamPoints)) {
+                                const gw = getBestConnectedGateway(sat, 15);
+                                if (gw) {
+                                    activeCells.add(cellId);
+                                }
                             }
                         }
                     }

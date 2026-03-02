@@ -8,6 +8,7 @@ import {
     WEATHER_ATTENUATION_DB,
     type WeatherCondition,
 } from './realisticSimulation';
+import { getBeamBaseColor } from '../config/beamVisualization';
 
 export const BEAM_WIDTH_KM = 67.5;
 export const TOTAL_BEAMS = 16;
@@ -261,7 +262,6 @@ function destinationPointGeodesic(lat: number, lng: number, brng: number, distKm
     };
 }
 
-import { getBeamBaseColor } from '../config/beamVisualization';
 
 export function getBeamColor(
     beamIndex: number,
@@ -356,6 +356,7 @@ export function isLEOSatelliteActive(satrec: any, time: JulianDate): boolean {
         return true;
     }
 }
+
 
 export function getActiveBeamCount(
     satrec: any,
