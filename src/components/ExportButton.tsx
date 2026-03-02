@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Download, Loader2 } from 'lucide-react';
 import { exportToPDF, PDFExportData, PerformanceData, LocationData } from '../utils/pdfExport';
+import { log } from '../utils/logger';
 
 interface ExportButtonProps {
   location: LocationData | null;
@@ -30,21 +31,21 @@ const ExportButton: React.FC<ExportButtonProps> = ({
 
     try {
       // Débogage: vérifier la référence globe
-      console.log('Globe ref:', globeRef);
-      console.log('Globe current:', globeRef?.current);
+      log('Globe ref:', globeRef);
+      log('Globe current:', globeRef?.current);
       
       if (globeRef?.current) {
-        console.log('Globe element found:', globeRef.current);
-        console.log('Globe element children:', globeRef.current.children.length);
-        console.log('Looking for canvas...');
+        log('Globe element found:', globeRef.current);
+        log('Globe element children:', globeRef.current.children.length);
+        log('Looking for canvas...');
         
         const canvas = globeRef.current.querySelector('canvas');
-        console.log('Canvas found:', canvas);
+        log('Canvas found:', canvas);
         if (canvas) {
-          console.log('Canvas dimensions:', canvas.width, 'x', canvas.height);
+          log('Canvas dimensions:', canvas.width, 'x', canvas.height);
         }
       } else {
-        console.log('No globe element found');
+        log('No globe element found');
       }
 
       // Préparer les données pour l'export
@@ -60,7 +61,7 @@ const ExportButton: React.FC<ExportButtonProps> = ({
       await exportToPDF(exportData);
 
       // Succès
-      console.log('PDF exported successfully');
+      log('PDF exported successfully');
       
     } catch (err) {
       console.error('Export failed:', err);

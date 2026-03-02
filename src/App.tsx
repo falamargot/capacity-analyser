@@ -41,8 +41,8 @@ const App: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [satellites, setSatellites] = useState<SatelliteData[]>([]);
   const [loading, setLoading] = useState(true);
-  const [isMobile, setIsMobile] = useState(window.innerWidth < 1100);
-  const [isPhone, setIsPhone] = useState(window.innerWidth < 920);
+  const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' ? window.innerWidth < 1100 : false);
+  const [isPhone, setIsPhone] = useState(() => typeof window !== 'undefined' ? window.innerWidth < 920 : false);
   const [selectedPosition, setSelectedPosition] = useState<{ lat: number; lng: number; altitude?: number } | null>(null);
   const [analyzisPosition, setAnalyzisPosition] = useState<AnalyzisPosition | null>(null);
   const [cameraTarget, setCameraTarget] = useState<{ lat: number; lng: number; alt: number } | null>(null);
@@ -79,17 +79,16 @@ const App: React.FC = () => {
 
   // Store globe container reference when ready
   const handleGlobeContainerReady = useCallback((ref: React.RefObject<HTMLDivElement | null>) => {
-    console.log('App: handleGlobeContainerReady called');
-    console.log('App: ref parameter:', ref);
-    console.log('App: ref.current:', ref.current);
-
     globeContainerRef.current = ref.current;
-    console.log('App: globeContainerRef.current set to:', globeContainerRef.current);
   }, []);
 
   // Performance optimization: Cache previous values to prevent unnecessary recalculations
   const prevSelectedSatelliteRef = useRef<string | null>(null);
   const prevSatellitesRef = useRef<SatelliteData[]>([]);
+
+  // §1.2 — Stable ref for satellites used inside updateAnalyzisPosition,
+  // avoiding recreation of the callback every 2 s when satellites changes.
+  const satellitesForResolutionRef = useRef<SatelliteData[]>(satellites);
 
   // Throttle satellite position updates to reduce CPU load
   const satelliteUpdateTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -140,6 +139,11 @@ const App: React.FC = () => {
     return () => clearInterval(interval);
   }, []);
 
+  // §1.2 — Keep the resolution ref in sync without triggering other effects
+  useEffect(() => {
+    satellitesForResolutionRef.current = satellites;
+  }, [satellites]);
+
   // Performance optimization: Throttled satellite position updates
   useEffect(() => {
     // Clear any existing timeout
@@ -150,27 +154,24 @@ const App: React.FC = () => {
     const updateSatellites = () => {
       setSatellites((currentSatellites) => {
         const currentSelectedId = selectedSatellite?.id || null;
-
-        // Only update coverage calculation if selection actually changed
         const selectionChanged = prevSelectedSatelliteRef.current !== currentSelectedId;
 
-        const updatedSatellites = currentSatellites.map((sat) => {
-          const newPosition = calculatePosition(sat);
+        // §1.3 — Pre-index by ID to avoid O(n²) find() calls per tick
+        const prevById = new Map(prevSatellitesRef.current.map(s => [s.id, s]));
 
-          // Performance optimization: Only recalculate coverage if selection changed or position moved significantly
-          const positionChanged = prevSatellitesRef.current.length > 0 && (
-            prevSatellitesRef.current.find(prev => prev.id === sat.id)?.position.alt !== newPosition.alt ||
-            prevSatellitesRef.current.find(prev => prev.id === sat.id)?.position.lat !== newPosition.lat ||
-            prevSatellitesRef.current.find(prev => prev.id === sat.id)?.position.lng !== newPosition.lng
-          );
+        const updatedSatellites = currentSatellites.map((sat) => {
+          const newPosition = calculatePosition(sat, JulianDate.toDate(JulianDate.now()));
+          const prev = prevById.get(sat.id);
+
+          const positionChanged = !prev ||
+            prev.position.alt !== newPosition.alt ||
+            prev.position.lat !== newPosition.lat ||
+            prev.position.lng !== newPosition.lng;
 
           const isSatelliteSelected = currentSelectedId === sat.id;
           const isSatelliteHovered = hoveredSatelliteId === sat.id;
-          // Always recalculate coverage for selected or hovered satellites (show all coverages)
-          // For non-selected/hovered satellites, only recalculate if selection or position changed
           const shouldRecalculateCoverage = isSatelliteSelected || isSatelliteHovered || selectionChanged || positionChanged;
 
-          // Create updated satellite object with new position for coverage calculation
           const updatedSat = { ...sat, position: newPosition };
 
           return {
@@ -180,7 +181,6 @@ const App: React.FC = () => {
           };
         });
 
-        // Update refs for next comparison
         prevSelectedSatelliteRef.current = currentSelectedId;
         prevSatellitesRef.current = updatedSatellites;
 
@@ -450,29 +450,27 @@ const App: React.FC = () => {
   }, []);
 
   // Unified function to handle analyzis position changes (from earth click or aircraft)
+  // §1.2 — satellites replaced by satellitesForResolutionRef so this callback
+  // is not recreated every 2 s when satellite positions update.
   const updateAnalyzisPosition = useCallback((position: AnalyzisPosition | null) => {
     setAnalyzisPosition(position);
 
     if (position) {
-      // Clear any manual satellite selection when analyzis position changes
       setSelectedSatellite(null);
 
-      // Auto-resolve BEST connectivity according to Service Availability model
       const now = JulianDate.fromDate(new Date());
       const { autoSelectedLEOSat, autoSelectedGEOSat, selectedSNP } = resolveAutoSelectedSatellites(
         { lat: position.lat, lng: position.lng },
-        satellites,
+        satellitesForResolutionRef.current,   // stable ref — no dep needed
         satelliteScope,
         now,
         coveragePolicy
       );
 
-      // Store results ONLY as IDs (never store objects)
       setAutoSelectedLEOId(autoSelectedLEOSat?.id || null);
       setAutoSelectedGEOId(autoSelectedGEOSat?.id || null);
       setSelectedSNP(selectedSNP);
 
-      // Auto-select GEO beam using centralized findBestGEOBeam
       if (autoSelectedGEOSat) {
         const bestBeam = findBestGEOBeam(
           { lat: position.lat, lng: position.lng },
@@ -483,7 +481,6 @@ const App: React.FC = () => {
         setSelectedGEOBeam(null);
       }
 
-      // Additional safeguard: if no satellites are auto-selected, clear all related states
       if (!autoSelectedLEOSat && !autoSelectedGEOSat) {
         setAutoSelectedLEOId(null);
         setAutoSelectedGEOId(null);
@@ -491,52 +488,91 @@ const App: React.FC = () => {
         setSelectedGEOBeam(null);
       }
     } else {
-      // Clear auto-selected satellites and GEO beam when no analyzis position
       setAutoSelectedLEOId(null);
       setAutoSelectedGEOId(null);
       setSelectedSNP(null);
       setSelectedGEOBeam(null);
     }
-  }, [satellites, satelliteScope, coveragePolicy]);
+  }, [satelliteScope, coveragePolicy]); // §1.2 — satellites removed from deps
 
-  // Real-time updates when aircraft is selected
+  // C-03 fix: removed redundant useEffect([selectedAircraft, updateAnalyzisPosition]).
+  // The interval effect below (Real-time updates for selected aircraft position) already
+  // calls updateSelectedAircraftPosition() immediately on mount, so this shallow effect
+  // was triggering a second resolveAutoSelectedSatellites run in <1ms on every aircraft
+  // selection — doubling an expensive SGP4 beam-polygon resolution pass.
+  // The interval effect handles both the initial update and subsequent 5s refreshes.
+
+  // §1.1 — Re-resolve on explicit position/scope/policy changes.
+  // satellitesForResolutionRef is used instead of satellites to remove it from the dep array.
   useEffect(() => {
-    if (selectedAircraft && selectedAircraft.latitude && selectedAircraft.longitude) {
-      // Update analyzis position as aircraft moves
-      updateAnalyzisPosition({
-        lat: selectedAircraft.latitude,
-        lng: selectedAircraft.longitude,
-        altitude: selectedAircraft.altitude_km || undefined,
-        source: 'aircraft',
-        aircraftCallsign: selectedAircraft.callsign || undefined
-      });
+    if (!analyzisPosition) return;
+    const now = JulianDate.fromDate(new Date());
+    const { autoSelectedLEOSat, autoSelectedGEOSat, selectedSNP: newSelectedSNP } = resolveAutoSelectedSatellites(
+      { lat: analyzisPosition.lat, lng: analyzisPosition.lng },
+      satellitesForResolutionRef.current,   // stable ref — not a dep
+      satelliteScope,
+      now,
+      coveragePolicy
+    );
+    setAutoSelectedLEOId(autoSelectedLEOSat?.id || null);
+    setAutoSelectedGEOId(autoSelectedGEOSat?.id || null);
+    setSelectedSNP(newSelectedSNP);
+    if (!autoSelectedGEOSat) {
+      setSelectedGEOBeam(null);
     }
-  }, [selectedAircraft, updateAnalyzisPosition]);
+  }, [satelliteScope, analyzisPosition, coveragePolicy]); // §1.1 — satellites removed
 
-  // Clear auto-selected satellites when filter scope changes and makes them invalid
+  // §1.3 — Periodic re-resolution for fixed positions (earth / vessel).
+  //
+  // Problem: LEO satellites orbit at ~7 km/s. A satellite that covered a user position
+  // at T=0 may have left its beam footprint by T=60s, while a new satellite arrives from
+  // the north — but the auto-selection was never re-evaluated because analyzisPosition
+  // didn't change (no user interaction). The panel then shows 0 Mbps with an outdated
+  // satellite still displayed, until the user clicks again.
+  //
+  // Fix: for source='earth' (and 'vessel'), re-run the full satellite resolution every
+  // RESOLUTION_INTERVAL_MS. Aircraft positions already re-resolve via their own 5s interval
+  // (updateSelectedAircraftPosition) so they are explicitly excluded here.
+  //
+  // Interval choice: 15s — fast enough to catch satellite transitions (~105 km orbital travel),
+  // conservative enough to avoid overloading the SGP4 beam-polygon engine.
+  // satellitesForResolutionRef.current always holds the latest propagated positions,
+  // so there is no latency mismatch with the globe display.
   useEffect(() => {
-    if (analyzisPosition) {
-      // Re-resolve connectivity with new filter to check if current satellites are still valid
+    // Only run for static earth/vessel points — aircraft handles its own periodic update
+    if (!analyzisPosition || analyzisPosition.source === 'aircraft') return;
+
+    const RESOLUTION_INTERVAL_MS = 15_000; // 15 s — ~105 km of LEO orbital travel
+
+    const reResolve = () => {
+      // Re-read position from ref in case it was cleared between ticks
+      const pos = analyzisPosition;
+      if (!pos || pos.source === 'aircraft') return;
+
       const now = JulianDate.fromDate(new Date());
-      const { autoSelectedLEOSat, autoSelectedGEOSat, selectedSNP: newSelectedSNP } = resolveAutoSelectedSatellites(
-        { lat: analyzisPosition.lat, lng: analyzisPosition.lng },
-        satellites,
+      const { autoSelectedLEOSat, autoSelectedGEOSat, selectedSNP: newSNP } = resolveAutoSelectedSatellites(
+        { lat: pos.lat, lng: pos.lng },
+        satellitesForResolutionRef.current,  // always-fresh satellite positions
         satelliteScope,
         now,
         coveragePolicy
       );
 
-      // Update states with new resolution
       setAutoSelectedLEOId(autoSelectedLEOSat?.id || null);
       setAutoSelectedGEOId(autoSelectedGEOSat?.id || null);
-      setSelectedSNP(newSelectedSNP);
+      setSelectedSNP(newSNP);
 
-      // Clear GEO beam if no GEO satellite is selected
-      if (!autoSelectedGEOSat) {
+      if (autoSelectedGEOSat) {
+        const bestBeam = findBestGEOBeam({ lat: pos.lat, lng: pos.lng }, autoSelectedGEOSat);
+        setSelectedGEOBeam(bestBeam);
+      } else {
         setSelectedGEOBeam(null);
       }
-    }
-  }, [satelliteScope, analyzisPosition, satellites, coveragePolicy]);
+    };
+
+    const interval = setInterval(reResolve, RESOLUTION_INTERVAL_MS);
+    return () => clearInterval(interval);
+  }, [analyzisPosition, satelliteScope, coveragePolicy]); // re-arm when position/scope/policy change
 
   // Handle geographic point click (earth-based analyzis)
   const handlePointClick = useCallback((lat: number, lng: number) => {
@@ -679,6 +715,47 @@ const App: React.FC = () => {
     }
   }, [searchQuery, updateAnalyzisPosition]);
 
+  // §4.1 — Shared props for both mobile and desktop MapViewSwitcher instances.
+  // Avoids duplicating the full prop list in two places.
+  const sharedMapProps = useMemo(() => ({
+    satellites: filteredSatellites,
+    coverageFeatures: coverageFeaturesMemo,
+    onPointClick: handlePointClick,
+    selectedPosition,
+    onSatelliteClick: handleSatelliteClick,
+    onSatelliteHover: handleSatelliteHover,
+    onSnpClick: handleSnpClick,
+    onSnpHover: handleSnpHover,
+    selectedSatellite,
+    autoSelectedLEOSatellite: resolvedAutoLEO,
+    autoSelectedGEOSatellite: resolvedAutoGEO,
+    selectedGEOBeam,
+    selectedSNP,
+    dedicatedSNPForSelectedLEO: null,
+    isFullscreen,
+    onToggleFullscreen: () => setIsFullscreen(!isFullscreen),
+    satelliteScope,
+    airTrafficEnabled,
+    aircraft: interpolatedAircraft,
+    selectedAircraft,
+    onAircraftClick: handleAircraftSelect,
+    onAircraftHover: handleAircraftHover,
+    cameraTarget,
+    onCameraReady: handleCameraReady,
+    onGlobeContainerReady: handleGlobeContainerReady,
+    showSatelliteTrajectory,
+    sizeScale,
+    onToggleSatelliteTrajectory: () => setShowSatelliteTrajectory(!showSatelliteTrajectory),
+    onSizeScaleChange: setSizeScale,
+  }), [
+    filteredSatellites, coverageFeaturesMemo, handlePointClick, selectedPosition,
+    handleSatelliteClick, handleSatelliteHover, handleSnpClick, handleSnpHover,
+    selectedSatellite, resolvedAutoLEO, resolvedAutoGEO, selectedGEOBeam, selectedSNP,
+    isFullscreen, satelliteScope, airTrafficEnabled, interpolatedAircraft,
+    selectedAircraft, handleAircraftSelect, handleAircraftHover, cameraTarget,
+    handleCameraReady, handleGlobeContainerReady, showSatelliteTrajectory, sizeScale,
+  ]);
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-white dark:bg-slate-950">
@@ -789,12 +866,7 @@ const App: React.FC = () => {
                     currentScope={satelliteScope}
                     onScopeChange={handleSatelliteScopeChange}
                   />
-                  {(satelliteScope === 'ALL' || satelliteScope === 'LEO') && (
-                    <SimulationSettings satelliteScope={satelliteScope} />
-                  )}
-                  {satelliteScope === 'GEO' && (
-                    <SimulationSettings satelliteScope={satelliteScope} />
-                  )}
+                  <SimulationSettings satelliteScope={satelliteScope} />
                   <SatelliteSelector
                     satellites={satellites}
                     onSelect={handleSatelliteSelectFromUI}
@@ -908,38 +980,7 @@ const App: React.FC = () => {
             <div
               className={`absolute inset-0 bg-white overflow-hidden transition-all duration-300 ${isFullscreen ? 'fixed inset-0 z-50' : ''}`}
             >
-              <MapViewSwitcher
-                satellites={filteredSatellites}
-                coverageFeatures={coverageFeaturesMemo}
-                onPointClick={handlePointClick}
-                selectedPosition={selectedPosition}
-                onSatelliteClick={handleSatelliteClick}
-                onSatelliteHover={handleSatelliteHover}
-                onSnpClick={handleSnpClick}
-                onSnpHover={handleSnpHover}
-                selectedSatellite={selectedSatellite}
-                autoSelectedLEOSatellite={resolvedAutoLEO}
-                autoSelectedGEOSatellite={resolvedAutoGEO}
-                selectedGEOBeam={selectedGEOBeam}
-                selectedSNP={selectedSNP}
-                dedicatedSNPForSelectedLEO={null}
-                isFullscreen={isFullscreen}
-                onToggleFullscreen={() => setIsFullscreen(!isFullscreen)}
-                satelliteScope={satelliteScope}
-                airTrafficEnabled={airTrafficEnabled}
-                aircraft={interpolatedAircraft}
-                selectedAircraft={selectedAircraft}
-                onAircraftClick={handleAircraftSelect}
-                onAircraftHover={handleAircraftHover}
-                cameraTarget={cameraTarget}
-                onCameraReady={handleCameraReady}
-                onGlobeContainerReady={handleGlobeContainerReady}
-                showSatelliteTrajectory={showSatelliteTrajectory}
-                sizeScale={sizeScale}
-                onToggleSatelliteTrajectory={() => setShowSatelliteTrajectory(!showSatelliteTrajectory)}
-                onSizeScaleChange={setSizeScale}
-                isPhone={isPhone}
-              />
+              <MapViewSwitcher {...sharedMapProps} isPhone={isPhone} />
               {satelliteScope !== 'GEO' && <BeamLegend />}
             </div>
 
@@ -984,38 +1025,7 @@ const App: React.FC = () => {
             <div
               className={`flex-1 relative bg-white rounded-lg shadow-lg overflow-hidden transition-all duration-300 ${isFullscreen ? 'fixed inset-0 z-50' : ''}`}
             >
-              <MapViewSwitcher
-                satellites={filteredSatellites}
-                coverageFeatures={coverageFeaturesMemo}
-                onPointClick={handlePointClick}
-                selectedPosition={selectedPosition}
-                onSatelliteClick={handleSatelliteClick}
-                onSatelliteHover={handleSatelliteHover}
-                onSnpClick={handleSnpClick}
-                onSnpHover={handleSnpHover}
-                selectedSatellite={selectedSatellite}
-                autoSelectedLEOSatellite={resolvedAutoLEO}
-                autoSelectedGEOSatellite={resolvedAutoGEO}
-                selectedGEOBeam={selectedGEOBeam}
-                selectedSNP={selectedSNP}
-                dedicatedSNPForSelectedLEO={null}
-                isFullscreen={isFullscreen}
-                onToggleFullscreen={() => setIsFullscreen(!isFullscreen)}
-                satelliteScope={satelliteScope}
-                airTrafficEnabled={airTrafficEnabled}
-                aircraft={interpolatedAircraft}
-                selectedAircraft={selectedAircraft}
-                onAircraftClick={handleAircraftSelect}
-                onAircraftHover={handleAircraftHover}
-                cameraTarget={cameraTarget}
-                onCameraReady={handleCameraReady}
-                onGlobeContainerReady={handleGlobeContainerReady}
-                showSatelliteTrajectory={showSatelliteTrajectory}
-                sizeScale={sizeScale}
-                onToggleSatelliteTrajectory={() => setShowSatelliteTrajectory(!showSatelliteTrajectory)}
-                onSizeScaleChange={setSizeScale}
-                isPhone={false}
-              />
+              <MapViewSwitcher {...sharedMapProps} isPhone={false} />
               {satelliteScope !== 'GEO' && <BeamLegend />}
             </div>
 

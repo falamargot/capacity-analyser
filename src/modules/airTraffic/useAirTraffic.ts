@@ -5,6 +5,7 @@
 
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { Aircraft, getAircraftData, filterAircraftByView } from './airTrafficService';
+import { log } from '../../utils/logger';
 
 export interface AirTrafficState {
   aircraft: Aircraft[];
@@ -72,7 +73,7 @@ export function useAirTraffic(
   const updateAircraft = useCallback(async () => {
     if (!finalConfig.enabled) return;
     
-    console.log('🛩️ Air traffic: Fetching aircraft data...');
+    log('🛩️ Air traffic: Fetching aircraft data...');
 
     setState(prev => ({ ...prev, isLoading: true, error: null }));
 

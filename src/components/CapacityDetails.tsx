@@ -603,10 +603,10 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
       );
 
       setRealTimeData((prev) => {
-        if (JSON.stringify(prev) !== JSON.stringify(newRealTimeData)) {
-          return newRealTimeData;
-        }
-        return prev;
+        const changed =
+          prev.totalCapacity !== newRealTimeData.totalCapacity ||
+          prev.coveredSatellites.length !== newRealTimeData.coveredSatellites.length;
+        return changed ? newRealTimeData : prev;
       });
     };
 

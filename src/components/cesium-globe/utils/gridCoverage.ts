@@ -3,7 +3,10 @@ import { SatelliteScope } from '../../SatelliteScopeFilter';
 import { getBestConnectedGateway } from '../../../utils/connectivityRules';
 import type { SNPData } from '../../globe/GlobeConfig';
 import { isLEOSatelliteActive, calculateCombGeometry, calculateGSOAvoidanceAngle, TOTAL_BEAMS } from '../../../utils/oneWebComb';
+import { isBeamActive } from '../../../utils/beamActivation';
 import { isRfCoverageSatisfied, footprintRadiusKm, STANDARD_ELEVATION_DEG, type CoveragePolicy } from '../../../utils/leoFootprint';
+import { isPointInPolygon } from '../../../utils/geoUtils';
+import { warn } from '../../../utils/logger';
 
 import { JulianDate, Rectangle, Math as CesiumMath, Cartographic } from 'cesium';
 
@@ -24,48 +27,22 @@ export interface CoverageGridResult {
 const GRID_RES_DEG = 0.5; // 0.5 degree resolution for smoother edges
 // const GRID_RES_DEG = 1.0; // 1 degree resolution (~110km) - Higher precision, more CPU
 
-/**
- * Determines if a beam is active based on GSO Protection state
- */
-function isBeamActive(
-    beamIndex: number,
-    isBlankingZone: boolean,
-    isGSOAvoidance: boolean,
-    satLatDeg: number,
-    isMovingNorth: boolean
-): boolean {
-    if (isBlankingZone) return false;
-
-    if (isGSOAvoidance) {
-        const shouldActivateNorthernBeams = (satLatDeg > 0) === isMovingNorth;
-        return shouldActivateNorthernBeams
-            ? beamIndex >= 0 && beamIndex <= 7
-            : beamIndex >= 8 && beamIndex <= 15;
-    }
-
-    return true;
-}
+// M-01 fix: isBeamActive imported from oneWebComb (canonical implementation, see above).
+// M-02 fix: isPointInPolygon imported from geoUtils (canonical implementation).
+// The local copies have been removed to eliminate the risk of logic divergence.
 
 /**
- * Point-in-polygon test using ray-casting algorithm
+ * Converts a Cartesian3[] beam polygon (from calculateCombGeometry) to
+ * a {lat, lng}[] array for use with isPointInBeamPolygon.
+ * Kept local because it operates on Cesium Cartesian3, not on [lng,lat][] rings.
  */
 function isPointInBeamPolygon(
     point: { lat: number; lng: number },
     polygon: { lat: number; lng: number }[]
 ): boolean {
-    let inside = false;
-    for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
-        const xi = polygon[i].lng;
-        const yi = polygon[i].lat;
-        const xj = polygon[j].lng;
-        const yj = polygon[j].lat;
-
-        const intersect = ((yi > point.lat) !== (yj > point.lat))
-            && (point.lng < (xj - xi) * (point.lat - yi) / (yj - yi) + xi);
-
-        if (intersect) inside = !inside;
-    }
-    return inside;
+    // Convert to [lng, lat][] format expected by geoUtils.isPointInPolygon
+    const ring = polygon.map(p => [p.lng, p.lat] as [number, number]);
+    return isPointInPolygon(point, ring);
 }
 
 /**
@@ -77,15 +54,45 @@ function isPointInBeamPolygon(
  * @param policy Coverage policy (DB_THRESHOLD or ONEWEB_SERVICE_ZONE)
  * @returns CoverageGridResult with rectangles and backhaulLinks
  */
+/**
+ * Generates the binary coverage grid + backhaul links for Aggregated Connectivity mode.
+ *
+ * Time synchronization (Bug-fix for coverage/panel inconsistency):
+ * The `time` parameter MUST be the same JulianDate used by the caller (App.tsx) for
+ * satellite resolution. When both use the same time reference, a cell marked "covered"
+ * by the grid exactly matches what `hasRFConnectivity` / `resolveAutoSelectedSatellites`
+ * would compute for the same user point — eliminating the visual inconsistency where the
+ * coverage overlay shows pink but the panel shows 0 Mbps.
+ *
+ * The previous M-06 module-level TTL cache (15s) is removed because it was computing
+ * beam polygons at time T and serving them until T+15s, during which satellites travel
+ * ~105 km, causing exactly the inconsistency visible in the UI.
+ * Throttling is now handled by the React component via a 5s interval snapshot
+ * (see AggregatedConnectivityLayer), avoiding both the stale-data and the CPU issues.
+ *
+ * @param satellites  Current propagated satellite list
+ * @param scope       LEO | GEO | ALL
+ * @param policy      Coverage policy (DB_THRESHOLD or SERVICE_ZONE)
+ * @param time        Current JulianDate — MUST match the time used by App.tsx resolution
+ */
 export function generateCoverageGrid(
     satellites: SatelliteData[],
     scope: SatelliteScope,
-    policy: CoveragePolicy
+    policy: CoveragePolicy,
+    time: JulianDate
+): CoverageGridResult {
+    return _computeCoverageGrid(satellites, scope, policy, time);
+}
+
+/** Internal implementation */
+function _computeCoverageGrid(
+    satellites: SatelliteData[],
+    scope: SatelliteScope,
+    policy: CoveragePolicy,
+    time: JulianDate
 ): CoverageGridResult {
     const activeCells = new Set<string>(); // "latIdx,lonIdx"
     const backhaulLinks: BackhaulLink[] = [];
-    const now = new Date();
-    const time = JulianDate.fromDate(now);
 
     // 1. Filter relevant satellites and collect backhaul links
     const relevantSatellites = satellites.filter(sat => {
@@ -140,7 +147,7 @@ export function generateCoverageGrid(
 
                 // Safety check: if radius is unreasonably large, skip this satellite
                 if (radiusDeg > 50 || !Number.isFinite(radiusDeg)) {
-                    console.warn(`Satellite ${sat.id}: abnormal footprint radius ${radiusDeg}°, skipping`);
+                    warn(`Satellite ${sat.id}: abnormal footprint radius ${radiusDeg}°, skipping`);
                     return;
                 }
 
@@ -180,7 +187,7 @@ export function generateCoverageGrid(
                 const latCells = Math.ceil((maxLat - minLat) / GRID_RES_DEG);
                 const totalCells = latCells * cellsToTest;
                 if (totalCells > 10000) {
-                    console.warn(`Satellite ${sat.id}: bounding box too large (${totalCells} cells), skipping`);
+                    warn(`Satellite ${sat.id}: bounding box too large (${totalCells} cells), skipping`);
                     return;
                 }
 
@@ -405,17 +412,4 @@ export function generateCoverageGrid(
     return { rectangles, backhaulLinks };
 }
 
-// Helper: Ray-casting algorithm for Point-in-Polygon
-function isPointInPolygon(point: { lat: number; lng: number }, ring: number[][]): boolean {
-    let inside = false;
-    for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
-        const [xi, yi] = ring[i];
-        const [xj, yj] = ring[j];
-
-        const intersect = ((yi > point.lat) !== (yj > point.lat))
-            && (point.lng < (xj - xi) * (point.lat - yi) / (yj - yi) + xi);
-
-        if (intersect) inside = !inside;
-    }
-    return inside;
-}
+// M-02 fix: isPointInPolygon removed — imported from geoUtils (canonical, see imports above).

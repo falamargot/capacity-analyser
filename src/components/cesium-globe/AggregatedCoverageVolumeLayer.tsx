@@ -272,16 +272,19 @@ const AggregatedCoverageVolumeLayer: React.FC<Props> = ({
         return Color.fromCssColorString(colorHex);
     }, [selectedSatellite, beamSatellite, autoSelectedSatellite, selectedBeamFeature]);
     const baseColorRef = useRef<Color | null>(null);
-    useEffect(() => { selectedSatelliteRef.current = selectedSatellite; }, [selectedSatellite]);
-    useEffect(() => { selectedBeamFeatureRef.current = selectedBeamFeature; }, [selectedBeamFeature]);
-    useEffect(() => { beamSatelliteRef.current = beamSatellite; }, [beamSatellite]);
-    useEffect(() => { autoSelectedSatelliteRef.current = autoSelectedSatellite; }, [autoSelectedSatellite]);
-    useEffect(() => { selectedPositionRef.current = selectedPosition; }, [selectedPosition]);
-    useEffect(() => { selectedAircraftRef.current = selectedAircraft; }, [selectedAircraft]);
-    useEffect(() => { satellitesRef.current = satellites; }, [satellites]);
-    useEffect(() => { coverageFeaturesRef.current = coverageFeatures; }, [coverageFeatures]);
-    useEffect(() => { getCombGeometriesRef.current = getCombGeometries; }, [getCombGeometries]);
-    useEffect(() => { baseColorRef.current = baseColor; }, [baseColor]);
+
+    // Direct ref assignments — safe because these refs are read only inside the
+    // preRender handler which fires after the render phase (§3.3).
+    selectedSatelliteRef.current = selectedSatellite;
+    selectedBeamFeatureRef.current = selectedBeamFeature;
+    beamSatelliteRef.current = beamSatellite;
+    autoSelectedSatelliteRef.current = autoSelectedSatellite;
+    selectedPositionRef.current = selectedPosition;
+    selectedAircraftRef.current = selectedAircraft;
+    satellitesRef.current = satellites;
+    coverageFeaturesRef.current = coverageFeatures;
+    getCombGeometriesRef.current = getCombGeometries;
+    baseColorRef.current = baseColor;
     const stateRef = useRef<{
         primitive: Primitive | null; alpha: number; targetAlpha: number;
         lastTickTime: JulianDate | null; lastGeometryUpdateTime: JulianDate | null; satId: string | null;

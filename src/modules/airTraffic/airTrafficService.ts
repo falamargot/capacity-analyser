@@ -1,3 +1,4 @@
+import { log } from '../../utils/logger';
 /**
  * Air Traffic Service
  * Handles fetching and caching of ADS-B aircraft data from OpenSky Network API
@@ -35,7 +36,7 @@ const CACHE_DURATION = 60000; // 60 seconds
  */
 export async function fetchAircraftData(): Promise<Aircraft[] | null> {
   try {
-    console.log('🛩️ Fetching aircraft data from OpenSky API...');
+    log('🛩️ Fetching aircraft data from OpenSky API...');
     const response = await fetch('https://opensky-network.org/api/states/all', {
       method: 'GET',
       headers: {
@@ -55,7 +56,7 @@ export async function fetchAircraftData(): Promise<Aircraft[] | null> {
       return getMockAircraftData();
     }
 
-    console.log(`🛩️ Received ${data.states.length} aircraft states from API`);
+    log(`🛩️ Received ${data.states.length} aircraft states from API`);
 
     // Parse and filter aircraft data
     const aircraft: Aircraft[] = data.states
@@ -94,7 +95,7 @@ export async function fetchAircraftData(): Promise<Aircraft[] | null> {
         return true;
       });
 
-    console.log(`🛩️ Filtered to ${aircraft.length} valid aircraft`);
+    log(`🛩️ Filtered to ${aircraft.length} valid aircraft`);
     return aircraft;
   } catch (error) {
     console.warn('🛩️ Failed to fetch aircraft data, using mock data:', error);
@@ -106,7 +107,7 @@ export async function fetchAircraftData(): Promise<Aircraft[] | null> {
  * Generate mock aircraft data for testing
  */
 function getMockAircraftData(): Aircraft[] {
-  console.log('🛩️ Using mock aircraft data');
+  log('🛩️ Using mock aircraft data');
   
   return [
     {

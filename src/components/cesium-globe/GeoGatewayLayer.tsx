@@ -50,7 +50,7 @@ const GeoGatewayEntity = React.memo<{
             const cameraHeight = viewerRef.current.camera.positionCartographic.height;
             const dynamicScale = calculateDynamicScale(cameraHeight, DPR_FACTOR);
 
-            const baseScale = dynamicScale * 3000000 / Math.max(distance, 5000000);
+            const baseScale = dynamicScale * 3000000 / Math.max(distance, 10000000);
             return baseScale * 20 * (sizeScale || 1);
         }, false);
     }, [gateway.lat, gateway.lng, viewerRef, sizeScale]);

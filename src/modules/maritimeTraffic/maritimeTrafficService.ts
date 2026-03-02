@@ -1,3 +1,4 @@
+import { log } from '../../utils/logger';
 /**
  * Maritime Traffic Service
  * Handles fetching and caching of AIS vessel data from AISStream.io WebSocket API
@@ -213,7 +214,7 @@ function getAISStreamApiKey(): string | undefined {
   const value = typeof key === 'string' ? key.trim() : '';
   const present = value.length > 0;
   if (present) {
-    console.log('🚢 AISStream API key: present (live vessel data)');
+    log('🚢 AISStream API key: present (live vessel data)');
   } else {
     console.warn(
       '🚢 AISStream API key: missing — using 4 mock vessels. Set VITE_AISSTREAM_API_KEY in .env and restart the dev server.'
@@ -257,7 +258,7 @@ export function connectAISStream(
 
     websocket.onopen = () => {
       connected = true;
-      console.log('🚢 AISStream WebSocket connected');
+      log('🚢 AISStream WebSocket connected');
       // API expects APIKey and BoundingBoxes as [[lat, lon], [lat, lon]] per corner
       const subscriptionMessage = {
         APIKey: apiKey,
@@ -298,7 +299,7 @@ export function connectAISStream(
     };
 
     websocket.onclose = () => {
-      if (connected) console.log('🚢 AISStream WebSocket closed');
+      if (connected) log('🚢 AISStream WebSocket closed');
       else if (!fallbackApplied) applyMockFallback();
     };
 
@@ -322,7 +323,7 @@ export function connectAISStream(
  * Generate mock vessel data for testing/fallback
  */
 export function getMockVesselData(): Vessel[] {
-  console.log('🚢 Using mock vessel data');
+  log('🚢 Using mock vessel data');
   
   const now = Date.now();
   
@@ -439,7 +440,7 @@ function cleanupStaleVessels(): void {
   }
 
   if (removed > 0) {
-    console.log(`🚢 Cleaned up ${removed} stale vessels`);
+    log(`🚢 Cleaned up ${removed} stale vessels`);
   }
 }
 
@@ -487,5 +488,5 @@ export function disconnectAISStream(): void {
     websocket = null;
   }
   vesselCache.clear();
-  console.log('🚢 AISStream disconnected and cache cleared');
+  log('🚢 AISStream disconnected and cache cleared');
 }

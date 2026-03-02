@@ -4,6 +4,7 @@
  */
 
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { log } from '../../utils/logger';
 import {
     Vessel,
     connectAISStream,
@@ -87,7 +88,7 @@ export function useMaritimeTraffic(
         );
 
         if (allVessels.length > 0 || filteredVessels.length > 0) {
-            console.log('🚢 Vessel update:', {
+            log('🚢 Vessel update:', {
                 totalVessels: allVessels.length,
                 filteredVessels: filteredVessels.length,
                 minPriority: finalConfig.minPriority,
@@ -135,7 +136,7 @@ export function useMaritimeTraffic(
             return;
         }
 
-        console.log('🚢 Maritime traffic: Connecting...');
+        log('🚢 Maritime traffic: Connecting...');
         setState(prev => ({ ...prev, isLoading: true, error: null }));
 
         try {

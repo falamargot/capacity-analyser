@@ -1,10 +1,11 @@
 import { SatelliteData } from '../types/satellites';
 import { formatCoordinates } from '../utils/formatters';
 import { getNearestSNPInBackhaul } from '../services/coverageService';
-import { calculateGSOAvoidanceAngle, getActiveBeamCount } from '../utils/oneWebComb';
-import { JulianDate, Math as CesiumMath } from 'cesium';
+import { getActiveBeamCount } from '../utils/oneWebComb';
+import { JulianDate } from 'cesium';
 import { useState, useEffect, useMemo } from 'react';
 import * as satellite from 'satellite.js';
+import { useGSOAvoidance } from '../hooks/useGSOAvoidance';
 
 // NEW IMPORTS - BeamStatusComponents integration
 import { BeamStatusGrid, CoveragePolicyDisplay } from './BeamStatusComponents';
@@ -151,62 +152,8 @@ const SatelliteDetails: React.FC<SatelliteDetailsProps> = ({ satellites, selecte
   // Calculate nearest SNP for LEO satellites using current position (real-time)
   const nearestSNP = currentSatellite?.type === 'ONEWEB' ? getNearestSNPInBackhaul(currentSatellite) : null;
 
-  // Track GSO Protection state for ONEWEB satellites
-  const [gsoAvoidanceData, setGsoAvoidanceData] = useState<{
-    pitchAngleDeg: number;
-    isGSOAvoidance: boolean;
-    latitude: number;
-    isBlankingZone: boolean;
-    activeBeamCount: number;
-    isMovingNorth: boolean;
-  } | null>(null);
-
-  useEffect(() => {
-    if (selectedSatellite.type !== 'ONEWEB' || !selectedSatellite.satrec) {
-      setGsoAvoidanceData(null);
-      return;
-    }
-
-    const updateGSOAvoidance = () => {
-      try {
-        const now = new Date();
-        const julianDate = JulianDate.fromDate(now);
-
-        const positionAndVelocity = satellite.propagate(selectedSatellite.satrec, now);
-
-        if (!positionAndVelocity || !positionAndVelocity.position || typeof positionAndVelocity.position === 'boolean') {
-          return;
-        }
-
-        const gmst = satellite.gstime(now);
-        const positionGd = satellite.eciToGeodetic(positionAndVelocity.position, gmst);
-        const latitude = satellite.degreesLat(positionGd.latitude);
-
-        const { pitchAngleRad, isGSOAvoidance, isBlankingZone, isMovingNorth } = calculateGSOAvoidanceAngle(
-          selectedSatellite.satrec,
-          julianDate
-        );
-
-        const activeBeamCount = getActiveBeamCount(selectedSatellite.satrec, julianDate);
-
-        setGsoAvoidanceData({
-          pitchAngleDeg: CesiumMath.toDegrees(pitchAngleRad),
-          isGSOAvoidance,
-          latitude,
-          isBlankingZone,
-          activeBeamCount,
-          isMovingNorth
-        });
-      } catch (error) {
-        console.error('Error calculating GSO Protection:', error);
-      }
-    };
-
-    updateGSOAvoidance();
-    const interval = setInterval(updateGSOAvoidance, 1000);
-
-    return () => clearInterval(interval);
-  }, [selectedSatellite]);
+  // Track GSO Protection state for ONEWEB satellites — via shared hook (no duplicate interval)
+  const gsoAvoidanceData = useGSOAvoidance(selectedSatellite.type === 'ONEWEB' ? selectedSatellite : null);
 
   return (
     <div className="h-full bg-white dark:bg-slate-900 rounded-lg shadow-lg overflow-hidden flex flex-col transition-colors duration-300">

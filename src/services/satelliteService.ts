@@ -1,6 +1,7 @@
 import * as satellite from 'satellite.js';
 import { SatelliteData } from '../types/satellites';
 import { loadSatelliteCoverage } from './coverageService';
+import { log } from '../utils/logger';
 
 // ─── TLE Cache Configuration ─────────────────────────────────────────────────
 // TTL of 30 minutes: fresh enough for accurate SGP4 propagation, lenient enough
@@ -71,14 +72,14 @@ async function fetchTLE(
   if (isCacheValid(tsKey)) {
     const cached = readFromCache(dataKey);
     if (cached) {
-      console.log(`[TLE Cache] Serving fresh ${operator} TLEs from localStorage.`);
+      log(`[TLE Cache] Serving fresh ${operator} TLEs from localStorage.`);
       return cached;
     }
   }
 
   // 2. Try live API
   try {
-    console.log(`[TLE Cache] Fetching fresh ${operator} TLEs from CelesTrak…`);
+    log(`[TLE Cache] Fetching fresh ${operator} TLEs from CelesTrak…`);
     const resp = await fetch(CELESTRAK_API[operator]);
     if (resp.ok) {
       const text = await resp.text();
@@ -166,7 +167,7 @@ export async function fetchSatellites(): Promise<SatelliteData[]> {
     const eutelsatSats = parseTLE(eutelsatTLE, 'EUTELSAT');
     const onewebSats = parseTLE(onewebTLE, 'ONEWEB');
 
-    console.log(`[fetchSatellites] ${eutelsatSats.length} EUTELSAT + ${onewebSats.length} ONEWEB satellites loaded.`);
+    log(`[fetchSatellites] ${eutelsatSats.length} EUTELSAT + ${onewebSats.length} ONEWEB satellites loaded.`);
 
     const eutelsatSatPromises = eutelsatSats.map(async (sat) => {
       const coverageData = await loadSatelliteCoverage(sat.noradId, sat.name, 'EUTELSAT', 10);

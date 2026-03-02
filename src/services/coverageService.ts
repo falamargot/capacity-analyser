@@ -6,6 +6,7 @@ import { haversineDistanceKm, BACKHAUL_RADIUS_KM } from '../utils/leoFootprint';
 import { EARTH_RADIUS_KM, SPEED_OF_LIGHT_RADIO_KM_S } from '../utils/capacityCalculator';
 import { calculateGSOAvoidanceAngle } from '../utils/oneWebComb';
 import { JulianDate } from 'cesium';
+import { log } from '../utils/logger';
 
 const POINTS_IN_CIRCLE = 16; // Increased number of points for smoother circles
 
@@ -21,7 +22,7 @@ export const loadSatelliteCoverage = async (satelliteId: string, satelliteName: 
     const response = await fetch(`/coverage/${satelliteId}.json`);
     if (!response.ok) return null;
     const data: FeatureCollection = await response.json();
-    console.log(`Loading real coverage for satellite ${satelliteId}`);
+    log(`Loading real coverage for satellite ${satelliteId}`);
     return data;
   } catch (error) {
     // Only process satellite coverage if GeoJSON loading has failed

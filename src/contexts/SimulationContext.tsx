@@ -1,5 +1,5 @@
 /* eslint-disable react-refresh/only-export-components */
-import React, { createContext, useContext, useState, useMemo, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useMemo, useCallback, ReactNode } from 'react';
 import { type CoveragePolicy } from '../utils/leoFootprint';
 import {
   type WeatherCondition,
@@ -83,7 +83,7 @@ export const SimulationProvider: React.FC<{ children: ReactNode }> = ({ children
     setBeamHealthFactors(DEFAULT_BEAM_HEALTH.map(b => ({ ...b })));
   };
 
-  const getBeamHealthFactor = useMemo(
+  const getBeamHealthFactor = useCallback(
     () => (beamIndex: number): number => {
       const entry = beamHealthFactors.find(b => b.beamIndex === beamIndex);
       return entry ? entry.healthFactor : 1.0;

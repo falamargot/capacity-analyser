@@ -5,7 +5,18 @@ import { calculateGSOAvoidanceAngle } from './oneWebComb';
 import { JulianDate } from 'cesium';
 
 // Performance optimization: Cache coverage calculations to prevent expensive recomputation
+// LRU bounded to MAX_COVERAGE_CACHE entries to prevent memory leaks on long sessions
+const MAX_COVERAGE_CACHE = 500;
 const coverageCache = new Map<string, Coverage[]>();
+
+function addToCache(key: string, value: Coverage[]): void {
+  if (coverageCache.size >= MAX_COVERAGE_CACHE) {
+    // Map preserves insertion order — delete the oldest entry
+    const firstKey = coverageCache.keys().next().value;
+    if (firstKey !== undefined) coverageCache.delete(firstKey);
+  }
+  coverageCache.set(key, value);
+}
 
 // Fonction pour appliquer la projection azimutale équidistante
 function projectPoint(lng: number, lat: number, centerLng: number, centerLat: number): [number, number] {
@@ -108,16 +119,8 @@ export function calculateCoverages(satellite: SatelliteData): Coverage[] {
       },
     });
 
-    // Performance optimization: Cache the result
-    coverageCache.set(cacheKey, newcoverages);
-
-    // Performance optimization: Limit cache size to prevent memory leaks
-    if (coverageCache.size > 100) {
-      const firstKey = coverageCache.keys().next().value;
-      if (firstKey) {
-        coverageCache.delete(firstKey);
-      }
-    }
+    // Performance optimization: Cache the result (LRU bounded to MAX_COVERAGE_CACHE)
+    addToCache(cacheKey, newcoverages);
 
     return newcoverages;
   }

@@ -26,7 +26,9 @@ import {
     CallbackProperty,
     HorizontalOrigin,
     VerticalOrigin,
-    SceneMode
+    SceneMode,
+    ClockStep,
+    JulianDate
 } from 'cesium';
 import { Feature, Geometry, GeoJsonProperties } from 'geojson';
 import type { SatelliteData } from '../types/satellites';
@@ -202,6 +204,16 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         viewer.scene.globe.depthTestAgainstTerrain = true;
         viewer.shadows = enableLighting;
     }, [sceneMode, enableLighting, viewerReady]);
+
+    // Keep Cesium clock aligned with real UTC time to avoid drift/lag
+    useEffect(() => {
+        if (!viewerReady || !viewerRef.current) return;
+
+        const viewer = viewerRef.current;
+
+        viewer.clock.clockStep = ClockStep.SYSTEM_CLOCK;
+        viewer.clock.currentTime = JulianDate.now();
+    }, [viewerReady]);
 
     // Handle camera target flyTo
     useEffect(() => {
