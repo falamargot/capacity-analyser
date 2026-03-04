@@ -232,8 +232,38 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         // Check if we clicked on an entity
         const pickedObject = viewerRef.current.scene.pick(movement.position);
         if (defined(pickedObject)) {
-            // Only block click if it's an interactive entity (billboard or point)
-            if (pickedObject.id && (pickedObject.id.billboard || pickedObject.id.point)) {
+            const pickedEntity = pickedObject.id;
+
+            // Route interactive entity clicks explicitly so selection works reliably.
+            if (pickedEntity && (pickedEntity.billboard || pickedEntity.point)) {
+                const entityId = typeof pickedEntity.id === 'string' ? pickedEntity.id : '';
+
+                if (entityId.startsWith('aircraft-')) {
+                    const aircraftId = entityId.slice('aircraft-'.length);
+                    const selected = aircraft.find((ac) => ac.icao24 === aircraftId) ?? null;
+                    onAircraftClick?.(selected);
+                    return;
+                }
+
+                if (entityId.startsWith('vessel-')) {
+                    const vesselId = entityId.slice('vessel-'.length);
+                    const selected = vessels.find((vessel) => vessel.mmsi === vesselId) ?? null;
+                    onVesselClick?.(selected);
+                    return;
+                }
+
+                if (entityId.startsWith('satellite-')) {
+                    const satelliteId = entityId.slice('satellite-'.length);
+                    const selected = satellites.find((satellite) => satellite.id === satelliteId) ?? null;
+                    onSatelliteClick(selected);
+                    return;
+                }
+
+                if (entityId.startsWith('snp-')) {
+                    onSnpClick(entityId.slice('snp-'.length));
+                    return;
+                }
+
                 return;
             }
         }
@@ -267,7 +297,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         const lat = CesiumMath.toDegrees(cartographic.latitude);
         const lng = CesiumMath.toDegrees(cartographic.longitude);
         onPointClick(lat, lng);
-    }, [onPointClick, onSatelliteClick, onSnpClick, onAircraftClick, onVesselClick]);
+    }, [aircraft, vessels, satellites, onPointClick, onSatelliteClick, onSnpClick, onAircraftClick, onVesselClick]);
 
     // Determine target satellite for OneWeb comb layer
     const oneWebTargetSat = useMemo(() => {

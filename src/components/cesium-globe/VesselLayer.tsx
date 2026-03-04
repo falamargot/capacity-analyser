@@ -137,7 +137,7 @@ const VesselEntity = React.memo<{
             const dynamicScale = calculateDynamicScale(cameraHeight, DPR_FACTOR);
 
             // Vessels are larger than aircraft to be visible at sea level
-            const baseScale = dynamicScale * 1500000 / Math.max(distance, 1000000); // Reduced from 3000000
+            const baseScale = dynamicScale * 750000 / Math.max(distance, 10000000);
             return baseScale * vesselSizeScale;
         }, false);
     }, [positionCallback, viewerRef, vesselSizeScale]);
@@ -174,6 +174,7 @@ const VesselEntity = React.memo<{
 
     return (
         <Entity
+            id={`vessel-${vessel.mmsi}`}
             position={positionCallback}
             billboard={{
                 image: BOAT_ICON,

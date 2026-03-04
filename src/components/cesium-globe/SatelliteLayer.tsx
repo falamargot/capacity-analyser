@@ -94,6 +94,7 @@ const SatelliteEntity = React.memo<{
     return (
         <>
             <Entity
+                id={`satellite-${sat.id}`}
                 position={positionCallback}
                 billboard={{
                     image: sat.type === 'ONEWEB' ? LEO_SMOKED_GLYPH : SATELLITE_GLYPH,

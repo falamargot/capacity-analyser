@@ -67,6 +67,7 @@ const SnpEntity = React.memo<{
 
     return (
         <Entity
+            id={`snp-${snp.name}`}
             position={position}
             point={{
                 pixelSize: pixelSizeCallback,

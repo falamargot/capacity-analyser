@@ -23,7 +23,7 @@ import { resolveAutoSelectedSatellites, findBestGEOBeam } from './utils/satellit
 import { JulianDate } from 'cesium';
 import { useAirTraffic, useAirTrafficInterpolation } from './modules/airTraffic';
 import { Aircraft } from './modules/airTraffic/airTrafficService';
-import { useMaritimeTraffic } from './modules/maritimeTraffic';
+import { useMaritimeTraffic, useMaritimeTrafficInterpolation } from './modules/maritimeTraffic';
 import { Vessel } from './modules/maritimeTraffic/maritimeTrafficService';
 import { useSimulation } from './contexts/SimulationContext';
 
@@ -233,6 +233,12 @@ const App: React.FC = () => {
   const interpolatedAircraft = useAirTrafficInterpolation(
     airTraffic.aircraft,
     airTrafficEnabled
+  );
+
+  // Maritime traffic position interpolation
+  const interpolatedVessels = useMaritimeTrafficInterpolation(
+    maritimeTraffic.vessels,
+    maritimeTrafficEnabled
   );
 
   // Performance optimization: Memoize expensive coverage calculations
@@ -740,6 +746,11 @@ const App: React.FC = () => {
     selectedAircraft,
     onAircraftClick: handleAircraftSelect,
     onAircraftHover: handleAircraftHover,
+    maritimeTrafficEnabled,
+    vessels: interpolatedVessels,
+    selectedVessel,
+    onVesselClick: handleVesselSelect,
+    onVesselHover: undefined,
     cameraTarget,
     onCameraReady: handleCameraReady,
     onGlobeContainerReady: handleGlobeContainerReady,
@@ -752,7 +763,8 @@ const App: React.FC = () => {
     handleSatelliteClick, handleSatelliteHover, handleSnpClick, handleSnpHover,
     selectedSatellite, resolvedAutoLEO, resolvedAutoGEO, selectedGEOBeam, selectedSNP,
     isFullscreen, satelliteScope, airTrafficEnabled, interpolatedAircraft,
-    selectedAircraft, handleAircraftSelect, handleAircraftHover, cameraTarget,
+    selectedAircraft, handleAircraftSelect, handleAircraftHover,
+    maritimeTrafficEnabled, interpolatedVessels, selectedVessel, handleVesselSelect, cameraTarget,
     handleCameraReady, handleGlobeContainerReady, showSatelliteTrajectory, sizeScale,
   ]);
 
