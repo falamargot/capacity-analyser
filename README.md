@@ -25,6 +25,21 @@ npm install
 npm run dev
 ```
 
+## Données maritimes live (AIS)
+
+Le flux AIS ne peut pas être consommé directement depuis le navigateur (CORS / politique fournisseur).
+L'application utilise donc un proxy serveur local Vite sur `GET /api/ais/stream`.
+
+Dans `.env`, ajoutez au moins :
+
+```bash
+AISSTREAM_API_KEY=votre_cle_aisstream
+```
+
+Optionnel :
+- `VITE_AISSTREAM_API_KEY` reste accepté pour compatibilité
+- `VITE_MARITIME_STREAM_URL` pour pointer vers un autre endpoint SSE
+
 ## Build
 
 ```bash

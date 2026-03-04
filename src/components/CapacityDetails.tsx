@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, useMemo, useCallback, memo } from 'react';
+import { PerformancePanel } from './MetricWidgets';
 import { SatelliteData } from '../types/satellites';
 import { formatCoordinates } from '../utils/formatters';
 import { SatelliteScope } from './SatelliteScopeFilter';
@@ -818,68 +819,37 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
                         resolvedLEOConnectivity.satellite.position.lng
                       );
                       return (
-                        <div className="space-y-3">
-                          <div className="flex justify-between items-center">
-                            <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Round-trip latency (RTT):</span>
-                            <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">{performance.rtt} ms</span>
-                          </div>
-
-                          <div className="flex justify-between items-center">
-                            <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Downlink throughput:</span>
-                            <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-                              {performance.performanceFactor > 0
-                                ? (performance.downlinkGbps >= 1
-                                  ? `${performance.downlinkGbps.toFixed(1)} Gbps`
-                                  : `${Math.round(performance.downlinkGbps * 1000)} Mbps`)
-                                : 'Not usable'}
-                            </span>
-                          </div>
-                          <div className="flex justify-between items-center">
-                            <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Uplink throughput:</span>
-                            <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-                              {performance.performanceFactor > 0
-                                ? (performance.uplinkGbps >= 1
-                                  ? `${performance.uplinkGbps.toFixed(1)} Gbps`
-                                  : `${Math.round(performance.uplinkGbps * 1000)} Mbps`)
-                                : 'Not usable'}
-                            </span>
-                          </div>
-                        </div>
+                        <PerformancePanel
+                          rtt={performance.rtt}
+                          downlinkGbps={performance.downlinkGbps}
+                          uplinkGbps={performance.uplinkGbps}
+                          maxDlGbps={TERMINAL_PROFILES[terminalType].maxDlGbps}
+                          maxUlGbps={TERMINAL_PROFILES[terminalType].maxUlGbps}
+                          performanceFactor={performance.performanceFactor}
+                          accentColor="#db2777"
+                          rttMaxMs={100}
+                        />
                       );
                     })()
                   ) : resolvedLEOConnectivity ? (
-                    <div className="space-y-3">
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Round-trip latency (RTT):</span>
-                        <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">—</span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Downlink throughput:</span>
-                        <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">—</span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Uplink throughput:</span>
-                        <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">—</span>
-                      </div>
-                      <div className="text-xs text-gray-500 dark:text-gray-400 text-center mt-2">
-                        No performance data available without SNP connectivity
-                      </div>
-                    </div>
+                    <PerformancePanel
+                      rtt={null}
+                      downlinkGbps={null}
+                      uplinkGbps={null}
+                      maxDlGbps={TERMINAL_PROFILES[terminalType].maxDlGbps}
+                      maxUlGbps={TERMINAL_PROFILES[terminalType].maxUlGbps}
+                      accentColor="#db2777"
+                      noDataMessage="No performance data available without SNP connectivity"
+                    />
                   ) : (
-                    <div className="space-y-3">
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm font-medium text-gray-600">Round-trip latency (RTT):</span>
-                        <span className="text-sm font-semibold text-gray-900">— ms</span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm font-medium text-gray-600">Downlink throughput:</span>
-                        <span className="text-sm font-semibold text-gray-900">— Gbps</span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm font-medium text-gray-600">Uplink throughput:</span>
-                        <span className="text-sm font-semibold text-gray-900">— Gbps</span>
-                      </div>
-                    </div>
+                    <PerformancePanel
+                      rtt={null}
+                      downlinkGbps={null}
+                      uplinkGbps={null}
+                      maxDlGbps={TERMINAL_PROFILES[terminalType].maxDlGbps}
+                      maxUlGbps={TERMINAL_PROFILES[terminalType].maxUlGbps}
+                      accentColor="#db2777"
+                    />
                   )}
                 </div>
               </div>
@@ -916,59 +886,29 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
                     (() => {
                       const performance = calculateGEOPerformance(resolvedGEOConnectivity.elevation);
                       return (
-                        <div className="space-y-3">
-                          <div className="flex justify-between items-center">
-                            <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Round-trip latency (RTT):</span>
-                            <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">{resolvedGEOConnectivity.rtt} ms</span>
-                          </div>
-
-                          <div className="flex justify-between items-center">
-                            <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Downlink throughput:</span>
-                            <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-                              {performance.performanceFactor > 0
-                                ? (performance.downlinkGbps >= 1
-                                  ? `${performance.downlinkGbps.toFixed(1)} Gbps`
-                                  : `${Math.round(performance.downlinkGbps * 1000)} Mbps`)
-                                : 'Not usable'}
-                            </span>
-                          </div>
-                          <div className="flex justify-between items-center">
-                            <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Uplink throughput:</span>
-                            <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-                              {performance.performanceFactor > 0
-                                ? (performance.uplinkGbps >= 1
-                                  ? `${performance.uplinkGbps.toFixed(1)} Gbps`
-                                  : `${Math.round(performance.uplinkGbps * 1000)} Mbps`)
-                                : 'Not usable'}
-                            </span>
-                          </div>
-                          <div className="flex justify-between items-center">
-                            <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Stability:</span>
-                            <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-                              {performance.stability}
-                            </span>
-                          </div>
-                        </div>
+                        <PerformancePanel
+                          rtt={resolvedGEOConnectivity.rtt}
+                          downlinkGbps={performance.downlinkGbps}
+                          uplinkGbps={performance.uplinkGbps}
+                          maxDlGbps={TERMINAL_PROFILES[terminalType].maxDlGbps}
+                          maxUlGbps={TERMINAL_PROFILES[terminalType].maxUlGbps}
+                          stability={performance.stability}
+                          performanceFactor={performance.performanceFactor}
+                          accentColor="#2563eb"
+                          rttMaxMs={600}
+                        />
                       );
                     })()
                   ) : (
-                    <div className="space-y-3">
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Round-trip latency (RTT):</span>
-                        <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">—</span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Downlink throughput:</span>
-                        <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">—</span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Uplink throughput:</span>
-                        <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">—</span>
-                      </div>
-                      <div className="text-xs text-gray-500 dark:text-gray-400 text-center mt-2">
-                        No GEO coverage available
-                      </div>
-                    </div>
+                    <PerformancePanel
+                      rtt={null}
+                      downlinkGbps={null}
+                      uplinkGbps={null}
+                      maxDlGbps={TERMINAL_PROFILES[terminalType].maxDlGbps}
+                      maxUlGbps={TERMINAL_PROFILES[terminalType].maxUlGbps}
+                      accentColor="#2563eb"
+                      noDataMessage="No GEO coverage available"
+                    />
                   )}
                 </div>
               </div>

@@ -140,14 +140,9 @@ export function useMaritimeTraffic(
         setState(prev => ({ ...prev, isLoading: true, error: null }));
 
         try {
-            // Connect to AISStream (or use mock data if no API key).
-            // connectAISStream already pushes mock vessels when key is missing, so we only need to trigger display.
+            // Connect to maritime stream (server proxy -> AISStream).
+            // connectAISStream handles fallback to mock when stream is unavailable.
             cleanupRef.current = connectAISStream(handleVesselUpdate, updateDisplayedVessels);
-
-            const apiKey = typeof import.meta.env.VITE_AISSTREAM_API_KEY === 'string' && import.meta.env.VITE_AISSTREAM_API_KEY.trim().length > 0;
-            if (!apiKey) {
-                updateDisplayedVessels();
-            }
 
             intervalRef.current = window.setInterval(updateDisplayedVessels, finalConfig.updateInterval);
             setTimeout(updateDisplayedVessels, 100);

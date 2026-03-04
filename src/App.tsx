@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import MapViewSwitcher from './components/MapViewSwitcher';
 import CapacityDetails from './components/CapacityDetails';
 import SatelliteSelector from './components/SatelliteSelector';
+import SplashScreen from './components/SplashScreen';
 import AircraftSelector from './components/AircraftSelector';
 import VesselSelector from './components/VesselSelector';
 import SatelliteScopeFilter, { SatelliteScope } from './components/SatelliteScopeFilter';
@@ -61,6 +62,7 @@ const App: React.FC = () => {
   const [maritimeTrafficEnabled, setMaritimeTrafficEnabled] = useState(false);
   const [showSatelliteTrajectory, setShowSatelliteTrajectory] = useState(false);
   const [sizeScale, setSizeScale] = useState(1); // 0.5, 1, 2, 4, 8
+  const [splashDone, setSplashDone] = useState(false);
   const [mobileSheetSnap, setMobileSheetSnap] = useState<0 | 1 | 2>(0);
   const [isSatelliteModalOpen, setIsSatelliteModalOpen] = useState(false);
   const [mobileMetrics, setMobileMetrics] = useState<{
@@ -768,14 +770,17 @@ const App: React.FC = () => {
     handleCameraReady, handleGlobeContainerReady, showSatelliteTrajectory, sizeScale,
   ]);
 
-  if (loading) {
+  if (loading || !splashDone) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-white dark:bg-slate-950">
-        <div className="text-center">
-          <Satellite className="h-12 w-12 text-blue-600 animate-spin mx-auto mb-4" />
-          <p className="text-lg font-semibold text-gray-700">Loading satellite data...</p>
-        </div>
-      </div>
+      <>
+        <SplashScreen onComplete={() => setSplashDone(true)} />
+        {/* Hidden pre-render so globe starts initializing behind splash */}
+        {!loading && (
+          <div className="opacity-0 fixed inset-0 -z-10" aria-hidden>
+            <div className="min-h-screen bg-white dark:bg-slate-950" />
+          </div>
+        )}
+      </>
     );
   }
 

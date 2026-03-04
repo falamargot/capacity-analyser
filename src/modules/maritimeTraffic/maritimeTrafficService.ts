@@ -1,7 +1,7 @@
 import { log } from '../../utils/logger';
 /**
  * Maritime Traffic Service
- * Handles fetching and caching of AIS vessel data from AISStream.io WebSocket API
+ * Handles fetching and caching of AIS vessel data from AISStream via server-side proxy SSE
  */
 
 // Vessel types for B2B classification
@@ -49,8 +49,8 @@ export interface Vessel {
   lastUpdate: number;
 }
 
-// WebSocket connection state
-let websocket: WebSocket | null = null;
+// EventSource connection state (browser -> local server proxy)
+let eventSource: EventSource | null = null;
 let vesselCache: Map<string, Vessel> = new Map();
 let lastCleanup = 0;
 const STALE_THRESHOLD = 5 * 60 * 1000; // 5 minutes
@@ -208,23 +208,16 @@ function estimatePassengers(vesselType: VesselType, length: number | null): numb
   }
 }
 
-/** Read AISStream API key and log status (do not log the value). */
-function getAISStreamApiKey(): string | undefined {
-  const key = import.meta.env.VITE_AISSTREAM_API_KEY;
-  const value = typeof key === 'string' ? key.trim() : '';
-  const present = value.length > 0;
-  if (present) {
-    log('🚢 AISStream API key: present (live vessel data)');
-  } else {
-    console.warn(
-      '🚢 AISStream API key: missing — using 4 mock vessels. Set VITE_AISSTREAM_API_KEY in .env and restart the dev server.'
-    );
+function getMaritimeStreamUrl(): string {
+  const configured = import.meta.env.VITE_MARITIME_STREAM_URL;
+  if (typeof configured === 'string' && configured.trim().length > 0) {
+    return configured.trim();
   }
-  return present ? value : undefined;
+  return '/api/ais/stream';
 }
 
 /**
- * Connect to AISStream.io WebSocket
+ * Connect to maritime SSE stream (server proxy -> AISStream)
  * @param onVesselUpdate - called for each vessel (live or mock)
  * @param onFallbackToMock - called when falling back to mock data so the UI can refresh immediately
  */
@@ -232,52 +225,43 @@ export function connectAISStream(
   onVesselUpdate: (vessel: Vessel) => void,
   onFallbackToMock?: () => void
 ): () => void {
-  const apiKey = getAISStreamApiKey();
-
-  if (!apiKey) {
-    const mockVessels = getMockVesselData();
-    mockVessels.forEach(onVesselUpdate);
-    onFallbackToMock?.();
-    return () => {};
-  }
+  const streamUrl = getMaritimeStreamUrl();
 
   try {
-    let connected = false;
+    if (eventSource) {
+      eventSource.close();
+      eventSource = null;
+    }
+
+    let receivedAnyAisMessage = false;
+    let streamConnected = false;
+    let replacedMockWithLive = false;
     let fallbackApplied = false;
-    const applyMockFallback = () => {
+    const applyMockFallback = (reason?: string) => {
       if (fallbackApplied) return;
+      if (receivedAnyAisMessage || streamConnected) return;
       fallbackApplied = true;
-      console.warn(
-        '🚢 AISStream does not support direct browser connections (connection lost or refused). Using sample vessels. For live data, use a backend proxy to AISStream.'
-      );
-      getMockVesselData().forEach(onVesselUpdate);
+      console.warn(`🚢 Live maritime stream unavailable${reason ? ` (${reason})` : ''}. Using sample vessels.`);
+      getMockVesselData().forEach((vessel) => {
+        vesselCache.set(vessel.mmsi, vessel);
+        onVesselUpdate(vessel);
+      });
       onFallbackToMock?.();
     };
 
-    websocket = new WebSocket('wss://stream.aisstream.io/v0/stream');
+    // EventSource auto-reconnects by default if the server drops connection.
+    eventSource = new EventSource(streamUrl);
+    log(`🚢 Connecting maritime stream: ${streamUrl}`);
 
-    websocket.onopen = () => {
-      connected = true;
-      log('🚢 AISStream WebSocket connected');
-      // API expects APIKey and BoundingBoxes as [[lat, lon], [lat, lon]] per corner
-      const subscriptionMessage = {
-        APIKey: apiKey,
-        BoundingBoxes: [
-          // Mediterranean: [[south, west], [north, east]]
-          [[30, -6], [45, 36]],
-          // North Atlantic
-          [[20, -80], [60, 0]],
-          // Caribbean
-          [[10, -100], [30, -60]]
-        ],
-        FiltersShipMMSI: [],
-        FilterMessageTypes: ['PositionReport', 'ShipStaticData']
-      };
+    const connectTimeout = window.setTimeout(() => {
+      if (!receivedAnyAisMessage && !streamConnected) {
+        applyMockFallback('connection timeout');
+      }
+    }, 20000);
 
-      websocket?.send(JSON.stringify(subscriptionMessage));
-    };
-
-    websocket.onmessage = (event) => {
+    const handleAisMessage = (event: MessageEvent<string>) => {
+      receivedAnyAisMessage = true;
+      window.clearTimeout(connectTimeout);
       try {
         const data = JSON.parse(event.data);
         if (data.error) {
@@ -286,34 +270,65 @@ export function connectAISStream(
         }
         const vessel = parseAISMessage(data);
         if (vessel && vessel.b2bPriority >= 70) {
+          if (fallbackApplied && !replacedMockWithLive) {
+            // Replace sample fleet with live feed as soon as the first live vessel arrives.
+            vesselCache.clear();
+            replacedMockWithLive = true;
+            log('🚢 Live maritime data received after fallback, replacing sample vessels');
+          }
           vesselCache.set(vessel.mmsi, vessel);
           onVesselUpdate(vessel);
         }
       } catch (error) {
-        console.warn('🚢 Failed to process WebSocket message:', error);
+        console.warn('🚢 Failed to process SSE vessel message:', error);
       }
     };
 
-    websocket.onerror = () => {
-      if (!connected) applyMockFallback();
+    const handleStatus = (event: MessageEvent<string>) => {
+      try {
+        const status = JSON.parse(event.data);
+        if (status?.state === 'connected') {
+          streamConnected = true;
+          log('🚢 Maritime stream connected');
+          window.clearTimeout(connectTimeout);
+          return;
+        }
+
+        if (status?.state === 'error' && !receivedAnyAisMessage && !streamConnected) {
+          console.warn(`🚢 Maritime stream error: ${status.reason ?? 'unknown'}`);
+          applyMockFallback(status.reason ?? 'status error');
+        }
+      } catch {
+        // Ignore invalid status payload
+      }
     };
 
-    websocket.onclose = () => {
-      if (connected) log('🚢 AISStream WebSocket closed');
-      else if (!fallbackApplied) applyMockFallback();
+    eventSource.addEventListener('ais', handleAisMessage as EventListener);
+    eventSource.addEventListener('status', handleStatus as EventListener);
+
+    eventSource.onerror = () => {
+      if (!receivedAnyAisMessage && !streamConnected && eventSource?.readyState === EventSource.CLOSED) {
+        applyMockFallback('eventsource closed');
+      }
     };
 
     // Return cleanup function
     return () => {
-      if (websocket) {
-        websocket.close();
-        websocket = null;
+      window.clearTimeout(connectTimeout);
+      if (eventSource) {
+        eventSource.removeEventListener('ais', handleAisMessage as EventListener);
+        eventSource.removeEventListener('status', handleStatus as EventListener);
+        eventSource.close();
+        eventSource = null;
       }
     };
   } catch (error) {
-    console.error('🚢 Failed to connect to AISStream:', error);
+    console.error('🚢 Failed to connect to maritime stream:', error);
     const mockVessels = getMockVesselData();
-    mockVessels.forEach(onVesselUpdate);
+    mockVessels.forEach((vessel) => {
+      vesselCache.set(vessel.mmsi, vessel);
+      onVesselUpdate(vessel);
+    });
     onFallbackToMock?.();
     return () => {};
   }
@@ -483,10 +498,10 @@ export function filterVesselsByView(
  * Disconnect from WebSocket and clear cache
  */
 export function disconnectAISStream(): void {
-  if (websocket) {
-    websocket.close();
-    websocket = null;
+  if (eventSource) {
+    eventSource.close();
+    eventSource = null;
   }
   vesselCache.clear();
-  log('🚢 AISStream disconnected and cache cleared');
+  log('🚢 Maritime stream disconnected and cache cleared');
 }

@@ -2,12 +2,15 @@
  * AircraftLayer - Renders all aircraft entities with optimized callbacks
  */
 import React, { useMemo, useCallback } from 'react';
-import { Entity } from 'resium';
+import { Entity, LabelGraphics } from 'resium';
 import {
+    Cartesian2,
     Cartesian3,
     Color,
     CallbackProperty,
     Math as CesiumMath,
+    VerticalOrigin,
+    HorizontalOrigin,
     Viewer as CesiumViewerType
 } from 'cesium';
 import type { Aircraft } from '../../modules/airTraffic/airTrafficService';
@@ -86,7 +89,24 @@ const AircraftEntity = React.memo<{
                 onClick={handleClick}
                 onMouseEnter={handleMouseEnter}
                 onMouseLeave={handleMouseLeave}
-            />
+            >
+                {isSelected && (
+                    <LabelGraphics
+                        text={ac.callsign}
+                        font="600 13px Inter, sans-serif"
+                        fillColor={Color.WHITE}
+                        outlineWidth={3}
+                        style={2}
+                        showBackground={true}
+                        backgroundColor={Color.RED.withAlpha(0.7)}
+                        backgroundPadding={new Cartesian2(7, 4)}
+                        pixelOffset={new Cartesian2(0, -20)}
+                        verticalOrigin={VerticalOrigin.BOTTOM}
+                        horizontalOrigin={HorizontalOrigin.CENTER}
+                        disableDepthTestDistance={Number.POSITIVE_INFINITY}
+                    />
+                )}
+            </Entity>
         </>
     );
 });

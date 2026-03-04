@@ -2,14 +2,17 @@
  * VesselLayer - Renders all vessel entities with optimized callbacks
  */
 import React, { useMemo, useCallback } from 'react';
-import { Entity } from 'resium';
+import { Entity, LabelGraphics } from 'resium';
 import {
+    Cartesian2,
     Cartesian3,
     Color,
     CallbackProperty,
     CallbackPositionProperty,
     Math as CesiumMath,
     JulianDate,
+    VerticalOrigin,
+    HorizontalOrigin,
     Viewer as CesiumViewerType
 } from 'cesium';
 import type { Vessel } from '../../modules/maritimeTraffic/maritimeTrafficService';
@@ -136,9 +139,9 @@ const VesselEntity = React.memo<{
             const cameraHeight = viewerRef.current.camera.positionCartographic.height;
             const dynamicScale = calculateDynamicScale(cameraHeight, DPR_FACTOR);
 
-            // Vessels are larger than aircraft to be visible at sea level
-            const baseScale = dynamicScale * 750000 / Math.max(distance, 10000000);
-            return baseScale * vesselSizeScale;
+            // Keep vessels visible at global zoom levels (they sit at sea level).
+            const baseScale = dynamicScale * 4000000 / Math.max(distance, 6000000);
+            return Math.max(baseScale * vesselSizeScale, 0.12 * vesselSizeScale);
         }, false);
     }, [positionCallback, viewerRef, vesselSizeScale]);
 
@@ -188,7 +191,24 @@ const VesselEntity = React.memo<{
             onClick={handleClick}
             onMouseEnter={handleMouseEnter}
             onMouseLeave={handleMouseLeave}
-        />
+        >
+            {isSelected && (
+                <LabelGraphics
+                    text={vessel.mmsi}
+                    font="600 13px Inter, sans-serif"
+                    fillColor={Color.WHITE}
+                    outlineWidth={3}
+                    style={2}
+                    showBackground={true}
+                    backgroundColor={Color.RED.withAlpha(0.7)}
+                    backgroundPadding={new Cartesian2(7, 4)}
+                    pixelOffset={new Cartesian2(0, -20)}
+                    verticalOrigin={VerticalOrigin.BOTTOM}
+                    horizontalOrigin={HorizontalOrigin.CENTER}
+                    disableDepthTestDistance={Number.POSITIVE_INFINITY}
+                />
+            )}
+        </Entity>
     );
 });
 

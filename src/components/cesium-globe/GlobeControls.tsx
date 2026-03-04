@@ -113,6 +113,46 @@ const GlobeControls: React.FC<GlobeControlsProps> = ({
         return () => document.removeEventListener('pointerdown', onDocPointerDown);
     }, [isMapOptionsOpen]);
 
+    // Keyboard shortcuts
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            // Skip when typing in inputs
+            const tag = (e.target as HTMLElement)?.tagName;
+            if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+
+            switch (e.key.toLowerCase()) {
+                case 'l':
+                    e.preventDefault();
+                    onToggleLighting?.();
+                    break;
+                case 't':
+                    e.preventDefault();
+                    onToggleSatelliteTrajectory?.();
+                    break;
+                case 'f':
+                    e.preventDefault();
+                    onToggleFullscreen();
+                    break;
+                case '+':
+                case '=':
+                    e.preventDefault();
+                    handleZoomIn();
+                    break;
+                case '-':
+                    e.preventDefault();
+                    handleZoomOut();
+                    break;
+                case '0':
+                    e.preventDefault();
+                    handleReset();
+                    break;
+            }
+        };
+
+        document.addEventListener('keydown', handleKeyDown);
+        return () => document.removeEventListener('keydown', handleKeyDown);
+    }, [onToggleLighting, onToggleSatelliteTrajectory, onToggleFullscreen, handleZoomIn, handleZoomOut, handleReset]);
+
     return (
         <div className="absolute top-2 right-2 z-10 flex flex-col items-end gap-2">
             {isPhone ? (
@@ -213,7 +253,7 @@ const GlobeControls: React.FC<GlobeControlsProps> = ({
                         <button
                             onClick={handleZoomOut}
                             className="bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm p-2 rounded-md shadow-sm hover:bg-white/100 dark:hover:bg-slate-700 transition-colors text-gray-700 dark:text-gray-200"
-                            title="Zoom arrière"
+                            title="Zoom out (−)"
                         >
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                 <circle cx="11" cy="11" r="8"></circle>
@@ -225,7 +265,7 @@ const GlobeControls: React.FC<GlobeControlsProps> = ({
                         <button
                             onClick={handleReset}
                             className="bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm p-2 rounded-md shadow-sm hover:bg-white/100 dark:hover:bg-slate-700 transition-colors text-gray-700 dark:text-gray-200"
-                            title="Initialiser la vue"
+                            title="Reset view (0)"
                         >
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                 <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
@@ -236,7 +276,7 @@ const GlobeControls: React.FC<GlobeControlsProps> = ({
                         <button
                             onClick={handleZoomIn}
                             className="bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm p-2 rounded-md shadow-sm hover:bg-white/100 dark:hover:bg-slate-700 transition-colors text-gray-700 dark:text-gray-200"
-                            title="Zoom avant"
+                            title="Zoom in (+)"
                         >
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                 <circle cx="11" cy="11" r="8"></circle>
