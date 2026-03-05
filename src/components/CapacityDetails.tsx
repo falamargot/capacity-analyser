@@ -805,7 +805,7 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
                 </div>
                 {/* LEO Estimated Performance */}
                 <div className="bg-gray-50 dark:bg-slate-800/50 rounded-lg p-4 border border-gray-100 dark:border-slate-700">
-                  <h4 className="text-sm font-semibold mb-3" style={{ color: '#db2777' }}>Estimated Performance (LEO)</h4>
+                  <h4 className="text-sm font-semibold mb-3" style={{ color: '#db2777' }}>Estimated Performance</h4>
                   {resolvedLEOConnectivity && resolvedLEOConnectivity.snp ? (
                     (() => {
                       const performance = calculateLEOPerformance(
@@ -862,7 +862,7 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
               <div className="space-y-4">
                 {/* GEO Radio Path */}
                 <div className="bg-gray-50 dark:bg-slate-800/50 rounded-lg p-4 mt-1 border border-gray-100 dark:border-slate-700">
-                  <h4 className="text-sm font-semibold mb-3" style={{ color: '#2563eb' }}>Radio Path (GEO)</h4>
+                  <h4 className="text-sm font-semibold mb-3" style={{ color: '#2563eb' }}>Radio Path</h4>
                   {resolvedGEOConnectivity ? (
                     <div className="text-sm text-gray-700 dark:text-gray-300 text-center space-y-3">
                       <div>{analysisSource === 'aircraft' && aircraftCallsign ? aircraftCallsign : 'User'} ↔ <button onClick={() => onSatelliteClick?.(resolvedGEOConnectivity.satellite)} className="underline hover:no-underline text-blue-600 dark:text-blue-400 font-medium cursor-pointer">{resolvedGEOConnectivity.satellite.name}</button></div>
@@ -881,7 +881,7 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
                 </div>
                 {/* GEO Estimated Performance */}
                 <div className="bg-gray-50 dark:bg-slate-800/50 rounded-lg p-4 border border-gray-100 dark:border-slate-700">
-                  <h4 className="text-sm font-semibold mb-3" style={{ color: '#2563eb' }}>Estimated Performance (GEO)</h4>
+                  <h4 className="text-sm font-semibold mb-3" style={{ color: '#2563eb' }}>Estimated Performance</h4>
                   {resolvedGEOConnectivity ? (
                     (() => {
                       const performance = calculateGEOPerformance(resolvedGEOConnectivity.elevation);

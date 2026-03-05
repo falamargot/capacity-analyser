@@ -51,6 +51,8 @@ interface ThroughputBarProps {
     maxGbps: number;
     accentColor: string;
     performanceFactor?: number;
+    sharedScaleMaxMbps?: number;
+    trackWidthRatio?: number;
 }
 
 function formatThroughput(gbps: number): string {
@@ -59,15 +61,34 @@ function formatThroughput(gbps: number): string {
 }
 
 /** Animated horizontal bar showing throughput relative to terminal max */
-export const ThroughputBar: React.FC<ThroughputBarProps> = ({ label, gbps, maxGbps, accentColor, performanceFactor }) => {
+export const ThroughputBar: React.FC<ThroughputBarProps> = ({
+    label,
+    gbps,
+    maxGbps,
+    accentColor,
+    performanceFactor,
+    sharedScaleMaxMbps,
+    trackWidthRatio,
+}) => {
     const isUsable = performanceFactor == null || performanceFactor > 0;
     const displayValue = gbps != null && isUsable ? gbps : null;
-    const ratio = displayValue != null ? Math.min(displayValue / maxGbps, 1) : 0;
+    const valueMbps = displayValue != null ? displayValue * 1000 : null;
+    const defaultRatio = displayValue != null ? Math.min(displayValue / maxGbps, 1) : 0;
+
+    // Shared visual scale in Mbps so equal Mbps => equal on-screen length across DL/UL.
+    const ratio = (
+        valueMbps != null &&
+        sharedScaleMaxMbps != null &&
+        trackWidthRatio != null &&
+        trackWidthRatio > 0
+    )
+        ? Math.min(valueMbps / (sharedScaleMaxMbps * trackWidthRatio), 1)
+        : defaultRatio;
 
     return (
         <div className="space-y-1">
             <div className="flex justify-between items-center">
-                <span className="text-sm font-medium text-gray-600 dark:text-gray-400">{label}</span>
+                <span className="text-sm font-medium text-gray-600 dark:text-gray-400 truncate">{label}</span>
                 <span className="text-sm font-bold tabular-nums text-gray-900 dark:text-gray-100">
                     {displayValue != null ? formatThroughput(displayValue) : (gbps != null ? 'Not usable' : '—')}
                 </span>
@@ -151,13 +172,41 @@ export const PerformancePanel: React.FC<PerformancePanelProps> = ({
     noDataMessage,
 }) => {
     const allEmpty = rtt == null && downlinkGbps == null && uplinkGbps == null;
+    const DL_WIDTH_RATIO = 2 / 3;
+    const UL_WIDTH_RATIO = 1 / 3;
+    const maxDlMbps = maxDlGbps * 1000;
+    const maxUlMbps = maxUlGbps * 1000;
+    const sharedScaleMaxMbps = Math.max(
+        maxDlMbps / DL_WIDTH_RATIO,
+        maxUlMbps / UL_WIDTH_RATIO
+    );
 
     if (allEmpty && noDataMessage) {
         return (
             <div className="space-y-3">
                 <RttIndicator value={null} />
-                <ThroughputBar label="Downlink" gbps={null} maxGbps={maxDlGbps} accentColor={accentColor} />
-                <ThroughputBar label="Uplink" gbps={null} maxGbps={maxUlGbps} accentColor={accentColor} />
+                <div className="grid grid-cols-3 gap-2 items-start">
+                    <div className="col-span-2">
+                        <ThroughputBar
+                            label="Downlink"
+                            gbps={null}
+                            maxGbps={maxDlGbps}
+                            accentColor={accentColor}
+                            sharedScaleMaxMbps={sharedScaleMaxMbps}
+                            trackWidthRatio={DL_WIDTH_RATIO}
+                        />
+                    </div>
+                    <div className="col-span-1">
+                        <ThroughputBar
+                            label="Uplink"
+                            gbps={null}
+                            maxGbps={maxUlGbps}
+                            accentColor={accentColor}
+                            sharedScaleMaxMbps={sharedScaleMaxMbps}
+                            trackWidthRatio={UL_WIDTH_RATIO}
+                        />
+                    </div>
+                </div>
                 <div className="text-xs text-gray-500 dark:text-gray-400 text-center mt-2">{noDataMessage}</div>
             </div>
         );
@@ -166,8 +215,30 @@ export const PerformancePanel: React.FC<PerformancePanelProps> = ({
     return (
         <div className="space-y-3">
             <RttIndicator value={rtt} maxMs={rttMaxMs} accentColor={accentColor} />
-            <ThroughputBar label="Downlink" gbps={downlinkGbps} maxGbps={maxDlGbps} accentColor={accentColor} performanceFactor={performanceFactor} />
-            <ThroughputBar label="Uplink" gbps={uplinkGbps} maxGbps={maxUlGbps} accentColor={accentColor} performanceFactor={performanceFactor} />
+            <div className="grid grid-cols-3 gap-2 items-start">
+                <div className="col-span-2">
+                    <ThroughputBar
+                        label="Downlink"
+                        gbps={downlinkGbps}
+                        maxGbps={maxDlGbps}
+                        accentColor={accentColor}
+                        performanceFactor={performanceFactor}
+                        sharedScaleMaxMbps={sharedScaleMaxMbps}
+                        trackWidthRatio={DL_WIDTH_RATIO}
+                    />
+                </div>
+                <div className="col-span-1">
+                    <ThroughputBar
+                        label="Uplink"
+                        gbps={uplinkGbps}
+                        maxGbps={maxUlGbps}
+                        accentColor={accentColor}
+                        performanceFactor={performanceFactor}
+                        sharedScaleMaxMbps={sharedScaleMaxMbps}
+                        trackWidthRatio={UL_WIDTH_RATIO}
+                    />
+                </div>
+            </div>
             {stability !== undefined && <StabilityIndicator stability={stability ?? null} />}
         </div>
     );
