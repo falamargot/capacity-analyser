@@ -56,19 +56,77 @@ export const SNPS_DATA: SNPData[] = [
 ];
 
 export interface GeoGatewayData {
+  gateway_id: string;
   name: string;
+  latitude: number;
+  longitude: number;
+  supported_satellites: string[];
   lat: number;
   lng: number;
   region: string;
 }
 
 export const GEO_GATEWAYS: GeoGatewayData[] = [
-  { name: 'Rambouillet', lat: 48.5178, lng: 1.7617, region: 'Europe' },
-  { name: 'Cagliari', lat: 39.2154, lng: 9.1093, region: 'Europe' },
-  { name: 'Turin', lat: 45.0709, lng: 7.6843, region: 'Europe' },
-  { name: 'Madeira', lat: 32.7402, lng: -16.7348, region: 'Europe' },
-  { name: 'Mexico', lat: 19.3574, lng: -99.0671, region: 'Americas' },
-  { name: 'Martinique', lat: 14.6000, lng: -61.0000, region: 'Americas' }
+  {
+    gateway_id: 'geo-rambouillet',
+    name: 'Rambouillet',
+    latitude: 48.5178,
+    longitude: 1.7617,
+    supported_satellites: ['EUTELSAT', '*'],
+    lat: 48.5178,
+    lng: 1.7617,
+    region: 'Europe'
+  },
+  {
+    gateway_id: 'geo-cagliari',
+    name: 'Cagliari',
+    latitude: 39.2154,
+    longitude: 9.1093,
+    supported_satellites: ['EUTELSAT', '*'],
+    lat: 39.2154,
+    lng: 9.1093,
+    region: 'Europe'
+  },
+  {
+    gateway_id: 'geo-turin',
+    name: 'Turin',
+    latitude: 45.0709,
+    longitude: 7.6843,
+    supported_satellites: ['EUTELSAT', '*'],
+    lat: 45.0709,
+    lng: 7.6843,
+    region: 'Europe'
+  },
+  {
+    gateway_id: 'geo-madeira',
+    name: 'Madeira',
+    latitude: 32.7402,
+    longitude: -16.7348,
+    supported_satellites: ['EUTELSAT', '*'],
+    lat: 32.7402,
+    lng: -16.7348,
+    region: 'Europe'
+  },
+  {
+    gateway_id: 'geo-mexico',
+    name: 'Mexico',
+    latitude: 19.3574,
+    longitude: -99.0671,
+    supported_satellites: ['EUTELSAT', '*'],
+    lat: 19.3574,
+    lng: -99.0671,
+    region: 'Americas'
+  },
+  {
+    gateway_id: 'geo-martinique',
+    name: 'Martinique',
+    latitude: 14.6000,
+    longitude: -61.0000,
+    supported_satellites: ['EUTELSAT', '*'],
+    lat: 14.6000,
+    lng: -61.0000,
+    region: 'Americas'
+  }
 ];
 
 export const GLOBE_CONFIG = {

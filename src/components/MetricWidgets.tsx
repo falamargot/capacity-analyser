@@ -6,10 +6,11 @@ interface RttIndicatorProps {
     value: number | null; // ms
     maxMs?: number;       // scale max (default 600 for GEO)
     accentColor?: string; // hex color for the bar
+    label?: string;
 }
 
 /** Color-coded RTT dot + value + mini progress bar */
-export const RttIndicator: React.FC<RttIndicatorProps> = ({ value, maxMs = 600, accentColor }) => {
+export const RttIndicator: React.FC<RttIndicatorProps> = ({ value, maxMs = 600, accentColor, label = 'RTT' }) => {
     if (value == null) {
         return (
             <div className="flex justify-between items-center">
@@ -27,7 +28,7 @@ export const RttIndicator: React.FC<RttIndicatorProps> = ({ value, maxMs = 600, 
             <div className="flex justify-between items-center">
                 <span className="text-sm font-medium text-gray-600 dark:text-gray-400 flex items-center gap-1.5">
                     <span className="inline-block w-2.5 h-2.5 rounded-full shadow-sm" style={{ backgroundColor: dotColor }} />
-                    RTT
+                    {label}
                 </span>
                 <span className="text-sm font-bold tabular-nums text-gray-900 dark:text-gray-100">
                     {Math.round(value)} ms
@@ -162,6 +163,7 @@ interface PerformancePanelProps {
     performanceFactor?: number;
     accentColor: string;     // '#db2777' for LEO, '#2563eb' for GEO
     rttMaxMs?: number;       // max for RTT bar scale
+    rttLabel?: string;
     noDataMessage?: string;
 }
 
@@ -169,6 +171,7 @@ interface PerformancePanelProps {
 export const PerformancePanel: React.FC<PerformancePanelProps> = ({
     rtt, downlinkGbps, uplinkGbps, maxDlGbps, maxUlGbps,
     stability, performanceFactor, accentColor, rttMaxMs = 600,
+    rttLabel = 'RTT',
     noDataMessage,
 }) => {
     const allEmpty = rtt == null && downlinkGbps == null && uplinkGbps == null;
@@ -184,7 +187,7 @@ export const PerformancePanel: React.FC<PerformancePanelProps> = ({
     if (allEmpty && noDataMessage) {
         return (
             <div className="space-y-3">
-                <RttIndicator value={null} />
+                <RttIndicator value={null} label={rttLabel} />
                 <div className="grid grid-cols-3 gap-2 items-start">
                     <div className="col-span-2">
                         <ThroughputBar
@@ -214,7 +217,7 @@ export const PerformancePanel: React.FC<PerformancePanelProps> = ({
 
     return (
         <div className="space-y-3">
-            <RttIndicator value={rtt} maxMs={rttMaxMs} accentColor={accentColor} />
+            <RttIndicator value={rtt} maxMs={rttMaxMs} accentColor={accentColor} label={rttLabel} />
             <div className="grid grid-cols-3 gap-2 items-start">
                 <div className="col-span-2">
                     <ThroughputBar

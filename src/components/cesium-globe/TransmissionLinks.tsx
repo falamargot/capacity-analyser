@@ -18,6 +18,8 @@ import type { SatelliteScope } from '../SatelliteScopeFilter';
 import { getPosition, propagateSatellite, calculateDeadReckoning } from './utils';
 import { hasRFConnectivity } from '../../utils/rfConnectivity';
 import { useSimulation } from '../../contexts/SimulationContext';
+import { GEO_GATEWAYS } from '../globe/GlobeConfig';
+import { analyzeGeoConnectivity } from '../../utils/geoConnectivityModel';
 
 interface TransmissionLinksProps {
     selectedPosition?: { lat: number; lng: number; altitude?: number } | null;
@@ -36,8 +38,18 @@ const leoDashMaterial = new PolylineDashMaterialProperty({
     dashPattern: 3855
 });
 
-const geoDashMaterial = new PolylineDashMaterialProperty({
+const geoUserMaterial = new PolylineDashMaterialProperty({
     color: Color.ROYALBLUE,
+    dashPattern: 3855
+});
+
+const geoFeederMaterial = new PolylineDashMaterialProperty({
+    color: Color.ORANGE,
+    dashPattern: 3855
+});
+
+const geoBackhaulMaterial = new PolylineDashMaterialProperty({
+    color: Color.GRAY,
     dashPattern: 3855
 });
 
@@ -54,6 +66,31 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
     const { coveragePolicy } = useSimulation();
     const hasUserSelection = !!(selectedPosition || selectedAircraft);
 
+    const resolveCurrentUser = useMemo(() => {
+        return (time: JulianDate) => {
+            const userPosition = selectedAircraft
+                ? calculateDeadReckoning(selectedAircraft, time)
+                : getPosition(selectedPosition!.lat, selectedPosition!.lng, selectedPosition!.altitude || 0);
+
+            const userLocation = selectedAircraft
+                ? (() => {
+                    const carto = Cartographic.fromCartesian(userPosition);
+                    return {
+                        lat: CesiumMath.toDegrees(carto.latitude),
+                        lng: CesiumMath.toDegrees(carto.longitude),
+                        altitude: carto.height / 1000
+                    };
+                })()
+                : {
+                    lat: selectedPosition!.lat,
+                    lng: selectedPosition!.lng,
+                    altitude: selectedPosition!.altitude || 0
+                };
+
+            return { userPosition, userLocation };
+        };
+    }, [selectedAircraft, selectedPosition]);
+
     // LEO Uplink positions callback
     const leoUplinkCallback = useMemo(() => {
         if (!autoSelectedLEOSatellite || !hasUserSelection) return null;
@@ -61,22 +98,7 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
         return new CallbackProperty((time?: JulianDate) => {
             if (!time) return [];
 
-            // Point A: Aircraft or fixed position
-            const startPos = selectedAircraft
-                ? calculateDeadReckoning(selectedAircraft, time)
-                : getPosition(selectedPosition!.lat, selectedPosition!.lng, selectedPosition!.altitude || 0);
-            
-            // Get user location for RF connectivity check
-            const userLocation = selectedAircraft 
-                ? (() => {
-                    const pos = calculateDeadReckoning(selectedAircraft, time);
-                    const carto = Cartographic.fromCartesian(pos);
-                    return {
-                        lat: CesiumMath.toDegrees(carto.latitude),
-                        lng: CesiumMath.toDegrees(carto.longitude)
-                    };
-                  })()
-                : { lat: selectedPosition!.lat, lng: selectedPosition!.lng };
+            const { userPosition: startPos, userLocation } = resolveCurrentUser(time);
 
             // Check RF connectivity before rendering link
             if (!hasRFConnectivity(userLocation, autoSelectedLEOSatellite, time, coveragePolicy)) {
@@ -88,7 +110,7 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
 
             return [startPos, endPos];
         }, false);
-    }, [autoSelectedLEOSatellite, selectedAircraft, selectedPosition, hasUserSelection, coveragePolicy]);
+    }, [autoSelectedLEOSatellite, hasUserSelection, coveragePolicy, resolveCurrentUser]);
 
     // LEO Backhaul positions callback (to SNP)
     const leoBackhaulCallback = useMemo(() => {
@@ -104,22 +126,69 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
         }, false);
     }, [autoSelectedLEOSatellite, selectedSNP]);
 
-    // GEO Link positions callback
-    const geoLinkCallback = useMemo(() => {
+    // GEO User -> Satellite link
+    const geoUserLinkCallback = useMemo(() => {
         if (!autoSelectedGEOSatellite || !hasUserSelection) return null;
 
         return new CallbackProperty((time?: JulianDate) => {
             if (!time) return [];
 
-            const startPos = selectedAircraft
-                ? calculateDeadReckoning(selectedAircraft, time)
-                : getPosition(selectedPosition!.lat, selectedPosition!.lng, selectedPosition!.altitude || 0);
+            const { userPosition } = resolveCurrentUser(time);
+            const satPos = propagateSatellite(autoSelectedGEOSatellite, time);
 
-            const endPos = propagateSatellite(autoSelectedGEOSatellite, time);
-
-            return [startPos, endPos];
+            return [userPosition, satPos];
         }, false);
-    }, [autoSelectedGEOSatellite, selectedAircraft, selectedPosition, hasUserSelection]);
+    }, [autoSelectedGEOSatellite, hasUserSelection, resolveCurrentUser]);
+
+    // GEO Satellite -> Gateway feeder link
+    const geoFeederLinkCallback = useMemo(() => {
+        if (!autoSelectedGEOSatellite || !hasUserSelection) return null;
+
+        return new CallbackProperty((time?: JulianDate) => {
+            if (!time) return [];
+
+            const { userLocation } = resolveCurrentUser(time);
+            const model = analyzeGeoConnectivity({
+                userPoint: userLocation,
+                satellite: autoSelectedGEOSatellite,
+                gateways: GEO_GATEWAYS
+            });
+            const gateway = model.satelliteToGateway.gateway;
+            if (!gateway) return [];
+
+            const satPos = propagateSatellite(autoSelectedGEOSatellite, time);
+            const gwLat = gateway.latitude ?? gateway.lat;
+            const gwLng = gateway.longitude ?? gateway.lng;
+            const gatewayPos = getPosition(gwLat, gwLng, 0.01);
+
+            return [satPos, gatewayPos];
+        }, false);
+    }, [autoSelectedGEOSatellite, hasUserSelection, resolveCurrentUser]);
+
+    // GEO Gateway -> Internet backhaul (conceptual terrestrial segment)
+    const geoBackhaulCallback = useMemo(() => {
+        if (!autoSelectedGEOSatellite || !hasUserSelection) return null;
+
+        return new CallbackProperty((time?: JulianDate) => {
+            if (!time) return [];
+
+            const { userLocation } = resolveCurrentUser(time);
+            const model = analyzeGeoConnectivity({
+                userPoint: userLocation,
+                satellite: autoSelectedGEOSatellite,
+                gateways: GEO_GATEWAYS
+            });
+            const gateway = model.satelliteToGateway.gateway;
+            if (!gateway) return [];
+
+            const gwLat = gateway.latitude ?? gateway.lat;
+            const gwLng = gateway.longitude ?? gateway.lng;
+            const gatewayPos = getPosition(gwLat, gwLng, 0.01);
+            const internetPos = getPosition(gwLat + 0.3, gwLng + 0.3, 0.01);
+
+            return [gatewayPos, internetPos];
+        }, false);
+    }, [autoSelectedGEOSatellite, hasUserSelection, resolveCurrentUser]);
 
     // Dedicated SNP link for manually selected LEO satellite
     const dedicatedSnpCallback = useMemo(() => {
@@ -166,13 +235,37 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
                 </Entity>
             )}
 
-            {/* GEO Link */}
-            {geoLinkCallback && satelliteScope !== 'LEO' && (
-                <Entity name="GEO Uplink/Downlink">
+            {/* GEO User -> Satellite */}
+            {geoUserLinkCallback && satelliteScope !== 'LEO' && (
+                <Entity name="GEO User Link">
                     <PolylineGraphics
-                        positions={geoLinkCallback}
+                        positions={geoUserLinkCallback}
+                        width={2.2}
+                        material={geoUserMaterial}
+                        arcType={ArcType.NONE}
+                    />
+                </Entity>
+            )}
+
+            {/* GEO Satellite -> Gateway */}
+            {geoFeederLinkCallback && satelliteScope !== 'LEO' && (
+                <Entity name="GEO Feeder Link">
+                    <PolylineGraphics
+                        positions={geoFeederLinkCallback}
+                        width={2.2}
+                        material={geoFeederMaterial}
+                        arcType={ArcType.NONE}
+                    />
+                </Entity>
+            )}
+
+            {/* GEO Gateway -> Internet */}
+            {geoBackhaulCallback && satelliteScope !== 'LEO' && (
+                <Entity name="GEO Backhaul Link">
+                    <PolylineGraphics
+                        positions={geoBackhaulCallback}
                         width={2}
-                        material={geoDashMaterial}
+                        material={geoBackhaulMaterial}
                         arcType={ArcType.NONE}
                     />
                 </Entity>

@@ -16,6 +16,11 @@ export interface SatelliteData {
     y?: number;
     z?: number;
   };
+  coverageReferencePosition?: {
+    lat: number;
+    lng: number;
+    alt: number;
+  };
   capacity: {
     maxThroughput: number;
     bandwidth: {

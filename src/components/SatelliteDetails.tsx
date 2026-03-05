@@ -133,6 +133,10 @@ const PitchMonitoringChart: React.FC<{ currentLatitude: number; currentPitch: nu
 interface SatelliteDetailsProps {
   satellites: SatelliteData[];
   selectedSatellite: SatelliteData;
+  selectedGeoMission?: string | null;
+  selectedGeoCoverageName?: string | null;
+  onSelectGeoMission?: (mission: string | null) => void;
+  onSelectGeoCoverage?: (coverageName: string | null) => void;
 }
 
 
@@ -142,7 +146,14 @@ const getSelectedSatellitePosition = (satellites: SatelliteData[], selectedSatel
 };
 
 
-const SatelliteDetails: React.FC<SatelliteDetailsProps> = ({ satellites, selectedSatellite }) => {
+const SatelliteDetails: React.FC<SatelliteDetailsProps> = ({
+  satellites,
+  selectedSatellite,
+  selectedGeoMission = null,
+  selectedGeoCoverageName = null,
+  onSelectGeoMission,
+  onSelectGeoCoverage,
+}) => {
   // NEW: Get coverage policy from simulation context
   const { coveragePolicy, beamHealthFactors, setBeamHealthFactor, resetBeamHealth, weatherCondition } = useSimulation();
 
@@ -155,8 +166,64 @@ const SatelliteDetails: React.FC<SatelliteDetailsProps> = ({ satellites, selecte
   // Track GSO Protection state for ONEWEB satellites — via shared hook (no duplicate interval)
   const gsoAvoidanceData = useGSOAvoidance(selectedSatellite.type === 'ONEWEB' ? selectedSatellite : null);
 
+  const geoCoverageByMission = useMemo(() => {
+    if (selectedSatellite.type !== 'EUTELSAT' || !selectedSatellite.coverages?.length) {
+      return [];
+    }
+
+    const formatCoverageLabel = (rawName: string): string => {
+      const satellitePrefix = `${selectedSatellite.name} - `;
+      if (rawName.startsWith(satellitePrefix)) {
+        return rawName.slice(satellitePrefix.length).trim();
+      }
+
+      const parts = rawName.split(' - ');
+      if (parts.length > 1 && parts[0].toUpperCase().includes('EUTELSAT')) {
+        return parts.slice(1).join(' - ').trim();
+      }
+      return rawName;
+    };
+
+    const groups = new Map<string, { name: string; label: string }[]>();
+    for (const coverage of selectedSatellite.coverages) {
+      const mission = (coverage.feature?.properties as any)?.mission || 'Unknown mission';
+      const current = groups.get(mission) || [];
+      current.push({
+        name: coverage.name,
+        label: formatCoverageLabel(coverage.name),
+      });
+      groups.set(mission, current);
+    }
+
+    return Array.from(groups.entries())
+      .map(([mission, coverages]) => ({
+        mission,
+        coverages: [...coverages].sort((a, b) => a.label.localeCompare(b.label, undefined, { numeric: true }))
+      }))
+      .sort((a, b) => a.mission.localeCompare(b.mission));
+  }, [selectedSatellite]);
+
+  const isGeoCoverageFiltered = selectedSatellite.type === 'EUTELSAT' && (selectedGeoMission !== null || selectedGeoCoverageName !== null);
+
+  const handlePanelClickCapture = (event: React.MouseEvent<HTMLDivElement>) => {
+    if (!isGeoCoverageFiltered) return;
+
+    const target = event.target as HTMLElement | null;
+    if (!target) return;
+
+    if (target.closest('[data-geo-coverage-list="true"]')) {
+      return;
+    }
+
+    onSelectGeoMission?.(null);
+    onSelectGeoCoverage?.(null);
+  };
+
   return (
-    <div className="h-full bg-white dark:bg-slate-900 rounded-lg shadow-lg overflow-hidden flex flex-col transition-colors duration-300">
+    <div
+      className="h-full bg-white dark:bg-slate-900 rounded-lg shadow-lg overflow-hidden flex flex-col transition-colors duration-300"
+      onClickCapture={handlePanelClickCapture}
+    >
       <div className="p-4 flex flex-col h-full overflow-y-auto">
         <div className="space-y-4">
           <div className="flex items-center justify-between mb-4 pb-4 border-b border-gray-200 dark:border-slate-700">
@@ -301,18 +368,58 @@ const SatelliteDetails: React.FC<SatelliteDetailsProps> = ({ satellites, selecte
             <div className="mb-4">
               <h3 className="text-lg font-semibold mb-2 text-gray-900 dark:text-gray-100">Coverage Areas</h3>
               <div className="bg-gray-50 dark:bg-slate-800/50 rounded-lg p-4 border border-gray-100 dark:border-slate-700">
-                {selectedSatellite.coverages && selectedSatellite.coverages.length > 0 ? (
-                  <ul className="space-y-1">
-                    {selectedSatellite.coverages.map((coverage, index) => (
-                      <li
-                        key={index}
-                        className="text-sm text-gray-700 dark:text-gray-300 flex items-center"
-                      >
-                        <span className="w-2 h-2 rounded-full bg-blue-500 mr-2"></span>
-                        {coverage.name}
-                      </li>
+                {geoCoverageByMission.length > 0 ? (
+                  <div className="space-y-2" data-geo-coverage-list="true">
+                    {geoCoverageByMission.map((group, groupIndex) => (
+                      <details key={`${group.mission}-${groupIndex}`} open className="group">
+                        <summary className="cursor-pointer list-none text-sm font-semibold text-gray-800 dark:text-gray-200 flex items-center">
+                          <span className="mr-2 text-blue-600 dark:text-blue-400 group-open:rotate-90 transition-transform">▶</span>
+                          <button
+                            type="button"
+                            onClick={(event) => {
+                              event.preventDefault();
+                              event.stopPropagation();
+                              const nextMission = selectedGeoMission === group.mission ? null : group.mission;
+                              onSelectGeoMission?.(nextMission);
+                              onSelectGeoCoverage?.(null);
+                            }}
+                            className={`text-left hover:underline ${selectedGeoMission === group.mission && !selectedGeoCoverageName
+                              ? 'text-blue-700 dark:text-blue-300'
+                              : 'text-gray-800 dark:text-gray-200'
+                              }`}
+                          >
+                            {group.mission}
+                          </button>
+                          <span className="ml-2 text-xs font-medium text-gray-500 dark:text-gray-400">({group.coverages.length})</span>
+                        </summary>
+                        <ul className="mt-1 ml-6 space-y-1">
+                          {group.coverages.map((coverage, coverageIndex) => (
+                            <li
+                              key={`${group.mission}-${coverage.name}-${coverageIndex}`}
+                              className="text-sm text-gray-700 dark:text-gray-300 flex items-center"
+                            >
+                              <span className={`w-1.5 h-1.5 rounded-full mr-2 ${selectedGeoCoverageName === coverage.name ? 'bg-blue-700 dark:bg-blue-300' : 'bg-blue-500'
+                                }`}></span>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const nextCoverageName = selectedGeoCoverageName === coverage.name ? null : coverage.name;
+                                  onSelectGeoCoverage?.(nextCoverageName);
+                                  onSelectGeoMission?.(null);
+                                }}
+                                className={`text-left hover:underline ${selectedGeoCoverageName === coverage.name
+                                  ? 'text-blue-700 dark:text-blue-300 font-semibold'
+                                  : 'text-gray-700 dark:text-gray-300'
+                                  }`}
+                              >
+                                {coverage.label}
+                              </button>
+                            </li>
+                          ))}
+                        </ul>
+                      </details>
                     ))}
-                  </ul>
+                  </div>
                 ) : (
                   <p className="text-sm text-gray-500 dark:text-gray-400 italic">No coverage areas defined</p>
                 )}

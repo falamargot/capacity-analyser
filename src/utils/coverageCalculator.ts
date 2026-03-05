@@ -70,7 +70,9 @@ export function destinationPoint(
 // Performance optimization: Memoize coverage calculations with caching
 export function calculateCoverages(satellite: SatelliteData): Coverage[] {
   // Performance optimization: Create cache key based on satellite state
-  const cacheKey = `${satellite.id}_${satellite.position.lat.toFixed(3)}_${satellite.position.lng.toFixed(3)}_${satellite.position.alt.toFixed(3)}`;
+  const cacheKey = satellite.type === 'EUTELSAT'
+    ? `${satellite.id}_geo_static`
+    : `${satellite.id}_${satellite.position.lat.toFixed(3)}_${satellite.position.lng.toFixed(3)}_${satellite.position.alt.toFixed(3)}`;
 
   // Return cached result if available
   if (coverageCache.has(cacheKey)) {
@@ -131,10 +133,12 @@ export function calculateCoverages(satellite: SatelliteData): Coverage[] {
       if (!feature.geometry || feature.geometry.type !== 'Polygon') return;
 
       const ring = feature.geometry.coordinates[0] as unknown as [number, number][];
-      const shiftedCoordinates = ring.map((coord) => {
-        const [lng, lat] = coord;
-        return projectPoint(lng, lat, satellite.position.lng, satellite.position.lat);
-      });
+      const shiftedCoordinates = satellite.type === 'EUTELSAT'
+        ? ring
+        : ring.map((coord) => {
+          const [lng, lat] = coord;
+          return projectPoint(lng, lat, satellite.position.lng, satellite.position.lat);
+        });
 
       const properties = {
         ...(feature.properties ?? {}),
@@ -154,6 +158,9 @@ export function calculateCoverages(satellite: SatelliteData): Coverage[] {
         }
       });
     });
+  }
+  if (satellite.type === 'EUTELSAT') {
+    addToCache(cacheKey, newcoverages);
   }
   return newcoverages;
 }

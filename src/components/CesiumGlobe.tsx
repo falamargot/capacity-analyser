@@ -58,6 +58,8 @@ import PositionDisplay from './cesium-globe/PositionDisplay';
 import SatelliteIndicator from './cesium-globe/SatelliteIndicator';
 import { LabelGraphics } from 'resium';
 import { formatCoordinates } from '../utils/formatters';
+import { GEO_GATEWAYS } from './globe/GlobeConfig';
+import { analyzeGeoConnectivity } from '../utils/geoConnectivityModel';
 
 interface CesiumGlobeProps {
     satellites: SatelliteData[];
@@ -326,6 +328,26 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         return { beamFeature, sat: autoSelectedGEOSatellite };
     }, [selectedSatellite, autoSelectedGEOSatellite, selectedGEOBeam]);
 
+    const selectedGeoGatewayName = useMemo(() => {
+        const geoSatellite = selectedSatellite?.type === 'EUTELSAT'
+            ? selectedSatellite
+            : autoSelectedGEOSatellite;
+        if (!geoSatellite) return null;
+
+        const lat = selectedAircraft?.latitude ?? selectedPosition?.lat;
+        const lng = selectedAircraft?.longitude ?? selectedPosition?.lng;
+        if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+
+        const altitude = selectedAircraft?.altitude_km ?? selectedPosition?.altitude ?? 0;
+        const geo = analyzeGeoConnectivity({
+            userPoint: { lat: Number(lat), lng: Number(lng), altitude: Number(altitude) || 0 },
+            satellite: geoSatellite,
+            gateways: GEO_GATEWAYS,
+        });
+
+        return geo.satelliteToGateway.gateway?.name ?? null;
+    }, [selectedSatellite, autoSelectedGEOSatellite, selectedAircraft, selectedPosition]);
+
     // Create stable pixel size callback for selected position marker
     const positionMarkerPixelSize = useMemo(() => {
         return new CallbackProperty(() => {
@@ -465,6 +487,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                         onGatewayClick={onSnpClick}
                         onGatewayHover={onSnpHover}
                         viewerRef={viewerRef}
+                        selectedGatewayName={selectedGeoGatewayName}
                         sizeScale={sizeScale}
                     />
 

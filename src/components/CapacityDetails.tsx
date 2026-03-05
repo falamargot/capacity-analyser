@@ -4,8 +4,8 @@ import { SatelliteData } from '../types/satellites';
 import { formatCoordinates } from '../utils/formatters';
 import { SatelliteScope } from './SatelliteScopeFilter';
 import SatelliteDetails from './SatelliteDetails';
-import { EARTH_RADIUS_KM, SPEED_OF_LIGHT_RADIO_KM_S, calculateRealTimeCapacity, RealTimeCapacityData, calculateElevationAngle, compute3DDistanceKm } from '../utils/capacityCalculator';
-import { SNPS_DATA } from './globe/GlobeConfig';
+import { SPEED_OF_LIGHT_RADIO_KM_S, calculateRealTimeCapacity, RealTimeCapacityData, calculateElevationAngle, compute3DDistanceKm } from '../utils/capacityCalculator';
+import { GEO_GATEWAYS, SNPS_DATA } from './globe/GlobeConfig';
 import { BEAM_LENGTH_KM, TOTAL_BEAMS, BEAM_WIDTH_KM } from '../utils/oneWebComb';
 import { findConnectedBeamIndex } from '../utils/rfConnectivity';
 import { JulianDate } from 'cesium';
@@ -14,6 +14,7 @@ import {
   WEATHER_ATTENUATION_DB,
   type WeatherCondition,
 } from '../utils/realisticSimulation';
+import { analyzeGeoConnectivity } from '../utils/geoConnectivityModel';
 
 // Module-level stable definitions to avoid recreating inside component and
 // to keep hook dependency arrays clean.
@@ -32,6 +33,9 @@ const WEATHER_PROFILES: Record<WeatherType, { label: string; condition: WeatherC
   heavy_rain: { label: 'Rain', condition: 'RAIN' },
   storm: { label: 'Rain (Heavy)', condition: 'RAIN' },
 };
+
+// Keep RTT bars visually comparable between LEO and GEO panels.
+const RTT_VISUAL_SCALE_MAX_MS = 600;
 
 const toWeatherCondition = (wt: WeatherType): WeatherCondition => {
   if (wt === 'clear') return 'CLEAR';
@@ -53,10 +57,14 @@ interface CapacityDetailsProps {
   analysisSource?: 'earth' | 'aircraft';
   aircraftCallsign?: string;
   selectedSNP?: any;
+  selectedGeoMission?: string | null;
+  selectedGeoCoverageName?: string | null;
+  onSelectGeoMission?: (mission: string | null) => void;
+  onSelectGeoCoverage?: (coverageName: string | null) => void;
 }
 
 // Performance optimization: Memoize component to prevent unnecessary re-renders
-const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint, selectedSatellite, autoSelectedLEOSatellite, satelliteScope, onSelectedGEOBeamChange, onSatelliteClick, analysisSource, aircraftCallsign, selectedSNP: propSelectedSNP }) => {
+const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint, selectedSatellite, autoSelectedLEOSatellite, satelliteScope, onSelectedGEOBeamChange, onSatelliteClick, analysisSource, aircraftCallsign, selectedSNP: propSelectedSNP, selectedGeoMission, selectedGeoCoverageName, onSelectGeoMission, onSelectGeoCoverage }) => {
   const [nearestLocation, setNearestLocation] = useState<{ city: string; country: string } | null>(null);
 
   const [realTimeData, setRealTimeData] = useState<RealTimeCapacityData>({
@@ -125,17 +133,6 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
   const WEATHER_PROFILES_MEMO = useMemo(() => WEATHER_PROFILES, []);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const getWeatherFactorMemo = useCallback((wt: WeatherType, isAviation: boolean) => getWeatherFactor(wt, isAviation), []);
-
-  // Calculate GEO oblique distance using proper geometry
-  const calculateGEODistanceKm = (userPoint: { lat: number; lng: number }, satellite: SatelliteData): number => {
-    const lat = userPoint.lat * Math.PI / 180;
-    const deltaLng = (userPoint.lng - satellite.position.lng) * Math.PI / 180;
-
-    const cosPsi = Math.cos(lat) * Math.cos(deltaLng);
-    const geoRadius = EARTH_RADIUS_KM + satellite.position.alt;
-
-    return Math.sqrt(geoRadius * geoRadius + EARTH_RADIUS_KM * EARTH_RADIUS_KM - 2 * geoRadius * EARTH_RADIUS_KM * cosPsi);
-  };
 
   // Select best GEO beam for a given point
   const selectBestGEOBeam = useCallback((userPoint: { lat: number; lng: number }, geoSatellites: SatelliteData[]) => {
@@ -323,7 +320,7 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
     const weatherFactor = getWeatherFactorMemo(weatherType, terminalType === 'aviation');
 
     // Not usable below 10° elevation
-    if (elevationDeg < 10) {
+    if (elevationDeg < 5) {
       return {
         downlinkGbps: 0,
         uplinkGbps: 0,
@@ -337,7 +334,7 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
     // Elevation factor: ramp 10° -> 50°
     const elevationFactor = (() => {
       if (elevationDeg >= 50) return 1;
-      return (elevationDeg - 10) / (50 - 10);
+      return (elevationDeg - 5) / (50 - 5);
     })();
 
     // Keep a small floor (prevents unrealistic 0 Mbps when link is usable)
@@ -349,7 +346,7 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
     const stability =
       elevationDeg >= 40 ? 'High' :
         elevationDeg >= 25 ? 'Medium' :
-          elevationDeg >= 15 ? 'Low' :
+          elevationDeg >= 5 ? 'Low' :
             'Unstable';
 
     return {
@@ -509,16 +506,19 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
 
     if (!bestBeam.satellite) return null;
 
-    // Compute GEO distance and RTT
-    const geoDistance = calculateGEODistanceKm(activePoint, bestBeam.satellite);
-    const geoRTT = Math.round(2 * geoDistance / SPEED_OF_LIGHT_RADIO_KM_S * 1000);
+    const geoModel = analyzeGeoConnectivity({
+      userPoint: activePoint,
+      satellite: bestBeam.satellite,
+      gateways: GEO_GATEWAYS,
+    });
 
     return {
       satellite: bestBeam.satellite,
       beam: bestBeam.beam,
-      elevation: bestBeam.elevation,
-      distance: geoDistance,
-      rtt: geoRTT
+      geometry: geoModel,
+      elevation: geoModel.userToSatellite.elevationDeg,
+      distance: geoModel.userToSatellite.slantRangeKm,
+      rtt: geoModel.rttTotalMs ?? null
     };
   }, [activePoint, satellites, satelliteScope, selectBestGEOBeam]);
 
@@ -537,6 +537,7 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
       Math.abs(snp.lat - selectedPoint.lat) < 0.01 && Math.abs(snp.lng - selectedPoint.lng) < 0.01
     ) || null;
   }, [selectedPoint]);
+  const geoGeometry = resolvedGEOConnectivity?.geometry ?? null;
 
   const satellitesRef = useRef<SatelliteData[]>(satellites);
   const selectedPointRef = useRef<{ lat: number; lng: number } | null>(selectedPoint);
@@ -625,7 +626,16 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
   }
 
   if (selectedSatellite) {
-    return <SatelliteDetails satellites={satellites} selectedSatellite={selectedSatellite} />;
+    return (
+      <SatelliteDetails
+        satellites={satellites}
+        selectedSatellite={selectedSatellite}
+        selectedGeoMission={selectedGeoMission}
+        selectedGeoCoverageName={selectedGeoCoverageName}
+        onSelectGeoMission={onSelectGeoMission}
+        onSelectGeoCoverage={onSelectGeoCoverage}
+      />
+    );
   }
 
   // New user-centric structure for USER_LOCATION_SELECTED
@@ -827,7 +837,7 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
                           maxUlGbps={TERMINAL_PROFILES[terminalType].maxUlGbps}
                           performanceFactor={performance.performanceFactor}
                           accentColor="#db2777"
-                          rttMaxMs={100}
+                          rttMaxMs={RTT_VISUAL_SCALE_MAX_MS}
                         />
                       );
                     })()
@@ -857,6 +867,113 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
           )}
 
           {(satelliteScope === 'GEO' || satelliteScope === 'ALL') && (
+            <div className="mb-6">
+              <h3 className="text-lg font-semibold mb-1" style={{ color: '#2563eb' }}>GEO Connectivity</h3>
+              <div className="space-y-4">
+                <div className="bg-gray-50 dark:bg-slate-800/50 rounded-lg p-4 mt-1 border border-gray-100 dark:border-slate-700">
+                  <h4 className="text-sm font-semibold mb-3" style={{ color: '#2563eb' }}>Radio Path</h4>
+                  {resolvedGEOConnectivity && geoGeometry ? (
+                    (() => {
+                      const userLabel = analysisSource === 'aircraft' && aircraftCallsign ? aircraftCallsign : 'User';
+                      const gatewayName = geoGeometry.satelliteToGateway.gateway?.name ?? 'No eligible gateway';
+                      return (
+                        <div className="text-sm text-gray-700 dark:text-gray-300 text-center space-y-3">
+                          <div>{userLabel} → <button onClick={() => onSatelliteClick?.(resolvedGEOConnectivity.satellite)} className="underline hover:no-underline text-blue-600 dark:text-blue-400 font-medium cursor-pointer">{resolvedGEOConnectivity.satellite.name}</button> → {gatewayName} → <button onClick={() => onSatelliteClick?.(resolvedGEOConnectivity.satellite)} className="underline hover:no-underline text-blue-600 dark:text-blue-400 font-medium cursor-pointer">{resolvedGEOConnectivity.satellite.name}</button> → {userLabel}</div>
+                          <div className="text-xs text-gray-500 dark:text-gray-400 space-y-2 text-left">
+                            <div>
+                              <div>{userLabel} → {resolvedGEOConnectivity.satellite.name}</div>
+                              <div className="ml-4">→ Elevation: {geoGeometry.userToSatellite.elevationDeg.toFixed(1)}° | Slant Range: {geoGeometry.userToSatellite.slantRangeKm.toFixed(0)} km ({geoGeometry.userToSatellite.latencyMs.toFixed(1)} ms)</div>
+                            </div>
+                            <div>
+                              <div>{gatewayName} → {resolvedGEOConnectivity.satellite.name}</div>
+                              <div className="ml-4">→ Slant Range: {geoGeometry.satelliteToGateway.slantRangeKm != null ? `${geoGeometry.satelliteToGateway.slantRangeKm.toFixed(0)} km` : '--'} ({geoGeometry.satelliteToGateway.latencyMs != null ? `${geoGeometry.satelliteToGateway.latencyMs.toFixed(1)} ms` : '--'})</div>
+                            </div>
+                            <div>
+                              <div>{userLabel} → {gatewayName} (one-way radio)</div>
+                              <div className="ml-4">→ Total propagation: {geoGeometry.oneWayRadioMs != null ? `${geoGeometry.oneWayRadioMs.toFixed(1)} ms` : '--'}</div>
+                            </div>
+                            {resolvedGEOConnectivity.beam && (
+                              <div>→ Direct Beam: {resolvedGEOConnectivity.beam.name}</div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })()
+                  ) : (
+                    <div className="text-sm text-gray-700 dark:text-gray-300 text-center">
+                      <div>No GEO visibility or beam coverage.</div>
+                    </div>
+                  )}
+                </div>
+                <div className="bg-gray-50 dark:bg-slate-800/50 rounded-lg p-4 border border-gray-100 dark:border-slate-700">
+                  <h4 className="text-sm font-semibold mb-3" style={{ color: '#2563eb' }}>Latency breakdown</h4>
+                  {geoGeometry ? (
+                    <div className="text-xs text-gray-600 dark:text-gray-400 space-y-2">
+                      <div className="flex justify-between"><span>User {'->'} Satellite</span><span>{geoGeometry.propagationBreakdownMs.userToSatellite?.toFixed(1) ?? '--'} ms</span></div>
+                      <div className="flex justify-between"><span>Satellite {'->'} Gateway</span><span>{geoGeometry.propagationBreakdownMs.satelliteToGateway?.toFixed(1) ?? '--'} ms</span></div>
+                      <div className="flex justify-between"><span>Gateway {'->'} Satellite</span><span>{geoGeometry.propagationBreakdownMs.gatewayToSatellite?.toFixed(1) ?? '--'} ms</span></div>
+                      <div className="flex justify-between"><span>Satellite {'->'} User</span><span>{geoGeometry.propagationBreakdownMs.satelliteToUser?.toFixed(1) ?? '--'} ms</span></div>
+                      <div className="border-t border-gray-200 dark:border-slate-700 pt-2 flex justify-between font-semibold text-gray-700 dark:text-gray-200">
+                        <span>RTT propagation</span><span>{geoGeometry.rttPropagationMs?.toFixed(1) ?? '--'} ms</span>
+                      </div>
+                      <div className="pt-1">Network overhead</div>
+                      <div className="ml-2 flex justify-between"><span>Gateway processing delay</span><span>{geoGeometry.overheadMs.gatewayProcessing.toFixed(0)} ms</span></div>
+                      <div className="ml-2 flex justify-between"><span>Modem processing delay</span><span>{geoGeometry.overheadMs.modemProcessing.toFixed(0)} ms</span></div>
+                      <div className="ml-2 flex justify-between"><span>Routing delay</span><span>{geoGeometry.overheadMs.routing.toFixed(0)} ms</span></div>
+                      <div className="border-t border-gray-200 dark:border-slate-700 pt-2 flex justify-between font-semibold text-gray-800 dark:text-gray-100">
+                        <span>Estimated RTT total</span><span>{geoGeometry.rttTotalMs?.toFixed(1) ?? '--'} ms</span>
+                      </div>
+                      {geoGeometry.warnings.length > 0 && (
+                        <div className="mt-2 rounded border border-amber-300 bg-amber-50 dark:bg-amber-900/20 p-2 text-amber-800 dark:text-amber-300">
+                          {geoGeometry.warnings.map((warning, index) => (
+                            <div key={`${warning}-${index}`}>Warning: {warning}</div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="text-sm text-gray-700 dark:text-gray-300 text-center">
+                      <div>No GEO latency breakdown available.</div>
+                    </div>
+                  )}
+                </div>
+                <div className="bg-gray-50 dark:bg-slate-800/50 rounded-lg p-4 border border-gray-100 dark:border-slate-700">
+                  <h4 className="text-sm font-semibold mb-3" style={{ color: '#2563eb' }}>Estimated Performance</h4>
+                  {resolvedGEOConnectivity && geoGeometry ? (
+                    (() => {
+                      const performance = calculateGEOPerformance(geoGeometry.userToSatellite.elevationDeg);
+                      return (
+                        <PerformancePanel
+                          rtt={geoGeometry.rttTotalMs}
+                          downlinkGbps={performance.downlinkGbps}
+                          uplinkGbps={performance.uplinkGbps}
+                          maxDlGbps={TERMINAL_PROFILES[terminalType].maxDlGbps}
+                          maxUlGbps={TERMINAL_PROFILES[terminalType].maxUlGbps}
+                          stability={geoGeometry.isUserLinkUnstable ? 'Unstable' : performance.stability}
+                          performanceFactor={performance.performanceFactor}
+                          accentColor="#2563eb"
+                          rttMaxMs={RTT_VISUAL_SCALE_MAX_MS}
+                          rttLabel="End-to-End GEO RTT"
+                        />
+                      );
+                    })()
+                  ) : (
+                    <PerformancePanel
+                      rtt={null}
+                      downlinkGbps={null}
+                      uplinkGbps={null}
+                      maxDlGbps={TERMINAL_PROFILES[terminalType].maxDlGbps}
+                      maxUlGbps={TERMINAL_PROFILES[terminalType].maxUlGbps}
+                      accentColor="#2563eb"
+                      noDataMessage="No GEO coverage available"
+                    />
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {false && (satelliteScope === 'GEO' || satelliteScope === 'ALL') && (
             <div className="mb-6">
               <h3 className="text-lg font-semibold mb-1" style={{ color: '#2563eb' }}>GEO Connectivity</h3>
               <div className="space-y-4">
@@ -895,7 +1012,7 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
                           stability={performance.stability}
                           performanceFactor={performance.performanceFactor}
                           accentColor="#2563eb"
-                          rttMaxMs={600}
+                          rttMaxMs={RTT_VISUAL_SCALE_MAX_MS}
                         />
                       );
                     })()
@@ -979,21 +1096,22 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
                 } : null}
                 geoData={resolvedGEOConnectivity ? {
                   name: resolvedGEOConnectivity.satellite.name,
-                  elevation: resolvedGEOConnectivity.elevation || 0,
-                  rtt: resolvedGEOConnectivity.rtt || 0,
+                  elevation: geoGeometry?.userToSatellite.elevationDeg || 0,
+                  rtt: geoGeometry?.rttTotalMs || 0,
                   downlinkGbps: (() => {
-                    const performance = calculateGEOPerformance(resolvedGEOConnectivity.elevation || 0);
+                    const performance = calculateGEOPerformance(geoGeometry?.userToSatellite.elevationDeg || 0);
                     return performance.downlinkGbps;
                   })(),
                   uplinkGbps: (() => {
-                    const performance = calculateGEOPerformance(resolvedGEOConnectivity.elevation || 0);
+                    const performance = calculateGEOPerformance(geoGeometry?.userToSatellite.elevationDeg || 0);
                     return performance.uplinkGbps;
                   })(),
                   stability: (() => {
-                    const performance = calculateGEOPerformance(resolvedGEOConnectivity.elevation || 0);
-                    return performance.stability;
+                    const performance = calculateGEOPerformance(geoGeometry?.userToSatellite.elevationDeg || 0);
+                    return geoGeometry?.isUserLinkUnstable ? 'Unstable' : performance.stability;
                   })(),
-                  distance: resolvedGEOConnectivity.distance || 0,
+                  distance: geoGeometry?.userToSatellite.slantRangeKm || 0,
+                  geoGatewayName: geoGeometry?.satelliteToGateway.gateway?.name || null,
                   radioPath: `${analysisSource === 'aircraft' && aircraftCallsign ? aircraftCallsign : 'User'} → ${resolvedGEOConnectivity.satellite.name} → ${analysisSource === 'aircraft' && aircraftCallsign ? aircraftCallsign : 'User'}`
                 } : null}
                 globeRef={globeContainerRef}

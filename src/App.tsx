@@ -52,6 +52,8 @@ const App: React.FC = () => {
   const [autoSelectedGEOId, setAutoSelectedGEOId] = useState<string | null>(null);
   const [selectedSNP, setSelectedSNP] = useState<SelectedSNP>(null);
   const [selectedGEOBeam, setSelectedGEOBeam] = useState<GEOBeam | null>(null);
+  const [selectedGeoMission, setSelectedGeoMission] = useState<string | null>(null);
+  const [selectedGeoCoverageName, setSelectedGeoCoverageName] = useState<string | null>(null);
   const [selectedAircraft, setSelectedAircraft] = useState<Aircraft | null>(null);
   const [selectedVessel, setSelectedVessel] = useState<Vessel | null>(null);
   const [hoveredSatelliteId, setHoveredSatelliteId] = useState<string | null>(null);
@@ -272,7 +274,22 @@ const App: React.FC = () => {
 
     // If user has explicitly selected a satellite, show its coverage (Satellite Inspection mode)
     if (liveSelectedSatellite) {
-      liveSelectedSatellite.coverages.forEach(c => features.push(c.feature));
+      if (liveSelectedSatellite.type === 'EUTELSAT') {
+        if (selectedGeoCoverageName) {
+          const selectedCoverage = liveSelectedSatellite.coverages.find(c => c.name === selectedGeoCoverageName);
+          if (selectedCoverage) {
+            features.push(selectedCoverage.feature);
+          }
+        } else if (selectedGeoMission) {
+          liveSelectedSatellite.coverages
+            .filter(c => ((c.feature?.properties as any)?.mission || 'Unknown mission') === selectedGeoMission)
+            .forEach(c => features.push(c.feature));
+        } else {
+          liveSelectedSatellite.coverages.forEach(c => features.push(c.feature));
+        }
+      } else {
+        liveSelectedSatellite.coverages.forEach(c => features.push(c.feature));
+      }
 
       // Add hover effects for user interaction
       if (hoveredSatelliteId && hoveredSatelliteId !== liveSelectedSatellite.id) {
@@ -349,7 +366,7 @@ const App: React.FC = () => {
     }
 
     return features;
-  }, [filteredSatellites, selectedPosition, analyzisPosition, liveSelectedSatellite, resolvedAutoLEO, resolvedAutoGEO, selectedGEOBeam, hoveredSatelliteId, hoveredSnpName, satelliteScope]);
+  }, [filteredSatellites, selectedPosition, analyzisPosition, liveSelectedSatellite, resolvedAutoLEO, resolvedAutoGEO, selectedGEOBeam, hoveredSatelliteId, hoveredSnpName, satelliteScope, selectedGeoMission, selectedGeoCoverageName]);
 
 
   // coverageFeaturesMemo is used directly - no need to copy to state
@@ -357,6 +374,8 @@ const App: React.FC = () => {
   // Handle satellite scope change with state reset
   const handleSatelliteScopeChange = useCallback((newScope: SatelliteScope) => {
     setSatelliteScope(newScope);
+    setSelectedGeoMission(null);
+    setSelectedGeoCoverageName(null);
 
     // If currently selected satellite exists AND its type is NOT compatible with the new scope
     if (selectedSatellite && selectedSatellite.orbitType !== newScope && newScope !== 'ALL') {
@@ -377,6 +396,8 @@ const App: React.FC = () => {
   // Performance optimization: Memoize event handlers to prevent unnecessary re-renders
   const handleSatelliteClick = useCallback((satellite: SatelliteData | null) => {
     setSelectedSatellite(satellite);
+    setSelectedGeoMission(null);
+    setSelectedGeoCoverageName(null);
     // Clear aircraft selection when satellite is selected
     setSelectedAircraft(null);
     // Clear selectedPosition when satellite is selected to avoid SNP/satellite conflict
@@ -457,11 +478,27 @@ const App: React.FC = () => {
     setSelectedGEOBeam(beam);
   }, []);
 
+  const handleSelectGeoMission = useCallback((mission: string | null) => {
+    setSelectedGeoMission(mission);
+    if (mission) {
+      setSelectedGeoCoverageName(null);
+    }
+  }, []);
+
+  const handleSelectGeoCoverage = useCallback((coverageName: string | null) => {
+    setSelectedGeoCoverageName(coverageName);
+    if (coverageName) {
+      setSelectedGeoMission(null);
+    }
+  }, []);
+
   // Unified function to handle analyzis position changes (from earth click or aircraft)
   // §1.2 — satellites replaced by satellitesForResolutionRef so this callback
   // is not recreated every 2 s when satellite positions update.
   const updateAnalyzisPosition = useCallback((position: AnalyzisPosition | null) => {
     setAnalyzisPosition(position);
+    setSelectedGeoMission(null);
+    setSelectedGeoCoverageName(null);
 
     if (position) {
       setSelectedSatellite(null);
@@ -1030,6 +1067,10 @@ const App: React.FC = () => {
                   analysisSource={selectedAircraft ? 'aircraft' : analyzisPosition ? 'earth' : undefined}
                   aircraftCallsign={selectedAircraft?.callsign}
                   selectedSNP={selectedSNP}
+                  selectedGeoMission={selectedGeoMission}
+                  selectedGeoCoverageName={selectedGeoCoverageName}
+                  onSelectGeoMission={handleSelectGeoMission}
+                  onSelectGeoCoverage={handleSelectGeoCoverage}
                   onMetricsChange={setMobileMetrics}
                 />
               </BottomSheet>
@@ -1062,6 +1103,10 @@ const App: React.FC = () => {
                     analysisSource={selectedAircraft ? 'aircraft' : analyzisPosition ? 'earth' : undefined}
                     aircraftCallsign={selectedAircraft?.callsign}
                     selectedSNP={selectedSNP}
+                    selectedGeoMission={selectedGeoMission}
+                    selectedGeoCoverageName={selectedGeoCoverageName}
+                    onSelectGeoMission={handleSelectGeoMission}
+                    onSelectGeoCoverage={handleSelectGeoCoverage}
                   // onMetricsChange is not needed for desktop sidebar
                   />
                 </div>

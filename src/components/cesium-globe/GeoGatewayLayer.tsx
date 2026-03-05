@@ -18,6 +18,7 @@ interface GeoGatewayLayerProps {
     onGatewayClick: (gatewayName: string | null) => void;
     onGatewayHover: (gatewayName: string | null) => void;
     viewerRef: React.RefObject<CesiumViewerType | null>;
+    selectedGatewayName?: string | null;
     sizeScale?: number;
 }
 
@@ -26,12 +27,14 @@ const GeoGatewayEntity = React.memo<{
     viewerRef: React.RefObject<CesiumViewerType | null>;
     onGatewayClick: (gatewayName: string | null) => void;
     onGatewayHover: (gatewayName: string | null) => void;
+    isSelected: boolean;
     sizeScale: number;
 }>(({
     gateway,
     viewerRef,
     onGatewayClick,
     onGatewayHover,
+    isSelected,
     sizeScale
 }) => {
     const position = useMemo(
@@ -51,9 +54,10 @@ const GeoGatewayEntity = React.memo<{
             const dynamicScale = calculateDynamicScale(cameraHeight, DPR_FACTOR);
 
             const baseScale = dynamicScale * 3000000 / Math.max(distance, 10000000);
-            return baseScale * 20 * (sizeScale || 1);
+            const selectedBoost = isSelected ? 1.4 : 1.0;
+            return baseScale * 20 * selectedBoost * (sizeScale || 1);
         }, false);
-    }, [gateway.lat, gateway.lng, viewerRef, sizeScale]);
+    }, [gateway.lat, gateway.lng, viewerRef, isSelected, sizeScale]);
 
     const handleClick = useCallback(() => onGatewayClick(gateway.name), [gateway.name, onGatewayClick]);
     const handleMouseEnter = useCallback(() => onGatewayHover(gateway.name), [gateway.name, onGatewayHover]);
@@ -64,7 +68,7 @@ const GeoGatewayEntity = React.memo<{
             position={position}
             point={{
                 pixelSize: pixelSizeCallback,
-                color: Color.CYAN, // Distinct color for Eutelsat gateways
+                color: isSelected ? Color.YELLOW : Color.CYAN,
                 disableDepthTestDistance: 0
             }}
             name={`${gateway.name} (Teleport)`}
@@ -82,6 +86,7 @@ const GeoGatewayLayer: React.FC<GeoGatewayLayerProps> = ({
     onGatewayClick,
     onGatewayHover,
     viewerRef,
+    selectedGatewayName = null,
     sizeScale = 1
 }) => {
     // Memoize Gateway entities (hooks must run unconditionally)
@@ -93,10 +98,11 @@ const GeoGatewayLayer: React.FC<GeoGatewayLayerProps> = ({
                 viewerRef={viewerRef}
                 onGatewayClick={onGatewayClick}
                 onGatewayHover={onGatewayHover}
+                isSelected={selectedGatewayName === gateway.name}
                 sizeScale={sizeScale}
             />
         ));
-    }, [viewerRef, onGatewayClick, onGatewayHover, sizeScale]);
+    }, [viewerRef, onGatewayClick, onGatewayHover, selectedGatewayName, sizeScale]);
 
     // Only render Gateways for GEO scope or ALL scope
     if (satelliteScope !== 'GEO' && satelliteScope !== 'ALL') {
