@@ -20,8 +20,7 @@ export const DEFAULT_GEO_OVERHEAD_MS = {
 const DEFAULT_RANGES = {
   minUserStableElevationDeg: 5,
   minGatewayElevationDeg: 10,
-  expectedUserSatLatencyMinMs: 120,
-  expectedUserSatLatencyMaxMs: 140,
+  userSatLatencyToleranceMs: 1.0,
   expectedRttMinMs: 500,
   expectedRttMaxMs: 700,
   suspiciousLowRttMs: 450,
@@ -138,6 +137,40 @@ function latencyMsFromDistanceKm(distance: number): number {
   return (distanceMeters / SPEED_OF_LIGHT_M_S) * 1000;
 }
 
+function slantRangeKmForElevation(
+  earthRadiusKm: number,
+  satelliteAltitudeKm: number,
+  elevationDegValue: number
+): number {
+  const orbitalRadiusKm = earthRadiusKm + satelliteAltitudeKm;
+  const elevationRad = toRadians(elevationDegValue);
+  const cosElevation = Math.cos(elevationRad);
+  const sinElevation = Math.sin(elevationRad);
+
+  return Math.sqrt(
+    Math.max(orbitalRadiusKm * orbitalRadiusKm - earthRadiusKm * earthRadiusKm * cosElevation * cosElevation, 0)
+  ) - earthRadiusKm * sinElevation;
+}
+
+function getGeoUserLatencyBoundsMs(
+  satelliteAltitudeKm: number,
+  minStableElevationDeg: number
+): {
+  minMs: number;
+  maxStableMs: number;
+  maxVisibleMs: number;
+} {
+  return {
+    minMs: latencyMsFromDistanceKm(satelliteAltitudeKm),
+    maxStableMs: latencyMsFromDistanceKm(
+      slantRangeKmForElevation(GEO_EARTH_RADIUS_KM, satelliteAltitudeKm, minStableElevationDeg)
+    ),
+    maxVisibleMs: latencyMsFromDistanceKm(
+      slantRangeKmForElevation(GEO_EARTH_RADIUS_KM, satelliteAltitudeKm, 0)
+    ),
+  };
+}
+
 function getGatewayLatLng(gateway: GeoGatewayData): { lat: number; lng: number } {
   if (Number.isFinite(gateway.latitude) && Number.isFinite(gateway.longitude)) {
     return { lat: gateway.latitude, lng: gateway.longitude };
@@ -246,6 +279,10 @@ export function analyzeGeoConnectivity({
 
   const warnings: string[] = [];
   const isUserLinkUnstable = userElevationDeg < DEFAULT_RANGES.minUserStableElevationDeg;
+  const geoUserLatencyBoundsMs = getGeoUserLatencyBoundsMs(
+    satPoint.altKm,
+    DEFAULT_RANGES.minUserStableElevationDeg
+  );
 
   if (isUserLinkUnstable) {
     warnings.push(`User-satellite elevation below ${DEFAULT_RANGES.minUserStableElevationDeg} deg: unstable link.`);
@@ -255,12 +292,23 @@ export function analyzeGeoConnectivity({
       `No eligible gateway found (supporting satellite + gateway elevation >= ${DEFAULT_RANGES.minGatewayElevationDeg} deg).`
     );
   }
-  if (
-    userSatLatencyMs < DEFAULT_RANGES.expectedUserSatLatencyMinMs ||
-    userSatLatencyMs > DEFAULT_RANGES.expectedUserSatLatencyMaxMs
+  if (userSatLatencyMs < geoUserLatencyBoundsMs.minMs - DEFAULT_RANGES.userSatLatencyToleranceMs) {
+    warnings.push(
+      `User-satellite one-way latency below GEO nadir floor (${geoUserLatencyBoundsMs.minMs.toFixed(1)} ms reference).`
+    );
+  } else if (
+    !isUserLinkUnstable &&
+    userSatLatencyMs > geoUserLatencyBoundsMs.maxStableMs + DEFAULT_RANGES.userSatLatencyToleranceMs
   ) {
     warnings.push(
-      `User-satellite one-way latency outside expected ${DEFAULT_RANGES.expectedUserSatLatencyMinMs}-${DEFAULT_RANGES.expectedUserSatLatencyMaxMs} ms range.`
+      `User-satellite one-way latency above expected GEO stable-link envelope (${geoUserLatencyBoundsMs.maxStableMs.toFixed(1)} ms max at ${DEFAULT_RANGES.minUserStableElevationDeg} deg elevation).`
+    );
+  } else if (
+    isUserLinkUnstable &&
+    userSatLatencyMs > geoUserLatencyBoundsMs.maxVisibleMs + DEFAULT_RANGES.userSatLatencyToleranceMs
+  ) {
+    warnings.push(
+      `User-satellite one-way latency above GEO visibility envelope (${geoUserLatencyBoundsMs.maxVisibleMs.toFixed(1)} ms horizon reference).`
     );
   }
   if (rttTotalMs != null) {

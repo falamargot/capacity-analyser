@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState, useMemo, useCallback, memo } from 'react';
+import { useEffect, useRef, useState, useMemo, useCallback, memo, type ReactNode } from 'react';
+import { ChevronDown } from 'lucide-react';
 import { PerformancePanel } from './MetricWidgets';
 import { SatelliteData } from '../types/satellites';
 import { formatCoordinates } from '../utils/formatters';
@@ -63,6 +64,41 @@ interface CapacityDetailsProps {
   onSelectGeoMission?: (mission: string | null) => void;
   onSelectGeoCoverage?: (coverageName: string | null) => void;
 }
+
+interface LatencyBreakdownCardProps {
+  accentColor: string;
+  summary: string;
+  title?: string;
+  children: ReactNode;
+}
+
+const LatencyBreakdownCard = ({ accentColor, summary, title = 'Latency breakdown', children }: LatencyBreakdownCardProps) => {
+  const [isOpen, setIsOpen] = useState(false);
+
+  return (
+    <div className="bg-gray-50 dark:bg-slate-800/50 rounded-lg border border-gray-100 dark:border-slate-700">
+      <button
+        type="button"
+        onClick={() => setIsOpen((open) => !open)}
+        className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left"
+        aria-expanded={isOpen}
+      >
+        <div className="min-w-0">
+          <h4 className="text-sm font-semibold" style={{ color: accentColor }}>{title}</h4>
+          <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">{summary}</p>
+        </div>
+        <ChevronDown
+          className={`h-4 w-4 shrink-0 text-gray-400 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
+        />
+      </button>
+      {isOpen && (
+        <div className="border-t border-gray-200 px-4 py-4 dark:border-slate-700">
+          {children}
+        </div>
+      )}
+    </div>
+  );
+};
 
 // Performance optimization: Memoize component to prevent unnecessary re-renders
 const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint, selectedSatellite, autoSelectedLEOSatellite, satelliteScope, onSelectedGEOBeamChange, onSatelliteClick, analysisSource, aircraftCallsign, selectedSNP: propSelectedSNP, selectedGeoMission, selectedGeoCoverageName, onSelectGeoMission, onSelectGeoCoverage }) => {
@@ -850,8 +886,10 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
                     </div>
                   )}
                 </div>
-                <div className="bg-gray-50 dark:bg-slate-800/50 rounded-lg p-4 border border-gray-100 dark:border-slate-700">
-                  <h4 className="text-sm font-semibold mb-3" style={{ color: '#db2777' }}>Latency breakdown</h4>
+                <LatencyBreakdownCard
+                  accentColor="#db2777"
+                  summary={leoGeometry ? `Estimated RTT total: ${leoGeometry.rttTotalMs.toFixed(1)} ms` : 'No LEO latency breakdown available without SNP connectivity.'}
+                >
                   {leoGeometry ? (
                     <div className="text-xs text-gray-600 dark:text-gray-400 space-y-2">
                       <div className="font-semibold text-gray-700 dark:text-gray-200">RTT propagation components</div>
@@ -886,7 +924,7 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
                       <div>No LEO latency breakdown available without SNP connectivity.</div>
                     </div>
                   )}
-                </div>
+                </LatencyBreakdownCard>
                 {/* LEO Estimated Performance */}
                 <div className="bg-gray-50 dark:bg-slate-800/50 rounded-lg p-4 border border-gray-100 dark:border-slate-700">
                   <h4 className="text-sm font-semibold mb-3" style={{ color: '#db2777' }}>Estimated Performance</h4>
@@ -967,8 +1005,10 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
                     </div>
                   )}
                 </div>
-                <div className="bg-gray-50 dark:bg-slate-800/50 rounded-lg p-4 border border-gray-100 dark:border-slate-700">
-                  <h4 className="text-sm font-semibold mb-3" style={{ color: '#2563eb' }}>Latency breakdown</h4>
+                <LatencyBreakdownCard
+                  accentColor="#2563eb"
+                  summary={geoGeometry ? `Estimated RTT total: ${geoGeometry.rttTotalMs?.toFixed(1) ?? '--'} ms` : 'No GEO latency breakdown available.'}
+                >
                   {geoGeometry ? (
                     <div className="text-xs text-gray-600 dark:text-gray-400 space-y-2">
                       <div className="font-semibold text-gray-700 dark:text-gray-200">RTT propagation components</div>
@@ -1002,7 +1042,7 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
                       <div>No GEO latency breakdown available.</div>
                     </div>
                   )}
-                </div>
+                </LatencyBreakdownCard>
                 <div className="bg-gray-50 dark:bg-slate-800/50 rounded-lg p-4 border border-gray-100 dark:border-slate-700">
                   <h4 className="text-sm font-semibold mb-3" style={{ color: '#2563eb' }}>Estimated Performance</h4>
                   {resolvedGEOConnectivity && geoGeometry ? (
