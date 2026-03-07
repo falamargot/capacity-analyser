@@ -15,6 +15,7 @@ import {
   type WeatherCondition,
 } from '../utils/realisticSimulation';
 import { analyzeGeoConnectivity } from '../utils/geoConnectivityModel';
+import { analyzeLeoConnectivity } from '../utils/leoConnectivityModel';
 
 // Module-level stable definitions to avoid recreating inside component and
 // to keep hook dependency arrays clean.
@@ -171,15 +172,14 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
     userLat: number,
     userLng: number,
     satLat: number,
-    satLng: number
+    satLng: number,
+    estimatedRttMs: number | null
   ) => {
-    // 1) RTT calculation using effective radio propagation speed
-    // We approximate a bent-pipe path: User -> Sat -> SNP (ground station) -> Sat -> User
+    // RTT now comes from the detailed LEO connectivity model (propagation + overhead).
+    // Keep a propagation-only fallback for defensive safety.
     const oneWayDistanceKm = userLEODistance + snpLEODistance;
-    const rttMilliseconds = Math.round((2 * oneWayDistanceKm / SPEED_OF_LIGHT_RADIO_KM_S * 1000 / 5) * 5);
-
-    // Ensure minimum RTT of 5ms, never show 0
-    const rtt = Math.max(5, rttMilliseconds);
+    const fallbackPropagationRttMs = (2 * oneWayDistanceKm / SPEED_OF_LIGHT_RADIO_KM_S) * 1000;
+    const rtt = estimatedRttMs ?? Math.max(5, fallbackPropagationRttMs);
 
     // 2) Throughput estimation (theoretical but realistic for a USER link)
     // IMPORTANT: satellite.capacity.maxThroughput represents a global / system capacity,
@@ -491,6 +491,33 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
     };
   }, [activePoint, satellites, autoSelectedLEOSatellite, propSelectedSNP]);
 
+  const leoGeometry = useMemo(() => {
+    if (!resolvedLEOConnectivity || !resolvedLEOConnectivity.snp) return null;
+
+    return analyzeLeoConnectivity({
+      userToSatelliteDistanceKm: resolvedLEOConnectivity.userLEODistance,
+      satelliteToGatewayDistanceKm: resolvedLEOConnectivity.snpLEODistance || 0,
+      userToSatelliteElevationDeg: resolvedLEOConnectivity.userLEOElevation,
+      gatewayToSatelliteElevationDeg: resolvedLEOConnectivity.snpLEOElevation || 0,
+    });
+  }, [resolvedLEOConnectivity]);
+
+  const leoPerformance = useMemo(() => {
+    if (!resolvedLEOConnectivity || !resolvedLEOConnectivity.snp || !activePoint) return null;
+
+    return calculateLEOPerformance(
+      resolvedLEOConnectivity.userLEODistance,
+      resolvedLEOConnectivity.snpLEODistance || 0,
+      resolvedLEOConnectivity.userLEOElevation,
+      resolvedLEOConnectivity.snpLEOElevation || 0,
+      activePoint.lat,
+      activePoint.lng,
+      resolvedLEOConnectivity.satellite.position.lat,
+      resolvedLEOConnectivity.satellite.position.lng,
+      leoGeometry?.rttTotalMs ?? null
+    );
+  }, [resolvedLEOConnectivity, activePoint, calculateLEOPerformance, leoGeometry]);
+
   // Get resolved GEO connectivity data for display
   const resolvedGEOConnectivity = useMemo(() => {
     if (!activePoint || satellites.length === 0) return null;
@@ -794,11 +821,21 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
                         <div className="text-xs text-gray-500 dark:text-gray-400 space-y-2 text-left">
                           <div>
                             <div>{analysisSource === 'aircraft' && aircraftCallsign ? aircraftCallsign : 'User'} → {resolvedLEOConnectivity.satellite.name}{resolvedLEOConnectivity.connectedBeamIndex !== null ? ` · Beam ${resolvedLEOConnectivity.connectedBeamIndex}` : ''}</div>
-                            <div className="ml-4">→ Elevation: {resolvedLEOConnectivity.userLEOElevation?.toFixed(1)}° | Distance: {resolvedLEOConnectivity.userLEODistance?.toFixed(0)} km ({(resolvedLEOConnectivity.userLEODistance / SPEED_OF_LIGHT_RADIO_KM_S * 1000).toFixed(1)} ms)</div>
+                            <div className="ml-4">→ Elevation: {resolvedLEOConnectivity.userLEOElevation?.toFixed(1)}° | Distance: {resolvedLEOConnectivity.userLEODistance?.toFixed(0)} km ({(leoGeometry?.propagationBreakdownMs.userToSatellite ?? (resolvedLEOConnectivity.userLEODistance / SPEED_OF_LIGHT_RADIO_KM_S * 1000)).toFixed(1)} ms)</div>
                           </div>
                           <div>
                             <div>{resolvedLEOConnectivity.snp.name} → {resolvedLEOConnectivity.satellite.name}</div>
-                            <div className="ml-4">→ Elevation: {resolvedLEOConnectivity.snpLEOElevation?.toFixed(1)}° | Distance: {resolvedLEOConnectivity.snpLEODistance?.toFixed(0)} km ({((resolvedLEOConnectivity.snpLEODistance || 0) / SPEED_OF_LIGHT_RADIO_KM_S * 1000).toFixed(1)} ms)</div>
+                            <div className="ml-4">→ Elevation: {resolvedLEOConnectivity.snpLEOElevation?.toFixed(1)}° | Distance: {resolvedLEOConnectivity.snpLEODistance?.toFixed(0)} km ({(leoGeometry?.propagationBreakdownMs.satelliteToGateway ?? ((resolvedLEOConnectivity.snpLEODistance || 0) / SPEED_OF_LIGHT_RADIO_KM_S * 1000)).toFixed(1)} ms)</div>
+                          </div>
+                          <div className="border-t border-gray-200 dark:border-slate-700 pt-2 flex justify-between font-semibold text-gray-700 dark:text-gray-200">
+                            <span>One-way propagation</span>
+                            <span>
+                              {(() => {
+                                const oneWayDistanceKm = resolvedLEOConnectivity.userLEODistance + (resolvedLEOConnectivity.snpLEODistance || 0);
+                                const oneWayDelayMs = leoGeometry?.oneWayRadioMs ?? ((oneWayDistanceKm / SPEED_OF_LIGHT_RADIO_KM_S) * 1000);
+                                return `${oneWayDistanceKm.toFixed(0)} km (${oneWayDelayMs.toFixed(1)} ms)`;
+                              })()}
+                            </span>
                           </div>
                         </div>
                       ) : (
@@ -813,34 +850,58 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
                     </div>
                   )}
                 </div>
+                <div className="bg-gray-50 dark:bg-slate-800/50 rounded-lg p-4 border border-gray-100 dark:border-slate-700">
+                  <h4 className="text-sm font-semibold mb-3" style={{ color: '#db2777' }}>Latency breakdown</h4>
+                  {leoGeometry ? (
+                    <div className="text-xs text-gray-600 dark:text-gray-400 space-y-2">
+                      <div className="font-semibold text-gray-700 dark:text-gray-200">RTT propagation components</div>
+                      <div className="flex justify-between"><span>User {'->'} Satellite</span><span>{leoGeometry.propagationBreakdownMs.userToSatellite.toFixed(1)} ms</span></div>
+                      <div className="flex justify-between"><span>Satellite {'->'} SNP</span><span>{leoGeometry.propagationBreakdownMs.satelliteToGateway.toFixed(1)} ms</span></div>
+                      <div className="flex justify-between"><span>SNP {'->'} Satellite</span><span>{leoGeometry.propagationBreakdownMs.gatewayToSatellite.toFixed(1)} ms</span></div>
+                      <div className="flex justify-between"><span>Satellite {'->'} User</span><span>{leoGeometry.propagationBreakdownMs.satelliteToUser.toFixed(1)} ms</span></div>
+                      <div className="border-t border-gray-200 dark:border-slate-700 pt-2 flex justify-between font-semibold text-gray-700 dark:text-gray-200">
+                        <span>RTT propagation</span><span>{leoGeometry.rttPropagationMs.toFixed(1)} ms</span>
+                      </div>
+                      <div className="pt-1 font-semibold text-gray-700 dark:text-gray-200">Network overhead components</div>
+                      <div className="ml-2 flex justify-between"><span>Gateway processing delay</span><span>{leoGeometry.overheadMs.gatewayProcessing.toFixed(0)} ms</span></div>
+                      <div className="ml-2 flex justify-between"><span>Modem processing delay</span><span>{leoGeometry.overheadMs.modemProcessing.toFixed(0)} ms</span></div>
+                      <div className="ml-2 flex justify-between"><span>Routing delay</span><span>{leoGeometry.overheadMs.routing.toFixed(0)} ms</span></div>
+                      <div className="ml-2 flex justify-between"><span>Queueing delay</span><span>{leoGeometry.overheadMs.queueing.toFixed(0)} ms</span></div>
+                      <div className="ml-2 flex justify-between font-semibold text-gray-700 dark:text-gray-200">
+                        <span>Network overhead total</span><span>{leoGeometry.overheadMs.total.toFixed(1)} ms</span>
+                      </div>
+                      <div className="border-t border-gray-200 dark:border-slate-700 pt-2 flex justify-between font-semibold text-gray-800 dark:text-gray-100">
+                        <span>Estimated RTT total</span><span>{leoGeometry.rttTotalMs.toFixed(1)} ms</span>
+                      </div>
+                      {leoGeometry.warnings.length > 0 && (
+                        <div className="mt-2 rounded border border-amber-300 bg-amber-50 dark:bg-amber-900/20 p-2 text-amber-800 dark:text-amber-300">
+                          {leoGeometry.warnings.map((warning, index) => (
+                            <div key={`${warning}-${index}`}>Warning: {warning}</div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="text-sm text-gray-700 dark:text-gray-300 text-center">
+                      <div>No LEO latency breakdown available without SNP connectivity.</div>
+                    </div>
+                  )}
+                </div>
                 {/* LEO Estimated Performance */}
                 <div className="bg-gray-50 dark:bg-slate-800/50 rounded-lg p-4 border border-gray-100 dark:border-slate-700">
                   <h4 className="text-sm font-semibold mb-3" style={{ color: '#db2777' }}>Estimated Performance</h4>
-                  {resolvedLEOConnectivity && resolvedLEOConnectivity.snp ? (
-                    (() => {
-                      const performance = calculateLEOPerformance(
-                        resolvedLEOConnectivity.userLEODistance,
-                        resolvedLEOConnectivity.snpLEODistance || 0,
-                        resolvedLEOConnectivity.userLEOElevation,
-                        resolvedLEOConnectivity.snpLEOElevation || 0,
-                        activePoint!.lat,
-                        activePoint!.lng,
-                        resolvedLEOConnectivity.satellite.position.lat,
-                        resolvedLEOConnectivity.satellite.position.lng
-                      );
-                      return (
-                        <PerformancePanel
-                          rtt={performance.rtt}
-                          downlinkGbps={performance.downlinkGbps}
-                          uplinkGbps={performance.uplinkGbps}
-                          maxDlGbps={TERMINAL_PROFILES[terminalType].maxDlGbps}
-                          maxUlGbps={TERMINAL_PROFILES[terminalType].maxUlGbps}
-                          performanceFactor={performance.performanceFactor}
-                          accentColor="#db2777"
-                          rttMaxMs={RTT_VISUAL_SCALE_MAX_MS}
-                        />
-                      );
-                    })()
+                  {leoPerformance ? (
+                    <PerformancePanel
+                      rtt={leoGeometry?.rttTotalMs ?? leoPerformance.rtt}
+                      downlinkGbps={leoPerformance.downlinkGbps}
+                      uplinkGbps={leoPerformance.uplinkGbps}
+                      maxDlGbps={TERMINAL_PROFILES[terminalType].maxDlGbps}
+                      maxUlGbps={TERMINAL_PROFILES[terminalType].maxUlGbps}
+                      performanceFactor={leoPerformance.performanceFactor}
+                      accentColor="#db2777"
+                      rttMaxMs={RTT_VISUAL_SCALE_MAX_MS}
+                      rttLabel="End-to-End LEO RTT"
+                    />
                   ) : resolvedLEOConnectivity ? (
                     <PerformancePanel
                       rtt={null}
@@ -876,25 +937,26 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
                     (() => {
                       const userLabel = analysisSource === 'aircraft' && aircraftCallsign ? aircraftCallsign : 'User';
                       const gatewayName = geoGeometry.satelliteToGateway.gateway?.name ?? 'No eligible gateway';
+                      const userToSatelliteLabel = resolvedGEOConnectivity.beam?.name ?? resolvedGEOConnectivity.satellite.name;
+                      const oneWayDistanceKm = geoGeometry.satelliteToGateway.slantRangeKm != null
+                        ? geoGeometry.userToSatellite.slantRangeKm + geoGeometry.satelliteToGateway.slantRangeKm
+                        : null;
                       return (
                         <div className="text-sm text-gray-700 dark:text-gray-300 text-center space-y-3">
                           <div>{userLabel} → <button onClick={() => onSatelliteClick?.(resolvedGEOConnectivity.satellite)} className="underline hover:no-underline text-blue-600 dark:text-blue-400 font-medium cursor-pointer">{resolvedGEOConnectivity.satellite.name}</button> → {gatewayName} → <button onClick={() => onSatelliteClick?.(resolvedGEOConnectivity.satellite)} className="underline hover:no-underline text-blue-600 dark:text-blue-400 font-medium cursor-pointer">{resolvedGEOConnectivity.satellite.name}</button> → {userLabel}</div>
                           <div className="text-xs text-gray-500 dark:text-gray-400 space-y-2 text-left">
                             <div>
-                              <div>{userLabel} → {resolvedGEOConnectivity.satellite.name}</div>
+                              <div>{userLabel} → {userToSatelliteLabel}</div>
                               <div className="ml-4">→ Elevation: {geoGeometry.userToSatellite.elevationDeg.toFixed(1)}° | Slant Range: {geoGeometry.userToSatellite.slantRangeKm.toFixed(0)} km ({geoGeometry.userToSatellite.latencyMs.toFixed(1)} ms)</div>
                             </div>
                             <div>
                               <div>{gatewayName} → {resolvedGEOConnectivity.satellite.name}</div>
                               <div className="ml-4">→ Slant Range: {geoGeometry.satelliteToGateway.slantRangeKm != null ? `${geoGeometry.satelliteToGateway.slantRangeKm.toFixed(0)} km` : '--'} ({geoGeometry.satelliteToGateway.latencyMs != null ? `${geoGeometry.satelliteToGateway.latencyMs.toFixed(1)} ms` : '--'})</div>
                             </div>
-                            <div>
-                              <div>{userLabel} → {gatewayName} (one-way radio)</div>
-                              <div className="ml-4">→ Total propagation: {geoGeometry.oneWayRadioMs != null ? `${geoGeometry.oneWayRadioMs.toFixed(1)} ms` : '--'}</div>
+                            <div className="border-t border-gray-200 dark:border-slate-700 pt-2 flex justify-between font-semibold text-gray-700 dark:text-gray-200">
+                              <span>One-way propagation</span>
+                              <span>{oneWayDistanceKm != null && geoGeometry.oneWayRadioMs != null ? `${oneWayDistanceKm.toFixed(0)} km (${geoGeometry.oneWayRadioMs.toFixed(1)} ms)` : '--'}</span>
                             </div>
-                            {resolvedGEOConnectivity.beam && (
-                              <div>→ Direct Beam: {resolvedGEOConnectivity.beam.name}</div>
-                            )}
                           </div>
                         </div>
                       );
@@ -909,6 +971,7 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
                   <h4 className="text-sm font-semibold mb-3" style={{ color: '#2563eb' }}>Latency breakdown</h4>
                   {geoGeometry ? (
                     <div className="text-xs text-gray-600 dark:text-gray-400 space-y-2">
+                      <div className="font-semibold text-gray-700 dark:text-gray-200">RTT propagation components</div>
                       <div className="flex justify-between"><span>User {'->'} Satellite</span><span>{geoGeometry.propagationBreakdownMs.userToSatellite?.toFixed(1) ?? '--'} ms</span></div>
                       <div className="flex justify-between"><span>Satellite {'->'} Gateway</span><span>{geoGeometry.propagationBreakdownMs.satelliteToGateway?.toFixed(1) ?? '--'} ms</span></div>
                       <div className="flex justify-between"><span>Gateway {'->'} Satellite</span><span>{geoGeometry.propagationBreakdownMs.gatewayToSatellite?.toFixed(1) ?? '--'} ms</span></div>
@@ -916,10 +979,13 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
                       <div className="border-t border-gray-200 dark:border-slate-700 pt-2 flex justify-between font-semibold text-gray-700 dark:text-gray-200">
                         <span>RTT propagation</span><span>{geoGeometry.rttPropagationMs?.toFixed(1) ?? '--'} ms</span>
                       </div>
-                      <div className="pt-1">Network overhead</div>
+                      <div className="pt-1 font-semibold text-gray-700 dark:text-gray-200">Network overhead components</div>
                       <div className="ml-2 flex justify-between"><span>Gateway processing delay</span><span>{geoGeometry.overheadMs.gatewayProcessing.toFixed(0)} ms</span></div>
                       <div className="ml-2 flex justify-between"><span>Modem processing delay</span><span>{geoGeometry.overheadMs.modemProcessing.toFixed(0)} ms</span></div>
                       <div className="ml-2 flex justify-between"><span>Routing delay</span><span>{geoGeometry.overheadMs.routing.toFixed(0)} ms</span></div>
+                      <div className="ml-2 flex justify-between font-semibold text-gray-700 dark:text-gray-200">
+                        <span>Network overhead total</span><span>{geoGeometry.overheadMs.total.toFixed(1)} ms</span>
+                      </div>
                       <div className="border-t border-gray-200 dark:border-slate-700 pt-2 flex justify-between font-semibold text-gray-800 dark:text-gray-100">
                         <span>Estimated RTT total</span><span>{geoGeometry.rttTotalMs?.toFixed(1) ?? '--'} ms</span>
                       </div>
@@ -1045,50 +1111,14 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
                   name: resolvedLEOConnectivity.satellite.name,
                   elevation: resolvedLEOConnectivity.userLEOElevation || 0,
                   rtt: resolvedLEOConnectivity.snp ?
-                    (resolvedLEOConnectivity.userLEODistance + (resolvedLEOConnectivity.snpLEODistance || 0)) * 2 / SPEED_OF_LIGHT_RADIO_KM_S * 1000 :
+                    (leoGeometry?.rttTotalMs ?? (resolvedLEOConnectivity.userLEODistance + (resolvedLEOConnectivity.snpLEODistance || 0)) * 2 / SPEED_OF_LIGHT_RADIO_KM_S * 1000) :
                     resolvedLEOConnectivity.userLEODistance * 2 / SPEED_OF_LIGHT_RADIO_KM_S * 1000,
                   downlinkGbps: resolvedLEOConnectivity.snp ?
-                    (() => {
-                      const performance = calculateLEOPerformance(
-                        resolvedLEOConnectivity.userLEODistance,
-                        resolvedLEOConnectivity.snpLEODistance || 0,
-                        resolvedLEOConnectivity.userLEOElevation,
-                        resolvedLEOConnectivity.snpLEOElevation || 0,
-                        activePoint.lat,
-                        activePoint.lng,
-                        resolvedLEOConnectivity.satellite.position.lat,
-                        resolvedLEOConnectivity.satellite.position.lng
-                      );
-                      return performance.downlinkGbps;
-                    })() : 0,
+                    (leoPerformance?.downlinkGbps ?? 0) : 0,
                   uplinkGbps: resolvedLEOConnectivity.snp ?
-                    (() => {
-                      const performance = calculateLEOPerformance(
-                        resolvedLEOConnectivity.userLEODistance,
-                        resolvedLEOConnectivity.snpLEODistance || 0,
-                        resolvedLEOConnectivity.userLEOElevation,
-                        resolvedLEOConnectivity.snpLEOElevation || 0,
-                        activePoint.lat,
-                        activePoint.lng,
-                        resolvedLEOConnectivity.satellite.position.lat,
-                        resolvedLEOConnectivity.satellite.position.lng
-                      );
-                      return performance.uplinkGbps;
-                    })() : 0,
+                    (leoPerformance?.uplinkGbps ?? 0) : 0,
                   stability: resolvedLEOConnectivity.snp ?
-                    (() => {
-                      const performance = calculateLEOPerformance(
-                        resolvedLEOConnectivity.userLEODistance,
-                        resolvedLEOConnectivity.snpLEODistance || 0,
-                        resolvedLEOConnectivity.userLEOElevation,
-                        resolvedLEOConnectivity.snpLEOElevation || 0,
-                        activePoint.lat,
-                        activePoint.lng,
-                        resolvedLEOConnectivity.satellite.position.lat,
-                        resolvedLEOConnectivity.satellite.position.lng
-                      );
-                      return performance.stability;
-                    })() : 'Unstable',
+                    (leoPerformance?.stability ?? 'Unstable') : 'Unstable',
                   distance: resolvedLEOConnectivity.userLEODistance,
                   radioPath: resolvedLEOConnectivity.snp ?
                     `${analysisSource === 'aircraft' && aircraftCallsign ? aircraftCallsign : 'User'} → ${resolvedLEOConnectivity.satellite.name} → ${resolvedLEOConnectivity.snp.name} → ${resolvedLEOConnectivity.satellite.name} → ${analysisSource === 'aircraft' && aircraftCallsign ? aircraftCallsign : 'User'}` :

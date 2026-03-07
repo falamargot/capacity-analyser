@@ -3,7 +3,11 @@ import type { GeoGatewayData } from '../components/globe/GlobeConfig';
 
 const DEG_TO_RAD = Math.PI / 180;
 
-export const GEO_EARTH_RADIUS_KM = 6378;
+const WGS84_A_KM = 6378.137;
+const WGS84_F = 1 / 298.257223563;
+const WGS84_E2 = 2 * WGS84_F - WGS84_F * WGS84_F;
+
+export const GEO_EARTH_RADIUS_KM = WGS84_A_KM;
 export const GEO_ALTITUDE_KM = 35786;
 export const SPEED_OF_LIGHT_M_S = 299792458;
 
@@ -87,12 +91,14 @@ function toRadians(deg: number): number {
 function toEcef(point: PointLLA): EcefPoint {
   const lat = toRadians(point.lat);
   const lng = toRadians(point.lng);
-  const radius = GEO_EARTH_RADIUS_KM + point.altKm;
+  const sinLat = Math.sin(lat);
   const cosLat = Math.cos(lat);
+  const n = WGS84_A_KM / Math.sqrt(1 - WGS84_E2 * sinLat * sinLat);
+
   return {
-    x: radius * cosLat * Math.cos(lng),
-    y: radius * cosLat * Math.sin(lng),
-    z: radius * Math.sin(lat),
+    x: (n + point.altKm) * cosLat * Math.cos(lng),
+    y: (n + point.altKm) * cosLat * Math.sin(lng),
+    z: (n * (1 - WGS84_E2) + point.altKm) * sinLat,
   };
 }
 
@@ -155,10 +161,16 @@ function gatewaySupportsSatellite(gateway: GeoGatewayData, satellite: SatelliteD
 }
 
 function getGeoSatellitePoint(satellite: SatelliteData): PointLLA {
+  const satLat = Number.isFinite(satellite.position.lat) ? satellite.position.lat : 0;
+  const satLng = Number.isFinite(satellite.position.lng) ? satellite.position.lng : 0;
+  const satAlt = Number.isFinite(satellite.position.alt) && satellite.position.alt > 1000
+    ? satellite.position.alt
+    : GEO_ALTITUDE_KM;
+
   return {
-    lat: 0,
-    lng: satellite.position.lng,
-    altKm: GEO_ALTITUDE_KM,
+    lat: satLat,
+    lng: satLng,
+    altKm: satAlt,
   };
 }
 
@@ -294,4 +306,3 @@ export function analyzeGeoConnectivity({
     isUserLinkUnstable,
   };
 }
-
