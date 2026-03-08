@@ -35,7 +35,7 @@ import type { SatelliteData } from '../types/satellites';
 import type { Aircraft } from '../modules/airTraffic/airTrafficService';
 import type { Vessel } from '../modules/maritimeTraffic/maritimeTrafficService';
 import type { SatelliteScope } from './SatelliteScopeFilter';
-import type { GEOBeam } from '../types/analysis';
+import type { CandidateCoverage, GEOBeam } from '../types/analysis';
 import { getPosition, DPR_FACTOR, calculateDynamicScale } from './cesium-globe/utils';
 import { useCesiumTheme } from '../hooks/useCesiumTheme';
 
@@ -63,6 +63,7 @@ import { analyzeGeoConnectivity } from '../utils/geoConnectivityModel';
 
 interface CesiumGlobeProps {
     satellites: SatelliteData[];
+    satelliteTypeByName: Map<string, SatelliteData['type']>;
     coverageFeatures: Feature<Geometry, GeoJsonProperties>[];
     selectedPosition?: { lat: number; lng: number; altitude?: number } | null;
     onPointClick: (lat: number, lng: number) => void;
@@ -89,6 +90,8 @@ interface CesiumGlobeProps {
     onVesselClick?: (vessel: Vessel | null) => void;
     onVesselHover?: (vessel: Vessel | null) => void;
     selectedGEOBeam?: GEOBeam | null;
+    candidateCoverages?: CandidateCoverage[];
+    selectedCoverage?: CandidateCoverage | null;
     cameraTarget?: { lat: number; lng: number; alt: number } | null;
     onCameraReady?: (viewer: any) => void;
     onGlobeContainerReady?: (ref: React.RefObject<HTMLDivElement | null>) => void;
@@ -103,6 +106,7 @@ interface CesiumGlobeProps {
 
 const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
     satellites,
+    satelliteTypeByName,
     coverageFeatures,
     selectedPosition,
     onPointClick,
@@ -129,6 +133,8 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
     onVesselClick,
     onVesselHover,
     selectedGEOBeam,
+    candidateCoverages = [],
+    selectedCoverage = null,
     cameraTarget,
     onCameraReady,
     onGlobeContainerReady,
@@ -500,7 +506,9 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                     {/* Coverage Layer */}
                     <CoverageLayer
                         coverageFeatures={coverageFeatures}
-                        satellites={satellites}
+                        satelliteTypeByName={satelliteTypeByName}
+                        candidateCoverages={candidateCoverages}
+                        selectedCoverage={selectedCoverage}
                     />
 
                     {/* OneWeb Comb Layer - Always shown for selected satellite */}

@@ -44,7 +44,7 @@ const geoUserMaterial = new PolylineDashMaterialProperty({
 });
 
 const geoFeederMaterial = new PolylineDashMaterialProperty({
-    color: Color.ORANGE,
+    color: Color.ROYALBLUE,
     dashPattern: 3855
 });
 
@@ -215,7 +215,7 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
                 <Entity name="LEO Uplink/Downlink">
                     <PolylineGraphics
                         positions={leoUplinkCallback}
-                        width={2}
+                        width={2.5}
                         material={leoDashMaterial}
                         arcType={ArcType.NONE}
                     />
@@ -227,7 +227,7 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
                 <Entity name="LEO Backhaul">
                     <PolylineGraphics
                         positions={leoBackhaulCallback}
-                        width={2}
+                        width={2.5}
                         material={leoDashMaterial}
                         clampToGround={false}
                         arcType={ArcType.NONE}
@@ -240,7 +240,7 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
                 <Entity name="GEO User Link">
                     <PolylineGraphics
                         positions={geoUserLinkCallback}
-                        width={2.2}
+                        width={2.5}
                         material={geoUserMaterial}
                         arcType={ArcType.NONE}
                     />
@@ -252,7 +252,7 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
                 <Entity name="GEO Feeder Link">
                     <PolylineGraphics
                         positions={geoFeederLinkCallback}
-                        width={2.2}
+                        width={2.5}
                         material={geoFeederMaterial}
                         arcType={ArcType.NONE}
                     />
@@ -264,7 +264,7 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
                 <Entity name="GEO Backhaul Link">
                     <PolylineGraphics
                         positions={geoBackhaulCallback}
-                        width={2}
+                        width={2.5}
                         material={geoBackhaulMaterial}
                         arcType={ArcType.NONE}
                     />

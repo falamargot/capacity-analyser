@@ -14,13 +14,20 @@ import BeamLegend from './components/cesium-globe/BeamLegend';
 import SimulationSettings from './components/layout/SimulationSettings';
 import { calculatePosition, fetchSatellites } from './services/satelliteService';
 import { SatelliteData } from './types/satellites';
-import type { GEOBeam, SelectedSNP } from './types/analysis';
+import type { CandidateCoverage, GEOBeam, SelectedSNP } from './types/analysis';
 import { calculateCoverages, destinationPoint } from './utils/coverageCalculator';
 import { footprintRadiusKm, BACKHAUL_ELEVATION_DEG } from './utils/leoFootprint';
 import { Feature, Geometry, GeoJsonProperties } from 'geojson';
 import { SNPS_DATA } from './components/globe/GlobeConfig';
 
-import { resolveAutoSelectedSatellites, findBestGEOBeam } from './utils/satelliteResolution';
+import { resolveAutoSelectedSatellites } from './utils/satelliteResolution';
+import {
+  findCandidateCoverages,
+  getCandidateCoverageKey,
+  getFeatureCandidateCoverageKey,
+  rankCandidateCoverages,
+  resolveCandidateCoverage,
+} from './utils/geoCoverageSelection';
 import { JulianDate } from 'cesium';
 import { useAirTraffic, useAirTrafficInterpolation } from './modules/airTraffic';
 import { Aircraft } from './modules/airTraffic/airTrafficService';
@@ -51,7 +58,8 @@ const App: React.FC = () => {
   const [autoSelectedLEOId, setAutoSelectedLEOId] = useState<string | null>(null);
   const [autoSelectedGEOId, setAutoSelectedGEOId] = useState<string | null>(null);
   const [selectedSNP, setSelectedSNP] = useState<SelectedSNP>(null);
-  const [selectedGEOBeam, setSelectedGEOBeam] = useState<GEOBeam | null>(null);
+  const [candidateCoverages, setCandidateCoverages] = useState<CandidateCoverage[]>([]);
+  const [selectedCoverage, setSelectedCoverage] = useState<CandidateCoverage | null>(null);
   const [selectedGeoMission, setSelectedGeoMission] = useState<string | null>(null);
   const [selectedGeoCoverageName, setSelectedGeoCoverageName] = useState<string | null>(null);
   const [selectedAircraft, setSelectedAircraft] = useState<Aircraft | null>(null);
@@ -174,7 +182,13 @@ const App: React.FC = () => {
 
           const isSatelliteSelected = currentSelectedId === sat.id;
           const isSatelliteHovered = hoveredSatelliteId === sat.id;
-          const shouldRecalculateCoverage = isSatelliteSelected || isSatelliteHovered || selectionChanged || positionChanged;
+          const shouldRecalculateCoverage = sat.type === 'ONEWEB' && (
+            isSatelliteSelected ||
+            isSatelliteHovered ||
+            selectionChanged ||
+            positionChanged ||
+            !sat.coverages?.length
+          );
 
           const updatedSat = { ...sat, position: newPosition };
 
@@ -212,6 +226,16 @@ const App: React.FC = () => {
     }
     return satellites.filter(sat => sat.orbitType === satelliteScope);
   }, [satellites, satelliteScope]);
+
+  const satelliteTypeSignature = useMemo(
+    () => satellites.map((sat) => `${sat.name}:${sat.type}`).join('|'),
+    [satellites]
+  );
+
+  const satelliteTypeByName = useMemo(
+    () => new Map(satellites.map((sat) => [sat.name, sat.type])),
+    [satelliteTypeSignature]
+  );
 
   // resolveAutoSelectedSatellites is imported from utils/satelliteResolution.ts
   // It implements the Service Availability model with:
@@ -261,16 +285,73 @@ const App: React.FC = () => {
     return satellite || null;
   }, [satellites, autoSelectedGEOId]);
 
+  const resolvedSelectedGeoCoverage = useMemo(() => (
+    resolveCandidateCoverage(selectedCoverage, satellites)
+  ), [selectedCoverage, satellites]);
+
+  const selectedGEOBeam = useMemo<GEOBeam | null>(() => {
+    if (!resolvedSelectedGeoCoverage) return null;
+
+    return {
+      feature: resolvedSelectedGeoCoverage.beam.feature,
+      name: resolvedSelectedGeoCoverage.beam.name,
+      type: resolvedSelectedGeoCoverage.beam.feature?.properties?.type as string | undefined,
+    };
+  }, [resolvedSelectedGeoCoverage]);
+
+  const activeGeoSatellite = resolvedSelectedGeoCoverage?.satellite ?? resolvedAutoGEO;
+
   // Resolve live satellite instance for selected satellite (real-time positions)
   const liveSelectedSatellite = useMemo(() =>
     satellites.find(s => s.id === selectedSatellite?.id) ?? null,
     [satellites, selectedSatellite?.id]
   );
 
+  const syncGeoCoverageSelection = useCallback((
+    position: { lat: number; lng: number } | null,
+    preserveSelection: boolean
+  ) => {
+    if (!position || (satelliteScope !== 'ALL' && satelliteScope !== 'GEO')) {
+      setCandidateCoverages([]);
+      setSelectedCoverage(null);
+      setAutoSelectedGEOId(null);
+      return;
+    }
+
+    const geoSatellites = satellitesForResolutionRef.current.filter((sat) => sat.orbitType === 'GEO');
+    const rankedCandidates = rankCandidateCoverages(
+      findCandidateCoverages(position, geoSatellites)
+    );
+
+    setCandidateCoverages(rankedCandidates);
+    setAutoSelectedGEOId(rankedCandidates[0]?.satelliteId ?? null);
+    setSelectedCoverage((current) => {
+      if (preserveSelection && current) {
+        const preserved = rankedCandidates.find((candidate) => (
+          getCandidateCoverageKey(candidate) === getCandidateCoverageKey(current)
+        ));
+        if (preserved) {
+          return preserved;
+        }
+      }
+
+      return rankedCandidates[0] ?? null;
+    });
+  }, [satelliteScope]);
+
 
   // Update coverage features based on analyzis position or manual satellite selection
   const coverageFeaturesMemo = useMemo(() => {
-    const features: Feature<Geometry, GeoJsonProperties>[] = [];
+    const features = new Map<string, Feature<Geometry, GeoJsonProperties>>();
+    const pushFeature = (feature: Feature<Geometry, GeoJsonProperties>) => {
+      const key = getFeatureCandidateCoverageKey(feature)
+        ?? `${feature.properties?.type ?? 'feature'}::${feature.properties?.satelliteId ?? 'unknown'}::${feature.properties?.name ?? features.size}`;
+      if (!features.has(key)) {
+        features.set(key, feature);
+      }
+    };
+
+    const selectedGeoFeature = resolveCandidateCoverage(selectedCoverage, satellites)?.beam.feature ?? null;
 
     // If user has explicitly selected a satellite, show its coverage (Satellite Inspection mode)
     if (liveSelectedSatellite) {
@@ -278,54 +359,50 @@ const App: React.FC = () => {
         if (selectedGeoCoverageName) {
           const selectedCoverage = liveSelectedSatellite.coverages.find(c => c.name === selectedGeoCoverageName);
           if (selectedCoverage) {
-            features.push(selectedCoverage.feature);
+            pushFeature(selectedCoverage.feature);
           }
         } else if (selectedGeoMission) {
           liveSelectedSatellite.coverages
             .filter(c => ((c.feature?.properties as any)?.mission || 'Unknown mission') === selectedGeoMission)
-            .forEach(c => features.push(c.feature));
+            .forEach(c => pushFeature(c.feature));
         } else {
-          liveSelectedSatellite.coverages.forEach(c => features.push(c.feature));
+          liveSelectedSatellite.coverages.forEach(c => pushFeature(c.feature));
         }
       } else {
-        liveSelectedSatellite.coverages.forEach(c => features.push(c.feature));
+        liveSelectedSatellite.coverages.forEach(c => pushFeature(c.feature));
       }
 
       // Add hover effects for user interaction
       if (hoveredSatelliteId && hoveredSatelliteId !== liveSelectedSatellite.id) {
         const hoveredSat = filteredSatellites.find(sat => sat.id === hoveredSatelliteId);
         if (hoveredSat) {
-          hoveredSat.coverages.forEach(c => features.push(c.feature));
+          hoveredSat.coverages.forEach(c => pushFeature(c.feature));
         }
       }
 
-      return features;
+      return [...features.values()];
     }
 
     // Only show coverage when analyzis position is set (connectivity analyzis mode)
     if (!analyzisPosition && !selectedPosition) {
-      return features;
+      return [...features.values()];
     }
 
     // Show coverage based on auto-selected satellites according to scope rules
     if (satelliteScope === 'LEO' && resolvedAutoLEO) {
       // Display LEO coverage ONLY from resolved auto-selected LEO
-      resolvedAutoLEO.coverages.forEach((c: any) => features.push(c.feature));
-    } else if (satelliteScope === 'GEO' && resolvedAutoGEO) {
-      // Auto-selection mode: show only selected beam
-      if (selectedGEOBeam) {
-        features.push(selectedGEOBeam.feature);
+      resolvedAutoLEO.coverages.forEach((c: any) => pushFeature(c.feature));
+    } else if (satelliteScope === 'GEO') {
+      if (selectedGeoFeature) {
+        pushFeature(selectedGeoFeature);
       }
     } else if (satelliteScope === 'ALL') {
       // Display both LEO and GEO coverage from resolved auto-selected satellites
       if (resolvedAutoLEO) {
-        resolvedAutoLEO.coverages.forEach((c: any) => features.push(c.feature));
+        resolvedAutoLEO.coverages.forEach((c: any) => pushFeature(c.feature));
       }
-      if (resolvedAutoGEO) {
-        // Auto-selection mode: show only selected beam
-        if (selectedGEOBeam) {
-          features.push(selectedGEOBeam.feature);
-        }
+      if (selectedGeoFeature) {
+        pushFeature(selectedGeoFeature);
       }
     }
 
@@ -333,7 +410,7 @@ const App: React.FC = () => {
     if (hoveredSatelliteId) {
       const hoveredSat = filteredSatellites.find(sat => sat.id === hoveredSatelliteId);
       if (hoveredSat) {
-        hoveredSat.coverages.forEach(c => features.push(c.feature));
+        hoveredSat.coverages.forEach(c => pushFeature(c.feature));
       }
     }
 
@@ -361,12 +438,12 @@ const App: React.FC = () => {
             coordinates: [snpRing]
           }
         };
-        features.push(snpVisibilityArea);
+        pushFeature(snpVisibilityArea);
       }
     }
 
-    return features;
-  }, [filteredSatellites, selectedPosition, analyzisPosition, liveSelectedSatellite, resolvedAutoLEO, resolvedAutoGEO, selectedGEOBeam, hoveredSatelliteId, hoveredSnpName, satelliteScope, selectedGeoMission, selectedGeoCoverageName]);
+    return [...features.values()];
+  }, [analyzisPosition, filteredSatellites, hoveredSatelliteId, hoveredSnpName, liveSelectedSatellite, resolvedAutoLEO, satelliteScope, satellites, selectedCoverage, selectedGeoCoverageName, selectedGeoMission, selectedPosition]);
 
 
   // coverageFeaturesMemo is used directly - no need to copy to state
@@ -386,7 +463,8 @@ const App: React.FC = () => {
       setAutoSelectedGEOId(null);
       // Reset all dependent states
       setSelectedSNP(null);
-      setSelectedGEOBeam(null);
+      setCandidateCoverages([]);
+      setSelectedCoverage(null);
       setSelectedPosition(null);
       setAnalyzisPosition(null);
       setSelectedAircraft(null);
@@ -404,8 +482,8 @@ const App: React.FC = () => {
     setSelectedPosition(null);
     // Clear analyzis position when satellite is manually selected (satellite inspection mode)
     setAnalyzisPosition(null);
-    // Clear auto-selected GEO beam when entering satellite inspection mode
-    setSelectedGEOBeam(null);
+    setCandidateCoverages([]);
+    setSelectedCoverage(null);
     // Clear selected SNP when entering satellite inspection mode
     setSelectedSNP(null);
     setAutoSelectedLEOId(null);
@@ -473,11 +551,6 @@ const App: React.FC = () => {
     }
   }, []); // Hover handler for SNPs
 
-  // Handle GEO beam selection from CapacityDetails
-  const handleSelectedGEOBeamChange = useCallback((beam: any) => {
-    setSelectedGEOBeam(beam);
-  }, []);
-
   const handleSelectGeoMission = useCallback((mission: string | null) => {
     setSelectedGeoMission(mission);
     if (mission) {
@@ -513,32 +586,19 @@ const App: React.FC = () => {
       );
 
       setAutoSelectedLEOId(autoSelectedLEOSat?.id || null);
-      setAutoSelectedGEOId(autoSelectedGEOSat?.id || null);
       setSelectedSNP(selectedSNP);
-
-      if (autoSelectedGEOSat) {
-        const bestBeam = findBestGEOBeam(
-          { lat: position.lat, lng: position.lng },
-          autoSelectedGEOSat
-        );
-        setSelectedGEOBeam(bestBeam);
-      } else {
-        setSelectedGEOBeam(null);
-      }
+      syncGeoCoverageSelection({ lat: position.lat, lng: position.lng }, false);
 
       if (!autoSelectedLEOSat && !autoSelectedGEOSat) {
         setAutoSelectedLEOId(null);
-        setAutoSelectedGEOId(null);
         setSelectedSNP(null);
-        setSelectedGEOBeam(null);
       }
     } else {
       setAutoSelectedLEOId(null);
-      setAutoSelectedGEOId(null);
       setSelectedSNP(null);
-      setSelectedGEOBeam(null);
+      syncGeoCoverageSelection(null, false);
     }
-  }, [satelliteScope, coveragePolicy]); // §1.2 — satellites removed from deps
+  }, [coveragePolicy, satelliteScope, syncGeoCoverageSelection]); // §1.2 — satellites removed from deps
 
   // C-03 fix: removed redundant useEffect([selectedAircraft, updateAnalyzisPosition]).
   // The interval effect below (Real-time updates for selected aircraft position) already
@@ -560,12 +620,9 @@ const App: React.FC = () => {
       coveragePolicy
     );
     setAutoSelectedLEOId(autoSelectedLEOSat?.id || null);
-    setAutoSelectedGEOId(autoSelectedGEOSat?.id || null);
     setSelectedSNP(newSelectedSNP);
-    if (!autoSelectedGEOSat) {
-      setSelectedGEOBeam(null);
-    }
-  }, [satelliteScope, analyzisPosition, coveragePolicy]); // §1.1 — satellites removed
+    syncGeoCoverageSelection({ lat: analyzisPosition.lat, lng: analyzisPosition.lng }, true);
+  }, [analyzisPosition, coveragePolicy, satelliteScope, syncGeoCoverageSelection]); // §1.1 — satellites removed
 
   // §1.3 — Periodic re-resolution for fixed positions (earth / vessel).
   //
@@ -604,20 +661,13 @@ const App: React.FC = () => {
       );
 
       setAutoSelectedLEOId(autoSelectedLEOSat?.id || null);
-      setAutoSelectedGEOId(autoSelectedGEOSat?.id || null);
       setSelectedSNP(newSNP);
-
-      if (autoSelectedGEOSat) {
-        const bestBeam = findBestGEOBeam({ lat: pos.lat, lng: pos.lng }, autoSelectedGEOSat);
-        setSelectedGEOBeam(bestBeam);
-      } else {
-        setSelectedGEOBeam(null);
-      }
+      syncGeoCoverageSelection({ lat: pos.lat, lng: pos.lng }, true);
     };
 
     const interval = setInterval(reResolve, RESOLUTION_INTERVAL_MS);
     return () => clearInterval(interval);
-  }, [analyzisPosition, satelliteScope, coveragePolicy]); // re-arm when position/scope/policy change
+  }, [analyzisPosition, coveragePolicy, satelliteScope, syncGeoCoverageSelection]); // re-arm when position/scope/policy change
 
   // Handle geographic point click (earth-based analyzis)
   const handlePointClick = useCallback((lat: number, lng: number) => {
@@ -764,6 +814,7 @@ const App: React.FC = () => {
   // Avoids duplicating the full prop list in two places.
   const sharedMapProps = useMemo(() => ({
     satellites: filteredSatellites,
+    satelliteTypeByName,
     coverageFeatures: coverageFeaturesMemo,
     onPointClick: handlePointClick,
     selectedPosition,
@@ -773,8 +824,10 @@ const App: React.FC = () => {
     onSnpHover: handleSnpHover,
     selectedSatellite,
     autoSelectedLEOSatellite: resolvedAutoLEO,
-    autoSelectedGEOSatellite: resolvedAutoGEO,
+    autoSelectedGEOSatellite: activeGeoSatellite,
     selectedGEOBeam,
+    candidateCoverages,
+    selectedCoverage,
     selectedSNP,
     dedicatedSNPForSelectedLEO: null,
     isFullscreen,
@@ -798,9 +851,9 @@ const App: React.FC = () => {
     onToggleSatelliteTrajectory: () => setShowSatelliteTrajectory(!showSatelliteTrajectory),
     onSizeScaleChange: setSizeScale,
   }), [
-    filteredSatellites, coverageFeaturesMemo, handlePointClick, selectedPosition,
+    filteredSatellites, satelliteTypeByName, coverageFeaturesMemo, handlePointClick, selectedPosition,
     handleSatelliteClick, handleSatelliteHover, handleSnpClick, handleSnpHover,
-    selectedSatellite, resolvedAutoLEO, resolvedAutoGEO, selectedGEOBeam, selectedSNP,
+    selectedSatellite, resolvedAutoLEO, activeGeoSatellite, selectedGEOBeam, candidateCoverages, selectedCoverage, selectedSNP,
     isFullscreen, satelliteScope, airTrafficEnabled, interpolatedAircraft,
     selectedAircraft, handleAircraftSelect, handleAircraftHover,
     maritimeTrafficEnabled, interpolatedVessels, selectedVessel, handleVesselSelect, cameraTarget,
@@ -1049,7 +1102,7 @@ const App: React.FC = () => {
                   <MobileAnalysisSummary
                     selectedSatellite={selectedSatellite}
                     autoSelectedLEOSatellite={resolvedAutoLEO}
-                    autoSelectedGEOSatellite={resolvedAutoGEO}
+                    autoSelectedGEOSatellite={activeGeoSatellite}
                     compact={true}
                     metrics={mobileMetrics}
                   />
@@ -1060,13 +1113,15 @@ const App: React.FC = () => {
                   selectedPoint={analyzisPosition || selectedPosition}
                   selectedSatellite={selectedSatellite}
                   autoSelectedLEOSatellite={resolvedAutoLEO}
-                  autoSelectedGEOSatellite={resolvedAutoGEO}
+                  autoSelectedGEOSatellite={activeGeoSatellite}
                   satelliteScope={satelliteScope}
-                  onSelectedGEOBeamChange={handleSelectedGEOBeamChange}
                   onSatelliteClick={handleSatelliteClick}
                   analysisSource={selectedAircraft ? 'aircraft' : analyzisPosition ? 'earth' : undefined}
                   aircraftCallsign={selectedAircraft?.callsign}
                   selectedSNP={selectedSNP}
+                  candidateCoverages={candidateCoverages}
+                  selectedCoverage={selectedCoverage}
+                  onSelectCoverage={setSelectedCoverage}
                   selectedGeoMission={selectedGeoMission}
                   selectedGeoCoverageName={selectedGeoCoverageName}
                   onSelectGeoMission={handleSelectGeoMission}
@@ -1096,13 +1151,15 @@ const App: React.FC = () => {
                     selectedPoint={analyzisPosition || selectedPosition}
                     selectedSatellite={selectedSatellite}
                     autoSelectedLEOSatellite={resolvedAutoLEO}
-                    autoSelectedGEOSatellite={resolvedAutoGEO}
+                    autoSelectedGEOSatellite={activeGeoSatellite}
                     satelliteScope={satelliteScope}
-                    onSelectedGEOBeamChange={handleSelectedGEOBeamChange}
                     onSatelliteClick={handleSatelliteClick}
                     analysisSource={selectedAircraft ? 'aircraft' : analyzisPosition ? 'earth' : undefined}
                     aircraftCallsign={selectedAircraft?.callsign}
                     selectedSNP={selectedSNP}
+                    candidateCoverages={candidateCoverages}
+                    selectedCoverage={selectedCoverage}
+                    onSelectCoverage={setSelectedCoverage}
                     selectedGeoMission={selectedGeoMission}
                     selectedGeoCoverageName={selectedGeoCoverageName}
                     onSelectGeoMission={handleSelectGeoMission}

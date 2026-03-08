@@ -6,7 +6,11 @@ import type { SatelliteScope } from '../components/SatelliteScopeFilter';
 import type { SNPData } from '../components/globe/GlobeConfig';
 import { SNPS_DATA } from '../components/globe/GlobeConfig';
 import { calculateElevationAngle } from './capacityCalculator';
-import { isPointInGEOCoverage, isPointInPolygon } from './geoUtils';
+import {
+    findCandidateCoverages,
+    rankCandidateCoverages,
+    resolveCandidateCoverage,
+} from './geoCoverageSelection';
 
 import { getConnectivityStatus, hasRFConnectivity } from './rfConnectivity';
 import { type CoveragePolicy } from './leoFootprint';
@@ -35,27 +39,12 @@ export const resolveAutoSelectedSatellites = (
     // GEO satellite selection logic - only run when GEO is allowed
     if (satelliteScope === 'ALL' || satelliteScope === 'GEO') {
         const geoSatellites = satellites.filter(sat => sat.orbitType === 'GEO');
-
-        // Find all GEO satellites that cover the location
-        const coveredGEO = geoSatellites.filter(sat =>
-            isPointInGEOCoverage(userLocation, sat)
+        const rankedCandidates = rankCandidateCoverages(
+            findCandidateCoverages(userLocation, geoSatellites)
         );
-
-        // Select GEO satellite based on business rules
-        if (coveredGEO.length === 1) {
-            // If exactly one GEO satellite covers the location → select it
-            autoSelectedGEOSat = coveredGEO[0];
-        } else if (coveredGEO.length > 1) {
-            // If multiple GEO satellites cover the location → select one with highest elevation angle
-            const satellitesWithElevation = coveredGEO.map(sat => ({
-                satellite: sat,
-                elevation: calculateElevationAngle(userLocation, sat)
-            }));
-
-            // Sort by highest elevation angle
-            satellitesWithElevation.sort((a, b) => b.elevation - a.elevation);
-            autoSelectedGEOSat = satellitesWithElevation[0].satellite;
-        }
+        autoSelectedGEOSat = rankedCandidates.length > 0
+            ? geoSatellites.find((sat) => sat.id === rankedCandidates[0].satelliteId) ?? null
+            : null;
     }
 
     // LEO satellite selection logic - only run when LEO is allowed
@@ -193,28 +182,14 @@ export const findBestGEOBeam = (
         return null;
     }
 
-    let bestBeam: any = null;
-    let bestElevation = -1;
+    const rankedCandidates = rankCandidateCoverages(
+        findCandidateCoverages(position, [satellite])
+    );
+    const resolved = resolveCandidateCoverage(rankedCandidates[0] ?? null, [satellite]);
 
-    for (const coverage of satellite.coverages) {
-        if (coverage.feature?.geometry?.type === 'Polygon') {
-            const ring = coverage.feature.geometry.coordinates[0] as unknown as number[][];
-            // Simple point-in-polygon check
-            // isPointInPolygon imported from geoUtils at top of file
-            if (isPointInPolygon(position, ring)) {
-                const elevation = calculateElevationAngle(position, satellite);
-                if (elevation > bestElevation) {
-                    bestElevation = elevation;
-                    bestBeam = coverage;
-                }
-            }
-        }
+    if (resolved?.beam) {
+        return resolved.beam;
     }
 
-    // If no beam contains the point, use the first beam as fallback
-    if (!bestBeam && satellite.coverages.length > 0) {
-        bestBeam = satellite.coverages[0];
-    }
-
-    return bestBeam;
+    return satellite.coverages[0] ?? null;
 };

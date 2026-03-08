@@ -68,7 +68,7 @@ const GeoGatewayEntity = React.memo<{
             position={position}
             point={{
                 pixelSize: pixelSizeCallback,
-                color: isSelected ? Color.YELLOW : Color.CYAN,
+                color: Color.CYAN,
                 disableDepthTestDistance: 0
             }}
             name={`${gateway.name} (Teleport)`}

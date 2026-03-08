@@ -295,7 +295,7 @@ const GlobeControls: React.FC<GlobeControlsProps> = ({
                             <button
                                 type="button"
                                 onClick={() => onSceneModeChange(sceneMode === '3D' ? '2D' : '3D')}
-                                className="bg-white/90 dark:bg-slate-900/95 backdrop-blur-sm p-2 rounded-md shadow-sm hover:bg-white/100 dark:hover:bg-slate-800 transition-colors text-gray-700 dark:text-gray-100"
+                                className="bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm p-2 rounded-md shadow-sm hover:bg-white/100 dark:hover:bg-slate-700 transition-colors text-gray-700 dark:text-gray-200"
                                 title={sceneMode === '3D' ? 'Switch to 2D Map' : 'Switch to 3D Globe'}
                                 aria-label={sceneMode === '3D' ? 'Switch to 2D Map' : 'Switch to 3D Globe'}
                             >
@@ -308,7 +308,7 @@ const GlobeControls: React.FC<GlobeControlsProps> = ({
                             <button
                                 type="button"
                                 onClick={() => setIsMapOptionsOpen((v) => !v)}
-                                className="p-2 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white bg-white/90 dark:bg-slate-900/95 rounded-md shadow-sm backdrop-blur-sm transition-colors"
+                                className="bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm p-2 rounded-md shadow-sm hover:bg-white/100 dark:hover:bg-slate-700 transition-colors text-gray-700 dark:text-gray-200"
                                 title="Map options"
                                 aria-label="Map options"
                             >

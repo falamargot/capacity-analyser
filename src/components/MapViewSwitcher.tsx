@@ -7,10 +7,11 @@ import { SatelliteData } from '../types/satellites';
 import { SatelliteScope } from './SatelliteScopeFilter';
 import { Aircraft } from '../modules/airTraffic/airTrafficService';
 import { Vessel } from '../modules/maritimeTraffic/maritimeTrafficService';
-import type { GEOBeam } from '../types/analysis';
+import type { CandidateCoverage, GEOBeam } from '../types/analysis';
 
 interface MapViewSwitcherProps {
   satellites: SatelliteData[];
+  satelliteTypeByName: Map<string, SatelliteData['type']>;
   coverageFeatures: Feature<Geometry, GeoJsonProperties>[];
   selectedPosition?: { lat: number; lng: number; altitude?: number } | null;
   onPointClick: (lat: number, lng: number) => void;
@@ -37,6 +38,8 @@ interface MapViewSwitcherProps {
   onVesselClick?: (vessel: Vessel | null) => void;
   onVesselHover?: (vessel: Vessel | null) => void;
   selectedGEOBeam?: GEOBeam | null;
+  candidateCoverages?: CandidateCoverage[];
+  selectedCoverage?: CandidateCoverage | null;
   cameraTarget?: { lat: number; lng: number; alt: number } | null;
   onCameraReady?: (viewer: any) => void;
   onGlobeContainerReady?: (ref: React.RefObject<HTMLDivElement | null>) => void;
@@ -49,6 +52,7 @@ interface MapViewSwitcherProps {
 
 const MapViewSwitcher: React.FC<MapViewSwitcherProps> = ({
   satellites,
+  satelliteTypeByName,
   coverageFeatures,
   selectedPosition,
   onPointClick,
@@ -75,6 +79,8 @@ const MapViewSwitcher: React.FC<MapViewSwitcherProps> = ({
   onVesselClick,
   onVesselHover,
   selectedGEOBeam,
+  candidateCoverages = [],
+  selectedCoverage = null,
   cameraTarget,
   onCameraReady,
   onGlobeContainerReady,
@@ -91,6 +97,7 @@ const MapViewSwitcher: React.FC<MapViewSwitcherProps> = ({
 
       <CesiumGlobe
         satellites={satellites}
+        satelliteTypeByName={satelliteTypeByName}
         coverageFeatures={coverageFeatures}
         selectedPosition={selectedPosition}
         onPointClick={onPointClick}
@@ -117,6 +124,8 @@ const MapViewSwitcher: React.FC<MapViewSwitcherProps> = ({
         onVesselClick={onVesselClick}
         onVesselHover={onVesselHover}
         selectedGEOBeam={selectedGEOBeam}
+        candidateCoverages={candidateCoverages}
+        selectedCoverage={selectedCoverage}
         cameraTarget={cameraTarget}
         onCameraReady={onCameraReady}
         onGlobeContainerReady={onGlobeContainerReady}

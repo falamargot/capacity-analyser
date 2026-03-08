@@ -25,6 +25,17 @@ export interface GEOBeam {
     type?: string;
 }
 
+export interface CandidateCoverage {
+    satelliteId: string;
+    satelliteName: string;
+    beamId: string;
+    beamName: string;
+    elevation: number;
+    distanceFromBeamCenter: number;
+    throughputEstimate: number;
+    score: number;
+}
+
 /**
  * Selected SNP (Satellite Network Portal) data
  */

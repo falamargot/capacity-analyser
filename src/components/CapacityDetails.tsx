@@ -6,17 +6,19 @@ import { formatCoordinates } from '../utils/formatters';
 import { SatelliteScope } from './SatelliteScopeFilter';
 import SatelliteDetails from './SatelliteDetails';
 import { SPEED_OF_LIGHT_RADIO_KM_S, calculateRealTimeCapacity, RealTimeCapacityData, calculateElevationAngle, compute3DDistanceKm } from '../utils/capacityCalculator';
-import { GEO_GATEWAYS, SNPS_DATA } from './globe/GlobeConfig';
+import { SNPS_DATA } from './globe/GlobeConfig';
 import { BEAM_LENGTH_KM, TOTAL_BEAMS, BEAM_WIDTH_KM } from '../utils/oneWebComb';
 import { findConnectedBeamIndex } from '../utils/rfConnectivity';
 import { JulianDate } from 'cesium';
 import ExportButton from './ExportButton';
+import CoverageSelector from './CoverageSelector';
+import type { CandidateCoverage } from '../types/analysis';
 import {
   WEATHER_ATTENUATION_DB,
   type WeatherCondition,
 } from '../utils/realisticSimulation';
-import { analyzeGeoConnectivity } from '../utils/geoConnectivityModel';
 import { analyzeLeoConnectivity } from '../utils/leoConnectivityModel';
+import { computeGeoConnectivity } from '../utils/geoCoverageSelection';
 
 // Module-level stable definitions to avoid recreating inside component and
 // to keep hook dependency arrays clean.
@@ -53,12 +55,14 @@ interface CapacityDetailsProps {
   autoSelectedLEOSatellite: SatelliteData | null;
   autoSelectedGEOSatellite: SatelliteData | null;
   satelliteScope: SatelliteScope;
-  onSelectedGEOBeamChange?: (beam: any) => void;
   onMetricsChange?: (metrics: any) => void;
   onSatelliteClick?: (satellite: SatelliteData | null) => void;
   analysisSource?: 'earth' | 'aircraft';
   aircraftCallsign?: string;
   selectedSNP?: any;
+  candidateCoverages?: CandidateCoverage[];
+  selectedCoverage?: CandidateCoverage | null;
+  onSelectCoverage?: (coverage: CandidateCoverage) => void;
   selectedGeoMission?: string | null;
   selectedGeoCoverageName?: string | null;
   onSelectGeoMission?: (mission: string | null) => void;
@@ -101,7 +105,7 @@ const LatencyBreakdownCard = ({ accentColor, summary, title = 'Latency breakdown
 };
 
 // Performance optimization: Memoize component to prevent unnecessary re-renders
-const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint, selectedSatellite, autoSelectedLEOSatellite, satelliteScope, onSelectedGEOBeamChange, onSatelliteClick, analysisSource, aircraftCallsign, selectedSNP: propSelectedSNP, selectedGeoMission, selectedGeoCoverageName, onSelectGeoMission, onSelectGeoCoverage }) => {
+const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint, selectedSatellite, autoSelectedLEOSatellite, satelliteScope, onSatelliteClick, analysisSource, aircraftCallsign, selectedSNP: propSelectedSNP, candidateCoverages = [], selectedCoverage = null, onSelectCoverage, selectedGeoMission, selectedGeoCoverageName, onSelectGeoMission, onSelectGeoCoverage }) => {
   const [nearestLocation, setNearestLocation] = useState<{ city: string; country: string } | null>(null);
 
   const [realTimeData, setRealTimeData] = useState<RealTimeCapacityData>({
@@ -170,34 +174,6 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
   const WEATHER_PROFILES_MEMO = useMemo(() => WEATHER_PROFILES, []);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const getWeatherFactorMemo = useCallback((wt: WeatherType, isAviation: boolean) => getWeatherFactor(wt, isAviation), []);
-
-  // Select best GEO beam for a given point
-  const selectBestGEOBeam = useCallback((userPoint: { lat: number; lng: number }, geoSatellites: SatelliteData[]) => {
-    let bestBeam = null;
-    let bestElevation = -1;
-    let bestSatellite = null;
-
-    for (const satellite of geoSatellites) {
-      if (!satellite.coverages || satellite.coverages.length === 0) continue;
-
-      for (const coverage of satellite.coverages) {
-        const geometry = coverage.feature?.geometry;
-        if (geometry && geometry.type === 'Polygon') {
-          const ring = geometry.coordinates[0] as unknown as number[][];
-          if (isPointInPolygon(userPoint, ring)) {
-            const elevation = calculateElevationAngle(userPoint, satellite);
-            if (elevation > bestElevation) {
-              bestElevation = elevation;
-              bestBeam = coverage;
-              bestSatellite = satellite;
-            }
-          }
-        }
-      }
-    }
-
-    return { satellite: bestSatellite, beam: bestBeam, elevation: bestElevation };
-  }, []);
 
   // Calculate theoretical LEO performance metrics
   const calculateLEOPerformance = useCallback((
@@ -395,20 +371,6 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
     };
   }, [terminalType, weatherType, WEATHER_PROFILES_MEMO, getWeatherFactorMemo]);
 
-  // Simple point-in-polygon check
-  const isPointInPolygon = (point: { lat: number; lng: number }, ring: number[][]): boolean => {
-    let inside = false;
-    for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
-      const [xi, yi] = ring[i];
-      const [xj, yj] = ring[j];
-
-      const intersect = ((yi > point.lat) !== (yj > point.lat))
-        && (point.lng < (xj - xi) * (point.lat - yi) / (yj - yi) + xi);
-      if (intersect) inside = !inside;
-    }
-    return inside;
-  };
-
   // Use selectedPoint as the unified active point
   const activePoint = useMemo(() => {
     return selectedPoint;
@@ -560,37 +522,8 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
 
     // Only consider GEO satellites when filter is ALL or GEO
     if (satelliteScope !== 'ALL' && satelliteScope !== 'GEO') return null;
-
-    const geoSatellites = satellites.filter(sat => sat.type === 'EUTELSAT');
-    if (geoSatellites.length === 0) return null;
-
-    // Select best GEO beam for the active point
-    const bestBeam = selectBestGEOBeam(activePoint, geoSatellites);
-
-    if (!bestBeam.satellite) return null;
-
-    const geoModel = analyzeGeoConnectivity({
-      userPoint: activePoint,
-      satellite: bestBeam.satellite,
-      gateways: GEO_GATEWAYS,
-    });
-
-    return {
-      satellite: bestBeam.satellite,
-      beam: bestBeam.beam,
-      geometry: geoModel,
-      elevation: geoModel.userToSatellite.elevationDeg,
-      distance: geoModel.userToSatellite.slantRangeKm,
-      rtt: geoModel.rttTotalMs ?? null
-    };
-  }, [activePoint, satellites, satelliteScope, selectBestGEOBeam]);
-
-  // Notify parent when selected GEO beam changes
-  useEffect(() => {
-    if (onSelectedGEOBeamChange && resolvedGEOConnectivity?.beam) {
-      onSelectedGEOBeamChange(resolvedGEOConnectivity.beam);
-    }
-  }, [resolvedGEOConnectivity, onSelectedGEOBeamChange]);
+    return computeGeoConnectivity(selectedCoverage, activePoint, satellites);
+  }, [activePoint, satellites, satelliteScope, selectedCoverage]);
 
 
   // Performance optimization: Memoize SNP detection to prevent recalculation
@@ -968,6 +901,15 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
           {(satelliteScope === 'GEO' || satelliteScope === 'ALL') && (
             <div className="mb-6">
               <h3 className="text-lg font-semibold mb-1" style={{ color: '#2563eb' }}>GEO Connectivity</h3>
+              {candidateCoverages.length > 0 && selectedCoverage && (
+                <div className="mb-4">
+                  <CoverageSelector
+                    candidateCoverages={candidateCoverages}
+                    selectedCoverage={selectedCoverage}
+                    onSelectCoverage={(coverage) => onSelectCoverage?.(coverage)}
+                  />
+                </div>
+              )}
               <div className="space-y-4">
                 <div className="bg-gray-50 dark:bg-slate-800/50 rounded-lg p-4 mt-1 border border-gray-100 dark:border-slate-700">
                   <h4 className="text-sm font-semibold mb-3" style={{ color: '#2563eb' }}>Radio Path</h4>
@@ -975,7 +917,7 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
                     (() => {
                       const userLabel = analysisSource === 'aircraft' && aircraftCallsign ? aircraftCallsign : 'User';
                       const gatewayName = geoGeometry.satelliteToGateway.gateway?.name ?? 'No eligible gateway';
-                      const userToSatelliteLabel = resolvedGEOConnectivity.beam?.name ?? resolvedGEOConnectivity.satellite.name;
+                      const userToSatelliteLabel = resolvedGEOConnectivity.candidate.beamName || resolvedGEOConnectivity.satellite.name;
                       const oneWayDistanceKm = geoGeometry.satelliteToGateway.slantRangeKm != null
                         ? geoGeometry.userToSatellite.slantRangeKm + geoGeometry.satelliteToGateway.slantRangeKm
                         : null;

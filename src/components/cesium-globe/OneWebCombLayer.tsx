@@ -225,16 +225,20 @@ const OneWebCombLayer: React.FC<OneWebCombLayerProps> = ({
         if (!highlightServingFootprint) {
             return {
                 show: new CallbackProperty(() => false, false),
-                hierarchy: new CallbackProperty(() => new PolygonHierarchy(DUMMY_POLYGON), false)
+                hierarchy: new CallbackProperty(() => new PolygonHierarchy(DUMMY_POLYGON), false),
+                contourPositions: new CallbackProperty(() => DUMMY_POLYGON, false),
+                material: new ColorMaterialProperty(new CallbackProperty(() => Color.PALEVIOLETRED.withAlpha(0.4), false)),
+                outlineColor: new CallbackProperty(() => Color.PALEVIOLETRED.withAlpha(0.95), false),
+                contourMaterial: new ColorMaterialProperty(new CallbackProperty(() => Color.PALEVIOLETRED.withAlpha(0.95), false)),
             };
         }
 
-        const show = new CallbackProperty((time?: JulianDate) => {
-            if (!time || !viewerRef.current || !targetSat) return false;
-            if (!selectedPosition && !selectedAircraft) return false;
+        const resolveServingBeam = (time?: JulianDate) => {
+            if (!time || !viewerRef.current || !targetSat) return null;
+            if (!selectedPosition && !selectedAircraft) return null;
 
             const geometries = getCombGeometries(targetSat, time);
-            if (!geometries) return false;
+            if (!geometries) return null;
 
             let point: { lat: number; lng: number } | null = null;
             if (selectedAircraft) {
@@ -244,40 +248,7 @@ const OneWebCombLayer: React.FC<OneWebCombLayerProps> = ({
             } else if (selectedPosition) {
                 point = { lat: selectedPosition.lat, lng: selectedPosition.lng };
             }
-            if (!point) return false;
-
-            for (let i = 0; i < geometries.length; i++) {
-                const poly = geometries[i];
-                if (!poly || poly.length < 3) continue;
-
-                const ring: Array<[number, number]> = poly.map((p: any) => {
-                    const c = Cartographic.fromCartesian(p);
-                    return [CesiumMath.toDegrees(c.longitude), CesiumMath.toDegrees(c.latitude)];
-                });
-
-                if (isPointInPolygon(point, ring)) return true;
-            }
-
-            return false;
-        }, false);
-
-        const hierarchy = new CallbackProperty((time?: JulianDate) => {
-            const dummyHierarchy = new PolygonHierarchy(DUMMY_POLYGON);
-            if (!time || !viewerRef.current || !targetSat) return dummyHierarchy;
-            if (!selectedPosition && !selectedAircraft) return dummyHierarchy;
-
-            const geometries = getCombGeometries(targetSat, time);
-            if (!geometries) return dummyHierarchy;
-
-            let point: { lat: number; lng: number } | null = null;
-            if (selectedAircraft) {
-                const p = calculateDeadReckoning(selectedAircraft, time);
-                const c = Cartographic.fromCartesian(p);
-                point = { lat: CesiumMath.toDegrees(c.latitude), lng: CesiumMath.toDegrees(c.longitude) };
-            } else if (selectedPosition) {
-                point = { lat: selectedPosition.lat, lng: selectedPosition.lng };
-            }
-            if (!point) return dummyHierarchy;
+            if (!point) return null;
 
             for (let i = 0; i < geometries.length; i++) {
                 const poly = geometries[i];
@@ -289,14 +260,50 @@ const OneWebCombLayer: React.FC<OneWebCombLayerProps> = ({
                 });
 
                 if (isPointInPolygon(point, ring)) {
-                    return new PolygonHierarchy(poly);
+                    return { beamIndex: i, polygon: poly };
                 }
             }
 
-            return dummyHierarchy;
+            return null;
+        };
+
+        const show = new CallbackProperty((time?: JulianDate) => {
+            return resolveServingBeam(time) !== null;
         }, false);
 
-        return { show, hierarchy };
+        const hierarchy = new CallbackProperty((time?: JulianDate) => {
+            const dummyHierarchy = new PolygonHierarchy(DUMMY_POLYGON);
+            const servingBeam = resolveServingBeam(time);
+            if (!servingBeam) return dummyHierarchy;
+            return new PolygonHierarchy(servingBeam.polygon);
+        }, false);
+
+        const contourPositions = new CallbackProperty((time?: JulianDate) => {
+            const servingBeam = resolveServingBeam(time);
+            if (!servingBeam) return DUMMY_POLYGON;
+
+            const polygon = servingBeam.polygon;
+            if (!polygon || polygon.length < 3) return DUMMY_POLYGON;
+
+            const [first] = polygon;
+            return first ? [...polygon, first] : DUMMY_POLYGON;
+        }, false);
+
+        const material = new ColorMaterialProperty(new CallbackProperty((time?: JulianDate) => {
+            const servingBeam = resolveServingBeam(time);
+            if (!servingBeam) return Color.PALEVIOLETRED.withAlpha(0.4);
+            return getBeamBaseColor(servingBeam.beamIndex).withAlpha(0.22);
+        }, false));
+
+        const outlineColor = new CallbackProperty((time?: JulianDate) => {
+            const servingBeam = resolveServingBeam(time);
+            if (!servingBeam) return Color.PALEVIOLETRED.withAlpha(0.95);
+            return getBeamBaseColor(servingBeam.beamIndex).withAlpha(0.95);
+        }, false);
+
+        const contourMaterial = new ColorMaterialProperty(outlineColor);
+
+        return { show, hierarchy, contourPositions, material, outlineColor, contourMaterial };
     }, [highlightServingFootprint, viewerRef, targetSat?.id, selectedPosition?.lat, selectedPosition?.lng, selectedAircraft?.icao24, getCombGeometries]);
 
     // Early return AFTER all hooks have been called
@@ -363,12 +370,22 @@ const OneWebCombLayer: React.FC<OneWebCombLayerProps> = ({
                 <PolygonGraphics
                     show={highlight.show}
                     hierarchy={highlight.hierarchy}
-                    material={Color.PALEVIOLETRED.withAlpha(0.4)}
+                    material={highlight.material}
                     outline={true}
-                    outlineColor={Color.WHITE.withAlpha(0.9)}
+                    outlineColor={highlight.outlineColor}
                     outlineWidth={3}
                 />
             </Entity>
+            <Entity
+                name="Serving Footprint Contour"
+                polyline={{
+                    show: highlight.show,
+                    positions: highlight.contourPositions,
+                    width: 2,
+                    material: highlight.contourMaterial,
+                    clampToGround: false,
+                }}
+            />
         </>
     );
 };
