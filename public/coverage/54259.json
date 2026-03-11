@@ -7,7 +7,8 @@
       "properties": {
         "name": "101",
         "mission": "GMS",
-        "type": "EUTELSAT"
+        "type": "EUTELSAT",
+        "contour": "101"
       },
       "geometry": {
         "type": "Polygon",
@@ -182,7 +183,8 @@
       "properties": {
         "name": "102",
         "mission": "GMS",
-        "type": "EUTELSAT"
+        "type": "EUTELSAT",
+        "contour": "102"
       },
       "geometry": {
         "type": "Polygon",
@@ -381,7 +383,8 @@
       "properties": {
         "name": "103",
         "mission": "GMS",
-        "type": "EUTELSAT"
+        "type": "EUTELSAT",
+        "contour": "103"
       },
       "geometry": {
         "type": "Polygon",
@@ -552,7 +555,8 @@
       "properties": {
         "name": "104",
         "mission": "GMS",
-        "type": "EUTELSAT"
+        "type": "EUTELSAT",
+        "contour": "104"
       },
       "geometry": {
         "type": "Polygon",
@@ -715,7 +719,8 @@
       "properties": {
         "name": "105",
         "mission": "GMS",
-        "type": "EUTELSAT"
+        "type": "EUTELSAT",
+        "contour": "105"
       },
       "geometry": {
         "type": "Polygon",
@@ -878,7 +883,8 @@
       "properties": {
         "name": "106",
         "mission": "GMS",
-        "type": "EUTELSAT"
+        "type": "EUTELSAT",
+        "contour": "106"
       },
       "geometry": {
         "type": "Polygon",
@@ -1041,7 +1047,8 @@
       "properties": {
         "name": "107",
         "mission": "GMS",
-        "type": "EUTELSAT"
+        "type": "EUTELSAT",
+        "contour": "107"
       },
       "geometry": {
         "type": "Polygon",
@@ -1204,7 +1211,8 @@
       "properties": {
         "name": "108",
         "mission": "GMS",
-        "type": "EUTELSAT"
+        "type": "EUTELSAT",
+        "contour": "108"
       },
       "geometry": {
         "type": "Polygon",
@@ -1371,7 +1379,8 @@
       "properties": {
         "name": "109",
         "mission": "GMS",
-        "type": "EUTELSAT"
+        "type": "EUTELSAT",
+        "contour": "109"
       },
       "geometry": {
         "type": "Polygon",
@@ -1534,7 +1543,8 @@
       "properties": {
         "name": "110",
         "mission": "GMS",
-        "type": "EUTELSAT"
+        "type": "EUTELSAT",
+        "contour": "110"
       },
       "geometry": {
         "type": "Polygon",
@@ -1697,7 +1707,8 @@
       "properties": {
         "name": "111",
         "mission": "GMS",
-        "type": "EUTELSAT"
+        "type": "EUTELSAT",
+        "contour": "111"
       },
       "geometry": {
         "type": "Polygon",
@@ -1860,7 +1871,8 @@
       "properties": {
         "name": "112",
         "mission": "GMS",
-        "type": "EUTELSAT"
+        "type": "EUTELSAT",
+        "contour": "112"
       },
       "geometry": {
         "type": "Polygon",
@@ -2023,7 +2035,8 @@
       "properties": {
         "name": "113",
         "mission": "GMS",
-        "type": "EUTELSAT"
+        "type": "EUTELSAT",
+        "contour": "113"
       },
       "geometry": {
         "type": "Polygon",
@@ -2186,7 +2199,8 @@
       "properties": {
         "name": "114",
         "mission": "GMS",
-        "type": "EUTELSAT"
+        "type": "EUTELSAT",
+        "contour": "114"
       },
       "geometry": {
         "type": "Polygon",
@@ -2353,7 +2367,8 @@
       "properties": {
         "name": "115",
         "mission": "GMS",
-        "type": "EUTELSAT"
+        "type": "EUTELSAT",
+        "contour": "115"
       },
       "geometry": {
         "type": "Polygon",
@@ -2516,7 +2531,8 @@
       "properties": {
         "name": "116",
         "mission": "GMS",
-        "type": "EUTELSAT"
+        "type": "EUTELSAT",
+        "contour": "116"
       },
       "geometry": {
         "type": "Polygon",
@@ -2679,7 +2695,8 @@
       "properties": {
         "name": "117",
         "mission": "GMS",
-        "type": "EUTELSAT"
+        "type": "EUTELSAT",
+        "contour": "117"
       },
       "geometry": {
         "type": "Polygon",
@@ -2842,7 +2859,8 @@
       "properties": {
         "name": "118",
         "mission": "GMS",
-        "type": "EUTELSAT"
+        "type": "EUTELSAT",
+        "contour": "118"
       },
       "geometry": {
         "type": "Polygon",
@@ -3005,7 +3023,8 @@
       "properties": {
         "name": "119",
         "mission": "GMS",
-        "type": "EUTELSAT"
+        "type": "EUTELSAT",
+        "contour": "119"
       },
       "geometry": {
         "type": "Polygon",
@@ -3168,7 +3187,8 @@
       "properties": {
         "name": "120",
         "mission": "GMS",
-        "type": "EUTELSAT"
+        "type": "EUTELSAT",
+        "contour": "120"
       },
       "geometry": {
         "type": "Polygon",
@@ -3351,7 +3371,8 @@
       "properties": {
         "name": "121",
         "mission": "GMS",
-        "type": "EUTELSAT"
+        "type": "EUTELSAT",
+        "contour": "121"
       },
       "geometry": {
         "type": "Polygon",
@@ -3514,7 +3535,8 @@
       "properties": {
         "name": "122",
         "mission": "GMS",
-        "type": "EUTELSAT"
+        "type": "EUTELSAT",
+        "contour": "122"
       },
       "geometry": {
         "type": "Polygon",
@@ -3677,7 +3699,8 @@
       "properties": {
         "name": "123",
         "mission": "GMS",
-        "type": "EUTELSAT"
+        "type": "EUTELSAT",
+        "contour": "123"
       },
       "geometry": {
         "type": "Polygon",
@@ -3840,7 +3863,8 @@
       "properties": {
         "name": "124",
         "mission": "GMS",
-        "type": "EUTELSAT"
+        "type": "EUTELSAT",
+        "contour": "124"
       },
       "geometry": {
         "type": "Polygon",
@@ -4003,7 +4027,8 @@
       "properties": {
         "name": "125",
         "mission": "GMS",
-        "type": "EUTELSAT"
+        "type": "EUTELSAT",
+        "contour": "125"
       },
       "geometry": {
         "type": "Polygon",
@@ -4166,7 +4191,8 @@
       "properties": {
         "name": "126",
         "mission": "GMS",
-        "type": "EUTELSAT"
+        "type": "EUTELSAT",
+        "contour": "126"
       },
       "geometry": {
         "type": "Polygon",
@@ -4329,7 +4355,8 @@
       "properties": {
         "name": "127",
         "mission": "GMS",
-        "type": "EUTELSAT"
+        "type": "EUTELSAT",
+        "contour": "127"
       },
       "geometry": {
         "type": "Polygon",
@@ -4504,7 +4531,8 @@
       "properties": {
         "name": "128",
         "mission": "GMS",
-        "type": "EUTELSAT"
+        "type": "EUTELSAT",
+        "contour": "128"
       },
       "geometry": {
         "type": "Polygon",
@@ -4667,7 +4695,8 @@
       "properties": {
         "name": "129",
         "mission": "GMS",
-        "type": "EUTELSAT"
+        "type": "EUTELSAT",
+        "contour": "129"
       },
       "geometry": {
         "type": "Polygon",
@@ -4830,7 +4859,8 @@
       "properties": {
         "name": "130",
         "mission": "GMS",
-        "type": "EUTELSAT"
+        "type": "EUTELSAT",
+        "contour": "130"
       },
       "geometry": {
         "type": "Polygon",
@@ -4993,7 +5023,8 @@
       "properties": {
         "name": "131",
         "mission": "GMS",
-        "type": "EUTELSAT"
+        "type": "EUTELSAT",
+        "contour": "131"
       },
       "geometry": {
         "type": "Polygon",
@@ -5156,7 +5187,8 @@
       "properties": {
         "name": "132",
         "mission": "GMS",
-        "type": "EUTELSAT"
+        "type": "EUTELSAT",
+        "contour": "132"
       },
       "geometry": {
         "type": "Polygon",
@@ -5319,7 +5351,8 @@
       "properties": {
         "name": "133",
         "mission": "GMS",
-        "type": "EUTELSAT"
+        "type": "EUTELSAT",
+        "contour": "133"
       },
       "geometry": {
         "type": "Polygon",
@@ -5506,7 +5539,8 @@
       "properties": {
         "name": "134",
         "mission": "GMS",
-        "type": "EUTELSAT"
+        "type": "EUTELSAT",
+        "contour": "134"
       },
       "geometry": {
         "type": "Polygon",
@@ -5669,7 +5703,8 @@
       "properties": {
         "name": "135",
         "mission": "GMS",
-        "type": "EUTELSAT"
+        "type": "EUTELSAT",
+        "contour": "135"
       },
       "geometry": {
         "type": "Polygon",
@@ -5832,7 +5867,8 @@
       "properties": {
         "name": "136",
         "mission": "GMS",
-        "type": "EUTELSAT"
+        "type": "EUTELSAT",
+        "contour": "136"
       },
       "geometry": {
         "type": "Polygon",
@@ -5995,7 +6031,8 @@
       "properties": {
         "name": "137",
         "mission": "GMS",
-        "type": "EUTELSAT"
+        "type": "EUTELSAT",
+        "contour": "137"
       },
       "geometry": {
         "type": "Polygon",

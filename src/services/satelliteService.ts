@@ -155,6 +155,24 @@ export function calculatePosition(sat: any, date: Date = new Date()) {
   return { lat: 0, lng: 0, alt: 0 };
 }
 
+function attachSatelliteId<T extends { type: string; features: any[] }>(
+  coverageData: T | null,
+  satelliteName: string
+): T | null {
+  if (!coverageData) return null;
+
+  return {
+    ...coverageData,
+    features: coverageData.features.map((feature) => ({
+      ...feature,
+      properties: {
+        ...(feature.properties ?? {}),
+        satelliteId: satelliteName,
+      },
+    })),
+  };
+}
+
 // ─── Main Fetch Entry Point ───────────────────────────────────────────────────
 
 export async function fetchSatellites(): Promise<SatelliteData[]> {
@@ -170,7 +188,10 @@ export async function fetchSatellites(): Promise<SatelliteData[]> {
     log(`[fetchSatellites] ${eutelsatSats.length} EUTELSAT + ${onewebSats.length} ONEWEB satellites loaded.`);
 
     const eutelsatSatPromises = eutelsatSats.map(async (sat) => {
-      const coverageData = await loadSatelliteCoverage(sat.noradId, sat.name, 'EUTELSAT', 10);
+      const coverageData = attachSatelliteId(
+        await loadSatelliteCoverage(sat.noradId, sat.name, 'EUTELSAT', 10),
+        sat.name
+      );
       return {
         id: sat.noradId,
         name: sat.name,
@@ -196,7 +217,10 @@ export async function fetchSatellites(): Promise<SatelliteData[]> {
     });
 
     const onewebSatPromises = onewebSats.map(async (sat) => {
-      const coverageData = await loadSatelliteCoverage(sat.noradId, sat.name, 'ONEWEB', 600);
+      const coverageData = attachSatelliteId(
+        await loadSatelliteCoverage(sat.noradId, sat.name, 'ONEWEB', 600),
+        sat.name
+      );
       return {
         id: sat.noradId,
         name: sat.name,

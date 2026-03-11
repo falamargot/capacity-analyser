@@ -917,7 +917,7 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
                     (() => {
                       const userLabel = analysisSource === 'aircraft' && aircraftCallsign ? aircraftCallsign : 'User';
                       const gatewayName = geoGeometry.satelliteToGateway.gateway?.name ?? 'No eligible gateway';
-                      const userToSatelliteLabel = resolvedGEOConnectivity.candidate.beamName || resolvedGEOConnectivity.satellite.name;
+                      const userToSatelliteLabel = resolvedGEOConnectivity.candidate.coverageName || resolvedGEOConnectivity.satellite.name;
                       const oneWayDistanceKm = geoGeometry.satelliteToGateway.slantRangeKm != null
                         ? geoGeometry.userToSatellite.slantRangeKm + geoGeometry.satelliteToGateway.slantRangeKm
                         : null;

@@ -28,6 +28,9 @@ export interface GEOBeam {
 export interface CandidateCoverage {
     satelliteId: string;
     satelliteName: string;
+    missionName: string;
+    coverageKey: string;
+    coverageName: string;
     beamId: string;
     beamName: string;
     elevation: number;

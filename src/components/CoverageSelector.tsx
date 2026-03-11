@@ -14,17 +14,51 @@ const CoverageSelector = memo<CoverageSelectorProps>(({
   onSelectCoverage,
 }) => {
   const groupedCandidates = useMemo(() => {
-    const groups = new Map<string, CandidateCoverage[]>();
+    const groups = new Map<string, {
+      satelliteName: string;
+      candidates: CandidateCoverage[];
+      directCoverages: Map<string, CandidateCoverage[]>;
+      missions: Map<string, Map<string, CandidateCoverage[]>>;
+    }>();
 
     for (const candidate of candidateCoverages) {
-      const currentGroup = groups.get(candidate.satelliteName) ?? [];
-      currentGroup.push(candidate);
-      groups.set(candidate.satelliteName, currentGroup);
+      const group = groups.get(candidate.satelliteName) ?? {
+        satelliteName: candidate.satelliteName,
+        candidates: [],
+        directCoverages: new Map<string, CandidateCoverage[]>(),
+        missions: new Map<string, Map<string, CandidateCoverage[]>>(),
+      };
+
+      group.candidates.push(candidate);
+
+      if (candidate.missionName) {
+        const missionGroups = group.missions.get(candidate.missionName) ?? new Map<string, CandidateCoverage[]>();
+        const coverageCandidates = missionGroups.get(candidate.coverageKey) ?? [];
+        coverageCandidates.push(candidate);
+        missionGroups.set(candidate.coverageKey, coverageCandidates);
+        group.missions.set(candidate.missionName, missionGroups);
+      } else {
+        const coverageCandidates = group.directCoverages.get(candidate.coverageKey) ?? [];
+        coverageCandidates.push(candidate);
+        group.directCoverages.set(candidate.coverageKey, coverageCandidates);
+      }
+
+      groups.set(candidate.satelliteName, group);
     }
 
-    return [...groups.entries()].map(([satelliteName, coverages]) => ({
-      satelliteName,
-      coverages: [...coverages].sort((left, right) => right.score - left.score),
+    return [...groups.values()].map((group) => ({
+      satelliteName: group.satelliteName,
+      coverages: [...group.candidates].sort((left, right) => right.score - left.score),
+      coverageCount: new Set(group.candidates.map((candidate) => candidate.coverageKey)).size,
+      directCoverages: [...group.directCoverages.values()]
+        .map((coverages) => [...coverages].sort((left, right) => right.score - left.score))
+        .sort((left, right) => right[0].score - left[0].score),
+      missions: [...group.missions.entries()].map(([missionName, coverageGroups]) => ({
+        missionName,
+        coverages: [...coverageGroups.values()]
+          .map((coverages) => [...coverages].sort((left, right) => right.score - left.score))
+          .sort((left, right) => right[0].score - left[0].score),
+      })),
     }));
   }, [candidateCoverages]);
 
@@ -44,7 +78,8 @@ const CoverageSelector = memo<CoverageSelectorProps>(({
 
   const selectedKey = getCandidateCoverageKey(selectedCoverage);
 
-  const renderCandidateButton = (candidate: CandidateCoverage) => {
+  const renderCoverageButton = (coverageCandidates: CandidateCoverage[]) => {
+    const candidate = coverageCandidates[0];
     const isSelected = getCandidateCoverageKey(candidate) === selectedKey;
     const baseClasses = 'w-full rounded-lg border border-transparent px-3 py-2 text-left transition-colors';
     const activeClasses = isSelected
@@ -60,7 +95,7 @@ const CoverageSelector = memo<CoverageSelectorProps>(({
       >
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0 text-sm font-medium text-gray-900 dark:text-gray-100">
-            {candidate.beamName}
+            {candidate.coverageName}
           </div>
           <div className="flex shrink-0 items-center gap-2">
             {isSelected && (
@@ -71,6 +106,44 @@ const CoverageSelector = memo<CoverageSelectorProps>(({
           </div>
         </div>
       </button>
+    );
+  };
+
+  const renderMissionGroup = (
+    missionName: string,
+    coverages: CandidateCoverage[][],
+    satelliteName: string
+  ) => {
+    const selectedMission = selectedCoverage.satelliteName === satelliteName
+      && selectedCoverage.missionName === missionName;
+
+    return (
+      <div
+        key={`${satelliteName}-${missionName}`}
+        className="rounded-md border border-gray-200 bg-gray-50/70 dark:border-slate-700 dark:bg-slate-950/20"
+      >
+        <button
+          type="button"
+          className={`w-full px-3 py-2 text-left ${selectedMission ? 'bg-blue-50/80 dark:bg-blue-950/30' : ''}`}
+          onClick={() => onSelectCoverage(coverages[0][0])}
+        >
+          <div className="flex items-center justify-between gap-3">
+            <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
+              {missionName}
+            </div>
+            <div className="text-[11px] font-semibold uppercase tracking-[0.12em] text-gray-500 dark:text-gray-400">
+              {coverages.length} coverage{coverages.length > 1 ? 's' : ''}
+            </div>
+          </div>
+        </button>
+        <div className="px-3 pb-3">
+          <div className="border-l border-gray-200 pl-3 dark:border-slate-700">
+            <div className="space-y-1">
+              {coverages.map((coverageCandidates) => renderCoverageButton(coverageCandidates))}
+            </div>
+          </div>
+        </div>
+      </div>
     );
   };
 
@@ -110,7 +183,7 @@ const CoverageSelector = memo<CoverageSelectorProps>(({
                       </span>
                     )}
                     <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-gray-500 dark:text-gray-400">
-                      {group.coverages.length} beam{group.coverages.length > 1 ? 's' : ''}
+                      {group.coverageCount} coverage{group.coverageCount > 1 ? 's' : ''}
                     </span>
                   </div>
                 </div>
@@ -118,8 +191,13 @@ const CoverageSelector = memo<CoverageSelectorProps>(({
               {isExpanded && (
                 <div className="px-3 pb-3">
                   <div className="border-l border-gray-200 pl-3 dark:border-slate-700">
-                    <div className="space-y-1">
-                      {group.coverages.map((candidate) => renderCandidateButton(candidate))}
+                    <div className="space-y-2">
+                      {group.missions.map((missionGroup) => renderMissionGroup(
+                        missionGroup.missionName,
+                        missionGroup.coverages,
+                        group.satelliteName
+                      ))}
+                      {group.directCoverages.map((coverageCandidates) => renderCoverageButton(coverageCandidates))}
                     </div>
                   </div>
                 </div>

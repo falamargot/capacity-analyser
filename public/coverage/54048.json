@@ -5,9 +5,10 @@
     {
       "type": "Feature",
       "properties": {
-        "name": "2007",
-        "mission": "HB13F Superbeam Transmit",
-        "type": "EUTELSAT"
+        "name": "HB13F Superbeam Transmit",
+        "mission": "",
+        "type": "EUTELSAT",
+        "contour": "2007"
       },
       "geometry": {
         "type": "MultiPolygon",
@@ -770,9 +771,10 @@
     {
       "type": "Feature",
       "properties": {
-        "name": "2010",
-        "mission": "HB13F Superbeam Transmit",
-        "type": "EUTELSAT"
+        "name": "HB13F Superbeam Transmit",
+        "mission": "",
+        "type": "EUTELSAT",
+        "contour": "2010"
       },
       "geometry": {
         "type": "Polygon",
@@ -1277,9 +1279,10 @@
     {
       "type": "Feature",
       "properties": {
-        "name": "2011",
-        "mission": "HB13F Superbeam Transmit",
-        "type": "EUTELSAT"
+        "name": "HB13F Superbeam Transmit",
+        "mission": "",
+        "type": "EUTELSAT",
+        "contour": "2011"
       },
       "geometry": {
         "type": "Polygon",
@@ -1768,9 +1771,10 @@
     {
       "type": "Feature",
       "properties": {
-        "name": "2008",
-        "mission": "HB13F Superbeam Transmit",
-        "type": "EUTELSAT"
+        "name": "HB13F Superbeam Transmit",
+        "mission": "",
+        "type": "EUTELSAT",
+        "contour": "2008"
       },
       "geometry": {
         "type": "Polygon",
@@ -2411,9 +2415,10 @@
     {
       "type": "Feature",
       "properties": {
-        "name": "2017",
-        "mission": "HB13F Superbeam Transmit",
-        "type": "EUTELSAT"
+        "name": "HB13F Superbeam Transmit",
+        "mission": "",
+        "type": "EUTELSAT",
+        "contour": "2017"
       },
       "geometry": {
         "type": "Polygon",
@@ -2790,9 +2795,10 @@
     {
       "type": "Feature",
       "properties": {
-        "name": "2016",
-        "mission": "HB13F Superbeam Transmit",
-        "type": "EUTELSAT"
+        "name": "HB13F Superbeam Transmit",
+        "mission": "",
+        "type": "EUTELSAT",
+        "contour": "2016"
       },
       "geometry": {
         "type": "Polygon",
@@ -3161,9 +3167,10 @@
     {
       "type": "Feature",
       "properties": {
-        "name": "2009",
-        "mission": "HB13F Superbeam Transmit",
-        "type": "EUTELSAT"
+        "name": "HB13F Superbeam Transmit",
+        "mission": "",
+        "type": "EUTELSAT",
+        "contour": "2009"
       },
       "geometry": {
         "type": "Polygon",
@@ -3700,9 +3707,10 @@
     {
       "type": "Feature",
       "properties": {
-        "name": "2012",
-        "mission": "HB13F Superbeam Transmit",
-        "type": "EUTELSAT"
+        "name": "HB13F Superbeam Transmit",
+        "mission": "",
+        "type": "EUTELSAT",
+        "contour": "2012"
       },
       "geometry": {
         "type": "Polygon",
@@ -4167,9 +4175,10 @@
     {
       "type": "Feature",
       "properties": {
-        "name": "2015",
-        "mission": "HB13F Superbeam Transmit",
-        "type": "EUTELSAT"
+        "name": "HB13F Superbeam Transmit",
+        "mission": "",
+        "type": "EUTELSAT",
+        "contour": "2015"
       },
       "geometry": {
         "type": "Polygon",
@@ -4546,9 +4555,10 @@
     {
       "type": "Feature",
       "properties": {
-        "name": "2014",
-        "mission": "HB13F Superbeam Transmit",
-        "type": "EUTELSAT"
+        "name": "HB13F Superbeam Transmit",
+        "mission": "",
+        "type": "EUTELSAT",
+        "contour": "2014"
       },
       "geometry": {
         "type": "Polygon",
@@ -4957,9 +4967,10 @@
     {
       "type": "Feature",
       "properties": {
-        "name": "2013",
-        "mission": "HB13F Superbeam Transmit",
-        "type": "EUTELSAT"
+        "name": "HB13F Superbeam Transmit",
+        "mission": "",
+        "type": "EUTELSAT",
+        "contour": "2013"
       },
       "geometry": {
         "type": "Polygon",
@@ -5424,9 +5435,10 @@
     {
       "type": "Feature",
       "properties": {
-        "name": "6556",
-        "mission": "HB13F Widebeam Receive",
-        "type": "EUTELSAT"
+        "name": "HB13F Widebeam Receive",
+        "mission": "",
+        "type": "EUTELSAT",
+        "contour": "6556"
       },
       "geometry": {
         "type": "Polygon",
@@ -7067,9 +7079,10 @@
     {
       "type": "Feature",
       "properties": {
-        "name": "6560",
-        "mission": "HB13F Widebeam Receive",
-        "type": "EUTELSAT"
+        "name": "HB13F Widebeam Receive",
+        "mission": "",
+        "type": "EUTELSAT",
+        "contour": "6560"
       },
       "geometry": {
         "type": "Polygon",
@@ -8670,9 +8683,10 @@
     {
       "type": "Feature",
       "properties": {
-        "name": "6562",
-        "mission": "HB13F Widebeam Receive",
-        "type": "EUTELSAT"
+        "name": "HB13F Widebeam Receive",
+        "mission": "",
+        "type": "EUTELSAT",
+        "contour": "6562"
       },
       "geometry": {
         "type": "Polygon",
@@ -10249,9 +10263,10 @@
     {
       "type": "Feature",
       "properties": {
-        "name": "6568",
-        "mission": "HB13F Widebeam Receive",
-        "type": "EUTELSAT"
+        "name": "HB13F Widebeam Receive",
+        "mission": "",
+        "type": "EUTELSAT",
+        "contour": "6568"
       },
       "geometry": {
         "type": "MultiPolygon",
@@ -11214,9 +11229,10 @@
     {
       "type": "Feature",
       "properties": {
-        "name": "6564",
-        "mission": "HB13F Widebeam Receive",
-        "type": "EUTELSAT"
+        "name": "HB13F Widebeam Receive",
+        "mission": "",
+        "type": "EUTELSAT",
+        "contour": "6564"
       },
       "geometry": {
         "type": "Polygon",
@@ -12641,9 +12657,10 @@
     {
       "type": "Feature",
       "properties": {
-        "name": "6552",
-        "mission": "HB13F Widebeam Receive",
-        "type": "EUTELSAT"
+        "name": "HB13F Widebeam Receive",
+        "mission": "",
+        "type": "EUTELSAT",
+        "contour": "6552"
       },
       "geometry": {
         "type": "MultiPolygon",
@@ -14350,9 +14367,10 @@
     {
       "type": "Feature",
       "properties": {
-        "name": "6566",
-        "mission": "HB13F Widebeam Receive",
-        "type": "EUTELSAT"
+        "name": "HB13F Widebeam Receive",
+        "mission": "",
+        "type": "EUTELSAT",
+        "contour": "6566"
       },
       "geometry": {
         "type": "MultiPolygon",
@@ -15755,9 +15773,10 @@
     {
       "type": "Feature",
       "properties": {
-        "name": "6572",
-        "mission": "HB13F Widebeam Receive",
-        "type": "EUTELSAT"
+        "name": "HB13F Widebeam Receive",
+        "mission": "",
+        "type": "EUTELSAT",
+        "contour": "6572"
       },
       "geometry": {
         "type": "Polygon",
@@ -16414,9 +16433,10 @@
     {
       "type": "Feature",
       "properties": {
-        "name": "6570",
-        "mission": "HB13F Widebeam Receive",
-        "type": "EUTELSAT"
+        "name": "HB13F Widebeam Receive",
+        "mission": "",
+        "type": "EUTELSAT",
+        "contour": "6570"
       },
       "geometry": {
         "type": "Polygon",
@@ -17113,9 +17133,10 @@
     {
       "type": "Feature",
       "properties": {
-        "name": "6610",
-        "mission": "HB13F Widebeam 1 Transmit",
-        "type": "EUTELSAT"
+        "name": "HB13F Widebeam 1 Transmit",
+        "mission": "",
+        "type": "EUTELSAT",
+        "contour": "6610"
       },
       "geometry": {
         "type": "Polygon",
@@ -17732,9 +17753,10 @@
     {
       "type": "Feature",
       "properties": {
-        "name": "6622",
-        "mission": "HB13F Widebeam 1 Transmit",
-        "type": "EUTELSAT"
+        "name": "HB13F Widebeam 1 Transmit",
+        "mission": "",
+        "type": "EUTELSAT",
+        "contour": "6622"
       },
       "geometry": {
         "type": "Polygon",
@@ -18135,9 +18157,10 @@
     {
       "type": "Feature",
       "properties": {
-        "name": "6618",
-        "mission": "HB13F Widebeam 1 Transmit",
-        "type": "EUTELSAT"
+        "name": "HB13F Widebeam 1 Transmit",
+        "mission": "",
+        "type": "EUTELSAT",
+        "contour": "6618"
       },
       "geometry": {
         "type": "Polygon",
@@ -18634,9 +18657,10 @@
     {
       "type": "Feature",
       "properties": {
-        "name": "6620",
-        "mission": "HB13F Widebeam 1 Transmit",
-        "type": "EUTELSAT"
+        "name": "HB13F Widebeam 1 Transmit",
+        "mission": "",
+        "type": "EUTELSAT",
+        "contour": "6620"
       },
       "geometry": {
         "type": "Polygon",
@@ -19101,9 +19125,10 @@
     {
       "type": "Feature",
       "properties": {
-        "name": "6624",
-        "mission": "HB13F Widebeam 1 Transmit",
-        "type": "EUTELSAT"
+        "name": "HB13F Widebeam 1 Transmit",
+        "mission": "",
+        "type": "EUTELSAT",
+        "contour": "6624"
       },
       "geometry": {
         "type": "Polygon",
@@ -19456,9 +19481,10 @@
     {
       "type": "Feature",
       "properties": {
-        "name": "6614",
-        "mission": "HB13F Widebeam 1 Transmit",
-        "type": "EUTELSAT"
+        "name": "HB13F Widebeam 1 Transmit",
+        "mission": "",
+        "type": "EUTELSAT",
+        "contour": "6614"
       },
       "geometry": {
         "type": "Polygon",
@@ -20019,9 +20045,10 @@
     {
       "type": "Feature",
       "properties": {
-        "name": "6606",
-        "mission": "HB13F Widebeam 1 Transmit",
-        "type": "EUTELSAT"
+        "name": "HB13F Widebeam 1 Transmit",
+        "mission": "",
+        "type": "EUTELSAT",
+        "contour": "6606"
       },
       "geometry": {
         "type": "MultiPolygon",
@@ -20992,9 +21019,10 @@
     {
       "type": "Feature",
       "properties": {
-        "name": "6598",
-        "mission": "HB13F Widebeam 1 Transmit",
-        "type": "EUTELSAT"
+        "name": "HB13F Widebeam 1 Transmit",
+        "mission": "",
+        "type": "EUTELSAT",
+        "contour": "6598"
       },
       "geometry": {
         "type": "Polygon",
@@ -22387,9 +22415,10 @@
     {
       "type": "Feature",
       "properties": {
-        "name": "6602",
-        "mission": "HB13F Widebeam 1 Transmit",
-        "type": "EUTELSAT"
+        "name": "HB13F Widebeam 1 Transmit",
+        "mission": "",
+        "type": "EUTELSAT",
+        "contour": "6602"
       },
       "geometry": {
         "type": "Polygon",
@@ -23510,9 +23539,10 @@
     {
       "type": "Feature",
       "properties": {
-        "name": "2484",
-        "mission": "HB13F Widebeam 2 Transmit",
-        "type": "EUTELSAT"
+        "name": "HB13F Widebeam 2 Transmit",
+        "mission": "",
+        "type": "EUTELSAT",
+        "contour": "2484"
       },
       "geometry": {
         "type": "Polygon",
@@ -23977,9 +24007,10 @@
     {
       "type": "Feature",
       "properties": {
-        "name": "2478",
-        "mission": "HB13F Widebeam 2 Transmit",
-        "type": "EUTELSAT"
+        "name": "HB13F Widebeam 2 Transmit",
+        "mission": "",
+        "type": "EUTELSAT",
+        "contour": "2478"
       },
       "geometry": {
         "type": "Polygon",
@@ -25372,9 +25403,10 @@
     {
       "type": "Feature",
       "properties": {
-        "name": "2479",
-        "mission": "HB13F Widebeam 2 Transmit",
-        "type": "EUTELSAT"
+        "name": "HB13F Widebeam 2 Transmit",
+        "mission": "",
+        "type": "EUTELSAT",
+        "contour": "2479"
       },
       "geometry": {
         "type": "Polygon",
@@ -26495,9 +26527,10 @@
     {
       "type": "Feature",
       "properties": {
-        "name": "2480",
-        "mission": "HB13F Widebeam 2 Transmit",
-        "type": "EUTELSAT"
+        "name": "HB13F Widebeam 2 Transmit",
+        "mission": "",
+        "type": "EUTELSAT",
+        "contour": "2480"
       },
       "geometry": {
         "type": "MultiPolygon",
@@ -27468,9 +27501,10 @@
     {
       "type": "Feature",
       "properties": {
-        "name": "2481",
-        "mission": "HB13F Widebeam 2 Transmit",
-        "type": "EUTELSAT"
+        "name": "HB13F Widebeam 2 Transmit",
+        "mission": "",
+        "type": "EUTELSAT",
+        "contour": "2481"
       },
       "geometry": {
         "type": "Polygon",
@@ -28087,9 +28121,10 @@
     {
       "type": "Feature",
       "properties": {
-        "name": "2482",
-        "mission": "HB13F Widebeam 2 Transmit",
-        "type": "EUTELSAT"
+        "name": "HB13F Widebeam 2 Transmit",
+        "mission": "",
+        "type": "EUTELSAT",
+        "contour": "2482"
       },
       "geometry": {
         "type": "Polygon",
@@ -28650,9 +28685,10 @@
     {
       "type": "Feature",
       "properties": {
-        "name": "2483",
-        "mission": "HB13F Widebeam 2 Transmit",
-        "type": "EUTELSAT"
+        "name": "HB13F Widebeam 2 Transmit",
+        "mission": "",
+        "type": "EUTELSAT",
+        "contour": "2483"
       },
       "geometry": {
         "type": "Polygon",
@@ -29149,9 +29185,10 @@
     {
       "type": "Feature",
       "properties": {
-        "name": "2485",
-        "mission": "HB13F Widebeam 2 Transmit",
-        "type": "EUTELSAT"
+        "name": "HB13F Widebeam 2 Transmit",
+        "mission": "",
+        "type": "EUTELSAT",
+        "contour": "2485"
       },
       "geometry": {
         "type": "Polygon",
@@ -29552,9 +29589,10 @@
     {
       "type": "Feature",
       "properties": {
-        "name": "2486",
-        "mission": "HB13F Widebeam 2 Transmit",
-        "type": "EUTELSAT"
+        "name": "HB13F Widebeam 2 Transmit",
+        "mission": "",
+        "type": "EUTELSAT",
+        "contour": "2486"
       },
       "geometry": {
         "type": "Polygon",

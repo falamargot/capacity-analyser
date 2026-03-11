@@ -24,9 +24,11 @@ import { resolveAutoSelectedSatellites } from './utils/satelliteResolution';
 import {
   findCandidateCoverages,
   getCandidateCoverageKey,
-  getFeatureCandidateCoverageKey,
+  getCoverageGroupId,
+  getCoverageMissionName,
+  getFeatureBeamCoverageKey,
   rankCandidateCoverages,
-  resolveCandidateCoverage,
+  resolveCoverageSelection,
 } from './utils/geoCoverageSelection';
 import { JulianDate } from 'cesium';
 import { useAirTraffic, useAirTrafficInterpolation } from './modules/airTraffic';
@@ -286,16 +288,16 @@ const App: React.FC = () => {
   }, [satellites, autoSelectedGEOId]);
 
   const resolvedSelectedGeoCoverage = useMemo(() => (
-    resolveCandidateCoverage(selectedCoverage, satellites)
+    resolveCoverageSelection(selectedCoverage, satellites)
   ), [selectedCoverage, satellites]);
 
   const selectedGEOBeam = useMemo<GEOBeam | null>(() => {
     if (!resolvedSelectedGeoCoverage) return null;
 
     return {
-      feature: resolvedSelectedGeoCoverage.beam.feature,
-      name: resolvedSelectedGeoCoverage.beam.name,
-      type: resolvedSelectedGeoCoverage.beam.feature?.properties?.type as string | undefined,
+      feature: resolvedSelectedGeoCoverage.primaryBeam.feature,
+      name: resolvedSelectedGeoCoverage.primaryBeam.name,
+      type: resolvedSelectedGeoCoverage.primaryBeam.feature?.properties?.type as string | undefined,
     };
   }, [resolvedSelectedGeoCoverage]);
 
@@ -344,26 +346,25 @@ const App: React.FC = () => {
   const coverageFeaturesMemo = useMemo(() => {
     const features = new Map<string, Feature<Geometry, GeoJsonProperties>>();
     const pushFeature = (feature: Feature<Geometry, GeoJsonProperties>) => {
-      const key = getFeatureCandidateCoverageKey(feature)
+      const key = getFeatureBeamCoverageKey(feature)
         ?? `${feature.properties?.type ?? 'feature'}::${feature.properties?.satelliteId ?? 'unknown'}::${feature.properties?.name ?? features.size}`;
       if (!features.has(key)) {
         features.set(key, feature);
       }
     };
 
-    const selectedGeoFeature = resolveCandidateCoverage(selectedCoverage, satellites)?.beam.feature ?? null;
+    const selectedGeoFeatures = resolveCoverageSelection(selectedCoverage, satellites)?.beams.map((beam) => beam.feature) ?? [];
 
     // If user has explicitly selected a satellite, show its coverage (Satellite Inspection mode)
     if (liveSelectedSatellite) {
       if (liveSelectedSatellite.type === 'EUTELSAT') {
         if (selectedGeoCoverageName) {
-          const selectedCoverage = liveSelectedSatellite.coverages.find(c => c.name === selectedGeoCoverageName);
-          if (selectedCoverage) {
-            pushFeature(selectedCoverage.feature);
-          }
+          liveSelectedSatellite.coverages
+            .filter((coverage) => getCoverageGroupId(coverage) === selectedGeoCoverageName)
+            .forEach((coverage) => pushFeature(coverage.feature));
         } else if (selectedGeoMission) {
           liveSelectedSatellite.coverages
-            .filter(c => ((c.feature?.properties as any)?.mission || 'Unknown mission') === selectedGeoMission)
+            .filter((coverage) => (getCoverageMissionName(coverage) || 'Unknown mission') === selectedGeoMission)
             .forEach(c => pushFeature(c.feature));
         } else {
           liveSelectedSatellite.coverages.forEach(c => pushFeature(c.feature));
@@ -393,17 +394,13 @@ const App: React.FC = () => {
       // Display LEO coverage ONLY from resolved auto-selected LEO
       resolvedAutoLEO.coverages.forEach((c: any) => pushFeature(c.feature));
     } else if (satelliteScope === 'GEO') {
-      if (selectedGeoFeature) {
-        pushFeature(selectedGeoFeature);
-      }
+      selectedGeoFeatures.forEach((feature) => pushFeature(feature));
     } else if (satelliteScope === 'ALL') {
       // Display both LEO and GEO coverage from resolved auto-selected satellites
       if (resolvedAutoLEO) {
         resolvedAutoLEO.coverages.forEach((c: any) => pushFeature(c.feature));
       }
-      if (selectedGeoFeature) {
-        pushFeature(selectedGeoFeature);
-      }
+      selectedGeoFeatures.forEach((feature) => pushFeature(feature));
     }
 
     // Add hover effects for user interaction (but don't change coverage display)
@@ -828,6 +825,9 @@ const App: React.FC = () => {
     selectedGEOBeam,
     candidateCoverages,
     selectedCoverage,
+    selectedGeoCoverageKey: selectedSatellite && selectedGeoCoverageName
+      ? `${selectedSatellite.name}::${selectedGeoCoverageName}`
+      : null,
     selectedSNP,
     dedicatedSNPForSelectedLEO: null,
     isFullscreen,
@@ -853,7 +853,7 @@ const App: React.FC = () => {
   }), [
     filteredSatellites, satelliteTypeByName, coverageFeaturesMemo, handlePointClick, selectedPosition,
     handleSatelliteClick, handleSatelliteHover, handleSnpClick, handleSnpHover,
-    selectedSatellite, resolvedAutoLEO, activeGeoSatellite, selectedGEOBeam, candidateCoverages, selectedCoverage, selectedSNP,
+    selectedSatellite, resolvedAutoLEO, activeGeoSatellite, selectedGEOBeam, candidateCoverages, selectedCoverage, selectedGeoCoverageName, selectedSNP,
     isFullscreen, satelliteScope, airTrafficEnabled, interpolatedAircraft,
     selectedAircraft, handleAircraftSelect, handleAircraftHover,
     maritimeTrafficEnabled, interpolatedVessels, selectedVessel, handleVesselSelect, cameraTarget,

@@ -19,6 +19,7 @@ interface CoverageLayerProps {
     satelliteTypeByName: Map<string, SatelliteData['type']>;
     candidateCoverages?: CandidateCoverage[];
     selectedCoverage?: CandidateCoverage | null;
+    selectedGeoCoverageKey?: string | null;
 }
 
 const buildClosedRing = (ring: number[][]): number[][] => {
@@ -60,13 +61,10 @@ const CoveragePolygon = React.memo<{
         if (!isPolygon || isOneWebPlaceholder) return null;
         const geoAlpha = (() => {
             if (!isGeoCoverage) return 0.4;
-            if (isSelected) return 0.52;
-            if (isCandidate) return 0.26;
+            if (isSelected) return 0.4;
+            if (isCandidate) return 0.2;
             if (geoLayerIndex == null || geoLayerCount <= 1) return 0.2;
-
-            // GEO readability: light fill, progressively denser toward inner/smaller layers.
-            const t = geoLayerIndex / Math.max(geoLayerCount - 1, 1);
-            return 0.12 + (0.32 - 0.12) * t;
+            return 0.00;
         })();
 
         const colorHex = getCoverageColor(feature.properties?.type, geoAlpha);
@@ -144,45 +142,55 @@ const CoverageLayer: React.FC<CoverageLayerProps> = ({
     satelliteTypeByName,
     candidateCoverages = [],
     selectedCoverage = null,
+    selectedGeoCoverageKey = null,
 }) => {
     const selectedCoverageKey = useMemo(() => (
-        selectedCoverage ? getCandidateCoverageKey(selectedCoverage) : null
-    ), [selectedCoverage]);
+        selectedCoverage ? getCandidateCoverageKey(selectedCoverage) : selectedGeoCoverageKey
+    ), [selectedCoverage, selectedGeoCoverageKey]);
 
     const selectedGeoRendering = useMemo(() => {
-        if (!selectedCoverage) return null;
+        if (!selectedCoverageKey) return null;
 
-        const selectedFeature = coverageFeatures.find((feature) => (
+        const selectedFeatures = coverageFeatures.filter((feature) => (
             getFeatureCandidateCoverageKey(feature) === selectedCoverageKey &&
             feature.geometry.type === 'Polygon'
         ));
 
-        if (!selectedFeature || selectedFeature.geometry.type !== 'Polygon') {
+        if (selectedFeatures.length === 0) {
             return null;
         }
 
-        const ring = selectedFeature.geometry.coordinates[0] as number[][];
-        if (!ring || ring.length < 2) return null;
+        return selectedFeatures
+            .map((feature, index) => {
+                if (feature.geometry.type !== 'Polygon') return null;
 
-        const closed = buildClosedRing(ring);
-        const polygonDegrees: number[] = [];
-        const contourDegrees: number[] = [];
-        for (const [lng, lat] of closed) {
-            polygonDegrees.push(lng, lat);
-            contourDegrees.push(lng, lat, SELECTED_GEO_CONTOUR_HEIGHT_M);
-        }
+                const ring = feature.geometry.coordinates[0] as number[][];
+                if (!ring || ring.length < 2) return null;
 
-        const fillColor = Color.fromCssColorString(
-            getCoverageColor(selectedFeature.properties?.type, 0.52)
-        );
+                const closed = buildClosedRing(ring);
+                const polygonDegrees: number[] = [];
+                const contourDegrees: number[] = [];
+                for (const [lng, lat] of closed) {
+                    polygonDegrees.push(lng, lat);
+                    contourDegrees.push(lng, lat, SELECTED_GEO_CONTOUR_HEIGHT_M);
+                }
 
-        return {
-            key: selectedCoverageKey,
-            hierarchy: Cartesian3.fromDegreesArray(polygonDegrees),
-            contourPositions: Cartesian3.fromDegreesArrayHeights(contourDegrees),
-            fillColor,
-        };
-    }, [coverageFeatures, selectedCoverage, selectedCoverageKey]);
+                return {
+                    key: `${selectedCoverageKey}-${index}`,
+                    hierarchy: Cartesian3.fromDegreesArray(polygonDegrees),
+                    contourPositions: Cartesian3.fromDegreesArrayHeights(contourDegrees),
+                    fillColor: Color.fromCssColorString(
+                        getCoverageColor(feature.properties?.type, 0.2)
+                    ),
+                };
+            })
+            .filter((entry): entry is {
+                key: string;
+                hierarchy: Cartesian3[];
+                contourPositions: Cartesian3[];
+                fillColor: Color;
+            } => entry !== null);
+    }, [coverageFeatures, selectedCoverageKey]);
 
     const coverageEntities = useMemo(() => {
         const candidateCoverageKeys = new Set(
@@ -256,31 +264,31 @@ const CoverageLayer: React.FC<CoverageLayerProps> = ({
     return (
         <>
             {coverageEntities}
-            {selectedGeoRendering && (
-                <>
+            {selectedGeoRendering?.map((rendering) => (
+                <React.Fragment key={rendering.key}>
                     <Entity
-                        key={`selected-geo-polygon-${selectedGeoRendering.key}`}
+                        key={`selected-geo-polygon-${rendering.key}`}
                         name="Selected GEO Coverage"
                     >
                         <PolygonGraphics
-                            hierarchy={selectedGeoRendering.hierarchy}
-                            material={selectedGeoRendering.fillColor}
+                            hierarchy={rendering.hierarchy}
+                            material={rendering.fillColor}
                             outline={false}
                         />
                     </Entity>
                     <Entity
-                        key={`selected-geo-contour-${selectedGeoRendering.key}`}
+                        key={`selected-geo-contour-${rendering.key}`}
                         name="Selected GEO Coverage contour"
                         polyline={{
-                            positions: selectedGeoRendering.contourPositions,
+                            positions: rendering.contourPositions,
                             width: 2,
                             material: SELECTED_GEO_CONTOUR_COLOR,
                             depthFailMaterial: SELECTED_GEO_CONTOUR_COLOR,
                             clampToGround: false,
                         }}
                     />
-                </>
-            )}
+                </React.Fragment>
+            ))}
         </>
     );
 };

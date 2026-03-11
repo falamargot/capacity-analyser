@@ -16,6 +16,12 @@ export interface ResolvedCandidateCoverage {
   beam: Coverage;
 }
 
+export interface ResolvedCoverageSelection {
+  satellite: SatelliteData;
+  beams: Coverage[];
+  primaryBeam: Coverage;
+}
+
 export interface GeoConnectivitySelectionResult {
   candidate: CandidateCoverage;
   satellite: SatelliteData;
@@ -89,42 +95,93 @@ const getCoverageProperties = (coverage: Coverage): Record<string, unknown> => (
   (coverage.feature?.properties as Record<string, unknown> | undefined) ?? {}
 );
 
-const getBeamIdFromParts = (rawName: string, mission?: string): string => (
-  mission ? `${mission}::${rawName}` : rawName
-);
+const getRawCoverageValue = (properties: Record<string, unknown>, fallbackName?: string): string => {
+  const name = properties.name;
+  if (typeof name === 'string' || typeof name === 'number') {
+    const value = String(name).trim();
+    if (value) return value;
+  }
 
-export const getCoverageBeamId = (coverage: Coverage): string => {
+  const contour = properties.contour;
+  if (typeof contour === 'string' || typeof contour === 'number') {
+    const value = String(contour).trim();
+    if (value) return value;
+  }
+
+  return fallbackName?.trim() || 'Unknown coverage';
+};
+
+const getRawBeamValue = (properties: Record<string, unknown>, fallbackName?: string): string => {
+  const contour = properties.contour;
+  if (typeof contour === 'string' || typeof contour === 'number') {
+    const value = String(contour).trim();
+    if (value) return value;
+  }
+
+  const name = properties.name;
+  if (typeof name === 'string' || typeof name === 'number') {
+    const value = String(name).trim();
+    if (value) return value;
+  }
+
+  return fallbackName?.trim() || 'Unknown beam';
+};
+
+export const getCoverageMissionName = (coverage: Coverage): string => {
   const properties = getCoverageProperties(coverage);
-  const rawName = String(properties.name ?? coverage.name ?? '');
-  const mission = typeof properties.mission === 'string' ? properties.mission : undefined;
-  return getBeamIdFromParts(rawName, mission);
+  return typeof properties.mission === 'string' ? properties.mission.trim() : '';
+};
+
+export const getCoverageDisplayName = (coverage: Coverage): string => {
+  const properties = getCoverageProperties(coverage);
+  return getRawCoverageValue(properties, coverage.name);
 };
 
 export const getCoverageBeamName = (coverage: Coverage): string => {
   const properties = getCoverageProperties(coverage);
-  const rawName = String(properties.name ?? coverage.name ?? 'Unknown beam');
-  const mission = typeof properties.mission === 'string' ? properties.mission.trim() : '';
+  return getRawBeamValue(properties, coverage.name);
+};
 
-  if (!mission) return rawName;
-  return `${mission}-${rawName}`;
+const getIdFromParts = (rawName: string, mission?: string): string => (
+  mission ? `${mission}::${rawName}` : rawName
+);
+
+export const getCoverageGroupId = (coverage: Coverage): string => {
+  const rawName = getCoverageDisplayName(coverage);
+  const mission = getCoverageMissionName(coverage) || undefined;
+  return getIdFromParts(rawName, mission);
+};
+
+export const getCoverageBeamId = (coverage: Coverage): string => {
+  const rawName = getCoverageBeamName(coverage);
+  const mission = getCoverageMissionName(coverage) || undefined;
+  return getIdFromParts(rawName, mission);
+};
+
+const getFeatureMissionName = (properties: Record<string, unknown>): string | undefined => {
+  const mission = properties.mission;
+  if (typeof mission !== 'string') return undefined;
+  const value = mission.trim();
+  return value || undefined;
+};
+
+const getFeatureCoverageGroupId = (feature: Feature<Geometry, GeoJsonProperties>): string | null => {
+  const properties = (feature.properties as Record<string, unknown> | undefined) ?? {};
+  const rawName = getRawCoverageValue(properties);
+  if (!rawName) return null;
+
+  return getIdFromParts(rawName, getFeatureMissionName(properties));
 };
 
 const getFeatureBeamId = (feature: Feature<Geometry, GeoJsonProperties>): string | null => {
   const properties = (feature.properties as Record<string, unknown> | undefined) ?? {};
-  const rawName = properties.name;
-  if (typeof rawName !== 'string' && typeof rawName !== 'number') {
-    return null;
-  }
+  const rawName = getRawBeamValue(properties);
+  if (!rawName) return null;
 
-  const mission = typeof properties.mission === 'string' ? properties.mission : undefined;
-  return getBeamIdFromParts(String(rawName), mission);
+  return getIdFromParts(rawName, getFeatureMissionName(properties));
 };
 
-export const getCandidateCoverageKey = (
-  candidate: Pick<CandidateCoverage, 'satelliteName' | 'beamId'>
-): string => `${candidate.satelliteName}::${candidate.beamId}`;
-
-export const getFeatureCandidateCoverageKey = (
+export const getFeatureBeamCoverageKey = (
   feature: Feature<Geometry, GeoJsonProperties>
 ): string | null => {
   const satelliteName = feature.properties?.satelliteId;
@@ -135,6 +192,23 @@ export const getFeatureCandidateCoverageKey = (
   }
 
   return `${satelliteName}::${beamId}`;
+};
+
+export const getCandidateCoverageKey = (
+  candidate: Pick<CandidateCoverage, 'satelliteName' | 'coverageKey'>
+): string => `${candidate.satelliteName}::${candidate.coverageKey}`;
+
+export const getFeatureCandidateCoverageKey = (
+  feature: Feature<Geometry, GeoJsonProperties>
+): string | null => {
+  const satelliteName = feature.properties?.satelliteId;
+  const coverageKey = getFeatureCoverageGroupId(feature);
+
+  if (typeof satelliteName !== 'string' || !coverageKey) {
+    return null;
+  }
+
+  return `${satelliteName}::${coverageKey}`;
 };
 
 const getBeamDistanceMetrics = (
@@ -181,6 +255,9 @@ export const findCandidateCoverages = (
       candidates.push({
         satelliteId: satellite.id,
         satelliteName: satellite.name,
+        missionName: getCoverageMissionName(coverage),
+        coverageKey: getCoverageGroupId(coverage),
+        coverageName: getCoverageDisplayName(coverage),
         beamId: getCoverageBeamId(coverage),
         beamName: getCoverageBeamName(coverage),
         elevation,
@@ -234,6 +311,22 @@ export const resolveCandidateCoverage = (
   if (!beam) return null;
 
   return { satellite, beam };
+};
+
+export const resolveCoverageSelection = (
+  candidate: CandidateCoverage | null,
+  satellites: SatelliteData[]
+): ResolvedCoverageSelection | null => {
+  if (!candidate) return null;
+
+  const satellite = satellites.find((entry) => entry.id === candidate.satelliteId);
+  if (!satellite) return null;
+
+  const beams = satellite.coverages.filter((coverage) => getCoverageGroupId(coverage) === candidate.coverageKey);
+  if (beams.length === 0) return null;
+
+  const primaryBeam = beams.find((coverage) => getCoverageBeamId(coverage) === candidate.beamId) ?? beams[0];
+  return { satellite, beams, primaryBeam };
 };
 
 export const computeGeoConnectivity = (

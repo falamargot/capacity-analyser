@@ -92,6 +92,7 @@ interface CesiumGlobeProps {
     selectedGEOBeam?: GEOBeam | null;
     candidateCoverages?: CandidateCoverage[];
     selectedCoverage?: CandidateCoverage | null;
+    selectedGeoCoverageKey?: string | null;
     cameraTarget?: { lat: number; lng: number; alt: number } | null;
     onCameraReady?: (viewer: any) => void;
     onGlobeContainerReady?: (ref: React.RefObject<HTMLDivElement | null>) => void;
@@ -135,6 +136,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
     selectedGEOBeam,
     candidateCoverages = [],
     selectedCoverage = null,
+    selectedGeoCoverageKey = null,
     cameraTarget,
     onCameraReady,
     onGlobeContainerReady,
@@ -509,6 +511,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                         satelliteTypeByName={satelliteTypeByName}
                         candidateCoverages={candidateCoverages}
                         selectedCoverage={selectedCoverage}
+                        selectedGeoCoverageKey={selectedGeoCoverageKey}
                     />
 
                     {/* OneWeb Comb Layer - Always shown for selected satellite */}

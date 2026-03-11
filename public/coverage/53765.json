@@ -6,8 +6,9 @@
             "type": "Feature",
             "properties": {
                 "name": "1",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "1"
             },
             "geometry": {
                 "type": "Polygon",
@@ -169,8 +170,9 @@
             "type": "Feature",
             "properties": {
                 "name": "2",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "2"
             },
             "geometry": {
                 "type": "Polygon",
@@ -332,8 +334,9 @@
             "type": "Feature",
             "properties": {
                 "name": "3",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "3"
             },
             "geometry": {
                 "type": "Polygon",
@@ -495,8 +498,9 @@
             "type": "Feature",
             "properties": {
                 "name": "4",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "4"
             },
             "geometry": {
                 "type": "Polygon",
@@ -658,8 +662,9 @@
             "type": "Feature",
             "properties": {
                 "name": "5",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "5"
             },
             "geometry": {
                 "type": "Polygon",
@@ -821,8 +826,9 @@
             "type": "Feature",
             "properties": {
                 "name": "6",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "6"
             },
             "geometry": {
                 "type": "Polygon",
@@ -984,8 +990,9 @@
             "type": "Feature",
             "properties": {
                 "name": "7",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "7"
             },
             "geometry": {
                 "type": "Polygon",
@@ -1147,8 +1154,9 @@
             "type": "Feature",
             "properties": {
                 "name": "8",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "8"
             },
             "geometry": {
                 "type": "Polygon",
@@ -1310,8 +1318,9 @@
             "type": "Feature",
             "properties": {
                 "name": "9",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "9"
             },
             "geometry": {
                 "type": "Polygon",
@@ -1473,8 +1482,9 @@
             "type": "Feature",
             "properties": {
                 "name": "10",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "10"
             },
             "geometry": {
                 "type": "Polygon",
@@ -1636,8 +1646,9 @@
             "type": "Feature",
             "properties": {
                 "name": "11",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "11"
             },
             "geometry": {
                 "type": "Polygon",
@@ -1799,8 +1810,9 @@
             "type": "Feature",
             "properties": {
                 "name": "12",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "12"
             },
             "geometry": {
                 "type": "Polygon",
@@ -1962,8 +1974,9 @@
             "type": "Feature",
             "properties": {
                 "name": "13",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "13"
             },
             "geometry": {
                 "type": "Polygon",
@@ -2125,8 +2138,9 @@
             "type": "Feature",
             "properties": {
                 "name": "14",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "14"
             },
             "geometry": {
                 "type": "Polygon",
@@ -2288,8 +2302,9 @@
             "type": "Feature",
             "properties": {
                 "name": "15",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "15"
             },
             "geometry": {
                 "type": "Polygon",
@@ -2451,8 +2466,9 @@
             "type": "Feature",
             "properties": {
                 "name": "16",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "16"
             },
             "geometry": {
                 "type": "Polygon",
@@ -2614,8 +2630,9 @@
             "type": "Feature",
             "properties": {
                 "name": "17",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "17"
             },
             "geometry": {
                 "type": "Polygon",
@@ -2777,8 +2794,9 @@
             "type": "Feature",
             "properties": {
                 "name": "18",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "18"
             },
             "geometry": {
                 "type": "Polygon",
@@ -2940,8 +2958,9 @@
             "type": "Feature",
             "properties": {
                 "name": "19",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "19"
             },
             "geometry": {
                 "type": "Polygon",
@@ -3103,8 +3122,9 @@
             "type": "Feature",
             "properties": {
                 "name": "20",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "20"
             },
             "geometry": {
                 "type": "Polygon",
@@ -3266,8 +3286,9 @@
             "type": "Feature",
             "properties": {
                 "name": "21",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "21"
             },
             "geometry": {
                 "type": "Polygon",
@@ -3429,8 +3450,9 @@
             "type": "Feature",
             "properties": {
                 "name": "22",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "22"
             },
             "geometry": {
                 "type": "Polygon",
@@ -3592,8 +3614,9 @@
             "type": "Feature",
             "properties": {
                 "name": "23",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "23"
             },
             "geometry": {
                 "type": "Polygon",
@@ -3755,8 +3778,9 @@
             "type": "Feature",
             "properties": {
                 "name": "24",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "24"
             },
             "geometry": {
                 "type": "Polygon",
@@ -3918,8 +3942,9 @@
             "type": "Feature",
             "properties": {
                 "name": "25",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "25"
             },
             "geometry": {
                 "type": "Polygon",
@@ -4081,8 +4106,9 @@
             "type": "Feature",
             "properties": {
                 "name": "26",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "26"
             },
             "geometry": {
                 "type": "Polygon",
@@ -4244,8 +4270,9 @@
             "type": "Feature",
             "properties": {
                 "name": "27",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "27"
             },
             "geometry": {
                 "type": "Polygon",
@@ -4407,8 +4434,9 @@
             "type": "Feature",
             "properties": {
                 "name": "28",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "28"
             },
             "geometry": {
                 "type": "Polygon",
@@ -4570,8 +4598,9 @@
             "type": "Feature",
             "properties": {
                 "name": "29",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "29"
             },
             "geometry": {
                 "type": "Polygon",
@@ -4733,8 +4762,9 @@
             "type": "Feature",
             "properties": {
                 "name": "30",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "30"
             },
             "geometry": {
                 "type": "Polygon",
@@ -4896,8 +4926,9 @@
             "type": "Feature",
             "properties": {
                 "name": "31",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "31"
             },
             "geometry": {
                 "type": "Polygon",
@@ -5059,8 +5090,9 @@
             "type": "Feature",
             "properties": {
                 "name": "32",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "32"
             },
             "geometry": {
                 "type": "Polygon",
@@ -5222,8 +5254,9 @@
             "type": "Feature",
             "properties": {
                 "name": "33",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "33"
             },
             "geometry": {
                 "type": "Polygon",
@@ -5385,8 +5418,9 @@
             "type": "Feature",
             "properties": {
                 "name": "34",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "34"
             },
             "geometry": {
                 "type": "Polygon",
@@ -5548,8 +5582,9 @@
             "type": "Feature",
             "properties": {
                 "name": "35",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "35"
             },
             "geometry": {
                 "type": "Polygon",
@@ -5711,8 +5746,9 @@
             "type": "Feature",
             "properties": {
                 "name": "36",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "36"
             },
             "geometry": {
                 "type": "Polygon",
@@ -5874,8 +5910,9 @@
             "type": "Feature",
             "properties": {
                 "name": "37",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "37"
             },
             "geometry": {
                 "type": "Polygon",
@@ -6037,8 +6074,9 @@
             "type": "Feature",
             "properties": {
                 "name": "38",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "38"
             },
             "geometry": {
                 "type": "Polygon",
@@ -6200,8 +6238,9 @@
             "type": "Feature",
             "properties": {
                 "name": "39",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "39"
             },
             "geometry": {
                 "type": "Polygon",
@@ -6363,8 +6402,9 @@
             "type": "Feature",
             "properties": {
                 "name": "40",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "40"
             },
             "geometry": {
                 "type": "Polygon",
@@ -6526,8 +6566,9 @@
             "type": "Feature",
             "properties": {
                 "name": "41",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "41"
             },
             "geometry": {
                 "type": "Polygon",
@@ -6689,8 +6730,9 @@
             "type": "Feature",
             "properties": {
                 "name": "42",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "42"
             },
             "geometry": {
                 "type": "Polygon",
@@ -6852,8 +6894,9 @@
             "type": "Feature",
             "properties": {
                 "name": "43",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "43"
             },
             "geometry": {
                 "type": "Polygon",
@@ -7015,8 +7058,9 @@
             "type": "Feature",
             "properties": {
                 "name": "44",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "44"
             },
             "geometry": {
                 "type": "Polygon",
@@ -7178,8 +7222,9 @@
             "type": "Feature",
             "properties": {
                 "name": "45",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "45"
             },
             "geometry": {
                 "type": "Polygon",
@@ -7341,8 +7386,9 @@
             "type": "Feature",
             "properties": {
                 "name": "46",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "46"
             },
             "geometry": {
                 "type": "Polygon",
@@ -7504,8 +7550,9 @@
             "type": "Feature",
             "properties": {
                 "name": "47",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "47"
             },
             "geometry": {
                 "type": "Polygon",
@@ -7667,8 +7714,9 @@
             "type": "Feature",
             "properties": {
                 "name": "48",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "48"
             },
             "geometry": {
                 "type": "Polygon",
@@ -7830,8 +7878,9 @@
             "type": "Feature",
             "properties": {
                 "name": "49",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "49"
             },
             "geometry": {
                 "type": "Polygon",
@@ -7993,8 +8042,9 @@
             "type": "Feature",
             "properties": {
                 "name": "50",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "50"
             },
             "geometry": {
                 "type": "Polygon",
@@ -8156,8 +8206,9 @@
             "type": "Feature",
             "properties": {
                 "name": "51",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "51"
             },
             "geometry": {
                 "type": "Polygon",
@@ -8319,8 +8370,9 @@
             "type": "Feature",
             "properties": {
                 "name": "52",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "52"
             },
             "geometry": {
                 "type": "Polygon",
@@ -8482,8 +8534,9 @@
             "type": "Feature",
             "properties": {
                 "name": "53",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "53"
             },
             "geometry": {
                 "type": "Polygon",
@@ -8645,8 +8698,9 @@
             "type": "Feature",
             "properties": {
                 "name": "54",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "54"
             },
             "geometry": {
                 "type": "Polygon",
@@ -8808,8 +8862,9 @@
             "type": "Feature",
             "properties": {
                 "name": "55",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "55"
             },
             "geometry": {
                 "type": "Polygon",
@@ -8971,8 +9026,9 @@
             "type": "Feature",
             "properties": {
                 "name": "56",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "56"
             },
             "geometry": {
                 "type": "Polygon",
@@ -9134,8 +9190,9 @@
             "type": "Feature",
             "properties": {
                 "name": "57",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "57"
             },
             "geometry": {
                 "type": "Polygon",
@@ -9297,8 +9354,9 @@
             "type": "Feature",
             "properties": {
                 "name": "58",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "58"
             },
             "geometry": {
                 "type": "Polygon",
@@ -9460,8 +9518,9 @@
             "type": "Feature",
             "properties": {
                 "name": "59",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "59"
             },
             "geometry": {
                 "type": "Polygon",
@@ -9623,8 +9682,9 @@
             "type": "Feature",
             "properties": {
                 "name": "60",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "60"
             },
             "geometry": {
                 "type": "Polygon",
@@ -9786,8 +9846,9 @@
             "type": "Feature",
             "properties": {
                 "name": "61",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "61"
             },
             "geometry": {
                 "type": "Polygon",
@@ -9949,8 +10010,9 @@
             "type": "Feature",
             "properties": {
                 "name": "62",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "62"
             },
             "geometry": {
                 "type": "Polygon",
@@ -10112,8 +10174,9 @@
             "type": "Feature",
             "properties": {
                 "name": "63",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "63"
             },
             "geometry": {
                 "type": "Polygon",
@@ -10275,8 +10338,9 @@
             "type": "Feature",
             "properties": {
                 "name": "64",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "64"
             },
             "geometry": {
                 "type": "Polygon",
@@ -10438,8 +10502,9 @@
             "type": "Feature",
             "properties": {
                 "name": "65",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "65"
             },
             "geometry": {
                 "type": "Polygon",
@@ -10601,8 +10666,9 @@
             "type": "Feature",
             "properties": {
                 "name": "66",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "66"
             },
             "geometry": {
                 "type": "Polygon",
@@ -10764,8 +10830,9 @@
             "type": "Feature",
             "properties": {
                 "name": "67",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "67"
             },
             "geometry": {
                 "type": "Polygon",
@@ -10927,8 +10994,9 @@
             "type": "Feature",
             "properties": {
                 "name": "68",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "68"
             },
             "geometry": {
                 "type": "Polygon",
@@ -11090,8 +11158,9 @@
             "type": "Feature",
             "properties": {
                 "name": "69",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "69"
             },
             "geometry": {
                 "type": "Polygon",
@@ -11253,8 +11322,9 @@
             "type": "Feature",
             "properties": {
                 "name": "70",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "70"
             },
             "geometry": {
                 "type": "Polygon",
@@ -11416,8 +11486,9 @@
             "type": "Feature",
             "properties": {
                 "name": "71",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "71"
             },
             "geometry": {
                 "type": "Polygon",
@@ -11579,8 +11650,9 @@
             "type": "Feature",
             "properties": {
                 "name": "72",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "72"
             },
             "geometry": {
                 "type": "Polygon",
@@ -11742,8 +11814,9 @@
             "type": "Feature",
             "properties": {
                 "name": "73",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "73"
             },
             "geometry": {
                 "type": "Polygon",
@@ -11905,8 +11978,9 @@
             "type": "Feature",
             "properties": {
                 "name": "74",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "74"
             },
             "geometry": {
                 "type": "Polygon",
@@ -12068,8 +12142,9 @@
             "type": "Feature",
             "properties": {
                 "name": "75",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "75"
             },
             "geometry": {
                 "type": "Polygon",
@@ -12231,8 +12306,9 @@
             "type": "Feature",
             "properties": {
                 "name": "76",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "76"
             },
             "geometry": {
                 "type": "Polygon",
@@ -12394,8 +12470,9 @@
             "type": "Feature",
             "properties": {
                 "name": "77",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "77"
             },
             "geometry": {
                 "type": "Polygon",
@@ -12557,8 +12634,9 @@
             "type": "Feature",
             "properties": {
                 "name": "78",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "78"
             },
             "geometry": {
                 "type": "Polygon",
@@ -12720,8 +12798,9 @@
             "type": "Feature",
             "properties": {
                 "name": "79",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "79"
             },
             "geometry": {
                 "type": "Polygon",
@@ -12883,8 +12962,9 @@
             "type": "Feature",
             "properties": {
                 "name": "80",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "80"
             },
             "geometry": {
                 "type": "Polygon",
@@ -13046,8 +13126,9 @@
             "type": "Feature",
             "properties": {
                 "name": "81",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "81"
             },
             "geometry": {
                 "type": "Polygon",
@@ -13209,8 +13290,9 @@
             "type": "Feature",
             "properties": {
                 "name": "82",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "82"
             },
             "geometry": {
                 "type": "Polygon",
@@ -13372,8 +13454,9 @@
             "type": "Feature",
             "properties": {
                 "name": "83",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "83"
             },
             "geometry": {
                 "type": "Polygon",
@@ -13535,8 +13618,9 @@
             "type": "Feature",
             "properties": {
                 "name": "84",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "84"
             },
             "geometry": {
                 "type": "Polygon",
@@ -13698,8 +13782,9 @@
             "type": "Feature",
             "properties": {
                 "name": "85",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "85"
             },
             "geometry": {
                 "type": "Polygon",
@@ -13861,8 +13946,9 @@
             "type": "Feature",
             "properties": {
                 "name": "86",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "86"
             },
             "geometry": {
                 "type": "Polygon",
@@ -14024,8 +14110,9 @@
             "type": "Feature",
             "properties": {
                 "name": "87",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "87"
             },
             "geometry": {
                 "type": "Polygon",
@@ -14187,8 +14274,9 @@
             "type": "Feature",
             "properties": {
                 "name": "88",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "88"
             },
             "geometry": {
                 "type": "Polygon",
@@ -14350,8 +14438,9 @@
             "type": "Feature",
             "properties": {
                 "name": "89",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "89"
             },
             "geometry": {
                 "type": "Polygon",
@@ -14513,8 +14602,9 @@
             "type": "Feature",
             "properties": {
                 "name": "90",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "90"
             },
             "geometry": {
                 "type": "Polygon",
@@ -14676,8 +14766,9 @@
             "type": "Feature",
             "properties": {
                 "name": "91",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "91"
             },
             "geometry": {
                 "type": "Polygon",
@@ -14839,8 +14930,9 @@
             "type": "Feature",
             "properties": {
                 "name": "92",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "92"
             },
             "geometry": {
                 "type": "Polygon",
@@ -15002,8 +15094,9 @@
             "type": "Feature",
             "properties": {
                 "name": "93",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "93"
             },
             "geometry": {
                 "type": "Polygon",
@@ -15165,8 +15258,9 @@
             "type": "Feature",
             "properties": {
                 "name": "94",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "94"
             },
             "geometry": {
                 "type": "Polygon",
@@ -15328,8 +15422,9 @@
             "type": "Feature",
             "properties": {
                 "name": "95",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "95"
             },
             "geometry": {
                 "type": "Polygon",
@@ -15491,8 +15586,9 @@
             "type": "Feature",
             "properties": {
                 "name": "96",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "96"
             },
             "geometry": {
                 "type": "Polygon",
@@ -15654,8 +15750,9 @@
             "type": "Feature",
             "properties": {
                 "name": "97",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "97"
             },
             "geometry": {
                 "type": "Polygon",
@@ -15817,8 +15914,9 @@
             "type": "Feature",
             "properties": {
                 "name": "98",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "98"
             },
             "geometry": {
                 "type": "Polygon",
@@ -15980,8 +16078,9 @@
             "type": "Feature",
             "properties": {
                 "name": "99",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "99"
             },
             "geometry": {
                 "type": "Polygon",
@@ -16143,8 +16242,9 @@
             "type": "Feature",
             "properties": {
                 "name": "100",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "100"
             },
             "geometry": {
                 "type": "Polygon",
@@ -16306,8 +16406,9 @@
             "type": "Feature",
             "properties": {
                 "name": "101",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "101"
             },
             "geometry": {
                 "type": "Polygon",
@@ -16469,8 +16570,9 @@
             "type": "Feature",
             "properties": {
                 "name": "102",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "102"
             },
             "geometry": {
                 "type": "Polygon",
@@ -16632,8 +16734,9 @@
             "type": "Feature",
             "properties": {
                 "name": "103",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "103"
             },
             "geometry": {
                 "type": "Polygon",
@@ -16795,8 +16898,9 @@
             "type": "Feature",
             "properties": {
                 "name": "104",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "104"
             },
             "geometry": {
                 "type": "Polygon",
@@ -16958,8 +17062,9 @@
             "type": "Feature",
             "properties": {
                 "name": "105",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "105"
             },
             "geometry": {
                 "type": "Polygon",
@@ -17121,8 +17226,9 @@
             "type": "Feature",
             "properties": {
                 "name": "106",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "106"
             },
             "geometry": {
                 "type": "Polygon",
@@ -17284,8 +17390,9 @@
             "type": "Feature",
             "properties": {
                 "name": "107",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "107"
             },
             "geometry": {
                 "type": "Polygon",
@@ -17447,8 +17554,9 @@
             "type": "Feature",
             "properties": {
                 "name": "108",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "108"
             },
             "geometry": {
                 "type": "Polygon",
@@ -17610,8 +17718,9 @@
             "type": "Feature",
             "properties": {
                 "name": "109",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "109"
             },
             "geometry": {
                 "type": "Polygon",
@@ -17773,8 +17882,9 @@
             "type": "Feature",
             "properties": {
                 "name": "110",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "110"
             },
             "geometry": {
                 "type": "Polygon",
@@ -17936,8 +18046,9 @@
             "type": "Feature",
             "properties": {
                 "name": "111",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "111"
             },
             "geometry": {
                 "type": "Polygon",
@@ -18099,8 +18210,9 @@
             "type": "Feature",
             "properties": {
                 "name": "112",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "112"
             },
             "geometry": {
                 "type": "Polygon",
@@ -18262,8 +18374,9 @@
             "type": "Feature",
             "properties": {
                 "name": "113",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "113"
             },
             "geometry": {
                 "type": "Polygon",
@@ -18425,8 +18538,9 @@
             "type": "Feature",
             "properties": {
                 "name": "114",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "114"
             },
             "geometry": {
                 "type": "Polygon",
@@ -18588,8 +18702,9 @@
             "type": "Feature",
             "properties": {
                 "name": "115",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "115"
             },
             "geometry": {
                 "type": "Polygon",
@@ -18751,8 +18866,9 @@
             "type": "Feature",
             "properties": {
                 "name": "116",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "116"
             },
             "geometry": {
                 "type": "Polygon",
@@ -18914,8 +19030,9 @@
             "type": "Feature",
             "properties": {
                 "name": "117",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "117"
             },
             "geometry": {
                 "type": "Polygon",
@@ -19077,8 +19194,9 @@
             "type": "Feature",
             "properties": {
                 "name": "118",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "118"
             },
             "geometry": {
                 "type": "Polygon",
@@ -19240,8 +19358,9 @@
             "type": "Feature",
             "properties": {
                 "name": "119",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "119"
             },
             "geometry": {
                 "type": "Polygon",
@@ -19403,8 +19522,9 @@
             "type": "Feature",
             "properties": {
                 "name": "120",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "120"
             },
             "geometry": {
                 "type": "Polygon",
@@ -19566,8 +19686,9 @@
             "type": "Feature",
             "properties": {
                 "name": "121",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "121"
             },
             "geometry": {
                 "type": "Polygon",
@@ -19729,8 +19850,9 @@
             "type": "Feature",
             "properties": {
                 "name": "122",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "122"
             },
             "geometry": {
                 "type": "Polygon",
@@ -19892,8 +20014,9 @@
             "type": "Feature",
             "properties": {
                 "name": "123",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "123"
             },
             "geometry": {
                 "type": "Polygon",
@@ -20055,8 +20178,9 @@
             "type": "Feature",
             "properties": {
                 "name": "124",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "124"
             },
             "geometry": {
                 "type": "Polygon",
@@ -20218,8 +20342,9 @@
             "type": "Feature",
             "properties": {
                 "name": "125",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "125"
             },
             "geometry": {
                 "type": "Polygon",
@@ -20381,8 +20506,9 @@
             "type": "Feature",
             "properties": {
                 "name": "126",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "126"
             },
             "geometry": {
                 "type": "Polygon",
@@ -20544,8 +20670,9 @@
             "type": "Feature",
             "properties": {
                 "name": "127",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "127"
             },
             "geometry": {
                 "type": "Polygon",
@@ -20707,8 +20834,9 @@
             "type": "Feature",
             "properties": {
                 "name": "128",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "128"
             },
             "geometry": {
                 "type": "Polygon",
@@ -20870,8 +20998,9 @@
             "type": "Feature",
             "properties": {
                 "name": "129",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "129"
             },
             "geometry": {
                 "type": "Polygon",
@@ -21033,8 +21162,9 @@
             "type": "Feature",
             "properties": {
                 "name": "130",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "130"
             },
             "geometry": {
                 "type": "Polygon",
@@ -21196,8 +21326,9 @@
             "type": "Feature",
             "properties": {
                 "name": "131",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "131"
             },
             "geometry": {
                 "type": "Polygon",
@@ -21359,8 +21490,9 @@
             "type": "Feature",
             "properties": {
                 "name": "132",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "132"
             },
             "geometry": {
                 "type": "Polygon",
@@ -21522,8 +21654,9 @@
             "type": "Feature",
             "properties": {
                 "name": "133",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "133"
             },
             "geometry": {
                 "type": "Polygon",
@@ -21685,8 +21818,9 @@
             "type": "Feature",
             "properties": {
                 "name": "134",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "134"
             },
             "geometry": {
                 "type": "Polygon",
@@ -21848,8 +21982,9 @@
             "type": "Feature",
             "properties": {
                 "name": "135",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "135"
             },
             "geometry": {
                 "type": "Polygon",
@@ -22011,8 +22146,9 @@
             "type": "Feature",
             "properties": {
                 "name": "136",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "136"
             },
             "geometry": {
                 "type": "Polygon",
@@ -22174,8 +22310,9 @@
             "type": "Feature",
             "properties": {
                 "name": "137",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "137"
             },
             "geometry": {
                 "type": "Polygon",
@@ -22337,8 +22474,9 @@
             "type": "Feature",
             "properties": {
                 "name": "138",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "138"
             },
             "geometry": {
                 "type": "Polygon",
@@ -22500,8 +22638,9 @@
             "type": "Feature",
             "properties": {
                 "name": "139",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "139"
             },
             "geometry": {
                 "type": "Polygon",
@@ -22663,8 +22802,9 @@
             "type": "Feature",
             "properties": {
                 "name": "140",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "140"
             },
             "geometry": {
                 "type": "Polygon",
@@ -22826,8 +22966,9 @@
             "type": "Feature",
             "properties": {
                 "name": "141",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "141"
             },
             "geometry": {
                 "type": "Polygon",
@@ -22989,8 +23130,9 @@
             "type": "Feature",
             "properties": {
                 "name": "142",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "142"
             },
             "geometry": {
                 "type": "Polygon",
@@ -23152,8 +23294,9 @@
             "type": "Feature",
             "properties": {
                 "name": "143",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "143"
             },
             "geometry": {
                 "type": "Polygon",
@@ -23315,8 +23458,9 @@
             "type": "Feature",
             "properties": {
                 "name": "144",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "144"
             },
             "geometry": {
                 "type": "Polygon",
@@ -23478,8 +23622,9 @@
             "type": "Feature",
             "properties": {
                 "name": "145",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "145"
             },
             "geometry": {
                 "type": "Polygon",
@@ -23641,8 +23786,9 @@
             "type": "Feature",
             "properties": {
                 "name": "146",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "146"
             },
             "geometry": {
                 "type": "Polygon",
@@ -23804,8 +23950,9 @@
             "type": "Feature",
             "properties": {
                 "name": "147",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "147"
             },
             "geometry": {
                 "type": "Polygon",
@@ -23967,8 +24114,9 @@
             "type": "Feature",
             "properties": {
                 "name": "148",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "148"
             },
             "geometry": {
                 "type": "Polygon",
@@ -24130,8 +24278,9 @@
             "type": "Feature",
             "properties": {
                 "name": "149",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "149"
             },
             "geometry": {
                 "type": "Polygon",
@@ -24293,8 +24442,9 @@
             "type": "Feature",
             "properties": {
                 "name": "150",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "150"
             },
             "geometry": {
                 "type": "Polygon",
@@ -24456,8 +24606,9 @@
             "type": "Feature",
             "properties": {
                 "name": "151",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "151"
             },
             "geometry": {
                 "type": "Polygon",
@@ -24619,8 +24770,9 @@
             "type": "Feature",
             "properties": {
                 "name": "152",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "152"
             },
             "geometry": {
                 "type": "Polygon",
@@ -24782,8 +24934,9 @@
             "type": "Feature",
             "properties": {
                 "name": "153",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "153"
             },
             "geometry": {
                 "type": "Polygon",
@@ -24945,8 +25098,9 @@
             "type": "Feature",
             "properties": {
                 "name": "154",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "154"
             },
             "geometry": {
                 "type": "Polygon",
@@ -25108,8 +25262,9 @@
             "type": "Feature",
             "properties": {
                 "name": "155",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "155"
             },
             "geometry": {
                 "type": "Polygon",
@@ -25271,8 +25426,9 @@
             "type": "Feature",
             "properties": {
                 "name": "156",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "156"
             },
             "geometry": {
                 "type": "Polygon",
@@ -25434,8 +25590,9 @@
             "type": "Feature",
             "properties": {
                 "name": "157",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "157"
             },
             "geometry": {
                 "type": "Polygon",
@@ -25597,8 +25754,9 @@
             "type": "Feature",
             "properties": {
                 "name": "158",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "158"
             },
             "geometry": {
                 "type": "Polygon",
@@ -25760,8 +25918,9 @@
             "type": "Feature",
             "properties": {
                 "name": "159",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "159"
             },
             "geometry": {
                 "type": "Polygon",
@@ -25923,8 +26082,9 @@
             "type": "Feature",
             "properties": {
                 "name": "160",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "160"
             },
             "geometry": {
                 "type": "Polygon",
@@ -26086,8 +26246,9 @@
             "type": "Feature",
             "properties": {
                 "name": "161",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "161"
             },
             "geometry": {
                 "type": "Polygon",
@@ -26249,8 +26410,9 @@
             "type": "Feature",
             "properties": {
                 "name": "162",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "162"
             },
             "geometry": {
                 "type": "Polygon",
@@ -26412,8 +26574,9 @@
             "type": "Feature",
             "properties": {
                 "name": "163",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "163"
             },
             "geometry": {
                 "type": "Polygon",
@@ -26575,8 +26738,9 @@
             "type": "Feature",
             "properties": {
                 "name": "164",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "164"
             },
             "geometry": {
                 "type": "Polygon",
@@ -26738,8 +26902,9 @@
             "type": "Feature",
             "properties": {
                 "name": "165",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "165"
             },
             "geometry": {
                 "type": "Polygon",
@@ -26901,8 +27066,9 @@
             "type": "Feature",
             "properties": {
                 "name": "166",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "166"
             },
             "geometry": {
                 "type": "Polygon",
@@ -27064,8 +27230,9 @@
             "type": "Feature",
             "properties": {
                 "name": "167",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "167"
             },
             "geometry": {
                 "type": "Polygon",
@@ -27227,8 +27394,9 @@
             "type": "Feature",
             "properties": {
                 "name": "168",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "168"
             },
             "geometry": {
                 "type": "Polygon",
@@ -27390,8 +27558,9 @@
             "type": "Feature",
             "properties": {
                 "name": "169",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "169"
             },
             "geometry": {
                 "type": "Polygon",
@@ -27553,8 +27722,9 @@
             "type": "Feature",
             "properties": {
                 "name": "170",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "170"
             },
             "geometry": {
                 "type": "Polygon",
@@ -27716,8 +27886,9 @@
             "type": "Feature",
             "properties": {
                 "name": "171",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "171"
             },
             "geometry": {
                 "type": "Polygon",
@@ -27879,8 +28050,9 @@
             "type": "Feature",
             "properties": {
                 "name": "172",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "172"
             },
             "geometry": {
                 "type": "Polygon",
@@ -28042,8 +28214,9 @@
             "type": "Feature",
             "properties": {
                 "name": "173",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "173"
             },
             "geometry": {
                 "type": "Polygon",
@@ -28205,8 +28378,9 @@
             "type": "Feature",
             "properties": {
                 "name": "174",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "174"
             },
             "geometry": {
                 "type": "Polygon",
@@ -28368,8 +28542,9 @@
             "type": "Feature",
             "properties": {
                 "name": "175",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "175"
             },
             "geometry": {
                 "type": "Polygon",
@@ -28531,8 +28706,9 @@
             "type": "Feature",
             "properties": {
                 "name": "176",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "176"
             },
             "geometry": {
                 "type": "Polygon",
@@ -28694,8 +28870,9 @@
             "type": "Feature",
             "properties": {
                 "name": "177",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "177"
             },
             "geometry": {
                 "type": "Polygon",
@@ -28857,8 +29034,9 @@
             "type": "Feature",
             "properties": {
                 "name": "178",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "178"
             },
             "geometry": {
                 "type": "Polygon",
@@ -29020,8 +29198,9 @@
             "type": "Feature",
             "properties": {
                 "name": "179",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "179"
             },
             "geometry": {
                 "type": "Polygon",
@@ -29183,8 +29362,9 @@
             "type": "Feature",
             "properties": {
                 "name": "180",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "180"
             },
             "geometry": {
                 "type": "Polygon",
@@ -29346,8 +29526,9 @@
             "type": "Feature",
             "properties": {
                 "name": "181",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "181"
             },
             "geometry": {
                 "type": "Polygon",
@@ -29509,8 +29690,9 @@
             "type": "Feature",
             "properties": {
                 "name": "182",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "182"
             },
             "geometry": {
                 "type": "Polygon",
@@ -29672,8 +29854,9 @@
             "type": "Feature",
             "properties": {
                 "name": "183",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "183"
             },
             "geometry": {
                 "type": "Polygon",
@@ -29835,8 +30018,9 @@
             "type": "Feature",
             "properties": {
                 "name": "184",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "184"
             },
             "geometry": {
                 "type": "Polygon",
@@ -29998,8 +30182,9 @@
             "type": "Feature",
             "properties": {
                 "name": "185",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "185"
             },
             "geometry": {
                 "type": "Polygon",
@@ -30161,8 +30346,9 @@
             "type": "Feature",
             "properties": {
                 "name": "186",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "186"
             },
             "geometry": {
                 "type": "Polygon",
@@ -30324,8 +30510,9 @@
             "type": "Feature",
             "properties": {
                 "name": "187",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "187"
             },
             "geometry": {
                 "type": "Polygon",
@@ -30487,8 +30674,9 @@
             "type": "Feature",
             "properties": {
                 "name": "188",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "188"
             },
             "geometry": {
                 "type": "Polygon",
@@ -30650,8 +30838,9 @@
             "type": "Feature",
             "properties": {
                 "name": "189",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "189"
             },
             "geometry": {
                 "type": "Polygon",
@@ -30813,8 +31002,9 @@
             "type": "Feature",
             "properties": {
                 "name": "190",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "190"
             },
             "geometry": {
                 "type": "Polygon",
@@ -30976,8 +31166,9 @@
             "type": "Feature",
             "properties": {
                 "name": "191",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "191"
             },
             "geometry": {
                 "type": "Polygon",
@@ -31139,8 +31330,9 @@
             "type": "Feature",
             "properties": {
                 "name": "192",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "192"
             },
             "geometry": {
                 "type": "Polygon",
@@ -31302,8 +31494,9 @@
             "type": "Feature",
             "properties": {
                 "name": "193",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "193"
             },
             "geometry": {
                 "type": "Polygon",
@@ -31465,8 +31658,9 @@
             "type": "Feature",
             "properties": {
                 "name": "194",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "194"
             },
             "geometry": {
                 "type": "Polygon",
@@ -31628,8 +31822,9 @@
             "type": "Feature",
             "properties": {
                 "name": "195",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "195"
             },
             "geometry": {
                 "type": "Polygon",
@@ -31791,8 +31986,9 @@
             "type": "Feature",
             "properties": {
                 "name": "196",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "196"
             },
             "geometry": {
                 "type": "Polygon",
@@ -31954,8 +32150,9 @@
             "type": "Feature",
             "properties": {
                 "name": "197",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "197"
             },
             "geometry": {
                 "type": "Polygon",
@@ -32117,8 +32314,9 @@
             "type": "Feature",
             "properties": {
                 "name": "198",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "198"
             },
             "geometry": {
                 "type": "Polygon",
@@ -32280,8 +32478,9 @@
             "type": "Feature",
             "properties": {
                 "name": "199",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "199"
             },
             "geometry": {
                 "type": "Polygon",
@@ -32443,8 +32642,9 @@
             "type": "Feature",
             "properties": {
                 "name": "200",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "200"
             },
             "geometry": {
                 "type": "Polygon",
@@ -32606,8 +32806,9 @@
             "type": "Feature",
             "properties": {
                 "name": "201",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "201"
             },
             "geometry": {
                 "type": "Polygon",
@@ -32769,8 +32970,9 @@
             "type": "Feature",
             "properties": {
                 "name": "202",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "202"
             },
             "geometry": {
                 "type": "Polygon",
@@ -32932,8 +33134,9 @@
             "type": "Feature",
             "properties": {
                 "name": "203",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "203"
             },
             "geometry": {
                 "type": "Polygon",
@@ -33095,8 +33298,9 @@
             "type": "Feature",
             "properties": {
                 "name": "204",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "204"
             },
             "geometry": {
                 "type": "Polygon",
@@ -33258,8 +33462,9 @@
             "type": "Feature",
             "properties": {
                 "name": "205",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "205"
             },
             "geometry": {
                 "type": "Polygon",
@@ -33421,8 +33626,9 @@
             "type": "Feature",
             "properties": {
                 "name": "206",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "206"
             },
             "geometry": {
                 "type": "Polygon",
@@ -33584,8 +33790,9 @@
             "type": "Feature",
             "properties": {
                 "name": "207",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "207"
             },
             "geometry": {
                 "type": "Polygon",
@@ -33747,8 +33954,9 @@
             "type": "Feature",
             "properties": {
                 "name": "208",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "208"
             },
             "geometry": {
                 "type": "Polygon",
@@ -33910,8 +34118,9 @@
             "type": "Feature",
             "properties": {
                 "name": "209",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "209"
             },
             "geometry": {
                 "type": "Polygon",
@@ -34073,8 +34282,9 @@
             "type": "Feature",
             "properties": {
                 "name": "210",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "210"
             },
             "geometry": {
                 "type": "Polygon",
@@ -34236,8 +34446,9 @@
             "type": "Feature",
             "properties": {
                 "name": "211",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "211"
             },
             "geometry": {
                 "type": "Polygon",
@@ -34399,8 +34610,9 @@
             "type": "Feature",
             "properties": {
                 "name": "212",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "212"
             },
             "geometry": {
                 "type": "Polygon",
@@ -34562,8 +34774,9 @@
             "type": "Feature",
             "properties": {
                 "name": "213",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "213"
             },
             "geometry": {
                 "type": "Polygon",
@@ -34725,8 +34938,9 @@
             "type": "Feature",
             "properties": {
                 "name": "214",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "214"
             },
             "geometry": {
                 "type": "Polygon",
@@ -34888,8 +35102,9 @@
             "type": "Feature",
             "properties": {
                 "name": "215",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "215"
             },
             "geometry": {
                 "type": "Polygon",
@@ -35051,8 +35266,9 @@
             "type": "Feature",
             "properties": {
                 "name": "216",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "216"
             },
             "geometry": {
                 "type": "Polygon",
@@ -35214,8 +35430,9 @@
             "type": "Feature",
             "properties": {
                 "name": "217",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "217"
             },
             "geometry": {
                 "type": "Polygon",
@@ -35377,8 +35594,9 @@
             "type": "Feature",
             "properties": {
                 "name": "218",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "218"
             },
             "geometry": {
                 "type": "Polygon",
@@ -35540,8 +35758,9 @@
             "type": "Feature",
             "properties": {
                 "name": "219",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "219"
             },
             "geometry": {
                 "type": "Polygon",
@@ -35703,8 +35922,9 @@
             "type": "Feature",
             "properties": {
                 "name": "220",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "220"
             },
             "geometry": {
                 "type": "Polygon",
@@ -35866,8 +36086,9 @@
             "type": "Feature",
             "properties": {
                 "name": "221",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "221"
             },
             "geometry": {
                 "type": "Polygon",
@@ -36029,8 +36250,9 @@
             "type": "Feature",
             "properties": {
                 "name": "222",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "222"
             },
             "geometry": {
                 "type": "Polygon",
@@ -36192,8 +36414,9 @@
             "type": "Feature",
             "properties": {
                 "name": "223",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "223"
             },
             "geometry": {
                 "type": "Polygon",
@@ -36355,8 +36578,9 @@
             "type": "Feature",
             "properties": {
                 "name": "224",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "224"
             },
             "geometry": {
                 "type": "Polygon",
@@ -36518,8 +36742,9 @@
             "type": "Feature",
             "properties": {
                 "name": "225",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "225"
             },
             "geometry": {
                 "type": "Polygon",
@@ -36681,8 +36906,9 @@
             "type": "Feature",
             "properties": {
                 "name": "226",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "226"
             },
             "geometry": {
                 "type": "Polygon",
@@ -36844,8 +37070,9 @@
             "type": "Feature",
             "properties": {
                 "name": "227",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "227"
             },
             "geometry": {
                 "type": "Polygon",
@@ -37007,8 +37234,9 @@
             "type": "Feature",
             "properties": {
                 "name": "228",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "228"
             },
             "geometry": {
                 "type": "Polygon",
@@ -37170,8 +37398,9 @@
             "type": "Feature",
             "properties": {
                 "name": "229",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "229"
             },
             "geometry": {
                 "type": "Polygon",
@@ -37333,8 +37562,9 @@
             "type": "Feature",
             "properties": {
                 "name": "230",
-                "mission": "VHTS",
-                "type": "EUTELSAT"
+                "mission": "",
+                "type": "EUTELSAT",
+                "contour": "230"
             },
             "geometry": {
                 "type": "Polygon",

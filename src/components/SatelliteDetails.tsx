@@ -6,6 +6,12 @@ import { JulianDate } from 'cesium';
 import { useState, useEffect, useMemo } from 'react';
 import * as satellite from 'satellite.js';
 import { useGSOAvoidance } from '../hooks/useGSOAvoidance';
+import {
+  getCoverageBeamName,
+  getCoverageDisplayName,
+  getCoverageGroupId,
+  getCoverageMissionName,
+} from '../utils/geoCoverageSelection';
 
 // NEW IMPORTS - BeamStatusComponents integration
 import { BeamStatusGrid, CoveragePolicyDisplay } from './BeamStatusComponents';
@@ -171,34 +177,44 @@ const SatelliteDetails: React.FC<SatelliteDetailsProps> = ({
       return [];
     }
 
-    const formatCoverageLabel = (rawName: string): string => {
-      const satellitePrefix = `${selectedSatellite.name} - `;
-      if (rawName.startsWith(satellitePrefix)) {
-        return rawName.slice(satellitePrefix.length).trim();
-      }
+    const groups = new Map<string, Map<string, {
+      key: string;
+      label: string;
+      contours: { id: string; label: string }[];
+    }>>();
 
-      const parts = rawName.split(' - ');
-      if (parts.length > 1 && parts[0].toUpperCase().includes('EUTELSAT')) {
-        return parts.slice(1).join(' - ').trim();
-      }
-      return rawName;
-    };
-
-    const groups = new Map<string, { name: string; label: string }[]>();
     for (const coverage of selectedSatellite.coverages) {
-      const mission = (coverage.feature?.properties as any)?.mission || 'Unknown mission';
-      const current = groups.get(mission) || [];
-      current.push({
-        name: coverage.name,
-        label: formatCoverageLabel(coverage.name),
+      const mission = getCoverageMissionName(coverage) || 'Unknown mission';
+      const coverageKey = getCoverageGroupId(coverage);
+      const missionGroups = groups.get(mission) || new Map<string, {
+        key: string;
+        label: string;
+        contours: { id: string; label: string }[];
+      }>();
+      const currentCoverage = missionGroups.get(coverageKey) || {
+        key: coverageKey,
+        label: getCoverageDisplayName(coverage),
+        contours: [],
+      };
+
+      currentCoverage.contours.push({
+        id: getCoverageBeamName(coverage),
+        label: getCoverageBeamName(coverage),
       });
-      groups.set(mission, current);
+
+      missionGroups.set(coverageKey, currentCoverage);
+      groups.set(mission, missionGroups);
     }
 
     return Array.from(groups.entries())
       .map(([mission, coverages]) => ({
         mission,
-        coverages: [...coverages].sort((a, b) => a.label.localeCompare(b.label, undefined, { numeric: true }))
+        coverages: Array.from(coverages.values())
+          .map((coverage) => ({
+            ...coverage,
+            contours: [...coverage.contours].sort((a, b) => a.label.localeCompare(b.label, undefined, { numeric: true })),
+          }))
+          .sort((a, b) => a.label.localeCompare(b.label, undefined, { numeric: true })),
       }))
       .sort((a, b) => a.mission.localeCompare(b.mission));
   }, [selectedSatellite]);
@@ -392,31 +408,60 @@ const SatelliteDetails: React.FC<SatelliteDetailsProps> = ({
                           </button>
                           <span className="ml-2 text-xs font-medium text-gray-500 dark:text-gray-400">({group.coverages.length})</span>
                         </summary>
-                        <ul className="mt-1 ml-6 space-y-1">
+                        <div className="mt-1 ml-6 space-y-2">
                           {group.coverages.map((coverage, coverageIndex) => (
-                            <li
-                              key={`${group.mission}-${coverage.name}-${coverageIndex}`}
-                              className="text-sm text-gray-700 dark:text-gray-300 flex items-center"
+                            <details
+                              key={`${group.mission}-${coverage.key}-${coverageIndex}`}
+                              className="group/coverage"
                             >
-                              <span className={`w-1.5 h-1.5 rounded-full mr-2 ${selectedGeoCoverageName === coverage.name ? 'bg-blue-700 dark:bg-blue-300' : 'bg-blue-500'
-                                }`}></span>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  const nextCoverageName = selectedGeoCoverageName === coverage.name ? null : coverage.name;
-                                  onSelectGeoCoverage?.(nextCoverageName);
-                                  onSelectGeoMission?.(null);
-                                }}
-                                className={`text-left hover:underline ${selectedGeoCoverageName === coverage.name
-                                  ? 'text-blue-700 dark:text-blue-300 font-semibold'
-                                  : 'text-gray-700 dark:text-gray-300'
-                                  }`}
-                              >
-                                {coverage.label}
-                              </button>
-                            </li>
+                              <summary className="cursor-pointer list-none text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center">
+                                <span className="mr-2 text-blue-500 dark:text-blue-400 group-open/coverage:rotate-90 transition-transform">▶</span>
+                                <span className={`w-1.5 h-1.5 rounded-full mr-2 ${selectedGeoCoverageName === coverage.key ? 'bg-blue-700 dark:bg-blue-300' : 'bg-blue-500'}`}></span>
+                                <button
+                                  type="button"
+                                  onClick={(event) => {
+                                    event.preventDefault();
+                                    event.stopPropagation();
+                                    const nextCoverageName = selectedGeoCoverageName === coverage.key ? null : coverage.key;
+                                    onSelectGeoCoverage?.(nextCoverageName);
+                                    onSelectGeoMission?.(null);
+                                  }}
+                                  className={`text-left hover:underline ${selectedGeoCoverageName === coverage.key
+                                    ? 'text-blue-700 dark:text-blue-300 font-semibold'
+                                    : 'text-gray-700 dark:text-gray-300'
+                                    }`}
+                                >
+                                  {coverage.label}
+                                </button>
+                                <span className="ml-2 text-xs font-medium text-gray-500 dark:text-gray-400">({coverage.contours.length})</span>
+                              </summary>
+                              <ul className="mt-1 ml-6 space-y-1">
+                                {coverage.contours.map((contour, contourIndex) => (
+                                  <li
+                                    key={`${coverage.key}-${contour.id}-${contourIndex}`}
+                                    className="text-sm text-gray-600 dark:text-gray-400 flex items-center"
+                                  >
+                                    <span className={`w-1.5 h-1.5 rounded-full mr-2 ${selectedGeoCoverageName === coverage.key ? 'bg-blue-400 dark:bg-blue-300' : 'bg-blue-300 dark:bg-slate-500'}`}></span>
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        const nextCoverageName = selectedGeoCoverageName === coverage.key ? null : coverage.key;
+                                        onSelectGeoCoverage?.(nextCoverageName);
+                                        onSelectGeoMission?.(null);
+                                      }}
+                                      className={`text-left hover:underline ${selectedGeoCoverageName === coverage.key
+                                        ? 'text-blue-700 dark:text-blue-300'
+                                        : 'text-gray-600 dark:text-gray-400'
+                                        }`}
+                                    >
+                                      {contour.label}
+                                    </button>
+                                  </li>
+                                ))}
+                              </ul>
+                            </details>
                           ))}
-                        </ul>
+                        </div>
                       </details>
                     ))}
                   </div>
