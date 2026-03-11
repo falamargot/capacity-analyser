@@ -18,31 +18,30 @@ import { BeamStatusGrid, CoveragePolicyDisplay } from './BeamStatusComponents';
 import { useSimulation } from '../contexts/SimulationContext';
 
 
-// Pitch Monitoring Chart Component
+// ─── Pitch Monitoring Chart ───────────────────────────────────────────────────
+// The SVG curve depends only on two fixed constants — compute it once at module
+// load instead of inside a useMemo (which re-runs on every component mount).
+const PITCH_START_LAT = 45.0;
+const MAX_PITCH_DEG = 17.0;
+
+const SAFETY_DOME_CURVE_POINTS = (() => {
+  const points: string[] = [];
+  for (let lat = -90; lat <= 90; lat += 1) {
+    const progress = Math.abs(lat) / PITCH_START_LAT;
+    const pitchMagnitude = progress <= 1 ? MAX_PITCH_DEG * Math.cos(progress * (Math.PI / 2)) : 0;
+    const pitch = lat >= 0 ? pitchMagnitude : -pitchMagnitude;
+    const x = 30 + ((lat + 90) / 180) * 270;
+    const y = 97 - (Math.abs(pitch) / 20) * 94;
+    points.push(`${x},${y}`);
+  }
+  return points.join(' ');
+})();
+
 const PitchMonitoringChart: React.FC<{ currentLatitude: number; currentPitch: number }> = ({
   currentLatitude,
   currentPitch
 }) => {
-  const PITCH_START_LAT = 45.0;
-  const MAX_PITCH_DEG = 17.0;
-
-  // Generate Safety Dome curve points using same formula as calculateGSOAvoidanceAngle
-  const curvePoints = useMemo(() => {
-    const points: string[] = [];
-    for (let lat = -90; lat <= 90; lat += 1) {
-      // Safety Dome formula: pitch = MAX_PITCH * cos((lat / 45) * (PI / 2))
-      const progress = Math.abs(lat) / PITCH_START_LAT;
-      const pitchMagnitude = progress <= 1 ? MAX_PITCH_DEG * Math.cos(progress * (Math.PI / 2)) : 0;
-
-      // Apply direction based on hemisphere and movement (simplified for visualization)
-      const pitch = lat >= 0 ? pitchMagnitude : -pitchMagnitude;
-
-      const x = 30 + ((lat + 90) / 180) * 270; // Map -90 to 90 onto 0-280px
-      const y = 97 - (Math.abs(pitch) / 20) * 94; // Map 0-20° onto 107-13px (absolute pitch)
-      points.push(`${x},${y}`);
-    }
-    return points.join(' ');
-  }, []);
+  const curvePoints = SAFETY_DOME_CURVE_POINTS;
 
   // Calculate current position on curve using same formula
   const currentX = 30 + ((currentLatitude + 90) / 180) * 270;

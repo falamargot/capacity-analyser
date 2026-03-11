@@ -2,16 +2,22 @@
  * GeoGatewayLayer - Renders Eutelsat Teleport Gateways for GEO scope
  */
 import React, { useMemo, useCallback } from 'react';
-import { Entity } from 'resium';
+import { Entity, LabelGraphics } from 'resium';
 import {
+    Cartesian2,
     Cartesian3,
     Color,
     CallbackProperty,
+    HorizontalOrigin,
+    VerticalOrigin,
     Viewer as CesiumViewerType
 } from 'cesium';
 import { GEO_GATEWAYS, GeoGatewayData } from '../globe/GlobeConfig';
 import { getPosition, DPR_FACTOR, calculateDynamicScale } from './utils';
 import type { SatelliteScope } from '../SatelliteScopeFilter';
+
+const LABEL_BACKGROUND_PADDING = new Cartesian2(7, 4);
+const LABEL_PIXEL_OFFSET = new Cartesian2(0, -20);
 
 interface GeoGatewayLayerProps {
     satelliteScope: SatelliteScope;
@@ -75,7 +81,24 @@ const GeoGatewayEntity = React.memo<{
             onClick={handleClick}
             onMouseEnter={handleMouseEnter}
             onMouseLeave={handleMouseLeave}
-        />
+        >
+            {isSelected && (
+                <LabelGraphics
+                    text={gateway.name}
+                    font="600 13px Inter, sans-serif"
+                    fillColor={Color.WHITE}
+                    outlineWidth={3}
+                    style={2}
+                    showBackground={true}
+                    backgroundColor={Color.CYAN.withAlpha(0.7)}
+                    backgroundPadding={LABEL_BACKGROUND_PADDING}
+                    pixelOffset={LABEL_PIXEL_OFFSET}
+                    verticalOrigin={VerticalOrigin.BOTTOM}
+                    horizontalOrigin={HorizontalOrigin.CENTER}
+                    disableDepthTestDistance={Number.POSITIVE_INFINITY}
+                />
+            )}
+        </Entity>
     );
 });
 

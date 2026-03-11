@@ -371,8 +371,8 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
             const cameraHeight = viewerRef.current.camera.positionCartographic.height;
             const dynamicScale = calculateDynamicScale(cameraHeight, DPR_FACTOR);
 
-            const baseScale = dynamicScale * 50000000 / Math.max(distance, 5000000);
-            return baseScale * (sizeScale || 1);
+            const baseScale = dynamicScale * 3000000 / Math.max(distance, 10000000);
+            return baseScale * 20 * (sizeScale || 1);
         }, false);
     }, [selectedPosition, sizeScale]);
 

@@ -12,7 +12,7 @@ import BottomSheet from './components/layout/BottomSheet';
 import MobileAnalysisSummary from './components/layout/MobileAnalysisSummary';
 import BeamLegend from './components/cesium-globe/BeamLegend';
 import SimulationSettings from './components/layout/SimulationSettings';
-import { calculatePosition, fetchSatellites } from './services/satelliteService';
+import { fetchSatellites } from './services/satelliteService';
 import { SatelliteData } from './types/satellites';
 import type { CandidateCoverage, GEOBeam, SelectedSNP } from './types/analysis';
 import { calculateCoverages, destinationPoint } from './utils/coverageCalculator';
@@ -36,6 +36,13 @@ import { Aircraft } from './modules/airTraffic/airTrafficService';
 import { useMaritimeTraffic, useMaritimeTrafficInterpolation } from './modules/maritimeTraffic';
 import { Vessel } from './modules/maritimeTraffic/maritimeTrafficService';
 import { useSimulation } from './contexts/SimulationContext';
+
+// ─── Module-level constants ───────────────────────────────────────────────────
+// GEO satellites move ~0.008°/2 s — below this threshold → reuse the same object
+// reference so downstream useMemos don't invalidate every tick.
+// LEO satellites move ~0.13°/2 s — always above threshold → always a new object.
+const POSITION_EPSILON_DEG = 0.01;
+const ALTITUDE_EPSILON_KM = 0.5;
 
 // Analyzis position for earth-click or aircraft selection
 interface AnalyzisPosition {
@@ -104,8 +111,13 @@ const App: React.FC = () => {
   // avoiding recreation of the callback every 2 s when satellites changes.
   const satellitesForResolutionRef = useRef<SatelliteData[]>(satellites);
 
-  // Throttle satellite position updates to reduce CPU load
   const satelliteUpdateTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Worker-based position update refs — avoids stale closures in the onmessage handler.
+  const workerRef = useRef<Worker | null>(null);
+  const workerBusyRef = useRef(false);
+  const selectedSatelliteIdRef = useRef<string | null>(null);
+  const hoveredSatelliteIdRef = useRef<string | null>(null);
 
   // Helper functions (isPointInGEOCoverage, isPointInPolygon) are now centralized in utils/geoUtils.ts
   // resolveAutoSelectedSatellites is centralized in utils/satelliteResolution.ts
@@ -158,33 +170,68 @@ const App: React.FC = () => {
     satellitesForResolutionRef.current = satellites;
   }, [satellites]);
 
-  // Performance optimization: Throttled satellite position updates
+  // ─── Worker-based satellite position updates ───────────────────────────────
+  //
+  // SGP4 propagation for 600+ satellites (~60 ms/tick) runs inside a Web Worker
+  // so the main thread is never blocked for position math.
+  //
+  // Design:
+  //   • Worker init effect (deps []) — creates the worker once, defines scheduleTick,
+  //     attaches onmessage, starts the first tick.
+  //   • Responsive effect (deps [selectedSatellite?.id, hoveredSatelliteId]) — keeps
+  //     the stable refs current and fires an immediate tick on selection/hover changes
+  //     so ONEWEB coverage recalculates without waiting up to 2 s.
+
   useEffect(() => {
-    // Clear any existing timeout
-    if (satelliteUpdateTimeoutRef.current) {
-      clearTimeout(satelliteUpdateTimeoutRef.current);
+    let worker: Worker;
+    try {
+      worker = new Worker(
+        new URL('./workers/satellitePositionWorker.ts', import.meta.url),
+        { type: 'module' }
+      );
+    } catch {
+      return; // Web Workers not supported — positions won't update
     }
 
-    const updateSatellites = () => {
+    workerRef.current = worker;
+
+    const scheduleTick = () => {
+      if (workerBusyRef.current) return;
+      const sats = satellitesForResolutionRef.current;
+      if (sats.length === 0) {
+        // Satellites not loaded yet — retry shortly
+        satelliteUpdateTimeoutRef.current = setTimeout(scheduleTick, 500);
+        return;
+      }
+      workerBusyRef.current = true;
+      worker.postMessage({
+        satellites: sats.map((sat) => ({ id: sat.id, satrec: sat.satrec })),
+        timestamp: Date.now(),
+      });
+    };
+
+    worker.onmessage = (event: MessageEvent) => {
+      workerBusyRef.current = false;
+
+      const { positions } = event.data as {
+        positions: Array<{ id: string; lat: number; lng: number; alt: number }>;
+      };
+      const posMap = new Map(positions.map((p) => [p.id, p]));
+
+      // Read selection/hover from refs — avoids stale closure over React state.
+      const currentSelectedId = selectedSatelliteIdRef.current;
+      const currentHoveredId = hoveredSatelliteIdRef.current;
+
       setSatellites((currentSatellites) => {
-        const currentSelectedId = selectedSatellite?.id || null;
         const selectionChanged = prevSelectedSatelliteRef.current !== currentSelectedId;
-
         // §1.3 — Pre-index by ID to avoid O(n²) find() calls per tick
-        const prevById = new Map(prevSatellitesRef.current.map(s => [s.id, s]));
-
-        // Hoist date computation: one JulianDate per tick instead of one per satellite
-        const now = JulianDate.toDate(JulianDate.now());
-
-        // Epsilon-based position change detection.
-        // GEO satellites move ~0.008° in 2 s — below this threshold → reuse existing
-        // object reference to avoid invalidating downstream useMemos.
-        // LEO satellites move ~0.13°/2 s — always above threshold → always new object.
-        const POSITION_EPSILON_DEG = 0.01;
-        const ALTITUDE_EPSILON_KM = 0.5;
+        const prevById = new Map(prevSatellitesRef.current.map((s) => [s.id, s]));
 
         const updatedSatellites = currentSatellites.map((sat) => {
-          const newPosition = calculatePosition(sat, now);
+          const workerPos = posMap.get(sat.id);
+          if (!workerPos) return sat;
+
+          const newPosition = { lat: workerPos.lat, lng: workerPos.lng, alt: workerPos.alt };
           const prev = prevById.get(sat.id);
 
           const positionChanged = !prev ||
@@ -193,7 +240,7 @@ const App: React.FC = () => {
             Math.abs(prev.position.alt - newPosition.alt) > ALTITUDE_EPSILON_KM;
 
           const isSatelliteSelected = currentSelectedId === sat.id;
-          const isSatelliteHovered = hoveredSatelliteId === sat.id;
+          const isSatelliteHovered = currentHoveredId === sat.id;
           const shouldRecalculateCoverage = sat.type === 'ONEWEB' && (
             isSatelliteSelected ||
             isSatelliteHovered ||
@@ -206,7 +253,6 @@ const App: React.FC = () => {
           if (!positionChanged && !shouldRecalculateCoverage) return sat;
 
           const updatedSat = positionChanged ? { ...sat, position: newPosition } : sat;
-
           return shouldRecalculateCoverage
             ? { ...updatedSat, coverages: calculateCoverages(updatedSat) }
             : updatedSat;
@@ -214,23 +260,45 @@ const App: React.FC = () => {
 
         prevSelectedSatelliteRef.current = currentSelectedId;
         prevSatellitesRef.current = updatedSatellites;
-
         return updatedSatellites;
       });
 
-      // Schedule next update with reduced frequency for better performance
-      satelliteUpdateTimeoutRef.current = setTimeout(updateSatellites, 2000); // Reduced from 1000ms to 2000ms
+      // Schedule next tick after state update is applied
+      satelliteUpdateTimeoutRef.current = setTimeout(scheduleTick, 2000);
     };
 
-    // Initial update
-    updateSatellites();
+    worker.onerror = () => {
+      workerBusyRef.current = false;
+      satelliteUpdateTimeoutRef.current = setTimeout(scheduleTick, 2000);
+    };
+
+    scheduleTick();
 
     return () => {
-      if (satelliteUpdateTimeoutRef.current) {
-        clearTimeout(satelliteUpdateTimeoutRef.current);
-      }
+      if (satelliteUpdateTimeoutRef.current) clearTimeout(satelliteUpdateTimeoutRef.current);
+      worker.terminate();
+      workerRef.current = null;
     };
-  }, [selectedSatellite?.id, hoveredSatelliteId]); // Depend on hovered satellite id as it's used inside
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps — runs once on mount
+
+  // Keep selection/hover refs current and fire an immediate tick so ONEWEB coverage
+  // recalculates at once instead of waiting up to 2 s for the next scheduled tick.
+  useEffect(() => {
+    selectedSatelliteIdRef.current = selectedSatellite?.id ?? null;
+    hoveredSatelliteIdRef.current = hoveredSatelliteId;
+
+    const worker = workerRef.current;
+    if (!worker || workerBusyRef.current) return;
+    const sats = satellitesForResolutionRef.current;
+    if (sats.length === 0) return;
+
+    if (satelliteUpdateTimeoutRef.current) clearTimeout(satelliteUpdateTimeoutRef.current);
+    workerBusyRef.current = true;
+    worker.postMessage({
+      satellites: sats.map((sat) => ({ id: sat.id, satrec: sat.satrec })),
+      timestamp: Date.now(),
+    });
+  }, [selectedSatellite?.id, hoveredSatelliteId]);
 
   // Filter satellites based on satellite scope
   const filteredSatellites = useMemo(() => {
@@ -386,9 +454,14 @@ const App: React.FC = () => {
         liveSelectedSatellite.coverages.forEach(c => pushFeature(c.feature));
       }
 
-      // Add hover effects for user interaction
+      // Add hover effects for user interaction.
+      // Use the stable ref instead of filteredSatellites so this lookup doesn't
+      // add a dep that changes every 2 s on satellite position updates.
       if (hoveredSatelliteId && hoveredSatelliteId !== liveSelectedSatellite.id) {
-        const hoveredSat = filteredSatellites.find(sat => sat.id === hoveredSatelliteId);
+        const hoveredSat = satellitesForResolutionRef.current.find(
+          sat => sat.id === hoveredSatelliteId &&
+            (satelliteScope === 'ALL' || sat.orbitType === satelliteScope)
+        );
         if (hoveredSat) {
           hoveredSat.coverages.forEach(c => pushFeature(c.feature));
         }
@@ -416,9 +489,13 @@ const App: React.FC = () => {
       selectedGeoFeatures.forEach((feature) => pushFeature(feature));
     }
 
-    // Add hover effects for user interaction (but don't change coverage display)
+    // Add hover effects for user interaction (but don't change coverage display).
+    // Same ref-based lookup as above — avoids the filteredSatellites dep.
     if (hoveredSatelliteId) {
-      const hoveredSat = filteredSatellites.find(sat => sat.id === hoveredSatelliteId);
+      const hoveredSat = satellitesForResolutionRef.current.find(
+        sat => sat.id === hoveredSatelliteId &&
+          (satelliteScope === 'ALL' || sat.orbitType === satelliteScope)
+      );
       if (hoveredSat) {
         hoveredSat.coverages.forEach(c => pushFeature(c.feature));
       }
@@ -453,7 +530,10 @@ const App: React.FC = () => {
     }
 
     return [...features.values()];
-  }, [analyzisPosition, filteredSatellites, hoveredSatelliteId, hoveredSnpName, liveSelectedSatellite, resolvedAutoLEO, resolvedSelectedGeoCoverage, satelliteScope, selectedGeoCoverageName, selectedGeoMission, selectedPosition]);
+  // filteredSatellites intentionally omitted: hover lookups now use satellitesForResolutionRef
+  // (always-fresh ref) so the memo no longer invalidates every 2 s just because satellite
+  // positions updated. satelliteScope is kept to re-filter on scope changes.
+  }, [analyzisPosition, hoveredSatelliteId, hoveredSnpName, liveSelectedSatellite, resolvedAutoLEO, resolvedSelectedGeoCoverage, satelliteScope, selectedGeoCoverageName, selectedGeoMission, selectedPosition]);
 
 
   // coverageFeaturesMemo is used directly - no need to copy to state

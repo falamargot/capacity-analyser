@@ -37,6 +37,40 @@ const clamp = (value: number, min: number, max: number): number => {
   return Math.max(min, Math.min(max, value));
 };
 
+// ─── Bounding-Box Cache ────────────────────────────────────────────────────────
+// Keyed by the GeoJSON Feature object, which is stable for GEO (EUTELSAT) satellites
+// across renders. The cache converts the O(n) ray-cast in isPointInPolygon into an
+// O(1) AABB check that rejects the vast majority of beams before the ray-cast runs.
+interface BBox { minLat: number; maxLat: number; minLng: number; maxLng: number; }
+const bboxCache = new WeakMap<object, BBox>();
+
+const computeRingBBox = (ring: number[][]): BBox => {
+  let minLat = Infinity, maxLat = -Infinity;
+  let minLng = Infinity, maxLng = -Infinity;
+  for (const [lng, lat] of ring) {
+    if (lat < minLat) minLat = lat;
+    if (lat > maxLat) maxLat = lat;
+    if (lng < minLng) minLng = lng;
+    if (lng > maxLng) maxLng = lng;
+  }
+  return { minLat, maxLat, minLng, maxLng };
+};
+
+const getFeatureBBox = (feature: object, ring: number[][]): BBox => {
+  const cached = bboxCache.get(feature);
+  if (cached) return cached;
+  const bbox = computeRingBBox(ring);
+  bboxCache.set(feature, bbox);
+  return bbox;
+};
+
+const isPointInBBox = (point: Point, bbox: BBox): boolean => (
+  point.lat >= bbox.minLat &&
+  point.lat <= bbox.maxLat &&
+  point.lng >= bbox.minLng &&
+  point.lng <= bbox.maxLng
+);
+
 const toRadians = (value: number): number => value * (Math.PI / 180);
 
 const haversineDistanceKm = (a: Point, b: Point): number => {
@@ -250,7 +284,20 @@ export const findCandidateCoverages = (
 
     for (const coverage of satellite.coverages) {
       const ring = getCoverageRing(coverage);
-      if (!ring || !isPointInPolygon(userPoint, ring)) continue;
+      if (!ring) continue;
+
+      // Fast AABB reject before the O(n) ray-cast. The bbox is cached on the
+      // feature object (stable reference for GEO satellites) so subsequent calls
+      // cost only a WeakMap lookup + 4 comparisons instead of a full polygon scan.
+      const feature = coverage.feature;
+      if (feature) {
+        const bbox = getFeatureBBox(feature, ring);
+        // Skip antimeridian-spanning polygons (maxLng - minLng > 180) — their
+        // bbox wraps incorrectly; let them fall through to the full ray-cast.
+        if (bbox.maxLng - bbox.minLng <= 180 && !isPointInBBox(userPoint, bbox)) continue;
+      }
+
+      if (!isPointInPolygon(userPoint, ring)) continue;
 
       const beamMetrics = getBeamDistanceMetrics(userPoint, coverage);
       if (!beamMetrics) continue;
@@ -281,8 +328,13 @@ export const rankCandidateCoverages = (
 ): CandidateCoverage[] => {
   if (candidates.length === 0) return [];
 
-  const maxDistance = Math.max(...candidates.map((candidate) => candidate.distanceFromBeamCenter), 0);
-  const maxThroughput = Math.max(...candidates.map((candidate) => candidate.throughputEstimate), 0);
+  // Single-pass loops: avoids two O(n) temporary arrays + spread into Math.max.
+  let maxDistance = 0;
+  let maxThroughput = 0;
+  for (const candidate of candidates) {
+    if (candidate.distanceFromBeamCenter > maxDistance) maxDistance = candidate.distanceFromBeamCenter;
+    if (candidate.throughputEstimate > maxThroughput) maxThroughput = candidate.throughputEstimate;
+  }
 
   return candidates
     .map((candidate) => {
