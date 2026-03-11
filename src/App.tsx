@@ -173,14 +173,24 @@ const App: React.FC = () => {
         // §1.3 — Pre-index by ID to avoid O(n²) find() calls per tick
         const prevById = new Map(prevSatellitesRef.current.map(s => [s.id, s]));
 
+        // Hoist date computation: one JulianDate per tick instead of one per satellite
+        const now = JulianDate.toDate(JulianDate.now());
+
+        // Epsilon-based position change detection.
+        // GEO satellites move ~0.008° in 2 s — below this threshold → reuse existing
+        // object reference to avoid invalidating downstream useMemos.
+        // LEO satellites move ~0.13°/2 s — always above threshold → always new object.
+        const POSITION_EPSILON_DEG = 0.01;
+        const ALTITUDE_EPSILON_KM = 0.5;
+
         const updatedSatellites = currentSatellites.map((sat) => {
-          const newPosition = calculatePosition(sat, JulianDate.toDate(JulianDate.now()));
+          const newPosition = calculatePosition(sat, now);
           const prev = prevById.get(sat.id);
 
           const positionChanged = !prev ||
-            prev.position.alt !== newPosition.alt ||
-            prev.position.lat !== newPosition.lat ||
-            prev.position.lng !== newPosition.lng;
+            Math.abs(prev.position.lat - newPosition.lat) > POSITION_EPSILON_DEG ||
+            Math.abs(prev.position.lng - newPosition.lng) > POSITION_EPSILON_DEG ||
+            Math.abs(prev.position.alt - newPosition.alt) > ALTITUDE_EPSILON_KM;
 
           const isSatelliteSelected = currentSelectedId === sat.id;
           const isSatelliteHovered = hoveredSatelliteId === sat.id;
@@ -192,13 +202,14 @@ const App: React.FC = () => {
             !sat.coverages?.length
           );
 
-          const updatedSat = { ...sat, position: newPosition };
+          // Nothing changed → return same reference (prevents downstream re-renders)
+          if (!positionChanged && !shouldRecalculateCoverage) return sat;
 
-          return {
-            ...sat,
-            position: newPosition,
-            coverages: shouldRecalculateCoverage ? calculateCoverages(updatedSat) : sat.coverages,
-          };
+          const updatedSat = positionChanged ? { ...sat, position: newPosition } : sat;
+
+          return shouldRecalculateCoverage
+            ? { ...updatedSat, coverages: calculateCoverages(updatedSat) }
+            : updatedSat;
         });
 
         prevSelectedSatelliteRef.current = currentSelectedId;
@@ -353,7 +364,9 @@ const App: React.FC = () => {
       }
     };
 
-    const selectedGeoFeatures = resolveCoverageSelection(selectedCoverage, satellites)?.beams.map((beam) => beam.feature) ?? [];
+    // Reuse the already-computed resolvedSelectedGeoCoverage (avoids a duplicate
+    // O(n) satellite lookup + coverage filter inside a hot useMemo).
+    const selectedGeoFeatures = resolvedSelectedGeoCoverage?.beams.map((beam) => beam.feature) ?? [];
 
     // If user has explicitly selected a satellite, show its coverage (Satellite Inspection mode)
     if (liveSelectedSatellite) {
@@ -440,7 +453,7 @@ const App: React.FC = () => {
     }
 
     return [...features.values()];
-  }, [analyzisPosition, filteredSatellites, hoveredSatelliteId, hoveredSnpName, liveSelectedSatellite, resolvedAutoLEO, satelliteScope, satellites, selectedCoverage, selectedGeoCoverageName, selectedGeoMission, selectedPosition]);
+  }, [analyzisPosition, filteredSatellites, hoveredSatelliteId, hoveredSnpName, liveSelectedSatellite, resolvedAutoLEO, resolvedSelectedGeoCoverage, satelliteScope, selectedGeoCoverageName, selectedGeoMission, selectedPosition]);
 
 
   // coverageFeaturesMemo is used directly - no need to copy to state

@@ -61,6 +61,10 @@ import { formatCoordinates } from '../utils/formatters';
 import { GEO_GATEWAYS } from './globe/GlobeConfig';
 import { analyzeGeoConnectivity } from '../utils/geoConnectivityModel';
 
+// Module-level constants — allocated once, reused on every render.
+const LABEL_BACKGROUND_PADDING = new Cartesian2(7, 4);
+const LABEL_PIXEL_OFFSET = new Cartesian2(0, -20);
+
 interface CesiumGlobeProps {
     satellites: SatelliteData[];
     satelliteTypeByName: Map<string, SatelliteData['type']>;
@@ -451,8 +455,8 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                                 style={2}
                                 showBackground={true}
                                 backgroundColor={Color.RED.withAlpha(0.7)}
-                                backgroundPadding={new Cartesian2(7, 4)}
-                                pixelOffset={new Cartesian2(0, -20)}
+                                backgroundPadding={LABEL_BACKGROUND_PADDING}
+                                pixelOffset={LABEL_PIXEL_OFFSET}
                                 verticalOrigin={VerticalOrigin.BOTTOM}
                                 horizontalOrigin={HorizontalOrigin.CENTER}
                                 disableDepthTestDistance={Number.POSITIVE_INFINITY}

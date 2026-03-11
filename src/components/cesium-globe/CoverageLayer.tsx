@@ -80,12 +80,33 @@ const CoveragePolygon = React.memo<{
         geoLayerCount,
     ]);
 
+    // geoLayerIndex / geoLayerCount are NOT used in this computation — removed from deps
+    // to avoid spurious re-runs when the layer order changes but the color doesn't.
     const outlineColor = useMemo(() => {
         if (!isGeoCoverage) return null;
         if (isSelected) return SELECTED_GEO_CONTOUR_COLOR;
-        if (isCandidate) return GEO_CONTOUR_COLOR;
         return GEO_CONTOUR_COLOR;
-    }, [isCandidate, isGeoCoverage, isSelected, geoLayerIndex, geoLayerCount]);
+    }, [isGeoCoverage, isSelected]);
+
+    // Memoize polyline positions so Cartesian3.fromDegreesArray is NOT called on
+    // every render — only when the coordinate ring changes (i.e. on initial load).
+    // Previously this was an inline IIFE that allocated a flat number[] + a
+    // Cartesian3[] on every single render for every GEO contour polygon.
+    const polylinePositions = useMemo(() => {
+        if (!isGeoCoverage || !outlineColor || isSelected) return undefined;
+        try {
+            const ring = coords as number[][] | null;
+            if (!ring || ring.length < 2) return undefined;
+            const closed = buildClosedRing(ring);
+            const arr: number[] = [];
+            for (const [lng, lat] of closed) {
+                arr.push(lng, lat);
+            }
+            return Cartesian3.fromDegreesArray(arr);
+        } catch {
+            return undefined;
+        }
+    }, [coords, isGeoCoverage, isSelected, outlineColor]);
 
     if (!isPolygon || isOneWebPlaceholder || !hierarchy || !color) return null;
 
@@ -100,31 +121,12 @@ const CoveragePolygon = React.memo<{
                     outlineWidth={1}
                 />
             </Entity>
-            {isGeoCoverage && outlineColor && !isSelected && (
+            {isGeoCoverage && outlineColor && !isSelected && polylinePositions && (
                 <Entity
                     key={`coverage-outline-${index}`}
                     name={`${feature.properties?.name || 'GEO Coverage'} contour`}
                     polyline={{
-                        positions: (() => {
-                            try {
-                                const ring = coords as number[][];
-                                if (!ring || ring.length < 2) return undefined;
-                                const closed = (() => {
-                                    const [firstLng, firstLat] = ring[0];
-                                    const [lastLng, lastLat] = ring[ring.length - 1];
-                                    if (firstLng === lastLng && firstLat === lastLat) return ring;
-                                    return [...ring, ring[0]];
-                                })();
-
-                                const arr: number[] = [];
-                                for (const [lng, lat] of closed) {
-                                    arr.push(lng, lat);
-                                }
-                                return Cartesian3.fromDegreesArray(arr);
-                            } catch {
-                                return undefined;
-                            }
-                        })(),
+                        positions: polylinePositions,
                         width: isCandidate ? 1.5 : 1,
                         material: outlineColor,
                         clampToGround: true,

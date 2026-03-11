@@ -220,10 +220,15 @@ const getBeamDistanceMetrics = (
 
   const centroid = getCoverageCentroid(ring);
   const distanceKm = haversineDistanceKm(userPoint, centroid);
-  const maxDistanceKm = Math.max(
-    ...ring.map(([lng, lat]) => haversineDistanceKm(centroid, { lat, lng })),
-    1
-  );
+
+  // Loop instead of Math.max(...ring.map(...)) to avoid:
+  //   1. O(n) temporary array allocation per candidate
+  //   2. Potential call-stack overflow on large rings (spread of 500+ args)
+  let maxDistanceKm = 1;
+  for (const [lng, lat] of ring) {
+    const d = haversineDistanceKm(centroid, { lat, lng });
+    if (d > maxDistanceKm) maxDistanceKm = d;
+  }
 
   return {
     distanceKm,
