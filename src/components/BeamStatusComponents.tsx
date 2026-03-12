@@ -37,7 +37,12 @@ interface BeamStatusGridProps {
   onHealthChange: (beamIndex: number, value: number) => void;
   onReset: () => void;
   weatherCondition: WeatherCondition;
-  isMovingNorth?: boolean; // Ajouter la direction de mouvement
+  isMovingNorth?: boolean;
+  /** Feature 3 – Beam HS: array of 16 booleans indicating HS status */
+  beamHsStatus?: readonly boolean[];
+  /** Feature 3 – Beam HS: toggle callback */
+  onHsToggle?: (beamIndex: number) => void;
+  onResetHs?: () => void;
 }
 
 export const BeamStatusGrid: React.FC<BeamStatusGridProps> = ({
@@ -49,7 +54,10 @@ export const BeamStatusGrid: React.FC<BeamStatusGridProps> = ({
   onHealthChange,
   onReset,
   weatherCondition,
-  isMovingNorth = false // Direction de déplacement du satellite
+  isMovingNorth = false,
+  beamHsStatus = Array(16).fill(false),
+  onHsToggle,
+  onResetHs,
 }) => {
   const getHealth = (beamIndex: number): number => {
     const entry = beamHealthFactors.find(b => b.beamIndex === beamIndex);
@@ -203,12 +211,13 @@ export const BeamStatusGrid: React.FC<BeamStatusGridProps> = ({
             </span>
             <div className="flex gap-1 flex-1">
               {Array.from({ length: 8 }, (_, i) => {
-                const status = getBeamStatus(i);
+                const isHs = beamHsStatus[i] ?? false;
+                const status = isHs ? 'hs' : getBeamStatus(i);
                 const h = getHealth(i);
                 const isPeripheral = PERIPHERAL_BEAM_INDICES.has(i);
                 const pct = Math.round(h * 100);
-                const isBeamActive = status !== 'inactive';
-                const beamPower = calculateBeamPowerAllocation(isBeamActive, activeBeams, weatherCondition);
+                const isBeamActive = status !== 'inactive' && status !== 'hs';
+                const beamPower = isHs ? 0 : calculateBeamPowerAllocation(isBeamActive, activeBeams, weatherCondition);
 
                 return (
                   <div
@@ -217,39 +226,59 @@ export const BeamStatusGrid: React.FC<BeamStatusGridProps> = ({
                   >
                     {/* Operational Status Badge */}
                     <div
-                      className={`w-full h-6 rounded flex items-center justify-center text-[10px] font-medium transition-colors ${status === 'active'
-                        ? 'text-white shadow-sm'
-                        : status === 'gso-half'
-                          ? 'text-white shadow-sm'
-                          : 'bg-gray-300 dark:bg-gray-700 text-gray-600 dark:text-gray-400'
-                        }`}
+                      className={`w-full h-6 rounded flex items-center justify-center text-[10px] font-medium transition-colors ${
+                        isHs
+                          ? 'bg-red-700 dark:bg-red-900 text-white shadow-sm'
+                          : status === 'active' || status === 'gso-half'
+                            ? 'text-white shadow-sm'
+                            : 'bg-gray-300 dark:bg-gray-700 text-gray-600 dark:text-gray-400'
+                      }`}
                       style={{
-                        backgroundColor: status !== 'inactive' ? getBeamColorRgb(i) : undefined
+                        backgroundColor: !isHs && status !== 'inactive' ? getBeamColorRgb(i) : undefined
                       }}
-                      title={`Beam ${i}: ${status === 'active' ? 'Active' : status === 'gso-half' ? 'GSO Mode' : 'Inactive'} | ${getBeamFrequency(i).band}-band | ${getBeamFrequency(i).downlink} GHz downlink`}
+                      title={`Beam ${i}: ${isHs ? 'HS – Hard Out of Service' : status === 'active' ? 'Active' : status === 'gso-half' ? 'GSO Mode' : 'Inactive'} | ${getBeamFrequency(i).band}-band | ${getBeamFrequency(i).downlink} GHz downlink`}
                     >
-                      <span className={isPeripheral && isBeamActive ? 'font-bold underline decoration-2 underline-offset-2' : ''}>{i}</span>
+                      {isHs
+                        ? <span className="font-bold tracking-tight">HS</span>
+                        : <span className={isPeripheral && isBeamActive ? 'font-bold underline decoration-2 underline-offset-2' : ''}>{i}</span>
+                      }
                     </div>
 
+                    {/* HS Toggle button */}
+                    {onHsToggle && (
+                      <button
+                        type="button"
+                        onClick={() => onHsToggle(i)}
+                        title={isHs ? `Restore beam ${i}` : `Mark beam ${i} as HS (out of service)`}
+                        className={`w-full h-4 rounded-sm text-[8px] font-bold transition-colors ${
+                          isHs
+                            ? 'bg-red-200 dark:bg-red-800 text-red-800 dark:text-red-200 hover:bg-red-300 dark:hover:bg-red-700'
+                            : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:bg-red-100 dark:hover:bg-red-900'
+                        }`}
+                      >
+                        {isHs ? 'RESTORE' : 'HS'}
+                      </button>
+                    )}
+
                     {/* Health Body */}
-                    <div className={`w-full flex flex-col items-center gap-1 transition-opacity duration-300 ${!isBeamActive ? 'opacity-30 grayscale' : 'opacity-100'}`}>
+                    <div className={`w-full flex flex-col items-center gap-1 transition-opacity duration-300 ${(!isBeamActive || isHs) ? 'opacity-30 grayscale' : 'opacity-100'}`}>
 
                       {/* Interactive Health bar */}
                       <div className="relative w-full bg-gray-200 dark:bg-gray-700 rounded-sm overflow-hidden" style={{ height: '40px' }}>
                         <div
-                          className={`absolute bottom-0 w-full rounded-sm transition-all duration-300 ${getHealthColor(h)}`}
-                          style={{ height: `${pct}%` }}
+                          className={`absolute bottom-0 w-full rounded-sm transition-all duration-300 ${isHs ? 'bg-red-500' : getHealthColor(h)}`}
+                          style={{ height: `${isHs ? 100 : pct}%` }}
                         />
 
                         {/* Text Inside Bar */}
                         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                           <span className="text-[10px] font-bold text-white drop-shadow-[0_1px_1px_rgba(0,0,0,0.8)]">
-                            {pct}%
+                            {isHs ? 'HS' : `${pct}%`}
                           </span>
                         </div>
 
                         {/* Invisible Interactive Slider Layer */}
-                        {isBeamActive && (
+                        {isBeamActive && !isHs && (
                           <input
                             type="range"
                             min={0}
@@ -268,8 +297,8 @@ export const BeamStatusGrid: React.FC<BeamStatusGridProps> = ({
                       </div>
 
                       {/* Wattage */}
-                      <span className="text-[10px] text-blue-700 dark:text-blue-400 font-bold">
-                        {beamPower.toFixed(1)}W
+                      <span className={`text-[10px] font-bold ${isHs ? 'text-red-500 dark:text-red-400' : 'text-blue-700 dark:text-blue-400'}`}>
+                        {isHs ? '0W' : `${beamPower.toFixed(1)}W`}
                       </span>
 
                     </div>
@@ -287,12 +316,13 @@ export const BeamStatusGrid: React.FC<BeamStatusGridProps> = ({
             <div className="flex gap-1 flex-1">
               {Array.from({ length: 8 }, (_, i) => {
                 const beamIndex = i + 8;
-                const status = getBeamStatus(beamIndex);
+                const isHs = beamHsStatus[beamIndex] ?? false;
+                const status = isHs ? 'hs' : getBeamStatus(beamIndex);
                 const h = getHealth(beamIndex);
                 const isPeripheral = PERIPHERAL_BEAM_INDICES.has(beamIndex);
                 const pct = Math.round(h * 100);
-                const isBeamActive = status !== 'inactive';
-                const beamPower = calculateBeamPowerAllocation(isBeamActive, activeBeams, weatherCondition);
+                const isBeamActive = status !== 'inactive' && status !== 'hs';
+                const beamPower = isHs ? 0 : calculateBeamPowerAllocation(isBeamActive, activeBeams, weatherCondition);
 
                 return (
                   <div
@@ -301,39 +331,59 @@ export const BeamStatusGrid: React.FC<BeamStatusGridProps> = ({
                   >
                     {/* Operational Status Badge */}
                     <div
-                      className={`w-full h-6 rounded flex items-center justify-center text-[10px] font-medium transition-colors ${status === 'active'
-                        ? 'text-white shadow-sm'
-                        : status === 'gso-half'
-                          ? 'text-white shadow-sm'
-                          : 'bg-gray-300 dark:bg-gray-700 text-gray-600 dark:text-gray-400'
-                        }`}
+                      className={`w-full h-6 rounded flex items-center justify-center text-[10px] font-medium transition-colors ${
+                        isHs
+                          ? 'bg-red-700 dark:bg-red-900 text-white shadow-sm'
+                          : status === 'active' || status === 'gso-half'
+                            ? 'text-white shadow-sm'
+                            : 'bg-gray-300 dark:bg-gray-700 text-gray-600 dark:text-gray-400'
+                      }`}
                       style={{
-                        backgroundColor: status !== 'inactive' ? getBeamColorRgb(beamIndex) : undefined
+                        backgroundColor: !isHs && status !== 'inactive' ? getBeamColorRgb(beamIndex) : undefined
                       }}
-                      title={`Beam ${beamIndex}: ${status === 'active' ? 'Active' : status === 'gso-half' ? 'GSO Mode' : 'Inactive'} | ${getBeamFrequency(beamIndex).band}-band | ${getBeamFrequency(beamIndex).downlink} GHz downlink`}
+                      title={`Beam ${beamIndex}: ${isHs ? 'HS – Hard Out of Service' : status === 'active' ? 'Active' : status === 'gso-half' ? 'GSO Mode' : 'Inactive'} | ${getBeamFrequency(beamIndex).band}-band | ${getBeamFrequency(beamIndex).downlink} GHz downlink`}
                     >
-                      <span className={isPeripheral && isBeamActive ? 'font-bold underline decoration-2 underline-offset-2' : ''}>{beamIndex}</span>
+                      {isHs
+                        ? <span className="font-bold tracking-tight">HS</span>
+                        : <span className={isPeripheral && isBeamActive ? 'font-bold underline decoration-2 underline-offset-2' : ''}>{beamIndex}</span>
+                      }
                     </div>
 
+                    {/* HS Toggle button */}
+                    {onHsToggle && (
+                      <button
+                        type="button"
+                        onClick={() => onHsToggle(beamIndex)}
+                        title={isHs ? `Restore beam ${beamIndex}` : `Mark beam ${beamIndex} as HS (out of service)`}
+                        className={`w-full h-4 rounded-sm text-[8px] font-bold transition-colors ${
+                          isHs
+                            ? 'bg-red-200 dark:bg-red-800 text-red-800 dark:text-red-200 hover:bg-red-300 dark:hover:bg-red-700'
+                            : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:bg-red-100 dark:hover:bg-red-900'
+                        }`}
+                      >
+                        {isHs ? 'RESTORE' : 'HS'}
+                      </button>
+                    )}
+
                     {/* Health Body */}
-                    <div className={`w-full flex flex-col items-center gap-1 transition-opacity duration-300 ${!isBeamActive ? 'opacity-30 grayscale' : 'opacity-100'}`}>
+                    <div className={`w-full flex flex-col items-center gap-1 transition-opacity duration-300 ${(!isBeamActive || isHs) ? 'opacity-30 grayscale' : 'opacity-100'}`}>
 
                       {/* Interactive Health bar */}
                       <div className="relative w-full bg-gray-200 dark:bg-gray-700 rounded-sm overflow-hidden" style={{ height: '40px' }}>
                         <div
-                          className={`absolute bottom-0 w-full rounded-sm transition-all duration-300 ${getHealthColor(h)}`}
-                          style={{ height: `${pct}%` }}
+                          className={`absolute bottom-0 w-full rounded-sm transition-all duration-300 ${isHs ? 'bg-red-500' : getHealthColor(h)}`}
+                          style={{ height: `${isHs ? 100 : pct}%` }}
                         />
 
                         {/* Text Inside Bar */}
                         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                           <span className="text-[10px] font-bold text-white drop-shadow-[0_1px_1px_rgba(0,0,0,0.8)]">
-                            {pct}%
+                            {isHs ? 'HS' : `${pct}%`}
                           </span>
                         </div>
 
                         {/* Invisible Interactive Slider Layer */}
-                        {isBeamActive && (
+                        {isBeamActive && !isHs && (
                           <input
                             type="range"
                             min={0}
@@ -352,8 +402,8 @@ export const BeamStatusGrid: React.FC<BeamStatusGridProps> = ({
                       </div>
 
                       {/* Wattage */}
-                      <span className="text-[10px] text-blue-700 dark:text-blue-400 font-bold">
-                        {beamPower.toFixed(1)}W
+                      <span className={`text-[10px] font-bold ${isHs ? 'text-red-500 dark:text-red-400' : 'text-blue-700 dark:text-blue-400'}`}>
+                        {isHs ? '0W' : `${beamPower.toFixed(1)}W`}
                       </span>
 
                     </div>
@@ -367,32 +417,6 @@ export const BeamStatusGrid: React.FC<BeamStatusGridProps> = ({
 
       {/* Legends and Controls */}
       <div className="flex flex-col gap-2 pt-3 border-t border-gray-200 dark:border-slate-700">
-        <div className="flex items-center justify-between text-[11px]">
-          {/* Status Legend */}
-          <div className="flex items-center gap-3">
-            <span className="font-semibold text-gray-700 dark:text-gray-300">Status:</span>
-            <div className="flex items-center gap-1">
-              <div className="w-2.5 h-2.5 rounded-sm shadow-sm" style={{ backgroundColor: getBeamColorRgb(0) }}></div>
-              <span className="text-gray-600 dark:text-gray-400">Active</span>
-            </div>
-            {isGSOAvoidance && (
-              <div className="flex items-center gap-1">
-                <div className="w-2.5 h-2.5 rounded-sm shadow-sm" style={{ backgroundColor: getBeamColorRgb(0) }}></div>
-                <span className="text-gray-600 dark:text-gray-400">GSO Mode</span>
-              </div>
-            )}
-            <div className="flex items-center gap-1">
-              <div className="w-2.5 h-2.5 rounded-sm bg-gray-300 dark:bg-gray-700"></div>
-              <span className="text-gray-600 dark:text-gray-400">Off</span>
-            </div>
-          </div>
-
-          {/* Peripheral label indicator */}
-          <span className="text-gray-500 dark:text-gray-400">
-            <span className="font-bold underline decoration-2 underline-offset-2 text-gray-700 dark:text-gray-300 mr-1">#</span> = peripheral
-          </span>
-        </div>
-
         <div className="flex items-center justify-between text-[11px]">
           {/* Health Legend */}
           <div className="flex items-center gap-3">
@@ -418,6 +442,14 @@ export const BeamStatusGrid: React.FC<BeamStatusGridProps> = ({
             >
               Reset Health
             </button>
+            {onResetHs && (
+              <button
+                onClick={onResetHs}
+                className="px-2 py-0.5 rounded bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/50 transition-colors"
+              >
+                Restore All HS
+              </button>
+            )}
           </div>
         </div>
       </div>

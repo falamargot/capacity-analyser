@@ -24,14 +24,20 @@
  * @param isGSOAvoidance  satellite is pitching for GSO Protection (2° < |lat| < 45°)
  * @param satLatDeg       current geodetic latitude of the satellite (degrees)
  * @param isMovingNorth   true if the satellite's along-track velocity has a northward component
+ * @param hsBeams         optional set of beam indices marked as Hard Out of Service (HS).
+ *                        When a beam is HS it is excluded from service regardless of GSO state.
  */
 export function isBeamActive(
     beamIndex: number,
     isBlankingZone: boolean,
     isGSOAvoidance: boolean,
     satLatDeg: number,
-    isMovingNorth: boolean
+    isMovingNorth: boolean,
+    hsBeams?: ReadonlySet<number>
 ): boolean {
+    // Feature 3: Beam HS — hard out-of-service overrides everything
+    if (hsBeams?.has(beamIndex)) return false;
+
     // GSO exclusion zone ±2° latitude — all beams silenced
     if (isBlankingZone) return false;
 

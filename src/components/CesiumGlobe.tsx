@@ -59,7 +59,7 @@ import SatelliteIndicator from './cesium-globe/SatelliteIndicator';
 import { LabelGraphics } from 'resium';
 import { formatCoordinates } from '../utils/formatters';
 import { GEO_GATEWAYS } from './globe/GlobeConfig';
-import { analyzeGeoConnectivity } from '../utils/geoConnectivityModel';
+import { selectBestGeoGateway } from '../utils/geoConnectivityModel';
 
 // Module-level constants — allocated once, reused on every render.
 const LABEL_BACKGROUND_PADDING = new Cartesian2(7, 4);
@@ -340,25 +340,17 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         return { beamFeature, sat: autoSelectedGEOSatellite };
     }, [selectedSatellite, autoSelectedGEOSatellite, selectedGEOBeam]);
 
+    // Gateway selection only depends on the satellite position — not on user position.
+    // Removing selectedAircraft and selectedPosition from deps prevents re-runs
+    // on every aircraft interpolation tick or user position change.
     const selectedGeoGatewayName = useMemo(() => {
         const geoSatellite = selectedSatellite?.type === 'EUTELSAT'
             ? selectedSatellite
             : autoSelectedGEOSatellite;
         if (!geoSatellite) return null;
 
-        const lat = selectedAircraft?.latitude ?? selectedPosition?.lat;
-        const lng = selectedAircraft?.longitude ?? selectedPosition?.lng;
-        if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
-
-        const altitude = selectedAircraft?.altitude_km ?? selectedPosition?.altitude ?? 0;
-        const geo = analyzeGeoConnectivity({
-            userPoint: { lat: Number(lat), lng: Number(lng), altitude: Number(altitude) || 0 },
-            satellite: geoSatellite,
-            gateways: GEO_GATEWAYS,
-        });
-
-        return geo.satelliteToGateway.gateway?.name ?? null;
-    }, [selectedSatellite, autoSelectedGEOSatellite, selectedAircraft, selectedPosition]);
+        return selectBestGeoGateway(geoSatellite, GEO_GATEWAYS)?.gateway.name ?? null;
+    }, [selectedSatellite, autoSelectedGEOSatellite]);
 
     // Create stable pixel size callback for selected position marker
     const positionMarkerPixelSize = useMemo(() => {

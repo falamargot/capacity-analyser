@@ -61,10 +61,11 @@ export const loadSatelliteCoverage = async (satelliteId: string, satelliteName: 
 export const getCoverageColor = (
   type: string | null,
   opacity: number = 0.3,
-  satellite?: SatelliteData
+  satellite?: SatelliteData,
+  failedSnps?: ReadonlySet<string>
 ): string => {
-  // Determine once whether this ONEWEB satellite covers at least one SNP
-  const hasSNP = satellite ? hasSNPInCoverage(satellite) : false;
+  // Determine once whether this ONEWEB satellite covers at least one non-failed SNP
+  const hasSNP = satellite ? hasSNPInCoverage(satellite, failedSnps) : false;
 
   // ONEWEB double-zone logic (STANDARD / BACKHAUL)
   // Rule:
@@ -145,7 +146,10 @@ function calculate3DDistanceKm(satellitePosition: { lat: number; lng: number; al
   return Math.sqrt(dx * dx + dy * dy + dz * dz);
 }
 
-export const getNearestSNPInBackhaul = (satellite: SatelliteData): { name: string; distance: number; latency: number } | null => {
+export const getNearestSNPInBackhaul = (
+  satellite: SatelliteData,
+  failedSnps: ReadonlySet<string> = new Set()
+): { name: string; distance: number; latency: number } | null => {
   // Only check for LEO satellites (ONEWEB)
   if (satellite.type !== 'ONEWEB') {
     return null;
@@ -175,8 +179,11 @@ export const getNearestSNPInBackhaul = (satellite: SatelliteData): { name: strin
   const MAX_BACKHAUL_DISTANCE_KM = BACKHAUL_RADIUS_KM;
   let minDistance = Infinity;
 
-  // Find the nearest SNP
+  // Find the nearest SNP (skipping SNPs marked as failed)
   for (const snp of SNPS_DATA) {
+    // Feature 1: SNP Cascade Failure — skip failed SNPs
+    if (failedSnps.has(snp.name)) continue;
+
     const surfaceDistance = haversineDistanceKm(satellitePosition, { lat: snp.lat, lng: snp.lng });
 
     // First Constraint: Radio Horizon / Distance Limit
@@ -215,7 +222,7 @@ export const getNearestSNPInBackhaul = (satellite: SatelliteData): { name: strin
   return nearestSNP;
 };
 
-export const hasSNPInCoverage = (satellite: SatelliteData): boolean => {
+export const hasSNPInCoverage = (satellite: SatelliteData, failedSnps: ReadonlySet<string> = new Set()): boolean => {
   // Only check for LEO satellites (ONEWEB)
   if (satellite.type !== 'ONEWEB') {
     return false;
@@ -238,10 +245,11 @@ export const hasSNPInCoverage = (satellite: SatelliteData): boolean => {
     }
   }
 
-  // Check if any SNP is in the satellite's coverage
-  // For practical purposes, we consider coverage if SNP is in EITHER client OR gateway coverage
-  // This reflects real-world LEO operations where communication can be established with either link
+  // Check if any non-failed SNP is in the satellite's coverage
   for (const snp of SNPS_DATA) {
+    // Feature 1: skip SNPs marked as failed
+    if (failedSnps.has(snp.name)) continue;
+
     const coverageIndices = isPointInCoverage(
       { lat: snp.lat, lng: snp.lng },
       satellite,

@@ -25,7 +25,8 @@ export function hasRFConnectivity(
     userPosition: { lat: number; lng: number },
     satellite: SatelliteData,
     time: JulianDate,
-    policy: CoveragePolicy = { type: "DB_THRESHOLD", thresholdDb: -10 }
+    policy: CoveragePolicy = { type: "DB_THRESHOLD", thresholdDb: -10 },
+    hsBeams?: ReadonlySet<number>
 ): boolean {
     if (!satellite || satellite.type !== 'ONEWEB') {
         return false;
@@ -50,7 +51,7 @@ export function hasRFConnectivity(
         }
 
         // Check if user is within any active beam polygon (gsoState already computed)
-        return isUserInActiveBeam(userPosition, satellite, time, policy, gsoState);
+        return isUserInActiveBeam(userPosition, satellite, time, policy, gsoState, hsBeams);
     } catch (error) {
         console.warn('Error checking RF connectivity:', error);
         return false;
@@ -69,7 +70,8 @@ function isUserInActiveBeam(
     satellite: SatelliteData,
     time: JulianDate,
     policy: CoveragePolicy,
-    gsoState: GSOState
+    gsoState: GSOState,
+    hsBeams?: ReadonlySet<number>
 ): boolean {
     try {
         const { isBlankingZone, isGSOAvoidance, satLatDeg, isMovingNorth } = gsoState;
@@ -95,7 +97,7 @@ function isUserInActiveBeam(
 
         // M-01 fix: isBeamActive imported from oneWebComb (canonical implementation)
         for (let beamIndex = 0; beamIndex < beamPolygons.length; beamIndex++) {
-            if (isBeamActive(beamIndex, isBlankingZone, isGSOAvoidance, satLatDeg, isMovingNorth)) {
+            if (isBeamActive(beamIndex, isBlankingZone, isGSOAvoidance, satLatDeg, isMovingNorth, hsBeams)) {
                 if (isPointInPolygon(userPosition, beamPolygons[beamIndex])) {
                     return true;
                 }
@@ -156,7 +158,8 @@ function isPointInPolygon(
 export function getConnectivityStatus(
     userPosition: { lat: number; lng: number },
     satellite: SatelliteData,
-    time: JulianDate
+    time: JulianDate,
+    hsBeams?: ReadonlySet<number>
 ): {
     hasGeometricVisibility: boolean;
     hasRFConnectivity: boolean;
@@ -192,7 +195,7 @@ export function getConnectivityStatus(
         // RF connectivity check — reuses gsoState (no third propagation)
         const hasRF = hasGeometricVisibility &&
             activeBeamCount > 0 &&
-            isUserInActiveBeam(userPosition, satellite, time, { type: "DB_THRESHOLD", thresholdDb: -10 }, gsoState);
+            isUserInActiveBeam(userPosition, satellite, time, { type: "DB_THRESHOLD", thresholdDb: -10 }, gsoState, hsBeams);
 
         return {
             hasGeometricVisibility,
@@ -403,7 +406,8 @@ export function findConnectedBeamIndex(
     userPosition: { lat: number; lng: number },
     satellite: SatelliteData,
     time: JulianDate,
-    policy: CoveragePolicy = { type: "DB_THRESHOLD", thresholdDb: -10 }
+    policy: CoveragePolicy = { type: "DB_THRESHOLD", thresholdDb: -10 },
+    hsBeams?: ReadonlySet<number>
 ): number | null {
     if (!satellite || satellite.type !== 'ONEWEB' || !satellite.satrec) return null;
 
@@ -427,7 +431,7 @@ export function findConnectedBeamIndex(
 
         for (let beamIndex = 0; beamIndex < beamPolygons.length; beamIndex++) {
             // M-01 fix: isBeamActive imported from oneWebComb (canonical)
-            if (!isBeamActive(beamIndex, isBlankingZone, isGSOAvoidance, satLatDeg, isMovingNorth)) continue;
+            if (!isBeamActive(beamIndex, isBlankingZone, isGSOAvoidance, satLatDeg, isMovingNorth, hsBeams)) continue;
             if (isPointInPolygon(userPosition, beamPolygons[beamIndex])) {
                 return beamIndex; // Beams ordered 0 (North) → 15 (South)
             }

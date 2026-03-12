@@ -19,6 +19,8 @@ import {
 } from '../utils/realisticSimulation';
 import { analyzeLeoConnectivity } from '../utils/leoConnectivityModel';
 import { computeGeoConnectivity } from '../utils/geoCoverageSelection';
+import { useSimulation, getCorridorIndex, getCorridorRange, getDcThroughputScale, CORRIDOR_COUNT } from '../contexts/SimulationContext';
+import PassBeamTimeline from './PassBeamTimeline';
 
 // Module-level stable definitions to avoid recreating inside component and
 // to keep hook dependency arrays clean.
@@ -45,6 +47,13 @@ const toWeatherCondition = (wt: WeatherType): WeatherCondition => {
   if (wt === 'clear') return 'CLEAR';
   if (wt === 'light_rain') return 'CLOUDS';
   return 'RAIN';
+};
+
+// Physics-based factor: 10^(dB/10) as linear power ratio.
+// Defined once at module level — stable reference, no need to wrap in useCallback.
+const getWeatherFactor = (wt: WeatherType, isAviation: boolean): number => {
+  if (isAviation) return 1.0;
+  return Math.pow(10, WEATHER_ATTENUATION_DB[toWeatherCondition(wt)] / 10);
 };
 
 interface CapacityDetailsProps {
@@ -106,6 +115,15 @@ const LatencyBreakdownCard = ({ accentColor, summary, title = 'Latency breakdown
 
 // Performance optimization: Memoize component to prevent unnecessary re-renders
 const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint, selectedSatellite, autoSelectedLEOSatellite, satelliteScope, onSatelliteClick, analysisSource, aircraftCallsign, selectedSNP: propSelectedSNP, candidateCoverages = [], selectedCoverage = null, onSelectCoverage, selectedGeoMission, selectedGeoCoverageName, onSelectGeoMission, onSelectGeoCoverage }) => {
+  // Feature 1+2+3: read simulation context for failedSnps, corridorDcLevels, hsBeamsSet
+  const {
+    failedSnps,
+    corridorDcLevels, setCorridorDcLevel, resetCorridorDcLevels,
+    beamHealthFactors,
+    hsBeamsSet,
+    weatherCondition: ctxWeather,
+  } = useSimulation();
+
   const [nearestLocation, setNearestLocation] = useState<{ city: string; country: string } | null>(null);
 
   const [realTimeData, setRealTimeData] = useState<RealTimeCapacityData>({
@@ -119,6 +137,7 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
 
   const [terminalType, setTerminalType] = useState<TerminalType>('fixed');
   const [previousAnalysisSource, setPreviousAnalysisSource] = useState<'earth' | 'aircraft' | undefined>(undefined);
+  const [isPolarSupplyPlanOpen, setIsPolarSupplyPlanOpen] = useState(false);
 
   // Auto-select aviation terminal type when aircraft is selected
   useEffect(() => {
@@ -148,32 +167,8 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
     }
   }, [terminalType]);
 
-  // Map legacy UI weather types to physics conditions
-  const toWeatherCondition = (wt: WeatherType): WeatherCondition => {
-    if (wt === 'clear') return 'CLEAR';
-    if (wt === 'light_rain') return 'CLOUDS'; // Light rain → cloud-level attenuation
-    return 'RAIN'; // heavy_rain / storm → full rain attenuation
-  };
-
-  const WEATHER_PROFILES: Record<WeatherType, { label: string; condition: WeatherCondition }> = {
-    clear: { label: 'Clear Sky', condition: 'CLEAR' },
-    light_rain: { label: 'Clouds', condition: 'CLOUDS' },
-    heavy_rain: { label: 'Rain', condition: 'RAIN' },
-    storm: { label: 'Rain (Heavy)', condition: 'RAIN' },
-  };
-
-  // Physics-based factor: 10^(dB/10) as linear power ratio
-  const getWeatherFactor = (wt: WeatherType, isAviation: boolean): number => {
-    if (isAviation) return 1.0; // Aviation terminals above clouds
-    const condition = toWeatherCondition(wt);
-    return Math.pow(10, WEATHER_ATTENUATION_DB[condition] / 10);
-  };
-
-  // Wrap module-level constants/functions in stable refs/memos for hook deps
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const WEATHER_PROFILES_MEMO = useMemo(() => WEATHER_PROFILES, []);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const getWeatherFactorMemo = useCallback((wt: WeatherType, isAviation: boolean) => getWeatherFactor(wt, isAviation), []);
+  // toWeatherCondition, WEATHER_PROFILES, getWeatherFactor are module-level constants —
+  // no need to redefine or wrap inside the component.
 
   // Calculate theoretical LEO performance metrics
   const calculateLEOPerformance = useCallback((
@@ -202,7 +197,7 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
     const MAX_USER_DL_Gbps = profile.maxDlGbps;
     const MAX_USER_UL_Gbps = profile.maxUlGbps;
     // Aviation terminals are above clouds, so weather factor is always 1.0
-    const weatherFactor = getWeatherFactorMemo(weatherType, terminalType === 'aviation');
+    const weatherFactor = getWeatherFactor(weatherType, terminalType === 'aviation');
 
     // Limiting link = the weaker geometry between user<->sat and snp<->sat
     const limitingElevation = Math.min(userLEOElevation, snpLEOElevation);
@@ -322,14 +317,14 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
       performanceFactor,
       footprintFactor,
       weatherFactor,
-      weatherLabel: WEATHER_PROFILES_MEMO[weatherType].label
+      weatherLabel: WEATHER_PROFILES[weatherType].label
     };
-  }, [terminalType, weatherType, WEATHER_PROFILES_MEMO, getWeatherFactorMemo]);
+  }, [terminalType, weatherType]);
 
   const calculateGEOPerformance = useCallback((elevationDeg: number) => {
     const profile = TERMINAL_PROFILES[terminalType];
     // Aviation terminals are above clouds, so weather factor is always 1.0
-    const weatherFactor = getWeatherFactorMemo(weatherType, terminalType === 'aviation');
+    const weatherFactor = getWeatherFactor(weatherType, terminalType === 'aviation');
 
     // Not usable below 10° elevation
     if (elevationDeg < 5) {
@@ -339,7 +334,7 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
         stability: 'Unstable',
         performanceFactor: 0,
         weatherFactor,
-        weatherLabel: WEATHER_PROFILES_MEMO[weatherType].label
+        weatherLabel: WEATHER_PROFILES[weatherType].label
       };
     }
 
@@ -367,9 +362,9 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
       stability,
       performanceFactor,
       weatherFactor,
-      weatherLabel: WEATHER_PROFILES_MEMO[weatherType].label
+      weatherLabel: WEATHER_PROFILES[weatherType].label
     };
-  }, [terminalType, weatherType, WEATHER_PROFILES_MEMO, getWeatherFactorMemo]);
+  }, [terminalType, weatherType]);
 
   // Use selectedPoint as the unified active point
   const activePoint = useMemo(() => {
@@ -451,10 +446,13 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
 
     // --- Beam index detection: which of the 16 beams covers the user point ---
     // Uses the exact same real Cesium beam polygons as the globe rendering (via rfConnectivity.ts).
+    // hsBeamsSet ensures HS beams are excluded from connectivity.
     const connectedBeamIndex = findConnectedBeamIndex(
       activePoint,
       sat,
-      JulianDate.fromDate(new Date())
+      JulianDate.fromDate(new Date()),
+      { type: 'DB_THRESHOLD', thresholdDb: -10 },
+      hsBeamsSet
     );
 
     // Check if we have a connected SNP (from auto-selection)
@@ -611,7 +609,11 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
     updateRealTimeData();
     const interval = setInterval(updateRealTimeData, 1000);
     return () => clearInterval(interval);
-  }, [activePoint, satellites, selectedSatellite]);
+  // satellites intentionally omitted: the callback uses satellitesRef.current (always-fresh ref).
+  // Including satellites would tear down and recreate the interval every 2 s when the worker
+  // fires, preventing it from ever completing a full 1 s cycle.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activePoint, selectedSatellite]);
 
   if (!selectedPoint && !selectedSatellite) {
     return (
@@ -858,22 +860,41 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
                     </div>
                   )}
                 </LatencyBreakdownCard>
-                {/* LEO Estimated Performance */}
+                {/* Feature 4: Pass Beam Timeline */}
+                {resolvedLEOConnectivity?.satellite && activePoint && (
+                  <PassBeamTimeline
+                    satellite={resolvedLEOConnectivity.satellite}
+                    userPosition={activePoint}
+                    failedSnps={failedSnps}
+                    hsBeams={hsBeamsSet}
+                    weatherCondition={ctxWeather}
+                    beamHealthFactors={beamHealthFactors}
+                  />
+                )}
+
+                {/* LEO Estimated Performance (with DC scaling applied) */}
                 <div className="bg-gray-50 dark:bg-slate-800/50 rounded-lg p-4 border border-gray-100 dark:border-slate-700">
                   <h4 className="text-sm font-semibold mb-3" style={{ color: '#db2777' }}>Estimated Performance</h4>
-                  {leoPerformance ? (
-                    <PerformancePanel
-                      rtt={leoGeometry?.rttTotalMs ?? leoPerformance.rtt}
-                      downlinkGbps={leoPerformance.downlinkGbps}
-                      uplinkGbps={leoPerformance.uplinkGbps}
-                      maxDlGbps={TERMINAL_PROFILES[terminalType].maxDlGbps}
-                      maxUlGbps={TERMINAL_PROFILES[terminalType].maxUlGbps}
-                      performanceFactor={leoPerformance.performanceFactor}
-                      accentColor="#db2777"
-                      rttMaxMs={RTT_VISUAL_SCALE_MAX_MS}
-                      rttLabel="End-to-End LEO RTT"
-                    />
-                  ) : resolvedLEOConnectivity ? (
+                  {leoPerformance ? (() => {
+                    // Feature 2: apply corridor DC throughput scaling
+                    const userLng = activePoint?.lng ?? 0;
+                    const corridorIdx = getCorridorIndex(userLng);
+                    const dcLevel = corridorDcLevels[corridorIdx] ?? 16;
+                    const dcScale = getDcThroughputScale(dcLevel);
+                    return (
+                      <PerformancePanel
+                        rtt={leoGeometry?.rttTotalMs ?? leoPerformance.rtt}
+                        downlinkGbps={leoPerformance.downlinkGbps * dcScale}
+                        uplinkGbps={leoPerformance.uplinkGbps * dcScale}
+                        maxDlGbps={TERMINAL_PROFILES[terminalType].maxDlGbps}
+                        maxUlGbps={TERMINAL_PROFILES[terminalType].maxUlGbps}
+                        performanceFactor={leoPerformance.performanceFactor * dcScale}
+                        accentColor="#db2777"
+                        rttMaxMs={RTT_VISUAL_SCALE_MAX_MS}
+                        rttLabel="End-to-End LEO RTT"
+                      />
+                    );
+                  })() : resolvedLEOConnectivity ? (
                     <PerformancePanel
                       rtt={null}
                       downlinkGbps={null}
@@ -894,6 +915,105 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
                     />
                   )}
                 </div>
+
+                {/* Feature 2: Polar Corridor DC Supply Plan */}
+                {(() => {
+                  const userLng = activePoint?.lng ?? 0;
+                  const currentCorridor = getCorridorIndex(userLng);
+                  const currentDc = corridorDcLevels[currentCorridor] ?? 16;
+                  const dcScale = getDcThroughputScale(currentDc);
+                  const [west, east] = getCorridorRange(currentCorridor);
+
+                  return (
+                    <div className="bg-gray-50 dark:bg-slate-800/50 rounded-lg border border-gray-100 dark:border-slate-700">
+                      <button
+                        type="button"
+                        onClick={() => setIsPolarSupplyPlanOpen((open) => !open)}
+                        className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left"
+                        aria-expanded={isPolarSupplyPlanOpen}
+                      >
+                        <div className="min-w-0">
+                          <h4 className="text-sm font-semibold" style={{ color: '#db2777' }}>Polar Corridor Supply Plan (DC)</h4>
+                          <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                            Current corridor: {west}° → {east}° · DC{currentDc} · {Math.round(dcScale * 100)}% throughput
+                          </p>
+                        </div>
+                        <ChevronDown
+                          className={`h-4 w-4 shrink-0 text-gray-400 transition-transform duration-200 ${isPolarSupplyPlanOpen ? 'rotate-180' : ''}`}
+                        />
+                      </button>
+
+                      {isPolarSupplyPlanOpen && (
+                        <div className="border-t border-gray-200 px-4 py-4 dark:border-slate-700">
+                          <div className="flex items-center justify-end mb-2">
+                            <button
+                              type="button"
+                              onClick={resetCorridorDcLevels}
+                              className="text-[11px] px-2 py-0.5 rounded bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-slate-600 transition-colors"
+                            >
+                              Reset
+                            </button>
+                          </div>
+                          <p className="text-[11px] text-gray-500 dark:text-gray-400 mb-3">
+                            DC1 = min demand (6.25% throughput) · DC16 = full demand (100%).
+                          </p>
+
+                          <div className="flex gap-0.5 mb-1">
+                            {Array.from({ length: CORRIDOR_COUNT }, (_, idx) => {
+                              const dc = corridorDcLevels[idx] ?? 16;
+                              const isCurrent = idx === currentCorridor;
+                              const intensity = dc / 16;
+                              const [w] = getCorridorRange(idx);
+                              const r = Math.round(219 - (1 - intensity) * 60);
+                              const g = Math.round(39 + (1 - intensity) * 30);
+                              const b = Math.round(119 + (1 - intensity) * 30);
+                              return (
+                                <div
+                                  key={idx}
+                                  title={`Corridor ${w}°→${w + 20}°: DC${dc} (${Math.round(intensity * 100)}%)`}
+                                  className={`flex-1 rounded-sm cursor-ns-resize flex items-center justify-center text-[8px] font-bold text-white transition-all ${
+                                    isCurrent ? 'ring-2 ring-white ring-offset-1' : ''
+                                  }`}
+                                  style={{
+                                    height: 20,
+                                    backgroundColor: dc < 16 ? `rgb(${r},${g},${b})` : '#db2777',
+                                    opacity: intensity * 0.6 + 0.4,
+                                  }}
+                                >
+                                  {dc < 10 ? dc : ''}
+                                </div>
+                              );
+                            })}
+                          </div>
+
+                          <div className="flex items-center gap-3 mt-2">
+                            <span className="text-[11px] text-gray-600 dark:text-gray-400 w-24 shrink-0">
+                              DC level (current):
+                            </span>
+                            <input
+                              type="range"
+                              min={1}
+                              max={16}
+                              step={1}
+                              value={currentDc}
+                              onChange={e => setCorridorDcLevel(currentCorridor, Number(e.target.value))}
+                              className="flex-1 accent-pink-600"
+                            />
+                            <span className="text-[11px] font-bold text-pink-600 dark:text-pink-400 w-12 text-right">
+                              DC{currentDc} ({Math.round(dcScale * 100)}%)
+                            </span>
+                          </div>
+
+                          {currentDc < 16 && (
+                            <div className="mt-2 text-[11px] text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 rounded p-2">
+                              Power saving active in this corridor. Beam throughput is capped at {Math.round(dcScale * 100)}% of nominal.
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
               </div>
             </div>
           )}

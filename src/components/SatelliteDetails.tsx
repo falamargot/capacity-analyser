@@ -16,6 +16,7 @@ import {
 // NEW IMPORTS - BeamStatusComponents integration
 import { BeamStatusGrid, CoveragePolicyDisplay } from './BeamStatusComponents';
 import { useSimulation } from '../contexts/SimulationContext';
+import { SNPS_DATA } from './globe/GlobeConfig';
 
 
 // ─── Pitch Monitoring Chart ───────────────────────────────────────────────────
@@ -160,13 +161,33 @@ const SatelliteDetails: React.FC<SatelliteDetailsProps> = ({
   onSelectGeoCoverage,
 }) => {
   // NEW: Get coverage policy from simulation context
-  const { coveragePolicy, beamHealthFactors, setBeamHealthFactor, resetBeamHealth, weatherCondition } = useSimulation();
+  const {
+    coveragePolicy,
+    beamHealthFactors, setBeamHealthFactor, resetBeamHealth,
+    weatherCondition,
+    failedSnps, toggleSnpFailure, resetFailedSnps,
+    beamHsStatus, toggleBeamHs, resetBeamHs,
+  } = useSimulation();
 
   // Get current satellite position from satellites array (real-time)
   const currentSatellite = satellites.find(sat => sat.id === selectedSatellite.id);
 
   // Calculate nearest SNP for LEO satellites using current position (real-time)
-  const nearestSNP = currentSatellite?.type === 'ONEWEB' ? getNearestSNPInBackhaul(currentSatellite) : null;
+  // Pass failedSnps so the nearest SNP lookup skips any failed ground stations
+  const nearestSNP = currentSatellite?.type === 'ONEWEB'
+    ? getNearestSNPInBackhaul(currentSatellite, failedSnps)
+    : null;
+
+  // Group all 42 SNPs by region for the failure panel
+  const snpsByRegion = useMemo(() => {
+    const groups = new Map<string, typeof SNPS_DATA>();
+    for (const snp of SNPS_DATA) {
+      const list = groups.get(snp.region) ?? [];
+      list.push(snp);
+      groups.set(snp.region, list);
+    }
+    return Array.from(groups.entries()).sort(([a], [b]) => a.localeCompare(b));
+  }, []);
 
   // Track GSO Protection state for ONEWEB satellites — via shared hook (no duplicate interval)
   const gsoAvoidanceData = useGSOAvoidance(selectedSatellite.type === 'ONEWEB' ? selectedSatellite : null);
@@ -364,7 +385,80 @@ const SatelliteDetails: React.FC<SatelliteDetailsProps> = ({
                           onReset={resetBeamHealth}
                           weatherCondition={weatherCondition}
                           isMovingNorth={gsoAvoidanceData.isMovingNorth}
+                          beamHsStatus={beamHsStatus}
+                          onHsToggle={toggleBeamHs}
+                          onResetHs={resetBeamHs}
                         />
+                      </div>
+                    </div>
+
+                    {/* Feature 1: SNP Cascade Failure panel */}
+                    <div className="mt-4">
+                      <div className="flex items-center justify-between mb-2">
+                        <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                          SNP Availability
+                          {failedSnps.size > 0 && (
+                            <span className="ml-2 px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300">
+                              {failedSnps.size} FAILED
+                            </span>
+                          )}
+                        </h4>
+                        {failedSnps.size > 0 && (
+                          <button
+                            type="button"
+                            onClick={resetFailedSnps}
+                            className="text-[11px] px-2 py-0.5 rounded bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-900/50 transition-colors"
+                          >
+                            Restore All
+                          </button>
+                        )}
+                      </div>
+                      <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-lg p-3 space-y-3">
+                        <p className="text-[11px] text-gray-500 dark:text-gray-400">
+                          Toggle SNPs offline to simulate cascade failure. When a satellite's only reachable SNP fails, all UTs under it lose service.
+                        </p>
+                        {snpsByRegion.map(([region, snps]) => (
+                          <details key={region} className="group">
+                            <summary className="cursor-pointer list-none flex items-center justify-between text-xs font-semibold text-gray-700 dark:text-gray-300 py-1">
+                              <span className="flex items-center gap-1">
+                                <span className="text-gray-400 group-open:rotate-90 transition-transform inline-block">▶</span>
+                                {region}
+                                <span className="font-normal text-gray-500 dark:text-gray-400">({snps.length})</span>
+                              </span>
+                              {snps.some(s => failedSnps.has(s.name)) && (
+                                <span className="text-[10px] text-red-500 font-bold">
+                                  {snps.filter(s => failedSnps.has(s.name)).length} offline
+                                </span>
+                              )}
+                            </summary>
+                            <div className="mt-1 ml-3 grid grid-cols-2 gap-1">
+                              {snps.map(snp => {
+                                const isFailed = failedSnps.has(snp.name);
+                                const isNearest = nearestSNP?.name === snp.name;
+                                return (
+                                  <button
+                                    key={snp.name}
+                                    type="button"
+                                    onClick={() => toggleSnpFailure(snp.name)}
+                                    title={`${snp.name} (${snp.lat.toFixed(1)}°, ${snp.lng.toFixed(1)}°) — click to ${isFailed ? 'restore' : 'mark as failed'}`}
+                                    className={`flex items-center gap-1.5 px-2 py-1 rounded text-[11px] text-left transition-colors ${
+                                      isFailed
+                                        ? 'bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300 hover:bg-red-200 dark:hover:bg-red-900/60'
+                                        : isNearest
+                                          ? 'bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-300 hover:bg-red-100 dark:hover:bg-red-900/40'
+                                          : 'bg-gray-50 dark:bg-slate-800 text-gray-700 dark:text-gray-300 hover:bg-red-50 dark:hover:bg-red-900/20'
+                                    }`}
+                                  >
+                                    <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${isFailed ? 'bg-red-500' : isNearest ? 'bg-green-500' : 'bg-gray-400'}`} />
+                                    <span className={isFailed ? 'line-through opacity-70' : ''}>{snp.name}</span>
+                                    {isNearest && !isFailed && <span className="ml-auto text-[9px] text-green-600 dark:text-green-400 font-bold">ACTIVE</span>}
+                                    {isFailed && <span className="ml-auto text-[9px] text-red-500 font-bold">FAILED</span>}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </details>
+                        ))}
                       </div>
                     </div>
                   </div>

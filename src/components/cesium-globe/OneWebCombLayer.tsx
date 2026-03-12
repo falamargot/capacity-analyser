@@ -4,7 +4,7 @@
  * with realistic radial power gradient (concentric rings) and
  * frequency-reuse color coding.
  */
-import React, { useMemo } from 'react';
+import React, { useMemo, useRef } from 'react';
 import { Entity, PolygonGraphics, EllipseGraphics } from 'resium';
 import {
     Cartesian3,
@@ -23,6 +23,7 @@ import type { Aircraft } from '../../modules/airTraffic/airTrafficService';
 import { getBeamColor, TOTAL_BEAMS, calculateGSOAvoidanceAngle } from '../../utils/oneWebComb';
 import { footprintRadiusKm, BACKHAUL_ELEVATION_DEG, STANDARD_RADIUS_KM } from '../../utils/leoFootprint';
 import { getCoverageColor, hasSNPInCoverage } from '../../services/coverageService';
+import { useSimulation } from '../../contexts/SimulationContext';
 import { useCombGeometry } from './hooks';
 import { getPosition, DUMMY_POLYGON, propagateSatellite, calculateDeadReckoning } from './utils';
 import {
@@ -80,7 +81,8 @@ const BeamRing = React.memo<{
     targetSat: SatelliteData;
     getCombGeometries: (sat: SatelliteData, time: JulianDate) => any;
     viewerRef: React.RefObject<CesiumViewerType | null>;
-}>(({ beamIndex, ringIndex, scaleFactor, ringOpacity, targetSat, getCombGeometries, viewerRef }) => {
+    hsBeamsRef: React.MutableRefObject<ReadonlySet<number>>;
+}>(({ beamIndex, ringIndex, scaleFactor, ringOpacity, targetSat, getCombGeometries, viewerRef, hsBeamsRef }) => {
 
     const showCallback = useMemo(() => {
         return new CallbackProperty((time?: JulianDate) => {
@@ -109,6 +111,11 @@ const BeamRing = React.memo<{
 
     const colorCallback = useMemo(() => {
         return new ColorMaterialProperty(new CallbackProperty((time?: JulianDate) => {
+            // HS beam → solid red (out of service)
+            if (hsBeamsRef.current.has(beamIndex)) {
+                return Color.RED.withAlpha(ringOpacity * 0.85);
+            }
+
             if (!time || !targetSat.satrec) {
                 return getBeamColor(beamIndex, false);
             }
@@ -131,7 +138,7 @@ const BeamRing = React.memo<{
             const baseColor = getBeamBaseColor(beamIndex);
             return baseColor.withAlpha(ringOpacity);
         }, false));
-    }, [beamIndex, ringOpacity, targetSat.id, targetSat.satrec]);
+    }, [beamIndex, ringOpacity, targetSat.id, targetSat.satrec, hsBeamsRef]);
 
     return (
         <Entity name={`Beam ${beamIndex} ring ${ringIndex}`}>
@@ -155,7 +162,8 @@ const GradientBeamPolygon = React.memo<{
     getCombGeometries: (sat: SatelliteData, time: JulianDate) => any;
     viewerRef: React.RefObject<CesiumViewerType | null>;
     hasBackhaul: boolean;
-}>(({ beamIndex, targetSat, getCombGeometries, viewerRef }) => {
+    hsBeamsRef: React.MutableRefObject<ReadonlySet<number>>;
+}>(({ beamIndex, targetSat, getCombGeometries, viewerRef, hsBeamsRef }) => {
 
     if (!GRADIENT_RENDERING.ENABLE_GRADIENT) {
         // Fallback: single flat polygon (original behaviour)
@@ -168,6 +176,7 @@ const GradientBeamPolygon = React.memo<{
                 targetSat={targetSat}
                 getCombGeometries={getCombGeometries}
                 viewerRef={viewerRef}
+                hsBeamsRef={hsBeamsRef}
             />
         );
     }
@@ -184,6 +193,7 @@ const GradientBeamPolygon = React.memo<{
                     targetSat={targetSat}
                     getCombGeometries={getCombGeometries}
                     viewerRef={viewerRef}
+                    hsBeamsRef={hsBeamsRef}
                 />
             ))}
         </>
@@ -200,6 +210,12 @@ const OneWebCombLayer: React.FC<OneWebCombLayerProps> = ({
     highlightServingFootprint = false
 }) => {
     const { getCombGeometries } = useCombGeometry();
+    const { failedSnps, hsBeamsSet } = useSimulation();
+
+    // Stable ref so CallbackProperty callbacks always read the latest HS set
+    // without needing to recreate the callbacks when it changes.
+    const hsBeamsRef = useRef<ReadonlySet<number>>(hsBeamsSet);
+    hsBeamsRef.current = hsBeamsSet;
 
     // Generate beam indices array once - MUST be before any early return
     const beamIndices = useMemo(() => Array.from({ length: TOTAL_BEAMS }, (_, i) => i), []);
@@ -313,16 +329,16 @@ const OneWebCombLayer: React.FC<OneWebCombLayerProps> = ({
 
     // Computed values (no hooks, just calculations)
     const horizonRadius = footprintRadiusKm(targetSat.position.alt || 1200, BACKHAUL_ELEVATION_DEG) * 1000;
-    const backhaulColorStr = getCoverageColor('ONEWEB_BACKHAUL', 0.2, targetSat);
+    const backhaulColorStr = getCoverageColor('ONEWEB_BACKHAUL', 0.2, targetSat, failedSnps);
     const backhaulColor = Color.fromCssColorString(backhaulColorStr);
-    const standardColorFill = Color.fromCssColorString(getCoverageColor('ONEWEB_STANDARD', 0.1, targetSat));
-    const standardColorOutline = Color.fromCssColorString(getCoverageColor('ONEWEB_STANDARD', 0.6, targetSat));
+    const standardColorFill = Color.fromCssColorString(getCoverageColor('ONEWEB_STANDARD', 0.1, targetSat, failedSnps));
+    const standardColorOutline = Color.fromCssColorString(getCoverageColor('ONEWEB_STANDARD', 0.6, targetSat, failedSnps));
 
     // Calculate Backhaul Status (this frame, using latest static position)
-    // Note: Live updates depending on position change require time-based checks within Callback, 
-    // but calculating coverage polygon intersections every frame is expensive. 
+    // Note: Live updates depending on position change require time-based checks within Callback,
+    // but calculating coverage polygon intersections every frame is expensive.
     // We rely on the periodic update of targetSat.position from parent components.
-    const hasBackhaul = hasSNPInCoverage(targetSat);
+    const hasBackhaul = hasSNPInCoverage(targetSat, failedSnps);
 
     return (
         <>
@@ -362,6 +378,7 @@ const OneWebCombLayer: React.FC<OneWebCombLayerProps> = ({
                     getCombGeometries={getCombGeometries}
                     viewerRef={viewerRef}
                     hasBackhaul={hasBackhaul}
+                    hsBeamsRef={hsBeamsRef}
                 />
             ))}
 

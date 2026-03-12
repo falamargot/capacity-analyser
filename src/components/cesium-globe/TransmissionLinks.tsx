@@ -19,7 +19,7 @@ import { getPosition, propagateSatellite, calculateDeadReckoning } from './utils
 import { hasRFConnectivity } from '../../utils/rfConnectivity';
 import { useSimulation } from '../../contexts/SimulationContext';
 import { GEO_GATEWAYS } from '../globe/GlobeConfig';
-import { analyzeGeoConnectivity } from '../../utils/geoConnectivityModel';
+import { selectBestGeoGateway } from '../../utils/geoConnectivityModel';
 
 interface TransmissionLinksProps {
     selectedPosition?: { lat: number; lng: number; altitude?: number } | null;
@@ -140,55 +140,43 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
         }, false);
     }, [autoSelectedGEOSatellite, hasUserSelection, resolveCurrentUser]);
 
+    // Gateway selection — depends only on the GEO satellite position, not on user position.
+    // GEO satellites barely move, so this recomputes at most when autoSelectedGEOSatellite changes.
+    // Eliminates O(gateways) ECEF work from the per-frame CallbackProperty callbacks below.
+    const bestGeoGateway = useMemo(() => {
+        if (!autoSelectedGEOSatellite) return null;
+        return selectBestGeoGateway(autoSelectedGEOSatellite, GEO_GATEWAYS);
+    }, [autoSelectedGEOSatellite]);
+
     // GEO Satellite -> Gateway feeder link
     const geoFeederLinkCallback = useMemo(() => {
-        if (!autoSelectedGEOSatellite || !hasUserSelection) return null;
+        if (!autoSelectedGEOSatellite || !hasUserSelection || !bestGeoGateway) return null;
+
+        // Pre-compute the static gateway position once (avoids allocation every frame)
+        const gwLat = bestGeoGateway.gateway.latitude ?? bestGeoGateway.gateway.lat;
+        const gwLng = bestGeoGateway.gateway.longitude ?? bestGeoGateway.gateway.lng;
+        const gatewayPos = getPosition(gwLat, gwLng, 0.01);
 
         return new CallbackProperty((time?: JulianDate) => {
             if (!time) return [];
-
-            const { userLocation } = resolveCurrentUser(time);
-            const model = analyzeGeoConnectivity({
-                userPoint: userLocation,
-                satellite: autoSelectedGEOSatellite,
-                gateways: GEO_GATEWAYS
-            });
-            const gateway = model.satelliteToGateway.gateway;
-            if (!gateway) return [];
-
             const satPos = propagateSatellite(autoSelectedGEOSatellite, time);
-            const gwLat = gateway.latitude ?? gateway.lat;
-            const gwLng = gateway.longitude ?? gateway.lng;
-            const gatewayPos = getPosition(gwLat, gwLng, 0.01);
-
             return [satPos, gatewayPos];
         }, false);
-    }, [autoSelectedGEOSatellite, hasUserSelection, resolveCurrentUser]);
+    }, [autoSelectedGEOSatellite, hasUserSelection, bestGeoGateway]);
 
     // GEO Gateway -> Internet backhaul (conceptual terrestrial segment)
     const geoBackhaulCallback = useMemo(() => {
-        if (!autoSelectedGEOSatellite || !hasUserSelection) return null;
+        if (!autoSelectedGEOSatellite || !hasUserSelection || !bestGeoGateway) return null;
 
-        return new CallbackProperty((time?: JulianDate) => {
-            if (!time) return [];
+        // Both positions are fully static — no per-frame computation needed
+        const gwLat = bestGeoGateway.gateway.latitude ?? bestGeoGateway.gateway.lat;
+        const gwLng = bestGeoGateway.gateway.longitude ?? bestGeoGateway.gateway.lng;
+        const gatewayPos = getPosition(gwLat, gwLng, 0.01);
+        const internetPos = getPosition(gwLat + 0.3, gwLng + 0.3, 0.01);
+        const staticPositions = [gatewayPos, internetPos];
 
-            const { userLocation } = resolveCurrentUser(time);
-            const model = analyzeGeoConnectivity({
-                userPoint: userLocation,
-                satellite: autoSelectedGEOSatellite,
-                gateways: GEO_GATEWAYS
-            });
-            const gateway = model.satelliteToGateway.gateway;
-            if (!gateway) return [];
-
-            const gwLat = gateway.latitude ?? gateway.lat;
-            const gwLng = gateway.longitude ?? gateway.lng;
-            const gatewayPos = getPosition(gwLat, gwLng, 0.01);
-            const internetPos = getPosition(gwLat + 0.3, gwLng + 0.3, 0.01);
-
-            return [gatewayPos, internetPos];
-        }, false);
-    }, [autoSelectedGEOSatellite, hasUserSelection, resolveCurrentUser]);
+        return new CallbackProperty((_time?: JulianDate) => staticPositions, false);
+    }, [autoSelectedGEOSatellite, hasUserSelection, bestGeoGateway]);
 
     // Dedicated SNP link for manually selected LEO satellite
     const dedicatedSnpCallback = useMemo(() => {

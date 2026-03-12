@@ -14,6 +14,10 @@ import {
 } from 'cesium';
 import type { SatelliteData } from '../../types/satellites';
 import { SATELLITE_GLYPH, LEO_SMOKED_GLYPH, DPR_FACTOR, calculateDynamicScale, getPosition } from './utils';
+
+// Module-level constants — allocated once, never reallocated during rendering.
+const LABEL_BACKGROUND_PADDING = new Cartesian2(7, 4);
+const LABEL_PIXEL_OFFSET = new Cartesian2(0, -24);
 import { usePositionCallbacks } from './hooks';
 
 interface SatelliteLayerProps {
@@ -116,8 +120,8 @@ const SatelliteEntity = React.memo<{
                         style={2}
                         showBackground={true}
                         backgroundColor={sat.type === 'ONEWEB' ? Color.DEEPPINK.withAlpha(0.7) : Color.ROYALBLUE.withAlpha(0.7)}
-                        backgroundPadding={new Cartesian2(7, 4)}
-                        pixelOffset={new Cartesian2(0, -24)}
+                        backgroundPadding={LABEL_BACKGROUND_PADDING}
+                        pixelOffset={LABEL_PIXEL_OFFSET}
                         verticalOrigin={VerticalOrigin.BOTTOM}
                         horizontalOrigin={HorizontalOrigin.CENTER}
                         disableDepthTestDistance={Number.POSITIVE_INFINITY}
