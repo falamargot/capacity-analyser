@@ -187,7 +187,17 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
     // Handle viewer initialization via callback ref
     const handleViewerRef = useCallback((e: any) => {
         if (e?.cesiumElement) {
-            viewerRef.current = e.cesiumElement;
+            const viewer = e.cesiumElement;
+            viewerRef.current = viewer;
+
+            // Match canvas resolution to the physical pixel ratio so the globe renders
+            // sharply on Retina / HiDPI displays.  Billboard and point scales are
+            // expressed in physical pixels when resolutionScale > 1, which is why
+            // DPR_FACTOR (= window.devicePixelRatio) is already baked into every
+            // calculateDynamicScale() call — the two cancel out and icons end up
+            // the same physical size on every device.
+            viewer.resolutionScale = window.devicePixelRatio ?? 1;
+
             setViewerReady(true);
         }
     }, []);
