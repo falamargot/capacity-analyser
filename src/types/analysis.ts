@@ -53,3 +53,16 @@ export interface AutoSelectionState {
     snp: SelectedSNP;
     geoBeam: GEOBeam | null;
 }
+
+export interface MobileLinkMetrics {
+    rtt: number;
+    downlinkGbps: number;
+    uplinkGbps: number;
+}
+
+export interface MobileAnalysisMetrics {
+    leo: MobileLinkMetrics | null;
+    geo: MobileLinkMetrics | null;
+    totalGbps: number;
+    coveredCount: number;
+}

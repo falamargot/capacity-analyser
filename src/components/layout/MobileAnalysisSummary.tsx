@@ -1,17 +1,13 @@
 import React, { useMemo } from 'react';
 import type { SatelliteData } from '../../types/satellites';
+import type { MobileAnalysisMetrics, MobileLinkMetrics } from '../../types/analysis';
 
 interface MobileAnalysisSummaryProps {
     autoSelectedLEOSatellite: SatelliteData | null;
     autoSelectedGEOSatellite: SatelliteData | null;
     selectedSatellite: SatelliteData | null;
     compact?: boolean;
-    metrics?: {
-        leo: { rtt: number; downlinkGbps: number } | null;
-        geo: { rtt: number; downlinkGbps: number } | null;
-        totalGbps: number;
-        coveredCount: number;
-    };
+    metrics?: MobileAnalysisMetrics;
 }
 
 
@@ -19,6 +15,14 @@ interface MobileAnalysisSummaryProps {
 function formatMbpsFromGbps(gbps: number | null | undefined): string {
     if (gbps == null || !isFinite(gbps)) return '--';
     return `${Math.round(gbps * 1000)} Mbps`;
+}
+
+function MetricPair({ metrics, color }: { metrics: MobileLinkMetrics | null | undefined; color: string }) {
+    return (
+        <div className="shrink-0 text-[11px] font-semibold text-right whitespace-nowrap" style={{ color }}>
+            {`DL ${formatMbpsFromGbps(metrics?.downlinkGbps)} / UL ${formatMbpsFromGbps(metrics?.uplinkGbps)}`}
+        </div>
+    );
 }
 
 const MobileAnalysisSummary: React.FC<MobileAnalysisSummaryProps> = ({
@@ -41,44 +45,39 @@ const MobileAnalysisSummary: React.FC<MobileAnalysisSummaryProps> = ({
     return (
         compact ? (
             <div className="flex flex-col gap-1">
-                <div className="flex items-baseline justify-between gap-3">
+                <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0 text-xs font-semibold truncate" style={{ color: '#db2777' }}>
                         {autoSelectedLEOSatellite?.name ?? '--'}
                     </div>
-                    <div className="text-xs font-semibold whitespace-nowrap" style={{ color: '#db2777' }}>
-                        {metrics?.leo ? `${formatMbpsFromGbps(metrics.leo.downlinkGbps)} (${metrics.leo.rtt} ms)` : '--'}
-                    </div>
+                    <MetricPair metrics={metrics?.leo} color="#db2777" />
                 </div>
 
-                <div className="flex items-baseline justify-between gap-3">
+                <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0 text-xs font-semibold truncate" style={{ color: '#2563eb' }}>
                         {autoSelectedGEOSatellite?.name ?? '--'}
                     </div>
-                    <div className="text-xs font-semibold whitespace-nowrap" style={{ color: '#2563eb' }}>
-                        {metrics?.geo ? `${formatMbpsFromGbps(metrics.geo.downlinkGbps)} (${metrics.geo.rtt} ms)` : '--'}
-                    </div>
+                    <MetricPair metrics={metrics?.geo} color="#2563eb" />
                 </div>
             </div>
         ) : (
             <div className="flex flex-col gap-2">
                 <div className="flex items-center justify-between">
                     <div className="text-sm font-semibold text-gray-900 truncate pr-3">{satelliteLabel}</div>
-                    <div className="text-xs text-gray-500 whitespace-nowrap">Downlink (RTT)</div>
+                    <div className="text-xs text-gray-500 whitespace-nowrap">DL / UL</div>
                 </div>
 
                 <div className="flex items-center justify-between">
                     <div className="text-xs text-gray-600">
                         <span className="font-semibold" style={{ color: '#db2777' }}>LEO</span>
-                        <span className="ml-2" style={{ color: '#db2777' }}>
-                            {metrics?.leo ? `${formatMbpsFromGbps(metrics.leo.downlinkGbps)} (${metrics.leo.rtt} ms)` : '--'}
-                        </span>
                     </div>
+                    <MetricPair metrics={metrics?.leo} color="#db2777" />
+                </div>
+
+                <div className="flex items-center justify-between">
                     <div className="text-xs text-gray-600">
                         <span className="font-semibold" style={{ color: '#2563eb' }}>GEO</span>
-                        <span className="ml-2" style={{ color: '#2563eb' }}>
-                            {metrics?.geo ? `${formatMbpsFromGbps(metrics.geo.downlinkGbps)} (${metrics.geo.rtt} ms)` : '--'}
-                        </span>
                     </div>
+                    <MetricPair metrics={metrics?.geo} color="#2563eb" />
                 </div>
 
                 <div className="flex items-center justify-between">

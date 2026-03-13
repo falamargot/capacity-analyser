@@ -14,7 +14,7 @@ import BeamLegend from './components/cesium-globe/BeamLegend';
 import SimulationSettings from './components/layout/SimulationSettings';
 import { fetchSatellites } from './services/satelliteService';
 import { SatelliteData } from './types/satellites';
-import type { CandidateCoverage, GEOBeam, SelectedSNP } from './types/analysis';
+import type { CandidateCoverage, GEOBeam, MobileAnalysisMetrics, SelectedSNP } from './types/analysis';
 import { calculateCoverages, destinationPoint } from './utils/coverageCalculator';
 import { footprintRadiusKm, BACKHAUL_ELEVATION_DEG } from './utils/leoFootprint';
 import { Feature, Geometry, GeoJsonProperties } from 'geojson';
@@ -89,12 +89,12 @@ const App: React.FC = () => {
   const [splashDone, setSplashDone] = useState(false);
   const [mobileSheetSnap, setMobileSheetSnap] = useState<0 | 1 | 2>(0);
   const [isSatelliteModalOpen, setIsSatelliteModalOpen] = useState(false);
-  const [mobileMetrics, setMobileMetrics] = useState<{
-    leo: { rtt: number; downlinkGbps: number } | null;
-    geo: { rtt: number; downlinkGbps: number } | null;
-    totalGbps: number;
-    coveredCount: number;
-  }>({ leo: null, geo: null, totalGbps: 0, coveredCount: 0 });
+  const [mobileMetrics, setMobileMetrics] = useState<MobileAnalysisMetrics>({
+    leo: null,
+    geo: null,
+    totalGbps: 0,
+    coveredCount: 0,
+  });
   const viewerRef = useRef<any>(null);
   const globeContainerRef = useRef<HTMLDivElement>(null);
 

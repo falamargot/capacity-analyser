@@ -12,7 +12,7 @@ import { findConnectedBeamIndex } from '../utils/rfConnectivity';
 import { JulianDate } from 'cesium';
 import ExportButton from './ExportButton';
 import CoverageSelector from './CoverageSelector';
-import type { CandidateCoverage } from '../types/analysis';
+import type { CandidateCoverage, MobileAnalysisMetrics } from '../types/analysis';
 import {
   WEATHER_ATTENUATION_DB,
   type WeatherCondition,
@@ -57,6 +57,20 @@ const getWeatherFactor = (wt: WeatherType, isAviation: boolean): number => {
   return Math.pow(10, WEATHER_ATTENUATION_DB[toWeatherCondition(wt)] / 10);
 };
 
+const formatGeoStabilityTooltip = (elevationDeg: number, isUserLinkUnstable: boolean): string => {
+  const currentRule = isUserLinkUnstable
+    ? 'Current status: Unstable because user-to-satellite elevation is below 5 deg.'
+    : elevationDeg >= 40
+      ? 'Current status: High because elevation is at least 40 deg.'
+      : elevationDeg >= 25
+        ? 'Current status: Medium because elevation is between 25 deg and 40 deg.'
+        : elevationDeg >= 5
+          ? 'Current status: Low because elevation is between 5 deg and 25 deg.'
+          : 'Current status: Unstable because elevation is below 5 deg.';
+
+  return `GEO stability rule: Unstable below 5 deg elevation, Low from 5 deg to below 25 deg, Medium from 25 deg to below 40 deg, High at 40 deg and above. Current elevation: ${elevationDeg.toFixed(1)} deg. ${currentRule}`;
+};
+
 interface CapacityDetailsProps {
   satellites: SatelliteData[];
   selectedPoint: { lat: number; lng: number; altitude?: number } | null;
@@ -65,7 +79,7 @@ interface CapacityDetailsProps {
   autoSelectedLEOSatellite: SatelliteData | null;
   autoSelectedGEOSatellite: SatelliteData | null;
   satelliteScope: SatelliteScope;
-  onMetricsChange?: (metrics: any) => void;
+  onMetricsChange?: (metrics: MobileAnalysisMetrics) => void;
   onSatelliteClick?: (satellite: SatelliteData | null) => void;
   analysisSource?: 'earth' | 'aircraft';
   aircraftCallsign?: string;
@@ -119,7 +133,7 @@ const LatencyBreakdownCard = ({ accentColor, summary, title = 'Latency breakdown
 };
 
 // Performance optimization: Memoize component to prevent unnecessary re-renders
-const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint, selectedSatellite, autoSelectedLEOSatellite, satelliteScope, onSatelliteClick, analysisSource, aircraftCallsign, selectedSNP: propSelectedSNP, candidateCoverages = [], selectedCoverage = null, onSelectCoverage, selectedGeoMission, selectedGeoCoverageName, selectedGeoBeamId, onSelectGeoMission, onSelectGeoCoverage, onSelectGeoBeam, onSnpClick }) => {
+const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint, selectedSatellite, autoSelectedLEOSatellite, satelliteScope, onMetricsChange, onSatelliteClick, analysisSource, aircraftCallsign, selectedSNP: propSelectedSNP, candidateCoverages = [], selectedCoverage = null, onSelectCoverage, selectedGeoMission, selectedGeoCoverageName, selectedGeoBeamId, onSelectGeoMission, onSelectGeoCoverage, onSelectGeoBeam, onSnpClick }) => {
   // Feature 1+2+3: read simulation context for failedSnps, corridorDcLevels, hsBeamsSet
   const {
     failedSnps,
@@ -546,6 +560,33 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
     ) || null;
   }, [selectedPoint]);
   const geoGeometry = resolvedGEOConnectivity?.geometry ?? null;
+  const currentCorridorIndex = useMemo(
+    () => getCorridorIndex(activePoint?.lng ?? 0),
+    [activePoint?.lng]
+  );
+  const currentCorridorDcLevel = corridorDcLevels[currentCorridorIndex] ?? 16;
+  const currentCorridorDcScale = getDcThroughputScale(currentCorridorDcLevel);
+
+  const mobileLeoMetrics = useMemo(() => {
+    if (!leoPerformance) return null;
+
+    return {
+      rtt: leoGeometry?.rttTotalMs ?? leoPerformance.rtt,
+      downlinkGbps: leoPerformance.downlinkGbps * currentCorridorDcScale,
+      uplinkGbps: leoPerformance.uplinkGbps * currentCorridorDcScale,
+    };
+  }, [leoGeometry, leoPerformance, currentCorridorDcScale]);
+
+  const mobileGeoMetrics = useMemo(() => {
+    if (!resolvedGEOConnectivity || !geoGeometry) return null;
+
+    const performance = calculateGEOPerformance(geoGeometry.userToSatellite.elevationDeg);
+    return {
+      rtt: geoGeometry.rttTotalMs,
+      downlinkGbps: performance.downlinkGbps,
+      uplinkGbps: performance.uplinkGbps,
+    };
+  }, [resolvedGEOConnectivity, geoGeometry, calculateGEOPerformance]);
 
   const satellitesRef = useRef<SatelliteData[]>(satellites);
   const selectedPointRef = useRef<{ lat: number; lng: number } | null>(selectedPoint);
@@ -567,6 +608,23 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
   useEffect(() => {
     selectedSatelliteRef.current = selectedSatellite;
   }, [selectedSatellite]);
+
+  useEffect(() => {
+    if (!onMetricsChange) return;
+
+    onMetricsChange({
+      leo: mobileLeoMetrics,
+      geo: mobileGeoMetrics,
+      totalGbps: realTimeData.totalCapacity,
+      coveredCount: realTimeData.coveredSatellites.length,
+    });
+  }, [
+    mobileGeoMetrics,
+    mobileLeoMetrics,
+    onMetricsChange,
+    realTimeData.coveredSatellites.length,
+    realTimeData.totalCapacity,
+  ]);
 
   useEffect(() => {
     const fetchNearestLocation = async () => {
@@ -917,26 +975,19 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
                 {/* LEO Estimated Performance (with DC scaling applied) */}
                 <div className="bg-gray-50 dark:bg-slate-800/50 rounded-lg p-4 border border-gray-100 dark:border-slate-700">
                   <h4 className="text-sm font-semibold mb-3 flex items-center" style={{ color: '#db2777' }}>Estimated Performance<SectionTooltip content="Predicted downlink/uplink throughput and round-trip latency based on LEO link geometry, beam health factors, weather attenuation, and the current corridor DC level." /></h4>
-                  {leoPerformance ? (() => {
-                    // Feature 2: apply corridor DC throughput scaling
-                    const userLng = activePoint?.lng ?? 0;
-                    const corridorIdx = getCorridorIndex(userLng);
-                    const dcLevel = corridorDcLevels[corridorIdx] ?? 16;
-                    const dcScale = getDcThroughputScale(dcLevel);
-                    return (
-                      <PerformancePanel
-                        rtt={leoGeometry?.rttTotalMs ?? leoPerformance.rtt}
-                        downlinkGbps={leoPerformance.downlinkGbps * dcScale}
-                        uplinkGbps={leoPerformance.uplinkGbps * dcScale}
-                        maxDlGbps={TERMINAL_PROFILES[terminalType].maxDlGbps}
-                        maxUlGbps={TERMINAL_PROFILES[terminalType].maxUlGbps}
-                        performanceFactor={leoPerformance.performanceFactor * dcScale}
-                        accentColor="#db2777"
-                        rttMaxMs={RTT_VISUAL_SCALE_MAX_MS}
-                        rttLabel="End-to-End LEO RTT"
-                      />
-                    );
-                  })() : resolvedLEOConnectivity ? (
+                  {leoPerformance ? (
+                    <PerformancePanel
+                      rtt={mobileLeoMetrics?.rtt ?? null}
+                      downlinkGbps={mobileLeoMetrics?.downlinkGbps ?? null}
+                      uplinkGbps={mobileLeoMetrics?.uplinkGbps ?? null}
+                      maxDlGbps={TERMINAL_PROFILES[terminalType].maxDlGbps}
+                      maxUlGbps={TERMINAL_PROFILES[terminalType].maxUlGbps}
+                      performanceFactor={leoPerformance.performanceFactor * currentCorridorDcScale}
+                      accentColor="#db2777"
+                      rttMaxMs={RTT_VISUAL_SCALE_MAX_MS}
+                      rttLabel="End-to-End LEO RTT"
+                    />
+                  ) : resolvedLEOConnectivity ? (
                     <PerformancePanel
                       rtt={null}
                       downlinkGbps={null}
@@ -1150,6 +1201,10 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
                   {resolvedGEOConnectivity && geoGeometry ? (
                     (() => {
                       const performance = calculateGEOPerformance(geoGeometry.userToSatellite.elevationDeg);
+                      const geoStabilityTooltip = formatGeoStabilityTooltip(
+                        geoGeometry.userToSatellite.elevationDeg,
+                        geoGeometry.isUserLinkUnstable
+                      );
                       return (
                         <PerformancePanel
                           rtt={geoGeometry.rttTotalMs}
@@ -1162,6 +1217,7 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
                           accentColor="#2563eb"
                           rttMaxMs={RTT_VISUAL_SCALE_MAX_MS}
                           rttLabel="End-to-End GEO RTT"
+                          stabilityTooltip={geoStabilityTooltip}
                         />
                       );
                     })()

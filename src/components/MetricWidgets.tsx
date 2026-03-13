@@ -88,9 +88,9 @@ export const ThroughputBar: React.FC<ThroughputBarProps> = ({
 
     return (
         <div className="space-y-1">
-            <div className="flex justify-between items-center">
-                <span className="text-sm font-medium text-gray-600 dark:text-gray-400 truncate">{label}</span>
-                <span className="text-sm font-bold tabular-nums text-gray-900 dark:text-gray-100">
+            <div className="flex justify-between items-center gap-2">
+                <span className="min-w-0 flex-1 text-sm font-medium text-gray-600 dark:text-gray-400 truncate">{label}</span>
+                <span className="shrink-0 whitespace-nowrap text-sm font-bold tabular-nums text-gray-900 dark:text-gray-100">
                     {displayValue != null ? formatThroughput(displayValue) : (gbps != null ? 'Not usable' : '—')}
                 </span>
             </div>
@@ -113,6 +113,7 @@ export const ThroughputBar: React.FC<ThroughputBarProps> = ({
 interface StabilityIndicatorProps {
     stability: string | null; // 'High' | 'Medium' | 'Low' | 'Unstable'
     accentColor?: string;
+    tooltip?: string;
 }
 
 const STABILITY_LEVELS: Record<string, { bars: number; color: string }> = {
@@ -123,7 +124,7 @@ const STABILITY_LEVELS: Record<string, { bars: number; color: string }> = {
 };
 
 /** Signal-strength style indicator (1-4 bars) */
-export const StabilityIndicator: React.FC<StabilityIndicatorProps> = ({ stability }) => {
+export const StabilityIndicator: React.FC<StabilityIndicatorProps> = ({ stability, tooltip }) => {
     const config = stability ? STABILITY_LEVELS[stability] : null;
     const activeBars = config?.bars ?? 0;
     const activeColor = config?.color ?? '#9ca3af';
@@ -131,7 +132,11 @@ export const StabilityIndicator: React.FC<StabilityIndicatorProps> = ({ stabilit
     return (
         <div className="flex justify-between items-center">
             <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Stability</span>
-            <div className="flex items-end gap-0.5">
+            <div
+                className={`flex items-end gap-0.5 ${tooltip ? 'cursor-help' : ''}`}
+                title={tooltip}
+                aria-label={tooltip}
+            >
                 {[1, 2, 3, 4].map((level) => (
                     <div
                         key={level}
@@ -165,6 +170,7 @@ interface PerformancePanelProps {
     rttMaxMs?: number;       // max for RTT bar scale
     rttLabel?: string;
     noDataMessage?: string;
+    stabilityTooltip?: string;
 }
 
 /** Full performance panel combining RTT + DL + UL + Stability */
@@ -173,10 +179,11 @@ export const PerformancePanel: React.FC<PerformancePanelProps> = ({
     stability, performanceFactor, accentColor, rttMaxMs = 600,
     rttLabel = 'RTT',
     noDataMessage,
+    stabilityTooltip,
 }) => {
     const allEmpty = rtt == null && downlinkGbps == null && uplinkGbps == null;
-    const DL_WIDTH_RATIO = 2 / 3;
-    const UL_WIDTH_RATIO = 1 / 3;
+    const DL_WIDTH_RATIO = 3 / 5;
+    const UL_WIDTH_RATIO = 2 / 5;
     const maxDlMbps = maxDlGbps * 1000;
     const maxUlMbps = maxUlGbps * 1000;
     const sharedScaleMaxMbps = Math.max(
@@ -188,10 +195,10 @@ export const PerformancePanel: React.FC<PerformancePanelProps> = ({
         return (
             <div className="space-y-3">
                 <RttIndicator value={null} label={rttLabel} />
-                <div className="grid grid-cols-3 gap-2 items-start">
-                    <div className="col-span-2">
+                <div className="grid grid-cols-5 gap-3 items-start">
+                    <div className="col-span-3">
                         <ThroughputBar
-                            label="Downlink"
+                            label="Downlink throughput"
                             gbps={null}
                             maxGbps={maxDlGbps}
                             accentColor={accentColor}
@@ -199,9 +206,9 @@ export const PerformancePanel: React.FC<PerformancePanelProps> = ({
                             trackWidthRatio={DL_WIDTH_RATIO}
                         />
                     </div>
-                    <div className="col-span-1">
+                    <div className="col-span-2">
                         <ThroughputBar
-                            label="Uplink"
+                            label="Uplink throughput"
                             gbps={null}
                             maxGbps={maxUlGbps}
                             accentColor={accentColor}
@@ -218,10 +225,10 @@ export const PerformancePanel: React.FC<PerformancePanelProps> = ({
     return (
         <div className="space-y-3">
             <RttIndicator value={rtt} maxMs={rttMaxMs} accentColor={accentColor} label={rttLabel} />
-            <div className="grid grid-cols-3 gap-2 items-start">
-                <div className="col-span-2">
+            <div className="grid grid-cols-5 gap-3 items-start">
+                <div className="col-span-3">
                     <ThroughputBar
-                        label="Downlink"
+                        label="Downlink throughput"
                         gbps={downlinkGbps}
                         maxGbps={maxDlGbps}
                         accentColor={accentColor}
@@ -230,9 +237,9 @@ export const PerformancePanel: React.FC<PerformancePanelProps> = ({
                         trackWidthRatio={DL_WIDTH_RATIO}
                     />
                 </div>
-                <div className="col-span-1">
+                <div className="col-span-2">
                     <ThroughputBar
-                        label="Uplink"
+                        label="Uplink throughput"
                         gbps={uplinkGbps}
                         maxGbps={maxUlGbps}
                         accentColor={accentColor}
@@ -242,7 +249,7 @@ export const PerformancePanel: React.FC<PerformancePanelProps> = ({
                     />
                 </div>
             </div>
-            {stability !== undefined && <StabilityIndicator stability={stability ?? null} />}
+            {stability !== undefined && <StabilityIndicator stability={stability ?? null} tooltip={stabilityTooltip} />}
         </div>
     );
 };

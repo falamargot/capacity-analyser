@@ -204,11 +204,8 @@ export const BeamStatusGrid: React.FC<BeamStatusGridProps> = ({
 
         {/* Beams container */}
         <div className="flex-1 space-y-4">
-          {/* Beams (0-7) */}
+          {/* Beams 0-7 */}
           <div className="flex items-end gap-1">
-            <span className="text-xs text-gray-500 dark:text-gray-400 w-14 font-medium mb-10">
-              (0-7)
-            </span>
             <div className="flex gap-1 flex-1">
               {Array.from({ length: 8 }, (_, i) => {
                 const isHs = beamHsStatus[i] ?? false;
@@ -308,11 +305,8 @@ export const BeamStatusGrid: React.FC<BeamStatusGridProps> = ({
             </div>
           </div>
 
-          {/* Beams (8-15) */}
+          {/* Beams 8-15 */}
           <div className="flex items-end gap-1">
-            <span className="text-xs text-gray-500 dark:text-gray-400 w-14 font-medium mb-10">
-              (8-15)
-            </span>
             <div className="flex gap-1 flex-1">
               {Array.from({ length: 8 }, (_, i) => {
                 const beamIndex = i + 8;
