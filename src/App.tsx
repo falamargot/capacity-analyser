@@ -85,7 +85,39 @@ const App: React.FC = () => {
   const [airTrafficEnabled, setAirTrafficEnabled] = useState(false);
   const [maritimeTrafficEnabled, setMaritimeTrafficEnabled] = useState(false);
   const [showSatelliteTrajectory, setShowSatelliteTrajectory] = useState(false);
-  const [sizeScale, setSizeScale] = useState(1); // 0.5, 1, 2, 4, 8
+  const [sizeScale, setSizeScale] = useState<number>(() => {
+    // Return a previously saved preference if available
+    const saved = parseFloat(localStorage.getItem('globeSizeScale') ?? '');
+    if (Number.isFinite(saved) && saved > 0) return saved;
+
+    // No saved preference — derive an initial guess from screen characteristics.
+    //
+    // Goal: icons that appear physically comparable across different screens.
+    //
+    // What we know reliably in JS:
+    //   • window.screen.width/height — CSS px dimensions of the display
+    //     (browsers report CSS pixels, already accounting for OS display scaling)
+    //   • window.devicePixelRatio — physical pixels per CSS px
+    //     (handled elsewhere via Cesium resolutionScale + DPR_FACTOR)
+    //
+    // Heuristic: use the CSS-pixel diagonal of the screen, normalised against a
+    // 1920×1080 reference (standard Full HD at 100 % OS scaling).
+    // Smaller screens → their diagonal is shorter → we scale icons UP so they
+    // remain proportionally visible and clickable.
+    //
+    // Example results (unrounded):
+    //   1440×900  (13" Air, DPR=1) → 2203/1698 ≈ 1.30×
+    //   1536×864  (15" Win, DPR=1.25 "125 %") → 2203/1791 ≈ 1.23×
+    //   1920×1080 (15" Win, DPR=1   "100 %") → 1.00×   ← reference
+    //   2560×1440 (27" 1440p, DPR=1) → 2203/2935 ≈ 0.75×
+    //
+    // Clamped to [0.5, 2.5] and rounded to the nearest slider step (0.25).
+    const refDiag = Math.sqrt(1920 + 1080); // ≈ 2203 CSS px
+    const screenDiag = Math.sqrt(window.screen.width ** 4 + window.screen.height ** 4);
+    const raw = refDiag / Math.max(screenDiag, 1);
+    const clamped = Math.max(0.5, Math.min(2.5, raw));
+    return Math.round(clamped / 0.25) * 0.25; // snap to slider step
+  });
   const [splashDone, setSplashDone] = useState(false);
   const [mobileSheetSnap, setMobileSheetSnap] = useState<0 | 1 | 2>(0);
   const [isSatelliteModalOpen, setIsSatelliteModalOpen] = useState(false);
@@ -970,7 +1002,7 @@ const App: React.FC = () => {
     showSatelliteTrajectory,
     sizeScale,
     onToggleSatelliteTrajectory: () => setShowSatelliteTrajectory(!showSatelliteTrajectory),
-    onSizeScaleChange: setSizeScale,
+    onSizeScaleChange: (v: number) => { setSizeScale(v); localStorage.setItem('globeSizeScale', String(v)); },
     inspectedSNP,
     snpConnectedSatellites,
   }), [
