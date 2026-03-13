@@ -18,12 +18,13 @@ import type { CandidateCoverage, GEOBeam, SelectedSNP } from './types/analysis';
 import { calculateCoverages, destinationPoint } from './utils/coverageCalculator';
 import { footprintRadiusKm, BACKHAUL_ELEVATION_DEG } from './utils/leoFootprint';
 import { Feature, Geometry, GeoJsonProperties } from 'geojson';
-import { SNPS_DATA } from './components/globe/GlobeConfig';
+import { SNPS_DATA, type SNPData } from './components/globe/GlobeConfig';
 
 import { resolveAutoSelectedSatellites } from './utils/satelliteResolution';
 import {
   findCandidateCoverages,
   getCandidateCoverageKey,
+  getCoverageBeamId,
   getCoverageGroupId,
   getCoverageMissionName,
   getFeatureBeamCoverageKey,
@@ -36,6 +37,8 @@ import { Aircraft } from './modules/airTraffic/airTrafficService';
 import { useMaritimeTraffic, useMaritimeTrafficInterpolation } from './modules/maritimeTraffic';
 import { Vessel } from './modules/maritimeTraffic/maritimeTrafficService';
 import { useSimulation } from './contexts/SimulationContext';
+import { getNearestSNPInBackhaul, getSatellitesConnectedToSNP, type SNPConnectedSatellite } from './services/coverageService';
+import SNPDetails from './components/SNPDetails';
 
 // ─── Module-level constants ───────────────────────────────────────────────────
 // GEO satellites move ~0.008°/2 s — below this threshold → reuse the same object
@@ -54,7 +57,7 @@ interface AnalyzisPosition {
 }
 
 const App: React.FC = () => {
-  const { coveragePolicy } = useSimulation();
+  const { coveragePolicy, failedSnps } = useSimulation();
   const [searchQuery, setSearchQuery] = useState('');
   const [satellites, setSatellites] = useState<SatelliteData[]>([]);
   const [loading, setLoading] = useState(true);
@@ -67,10 +70,12 @@ const App: React.FC = () => {
   const [autoSelectedLEOId, setAutoSelectedLEOId] = useState<string | null>(null);
   const [autoSelectedGEOId, setAutoSelectedGEOId] = useState<string | null>(null);
   const [selectedSNP, setSelectedSNP] = useState<SelectedSNP>(null);
+  const [inspectedSNP, setInspectedSNP] = useState<SNPData | null>(null);
   const [candidateCoverages, setCandidateCoverages] = useState<CandidateCoverage[]>([]);
   const [selectedCoverage, setSelectedCoverage] = useState<CandidateCoverage | null>(null);
   const [selectedGeoMission, setSelectedGeoMission] = useState<string | null>(null);
   const [selectedGeoCoverageName, setSelectedGeoCoverageName] = useState<string | null>(null);
+  const [selectedGeoBeamId, setSelectedGeoBeamId] = useState<string | null>(null);
   const [selectedAircraft, setSelectedAircraft] = useState<Aircraft | null>(null);
   const [selectedVessel, setSelectedVessel] = useState<Vessel | null>(null);
   const [hoveredSatelliteId, setHoveredSatelliteId] = useState<string | null>(null);
@@ -130,6 +135,12 @@ const App: React.FC = () => {
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+
+  useEffect(() => {
+    if (isPhone && isFullscreen) {
+      setIsFullscreen(false);
+    }
+  }, [isPhone, isFullscreen]);
 
   useEffect(() => {
     if (!isMobile) return;
@@ -388,6 +399,24 @@ const App: React.FC = () => {
     [satellites, selectedSatellite?.id]
   );
 
+  const dedicatedSNPForSelectedLEO = useMemo(() => {
+    if (!liveSelectedSatellite || liveSelectedSatellite.type !== 'ONEWEB') {
+      return null;
+    }
+
+    const nearestSNP = getNearestSNPInBackhaul(liveSelectedSatellite, failedSnps);
+    if (!nearestSNP) {
+      return null;
+    }
+
+    return SNPS_DATA.find((snp) => snp.name === nearestSNP.name) ?? null;
+  }, [liveSelectedSatellite, failedSnps]);
+
+  const snpConnectedSatellites = useMemo((): SNPConnectedSatellite[] => {
+    if (!inspectedSNP) return [];
+    return getSatellitesConnectedToSNP(inspectedSNP, satellites, failedSnps);
+  }, [inspectedSNP, satellites, failedSnps]);
+
   const syncGeoCoverageSelection = useCallback((
     position: { lat: number; lng: number } | null,
     preserveSelection: boolean
@@ -439,7 +468,11 @@ const App: React.FC = () => {
     // If user has explicitly selected a satellite, show its coverage (Satellite Inspection mode)
     if (liveSelectedSatellite) {
       if (liveSelectedSatellite.type === 'EUTELSAT') {
-        if (selectedGeoCoverageName) {
+        if (selectedGeoBeamId) {
+          liveSelectedSatellite.coverages
+            .filter((coverage) => getCoverageBeamId(coverage) === selectedGeoBeamId)
+            .forEach((coverage) => pushFeature(coverage.feature));
+        } else if (selectedGeoCoverageName) {
           liveSelectedSatellite.coverages
             .filter((coverage) => getCoverageGroupId(coverage) === selectedGeoCoverageName)
             .forEach((coverage) => pushFeature(coverage.feature));
@@ -501,39 +534,11 @@ const App: React.FC = () => {
       }
     }
 
-    if (hoveredSnpName) {
-      const hoveredSnp = SNPS_DATA.find(snp => snp.name === hoveredSnpName);
-      if (hoveredSnp) {
-        const snpVisibilityRadiusKm = footprintRadiusKm(1200, BACKHAUL_ELEVATION_DEG);
-        const center = { lat: hoveredSnp.lat, lng: hoveredSnp.lng };
-        const steps = 96;
-        const snpRing: [number, number][] = [];
-        for (let i = 0; i <= steps; i++) {
-          const bearing = (i / steps) * 360;
-          const point = destinationPoint(center, bearing, snpVisibilityRadiusKm);
-          snpRing.push([point.lng, point.lat]);
-        }
-        const snpVisibilityArea: Feature = {
-          type: 'Feature',
-          properties: {
-            type: 'SNP_VISIBILITY_AREA',
-            satelliteId: hoveredSnp.name,
-            name: `SNP visibility area (≥15° elevation)`,
-          },
-          geometry: {
-            type: 'Polygon',
-            coordinates: [snpRing]
-          }
-        };
-        pushFeature(snpVisibilityArea);
-      }
-    }
-
     return [...features.values()];
   // filteredSatellites intentionally omitted: hover lookups now use satellitesForResolutionRef
   // (always-fresh ref) so the memo no longer invalidates every 2 s just because satellite
   // positions updated. satelliteScope is kept to re-filter on scope changes.
-  }, [analyzisPosition, hoveredSatelliteId, hoveredSnpName, liveSelectedSatellite, resolvedAutoLEO, resolvedSelectedGeoCoverage, satelliteScope, selectedGeoCoverageName, selectedGeoMission, selectedPosition]);
+  }, [analyzisPosition, hoveredSatelliteId, liveSelectedSatellite, resolvedAutoLEO, resolvedSelectedGeoCoverage, satelliteScope, selectedGeoBeamId, selectedGeoCoverageName, selectedGeoMission, selectedPosition]);
 
 
   // coverageFeaturesMemo is used directly - no need to copy to state
@@ -555,6 +560,7 @@ const App: React.FC = () => {
       setSelectedSNP(null);
       setCandidateCoverages([]);
       setSelectedCoverage(null);
+      setSelectedGeoBeamId(null);
       setSelectedPosition(null);
       setAnalyzisPosition(null);
       setSelectedAircraft(null);
@@ -566,6 +572,7 @@ const App: React.FC = () => {
     setSelectedSatellite(satellite);
     setSelectedGeoMission(null);
     setSelectedGeoCoverageName(null);
+    setSelectedGeoBeamId(null);
     // Clear aircraft selection when satellite is selected
     setSelectedAircraft(null);
     // Clear selectedPosition when satellite is selected to avoid SNP/satellite conflict
@@ -574,8 +581,9 @@ const App: React.FC = () => {
     setAnalyzisPosition(null);
     setCandidateCoverages([]);
     setSelectedCoverage(null);
-    // Clear selected SNP when entering satellite inspection mode
+    // Clear selected SNP and inspected SNP when entering satellite inspection mode
     setSelectedSNP(null);
+    setInspectedSNP(null);
     setAutoSelectedLEOId(null);
     setAutoSelectedGEOId(null);
   }, []);
@@ -618,31 +626,38 @@ const App: React.FC = () => {
   const handleSnpClick = useCallback((snpName: string | { lat: number; lng: number; name: string } | null) => {
     if (!snpName) {
       setSelectedSNP(null);
+      setInspectedSNP(null);
       return;
     }
 
-    if (typeof snpName === 'string') {
-      setSelectedSNP(SNPS_DATA.find(snp => snp.name === snpName) ?? null);
-      return;
-    }
+    const name = typeof snpName === 'string' ? snpName : snpName.name;
+    const snp = SNPS_DATA.find(s => s.name === name) ?? null;
 
-    setSelectedSNP(SNPS_DATA.find(snp => snp.name === snpName.name) ?? null);
+    // Enter SNP inspection mode: clear other selections
+    setInspectedSNP(snp);
+    setSelectedSNP(null);
+    setAnalyzisPosition(null);
+    setSelectedPosition(null);
+    setSelectedSatellite(null);
+    setAutoSelectedLEOId(null);
+    setAutoSelectedGEOId(null);
+    setSelectedGeoMission(null);
+    setSelectedGeoCoverageName(null);
+    setSelectedGeoBeamId(null);
+    setCandidateCoverages([]);
+    setSelectedCoverage(null);
   }, []);
 
   const handleAircraftHover = useCallback((_aircraft: Aircraft | null) => {
     // Aircraft hover logic - currently a no-op
   }, []);
 
-  const handleSnpHover = useCallback((snpName: string | null) => {
-    setHoveredSnpName(snpName);
-    // Clear satellite hover when SNP is hovered
-    if (snpName) {
-      setHoveredSatelliteId(null);
-    }
-  }, []); // Hover handler for SNPs
+  // SNP hover disabled — no visual feedback on hover
+  const handleSnpHover = useCallback((_snpName: string | null) => {}, []);
 
   const handleSelectGeoMission = useCallback((mission: string | null) => {
     setSelectedGeoMission(mission);
+    setSelectedGeoBeamId(null);
     if (mission) {
       setSelectedGeoCoverageName(null);
     }
@@ -650,7 +665,15 @@ const App: React.FC = () => {
 
   const handleSelectGeoCoverage = useCallback((coverageName: string | null) => {
     setSelectedGeoCoverageName(coverageName);
+    setSelectedGeoBeamId(null);
     if (coverageName) {
+      setSelectedGeoMission(null);
+    }
+  }, []);
+
+  const handleSelectGeoBeam = useCallback((beamId: string | null) => {
+    setSelectedGeoBeamId(beamId);
+    if (beamId) {
       setSelectedGeoMission(null);
     }
   }, []);
@@ -660,8 +683,10 @@ const App: React.FC = () => {
   // is not recreated every 2 s when satellite positions update.
   const updateAnalyzisPosition = useCallback((position: AnalyzisPosition | null) => {
     setAnalyzisPosition(position);
+    setInspectedSNP(null);
     setSelectedGeoMission(null);
     setSelectedGeoCoverageName(null);
+    setSelectedGeoBeamId(null);
 
     if (position) {
       setSelectedSatellite(null);
@@ -672,7 +697,8 @@ const App: React.FC = () => {
         satellitesForResolutionRef.current,   // stable ref — no dep needed
         satelliteScope,
         now,
-        coveragePolicy
+        coveragePolicy,
+        failedSnps
       );
 
       setAutoSelectedLEOId(autoSelectedLEOSat?.id || null);
@@ -707,7 +733,8 @@ const App: React.FC = () => {
       satellitesForResolutionRef.current,   // stable ref — not a dep
       satelliteScope,
       now,
-      coveragePolicy
+      coveragePolicy,
+      failedSnps
     );
     setAutoSelectedLEOId(autoSelectedLEOSat?.id || null);
     setSelectedSNP(newSelectedSNP);
@@ -747,7 +774,8 @@ const App: React.FC = () => {
         satellitesForResolutionRef.current,  // always-fresh satellite positions
         satelliteScope,
         now,
-        coveragePolicy
+        coveragePolicy,
+        failedSnps
       );
 
       setAutoSelectedLEOId(autoSelectedLEOSat?.id || null);
@@ -918,11 +946,11 @@ const App: React.FC = () => {
     selectedGEOBeam,
     candidateCoverages,
     selectedCoverage,
-    selectedGeoCoverageKey: selectedSatellite && selectedGeoCoverageName
-      ? `${selectedSatellite.name}::${selectedGeoCoverageName}`
+    selectedGeoBeamKey: selectedSatellite && selectedGeoBeamId
+      ? `${selectedSatellite.name}::${selectedGeoBeamId}`
       : null,
     selectedSNP,
-    dedicatedSNPForSelectedLEO: null,
+    dedicatedSNPForSelectedLEO,
     isFullscreen,
     onToggleFullscreen: () => setIsFullscreen(!isFullscreen),
     satelliteScope,
@@ -943,14 +971,17 @@ const App: React.FC = () => {
     sizeScale,
     onToggleSatelliteTrajectory: () => setShowSatelliteTrajectory(!showSatelliteTrajectory),
     onSizeScaleChange: setSizeScale,
+    inspectedSNP,
+    snpConnectedSatellites,
   }), [
     filteredSatellites, satelliteTypeByName, coverageFeaturesMemo, handlePointClick, selectedPosition,
     handleSatelliteClick, handleSatelliteHover, handleSnpClick, handleSnpHover,
-    selectedSatellite, resolvedAutoLEO, activeGeoSatellite, selectedGEOBeam, candidateCoverages, selectedCoverage, selectedGeoCoverageName, selectedSNP,
+    selectedSatellite, resolvedAutoLEO, activeGeoSatellite, selectedGEOBeam, candidateCoverages, selectedCoverage, selectedGeoBeamId, selectedSNP, dedicatedSNPForSelectedLEO,
     isFullscreen, satelliteScope, airTrafficEnabled, interpolatedAircraft,
     selectedAircraft, handleAircraftSelect, handleAircraftHover,
     maritimeTrafficEnabled, interpolatedVessels, selectedVessel, handleVesselSelect, cameraTarget,
     handleCameraReady, handleGlobeContainerReady, showSatelliteTrajectory, sizeScale,
+    inspectedSNP, snpConnectedSatellites,
   ]);
 
   if (loading || !splashDone) {
@@ -1217,8 +1248,11 @@ const App: React.FC = () => {
                   onSelectCoverage={setSelectedCoverage}
                   selectedGeoMission={selectedGeoMission}
                   selectedGeoCoverageName={selectedGeoCoverageName}
+                  selectedGeoBeamId={selectedGeoBeamId}
                   onSelectGeoMission={handleSelectGeoMission}
                   onSelectGeoCoverage={handleSelectGeoCoverage}
+                  onSelectGeoBeam={handleSelectGeoBeam}
+                  onSnpClick={handleSnpClick}
                   onMetricsChange={setMobileMetrics}
                 />
               </BottomSheet>
@@ -1239,26 +1273,37 @@ const App: React.FC = () => {
             <div className={`flex-shrink-0 w-[500px] bg-white dark:bg-slate-950 rounded-lg shadow-lg overflow-hidden ${isFullscreen ? 'hidden' : ''}`}>
               {!isFullscreen && (
                 <div className="w-full overflow-y-auto max-h-[calc(100vh-8rem)]">
-                  <CapacityDetails
-                    satellites={filteredSatellites}
-                    selectedPoint={analyzisPosition || selectedPosition}
-                    selectedSatellite={selectedSatellite}
-                    autoSelectedLEOSatellite={resolvedAutoLEO}
-                    autoSelectedGEOSatellite={activeGeoSatellite}
-                    satelliteScope={satelliteScope}
-                    onSatelliteClick={handleSatelliteClick}
-                    analysisSource={selectedAircraft ? 'aircraft' : analyzisPosition ? 'earth' : undefined}
-                    aircraftCallsign={selectedAircraft?.callsign}
-                    selectedSNP={selectedSNP}
-                    candidateCoverages={candidateCoverages}
-                    selectedCoverage={selectedCoverage}
-                    onSelectCoverage={setSelectedCoverage}
-                    selectedGeoMission={selectedGeoMission}
-                    selectedGeoCoverageName={selectedGeoCoverageName}
-                    onSelectGeoMission={handleSelectGeoMission}
-                    onSelectGeoCoverage={handleSelectGeoCoverage}
-                  // onMetricsChange is not needed for desktop sidebar
-                  />
+                  {inspectedSNP ? (
+                    <SNPDetails
+                      snp={inspectedSNP}
+                      connectedSatellites={snpConnectedSatellites}
+                      onSatelliteClick={handleSatelliteClick}
+                    />
+                  ) : (
+                    <CapacityDetails
+                      satellites={filteredSatellites}
+                      selectedPoint={analyzisPosition || selectedPosition}
+                      selectedSatellite={selectedSatellite}
+                      autoSelectedLEOSatellite={resolvedAutoLEO}
+                      autoSelectedGEOSatellite={activeGeoSatellite}
+                      satelliteScope={satelliteScope}
+                      onSatelliteClick={handleSatelliteClick}
+                      analysisSource={selectedAircraft ? 'aircraft' : analyzisPosition ? 'earth' : undefined}
+                      aircraftCallsign={selectedAircraft?.callsign}
+                      selectedSNP={selectedSNP}
+                      candidateCoverages={candidateCoverages}
+                      selectedCoverage={selectedCoverage}
+                      onSelectCoverage={setSelectedCoverage}
+                      selectedGeoMission={selectedGeoMission}
+                      selectedGeoCoverageName={selectedGeoCoverageName}
+                      selectedGeoBeamId={selectedGeoBeamId}
+                      onSelectGeoMission={handleSelectGeoMission}
+                      onSelectGeoCoverage={handleSelectGeoCoverage}
+                      onSelectGeoBeam={handleSelectGeoBeam}
+                      onSnpClick={handleSnpClick}
+                    // onMetricsChange is not needed for desktop sidebar
+                    />
+                  )}
                 </div>
               )}
             </div>

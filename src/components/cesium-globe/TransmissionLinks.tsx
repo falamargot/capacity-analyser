@@ -18,8 +18,9 @@ import type { SatelliteScope } from '../SatelliteScopeFilter';
 import { getPosition, propagateSatellite, calculateDeadReckoning } from './utils';
 import { hasRFConnectivity } from '../../utils/rfConnectivity';
 import { useSimulation } from '../../contexts/SimulationContext';
-import { GEO_GATEWAYS } from '../globe/GlobeConfig';
+import { GEO_GATEWAYS, type SNPData } from '../globe/GlobeConfig';
 import { selectBestGeoGateway } from '../../utils/geoConnectivityModel';
+import type { SNPConnectedSatellite } from '../../services/coverageService';
 
 interface TransmissionLinksProps {
     selectedPosition?: { lat: number; lng: number; altitude?: number } | null;
@@ -28,8 +29,10 @@ interface TransmissionLinksProps {
     autoSelectedLEOSatellite?: SatelliteData | null;
     autoSelectedGEOSatellite?: SatelliteData | null;
     selectedSNP?: { lat: number; lng: number; name: string } | null;
-    dedicatedSNPForSelectedLEO?: { lat: number; lng: number } | null;
+    dedicatedSNPForSelectedLEO?: SNPData | null;
     satelliteScope: SatelliteScope;
+    inspectedSNP?: SNPData | null;
+    snpConnectedSatellites?: SNPConnectedSatellite[];
 }
 
 // Dashed material cache
@@ -61,7 +64,9 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
     autoSelectedGEOSatellite,
     selectedSNP,
     dedicatedSNPForSelectedLEO,
-    satelliteScope
+    satelliteScope,
+    inspectedSNP,
+    snpConnectedSatellites = []
 }) => {
     const { coveragePolicy } = useSimulation();
     const hasUserSelection = !!(selectedPosition || selectedAircraft);
@@ -178,6 +183,11 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
         return new CallbackProperty((_time?: JulianDate) => staticPositions, false);
     }, [autoSelectedGEOSatellite, hasUserSelection, bestGeoGateway]);
 
+    const dedicatedGeoGateway = useMemo(() => {
+        if (!selectedSatellite || selectedSatellite.type !== 'EUTELSAT') return null;
+        return selectBestGeoGateway(selectedSatellite, GEO_GATEWAYS);
+    }, [selectedSatellite]);
+
     // Dedicated SNP link for manually selected LEO satellite
     const dedicatedSnpCallback = useMemo(() => {
         if (!selectedSatellite || selectedSatellite.type !== 'ONEWEB' || !dedicatedSNPForSelectedLEO) return null;
@@ -192,7 +202,37 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
         }, false);
     }, [selectedSatellite, dedicatedSNPForSelectedLEO]);
 
-    if (!hasUserSelection && !dedicatedSnpCallback) {
+    const dedicatedGeoFeederCallback = useMemo(() => {
+        if (!selectedSatellite || selectedSatellite.type !== 'EUTELSAT' || !dedicatedGeoGateway) return null;
+
+        const gwLat = dedicatedGeoGateway.gateway.latitude ?? dedicatedGeoGateway.gateway.lat;
+        const gwLng = dedicatedGeoGateway.gateway.longitude ?? dedicatedGeoGateway.gateway.lng;
+        const gatewayPos = getPosition(gwLat, gwLng, 0.01);
+
+        return new CallbackProperty((time?: JulianDate) => {
+            if (!time) return [];
+
+            const satPos = propagateSatellite(selectedSatellite, time);
+            return [satPos, gatewayPos];
+        }, false);
+    }, [selectedSatellite, dedicatedGeoGateway]);
+
+    // SNP inspection links (one per connected satellite)
+    const snpInspectionLinks = useMemo(() => {
+        if (!inspectedSNP) return null;
+        const snpPos = getPosition(inspectedSNP.lat, inspectedSNP.lng, 0.01);
+
+        return snpConnectedSatellites.map(({ satellite }) => {
+            const callback = new CallbackProperty((time?: JulianDate) => {
+                if (!time) return [];
+                const satPos = propagateSatellite(satellite, time);
+                return [satPos, snpPos];
+            }, false);
+            return { id: satellite.id, callback };
+        });
+    }, [inspectedSNP, snpConnectedSatellites]);
+
+    if (!hasUserSelection && !dedicatedSnpCallback && !dedicatedGeoFeederCallback && !inspectedSNP) {
         return null;
     }
 
@@ -271,6 +311,31 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
                     />
                 </Entity>
             )}
+
+            {/* Dedicated Gateway Link for manually selected GEO satellite */}
+            {dedicatedGeoFeederCallback && satelliteScope !== 'LEO' && (
+                <Entity name="GEO Satellite → Dedicated Gateway">
+                    <PolylineGraphics
+                        positions={dedicatedGeoFeederCallback}
+                        width={2.5}
+                        material={geoFeederMaterial}
+                        arcType={ArcType.NONE}
+                    />
+                </Entity>
+            )}
+
+            {/* SNP Inspection: links from each connected satellite to the SNP */}
+            {snpInspectionLinks && snpInspectionLinks.map(({ id, callback }) => (
+                <Entity key={`snp-link-${id}`} name={`SNP link ${id}`}>
+                    <PolylineGraphics
+                        positions={callback}
+                        width={2}
+                        material={leoDashMaterial}
+                        clampToGround={false}
+                        arcType={ArcType.NONE}
+                    />
+                </Entity>
+            ))}
         </>
     );
 };

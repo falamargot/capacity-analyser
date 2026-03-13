@@ -17,6 +17,7 @@
  */
 
 import React, { useMemo, useState } from 'react';
+import { SectionTooltip } from './SectionTooltip';
 import * as satelliteJs from 'satellite.js';
 import { JulianDate } from 'cesium';
 import type { SatelliteData } from '../types/satellites';
@@ -60,6 +61,8 @@ export interface PassBeamTimelineProps {
   hsBeams: ReadonlySet<number>;
   weatherCondition: WeatherCondition;
   beamHealthFactors: BeamHealthData[];
+  /** Terminal max downlink (Mbps) — caps per-step throughput to match Estimated Performance */
+  maxDlMbps: number;
 }
 
 // ─────────────────────────────────────────────────────────────────
@@ -113,6 +116,7 @@ const PassBeamTimeline: React.FC<PassBeamTimelineProps> = ({
   hsBeams,
   weatherCondition,
   beamHealthFactors,
+  maxDlMbps,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
 
@@ -159,6 +163,7 @@ const PassBeamTimeline: React.FC<PassBeamTimelineProps> = ({
       // 5. SNP backhaul availability at this time
       let snpAvailable = false;
       let nearestSnpName: string | null = null;
+      let snpElevation = 0;
       if (activeBeamCount > 0 && !gsoState.isBlankingZone) {
         let minDist = Infinity;
         for (const snp of SNPS_DATA) {
@@ -168,6 +173,8 @@ const PassBeamTimeline: React.FC<PassBeamTimelineProps> = ({
             minDist = dist;
             snpAvailable = true;
             nearestSnpName = snp.name;
+            // Elevation of the satellite as seen from this SNP (same geometry as user elevation)
+            snpElevation = calculateElevationAngle({ lat: snp.lat, lng: snp.lng }, mockSat);
           }
         }
       }
@@ -183,7 +190,14 @@ const PassBeamTimeline: React.FC<PassBeamTimelineProps> = ({
           weather: weatherCondition,
           normalizedDistance: 0.3, // moderate position within beam
         });
-        throughputMbps = perf.deliveredThroughputMbps;
+        // Apply the same backhaul quality factor as Estimated Performance:
+        // limiting link is the weaker of user↔sat and snp↔sat elevation.
+        const limitingElev = Math.min(elevation, snpElevation);
+        const backhaulFactor = limitingElev < 15 ? 0
+          : limitingElev >= 50 ? 1
+          : (limitingElev - 15) / (50 - 15);
+        // Cap by terminal profile max to stay consistent with Estimated Performance
+        throughputMbps = Math.min(perf.deliveredThroughputMbps * backhaulFactor, maxDlMbps);
       }
 
       points.push({
@@ -199,7 +213,7 @@ const PassBeamTimeline: React.FC<PassBeamTimelineProps> = ({
     }
 
     return points;
-  }, [satellite, userPosition, failedSnps, hsBeams, weatherCondition, beamHealthFactors]);
+  }, [satellite, userPosition, failedSnps, hsBeams, weatherCondition, beamHealthFactors, maxDlMbps]);
 
   // Summary stats
   const inPassPoints    = timeline.filter(p => p.elevation > 0);
@@ -236,7 +250,7 @@ const PassBeamTimeline: React.FC<PassBeamTimelineProps> = ({
         aria-expanded={isOpen}
       >
         <div className="min-w-0">
-          <h4 className="text-sm font-semibold" style={{ color: '#db2777' }}>Pass Beam Timeline</h4>
+          <h4 className="text-sm font-semibold flex items-center" style={{ color: '#db2777' }}>Pass Beam Timeline<SectionTooltip content="A ±10-minute window around the satellite overpass showing beam handovers every 30 seconds. Each row shows which of the 16 beams covers the user, satellite elevation, SNP reachability, and estimated throughput — helping identify whether a connection drops between beam transitions." /></h4>
           <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">{summaryText}</p>
         </div>
         <svg

@@ -30,7 +30,8 @@ export const resolveAutoSelectedSatellites = (
     satellites: SatelliteData[],
     satelliteScope: SatelliteScope,
     time?: any, // JulianDate from Cesium
-    policy: CoveragePolicy = { type: "DB_THRESHOLD", thresholdDb: -10 }
+    policy: CoveragePolicy = { type: "DB_THRESHOLD", thresholdDb: -10 },
+    failedSnps: ReadonlySet<string> = new Set()
 ): SatelliteResolutionResult => {
     let autoSelectedGEOSat: SatelliteData | null = null;
     let autoSelectedLEOSat: SatelliteData | null = null;
@@ -60,9 +61,10 @@ export const resolveAutoSelectedSatellites = (
                 return false;
             }
 
-            // Rule 2: Satellite sees at least one SNP (gateway) simultaneously with SNP elevation ≥ 15°
+            // Rule 2: Satellite sees at least one active SNP (gateway) simultaneously with SNP elevation ≥ 15°
             let hasVisibleSNP = false;
             for (const snp of SNPS_DATA) {
+                if (failedSnps.has(snp.name)) continue;
                 const snpElevation = calculateElevationAngle(
                     { lat: snp.lat, lng: snp.lng }, sat
                 );
@@ -93,6 +95,7 @@ export const resolveAutoSelectedSatellites = (
             let bestSNPElevation = -1;
 
             for (const snp of SNPS_DATA) {
+                if (failedSnps.has(snp.name)) continue;
                 const snpElevation = calculateElevationAngle(
                     { lat: snp.lat, lng: snp.lng }, sat
                 );

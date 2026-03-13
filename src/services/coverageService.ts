@@ -3,7 +3,8 @@ import { SNPS_DATA } from '../components/globe/GlobeConfig';
 import { isPointInCoverage } from '../utils/coverageCalculator';
 import { SatelliteData } from '../types/satellites';
 import { haversineDistanceKm, BACKHAUL_RADIUS_KM } from '../utils/leoFootprint';
-import { EARTH_RADIUS_KM, SPEED_OF_LIGHT_RADIO_KM_S } from '../utils/capacityCalculator';
+import { EARTH_RADIUS_KM, SPEED_OF_LIGHT_RADIO_KM_S, calculateElevationAngle } from '../utils/capacityCalculator';
+import type { SNPData } from '../components/globe/GlobeConfig';
 import { calculateGSOAvoidanceAngle } from '../utils/oneWebComb';
 import { JulianDate } from 'cesium';
 import { log } from '../utils/logger';
@@ -263,3 +264,46 @@ export const hasSNPInCoverage = (satellite: SatelliteData, failedSnps: ReadonlyS
 
   return false;
 }
+
+export interface SNPConnectedSatellite {
+  satellite: SatelliteData;
+  elevation: number;   // degrees, satellite elevation seen from SNP
+  distanceKm: number;  // surface distance km
+  latencyMs: number;   // one-way latency ms
+}
+
+/**
+ * Find all LEO satellites currently connected to a given SNP (elevation ≥ 15°).
+ * Returns results sorted by descending elevation.
+ */
+export const getSatellitesConnectedToSNP = (
+  snp: SNPData,
+  satellites: SatelliteData[],
+  failedSnps: ReadonlySet<string> = new Set()
+): SNPConnectedSatellite[] => {
+  if (failedSnps.has(snp.name)) return [];
+
+  const result: SNPConnectedSatellite[] = [];
+
+  for (const satellite of satellites) {
+    if (satellite.type !== 'ONEWEB') continue;
+
+    const elevation = calculateElevationAngle({ lat: snp.lat, lng: snp.lng }, satellite);
+    if (elevation < 15) continue;
+
+    const distanceKm = haversineDistanceKm(
+      { lat: snp.lat, lng: snp.lng },
+      { lat: satellite.position.lat, lng: satellite.position.lng }
+    );
+
+    const distance3D = calculate3DDistanceKm(
+      { lat: satellite.position.lat, lng: satellite.position.lng, alt: satellite.position.alt },
+      { lat: snp.lat, lng: snp.lng }
+    );
+    const latencyMs = (distance3D / SPEED_OF_LIGHT_RADIO_KM_S) * 1000;
+
+    result.push({ satellite, elevation, distanceKm, latencyMs });
+  }
+
+  return result.sort((a, b) => b.elevation - a.elevation);
+};

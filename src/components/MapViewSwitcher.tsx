@@ -8,6 +8,7 @@ import { SatelliteScope } from './SatelliteScopeFilter';
 import { Aircraft } from '../modules/airTraffic/airTrafficService';
 import { Vessel } from '../modules/maritimeTraffic/maritimeTrafficService';
 import type { CandidateCoverage, GEOBeam } from '../types/analysis';
+import type { SNPData } from './globe/GlobeConfig';
 
 interface MapViewSwitcherProps {
   satellites: SatelliteData[];
@@ -23,7 +24,7 @@ interface MapViewSwitcherProps {
   autoSelectedLEOSatellite?: SatelliteData | null;
   autoSelectedGEOSatellite?: SatelliteData | null;
   selectedSNP?: string | { lat: number; lng: number; name: string } | null;
-  dedicatedSNPForSelectedLEO?: any;
+  dedicatedSNPForSelectedLEO?: SNPData | null;
   isFullscreen: boolean;
   onToggleFullscreen: () => void;
   satelliteScope: SatelliteScope;
@@ -40,7 +41,7 @@ interface MapViewSwitcherProps {
   selectedGEOBeam?: GEOBeam | null;
   candidateCoverages?: CandidateCoverage[];
   selectedCoverage?: CandidateCoverage | null;
-  selectedGeoCoverageKey?: string | null;
+  selectedGeoBeamKey?: string | null;
   cameraTarget?: { lat: number; lng: number; alt: number } | null;
   onCameraReady?: (viewer: any) => void;
   onGlobeContainerReady?: (ref: React.RefObject<HTMLDivElement | null>) => void;
@@ -49,6 +50,8 @@ interface MapViewSwitcherProps {
   onToggleSatelliteTrajectory?: () => void;
   onSizeScaleChange?: (scale: number) => void;
   isPhone?: boolean;
+  inspectedSNP?: SNPData | null;
+  snpConnectedSatellites?: import('../services/coverageService').SNPConnectedSatellite[];
 }
 
 const MapViewSwitcher: React.FC<MapViewSwitcherProps> = ({
@@ -82,7 +85,7 @@ const MapViewSwitcher: React.FC<MapViewSwitcherProps> = ({
   selectedGEOBeam,
   candidateCoverages = [],
   selectedCoverage = null,
-  selectedGeoCoverageKey = null,
+  selectedGeoBeamKey = null,
   cameraTarget,
   onCameraReady,
   onGlobeContainerReady,
@@ -91,6 +94,8 @@ const MapViewSwitcher: React.FC<MapViewSwitcherProps> = ({
   onToggleSatelliteTrajectory,
   onSizeScaleChange,
   isPhone = false,
+  inspectedSNP,
+  snpConnectedSatellites = [],
 }) => {
   const [sceneMode, setSceneMode] = useState<'2D' | '3D'>('3D');
 
@@ -128,7 +133,7 @@ const MapViewSwitcher: React.FC<MapViewSwitcherProps> = ({
         selectedGEOBeam={selectedGEOBeam}
         candidateCoverages={candidateCoverages}
         selectedCoverage={selectedCoverage}
-        selectedGeoCoverageKey={selectedGeoCoverageKey}
+        selectedGeoBeamKey={selectedGeoBeamKey}
         cameraTarget={cameraTarget}
         onCameraReady={onCameraReady}
         onGlobeContainerReady={onGlobeContainerReady}
@@ -139,6 +144,8 @@ const MapViewSwitcher: React.FC<MapViewSwitcherProps> = ({
         isPhone={isPhone}
         sceneMode={sceneMode}
         onSceneModeChange={setSceneMode}
+        inspectedSNP={inspectedSNP}
+        snpConnectedSatellites={snpConnectedSatellites}
       />
     </div>
   );

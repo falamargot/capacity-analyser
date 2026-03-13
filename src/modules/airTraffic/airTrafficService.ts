@@ -175,7 +175,14 @@ export async function getAircraftData(): Promise<Aircraft[]> {
 }
 
 /**
- * Filter aircraft based on camera bounds and distance limits
+ * Filter aircraft based on camera bounds, then sort by relevance and apply a hard cap.
+ *
+ * Relevance priority:
+ *  - If a focusPoint is provided: closest aircraft first (most useful for current analysis)
+ *  - Otherwise: highest altitude first (commercial cruising traffic = most visible/important)
+ *
+ * This ensures global coverage while guaranteeing the most relevant aircraft are always
+ * within the rendering budget when the cap is reached.
  */
 export function filterAircraftByView(
   aircraft: Aircraft[],
@@ -186,14 +193,8 @@ export function filterAircraftByView(
     west: number;
   } | null,
   focusPoint: { lat: number; lng: number } | null,
-  maxDistanceKm: number = 3000,
-  maxAircraft: number = 3000
+  maxAircraft: number = 6000
 ): Aircraft[] {
-  if (!cameraBounds && !focusPoint) {
-    // No filtering criteria, apply hard cap only
-    return aircraft.slice(0, maxAircraft);
-  }
-
   let filtered = aircraft;
 
   // Filter by camera bounds if available
@@ -208,24 +209,25 @@ export function filterAircraftByView(
     );
   }
 
-  // Filter by distance from focus point if available
+  // Sort by relevance so the most useful aircraft are kept when the cap is reached
   if (focusPoint) {
-    filtered = filtered.filter(ac => {
-      if (ac.latitude === null || ac.longitude === null) return false;
-
-      // Simple haversine distance calculation
-      const R = 6371; // Earth's radius in km
-      const dLat = (ac.latitude - focusPoint.lat) * Math.PI / 180;
-      const dLon = (ac.longitude - focusPoint.lng) * Math.PI / 180;
+    // Closest to analysis point first
+    const haversineKm = (lat: number, lng: number): number => {
+      const R = 6371;
+      const dLat = (lat - focusPoint.lat) * Math.PI / 180;
+      const dLon = (lng - focusPoint.lng) * Math.PI / 180;
       const a =
-        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-        Math.cos(focusPoint.lat * Math.PI / 180) * Math.cos(ac.latitude * Math.PI / 180) *
-        Math.sin(dLon / 2) * Math.sin(dLon / 2);
-      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-      const distance = R * c;
-
-      return distance <= maxDistanceKm;
-    });
+        Math.sin(dLat / 2) ** 2 +
+        Math.cos(focusPoint.lat * Math.PI / 180) * Math.cos(lat * Math.PI / 180) *
+        Math.sin(dLon / 2) ** 2;
+      return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    };
+    filtered = [...filtered].sort((a, b) =>
+      haversineKm(a.latitude!, a.longitude!) - haversineKm(b.latitude!, b.longitude!)
+    );
+  } else {
+    // Highest altitude first (commercial cruising traffic priority)
+    filtered = [...filtered].sort((a, b) => (b.altitude_km ?? 0) - (a.altitude_km ?? 0));
   }
 
   // Apply hard cap

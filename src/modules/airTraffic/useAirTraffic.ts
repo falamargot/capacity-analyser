@@ -17,7 +17,6 @@ export interface AirTrafficState {
 export interface AirTrafficConfig {
   enabled: boolean;
   updateInterval: number; // milliseconds
-  maxDistanceKm: number;
   maxAircraft: number;
 }
 
@@ -36,8 +35,7 @@ export interface FocusPoint {
 const DEFAULT_CONFIG: AirTrafficConfig = {
   enabled: false,
   updateInterval: 10000, // 10 seconds
-  maxDistanceKm: 3000,
-  maxAircraft: 3000,
+  maxAircraft: 6000,
 };
 
 /**
@@ -56,7 +54,6 @@ export function useAirTraffic(
   ), [
     config.enabled,
     config.updateInterval,
-    config.maxDistanceKm,
     config.maxAircraft
   ]);
   
@@ -85,7 +82,6 @@ export function useAirTraffic(
         allAircraft,
         cameraBounds,
         focusPoint,
-        finalConfig.maxDistanceKm,
         finalConfig.maxAircraft
       );
 

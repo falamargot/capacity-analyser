@@ -8,7 +8,12 @@ import { Feature, Geometry, GeoJsonProperties } from 'geojson';
 import type { SatelliteData } from '../../types/satellites';
 import type { CandidateCoverage } from '../../types/analysis';
 import { getCoverageColor } from '../../services/coverageService';
-import { getCandidateCoverageKey, getFeatureCandidateCoverageKey } from '../../utils/geoCoverageSelection';
+import {
+    getCandidateBeamKey,
+    getCandidateCoverageKey,
+    getFeatureBeamCoverageKey,
+    getFeatureCandidateCoverageKey
+} from '../../utils/geoCoverageSelection';
 
 const SELECTED_GEO_CONTOUR_HEIGHT_M = 10000;
 const SELECTED_GEO_CONTOUR_COLOR = Color.fromCssColorString('#2563eb').withAlpha(0.98);
@@ -19,7 +24,7 @@ interface CoverageLayerProps {
     satelliteTypeByName: Map<string, SatelliteData['type']>;
     candidateCoverages?: CandidateCoverage[];
     selectedCoverage?: CandidateCoverage | null;
-    selectedGeoCoverageKey?: string | null;
+    selectedGeoBeamKey?: string | null;
 }
 
 const buildClosedRing = (ring: number[][]): number[][] => {
@@ -144,17 +149,17 @@ const CoverageLayer: React.FC<CoverageLayerProps> = ({
     satelliteTypeByName,
     candidateCoverages = [],
     selectedCoverage = null,
-    selectedGeoCoverageKey = null,
+    selectedGeoBeamKey = null,
 }) => {
     const selectedCoverageKey = useMemo(() => (
-        selectedCoverage ? getCandidateCoverageKey(selectedCoverage) : selectedGeoCoverageKey
-    ), [selectedCoverage, selectedGeoCoverageKey]);
+        selectedCoverage ? getCandidateBeamKey(selectedCoverage) : selectedGeoBeamKey
+    ), [selectedCoverage, selectedGeoBeamKey]);
 
     const selectedGeoRendering = useMemo(() => {
         if (!selectedCoverageKey) return null;
 
         const selectedFeatures = coverageFeatures.filter((feature) => (
-            getFeatureCandidateCoverageKey(feature) === selectedCoverageKey &&
+            getFeatureBeamCoverageKey(feature) === selectedCoverageKey &&
             feature.geometry.type === 'Polygon'
         ));
 
@@ -224,7 +229,7 @@ const CoverageLayer: React.FC<CoverageLayerProps> = ({
             if (feature.geometry.type !== 'Polygon') return false;
             if (feature.properties?.type === 'ONEWEB_SWATH') return false;
             if (feature.properties?.type === 'ONEWEB_SERVICE_ZONE') return false;
-            if (selectedCoverageKey && getFeatureCandidateCoverageKey(feature) === selectedCoverageKey) return false;
+            if (selectedCoverageKey && getFeatureBeamCoverageKey(feature) === selectedCoverageKey) return false;
             return true;
         });
 
@@ -247,7 +252,8 @@ const CoverageLayer: React.FC<CoverageLayerProps> = ({
             const geoLayerIndex = isGeoFeature(feature)
                 ? (geoRankByFilteredIndex.get(index) ?? null)
                 : null;
-            const featureKey = getFeatureCandidateCoverageKey(feature);
+            const featureCoverageKey = getFeatureCandidateCoverageKey(feature);
+            const featureBeamKey = getFeatureBeamCoverageKey(feature);
             return (
                 <CoveragePolygon
                     key={`coverage-${index}`}
@@ -256,8 +262,8 @@ const CoverageLayer: React.FC<CoverageLayerProps> = ({
                     satelliteTypeByName={satelliteTypeByName}
                     geoLayerIndex={geoLayerIndex}
                     geoLayerCount={geoLayerCount}
-                    isCandidate={featureKey !== null && candidateCoverageKeys.has(featureKey)}
-                    isSelected={featureKey !== null && featureKey === selectedCoverageKey}
+                    isCandidate={featureCoverageKey !== null && candidateCoverageKeys.has(featureCoverageKey)}
+                    isSelected={featureBeamKey !== null && featureBeamKey === selectedCoverageKey}
                 />
             );
         });

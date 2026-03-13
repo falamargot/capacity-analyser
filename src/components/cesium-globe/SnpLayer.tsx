@@ -2,7 +2,7 @@
  * SnpLayer - Renders SNP (Satellite Network Portal) ground stations
  */
 import React, { useMemo, useCallback } from 'react';
-import { Entity, LabelGraphics } from 'resium';
+import { Entity, LabelGraphics, EllipseGraphics } from 'resium';
 import {
     Cartesian3,
     Cartesian2,
@@ -12,6 +12,7 @@ import {
     HorizontalOrigin,
     Viewer as CesiumViewerType
 } from 'cesium';
+import { BACKHAUL_RADIUS_KM } from '../../utils/leoFootprint';
 import { SNPS_DATA, SNPData } from '../globe/GlobeConfig';
 import { getPosition, DPR_FACTOR, calculateDynamicScale } from './utils';
 import type { SatelliteScope } from '../SatelliteScopeFilter';
@@ -24,6 +25,7 @@ interface SnpLayerProps {
     viewerRef: React.RefObject<CesiumViewerType | null>;
     sizeScale?: number;
     autoSelectedSnpName?: string | null;
+    inspectedSnpName?: string | null;
 }
 
 const SnpEntity = React.memo<{
@@ -34,6 +36,7 @@ const SnpEntity = React.memo<{
     sizeScale: number;
     isAutoSelected: boolean;
     isFailed: boolean;
+    isInspected: boolean;
 }>(({
     snp,
     viewerRef,
@@ -41,7 +44,8 @@ const SnpEntity = React.memo<{
     onSnpHover,
     sizeScale,
     isAutoSelected,
-    isFailed
+    isFailed,
+    isInspected
 }) => {
     const position = useMemo(
         () => getPosition(snp.lat, snp.lng, 0.01),
@@ -68,8 +72,13 @@ const SnpEntity = React.memo<{
     const handleMouseEnter = useCallback(() => onSnpHover(snp.name), [snp.name, onSnpHover]);
     const handleMouseLeave = useCallback(() => onSnpHover(null), [onSnpHover]);
 
-    const pointColor = isFailed ? Color.RED : Color.ORANGE;
-    const labelBgColor = isFailed ? Color.RED.withAlpha(0.8) : Color.ORANGE.withAlpha(0.7);
+    const pointColor = isFailed ? Color.RED : isInspected ? Color.WHITE : Color.ORANGE;
+    const labelBgColor = isFailed
+        ? Color.RED.withAlpha(0.8)
+        : isInspected
+            ? Color.ORANGE.withAlpha(0.9)
+            : Color.ORANGE.withAlpha(0.7);
+    const showLabel = isAutoSelected || isFailed || isInspected;
 
     return (
         <Entity
@@ -78,8 +87,8 @@ const SnpEntity = React.memo<{
             point={{
                 pixelSize: pixelSizeCallback,
                 color: pointColor,
-                outlineColor: isFailed ? Color.WHITE : undefined,
-                outlineWidth: isFailed ? 2 : 0,
+                outlineColor: isInspected ? Color.ORANGE : (isFailed ? Color.WHITE : undefined),
+                outlineWidth: isInspected || isFailed ? 2 : 0,
                 disableDepthTestDistance: 0
             }}
             name={snp.name}
@@ -87,10 +96,10 @@ const SnpEntity = React.memo<{
             onMouseEnter={handleMouseEnter}
             onMouseLeave={handleMouseLeave}
         >
-            {(isAutoSelected || isFailed) && (
+            {showLabel && (
                 <LabelGraphics
                     text={isFailed ? `${snp.name} ✕` : snp.name}
-                    font={isFailed ? "700 13px Inter, sans-serif" : "600 13px Inter, sans-serif"}
+                    font={isFailed ? "700 13px Inter, sans-serif" : isInspected ? "700 13px Inter, sans-serif" : "600 13px Inter, sans-serif"}
                     fillColor={Color.WHITE}
                     outlineWidth={3}
                     style={2}
@@ -101,6 +110,18 @@ const SnpEntity = React.memo<{
                     verticalOrigin={VerticalOrigin.BOTTOM}
                     horizontalOrigin={HorizontalOrigin.CENTER}
                     disableDepthTestDistance={Number.POSITIVE_INFINITY}
+                />
+            )}
+            {isInspected && (
+                <EllipseGraphics
+                    semiMajorAxis={BACKHAUL_RADIUS_KM * 1000}
+                    semiMinorAxis={BACKHAUL_RADIUS_KM * 1000}
+                    material={Color.ORANGE.withAlpha(0.18)}
+                    outline={true}
+                    outlineColor={Color.ORANGE.withAlpha(0.9)}
+                    outlineWidth={3}
+                    height={5000}
+                    fill={true}
                 />
             )}
         </Entity>
@@ -115,7 +136,8 @@ const SnpLayer: React.FC<SnpLayerProps> = ({
     onSnpHover,
     viewerRef,
     sizeScale = 1,
-    autoSelectedSnpName = null
+    autoSelectedSnpName = null,
+    inspectedSnpName = null
 }) => {
     const { failedSnps } = useSimulation();
 
@@ -131,9 +153,10 @@ const SnpLayer: React.FC<SnpLayerProps> = ({
                 sizeScale={sizeScale}
                 isAutoSelected={!!autoSelectedSnpName && snp.name === autoSelectedSnpName}
                 isFailed={failedSnps.has(snp.name)}
+                isInspected={!!inspectedSnpName && snp.name === inspectedSnpName}
             />
         ));
-    }, [viewerRef, onSnpClick, onSnpHover, sizeScale, autoSelectedSnpName, failedSnps]);
+    }, [viewerRef, onSnpClick, onSnpHover, sizeScale, autoSelectedSnpName, inspectedSnpName, failedSnps]);
 
     // Don't render SNPs for GEO-only scope
     if (satelliteScope === 'GEO') {

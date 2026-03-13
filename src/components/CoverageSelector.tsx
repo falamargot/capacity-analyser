@@ -149,7 +149,7 @@ const CoverageSelector = memo<CoverageSelectorProps>(({
 
   return (
     <div className="bg-gray-50 dark:bg-slate-800/50 rounded-lg p-4 border border-gray-100 dark:border-slate-700">
-      <h3 className="text-sm font-semibold mb-3 text-gray-800 dark:text-gray-200">Coverage</h3>
+      <h3 className="text-sm font-semibold mb-3" style={{ color: '#2563eb' }}>Coverages</h3>
       <div className="space-y-2">
         {groupedCandidates.map((group, index) => {
           const firstCoverage = group.coverages[0] ?? null;

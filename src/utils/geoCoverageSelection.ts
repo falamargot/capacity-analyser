@@ -232,6 +232,10 @@ export const getCandidateCoverageKey = (
   candidate: Pick<CandidateCoverage, 'satelliteName' | 'coverageKey'>
 ): string => `${candidate.satelliteName}::${candidate.coverageKey}`;
 
+export const getCandidateBeamKey = (
+  candidate: Pick<CandidateCoverage, 'satelliteName' | 'beamId'>
+): string => `${candidate.satelliteName}::${candidate.beamId}`;
+
 export const getFeatureCandidateCoverageKey = (
   feature: Feature<Geometry, GeoJsonProperties>
 ): string | null => {

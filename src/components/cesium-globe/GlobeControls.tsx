@@ -157,7 +157,7 @@ const GlobeControls: React.FC<GlobeControlsProps> = ({
         <div className="absolute top-2 right-2 z-10 flex flex-col items-end gap-2">
             {isPhone ? (
                 <>
-                    {/* First row: Switch Globe/Map, Map Settings, Fullscreen */}
+                    {/* First row: Switch Globe/Map, Map Settings */}
                     <div className="flex items-center gap-1" ref={popoverRef}>
                         {onSceneModeChange && (
                             <button
@@ -244,8 +244,6 @@ const GlobeControls: React.FC<GlobeControlsProps> = ({
                                 </div>
                             )}
                         </div>
-
-                        <FullscreenButton isFullscreen={isFullscreen} onClick={onToggleFullscreen} />
                     </div>
 
                     {/* Second row: Zoom -, Reset, Zoom + */}

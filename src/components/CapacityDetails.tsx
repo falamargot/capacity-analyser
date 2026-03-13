@@ -21,6 +21,7 @@ import { analyzeLeoConnectivity } from '../utils/leoConnectivityModel';
 import { computeGeoConnectivity } from '../utils/geoCoverageSelection';
 import { useSimulation, getCorridorIndex, getCorridorRange, getDcThroughputScale, CORRIDOR_COUNT } from '../contexts/SimulationContext';
 import PassBeamTimeline from './PassBeamTimeline';
+import { SectionTooltip } from './SectionTooltip';
 
 // Module-level stable definitions to avoid recreating inside component and
 // to keep hook dependency arrays clean.
@@ -74,18 +75,22 @@ interface CapacityDetailsProps {
   onSelectCoverage?: (coverage: CandidateCoverage) => void;
   selectedGeoMission?: string | null;
   selectedGeoCoverageName?: string | null;
+  selectedGeoBeamId?: string | null;
   onSelectGeoMission?: (mission: string | null) => void;
   onSelectGeoCoverage?: (coverageName: string | null) => void;
+  onSelectGeoBeam?: (beamId: string | null) => void;
+  onSnpClick?: (snpName: string) => void;
 }
 
 interface LatencyBreakdownCardProps {
   accentColor: string;
   summary: string;
   title?: string;
+  tooltip?: string;
   children: ReactNode;
 }
 
-const LatencyBreakdownCard = ({ accentColor, summary, title = 'Latency breakdown', children }: LatencyBreakdownCardProps) => {
+const LatencyBreakdownCard = ({ accentColor, summary, title = 'Latency breakdown', tooltip, children }: LatencyBreakdownCardProps) => {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
@@ -97,7 +102,7 @@ const LatencyBreakdownCard = ({ accentColor, summary, title = 'Latency breakdown
         aria-expanded={isOpen}
       >
         <div className="min-w-0">
-          <h4 className="text-sm font-semibold" style={{ color: accentColor }}>{title}</h4>
+          <h4 className="text-sm font-semibold flex items-center" style={{ color: accentColor }}>{title}{tooltip && <SectionTooltip content={tooltip} />}</h4>
           <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">{summary}</p>
         </div>
         <ChevronDown
@@ -114,7 +119,7 @@ const LatencyBreakdownCard = ({ accentColor, summary, title = 'Latency breakdown
 };
 
 // Performance optimization: Memoize component to prevent unnecessary re-renders
-const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint, selectedSatellite, autoSelectedLEOSatellite, satelliteScope, onSatelliteClick, analysisSource, aircraftCallsign, selectedSNP: propSelectedSNP, candidateCoverages = [], selectedCoverage = null, onSelectCoverage, selectedGeoMission, selectedGeoCoverageName, onSelectGeoMission, onSelectGeoCoverage }) => {
+const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint, selectedSatellite, autoSelectedLEOSatellite, satelliteScope, onSatelliteClick, analysisSource, aircraftCallsign, selectedSNP: propSelectedSNP, candidateCoverages = [], selectedCoverage = null, onSelectCoverage, selectedGeoMission, selectedGeoCoverageName, selectedGeoBeamId, onSelectGeoMission, onSelectGeoCoverage, onSelectGeoBeam, onSnpClick }) => {
   // Feature 1+2+3: read simulation context for failedSnps, corridorDcLevels, hsBeamsSet
   const {
     failedSnps,
@@ -158,6 +163,15 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
   // Clear Sky: 0 dB  | Clouds: -1.5 dB  | Rain: -5.0 dB
   const [weatherType, setWeatherType] = useState<WeatherType>('clear');
   const [autoWeatherEnabled, setAutoWeatherEnabled] = useState<boolean>(true);
+  const [activeConnTab, setActiveConnTab] = useState<'LEO' | 'GEO'>(
+    satelliteScope === 'GEO' ? 'GEO' : 'LEO'
+  );
+
+  // Sync active tab when scope changes
+  useEffect(() => {
+    if (satelliteScope === 'LEO') setActiveConnTab('LEO');
+    else if (satelliteScope === 'GEO') setActiveConnTab('GEO');
+  }, [satelliteScope]);
 
   // Force Clear Sky for aviation terminals and disable auto-weather
   useEffect(() => {
@@ -630,8 +644,11 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
         selectedSatellite={selectedSatellite}
         selectedGeoMission={selectedGeoMission}
         selectedGeoCoverageName={selectedGeoCoverageName}
+        selectedGeoBeamId={selectedGeoBeamId}
         onSelectGeoMission={onSelectGeoMission}
         onSelectGeoCoverage={onSelectGeoCoverage}
+        onSelectGeoBeam={onSelectGeoBeam}
+        onSnpClick={onSnpClick}
       />
     );
   }
@@ -687,7 +704,7 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
         <div className="flex-1 min-h-0 overflow-y-auto">
           <div className="mb-4">
             <div className="bg-gray-50 dark:bg-slate-800/50 rounded-lg p-3 border border-gray-100 dark:border-slate-700">
-              <h3 className="text-sm font-semibold mb-2 text-gray-800 dark:text-gray-200">User Terminal</h3>
+              <h3 className="text-sm font-semibold mb-2 text-gray-800 dark:text-gray-200 flex items-center">User Terminal<SectionTooltip content="The ground equipment (antenna + modem) used to connect to the satellite network. The selected type defines maximum achievable downlink/uplink throughput. Weather attenuation is applied on top of this profile." /></h3>
               <div className="space-y-3">
                 <div className="flex items-center space-x-3">
                   <label className="text-sm font-medium text-gray-600 dark:text-gray-400 w-16">Type:</label>
@@ -772,14 +789,37 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
             </div>
           </div>
           {/* 2) Constellation-based Connectivity Blocks */}
-          {(satelliteScope === 'LEO' || satelliteScope === 'ALL') && (
+          {(satelliteScope === 'LEO' || satelliteScope === 'GEO' || satelliteScope === 'ALL') && (
             <div className="mb-6">
-              <h3 className="text-lg font-semibold mb-1" style={{ color: '#db2777' }}>LEO Connectivity</h3>
+              {satelliteScope === 'ALL' && (
+                <div className="flex mb-4 p-1 bg-gray-100 dark:bg-slate-800 rounded-xl">
+                  <button
+                    type="button"
+                    onClick={() => setActiveConnTab('LEO')}
+                    className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-sm font-semibold transition-all duration-200 ${activeConnTab === 'LEO' ? 'bg-pink-500 text-white shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}
+                  >
+                    <span className={`w-2 h-2 rounded-full flex-shrink-0 ${resolvedLEOConnectivity?.snp ? 'bg-green-400' : resolvedLEOConnectivity ? 'bg-yellow-400' : 'bg-gray-300 dark:bg-slate-600'}`} />
+                    LEO
+                    <span className={`text-[10px] font-normal ${activeConnTab === 'LEO' ? 'text-pink-100' : 'text-gray-400 dark:text-gray-500'}`}>OneWeb</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setActiveConnTab('GEO')}
+                    className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-sm font-semibold transition-all duration-200 ${activeConnTab === 'GEO' ? 'bg-blue-600 text-white shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}
+                  >
+                    <span className={`w-2 h-2 rounded-full flex-shrink-0 ${resolvedGEOConnectivity ? 'bg-green-400' : 'bg-gray-300 dark:bg-slate-600'}`} />
+                    GEO
+                    <span className={`text-[10px] font-normal ${activeConnTab === 'GEO' ? 'text-blue-100' : 'text-gray-400 dark:text-gray-500'}`}>Eutelsat</span>
+                  </button>
+                </div>
+              )}
+              {(satelliteScope === 'LEO' || activeConnTab === 'LEO') && (<>
+              <h3 className="text-lg font-semibold mb-1 flex items-center" style={{ color: '#db2777' }}>LEO Connectivity<SectionTooltip content="Low Earth Orbit connectivity block. Shows how the user terminal connects through the nearest OneWeb LEO satellite and its associated SNP (Satellite Network Point) backhaul gateway." /></h3>
               <div className="space-y-4">
                 {/* LEO Radio Path */}
                 <div className="bg-gray-50 dark:bg-slate-800/50 rounded-lg p-4 mt-1 border border-gray-100 dark:border-slate-700">
-                  <h4 className="text-sm font-semibold mb-3" style={{ color: '#db2777' }}>
-                    Radio Path
+                  <h4 className="text-sm font-semibold mb-3 flex items-center" style={{ color: '#db2777' }}>
+                    Radio Path<SectionTooltip content="End-to-end signal route: User → LEO Satellite → SNP gateway and back. Shows elevation angle, slant range, and one-way propagation delay for each segment. No SNP means no service is available." />
                   </h4>
                   {resolvedLEOConnectivity ? (
                     <div className="text-sm text-gray-700 dark:text-gray-300 text-center space-y-3">
@@ -823,6 +863,7 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
                 </div>
                 <LatencyBreakdownCard
                   accentColor="#db2777"
+                  tooltip="Breakdown of the full round-trip propagation delay over the LEO link: User → Satellite → SNP → Satellite → User, plus network overhead (gateway processing, modem, routing)."
                   summary={leoGeometry ? `Estimated RTT total: ${leoGeometry.rttTotalMs.toFixed(1)} ms` : 'No LEO latency breakdown available without SNP connectivity.'}
                 >
                   {leoGeometry ? (
@@ -869,12 +910,13 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
                     hsBeams={hsBeamsSet}
                     weatherCondition={ctxWeather}
                     beamHealthFactors={beamHealthFactors}
+                    maxDlMbps={TERMINAL_PROFILES[terminalType].maxDlGbps * 1000}
                   />
                 )}
 
                 {/* LEO Estimated Performance (with DC scaling applied) */}
                 <div className="bg-gray-50 dark:bg-slate-800/50 rounded-lg p-4 border border-gray-100 dark:border-slate-700">
-                  <h4 className="text-sm font-semibold mb-3" style={{ color: '#db2777' }}>Estimated Performance</h4>
+                  <h4 className="text-sm font-semibold mb-3 flex items-center" style={{ color: '#db2777' }}>Estimated Performance<SectionTooltip content="Predicted downlink/uplink throughput and round-trip latency based on LEO link geometry, beam health factors, weather attenuation, and the current corridor DC level." /></h4>
                   {leoPerformance ? (() => {
                     // Feature 2: apply corridor DC throughput scaling
                     const userLng = activePoint?.lng ?? 0;
@@ -933,7 +975,7 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
                         aria-expanded={isPolarSupplyPlanOpen}
                       >
                         <div className="min-w-0">
-                          <h4 className="text-sm font-semibold" style={{ color: '#db2777' }}>Polar Corridor Supply Plan (DC)</h4>
+                          <h4 className="text-sm font-semibold flex items-center" style={{ color: '#db2777' }}>Polar Corridor Supply Plan (DC)<SectionTooltip content="Duty Cycle allocation per 20° longitude corridor for polar orbit coverage. DC1 = 6.25% throughput, DC16 = 100% (full power). Adjust per corridor to simulate satellite power management or beam congestion scenarios." /></h4>
                           <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
                             Current corridor: {west}° → {east}° · DC{currentDc} · {Math.round(dcScale * 100)}% throughput
                           </p>
@@ -1015,12 +1057,9 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
                   );
                 })()}
               </div>
-            </div>
-          )}
-
-          {(satelliteScope === 'GEO' || satelliteScope === 'ALL') && (
-            <div className="mb-6">
-              <h3 className="text-lg font-semibold mb-1" style={{ color: '#2563eb' }}>GEO Connectivity</h3>
+              </>)}
+              {(satelliteScope === 'GEO' || activeConnTab === 'GEO') && (<>
+              <h3 className="text-lg font-semibold mb-1 flex items-center" style={{ color: '#2563eb' }}>GEO Connectivity<SectionTooltip content="Geostationary orbit connectivity block. Shows how the user terminal connects through a Eutelsat GEO satellite and its nearest eligible ground gateway." /></h3>
               {candidateCoverages.length > 0 && selectedCoverage && (
                 <div className="mb-4">
                   <CoverageSelector
@@ -1032,7 +1071,7 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
               )}
               <div className="space-y-4">
                 <div className="bg-gray-50 dark:bg-slate-800/50 rounded-lg p-4 mt-1 border border-gray-100 dark:border-slate-700">
-                  <h4 className="text-sm font-semibold mb-3" style={{ color: '#2563eb' }}>Radio Path</h4>
+                  <h4 className="text-sm font-semibold mb-3 flex items-center" style={{ color: '#2563eb' }}>Radio Path<SectionTooltip content="End-to-end signal route: User → GEO Satellite → Ground Gateway and back. Shows elevation angle, slant range, and propagation delay per segment." /></h4>
                   {resolvedGEOConnectivity && geoGeometry ? (
                     (() => {
                       const userLabel = analysisSource === 'aircraft' && aircraftCallsign ? aircraftCallsign : 'User';
@@ -1069,6 +1108,7 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
                 </div>
                 <LatencyBreakdownCard
                   accentColor="#2563eb"
+                  tooltip="Breakdown of the full round-trip propagation delay over the GEO link: User → Satellite → Gateway → Satellite → User, plus network overhead. GEO propagation alone accounts for ~480 ms due to the 35,786 km orbital altitude."
                   summary={geoGeometry ? `Estimated RTT total: ${geoGeometry.rttTotalMs?.toFixed(1) ?? '--'} ms` : 'No GEO latency breakdown available.'}
                 >
                   {geoGeometry ? (
@@ -1106,7 +1146,7 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
                   )}
                 </LatencyBreakdownCard>
                 <div className="bg-gray-50 dark:bg-slate-800/50 rounded-lg p-4 border border-gray-100 dark:border-slate-700">
-                  <h4 className="text-sm font-semibold mb-3" style={{ color: '#2563eb' }}>Estimated Performance</h4>
+                  <h4 className="text-sm font-semibold mb-3 flex items-center" style={{ color: '#2563eb' }}>Estimated Performance<SectionTooltip content="Predicted GEO link throughput and end-to-end RTT. Throughput degrades at low elevation angles. Note the ~600 ms RTT inherent to all GEO orbits due to the 35,786 km orbital altitude." /></h4>
                   {resolvedGEOConnectivity && geoGeometry ? (
                     (() => {
                       const performance = calculateGEOPerformance(geoGeometry.userToSatellite.elevationDeg);
@@ -1138,6 +1178,7 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
                   )}
                 </div>
               </div>
+              </>)}
             </div>
           )}
 

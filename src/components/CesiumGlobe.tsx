@@ -58,7 +58,7 @@ import PositionDisplay from './cesium-globe/PositionDisplay';
 import SatelliteIndicator from './cesium-globe/SatelliteIndicator';
 import { LabelGraphics } from 'resium';
 import { formatCoordinates } from '../utils/formatters';
-import { GEO_GATEWAYS } from './globe/GlobeConfig';
+import { GEO_GATEWAYS, type SNPData } from './globe/GlobeConfig';
 import { selectBestGeoGateway } from '../utils/geoConnectivityModel';
 
 // Module-level constants — allocated once, reused on every render.
@@ -79,7 +79,7 @@ interface CesiumGlobeProps {
     autoSelectedLEOSatellite?: SatelliteData | null;
     autoSelectedGEOSatellite?: SatelliteData | null;
     selectedSNP?: string | { lat: number; lng: number; name: string } | null;
-    dedicatedSNPForSelectedLEO?: any;
+    dedicatedSNPForSelectedLEO?: SNPData | null;
     isFullscreen: boolean;
     onToggleFullscreen: () => void;
     satelliteScope: SatelliteScope;
@@ -96,7 +96,7 @@ interface CesiumGlobeProps {
     selectedGEOBeam?: GEOBeam | null;
     candidateCoverages?: CandidateCoverage[];
     selectedCoverage?: CandidateCoverage | null;
-    selectedGeoCoverageKey?: string | null;
+    selectedGeoBeamKey?: string | null;
     cameraTarget?: { lat: number; lng: number; alt: number } | null;
     onCameraReady?: (viewer: any) => void;
     onGlobeContainerReady?: (ref: React.RefObject<HTMLDivElement | null>) => void;
@@ -107,6 +107,8 @@ interface CesiumGlobeProps {
     isPhone?: boolean;
     sceneMode?: '2D' | '3D';
     onSceneModeChange?: (mode: '2D' | '3D') => void;
+    inspectedSNP?: SNPData | null;
+    snpConnectedSatellites?: import('../services/coverageService').SNPConnectedSatellite[];
 }
 
 const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
@@ -140,7 +142,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
     selectedGEOBeam,
     candidateCoverages = [],
     selectedCoverage = null,
-    selectedGeoCoverageKey = null,
+    selectedGeoBeamKey = null,
     cameraTarget,
     onCameraReady,
     onGlobeContainerReady,
@@ -151,6 +153,8 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
     isPhone,
     sceneMode = '3D',
     onSceneModeChange,
+    inspectedSNP,
+    snpConnectedSatellites = [],
 }) => {
     const [localEnableLighting, setLocalEnableLighting] = useState(false);
     const enableLighting = localEnableLighting;
@@ -483,6 +487,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                         viewerRef={viewerRef}
                         sizeScale={sizeScale}
                         autoSelectedSnpName={typeof selectedSNP === 'string' ? selectedSNP : (selectedSNP?.name ?? null)}
+                        inspectedSnpName={inspectedSNP?.name ?? null}
                     />
 
                     {/* GEO Gateway Layer */}
@@ -507,7 +512,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                         satelliteTypeByName={satelliteTypeByName}
                         candidateCoverages={candidateCoverages}
                         selectedCoverage={selectedCoverage}
-                        selectedGeoCoverageKey={selectedGeoCoverageKey}
+                        selectedGeoBeamKey={selectedGeoBeamKey}
                     />
 
                     {/* OneWeb Comb Layer - Always shown for selected satellite */}
@@ -544,6 +549,8 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                         selectedSNP={typeof selectedSNP === 'string' ? { lat: 0, lng: 0, name: selectedSNP } : selectedSNP}
                         dedicatedSNPForSelectedLEO={dedicatedSNPForSelectedLEO}
                         satelliteScope={satelliteScope}
+                        inspectedSNP={inspectedSNP}
+                        snpConnectedSatellites={snpConnectedSatellites}
                     />
 
                     {/* Aircraft Layer */}
