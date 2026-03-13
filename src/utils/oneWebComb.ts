@@ -169,21 +169,6 @@ export function calculateCombGeometry(
     const centerLat = satellite.degreesLat(centerGeo.latitude);
     const centerLng = satellite.degreesLong(centerGeo.longitude);
 
-    const N = Cartesian3.normalize(centerECI, new Cartesian3());
-    const dotVN = Cartesian3.dot(satVelECI, N);
-    const velTangent = Cartesian3.subtract(satVelECI, Cartesian3.multiplyByScalar(N, dotVN, new Cartesian3()), new Cartesian3());
-    const headingVec = Cartesian3.normalize(velTangent, new Cartesian3());
-
-    const NPole = new Cartesian3(0, 0, 1);
-    const dotNP = Cartesian3.dot(NPole, N);
-    const northTangent = Cartesian3.normalize(Cartesian3.subtract(NPole, Cartesian3.multiplyByScalar(N, dotNP, new Cartesian3()), new Cartesian3()), new Cartesian3());
-    const eastTangent = Cartesian3.cross(northTangent, N, new Cartesian3());
-
-    const bearingRad = Math.atan2(Cartesian3.dot(headingVec, eastTangent), Cartesian3.dot(headingVec, northTangent));
-
-    // Add 90° rotation to the entire footprint group
-    const rotatedBearingRad = bearingRad + (Math.PI / 2);
-
     // Reference scale from threshold (kept for backward compat)
     const referenceRadiusKm = getRadiusAtPowerLevel(-10);
     const currentRadiusKm = getRadiusAtPowerLevel(thresholdDb);
@@ -217,8 +202,11 @@ export function calculateCombGeometry(
         const semiMinorAxisKm = (102 / 2) * beamScale;
         const yOffsetKm = (i - middle) * beamCenterStepKm;
 
-        // Use rotated bearing for beam center positioning
-        const offsetBearingDeg = CesiumMath.toDegrees(rotatedBearingRad) + (yOffsetKm >= 0 ? 90 : -90);
+        // Beam centers are fixed in the geographic (payload) frame:
+        //   beam 0 is always the northernmost, beam 15 always the southernmost.
+        // Using bearingRad here would couple the IDs to pass direction and cause
+        // beam 0 to flip north↔south on every ascending/descending transition.
+        const offsetBearingDeg = yOffsetKm <= 0 ? 0 : 180; // 0° = north, 180° = south
         const offsetDistKm = Math.abs(yOffsetKm);
 
         const beamCenterGeo = destinationPointGeodesic(centerLat, centerLng, offsetBearingDeg, offsetDistKm);
@@ -233,8 +221,9 @@ export function calculateCombGeometry(
 
             const dist = Math.hypot(localX, localY);
             const angleFromMajorAxis = Math.atan2(localY, localX);
-            // Use rotated bearing for ellipse orientation
-            const finalBearingDeg = CesiumMath.toDegrees(rotatedBearingRad) + CesiumMath.toDegrees(angleFromMajorAxis);
+            // Major axis fixed to geographic east (90°) — beams are E-W oriented strips,
+            // consistent with the N-S beam center arrangement and the near-polar orbit cross-track.
+            const finalBearingDeg = 90 + CesiumMath.toDegrees(angleFromMajorAxis);
 
             const pointGeo = destinationPointGeodesic(beamCenterGeo.lat, beamCenterGeo.lng, finalBearingDeg, dist);
             polygonHierarchy.push(Cartesian3.fromDegrees(pointGeo.lng, pointGeo.lat, 0));
@@ -268,14 +257,15 @@ export function getBeamColor(
     isBlankingZone: boolean = false,
     isGSOAvoidance: boolean = false,
     satLatDeg: number = 0,
-    isMovingNorth: boolean = false
 ): Color {
     if (isBlankingZone) {
         return Color.GRAY.withAlpha(0.3);
     }
 
     if (isGSOAvoidance) {
-        const shouldActivateNorthernBeams = (satLatDeg > 0) === isMovingNorth;
+        // Beam IDs fixed in payload frame (0 = north, 15 = south).
+        // Activate the half pointing away from the GEO arc.
+        const shouldActivateNorthernBeams = satLatDeg > 0;
         const isActiveBeam = shouldActivateNorthernBeams
             ? beamIndex >= 0 && beamIndex <= 7
             : beamIndex >= 8 && beamIndex <= 15;
@@ -302,7 +292,6 @@ export function isPointInOverlapZone(
     isBlankingZone: boolean,
     isGSOAvoidance: boolean,
     satLatDeg: number,
-    isMovingNorth: boolean,
     isPointInPolygonFn: (point: { lat: number; lng: number }, ring: Array<[number, number]>) => boolean
 ): boolean {
     if (isBlankingZone || !beamPolygons) return false;
@@ -312,10 +301,10 @@ export function isPointInOverlapZone(
         const poly = beamPolygons[i];
         if (!poly || poly.length < 3) continue;
 
-        // Check if beam is active
+        // Check if beam is active (beam IDs fixed: 0=north, 15=south)
         let isActive = true;
         if (isGSOAvoidance) {
-            const shouldActivateNorthernBeams = (satLatDeg > 0) === isMovingNorth;
+            const shouldActivateNorthernBeams = satLatDeg > 0;
             isActive = shouldActivateNorthernBeams
                 ? i >= 0 && i <= 7
                 : i >= 8 && i <= 15;

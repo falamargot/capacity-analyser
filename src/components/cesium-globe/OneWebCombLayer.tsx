@@ -120,14 +120,16 @@ const BeamRing = React.memo<{
                 return getBeamColor(beamIndex, false);
             }
 
-            const { isBlankingZone, isGSOAvoidance, isMovingNorth, satLatDeg } =
+            const { isBlankingZone, isGSOAvoidance, satLatDeg } =
                 calculateGSOAvoidanceAngle(targetSat.satrec, time);
 
             // Inactive beam → gray, no gradient
             if (isBlankingZone) return Color.GRAY.withAlpha(0.3 * (ringOpacity / 0.75));
 
             if (isGSOAvoidance) {
-                const shouldActivateNorthernBeams = (satLatDeg > 0) === isMovingNorth;
+                // Beam IDs fixed: 0 = northernmost, 15 = southernmost.
+                // Activate the half pointing away from the equatorial GEO arc.
+                const shouldActivateNorthernBeams = satLatDeg > 0;
                 const isActiveBeam = shouldActivateNorthernBeams
                     ? beamIndex >= 0 && beamIndex <= 7
                     : beamIndex >= 8 && beamIndex <= 15;

@@ -8,10 +8,11 @@
  *
  * OneWeb operational rules (ITU-R S.1428 / GSO Protection):
  *  - Blanking zone  (|lat| ≤ 2°) : ALL beams OFF → 0 Tx (GEO arc exclusion zone)
- *  - GSO Avoidance  (2° < |lat| < 45°): HALF beams ON — comb rotated away from GEO arc
- *      Northern half (beams 0-7)  active when (lat > 0 AND moving north)
- *                                           OR (lat < 0 AND moving south)
- *      Southern half (beams 8-15) active otherwise
+ *  - GSO Avoidance  (2° < |lat| < 45°): HALF beams ON — comb pitched away from GEO arc
+ *      Beam IDs are fixed in the payload frame: beam 0 is always northernmost,
+ *      beam 15 always southernmost, regardless of pass direction.
+ *      Northern half (beams 0-7)  active when satLat > 0 (NH, GEO arc is to the south)
+ *      Southern half (beams 8-15) active when satLat < 0 (SH, GEO arc is to the north)
  *  - Normal         (|lat| ≥ 45°): ALL 16 beams active
  */
 
@@ -23,7 +24,6 @@
  * @param isBlankingZone  satellite is in GSO exclusion zone (|lat| ≤ 2°)
  * @param isGSOAvoidance  satellite is pitching for GSO Protection (2° < |lat| < 45°)
  * @param satLatDeg       current geodetic latitude of the satellite (degrees)
- * @param isMovingNorth   true if the satellite's along-track velocity has a northward component
  * @param hsBeams         optional set of beam indices marked as Hard Out of Service (HS).
  *                        When a beam is HS it is excluded from service regardless of GSO state.
  */
@@ -32,7 +32,6 @@ export function isBeamActive(
     isBlankingZone: boolean,
     isGSOAvoidance: boolean,
     satLatDeg: number,
-    isMovingNorth: boolean,
     hsBeams?: ReadonlySet<number>
 ): boolean {
     // Feature 3: Beam HS — hard out-of-service overrides everything
@@ -41,15 +40,18 @@ export function isBeamActive(
     // GSO exclusion zone ±2° latitude — all beams silenced
     if (isBlankingZone) return false;
 
-    // GSO Protection (half-comb rotation): only 8 of the 16 beams illuminated
+    // GSO Protection (half-comb): only 8 of the 16 beams illuminated.
+    // Beam IDs are fixed in the payload frame (beam 0 = northernmost, always).
+    // We activate the half that points AWAY from the equatorial GEO arc:
+    //   - Northern hemisphere (satLat > 0): GEO arc is to the south → activate northern beams (0–7)
+    //   - Southern hemisphere (satLat < 0): GEO arc is to the north → activate southern beams (8–15)
+    // Pass direction (isMovingNorth) does not affect beam selection because beam IDs
+    // are no longer coupled to the direction of travel.
     if (isGSOAvoidance) {
-        // The northern half of the comb is activated when the satellite is in the
-        // northern hemisphere and moving north, or in the southern hemisphere and
-        // moving south — i.e. when the boresight pitches away from the equatorial GEO arc.
-        const shouldActivateNorthernBeams = (satLatDeg > 0) === isMovingNorth;
+        const shouldActivateNorthernBeams = satLatDeg > 0;
         return shouldActivateNorthernBeams
-            ? beamIndex >= 0 && beamIndex <= 7    // Northern half (beams 0–7)
-            : beamIndex >= 8 && beamIndex <= 15;  // Southern half (beams 8–15)
+            ? beamIndex >= 0 && beamIndex <= 7    // Northern half (beams 0–7), away from GEO
+            : beamIndex >= 8 && beamIndex <= 15;  // Southern half (beams 8–15), away from GEO
     }
 
     // Normal operation: all 16 beams active

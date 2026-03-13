@@ -230,7 +230,7 @@ function _computeCoverageGrid(
                 if (!beamGeometries || beamGeometries.length === 0) return;
 
                 // 2. Determine GSO Protection status
-                const { isGSOAvoidance, isBlankingZone, satLatDeg, isMovingNorth } =
+                const { isGSOAvoidance, isBlankingZone, satLatDeg } =
                     calculateGSOAvoidanceAngle(sat.satrec, time);
 
                 // 3. Iterate over the 16 beams
@@ -238,7 +238,7 @@ function _computeCoverageGrid(
                     const beamGeometry = beamGeometries[beamIndex];
 
                     // Check if this beam is active
-                    if (!isBeamActive(beamIndex, isBlankingZone, isGSOAvoidance, satLatDeg, isMovingNorth)) {
+                    if (!isBeamActive(beamIndex, isBlankingZone, isGSOAvoidance, satLatDeg)) {
                         continue; // Skip inactive beams
                     }
 

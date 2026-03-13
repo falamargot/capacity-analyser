@@ -1089,7 +1089,7 @@ const App: React.FC = () => {
             <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
               <div className="flex items-center">
                 <Satellite className="h-8 w-8 text-blue-600" />
-                <h1 className="ml-2 text-2xl font-bold text-gray-900 dark:text-gray-100">Eutelsat Capacity Analyzer</h1>
+                <h1 className="ml-2 text-2xl font-bold text-gray-900 dark:text-gray-100">ETL Capacity Analyzer</h1>
               </div>
               <div className="flex items-center w-full sm:w-auto gap-4">
                 <div className="flex items-center gap-2 p-1 bg-gray-50 dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700">

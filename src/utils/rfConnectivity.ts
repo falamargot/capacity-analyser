@@ -74,7 +74,7 @@ function isUserInActiveBeam(
     hsBeams?: ReadonlySet<number>
 ): boolean {
     try {
-        const { isBlankingZone, isGSOAvoidance, satLatDeg, isMovingNorth } = gsoState;
+        const { isBlankingZone, isGSOAvoidance, satLatDeg } = gsoState;
 
         // For SERVICE_ZONE, use centralized circular coverage check instead of beam polygons
         if (policy.type === "SERVICE_ZONE") {
@@ -97,7 +97,7 @@ function isUserInActiveBeam(
 
         // M-01 fix: isBeamActive imported from oneWebComb (canonical implementation)
         for (let beamIndex = 0; beamIndex < beamPolygons.length; beamIndex++) {
-            if (isBeamActive(beamIndex, isBlankingZone, isGSOAvoidance, satLatDeg, isMovingNorth, hsBeams)) {
+            if (isBeamActive(beamIndex, isBlankingZone, isGSOAvoidance, satLatDeg, hsBeams)) {
                 if (isPointInPolygon(userPosition, beamPolygons[beamIndex])) {
                     return true;
                 }
@@ -420,7 +420,7 @@ export function findConnectedBeamIndex(
 
         // C-02: single SGP4 propagation
         const gsoState = calculateGSOAvoidanceAngle(satellite.satrec, time);
-        const { isBlankingZone, isGSOAvoidance, satLatDeg, isMovingNorth } = gsoState;
+        const { isBlankingZone, isGSOAvoidance, satLatDeg } = gsoState;
 
         if (isBlankingZone) return null;
         if (policy.type === "SERVICE_ZONE") return null; // No individual beams in this mode
@@ -431,7 +431,7 @@ export function findConnectedBeamIndex(
 
         for (let beamIndex = 0; beamIndex < beamPolygons.length; beamIndex++) {
             // M-01 fix: isBeamActive imported from oneWebComb (canonical)
-            if (!isBeamActive(beamIndex, isBlankingZone, isGSOAvoidance, satLatDeg, isMovingNorth, hsBeams)) continue;
+            if (!isBeamActive(beamIndex, isBlankingZone, isGSOAvoidance, satLatDeg, hsBeams)) continue;
             if (isPointInPolygon(userPosition, beamPolygons[beamIndex])) {
                 return beamIndex; // Beams ordered 0 (North) → 15 (South)
             }

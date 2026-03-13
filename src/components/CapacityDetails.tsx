@@ -59,16 +59,22 @@ const getWeatherFactor = (wt: WeatherType, isAviation: boolean): number => {
 
 const formatGeoStabilityTooltip = (elevationDeg: number, isUserLinkUnstable: boolean): string => {
   const currentRule = isUserLinkUnstable
-    ? 'Current status: Unstable because user-to-satellite elevation is below 5 deg.'
+    ? 'Current status: Unstable (elevation is below 5 deg).'
     : elevationDeg >= 40
-      ? 'Current status: High because elevation is at least 40 deg.'
+      ? 'Current status: High (elevation is at least 40 deg).'
       : elevationDeg >= 25
-        ? 'Current status: Medium because elevation is between 25 deg and 40 deg.'
+        ? 'Current status: Medium (elevation is between 25 deg and 40 deg).'
         : elevationDeg >= 5
-          ? 'Current status: Low because elevation is between 5 deg and 25 deg.'
-          : 'Current status: Unstable because elevation is below 5 deg.';
+          ? 'Current status: Low (elevation is between 5 deg and 25 deg).'
+          : 'Current status: Unstable (elevation is below 5 deg).';
 
-  return `GEO stability rule: Unstable below 5 deg elevation, Low from 5 deg to below 25 deg, Medium from 25 deg to below 40 deg, High at 40 deg and above. Current elevation: ${elevationDeg.toFixed(1)} deg. ${currentRule}`;
+  return `GEO stability rule:
+  - Unstable below 5 deg elevation
+  - Low from 5 deg to below 25 deg
+  - Medium from 25 deg to below 40 deg
+  - High at 40 deg and above
+Current elevation: ${elevationDeg.toFixed(1)} deg.
+${currentRule}`;
 };
 
 interface CapacityDetailsProps {
