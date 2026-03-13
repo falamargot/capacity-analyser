@@ -1,5 +1,11 @@
 /**
- * SatelliteLayer - Renders all satellite entities with optimized callbacks
+ * SatelliteLayer - Renders all satellite entities with optimized callbacks.
+ *
+ * Color policy (evaluated in priority order):
+ *   1. Manually selected by the user  →  RED  (overrides everything)
+ *   2. Operational  (+/P/B/S/X)       →  ROYALBLUE (EUTELSAT) / DEEPPINK (ONEWEB)
+ *   3. Inactive     (- / no SATCAT)   →  GRAY
+ *   Decayed satellites are never received here — they are filtered in satelliteService.
  */
 import React, { useMemo, useCallback } from 'react';
 import { Entity, LabelGraphics } from 'resium';
@@ -14,10 +20,35 @@ import {
 } from 'cesium';
 import type { SatelliteData } from '../../types/satellites';
 import { SATELLITE_GLYPH, LEO_SMOKED_GLYPH, DPR_FACTOR, calculateDynamicScale, getPosition } from './utils';
+import type { SatelliteStatusCategory } from '../../utils/satelliteStatus';
 
 // Module-level constants — allocated once, never reallocated during rendering.
 const LABEL_BACKGROUND_PADDING = new Cartesian2(7, 4);
 const LABEL_PIXEL_OFFSET = new Cartesian2(0, -24);
+
+// ─── Status color palette ─────────────────────────────────────────────────────
+// Pre-allocated Cesium Color instances so we never allocate on the hot render path.
+const STATUS_COLORS: Record<SatelliteStatusCategory, { eutelsat: Color; oneweb: Color }> = {
+  // Operational: retain the established brand colors per constellation
+  operational: { eutelsat: Color.ROYALBLUE, oneweb: Color.DEEPPINK },
+  // Inactive: neutral gray — visible but clearly distinct from operational
+  inactive:    { eutelsat: Color.GRAY,      oneweb: Color.GRAY },
+  // Decayed entries are filtered out before reaching this layer; never rendered.
+  decayed:     { eutelsat: Color.TRANSPARENT, oneweb: Color.TRANSPARENT },
+};
+
+/**
+ * Returns the billboard color for a satellite entity.
+ * Manual selection (user click) always overrides the status color.
+ */
+function getBillboardColor(
+  type: SatelliteData['type'],
+  opsStatus: SatelliteStatusCategory,
+  isManuallySelected: boolean
+): Color {
+  if (isManuallySelected) return Color.RED;
+  return STATUS_COLORS[opsStatus][type === 'EUTELSAT' ? 'eutelsat' : 'oneweb'];
+}
 import { usePositionCallbacks } from './hooks';
 
 interface SatelliteLayerProps {
@@ -87,13 +118,7 @@ const SatelliteEntity = React.memo<{
     const handleMouseEnter = useCallback(() => onSatelliteHover(sat.id), [sat.id, onSatelliteHover]);
     const handleMouseLeave = useCallback(() => onSatelliteHover(null), [onSatelliteHover]);
 
-    const baseBillboardColor = isManuallySelected
-        ? Color.RED
-        : sat.type === 'EUTELSAT'
-            ? Color.ROYALBLUE
-            : Color.DEEPPINK;
-
-    const billboardColor = baseBillboardColor;
+    const billboardColor = getBillboardColor(sat.type, sat.opsStatus, isManuallySelected);
 
     return (
         <>
@@ -119,7 +144,7 @@ const SatelliteEntity = React.memo<{
                         outlineWidth={3}
                         style={2}
                         showBackground={true}
-                        backgroundColor={sat.type === 'ONEWEB' ? Color.DEEPPINK.withAlpha(0.7) : Color.ROYALBLUE.withAlpha(0.7)}
+                        backgroundColor={getBillboardColor(sat.type, sat.opsStatus, false).withAlpha(0.7)}
                         backgroundPadding={LABEL_BACKGROUND_PADDING}
                         pixelOffset={LABEL_PIXEL_OFFSET}
                         verticalOrigin={VerticalOrigin.BOTTOM}

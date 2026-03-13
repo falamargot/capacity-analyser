@@ -11,6 +11,7 @@ import { ThemeSelector } from './components/ThemeSelector';
 import BottomSheet from './components/layout/BottomSheet';
 import MobileAnalysisSummary from './components/layout/MobileAnalysisSummary';
 import BeamLegend from './components/cesium-globe/BeamLegend';
+import SatelliteStatusLegend from './components/cesium-globe/SatelliteStatusLegend';
 import SimulationSettings from './components/layout/SimulationSettings';
 import { fetchSatellites } from './services/satelliteService';
 import { SatelliteData } from './types/satellites';
@@ -1244,6 +1245,7 @@ const App: React.FC = () => {
             >
               <MapViewSwitcher {...sharedMapProps} isPhone={isPhone} />
               {satelliteScope !== 'GEO' && <BeamLegend />}
+              <SatelliteStatusLegend />
             </div>
 
 
@@ -1298,6 +1300,7 @@ const App: React.FC = () => {
             >
               <MapViewSwitcher {...sharedMapProps} isPhone={false} />
               {satelliteScope !== 'GEO' && <BeamLegend />}
+              <SatelliteStatusLegend />
             </div>
 
 

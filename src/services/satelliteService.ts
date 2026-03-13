@@ -1,6 +1,8 @@
 import * as satellite from 'satellite.js';
 import { SatelliteData } from '../types/satellites';
 import { loadSatelliteCoverage } from './coverageService';
+import { fetchSatcatStatusMap, type SatcatStatusMap } from './satcatService';
+import { getStatusCategory } from '../utils/satelliteStatus';
 import { log } from '../utils/logger';
 
 // ─── TLE Cache Configuration ─────────────────────────────────────────────────
@@ -175,45 +177,83 @@ function attachSatelliteId<T extends { type: string; features: any[] }>(
 
 // ─── Main Fetch Entry Point ───────────────────────────────────────────────────
 
+/**
+ * Build a single SatelliteData entry, resolving its operational status from the
+ * SATCAT map and skipping decayed satellites.
+ *
+ * Returns null when the satellite's SATCAT entry is marked as decayed (code 'D'
+ * or non-null DECAY date) — the caller must filter these out.
+ */
+function buildSatelliteData(
+  sat: { name: string; satrec: any; noradId: string },
+  type: 'EUTELSAT' | 'ONEWEB',
+  orbitType: 'GEO' | 'LEO',
+  coverageData: ReturnType<typeof attachSatelliteId>,
+  satcatMap: SatcatStatusMap | null,
+  capacity: SatelliteData['capacity'],
+  coverageIndexSuffix: string
+): SatelliteData | null {
+  // When satcatMap is null the SATCAT endpoint was completely unavailable.
+  // The TLE sources already filter for active constellations, so defaulting to
+  // 'operational' is more correct than rendering everything as unknown/gray.
+  let opsStatus;
+  if (satcatMap === null) {
+    opsStatus = 'operational' as const;
+  } else {
+    // SATCAT is available: look up the satellite's status code.
+    // undefined → satellite not found in SATCAT → 'unknown' (dark gray)
+    const rawCode = satcatMap.get(sat.noradId);
+    opsStatus = getStatusCategory(rawCode);
+  }
+
+  // Decayed satellites must not appear in the scene at all
+  if (opsStatus === 'decayed') return null;
+
+  return {
+    id: sat.noradId,
+    name: sat.name,
+    noradId: sat.noradId,
+    type,
+    orbitType,
+    opsStatus,
+    satrec: sat.satrec,
+    position: calculatePosition(sat),
+    referenced_coverages: coverageData || { type: 'FeatureCollection' as const, features: [] },
+    coverages: coverageData
+      ? coverageData.features.map((feature, index) => ({
+          name: `${sat.name}_${coverageIndexSuffix}_${index + 1}`,
+          feature,
+        }))
+      : [{ name: sat.name, feature: { type: 'Feature' as const, properties: {}, geometry: null as any } }],
+    capacity,
+  };
+}
+
 export async function fetchSatellites(): Promise<SatelliteData[]> {
   try {
-    const [eutelsatTLE, onewebTLE] = await Promise.all([
+    // Fetch TLE data and SATCAT status map in parallel — SATCAT is independent
+    // of TLE data and both requests hit different CelesTrak endpoints.
+    const [eutelsatTLE, onewebTLE, satcatMap] = await Promise.all([
       fetchTLE('EUTELSAT', CACHE_KEYS.EUTELSAT_TLE, CACHE_KEYS.EUTELSAT_TS),
-      fetchTLE('ONEWEB', CACHE_KEYS.ONEWEB_TLE, CACHE_KEYS.ONEWEB_TS),
+      fetchTLE('ONEWEB',   CACHE_KEYS.ONEWEB_TLE,   CACHE_KEYS.ONEWEB_TS),
+      fetchSatcatStatusMap(),
     ]);
 
     const eutelsatSats = parseTLE(eutelsatTLE, 'EUTELSAT');
-    const onewebSats = parseTLE(onewebTLE, 'ONEWEB');
+    const onewebSats   = parseTLE(onewebTLE,   'ONEWEB');
 
-    log(`[fetchSatellites] ${eutelsatSats.length} EUTELSAT + ${onewebSats.length} ONEWEB satellites loaded.`);
+    log(`[fetchSatellites] ${eutelsatSats.length} EUTELSAT + ${onewebSats.length} ONEWEB satellites parsed.`);
 
     const eutelsatSatPromises = eutelsatSats.map(async (sat) => {
       const coverageData = attachSatelliteId(
         await loadSatelliteCoverage(sat.noradId, sat.name, 'EUTELSAT', 10),
         sat.name
       );
-      return {
-        id: sat.noradId,
-        name: sat.name,
-        noradId: sat.noradId,
-        type: 'EUTELSAT' as const,
-        orbitType: 'GEO' as const,
-        satrec: sat.satrec,
-        position: calculatePosition(sat),
-        referenced_coverages: coverageData || { type: 'FeatureCollection' as const, features: [] },
-        coverages: coverageData ? coverageData.features.map((feature, index) => ({
-          name: `${sat.name}_beam_${index + 1}`,
-          feature: feature
-        })) : [{
-          name: sat.name,
-          feature: { type: 'Feature' as const, properties: {}, geometry: null as any }
-        }],
-        capacity: {
-          maxThroughput: 100,
-          bandwidth: { ku: 500, ka: 300, c: 200 },
-          availability: 0.99
-        }
-      };
+      return buildSatelliteData(
+        sat, 'EUTELSAT', 'GEO', coverageData, satcatMap,
+        { maxThroughput: 100, bandwidth: { ku: 500, ka: 300, c: 200 }, availability: 0.99 },
+        'beam'
+      );
     });
 
     const onewebSatPromises = onewebSats.map(async (sat) => {
@@ -221,34 +261,27 @@ export async function fetchSatellites(): Promise<SatelliteData[]> {
         await loadSatelliteCoverage(sat.noradId, sat.name, 'ONEWEB', 600),
         sat.name
       );
-      return {
-        id: sat.noradId,
-        name: sat.name,
-        noradId: sat.noradId,
-        type: 'ONEWEB' as const,
-        orbitType: 'LEO' as const,
-        satrec: sat.satrec,
-        position: calculatePosition(sat),
-        referenced_coverages: coverageData || { type: 'FeatureCollection' as const, features: [] },
-        coverages: coverageData ? coverageData.features.map((feature, index) => ({
-          name: `${sat.name}_zone_${index + 1}`,
-          feature: feature
-        })) : [{
-          name: sat.name,
-          feature: { type: 'Feature' as const, properties: {}, geometry: null as any }
-        }],
-        capacity: {
-          maxThroughput: 8,
-          bandwidth: { ku: 250, ka: 150, c: 100 },
-          availability: 0.99
-        }
-      };
+      return buildSatelliteData(
+        sat, 'ONEWEB', 'LEO', coverageData, satcatMap,
+        { maxThroughput: 8, bandwidth: { ku: 250, ka: 150, c: 100 }, availability: 0.99 },
+        'zone'
+      );
     });
 
-    const satellites: SatelliteData[] = [
+    const rawResults = [
       ...await Promise.all(eutelsatSatPromises),
-      ...await Promise.all(onewebSatPromises)
+      ...await Promise.all(onewebSatPromises),
     ];
+
+    // Remove nulls (decayed satellites that must not appear in the scene)
+    const satellites = rawResults.filter((s): s is SatelliteData => s !== null);
+
+    const decayedCount = rawResults.length - satellites.length;
+    log(
+      `[fetchSatellites] ${satellites.length} satellites loaded ` +
+      `(${decayedCount} decayed entries suppressed).`
+    );
+
     return satellites;
   } catch (error) {
     console.error('Error fetching satellite data:', error);

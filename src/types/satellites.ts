@@ -1,5 +1,6 @@
 import { Feature, FeatureCollection } from 'geojson';
 import type { CoverageData } from '../services/coverageService';
+import type { SatelliteStatusCategory } from '../utils/satelliteStatus';
 
 export interface SatelliteData {
   id: string;
@@ -7,6 +8,12 @@ export interface SatelliteData {
   noradId: string;
   type: 'EUTELSAT' | 'ONEWEB';
   orbitType: 'GEO' | 'LEO'; // Mandatory orbit type
+  /**
+   * Operational status derived from the CelesTrak SATCAT.
+   * 'unknown' means the satellite had no SATCAT entry at fetch time.
+   * Decayed satellites are never stored — they are filtered out during loading.
+   */
+  opsStatus: SatelliteStatusCategory;
   satrec: any;
   position: {
     lat: number;

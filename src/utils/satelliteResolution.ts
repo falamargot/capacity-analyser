@@ -39,7 +39,7 @@ export const resolveAutoSelectedSatellites = (
 
     // GEO satellite selection logic - only run when GEO is allowed
     if (satelliteScope === 'ALL' || satelliteScope === 'GEO') {
-        const geoSatellites = satellites.filter(sat => sat.orbitType === 'GEO');
+        const geoSatellites = satellites.filter(sat => sat.orbitType === 'GEO' && sat.opsStatus === 'operational');
         const rankedCandidates = rankCandidateCoverages(
             findCandidateCoverages(userLocation, geoSatellites)
         );
@@ -50,7 +50,7 @@ export const resolveAutoSelectedSatellites = (
 
     // LEO satellite selection logic - only run when LEO is allowed
     if (satelliteScope === 'ALL' || satelliteScope === 'LEO') {
-        const leoSatellites = satellites.filter(sat => sat.orbitType === 'LEO');
+        const leoSatellites = satellites.filter(sat => sat.orbitType === 'LEO' && sat.opsStatus === 'operational');
 
         // Apply RF connectivity requirement - satellite must have active beam covering user
         const eligibleLEO = leoSatellites.filter(sat => {

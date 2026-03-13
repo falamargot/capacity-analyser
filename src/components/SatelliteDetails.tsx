@@ -178,8 +178,19 @@ const SatelliteDetails: React.FC<SatelliteDetailsProps> = ({
     beamHsStatus, toggleBeamHs, resetBeamHs,
   } = useSimulation();
 
+  const isOperational = selectedSatellite.opsStatus === 'operational';
+
   // Get current satellite position from satellites array (real-time)
   const currentSatellite = satellites.find(sat => sat.id === selectedSatellite.id);
+
+  // Orbital speed derived from the ECI velocity vector — updates whenever satellites prop updates
+  const orbitalSpeedKms = useMemo(() => {
+    const sat = currentSatellite ?? selectedSatellite;
+    const pv = satellite.propagate(sat.satrec, new Date());
+    if (!pv || typeof pv.velocity === 'boolean' || !pv.velocity) return null;
+    const v = pv.velocity as { x: number; y: number; z: number };
+    return Math.sqrt(v.x * v.x + v.y * v.y + v.z * v.z);
+  }, [currentSatellite, selectedSatellite]);
 
   // Calculate nearest SNP for LEO satellites using current position (real-time)
   // Pass failedSnps so the nearest SNP lookup skips any failed ground stations
@@ -274,44 +285,63 @@ const SatelliteDetails: React.FC<SatelliteDetailsProps> = ({
         <div className="space-y-4">
           <div className="flex items-center justify-between mb-4 pb-4 border-b border-gray-200 dark:border-slate-700">
             <div className="flex items-center space-x-3">
-              <div className="w-3 h-3 rounded-full bg-gradient-to-br from-pink-500 to-purple-600 animate-pulse shadow-lg shadow-pink-500/50"></div>
+              <div className={`w-3 h-3 rounded-full ${isOperational
+                ? 'bg-gradient-to-br from-pink-500 to-purple-600 animate-pulse shadow-lg shadow-pink-500/50'
+                : 'bg-gray-400 dark:bg-gray-500'
+              }`}></div>
               <div>
                 <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Satellite Details</h2>
                 {selectedSatellite.name}
               </div>
             </div>
-            <span className={`px-3 py-1 rounded-full text-sm font-medium ${selectedSatellite.type === 'EUTELSAT'
-              ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-200'
-              : 'bg-pink-100 dark:bg-pink-900/40 text-pink-800 dark:text-pink-200'
-              }`}>
-              {selectedSatellite.type}
-            </span>
+            <div className="flex items-center gap-2">
+              {!isOperational && (
+                <span className="px-3 py-1 rounded-full text-sm font-medium bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 border border-gray-300 dark:border-gray-600">
+                  Non-operational
+                </span>
+              )}
+              <span className={`px-3 py-1 rounded-full text-sm font-medium ${selectedSatellite.type === 'EUTELSAT'
+                ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-200'
+                : 'bg-pink-100 dark:bg-pink-900/40 text-pink-800 dark:text-pink-200'
+                }`}>
+                {selectedSatellite.type}
+              </span>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-12 gap-4 mb-4">
-            <div className="sm:col-span-6 bg-gray-50 dark:bg-slate-800/50 backdrop-blur-sm rounded-lg shadow-sm py-2 px-4 border border-gray-100 dark:border-slate-700">
+            <div className="sm:col-span-7 bg-gray-50 dark:bg-slate-800/50 backdrop-blur-sm rounded-lg shadow-sm py-2 px-4 border border-gray-100 dark:border-slate-700">
               <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1 flex items-center">Position<SectionTooltip content="Current orbital position (latitude, longitude, altitude) of the selected satellite, computed from its TLE data at the current simulation time." /></h3>
               <p className="text-lg font-semibold text-gray-900 dark:text-gray-100">
                 {formatCoordinates(getSelectedSatellitePosition(satellites, selectedSatellite))}
               </p>
-              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                Altitude: {(currentSatellite?.position.alt || selectedSatellite.position.alt).toFixed(0)} km
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 whitespace-nowrap">
+                Altitude: {(currentSatellite?.position.alt || selectedSatellite.position.alt).toFixed(0)} km{orbitalSpeedKms !== null && ` (${Math.round(orbitalSpeedKms * 3600).toLocaleString()} km/h)`}
               </p>
             </div>
 
-            <div className="sm:col-span-6 bg-gray-50 dark:bg-slate-800/50 backdrop-blur-sm rounded-lg shadow-sm py-2 px-4 border border-gray-100 dark:border-slate-700">
+            <div className="sm:col-span-5 bg-gray-50 dark:bg-slate-800/50 backdrop-blur-sm rounded-lg shadow-sm py-2 px-4 border border-gray-100 dark:border-slate-700">
               <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1 flex items-center">Capacity<SectionTooltip content="Satellite's maximum total throughput capacity and statistical link availability, as defined in the constellation dataset." /></h3>
-              <p className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                {selectedSatellite.capacity.maxThroughput.toLocaleString()} Gbps
-              </p>
-              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                Availability: {(selectedSatellite.capacity.availability * 100).toFixed(2)}%
-              </p>
+              {isOperational ? (
+                <>
+                  <p className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                    {selectedSatellite.capacity.maxThroughput.toLocaleString()} Gbps
+                  </p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                    Availability: {(selectedSatellite.capacity.availability * 100).toFixed(2)}%
+                  </p>
+                </>
+              ) : (
+                <>
+                  <p className="text-lg font-semibold text-gray-400 dark:text-gray-600">Off</p>
+                  <p className="text-sm text-gray-400 dark:text-gray-600 mt-1">Availability: —</p>
+                </>
+              )}
             </div>
           </div>
 
           {/* Separate SNP Information Section */}
-          {selectedSatellite.type === 'ONEWEB' && (
+          {selectedSatellite.type === 'ONEWEB' && isOperational && (
             <div className="mb-4">
               <div className="bg-gray-50 dark:bg-slate-800/50 rounded-lg p-4 border border-gray-100 dark:border-slate-700">
                 {nearestSNP ? (
@@ -450,12 +480,12 @@ const SatelliteDetails: React.FC<SatelliteDetailsProps> = ({
           )}
 
           {/* NEW: Coverage Policy Display */}
-          {selectedSatellite.type === 'ONEWEB' && (
+          {selectedSatellite.type === 'ONEWEB' && isOperational && (
             <CoveragePolicyDisplay policy={coveragePolicy} />
           )}
 
           {/* Coverage Areas - only for GEO satellites */}
-          {selectedSatellite.type === 'EUTELSAT' && (
+          {selectedSatellite.type === 'EUTELSAT' && isOperational && (
             <div className="mb-4">
               <h3 className="text-lg font-semibold mb-2 text-gray-900 dark:text-gray-100 flex items-center">Coverage Areas<SectionTooltip content="GEO satellite beam footprints organized by mission. Select a beam or mission to visualize its coverage polygon on the map and check which user positions fall within it." /></h3>
               <div className="bg-gray-50 dark:bg-slate-800/50 rounded-lg p-4 border border-gray-100 dark:border-slate-700">

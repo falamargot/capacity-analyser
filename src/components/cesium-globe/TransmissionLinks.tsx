@@ -190,7 +190,7 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
 
     // Dedicated SNP link for manually selected LEO satellite
     const dedicatedSnpCallback = useMemo(() => {
-        if (!selectedSatellite || selectedSatellite.type !== 'ONEWEB' || !dedicatedSNPForSelectedLEO) return null;
+        if (!selectedSatellite || selectedSatellite.type !== 'ONEWEB' || !dedicatedSNPForSelectedLEO || selectedSatellite.opsStatus !== 'operational') return null;
 
         return new CallbackProperty((time?: JulianDate) => {
             if (!time) return [];
@@ -203,7 +203,7 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
     }, [selectedSatellite, dedicatedSNPForSelectedLEO]);
 
     const dedicatedGeoFeederCallback = useMemo(() => {
-        if (!selectedSatellite || selectedSatellite.type !== 'EUTELSAT' || !dedicatedGeoGateway) return null;
+        if (!selectedSatellite || selectedSatellite.type !== 'EUTELSAT' || !dedicatedGeoGateway || selectedSatellite.opsStatus !== 'operational') return null;
 
         const gwLat = dedicatedGeoGateway.gateway.latitude ?? dedicatedGeoGateway.gateway.lat;
         const gwLng = dedicatedGeoGateway.gateway.longitude ?? dedicatedGeoGateway.gateway.lng;
@@ -222,7 +222,7 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
         if (!inspectedSNP) return null;
         const snpPos = getPosition(inspectedSNP.lat, inspectedSNP.lng, 0.01);
 
-        return snpConnectedSatellites.map(({ satellite }) => {
+        return snpConnectedSatellites.filter(({ satellite }) => satellite.opsStatus === 'operational').map(({ satellite }) => {
             const callback = new CallbackProperty((time?: JulianDate) => {
                 if (!time) return [];
                 const satPos = propagateSatellite(satellite, time);
