@@ -113,8 +113,8 @@ const App: React.FC = () => {
     //
     // Clamped to [0.5, 2.5] and rounded to the nearest slider step (0.25).
     const refDiag = Math.sqrt(1920 ** 2 + 1080 ** 2); // ≈ 2203 CSS px
-    const screenDiag = Math.sqrt(window.screen.width ** 2 + window.screen.height ** 2) / 5; // CSS pixels
-    const raw = refDiag / Math.max(screenDiag, 1);
+    const screenDiag = Math.sqrt(window.screen.width ** 2 + window.screen.height ** 2); // CSS pixels
+    const raw = 2 * Math.max(screenDiag, 1) / refDiag;
     const clamped = Math.max(0.5, Math.min(8, raw));
     return Math.round(clamped / 0.25) * 0.25; // snap to slider step
   });
