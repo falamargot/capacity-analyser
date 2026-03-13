@@ -79,7 +79,6 @@ const App: React.FC = () => {
   const [selectedAircraft, setSelectedAircraft] = useState<Aircraft | null>(null);
   const [selectedVessel, setSelectedVessel] = useState<Vessel | null>(null);
   const [hoveredSatelliteId, setHoveredSatelliteId] = useState<string | null>(null);
-  const [hoveredSnpName, setHoveredSnpName] = useState<string | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [satelliteScope, setSatelliteScope] = useState<SatelliteScope>('ALL');
   const [airTrafficEnabled, setAirTrafficEnabled] = useState(false);
@@ -88,7 +87,7 @@ const App: React.FC = () => {
   const [sizeScale, setSizeScale] = useState<number>(() => {
     // Return a previously saved preference if available
     const saved = parseFloat(localStorage.getItem('globeSizeScale') ?? '');
-    if (Number.isFinite(saved) && saved > 0) return saved;
+//    if (Number.isFinite(saved) && saved > 0) return saved;
 
     // No saved preference — derive an initial guess from screen characteristics.
     //
@@ -112,10 +111,10 @@ const App: React.FC = () => {
     //   2560×1440 (27" 1440p, DPR=1) → 2203/2935 ≈ 0.75×
     //
     // Clamped to [0.5, 2.5] and rounded to the nearest slider step (0.25).
-    const refDiag = Math.sqrt(1920 + 1080); // ≈ 2203 CSS px
-    const screenDiag = Math.sqrt(window.screen.width ** 4 + window.screen.height ** 4);
+    const refDiag = Math.sqrt(1920 ** 2 + 1080 ** 2); // ≈ 2203 CSS px
+    const screenDiag = Math.sqrt(window.screen.width ** 2 + window.screen.height ** 2) / 5; // CSS pixels
     const raw = refDiag / Math.max(screenDiag, 1);
-    const clamped = Math.max(0.5, Math.min(2.5, raw));
+    const clamped = Math.max(0.5, Math.min(8, raw));
     return Math.round(clamped / 0.25) * 0.25; // snap to slider step
   });
   const [splashDone, setSplashDone] = useState(false);
