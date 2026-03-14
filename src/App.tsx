@@ -5,11 +5,14 @@ import SatelliteSelector from './components/SatelliteSelector';
 import SplashScreen from './components/SplashScreen';
 import AircraftSelector from './components/AircraftSelector';
 import VesselSelector from './components/VesselSelector';
+import CommandPalette from './components/CommandPalette';
 import SatelliteScopeFilter, { SatelliteScope } from './components/SatelliteScopeFilter';
 import { Search, Satellite, X } from 'lucide-react';
 import { ThemeSelector } from './components/ThemeSelector';
 import BottomSheet from './components/layout/BottomSheet';
 import MobileAnalysisSummary from './components/layout/MobileAnalysisSummary';
+import SidebarContextBar from './components/layout/SidebarContextBar';
+import CollapsibleSection from './components/layout/CollapsibleSection';
 import BeamLegend from './components/cesium-globe/BeamLegend';
 import SatelliteStatusLegend from './components/cesium-globe/SatelliteStatusLegend';
 import SimulationSettings from './components/layout/SimulationSettings';
@@ -40,6 +43,7 @@ import { Vessel } from './modules/maritimeTraffic/maritimeTrafficService';
 import { useSimulation } from './contexts/SimulationContext';
 import { getNearestSNPInBackhaul, getSatellitesConnectedToSNP, type SNPConnectedSatellite } from './services/coverageService';
 import SNPDetails from './components/SNPDetails';
+import useKeyboardShortcuts from './hooks/useKeyboardShortcuts';
 
 // ─── Module-level constants ───────────────────────────────────────────────────
 // GEO satellites move ~0.008°/2 s — below this threshold → reuse the same object
@@ -88,7 +92,7 @@ const App: React.FC = () => {
   const [sizeScale, setSizeScale] = useState<number>(() => {
     // Return a previously saved preference if available
     const saved = parseFloat(localStorage.getItem('globeSizeScale') ?? '');
-//    if (Number.isFinite(saved) && saved > 0) return saved;
+   // if (Number.isFinite(saved) && saved > 0) return saved;
 
     // No saved preference — derive an initial guess from screen characteristics.
     //
@@ -112,15 +116,16 @@ const App: React.FC = () => {
     //   2560×1440 (27" 1440p, DPR=1) → 2203/2935 ≈ 0.75×
     //
     // Clamped to [0.5, 2.5] and rounded to the nearest slider step (0.25).
-    const refDiag = Math.sqrt(1920 ** 2 + 1080 ** 2); // ≈ 2203 CSS px
+    const refDiag = Math.sqrt(1024 ** 2 + 768 ** 2); // ≈ 1228 CSS px
     const screenDiag = Math.sqrt(window.screen.width ** 2 + window.screen.height ** 2); // CSS pixels
-    const raw = 2 * Math.max(screenDiag, 1) / refDiag;
+    const raw = Math.max(screenDiag, 1) / refDiag;
     const clamped = Math.max(0.5, Math.min(8, raw));
     return Math.round(clamped / 0.25) * 0.25; // snap to slider step
   });
   const [splashDone, setSplashDone] = useState(false);
   const [mobileSheetSnap, setMobileSheetSnap] = useState<0 | 1 | 2>(0);
   const [isSatelliteModalOpen, setIsSatelliteModalOpen] = useState(false);
+  const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
   const [mobileMetrics, setMobileMetrics] = useState<MobileAnalysisMetrics>({
     leo: null,
     geo: null,
@@ -221,9 +226,10 @@ const App: React.FC = () => {
   // Design:
   //   • Worker init effect (deps []) — creates the worker once, defines scheduleTick,
   //     attaches onmessage, starts the first tick.
-  //   • Responsive effect (deps [selectedSatellite?.id, hoveredSatelliteId]) — keeps
-  //     the stable refs current and fires an immediate tick on selection/hover changes
-  //     so ONEWEB coverage recalculates without waiting up to 2 s.
+  //   • Responsive refs effect — keeps selection/hover refs current without forcing
+  //     extra worker activity on every hover transition.
+  //   • Selection effect (deps [selectedSatellite?.id]) — fires an immediate tick for
+  //     manual satellite inspection, where instant ONEWEB coverage refresh matters.
 
   useEffect(() => {
     let worker: Worker;
@@ -324,12 +330,17 @@ const App: React.FC = () => {
     };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps — runs once on mount
 
-  // Keep selection/hover refs current and fire an immediate tick so ONEWEB coverage
-  // recalculates at once instead of waiting up to 2 s for the next scheduled tick.
+  // Keep selection/hover refs current for the worker without forcing extra propagation
+  // work on every hover transition.
   useEffect(() => {
     selectedSatelliteIdRef.current = selectedSatellite?.id ?? null;
     hoveredSatelliteIdRef.current = hoveredSatelliteId;
+  }, [selectedSatellite?.id, hoveredSatelliteId]);
 
+  // Fire an immediate worker tick only for explicit satellite selection changes.
+  // Hover previews can safely use the normal 2 s cadence, which avoids expensive
+  // worker churn while the user pans/zooms across the globe.
+  useEffect(() => {
     const worker = workerRef.current;
     if (!worker || workerBusyRef.current) return;
     const sats = satellitesForResolutionRef.current;
@@ -341,7 +352,7 @@ const App: React.FC = () => {
       satellites: sats.map((sat) => ({ id: sat.id, satrec: sat.satrec })),
       timestamp: Date.now(),
     });
-  }, [selectedSatellite?.id, hoveredSatelliteId]);
+  }, [selectedSatellite?.id]);
 
   // Filter satellites based on satellite scope
   const filteredSatellites = useMemo(() => {
@@ -607,6 +618,7 @@ const App: React.FC = () => {
     setSelectedGeoBeamId(null);
     // Clear aircraft selection when satellite is selected
     setSelectedAircraft(null);
+    setSelectedVessel(null);
     // Clear selectedPosition when satellite is selected to avoid SNP/satellite conflict
     setSelectedPosition(null);
     // Clear analyzis position when satellite is manually selected (satellite inspection mode)
@@ -648,11 +660,7 @@ const App: React.FC = () => {
 
   const handleSatelliteHover = useCallback((satelliteId: string | null) => {
     setHoveredSatelliteId(satelliteId);
-    // Clear SNP hover when satellite is hovered
-    if (satelliteId) {
-      setHoveredSnpName(null);
-    }
-  }, []); // Hover handler for satellites
+  }, []);
 
   // Performance optimization: Memoize event handlers to prevent unnecessary re-renders
   const handleSnpClick = useCallback((snpName: string | { lat: number; lng: number; name: string } | null) => {
@@ -678,6 +686,8 @@ const App: React.FC = () => {
     setSelectedGeoBeamId(null);
     setCandidateCoverages([]);
     setSelectedCoverage(null);
+    setSelectedAircraft(null);
+    setSelectedVessel(null);
   }, []);
 
   const handleAircraftHover = useCallback((_aircraft: Aircraft | null) => {
@@ -733,14 +743,12 @@ const App: React.FC = () => {
         failedSnps
       );
 
-      setAutoSelectedLEOId(autoSelectedLEOSat?.id || null);
-      setSelectedSNP(selectedSNP);
-      syncGeoCoverageSelection({ lat: position.lat, lng: position.lng }, false);
+      const resolvedAutoLEOId = autoSelectedLEOSat?.id ?? null;
+      const resolvedSelectedSNP = (autoSelectedLEOSat || autoSelectedGEOSat) ? selectedSNP : null;
 
-      if (!autoSelectedLEOSat && !autoSelectedGEOSat) {
-        setAutoSelectedLEOId(null);
-        setSelectedSNP(null);
-      }
+      setAutoSelectedLEOId(resolvedAutoLEOId);
+      setSelectedSNP(resolvedSelectedSNP);
+      syncGeoCoverageSelection({ lat: position.lat, lng: position.lng }, false);
     } else {
       setAutoSelectedLEOId(null);
       setSelectedSNP(null);
@@ -828,6 +836,7 @@ const App: React.FC = () => {
 
     // Clear aircraft selection when switching to earth-based analyzis
     setSelectedAircraft(null);
+    setSelectedVessel(null);
 
     // Update unified analyzis position
     updateAnalyzisPosition({
@@ -840,6 +849,7 @@ const App: React.FC = () => {
   // Handle aircraft selection (aircraft-based analyzis)
   const handleAircraftSelect = useCallback((aircraft: Aircraft | null, fromComboBox: boolean = false) => {
     setSelectedAircraft(aircraft);
+    setSelectedVessel(null);
 
     if (aircraft && aircraft.latitude && aircraft.longitude) {
       // Clear earth-based position when switching to aircraft-based analyzis
@@ -867,6 +877,7 @@ const App: React.FC = () => {
   // Handle vessel selection (vessel-based analyzis)
   const handleVesselSelect = useCallback((vessel: Vessel | null, fromComboBox: boolean = false) => {
     setSelectedVessel(vessel);
+    setSelectedAircraft(null);
 
     if (vessel && vessel.latitude && vessel.longitude) {
       // Clear earth-based position when switching to vessel-based analyzis
@@ -889,6 +900,51 @@ const App: React.FC = () => {
       updateAnalyzisPosition(null);
     }
   }, [updateAnalyzisPosition]);
+
+  const handleLocationSelect = useCallback((lat: number, lng: number) => {
+    const userLocation = { lat, lng };
+
+    setSelectedPosition(userLocation);
+    setCameraTarget({ lat, lng, alt: 10000 });
+    setSelectedAircraft(null);
+    setSelectedVessel(null);
+
+    updateAnalyzisPosition({
+      lat,
+      lng,
+      source: 'earth'
+    });
+
+    setSearchQuery('');
+  }, [updateAnalyzisPosition]);
+
+  const handleOpenCommandPalette = useCallback(() => {
+    setIsSatelliteModalOpen(false);
+    setIsCommandPaletteOpen(true);
+  }, []);
+
+  const handleResetView = useCallback(() => {
+    setSearchQuery('');
+    setSelectedPosition(null);
+    setAnalyzisPosition(null);
+    setCameraTarget(null);
+    setSelectedSatellite(null);
+    setAutoSelectedLEOId(null);
+    setAutoSelectedGEOId(null);
+    setSelectedSNP(null);
+    setInspectedSNP(null);
+    setCandidateCoverages([]);
+    setSelectedCoverage(null);
+    setSelectedGeoMission(null);
+    setSelectedGeoCoverageName(null);
+    setSelectedGeoBeamId(null);
+    setSelectedAircraft(null);
+    setSelectedVessel(null);
+    setHoveredSatelliteId(null);
+    setIsFullscreen(false);
+    setIsSatelliteModalOpen(false);
+    setIsCommandPaletteOpen(false);
+  }, []);
 
   // Real-time updates for selected aircraft position and altitude
   useEffect(() => {
@@ -936,29 +992,26 @@ const App: React.FC = () => {
         if (data && data[0]) {
           const lat = parseFloat(data[0].lat);
           const lng = parseFloat(data[0].lon);
-          const userLocation = { lat, lng };
-
-          // Set selected position for UI compatibility
-          setSelectedPosition(userLocation);
-          setCameraTarget({ lat, lng, alt: 10000 }); // Trigger FlyTo for search
-
-          // Clear aircraft selection when switching to earth-based analyzis
-          setSelectedAircraft(null);
-
-          // Update unified analyzis position
-          updateAnalyzisPosition({
-            lat,
-            lng,
-            source: 'earth'
-          });
-
-          setSearchQuery('');
+          handleLocationSelect(lat, lng);
         }
       } catch (error) {
         console.error('Error searching location:', error);
       }
     }
-  }, [searchQuery, updateAnalyzisPosition]);
+  }, [handleLocationSelect, searchQuery]);
+
+  useEffect(() => {
+    if (!isSatelliteModalOpen) return;
+    setIsCommandPaletteOpen(false);
+  }, [isSatelliteModalOpen]);
+
+  useKeyboardShortcuts({
+    onScopeChange: handleSatelliteScopeChange,
+    onToggleFullscreen: () => setIsFullscreen((current) => !current),
+    onOpenCommandPalette: handleOpenCommandPalette,
+    onResetView: handleResetView,
+    enabled: !isCommandPaletteOpen,
+  });
 
   // §4.1 — Shared props for both mobile and desktop MapViewSwitcher instances.
   // Avoids duplicating the full prop list in two places.
@@ -1062,108 +1115,45 @@ const App: React.FC = () => {
                 <ThemeSelector isMobile />
               </div>
             ) : (
-              <div className="flex flex-col gap-1">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center min-w-0">
-                    <Satellite className="h-7 w-7 text-blue-600 flex-shrink-0" />
-                    <h1 className="ml-2 text-lg font-bold text-gray-900 dark:text-white truncate">Capacity Analyzer</h1>
-                  </div>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center min-w-0">
+                  <Satellite className="h-7 w-7 text-blue-600 flex-shrink-0" />
+                  <h1 className="ml-2 text-lg font-bold text-gray-900 dark:text-white truncate">Capacity Analyzer</h1>
                 </div>
-                <div className="flex items-center gap-1 overflow-x-auto pb-1">
+                <div className="flex items-center gap-1">
                   <div className="flex-shrink-0 p-1 bg-gray-50 dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 flex items-center gap-1">
                     <SatelliteScopeFilter
                       currentScope={satelliteScope}
                       onScopeChange={handleSatelliteScopeChange}
                     />
                     <SimulationSettings satelliteScope={satelliteScope} />
-                    <SatelliteSelector
-                      satellites={satellites}
-                      onSelect={handleSatelliteSelectFromUI}
-                      selectedSatellite={selectedSatellite}
-                      satelliteScope={satelliteScope}
-                    />
                   </div>
-                  <div className="relative flex-shrink-0 w-44">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-500" />
-                    <form onSubmit={handleSearchInput}>
-                      <input
-                        type="text"
-                        name="search"
-                        placeholder="Search a location..."
-                        className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-slate-800 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                      />
-                    </form>
-                  </div>
-                  <div className="flex-shrink-0">
-                    <AircraftSelector
-                      aircraft={airTraffic.aircraft}
-                      selectedAircraft={selectedAircraft}
-                      onSelect={(aircraft) => handleAircraftSelect(aircraft, true)}
-                      liveModeEnabled={airTrafficEnabled}
-                      onToggleLiveMode={() => setAirTrafficEnabled(!airTrafficEnabled)}
-                    />
-                  </div>
-                  <div className="flex-shrink-0">
-                    <VesselSelector
-                      vessels={maritimeTraffic.vessels}
-                      selectedVessel={selectedVessel}
-                      onSelect={(vessel) => handleVesselSelect(vessel, true)}
-                      liveModeEnabled={maritimeTrafficEnabled}
-                      onToggleLiveMode={() => setMaritimeTrafficEnabled(!maritimeTrafficEnabled)}
-                    />
-                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setIsSatelliteModalOpen(true)}
+                    className="flex-shrink-0 p-2 rounded-lg bg-gray-100 text-gray-800 dark:bg-slate-800 dark:text-gray-200"
+                    aria-label="Open entity selection"
+                  >
+                    <Satellite className="h-5 w-5" />
+                  </button>
+                  <ThemeSelector isMobile />
                 </div>
               </div>
             )
           ) : (
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="flex items-center justify-between gap-4">
               <div className="flex items-center">
                 <Satellite className="h-8 w-8 text-blue-600" />
                 <h1 className="ml-2 text-2xl font-bold text-gray-900 dark:text-gray-100">ETL Capacity Analyzer</h1>
               </div>
-              <div className="flex items-center w-full sm:w-auto gap-4">
+              <div className="flex items-center gap-3">
                 <div className="flex items-center gap-2 p-1 bg-gray-50 dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700">
                   <SatelliteScopeFilter
                     currentScope={satelliteScope}
                     onScopeChange={handleSatelliteScopeChange}
                   />
                   <SimulationSettings satelliteScope={satelliteScope} />
-                  <SatelliteSelector
-                    satellites={satellites}
-                    onSelect={handleSatelliteSelectFromUI}
-                    selectedSatellite={selectedSatellite}
-                    satelliteScope={satelliteScope}
-                  />
                 </div>
-                <div className="relative flex-1 sm:flex-none">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-500" />
-                  <form onSubmit={handleSearchInput}>
-                    <input
-                      type="text"
-                      name="search"
-                      placeholder="Search location..."
-                      className="w-full sm:w-48 pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                    />
-                  </form>
-                </div>
-                <AircraftSelector
-                  aircraft={airTraffic.aircraft}
-                  selectedAircraft={selectedAircraft}
-                  onSelect={(aircraft) => handleAircraftSelect(aircraft, true)}
-                  liveModeEnabled={airTrafficEnabled}
-                  onToggleLiveMode={() => setAirTrafficEnabled(!airTrafficEnabled)}
-                />
-                <VesselSelector
-                  vessels={maritimeTraffic.vessels}
-                  selectedVessel={selectedVessel}
-                  onSelect={(vessel) => handleVesselSelect(vessel, true)}
-                  liveModeEnabled={maritimeTrafficEnabled}
-                  onToggleLiveMode={() => setMaritimeTrafficEnabled(!maritimeTrafficEnabled)}
-                />
                 <div className="flex-shrink-0">
                   <ThemeSelector />
                 </div>
@@ -1173,7 +1163,7 @@ const App: React.FC = () => {
         </div>
       </header>
 
-      {isMobile && isPhone && isSatelliteModalOpen && (
+      {isMobile && isSatelliteModalOpen && (
         <div className="fixed inset-0 z-[60] bg-white dark:bg-slate-900">
           <div className="h-14 flex items-center justify-between px-4 border-b border-gray-200 dark:border-slate-700">
             <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">Controls</div>
@@ -1304,46 +1294,117 @@ const App: React.FC = () => {
             </div>
 
 
-            <div className={`flex-shrink-0 w-[500px] bg-white dark:bg-slate-950 rounded-lg shadow-lg overflow-hidden ${isFullscreen ? 'hidden' : ''}`}>
+            <div className={`flex-shrink-0 w-[500px] bg-white dark:bg-slate-950 rounded-lg shadow-lg overflow-hidden flex flex-col ${isFullscreen ? 'hidden' : ''}`}>
               {!isFullscreen && (
-                <div className="w-full overflow-y-auto max-h-[calc(100vh-8rem)]">
-                  {inspectedSNP ? (
-                    <SNPDetails
-                      snp={inspectedSNP}
-                      connectedSatellites={snpConnectedSatellites}
-                      onSatelliteClick={handleSatelliteClick}
-                    />
-                  ) : (
-                    <CapacityDetails
-                      satellites={filteredSatellites}
-                      selectedPoint={analyzisPosition || selectedPosition}
-                      selectedSatellite={selectedSatellite}
-                      autoSelectedLEOSatellite={resolvedAutoLEO}
-                      autoSelectedGEOSatellite={activeGeoSatellite}
-                      satelliteScope={satelliteScope}
-                      onSatelliteClick={handleSatelliteClick}
-                      analysisSource={selectedAircraft ? 'aircraft' : analyzisPosition ? 'earth' : undefined}
-                      aircraftCallsign={selectedAircraft?.callsign}
-                      selectedSNP={selectedSNP}
-                      candidateCoverages={candidateCoverages}
-                      selectedCoverage={selectedCoverage}
-                      onSelectCoverage={setSelectedCoverage}
-                      selectedGeoMission={selectedGeoMission}
-                      selectedGeoCoverageName={selectedGeoCoverageName}
-                      selectedGeoBeamId={selectedGeoBeamId}
-                      onSelectGeoMission={handleSelectGeoMission}
-                      onSelectGeoCoverage={handleSelectGeoCoverage}
-                      onSelectGeoBeam={handleSelectGeoBeam}
-                      onSnpClick={handleSnpClick}
-                    // onMetricsChange is not needed for desktop sidebar
-                    />
-                  )}
-                </div>
+                <>
+                  <SidebarContextBar
+                    analysisSource={selectedAircraft ? 'aircraft' : analyzisPosition ? 'earth' : undefined}
+                    aircraftCallsign={selectedAircraft?.callsign}
+                    selectedVesselName={selectedVessel?.name}
+                    selectedSatelliteName={selectedSatellite?.name}
+                    inspectedSNPName={inspectedSNP?.name}
+                    position={analyzisPosition || selectedPosition}
+                  />
+
+                  {/* Entity selectors — moved from header */}
+                  <div className="border-b border-gray-200 dark:border-slate-700 px-3 py-2">
+                    <CollapsibleSection
+                      storageKey="sidebar-entity-selectors"
+                      title="Selection"
+                      accentColor="#4b5563"
+                      defaultOpen={true}
+                    >
+                      <div className="space-y-2">
+                        <SatelliteSelector
+                          satellites={satellites}
+                          onSelect={handleSatelliteSelectFromUI}
+                          selectedSatellite={selectedSatellite}
+                          satelliteScope={satelliteScope}
+                        />
+                        <div className="relative">
+                          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-500 h-4 w-4" />
+                          <form onSubmit={handleSearchInput}>
+                            <input
+                              type="text"
+                              name="search"
+                              placeholder="Search location..."
+                              className="w-full pl-9 pr-4 py-1.5 text-sm border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-slate-800 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
+                              value={searchQuery}
+                              onChange={(e) => setSearchQuery(e.target.value)}
+                            />
+                          </form>
+                        </div>
+                        <div className="flex gap-2">
+                          <AircraftSelector
+                            aircraft={airTraffic.aircraft}
+                            selectedAircraft={selectedAircraft}
+                            onSelect={(aircraft) => handleAircraftSelect(aircraft, true)}
+                            liveModeEnabled={airTrafficEnabled}
+                            onToggleLiveMode={() => setAirTrafficEnabled(!airTrafficEnabled)}
+                          />
+                          <VesselSelector
+                            vessels={maritimeTraffic.vessels}
+                            selectedVessel={selectedVessel}
+                            onSelect={(vessel) => handleVesselSelect(vessel, true)}
+                            liveModeEnabled={maritimeTrafficEnabled}
+                            onToggleLiveMode={() => setMaritimeTrafficEnabled(!maritimeTrafficEnabled)}
+                          />
+                        </div>
+                      </div>
+                    </CollapsibleSection>
+                  </div>
+
+                  <div className="flex-1 min-h-0 overflow-y-auto">
+                    {inspectedSNP ? (
+                      <SNPDetails
+                        snp={inspectedSNP}
+                        connectedSatellites={snpConnectedSatellites}
+                        onSatelliteClick={handleSatelliteClick}
+                      />
+                    ) : (
+                      <CapacityDetails
+                        satellites={filteredSatellites}
+                        selectedPoint={analyzisPosition || selectedPosition}
+                        selectedSatellite={selectedSatellite}
+                        autoSelectedLEOSatellite={resolvedAutoLEO}
+                        autoSelectedGEOSatellite={activeGeoSatellite}
+                        satelliteScope={satelliteScope}
+                        onSatelliteClick={handleSatelliteClick}
+                        analysisSource={selectedAircraft ? 'aircraft' : analyzisPosition ? 'earth' : undefined}
+                        aircraftCallsign={selectedAircraft?.callsign}
+                        selectedSNP={selectedSNP}
+                        candidateCoverages={candidateCoverages}
+                        selectedCoverage={selectedCoverage}
+                        onSelectCoverage={setSelectedCoverage}
+                        selectedGeoMission={selectedGeoMission}
+                        selectedGeoCoverageName={selectedGeoCoverageName}
+                        selectedGeoBeamId={selectedGeoBeamId}
+                        onSelectGeoMission={handleSelectGeoMission}
+                        onSelectGeoCoverage={handleSelectGeoCoverage}
+                        onSelectGeoBeam={handleSelectGeoBeam}
+                        onSnpClick={handleSnpClick}
+                      />
+                    )}
+                  </div>
+                </>
               )}
             </div>
           </div>
         </main>
       )}
+
+      <CommandPalette
+        isOpen={isCommandPaletteOpen}
+        onClose={() => setIsCommandPaletteOpen(false)}
+        satellites={satellites}
+        aircraft={airTraffic.aircraft}
+        vessels={maritimeTraffic.vessels}
+        onSelectSatellite={handleSatelliteSelectFromUI}
+        onSelectAircraft={(aircraft) => handleAircraftSelect(aircraft, true)}
+        onSelectVessel={(vessel) => handleVesselSelect(vessel, true)}
+        onSelectSnp={(snpName) => handleSnpClick(snpName)}
+        onSelectLocation={handleLocationSelect}
+      />
     </div>
   );
 };

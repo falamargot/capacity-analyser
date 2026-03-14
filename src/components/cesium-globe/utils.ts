@@ -6,6 +6,11 @@ import * as satellite from 'satellite.js';
 import type { SatelliteData } from '../../types/satellites';
 import type { Aircraft } from '../../modules/airTraffic/airTrafficService';
 
+export interface CameraMetricsSnapshot {
+    position: Cartesian3;
+    height: number;
+}
+
 /**
  * Convert lat/lng/alt to Cesium Cartesian3
  */

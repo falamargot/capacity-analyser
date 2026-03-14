@@ -14,7 +14,7 @@ import {
 } from 'cesium';
 import { BACKHAUL_RADIUS_KM } from '../../utils/leoFootprint';
 import { SNPS_DATA, SNPData } from '../globe/GlobeConfig';
-import { getPosition, DPR_FACTOR, calculateDynamicScale } from './utils';
+import { getPosition, DPR_FACTOR, calculateDynamicScale, type CameraMetricsSnapshot } from './utils';
 import type { SatelliteScope } from '../SatelliteScopeFilter';
 import { useSimulation } from '../../contexts/SimulationContext';
 
@@ -23,6 +23,7 @@ interface SnpLayerProps {
     onSnpClick: (snpName: string | null) => void;
     onSnpHover: (snpName: string | null) => void;
     viewerRef: React.RefObject<CesiumViewerType | null>;
+    cameraMetricsRef: React.MutableRefObject<CameraMetricsSnapshot>;
     sizeScale?: number;
     autoSelectedSnpName?: string | null;
     inspectedSnpName?: string | null;
@@ -31,15 +32,17 @@ interface SnpLayerProps {
 const SnpEntity = React.memo<{
     snp: SNPData;
     viewerRef: React.RefObject<CesiumViewerType | null>;
+    cameraMetricsRef: React.MutableRefObject<CameraMetricsSnapshot>;
     onSnpClick: (snpName: string | null) => void;
     onSnpHover: (snpName: string | null) => void;
     sizeScale: number;
     isAutoSelected: boolean;
     isFailed: boolean;
     isInspected: boolean;
-}>(({
+}>(({ 
     snp,
     viewerRef,
+    cameraMetricsRef,
     onSnpClick,
     onSnpHover,
     sizeScale,
@@ -58,15 +61,13 @@ const SnpEntity = React.memo<{
             if (!viewerRef.current) return 6;
 
             const snpPosition = getPosition(snp.lat, snp.lng, 0.01);
-            const cameraPosition = viewerRef.current.camera.position;
-            const distance = Cartesian3.distance(cameraPosition, snpPosition);
-            const cameraHeight = viewerRef.current.camera.positionCartographic.height;
-            const dynamicScale = calculateDynamicScale(cameraHeight, DPR_FACTOR);
+            const distance = Cartesian3.distance(cameraMetricsRef.current.position, snpPosition);
+            const dynamicScale = calculateDynamicScale(cameraMetricsRef.current.height, DPR_FACTOR);
 
             const baseScale = dynamicScale * 3000000 / Math.max(distance, 10000000);
             return baseScale * 20 * sizeScale;
         }, false);
-    }, [snp.lat, snp.lng, viewerRef, sizeScale]);
+    }, [snp.lat, snp.lng, cameraMetricsRef, sizeScale]);
 
     const handleClick = useCallback(() => onSnpClick(snp.name), [snp.name, onSnpClick]);
     const handleMouseEnter = useCallback(() => onSnpHover(snp.name), [snp.name, onSnpHover]);
@@ -135,6 +136,7 @@ const SnpLayer: React.FC<SnpLayerProps> = ({
     onSnpClick,
     onSnpHover,
     viewerRef,
+    cameraMetricsRef,
     sizeScale = 1,
     autoSelectedSnpName = null,
     inspectedSnpName = null
@@ -148,6 +150,7 @@ const SnpLayer: React.FC<SnpLayerProps> = ({
                 key={snp.name}
                 snp={snp}
                 viewerRef={viewerRef}
+                cameraMetricsRef={cameraMetricsRef}
                 onSnpClick={onSnpClick}
                 onSnpHover={onSnpHover}
                 sizeScale={sizeScale}
@@ -156,7 +159,7 @@ const SnpLayer: React.FC<SnpLayerProps> = ({
                 isInspected={!!inspectedSnpName && snp.name === inspectedSnpName}
             />
         ));
-    }, [viewerRef, onSnpClick, onSnpHover, sizeScale, autoSelectedSnpName, inspectedSnpName, failedSnps]);
+    }, [viewerRef, cameraMetricsRef, onSnpClick, onSnpHover, sizeScale, autoSelectedSnpName, inspectedSnpName, failedSnps]);
 
     // Don't render SNPs for GEO-only scope
     if (satelliteScope === 'GEO') {

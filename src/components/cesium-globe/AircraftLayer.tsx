@@ -14,7 +14,7 @@ import {
     Viewer as CesiumViewerType
 } from 'cesium';
 import type { Aircraft } from '../../modules/airTraffic/airTrafficService';
-import { PLANE_ICON, DPR_FACTOR, calculateDynamicScale } from './utils';
+import { PLANE_ICON, DPR_FACTOR, calculateDynamicScale, type CameraMetricsSnapshot } from './utils';
 import { usePositionCallbacks } from './hooks';
 
 interface AircraftLayerProps {
@@ -23,6 +23,7 @@ interface AircraftLayerProps {
     onAircraftClick?: (aircraft: Aircraft | null) => void;
     onAircraftHover?: (aircraft: Aircraft | null) => void;
     viewerRef: React.RefObject<CesiumViewerType | null>;
+    cameraMetricsRef: React.MutableRefObject<CameraMetricsSnapshot>;
     aircraftSizeScale?: number;
 }
 
@@ -31,6 +32,7 @@ const AircraftEntity = React.memo<{
     isSelected: boolean;
     positionCallback: any;
     viewerRef: React.RefObject<CesiumViewerType | null>;
+    cameraMetricsRef: React.MutableRefObject<CameraMetricsSnapshot>;
     onAircraftClick?: (aircraft: Aircraft | null) => void;
     onAircraftHover?: (aircraft: Aircraft | null) => void;
     aircraftSizeScale?: number;
@@ -39,6 +41,7 @@ const AircraftEntity = React.memo<{
     isSelected,
     positionCallback,
     viewerRef,
+    cameraMetricsRef,
     onAircraftClick,
     onAircraftHover,
     aircraftSizeScale = 1
@@ -51,15 +54,13 @@ const AircraftEntity = React.memo<{
             const aircraftPosition = positionCallback.getValue(viewerRef.current.clock.currentTime);
             if (!aircraftPosition) return 0.3;
 
-            const cameraPosition = viewerRef.current.camera.position;
-            const distance = Cartesian3.distance(cameraPosition, aircraftPosition);
-            const cameraHeight = viewerRef.current.camera.positionCartographic.height;
-            const dynamicScale = calculateDynamicScale(cameraHeight, DPR_FACTOR);
+            const distance = Cartesian3.distance(cameraMetricsRef.current.position, aircraftPosition);
+            const dynamicScale = calculateDynamicScale(cameraMetricsRef.current.height, DPR_FACTOR);
 
             const baseScale = dynamicScale * 2000000 / Math.max(distance, 10000000);
             return baseScale * aircraftSizeScale;
         }, false);
-    }, [positionCallback, viewerRef, aircraftSizeScale]);
+    }, [positionCallback, viewerRef, cameraMetricsRef, aircraftSizeScale]);
 
     const handleClick = useCallback(() => onAircraftClick?.(ac), [ac, onAircraftClick]);
     const handleMouseEnter = useCallback(() => onAircraftHover?.(ac), [ac, onAircraftHover]);
@@ -119,6 +120,7 @@ const AircraftLayer: React.FC<AircraftLayerProps> = ({
     onAircraftClick,
     onAircraftHover,
     viewerRef,
+    cameraMetricsRef,
     aircraftSizeScale = 1
 }) => {
     const { getAircraftPositionCallback } = usePositionCallbacks([], aircraft);
@@ -136,6 +138,7 @@ const AircraftLayer: React.FC<AircraftLayerProps> = ({
                     isSelected={isSelected}
                     positionCallback={positionCallback}
                     viewerRef={viewerRef}
+                    cameraMetricsRef={cameraMetricsRef}
                     onAircraftClick={onAircraftClick}
                     onAircraftHover={onAircraftHover}
                     aircraftSizeScale={aircraftSizeScale}
@@ -147,6 +150,7 @@ const AircraftLayer: React.FC<AircraftLayerProps> = ({
         selectedAircraft?.icao24,
         getAircraftPositionCallback,
         viewerRef,
+        cameraMetricsRef,
         onAircraftClick,
         onAircraftHover,
         aircraftSizeScale

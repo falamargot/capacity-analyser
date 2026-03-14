@@ -19,7 +19,7 @@ import {
     Viewer as CesiumViewerType
 } from 'cesium';
 import type { SatelliteData } from '../../types/satellites';
-import { SATELLITE_GLYPH, LEO_SMOKED_GLYPH, DPR_FACTOR, calculateDynamicScale, getPosition } from './utils';
+import { SATELLITE_GLYPH, LEO_SMOKED_GLYPH, DPR_FACTOR, calculateDynamicScale, getPosition, type CameraMetricsSnapshot } from './utils';
 import type { SatelliteStatusCategory } from '../../utils/satelliteStatus';
 
 // Module-level constants — allocated once, never reallocated during rendering.
@@ -59,6 +59,7 @@ interface SatelliteLayerProps {
     onSatelliteClick: (satellite: SatelliteData | null) => void;
     onSatelliteHover: (satelliteId: string | null) => void;
     viewerRef: React.RefObject<CesiumViewerType | null>;
+    cameraMetricsRef: React.MutableRefObject<CameraMetricsSnapshot>;
     satelliteSizeScale?: number;
 }
 
@@ -68,6 +69,7 @@ const SatelliteEntity = React.memo<{
     isAutoSelected: boolean;
     positionCallback: any;
     viewerRef: React.RefObject<CesiumViewerType | null>;
+    cameraMetricsRef: React.MutableRefObject<CameraMetricsSnapshot>;
     satelliteSizeScale: number;
     onSatelliteClick: (satellite: SatelliteData | null) => void;
     onSatelliteHover: (satelliteId: string | null) => void;
@@ -77,6 +79,7 @@ const SatelliteEntity = React.memo<{
     isAutoSelected,
     positionCallback,
     viewerRef,
+    cameraMetricsRef,
     satelliteSizeScale,
     onSatelliteClick,
     onSatelliteHover
@@ -101,10 +104,8 @@ const SatelliteEntity = React.memo<{
                 );
             }
 
-            const cameraPosition = viewerRef.current.camera.position;
-            const distance = Cartesian3.distance(cameraPosition, satellitePosition);
-            const cameraHeight = viewerRef.current.camera.positionCartographic.height;
-            const dynamicScale = calculateDynamicScale(cameraHeight, DPR_FACTOR);
+            const distance = Cartesian3.distance(cameraMetricsRef.current.position, satellitePosition);
+            const dynamicScale = calculateDynamicScale(cameraMetricsRef.current.height, DPR_FACTOR);
 
             // Apply satellite size scale (no extra size for selected satellites)
             const baseScale =
@@ -112,7 +113,7 @@ const SatelliteEntity = React.memo<{
 
             return baseScale * satelliteSizeScale;
         }, false);
-    }, [sat.type, sat.position.lat, sat.position.lng, sat.position.alt, satelliteSizeScale, positionCallback, viewerRef]);
+    }, [sat.type, sat.position.lat, sat.position.lng, sat.position.alt, satelliteSizeScale, positionCallback, viewerRef, cameraMetricsRef]);
 
     const handleClick = useCallback(() => onSatelliteClick(sat), [sat, onSatelliteClick]);
     const handleMouseEnter = useCallback(() => onSatelliteHover(sat.id), [sat.id, onSatelliteHover]);
@@ -167,6 +168,7 @@ const SatelliteLayer: React.FC<SatelliteLayerProps> = ({
     onSatelliteClick,
     onSatelliteHover,
     viewerRef,
+    cameraMetricsRef,
     satelliteSizeScale = 1
 }) => {
     const { getSatellitePositionCallback } = usePositionCallbacks(satellites, []);
@@ -186,6 +188,7 @@ const SatelliteLayer: React.FC<SatelliteLayerProps> = ({
                     isAutoSelected={isAutoSelected}
                     positionCallback={positionCallback}
                     viewerRef={viewerRef}
+                    cameraMetricsRef={cameraMetricsRef}
                     satelliteSizeScale={satelliteSizeScale}
                     onSatelliteClick={onSatelliteClick}
                     onSatelliteHover={onSatelliteHover}
@@ -199,6 +202,7 @@ const SatelliteLayer: React.FC<SatelliteLayerProps> = ({
         autoSelectedGEOSatellite?.id,
         getSatellitePositionCallback,
         viewerRef,
+        cameraMetricsRef,
         satelliteSizeScale,
         onSatelliteClick,
         onSatelliteHover

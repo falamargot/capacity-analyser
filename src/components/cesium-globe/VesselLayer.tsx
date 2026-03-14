@@ -17,7 +17,7 @@ import {
 } from 'cesium';
 import type { Vessel } from '../../modules/maritimeTraffic/maritimeTrafficService';
 import { VesselType, VESSEL_TYPE_CONFIG } from '../../modules/maritimeTraffic/maritimeTrafficService';
-import { DPR_FACTOR, calculateDynamicScale } from './utils';
+import { DPR_FACTOR, calculateDynamicScale, type CameraMetricsSnapshot } from './utils';
 
 // Simple boat icon - single rectangle oriented with vessel direction
 const BOAT_ICON = "data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='white'%3E%3Crect x='4' y='10' width='16' height='4'/%3E%3C/svg%3E";
@@ -28,6 +28,7 @@ interface VesselLayerProps {
     onVesselClick?: (vessel: Vessel | null) => void;
     onVesselHover?: (vessel: Vessel | null) => void;
     viewerRef: React.RefObject<CesiumViewerType | null>;
+    cameraMetricsRef: React.MutableRefObject<CameraMetricsSnapshot>;
     vesselSizeScale?: number;
 }
 
@@ -108,6 +109,7 @@ const VesselEntity = React.memo<{
     vessel: Vessel;
     isSelected: boolean;
     viewerRef: React.RefObject<CesiumViewerType | null>;
+    cameraMetricsRef: React.MutableRefObject<CameraMetricsSnapshot>;
     onVesselClick?: (vessel: Vessel | null) => void;
     onVesselHover?: (vessel: Vessel | null) => void;
     vesselSizeScale?: number;
@@ -115,6 +117,7 @@ const VesselEntity = React.memo<{
     vessel,
     isSelected,
     viewerRef,
+    cameraMetricsRef,
     onVesselClick,
     onVesselHover,
     vesselSizeScale = 1
@@ -134,16 +137,14 @@ const VesselEntity = React.memo<{
             const vesselPosition = positionCallback.getValue(viewerRef.current.clock.currentTime);
             if (!vesselPosition) return 0.3;
 
-            const cameraPosition = viewerRef.current.camera.position;
-            const distance = Cartesian3.distance(cameraPosition, vesselPosition);
-            const cameraHeight = viewerRef.current.camera.positionCartographic.height;
-            const dynamicScale = calculateDynamicScale(cameraHeight, DPR_FACTOR);
+            const distance = Cartesian3.distance(cameraMetricsRef.current.position, vesselPosition);
+            const dynamicScale = calculateDynamicScale(cameraMetricsRef.current.height, DPR_FACTOR);
 
             // Keep vessels visible at global zoom levels (they sit at sea level).
             const baseScale = dynamicScale * 4000000 / Math.max(distance, 6000000);
             return Math.max(baseScale * vesselSizeScale, 0.12 * vesselSizeScale);
         }, false);
-    }, [positionCallback, viewerRef, vesselSizeScale]);
+    }, [positionCallback, viewerRef, cameraMetricsRef, vesselSizeScale]);
 
     const handleClick = useCallback(() => onVesselClick?.(vessel), [vessel, onVesselClick]);
     const handleMouseEnter = useCallback(() => onVesselHover?.(vessel), [vessel, onVesselHover]);
@@ -220,6 +221,7 @@ const VesselLayer: React.FC<VesselLayerProps> = ({
     onVesselClick,
     onVesselHover,
     viewerRef,
+    cameraMetricsRef,
     vesselSizeScale = 1
 }) => {
     // Memoize vessel entities
@@ -233,6 +235,7 @@ const VesselLayer: React.FC<VesselLayerProps> = ({
                     vessel={vessel}
                     isSelected={isSelected}
                     viewerRef={viewerRef}
+                    cameraMetricsRef={cameraMetricsRef}
                     onVesselClick={onVesselClick}
                     onVesselHover={onVesselHover}
                     vesselSizeScale={vesselSizeScale}
@@ -243,6 +246,7 @@ const VesselLayer: React.FC<VesselLayerProps> = ({
         vessels,
         selectedVessel?.mmsi,
         viewerRef,
+        cameraMetricsRef,
         onVesselClick,
         onVesselHover,
         vesselSizeScale

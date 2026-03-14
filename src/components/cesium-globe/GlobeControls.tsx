@@ -129,10 +129,6 @@ const GlobeControls: React.FC<GlobeControlsProps> = ({
                     e.preventDefault();
                     onToggleSatelliteTrajectory?.();
                     break;
-                case 'f':
-                    e.preventDefault();
-                    onToggleFullscreen();
-                    break;
                 case '+':
                 case '=':
                     e.preventDefault();

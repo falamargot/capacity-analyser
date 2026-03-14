@@ -36,7 +36,7 @@ import type { Aircraft } from '../modules/airTraffic/airTrafficService';
 import type { Vessel } from '../modules/maritimeTraffic/maritimeTrafficService';
 import type { SatelliteScope } from './SatelliteScopeFilter';
 import type { CandidateCoverage, GEOBeam } from '../types/analysis';
-import { getPosition, DPR_FACTOR, calculateDynamicScale } from './cesium-globe/utils';
+import { getPosition, DPR_FACTOR, calculateDynamicScale, type CameraMetricsSnapshot } from './cesium-globe/utils';
 import { useCesiumTheme } from '../hooks/useCesiumTheme';
 
 // Layer components
@@ -56,9 +56,10 @@ import AggregatedConnectivityLayer from './cesium-globe/AggregatedConnectivityLa
 import GlobeControls from './cesium-globe/GlobeControls';
 import PositionDisplay from './cesium-globe/PositionDisplay';
 import SatelliteIndicator from './cesium-globe/SatelliteIndicator';
+import InspectionCard, { type HoveredEntity } from './cesium-globe/InspectionCard';
 import { LabelGraphics } from 'resium';
 import { formatCoordinates } from '../utils/formatters';
-import { GEO_GATEWAYS, type SNPData } from './globe/GlobeConfig';
+import { GEO_GATEWAYS, SNPS_DATA, type GeoGatewayData, type SNPData } from './globe/GlobeConfig';
 import { selectBestGeoGateway } from '../utils/geoConnectivityModel';
 
 // Module-level constants — allocated once, reused on every render.
@@ -160,6 +161,12 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
     const enableLighting = localEnableLighting;
     const onToggleLighting = () => setLocalEnableLighting(!enableLighting);
     const [showAggregatedConnectivity, setShowAggregatedConnectivity] = useState(false);
+    const [hoveredEntity, setHoveredEntity] = useState<HoveredEntity>(null);
+    const hoveredEntityKeyRef = useRef<string | null>(null);
+    const cameraMetricsRef = useRef<CameraMetricsSnapshot>({
+        position: new Cartesian3(),
+        height: 20000000,
+    });
     const viewerRef = useRef<CesiumViewerType | null>(null);
     const globeContainerRef = useRef<HTMLDivElement>(null);
     const [viewerReady, setViewerReady] = useState(false);
@@ -241,6 +248,20 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
 
         viewer.clock.clockStep = ClockStep.SYSTEM_CLOCK;
         viewer.clock.currentTime = JulianDate.now();
+    }, [viewerReady]);
+
+    useEffect(() => {
+        if (!viewerReady || !viewerRef.current) return;
+
+        const viewer = viewerRef.current;
+        const updateCameraMetrics = () => {
+            Cartesian3.clone(viewer.camera.position, cameraMetricsRef.current.position);
+            cameraMetricsRef.current.height = viewer.camera.positionCartographic.height;
+        };
+
+        updateCameraMetrics();
+        viewer.scene.preRender.addEventListener(updateCameraMetrics);
+        return () => viewer.scene.preRender.removeEventListener(updateCameraMetrics);
     }, [viewerReady]);
 
     // Handle camera target flyTo
@@ -366,16 +387,159 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         return selectBestGeoGateway(geoSatellite, GEO_GATEWAYS)?.gateway.name ?? null;
     }, [selectedSatellite, autoSelectedGEOSatellite]);
 
+    const satelliteById = useMemo(
+        () => new Map(satellites.map((item) => [item.id, item])),
+        [satellites]
+    );
+
+    const aircraftById = useMemo(
+        () => new Map(aircraft.map((item) => [item.icao24, item])),
+        [aircraft]
+    );
+
+    const vesselById = useMemo(
+        () => new Map(vessels.map((item) => [item.mmsi, item])),
+        [vessels]
+    );
+
+    const snpByName = useMemo(
+        () => new Map(SNPS_DATA.map((item) => [item.name, item])),
+        []
+    );
+
+    const gatewayByName = useMemo(
+        () => new Map(GEO_GATEWAYS.map((item) => [item.name, item])),
+        []
+    );
+
+    const setHoveredEntityIfChanged = useCallback((key: string | null, nextEntity: HoveredEntity) => {
+        if (hoveredEntityKeyRef.current === key) return;
+        hoveredEntityKeyRef.current = key;
+        setHoveredEntity(nextEntity);
+    }, []);
+
+    const handleSatelliteHover = useCallback((satelliteId: string | null) => {
+        onSatelliteHover(satelliteId);
+        if (!satelliteId) {
+            setHoveredEntityIfChanged(null, null);
+            return;
+        }
+
+        const satellite = satelliteById.get(satelliteId) ?? null;
+        setHoveredEntityIfChanged(
+            satellite ? `satellite:${satelliteId}` : null,
+            satellite ? { type: 'satellite', data: satellite } : null
+        );
+    }, [onSatelliteHover, satelliteById, setHoveredEntityIfChanged]);
+
+    const handleAircraftHover = useCallback((aircraftItem: Aircraft | null) => {
+        onAircraftHover?.(aircraftItem);
+        setHoveredEntityIfChanged(
+            aircraftItem ? `aircraft:${aircraftItem.icao24}` : null,
+            aircraftItem ? { type: 'aircraft', data: aircraftItem } : null
+        );
+    }, [onAircraftHover, setHoveredEntityIfChanged]);
+
+    const handleVesselHover = useCallback((vesselItem: Vessel | null) => {
+        onVesselHover?.(vesselItem);
+        setHoveredEntityIfChanged(
+            vesselItem ? `vessel:${vesselItem.mmsi}` : null,
+            vesselItem ? { type: 'vessel', data: vesselItem } : null
+        );
+    }, [onVesselHover, setHoveredEntityIfChanged]);
+
+    const handleSnpHover = useCallback((snpName: string | null) => {
+        onSnpHover(snpName);
+        if (!snpName) {
+            setHoveredEntityIfChanged(null, null);
+            return;
+        }
+
+        const snp = snpByName.get(snpName) ?? null;
+        setHoveredEntityIfChanged(
+            snp ? `snp:${snpName}` : null,
+            snp ? { type: 'snp', data: snp } : null
+        );
+    }, [onSnpHover, setHoveredEntityIfChanged, snpByName]);
+
+    const handleGatewayHover = useCallback((gatewayName: string | null) => {
+        onSnpHover(gatewayName);
+        if (!gatewayName) {
+            setHoveredEntityIfChanged(null, null);
+            return;
+        }
+
+        const gateway = gatewayByName.get(gatewayName) ?? null;
+        setHoveredEntityIfChanged(
+            gateway ? `gateway:${gatewayName}` : null,
+            gateway ? { type: 'gateway', data: gateway } : null
+        );
+    }, [gatewayByName, onSnpHover, setHoveredEntityIfChanged]);
+
+    useEffect(() => {
+        const key = hoveredEntityKeyRef.current;
+        if (!key) return;
+
+        const [type, id] = key.split(':');
+
+        if (type === 'satellite') {
+            const satellite = satelliteById.get(id) ?? null;
+            setHoveredEntity((current) => {
+                if (!satellite) return null;
+                if (current?.type === 'satellite' && current.data === satellite) return current;
+                return { type: 'satellite', data: satellite };
+            });
+            return;
+        }
+
+        if (type === 'aircraft') {
+            const aircraftItem = aircraftById.get(id) ?? null;
+            setHoveredEntity((current) => {
+                if (!aircraftItem) return null;
+                if (current?.type === 'aircraft' && current.data === aircraftItem) return current;
+                return { type: 'aircraft', data: aircraftItem };
+            });
+            return;
+        }
+
+        if (type === 'vessel') {
+            const vesselItem = vesselById.get(id) ?? null;
+            setHoveredEntity((current) => {
+                if (!vesselItem) return null;
+                if (current?.type === 'vessel' && current.data === vesselItem) return current;
+                return { type: 'vessel', data: vesselItem };
+            });
+            return;
+        }
+
+        if (type === 'snp') {
+            const snp = snpByName.get(id) ?? null;
+            setHoveredEntity((current) => {
+                if (!snp) return null;
+                if (current?.type === 'snp' && current.data === snp) return current;
+                return { type: 'snp', data: snp };
+            });
+            return;
+        }
+
+        if (type === 'gateway') {
+            const gateway = gatewayByName.get(id) ?? null;
+            setHoveredEntity((current) => {
+                if (!gateway) return null;
+                if (current?.type === 'gateway' && current.data === gateway) return current;
+                return { type: 'gateway', data: gateway };
+            });
+        }
+    }, [aircraftById, gatewayByName, satelliteById, snpByName, vesselById]);
+
     // Create stable pixel size callback for selected position marker
     const positionMarkerPixelSize = useMemo(() => {
         return new CallbackProperty(() => {
-            if (!viewerRef.current || !selectedPosition) return 4;
+            if (!selectedPosition) return 4;
 
             const position = getPosition(selectedPosition.lat, selectedPosition.lng, 0.01);
-            const cameraPosition = viewerRef.current.camera.position;
-            const distance = Cartesian3.distance(cameraPosition, position);
-            const cameraHeight = viewerRef.current.camera.positionCartographic.height;
-            const dynamicScale = calculateDynamicScale(cameraHeight, DPR_FACTOR);
+            const distance = Cartesian3.distance(cameraMetricsRef.current.position, position);
+            const dynamicScale = calculateDynamicScale(cameraMetricsRef.current.height, DPR_FACTOR);
 
             const baseScale = dynamicScale * 3000000 / Math.max(distance, 10000000);
             return baseScale * 20 * (sizeScale || 1);
@@ -484,8 +648,9 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                         autoSelectedLEOSatellite={autoSelectedLEOSatellite}
                         autoSelectedGEOSatellite={autoSelectedGEOSatellite}
                         onSatelliteClick={onSatelliteClick}
-                        onSatelliteHover={onSatelliteHover}
+                        onSatelliteHover={handleSatelliteHover}
                         viewerRef={viewerRef}
+                        cameraMetricsRef={cameraMetricsRef}
                         satelliteSizeScale={sizeScale}
                     />
 
@@ -493,8 +658,9 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                     <SnpLayer
                         satelliteScope={satelliteScope}
                         onSnpClick={onSnpClick}
-                        onSnpHover={onSnpHover}
+                        onSnpHover={handleSnpHover}
                         viewerRef={viewerRef}
+                        cameraMetricsRef={cameraMetricsRef}
                         sizeScale={sizeScale}
                         autoSelectedSnpName={typeof selectedSNP === 'string' ? selectedSNP : (selectedSNP?.name ?? null)}
                         inspectedSnpName={inspectedSNP?.name ?? null}
@@ -504,8 +670,9 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                     <GeoGatewayLayer
                         satelliteScope={satelliteScope}
                         onGatewayClick={onSnpClick}
-                        onGatewayHover={onSnpHover}
+                        onGatewayHover={handleGatewayHover}
                         viewerRef={viewerRef}
+                        cameraMetricsRef={cameraMetricsRef}
                         selectedGatewayName={selectedGeoGatewayName}
                         sizeScale={sizeScale}
                     />
@@ -569,8 +736,9 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                             aircraft={aircraft}
                             selectedAircraft={selectedAircraft}
                             onAircraftClick={onAircraftClick}
-                            onAircraftHover={onAircraftHover}
+                            onAircraftHover={handleAircraftHover}
                             viewerRef={viewerRef}
+                            cameraMetricsRef={cameraMetricsRef}
                             aircraftSizeScale={sizeScale}
                         />
                     )}
@@ -581,13 +749,16 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                             vessels={vessels}
                             selectedVessel={selectedVessel}
                             onVesselClick={onVesselClick}
-                            onVesselHover={onVesselHover}
+                            onVesselHover={handleVesselHover}
                             viewerRef={viewerRef}
+                            cameraMetricsRef={cameraMetricsRef}
                             vesselSizeScale={sizeScale}
                         />
                     )}
                 </Viewer>
             </div>
+
+            <InspectionCard entity={hoveredEntity} containerRef={globeContainerRef} />
         </div>
     );
 };
