@@ -19,7 +19,7 @@ import { getPosition, propagateSatellite, calculateDeadReckoning } from './utils
 import { hasRFConnectivity } from '../../utils/rfConnectivity';
 import { useSimulation } from '../../contexts/SimulationContext';
 import { GEO_GATEWAYS, type GeoGatewayData, type SNPData } from '../globe/GlobeConfig';
-import { getGatewayAssignmentsForSatellite, getMonitoredGeoSatellitesForGateway, selectBestGeoGateway } from '../../utils/geoConnectivityModel';
+import { getAssignedGeoSatellitesForGateway, getGatewayAssignmentsForSatellite, selectBestGeoGateway } from '../../utils/geoConnectivityModel';
 import type { SNPConnectedSatellite } from '../../services/coverageService';
 import { buildSimulationStateSnapshot } from '../../types/simulation';
 
@@ -263,11 +263,17 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
         if (!selectedGateway || satelliteScope === 'LEO') return null;
 
         const gatewayPos = getPosition(selectedGateway.lat, selectedGateway.lng, 0.01);
-        return getMonitoredGeoSatellitesForGateway(selectedGateway, satellites, GEO_GATEWAYS)
-            .filter((satellite) => satellite.opsStatus === 'operational')
-            .map((satellite) => ({
+        const assignedSatellites = getAssignedGeoSatellitesForGateway(selectedGateway, satellites, GEO_GATEWAYS);
+
+        return [
+            ...assignedSatellites.primary.map((satellite) => ({ satellite, role: 'primary' as const })),
+            ...assignedSatellites.backup.map((satellite) => ({ satellite, role: 'backup' as const })),
+        ]
+            .filter(({ satellite }) => satellite.opsStatus === 'operational')
+            .map(({ satellite, role }) => ({
                 id: satellite.id,
                 name: satellite.name,
+                role,
                 callback: new CallbackProperty((time?: JulianDate) => {
                     if (!time) return [];
                     const satPos = propagateSatellite(satellite, time);
@@ -382,11 +388,11 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
             ))}
 
             {/* Gateway inspection: links from the selected gateway to each monitored GEO satellite */}
-            {selectedGatewayLinks && selectedGatewayLinks.map(({ id, name, callback }) => (
+            {selectedGatewayLinks && selectedGatewayLinks.map(({ id, name, role, callback }) => (
                 <Entity key={`gateway-link-${id}`} name={`${selectedGateway?.name} → ${name}`}>
                     <PolylineGraphics
                         positions={callback}
-                        width={2.5}
+                        width={role === 'backup' ? 1.5 : 2.5}
                         material={geoFeederMaterial}
                         clampToGround={false}
                         arcType={ArcType.NONE}
