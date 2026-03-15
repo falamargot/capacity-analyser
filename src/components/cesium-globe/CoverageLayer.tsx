@@ -25,7 +25,14 @@ interface CoverageLayerProps {
     candidateCoverages?: CandidateCoverage[];
     selectedCoverage?: CandidateCoverage | null;
     selectedGeoBeamKey?: string | null;
+    manualGeoSatelliteName?: string | null;
 }
+
+const normalizeSatelliteKey = (value: unknown): string | null => {
+    if (typeof value !== 'string') return null;
+    const normalized = value.trim().toUpperCase();
+    return normalized.length > 0 ? normalized : null;
+};
 
 const buildClosedRing = (ring: number[][]): number[][] => {
     if (ring.length < 2) return ring;
@@ -43,7 +50,8 @@ const CoveragePolygon = React.memo<{
     geoLayerCount: number;
     isCandidate: boolean;
     isSelected: boolean;
-}>(({ feature, index, satelliteTypeByName, geoLayerIndex, geoLayerCount, isCandidate, isSelected }) => {
+    isManualGeoOverview: boolean;
+}>(({ feature, index, satelliteTypeByName, geoLayerIndex, geoLayerCount, isCandidate, isSelected, isManualGeoOverview }) => {
     const isPolygon = feature.geometry.type === 'Polygon';
     const isOneWebPlaceholder = feature.properties?.type === 'ONEWEB_SWATH' || feature.properties?.type === 'ONEWEB_SERVICE_ZONE';
 
@@ -67,6 +75,11 @@ const CoveragePolygon = React.memo<{
         const geoAlpha = (() => {
             if (!isGeoCoverage) return 0.4;
             if (isSelected) return 0.4;
+            if (isManualGeoOverview) {
+                if (geoLayerIndex == null || geoLayerCount <= 1) return 0.14;
+                const contourDepth = 1 - (geoLayerIndex / Math.max(geoLayerCount - 1, 1));
+                return 0.05 + (contourDepth * 0.15);
+            }
             if (isCandidate) return 0.2;
             if (geoLayerIndex == null || geoLayerCount <= 1) return 0.2;
             return 0.00;
@@ -81,6 +94,7 @@ const CoveragePolygon = React.memo<{
         isGeoCoverage,
         isCandidate,
         isSelected,
+        isManualGeoOverview,
         geoLayerIndex,
         geoLayerCount,
     ]);
@@ -150,10 +164,15 @@ const CoverageLayer: React.FC<CoverageLayerProps> = ({
     candidateCoverages = [],
     selectedCoverage = null,
     selectedGeoBeamKey = null,
+    manualGeoSatelliteName = null,
 }) => {
     const selectedCoverageKey = useMemo(() => (
         selectedCoverage ? getCandidateBeamKey(selectedCoverage) : selectedGeoBeamKey
     ), [selectedCoverage, selectedGeoBeamKey]);
+    const normalizedManualGeoSatelliteName = useMemo(
+        () => normalizeSatelliteKey(manualGeoSatelliteName),
+        [manualGeoSatelliteName]
+    );
 
     const selectedGeoRendering = useMemo(() => {
         if (!selectedCoverageKey) return null;
@@ -233,27 +252,45 @@ const CoverageLayer: React.FC<CoverageLayerProps> = ({
             return true;
         });
 
-        const geoCandidates = filteredFeatures
-            .map((feature, filteredIndex) => ({ feature, filteredIndex }))
-            .filter(({ feature }) => isGeoFeature(feature))
-            .map(({ feature, filteredIndex }) => ({
+        const geoLayersBySatellite = new Map<string, Array<{ filteredIndex: number; area: number }>>();
+        filteredFeatures.forEach((feature, filteredIndex) => {
+            if (!isGeoFeature(feature)) return;
+            const satelliteKey = normalizeSatelliteKey(feature.properties?.satelliteId) ?? '__unknown__';
+            const layers = geoLayersBySatellite.get(satelliteKey) ?? [];
+            layers.push({
                 filteredIndex,
                 area: approximatePolygonArea(feature),
-            }))
-            .sort((a, b) => b.area - a.area); // large -> small
+            });
+            geoLayersBySatellite.set(satelliteKey, layers);
+        });
 
-        const geoLayerCount = geoCandidates.length;
+        const geoLayerCountByFilteredIndex = new Map<number, number>();
         const geoRankByFilteredIndex = new Map<number, number>();
-        geoCandidates.forEach((candidate, rank) => {
-            geoRankByFilteredIndex.set(candidate.filteredIndex, rank);
+        geoLayersBySatellite.forEach((layers) => {
+            layers
+                .sort((a, b) => b.area - a.area)
+                .forEach((layer, rank) => {
+                    geoRankByFilteredIndex.set(layer.filteredIndex, rank);
+                    geoLayerCountByFilteredIndex.set(layer.filteredIndex, layers.length);
+                });
         });
 
         return filteredFeatures.map((feature, index) => {
+            const featureSatelliteKey = normalizeSatelliteKey(feature.properties?.satelliteId);
             const geoLayerIndex = isGeoFeature(feature)
                 ? (geoRankByFilteredIndex.get(index) ?? null)
                 : null;
+            const geoLayerCount = isGeoFeature(feature)
+                ? (geoLayerCountByFilteredIndex.get(index) ?? 0)
+                : 0;
             const featureCoverageKey = getFeatureCandidateCoverageKey(feature);
             const featureBeamKey = getFeatureBeamCoverageKey(feature);
+            const isManualGeoOverview = (
+                normalizedManualGeoSatelliteName !== null &&
+                selectedCoverageKey === null &&
+                featureSatelliteKey === normalizedManualGeoSatelliteName &&
+                isGeoFeature(feature)
+            );
             return (
                 <CoveragePolygon
                     key={`coverage-${index}`}
@@ -264,10 +301,11 @@ const CoverageLayer: React.FC<CoverageLayerProps> = ({
                     geoLayerCount={geoLayerCount}
                     isCandidate={featureCoverageKey !== null && candidateCoverageKeys.has(featureCoverageKey)}
                     isSelected={featureBeamKey !== null && featureBeamKey === selectedCoverageKey}
+                    isManualGeoOverview={isManualGeoOverview}
                 />
             );
         });
-    }, [candidateCoverages, coverageFeatures, satelliteTypeByName, selectedCoverageKey]);
+    }, [candidateCoverages, coverageFeatures, normalizedManualGeoSatelliteName, satelliteTypeByName, selectedCoverageKey]);
 
     return (
         <>

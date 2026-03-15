@@ -697,6 +697,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                         candidateCoverages={candidateCoverages}
                         selectedCoverage={selectedCoverage}
                         selectedGeoBeamKey={selectedGeoBeamKey}
+                        manualGeoSatelliteName={selectedSatellite?.type === 'EUTELSAT' ? selectedSatellite.name : null}
                     />
 
                     {/* OneWeb Comb Layer - Always shown for selected satellite */}

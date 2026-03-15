@@ -1826,11 +1826,11 @@ const App: React.FC = () => {
             </div>
 
 
-            {!isFullscreen && (selectedPosition || analyzisPosition || selectedSatellite || selectedAircraft || selectedGateway) && (
+            {!isFullscreen && (selectedPosition || analyzisPosition || selectedSatellite || selectedAircraft || selectedGateway || inspectedSNP || selectedVessel) && (
               <BottomSheet
                 snap={mobileSheetSnap}
                 onSnapChange={setMobileSheetSnap}
-                snapPoints={isPhone ? [0.13, 0.5, 0.88] : [0.18, 0.5, 0.88]}
+                snapPoints={isPhone ? [0.18, 0.56, 0.92] : [0.2, 0.56, 0.9]}
                 compact={isPhone}
                 header={(
                   <MobileAnalysisSummary
@@ -1845,6 +1845,12 @@ const App: React.FC = () => {
                 <Suspense fallback={panelFallback}>
                   {selectedGateway ? (
                     <GatewayDetails gateway={selectedGateway} satellites={satellites} />
+                  ) : inspectedSNP ? (
+                    <SNPDetails
+                      snp={inspectedSNP}
+                      connectedSatellites={snpConnectedSatellites}
+                      onSatelliteClick={handleSatelliteClick}
+                    />
                   ) : (
                     <CapacityDetails
                       satellites={filteredSatellites}

@@ -41,7 +41,11 @@ const BottomSheet: React.FC<BottomSheetProps> = ({
 
         update();
         window.addEventListener('resize', update);
-        return () => window.removeEventListener('resize', update);
+        window.visualViewport?.addEventListener('resize', update);
+        return () => {
+            window.removeEventListener('resize', update);
+            window.visualViewport?.removeEventListener('resize', update);
+        };
     }, []);
 
     const translateForSnap = useCallback(
@@ -106,11 +110,15 @@ const BottomSheet: React.FC<BottomSheetProps> = ({
     return (
         <div
             ref={sheetRef}
-            className="absolute inset-x-0 bottom-0 z-50 pointer-events-none"
-            style={{ height: '90vh' }}
+            className="fixed inset-x-0 bottom-0 z-[70] pointer-events-none"
+            style={{
+                height: 'calc(100dvh - env(safe-area-inset-top) - 8px)',
+                maxHeight: 'calc(100dvh - env(safe-area-inset-top) - 8px)',
+                paddingBottom: 'env(safe-area-inset-bottom)',
+            }}
         >
             <div
-                className="h-full w-full rounded-t-2xl bg-white dark:bg-slate-950 shadow-2xl border border-gray-200 dark:border-slate-800 flex flex-col pointer-events-auto"
+                className="h-full w-full rounded-t-[28px] bg-white/98 dark:bg-slate-950/98 shadow-2xl border border-gray-200 dark:border-slate-800 flex flex-col pointer-events-auto backdrop-blur-xl"
                 style={{
                     transform: `translateY(${translateY}px)`,
                     transition: isDragging ? undefined : 'transform 220ms cubic-bezier(0.2, 0.8, 0.2, 1)',
@@ -119,22 +127,25 @@ const BottomSheet: React.FC<BottomSheetProps> = ({
             >
                 {/* Enhanced handle area - always accessible */}
                 <div
-                    className={`${compact ? 'pt-2 pb-1 px-3 gap-2' : 'pt-3 pb-2 px-4 gap-3'} flex flex-col`}
+                    className={`${compact ? 'pt-3 pb-2 px-3 gap-2' : 'pt-4 pb-3 px-4 gap-3'} flex flex-col`}
                 >
                     <div
-                        className="w-full flex items-center justify-center py-2"
+                        className="w-full flex items-center justify-center py-2.5"
                         onPointerDown={handlePointerDown}
                         onPointerMove={handlePointerMove}
                         onPointerUp={handlePointerUp}
                         onPointerCancel={handlePointerUp}
                         style={{ touchAction: 'none' }}
                     >
-                        <div className={`${compact ? 'h-2 w-16' : 'h-2.5 w-20'} rounded-full bg-gray-400 dark:bg-slate-500 shadow-md hover:bg-gray-500 dark:hover:bg-slate-400 transition-colors cursor-pointer`} />
-                        <span className="text-xs text-gray-600 dark:text-gray-400 font-medium ml-2">Details</span>
+                        <div className={`${compact ? 'h-2.5 w-20' : 'h-3 w-24'} rounded-full bg-gray-400 dark:bg-slate-500 shadow-md hover:bg-gray-500 dark:hover:bg-slate-400 transition-colors cursor-pointer`} />
+                        <span className="text-xs text-gray-700 dark:text-gray-300 font-semibold ml-2">Details</span>
                     </div>
                     {header}
                 </div>
-                <div className={`flex-1 min-h-0 overflow-y-auto ${compact ? 'px-3 pb-3' : 'px-4 pb-4'}`}>
+                <div
+                    className={`flex-1 min-h-0 overflow-y-auto overscroll-contain ${compact ? 'px-3 pb-4' : 'px-4 pb-5'}`}
+                    style={{ paddingBottom: compact ? 'calc(env(safe-area-inset-bottom) + 0.75rem)' : 'calc(env(safe-area-inset-bottom) + 1rem)' }}
+                >
                     {children}
                 </div>
             </div>
