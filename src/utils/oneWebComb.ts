@@ -9,6 +9,7 @@ import {
     type WeatherCondition,
 } from './realisticSimulation';
 import { getBeamBaseColor } from '../config/beamVisualization';
+import type { SimulationStateSnapshot } from '../types/simulation';
 
 export const BEAM_WIDTH_KM = 67.5;
 export const TOTAL_BEAMS = 16;
@@ -110,12 +111,16 @@ export function calculateGSOAvoidanceAngle(
 export function calculateCombGeometry(
     satrec: any,
     time: JulianDate,
-    thresholdDb: number = -10,
-    activeBeams: number = TOTAL_BEAMS,
-    healthFactors: Map<number, number> = new Map(),
-    weather: WeatherCondition = 'CLEAR'
+    simulationState?: Pick<SimulationStateSnapshot, 'coveragePolicy' | 'thresholdDb' | 'weatherCondition' | 'beamHealthByIndex'>
 ): Cartesian3[][] | null {
     if (!satrec) return null;
+
+    const thresholdDb = simulationState?.coveragePolicy?.type === 'DB_THRESHOLD'
+        ? simulationState.coveragePolicy.thresholdDb
+        : (simulationState?.thresholdDb ?? -10);
+    const weather: WeatherCondition = simulationState?.weatherCondition ?? 'CLEAR';
+    const healthFactors = simulationState?.beamHealthByIndex ?? new Map<number, number>();
+    const activeBeams = getActiveBeamCount(satrec, time);
 
     const date = JulianDate.toDate(time);
     const positionAndVelocity = satellite.propagate(satrec, date);

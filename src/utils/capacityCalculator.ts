@@ -144,17 +144,9 @@ export const calculateRealTimeCapacity = (
   if (selectedSatellite) {
     // For selected satellite, use double-zone logic based on elevation angle
     if (selectedPoint) {
-      const coverageIndices = isPointInCoverage(selectedPoint, selectedSatellite, null);
+      const coverageClasses = isPointInCoverage(selectedPoint, selectedSatellite, null);
       const elevationAngle = calculateElevationAngle(selectedPoint, selectedSatellite);
-      let capacity = 0;
-      
-      if (coverageIndices.includes(0)) {
-        // Standard coverage (37° elevation)
-        capacity = STANDARD_CAPACITY_GBPS;
-      } else if (coverageIndices.includes(1)) {
-        // Backhaul coverage only (15° elevation) - no service capacity for users
-        capacity = 0;
-      }
+      const capacity = coverageClasses.includes('user') ? STANDARD_CAPACITY_GBPS : 0;
       
       return {
         totalCapacity: capacity,
@@ -177,21 +169,16 @@ export const calculateRealTimeCapacity = (
     };
   }
 
-  const coveredSatellites = satellites.filter(satellite => 
-    (isPointInCoverage(selectedPoint, satellite, null).length > 0)
+  const coveredSatellites = satellites.filter((satellite) =>
+    isPointInCoverage(selectedPoint, satellite, null).includes('user')
   );
     
-  // Calculate total capacity using triple-zone logic
+  // Total capacity reflects only currently serviceable user coverage.
   const totalCapacity = coveredSatellites.reduce((sum, satellite) => {
-    const coverageIndices = isPointInCoverage(selectedPoint, satellite, null);
-    
-    if (coverageIndices.includes(0)) {
+    const coverageClasses = isPointInCoverage(selectedPoint, satellite, null);
+
+    if (coverageClasses.includes('user')) {
       return sum + STANDARD_CAPACITY_GBPS;
-    } else if (coverageIndices.includes(1)) {
-      return sum + STANDARD_CAPACITY_GBPS;
-    } else if (coverageIndices.includes(2)) {
-      // Backhaul only - no service capacity
-      return sum + 0;
     }
     return sum;
   }, 0);
@@ -219,15 +206,10 @@ export const calculateCapacityOverTime = (
     timestamp.setHours(Math.floor(min / 60), min % 60, 0, 0);
 
     const totalCapacity = satellites.reduce((sum, satellite) => {
-      const coverageIndices = isPointInCoverage(selectedPoint, satellite, calculatePosition(satellite, timestamp));
-      
-      if (coverageIndices.includes(0)) {
+      const coverageClasses = isPointInCoverage(selectedPoint, satellite, calculatePosition(satellite, timestamp));
+
+      if (coverageClasses.includes('user')) {
         return sum + STANDARD_CAPACITY_GBPS;
-      } else if (coverageIndices.includes(1)) {
-        return sum + STANDARD_CAPACITY_GBPS;
-      } else if (coverageIndices.includes(2)) {
-        // Backhaul only - no service capacity
-        return sum + 0;
       }
       return sum;
     }, 0);

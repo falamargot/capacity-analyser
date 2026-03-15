@@ -44,6 +44,14 @@ export interface GeoGatewaySelection {
   satToGatewayDistanceKm: number;
 }
 
+export type GatewayAssignmentRole = 'primary' | 'backup';
+
+export interface GatewaySatelliteAssignment {
+  satelliteName: string;
+  primaryGatewayName: string;
+  backupGatewayName: string | null;
+}
+
 export interface GeoConnectivityResult {
   satelliteSlotDeg: number;
   userToSatellite: {
@@ -207,6 +215,95 @@ function getGeoSatellitePoint(satellite: SatelliteData): PointLLA {
   };
 }
 
+const GEO_GATEWAY_ASSIGNMENTS: GatewaySatelliteAssignment[] = [
+  { satelliteName: 'EUTELSAT 139 WEST A', primaryGatewayName: 'Mexico', backupGatewayName: 'Martinique' },
+  { satelliteName: 'EUTELSAT 174A', primaryGatewayName: 'Mexico', backupGatewayName: 'Rambouillet' },
+  { satelliteName: 'EUTELSAT 33F', primaryGatewayName: 'Rambouillet', backupGatewayName: 'Cagliari' },
+  { satelliteName: 'EUTELSAT HOTBIRD 13C', primaryGatewayName: 'Rambouillet', backupGatewayName: 'Turin' },
+  { satelliteName: 'EUTELSAT 36B', primaryGatewayName: 'Rambouillet', backupGatewayName: 'Cagliari' },
+  { satelliteName: 'EUTELSAT KA-SAT 9A', primaryGatewayName: 'Turin', backupGatewayName: 'Rambouillet' },
+  { satelliteName: 'EUTELSAT 7 WEST A', primaryGatewayName: 'Rambouillet', backupGatewayName: 'Madeira' },
+  { satelliteName: 'EUTELSAT 16A', primaryGatewayName: 'Rambouillet', backupGatewayName: 'Cagliari' },
+  { satelliteName: 'EUTELSAT 21B', primaryGatewayName: 'Rambouillet', backupGatewayName: 'Cagliari' },
+  { satelliteName: 'EUTELSAT 70B', primaryGatewayName: 'Rambouillet', backupGatewayName: 'Madeira' },
+  { satelliteName: 'EUTELSAT 117 WEST A', primaryGatewayName: 'Mexico', backupGatewayName: 'Martinique' },
+  { satelliteName: 'EUTELSAT 7B', primaryGatewayName: 'Rambouillet', backupGatewayName: 'Cagliari' },
+  { satelliteName: 'EUTELSAT 3B', primaryGatewayName: 'Rambouillet', backupGatewayName: 'Cagliari' },
+  { satelliteName: 'EUTELSAT 53A', primaryGatewayName: 'Rambouillet', backupGatewayName: 'Madeira' },
+  { satelliteName: 'EUTELSAT 115 WEST B', primaryGatewayName: 'Mexico', backupGatewayName: 'Martinique' },
+  { satelliteName: 'EUTELSAT 8 WEST B', primaryGatewayName: 'Rambouillet', backupGatewayName: 'Madeira' },
+  { satelliteName: 'EUTELSAT 9B', primaryGatewayName: 'Rambouillet', backupGatewayName: 'Turin' },
+  { satelliteName: 'EUTELSAT 65 WEST A', primaryGatewayName: 'Mexico', backupGatewayName: 'Martinique' },
+  { satelliteName: 'EUTELSAT 117 WEST B', primaryGatewayName: 'Mexico', backupGatewayName: 'Martinique' },
+  { satelliteName: 'EUTELSAT 172B', primaryGatewayName: 'Mexico', backupGatewayName: 'Rambouillet' },
+  { satelliteName: 'EUTELSAT 7C', primaryGatewayName: 'Rambouillet', backupGatewayName: 'Cagliari' },
+  { satelliteName: 'EUTELSAT 5 WEST B', primaryGatewayName: 'Rambouillet', backupGatewayName: 'Madeira' },
+  { satelliteName: 'EUTELSAT KONNECT', primaryGatewayName: 'Turin', backupGatewayName: 'Rambouillet' },
+  { satelliteName: 'EUTELSAT QUANTUM', primaryGatewayName: 'Rambouillet', backupGatewayName: 'Turin' },
+  { satelliteName: 'EUTELSAT KONNECT VHTS', primaryGatewayName: 'Turin', backupGatewayName: 'Rambouillet' },
+  { satelliteName: 'EUTELSAT HOTBIRD 13F', primaryGatewayName: 'Rambouillet', backupGatewayName: 'Turin' },
+  { satelliteName: 'EUTELSAT HOTBIRD 13G', primaryGatewayName: 'Rambouillet', backupGatewayName: 'Turin' },
+  { satelliteName: 'EUTELSAT 10B', primaryGatewayName: 'Rambouillet', backupGatewayName: 'Cagliari' },
+  { satelliteName: 'EUTELSAT 36D', primaryGatewayName: 'Rambouillet', backupGatewayName: 'Cagliari' },
+];
+
+const GATEWAY_ASSIGNMENT_BY_SATELLITE = new Map(
+  GEO_GATEWAY_ASSIGNMENTS.map((assignment) => [assignment.satelliteName.toUpperCase(), assignment])
+);
+
+function getGatewayByName(gateways: GeoGatewayData[], gatewayName: string | null): GeoGatewayData | null {
+  if (!gatewayName) return null;
+  return gateways.find((gateway) => gateway.name === gatewayName) ?? null;
+}
+
+export function getGatewayAssignmentsForSatellite(
+  satellite: SatelliteData,
+  gateways: GeoGatewayData[]
+): { primary: GeoGatewayData | null; backup: GeoGatewayData | null } {
+  if (satellite.orbitType !== 'GEO' || satellite.type !== 'EUTELSAT' || satellite.opsStatus !== 'operational') {
+    return { primary: null, backup: null };
+  }
+
+  const assignment = GATEWAY_ASSIGNMENT_BY_SATELLITE.get(satellite.name.toUpperCase());
+  if (assignment) {
+    return {
+      primary: getGatewayByName(gateways, assignment.primaryGatewayName),
+      backup: getGatewayByName(gateways, assignment.backupGatewayName),
+    };
+  }
+
+  const fallback = selectBestGeoGateway(satellite, gateways);
+  return {
+    primary: fallback?.gateway ?? null,
+    backup: null,
+  };
+}
+
+export function getAssignedGeoSatellitesForGateway(
+  gateway: GeoGatewayData,
+  satellites: SatelliteData[],
+  gateways: GeoGatewayData[]
+): { primary: SatelliteData[]; backup: SatelliteData[] } {
+  const geoSatellites = satellites.filter((satellite) => satellite.orbitType === 'GEO' && satellite.type === 'EUTELSAT');
+  const primary: SatelliteData[] = [];
+  const backup: SatelliteData[] = [];
+
+  for (const satellite of geoSatellites) {
+    const assignments = getGatewayAssignmentsForSatellite(satellite, gateways);
+    if (assignments.primary?.name === gateway.name) {
+      primary.push(satellite);
+    }
+    if (assignments.backup?.name === gateway.name) {
+      backup.push(satellite);
+    }
+  }
+
+  primary.sort((a, b) => a.name.localeCompare(b.name));
+  backup.sort((a, b) => a.name.localeCompare(b.name));
+
+  return { primary, backup };
+}
+
 export function selectBestGeoGateway(
   satellite: SatelliteData,
   gateways: GeoGatewayData[],
@@ -234,6 +331,15 @@ export function selectBestGeoGateway(
   }
 
   return best;
+}
+
+export function getMonitoredGeoSatellitesForGateway(
+  gateway: GeoGatewayData,
+  satellites: SatelliteData[],
+  gateways: GeoGatewayData[]
+): SatelliteData[] {
+  const assigned = getAssignedGeoSatellitesForGateway(gateway, satellites, gateways);
+  return [...assigned.primary, ...assigned.backup];
 }
 
 export function analyzeGeoConnectivity({

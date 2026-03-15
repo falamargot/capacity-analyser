@@ -30,6 +30,8 @@ import { haversineDistanceKm, BACKHAUL_RADIUS_KM } from '../utils/leoFootprint';
 import { SNPS_DATA } from './globe/GlobeConfig';
 import { getBeamBaseColor } from '../config/beamVisualization';
 import type { BeamHealthData } from '../utils/realisticSimulation';
+import { buildSimulationStateSnapshot } from '../types/simulation';
+import { useSimulation } from '../contexts/SimulationContext';
 
 // ─────────────────────────────────────────────────────────────────
 // Types
@@ -119,10 +121,18 @@ const PassBeamTimeline: React.FC<PassBeamTimelineProps> = ({
   maxDlMbps,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
+  const { coveragePolicy } = useSimulation();
 
   // ── Compute the timeline (memoized on satellite + user position) ────────────
   const timeline = useMemo((): TimelinePoint[] => {
     if (!satellite?.satrec) return [];
+
+    const simulationState = buildSimulationStateSnapshot({
+      coveragePolicy,
+      weatherCondition,
+      beamHealthFactors,
+      hsBeams,
+    });
 
     const now = Date.now();
     const points: TimelinePoint[] = [];
@@ -152,8 +162,7 @@ const PassBeamTimeline: React.FC<PassBeamTimelineProps> = ({
             userPosition,
             satellite,
             julianDate,
-            { type: 'DB_THRESHOLD', thresholdDb: -10 },
-            hsBeams
+            simulationState
           );
         } catch {
           beamIndex = null;
@@ -213,7 +222,7 @@ const PassBeamTimeline: React.FC<PassBeamTimelineProps> = ({
     }
 
     return points;
-  }, [satellite, userPosition, failedSnps, hsBeams, weatherCondition, beamHealthFactors, maxDlMbps]);
+  }, [satellite, userPosition, failedSnps, hsBeams, weatherCondition, beamHealthFactors, maxDlMbps, coveragePolicy]);
 
   // Summary stats
   const inPassPoints    = timeline.filter(p => p.elevation > 0);

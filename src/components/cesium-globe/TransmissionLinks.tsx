@@ -18,17 +18,20 @@ import type { SatelliteScope } from '../SatelliteScopeFilter';
 import { getPosition, propagateSatellite, calculateDeadReckoning } from './utils';
 import { hasRFConnectivity } from '../../utils/rfConnectivity';
 import { useSimulation } from '../../contexts/SimulationContext';
-import { GEO_GATEWAYS, type SNPData } from '../globe/GlobeConfig';
-import { selectBestGeoGateway } from '../../utils/geoConnectivityModel';
+import { GEO_GATEWAYS, type GeoGatewayData, type SNPData } from '../globe/GlobeConfig';
+import { getGatewayAssignmentsForSatellite, getMonitoredGeoSatellitesForGateway, selectBestGeoGateway } from '../../utils/geoConnectivityModel';
 import type { SNPConnectedSatellite } from '../../services/coverageService';
+import { buildSimulationStateSnapshot } from '../../types/simulation';
 
 interface TransmissionLinksProps {
+    satellites: SatelliteData[];
     selectedPosition?: { lat: number; lng: number; altitude?: number } | null;
     selectedAircraft?: Aircraft | null;
     selectedSatellite: SatelliteData | null;
     autoSelectedLEOSatellite?: SatelliteData | null;
     autoSelectedGEOSatellite?: SatelliteData | null;
     selectedSNP?: { lat: number; lng: number; name: string } | null;
+    selectedGateway?: GeoGatewayData | null;
     dedicatedSNPForSelectedLEO?: SNPData | null;
     satelliteScope: SatelliteScope;
     inspectedSNP?: SNPData | null;
@@ -57,18 +60,26 @@ const geoBackhaulMaterial = new PolylineDashMaterialProperty({
 });
 
 const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
+    satellites,
     selectedPosition,
     selectedAircraft,
     selectedSatellite,
     autoSelectedLEOSatellite,
     autoSelectedGEOSatellite,
     selectedSNP,
+    selectedGateway,
     dedicatedSNPForSelectedLEO,
     satelliteScope,
     inspectedSNP,
     snpConnectedSatellites = []
 }) => {
-    const { coveragePolicy } = useSimulation();
+    const { coveragePolicy, weatherCondition, beamHealthFactors, hsBeamsSet } = useSimulation();
+    const simulationState = useMemo(() => buildSimulationStateSnapshot({
+        coveragePolicy,
+        weatherCondition,
+        beamHealthFactors,
+        hsBeams: hsBeamsSet,
+    }), [coveragePolicy, weatherCondition, beamHealthFactors, hsBeamsSet]);
     const hasUserSelection = !!(selectedPosition || selectedAircraft);
 
     const resolveCurrentUser = useMemo(() => {
@@ -106,7 +117,7 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
             const { userPosition: startPos, userLocation } = resolveCurrentUser(time);
 
             // Check RF connectivity before rendering link
-            if (!hasRFConnectivity(userLocation, autoSelectedLEOSatellite, time, coveragePolicy)) {
+            if (!hasRFConnectivity(userLocation, autoSelectedLEOSatellite, time, simulationState)) {
                 return []; // No link if no RF connectivity
             }
 
@@ -115,7 +126,7 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
 
             return [startPos, endPos];
         }, false);
-    }, [autoSelectedLEOSatellite, hasUserSelection, coveragePolicy, resolveCurrentUser]);
+    }, [autoSelectedLEOSatellite, hasUserSelection, resolveCurrentUser, simulationState]);
 
     // LEO Backhaul positions callback (to SNP)
     const leoBackhaulCallback = useMemo(() => {
@@ -150,6 +161,14 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
     // Eliminates O(gateways) ECEF work from the per-frame CallbackProperty callbacks below.
     const bestGeoGateway = useMemo(() => {
         if (!autoSelectedGEOSatellite) return null;
+        const assignedGateway = getGatewayAssignmentsForSatellite(autoSelectedGEOSatellite, GEO_GATEWAYS).primary;
+        if (assignedGateway) {
+            return {
+                gateway: assignedGateway,
+                gatewayElevationDeg: 0,
+                satToGatewayDistanceKm: 0,
+            };
+        }
         return selectBestGeoGateway(autoSelectedGEOSatellite, GEO_GATEWAYS);
     }, [autoSelectedGEOSatellite]);
 
@@ -185,6 +204,14 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
 
     const dedicatedGeoGateway = useMemo(() => {
         if (!selectedSatellite || selectedSatellite.type !== 'EUTELSAT') return null;
+        const assignedGateway = getGatewayAssignmentsForSatellite(selectedSatellite, GEO_GATEWAYS).primary;
+        if (assignedGateway) {
+            return {
+                gateway: assignedGateway,
+                gatewayElevationDeg: 0,
+                satToGatewayDistanceKm: 0,
+            };
+        }
         return selectBestGeoGateway(selectedSatellite, GEO_GATEWAYS);
     }, [selectedSatellite]);
 
@@ -232,7 +259,24 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
         });
     }, [inspectedSNP, snpConnectedSatellites]);
 
-    if (!hasUserSelection && !dedicatedSnpCallback && !dedicatedGeoFeederCallback && !inspectedSNP) {
+    const selectedGatewayLinks = useMemo(() => {
+        if (!selectedGateway || satelliteScope === 'LEO') return null;
+
+        const gatewayPos = getPosition(selectedGateway.lat, selectedGateway.lng, 0.01);
+        return getMonitoredGeoSatellitesForGateway(selectedGateway, satellites, GEO_GATEWAYS)
+            .filter((satellite) => satellite.opsStatus === 'operational')
+            .map((satellite) => ({
+                id: satellite.id,
+                name: satellite.name,
+                callback: new CallbackProperty((time?: JulianDate) => {
+                    if (!time) return [];
+                    const satPos = propagateSatellite(satellite, time);
+                    return [gatewayPos, satPos];
+                }, false),
+            }));
+    }, [selectedGateway, satelliteScope, satellites]);
+
+    if (!hasUserSelection && !dedicatedSnpCallback && !dedicatedGeoFeederCallback && !inspectedSNP && !selectedGatewayLinks?.length) {
         return null;
     }
 
@@ -331,6 +375,19 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
                         positions={callback}
                         width={2}
                         material={leoDashMaterial}
+                        clampToGround={false}
+                        arcType={ArcType.NONE}
+                    />
+                </Entity>
+            ))}
+
+            {/* Gateway inspection: links from the selected gateway to each monitored GEO satellite */}
+            {selectedGatewayLinks && selectedGatewayLinks.map(({ id, name, callback }) => (
+                <Entity key={`gateway-link-${id}`} name={`${selectedGateway?.name} → ${name}`}>
+                    <PolylineGraphics
+                        positions={callback}
+                        width={2.5}
+                        material={geoFeederMaterial}
                         clampToGround={false}
                         arcType={ArcType.NONE}
                     />

@@ -10,9 +10,10 @@ interface SNPDetailsProps {
   snp: SNPData;
   connectedSatellites: SNPConnectedSatellite[];
   onSatelliteClick?: (satellite: SatelliteData) => void;
+  externalHeader?: boolean;
 }
 
-const SNPDetails = memo<SNPDetailsProps>(({ snp, connectedSatellites, onSatelliteClick }) => {
+const SNPDetails = memo<SNPDetailsProps>(({ snp, connectedSatellites, onSatelliteClick, externalHeader = false }) => {
   const { failedSnps, toggleSnpFailure } = useSimulation();
   const isFailed = failedSnps.has(snp.name);
 
@@ -32,22 +33,24 @@ const SNPDetails = memo<SNPDetailsProps>(({ snp, connectedSatellites, onSatellit
         <div className="space-y-4">
 
           {/* Header — same structure as SatelliteDetails */}
-          <div className="flex items-center justify-between mb-4 pb-4 border-b border-gray-200 dark:border-slate-700">
-            <div className="flex items-center space-x-3">
-              <div className="w-3 h-3 rounded-full bg-[#FFA500] shadow-lg shadow-orange-400/50" style={{ animation: 'pulse 2s cubic-bezier(0.4,0,0.6,1) infinite' }} />
-              <div>
-                <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">SNP Details</h2>
-                <p className="text-sm text-gray-500 dark:text-gray-400">{snp.name} · {snp.region}</p>
+          {!externalHeader && (
+            <div className="flex items-center justify-between mb-4 pb-4 border-b border-gray-200 dark:border-slate-700">
+              <div className="flex items-center space-x-3">
+                <div className="w-3 h-3 rounded-full bg-[#FFA500] shadow-lg shadow-orange-400/50" style={{ animation: 'pulse 2s cubic-bezier(0.4,0,0.6,1) infinite' }} />
+                <div>
+                  <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">SNP Details</h2>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">{snp.name} · {snp.region}</p>
+                </div>
               </div>
+              <span className={`px-3 py-1 rounded-full text-sm font-medium ${
+                isFailed
+                  ? 'bg-red-100 dark:bg-red-900/40 text-red-800 dark:text-red-200'
+                  : 'bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-200'
+              }`}>
+                {isFailed ? 'Failed' : 'Operational'}
+              </span>
             </div>
-            <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-              isFailed
-                ? 'bg-red-100 dark:bg-red-900/40 text-red-800 dark:text-red-200'
-                : 'bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-200'
-            }`}>
-              {isFailed ? 'Failed' : 'Operational'}
-            </span>
-          </div>
+          )}
 
           {/* Location */}
           <div className="grid grid-cols-2 gap-3">
@@ -63,7 +66,7 @@ const SNPDetails = memo<SNPDetailsProps>(({ snp, connectedSatellites, onSatellit
 
           {/* Backhaul Coverage */}
           <div className="bg-gray-50 dark:bg-slate-800/50 rounded-lg p-3 border border-gray-100 dark:border-slate-700">
-            <h3 className="text-sm font-semibold mb-2 text-[#FFA500] flex items-center">
+            <h3 className="mb-2 flex items-center text-sm font-semibold text-gray-900 dark:text-gray-100">
               Backhaul Coverage
               <SectionTooltip content="The geographic zone within which LEO satellites can establish a backhaul link to this SNP. Based on a 15° minimum elevation mask at the satellite." />
             </h3>
@@ -81,7 +84,7 @@ const SNPDetails = memo<SNPDetailsProps>(({ snp, connectedSatellites, onSatellit
 
           {/* Connected Satellites */}
           <div className="bg-gray-50 dark:bg-slate-800/50 rounded-lg p-3 border border-gray-100 dark:border-slate-700">
-            <h3 className="text-sm font-semibold mb-3 text-[#FFA500] flex items-center">
+            <h3 className="mb-3 flex items-center text-sm font-semibold text-gray-900 dark:text-gray-100">
               Connected Satellites
               <SectionTooltip content="LEO satellites currently within this SNP's backhaul coverage zone (elevation ≥ 15°). Updated every 2 seconds." />
             </h3>
@@ -95,7 +98,7 @@ const SNPDetails = memo<SNPDetailsProps>(({ snp, connectedSatellites, onSatellit
                 {/* Aggregate stats */}
                 <div className="grid grid-cols-3 gap-2 text-center mb-3 pb-3 border-b border-gray-200 dark:border-slate-700">
                   <div>
-                    <div className="text-xl font-bold text-[#FFA500]">{connectedSatellites.length}</div>
+                    <div className="text-xl font-bold text-gray-900 dark:text-gray-100">{connectedSatellites.length}</div>
                     <div className="text-xs text-gray-500 dark:text-gray-400">satellites</div>
                   </div>
                   <div>

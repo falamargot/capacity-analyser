@@ -7,6 +7,7 @@ import { isBeamActive } from '../../../utils/beamActivation';
 import { isRfCoverageSatisfied, footprintRadiusKm, STANDARD_ELEVATION_DEG, type CoveragePolicy } from '../../../utils/leoFootprint';
 import { isPointInPolygon } from '../../../utils/geoUtils';
 import { warn } from '../../../utils/logger';
+import type { SimulationStateSnapshot } from '../../../types/simulation';
 
 import { JulianDate, Rectangle, Math as CesiumMath, Cartographic } from 'cesium';
 
@@ -79,19 +80,20 @@ function isPointInBeamPolygon(
 export function generateCoverageGrid(
     satellites: SatelliteData[],
     scope: SatelliteScope,
-    policy: CoveragePolicy,
+    simulationState: SimulationStateSnapshot,
     time: JulianDate
 ): CoverageGridResult {
-    return _computeCoverageGrid(satellites, scope, policy, time);
+    return _computeCoverageGrid(satellites, scope, simulationState, time);
 }
 
 /** Internal implementation */
 function _computeCoverageGrid(
     satellites: SatelliteData[],
     scope: SatelliteScope,
-    policy: CoveragePolicy,
+    simulationState: SimulationStateSnapshot,
     time: JulianDate
 ): CoverageGridResult {
+    const policy: CoveragePolicy = simulationState.coveragePolicy;
     const activeCells = new Set<string>(); // "latIdx,lonIdx"
     const backhaulLinks: BackhaulLink[] = [];
 
@@ -226,7 +228,7 @@ function _computeCoverageGrid(
                 // DB_THRESHOLD Mode: Use actual beam geometries
 
                 // 1. Calculate the 16 beam geometries with the specified threshold
-                const beamGeometries = calculateCombGeometry(sat.satrec, time, policy.thresholdDb);
+                const beamGeometries = calculateCombGeometry(sat.satrec, time, simulationState);
                 if (!beamGeometries || beamGeometries.length === 0) return;
 
                 // 2. Determine GSO Protection status
@@ -238,7 +240,7 @@ function _computeCoverageGrid(
                     const beamGeometry = beamGeometries[beamIndex];
 
                     // Check if this beam is active
-                    if (!isBeamActive(beamIndex, isBlankingZone, isGSOAvoidance, satLatDeg)) {
+                    if (!isBeamActive(beamIndex, isBlankingZone, isGSOAvoidance, satLatDeg, simulationState.hsBeams)) {
                         continue; // Skip inactive beams
                     }
 

@@ -194,14 +194,13 @@ export const getNearestSNPInBackhaul = (
 
     // Second Constraint: Coverage Rule (Must be in Backhaul Coverage)
     // We pass the SNP location to see if it's inside the computed coverage polygon/footprint
-    const coverageIndices = isPointInCoverage(
+    const coverageClasses = isPointInCoverage(
       { lat: snp.lat, lng: snp.lng },
       satellite,
       satellitePosition
     );
 
-    // If not in coverage (indices is empty), skip this SNP
-    if (coverageIndices.length === 0) {
+    if (!coverageClasses.includes('backhaul')) {
       continue;
     }
 
@@ -251,13 +250,13 @@ export const hasSNPInCoverage = (satellite: SatelliteData, failedSnps: ReadonlyS
     // Feature 1: skip SNPs marked as failed
     if (failedSnps.has(snp.name)) continue;
 
-    const coverageIndices = isPointInCoverage(
+    const coverageClasses = isPointInCoverage(
       { lat: snp.lat, lng: snp.lng },
       satellite,
       null
     );
 
-    if (coverageIndices.length > 0) {
+    if (coverageClasses.includes('backhaul')) {
       return true;
     }
   }

@@ -1,15 +1,16 @@
-import { memo, useState, useEffect, useRef, useMemo, useCallback } from 'react';
-import { Search, Satellite, Plane, Ship, Radio, MapPin, X } from 'lucide-react';
+import { memo, useState, useEffect, useRef, useMemo, useCallback, type CSSProperties, type RefObject } from 'react';
+import { Search, Satellite, Plane, Ship, Radio, MapPin, Waypoints } from 'lucide-react';
 import type { SatelliteData } from '../types/satellites';
 import type { Aircraft } from '../modules/airTraffic/airTrafficService';
 import type { Vessel } from '../modules/maritimeTraffic/maritimeTrafficService';
-import { SNPS_DATA, type SNPData } from './globe/GlobeConfig';
+import { GEO_GATEWAYS, SNPS_DATA, type GeoGatewayData, type SNPData } from './globe/GlobeConfig';
 
 type ResultItem =
   | { type: 'satellite'; data: SatelliteData }
   | { type: 'aircraft'; data: Aircraft }
   | { type: 'vessel'; data: Vessel }
   | { type: 'snp'; data: SNPData }
+  | { type: 'gateway'; data: GeoGatewayData }
   | { type: 'location'; data: { name: string; lat: number; lng: number } };
 
 interface CommandPaletteProps {
@@ -18,10 +19,16 @@ interface CommandPaletteProps {
   satellites: SatelliteData[];
   aircraft: Aircraft[];
   vessels: Vessel[];
+  anchorRef?: RefObject<HTMLElement | null>;
+  hideInlineSearchWhenAnchored?: boolean;
+  resultTypes?: ResultItem['type'][];
+  query: string;
+  onQueryChange: (query: string) => void;
   onSelectSatellite: (satellite: SatelliteData) => void;
   onSelectAircraft: (aircraft: Aircraft) => void;
   onSelectVessel: (vessel: Vessel) => void;
   onSelectSnp: (snpName: string) => void;
+  onSelectGateway: (gateway: GeoGatewayData) => void;
   onSelectLocation: (lat: number, lng: number) => void;
 }
 
@@ -34,36 +41,129 @@ const CommandPalette = memo<CommandPaletteProps>(({
   satellites,
   aircraft,
   vessels,
+  anchorRef,
+  hideInlineSearchWhenAnchored = false,
+  resultTypes,
+  query,
+  onQueryChange,
   onSelectSatellite,
   onSelectAircraft,
   onSelectVessel,
   onSelectSnp,
+  onSelectGateway,
   onSelectLocation,
 }) => {
-  const [query, setQuery] = useState('');
   const [activeIndex, setActiveIndex] = useState(0);
   const [locationResults, setLocationResults] = useState<Array<{ name: string; lat: number; lng: number }>>([]);
   const [isSearchingLocation, setIsSearchingLocation] = useState(false);
+  const [menuStyle, setMenuStyle] = useState<CSSProperties | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const locationSearchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const paletteRef = useRef<HTMLDivElement>(null);
+  const shouldShowInlineSearch = !hideInlineSearchWhenAnchored || !anchorRef?.current;
+  const allowedTypes = useMemo(
+    () => new Set<ResultItem['type']>(resultTypes ?? ['satellite', 'aircraft', 'vessel', 'snp', 'gateway', 'location']),
+    [resultTypes],
+  );
+  const searchPlaceholder = useMemo(() => {
+    if (allowedTypes.size === 1 && allowedTypes.has('satellite')) return 'Search satellites...';
+    if (allowedTypes.size === 2 && allowedTypes.has('satellite') && allowedTypes.has('location')) return 'Search satellites or locations...';
+    if (allowedTypes.size === 3 && allowedTypes.has('satellite') && allowedTypes.has('location') && allowedTypes.has('gateway')) {
+      return 'Search satellites, gateways, or locations...';
+    }
+    if (allowedTypes.size === 4 && allowedTypes.has('satellite') && allowedTypes.has('location') && allowedTypes.has('snp') && allowedTypes.has('gateway')) {
+      return 'Search satellites, gateways, locations, or SNPs...';
+    }
+    return 'Search satellites, gateways, aircraft, vessels, SNPs, locations...';
+  }, [allowedTypes]);
+  const emptyStateMessage = useMemo(() => {
+    if (allowedTypes.size === 1 && allowedTypes.has('satellite')) return 'Start typing to search satellites.';
+    if (allowedTypes.size === 2 && allowedTypes.has('satellite') && allowedTypes.has('location')) return 'Start typing to search satellites or locations.';
+    if (allowedTypes.size === 3 && allowedTypes.has('satellite') && allowedTypes.has('location') && allowedTypes.has('gateway')) {
+      return 'Start typing to search satellites, gateways, or locations.';
+    }
+    if (allowedTypes.size === 4 && allowedTypes.has('satellite') && allowedTypes.has('location') && allowedTypes.has('snp') && allowedTypes.has('gateway')) {
+      return 'Start typing to search satellites, gateways, locations, or SNPs.';
+    }
+    return 'Start typing to search satellites, gateways, aircraft, vessels, SNPs, or locations.';
+  }, [allowedTypes]);
 
   // Reset state when opened
   useEffect(() => {
     if (isOpen) {
-      setQuery('');
       setActiveIndex(0);
       setLocationResults([]);
-      // Focus input after a brief delay (modal animation)
-      requestAnimationFrame(() => inputRef.current?.focus());
+      if (shouldShowInlineSearch) {
+        // Focus input after a brief delay (modal animation)
+        requestAnimationFrame(() => inputRef.current?.focus());
+      }
     }
-  }, [isOpen]);
+  }, [isOpen, shouldShowInlineSearch]);
+
+  const updateAnchorPosition = useCallback(() => {
+    const anchor = anchorRef?.current;
+    if (!anchor || typeof window === 'undefined') {
+      setMenuStyle(null);
+      return;
+    }
+
+    const rect = anchor.getBoundingClientRect();
+    const horizontalMargin = 12;
+    const width = Math.min(440, window.innerWidth - horizontalMargin * 2);
+    const left = Math.max(
+      horizontalMargin,
+      Math.min(rect.right - width, window.innerWidth - width - horizontalMargin),
+    );
+    const top = Math.min(rect.bottom + 10, window.innerHeight - 260);
+
+    setMenuStyle({
+      position: 'fixed',
+      top,
+      left,
+      width,
+    });
+  }, [anchorRef]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    updateAnchorPosition();
+
+    const handleReposition = () => updateAnchorPosition();
+    window.addEventListener('resize', handleReposition);
+    window.addEventListener('scroll', handleReposition, true);
+
+    return () => {
+      window.removeEventListener('resize', handleReposition);
+      window.removeEventListener('scroll', handleReposition, true);
+    };
+  }, [isOpen, updateAnchorPosition]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handlePointerDown = (event: MouseEvent) => {
+      const target = event.target as Node;
+      const clickedPalette = paletteRef.current?.contains(target);
+      const clickedAnchor = anchorRef?.current?.contains(target);
+
+      if (!clickedPalette && !clickedAnchor) {
+        onClose();
+      }
+    };
+
+    document.addEventListener('mousedown', handlePointerDown);
+    return () => {
+      document.removeEventListener('mousedown', handlePointerDown);
+    };
+  }, [isOpen, onClose, anchorRef]);
 
   // Debounced location search via Nominatim
   useEffect(() => {
     if (locationSearchTimeout.current) clearTimeout(locationSearchTimeout.current);
 
-    if (query.length < 3) {
+    if (!allowedTypes.has('location') || query.length < 3) {
       setLocationResults([]);
       setIsSearchingLocation(false);
       return;
@@ -94,7 +194,7 @@ const CommandPalette = memo<CommandPaletteProps>(({
     return () => {
       if (locationSearchTimeout.current) clearTimeout(locationSearchTimeout.current);
     };
-  }, [query]);
+  }, [allowedTypes, query]);
 
   // Build filtered results
   const results = useMemo<ResultItem[]>(() => {
@@ -104,36 +204,53 @@ const CommandPalette = memo<CommandPaletteProps>(({
     const items: ResultItem[] = [];
 
     // Satellites
-    const satMatches = satellites
-      .filter(s => s.name.toLowerCase().includes(q) || s.noradId.includes(q))
-      .slice(0, MAX_RESULTS_PER_TYPE);
-    for (const s of satMatches) items.push({ type: 'satellite', data: s });
+    if (allowedTypes.has('satellite')) {
+      const satMatches = satellites
+        .filter(s => s.name.toLowerCase().includes(q) || s.noradId.includes(q))
+        .slice(0, MAX_RESULTS_PER_TYPE);
+      for (const s of satMatches) items.push({ type: 'satellite', data: s });
+    }
 
-    // SNPs
-    const snpMatches = SNPS_DATA
-      .filter(s => s.name.toLowerCase().includes(q) || s.region.toLowerCase().includes(q))
-      .slice(0, MAX_RESULTS_PER_TYPE);
-    for (const s of snpMatches) items.push({ type: 'snp', data: s });
+    if (allowedTypes.has('snp')) {
+      const snpMatches = SNPS_DATA
+        .filter(s => s.name.toLowerCase().includes(q) || s.region.toLowerCase().includes(q))
+        .slice(0, MAX_RESULTS_PER_TYPE);
+      for (const s of snpMatches) items.push({ type: 'snp', data: s });
+    }
 
-    // Aircraft
-    const acMatches = aircraft
-      .filter(a => a.callsign?.toLowerCase().includes(q) || a.icao24.toLowerCase().includes(q))
-      .slice(0, MAX_RESULTS_PER_TYPE);
-    for (const a of acMatches) items.push({ type: 'aircraft', data: a });
+    if (allowedTypes.has('gateway')) {
+      const gatewayMatches = GEO_GATEWAYS
+        .filter((gateway) =>
+          gateway.name.toLowerCase().includes(q) ||
+          gateway.region.toLowerCase().includes(q) ||
+          gateway.gateway_id.toLowerCase().includes(q)
+        )
+        .slice(0, MAX_RESULTS_PER_TYPE);
+      for (const gateway of gatewayMatches) items.push({ type: 'gateway', data: gateway });
+    }
 
-    // Vessels
-    const vesselMatches = vessels
-      .filter(v => v.name?.toLowerCase().includes(q) || v.mmsi.includes(q))
-      .slice(0, MAX_RESULTS_PER_TYPE);
-    for (const v of vesselMatches) items.push({ type: 'vessel', data: v });
+    if (allowedTypes.has('aircraft')) {
+      const acMatches = aircraft
+        .filter(a => a.callsign?.toLowerCase().includes(q) || a.icao24.toLowerCase().includes(q))
+        .slice(0, MAX_RESULTS_PER_TYPE);
+      for (const a of acMatches) items.push({ type: 'aircraft', data: a });
+    }
 
-    // Locations (from Nominatim)
-    for (const loc of locationResults) {
-      items.push({ type: 'location', data: loc });
+    if (allowedTypes.has('vessel')) {
+      const vesselMatches = vessels
+        .filter(v => v.name?.toLowerCase().includes(q) || v.mmsi.includes(q))
+        .slice(0, MAX_RESULTS_PER_TYPE);
+      for (const v of vesselMatches) items.push({ type: 'vessel', data: v });
+    }
+
+    if (allowedTypes.has('location')) {
+      for (const loc of locationResults) {
+        items.push({ type: 'location', data: loc });
+      }
     }
 
     return items.slice(0, MAX_TOTAL_RESULTS);
-  }, [query, satellites, aircraft, vessels, locationResults]);
+  }, [allowedTypes, query, satellites, aircraft, vessels, locationResults]);
 
   // Keep active index in bounds
   useEffect(() => {
@@ -148,10 +265,11 @@ const CommandPalette = memo<CommandPaletteProps>(({
       case 'aircraft': onSelectAircraft(item.data); break;
       case 'vessel': onSelectVessel(item.data); break;
       case 'snp': onSelectSnp(item.data.name); break;
+      case 'gateway': onSelectGateway(item.data); break;
       case 'location': onSelectLocation(item.data.lat, item.data.lng); break;
     }
     onClose();
-  }, [onSelectSatellite, onSelectAircraft, onSelectVessel, onSelectSnp, onSelectLocation, onClose]);
+  }, [onSelectSatellite, onSelectAircraft, onSelectVessel, onSelectSnp, onSelectGateway, onSelectLocation, onClose]);
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     switch (e.key) {
@@ -182,12 +300,22 @@ const CommandPalette = memo<CommandPaletteProps>(({
 
   if (!isOpen) return null;
 
+  const isAnchored = Boolean(menuStyle);
+  const palettePositionClassName = isAnchored
+    ? 'fixed'
+    : 'absolute left-1/2 top-[15vh] w-full max-w-lg -translate-x-1/2';
+  const paletteSurfaceClassName = isAnchored
+    ? 'mx-0 rounded-2xl shadow-[0_24px_60px_-28px_rgba(15,23,42,0.55)]'
+    : 'mx-4 rounded-xl shadow-2xl';
+  const resultsMaxHeight = isAnchored ? 'min(18rem, calc(100vh - 12rem))' : undefined;
+
   const iconForType = (type: ResultItem['type']) => {
     switch (type) {
       case 'satellite': return <Satellite className="h-4 w-4 text-blue-500" />;
       case 'aircraft': return <Plane className="h-4 w-4 text-sky-500" />;
       case 'vessel': return <Ship className="h-4 w-4 text-teal-500" />;
       case 'snp': return <Radio className="h-4 w-4 text-orange-500" />;
+      case 'gateway': return <Waypoints className="h-4 w-4 text-cyan-500" />;
       case 'location': return <MapPin className="h-4 w-4 text-gray-500" />;
     }
   };
@@ -198,54 +326,50 @@ const CommandPalette = memo<CommandPaletteProps>(({
       case 'aircraft': return { primary: item.data.callsign || item.data.icao24, secondary: `Aircraft · ${item.data.icao24}` };
       case 'vessel': return { primary: item.data.name || item.data.mmsi, secondary: `Vessel · ${item.data.mmsi}` };
       case 'snp': return { primary: item.data.name, secondary: `SNP · ${item.data.region}` };
+      case 'gateway': return { primary: item.data.name, secondary: `Gateway · ${item.data.region}` };
       case 'location': return { primary: item.data.name, secondary: `${item.data.lat.toFixed(4)}°, ${item.data.lng.toFixed(4)}°` };
     }
   };
 
   return (
-    <div
-      className="fixed inset-0 z-[70] flex items-start justify-center pt-[15vh]"
-      onClick={onClose}
-    >
-      {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
+    <div className="fixed inset-0 z-[70]">
+      {!isAnchored && <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />}
 
       {/* Palette */}
       <div
-        className="relative w-full max-w-lg mx-4 bg-white dark:bg-slate-900 rounded-xl shadow-2xl border border-gray-200 dark:border-slate-700 overflow-hidden"
-        onClick={(e) => e.stopPropagation()}
+        ref={paletteRef}
+        style={menuStyle ?? undefined}
+        className={`${palettePositionClassName} relative bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 overflow-hidden ${paletteSurfaceClassName}`}
       >
-        {/* Search input */}
-        <div className="flex items-center gap-3 px-4 py-3 border-b border-gray-200 dark:border-slate-700">
-          <Search className="h-5 w-5 text-gray-400 flex-shrink-0" />
-          <input
-            ref={inputRef}
-            type="text"
-            placeholder="Search satellites, aircraft, vessels, SNPs, locations..."
-            className="flex-1 bg-transparent text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400 outline-none"
-            value={query}
-            onChange={(e) => { setQuery(e.target.value); setActiveIndex(0); }}
-            onKeyDown={handleKeyDown}
-          />
-          <button type="button" onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
-            <X className="h-4 w-4" />
-          </button>
-        </div>
+        {shouldShowInlineSearch ? (
+          <div className="flex items-center gap-3 px-4 py-3 border-b border-gray-200 dark:border-slate-700">
+            <Search className="h-5 w-5 text-gray-400 flex-shrink-0" />
+            <input
+              ref={inputRef}
+              type="text"
+              placeholder={searchPlaceholder}
+              className="flex-1 bg-transparent text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400 outline-none"
+              value={query}
+              onChange={(e) => { onQueryChange(e.target.value); setActiveIndex(0); }}
+              onKeyDown={handleKeyDown}
+            />
+          </div>
+        ) : null}
 
         {/* Results */}
-        <div ref={listRef} className="max-h-72 overflow-y-auto py-1">
+        <div
+          ref={listRef}
+          className="overflow-y-auto py-1"
+          style={resultsMaxHeight ? { maxHeight: resultsMaxHeight } : { maxHeight: '18rem' }}
+        >
           {results.length === 0 && query.trim() && (
             <div className="px-4 py-6 text-center text-sm text-gray-500 dark:text-gray-400">
               {isSearchingLocation ? 'Searching...' : 'No results found'}
             </div>
           )}
           {!query.trim() && (
-            <div className="px-4 py-4 text-xs text-gray-400 dark:text-gray-500 space-y-1">
-              <div className="font-medium text-gray-500 dark:text-gray-400 mb-2">Keyboard shortcuts</div>
-              <div className="flex justify-between"><span>Toggle scope ALL / LEO / GEO</span><span><kbd className="px-1.5 py-0.5 rounded bg-gray-100 dark:bg-slate-800 text-[10px] font-mono">1</kbd> <kbd className="px-1.5 py-0.5 rounded bg-gray-100 dark:bg-slate-800 text-[10px] font-mono">2</kbd> <kbd className="px-1.5 py-0.5 rounded bg-gray-100 dark:bg-slate-800 text-[10px] font-mono">3</kbd></span></div>
-              <div className="flex justify-between"><span>Toggle fullscreen</span><kbd className="px-1.5 py-0.5 rounded bg-gray-100 dark:bg-slate-800 text-[10px] font-mono">F</kbd></div>
-              <div className="flex justify-between"><span>Reset view</span><kbd className="px-1.5 py-0.5 rounded bg-gray-100 dark:bg-slate-800 text-[10px] font-mono">Esc</kbd></div>
-              <div className="flex justify-between"><span>Command palette</span><span><kbd className="px-1.5 py-0.5 rounded bg-gray-100 dark:bg-slate-800 text-[10px] font-mono">{navigator.platform?.includes('Mac') ? '⌘' : 'Ctrl'}</kbd>+<kbd className="px-1.5 py-0.5 rounded bg-gray-100 dark:bg-slate-800 text-[10px] font-mono">K</kbd></span></div>
+            <div className="px-4 py-6 text-center text-sm text-gray-500 dark:text-gray-400">
+              {emptyStateMessage}
             </div>
           )}
           {results.map((item, i) => {

@@ -60,7 +60,7 @@ import InspectionCard, { type HoveredEntity } from './cesium-globe/InspectionCar
 import { LabelGraphics } from 'resium';
 import { formatCoordinates } from '../utils/formatters';
 import { GEO_GATEWAYS, SNPS_DATA, type GeoGatewayData, type SNPData } from './globe/GlobeConfig';
-import { selectBestGeoGateway } from '../utils/geoConnectivityModel';
+import { getGatewayAssignmentsForSatellite, selectBestGeoGateway } from '../utils/geoConnectivityModel';
 
 // Module-level constants — allocated once, reused on every render.
 const LABEL_BACKGROUND_PADDING = new Cartesian2(7, 4);
@@ -75,11 +75,13 @@ interface CesiumGlobeProps {
     onSatelliteClick: (satellite: SatelliteData | null) => void;
     onSatelliteHover: (satelliteId: string | null) => void;
     onSnpClick: (snpName: string | { lat: number; lng: number; name: string } | null) => void;
+    onGatewayClick?: (gatewayName: string | null) => void;
     onSnpHover: (snpName: string | null) => void;
     selectedSatellite: SatelliteData | null;
     autoSelectedLEOSatellite?: SatelliteData | null;
     autoSelectedGEOSatellite?: SatelliteData | null;
     selectedSNP?: string | { lat: number; lng: number; name: string } | null;
+    selectedGateway?: GeoGatewayData | null;
     dedicatedSNPForSelectedLEO?: SNPData | null;
     isFullscreen: boolean;
     onToggleFullscreen: () => void;
@@ -121,11 +123,13 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
     onSatelliteClick,
     onSatelliteHover,
     onSnpClick,
+    onGatewayClick,
     onSnpHover,
     selectedSatellite,
     autoSelectedLEOSatellite,
     autoSelectedGEOSatellite,
     selectedSNP,
+    selectedGateway,
     dedicatedSNPForSelectedLEO,
     isFullscreen,
     onToggleFullscreen,
@@ -383,6 +387,9 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
             ? selectedSatellite
             : autoSelectedGEOSatellite;
         if (!geoSatellite) return null;
+
+        const assignedGateway = getGatewayAssignmentsForSatellite(geoSatellite, GEO_GATEWAYS).primary;
+        if (assignedGateway) return assignedGateway.name;
 
         return selectBestGeoGateway(geoSatellite, GEO_GATEWAYS)?.gateway.name ?? null;
     }, [selectedSatellite, autoSelectedGEOSatellite]);
@@ -669,11 +676,11 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                     {/* GEO Gateway Layer */}
                     <GeoGatewayLayer
                         satelliteScope={satelliteScope}
-                        onGatewayClick={onSnpClick}
+                        onGatewayClick={onGatewayClick ?? (() => {})}
                         onGatewayHover={handleGatewayHover}
                         viewerRef={viewerRef}
                         cameraMetricsRef={cameraMetricsRef}
-                        selectedGatewayName={selectedGeoGatewayName}
+                        selectedGatewayName={selectedGateway?.name ?? selectedGeoGatewayName}
                         sizeScale={sizeScale}
                     />
 
@@ -718,12 +725,14 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
 
                     {/* Transmission Links */}
                     <TransmissionLinks
+                        satellites={satellites}
                         selectedPosition={selectedPosition}
                         selectedAircraft={selectedAircraft}
                         selectedSatellite={selectedSatellite}
                         autoSelectedLEOSatellite={autoSelectedLEOSatellite}
                         autoSelectedGEOSatellite={autoSelectedGEOSatellite}
                         selectedSNP={typeof selectedSNP === 'string' ? { lat: 0, lng: 0, name: selectedSNP } : selectedSNP}
+                        selectedGateway={selectedGateway}
                         dedicatedSNPForSelectedLEO={dedicatedSNPForSelectedLEO}
                         satelliteScope={satelliteScope}
                         inspectedSNP={inspectedSNP}

@@ -1,13 +1,14 @@
 import { JulianDate, Cartographic } from 'cesium';
 import type { SatelliteData } from '../types/satellites';
 import { calculateElevationAngle } from './capacityCalculator';
-import { calculateGSOAvoidanceAngle, getActiveBeamCount, calculateCombGeometry } from './oneWebComb';
+import { calculateGSOAvoidanceAngle, calculateCombGeometry } from './oneWebComb';
 import { isBeamActive } from './beamActivation';
-import { isRfCoverageSatisfied, getPhysicsAwareBeamRadius, haversineDistanceKm, type CoveragePolicy } from './leoFootprint';
+import { isRfCoverageSatisfied, getPhysicsAwareBeamRadius, haversineDistanceKm } from './leoFootprint';
 import {
     getBeamPerformance,
     type WeatherCondition,
 } from './realisticSimulation';
+import type { SimulationStateSnapshot } from '../types/simulation';
 
 // Type alias for the GSO state returned by calculateGSOAvoidanceAngle
 type GSOState = ReturnType<typeof calculateGSOAvoidanceAngle>;
@@ -25,8 +26,7 @@ export function hasRFConnectivity(
     userPosition: { lat: number; lng: number },
     satellite: SatelliteData,
     time: JulianDate,
-    policy: CoveragePolicy = { type: "DB_THRESHOLD", thresholdDb: -10 },
-    hsBeams?: ReadonlySet<number>
+    simulationState: SimulationStateSnapshot
 ): boolean {
     if (!satellite || satellite.type !== 'ONEWEB') {
         return false;
@@ -51,7 +51,7 @@ export function hasRFConnectivity(
         }
 
         // Check if user is within any active beam polygon (gsoState already computed)
-        return isUserInActiveBeam(userPosition, satellite, time, policy, gsoState, hsBeams);
+        return isUserInActiveBeam(userPosition, satellite, time, simulationState, gsoState);
     } catch (error) {
         console.warn('Error checking RF connectivity:', error);
         return false;
@@ -69,28 +69,27 @@ function isUserInActiveBeam(
     userPosition: { lat: number; lng: number },
     satellite: SatelliteData,
     time: JulianDate,
-    policy: CoveragePolicy,
+    simulationState: SimulationStateSnapshot,
     gsoState: GSOState,
-    hsBeams?: ReadonlySet<number>
 ): boolean {
     try {
         const { isBlankingZone, isGSOAvoidance, satLatDeg } = gsoState;
+        const { coveragePolicy, hsBeams } = simulationState;
 
         // For SERVICE_ZONE, use centralized circular coverage check instead of beam polygons
-        if (policy.type === "SERVICE_ZONE") {
+        if (coveragePolicy.type === "SERVICE_ZONE") {
             if (isBlankingZone) return false;
 
             return isRfCoverageSatisfied(
                 userPosition,
                 { lat: satellite.position.lat, lng: satellite.position.lng },
                 satellite.position.alt,
-                policy
+                coveragePolicy
             );
         }
 
         // For DB_THRESHOLD, use actual beam polygon geometry
-        const thresholdDb = policy.type === "DB_THRESHOLD" ? policy.thresholdDb : -10;
-        const beamPolygons = calculateCombGeometry(satellite.satrec, time, thresholdDb);
+        const beamPolygons = calculateCombGeometry(satellite.satrec, time, simulationState);
         if (!beamPolygons || beamPolygons.length === 0) {
             return false;
         }
@@ -159,7 +158,7 @@ export function getConnectivityStatus(
     userPosition: { lat: number; lng: number },
     satellite: SatelliteData,
     time: JulianDate,
-    hsBeams?: ReadonlySet<number>
+    simulationState: SimulationStateSnapshot
 ): {
     hasGeometricVisibility: boolean;
     hasRFConnectivity: boolean;
@@ -195,7 +194,7 @@ export function getConnectivityStatus(
         // RF connectivity check — reuses gsoState (no third propagation)
         const hasRF = hasGeometricVisibility &&
             activeBeamCount > 0 &&
-            isUserInActiveBeam(userPosition, satellite, time, { type: "DB_THRESHOLD", thresholdDb: -10 }, gsoState, hsBeams);
+            isUserInActiveBeam(userPosition, satellite, time, simulationState, gsoState);
 
         return {
             hasGeometricVisibility,
@@ -406,8 +405,7 @@ export function findConnectedBeamIndex(
     userPosition: { lat: number; lng: number },
     satellite: SatelliteData,
     time: JulianDate,
-    policy: CoveragePolicy = { type: "DB_THRESHOLD", thresholdDb: -10 },
-    hsBeams?: ReadonlySet<number>
+    simulationState: SimulationStateSnapshot
 ): number | null {
     if (!satellite || satellite.type !== 'ONEWEB' || !satellite.satrec) return null;
 
@@ -423,15 +421,14 @@ export function findConnectedBeamIndex(
         const { isBlankingZone, isGSOAvoidance, satLatDeg } = gsoState;
 
         if (isBlankingZone) return null;
-        if (policy.type === "SERVICE_ZONE") return null; // No individual beams in this mode
+        if (simulationState.coveragePolicy.type === "SERVICE_ZONE") return null; // No individual beams in this mode
 
-        const thresholdDb = policy.type === "DB_THRESHOLD" ? policy.thresholdDb : -10;
-        const beamPolygons = calculateCombGeometry(satellite.satrec, time, thresholdDb);
+        const beamPolygons = calculateCombGeometry(satellite.satrec, time, simulationState);
         if (!beamPolygons || beamPolygons.length === 0) return null;
 
         for (let beamIndex = 0; beamIndex < beamPolygons.length; beamIndex++) {
             // M-01 fix: isBeamActive imported from oneWebComb (canonical)
-            if (!isBeamActive(beamIndex, isBlankingZone, isGSOAvoidance, satLatDeg, hsBeams)) continue;
+            if (!isBeamActive(beamIndex, isBlankingZone, isGSOAvoidance, satLatDeg, simulationState.hsBeams)) continue;
             if (isPointInPolygon(userPosition, beamPolygons[beamIndex])) {
                 return beamIndex; // Beams ordered 0 (North) → 15 (South)
             }

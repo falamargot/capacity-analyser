@@ -6,13 +6,13 @@ import SplashScreen from './components/SplashScreen';
 import AircraftSelector from './components/AircraftSelector';
 import VesselSelector from './components/VesselSelector';
 import CommandPalette from './components/CommandPalette';
+import GatewayDetails from './components/GatewayDetails';
 import SatelliteScopeFilter, { SatelliteScope } from './components/SatelliteScopeFilter';
-import { Search, Satellite, X } from 'lucide-react';
+import { CircleHelp, MapPin, Plane, Radio, Search, Satellite, Ship, Waypoints, X } from 'lucide-react';
 import { ThemeSelector } from './components/ThemeSelector';
 import BottomSheet from './components/layout/BottomSheet';
 import MobileAnalysisSummary from './components/layout/MobileAnalysisSummary';
-import SidebarContextBar from './components/layout/SidebarContextBar';
-import CollapsibleSection from './components/layout/CollapsibleSection';
+import SidebarHeroCard from './components/layout/SidebarHeroCard';
 import BeamLegend from './components/cesium-globe/BeamLegend';
 import SatelliteStatusLegend from './components/cesium-globe/SatelliteStatusLegend';
 import SimulationSettings from './components/layout/SimulationSettings';
@@ -22,7 +22,7 @@ import type { CandidateCoverage, GEOBeam, MobileAnalysisMetrics, SelectedSNP } f
 import { calculateCoverages, destinationPoint } from './utils/coverageCalculator';
 import { footprintRadiusKm, BACKHAUL_ELEVATION_DEG } from './utils/leoFootprint';
 import { Feature, Geometry, GeoJsonProperties } from 'geojson';
-import { SNPS_DATA, type SNPData } from './components/globe/GlobeConfig';
+import { GEO_GATEWAYS, SNPS_DATA, type GeoGatewayData, type SNPData } from './components/globe/GlobeConfig';
 
 import { resolveAutoSelectedSatellites } from './utils/satelliteResolution';
 import {
@@ -44,6 +44,8 @@ import { useSimulation } from './contexts/SimulationContext';
 import { getNearestSNPInBackhaul, getSatellitesConnectedToSNP, type SNPConnectedSatellite } from './services/coverageService';
 import SNPDetails from './components/SNPDetails';
 import useKeyboardShortcuts from './hooks/useKeyboardShortcuts';
+import { formatCoordinates } from './utils/formatters';
+import { buildSimulationStateSnapshot } from './types/simulation';
 
 // ─── Module-level constants ───────────────────────────────────────────────────
 // GEO satellites move ~0.008°/2 s — below this threshold → reuse the same object
@@ -62,7 +64,7 @@ interface AnalyzisPosition {
 }
 
 const App: React.FC = () => {
-  const { coveragePolicy, failedSnps } = useSimulation();
+  const { coveragePolicy, failedSnps, beamHealthFactors, hsBeamsSet, weatherCondition } = useSimulation();
   const [searchQuery, setSearchQuery] = useState('');
   const [satellites, setSatellites] = useState<SatelliteData[]>([]);
   const [loading, setLoading] = useState(true);
@@ -76,6 +78,7 @@ const App: React.FC = () => {
   const [autoSelectedGEOId, setAutoSelectedGEOId] = useState<string | null>(null);
   const [selectedSNP, setSelectedSNP] = useState<SelectedSNP>(null);
   const [inspectedSNP, setInspectedSNP] = useState<SNPData | null>(null);
+  const [selectedGateway, setSelectedGateway] = useState<GeoGatewayData | null>(null);
   const [candidateCoverages, setCandidateCoverages] = useState<CandidateCoverage[]>([]);
   const [selectedCoverage, setSelectedCoverage] = useState<CandidateCoverage | null>(null);
   const [selectedGeoMission, setSelectedGeoMission] = useState<string | null>(null);
@@ -89,6 +92,9 @@ const App: React.FC = () => {
   const [airTrafficEnabled, setAirTrafficEnabled] = useState(false);
   const [maritimeTrafficEnabled, setMaritimeTrafficEnabled] = useState(false);
   const [showSatelliteTrajectory, setShowSatelliteTrajectory] = useState(false);
+  const commandPaletteSearchRef = useRef<HTMLInputElement>(null);
+  const helpMenuRef = useRef<HTMLDivElement>(null);
+  const targetSourcesMenuRef = useRef<HTMLDivElement>(null);
   const [sizeScale, setSizeScale] = useState<number>(() => {
     // Return a previously saved preference if available
     const saved = parseFloat(localStorage.getItem('globeSizeScale') ?? '');
@@ -126,6 +132,9 @@ const App: React.FC = () => {
   const [mobileSheetSnap, setMobileSheetSnap] = useState<0 | 1 | 2>(0);
   const [isSatelliteModalOpen, setIsSatelliteModalOpen] = useState(false);
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
+  const [isTargetSourcesMenuOpen, setIsTargetSourcesMenuOpen] = useState(false);
+  const [commandPaletteQuery, setCommandPaletteQuery] = useState('');
+  const [isHelpMenuOpen, setIsHelpMenuOpen] = useState(false);
   const [mobileMetrics, setMobileMetrics] = useState<MobileAnalysisMetrics>({
     leo: null,
     geo: null,
@@ -183,7 +192,7 @@ const App: React.FC = () => {
     if (!isMobile) return;
     if (isFullscreen) return;
 
-    const hasSelection = !!(selectedPosition || analyzisPosition || selectedSatellite || selectedAircraft);
+    const hasSelection = !!(selectedPosition || analyzisPosition || selectedSatellite || selectedAircraft || selectedGateway);
     if (!hasSelection) {
       setMobileSheetSnap(0);
     }
@@ -194,6 +203,7 @@ const App: React.FC = () => {
     analyzisPosition,
     selectedSatellite,
     selectedAircraft,
+    selectedGateway,
   ]);
 
   useEffect(() => {
@@ -328,7 +338,7 @@ const App: React.FC = () => {
       worker.terminate();
       workerRef.current = null;
     };
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps — runs once on mount
+  }, []);
 
   // Keep selection/hover refs current for the worker without forcing extra propagation
   // work on every hover transition.
@@ -371,6 +381,12 @@ const App: React.FC = () => {
     () => new Map(satellites.map((sat) => [sat.name, sat.type])),
     [satelliteTypeSignature]
   );
+  const simulationState = useMemo(() => buildSimulationStateSnapshot({
+    coveragePolicy,
+    weatherCondition,
+    beamHealthFactors,
+    hsBeams: hsBeamsSet,
+  }), [coveragePolicy, weatherCondition, beamHealthFactors, hsBeamsSet]);
 
   // resolveAutoSelectedSatellites is imported from utils/satelliteResolution.ts
   // It implements the Service Availability model with:
@@ -592,6 +608,10 @@ const App: React.FC = () => {
     setSelectedGeoMission(null);
     setSelectedGeoCoverageName(null);
 
+    if (newScope === 'LEO') {
+      setSelectedGateway(null);
+    }
+
     // If currently selected satellite exists AND its type is NOT compatible with the new scope
     if (selectedSatellite && selectedSatellite.orbitType !== newScope && newScope !== 'ALL') {
       // Deselect the satellite
@@ -628,6 +648,7 @@ const App: React.FC = () => {
     // Clear selected SNP and inspected SNP when entering satellite inspection mode
     setSelectedSNP(null);
     setInspectedSNP(null);
+    setSelectedGateway(null);
     setAutoSelectedLEOId(null);
     setAutoSelectedGEOId(null);
   }, []);
@@ -635,6 +656,7 @@ const App: React.FC = () => {
   // Wrapper for UI selection (triggers FlyTo)
   const handleSatelliteSelectFromUI = useCallback((satellite: SatelliteData | null) => {
     handleSatelliteClick(satellite);
+    setIsTargetSourcesMenuOpen(false);
     if (satellite && viewerRef.current) {
       // Get current camera altitude
       const currentAlt = viewerRef.current.camera.positionCartographic.height / 1000; // Convert to km
@@ -667,6 +689,12 @@ const App: React.FC = () => {
     if (!snpName) {
       setSelectedSNP(null);
       setInspectedSNP(null);
+      setSelectedGateway(null);
+      setIsTargetSourcesMenuOpen(false);
+      return;
+    }
+
+    if (satelliteScope === 'GEO') {
       return;
     }
 
@@ -688,7 +716,61 @@ const App: React.FC = () => {
     setSelectedCoverage(null);
     setSelectedAircraft(null);
     setSelectedVessel(null);
+    setSelectedGateway(null);
+    setIsTargetSourcesMenuOpen(false);
+  }, [satelliteScope]);
+
+  const handleSnpSelectFromUI = useCallback((snpName: string | null) => {
+    handleSnpClick(snpName);
+
+    if (!snpName) {
+      return;
+    }
+
+    const snp = SNPS_DATA.find((item) => item.name === snpName) ?? null;
+    if (snp) {
+      setCameraTarget({ lat: snp.lat, lng: snp.lng, alt: 8000 });
+    }
+  }, [handleSnpClick]);
+
+  const handleGatewaySelect = useCallback((gateway: GeoGatewayData | null, fromComboBox: boolean = false) => {
+    if (!gateway) {
+      setSelectedGateway(null);
+      setIsTargetSourcesMenuOpen(false);
+      return;
+    }
+
+    setSelectedGateway(gateway);
+    setSelectedSatellite(null);
+    setAutoSelectedLEOId(null);
+    setAutoSelectedGEOId(null);
+    setSelectedSNP(null);
+    setInspectedSNP(null);
+    setSelectedPosition(null);
+    setAnalyzisPosition(null);
+    setSelectedGeoMission(null);
+    setSelectedGeoCoverageName(null);
+    setSelectedGeoBeamId(null);
+    setCandidateCoverages([]);
+    setSelectedCoverage(null);
+    setSelectedAircraft(null);
+    setSelectedVessel(null);
+    setIsTargetSourcesMenuOpen(false);
+
+    if (fromComboBox) {
+      setCameraTarget({ lat: gateway.lat, lng: gateway.lng, alt: 8000 });
+    }
   }, []);
+
+  const handleGatewaySelectByName = useCallback((gatewayName: string | null) => {
+    if (!gatewayName) {
+      setSelectedGateway(null);
+      return;
+    }
+
+    const gateway = GEO_GATEWAYS.find((item) => item.name === gatewayName) ?? null;
+    handleGatewaySelect(gateway, false);
+  }, [handleGatewaySelect]);
 
   const handleAircraftHover = useCallback((_aircraft: Aircraft | null) => {
     // Aircraft hover logic - currently a no-op
@@ -726,6 +808,7 @@ const App: React.FC = () => {
   const updateAnalyzisPosition = useCallback((position: AnalyzisPosition | null) => {
     setAnalyzisPosition(position);
     setInspectedSNP(null);
+    setSelectedGateway(null);
     setSelectedGeoMission(null);
     setSelectedGeoCoverageName(null);
     setSelectedGeoBeamId(null);
@@ -738,8 +821,8 @@ const App: React.FC = () => {
         { lat: position.lat, lng: position.lng },
         satellitesForResolutionRef.current,   // stable ref — no dep needed
         satelliteScope,
+        simulationState,
         now,
-        coveragePolicy,
         failedSnps
       );
 
@@ -754,7 +837,7 @@ const App: React.FC = () => {
       setSelectedSNP(null);
       syncGeoCoverageSelection(null, false);
     }
-  }, [coveragePolicy, satelliteScope, syncGeoCoverageSelection]); // §1.2 — satellites removed from deps
+  }, [failedSnps, satelliteScope, simulationState, syncGeoCoverageSelection]); // §1.2 — satellites removed from deps
 
   // C-03 fix: removed redundant useEffect([selectedAircraft, updateAnalyzisPosition]).
   // The interval effect below (Real-time updates for selected aircraft position) already
@@ -772,14 +855,14 @@ const App: React.FC = () => {
       { lat: analyzisPosition.lat, lng: analyzisPosition.lng },
       satellitesForResolutionRef.current,   // stable ref — not a dep
       satelliteScope,
+      simulationState,
       now,
-      coveragePolicy,
       failedSnps
     );
     setAutoSelectedLEOId(autoSelectedLEOSat?.id || null);
     setSelectedSNP(newSelectedSNP);
     syncGeoCoverageSelection({ lat: analyzisPosition.lat, lng: analyzisPosition.lng }, true);
-  }, [analyzisPosition, coveragePolicy, satelliteScope, syncGeoCoverageSelection]); // §1.1 — satellites removed
+  }, [analyzisPosition, failedSnps, satelliteScope, simulationState, syncGeoCoverageSelection]); // §1.1 — satellites removed
 
   // §1.3 — Periodic re-resolution for fixed positions (earth / vessel).
   //
@@ -813,8 +896,8 @@ const App: React.FC = () => {
         { lat: pos.lat, lng: pos.lng },
         satellitesForResolutionRef.current,  // always-fresh satellite positions
         satelliteScope,
+        simulationState,
         now,
-        coveragePolicy,
         failedSnps
       );
 
@@ -825,7 +908,7 @@ const App: React.FC = () => {
 
     const interval = setInterval(reResolve, RESOLUTION_INTERVAL_MS);
     return () => clearInterval(interval);
-  }, [analyzisPosition, coveragePolicy, satelliteScope, syncGeoCoverageSelection]); // re-arm when position/scope/policy change
+  }, [analyzisPosition, failedSnps, satelliteScope, simulationState, syncGeoCoverageSelection]); // re-arm when position/scope/policy change
 
   // Handle geographic point click (earth-based analyzis)
   const handlePointClick = useCallback((lat: number, lng: number) => {
@@ -850,6 +933,7 @@ const App: React.FC = () => {
   const handleAircraftSelect = useCallback((aircraft: Aircraft | null, fromComboBox: boolean = false) => {
     setSelectedAircraft(aircraft);
     setSelectedVessel(null);
+    setIsTargetSourcesMenuOpen(false);
 
     if (aircraft && aircraft.latitude && aircraft.longitude) {
       // Clear earth-based position when switching to aircraft-based analyzis
@@ -878,6 +962,7 @@ const App: React.FC = () => {
   const handleVesselSelect = useCallback((vessel: Vessel | null, fromComboBox: boolean = false) => {
     setSelectedVessel(vessel);
     setSelectedAircraft(null);
+    setIsTargetSourcesMenuOpen(false);
 
     if (vessel && vessel.latitude && vessel.longitude) {
       // Clear earth-based position when switching to vessel-based analyzis
@@ -908,6 +993,7 @@ const App: React.FC = () => {
     setCameraTarget({ lat, lng, alt: 10000 });
     setSelectedAircraft(null);
     setSelectedVessel(null);
+    setIsTargetSourcesMenuOpen(false);
 
     updateAnalyzisPosition({
       lat,
@@ -920,7 +1006,34 @@ const App: React.FC = () => {
 
   const handleOpenCommandPalette = useCallback(() => {
     setIsSatelliteModalOpen(false);
+    setIsTargetSourcesMenuOpen(false);
+    setCommandPaletteQuery('');
     setIsCommandPaletteOpen(true);
+    requestAnimationFrame(() => commandPaletteSearchRef.current?.focus());
+  }, []);
+
+  const handleCloseCommandPalette = useCallback(() => {
+    setIsCommandPaletteOpen(false);
+    setCommandPaletteQuery('');
+  }, []);
+
+  const handleDesktopTargetSearchFocus = useCallback(() => {
+    setIsSatelliteModalOpen(false);
+    setIsTargetSourcesMenuOpen(false);
+    setIsCommandPaletteOpen(true);
+  }, []);
+
+  const handleDesktopTargetSearchChange = useCallback((value: string) => {
+    setCommandPaletteQuery(value);
+    setIsSatelliteModalOpen(false);
+    setIsTargetSourcesMenuOpen(false);
+    setIsCommandPaletteOpen(true);
+  }, []);
+
+  const handleToggleTargetSourcesMenu = useCallback(() => {
+    setIsCommandPaletteOpen(false);
+    setCommandPaletteQuery('');
+    setIsTargetSourcesMenuOpen((current) => !current);
   }, []);
 
   const handleResetView = useCallback(() => {
@@ -933,6 +1046,7 @@ const App: React.FC = () => {
     setAutoSelectedGEOId(null);
     setSelectedSNP(null);
     setInspectedSNP(null);
+    setSelectedGateway(null);
     setCandidateCoverages([]);
     setSelectedCoverage(null);
     setSelectedGeoMission(null);
@@ -944,7 +1058,44 @@ const App: React.FC = () => {
     setIsFullscreen(false);
     setIsSatelliteModalOpen(false);
     setIsCommandPaletteOpen(false);
+    setIsTargetSourcesMenuOpen(false);
+    setCommandPaletteQuery('');
+    setIsHelpMenuOpen(false);
   }, []);
+
+  useEffect(() => {
+    if (!isHelpMenuOpen) return;
+
+    const handlePointerDown = (event: MouseEvent) => {
+      if (!helpMenuRef.current?.contains(event.target as Node)) {
+        setIsHelpMenuOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handlePointerDown);
+    return () => {
+      document.removeEventListener('mousedown', handlePointerDown);
+    };
+  }, [isHelpMenuOpen]);
+
+  useEffect(() => {
+    if (!isTargetSourcesMenuOpen) return;
+
+    const handlePointerDown = (event: MouseEvent) => {
+      if (!targetSourcesMenuRef.current?.contains(event.target as Node)) {
+        setIsTargetSourcesMenuOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handlePointerDown);
+    return () => {
+      document.removeEventListener('mousedown', handlePointerDown);
+    };
+  }, [isTargetSourcesMenuOpen]);
+
+  const shortcutModifier = useMemo(() => (
+    typeof navigator !== 'undefined' && navigator.platform.includes('Mac') ? '⌘' : 'Ctrl'
+  ), []);
 
   // Real-time updates for selected aircraft position and altitude
   useEffect(() => {
@@ -1024,6 +1175,7 @@ const App: React.FC = () => {
     onSatelliteClick: handleSatelliteClick,
     onSatelliteHover: handleSatelliteHover,
     onSnpClick: handleSnpClick,
+    onGatewayClick: handleGatewaySelectByName,
     onSnpHover: handleSnpHover,
     selectedSatellite,
     autoSelectedLEOSatellite: resolvedAutoLEO,
@@ -1035,6 +1187,7 @@ const App: React.FC = () => {
       ? `${selectedSatellite.name}::${selectedGeoBeamId}`
       : null,
     selectedSNP,
+    selectedGateway,
     dedicatedSNPForSelectedLEO,
     isFullscreen,
     onToggleFullscreen: () => setIsFullscreen(!isFullscreen),
@@ -1060,13 +1213,127 @@ const App: React.FC = () => {
     snpConnectedSatellites,
   }), [
     filteredSatellites, satelliteTypeByName, coverageFeaturesMemo, handlePointClick, selectedPosition,
-    handleSatelliteClick, handleSatelliteHover, handleSnpClick, handleSnpHover,
-    selectedSatellite, resolvedAutoLEO, activeGeoSatellite, selectedGEOBeam, candidateCoverages, selectedCoverage, selectedGeoBeamId, selectedSNP, dedicatedSNPForSelectedLEO,
+    handleSatelliteClick, handleSatelliteHover, handleSnpClick, handleGatewaySelectByName, handleSnpHover,
+    selectedSatellite, resolvedAutoLEO, activeGeoSatellite, selectedGEOBeam, candidateCoverages, selectedCoverage, selectedGeoBeamId, selectedSNP, selectedGateway, dedicatedSNPForSelectedLEO,
     isFullscreen, satelliteScope, airTrafficEnabled, interpolatedAircraft,
     selectedAircraft, handleAircraftSelect, handleAircraftHover,
     maritimeTrafficEnabled, interpolatedVessels, selectedVessel, handleVesselSelect, cameraTarget,
     handleCameraReady, handleGlobeContainerReady, showSatelliteTrajectory, sizeScale,
     inspectedSNP, snpConnectedSatellites,
+  ]);
+
+  const desktopSidebarHero = useMemo(() => {
+    const heroAnalysisSource = selectedAircraft ? 'aircraft' : analyzisPosition ? 'earth' : undefined;
+
+    if (selectedSatellite) {
+      const heroTone = selectedSatellite.opsStatus !== 'operational'
+        ? 'satelliteInactive'
+        : selectedSatellite.type === 'EUTELSAT'
+          ? 'satelliteGeo'
+          : 'satelliteLeo';
+
+      return {
+        eyebrow: 'Active Target',
+        title: selectedSatellite.name,
+        subtitle: `${selectedSatellite.orbitType} satellite inspection`,
+        tone: heroTone,
+        badges: [
+          { label: selectedSatellite.type, tone: selectedSatellite.type === 'EUTELSAT' ? 'blue' as const : 'pink' as const },
+          { label: selectedSatellite.orbitType, tone: 'slate' as const },
+          { label: selectedSatellite.opsStatus === 'operational' ? 'Operational' : 'Inactive', tone: selectedSatellite.opsStatus === 'operational' ? 'emerald' as const : 'slate' as const },
+        ],
+      };
+    }
+
+    if (inspectedSNP) {
+      return {
+        eyebrow: 'Ground Segment',
+        title: inspectedSNP.name,
+        subtitle: `${inspectedSNP.region} ground node`,
+        tone: 'snp' as const,
+        badges: [
+          { label: 'SNP', tone: 'amber' as const },
+          { label: failedSnps.has(inspectedSNP.name) ? 'Failed' : 'Operational', tone: failedSnps.has(inspectedSNP.name) ? 'red' as const : 'emerald' as const },
+        ],
+      };
+    }
+
+    if (selectedGateway) {
+      return {
+        eyebrow: 'Ground Segment',
+        title: selectedGateway.name,
+        subtitle: 'GEO gateway inspection',
+        tone: 'gateway' as const,
+        badges: [
+          { label: 'Gateway', tone: 'blue' as const },
+          { label: selectedGateway.region, tone: 'slate' as const },
+          { label: 'GEO', tone: 'blue' as const },
+        ],
+      };
+    }
+
+    if (selectedAircraft) {
+      return {
+        eyebrow: 'Air Traffic',
+        title: selectedAircraft.callsign || selectedAircraft.icao24,
+        subtitle: 'Aircraft analysis target',
+        tone: 'aircraft' as const,
+        badges: [
+          { label: 'Aircraft', tone: 'blue' as const },
+          ...(selectedAircraft.altitude_km != null ? [{ label: `${selectedAircraft.altitude_km.toFixed(1)} km`, tone: 'slate' as const }] : []),
+        ],
+      };
+    }
+
+    if (selectedVessel) {
+      return {
+        eyebrow: 'Maritime Traffic',
+        title: selectedVessel.name || selectedVessel.mmsi,
+        subtitle: 'Maritime analysis target',
+        tone: 'vessel' as const,
+        badges: [
+          { label: 'Vessel', tone: 'teal' as const },
+          { label: selectedVessel.vesselType.replaceAll('_', ' '), tone: 'slate' as const },
+        ],
+      };
+    }
+
+    const activePoint = analyzisPosition || selectedPosition;
+    if (activePoint) {
+      return {
+        eyebrow: heroAnalysisSource === 'aircraft' ? 'Airborne Analysis' : 'Surface Analysis',
+        title: formatCoordinates({ lat: activePoint.lat, lng: activePoint.lng }),
+        subtitle: heroAnalysisSource === 'aircraft'
+          ? `${selectedAircraft?.callsign || 'Aircraft'} corridor`
+          : (activePoint.altitude ? `Altitude ${activePoint.altitude.toFixed(1)} km` : 'Ground position'),
+        tone: 'position' as const,
+        badges: [
+          { label: heroAnalysisSource === 'aircraft' ? 'Aircraft' : 'Position', tone: 'slate' as const },
+          ...(selectedSNP?.name ? [{ label: `SNP ${selectedSNP.name}`, tone: 'amber' as const }] : []),
+        ],
+      };
+    }
+
+    return {
+      eyebrow: 'Ready',
+      title: 'No active target',
+      subtitle: 'Choose a satellite, aircraft, vessel or location to start the analysis.',
+      tone: 'idle' as const,
+      badges: [
+        { label: satelliteScope, tone: 'slate' as const },
+      ],
+    };
+  }, [
+    analyzisPosition,
+    failedSnps,
+    inspectedSNP,
+    selectedGateway,
+    satelliteScope,
+    selectedAircraft,
+    selectedPosition,
+    selectedSNP,
+    selectedSatellite,
+    selectedVessel,
   ]);
 
   if (loading || !splashDone) {
@@ -1141,12 +1408,249 @@ const App: React.FC = () => {
               </div>
             )
           ) : (
-            <div className="flex items-center justify-between gap-4">
-              <div className="flex items-center">
+            <div className="flex items-center justify-between gap-6">
+              <div className="flex shrink-0 items-center">
                 <Satellite className="h-8 w-8 text-blue-600" />
                 <h1 className="ml-2 text-2xl font-bold text-gray-900 dark:text-gray-100">ETL Capacity Analyzer</h1>
               </div>
-              <div className="flex items-center gap-3">
+
+              <div className="min-w-0 flex-1">
+                <div className="mx-auto w-full max-w-[860px]">
+                  <div className="relative flex items-center rounded-[26px] border border-slate-200/80 bg-[linear-gradient(135deg,rgba(255,255,255,0.98),rgba(248,250,252,0.92))] p-1.5 shadow-[0_24px_55px_-34px_rgba(15,23,42,0.42)] ring-1 ring-white/60 dark:border-slate-700 dark:bg-[linear-gradient(135deg,rgba(15,23,42,0.98),rgba(30,41,59,0.92))] dark:ring-slate-700/60">
+                    <div className="relative min-w-0 flex-1">
+                      <Search className="pointer-events-none absolute left-5 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400 dark:text-slate-500" />
+                      <input
+                        ref={commandPaletteSearchRef}
+                        type="text"
+                        value={commandPaletteQuery}
+                        onFocus={handleDesktopTargetSearchFocus}
+                        onChange={(event) => handleDesktopTargetSearchChange(event.target.value)}
+                        placeholder="Search target or location"
+                        className="h-14 w-full rounded-[20px] bg-transparent pl-14 pr-5 text-base font-medium text-slate-900 outline-none placeholder:text-slate-400 dark:text-slate-50 dark:placeholder:text-slate-500"
+                      />
+                    </div>
+
+                    <div className="mx-1 h-9 w-px shrink-0 bg-slate-200 dark:bg-slate-700" />
+
+                    <div className="relative shrink-0" ref={targetSourcesMenuRef}>
+                      <button
+                        type="button"
+                        onClick={handleToggleTargetSourcesMenu}
+                        className={`inline-flex h-12 w-12 items-center justify-center rounded-[18px] border text-sm font-semibold shadow-sm transition-colors ${
+                          isTargetSourcesMenuOpen
+                            ? 'border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-500/30 dark:bg-blue-500/15 dark:text-blue-200'
+                            : 'border-white/70 bg-white/88 text-slate-700 hover:bg-white dark:border-slate-700 dark:bg-slate-800/88 dark:text-slate-200 dark:hover:bg-slate-800'
+                        }`}
+                        aria-expanded={isTargetSourcesMenuOpen}
+                        aria-label="Open target selection"
+                        title="Open target selection"
+                      >
+                        <Waypoints className="h-4 w-4" />
+                      </button>
+
+                      {isTargetSourcesMenuOpen && (
+                        <div className="absolute right-0 top-[calc(100%+1rem)] z-[90] w-[760px] max-w-[calc(100vw-6rem)] overflow-hidden rounded-[28px] border border-slate-200/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,250,252,0.95))] shadow-[0_36px_90px_-42px_rgba(15,23,42,0.55)] backdrop-blur-xl dark:border-slate-700 dark:bg-[linear-gradient(180deg,rgba(15,23,42,0.98),rgba(2,6,23,0.96))]">
+                          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(56,189,248,0.12),transparent_24%),radial-gradient(circle_at_top_right,rgba(16,185,129,0.10),transparent_24%)]" />
+                          <div className="relative border-b border-slate-200/80 px-5 py-4 dark:border-slate-700">
+                            <div className="text-lg font-semibold text-slate-950 dark:text-slate-50">
+                              Choose another entry point
+                            </div>
+                            <div className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+                              Jump to a satellite, gateway, location, SNP, aircraft, or vessel.
+                            </div>
+                          </div>
+
+                          <div className="relative grid grid-cols-2 gap-4 p-5">
+                            <div className="rounded-[22px] border border-slate-200/80 bg-white/82 p-4 shadow-[0_14px_32px_-28px_rgba(15,23,42,0.55)] dark:border-slate-700 dark:bg-slate-900/72">
+                              <div className="flex items-start gap-3">
+                                <div className="mt-0.5 inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500/15 via-sky-500/12 to-indigo-500/12 text-blue-600 dark:text-blue-300">
+                                  <Satellite className="h-4 w-4" />
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                  <label className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-700 dark:text-slate-300">
+                                    Satellite
+                                  </label>
+                                  <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                                    Check for a satellite's health and connectivity.
+                                  </p>
+                                </div>
+                              </div>
+                              <div className="mt-3">
+                                <SatelliteSelector
+                                  satellites={satellites}
+                                  onSelect={handleSatelliteSelectFromUI}
+                                  selectedSatellite={selectedSatellite}
+                                  satelliteScope={satelliteScope}
+                                />
+                              </div>
+                            </div>
+
+                            <div className="rounded-[22px] border border-slate-200/80 bg-white/82 p-4 shadow-[0_14px_32px_-28px_rgba(15,23,42,0.55)] dark:border-slate-700 dark:bg-slate-900/72">
+                              <div className="flex items-start gap-3">
+                                <div className="mt-0.5 inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-cyan-500/15 via-sky-500/12 to-blue-500/12 text-cyan-600 dark:text-cyan-300">
+                                  <Waypoints className="h-4 w-4" />
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                  <label className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-700 dark:text-slate-300">
+                                    Gateway
+                                  </label>
+                                  <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                                    {satelliteScope === 'LEO'
+                                      ? 'Available only in ALL or GEO scope.'
+                                      : 'Inspect a GEO teleport directly from the ground segment.'}
+                                  </p>
+                                </div>
+                              </div>
+                              <div className="relative mt-3">
+                                <select
+                                  value={selectedGateway?.name ?? ''}
+                                  onChange={(event) => {
+                                    const gateway = GEO_GATEWAYS.find((item) => item.name === event.target.value) ?? null;
+                                    handleGatewaySelect(gateway, true);
+                                  }}
+                                  disabled={satelliteScope === 'LEO'}
+                                  className="w-full appearance-none rounded-xl border border-slate-200 bg-white/90 py-2 pl-4 pr-10 text-sm text-slate-900 shadow-sm focus:border-transparent focus:ring-2 focus:ring-cyan-500 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400 dark:border-slate-700 dark:bg-slate-800/90 dark:text-slate-100 dark:disabled:bg-slate-800/70 dark:disabled:text-slate-500"
+                                >
+                                  <option value="">{satelliteScope === 'LEO' ? 'Switch to ALL or GEO' : 'Select a gateway...'}</option>
+                                  {[...GEO_GATEWAYS].sort((a, b) => a.name.localeCompare(b.name)).map((gateway) => (
+                                    <option key={gateway.gateway_id} value={gateway.name}>
+                                      {gateway.name}
+                                    </option>
+                                  ))}
+                                </select>
+                                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400">
+                                  <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
+                                  </svg>
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="rounded-[22px] border border-slate-200/80 bg-white/82 p-4 shadow-[0_14px_32px_-28px_rgba(15,23,42,0.55)] dark:border-slate-700 dark:bg-slate-900/72">
+                              <div className="flex items-start gap-3">
+                                <div className="mt-0.5 inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-amber-500/15 via-orange-500/12 to-yellow-500/12 text-amber-600 dark:text-amber-300">
+                                  <Radio className="h-4 w-4" />
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                  <label className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-700 dark:text-slate-300">
+                                    SNP
+                                  </label>
+                                  <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                                    {satelliteScope === 'GEO'
+                                      ? 'Available only in ALL or LEO scope.'
+                                      : 'Inspect a service node point directly from the network map.'}
+                                  </p>
+                                </div>
+                              </div>
+                              <div className="relative mt-3">
+                                <select
+                                  value={inspectedSNP?.name ?? ''}
+                                  onChange={(event) => handleSnpSelectFromUI(event.target.value || null)}
+                                  disabled={satelliteScope === 'GEO'}
+                                  className="w-full appearance-none rounded-xl border border-slate-200 bg-white/90 py-2 pl-4 pr-10 text-sm text-slate-900 shadow-sm focus:border-transparent focus:ring-2 focus:ring-amber-500 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400 dark:border-slate-700 dark:bg-slate-800/90 dark:text-slate-100 dark:disabled:bg-slate-800/70 dark:disabled:text-slate-500"
+                                >
+                                  <option value="">{satelliteScope === 'GEO' ? 'Switch to ALL or LEO' : 'Select an SNP...'}</option>
+                                  {[...SNPS_DATA].sort((a, b) => a.name.localeCompare(b.name)).map((snp) => (
+                                    <option key={snp.name} value={snp.name}>
+                                      {snp.name}
+                                    </option>
+                                  ))}
+                                </select>
+                                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400">
+                                  <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
+                                  </svg>
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="rounded-[22px] border border-slate-200/80 bg-white/82 p-4 shadow-[0_14px_32px_-28px_rgba(15,23,42,0.55)] dark:border-slate-700 dark:bg-slate-900/72">
+                              <div className="flex items-start gap-3">
+                                <div className="mt-0.5 inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-500/15 via-teal-500/12 to-cyan-500/12 text-emerald-600 dark:text-emerald-300">
+                                  <MapPin className="h-4 w-4" />
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                  <label className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-700 dark:text-slate-300">
+                                    Ground Location
+                                  </label>
+                                  <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                                    Search a city or an address to analyze coverage.
+                                  </p>
+                                </div>
+                              </div>
+                              <div className="relative mt-3">
+                                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400 dark:text-gray-500" />
+                                <form onSubmit={handleSearchInput}>
+                                  <input
+                                    type="text"
+                                    name="search"
+                                    placeholder="Search a location..."
+                                    className="w-full rounded-xl border border-slate-200 bg-white/90 py-2 pl-9 pr-4 text-sm text-slate-900 shadow-sm focus:border-transparent focus:ring-2 focus:ring-blue-500 dark:border-slate-700 dark:bg-slate-800/90 dark:text-slate-100 dark:placeholder-slate-400"
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                  />
+                                </form>
+                              </div>
+                            </div>
+
+                            <div className="rounded-[22px] border border-slate-200/80 bg-white/82 p-4 shadow-[0_14px_32px_-28px_rgba(15,23,42,0.55)] dark:border-slate-700 dark:bg-slate-900/72">
+                              <div className="flex items-start gap-3">
+                                <div className="mt-0.5 inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-sky-500/15 via-blue-500/12 to-indigo-500/12 text-sky-600 dark:text-sky-300">
+                                  <Plane className="h-4 w-4" />
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                  <label className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-700 dark:text-slate-300">
+                                    Aircraft Live Feed
+                                  </label>
+                                  <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                                    Enable live mode to inspect an active flight connectivity.
+                                  </p>
+                                </div>
+                              </div>
+                              <div className="mt-3">
+                                <AircraftSelector
+                                  aircraft={airTraffic.aircraft}
+                                  selectedAircraft={selectedAircraft}
+                                  onSelect={(aircraft) => handleAircraftSelect(aircraft, true)}
+                                  liveModeEnabled={airTrafficEnabled}
+                                  onToggleLiveMode={() => setAirTrafficEnabled(!airTrafficEnabled)}
+                                />
+                              </div>
+                            </div>
+
+                            <div className="rounded-[22px] border border-slate-200/80 bg-white/82 p-4 shadow-[0_14px_32px_-28px_rgba(15,23,42,0.55)] dark:border-slate-700 dark:bg-slate-900/72">
+                              <div className="flex items-start gap-3">
+                                <div className="mt-0.5 inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-teal-500/15 via-cyan-500/12 to-emerald-500/12 text-teal-600 dark:text-teal-300">
+                                  <Ship className="h-4 w-4" />
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                  <label className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-700 dark:text-slate-300">
+                                    Vessel Live Feed
+                                  </label>
+                                  <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                                    Enable live mode to inspect maritime traffic connectivity.
+                                  </p>
+                                </div>
+                              </div>
+                              <div className="mt-3">
+                                <VesselSelector
+                                  vessels={maritimeTraffic.vessels}
+                                  selectedVessel={selectedVessel}
+                                  onSelect={(vessel) => handleVesselSelect(vessel, true)}
+                                  liveModeEnabled={maritimeTrafficEnabled}
+                                  onToggleLiveMode={() => setMaritimeTrafficEnabled(!maritimeTrafficEnabled)}
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex shrink-0 items-center gap-3">
                 <div className="flex items-center gap-2 p-1 bg-gray-50 dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700">
                   <SatelliteScopeFilter
                     currentScope={satelliteScope}
@@ -1156,6 +1660,57 @@ const App: React.FC = () => {
                 </div>
                 <div className="flex-shrink-0">
                   <ThemeSelector />
+                </div>
+                <div className="relative flex-shrink-0" ref={helpMenuRef}>
+                  <button
+                    type="button"
+                    onClick={() => setIsHelpMenuOpen((current) => !current)}
+                    className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-gray-200 bg-gray-50 text-slate-600 transition-colors hover:bg-white hover:text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700 dark:hover:text-slate-100"
+                    aria-label="Open keyboard shortcuts help"
+                    aria-expanded={isHelpMenuOpen}
+                    title="Keyboard shortcuts"
+                  >
+                    <CircleHelp className="h-5 w-5" />
+                  </button>
+
+                  {isHelpMenuOpen && (
+                    <div className="absolute right-0 top-[calc(100%+0.75rem)] z-[90] w-80 overflow-hidden rounded-2xl border border-slate-200 bg-white/95 shadow-[0_30px_70px_-34px_rgba(15,23,42,0.45)] backdrop-blur-xl dark:border-slate-700 dark:bg-slate-900/95">
+                      <div className="border-b border-slate-200 px-4 py-3 dark:border-slate-700">
+                        <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+                          Keyboard Shortcuts
+                        </div>
+                        <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                          Fast controls for navigation and search.
+                        </div>
+                      </div>
+                      <div className="space-y-3 px-4 py-4 text-sm text-slate-600 dark:text-slate-300">
+                        <div className="flex items-center justify-between gap-4">
+                          <span>Toggle scope ALL / LEO / GEO</span>
+                          <span className="flex items-center gap-1">
+                            <kbd className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-mono text-slate-700 dark:bg-slate-800 dark:text-slate-200">1</kbd>
+                            <kbd className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-mono text-slate-700 dark:bg-slate-800 dark:text-slate-200">2</kbd>
+                            <kbd className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-mono text-slate-700 dark:bg-slate-800 dark:text-slate-200">3</kbd>
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between gap-4">
+                          <span>Toggle fullscreen</span>
+                          <kbd className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-mono text-slate-700 dark:bg-slate-800 dark:text-slate-200">F</kbd>
+                        </div>
+                        <div className="flex items-center justify-between gap-4">
+                          <span>Reset view</span>
+                          <kbd className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-mono text-slate-700 dark:bg-slate-800 dark:text-slate-200">Esc</kbd>
+                        </div>
+                        <div className="flex items-center justify-between gap-4">
+                          <span>Open target search</span>
+                          <span className="flex items-center gap-1">
+                            <kbd className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-mono text-slate-700 dark:bg-slate-800 dark:text-slate-200">{shortcutModifier}</kbd>
+                            <span className="text-slate-400">+</span>
+                            <kbd className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-mono text-slate-700 dark:bg-slate-800 dark:text-slate-200">K</kbd>
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -1239,7 +1794,7 @@ const App: React.FC = () => {
             </div>
 
 
-            {!isFullscreen && (selectedPosition || analyzisPosition || selectedSatellite || selectedAircraft) && (
+            {!isFullscreen && (selectedPosition || analyzisPosition || selectedSatellite || selectedAircraft || selectedGateway) && (
               <BottomSheet
                 snap={mobileSheetSnap}
                 onSnapChange={setMobileSheetSnap}
@@ -1255,29 +1810,33 @@ const App: React.FC = () => {
                   />
                 )}
               >
-                <CapacityDetails
-                  satellites={filteredSatellites}
-                  selectedPoint={analyzisPosition || selectedPosition}
-                  selectedSatellite={selectedSatellite}
-                  autoSelectedLEOSatellite={resolvedAutoLEO}
-                  autoSelectedGEOSatellite={activeGeoSatellite}
-                  satelliteScope={satelliteScope}
-                  onSatelliteClick={handleSatelliteClick}
-                  analysisSource={selectedAircraft ? 'aircraft' : analyzisPosition ? 'earth' : undefined}
-                  aircraftCallsign={selectedAircraft?.callsign}
-                  selectedSNP={selectedSNP}
-                  candidateCoverages={candidateCoverages}
-                  selectedCoverage={selectedCoverage}
-                  onSelectCoverage={setSelectedCoverage}
-                  selectedGeoMission={selectedGeoMission}
-                  selectedGeoCoverageName={selectedGeoCoverageName}
-                  selectedGeoBeamId={selectedGeoBeamId}
-                  onSelectGeoMission={handleSelectGeoMission}
-                  onSelectGeoCoverage={handleSelectGeoCoverage}
-                  onSelectGeoBeam={handleSelectGeoBeam}
-                  onSnpClick={handleSnpClick}
-                  onMetricsChange={setMobileMetrics}
-                />
+                {selectedGateway ? (
+                  <GatewayDetails gateway={selectedGateway} satellites={satellites} />
+                ) : (
+                  <CapacityDetails
+                    satellites={filteredSatellites}
+                    selectedPoint={analyzisPosition || selectedPosition}
+                    selectedSatellite={selectedSatellite}
+                    autoSelectedLEOSatellite={resolvedAutoLEO}
+                    autoSelectedGEOSatellite={activeGeoSatellite}
+                    satelliteScope={satelliteScope}
+                    onSatelliteClick={handleSatelliteClick}
+                    analysisSource={selectedAircraft ? 'aircraft' : analyzisPosition ? 'earth' : undefined}
+                    aircraftCallsign={selectedAircraft?.callsign}
+                    selectedSNP={selectedSNP}
+                    candidateCoverages={candidateCoverages}
+                    selectedCoverage={selectedCoverage}
+                    onSelectCoverage={setSelectedCoverage}
+                    selectedGeoMission={selectedGeoMission}
+                    selectedGeoCoverageName={selectedGeoCoverageName}
+                    selectedGeoBeamId={selectedGeoBeamId}
+                    onSelectGeoMission={handleSelectGeoMission}
+                    onSelectGeoCoverage={handleSelectGeoCoverage}
+                    onSelectGeoBeam={handleSelectGeoBeam}
+                    onSnpClick={handleSnpClick}
+                    onMetricsChange={setMobileMetrics}
+                  />
+                )}
               </BottomSheet>
             )}
           </div>
@@ -1294,72 +1853,31 @@ const App: React.FC = () => {
             </div>
 
 
-            <div className={`flex-shrink-0 w-[500px] bg-white dark:bg-slate-950 rounded-lg shadow-lg overflow-hidden flex flex-col ${isFullscreen ? 'hidden' : ''}`}>
+            <div className={`flex-shrink-0 w-[500px] overflow-hidden rounded-[24px] border border-slate-200/80 bg-[linear-gradient(180deg,rgba(248,250,252,0.98),rgba(255,255,255,0.96))] shadow-[0_30px_70px_-35px_rgba(15,23,42,0.45)] dark:border-slate-800 dark:bg-[linear-gradient(180deg,rgba(15,23,42,0.98),rgba(2,6,23,0.98))] flex flex-col ${isFullscreen ? 'hidden' : ''}`}>
               {!isFullscreen && (
                 <>
-                  <SidebarContextBar
-                    analysisSource={selectedAircraft ? 'aircraft' : analyzisPosition ? 'earth' : undefined}
-                    aircraftCallsign={selectedAircraft?.callsign}
-                    selectedVesselName={selectedVessel?.name}
-                    selectedSatelliteName={selectedSatellite?.name}
-                    inspectedSNPName={inspectedSNP?.name}
-                    position={analyzisPosition || selectedPosition}
+                  <SidebarHeroCard
+                    eyebrow={desktopSidebarHero.eyebrow}
+                    title={desktopSidebarHero.title}
+                    subtitle={desktopSidebarHero.subtitle}
+                    tone={desktopSidebarHero.tone}
+                    badges={desktopSidebarHero.badges}
+                    onReset={handleResetView}
                   />
 
-                  {/* Entity selectors — moved from header */}
-                  <div className="border-b border-gray-200 dark:border-slate-700 px-3 py-2">
-                    <CollapsibleSection
-                      storageKey="sidebar-entity-selectors"
-                      title="Selection"
-                      accentColor="#4b5563"
-                      defaultOpen={true}
-                    >
-                      <div className="space-y-2">
-                        <SatelliteSelector
-                          satellites={satellites}
-                          onSelect={handleSatelliteSelectFromUI}
-                          selectedSatellite={selectedSatellite}
-                          satelliteScope={satelliteScope}
-                        />
-                        <div className="relative">
-                          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-500 h-4 w-4" />
-                          <form onSubmit={handleSearchInput}>
-                            <input
-                              type="text"
-                              name="search"
-                              placeholder="Search location..."
-                              className="w-full pl-9 pr-4 py-1.5 text-sm border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-slate-800 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
-                              value={searchQuery}
-                              onChange={(e) => setSearchQuery(e.target.value)}
-                            />
-                          </form>
-                        </div>
-                        <div className="flex gap-2">
-                          <AircraftSelector
-                            aircraft={airTraffic.aircraft}
-                            selectedAircraft={selectedAircraft}
-                            onSelect={(aircraft) => handleAircraftSelect(aircraft, true)}
-                            liveModeEnabled={airTrafficEnabled}
-                            onToggleLiveMode={() => setAirTrafficEnabled(!airTrafficEnabled)}
-                          />
-                          <VesselSelector
-                            vessels={maritimeTraffic.vessels}
-                            selectedVessel={selectedVessel}
-                            onSelect={(vessel) => handleVesselSelect(vessel, true)}
-                            liveModeEnabled={maritimeTrafficEnabled}
-                            onToggleLiveMode={() => setMaritimeTrafficEnabled(!maritimeTrafficEnabled)}
-                          />
-                        </div>
-                      </div>
-                    </CollapsibleSection>
-                  </div>
-
-                  <div className="flex-1 min-h-0 overflow-y-auto">
-                    {inspectedSNP ? (
+                  <div className="flex-1 min-h-0 overflow-y-auto px-3 pb-3">
+                    {selectedGateway ? (
+                      <GatewayDetails
+                        gateway={selectedGateway}
+                        satellites={satellites}
+                        externalHeader
+                      />
+                    ) : inspectedSNP ? (
                       <SNPDetails
                         snp={inspectedSNP}
                         connectedSatellites={snpConnectedSatellites}
                         onSatelliteClick={handleSatelliteClick}
+                        externalHeader
                       />
                     ) : (
                       <CapacityDetails
@@ -1383,6 +1901,7 @@ const App: React.FC = () => {
                         onSelectGeoCoverage={handleSelectGeoCoverage}
                         onSelectGeoBeam={handleSelectGeoBeam}
                         onSnpClick={handleSnpClick}
+                        externalHeader
                       />
                     )}
                   </div>
@@ -1395,14 +1914,20 @@ const App: React.FC = () => {
 
       <CommandPalette
         isOpen={isCommandPaletteOpen}
-        onClose={() => setIsCommandPaletteOpen(false)}
+        onClose={handleCloseCommandPalette}
         satellites={satellites}
         aircraft={airTraffic.aircraft}
         vessels={maritimeTraffic.vessels}
+        anchorRef={commandPaletteSearchRef}
+        hideInlineSearchWhenAnchored
+        resultTypes={satelliteScope === 'GEO' ? ['satellite', 'location', 'gateway'] : satelliteScope === 'LEO' ? ['satellite', 'location', 'snp'] : ['satellite', 'location', 'snp', 'gateway']}
+        query={commandPaletteQuery}
+        onQueryChange={setCommandPaletteQuery}
         onSelectSatellite={handleSatelliteSelectFromUI}
         onSelectAircraft={(aircraft) => handleAircraftSelect(aircraft, true)}
         onSelectVessel={(vessel) => handleVesselSelect(vessel, true)}
         onSelectSnp={(snpName) => handleSnpClick(snpName)}
+        onSelectGateway={(gateway) => handleGatewaySelect(gateway, true)}
         onSelectLocation={handleLocationSelect}
       />
     </div>

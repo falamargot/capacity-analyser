@@ -12,6 +12,7 @@ import type { SatelliteScope } from '../SatelliteScopeFilter';
 import { generateCoverageGrid } from './utils/gridCoverage';
 import { useSimulation } from '../../contexts/SimulationContext';
 import { getPosition, propagateSatellite } from './utils';
+import { buildSimulationStateSnapshot } from '../../types/simulation';
 
 interface AggregatedConnectivityLayerProps {
     satelliteScope: SatelliteScope;
@@ -30,7 +31,13 @@ const AggregatedConnectivityLayer: React.FC<AggregatedConnectivityLayerProps> = 
     satellites,
     show
 }) => {
-    const { coveragePolicy } = useSimulation();
+    const { coveragePolicy, weatherCondition, beamHealthFactors, hsBeamsSet } = useSimulation();
+    const simulationState = useMemo(() => buildSimulationStateSnapshot({
+        coveragePolicy,
+        weatherCondition,
+        beamHealthFactors,
+        hsBeams: hsBeamsSet,
+    }), [coveragePolicy, weatherCondition, beamHealthFactors, hsBeamsSet]);
 
     // ── Throttled satellite snapshot (every 5s) ─────────────────────────────────
     // Instead of the removed module-level TTL cache, we take a 5s snapshot of
@@ -77,7 +84,7 @@ const AggregatedConnectivityLayer: React.FC<AggregatedConnectivityLayerProps> = 
         const result = generateCoverageGrid(
             gridSnapshot.satellites,
             satelliteScope,
-            coveragePolicy,
+            simulationState,
             gridSnapshot.time  // synchronized time — eliminates grid/panel temporal desync
         );
 
@@ -90,7 +97,7 @@ const AggregatedConnectivityLayer: React.FC<AggregatedConnectivityLayerProps> = 
         }));
 
         return { gridRectangles: result.rectangles, backhaulPositions };
-    }, [gridSnapshot, satelliteScope, show, coveragePolicy]);
+    }, [gridSnapshot, satelliteScope, show, simulationState]);
 
     // M-05 fix: memoize coverageColor — only depends on scope, not on satellites
     const coverageColor = useMemo(() =>

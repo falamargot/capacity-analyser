@@ -12,6 +12,7 @@ import type { CandidateCoverage, MobileAnalysisMetrics } from '../types/analysis
 import { analyzeLeoConnectivity } from '../utils/leoConnectivityModel';
 import { computeGeoConnectivity } from '../utils/geoCoverageSelection';
 import { useSimulation, getCorridorIndex, getDcThroughputScale } from '../contexts/SimulationContext';
+import { buildSimulationStateSnapshot } from '../types/simulation';
 
 // ─── Extracted sub-components ─────────────────────────────────────────────────
 import {
@@ -48,18 +49,26 @@ interface CapacityDetailsProps {
   onSelectGeoCoverage?: (coverageName: string | null) => void;
   onSelectGeoBeam?: (beamId: string | null) => void;
   onSnpClick?: (snpName: string) => void;
+  externalHeader?: boolean;
 }
 
 // Performance optimization: Memoize component to prevent unnecessary re-renders
-const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint, selectedSatellite, autoSelectedLEOSatellite, satelliteScope, onMetricsChange, onSatelliteClick, analysisSource, aircraftCallsign, selectedSNP: propSelectedSNP, candidateCoverages = [], selectedCoverage = null, onSelectCoverage, selectedGeoMission, selectedGeoCoverageName, selectedGeoBeamId, onSelectGeoMission, onSelectGeoCoverage, onSelectGeoBeam, onSnpClick }) => {
+const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint, selectedSatellite, autoSelectedLEOSatellite, satelliteScope, onMetricsChange, onSatelliteClick, analysisSource, aircraftCallsign, selectedSNP: propSelectedSNP, candidateCoverages = [], selectedCoverage = null, onSelectCoverage, selectedGeoMission, selectedGeoCoverageName, selectedGeoBeamId, onSelectGeoMission, onSelectGeoCoverage, onSelectGeoBeam, onSnpClick, externalHeader = false }) => {
   // Feature 1+2+3: read simulation context for failedSnps, corridorDcLevels, hsBeamsSet
   const {
+    coveragePolicy,
     failedSnps,
     corridorDcLevels, setCorridorDcLevel, resetCorridorDcLevels,
     beamHealthFactors,
     hsBeamsSet,
     weatherCondition: ctxWeather,
   } = useSimulation();
+  const simulationState = useMemo(() => buildSimulationStateSnapshot({
+    coveragePolicy,
+    weatherCondition: ctxWeather,
+    beamHealthFactors,
+    hsBeams: hsBeamsSet,
+  }), [beamHealthFactors, coveragePolicy, ctxWeather, hsBeamsSet]);
 
   const [nearestLocation, setNearestLocation] = useState<{ city: string; country: string } | null>(null);
 
@@ -346,8 +355,7 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
       activePoint,
       sat,
       JulianDate.fromDate(new Date()),
-      { type: 'DB_THRESHOLD', thresholdDb: -10 },
-      hsBeamsSet
+      simulationState
     );
 
     if (!propSelectedSNP) {
@@ -376,7 +384,7 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
       snpLEODistance,
       connectedBeamIndex
     };
-  }, [activePoint, satellites, autoSelectedLEOSatellite, propSelectedSNP]);
+  }, [activePoint, satellites, autoSelectedLEOSatellite, propSelectedSNP, simulationState]);
 
   const leoGeometry = useMemo(() => {
     if (!resolvedLEOConnectivity || !resolvedLEOConnectivity.snp) return null;
@@ -543,7 +551,6 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
     const interval = setInterval(updateRealTimeData, 1000);
     return () => clearInterval(interval);
   // satellites intentionally omitted: the callback uses satellitesRef.current (always-fresh ref).
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activePoint, selectedSatellite]);
 
   // ─── Render ─────────────────────────────────────────────────────────────────
@@ -568,6 +575,7 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
         onSelectGeoCoverage={onSelectGeoCoverage}
         onSelectGeoBeam={onSelectGeoBeam}
         onSnpClick={onSnpClick}
+        externalHeader={externalHeader}
       />
     );
   }
@@ -578,13 +586,15 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
     <div className="h-full bg-white dark:bg-slate-900 rounded-lg shadow-lg overflow-hidden flex flex-col transition-colors duration-300">
       <div className="p-4 flex flex-col h-full">
         {/* Section 1: Header */}
-        <AnalysisHeader
-          activePoint={activePoint}
-          selectedSNP={selectedSNP}
-          analysisSource={analysisSource}
-          aircraftCallsign={aircraftCallsign}
-          nearestLocation={nearestLocation}
-        />
+        {!externalHeader && (
+          <AnalysisHeader
+            activePoint={activePoint}
+            selectedSNP={selectedSNP}
+            analysisSource={analysisSource}
+            aircraftCallsign={aircraftCallsign}
+            nearestLocation={nearestLocation}
+          />
+        )}
 
         <div className="flex-1 min-h-0 overflow-y-auto">
           {/* Section 2: Terminal Configuration */}

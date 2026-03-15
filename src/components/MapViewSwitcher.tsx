@@ -8,7 +8,7 @@ import { SatelliteScope } from './SatelliteScopeFilter';
 import { Aircraft } from '../modules/airTraffic/airTrafficService';
 import { Vessel } from '../modules/maritimeTraffic/maritimeTrafficService';
 import type { CandidateCoverage, GEOBeam } from '../types/analysis';
-import type { SNPData } from './globe/GlobeConfig';
+import type { GeoGatewayData, SNPData } from './globe/GlobeConfig';
 
 interface MapViewSwitcherProps {
   satellites: SatelliteData[];
@@ -19,11 +19,13 @@ interface MapViewSwitcherProps {
   onSatelliteClick: (satellite: SatelliteData | null) => void;
   onSatelliteHover: (satelliteId: string | null) => void;
   onSnpClick: (snpName: string | { lat: number; lng: number; name: string } | null) => void;
+  onGatewayClick?: (gatewayName: string | null) => void;
   onSnpHover: (snpName: string | null) => void;
   selectedSatellite: SatelliteData | null;
   autoSelectedLEOSatellite?: SatelliteData | null;
   autoSelectedGEOSatellite?: SatelliteData | null;
   selectedSNP?: string | { lat: number; lng: number; name: string } | null;
+  selectedGateway?: GeoGatewayData | null;
   dedicatedSNPForSelectedLEO?: SNPData | null;
   isFullscreen: boolean;
   onToggleFullscreen: () => void;
@@ -66,8 +68,10 @@ const MapViewSwitcher: React.FC<MapViewSwitcherProps> = ({
   onSatelliteClick,
   onSatelliteHover,
   onSnpClick,
+  onGatewayClick,
   onSnpHover,
   selectedSNP,
+  selectedGateway,
   dedicatedSNPForSelectedLEO,
   isFullscreen,
   onToggleFullscreen,
@@ -111,11 +115,13 @@ const MapViewSwitcher: React.FC<MapViewSwitcherProps> = ({
         onSatelliteClick={onSatelliteClick}
         onSatelliteHover={onSatelliteHover}
         onSnpClick={onSnpClick}
+        onGatewayClick={onGatewayClick}
         onSnpHover={onSnpHover}
         selectedSatellite={selectedSatellite}
         autoSelectedLEOSatellite={autoSelectedLEOSatellite}
         autoSelectedGEOSatellite={autoSelectedGEOSatellite}
         selectedSNP={typeof selectedSNP === 'string' ? { lat: 0, lng: 0, name: selectedSNP } : selectedSNP}
+        selectedGateway={selectedGateway}
         dedicatedSNPForSelectedLEO={dedicatedSNPForSelectedLEO || null}
         isFullscreen={isFullscreen}
         onToggleFullscreen={onToggleFullscreen}

@@ -149,6 +149,7 @@ interface SatelliteDetailsProps {
   onSelectGeoCoverage?: (coverageName: string | null) => void;
   onSelectGeoBeam?: (beamId: string | null) => void;
   onSnpClick?: (snpName: string) => void;
+  externalHeader?: boolean;
 }
 
 
@@ -168,6 +169,7 @@ const SatelliteDetails: React.FC<SatelliteDetailsProps> = ({
   onSelectGeoCoverage,
   onSelectGeoBeam,
   onSnpClick,
+  externalHeader = false,
 }) => {
   // NEW: Get coverage policy from simulation context
   const {
@@ -283,31 +285,33 @@ const SatelliteDetails: React.FC<SatelliteDetailsProps> = ({
     >
       <div className="p-4 flex flex-col h-full overflow-y-auto">
         <div className="space-y-4">
-          <div className="flex items-center justify-between mb-4 pb-4 border-b border-gray-200 dark:border-slate-700">
-            <div className="flex items-center space-x-3">
-              <div className={`w-3 h-3 rounded-full ${isOperational
-                ? 'bg-gradient-to-br from-pink-500 to-purple-600 animate-pulse shadow-lg shadow-pink-500/50'
-                : 'bg-gray-400 dark:bg-gray-500'
-              }`}></div>
-              <div>
-                <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Satellite Details</h2>
-                {selectedSatellite.name}
+          {!externalHeader && (
+            <div className="flex items-center justify-between mb-4 pb-4 border-b border-gray-200 dark:border-slate-700">
+              <div className="flex items-center space-x-3">
+                <div className={`w-3 h-3 rounded-full ${isOperational
+                  ? 'bg-gradient-to-br from-pink-500 to-purple-600 animate-pulse shadow-lg shadow-pink-500/50'
+                  : 'bg-gray-400 dark:bg-gray-500'
+                }`}></div>
+                <div>
+                  <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Satellite Details</h2>
+                  {selectedSatellite.name}
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                {!isOperational && (
+                  <span className="px-3 py-1 rounded-full text-sm font-medium bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 border border-gray-300 dark:border-gray-600">
+                    Non-operational
+                  </span>
+                )}
+                <span className={`px-3 py-1 rounded-full text-sm font-medium ${selectedSatellite.type === 'EUTELSAT'
+                  ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-200'
+                  : 'bg-pink-100 dark:bg-pink-900/40 text-pink-800 dark:text-pink-200'
+                  }`}>
+                  {selectedSatellite.type}
+                </span>
               </div>
             </div>
-            <div className="flex items-center gap-2">
-              {!isOperational && (
-                <span className="px-3 py-1 rounded-full text-sm font-medium bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 border border-gray-300 dark:border-gray-600">
-                  Non-operational
-                </span>
-              )}
-              <span className={`px-3 py-1 rounded-full text-sm font-medium ${selectedSatellite.type === 'EUTELSAT'
-                ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-200'
-                : 'bg-pink-100 dark:bg-pink-900/40 text-pink-800 dark:text-pink-200'
-                }`}>
-                {selectedSatellite.type}
-              </span>
-            </div>
-          </div>
+          )}
 
           <div className="grid grid-cols-1 sm:grid-cols-12 gap-4 mb-4">
             <div className="sm:col-span-7 bg-gray-50 dark:bg-slate-800/50 backdrop-blur-sm rounded-lg shadow-sm py-2 px-4 border border-gray-100 dark:border-slate-700">

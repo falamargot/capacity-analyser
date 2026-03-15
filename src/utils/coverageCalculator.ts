@@ -9,6 +9,8 @@ import { JulianDate } from 'cesium';
 const MAX_COVERAGE_CACHE = 500;
 const coverageCache = new Map<string, Coverage[]>();
 
+export type CoverageClass = 'user' | 'backhaul' | 'gateway';
+
 function addToCache(key: string, value: Coverage[]): void {
   if (coverageCache.size >= MAX_COVERAGE_CACHE) {
     // Map preserves insertion order — delete the oldest entry
@@ -182,7 +184,7 @@ export function isPointInCoverage(
   point: { lat: number; lng: number; } | null,
   satellite: SatelliteData,
   satellitePosition: { lat: number; lng: number; alt: number; } | null
-): number[] {
+): CoverageClass[] {
   if (!point) return [];
 
   // Check if satellite is in GSO exclusion zone (blanking zone)
@@ -204,18 +206,18 @@ export function isPointInCoverage(
 
   // ONEWEB coverage uses double-zone footprint model (nadir LEO footprint), not the GeoJSON beam polygons.
   if (satellite.type === 'ONEWEB') {
-    const indices = [];
+    const coverageClasses: CoverageClass[] = [];
 
     // Check standard coverage (inner circle) - 37° elevation
     if (isPointInFootprint(point, { lat: satellite.position.lat, lng: satellite.position.lng }, STANDARD_RADIUS_KM)) {
-      indices.push(0); // Standard coverage index
+      coverageClasses.push('user', 'backhaul');
     }
     // Check backhaul coverage (outer circle) - 15° elevation
     else if (isPointInFootprint(point, { lat: satellite.position.lat, lng: satellite.position.lng }, BACKHAUL_RADIUS_KM)) {
-      indices.push(1); // Backhaul coverage index
+      coverageClasses.push('backhaul');
     }
 
-    return indices;
+    return coverageClasses;
   }
 
   // Calculate relative position of the point with respect to satellite position
@@ -224,15 +226,15 @@ export function isPointInCoverage(
     lng: point.lng + satellite.position.lng - (satellitePosition?.lng ?? satellite.position.lng)
   };
 
-  const index = [] as number[];
-  satellite.coverages.forEach((coverage, idx) => {
+  const coverageClasses: CoverageClass[] = [];
+  satellite.coverages.forEach((coverage) => {
     const geometry = coverage.feature?.geometry;
     if (geometry && geometry.type === 'Polygon') {
       const ring = geometry.coordinates[0] as unknown as number[][];
       if (isPointInPolygon(relativePoint, ring)) {
-        index.push(idx);
+        coverageClasses.push('user');
       }
     }
   });
-  return index;
+  return coverageClasses;
 }

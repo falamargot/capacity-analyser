@@ -13,7 +13,7 @@ import {
 } from './geoCoverageSelection';
 
 import { getConnectivityStatus, hasRFConnectivity } from './rfConnectivity';
-import { type CoveragePolicy } from './leoFootprint';
+import type { SimulationStateSnapshot } from '../types/simulation';
 
 export interface SatelliteResolutionResult {
     autoSelectedLEOSat: SatelliteData | null;
@@ -29,8 +29,8 @@ export const resolveAutoSelectedSatellites = (
     userLocation: { lat: number; lng: number },
     satellites: SatelliteData[],
     satelliteScope: SatelliteScope,
+    simulationState: SimulationStateSnapshot,
     time?: any, // JulianDate from Cesium
-    policy: CoveragePolicy = { type: "DB_THRESHOLD", thresholdDb: -10 },
     failedSnps: ReadonlySet<string> = new Set()
 ): SatelliteResolutionResult => {
     let autoSelectedGEOSat: SatelliteData | null = null;
@@ -57,7 +57,7 @@ export const resolveAutoSelectedSatellites = (
             if (!time) return false; // Need time for RF connectivity check
 
             // Rule 1: RF connectivity (user must be inside active beam)
-            if (!hasRFConnectivity(userLocation, sat, time, policy)) {
+            if (!hasRFConnectivity(userLocation, sat, time, simulationState)) {
                 return false;
             }
 
@@ -83,7 +83,7 @@ export const resolveAutoSelectedSatellites = (
             const elevation = calculateElevationAngle(userLocation, sat);
 
             // Get RF connectivity status for service quality scoring
-            const connectivityStatus = time ? getConnectivityStatus(userLocation, sat, time) : null;
+            const connectivityStatus = time ? getConnectivityStatus(userLocation, sat, time, simulationState) : null;
 
             // Scoring criteria (normalized, deterministic)
             const elevationScore = elevation / 90;
@@ -145,7 +145,7 @@ export const resolveAutoSelectedSatellites = (
                 if (!time) return false; // Need time for RF connectivity check
 
                 // Rule 1: RF connectivity (user must be inside active beam)
-                if (!hasRFConnectivity(userLocation, sat, time, policy)) {
+                if (!hasRFConnectivity(userLocation, sat, time, simulationState)) {
                     return false;
                 }
 
