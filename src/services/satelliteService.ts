@@ -28,6 +28,10 @@ const CACHE_KEYS = {
   ONEWEB_TS: 'tle_oneweb_ts',
 };
 
+type CoverageManifest = Record<string, boolean>;
+
+let coverageManifestPromise: Promise<Set<string>> | null = null;
+
 // ─── localStorage TLE Cache Helpers ──────────────────────────────────────────
 
 function isCacheValid(tsKey: string): boolean {
@@ -56,6 +60,32 @@ function writeToCache(dataKey: string, tsKey: string, data: string): void {
     // If localStorage is full/unavailable, silently skip
     console.warn('[TLE Cache] Failed to write to localStorage:', e);
   }
+}
+
+async function loadCoverageManifest(): Promise<Set<string>> {
+  if (coverageManifestPromise) {
+    return coverageManifestPromise;
+  }
+
+  coverageManifestPromise = fetch('/coverage/coverageManifest.json')
+    .then(async (response) => {
+      if (!response.ok) {
+        return new Set<string>();
+      }
+
+      const manifest = await response.json() as CoverageManifest;
+      return new Set(
+        Object.entries(manifest)
+          .filter(([, available]) => available)
+          .map(([satelliteId]) => satelliteId)
+      );
+    })
+    .catch((error) => {
+      console.warn('[Coverage Manifest] Failed to load manifest:', error);
+      return new Set<string>();
+    });
+
+  return coverageManifestPromise;
 }
 
 /**
@@ -233,10 +263,11 @@ export async function fetchSatellites(): Promise<SatelliteData[]> {
   try {
     // Fetch TLE data and SATCAT status map in parallel — SATCAT is independent
     // of TLE data and both requests hit different CelesTrak endpoints.
-    const [eutelsatTLE, onewebTLE, satcatMap] = await Promise.all([
+    const [eutelsatTLE, onewebTLE, satcatMap, coverageManifest] = await Promise.all([
       fetchTLE('EUTELSAT', CACHE_KEYS.EUTELSAT_TLE, CACHE_KEYS.EUTELSAT_TS),
       fetchTLE('ONEWEB',   CACHE_KEYS.ONEWEB_TLE,   CACHE_KEYS.ONEWEB_TS),
       fetchSatcatStatusMap(),
+      loadCoverageManifest(),
     ]);
 
     const eutelsatSats = parseTLE(eutelsatTLE, 'EUTELSAT');
@@ -245,10 +276,12 @@ export async function fetchSatellites(): Promise<SatelliteData[]> {
     log(`[fetchSatellites] ${eutelsatSats.length} EUTELSAT + ${onewebSats.length} ONEWEB satellites parsed.`);
 
     const eutelsatSatPromises = eutelsatSats.map(async (sat) => {
-      const coverageData = attachSatelliteId(
-        await loadSatelliteCoverage(sat.noradId, sat.name, 'EUTELSAT', 10),
-        sat.name
-      );
+      const coverageData = coverageManifest.has(sat.noradId)
+        ? attachSatelliteId(
+            await loadSatelliteCoverage(sat.noradId, sat.name, 'EUTELSAT', 10),
+            sat.name
+          )
+        : null;
       return buildSatelliteData(
         sat, 'EUTELSAT', 'GEO', coverageData, satcatMap,
         { maxThroughput: 100, bandwidth: { ku: 500, ka: 300, c: 200 }, availability: 0.99 },
@@ -257,10 +290,12 @@ export async function fetchSatellites(): Promise<SatelliteData[]> {
     });
 
     const onewebSatPromises = onewebSats.map(async (sat) => {
-      const coverageData = attachSatelliteId(
-        await loadSatelliteCoverage(sat.noradId, sat.name, 'ONEWEB', 600),
-        sat.name
-      );
+      const coverageData = coverageManifest.has(sat.noradId)
+        ? attachSatelliteId(
+            await loadSatelliteCoverage(sat.noradId, sat.name, 'ONEWEB', 600),
+            sat.name
+          )
+        : null;
       return buildSatelliteData(
         sat, 'ONEWEB', 'LEO', coverageData, satcatMap,
         { maxThroughput: 8, bandwidth: { ku: 250, ka: 150, c: 100 }, availability: 0.99 },

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Download, Loader2 } from 'lucide-react';
-import { exportToPDF, PDFExportData, PerformanceData, LocationData } from '../utils/pdfExport';
+import type { PDFExportData, PerformanceData, LocationData } from '../utils/pdfExport';
 import { log } from '../utils/logger';
 
 interface ExportButtonProps {
@@ -58,6 +58,7 @@ const ExportButton: React.FC<ExportButtonProps> = ({
       };
 
       // Exporter le PDF
+      const { exportToPDF } = await import('../utils/pdfExport');
       await exportToPDF(exportData);
 
       // Succès

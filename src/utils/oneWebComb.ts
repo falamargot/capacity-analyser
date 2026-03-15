@@ -16,24 +16,54 @@ export const TOTAL_BEAMS = 16;
 export const BEAM_LENGTH_KM = 1080;
 export const TOTAL_SWATH_WIDTH_KM = BEAM_WIDTH_KM * TOTAL_BEAMS; // 1080 km
 
+interface PropagatedOrbitState {
+    timeMs: number;
+    gmst: number;
+    eciPos: satellite.EciVec3<number>;
+    eciVel: satellite.EciVec3<number>;
+    satPosECI: Cartesian3;
+    satVelECI: Cartesian3;
+    satLatDeg: number;
+    nadir: Cartesian3;
+    velocityDir: Cartesian3;
+    crossTrack: Cartesian3;
+    forward: Cartesian3;
+}
 
-/**
- * Calculate the pitch angle for GSO Protection detection
- * Returns the pitch angle in radians and whether GSO Protection is active
- */
-export function calculateGSOAvoidanceAngle(
-    satrec: any,
+type GsoAvoidanceState = {
+    pitchAngleRad: number;
+    isGSOAvoidance: boolean;
+    isBlankingZone: boolean;
+    satLatDeg: number;
+    isMovingNorth: boolean;
+};
+
+const propagatedOrbitCache = new WeakMap<object, PropagatedOrbitState>();
+const gsoAvoidanceCache = new WeakMap<object, GsoAvoidanceState & { timeMs: number }>();
+
+function getTimeMs(time: JulianDate): number {
+    return JulianDate.toDate(time).getTime();
+}
+
+function getPropagatedOrbitState(
+    satrec: object | null | undefined,
     time: JulianDate
-): { pitchAngleRad: number; isGSOAvoidance: boolean; isBlankingZone: boolean; satLatDeg: number; isMovingNorth: boolean } {
-    if (!satrec) return { pitchAngleRad: 0, isGSOAvoidance: false, isBlankingZone: false, satLatDeg: 0, isMovingNorth: false };
+): PropagatedOrbitState | null {
+    if (!satrec) return null;
 
-    const date = JulianDate.toDate(time);
-    const positionAndVelocity = satellite.propagate(satrec, date);
+    const timeMs = getTimeMs(time);
+    const cached = propagatedOrbitCache.get(satrec);
+    if (cached && cached.timeMs === timeMs) {
+        return cached;
+    }
+
+    const date = new Date(timeMs);
+    const positionAndVelocity = satellite.propagate(satrec as satellite.SatRec, date);
     const gmst = satellite.gstime(date);
 
     if (!positionAndVelocity || !positionAndVelocity.position || !positionAndVelocity.velocity ||
         typeof positionAndVelocity.position === 'boolean' || typeof positionAndVelocity.velocity === 'boolean') {
-        return { pitchAngleRad: 0, isGSOAvoidance: false, isBlankingZone: false, satLatDeg: 0, isMovingNorth: false };
+        return null;
     }
 
     const eciPos = positionAndVelocity.position;
@@ -50,6 +80,47 @@ export function calculateGSOAvoidanceAngle(
     const crossTrack = Cartesian3.normalize(Cartesian3.cross(velocityDir, nadir, new Cartesian3()), new Cartesian3());
     const forward = Cartesian3.cross(nadir, crossTrack, new Cartesian3());
 
+    const orbitState: PropagatedOrbitState = {
+        timeMs,
+        gmst,
+        eciPos,
+        eciVel,
+        satPosECI,
+        satVelECI,
+        satLatDeg,
+        nadir,
+        velocityDir,
+        crossTrack,
+        forward,
+    };
+
+    propagatedOrbitCache.set(satrec, orbitState);
+    return orbitState;
+}
+
+
+/**
+ * Calculate the pitch angle for GSO Protection detection
+ * Returns the pitch angle in radians and whether GSO Protection is active
+ */
+export function calculateGSOAvoidanceAngle(
+    satrec: any,
+    time: JulianDate
+): { pitchAngleRad: number; isGSOAvoidance: boolean; isBlankingZone: boolean; satLatDeg: number; isMovingNorth: boolean } {
+    if (!satrec) return { pitchAngleRad: 0, isGSOAvoidance: false, isBlankingZone: false, satLatDeg: 0, isMovingNorth: false };
+
+    const timeMs = getTimeMs(time);
+    const cached = gsoAvoidanceCache.get(satrec);
+    if (cached && cached.timeMs === timeMs) {
+        return cached;
+    }
+
+    const orbitState = getPropagatedOrbitState(satrec, time);
+    if (!orbitState) {
+        return { pitchAngleRad: 0, isGSOAvoidance: false, isBlankingZone: false, satLatDeg: 0, isMovingNorth: false };
+    }
+
+    const { satLatDeg, forward } = orbitState;
     const isMovingNorth = forward.z > 0;
 
     let pitchAngleRad = 0;
@@ -82,13 +153,17 @@ export function calculateGSOAvoidanceAngle(
         }
     }
 
-    return {
+    const result: GsoAvoidanceState & { timeMs: number } = {
+        timeMs,
         pitchAngleRad,
         isGSOAvoidance: Math.abs(pitchAngleRad) > 0.01, // Seuil de détection d'activité GSO Protection
         isBlankingZone: Math.abs(satLatDeg) <= 2.0, // GSO Exclusion Zone
         satLatDeg,
         isMovingNorth
     };
+
+    gsoAvoidanceCache.set(satrec, result);
+    return result;
 }
 
 /**
@@ -122,29 +197,10 @@ export function calculateCombGeometry(
     const healthFactors = simulationState?.beamHealthByIndex ?? new Map<number, number>();
     const activeBeams = getActiveBeamCount(satrec, time);
 
-    const date = JulianDate.toDate(time);
-    const positionAndVelocity = satellite.propagate(satrec, date);
-    const gmst = satellite.gstime(date);
+    const orbitState = getPropagatedOrbitState(satrec, time);
+    if (!orbitState) return null;
 
-    if (!positionAndVelocity) {
-        return null;
-    }
-
-    if (!positionAndVelocity.position || typeof positionAndVelocity.position === 'boolean' ||
-        !positionAndVelocity.velocity || typeof positionAndVelocity.velocity === 'boolean') {
-        return null;
-    }
-
-    const eciPos = positionAndVelocity.position;
-    const eciVel = positionAndVelocity.velocity;
-
-    const satPosECI = new Cartesian3(eciPos.x * 1000, eciPos.y * 1000, eciPos.z * 1000);
-    const satVelECI = new Cartesian3(eciVel.x * 1000, eciVel.y * 1000, eciVel.z * 1000);
-
-    const nadir = Cartesian3.normalize(Cartesian3.negate(satPosECI, new Cartesian3()), new Cartesian3());
-    const velocityDir = Cartesian3.normalize(satVelECI, new Cartesian3());
-
-    const crossTrack = Cartesian3.normalize(Cartesian3.cross(velocityDir, nadir, new Cartesian3()), new Cartesian3());
+    const { gmst, satPosECI, crossTrack, nadir } = orbitState;
 
     // Use the new function to calculate pitch angle
     const { pitchAngleRad } = calculateGSOAvoidanceAngle(satrec, time);

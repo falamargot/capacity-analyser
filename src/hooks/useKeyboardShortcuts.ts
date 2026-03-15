@@ -4,7 +4,8 @@ import type { SatelliteScope } from '../components/SatelliteScopeFilter';
 interface KeyboardShortcutsConfig {
   onScopeChange: (scope: SatelliteScope) => void;
   onToggleFullscreen: () => void;
-  onOpenCommandPalette: () => void;
+  onToggleHelpPanel: () => void;
+  onToggleEntryPointPanel: () => void;
   onResetView: () => void;
   /** Disable shortcuts when an input/textarea/select is focused */
   enabled?: boolean;
@@ -13,7 +14,8 @@ interface KeyboardShortcutsConfig {
 const useKeyboardShortcuts = ({
   onScopeChange,
   onToggleFullscreen,
-  onOpenCommandPalette,
+  onToggleHelpPanel,
+  onToggleEntryPointPanel,
   onResetView,
   enabled = true,
 }: KeyboardShortcutsConfig) => {
@@ -22,11 +24,19 @@ const useKeyboardShortcuts = ({
 
     const handler = (e: KeyboardEvent) => {
       const key = e.key.toLowerCase();
+      const isMac = typeof navigator !== 'undefined' && navigator.platform.includes('Mac');
 
-      // Cmd+K / Ctrl+K — command palette (always active, even in inputs)
+      // Cmd+K / Ctrl+K — keyboard shortcuts help (always active, even in inputs)
       if ((e.metaKey || e.ctrlKey) && key === 'k') {
         e.preventDefault();
-        onOpenCommandPalette();
+        onToggleHelpPanel();
+        return;
+      }
+
+      // Cmd+S on macOS / Ctrl+S on non-macOS — open entry point panel
+      if (((isMac && e.metaKey) || (!isMac && e.ctrlKey)) && key === 's') {
+        e.preventDefault();
+        onToggleEntryPointPanel();
         return;
       }
 
@@ -63,7 +73,7 @@ const useKeyboardShortcuts = ({
 
     window.addEventListener('keydown', handler, true);
     return () => window.removeEventListener('keydown', handler, true);
-  }, [enabled, onScopeChange, onToggleFullscreen, onOpenCommandPalette, onResetView]);
+  }, [enabled, onScopeChange, onToggleFullscreen, onToggleHelpPanel, onToggleEntryPointPanel, onResetView]);
 };
 
 export default useKeyboardShortcuts;

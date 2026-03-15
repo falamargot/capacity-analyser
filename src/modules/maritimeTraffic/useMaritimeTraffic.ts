@@ -220,6 +220,10 @@ export function useMaritimeTrafficInterpolation(
             return;
         }
 
+        const previousVesselIndex = new Map(
+            previousVessels.map((previous) => [previous.mmsi, previous] as const)
+        );
+
         let startTime: number | null = null;
         const duration = 3000; // 3 seconds for smooth transition (vessels move slower)
 
@@ -231,7 +235,7 @@ export function useMaritimeTrafficInterpolation(
             const easeProgress = 1 - Math.pow(1 - progress, 3); // Cubic ease-out
 
             const updatedVessels = vessels.map(newVessel => {
-                const prevVessel = previousVessels.find(p => p.mmsi === newVessel.mmsi);
+                const prevVessel = previousVesselIndex.get(newVessel.mmsi);
 
                 if (!prevVessel) {
                     return { ...newVessel };

@@ -182,6 +182,10 @@ export function useAirTrafficInterpolation(
       return;
     }
 
+    const previousAircraftIndex = new Map(
+      previousAircraft.map((previous) => [previous.icao24, previous] as const)
+    );
+
     let startTime: number | null = null;
     const duration = 2000; // 2 seconds for smooth transition
 
@@ -193,7 +197,7 @@ export function useAirTrafficInterpolation(
       const easeProgress = 1 - Math.pow(1 - progress, 3); // Cubic ease-out
 
       const updatedAircraft = aircraft.map(newAc => {
-        const prevAc = previousAircraft.find(p => p.icao24 === newAc.icao24);
+        const prevAc = previousAircraftIndex.get(newAc.icao24);
         
         if (!prevAc) {
           // New aircraft, fade in
