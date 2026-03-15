@@ -18,11 +18,11 @@ const AnalysisHeader = memo<AnalysisHeaderProps>(({
 }) => (
   <div className="flex-none">
     <div className="flex items-center justify-between mb-2">
-      <div>
-        <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-100">
+      <div className="min-w-0">
+        <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-100 break-words">
           Capacity Analysis
           {activePoint && (
-            <span className="ml-2 text-lg font-semibold text-gray-500 dark:text-gray-400">
+            <span className="mt-1 block text-base font-semibold text-gray-500 dark:text-gray-400 sm:ml-2 sm:mt-0 sm:inline sm:text-lg">
               {selectedSNP
                 ? `at ${selectedSNP.name}`
                 : `at (${formatCoordinates({ lat: activePoint.lat, lng: activePoint.lng })})`}
@@ -37,14 +37,14 @@ const AnalysisHeader = memo<AnalysisHeaderProps>(({
             </div>
           </div>
         ) : analysisSource === 'aircraft' && aircraftCallsign ? (
-          <div className="text-sm text-gray-500 dark:text-gray-400 mt-0.1">
-            <span>Aircraft: {aircraftCallsign}</span>
-            <span className="ml-2 text-xs text-gray-400 dark:text-gray-500">
+          <div className="text-sm text-gray-500 dark:text-gray-400 mt-0.1 flex flex-col gap-0.5 sm:flex-row sm:items-center">
+            <span className="break-words">Aircraft: {aircraftCallsign}</span>
+            <span className="text-xs text-gray-400 dark:text-gray-500 sm:ml-2">
               Altitude: {activePoint?.altitude ? `${activePoint.altitude.toFixed(1)} km` : 'Unknown'}
             </span>
           </div>
         ) : nearestLocation ? (
-          <div className="text-sm text-gray-500 dark:text-gray-400 mt-0.1">
+          <div className="text-sm text-gray-500 dark:text-gray-400 mt-0.1 break-words">
             {nearestLocation.country}
             {nearestLocation.city && ` (Near ${nearestLocation.city})`}
             <div className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">

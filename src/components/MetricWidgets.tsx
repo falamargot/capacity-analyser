@@ -195,8 +195,8 @@ export const PerformancePanel: React.FC<PerformancePanelProps> = ({
         return (
             <div className="space-y-3">
                 <RttIndicator value={null} label={rttLabel} />
-                <div className="grid grid-cols-5 gap-3 items-start">
-                    <div className="col-span-3">
+                <div className="grid grid-cols-1 gap-3 items-start sm:grid-cols-5">
+                    <div className="sm:col-span-3">
                         <ThroughputBar
                             label="Downlink throughput"
                             gbps={null}
@@ -206,7 +206,7 @@ export const PerformancePanel: React.FC<PerformancePanelProps> = ({
                             trackWidthRatio={DL_WIDTH_RATIO}
                         />
                     </div>
-                    <div className="col-span-2">
+                    <div className="sm:col-span-2">
                         <ThroughputBar
                             label="Uplink throughput"
                             gbps={null}
@@ -225,8 +225,8 @@ export const PerformancePanel: React.FC<PerformancePanelProps> = ({
     return (
         <div className="space-y-3">
             <RttIndicator value={rtt} maxMs={rttMaxMs} accentColor={accentColor} label={rttLabel} />
-            <div className="grid grid-cols-5 gap-3 items-start">
-                <div className="col-span-3">
+            <div className="grid grid-cols-1 gap-3 items-start sm:grid-cols-5">
+                <div className="sm:col-span-3">
                     <ThroughputBar
                         label="Downlink throughput"
                         gbps={downlinkGbps}
@@ -237,7 +237,7 @@ export const PerformancePanel: React.FC<PerformancePanelProps> = ({
                         trackWidthRatio={DL_WIDTH_RATIO}
                     />
                 </div>
-                <div className="col-span-2">
+                <div className="sm:col-span-2">
                     <ThroughputBar
                         label="Uplink throughput"
                         gbps={uplinkGbps}
