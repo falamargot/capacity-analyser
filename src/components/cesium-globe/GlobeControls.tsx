@@ -8,8 +8,19 @@ import {
     Math as CesiumMath,
     Viewer as CesiumViewerType
 } from 'cesium';
+import {
+    Expand,
+    Globe,
+    Map,
+    Minus,
+    Orbit,
+    Plus,
+    RotateCcw,
+    Settings2,
+    SunMedium,
+    Waves
+} from 'lucide-react';
 import FullscreenButton from '../FullscreenButton';
-import { Settings2, Globe, Map } from 'lucide-react';
 
 interface GlobeControlsProps {
     viewerRef: React.RefObject<CesiumViewerType | null>;
@@ -31,6 +42,150 @@ interface GlobeControlsProps {
     satelliteScope?: 'LEO' | 'GEO' | 'ALL';
 }
 
+interface ControlButtonProps {
+    icon: React.ReactNode;
+    label: string;
+    subtitle?: string;
+    onClick: () => void;
+    title: string;
+    active?: boolean;
+    compact?: boolean;
+    accent?: 'blue' | 'emerald' | 'amber';
+    disabled?: boolean;
+    ariaExpanded?: boolean;
+    ariaControls?: string;
+    ariaPressed?: boolean;
+}
+
+interface DisplayOptionRowProps {
+    icon: React.ReactNode;
+    label: string;
+    description: string;
+    enabled: boolean;
+    onClick: () => void;
+    disabled?: boolean;
+    shortcut?: string;
+    accent?: 'amber' | 'violet' | 'blue';
+    title?: string;
+}
+
+const CONTROL_SURFACE_CLASS_NAME = 'border border-white/65 bg-[linear-gradient(180deg,rgba(255,255,255,0.94),rgba(241,245,249,0.86))] shadow-[0_18px_40px_-26px_rgba(15,23,42,0.78)] ring-1 ring-slate-200/60 backdrop-blur-xl dark:border-slate-700/80 dark:bg-[linear-gradient(180deg,rgba(15,23,42,0.94),rgba(30,41,59,0.84))] dark:ring-slate-700/70';
+
+const accentClassNames: Record<NonNullable<ControlButtonProps['accent']>, string> = {
+    blue: 'border-blue-200/90 bg-blue-50/95 text-blue-700 shadow-[0_14px_28px_-22px_rgba(37,99,235,0.78)] dark:border-blue-400/25 dark:bg-blue-500/15 dark:text-blue-200',
+    emerald: 'border-emerald-200/90 bg-emerald-50/95 text-emerald-700 shadow-[0_14px_28px_-22px_rgba(5,150,105,0.72)] dark:border-emerald-400/25 dark:bg-emerald-500/15 dark:text-emerald-200',
+    amber: 'border-amber-200/90 bg-amber-50/95 text-amber-700 shadow-[0_14px_28px_-22px_rgba(217,119,6,0.72)] dark:border-amber-400/25 dark:bg-amber-500/15 dark:text-amber-200'
+};
+
+const optionAccentClassNames: Record<NonNullable<DisplayOptionRowProps['accent']>, string> = {
+    amber: 'bg-amber-50 text-amber-700 dark:bg-amber-500/15 dark:text-amber-200',
+    violet: 'bg-fuchsia-50 text-fuchsia-700 dark:bg-fuchsia-500/15 dark:text-fuchsia-200',
+    blue: 'bg-sky-50 text-sky-700 dark:bg-sky-500/15 dark:text-sky-200'
+};
+
+const ControlButton: React.FC<ControlButtonProps> = ({
+    icon,
+    label,
+    subtitle,
+    onClick,
+    title,
+    active = false,
+    compact = false,
+    accent = 'blue',
+    disabled = false,
+    ariaExpanded,
+    ariaControls,
+    ariaPressed
+}) => (
+    <button
+        type="button"
+        onClick={onClick}
+        disabled={disabled}
+        title={title}
+        aria-label={title}
+        aria-expanded={ariaExpanded}
+        aria-controls={ariaControls}
+        aria-pressed={ariaPressed}
+        className={[
+            'group relative inline-flex items-center gap-2 rounded-2xl border text-left transition-all duration-200',
+            compact ? 'h-10 w-10 justify-center rounded-xl p-0' : 'min-h-[44px] rounded-[18px] px-3 py-2',
+            disabled
+                ? 'cursor-not-allowed border-slate-200/80 bg-slate-100/90 text-slate-400 shadow-none dark:border-slate-700 dark:bg-slate-800/70 dark:text-slate-500'
+                : active
+                    ? accentClassNames[accent]
+                    : 'border-white/70 bg-white/78 text-slate-700 shadow-[0_12px_28px_-24px_rgba(15,23,42,0.65)] hover:-translate-y-0.5 hover:bg-white dark:border-slate-700/80 dark:bg-slate-900/72 dark:text-slate-200 dark:hover:bg-slate-900'
+        ].join(' ')}
+    >
+        <span className="pointer-events-none absolute inset-x-3 top-0 h-px bg-gradient-to-r from-transparent via-white/80 to-transparent dark:via-slate-400/30" />
+        <span className={compact ? '' : 'flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-slate-100/85 text-current dark:bg-slate-800/85'}>
+            {icon}
+        </span>
+        {!compact && (
+            <span className="min-w-0">
+                <span className="block text-[11px] font-semibold leading-4">{label}</span>
+                {subtitle && (
+                    <span className="mt-0.5 block text-[10px] leading-3 text-slate-500 dark:text-slate-400">
+                        {subtitle}
+                    </span>
+                )}
+            </span>
+        )}
+    </button>
+);
+
+const DisplayOptionRow: React.FC<DisplayOptionRowProps> = ({
+    icon,
+    label,
+    description,
+    enabled,
+    onClick,
+    disabled = false,
+    shortcut,
+    accent = 'blue',
+    title
+}) => (
+    <button
+        type="button"
+        onClick={onClick}
+        disabled={disabled}
+        title={title}
+        aria-pressed={enabled}
+        className={[
+            'flex w-full items-center gap-3 rounded-2xl border px-3 py-3 text-left transition-all duration-200',
+            disabled
+                ? 'cursor-not-allowed border-slate-200/80 bg-slate-50/90 opacity-60 dark:border-slate-700 dark:bg-slate-900/60'
+                : enabled
+                    ? 'border-slate-200/90 bg-white shadow-[0_16px_28px_-24px_rgba(15,23,42,0.75)] hover:-translate-y-0.5 dark:border-slate-700 dark:bg-slate-900'
+                    : 'border-transparent bg-slate-50/85 hover:-translate-y-0.5 hover:border-slate-200/80 hover:bg-white dark:bg-slate-900/60 dark:hover:border-slate-700 dark:hover:bg-slate-900'
+        ].join(' ')}
+    >
+        <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl ${optionAccentClassNames[accent]}`}>
+            {icon}
+        </span>
+        <span className="min-w-0 flex-1">
+            <span className="block text-sm font-semibold text-slate-900 dark:text-slate-100">{label}</span>
+            <span className="mt-0.5 block text-xs leading-4 text-slate-500 dark:text-slate-400">{description}</span>
+        </span>
+        <span className="shrink-0 text-right">
+            {shortcut && (
+                <span className="mb-1 inline-flex rounded-full border border-slate-200 px-1.5 py-0.5 text-[10px] font-medium text-slate-500 dark:border-slate-700 dark:text-slate-400">
+                    {shortcut}
+                </span>
+            )}
+            <span
+                className={[
+                    'block rounded-full px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.18em]',
+                    enabled
+                        ? 'bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-950'
+                        : 'bg-slate-200/80 text-slate-500 dark:bg-slate-800 dark:text-slate-400'
+                ].join(' ')}
+            >
+                {enabled ? 'On' : 'Off'}
+            </span>
+        </span>
+    </button>
+);
+
 const GlobeControls: React.FC<GlobeControlsProps> = ({
     viewerRef,
     isFullscreen,
@@ -42,8 +197,6 @@ const GlobeControls: React.FC<GlobeControlsProps> = ({
     onToggleSatelliteTrajectory,
     sizeScale,
     onSizeScaleChange,
-    // view = 'globe',
-    // onViewChange,
     sceneMode = '3D',
     onSceneModeChange,
     showAggregatedConnectivity,
@@ -52,13 +205,15 @@ const GlobeControls: React.FC<GlobeControlsProps> = ({
 }) => {
     const [isMapOptionsOpen, setIsMapOptionsOpen] = useState(false);
     const popoverRef = useRef<HTMLDivElement | null>(null);
+    const popoverId = 'globe-display-controls';
+    const aggregatedConnectivityDisabled = satelliteScope === 'ALL';
 
     const handleZoomOut = useCallback(() => {
         if (!viewerRef.current) return;
 
         const camera = viewerRef.current.camera;
         const currentHeight = camera.positionCartographic.height;
-        const targetHeight = currentHeight * 1.3; // Zoom out by 30%
+        const targetHeight = currentHeight * 1.3;
         const destination = Cartesian3.fromDegrees(
             CesiumMath.toDegrees(camera.positionCartographic.longitude),
             CesiumMath.toDegrees(camera.positionCartographic.latitude),
@@ -86,7 +241,7 @@ const GlobeControls: React.FC<GlobeControlsProps> = ({
 
         const camera = viewerRef.current.camera;
         const currentHeight = camera.positionCartographic.height;
-        const targetHeight = currentHeight * 0.7; // Zoom in by 30%
+        const targetHeight = currentHeight * 0.7;
         const destination = Cartesian3.fromDegrees(
             CesiumMath.toDegrees(camera.positionCartographic.longitude),
             CesiumMath.toDegrees(camera.positionCartographic.latitude),
@@ -109,14 +264,22 @@ const GlobeControls: React.FC<GlobeControlsProps> = ({
             setIsMapOptionsOpen(false);
         };
 
+        const onEscape = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') {
+                setIsMapOptionsOpen(false);
+            }
+        };
+
         document.addEventListener('pointerdown', onDocPointerDown);
-        return () => document.removeEventListener('pointerdown', onDocPointerDown);
+        document.addEventListener('keydown', onEscape);
+        return () => {
+            document.removeEventListener('pointerdown', onDocPointerDown);
+            document.removeEventListener('keydown', onEscape);
+        };
     }, [isMapOptionsOpen]);
 
-    // Keyboard shortcuts
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
-            // Skip when typing in inputs
             const tag = (e.target as HTMLElement)?.tagName;
             if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
 
@@ -147,83 +310,110 @@ const GlobeControls: React.FC<GlobeControlsProps> = ({
 
         document.addEventListener('keydown', handleKeyDown);
         return () => document.removeEventListener('keydown', handleKeyDown);
-    }, [onToggleLighting, onToggleSatelliteTrajectory, onToggleFullscreen, handleZoomIn, handleZoomOut, handleReset]);
+    }, [onToggleLighting, onToggleSatelliteTrajectory, handleZoomIn, handleZoomOut, handleReset]);
 
     return (
-        <div className="absolute top-2 right-2 z-10 flex flex-col items-end gap-2">
-            {isPhone ? (
-                <>
-                    {/* First row: Switch Globe/Map, Map Settings */}
-                    <div className="flex items-center gap-1" ref={popoverRef}>
-                        {onSceneModeChange && (
-                            <button
-                                type="button"
-                                onClick={() => onSceneModeChange(sceneMode === '3D' ? '2D' : '3D')}
-                                className="bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm p-2 rounded-md shadow-sm hover:bg-white/100 dark:hover:bg-slate-700 transition-colors text-gray-700 dark:text-gray-200"
-                                title={sceneMode === '3D' ? 'Switch to 2D Map' : 'Switch to 3D Globe'}
-                                aria-label={sceneMode === '3D' ? 'Switch to 2D Map' : 'Switch to 3D Globe'}
+        <div className="absolute right-3 top-3 z-10 flex flex-col items-end gap-2">
+            <div className={`rounded-[20px] p-1.5 ${CONTROL_SURFACE_CLASS_NAME}`}>
+                <div className={`flex items-center ${isPhone ? 'gap-1.5' : 'gap-1.5'}`} ref={popoverRef}>
+                    {onSceneModeChange && (
+                        <ControlButton
+                            icon={sceneMode === '3D' ? <Map className="h-4 w-4" /> : <Globe className="h-4 w-4" />}
+                            label={sceneMode === '3D' ? 'Map' : 'Globe'}
+                            onClick={() => onSceneModeChange(sceneMode === '3D' ? '2D' : '3D')}
+                            title={sceneMode === '3D' ? 'Switch to 2D map view' : 'Switch to 3D globe view'}
+                            active
+                            accent="blue"
+                            compact={isPhone}
+                        />
+                    )}
+
+                    <div className="relative">
+                        <ControlButton
+                            icon={<Settings2 className="h-4 w-4" />}
+                            label="Display"
+                            onClick={() => setIsMapOptionsOpen((v) => !v)}
+                            title="Open display controls"
+                            active={isMapOptionsOpen}
+                            accent="amber"
+                            compact={isPhone}
+                            ariaExpanded={isMapOptionsOpen}
+                            ariaControls={popoverId}
+                        />
+
+                        {isMapOptionsOpen && (
+                            <div
+                                id={popoverId}
+                                className={`absolute right-0 top-full mt-2 w-[320px] max-w-[calc(100vw-2rem)] overflow-hidden rounded-[24px] border border-white/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,250,252,0.96))] p-3 shadow-[0_32px_70px_-34px_rgba(15,23,42,0.7)] ring-1 ring-slate-200/70 backdrop-blur-xl dark:border-slate-700/80 dark:bg-[linear-gradient(180deg,rgba(15,23,42,0.98),rgba(2,6,23,0.96))] dark:ring-slate-700/80`}
+                                role="dialog"
+                                aria-label="Display controls"
                             >
-                                {sceneMode === '3D' ? <Map className="h-4 w-4" /> : <Globe className="h-4 w-4" />}
-                            </button>
-                        )}
+                                <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(56,189,248,0.14),transparent_24%),radial-gradient(circle_at_top_left,rgba(251,191,36,0.14),transparent_26%)]" />
+                                <div className="relative">
+                                    <div className="mb-3 flex items-start justify-between gap-3 border-b border-slate-200/80 pb-3 dark:border-slate-700">
+                                        <div>
+                                            <div className="text-sm font-semibold text-slate-950 dark:text-slate-50">Display Controls</div>
+                                            <div className="mt-1 text-xs leading-4 text-slate-500 dark:text-slate-400">
+                                                Tune the scene without losing context on the globe.
+                                            </div>
+                                        </div>
+                                        <div className="rounded-full bg-slate-100 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-500 dark:bg-slate-800 dark:text-slate-400">
+                                            Live
+                                        </div>
+                                    </div>
 
-                        {/* Always show Map Settings in phone mode */}
-                        <div className="relative">
-                            <button
-                                type="button"
-                                onClick={() => setIsMapOptionsOpen((v) => !v)}
-                                className="bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm p-2 rounded-md shadow-sm hover:bg-white/100 dark:hover:bg-slate-700 transition-colors text-gray-700 dark:text-gray-200"
-                                title="Map options"
-                                aria-label="Map options"
-                            >
-                                <Settings2 size={16} />
-                            </button>
+                                    <div className="space-y-2">
+                                        <DisplayOptionRow
+                                            icon={<SunMedium className="h-4 w-4" />}
+                                            label="Sun Light"
+                                            description="Add solar shading for more depth and realism."
+                                            enabled={!!enableLighting}
+                                            onClick={() => onToggleLighting?.()}
+                                            shortcut="L"
+                                            accent="amber"
+                                            title="Toggle sun lighting"
+                                        />
 
-                            {isMapOptionsOpen && (
-                                <div className="absolute right-0 top-full mt-2 w-56 rounded-lg bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm shadow-lg border border-gray-200 dark:border-slate-700 p-3 z-20">
-                                    <div className="text-xs font-semibold text-gray-700 dark:text-gray-200 mb-2">Map Options</div>
+                                        <DisplayOptionRow
+                                            icon={<Orbit className="h-4 w-4" />}
+                                            label="Trajectory"
+                                            description="Reveal the selected satellite orbit path."
+                                            enabled={!!showSatelliteTrajectory}
+                                            onClick={() => onToggleSatelliteTrajectory?.()}
+                                            shortcut="T"
+                                            accent="violet"
+                                            title="Toggle satellite trajectory"
+                                        />
 
-                                    <button
-                                        type="button"
-                                        onClick={onToggleLighting}
-                                        className="w-full flex items-center justify-between py-2 text-sm text-gray-800 dark:text-gray-200"
-                                    >
-                                        <span>Sun Light</span>
-                                        <span className={`text-xs font-semibold ${enableLighting ? 'text-yellow-700 dark:text-yellow-400' : 'text-gray-500 dark:text-gray-400'}`}>
-                                            {enableLighting ? 'ON' : 'OFF'}
-                                        </span>
-                                    </button>
+                                        {onToggleAggregatedConnectivity && (
+                                            <DisplayOptionRow
+                                                icon={<Waves className="h-4 w-4" />}
+                                                label="Connectivity Envelope"
+                                                description={aggregatedConnectivityDisabled ? 'Available in GEO or LEO scope only.' : 'Show the aggregated feasibility layer.'}
+                                                enabled={!aggregatedConnectivityDisabled && !!showAggregatedConnectivity}
+                                                onClick={() => {
+                                                    if (!aggregatedConnectivityDisabled) {
+                                                        onToggleAggregatedConnectivity();
+                                                    }
+                                                }}
+                                                disabled={aggregatedConnectivityDisabled}
+                                                accent="blue"
+                                                title={aggregatedConnectivityDisabled ? 'Not available in ALL scope' : 'Toggle aggregated connectivity'}
+                                            />
+                                        )}
+                                    </div>
 
-                                    <button
-                                        type="button"
-                                        onClick={onToggleSatelliteTrajectory}
-                                        className="w-full flex items-center justify-between py-2 text-sm text-gray-800 dark:text-gray-200"
-                                    >
-                                        <span>Sat Trajectory</span>
-                                        <span className={`text-xs font-semibold ${showSatelliteTrajectory ? 'text-purple-700 dark:text-purple-400' : 'text-gray-500 dark:text-gray-400'}`}>
-                                            {showSatelliteTrajectory ? 'ON' : 'OFF'}
-                                        </span>
-                                    </button>
-
-                                    {onToggleAggregatedConnectivity && (
-                                        <button
-                                            type="button"
-                                            onClick={() => satelliteScope !== 'ALL' && onToggleAggregatedConnectivity()}
-                                            disabled={satelliteScope === 'ALL'}
-                                            className={`w-full flex items-center justify-between py-2 text-sm ${satelliteScope === 'ALL' ? 'opacity-50 cursor-not-allowed text-gray-400 dark:text-gray-500' : 'text-gray-800 dark:text-gray-200'}`}
-                                            title={satelliteScope === 'ALL' ? "Not available in ALL scope" : "Show aggregated connectivity feasibility envelope"}
-                                        >
-                                            <span>Aggregated Connectivity</span>
-                                            <span className={`text-xs font-semibold ${showAggregatedConnectivity && satelliteScope !== 'ALL' ? 'text-blue-600 dark:text-blue-400' : 'text-gray-500 dark:text-gray-400'}`}>
-                                                {showAggregatedConnectivity && satelliteScope !== 'ALL' ? 'ON' : 'OFF'}
-                                            </span>
-                                        </button>
-                                    )}
-
-                                    <div className="pt-2">
-                                        <div className="flex items-center justify-between">
-                                            <div className="text-sm text-gray-800 dark:text-gray-200">Size</div>
-                                            <div className="text-xs font-semibold text-gray-600 dark:text-gray-400">{sizeScale ?? 1}x</div>
+                                    <div className="mt-3 rounded-[20px] border border-slate-200/80 bg-white/78 px-3 py-3 dark:border-slate-700 dark:bg-slate-900/72">
+                                        <div className="flex items-center justify-between gap-3">
+                                            <div>
+                                                <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">Marker Scale</div>
+                                                <div className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
+                                                    Satellites, stations, and position markers.
+                                                </div>
+                                            </div>
+                                            <div className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-700 dark:bg-slate-800 dark:text-slate-200">
+                                                {sizeScale ?? 1}x
+                                            </div>
                                         </div>
                                         <input
                                             type="range"
@@ -233,187 +423,63 @@ const GlobeControls: React.FC<GlobeControlsProps> = ({
                                             value={sizeScale ?? 1}
                                             onChange={(e) => onSizeScaleChange?.(parseFloat(e.target.value))}
                                             onDoubleClick={() => onSizeScaleChange?.(1)}
-                                            className="w-full mt-2 h-1 bg-gray-200 dark:bg-slate-600 rounded-lg appearance-none cursor-pointer"
-                                            title="Adjust marker size (0.25x to 8x) - Affects satellites, SNP stations, and position markers - Double-click to reset to 1x"
+                                            className="mt-3 h-2 w-full cursor-pointer appearance-none rounded-full bg-slate-200 accent-blue-600 dark:bg-slate-700"
+                                            title="Adjust marker size. Double-click to reset to 1x."
+                                            aria-label="Adjust marker size"
                                         />
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-
-                    {/* Second row: Zoom -, Reset, Zoom + */}
-                    <div className="flex items-center gap-1">
-                        <button
-                            onClick={handleZoomOut}
-                            className="bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm p-2 rounded-md shadow-sm hover:bg-white/100 dark:hover:bg-slate-700 transition-colors text-gray-700 dark:text-gray-200"
-                            title="Zoom out (−)"
-                        >
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <circle cx="11" cy="11" r="8"></circle>
-                                <path d="m21 21-4.35-4.35"></path>
-                                <line x1="8" y1="11" x2="14" y2="11"></line>
-                            </svg>
-                        </button>
-
-                        <button
-                            onClick={handleReset}
-                            className="bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm p-2 rounded-md shadow-sm hover:bg-white/100 dark:hover:bg-slate-700 transition-colors text-gray-700 dark:text-gray-200"
-                            title="Reset view (0)"
-                        >
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
-                                <path d="M3 3v5h5"></path>
-                            </svg>
-                        </button>
-
-                        <button
-                            onClick={handleZoomIn}
-                            className="bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm p-2 rounded-md shadow-sm hover:bg-white/100 dark:hover:bg-slate-700 transition-colors text-gray-700 dark:text-gray-200"
-                            title="Zoom in (+)"
-                        >
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <circle cx="11" cy="11" r="8"></circle>
-                                <path d="m21 21-4.35-4.35"></path>
-                                <line x1="11" y1="8" x2="11" y2="14"></line>
-                                <line x1="8" y1="11" x2="14" y2="11"></line>
-                            </svg>
-                        </button>
-                    </div>
-                </>
-            ) : (
-                <>
-                    {/* First row: Switch Globe/Map, Map Settings, Fullscreen */}
-                    <div className="flex items-center gap-1" ref={popoverRef}>
-                        {onSceneModeChange && (
-                            <button
-                                type="button"
-                                onClick={() => onSceneModeChange(sceneMode === '3D' ? '2D' : '3D')}
-                                className="bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm p-2 rounded-md shadow-sm hover:bg-white/100 dark:hover:bg-slate-700 transition-colors text-gray-700 dark:text-gray-200"
-                                title={sceneMode === '3D' ? 'Switch to 2D Map' : 'Switch to 3D Globe'}
-                                aria-label={sceneMode === '3D' ? 'Switch to 2D Map' : 'Switch to 3D Globe'}
-                            >
-                                {sceneMode === '3D' ? <Map className="h-4 w-4" /> : <Globe className="h-4 w-4" />}
-                            </button>
-                        )}
-
-                        {/* Map Settings button */}
-                        <div className="relative">
-                            <button
-                                type="button"
-                                onClick={() => setIsMapOptionsOpen((v) => !v)}
-                                className="bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm p-2 rounded-md shadow-sm hover:bg-white/100 dark:hover:bg-slate-700 transition-colors text-gray-700 dark:text-gray-200"
-                                title="Map options"
-                                aria-label="Map options"
-                            >
-                                <Settings2 size={16} />
-                            </button>
-
-                            {isMapOptionsOpen && (
-                                <div className="absolute right-0 top-full mt-2 w-56 rounded-lg bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm shadow-lg border border-gray-200 dark:border-slate-700 p-3 z-20">
-                                    <div className="text-xs font-semibold text-gray-700 dark:text-gray-200 mb-2">Map Options</div>
-
-                                    <button
-                                        type="button"
-                                        onClick={onToggleLighting}
-                                        className="w-full flex items-center justify-between py-2 text-sm text-gray-800 dark:text-gray-200"
-                                    >
-                                        <span>Sun Light</span>
-                                        <span className={`text-xs font-semibold ${enableLighting ? 'text-yellow-700 dark:text-yellow-400' : 'text-gray-500 dark:text-gray-400'}`}>
-                                            {enableLighting ? 'ON' : 'OFF'}
-                                        </span>
-                                    </button>
-
-                                    <button
-                                        type="button"
-                                        onClick={onToggleSatelliteTrajectory}
-                                        className="w-full flex items-center justify-between py-2 text-sm text-gray-800 dark:text-gray-200"
-                                    >
-                                        <span>Satellite Trajectory</span>
-                                        <span className={`text-xs font-semibold ${showSatelliteTrajectory ? 'text-purple-700 dark:text-purple-400' : 'text-gray-500 dark:text-gray-400'}`}>
-                                            {showSatelliteTrajectory ? 'ON' : 'OFF'}
-                                        </span>
-                                    </button>
-
-                                    {onToggleAggregatedConnectivity && (
-                                        <button
-                                            type="button"
-                                            onClick={() => satelliteScope !== 'ALL' && onToggleAggregatedConnectivity()}
-                                            disabled={satelliteScope === 'ALL'}
-                                            className={`w-full flex items-center justify-between py-2 text-sm ${satelliteScope === 'ALL' ? 'opacity-50 cursor-not-allowed text-gray-400 dark:text-gray-500' : 'text-gray-800 dark:text-gray-200'}`}
-                                            title={satelliteScope === 'ALL' ? "Not available in ALL scope" : "Show aggregated connectivity feasibility envelope"}
-                                        >
-                                            <span>Aggregated Connectivity</span>
-                                            <span className={`text-xs font-semibold ${showAggregatedConnectivity && satelliteScope !== 'ALL' ? 'text-blue-600 dark:text-blue-400' : 'text-gray-500 dark:text-gray-400'}`}>
-                                                {showAggregatedConnectivity && satelliteScope !== 'ALL' ? 'ON' : 'OFF'}
-                                            </span>
-                                        </button>
-                                    )}
-
-                                    <div className="pt-2 border-t border-gray-200 dark:border-slate-700">
-                                        <div className="flex items-center justify-between py-2">
-                                            <span className="text-sm text-gray-800 dark:text-gray-200">Size</span>
-                                            <input
-                                                type="range"
-                                                min="0.25"
-                                                max="8"
-                                                step="0.25"
-                                                value={sizeScale || 1}
-                                                onChange={(e) => onSizeScaleChange?.(parseFloat(e.target.value))}
-                                                onDoubleClick={() => onSizeScaleChange?.(1)}
-                                                className="w-20 h-1 bg-gray-200 dark:bg-slate-600 rounded-lg appearance-none cursor-pointer"
-                                                title="Adjust marker size (0.25x to 8x) - Affects satellites, SNP stations, and position markers - Double-click to reset to 1x"
-                                            />
+                                        <div className="mt-2 flex items-center justify-between text-[10px] font-medium uppercase tracking-[0.16em] text-slate-400 dark:text-slate-500">
+                                            <span>Compact</span>
+                                            <span>Impact</span>
                                         </div>
-                                        <div className="text-xs text-gray-600 dark:text-gray-400 text-right">{sizeScale}x</div>
                                     </div>
                                 </div>
-                            )}
-                        </div>
+                            </div>
+                        )}
+                    </div>
 
+                    {isPhone ? (
+                        <ControlButton
+                            icon={<Expand className="h-4 w-4" />}
+                            label="Expand"
+                            onClick={onToggleFullscreen}
+                            title={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
+                            active={isFullscreen}
+                            accent="emerald"
+                            compact
+                        />
+                    ) : (
                         <FullscreenButton isFullscreen={isFullscreen} onClick={onToggleFullscreen} />
-                    </div>
+                    )}
+                </div>
+            </div>
 
-                    {/* Second row: Zoom -, Reset, Zoom + */}
-                    <div className="flex items-center gap-1">
-                        <button
-                            onClick={handleZoomOut}
-                            className="bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm p-2 rounded-md shadow-sm hover:bg-white/100 dark:hover:bg-slate-700 transition-colors text-gray-700 dark:text-gray-200"
-                            title="Zoom arrière"
-                        >
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <circle cx="11" cy="11" r="8"></circle>
-                                <path d="m21 21-4.35-4.35"></path>
-                                <line x1="8" y1="11" x2="14" y2="11"></line>
-                            </svg>
-                        </button>
-
-                        <button
-                            onClick={handleReset}
-                            className="bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm p-2 rounded-md shadow-sm hover:bg-white/100 dark:hover:bg-slate-700 transition-colors text-gray-700 dark:text-gray-200"
-                            title="Initialiser la vue"
-                        >
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
-                                <path d="M3 3v5h5"></path>
-                            </svg>
-                        </button>
-
-                        <button
-                            onClick={handleZoomIn}
-                            className="bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm p-2 rounded-md shadow-sm hover:bg-white/100 dark:hover:bg-slate-700 transition-colors text-gray-700 dark:text-gray-200"
-                            title="Zoom avant"
-                        >
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <circle cx="11" cy="11" r="8"></circle>
-                                <path d="m21 21-4.35-4.35"></path>
-                                <line x1="11" y1="8" x2="11" y2="14"></line>
-                                <line x1="8" y1="11" x2="14" y2="11"></line>
-                            </svg>
-                        </button>
-                    </div>
-                </>
-            )}
+            <div className={`rounded-[20px] p-1.5 ${CONTROL_SURFACE_CLASS_NAME}`}>
+                <div className="flex items-center gap-1.5">
+                    <ControlButton
+                        icon={<Minus className="h-4 w-4" />}
+                        label="Zoom out"
+                        onClick={handleZoomOut}
+                        title="Zoom out"
+                        compact
+                    />
+                    <ControlButton
+                        icon={<RotateCcw className="h-4 w-4" />}
+                        label="Reset view"
+                        onClick={handleReset}
+                        title="Reset view"
+                        compact
+                        active
+                        accent="emerald"
+                    />
+                    <ControlButton
+                        icon={<Plus className="h-4 w-4" />}
+                        label="Zoom in"
+                        onClick={handleZoomIn}
+                        title="Zoom in"
+                        compact
+                    />
+                </div>
+            </div>
         </div>
     );
 };

@@ -515,6 +515,12 @@ const App: React.FC = () => {
   const coverageFeaturesMemo = useMemo(() => {
     const features = new Map<string, Feature<Geometry, GeoJsonProperties>>();
     const pushFeature = (feature: Feature<Geometry, GeoJsonProperties>) => {
+      // Some upstream coverage records can carry a null geometry; skip them so
+      // the Cesium coverage layer never crashes on malformed data.
+      if (!feature.geometry) {
+        return;
+      }
+
       const key = getFeatureBeamCoverageKey(feature)
         ?? `${feature.properties?.type ?? 'feature'}::${feature.properties?.satelliteId ?? 'unknown'}::${feature.properties?.name ?? features.size}`;
       if (!features.has(key)) {
@@ -1374,6 +1380,9 @@ const App: React.FC = () => {
     );
   }
 
+  const entryPointCardClassName = 'group relative overflow-hidden rounded-[20px] border border-slate-200/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.94),rgba(248,250,252,0.84))] p-3.5 shadow-[0_16px_34px_-30px_rgba(15,23,42,0.7)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_22px_46px_-30px_rgba(37,99,235,0.28)] dark:border-slate-700 dark:bg-[linear-gradient(180deg,rgba(15,23,42,0.78),rgba(15,23,42,0.62))]';
+  const entryPointDescriptionClassName = 'mt-0.5 truncate text-[11px] leading-4 text-slate-500 dark:text-slate-400';
+
   return (
     <div className="min-h-screen bg-white dark:bg-slate-950 transition-colors duration-300">
       <header className="bg-white dark:bg-slate-900 shadow-sm transition-colors duration-300">
@@ -1475,31 +1484,35 @@ const App: React.FC = () => {
                       {isTargetSourcesMenuOpen && (
                         <div className="absolute right-0 top-[calc(100%+1rem)] z-[90] w-[760px] max-w-[calc(100vw-6rem)] overflow-hidden rounded-[28px] border border-slate-200/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,250,252,0.95))] shadow-[0_36px_90px_-42px_rgba(15,23,42,0.55)] backdrop-blur-xl dark:border-slate-700 dark:bg-[linear-gradient(180deg,rgba(15,23,42,0.98),rgba(2,6,23,0.96))]">
                           <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(56,189,248,0.12),transparent_24%),radial-gradient(circle_at_top_right,rgba(16,185,129,0.10),transparent_24%)]" />
-                          <div className="relative border-b border-slate-200/80 px-5 py-4 dark:border-slate-700">
-                            <div className="text-lg font-semibold text-slate-950 dark:text-slate-50">
+                          <div className="relative border-b border-slate-200/80 px-5 py-3.5 dark:border-slate-700">
+                            <div className="text-[17px] font-semibold text-slate-950 dark:text-slate-50">
                               Choose another entry point
                             </div>
-                            <div className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+                            <div className="mt-0.5 text-[13px] text-slate-600 dark:text-slate-300">
                               Jump to a satellite, gateway, location, SNP, aircraft, or vessel.
                             </div>
                           </div>
 
-                          <div className="relative grid grid-cols-2 gap-4 p-5">
-                            <div className="rounded-[22px] border border-slate-200/80 bg-white/82 p-4 shadow-[0_14px_32px_-28px_rgba(15,23,42,0.55)] dark:border-slate-700 dark:bg-slate-900/72">
-                              <div className="flex items-start gap-3">
-                                <div className="mt-0.5 inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500/15 via-sky-500/12 to-indigo-500/12 text-blue-600 dark:text-blue-300">
+                          <div className="relative grid grid-cols-2 gap-3.5 p-4">
+                            <div className={entryPointCardClassName}>
+                              <div className="pointer-events-none absolute inset-x-4 top-0 h-px bg-gradient-to-r from-transparent via-blue-300/80 to-transparent dark:via-blue-400/40" />
+                              <div className="flex items-start gap-2.5">
+                                <div className="mt-0.5 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-[18px] bg-gradient-to-br from-blue-500/15 via-sky-500/12 to-indigo-500/12 text-blue-600 dark:text-blue-300">
                                   <Satellite className="h-4 w-4" />
                                 </div>
                                 <div className="min-w-0 flex-1">
-                                  <label className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-700 dark:text-slate-300">
+                                  <label className="text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-700 dark:text-slate-300">
                                     Satellite
                                   </label>
-                                  <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                                    Check for a satellite's health and connectivity.
+                                  <p
+                                    className={entryPointDescriptionClassName}
+                                    title="Check a satellite health and connectivity snapshot."
+                                  >
+                                    Health and connectivity snapshot.
                                   </p>
                                 </div>
                               </div>
-                              <div className="mt-3">
+                              <div className="mt-2.5">
                                 <SatelliteSelector
                                   satellites={satellites}
                                   onSelect={handleSatelliteSelectFromUI}
@@ -1509,23 +1522,29 @@ const App: React.FC = () => {
                               </div>
                             </div>
 
-                            <div className="rounded-[22px] border border-slate-200/80 bg-white/82 p-4 shadow-[0_14px_32px_-28px_rgba(15,23,42,0.55)] dark:border-slate-700 dark:bg-slate-900/72">
-                              <div className="flex items-start gap-3">
-                                <div className="mt-0.5 inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-cyan-500/15 via-sky-500/12 to-blue-500/12 text-cyan-600 dark:text-cyan-300">
+                            <div className={entryPointCardClassName}>
+                              <div className="pointer-events-none absolute inset-x-4 top-0 h-px bg-gradient-to-r from-transparent via-cyan-300/80 to-transparent dark:via-cyan-400/40" />
+                              <div className="flex items-start gap-2.5">
+                                <div className="mt-0.5 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-[18px] bg-gradient-to-br from-cyan-500/15 via-sky-500/12 to-blue-500/12 text-cyan-600 dark:text-cyan-300">
                                   <Waypoints className="h-4 w-4" />
                                 </div>
                                 <div className="min-w-0 flex-1">
-                                  <label className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-700 dark:text-slate-300">
+                                  <label className="text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-700 dark:text-slate-300">
                                     Gateway
                                   </label>
-                                  <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                                  <p
+                                    className={entryPointDescriptionClassName}
+                                    title={satelliteScope === 'LEO'
+                                      ? 'Available only in ALL or GEO scope.'
+                                      : 'Assess a GEO teleport capability.'}
+                                  >
                                     {satelliteScope === 'LEO'
                                       ? 'Available only in ALL or GEO scope.'
-                                      : 'Inspect a GEO teleport directly from the ground segment.'}
+                                      : 'Assess GEO teleport capability.'}
                                   </p>
                                 </div>
                               </div>
-                              <div className="relative mt-3">
+                              <div className="relative mt-2.5">
                                 <select
                                   value={selectedGateway?.name ?? ''}
                                   onChange={(event) => {
@@ -1550,23 +1569,29 @@ const App: React.FC = () => {
                               </div>
                             </div>
 
-                            <div className="rounded-[22px] border border-slate-200/80 bg-white/82 p-4 shadow-[0_14px_32px_-28px_rgba(15,23,42,0.55)] dark:border-slate-700 dark:bg-slate-900/72">
-                              <div className="flex items-start gap-3">
-                                <div className="mt-0.5 inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-amber-500/15 via-orange-500/12 to-yellow-500/12 text-amber-600 dark:text-amber-300">
+                            <div className={entryPointCardClassName}>
+                              <div className="pointer-events-none absolute inset-x-4 top-0 h-px bg-gradient-to-r from-transparent via-amber-300/80 to-transparent dark:via-amber-400/40" />
+                              <div className="flex items-start gap-2.5">
+                                <div className="mt-0.5 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-[18px] bg-gradient-to-br from-amber-500/15 via-orange-500/12 to-yellow-500/12 text-amber-600 dark:text-amber-300">
                                   <Radio className="h-4 w-4" />
                                 </div>
                                 <div className="min-w-0 flex-1">
-                                  <label className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-700 dark:text-slate-300">
+                                  <label className="text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-700 dark:text-slate-300">
                                     SNP
                                   </label>
-                                  <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                                    {satelliteScope === 'GEO'
+                                  <p
+                                    className={entryPointDescriptionClassName}
+                                    title={satelliteScope === 'GEO'
                                       ? 'Available only in ALL or LEO scope.'
                                       : 'Inspect a service node point directly from the network map.'}
+                                  >
+                                    {satelliteScope === 'GEO'
+                                      ? 'Available only in ALL or LEO scope.'
+                                      : 'Inspect a node straight from the map.'}
                                   </p>
                                 </div>
                               </div>
-                              <div className="relative mt-3">
+                              <div className="relative mt-2.5">
                                 <select
                                   value={inspectedSNP?.name ?? ''}
                                   onChange={(event) => handleSnpSelectFromUI(event.target.value || null)}
@@ -1588,21 +1613,25 @@ const App: React.FC = () => {
                               </div>
                             </div>
 
-                            <div className="rounded-[22px] border border-slate-200/80 bg-white/82 p-4 shadow-[0_14px_32px_-28px_rgba(15,23,42,0.55)] dark:border-slate-700 dark:bg-slate-900/72">
-                              <div className="flex items-start gap-3">
-                                <div className="mt-0.5 inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-500/15 via-teal-500/12 to-cyan-500/12 text-emerald-600 dark:text-emerald-300">
+                            <div className={entryPointCardClassName}>
+                              <div className="pointer-events-none absolute inset-x-4 top-0 h-px bg-gradient-to-r from-transparent via-emerald-300/80 to-transparent dark:via-emerald-400/40" />
+                              <div className="flex items-start gap-2.5">
+                                <div className="mt-0.5 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-[18px] bg-gradient-to-br from-emerald-500/15 via-teal-500/12 to-cyan-500/12 text-emerald-600 dark:text-emerald-300">
                                   <MapPin className="h-4 w-4" />
                                 </div>
                                 <div className="min-w-0 flex-1">
-                                  <label className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-700 dark:text-slate-300">
+                                  <label className="text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-700 dark:text-slate-300">
                                     Ground Location
                                   </label>
-                                  <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                                    Search a city or an address to analyze coverage.
+                                  <p
+                                    className={entryPointDescriptionClassName}
+                                    title="Search a city or an address to analyze coverage."
+                                  >
+                                    Search a city or address for coverage.
                                   </p>
                                 </div>
                               </div>
-                              <div className="relative mt-3">
+                              <div className="relative mt-2.5">
                                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400 dark:text-gray-500" />
                                 <form onSubmit={handleSearchInput}>
                                   <input
@@ -1617,21 +1646,25 @@ const App: React.FC = () => {
                               </div>
                             </div>
 
-                            <div className="rounded-[22px] border border-slate-200/80 bg-white/82 p-4 shadow-[0_14px_32px_-28px_rgba(15,23,42,0.55)] dark:border-slate-700 dark:bg-slate-900/72">
-                              <div className="flex items-start gap-3">
-                                <div className="mt-0.5 inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-sky-500/15 via-blue-500/12 to-indigo-500/12 text-sky-600 dark:text-sky-300">
+                            <div className={entryPointCardClassName}>
+                              <div className="pointer-events-none absolute inset-x-4 top-0 h-px bg-gradient-to-r from-transparent via-sky-300/80 to-transparent dark:via-sky-400/40" />
+                              <div className="flex items-start gap-2.5">
+                                <div className="mt-0.5 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-[18px] bg-gradient-to-br from-sky-500/15 via-blue-500/12 to-indigo-500/12 text-sky-600 dark:text-sky-300">
                                   <Plane className="h-4 w-4" />
                                 </div>
                                 <div className="min-w-0 flex-1">
-                                  <label className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-700 dark:text-slate-300">
+                                  <label className="text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-700 dark:text-slate-300">
                                     Aircraft Live Feed
                                   </label>
-                                  <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                                    Enable live mode to inspect an active flight connectivity.
+                                  <p
+                                    className={entryPointDescriptionClassName}
+                                    title="Enable live mode to inspect active flight connectivity."
+                                  >
+                                    Track an active flight in live mode.
                                   </p>
                                 </div>
                               </div>
-                              <div className="mt-3">
+                              <div className="mt-2.5">
                                 <AircraftSelector
                                   aircraft={airTraffic.aircraft}
                                   selectedAircraft={selectedAircraft}
@@ -1642,21 +1675,25 @@ const App: React.FC = () => {
                               </div>
                             </div>
 
-                            <div className="rounded-[22px] border border-slate-200/80 bg-white/82 p-4 shadow-[0_14px_32px_-28px_rgba(15,23,42,0.55)] dark:border-slate-700 dark:bg-slate-900/72">
-                              <div className="flex items-start gap-3">
-                                <div className="mt-0.5 inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-teal-500/15 via-cyan-500/12 to-emerald-500/12 text-teal-600 dark:text-teal-300">
+                            <div className={entryPointCardClassName}>
+                              <div className="pointer-events-none absolute inset-x-4 top-0 h-px bg-gradient-to-r from-transparent via-teal-300/80 to-transparent dark:via-teal-400/40" />
+                              <div className="flex items-start gap-2.5">
+                                <div className="mt-0.5 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-[18px] bg-gradient-to-br from-teal-500/15 via-cyan-500/12 to-emerald-500/12 text-teal-600 dark:text-teal-300">
                                   <Ship className="h-4 w-4" />
                                 </div>
                                 <div className="min-w-0 flex-1">
-                                  <label className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-700 dark:text-slate-300">
+                                  <label className="text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-700 dark:text-slate-300">
                                     Vessel Live Feed
                                   </label>
-                                  <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                                    Enable live mode to inspect maritime traffic connectivity.
+                                  <p
+                                    className={entryPointDescriptionClassName}
+                                    title="Enable live mode to inspect maritime traffic connectivity."
+                                  >
+                                    Track maritime traffic in live mode.
                                   </p>
                                 </div>
                               </div>
-                              <div className="mt-3">
+                              <div className="mt-2.5">
                                 <VesselSelector
                                   vessels={maritimeTraffic.vessels}
                                   selectedVessel={selectedVessel}

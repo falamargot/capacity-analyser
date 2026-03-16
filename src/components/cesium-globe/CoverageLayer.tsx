@@ -42,6 +42,16 @@ const buildClosedRing = (ring: number[][]): number[][] => {
     return [...ring, ring[0]];
 };
 
+const getPolygonRing = (feature: Feature<Geometry, GeoJsonProperties>): number[][] | null => {
+    const geometry = feature.geometry;
+    if (!geometry || geometry.type !== 'Polygon') return null;
+
+    const ring = geometry.coordinates?.[0];
+    if (!Array.isArray(ring) || ring.length < 2) return null;
+
+    return ring as number[][];
+};
+
 const CoveragePolygon = React.memo<{
     feature: Feature<Geometry, GeoJsonProperties>;
     index: number;
@@ -52,10 +62,9 @@ const CoveragePolygon = React.memo<{
     isSelected: boolean;
     isManualGeoOverview: boolean;
 }>(({ feature, index, satelliteTypeByName, geoLayerIndex, geoLayerCount, isCandidate, isSelected, isManualGeoOverview }) => {
-    const isPolygon = feature.geometry.type === 'Polygon';
     const isOneWebPlaceholder = feature.properties?.type === 'ONEWEB_SWATH' || feature.properties?.type === 'ONEWEB_SERVICE_ZONE';
-
-    const coords = isPolygon ? (feature.geometry.coordinates[0] as any) : null;
+    const coords = useMemo(() => getPolygonRing(feature), [feature]);
+    const isPolygon = coords !== null;
 
     const hierarchy = useMemo(() => {
         if (!coords) return null;
@@ -179,7 +188,7 @@ const CoverageLayer: React.FC<CoverageLayerProps> = ({
 
         const selectedFeatures = coverageFeatures.filter((feature) => (
             getFeatureBeamCoverageKey(feature) === selectedCoverageKey &&
-            feature.geometry.type === 'Polygon'
+            getPolygonRing(feature) !== null
         ));
 
         if (selectedFeatures.length === 0) {
@@ -188,10 +197,8 @@ const CoverageLayer: React.FC<CoverageLayerProps> = ({
 
         return selectedFeatures
             .map((feature, index) => {
-                if (feature.geometry.type !== 'Polygon') return null;
-
-                const ring = feature.geometry.coordinates[0] as number[][];
-                if (!ring || ring.length < 2) return null;
+                const ring = getPolygonRing(feature);
+                if (!ring) return null;
 
                 const closed = buildClosedRing(ring);
                 const polygonDegrees: number[] = [];
@@ -229,8 +236,7 @@ const CoverageLayer: React.FC<CoverageLayerProps> = ({
             return satelliteTypeByName.get(satName) === 'EUTELSAT';
         };
         const approximatePolygonArea = (feature: Feature<Geometry, GeoJsonProperties>): number => {
-            if (feature.geometry.type !== 'Polygon') return 0;
-            const ring = feature.geometry.coordinates[0] as number[][];
+            const ring = getPolygonRing(feature);
             if (!ring || ring.length < 3) return 0;
 
             // Ranking-only metric: planar shoelace in lon/lat space.
@@ -245,7 +251,7 @@ const CoverageLayer: React.FC<CoverageLayerProps> = ({
 
         const filteredFeatures = coverageFeatures.filter((feature) => {
             // Filter out OneWeb comb placeholders and non-polygons
-            if (feature.geometry.type !== 'Polygon') return false;
+            if (getPolygonRing(feature) === null) return false;
             if (feature.properties?.type === 'ONEWEB_SWATH') return false;
             if (feature.properties?.type === 'ONEWEB_SERVICE_ZONE') return false;
             if (selectedCoverageKey && getFeatureBeamCoverageKey(feature) === selectedCoverageKey) return false;
