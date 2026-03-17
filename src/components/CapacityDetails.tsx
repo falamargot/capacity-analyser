@@ -50,13 +50,14 @@ interface CapacityDetailsProps {
   onSelectGeoCoverage?: (coverageName: string | null) => void;
   onSelectGeoBeam?: (beamId: string | null) => void;
   onSnpClick?: (snpName: string) => void;
+  compactDesktop?: boolean;
   externalHeader?: boolean;
   globeRef?: RefObject<HTMLDivElement | null>;
   cesiumViewerRef?: RefObject<any>;
 }
 
 // Performance optimization: Memoize component to prevent unnecessary re-renders
-const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint, selectedSatellite, autoSelectedLEOSatellite, satelliteScope, onMetricsChange, onSatelliteClick, analysisSource, aircraftCallsign, selectedSNP: propSelectedSNP, candidateCoverages = [], selectedCoverage = null, onSelectCoverage, selectedGeoMission, selectedGeoCoverageName, selectedGeoBeamId, onSelectGeoMission, onSelectGeoCoverage, onSelectGeoBeam, onSnpClick, externalHeader = false, globeRef, cesiumViewerRef }) => {
+const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint, selectedSatellite, autoSelectedLEOSatellite, satelliteScope, onMetricsChange, onSatelliteClick, analysisSource, aircraftCallsign, selectedSNP: propSelectedSNP, candidateCoverages = [], selectedCoverage = null, onSelectCoverage, selectedGeoMission, selectedGeoCoverageName, selectedGeoBeamId, onSelectGeoMission, onSelectGeoCoverage, onSelectGeoBeam, onSnpClick, compactDesktop = false, externalHeader = false, globeRef, cesiumViewerRef }) => {
   // Feature 1+2+3: read simulation context for failedSnps, corridorDcLevels, hsBeamsSet
   const {
     coveragePolicy,
@@ -748,6 +749,7 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
         onSelectGeoCoverage={onSelectGeoCoverage}
         onSelectGeoBeam={onSelectGeoBeam}
         onSnpClick={onSnpClick}
+        compactDesktop={compactDesktop}
         externalHeader={externalHeader}
       />
     );
@@ -757,7 +759,7 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
 
   return (
     <div className="h-full bg-white dark:bg-slate-900 rounded-lg shadow-lg overflow-hidden flex flex-col transition-colors duration-300">
-      <div className="p-4 flex flex-col h-full">
+      <div className={`flex h-full flex-col ${compactDesktop ? 'p-3.5' : 'p-4'}`}>
         {/* Section 1: Header */}
         {!externalHeader && (
           <AnalysisHeader
@@ -766,6 +768,7 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
             analysisSource={analysisSource}
             aircraftCallsign={aircraftCallsign}
             nearestLocation={nearestLocation}
+            compact={compactDesktop}
           />
         )}
 
@@ -782,6 +785,7 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
             autoWeatherEnabled={autoWeatherEnabled}
             onAutoWeatherChange={setAutoWeatherEnabled}
             analysisSource={analysisSource}
+            compact={compactDesktop}
           />
 
           {/* Section 3: Constellation-based Connectivity */}
@@ -789,24 +793,24 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
             <div className="mb-6">
               {/* Tab buttons (only when scope is ALL) */}
               {satelliteScope === 'ALL' && (
-                <div className="flex mb-4 p-1 bg-gray-100 dark:bg-slate-800 rounded-xl">
+                <div className={`mb-4 flex rounded-xl bg-gray-100 p-1 dark:bg-slate-800 ${compactDesktop ? 'gap-1' : ''}`}>
                   <button
                     type="button"
                     onClick={() => setActiveConnTab('LEO')}
-                    className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-sm font-semibold transition-all duration-200 ${activeConnTab === 'LEO' ? 'bg-pink-500 text-white shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}
+                    className={`flex flex-1 items-center justify-center gap-2 rounded-lg font-semibold transition-all duration-200 ${compactDesktop ? 'px-2.5 py-1.5 text-[13px]' : 'px-3 py-2 text-sm'} ${activeConnTab === 'LEO' ? 'bg-pink-500 text-white shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}
                   >
                     <span className={`w-2 h-2 rounded-full flex-shrink-0 ${resolvedLEOConnectivity?.snp ? 'bg-green-400' : resolvedLEOConnectivity ? 'bg-yellow-400' : 'bg-gray-300 dark:bg-slate-600'}`} />
                     LEO
-                    <span className={`text-[10px] font-normal ${activeConnTab === 'LEO' ? 'text-pink-100' : 'text-gray-400 dark:text-gray-500'}`}>OneWeb</span>
+                    <span className={`${compactDesktop ? 'text-[9px]' : 'text-[10px]'} font-normal ${activeConnTab === 'LEO' ? 'text-pink-100' : 'text-gray-400 dark:text-gray-500'}`}>OneWeb</span>
                   </button>
                   <button
                     type="button"
                     onClick={() => setActiveConnTab('GEO')}
-                    className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-sm font-semibold transition-all duration-200 ${activeConnTab === 'GEO' ? 'bg-blue-600 text-white shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}
+                    className={`flex flex-1 items-center justify-center gap-2 rounded-lg font-semibold transition-all duration-200 ${compactDesktop ? 'px-2.5 py-1.5 text-[13px]' : 'px-3 py-2 text-sm'} ${activeConnTab === 'GEO' ? 'bg-blue-600 text-white shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}
                   >
                     <span className={`w-2 h-2 rounded-full flex-shrink-0 ${resolvedGEOConnectivity ? 'bg-green-400' : 'bg-gray-300 dark:bg-slate-600'}`} />
                     GEO
-                    <span className={`text-[10px] font-normal ${activeConnTab === 'GEO' ? 'text-blue-100' : 'text-gray-400 dark:text-gray-500'}`}>Eutelsat</span>
+                    <span className={`${compactDesktop ? 'text-[9px]' : 'text-[10px]'} font-normal ${activeConnTab === 'GEO' ? 'text-blue-100' : 'text-gray-400 dark:text-gray-500'}`}>Eutelsat</span>
                   </button>
                 </div>
               )}

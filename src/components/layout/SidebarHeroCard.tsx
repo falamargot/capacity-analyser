@@ -15,6 +15,7 @@ interface SidebarHeroCardProps {
   subtitle: string;
   tone?: HeroTone;
   badges?: SidebarHeroBadge[];
+  compact?: boolean;
   onReset: () => void;
 }
 
@@ -46,30 +47,31 @@ const SidebarHeroCard = memo<SidebarHeroCardProps>(({
   subtitle,
   tone = 'idle',
   badges = [],
+  compact = false,
   onReset,
 }) => {
   return (
-    <div className="px-3 pt-3 pb-2">
+    <div className={compact ? 'px-2.5 pt-2.5 pb-2' : 'px-3 pt-3 pb-2'}>
       <div className={`overflow-hidden rounded-2xl border bg-gradient-to-br ${toneStyles[tone]} bg-white dark:bg-slate-900 shadow-[0_20px_45px_-28px_rgba(15,23,42,0.55)]`}>
-        <div className="relative px-4 py-4">
+        <div className={`relative ${compact ? 'px-3.5 py-3.5' : 'px-4 py-4'}`}>
           <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.85),transparent_42%)] dark:bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.06),transparent_42%)]" />
-          <div className="relative flex items-start justify-between gap-4">
+          <div className={`relative flex items-start justify-between ${compact ? 'gap-3' : 'gap-4'}`}>
             <div className="min-w-0">
-              <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
+              <div className={`${compact ? 'text-[10px] tracking-[0.16em]' : 'text-[11px] tracking-[0.18em]'} font-semibold uppercase text-slate-500 dark:text-slate-400`}>
                 {eyebrow}
               </div>
-              <h2 className="mt-1 text-[26px] font-semibold leading-tight text-slate-950 dark:text-slate-50 truncate">
+              <h2 className={`mt-1 truncate font-semibold leading-tight text-slate-950 dark:text-slate-50 ${compact ? 'text-[22px]' : 'text-[26px]'}`}>
                 {title}
               </h2>
-              <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+              <p className={`mt-1 text-slate-600 dark:text-slate-300 ${compact ? 'text-[13px]' : 'text-sm'}`}>
                 {subtitle}
               </p>
               {badges.length > 0 && (
-                <div className="mt-3 flex flex-wrap gap-2">
+                <div className={`flex flex-wrap ${compact ? 'mt-2.5 gap-1.5' : 'mt-3 gap-2'}`}>
                   {badges.map((badge) => (
                     <span
                       key={`${badge.tone}-${badge.label}`}
-                      className={`rounded-full px-2.5 py-1 text-[11px] font-semibold tracking-[0.08em] uppercase ${badgeStyles[badge.tone]}`}
+                      className={`rounded-full font-semibold uppercase ${badgeStyles[badge.tone]} ${compact ? 'px-2 py-0.5 text-[10px] tracking-[0.06em]' : 'px-2.5 py-1 text-[11px] tracking-[0.08em]'}`}
                     >
                       {badge.label}
                     </span>
@@ -82,11 +84,11 @@ const SidebarHeroCard = memo<SidebarHeroCardProps>(({
               <button
                 type="button"
                 onClick={onReset}
-                className="inline-flex items-center gap-2 rounded-xl border border-white/60 bg-white/80 px-3 py-2 text-xs font-semibold text-slate-700 shadow-sm transition-colors hover:bg-white dark:border-slate-700 dark:bg-slate-800/90 dark:text-slate-200 dark:hover:bg-slate-800"
+                className={`inline-flex items-center rounded-xl border border-white/60 bg-white/80 font-semibold text-slate-700 shadow-sm transition-colors hover:bg-white dark:border-slate-700 dark:bg-slate-800/90 dark:text-slate-200 dark:hover:bg-slate-800 ${compact ? 'gap-1.5 px-2.5 py-1.5 text-[11px]' : 'gap-2 px-3 py-2 text-xs'}`}
                 aria-label="Clear current target"
                 title="Clear current target"
               >
-                <RotateCcw className="h-4 w-4" />
+                <RotateCcw className={compact ? 'h-3.5 w-3.5' : 'h-4 w-4'} />
                 Clear Target
               </button>
             </div>

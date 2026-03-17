@@ -43,6 +43,7 @@ interface TerminalConfigProps {
   autoWeatherEnabled: boolean;
   onAutoWeatherChange: (enabled: boolean) => void;
   analysisSource?: 'earth' | 'aircraft';
+  compact?: boolean;
 }
 
 const TerminalConfig = memo<TerminalConfigProps>(({
@@ -53,21 +54,22 @@ const TerminalConfig = memo<TerminalConfigProps>(({
   autoWeatherEnabled,
   onAutoWeatherChange,
   analysisSource,
+  compact = false,
 }) => (
   <div className="mb-4">
-    <div className="bg-gray-50 dark:bg-slate-800/50 rounded-lg p-3 border border-gray-100 dark:border-slate-700">
-      <h3 className="text-sm font-semibold mb-2 text-gray-800 dark:text-gray-200 flex items-center">
+    <div className={`rounded-lg border border-gray-100 bg-gray-50 dark:border-slate-700 dark:bg-slate-800/50 ${compact ? 'p-2.5' : 'p-3'}`}>
+      <h3 className={`mb-2 flex items-center font-semibold text-gray-800 dark:text-gray-200 ${compact ? 'text-[13px]' : 'text-sm'}`}>
         User Terminal
         <SectionTooltip content="The ground equipment (antenna + modem) used to connect to the satellite network. The selected type defines maximum achievable downlink/uplink throughput. Weather attenuation is applied on top of this profile." />
       </h3>
       <div className="space-y-3">
         <div className="flex items-center gap-2 sm:gap-3">
-          <label className="w-16 shrink-0 text-sm font-medium text-gray-600 dark:text-gray-400 sm:w-[4.5rem]">Type:</label>
+          <label className={`w-16 shrink-0 font-medium text-gray-600 dark:text-gray-400 sm:w-[4.5rem] ${compact ? 'text-[13px]' : 'text-sm'}`}>Type:</label>
           <div className="min-w-0 flex flex-1 items-center gap-2 sm:gap-3">
             <select
               value={terminalType}
               onChange={(e) => onTerminalTypeChange(e.target.value as TerminalType)}
-              className="w-44 shrink-0 pl-3 pr-8 py-2 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none bg-white dark:bg-slate-700 text-sm text-gray-900 dark:text-gray-100 transition-colors sm:w-48"
+              className={`shrink-0 appearance-none rounded-lg border border-gray-300 bg-white text-gray-900 transition-colors focus:border-transparent focus:ring-2 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-700 dark:text-gray-100 ${compact ? 'w-40 py-1.5 pl-3 pr-7 text-[13px] sm:w-44' : 'w-44 py-2 pl-3 pr-8 text-sm sm:w-48'}`}
               disabled={analysisSource === 'aircraft'}
               style={{
                 backgroundImage: analysisSource === 'aircraft' ? 'none' : `url("data:image/svg+xml;charset=US-ASCII,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 4 5'%3E%3Cpath fill='%236B7280' d='M2 0L0 2h4zm0 5L0 3h4z'/%3E%3C/svg>")`,
@@ -88,18 +90,18 @@ const TerminalConfig = memo<TerminalConfigProps>(({
                 </option>
               ))}
             </select>
-            <span className="min-w-0 flex-1 text-xs text-gray-500 dark:text-gray-400 sm:whitespace-nowrap">
+            <span className={`min-w-0 flex-1 text-gray-500 dark:text-gray-400 sm:whitespace-nowrap ${compact ? 'text-[11px]' : 'text-xs'}`}>
               Max: {Math.round(TERMINAL_PROFILES[terminalType].maxDlGbps * 1000)} / {Math.round(TERMINAL_PROFILES[terminalType].maxUlGbps * 1000)} Mbps
             </span>
           </div>
         </div>
         <div className="flex items-center gap-2 sm:gap-3">
-          <label className="w-16 shrink-0 text-sm font-medium text-gray-600 dark:text-gray-400 sm:w-[4.5rem]">Weather:</label>
+          <label className={`w-16 shrink-0 font-medium text-gray-600 dark:text-gray-400 sm:w-[4.5rem] ${compact ? 'text-[13px]' : 'text-sm'}`}>Weather:</label>
           <div className="min-w-0 flex flex-1 items-center gap-2 sm:gap-3">
             <select
               value={weatherType}
               onChange={(e) => onWeatherTypeChange(e.target.value as WeatherType)}
-              className="w-44 shrink-0 pl-3 pr-8 py-2 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none bg-white dark:bg-slate-700 text-sm text-gray-900 dark:text-gray-100 transition-colors sm:w-48"
+              className={`shrink-0 appearance-none rounded-lg border border-gray-300 bg-white text-gray-900 transition-colors focus:border-transparent focus:ring-2 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-700 dark:text-gray-100 ${compact ? 'w-40 py-1.5 pl-3 pr-7 text-[13px] sm:w-44' : 'w-44 py-2 pl-3 pr-8 text-sm sm:w-48'}`}
               disabled={terminalType === 'aviation'}
               style={{
                 backgroundImage: terminalType === 'aviation' ? 'none' : `url("data:image/svg+xml;charset=US-ASCII,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 4 5'%3E%3Cpath fill='%236B7280' d='M2 0L0 2h4zm0 5L0 3h4z'/%3E%3Csvg>")`,
@@ -120,12 +122,12 @@ const TerminalConfig = memo<TerminalConfigProps>(({
                 </option>
               ))}
             </select>
-            <span className="shrink-0 whitespace-nowrap text-xs text-gray-500 dark:text-gray-400">
+            <span className={`shrink-0 whitespace-nowrap text-gray-500 dark:text-gray-400 ${compact ? 'text-[11px]' : 'text-xs'}`}>
               {terminalType === 'aviation'
                 ? '0 dB'
                 : `${WEATHER_ATTENUATION_DB[toWeatherCondition(weatherType)].toFixed(1)} dB`}
             </span>
-            <label className={`shrink-0 flex items-center space-x-1 text-xs whitespace-nowrap ${terminalType === 'aviation' ? 'text-gray-400 dark:text-gray-600' : 'text-gray-500 dark:text-gray-400'}`}>
+            <label className={`shrink-0 flex items-center space-x-1 whitespace-nowrap ${compact ? 'text-[11px]' : 'text-xs'} ${terminalType === 'aviation' ? 'text-gray-400 dark:text-gray-600' : 'text-gray-500 dark:text-gray-400'}`}>
               <input
                 type="checkbox"
                 checked={autoWeatherEnabled}

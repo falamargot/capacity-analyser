@@ -51,6 +51,15 @@ export function getStatusCategory(code: string | undefined): SatelliteStatusCate
 }
 
 /**
+ * Type guard for render paths that should only operate on active satellites.
+ */
+export function isOperationalSatellite<T extends { opsStatus: SatelliteStatusCategory }>(
+  satellite: T | null | undefined
+): satellite is T {
+  return satellite?.opsStatus === 'operational';
+}
+
+/**
  * Human-readable label for each status category.
  * Used by the UI legend.
  */

@@ -10,6 +10,7 @@ import type { Aircraft } from '../../modules/airTraffic/airTrafficService';
 import { getCoverageColor } from '../../services/coverageService';
 import { EARTH_RADIUS_KM } from '../../utils/capacityCalculator';
 import { STANDARD_RADIUS_KM } from '../../utils/leoFootprint';
+import { isOperationalSatellite } from '../../utils/satelliteStatus';
 import { useCombGeometry } from './hooks';
 import { calculateDeadReckoning, propagateSatellite } from './utils';
 
@@ -243,6 +244,25 @@ function pickBeamFootprintPoints(
     return pts;
 }
 
+function resolveRenderableCoverageSatellite(
+    selectedSatellite: SatelliteData | null,
+    beamSatellite: SatelliteData | null,
+    selectedBeamFeature: Feature<GeoJsonGeometry, GeoJsonProperties> | null,
+    autoSelectedSatellite: SatelliteData | null,
+    satellites: SatelliteData[]
+): SatelliteData | null {
+    if (selectedSatellite) {
+        if (!isOperationalSatellite(selectedSatellite)) return null;
+        return satellites.find((sat) => sat.id === selectedSatellite.id) ?? selectedSatellite;
+    }
+
+    if (beamSatellite && selectedBeamFeature) {
+        return isOperationalSatellite(beamSatellite) ? beamSatellite : null;
+    }
+
+    return isOperationalSatellite(autoSelectedSatellite) ? autoSelectedSatellite : null;
+}
+
 const AggregatedCoverageVolumeLayer: React.FC<Props> = ({
     selectedSatellite,
     selectedBeamFeature = null,
@@ -265,12 +285,18 @@ const AggregatedCoverageVolumeLayer: React.FC<Props> = ({
     const coverageFeaturesRef = useRef<Feature<GeoJsonGeometry, GeoJsonProperties>[]>([]);
     const getCombGeometriesRef = useRef(getCombGeometries);
     const baseColor = useMemo(() => {
-        const satForColor = selectedSatellite ?? beamSatellite ?? autoSelectedSatellite;
+        const satForColor = resolveRenderableCoverageSatellite(
+            selectedSatellite,
+            beamSatellite,
+            selectedBeamFeature,
+            autoSelectedSatellite,
+            satellites
+        );
         if (!satForColor) return null;
         const typeForColor = (selectedBeamFeature as any)?.properties?.type ?? satForColor.type;
         const colorHex = getCoverageColor(typeForColor, 0.1, satForColor);
         return Color.fromCssColorString(colorHex);
-    }, [selectedSatellite, beamSatellite, autoSelectedSatellite, selectedBeamFeature]);
+    }, [selectedSatellite, beamSatellite, autoSelectedSatellite, selectedBeamFeature, satellites]);
     const baseColorRef = useRef<Color | null>(null);
 
     // Direct ref assignments — safe because these refs are read only inside the
@@ -303,9 +329,13 @@ const AggregatedCoverageVolumeLayer: React.FC<Props> = ({
             // 1) Manual selection (selectedSatellite)
             // 2) Auto beam mode (beamSatellite + selectedBeamFeature)
             // 3) Auto satellite mode (e.g. LEO auto-selected satellite)
-            const sat = selected?.id
-                ? satellitesRef.current.find(s => s.id === selected.id) ?? selected
-                : (beamSat && beamFeature ? beamSat : (autoSat ?? null));
+            const sat = resolveRenderableCoverageSatellite(
+                selected,
+                beamSat,
+                beamFeature,
+                autoSat,
+                satellitesRef.current
+            );
             const currentBaseColor = baseColorRef.current;
             if (!sat || !currentBaseColor) { state.targetAlpha = 0; } else { state.targetAlpha = 0.1; }
             if (now) {

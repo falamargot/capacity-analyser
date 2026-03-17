@@ -61,6 +61,7 @@ import { LabelGraphics } from 'resium';
 import { formatCoordinates } from '../utils/formatters';
 import { GEO_GATEWAYS, SNPS_DATA, type GeoGatewayData, type SNPData } from './globe/GlobeConfig';
 import { getGatewayAssignmentsForSatellite, selectBestGeoGateway } from '../utils/geoConnectivityModel';
+import { isOperationalSatellite } from '../utils/satelliteStatus';
 
 // Module-level constants — allocated once, reused on every render.
 const LABEL_BACKGROUND_PADDING = new Cartesian2(7, 4);
@@ -354,10 +355,10 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
 
     // Determine target satellite for OneWeb comb layer
     const oneWebTargetSat = useMemo(() => {
-        if (selectedSatellite?.type === 'ONEWEB') {
+        if (selectedSatellite?.type === 'ONEWEB' && isOperationalSatellite(selectedSatellite)) {
             return selectedSatellite;
         }
-        if (autoSelectedLEOSatellite?.type === 'ONEWEB') {
+        if (autoSelectedLEOSatellite?.type === 'ONEWEB' && isOperationalSatellite(autoSelectedLEOSatellite)) {
             return autoSelectedLEOSatellite;
         }
         return null;
@@ -697,10 +698,14 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                         candidateCoverages={candidateCoverages}
                         selectedCoverage={selectedCoverage}
                         selectedGeoBeamKey={selectedGeoBeamKey}
-                        manualGeoSatelliteName={selectedSatellite?.type === 'EUTELSAT' ? selectedSatellite.name : null}
+                        manualGeoSatelliteName={
+                            selectedSatellite?.type === 'EUTELSAT' && isOperationalSatellite(selectedSatellite)
+                                ? selectedSatellite.name
+                                : null
+                        }
                     />
 
-                    {/* OneWeb Comb Layer - Always shown for selected satellite */}
+                    {/* OneWeb Comb Layer - Only shown for operational ONEWEB targets */}
                     {/* In ONEWEB_PREMIUM mode: shows coverage circles only (no individual beams) */}
                     {/* In DB_THRESHOLD mode: shows coverage circles + individual beams */}
                     <OneWebCombLayer

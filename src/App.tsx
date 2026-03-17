@@ -54,6 +54,67 @@ const SNPDetails = lazy(() => import('./components/SNPDetails'));
 // LEO satellites move ~0.13°/2 s — always above threshold → always a new object.
 const POSITION_EPSILON_DEG = 0.01;
 const ALTITUDE_EPSILON_KM = 0.5;
+const COMPACT_DESKTOP_DIAG_MIN = Math.hypot(1920, 1080);
+const COMPACT_DESKTOP_DIAG_MAX = Math.hypot(2560, 1440);
+const LEGACY_AUTO_MARKER_REF_DIAG = Math.hypot(1024, 768);
+
+type ViewportSnapshot = {
+  innerWidth: number;
+  innerHeight: number;
+  screenWidth: number;
+  screenHeight: number;
+  effectiveDiag: number;
+};
+
+const clampNumber = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
+
+const lerp = (start: number, end: number, progress: number) => start + (end - start) * progress;
+
+const getViewportSnapshot = (): ViewportSnapshot => {
+  if (typeof window === 'undefined') {
+    const fallbackWidth = 1440;
+    const fallbackHeight = 900;
+    return {
+      innerWidth: fallbackWidth,
+      innerHeight: fallbackHeight,
+      screenWidth: fallbackWidth,
+      screenHeight: fallbackHeight,
+      effectiveDiag: Math.hypot(fallbackWidth, fallbackHeight),
+    };
+  }
+
+  const innerWidth = Math.max(window.innerWidth, 1);
+  const innerHeight = Math.max(window.innerHeight, 1);
+
+  return {
+    innerWidth,
+    innerHeight,
+    screenWidth: Math.max(window.screen.width, 1),
+    screenHeight: Math.max(window.screen.height, 1),
+    effectiveDiag: Math.hypot(innerWidth, innerHeight),
+  };
+};
+
+const getLegacyAutoMarkerScale = (viewportSnapshot: ViewportSnapshot) => {
+  const screenDiag = Math.hypot(viewportSnapshot.screenWidth, viewportSnapshot.screenHeight);
+  const raw = Math.max(screenDiag, 1) / LEGACY_AUTO_MARKER_REF_DIAG;
+  return clampNumber(raw, 0.5, 8);
+};
+
+const getCompactDesktopProgress = (viewportSnapshot: ViewportSnapshot) => {
+  const normalizedDiag = clampNumber(viewportSnapshot.effectiveDiag, COMPACT_DESKTOP_DIAG_MIN, COMPACT_DESKTOP_DIAG_MAX);
+  return 1 - (normalizedDiag - COMPACT_DESKTOP_DIAG_MIN) / (COMPACT_DESKTOP_DIAG_MAX - COMPACT_DESKTOP_DIAG_MIN);
+};
+
+const getResponsiveAutoMarkerScale = (viewportSnapshot: ViewportSnapshot) => {
+  const legacyScale = getLegacyAutoMarkerScale(viewportSnapshot);
+
+  if (viewportSnapshot.innerWidth < 1100) {
+    return legacyScale;
+  }
+
+  return clampNumber(lerp(legacyScale, 0.75, getCompactDesktopProgress(viewportSnapshot)), 0.5, 8);
+};
 
 // Analyzis position for earth-click or aircraft selection
 interface AnalyzisPosition {
@@ -66,11 +127,17 @@ interface AnalyzisPosition {
 
 const App: React.FC = () => {
   const { coveragePolicy, failedSnps, beamHealthFactors, hsBeamsSet, weatherCondition } = useSimulation();
+  const initialViewportSnapshot = getViewportSnapshot();
+  const initialSavedSizeScale = typeof window !== 'undefined'
+    ? parseFloat(localStorage.getItem('globeSizeScale') ?? '')
+    : Number.NaN;
+  const hasInitialSizeScaleOverride = Number.isFinite(initialSavedSizeScale) && initialSavedSizeScale > 0;
   const [searchQuery, setSearchQuery] = useState('');
   const [satellites, setSatellites] = useState<SatelliteData[]>([]);
   const [loading, setLoading] = useState(true);
-  const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' ? window.innerWidth < 1100 : false);
-  const [isPhone, setIsPhone] = useState(() => typeof window !== 'undefined' ? window.innerWidth < 920 : false);
+  const [viewportSnapshot, setViewportSnapshot] = useState<ViewportSnapshot>(initialViewportSnapshot);
+  const [isMobile, setIsMobile] = useState(() => initialViewportSnapshot.innerWidth < 1100);
+  const [isPhone, setIsPhone] = useState(() => initialViewportSnapshot.innerWidth < 920);
   const [selectedPosition, setSelectedPosition] = useState<{ lat: number; lng: number; altitude?: number } | null>(null);
   const [analyzisPosition, setAnalyzisPosition] = useState<AnalyzisPosition | null>(null);
   const [cameraTarget, setCameraTarget] = useState<{ lat: number; lng: number; alt: number } | null>(null);
@@ -96,39 +163,12 @@ const App: React.FC = () => {
   const commandPaletteSearchRef = useRef<HTMLInputElement>(null);
   const helpMenuRef = useRef<HTMLDivElement>(null);
   const targetSourcesMenuRef = useRef<HTMLDivElement>(null);
-  const [sizeScale, setSizeScale] = useState<number>(() => {
-    // Return a previously saved preference if available
-    const saved = parseFloat(localStorage.getItem('globeSizeScale') ?? '');
-   // if (Number.isFinite(saved) && saved > 0) return saved;
-
-    // No saved preference — derive an initial guess from screen characteristics.
-    //
-    // Goal: icons that appear physically comparable across different screens.
-    //
-    // What we know reliably in JS:
-    //   • window.screen.width/height — CSS px dimensions of the display
-    //     (browsers report CSS pixels, already accounting for OS display scaling)
-    //   • window.devicePixelRatio — physical pixels per CSS px
-    //     (handled elsewhere via Cesium resolutionScale + DPR_FACTOR)
-    //
-    // Heuristic: use the CSS-pixel diagonal of the screen, normalised against a
-    // 1920×1080 reference (standard Full HD at 100 % OS scaling).
-    // Smaller screens → their diagonal is shorter → we scale icons UP so they
-    // remain proportionally visible and clickable.
-    //
-    // Example results (unrounded):
-    //   1440×900  (13" Air, DPR=1) → 2203/1698 ≈ 1.30×
-    //   1536×864  (15" Win, DPR=1.25 "125 %") → 2203/1791 ≈ 1.23×
-    //   1920×1080 (15" Win, DPR=1   "100 %") → 1.00×   ← reference
-    //   2560×1440 (27" 1440p, DPR=1) → 2203/2935 ≈ 0.75×
-    //
-    // Clamped to [0.5, 2.5] and rounded to the nearest slider step (0.25).
-    const refDiag = Math.sqrt(1024 ** 2 + 768 ** 2); // ≈ 1228 CSS px
-    const screenDiag = Math.sqrt(window.screen.width ** 2 + window.screen.height ** 2); // CSS pixels
-    const raw = Math.max(screenDiag, 1) / refDiag;
-    const clamped = Math.max(0.5, Math.min(8, raw));
-    return Math.round(clamped / 0.25) * 0.25; // snap to slider step
-  });
+  const [sizeScale, setSizeScale] = useState<number>(() => (
+    hasInitialSizeScaleOverride
+      ? initialSavedSizeScale
+      : getResponsiveAutoMarkerScale(initialViewportSnapshot)
+  ));
+  const [isSizeScaleUserOverridden, setIsSizeScaleUserOverridden] = useState(hasInitialSizeScaleOverride);
   const [splashDone, setSplashDone] = useState(false);
   const [mobileSheetSnap, setMobileSheetSnap] = useState<0 | 1 | 2>(0);
   const [isSatelliteModalOpen, setIsSatelliteModalOpen] = useState(false);
@@ -177,12 +217,21 @@ const App: React.FC = () => {
 
   useEffect(() => {
     const handleResize = () => {
-      setIsMobile(window.innerWidth < 1100);
-      setIsPhone(window.innerWidth < 920);
+      const nextViewportSnapshot = getViewportSnapshot();
+      setViewportSnapshot(nextViewportSnapshot);
+      setIsMobile(nextViewportSnapshot.innerWidth < 1100);
+      setIsPhone(nextViewportSnapshot.innerWidth < 920);
     };
+
+    handleResize();
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+
+  useEffect(() => {
+    if (isSizeScaleUserOverridden) return;
+    setSizeScale(getResponsiveAutoMarkerScale(viewportSnapshot));
+  }, [isSizeScaleUserOverridden, viewportSnapshot]);
 
   useEffect(() => {
     if (isPhone && isFullscreen) {
@@ -1238,7 +1287,11 @@ const App: React.FC = () => {
     showSatelliteTrajectory,
     sizeScale,
     onToggleSatelliteTrajectory: () => setShowSatelliteTrajectory(!showSatelliteTrajectory),
-    onSizeScaleChange: (v: number) => { setSizeScale(v); localStorage.setItem('globeSizeScale', String(v)); },
+    onSizeScaleChange: (v: number) => {
+      setSizeScale(v);
+      setIsSizeScaleUserOverridden(true);
+      localStorage.setItem('globeSizeScale', String(v));
+    },
     inspectedSNP,
     snpConnectedSatellites,
   }), [
@@ -1382,11 +1435,16 @@ const App: React.FC = () => {
 
   const entryPointCardClassName = 'group relative overflow-hidden rounded-[20px] border border-slate-200/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.94),rgba(248,250,252,0.84))] p-3.5 shadow-[0_16px_34px_-30px_rgba(15,23,42,0.7)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_22px_46px_-30px_rgba(37,99,235,0.28)] dark:border-slate-700 dark:bg-[linear-gradient(180deg,rgba(15,23,42,0.78),rgba(15,23,42,0.62))]';
   const entryPointDescriptionClassName = 'mt-0.5 truncate text-[11px] leading-4 text-slate-500 dark:text-slate-400';
+  const desktopCompactProgress = isMobile ? 0 : getCompactDesktopProgress(viewportSnapshot);
+  const useCompactDesktopSidebar = desktopCompactProgress >= 0.35;
+  const useCompactDesktopHeader = desktopCompactProgress >= 0.2;
+  const desktopSidebarWidth = Math.round(lerp(500, 405, desktopCompactProgress));
+  const desktopLayoutGap = Math.round(lerp(32, 20, desktopCompactProgress));
 
   return (
     <div className="min-h-screen bg-white dark:bg-slate-950 transition-colors duration-300">
       <header className="bg-white dark:bg-slate-900 shadow-sm transition-colors duration-300">
-        <div className="max-w-[1920px] mx-auto px-2 py-0 md:py-4 sm:px-4 lg:px-8">
+        <div className={`max-w-[1920px] mx-auto px-2 py-0 sm:px-4 lg:px-8 ${useCompactDesktopHeader ? 'md:py-3' : 'md:py-4'}`}>
           {isMobile ? (
             isPhone ? (
               <div className="h-14 flex items-center justify-between gap-3">
@@ -1441,17 +1499,17 @@ const App: React.FC = () => {
               </div>
             )
           ) : (
-            <div className="flex items-center justify-between gap-6">
+            <div className={`flex items-center justify-between ${useCompactDesktopHeader ? 'gap-4' : 'gap-6'}`}>
               <div className="flex shrink-0 items-center">
-                <Satellite className="h-8 w-8 text-blue-600" />
-                <h1 className="ml-2 text-2xl font-bold text-gray-900 dark:text-gray-100">ETL Capacity Analyzer</h1>
+                <Satellite className={`${useCompactDesktopHeader ? 'h-7 w-7' : 'h-8 w-8'} text-blue-600`} />
+                <h1 className={`ml-2 font-bold text-gray-900 dark:text-gray-100 ${useCompactDesktopHeader ? 'text-xl' : 'text-2xl'}`}>ETL Capacity Analyzer</h1>
               </div>
 
               <div className="min-w-0 flex-1">
-                <div className="mx-auto w-full max-w-[860px]">
+                <div className={`mx-auto w-full ${useCompactDesktopHeader ? 'max-w-[760px]' : 'max-w-[860px]'}`}>
                   <div className="relative flex items-center rounded-[26px] border border-slate-200/80 bg-[linear-gradient(135deg,rgba(255,255,255,0.98),rgba(248,250,252,0.92))] p-1.5 shadow-[0_24px_55px_-34px_rgba(15,23,42,0.42)] ring-1 ring-white/60 dark:border-slate-700 dark:bg-[linear-gradient(135deg,rgba(15,23,42,0.98),rgba(30,41,59,0.92))] dark:ring-slate-700/60">
                     <div className="relative min-w-0 flex-1">
-                      <Search className="pointer-events-none absolute left-5 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400 dark:text-slate-500" />
+                      <Search className={`pointer-events-none absolute top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 ${useCompactDesktopHeader ? 'left-4 h-4 w-4' : 'left-5 h-5 w-5'}`} />
                       <input
                         ref={commandPaletteSearchRef}
                         type="text"
@@ -1459,26 +1517,26 @@ const App: React.FC = () => {
                         onFocus={handleDesktopTargetSearchFocus}
                         onChange={(event) => handleDesktopTargetSearchChange(event.target.value)}
                         placeholder="Search target or location"
-                        className="h-14 w-full rounded-[20px] bg-transparent pl-14 pr-5 text-base font-medium text-slate-900 outline-none placeholder:text-slate-400 dark:text-slate-50 dark:placeholder:text-slate-500"
+                        className={`w-full rounded-[20px] bg-transparent pr-5 font-medium text-slate-900 outline-none placeholder:text-slate-400 dark:text-slate-50 dark:placeholder:text-slate-500 ${useCompactDesktopHeader ? 'h-12 pl-12 text-[15px]' : 'h-14 pl-14 text-base'}`}
                       />
                     </div>
 
-                    <div className="mx-1 h-9 w-px shrink-0 bg-slate-200 dark:bg-slate-700" />
+                    <div className={`mx-1 w-px shrink-0 bg-slate-200 dark:bg-slate-700 ${useCompactDesktopHeader ? 'h-8' : 'h-9'}`} />
 
                     <div className="relative shrink-0" ref={targetSourcesMenuRef}>
                       <button
                         type="button"
                         onClick={handleToggleTargetSourcesMenu}
-                        className={`inline-flex h-12 w-12 items-center justify-center rounded-[18px] border text-sm font-semibold shadow-sm transition-colors ${
+                        className={`inline-flex items-center justify-center rounded-[18px] border text-sm font-semibold shadow-sm transition-colors ${
                           isTargetSourcesMenuOpen
                             ? 'border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-500/30 dark:bg-blue-500/15 dark:text-blue-200'
                             : 'border-white/70 bg-white/88 text-slate-700 hover:bg-white dark:border-slate-700 dark:bg-slate-800/88 dark:text-slate-200 dark:hover:bg-slate-800'
-                        }`}
+                        } ${useCompactDesktopHeader ? 'h-10 w-10' : 'h-12 w-12'}`}
                         aria-expanded={isTargetSourcesMenuOpen}
                         aria-label="Open target selection"
                         title="Open target selection"
                       >
-                        <Waypoints className="h-4 w-4" />
+                        <Waypoints className={useCompactDesktopHeader ? 'h-3.5 w-3.5' : 'h-4 w-4'} />
                       </button>
 
                       {isTargetSourcesMenuOpen && (
@@ -1711,8 +1769,8 @@ const App: React.FC = () => {
                 </div>
               </div>
 
-              <div className="flex shrink-0 items-center gap-3">
-                <div className="flex items-center gap-2 p-1 bg-gray-50 dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700">
+              <div className={`flex shrink-0 items-center ${useCompactDesktopHeader ? 'gap-2' : 'gap-3'}`}>
+                <div className={`flex items-center rounded-lg border border-gray-200 bg-gray-50 dark:border-slate-700 dark:bg-slate-800 ${useCompactDesktopHeader ? 'gap-1.5 p-0.5' : 'gap-2 p-1'}`}>
                   <SatelliteScopeFilter
                     currentScope={satelliteScope}
                     onScopeChange={handleSatelliteScopeChange}
@@ -1726,12 +1784,12 @@ const App: React.FC = () => {
                   <button
                     type="button"
                     onClick={handleToggleHelpMenu}
-                    className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-gray-200 bg-gray-50 text-slate-600 transition-colors hover:bg-white hover:text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700 dark:hover:text-slate-100"
+                    className={`inline-flex items-center justify-center rounded-xl border border-gray-200 bg-gray-50 text-slate-600 transition-colors hover:bg-white hover:text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700 dark:hover:text-slate-100 ${useCompactDesktopHeader ? 'h-10 w-10' : 'h-11 w-11'}`}
                     aria-label="Open keyboard shortcuts help"
                     aria-expanded={isHelpMenuOpen}
                     title="Keyboard shortcuts"
                   >
-                    <Keyboard className="h-5 w-5" />
+                    <Keyboard className={useCompactDesktopHeader ? 'h-[18px] w-[18px]' : 'h-5 w-5'} />
                   </button>
 
                   {isHelpMenuOpen && (
@@ -1922,7 +1980,7 @@ const App: React.FC = () => {
         </main>
       ) : (
         <main className="px-4 py-6 sm:px-6 lg:px-8">
-          <div className={`flex flex-row gap-8 h-[calc(100vh-8rem)]`}>
+          <div className="flex h-[calc(100vh-8rem)] flex-row" style={{ gap: desktopLayoutGap }}>
             <div
               className={`flex-1 relative bg-white rounded-lg shadow-lg overflow-hidden transition-all duration-300 ${isFullscreen ? 'fixed inset-0 z-50' : ''}`}
             >
@@ -1931,8 +1989,10 @@ const App: React.FC = () => {
               <SatelliteStatusLegend />
             </div>
 
-
-            <div className={`flex-shrink-0 w-[500px] overflow-hidden rounded-[24px] border border-slate-200/80 bg-[linear-gradient(180deg,rgba(248,250,252,0.98),rgba(255,255,255,0.96))] shadow-[0_30px_70px_-35px_rgba(15,23,42,0.45)] dark:border-slate-800 dark:bg-[linear-gradient(180deg,rgba(15,23,42,0.98),rgba(2,6,23,0.98))] flex flex-col ${isFullscreen ? 'hidden' : ''}`}>
+            <div
+              className={`flex-shrink-0 overflow-hidden rounded-[24px] border border-slate-200/80 bg-[linear-gradient(180deg,rgba(248,250,252,0.98),rgba(255,255,255,0.96))] shadow-[0_30px_70px_-35px_rgba(15,23,42,0.45)] dark:border-slate-800 dark:bg-[linear-gradient(180deg,rgba(15,23,42,0.98),rgba(2,6,23,0.98))] flex flex-col ${isFullscreen ? 'hidden' : ''}`}
+              style={{ width: desktopSidebarWidth }}
+            >
               {!isFullscreen && (
                 <>
                   <SidebarHeroCard
@@ -1941,15 +2001,17 @@ const App: React.FC = () => {
                     subtitle={desktopSidebarHero.subtitle}
                     tone={desktopSidebarHero.tone}
                     badges={desktopSidebarHero.badges}
+                    compact={useCompactDesktopSidebar}
                     onReset={handleResetView}
                   />
 
-                  <div className="flex-1 min-h-0 overflow-y-auto px-3 pb-3">
+                  <div className={`flex-1 min-h-0 overflow-y-auto ${useCompactDesktopSidebar ? 'px-2.5 pb-2.5' : 'px-3 pb-3'}`}>
                     <Suspense fallback={panelFallback}>
                       {selectedGateway ? (
                         <GatewayDetails
                           gateway={selectedGateway}
                           satellites={satellites}
+                          compactDesktop={useCompactDesktopSidebar}
                           externalHeader
                         />
                       ) : inspectedSNP ? (
@@ -1957,6 +2019,7 @@ const App: React.FC = () => {
                           snp={inspectedSNP}
                           connectedSatellites={snpConnectedSatellites}
                           onSatelliteClick={handleSatelliteClick}
+                          compactDesktop={useCompactDesktopSidebar}
                           externalHeader
                         />
                       ) : (
@@ -1981,6 +2044,7 @@ const App: React.FC = () => {
                           onSelectGeoCoverage={handleSelectGeoCoverage}
                           onSelectGeoBeam={handleSelectGeoBeam}
                           onSnpClick={handleSnpClick}
+                          compactDesktop={useCompactDesktopSidebar}
                           externalHeader
                           globeRef={globeContainerRef}
                           cesiumViewerRef={viewerRef}

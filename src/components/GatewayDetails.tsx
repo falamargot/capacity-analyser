@@ -7,30 +7,31 @@ import { getAssignedGeoSatellitesForGateway } from '../utils/geoConnectivityMode
 interface GatewayDetailsProps {
   gateway: GeoGatewayData;
   satellites: SatelliteData[];
+  compactDesktop?: boolean;
   externalHeader?: boolean;
 }
 
-const GatewayDetails = memo<GatewayDetailsProps>(({ gateway, satellites, externalHeader = false }) => {
+const GatewayDetails = memo<GatewayDetailsProps>(({ gateway, satellites, compactDesktop = false, externalHeader = false }) => {
   const assignedGeoSatellites = useMemo(() => {
     return getAssignedGeoSatellitesForGateway(gateway, satellites, GEO_GATEWAYS);
   }, [gateway.name, satellites]);
 
   return (
     <div className="h-full overflow-hidden rounded-lg bg-white shadow-lg transition-colors duration-300 dark:bg-slate-900">
-      <div className="flex h-full flex-col overflow-y-auto p-4">
-        <div className="space-y-4">
+      <div className={`flex h-full flex-col overflow-y-auto ${compactDesktop ? 'p-3.5' : 'p-4'}`}>
+        <div className={compactDesktop ? 'space-y-3.5' : 'space-y-4'}>
           {!externalHeader && (
             <div className="mb-4 flex items-center justify-between border-b border-gray-200 pb-4 dark:border-slate-700">
               <div className="flex items-center space-x-3">
                 <div className="h-3 w-3 rounded-full bg-cyan-500 shadow-lg shadow-cyan-400/50" />
                 <div>
-                  <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Gateway Details</h2>
+                  <h2 className={`font-bold text-gray-900 dark:text-gray-100 ${compactDesktop ? 'text-xl' : 'text-2xl'}`}>Gateway Details</h2>
                   <p className="text-sm text-gray-500 dark:text-gray-400">
                     {gateway.name} · {gateway.region}
                   </p>
                 </div>
               </div>
-              <span className="rounded-full bg-cyan-100 px-3 py-1 text-sm font-medium text-cyan-800 dark:bg-cyan-500/15 dark:text-cyan-200">
+              <span className={`rounded-full bg-cyan-100 font-medium text-cyan-800 dark:bg-cyan-500/15 dark:text-cyan-200 ${compactDesktop ? 'px-2.5 py-0.5 text-xs' : 'px-3 py-1 text-sm'}`}>
                 GEO Gateway
               </span>
             </div>

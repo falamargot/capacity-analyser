@@ -10,10 +10,11 @@ interface SNPDetailsProps {
   snp: SNPData;
   connectedSatellites: SNPConnectedSatellite[];
   onSatelliteClick?: (satellite: SatelliteData) => void;
+  compactDesktop?: boolean;
   externalHeader?: boolean;
 }
 
-const SNPDetails = memo<SNPDetailsProps>(({ snp, connectedSatellites, onSatelliteClick, externalHeader = false }) => {
+const SNPDetails = memo<SNPDetailsProps>(({ snp, connectedSatellites, onSatelliteClick, compactDesktop = false, externalHeader = false }) => {
   const { failedSnps, toggleSnpFailure } = useSimulation();
   const isFailed = failedSnps.has(snp.name);
 
@@ -29,8 +30,8 @@ const SNPDetails = memo<SNPDetailsProps>(({ snp, connectedSatellites, onSatellit
 
   return (
     <div className="h-full bg-white dark:bg-slate-900 rounded-lg shadow-lg overflow-hidden flex flex-col transition-colors duration-300">
-      <div className="p-4 flex flex-col h-full overflow-y-auto">
-        <div className="space-y-4">
+      <div className={`flex h-full flex-col overflow-y-auto ${compactDesktop ? 'p-3.5' : 'p-4'}`}>
+        <div className={compactDesktop ? 'space-y-3.5' : 'space-y-4'}>
 
           {/* Header — same structure as SatelliteDetails */}
           {!externalHeader && (
@@ -38,11 +39,11 @@ const SNPDetails = memo<SNPDetailsProps>(({ snp, connectedSatellites, onSatellit
               <div className="flex items-center space-x-3">
                 <div className="w-3 h-3 rounded-full bg-[#FFA500] shadow-lg shadow-orange-400/50" style={{ animation: 'pulse 2s cubic-bezier(0.4,0,0.6,1) infinite' }} />
                 <div>
-                  <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">SNP Details</h2>
+                  <h2 className={`font-bold text-gray-900 dark:text-gray-100 ${compactDesktop ? 'text-xl' : 'text-2xl'}`}>SNP Details</h2>
                   <p className="text-sm text-gray-500 dark:text-gray-400">{snp.name} · {snp.region}</p>
                 </div>
               </div>
-              <span className={`px-3 py-1 rounded-full text-sm font-medium ${
+              <span className={`rounded-full font-medium ${compactDesktop ? 'px-2.5 py-0.5 text-xs' : 'px-3 py-1 text-sm'} ${
                 isFailed
                   ? 'bg-red-100 dark:bg-red-900/40 text-red-800 dark:text-red-200'
                   : 'bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-200'

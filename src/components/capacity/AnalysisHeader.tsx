@@ -7,6 +7,7 @@ interface AnalysisHeaderProps {
   analysisSource?: 'earth' | 'aircraft';
   aircraftCallsign?: string;
   nearestLocation: { city: string; country: string } | null;
+  compact?: boolean;
 }
 
 const AnalysisHeader = memo<AnalysisHeaderProps>(({
@@ -15,14 +16,15 @@ const AnalysisHeader = memo<AnalysisHeaderProps>(({
   analysisSource,
   aircraftCallsign,
   nearestLocation,
+  compact = false,
 }) => (
   <div className="flex-none">
     <div className="flex items-center justify-between mb-2">
       <div className="min-w-0">
-        <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-100 break-words">
+        <h2 className={`font-bold break-words text-gray-800 dark:text-gray-100 ${compact ? 'text-xl' : 'text-2xl'}`}>
           Capacity Analysis
           {activePoint && (
-            <span className="mt-1 block text-base font-semibold text-gray-500 dark:text-gray-400 sm:ml-2 sm:mt-0 sm:inline sm:text-lg">
+            <span className={`mt-1 block font-semibold text-gray-500 dark:text-gray-400 sm:ml-2 sm:mt-0 sm:inline ${compact ? 'text-sm sm:text-base' : 'text-base sm:text-lg'}`}>
               {selectedSNP
                 ? `at ${selectedSNP.name}`
                 : `at (${formatCoordinates({ lat: activePoint.lat, lng: activePoint.lng })})`}
