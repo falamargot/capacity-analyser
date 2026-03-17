@@ -9,7 +9,6 @@ import {
     Viewer as CesiumViewerType
 } from 'cesium';
 import {
-    Expand,
     Globe,
     Map,
     Minus,
@@ -314,7 +313,7 @@ const GlobeControls: React.FC<GlobeControlsProps> = ({
 
     return (
         <div className="absolute right-3 top-3 z-10 flex flex-col items-end gap-2">
-            <div className={`rounded-[20px] p-1.5 ${CONTROL_SURFACE_CLASS_NAME}`}>
+            <div className={`relative rounded-[20px] p-1.5 ${CONTROL_SURFACE_CLASS_NAME} ${isMapOptionsOpen ? 'z-20' : ''}`}>
                 <div className={`flex items-center ${isPhone ? 'gap-1.5' : 'gap-1.5'}`} ref={popoverRef}>
                     {onSceneModeChange && (
                         <ControlButton
@@ -344,7 +343,7 @@ const GlobeControls: React.FC<GlobeControlsProps> = ({
                         {isMapOptionsOpen && (
                             <div
                                 id={popoverId}
-                                className={`absolute right-0 top-full mt-2 w-[320px] max-w-[calc(100vw-2rem)] overflow-hidden rounded-[24px] border border-white/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,250,252,0.96))] p-3 shadow-[0_32px_70px_-34px_rgba(15,23,42,0.7)] ring-1 ring-slate-200/70 backdrop-blur-xl dark:border-slate-700/80 dark:bg-[linear-gradient(180deg,rgba(15,23,42,0.98),rgba(2,6,23,0.96))] dark:ring-slate-700/80`}
+                                className={`absolute right-0 top-full z-30 mt-2 w-[320px] max-w-[calc(100vw-2rem)] overflow-hidden rounded-[24px] border border-white/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,250,252,0.96))] p-3 shadow-[0_32px_70px_-34px_rgba(15,23,42,0.7)] ring-1 ring-slate-200/70 backdrop-blur-xl dark:border-slate-700/80 dark:bg-[linear-gradient(180deg,rgba(15,23,42,0.98),rgba(2,6,23,0.96))] dark:ring-slate-700/80`}
                                 role="dialog"
                                 aria-label="Display controls"
                             >
@@ -353,9 +352,6 @@ const GlobeControls: React.FC<GlobeControlsProps> = ({
                                     <div className="mb-3 flex items-start justify-between gap-3 border-b border-slate-200/80 pb-3 dark:border-slate-700">
                                         <div>
                                             <div className="text-sm font-semibold text-slate-950 dark:text-slate-50">Display Controls</div>
-                                            <div className="mt-1 text-xs leading-4 text-slate-500 dark:text-slate-400">
-                                                Tune the scene without losing context on the globe.
-                                            </div>
                                         </div>
                                         <div className="rounded-full bg-slate-100 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-500 dark:bg-slate-800 dark:text-slate-400">
                                             Live
@@ -366,7 +362,7 @@ const GlobeControls: React.FC<GlobeControlsProps> = ({
                                         <DisplayOptionRow
                                             icon={<SunMedium className="h-4 w-4" />}
                                             label="Sun Light"
-                                            description="Add solar shading for more depth and realism."
+                                            description="Add solar shading."
                                             enabled={!!enableLighting}
                                             onClick={() => onToggleLighting?.()}
                                             shortcut="L"
@@ -377,7 +373,7 @@ const GlobeControls: React.FC<GlobeControlsProps> = ({
                                         <DisplayOptionRow
                                             icon={<Orbit className="h-4 w-4" />}
                                             label="Trajectory"
-                                            description="Reveal the selected satellite orbit path."
+                                            description="Show the selected orbit."
                                             enabled={!!showSatelliteTrajectory}
                                             onClick={() => onToggleSatelliteTrajectory?.()}
                                             shortcut="T"
@@ -389,7 +385,7 @@ const GlobeControls: React.FC<GlobeControlsProps> = ({
                                             <DisplayOptionRow
                                                 icon={<Waves className="h-4 w-4" />}
                                                 label="Connectivity Envelope"
-                                                description={aggregatedConnectivityDisabled ? 'Available in GEO or LEO scope only.' : 'Show the aggregated feasibility layer.'}
+                                                description={aggregatedConnectivityDisabled ? 'Only in GEO or LEO scope.' : 'Show the feasibility layer.'}
                                                 enabled={!aggregatedConnectivityDisabled && !!showAggregatedConnectivity}
                                                 onClick={() => {
                                                     if (!aggregatedConnectivityDisabled) {
@@ -408,7 +404,7 @@ const GlobeControls: React.FC<GlobeControlsProps> = ({
                                             <div>
                                                 <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">Marker Scale</div>
                                                 <div className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
-                                                    Satellites, stations, and position markers.
+                                                    Scale all markers.
                                                 </div>
                                             </div>
                                             <div className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-700 dark:bg-slate-800 dark:text-slate-200">
@@ -427,27 +423,13 @@ const GlobeControls: React.FC<GlobeControlsProps> = ({
                                             title="Adjust marker size. Double-click to reset to 1x."
                                             aria-label="Adjust marker size"
                                         />
-                                        <div className="mt-2 flex items-center justify-between text-[10px] font-medium uppercase tracking-[0.16em] text-slate-400 dark:text-slate-500">
-                                            <span>Compact</span>
-                                            <span>Impact</span>
-                                        </div>
                                     </div>
                                 </div>
                             </div>
                         )}
                     </div>
 
-                    {isPhone ? (
-                        <ControlButton
-                            icon={<Expand className="h-4 w-4" />}
-                            label="Expand"
-                            onClick={onToggleFullscreen}
-                            title={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
-                            active={isFullscreen}
-                            accent="emerald"
-                            compact
-                        />
-                    ) : (
+                    {!isPhone && (
                         <FullscreenButton isFullscreen={isFullscreen} onClick={onToggleFullscreen} />
                     )}
                 </div>

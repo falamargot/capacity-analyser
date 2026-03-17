@@ -19,12 +19,69 @@ export interface LocationData {
   name?: string;
 }
 
+export type PDFScope = 'ALL' | 'LEO' | 'GEO';
+
+export interface PDFMetricRow {
+  label: string;
+  value: string;
+}
+
+export interface PDFLatencyDetails {
+  summary?: string;
+  propagationRows: PDFMetricRow[];
+  propagationTotal?: string;
+  overheadRows: PDFMetricRow[];
+  overheadTotal?: string;
+  total?: string;
+  warnings?: string[];
+}
+
+export interface PDFPerformanceDetails {
+  rttLabel: string;
+  rttMs: number | null;
+  downlinkGbps: number | null;
+  uplinkGbps: number | null;
+  maxDlGbps: number;
+  maxUlGbps: number;
+  stability?: string | null;
+  performanceFactor?: number | null;
+  notes?: string[];
+}
+
+export interface PDFConnectionDetails {
+  radioPath: string;
+  routeLines?: string[];
+  oneWayPropagation?: {
+    distanceKm: number | null;
+    latencyMs: number | null;
+  };
+  latency?: PDFLatencyDetails | null;
+  performance?: PDFPerformanceDetails | null;
+  emptyState?: string;
+}
+
+interface CesiumViewerLike {
+  render?: () => void;
+  scene?: {
+    canvas?: HTMLCanvasElement | null;
+  };
+}
+
+interface SnapshotImage {
+  dataUrl: string;
+  width: number;
+  height: number;
+}
+
 export interface PDFExportData {
   location: LocationData;
+  scope: PDFScope;
   leoData: PerformanceData | null;
   geoData: PerformanceData | null;
+  leoDetails?: PDFConnectionDetails | null;
+  geoDetails?: PDFConnectionDetails | null;
   globeElement: HTMLElement | null;
-  cesiumViewer?: any; // Ajouter le viewer Cesium
+  cesiumViewer?: CesiumViewerLike | null;
 }
 
 // Fonction pour générer le nom du fichier
@@ -33,9 +90,22 @@ export function generateFileName(location: LocationData): string {
   return `Capacity_Analysis_${location.lat.toFixed(2)}_${location.lng.toFixed(2)}_${timestamp}.pdf`;
 }
 
+function toPdfSafeText(value: string): string {
+  return value
+    .replaceAll('→', ' -> ')
+    .replaceAll('←', ' <- ')
+    .replaceAll('–', '-')
+    .replaceAll('—', '-')
+    .replaceAll('’', "'")
+    .replaceAll('“', '"')
+    .replaceAll('”', '"')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 // Fonction pour formater les valeurs
 function formatValue(value: number | null | undefined, unit: string = '', precision: number = 2): string {
-  if (value === null || value === undefined || value === 0) return 'N/A';
+  if (value === null || value === undefined || !Number.isFinite(value)) return 'N/A';
   
   // Gérer la précision selon le type de valeur
   let formattedValue: string;
@@ -57,6 +127,108 @@ function formatValue(value: number | null | undefined, unit: string = '', precis
   }
   
   return `${formattedValue}${unit}`;
+}
+
+function formatLocationLabel(location: LocationData): string {
+  const coordinates = `${location.lat.toFixed(2)}, ${location.lng.toFixed(2)}`;
+  return toPdfSafeText(location.name ? `${coordinates} (${location.name})` : coordinates);
+}
+
+function formatScopeLabel(scope: PDFScope): string {
+  if (scope === 'ALL') return 'ALL';
+  return scope;
+}
+
+function addFooter(pdf: jsPDF): void {
+  pdf.setFontSize(8);
+  pdf.setFont('helvetica', 'italic');
+  pdf.text('Capacity Analyzer - Theoretical Analysis Only - Not for Contractual Use', 105, 280, { align: 'center' });
+  pdf.text(`Generated: ${format(new Date(), 'PPpp')}`, 105, 285, { align: 'center' });
+}
+
+function formatThroughput(gbps: number | null | undefined): string {
+  if (gbps == null || !Number.isFinite(gbps)) return 'N/A';
+  if (gbps >= 1) return `${gbps.toFixed(1)} Gbps`;
+  return `${Math.round(gbps * 1000)} Mbps`;
+}
+
+function formatPercent(value: number | null | undefined): string {
+  if (value == null || !Number.isFinite(value)) return 'N/A';
+  return `${Math.round(value * 100)}%`;
+}
+
+function drawTable(
+  pdf: jsPDF,
+  headers: string[],
+  rows: string[][],
+  startY: number
+): number {
+  const tableX = 20;
+  const colWidths = [44, 63, 63];
+  const lineHeight = 4.5;
+  const cellPaddingX = 2.5;
+  const cellPaddingY = 2.5;
+  let currentY = startY;
+
+  const drawRow = (cells: string[], isHeader: boolean) => {
+    pdf.setFont('helvetica', isHeader ? 'bold' : 'normal');
+    pdf.setFontSize(isHeader ? 11 : 9);
+
+    const splitCells = cells.map((cell, index) =>
+      pdf.splitTextToSize(toPdfSafeText(cell), colWidths[index] - cellPaddingX * 2)
+    );
+    const contentHeight = Math.max(...splitCells.map((lines) => lines.length * lineHeight));
+    const rowHeight = Math.max(isHeader ? 10 : 9, contentHeight + cellPaddingY * 2);
+
+    let cellX = tableX;
+    splitCells.forEach((lines, index) => {
+      if (isHeader) {
+        pdf.setFillColor(241, 245, 249);
+        pdf.rect(cellX, currentY, colWidths[index], rowHeight, 'FD');
+      } else {
+        pdf.rect(cellX, currentY, colWidths[index], rowHeight);
+      }
+
+      pdf.text(lines, cellX + cellPaddingX, currentY + cellPaddingY + lineHeight - 1);
+      cellX += colWidths[index];
+    });
+
+    currentY += rowHeight;
+  };
+
+  drawRow(headers, true);
+  rows.forEach((row) => drawRow(row, false));
+
+  return currentY;
+}
+
+function getSnapshotCanvas(data: PDFExportData): HTMLCanvasElement | null {
+  const viewerCanvas = data.cesiumViewer?.scene?.canvas;
+  if (viewerCanvas instanceof HTMLCanvasElement) {
+    return viewerCanvas;
+  }
+
+  const domCanvas = data.globeElement?.querySelector('canvas');
+  return domCanvas instanceof HTMLCanvasElement ? domCanvas : null;
+}
+
+async function captureGlobeSnapshot(data: PDFExportData): Promise<SnapshotImage | null> {
+  const canvas = getSnapshotCanvas(data);
+  if (!canvas || canvas.width === 0 || canvas.height === 0) {
+    return null;
+  }
+
+  try {
+    data.cesiumViewer?.render?.();
+    return {
+      dataUrl: canvas.toDataURL('image/png'),
+      width: canvas.width,
+      height: canvas.height,
+    };
+  } catch (error) {
+    console.warn('Unable to capture globe snapshot for PDF export:', error);
+    return null;
+  }
 }
 
 // Fonction pour calculer la recommandation
@@ -82,11 +254,9 @@ function generateRecommendation(leoData: PerformanceData | null, geoData: Perfor
   return 'Analysis complete - Choose based on your specific requirements';
 }
 
-// Page 1: Tableau de comparaison
-function createComparisonPage(pdf: jsPDF, data: PDFExportData): void {
+function createComparisonPage(pdf: jsPDF, data: PDFExportData, snapshot: SnapshotImage | null): void {
   const { location, leoData, geoData } = data;
   
-  // En-tête
   pdf.setFontSize(20);
   pdf.setFont('helvetica', 'bold');
   pdf.text('EUTELSAT CAPACITY ANALYSIS', 105, 20, { align: 'center' });
@@ -94,10 +264,46 @@ function createComparisonPage(pdf: jsPDF, data: PDFExportData): void {
   pdf.setFontSize(10);
   pdf.setFont('helvetica', 'normal');
   pdf.text(`Generated: ${format(new Date(), 'PPpp')}`, 105, 30, { align: 'center' });
-  pdf.text(`Location: ${location.lat.toFixed(2)}, ${location.lng.toFixed(2)}${location.name ? ` (${location.name})` : ''}`, 105, 37, { align: 'center' });
-  
-  // Tableau de comparaison
-  const tableY = 50;
+  pdf.text(`Location: ${formatLocationLabel(location)}`, 105, 37, { align: 'center' });
+  pdf.text(`Scope filter: ${formatScopeLabel(data.scope)}`, 105, 43, { align: 'center' });
+
+  let currentY = 54;
+
+  pdf.setFontSize(12);
+  pdf.setFont('helvetica', 'bold');
+  pdf.text('SCENE SNAPSHOT', 20, currentY);
+
+  currentY += 4;
+  if (snapshot) {
+    const maxWidth = 170;
+    const maxHeight = 88;
+    const scale = Math.min(maxWidth / snapshot.width, maxHeight / snapshot.height);
+    const renderWidth = snapshot.width * scale;
+    const renderHeight = snapshot.height * scale;
+    const imageX = 20 + (maxWidth - renderWidth) / 2;
+    const imageY = currentY + (maxHeight - renderHeight) / 2;
+
+    pdf.setDrawColor(226, 232, 240);
+    pdf.roundedRect(20, currentY, maxWidth, maxHeight, 3, 3);
+    pdf.addImage(snapshot.dataUrl, 'PNG', imageX, imageY, renderWidth, renderHeight, undefined, 'FAST');
+  } else {
+    pdf.setDrawColor(203, 213, 225);
+    pdf.setFillColor(248, 250, 252);
+    pdf.roundedRect(20, currentY, 170, 88, 3, 3, 'FD');
+    pdf.setFontSize(10);
+    pdf.setFont('helvetica', 'italic');
+    pdf.setTextColor(100, 116, 139);
+    pdf.text(toPdfSafeText('Snapshot unavailable for this export.'), 105, currentY + 46, { align: 'center' });
+    pdf.setTextColor(0, 0, 0);
+  }
+
+  currentY += 100;
+
+  pdf.setFontSize(12);
+  pdf.setFont('helvetica', 'bold');
+  pdf.text('COMPARISON SUMMARY', 20, currentY);
+
+  currentY += 5;
   const tableHeaders = ['Metric', 'LEO (OneWeb)', 'GEO (Eutelsat)'];
   const tableData = [
     ['Satellite', leoData?.name || 'N/A', geoData?.name || 'N/A'],
@@ -108,34 +314,9 @@ function createComparisonPage(pdf: jsPDF, data: PDFExportData): void {
     ['Stability', leoData?.stability || 'N/A', geoData?.stability || 'N/A'],
     ['Distance', formatValue(leoData?.distance, ' km'), formatValue(geoData?.distance, ' km')]
   ];
-  
-  // Dessiner le tableau
-  const colWidths = [50, 60, 60];
-  const rowHeight = 8;
-  let currentY = tableY;
-  
-  // En-têtes du tableau
-  pdf.setFontSize(12);
-  pdf.setFont('helvetica', 'bold');
-  tableHeaders.forEach((header, i) => {
-    pdf.text(header, 20 + colWidths.slice(0, i).reduce((a, b) => a + b, 0), currentY);
-  });
-  
-  // Ligne de séparation
-  pdf.line(20, currentY + 3, 170, currentY + 3);
-  currentY += 8;
-  
-  // Données du tableau
-  pdf.setFontSize(10);
-  pdf.setFont('helvetica', 'normal');
-  tableData.forEach(row => {
-    row.forEach((cell, i) => {
-      pdf.text(cell, 20 + colWidths.slice(0, i).reduce((a, b) => a + b, 0), currentY);
-    });
-    currentY += rowHeight;
-  });
-  
-  // Recommandation
+
+  currentY = drawTable(pdf, tableHeaders, tableData, currentY);
+
   currentY += 10;
   pdf.setFontSize(12);
   pdf.setFont('helvetica', 'bold');
@@ -145,62 +326,228 @@ function createComparisonPage(pdf: jsPDF, data: PDFExportData): void {
   pdf.setFontSize(10);
   pdf.setFont('helvetica', 'normal');
   const recommendation = generateRecommendation(leoData, geoData);
-  const lines = pdf.splitTextToSize(recommendation, 150);
+  const lines = pdf.splitTextToSize(toPdfSafeText(recommendation), 150);
   lines.forEach((line: string) => {
     pdf.text(line, 20, currentY);
     currentY += 5;
   });
-  
-  // Détails techniques
-  currentY += 10;
-  pdf.setFontSize(12);
-  pdf.setFont('helvetica', 'bold');
-  pdf.text('TECHNICAL DETAILS:', 20, currentY);
-  
-  currentY += 8;
-  pdf.setFontSize(9);
-  pdf.setFont('helvetica', 'normal');
-  
-  if (leoData) {
-    pdf.text(`LEO Radio Path:`, 20, currentY);
+
+  addFooter(pdf);
+}
+
+function createDetailsPage(pdf: jsPDF, data: PDFExportData): void {
+  pdf.addPage();
+  const pageHeight = pdf.internal.pageSize.getHeight();
+  const bottomLimit = pageHeight - 24;
+  const topStartY = 42;
+  let currentY = topStartY;
+
+  const drawHeader = (continuation = false) => {
+    pdf.setFontSize(18);
+    pdf.setFont('helvetica', 'bold');
+    pdf.text(continuation ? 'ANALYSIS DETAILS (CONT.)' : 'ANALYSIS DETAILS', 20, 20);
+
+    pdf.setFontSize(10);
+    pdf.setFont('helvetica', 'normal');
+    pdf.text(`Location: ${formatLocationLabel(data.location)}`, 20, 30);
+    pdf.text(`Scope filter: ${formatScopeLabel(data.scope)}`, 20, 36);
+    currentY = topStartY;
+  };
+
+  const startNewPage = () => {
+    addFooter(pdf);
+    pdf.addPage();
+    drawHeader(true);
+  };
+
+  const ensureSpace = (heightNeeded: number) => {
+    if (currentY + heightNeeded <= bottomLimit) return;
+    startNewPage();
+  };
+
+  const writeWrappedText = (text: string, x: number, width: number, fontSize = 9, lineHeight = 4.5) => {
+    pdf.setFontSize(fontSize);
+    pdf.setFont('helvetica', 'normal');
+    const lines = pdf.splitTextToSize(toPdfSafeText(text), width);
+    pdf.text(lines, x, currentY);
+    currentY += lines.length * lineHeight;
+  };
+
+  const writeSubheading = (title: string) => {
+    ensureSpace(9);
+    pdf.setFontSize(12);
+    pdf.setFont('helvetica', 'bold');
+    pdf.text(toPdfSafeText(title), 20, currentY);
     currentY += 6;
-    pdf.text(`. ${leoData.radioPath}`, 20, currentY);
-    currentY += 10;
-  }
-  
-  if (geoData) {
-    pdf.text(`GEO Radio Path:`, 20, currentY);
+  };
+
+  const writeMetricRows = (rows: PDFMetricRow[], emphasizeLast = false) => {
+    rows.forEach((row, index) => {
+      ensureSpace(6);
+      const isEmphasized = emphasizeLast && index === rows.length - 1;
+      pdf.setFontSize(9);
+      pdf.setFont('helvetica', isEmphasized ? 'bold' : 'normal');
+      pdf.text(toPdfSafeText(row.label), 24, currentY);
+      pdf.text(toPdfSafeText(row.value), 190, currentY, { align: 'right' });
+      currentY += 5;
+    });
+  };
+
+  const writeParagraphBlock = (title: string, body: string) => {
+    writeSubheading(title);
+    ensureSpace(8);
+    writeWrappedText(body, 24, 166);
+    currentY += 4;
+  };
+
+  const writeRouteLines = (lines: string[]) => {
+    lines.forEach((line) => {
+      ensureSpace(6);
+      writeWrappedText(line, 24, 166);
+    });
+    currentY += 2;
+  };
+
+  const renderConnectionDetails = (title: string, details: PDFConnectionDetails | null | undefined, fallback: string) => {
+    ensureSpace(12);
+    pdf.setFontSize(14);
+    pdf.setFont('helvetica', 'bold');
+    pdf.text(toPdfSafeText(title), 20, currentY);
+    currentY += 8;
+
+    if (!details) {
+      writeWrappedText(fallback, 24, 166);
+      currentY += 6;
+      return;
+    }
+
+    writeParagraphBlock('Radio path', details.radioPath || details.emptyState || fallback);
+
+    if (details.routeLines?.length) {
+      writeSubheading('Path details');
+      writeRouteLines(details.routeLines);
+    }
+
+    if (details.oneWayPropagation) {
+      writeSubheading('One-way propagation');
+      const propagationValue = details.oneWayPropagation.distanceKm != null && details.oneWayPropagation.latencyMs != null
+        ? `${details.oneWayPropagation.distanceKm.toFixed(0)} km (${details.oneWayPropagation.latencyMs.toFixed(1)} ms)`
+        : 'N/A';
+      writeMetricRows([{ label: 'Signal path', value: propagationValue }]);
+      currentY += 3;
+    }
+
+    if (details.latency) {
+      writeSubheading('Latency breakdown');
+      if (details.latency.summary) {
+        writeWrappedText(details.latency.summary, 24, 166);
+        currentY += 3;
+      }
+
+      if (details.latency.propagationRows.length) {
+        ensureSpace(7);
+        pdf.setFontSize(9);
+        pdf.setFont('helvetica', 'bold');
+        pdf.text('RTT propagation components', 24, currentY);
+        currentY += 5;
+        writeMetricRows(details.latency.propagationRows);
+      }
+
+      if (details.latency.propagationTotal) {
+        writeMetricRows([{ label: 'RTT propagation', value: details.latency.propagationTotal }], true);
+      }
+
+      if (details.latency.overheadRows.length) {
+        ensureSpace(7);
+        pdf.setFontSize(9);
+        pdf.setFont('helvetica', 'bold');
+        pdf.text('Network overhead components', 24, currentY);
+        currentY += 5;
+        writeMetricRows(details.latency.overheadRows);
+      }
+
+      if (details.latency.overheadTotal) {
+        writeMetricRows([{ label: 'Network overhead total', value: details.latency.overheadTotal }], true);
+      }
+
+      if (details.latency.total) {
+        writeMetricRows([{ label: 'Estimated RTT total', value: details.latency.total }], true);
+      }
+
+      if (details.latency.warnings?.length) {
+        writeSubheading('Warnings');
+        details.latency.warnings.forEach((warning) => {
+          writeWrappedText(`Warning: ${warning}`, 24, 166);
+        });
+        currentY += 2;
+      }
+    }
+
+    if (details.performance) {
+      writeSubheading('Estimated performance');
+      const performanceRows: PDFMetricRow[] = [
+        { label: details.performance.rttLabel, value: details.performance.rttMs != null ? `${Math.round(details.performance.rttMs)} ms` : 'N/A' },
+        { label: 'Downlink throughput', value: formatThroughput(details.performance.downlinkGbps) },
+        { label: 'Uplink throughput', value: formatThroughput(details.performance.uplinkGbps) },
+        { label: 'Stability', value: details.performance.stability || 'N/A' },
+        { label: 'Terminal max downlink', value: formatThroughput(details.performance.maxDlGbps) },
+        { label: 'Terminal max uplink', value: formatThroughput(details.performance.maxUlGbps) },
+      ];
+
+      if (details.performance.performanceFactor != null) {
+        performanceRows.push({ label: 'Effective performance factor', value: formatPercent(details.performance.performanceFactor) });
+      }
+
+      writeMetricRows(performanceRows);
+
+      if (details.performance.notes?.length) {
+        currentY += 1;
+        details.performance.notes.forEach((note) => {
+          writeWrappedText(note, 24, 166);
+        });
+      }
+    }
+
     currentY += 6;
-    pdf.text(`. ${geoData.radioPath}`, 20, currentY);
-    currentY += 10;
+  };
+
+  drawHeader(false);
+
+  if (data.scope !== 'GEO') {
+    renderConnectionDetails(
+      'LEO CONNECTIVITY',
+      data.leoDetails,
+      'No LEO route was available for the selected analysis point.'
+    );
   }
-  
-  // Footer
-  pdf.setFontSize(8);
-  pdf.setFont('helvetica', 'italic');
-  pdf.text('Capacity Analyzer - Theoretical Analysis Only - Not for Contractual Use', 105, 280, { align: 'center' });
-  pdf.text(`Generated: ${format(new Date(), 'PPpp')}`, 105, 285, { align: 'center' });
+
+  if (data.scope !== 'LEO') {
+    renderConnectionDetails(
+      'GEO CONNECTIVITY',
+      data.geoDetails,
+      'No GEO route was available for the selected analysis point.'
+    );
+  }
+
+  writeParagraphBlock(
+    'Export notes',
+    'Values in this report reflect the current simulated analysis state shown in the application at export time. Throughput, latency, elevation, and stability are theoretical indicators and should not be treated as contractual service guarantees.'
+  );
+
+  addFooter(pdf);
 }
 
 // Fonction principale d'export PDF
 export async function exportToPDF(data: PDFExportData): Promise<void> {
   try {
-    // Créer le PDF
     const pdf = new jsPDF('p', 'mm', 'a4');
-    
-    // Créer la page de résumé (seule page)
-    createComparisonPage(pdf, data);
-  
-    // Footer
-    pdf.setFontSize(8);
-    pdf.setFont('helvetica', 'italic');
-    pdf.text('Capacity Analyzer - Theoretical Analysis Only - Not for Contractual Use', 105, 280, { align: 'center' });
-    pdf.text(`Generated: ${format(new Date(), 'PPpp')}`, 105, 285, { align: 'center' });
-  
-    // Sauvegarder le PDF
+    const snapshot = await captureGlobeSnapshot(data);
+
+    createComparisonPage(pdf, data, snapshot);
+    createDetailsPage(pdf, data);
+
     const fileName = generateFileName(data.location);
     pdf.save(fileName);
-    
   } catch (error) {
     console.error('Error generating PDF:', error);
     throw new Error('Failed to generate PDF');

@@ -1911,6 +1911,8 @@ const App: React.FC = () => {
                       onSelectGeoBeam={handleSelectGeoBeam}
                       onSnpClick={handleSnpClick}
                       onMetricsChange={setMobileMetrics}
+                      globeRef={globeContainerRef}
+                      cesiumViewerRef={viewerRef}
                     />
                   )}
                 </Suspense>
@@ -1980,6 +1982,8 @@ const App: React.FC = () => {
                           onSelectGeoBeam={handleSelectGeoBeam}
                           onSnpClick={handleSnpClick}
                           externalHeader
+                          globeRef={globeContainerRef}
+                          cesiumViewerRef={viewerRef}
                         />
                       )}
                     </Suspense>

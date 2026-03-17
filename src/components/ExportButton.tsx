@@ -1,23 +1,34 @@
 import React, { useState } from 'react';
 import { Download, Loader2 } from 'lucide-react';
-import type { PDFExportData, PerformanceData, LocationData } from '../utils/pdfExport';
-import { log } from '../utils/logger';
+import type {
+  PDFConnectionDetails,
+  PDFExportData,
+  PDFScope,
+  PerformanceData,
+  LocationData,
+} from '../utils/pdfExport';
 
 interface ExportButtonProps {
   location: LocationData | null;
+  scope: PDFScope;
   leoData: PerformanceData | null;
   geoData: PerformanceData | null;
-  globeRef: React.RefObject<HTMLElement | null>;
-  cesiumViewer?: any; // Ajouter le viewer Cesium
+  leoDetails?: PDFConnectionDetails | null;
+  geoDetails?: PDFConnectionDetails | null;
+  globeRef?: React.RefObject<HTMLElement | null>;
+  cesiumViewerRef?: React.RefObject<any>;
   disabled?: boolean;
 }
 
 const ExportButton: React.FC<ExportButtonProps> = ({
   location,
+  scope,
   leoData,
   geoData,
+  leoDetails,
+  geoDetails,
   globeRef,
-  cesiumViewer,
+  cesiumViewerRef,
   disabled = false
 }) => {
   const [isExporting, setIsExporting] = useState(false);
@@ -30,40 +41,19 @@ const ExportButton: React.FC<ExportButtonProps> = ({
     setError(null);
 
     try {
-      // Débogage: vérifier la référence globe
-      log('Globe ref:', globeRef);
-      log('Globe current:', globeRef?.current);
-      
-      if (globeRef?.current) {
-        log('Globe element found:', globeRef.current);
-        log('Globe element children:', globeRef.current.children.length);
-        log('Looking for canvas...');
-        
-        const canvas = globeRef.current.querySelector('canvas');
-        log('Canvas found:', canvas);
-        if (canvas) {
-          log('Canvas dimensions:', canvas.width, 'x', canvas.height);
-        }
-      } else {
-        log('No globe element found');
-      }
-
-      // Préparer les données pour l'export
       const exportData: PDFExportData = {
         location,
+        scope,
         leoData,
         geoData,
-        globeElement: globeRef.current || null,
-        cesiumViewer: cesiumViewer
+        leoDetails,
+        geoDetails,
+        globeElement: globeRef?.current || null,
+        cesiumViewer: cesiumViewerRef?.current
       };
 
-      // Exporter le PDF
       const { exportToPDF } = await import('../utils/pdfExport');
       await exportToPDF(exportData);
-
-      // Succès
-      log('PDF exported successfully');
-      
     } catch (err) {
       console.error('Export failed:', err);
       setError(err instanceof Error ? err.message : 'Export failed');
