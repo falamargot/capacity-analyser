@@ -7,6 +7,7 @@ import CollapsibleSection from '../layout/CollapsibleSection';
 import { SPEED_OF_LIGHT_RADIO_KM_S } from '../../utils/capacityCalculator';
 import {
   getCorridorIndex, getCorridorRange, getDcThroughputScale, CORRIDOR_COUNT,
+  computeEffectiveThroughput,
 } from '../../contexts/SimulationContext';
 import type { SatelliteData } from '../../types/satellites';
 import type { BeamHealthData, WeatherCondition } from '../../utils/realisticSimulation';
@@ -141,6 +142,11 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
 }) => {
   const [isPolarSupplyPlanOpen, setIsPolarSupplyPlanOpen] = useState(false);
 
+  // Derive current corridor DC level once so it's available throughout the component
+  const currentCorridor = getCorridorIndex(activePoint?.lng ?? 0);
+  const currentDc = corridorDcLevels[currentCorridor] ?? 16;
+  const dcLoadFactor = Math.pow(currentDc / 16, 1.2); // matches computeEffectiveThroughput gamma=1.2
+
   const userLabel = analysisSource === 'aircraft' && aircraftCallsign ? aircraftCallsign : 'User';
 
   return (
@@ -250,6 +256,7 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
             weatherCondition={weatherCondition}
             beamHealthFactors={beamHealthFactors}
             maxDlMbps={TERMINAL_PROFILES[terminalType].maxDlGbps * 1000}
+            dcLevel={currentDc}
           />
         )}
 
@@ -261,17 +268,46 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
           defaultOpen={true}
         >
           {leoPerformance ? (
-            <PerformancePanel
-              rtt={mobileLeoMetrics?.rtt ?? null}
-              downlinkGbps={mobileLeoMetrics?.downlinkGbps ?? null}
-              uplinkGbps={mobileLeoMetrics?.uplinkGbps ?? null}
-              maxDlGbps={TERMINAL_PROFILES[terminalType].maxDlGbps}
-              maxUlGbps={TERMINAL_PROFILES[terminalType].maxUlGbps}
-              performanceFactor={leoPerformance.performanceFactor * currentCorridorDcScale}
-              accentColor="#db2777"
-              rttMaxMs={RTT_VISUAL_SCALE_MAX_MS}
-              rttLabel="End-to-End LEO RTT"
-            />
+            <>
+              <PerformancePanel
+                rtt={mobileLeoMetrics?.rtt ?? null}
+                downlinkGbps={mobileLeoMetrics?.downlinkGbps ?? null}
+                uplinkGbps={mobileLeoMetrics?.uplinkGbps ?? null}
+                maxDlGbps={TERMINAL_PROFILES[terminalType].maxDlGbps}
+                maxUlGbps={TERMINAL_PROFILES[terminalType].maxUlGbps}
+                performanceFactor={leoPerformance.performanceFactor * dcLoadFactor}
+                accentColor="#db2777"
+                rttMaxMs={RTT_VISUAL_SCALE_MAX_MS}
+                rttLabel="End-to-End LEO RTT"
+              />
+              {/* DC capacity breakdown — only shown when DC is below maximum */}
+              {currentDc < 16 && mobileLeoMetrics && (
+                <div className="mt-3 rounded-md border border-pink-200 dark:border-pink-900/40 bg-pink-50 dark:bg-pink-950/20 px-3 py-2 text-xs space-y-1">
+                  <div className="font-semibold text-pink-700 dark:text-pink-400 mb-1 flex items-center gap-1">
+                    Network capacity breakdown
+                    <SectionTooltip content="DC represents the available capacity share due to network load and scheduling. The RF capacity is the theoretical maximum based on link geometry. The effective throughput applies a non-linear congestion penalty: effective = RF × (DC/16)^1.2." />
+                  </div>
+                  <div className="flex justify-between text-gray-600 dark:text-gray-400">
+                    <span>RF capacity (link budget)</span>
+                    <span className="font-medium text-gray-800 dark:text-gray-200">
+                      {(leoPerformance.downlinkGbps * 1000).toFixed(0)} Mbps
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-gray-600 dark:text-gray-400">
+                    <span>Network load (DC{currentDc})</span>
+                    <span className="font-medium text-amber-700 dark:text-amber-400">
+                      {Math.round(dcLoadFactor * 100)}%
+                    </span>
+                  </div>
+                  <div className="flex justify-between border-t border-pink-200 dark:border-pink-900/40 pt-1 font-semibold text-gray-800 dark:text-gray-100">
+                    <span>Effective throughput</span>
+                    <span className="text-pink-600 dark:text-pink-400">
+                      {computeEffectiveThroughput({ rfCapacity: leoPerformance.downlinkGbps * 1000, dcLevel: currentDc }).toFixed(0)} Mbps
+                    </span>
+                  </div>
+                </div>
+              )}
+            </>
           ) : resolvedLEOConnectivity ? (
             <PerformancePanel
               rtt={null}
@@ -296,9 +332,6 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
 
         {/* Polar Corridor Supply Plan (DC) */}
         {(() => {
-          const userLng = activePoint?.lng ?? 0;
-          const currentCorridor = getCorridorIndex(userLng);
-          const currentDc = corridorDcLevels[currentCorridor] ?? 16;
           const dcScale = getDcThroughputScale(currentDc);
           const [west, east] = getCorridorRange(currentCorridor);
 
@@ -313,7 +346,7 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
                 <div className="min-w-0">
                   <h4 className="text-sm font-semibold flex items-center" style={{ color: '#db2777' }}>
                     Polar Corridor Supply Plan (DC)
-                    <SectionTooltip content="Duty Cycle allocation per 20° longitude corridor for polar orbit coverage. DC1 = 6.25% throughput, DC16 = 100% (full power). Adjust per corridor to simulate satellite power management or beam congestion scenarios." />
+                    <SectionTooltip content="DC represents the available capacity share due to network load and scheduling. DC16 = full allocation (100%). Low DC applies a non-linear congestion penalty to both throughput and queueing latency: effective = RF × (DC/16)^1.2." />
                   </h4>
                   <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
                     Current corridor: {west}° → {east}° · DC{currentDc} · {Math.round(dcScale * 100)}% throughput
@@ -387,7 +420,7 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
 
                   {currentDc < 16 && (
                     <div className="mt-2 text-[11px] text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 rounded p-2">
-                      Power saving active in this corridor. Beam throughput is capped at {Math.round(dcScale * 100)}% of nominal.
+                      Network load reduced in this corridor. Effective throughput is {Math.round(dcLoadFactor * 100)}% of RF capacity (non-linear DC penalty applied).
                     </div>
                   )}
                 </div>

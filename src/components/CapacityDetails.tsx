@@ -11,7 +11,8 @@ import ExportButton from './ExportButton';
 import type { CandidateCoverage, MobileAnalysisMetrics } from '../types/analysis';
 import { analyzeLeoConnectivity } from '../utils/leoConnectivityModel';
 import { computeGeoConnectivity } from '../utils/geoCoverageSelection';
-import { useSimulation, getCorridorIndex, getDcThroughputScale } from '../contexts/SimulationContext';
+import { useSimulation, getCorridorIndex, getDcThroughputScale, computeEffectiveThroughput, computeDcQueueDelayMs } from '../contexts/SimulationContext';
+import { DEFAULT_LEO_OVERHEAD_MS } from '../utils/leoConnectivityModel';
 import { buildSimulationStateSnapshot } from '../types/simulation';
 import type { PDFConnectionDetails } from '../utils/pdfExport';
 
@@ -386,16 +387,30 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
     };
   }, [activePoint, satellites, autoSelectedLEOSatellite, propSelectedSNP, simulationState]);
 
+  // Corridor DC level must be derived before leoGeometry (used inside its useMemo)
+  const currentCorridorIndex = useMemo(
+    () => getCorridorIndex(activePoint?.lng ?? 0),
+    [activePoint?.lng]
+  );
+  const currentCorridorDcLevel = corridorDcLevels[currentCorridorIndex] ?? 16;
+  const currentCorridorDcScale = getDcThroughputScale(currentCorridorDcLevel);
+
   const leoGeometry = useMemo(() => {
     if (!resolvedLEOConnectivity || !resolvedLEOConnectivity.snp) return null;
+
+    // DC-based queueing: low DC → more congestion → higher queue delay
+    const dcQueueExtra = computeDcQueueDelayMs(currentCorridorDcLevel);
 
     return analyzeLeoConnectivity({
       userToSatelliteDistanceKm: resolvedLEOConnectivity.userLEODistance,
       satelliteToGatewayDistanceKm: resolvedLEOConnectivity.snpLEODistance || 0,
       userToSatelliteElevationDeg: resolvedLEOConnectivity.userLEOElevation,
       gatewayToSatelliteElevationDeg: resolvedLEOConnectivity.snpLEOElevation || 0,
+      overheadMs: {
+        queueingDelayMs: DEFAULT_LEO_OVERHEAD_MS.queueingDelayMs + dcQueueExtra,
+      },
     });
-  }, [resolvedLEOConnectivity]);
+  }, [resolvedLEOConnectivity, currentCorridorDcLevel]);
 
   const leoPerformance = useMemo(() => {
     if (!resolvedLEOConnectivity || !resolvedLEOConnectivity.snp || !activePoint) return null;
@@ -429,22 +444,16 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
     ) || null;
   }, [selectedPoint]);
   const geoGeometry = resolvedGEOConnectivity?.geometry ?? null;
-  const currentCorridorIndex = useMemo(
-    () => getCorridorIndex(activePoint?.lng ?? 0),
-    [activePoint?.lng]
-  );
-  const currentCorridorDcLevel = corridorDcLevels[currentCorridorIndex] ?? 16;
-  const currentCorridorDcScale = getDcThroughputScale(currentCorridorDcLevel);
 
   const mobileLeoMetrics = useMemo(() => {
     if (!leoPerformance) return null;
 
     return {
       rtt: leoGeometry?.rttTotalMs ?? leoPerformance.rtt,
-      downlinkGbps: leoPerformance.downlinkGbps * currentCorridorDcScale,
-      uplinkGbps: leoPerformance.uplinkGbps * currentCorridorDcScale,
+      downlinkGbps: computeEffectiveThroughput({ rfCapacity: leoPerformance.downlinkGbps, dcLevel: currentCorridorDcLevel }),
+      uplinkGbps:   computeEffectiveThroughput({ rfCapacity: leoPerformance.uplinkGbps,   dcLevel: currentCorridorDcLevel }),
     };
-  }, [leoGeometry, leoPerformance, currentCorridorDcScale]);
+  }, [leoGeometry, leoPerformance, currentCorridorDcLevel]);
 
   const mobileGeoMetrics = useMemo(() => {
     if (!resolvedGEOConnectivity || !geoGeometry) return null;
@@ -497,7 +506,9 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
     }
 
     const oneWayDistanceKm = resolvedLEOConnectivity.userLEODistance + (resolvedLEOConnectivity.snpLEODistance || 0);
-    const effectivePerformanceFactor = leoPerformance ? leoPerformance.performanceFactor * currentCorridorDcScale : null;
+    const effectivePerformanceFactor = leoPerformance
+      ? computeEffectiveThroughput({ rfCapacity: leoPerformance.performanceFactor, dcLevel: currentCorridorDcLevel })
+      : null;
 
     return {
       radioPath: `${userLabel} -> ${resolvedLEOConnectivity.satellite.name} -> ${resolvedLEOConnectivity.snp.name} -> ${resolvedLEOConnectivity.satellite.name} -> ${userLabel}`,

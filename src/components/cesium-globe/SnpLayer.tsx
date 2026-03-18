@@ -82,50 +82,58 @@ const SnpEntity = React.memo<{
     const showLabel = isAutoSelected || isFailed || isInspected;
 
     return (
-        <Entity
-            id={`snp-${snp.name}`}
-            position={position}
-            point={{
-                pixelSize: pixelSizeCallback,
-                color: pointColor,
-                outlineColor: isInspected ? Color.ORANGE : (isFailed ? Color.WHITE : undefined),
-                outlineWidth: isInspected || isFailed ? 2 : 0,
-                disableDepthTestDistance: 0
-            }}
-            name={snp.name}
-            onClick={handleClick}
-            onMouseEnter={handleMouseEnter}
-            onMouseLeave={handleMouseLeave}
-        >
-            {showLabel && (
-                <LabelGraphics
-                    text={isFailed ? `${snp.name} ✕` : snp.name}
-                    font={isFailed ? "700 13px Inter, sans-serif" : isInspected ? "700 13px Inter, sans-serif" : "600 13px Inter, sans-serif"}
-                    fillColor={Color.WHITE}
-                    outlineWidth={3}
-                    style={2}
-                    showBackground={true}
-                    backgroundColor={labelBgColor}
-                    backgroundPadding={new Cartesian2(7, 4)}
-                    pixelOffset={new Cartesian2(0, -20)}
-                    verticalOrigin={VerticalOrigin.BOTTOM}
-                    horizontalOrigin={HorizontalOrigin.CENTER}
-                    disableDepthTestDistance={Number.POSITIVE_INFINITY}
-                />
-            )}
+        <>
             {isInspected && (
-                <EllipseGraphics
-                    semiMajorAxis={BACKHAUL_RADIUS_KM * 1000}
-                    semiMinorAxis={BACKHAUL_RADIUS_KM * 1000}
-                    material={Color.ORANGE.withAlpha(0.18)}
-                    outline={true}
-                    outlineColor={Color.ORANGE.withAlpha(0.9)}
-                    outlineWidth={3}
-                    height={5000}
-                    fill={true}
-                />
+                <Entity
+                    id={`snp-backhaul-${snp.name}`}
+                    position={position}
+                    name={`${snp.name} backhaul`}
+                >
+                    <EllipseGraphics
+                        semiMajorAxis={BACKHAUL_RADIUS_KM * 1000}
+                        semiMinorAxis={BACKHAUL_RADIUS_KM * 1000}
+                        material={Color.ORANGE.withAlpha(0.18)}
+                        outline={true}
+                        outlineColor={Color.ORANGE.withAlpha(0.9)}
+                        outlineWidth={3}
+                        height={5000}
+                        fill={true}
+                    />
+                </Entity>
             )}
-        </Entity>
+            <Entity
+                id={`snp-${snp.name}`}
+                position={position}
+                point={{
+                    pixelSize: pixelSizeCallback,
+                    color: pointColor,
+                    outlineColor: isInspected ? Color.ORANGE : (isFailed ? Color.WHITE : undefined),
+                    outlineWidth: isInspected || isFailed ? 2 : 0,
+                    disableDepthTestDistance: 0
+                }}
+                name={snp.name}
+                onClick={handleClick}
+                onMouseEnter={handleMouseEnter}
+                onMouseLeave={handleMouseLeave}
+            >
+                {showLabel && (
+                    <LabelGraphics
+                        text={isFailed ? `${snp.name} ✕` : snp.name}
+                        font={isFailed ? "700 13px Inter, sans-serif" : isInspected ? "700 13px Inter, sans-serif" : "600 13px Inter, sans-serif"}
+                        fillColor={Color.WHITE}
+                        outlineWidth={3}
+                        style={2}
+                        showBackground={true}
+                        backgroundColor={labelBgColor}
+                        backgroundPadding={new Cartesian2(7, 4)}
+                        pixelOffset={new Cartesian2(0, -20)}
+                        verticalOrigin={VerticalOrigin.BOTTOM}
+                        horizontalOrigin={HorizontalOrigin.CENTER}
+                        disableDepthTestDistance={Number.POSITIVE_INFINITY}
+                    />
+                )}
+            </Entity>
+        </>
     );
 });
 

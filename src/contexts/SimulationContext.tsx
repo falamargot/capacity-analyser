@@ -41,6 +41,42 @@ export function getDcThroughputScale(dcLevel: number): number {
   return Math.max(0, Math.min(16, dcLevel)) / 16;
 }
 
+/**
+ * Network-layer effective throughput after applying DC load factor with gamma congestion penalty.
+ *
+ *   effective = rfCapacity × (dcLevel / 16) ^ gamma
+ *
+ * gamma = 1.2 adds a slight super-linear congestion penalty:
+ *   DC16 → 100%  |  DC8 → ~43.5%  |  DC4 → ~18%  |  DC1 → ~4%
+ *
+ * Invariants: rfCapacity ≤ 0 → 0 ; DC16 → rfCapacity unchanged.
+ */
+export function computeEffectiveThroughput({
+  rfCapacity,
+  dcLevel,
+  gamma = 1.2,
+}: {
+  rfCapacity: number;
+  dcLevel: number;
+  gamma?: number;
+}): number {
+  if (rfCapacity <= 0) return 0;
+  const loadFactor = Math.pow(Math.max(0, Math.min(16, dcLevel)) / 16, gamma);
+  return rfCapacity * loadFactor;
+}
+
+/**
+ * Queueing delay added by network congestion when DC is below maximum.
+ * DC16 → 0 ms extra.  DC1 → significant queuing penalty.
+ *
+ *   extra_queue = baseQueueMs × (1 / loadFactor − 1)
+ */
+export function computeDcQueueDelayMs(dcLevel: number, baseQueueMs = 4): number {
+  const clampedDc = Math.max(1, Math.min(16, dcLevel));
+  const loadFactor = Math.pow(clampedDc / 16, 1.2);
+  return Math.round(baseQueueMs * (1 / loadFactor - 1));
+}
+
 const DEFAULT_CORRIDOR_DC_LEVELS: number[] = Array(CORRIDOR_COUNT).fill(DEFAULT_DC_LEVEL);
 
 interface SimulationContextType {
