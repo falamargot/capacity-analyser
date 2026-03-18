@@ -324,23 +324,50 @@ const OneWebCombLayer: React.FC<OneWebCombLayerProps> = ({
         return { show, hierarchy, contourPositions, material, outlineColor, contourMaterial };
     }, [highlightServingFootprint, viewerRef, targetSat?.id, selectedPosition?.lat, selectedPosition?.lng, selectedAircraft?.icao24, getCombGeometries]);
 
+    // These useMemo hooks MUST be before the early return to satisfy the Rules of Hooks.
+    // They guard against null targetSat internally and produce no-op values in that case.
+    const horizonRadius = useMemo(
+        () => targetSat ? footprintRadiusKm(targetSat.position.alt || 1200, BACKHAUL_ELEVATION_DEG) * 1000 : 0,
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+        [targetSat?.position.alt]
+    );
+
+    const backhaulColor = useMemo(
+        () => targetSat
+            ? Color.fromCssColorString(getCoverageColor('ONEWEB_BACKHAUL', 0.2, targetSat, failedSnps))
+            : Color.TRANSPARENT,
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+        [targetSat?.id, failedSnps]
+    );
+
+    const standardColorFill = useMemo(
+        () => targetSat
+            ? Color.fromCssColorString(getCoverageColor('ONEWEB_STANDARD', 0.1, targetSat, failedSnps))
+            : Color.TRANSPARENT,
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+        [targetSat?.id, failedSnps]
+    );
+
+    const standardColorOutline = useMemo(
+        () => targetSat
+            ? Color.fromCssColorString(getCoverageColor('ONEWEB_STANDARD', 0.6, targetSat, failedSnps))
+            : Color.TRANSPARENT,
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+        [targetSat?.id, failedSnps]
+    );
+
+    // hasSNPInCoverage performs polygon-point intersection tests across all SNPs;
+    // memoized so it only re-runs when the satellite position or SNP state changes.
+    const hasBackhaul = useMemo(
+        () => targetSat ? hasSNPInCoverage(targetSat, failedSnps) : false,
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+        [targetSat?.id, targetSat?.position.lat, targetSat?.position.lng, failedSnps]
+    );
+
     // Early return AFTER all hooks have been called
     if (!targetSat || !targetSat.satrec) {
         return null;
     }
-
-    // Computed values (no hooks, just calculations)
-    const horizonRadius = footprintRadiusKm(targetSat.position.alt || 1200, BACKHAUL_ELEVATION_DEG) * 1000;
-    const backhaulColorStr = getCoverageColor('ONEWEB_BACKHAUL', 0.2, targetSat, failedSnps);
-    const backhaulColor = Color.fromCssColorString(backhaulColorStr);
-    const standardColorFill = Color.fromCssColorString(getCoverageColor('ONEWEB_STANDARD', 0.1, targetSat, failedSnps));
-    const standardColorOutline = Color.fromCssColorString(getCoverageColor('ONEWEB_STANDARD', 0.6, targetSat, failedSnps));
-
-    // Calculate Backhaul Status (this frame, using latest static position)
-    // Note: Live updates depending on position change require time-based checks within Callback,
-    // but calculating coverage polygon intersections every frame is expensive.
-    // We rely on the periodic update of targetSat.position from parent components.
-    const hasBackhaul = hasSNPInCoverage(targetSat, failedSnps);
 
     return (
         <>

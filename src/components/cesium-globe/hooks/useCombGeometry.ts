@@ -1,7 +1,7 @@
 /**
  * Hook to manage OneWeb comb geometry calculations with proper caching
  */
-import { useRef, useEffect, useCallback } from 'react';
+import { useRef, useEffect, useCallback, useMemo } from 'react';
 import { Cartesian3, JulianDate } from 'cesium';
 import type { SatelliteData } from '../../../types/satellites';
 import { calculateCombGeometry } from '../../../utils/oneWebComb';
@@ -28,6 +28,24 @@ export function useCombGeometry() {
     const cacheRef = useRef<CombGeometryCache | null>(null);
     const { coveragePolicy, beamHealthFactors, weatherCondition, hsBeamsSet } = useSimulation();
 
+    // Compute cache-comparison keys ONCE per state-change, not on every frame call.
+    // These were previously computed inside getCombGeometries (a CallbackProperty hot path
+    // called 48×/frame), allocating strings on every invocation even on a cache hit.
+    const healthKey = useMemo(
+        () => beamHealthFactors.map(f => f.healthFactor).join(','),
+        [beamHealthFactors]
+    );
+    const hsKey = useMemo(
+        () => Array.from(hsBeamsSet).sort((a, b) => a - b).join(','),
+        [hsBeamsSet]
+    );
+
+    // Stable refs so the callback can read the latest keys without being recreated.
+    const healthKeyRef = useRef(healthKey);
+    healthKeyRef.current = healthKey;
+    const hsKeyRef = useRef(hsKey);
+    hsKeyRef.current = hsKey;
+
     // Cleanup on unmount
     useEffect(() => {
         return () => {
@@ -36,9 +54,9 @@ export function useCombGeometry() {
     }, []);
 
     /**
-     * Get cached comb geometries, recalculating only when needed
-     * In SERVICE_ZONE mode: returns empty array (no individual beams to display)
-     * In DB_THRESHOLD mode: returns actual beam geometries
+     * Get cached comb geometries, recalculating only when needed.
+     * In SERVICE_ZONE mode: returns empty array (no individual beams to display).
+     * In DB_THRESHOLD mode: returns actual beam geometries.
      */
     const getCombGeometries = useCallback((
         sat: SatelliteData,
@@ -46,11 +64,8 @@ export function useCombGeometry() {
     ): Cartesian3[][] | null => {
         if (!sat.satrec) return null;
 
-        // In SERVICE_ZONE mode, we don't calculate individual beams
-        // Return empty array instead of null to avoid breaking components
-        // that check for null vs empty
         if (coveragePolicy.type === "SERVICE_ZONE") {
-            return []; // Empty array = no beams to render
+            return [];
         }
 
         const cache = cacheRef.current;
@@ -61,17 +76,13 @@ export function useCombGeometry() {
             hsBeams: hsBeamsSet,
         });
 
-        // Create a comparable string of health factors to detect changes
-        const currentHealthString = JSON.stringify(beamHealthFactors.map(f => f.healthFactor));
-        const currentHsBeamString = JSON.stringify(Array.from(hsBeamsSet).sort((a, b) => a - b));
-
-        // Check if cache is valid (includes policy check and physics check)
+        // O(1) string comparisons against pre-computed refs — no allocation in hot path.
         if (cache &&
             cache.satId === sat.id &&
             cache.policyType === coveragePolicy.type &&
             cache.thresholdDb === simulationState.thresholdDb &&
-            cache.healthString === currentHealthString &&
-            cache.hsBeamString === currentHsBeamString &&
+            cache.healthString === healthKeyRef.current &&
+            cache.hsBeamString === hsKeyRef.current &&
             cache.weather === weatherCondition &&
             JulianDate.equals(time, cache.time)) {
             return cache.geometries;
@@ -79,14 +90,13 @@ export function useCombGeometry() {
 
         const geometries = calculateCombGeometry(sat.satrec, time, simulationState);
 
-        // Update cache
         cacheRef.current = {
             time: time.clone(),
             satId: sat.id,
             policyType: coveragePolicy.type,
             thresholdDb: simulationState.thresholdDb,
-            healthString: currentHealthString,
-            hsBeamString: currentHsBeamString,
+            healthString: healthKeyRef.current,
+            hsBeamString: hsKeyRef.current,
             weather: weatherCondition,
             geometries
         };

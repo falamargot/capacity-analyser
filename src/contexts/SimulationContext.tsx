@@ -144,7 +144,7 @@ export const SimulationProvider: React.FC<{ children: ReactNode }> = ({ children
   const weatherAttenuationDb = WEATHER_ATTENUATION_DB[weatherCondition];
 
   // ── Beam health ───────────────────────────────────────────────
-  const setBeamHealthFactor = (beamIndex: number, healthFactor: number) => {
+  const setBeamHealthFactor = useCallback((beamIndex: number, healthFactor: number) => {
     setBeamHealthFactors(prev =>
       prev.map(b =>
         b.beamIndex === beamIndex
@@ -152,11 +152,11 @@ export const SimulationProvider: React.FC<{ children: ReactNode }> = ({ children
           : b
       )
     );
-  };
+  }, []);
 
-  const resetBeamHealth = () => {
+  const resetBeamHealth = useCallback(() => {
     setBeamHealthFactors(DEFAULT_BEAM_HEALTH.map(b => ({ ...b })));
-  };
+  }, []);
 
   const getBeamHealthFactor = useCallback(
     () => (beamIndex: number): number => {
@@ -212,34 +212,44 @@ export const SimulationProvider: React.FC<{ children: ReactNode }> = ({ children
     [beamHsStatus]
   );
 
+  // Memoize the context value so consumers only re-render when the specific
+  // slice of state they use actually changes, not on every provider render.
+  const contextValue = useMemo(() => ({
+    coveragePolicy,
+    setCoveragePolicy,
+    weatherCondition,
+    setWeatherCondition,
+    weatherLabel,
+    weatherAttenuationDb,
+    beamHealthFactors,
+    setBeamHealthFactor,
+    resetBeamHealth,
+    getBeamHealthFactor,
+
+    failedSnps,
+    toggleSnpFailure,
+    resetFailedSnps,
+
+    corridorDcLevels,
+    setCorridorDcLevel,
+    resetCorridorDcLevels,
+
+    beamHsStatus,
+    toggleBeamHs,
+    resetBeamHs,
+    hsBeamsSet,
+  }), [
+    coveragePolicy, weatherCondition, weatherLabel, weatherAttenuationDb,
+    beamHealthFactors, setBeamHealthFactor, resetBeamHealth, getBeamHealthFactor,
+    failedSnps, toggleSnpFailure, resetFailedSnps,
+    corridorDcLevels, setCorridorDcLevel, resetCorridorDcLevels,
+    beamHsStatus, toggleBeamHs, resetBeamHs, hsBeamsSet,
+    // Stable setters (setCoveragePolicy, setWeatherCondition) are React dispatchers
+    // and never change identity — omitting them from deps is intentional.
+  ]);
+
   return (
-    <SimulationContext.Provider
-      value={{
-        coveragePolicy,
-        setCoveragePolicy,
-        weatherCondition,
-        setWeatherCondition,
-        weatherLabel,
-        weatherAttenuationDb,
-        beamHealthFactors,
-        setBeamHealthFactor,
-        resetBeamHealth,
-        getBeamHealthFactor,
-
-        failedSnps,
-        toggleSnpFailure,
-        resetFailedSnps,
-
-        corridorDcLevels,
-        setCorridorDcLevel,
-        resetCorridorDcLevels,
-
-        beamHsStatus,
-        toggleBeamHs,
-        resetBeamHs,
-        hsBeamsSet,
-      }}
-    >
+    <SimulationContext.Provider value={contextValue}>
       {children}
     </SimulationContext.Provider>
   );

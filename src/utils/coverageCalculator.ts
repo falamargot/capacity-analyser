@@ -71,10 +71,12 @@ export function destinationPoint(
 
 // Performance optimization: Memoize coverage calculations with caching
 export function calculateCoverages(satellite: SatelliteData): Coverage[] {
-  // Performance optimization: Create cache key based on satellite state
+  // LEO precision: 0.1° ≈ 11 km — aligns with the 0.01° epsilon gate in App.tsx
+  // giving ~10× better cache hit rate vs the previous 0.001° (toFixed(3)) precision.
+  // EUTELSAT (GEO) uses a static key since their coverages never change.
   const cacheKey = satellite.type === 'EUTELSAT'
     ? `${satellite.id}_geo_static`
-    : `${satellite.id}_${satellite.position.lat.toFixed(3)}_${satellite.position.lng.toFixed(3)}_${satellite.position.alt.toFixed(3)}`;
+    : `${satellite.id}_${satellite.position.lat.toFixed(1)}_${satellite.position.lng.toFixed(1)}_${satellite.position.alt.toFixed(1)}`;
 
   // Return cached result if available
   if (coverageCache.has(cacheKey)) {

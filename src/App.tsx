@@ -184,6 +184,10 @@ const App: React.FC = () => {
   });
   const viewerRef = useRef<any>(null);
   const globeContainerRef = useRef<HTMLDivElement>(null);
+  // Stable ref so the selectedAircraft position interval can read the latest
+  // interpolated aircraft without being in the effect deps (which previously
+  // caused the 5-second interval to be torn down and re-created every frame).
+  const interpolatedAircraftRef = useRef<import('./modules/airTraffic/airTrafficService').Aircraft[]>([]);
   const panelFallback = <div className="p-4 text-sm text-slate-500 dark:text-slate-400">Loading analysis...</div>;
 
   // Store viewer reference when ready
@@ -423,14 +427,18 @@ const App: React.FC = () => {
     return satellites.filter(sat => sat.orbitType === satelliteScope);
   }, [satellites, satelliteScope]);
 
-  const satelliteTypeSignature = useMemo(
-    () => satellites.map((sat) => `${sat.name}:${sat.type}`).join('|'),
+  // Pre-indexed satellite Map — used for O(1) lookups throughout the component.
+  // Rebuilds on every satellites update (2s), but replaces multiple O(n) find() calls.
+  const satelliteById = useMemo(
+    () => new Map(satellites.map((sat) => [sat.id, sat])),
     [satellites]
   );
 
+  // satelliteTypeByName: satellite types never change post-load, so only rebuild
+  // when the constellation count changes (new TLE fetch), not every 2s position tick.
   const satelliteTypeByName = useMemo(
     () => new Map(satellites.map((sat) => [sat.name, sat.type])),
-    [satelliteTypeSignature]
+    [satellites.length] // eslint-disable-line react-hooks/exhaustive-deps
   );
   const simulationState = useMemo(() => buildSimulationStateSnapshot({
     coveragePolicy,
@@ -464,6 +472,8 @@ const App: React.FC = () => {
     airTraffic.aircraft,
     airTrafficEnabled
   );
+  // Keep the ref in sync — always has the latest array without being a dep.
+  interpolatedAircraftRef.current = interpolatedAircraft;
 
   // Maritime traffic position interpolation
   const interpolatedVessels = useMaritimeTrafficInterpolation(
@@ -471,21 +481,17 @@ const App: React.FC = () => {
     maritimeTrafficEnabled
   );
 
-  // Performance optimization: Memoize expensive coverage calculations
-  // Resolve auto-selected satellites from live satellite data (never use stored objects)
-  const resolvedAutoLEO = useMemo(() => {
-    if (!autoSelectedLEOId) return null;
-    const satellite = satellites.find(sat => sat.id === autoSelectedLEOId);
-    // Additional validation: ensure satellite still exists and is valid
-    return satellite || null;
-  }, [satellites, autoSelectedLEOId]);
+  // O(1) satellite lookups via satelliteById Map — replaces O(n) find() calls
+  // that previously ran on every 2s satellite position update.
+  const resolvedAutoLEO = useMemo(
+    () => (autoSelectedLEOId ? (satelliteById.get(autoSelectedLEOId) ?? null) : null),
+    [satelliteById, autoSelectedLEOId]
+  );
 
-  const resolvedAutoGEO = useMemo(() => {
-    if (!autoSelectedGEOId) return null;
-    const satellite = satellites.find(sat => sat.id === autoSelectedGEOId);
-    // Additional validation: ensure satellite still exists and is valid
-    return satellite || null;
-  }, [satellites, autoSelectedGEOId]);
+  const resolvedAutoGEO = useMemo(
+    () => (autoSelectedGEOId ? (satelliteById.get(autoSelectedGEOId) ?? null) : null),
+    [satelliteById, autoSelectedGEOId]
+  );
 
   const resolvedSelectedGeoCoverage = useMemo(() => (
     resolveCoverageSelection(selectedCoverage, satellites)
@@ -504,9 +510,9 @@ const App: React.FC = () => {
   const activeGeoSatellite = resolvedSelectedGeoCoverage?.satellite ?? resolvedAutoGEO;
 
   // Resolve live satellite instance for selected satellite (real-time positions)
-  const liveSelectedSatellite = useMemo(() =>
-    satellites.find(s => s.id === selectedSatellite?.id) ?? null,
-    [satellites, selectedSatellite?.id]
+  const liveSelectedSatellite = useMemo(
+    () => (selectedSatellite?.id ? (satelliteById.get(selectedSatellite.id) ?? null) : null),
+    [satelliteById, selectedSatellite?.id]
   );
 
   const dedicatedSNPForSelectedLEO = useMemo(() => {
@@ -1171,25 +1177,22 @@ const App: React.FC = () => {
   const shortcutModifier = useMemo(() => (
     typeof navigator !== 'undefined' && navigator.platform.includes('Mac') ? '⌘' : 'Ctrl'
   ), []);
-  const entryPointShortcutModifier = useMemo(() => (
-    typeof navigator !== 'undefined' && navigator.platform.includes('Mac') ? '⌘' : 'Ctrl'
-  ), []);
+  // entryPointShortcutModifier was identical to shortcutModifier — unified.
+  const entryPointShortcutModifier = shortcutModifier;
 
-  // Real-time updates for selected aircraft position and altitude
+  // Real-time updates for selected aircraft position and altitude.
+  // interpolatedAircraft is read from a ref so it is excluded from the deps array —
+  // previously it caused this interval to be torn down and re-created on every 60fps
+  // animation frame, meaning the setInterval(5000) never actually fired.
   useEffect(() => {
     if (!selectedAircraft || !airTrafficEnabled) return;
 
     const updateSelectedAircraftPosition = () => {
-      // Find the current aircraft data from the interpolated aircraft list
-      const currentAircraftData = interpolatedAircraft.find(
+      const currentAircraftData = interpolatedAircraftRef.current.find(
         aircraft => aircraft.icao24 === selectedAircraft!.icao24
       );
 
-      if (currentAircraftData &&
-        currentAircraftData.latitude &&
-        currentAircraftData.longitude) {
-
-        // Update the analyzis position with the latest interpolated aircraft data
+      if (currentAircraftData?.latitude && currentAircraftData?.longitude) {
         updateAnalyzisPosition({
           lat: currentAircraftData.latitude,
           lng: currentAircraftData.longitude,
@@ -1200,14 +1203,10 @@ const App: React.FC = () => {
       }
     };
 
-    // Update immediately
     updateSelectedAircraftPosition();
-
-    // Set up interval for real-time updates (every 5 seconds)
     const interval = setInterval(updateSelectedAircraftPosition, 5000);
-
     return () => clearInterval(interval);
-  }, [selectedAircraft, airTrafficEnabled, interpolatedAircraft, updateAnalyzisPosition]);
+  }, [selectedAircraft, airTrafficEnabled, updateAnalyzisPosition]); // interpolatedAircraftRef is stable
 
   const handleSearchInput = useCallback(async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();

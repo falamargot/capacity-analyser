@@ -7,7 +7,7 @@
  *   3. Inactive     (- / no SATCAT)   →  GRAY
  *   Decayed satellites are never received here — they are filtered in satelliteService.
  */
-import React, { useMemo, useCallback } from 'react';
+import React, { useMemo, useCallback, useRef } from 'react';
 import { Entity, LabelGraphics } from 'resium';
 import {
     Cartesian3,
@@ -19,7 +19,7 @@ import {
     Viewer as CesiumViewerType
 } from 'cesium';
 import type { SatelliteData } from '../../types/satellites';
-import { SATELLITE_GLYPH, LEO_SMOKED_GLYPH, DPR_FACTOR, calculateDynamicScale, getPosition, type CameraMetricsSnapshot } from './utils';
+import { SATELLITE_GLYPH, LEO_SMOKED_GLYPH, DPR_FACTOR, calculateDynamicScale, type CameraMetricsSnapshot } from './utils';
 import type { SatelliteStatusCategory } from '../../utils/satelliteStatus';
 
 // Module-level constants — allocated once, never reallocated during rendering.
@@ -59,7 +59,7 @@ interface SatelliteLayerProps {
     onSatelliteClick: (satellite: SatelliteData | null) => void;
     onSatelliteHover: (satelliteId: string | null) => void;
     viewerRef: React.RefObject<CesiumViewerType | null>;
-    cameraMetricsRef: React.MutableRefObject<CameraMetricsSnapshot>;
+    cameraMetricsRef: React.RefObject<CameraMetricsSnapshot>;
     satelliteSizeScale?: number;
 }
 
@@ -69,7 +69,7 @@ const SatelliteEntity = React.memo<{
     isAutoSelected: boolean;
     positionCallback: any;
     viewerRef: React.RefObject<CesiumViewerType | null>;
-    cameraMetricsRef: React.MutableRefObject<CameraMetricsSnapshot>;
+    cameraMetricsRef: React.RefObject<CameraMetricsSnapshot>;
     satelliteSizeScale: number;
     onSatelliteClick: (satellite: SatelliteData | null) => void;
     onSatelliteHover: (satelliteId: string | null) => void;
@@ -86,34 +86,40 @@ const SatelliteEntity = React.memo<{
 }) => {
     const isHighlighted = isManuallySelected || isAutoSelected;
 
-    // Create stable scale callback - only depends on stable references
+    // Refs let the stable CallbackProperty closure read the latest values
+    // without being recreated when position or sizeScale changes.
+    const satPositionRef = useRef(sat.position);
+    satPositionRef.current = sat.position;
+
+    const satelliteSizeScaleRef = useRef(satelliteSizeScale);
+    satelliteSizeScaleRef.current = satelliteSizeScale;
+
+    // Pre-allocated scratch Cartesian3 — written in-place each frame, never GC'd.
+    const scratchPositionRef = useRef(new Cartesian3());
+
+    // scaleCallback only depends on sat.type (never changes for a given satellite),
+    // viewerRef, and cameraMetricsRef — both stable refs. Position and sizeScale are
+    // read via refs so the CallbackProperty is created ONCE per entity lifetime.
+    // This eliminates the previous pattern of calling positionCallback.getValue()
+    // (which ran full SGP4 propagation) on every Cesium frame for all 600 satellites.
     const scaleCallback = useMemo(() => {
+        const isGEO = sat.type === 'EUTELSAT';
         return new CallbackProperty(() => {
-            if (!viewerRef.current) return 0.6;
+            const { lat, lng, alt } = satPositionRef.current;
+            Cartesian3.fromDegrees(lng, lat, alt * 1000, undefined, scratchPositionRef.current);
 
-            let satellitePosition: Cartesian3;
-            try {
-                satellitePosition = positionCallback.getValue(
-                    viewerRef.current.clock.currentTime
-                ) as Cartesian3;
-            } catch {
-                satellitePosition = getPosition(
-                    sat.position.lat,
-                    sat.position.lng,
-                    sat.position.alt
-                );
-            }
-
-            const distance = Cartesian3.distance(cameraMetricsRef.current.position, satellitePosition);
+            const distance = Cartesian3.distance(
+                cameraMetricsRef.current.position,
+                scratchPositionRef.current
+            );
             const dynamicScale = calculateDynamicScale(cameraMetricsRef.current.height, DPR_FACTOR);
-
-            // Apply satellite size scale (no extra size for selected satellites)
             const baseScale =
-                dynamicScale * (sat.type === 'EUTELSAT' ? 10000000 : 3000000) / Math.max(distance, 5000000);
+                dynamicScale * (isGEO ? 10000000 : 3000000) / Math.max(distance, 5000000);
 
-            return baseScale * satelliteSizeScale;
+            return baseScale * satelliteSizeScaleRef.current;
         }, false);
-    }, [sat.type, sat.position.lat, sat.position.lng, sat.position.alt, satelliteSizeScale, positionCallback, viewerRef, cameraMetricsRef]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [sat.type, viewerRef, cameraMetricsRef]); // position & sizeScale read via refs
 
     const handleClick = useCallback(() => onSatelliteClick(sat), [sat, onSatelliteClick]);
     const handleMouseEnter = useCallback(() => onSatelliteHover(sat.id), [sat.id, onSatelliteHover]);

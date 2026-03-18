@@ -66,10 +66,19 @@ export function useAirTraffic(
 
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  // focusPoint changes on every earth click (selectedPosition). Using a ref
+  // prevents updateAircraft from being recreated on each click, which previously
+  // caused the polling interval to be torn down and a spurious fetch to fire.
+  const focusPointRef = useRef(focusPoint);
+  focusPointRef.current = focusPoint;
+
+  const cameraBoundsRef = useRef(cameraBounds);
+  cameraBoundsRef.current = cameraBounds;
+
   // Update aircraft data
   const updateAircraft = useCallback(async () => {
     if (!finalConfig.enabled) return;
-    
+
     log('🛩️ Air traffic: Fetching aircraft data...');
 
     setState(prev => ({ ...prev, isLoading: true, error: null }));
@@ -77,11 +86,11 @@ export function useAirTraffic(
     try {
       const allAircraft = await getAircraftData();
 
-      // Filter aircraft based on view constraints
+      // Read from refs — no dep needed, always current when callback fires.
       const filteredAircraft = filterAircraftByView(
         allAircraft,
-        cameraBounds,
-        focusPoint,
+        cameraBoundsRef.current,
+        focusPointRef.current,
         finalConfig.maxAircraft
       );
 
@@ -99,7 +108,7 @@ export function useAirTraffic(
         error: error instanceof Error ? error.message : 'Unknown error',
       }));
     }
-  }, [finalConfig, cameraBounds, focusPoint]);
+  }, [finalConfig]); // cameraBounds/focusPoint read via refs
 
   // Start/stop polling based on enabled state
   useEffect(() => {
@@ -174,7 +183,9 @@ export function useAirTrafficInterpolation(
     }
 
     const previousAircraft = previousAircraftRef.current;
-    previousAircraftRef.current = [...aircraft];
+    // React state produces a new array reference on each update, so the previous
+    // value is safe to retain without copying. The spread was O(n) for 6000 aircraft.
+    previousAircraftRef.current = aircraft;
 
     // If no previous data, set immediately
     if (previousAircraft.length === 0) {

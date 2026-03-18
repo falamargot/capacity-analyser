@@ -162,6 +162,16 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
     inspectedSNP,
     snpConnectedSatellites = [],
 }) => {
+    // Stable refs for click-handler lookups — avoids recreating handleMapClick
+    // (and re-registering the Cesium ScreenSpaceEvent) when aircraft/vessels/satellites
+    // change identity (aircraft at 60fps when air traffic + interpolation is active).
+    const aircraftRef = useRef<Aircraft[]>([]);
+    aircraftRef.current = aircraft;
+    const vesselsRef = useRef<Vessel[]>([]);
+    vesselsRef.current = vessels;
+    const satellitesRef = useRef<SatelliteData[]>([]);
+    satellitesRef.current = satellites;
+
     const [localEnableLighting, setLocalEnableLighting] = useState(false);
     const enableLighting = localEnableLighting;
     const onToggleLighting = () => setLocalEnableLighting(!enableLighting);
@@ -279,36 +289,37 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         }
     }, [cameraTarget]);
 
-    // Handle map click with proper entity detection
+    // Handle map click with proper entity detection.
+    // aircraft/vessels/satellites are read from stable refs so this callback is
+    // never recreated when those arrays change, preventing Cesium from
+    // re-registering the ScreenSpaceEvent handler on every position update.
     const handleMapClick = useCallback((movement: { position: Cartesian2 } | { startPosition: Cartesian2, endPosition: Cartesian2 }) => {
         if (!viewerRef.current || !('position' in movement)) return;
 
-        // Check if we clicked on an entity
         const pickedObject = viewerRef.current.scene.pick(movement.position);
         if (defined(pickedObject)) {
             const pickedEntity = pickedObject.id;
 
-            // Route interactive entity clicks explicitly so selection works reliably.
             if (pickedEntity && (pickedEntity.billboard || pickedEntity.point)) {
                 const entityId = typeof pickedEntity.id === 'string' ? pickedEntity.id : '';
 
                 if (entityId.startsWith('aircraft-')) {
                     const aircraftId = entityId.slice('aircraft-'.length);
-                    const selected = aircraft.find((ac) => ac.icao24 === aircraftId) ?? null;
+                    const selected = aircraftRef.current.find((ac) => ac.icao24 === aircraftId) ?? null;
                     onAircraftClick?.(selected);
                     return;
                 }
 
                 if (entityId.startsWith('vessel-')) {
                     const vesselId = entityId.slice('vessel-'.length);
-                    const selected = vessels.find((vessel) => vessel.mmsi === vesselId) ?? null;
+                    const selected = vesselsRef.current.find((vessel) => vessel.mmsi === vesselId) ?? null;
                     onVesselClick?.(selected);
                     return;
                 }
 
                 if (entityId.startsWith('satellite-')) {
                     const satelliteId = entityId.slice('satellite-'.length);
-                    const selected = satellites.find((satellite) => satellite.id === satelliteId) ?? null;
+                    const selected = satellitesRef.current.find((satellite) => satellite.id === satelliteId) ?? null;
                     onSatelliteClick(selected);
                     return;
                 }
@@ -325,21 +336,17 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         const viewer = viewerRef.current;
         const scene = viewer.scene;
 
-        // 1. Raycast to hit the terrain surface accurately
         const ray = scene.camera.getPickRay(movement.position);
         let cartesian = undefined;
         if (ray) {
             cartesian = scene.globe.pick(ray, scene);
         }
 
-        // 2. Fallback to idealized ellipsoid if raycast fails (e.g. at the edges or in 2D)
         if (!cartesian) {
             cartesian = scene.camera.pickEllipsoid(movement.position, scene.globe.ellipsoid);
         }
 
-        // Check if we clicked on empty space (no earth)
         if (!cartesian) {
-            // Clicked on empty space - deselect everything
             onSatelliteClick(null);
             onSnpClick(null);
             onAircraftClick?.(null);
@@ -351,7 +358,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         const lat = CesiumMath.toDegrees(cartographic.latitude);
         const lng = CesiumMath.toDegrees(cartographic.longitude);
         onPointClick(lat, lng);
-    }, [aircraft, vessels, satellites, onPointClick, onSatelliteClick, onSnpClick, onAircraftClick, onVesselClick]);
+    }, [onPointClick, onSatelliteClick, onSnpClick, onAircraftClick, onVesselClick]);
 
     // Determine target satellite for OneWeb comb layer
     const oneWebTargetSat = useMemo(() => {
@@ -400,12 +407,17 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         [satellites]
     );
 
-    const aircraftById = useMemo(
+    // aircraftById and vesselById are only consulted in hover callbacks, which fire
+    // on user interaction. Using a ref means the Map is always current without
+    // triggering a new Map allocation on every 60fps interpolation tick.
+    const aircraftByIdRef = useRef<Map<string, Aircraft>>(new Map());
+    aircraftByIdRef.current = useMemo(
         () => new Map(aircraft.map((item) => [item.icao24, item])),
         [aircraft]
     );
 
-    const vesselById = useMemo(
+    const vesselByIdRef = useRef<Map<string, Vessel>>(new Map());
+    vesselByIdRef.current = useMemo(
         () => new Map(vessels.map((item) => [item.mmsi, item])),
         [vessels]
     );
@@ -456,6 +468,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         );
     }, [onVesselHover, setHoveredEntityIfChanged]);
 
+
     const handleSnpHover = useCallback((snpName: string | null) => {
         onSnpHover(snpName);
         if (!snpName) {
@@ -484,6 +497,10 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         );
     }, [gatewayByName, onSnpHover, setHoveredEntityIfChanged]);
 
+    // This effect keeps the hoveredEntity card in sync when the underlying data
+    // objects change (e.g. satellite position update, aircraft data refresh).
+    // aircraftById and vesselById are now read from stable refs so this effect
+    // no longer runs at 60fps when air-traffic interpolation is active.
     useEffect(() => {
         const key = hoveredEntityKeyRef.current;
         if (!key) return;
@@ -501,7 +518,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         }
 
         if (type === 'aircraft') {
-            const aircraftItem = aircraftById.get(id) ?? null;
+            const aircraftItem = aircraftByIdRef.current.get(id) ?? null;
             setHoveredEntity((current) => {
                 if (!aircraftItem) return null;
                 if (current?.type === 'aircraft' && current.data === aircraftItem) return current;
@@ -511,7 +528,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         }
 
         if (type === 'vessel') {
-            const vesselItem = vesselById.get(id) ?? null;
+            const vesselItem = vesselByIdRef.current.get(id) ?? null;
             setHoveredEntity((current) => {
                 if (!vesselItem) return null;
                 if (current?.type === 'vessel' && current.data === vesselItem) return current;
@@ -538,7 +555,9 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                 return { type: 'gateway', data: gateway };
             });
         }
-    }, [aircraftById, gatewayByName, satelliteById, snpByName, vesselById]);
+    // aircraft/vesselByIdRef are refs — reading them doesn't require a dep.
+    // The effect re-runs when satelliteById (2s) or the static maps change.
+    }, [gatewayByName, satelliteById, snpByName]);
 
     // Create stable pixel size callback for selected position marker
     const positionMarkerPixelSize = useMemo(() => {
