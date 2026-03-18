@@ -1244,6 +1244,18 @@ const App: React.FC = () => {
     enabled: !isCommandPaletteOpen,
   });
 
+  // Stable callbacks for sharedMapProps — functional updaters mean these never
+  // need to capture current state, so they stay reference-stable forever.
+  // Without these, every toggle/slider event rebuilds sharedMapProps and
+  // causes CesiumGlobe to re-render for no reason.
+  const handleToggleFullscreen = useCallback(() => setIsFullscreen(v => !v), []);
+  const handleToggleSatelliteTrajectory = useCallback(() => setShowSatelliteTrajectory(v => !v), []);
+  const handleSizeScaleChange = useCallback((v: number) => {
+    setSizeScale(v);
+    setIsSizeScaleUserOverridden(true);
+    localStorage.setItem('globeSizeScale', String(v));
+  }, []);
+
   // §4.1 — Shared props for both mobile and desktop MapViewSwitcher instances.
   // Avoids duplicating the full prop list in two places.
   const sharedMapProps = useMemo(() => ({
@@ -1270,7 +1282,7 @@ const App: React.FC = () => {
     selectedGateway,
     dedicatedSNPForSelectedLEO,
     isFullscreen,
-    onToggleFullscreen: () => setIsFullscreen(!isFullscreen),
+    onToggleFullscreen: handleToggleFullscreen,
     satelliteScope,
     airTrafficEnabled,
     aircraft: airTraffic.aircraft,
@@ -1289,12 +1301,8 @@ const App: React.FC = () => {
     onGlobeContainerReady: handleGlobeContainerReady,
     showSatelliteTrajectory,
     sizeScale,
-    onToggleSatelliteTrajectory: () => setShowSatelliteTrajectory(!showSatelliteTrajectory),
-    onSizeScaleChange: (v: number) => {
-      setSizeScale(v);
-      setIsSizeScaleUserOverridden(true);
-      localStorage.setItem('globeSizeScale', String(v));
-    },
+    onToggleSatelliteTrajectory: handleToggleSatelliteTrajectory,
+    onSizeScaleChange: handleSizeScaleChange,
     inspectedSNP,
     snpConnectedSatellites,
   }), [

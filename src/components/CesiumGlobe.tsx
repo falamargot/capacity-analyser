@@ -408,14 +408,17 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         return selectBestGeoGateway(geoSatellite, GEO_GATEWAYS)?.gateway.name ?? null;
     }, [selectedSatellite, autoSelectedGEOSatellite]);
 
-    const satelliteById = useMemo(
+    // satelliteById, aircraftById, vesselById are only consulted in hover/click
+    // callbacks (user interaction). Storing them in refs means the callbacks can
+    // always read the latest data without capturing the Map in their closure —
+    // otherwise the callbacks would be recreated on every 2s satellite tick,
+    // causing SatelliteLayer's 600-entity useMemo to rebuild unnecessarily.
+    const satelliteByIdRef = useRef<Map<string, SatelliteData>>(new Map());
+    satelliteByIdRef.current = useMemo(
         () => new Map(satellites.map((item) => [item.id, item])),
         [satellites]
     );
 
-    // aircraftById and vesselById are only consulted in hover callbacks, which fire
-    // on user interaction. Using a ref means the Map is always current without
-    // triggering a new Map allocation on every 60fps interpolation tick.
     const aircraftByIdRef = useRef<Map<string, Aircraft>>(new Map());
     aircraftByIdRef.current = useMemo(
         () => new Map(aircraft.map((item) => [item.icao24, item])),
@@ -451,12 +454,13 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
             return;
         }
 
-        const satellite = satelliteById.get(satelliteId) ?? null;
+        // Read from ref — always current, no dep needed, callback stays stable.
+        const satellite = satelliteByIdRef.current.get(satelliteId) ?? null;
         setHoveredEntityIfChanged(
             satellite ? `satellite:${satelliteId}` : null,
             satellite ? { type: 'satellite', data: satellite } : null
         );
-    }, [onSatelliteHover, satelliteById, setHoveredEntityIfChanged]);
+    }, [onSatelliteHover, setHoveredEntityIfChanged]);
 
     const handleAircraftHover = useCallback((aircraftItem: Aircraft | null) => {
         onAircraftHover?.(aircraftItem);
@@ -514,7 +518,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         const [type, id] = key.split(':');
 
         if (type === 'satellite') {
-            const satellite = satelliteById.get(id) ?? null;
+            const satellite = satelliteByIdRef.current.get(id) ?? null;
             setHoveredEntity((current) => {
                 if (!satellite) return null;
                 if (current?.type === 'satellite' && current.data === satellite) return current;
@@ -561,9 +565,10 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                 return { type: 'gateway', data: gateway };
             });
         }
-    // aircraft/vesselByIdRef are refs — reading them doesn't require a dep.
-    // The effect re-runs when satelliteById (2s) or the static maps change.
-    }, [gatewayByName, satelliteById, snpByName]);
+    // All three entity maps are refs — reading them doesn't add deps here.
+    // The effect re-runs when satellites change (2s) to keep the hover card current,
+    // and when the static gateway/snp maps are first created (once, on mount).
+    }, [gatewayByName, satellites, snpByName]);
 
     // Create stable pixel size callback for selected position marker
     const positionMarkerPixelSize = useMemo(() => {
@@ -805,4 +810,4 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
     );
 };
 
-export default CesiumGlobe;
+export default React.memo(CesiumGlobe);

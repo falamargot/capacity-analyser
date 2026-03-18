@@ -157,4 +157,4 @@ const MapViewSwitcher: React.FC<MapViewSwitcherProps> = ({
   );
 };
 
-export default MapViewSwitcher;
+export default React.memo(MapViewSwitcher);
