@@ -12,6 +12,7 @@ import MobileAnalysisSummary from './components/layout/MobileAnalysisSummary';
 import SidebarHeroCard from './components/layout/SidebarHeroCard';
 import BeamLegend from './components/cesium-globe/BeamLegend';
 import SatelliteStatusLegend from './components/cesium-globe/SatelliteStatusLegend';
+import ExportButton, { type ExportButtonPayload } from './components/ExportButton';
 import SimulationSettings from './components/layout/SimulationSettings';
 import { fetchSatellites } from './services/satelliteService';
 import { SatelliteData } from './types/satellites';
@@ -156,6 +157,7 @@ const App: React.FC = () => {
   const [selectedVessel, setSelectedVessel] = useState<Vessel | null>(null);
   const [hoveredSatelliteId, setHoveredSatelliteId] = useState<string | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [fullscreenExportButtonProps, setFullscreenExportButtonProps] = useState<ExportButtonPayload | null>(null);
   const [satelliteScope, setSatelliteScope] = useState<SatelliteScope>('ALL');
   const [airTrafficEnabled, setAirTrafficEnabled] = useState(false);
   const [maritimeTrafficEnabled, setMaritimeTrafficEnabled] = useState(false);
@@ -240,6 +242,12 @@ const App: React.FC = () => {
       setIsFullscreen(false);
     }
   }, [isPhone, isFullscreen]);
+
+  useEffect(() => {
+    if (selectedGateway || inspectedSNP || selectedSatellite || !(analyzisPosition || selectedPosition)) {
+      setFullscreenExportButtonProps(null);
+    }
+  }, [analyzisPosition, inspectedSNP, selectedGateway, selectedPosition, selectedSatellite]);
 
   useEffect(() => {
     if (!isMobile) return;
@@ -1996,6 +2004,13 @@ const App: React.FC = () => {
               className={`flex-1 relative bg-white rounded-lg shadow-lg overflow-hidden transition-all duration-300 ${isFullscreen ? 'fixed inset-0 z-50' : ''}`}
             >
               <MapViewSwitcher {...sharedMapProps} isPhone={false} />
+              {isFullscreen && fullscreenExportButtonProps && (
+                <div className="pointer-events-none absolute bottom-28 right-4 z-[20]">
+                  <div className="pointer-events-auto w-[148px] sm:w-40">
+                    <ExportButton {...fullscreenExportButtonProps} />
+                  </div>
+                </div>
+              )}
               {satelliteScope !== 'GEO' && <BeamLegend />}
               <SatelliteStatusLegend />
             </div>
@@ -2004,67 +2019,66 @@ const App: React.FC = () => {
               className={`flex-shrink-0 overflow-hidden rounded-[24px] border border-slate-200/80 bg-[linear-gradient(180deg,rgba(248,250,252,0.98),rgba(255,255,255,0.96))] shadow-[0_30px_70px_-35px_rgba(15,23,42,0.45)] dark:border-slate-800 dark:bg-[linear-gradient(180deg,rgba(15,23,42,0.98),rgba(2,6,23,0.98))] flex flex-col ${isFullscreen ? 'hidden' : ''}`}
               style={{ width: desktopSidebarWidth }}
             >
-              {!isFullscreen && (
-                <>
-                  <SidebarHeroCard
-                    eyebrow={desktopSidebarHero.eyebrow}
-                    title={desktopSidebarHero.title}
-                    subtitle={desktopSidebarHero.subtitle}
-                    tone={desktopSidebarHero.tone}
-                    badges={desktopSidebarHero.badges}
-                    compact={useCompactDesktopSidebar}
-                    onReset={handleResetView}
-                  />
+              <>
+                <SidebarHeroCard
+                  eyebrow={desktopSidebarHero.eyebrow}
+                  title={desktopSidebarHero.title}
+                  subtitle={desktopSidebarHero.subtitle}
+                  tone={desktopSidebarHero.tone}
+                  badges={desktopSidebarHero.badges}
+                  compact={useCompactDesktopSidebar}
+                  onReset={handleResetView}
+                />
 
-                  <div className={`flex-1 min-h-0 overflow-y-auto ${useCompactDesktopSidebar ? 'px-2.5 pb-2.5' : 'px-3 pb-3'}`}>
-                    <Suspense fallback={panelFallback}>
-                      {selectedGateway ? (
-                        <GatewayDetails
-                          gateway={selectedGateway}
-                          satellites={satellites}
-                          compactDesktop={useCompactDesktopSidebar}
-                          externalHeader
-                        />
-                      ) : inspectedSNP ? (
-                        <SNPDetails
-                          snp={inspectedSNP}
-                          connectedSatellites={snpConnectedSatellites}
-                          onSatelliteClick={handleSatelliteClick}
-                          compactDesktop={useCompactDesktopSidebar}
-                          externalHeader
-                        />
-                      ) : (
-                        <CapacityDetails
-                          satellites={filteredSatellites}
-                          selectedPoint={analyzisPosition || selectedPosition}
-                          selectedSatellite={selectedSatellite}
-                          autoSelectedLEOSatellite={resolvedAutoLEO}
-                          autoSelectedGEOSatellite={activeGeoSatellite}
-                          satelliteScope={satelliteScope}
-                          onSatelliteClick={handleSatelliteClick}
-                          analysisSource={selectedAircraft ? 'aircraft' : analyzisPosition ? 'earth' : undefined}
-                          aircraftCallsign={selectedAircraft?.callsign}
-                          selectedSNP={selectedSNP}
-                          candidateCoverages={candidateCoverages}
-                          selectedCoverage={selectedCoverage}
-                          onSelectCoverage={setSelectedCoverage}
-                          selectedGeoMission={selectedGeoMission}
-                          selectedGeoCoverageName={selectedGeoCoverageName}
-                          selectedGeoBeamId={selectedGeoBeamId}
-                          onSelectGeoMission={handleSelectGeoMission}
-                          onSelectGeoCoverage={handleSelectGeoCoverage}
-                          onSelectGeoBeam={handleSelectGeoBeam}
-                          onSnpClick={handleSnpClick}
-                          compactDesktop={useCompactDesktopSidebar}
-                          externalHeader
-                          globeRef={globeContainerRef}
-                          cesiumViewerRef={viewerRef}
-                        />
-                      )}
-                    </Suspense>
-                  </div>
-                </>
-              )}
+                <div className={`flex-1 min-h-0 overflow-y-auto ${useCompactDesktopSidebar ? 'px-2.5 pb-2.5' : 'px-3 pb-3'}`}>
+                  <Suspense fallback={panelFallback}>
+                    {selectedGateway ? (
+                      <GatewayDetails
+                        gateway={selectedGateway}
+                        satellites={satellites}
+                        compactDesktop={useCompactDesktopSidebar}
+                        externalHeader
+                      />
+                    ) : inspectedSNP ? (
+                      <SNPDetails
+                        snp={inspectedSNP}
+                        connectedSatellites={snpConnectedSatellites}
+                        onSatelliteClick={handleSatelliteClick}
+                        compactDesktop={useCompactDesktopSidebar}
+                        externalHeader
+                      />
+                    ) : (
+                      <CapacityDetails
+                        satellites={filteredSatellites}
+                        selectedPoint={analyzisPosition || selectedPosition}
+                        selectedSatellite={selectedSatellite}
+                        autoSelectedLEOSatellite={resolvedAutoLEO}
+                        autoSelectedGEOSatellite={activeGeoSatellite}
+                        satelliteScope={satelliteScope}
+                        onSatelliteClick={handleSatelliteClick}
+                        analysisSource={selectedAircraft ? 'aircraft' : analyzisPosition ? 'earth' : undefined}
+                        aircraftCallsign={selectedAircraft?.callsign}
+                        selectedSNP={selectedSNP}
+                        candidateCoverages={candidateCoverages}
+                        selectedCoverage={selectedCoverage}
+                        onSelectCoverage={setSelectedCoverage}
+                        selectedGeoMission={selectedGeoMission}
+                        selectedGeoCoverageName={selectedGeoCoverageName}
+                        selectedGeoBeamId={selectedGeoBeamId}
+                        onSelectGeoMission={handleSelectGeoMission}
+                        onSelectGeoCoverage={handleSelectGeoCoverage}
+                        onSelectGeoBeam={handleSelectGeoBeam}
+                        onSnpClick={handleSnpClick}
+                        compactDesktop={useCompactDesktopSidebar}
+                        externalHeader
+                        globeRef={globeContainerRef}
+                        cesiumViewerRef={viewerRef}
+                        onExportStateChange={setFullscreenExportButtonProps}
+                      />
+                    )}
+                  </Suspense>
+                </div>
+              </>
             </div>
           </div>
         </main>

@@ -7,11 +7,11 @@ import { SNPS_DATA } from './globe/GlobeConfig';
 import { BEAM_LENGTH_KM, TOTAL_BEAMS, BEAM_WIDTH_KM } from '../utils/oneWebComb';
 import { findConnectedBeamIndex } from '../utils/rfConnectivity';
 import { JulianDate } from 'cesium';
-import ExportButton from './ExportButton';
+import ExportButton, { type ExportButtonPayload } from './ExportButton';
 import type { CandidateCoverage, MobileAnalysisMetrics } from '../types/analysis';
 import { analyzeLeoConnectivity } from '../utils/leoConnectivityModel';
 import { computeGeoConnectivity } from '../utils/geoCoverageSelection';
-import { useSimulation, getCorridorIndex, getDcThroughputScale, computeEffectiveThroughput, computeDcQueueDelayMs } from '../contexts/SimulationContext';
+import { useSimulation } from '../contexts/SimulationContext';
 import { DEFAULT_LEO_OVERHEAD_MS } from '../utils/leoConnectivityModel';
 import { buildSimulationStateSnapshot } from '../types/simulation';
 import type { PDFConnectionDetails } from '../utils/pdfExport';
@@ -55,15 +55,15 @@ interface CapacityDetailsProps {
   externalHeader?: boolean;
   globeRef?: RefObject<HTMLDivElement | null>;
   cesiumViewerRef?: RefObject<any>;
+  onExportStateChange?: (payload: ExportButtonPayload | null) => void;
 }
 
 // Performance optimization: Memoize component to prevent unnecessary re-renders
-const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint, selectedSatellite, autoSelectedLEOSatellite, satelliteScope, onMetricsChange, onSatelliteClick, analysisSource, aircraftCallsign, selectedSNP: propSelectedSNP, candidateCoverages = [], selectedCoverage = null, onSelectCoverage, selectedGeoMission, selectedGeoCoverageName, selectedGeoBeamId, onSelectGeoMission, onSelectGeoCoverage, onSelectGeoBeam, onSnpClick, compactDesktop = false, externalHeader = false, globeRef, cesiumViewerRef }) => {
-  // Feature 1+2+3: read simulation context for failedSnps, corridorDcLevels, hsBeamsSet
+const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint, selectedSatellite, autoSelectedLEOSatellite, satelliteScope, onMetricsChange, onSatelliteClick, analysisSource, aircraftCallsign, selectedSNP: propSelectedSNP, candidateCoverages = [], selectedCoverage = null, onSelectCoverage, selectedGeoMission, selectedGeoCoverageName, selectedGeoBeamId, onSelectGeoMission, onSelectGeoCoverage, onSelectGeoBeam, onSnpClick, compactDesktop = false, externalHeader = false, globeRef, cesiumViewerRef, onExportStateChange }) => {
+  // Feature 1+3: read simulation context for failedSnps, hsBeamsSet
   const {
     coveragePolicy,
     failedSnps,
-    corridorDcLevels, setCorridorDcLevel, resetCorridorDcLevels,
     beamHealthFactors,
     hsBeamsSet,
     weatherCondition: ctxWeather,
@@ -387,30 +387,16 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
     };
   }, [activePoint, satellites, autoSelectedLEOSatellite, propSelectedSNP, simulationState]);
 
-  // Corridor DC level must be derived before leoGeometry (used inside its useMemo)
-  const currentCorridorIndex = useMemo(
-    () => getCorridorIndex(activePoint?.lng ?? 0),
-    [activePoint?.lng]
-  );
-  const currentCorridorDcLevel = corridorDcLevels[currentCorridorIndex] ?? 16;
-  const currentCorridorDcScale = getDcThroughputScale(currentCorridorDcLevel);
-
   const leoGeometry = useMemo(() => {
     if (!resolvedLEOConnectivity || !resolvedLEOConnectivity.snp) return null;
-
-    // DC-based queueing: low DC → more congestion → higher queue delay
-    const dcQueueExtra = computeDcQueueDelayMs(currentCorridorDcLevel);
 
     return analyzeLeoConnectivity({
       userToSatelliteDistanceKm: resolvedLEOConnectivity.userLEODistance,
       satelliteToGatewayDistanceKm: resolvedLEOConnectivity.snpLEODistance || 0,
       userToSatelliteElevationDeg: resolvedLEOConnectivity.userLEOElevation,
       gatewayToSatelliteElevationDeg: resolvedLEOConnectivity.snpLEOElevation || 0,
-      overheadMs: {
-        queueingDelayMs: DEFAULT_LEO_OVERHEAD_MS.queueingDelayMs + dcQueueExtra,
-      },
     });
-  }, [resolvedLEOConnectivity, currentCorridorDcLevel]);
+  }, [resolvedLEOConnectivity]);
 
   const leoPerformance = useMemo(() => {
     if (!resolvedLEOConnectivity || !resolvedLEOConnectivity.snp || !activePoint) return null;
@@ -450,10 +436,10 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
 
     return {
       rtt: leoGeometry?.rttTotalMs ?? leoPerformance.rtt,
-      downlinkGbps: computeEffectiveThroughput({ rfCapacity: leoPerformance.downlinkGbps, dcLevel: currentCorridorDcLevel }),
-      uplinkGbps:   computeEffectiveThroughput({ rfCapacity: leoPerformance.uplinkGbps,   dcLevel: currentCorridorDcLevel }),
+      downlinkGbps: leoPerformance.downlinkGbps,
+      uplinkGbps: leoPerformance.uplinkGbps,
     };
-  }, [leoGeometry, leoPerformance, currentCorridorDcLevel]);
+  }, [leoGeometry, leoPerformance]);
 
   const mobileGeoMetrics = useMemo(() => {
     if (!resolvedGEOConnectivity || !geoGeometry) return null;
@@ -506,9 +492,7 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
     }
 
     const oneWayDistanceKm = resolvedLEOConnectivity.userLEODistance + (resolvedLEOConnectivity.snpLEODistance || 0);
-    const effectivePerformanceFactor = leoPerformance
-      ? computeEffectiveThroughput({ rfCapacity: leoPerformance.performanceFactor, dcLevel: currentCorridorDcLevel })
-      : null;
+    const effectivePerformanceFactor = leoPerformance?.performanceFactor ?? null;
 
     return {
       radioPath: `${userLabel} -> ${resolvedLEOConnectivity.satellite.name} -> ${resolvedLEOConnectivity.snp.name} -> ${resolvedLEOConnectivity.satellite.name} -> ${userLabel}`,
@@ -552,7 +536,6 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
         performanceFactor: effectivePerformanceFactor,
         notes: [
           leoPerformance ? `Weather profile: ${leoPerformance.weatherLabel} (${Math.round(leoPerformance.weatherFactor * 100)}% link factor)` : '',
-          `Polar corridor throughput scale: ${Math.round(currentCorridorDcScale * 100)}%`,
         ].filter(Boolean),
       },
     };
@@ -562,7 +545,6 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
     aircraftCallsign,
     terminalType,
     leoPerformance,
-    currentCorridorDcScale,
     leoGeometry,
     mobileLeoMetrics,
   ]);
@@ -738,6 +720,86 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
   // satellites intentionally omitted: the callback uses satellitesRef.current (always-fresh ref).
   }, [activePoint, selectedSatellite]);
 
+  const exportButtonPayload = useMemo<ExportButtonPayload | null>(() => {
+    if (!activePoint) {
+      return null;
+    }
+
+    const userLabel = analysisSource === 'aircraft' && aircraftCallsign ? aircraftCallsign : 'User';
+
+    return {
+      location: {
+        lat: activePoint.lat,
+        lng: activePoint.lng,
+        name: [nearestLocation?.city, nearestLocation?.country].filter(Boolean).join(', ') || undefined
+      },
+      scope: satelliteScope,
+      leoData: resolvedLEOConnectivity ? {
+        name: resolvedLEOConnectivity.satellite.name,
+        elevation: resolvedLEOConnectivity.userLEOElevation || 0,
+        rtt: resolvedLEOConnectivity.snp
+          ? (leoGeometry?.rttTotalMs ?? (resolvedLEOConnectivity.userLEODistance + (resolvedLEOConnectivity.snpLEODistance || 0)) * 2 / SPEED_OF_LIGHT_RADIO_KM_S * 1000)
+          : resolvedLEOConnectivity.userLEODistance * 2 / SPEED_OF_LIGHT_RADIO_KM_S * 1000,
+        downlinkGbps: resolvedLEOConnectivity.snp
+          ? (leoPerformance?.downlinkGbps ?? 0)
+          : 0,
+        uplinkGbps: resolvedLEOConnectivity.snp
+          ? (leoPerformance?.uplinkGbps ?? 0)
+          : 0,
+        stability: resolvedLEOConnectivity.snp
+          ? (leoPerformance?.stability ?? 'Unstable')
+          : 'Unstable',
+        distance: resolvedLEOConnectivity.userLEODistance,
+        radioPath: resolvedLEOConnectivity.snp
+          ? `${userLabel} → ${resolvedLEOConnectivity.satellite.name} → ${resolvedLEOConnectivity.snp.name} → ${resolvedLEOConnectivity.satellite.name} → ${userLabel}`
+          : `${userLabel} → ${resolvedLEOConnectivity.satellite.name} (→ No SNP connectivity)`
+      } : null,
+      geoData: resolvedGEOConnectivity ? {
+        name: resolvedGEOConnectivity.satellite.name,
+        elevation: geoGeometry?.userToSatellite.elevationDeg || 0,
+        rtt: geoGeometry?.rttTotalMs || 0,
+        downlinkGbps: (() => {
+          const performance = calculateGEOPerformance(geoGeometry?.userToSatellite.elevationDeg || 0);
+          return performance.downlinkGbps;
+        })(),
+        uplinkGbps: (() => {
+          const performance = calculateGEOPerformance(geoGeometry?.userToSatellite.elevationDeg || 0);
+          return performance.uplinkGbps;
+        })(),
+        stability: (() => {
+          const performance = calculateGEOPerformance(geoGeometry?.userToSatellite.elevationDeg || 0);
+          return geoGeometry?.isUserLinkUnstable ? 'Unstable' : performance.stability;
+        })(),
+        distance: geoGeometry?.userToSatellite.slantRangeKm || 0,
+        radioPath: `${userLabel} → ${resolvedGEOConnectivity.satellite.name} → ${userLabel}`
+      } : null,
+      leoDetails: satelliteScope !== 'GEO' ? leoPdfDetails : null,
+      geoDetails: satelliteScope !== 'LEO' ? geoPdfDetails : null,
+      globeRef,
+      cesiumViewerRef,
+    };
+  }, [
+    activePoint,
+    aircraftCallsign,
+    analysisSource,
+    calculateGEOPerformance,
+    cesiumViewerRef,
+    geoGeometry,
+    geoPdfDetails,
+    globeRef,
+    leoGeometry,
+    leoPdfDetails,
+    leoPerformance,
+    nearestLocation,
+    resolvedGEOConnectivity,
+    resolvedLEOConnectivity,
+    satelliteScope,
+  ]);
+
+  useEffect(() => {
+    onExportStateChange?.(exportButtonPayload);
+  }, [exportButtonPayload, onExportStateChange]);
+
   // ─── Render ─────────────────────────────────────────────────────────────────
 
   if (!selectedPoint && !selectedSatellite) {
@@ -835,7 +897,6 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
                   mobileLeoMetrics={mobileLeoMetrics}
                   activePoint={activePoint}
                   terminalType={terminalType}
-                  currentCorridorDcScale={currentCorridorDcScale}
                   analysisSource={analysisSource}
                   aircraftCallsign={aircraftCallsign}
                   onSatelliteClick={onSatelliteClick}
@@ -843,9 +904,6 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
                   hsBeamsSet={hsBeamsSet}
                   weatherCondition={ctxWeather}
                   beamHealthFactors={beamHealthFactors}
-                  corridorDcLevels={corridorDcLevels}
-                  setCorridorDcLevel={setCorridorDcLevel}
-                  resetCorridorDcLevels={resetCorridorDcLevels}
                 />
               )}
 
@@ -868,56 +926,9 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
           )}
 
           {/* Section 4: Export PDF Button */}
-          {activePoint && (
+          {exportButtonPayload && (
             <div className="mb-4">
-              <ExportButton
-                location={{
-                  lat: activePoint.lat,
-                  lng: activePoint.lng,
-                  name: [nearestLocation?.city, nearestLocation?.country].filter(Boolean).join(', ') || undefined
-                }}
-                scope={satelliteScope}
-                leoData={resolvedLEOConnectivity ? {
-                  name: resolvedLEOConnectivity.satellite.name,
-                  elevation: resolvedLEOConnectivity.userLEOElevation || 0,
-                  rtt: resolvedLEOConnectivity.snp ?
-                    (leoGeometry?.rttTotalMs ?? (resolvedLEOConnectivity.userLEODistance + (resolvedLEOConnectivity.snpLEODistance || 0)) * 2 / SPEED_OF_LIGHT_RADIO_KM_S * 1000) :
-                    resolvedLEOConnectivity.userLEODistance * 2 / SPEED_OF_LIGHT_RADIO_KM_S * 1000,
-                  downlinkGbps: resolvedLEOConnectivity.snp ?
-                    (leoPerformance?.downlinkGbps ?? 0) : 0,
-                  uplinkGbps: resolvedLEOConnectivity.snp ?
-                    (leoPerformance?.uplinkGbps ?? 0) : 0,
-                  stability: resolvedLEOConnectivity.snp ?
-                    (leoPerformance?.stability ?? 'Unstable') : 'Unstable',
-                  distance: resolvedLEOConnectivity.userLEODistance,
-                  radioPath: resolvedLEOConnectivity.snp ?
-                    `${analysisSource === 'aircraft' && aircraftCallsign ? aircraftCallsign : 'User'} → ${resolvedLEOConnectivity.satellite.name} → ${resolvedLEOConnectivity.snp.name} → ${resolvedLEOConnectivity.satellite.name} → ${analysisSource === 'aircraft' && aircraftCallsign ? aircraftCallsign : 'User'}` :
-                    `${analysisSource === 'aircraft' && aircraftCallsign ? aircraftCallsign : 'User'} → ${resolvedLEOConnectivity.satellite.name} (→ No SNP connectivity)`
-                } : null}
-                geoData={resolvedGEOConnectivity ? {
-                  name: resolvedGEOConnectivity.satellite.name,
-                  elevation: geoGeometry?.userToSatellite.elevationDeg || 0,
-                  rtt: geoGeometry?.rttTotalMs || 0,
-                  downlinkGbps: (() => {
-                    const performance = calculateGEOPerformance(geoGeometry?.userToSatellite.elevationDeg || 0);
-                    return performance.downlinkGbps;
-                  })(),
-                  uplinkGbps: (() => {
-                    const performance = calculateGEOPerformance(geoGeometry?.userToSatellite.elevationDeg || 0);
-                    return performance.uplinkGbps;
-                  })(),
-                  stability: (() => {
-                    const performance = calculateGEOPerformance(geoGeometry?.userToSatellite.elevationDeg || 0);
-                    return geoGeometry?.isUserLinkUnstable ? 'Unstable' : performance.stability;
-                  })(),
-                  distance: geoGeometry?.userToSatellite.slantRangeKm || 0,
-                  radioPath: `${analysisSource === 'aircraft' && aircraftCallsign ? aircraftCallsign : 'User'} → ${resolvedGEOConnectivity.satellite.name} → ${analysisSource === 'aircraft' && aircraftCallsign ? aircraftCallsign : 'User'}`
-                } : null}
-                leoDetails={satelliteScope !== 'GEO' ? leoPdfDetails : null}
-                geoDetails={satelliteScope !== 'LEO' ? geoPdfDetails : null}
-                globeRef={globeRef}
-                cesiumViewerRef={cesiumViewerRef}
-              />
+              <ExportButton {...exportButtonPayload} />
             </div>
           )}
 

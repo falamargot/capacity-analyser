@@ -12,8 +12,8 @@
  *
  * The timeline answers the sat engineer's original question:
  * "Does the connection drop between two beams?"
- * → The overlap between adjacent beams (and the DC-based power allocation) ensures
- *   seamless transition, visible as consecutive cells of the same or adjacent beam index.
+ * → The overlap between adjacent beams ensures seamless transition, visible as consecutive
+ *   cells of the same or adjacent beam index.
  */
 
 import React, { useMemo, useState } from 'react';
@@ -31,7 +31,7 @@ import { SNPS_DATA } from './globe/GlobeConfig';
 import { getBeamBaseColor } from '../config/beamVisualization';
 import type { BeamHealthData } from '../utils/realisticSimulation';
 import { buildSimulationStateSnapshot } from '../types/simulation';
-import { useSimulation, computeEffectiveThroughput } from '../contexts/SimulationContext';
+import { useSimulation } from '../contexts/SimulationContext';
 
 // ─────────────────────────────────────────────────────────────────
 // Types
@@ -65,8 +65,6 @@ export interface PassBeamTimelineProps {
   beamHealthFactors: BeamHealthData[];
   /** Terminal max downlink (Mbps) — caps per-step throughput to match Estimated Performance */
   maxDlMbps: number;
-  /** Polar corridor DC level (1–16). Applied as network load factor to per-step throughput. */
-  dcLevel?: number;
 }
 
 // ─────────────────────────────────────────────────────────────────
@@ -121,7 +119,6 @@ const PassBeamTimeline: React.FC<PassBeamTimelineProps> = ({
   weatherCondition,
   beamHealthFactors,
   maxDlMbps,
-  dcLevel = 16,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const { coveragePolicy } = useSimulation();
@@ -208,9 +205,7 @@ const PassBeamTimeline: React.FC<PassBeamTimelineProps> = ({
         const backhaulFactor = limitingElev < 15 ? 0
           : limitingElev >= 50 ? 1
           : (limitingElev - 15) / (50 - 15);
-        // Apply RF cap, then DC network load factor (matches Estimated Performance model)
-        const rfThroughput = Math.min(perf.deliveredThroughputMbps * backhaulFactor, maxDlMbps);
-        throughputMbps = computeEffectiveThroughput({ rfCapacity: rfThroughput, dcLevel });
+        throughputMbps = Math.min(perf.deliveredThroughputMbps * backhaulFactor, maxDlMbps);
       }
 
       points.push({
@@ -226,7 +221,7 @@ const PassBeamTimeline: React.FC<PassBeamTimelineProps> = ({
     }
 
     return points;
-  }, [satellite, userPosition, failedSnps, hsBeams, weatherCondition, beamHealthFactors, maxDlMbps, dcLevel, coveragePolicy]);
+  }, [satellite, userPosition, failedSnps, hsBeams, weatherCondition, beamHealthFactors, maxDlMbps, coveragePolicy]);
 
   // Summary stats
   const inPassPoints    = timeline.filter(p => p.elevation > 0);

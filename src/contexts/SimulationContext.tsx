@@ -13,71 +13,6 @@ import {
 // Re-export so consumers import from a single place
 export type { WeatherCondition };
 
-// ─────────────────────────────────────────────────────────────────
-// Feature 2 – Polar Corridor DC Level utilities
-// ─────────────────────────────────────────────────────────────────
-
-/** Number of polar corridors (longitude strips of 20° each) */
-export const CORRIDOR_COUNT = 18;
-export const CORRIDOR_WIDTH_DEG = 20;
-
-/** Default DC level for all corridors (16 = full demand) */
-export const DEFAULT_DC_LEVEL = 16;
-
-/** Returns the corridor index (0–17) for a given longitude (−180° to +180°). */
-export function getCorridorIndex(lngDeg: number): number {
-  const normalized = ((lngDeg + 180) % 360 + 360) % 360;
-  return Math.min(Math.floor(normalized / CORRIDOR_WIDTH_DEG), CORRIDOR_COUNT - 1);
-}
-
-/** Returns the [west, east] longitude bounds for a corridor index. */
-export function getCorridorRange(index: number): [number, number] {
-  const west = -180 + index * CORRIDOR_WIDTH_DEG;
-  return [west, west + CORRIDOR_WIDTH_DEG];
-}
-
-/** Linear throughput scale from a DC level (1–16). DC16 = 1.0, DC1 = 0.0625. */
-export function getDcThroughputScale(dcLevel: number): number {
-  return Math.max(0, Math.min(16, dcLevel)) / 16;
-}
-
-/**
- * Network-layer effective throughput after applying DC load factor with gamma congestion penalty.
- *
- *   effective = rfCapacity × (dcLevel / 16) ^ gamma
- *
- * gamma = 1.2 adds a slight super-linear congestion penalty:
- *   DC16 → 100%  |  DC8 → ~43.5%  |  DC4 → ~18%  |  DC1 → ~4%
- *
- * Invariants: rfCapacity ≤ 0 → 0 ; DC16 → rfCapacity unchanged.
- */
-export function computeEffectiveThroughput({
-  rfCapacity,
-  dcLevel,
-  gamma = 1.2,
-}: {
-  rfCapacity: number;
-  dcLevel: number;
-  gamma?: number;
-}): number {
-  if (rfCapacity <= 0) return 0;
-  const loadFactor = Math.pow(Math.max(0, Math.min(16, dcLevel)) / 16, gamma);
-  return rfCapacity * loadFactor;
-}
-
-/**
- * Queueing delay added by network congestion when DC is below maximum.
- * DC16 → 0 ms extra.  DC1 → significant queuing penalty.
- *
- *   extra_queue = baseQueueMs × (1 / loadFactor − 1)
- */
-export function computeDcQueueDelayMs(dcLevel: number, baseQueueMs = 4): number {
-  const clampedDc = Math.max(1, Math.min(16, dcLevel));
-  const loadFactor = Math.pow(clampedDc / 16, 1.2);
-  return Math.round(baseQueueMs * (1 / loadFactor - 1));
-}
-
-const DEFAULT_CORRIDOR_DC_LEVELS: number[] = Array(CORRIDOR_COUNT).fill(DEFAULT_DC_LEVEL);
 
 interface SimulationContextType {
   // Coverage policy (legacy)
@@ -100,11 +35,6 @@ interface SimulationContextType {
   failedSnps: ReadonlySet<string>;
   toggleSnpFailure: (snpName: string) => void;
   resetFailedSnps: () => void;
-
-  // Feature 2: DC Level per Polar Corridor
-  corridorDcLevels: readonly number[];
-  setCorridorDcLevel: (corridorIndex: number, dcLevel: number) => void;
-  resetCorridorDcLevels: () => void;
 
   // Feature 3: Beam HS (Hard Out of Service)
   beamHsStatus: readonly boolean[];
@@ -129,10 +59,6 @@ const SimulationContext = createContext<SimulationContextType>({
   failedSnps:             new Set(),
   toggleSnpFailure:       () => {},
   resetFailedSnps:        () => {},
-
-  corridorDcLevels:       DEFAULT_CORRIDOR_DC_LEVELS,
-  setCorridorDcLevel:     () => {},
-  resetCorridorDcLevels:  () => {},
 
   beamHsStatus:           Array(TOTAL_BEAMS).fill(false),
   toggleBeamHs:           () => {},
@@ -165,11 +91,6 @@ export const SimulationProvider: React.FC<{ children: ReactNode }> = ({ children
 
   // Feature 1: SNP failures
   const [failedSnps, setFailedSnps] = useState<Set<string>>(() => new Set());
-
-  // Feature 2: Corridor DC levels
-  const [corridorDcLevels, setCorridorDcLevels] = useState<number[]>(
-    () => [...DEFAULT_CORRIDOR_DC_LEVELS]
-  );
 
   // Feature 3: Beam HS
   const [beamHsStatus, setBeamHsStatus] = useState<boolean[]>(
@@ -216,19 +137,6 @@ export const SimulationProvider: React.FC<{ children: ReactNode }> = ({ children
     setFailedSnps(new Set());
   }, []);
 
-  // ── Corridor DC ───────────────────────────────────────────────
-  const setCorridorDcLevel = useCallback((corridorIndex: number, dcLevel: number) => {
-    setCorridorDcLevels(prev => {
-      const next = [...prev];
-      next[corridorIndex] = Math.max(1, Math.min(16, Math.round(dcLevel)));
-      return next;
-    });
-  }, []);
-
-  const resetCorridorDcLevels = useCallback(() => {
-    setCorridorDcLevels([...DEFAULT_CORRIDOR_DC_LEVELS]);
-  }, []);
-
   // ── Beam HS ───────────────────────────────────────────────────
   const toggleBeamHs = useCallback((beamIndex: number) => {
     setBeamHsStatus(prev => {
@@ -266,10 +174,6 @@ export const SimulationProvider: React.FC<{ children: ReactNode }> = ({ children
     toggleSnpFailure,
     resetFailedSnps,
 
-    corridorDcLevels,
-    setCorridorDcLevel,
-    resetCorridorDcLevels,
-
     beamHsStatus,
     toggleBeamHs,
     resetBeamHs,
@@ -278,7 +182,6 @@ export const SimulationProvider: React.FC<{ children: ReactNode }> = ({ children
     coveragePolicy, weatherCondition, weatherLabel, weatherAttenuationDb,
     beamHealthFactors, setBeamHealthFactor, resetBeamHealth, getBeamHealthFactor,
     failedSnps, toggleSnpFailure, resetFailedSnps,
-    corridorDcLevels, setCorridorDcLevel, resetCorridorDcLevels,
     beamHsStatus, toggleBeamHs, resetBeamHs, hsBeamsSet,
     // Stable setters (setCoveragePolicy, setWeatherCondition) are React dispatchers
     // and never change identity — omitting them from deps is intentional.

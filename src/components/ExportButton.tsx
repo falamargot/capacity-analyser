@@ -20,6 +20,8 @@ interface ExportButtonProps {
   disabled?: boolean;
 }
 
+export type ExportButtonPayload = Omit<ExportButtonProps, 'disabled'>;
+
 const ExportButton: React.FC<ExportButtonProps> = ({
   location,
   scope,

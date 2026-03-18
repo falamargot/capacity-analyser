@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(grep -rn \"corridorDc\\\\|CorridorDc\\\\|PolarCorridor\\\\|supplyPlan\\\\|SupplyPlan\" /Users/falamargot/Developpement/capacity-analyser/src --include=*.tsx --include=*.ts)"
+    ]
+  }
+}
