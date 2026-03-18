@@ -184,10 +184,8 @@ const App: React.FC = () => {
   });
   const viewerRef = useRef<any>(null);
   const globeContainerRef = useRef<HTMLDivElement>(null);
-  // Stable ref so the selectedAircraft position interval can read the latest
-  // interpolated aircraft without being in the effect deps (which previously
-  // caused the 5-second interval to be torn down and re-created every frame).
-  const interpolatedAircraftRef = useRef<import('./modules/airTraffic/airTrafficService').Aircraft[]>([]);
+  // Stable ref — populated by useAirTrafficInterpolation (phase 2: map ref, no setState).
+  // The selectedAircraft position interval reads from this without being in its deps.
   const panelFallback = <div className="p-4 text-sm text-slate-500 dark:text-slate-400">Loading analysis...</div>;
 
   // Store viewer reference when ready
@@ -467,16 +465,17 @@ const App: React.FC = () => {
     selectedPosition // focus point for distance filtering
   );
 
-  // Air traffic position interpolation
-  const interpolatedAircraft = useAirTrafficInterpolation(
+  // Air/maritime traffic position interpolation.
+  // Phase-2: these hooks now return stable MutableRefObject<Map> instead of
+  // React state arrays. The RAF loop writes into the maps at 60fps with zero
+  // setState calls — App.tsx and the whole React tree are never re-rendered
+  // by interpolation. The Cesium position callbacks read from the maps directly.
+  const interpolatedAircraftMapRef = useAirTrafficInterpolation(
     airTraffic.aircraft,
     airTrafficEnabled
   );
-  // Keep the ref in sync — always has the latest array without being a dep.
-  interpolatedAircraftRef.current = interpolatedAircraft;
 
-  // Maritime traffic position interpolation
-  const interpolatedVessels = useMaritimeTrafficInterpolation(
+  const interpolatedVesselMapRef = useMaritimeTrafficInterpolation(
     maritimeTraffic.vessels,
     maritimeTrafficEnabled
   );
@@ -1181,24 +1180,27 @@ const App: React.FC = () => {
   const entryPointShortcutModifier = shortcutModifier;
 
   // Real-time updates for selected aircraft position and altitude.
-  // interpolatedAircraft is read from a ref so it is excluded from the deps array —
-  // previously it caused this interval to be torn down and re-created on every 60fps
-  // animation frame, meaning the setInterval(5000) never actually fired.
+  // Phase-2: interpolated position read from map ref (O(1) lookup, no array scan).
+  // The map is a stable ref, so it is excluded from deps — the interval is never
+  // torn down by interpolation updates.
   useEffect(() => {
     if (!selectedAircraft || !airTrafficEnabled) return;
 
     const updateSelectedAircraftPosition = () => {
-      const currentAircraftData = interpolatedAircraftRef.current.find(
-        aircraft => aircraft.icao24 === selectedAircraft!.icao24
-      );
+      const pos = interpolatedAircraftMapRef.current.get(selectedAircraft!.icao24);
+      // Fall back to raw aircraft data if the interpolation map doesn't have an entry yet
+      const raw = airTraffic.aircraft.find(ac => ac.icao24 === selectedAircraft!.icao24);
+      const lat = pos?.latitude ?? raw?.latitude;
+      const lng = pos?.longitude ?? raw?.longitude;
+      const alt = pos?.altitude_km ?? raw?.altitude_km;
 
-      if (currentAircraftData?.latitude && currentAircraftData?.longitude) {
+      if (lat && lng) {
         updateAnalyzisPosition({
-          lat: currentAircraftData.latitude,
-          lng: currentAircraftData.longitude,
-          altitude: currentAircraftData.altitude_km || undefined,
+          lat,
+          lng,
+          altitude: alt || undefined,
           source: 'aircraft',
-          aircraftCallsign: currentAircraftData.callsign || selectedAircraft!.callsign
+          aircraftCallsign: raw?.callsign || selectedAircraft!.callsign
         });
       }
     };
@@ -1206,7 +1208,7 @@ const App: React.FC = () => {
     updateSelectedAircraftPosition();
     const interval = setInterval(updateSelectedAircraftPosition, 5000);
     return () => clearInterval(interval);
-  }, [selectedAircraft, airTrafficEnabled, updateAnalyzisPosition]); // interpolatedAircraftRef is stable
+  }, [selectedAircraft, airTrafficEnabled, updateAnalyzisPosition]); // interpolatedAircraftMapRef/airTraffic.aircraft read via closure, not deps
 
   const handleSearchInput = useCallback(async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -1271,15 +1273,17 @@ const App: React.FC = () => {
     onToggleFullscreen: () => setIsFullscreen(!isFullscreen),
     satelliteScope,
     airTrafficEnabled,
-    aircraft: interpolatedAircraft,
+    aircraft: airTraffic.aircraft,
     selectedAircraft,
     onAircraftClick: handleAircraftSelect,
     onAircraftHover: handleAircraftHover,
+    interpolatedAircraftMapRef,
     maritimeTrafficEnabled,
-    vessels: interpolatedVessels,
+    vessels: maritimeTraffic.vessels,
     selectedVessel,
     onVesselClick: handleVesselSelect,
     onVesselHover: undefined,
+    interpolatedVesselMapRef,
     cameraTarget,
     onCameraReady: handleCameraReady,
     onGlobeContainerReady: handleGlobeContainerReady,
@@ -1297,9 +1301,9 @@ const App: React.FC = () => {
     filteredSatellites, satelliteTypeByName, coverageFeaturesMemo, handlePointClick, selectedPosition,
     handleSatelliteClick, handleSatelliteHover, handleSnpClick, handleGatewaySelectByName, handleSnpHover,
     selectedSatellite, resolvedAutoLEO, activeGeoSatellite, selectedGEOBeam, candidateCoverages, selectedCoverage, selectedGeoBeamId, selectedSNP, selectedGateway, dedicatedSNPForSelectedLEO,
-    isFullscreen, satelliteScope, airTrafficEnabled, interpolatedAircraft,
+    isFullscreen, satelliteScope, airTrafficEnabled, airTraffic.aircraft,
     selectedAircraft, handleAircraftSelect, handleAircraftHover,
-    maritimeTrafficEnabled, interpolatedVessels, selectedVessel, handleVesselSelect, cameraTarget,
+    maritimeTrafficEnabled, maritimeTraffic.vessels, selectedVessel, handleVesselSelect, cameraTarget,
     handleCameraReady, handleGlobeContainerReady, showSatelliteTrajectory, sizeScale,
     inspectedSNP, snpConnectedSatellites,
   ]);

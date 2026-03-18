@@ -2,10 +2,11 @@
  * Hook to manage cached CallbackPositionProperty instances for satellites and aircraft
  * This prevents creating new callback instances on every render, which is critical for performance
  */
-import { useRef, useEffect, useMemo } from 'react';
+import React, { useRef, useEffect, useMemo } from 'react';
 import { CallbackPositionProperty, JulianDate } from 'cesium';
 import type { SatelliteData } from '../../../types/satellites';
 import type { Aircraft } from '../../../modules/airTraffic/airTrafficService';
+import type { AircraftInterpolation } from '../../../modules/airTraffic/useAirTraffic';
 import { getPosition, propagateSatellite, calculateDeadReckoning } from '../utils';
 
 interface PositionCallbackCache {
@@ -19,7 +20,8 @@ interface PositionCallbackCache {
  */
 export function usePositionCallbacks(
     satellites: SatelliteData[],
-    aircraft: Aircraft[]
+    aircraft: Aircraft[],
+    interpolatedAircraftMapRef?: React.RefObject<Map<string, AircraftInterpolation>>
 ) {
     const cacheRef = useRef<PositionCallbackCache>({
         satellites: new Map(),
@@ -89,19 +91,41 @@ export function usePositionCallbacks(
         };
     }, []);
 
+    // Per-aircraft live cell: holds the most recent Aircraft from the fetch cycle.
+    // Callbacks close over the cell so they always read the latest
+    // velocity / heading / last_contact without needing a new CallbackPositionProperty.
+    const acLiveCellsRef = useRef<Map<string, { value: Aircraft }>>(new Map());
+
     /**
-     * Get or create a cached CallbackPositionProperty for aircraft
+     * Get or create a cached CallbackPositionProperty for aircraft.
+     *
+     * Dead reckoning (velocity × Δt from last_contact) provides continuous smooth
+     * motion between API refreshes — Cesium drives it at 60fps, zero React state.
+     * The live cell ensures the callback always uses the freshest fetch data so the
+     * extrapolation origin is reset on every 10-second API update.
      */
     const getAircraftPositionCallback = useMemo(() => {
         return (ac: Aircraft): CallbackPositionProperty => {
             const cache = cacheRef.current.aircraft;
 
+            // Refresh the live cell so the callback uses the latest fetch data
+            const existing = acLiveCellsRef.current.get(ac.icao24);
+            if (existing) {
+                existing.value = ac;
+            } else {
+                acLiveCellsRef.current.set(ac.icao24, { value: ac });
+            }
+
             if (!cache.has(ac.icao24)) {
+                const icao24 = ac.icao24;
+                const liveCell = acLiveCellsRef.current.get(icao24)!;
+
                 const callback = new CallbackPositionProperty((time?: JulianDate) => {
+                    const live = liveCell.value;
                     if (!time) {
-                        return getPosition(ac.latitude || 0, ac.longitude || 0, ac.altitude_km || 10);
+                        return getPosition(live.latitude ?? 0, live.longitude ?? 0, live.altitude_km ?? 10);
                     }
-                    return calculateDeadReckoning(ac, time);
+                    return calculateDeadReckoning(live, time);
                 }, false);
 
                 cache.set(ac.icao24, callback);

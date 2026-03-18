@@ -1,7 +1,7 @@
 /**
  * VesselLayer - Renders all vessel entities with optimized callbacks
  */
-import React, { useMemo, useCallback } from 'react';
+import React, { useMemo, useCallback, useRef } from 'react';
 import { Entity, LabelGraphics } from 'resium';
 import {
     Cartesian2,
@@ -17,6 +17,7 @@ import {
 } from 'cesium';
 import type { Vessel } from '../../modules/maritimeTraffic/maritimeTrafficService';
 import { VesselType, VESSEL_TYPE_CONFIG } from '../../modules/maritimeTraffic/maritimeTrafficService';
+import type { VesselInterpolation } from '../../modules/maritimeTraffic/useMaritimeTraffic';
 import { DPR_FACTOR, calculateDynamicScale, type CameraMetricsSnapshot } from './utils';
 
 // Simple boat icon - single rectangle oriented with vessel direction
@@ -30,6 +31,7 @@ interface VesselLayerProps {
     viewerRef: React.RefObject<CesiumViewerType | null>;
     cameraMetricsRef: React.MutableRefObject<CameraMetricsSnapshot>;
     vesselSizeScale?: number;
+    interpolatedVesselMapRef?: React.RefObject<Map<string, VesselInterpolation>>;
 }
 
 /**
@@ -113,6 +115,7 @@ const VesselEntity = React.memo<{
     onVesselClick?: (vessel: Vessel | null) => void;
     onVesselHover?: (vessel: Vessel | null) => void;
     vesselSizeScale?: number;
+    interpolatedVesselMapRef?: React.RefObject<Map<string, VesselInterpolation>>;
 }>(({
     vessel,
     isSelected,
@@ -120,14 +123,48 @@ const VesselEntity = React.memo<{
     cameraMetricsRef,
     onVesselClick,
     onVesselHover,
-    vesselSizeScale = 1
+    vesselSizeScale = 1,
+    interpolatedVesselMapRef,
 }) => {
-    // Create stable position callback with dead reckoning
+    // Keep a ref to the latest vessel data so the position callback — created once
+    // per vessel lifetime — always reads the freshest raw position as its fallback.
+    const vesselRef = useRef(vessel);
+    vesselRef.current = vessel;
+
+    // Mutable DR proxy: allocated once per entity, mutated in the callback at 60fps
+    // to avoid heap allocation on the hot path.
+    const drProxyRef = useRef<Vessel>({ ...vessel });
+
+    // Phase-2: positionCallback is stable (keyed on mmsi, not the full vessel object).
+    // Dead reckoning from the DR proxy gives continuous motion. During the 3-second
+    // interpolation window the proxy's lat/lng is overridden with the smoothly blended
+    // position from the RAF map; after the window it falls back to the raw vessel position.
     const positionCallback = useMemo(() => {
+        const mmsi = vessel.mmsi;
         return new CallbackProperty((time) => {
-            return calculateVesselDeadReckoning(vessel, time as JulianDate);
+            const pos = interpolatedVesselMapRef?.current?.get(mmsi);
+            const v = vesselRef.current;
+            // Always sync the dynamic fields from the live vessel ref
+            const dr = drProxyRef.current;
+            dr.speed     = v.speed;
+            dr.speed_kmh = v.speed_kmh;
+            dr.lastUpdate = v.lastUpdate;
+            if (pos) {
+                // Blend: use interpolated lat/lng/heading as DR origin
+                dr.latitude  = pos.latitude;
+                dr.longitude = pos.longitude;
+                dr.heading   = pos.heading;
+                dr.course    = pos.heading;
+            } else {
+                dr.latitude  = Number(v.latitude);
+                dr.longitude = Number(v.longitude);
+                dr.heading   = Number(v.heading) || Number(v.course) || 0;
+                dr.course    = dr.heading;
+            }
+            return calculateVesselDeadReckoning(dr, time as JulianDate);
         }, false) as CallbackPositionProperty;
-    }, [vessel]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [vessel.mmsi, interpolatedVesselMapRef]);
 
     // Create stable scale callback
     const scaleCallback = useMemo(() => {
@@ -222,7 +259,8 @@ const VesselLayer: React.FC<VesselLayerProps> = ({
     onVesselHover,
     viewerRef,
     cameraMetricsRef,
-    vesselSizeScale = 1
+    vesselSizeScale = 1,
+    interpolatedVesselMapRef,
 }) => {
     // Memoize vessel entities
     const vesselEntities = useMemo(() => {
@@ -239,6 +277,7 @@ const VesselLayer: React.FC<VesselLayerProps> = ({
                     onVesselClick={onVesselClick}
                     onVesselHover={onVesselHover}
                     vesselSizeScale={vesselSizeScale}
+                    interpolatedVesselMapRef={interpolatedVesselMapRef}
                 />
             );
         });
@@ -249,7 +288,8 @@ const VesselLayer: React.FC<VesselLayerProps> = ({
         cameraMetricsRef,
         onVesselClick,
         onVesselHover,
-        vesselSizeScale
+        vesselSizeScale,
+        interpolatedVesselMapRef,
     ]);
 
     return <>{vesselEntities}</>;

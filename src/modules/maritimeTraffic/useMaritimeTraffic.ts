@@ -3,7 +3,7 @@
  * Handles real-time vessel data fetching, filtering, and interpolation
  */
 
-import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { log } from '../../utils/logger';
 import {
     Vessel,
@@ -189,74 +189,97 @@ export function useMaritimeTraffic(
 }
 
 /**
- * Hook for interpolating vessel positions between updates
- * Uses requestAnimationFrame for smooth motion
+ * Interpolated position fields written into the per-vessel map entry.
+ */
+export interface VesselInterpolation {
+    latitude: number;
+    longitude: number;
+    heading: number;
+}
+
+/**
+ * Hook for interpolating vessel positions between updates.
+ *
+ * Phase-2 change: returns a stable MutableRefObject<Map> instead of React state.
+ * The RAF loop mutates the map at 60fps without calling setState, eliminating
+ * the 60fps App.tsx re-render chain caused by the previous implementation.
  */
 export function useMaritimeTrafficInterpolation(
     vessels: Vessel[],
     enabled: boolean = true
-) {
-    const [interpolatedVessels, setInterpolatedVessels] = useState<Vessel[]>(vessels);
+): React.MutableRefObject<Map<string, VesselInterpolation>> {
+    const interpolatedMapRef = useRef<Map<string, VesselInterpolation>>(new Map());
     const previousVesselsRef = useRef<Vessel[]>([]);
     const animationFrameRef = useRef<number | null>(null);
 
     useEffect(() => {
         if (!enabled) {
-            setInterpolatedVessels(vessels);
+            const map = interpolatedMapRef.current;
+            map.clear();
+            for (const v of vessels) {
+                map.set(v.mmsi, {
+                    latitude: v.latitude || 0,
+                    longitude: v.longitude || 0,
+                    heading: v.heading || v.course || 0,
+                });
+            }
+            previousVesselsRef.current = vessels;
             return;
         }
 
-        // Cancel any existing animation
         if (animationFrameRef.current) {
             cancelAnimationFrame(animationFrameRef.current);
         }
 
         const previousVessels = previousVesselsRef.current;
-        previousVesselsRef.current = [...vessels];
+        previousVesselsRef.current = vessels;
 
-        // If no previous data, set immediately
         if (previousVessels.length === 0) {
-            setInterpolatedVessels(vessels);
+            const map = interpolatedMapRef.current;
+            map.clear();
+            for (const v of vessels) {
+                map.set(v.mmsi, {
+                    latitude: v.latitude || 0,
+                    longitude: v.longitude || 0,
+                    heading: v.heading || v.course || 0,
+                });
+            }
             return;
         }
 
-        const previousVesselIndex = new Map(
-            previousVessels.map((previous) => [previous.mmsi, previous] as const)
+        const previousIndex = new Map(
+            previousVessels.map((prev) => [prev.mmsi, prev] as const)
         );
 
         let startTime: number | null = null;
-        const duration = 3000; // 3 seconds for smooth transition (vessels move slower)
+        const duration = 3000; // 3 seconds (vessels move slower)
 
         const interpolate = (timestamp: number) => {
             if (!startTime) startTime = timestamp;
             const progress = Math.min((timestamp - startTime) / duration, 1);
-
-            // Use easing function for smoother motion
             const easeProgress = 1 - Math.pow(1 - progress, 3); // Cubic ease-out
 
-            const updatedVessels = vessels.map(newVessel => {
-                const prevVessel = previousVesselIndex.get(newVessel.mmsi);
+            const map = interpolatedMapRef.current;
+            for (const id of map.keys()) {
+                if (!previousIndex.has(id)) map.delete(id);
+            }
 
-                if (!prevVessel) {
-                    return { ...newVessel };
+            for (const newV of vessels) {
+                const prevV = previousIndex.get(newV.mmsi);
+                if (!prevV) {
+                    map.set(newV.mmsi, {
+                        latitude: newV.latitude || 0,
+                        longitude: newV.longitude || 0,
+                        heading: newV.heading || newV.course || 0,
+                    });
+                    continue;
                 }
-
-                // Interpolate position
-                const lat = (prevVessel.latitude || 0) + ((newVessel.latitude || 0) - (prevVessel.latitude || 0)) * easeProgress;
-                const lng = (prevVessel.longitude || 0) + ((newVessel.longitude || 0) - (prevVessel.longitude || 0)) * easeProgress;
-                const speed = (prevVessel.speed_kmh || 0) + ((newVessel.speed_kmh || 0) - (prevVessel.speed_kmh || 0)) * easeProgress;
-                const heading = interpolateHeading(prevVessel.heading || 0, newVessel.heading || 0, easeProgress);
-
-                return {
-                    ...newVessel,
-                    latitude: lat,
-                    longitude: lng,
-                    speed_kmh: speed,
-                    heading: heading
-                };
-            });
-
-            setInterpolatedVessels(updatedVessels);
+                map.set(newV.mmsi, {
+                    latitude: (prevV.latitude || 0) + ((newV.latitude || 0) - (prevV.latitude || 0)) * easeProgress,
+                    longitude: (prevV.longitude || 0) + ((newV.longitude || 0) - (prevV.longitude || 0)) * easeProgress,
+                    heading: interpolateHeading(prevV.heading || 0, newV.heading || 0, easeProgress),
+                });
+            }
 
             if (progress < 1) {
                 animationFrameRef.current = requestAnimationFrame(interpolate);
@@ -272,7 +295,7 @@ export function useMaritimeTrafficInterpolation(
         };
     }, [vessels, enabled]);
 
-    return interpolatedVessels;
+    return interpolatedMapRef;
 }
 
 /**

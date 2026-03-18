@@ -33,7 +33,9 @@ import {
 import { Feature, Geometry, GeoJsonProperties } from 'geojson';
 import type { SatelliteData } from '../types/satellites';
 import type { Aircraft } from '../modules/airTraffic/airTrafficService';
+import type { AircraftInterpolation } from '../modules/airTraffic/useAirTraffic';
 import type { Vessel } from '../modules/maritimeTraffic/maritimeTrafficService';
+import type { VesselInterpolation } from '../modules/maritimeTraffic/useMaritimeTraffic';
 import type { SatelliteScope } from './SatelliteScopeFilter';
 import type { CandidateCoverage, GEOBeam } from '../types/analysis';
 import { getPosition, DPR_FACTOR, calculateDynamicScale, type CameraMetricsSnapshot } from './cesium-globe/utils';
@@ -92,11 +94,13 @@ interface CesiumGlobeProps {
     selectedAircraft?: Aircraft | null;
     onAircraftClick?: (aircraft: Aircraft | null) => void;
     onAircraftHover?: (aircraft: Aircraft | null) => void;
+    interpolatedAircraftMapRef?: React.MutableRefObject<Map<string, AircraftInterpolation>>;
     maritimeTrafficEnabled?: boolean;
     vessels?: Vessel[];
     selectedVessel?: Vessel | null;
     onVesselClick?: (vessel: Vessel | null) => void;
     onVesselHover?: (vessel: Vessel | null) => void;
+    interpolatedVesselMapRef?: React.MutableRefObject<Map<string, VesselInterpolation>>;
     selectedGEOBeam?: GEOBeam | null;
     candidateCoverages?: CandidateCoverage[];
     selectedCoverage?: CandidateCoverage | null;
@@ -140,11 +144,13 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
     selectedAircraft,
     onAircraftClick,
     onAircraftHover,
+    interpolatedAircraftMapRef,
     maritimeTrafficEnabled = false,
     vessels = [],
     selectedVessel,
     onVesselClick,
     onVesselHover,
+    interpolatedVesselMapRef,
     selectedGEOBeam,
     candidateCoverages = [],
     selectedCoverage = null,
@@ -774,6 +780,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                             viewerRef={viewerRef}
                             cameraMetricsRef={cameraMetricsRef}
                             aircraftSizeScale={sizeScale}
+                            interpolatedAircraftMapRef={interpolatedAircraftMapRef}
                         />
                     )}
 
@@ -787,6 +794,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                             viewerRef={viewerRef}
                             cameraMetricsRef={cameraMetricsRef}
                             vesselSizeScale={sizeScale}
+                            interpolatedVesselMapRef={interpolatedVesselMapRef}
                         />
                     )}
                 </Viewer>

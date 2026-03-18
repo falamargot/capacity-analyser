@@ -14,6 +14,7 @@ import {
     Viewer as CesiumViewerType
 } from 'cesium';
 import type { Aircraft } from '../../modules/airTraffic/airTrafficService';
+import type { AircraftInterpolation } from '../../modules/airTraffic/useAirTraffic';
 import { PLANE_ICON, DPR_FACTOR, calculateDynamicScale, type CameraMetricsSnapshot } from './utils';
 import { usePositionCallbacks } from './hooks';
 
@@ -25,6 +26,7 @@ interface AircraftLayerProps {
     viewerRef: React.RefObject<CesiumViewerType | null>;
     cameraMetricsRef: React.MutableRefObject<CameraMetricsSnapshot>;
     aircraftSizeScale?: number;
+    interpolatedAircraftMapRef?: React.RefObject<Map<string, AircraftInterpolation>>;
 }
 
 const AircraftEntity = React.memo<{
@@ -121,9 +123,10 @@ const AircraftLayer: React.FC<AircraftLayerProps> = ({
     onAircraftHover,
     viewerRef,
     cameraMetricsRef,
-    aircraftSizeScale = 1
+    aircraftSizeScale = 1,
+    interpolatedAircraftMapRef,
 }) => {
-    const { getAircraftPositionCallback } = usePositionCallbacks([], aircraft);
+    const { getAircraftPositionCallback } = usePositionCallbacks([], aircraft, interpolatedAircraftMapRef);
 
     // Memoize aircraft entities
     const aircraftEntities = useMemo(() => {

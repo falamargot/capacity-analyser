@@ -3,7 +3,7 @@
  * Handles real-time aircraft data fetching, filtering, and interpolation
  */
 
-import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { Aircraft, getAircraftData, filterAircraftByView } from './airTrafficService';
 import { log } from '../../utils/logger';
 
@@ -159,42 +159,72 @@ export function useAirTraffic(
 }
 
 /**
- * Hook for interpolating aircraft positions between updates
- * Uses requestAnimationFrame for smooth motion
+ * Interpolated position fields written into the per-aircraft map entry.
+ * Using a dedicated type avoids spreading full Aircraft objects at 60fps.
+ */
+export interface AircraftInterpolation {
+  latitude: number;
+  longitude: number;
+  altitude_km: number;
+  heading: number;
+}
+
+/**
+ * Hook for interpolating aircraft positions between updates.
+ *
+ * Phase-2 change: returns a stable MutableRefObject<Map> instead of React state.
+ * The RAF loop writes directly into the map at 60fps — zero setState calls —
+ * so App.tsx and the React tree are never re-rendered by the interpolation.
+ * The Cesium CallbackPositionProperty reads from the map on each Cesium frame.
  */
 export function useAirTrafficInterpolation(
   aircraft: Aircraft[],
   enabled: boolean = true
-) {
-  const [interpolatedAircraft, setInterpolatedAircraft] = useState<Aircraft[]>(aircraft);
+): React.MutableRefObject<Map<string, AircraftInterpolation>> {
+  const interpolatedMapRef = useRef<Map<string, AircraftInterpolation>>(new Map());
   const previousAircraftRef = useRef<Aircraft[]>([]);
   const animationFrameRef = useRef<number | null>(null);
 
-  // Smooth interpolation between previous and new positions
   useEffect(() => {
+    // Seed the map with raw positions so the first frame is correct
     if (!enabled) {
-      setInterpolatedAircraft(aircraft);
+      const map = interpolatedMapRef.current;
+      map.clear();
+      for (const ac of aircraft) {
+        map.set(ac.icao24, {
+          latitude: ac.latitude || 0,
+          longitude: ac.longitude || 0,
+          altitude_km: ac.altitude_km || 10,
+          heading: ac.heading || 0,
+        });
+      }
+      previousAircraftRef.current = aircraft;
       return;
     }
 
-    // Cancel any existing animation
     if (animationFrameRef.current) {
       cancelAnimationFrame(animationFrameRef.current);
     }
 
     const previousAircraft = previousAircraftRef.current;
-    // React state produces a new array reference on each update, so the previous
-    // value is safe to retain without copying. The spread was O(n) for 6000 aircraft.
     previousAircraftRef.current = aircraft;
 
-    // If no previous data, set immediately
     if (previousAircraft.length === 0) {
-      setInterpolatedAircraft(aircraft);
+      const map = interpolatedMapRef.current;
+      map.clear();
+      for (const ac of aircraft) {
+        map.set(ac.icao24, {
+          latitude: ac.latitude || 0,
+          longitude: ac.longitude || 0,
+          altitude_km: ac.altitude_km || 10,
+          heading: ac.heading || 0,
+        });
+      }
       return;
     }
 
-    const previousAircraftIndex = new Map(
-      previousAircraft.map((previous) => [previous.icao24, previous] as const)
+    const previousIndex = new Map(
+      previousAircraft.map((prev) => [prev.icao24, prev] as const)
     );
 
     let startTime: number | null = null;
@@ -203,36 +233,32 @@ export function useAirTrafficInterpolation(
     const interpolate = (timestamp: number) => {
       if (!startTime) startTime = timestamp;
       const progress = Math.min((timestamp - startTime) / duration, 1);
-
-      // Use easing function for smoother motion
       const easeProgress = 1 - Math.pow(1 - progress, 3); // Cubic ease-out
 
-      const updatedAircraft = aircraft.map(newAc => {
-        const prevAc = previousAircraftIndex.get(newAc.icao24);
-        
+      const map = interpolatedMapRef.current;
+      // Remove entries for aircraft that left the view
+      for (const id of map.keys()) {
+        if (!previousIndex.has(id)) map.delete(id);
+      }
+
+      for (const newAc of aircraft) {
+        const prevAc = previousIndex.get(newAc.icao24);
         if (!prevAc) {
-          // New aircraft, fade in
-          return { ...newAc };
+          map.set(newAc.icao24, {
+            latitude: newAc.latitude || 0,
+            longitude: newAc.longitude || 0,
+            altitude_km: newAc.altitude_km || 10,
+            heading: newAc.heading || 0,
+          });
+          continue;
         }
-
-        // Interpolate position
-        const lat = (prevAc.latitude || 0) + ((newAc.latitude || 0) - (prevAc.latitude || 0)) * easeProgress;
-        const lng = (prevAc.longitude || 0) + ((newAc.longitude || 0) - (prevAc.longitude || 0)) * easeProgress;
-        const alt = (prevAc.altitude_km || 0) + ((newAc.altitude_km || 0) - (prevAc.altitude_km || 0)) * easeProgress;
-        const speed = (prevAc.speed_kmh || 0) + ((newAc.speed_kmh || 0) - (prevAc.speed_kmh || 0)) * easeProgress;
-        const heading = (prevAc.heading || 0) + ((newAc.heading || 0) - (prevAc.heading || 0)) * easeProgress;
-
-        return {
-          ...newAc,
-          latitude: lat,
-          longitude: lng,
-          altitude_km: alt,
-          speed_kmh: speed,
-          heading: heading
-        };
-      });
-
-      setInterpolatedAircraft(updatedAircraft);
+        map.set(newAc.icao24, {
+          latitude: (prevAc.latitude || 0) + ((newAc.latitude || 0) - (prevAc.latitude || 0)) * easeProgress,
+          longitude: (prevAc.longitude || 0) + ((newAc.longitude || 0) - (prevAc.longitude || 0)) * easeProgress,
+          altitude_km: (prevAc.altitude_km || 0) + ((newAc.altitude_km || 0) - (prevAc.altitude_km || 0)) * easeProgress,
+          heading: (prevAc.heading || 0) + ((newAc.heading || 0) - (prevAc.heading || 0)) * easeProgress,
+        });
+      }
 
       if (progress < 1) {
         animationFrameRef.current = requestAnimationFrame(interpolate);
@@ -248,5 +274,5 @@ export function useAirTrafficInterpolation(
     };
   }, [aircraft, enabled]);
 
-  return interpolatedAircraft;
+  return interpolatedMapRef;
 }
