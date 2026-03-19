@@ -25,7 +25,7 @@ import { footprintRadiusKm, BACKHAUL_ELEVATION_DEG, STANDARD_RADIUS_KM } from '.
 import { getCoverageColor, hasSNPInCoverage } from '../../services/coverageService';
 import { useSimulation } from '../../contexts/SimulationContext';
 import { useCombGeometry } from './hooks';
-import { getPosition, DUMMY_POLYGON, propagateSatellite, calculateDeadReckoning } from './utils';
+import { getPosition, DUMMY_POLYGON, propagateSatellite, calculateDeadReckoning, sanitizeCartesianRing } from './utils';
 import {
     GRADIENT_RENDERING,
     getBeamBaseColor,
@@ -85,6 +85,13 @@ const isPointInPolygon = (point: { lat: number; lng: number }, ring: Array<[numb
     return inside;
 };
 
+function getRenderablePolygon(
+    geometries: Cartesian3[][] | null,
+    beamIndex: number
+): Cartesian3[] {
+    return sanitizeCartesianRing(geometries?.[beamIndex] ?? null);
+}
+
 // ─── Single ring of a gradient beam ────────────────────────────────
 const BeamRing = React.memo<{
     beamIndex: number;
@@ -102,7 +109,7 @@ const BeamRing = React.memo<{
         return new CallbackProperty((time?: JulianDate) => {
             if (!time || !viewerRef.current) return false;
             const geometries = getCombGeometries(targetSat, time);
-            return !!(geometries && geometries[beamIndex] && geometries[beamIndex].length >= 3);
+            return getRenderablePolygon(geometries, beamIndex).length >= 3;
         }, false);
     }, [beamIndex, targetSat.id, getCombGeometries, viewerRef]);
 
@@ -112,8 +119,10 @@ const BeamRing = React.memo<{
             try {
                 if (!time || !viewerRef.current) return dummyHierarchy;
                 const geometries = getCombGeometries(targetSat, time);
-                if (geometries && geometries[beamIndex] && geometries[beamIndex].length >= 3) {
-                    const scaled = scalePolygon(geometries[beamIndex], scaleFactor);
+                const polygon = getRenderablePolygon(geometries, beamIndex);
+                if (polygon.length >= 3) {
+                    const scaled = sanitizeCartesianRing(scalePolygon(polygon, scaleFactor));
+                    if (scaled.length < 3) return dummyHierarchy;
                     return new PolygonHierarchy(scaled);
                 }
             } catch (e) {
@@ -292,7 +301,7 @@ const OneWebCombLayer: React.FC<OneWebCombLayerProps> = ({
             if (!point) return null;
 
             for (let i = 0; i < geometries.length; i++) {
-                const poly = geometries[i];
+                const poly = getRenderablePolygon(geometries, i);
                 if (!poly || poly.length < 3) continue;
 
                 const ring: Array<[number, number]> = poly.map((p: any) => {
@@ -316,7 +325,9 @@ const OneWebCombLayer: React.FC<OneWebCombLayerProps> = ({
             const dummyHierarchy = new PolygonHierarchy(DUMMY_POLYGON);
             const servingBeam = resolveServingBeam(time);
             if (!servingBeam) return dummyHierarchy;
-            return new PolygonHierarchy(servingBeam.polygon);
+            const polygon = sanitizeCartesianRing(servingBeam.polygon);
+            if (polygon.length < 3) return dummyHierarchy;
+            return new PolygonHierarchy(polygon);
         }, false);
 
         const contourPositions = new CallbackProperty((time?: JulianDate) => {
@@ -324,10 +335,11 @@ const OneWebCombLayer: React.FC<OneWebCombLayerProps> = ({
             if (!servingBeam) return DUMMY_POLYGON;
 
             const polygon = servingBeam.polygon;
-            if (!polygon || polygon.length < 3) return DUMMY_POLYGON;
+            const sanitized = sanitizeCartesianRing(polygon);
+            if (sanitized.length < 3) return DUMMY_POLYGON;
 
-            const [first] = polygon;
-            return first ? [...polygon, first] : DUMMY_POLYGON;
+            const [first] = sanitized;
+            return first ? [...sanitized, first] : DUMMY_POLYGON;
         }, false);
 
         const material = new ColorMaterialProperty(new CallbackProperty((time?: JulianDate) => {

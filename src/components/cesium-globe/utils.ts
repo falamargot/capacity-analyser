@@ -22,6 +22,51 @@ export const getPosition = (lat: number, lng: number, altKm: number): Cartesian3
     return Cartesian3.fromDegrees(lng, lat, altKm * 1000);
 };
 
+export const isFiniteCartesian3 = (value: Cartesian3 | null | undefined): value is Cartesian3 => (
+    !!value &&
+    Number.isFinite(value.x) &&
+    Number.isFinite(value.y) &&
+    Number.isFinite(value.z)
+);
+
+export const sanitizeCartesianRing = (
+    points: readonly Cartesian3[] | null | undefined,
+    epsilon = 1e-3
+): Cartesian3[] => {
+    if (!points || points.length < 3) return [];
+
+    const sanitized: Cartesian3[] = [];
+    for (const point of points) {
+        if (!isFiniteCartesian3(point)) continue;
+
+        const previous = sanitized[sanitized.length - 1];
+        if (previous && Cartesian3.equalsEpsilon(previous, point, 0, epsilon)) {
+            continue;
+        }
+
+        sanitized.push(point);
+    }
+
+    if (sanitized.length >= 2) {
+        const first = sanitized[0];
+        const last = sanitized[sanitized.length - 1];
+        if (Cartesian3.equalsEpsilon(first, last, 0, epsilon)) {
+            sanitized.pop();
+        }
+    }
+
+    if (sanitized.length < 3) return [];
+
+    const uniquePoints: Cartesian3[] = [];
+    for (const point of sanitized) {
+        if (!uniquePoints.some((candidate) => Cartesian3.equalsEpsilon(candidate, point, 0, epsilon))) {
+            uniquePoints.push(point);
+        }
+    }
+
+    return uniquePoints.length >= 3 ? sanitized : [];
+};
+
 /**
  * Propagate satellite position using SGP4
  */

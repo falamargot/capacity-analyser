@@ -12,7 +12,7 @@ import { EARTH_RADIUS_KM } from '../../utils/capacityCalculator';
 import { STANDARD_RADIUS_KM } from '../../utils/leoFootprint';
 import { isOperationalSatellite } from '../../utils/satelliteStatus';
 import { useCombGeometry } from './hooks';
-import { calculateDeadReckoning, propagateSatellite } from './utils';
+import { calculateDeadReckoning, propagateSatellite, sanitizeCartesianRing, isFiniteCartesian3 } from './utils';
 
 interface Props {
     selectedSatellite: SatelliteData | null;
@@ -63,32 +63,34 @@ function computeLocalHull(points: Cartesian3[]): Cartesian3[] {
     if (candidates.length < 3) return [];
     const hull2d = convexHull(candidates);
     if (hull2d.length < 3) return [];
-    return hull2d.map((p) => points[p.index]);
+    return sanitizeCartesianRing(hull2d.map((p) => points[p.index]));
 }
 
 function buildSideOnlyConeGeometry(apex: Cartesian3, base: Cartesian3[]): Geometry | null {
-    if (base.length < 3) return null;
-    const vertexCount = 1 + base.length;
+    const sanitizedBase = sanitizeCartesianRing(base);
+    if (!isFiniteCartesian3(apex) || sanitizedBase.length < 3) return null;
+
+    const vertexCount = 1 + sanitizedBase.length;
     const positions = new Float64Array(vertexCount * 3);
     positions[0] = apex.x; positions[1] = apex.y; positions[2] = apex.z;
-    for (let i = 0; i < base.length; i++) {
-        const p = base[i];
+    for (let i = 0; i < sanitizedBase.length; i++) {
+        const p = sanitizedBase[i];
         const o = (i + 1) * 3;
         positions[o] = p.x; positions[o + 1] = p.y; positions[o + 2] = p.z;
     }
     const boundingSphere = BoundingSphere.fromVertices(positions as any);
-    const triangles = base.length;
+    const triangles = sanitizedBase.length;
     const indices = vertexCount > 65535 ? new Uint32Array(triangles * 3) : new Uint16Array(triangles * 3);
-    for (let i = 0; i < base.length; i++) {
-        const a = 0; const b = i + 1; const c = ((i + 1) % base.length) + 1;
+    for (let i = 0; i < sanitizedBase.length; i++) {
+        const a = 0; const b = i + 1; const c = ((i + 1) % sanitizedBase.length) + 1;
         const t = i * 3;
         indices[t] = a; indices[t + 1] = b; indices[t + 2] = c;
     }
     const normals = new Float32Array(vertexCount * 3);
     const tmpA = new Cartesian3(); const tmpB = new Cartesian3(); const tmpC = new Cartesian3();
     const e1 = new Cartesian3(); const e2 = new Cartesian3(); const fn = new Cartesian3();
-    for (let i = 0; i < base.length; i++) {
-        const bIdx = i + 1; const cIdx = ((i + 1) % base.length) + 1;
+    for (let i = 0; i < sanitizedBase.length; i++) {
+        const bIdx = i + 1; const cIdx = ((i + 1) % sanitizedBase.length) + 1;
         Cartesian3.fromArray(positions as any, 0, tmpA);
         Cartesian3.fromArray(positions as any, bIdx * 3, tmpB);
         Cartesian3.fromArray(positions as any, cIdx * 3, tmpC);
@@ -125,7 +127,12 @@ function pickFootprintPoints(
         const geometries = getCombGeometries(sat, time);
         if (!geometries) return [];
         const pts: Cartesian3[] = [];
-        for (const poly of geometries) if (poly && poly.length >= 3) pts.push(...poly);
+        for (const poly of geometries) {
+            const sanitizedPoly = sanitizeCartesianRing(poly);
+            if (sanitizedPoly.length >= 3) {
+                pts.push(...sanitizedPoly);
+            }
+        }
         return pts;
     }
     const pts: Cartesian3[] = [];
@@ -158,8 +165,8 @@ function stripDuplicateClosure(poly: Cartesian3[]): Cartesian3[] {
     if (poly.length < 2) return poly;
     const a = poly[0];
     const b = poly[poly.length - 1];
-    if (Cartesian3.equalsEpsilon(a, b, 0, 1e-6)) return poly.slice(0, -1);
-    return poly;
+    if (Cartesian3.equalsEpsilon(a, b, 0, 1e-6)) return sanitizeCartesianRing(poly.slice(0, -1));
+    return sanitizeCartesianRing(poly);
 }
 
 function pickServingOneWebBeamRing(
@@ -186,7 +193,7 @@ function pickServingOneWebBeamRing(
     if (!point) return [];
 
     for (let i = 0; i < geometries.length; i++) {
-        const poly = geometries[i];
+        const poly = sanitizeCartesianRing(geometries[i]);
         if (!poly || poly.length < 3) continue;
         const ring: Array<[number, number]> = poly.map((p) => {
             const c = Cartographic.fromCartesian(p);
@@ -218,7 +225,7 @@ function buildStandardFootprintRing(subSat: { lat: number; lng: number }, segmen
 
         ring.push(Cartesian3.fromDegrees(CesiumMath.toDegrees(lon2), CesiumMath.toDegrees(lat2), 0));
     }
-    return ring;
+    return sanitizeCartesianRing(ring);
 }
 
 function pickBeamFootprintPoints(
@@ -241,7 +248,7 @@ function pickBeamFootprintPoints(
             pts.pop();
         }
     }
-    return pts;
+    return sanitizeCartesianRing(pts);
 }
 
 function resolveRenderableCoverageSatellite(

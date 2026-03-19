@@ -41,6 +41,51 @@ type GsoAvoidanceState = {
 const propagatedOrbitCache = new WeakMap<object, PropagatedOrbitState>();
 const gsoAvoidanceCache = new WeakMap<object, GsoAvoidanceState & { timeMs: number }>();
 
+function normalizeLongitude(lngDeg: number): number {
+    return ((lngDeg + 180) % 360 + 360) % 360 - 180;
+}
+
+function isFiniteCartesian3(value: Cartesian3 | null | undefined): value is Cartesian3 {
+    return !!value &&
+        Number.isFinite(value.x) &&
+        Number.isFinite(value.y) &&
+        Number.isFinite(value.z);
+}
+
+function sanitizePolygonPoints(points: Cartesian3[]): Cartesian3[] {
+    if (points.length < 3) return [];
+
+    const sanitized: Cartesian3[] = [];
+    for (const point of points) {
+        if (!isFiniteCartesian3(point)) continue;
+
+        const previous = sanitized[sanitized.length - 1];
+        if (previous && Cartesian3.equalsEpsilon(previous, point, 0, 1e-3)) {
+            continue;
+        }
+
+        sanitized.push(point);
+    }
+
+    if (sanitized.length >= 2) {
+        const first = sanitized[0];
+        const last = sanitized[sanitized.length - 1];
+        if (Cartesian3.equalsEpsilon(first, last, 0, 1e-3)) {
+            sanitized.pop();
+        }
+    }
+
+    if (sanitized.length < 3) return [];
+
+    const uniqueCount = sanitized.reduce((count, point, index) => (
+        sanitized.slice(0, index).some((candidate) => Cartesian3.equalsEpsilon(candidate, point, 0, 1e-3))
+            ? count
+            : count + 1
+    ), 0);
+
+    return uniqueCount >= 3 ? sanitized : [];
+}
+
 function getTimeMs(time: JulianDate): number {
     return JulianDate.toDate(time).getTime();
 }
@@ -229,6 +274,7 @@ export function calculateCombGeometry(
     const centerGeo = satellite.eciToGeodetic({ x: centerECI.x / 1000, y: centerECI.y / 1000, z: centerECI.z / 1000 }, gmst);
     const centerLat = satellite.degreesLat(centerGeo.latitude);
     const centerLng = satellite.degreesLong(centerGeo.longitude);
+    if (!Number.isFinite(centerLat) || !Number.isFinite(centerLng)) return null;
 
     // Reference scale from threshold (kept for backward compat)
     const referenceRadiusKm = getRadiusAtPowerLevel(-10);
@@ -257,6 +303,10 @@ export function calculateCombGeometry(
 
         // Combined per-beam scale factor
         const beamScale = thresholdScaleFactor * scanScale * powerBoostScale * healthScale * weatherScale;
+        if (!Number.isFinite(beamScale) || beamScale <= 0) {
+            polygonsIndices.push([]);
+            continue;
+        }
 
         // Dimensions adjusted by all physics factors
         const semiMajorAxisKm = (1270 / 2) * beamScale;
@@ -287,10 +337,14 @@ export function calculateCombGeometry(
             const finalBearingDeg = 90 + CesiumMath.toDegrees(angleFromMajorAxis);
 
             const pointGeo = destinationPointGeodesic(beamCenterGeo.lat, beamCenterGeo.lng, finalBearingDeg, dist);
+            if (!Number.isFinite(pointGeo.lat) || !Number.isFinite(pointGeo.lng)) {
+                continue;
+            }
+
             polygonHierarchy.push(Cartesian3.fromDegrees(pointGeo.lng, pointGeo.lat, 0));
         }
 
-        polygonsIndices.push(polygonHierarchy);
+        polygonsIndices.push(sanitizePolygonPoints(polygonHierarchy));
     }
 
     return polygonsIndices;
@@ -307,8 +361,8 @@ function destinationPointGeodesic(lat: number, lng: number, brng: number, distKm
     const lng2 = radLng + Math.atan2(Math.sin(radBrng) * Math.sin(d) * Math.cos(radLat), Math.cos(d) - Math.sin(radLat) * Math.sin(lat2));
 
     return {
-        lat: CesiumMath.toDegrees(lat2),
-        lng: CesiumMath.toDegrees(lng2)
+        lat: CesiumMath.clamp(CesiumMath.toDegrees(lat2), -90, 90),
+        lng: normalizeLongitude(CesiumMath.toDegrees(lng2))
     };
 }
 

@@ -34,6 +34,39 @@ const normalizeSatelliteKey = (value: unknown): string | null => {
     return normalized.length > 0 ? normalized : null;
 };
 
+const isFiniteLngLat = (value: unknown): value is [number, number] => (
+    Array.isArray(value) &&
+    value.length >= 2 &&
+    Number.isFinite(value[0]) &&
+    Number.isFinite(value[1])
+);
+
+const sanitizeRing = (ring: unknown): number[][] | null => {
+    if (!Array.isArray(ring)) return null;
+
+    const sanitized = ring
+        .filter(isFiniteLngLat)
+        .map(([lng, lat]) => [lng, lat]);
+
+    if (sanitized.length >= 2) {
+        const [firstLng, firstLat] = sanitized[0];
+        const [lastLng, lastLat] = sanitized[sanitized.length - 1];
+        if (firstLng === lastLng && firstLat === lastLat) {
+            sanitized.pop();
+        }
+    }
+
+    if (sanitized.length < 3) return null;
+
+    const uniqueCount = sanitized.reduce((count, [lng, lat], index) => (
+        sanitized.slice(0, index).some(([candidateLng, candidateLat]) => candidateLng === lng && candidateLat === lat)
+            ? count
+            : count + 1
+    ), 0);
+
+    return uniqueCount >= 3 ? sanitized : null;
+};
+
 const buildClosedRing = (ring: number[][]): number[][] => {
     if (ring.length < 2) return ring;
     const [firstLng, firstLat] = ring[0];
@@ -46,10 +79,7 @@ const getPolygonRing = (feature: Feature<Geometry, GeoJsonProperties>): number[]
     const geometry = feature.geometry;
     if (!geometry || geometry.type !== 'Polygon') return null;
 
-    const ring = geometry.coordinates?.[0];
-    if (!Array.isArray(ring) || ring.length < 2) return null;
-
-    return ring as number[][];
+    return sanitizeRing(geometry.coordinates?.[0]);
 };
 
 const CoveragePolygon = React.memo<{
