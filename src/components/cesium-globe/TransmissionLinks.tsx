@@ -22,6 +22,7 @@ import { GEO_GATEWAYS, type GeoGatewayData, type SNPData } from '../globe/GlobeC
 import { getAssignedGeoSatellitesForGateway, getGatewayAssignmentsForSatellite, selectBestGeoGateway } from '../../utils/geoConnectivityModel';
 import type { SNPConnectedSatellite } from '../../services/coverageService';
 import { buildSimulationStateSnapshot } from '../../types/simulation';
+import type { LeoConnectivityViewModel } from '../../utils/leoServiceViewModel';
 
 interface TransmissionLinksProps {
     satellites: SatelliteData[];
@@ -36,6 +37,7 @@ interface TransmissionLinksProps {
     satelliteScope: SatelliteScope;
     inspectedSNP?: SNPData | null;
     snpConnectedSatellites?: SNPConnectedSatellite[];
+    leoServiceViewModel?: LeoConnectivityViewModel | null;
 }
 
 // Dashed material cache
@@ -59,6 +61,18 @@ const geoBackhaulMaterial = new PolylineDashMaterialProperty({
     dashPattern: 3855
 });
 
+const blockedDiagnosticMaterial = new PolylineDashMaterialProperty({
+    color: Color.fromCssColorString('#f87171').withAlpha(0.9),
+    gapColor: Color.fromCssColorString('#7f1d1d').withAlpha(0.15),
+    dashPattern: 61680,
+});
+
+const degradedMaterial = new PolylineDashMaterialProperty({
+    color: Color.fromCssColorString('#f59e0b').withAlpha(0.9),
+    gapColor: Color.fromCssColorString('#78350f').withAlpha(0.12),
+    dashPattern: 3855,
+});
+
 const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
     satellites,
     selectedPosition,
@@ -71,7 +85,8 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
     dedicatedSNPForSelectedLEO,
     satelliteScope,
     inspectedSNP,
-    snpConnectedSatellites = []
+    snpConnectedSatellites = [],
+    leoServiceViewModel = null,
 }) => {
     const { coveragePolicy, weatherCondition, beamHealthFactors, hsBeamsSet } = useSimulation();
     const simulationState = useMemo(() => buildSimulationStateSnapshot({
@@ -81,6 +96,15 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
         hsBeams: hsBeamsSet,
     }), [coveragePolicy, weatherCondition, beamHealthFactors, hsBeamsSet]);
     const hasUserSelection = !!(selectedPosition || selectedAircraft);
+    const leoLinkMaterial = useMemo(() => {
+        if (leoServiceViewModel?.globeVisualMode === 'regulatory_blocked') {
+            return blockedDiagnosticMaterial;
+        }
+        if (leoServiceViewModel?.globeVisualMode === 'degraded') {
+            return degradedMaterial;
+        }
+        return leoDashMaterial;
+    }, [leoServiceViewModel?.globeVisualMode]);
 
     const resolveCurrentUser = useMemo(() => {
         return (time: JulianDate) => {
@@ -293,8 +317,8 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
                 <Entity name="LEO Uplink/Downlink">
                     <PolylineGraphics
                         positions={leoUplinkCallback}
-                        width={2.5}
-                        material={leoDashMaterial}
+                        width={leoServiceViewModel?.globeVisualMode === 'regulatory_blocked' ? 3 : 2.5}
+                        material={leoLinkMaterial}
                         arcType={ArcType.NONE}
                     />
                 </Entity>
@@ -305,8 +329,8 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
                 <Entity name="LEO Backhaul">
                     <PolylineGraphics
                         positions={leoBackhaulCallback}
-                        width={2.5}
-                        material={leoDashMaterial}
+                        width={leoServiceViewModel?.globeVisualMode === 'regulatory_blocked' ? 3 : 2.5}
+                        material={leoLinkMaterial}
                         clampToGround={false}
                         arcType={ArcType.NONE}
                     />
@@ -356,7 +380,7 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
                         positions={dedicatedSnpCallback}
                         width={2}
                         clampToGround={false}
-                        material={leoDashMaterial}
+                        material={leoLinkMaterial}
                         arcType={ArcType.NONE}
                     />
                 </Entity>

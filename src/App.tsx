@@ -43,6 +43,11 @@ import { getNearestSNPInBackhaul, getSatellitesConnectedToSNP, type SNPConnected
 import useKeyboardShortcuts from './hooks/useKeyboardShortcuts';
 import { formatCoordinates } from './utils/formatters';
 import { buildSimulationStateSnapshot } from './types/simulation';
+import { ensureLoaded, regulatoryLookup } from './services/regulatoryService';
+import { estimateBeamLoad } from './utils/capacityLayer';
+import { computeServiceStatus } from './utils/serviceLayer';
+import { getConnectivityStatus, hasRFConnectivity } from './utils/rfConnectivity';
+import { deriveLeoConnectivityViewModel } from './utils/leoServiceViewModel';
 
 const CapacityDetails = lazy(() => import('./components/CapacityDetails'));
 const CommandPalette = lazy(() => import('./components/CommandPalette'));
@@ -453,6 +458,12 @@ const App: React.FC = () => {
     beamHealthFactors,
     hsBeams: hsBeamsSet,
   }), [coveragePolicy, weatherCondition, beamHealthFactors, hsBeamsSet]);
+  const activeAnalysisPoint = analyzisPosition || selectedPosition;
+  const [regulatoryReady, setRegulatoryReady] = useState(false);
+
+  useEffect(() => {
+    ensureLoaded().then(() => setRegulatoryReady(true));
+  }, []);
 
   // resolveAutoSelectedSatellites is imported from utils/satelliteResolution.ts
   // It implements the Service Availability model with:
@@ -540,6 +551,96 @@ const App: React.FC = () => {
     if (!inspectedSNP) return [];
     return getSatellitesConnectedToSNP(inspectedSNP, satellites, failedSnps);
   }, [inspectedSNP, satellites, failedSnps]);
+
+  const leoRegulatoryResult = useMemo(() => {
+    if (!activeAnalysisPoint) return null;
+    void regulatoryReady;
+    return regulatoryLookup(activeAnalysisPoint.lat, activeAnalysisPoint.lng);
+  }, [activeAnalysisPoint, regulatoryReady]);
+
+  const leoBeamLoadResult = useMemo(() => {
+    if (!activeAnalysisPoint || !leoRegulatoryResult) return null;
+
+    const estimatedLoad = estimateBeamLoad(
+      activeAnalysisPoint.lat,
+      activeAnalysisPoint.lng,
+      leoRegulatoryResult.isOcean ?? true,
+      leoRegulatoryResult.isoA2 ?? null
+    );
+
+    if (leoRegulatoryResult.status === 'BLOCKED') {
+      return {
+        ...estimatedLoad,
+        estimatedActiveUsers: 0,
+        beamLoadFraction: 0,
+        beamLoadPercent: 0,
+        estimatedUserThroughputMbps: 0,
+        capacityStatus: 'NOMINAL' as const,
+      };
+    }
+
+    return estimatedLoad;
+  }, [activeAnalysisPoint, leoRegulatoryResult]);
+
+  const leoConnectivityStatus = useMemo(() => {
+    if (!activeAnalysisPoint || !resolvedAutoLEO) return null;
+    return getConnectivityStatus(
+      activeAnalysisPoint,
+      resolvedAutoLEO,
+      JulianDate.fromDate(new Date()),
+      simulationState
+    );
+  }, [activeAnalysisPoint, resolvedAutoLEO, simulationState]);
+
+  const leoHasCurrentRF = useMemo(() => {
+    if (!activeAnalysisPoint || !resolvedAutoLEO) return false;
+    return hasRFConnectivity(
+      activeAnalysisPoint,
+      resolvedAutoLEO,
+      JulianDate.fromDate(new Date()),
+      simulationState
+    );
+  }, [activeAnalysisPoint, resolvedAutoLEO, simulationState]);
+
+  const leoHasGatewayPath = useMemo(
+    () => !!selectedSNP,
+    [selectedSNP]
+  );
+
+  const leoServiceLayerResult = useMemo(() => {
+    if (!activeAnalysisPoint || !leoRegulatoryResult || !leoBeamLoadResult) return null;
+    return computeServiceStatus({
+      hasRF: leoHasCurrentRF,
+      hasSNP: leoHasGatewayPath,
+      regulatoryResult: leoRegulatoryResult,
+      beamLoadResult: leoBeamLoadResult,
+    });
+  }, [activeAnalysisPoint, leoBeamLoadResult, leoHasCurrentRF, leoHasGatewayPath, leoRegulatoryResult]);
+
+  const leoServiceViewModel = useMemo(() => {
+    if (!activeAnalysisPoint) return null;
+
+    return deriveLeoConnectivityViewModel({
+      satellite: resolvedAutoLEO,
+      regulatoryResult: leoRegulatoryResult,
+      beamLoadResult: leoBeamLoadResult,
+      serviceLayerResult: leoServiceLayerResult,
+      hasRF: leoHasCurrentRF,
+      hasSNP: leoHasGatewayPath,
+      activeBeamCount: leoConnectivityStatus?.activeBeamCount ?? 0,
+      isBlankingZone: leoConnectivityStatus?.isBlankingZone ?? false,
+    });
+  }, [
+    activeAnalysisPoint,
+    leoBeamLoadResult,
+    leoConnectivityStatus?.activeBeamCount,
+    leoConnectivityStatus?.isBlankingZone,
+    leoHasCurrentRF,
+    leoHasGatewayPath,
+    leoRegulatoryResult,
+    leoServiceLayerResult,
+    resolvedAutoLEO,
+  ]);
 
   const syncGeoCoverageSelection = useCallback((
     position: { lat: number; lng: number } | null,
@@ -1291,6 +1392,7 @@ const App: React.FC = () => {
     selectedSNP,
     selectedGateway,
     dedicatedSNPForSelectedLEO,
+    leoServiceViewModel,
     isFullscreen,
     onToggleFullscreen: handleToggleFullscreen,
     satelliteScope,
@@ -1320,7 +1422,7 @@ const App: React.FC = () => {
   }), [
     filteredSatellites, satelliteTypeByName, coverageFeaturesMemo, handlePointClick, selectedPosition,
     handleSatelliteClick, handleSatelliteHover, handleSnpClick, handleGatewaySelectByName, handleSnpHover,
-    selectedSatellite, resolvedAutoLEO, activeGeoSatellite, selectedGEOBeam, candidateCoverages, selectedCoverage, selectedGeoBeamId, selectedSNP, selectedGateway, dedicatedSNPForSelectedLEO,
+    selectedSatellite, resolvedAutoLEO, activeGeoSatellite, selectedGEOBeam, candidateCoverages, selectedCoverage, selectedGeoBeamId, selectedSNP, selectedGateway, dedicatedSNPForSelectedLEO, leoServiceViewModel,
     isFullscreen, satelliteScope, airTrafficEnabled, airTraffic.aircraft,
     selectedAircraft, handleAircraftSelect, handleAircraftHover,
     maritimeTrafficEnabled, maritimeTraffic.vessels, selectedVessel, handleVesselSelect, cameraTarget,
@@ -1994,6 +2096,10 @@ const App: React.FC = () => {
                       onMetricsChange={setMobileMetrics}
                       globeRef={globeContainerRef}
                       cesiumViewerRef={viewerRef}
+                      regulatoryResultOverride={leoRegulatoryResult}
+                      beamLoadResultOverride={leoBeamLoadResult}
+                      serviceLayerResultOverride={leoServiceLayerResult}
+                      leoServiceViewModelOverride={leoServiceViewModel}
                     />
                   )}
                 </Suspense>
@@ -2078,6 +2184,10 @@ const App: React.FC = () => {
                         globeRef={globeContainerRef}
                         cesiumViewerRef={viewerRef}
                         onExportStateChange={setFullscreenExportButtonProps}
+                        regulatoryResultOverride={leoRegulatoryResult}
+                        beamLoadResultOverride={leoBeamLoadResult}
+                        serviceLayerResultOverride={leoServiceLayerResult}
+                        leoServiceViewModelOverride={leoServiceViewModel}
                       />
                     )}
                   </Suspense>

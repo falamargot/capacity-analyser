@@ -22,6 +22,8 @@ import { buildSimulationStateSnapshot } from '../types/simulation';
 import type { PDFConnectionDetails } from '../utils/pdfExport';
 import type { RegulatoryResult } from '../services/regulatoryService';
 import type { BeamLoadResult } from '../utils/capacityLayer';
+import type { ServiceLayerResult } from '../utils/serviceLayer';
+import type { LeoConnectivityViewModel } from '../utils/leoServiceViewModel';
 
 // ─── Extracted sub-components ─────────────────────────────────────────────────
 import {
@@ -64,6 +66,10 @@ interface CapacityDetailsProps {
   globeRef?: RefObject<HTMLDivElement | null>;
   cesiumViewerRef?: RefObject<any>;
   onExportStateChange?: (payload: ExportButtonPayload | null) => void;
+  regulatoryResultOverride?: RegulatoryResult | null;
+  beamLoadResultOverride?: BeamLoadResult | null;
+  serviceLayerResultOverride?: ServiceLayerResult | null;
+  leoServiceViewModelOverride?: LeoConnectivityViewModel | null;
 }
 
 const weatherTypeFromCondition = (condition: ReturnType<typeof toWeatherCondition>): WeatherType => {
@@ -73,7 +79,7 @@ const weatherTypeFromCondition = (condition: ReturnType<typeof toWeatherConditio
 };
 
 // Performance optimization: Memoize component to prevent unnecessary re-renders
-const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint, selectedSatellite, autoSelectedLEOSatellite, satelliteScope, onMetricsChange, onSatelliteClick, analysisSource, aircraftCallsign, selectedSNP: propSelectedSNP, candidateCoverages = [], selectedCoverage = null, onSelectCoverage, selectedGeoMission, selectedGeoCoverageName, selectedGeoBeamId, onSelectGeoMission, onSelectGeoCoverage, onSelectGeoBeam, onSnpClick, compactDesktop = false, externalHeader = false, globeRef, cesiumViewerRef, onExportStateChange }) => {
+const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint, selectedSatellite, autoSelectedLEOSatellite, satelliteScope, onMetricsChange, onSatelliteClick, analysisSource, aircraftCallsign, selectedSNP: propSelectedSNP, candidateCoverages = [], selectedCoverage = null, onSelectCoverage, selectedGeoMission, selectedGeoCoverageName, selectedGeoBeamId, onSelectGeoMission, onSelectGeoCoverage, onSelectGeoBeam, onSnpClick, compactDesktop = false, externalHeader = false, globeRef, cesiumViewerRef, onExportStateChange, regulatoryResultOverride = null, beamLoadResultOverride = null, serviceLayerResultOverride = null, leoServiceViewModelOverride = null }) => {
   // Feature 1+3: read simulation context for failedSnps, hsBeamsSet
   const {
     coveragePolicy,
@@ -443,27 +449,28 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
   }, [activePoint, autoSelectedLEOSatellite, simulationState]);
 
   // ── Regulatory lookup (re-evaluates when GeoJSON finishes loading) ────────
-  const regulatoryResult = useMemo(() => {
+  const computedRegulatoryResult = useMemo(() => {
     if (!activePoint) return null;
     // regulatoryReady triggers re-evaluation after async GeoJSON load
     void regulatoryReady;
     return regulatoryLookup(activePoint.lat, activePoint.lng);
   }, [activePoint, regulatoryReady]);
+  const regulatoryResult = regulatoryResultOverride ?? computedRegulatoryResult;
 
   // ── Capacity layer (beam load estimation) ────────────────────────────────
-  const beamLoadResult = useMemo(() => {
-    if (!activePoint || !regulatoryResult) return null;
-    const isOcean = regulatoryResult?.isOcean ?? true;
+  const computedBeamLoadResult = useMemo(() => {
+    if (!activePoint || !computedRegulatoryResult) return null;
+    const isOcean = computedRegulatoryResult?.isOcean ?? true;
     const estimatedLoad = estimateBeamLoad(
       activePoint.lat,
       activePoint.lng,
       isOcean,
-      regulatoryResult?.isoA2 ?? null,
+      computedRegulatoryResult?.isoA2 ?? null,
     );
 
     // In blocked regions we keep the geographic classification as context,
     // but effective served load must be zero because no legal service is provided.
-    if (regulatoryResult.status === 'BLOCKED') {
+    if (computedRegulatoryResult.status === 'BLOCKED') {
       return {
         ...estimatedLoad,
         estimatedActiveUsers: 0,
@@ -475,18 +482,21 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
     }
 
     return estimatedLoad;
-  }, [activePoint, regulatoryResult]);
+  }, [activePoint, computedRegulatoryResult]);
+  const beamLoadResult = beamLoadResultOverride ?? computedBeamLoadResult;
 
   // ── Service layer (aggregated status) ────────────────────────────────────
-  const serviceLayerResult = useMemo(() => {
-    if (!activePoint || !regulatoryResult || !beamLoadResult) return null;
+  const computedServiceLayerResult = useMemo(() => {
+    if (!activePoint || !computedRegulatoryResult || !computedBeamLoadResult) return null;
     return computeServiceStatus({
       hasRF: hasCurrentLEORF,
       hasSNP: resolvedLEOConnectivity?.snp != null,
-      regulatoryResult,
-      beamLoadResult,
+      regulatoryResult: computedRegulatoryResult,
+      beamLoadResult: computedBeamLoadResult,
     });
-  }, [activePoint, regulatoryResult, beamLoadResult, resolvedLEOConnectivity, hasCurrentLEORF]);
+  }, [activePoint, computedRegulatoryResult, computedBeamLoadResult, resolvedLEOConnectivity, hasCurrentLEORF]);
+  const serviceLayerResult = serviceLayerResultOverride ?? computedServiceLayerResult;
+  const leoServiceViewModel = leoServiceViewModelOverride ?? null;
 
   // Get resolved GEO connectivity data for display
   const resolvedGEOConnectivity = useMemo(() => {
@@ -1066,6 +1076,7 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
                   regulatoryResult={regulatoryResult}
                   beamLoadResult={beamLoadResult}
                   serviceLayerResult={serviceLayerResult}
+                  leoServiceViewModel={leoServiceViewModel}
                 />
               )}
 

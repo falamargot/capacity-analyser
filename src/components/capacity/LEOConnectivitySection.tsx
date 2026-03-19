@@ -1,5 +1,5 @@
 import { memo, useState, type ReactNode } from 'react';
-import { ChevronDown, ShieldCheck, ShieldAlert, ShieldX, Users, Zap } from 'lucide-react';
+import { ChevronDown } from 'lucide-react';
 import { PerformancePanel } from '../MetricWidgets';
 import { SectionTooltip } from '../SectionTooltip';
 import PassBeamTimeline from '../PassBeamTimeline';
@@ -12,6 +12,8 @@ import type { BeamLoadResult } from '../../utils/capacityLayer';
 import type { ServiceLayerResult } from '../../utils/serviceLayer';
 import type { TerminalType } from './TerminalConfig';
 import { TERMINAL_PROFILES } from './TerminalConfig';
+import type { LeoConnectivityViewModel } from '../../utils/leoServiceViewModel';
+import LeoStatusCards from './LeoStatusCards';
 
 // ─── Sub-component: LatencyBreakdownCard ──────────────────────────────────────
 
@@ -115,6 +117,7 @@ interface LEOConnectivitySectionProps {
   regulatoryResult?: RegulatoryResult | null;
   beamLoadResult?: BeamLoadResult | null;
   serviceLayerResult?: ServiceLayerResult | null;
+  leoServiceViewModel?: LeoConnectivityViewModel | null;
 }
 
 const RTT_VISUAL_SCALE_MAX_MS = 600;
@@ -133,31 +136,11 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
   hsBeamsSet,
   weatherCondition,
   beamHealthFactors,
-  regulatoryResult,
-  beamLoadResult,
   serviceLayerResult,
+  leoServiceViewModel,
 }) => {
   const userLabel = analysisSource === 'aircraft' && aircraftCallsign ? aircraftCallsign : 'User';
 
-  // ─── Service status colour helpers ───────────────────────────────────────
-  const serviceStatusColor = (status: ServiceLayerResult['status'] | undefined) => {
-    if (status === 'ALLOWED') return { bg: 'bg-emerald-50 dark:bg-emerald-900/20', text: 'text-emerald-700 dark:text-emerald-300', border: 'border-emerald-200 dark:border-emerald-800', badge: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-800/40 dark:text-emerald-200' };
-    if (status === 'DEGRADED') return { bg: 'bg-amber-50 dark:bg-amber-900/20', text: 'text-amber-700 dark:text-amber-300', border: 'border-amber-200 dark:border-amber-800', badge: 'bg-amber-100 text-amber-800 dark:bg-amber-800/40 dark:text-amber-200' };
-    if (status === 'BLOCKED') return { bg: 'bg-red-50 dark:bg-red-900/20', text: 'text-red-700 dark:text-red-300', border: 'border-red-200 dark:border-red-800', badge: 'bg-red-100 text-red-800 dark:bg-red-800/40 dark:text-red-200' };
-    return { bg: 'bg-gray-50 dark:bg-slate-800/50', text: 'text-gray-500 dark:text-gray-400', border: 'border-gray-200 dark:border-slate-700', badge: 'bg-gray-100 text-gray-600 dark:bg-slate-700 dark:text-slate-300' };
-  };
-  const regStatusColor = (status: RegulatoryResult['status'] | undefined) => {
-    if (status === 'ALLOWED') return 'text-emerald-600 dark:text-emerald-400';
-    if (status === 'RESTRICTED') return 'text-amber-600 dark:text-amber-400';
-    if (status === 'BLOCKED') return 'text-red-600 dark:text-red-400';
-    return 'text-gray-500 dark:text-gray-400';
-  };
-  const loadStatusColor = (status: BeamLoadResult['capacityStatus'] | undefined) => {
-    if (status === 'NOMINAL') return 'bg-emerald-500';
-    if (status === 'DEGRADED') return 'bg-amber-500';
-    if (status === 'SATURATED') return 'bg-red-500';
-    return 'bg-gray-400';
-  };
   const isRegulatoryBlocked =
     serviceLayerResult?.status === 'BLOCKED' &&
     serviceLayerResult.primaryReasonLayer === 'regulatory';
@@ -177,166 +160,7 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
         <SectionTooltip content="Low Earth Orbit connectivity block. Shows how the user terminal connects through the nearest OneWeb LEO satellite and its associated SNP (Satellite Network Point) backhaul gateway." />
       </h3>
       <div className="space-y-4">
-
-        {/* ── Service Status Panel ─────────────────────────────────────── */}
-        {serviceLayerResult && (() => {
-          const colors = serviceStatusColor(serviceLayerResult.status);
-          const ServiceIcon = serviceLayerResult.status === 'ALLOWED' ? ShieldCheck : serviceLayerResult.status === 'BLOCKED' ? ShieldX : ShieldAlert;
-          return (
-            <div className={`rounded-lg border px-4 py-3 ${colors.bg} ${colors.border}`}>
-              <div className="flex items-center justify-between gap-3">
-                <div className="flex items-center gap-2">
-                  <ServiceIcon className={`h-4 w-4 shrink-0 ${colors.text}`} />
-                  <span className="text-sm font-semibold text-gray-800 dark:text-gray-100">Service Status</span>
-                  <SectionTooltip content="Simulated end-to-end service decision combining RF, network, capacity, and regulatory layers." />
-                </div>
-                <span className={`shrink-0 rounded-full px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wide ${colors.badge}`}>
-                  {serviceLayerResult.status}
-                </span>
-              </div>
-              <p className={`mt-1.5 text-xs ${colors.text}`}>{serviceLayerResult.reason}</p>
-              {serviceLayerResult.details.length > 0 && (
-                <ul className="mt-1.5 space-y-0.5">
-                  {serviceLayerResult.details.map((d, i) => (
-                    <li key={i} className="text-xs text-gray-500 dark:text-gray-400 leading-snug">• {d}</li>
-                  ))}
-                </ul>
-              )}
-            </div>
-          );
-        })()}
-
-        {/* ── Regulatory Status Panel ──────────────────────────────────── */}
-        {regulatoryResult && (
-          <CollapsibleSection
-            storageKey="leo-regulatory-status"
-            title={
-              <>
-                Regulatory Status
-                <SectionTooltip content="Simulated country-level regulatory status from the OneWeb demo policy map. Not real licensing data." />
-              </>
-            }
-            accentColor="#db2777"
-            defaultOpen={regulatoryResult.status !== 'ALLOWED'}
-          >
-            <div className="text-xs space-y-2">
-              {/* Country + status badge */}
-              <div className="flex items-center justify-between gap-3">
-                <div className="flex items-center gap-1.5">
-                  {regulatoryResult.status === 'ALLOWED'    && <ShieldCheck className="h-3.5 w-3.5 text-emerald-500" />}
-                  {regulatoryResult.status === 'RESTRICTED' && <ShieldAlert className="h-3.5 w-3.5 text-amber-500" />}
-                  {regulatoryResult.status === 'BLOCKED'    && <ShieldX className="h-3.5 w-3.5 text-red-500" />}
-                  <span className="font-medium text-gray-800 dark:text-gray-200">
-                    {regulatoryResult.isOcean
-                      ? 'International waters'
-                      : (regulatoryResult.countryName ?? 'Unknown territory')}
-                  </span>
-                  {regulatoryResult.isoA2 && !regulatoryResult.isOcean && (
-                    <span className="text-gray-400 dark:text-gray-500">({regulatoryResult.isoA2})</span>
-                  )}
-                </div>
-                <span className={`shrink-0 font-bold uppercase tracking-wide ${regStatusColor(regulatoryResult.status)}`}>
-                  {regulatoryResult.status}
-                </span>
-              </div>
-              {/* Reason */}
-              <p className="text-gray-600 dark:text-gray-400 leading-snug">{regulatoryResult.reason}</p>
-              {/* Confidence */}
-              <div className="flex justify-between text-gray-500 dark:text-gray-500">
-                <span>Simulated confidence</span>
-                <span>{Math.round((regulatoryResult.confidence ?? 0) * 100)}%</span>
-              </div>
-              {/* Permissions */}
-              <div className="flex gap-3 pt-0.5">
-                <span className={`text-[11px] font-medium ${regulatoryResult.emitAllowed ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
-                  {regulatoryResult.emitAllowed ? '✓' : '✗'} Emit
-                </span>
-                <span className={`text-[11px] font-medium ${regulatoryResult.serviceAllowed ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
-                  {regulatoryResult.serviceAllowed ? '✓' : '✗'} Service
-                </span>
-              </div>
-              <p className="text-[10px] text-gray-400 dark:text-gray-500 italic pt-0.5">
-                Simulated demo data — not real OneWeb licensing
-              </p>
-            </div>
-          </CollapsibleSection>
-        )}
-
-        {/* ── Beam Load Panel ──────────────────────────────────────────── */}
-        {beamLoadResult && (
-          <CollapsibleSection
-            storageKey="leo-beam-load"
-            title={
-              <>
-                Beam Load
-                <SectionTooltip content="Estimated beam utilisation based on geographic density heuristics. Values are SIMULATED — no real subscriber counts are used." />
-              </>
-            }
-            subtitle={isRegulatoryBlocked ? blockedCapacityMessage : undefined}
-            accentColor="#db2777"
-            defaultOpen={false}
-          >
-            <div className="text-xs space-y-3">
-              {/* Load bar */}
-              <div>
-                <div className="flex justify-between mb-1.5 text-gray-700 dark:text-gray-300 font-medium">
-                  <span className="flex items-center gap-1.5">
-                    <Zap className="h-3 w-3" />
-                    Estimated load
-                  </span>
-                  <span>{beamLoadResult.beamLoadPercent}%</span>
-                </div>
-                <div className="h-2 w-full rounded-full bg-gray-200 dark:bg-slate-700 overflow-hidden">
-                  <div
-                    className={`h-full rounded-full transition-all ${loadStatusColor(beamLoadResult.capacityStatus)}`}
-                    style={{ width: `${Math.min(100, beamLoadResult.beamLoadPercent)}%` }}
-                  />
-                </div>
-                <div className="mt-1 flex justify-between text-gray-500 dark:text-gray-500">
-                  <span>0%</span>
-                  <span className={`font-semibold text-[11px] uppercase ${
-                    beamLoadResult.capacityStatus === 'NOMINAL' ? 'text-emerald-600 dark:text-emerald-400' :
-                    beamLoadResult.capacityStatus === 'DEGRADED' ? 'text-amber-600 dark:text-amber-400' :
-                    'text-red-600 dark:text-red-400'
-                  }`}>{beamLoadResult.capacityStatus}</span>
-                  <span>100%</span>
-                </div>
-              </div>
-
-              {/* User estimate */}
-              <div className="space-y-1.5 border-t border-gray-100 dark:border-slate-700 pt-2">
-                <div className="flex items-center justify-between">
-                  <span className="flex items-center gap-1.5 text-gray-600 dark:text-gray-400">
-                    <Users className="h-3 w-3" />
-                    Est. active users
-                  </span>
-                  <span className="font-semibold text-gray-800 dark:text-gray-200">
-                    ~{beamLoadResult.estimatedActiveUsers}
-                  </span>
-                </div>
-                <div className="flex justify-between text-gray-500 dark:text-gray-500">
-                  <span>Max concurrent (QoS)</span>
-                  <span>{beamLoadResult.maxConcurrentUsers}</span>
-                </div>
-                <div className="flex justify-between text-gray-500 dark:text-gray-500">
-                  <span>Beam capacity</span>
-                  <span>{beamLoadResult.beamCapacityMbps} Mbps</span>
-                </div>
-                <div className="flex justify-between text-gray-600 dark:text-gray-300 font-medium">
-                  <span>Est. user share</span>
-                  <span>~{beamLoadResult.estimatedUserThroughputMbps} Mbps</span>
-                </div>
-                <div className="flex justify-between text-gray-500 dark:text-gray-500">
-                  <span>Zone</span>
-                  <span>{beamLoadResult.densityZoneLabel}</span>
-                </div>
-              </div>
-              <p className="text-[10px] text-gray-400 dark:text-gray-500 italic">
-                Estimated from geographic density heuristics — not real subscriber data
-              </p>
-            </div>
-          </CollapsibleSection>
-        )}
+        <LeoStatusCards viewModel={leoServiceViewModel ?? null} />
 
         {/* LEO Radio Path */}
         <CollapsibleSection

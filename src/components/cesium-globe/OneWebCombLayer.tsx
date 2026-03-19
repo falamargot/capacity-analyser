@@ -30,6 +30,7 @@ import {
     GRADIENT_RENDERING,
     getBeamBaseColor,
 } from '../../config/beamVisualization';
+import type { LeoConnectivityViewModel } from '../../utils/leoServiceViewModel';
 
 
 // ─── Geometry helper ────────────────────────────────────────────────
@@ -58,6 +59,18 @@ interface OneWebCombLayerProps {
     selectedPosition?: { lat: number; lng: number; altitude?: number } | null;
     selectedAircraft?: Aircraft | null;
     highlightServingFootprint?: boolean;
+    leoServiceViewModel?: LeoConnectivityViewModel | null;
+}
+
+const BLOCKED_BEAM_TINT = Color.fromCssColorString('#ef4444');
+const BLOCKED_BEAM_BASE = Color.fromCssColorString('#cbd5e1');
+
+function getDiagnosticBeamColor(baseColor: Color, ringOpacity: number): Color {
+    const mixed = new Color();
+    Color.lerp(baseColor, BLOCKED_BEAM_BASE, 0.72, mixed);
+    Color.lerp(mixed, BLOCKED_BEAM_TINT, 0.22, mixed);
+    mixed.alpha = ringOpacity * 0.42;
+    return mixed;
 }
 
 const isPointInPolygon = (point: { lat: number; lng: number }, ring: Array<[number, number]>): boolean => {
@@ -82,7 +95,8 @@ const BeamRing = React.memo<{
     getCombGeometries: (sat: SatelliteData, time: JulianDate) => any;
     viewerRef: React.RefObject<CesiumViewerType | null>;
     hsBeamsRef: React.MutableRefObject<ReadonlySet<number>>;
-}>(({ beamIndex, ringIndex, scaleFactor, ringOpacity, targetSat, getCombGeometries, viewerRef, hsBeamsRef }) => {
+    regulatoryBlockedRef: React.MutableRefObject<boolean>;
+}>(({ beamIndex, ringIndex, scaleFactor, ringOpacity, targetSat, getCombGeometries, viewerRef, hsBeamsRef, regulatoryBlockedRef }) => {
 
     const showCallback = useMemo(() => {
         return new CallbackProperty((time?: JulianDate) => {
@@ -138,9 +152,12 @@ const BeamRing = React.memo<{
 
             // Active beam → frequency-reuse color with gradient opacity
             const baseColor = getBeamBaseColor(beamIndex);
+            if (regulatoryBlockedRef.current) {
+                return getDiagnosticBeamColor(baseColor, ringOpacity);
+            }
             return baseColor.withAlpha(ringOpacity);
         }, false));
-    }, [beamIndex, ringOpacity, targetSat.id, targetSat.satrec, hsBeamsRef]);
+    }, [beamIndex, ringOpacity, targetSat.id, targetSat.satrec, hsBeamsRef, regulatoryBlockedRef]);
 
     return (
         <Entity name={`Beam ${beamIndex} ring ${ringIndex}`}>
@@ -165,7 +182,8 @@ const GradientBeamPolygon = React.memo<{
     viewerRef: React.RefObject<CesiumViewerType | null>;
     hasBackhaul: boolean;
     hsBeamsRef: React.MutableRefObject<ReadonlySet<number>>;
-}>(({ beamIndex, targetSat, getCombGeometries, viewerRef, hsBeamsRef }) => {
+    regulatoryBlockedRef: React.MutableRefObject<boolean>;
+}>(({ beamIndex, targetSat, getCombGeometries, viewerRef, hsBeamsRef, regulatoryBlockedRef }) => {
 
     if (!GRADIENT_RENDERING.ENABLE_GRADIENT) {
         // Fallback: single flat polygon (original behaviour)
@@ -179,6 +197,7 @@ const GradientBeamPolygon = React.memo<{
                 getCombGeometries={getCombGeometries}
                 viewerRef={viewerRef}
                 hsBeamsRef={hsBeamsRef}
+                regulatoryBlockedRef={regulatoryBlockedRef}
             />
         );
     }
@@ -196,6 +215,7 @@ const GradientBeamPolygon = React.memo<{
                     getCombGeometries={getCombGeometries}
                     viewerRef={viewerRef}
                     hsBeamsRef={hsBeamsRef}
+                    regulatoryBlockedRef={regulatoryBlockedRef}
                 />
             ))}
         </>
@@ -209,7 +229,8 @@ const OneWebCombLayer: React.FC<OneWebCombLayerProps> = ({
     viewerRef,
     selectedPosition,
     selectedAircraft,
-    highlightServingFootprint = false
+    highlightServingFootprint = false,
+    leoServiceViewModel = null,
 }) => {
     const { getCombGeometries } = useCombGeometry();
     const { failedSnps, hsBeamsSet } = useSimulation();
@@ -218,6 +239,8 @@ const OneWebCombLayer: React.FC<OneWebCombLayerProps> = ({
     // without needing to recreate the callbacks when it changes.
     const hsBeamsRef = useRef<ReadonlySet<number>>(hsBeamsSet);
     hsBeamsRef.current = hsBeamsSet;
+    const regulatoryBlockedRef = useRef<boolean>(leoServiceViewModel?.globeVisualMode === 'regulatory_blocked');
+    regulatoryBlockedRef.current = leoServiceViewModel?.globeVisualMode === 'regulatory_blocked';
 
     // Generate beam indices array once - MUST be before any early return
     const beamIndices = useMemo(() => Array.from({ length: TOTAL_BEAMS }, (_, i) => i), []);
@@ -310,12 +333,18 @@ const OneWebCombLayer: React.FC<OneWebCombLayerProps> = ({
         const material = new ColorMaterialProperty(new CallbackProperty((time?: JulianDate) => {
             const servingBeam = resolveServingBeam(time);
             if (!servingBeam) return Color.PALEVIOLETRED.withAlpha(0.4);
+            if (regulatoryBlockedRef.current) {
+                return Color.fromCssColorString('#ef4444').withAlpha(0.2);
+            }
             return getBeamBaseColor(servingBeam.beamIndex).withAlpha(0.22);
         }, false));
 
         const outlineColor = new CallbackProperty((time?: JulianDate) => {
             const servingBeam = resolveServingBeam(time);
             if (!servingBeam) return Color.PALEVIOLETRED.withAlpha(0.95);
+            if (regulatoryBlockedRef.current) {
+                return Color.fromCssColorString('#ef4444').withAlpha(0.95);
+            }
             return getBeamBaseColor(servingBeam.beamIndex).withAlpha(0.95);
         }, false);
 
@@ -334,26 +363,38 @@ const OneWebCombLayer: React.FC<OneWebCombLayerProps> = ({
 
     const backhaulColor = useMemo(
         () => targetSat
-            ? Color.fromCssColorString(getCoverageColor('ONEWEB_BACKHAUL', 0.2, targetSat, failedSnps))
+            ? (
+                leoServiceViewModel?.globeVisualMode === 'regulatory_blocked'
+                    ? Color.fromCssColorString('#ef4444').withAlpha(0.18)
+                    : Color.fromCssColorString(getCoverageColor('ONEWEB_BACKHAUL', 0.2, targetSat, failedSnps))
+            )
             : Color.TRANSPARENT,
         // eslint-disable-next-line react-hooks/exhaustive-deps
-        [targetSat?.id, failedSnps]
+        [targetSat?.id, failedSnps, leoServiceViewModel?.globeVisualMode]
     );
 
     const standardColorFill = useMemo(
         () => targetSat
-            ? Color.fromCssColorString(getCoverageColor('ONEWEB_STANDARD', 0.1, targetSat, failedSnps))
+            ? (
+                leoServiceViewModel?.globeVisualMode === 'regulatory_blocked'
+                    ? Color.fromCssColorString('#fca5a5').withAlpha(0.08)
+                    : Color.fromCssColorString(getCoverageColor('ONEWEB_STANDARD', 0.1, targetSat, failedSnps))
+            )
             : Color.TRANSPARENT,
         // eslint-disable-next-line react-hooks/exhaustive-deps
-        [targetSat?.id, failedSnps]
+        [targetSat?.id, failedSnps, leoServiceViewModel?.globeVisualMode]
     );
 
     const standardColorOutline = useMemo(
         () => targetSat
-            ? Color.fromCssColorString(getCoverageColor('ONEWEB_STANDARD', 0.6, targetSat, failedSnps))
+            ? (
+                leoServiceViewModel?.globeVisualMode === 'regulatory_blocked'
+                    ? Color.fromCssColorString('#f87171').withAlpha(0.5)
+                    : Color.fromCssColorString(getCoverageColor('ONEWEB_STANDARD', 0.6, targetSat, failedSnps))
+            )
             : Color.TRANSPARENT,
         // eslint-disable-next-line react-hooks/exhaustive-deps
-        [targetSat?.id, failedSnps]
+        [targetSat?.id, failedSnps, leoServiceViewModel?.globeVisualMode]
     );
 
     // hasSNPInCoverage performs polygon-point intersection tests across all SNPs;
@@ -408,6 +449,7 @@ const OneWebCombLayer: React.FC<OneWebCombLayerProps> = ({
                     viewerRef={viewerRef}
                     hasBackhaul={hasBackhaul}
                     hsBeamsRef={hsBeamsRef}
+                    regulatoryBlockedRef={regulatoryBlockedRef}
                 />
             ))}
 

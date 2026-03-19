@@ -13,19 +13,16 @@
  * 5. Ion token moved to main.tsx (app entry point)
  */
 import React, { useCallback, useRef, useEffect, useState, useMemo } from 'react';
-import { Viewer, Entity, ScreenSpaceEventHandler, ScreenSpaceEvent } from 'resium';
+import { Viewer, ScreenSpaceEventHandler, ScreenSpaceEvent } from 'resium';
 import {
     Cartesian2,
     Cartesian3,
     Cartographic,
-    Color,
     Math as CesiumMath,
     Viewer as CesiumViewerType,
     ScreenSpaceEventType,
     defined,
     CallbackProperty,
-    HorizontalOrigin,
-    VerticalOrigin,
     SceneMode,
     ClockStep,
     JulianDate
@@ -54,21 +51,17 @@ import TrajectoryLayer from './cesium-globe/TrajectoryLayer';
 import GeoGatewayLayer from './cesium-globe/GeoGatewayLayer';
 import AggregatedConnectivityLayer from './cesium-globe/AggregatedConnectivityLayer';
 import RegulatoryLayer from './cesium-globe/RegulatoryLayer';
+import SelectedPointStatusMarker from './cesium-globe/SelectedPointStatusMarker';
 
 // UI components
 import GlobeControls from './cesium-globe/GlobeControls';
 import PositionDisplay from './cesium-globe/PositionDisplay';
 import SatelliteIndicator from './cesium-globe/SatelliteIndicator';
 import InspectionCard, { type HoveredEntity } from './cesium-globe/InspectionCard';
-import { LabelGraphics } from 'resium';
-import { formatCoordinates } from '../utils/formatters';
 import { GEO_GATEWAYS, SNPS_DATA, type GeoGatewayData, type SNPData } from './globe/GlobeConfig';
 import { getGatewayAssignmentsForSatellite, selectBestGeoGateway } from '../utils/geoConnectivityModel';
 import { isOperationalSatellite } from '../utils/satelliteStatus';
-
-// Module-level constants — allocated once, reused on every render.
-const LABEL_BACKGROUND_PADDING = new Cartesian2(7, 4);
-const LABEL_PIXEL_OFFSET = new Cartesian2(0, -20);
+import type { LeoConnectivityViewModel } from '../utils/leoServiceViewModel';
 
 interface CesiumGlobeProps {
     satellites: SatelliteData[];
@@ -120,6 +113,7 @@ interface CesiumGlobeProps {
     snpConnectedSatellites?: import('../services/coverageService').SNPConnectedSatellite[];
     showRegulatoryOverlay?: boolean;
     onToggleRegulatoryOverlay?: () => void;
+    leoServiceViewModel?: LeoConnectivityViewModel | null;
 }
 
 const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
@@ -172,6 +166,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
     snpConnectedSatellites = [],
     showRegulatoryOverlay = false,
     onToggleRegulatoryOverlay,
+    leoServiceViewModel = null,
 }) => {
     // Stable refs for click-handler lookups — avoids recreating handleMapClick
     // (and re-registering the Cesium ScreenSpaceEvent) when aircraft/vessels/satellites
@@ -589,6 +584,9 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         }, false);
     }, [selectedPosition, sizeScale]);
 
+    const effectiveRegulatoryOverlayVisible =
+        showRegulatoryOverlay || leoServiceViewModel?.globeVisualMode === 'regulatory_blocked';
+
     return (
         <div className="relative w-full h-full">
             {/* UI Overlays */}
@@ -650,37 +648,15 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
 
                     {/* Selected Position Marker */}
                     {selectedPosition && !selectedSatellite && (
-                        <Entity
-                            position={getPosition(selectedPosition.lat, selectedPosition.lng, 0.01)}
-                            point={{
-                                pixelSize: positionMarkerPixelSize,
-                                color: Color.RED,
-                                outlineColor: Color.RED,
-                                outlineWidth: 2,
-                                disableDepthTestDistance: 0
-                            }}
-                            name="Selected Position"
-                            description={`Lat: ${selectedPosition.lat.toFixed(4)}, Lng: ${selectedPosition.lng.toFixed(4)}`}
-                        >
-                            <LabelGraphics
-                                text={formatCoordinates({ lat: selectedPosition.lat, lng: selectedPosition.lng })}
-                                font="600 13px Inter, sans-serif"
-                                fillColor={Color.WHITE}
-                                outlineWidth={3}
-                                style={2}
-                                showBackground={true}
-                                backgroundColor={Color.RED.withAlpha(0.7)}
-                                backgroundPadding={LABEL_BACKGROUND_PADDING}
-                                pixelOffset={LABEL_PIXEL_OFFSET}
-                                verticalOrigin={VerticalOrigin.BOTTOM}
-                                horizontalOrigin={HorizontalOrigin.CENTER}
-                                disableDepthTestDistance={Number.POSITIVE_INFINITY}
-                            />
-                        </Entity>
+                        <SelectedPointStatusMarker
+                            selectedPosition={selectedPosition}
+                            pixelSize={positionMarkerPixelSize}
+                            leoServiceViewModel={leoServiceViewModel}
+                        />
                     )}
 
                     {/* Regulatory overlay — country polygons coloured by simulated regulatory status */}
-                    <RegulatoryLayer visible={showRegulatoryOverlay} />
+                    <RegulatoryLayer visible={effectiveRegulatoryOverlayVisible} />
 
                     {/* Aggregated Connectivity Layer (Bottom most coverage layer) */}
                     <AggregatedConnectivityLayer
@@ -754,6 +730,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                         selectedPosition={selectedPosition}
                         selectedAircraft={selectedAircraft}
                         highlightServingFootprint={highlightServingFootprint}
+                        leoServiceViewModel={leoServiceViewModel}
                     />
 
                     {/* Aggregated coverage volume (manual satellite selection only) */}
@@ -783,6 +760,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                         satelliteScope={satelliteScope}
                         inspectedSNP={inspectedSNP}
                         snpConnectedSatellites={snpConnectedSatellites}
+                        leoServiceViewModel={leoServiceViewModel}
                     />
 
                     {/* Aircraft Layer */}
