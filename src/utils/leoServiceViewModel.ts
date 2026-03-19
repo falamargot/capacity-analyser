@@ -4,20 +4,54 @@ import type { BeamLoadResult } from './capacityLayer';
 import type { ServiceLayerReason, ServiceLayerResult, ServiceStatus } from './serviceLayer';
 
 export type LeoStatusTone = 'success' | 'warning' | 'danger' | 'neutral';
+export type LeoDecisionDriver = 'REGULATORY' | 'CAPACITY' | 'NETWORK' | 'RF' | 'ALL_OK';
+export type LeoCapacityLoadCategory = 'LOW' | 'MEDIUM' | 'HIGH' | 'SATURATED' | 'UNKNOWN';
+export type LeoBeamVisualState = 'LOW' | 'MEDIUM' | 'HIGH' | 'SATURATED' | 'BLOCKED';
+export type LeoPathVisualState = 'normal' | 'degraded' | 'blocked';
+export type LeoUserMarkerState = 'normal' | 'degraded' | 'blocked';
 
-export interface LeoStateRow {
+export interface LeoInfoRow {
   label: string;
   value: string;
   tone: LeoStatusTone;
+  detail?: string;
 }
 
-export interface LeoContextItem {
-  label: string;
-  value: string;
-  tone?: LeoStatusTone;
-}
+export type LeoStateRow = LeoInfoRow;
+export type LeoContextItem = LeoInfoRow;
 
 export interface LeoConnectivityViewModel {
+  serviceStatus: ServiceStatus;
+  decisionDriver: LeoDecisionDriver;
+  decisionDriverLabel: string;
+  reasons: {
+    regulatory: LeoInfoRow;
+    capacity: LeoInfoRow;
+    network: LeoInfoRow;
+    rf: LeoInfoRow;
+  };
+  physicalState: {
+    rfAvailable: boolean;
+    beamActive: boolean;
+    satelliteActive: boolean;
+    gatewayReachable: boolean;
+  };
+  capacity: {
+    beamLoadPercent: number | null;
+    loadCategory: LeoCapacityLoadCategory;
+    estimatedUsers: number | null;
+    estimatedUsersLabel: string;
+    isEstimated: true;
+  };
+  regulatory: {
+    status: RegulatoryResult['status'] | 'UNKNOWN';
+    country: string | null;
+  };
+  renderingHints: {
+    beamVisualState: LeoBeamVisualState;
+    pathVisualState: LeoPathVisualState;
+    userMarkerState: LeoUserMarkerState;
+  };
   finalServiceStatus: ServiceStatus;
   primaryReasonLayer: ServiceLayerReason;
   primaryStatusLabel: string;
@@ -25,6 +59,7 @@ export interface LeoConnectivityViewModel {
   reasonSummary: string;
   locationLabel: string | null;
   whyItems: string[];
+  whyRows: LeoInfoRow[];
   regulatoryStatus: RegulatoryResult['status'] | 'UNKNOWN';
   rfStatus: 'AVAILABLE' | 'UNAVAILABLE';
   satelliteStatus: 'ACTIVE' | 'INACTIVE';
@@ -59,55 +94,65 @@ const toneFromStatus = (status: ServiceStatus): LeoStatusTone => {
   return 'danger';
 };
 
-const formatReasonLabel = (reason: ServiceLayerReason): string => {
-  if (reason === 'regulatory') return 'Regulatory restriction';
-  if (reason === 'capacity') return 'Capacity constraint';
-  if (reason === 'network') return 'Gateway path unavailable';
-  if (reason === 'rf') return 'RF coverage unavailable';
-  return 'Service available';
+const toneFromRegulatoryStatus = (status: RegulatoryResult['status'] | 'UNKNOWN'): LeoStatusTone => {
+  if (status === 'ALLOWED') return 'success';
+  if (status === 'RESTRICTED') return 'warning';
+  if (status === 'BLOCKED') return 'danger';
+  return 'neutral';
 };
 
-const buildWhyItems = (
-  serviceLayerResult: ServiceLayerResult | null,
-  regulatoryResult: RegulatoryResult | null,
-  hasRF: boolean,
-  hasSNP: boolean
-): string[] => {
-  if (!serviceLayerResult) {
-    return ['No active LEO service assessment available.'];
-  }
+const toneFromCapacityLoad = (category: LeoCapacityLoadCategory): LeoStatusTone => {
+  if (category === 'LOW' || category === 'MEDIUM') return 'success';
+  if (category === 'HIGH') return 'warning';
+  if (category === 'SATURATED') return 'danger';
+  return 'neutral';
+};
 
-  if (serviceLayerResult.primaryReasonLayer === 'regulatory') {
-    return [
-      regulatoryResult?.reason || 'Service authorization denied in this territory.',
-      'Physical RF may still exist, but commercial service is denied here.',
-    ];
-  }
+const getDecisionDriver = (reason: ServiceLayerReason): LeoDecisionDriver => {
+  if (reason === 'regulatory') return 'REGULATORY';
+  if (reason === 'capacity') return 'CAPACITY';
+  if (reason === 'network') return 'NETWORK';
+  if (reason === 'rf') return 'RF';
+  return 'ALL_OK';
+};
 
-  if (serviceLayerResult.primaryReasonLayer === 'rf') {
-    return [
-      'No active beam currently covers the selected location.',
-      'Service will resume when RF coverage becomes available.',
-    ];
-  }
+const getDecisionDriverLabel = (driver: LeoDecisionDriver): string => {
+  if (driver === 'REGULATORY') return 'REGULATORY RESTRICTION';
+  if (driver === 'CAPACITY') return 'CAPACITY LIMIT';
+  if (driver === 'NETWORK') return 'NETWORK PATH UNAVAILABLE';
+  if (driver === 'RF') return 'RF COVERAGE UNAVAILABLE';
+  return 'ALL CONDITIONS OK';
+};
 
-  if (serviceLayerResult.primaryReasonLayer === 'network') {
-    return [
-      'A physical RF link exists, but no reachable gateway path is available.',
-      hasSNP ? 'Gateway path is unstable.' : 'Gateway path is currently missing.',
-    ];
-  }
+const formatReasonLabel = (driver: LeoDecisionDriver): string => {
+  if (driver === 'REGULATORY') return 'Regulatory restriction';
+  if (driver === 'CAPACITY') return 'Capacity constraint';
+  if (driver === 'NETWORK') return 'Gateway path unavailable';
+  if (driver === 'RF') return 'RF coverage unavailable';
+  return 'All conditions OK';
+};
 
-  if (serviceLayerResult.primaryReasonLayer === 'capacity') {
-    return [
-      serviceLayerResult.reason,
-      'Service is limited by estimated beam congestion rather than RF or regulation.',
-    ];
-  }
+const getLoadCategory = (beamLoadResult: BeamLoadResult | null): LeoCapacityLoadCategory => {
+  if (!beamLoadResult) return 'UNKNOWN';
+  if (beamLoadResult.capacityStatus === 'SATURATED' || beamLoadResult.beamLoadFraction >= 0.95) return 'SATURATED';
+  if (beamLoadResult.beamLoadFraction >= 0.75) return 'HIGH';
+  if (beamLoadResult.beamLoadFraction >= 0.35) return 'MEDIUM';
+  return 'LOW';
+};
 
-  return serviceLayerResult.details.length > 0
-    ? serviceLayerResult.details.slice(0, 2)
-    : ['All required layers are healthy for this target.'];
+const buildCapacityValue = (
+  beamLoadResult: BeamLoadResult | null,
+  loadCategory: LeoCapacityLoadCategory
+): string => {
+  if (!beamLoadResult) return 'Unknown';
+  if (loadCategory === 'SATURATED') return `Saturated · ${beamLoadResult.beamLoadPercent}%`;
+  if (loadCategory === 'HIGH') return `Constrained · ${beamLoadResult.beamLoadPercent}%`;
+  return `OK · ${beamLoadResult.beamLoadPercent}%`;
+};
+
+const formatEstimatedUsersLabel = (beamLoadResult: BeamLoadResult | null): string => {
+  if (!beamLoadResult) return 'Unknown';
+  return `~${beamLoadResult.estimatedActiveUsers} (simulated)`;
 };
 
 export function deriveLeoConnectivityViewModel(
@@ -124,112 +169,189 @@ export function deriveLeoConnectivityViewModel(
     isBlankingZone = false,
   } = input;
 
-  const finalServiceStatus = serviceLayerResult?.status ?? 'BLOCKED';
+  const serviceStatus = serviceLayerResult?.status ?? 'BLOCKED';
   const primaryReasonLayer = serviceLayerResult?.primaryReasonLayer ?? 'rf';
+  const decisionDriver = getDecisionDriver(primaryReasonLayer);
+  const decisionDriverLabel = getDecisionDriverLabel(decisionDriver);
   const locationLabel = regulatoryResult?.isOcean
     ? 'International waters'
     : regulatoryResult?.countryName
       ? `${regulatoryResult.countryName}${regulatoryResult.isoA2 ? ` (${regulatoryResult.isoA2})` : ''}`
       : null;
 
-  const payloadActive = !!satellite && satellite.opsStatus === 'operational' && !isBlankingZone && activeBeamCount > 0;
-  const satelliteStatus = satellite?.opsStatus === 'operational' ? 'ACTIVE' : 'INACTIVE';
-  const rfStatus = hasRF ? 'AVAILABLE' : 'UNAVAILABLE';
-  const beamStatus = hasRF ? 'IN_COVERAGE' : payloadActive ? 'OUT_OF_COVERAGE' : 'UNAVAILABLE';
-  const gatewayStatus = hasSNP ? 'REACHABLE' : hasRF ? 'UNREACHABLE' : 'NOT_APPLICABLE';
-  const isRegulatoryBlocked = primaryReasonLayer === 'regulatory' && finalServiceStatus === 'BLOCKED';
-  const isRfBlocked = primaryReasonLayer === 'rf' && finalServiceStatus === 'BLOCKED';
+  const satelliteActive = !!satellite && satellite.opsStatus === 'operational';
+  const beamActive = satelliteActive && !isBlankingZone && activeBeamCount > 0;
+  const payloadActive = beamActive;
+  const regulatoryStatus = regulatoryResult?.status ?? 'UNKNOWN';
+  const loadCategory = getLoadCategory(beamLoadResult);
+  const isRegulatoryBlocked = decisionDriver === 'REGULATORY' && serviceStatus === 'BLOCKED';
+  const isRfBlocked = decisionDriver === 'RF' && serviceStatus === 'BLOCKED';
+
+  const regulatory: LeoConnectivityViewModel['regulatory'] = {
+    status: regulatoryStatus,
+    country: locationLabel,
+  };
+
+  const capacity: LeoConnectivityViewModel['capacity'] = {
+    beamLoadPercent: beamLoadResult?.beamLoadPercent ?? null,
+    loadCategory,
+    estimatedUsers: beamLoadResult?.estimatedActiveUsers ?? null,
+    estimatedUsersLabel: formatEstimatedUsersLabel(beamLoadResult),
+    isEstimated: true,
+  };
+
+  const reasons: LeoConnectivityViewModel['reasons'] = {
+    rf: {
+      label: 'RF',
+      value: hasRF ? 'OK' : 'Unavailable',
+      tone: hasRF ? 'success' : 'danger',
+      detail: hasRF
+        ? 'A serving beam currently covers the selected target.'
+        : 'No active beam currently covers the selected target.',
+    },
+    network: {
+      label: 'Gateway',
+      value: hasSNP ? 'Reachable' : hasRF ? 'Unreachable' : 'Not applicable',
+      tone: hasSNP ? 'success' : hasRF ? 'warning' : 'neutral',
+      detail: hasSNP
+        ? 'Gateway backhaul is available for end-to-end service.'
+        : hasRF
+          ? 'RF is available but no reachable gateway path is currently available.'
+          : 'Gateway path depends on an RF link first.',
+    },
+    capacity: {
+      label: 'Capacity',
+      value: buildCapacityValue(beamLoadResult, loadCategory),
+      tone: toneFromCapacityLoad(loadCategory),
+      detail: beamLoadResult
+        ? `Load level: ${loadCategory} · Estimated users: ${formatEstimatedUsersLabel(beamLoadResult)}`
+        : 'No capacity estimate available.',
+    },
+    regulatory: {
+      label: 'Regulatory',
+      value: regulatoryStatus,
+      tone: toneFromRegulatoryStatus(regulatoryStatus),
+      detail: regulatoryResult?.reason
+        || (locationLabel ? `Policy context for ${locationLabel}.` : 'No regulatory context available.'),
+    },
+  };
+
+  const whyRows: LeoInfoRow[] = [
+    reasons.rf,
+    reasons.network,
+    reasons.capacity,
+    reasons.regulatory,
+  ];
+
+  const physicalState: LeoConnectivityViewModel['physicalState'] = {
+    rfAvailable: hasRF,
+    beamActive,
+    satelliteActive,
+    gatewayReachable: hasSNP,
+  };
 
   const physicalStateRows: LeoStateRow[] = [
     {
       label: 'RF Link',
-      value: hasRF ? 'Available' : 'Unavailable',
-      tone: hasRF ? 'success' : 'danger',
+      value: physicalState.rfAvailable ? 'Available' : 'Unavailable',
+      tone: physicalState.rfAvailable ? 'success' : 'danger',
     },
     {
       label: 'Satellite',
-      value: satelliteStatus === 'ACTIVE' ? 'Active' : 'Inactive',
-      tone: satelliteStatus === 'ACTIVE' ? 'success' : 'danger',
+      value: physicalState.satelliteActive ? 'Active' : 'Inactive',
+      tone: physicalState.satelliteActive ? 'success' : 'danger',
     },
     {
-      label: 'Beam Coverage',
-      value: beamStatus === 'IN_COVERAGE' ? 'In coverage' : beamStatus === 'OUT_OF_COVERAGE' ? 'Out of coverage' : 'Unavailable',
-      tone: beamStatus === 'IN_COVERAGE' ? 'success' : beamStatus === 'OUT_OF_COVERAGE' ? 'warning' : 'danger',
+      label: 'Beam',
+      value: physicalState.beamActive ? 'Active' : 'Inactive',
+      tone: physicalState.beamActive ? 'success' : 'warning',
     },
     {
       label: 'Gateway Path',
-      value: gatewayStatus === 'REACHABLE' ? 'Reachable' : gatewayStatus === 'UNREACHABLE' ? 'Unavailable' : 'N/A',
-      tone: gatewayStatus === 'REACHABLE' ? 'success' : gatewayStatus === 'UNREACHABLE' ? 'warning' : 'neutral',
+      value: physicalState.gatewayReachable ? 'Reachable' : 'Unavailable',
+      tone: physicalState.gatewayReachable ? 'success' : hasRF ? 'warning' : 'neutral',
     },
   ];
 
   const contextItems: LeoContextItem[] = [
     {
-      label: 'Regulatory',
-      value: regulatoryResult?.status ?? 'UNKNOWN',
-      tone: regulatoryResult?.status === 'ALLOWED'
-        ? 'success'
-        : regulatoryResult?.status === 'RESTRICTED'
-          ? 'warning'
-          : regulatoryResult?.status === 'BLOCKED'
-            ? 'danger'
-            : 'neutral',
+      label: 'Decision Driver',
+      value: decisionDriverLabel,
+      tone: toneFromStatus(serviceStatus),
+    },
+    {
+      label: 'Load Level',
+      value: capacity.loadCategory,
+      tone: toneFromCapacityLoad(capacity.loadCategory),
+    },
+    {
+      label: 'Estimated Users',
+      value: capacity.estimatedUsersLabel,
+      tone: 'neutral',
+      detail: 'Simulated serving-beam estimate.',
+    },
+    {
+      label: 'Country',
+      value: regulatory.country ?? 'Unknown',
+      tone: 'neutral',
     },
   ];
 
-  if (beamLoadResult) {
-    contextItems.push({
-      label: isRegulatoryBlocked ? 'Served Load' : 'Beam Load',
-      value: isRegulatoryBlocked ? 'N/A' : `${beamLoadResult.beamLoadPercent}%`,
-      tone: isRegulatoryBlocked
-        ? 'neutral'
-        : beamLoadResult.capacityStatus === 'NOMINAL'
-          ? 'success'
-          : beamLoadResult.capacityStatus === 'DEGRADED'
-            ? 'warning'
-            : 'danger',
-    });
-    contextItems.push({
-      label: isRegulatoryBlocked ? 'Demand Zone' : 'Estimated Users',
-      value: isRegulatoryBlocked
-        ? beamLoadResult.densityZoneLabel
-        : `~${beamLoadResult.estimatedActiveUsers}`,
-      tone: 'neutral',
-    });
-  }
+  const renderingHints: LeoConnectivityViewModel['renderingHints'] = {
+    beamVisualState: serviceStatus === 'BLOCKED' ? 'BLOCKED' : loadCategory,
+    pathVisualState: serviceStatus === 'BLOCKED'
+      ? 'blocked'
+      : serviceStatus === 'DEGRADED'
+        ? 'degraded'
+        : 'normal',
+    userMarkerState: serviceStatus === 'BLOCKED'
+      ? 'blocked'
+      : serviceStatus === 'DEGRADED'
+        ? 'degraded'
+        : 'normal',
+  };
 
   return {
-    finalServiceStatus,
+    serviceStatus,
+    decisionDriver,
+    decisionDriverLabel,
+    reasons,
+    physicalState,
+    capacity,
+    regulatory,
+    renderingHints,
+    finalServiceStatus: serviceStatus,
     primaryReasonLayer,
-    primaryStatusLabel: finalServiceStatus === 'ALLOWED'
+    primaryStatusLabel: serviceStatus === 'ALLOWED'
       ? 'SERVICE AVAILABLE'
-      : finalServiceStatus === 'DEGRADED'
+      : serviceStatus === 'DEGRADED'
         ? 'SERVICE DEGRADED'
         : 'SERVICE BLOCKED',
-    primaryReasonLabel: formatReasonLabel(primaryReasonLayer),
+    primaryReasonLabel: formatReasonLabel(decisionDriver),
     reasonSummary: serviceLayerResult?.reason ?? 'No valid LEO service for this location.',
     locationLabel,
-    whyItems: buildWhyItems(serviceLayerResult, regulatoryResult, hasRF, hasSNP),
-    regulatoryStatus: regulatoryResult?.status ?? 'UNKNOWN',
-    rfStatus,
-    satelliteStatus,
-    beamStatus,
-    gatewayStatus,
-    isThroughputApplicable: !isRegulatoryBlocked && finalServiceStatus !== 'BLOCKED',
-    isCapacityApplicable: !isRegulatoryBlocked,
+    whyItems: whyRows.map((row) => `${row.label}: ${row.value}`),
+    whyRows,
+    regulatoryStatus,
+    rfStatus: hasRF ? 'AVAILABLE' : 'UNAVAILABLE',
+    satelliteStatus: satelliteActive ? 'ACTIVE' : 'INACTIVE',
+    beamStatus: hasRF ? 'IN_COVERAGE' : beamActive ? 'OUT_OF_COVERAGE' : 'UNAVAILABLE',
+    gatewayStatus: hasSNP ? 'REACHABLE' : hasRF ? 'UNREACHABLE' : 'NOT_APPLICABLE',
+    isThroughputApplicable: !isRegulatoryBlocked && serviceStatus !== 'BLOCKED',
+    isCapacityApplicable: !!beamLoadResult,
     showTechnicalDiagnostics: !!satellite,
     displayMode: isRegulatoryBlocked
       ? 'regulatoryBlocked'
       : isRfBlocked
         ? 'rfBlocked'
-        : finalServiceStatus === 'DEGRADED'
+        : serviceStatus === 'DEGRADED'
           ? 'degraded'
           : 'normal',
     globeVisualMode: isRegulatoryBlocked
       ? 'regulatory_blocked'
       : isRfBlocked
         ? 'rf_blocked'
-        : finalServiceStatus === 'DEGRADED'
+        : serviceStatus === 'DEGRADED'
           ? 'degraded'
           : 'normal',
     physicalLinkAvailable: hasRF,

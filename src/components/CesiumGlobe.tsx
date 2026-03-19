@@ -18,6 +18,7 @@ import {
     Cartesian2,
     Cartesian3,
     Cartographic,
+    Color,
     Math as CesiumMath,
     Viewer as CesiumViewerType,
     ScreenSpaceEventType,
@@ -51,7 +52,8 @@ import TrajectoryLayer from './cesium-globe/TrajectoryLayer';
 import GeoGatewayLayer from './cesium-globe/GeoGatewayLayer';
 import AggregatedConnectivityLayer from './cesium-globe/AggregatedConnectivityLayer';
 import RegulatoryLayer from './cesium-globe/RegulatoryLayer';
-import SelectedPointStatusMarker from './cesium-globe/SelectedPointStatusMarker';
+import SelectedPointStatusMarker, { SelectionPulseMarker } from './cesium-globe/SelectedPointStatusMarker';
+import { usePositionCallbacks } from './cesium-globe/hooks';
 
 // UI components
 import GlobeControls from './cesium-globe/GlobeControls';
@@ -106,6 +108,7 @@ interface CesiumGlobeProps {
     sizeScale?: number;
     onToggleSatelliteTrajectory?: () => void;
     onSizeScaleChange?: (scale: number) => void;
+    onSizeScaleReset?: () => void;
     isPhone?: boolean;
     sceneMode?: '2D' | '3D';
     onSceneModeChange?: (mode: '2D' | '3D') => void;
@@ -159,6 +162,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
     sizeScale,
     onToggleSatelliteTrajectory,
     onSizeScaleChange,
+    onSizeScaleReset,
     isPhone,
     sceneMode = '3D',
     onSceneModeChange,
@@ -191,6 +195,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
     const viewerRef = useRef<CesiumViewerType | null>(null);
     const globeContainerRef = useRef<HTMLDivElement>(null);
     const [viewerReady, setViewerReady] = useState(false);
+    const { getSatellitePositionCallback } = usePositionCallbacks(satellites, aircraft, interpolatedAircraftMapRef);
 
     // Reset Aggregated Connectivity when switching to ALL scope
     useEffect(() => {
@@ -441,6 +446,40 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         []
     );
 
+    const pulsedSatellites = useMemo(() => {
+        const targets: SatelliteData[] = [];
+        const add = (satellite: SatelliteData | null | undefined) => {
+            if (!satellite) return;
+            if (!isOperationalSatellite(satellite)) return;
+            if (targets.some((item) => item.id === satellite.id)) return;
+            targets.push(satellite);
+        };
+
+        if (selectedSatellite) {
+            add(selectedSatellite);
+            return targets;
+        }
+
+        add(autoSelectedLEOSatellite);
+        add(autoSelectedGEOSatellite);
+        return targets;
+    }, [selectedSatellite, autoSelectedLEOSatellite, autoSelectedGEOSatellite]);
+
+    const pulsedSnp = useMemo(() => {
+        if (inspectedSNP) return inspectedSNP;
+        if (!selectedSNP) return null;
+        if (typeof selectedSNP === 'string') {
+            return snpByName.get(selectedSNP) ?? null;
+        }
+        return snpByName.get(selectedSNP.name) ?? selectedSNP;
+    }, [inspectedSNP, selectedSNP, snpByName]);
+
+    const pulsedGateway = useMemo(() => {
+        if (selectedGateway) return selectedGateway;
+        if (!selectedGeoGatewayName) return null;
+        return gatewayByName.get(selectedGeoGatewayName) ?? null;
+    }, [selectedGateway, selectedGeoGatewayName, gatewayByName]);
+
     const setHoveredEntityIfChanged = useCallback((key: string | null, nextEntity: HoveredEntity) => {
         if (hoveredEntityKeyRef.current === key) return;
         hoveredEntityKeyRef.current = key;
@@ -585,7 +624,11 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
     }, [selectedPosition, sizeScale]);
 
     const effectiveRegulatoryOverlayVisible =
-        showRegulatoryOverlay || leoServiceViewModel?.globeVisualMode === 'regulatory_blocked';
+        showRegulatoryOverlay
+        || (
+            leoServiceViewModel?.serviceStatus === 'BLOCKED'
+            && leoServiceViewModel?.decisionDriver === 'REGULATORY'
+        );
 
     return (
         <div className="relative w-full h-full">
@@ -615,6 +658,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                 onToggleSatelliteTrajectory={onToggleSatelliteTrajectory}
                 sizeScale={sizeScale}
                 onSizeScaleChange={onSizeScaleChange}
+                onSizeScaleReset={onSizeScaleReset}
                 sceneMode={sceneMode}
                 onSceneModeChange={onSceneModeChange}
                 showAggregatedConnectivity={showAggregatedConnectivity}
@@ -647,11 +691,42 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                     </ScreenSpaceEventHandler>
 
                     {/* Selected Position Marker */}
-                    {selectedPosition && !selectedSatellite && (
+                    {selectedPosition && (
                         <SelectedPointStatusMarker
                             selectedPosition={selectedPosition}
                             pixelSize={positionMarkerPixelSize}
                             leoServiceViewModel={leoServiceViewModel}
+                        />
+                    )}
+                    {pulsedSatellites.map((satellite) => (
+                        <SelectionPulseMarker
+                            key={`selection-pulse-satellite-${satellite.id}`}
+                            position={getSatellitePositionCallback(satellite)}
+                            anchorType="orbital"
+                            baseColor={
+                                selectedSatellite?.id === satellite.id
+                                    ? Color.RED
+                                    : satellite.type === 'ONEWEB'
+                                        ? Color.DEEPPINK
+                                        : Color.ROYALBLUE
+                            }
+                            ringBaseRadius={satellite.type === 'ONEWEB' ? 26000 : 32000}
+                        />
+                    ))}
+                    {pulsedSnp && (
+                        <SelectionPulseMarker
+                            key={`selection-pulse-snp-${pulsedSnp.name}`}
+                            position={getPosition(pulsedSnp.lat, pulsedSnp.lng, 0.01)}
+                            baseColor={Color.ORANGE}
+                            ringBaseRadius={36000}
+                        />
+                    )}
+                    {pulsedGateway && (
+                        <SelectionPulseMarker
+                            key={`selection-pulse-gateway-${pulsedGateway.name}`}
+                            position={getPosition(pulsedGateway.lat, pulsedGateway.lng, 0.01)}
+                            baseColor={Color.CYAN}
+                            ringBaseRadius={36000}
                         />
                     )}
 

@@ -33,6 +33,7 @@ interface GlobeControlsProps {
     onToggleSatelliteTrajectory?: () => void;
     sizeScale?: number;
     onSizeScaleChange?: (scale: number) => void;
+    onSizeScaleReset?: () => void;
     view?: 'globe' | 'map';
     onViewChange?: (view: 'globe' | 'map') => void;
     sceneMode?: '2D' | '3D';
@@ -84,6 +85,8 @@ const optionAccentClassNames: Record<NonNullable<DisplayOptionRowProps['accent']
     violet: 'bg-fuchsia-50 text-fuchsia-700 dark:bg-fuchsia-500/15 dark:text-fuchsia-200',
     blue: 'bg-sky-50 text-sky-700 dark:bg-sky-500/15 dark:text-sky-200'
 };
+
+const formatScaleLabel = (value: number) => value.toFixed(2).replace(/\.?0+$/, '');
 
 const ControlButton: React.FC<ControlButtonProps> = ({
     icon,
@@ -199,6 +202,7 @@ const GlobeControls: React.FC<GlobeControlsProps> = ({
     onToggleSatelliteTrajectory,
     sizeScale,
     onSizeScaleChange,
+    onSizeScaleReset,
     sceneMode = '3D',
     onSceneModeChange,
     showAggregatedConnectivity,
@@ -424,8 +428,21 @@ const GlobeControls: React.FC<GlobeControlsProps> = ({
                                                     Scale all markers.
                                                 </div>
                                             </div>
-                                            <div className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-700 dark:bg-slate-800 dark:text-slate-200">
-                                                {sizeScale ?? 1}x
+                                            <div className="flex items-center gap-2">
+                                                {onSizeScaleReset && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => onSizeScaleReset()}
+                                                        className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-600 transition hover:border-slate-300 hover:text-slate-900 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:border-slate-600 dark:hover:text-slate-100"
+                                                        title="Reset marker scale to the responsive default"
+                                                    >
+                                                        <RotateCcw className="h-3 w-3" />
+                                                        Reset
+                                                    </button>
+                                                )}
+                                                <div className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-700 dark:bg-slate-800 dark:text-slate-200">
+                                                    {formatScaleLabel(sizeScale ?? 1)}x
+                                                </div>
                                             </div>
                                         </div>
                                         <input
@@ -435,9 +452,9 @@ const GlobeControls: React.FC<GlobeControlsProps> = ({
                                             step="0.25"
                                             value={sizeScale ?? 1}
                                             onChange={(e) => onSizeScaleChange?.(parseFloat(e.target.value))}
-                                            onDoubleClick={() => onSizeScaleChange?.(1)}
+                                            onDoubleClick={() => onSizeScaleReset?.()}
                                             className="mt-3 h-2 w-full cursor-pointer appearance-none rounded-full bg-slate-200 accent-blue-600 dark:bg-slate-700"
-                                            title="Adjust marker size. Double-click to reset to 1x."
+                                            title="Adjust marker size. Double-click to reset to the responsive default."
                                             aria-label="Adjust marker size"
                                         />
                                     </div>

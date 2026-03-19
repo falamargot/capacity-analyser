@@ -122,6 +122,11 @@ const getResponsiveAutoMarkerScale = (viewportSnapshot: ViewportSnapshot) => {
   return clampNumber(lerp(legacyScale, 0.75, getCompactDesktopProgress(viewportSnapshot)), 0.5, 8);
 };
 
+const snapMarkerScaleToStep = (value: number, step = 0.25) => {
+  const snappedValue = Math.round(value / step) * step;
+  return clampNumber(Number(snappedValue.toFixed(2)), 0.25, 8);
+};
+
 // Analyzis position for earth-click or aircraft selection
 interface AnalyzisPosition {
   lat: number;
@@ -174,7 +179,7 @@ const App: React.FC = () => {
   const [sizeScale, setSizeScale] = useState<number>(() => (
     hasInitialSizeScaleOverride
       ? initialSavedSizeScale
-      : getResponsiveAutoMarkerScale(initialViewportSnapshot)
+      : snapMarkerScaleToStep(getResponsiveAutoMarkerScale(initialViewportSnapshot))
   ));
   const [isSizeScaleUserOverridden, setIsSizeScaleUserOverridden] = useState(hasInitialSizeScaleOverride);
   const [splashDone, setSplashDone] = useState(false);
@@ -240,7 +245,7 @@ const App: React.FC = () => {
 
   useEffect(() => {
     if (isSizeScaleUserOverridden) return;
-    setSizeScale(getResponsiveAutoMarkerScale(viewportSnapshot));
+    setSizeScale(snapMarkerScaleToStep(getResponsiveAutoMarkerScale(viewportSnapshot)));
   }, [isSizeScaleUserOverridden, viewportSnapshot]);
 
   useEffect(() => {
@@ -561,25 +566,12 @@ const App: React.FC = () => {
   const leoBeamLoadResult = useMemo(() => {
     if (!activeAnalysisPoint || !leoRegulatoryResult) return null;
 
-    const estimatedLoad = estimateBeamLoad(
+    return estimateBeamLoad(
       activeAnalysisPoint.lat,
       activeAnalysisPoint.lng,
       leoRegulatoryResult.isOcean ?? true,
       leoRegulatoryResult.isoA2 ?? null
     );
-
-    if (leoRegulatoryResult.status === 'BLOCKED') {
-      return {
-        ...estimatedLoad,
-        estimatedActiveUsers: 0,
-        beamLoadFraction: 0,
-        beamLoadPercent: 0,
-        estimatedUserThroughputMbps: 0,
-        capacityStatus: 'NOMINAL' as const,
-      };
-    }
-
-    return estimatedLoad;
   }, [activeAnalysisPoint, leoRegulatoryResult]);
 
   const leoConnectivityStatus = useMemo(() => {
@@ -1366,6 +1358,12 @@ const App: React.FC = () => {
     setIsSizeScaleUserOverridden(true);
     localStorage.setItem('globeSizeScale', String(v));
   }, []);
+  const handleSizeScaleReset = useCallback(() => {
+    const responsiveScale = snapMarkerScaleToStep(getResponsiveAutoMarkerScale(viewportSnapshot));
+    setSizeScale(responsiveScale);
+    setIsSizeScaleUserOverridden(false);
+    localStorage.removeItem('globeSizeScale');
+  }, [viewportSnapshot]);
 
   // §4.1 — Shared props for both mobile and desktop MapViewSwitcher instances.
   // Avoids duplicating the full prop list in two places.
@@ -1417,6 +1415,7 @@ const App: React.FC = () => {
     showRegulatoryOverlay,
     onToggleRegulatoryOverlay: handleToggleRegulatoryOverlay,
     onSizeScaleChange: handleSizeScaleChange,
+    onSizeScaleReset: handleSizeScaleReset,
     inspectedSNP,
     snpConnectedSatellites,
   }), [
@@ -1427,7 +1426,7 @@ const App: React.FC = () => {
     selectedAircraft, handleAircraftSelect, handleAircraftHover,
     maritimeTrafficEnabled, maritimeTraffic.vessels, selectedVessel, handleVesselSelect, cameraTarget,
     handleCameraReady, handleGlobeContainerReady, showSatelliteTrajectory, sizeScale,
-    inspectedSNP, snpConnectedSatellites, showRegulatoryOverlay, handleToggleRegulatoryOverlay,
+    inspectedSNP, snpConnectedSatellites, showRegulatoryOverlay, handleToggleRegulatoryOverlay, handleSizeScaleReset,
   ]);
 
   const desktopSidebarHero = useMemo(() => {

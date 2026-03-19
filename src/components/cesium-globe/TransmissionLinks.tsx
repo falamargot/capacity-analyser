@@ -96,15 +96,17 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
         hsBeams: hsBeamsSet,
     }), [coveragePolicy, weatherCondition, beamHealthFactors, hsBeamsSet]);
     const hasUserSelection = !!(selectedPosition || selectedAircraft);
+    const leoPathVisualState = leoServiceViewModel?.renderingHints.pathVisualState ?? 'normal';
     const leoLinkMaterial = useMemo(() => {
-        if (leoServiceViewModel?.globeVisualMode === 'regulatory_blocked') {
+        if (leoPathVisualState === 'blocked') {
             return blockedDiagnosticMaterial;
         }
-        if (leoServiceViewModel?.globeVisualMode === 'degraded') {
+        if (leoPathVisualState === 'degraded') {
             return degradedMaterial;
         }
         return leoDashMaterial;
-    }, [leoServiceViewModel?.globeVisualMode]);
+    }, [leoPathVisualState]);
+    const leoLinkWidth = leoPathVisualState === 'blocked' ? 3.2 : 2.5;
 
     const resolveCurrentUser = useMemo(() => {
         return (time: JulianDate) => {
@@ -317,7 +319,7 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
                 <Entity name="LEO Uplink/Downlink">
                     <PolylineGraphics
                         positions={leoUplinkCallback}
-                        width={leoServiceViewModel?.globeVisualMode === 'regulatory_blocked' ? 3 : 2.5}
+                        width={leoLinkWidth}
                         material={leoLinkMaterial}
                         arcType={ArcType.NONE}
                     />
@@ -329,7 +331,7 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
                 <Entity name="LEO Backhaul">
                     <PolylineGraphics
                         positions={leoBackhaulCallback}
-                        width={leoServiceViewModel?.globeVisualMode === 'regulatory_blocked' ? 3 : 2.5}
+                        width={leoLinkWidth}
                         material={leoLinkMaterial}
                         clampToGround={false}
                         arcType={ArcType.NONE}
@@ -378,7 +380,7 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
                 <Entity name="LEO Satellite → Dedicated SNP">
                     <PolylineGraphics
                         positions={dedicatedSnpCallback}
-                        width={2}
+                        width={leoPathVisualState === 'blocked' ? 2.4 : 2}
                         clampToGround={false}
                         material={leoLinkMaterial}
                         arcType={ArcType.NONE}

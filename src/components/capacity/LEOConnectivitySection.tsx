@@ -141,9 +141,8 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
 }) => {
   const userLabel = analysisSource === 'aircraft' && aircraftCallsign ? aircraftCallsign : 'User';
 
-  const isRegulatoryBlocked =
-    serviceLayerResult?.status === 'BLOCKED' &&
-    serviceLayerResult.primaryReasonLayer === 'regulatory';
+  const isRegulatoryBlocked = leoServiceViewModel?.decisionDriver === 'REGULATORY'
+    && leoServiceViewModel.serviceStatus === 'BLOCKED';
   const blockedDiagnosticMessage = 'Underlying RF geometry only — service blocked by regulation.';
   const blockedCapacityMessage = 'Contextual diagnostic only — service blocked by regulation.';
 

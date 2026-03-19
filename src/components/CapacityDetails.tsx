@@ -461,27 +461,12 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
   const computedBeamLoadResult = useMemo(() => {
     if (!activePoint || !computedRegulatoryResult) return null;
     const isOcean = computedRegulatoryResult?.isOcean ?? true;
-    const estimatedLoad = estimateBeamLoad(
+    return estimateBeamLoad(
       activePoint.lat,
       activePoint.lng,
       isOcean,
       computedRegulatoryResult?.isoA2 ?? null,
     );
-
-    // In blocked regions we keep the geographic classification as context,
-    // but effective served load must be zero because no legal service is provided.
-    if (computedRegulatoryResult.status === 'BLOCKED') {
-      return {
-        ...estimatedLoad,
-        estimatedActiveUsers: 0,
-        beamLoadFraction: 0,
-        beamLoadPercent: 0,
-        estimatedUserThroughputMbps: 0,
-        capacityStatus: 'NOMINAL' as const,
-      };
-    }
-
-    return estimatedLoad;
   }, [activePoint, computedRegulatoryResult]);
   const beamLoadResult = beamLoadResultOverride ?? computedBeamLoadResult;
 

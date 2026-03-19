@@ -64,12 +64,46 @@ interface OneWebCombLayerProps {
 
 const BLOCKED_BEAM_TINT = Color.fromCssColorString('#ef4444');
 const BLOCKED_BEAM_BASE = Color.fromCssColorString('#cbd5e1');
+const HIGH_LOAD_TINT = Color.fromCssColorString('#fb7185');
+const SATURATED_LOAD_TINT = Color.fromCssColorString('#ef4444');
+const SOFT_LOAD_TINT = Color.fromCssColorString('#fdf2f8');
 
 function getDiagnosticBeamColor(baseColor: Color, ringOpacity: number): Color {
     const mixed = new Color();
     Color.lerp(baseColor, BLOCKED_BEAM_BASE, 0.72, mixed);
     Color.lerp(mixed, BLOCKED_BEAM_TINT, 0.22, mixed);
     mixed.alpha = ringOpacity * 0.42;
+    return mixed;
+}
+
+function getServingBeamColor(
+    baseColor: Color,
+    beamVisualState: LeoConnectivityViewModel['renderingHints']['beamVisualState'],
+    alpha: number
+): Color {
+    if (beamVisualState === 'BLOCKED') {
+        return getDiagnosticBeamColor(baseColor, alpha);
+    }
+
+    const mixed = new Color();
+    if (beamVisualState === 'LOW') {
+        Color.lerp(baseColor, SOFT_LOAD_TINT, 0.38, mixed);
+        mixed.alpha = alpha * 0.8;
+        return mixed;
+    }
+    if (beamVisualState === 'MEDIUM') {
+        Color.lerp(baseColor, Color.WHITE, 0.12, mixed);
+        mixed.alpha = alpha;
+        return mixed;
+    }
+    if (beamVisualState === 'HIGH') {
+        Color.lerp(baseColor, HIGH_LOAD_TINT, 0.34, mixed);
+        mixed.alpha = Math.min(1, alpha * 1.08);
+        return mixed;
+    }
+
+    Color.lerp(baseColor, SATURATED_LOAD_TINT, 0.58, mixed);
+    mixed.alpha = Math.min(1, alpha * 1.16);
     return mixed;
 }
 
@@ -248,8 +282,12 @@ const OneWebCombLayer: React.FC<OneWebCombLayerProps> = ({
     // without needing to recreate the callbacks when it changes.
     const hsBeamsRef = useRef<ReadonlySet<number>>(hsBeamsSet);
     hsBeamsRef.current = hsBeamsSet;
-    const regulatoryBlockedRef = useRef<boolean>(leoServiceViewModel?.globeVisualMode === 'regulatory_blocked');
-    regulatoryBlockedRef.current = leoServiceViewModel?.globeVisualMode === 'regulatory_blocked';
+    const regulatoryBlockedRef = useRef<boolean>(leoServiceViewModel?.serviceStatus === 'BLOCKED');
+    regulatoryBlockedRef.current = leoServiceViewModel?.serviceStatus === 'BLOCKED';
+    const beamVisualStateRef = useRef<LeoConnectivityViewModel['renderingHints']['beamVisualState']>(
+        leoServiceViewModel?.renderingHints.beamVisualState ?? 'LOW'
+    );
+    beamVisualStateRef.current = leoServiceViewModel?.renderingHints.beamVisualState ?? 'LOW';
 
     // Generate beam indices array once - MUST be before any early return
     const beamIndices = useMemo(() => Array.from({ length: TOTAL_BEAMS }, (_, i) => i), []);
@@ -345,19 +383,21 @@ const OneWebCombLayer: React.FC<OneWebCombLayerProps> = ({
         const material = new ColorMaterialProperty(new CallbackProperty((time?: JulianDate) => {
             const servingBeam = resolveServingBeam(time);
             if (!servingBeam) return Color.PALEVIOLETRED.withAlpha(0.4);
-            if (regulatoryBlockedRef.current) {
-                return Color.fromCssColorString('#ef4444').withAlpha(0.2);
-            }
-            return getBeamBaseColor(servingBeam.beamIndex).withAlpha(0.22);
+            return getServingBeamColor(
+                getBeamBaseColor(servingBeam.beamIndex),
+                beamVisualStateRef.current,
+                0.28
+            );
         }, false));
 
         const outlineColor = new CallbackProperty((time?: JulianDate) => {
             const servingBeam = resolveServingBeam(time);
             if (!servingBeam) return Color.PALEVIOLETRED.withAlpha(0.95);
-            if (regulatoryBlockedRef.current) {
-                return Color.fromCssColorString('#ef4444').withAlpha(0.95);
-            }
-            return getBeamBaseColor(servingBeam.beamIndex).withAlpha(0.95);
+            return getServingBeamColor(
+                getBeamBaseColor(servingBeam.beamIndex),
+                beamVisualStateRef.current,
+                0.95
+            );
         }, false);
 
         const contourMaterial = new ColorMaterialProperty(outlineColor);
@@ -376,37 +416,37 @@ const OneWebCombLayer: React.FC<OneWebCombLayerProps> = ({
     const backhaulColor = useMemo(
         () => targetSat
             ? (
-                leoServiceViewModel?.globeVisualMode === 'regulatory_blocked'
+                leoServiceViewModel?.serviceStatus === 'BLOCKED'
                     ? Color.fromCssColorString('#ef4444').withAlpha(0.18)
                     : Color.fromCssColorString(getCoverageColor('ONEWEB_BACKHAUL', 0.2, targetSat, failedSnps))
             )
             : Color.TRANSPARENT,
         // eslint-disable-next-line react-hooks/exhaustive-deps
-        [targetSat?.id, failedSnps, leoServiceViewModel?.globeVisualMode]
+        [targetSat?.id, failedSnps, leoServiceViewModel?.serviceStatus]
     );
 
     const standardColorFill = useMemo(
         () => targetSat
             ? (
-                leoServiceViewModel?.globeVisualMode === 'regulatory_blocked'
+                leoServiceViewModel?.serviceStatus === 'BLOCKED'
                     ? Color.fromCssColorString('#fca5a5').withAlpha(0.08)
                     : Color.fromCssColorString(getCoverageColor('ONEWEB_STANDARD', 0.1, targetSat, failedSnps))
             )
             : Color.TRANSPARENT,
         // eslint-disable-next-line react-hooks/exhaustive-deps
-        [targetSat?.id, failedSnps, leoServiceViewModel?.globeVisualMode]
+        [targetSat?.id, failedSnps, leoServiceViewModel?.serviceStatus]
     );
 
     const standardColorOutline = useMemo(
         () => targetSat
             ? (
-                leoServiceViewModel?.globeVisualMode === 'regulatory_blocked'
+                leoServiceViewModel?.serviceStatus === 'BLOCKED'
                     ? Color.fromCssColorString('#f87171').withAlpha(0.5)
                     : Color.fromCssColorString(getCoverageColor('ONEWEB_STANDARD', 0.6, targetSat, failedSnps))
             )
             : Color.TRANSPARENT,
         // eslint-disable-next-line react-hooks/exhaustive-deps
-        [targetSat?.id, failedSnps, leoServiceViewModel?.globeVisualMode]
+        [targetSat?.id, failedSnps, leoServiceViewModel?.serviceStatus]
     );
 
     // hasSNPInCoverage performs polygon-point intersection tests across all SNPs;

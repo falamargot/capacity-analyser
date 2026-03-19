@@ -51,12 +51,19 @@ const Row = ({ row }: { row: LeoStateRow | LeoContextItem }) => {
   const tone = toneClasses[row.tone ?? 'neutral'];
 
   return (
-    <div className="flex items-center justify-between gap-3 rounded-lg border border-gray-100 bg-white px-3 py-2 dark:border-slate-700 dark:bg-slate-900">
-      <span className="text-xs font-medium text-gray-500 dark:text-gray-400">{row.label}</span>
-      <span className={`inline-flex items-center gap-2 text-xs font-semibold ${tone.text}`}>
-        <span className={`h-2 w-2 rounded-full ${tone.dot}`} />
-        {row.value}
-      </span>
+    <div className="rounded-lg border border-gray-100 bg-white px-3 py-2 dark:border-slate-700 dark:bg-slate-900">
+      <div className="flex items-center justify-between gap-3">
+        <span className="text-xs font-medium text-gray-500 dark:text-gray-400">{row.label}</span>
+        <span className={`inline-flex items-center gap-2 text-xs font-semibold ${tone.text}`}>
+          <span className={`h-2 w-2 rounded-full ${tone.dot}`} />
+          {row.value}
+        </span>
+      </div>
+      {row.detail && (
+        <p className="mt-1 text-[11px] leading-relaxed text-gray-500 dark:text-gray-400">
+          {row.detail}
+        </p>
+      )}
     </div>
   );
 };
@@ -79,6 +86,9 @@ export const ConnectivityStatusCard = memo(({ viewModel }: { viewModel: LeoConne
           <p className="mt-2 text-sm font-semibold text-gray-900 dark:text-gray-100">
             {viewModel.primaryReasonLabel}
           </p>
+          <p className="mt-1 text-xs text-gray-600 dark:text-gray-300">
+            Decision driver: <span className="font-semibold">{viewModel.decisionDriverLabel}</span>
+          </p>
           {viewModel.locationLabel && (
             <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
               Location: {viewModel.locationLabel}
@@ -89,30 +99,22 @@ export const ConnectivityStatusCard = memo(({ viewModel }: { viewModel: LeoConne
           {viewModel.finalServiceStatus}
         </span>
       </div>
+      <div className="mt-4 border-t border-black/10 pt-4 dark:border-white/10">
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">Why</span>
+          <SectionTooltip content="Primary cause chain for the current service decision. This explains why service is blocked, degraded, or allowed." />
+        </div>
+        <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
+          {viewModel.whyRows.map((row) => (
+            <Row key={`${row.label}:${row.value}`} row={row} />
+          ))}
+        </div>
+      </div>
     </div>
   );
 });
 
 ConnectivityStatusCard.displayName = 'ConnectivityStatusCard';
-
-export const ConnectivityWhyCard = memo(({ viewModel }: { viewModel: LeoConnectivityViewModel }) => (
-  <div className="rounded-xl border border-gray-100 bg-gray-50 px-4 py-4 dark:border-slate-700 dark:bg-slate-800/50">
-    <div className="flex items-center gap-2">
-      <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">Why</span>
-      <SectionTooltip content="Primary cause chain for the current service decision. This explains why service is blocked, degraded, or allowed." />
-    </div>
-    <ul className="mt-3 space-y-2">
-      {viewModel.whyItems.map((item) => (
-        <li key={item} className="flex items-start gap-2 text-xs text-gray-600 dark:text-gray-400">
-          <span className="mt-1 h-1.5 w-1.5 rounded-full bg-gray-400 dark:bg-slate-500" />
-          <span>{item}</span>
-        </li>
-      ))}
-    </ul>
-  </div>
-));
-
-ConnectivityWhyCard.displayName = 'ConnectivityWhyCard';
 
 export const PhysicalStateCard = memo(({ viewModel }: { viewModel: LeoConnectivityViewModel }) => (
   <div className="rounded-xl border border-gray-100 bg-gray-50 px-4 py-4 dark:border-slate-700 dark:bg-slate-800/50">
@@ -152,7 +154,6 @@ const LeoStatusCards = memo(({ viewModel }: { viewModel: LeoConnectivityViewMode
   return (
     <div className="space-y-3">
       <ConnectivityStatusCard viewModel={viewModel} />
-      <ConnectivityWhyCard viewModel={viewModel} />
       <PhysicalStateCard viewModel={viewModel} />
       <ContextMetricsCard viewModel={viewModel} />
     </div>
