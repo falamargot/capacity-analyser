@@ -1,4 +1,7 @@
 import { useEffect, useRef, useState, useMemo, useCallback, memo, type RefObject } from 'react';
+import { ensureLoaded, regulatoryLookup } from '../services/regulatoryService';
+import { estimateBeamLoad } from '../utils/capacityLayer';
+import { computeServiceStatus } from '../utils/serviceLayer';
 import { SatelliteData } from '../types/satellites';
 import { SatelliteScope } from './SatelliteScopeFilter';
 import SatelliteDetails from './SatelliteDetails';
@@ -74,6 +77,13 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
     beamHealthFactors,
     hsBeams: hsBeamsSet,
   }), [beamHealthFactors, coveragePolicy, ctxWeather, hsBeamsSet]);
+
+  // ── Regulatory + Capacity + Service layers ────────────────────────────────
+  // Trigger async GeoJSON load on component mount; result feeds into useMemos below.
+  const [regulatoryReady, setRegulatoryReady] = useState(false);
+  useEffect(() => {
+    ensureLoaded().then(() => setRegulatoryReady(true));
+  }, []);
 
   const [nearestLocation, setNearestLocation] = useState<{ city: string; country: string } | null>(null);
 
@@ -413,6 +423,37 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
       leoGeometry?.rttTotalMs ?? null
     );
   }, [resolvedLEOConnectivity, activePoint, calculateLEOPerformance, leoGeometry]);
+
+  // ── Regulatory lookup (re-evaluates when GeoJSON finishes loading) ────────
+  const regulatoryResult = useMemo(() => {
+    if (!activePoint) return null;
+    // regulatoryReady triggers re-evaluation after async GeoJSON load
+    void regulatoryReady;
+    return regulatoryLookup(activePoint.lat, activePoint.lng);
+  }, [activePoint, regulatoryReady]);
+
+  // ── Capacity layer (beam load estimation) ────────────────────────────────
+  const beamLoadResult = useMemo(() => {
+    if (!activePoint) return null;
+    const isOcean = regulatoryResult?.isOcean ?? true;
+    return estimateBeamLoad(
+      activePoint.lat,
+      activePoint.lng,
+      isOcean,
+      regulatoryResult?.isoA2 ?? null,
+    );
+  }, [activePoint, regulatoryResult]);
+
+  // ── Service layer (aggregated status) ────────────────────────────────────
+  const serviceLayerResult = useMemo(() => {
+    if (!activePoint || !regulatoryResult || !beamLoadResult) return null;
+    return computeServiceStatus({
+      hasRF: resolvedLEOConnectivity !== null,
+      hasSNP: resolvedLEOConnectivity?.snp != null,
+      regulatoryResult,
+      beamLoadResult,
+    });
+  }, [activePoint, regulatoryResult, beamLoadResult, resolvedLEOConnectivity]);
 
   // Get resolved GEO connectivity data for display
   const resolvedGEOConnectivity = useMemo(() => {
@@ -904,6 +945,9 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
                   hsBeamsSet={hsBeamsSet}
                   weatherCondition={ctxWeather}
                   beamHealthFactors={beamHealthFactors}
+                  regulatoryResult={regulatoryResult}
+                  beamLoadResult={beamLoadResult}
+                  serviceLayerResult={serviceLayerResult}
                 />
               )}
 

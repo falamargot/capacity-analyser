@@ -162,6 +162,7 @@ const App: React.FC = () => {
   const [airTrafficEnabled, setAirTrafficEnabled] = useState(false);
   const [maritimeTrafficEnabled, setMaritimeTrafficEnabled] = useState(false);
   const [showSatelliteTrajectory, setShowSatelliteTrajectory] = useState(false);
+  const [showRegulatoryOverlay, setShowRegulatoryOverlay] = useState(false);
   const commandPaletteSearchRef = useRef<HTMLInputElement>(null);
   const helpMenuRef = useRef<HTMLDivElement>(null);
   const targetSourcesMenuRef = useRef<HTMLDivElement>(null);
@@ -1258,6 +1259,7 @@ const App: React.FC = () => {
   // causes CesiumGlobe to re-render for no reason.
   const handleToggleFullscreen = useCallback(() => setIsFullscreen(v => !v), []);
   const handleToggleSatelliteTrajectory = useCallback(() => setShowSatelliteTrajectory(v => !v), []);
+  const handleToggleRegulatoryOverlay = useCallback(() => setShowRegulatoryOverlay(v => !v), []);
   const handleSizeScaleChange = useCallback((v: number) => {
     setSizeScale(v);
     setIsSizeScaleUserOverridden(true);
@@ -1310,6 +1312,8 @@ const App: React.FC = () => {
     showSatelliteTrajectory,
     sizeScale,
     onToggleSatelliteTrajectory: handleToggleSatelliteTrajectory,
+    showRegulatoryOverlay,
+    onToggleRegulatoryOverlay: handleToggleRegulatoryOverlay,
     onSizeScaleChange: handleSizeScaleChange,
     inspectedSNP,
     snpConnectedSatellites,
@@ -1321,7 +1325,7 @@ const App: React.FC = () => {
     selectedAircraft, handleAircraftSelect, handleAircraftHover,
     maritimeTrafficEnabled, maritimeTraffic.vessels, selectedVessel, handleVesselSelect, cameraTarget,
     handleCameraReady, handleGlobeContainerReady, showSatelliteTrajectory, sizeScale,
-    inspectedSNP, snpConnectedSatellites,
+    inspectedSNP, snpConnectedSatellites, showRegulatoryOverlay, handleToggleRegulatoryOverlay,
   ]);
 
   const desktopSidebarHero = useMemo(() => {

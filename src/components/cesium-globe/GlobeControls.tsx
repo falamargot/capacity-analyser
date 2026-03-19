@@ -16,6 +16,7 @@ import {
     Plus,
     RotateCcw,
     Settings2,
+    ShieldCheck,
     SunMedium,
     Waves
 } from 'lucide-react';
@@ -38,6 +39,8 @@ interface GlobeControlsProps {
     onSceneModeChange?: (mode: '2D' | '3D') => void;
     showAggregatedConnectivity?: boolean;
     onToggleAggregatedConnectivity?: () => void;
+    showRegulatoryOverlay?: boolean;
+    onToggleRegulatoryOverlay?: () => void;
     satelliteScope?: 'LEO' | 'GEO' | 'ALL';
 }
 
@@ -200,6 +203,8 @@ const GlobeControls: React.FC<GlobeControlsProps> = ({
     onSceneModeChange,
     showAggregatedConnectivity,
     onToggleAggregatedConnectivity,
+    showRegulatoryOverlay,
+    onToggleRegulatoryOverlay,
     satelliteScope
 }) => {
     const [isMapOptionsOpen, setIsMapOptionsOpen] = useState(false);
@@ -395,6 +400,18 @@ const GlobeControls: React.FC<GlobeControlsProps> = ({
                                                 disabled={aggregatedConnectivityDisabled}
                                                 accent="blue"
                                                 title={aggregatedConnectivityDisabled ? 'Not available in ALL scope' : 'Toggle aggregated connectivity'}
+                                            />
+                                        )}
+
+                                        {onToggleRegulatoryOverlay && (
+                                            <DisplayOptionRow
+                                                icon={<ShieldCheck className="h-4 w-4" />}
+                                                label="Regulatory Overlay"
+                                                description="Per-country simulated regulatory status."
+                                                enabled={!!showRegulatoryOverlay}
+                                                onClick={() => onToggleRegulatoryOverlay?.()}
+                                                accent="violet"
+                                                title="Toggle regulatory overlay (simulated demo data)"
                                             />
                                         )}
                                     </div>

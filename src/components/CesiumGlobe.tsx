@@ -53,6 +53,7 @@ import TransmissionLinks from './cesium-globe/TransmissionLinks';
 import TrajectoryLayer from './cesium-globe/TrajectoryLayer';
 import GeoGatewayLayer from './cesium-globe/GeoGatewayLayer';
 import AggregatedConnectivityLayer from './cesium-globe/AggregatedConnectivityLayer';
+import RegulatoryLayer from './cesium-globe/RegulatoryLayer';
 
 // UI components
 import GlobeControls from './cesium-globe/GlobeControls';
@@ -117,6 +118,8 @@ interface CesiumGlobeProps {
     onSceneModeChange?: (mode: '2D' | '3D') => void;
     inspectedSNP?: SNPData | null;
     snpConnectedSatellites?: import('../services/coverageService').SNPConnectedSatellite[];
+    showRegulatoryOverlay?: boolean;
+    onToggleRegulatoryOverlay?: () => void;
 }
 
 const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
@@ -167,6 +170,8 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
     onSceneModeChange,
     inspectedSNP,
     snpConnectedSatellites = [],
+    showRegulatoryOverlay = false,
+    onToggleRegulatoryOverlay,
 }) => {
     // Stable refs for click-handler lookups — avoids recreating handleMapClick
     // (and re-registering the Cesium ScreenSpaceEvent) when aircraft/vessels/satellites
@@ -616,6 +621,8 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                 onSceneModeChange={onSceneModeChange}
                 showAggregatedConnectivity={showAggregatedConnectivity}
                 onToggleAggregatedConnectivity={() => setShowAggregatedConnectivity(!showAggregatedConnectivity)}
+                showRegulatoryOverlay={showRegulatoryOverlay}
+                onToggleRegulatoryOverlay={onToggleRegulatoryOverlay}
                 satelliteScope={satelliteScope}
             />
 
@@ -671,6 +678,9 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                             />
                         </Entity>
                     )}
+
+                    {/* Regulatory overlay — country polygons coloured by simulated regulatory status */}
+                    <RegulatoryLayer visible={showRegulatoryOverlay} />
 
                     {/* Aggregated Connectivity Layer (Bottom most coverage layer) */}
                     <AggregatedConnectivityLayer

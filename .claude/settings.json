@@ -1,7 +1,8 @@
 {
   "permissions": {
     "allow": [
-      "Bash(grep -rn \"corridorDc\\\\|CorridorDc\\\\|PolarCorridor\\\\|supplyPlan\\\\|SupplyPlan\" /Users/falamargot/Developpement/capacity-analyser/src --include=*.tsx --include=*.ts)"
+      "Bash(grep -rn \"corridorDc\\\\|CorridorDc\\\\|PolarCorridor\\\\|supplyPlan\\\\|SupplyPlan\" /Users/falamargot/Developpement/capacity-analyser/src --include=*.tsx --include=*.ts)",
+      "Bash(wc -l /Users/falamargot/Developpement/capacity-analyser/src/**/*.tsx /Users/falamargot/Developpement/capacity-analyser/src/**/*.ts)"
     ]
   }
 }
