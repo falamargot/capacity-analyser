@@ -43,12 +43,14 @@ interface RegulatoryLayerProps {
 const RegulatoryLayer: React.FC<RegulatoryLayerProps> = ({ visible }) => {
   const { viewer } = useCesium();
   const dataSourceRef = useRef<GeoJsonDataSource | null>(null);
-  const loadStartedRef = useRef(false);
+  const hasLoadedRef = useRef(false);
 
-  // Load and style the DataSource once when the viewer is ready
+  // Load and style the DataSource only when the overlay is first shown.
+  // This avoids pushing a large MultiPolygon dataset through Cesium workers
+  // during initial app startup when the overlay is hidden.
   useEffect(() => {
-    if (!viewer || loadStartedRef.current) return;
-    loadStartedRef.current = true;
+    if (!viewer || !visible || hasLoadedRef.current) return;
+    hasLoadedRef.current = true;
 
     let cancelled = false;
 
@@ -106,7 +108,7 @@ const RegulatoryLayer: React.FC<RegulatoryLayerProps> = ({ visible }) => {
         dataSourceRef.current = null;
       }
     };
-  }, [viewer]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [viewer, visible]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Toggle visibility without reloading
   useEffect(() => {
