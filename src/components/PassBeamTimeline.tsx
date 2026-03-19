@@ -32,6 +32,7 @@ import { getBeamBaseColor } from '../config/beamVisualization';
 import type { BeamHealthData } from '../utils/realisticSimulation';
 import { buildSimulationStateSnapshot } from '../types/simulation';
 import { useSimulation } from '../contexts/SimulationContext';
+import { isBeamActive } from '../utils/beamActivation';
 
 // ─────────────────────────────────────────────────────────────────
 // Types
@@ -50,7 +51,7 @@ interface TimelinePoint {
   snpAvailable: boolean;
   /** Name of the nearest reachable SNP, if any */
   nearestSnpName: string | null;
-  /** Number of active beams on this satellite (0, 8, or 16) */
+  /** Number of currently serviceable beams on this satellite (0-16) */
   activeBeamCount: number;
   /** Satellite latitude at this time step (for GSO context) */
   satLatDeg: number;
@@ -152,7 +153,16 @@ const PassBeamTimeline: React.FC<PassBeamTimelineProps> = ({
 
       // 3. GSO state at this time
       const gsoState = calculateGSOAvoidanceAngle(satellite.satrec, julianDate);
-      const activeBeamCount = gsoState.isBlankingZone ? 0 : (gsoState.isGSOAvoidance ? 8 : 16);
+      const activeBeamCount = Array.from({ length: 16 }, (_, beamIndex) => beamIndex).reduce(
+        (count, beamIndex) => count + (isBeamActive(
+          beamIndex,
+          gsoState.isBlankingZone,
+          gsoState.isGSOAvoidance,
+          gsoState.satLatDeg,
+          hsBeams
+        ) ? 1 : 0),
+        0
+      );
 
       // 4. Beam index covering user (using real Cesium polygon geometry)
       let beamIndex: number | null = null;
@@ -160,7 +170,7 @@ const PassBeamTimeline: React.FC<PassBeamTimelineProps> = ({
         try {
           beamIndex = findConnectedBeamIndex(
             userPosition,
-            satellite,
+            mockSat,
             julianDate,
             simulationState
           );

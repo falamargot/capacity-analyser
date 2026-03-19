@@ -31,7 +31,7 @@ const AggregatedConnectivityLayer: React.FC<AggregatedConnectivityLayerProps> = 
     satellites,
     show
 }) => {
-    const { coveragePolicy, weatherCondition, beamHealthFactors, hsBeamsSet } = useSimulation();
+    const { coveragePolicy, weatherCondition, beamHealthFactors, hsBeamsSet, failedSnps } = useSimulation();
     const simulationState = useMemo(() => buildSimulationStateSnapshot({
         coveragePolicy,
         weatherCondition,
@@ -85,7 +85,8 @@ const AggregatedConnectivityLayer: React.FC<AggregatedConnectivityLayerProps> = 
             gridSnapshot.satellites,
             satelliteScope,
             simulationState,
-            gridSnapshot.time  // synchronized time — eliminates grid/panel temporal desync
+            gridSnapshot.time,  // synchronized time — eliminates grid/panel temporal desync
+            failedSnps
         );
 
         const backhaulPositions = result.backhaulLinks.map(link => ({
@@ -97,7 +98,7 @@ const AggregatedConnectivityLayer: React.FC<AggregatedConnectivityLayerProps> = 
         }));
 
         return { gridRectangles: result.rectangles, backhaulPositions };
-    }, [gridSnapshot, satelliteScope, show, simulationState]);
+    }, [gridSnapshot, satelliteScope, show, simulationState, failedSnps]);
 
     // M-05 fix: memoize coverageColor — only depends on scope, not on satellites
     const coverageColor = useMemo(() =>

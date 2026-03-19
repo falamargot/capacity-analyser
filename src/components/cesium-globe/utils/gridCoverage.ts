@@ -81,9 +81,10 @@ export function generateCoverageGrid(
     satellites: SatelliteData[],
     scope: SatelliteScope,
     simulationState: SimulationStateSnapshot,
-    time: JulianDate
+    time: JulianDate,
+    failedSnps: ReadonlySet<string> = new Set()
 ): CoverageGridResult {
-    return _computeCoverageGrid(satellites, scope, simulationState, time);
+    return _computeCoverageGrid(satellites, scope, simulationState, time, failedSnps);
 }
 
 /** Internal implementation */
@@ -91,7 +92,8 @@ function _computeCoverageGrid(
     satellites: SatelliteData[],
     scope: SatelliteScope,
     simulationState: SimulationStateSnapshot,
-    time: JulianDate
+    time: JulianDate,
+    failedSnps: ReadonlySet<string>
 ): CoverageGridResult {
     const policy: CoveragePolicy = simulationState.coveragePolicy;
     const activeCells = new Set<string>(); // "latIdx,lonIdx"
@@ -109,7 +111,7 @@ function _computeCoverageGrid(
                 return false;
             }
             // Gateway Connectivity check — also collect best SNP for backhaul link display
-            const bestGateway = getBestConnectedGateway(sat, 15);
+            const bestGateway = getBestConnectedGateway(sat, 15, failedSnps);
             if (!bestGateway) return false;
             backhaulLinks.push({ satellite: sat, snp: bestGateway.snp });
         }
@@ -298,7 +300,7 @@ function _computeCoverageGrid(
                             // - isBeamActive gating (GSO / avoidance)
                             // Full RF checks (power / additional policies) are too expensive at grid scale.
                             if (isPointInBeamPolygon(userPosition, beamPoints)) {
-                                const gw = getBestConnectedGateway(sat, 15);
+                                const gw = getBestConnectedGateway(sat, 15, failedSnps);
                                 if (gw) {
                                     activeCells.add(cellId);
                                 }

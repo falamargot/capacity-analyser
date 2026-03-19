@@ -5,10 +5,12 @@ import { computeServiceStatus } from '../utils/serviceLayer';
 import { SatelliteData } from '../types/satellites';
 import { SatelliteScope } from './SatelliteScopeFilter';
 import SatelliteDetails from './SatelliteDetails';
-import { SPEED_OF_LIGHT_RADIO_KM_S, calculateRealTimeCapacity, RealTimeCapacityData, calculateElevationAngle, compute3DDistanceKm } from '../utils/capacityCalculator';
+import { SPEED_OF_LIGHT_RADIO_KM_S, RealTimeCapacityData, calculateElevationAngle, compute3DDistanceKm } from '../utils/capacityCalculator';
 import { SNPS_DATA } from './globe/GlobeConfig';
 import { BEAM_LENGTH_KM, TOTAL_BEAMS, BEAM_WIDTH_KM } from '../utils/oneWebComb';
-import { findConnectedBeamIndex } from '../utils/rfConnectivity';
+import { findConnectedBeamIndex, hasRFConnectivity } from '../utils/rfConnectivity';
+import { isPointInCoverage } from '../utils/coverageCalculator';
+import { getBestConnectedGateway } from '../utils/connectivityRules';
 import { JulianDate } from 'cesium';
 import ExportButton, { type ExportButtonPayload } from './ExportButton';
 import type { CandidateCoverage, MobileAnalysisMetrics } from '../types/analysis';
@@ -27,6 +29,7 @@ import {
   GEOConnectivitySection,
   TERMINAL_PROFILES,
   WEATHER_PROFILES,
+  toWeatherCondition,
   getWeatherFactor,
 } from './capacity';
 import type { TerminalType, WeatherType } from './capacity';
@@ -61,6 +64,12 @@ interface CapacityDetailsProps {
   onExportStateChange?: (payload: ExportButtonPayload | null) => void;
 }
 
+const weatherTypeFromCondition = (condition: ReturnType<typeof toWeatherCondition>): WeatherType => {
+  if (condition === 'CLEAR') return 'clear';
+  if (condition === 'CLOUDS') return 'light_rain';
+  return 'heavy_rain';
+};
+
 // Performance optimization: Memoize component to prevent unnecessary re-renders
 const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint, selectedSatellite, autoSelectedLEOSatellite, satelliteScope, onMetricsChange, onSatelliteClick, analysisSource, aircraftCallsign, selectedSNP: propSelectedSNP, candidateCoverages = [], selectedCoverage = null, onSelectCoverage, selectedGeoMission, selectedGeoCoverageName, selectedGeoBeamId, onSelectGeoMission, onSelectGeoCoverage, onSelectGeoBeam, onSnpClick, compactDesktop = false, externalHeader = false, globeRef, cesiumViewerRef, onExportStateChange }) => {
   // Feature 1+3: read simulation context for failedSnps, hsBeamsSet
@@ -70,6 +79,7 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
     beamHealthFactors,
     hsBeamsSet,
     weatherCondition: ctxWeather,
+    setWeatherCondition,
   } = useSimulation();
   const simulationState = useMemo(() => buildSimulationStateSnapshot({
     coveragePolicy,
@@ -112,11 +122,16 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
   // ── Pillar 5: Physics-based weather attenuation ───────────────────────────
   // Maps UI weather type → real dB loss → linear power ratio
   // Clear Sky: 0 dB  | Clouds: -1.5 dB  | Rain: -5.0 dB
-  const [weatherType, setWeatherType] = useState<WeatherType>('clear');
+  const [weatherType, setWeatherType] = useState<WeatherType>(() => weatherTypeFromCondition(ctxWeather));
   const [autoWeatherEnabled, setAutoWeatherEnabled] = useState<boolean>(true);
   const [activeConnTab, setActiveConnTab] = useState<'LEO' | 'GEO'>(
     satelliteScope === 'GEO' ? 'GEO' : 'LEO'
   );
+
+  useEffect(() => {
+    if (toWeatherCondition(weatherType) === ctxWeather) return;
+    setWeatherType(weatherTypeFromCondition(ctxWeather));
+  }, [ctxWeather, weatherType]);
 
   // Sync active tab when scope changes
   useEffect(() => {
@@ -128,9 +143,10 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
   useEffect(() => {
     if (terminalType === 'aviation') {
       setWeatherType('clear');
+      setWeatherCondition('CLEAR');
       setAutoWeatherEnabled(false);
     }
-  }, [terminalType]);
+  }, [terminalType, setWeatherCondition]);
 
   // Calculate theoretical LEO performance metrics
   const calculateLEOPerformance = useCallback((
@@ -324,6 +340,7 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
 
         if (!cancelled) {
           setWeatherType(nextType);
+          setWeatherCondition(toWeatherCondition(nextType));
         }
       } catch {
         // If the API fails, keep the existing selection
@@ -339,28 +356,16 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
       cancelled = true;
       if (interval) clearInterval(interval);
     };
-  }, [activePoint, autoWeatherEnabled, analysisSource]);
+  }, [activePoint, autoWeatherEnabled, analysisSource, setWeatherCondition]);
 
   // Get resolved LEO connectivity data for display
   const resolvedLEOConnectivity = useMemo(() => {
-    if (!activePoint || satellites.length === 0) return null;
+    // Only surface a LEO path when the central resolver has validated one.
+    // Falling back to the nearest LEO here can manufacture a pseudo-connectivity
+    // state that bypasses the actual RF/SNP eligibility rules.
+    if (!activePoint || !autoSelectedLEOSatellite) return null;
 
-    let activeLEOSat: SatelliteData | null = null;
-
-    if (autoSelectedLEOSatellite) {
-      activeLEOSat = autoSelectedLEOSatellite;
-    } else {
-      const leoSatellites = satellites.filter(sat => sat.type === 'ONEWEB');
-      if (leoSatellites.length === 0) return null;
-
-      activeLEOSat = leoSatellites.reduce((closest, sat) => {
-        const distToUser = compute3DDistanceKm(activePoint, { lat: sat.position.lat, lng: sat.position.lng, alt: sat.position.alt });
-        const closestDist = compute3DDistanceKm(activePoint, { lat: closest.position.lat, lng: closest.position.lng, alt: closest.position.alt });
-        return distToUser < closestDist ? sat : closest;
-      });
-    }
-
-    const sat = activeLEOSat!;
+    const sat = autoSelectedLEOSatellite;
 
     const connectedBeamIndex = findConnectedBeamIndex(
       activePoint,
@@ -395,7 +400,7 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
       snpLEODistance,
       connectedBeamIndex
     };
-  }, [activePoint, satellites, autoSelectedLEOSatellite, propSelectedSNP, simulationState]);
+  }, [activePoint, autoSelectedLEOSatellite, propSelectedSNP, simulationState]);
 
   const leoGeometry = useMemo(() => {
     if (!resolvedLEOConnectivity || !resolvedLEOConnectivity.snp) return null;
@@ -424,6 +429,17 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
     );
   }, [resolvedLEOConnectivity, activePoint, calculateLEOPerformance, leoGeometry]);
 
+  const hasCurrentLEORF = useMemo(() => {
+    if (!activePoint || !autoSelectedLEOSatellite) return false;
+
+    return hasRFConnectivity(
+      activePoint,
+      autoSelectedLEOSatellite,
+      JulianDate.fromDate(new Date()),
+      simulationState
+    );
+  }, [activePoint, autoSelectedLEOSatellite, simulationState]);
+
   // ── Regulatory lookup (re-evaluates when GeoJSON finishes loading) ────────
   const regulatoryResult = useMemo(() => {
     if (!activePoint) return null;
@@ -448,12 +464,12 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
   const serviceLayerResult = useMemo(() => {
     if (!activePoint || !regulatoryResult || !beamLoadResult) return null;
     return computeServiceStatus({
-      hasRF: resolvedLEOConnectivity !== null,
+      hasRF: hasCurrentLEORF,
       hasSNP: resolvedLEOConnectivity?.snp != null,
       regulatoryResult,
       beamLoadResult,
     });
-  }, [activePoint, regulatoryResult, beamLoadResult, resolvedLEOConnectivity]);
+  }, [activePoint, regulatoryResult, beamLoadResult, resolvedLEOConnectivity, hasCurrentLEORF]);
 
   // Get resolved GEO connectivity data for display
   const resolvedGEOConnectivity = useMemo(() => {
@@ -666,17 +682,14 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
   ]);
 
   const satellitesRef = useRef<SatelliteData[]>(satellites);
-  const selectedPointRef = useRef<{ lat: number; lng: number } | null>(selectedPoint);
   const activePointRef = useRef<{ lat: number; lng: number } | null>(activePoint);
   const selectedSatelliteRef = useRef<SatelliteData | null>(selectedSatellite);
+  const failedSnpsRef = useRef(failedSnps);
+  const simulationStateRef = useRef(simulationState);
 
   useEffect(() => {
     satellitesRef.current = satellites;
   }, [satellites]);
-
-  useEffect(() => {
-    selectedPointRef.current = selectedPoint;
-  }, [selectedPoint]);
 
   useEffect(() => {
     activePointRef.current = activePoint;
@@ -685,6 +698,14 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
   useEffect(() => {
     selectedSatelliteRef.current = selectedSatellite;
   }, [selectedSatellite]);
+
+  useEffect(() => {
+    failedSnpsRef.current = failedSnps;
+  }, [failedSnps]);
+
+  useEffect(() => {
+    simulationStateRef.current = simulationState;
+  }, [simulationState]);
 
   useEffect(() => {
     if (!onMetricsChange) return;
@@ -702,6 +723,82 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
     realTimeData.coveredSatellites.length,
     realTimeData.totalCapacity,
   ]);
+
+  const calculateServiceAwareRealTimeCapacity = useCallback((
+    availableSatellites: SatelliteData[],
+    point: { lat: number; lng: number } | null,
+    focusedSatellite: SatelliteData | null,
+  ): RealTimeCapacityData => {
+    const currentTime = JulianDate.fromDate(new Date());
+    const currentFailedSnps = failedSnpsRef.current;
+    const currentSimulationState = simulationStateRef.current;
+
+    const isServiceableAtPoint = (satellite: SatelliteData): boolean => {
+      if (satellite.opsStatus !== 'operational' || !point) {
+        return false;
+      }
+
+      if (satellite.orbitType === 'LEO') {
+        return hasRFConnectivity(point, satellite, currentTime, currentSimulationState)
+          && getBestConnectedGateway(satellite, 15, currentFailedSnps) !== null;
+      }
+
+      return isPointInCoverage(point, satellite, null).includes('user');
+    };
+
+    const getNominalCapacityGbps = (satellite: SatelliteData): number =>
+      Math.max(0, satellite.capacity.maxThroughput);
+
+    if (focusedSatellite) {
+      if (focusedSatellite.opsStatus !== 'operational') {
+        return {
+          totalCapacity: 0,
+          coveredSatellites: [],
+          elevationAngle: point ? calculateElevationAngle(point, focusedSatellite) : undefined,
+        };
+      }
+
+      if (!point) {
+        return {
+          totalCapacity: getNominalCapacityGbps(focusedSatellite),
+          coveredSatellites: [focusedSatellite],
+        };
+      }
+
+      const elevationAngle = calculateElevationAngle(point, focusedSatellite);
+      if (!isServiceableAtPoint(focusedSatellite)) {
+        return {
+          totalCapacity: 0,
+          coveredSatellites: [],
+          elevationAngle,
+        };
+      }
+
+      return {
+        totalCapacity: getNominalCapacityGbps(focusedSatellite),
+        coveredSatellites: [focusedSatellite],
+        elevationAngle,
+      };
+    }
+
+    if (!point || !availableSatellites) {
+      return {
+        totalCapacity: 0,
+        coveredSatellites: [],
+      };
+    }
+
+    const coveredSatellites = availableSatellites.filter(isServiceableAtPoint);
+    const totalCapacity = coveredSatellites.reduce(
+      (sum, satellite) => sum + getNominalCapacityGbps(satellite),
+      0
+    );
+
+    return {
+      totalCapacity,
+      coveredSatellites,
+    };
+  }, []);
 
   useEffect(() => {
     const fetchNearestLocation = async () => {
@@ -741,7 +838,7 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
 
   useEffect(() => {
     const updateRealTimeData = () => {
-      const newRealTimeData = calculateRealTimeCapacity(
+      const newRealTimeData = calculateServiceAwareRealTimeCapacity(
         satellitesRef.current,
         activePointRef.current,
         selectedSatelliteRef.current
@@ -759,7 +856,7 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
     const interval = setInterval(updateRealTimeData, 1000);
     return () => clearInterval(interval);
   // satellites intentionally omitted: the callback uses satellitesRef.current (always-fresh ref).
-  }, [activePoint, selectedSatellite]);
+  }, [activePoint, calculateServiceAwareRealTimeCapacity, failedSnps, selectedSatellite, simulationState]);
 
   const exportButtonPayload = useMemo<ExportButtonPayload | null>(() => {
     if (!activePoint) {
@@ -894,6 +991,7 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
             weatherType={weatherType}
             onWeatherTypeChange={(wt) => {
               setWeatherType(wt);
+              setWeatherCondition(toWeatherCondition(wt));
               setAutoWeatherEnabled(false);
             }}
             autoWeatherEnabled={autoWeatherEnabled}

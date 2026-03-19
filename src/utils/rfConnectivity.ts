@@ -186,10 +186,20 @@ export function getConnectivityStatus(
         // C-02: Single propagation for all RF state — gsoState reused for both
         // active beam count derivation and isUserInActiveBeam call below.
         const gsoState = calculateGSOAvoidanceAngle(satellite.satrec, time);
-        const { isBlankingZone, isGSOAvoidance } = gsoState;
+        const { isBlankingZone, isGSOAvoidance, satLatDeg } = gsoState;
+        const { hsBeams } = simulationState;
 
-        // Derive active beam count from pre-computed gsoState (no extra propagation)
-        const activeBeamCount = isBlankingZone ? 0 : (isGSOAvoidance ? 8 : 16);
+        // Derive active beam count from pre-computed gsoState and HS beam state.
+        const activeBeamCount = Array.from({ length: 16 }, (_, beamIndex) => beamIndex).reduce(
+            (count, beamIndex) => count + (isBeamActive(
+                beamIndex,
+                isBlankingZone,
+                isGSOAvoidance,
+                satLatDeg,
+                hsBeams
+            ) ? 1 : 0),
+            0
+        );
 
         // RF connectivity check — reuses gsoState (no third propagation)
         const hasRF = hasGeometricVisibility &&

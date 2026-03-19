@@ -12,9 +12,12 @@ import { calculateElevationAngle } from './capacityCalculator';
  */
 export function isSatelliteConnectedToGateway(
     satellite: SatelliteData,
-    minElevation: number = 15
+    minElevation: number = 15,
+    failedSnps: ReadonlySet<string> = new Set()
 ): boolean {
     for (const snp of SNPS_DATA) {
+        if (failedSnps.has(snp.name)) continue;
+
         const snpElevation = calculateElevationAngle(
             { lat: snp.lat, lng: snp.lng },
             satellite
@@ -32,12 +35,15 @@ export function isSatelliteConnectedToGateway(
  */
 export function getBestConnectedGateway(
     satellite: SatelliteData,
-    minElevation: number = 15
+    minElevation: number = 15,
+    failedSnps: ReadonlySet<string> = new Set()
 ): { snp: SNPData, elevation: number } | null {
     let bestSNP = null;
     let bestElevation = -1;
 
     for (const snp of SNPS_DATA) {
+        if (failedSnps.has(snp.name)) continue;
+
         const snpElevation = calculateElevationAngle(
             { lat: snp.lat, lng: snp.lng },
             satellite
