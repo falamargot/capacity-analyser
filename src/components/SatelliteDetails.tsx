@@ -7,6 +7,7 @@ import { JulianDate } from 'cesium';
 import { useState, useEffect, useMemo } from 'react';
 import * as satellite from 'satellite.js';
 import { useGSOAvoidance } from '../hooks/useGSOAvoidance';
+import { ShieldCheck, ShieldAlert, ShieldX, Users } from 'lucide-react';
 import {
   getCoverageBeamName,
   getCoverageBeamId,
@@ -14,12 +15,17 @@ import {
   getCoverageGroupId,
   getCoverageMissionName,
 } from '../utils/geoCoverageSelection';
+import { hasRFConnectivity } from '../utils/rfConnectivity';
+import { getBestConnectedGateway } from '../utils/connectivityRules';
+import { computeServiceStatus, type ServiceLayerResult } from '../utils/serviceLayer';
 
 // NEW IMPORTS - BeamStatusComponents integration
 import { BeamStatusGrid, CoveragePolicyDisplay } from './BeamStatusComponents';
 import { useSimulation } from '../contexts/SimulationContext';
 import { SNPS_DATA } from './globe/GlobeConfig';
 import { SectionTooltip } from './SectionTooltip';
+import type { RegulatoryResult } from '../services/regulatoryService';
+import type { BeamLoadResult } from '../utils/capacityLayer';
 
 
 // ─── Pitch Monitoring Chart ───────────────────────────────────────────────────
@@ -151,6 +157,9 @@ interface SatelliteDetailsProps {
   onSnpClick?: (snpName: string) => void;
   compactDesktop?: boolean;
   externalHeader?: boolean;
+  activePoint?: { lat: number; lng: number; altitude?: number } | null;
+  targetRegulatoryResult?: RegulatoryResult | null;
+  targetBeamLoadResult?: BeamLoadResult | null;
 }
 
 
@@ -172,6 +181,9 @@ const SatelliteDetails: React.FC<SatelliteDetailsProps> = ({
   onSnpClick,
   compactDesktop = false,
   externalHeader = false,
+  activePoint = null,
+  targetRegulatoryResult = null,
+  targetBeamLoadResult = null,
 }) => {
   // NEW: Get coverage policy from simulation context
   const {
@@ -186,21 +198,84 @@ const SatelliteDetails: React.FC<SatelliteDetailsProps> = ({
 
   // Get current satellite position from satellites array (real-time)
   const currentSatellite = satellites.find(sat => sat.id === selectedSatellite.id);
+  const effectiveSatellite = currentSatellite ?? selectedSatellite;
 
   // Orbital speed derived from the ECI velocity vector — updates whenever satellites prop updates
   const orbitalSpeedKms = useMemo(() => {
-    const sat = currentSatellite ?? selectedSatellite;
+    const sat = effectiveSatellite;
     const pv = satellite.propagate(sat.satrec, new Date());
     if (!pv || typeof pv.velocity === 'boolean' || !pv.velocity) return null;
     const v = pv.velocity as { x: number; y: number; z: number };
     return Math.sqrt(v.x * v.x + v.y * v.y + v.z * v.z);
-  }, [currentSatellite, selectedSatellite]);
+  }, [effectiveSatellite]);
 
   // Calculate nearest SNP for LEO satellites using current position (real-time)
   // Pass failedSnps so the nearest SNP lookup skips any failed ground stations
   const nearestSNP = currentSatellite?.type === 'ONEWEB'
     ? getNearestSNPInBackhaul(currentSatellite, failedSnps)
     : null;
+
+  const currentTargetHasRF = useMemo(() => {
+    if (!activePoint || !isOperational || effectiveSatellite.type !== 'ONEWEB') return false;
+    return hasRFConnectivity(
+      activePoint,
+      effectiveSatellite,
+      JulianDate.fromDate(new Date()),
+      {
+        coveragePolicy,
+        weatherCondition,
+        beamHealthFactors,
+        hsBeams: beamHsStatus,
+      }
+    );
+  }, [
+    activePoint,
+    beamHealthFactors,
+    beamHsStatus,
+    coveragePolicy,
+    effectiveSatellite,
+    isOperational,
+    weatherCondition,
+  ]);
+
+  const currentTargetServingGateway = useMemo(() => {
+    if (!activePoint || !isOperational || effectiveSatellite.type !== 'ONEWEB' || !currentTargetHasRF) {
+      return null;
+    }
+    return getBestConnectedGateway(effectiveSatellite, 15, failedSnps);
+  }, [activePoint, currentTargetHasRF, effectiveSatellite, failedSnps, isOperational]);
+
+  const currentTargetServiceStatus = useMemo<ServiceLayerResult | null>(() => {
+    if (
+      !activePoint ||
+      !targetRegulatoryResult ||
+      !targetBeamLoadResult ||
+      !isOperational ||
+      effectiveSatellite.type !== 'ONEWEB'
+    ) {
+      return null;
+    }
+
+    return computeServiceStatus({
+      hasRF: currentTargetHasRF,
+      hasSNP: currentTargetServingGateway !== null,
+      regulatoryResult: targetRegulatoryResult,
+      beamLoadResult: targetBeamLoadResult,
+    });
+  }, [
+    activePoint,
+    currentTargetHasRF,
+    currentTargetServingGateway,
+    effectiveSatellite.type,
+    isOperational,
+    targetBeamLoadResult,
+    targetRegulatoryResult,
+  ]);
+
+  const currentTargetUserElevation = useMemo(() => {
+    if (!activePoint || effectiveSatellite.type !== 'ONEWEB') return null;
+    return calculateElevationAngle(activePoint, effectiveSatellite);
+  }, [activePoint, effectiveSatellite]);
 
   // SNPs within backhaul range of the current satellite (elevation ≥ 15°)
   const visibleSNPs = useMemo(() => {
@@ -280,6 +355,20 @@ const SatelliteDetails: React.FC<SatelliteDetailsProps> = ({
     onSelectGeoBeam?.(null);
   };
 
+  const serviceStatusColor = (status: ServiceLayerResult['status'] | undefined) => {
+    if (status === 'ALLOWED') return { bg: 'bg-emerald-50 dark:bg-emerald-900/20', text: 'text-emerald-700 dark:text-emerald-300', border: 'border-emerald-200 dark:border-emerald-800', badge: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-800/40 dark:text-emerald-200' };
+    if (status === 'DEGRADED') return { bg: 'bg-amber-50 dark:bg-amber-900/20', text: 'text-amber-700 dark:text-amber-300', border: 'border-amber-200 dark:border-amber-800', badge: 'bg-amber-100 text-amber-800 dark:bg-amber-800/40 dark:text-amber-200' };
+    if (status === 'BLOCKED') return { bg: 'bg-red-50 dark:bg-red-900/20', text: 'text-red-700 dark:text-red-300', border: 'border-red-200 dark:border-red-800', badge: 'bg-red-100 text-red-800 dark:bg-red-800/40 dark:text-red-200' };
+    return { bg: 'bg-gray-50 dark:bg-slate-800/50', text: 'text-gray-500 dark:text-gray-400', border: 'border-gray-200 dark:border-slate-700', badge: 'bg-gray-100 text-gray-600 dark:bg-slate-700 dark:text-slate-300' };
+  };
+
+  const regulatoryStatusColor = (status: RegulatoryResult['status'] | undefined) => {
+    if (status === 'ALLOWED') return 'text-emerald-600 dark:text-emerald-400';
+    if (status === 'RESTRICTED') return 'text-amber-600 dark:text-amber-400';
+    if (status === 'BLOCKED') return 'text-red-600 dark:text-red-400';
+    return 'text-gray-500 dark:text-gray-400';
+  };
+
   return (
     <div
       className="h-full bg-white dark:bg-slate-900 rounded-lg shadow-lg overflow-hidden flex flex-col transition-colors duration-300"
@@ -327,7 +416,7 @@ const SatelliteDetails: React.FC<SatelliteDetailsProps> = ({
             </div>
 
             <div className={`sm:col-span-5 rounded-lg border border-gray-100 bg-gray-50 shadow-sm backdrop-blur-sm dark:border-slate-700 dark:bg-slate-800/50 ${compactDesktop ? 'px-3.5 py-2' : 'px-4 py-2'}`}>
-              <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1 flex items-center">Capacity<SectionTooltip content="Satellite's maximum total throughput capacity and statistical link availability, as defined in the constellation dataset." /></h3>
+              <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1 flex items-center">Nominal Capacity<SectionTooltip content="Satellite-centric nominal throughput and availability from the constellation dataset. This is not the current target's delivered service rate." /></h3>
               {isOperational ? (
                 <>
                   <p className={`font-semibold text-gray-900 dark:text-gray-100 ${compactDesktop ? 'text-base' : 'text-lg'}`}>
@@ -346,6 +435,138 @@ const SatelliteDetails: React.FC<SatelliteDetailsProps> = ({
             </div>
           </div>
 
+          {selectedSatellite.type === 'ONEWEB' && activePoint && (
+            <div className="mb-4">
+              <div className="bg-gray-50 dark:bg-slate-800/50 rounded-lg p-4 border border-gray-100 dark:border-slate-700 space-y-3">
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 flex items-center">
+                    Current Target Impact
+                    <SectionTooltip content="Contextual service view for the currently active ground target. These values depend on the selected point and do not describe the intrinsic activation state of the satellite itself." />
+                  </h3>
+                  <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                    Target at {formatCoordinates(activePoint)}
+                  </p>
+                </div>
+
+                {currentTargetServiceStatus && (() => {
+                  const colors = serviceStatusColor(currentTargetServiceStatus.status);
+                  const ServiceIcon = currentTargetServiceStatus.status === 'ALLOWED' ? ShieldCheck : currentTargetServiceStatus.status === 'BLOCKED' ? ShieldX : ShieldAlert;
+                  return (
+                    <div className={`rounded-lg border px-4 py-3 ${colors.bg} ${colors.border}`}>
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-2">
+                          <ServiceIcon className={`h-4 w-4 shrink-0 ${colors.text}`} />
+                          <span className="text-sm font-semibold text-gray-800 dark:text-gray-100">Service Status for Current Target</span>
+                        </div>
+                        <span className={`shrink-0 rounded-full px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wide ${colors.badge}`}>
+                          {currentTargetServiceStatus.status}
+                        </span>
+                      </div>
+                      <p className={`mt-1.5 text-xs ${colors.text}`}>{currentTargetServiceStatus.reason}</p>
+                    </div>
+                  );
+                })()}
+
+                <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+                  <div className="rounded-lg border border-gray-200 bg-white p-3 dark:border-slate-700 dark:bg-slate-900">
+                    <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center">
+                      Regulatory Status for Current Target
+                      <SectionTooltip content="Country-based service status for the active point. This is location-specific, not satellite-specific." />
+                    </h4>
+                    {targetRegulatoryResult ? (
+                      <div className="mt-2 space-y-1.5 text-xs">
+                        <div className="flex items-center justify-between gap-3">
+                          <span className="text-gray-700 dark:text-gray-300">
+                            {targetRegulatoryResult.isOcean
+                              ? 'International waters'
+                              : (targetRegulatoryResult.countryName ?? 'Unknown territory')}
+                          </span>
+                          <span className={`font-bold uppercase tracking-wide ${regulatoryStatusColor(targetRegulatoryResult.status)}`}>
+                            {targetRegulatoryResult.status}
+                          </span>
+                        </div>
+                        <p className="text-gray-500 dark:text-gray-400 leading-snug">{targetRegulatoryResult.reason}</p>
+                      </div>
+                    ) : (
+                      <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">No active target context.</p>
+                    )}
+                  </div>
+
+                  <div className="rounded-lg border border-gray-200 bg-white p-3 dark:border-slate-700 dark:bg-slate-900">
+                    <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center">
+                      Serving SNP for Current Target
+                      <SectionTooltip content="Gateway actually usable for the active target through this selected satellite. This is distinct from the nearest reachable SNP shown below, which remains satellite-centric." />
+                    </h4>
+                    <div className="mt-2 space-y-1.5 text-xs">
+                      {currentTargetServingGateway ? (
+                        <>
+                          <div className="flex items-center justify-between gap-3">
+                            <span className="font-medium text-gray-800 dark:text-gray-200">{currentTargetServingGateway.snp.name}</span>
+                            <span className="rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-bold uppercase text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">
+                              Serving target
+                            </span>
+                          </div>
+                          <p className="text-gray-500 dark:text-gray-400">
+                            Gateway elevation from satellite: {currentTargetServingGateway.elevation.toFixed(1)}°
+                          </p>
+                          {currentTargetUserElevation !== null && (
+                            <p className="text-gray-500 dark:text-gray-400">
+                              User elevation from target: {currentTargetUserElevation.toFixed(1)}°
+                            </p>
+                          )}
+                        </>
+                      ) : (
+                        <p className="text-gray-500 dark:text-gray-400">
+                          {currentTargetHasRF
+                            ? 'No gateway currently reachable for this target through the selected satellite.'
+                            : 'No serving SNP because the selected satellite has no RF service for the current target.'}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="rounded-lg border border-gray-200 bg-white p-3 dark:border-slate-700 dark:bg-slate-900 lg:col-span-2">
+                    <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center">
+                      Beam Load for Current Target
+                      <SectionTooltip content="Estimated load affecting the target service context. This is a contextual serving-beam estimate, not a permanent property of the whole satellite." />
+                    </h4>
+                    {targetBeamLoadResult ? (
+                      <div className="mt-2 space-y-2 text-xs">
+                        <div className="flex items-center justify-between gap-3">
+                          <span className="flex items-center gap-1.5 text-gray-600 dark:text-gray-400">
+                            <Users className="h-3 w-3" />
+                            Estimated load
+                          </span>
+                          <span className="font-semibold text-gray-800 dark:text-gray-200">
+                            {targetBeamLoadResult.beamLoadPercent}% ({targetBeamLoadResult.capacityStatus})
+                          </span>
+                        </div>
+                        <div className="h-2 w-full rounded-full bg-gray-200 dark:bg-slate-700 overflow-hidden">
+                          <div
+                            className={`h-full rounded-full transition-all ${
+                              targetBeamLoadResult.capacityStatus === 'NOMINAL'
+                                ? 'bg-emerald-500'
+                                : targetBeamLoadResult.capacityStatus === 'DEGRADED'
+                                  ? 'bg-amber-500'
+                                  : 'bg-red-500'
+                            }`}
+                            style={{ width: `${Math.min(100, targetBeamLoadResult.beamLoadPercent)}%` }}
+                          />
+                        </div>
+                        <div className="flex flex-wrap items-center justify-between gap-2 text-gray-500 dark:text-gray-400">
+                          <span>Zone: {targetBeamLoadResult.densityZoneLabel}</span>
+                          <span>Estimated user share: ~{targetBeamLoadResult.estimatedUserThroughputMbps} Mbps</span>
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">No active target context.</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Separate SNP Information Section */}
           {selectedSatellite.type === 'ONEWEB' && isOperational && (
             <div className="mb-4">
@@ -354,20 +575,23 @@ const SatelliteDetails: React.FC<SatelliteDetailsProps> = ({
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm text-gray-600 dark:text-gray-300">
-                        Nearest SNP: <span className="font-medium text-gray-800 dark:text-gray-100">{nearestSNP.name} ({nearestSNP.distance.toFixed(0)} km, {nearestSNP.latency.toFixed(1)} ms latency)</span>
+                        Nearest reachable SNP: <span className="font-medium text-gray-800 dark:text-gray-100">{nearestSNP.name} ({nearestSNP.distance.toFixed(0)} km, {nearestSNP.latency.toFixed(1)} ms latency)</span>
+                      </p>
+                      <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                        Satellite-centric nearest gateway, not necessarily the SNP serving the current target.
                       </p>
                     </div>
                   </div>
                 ) : (
                   <p className="text-sm text-gray-600 dark:text-gray-300">
-                    Nearest SNP: <span className="font-medium text-gray-500 dark:text-gray-400">None</span>
+                    Nearest reachable SNP: <span className="font-medium text-gray-500 dark:text-gray-400">None</span>
                   </p>
                 )}
                 {gsoAvoidanceData && (
                   <div className="mt-3 pt-3 border-t border-gray-200 dark:border-slate-600 space-y-2">
                     {/* Mode Indicator Badge */}
                     <div className="flex items-center justify-between">
-                      <span className="text-sm text-gray-600 dark:text-gray-300">Mode:</span>
+                      <span className="text-sm text-gray-600 dark:text-gray-300">Payload mode:</span>
                       <span className={`px-2 py-1 rounded-full text-xs font-medium ${gsoAvoidanceData.isBlankingZone
                         ? 'bg-red-100 dark:bg-red-900/40 text-red-800 dark:text-red-200 border border-red-200 dark:border-red-800 animate-pulse'
                         : gsoAvoidanceData.isGSOAvoidance
@@ -441,8 +665,8 @@ const SatelliteDetails: React.FC<SatelliteDetailsProps> = ({
                     {/* SNP Backhaul Reach */}
                     <div className="mt-4">
                       <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center">
-                        SNP Availability
-                        <SectionTooltip content="SNPs (Satellite Network Points) currently within this satellite's backhaul coverage zone (elevation ≥ 15°). Click a SNP to open its detail panel." />
+                        Visible SNPs from Satellite
+                        <SectionTooltip content="SNPs currently visible from this selected satellite (elevation ≥ 15°). This list is satellite-centric and does not by itself mean that a given SNP is serving the active ground target." />
                         {visibleSNPs.some(({ snp }) => failedSnps.has(snp.name)) && (
                           <span className="ml-2 px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300">
                             {visibleSNPs.filter(({ snp }) => failedSnps.has(snp.name)).length} FAILED
@@ -467,6 +691,9 @@ const SatelliteDetails: React.FC<SatelliteDetailsProps> = ({
                                 <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${isFailed ? 'bg-red-500' : isNearest ? 'bg-green-500' : 'bg-[#FFA500]'}`} />
                                 <span className={`text-sm font-medium ${isFailed ? 'text-red-600 dark:text-red-400 line-through opacity-70' : 'text-gray-800 dark:text-gray-200'}`}>{snp.name}</span>
                                 {isNearest && !isFailed && <span className="text-[9px] text-green-600 dark:text-green-400 font-bold">ACTIVE</span>}
+                                {currentTargetServingGateway?.snp.name === snp.name && !isFailed && (
+                                  <span className="text-[9px] text-blue-600 dark:text-blue-400 font-bold">SERVING TARGET</span>
+                                )}
                               </span>
                               <span className="flex items-center gap-2">
                                 <span className="font-mono text-xs text-gray-500 dark:text-gray-400">{elevation.toFixed(1)}°</span>

@@ -20,6 +20,8 @@ import { useSimulation } from '../contexts/SimulationContext';
 import { DEFAULT_LEO_OVERHEAD_MS } from '../utils/leoConnectivityModel';
 import { buildSimulationStateSnapshot } from '../types/simulation';
 import type { PDFConnectionDetails } from '../utils/pdfExport';
+import type { RegulatoryResult } from '../services/regulatoryService';
+import type { BeamLoadResult } from '../utils/capacityLayer';
 
 // ─── Extracted sub-components ─────────────────────────────────────────────────
 import {
@@ -450,14 +452,29 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
 
   // ── Capacity layer (beam load estimation) ────────────────────────────────
   const beamLoadResult = useMemo(() => {
-    if (!activePoint) return null;
+    if (!activePoint || !regulatoryResult) return null;
     const isOcean = regulatoryResult?.isOcean ?? true;
-    return estimateBeamLoad(
+    const estimatedLoad = estimateBeamLoad(
       activePoint.lat,
       activePoint.lng,
       isOcean,
       regulatoryResult?.isoA2 ?? null,
     );
+
+    // In blocked regions we keep the geographic classification as context,
+    // but effective served load must be zero because no legal service is provided.
+    if (regulatoryResult.status === 'BLOCKED') {
+      return {
+        ...estimatedLoad,
+        estimatedActiveUsers: 0,
+        beamLoadFraction: 0,
+        beamLoadPercent: 0,
+        estimatedUserThroughputMbps: 0,
+        capacityStatus: 'NOMINAL' as const,
+      };
+    }
+
+    return estimatedLoad;
   }, [activePoint, regulatoryResult]);
 
   // ── Service layer (aggregated status) ────────────────────────────────────
@@ -962,6 +979,9 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
         onSnpClick={onSnpClick}
         compactDesktop={compactDesktop}
         externalHeader={externalHeader}
+        activePoint={activePoint}
+        targetRegulatoryResult={regulatoryResult as RegulatoryResult | null}
+        targetBeamLoadResult={beamLoadResult as BeamLoadResult | null}
       />
     );
   }

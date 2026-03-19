@@ -158,6 +158,17 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
     if (status === 'SATURATED') return 'bg-red-500';
     return 'bg-gray-400';
   };
+  const isRegulatoryBlocked =
+    serviceLayerResult?.status === 'BLOCKED' &&
+    serviceLayerResult.primaryReasonLayer === 'regulatory';
+  const blockedDiagnosticMessage = 'Underlying RF geometry only — service blocked by regulation.';
+  const blockedCapacityMessage = 'Contextual diagnostic only — service blocked by regulation.';
+
+  const diagnosticOnlyNotice = (
+    <div className="rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:border-amber-700 dark:bg-amber-900/20 dark:text-amber-300">
+      {blockedDiagnosticMessage}
+    </div>
+  );
 
   return (
     <>
@@ -261,6 +272,7 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
                 <SectionTooltip content="Estimated beam utilisation based on geographic density heuristics. Values are SIMULATED — no real subscriber counts are used." />
               </>
             }
+            subtitle={isRegulatoryBlocked ? blockedCapacityMessage : undefined}
             accentColor="#db2777"
             defaultOpen={false}
           >
@@ -329,12 +341,14 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
         {/* LEO Radio Path */}
         <CollapsibleSection
           storageKey="leo-radio-path"
-          title={<>Radio Path<SectionTooltip content="End-to-end signal route: User → LEO Satellite → SNP gateway and back. Shows elevation angle, slant range, and one-way propagation delay for each segment. No SNP means no service is available." /></>}
+          title={<>{isRegulatoryBlocked ? 'Radio Path (Diagnostic only)' : 'Radio Path'}<SectionTooltip content="End-to-end signal route: User → LEO Satellite → SNP gateway and back. Shows elevation angle, slant range, and one-way propagation delay for each segment. No SNP means no service is available." /></>}
+          subtitle={isRegulatoryBlocked ? blockedDiagnosticMessage : undefined}
           accentColor="#db2777"
           defaultOpen={true}
         >
           {resolvedLEOConnectivity ? (
             <div className="text-sm text-gray-700 dark:text-gray-300 text-center space-y-3 min-w-0">
+              {isRegulatoryBlocked && diagnosticOnlyNotice}
               {resolvedLEOConnectivity.snp ? (
                 <div className="break-words leading-relaxed">{userLabel} → <button onClick={() => onSatelliteClick?.(resolvedLEOConnectivity.satellite)} className="underline hover:no-underline text-pink-600 dark:text-pink-400 font-medium cursor-pointer break-all">{resolvedLEOConnectivity.satellite.name}</button> → {resolvedLEOConnectivity.snp.name} → <button onClick={() => onSatelliteClick?.(resolvedLEOConnectivity.satellite)} className="underline hover:no-underline text-pink-600 dark:text-pink-400 font-medium cursor-pointer break-all">{resolvedLEOConnectivity.satellite.name}</button> → {userLabel}</div>
               ) : (
@@ -378,10 +392,16 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
         <LatencyBreakdownCard
           accentColor="#db2777"
           tooltip="Breakdown of the full round-trip propagation delay over the LEO link: User → Satellite → SNP → Satellite → User, plus network overhead (gateway processing, modem, routing)."
-          summary={leoGeometry ? `Estimated RTT total: ${leoGeometry.rttTotalMs.toFixed(1)} ms` : 'No LEO latency breakdown available without SNP connectivity.'}
+          title={isRegulatoryBlocked ? 'Latency breakdown (Diagnostic only)' : 'Latency breakdown'}
+          summary={isRegulatoryBlocked
+            ? `Diagnostic only — estimated RTT total: ${leoGeometry ? leoGeometry.rttTotalMs.toFixed(1) : 'N/A'} ms`
+            : leoGeometry
+              ? `Estimated RTT total: ${leoGeometry.rttTotalMs.toFixed(1)} ms`
+              : 'No LEO latency breakdown available without SNP connectivity.'}
         >
           {leoGeometry ? (
             <div className="text-xs text-gray-600 dark:text-gray-400 space-y-2">
+              {isRegulatoryBlocked && diagnosticOnlyNotice}
               <div className="font-semibold text-gray-700 dark:text-gray-200">RTT propagation components</div>
               <div className="flex justify-between"><span>User {'->'} Satellite</span><span>{leoGeometry.propagationBreakdownMs.userToSatellite.toFixed(1)} ms</span></div>
               <div className="flex justify-between"><span>Satellite {'->'} SNP</span><span>{leoGeometry.propagationBreakdownMs.satelliteToGateway.toFixed(1)} ms</span></div>
@@ -418,26 +438,31 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
 
         {/* Pass Beam Timeline */}
         {resolvedLEOConnectivity?.satellite && activePoint && (
-          <PassBeamTimeline
-            satellite={resolvedLEOConnectivity.satellite}
-            userPosition={activePoint}
-            failedSnps={failedSnps}
-            hsBeams={hsBeamsSet}
-            weatherCondition={weatherCondition}
-            beamHealthFactors={beamHealthFactors}
-            maxDlMbps={TERMINAL_PROFILES[terminalType].maxDlGbps * 1000}
-          />
+          <div className="space-y-2">
+            {isRegulatoryBlocked && diagnosticOnlyNotice}
+            <PassBeamTimeline
+              satellite={resolvedLEOConnectivity.satellite}
+              userPosition={activePoint}
+              failedSnps={failedSnps}
+              hsBeams={hsBeamsSet}
+              weatherCondition={weatherCondition}
+              beamHealthFactors={beamHealthFactors}
+              maxDlMbps={TERMINAL_PROFILES[terminalType].maxDlGbps * 1000}
+            />
+          </div>
         )}
 
         {/* LEO Estimated Performance */}
         <CollapsibleSection
           storageKey="leo-performance"
-          title={<>Estimated Performance<SectionTooltip content="Predicted downlink/uplink throughput and round-trip latency based on LEO link geometry, beam health factors, weather attenuation, and the current corridor DC level." /></>}
+          title={<>{isRegulatoryBlocked ? 'Estimated Performance (Diagnostic only)' : 'Estimated Performance'}<SectionTooltip content="Predicted downlink/uplink throughput and round-trip latency based on LEO link geometry, beam health factors, weather attenuation, and the current corridor DC level." /></>}
+          subtitle={isRegulatoryBlocked ? blockedDiagnosticMessage : undefined}
           accentColor="#db2777"
           defaultOpen={true}
         >
           {leoPerformance ? (
             <>
+              {isRegulatoryBlocked && <div className="mb-3">{diagnosticOnlyNotice}</div>}
               <PerformancePanel
                 rtt={mobileLeoMetrics?.rtt ?? null}
                 downlinkGbps={mobileLeoMetrics?.downlinkGbps ?? null}
