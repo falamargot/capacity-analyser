@@ -1394,6 +1394,7 @@ const App: React.FC = () => {
     selectedGateway,
     dedicatedSNPForSelectedLEO,
     leoServiceViewModel,
+    selectedRegulatoryResult: leoRegulatoryResult,
     isFullscreen,
     onToggleFullscreen: handleToggleFullscreen,
     satelliteScope,
@@ -1424,7 +1425,7 @@ const App: React.FC = () => {
   }), [
     filteredSatellites, satelliteTypeByName, coverageFeaturesMemo, handlePointClick, selectedPosition,
     handleSatelliteClick, handleSatelliteHover, handleSnpClick, handleGatewaySelectByName, handleSnpHover,
-    selectedSatellite, resolvedAutoLEO, activeGeoSatellite, selectedGEOBeam, candidateCoverages, selectedCoverage, selectedGeoBeamId, selectedSNP, selectedGateway, dedicatedSNPForSelectedLEO, leoServiceViewModel,
+    selectedSatellite, resolvedAutoLEO, activeGeoSatellite, selectedGEOBeam, candidateCoverages, selectedCoverage, selectedGeoBeamId, selectedSNP, selectedGateway, dedicatedSNPForSelectedLEO, leoServiceViewModel, leoRegulatoryResult,
     isFullscreen, satelliteScope, airTrafficEnabled, airTraffic.aircraft,
     selectedAircraft, handleAircraftSelect, handleAircraftHover,
     maritimeTrafficEnabled, maritimeTraffic.vessels, selectedVessel, handleVesselSelect, cameraTarget,

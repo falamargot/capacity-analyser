@@ -10,6 +10,7 @@ import { Vessel } from '../modules/maritimeTraffic/maritimeTrafficService';
 import type { CandidateCoverage, GEOBeam } from '../types/analysis';
 import type { GeoGatewayData, SNPData } from './globe/GlobeConfig';
 import type { LeoConnectivityViewModel } from '../utils/leoServiceViewModel';
+import type { RegulatoryResult } from '../services/regulatoryService';
 
 interface MapViewSwitcherProps {
   satellites: SatelliteData[];
@@ -59,6 +60,7 @@ interface MapViewSwitcherProps {
   inspectedSNP?: SNPData | null;
   snpConnectedSatellites?: import('../services/coverageService').SNPConnectedSatellite[];
   leoServiceViewModel?: LeoConnectivityViewModel | null;
+  selectedRegulatoryResult?: RegulatoryResult | null;
 }
 
 const MapViewSwitcher: React.FC<MapViewSwitcherProps> = ({
@@ -109,6 +111,7 @@ const MapViewSwitcher: React.FC<MapViewSwitcherProps> = ({
   inspectedSNP,
   snpConnectedSatellites = [],
   leoServiceViewModel = null,
+  selectedRegulatoryResult = null,
 }) => {
   const [sceneMode, setSceneMode] = useState<'2D' | '3D'>('3D');
 
@@ -165,6 +168,7 @@ const MapViewSwitcher: React.FC<MapViewSwitcherProps> = ({
         inspectedSNP={inspectedSNP}
         snpConnectedSatellites={snpConnectedSatellites}
         leoServiceViewModel={leoServiceViewModel}
+        selectedRegulatoryResult={selectedRegulatoryResult}
       />
     </div>
   );

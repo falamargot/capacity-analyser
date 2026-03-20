@@ -78,9 +78,6 @@ const getStatusSummary = (vm: LeoConnectivityViewModel): string => {
   return 'A blocking condition is stopping end-to-end service right now.';
 };
 
-const getUniqueFactRows = (vm: LeoConnectivityViewModel): LeoInfoRow[] =>
-  vm.physicalStateRows.filter((row) => row.label === 'Satellite' || row.label === 'Beam');
-
 const getReasonDetail = (vm: LeoConnectivityViewModel, row: LeoInfoRow): string | undefined => {
   if (row.label === 'RF') {
     return row.value === 'OK'
@@ -175,7 +172,6 @@ export const ConnectivityStatusCard = memo(({ viewModel }: { viewModel: LeoConne
   const tone = getStatusTone(viewModel);
   const classes = toneClasses[tone];
   const Icon = getStatusIcon(viewModel);
-  const uniqueFacts = getUniqueFactRows(viewModel);
 
   return (
     <div className={`relative overflow-hidden rounded-[28px] border p-5 shadow-[0_28px_70px_-40px_rgba(15,23,42,0.9)] ${classes.border} ${classes.panel}`}>
@@ -206,13 +202,6 @@ export const ConnectivityStatusCard = memo(({ viewModel }: { viewModel: LeoConne
             {getStatusSummary(viewModel)}
           </p>
         </div>
-
-        <div className="mt-4 flex flex-wrap gap-2.5">
-          {uniqueFacts.map((row) => (
-            <MetaPill key={row.label} label={row.label} value={row.value} tone={row.tone} />
-          ))}
-        </div>
-
         <div className="mt-5 flex items-center gap-2">
           <span className="text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-400">
             Decision Breakdown

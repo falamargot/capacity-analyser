@@ -52,6 +52,7 @@ import TrajectoryLayer from './cesium-globe/TrajectoryLayer';
 import GeoGatewayLayer from './cesium-globe/GeoGatewayLayer';
 import AggregatedConnectivityLayer from './cesium-globe/AggregatedConnectivityLayer';
 import RegulatoryLayer from './cesium-globe/RegulatoryLayer';
+import SelectedRegulatoryCountryOutline from './cesium-globe/SelectedRegulatoryCountryOutline';
 import SelectedPointStatusMarker, { SelectionPulseMarker } from './cesium-globe/SelectedPointStatusMarker';
 import { usePositionCallbacks } from './cesium-globe/hooks';
 
@@ -65,6 +66,7 @@ import { GEO_GATEWAYS, SNPS_DATA, type GeoGatewayData, type SNPData } from './gl
 import { getGatewayAssignmentsForSatellite, selectBestGeoGateway } from '../utils/geoConnectivityModel';
 import { isOperationalSatellite } from '../utils/satelliteStatus';
 import type { LeoConnectivityViewModel } from '../utils/leoServiceViewModel';
+import type { RegulatoryResult } from '../services/regulatoryService';
 
 interface CesiumGlobeProps {
     satellites: SatelliteData[];
@@ -118,6 +120,7 @@ interface CesiumGlobeProps {
     showRegulatoryOverlay?: boolean;
     onToggleRegulatoryOverlay?: () => void;
     leoServiceViewModel?: LeoConnectivityViewModel | null;
+    selectedRegulatoryResult?: RegulatoryResult | null;
 }
 
 const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
@@ -172,6 +175,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
     showRegulatoryOverlay = false,
     onToggleRegulatoryOverlay,
     leoServiceViewModel = null,
+    selectedRegulatoryResult = null,
 }) => {
     // Stable refs for click-handler lookups — avoids recreating handleMapClick
     // (and re-registering the Cesium ScreenSpaceEvent) when aircraft/vessels/satellites
@@ -632,6 +636,15 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
     const leoDisplayOptionsAvailable = satelliteScope !== 'GEO';
     const effectiveRegulatoryOverlayVisible =
         leoDisplayOptionsAvailable && showRegulatoryOverlay;
+    const selectedCountryOutlineVisible =
+        !!selectedPosition
+        && !!selectedRegulatoryResult
+        && !selectedRegulatoryResult.isOcean
+        && !!selectedRegulatoryResult.countryName;
+    const selectedCountryOutlineStatus =
+        satelliteScope === 'GEO'
+            ? 'UNKNOWN'
+            : (selectedRegulatoryResult?.status ?? 'UNKNOWN');
 
     return (
         <div className="relative w-full h-full">
@@ -740,6 +753,11 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
 
                     {/* Regulatory overlay — country polygons coloured by simulated regulatory status */}
                     <RegulatoryLayer visible={effectiveRegulatoryOverlayVisible} />
+                    <SelectedRegulatoryCountryOutline
+                        visible={selectedCountryOutlineVisible}
+                        countryName={selectedRegulatoryResult?.countryName ?? null}
+                        status={selectedCountryOutlineStatus}
+                    />
 
                     {/* Aggregated Connectivity Layer (Bottom most coverage layer) */}
                     <AggregatedConnectivityLayer
