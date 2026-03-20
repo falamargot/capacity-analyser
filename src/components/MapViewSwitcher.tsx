@@ -53,6 +53,8 @@ interface MapViewSwitcherProps {
   onToggleSatelliteTrajectory?: () => void;
   onSizeScaleChange?: (scale: number) => void;
   onSizeScaleReset?: () => void;
+  showRegulatoryOverlay?: boolean;
+  onToggleRegulatoryOverlay?: () => void;
   isPhone?: boolean;
   inspectedSNP?: SNPData | null;
   snpConnectedSatellites?: import('../services/coverageService').SNPConnectedSatellite[];
@@ -101,6 +103,8 @@ const MapViewSwitcher: React.FC<MapViewSwitcherProps> = ({
   onToggleSatelliteTrajectory,
   onSizeScaleChange,
   onSizeScaleReset,
+  showRegulatoryOverlay = false,
+  onToggleRegulatoryOverlay,
   isPhone = false,
   inspectedSNP,
   snpConnectedSatellites = [],
@@ -153,6 +157,8 @@ const MapViewSwitcher: React.FC<MapViewSwitcherProps> = ({
         onToggleSatelliteTrajectory={onToggleSatelliteTrajectory}
         onSizeScaleChange={onSizeScaleChange}
         onSizeScaleReset={onSizeScaleReset}
+        showRegulatoryOverlay={showRegulatoryOverlay}
+        onToggleRegulatoryOverlay={onToggleRegulatoryOverlay}
         isPhone={isPhone}
         sceneMode={sceneMode}
         onSceneModeChange={setSceneMode}

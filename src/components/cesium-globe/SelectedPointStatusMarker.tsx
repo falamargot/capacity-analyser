@@ -35,9 +35,12 @@ interface SelectedPointStatusMarkerProps {
 }
 
 const statusColor = (viewModel?: LeoConnectivityViewModel | null): Color => {
-  if (viewModel?.renderingHints.userMarkerState === 'blocked') return Color.fromCssColorString('#ef4444');
-  if (viewModel?.renderingHints.userMarkerState === 'degraded') return Color.fromCssColorString('#f59e0b');
-  if (viewModel?.serviceStatus === 'ALLOWED') return Color.fromCssColorString('#10b981');
+  // Let the computed end-user service status drive the marker color first so an
+  // available service does not fall back to the neutral "unknown" gray.
+  if (viewModel?.finalServiceStatus === 'BLOCKED') return Color.fromCssColorString('#ef4444');
+  if (viewModel?.finalServiceStatus === 'DEGRADED') return Color.fromCssColorString('#f97316');
+  if (viewModel?.finalServiceStatus === 'ALLOWED') return Color.fromCssColorString('#10b981');
+  if (viewModel?.regulatory.status === 'UNKNOWN') return Color.fromCssColorString('#94a3b8');
   return Color.RED;
 };
 

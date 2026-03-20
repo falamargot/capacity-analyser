@@ -60,6 +60,7 @@ import GlobeControls from './cesium-globe/GlobeControls';
 import PositionDisplay from './cesium-globe/PositionDisplay';
 import SatelliteIndicator from './cesium-globe/SatelliteIndicator';
 import InspectionCard, { type HoveredEntity } from './cesium-globe/InspectionCard';
+import RegulatoryOverlayLegend from './cesium-globe/RegulatoryOverlayLegend';
 import { GEO_GATEWAYS, SNPS_DATA, type GeoGatewayData, type SNPData } from './globe/GlobeConfig';
 import { getGatewayAssignmentsForSatellite, selectBestGeoGateway } from '../utils/geoConnectivityModel';
 import { isOperationalSatellite } from '../utils/satelliteStatus';
@@ -197,9 +198,9 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
     const [viewerReady, setViewerReady] = useState(false);
     const { getSatellitePositionCallback } = usePositionCallbacks(satellites, aircraft, interpolatedAircraftMapRef);
 
-    // Reset Aggregated Connectivity when switching to ALL scope
+    // Keep LEO-specific display layers off in GEO scope.
     useEffect(() => {
-        if (satelliteScope === 'ALL') {
+        if (satelliteScope === 'GEO') {
             setShowAggregatedConnectivity(false);
         }
     }, [satelliteScope]);
@@ -262,7 +263,12 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         }
         // Apply lighting settings
         viewer.scene.globe.enableLighting = enableLighting;
-        viewer.scene.globe.depthTestAgainstTerrain = true;
+        // Keep false: terrain depth testing causes polygon entities (coverage,
+        // regulatory overlay) to fail the depth test at globe-view scale where
+        // depth buffer precision cannot distinguish ground-level polygons from the
+        // terrain surface. Entities on the far side of the Earth are still hidden
+        // by the globe sphere via the regular depth buffer.
+        viewer.scene.globe.depthTestAgainstTerrain = false;
         viewer.shadows = enableLighting;
     }, [sceneMode, enableLighting, viewerReady]);
 
@@ -623,12 +629,9 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         }, false);
     }, [selectedPosition, sizeScale]);
 
+    const leoDisplayOptionsAvailable = satelliteScope !== 'GEO';
     const effectiveRegulatoryOverlayVisible =
-        showRegulatoryOverlay
-        || (
-            leoServiceViewModel?.serviceStatus === 'BLOCKED'
-            && leoServiceViewModel?.decisionDriver === 'REGULATORY'
-        );
+        leoDisplayOptionsAvailable && showRegulatoryOverlay;
 
     return (
         <div className="relative w-full h-full">
@@ -644,6 +647,11 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                 autoSelectedLEOSatellite={autoSelectedLEOSatellite}
                 autoSelectedGEOSatellite={autoSelectedGEOSatellite}
                 viewerRef={viewerRef}
+                isPhone={isPhone}
+            />
+
+            <RegulatoryOverlayLegend
+                visible={effectiveRegulatoryOverlayVisible}
                 isPhone={isPhone}
             />
 
@@ -710,7 +718,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                                         ? Color.DEEPPINK
                                         : Color.ROYALBLUE
                             }
-                            ringBaseRadius={satellite.type === 'ONEWEB' ? 26000 : 32000}
+                            ringBaseRadius={satellite.type === 'ONEWEB' ? 20000 : 32000}
                         />
                     ))}
                     {pulsedSnp && (
@@ -737,7 +745,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                     <AggregatedConnectivityLayer
                         satelliteScope={satelliteScope}
                         satellites={satellites}
-                        show={showAggregatedConnectivity}
+                        show={leoDisplayOptionsAvailable && showAggregatedConnectivity}
                     />
 
                     {/* Satellite Layer */}
@@ -805,6 +813,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                         selectedPosition={selectedPosition}
                         selectedAircraft={selectedAircraft}
                         highlightServingFootprint={highlightServingFootprint}
+                        regulatoryOverlayActive={effectiveRegulatoryOverlayVisible}
                         leoServiceViewModel={leoServiceViewModel}
                     />
 

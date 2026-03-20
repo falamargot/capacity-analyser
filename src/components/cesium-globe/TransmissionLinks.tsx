@@ -8,6 +8,7 @@ import {
     CallbackProperty,
     JulianDate,
     PolylineDashMaterialProperty,
+    PolylineGlowMaterialProperty,
     ArcType,
     Cartographic,
     Math as CesiumMath
@@ -23,6 +24,7 @@ import { getAssignedGeoSatellitesForGateway, getGatewayAssignmentsForSatellite, 
 import type { SNPConnectedSatellite } from '../../services/coverageService';
 import { buildSimulationStateSnapshot } from '../../types/simulation';
 import type { LeoConnectivityViewModel } from '../../utils/leoServiceViewModel';
+import { RegulatoryBlockedPathMaterialProperty } from './materials/regulatoryMaterials';
 
 interface TransmissionLinksProps {
     satellites: SatelliteData[];
@@ -41,9 +43,10 @@ interface TransmissionLinksProps {
 }
 
 // Dashed material cache
-const leoDashMaterial = new PolylineDashMaterialProperty({
-    color: Color.PALEVIOLETRED,
-    dashPattern: 3855
+const leoAllowedMaterial = new PolylineGlowMaterialProperty({
+    color: Color.PALEVIOLETRED.withAlpha(0.92),
+    glowPower: 0.12,
+    taperPower: 0.58,
 });
 
 const geoUserMaterial = new PolylineDashMaterialProperty({
@@ -61,10 +64,10 @@ const geoBackhaulMaterial = new PolylineDashMaterialProperty({
     dashPattern: 3855
 });
 
-const blockedDiagnosticMaterial = new PolylineDashMaterialProperty({
-    color: Color.fromCssColorString('#f87171').withAlpha(0.9),
-    gapColor: Color.fromCssColorString('#7f1d1d').withAlpha(0.15),
-    dashPattern: 61680,
+const blockedDiagnosticMaterial = new RegulatoryBlockedPathMaterialProperty({
+    color: Color.fromCssColorString('#fb7185').withAlpha(0.95),
+    stopColor: Color.fromCssColorString('#fecdd3').withAlpha(0.98),
+    alphaMultiplier: 0.98,
 });
 
 const degradedMaterial = new PolylineDashMaterialProperty({
@@ -104,7 +107,7 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
         if (leoPathVisualState === 'degraded') {
             return degradedMaterial;
         }
-        return leoDashMaterial;
+        return leoAllowedMaterial;
     }, [leoPathVisualState]);
     const leoLinkWidth = leoPathVisualState === 'blocked' ? 3.2 : 2.5;
 
@@ -406,7 +409,7 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
                     <PolylineGraphics
                         positions={callback}
                         width={2}
-                        material={leoDashMaterial}
+                        material={leoAllowedMaterial}
                         clampToGround={false}
                         arcType={ArcType.NONE}
                     />

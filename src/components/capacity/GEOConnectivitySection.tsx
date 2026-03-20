@@ -213,7 +213,7 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
         <LatencyBreakdownCard
           accentColor="#2563eb"
           tooltip="Breakdown of the full round-trip propagation delay over the GEO link: User → Satellite → Gateway → Satellite → User, plus network overhead. GEO propagation alone accounts for ~480 ms due to the 35,786 km orbital altitude."
-          summary={geoGeometry ? `Estimated RTT total: ${geoGeometry.rttTotalMs?.toFixed(1) ?? '--'} ms` : 'No GEO latency breakdown available.'}
+          summary={geoGeometry ? `Estimated RTT total: ${geoGeometry.rttTotalMs?.toFixed(1) ?? '--'} ms` : 'No GEO latency breakdown available'}
         >
           {geoGeometry ? (
             <div className="text-xs text-gray-600 dark:text-gray-400 space-y-2">
@@ -245,7 +245,7 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
             </div>
           ) : (
             <div className="text-sm text-gray-700 dark:text-gray-300 text-center">
-              <div>No GEO latency breakdown available.</div>
+              <div>No GEO latency breakdown available</div>
             </div>
           )}
         </LatencyBreakdownCard>

@@ -59,6 +59,7 @@ interface OneWebCombLayerProps {
     selectedPosition?: { lat: number; lng: number; altitude?: number } | null;
     selectedAircraft?: Aircraft | null;
     highlightServingFootprint?: boolean;
+    regulatoryOverlayActive?: boolean;
     leoServiceViewModel?: LeoConnectivityViewModel | null;
 }
 
@@ -67,6 +68,8 @@ const BLOCKED_BEAM_BASE = Color.fromCssColorString('#cbd5e1');
 const HIGH_LOAD_TINT = Color.fromCssColorString('#fb7185');
 const SATURATED_LOAD_TINT = Color.fromCssColorString('#ef4444');
 const SOFT_LOAD_TINT = Color.fromCssColorString('#fdf2f8');
+const FOOTPRINT_LAYER_HEIGHT_M = 1200;
+const FOOTPRINT_HIGHLIGHT_HEIGHT_M = 1400;
 
 function getDiagnosticBeamColor(baseColor: Color, ringOpacity: number): Color {
     const mixed = new Color();
@@ -211,6 +214,7 @@ const BeamRing = React.memo<{
                 outline={ringIndex === 0} // outline only on outermost ring
                 outlineColor={Color.WHITE.withAlpha(0.15)}
                 outlineWidth={1}
+                height={FOOTPRINT_LAYER_HEIGHT_M}
             />
         </Entity>
     );
@@ -273,6 +277,7 @@ const OneWebCombLayer: React.FC<OneWebCombLayerProps> = ({
     selectedPosition,
     selectedAircraft,
     highlightServingFootprint = false,
+    regulatoryOverlayActive = false,
     leoServiceViewModel = null,
 }) => {
     const { getCombGeometries } = useCombGeometry();
@@ -282,8 +287,15 @@ const OneWebCombLayer: React.FC<OneWebCombLayerProps> = ({
     // without needing to recreate the callbacks when it changes.
     const hsBeamsRef = useRef<ReadonlySet<number>>(hsBeamsSet);
     hsBeamsRef.current = hsBeamsSet;
-    const regulatoryBlockedRef = useRef<boolean>(leoServiceViewModel?.serviceStatus === 'BLOCKED');
-    regulatoryBlockedRef.current = leoServiceViewModel?.serviceStatus === 'BLOCKED';
+    const regulatoryBlockedRef = useRef<boolean>(
+        regulatoryOverlayActive
+        && leoServiceViewModel?.serviceStatus === 'BLOCKED'
+        && leoServiceViewModel?.decisionDriver === 'REGULATORY'
+    );
+    regulatoryBlockedRef.current =
+        regulatoryOverlayActive
+        && leoServiceViewModel?.serviceStatus === 'BLOCKED'
+        && leoServiceViewModel?.decisionDriver === 'REGULATORY';
     const beamVisualStateRef = useRef<LeoConnectivityViewModel['renderingHints']['beamVisualState']>(
         leoServiceViewModel?.renderingHints.beamVisualState ?? 'LOW'
     );
@@ -416,37 +428,37 @@ const OneWebCombLayer: React.FC<OneWebCombLayerProps> = ({
     const backhaulColor = useMemo(
         () => targetSat
             ? (
-                leoServiceViewModel?.serviceStatus === 'BLOCKED'
+                regulatoryBlockedRef.current
                     ? Color.fromCssColorString('#ef4444').withAlpha(0.18)
                     : Color.fromCssColorString(getCoverageColor('ONEWEB_BACKHAUL', 0.2, targetSat, failedSnps))
             )
             : Color.TRANSPARENT,
         // eslint-disable-next-line react-hooks/exhaustive-deps
-        [targetSat?.id, failedSnps, leoServiceViewModel?.serviceStatus]
+        [targetSat?.id, failedSnps, regulatoryOverlayActive, leoServiceViewModel?.serviceStatus, leoServiceViewModel?.decisionDriver]
     );
 
     const standardColorFill = useMemo(
         () => targetSat
             ? (
-                leoServiceViewModel?.serviceStatus === 'BLOCKED'
+                regulatoryBlockedRef.current
                     ? Color.fromCssColorString('#fca5a5').withAlpha(0.08)
                     : Color.fromCssColorString(getCoverageColor('ONEWEB_STANDARD', 0.1, targetSat, failedSnps))
             )
             : Color.TRANSPARENT,
         // eslint-disable-next-line react-hooks/exhaustive-deps
-        [targetSat?.id, failedSnps, leoServiceViewModel?.serviceStatus]
+        [targetSat?.id, failedSnps, regulatoryOverlayActive, leoServiceViewModel?.serviceStatus, leoServiceViewModel?.decisionDriver]
     );
 
     const standardColorOutline = useMemo(
         () => targetSat
             ? (
-                leoServiceViewModel?.serviceStatus === 'BLOCKED'
+                regulatoryBlockedRef.current
                     ? Color.fromCssColorString('#f87171').withAlpha(0.5)
                     : Color.fromCssColorString(getCoverageColor('ONEWEB_STANDARD', 0.6, targetSat, failedSnps))
             )
             : Color.TRANSPARENT,
         // eslint-disable-next-line react-hooks/exhaustive-deps
-        [targetSat?.id, failedSnps, leoServiceViewModel?.serviceStatus]
+        [targetSat?.id, failedSnps, regulatoryOverlayActive, leoServiceViewModel?.serviceStatus, leoServiceViewModel?.decisionDriver]
     );
 
     // hasSNPInCoverage performs polygon-point intersection tests across all SNPs;
@@ -514,6 +526,7 @@ const OneWebCombLayer: React.FC<OneWebCombLayerProps> = ({
                     outline={true}
                     outlineColor={highlight.outlineColor}
                     outlineWidth={3}
+                    height={FOOTPRINT_HIGHLIGHT_HEIGHT_M}
                 />
             </Entity>
             <Entity

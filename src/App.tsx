@@ -10,7 +10,6 @@ import { ThemeSelector } from './components/ThemeSelector';
 import BottomSheet from './components/layout/BottomSheet';
 import MobileAnalysisSummary from './components/layout/MobileAnalysisSummary';
 import SidebarHeroCard from './components/layout/SidebarHeroCard';
-import BeamLegend from './components/cesium-globe/BeamLegend';
 import SatelliteStatusLegend from './components/cesium-globe/SatelliteStatusLegend';
 import ExportButton, { type ExportButtonPayload } from './components/ExportButton';
 import SimulationSettings from './components/layout/SimulationSettings';
@@ -771,6 +770,10 @@ const App: React.FC = () => {
     setSatelliteScope(newScope);
     setSelectedGeoMission(null);
     setSelectedGeoCoverageName(null);
+
+    if (newScope === 'GEO') {
+      setShowRegulatoryOverlay(false);
+    }
 
     if (newScope === 'LEO') {
       setSelectedGateway(null);
@@ -2040,7 +2043,6 @@ const App: React.FC = () => {
               className={`absolute inset-0 bg-white overflow-hidden transition-all duration-300 ${isFullscreen ? 'fixed inset-0 z-50' : ''}`}
             >
               <MapViewSwitcher {...sharedMapProps} isPhone={isPhone} />
-              {satelliteScope !== 'GEO' && <BeamLegend />}
               <SatelliteStatusLegend />
             </div>
 
@@ -2120,7 +2122,6 @@ const App: React.FC = () => {
                   </div>
                 </div>
               )}
-              {satelliteScope !== 'GEO' && <BeamLegend />}
               <SatelliteStatusLegend />
             </div>
 

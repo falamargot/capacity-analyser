@@ -95,10 +95,19 @@ const toneFromStatus = (status: ServiceStatus): LeoStatusTone => {
 };
 
 const toneFromRegulatoryStatus = (status: RegulatoryResult['status'] | 'UNKNOWN'): LeoStatusTone => {
-  if (status === 'ALLOWED') return 'success';
+  if (status === 'ALLOWED' || status === 'ALLOWED_CONFIRMED' || status === 'ALLOWED_ESTIMATED') return 'success';
   if (status === 'RESTRICTED') return 'warning';
   if (status === 'BLOCKED') return 'danger';
   return 'neutral';
+};
+
+const formatRegulatoryStatusLabel = (status: RegulatoryResult['status'] | 'UNKNOWN'): string => {
+  if (status === 'ALLOWED_CONFIRMED') return 'Allowed';
+  if (status === 'ALLOWED_ESTIMATED') return 'Allowed (est.)';
+  if (status === 'ALLOWED') return 'Allowed';
+  if (status === 'RESTRICTED') return 'Restricted';
+  if (status === 'BLOCKED') return 'Blocked';
+  return 'Unknown';
 };
 
 const toneFromCapacityLoad = (category: LeoCapacityLoadCategory): LeoStatusTone => {
@@ -206,8 +215,8 @@ export function deriveLeoConnectivityViewModel(
       value: hasRF ? 'OK' : 'Unavailable',
       tone: hasRF ? 'success' : 'danger',
       detail: hasRF
-        ? 'A serving beam currently covers the selected target.'
-        : 'No active beam currently covers the selected target.',
+        ? 'A serving beam currently covers the selected target'
+        : 'No active beam currently covers the selected target',
     },
     network: {
       label: 'Gateway',
@@ -216,8 +225,8 @@ export function deriveLeoConnectivityViewModel(
       detail: hasSNP
         ? 'Gateway backhaul is available for end-to-end service.'
         : hasRF
-          ? 'RF is available but no reachable gateway path is currently available.'
-          : 'Gateway path depends on an RF link first.',
+          ? 'RF is available but no reachable gateway path is currently available'
+          : 'Gateway path depends on an RF link first',
     },
     capacity: {
       label: 'Capacity',
@@ -225,14 +234,14 @@ export function deriveLeoConnectivityViewModel(
       tone: toneFromCapacityLoad(loadCategory),
       detail: beamLoadResult
         ? `Load level: ${loadCategory} · Estimated users: ${formatEstimatedUsersLabel(beamLoadResult)}`
-        : 'No capacity estimate available.',
+        : 'No capacity estimate available',
     },
     regulatory: {
       label: 'Regulatory',
-      value: regulatoryStatus,
+      value: formatRegulatoryStatusLabel(regulatoryStatus),
       tone: toneFromRegulatoryStatus(regulatoryStatus),
       detail: regulatoryResult?.reason
-        || (locationLabel ? `Policy context for ${locationLabel}.` : 'No regulatory context available.'),
+        || (locationLabel ? `Policy context for ${locationLabel}.` : 'No regulatory context available'),
     },
   };
 

@@ -214,7 +214,7 @@ const GlobeControls: React.FC<GlobeControlsProps> = ({
     const [isMapOptionsOpen, setIsMapOptionsOpen] = useState(false);
     const popoverRef = useRef<HTMLDivElement | null>(null);
     const popoverId = 'globe-display-controls';
-    const aggregatedConnectivityDisabled = satelliteScope === 'ALL';
+    const leoDisplayOptionsDisabled = satelliteScope === 'GEO';
 
     const handleZoomOut = useCallback(() => {
         if (!viewerRef.current) return;
@@ -394,16 +394,16 @@ const GlobeControls: React.FC<GlobeControlsProps> = ({
                                             <DisplayOptionRow
                                                 icon={<Waves className="h-4 w-4" />}
                                                 label="Connectivity Envelope"
-                                                description={aggregatedConnectivityDisabled ? 'Only in GEO or LEO scope.' : 'Show the feasibility layer.'}
-                                                enabled={!aggregatedConnectivityDisabled && !!showAggregatedConnectivity}
+                                                description={leoDisplayOptionsDisabled ? 'Only in ALL or LEO scope.' : 'Show the feasibility layer.'}
+                                                enabled={!leoDisplayOptionsDisabled && !!showAggregatedConnectivity}
                                                 onClick={() => {
-                                                    if (!aggregatedConnectivityDisabled) {
+                                                    if (!leoDisplayOptionsDisabled) {
                                                         onToggleAggregatedConnectivity();
                                                     }
                                                 }}
-                                                disabled={aggregatedConnectivityDisabled}
+                                                disabled={leoDisplayOptionsDisabled}
                                                 accent="blue"
-                                                title={aggregatedConnectivityDisabled ? 'Not available in ALL scope' : 'Toggle aggregated connectivity'}
+                                                title={leoDisplayOptionsDisabled ? 'Not available in GEO scope' : 'Toggle aggregated connectivity'}
                                             />
                                         )}
 
@@ -411,11 +411,16 @@ const GlobeControls: React.FC<GlobeControlsProps> = ({
                                             <DisplayOptionRow
                                                 icon={<ShieldCheck className="h-4 w-4" />}
                                                 label="Regulatory Overlay"
-                                                description="Per-country simulated regulatory status."
-                                                enabled={!!showRegulatoryOverlay}
-                                                onClick={() => onToggleRegulatoryOverlay?.()}
+                                                description={leoDisplayOptionsDisabled ? 'Only in ALL or LEO scope.' : 'Show simulated policy zones and blocked-service cues.'}
+                                                enabled={!leoDisplayOptionsDisabled && !!showRegulatoryOverlay}
+                                                onClick={() => {
+                                                    if (!leoDisplayOptionsDisabled) {
+                                                        onToggleRegulatoryOverlay?.();
+                                                    }
+                                                }}
+                                                disabled={leoDisplayOptionsDisabled}
                                                 accent="violet"
-                                                title="Toggle regulatory overlay (simulated demo data)"
+                                                title={leoDisplayOptionsDisabled ? 'Not available in GEO scope' : 'Toggle regulatory overlay (simulated demo data)'}
                                             />
                                         )}
                                     </div>

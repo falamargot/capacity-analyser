@@ -621,8 +621,8 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
   const geoPdfDetails = useMemo<PDFConnectionDetails | null>(() => {
     if (!resolvedGEOConnectivity || !geoGeometry) {
       return {
-        radioPath: 'No GEO visibility or beam coverage.',
-        emptyState: 'No GEO visibility or beam coverage.',
+        radioPath: 'No GEO visibility or beam coverage',
+        emptyState: 'No GEO visibility or beam coverage',
         performance: {
           rttLabel: 'End-to-End GEO RTT',
           rttMs: null,
@@ -630,7 +630,7 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
           uplinkGbps: null,
           maxDlGbps: TERMINAL_PROFILES[terminalType].maxDlGbps,
           maxUlGbps: TERMINAL_PROFILES[terminalType].maxUlGbps,
-          notes: ['No GEO coverage available.'],
+          notes: ['No GEO coverage available'],
         },
       };
     }
