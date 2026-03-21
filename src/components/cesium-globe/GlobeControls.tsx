@@ -394,16 +394,12 @@ const GlobeControls: React.FC<GlobeControlsProps> = ({
                                             <DisplayOptionRow
                                                 icon={<Waves className="h-4 w-4" />}
                                                 label="Connectivity Envelope"
-                                                description={leoDisplayOptionsDisabled ? 'Only in ALL or LEO scope.' : 'Show the feasibility layer.'}
-                                                enabled={!leoDisplayOptionsDisabled && !!showAggregatedConnectivity}
-                                                onClick={() => {
-                                                    if (!leoDisplayOptionsDisabled) {
-                                                        onToggleAggregatedConnectivity();
-                                                    }
-                                                }}
-                                                disabled={leoDisplayOptionsDisabled}
+                                                description={satelliteScope === 'GEO' ? 'Show the union of GEO footprints.' : 'Show the feasibility layer.'}
+                                                enabled={!!showAggregatedConnectivity}
+                                                onClick={() => onToggleAggregatedConnectivity()}
+                                                disabled={false}
                                                 accent="blue"
-                                                title={leoDisplayOptionsDisabled ? 'Not available in GEO scope' : 'Toggle aggregated connectivity'}
+                                                title={satelliteScope === 'GEO' ? 'Toggle GEO aggregated footprints' : 'Toggle aggregated connectivity'}
                                             />
                                         )}
 

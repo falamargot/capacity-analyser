@@ -8,25 +8,17 @@
  *   Decayed satellites are never received here — they are filtered in satelliteService.
  */
 import React, { useMemo, useCallback, useRef } from 'react';
-import { Entity, LabelGraphics } from 'resium';
+import { Entity } from 'resium';
 import {
     Cartesian3,
     Color,
     VerticalOrigin,
-    HorizontalOrigin,
-    Cartesian2,
     CallbackProperty,
     Viewer as CesiumViewerType
 } from 'cesium';
 import type { SatelliteData } from '../../types/satellites';
 import { SATELLITE_GLYPH, LEO_SMOKED_GLYPH, DPR_FACTOR, calculateDynamicScale, type CameraMetricsSnapshot } from './utils';
 import type { SatelliteStatusCategory } from '../../utils/satelliteStatus';
-import { LABEL_EYE_OFFSET } from './layerHeights';
-
-// Module-level constants — allocated once, never reallocated during rendering.
-const LABEL_BACKGROUND_PADDING = new Cartesian2(7, 4);
-const LABEL_PIXEL_OFFSET = new Cartesian2(0, -24);
-
 // ─── Status color palette ─────────────────────────────────────────────────────
 // Pre-allocated Cesium Color instances so we never allocate on the hot render path.
 const STATUS_COLORS: Record<SatelliteStatusCategory, { eutelsat: Color; oneweb: Color }> = {
@@ -55,8 +47,6 @@ import { usePositionCallbacks } from './hooks';
 interface SatelliteLayerProps {
     satellites: SatelliteData[];
     selectedSatellite: SatelliteData | null;
-    autoSelectedLEOSatellite?: SatelliteData | null;
-    autoSelectedGEOSatellite?: SatelliteData | null;
     onSatelliteClick: (satellite: SatelliteData | null) => void;
     onSatelliteHover: (satelliteId: string | null) => void;
     viewerRef: React.RefObject<CesiumViewerType | null>;
@@ -67,7 +57,6 @@ interface SatelliteLayerProps {
 const SatelliteEntity = React.memo<{
     sat: SatelliteData;
     isManuallySelected: boolean;
-    isAutoSelected: boolean;
     positionCallback: any;
     viewerRef: React.RefObject<CesiumViewerType | null>;
     cameraMetricsRef: React.RefObject<CameraMetricsSnapshot>;
@@ -77,7 +66,6 @@ const SatelliteEntity = React.memo<{
 }>(({
     sat,
     isManuallySelected,
-    isAutoSelected,
     positionCallback,
     viewerRef,
     cameraMetricsRef,
@@ -85,8 +73,6 @@ const SatelliteEntity = React.memo<{
     onSatelliteClick,
     onSatelliteHover
 }) => {
-    const isHighlighted = isManuallySelected || isAutoSelected;
-
     // Refs let the stable CallbackProperty closure read the latest values
     // without being recreated when position or sizeScale changes.
     const satPositionRef = useRef(sat.position);
@@ -143,25 +129,7 @@ const SatelliteEntity = React.memo<{
                 onClick={handleClick}
                 onMouseEnter={handleMouseEnter}
                 onMouseLeave={handleMouseLeave}
-            >
-                {isHighlighted && (
-                    <LabelGraphics
-                        text={sat.name}
-                        font="600 13px Inter, sans-serif"
-                        fillColor={Color.WHITE}
-                        outlineWidth={3}
-                        style={2}
-                        showBackground={true}
-                        backgroundColor={getBillboardColor(sat.type, sat.opsStatus, false).withAlpha(0.7)}
-                        backgroundPadding={LABEL_BACKGROUND_PADDING}
-                        pixelOffset={LABEL_PIXEL_OFFSET}
-                        verticalOrigin={VerticalOrigin.BOTTOM}
-                        horizontalOrigin={HorizontalOrigin.CENTER}
-                        eyeOffset={LABEL_EYE_OFFSET}
-                        disableDepthTestDistance={Number.POSITIVE_INFINITY}
-                    />
-                )}
-            </Entity>
+            />
         </>
     );
 });
@@ -171,8 +139,6 @@ SatelliteEntity.displayName = 'SatelliteEntity';
 const SatelliteLayer: React.FC<SatelliteLayerProps> = ({
     satellites,
     selectedSatellite,
-    autoSelectedLEOSatellite,
-    autoSelectedGEOSatellite,
     onSatelliteClick,
     onSatelliteHover,
     viewerRef,
@@ -185,7 +151,6 @@ const SatelliteLayer: React.FC<SatelliteLayerProps> = ({
     const satelliteEntities = useMemo(() => {
         return satellites.map((sat) => {
             const isManuallySelected = selectedSatellite?.id === sat.id;
-            const isAutoSelected = autoSelectedLEOSatellite?.id === sat.id || autoSelectedGEOSatellite?.id === sat.id;
             const positionCallback = getSatellitePositionCallback(sat);
 
             return (
@@ -193,7 +158,6 @@ const SatelliteLayer: React.FC<SatelliteLayerProps> = ({
                     key={sat.id}
                     sat={sat}
                     isManuallySelected={isManuallySelected}
-                    isAutoSelected={isAutoSelected}
                     positionCallback={positionCallback}
                     viewerRef={viewerRef}
                     cameraMetricsRef={cameraMetricsRef}
@@ -206,8 +170,6 @@ const SatelliteLayer: React.FC<SatelliteLayerProps> = ({
     }, [
         satellites,
         selectedSatellite?.id,
-        autoSelectedLEOSatellite?.id,
-        autoSelectedGEOSatellite?.id,
         getSatellitePositionCallback,
         viewerRef,
         cameraMetricsRef,

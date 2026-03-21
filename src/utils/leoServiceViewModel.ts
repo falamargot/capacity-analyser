@@ -130,7 +130,7 @@ const getDecisionDriverLabel = (driver: LeoDecisionDriver): string => {
   if (driver === 'CAPACITY') return 'CAPACITY LIMIT';
   if (driver === 'NETWORK') return 'NETWORK PATH UNAVAILABLE';
   if (driver === 'RF') return 'RF COVERAGE UNAVAILABLE';
-  return 'ALL CONDITIONS OK';
+  return 'CONNECTED';
 };
 
 const formatReasonLabel = (driver: LeoDecisionDriver): string => {
@@ -138,7 +138,7 @@ const formatReasonLabel = (driver: LeoDecisionDriver): string => {
   if (driver === 'CAPACITY') return 'Capacity constraint';
   if (driver === 'NETWORK') return 'Gateway path unavailable';
   if (driver === 'RF') return 'RF coverage unavailable';
-  return 'All conditions OK';
+  return 'Connected';
 };
 
 const getLoadCategory = (beamLoadResult: BeamLoadResult | null): LeoCapacityLoadCategory => {

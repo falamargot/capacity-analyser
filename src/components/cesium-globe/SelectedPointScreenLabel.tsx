@@ -27,13 +27,7 @@ const statusClassName = (viewModel?: LeoConnectivityViewModel | null): string =>
 
 const statusLabel = (viewModel?: LeoConnectivityViewModel | null): string => {
   if (!viewModel) return 'Selected target';
-  if (viewModel.finalServiceStatus === 'BLOCKED') {
-    return viewModel.primaryReasonLayer === 'regulatory'
-      ? 'Service blocked · RF may still exist'
-      : 'Service blocked';
-  }
-  if (viewModel.finalServiceStatus === 'DEGRADED') return 'Service degraded';
-  return 'Service available';
+  return viewModel.primaryReasonLabel;
 };
 
 const SelectedPointScreenLabel: React.FC<SelectedPointScreenLabelProps> = ({

@@ -11,12 +11,13 @@ const RegulatoryOverlayLegend: React.FC<RegulatoryOverlayLegendProps> = ({
   visible,
   isPhone = false,
 }) => {
+  if (isPhone) return null;
+
   return (
     <div
       className={[
         'pointer-events-none absolute bottom-4 left-4 z-30 w-[280px] max-w-[calc(100vw-2rem)] transition-all duration-300',
         visible ? 'translate-y-0 opacity-100' : 'translate-y-3 opacity-0',
-        isPhone ? 'bottom-3 left-3 w-[min(260px,calc(100vw-1.5rem))]' : '',
       ].join(' ')}
       aria-hidden={!visible}
     >

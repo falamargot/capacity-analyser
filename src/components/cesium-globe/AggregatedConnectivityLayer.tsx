@@ -57,7 +57,7 @@ const AggregatedConnectivityLayer: React.FC<AggregatedConnectivityLayerProps> = 
     const lastGridTimeRef = useRef<number>(0);
 
     useEffect(() => {
-        if (!show || satelliteScope === 'ALL') return;
+        if (!show) return;
 
         const update = () => {
             const now = Date.now();
@@ -76,7 +76,7 @@ const AggregatedConnectivityLayer: React.FC<AggregatedConnectivityLayerProps> = 
     }, [satellites, satelliteScope, show]); // satellites in deps so initial snapshot is current
 
     const { gridRectangles, backhaulPositions } = useMemo(() => {
-        if (!show || satelliteScope === 'ALL' || !gridSnapshot) {
+        if (!show || !gridSnapshot) {
             return { gridRectangles: [], backhaulPositions: [] };
         }
 
@@ -105,11 +105,11 @@ const AggregatedConnectivityLayer: React.FC<AggregatedConnectivityLayerProps> = 
     const coverageColor = useMemo(() =>
         satelliteScope === 'LEO'
             ? Color.DEEPPINK.withAlpha(0.25)
-            : (satelliteScope === 'GEO' ? Color.ROYALBLUE.withAlpha(0.25) : Color.TEAL.withAlpha(0.25)),
+            : (satelliteScope === 'ALL' ? Color.TEAL.withAlpha(0.25) : Color.ROYALBLUE.withAlpha(0.25)),
         [satelliteScope]
     );
 
-    if (!show || satelliteScope === 'ALL') {
+    if (!show) {
         return null;
     }
 

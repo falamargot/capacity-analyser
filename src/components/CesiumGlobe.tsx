@@ -63,6 +63,7 @@ import SatelliteIndicator from './cesium-globe/SatelliteIndicator';
 import InspectionCard, { type HoveredEntity } from './cesium-globe/InspectionCard';
 import RegulatoryOverlayLegend from './cesium-globe/RegulatoryOverlayLegend';
 import SelectedPointScreenLabel from './cesium-globe/SelectedPointScreenLabel';
+import SatelliteScreenLabels from './cesium-globe/SatelliteScreenLabels';
 import { GEO_GATEWAYS, SNPS_DATA, type GeoGatewayData, type SNPData } from './globe/GlobeConfig';
 import { getGatewayAssignmentsForSatellite, selectBestGeoGateway } from '../utils/geoConnectivityModel';
 import { isOperationalSatellite } from '../utils/satelliteStatus';
@@ -203,13 +204,6 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
     const globeContainerRef = useRef<HTMLDivElement>(null);
     const [viewerReady, setViewerReady] = useState(false);
     const { getSatellitePositionCallback } = usePositionCallbacks(satellites, aircraft, interpolatedAircraftMapRef);
-
-    // Keep LEO-specific display layers off in GEO scope.
-    useEffect(() => {
-        if (satelliteScope === 'GEO') {
-            setShowAggregatedConnectivity(false);
-        }
-    }, [satelliteScope]);
 
     // Apply theme to Cesium viewer
     useCesiumTheme(viewerRef);
@@ -477,6 +471,25 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         return targets;
     }, [selectedSatellite, autoSelectedLEOSatellite, autoSelectedGEOSatellite]);
 
+    const highlightedSatelliteLabels = useMemo(() => {
+        const labels: Array<{ satellite: SatelliteData; isManuallySelected: boolean }> = [];
+        const add = (satellite: SatelliteData | null | undefined, isManuallySelected: boolean) => {
+            if (!satellite) return;
+            if (!isOperationalSatellite(satellite)) return;
+            if (labels.some((entry) => entry.satellite.id === satellite.id)) return;
+            labels.push({ satellite, isManuallySelected });
+        };
+
+        if (selectedSatellite) {
+            add(selectedSatellite, true);
+            return labels;
+        }
+
+        add(autoSelectedLEOSatellite, false);
+        add(autoSelectedGEOSatellite, false);
+        return labels;
+    }, [selectedSatellite, autoSelectedLEOSatellite, autoSelectedGEOSatellite]);
+
     const pulsedSnp = useMemo(() => {
         if (inspectedSNP) return inspectedSNP;
         if (!selectedSNP) return null;
@@ -720,7 +733,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                     <AggregatedConnectivityLayer
                         satelliteScope={satelliteScope}
                         satellites={satellites}
-                        show={leoDisplayOptionsAvailable && showAggregatedConnectivity}
+                        show={showAggregatedConnectivity}
                     />
 
                     <SelectedRegulatoryCountryOutline
@@ -830,8 +843,6 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                     <SatelliteLayer
                         satellites={satellites}
                         selectedSatellite={selectedSatellite}
-                        autoSelectedLEOSatellite={autoSelectedLEOSatellite}
-                        autoSelectedGEOSatellite={autoSelectedGEOSatellite}
                         onSatelliteClick={onSatelliteClick}
                         onSatelliteHover={handleSatelliteHover}
                         viewerRef={viewerRef}
@@ -904,6 +915,12 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                 containerRef={globeContainerRef}
                 selectedPosition={selectedPosition}
                 leoServiceViewModel={leoServiceViewModel}
+                viewerReady={viewerReady}
+            />
+            <SatelliteScreenLabels
+                viewerRef={viewerRef}
+                containerRef={globeContainerRef}
+                highlightedSatellites={highlightedSatelliteLabels}
                 viewerReady={viewerReady}
             />
         </div>

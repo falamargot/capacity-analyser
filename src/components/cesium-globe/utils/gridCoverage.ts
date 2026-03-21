@@ -332,8 +332,8 @@ function _computeCoverageGrid(
             if (!sat.coverages || sat.coverages.length === 0) return;
 
             sat.coverages.forEach(coverage => {
-                const geometry = coverage.feature.geometry;
-                if (geometry.type !== 'Polygon') return; // Support MultiPolygon if needed later
+                const geometry = coverage.feature?.geometry;
+                if (!geometry || geometry.type !== 'Polygon') return; // Support MultiPolygon if needed later
 
                 const coords = geometry.coordinates[0]; // Exterior ring
                 if (!coords || coords.length < 3) return;
