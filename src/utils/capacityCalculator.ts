@@ -172,20 +172,23 @@ export const calculateRealTimeCapacity = (
   const coveredSatellites = satellites.filter((satellite) =>
     isPointInCoverage(selectedPoint, satellite, null).includes('user')
   );
-    
-  // Total capacity reflects only currently serviceable user coverage.
-  const totalCapacity = coveredSatellites.reduce((sum, satellite) => {
-    const coverageClasses = isPointInCoverage(selectedPoint, satellite, null);
 
-    if (coverageClasses.includes('user')) {
-      return sum + STANDARD_CAPACITY_GBPS;
-    }
-    return sum;
+  // OneWeb (bent-pipe, no ISL): a terminal is served by exactly one satellite at a time.
+  // Multiple visible OneWeb satellites provide handover redundancy, not additive capacity.
+  // GEO satellites: each operates on independent spectrum/beams — capacities are additive.
+  const onewebCovered = coveredSatellites.filter((s) => s.type === 'ONEWEB');
+  const geoCovered = coveredSatellites.filter((s) => s.type !== 'ONEWEB');
+
+  const onewebCapacity = onewebCovered.length > 0 ? STANDARD_CAPACITY_GBPS : 0;
+  const geoCapacity = geoCovered.reduce((sum, satellite) => {
+    return isPointInCoverage(selectedPoint, satellite, null).includes('user')
+      ? sum + STANDARD_CAPACITY_GBPS
+      : sum;
   }, 0);
-  
+
   return {
-    totalCapacity,
-    coveredSatellites
+    totalCapacity: onewebCapacity + geoCapacity,
+    coveredSatellites,
   };
 };
 
@@ -205,14 +208,20 @@ export const calculateCapacityOverTime = (
     const timestamp = new Date(now);
     timestamp.setHours(Math.floor(min / 60), min % 60, 0, 0);
 
-    const totalCapacity = satellites.reduce((sum, satellite) => {
-      const coverageClasses = isPointInCoverage(selectedPoint, satellite, calculatePosition(satellite, timestamp));
+    // OneWeb (bent-pipe): one satellite serves at a time — presence = STANDARD_CAPACITY_GBPS once.
+    // GEO: independent beams/spectrum, each counted separately.
+    const onewebVisible = satellites
+      .filter((s) => s.type === 'ONEWEB')
+      .some((s) => isPointInCoverage(selectedPoint, s, calculatePosition(s, timestamp)).includes('user'));
 
-      if (coverageClasses.includes('user')) {
-        return sum + STANDARD_CAPACITY_GBPS;
-      }
-      return sum;
-    }, 0);
+    const geoCapacity = satellites
+      .filter((s) => s.type !== 'ONEWEB')
+      .reduce((sum, satellite) => {
+        const coverageClasses = isPointInCoverage(selectedPoint, satellite, calculatePosition(satellite, timestamp));
+        return coverageClasses.includes('user') ? sum + STANDARD_CAPACITY_GBPS : sum;
+      }, 0);
+
+    const totalCapacity = (onewebVisible ? STANDARD_CAPACITY_GBPS : 0) + geoCapacity;
 
     data.push({
       time: `${Math.floor(min / 60).toString().padStart(2, '0')}:${(min % 60).toString().padStart(2, '0')}`,

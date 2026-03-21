@@ -7,18 +7,23 @@ export const DEFAULT_LEO_OVERHEAD_MS = {
   queueingDelayMs: 4,
 };
 
+// OneWeb has no ISL (Inter-Satellite Links) — all traffic transits a ground SNP
+// (Satellite Network Portal) then travels via fiber to an internet PoP.
+// Source: EOPortal OneWeb profile + APNIC measurements (Dec 2024).
+// Default = 15 ms one-way (30 ms RTT contribution) — represents a well-connected SNP.
+// Range observed: 5–55 ms one-way depending on SNP location vs internet PoP.
+export const DEFAULT_SNP_TO_POP_FIBER_DELAY_MS = 15;
+
 const DEFAULT_RANGES = {
   minStableElevationDeg: 15,
   /**
-   * ONEWEB_GEN1_OPERATIONAL_APPROXIMATION — Simulation lower bound.
-   * Physical minimum RTT at 1200 km altitude (zenith geometry):
-   *   4 hops × 1200 km / 290 757 km/s ≈ 16 ms propagation + 20 ms overhead ≈ 36 ms.
-   * OneWeb publicly advertises ~30–50 ms RTT in commercial documentation.
-   * 35 ms is retained as a conservative simulation lower bound, not a guaranteed spec.
+   * Minimum RTT with fiber: 4-hop radio (~16 ms) + fiber RTT (~30 ms) + overhead (~20 ms) ≈ 66 ms.
+   * OneWeb publicly targets <70 ms; World Teleport Association measured 70–80 ms.
+   * APNIC measured ~50 ms minimum from eastern US (closest SNP to PoP).
    */
-  expectedRttMinMs: 35,
-  expectedRttMaxMs: 120,
-  suspiciousLowRttMs: 12,
+  expectedRttMinMs: 65,
+  expectedRttMaxMs: 140,
+  suspiciousLowRttMs: 40,
 };
 
 interface AnalyzeLeoConnectivityArgs {
@@ -27,6 +32,8 @@ interface AnalyzeLeoConnectivityArgs {
   userToSatelliteElevationDeg: number;
   gatewayToSatelliteElevationDeg: number;
   overheadMs?: Partial<typeof DEFAULT_LEO_OVERHEAD_MS>;
+  /** One-way fiber delay from SNP to internet PoP (ms). Defaults to DEFAULT_SNP_TO_POP_FIBER_DELAY_MS. */
+  snpToPopFiberDelayMs?: number;
 }
 
 export interface LeoConnectivityResult {
@@ -45,6 +52,8 @@ export interface LeoConnectivityResult {
     queueing: number;
     total: number;
   };
+  /** Round-trip fiber delay SNP ↔ internet PoP (2 × one-way). No-ISL architecture only. */
+  snpToPopFiberRttMs: number;
   rttTotalMs: number;
   warnings: string[];
   isUserLinkUnstable: boolean;
@@ -61,6 +70,7 @@ export function analyzeLeoConnectivity({
   userToSatelliteElevationDeg,
   gatewayToSatelliteElevationDeg,
   overheadMs,
+  snpToPopFiberDelayMs = DEFAULT_SNP_TO_POP_FIBER_DELAY_MS,
 }: AnalyzeLeoConnectivityArgs): LeoConnectivityResult {
   const userSatLatencyMs = latencyMsFromDistanceKm(userToSatelliteDistanceKm);
   const satGatewayLatencyMs = latencyMsFromDistanceKm(satelliteToGatewayDistanceKm);
@@ -77,7 +87,11 @@ export function analyzeLeoConnectivity({
     delays.modemProcessingDelayMs +
     delays.routingDelayMs +
     delays.queueingDelayMs;
-  const rttTotalMs = rttPropagationMs + networkOverheadTotalMs;
+
+  // No-ISL architecture: traffic transits SNP → fiber → internet PoP (round-trip).
+  const snpToPopFiberRttMs = 2 * snpToPopFiberDelayMs;
+
+  const rttTotalMs = rttPropagationMs + networkOverheadTotalMs + snpToPopFiberRttMs;
 
   const warnings: string[] = [];
   const isUserLinkUnstable = userToSatelliteElevationDeg < DEFAULT_RANGES.minStableElevationDeg;
@@ -114,6 +128,7 @@ export function analyzeLeoConnectivity({
       queueing: delays.queueingDelayMs,
       total: networkOverheadTotalMs,
     },
+    snpToPopFiberRttMs,
     rttTotalMs,
     warnings,
     isUserLinkUnstable,

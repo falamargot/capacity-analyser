@@ -12,17 +12,19 @@ export type CoveragePolicy =
   | { type: "SERVICE_ZONE" };
 
 // Double-Zone footprint constants for 1200km altitude
-// ONEWEB_GEN1_OPERATIONAL_APPROXIMATION — 37° is consistent with OneWeb's
-// ITU/FCC filings (35–40° service elevation range cited in coordination docs).
-// The FCC has granted a 25° minimum for some markets; 37° is retained here as
-// a conservative operational estimate for simulation purposes.
-export const STANDARD_ELEVATION_DEG = 37; // Standard service zone
+// OneWeb Gen 1 guaranteed minimum service elevation angle (user terminal).
+// Source: EOPortal OneWeb mission profile — "Users always within line-of-sight
+// of at least one satellite at ≥55° elevation angle."
+// This is a contractual operational guarantee, not an approximation.
+// Replaces the previous 37° estimate which overstated the service zone by ~2.5×.
+// footprintRadiusKm(1200, 55) ≈ 688 km.
+export const STANDARD_ELEVATION_DEG = 55; // Standard service zone (OneWeb guarantee)
 // ONEWEB_GEN1_OPERATIONAL_APPROXIMATION — 15° is the geometric visibility limit
 // used for gateway reachability checks, not a guaranteed service elevation.
 export const BACKHAUL_ELEVATION_DEG = 15; // Backhaul/visibility zone
 
 // Pre-calculated radii for 1200km altitude
-export const STANDARD_RADIUS_KM = 1100; // 37° elevation
+export const STANDARD_RADIUS_KM = 688;  // 55° elevation — footprintRadiusKm(1200, 55)
 export const BACKHAUL_RADIUS_KM = 2500; // 15° elevation
 
 // Capacity values per zone
@@ -112,7 +114,7 @@ export function isRfCoverageSatisfied(
   let radiusKm: number;
 
   if (policy.type === "SERVICE_ZONE") {
-    // SERVICE_ZONE: Based on STANDARD_ELEVATION_DEG (37°) - Service Zone
+    // SERVICE_ZONE: Based on STANDARD_ELEVATION_DEG (55°) — OneWeb contractual minimum
     radiusKm = footprintRadiusKm(altKm, STANDARD_ELEVATION_DEG);
   } else if (policy.type === "DB_THRESHOLD") {
     // DB_THRESHOLD: Use existing threshold-based logic

@@ -15,10 +15,12 @@ const CELESTRAK_API = {
   ONEWEB: 'https://celestrak.org/NORAD/elements/gp.php?NAME=ONEWEB&FORMAT=tle'
 };
 
-// Fallback static file (used ONLY if both localStorage cache is empty AND API fails)
+// Fallback static file (used ONLY if both localStorage cache is empty AND API fails).
+// ONEWEB has no bundled fallback: /celestrak.txt contains GEO TLEs which would silently
+// inject wrong orbital data into the LEO model. Prefer returning empty over bad data.
 const CELESTRAK_FILE = {
   EUTELSAT: '/celestrak.txt',
-  ONEWEB: '/celestrak.txt'
+  ONEWEB: '',
 };
 
 const CACHE_KEYS = {
@@ -131,7 +133,11 @@ async function fetchTLE(
       return stale;
     }
 
-    // 4. Last resort: bundled static file
+    // 4. Last resort: bundled static file (only if one exists for this operator)
+    if (!CELESTRAK_FILE[operator]) {
+      console.warn(`[TLE Cache] No bundled fallback for ${operator} — returning empty dataset to avoid orbital data mismatch.`);
+      return '';
+    }
     console.warn(`[TLE Cache] Falling back to bundled static file for ${operator}.`);
     const fileResp = await fetch(CELESTRAK_FILE[operator]);
     return await fileResp.text();
@@ -299,18 +305,19 @@ export async function fetchSatellites(): Promise<SatelliteData[]> {
       return buildSatelliteData(
         sat, 'ONEWEB', 'LEO', coverageData, satcatMap,
         {
-          maxThroughput: 8,
+          // Source: EOPortal OneWeb mission profile — "capacity per satellite: 7.2 Gbps"
+          maxThroughput: 7.2,
           bandwidth: {
-            ku: 250, // MHz — Ku-band user links (4 × 500 MHz, 4-colour reuse)
+            ku: 250, // MHz — Ku-band user links (8 channels × 250 MHz = 2 GHz total)
             ka: 150, // MHz — Ka-band gateway/feeder links
             // No C-band: OneWeb Gen 1 is strictly Ku (user) + Ka (gateway)
           },
           availability: 0.99,
-          // Engineering approximation — public sources cite 7.5–8 Gbps per satellite.
-          // No single ITU/FCC filing provides an unambiguous figure.
-          officialAggregateCapacityGbps: 8,
-          // Simulation output: 5-pillar engine nominal at boresight, clear sky, full health.
-          // Not a filed or marketed value.
+          // Source: EOPortal — 7.2 Gbps total per satellite (16 beams × ~450 Mbps/beam).
+          officialAggregateCapacityGbps: 7.2,
+          // Single-user simulation estimate at boresight, clear sky, full health.
+          // This is NOT 7200/16 — it represents what one terminal at beam center receives,
+          // not the total shared beam capacity. Max observed terminal speed: ~150 Mbps.
           simulatedEffectiveBeamCapacityMbps: 200,
         },
         'zone'

@@ -103,6 +103,8 @@ export interface LEOGeometry {
     queueing: number;
     total: number;
   };
+  /** Round-trip fiber delay SNP ↔ internet PoP. Present because OneWeb has no ISL. */
+  snpToPopFiberRttMs?: number;
   warnings: string[];
 }
 
@@ -262,6 +264,12 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
               <div className="ml-2 flex justify-between font-semibold text-gray-700 dark:text-gray-200">
                 <span>Network overhead total</span><span>{leoGeometry.overheadMs.total.toFixed(1)} ms</span>
               </div>
+              {leoGeometry.snpToPopFiberRttMs !== undefined && (
+                <>
+                  <div className="pt-1 font-semibold text-gray-700 dark:text-gray-200">Ground infrastructure (no ISL)</div>
+                  <div className="ml-2 flex justify-between"><span>SNP → Internet PoP (fiber RTT)</span><span>{leoGeometry.snpToPopFiberRttMs.toFixed(0)} ms</span></div>
+                </>
+              )}
               <div className="border-t border-gray-200 dark:border-slate-700 pt-2 flex justify-between font-semibold text-gray-800 dark:text-gray-100">
                 <span>Estimated RTT total</span><span>{leoGeometry.rttTotalMs.toFixed(1)} ms</span>
               </div>

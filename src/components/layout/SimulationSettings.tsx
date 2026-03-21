@@ -203,7 +203,7 @@ const SimulationSettings: React.FC<SimulationSettingsProps> = ({ satelliteScope 
                                             </div>
                                             <div className="mt-2 text-xs">
                                                 <p>• Simplified service-zone approximation</p>
-                                                <p>• Circular coverage from a 37° elevation mask</p>
+                                                <p>• Circular coverage from a 55° elevation mask (OneWeb guarantee)</p>
                                                 <p>• No individual beam geometry</p>
                                                 <p>• Useful for quick what-if analysis</p>
                                             </div>

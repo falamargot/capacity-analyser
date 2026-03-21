@@ -210,7 +210,7 @@ export function isPointInCoverage(
   if (satellite.type === 'ONEWEB') {
     const coverageClasses: CoverageClass[] = [];
 
-    // Check standard coverage (inner circle) - 37° elevation
+    // Check standard coverage (inner circle) - 55° elevation (OneWeb contractual minimum)
     if (isPointInFootprint(point, { lat: satellite.position.lat, lng: satellite.position.lng }, STANDARD_RADIUS_KM)) {
       coverageClasses.push('user', 'backhaul');
     }

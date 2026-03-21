@@ -16,9 +16,10 @@ describe('LEO coverage policies', () => {
     const serviceZoneRadius = footprintRadiusKm(altitude1200Km, STANDARD_ELEVATION_DEG);
     const thresholdRadius = getRadiusAtPowerLevel(-12);
 
+    // At 55° elevation, 1200 km altitude: footprintRadiusKm ≈ 688 km
     expect(serviceZoneRadius).toBeGreaterThan(thresholdRadius);
-    expect(serviceZoneRadius).toBeGreaterThan(1100);
-    expect(serviceZoneRadius).toBeLessThan(1300);
+    expect(serviceZoneRadius).toBeGreaterThan(600);
+    expect(serviceZoneRadius).toBeLessThan(800);
   });
 
   it('shrinks the service-zone radius when altitude decreases', () => {
@@ -46,9 +47,9 @@ describe('LEO coverage policies', () => {
     ).toBe(true);
   });
 
-  it('keeps the service-zone radius aligned with the standard 37 degree radius', () => {
+  it('keeps the service-zone radius aligned with the standard 55 degree radius', () => {
     const serviceZoneRadius = footprintRadiusKm(altitude1200Km, STANDARD_ELEVATION_DEG);
-    const standardRadius = footprintRadiusKm(altitude1200Km, 37);
+    const standardRadius = footprintRadiusKm(altitude1200Km, 55);
 
     expect(serviceZoneRadius).toBeCloseTo(standardRadius, 6);
   });
