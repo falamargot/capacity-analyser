@@ -169,8 +169,13 @@ export function calculateGSOAvoidanceAngle(
     const isMovingNorth = forward.z > 0;
 
     let pitchAngleRad = 0;
-    const PITCH_START_LAT = 45.0; // Seuil officiel
-    const MAX_PITCH_DEG = 17.0;   // Angle max à l'équateur
+    // ONEWEB_GEN1_OPERATIONAL_APPROXIMATION — 45° latitude threshold is
+    // consistent with OneWeb's ITU coordination filings for GSO arc protection.
+    // The cosine-shaped pitch curve and 17° maximum are engineering estimates
+    // derived from the geometry of the GSO exclusion zone; the exact scheduling
+    // algorithm is not publicly disclosed by OneWeb/Eutelsat.
+    const PITCH_START_LAT = 45.0; // Seuil officiel (ITU coordination filings)
+    const MAX_PITCH_DEG = 17.0;   // ONEWEB_GEN1_OPERATIONAL_APPROXIMATION — angle max à l'équateur
 
     if (Math.abs(satLatDeg) < PITCH_START_LAT) {
         // FORMULE CORRIGÉE : Max à 0°, Zéro à 45° (Courbe de Protection GSO)

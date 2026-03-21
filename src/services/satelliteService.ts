@@ -298,7 +298,21 @@ export async function fetchSatellites(): Promise<SatelliteData[]> {
         : null;
       return buildSatelliteData(
         sat, 'ONEWEB', 'LEO', coverageData, satcatMap,
-        { maxThroughput: 8, bandwidth: { ku: 250, ka: 150, c: 100 }, availability: 0.99 },
+        {
+          maxThroughput: 8,
+          bandwidth: {
+            ku: 250, // MHz — Ku-band user links (4 × 500 MHz, 4-colour reuse)
+            ka: 150, // MHz — Ka-band gateway/feeder links
+            // No C-band: OneWeb Gen 1 is strictly Ku (user) + Ka (gateway)
+          },
+          availability: 0.99,
+          // Engineering approximation — public sources cite 7.5–8 Gbps per satellite.
+          // No single ITU/FCC filing provides an unambiguous figure.
+          officialAggregateCapacityGbps: 8,
+          // Simulation output: 5-pillar engine nominal at boresight, clear sky, full health.
+          // Not a filed or marketed value.
+          simulatedEffectiveBeamCapacityMbps: 200,
+        },
         'zone'
       );
     });

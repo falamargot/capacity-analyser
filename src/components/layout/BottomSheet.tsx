@@ -137,8 +137,7 @@ const BottomSheet: React.FC<BottomSheetProps> = ({
                         onPointerCancel={handlePointerUp}
                         style={{ touchAction: 'none' }}
                     >
-                        <div className={`${compact ? 'h-2.5 w-20' : 'h-3 w-24'} rounded-full bg-gray-400 dark:bg-slate-500 shadow-md hover:bg-gray-500 dark:hover:bg-slate-400 transition-colors cursor-pointer`} />
-                        <span className="text-xs text-gray-700 dark:text-gray-300 font-semibold ml-2">Details</span>
+                        <div className={`${compact ? 'h-1.5 w-14' : 'h-2 w-16'} rounded-full bg-slate-300 dark:bg-slate-600 shadow-sm transition-colors cursor-pointer`} />
                     </div>
                     {header}
                 </div>

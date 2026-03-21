@@ -81,7 +81,7 @@ const SatelliteIndicator: React.FC<SatelliteIndicatorProps> = ({
         return null;
     }, [selectedSatellite, autoSelectedLEOSatellite, autoSelectedGEOSatellite, gsoAvoidanceActive, isPhone]);
 
-    if (!indicator) return null;
+    if (isPhone || !indicator) return null;
 
     return (
         <div className={`absolute ${isPhone ? 'top-10' : 'top-12'} left-2 z-10`}>

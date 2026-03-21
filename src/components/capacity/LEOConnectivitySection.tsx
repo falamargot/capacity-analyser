@@ -15,6 +15,27 @@ import { TERMINAL_PROFILES } from './TerminalConfig';
 import type { LeoConnectivityViewModel } from '../../utils/leoServiceViewModel';
 import LeoStatusCards from './LeoStatusCards';
 
+// ─────────────────────────────────────────────────────────────────────────────
+// TODO: DC Level / Throughput / Power synchronisation (Q2-Q3-Q4)
+//
+// The tooltip in the "Estimated Performance" section already mentions
+// "corridor DC level", but no calculation linking it to effective throughput
+// or power budget has been implemented.
+//
+// When the formulas are specified, implement:
+//   1. dcLevelToThroughputMbps(dcLevel: number, nominalMbps: number): number
+//      Maps the corridor duty-cycle level [0..1] to an effective throughput,
+//      accounting for TDM scheduling efficiency.
+//   2. dcLevelToPowerW(dcLevel: number, nominalPowerW: number): number
+//      Maps DC level to active beam power consumption, feeding the dynamic
+//      power budget model in realisticSimulation.ts.
+//   3. Wire these functions into LeoConnectivityViewModel and expose the
+//      results in the Estimated Performance panel.
+//
+// Do NOT implement without a precise specification — an incorrect model would
+// silently degrade simulation fidelity.
+// ─────────────────────────────────────────────────────────────────────────────
+
 // ─── Sub-component: LatencyBreakdownCard ──────────────────────────────────────
 
 interface LatencyBreakdownCardProps {

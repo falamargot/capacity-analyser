@@ -12,6 +12,7 @@ import { EARTH_RADIUS_KM } from '../../utils/capacityCalculator';
 import { STANDARD_RADIUS_KM } from '../../utils/leoFootprint';
 import { isOperationalSatellite } from '../../utils/satelliteStatus';
 import { useCombGeometry } from './hooks';
+import { useSimulation } from '../../contexts/SimulationContext';
 import { calculateDeadReckoning, propagateSatellite, sanitizeCartesianRing, isFiniteCartesian3 } from './utils';
 
 interface Props {
@@ -282,6 +283,7 @@ const AggregatedCoverageVolumeLayer: React.FC<Props> = ({
     viewerRef
 }) => {
     const { getCombGeometries } = useCombGeometry();
+    const { coveragePolicy } = useSimulation();
     const selectedSatelliteRef = useRef<SatelliteData | null>(null);
     const selectedBeamFeatureRef = useRef<Feature<GeoJsonGeometry, GeoJsonProperties> | null>(null);
     const beamSatelliteRef = useRef<SatelliteData | null>(null);
@@ -357,7 +359,8 @@ const AggregatedCoverageVolumeLayer: React.FC<Props> = ({
             const needsRebuild = !state.primitive || state.satId !== sat!.id || !state.lastGeometryUpdateTime || (now && JulianDate.secondsDifference(now, state.lastGeometryUpdateTime) > 0.75);
             if (needsRebuild && now) {
                 const useBeamMode = !selectedSatelliteRef.current && !!beamFeature && !!beamSat;
-                const useOneWebServingBeamMode = !selectedSatelliteRef.current
+                const useOneWebServingBeamMode = coveragePolicy.type === 'DB_THRESHOLD'
+                    && !selectedSatelliteRef.current
                     && !useBeamMode
                     && sat!.type === 'ONEWEB'
                     && (!!selectedPositionRef.current || !!selectedAircraftRef.current);
@@ -409,7 +412,7 @@ const AggregatedCoverageVolumeLayer: React.FC<Props> = ({
         };
         scene.preRender.addEventListener(tick);
         return () => { scene.preRender.removeEventListener(tick); if (state.primitive) { scene.primitives.remove(state.primitive); state.primitive = null; } };
-    }, [viewerRef]);
+    }, [coveragePolicy.type, viewerRef]);
     return null;
 };
 

@@ -18,13 +18,13 @@ const SimulationSettings: React.FC<SimulationSettingsProps> = ({ satelliteScope 
     
     const getThresholdDescription = (policy: CoveragePolicy): string => {
         if (policy.type === "SERVICE_ZONE") {
-            return 'Service Zone – Circular coverage (37° elevation)';
+            return 'Simplified circular approximation for service eligibility';
         }
         const db = policy.thresholdDb;
-        if (db >= -4) return 'Strict coverage - High quality links only';
-        if (db >= -8) return 'Standard coverage - Balanced quality';
-        if (db >= -11) return 'Extended coverage - Wider footprints';
-        return 'Maximum coverage - Lower quality acceptable';
+        if (db >= -4) return 'Strict beam threshold - highest link margin';
+        if (db >= -8) return 'Beam-based threshold - balanced eligibility';
+        if (db >= -11) return 'Extended beam threshold - wider eligibility';
+        return 'Maximum beam eligibility - lowest accepted threshold';
     };
     
     const getLinkQuality = (db: number): string => {
@@ -32,6 +32,13 @@ const SimulationSettings: React.FC<SimulationSettingsProps> = ({ satelliteScope 
         if (db >= -8) return 'Good';
         if (db >= -11) return 'Acceptable';
         return 'Minimum';
+    };
+
+    const getThresholdPresetLabel = (db: number): string => {
+        if (db === -12) return 'Extended';
+        if (db === -10) return 'Standard';
+        if (db === -3) return 'Strict';
+        return `${db} dB`;
     };
 
     const handlePolicyChange = (policy: CoveragePolicy) => {
@@ -57,7 +64,7 @@ const SimulationSettings: React.FC<SimulationSettingsProps> = ({ satelliteScope 
                         : 'bg-gray-100 dark:bg-slate-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-slate-700'
                 }`}
                 disabled={satelliteScope === 'GEO'}
-                title={satelliteScope === 'GEO' ? 'LEO settings not available for GEO scope' : 'LEO Coverage Settings'}
+                title={satelliteScope === 'GEO' ? 'LEO settings not available for GEO scope' : 'LEO simulation settings'}
             >
                 <Settings className="h-4 w-4" />
                 <ChevronDown className={`h-4 w-4 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
@@ -67,17 +74,17 @@ const SimulationSettings: React.FC<SimulationSettingsProps> = ({ satelliteScope 
                 <div className="absolute top-full left-0 mt-1 w-80 bg-white dark:bg-slate-900 rounded-lg shadow-lg border border-gray-200 dark:border-slate-700 z-50">
                     <div className="p-4">
                         <h3 className="text-sm font-semibold mb-3 text-gray-900 dark:text-white">
-                            LEO Coverage Threshold
+                            LEO Coverage Model
                         </h3>
                         
                         <div className="space-y-3">
                             <div>
                                 <div className="flex items-center justify-between mb-2">
                                     <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                                        Coverage Mode
+                                        Coverage Model
                                         <span 
                                             className="ml-2 text-gray-400 cursor-help" 
-                                            title="Global parameter affecting connectivity eligibility, satellite auto-selection, and coverage visualization"
+                                            title="Simulation-wide parameter affecting connectivity eligibility, auto-selection, and coverage visualization"
                                         >
                                             ⓘ
                                         </span>
@@ -89,29 +96,49 @@ const SimulationSettings: React.FC<SimulationSettingsProps> = ({ satelliteScope 
                                                 Service Zone
                                             </span>
                                         ) : (
-                                            `${currentThreshold} dB`
+                                            `Beam-based · ${currentThreshold} dB`
                                         )}
                                     </span>
                                 </div>
-                                
-                                {/* Custom slider with Service Zone option */}
-                                <div className="relative">
-                                    <div className="flex">
-                                        {/* Service Zone option */}
-                                        <button
-                                            className={`flex-1 py-2 text-xs rounded-l-lg border-r transition-colors ${
-                                                isServiceZoneMode
-                                                    ? 'bg-cyan-100 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-300 border-cyan-300 dark:border-cyan-700'
-                                                    : 'bg-gray-50 dark:bg-slate-800 text-gray-600 dark:text-gray-400 border-gray-200 dark:border-slate-700 hover:bg-gray-100 dark:hover:bg-slate-700'
-                                            }`}
-                                            onClick={() => handleSliderChange("SERVICE_ZONE")}
-                                        >
-                                            <Circle className="h-3 w-3 mx-auto mb-1" />
-                                            Service Zone
-                                        </button>
-                                        
-                                        {/* Numeric slider container */}
-                                        <div className="flex-1 relative">
+
+                                <div className="grid grid-cols-2 gap-2">
+                                    <button
+                                        className={`px-3 py-2 text-xs rounded flex items-center justify-center gap-1 transition-colors ${
+                                            isServiceZoneMode
+                                                ? 'bg-cyan-600 text-white'
+                                                : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
+                                        }`}
+                                        onClick={() => handlePolicyChange({ type: "SERVICE_ZONE" })}
+                                    >
+                                        <Circle className="h-3 w-3" />
+                                        Service Zone
+                                    </button>
+                                    <button
+                                        className={`px-3 py-2 text-xs rounded transition-colors ${
+                                            !isServiceZoneMode
+                                                ? 'bg-blue-600 text-white'
+                                                : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
+                                        }`}
+                                        onClick={() => handlePolicyChange({ type: "DB_THRESHOLD", thresholdDb: currentThreshold })}
+                                    >
+                                        Beam-based
+                                    </button>
+                                </div>
+                            </div>
+
+                            {!isServiceZoneMode && (
+                                <>
+                                    <div>
+                                        <div className="flex items-center justify-between mb-2">
+                                            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                                                Beam Threshold
+                                            </label>
+                                            <span className="text-sm font-bold text-blue-600 dark:text-blue-400">
+                                                {currentThreshold} dB
+                                            </span>
+                                        </div>
+
+                                        <div className="relative">
                                             <input
                                                 type="range"
                                                 min="-12"
@@ -119,16 +146,9 @@ const SimulationSettings: React.FC<SimulationSettingsProps> = ({ satelliteScope 
                                                 step="1"
                                                 value={currentThreshold}
                                                 onChange={(e) => handleSliderChange(e.target.value)}
-                                                disabled={isServiceZoneMode}
-                                                className={`w-full h-8 rounded-r-lg appearance-none cursor-pointer ${
-                                                    isServiceZoneMode 
-                                                        ? 'opacity-50 cursor-not-allowed bg-gray-100 dark:bg-slate-800' 
-                                                        : 'bg-gray-200 dark:bg-gray-700'
-                                                }`}
+                                                className="w-full h-8 appearance-none cursor-pointer bg-gray-200 dark:bg-gray-700 rounded-lg"
                                             />
-                                            <div className={`flex justify-between text-xs px-2 mt-1 ${
-                                                isServiceZoneMode ? 'text-gray-400 dark:text-gray-500' : 'text-gray-500 dark:text-gray-400'
-                                            }`}>
+                                            <div className="flex justify-between text-xs px-2 mt-1 text-gray-500 dark:text-gray-400">
                                                 <span>-12</span>
                                                 <span>-11</span>
                                                 <span>-10</span>
@@ -142,53 +162,24 @@ const SimulationSettings: React.FC<SimulationSettingsProps> = ({ satelliteScope 
                                             </div>
                                         </div>
                                     </div>
-                                </div>
-                            </div>
-                            
-                            {/* Preset buttons */}
-                            <div className="grid grid-cols-4 gap-2">
-                                <button 
-                                    className={`px-3 py-2 text-xs rounded flex items-center justify-center gap-1 ${
-                                        isServiceZoneMode
-                                            ? 'bg-cyan-600 text-white' 
-                                            : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
-                                    }`}
-                                    onClick={() => handlePolicyChange({ type: "SERVICE_ZONE" })}
-                                >
-                                    <Circle className="h-3 w-3" />
-                                    Service Zone
-                                </button>
-                                <button 
-                                    className={`flex-1 px-3 py-2 text-xs rounded ${
-                                        coveragePolicy.type === "DB_THRESHOLD" && coveragePolicy.thresholdDb === -12
-                                            ? 'bg-blue-600 text-white' 
-                                            : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
-                                    }`}
-                                    onClick={() => handlePolicyChange({ type: "DB_THRESHOLD", thresholdDb: -12 })}
-                                >
-                                    Extended
-                                </button>
-                                <button 
-                                    className={`flex-1 px-3 py-2 text-xs rounded ${
-                                        coveragePolicy.type === "DB_THRESHOLD" && coveragePolicy.thresholdDb === -10
-                                            ? 'bg-blue-600 text-white' 
-                                            : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
-                                    }`}
-                                    onClick={() => handlePolicyChange({ type: "DB_THRESHOLD", thresholdDb: -10 })}
-                                >
-                                    Standard
-                                </button>
-                                <button 
-                                    className={`flex-1 px-3 py-2 text-xs rounded ${
-                                        coveragePolicy.type === "DB_THRESHOLD" && coveragePolicy.thresholdDb === -3
-                                            ? 'bg-blue-600 text-white' 
-                                            : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
-                                    }`}
-                                    onClick={() => handlePolicyChange({ type: "DB_THRESHOLD", thresholdDb: -3 })}
-                                >
-                                    Strict
-                                </button>
-                            </div>
+
+                                    <div className="grid grid-cols-3 gap-2">
+                                        {[-12, -10, -3].map((preset) => (
+                                            <button
+                                                key={preset}
+                                                className={`px-3 py-2 text-xs rounded transition-colors ${
+                                                    coveragePolicy.type === "DB_THRESHOLD" && coveragePolicy.thresholdDb === preset
+                                                        ? 'bg-blue-600 text-white'
+                                                        : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
+                                                }`}
+                                                onClick={() => handlePolicyChange({ type: "DB_THRESHOLD", thresholdDb: preset })}
+                                            >
+                                                {getThresholdPresetLabel(preset)}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </>
+                            )}
                             
                             {/* Description panel */}
                             <div className={`p-3 rounded text-xs ${
@@ -203,34 +194,35 @@ const SimulationSettings: React.FC<SimulationSettingsProps> = ({ satelliteScope 
                                     {isServiceZoneMode ? (
                                         <>
                                             <div className="flex justify-between">
-                                                <span>Coverage model:</span>
-                                                <span className="font-medium">Circular (37° elevation)</span>
+                                                <span>Model:</span>
+                                                <span className="font-medium">Circular approximation</span>
                                             </div>
                                             <div className="flex justify-between">
-                                                <span>Coverage radius:</span>
+                                                <span>Eligibility radius:</span>
                                                 <span className="font-medium">{STANDARD_RADIUS_KM} km</span>
                                             </div>
                                             <div className="mt-2 text-xs">
-                                                <p>• Simple circular footprint</p>
-                                                <p>• Based on 37° minimum elevation</p>
-                                                <p>• No individual beam calculation</p>
-                                                <p>• Standard service zone coverage</p>
+                                                <p>• Simplified service-zone approximation</p>
+                                                <p>• Circular coverage from a 37° elevation mask</p>
+                                                <p>• No individual beam geometry</p>
+                                                <p>• Useful for quick what-if analysis</p>
                                             </div>
                                         </>
                                     ) : (
                                         <>
                                             <div className="flex justify-between">
-                                                <span>Beam radius:</span>
+                                                <span>Threshold footprint:</span>
                                                 <span className="font-medium">{Math.round(getRadiusAtPowerLevel(currentThreshold))} km</span>
                                             </div>
                                             <div className="flex justify-between">
-                                                <span>Link quality:</span>
+                                                <span>Coverage strictness:</span>
                                                 <span className="font-medium">{getLinkQuality(currentThreshold)}</span>
                                             </div>
                                             <div className="mt-2 text-xs">
-                                                <p>• Individual beam calculation</p>
-                                                <p>• 16 beams per satellite</p>
-                                                <p>• Threshold-based coverage</p>
+                                                <p>• Reference simulation mode for LEO coverage</p>
+                                                <p>• 16 highly elliptical beams per satellite</p>
+                                                <p>• Threshold-based beam eligibility ({currentThreshold} dB)</p>
+                                                <p>• eoPortal-like geometry, then scaled by simulation physics</p>
                                             </div>
                                         </>
                                     )}
@@ -242,11 +234,11 @@ const SimulationSettings: React.FC<SimulationSettingsProps> = ({ satelliteScope 
                                 <div className="flex items-start gap-2">
                                     <span className="text-yellow-600 dark:text-yellow-400">⚠️</span>
                                     <div className="text-gray-700 dark:text-gray-300">
-                                        <strong>Global Parameter</strong>
+                                        <strong>Simulation-wide Setting</strong>
                                         <p className="mt-1">
                                             {isServiceZoneMode 
-                                                ? "Service Zone mode: connectivity based on simple circular footprint (37° elevation). Affects satellite auto-selection, aggregated coverage, and capacity calculations."
-                                                : "This threshold affects entire simulation including RF connectivity (beam-based), capacity calculations, and coverage visualization."
+                                                ? "Service Zone is a simplified circular approximation. It affects RF eligibility, auto-selection, aggregated coverage, and capacity calculations."
+                                                : "Beam-based mode is the reference LEO simulation model. The selected threshold affects RF eligibility, auto-selection, capacity calculations, and coverage visualization."
                                             }
                                         </p>
                                     </div>

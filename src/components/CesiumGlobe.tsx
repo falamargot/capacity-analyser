@@ -69,6 +69,7 @@ import { getGatewayAssignmentsForSatellite, selectBestGeoGateway } from '../util
 import { isOperationalSatellite } from '../utils/satelliteStatus';
 import type { LeoConnectivityViewModel } from '../utils/leoServiceViewModel';
 import type { RegulatoryResult } from '../services/regulatoryService';
+import type { GeoPointStatus } from '../utils/selectedPointStatus';
 import { GROUND_POINT_ALTITUDE_KM } from './cesium-globe/layerHeights';
 
 interface CesiumGlobeProps {
@@ -123,6 +124,7 @@ interface CesiumGlobeProps {
     showRegulatoryOverlay?: boolean;
     onToggleRegulatoryOverlay?: () => void;
     leoServiceViewModel?: LeoConnectivityViewModel | null;
+    geoPointStatus?: GeoPointStatus | null;
     selectedRegulatoryResult?: RegulatoryResult | null;
 }
 
@@ -178,6 +180,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
     showRegulatoryOverlay = false,
     onToggleRegulatoryOverlay,
     leoServiceViewModel = null,
+    geoPointStatus = null,
     selectedRegulatoryResult = null,
 }) => {
     // Stable refs for click-handler lookups — avoids recreating handleMapClick
@@ -804,7 +807,9 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                         <SelectedPointStatusMarker
                             selectedPosition={selectedPosition}
                             pixelSize={positionMarkerPixelSize}
+                            satelliteScope={satelliteScope}
                             leoServiceViewModel={leoServiceViewModel}
+                            geoPointStatus={geoPointStatus}
                         />
                     )}
                     {pulsedSatellites.map((satellite) => (
@@ -909,14 +914,18 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                 </Viewer>
             </div>
 
-            <InspectionCard entity={hoveredEntity} containerRef={globeContainerRef} />
-            <SelectedPointScreenLabel
-                viewerRef={viewerRef}
-                containerRef={globeContainerRef}
-                selectedPosition={selectedPosition}
-                leoServiceViewModel={leoServiceViewModel}
-                viewerReady={viewerReady}
-            />
+            {!isPhone && <InspectionCard entity={hoveredEntity} containerRef={globeContainerRef} />}
+            {!isPhone && (
+                <SelectedPointScreenLabel
+                    viewerRef={viewerRef}
+                    containerRef={globeContainerRef}
+                    selectedPosition={selectedPosition}
+                    satelliteScope={satelliteScope}
+                    leoServiceViewModel={leoServiceViewModel}
+                    geoPointStatus={geoPointStatus}
+                    viewerReady={viewerReady}
+                />
+            )}
             <SatelliteScreenLabels
                 viewerRef={viewerRef}
                 containerRef={globeContainerRef}

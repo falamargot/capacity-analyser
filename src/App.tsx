@@ -23,6 +23,7 @@ import { GEO_GATEWAYS, SNPS_DATA, type GeoGatewayData, type SNPData } from './co
 
 import { resolveAutoSelectedSatellites } from './utils/satelliteResolution';
 import {
+  computeGeoConnectivity,
   findCandidateCoverages,
   getCandidateCoverageKey,
   getCoverageBeamId,
@@ -47,6 +48,7 @@ import { estimateBeamLoad } from './utils/capacityLayer';
 import { computeServiceStatus } from './utils/serviceLayer';
 import { getConnectivityStatus, hasRFConnectivity } from './utils/rfConnectivity';
 import { deriveLeoConnectivityViewModel } from './utils/leoServiceViewModel';
+import type { GeoPointStatus } from './utils/selectedPointStatus';
 
 const CapacityDetails = lazy(() => import('./components/CapacityDetails'));
 const CommandPalette = lazy(() => import('./components/CommandPalette'));
@@ -259,22 +261,27 @@ const App: React.FC = () => {
     }
   }, [analyzisPosition, inspectedSNP, selectedGateway, selectedPosition, selectedSatellite]);
 
+  const hasMobileSelection = !!(
+    selectedPosition
+    || analyzisPosition
+    || selectedSatellite
+    || selectedAircraft
+    || selectedGateway
+    || inspectedSNP
+    || selectedVessel
+  );
+
   useEffect(() => {
     if (!isMobile) return;
     if (isFullscreen) return;
 
-    const hasSelection = !!(selectedPosition || analyzisPosition || selectedSatellite || selectedAircraft || selectedGateway);
-    if (!hasSelection) {
+    if (!hasMobileSelection) {
       setMobileSheetSnap(0);
     }
   }, [
+    hasMobileSelection,
     isMobile,
     isFullscreen,
-    selectedPosition,
-    analyzisPosition,
-    selectedSatellite,
-    selectedAircraft,
-    selectedGateway,
   ]);
 
   useEffect(() => {
@@ -632,6 +639,36 @@ const App: React.FC = () => {
     leoServiceLayerResult,
     resolvedAutoLEO,
   ]);
+
+  const geoPointStatus = useMemo<GeoPointStatus | null>(() => {
+    if (!activeAnalysisPoint || (satelliteScope !== 'ALL' && satelliteScope !== 'GEO')) {
+      return null;
+    }
+
+    if (!activeGeoSatellite || !selectedCoverage) {
+      return 'out_of_coverage';
+    }
+
+    const geoConnectivity = computeGeoConnectivity(
+      selectedCoverage,
+      activeAnalysisPoint,
+      satellites
+    );
+
+    if (!geoConnectivity) {
+      return activeGeoSatellite ? 'unknown' : 'out_of_coverage';
+    }
+
+    if (!geoConnectivity.geometry.satelliteToGateway.gateway) {
+      return 'gateway_unavailable';
+    }
+
+    if (geoConnectivity.geometry.isUserLinkUnstable) {
+      return 'unstable';
+    }
+
+    return 'available';
+  }, [activeAnalysisPoint, activeGeoSatellite, satelliteScope, satellites, selectedCoverage]);
 
   const syncGeoCoverageSelection = useCallback((
     position: { lat: number; lng: number } | null,
@@ -1394,6 +1431,7 @@ const App: React.FC = () => {
     selectedGateway,
     dedicatedSNPForSelectedLEO,
     leoServiceViewModel,
+    geoPointStatus,
     selectedRegulatoryResult: leoRegulatoryResult,
     isFullscreen,
     onToggleFullscreen: handleToggleFullscreen,
@@ -1425,7 +1463,7 @@ const App: React.FC = () => {
   }), [
     filteredSatellites, satelliteTypeByName, coverageFeaturesMemo, handlePointClick, selectedPosition,
     handleSatelliteClick, handleSatelliteHover, handleSnpClick, handleGatewaySelectByName, handleSnpHover,
-    selectedSatellite, resolvedAutoLEO, activeGeoSatellite, selectedGEOBeam, candidateCoverages, selectedCoverage, selectedGeoBeamId, selectedSNP, selectedGateway, dedicatedSNPForSelectedLEO, leoServiceViewModel, leoRegulatoryResult,
+    selectedSatellite, resolvedAutoLEO, activeGeoSatellite, selectedGEOBeam, candidateCoverages, selectedCoverage, selectedGeoBeamId, selectedSNP, selectedGateway, dedicatedSNPForSelectedLEO, leoServiceViewModel, geoPointStatus, leoRegulatoryResult,
     isFullscreen, satelliteScope, airTrafficEnabled, airTraffic.aircraft,
     selectedAircraft, handleAircraftSelect, handleAircraftHover,
     maritimeTrafficEnabled, maritimeTraffic.vessels, selectedVessel, handleVesselSelect, cameraTarget,
@@ -1571,36 +1609,10 @@ const App: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-white dark:bg-slate-950 transition-colors duration-300">
-      <header className="bg-white dark:bg-slate-900 shadow-sm transition-colors duration-300">
-        <div className={`max-w-[1920px] mx-auto px-2 py-0 sm:px-4 lg:px-8 ${useCompactDesktopHeader ? 'md:py-3' : 'md:py-4'}`}>
-          {isMobile ? (
-            isPhone ? (
-              <div className="h-14 flex items-center justify-between gap-3">
-                <div className="flex items-center flex-shrink-0">
-                  <Satellite className="h-6 w-6 text-blue-600" />
-                </div>
-
-                <div className="flex-1 min-w-0 flex items-center justify-center gap-2">
-                  <SatelliteScopeFilter
-                    currentScope={satelliteScope}
-                    onScopeChange={handleSatelliteScopeChange}
-                    compact={true}
-                  />
-                  <SimulationSettings satelliteScope={satelliteScope} />
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => setIsSatelliteModalOpen(true)}
-                  className="flex-shrink-0 p-2 rounded-lg bg-gray-100 text-gray-800 dark:bg-slate-800 dark:text-gray-200"
-                  aria-label="Open satellite selection"
-                >
-                  <Satellite className="h-5 w-5" />
-                </button>
-
-                <ThemeSelector isMobile />
-              </div>
-            ) : (
+      {!isPhone && (
+        <header className="bg-white dark:bg-slate-900 shadow-sm transition-colors duration-300">
+          <div className={`max-w-[1920px] mx-auto px-2 py-0 sm:px-4 lg:px-8 ${useCompactDesktopHeader ? 'md:py-3' : 'md:py-4'}`}>
+            {isMobile ? (
               <div className="flex items-center justify-between">
                 <div className="flex items-center min-w-0">
                   <Satellite className="h-7 w-7 text-blue-600 flex-shrink-0" />
@@ -1625,9 +1637,8 @@ const App: React.FC = () => {
                   <ThemeSelector isMobile />
                 </div>
               </div>
-            )
-          ) : (
-            <div className={`flex items-center justify-between ${useCompactDesktopHeader ? 'gap-4' : 'gap-6'}`}>
+            ) : (
+              <div className={`flex items-center justify-between ${useCompactDesktopHeader ? 'gap-4' : 'gap-6'}`}>
               <div className="flex shrink-0 items-center">
                 <Satellite className={`${useCompactDesktopHeader ? 'h-7 w-7' : 'h-8 w-8'} text-blue-600`} />
                 <h1 className={`ml-2 font-bold text-gray-900 dark:text-gray-100 ${useCompactDesktopHeader ? 'text-xl' : 'text-2xl'}`}>ETL Capacity Analyzer</h1>
@@ -1968,15 +1979,24 @@ const App: React.FC = () => {
                   )}
                 </div>
               </div>
-            </div>
-          )}
-        </div>
-      </header>
+              </div>
+            )}
+          </div>
+        </header>
+      )}
 
       {isMobile && isSatelliteModalOpen && (
         <div className="fixed inset-0 z-[60] bg-white dark:bg-slate-900">
-          <div className="h-14 flex items-center justify-between px-4 border-b border-gray-200 dark:border-slate-700">
-            <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">Controls</div>
+          <div
+            className="flex items-center justify-between border-b border-gray-200 px-4 pb-3 dark:border-slate-700"
+            style={{ paddingTop: 'calc(env(safe-area-inset-top) + 0.75rem)' }}
+          >
+            <div>
+              <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">Targets & Search</div>
+              <div className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+                Pick the element to inspect, then keep the map clean.
+              </div>
+            </div>
             <button
               type="button"
               onClick={() => setIsSatelliteModalOpen(false)}
@@ -2039,7 +2059,7 @@ const App: React.FC = () => {
 
       {isMobile ? (
         <main className="px-0 py-0 sm:px-0 sm:py-0 lg:px-0 lg:py-0">
-          <div className="relative h-[calc(100vh-3.5rem)] md:h-[calc(100vh-7rem)]">
+          <div className={`relative ${isPhone ? 'h-[100dvh]' : 'h-[calc(100vh-7rem)]'}`}>
             <div
               className={`absolute inset-0 bg-white overflow-hidden transition-all duration-300 ${isFullscreen ? 'fixed inset-0 z-50' : ''}`}
             >
@@ -2047,20 +2067,55 @@ const App: React.FC = () => {
               <SatelliteStatusLegend />
             </div>
 
+            {isPhone && !isFullscreen && (
+              <div
+                className="pointer-events-none absolute inset-x-0 top-0 z-[25] px-3"
+                style={{ paddingTop: 'calc(env(safe-area-inset-top) + 0.75rem)' }}
+              >
+                <div className="pointer-events-auto rounded-[28px] border border-white/65 bg-[linear-gradient(180deg,rgba(255,255,255,0.94),rgba(241,245,249,0.88))] p-2.5 shadow-[0_24px_60px_-36px_rgba(15,23,42,0.78)] backdrop-blur-xl dark:border-slate-700/80 dark:bg-[linear-gradient(180deg,rgba(15,23,42,0.95),rgba(30,41,59,0.86))]">
+                  <div className="flex items-center gap-2">
+                    <div className="min-w-0 flex-1">
+                      <SatelliteScopeFilter
+                        currentScope={satelliteScope}
+                        onScopeChange={handleSatelliteScopeChange}
+                        compact
+                      />
+                    </div>
+                    <SimulationSettings satelliteScope={satelliteScope} />
+                    <button
+                      type="button"
+                      onClick={() => setIsSatelliteModalOpen(true)}
+                      className="inline-flex h-11 items-center gap-2 rounded-2xl border border-slate-200/80 bg-white/92 px-3 text-sm font-semibold text-slate-700 shadow-sm transition-colors hover:bg-white dark:border-slate-700 dark:bg-slate-900/82 dark:text-slate-100 dark:hover:bg-slate-900"
+                      aria-label="Open targets and search"
+                    >
+                      <Waypoints className="h-4 w-4" />
+                      <span>Targets</span>
+                    </button>
+                    <ThemeSelector isMobile />
+                  </div>
+                </div>
+              </div>
+            )}
 
-            {!isFullscreen && (selectedPosition || analyzisPosition || selectedSatellite || selectedAircraft || selectedGateway || inspectedSNP || selectedVessel) && (
+            {!isFullscreen && hasMobileSelection && (
               <BottomSheet
                 snap={mobileSheetSnap}
                 onSnapChange={setMobileSheetSnap}
-                snapPoints={isPhone ? [0.18, 0.56, 0.92] : [0.2, 0.56, 0.9]}
+                snapPoints={isPhone ? [0.16, 0.52, 0.92] : [0.2, 0.56, 0.9]}
                 compact={isPhone}
                 header={(
                   <MobileAnalysisSummary
                     selectedSatellite={selectedSatellite}
                     autoSelectedLEOSatellite={resolvedAutoLEO}
                     autoSelectedGEOSatellite={activeGeoSatellite}
+                    selectedPoint={analyzisPosition || selectedPosition}
+                    selectedAircraft={selectedAircraft}
+                    selectedGateway={selectedGateway}
+                    inspectedSNP={inspectedSNP}
+                    selectedVessel={selectedVessel}
                     compact={true}
                     metrics={mobileMetrics}
+                    leoServiceViewModel={leoServiceViewModel}
                   />
                 )}
               >

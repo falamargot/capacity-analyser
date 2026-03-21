@@ -44,6 +44,10 @@ const PositionDisplay: React.FC<PositionDisplayProps> = ({
         };
     }, [selectedAircraft, selectedPosition]);
 
+    if (isPhone) {
+        return null;
+    }
+
     return (
         <div className={`absolute top-2 left-2 z-10 ${isPhone ? 'bg-white/90 px-2 py-1 rounded-md shadow-sm' : 'bg-white/80 px-3 py-1 rounded-md shadow-sm'}`}>
             <div className={`flex items-center ${isPhone ? 'gap-2' : 'gap-4'}`}>

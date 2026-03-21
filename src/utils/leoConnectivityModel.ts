@@ -9,7 +9,14 @@ export const DEFAULT_LEO_OVERHEAD_MS = {
 
 const DEFAULT_RANGES = {
   minStableElevationDeg: 15,
-  expectedRttMinMs: 20,
+  /**
+   * ONEWEB_GEN1_OPERATIONAL_APPROXIMATION — Simulation lower bound.
+   * Physical minimum RTT at 1200 km altitude (zenith geometry):
+   *   4 hops × 1200 km / 290 757 km/s ≈ 16 ms propagation + 20 ms overhead ≈ 36 ms.
+   * OneWeb publicly advertises ~30–50 ms RTT in commercial documentation.
+   * 35 ms is retained as a conservative simulation lower bound, not a guaranteed spec.
+   */
+  expectedRttMinMs: 35,
   expectedRttMaxMs: 120,
   suspiciousLowRttMs: 12,
 };

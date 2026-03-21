@@ -60,7 +60,7 @@ export const ThemeSelector: React.FC<ThemeSelectorProps> = ({ isMobile }) => {
         return (
             <div className="relative" ref={mobileMenuRef}>
                 <button
-                    className="p-2 bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm rounded-md shadow-sm border border-gray-200 dark:border-slate-700 text-gray-700 dark:text-gray-200 transition-colors"
+                    className="flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200/80 bg-white/90 text-slate-700 shadow-sm backdrop-blur-sm transition-colors hover:bg-white dark:border-slate-700 dark:bg-slate-800/90 dark:text-slate-200 dark:hover:bg-slate-800"
                     onTouchStart={handleMobileTouchStart}
                     onTouchEnd={handleMobileTouchEnd}
                     onClick={handleMobileClick}

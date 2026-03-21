@@ -416,15 +416,46 @@ const SatelliteDetails: React.FC<SatelliteDetailsProps> = ({
             </div>
 
             <div className={`sm:col-span-5 rounded-lg border border-gray-100 bg-gray-50 shadow-sm backdrop-blur-sm dark:border-slate-700 dark:bg-slate-800/50 ${compactDesktop ? 'px-3.5 py-2' : 'px-4 py-2'}`}>
-              <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1 flex items-center">Nominal Capacity<SectionTooltip content="Satellite-centric nominal throughput and availability from the constellation dataset. This is not the current target's delivered service rate." /></h3>
+              <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1 flex items-center">
+                Capacity
+                <SectionTooltip content="Satellite capacity figures. 'Official Aggregate' is an engineering approximation based on public OneWeb Gen 1 sources (range: 7.5–8 Gbps). 'Simulated Effective Beam' is the 5-pillar simulation output at boresight, clear sky, full health — not a filed or marketed value. Model combines public ITU/FCC data and simulated RF assumptions." />
+              </h3>
               {isOperational ? (
                 <>
-                  <p className={`font-semibold text-gray-900 dark:text-gray-100 ${compactDesktop ? 'text-base' : 'text-lg'}`}>
-                    {selectedSatellite.capacity.maxThroughput.toLocaleString()} Gbps
-                  </p>
+                  {selectedSatellite.capacity.officialAggregateCapacityGbps !== undefined ? (
+                    <div className="space-y-1">
+                      <div>
+                        <p className={`font-semibold text-gray-900 dark:text-gray-100 ${compactDesktop ? 'text-base' : 'text-lg'}`}>
+                          {selectedSatellite.capacity.officialAggregateCapacityGbps.toLocaleString()} Gbps
+                        </p>
+                        <p className={`text-gray-400 dark:text-gray-500 ${compactDesktop ? 'text-[11px]' : 'text-xs'}`}>
+                          Official Aggregate Capacity*
+                        </p>
+                      </div>
+                      {selectedSatellite.capacity.simulatedEffectiveBeamCapacityMbps !== undefined && (
+                        <div>
+                          <p className={`font-medium text-gray-700 dark:text-gray-300 ${compactDesktop ? 'text-sm' : 'text-sm'}`}>
+                            ~{selectedSatellite.capacity.simulatedEffectiveBeamCapacityMbps} Mbps / beam
+                          </p>
+                          <p className={`text-gray-400 dark:text-gray-500 ${compactDesktop ? 'text-[11px]' : 'text-xs'}`}>
+                            Simulated Effective Beam Capacity
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <p className={`font-semibold text-gray-900 dark:text-gray-100 ${compactDesktop ? 'text-base' : 'text-lg'}`}>
+                      {selectedSatellite.capacity.maxThroughput.toLocaleString()} Gbps
+                    </p>
+                  )}
                   <p className={`mt-1 text-gray-500 dark:text-gray-400 ${compactDesktop ? 'text-[13px]' : 'text-sm'}`}>
                     Availability: {(selectedSatellite.capacity.availability * 100).toFixed(2)}%
                   </p>
+                  {selectedSatellite.capacity.officialAggregateCapacityGbps !== undefined && (
+                    <p className={`mt-1 text-gray-400 dark:text-gray-500 italic ${compactDesktop ? 'text-[10px]' : 'text-[11px]'}`}>
+                      * Engineering approximation — ITU/FCC filings + simulated RF
+                    </p>
+                  )}
                 </>
               ) : (
                 <>

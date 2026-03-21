@@ -33,9 +33,24 @@ export interface SatelliteData {
     bandwidth: {
       ku: number;
       ka: number;
-      c: number;
+      /** C-band only applicable to GEO satellites (e.g. Eutelsat). Not used for OneWeb Gen 1. */
+      c?: number;
     };
     availability: number;
+    /**
+     * Official aggregate satellite capacity (Gbps) based on public sources.
+     * Labeled as engineering approximation when no single authoritative filing
+     * provides an unambiguous value.
+     * Only set for LEO constellations (OneWeb Gen 1).
+     */
+    officialAggregateCapacityGbps?: number;
+    /**
+     * Simulated effective beam capacity (Mbps) at boresight, clear sky, full
+     * beam health — as modelled by the 5-pillar simulation engine.
+     * This is NOT a marketed or filed value; it is a simulation output.
+     * Only set for LEO constellations (OneWeb Gen 1).
+     */
+    simulatedEffectiveBeamCapacityMbps?: number;
   };
   referenced_coverages: CoverageData | FeatureCollection;
   coverages: Coverage[];

@@ -111,6 +111,11 @@ export function getScanAngleRad(beamIndex: number): number {
 /**
  * Phased Array Scan Loss: G(θ) = G_max · cos(θ)^1.3
  *
+ * ONEWEB_GEN1_OPERATIONAL_APPROXIMATION — The exponent 1.3 is an engineering
+ * estimate consistent with published phased-array element models (IEEE range:
+ * cos^1 to cos^3 depending on element type). No official OneWeb antenna pattern
+ * data is publicly available to validate this specific value.
+ *
  * @returns gain in linear scale (relative to G_max = 1.0 at boresight)
  */
 export function getScanLossLinear(beamIndex: number): number {
@@ -150,7 +155,10 @@ export const DEFAULT_BEAM_HEALTH: BeamHealthData[] = Array.from(
   { length: TOTAL_BEAMS },
   (_, i) => ({
     beamIndex: i,
-    // Peripheral beams slightly degraded by default to reflect real-world wear
+    // ONEWEB_GEN1_OPERATIONAL_APPROXIMATION — Health factors (0.88 peripheral,
+    // 0.97 central) model typical beam-former degradation and TWT aging over
+    // satellite lifetime. Values are simulation estimates; no telemetry data
+    // is publicly available to calibrate these precisely.
     healthFactor: PERIPHERAL_BEAM_INDICES.has(i) ? 0.88 : 0.97,
   })
 );

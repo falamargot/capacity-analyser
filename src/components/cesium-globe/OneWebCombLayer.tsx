@@ -21,7 +21,7 @@ import {
 import type { SatelliteData } from '../../types/satellites';
 import type { Aircraft } from '../../modules/airTraffic/airTrafficService';
 import { getBeamColor, TOTAL_BEAMS, calculateGSOAvoidanceAngle } from '../../utils/oneWebComb';
-import { footprintRadiusKm, BACKHAUL_ELEVATION_DEG, STANDARD_RADIUS_KM } from '../../utils/leoFootprint';
+import { footprintRadiusKm, BACKHAUL_ELEVATION_DEG, STANDARD_ELEVATION_DEG } from '../../utils/leoFootprint';
 import { getCoverageColor, hasSNPInCoverage } from '../../services/coverageService';
 import { useSimulation } from '../../contexts/SimulationContext';
 import { useCombGeometry } from './hooks';
@@ -283,7 +283,7 @@ const OneWebCombLayer: React.FC<OneWebCombLayerProps> = ({
     leoServiceViewModel = null,
 }) => {
     const { getCombGeometries } = useCombGeometry();
-    const { failedSnps, hsBeamsSet } = useSimulation();
+    const { coveragePolicy, failedSnps, hsBeamsSet } = useSimulation();
 
     // Stable ref so CallbackProperty callbacks always read the latest HS set
     // without needing to recreate the callbacks when it changes.
@@ -436,6 +436,11 @@ const OneWebCombLayer: React.FC<OneWebCombLayerProps> = ({
         [targetSat?.position.alt]
     );
 
+    const serviceZoneRadius = useMemo(
+        () => targetSat ? footprintRadiusKm(targetSat.position.alt || 1200, STANDARD_ELEVATION_DEG) * 1000 : 0,
+        [targetSat?.position.alt]
+    );
+
     const backhaulColor = useMemo(
         () => targetSat
             ? (
@@ -451,8 +456,8 @@ const OneWebCombLayer: React.FC<OneWebCombLayerProps> = ({
         () => targetSat
             ? (
                 regulatoryBlockedRef.current
-                    ? Color.fromCssColorString('#fca5a5').withAlpha(0.08)
-                    : Color.fromCssColorString(getCoverageColor('ONEWEB_STANDARD', 0.1, targetSat, failedSnps))
+                    ? Color.fromCssColorString('#fca5a5').withAlpha(0.16)
+                    : Color.fromCssColorString(getCoverageColor('ONEWEB_STANDARD', 0.2, targetSat, failedSnps))
             )
             : Color.TRANSPARENT,
         [targetSat?.id, failedSnps, regulatoryOverlayActive, leoServiceViewModel?.serviceStatus, leoServiceViewModel?.decisionDriver]
@@ -462,8 +467,8 @@ const OneWebCombLayer: React.FC<OneWebCombLayerProps> = ({
         () => targetSat
             ? (
                 regulatoryBlockedRef.current
-                    ? Color.fromCssColorString('#f87171').withAlpha(0.5)
-                    : Color.fromCssColorString(getCoverageColor('ONEWEB_STANDARD', 0.6, targetSat, failedSnps))
+                    ? Color.fromCssColorString('#f87171').withAlpha(0.88)
+                    : Color.fromCssColorString(getCoverageColor('ONEWEB_STANDARD', 0.95, targetSat, failedSnps))
             )
             : Color.TRANSPARENT,
         [targetSat?.id, failedSnps, regulatoryOverlayActive, leoServiceViewModel?.serviceStatus, leoServiceViewModel?.decisionDriver]
@@ -497,18 +502,19 @@ const OneWebCombLayer: React.FC<OneWebCombLayerProps> = ({
                 />
             </Entity>
 
-            {/* Standard Service Zone Circle */}
-            <Entity position={positionCallback!} name="Standard Service Zone">
-                <EllipseGraphics
-                    semiMajorAxis={STANDARD_RADIUS_KM * 1000}
-                    semiMinorAxis={STANDARD_RADIUS_KM * 1000}
-                    material={standardColorFill}
-                    outline={false}
-                    outlineColor={standardColorOutline.withAlpha(1)}
-                    outlineWidth={2}
-                    height={FOOTPRINT_LAYER_HEIGHT_M}
-                />
-            </Entity>
+            {coveragePolicy.type === 'SERVICE_ZONE' && (
+                <Entity position={positionCallback!} name="Standard Service Zone">
+                    <EllipseGraphics
+                        semiMajorAxis={serviceZoneRadius}
+                        semiMinorAxis={serviceZoneRadius}
+                        material={standardColorFill}
+                        outline={true}
+                        outlineColor={standardColorOutline.withAlpha(1)}
+                        outlineWidth={3}
+                        height={FOOTPRINT_LAYER_HEIGHT_M}
+                    />
+                </Entity>
+            )}
 
             {/* Beam polygons with gradient */}
             {beamIndices.map((i: number) => (

@@ -321,7 +321,7 @@ const GlobeControls: React.FC<GlobeControlsProps> = ({
     }, [onToggleLighting, onToggleSatelliteTrajectory, handleZoomIn, handleZoomOut, handleReset]);
 
     return (
-        <div className="absolute right-3 top-3 z-10 flex flex-col items-end gap-2">
+        <div className={`absolute right-3 z-10 flex flex-col items-end gap-2 ${isPhone ? 'top-24' : 'top-3'}`}>
             <div className={`relative rounded-[20px] p-1.5 ${CONTROL_SURFACE_CLASS_NAME} ${isMapOptionsOpen ? 'z-20' : ''}`}>
                 <div className={`flex items-center ${isPhone ? 'gap-1.5' : 'gap-1.5'}`} ref={popoverRef}>
                     {onSceneModeChange && (

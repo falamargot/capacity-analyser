@@ -13,6 +13,11 @@ import {
   VerticalOrigin,
 } from 'cesium';
 import type { LeoConnectivityViewModel } from '../../utils/leoServiceViewModel';
+import {
+  deriveSelectedPointStatusPresentation,
+  type GeoPointStatus,
+  type SelectedPointScope,
+} from '../../utils/selectedPointStatus';
 import { getPosition } from './utils';
 import { GROUND_POINT_ALTITUDE_KM, GROUND_POINT_LAYER_HEIGHT_M, LABEL_EYE_OFFSET } from './layerHeights';
 
@@ -31,17 +36,16 @@ interface SelectionPulseMarkerProps {
 interface SelectedPointStatusMarkerProps {
   selectedPosition: { lat: number; lng: number; altitude?: number };
   pixelSize: CallbackProperty;
+  satelliteScope: SelectedPointScope;
   leoServiceViewModel?: LeoConnectivityViewModel | null;
+  geoPointStatus?: GeoPointStatus | null;
 }
 
-const statusColor = (viewModel?: LeoConnectivityViewModel | null): Color => {
-  // Let the computed end-user service status drive the marker color first so an
-  // available service does not fall back to the neutral "unknown" gray.
-  if (viewModel?.finalServiceStatus === 'BLOCKED') return Color.fromCssColorString('#ef4444');
-  if (viewModel?.finalServiceStatus === 'DEGRADED') return Color.fromCssColorString('#f97316');
-  if (viewModel?.finalServiceStatus === 'ALLOWED') return Color.fromCssColorString('#10b981');
-  if (viewModel?.regulatory.status === 'UNKNOWN') return Color.fromCssColorString('#94a3b8');
-  return Color.RED;
+const statusColor = (tone: ReturnType<typeof deriveSelectedPointStatusPresentation>['tone']): Color => {
+  if (tone === 'danger') return Color.fromCssColorString('#ef4444');
+  if (tone === 'warning') return Color.fromCssColorString('#f97316');
+  if (tone === 'success') return Color.fromCssColorString('#10b981');
+  return Color.fromCssColorString('#94a3b8');
 };
 
 export const SelectionPulseMarker: React.FC<SelectionPulseMarkerProps> = ({
@@ -142,17 +146,27 @@ export const SelectionPulseMarker: React.FC<SelectionPulseMarkerProps> = ({
 const SelectedPointStatusMarker: React.FC<SelectedPointStatusMarkerProps> = ({
   selectedPosition,
   pixelSize,
+  satelliteScope,
   leoServiceViewModel,
+  geoPointStatus = null,
 }) => {
-  const baseColor = useMemo(() => statusColor(leoServiceViewModel), [leoServiceViewModel]);
-  const pulseSpeed = leoServiceViewModel?.renderingHints.userMarkerState === 'blocked'
+  const presentation = useMemo(
+    () => deriveSelectedPointStatusPresentation({
+      scope: satelliteScope,
+      leoServiceViewModel,
+      geoStatus: geoPointStatus,
+    }),
+    [geoPointStatus, leoServiceViewModel, satelliteScope]
+  );
+  const baseColor = useMemo(() => statusColor(presentation.tone), [presentation.tone]);
+  const pulseSpeed = presentation.tone === 'danger'
     ? 1.3
-    : leoServiceViewModel?.renderingHints.userMarkerState === 'degraded'
+    : presentation.tone === 'warning'
       ? 0.95
       : 0.8;
-  const ringBaseRadius = leoServiceViewModel?.renderingHints.userMarkerState === 'blocked'
+  const ringBaseRadius = presentation.tone === 'danger'
     ? 42000
-    : leoServiceViewModel?.renderingHints.userMarkerState === 'degraded'
+    : presentation.tone === 'warning'
       ? 36000
       : 32000;
 

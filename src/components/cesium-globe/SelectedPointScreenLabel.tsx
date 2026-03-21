@@ -6,6 +6,11 @@ import {
 } from 'cesium';
 import type { LeoConnectivityViewModel } from '../../utils/leoServiceViewModel';
 import { formatCoordinates } from '../../utils/formatters';
+import {
+  deriveSelectedPointStatusPresentation,
+  type GeoPointStatus,
+  type SelectedPointScope,
+} from '../../utils/selectedPointStatus';
 import { getPosition } from './utils';
 import { GROUND_POINT_ALTITUDE_KM } from './layerHeights';
 
@@ -13,43 +18,49 @@ interface SelectedPointScreenLabelProps {
   viewerRef: React.RefObject<CesiumViewerType | null>;
   containerRef: React.RefObject<HTMLDivElement | null>;
   selectedPosition?: { lat: number; lng: number; altitude?: number } | null;
+  satelliteScope: SelectedPointScope;
   leoServiceViewModel?: LeoConnectivityViewModel | null;
+  geoPointStatus?: GeoPointStatus | null;
   viewerReady?: boolean;
 }
 
-const statusClassName = (viewModel?: LeoConnectivityViewModel | null): string => {
-  if (viewModel?.finalServiceStatus === 'BLOCKED') return 'bg-red-500/88';
-  if (viewModel?.finalServiceStatus === 'DEGRADED') return 'bg-orange-500/88';
-  if (viewModel?.finalServiceStatus === 'ALLOWED') return 'bg-emerald-500/88';
-  if (viewModel?.regulatory.status === 'UNKNOWN') return 'bg-slate-500/88';
-  return 'bg-red-500/88';
-};
-
-const statusLabel = (viewModel?: LeoConnectivityViewModel | null): string => {
-  if (!viewModel) return 'Selected target';
-  return viewModel.primaryReasonLabel;
+const statusClassName = (tone: ReturnType<typeof deriveSelectedPointStatusPresentation>['tone']): string => {
+  if (tone === 'danger') return 'bg-red-500/88';
+  if (tone === 'warning') return 'bg-orange-500/88';
+  if (tone === 'success') return 'bg-emerald-500/88';
+  return 'bg-slate-500/88';
 };
 
 const SelectedPointScreenLabel: React.FC<SelectedPointScreenLabelProps> = ({
   viewerRef,
   containerRef,
   selectedPosition = null,
+  satelliteScope,
   leoServiceViewModel = null,
+  geoPointStatus = null,
   viewerReady = false,
 }) => {
   const labelRef = useRef<HTMLDivElement | null>(null);
+  const presentation = useMemo(
+    () => deriveSelectedPointStatusPresentation({
+      scope: satelliteScope,
+      leoServiceViewModel,
+      geoStatus: geoPointStatus,
+    }),
+    [geoPointStatus, leoServiceViewModel, satelliteScope]
+  );
 
   const text = useMemo(() => {
     if (!selectedPosition) return null;
     return {
       coordinates: formatCoordinates({ lat: selectedPosition.lat, lng: selectedPosition.lng }),
-      status: statusLabel(leoServiceViewModel),
+      statusLines: presentation.lines.map((line) => line.text),
     };
-  }, [selectedPosition, leoServiceViewModel]);
+  }, [presentation.lines, selectedPosition]);
 
   const badgeClassName = useMemo(
-    () => statusClassName(leoServiceViewModel),
-    [leoServiceViewModel]
+    () => statusClassName(presentation.tone),
+    [presentation.tone]
   );
 
   useEffect(() => {
@@ -119,9 +130,11 @@ const SelectedPointScreenLabel: React.FC<SelectedPointScreenLabelProps> = ({
         <div className="text-[12px] font-semibold leading-tight sm:text-sm">
           {text.coordinates}
         </div>
-        <div className="text-[12px] font-semibold leading-tight sm:text-sm">
-          {text.status}
-        </div>
+        {text.statusLines.map((statusLine, index) => (
+          <div key={`${statusLine}-${index}`} className="text-[12px] font-semibold leading-tight sm:text-sm">
+            {statusLine}
+          </div>
+        ))}
       </div>
     </div>
   );

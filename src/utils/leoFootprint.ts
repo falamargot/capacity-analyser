@@ -12,7 +12,13 @@ export type CoveragePolicy =
   | { type: "SERVICE_ZONE" };
 
 // Double-Zone footprint constants for 1200km altitude
-export const STANDARD_ELEVATION_DEG = 37; // Standard service zone  
+// ONEWEB_GEN1_OPERATIONAL_APPROXIMATION — 37° is consistent with OneWeb's
+// ITU/FCC filings (35–40° service elevation range cited in coordination docs).
+// The FCC has granted a 25° minimum for some markets; 37° is retained here as
+// a conservative operational estimate for simulation purposes.
+export const STANDARD_ELEVATION_DEG = 37; // Standard service zone
+// ONEWEB_GEN1_OPERATIONAL_APPROXIMATION — 15° is the geometric visibility limit
+// used for gateway reachability checks, not a guaranteed service elevation.
 export const BACKHAUL_ELEVATION_DEG = 15; // Backhaul/visibility zone
 
 // Pre-calculated radii for 1200km altitude
