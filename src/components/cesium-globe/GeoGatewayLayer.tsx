@@ -15,6 +15,7 @@ import {
 import { GEO_GATEWAYS, GeoGatewayData } from '../globe/GlobeConfig';
 import { getPosition, DPR_FACTOR, calculateDynamicScale, type CameraMetricsSnapshot } from './utils';
 import type { SatelliteScope } from '../SatelliteScopeFilter';
+import { GROUND_POINT_ALTITUDE_KM, LABEL_EYE_OFFSET } from './layerHeights';
 
 const LABEL_BACKGROUND_PADDING = new Cartesian2(7, 4);
 const LABEL_PIXEL_OFFSET = new Cartesian2(0, -20);
@@ -47,7 +48,7 @@ const GeoGatewayEntity = React.memo<{
     sizeScale
 }) => {
     const position = useMemo(
-        () => getPosition(gateway.lat, gateway.lng, 0.01),
+        () => getPosition(gateway.lat, gateway.lng, GROUND_POINT_ALTITUDE_KM),
         [gateway.lat, gateway.lng]
     );
 
@@ -56,7 +57,7 @@ const GeoGatewayEntity = React.memo<{
         return new CallbackProperty(() => {
             if (!viewerRef.current) return 6;
 
-            const gatewayPosition = getPosition(gateway.lat, gateway.lng, 0.01);
+            const gatewayPosition = getPosition(gateway.lat, gateway.lng, GROUND_POINT_ALTITUDE_KM);
             const distance = Cartesian3.distance(cameraMetricsRef.current.position, gatewayPosition);
             const dynamicScale = calculateDynamicScale(cameraMetricsRef.current.height, DPR_FACTOR);
 
@@ -64,7 +65,7 @@ const GeoGatewayEntity = React.memo<{
             const selectedBoost = isSelected ? 1.4 : 1.0;
             return baseScale * 20 * selectedBoost * (sizeScale || 1);
         }, false);
-    }, [gateway.lat, gateway.lng, cameraMetricsRef, isSelected, sizeScale]);
+    }, [gateway.lat, gateway.lng, cameraMetricsRef, isSelected, sizeScale, viewerRef]);
 
     const handleClick = useCallback(() => onGatewayClick(gateway.name), [gateway.name, onGatewayClick]);
     const handleMouseEnter = useCallback(() => onGatewayHover(gateway.name), [gateway.name, onGatewayHover]);
@@ -96,6 +97,7 @@ const GeoGatewayEntity = React.memo<{
                     pixelOffset={LABEL_PIXEL_OFFSET}
                     verticalOrigin={VerticalOrigin.BOTTOM}
                     horizontalOrigin={HorizontalOrigin.CENTER}
+                    eyeOffset={LABEL_EYE_OFFSET}
                     disableDepthTestDistance={Number.POSITIVE_INFINITY}
                 />
             )}

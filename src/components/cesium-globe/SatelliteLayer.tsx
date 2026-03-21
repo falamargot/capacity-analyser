@@ -21,6 +21,7 @@ import {
 import type { SatelliteData } from '../../types/satellites';
 import { SATELLITE_GLYPH, LEO_SMOKED_GLYPH, DPR_FACTOR, calculateDynamicScale, type CameraMetricsSnapshot } from './utils';
 import type { SatelliteStatusCategory } from '../../utils/satelliteStatus';
+import { LABEL_EYE_OFFSET } from './layerHeights';
 
 // Module-level constants — allocated once, never reallocated during rendering.
 const LABEL_BACKGROUND_PADDING = new Cartesian2(7, 4);
@@ -156,6 +157,7 @@ const SatelliteEntity = React.memo<{
                         pixelOffset={LABEL_PIXEL_OFFSET}
                         verticalOrigin={VerticalOrigin.BOTTOM}
                         horizontalOrigin={HorizontalOrigin.CENTER}
+                        eyeOffset={LABEL_EYE_OFFSET}
                         disableDepthTestDistance={Number.POSITIVE_INFINITY}
                     />
                 )}

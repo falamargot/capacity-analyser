@@ -13,6 +13,7 @@ import { generateCoverageGrid } from './utils/gridCoverage';
 import { useSimulation } from '../../contexts/SimulationContext';
 import { getPosition, propagateSatellite } from './utils';
 import { buildSimulationStateSnapshot } from '../../types/simulation';
+import { BASE_OVERLAY_LAYER_HEIGHT_M } from './layerHeights';
 
 interface AggregatedConnectivityLayerProps {
     satelliteScope: SatelliteScope;
@@ -121,7 +122,7 @@ const AggregatedConnectivityLayer: React.FC<AggregatedConnectivityLayerProps> = 
                         coordinates={rect}
                         material={coverageColor}
                         outline={false}
-                        height={1000}
+                        height={BASE_OVERLAY_LAYER_HEIGHT_M}
                     />
                 </Entity>
             ))}

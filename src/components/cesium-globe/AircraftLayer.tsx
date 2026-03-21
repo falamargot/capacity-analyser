@@ -17,6 +17,7 @@ import type { Aircraft } from '../../modules/airTraffic/airTrafficService';
 import type { AircraftInterpolation } from '../../modules/airTraffic/useAirTraffic';
 import { PLANE_ICON, DPR_FACTOR, calculateDynamicScale, type CameraMetricsSnapshot } from './utils';
 import { usePositionCallbacks } from './hooks';
+import { LABEL_EYE_OFFSET } from './layerHeights';
 
 interface AircraftLayerProps {
     aircraft: Aircraft[];
@@ -106,6 +107,7 @@ const AircraftEntity = React.memo<{
                         pixelOffset={new Cartesian2(0, -20)}
                         verticalOrigin={VerticalOrigin.BOTTOM}
                         horizontalOrigin={HorizontalOrigin.CENTER}
+                        eyeOffset={LABEL_EYE_OFFSET}
                         disableDepthTestDistance={Number.POSITIVE_INFINITY}
                     />
                 )}

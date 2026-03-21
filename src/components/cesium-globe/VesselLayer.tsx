@@ -19,6 +19,7 @@ import type { Vessel } from '../../modules/maritimeTraffic/maritimeTrafficServic
 import { VesselType, VESSEL_TYPE_CONFIG } from '../../modules/maritimeTraffic/maritimeTrafficService';
 import type { VesselInterpolation } from '../../modules/maritimeTraffic/useMaritimeTraffic';
 import { DPR_FACTOR, calculateDynamicScale, type CameraMetricsSnapshot } from './utils';
+import { GROUND_POINT_LAYER_HEIGHT_M, LABEL_EYE_OFFSET } from './layerHeights';
 
 // Simple boat icon - single rectangle oriented with vessel direction
 const BOAT_ICON = "data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='white'%3E%3Crect x='4' y='10' width='16' height='4'/%3E%3C/svg%3E";
@@ -56,8 +57,8 @@ const calculateVesselDeadReckoning = (vessel: Vessel, time: JulianDate): Cartesi
         const speedMs = speed * 0.514444;
 
         if (!isFinite(deltaT) || deltaT <= 0 || deltaT > 600 || speedMs === 0) {
-            // Sea level with small offset for visibility
-            return Cartesian3.fromDegrees(lng, lat, 50);
+            // Lift billboards slightly above ground overlays for a stable visual stack.
+            return Cartesian3.fromDegrees(lng, lat, GROUND_POINT_LAYER_HEIGHT_M);
         }
 
         const R = 6371000; // Earth radius in meters
@@ -79,12 +80,12 @@ const calculateVesselDeadReckoning = (vessel: Vessel, time: JulianDate): Cartesi
         return Cartesian3.fromDegrees(
             CesiumMath.toDegrees(newLngRad),
             CesiumMath.toDegrees(newLatRad),
-            50 // Sea level with small offset
+            GROUND_POINT_LAYER_HEIGHT_M
         );
     } catch {
         const lng = Number(vessel.longitude) || 0;
         const lat = Number(vessel.latitude) || 0;
-        return Cartesian3.fromDegrees(lng, lat, 50);
+        return Cartesian3.fromDegrees(lng, lat, GROUND_POINT_LAYER_HEIGHT_M);
     }
 };
 
@@ -163,7 +164,6 @@ const VesselEntity = React.memo<{
             }
             return calculateVesselDeadReckoning(dr, time as JulianDate);
         }, false) as CallbackPositionProperty;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [vessel.mmsi, interpolatedVesselMapRef]);
 
     // Create stable scale callback
@@ -243,6 +243,7 @@ const VesselEntity = React.memo<{
                     pixelOffset={new Cartesian2(0, -20)}
                     verticalOrigin={VerticalOrigin.BOTTOM}
                     horizontalOrigin={HorizontalOrigin.CENTER}
+                    eyeOffset={LABEL_EYE_OFFSET}
                     disableDepthTestDistance={Number.POSITIVE_INFINITY}
                 />
             )}

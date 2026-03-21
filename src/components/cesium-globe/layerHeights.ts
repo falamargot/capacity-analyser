@@ -1,0 +1,10 @@
+import { Cartesian3 } from 'cesium';
+
+export const BASE_OVERLAY_LAYER_HEIGHT_M = 400;
+export const COUNTRY_OUTLINE_LAYER_HEIGHT_M = 900;
+export const FOOTPRINT_LAYER_HEIGHT_M = 1400;
+export const FOOTPRINT_OUTLINE_LAYER_HEIGHT_M = 1600;
+export const FOOTPRINT_HIGHLIGHT_LAYER_HEIGHT_M = 1800;
+export const GROUND_POINT_ALTITUDE_KM = 3.2;
+export const GROUND_POINT_LAYER_HEIGHT_M = GROUND_POINT_ALTITUDE_KM * 1000;
+export const LABEL_EYE_OFFSET = new Cartesian3(0, 0, -500000);

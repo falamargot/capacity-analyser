@@ -62,11 +62,13 @@ import PositionDisplay from './cesium-globe/PositionDisplay';
 import SatelliteIndicator from './cesium-globe/SatelliteIndicator';
 import InspectionCard, { type HoveredEntity } from './cesium-globe/InspectionCard';
 import RegulatoryOverlayLegend from './cesium-globe/RegulatoryOverlayLegend';
+import SelectedPointScreenLabel from './cesium-globe/SelectedPointScreenLabel';
 import { GEO_GATEWAYS, SNPS_DATA, type GeoGatewayData, type SNPData } from './globe/GlobeConfig';
 import { getGatewayAssignmentsForSatellite, selectBestGeoGateway } from '../utils/geoConnectivityModel';
 import { isOperationalSatellite } from '../utils/satelliteStatus';
 import type { LeoConnectivityViewModel } from '../utils/leoServiceViewModel';
 import type { RegulatoryResult } from '../services/regulatoryService';
+import { GROUND_POINT_ALTITUDE_KM } from './cesium-globe/layerHeights';
 
 interface CesiumGlobeProps {
     satellites: SatelliteData[];
@@ -711,53 +713,8 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                         <ScreenSpaceEvent action={handleMapClick} type={ScreenSpaceEventType.LEFT_CLICK} />
                     </ScreenSpaceEventHandler>
 
-                    {/* Selected Position Marker */}
-                    {selectedPosition && (
-                        <SelectedPointStatusMarker
-                            selectedPosition={selectedPosition}
-                            pixelSize={positionMarkerPixelSize}
-                            leoServiceViewModel={leoServiceViewModel}
-                        />
-                    )}
-                    {pulsedSatellites.map((satellite) => (
-                        <SelectionPulseMarker
-                            key={`selection-pulse-satellite-${satellite.id}`}
-                            position={getSatellitePositionCallback(satellite)}
-                            anchorType="orbital"
-                            baseColor={
-                                selectedSatellite?.id === satellite.id
-                                    ? Color.RED
-                                    : satellite.type === 'ONEWEB'
-                                        ? Color.DEEPPINK
-                                        : Color.ROYALBLUE
-                            }
-                            ringBaseRadius={satellite.type === 'ONEWEB' ? 20000 : 32000}
-                        />
-                    ))}
-                    {pulsedSnp && (
-                        <SelectionPulseMarker
-                            key={`selection-pulse-snp-${pulsedSnp.name}`}
-                            position={getPosition(pulsedSnp.lat, pulsedSnp.lng, 0.01)}
-                            baseColor={Color.ORANGE}
-                            ringBaseRadius={36000}
-                        />
-                    )}
-                    {pulsedGateway && (
-                        <SelectionPulseMarker
-                            key={`selection-pulse-gateway-${pulsedGateway.name}`}
-                            position={getPosition(pulsedGateway.lat, pulsedGateway.lng, 0.01)}
-                            baseColor={Color.CYAN}
-                            ringBaseRadius={36000}
-                        />
-                    )}
-
                     {/* Regulatory overlay — country polygons coloured by simulated regulatory status */}
                     <RegulatoryLayer visible={effectiveRegulatoryOverlayVisible} />
-                    <SelectedRegulatoryCountryOutline
-                        visible={selectedCountryOutlineVisible}
-                        countryName={selectedRegulatoryResult?.countryName ?? null}
-                        status={selectedCountryOutlineStatus}
-                    />
 
                     {/* Aggregated Connectivity Layer (Bottom most coverage layer) */}
                     <AggregatedConnectivityLayer
@@ -766,46 +723,10 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                         show={leoDisplayOptionsAvailable && showAggregatedConnectivity}
                     />
 
-                    {/* Satellite Layer */}
-                    <SatelliteLayer
-                        satellites={satellites}
-                        selectedSatellite={selectedSatellite}
-                        autoSelectedLEOSatellite={autoSelectedLEOSatellite}
-                        autoSelectedGEOSatellite={autoSelectedGEOSatellite}
-                        onSatelliteClick={onSatelliteClick}
-                        onSatelliteHover={handleSatelliteHover}
-                        viewerRef={viewerRef}
-                        cameraMetricsRef={cameraMetricsRef}
-                        satelliteSizeScale={sizeScale}
-                    />
-
-                    {/* SNP Layer */}
-                    <SnpLayer
-                        satelliteScope={satelliteScope}
-                        onSnpClick={onSnpClick}
-                        onSnpHover={handleSnpHover}
-                        viewerRef={viewerRef}
-                        cameraMetricsRef={cameraMetricsRef}
-                        sizeScale={sizeScale}
-                        autoSelectedSnpName={typeof selectedSNP === 'string' ? selectedSNP : (selectedSNP?.name ?? null)}
-                        inspectedSnpName={inspectedSNP?.name ?? null}
-                    />
-
-                    {/* GEO Gateway Layer */}
-                    <GeoGatewayLayer
-                        satelliteScope={satelliteScope}
-                        onGatewayClick={onGatewayClick ?? (() => {})}
-                        onGatewayHover={handleGatewayHover}
-                        viewerRef={viewerRef}
-                        cameraMetricsRef={cameraMetricsRef}
-                        selectedGatewayName={selectedGateway?.name ?? selectedGeoGatewayName}
-                        sizeScale={sizeScale}
-                    />
-
-                    {/* Trajectory Layer */}
-                    <TrajectoryLayer
-                        satellite={selectedSatellite}
-                        show={showSatelliteTrajectory}
+                    <SelectedRegulatoryCountryOutline
+                        visible={selectedCountryOutlineVisible}
+                        countryName={selectedRegulatoryResult?.countryName ?? null}
+                        status={selectedCountryOutlineStatus}
                     />
 
                     {/* Coverage Layer */}
@@ -865,6 +786,88 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                         leoServiceViewModel={leoServiceViewModel}
                     />
 
+                    {/* Selected Position Marker */}
+                    {selectedPosition && (
+                        <SelectedPointStatusMarker
+                            selectedPosition={selectedPosition}
+                            pixelSize={positionMarkerPixelSize}
+                            leoServiceViewModel={leoServiceViewModel}
+                        />
+                    )}
+                    {pulsedSatellites.map((satellite) => (
+                        <SelectionPulseMarker
+                            key={`selection-pulse-satellite-${satellite.id}`}
+                            position={getSatellitePositionCallback(satellite)}
+                            anchorType="orbital"
+                            baseColor={
+                                selectedSatellite?.id === satellite.id
+                                    ? Color.RED
+                                    : satellite.type === 'ONEWEB'
+                                        ? Color.DEEPPINK
+                                        : Color.ROYALBLUE
+                            }
+                            ringBaseRadius={satellite.type === 'ONEWEB' ? 20000 : 32000}
+                        />
+                    ))}
+                    {pulsedSnp && (
+                        <SelectionPulseMarker
+                            key={`selection-pulse-snp-${pulsedSnp.name}`}
+                            position={getPosition(pulsedSnp.lat, pulsedSnp.lng, GROUND_POINT_ALTITUDE_KM)}
+                            baseColor={Color.ORANGE}
+                            ringBaseRadius={36000}
+                        />
+                    )}
+                    {pulsedGateway && (
+                        <SelectionPulseMarker
+                            key={`selection-pulse-gateway-${pulsedGateway.name}`}
+                            position={getPosition(pulsedGateway.lat, pulsedGateway.lng, GROUND_POINT_ALTITUDE_KM)}
+                            baseColor={Color.CYAN}
+                            ringBaseRadius={36000}
+                        />
+                    )}
+
+                    {/* Satellite Layer */}
+                    <SatelliteLayer
+                        satellites={satellites}
+                        selectedSatellite={selectedSatellite}
+                        autoSelectedLEOSatellite={autoSelectedLEOSatellite}
+                        autoSelectedGEOSatellite={autoSelectedGEOSatellite}
+                        onSatelliteClick={onSatelliteClick}
+                        onSatelliteHover={handleSatelliteHover}
+                        viewerRef={viewerRef}
+                        cameraMetricsRef={cameraMetricsRef}
+                        satelliteSizeScale={sizeScale}
+                    />
+
+                    {/* SNP Layer */}
+                    <SnpLayer
+                        satelliteScope={satelliteScope}
+                        onSnpClick={onSnpClick}
+                        onSnpHover={handleSnpHover}
+                        viewerRef={viewerRef}
+                        cameraMetricsRef={cameraMetricsRef}
+                        sizeScale={sizeScale}
+                        autoSelectedSnpName={typeof selectedSNP === 'string' ? selectedSNP : (selectedSNP?.name ?? null)}
+                        inspectedSnpName={inspectedSNP?.name ?? null}
+                    />
+
+                    {/* GEO Gateway Layer */}
+                    <GeoGatewayLayer
+                        satelliteScope={satelliteScope}
+                        onGatewayClick={onGatewayClick ?? (() => {})}
+                        onGatewayHover={handleGatewayHover}
+                        viewerRef={viewerRef}
+                        cameraMetricsRef={cameraMetricsRef}
+                        selectedGatewayName={selectedGateway?.name ?? selectedGeoGatewayName}
+                        sizeScale={sizeScale}
+                    />
+
+                    {/* Trajectory Layer */}
+                    <TrajectoryLayer
+                        satellite={selectedSatellite}
+                        show={showSatelliteTrajectory}
+                    />
+
                     {/* Aircraft Layer */}
                     {airTrafficEnabled && (
                         <AircraftLayer
@@ -896,6 +899,13 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
             </div>
 
             <InspectionCard entity={hoveredEntity} containerRef={globeContainerRef} />
+            <SelectedPointScreenLabel
+                viewerRef={viewerRef}
+                containerRef={globeContainerRef}
+                selectedPosition={selectedPosition}
+                leoServiceViewModel={leoServiceViewModel}
+                viewerReady={viewerReady}
+            />
         </div>
     );
 };

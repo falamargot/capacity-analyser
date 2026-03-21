@@ -14,6 +14,7 @@ import {
 } from 'cesium';
 import { useCesium } from 'resium';
 import { getRegulatoryOverlayState } from './materials/regulatoryMaterials';
+import { BASE_OVERLAY_LAYER_HEIGHT_M } from './layerHeights';
 
 declare global {
   interface Window {
@@ -47,7 +48,6 @@ const loadRegulatoryDataSource = (): Promise<CustomDataSource> => {
       throw new Error(`[RegulatoryLayer] HTTP ${response.status} loading ${REGULATORY_OVERLAY_URL}`);
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const geojson = await response.json() as any;
     const ds = new CustomDataSource('regulatory-overlay');
 
@@ -71,9 +71,7 @@ const loadRegulatoryDataSource = (): Promise<CustomDataSource> => {
             hierarchy: positions,
             material: new ColorMaterialProperty(fillColor),
             outline: false,
-            // 500 m above the ellipsoid — above z-fighting range with the
-            // terrain mesh, invisible from globe-view scale (globe r ≈ 6371 km).
-            height: 500,
+            height: BASE_OVERLAY_LAYER_HEIGHT_M,
             perPositionHeight: false,
           },
         });
@@ -137,13 +135,21 @@ const RegulatoryLayer: React.FC<RegulatoryLayerProps> = ({ visible }) => {
         dataSourceRef.current = ds;
 
         if (!isAddedRef.current) {
-          viewer.dataSources.add(ds);
+          const addedDataSource = await viewer.dataSources.add(ds);
+          if (cancelled || viewer.isDestroyed()) {
+            if (viewer.dataSources.contains(addedDataSource)) {
+              viewer.dataSources.remove(addedDataSource, false);
+            }
+            return;
+          }
+
+          viewer.dataSources.lowerToBottom(addedDataSource);
           isAddedRef.current = true;
 
           // Debug helper — call in browser console to verify polygon rendering:
           //   window.__regulatoryHighlightRed()
           window.__regulatoryHighlightRed = () => {
-            for (const entity of ds.entities.values) {
+            for (const entity of addedDataSource.entities.values) {
               if (entity.polygon) {
                 entity.polygon.material = new ColorMaterialProperty(
                   Color.RED.withAlpha(0.8),
@@ -165,13 +171,12 @@ const RegulatoryLayer: React.FC<RegulatoryLayerProps> = ({ visible }) => {
     return () => {
       cancelled = true;
       const ds = dataSourceRef.current;
-      if (ds && !viewer.isDestroyed() && isAddedRef.current) {
+      if (ds && !viewer.isDestroyed() && isAddedRef.current && viewer.dataSources.contains(ds)) {
         viewer.dataSources.remove(ds, false); // false = don't destroy, allow re-add
       }
       isAddedRef.current = false;
       dataSourceRef.current = null;
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [viewer]); // visibleRef used for initial visibility — avoids re-add on every toggle
 
   // Effect B — visibility sync only.

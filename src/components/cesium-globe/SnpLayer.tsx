@@ -17,6 +17,7 @@ import { SNPS_DATA, SNPData } from '../globe/GlobeConfig';
 import { getPosition, DPR_FACTOR, calculateDynamicScale, type CameraMetricsSnapshot } from './utils';
 import type { SatelliteScope } from '../SatelliteScopeFilter';
 import { useSimulation } from '../../contexts/SimulationContext';
+import { FOOTPRINT_LAYER_HEIGHT_M, GROUND_POINT_ALTITUDE_KM, LABEL_EYE_OFFSET } from './layerHeights';
 
 interface SnpLayerProps {
     satelliteScope: SatelliteScope;
@@ -51,7 +52,7 @@ const SnpEntity = React.memo<{
     isInspected
 }) => {
     const position = useMemo(
-        () => getPosition(snp.lat, snp.lng, 0.01),
+        () => getPosition(snp.lat, snp.lng, GROUND_POINT_ALTITUDE_KM),
         [snp.lat, snp.lng]
     );
 
@@ -60,14 +61,14 @@ const SnpEntity = React.memo<{
         return new CallbackProperty(() => {
             if (!viewerRef.current) return 6;
 
-            const snpPosition = getPosition(snp.lat, snp.lng, 0.01);
+            const snpPosition = getPosition(snp.lat, snp.lng, GROUND_POINT_ALTITUDE_KM);
             const distance = Cartesian3.distance(cameraMetricsRef.current.position, snpPosition);
             const dynamicScale = calculateDynamicScale(cameraMetricsRef.current.height, DPR_FACTOR);
 
             const baseScale = dynamicScale * 3000000 / Math.max(distance, 10000000);
             return baseScale * 20 * sizeScale;
         }, false);
-    }, [snp.lat, snp.lng, cameraMetricsRef, sizeScale]);
+    }, [snp.lat, snp.lng, cameraMetricsRef, sizeScale, viewerRef]);
 
     const handleClick = useCallback(() => onSnpClick(snp.name), [snp.name, onSnpClick]);
     const handleMouseEnter = useCallback(() => onSnpHover(snp.name), [snp.name, onSnpHover]);
@@ -96,7 +97,7 @@ const SnpEntity = React.memo<{
                         outline={true}
                         outlineColor={Color.ORANGE.withAlpha(0.9)}
                         outlineWidth={3}
-                        height={5000}
+                        height={FOOTPRINT_LAYER_HEIGHT_M}
                         fill={true}
                     />
                 </Entity>
@@ -129,6 +130,7 @@ const SnpEntity = React.memo<{
                         pixelOffset={new Cartesian2(0, -20)}
                         verticalOrigin={VerticalOrigin.BOTTOM}
                         horizontalOrigin={HorizontalOrigin.CENTER}
+                        eyeOffset={LABEL_EYE_OFFSET}
                         disableDepthTestDistance={Number.POSITIVE_INFINITY}
                     />
                 )}

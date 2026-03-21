@@ -13,8 +13,8 @@ import {
   VerticalOrigin,
 } from 'cesium';
 import type { LeoConnectivityViewModel } from '../../utils/leoServiceViewModel';
-import { formatCoordinates } from '../../utils/formatters';
 import { getPosition } from './utils';
+import { GROUND_POINT_ALTITUDE_KM, GROUND_POINT_LAYER_HEIGHT_M, LABEL_EYE_OFFSET } from './layerHeights';
 
 interface SelectionPulseMarkerProps {
   position: Cartesian3 | CallbackPositionProperty;
@@ -42,17 +42,6 @@ const statusColor = (viewModel?: LeoConnectivityViewModel | null): Color => {
   if (viewModel?.finalServiceStatus === 'ALLOWED') return Color.fromCssColorString('#10b981');
   if (viewModel?.regulatory.status === 'UNKNOWN') return Color.fromCssColorString('#94a3b8');
   return Color.RED;
-};
-
-const statusLabel = (viewModel?: LeoConnectivityViewModel | null): string => {
-  if (!viewModel) return 'Selected target';
-  if (viewModel.finalServiceStatus === 'BLOCKED') {
-    return viewModel.primaryReasonLayer === 'regulatory'
-      ? 'Service blocked · RF may still exist'
-      : 'Service blocked';
-  }
-  if (viewModel.finalServiceStatus === 'DEGRADED') return 'Service degraded';
-  return 'Service available';
 };
 
 export const SelectionPulseMarker: React.FC<SelectionPulseMarkerProps> = ({
@@ -111,7 +100,7 @@ export const SelectionPulseMarker: React.FC<SelectionPulseMarkerProps> = ({
                 outline: new ConstantProperty(true),
                 outlineColor: new ConstantProperty(baseColor.withAlpha(0.85)),
                 outlineWidth: new ConstantProperty(2),
-                height: new ConstantProperty(0),
+                height: new ConstantProperty(GROUND_POINT_LAYER_HEIGHT_M),
               },
             })}
       />
@@ -140,6 +129,7 @@ export const SelectionPulseMarker: React.FC<SelectionPulseMarkerProps> = ({
               pixelOffset={new Cartesian2(0, -26)}
               verticalOrigin={VerticalOrigin.BOTTOM}
               horizontalOrigin={HorizontalOrigin.CENTER}
+              eyeOffset={LABEL_EYE_OFFSET}
               disableDepthTestDistance={Number.POSITIVE_INFINITY}
             />
           )}
@@ -165,18 +155,16 @@ const SelectedPointStatusMarker: React.FC<SelectedPointStatusMarkerProps> = ({
     : leoServiceViewModel?.renderingHints.userMarkerState === 'degraded'
       ? 36000
       : 32000;
-  const labelText = `${formatCoordinates({ lat: selectedPosition.lat, lng: selectedPosition.lng })}\n${statusLabel(leoServiceViewModel)}`;
 
   return (
     <SelectionPulseMarker
-      position={getPosition(selectedPosition.lat, selectedPosition.lng, 0.01)}
       baseColor={baseColor}
       pulseSpeed={pulseSpeed}
       ringBaseRadius={ringBaseRadius}
       pointPixelSize={pixelSize}
-      labelText={labelText}
       name="Selected Position"
       showPoint={true}
+      position={getPosition(selectedPosition.lat, selectedPosition.lng, GROUND_POINT_ALTITUDE_KM)}
     />
   );
 };

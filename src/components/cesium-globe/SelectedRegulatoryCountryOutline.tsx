@@ -3,6 +3,7 @@ import { Entity } from 'resium';
 import { Cartesian3, Color } from 'cesium';
 import type { RegulatoryResult } from '../../services/regulatoryService';
 import { getRegulatoryOverlayState } from './materials/regulatoryMaterials';
+import { COUNTRY_OUTLINE_LAYER_HEIGHT_M } from './layerHeights';
 
 interface RegulatoryOutlineFeature {
   name: string;
@@ -16,8 +17,6 @@ interface SelectedRegulatoryCountryOutlineProps {
 }
 
 const REGULATORY_OUTLINE_URL = '/oneweb_regulatory_overlay.geojson';
-const COUNTRY_OUTLINE_HEIGHT_M = 1600;
-
 let cachedOutlineFeaturesPromise: Promise<RegulatoryOutlineFeature[]> | null = null;
 
 const normalizeName = (value?: string | null) => value?.trim().toLowerCase() ?? '';
@@ -108,7 +107,7 @@ const SelectedRegulatoryCountryOutline: React.FC<SelectedRegulatoryCountryOutlin
           if (!Array.isArray(coordinate) || coordinate.length < 2) continue;
           const [lng, lat] = coordinate;
           if (!Number.isFinite(lng) || !Number.isFinite(lat)) continue;
-          degreesWithHeights.push(lng, lat, COUNTRY_OUTLINE_HEIGHT_M);
+          degreesWithHeights.push(lng, lat, COUNTRY_OUTLINE_LAYER_HEIGHT_M);
         }
         if (degreesWithHeights.length < 9) return null;
         return {

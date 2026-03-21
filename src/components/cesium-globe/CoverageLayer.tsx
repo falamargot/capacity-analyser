@@ -14,8 +14,12 @@ import {
     getFeatureBeamCoverageKey,
     getFeatureCandidateCoverageKey
 } from '../../utils/geoCoverageSelection';
+import {
+    FOOTPRINT_HIGHLIGHT_LAYER_HEIGHT_M,
+    FOOTPRINT_LAYER_HEIGHT_M,
+    FOOTPRINT_OUTLINE_LAYER_HEIGHT_M,
+} from './layerHeights';
 
-const SELECTED_GEO_CONTOUR_HEIGHT_M = 10000;
 const SELECTED_GEO_CONTOUR_COLOR = Color.fromCssColorString('#2563eb').withAlpha(0.98);
 const GEO_CONTOUR_COLOR = Color.fromCssColorString('#60a5fa').withAlpha(0.9);
 
@@ -158,9 +162,9 @@ const CoveragePolygon = React.memo<{
             const closed = buildClosedRing(ring);
             const arr: number[] = [];
             for (const [lng, lat] of closed) {
-                arr.push(lng, lat);
+                arr.push(lng, lat, FOOTPRINT_OUTLINE_LAYER_HEIGHT_M);
             }
-            return Cartesian3.fromDegreesArray(arr);
+            return Cartesian3.fromDegreesArrayHeights(arr);
         } catch {
             return undefined;
         }
@@ -177,6 +181,7 @@ const CoveragePolygon = React.memo<{
                     outline={!!outlineColor && !isSelected}
                     outlineColor={!isSelected ? (outlineColor || undefined) : undefined}
                     outlineWidth={1}
+                    height={FOOTPRINT_LAYER_HEIGHT_M}
                 />
             </Entity>
             {isGeoCoverage && outlineColor && !isSelected && polylinePositions && (
@@ -187,7 +192,8 @@ const CoveragePolygon = React.memo<{
                         positions: polylinePositions,
                         width: isCandidate ? 1.5 : 1,
                         material: outlineColor,
-                        clampToGround: true,
+                        clampToGround: false,
+                        depthFailMaterial: outlineColor,
                     }}
                 />
             )}
@@ -235,7 +241,7 @@ const CoverageLayer: React.FC<CoverageLayerProps> = ({
                 const contourDegrees: number[] = [];
                 for (const [lng, lat] of closed) {
                     polygonDegrees.push(lng, lat);
-                    contourDegrees.push(lng, lat, SELECTED_GEO_CONTOUR_HEIGHT_M);
+                    contourDegrees.push(lng, lat, FOOTPRINT_HIGHLIGHT_LAYER_HEIGHT_M);
                 }
 
                 return {
@@ -356,6 +362,7 @@ const CoverageLayer: React.FC<CoverageLayerProps> = ({
                             hierarchy={rendering.hierarchy}
                             material={rendering.fillColor}
                             outline={false}
+                            height={FOOTPRINT_LAYER_HEIGHT_M}
                         />
                     </Entity>
                     <Entity

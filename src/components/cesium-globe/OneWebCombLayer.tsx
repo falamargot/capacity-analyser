@@ -31,6 +31,11 @@ import {
     getBeamBaseColor,
 } from '../../config/beamVisualization';
 import type { LeoConnectivityViewModel } from '../../utils/leoServiceViewModel';
+import {
+    FOOTPRINT_HIGHLIGHT_LAYER_HEIGHT_M,
+    FOOTPRINT_LAYER_HEIGHT_M,
+    FOOTPRINT_OUTLINE_LAYER_HEIGHT_M,
+} from './layerHeights';
 
 
 // ─── Geometry helper ────────────────────────────────────────────────
@@ -68,9 +73,6 @@ const BLOCKED_BEAM_BASE = Color.fromCssColorString('#cbd5e1');
 const HIGH_LOAD_TINT = Color.fromCssColorString('#fb7185');
 const SATURATED_LOAD_TINT = Color.fromCssColorString('#ef4444');
 const SOFT_LOAD_TINT = Color.fromCssColorString('#fdf2f8');
-const FOOTPRINT_LAYER_HEIGHT_M = 1200;
-const FOOTPRINT_HIGHLIGHT_HEIGHT_M = 1400;
-
 function getDiagnosticBeamColor(baseColor: Color, ringOpacity: number): Color {
     const mixed = new Color();
     Color.lerp(baseColor, BLOCKED_BEAM_BASE, 0.72, mixed);
@@ -388,8 +390,18 @@ const OneWebCombLayer: React.FC<OneWebCombLayerProps> = ({
             const sanitized = sanitizeCartesianRing(polygon);
             if (sanitized.length < 3) return DUMMY_POLYGON;
 
-            const [first] = sanitized;
-            return first ? [...sanitized, first] : DUMMY_POLYGON;
+            const degreesWithHeights: number[] = [];
+            const closed = [...sanitized, sanitized[0]];
+            for (const point of closed) {
+                const cartographic = Cartographic.fromCartesian(point);
+                degreesWithHeights.push(
+                    CesiumMath.toDegrees(cartographic.longitude),
+                    CesiumMath.toDegrees(cartographic.latitude),
+                    FOOTPRINT_HIGHLIGHT_LAYER_HEIGHT_M
+                );
+            }
+
+            return Cartesian3.fromDegreesArrayHeights(degreesWithHeights);
         }, false);
 
         const material = new ColorMaterialProperty(new CallbackProperty((time?: JulianDate) => {
@@ -421,7 +433,6 @@ const OneWebCombLayer: React.FC<OneWebCombLayerProps> = ({
     // They guard against null targetSat internally and produce no-op values in that case.
     const horizonRadius = useMemo(
         () => targetSat ? footprintRadiusKm(targetSat.position.alt || 1200, BACKHAUL_ELEVATION_DEG) * 1000 : 0,
-        // eslint-disable-next-line react-hooks/exhaustive-deps
         [targetSat?.position.alt]
     );
 
@@ -433,7 +444,6 @@ const OneWebCombLayer: React.FC<OneWebCombLayerProps> = ({
                     : Color.fromCssColorString(getCoverageColor('ONEWEB_BACKHAUL', 0.2, targetSat, failedSnps))
             )
             : Color.TRANSPARENT,
-        // eslint-disable-next-line react-hooks/exhaustive-deps
         [targetSat?.id, failedSnps, regulatoryOverlayActive, leoServiceViewModel?.serviceStatus, leoServiceViewModel?.decisionDriver]
     );
 
@@ -445,7 +455,6 @@ const OneWebCombLayer: React.FC<OneWebCombLayerProps> = ({
                     : Color.fromCssColorString(getCoverageColor('ONEWEB_STANDARD', 0.1, targetSat, failedSnps))
             )
             : Color.TRANSPARENT,
-        // eslint-disable-next-line react-hooks/exhaustive-deps
         [targetSat?.id, failedSnps, regulatoryOverlayActive, leoServiceViewModel?.serviceStatus, leoServiceViewModel?.decisionDriver]
     );
 
@@ -457,7 +466,6 @@ const OneWebCombLayer: React.FC<OneWebCombLayerProps> = ({
                     : Color.fromCssColorString(getCoverageColor('ONEWEB_STANDARD', 0.6, targetSat, failedSnps))
             )
             : Color.TRANSPARENT,
-        // eslint-disable-next-line react-hooks/exhaustive-deps
         [targetSat?.id, failedSnps, regulatoryOverlayActive, leoServiceViewModel?.serviceStatus, leoServiceViewModel?.decisionDriver]
     );
 
@@ -465,7 +473,6 @@ const OneWebCombLayer: React.FC<OneWebCombLayerProps> = ({
     // memoized so it only re-runs when the satellite position or SNP state changes.
     const hasBackhaul = useMemo(
         () => targetSat ? hasSNPInCoverage(targetSat, failedSnps) : false,
-        // eslint-disable-next-line react-hooks/exhaustive-deps
         [targetSat?.id, targetSat?.position.lat, targetSat?.position.lng, failedSnps]
     );
 
@@ -486,7 +493,7 @@ const OneWebCombLayer: React.FC<OneWebCombLayerProps> = ({
                     outline={true}
                     outlineColor={backhaulColor.withAlpha(1)}
                     outlineWidth={2}
-                    height={2000}
+                    height={FOOTPRINT_OUTLINE_LAYER_HEIGHT_M}
                 />
             </Entity>
 
@@ -499,7 +506,7 @@ const OneWebCombLayer: React.FC<OneWebCombLayerProps> = ({
                     outline={false}
                     outlineColor={standardColorOutline.withAlpha(1)}
                     outlineWidth={2}
-                    height={1000}
+                    height={FOOTPRINT_LAYER_HEIGHT_M}
                 />
             </Entity>
 
@@ -526,7 +533,7 @@ const OneWebCombLayer: React.FC<OneWebCombLayerProps> = ({
                     outline={true}
                     outlineColor={highlight.outlineColor}
                     outlineWidth={3}
-                    height={FOOTPRINT_HIGHLIGHT_HEIGHT_M}
+                    height={FOOTPRINT_HIGHLIGHT_LAYER_HEIGHT_M}
                 />
             </Entity>
             <Entity
