@@ -17,6 +17,8 @@ import { getPosition, DPR_FACTOR, calculateDynamicScale, type CameraMetricsSnaps
 import type { SatelliteScope } from '../SatelliteScopeFilter';
 import { GROUND_POINT_ALTITUDE_KM, LABEL_EYE_OFFSET } from './layerHeights';
 
+const GATEWAY_MARKER_PIXEL_MULTIPLIER = 12;
+const SELECTED_GATEWAY_SIZE_BOOST = 1.2;
 const LABEL_BACKGROUND_PADDING = new Cartesian2(7, 4);
 const LABEL_PIXEL_OFFSET = new Cartesian2(0, -20);
 
@@ -62,8 +64,8 @@ const GeoGatewayEntity = React.memo<{
             const dynamicScale = calculateDynamicScale(cameraMetricsRef.current.height, DPR_FACTOR);
 
             const baseScale = dynamicScale * 3000000 / Math.max(distance, 10000000);
-            const selectedBoost = isSelected ? 1.4 : 1.0;
-            return baseScale * 20 * selectedBoost * (sizeScale || 1);
+            const selectedBoost = isSelected ? SELECTED_GATEWAY_SIZE_BOOST : 1.0;
+            return baseScale * GATEWAY_MARKER_PIXEL_MULTIPLIER * selectedBoost * (sizeScale || 1);
         }, false);
     }, [gateway.lat, gateway.lng, cameraMetricsRef, isSelected, sizeScale, viewerRef]);
 

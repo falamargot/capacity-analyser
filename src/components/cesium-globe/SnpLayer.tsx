@@ -19,6 +19,8 @@ import type { SatelliteScope } from '../SatelliteScopeFilter';
 import { useSimulation } from '../../contexts/SimulationContext';
 import { FOOTPRINT_LAYER_HEIGHT_M, GROUND_POINT_ALTITUDE_KM, LABEL_EYE_OFFSET } from './layerHeights';
 
+const SNP_MARKER_PIXEL_MULTIPLIER = 12;
+
 interface SnpLayerProps {
     satelliteScope: SatelliteScope;
     onSnpClick: (snpName: string | null) => void;
@@ -66,7 +68,7 @@ const SnpEntity = React.memo<{
             const dynamicScale = calculateDynamicScale(cameraMetricsRef.current.height, DPR_FACTOR);
 
             const baseScale = dynamicScale * 3000000 / Math.max(distance, 10000000);
-            return baseScale * 20 * sizeScale;
+            return baseScale * SNP_MARKER_PIXEL_MULTIPLIER * sizeScale;
         }, false);
     }, [snp.lat, snp.lng, cameraMetricsRef, sizeScale, viewerRef]);
 

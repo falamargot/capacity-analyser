@@ -15,9 +15,9 @@ import {
     getFeatureCandidateCoverageKey
 } from '../../utils/geoCoverageSelection';
 import {
-    FOOTPRINT_HIGHLIGHT_LAYER_HEIGHT_M,
-    FOOTPRINT_LAYER_HEIGHT_M,
-    FOOTPRINT_OUTLINE_LAYER_HEIGHT_M,
+    GEO_FOOTPRINT_HIGHLIGHT_LAYER_HEIGHT_M,
+    GEO_FOOTPRINT_LAYER_HEIGHT_M,
+    GEO_FOOTPRINT_OUTLINE_LAYER_HEIGHT_M,
 } from './layerHeights';
 
 const SELECTED_GEO_CONTOUR_COLOR = Color.fromCssColorString('#2563eb').withAlpha(0.98);
@@ -162,7 +162,7 @@ const CoveragePolygon = React.memo<{
             const closed = buildClosedRing(ring);
             const arr: number[] = [];
             for (const [lng, lat] of closed) {
-                arr.push(lng, lat, FOOTPRINT_OUTLINE_LAYER_HEIGHT_M);
+                arr.push(lng, lat, GEO_FOOTPRINT_OUTLINE_LAYER_HEIGHT_M);
             }
             return Cartesian3.fromDegreesArrayHeights(arr);
         } catch {
@@ -181,7 +181,7 @@ const CoveragePolygon = React.memo<{
                     outline={!!outlineColor && !isSelected}
                     outlineColor={!isSelected ? (outlineColor || undefined) : undefined}
                     outlineWidth={1}
-                    height={FOOTPRINT_LAYER_HEIGHT_M}
+                    height={GEO_FOOTPRINT_LAYER_HEIGHT_M}
                 />
             </Entity>
             {isGeoCoverage && outlineColor && !isSelected && polylinePositions && (
@@ -241,7 +241,7 @@ const CoverageLayer: React.FC<CoverageLayerProps> = ({
                 const contourDegrees: number[] = [];
                 for (const [lng, lat] of closed) {
                     polygonDegrees.push(lng, lat);
-                    contourDegrees.push(lng, lat, FOOTPRINT_HIGHLIGHT_LAYER_HEIGHT_M);
+                    contourDegrees.push(lng, lat, GEO_FOOTPRINT_HIGHLIGHT_LAYER_HEIGHT_M);
                 }
 
                 return {
@@ -362,7 +362,7 @@ const CoverageLayer: React.FC<CoverageLayerProps> = ({
                             hierarchy={rendering.hierarchy}
                             material={rendering.fillColor}
                             outline={false}
-                            height={FOOTPRINT_LAYER_HEIGHT_M}
+                            height={GEO_FOOTPRINT_LAYER_HEIGHT_M}
                         />
                     </Entity>
                     <Entity
