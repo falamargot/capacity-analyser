@@ -308,7 +308,11 @@ export async function fetchSatellites(): Promise<SatelliteData[]> {
           // Source: EOPortal OneWeb mission profile — "capacity per satellite: 7.2 Gbps"
           maxThroughput: 7.2,
           bandwidth: {
-            ku: 250, // MHz — Ku-band user links (8 channels × 250 MHz = 2 GHz total)
+            // 8 frequency channels × 250 MHz per channel = 2 GHz total Ku-band spectrum.
+            // Frequency reuse: 4-cell pattern (LHCP/RHCP isolation), 2 beams share each channel.
+            // The 7.2 Gbps headline capacity already accounts for this reuse — do NOT multiply
+            // per-channel capacity by 16 beams; the correct multiplier is 8 channels.
+            ku: 250, // MHz — per Ku-band channel (user links)
             ka: 150, // MHz — Ka-band gateway/feeder links
             // No C-band: OneWeb Gen 1 is strictly Ku (user) + Ka (gateway)
           },

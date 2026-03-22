@@ -51,6 +51,7 @@ import TransmissionLinks from './cesium-globe/TransmissionLinks';
 import TrajectoryLayer from './cesium-globe/TrajectoryLayer';
 import GeoGatewayLayer from './cesium-globe/GeoGatewayLayer';
 import AggregatedConnectivityLayer from './cesium-globe/AggregatedConnectivityLayer';
+import LeoVisibilityDensityLayer from './cesium-globe/LeoVisibilityDensityLayer';
 import RegulatoryLayer from './cesium-globe/RegulatoryLayer';
 import SelectedRegulatoryCountryOutline from './cesium-globe/SelectedRegulatoryCountryOutline';
 import SelectedPointStatusMarker, { SelectionPulseMarker } from './cesium-globe/SelectedPointStatusMarker';
@@ -197,6 +198,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
     const enableLighting = localEnableLighting;
     const onToggleLighting = () => setLocalEnableLighting(!enableLighting);
     const [showAggregatedConnectivity, setShowAggregatedConnectivity] = useState(false);
+    const [showLeoDensityHeatmap, setShowLeoDensityHeatmap] = useState(false);
     const [hoveredEntity, setHoveredEntity] = useState<HoveredEntity>(null);
     const hoveredEntityKeyRef = useRef<string | null>(null);
     const cameraMetricsRef = useRef<CameraMetricsSnapshot>({
@@ -704,6 +706,8 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                 onToggleAggregatedConnectivity={() => setShowAggregatedConnectivity(!showAggregatedConnectivity)}
                 showRegulatoryOverlay={showRegulatoryOverlay}
                 onToggleRegulatoryOverlay={onToggleRegulatoryOverlay}
+                showLeoDensityHeatmap={showLeoDensityHeatmap}
+                onToggleLeoDensityHeatmap={() => setShowLeoDensityHeatmap(v => !v)}
                 satelliteScope={satelliteScope}
             />
 
@@ -737,6 +741,12 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                         satelliteScope={satelliteScope}
                         satellites={satellites}
                         show={showAggregatedConnectivity}
+                    />
+
+                    {/* LEO Density Heatmap — polar Walker-Star coverage density */}
+                    <LeoVisibilityDensityLayer
+                        satellites={satellites}
+                        show={showLeoDensityHeatmap && satelliteScope !== 'GEO'}
                     />
 
                     <SelectedRegulatoryCountryOutline

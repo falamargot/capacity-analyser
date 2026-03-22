@@ -272,7 +272,6 @@ const GradientBeamPolygon = React.memo<{
 });
 GradientBeamPolygon.displayName = 'GradientBeamPolygon';
 
-
 const OneWebCombLayer: React.FC<OneWebCombLayerProps> = ({
     targetSat,
     viewerRef,

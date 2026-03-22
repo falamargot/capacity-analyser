@@ -13,7 +13,10 @@ import type { SimulationStateSnapshot } from '../types/simulation';
 
 export const BEAM_WIDTH_KM = 67.5;
 export const TOTAL_BEAMS = 16;
-export const BEAM_LENGTH_KM = 1080;
+// Total cross-track swath: 16 beams × 67.5 km = 1080 km.
+// Note: the along-track length of a single beam is ~1600 km (semiMajorAxisKm in calculateCombGeometry).
+// BEAM_LENGTH_KM was a historical alias for this constant — it is misleading because 1080 km is the
+// CROSS-TRACK swath width, not the along-track beam length.
 export const TOTAL_SWATH_WIDTH_KM = BEAM_WIDTH_KM * TOTAL_BEAMS; // 1080 km
 
 interface PropagatedOrbitState {
@@ -207,7 +210,12 @@ export function calculateGSOAvoidanceAngle(
         timeMs,
         pitchAngleRad,
         isGSOAvoidance: Math.abs(pitchAngleRad) > 0.01, // Seuil de détection d'activité GSO Protection
-        isBlankingZone: Math.abs(satLatDeg) <= 2.0, // GSO Exclusion Zone
+        // GSO Exclusion Zone: hard blanking when satellite latitude ≤ 5°.
+        // At 1200 km altitude, a satellite within ±5° of the equator can illuminate the GEO arc
+        // (35 786 km, 0° lat) at a separation angle below ITU-R S.1003 safe margins.
+        // ±2° was too narrow: the effective exclusion geometry extends to ~±5° depending on
+        // beam-pointing direction and GEO arc elevation from the satellite.
+        isBlankingZone: Math.abs(satLatDeg) <= 5.0,
         satLatDeg,
         isMovingNorth
     };
@@ -314,7 +322,7 @@ export function calculateCombGeometry(
         }
 
         // Dimensions adjusted by all physics factors
-        const semiMajorAxisKm = (1270 / 2) * beamScale;
+        const semiMajorAxisKm = (1600 / 2) * beamScale;
         const semiMinorAxisKm = (102 / 2) * beamScale;
         const yOffsetKm = (i - middle) * beamCenterStepKm;
 

@@ -48,8 +48,27 @@ export const GRADIENT_RENDERING = {
 // ────────────────────────────────────────────────────────────────────
 export const FREQUENCY_REUSE = {
     ENABLED: true,
-    /** Number of color groups (classic 4-cell pattern) */
+    /**
+     * 4-cell frequency-reuse pattern (beamIndex % 4).
+     * OneWeb Gen 1 uses 8 × 250 MHz Ku-band channels (4 frequency slices × 2 polarizations).
+     * Two beams share each channel: e.g. beams 0 & 8 share GROUP_A/LHCP with ~4 cross-track
+     * beams of separation (~810 km), providing sufficient spatial isolation for co-channel reuse.
+     *
+     * Capacity constraint: the total available Ku-band throughput is limited to
+     * 8 channels × 250 MHz — NOT 16 independent channels. The per-satellite 7.2 Gbps
+     * headline capacity already accounts for this 4× frequency-reuse factor.
+     * Two co-channel beams CANNOT independently schedule conflicting transmissions —
+     * the scheduler must coordinate them. This constraint is NOT currently modelled in
+     * the beam-level capacity simulation.
+     */
     PATTERN: 4,
+
+    /**
+     * Number of beams that share each Ku-band frequency channel.
+     * With PATTERN=4 groups × 4 beams each and 2-polarization isolation:
+     *   8 effective channels, 2 beams per channel (separated by ~810 km cross-track).
+     */
+    BEAMS_PER_FREQUENCY_CHANNEL: 2,
 
     /** Color for each frequency group (A–D) */
     COLORS: {

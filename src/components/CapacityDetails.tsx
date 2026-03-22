@@ -7,7 +7,7 @@ import { SatelliteScope } from './SatelliteScopeFilter';
 import SatelliteDetails from './SatelliteDetails';
 import { SPEED_OF_LIGHT_RADIO_KM_S, RealTimeCapacityData, calculateElevationAngle, compute3DDistanceKm } from '../utils/capacityCalculator';
 import { SNPS_DATA } from './globe/GlobeConfig';
-import { BEAM_LENGTH_KM, TOTAL_BEAMS, BEAM_WIDTH_KM } from '../utils/oneWebComb';
+import { TOTAL_SWATH_WIDTH_KM, TOTAL_BEAMS, BEAM_WIDTH_KM } from '../utils/oneWebComb';
 import { findConnectedBeamIndex, hasRFConnectivity } from '../utils/rfConnectivity';
 import { isPointInCoverage } from '../utils/coverageCalculator';
 import { getBestConnectedGateway } from '../utils/connectivityRules';
@@ -185,7 +185,7 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
     const limitingDistanceKm = Math.max(userLEODistance, snpLEODistance);
 
     // Footprint factor
-    const a = BEAM_LENGTH_KM / 2;
+    const a = TOTAL_SWATH_WIDTH_KM / 2;
     const b = BEAM_WIDTH_KM / 2;
     const kmPerDegLat = 111.32;
     const lat0Rad = (satLat * Math.PI) / 180;

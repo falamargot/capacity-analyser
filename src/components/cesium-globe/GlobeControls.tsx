@@ -10,6 +10,7 @@ import {
 } from 'cesium';
 import {
     Globe,
+    Layers,
     Map,
     Minus,
     Orbit,
@@ -42,6 +43,8 @@ interface GlobeControlsProps {
     onToggleAggregatedConnectivity?: () => void;
     showRegulatoryOverlay?: boolean;
     onToggleRegulatoryOverlay?: () => void;
+    showLeoDensityHeatmap?: boolean;
+    onToggleLeoDensityHeatmap?: () => void;
     satelliteScope?: 'LEO' | 'GEO' | 'ALL';
 }
 
@@ -209,6 +212,8 @@ const GlobeControls: React.FC<GlobeControlsProps> = ({
     onToggleAggregatedConnectivity,
     showRegulatoryOverlay,
     onToggleRegulatoryOverlay,
+    showLeoDensityHeatmap,
+    onToggleLeoDensityHeatmap,
     satelliteScope
 }) => {
     const [isMapOptionsOpen, setIsMapOptionsOpen] = useState(false);
@@ -419,6 +424,24 @@ const GlobeControls: React.FC<GlobeControlsProps> = ({
                                                 title={leoDisplayOptionsDisabled ? 'Not available in GEO scope' : 'Toggle regulatory overlay (simulated demo data)'}
                                             />
                                         )}
+
+                                        {onToggleLeoDensityHeatmap && (
+                                            <DisplayOptionRow
+                                                icon={<Layers className="h-4 w-4" />}
+                                                label="LEO Density Heatmap"
+                                                description={leoDisplayOptionsDisabled ? 'Only in ALL or LEO scope.' : 'Show simultaneous ≥55° satellite count per 10° grid cell.'}
+                                                enabled={!leoDisplayOptionsDisabled && !!showLeoDensityHeatmap}
+                                                onClick={() => {
+                                                    if (!leoDisplayOptionsDisabled) {
+                                                        onToggleLeoDensityHeatmap?.();
+                                                    }
+                                                }}
+                                                disabled={leoDisplayOptionsDisabled}
+                                                accent="blue"
+                                                title={leoDisplayOptionsDisabled ? 'Not available in GEO scope' : 'Toggle LEO coverage density heatmap (polar Walker-Star pattern)'}
+                                            />
+                                        )}
+
                                     </div>
 
                                     <div className="mt-3 rounded-[20px] border border-slate-200/80 bg-white/78 px-3 py-3 dark:border-slate-700 dark:bg-slate-900/72">
