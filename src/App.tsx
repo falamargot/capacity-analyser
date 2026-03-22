@@ -5,9 +5,8 @@ import SplashScreen from './components/SplashScreen';
 import AircraftSelector from './components/AircraftSelector';
 import VesselSelector from './components/VesselSelector';
 import SatelliteScopeFilter, { SatelliteScope } from './components/SatelliteScopeFilter';
-import { Keyboard, MapPin, Plane, Radio, Search, Satellite, Ship, Waypoints, X } from 'lucide-react';
+import { ChevronUp, Keyboard, MapPin, Plane, Radio, Search, Satellite, Ship, Waypoints, X } from 'lucide-react';
 import { ThemeSelector } from './components/ThemeSelector';
-import BottomSheet from './components/layout/BottomSheet';
 import MobileAnalysisSummary from './components/layout/MobileAnalysisSummary';
 import SidebarHeroCard from './components/layout/SidebarHeroCard';
 import SatelliteStatusLegend from './components/cesium-globe/SatelliteStatusLegend';
@@ -184,7 +183,7 @@ const App: React.FC = () => {
   ));
   const [isSizeScaleUserOverridden, setIsSizeScaleUserOverridden] = useState(hasInitialSizeScaleOverride);
   const [splashDone, setSplashDone] = useState(false);
-  const [mobileSheetSnap, setMobileSheetSnap] = useState<0 | 1 | 2>(0);
+  const [isMobileAnalysisPanelOpen, setIsMobileAnalysisPanelOpen] = useState(false);
   const [isSatelliteModalOpen, setIsSatelliteModalOpen] = useState(false);
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
   const [isTargetSourcesMenuOpen, setIsTargetSourcesMenuOpen] = useState(false);
@@ -267,15 +266,46 @@ const App: React.FC = () => {
 
   useEffect(() => {
     if (!isMobile) return;
-    if (isFullscreen) return;
-
-    if (!hasMobileSelection) {
-      setMobileSheetSnap(0);
+    if (isFullscreen || !hasMobileSelection) {
+      setIsMobileAnalysisPanelOpen(false);
     }
   }, [
     hasMobileSelection,
     isMobile,
     isFullscreen,
+  ]);
+
+  useEffect(() => {
+    if (!isMobile || !isMobileAnalysisPanelOpen) return undefined;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [isMobile, isMobileAnalysisPanelOpen]);
+
+  useEffect(() => {
+    setMobileMetrics({
+      leo: null,
+      geo: null,
+      totalGbps: 0,
+      coveredCount: 0,
+    });
+  }, [
+    analyzisPosition?.aircraftCallsign,
+    analyzisPosition?.lat,
+    analyzisPosition?.lng,
+    inspectedSNP?.name,
+    isMobile,
+    satelliteScope,
+    selectedAircraft?.icao24,
+    selectedGateway?.name,
+    selectedPosition?.lat,
+    selectedPosition?.lng,
+    selectedSatellite?.id,
+    selectedVessel?.mmsi,
   ]);
 
   useEffect(() => {
@@ -1452,6 +1482,7 @@ const App: React.FC = () => {
     onToggleRegulatoryOverlay: handleToggleRegulatoryOverlay,
     onSizeScaleChange: handleSizeScaleChange,
     onSizeScaleReset: handleSizeScaleReset,
+    hideSatelliteScreenLabels: isPhone && isMobileAnalysisPanelOpen,
     inspectedSNP,
     snpConnectedSatellites,
   }), [
@@ -1463,6 +1494,7 @@ const App: React.FC = () => {
     maritimeTrafficEnabled, maritimeTraffic.vessels, selectedVessel, handleVesselSelect, cameraTarget,
     handleCameraReady, handleGlobeContainerReady, showSatelliteTrajectory, sizeScale,
     inspectedSNP, snpConnectedSatellites, showRegulatoryOverlay, handleToggleRegulatoryOverlay, handleSizeScaleReset,
+    isPhone, isMobileAnalysisPanelOpen,
   ]);
 
   const desktopSidebarHero = useMemo(() => {
@@ -1578,6 +1610,13 @@ const App: React.FC = () => {
     selectedSatellite,
     selectedVessel,
   ]);
+
+  const mobileBackgroundMetricsCollectorVisible = isMobile
+    && hasMobileSelection
+    && !isMobileAnalysisPanelOpen
+    && !selectedGateway
+    && !inspectedSNP
+    && !selectedSatellite;
 
   if (loading || !splashDone) {
     return (
@@ -2061,9 +2100,9 @@ const App: React.FC = () => {
               <SatelliteStatusLegend />
             </div>
 
-            {isPhone && !isFullscreen && (
+            {isPhone && (
               <div
-                className="pointer-events-none absolute inset-x-0 top-0 z-[25] px-3"
+                className={`pointer-events-none inset-x-0 top-0 px-3 ${isFullscreen ? 'fixed z-[60]' : 'absolute z-[25]'}`}
                 style={{ paddingTop: 'calc(env(safe-area-inset-top) + 0.75rem)' }}
               >
                 <div className="pointer-events-auto rounded-[28px] border border-white/65 bg-[linear-gradient(180deg,rgba(255,255,255,0.94),rgba(241,245,249,0.88))] p-2.5 shadow-[0_24px_60px_-36px_rgba(15,23,42,0.78)] backdrop-blur-xl dark:border-slate-700/80 dark:bg-[linear-gradient(180deg,rgba(15,23,42,0.95),rgba(30,41,59,0.86))]">
@@ -2091,70 +2130,187 @@ const App: React.FC = () => {
               </div>
             )}
 
-            {!isFullscreen && hasMobileSelection && (
-              <BottomSheet
-                snap={mobileSheetSnap}
-                onSnapChange={setMobileSheetSnap}
-                snapPoints={isPhone ? [0.16, 0.52, 0.92] : [0.2, 0.56, 0.9]}
-                compact={isPhone}
-                header={(
-                  <MobileAnalysisSummary
+            {mobileBackgroundMetricsCollectorVisible && (
+              <div className="hidden" aria-hidden="true">
+                <Suspense fallback={null}>
+                  <CapacityDetails
+                    satellites={filteredSatellites}
+                    selectedPoint={analyzisPosition || selectedPosition}
                     selectedSatellite={selectedSatellite}
                     autoSelectedLEOSatellite={resolvedAutoLEO}
                     autoSelectedGEOSatellite={activeGeoSatellite}
-                    selectedPoint={analyzisPosition || selectedPosition}
-                    selectedAircraft={selectedAircraft}
-                    selectedGateway={selectedGateway}
-                    inspectedSNP={inspectedSNP}
-                    selectedVessel={selectedVessel}
-                    compact={true}
-                    metrics={mobileMetrics}
-                    leoServiceViewModel={leoServiceViewModel}
+                    satelliteScope={satelliteScope}
+                    onSatelliteClick={handleSatelliteClick}
+                    analysisSource={selectedAircraft ? 'aircraft' : analyzisPosition ? 'earth' : undefined}
+                    aircraftCallsign={selectedAircraft?.callsign}
+                    selectedSNP={selectedSNP}
+                    candidateCoverages={candidateCoverages}
+                    selectedCoverage={selectedCoverage}
+                    onSelectCoverage={setSelectedCoverage}
+                    selectedGeoMission={selectedGeoMission}
+                    selectedGeoCoverageName={selectedGeoCoverageName}
+                    selectedGeoBeamId={selectedGeoBeamId}
+                    onSelectGeoMission={handleSelectGeoMission}
+                    onSelectGeoCoverage={handleSelectGeoCoverage}
+                    onSelectGeoBeam={handleSelectGeoBeam}
+                    onSnpClick={handleSnpClick}
+                    onMetricsChange={setMobileMetrics}
+                    globeRef={globeContainerRef}
+                    cesiumViewerRef={viewerRef}
+                    regulatoryResultOverride={leoRegulatoryResult}
+                    beamLoadResultOverride={leoBeamLoadResult}
+                    serviceLayerResultOverride={leoServiceLayerResult}
+                    leoServiceViewModelOverride={leoServiceViewModel}
                   />
-                )}
-              >
-                <Suspense fallback={panelFallback}>
-                  {selectedGateway ? (
-                    <GatewayDetails gateway={selectedGateway} satellites={satellites} />
-                  ) : inspectedSNP ? (
-                    <SNPDetails
-                      snp={inspectedSNP}
-                      connectedSatellites={snpConnectedSatellites}
-                      onSatelliteClick={handleSatelliteClick}
-                    />
-                  ) : (
-                    <CapacityDetails
-                      satellites={filteredSatellites}
-                      selectedPoint={analyzisPosition || selectedPosition}
-                      selectedSatellite={selectedSatellite}
-                      autoSelectedLEOSatellite={resolvedAutoLEO}
-                      autoSelectedGEOSatellite={activeGeoSatellite}
-                      satelliteScope={satelliteScope}
-                      onSatelliteClick={handleSatelliteClick}
-                      analysisSource={selectedAircraft ? 'aircraft' : analyzisPosition ? 'earth' : undefined}
-                      aircraftCallsign={selectedAircraft?.callsign}
-                      selectedSNP={selectedSNP}
-                      candidateCoverages={candidateCoverages}
-                      selectedCoverage={selectedCoverage}
-                      onSelectCoverage={setSelectedCoverage}
-                      selectedGeoMission={selectedGeoMission}
-                      selectedGeoCoverageName={selectedGeoCoverageName}
-                      selectedGeoBeamId={selectedGeoBeamId}
-                      onSelectGeoMission={handleSelectGeoMission}
-                      onSelectGeoCoverage={handleSelectGeoCoverage}
-                      onSelectGeoBeam={handleSelectGeoBeam}
-                      onSnpClick={handleSnpClick}
-                      onMetricsChange={setMobileMetrics}
-                      globeRef={globeContainerRef}
-                      cesiumViewerRef={viewerRef}
-                      regulatoryResultOverride={leoRegulatoryResult}
-                      beamLoadResultOverride={leoBeamLoadResult}
-                      serviceLayerResultOverride={leoServiceLayerResult}
-                      leoServiceViewModelOverride={leoServiceViewModel}
-                    />
-                  )}
                 </Suspense>
-              </BottomSheet>
+              </div>
+            )}
+
+            {!isFullscreen && hasMobileSelection && (
+              <>
+                <div
+                  className="pointer-events-none absolute inset-x-0 bottom-0 z-[35] px-3"
+                  style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 0.75rem)' }}
+                >
+                  <div className="pointer-events-auto mx-auto max-w-3xl overflow-hidden rounded-[30px] border border-white/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(241,245,249,0.94))] shadow-[0_26px_70px_-42px_rgba(15,23,42,0.82)] backdrop-blur-xl dark:border-slate-700/80 dark:bg-[linear-gradient(180deg,rgba(15,23,42,0.96),rgba(30,41,59,0.9))]">
+                    <div className="p-2.5">
+                      <MobileAnalysisSummary
+                        selectedSatellite={selectedSatellite}
+                        autoSelectedLEOSatellite={resolvedAutoLEO}
+                        autoSelectedGEOSatellite={activeGeoSatellite}
+                        selectedPoint={analyzisPosition || selectedPosition}
+                        selectedAircraft={selectedAircraft}
+                        selectedGateway={selectedGateway}
+                        inspectedSNP={inspectedSNP}
+                        selectedVessel={selectedVessel}
+                        compact
+                        metrics={mobileMetrics}
+                        leoServiceViewModel={leoServiceViewModel}
+                        satelliteScope={satelliteScope}
+                        geoPointStatus={geoPointStatus}
+                        satellites={satellites}
+                        snpConnectedSatellites={snpConnectedSatellites}
+                      />
+                    </div>
+                    <div className="border-t border-slate-200/80 px-3 pb-2.5 pt-2 dark:border-slate-700/80">
+                      <button
+                        type="button"
+                        onClick={() => setIsMobileAnalysisPanelOpen(true)}
+                        className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-2xl bg-slate-950 px-4 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-slate-800 dark:bg-white dark:text-slate-950 dark:hover:bg-slate-200"
+                        aria-label="Open detailed analysis"
+                      >
+                        <span>Detailed view</span>
+                        <ChevronUp className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {isMobileAnalysisPanelOpen && (
+                  <div
+                    className="fixed inset-0 z-[70] bg-slate-950/28 backdrop-blur-[2px]"
+                    role="dialog"
+                    aria-modal="true"
+                    aria-label="Detailed mobile analysis"
+                  >
+                    <div
+                      className="absolute inset-0 flex items-end justify-center"
+                      style={{
+                        paddingTop: 'calc(env(safe-area-inset-top) + 0.5rem)',
+                        paddingBottom: 'env(safe-area-inset-bottom)',
+                      }}
+                    >
+                      <div className="flex h-full w-full max-w-3xl flex-col overflow-hidden rounded-t-[32px] border border-slate-200/80 bg-white shadow-[0_-12px_50px_-24px_rgba(15,23,42,0.45)] dark:border-slate-800 dark:bg-slate-950">
+                        <div className="border-b border-slate-200/80 bg-white/96 px-4 pb-3 pt-2.5 backdrop-blur-xl dark:border-slate-800 dark:bg-slate-950/96">
+                          <div className="mb-2 flex items-center justify-center">
+                            <div className="h-1.5 w-14 rounded-full bg-slate-300 dark:bg-slate-600" />
+                          </div>
+                          <div className="flex items-start gap-3">
+                            <div className="min-w-0 flex-1">
+                              <div className="text-base font-semibold text-slate-950 dark:text-slate-50">
+                                Detail view
+                              </div>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => setIsMobileAnalysisPanelOpen(false)}
+                              className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-600 shadow-sm transition-colors hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+                              aria-label="Close detailed analysis"
+                            >
+                              <X className="h-5 w-5" />
+                            </button>
+                          </div>
+                          <div className="mt-2">
+                            <MobileAnalysisSummary
+                              selectedSatellite={selectedSatellite}
+                              autoSelectedLEOSatellite={resolvedAutoLEO}
+                              autoSelectedGEOSatellite={activeGeoSatellite}
+                              selectedPoint={analyzisPosition || selectedPosition}
+                              selectedAircraft={selectedAircraft}
+                              selectedGateway={selectedGateway}
+                              inspectedSNP={inspectedSNP}
+                              selectedVessel={selectedVessel}
+                              metrics={mobileMetrics}
+                              leoServiceViewModel={leoServiceViewModel}
+                              satelliteScope={satelliteScope}
+                              geoPointStatus={geoPointStatus}
+                              satellites={satellites}
+                              snpConnectedSatellites={snpConnectedSatellites}
+                            />
+                          </div>
+                        </div>
+
+                        <div
+                          className="flex-1 overflow-y-auto overscroll-contain px-4 pb-5 pt-4"
+                          style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 1.25rem)' }}
+                        >
+                          <Suspense fallback={panelFallback}>
+                            {selectedGateway ? (
+                              <GatewayDetails gateway={selectedGateway} satellites={satellites} />
+                            ) : inspectedSNP ? (
+                              <SNPDetails
+                                snp={inspectedSNP}
+                                connectedSatellites={snpConnectedSatellites}
+                                onSatelliteClick={handleSatelliteClick}
+                              />
+                            ) : (
+                              <CapacityDetails
+                                satellites={filteredSatellites}
+                                selectedPoint={analyzisPosition || selectedPosition}
+                                selectedSatellite={selectedSatellite}
+                                autoSelectedLEOSatellite={resolvedAutoLEO}
+                                autoSelectedGEOSatellite={activeGeoSatellite}
+                                satelliteScope={satelliteScope}
+                                onSatelliteClick={handleSatelliteClick}
+                                analysisSource={selectedAircraft ? 'aircraft' : analyzisPosition ? 'earth' : undefined}
+                                aircraftCallsign={selectedAircraft?.callsign}
+                                selectedSNP={selectedSNP}
+                                candidateCoverages={candidateCoverages}
+                                selectedCoverage={selectedCoverage}
+                                onSelectCoverage={setSelectedCoverage}
+                                selectedGeoMission={selectedGeoMission}
+                                selectedGeoCoverageName={selectedGeoCoverageName}
+                                selectedGeoBeamId={selectedGeoBeamId}
+                                onSelectGeoMission={handleSelectGeoMission}
+                                onSelectGeoCoverage={handleSelectGeoCoverage}
+                                onSelectGeoBeam={handleSelectGeoBeam}
+                                onSnpClick={handleSnpClick}
+                                onMetricsChange={setMobileMetrics}
+                                globeRef={globeContainerRef}
+                                cesiumViewerRef={viewerRef}
+                                regulatoryResultOverride={leoRegulatoryResult}
+                                beamLoadResultOverride={leoBeamLoadResult}
+                                serviceLayerResultOverride={leoServiceLayerResult}
+                                leoServiceViewModelOverride={leoServiceViewModel}
+                              />
+                            )}
+                          </Suspense>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </>
             )}
           </div>
         </main>

@@ -117,6 +117,7 @@ interface CesiumGlobeProps {
     onToggleSatelliteTrajectory?: () => void;
     onSizeScaleChange?: (scale: number) => void;
     onSizeScaleReset?: () => void;
+    hideSatelliteScreenLabels?: boolean;
     isPhone?: boolean;
     sceneMode?: '2D' | '3D';
     onSceneModeChange?: (mode: '2D' | '3D') => void;
@@ -173,6 +174,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
     onToggleSatelliteTrajectory,
     onSizeScaleChange,
     onSizeScaleReset,
+    hideSatelliteScreenLabels = false,
     isPhone,
     sceneMode = '3D',
     onSceneModeChange,
@@ -936,12 +938,14 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                     viewerReady={viewerReady}
                 />
             )}
-            <SatelliteScreenLabels
-                viewerRef={viewerRef}
-                containerRef={globeContainerRef}
-                highlightedSatellites={highlightedSatelliteLabels}
-                viewerReady={viewerReady}
-            />
+            {!hideSatelliteScreenLabels && (
+                <SatelliteScreenLabels
+                    viewerRef={viewerRef}
+                    containerRef={globeContainerRef}
+                    highlightedSatellites={highlightedSatelliteLabels}
+                    viewerReady={viewerReady}
+                />
+            )}
         </div>
     );
 };

@@ -404,8 +404,8 @@ const SatelliteDetails: React.FC<SatelliteDetailsProps> = ({
             </div>
           )}
 
-          <div className={`mb-4 grid grid-cols-1 sm:grid-cols-12 ${compactDesktop ? 'gap-3' : 'gap-4'}`}>
-            <div className={`sm:col-span-7 rounded-lg border border-gray-100 bg-gray-50 shadow-sm backdrop-blur-sm dark:border-slate-700 dark:bg-slate-800/50 ${compactDesktop ? 'px-3.5 py-2' : 'px-4 py-2'}`}>
+          <div className={`mb-4 grid grid-cols-1 items-start ${compactDesktop ? 'gap-3' : 'gap-4'}`}>
+            <div className={`self-start rounded-lg border border-gray-100 bg-gray-50 shadow-sm backdrop-blur-sm dark:border-slate-700 dark:bg-slate-800/50 ${compactDesktop ? 'px-3.5 py-2' : 'px-4 py-2'}`}>
               <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1 flex items-center">Position<SectionTooltip content="Current orbital position (latitude, longitude, altitude) of the selected satellite, computed from its TLE data at the current simulation time." /></h3>
               <p className={`font-semibold text-gray-900 dark:text-gray-100 ${compactDesktop ? 'text-base' : 'text-lg'}`}>
                 {formatCoordinates(getSelectedSatellitePosition(satellites, selectedSatellite))}
@@ -415,7 +415,7 @@ const SatelliteDetails: React.FC<SatelliteDetailsProps> = ({
               </p>
             </div>
 
-            <div className={`sm:col-span-5 rounded-lg border border-gray-100 bg-gray-50 shadow-sm backdrop-blur-sm dark:border-slate-700 dark:bg-slate-800/50 ${compactDesktop ? 'px-3.5 py-2' : 'px-4 py-2'}`}>
+            <div className={`self-start rounded-lg border border-gray-100 bg-gray-50 shadow-sm backdrop-blur-sm dark:border-slate-700 dark:bg-slate-800/50 ${compactDesktop ? 'px-3.5 py-2' : 'px-4 py-2'}`}>
               <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1 flex items-center">
                 Capacity
                 <SectionTooltip content="Satellite capacity figures. 'Official Aggregate' is an engineering approximation based on public OneWeb Gen 1 sources (range: 7.5–8 Gbps). 'Simulated Effective Beam' is the 5-pillar simulation output at boresight, clear sky, full health — not a filed or marketed value. Model combines public ITU/FCC data and simulated RF assumptions." />
