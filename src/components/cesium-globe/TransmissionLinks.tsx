@@ -4,18 +4,14 @@
 import React, { useMemo } from 'react';
 import { Entity, PolylineGraphics } from 'resium';
 import {
-    Cartesian3,
     Color,
     CallbackProperty,
-    CallbackPositionProperty,
     JulianDate,
-    LabelStyle,
     PolylineDashMaterialProperty,
     PolylineGlowMaterialProperty,
     ArcType,
     Cartographic,
     Math as CesiumMath,
-    VerticalOrigin,
 } from 'cesium';
 import type { SatelliteData } from '../../types/satellites';
 import type { Aircraft } from '../../modules/airTraffic/airTrafficService';
@@ -174,64 +170,6 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
             return [satPos, snpPos];
         }, false);
     }, [autoSelectedLEOSatellite, selectedSNP]);
-
-    /**
-     * VIZ-3 — Bent-pipe signal pulse animation.
-     * A point entity travels User → Satellite → SNP to visualise the two-hop
-     * radio path of OneWeb's no-ISL architecture.  One round-trip completes in
-     * PULSE_PERIOD_S seconds so the animation matches human perception.
-     *
-     * Signal timing proportions (not to exact RTT scale for perceptibility):
-     *   0 → 0.45  : User terminal → Satellite   (Ku-band uplink)
-     *   0.45 → 0.9 : Satellite → SNP            (Ka-band feeder)
-     *   0.9 → 1.0  : SNP → teleport (fiber→PoP delay represented by pause)
-     */
-    const PULSE_PERIOD_S = 3.5;
-
-    const bentPipePulsePosition = useMemo(() => {
-        if (!autoSelectedLEOSatellite || !hasUserSelection || !selectedSNP?.lat || !selectedSNP?.lng) return null;
-
-        return new CallbackPositionProperty((time?: JulianDate) => {
-            if (!time) return Cartesian3.ZERO;
-
-            const t = JulianDate.toDate(time).getTime() / 1000;
-            const phase = ((t % PULSE_PERIOD_S) / PULSE_PERIOD_S + 1) % 1; // 0 → 1
-
-            const { userPosition: userPos } = resolveCurrentUser(time);
-            const satPos = propagateSatellite(autoSelectedLEOSatellite, time);
-            const snpPos = getPosition(selectedSNP.lat, selectedSNP.lng, 0.01);
-
-            if (phase < 0.45) {
-                // User → Satellite (Ku-band uplink)
-                const f = phase / 0.45;
-                return Cartesian3.lerp(userPos, satPos, f, new Cartesian3());
-            } else if (phase < 0.9) {
-                // Satellite → SNP (Ka-band feeder link)
-                const f = (phase - 0.45) / 0.45;
-                return Cartesian3.lerp(satPos, snpPos, f, new Cartesian3());
-            } else {
-                // Pause at SNP (fiber + PoP delay)
-                return snpPos;
-            }
-        }, false);
-    }, [autoSelectedLEOSatellite, hasUserSelection, selectedSNP, resolveCurrentUser]);
-
-    const bentPipePulseColor = useMemo(() => {
-        if (!bentPipePulsePosition) return null;
-        return new CallbackProperty((time?: JulianDate) => {
-            if (!time) return Color.CYAN.withAlpha(0.9);
-            const t = JulianDate.toDate(time).getTime() / 1000;
-            const phase = ((t % PULSE_PERIOD_S) / PULSE_PERIOD_S + 1) % 1;
-            // Change color to indicate link segment: Ku-band (cyan) vs Ka-band (amber)
-            if (phase < 0.45) {
-                return Color.fromCssColorString('#67e8f9').withAlpha(0.95); // Ku-band: cyan
-            } else if (phase < 0.9) {
-                return Color.fromCssColorString('#fbbf24').withAlpha(0.95); // Ka-band: amber
-            } else {
-                return Color.fromCssColorString('#a78bfa').withAlpha(0.85); // fiber: violet
-            }
-        }, false);
-    }, [bentPipePulsePosition]);
 
     // GEO User -> Satellite link
     const geoUserLinkCallback = useMemo(() => {
@@ -402,41 +340,6 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
                         arcType={ArcType.NONE}
                     />
                 </Entity>
-            )}
-
-            {/* VIZ-3 — Bent-pipe signal pulse: animated point travelling User → Sat → SNP */}
-            {bentPipePulsePosition && bentPipePulseColor && satelliteScope !== 'GEO' && leoPathVisualState !== 'blocked' && (
-                <Entity
-                    name="Bent-pipe signal pulse"
-                    position={bentPipePulsePosition}
-                    point={{
-                        pixelSize: new CallbackProperty(() => 10, true),
-                        color: bentPipePulseColor,
-                        outlineColor: Color.WHITE.withAlpha(0.6),
-                        outlineWidth: 1.5,
-                        scaleByDistance: undefined,
-                        heightReference: undefined,
-                    }}
-                    label={{
-                        text: new CallbackProperty((time?: JulianDate) => {
-                            if (!time) return '';
-                            const t = JulianDate.toDate(time).getTime() / 1000;
-                            const phase = ((t % PULSE_PERIOD_S) / PULSE_PERIOD_S + 1) % 1;
-                            if (phase < 0.45) return 'Ku-band';
-                            if (phase < 0.9) return 'Ka-band';
-                            return 'fiber';
-                        }, false),
-                        font: '11px monospace',
-                        fillColor: Color.WHITE.withAlpha(0.9),
-                        outlineColor: Color.BLACK.withAlpha(0.6),
-                        outlineWidth: 2,
-                        style: LabelStyle.FILL_AND_OUTLINE,
-                        pixelOffset: new CallbackProperty(() => ({ x: 12, y: -8 }), true) as any,
-                        verticalOrigin: VerticalOrigin.BOTTOM,
-                        showBackground: false,
-                        disableDepthTestDistance: Number.POSITIVE_INFINITY,
-                    }}
-                />
             )}
 
             {/* GEO User -> Satellite */}

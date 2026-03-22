@@ -487,9 +487,11 @@ const GlobeControls: React.FC<GlobeControlsProps> = ({
                         )}
                     </div>
 
-                    {!isPhone && (
-                        <FullscreenButton isFullscreen={isFullscreen} onClick={onToggleFullscreen} />
-                    )}
+                    <FullscreenButton
+                        isFullscreen={isFullscreen}
+                        onClick={onToggleFullscreen}
+                        compact={isPhone}
+                    />
                 </div>
             </div>
 

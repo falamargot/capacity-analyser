@@ -250,12 +250,6 @@ const App: React.FC = () => {
   }, [isSizeScaleUserOverridden, viewportSnapshot]);
 
   useEffect(() => {
-    if (isPhone && isFullscreen) {
-      setIsFullscreen(false);
-    }
-  }, [isPhone, isFullscreen]);
-
-  useEffect(() => {
     if (selectedGateway || inspectedSNP || selectedSatellite || !(analyzisPosition || selectedPosition)) {
       setFullscreenExportButtonProps(null);
     }
