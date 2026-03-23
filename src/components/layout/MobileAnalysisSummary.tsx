@@ -104,15 +104,52 @@ function MetricCard({
     borderClassName: string;
     compact?: boolean;
 }) {
+    if (compact) {
+        return (
+            <div className={`border bg-white/82 shadow-sm dark:bg-slate-900/72 rounded-[20px] px-3 py-2.5 ${borderClassName}`}>
+                <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-x-3 gap-y-3">
+                    <div className="min-w-0">
+                        <div className={`text-[10px] font-semibold uppercase tracking-[0.2em] ${accentClassName}`}>
+                            {label}
+                        </div>
+                    </div>
+                    <div className="text-right">
+                        <div className="text-[9px] font-semibold uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500">
+                            RTT
+                        </div>
+                        <div className="mt-0.5 text-[12px] font-semibold leading-4 text-slate-900 dark:text-slate-100">
+                            {formatRtt(metrics?.rtt)}
+                        </div>
+                    </div>
+                    <div className="col-span-2 grid grid-cols-2 gap-2">
+                        <div className="rounded-[14px] bg-slate-100/70 px-2.5 py-2 dark:bg-slate-800/55">
+                            <div className="text-[9px] font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
+                                Downlink
+                            </div>
+                            <div className="mt-1 text-[12px] font-semibold leading-4 text-slate-900 dark:text-slate-100">
+                                {formatMbpsFromGbps(metrics?.downlinkGbps)}
+                            </div>
+                        </div>
+                        <div className="rounded-[14px] bg-slate-100/70 px-2.5 py-2 dark:bg-slate-800/55">
+                            <div className="text-[9px] font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
+                                Uplink
+                            </div>
+                            <div className="mt-1 text-[12px] font-semibold leading-4 text-slate-900 dark:text-slate-100">
+                                {formatMbpsFromGbps(metrics?.uplinkGbps)}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div className={`border bg-white/82 shadow-sm dark:bg-slate-900/72 ${compact ? 'rounded-[20px] px-3 py-2.5' : 'rounded-2xl px-3 py-3'} ${borderClassName}`}>
             <div className={`items-start ${compact ? 'grid grid-cols-[minmax(0,1fr)_auto] gap-x-3 gap-y-2' : 'flex justify-between gap-3'}`}>
                 <div className="min-w-0">
                     <div className={`${compact ? 'text-[10px] tracking-[0.2em]' : 'text-[11px] tracking-[0.18em]'} font-semibold uppercase ${accentClassName}`}>
                         {label}
-                    </div>
-                    <div className={`${compact ? 'mt-0.5 text-[10px] leading-4 tracking-[0.14em]' : 'mt-1 text-[11px] tracking-[0.16em]'} font-medium uppercase text-slate-400 dark:text-slate-500`}>
-                        {compact ? 'Est. performance' : 'Estimated performance'}
                     </div>
                 </div>
                 <div className="text-right">
