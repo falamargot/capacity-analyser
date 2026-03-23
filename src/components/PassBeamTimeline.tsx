@@ -22,9 +22,8 @@ import * as satelliteJs from 'satellite.js';
 import { JulianDate } from 'cesium';
 import type { SatelliteData } from '../types/satellites';
 import type { WeatherCondition } from '../utils/realisticSimulation';
-import { getBeamPerformance } from '../utils/realisticSimulation';
 import { calculateGSOAvoidanceAngle } from '../utils/oneWebComb';
-import { findConnectedBeamIndex } from '../utils/rfConnectivity';
+import { estimateCurrentLeoBeamLink, findConnectedBeamIndex } from '../utils/rfConnectivity';
 import { calculateElevationAngle } from '../utils/capacityCalculator';
 import { haversineDistanceKm, BACKHAUL_RADIUS_KM } from '../utils/leoFootprint';
 import { SNPS_DATA } from './globe/GlobeConfig';
@@ -182,7 +181,6 @@ const PassBeamTimeline: React.FC<PassBeamTimelineProps> = ({
       // 5. SNP backhaul availability at this time
       let snpAvailable = false;
       let nearestSnpName: string | null = null;
-      let snpElevation = 0;
       if (activeBeamCount > 0 && !gsoState.isBlankingZone) {
         let minDist = Infinity;
         for (const snp of SNPS_DATA) {
@@ -192,8 +190,6 @@ const PassBeamTimeline: React.FC<PassBeamTimelineProps> = ({
             minDist = dist;
             snpAvailable = true;
             nearestSnpName = snp.name;
-            // Elevation of the satellite as seen from this SNP (same geometry as user elevation)
-            snpElevation = calculateElevationAngle({ lat: snp.lat, lng: snp.lng }, mockSat);
           }
         }
       }
@@ -201,21 +197,19 @@ const PassBeamTimeline: React.FC<PassBeamTimelineProps> = ({
       // 6. Throughput estimate (only when in a beam AND SNP available)
       let throughputMbps = 0;
       if (beamIndex !== null && snpAvailable) {
-        const hf = beamHealthFactors.find(b => b.beamIndex === beamIndex!)?.healthFactor ?? 1.0;
-        const perf = getBeamPerformance({
-          beamIndex: beamIndex!,
-          activeBeamCount,
-          healthFactor: hf,
-          weather: weatherCondition,
-          normalizedDistance: 0.3, // moderate position within beam
+        const linkEstimate = estimateCurrentLeoBeamLink({
+          userPosition,
+          satellite: mockSat,
+          beamIndex,
+          snpPosition: nearestSnpName
+            ? (SNPS_DATA.find((snp) => snp.name === nearestSnpName) ?? null)
+            : null,
+          time: julianDate,
+          simulationState,
         });
-        // Apply the same backhaul quality factor as Estimated Performance:
-        // limiting link is the weaker of user↔sat and snp↔sat elevation.
-        const limitingElev = Math.min(elevation, snpElevation);
-        const backhaulFactor = limitingElev < 15 ? 0
-          : limitingElev >= 50 ? 1
-          : (limitingElev - 15) / (50 - 15);
-        throughputMbps = Math.min(perf.deliveredThroughputMbps * backhaulFactor, maxDlMbps);
+        throughputMbps = linkEstimate
+          ? Math.min(linkEstimate.deliveredDownlinkMbps, maxDlMbps)
+          : 0;
       }
 
       points.push({

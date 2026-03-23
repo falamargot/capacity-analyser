@@ -7,8 +7,7 @@ import { SatelliteScope } from './SatelliteScopeFilter';
 import SatelliteDetails from './SatelliteDetails';
 import { SPEED_OF_LIGHT_RADIO_KM_S, RealTimeCapacityData, calculateElevationAngle, compute3DDistanceKm } from '../utils/capacityCalculator';
 import { SNPS_DATA } from './globe/GlobeConfig';
-import { TOTAL_SWATH_WIDTH_KM, TOTAL_BEAMS, BEAM_WIDTH_KM } from '../utils/oneWebComb';
-import { findConnectedBeamIndex, hasRFConnectivity } from '../utils/rfConnectivity';
+import { findConnectedBeamIndex, hasRFConnectivity, estimateCurrentLeoBeamLink } from '../utils/rfConnectivity';
 import { isPointInCoverage } from '../utils/coverageCalculator';
 import { getBestConnectedGateway } from '../utils/connectivityRules';
 import { JulianDate } from 'cesium';
@@ -17,7 +16,6 @@ import type { CandidateCoverage, MobileAnalysisMetrics } from '../types/analysis
 import { analyzeLeoConnectivity } from '../utils/leoConnectivityModel';
 import { computeGeoConnectivity } from '../utils/geoCoverageSelection';
 import { useSimulation } from '../contexts/SimulationContext';
-import { DEFAULT_LEO_OVERHEAD_MS } from '../utils/leoConnectivityModel';
 import { buildSimulationStateSnapshot } from '../types/simulation';
 import type { PDFConnectionDetails } from '../utils/pdfExport';
 import type { RegulatoryResult } from '../services/regulatoryService';
@@ -156,16 +154,13 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
     }
   }, [terminalType, setWeatherCondition]);
 
-  // Calculate theoretical LEO performance metrics
-  const calculateLEOPerformance = useCallback((
+  // Fallback approximation kept for SERVICE_ZONE mode, where individual beam
+  // geometry is intentionally abstracted away.
+  const calculateApproximateLEOPerformance = useCallback((
     userLEODistance: number,
     snpLEODistance: number,
     userLEOElevation: number,
     snpLEOElevation: number,
-    userLat: number,
-    userLng: number,
-    satLat: number,
-    satLng: number,
     estimatedRttMs: number | null
   ) => {
     // RTT now comes from the detailed LEO connectivity model (propagation + overhead).
@@ -183,34 +178,6 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
     // Limiting link = the weaker geometry between user<->sat and snp<->sat
     const limitingElevation = Math.min(userLEOElevation, snpLEOElevation);
     const limitingDistanceKm = Math.max(userLEODistance, snpLEODistance);
-
-    // Footprint factor
-    const a = TOTAL_SWATH_WIDTH_KM / 2;
-    const b = BEAM_WIDTH_KM / 2;
-    const kmPerDegLat = 111.32;
-    const lat0Rad = (satLat * Math.PI) / 180;
-    const kmPerDegLng = kmPerDegLat * Math.cos(lat0Rad);
-    const dxKm = (userLng - satLng) * kmPerDegLng;
-    const dyKm = (userLat - satLat) * kmPerDegLat;
-    const middle = (TOTAL_BEAMS - 1) / 2;
-
-    const footprintFactor = (() => {
-      let best = 0;
-      for (let i = 0; i < TOTAL_BEAMS; i++) {
-        const beamCenterOffsetY = (i - middle) * BEAM_WIDTH_KM;
-        const x = dxKm;
-        const y = dyKm - beamCenterOffsetY;
-        const r2 = (x * x) / (a * a) + (y * y) / (b * b);
-        let f = 0;
-        if (r2 <= 1) {
-          f = 1.0 - 0.5 * r2;
-        } else {
-          f = 0.5 * Math.exp(-(r2 - 1));
-        }
-        if (f > best) best = f;
-      }
-      return Math.max(0, Math.min(1, best));
-    })();
 
     // Elevation factor
     const elevationFactor = (() => {
@@ -247,6 +214,7 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
     })();
 
     // Overall performance factor
+    const footprintFactor = 1.0;
     const performanceFactor = elevationFactor * distanceFactor * handoverFactor * footprintFactor * weatherFactor;
     const downlinkGbps = performanceFactor > 0 ? MAX_USER_DL_Gbps * performanceFactor : 0;
     const uplinkGbps = performanceFactor > 0 ? MAX_USER_UL_Gbps * performanceFactor : 0;
@@ -271,6 +239,43 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
       stability,
       performanceFactor,
       footprintFactor,
+      weatherFactor,
+      weatherLabel: WEATHER_PROFILES[weatherType].label
+    };
+  }, [terminalType, weatherType]);
+
+  const calculateBeamAwareLEOPerformance = useCallback((
+    deliveredDownlinkMbps: number,
+    limitingElevation: number,
+    normalizedDistance: number,
+    estimatedRttMs: number | null,
+    fallbackPropagationRttMs: number
+  ) => {
+    const profile = TERMINAL_PROFILES[terminalType];
+    const maxDlMbps = profile.maxDlGbps * 1000;
+    const weatherFactor = getWeatherFactor(weatherType, terminalType === 'aviation');
+    const downlinkMbps = Math.max(0, Math.min(deliveredDownlinkMbps, maxDlMbps));
+    const performanceFactor = maxDlMbps > 0 ? Math.min(downlinkMbps / maxDlMbps, 1) : 0;
+    const rtt = estimatedRttMs ?? Math.max(5, fallbackPropagationRttMs);
+
+    let stability: string;
+    if (performanceFactor <= 0) {
+      stability = 'Unstable';
+    } else if (limitingElevation >= 40 && normalizedDistance <= 0.35) {
+      stability = 'High';
+    } else if (limitingElevation >= 25 && normalizedDistance <= 0.7) {
+      stability = 'Medium';
+    } else {
+      stability = 'Low';
+    }
+
+    return {
+      rtt,
+      downlinkGbps: downlinkMbps / 1000,
+      uplinkGbps: profile.maxUlGbps * performanceFactor,
+      stability,
+      performanceFactor,
+      footprintFactor: Math.max(0, 1 - normalizedDistance),
       weatherFactor,
       weatherLabel: WEATHER_PROFILES[weatherType].label
     };
@@ -424,18 +429,50 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
   const leoPerformance = useMemo(() => {
     if (!resolvedLEOConnectivity || !resolvedLEOConnectivity.snp || !activePoint) return null;
 
-    return calculateLEOPerformance(
+    const oneWayDistanceKm = resolvedLEOConnectivity.userLEODistance + (resolvedLEOConnectivity.snpLEODistance || 0);
+    const fallbackPropagationRttMs = (2 * oneWayDistanceKm / SPEED_OF_LIGHT_RADIO_KM_S) * 1000;
+
+    // Beam-based mode is the reference LEO model: use the actual serving beam
+    // and the shared 5-pillar RF budget instead of the historical ellipse proxy.
+    if (
+      simulationState.coveragePolicy.type === 'DB_THRESHOLD' &&
+      resolvedLEOConnectivity.connectedBeamIndex != null
+    ) {
+      const beamEstimate = estimateCurrentLeoBeamLink({
+        userPosition: activePoint,
+        satellite: resolvedLEOConnectivity.satellite,
+        beamIndex: resolvedLEOConnectivity.connectedBeamIndex,
+        snpPosition: resolvedLEOConnectivity.snp,
+        time: JulianDate.fromDate(new Date()),
+        simulationState,
+      });
+
+      if (beamEstimate) {
+        return calculateBeamAwareLEOPerformance(
+          beamEstimate.deliveredDownlinkMbps,
+          beamEstimate.limitingElevationDeg,
+          beamEstimate.beamLink.normalizedDistance,
+          leoGeometry?.rttTotalMs ?? null,
+          fallbackPropagationRttMs
+        );
+      }
+    }
+
+    return calculateApproximateLEOPerformance(
       resolvedLEOConnectivity.userLEODistance,
       resolvedLEOConnectivity.snpLEODistance || 0,
       resolvedLEOConnectivity.userLEOElevation,
       resolvedLEOConnectivity.snpLEOElevation || 0,
-      activePoint.lat,
-      activePoint.lng,
-      resolvedLEOConnectivity.satellite.position.lat,
-      resolvedLEOConnectivity.satellite.position.lng,
       leoGeometry?.rttTotalMs ?? null
     );
-  }, [resolvedLEOConnectivity, activePoint, calculateLEOPerformance, leoGeometry]);
+  }, [
+    resolvedLEOConnectivity,
+    activePoint,
+    leoGeometry,
+    simulationState,
+    calculateApproximateLEOPerformance,
+    calculateBeamAwareLEOPerformance,
+  ]);
 
   const hasCurrentLEORF = useMemo(() => {
     if (!activePoint || !autoSelectedLEOSatellite) return false;

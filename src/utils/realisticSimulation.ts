@@ -128,7 +128,7 @@ export function getScanLossLinear(beamIndex: number): number {
  * @returns negative value (0 dB at boresight, more negative at periphery)
  */
 export function getScanLossDb(beamIndex: number): number {
-  return 20 * Math.log10(getScanLossLinear(beamIndex));
+  return 10 * Math.log10(getScanLossLinear(beamIndex));
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -285,7 +285,7 @@ export function throughputRatioFromPowerDb(powerDb: number): number {
  *
  * Formula:
  *   EIRP_eff = EIRP_nominal + ScanLoss_dB + PowerBoost_dB + Health_dB
- *   where Health_dB = 20·log10(healthFactor)
+ *   where Health_dB = 10·log10(healthFactor)
  */
 export function getEffectiveEirpDb(
   beamIndex: number,
@@ -294,7 +294,7 @@ export function getEffectiveEirpDb(
 ): number {
   const scanLossDb = getScanLossDb(beamIndex);
   const powerBoostDb = getPowerBoostDb(activeBeamCount);
-  const healthDb = 20 * Math.log10(Math.max(1e-6, healthFactor));
+  const healthDb = 10 * Math.log10(Math.max(1e-6, healthFactor));
   return NOMINAL_EIRP_DBW + scanLossDb + powerBoostDb + healthDb;
 }
 
@@ -383,10 +383,12 @@ export interface BeamPerformanceInput {
   weather: WeatherCondition;
   /**
    * Normalized radial distance from beam boresight [0, 1].
-   * 0 = dead center, 1 = beam edge (-10 dB contour).
+   * 0 = dead center, 1 = configured coverage edge (for example -10 dB contour).
    * Pass 0 if the user is at boresight or position is unknown.
    */
   normalizedDistance: number;
+  /** Coverage threshold that defines the beam edge represented by normalizedDistance=1 */
+  thresholdDb?: number;
 }
 
 export interface BeamPerformanceOutput {
@@ -419,7 +421,14 @@ export interface BeamPerformanceOutput {
  * returns realistic EIRP, beam footprint size, and delivered Mbps.
  */
 export function getBeamPerformance(input: BeamPerformanceInput): BeamPerformanceOutput {
-  const { beamIndex, activeBeamCount, healthFactor, weather, normalizedDistance } = input;
+  const {
+    beamIndex,
+    activeBeamCount,
+    healthFactor,
+    weather,
+    normalizedDistance,
+    thresholdDb = -10,
+  } = input;
 
   // ── Pillar 1: Scan Loss ──────────────────────────────────────────────────
   const scanLossDb = getScanLossDb(beamIndex);
@@ -429,7 +438,7 @@ export function getBeamPerformance(input: BeamPerformanceInput): BeamPerformance
 
   // ── Pillar 3: Health Factor ──────────────────────────────────────────────
   const clampedHealth = Math.max(0, Math.min(1, healthFactor));
-  const healthDb = 20 * Math.log10(Math.max(1e-6, clampedHealth));
+  const healthDb = 10 * Math.log10(Math.max(1e-6, clampedHealth));
 
   // ── Pillar 5: Weather Attenuation ────────────────────────────────────────
   const weatherAttenuationDb = WEATHER_ATTENUATION_DB[weather];
@@ -443,14 +452,21 @@ export function getBeamPerformance(input: BeamPerformanceInput): BeamPerformance
   );
 
   // ── Pillar 4: SNR Roll-off ───────────────────────────────────────────────
-  // Compute power at user position using cos^8 antenna model
-  // cos^n(π/2 · normalizedDistance) → power ratio
+  // Compute power at user position using the cos^8 antenna power model.
+  // normalizedDistance is measured against the configured coverage contour,
+  // not against the asymptotic zero-gain edge of the pattern. Convert it back
+  // to the intrinsic antenna-pattern coordinate before taking cos^n.
   const clampedDist = Math.max(0, Math.min(1, normalizedDistance));
+  const thresholdLinearPower = Math.pow(10, thresholdDb / 10);
+  const edgePatternDistance = (2 / Math.PI) * Math.acos(
+    Math.pow(Math.max(1e-10, thresholdLinearPower), 1 / 8)
+  );
+  const patternDistance = Math.max(0, Math.min(1, clampedDist * edgePatternDistance));
   const antennaLinearPower = Math.pow(
-    Math.cos((Math.PI / 2) * clampedDist),
+    Math.cos((Math.PI / 2) * patternDistance),
     8 // POWER_DECAY.COSINE_EXPONENT
   );
-  const powerAtUserDb = 20 * Math.log10(Math.max(antennaLinearPower, 1e-10))
+  const powerAtUserDb = 10 * Math.log10(Math.max(antennaLinearPower, 1e-10))
     + weatherAttenuationDb; // weather reduces signal at user
 
   // Throughput ratio from SNR roll-off table

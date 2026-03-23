@@ -91,7 +91,7 @@ export const ThroughputBar: React.FC<ThroughputBarProps> = ({
             <div className="flex justify-between items-center gap-2">
                 <span className="min-w-0 flex-1 text-sm font-medium text-gray-600 dark:text-gray-400 truncate">{label}</span>
                 <span className="shrink-0 whitespace-nowrap text-sm font-bold tabular-nums text-gray-900 dark:text-gray-100">
-                    {displayValue != null ? formatThroughput(displayValue) : (gbps != null ? 'Not usable' : '—')}
+                    {displayValue != null ? formatThroughput(displayValue) : (gbps != null ? 'Insufficient margin' : '—')}
                 </span>
             </div>
             <div className="h-2 w-full bg-gray-200 dark:bg-slate-700 rounded-full overflow-hidden">

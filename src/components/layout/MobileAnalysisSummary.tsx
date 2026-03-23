@@ -113,11 +113,11 @@ function MetricCard({
                             {label}
                         </div>
                     </div>
-                    <div className="text-right">
+                    <div className="flex items-baseline justify-end gap-2 text-right whitespace-nowrap">
                         <div className="text-[9px] font-semibold uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500">
                             RTT
                         </div>
-                        <div className="mt-0.5 text-[12px] font-semibold leading-4 text-slate-900 dark:text-slate-100">
+                        <div className="text-[12px] font-semibold leading-4 text-slate-900 dark:text-slate-100">
                             {formatRtt(metrics?.rtt)}
                         </div>
                     </div>
@@ -152,11 +152,11 @@ function MetricCard({
                         {label}
                     </div>
                 </div>
-                <div className="text-right">
+                <div className="flex items-baseline justify-end gap-2 text-right whitespace-nowrap">
                     <div className={`${compact ? 'text-[9px] tracking-[0.2em]' : 'text-[10px] tracking-[0.18em]'} font-semibold uppercase text-slate-400 dark:text-slate-500`}>
                         RTT
                     </div>
-                    <div className={`${compact ? 'mt-0.5 text-[12px] leading-4' : 'mt-1 text-[13px] leading-5'} font-semibold text-slate-900 dark:text-slate-100`}>
+                    <div className={`${compact ? 'text-[12px] leading-4' : 'text-[13px] leading-5'} font-semibold text-slate-900 dark:text-slate-100`}>
                         {formatRtt(metrics?.rtt)}
                     </div>
                 </div>

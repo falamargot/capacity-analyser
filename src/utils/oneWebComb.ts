@@ -41,6 +41,11 @@ type GsoAvoidanceState = {
     isMovingNorth: boolean;
 };
 
+export interface CombBeamCenter {
+    lat: number;
+    lng: number;
+}
+
 const propagatedOrbitCache = new WeakMap<object, PropagatedOrbitState>();
 const gsoAvoidanceCache = new WeakMap<object, GsoAvoidanceState & { timeMs: number }>();
 
@@ -146,6 +151,46 @@ function getPropagatedOrbitState(
     return orbitState;
 }
 
+function calculateCombGroundCenter(
+    satrec: any,
+    time: JulianDate
+): { centerLat: number; centerLng: number } | null {
+    const orbitState = getPropagatedOrbitState(satrec, time);
+    if (!orbitState) return null;
+
+    const { gmst, satPosECI, crossTrack, nadir } = orbitState;
+    const { pitchAngleRad } = calculateGSOAvoidanceAngle(satrec, time);
+
+    const rotation = Matrix3.fromQuaternion(Quaternion.fromAxisAngle(crossTrack, pitchAngleRad));
+    const boresight = Matrix3.multiplyByVector(rotation, nadir, new Cartesian3());
+
+    const P = satPosECI;
+    const D = boresight;
+    const R = 6371000.0;
+
+    const a = 1.0;
+    const b = 2.0 * Cartesian3.dot(P, D);
+    const c = Cartesian3.dot(P, P) - (R * R);
+
+    const discrim = b * b - 4 * a * c;
+    if (discrim < 0) return null;
+
+    const t1 = (-b - Math.sqrt(discrim)) / (2 * a);
+    if (t1 < 0) return null;
+
+    const centerECI = Cartesian3.add(P, Cartesian3.multiplyByScalar(D, t1, new Cartesian3()), new Cartesian3());
+    const centerGeo = satellite.eciToGeodetic(
+        { x: centerECI.x / 1000, y: centerECI.y / 1000, z: centerECI.z / 1000 },
+        gmst
+    );
+    const centerLat = satellite.degreesLat(centerGeo.latitude);
+    const centerLng = satellite.degreesLong(centerGeo.longitude);
+
+    if (!Number.isFinite(centerLat) || !Number.isFinite(centerLng)) return null;
+
+    return { centerLat, centerLng };
+}
+
 
 /**
  * Calculate the pitch angle for GSO Protection detection
@@ -224,6 +269,27 @@ export function calculateGSOAvoidanceAngle(
     return result;
 }
 
+export function calculateCombBeamCenters(
+    satrec: any,
+    time: JulianDate
+): CombBeamCenter[] | null {
+    if (!satrec) return null;
+
+    const groundCenter = calculateCombGroundCenter(satrec, time);
+    if (!groundCenter) return null;
+
+    const { centerLat, centerLng } = groundCenter;
+    const beamCenterStepKm = 67.5;
+    const middle = (TOTAL_BEAMS - 1) / 2;
+
+    return Array.from({ length: TOTAL_BEAMS }, (_, i) => {
+        const yOffsetKm = (i - middle) * beamCenterStepKm;
+        const offsetBearingDeg = yOffsetKm <= 0 ? 0 : 180;
+        const offsetDistKm = Math.abs(yOffsetKm);
+        return destinationPointGeodesic(centerLat, centerLng, offsetBearingDeg, offsetDistKm);
+    });
+}
+
 /**
  * Calculates the OneWeb "Comb" geometry: 16 adjacent rectangular beams.
  * 
@@ -255,39 +321,10 @@ export function calculateCombGeometry(
     const healthFactors = simulationState?.beamHealthByIndex ?? new Map<number, number>();
     const activeBeams = getActiveBeamCount(satrec, time);
 
-    const orbitState = getPropagatedOrbitState(satrec, time);
-    if (!orbitState) return null;
-
-    const { gmst, satPosECI, crossTrack, nadir } = orbitState;
-
-    // Use the new function to calculate pitch angle
-    const { pitchAngleRad } = calculateGSOAvoidanceAngle(satrec, time);
-
-    const rotation = Matrix3.fromQuaternion(Quaternion.fromAxisAngle(crossTrack, pitchAngleRad));
-    const boresight = Matrix3.multiplyByVector(rotation, nadir, new Cartesian3());
+    const beamCenters = calculateCombBeamCenters(satrec, time);
+    if (!beamCenters) return null;
 
     const polygonsIndices: Cartesian3[][] = [];
-
-    const P = satPosECI;
-    const D = boresight;
-    const R = 6371000.0;
-
-    const a = 1.0;
-    const b = 2.0 * Cartesian3.dot(P, D);
-    const c = Cartesian3.dot(P, P) - (R * R);
-
-    const discrim = b * b - 4 * a * c;
-    if (discrim < 0) return null;
-
-    const t1 = (-b - Math.sqrt(discrim)) / (2 * a);
-    if (t1 < 0) return null;
-
-    const centerECI = Cartesian3.add(P, Cartesian3.multiplyByScalar(D, t1, new Cartesian3()), new Cartesian3());
-
-    const centerGeo = satellite.eciToGeodetic({ x: centerECI.x / 1000, y: centerECI.y / 1000, z: centerECI.z / 1000 }, gmst);
-    const centerLat = satellite.degreesLat(centerGeo.latitude);
-    const centerLng = satellite.degreesLong(centerGeo.longitude);
-    if (!Number.isFinite(centerLat) || !Number.isFinite(centerLng)) return null;
 
     // Reference scale from threshold (kept for backward compat)
     const referenceRadiusKm = getRadiusAtPowerLevel(-10);
@@ -301,10 +338,7 @@ export function calculateCombGeometry(
     const weatherDb = WEATHER_ATTENUATION_DB[weather];
     const weatherScale = Math.sqrt(Math.pow(10, weatherDb / 10));
 
-    const beamCenterStepKm = 67.5; // 67.5km spacing between centers (constant)
     const ellipseSegments = 32; // Number of points to approximate ellipse
-
-    const middle = (TOTAL_BEAMS - 1) / 2;
 
     for (let i = 0; i < TOTAL_BEAMS; i++) {
         // ── Pillar 1: Per-beam scan loss (peripheral beams are smaller) ────
@@ -324,16 +358,7 @@ export function calculateCombGeometry(
         // Dimensions adjusted by all physics factors
         const semiMajorAxisKm = (1600 / 2) * beamScale;
         const semiMinorAxisKm = (102 / 2) * beamScale;
-        const yOffsetKm = (i - middle) * beamCenterStepKm;
-
-        // Beam centers are fixed in the geographic (payload) frame:
-        //   beam 0 is always the northernmost, beam 15 always the southernmost.
-        // Using bearingRad here would couple the IDs to pass direction and cause
-        // beam 0 to flip north↔south on every ascending/descending transition.
-        const offsetBearingDeg = yOffsetKm <= 0 ? 0 : 180; // 0° = north, 180° = south
-        const offsetDistKm = Math.abs(yOffsetKm);
-
-        const beamCenterGeo = destinationPointGeodesic(centerLat, centerLng, offsetBearingDeg, offsetDistKm);
+        const beamCenterGeo = beamCenters[i];
 
         const polygonHierarchy: Cartesian3[] = [];
 

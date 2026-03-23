@@ -36,7 +36,7 @@ export const STANDARD_CAPACITY_GBPS = 6;
  *
  * Uses the cos^n antenna model:
  *   Power(r) = cos^n(π/2 · r / R_max)
- *   → r = R_max · (2/π) · arccos( 10^(dB/20) )^(1/n)
+ *   → r = R_max · (2/π) · arccos( 10^(dB/10) )^(1/n)
  *
  * @param powerLevelDb  Negative value, e.g. -3, -6, -10
  * @param cosineExponent  The `n` in cos^n (default 8)
@@ -47,8 +47,8 @@ export function getRadiusAtPowerLevel(
   cosineExponent: number = 8
 ): number {
   if (powerLevelDb >= 0) return STANDARD_RADIUS_KM; // 0 dB = full radius
-  // Linear power from dB: 10^(dB/20) for field amplitude
-  const linearPower = Math.pow(10, powerLevelDb / 20);
+  // Convert a power ratio in dB back to linear power.
+  const linearPower = Math.pow(10, powerLevelDb / 10);
   // Invert cos^n: angle = arccos(linearPower^(1/n))
   const angle = Math.acos(Math.pow(linearPower, 1 / cosineExponent));
   // Normalize: angle runs from 0 (center) to π/2 (edge of STANDARD_RADIUS_KM)

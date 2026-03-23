@@ -1,11 +1,14 @@
 import { JulianDate, Cartographic } from 'cesium';
 import type { SatelliteData } from '../types/satellites';
 import { calculateElevationAngle } from './capacityCalculator';
-import { calculateGSOAvoidanceAngle, calculateCombGeometry } from './oneWebComb';
+import { calculateGSOAvoidanceAngle, calculateCombBeamCenters, calculateCombGeometry } from './oneWebComb';
 import { isBeamActive } from './beamActivation';
-import { isRfCoverageSatisfied, getPhysicsAwareBeamRadius, haversineDistanceKm } from './leoFootprint';
+import { getRadiusAtPowerLevel, isRfCoverageSatisfied, getPhysicsAwareBeamRadius, haversineDistanceKm } from './leoFootprint';
 import {
     getBeamPerformance,
+    getPowerBoostLinear,
+    getScanLossLinear,
+    WEATHER_ATTENUATION_DB,
     type WeatherCondition,
 } from './realisticSimulation';
 import type { SimulationStateSnapshot } from '../types/simulation';
@@ -238,7 +241,8 @@ export function calculateLinkQuality(
     userPosition: { lat: number; lng: number },
     beamCenterPosition: { lat: number; lng: number },
     beamRadiusKm: number,
-    cosineExponent: number = 8
+    cosineExponent: number = 8,
+    thresholdDb: number = -10
 ): { powerDb: number; quality: 'EXCELLENT' | 'GOOD' | 'ACCEPTABLE' | 'MINIMUM' | 'NO_SIGNAL' } {
     // M-03 fix: use canonical haversineDistanceKm from leoFootprint instead of inline
     const distKm = haversineDistanceKm(userPosition, beamCenterPosition);
@@ -250,9 +254,16 @@ export function calculateLinkQuality(
     // Normalized radial distance [0, 1]
     const r = distKm / beamRadiusKm;
 
-    // cos^n model: Power(r) = cos^n(π/2 · r)
-    const linearPower = Math.pow(Math.cos((Math.PI / 2) * r), cosineExponent);
-    const powerDb = 20 * Math.log10(Math.max(linearPower, 1e-10));
+    // The provided beamRadiusKm represents the chosen coverage contour, not the
+    // zero-gain edge of the idealized antenna pattern. Re-map the normalized
+    // distance back onto the intrinsic cos^n pattern coordinate.
+    const thresholdLinearPower = Math.pow(10, thresholdDb / 10);
+    const edgePatternDistance = (2 / Math.PI) * Math.acos(
+        Math.pow(Math.max(1e-10, thresholdLinearPower), 1 / cosineExponent)
+    );
+    const patternDistance = Math.max(0, Math.min(1, r * edgePatternDistance));
+    const linearPower = Math.pow(Math.cos((Math.PI / 2) * patternDistance), cosineExponent);
+    const powerDb = 10 * Math.log10(Math.max(linearPower, 1e-10));
 
     let quality: 'EXCELLENT' | 'GOOD' | 'ACCEPTABLE' | 'MINIMUM' | 'NO_SIGNAL';
     if (powerDb >= -3) {
@@ -313,6 +324,60 @@ export interface LinkBudgetOutput {
     linkQuality: 'BORESIGHT' | 'STRICT' | 'STANDARD' | 'EXTENDED' | 'NO_SIGNAL';
 }
 
+export interface CurrentLeoBeamLinkEstimate {
+    beamIndex: number;
+    activeBeamCount: number;
+    beamCenterPosition: { lat: number; lng: number };
+    beamLink: LinkBudgetOutput & { beamIndex: number };
+    userElevationDeg: number;
+    snpElevationDeg: number | null;
+    limitingElevationDeg: number;
+    backhaulFactor: number;
+    deliveredDownlinkMbps: number;
+}
+
+function getBeamEllipseGeometry(args: {
+    beamIndex: number;
+    activeBeamCount: number;
+    healthFactor: number;
+    weather: WeatherCondition;
+    thresholdDb: number;
+}) {
+    const { beamIndex, activeBeamCount, healthFactor, weather, thresholdDb } = args;
+    const referenceRadiusKm = getRadiusAtPowerLevel(-10);
+    const currentRadiusKm = getRadiusAtPowerLevel(thresholdDb);
+    const thresholdScaleFactor = currentRadiusKm / referenceRadiusKm;
+    const scanScale = getScanLossLinear(beamIndex);
+    const powerBoostScale = Math.sqrt(getPowerBoostLinear(activeBeamCount, weather));
+    const healthScale = Math.sqrt(Math.max(0, Math.min(1, healthFactor)));
+    const weatherScale = Math.sqrt(Math.pow(10, WEATHER_ATTENUATION_DB[weather] / 10));
+    const beamScale = thresholdScaleFactor * scanScale * powerBoostScale * healthScale * weatherScale;
+
+    return {
+        semiMajorAxisKm: (1600 / 2) * beamScale,
+        semiMinorAxisKm: (102 / 2) * beamScale,
+    };
+}
+
+function getEllipticalNormalizedDistance(
+    userPosition: { lat: number; lng: number },
+    beamCenterPosition: { lat: number; lng: number },
+    semiMajorAxisKm: number,
+    semiMinorAxisKm: number,
+): number {
+    if (semiMajorAxisKm <= 0 || semiMinorAxisKm <= 0) return 1;
+
+    const kmPerDegLat = 111.32;
+    const latRad = (beamCenterPosition.lat * Math.PI) / 180;
+    const kmPerDegLng = kmPerDegLat * Math.cos(latRad);
+    const dxKm = (userPosition.lng - beamCenterPosition.lng) * kmPerDegLng;
+    const dyKm = (userPosition.lat - beamCenterPosition.lat) * kmPerDegLat;
+    const r2 = ((dxKm * dxKm) / (semiMajorAxisKm * semiMajorAxisKm))
+        + ((dyKm * dyKm) / (semiMinorAxisKm * semiMinorAxisKm));
+
+    return Math.sqrt(Math.max(0, r2));
+}
+
 /**
  * Full 5-pillar link budget calculation for a user position within a specific beam.
  *
@@ -349,6 +414,7 @@ export function calculateLink(input: LinkBudgetInput): LinkBudgetOutput {
         healthFactor,
         weather,
         normalizedDistance,
+        thresholdDb,
     });
 
     return {
@@ -366,6 +432,123 @@ export function calculateLink(input: LinkBudgetInput): LinkBudgetOutput {
         healthDb: perf.healthDb,
         linkQuality: isInBeam ? perf.linkQuality : 'NO_SIGNAL',
     };
+}
+
+export function estimateCurrentLeoBeamLink(args: {
+    userPosition: { lat: number; lng: number };
+    satellite: SatelliteData;
+    beamIndex: number;
+    time: JulianDate;
+    simulationState: SimulationStateSnapshot;
+    snpPosition?: { lat: number; lng: number } | null;
+}): CurrentLeoBeamLinkEstimate | null {
+    const { userPosition, satellite, beamIndex, time, simulationState, snpPosition = null } = args;
+
+    if (!satellite || satellite.type !== 'ONEWEB' || !satellite.satrec) return null;
+    if (!Number.isInteger(beamIndex) || beamIndex < 0 || beamIndex >= 16) return null;
+
+    try {
+        const gsoState = calculateGSOAvoidanceAngle(satellite.satrec, time);
+        const { isBlankingZone, isGSOAvoidance, satLatDeg } = gsoState;
+        if (isBlankingZone) return null;
+        if (!isBeamActive(beamIndex, isBlankingZone, isGSOAvoidance, satLatDeg, simulationState.hsBeams)) {
+            return null;
+        }
+
+        const activeBeamCount = Array.from({ length: 16 }, (_, idx) => idx).reduce(
+            (count, idx) => count + (isBeamActive(
+                idx,
+                isBlankingZone,
+                isGSOAvoidance,
+                satLatDeg,
+                simulationState.hsBeams
+            ) ? 1 : 0),
+            0
+        );
+        if (activeBeamCount <= 0) return null;
+
+        const beamCenters = calculateCombBeamCenters(satellite.satrec, time);
+        const beamCenterPosition = beamCenters?.[beamIndex];
+        if (!beamCenterPosition) return null;
+
+        const healthFactor = simulationState.beamHealthByIndex.get(beamIndex) ?? 1.0;
+        const thresholdDb = simulationState.coveragePolicy.type === 'DB_THRESHOLD'
+            ? simulationState.coveragePolicy.thresholdDb
+            : undefined;
+
+        const ellipse = getBeamEllipseGeometry({
+            beamIndex,
+            activeBeamCount,
+            healthFactor,
+            weather: simulationState.weatherCondition,
+            thresholdDb: thresholdDb ?? -10,
+        });
+        const rawNormalizedDistance = getEllipticalNormalizedDistance(
+            userPosition,
+            beamCenterPosition,
+            ellipse.semiMajorAxisKm,
+            ellipse.semiMinorAxisKm,
+        );
+        // The beam polygon hit-test is our source of truth for "covered now".
+        // If a point is inside the live polygon but the simplified ellipse math
+        // drifts slightly above the edge, clamp to an edge-of-beam usable value
+        // instead of falsely collapsing throughput to zero.
+        const normalizedDistance = Math.min(rawNormalizedDistance, 0.98);
+        const perf = getBeamPerformance({
+            beamIndex,
+            activeBeamCount,
+            healthFactor,
+            weather: simulationState.weatherCondition,
+            normalizedDistance,
+            thresholdDb: thresholdDb ?? -10,
+        });
+        const beamLink: LinkBudgetOutput & { beamIndex: number } = {
+            beamIndex,
+            isInBeam: true,
+            normalizedDistance,
+            distanceKm: haversineDistanceKm(userPosition, beamCenterPosition),
+            effectiveBeamRadiusKm: Math.max(ellipse.semiMajorAxisKm, ellipse.semiMinorAxisKm),
+            powerAtUserDb: perf.powerAtUserDb,
+            deliveredThroughputMbps: perf.deliveredThroughputMbps,
+            throughputRatio: perf.throughputRatio,
+            effectiveEirpDb: perf.effectiveEirpDb,
+            scanLossDb: perf.scanLossDb,
+            powerBoostDb: perf.powerBoostDb,
+            weatherAttenuationDb: perf.weatherAttenuationDb,
+            healthDb: perf.healthDb,
+            linkQuality: perf.linkQuality,
+        };
+
+        const userElevationDeg = calculateElevationAngle(userPosition, satellite);
+        const snpElevationDeg = snpPosition
+            ? calculateElevationAngle(snpPosition, satellite)
+            : null;
+        const limitingElevationDeg = snpElevationDeg != null
+            ? Math.min(userElevationDeg, snpElevationDeg)
+            : userElevationDeg;
+        const backhaulFactor = snpElevationDeg == null
+            ? 0
+            : limitingElevationDeg < 15
+                ? 0
+                : limitingElevationDeg >= 50
+                    ? 1
+                    : (limitingElevationDeg - 15) / (50 - 15);
+
+        return {
+            beamIndex,
+            activeBeamCount,
+            beamCenterPosition,
+            beamLink,
+            userElevationDeg,
+            snpElevationDeg,
+            limitingElevationDeg,
+            backhaulFactor,
+            deliveredDownlinkMbps: beamLink.deliveredThroughputMbps * backhaulFactor,
+        };
+    } catch (error) {
+        console.warn('Error estimating current LEO beam link:', error);
+        return null;
+    }
 }
 
 /**
