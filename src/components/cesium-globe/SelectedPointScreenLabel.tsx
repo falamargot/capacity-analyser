@@ -22,6 +22,7 @@ interface SelectedPointScreenLabelProps {
   leoServiceViewModel?: LeoConnectivityViewModel | null;
   geoPointStatus?: GeoPointStatus | null;
   viewerReady?: boolean;
+  compact?: boolean;
 }
 
 const statusClassName = (tone: ReturnType<typeof deriveSelectedPointStatusPresentation>['tone']): string => {
@@ -39,6 +40,7 @@ const SelectedPointScreenLabel: React.FC<SelectedPointScreenLabelProps> = ({
   leoServiceViewModel = null,
   geoPointStatus = null,
   viewerReady = false,
+  compact = false,
 }) => {
   const labelRef = useRef<HTMLDivElement | null>(null);
   const presentation = useMemo(
@@ -105,7 +107,7 @@ const SelectedPointScreenLabel: React.FC<SelectedPointScreenLabelProps> = ({
 
       labelRef.current.style.opacity = '1';
       labelRef.current.style.left = `${x}px`;
-      labelRef.current.style.top = `${y - 28}px`;
+      labelRef.current.style.top = `${y - (compact ? 22 : 28)}px`;
     };
 
     updatePosition();
@@ -126,12 +128,12 @@ const SelectedPointScreenLabel: React.FC<SelectedPointScreenLabelProps> = ({
       className="absolute z-50 pointer-events-none -translate-x-1/2 -translate-y-full opacity-0"
       style={{ left: 0, top: 0 }}
     >
-      <div className={`${badgeClassName} rounded px-3 py-1.5 text-white shadow-lg ring-1 ring-white/25 backdrop-blur-sm`}>
-        <div className="text-[12px] font-semibold leading-tight sm:text-sm">
+      <div className={`${badgeClassName} ${compact ? 'rounded-[10px] px-2.5 py-1.5' : 'rounded px-3 py-1.5'} text-white shadow-lg ring-1 ring-white/25 backdrop-blur-sm`}>
+        <div className={`${compact ? 'text-[11px]' : 'text-[12px] sm:text-sm'} font-semibold leading-tight`}>
           {text.coordinates}
         </div>
         {text.statusLines.map((statusLine, index) => (
-          <div key={`${statusLine}-${index}`} className="text-[12px] font-semibold leading-tight sm:text-sm">
+          <div key={`${statusLine}-${index}`} className={`${compact ? 'text-[11px]' : 'text-[12px] sm:text-sm'} font-semibold leading-tight`}>
             {statusLine}
           </div>
         ))}

@@ -927,17 +927,16 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
             </div>
 
             {!isPhone && <InspectionCard entity={hoveredEntity} containerRef={globeContainerRef} />}
-            {!isPhone && (
-                <SelectedPointScreenLabel
-                    viewerRef={viewerRef}
-                    containerRef={globeContainerRef}
-                    selectedPosition={selectedPosition}
-                    satelliteScope={satelliteScope}
-                    leoServiceViewModel={leoServiceViewModel}
-                    geoPointStatus={geoPointStatus}
-                    viewerReady={viewerReady}
-                />
-            )}
+            <SelectedPointScreenLabel
+                viewerRef={viewerRef}
+                containerRef={globeContainerRef}
+                selectedPosition={selectedPosition}
+                satelliteScope={satelliteScope}
+                leoServiceViewModel={leoServiceViewModel}
+                geoPointStatus={geoPointStatus}
+                viewerReady={viewerReady}
+                compact={!!isPhone}
+            />
             {!hideSatelliteScreenLabels && (
                 <SatelliteScreenLabels
                     viewerRef={viewerRef}

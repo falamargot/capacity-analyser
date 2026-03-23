@@ -66,46 +66,48 @@ function MetricCard({
     metrics,
     accentClassName,
     borderClassName,
+    compact = false,
 }: {
     label: string;
     metrics: MobileLinkMetrics | null | undefined;
     accentClassName: string;
     borderClassName: string;
+    compact?: boolean;
 }) {
     return (
-        <div className={`rounded-2xl border bg-white/82 px-3 py-3 shadow-sm dark:bg-slate-900/72 ${borderClassName}`}>
-            <div className="flex items-start justify-between gap-3">
-                <div>
-                    <div className={`text-[11px] font-semibold uppercase tracking-[0.18em] ${accentClassName}`}>
+        <div className={`border bg-white/82 shadow-sm dark:bg-slate-900/72 ${compact ? 'rounded-[20px] px-3 py-2.5' : 'rounded-2xl px-3 py-3'} ${borderClassName}`}>
+            <div className={`items-start ${compact ? 'grid grid-cols-[minmax(0,1fr)_auto] gap-x-3 gap-y-2' : 'flex justify-between gap-3'}`}>
+                <div className="min-w-0">
+                    <div className={`${compact ? 'text-[10px] tracking-[0.2em]' : 'text-[11px] tracking-[0.18em]'} font-semibold uppercase ${accentClassName}`}>
                         {label}
                     </div>
-                    <div className="mt-1 text-[11px] font-medium uppercase tracking-[0.16em] text-slate-400 dark:text-slate-500">
-                        Estimated performance
+                    <div className={`${compact ? 'mt-0.5 text-[10px] leading-4 tracking-[0.14em]' : 'mt-1 text-[11px] tracking-[0.16em]'} font-medium uppercase text-slate-400 dark:text-slate-500`}>
+                        {compact ? 'Est. performance' : 'Estimated performance'}
                     </div>
                 </div>
                 <div className="text-right">
-                    <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-400 dark:text-slate-500">
+                    <div className={`${compact ? 'text-[9px] tracking-[0.2em]' : 'text-[10px] tracking-[0.18em]'} font-semibold uppercase text-slate-400 dark:text-slate-500`}>
                         RTT
                     </div>
-                    <div className="mt-1 text-[13px] font-semibold leading-5 text-slate-900 dark:text-slate-100">
+                    <div className={`${compact ? 'mt-0.5 text-[12px] leading-4' : 'mt-1 text-[13px] leading-5'} font-semibold text-slate-900 dark:text-slate-100`}>
                         {formatRtt(metrics?.rtt)}
                     </div>
                 </div>
             </div>
-            <div className="mt-3 grid grid-cols-2 gap-3">
+            <div className={`grid grid-cols-2 ${compact ? 'mt-2.5 gap-2' : 'mt-3 gap-3'}`}>
                 <div>
-                    <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-400 dark:text-slate-500">
+                    <div className={`${compact ? 'text-[9px] tracking-[0.18em]' : 'text-[10px] tracking-[0.16em]'} font-semibold uppercase text-slate-400 dark:text-slate-500`}>
                         Downlink
                     </div>
-                    <div className="mt-1 text-[13px] font-semibold leading-5 text-slate-900 dark:text-slate-100">
+                    <div className={`${compact ? 'mt-0.5 text-[12px] leading-4' : 'mt-1 text-[13px] leading-5'} font-semibold text-slate-900 dark:text-slate-100`}>
                         {formatMbpsFromGbps(metrics?.downlinkGbps)}
                     </div>
                 </div>
                 <div>
-                    <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-400 dark:text-slate-500">
+                    <div className={`${compact ? 'text-[9px] tracking-[0.18em]' : 'text-[10px] tracking-[0.16em]'} font-semibold uppercase text-slate-400 dark:text-slate-500`}>
                         Uplink
                     </div>
-                    <div className="mt-1 text-[13px] font-semibold leading-5 text-slate-900 dark:text-slate-100">
+                    <div className={`${compact ? 'mt-0.5 text-[12px] leading-4' : 'mt-1 text-[13px] leading-5'} font-semibold text-slate-900 dark:text-slate-100`}>
                         {formatMbpsFromGbps(metrics?.uplinkGbps)}
                     </div>
                 </div>
@@ -119,22 +121,24 @@ function SummaryStatCard({
     value,
     hint,
     accentClassName = 'text-slate-500 dark:text-slate-400',
+    compact = false,
 }: {
     label: string;
     value: string;
     hint?: string;
     accentClassName?: string;
+    compact?: boolean;
 }) {
     return (
-        <div className="rounded-2xl border border-slate-200/80 bg-white/82 px-3 py-3 shadow-sm dark:border-slate-700 dark:bg-slate-900/72">
-            <div className={`text-[10px] font-semibold uppercase tracking-[0.16em] ${accentClassName}`}>
+        <div className={`border border-slate-200/80 bg-white/82 shadow-sm dark:border-slate-700 dark:bg-slate-900/72 ${compact ? 'rounded-[20px] px-3 py-2.5' : 'rounded-2xl px-3 py-3'}`}>
+            <div className={`${compact ? 'text-[9px] tracking-[0.18em]' : 'text-[10px] tracking-[0.16em]'} font-semibold uppercase ${accentClassName}`}>
                 {label}
             </div>
-            <div className="mt-1 text-[13px] font-semibold leading-5 text-slate-900 dark:text-slate-100">
+            <div className={`${compact ? 'mt-0.5 text-[12px] leading-4' : 'mt-1 text-[13px] leading-5'} font-semibold text-slate-900 dark:text-slate-100`}>
                 {value}
             </div>
             {hint ? (
-                <div className="mt-1 text-[11px] leading-4 text-slate-500 dark:text-slate-400">
+                <div className={`${compact ? 'mt-0.5 text-[10px] leading-4' : 'mt-1 text-[11px] leading-4'} text-slate-500 dark:text-slate-400`}>
                     {hint}
                 </div>
             ) : null}
@@ -300,6 +304,10 @@ const MobileAnalysisSummary: React.FC<MobileAnalysisSummaryProps> = ({
     }, [metrics?.geo, metrics?.leo]);
 
     const hasMetrics = metricCards.length > 0;
+    const compactTitleParts = useMemo(
+        () => (compact ? summary.title.split(', ') : [summary.title]),
+        [compact, summary.title]
+    );
     const entitySummaryCards = useMemo(() => {
         if (selectedSatellite) {
             return [
@@ -400,6 +408,11 @@ const MobileAnalysisSummary: React.FC<MobileAnalysisSummaryProps> = ({
         snpConnectedSatellites,
     ]);
     const hasEntitySummary = entitySummaryCards.length > 0;
+    const compactEntitySummaryGridClass = useMemo(() => {
+        if (!compact) return 'grid-cols-1 sm:grid-cols-3';
+        if ((selectedGateway || inspectedSNP) && entitySummaryCards.length === 3) return 'grid-cols-3';
+        return 'grid-cols-2';
+    }, [compact, entitySummaryCards.length, inspectedSNP, selectedGateway]);
     const emptyStateMessage = useMemo(() => {
         if (selectedPoint || selectedAircraft) {
             if (satelliteScope === 'LEO') {
@@ -417,31 +430,42 @@ const MobileAnalysisSummary: React.FC<MobileAnalysisSummaryProps> = ({
     const statusClassName = statusToneClass(summary.statusTone);
 
     return (
-        <div className={compact ? 'rounded-[24px] border border-slate-200/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,250,252,0.94))] px-3.5 py-3 shadow-[0_18px_40px_-32px_rgba(15,23,42,0.55)] dark:border-slate-700 dark:bg-[linear-gradient(180deg,rgba(15,23,42,0.94),rgba(15,23,42,0.84))]' : 'rounded-3xl border border-slate-200/80 bg-white px-4 py-4 shadow-sm dark:border-slate-700 dark:bg-slate-900'}>
-            <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                    <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">
+        <div className={compact ? 'rounded-[24px] border border-slate-200/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,250,252,0.94))] px-3 py-2.5 shadow-[0_18px_40px_-32px_rgba(15,23,42,0.55)] dark:border-slate-700 dark:bg-[linear-gradient(180deg,rgba(15,23,42,0.94),rgba(15,23,42,0.84))]' : 'rounded-3xl border border-slate-200/80 bg-white px-4 py-4 shadow-sm dark:border-slate-700 dark:bg-slate-900'}>
+            <div className={compact ? 'grid grid-cols-[minmax(0,1fr)_auto] items-start gap-x-3 gap-y-1.5' : 'flex items-start justify-between gap-3'}>
+                <div className={`min-w-0 ${compact ? 'contents' : 'flex-1'}`}>
+                    <div className={`text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400 ${compact ? 'col-start-1 row-start-1' : ''}`}>
                         {summary.eyebrow}
                     </div>
-                    <div className="mt-1 truncate text-[22px] font-semibold leading-7 text-slate-950 dark:text-slate-50">
-                        {summary.title}
+                    <div className={`${compact ? 'col-start-1 row-start-2 mt-0 text-[19px] leading-[1.1]' : 'mt-1 truncate text-[22px] leading-7'} font-semibold text-slate-950 dark:text-slate-50`}>
+                        {compact ? (
+                            <span className="flex flex-wrap items-baseline gap-x-1.5 gap-y-0.5">
+                                {compactTitleParts.map((part, index) => (
+                                    <span key={`${part}-${index}`}>
+                                        {part}
+                                        {index < compactTitleParts.length - 1 ? ',' : ''}
+                                    </span>
+                                ))}
+                            </span>
+                        ) : (
+                            summary.title
+                        )}
                     </div>
-                    <div className="mt-1 text-sm leading-5 text-slate-500 dark:text-slate-400">
+                    <div className={`${compact ? 'col-span-2 row-start-3 mt-0 text-[13px] leading-[1.3]' : 'mt-1 text-sm leading-5'} text-slate-500 dark:text-slate-400`}>
                         {summary.subtitle}
                     </div>
                 </div>
 
-                <div className={`shrink-0 rounded-full border px-2.5 py-1 text-[11px] font-semibold ${statusClassName}`}>
+                <div className={`w-fit max-w-full shrink-0 rounded-full border ${compact ? 'col-start-2 row-start-1 self-start justify-self-end px-2.5 py-1 text-[10px] leading-4' : 'px-2.5 py-1 text-[11px]'} font-semibold ${statusClassName}`}>
                     {summary.status}
                 </div>
             </div>
 
             {hasEntitySummary ? (
-                <div className="mt-3">
-                    <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">
+                <div className={compact ? 'mt-2' : 'mt-3'}>
+                    <div className={`${compact ? 'mb-1.5 text-[10px]' : 'mb-2 text-[11px]'} font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400`}>
                         Selection Summary
                     </div>
-                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                    <div className={`grid gap-2 ${compactEntitySummaryGridClass}`}>
                         {entitySummaryCards.map((card) => (
                             <SummaryStatCard
                                 key={card.key}
@@ -449,13 +473,14 @@ const MobileAnalysisSummary: React.FC<MobileAnalysisSummaryProps> = ({
                                 value={card.value}
                                 hint={card.hint}
                                 accentClassName={card.accentClassName}
+                                compact={compact}
                             />
                         ))}
                     </div>
                 </div>
             ) : hasMetrics ? (
-                <div className="mt-3">
-                    <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">
+                <div className={compact ? 'mt-2' : 'mt-3'}>
+                    <div className={`${compact ? 'mb-1.5 text-[10px]' : 'mb-2 text-[11px]'} font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400`}>
                         Estimated Performance
                     </div>
                     <div className={`grid gap-2 ${metricCards.length === 1 ? 'grid-cols-1' : 'grid-cols-2'}`}>
@@ -466,12 +491,13 @@ const MobileAnalysisSummary: React.FC<MobileAnalysisSummaryProps> = ({
                                 metrics={card.metrics}
                                 accentClassName={card.accentClassName}
                                 borderClassName={card.borderClassName}
+                                compact={compact}
                             />
                         ))}
                     </div>
                 </div>
             ) : (
-                <div className="mt-3 rounded-2xl border border-slate-200/80 bg-white/82 px-3 py-2.5 text-sm text-slate-600 shadow-sm dark:border-slate-700 dark:bg-slate-900/72 dark:text-slate-300">
+                <div className={`${compact ? 'mt-2 rounded-[20px] px-3 py-2 text-[13px] leading-[1.4]' : 'mt-3 rounded-2xl px-3 py-2.5 text-sm'} border border-slate-200/80 bg-white/82 text-slate-600 shadow-sm dark:border-slate-700 dark:bg-slate-900/72 dark:text-slate-300`}>
                     {emptyStateMessage}
                 </div>
             )}

@@ -2169,11 +2169,11 @@ const App: React.FC = () => {
             {!isFullscreen && hasMobileSelection && (
               <>
                 <div
-                  className="pointer-events-none absolute inset-x-0 bottom-0 z-[35] px-3"
-                  style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 0.75rem)' }}
+                  className="pointer-events-none absolute inset-x-0 bottom-0 z-[35] px-2.5"
+                  style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 0.5rem)' }}
                 >
                   <div className="pointer-events-auto mx-auto max-w-3xl overflow-hidden rounded-[30px] border border-white/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(241,245,249,0.94))] shadow-[0_26px_70px_-42px_rgba(15,23,42,0.82)] backdrop-blur-xl dark:border-slate-700/80 dark:bg-[linear-gradient(180deg,rgba(15,23,42,0.96),rgba(30,41,59,0.9))]">
-                    <div className="p-2.5">
+                    <div className="p-2">
                       <MobileAnalysisSummary
                         selectedSatellite={selectedSatellite}
                         autoSelectedLEOSatellite={resolvedAutoLEO}
@@ -2192,11 +2192,11 @@ const App: React.FC = () => {
                         snpConnectedSatellites={snpConnectedSatellites}
                       />
                     </div>
-                    <div className="border-t border-slate-200/80 px-3 pb-2.5 pt-2 dark:border-slate-700/80">
+                    <div className="border-t border-slate-200/80 px-2.5 pb-2 pt-1.5 dark:border-slate-700/80">
                       <button
                         type="button"
                         onClick={() => setIsMobileAnalysisPanelOpen(true)}
-                        className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-2xl bg-slate-950 px-4 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-slate-800 dark:bg-white dark:text-slate-950 dark:hover:bg-slate-200"
+                        className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-[18px] bg-slate-950 px-4 text-[15px] font-semibold text-white shadow-sm transition-colors hover:bg-slate-800 dark:bg-white dark:text-slate-950 dark:hover:bg-slate-200"
                         aria-label="Open detailed analysis"
                       >
                         <span>Detailed view</span>
