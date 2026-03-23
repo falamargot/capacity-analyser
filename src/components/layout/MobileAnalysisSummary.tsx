@@ -61,6 +61,36 @@ function statusToneClass(tone: SelectedPointStatusTone | 'danger' | 'warning' | 
     return 'border-slate-200 bg-slate-100 text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200';
 }
 
+function CompactInfoPill({
+    label,
+    value,
+    hint,
+    accentClassName,
+    surfaceClassName,
+}: {
+    label: string;
+    value: string;
+    hint?: string;
+    accentClassName?: string;
+    surfaceClassName?: string;
+}) {
+    return (
+        <div className={`min-w-[8.5rem] max-w-[12rem] rounded-[18px] border px-3 py-2 shadow-[0_18px_40px_-30px_rgba(15,23,42,0.9)] backdrop-blur-xl ${surfaceClassName ?? 'border-slate-200/80 bg-white/82 dark:border-slate-700 dark:bg-slate-900/72'}`}>
+            <div className="text-[9px] font-semibold uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500">
+                {label}
+            </div>
+            <div className={`mt-1 truncate whitespace-nowrap text-right text-[12px] font-semibold leading-[1.1] ${accentClassName ?? 'text-slate-900 dark:text-slate-100'}`}>
+                {value}
+            </div>
+            {hint ? (
+                <div className="mt-1 text-right text-[10px] leading-4 text-slate-500 dark:text-slate-400">
+                    {hint}
+                </div>
+            ) : null}
+        </div>
+    );
+}
+
 function MetricCard({
     label,
     metrics,
@@ -223,8 +253,8 @@ const MobileAnalysisSummary: React.FC<MobileAnalysisSummaryProps> = ({
             return {
                 eyebrow: selectedSatellite.orbitType,
                 title: selectedSatellite.name,
-                subtitle: `${selectedSatellite.type} inspection`,
-                status: leoServiceViewModel?.primaryReasonLabel ?? 'Selected satellite',
+                subtitle: null,
+                status: leoServiceViewModel?.primaryReasonLabel ?? null,
                 statusTone: leoServiceViewModel?.finalServiceStatus === 'ALLOWED'
                     ? 'success'
                     : leoServiceViewModel?.finalServiceStatus === 'DEGRADED'
@@ -241,7 +271,7 @@ const MobileAnalysisSummary: React.FC<MobileAnalysisSummaryProps> = ({
                 title: formatCoordinates({ lat: selectedPoint.lat, lng: selectedPoint.lng }),
                 subtitle: selectedPoint.altitude
                     ? `Altitude ${selectedPoint.altitude.toFixed(1)} km`
-                    : 'Capacity analysis target',
+                    : null,
                 status: selectedPointStatus.lines.map((line) => line.text).join(' · '),
                 statusTone: selectedPointStatus.tone,
             };
@@ -304,13 +334,28 @@ const MobileAnalysisSummary: React.FC<MobileAnalysisSummaryProps> = ({
     }, [metrics?.geo, metrics?.leo]);
 
     const hasMetrics = metricCards.length > 0;
-    const compactTitleParts = useMemo(
-        () => (compact ? summary.title.split(', ') : [summary.title]),
-        [compact, summary.title]
-    );
+    const isCompactCoordinateSummary = compact && !!selectedPoint;
+    const isCompactSatelliteSummary = compact && !!selectedSatellite;
+    const compactSatellitePosition = useMemo(() => {
+        if (!compact || !selectedSatellite) return null;
+        return {
+            label: 'Live Position',
+            value: formatCoordinates({
+                lat: selectedSatellite.position.lat,
+                lng: selectedSatellite.position.lng,
+            }),
+            hint: `Altitude ${selectedSatellite.position.alt.toFixed(0)} km`,
+            accentClassName: selectedSatellite.type === 'EUTELSAT'
+                ? 'text-blue-700 dark:text-blue-200'
+                : 'text-fuchsia-700 dark:text-fuchsia-200',
+            surfaceClassName: selectedSatellite.type === 'EUTELSAT'
+                ? 'border-blue-200/80 bg-[linear-gradient(135deg,rgba(59,130,246,0.14),rgba(255,255,255,0.82))] dark:border-blue-400/25 dark:bg-[linear-gradient(135deg,rgba(59,130,246,0.18),rgba(15,23,42,0.72))]'
+                : 'border-fuchsia-200/80 bg-[linear-gradient(135deg,rgba(217,70,239,0.14),rgba(255,255,255,0.82))] dark:border-fuchsia-400/25 dark:bg-[linear-gradient(135deg,rgba(217,70,239,0.18),rgba(15,23,42,0.72))]',
+        };
+    }, [compact, selectedSatellite]);
     const entitySummaryCards = useMemo(() => {
         if (selectedSatellite) {
-            return [
+            const cards = [
                 {
                     key: 'sat-status',
                     label: 'Status',
@@ -338,6 +383,8 @@ const MobileAnalysisSummary: React.FC<MobileAnalysisSummaryProps> = ({
                         : `Availability ${(selectedSatellite.capacity.availability * 100).toFixed(2)}%`,
                 },
             ];
+
+            return compact ? cards.filter((card) => card.key !== 'sat-position') : cards;
         }
 
         if (inspectedSNP) {
@@ -428,36 +475,50 @@ const MobileAnalysisSummary: React.FC<MobileAnalysisSummaryProps> = ({
     }, [satelliteScope, selectedAircraft, selectedPoint]);
 
     const statusClassName = statusToneClass(summary.statusTone);
+    const hasStatusBadge = Boolean(summary.status) && !compactSatellitePosition;
+    const compactHeaderHasAside = compact && (hasStatusBadge || !!compactSatellitePosition);
+    const compactHeaderTextSpanClass = compactSatellitePosition
+        ? 'col-start-1'
+        : compactHeaderHasAside
+            ? 'col-span-2'
+            : 'col-span-1';
 
     return (
         <div className={compact ? 'rounded-[24px] border border-slate-200/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,250,252,0.94))] px-3 py-2.5 shadow-[0_18px_40px_-32px_rgba(15,23,42,0.55)] dark:border-slate-700 dark:bg-[linear-gradient(180deg,rgba(15,23,42,0.94),rgba(15,23,42,0.84))]' : 'rounded-3xl border border-slate-200/80 bg-white px-4 py-4 shadow-sm dark:border-slate-700 dark:bg-slate-900'}>
-            <div className={compact ? 'grid grid-cols-[minmax(0,1fr)_auto] items-start gap-x-3 gap-y-1.5' : 'flex items-start justify-between gap-3'}>
+            <div className={compact ? (compactHeaderHasAside ? 'grid grid-cols-[minmax(0,1fr)_auto] items-start gap-x-3 gap-y-1.5' : 'grid grid-cols-1 gap-y-1') : 'flex items-start justify-between gap-3'}>
                 <div className={`min-w-0 ${compact ? 'contents' : 'flex-1'}`}>
                     <div className={`text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400 ${compact ? 'col-start-1 row-start-1' : ''}`}>
                         {summary.eyebrow}
                     </div>
-                    <div className={`${compact ? 'col-start-1 row-start-2 mt-0 text-[19px] leading-[1.1]' : 'mt-1 truncate text-[22px] leading-7'} font-semibold text-slate-950 dark:text-slate-50`}>
-                        {compact ? (
-                            <span className="flex flex-wrap items-baseline gap-x-1.5 gap-y-0.5">
-                                {compactTitleParts.map((part, index) => (
-                                    <span key={`${part}-${index}`}>
-                                        {part}
-                                        {index < compactTitleParts.length - 1 ? ',' : ''}
-                                    </span>
-                                ))}
-                            </span>
-                        ) : (
-                            summary.title
-                        )}
+                    <div className={`${compact ? `${compactHeaderTextSpanClass} row-start-2 mt-0 ${isCompactSatelliteSummary ? 'text-[16px] leading-[1.05]' : 'text-[18px] leading-[1.05]'}` : 'mt-1 truncate text-[22px] leading-7'} font-semibold text-slate-950 dark:text-slate-50`}>
+                        <span className={isCompactCoordinateSummary || isCompactSatelliteSummary ? 'block truncate whitespace-nowrap' : compact ? 'block' : undefined}>
+                            {summary.title}
+                        </span>
                     </div>
-                    <div className={`${compact ? 'col-span-2 row-start-3 mt-0 text-[13px] leading-[1.3]' : 'mt-1 text-sm leading-5'} text-slate-500 dark:text-slate-400`}>
-                        {summary.subtitle}
-                    </div>
+                    {summary.subtitle ? (
+                        <div className={`${compact ? `${compactHeaderTextSpanClass} row-start-3 mt-0 text-[13px] leading-[1.3]` : 'mt-1 text-sm leading-5'} text-slate-500 dark:text-slate-400`}>
+                            {summary.subtitle}
+                        </div>
+                    ) : null}
                 </div>
 
-                <div className={`w-fit max-w-full shrink-0 rounded-full border ${compact ? 'col-start-2 row-start-1 self-start justify-self-end px-2.5 py-1 text-[10px] leading-4' : 'px-2.5 py-1 text-[11px]'} font-semibold ${statusClassName}`}>
-                    {summary.status}
-                </div>
+                {compactSatellitePosition ? (
+                    <div className="col-start-2 row-span-2 row-start-1 self-start justify-self-end">
+                        <CompactInfoPill
+                            label={compactSatellitePosition.label}
+                            value={compactSatellitePosition.value}
+                            hint={compactSatellitePosition.hint}
+                            accentClassName={compactSatellitePosition.accentClassName}
+                            surfaceClassName={compactSatellitePosition.surfaceClassName}
+                        />
+                    </div>
+                ) : null}
+
+                {hasStatusBadge ? (
+                    <div className={`w-fit max-w-full shrink-0 rounded-full border ${compact ? 'col-start-2 row-start-1 self-start justify-self-end px-2.5 py-1 text-[10px] leading-4' : 'px-2.5 py-1 text-[11px]'} font-semibold ${statusClassName}`}>
+                        {summary.status}
+                    </div>
+                ) : null}
             </div>
 
             {hasEntitySummary ? (
