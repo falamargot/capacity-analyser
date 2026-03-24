@@ -560,9 +560,6 @@ const MobileAnalysisSummary: React.FC<MobileAnalysisSummaryProps> = ({
 
             {hasEntitySummary ? (
                 <div className={compact ? 'mt-2' : 'mt-3'}>
-                    <div className={`${compact ? 'mb-1.5 text-[10px]' : 'mb-2 text-[11px]'} font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400`}>
-                        Selection Summary
-                    </div>
                     <div className={`grid gap-2 ${compactEntitySummaryGridClass}`}>
                         {entitySummaryCards.map((card) => (
                             <SummaryStatCard
@@ -578,9 +575,6 @@ const MobileAnalysisSummary: React.FC<MobileAnalysisSummaryProps> = ({
                 </div>
             ) : hasMetrics ? (
                 <div className={compact ? 'mt-2' : 'mt-3'}>
-                    <div className={`${compact ? 'mb-1.5 text-[10px]' : 'mb-2 text-[11px]'} font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400`}>
-                        Estimated Performance
-                    </div>
                     <div className={`grid gap-2 ${metricCards.length === 1 ? 'grid-cols-1' : 'grid-cols-2'}`}>
                         {metricCards.map((card) => (
                             <MetricCard

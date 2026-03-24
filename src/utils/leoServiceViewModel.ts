@@ -128,7 +128,7 @@ const getDecisionDriver = (reason: ServiceLayerReason): LeoDecisionDriver => {
 const getDecisionDriverLabel = (driver: LeoDecisionDriver): string => {
   if (driver === 'REGULATORY') return 'REGULATORY RESTRICTION';
   if (driver === 'CAPACITY') return 'CAPACITY LIMIT';
-  if (driver === 'NETWORK') return 'NETWORK PATH UNAVAILABLE';
+  if (driver === 'NETWORK') return 'SNP PATH UNAVAILABLE';
   if (driver === 'RF') return 'RF COVERAGE UNAVAILABLE';
   return 'CONNECTED';
 };
@@ -136,7 +136,7 @@ const getDecisionDriverLabel = (driver: LeoDecisionDriver): string => {
 const formatReasonLabel = (driver: LeoDecisionDriver): string => {
   if (driver === 'REGULATORY') return 'Regulatory restriction';
   if (driver === 'CAPACITY') return 'Capacity constraint';
-  if (driver === 'NETWORK') return 'Gateway path unavailable';
+  if (driver === 'NETWORK') return 'SNP path unavailable';
   if (driver === 'RF') return 'RF coverage unavailable';
   return 'Connected';
 };
@@ -219,14 +219,14 @@ export function deriveLeoConnectivityViewModel(
         : 'No active beam currently covers the selected target',
     },
     network: {
-      label: 'Gateway',
+      label: 'SNP',
       value: hasSNP ? 'Reachable' : hasRF ? 'Unreachable' : 'Not applicable',
       tone: hasSNP ? 'success' : hasRF ? 'warning' : 'neutral',
       detail: hasSNP
-        ? 'Gateway backhaul is available for end-to-end service.'
+        ? 'SNP backhaul is available for end-to-end service.'
         : hasRF
-          ? 'RF is available but no reachable gateway path is currently available'
-          : 'Gateway path depends on an RF link first',
+          ? 'RF is available but no reachable SNP path is currently available'
+          : 'SNP path depends on an RF link first',
     },
     capacity: {
       label: 'Capacity',
@@ -276,7 +276,7 @@ export function deriveLeoConnectivityViewModel(
       tone: physicalState.beamActive ? 'success' : 'warning',
     },
     {
-      label: 'Gateway Path',
+      label: 'SNP Path',
       value: physicalState.gatewayReachable ? 'Reachable' : 'Unavailable',
       tone: physicalState.gatewayReachable ? 'success' : hasRF ? 'warning' : 'neutral',
     },

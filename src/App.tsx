@@ -165,6 +165,7 @@ const App: React.FC = () => {
   const [selectedGeoBeamId, setSelectedGeoBeamId] = useState<string | null>(null);
   const [selectedAircraft, setSelectedAircraft] = useState<Aircraft | null>(null);
   const [selectedVessel, setSelectedVessel] = useState<Vessel | null>(null);
+  const [nearestLocation, setNearestLocation] = useState<{ city: string; country: string } | null>(null);
   const [hoveredSatelliteId, setHoveredSatelliteId] = useState<string | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [fullscreenExportButtonProps, setFullscreenExportButtonProps] = useState<ExportButtonPayload | null>(null);
@@ -499,6 +500,55 @@ const App: React.FC = () => {
   useEffect(() => {
     ensureLoaded().then(() => setRegulatoryReady(true));
   }, []);
+
+  useEffect(() => {
+    const groundPoint = analyzisPosition?.source === 'earth'
+      ? analyzisPosition
+      : selectedPosition;
+
+    if (!groundPoint) {
+      setNearestLocation(null);
+      return;
+    }
+
+    let cancelled = false;
+
+    const fetchNearestLocation = async () => {
+      try {
+        const response = await fetch(
+          `https://nominatim.openstreetmap.org/reverse?format=json&lat=${groundPoint.lat}&lon=${groundPoint.lng}&zoom=10`
+        );
+        const data = await response.json();
+
+        if (cancelled) return;
+
+        if (data?.address) {
+          const city = data.address.city || data.address.town || data.address.village;
+          const country = data.address.country;
+
+          if (city && country) {
+            setNearestLocation({ city, country });
+          } else if (country) {
+            setNearestLocation({ city: '', country });
+          } else {
+            setNearestLocation(null);
+          }
+        } else {
+          setNearestLocation(null);
+        }
+      } catch {
+        if (!cancelled) {
+          setNearestLocation(null);
+        }
+      }
+    };
+
+    fetchNearestLocation();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [analyzisPosition, selectedPosition]);
 
   // resolveAutoSelectedSatellites is imported from utils/satelliteResolution.ts
   // It implements the Service Availability model with:
@@ -1575,17 +1625,18 @@ const App: React.FC = () => {
 
     const activePoint = analyzisPosition || selectedPosition;
     if (activePoint) {
+      const nearestLocationLabel = [nearestLocation?.city, nearestLocation?.country].filter(Boolean).join(', ');
+
       return {
         eyebrow: heroAnalysisSource === 'aircraft' ? 'Airborne Analysis' : 'Surface Analysis',
         title: formatCoordinates({ lat: activePoint.lat, lng: activePoint.lng }),
         subtitle: heroAnalysisSource === 'aircraft'
           ? `${selectedAircraft?.callsign || 'Aircraft'} corridor`
-          : (activePoint.altitude ? `Altitude ${activePoint.altitude.toFixed(1)} km` : 'Ground position'),
+          : (nearestLocationLabel || (activePoint.altitude ? `Altitude ${activePoint.altitude.toFixed(1)} km` : 'Ground position')),
         tone: 'position' as const,
-        badges: [
-          { label: heroAnalysisSource === 'aircraft' ? 'Aircraft' : 'Position', tone: 'slate' as const },
-          ...(selectedSNP?.name ? [{ label: `SNP ${selectedSNP.name}`, tone: 'amber' as const }] : []),
-        ],
+        badges: heroAnalysisSource === 'aircraft'
+          ? [{ label: 'Aircraft', tone: 'slate' as const }]
+          : [],
       };
     }
 
@@ -1602,6 +1653,7 @@ const App: React.FC = () => {
     analyzisPosition,
     failedSnps,
     inspectedSNP,
+    nearestLocation,
     selectedGateway,
     satelliteScope,
     selectedAircraft,
@@ -2221,47 +2273,27 @@ const App: React.FC = () => {
                       }}
                     >
                       <div className="flex h-full w-full max-w-3xl flex-col overflow-hidden rounded-t-[32px] border border-slate-200/80 bg-white shadow-[0_-12px_50px_-24px_rgba(15,23,42,0.45)] dark:border-slate-800 dark:bg-slate-950">
-                        <div className="border-b border-slate-200/80 bg-white/96 px-4 pb-3 pt-2.5 backdrop-blur-xl dark:border-slate-800 dark:bg-slate-950/96">
-                          <div className="mb-2 flex items-center justify-center">
+                        <div className="border-b border-slate-200/80 bg-white/96 px-4 pb-2 pt-2.5 backdrop-blur-xl dark:border-slate-800 dark:bg-slate-950/96">
+                          <div className="mb-1 flex items-center justify-center">
                             <div className="h-1.5 w-14 rounded-full bg-slate-300 dark:bg-slate-600" />
                           </div>
-                          <div className="flex items-start gap-3">
-                            <div className="min-w-0 flex-1">
-                              <div className="text-base font-semibold text-slate-950 dark:text-slate-50">
-                                Detail view
-                              </div>
+                          <div className="relative flex items-center justify-center">
+                            <div className="text-base font-semibold text-slate-950 dark:text-slate-50">
+                              Detail view
                             </div>
                             <button
                               type="button"
                               onClick={() => setIsMobileAnalysisPanelOpen(false)}
-                              className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-600 shadow-sm transition-colors hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+                              className="absolute right-0 inline-flex h-10 w-10 items-center justify-center rounded-[18px] border border-slate-200 bg-white text-slate-600 shadow-sm transition-colors hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
                               aria-label="Close detailed analysis"
                             >
                               <X className="h-5 w-5" />
                             </button>
                           </div>
-                          <div className="mt-2">
-                            <MobileAnalysisSummary
-                              selectedSatellite={selectedSatellite}
-                              autoSelectedLEOSatellite={resolvedAutoLEO}
-                              autoSelectedGEOSatellite={activeGeoSatellite}
-                              selectedPoint={analyzisPosition || selectedPosition}
-                              selectedAircraft={selectedAircraft}
-                              selectedGateway={selectedGateway}
-                              inspectedSNP={inspectedSNP}
-                              selectedVessel={selectedVessel}
-                              metrics={mobileMetrics}
-                              leoServiceViewModel={leoServiceViewModel}
-                              satelliteScope={satelliteScope}
-                              geoPointStatus={geoPointStatus}
-                              satellites={satellites}
-                              snpConnectedSatellites={snpConnectedSatellites}
-                            />
-                          </div>
                         </div>
 
                         <div
-                          className="flex-1 overflow-y-auto overscroll-contain px-4 pb-5 pt-4"
+                          className="flex-1 overflow-y-auto overscroll-contain px-4 pb-5 pt-3"
                           style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 1.25rem)' }}
                         >
                           <Suspense fallback={panelFallback}>

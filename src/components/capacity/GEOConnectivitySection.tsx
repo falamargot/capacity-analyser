@@ -149,6 +149,52 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
   onSatelliteClick,
 }) => {
   const userLabel = analysisSource === 'aircraft' && aircraftCallsign ? aircraftCallsign : 'User';
+  const showPerformanceBeforeRadioPath = analysisSource !== 'aircraft';
+
+  const estimatedPerformanceSection = (
+    <CollapsibleSection
+      storageKey="geo-performance"
+      title={<>Estimated Performance<SectionTooltip content="Predicted GEO link throughput and end-to-end RTT. Throughput degrades at low elevation angles. Note the ~600 ms RTT inherent to all GEO orbits due to the 35,786 km orbital altitude." /></>}
+      accentColor="#2563eb"
+      defaultOpen={true}
+      collapsible={false}
+    >
+      {resolvedGEOConnectivity && geoGeometry ? (
+        (() => {
+          const performance = calculateGEOPerformance(geoGeometry.userToSatellite.elevationDeg);
+          const geoStabilityTooltip = formatGeoStabilityTooltip(
+            geoGeometry.userToSatellite.elevationDeg,
+            geoGeometry.isUserLinkUnstable,
+          );
+          return (
+            <PerformancePanel
+              rtt={geoGeometry.rttTotalMs}
+              downlinkGbps={performance.downlinkGbps}
+              uplinkGbps={performance.uplinkGbps}
+              maxDlGbps={TERMINAL_PROFILES[terminalType].maxDlGbps}
+              maxUlGbps={TERMINAL_PROFILES[terminalType].maxUlGbps}
+              stability={geoGeometry.isUserLinkUnstable ? 'Unstable' : performance.stability}
+              performanceFactor={performance.performanceFactor}
+              accentColor="#2563eb"
+              rttMaxMs={RTT_VISUAL_SCALE_MAX_MS}
+              rttLabel="End-to-End GEO RTT"
+              stabilityTooltip={geoStabilityTooltip}
+            />
+          );
+        })()
+      ) : (
+        <PerformancePanel
+          rtt={null}
+          downlinkGbps={null}
+          uplinkGbps={null}
+          maxDlGbps={TERMINAL_PROFILES[terminalType].maxDlGbps}
+          maxUlGbps={TERMINAL_PROFILES[terminalType].maxUlGbps}
+          accentColor="#2563eb"
+          noDataMessage="No GEO coverage available"
+        />
+      )}
+    </CollapsibleSection>
+  );
 
   return (
     <>
@@ -168,6 +214,7 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
       )}
 
       <div className="space-y-4">
+        {showPerformanceBeforeRadioPath && estimatedPerformanceSection}
         {/* GEO Radio Path */}
         <CollapsibleSection
           storageKey="geo-radio-path"
@@ -249,49 +296,7 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
             </div>
           )}
         </LatencyBreakdownCard>
-
-        {/* GEO Estimated Performance */}
-        <CollapsibleSection
-          storageKey="geo-performance"
-          title={<>Estimated Performance<SectionTooltip content="Predicted GEO link throughput and end-to-end RTT. Throughput degrades at low elevation angles. Note the ~600 ms RTT inherent to all GEO orbits due to the 35,786 km orbital altitude." /></>}
-          accentColor="#2563eb"
-          defaultOpen={true}
-        >
-          {resolvedGEOConnectivity && geoGeometry ? (
-            (() => {
-              const performance = calculateGEOPerformance(geoGeometry.userToSatellite.elevationDeg);
-              const geoStabilityTooltip = formatGeoStabilityTooltip(
-                geoGeometry.userToSatellite.elevationDeg,
-                geoGeometry.isUserLinkUnstable,
-              );
-              return (
-                <PerformancePanel
-                  rtt={geoGeometry.rttTotalMs}
-                  downlinkGbps={performance.downlinkGbps}
-                  uplinkGbps={performance.uplinkGbps}
-                  maxDlGbps={TERMINAL_PROFILES[terminalType].maxDlGbps}
-                  maxUlGbps={TERMINAL_PROFILES[terminalType].maxUlGbps}
-                  stability={geoGeometry.isUserLinkUnstable ? 'Unstable' : performance.stability}
-                  performanceFactor={performance.performanceFactor}
-                  accentColor="#2563eb"
-                  rttMaxMs={RTT_VISUAL_SCALE_MAX_MS}
-                  rttLabel="End-to-End GEO RTT"
-                  stabilityTooltip={geoStabilityTooltip}
-                />
-              );
-            })()
-          ) : (
-            <PerformancePanel
-              rtt={null}
-              downlinkGbps={null}
-              uplinkGbps={null}
-              maxDlGbps={TERMINAL_PROFILES[terminalType].maxDlGbps}
-              maxUlGbps={TERMINAL_PROFILES[terminalType].maxUlGbps}
-              accentColor="#2563eb"
-              noDataMessage="No GEO coverage available"
-            />
-          )}
-        </CollapsibleSection>
+        {!showPerformanceBeforeRadioPath && estimatedPerformanceSection}
       </div>
     </>
   );

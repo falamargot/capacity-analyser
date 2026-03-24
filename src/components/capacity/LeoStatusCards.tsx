@@ -85,9 +85,9 @@ const getReasonDetail = (vm: LeoConnectivityViewModel, row: LeoInfoRow): string 
       : 'No active beam on target';
   }
 
-  if (row.label === 'Gateway') {
+  if (row.label === 'SNP') {
     if (row.value === 'Reachable') return 'Backhaul path available';
-    if (row.value === 'Unreachable') return 'No reachable gateway path';
+    if (row.value === 'Unreachable') return 'No reachable SNP path';
     return 'Requires an RF link first';
   }
 

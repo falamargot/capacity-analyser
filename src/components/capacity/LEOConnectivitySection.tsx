@@ -163,16 +163,63 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
   leoServiceViewModel,
 }) => {
   const userLabel = analysisSource === 'aircraft' && aircraftCallsign ? aircraftCallsign : 'User';
+  const showPerformanceBeforeRadioPath = analysisSource !== 'aircraft';
 
   const isRegulatoryBlocked = leoServiceViewModel?.decisionDriver === 'REGULATORY'
     && leoServiceViewModel.serviceStatus === 'BLOCKED';
   const blockedDiagnosticMessage = 'Underlying RF geometry only — service blocked by regulation.';
-  const blockedCapacityMessage = 'Contextual diagnostic only — service blocked by regulation.';
 
   const diagnosticOnlyNotice = (
     <div className="rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:border-amber-700 dark:bg-amber-900/20 dark:text-amber-300">
       {blockedDiagnosticMessage}
     </div>
+  );
+
+  const estimatedPerformanceSection = (
+    <CollapsibleSection
+      storageKey="leo-performance"
+      title={<>{isRegulatoryBlocked ? 'Estimated Performance (Diagnostic only)' : 'Estimated Performance'}<SectionTooltip content="Predicted downlink/uplink throughput and round-trip latency based on LEO link geometry, beam health factors, weather attenuation, and the current corridor DC level." /></>}
+      subtitle={isRegulatoryBlocked ? blockedDiagnosticMessage : undefined}
+      accentColor="#db2777"
+      defaultOpen={true}
+      collapsible={false}
+    >
+      {leoPerformance ? (
+        <>
+          {isRegulatoryBlocked && <div className="mb-3">{diagnosticOnlyNotice}</div>}
+          <PerformancePanel
+            rtt={mobileLeoMetrics?.rtt ?? null}
+            downlinkGbps={mobileLeoMetrics?.downlinkGbps ?? null}
+            uplinkGbps={mobileLeoMetrics?.uplinkGbps ?? null}
+            maxDlGbps={TERMINAL_PROFILES[terminalType].maxDlGbps}
+            maxUlGbps={TERMINAL_PROFILES[terminalType].maxUlGbps}
+            performanceFactor={leoPerformance.performanceFactor}
+            accentColor="#db2777"
+            rttMaxMs={RTT_VISUAL_SCALE_MAX_MS}
+            rttLabel="End-to-End LEO RTT"
+          />
+        </>
+      ) : resolvedLEOConnectivity ? (
+        <PerformancePanel
+          rtt={null}
+          downlinkGbps={null}
+          uplinkGbps={null}
+          maxDlGbps={TERMINAL_PROFILES[terminalType].maxDlGbps}
+          maxUlGbps={TERMINAL_PROFILES[terminalType].maxUlGbps}
+          accentColor="#db2777"
+          noDataMessage="No performance data available without SNP connectivity"
+        />
+      ) : (
+        <PerformancePanel
+          rtt={null}
+          downlinkGbps={null}
+          uplinkGbps={null}
+          maxDlGbps={TERMINAL_PROFILES[terminalType].maxDlGbps}
+          maxUlGbps={TERMINAL_PROFILES[terminalType].maxUlGbps}
+          accentColor="#db2777"
+        />
+      )}
+    </CollapsibleSection>
   );
 
   return (
@@ -183,6 +230,7 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
       </h3>
       <div className="space-y-4">
         <LeoStatusCards viewModel={leoServiceViewModel ?? null} />
+        {showPerformanceBeforeRadioPath && estimatedPerformanceSection}
 
         {/* LEO Radio Path */}
         <CollapsibleSection
@@ -303,51 +351,7 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
             />
           </div>
         )}
-
-        {/* LEO Estimated Performance */}
-        <CollapsibleSection
-          storageKey="leo-performance"
-          title={<>{isRegulatoryBlocked ? 'Estimated Performance (Diagnostic only)' : 'Estimated Performance'}<SectionTooltip content="Predicted downlink/uplink throughput and round-trip latency based on LEO link geometry, beam health factors, weather attenuation, and the current corridor DC level." /></>}
-          subtitle={isRegulatoryBlocked ? blockedDiagnosticMessage : undefined}
-          accentColor="#db2777"
-          defaultOpen={true}
-        >
-          {leoPerformance ? (
-            <>
-              {isRegulatoryBlocked && <div className="mb-3">{diagnosticOnlyNotice}</div>}
-              <PerformancePanel
-                rtt={mobileLeoMetrics?.rtt ?? null}
-                downlinkGbps={mobileLeoMetrics?.downlinkGbps ?? null}
-                uplinkGbps={mobileLeoMetrics?.uplinkGbps ?? null}
-                maxDlGbps={TERMINAL_PROFILES[terminalType].maxDlGbps}
-                maxUlGbps={TERMINAL_PROFILES[terminalType].maxUlGbps}
-                performanceFactor={leoPerformance.performanceFactor}
-                accentColor="#db2777"
-                rttMaxMs={RTT_VISUAL_SCALE_MAX_MS}
-                rttLabel="End-to-End LEO RTT"
-              />
-            </>
-          ) : resolvedLEOConnectivity ? (
-            <PerformancePanel
-              rtt={null}
-              downlinkGbps={null}
-              uplinkGbps={null}
-              maxDlGbps={TERMINAL_PROFILES[terminalType].maxDlGbps}
-              maxUlGbps={TERMINAL_PROFILES[terminalType].maxUlGbps}
-              accentColor="#db2777"
-              noDataMessage="No performance data available without SNP connectivity"
-            />
-          ) : (
-            <PerformancePanel
-              rtt={null}
-              downlinkGbps={null}
-              uplinkGbps={null}
-              maxDlGbps={TERMINAL_PROFILES[terminalType].maxDlGbps}
-              maxUlGbps={TERMINAL_PROFILES[terminalType].maxUlGbps}
-              accentColor="#db2777"
-            />
-          )}
-        </CollapsibleSection>
+        {!showPerformanceBeforeRadioPath && estimatedPerformanceSection}
 
       </div>
     </>
