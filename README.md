@@ -51,6 +51,7 @@ npm run preview
 
 Pour le déploiement (Vercel, Netlify, etc.), configurez la variable d'environnement :
 - `VITE_CESIUM_ION_ACCESS_TOKEN` : votre token Cesium ION
+- `VITE_FORCE_LOCAL_CELESTRAK=true` : force l'usage des fichiers statiques préchargés `public/celestrak.txt` et `public/satcat-status.json` au lieu d'appeler CelesTrak depuis le navigateur
 
 ## Fonctionnalités
 

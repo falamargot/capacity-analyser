@@ -10,7 +10,6 @@ import {
 } from 'cesium';
 import {
     Globe,
-    Layers,
     Map,
     Minus,
     Orbit,
@@ -43,9 +42,10 @@ interface GlobeControlsProps {
     onToggleAggregatedConnectivity?: () => void;
     showRegulatoryOverlay?: boolean;
     onToggleRegulatoryOverlay?: () => void;
-    showLeoDensityHeatmap?: boolean;
-    onToggleLeoDensityHeatmap?: () => void;
     satelliteScope?: 'LEO' | 'GEO' | 'ALL';
+    basemapOptions?: Array<{ id: string; label: string }>;
+    selectedBasemapId?: string;
+    onBasemapChange?: (id: string) => void;
 }
 
 interface ControlButtonProps {
@@ -159,7 +159,7 @@ const DisplayOptionRow: React.FC<DisplayOptionRowProps> = ({
         title={title}
         aria-pressed={enabled}
         className={[
-            'flex w-full items-center gap-3 rounded-2xl border px-3 py-3 text-left transition-all duration-200',
+            'flex w-full items-center gap-3 rounded-2xl border px-3 py-2.5 text-left transition-all duration-200',
             disabled
                 ? 'cursor-not-allowed border-slate-200/80 bg-slate-50/90 opacity-60 dark:border-slate-700 dark:bg-slate-900/60'
                 : enabled
@@ -167,7 +167,7 @@ const DisplayOptionRow: React.FC<DisplayOptionRowProps> = ({
                     : 'border-transparent bg-slate-50/85 hover:-translate-y-0.5 hover:border-slate-200/80 hover:bg-white dark:bg-slate-900/60 dark:hover:border-slate-700 dark:hover:bg-slate-900'
         ].join(' ')}
     >
-        <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl ${optionAccentClassNames[accent]}`}>
+        <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-[18px] ${optionAccentClassNames[accent]}`}>
             {icon}
         </span>
         <span className="min-w-0 flex-1">
@@ -212,9 +212,10 @@ const GlobeControls: React.FC<GlobeControlsProps> = ({
     onToggleAggregatedConnectivity,
     showRegulatoryOverlay,
     onToggleRegulatoryOverlay,
-    showLeoDensityHeatmap,
-    onToggleLeoDensityHeatmap,
-    satelliteScope
+    satelliteScope,
+    basemapOptions = [],
+    selectedBasemapId,
+    onBasemapChange,
 }) => {
     const [isMapOptionsOpen, setIsMapOptionsOpen] = useState(false);
     const popoverRef = useRef<HTMLDivElement | null>(null);
@@ -357,13 +358,13 @@ const GlobeControls: React.FC<GlobeControlsProps> = ({
                         {isMapOptionsOpen && (
                             <div
                                 id={popoverId}
-                                className={`absolute right-0 top-full z-30 mt-2 w-[320px] max-w-[calc(100vw-2rem)] overflow-hidden rounded-[24px] border border-white/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,250,252,0.96))] p-3 shadow-[0_32px_70px_-34px_rgba(15,23,42,0.7)] ring-1 ring-slate-200/70 backdrop-blur-xl dark:border-slate-700/80 dark:bg-[linear-gradient(180deg,rgba(15,23,42,0.98),rgba(2,6,23,0.96))] dark:ring-slate-700/80`}
+                                className={`absolute right-0 top-full z-30 mt-2 w-[320px] max-w-[calc(100vw-2rem)] overflow-hidden rounded-[24px] border border-white/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,250,252,0.96))] p-2.5 shadow-[0_32px_70px_-34px_rgba(15,23,42,0.7)] ring-1 ring-slate-200/70 backdrop-blur-xl dark:border-slate-700/80 dark:bg-[linear-gradient(180deg,rgba(15,23,42,0.98),rgba(2,6,23,0.96))] dark:ring-slate-700/80`}
                                 role="dialog"
                                 aria-label="Display controls"
                             >
                                 <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(56,189,248,0.14),transparent_24%),radial-gradient(circle_at_top_left,rgba(251,191,36,0.14),transparent_26%)]" />
                                 <div className="relative">
-                                    <div className="mb-3 flex items-start justify-between gap-3 border-b border-slate-200/80 pb-3 dark:border-slate-700">
+                                    <div className="mb-2.5 flex items-start justify-between gap-3 border-b border-slate-200/80 pb-2.5 dark:border-slate-700">
                                         <div>
                                             <div className="text-sm font-semibold text-slate-950 dark:text-slate-50">Display Controls</div>
                                         </div>
@@ -372,7 +373,30 @@ const GlobeControls: React.FC<GlobeControlsProps> = ({
                                         </div>
                                     </div>
 
-                                    <div className="space-y-2">
+                                    {basemapOptions.length > 0 && onBasemapChange && (
+                                        <div className="mb-2.5 rounded-[18px] border border-slate-200/80 bg-white/78 px-3 py-2.5 dark:border-slate-700 dark:bg-slate-900/72">
+                                            <div className="mb-1.5 flex items-center justify-between gap-3">
+                                                <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">Map Background</div>
+                                                <div className="rounded-full bg-slate-100 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-500 dark:bg-slate-800 dark:text-slate-400">
+                                                    Cesium
+                                                </div>
+                                            </div>
+                                            <select
+                                                value={selectedBasemapId}
+                                                onChange={(e) => onBasemapChange(e.target.value)}
+                                                className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-900 outline-none transition focus:border-blue-300 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
+                                                aria-label="Choose map background"
+                                            >
+                                                {basemapOptions.map((option) => (
+                                                    <option key={option.id} value={option.id}>
+                                                        {option.label}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                    )}
+
+                                    <div className="space-y-1.5">
                                         <DisplayOptionRow
                                             icon={<SunMedium className="h-4 w-4" />}
                                             label="Sun Light"
@@ -412,7 +436,7 @@ const GlobeControls: React.FC<GlobeControlsProps> = ({
                                             <DisplayOptionRow
                                                 icon={<ShieldCheck className="h-4 w-4" />}
                                                 label="Regulatory Overlay"
-                                                description={leoDisplayOptionsDisabled ? 'Only in ALL or LEO scope.' : 'Show simulated policy zones and blocked-service cues.'}
+                                                description={leoDisplayOptionsDisabled ? 'Only in ALL or LEO scope.' : 'Show policy zones and blocked-service cues.'}
                                                 enabled={!leoDisplayOptionsDisabled && !!showRegulatoryOverlay}
                                                 onClick={() => {
                                                     if (!leoDisplayOptionsDisabled) {
@@ -425,26 +449,9 @@ const GlobeControls: React.FC<GlobeControlsProps> = ({
                                             />
                                         )}
 
-                                        {onToggleLeoDensityHeatmap && (
-                                            <DisplayOptionRow
-                                                icon={<Layers className="h-4 w-4" />}
-                                                label="LEO Density Heatmap"
-                                                description={leoDisplayOptionsDisabled ? 'Only in ALL or LEO scope.' : 'Show simultaneous ≥55° satellite count per 10° grid cell.'}
-                                                enabled={!leoDisplayOptionsDisabled && !!showLeoDensityHeatmap}
-                                                onClick={() => {
-                                                    if (!leoDisplayOptionsDisabled) {
-                                                        onToggleLeoDensityHeatmap?.();
-                                                    }
-                                                }}
-                                                disabled={leoDisplayOptionsDisabled}
-                                                accent="blue"
-                                                title={leoDisplayOptionsDisabled ? 'Not available in GEO scope' : 'Toggle LEO coverage density heatmap (polar Walker-Star pattern)'}
-                                            />
-                                        )}
-
                                     </div>
 
-                                    <div className="mt-3 rounded-[20px] border border-slate-200/80 bg-white/78 px-3 py-3 dark:border-slate-700 dark:bg-slate-900/72">
+                                    <div className="mt-2.5 rounded-[20px] border border-slate-200/80 bg-white/78 px-3 py-2.5 dark:border-slate-700 dark:bg-slate-900/72">
                                         <div className="flex items-center justify-between gap-3">
                                             <div>
                                                 <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">Marker Scale</div>
@@ -457,14 +464,14 @@ const GlobeControls: React.FC<GlobeControlsProps> = ({
                                                     <button
                                                         type="button"
                                                         onClick={() => onSizeScaleReset()}
-                                                        className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-600 transition hover:border-slate-300 hover:text-slate-900 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:border-slate-600 dark:hover:text-slate-100"
+                                                        className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[10px] font-semibold text-slate-600 transition hover:border-slate-300 hover:text-slate-900 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:border-slate-600 dark:hover:text-slate-100"
                                                         title="Reset marker scale to the responsive default"
                                                     >
                                                         <RotateCcw className="h-3 w-3" />
                                                         Reset
                                                     </button>
                                                 )}
-                                                <div className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-700 dark:bg-slate-800 dark:text-slate-200">
+                                                <div className="rounded-full bg-slate-100 px-2.5 py-1 text-[10px] font-semibold text-slate-700 dark:bg-slate-800 dark:text-slate-200">
                                                     {formatScaleLabel(sizeScale ?? 1)}x
                                                 </div>
                                             </div>
@@ -477,7 +484,7 @@ const GlobeControls: React.FC<GlobeControlsProps> = ({
                                             value={sizeScale ?? 1}
                                             onChange={(e) => onSizeScaleChange?.(parseFloat(e.target.value))}
                                             onDoubleClick={() => onSizeScaleReset?.()}
-                                            className="mt-3 h-2 w-full cursor-pointer appearance-none rounded-full bg-slate-200 accent-blue-600 dark:bg-slate-700"
+                                            className="mt-2.5 h-2 w-full cursor-pointer appearance-none rounded-full bg-slate-200 accent-blue-600 dark:bg-slate-700"
                                             title="Adjust marker size. Double-click to reset to the responsive default."
                                             aria-label="Adjust marker size"
                                         />

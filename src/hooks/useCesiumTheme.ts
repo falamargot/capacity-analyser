@@ -2,7 +2,10 @@ import { useEffect } from 'react';
 import { Viewer as CesiumViewerType } from 'cesium';
 import { useTheme } from '../contexts/ThemeContext';
 
-export const useCesiumTheme = (viewerRef: React.RefObject<CesiumViewerType | null>) => {
+export const useCesiumTheme = (
+    viewerRef: React.RefObject<CesiumViewerType | null>,
+    refreshKey: number = 0
+) => {
     const { theme } = useTheme();
 
     useEffect(() => {
@@ -44,5 +47,5 @@ export const useCesiumTheme = (viewerRef: React.RefObject<CesiumViewerType | nul
         // Force a re-render of the scene
         viewer.scene.requestRender();
 
-    }, [theme, viewerRef]);
+    }, [refreshKey, theme, viewerRef]);
 };

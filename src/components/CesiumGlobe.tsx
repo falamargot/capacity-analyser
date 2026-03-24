@@ -26,7 +26,10 @@ import {
     CallbackProperty,
     SceneMode,
     ClockStep,
-    JulianDate
+    JulianDate,
+    ImageryLayer,
+    createDefaultImageryProviderViewModels,
+    type ProviderViewModel
 } from 'cesium';
 import { Feature, Geometry, GeoJsonProperties } from 'geojson';
 import type { SatelliteData } from '../types/satellites';
@@ -51,7 +54,6 @@ import TransmissionLinks from './cesium-globe/TransmissionLinks';
 import TrajectoryLayer from './cesium-globe/TrajectoryLayer';
 import GeoGatewayLayer from './cesium-globe/GeoGatewayLayer';
 import AggregatedConnectivityLayer from './cesium-globe/AggregatedConnectivityLayer';
-import LeoVisibilityDensityLayer from './cesium-globe/LeoVisibilityDensityLayer';
 import RegulatoryLayer from './cesium-globe/RegulatoryLayer';
 import SelectedRegulatoryCountryOutline from './cesium-globe/SelectedRegulatoryCountryOutline';
 import SelectedPointStatusMarker, { SelectionPulseMarker } from './cesium-globe/SelectedPointStatusMarker';
@@ -72,6 +74,23 @@ import type { LeoConnectivityViewModel } from '../utils/leoServiceViewModel';
 import type { RegulatoryResult } from '../services/regulatoryService';
 import type { GeoPointStatus } from '../utils/selectedPointStatus';
 import { GROUND_POINT_ALTITUDE_KM } from './cesium-globe/layerHeights';
+
+const BASEMAP_STORAGE_KEY = 'cesium:basemap';
+
+const normalizeBasemapName = (value: string) =>
+    value.replace(/\u00ad/g, '').replace(/\u00a0/g, ' ').trim();
+
+const DESIRED_BASEMAPS = [
+    { id: 'bing-aerial', name: 'Bing Maps Aerial', label: 'Bing Aerial' },
+    { id: 'bing-aerial-labels', name: 'Bing Maps Aerial with Labels', label: 'Bing Aerial + Labels' },
+    { id: 'bing-roads', name: 'Bing Maps Roads', label: 'Bing Roads' },
+    { id: 'arcgis-imagery', name: 'ArcGIS World Imagery', label: 'ArcGIS Imagery' },
+    { id: 'openstreetmap', name: 'OpenStreetMap', label: 'OpenStreetMap' },
+    { id: 'sentinel-2', name: 'Sentinel-2', label: 'Sentinel-2' },
+    { id: 'blue-marble', name: 'Blue Marble', label: 'Blue Marble' },
+    { id: 'earth-at-night', name: 'Earth at night', label: 'Earth at Night' },
+    { id: 'natural-earth-ii', name: 'Natural Earth II', label: 'Natural Earth II' },
+] as const;
 
 interface CesiumGlobeProps {
     satellites: SatelliteData[];
@@ -200,7 +219,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
     const enableLighting = localEnableLighting;
     const onToggleLighting = () => setLocalEnableLighting(!enableLighting);
     const [showAggregatedConnectivity, setShowAggregatedConnectivity] = useState(false);
-    const [showLeoDensityHeatmap, setShowLeoDensityHeatmap] = useState(false);
+    const [imageryThemeRevision, setImageryThemeRevision] = useState(0);
     const [hoveredEntity, setHoveredEntity] = useState<HoveredEntity>(null);
     const hoveredEntityKeyRef = useRef<string | null>(null);
     const cameraMetricsRef = useRef<CameraMetricsSnapshot>({
@@ -211,9 +230,49 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
     const globeContainerRef = useRef<HTMLDivElement>(null);
     const [viewerReady, setViewerReady] = useState(false);
     const { getSatellitePositionCallback } = usePositionCallbacks(satellites, aircraft, interpolatedAircraftMapRef);
+    const basemapApplyTokenRef = useRef(0);
+    const basemapOptions = useMemo(() => {
+        const byName = new Map<string, ProviderViewModel>();
+        for (const viewModel of createDefaultImageryProviderViewModels()) {
+            byName.set(normalizeBasemapName(viewModel.name), viewModel);
+        }
+
+        return DESIRED_BASEMAPS
+            .map((entry) => {
+                const viewModel = byName.get(entry.name);
+                if (!viewModel) return null;
+                return {
+                    id: entry.id,
+                    label: entry.label,
+                    viewModel,
+                };
+            })
+            .filter((entry): entry is { id: string; label: string; viewModel: ProviderViewModel } => entry !== null);
+    }, []);
+    const [selectedBasemapId, setSelectedBasemapId] = useState<string>(() => {
+        try {
+            return localStorage.getItem(BASEMAP_STORAGE_KEY) ?? DESIRED_BASEMAPS[0].id;
+        } catch {
+            return DESIRED_BASEMAPS[0].id;
+        }
+    });
 
     // Apply theme to Cesium viewer
-    useCesiumTheme(viewerRef);
+    useCesiumTheme(viewerRef, imageryThemeRevision);
+
+    useEffect(() => {
+        if (basemapOptions.length === 0) return;
+        if (basemapOptions.some((option) => option.id === selectedBasemapId)) return;
+        setSelectedBasemapId(basemapOptions[0].id);
+    }, [basemapOptions, selectedBasemapId]);
+
+    useEffect(() => {
+        try {
+            localStorage.setItem(BASEMAP_STORAGE_KEY, selectedBasemapId);
+        } catch {
+            // no-op
+        }
+    }, [selectedBasemapId]);
 
     // Handle scene mode changes
     useEffect(() => {
@@ -278,6 +337,46 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         viewer.scene.globe.depthTestAgainstTerrain = false;
         viewer.shadows = enableLighting;
     }, [sceneMode, enableLighting, viewerReady]);
+
+    useEffect(() => {
+        if (!viewerReady || !viewerRef.current) return;
+        if (basemapOptions.length === 0) return;
+
+        const selectedBasemap = basemapOptions.find((option) => option.id === selectedBasemapId) ?? basemapOptions[0];
+        if (!selectedBasemap) return;
+
+        const applyToken = ++basemapApplyTokenRef.current;
+        let cancelled = false;
+
+        const applyBasemap = async () => {
+            try {
+                const created = selectedBasemap.viewModel.creationCommand();
+                const resolved = await Promise.resolve(created) as unknown;
+                const providers = Array.isArray(resolved) ? resolved : [resolved];
+
+                if (cancelled || applyToken !== basemapApplyTokenRef.current || !viewerRef.current) return;
+
+                const layers = viewerRef.current.imageryLayers;
+                layers.removeAll();
+
+                for (const provider of providers) {
+                    if (!provider) continue;
+                    layers.add(new ImageryLayer(provider as ConstructorParameters<typeof ImageryLayer>[0]));
+                }
+
+                setImageryThemeRevision((value) => value + 1);
+                viewerRef.current.scene.requestRender();
+            } catch (error) {
+                console.error(`[Basemap] Failed to apply "${selectedBasemap.label}":`, error);
+            }
+        };
+
+        applyBasemap();
+
+        return () => {
+            cancelled = true;
+        };
+    }, [basemapOptions, selectedBasemapId, viewerReady]);
 
     // Keep Cesium clock aligned with real UTC time to avoid drift/lag
     useEffect(() => {
@@ -708,9 +807,10 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                 onToggleAggregatedConnectivity={() => setShowAggregatedConnectivity(!showAggregatedConnectivity)}
                 showRegulatoryOverlay={showRegulatoryOverlay}
                 onToggleRegulatoryOverlay={onToggleRegulatoryOverlay}
-                showLeoDensityHeatmap={showLeoDensityHeatmap}
-                onToggleLeoDensityHeatmap={() => setShowLeoDensityHeatmap(v => !v)}
                 satelliteScope={satelliteScope}
+                basemapOptions={basemapOptions.map(({ id, label }) => ({ id, label }))}
+                selectedBasemapId={selectedBasemapId}
+                onBasemapChange={setSelectedBasemapId}
             />
 
             {/* Cesium Viewer */}
@@ -743,12 +843,6 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                         satelliteScope={satelliteScope}
                         satellites={satellites}
                         show={showAggregatedConnectivity}
-                    />
-
-                    {/* LEO Density Heatmap — polar Walker-Star coverage density */}
-                    <LeoVisibilityDensityLayer
-                        satellites={satellites}
-                        show={showLeoDensityHeatmap && satelliteScope !== 'GEO'}
                     />
 
                     <SelectedRegulatoryCountryOutline

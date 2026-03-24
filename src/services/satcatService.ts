@@ -45,6 +45,7 @@ const SATCAT_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 
 const CACHE_KEY_DATA = 'satcat_data';
 const CACHE_KEY_TS   = 'satcat_ts';
+const FORCE_LOCAL_CELESTRAK = String(import.meta.env.VITE_FORCE_LOCAL_CELESTRAK ?? '').toLowerCase() === 'true';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -132,6 +133,31 @@ function serializeMap(map: SatcatStatusMap): string {
  *   5. null
  */
 export async function fetchSatcatStatusMap(): Promise<SatcatStatusMap | null> {
+  if (FORCE_LOCAL_CELESTRAK) {
+    try {
+      const resp = await fetch(LOCAL_SATCAT_FILE);
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      const raw = await resp.text();
+      const map = parseCompact(raw);
+      if (map && map.size > 0) {
+        log(`[SATCAT] VITE_FORCE_LOCAL_CELESTRAK=true -> ${map.size} records from ${LOCAL_SATCAT_FILE}.`);
+        writeRawToCache(raw);
+        return map;
+      }
+    } catch (error) {
+      console.warn('[SATCAT] Forced local mode failed to load static SATCAT file:', error);
+      const staleRaw = readRawFromCache();
+      if (staleRaw) {
+        const map = parseCompact(staleRaw);
+        if (map && map.size > 0) {
+          console.warn(`[SATCAT] Using stale cache (${map.size} records) because forced local static SATCAT is unavailable.`);
+          return map;
+        }
+      }
+      return null;
+    }
+  }
+
   // 1. Fresh localStorage cache
   if (isCacheValid()) {
     const raw = readRawFromCache();
