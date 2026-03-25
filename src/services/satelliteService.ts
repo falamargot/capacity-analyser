@@ -71,6 +71,30 @@ function isCacheValid(tsKey: string): boolean {
   }
 }
 
+/**
+ * Remove localStorage TLE entries that have outlived their TTL.
+ * Called once at module load so stale megabyte-sized TLE strings do not
+ * linger in localStorage across page loads when they would be re-fetched
+ * anyway on next use.
+ */
+function clearStaleTLECache(): void {
+  const pairs = [
+    { dataKey: CACHE_KEYS.EUTELSAT_TLE, tsKey: CACHE_KEYS.EUTELSAT_TS },
+    { dataKey: CACHE_KEYS.ONEWEB_TLE,   tsKey: CACHE_KEYS.ONEWEB_TS   },
+  ];
+  try {
+    for (const { dataKey, tsKey } of pairs) {
+      if (!isCacheValid(tsKey)) {
+        localStorage.removeItem(dataKey);
+        localStorage.removeItem(tsKey);
+      }
+    }
+  } catch {
+    // localStorage unavailable — no-op
+  }
+}
+clearStaleTLECache();
+
 function readFromCache(dataKey: string): string | null {
   try {
     return localStorage.getItem(dataKey);

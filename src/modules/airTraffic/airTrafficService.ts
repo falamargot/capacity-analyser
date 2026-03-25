@@ -153,6 +153,16 @@ function getMockAircraftData(): Aircraft[] {
 }
 
 /**
+ * Release the in-memory aircraft cache.
+ * Call when the air traffic feature is disabled so the full OpenSky dataset
+ * (up to ~10 000 Aircraft objects) is not retained until the next fetch cycle.
+ */
+export function clearAircraftCache(): void {
+  aircraftCache = [];
+  lastFetchTime = 0;
+}
+
+/**
  * Get cached aircraft data or fetch fresh data if cache is expired
  */
 export async function getAircraftData(): Promise<Aircraft[]> {

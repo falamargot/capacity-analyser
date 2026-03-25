@@ -50,7 +50,7 @@ const LatencyBreakdownCard = ({ accentColor, summary, title = 'Latency breakdown
   const [isOpen, setIsOpen] = useState(false);
 
   return (
-    <div className="bg-gray-50 dark:bg-slate-800/50 rounded-lg border border-gray-100 dark:border-slate-700">
+    <div className="bg-gray-50 dark:bg-slate-800/50 rounded-lg border border-gray-200 dark:border-slate-700">
       <button
         type="button"
         onClick={() => setIsOpen((open) => !open)}
@@ -62,7 +62,7 @@ const LatencyBreakdownCard = ({ accentColor, summary, title = 'Latency breakdown
           <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">{summary}</p>
         </div>
         <ChevronDown
-          className={`h-4 w-4 shrink-0 text-gray-400 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
+          className={`h-4 w-4 shrink-0 text-gray-500 dark:text-gray-400 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
         />
       </button>
       {isOpen && (

@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { Aircraft, getAircraftData, filterAircraftByView } from './airTrafficService';
+import { Aircraft, getAircraftData, filterAircraftByView, clearAircraftCache } from './airTrafficService';
 import { log } from '../../utils/logger';
 
 export interface AirTrafficState {
@@ -129,6 +129,9 @@ export function useAirTraffic(
         error: null,
         lastUpdate: 0,
       });
+      // Release the service-level cache so the full OpenSky dataset is not
+      // retained in memory while the feature is inactive.
+      clearAircraftCache();
       return;
     }
 

@@ -66,7 +66,7 @@ const CollapsibleSection = memo<CollapsibleSectionProps>(({
   }, [collapsible, storageKey]);
 
   return (
-    <div className="bg-gray-50 dark:bg-slate-800/50 rounded-lg border border-gray-100 dark:border-slate-700 overflow-hidden">
+    <div className="bg-gray-50 dark:bg-slate-800/50 rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
       <div
         className={`flex w-full items-center justify-between gap-3 px-4 py-3 text-left ${collapsible ? 'hover:bg-gray-100/50 dark:hover:bg-slate-700/30 transition-colors' : ''}`}
       >
@@ -82,7 +82,7 @@ const CollapsibleSection = memo<CollapsibleSectionProps>(({
           <button
             type="button"
             onClick={toggle}
-            className="flex shrink-0 items-center justify-center rounded-md p-1 text-gray-400 transition-colors hover:text-gray-500 dark:hover:text-gray-300"
+            className="flex shrink-0 items-center justify-center rounded-md p-1 text-gray-500 transition-colors hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
             aria-expanded={isExpanded}
           >
             <ChevronDown
