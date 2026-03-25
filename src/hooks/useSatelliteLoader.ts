@@ -15,7 +15,17 @@ import { fetchSatellites } from '../services/satelliteService';
 import { calculateCoverages } from '../utils/coverageCalculator';
 import type { SatelliteData } from '../types/satellites';
 
-// Must match App.tsx epsilon gates — shared constants prevent drift.
+// ── Epsilon gate calibration ─────────────────────────────────────────────────
+//
+// These thresholds gate whether a satellite's new position is "different enough"
+// to replace the previous object reference. Replacing the reference triggers all
+// downstream useMemos that depend on the satellite array (coverage, connectivity…).
+//
+// IMPORTANT — do NOT tighten POSITION_EPSILON_DEG below 0.01°:
+//   GEO satellites move ~0.008°/2 s  →  below 0.01°  →  reference stays stable ✓
+//   LEO satellites move ~0.13°/2 s   →  well above 0.01° → always updates ✓
+//   At 0.005°, GEO would exceed the gate every tick, triggering constant
+//   downstream re-computation and defeating the entire stability mechanism.
 const POSITION_EPSILON_DEG = 0.01;
 const ALTITUDE_EPSILON_KM  = 0.5;
 

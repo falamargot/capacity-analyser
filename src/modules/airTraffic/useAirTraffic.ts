@@ -35,7 +35,12 @@ export interface FocusPoint {
 const DEFAULT_CONFIG: AirTrafficConfig = {
   enabled: false,
   updateInterval: 10000, // 10 seconds
-  maxAircraft: 6000,
+  // Keep the 500 most relevant aircraft (closest to the analysis point, or
+  // highest altitude when no point is selected). This matches the maritime cap
+  // and cuts the 60fps interpolation loop from ~6000 to ~500 entries — a 12×
+  // reduction in per-frame work. The service still fetches and caches the full
+  // global dataset; only the display list is capped.
+  maxAircraft: 500,
 };
 
 /**

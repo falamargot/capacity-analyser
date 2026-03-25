@@ -54,11 +54,6 @@ const GatewayDetails = lazy(() => import('./components/GatewayDetails'));
 const SNPDetails = lazy(() => import('./components/SNPDetails'));
 
 // ─── Module-level constants ───────────────────────────────────────────────────
-// GEO satellites move ~0.008°/2 s — below this threshold → reuse the same object
-// reference so downstream useMemos don't invalidate every tick.
-// LEO satellites move ~0.13°/2 s — always above threshold → always a new object.
-const POSITION_EPSILON_DEG = 0.01;
-const ALTITUDE_EPSILON_KM = 0.5;
 const COMPACT_DESKTOP_DIAG_MIN = Math.hypot(1920, 1080);
 const COMPACT_DESKTOP_DIAG_MAX = Math.hypot(2560, 1440);
 const LEGACY_AUTO_MARKER_REF_DIAG = Math.hypot(1024, 768);
@@ -2112,7 +2107,7 @@ const App: React.FC = () => {
                           </div>
                           <div className="relative flex items-center justify-center">
                             <div className="text-base font-semibold text-slate-950 dark:text-slate-50">
-                              Detail view
+                              Detailed view
                             </div>
                             <button
                               type="button"
