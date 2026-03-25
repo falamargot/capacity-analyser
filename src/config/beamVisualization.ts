@@ -35,11 +35,11 @@ export const GRADIENT_RENDERING = {
      * The `scaleFactor` contracts the polygon toward its centroid.
      */
     RINGS: [
-        { scaleFactor: 1.00, opacity: 0.08 },   // −10 dB edge
-        { scaleFactor: 0.85, opacity: 0.15 },   // −6 dB zone
-        { scaleFactor: 0.70, opacity: 0.30 },   // −3 dB zone
-        { scaleFactor: 0.50, opacity: 0.50 },   // nominal zone
-        { scaleFactor: 0.30, opacity: 0.75 },   // boresight core
+        { scaleFactor: 1.00, opacity: 0.10 },   // −10 dB edge
+        { scaleFactor: 0.85, opacity: 0.18 },   // −6 dB zone
+        { scaleFactor: 0.70, opacity: 0.36 },   // −3 dB zone
+        { scaleFactor: 0.50, opacity: 0.60 },   // nominal zone
+        { scaleFactor: 0.30, opacity: 0.90 },   // boresight core
     ],
 } as const;
 

@@ -31,6 +31,31 @@ const CACHE_KEYS = {
 
 type CoverageManifest = Record<string, boolean>;
 
+const EUTELSAT_COVERAGE_FILE_BY_ALIAS: Record<string, string> = {
+  E115WB: '40425',
+  E117WA: '39122',
+  E117WB: '41589',
+  E139WA: '28187',
+  E16A: '32487',
+  E172B: '42432',
+  E174A: '28924',
+  E21B: '38652',
+  E33F: '43216',
+  E36D: '44333',
+  E53A: '39021',
+  E5WB: '40882',
+  E65WA: '41389',
+  E70B: '40985',
+  E7B: '41036',
+  E7C: '43215',
+  E7WA: '36101',
+  E8WB: '41550',
+  E9B: '41954',
+  HB13F: '54048',
+  HB13G: '55842',
+  KONNECT: '44914',
+};
+
 let coverageManifestPromise: Promise<Set<string>> | null = null;
 const FORCE_LOCAL_CELESTRAK = String(import.meta.env.VITE_FORCE_LOCAL_CELESTRAK ?? '').toLowerCase() === 'true';
 
@@ -196,6 +221,51 @@ function parseTLE(tleData: string, operator: string) {
   return satellites;
 }
 
+const getEutelsatCoverageAlias = (satelliteName: string): string | null => {
+  const normalizedName = satelliteName.trim().toUpperCase();
+
+  if (normalizedName === 'EUTELSAT KONNECT VHTS') return 'KVHTS';
+  if (normalizedName === 'EUTELSAT KONNECT') return 'KONNECT';
+
+  const hotbirdMatch = normalizedName.match(/^EUTELSAT HOTBIRD (\d+)([A-Z])$/);
+  if (hotbirdMatch) {
+    return `HB${hotbirdMatch[1]}${hotbirdMatch[2]}`;
+  }
+
+  const westMatch = normalizedName.match(/^EUTELSAT (\d+) WEST ([A-Z])$/);
+  if (westMatch) {
+    return `E${westMatch[1]}W${westMatch[2]}`;
+  }
+
+  const directMatch = normalizedName.match(/^EUTELSAT (\d+)([A-Z])$/);
+  if (directMatch) {
+    return `E${directMatch[1]}${directMatch[2]}`;
+  }
+
+  return null;
+};
+
+export const resolveCoverageFileId = (
+  sat: { name: string; noradId: string },
+  coverageManifest: Set<string>
+): string | null => {
+  if (coverageManifest.has(sat.noradId)) {
+    return sat.noradId;
+  }
+
+  const alias = getEutelsatCoverageAlias(sat.name);
+  if (!alias) {
+    return null;
+  }
+
+  const mappedFileId = EUTELSAT_COVERAGE_FILE_BY_ALIAS[alias];
+  if (mappedFileId && coverageManifest.has(mappedFileId)) {
+    return mappedFileId;
+  }
+
+  return null;
+};
+
 // ─── Position Calculation ─────────────────────────────────────────────────────
 
 export function calculatePosition(sat: any, date: Date = new Date()) {
@@ -303,9 +373,14 @@ export async function fetchSatellites(): Promise<SatelliteData[]> {
     log(`[fetchSatellites] ${eutelsatSats.length} EUTELSAT + ${onewebSats.length} ONEWEB satellites parsed.`);
 
     const eutelsatSatPromises = eutelsatSats.map(async (sat) => {
-      const coverageData = coverageManifest.has(sat.noradId)
+      const coverageFileId = resolveCoverageFileId(sat, coverageManifest);
+      if (coverageFileId && coverageFileId !== sat.noradId) {
+        log(`[Coverage] Using mapped GEO coverage file ${coverageFileId}.json for ${sat.name} (${sat.noradId}).`);
+      }
+
+      const coverageData = coverageFileId
         ? attachSatelliteId(
-            await loadSatelliteCoverage(sat.noradId, sat.name, 'EUTELSAT', 10),
+            await loadSatelliteCoverage(coverageFileId, sat.name, 'EUTELSAT', 10),
             sat.name
           )
         : null;

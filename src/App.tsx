@@ -787,8 +787,12 @@ const App: React.FC = () => {
         return;
       }
 
-      const key = getFeatureBeamCoverageKey(feature)
+      const coverageGeometryKey = typeof feature.properties?.coverageGeometryKey === 'string'
+        ? feature.properties.coverageGeometryKey
+        : null;
+      const baseKey = getFeatureBeamCoverageKey(feature)
         ?? `${feature.properties?.type ?? 'feature'}::${feature.properties?.satelliteId ?? 'unknown'}::${feature.properties?.name ?? features.size}`;
+      const key = coverageGeometryKey ? `${baseKey}::${coverageGeometryKey}` : baseKey;
       if (!features.has(key)) {
         features.set(key, feature);
       }

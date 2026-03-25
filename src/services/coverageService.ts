@@ -1,4 +1,4 @@
-import { Feature, FeatureCollection } from 'geojson';
+import { Feature, FeatureCollection, Polygon } from 'geojson';
 import { SNPS_DATA } from '../components/globe/GlobeConfig';
 import { isPointInCoverage } from '../utils/coverageCalculator';
 import { SatelliteData } from '../types/satellites';
@@ -16,6 +16,50 @@ export interface CoverageData {
   features: Feature[];
 }
 
+const attachCoverageGeometryMetadata = (
+  feature: Feature,
+  geometry: Polygon,
+  featureIndex: number,
+  polygonIndex: number
+): Feature => ({
+  ...feature,
+  properties: {
+    ...(feature.properties ?? {}),
+    coverageGeometryKey: `${featureIndex}:${polygonIndex}`,
+    coveragePartIndex: polygonIndex,
+    coverageSourceFeatureIndex: featureIndex,
+  },
+  geometry,
+});
+
+export const normalizeCoverageData = (data: FeatureCollection): CoverageData => ({
+  ...data,
+  features: data.features.flatMap((feature, featureIndex) => {
+    const geometry = feature.geometry;
+
+    if (!geometry) {
+      return [feature];
+    }
+
+    if (geometry.type === 'Polygon') {
+      return [attachCoverageGeometryMetadata(feature, geometry, featureIndex, 0)];
+    }
+
+    if (geometry.type === 'MultiPolygon') {
+      return geometry.coordinates.map((coordinates, polygonIndex) => (
+        attachCoverageGeometryMetadata(
+          feature,
+          { type: 'Polygon', coordinates },
+          featureIndex,
+          polygonIndex
+        )
+      ));
+    }
+
+    return [feature];
+  }),
+});
+
 export const loadSatelliteCoverage = async (satelliteId: string, satelliteName: string, satelliteType: string, coverageRadius: number): Promise<CoverageData | null> => {
   try {
     // In Vite production builds, files under /src are bundled and not served as static runtime assets.
@@ -24,7 +68,7 @@ export const loadSatelliteCoverage = async (satelliteId: string, satelliteName: 
     if (!response.ok) return null;
     const data: FeatureCollection = await response.json();
     log(`Loading real coverage for satellite ${satelliteId}`);
-    return data;
+    return normalizeCoverageData(data);
   } catch (error) {
     // Only process satellite coverage if GeoJSON loading has failed
     const data: FeatureCollection = {

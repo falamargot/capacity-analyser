@@ -80,3 +80,10 @@ storybook-static
 # Temporary folders
 tmp/
 temp/
+
+# Coverage assets: keep only the deployed manifest + selected coverage files in Git.
+public/coverage/*
+!public/coverage/coverageManifest.json
+!public/coverage/53765.json
+!public/coverage/54048.json
+!public/coverage/54259.json
