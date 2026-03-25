@@ -92,6 +92,19 @@ const getCoverageRing = (coverage: Coverage): number[][] | null => {
   return coverage.feature.geometry.coordinates[0] as unknown as number[][];
 };
 
+const getCoverageApproximateArea = (ring: number[][]): number => {
+  if (ring.length < 3) return 0;
+
+  let area = 0;
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+    const [xi, yi] = ring[i];
+    const [xj, yj] = ring[j];
+    area += (xj + xi) * (yj - yi);
+  }
+
+  return Math.abs(area) * 0.5;
+};
+
 const getCoverageCentroid = (ring: number[][]): Point => {
   let twiceArea = 0;
   let centroidLng = 0;
@@ -286,6 +299,11 @@ export const findCandidateCoverages = (
     const elevation = calculateElevationAngle(userPoint, satellite);
     if (elevation <= 0) continue;
 
+    const candidatesByCoverageKey = new Map<string, CandidateCoverage & {
+      _approximateArea: number;
+      _normalizedDistance: number;
+    }>();
+
     for (const coverage of satellite.coverages) {
       const ring = getCoverageRing(coverage);
       if (!ring) continue;
@@ -306,13 +324,17 @@ export const findCandidateCoverages = (
       const beamMetrics = getBeamDistanceMetrics(userPoint, coverage);
       if (!beamMetrics) continue;
 
+      const coverageKey = getCoverageGroupId(coverage);
+      const approximateArea = getCoverageApproximateArea(ring);
       const throughputEstimate = satellite.capacity.maxThroughput * (0.35 + (0.65 * (1 - beamMetrics.normalizedDistance)));
-
-      candidates.push({
+      const nextCandidate: CandidateCoverage & {
+        _approximateArea: number;
+        _normalizedDistance: number;
+      } = {
         satelliteId: satellite.id,
         satelliteName: satellite.name,
         missionName: getCoverageMissionName(coverage),
-        coverageKey: getCoverageGroupId(coverage),
+        coverageKey,
         coverageName: getCoverageDisplayName(coverage),
         beamId: getCoverageBeamId(coverage),
         beamName: getCoverageBeamName(coverage),
@@ -320,8 +342,36 @@ export const findCandidateCoverages = (
         distanceFromBeamCenter: beamMetrics.distanceKm,
         throughputEstimate,
         score: 0,
-      });
+        _approximateArea: approximateArea,
+        _normalizedDistance: beamMetrics.normalizedDistance,
+      };
+
+      const currentCandidate = candidatesByCoverageKey.get(coverageKey);
+      if (!currentCandidate) {
+        candidatesByCoverageKey.set(coverageKey, nextCandidate);
+        continue;
+      }
+
+      const shouldReplace =
+        approximateArea < currentCandidate._approximateArea ||
+        (
+          approximateArea === currentCandidate._approximateArea &&
+          beamMetrics.normalizedDistance < currentCandidate._normalizedDistance
+        ) ||
+        (
+          approximateArea === currentCandidate._approximateArea &&
+          beamMetrics.normalizedDistance === currentCandidate._normalizedDistance &&
+          beamMetrics.distanceKm < currentCandidate.distanceFromBeamCenter
+        );
+
+      if (shouldReplace) {
+        candidatesByCoverageKey.set(coverageKey, nextCandidate);
+      }
     }
+
+    candidates.push(
+      ...Array.from(candidatesByCoverageKey.values()).map(({ _approximateArea, _normalizedDistance, ...candidate }) => candidate)
+    );
   }
 
   return candidates;

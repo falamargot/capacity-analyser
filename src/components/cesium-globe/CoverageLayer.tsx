@@ -12,7 +12,7 @@ import {
     getCandidateBeamKey,
     getCandidateCoverageKey,
     getFeatureBeamCoverageKey,
-    getFeatureCandidateCoverageKey
+    getFeatureCandidateCoverageKey,
 } from '../../utils/geoCoverageSelection';
 import {
     GEO_FOOTPRINT_HIGHLIGHT_LAYER_HEIGHT_M,
@@ -20,7 +20,8 @@ import {
     GEO_FOOTPRINT_OUTLINE_LAYER_HEIGHT_M,
 } from './layerHeights';
 
-const SELECTED_GEO_CONTOUR_COLOR = Color.fromCssColorString('#2563eb').withAlpha(0.98);
+const SELECTED_GEO_CONTOUR_BASE_COLOR = Color.fromCssColorString('#2563eb');
+const SELECTED_GEO_CONTOUR_COLOR = SELECTED_GEO_CONTOUR_BASE_COLOR.withAlpha(0.98);
 const GEO_CONTOUR_COLOR = Color.fromCssColorString('#60a5fa').withAlpha(0.9);
 
 interface CoverageLayerProps {
@@ -117,14 +118,12 @@ const CoveragePolygon = React.memo<{
         if (!isPolygon || isOneWebPlaceholder) return null;
         const geoAlpha = (() => {
             if (!isGeoCoverage) return 0.4;
-            if (isSelected) return 0.4;
+            if (isSelected) return 0.16;
             if (isManualGeoOverview) {
-                if (geoLayerIndex == null || geoLayerCount <= 1) return 0.14;
-                const contourDepth = 1 - (geoLayerIndex / Math.max(geoLayerCount - 1, 1));
-                return 0.05 + (contourDepth * 0.15);
+                return 0.0;
             }
-            if (isCandidate) return 0.2;
-            if (geoLayerIndex == null || geoLayerCount <= 1) return 0.2;
+            if (isCandidate) return 0.0;
+            if (geoLayerIndex == null || geoLayerCount <= 1) return 0.0;
             return 0.00;
         })();
 
@@ -211,28 +210,72 @@ const CoverageLayer: React.FC<CoverageLayerProps> = ({
     selectedGeoBeamKey = null,
     manualGeoSatelliteName = null,
 }) => {
-    const selectedCoverageKey = useMemo(() => (
+    const selectedBeamKey = useMemo(() => (
         selectedCoverage ? getCandidateBeamKey(selectedCoverage) : selectedGeoBeamKey
     ), [selectedCoverage, selectedGeoBeamKey]);
+    const selectedCoverageGroupKey = useMemo(() => (
+        selectedCoverage ? getCandidateCoverageKey(selectedCoverage) : null
+    ), [selectedCoverage]);
     const normalizedManualGeoSatelliteName = useMemo(
         () => normalizeSatelliteKey(manualGeoSatelliteName),
         [manualGeoSatelliteName]
     );
 
-    const selectedGeoRendering = useMemo(() => {
-        if (!selectedCoverageKey) return null;
-
-        const selectedFeatures = coverageFeatures.filter((feature) => (
-            getFeatureBeamCoverageKey(feature) === selectedCoverageKey &&
-            getPolygonRing(feature) !== null
-        ));
-
-        if (selectedFeatures.length === 0) {
-            return null;
+    const selectedGeoState = useMemo(() => {
+        if (!selectedBeamKey && !selectedCoverageGroupKey) {
+            return {
+                selectedFeatureSet: new Set<Feature<Geometry, GeoJsonProperties>>(),
+                renderings: null as Array<{
+                    key: string;
+                    hierarchy: Cartesian3[];
+                    contourPositions: Cartesian3[];
+                    fillColor: Color;
+                    contourColor: Color;
+                    contourWidth: number;
+                }> | null,
+            };
         }
 
-        return selectedFeatures
-            .map((feature, index) => {
+        const selectedFeatures = coverageFeatures.filter((feature) => {
+            if (getPolygonRing(feature) === null) return false;
+
+            if (selectedCoverageGroupKey) {
+                return getFeatureCandidateCoverageKey(feature) === selectedCoverageGroupKey;
+            }
+
+            return getFeatureBeamCoverageKey(feature) === selectedBeamKey;
+        });
+
+        if (selectedFeatures.length === 0) {
+            return {
+                selectedFeatureSet: new Set<Feature<Geometry, GeoJsonProperties>>(),
+                renderings: null,
+            };
+        }
+
+        const approximatePolygonArea = (feature: Feature<Geometry, GeoJsonProperties>): number => {
+            const ring = getPolygonRing(feature);
+            if (!ring || ring.length < 3) return 0;
+
+            let area = 0;
+            for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+                const [xi, yi] = ring[i];
+                const [xj, yj] = ring[j];
+                area += (xj + xi) * (yj - yi);
+            }
+            return Math.abs(area) * 0.5;
+        };
+
+        const rankedFeatures = [...selectedFeatures]
+            .map((feature) => ({
+                feature,
+                area: approximatePolygonArea(feature),
+                isPrimary: selectedBeamKey !== null && getFeatureBeamCoverageKey(feature) === selectedBeamKey,
+            }))
+            .sort((left, right) => right.area - left.area);
+
+        const renderings = rankedFeatures
+            .map(({ feature, isPrimary }, index) => {
                 const ring = getPolygonRing(feature);
                 if (!ring) return null;
 
@@ -244,13 +287,26 @@ const CoverageLayer: React.FC<CoverageLayerProps> = ({
                     contourDegrees.push(lng, lat, GEO_FOOTPRINT_HIGHLIGHT_LAYER_HEIGHT_M);
                 }
 
+                const depth = rankedFeatures.length <= 1
+                    ? 1
+                    : 1 - (index / Math.max(rankedFeatures.length - 1, 1));
+                const fillAlpha = isPrimary
+                    ? 0.18
+                    : 0.03 + (depth * 0.08);
+                const contourAlpha = isPrimary
+                    ? 0.98
+                    : 0.28 + (depth * 0.42);
+                const contourWidth = isPrimary ? 2.4 : 1 + (depth * 0.8);
+
                 return {
-                    key: `${selectedCoverageKey}-${index}`,
+                    key: `${selectedCoverageGroupKey ?? selectedBeamKey ?? 'selected'}-${index}`,
                     hierarchy: Cartesian3.fromDegreesArray(polygonDegrees),
                     contourPositions: Cartesian3.fromDegreesArrayHeights(contourDegrees),
                     fillColor: Color.fromCssColorString(
-                        getCoverageColor(feature.properties?.type, 0.2)
+                        getCoverageColor(feature.properties?.type, fillAlpha)
                     ),
+                    contourColor: SELECTED_GEO_CONTOUR_BASE_COLOR.withAlpha(contourAlpha),
+                    contourWidth,
                 };
             })
             .filter((entry): entry is {
@@ -258,12 +314,19 @@ const CoverageLayer: React.FC<CoverageLayerProps> = ({
                 hierarchy: Cartesian3[];
                 contourPositions: Cartesian3[];
                 fillColor: Color;
+                contourColor: Color;
+                contourWidth: number;
             } => entry !== null);
-    }, [coverageFeatures, selectedCoverageKey]);
+
+        return {
+            selectedFeatureSet: new Set(selectedFeatures),
+            renderings,
+        };
+    }, [coverageFeatures, selectedBeamKey, selectedCoverageGroupKey]);
 
     const coverageEntities = useMemo(() => {
-        const candidateCoverageKeys = new Set(
-            candidateCoverages.map((candidate) => getCandidateCoverageKey(candidate))
+        const candidateBeamKeys = new Set(
+            candidateCoverages.map((candidate) => getCandidateBeamKey(candidate))
         );
         const isGeoFeature = (feature: Feature<Geometry, GeoJsonProperties>): boolean => {
             if (feature.properties?.type === 'EUTELSAT') return true;
@@ -290,7 +353,7 @@ const CoverageLayer: React.FC<CoverageLayerProps> = ({
             if (getPolygonRing(feature) === null) return false;
             if (feature.properties?.type === 'ONEWEB_SWATH') return false;
             if (feature.properties?.type === 'ONEWEB_SERVICE_ZONE') return false;
-            if (selectedCoverageKey && getFeatureBeamCoverageKey(feature) === selectedCoverageKey) return false;
+            if (selectedGeoState.selectedFeatureSet.has(feature)) return false;
             return true;
         });
 
@@ -325,11 +388,10 @@ const CoverageLayer: React.FC<CoverageLayerProps> = ({
             const geoLayerCount = isGeoFeature(feature)
                 ? (geoLayerCountByFilteredIndex.get(index) ?? 0)
                 : 0;
-            const featureCoverageKey = getFeatureCandidateCoverageKey(feature);
             const featureBeamKey = getFeatureBeamCoverageKey(feature);
             const isManualGeoOverview = (
                 normalizedManualGeoSatelliteName !== null &&
-                selectedCoverageKey === null &&
+                selectedBeamKey === null &&
                 featureSatelliteKey === normalizedManualGeoSatelliteName &&
                 isGeoFeature(feature)
             );
@@ -341,18 +403,18 @@ const CoverageLayer: React.FC<CoverageLayerProps> = ({
                     satelliteTypeByName={satelliteTypeByName}
                     geoLayerIndex={geoLayerIndex}
                     geoLayerCount={geoLayerCount}
-                    isCandidate={featureCoverageKey !== null && candidateCoverageKeys.has(featureCoverageKey)}
-                    isSelected={featureBeamKey !== null && featureBeamKey === selectedCoverageKey}
+                    isCandidate={featureBeamKey !== null && candidateBeamKeys.has(featureBeamKey)}
+                    isSelected={featureBeamKey !== null && featureBeamKey === selectedBeamKey}
                     isManualGeoOverview={isManualGeoOverview}
                 />
             );
         });
-    }, [candidateCoverages, coverageFeatures, normalizedManualGeoSatelliteName, satelliteTypeByName, selectedCoverageKey]);
+    }, [candidateCoverages, coverageFeatures, normalizedManualGeoSatelliteName, satelliteTypeByName, selectedBeamKey, selectedGeoState.selectedFeatureSet]);
 
     return (
         <>
             {coverageEntities}
-            {selectedGeoRendering?.map((rendering) => (
+            {selectedGeoState.renderings?.map((rendering) => (
                 <React.Fragment key={rendering.key}>
                     <Entity
                         key={`selected-geo-polygon-${rendering.key}`}
@@ -370,9 +432,9 @@ const CoverageLayer: React.FC<CoverageLayerProps> = ({
                         name="Selected GEO Coverage contour"
                         polyline={{
                             positions: rendering.contourPositions,
-                            width: 2,
-                            material: SELECTED_GEO_CONTOUR_COLOR,
-                            depthFailMaterial: SELECTED_GEO_CONTOUR_COLOR,
+                            width: rendering.contourWidth,
+                            material: rendering.contourColor,
+                            depthFailMaterial: rendering.contourColor,
                             clampToGround: false,
                         }}
                     />
