@@ -1,0 +1,214 @@
+/**
+ * useSatelliteLoader
+ * ──────────────────
+ * Owns the full satellite data lifecycle:
+ *  1. Initial fetch from CelesTrak / bundled fallback (hourly refresh)
+ *  2. Off-thread SGP4 position propagation via satellitePositionWorker
+ *  3. Coverage recalculation for selected / hovered / moved satellites
+ *
+ * Returns `satellites`, `loading`, and a `satellitesForResolutionRef` that
+ * always holds the latest positions without being part of the render cycle
+ * (used by callbacks that must not become stale between 2-second ticks).
+ */
+import { useState, useEffect, useRef } from 'react';
+import { fetchSatellites } from '../services/satelliteService';
+import { calculateCoverages } from '../utils/coverageCalculator';
+import type { SatelliteData } from '../types/satellites';
+
+// Must match App.tsx epsilon gates — shared constants prevent drift.
+const POSITION_EPSILON_DEG = 0.01;
+const ALTITUDE_EPSILON_KM  = 0.5;
+
+interface SatelliteLoaderOptions {
+  /** ID of the currently selected satellite, or null. Used to trigger an
+   *  immediate worker tick on selection change. */
+  selectedSatelliteId: string | null;
+  /** ID of the currently hovered satellite, or null. Used to prioritise
+   *  coverage recalculation for the hovered satellite. */
+  hoveredSatelliteId: string | null;
+}
+
+interface SatelliteLoaderResult {
+  satellites: SatelliteData[];
+  loading: boolean;
+  /** Always-fresh ref to the latest satellite array.
+   *  Read this inside useCallbacks to avoid stale closures over `satellites`
+   *  state, which only updates after React's reconciliation cycle. */
+  satellitesForResolutionRef: React.MutableRefObject<SatelliteData[]>;
+}
+
+export function useSatelliteLoader({
+  selectedSatelliteId,
+  hoveredSatelliteId,
+}: SatelliteLoaderOptions): SatelliteLoaderResult {
+  const [satellites, setSatellites] = useState<SatelliteData[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Always-fresh satellite array — updated synchronously before React re-renders.
+  const satellitesForResolutionRef = useRef<SatelliteData[]>([]);
+
+  // Internal refs used by the worker onmessage callback.
+  const prevSelectedSatelliteRef = useRef<string | null>(null);
+  const prevSatellitesRef        = useRef<SatelliteData[]>([]);
+  const workerRef                = useRef<Worker | null>(null);
+  const workerBusyRef            = useRef(false);
+  const satelliteUpdateTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Refs that carry prop values into the worker callback without stale closure.
+  const selectedSatelliteIdRef = useRef(selectedSatelliteId);
+  const hoveredSatelliteIdRef  = useRef(hoveredSatelliteId);
+
+  // ── Keep prop refs in sync ───────────────────────────────────────────────
+  useEffect(() => {
+    selectedSatelliteIdRef.current = selectedSatelliteId;
+    hoveredSatelliteIdRef.current  = hoveredSatelliteId;
+  }, [selectedSatelliteId, hoveredSatelliteId]);
+
+  // ── Keep satellite ref in sync ───────────────────────────────────────────
+  useEffect(() => {
+    satellitesForResolutionRef.current = satellites;
+  }, [satellites]);
+
+  // ── Satellite fetch (hourly) ─────────────────────────────────────────────
+  useEffect(() => {
+    const loadSatellites = async () => {
+      try {
+        const data = await fetchSatellites();
+        setSatellites(data);
+      } catch (error) {
+        console.error('Error loading satellites:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadSatellites();
+    const interval = setInterval(loadSatellites, 3_600_000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // ── Worker-based position updates ────────────────────────────────────────
+  //
+  // SGP4 propagation for 600+ satellites runs inside a Web Worker so the
+  // main thread is never blocked by ~60 ms of position math per 2-second tick.
+  useEffect(() => {
+    let worker: Worker;
+    try {
+      worker = new Worker(
+        new URL('../workers/satellitePositionWorker.ts', import.meta.url),
+        { type: 'module' }
+      );
+    } catch {
+      return; // Web Workers not supported — positions will not update
+    }
+
+    workerRef.current = worker;
+
+    const scheduleTick = () => {
+      if (workerBusyRef.current) return;
+      const sats = satellitesForResolutionRef.current;
+      if (sats.length === 0) {
+        // Satellites not loaded yet — retry shortly
+        satelliteUpdateTimeoutRef.current = setTimeout(scheduleTick, 500);
+        return;
+      }
+      workerBusyRef.current = true;
+      worker.postMessage({
+        satellites: sats.map((sat) => ({ id: sat.id, satrec: sat.satrec })),
+        timestamp: Date.now(),
+      });
+    };
+
+    worker.onmessage = (event: MessageEvent) => {
+      workerBusyRef.current = false;
+
+      const { positions } = event.data as {
+        positions: Array<{ id: string; lat: number; lng: number; alt: number }>;
+      };
+      const posMap = new Map(positions.map((p) => [p.id, p]));
+
+      // Read selection/hover from refs — avoids stale closure over React state.
+      const currentSelectedId = selectedSatelliteIdRef.current;
+      const currentHoveredId  = hoveredSatelliteIdRef.current;
+
+      setSatellites((currentSatellites) => {
+        const selectionChanged = prevSelectedSatelliteRef.current !== currentSelectedId;
+        // §1.3 — Pre-index by ID to avoid O(n²) find() calls per tick
+        const prevById = new Map(prevSatellitesRef.current.map((s) => [s.id, s]));
+
+        const updatedSatellites = currentSatellites.map((sat) => {
+          const workerPos = posMap.get(sat.id);
+          if (!workerPos) return sat;
+
+          const newPosition = { lat: workerPos.lat, lng: workerPos.lng, alt: workerPos.alt };
+          const prev = prevById.get(sat.id);
+
+          const positionChanged =
+            !prev ||
+            Math.abs(prev.position.lat - newPosition.lat) > POSITION_EPSILON_DEG ||
+            Math.abs(prev.position.lng - newPosition.lng) > POSITION_EPSILON_DEG ||
+            Math.abs(prev.position.alt - newPosition.alt) > ALTITUDE_EPSILON_KM;
+
+          const isSatelliteSelected = currentSelectedId === sat.id;
+          const isSatelliteHovered  = currentHoveredId === sat.id;
+          const shouldRecalculateCoverage =
+            sat.type === 'ONEWEB' &&
+            (isSatelliteSelected ||
+              isSatelliteHovered ||
+              selectionChanged ||
+              positionChanged ||
+              !sat.coverages?.length);
+
+          // Nothing changed → return same reference (prevents downstream re-renders)
+          if (!positionChanged && !shouldRecalculateCoverage) return sat;
+
+          const updatedSat = positionChanged ? { ...sat, position: newPosition } : sat;
+          return shouldRecalculateCoverage
+            ? { ...updatedSat, coverages: calculateCoverages(updatedSat) }
+            : updatedSat;
+        });
+
+        prevSelectedSatelliteRef.current = currentSelectedId;
+        prevSatellitesRef.current = updatedSatellites;
+        return updatedSatellites;
+      });
+
+      // Schedule next tick after state update is applied
+      satelliteUpdateTimeoutRef.current = setTimeout(scheduleTick, 2000);
+    };
+
+    worker.onerror = () => {
+      workerBusyRef.current = false;
+      satelliteUpdateTimeoutRef.current = setTimeout(scheduleTick, 2000);
+    };
+
+    scheduleTick();
+
+    return () => {
+      if (satelliteUpdateTimeoutRef.current) clearTimeout(satelliteUpdateTimeoutRef.current);
+      worker.terminate();
+      workerRef.current = null;
+    };
+  }, []);
+
+  // ── Immediate tick on satellite selection change ─────────────────────────
+  //
+  // Hover previews can safely wait for the normal 2 s cadence — only explicit
+  // satellite selection gets an immediate propagation cycle so the OneWeb
+  // coverage footprint refreshes instantly when the user selects a satellite.
+  useEffect(() => {
+    const worker = workerRef.current;
+    if (!worker || workerBusyRef.current) return;
+    const sats = satellitesForResolutionRef.current;
+    if (sats.length === 0) return;
+
+    if (satelliteUpdateTimeoutRef.current) clearTimeout(satelliteUpdateTimeoutRef.current);
+    workerBusyRef.current = true;
+    worker.postMessage({
+      satellites: sats.map((sat) => ({ id: sat.id, satrec: sat.satrec })),
+      timestamp: Date.now(),
+    });
+  }, [selectedSatelliteId]);
+
+  return { satellites, loading, satellitesForResolutionRef };
+}

@@ -129,7 +129,7 @@ interface CesiumGlobeProps {
     selectedCoverage?: CandidateCoverage | null;
     selectedGeoBeamKey?: string | null;
     cameraTarget?: { lat: number; lng: number; alt: number } | null;
-    onCameraReady?: (viewer: any) => void;
+    onCameraReady?: (viewer: CesiumViewerType) => void;
     onGlobeContainerReady?: (ref: React.RefObject<HTMLDivElement | null>) => void;
     showSatelliteTrajectory?: boolean;
     sizeScale?: number;

@@ -2,6 +2,7 @@
 import CesiumGlobe from './CesiumGlobe';
 // import GlobeViewer from './Globe';
 import React, { useState } from 'react';
+import { Viewer as CesiumViewerType } from 'cesium';
 import { Feature, Geometry, GeoJsonProperties } from 'geojson';
 import { SatelliteData } from '../types/satellites';
 import { SatelliteScope } from './SatelliteScopeFilter';
@@ -48,7 +49,7 @@ interface MapViewSwitcherProps {
   selectedCoverage?: CandidateCoverage | null;
   selectedGeoBeamKey?: string | null;
   cameraTarget?: { lat: number; lng: number; alt: number } | null;
-  onCameraReady?: (viewer: any) => void;
+  onCameraReady?: (viewer: CesiumViewerType) => void;
   onGlobeContainerReady?: (ref: React.RefObject<HTMLDivElement | null>) => void;
   showSatelliteTrajectory?: boolean;
   sizeScale?: number;

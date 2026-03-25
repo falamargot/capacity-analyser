@@ -12,10 +12,9 @@ import SidebarHeroCard from './components/layout/SidebarHeroCard';
 import SatelliteStatusLegend from './components/cesium-globe/SatelliteStatusLegend';
 import ExportButton, { type ExportButtonPayload } from './components/ExportButton';
 import SimulationSettings from './components/layout/SimulationSettings';
-import { fetchSatellites } from './services/satelliteService';
 import { SatelliteData } from './types/satellites';
 import type { CandidateCoverage, GEOBeam, MobileAnalysisMetrics, SelectedSNP } from './types/analysis';
-import { calculateCoverages, destinationPoint } from './utils/coverageCalculator';
+import { useSatelliteLoader } from './hooks/useSatelliteLoader';
 import { footprintRadiusKm, BACKHAUL_ELEVATION_DEG } from './utils/leoFootprint';
 import { Feature, Geometry, GeoJsonProperties } from 'geojson';
 import { GEO_GATEWAYS, SNPS_DATA, type GeoGatewayData, type SNPData } from './components/globe/GlobeConfig';
@@ -32,7 +31,7 @@ import {
   rankCandidateCoverages,
   resolveCoverageSelection,
 } from './utils/geoCoverageSelection';
-import { JulianDate } from 'cesium';
+import { JulianDate, Viewer as CesiumViewerType } from 'cesium';
 import { useAirTraffic, useAirTrafficInterpolation } from './modules/airTraffic';
 import { Aircraft } from './modules/airTraffic/airTrafficService';
 import { useMaritimeTraffic, useMaritimeTrafficInterpolation } from './modules/maritimeTraffic';
@@ -144,8 +143,6 @@ const App: React.FC = () => {
     : Number.NaN;
   const hasInitialSizeScaleOverride = Number.isFinite(initialSavedSizeScale) && initialSavedSizeScale > 0;
   const [searchQuery, setSearchQuery] = useState('');
-  const [satellites, setSatellites] = useState<SatelliteData[]>([]);
-  const [loading, setLoading] = useState(true);
   const [viewportSnapshot, setViewportSnapshot] = useState<ViewportSnapshot>(initialViewportSnapshot);
   const [isMobile, setIsMobile] = useState(() => initialViewportSnapshot.innerWidth < 1100);
   const [isPhone, setIsPhone] = useState(() => initialViewportSnapshot.innerWidth < 920);
@@ -196,14 +193,14 @@ const App: React.FC = () => {
     totalGbps: 0,
     coveredCount: 0,
   });
-  const viewerRef = useRef<any>(null);
+  const viewerRef = useRef<CesiumViewerType | null>(null);
   const globeContainerRef = useRef<HTMLDivElement>(null);
   // Stable ref — populated by useAirTrafficInterpolation (phase 2: map ref, no setState).
   // The selectedAircraft position interval reads from this without being in its deps.
   const panelFallback = <div className="p-4 text-sm text-slate-500 dark:text-slate-400">Loading analysis...</div>;
 
   // Store viewer reference when ready
-  const handleCameraReady = useCallback((viewer: any) => {
+  const handleCameraReady = useCallback((viewer: CesiumViewerType) => {
     viewerRef.current = viewer;
   }, []);
 
@@ -211,22 +208,6 @@ const App: React.FC = () => {
   const handleGlobeContainerReady = useCallback((ref: React.RefObject<HTMLDivElement | null>) => {
     globeContainerRef.current = ref.current;
   }, []);
-
-  // Performance optimization: Cache previous values to prevent unnecessary recalculations
-  const prevSelectedSatelliteRef = useRef<string | null>(null);
-  const prevSatellitesRef = useRef<SatelliteData[]>([]);
-
-  // §1.2 — Stable ref for satellites used inside updateAnalyzisPosition,
-  // avoiding recreation of the callback every 2 s when satellites changes.
-  const satellitesForResolutionRef = useRef<SatelliteData[]>(satellites);
-
-  const satelliteUpdateTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  // Worker-based position update refs — avoids stale closures in the onmessage handler.
-  const workerRef = useRef<Worker | null>(null);
-  const workerBusyRef = useRef(false);
-  const selectedSatelliteIdRef = useRef<string | null>(null);
-  const hoveredSatelliteIdRef = useRef<string | null>(null);
 
   // Helper functions (isPointInGEOCoverage, isPointInPolygon) are now centralized in utils/geoUtils.ts
   // resolveAutoSelectedSatellites is centralized in utils/satelliteResolution.ts
@@ -309,163 +290,11 @@ const App: React.FC = () => {
     selectedVessel?.mmsi,
   ]);
 
-  useEffect(() => {
-    const loadSatellites = async () => {
-      try {
-        const data = await fetchSatellites();
-        setSatellites(data);
-      } catch (error) {
-        console.error('Error loading satellites:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadSatellites();
-    const interval = setInterval(loadSatellites, 3600000);
-    return () => clearInterval(interval);
-  }, []);
-
-  // §1.2 — Keep the resolution ref in sync without triggering other effects
-  useEffect(() => {
-    satellitesForResolutionRef.current = satellites;
-  }, [satellites]);
-
-  // ─── Worker-based satellite position updates ───────────────────────────────
-  //
-  // SGP4 propagation for 600+ satellites (~60 ms/tick) runs inside a Web Worker
-  // so the main thread is never blocked for position math.
-  //
-  // Design:
-  //   • Worker init effect (deps []) — creates the worker once, defines scheduleTick,
-  //     attaches onmessage, starts the first tick.
-  //   • Responsive refs effect — keeps selection/hover refs current without forcing
-  //     extra worker activity on every hover transition.
-  //   • Selection effect (deps [selectedSatellite?.id]) — fires an immediate tick for
-  //     manual satellite inspection, where instant ONEWEB coverage refresh matters.
-
-  useEffect(() => {
-    let worker: Worker;
-    try {
-      worker = new Worker(
-        new URL('./workers/satellitePositionWorker.ts', import.meta.url),
-        { type: 'module' }
-      );
-    } catch {
-      return; // Web Workers not supported — positions won't update
-    }
-
-    workerRef.current = worker;
-
-    const scheduleTick = () => {
-      if (workerBusyRef.current) return;
-      const sats = satellitesForResolutionRef.current;
-      if (sats.length === 0) {
-        // Satellites not loaded yet — retry shortly
-        satelliteUpdateTimeoutRef.current = setTimeout(scheduleTick, 500);
-        return;
-      }
-      workerBusyRef.current = true;
-      worker.postMessage({
-        satellites: sats.map((sat) => ({ id: sat.id, satrec: sat.satrec })),
-        timestamp: Date.now(),
-      });
-    };
-
-    worker.onmessage = (event: MessageEvent) => {
-      workerBusyRef.current = false;
-
-      const { positions } = event.data as {
-        positions: Array<{ id: string; lat: number; lng: number; alt: number }>;
-      };
-      const posMap = new Map(positions.map((p) => [p.id, p]));
-
-      // Read selection/hover from refs — avoids stale closure over React state.
-      const currentSelectedId = selectedSatelliteIdRef.current;
-      const currentHoveredId = hoveredSatelliteIdRef.current;
-
-      setSatellites((currentSatellites) => {
-        const selectionChanged = prevSelectedSatelliteRef.current !== currentSelectedId;
-        // §1.3 — Pre-index by ID to avoid O(n²) find() calls per tick
-        const prevById = new Map(prevSatellitesRef.current.map((s) => [s.id, s]));
-
-        const updatedSatellites = currentSatellites.map((sat) => {
-          const workerPos = posMap.get(sat.id);
-          if (!workerPos) return sat;
-
-          const newPosition = { lat: workerPos.lat, lng: workerPos.lng, alt: workerPos.alt };
-          const prev = prevById.get(sat.id);
-
-          const positionChanged = !prev ||
-            Math.abs(prev.position.lat - newPosition.lat) > POSITION_EPSILON_DEG ||
-            Math.abs(prev.position.lng - newPosition.lng) > POSITION_EPSILON_DEG ||
-            Math.abs(prev.position.alt - newPosition.alt) > ALTITUDE_EPSILON_KM;
-
-          const isSatelliteSelected = currentSelectedId === sat.id;
-          const isSatelliteHovered = currentHoveredId === sat.id;
-          const shouldRecalculateCoverage = sat.type === 'ONEWEB' && (
-            isSatelliteSelected ||
-            isSatelliteHovered ||
-            selectionChanged ||
-            positionChanged ||
-            !sat.coverages?.length
-          );
-
-          // Nothing changed → return same reference (prevents downstream re-renders)
-          if (!positionChanged && !shouldRecalculateCoverage) return sat;
-
-          const updatedSat = positionChanged ? { ...sat, position: newPosition } : sat;
-          return shouldRecalculateCoverage
-            ? { ...updatedSat, coverages: calculateCoverages(updatedSat) }
-            : updatedSat;
-        });
-
-        prevSelectedSatelliteRef.current = currentSelectedId;
-        prevSatellitesRef.current = updatedSatellites;
-        return updatedSatellites;
-      });
-
-      // Schedule next tick after state update is applied
-      satelliteUpdateTimeoutRef.current = setTimeout(scheduleTick, 2000);
-    };
-
-    worker.onerror = () => {
-      workerBusyRef.current = false;
-      satelliteUpdateTimeoutRef.current = setTimeout(scheduleTick, 2000);
-    };
-
-    scheduleTick();
-
-    return () => {
-      if (satelliteUpdateTimeoutRef.current) clearTimeout(satelliteUpdateTimeoutRef.current);
-      worker.terminate();
-      workerRef.current = null;
-    };
-  }, []);
-
-  // Keep selection/hover refs current for the worker without forcing extra propagation
-  // work on every hover transition.
-  useEffect(() => {
-    selectedSatelliteIdRef.current = selectedSatellite?.id ?? null;
-    hoveredSatelliteIdRef.current = hoveredSatelliteId;
-  }, [selectedSatellite?.id, hoveredSatelliteId]);
-
-  // Fire an immediate worker tick only for explicit satellite selection changes.
-  // Hover previews can safely use the normal 2 s cadence, which avoids expensive
-  // worker churn while the user pans/zooms across the globe.
-  useEffect(() => {
-    const worker = workerRef.current;
-    if (!worker || workerBusyRef.current) return;
-    const sats = satellitesForResolutionRef.current;
-    if (sats.length === 0) return;
-
-    if (satelliteUpdateTimeoutRef.current) clearTimeout(satelliteUpdateTimeoutRef.current);
-    workerBusyRef.current = true;
-    worker.postMessage({
-      satellites: sats.map((sat) => ({ id: sat.id, satrec: sat.satrec })),
-      timestamp: Date.now(),
-    });
-  }, [selectedSatellite?.id]);
+  // ─── Satellite loading + off-thread position propagation ──────────────────
+  const { satellites, loading, satellitesForResolutionRef } = useSatelliteLoader({
+    selectedSatelliteId: selectedSatellite?.id ?? null,
+    hoveredSatelliteId,
+  });
 
   // Filter satellites based on satellite scope
   const filteredSatellites = useMemo(() => {

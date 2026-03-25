@@ -1,5 +1,5 @@
 /* eslint-disable react-refresh/only-export-components */
-import React, { createContext, useContext, useState, useMemo, useCallback, ReactNode } from 'react';
+import React, { createContext, useContext, useReducer, useMemo, useCallback, ReactNode } from 'react';
 import { type CoveragePolicy } from '../utils/leoFootprint';
 import {
   type WeatherCondition,
@@ -13,6 +13,101 @@ import {
 // Re-export so consumers import from a single place
 export type { WeatherCondition };
 
+// ── State ──────────────────────────────────────────────────────────────────
+
+interface SimulationState {
+  coveragePolicy: CoveragePolicy;
+  weatherCondition: WeatherCondition;
+  beamHealthFactors: BeamHealthData[];
+  failedSnps: Set<string>;
+  beamHsStatus: boolean[];
+}
+
+// ── Actions ────────────────────────────────────────────────────────────────
+
+type SimulationAction =
+  | { type: 'SET_COVERAGE_POLICY'; payload: CoveragePolicy }
+  | { type: 'SET_WEATHER'; payload: WeatherCondition }
+  | { type: 'SET_BEAM_HEALTH'; beamIndex: number; healthFactor: number }
+  | { type: 'RESET_BEAM_HEALTH' }
+  | { type: 'TOGGLE_SNP'; snpName: string }
+  | { type: 'RESET_SNPS' }
+  | { type: 'TOGGLE_BEAM_HS'; beamIndex: number }
+  | { type: 'RESET_BEAM_HS' };
+
+// ── Reducer ────────────────────────────────────────────────────────────────
+
+function simulationReducer(state: SimulationState, action: SimulationAction): SimulationState {
+  switch (action.type) {
+    case 'SET_COVERAGE_POLICY':
+      return { ...state, coveragePolicy: action.payload };
+
+    case 'SET_WEATHER':
+      return { ...state, weatherCondition: action.payload };
+
+    case 'SET_BEAM_HEALTH': {
+      const clamped = Math.max(0, Math.min(1, action.healthFactor));
+      return {
+        ...state,
+        beamHealthFactors: state.beamHealthFactors.map((b) =>
+          b.beamIndex === action.beamIndex ? { ...b, healthFactor: clamped } : b
+        ),
+      };
+    }
+
+    case 'RESET_BEAM_HEALTH':
+      return { ...state, beamHealthFactors: DEFAULT_BEAM_HEALTH.map((b) => ({ ...b })) };
+
+    case 'TOGGLE_SNP': {
+      const next = new Set(state.failedSnps);
+      if (next.has(action.snpName)) next.delete(action.snpName);
+      else next.add(action.snpName);
+      return { ...state, failedSnps: next };
+    }
+
+    case 'RESET_SNPS':
+      return { ...state, failedSnps: new Set() };
+
+    case 'TOGGLE_BEAM_HS': {
+      const next = [...state.beamHsStatus];
+      next[action.beamIndex] = !next[action.beamIndex];
+      return { ...state, beamHsStatus: next };
+    }
+
+    case 'RESET_BEAM_HS':
+      return { ...state, beamHsStatus: Array(TOTAL_BEAMS).fill(false) };
+
+    default:
+      return state;
+  }
+}
+
+// ── Initial state ──────────────────────────────────────────────────────────
+
+function getInitialState(): SimulationState {
+  let coveragePolicy: CoveragePolicy = { type: 'DB_THRESHOLD', thresholdDb: -10 };
+
+  if (typeof window !== 'undefined') {
+    const legacyThreshold = localStorage.getItem('beamThresholdDb');
+    if (legacyThreshold) {
+      const threshold = Number(legacyThreshold);
+      if (!isNaN(threshold)) {
+        localStorage.removeItem('beamThresholdDb');
+        coveragePolicy = { type: 'DB_THRESHOLD', thresholdDb: threshold };
+      }
+    }
+  }
+
+  return {
+    coveragePolicy,
+    weatherCondition: 'CLEAR',
+    beamHealthFactors: DEFAULT_BEAM_HEALTH.map((b) => ({ ...b })),
+    failedSnps: new Set(),
+    beamHsStatus: Array(TOTAL_BEAMS).fill(false),
+  };
+}
+
+// ── Context interface (unchanged — consumers are not affected) ─────────────
 
 interface SimulationContextType {
   // Coverage policy (legacy)
@@ -69,95 +164,60 @@ const SimulationContext = createContext<SimulationContextType>({
 export const useSimulation = () => useContext(SimulationContext);
 
 export const SimulationProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const getInitialPolicy = (): CoveragePolicy => {
-    if (typeof window !== 'undefined') {
-      const legacyThreshold = localStorage.getItem('beamThresholdDb');
-      if (legacyThreshold) {
-        const threshold = Number(legacyThreshold);
-        if (!isNaN(threshold)) {
-          localStorage.removeItem('beamThresholdDb');
-          return { type: 'DB_THRESHOLD', thresholdDb: threshold };
-        }
-      }
-    }
-    return { type: 'DB_THRESHOLD', thresholdDb: -10 };
-  };
+  const [state, dispatch] = useReducer(simulationReducer, undefined, getInitialState);
 
-  const [coveragePolicy, setCoveragePolicy]     = useState<CoveragePolicy>(getInitialPolicy);
-  const [weatherCondition, setWeatherCondition] = useState<WeatherCondition>('CLEAR');
-  const [beamHealthFactors, setBeamHealthFactors] = useState<BeamHealthData[]>(
-    () => DEFAULT_BEAM_HEALTH.map(b => ({ ...b }))
-  );
+  const {
+    coveragePolicy,
+    weatherCondition,
+    beamHealthFactors,
+    failedSnps,
+    beamHsStatus,
+  } = state;
 
-  // Feature 1: SNP failures
-  const [failedSnps, setFailedSnps] = useState<Set<string>>(() => new Set());
+  // ── Stable action dispatchers ──────────────────────────────────────────
+  const setCoveragePolicy  = useCallback((value: CoveragePolicy) =>
+    dispatch({ type: 'SET_COVERAGE_POLICY', payload: value }), []);
 
-  // Feature 3: Beam HS
-  const [beamHsStatus, setBeamHsStatus] = useState<boolean[]>(
-    () => Array(TOTAL_BEAMS).fill(false)
-  );
+  const setWeatherCondition = useCallback((value: WeatherCondition) =>
+    dispatch({ type: 'SET_WEATHER', payload: value }), []);
 
-  const weatherLabel         = WEATHER_LABELS[weatherCondition];
-  const weatherAttenuationDb = WEATHER_ATTENUATION_DB[weatherCondition];
+  const setBeamHealthFactor = useCallback((beamIndex: number, healthFactor: number) =>
+    dispatch({ type: 'SET_BEAM_HEALTH', beamIndex, healthFactor }), []);
 
-  // ── Beam health ───────────────────────────────────────────────
-  const setBeamHealthFactor = useCallback((beamIndex: number, healthFactor: number) => {
-    setBeamHealthFactors(prev =>
-      prev.map(b =>
-        b.beamIndex === beamIndex
-          ? { ...b, healthFactor: Math.max(0, Math.min(1, healthFactor)) }
-          : b
-      )
-    );
-  }, []);
-
-  const resetBeamHealth = useCallback(() => {
-    setBeamHealthFactors(DEFAULT_BEAM_HEALTH.map(b => ({ ...b })));
-  }, []);
+  const resetBeamHealth = useCallback(() =>
+    dispatch({ type: 'RESET_BEAM_HEALTH' }), []);
 
   const getBeamHealthFactor = useCallback(
     () => (beamIndex: number): number => {
-      const entry = beamHealthFactors.find(b => b.beamIndex === beamIndex);
+      const entry = beamHealthFactors.find((b) => b.beamIndex === beamIndex);
       return entry ? entry.healthFactor : 1.0;
     },
     [beamHealthFactors]
   );
 
-  // ── SNP failures ──────────────────────────────────────────────
-  const toggleSnpFailure = useCallback((snpName: string) => {
-    setFailedSnps(prev => {
-      const next = new Set(prev);
-      if (next.has(snpName)) next.delete(snpName);
-      else next.add(snpName);
-      return next;
-    });
-  }, []);
+  const toggleSnpFailure = useCallback((snpName: string) =>
+    dispatch({ type: 'TOGGLE_SNP', snpName }), []);
 
-  const resetFailedSnps = useCallback(() => {
-    setFailedSnps(new Set());
-  }, []);
+  const resetFailedSnps = useCallback(() =>
+    dispatch({ type: 'RESET_SNPS' }), []);
 
-  // ── Beam HS ───────────────────────────────────────────────────
-  const toggleBeamHs = useCallback((beamIndex: number) => {
-    setBeamHsStatus(prev => {
-      const next = [...prev];
-      next[beamIndex] = !next[beamIndex];
-      return next;
-    });
-  }, []);
+  const toggleBeamHs = useCallback((beamIndex: number) =>
+    dispatch({ type: 'TOGGLE_BEAM_HS', beamIndex }), []);
 
-  const resetBeamHs = useCallback(() => {
-    setBeamHsStatus(Array(TOTAL_BEAMS).fill(false));
-  }, []);
+  const resetBeamHs = useCallback(() =>
+    dispatch({ type: 'RESET_BEAM_HS' }), []);
 
-  // Derived: Set of HS beam indices
+  // ── Derived values ─────────────────────────────────────────────────────
+  const weatherLabel         = WEATHER_LABELS[weatherCondition];
+  const weatherAttenuationDb = WEATHER_ATTENUATION_DB[weatherCondition];
+
   const hsBeamsSet = useMemo(
-    () => new Set(beamHsStatus.map((hs, i) => hs ? i : -1).filter(i => i >= 0)),
+    () => new Set(beamHsStatus.map((hs, i) => (hs ? i : -1)).filter((i) => i >= 0)),
     [beamHsStatus]
   );
 
   // Memoize the context value so consumers only re-render when the specific
-  // slice of state they use actually changes, not on every provider render.
+  // slice they use actually changes.
   const contextValue = useMemo(() => ({
     coveragePolicy,
     setCoveragePolicy,
@@ -169,22 +229,19 @@ export const SimulationProvider: React.FC<{ children: ReactNode }> = ({ children
     setBeamHealthFactor,
     resetBeamHealth,
     getBeamHealthFactor,
-
     failedSnps,
     toggleSnpFailure,
     resetFailedSnps,
-
     beamHsStatus,
     toggleBeamHs,
     resetBeamHs,
     hsBeamsSet,
   }), [
-    coveragePolicy, weatherCondition, weatherLabel, weatherAttenuationDb,
+    coveragePolicy, setCoveragePolicy,
+    weatherCondition, setWeatherCondition, weatherLabel, weatherAttenuationDb,
     beamHealthFactors, setBeamHealthFactor, resetBeamHealth, getBeamHealthFactor,
     failedSnps, toggleSnpFailure, resetFailedSnps,
     beamHsStatus, toggleBeamHs, resetBeamHs, hsBeamsSet,
-    // Stable setters (setCoveragePolicy, setWeatherCondition) are React dispatchers
-    // and never change identity — omitting them from deps is intentional.
   ]);
 
   return (

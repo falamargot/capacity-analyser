@@ -2,7 +2,8 @@ import React, { useEffect, useMemo, useRef } from 'react';
 import {
     BoundingSphere, Cartesian3, Color, ColorGeometryInstanceAttribute, ComponentDatatype,
     Cartographic, Geometry, GeometryAttribute, GeometryInstance, JulianDate, Math as CesiumMath,
-    Matrix4, PerInstanceColorAppearance, Primitive, PrimitiveType, Transforms
+    Matrix4, PerInstanceColorAppearance, Primitive, PrimitiveType, Transforms,
+    Viewer as CesiumViewerType,
 } from 'cesium';
 import type { Feature, Geometry as GeoJsonGeometry, GeoJsonProperties } from 'geojson';
 import type { SatelliteData } from '../../types/satellites';
@@ -24,7 +25,7 @@ interface Props {
     selectedAircraft?: Aircraft | null;
     satellites: SatelliteData[];
     coverageFeatures: Feature<GeoJsonGeometry, GeoJsonProperties>[];
-    viewerRef: React.RefObject<any>;
+    viewerRef: React.RefObject<CesiumViewerType | null>;
 }
 
 type Point2 = { x: number; y: number; index: number };

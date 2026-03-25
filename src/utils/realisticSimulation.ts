@@ -12,45 +12,43 @@
  */
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Constants – OneWeb Gen 1 parameters
+// Hardware constants — imported from the canonical config file.
+// Re-exported here so all existing `import { … } from './realisticSimulation'`
+// statements continue to work without change.
 // ─────────────────────────────────────────────────────────────────────────────
+import {
+  LEO_ALTITUDE_KM,
+  TOTAL_BEAMS,
+  BEAM_SPACING_KM,
+  NOMINAL_BEAM_RADIUS_KM,
+  PERIPHERAL_BEAM_INDICES,
+  NOMINAL_EIRP_DBW,
+  G_MAX_DBI,
+  NOMINAL_BEAM_CAPACITY_MBPS,
+  MAX_PAYLOAD_POWER,
+  KA_BACKHAUL_CONSUMPTION,
+  AVAILABLE_USER_POWER,
+  MAX_ACTIVE_BEAM_POWER,
+  STANDBY_BEAM_POWER,
+  NOMINAL_BEAM_POWER,
+} from '../config/oneweb';
 
-/** Satellite altitude (km) */
-export const LEO_ALTITUDE_KM = 1200;
-
-/** Total number of cross-track beams in the OneWeb comb */
-export const TOTAL_BEAMS = 16;
-
-/** Nominal EIRP per beam (dBW) – reference for a healthy, boresight beam */
-export const NOMINAL_EIRP_DBW = 54.0;
-
-/** Maximum antenna gain at boresight (dBi) */
-export const G_MAX_DBI = 36.0;
-
-/** Nominal beam capacity at perfect boresight, clear sky, full health (Mbps) */
-export const NOMINAL_BEAM_CAPACITY_MBPS = 200;
-
-/** Beam spacing across the swath (km) */
-export const BEAM_SPACING_KM = 67.5;
-
-/**
- * Peripheral beam indices – these sit at the outermost positions of the
- * 16-beam comb and therefore have the largest scan angle from nadir.
- */
-export const PERIPHERAL_BEAM_INDICES: ReadonlySet<number> = new Set([0, 7, 8, 15]);
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Dynamic Power Management Constraints
-// ─────────────────────────────────────────────────────────────────────────────
-
-export const MAX_PAYLOAD_POWER = 450.0; // Watts
-export const KA_BACKHAUL_CONSUMPTION = 70.0; // Watts
-export const AVAILABLE_USER_POWER = MAX_PAYLOAD_POWER - KA_BACKHAUL_CONSUMPTION; // 380 W
-export const MAX_ACTIVE_BEAM_POWER = 35.0; // Watts
-export const STANDBY_BEAM_POWER = 0.5; // Watts
-
-// Nominal baseline is 23.75W per beam
-export const NOMINAL_BEAM_POWER = AVAILABLE_USER_POWER / TOTAL_BEAMS;
+export {
+  LEO_ALTITUDE_KM,
+  TOTAL_BEAMS,
+  BEAM_SPACING_KM,
+  NOMINAL_BEAM_RADIUS_KM,
+  PERIPHERAL_BEAM_INDICES,
+  NOMINAL_EIRP_DBW,
+  G_MAX_DBI,
+  NOMINAL_BEAM_CAPACITY_MBPS,
+  MAX_PAYLOAD_POWER,
+  KA_BACKHAUL_CONSUMPTION,
+  AVAILABLE_USER_POWER,
+  MAX_ACTIVE_BEAM_POWER,
+  STANDBY_BEAM_POWER,
+  NOMINAL_BEAM_POWER,
+};
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Pillar 5 – Weather Attenuation
@@ -301,12 +299,6 @@ export function getEffectiveEirpDb(
 // ─────────────────────────────────────────────────────────────────────────────
 // Beam radius with all impairments
 // ─────────────────────────────────────────────────────────────────────────────
-
-/**
- * Nominal beam minor semi-axis radius at the standard -10 dB threshold (km).
- * This is the half-width of a single OneWeb beam at the service edge.
- */
-export const NOMINAL_BEAM_RADIUS_KM = 51; // half of 102 km beam width
 
 /**
  * Computes the effective beam radius (km) after applying:

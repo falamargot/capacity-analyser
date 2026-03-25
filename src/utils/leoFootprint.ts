@@ -6,7 +6,22 @@ import {
   getPowerBoostLinear,
 } from './realisticSimulation';
 
-// Coverage policy types for centralized RF connectivity decisions
+/**
+ * Coverage policy — controls how LEO RF connectivity radius is determined.
+ *
+ * **DB_THRESHOLD** (Signal Power Threshold mode):
+ *   Computes the beam coverage radius from the cos^n antenna model at a given
+ *   signal power level. `thresholdDb` is the power-from-boresight cut-off
+ *   (e.g. −10 dB). Produces physics-accurate, per-beam footprints including
+ *   scan-loss shrinkage on peripheral beams. Use this when individual beam
+ *   geometry detail is needed (default mode).
+ *
+ * **SERVICE_ZONE** (Contractual Service Boundary mode):
+ *   Uses the OneWeb contractual 55° minimum elevation-angle guarantee
+ *   (STANDARD_ELEVATION_DEG) to define a single circular service area
+ *   (~688 km radius at 1200 km altitude). No per-beam distinction.
+ *   Use this for a simplified "is the terminal in-service-area?" check.
+ */
 export type CoveragePolicy =
   | { type: "DB_THRESHOLD"; thresholdDb: number }
   | { type: "SERVICE_ZONE" };
