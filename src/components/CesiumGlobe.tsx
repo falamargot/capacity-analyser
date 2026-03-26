@@ -127,6 +127,7 @@ interface CesiumGlobeProps {
     selectedGEOBeam?: GEOBeam | null;
     candidateCoverages?: CandidateCoverage[];
     selectedCoverage?: CandidateCoverage | null;
+    selectedGeoCoverageName?: string | null;
     selectedGeoBeamKey?: string | null;
     cameraTarget?: { lat: number; lng: number; alt: number } | null;
     onCameraReady?: (viewer: CesiumViewerType) => void;
@@ -186,6 +187,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
     selectedGEOBeam,
     candidateCoverages = [],
     selectedCoverage = null,
+    selectedGeoCoverageName = null,
     selectedGeoBeamKey = null,
     cameraTarget,
     onCameraReady,
@@ -223,6 +225,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
     const enableLighting = localEnableLighting;
     const onToggleLighting = () => setLocalEnableLighting(!enableLighting);
     const [showAggregatedConnectivity, setShowAggregatedConnectivity] = useState(false);
+    const [showFootprintProjection, setShowFootprintProjection] = useState(true);
     const [imageryThemeRevision, setImageryThemeRevision] = useState(0);
     const [hoveredEntity, setHoveredEntity] = useState<HoveredEntity>(null);
     const hoveredEntityKeyRef = useRef<string | null>(null);
@@ -832,6 +835,8 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                 onSceneModeChange={onSceneModeChange}
                 showAggregatedConnectivity={showAggregatedConnectivity}
                 onToggleAggregatedConnectivity={() => setShowAggregatedConnectivity(!showAggregatedConnectivity)}
+                showFootprintProjection={showFootprintProjection}
+                onToggleFootprintProjection={() => setShowFootprintProjection(!showFootprintProjection)}
                 showRegulatoryOverlay={showRegulatoryOverlay}
                 onToggleRegulatoryOverlay={onToggleRegulatoryOverlay}
                 satelliteScope={satelliteScope}
@@ -884,6 +889,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                         satelliteTypeByName={satelliteTypeByName}
                         candidateCoverages={candidateCoverages}
                         selectedCoverage={selectedCoverage}
+                        selectedGeoCoverageName={selectedGeoCoverageName}
                         selectedGeoBeamKey={selectedGeoBeamKey}
                         manualGeoSatelliteName={
                             selectedSatellite?.type === 'EUTELSAT' && isOperationalSatellite(selectedSatellite)
@@ -906,17 +912,19 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                     />
 
                     {/* Aggregated coverage volume (manual satellite selection only) */}
-                    <AggregatedCoverageVolumeLayer
-                        selectedSatellite={selectedSatellite}
-                        selectedBeamFeature={geoBeamCone.beamFeature}
-                        beamSatellite={geoBeamCone.sat}
-                        autoSelectedSatellite={autoSelectedLEOSatellite}
-                        selectedPosition={selectedPosition}
-                        selectedAircraft={selectedAircraft}
-                        satellites={satellites}
-                        coverageFeatures={coverageFeatures}
-                        viewerRef={viewerRef}
-                    />
+                    {showFootprintProjection && (
+                        <AggregatedCoverageVolumeLayer
+                            selectedSatellite={selectedSatellite}
+                            selectedBeamFeature={geoBeamCone.beamFeature}
+                            beamSatellite={geoBeamCone.sat}
+                            autoSelectedSatellite={autoSelectedLEOSatellite}
+                            selectedPosition={selectedPosition}
+                            selectedAircraft={selectedAircraft}
+                            satellites={satellites}
+                            coverageFeatures={coverageFeatures}
+                            viewerRef={viewerRef}
+                        />
+                    )}
 
                     {/* Transmission Links */}
                     <TransmissionLinks

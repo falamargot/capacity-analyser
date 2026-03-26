@@ -314,10 +314,13 @@ const SatelliteDetails: React.FC<SatelliteDetailsProps> = ({
         contours: [],
       };
 
-      currentCoverage.contours.push({
-        id: getCoverageBeamId(coverage),
-        label: getCoverageBeamName(coverage),
-      });
+      const contourId = getCoverageBeamId(coverage);
+      if (!currentCoverage.contours.some((contour) => contour.id === contourId)) {
+        currentCoverage.contours.push({
+          id: contourId,
+          label: getCoverageBeamName(coverage),
+        });
+      }
 
       missionGroups.set(coverageKey, currentCoverage);
       groups.set(mission, missionGroups);
@@ -826,6 +829,7 @@ const SatelliteDetails: React.FC<SatelliteDetailsProps> = ({
                                               onClick={() => {
                                                 const nextBeamId = isContourSelected ? null : contour.id;
                                                 onSelectGeoBeam?.(nextBeamId);
+                                                onSelectGeoCoverage?.(null);
                                                 onSelectGeoMission?.(null);
                                               }}
                                               className={`text-left hover:underline ${isContourSelected

@@ -56,6 +56,10 @@ const EUTELSAT_COVERAGE_FILE_BY_ALIAS: Record<string, string> = {
   KONNECT: '44914',
 };
 
+const EUTELSAT_ALIAS_BY_COVERAGE_FILE_ID: Record<string, string> = Object.fromEntries(
+  Object.entries(EUTELSAT_COVERAGE_FILE_BY_ALIAS).map(([alias, fileId]) => [fileId, alias])
+);
+
 let coverageManifestPromise: Promise<Set<string>> | null = null;
 const FORCE_LOCAL_CELESTRAK = String(import.meta.env.VITE_FORCE_LOCAL_CELESTRAK ?? '').toLowerCase() === 'true';
 
@@ -273,18 +277,28 @@ export const resolveCoverageFileId = (
   sat: { name: string; noradId: string },
   coverageManifest: Set<string>
 ): string | null => {
-  if (coverageManifest.has(sat.noradId)) {
-    return sat.noradId;
+  const alias = getEutelsatCoverageAlias(sat.name);
+  const mappedFileId = alias ? EUTELSAT_COVERAGE_FILE_BY_ALIAS[alias] : undefined;
+
+  if (mappedFileId && coverageManifest.has(mappedFileId)) {
+    return mappedFileId;
   }
 
-  const alias = getEutelsatCoverageAlias(sat.name);
-  if (!alias) {
+  if (coverageManifest.has(sat.noradId)) {
+    const ownerAlias = EUTELSAT_ALIAS_BY_COVERAGE_FILE_ID[sat.noradId];
+    if (!ownerAlias || ownerAlias === alias) {
+      return sat.noradId;
+    }
+
+    console.warn(
+      `[Coverage] Refusing suspicious direct GEO coverage match ${sat.noradId}.json for ${sat.name}; `
+      + `that file is reserved for alias ${ownerAlias}.`
+    );
     return null;
   }
 
-  const mappedFileId = EUTELSAT_COVERAGE_FILE_BY_ALIAS[alias];
-  if (mappedFileId && coverageManifest.has(mappedFileId)) {
-    return mappedFileId;
+  if (!alias) {
+    return null;
   }
 
   return null;

@@ -40,6 +40,13 @@ describe('resolveCoverageFileId', () => {
     )).toBe('55842');
   });
 
+  it('rejects a direct NORAD coverage match when that file is reserved for another GEO alias', () => {
+    expect(resolveCoverageFileId(
+      { name: 'EUTELSAT 36B', noradId: '36101' },
+      manifest
+    )).toBeNull();
+  });
+
   it('returns null when no mapped coverage exists', () => {
     expect(resolveCoverageFileId(
       { name: 'EUTELSAT QUANTUM', noradId: '49056' },

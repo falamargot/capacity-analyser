@@ -40,6 +40,8 @@ interface GlobeControlsProps {
     onSceneModeChange?: (mode: '2D' | '3D') => void;
     showAggregatedConnectivity?: boolean;
     onToggleAggregatedConnectivity?: () => void;
+    showFootprintProjection?: boolean;
+    onToggleFootprintProjection?: () => void;
     showRegulatoryOverlay?: boolean;
     onToggleRegulatoryOverlay?: () => void;
     satelliteScope?: 'LEO' | 'GEO' | 'ALL';
@@ -203,6 +205,8 @@ const GlobeControls: React.FC<GlobeControlsProps> = ({
     onSceneModeChange,
     showAggregatedConnectivity,
     onToggleAggregatedConnectivity,
+    showFootprintProjection,
+    onToggleFootprintProjection,
     showRegulatoryOverlay,
     onToggleRegulatoryOverlay,
     satelliteScope,
@@ -295,6 +299,10 @@ const GlobeControls: React.FC<GlobeControlsProps> = ({
                     e.preventDefault();
                     onToggleLighting?.();
                     break;
+                case 'p':
+                    e.preventDefault();
+                    onToggleFootprintProjection?.();
+                    break;
                 case 't':
                     e.preventDefault();
                     onToggleSatelliteTrajectory?.();
@@ -317,7 +325,7 @@ const GlobeControls: React.FC<GlobeControlsProps> = ({
 
         document.addEventListener('keydown', handleKeyDown);
         return () => document.removeEventListener('keydown', handleKeyDown);
-    }, [onToggleLighting, onToggleSatelliteTrajectory, handleZoomIn, handleZoomOut, handleReset]);
+    }, [onToggleFootprintProjection, onToggleLighting, onToggleSatelliteTrajectory, handleZoomIn, handleZoomOut, handleReset]);
 
     return (
         <div className={`absolute right-3 z-10 flex flex-col items-end gap-2 ${isPhone ? 'top-24' : 'top-3'}`}>
@@ -361,9 +369,6 @@ const GlobeControls: React.FC<GlobeControlsProps> = ({
                                         <div>
                                             <div className="text-sm font-semibold text-slate-950 dark:text-slate-50">Display Controls</div>
                                         </div>
-                                        <div className="rounded-full bg-slate-100 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-500 dark:bg-slate-800 dark:text-slate-400">
-                                            Live
-                                        </div>
                                     </div>
 
                                     {basemapOptions.length > 0 && onBasemapChange && (
@@ -393,7 +398,7 @@ const GlobeControls: React.FC<GlobeControlsProps> = ({
                                         <DisplayOptionRow
                                             icon={<SunMedium className="h-4 w-4" />}
                                             label="Sun Light"
-                                            description="Add solar shading."
+                                            description="Show solar shading"
                                             enabled={!!enableLighting}
                                             onClick={() => onToggleLighting?.()}
                                             accent="amber"
@@ -403,7 +408,7 @@ const GlobeControls: React.FC<GlobeControlsProps> = ({
                                         <DisplayOptionRow
                                             icon={<Orbit className="h-4 w-4" />}
                                             label="Trajectory"
-                                            description="Show the selected orbit."
+                                            description="Show the selected sat. orbit"
                                             enabled={!!showSatelliteTrajectory}
                                             onClick={() => onToggleSatelliteTrajectory?.()}
                                             accent="violet"
@@ -414,7 +419,7 @@ const GlobeControls: React.FC<GlobeControlsProps> = ({
                                             <DisplayOptionRow
                                                 icon={<Waves className="h-4 w-4" />}
                                                 label="Connectivity Envelope"
-                                                description={satelliteScope === 'GEO' ? 'Show the union of GEO footprints.' : 'Show the feasibility layer.'}
+                                                description={'Show overall coverage'}
                                                 enabled={!!showAggregatedConnectivity}
                                                 onClick={() => onToggleAggregatedConnectivity()}
                                                 disabled={false}
@@ -423,11 +428,23 @@ const GlobeControls: React.FC<GlobeControlsProps> = ({
                                             />
                                         )}
 
+                                        {onToggleFootprintProjection && (
+                                            <DisplayOptionRow
+                                                icon={<Globe className="h-4 w-4" />}
+                                                label="Footprint Projection"
+                                                description="Show selected beam cone"
+                                                enabled={!!showFootprintProjection}
+                                                onClick={() => onToggleFootprintProjection()}
+                                                accent="blue"
+                                                title="Toggle selected satellite footprint projection (P)"
+                                            />
+                                        )}
+
                                         {onToggleRegulatoryOverlay && (
                                             <DisplayOptionRow
                                                 icon={<ShieldCheck className="h-4 w-4" />}
                                                 label="Regulatory Overlay"
-                                                description={leoDisplayOptionsDisabled ? 'Only in ALL or LEO scope.' : 'Show policy zones and blocked-service cues.'}
+                                                description={leoDisplayOptionsDisabled ? 'Use in ALL or LEO' : 'Show policy zones'}
                                                 enabled={!leoDisplayOptionsDisabled && !!showRegulatoryOverlay}
                                                 onClick={() => {
                                                     if (!leoDisplayOptionsDisabled) {
@@ -446,9 +463,6 @@ const GlobeControls: React.FC<GlobeControlsProps> = ({
                                         <div className="flex items-center justify-between gap-3">
                                             <div>
                                                 <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">Marker Scale</div>
-                                                <div className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
-                                                    Scale all markers.
-                                                </div>
                                             </div>
                                             <div className="flex items-center gap-2">
                                                 {onSizeScaleReset && (

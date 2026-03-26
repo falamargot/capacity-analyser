@@ -46,6 +46,7 @@ interface MapViewSwitcherProps {
   selectedGEOBeam?: GEOBeam | null;
   candidateCoverages?: CandidateCoverage[];
   selectedCoverage?: CandidateCoverage | null;
+  selectedGeoCoverageName?: string | null;
   selectedGeoBeamKey?: string | null;
   cameraTarget?: { lat: number; lng: number; alt: number } | null;
   onCameraReady?: (viewer: CesiumViewerType) => void;
@@ -101,6 +102,7 @@ const MapViewSwitcher: React.FC<MapViewSwitcherProps> = ({
   selectedGEOBeam,
   candidateCoverages = [],
   selectedCoverage = null,
+  selectedGeoCoverageName = null,
   selectedGeoBeamKey = null,
   cameraTarget,
   onCameraReady,
@@ -160,6 +162,7 @@ const MapViewSwitcher: React.FC<MapViewSwitcherProps> = ({
         selectedGEOBeam={selectedGEOBeam}
         candidateCoverages={candidateCoverages}
         selectedCoverage={selectedCoverage}
+        selectedGeoCoverageName={selectedGeoCoverageName}
         selectedGeoBeamKey={selectedGeoBeamKey}
         cameraTarget={cameraTarget}
         onCameraReady={onCameraReady}

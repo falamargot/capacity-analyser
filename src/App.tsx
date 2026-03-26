@@ -913,16 +913,18 @@ const App: React.FC = () => {
 
   const handleSelectGeoMission = useCallback((mission: string | null) => {
     setSelectedGeoMission(mission);
-    setSelectedGeoBeamId(null);
     if (mission) {
+      setSelectedGeoBeamId(null);
+      setSelectedCoverage(null);
       setSelectedGeoCoverageName(null);
     }
   }, []);
 
   const handleSelectGeoCoverage = useCallback((coverageName: string | null) => {
     setSelectedGeoCoverageName(coverageName);
-    setSelectedGeoBeamId(null);
     if (coverageName) {
+      setSelectedGeoBeamId(null);
+      setSelectedCoverage(null);
       setSelectedGeoMission(null);
     }
   }, []);
@@ -930,6 +932,8 @@ const App: React.FC = () => {
   const handleSelectGeoBeam = useCallback((beamId: string | null) => {
     setSelectedGeoBeamId(beamId);
     if (beamId) {
+      setSelectedCoverage(null);
+      setSelectedGeoCoverageName(null);
       setSelectedGeoMission(null);
     }
   }, []);
@@ -1352,6 +1356,7 @@ const App: React.FC = () => {
     selectedGEOBeam,
     candidateCoverages,
     selectedCoverage,
+    selectedGeoCoverageName,
     selectedGeoBeamKey: selectedSatellite && selectedGeoBeamId
       ? `${selectedSatellite.name}::${selectedGeoBeamId}`
       : null,
@@ -1394,7 +1399,7 @@ const App: React.FC = () => {
   }), [
     filteredSatellites, satelliteTypeByName, coverageFeaturesMemo, handlePointClick, selectedPosition,
     handleSatelliteClick, handleSatelliteHover, handleSnpClick, handleGatewaySelectByName, handleSnpHover,
-    selectedSatellite, resolvedAutoLEO, activeGeoSatellite, selectedGEOBeam, candidateCoverages, selectedCoverage, selectedGeoBeamId, selectedSNP, selectedGateway, dedicatedSNPForSelectedLEO, leoServiceViewModel, geoPointStatus, leoRegulatoryResult,
+    selectedSatellite, resolvedAutoLEO, activeGeoSatellite, selectedGEOBeam, candidateCoverages, selectedCoverage, selectedGeoCoverageName, selectedGeoBeamId, selectedSNP, selectedGateway, dedicatedSNPForSelectedLEO, leoServiceViewModel, geoPointStatus, leoRegulatoryResult,
     isFullscreen, satelliteScope, airTrafficEnabled, airTraffic.aircraft,
     selectedAircraft, handleAircraftSelect, handleAircraftHover,
     maritimeTrafficEnabled, maritimeTraffic.vessels, selectedVessel, handleVesselSelect, cameraTarget,
@@ -1921,6 +1926,10 @@ const App: React.FC = () => {
                         <div className="flex items-center justify-between gap-4">
                           <span>Toggle trajectory</span>
                           <kbd className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-mono text-slate-700 dark:bg-slate-800 dark:text-slate-200">T</kbd>
+                        </div>
+                        <div className="flex items-center justify-between gap-4">
+                          <span>Toggle footprint projection</span>
+                          <kbd className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-mono text-slate-700 dark:bg-slate-800 dark:text-slate-200">P</kbd>
                         </div>
                         <div className="flex items-center justify-between gap-4">
                           <span>Open keyboard shortcuts</span>
