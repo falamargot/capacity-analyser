@@ -147,6 +147,8 @@ interface CesiumGlobeProps {
     leoServiceViewModel?: LeoConnectivityViewModel | null;
     geoPointStatus?: GeoPointStatus | null;
     selectedRegulatoryResult?: RegulatoryResult | null;
+    onGlobeBootPhaseChange?: (phase: 'mounting' | 'viewer-ready' | 'imagery-ready') => void;
+    onInitialGlobeReady?: () => void;
 }
 
 const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
@@ -204,6 +206,8 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
     leoServiceViewModel = null,
     geoPointStatus = null,
     selectedRegulatoryResult = null,
+    onGlobeBootPhaseChange,
+    onInitialGlobeReady,
 }) => {
     // Stable refs for click-handler lookups — avoids recreating handleMapClick
     // (and re-registering the Cesium ScreenSpaceEvent) when aircraft/vessels/satellites
@@ -229,6 +233,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
     const viewerRef = useRef<CesiumViewerType | null>(null);
     const globeContainerRef = useRef<HTMLDivElement>(null);
     const [viewerReady, setViewerReady] = useState(false);
+    const initialSceneReadyRef = useRef(false);
     const { getSatellitePositionCallback } = usePositionCallbacks(satellites, aircraft, interpolatedAircraftMapRef);
     const basemapApplyTokenRef = useRef(0);
     const basemapOptions = useMemo(() => {
@@ -259,6 +264,10 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
 
     // Apply theme to Cesium viewer
     useCesiumTheme(viewerRef, imageryThemeRevision);
+
+    useEffect(() => {
+        onGlobeBootPhaseChange?.('mounting');
+    }, [onGlobeBootPhaseChange]);
 
     useEffect(() => {
         if (basemapOptions.length === 0) return;
@@ -299,8 +308,9 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
             viewer.resolutionScale = window.devicePixelRatio ?? 1;
 
             setViewerReady(true);
+            onGlobeBootPhaseChange?.('viewer-ready');
         }
-    }, []);
+    }, [onGlobeBootPhaseChange]);
 
     // Notify parent when viewer is ready
     useEffect(() => {
@@ -364,10 +374,27 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                     layers.add(new ImageryLayer(provider as ConstructorParameters<typeof ImageryLayer>[0]));
                 }
 
+                onGlobeBootPhaseChange?.('imagery-ready');
                 setImageryThemeRevision((value) => value + 1);
-                viewerRef.current.scene.requestRender();
+                const viewer = viewerRef.current;
+                viewer.scene.requestRender();
+
+                if (!initialSceneReadyRef.current) {
+                    const markSceneReady = () => {
+                        viewer.scene.postRender.removeEventListener(markSceneReady);
+                        if (initialSceneReadyRef.current) return;
+                        initialSceneReadyRef.current = true;
+                        onInitialGlobeReady?.();
+                    };
+
+                    viewer.scene.postRender.addEventListener(markSceneReady);
+                }
             } catch (error) {
                 console.error(`[Basemap] Failed to apply "${selectedBasemap.label}":`, error);
+                if (!initialSceneReadyRef.current) {
+                    initialSceneReadyRef.current = true;
+                    onInitialGlobeReady?.();
+                }
             }
         };
 
@@ -376,7 +403,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         return () => {
             cancelled = true;
         };
-    }, [basemapOptions, selectedBasemapId, viewerReady]);
+    }, [basemapOptions, onGlobeBootPhaseChange, onInitialGlobeReady, selectedBasemapId, viewerReady]);
 
     // Keep Cesium clock aligned with real UTC time to avoid drift/lag
     useEffect(() => {

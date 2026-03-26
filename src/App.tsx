@@ -120,6 +120,12 @@ const snapMarkerScaleToStep = (value: number, step = 0.25) => {
   return clampNumber(Number(snappedValue.toFixed(2)), 0.25, 8);
 };
 
+const GLOBE_BOOT_PHASE_ORDER = {
+  mounting: 0,
+  'viewer-ready': 1,
+  'imagery-ready': 2,
+} as const;
+
 // Analyzis position for earth-click or aircraft selection
 interface AnalyzisPosition {
   lat: number;
@@ -174,7 +180,10 @@ const App: React.FC = () => {
       : snapMarkerScaleToStep(getResponsiveAutoMarkerScale(initialViewportSnapshot))
   ));
   const [isSizeScaleUserOverridden, setIsSizeScaleUserOverridden] = useState(hasInitialSizeScaleOverride);
-  const [splashDone, setSplashDone] = useState(false);
+  const [hasSplashMinimumElapsed, setHasSplashMinimumElapsed] = useState(false);
+  const [isSplashDismissed, setIsSplashDismissed] = useState(false);
+  const [initialGlobeBootPhase, setInitialGlobeBootPhase] = useState<keyof typeof GLOBE_BOOT_PHASE_ORDER>('mounting');
+  const [isInitialGlobeReady, setIsInitialGlobeReady] = useState(false);
   const [isMobileAnalysisPanelOpen, setIsMobileAnalysisPanelOpen] = useState(false);
   const [isSatelliteModalOpen, setIsSatelliteModalOpen] = useState(false);
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
@@ -201,6 +210,24 @@ const App: React.FC = () => {
   // Store globe container reference when ready
   const handleGlobeContainerReady = useCallback((ref: React.RefObject<HTMLDivElement | null>) => {
     globeContainerRef.current = ref.current;
+  }, []);
+
+  const handleGlobeBootPhaseChange = useCallback((phase: keyof typeof GLOBE_BOOT_PHASE_ORDER) => {
+    setInitialGlobeBootPhase((current) => (
+      GLOBE_BOOT_PHASE_ORDER[phase] > GLOBE_BOOT_PHASE_ORDER[current] ? phase : current
+    ));
+  }, []);
+
+  const handleInitialGlobeReady = useCallback(() => {
+    setIsInitialGlobeReady(true);
+  }, []);
+
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      setHasSplashMinimumElapsed(true);
+    }, 1400);
+
+    return () => clearTimeout(timeout);
   }, []);
 
   // Helper functions (isPointInGEOCoverage, isPointInPolygon) are now centralized in utils/geoUtils.ts
@@ -1352,6 +1379,8 @@ const App: React.FC = () => {
     cameraTarget,
     onCameraReady: handleCameraReady,
     onGlobeContainerReady: handleGlobeContainerReady,
+    onGlobeBootPhaseChange: handleGlobeBootPhaseChange,
+    onInitialGlobeReady: handleInitialGlobeReady,
     showSatelliteTrajectory,
     sizeScale,
     onToggleSatelliteTrajectory: handleToggleSatelliteTrajectory,
@@ -1369,7 +1398,7 @@ const App: React.FC = () => {
     isFullscreen, satelliteScope, airTrafficEnabled, airTraffic.aircraft,
     selectedAircraft, handleAircraftSelect, handleAircraftHover,
     maritimeTrafficEnabled, maritimeTraffic.vessels, selectedVessel, handleVesselSelect, cameraTarget,
-    handleCameraReady, handleGlobeContainerReady, showSatelliteTrajectory, sizeScale,
+    handleCameraReady, handleGlobeContainerReady, handleGlobeBootPhaseChange, handleInitialGlobeReady, showSatelliteTrajectory, sizeScale,
     inspectedSNP, snpConnectedSatellites, showRegulatoryOverlay, handleToggleRegulatoryOverlay, handleSizeScaleReset,
     isPhone, isMobileAnalysisPanelOpen,
   ]);
@@ -1496,18 +1525,33 @@ const App: React.FC = () => {
     && !selectedGateway
     && !inspectedSNP
     && !selectedSatellite;
+  const splashReady = !loading && hasSplashMinimumElapsed && isInitialGlobeReady;
+  const splashMessage = loading
+    ? 'Loading satellite data and coverage...'
+    : initialGlobeBootPhase === 'mounting'
+      ? 'Preparing application workspace...'
+      : initialGlobeBootPhase === 'viewer-ready'
+        ? 'Initializing 3D globe...'
+        : splashReady
+          ? 'Startup complete.'
+          : 'Applying globe imagery...';
+  const splashProgress = loading
+    ? 52
+    : initialGlobeBootPhase === 'mounting'
+      ? 72
+      : initialGlobeBootPhase === 'viewer-ready'
+        ? 86
+        : splashReady
+          ? 100
+          : 94;
 
-  if (loading || !splashDone) {
+  if (loading) {
     return (
-      <>
-        <SplashScreen onComplete={() => setSplashDone(true)} />
-        {/* Hidden pre-render so globe starts initializing behind splash */}
-        {!loading && (
-          <div className="opacity-0 fixed inset-0 -z-10" aria-hidden>
-            <div className="min-h-screen bg-white dark:bg-slate-950" />
-          </div>
-        )}
-      </>
+      <SplashScreen
+        message={splashMessage}
+        progress={splashProgress}
+        onComplete={() => undefined}
+      />
     );
   }
 
@@ -1869,6 +1913,14 @@ const App: React.FC = () => {
                         <div className="flex items-center justify-between gap-4">
                           <span>Reset view</span>
                           <kbd className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-mono text-slate-700 dark:bg-slate-800 dark:text-slate-200">Esc</kbd>
+                        </div>
+                        <div className="flex items-center justify-between gap-4">
+                          <span>Toggle sun light</span>
+                          <kbd className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-mono text-slate-700 dark:bg-slate-800 dark:text-slate-200">L</kbd>
+                        </div>
+                        <div className="flex items-center justify-between gap-4">
+                          <span>Toggle trajectory</span>
+                          <kbd className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-mono text-slate-700 dark:bg-slate-800 dark:text-slate-200">T</kbd>
                         </div>
                         <div className="flex items-center justify-between gap-4">
                           <span>Open keyboard shortcuts</span>
@@ -2284,6 +2336,15 @@ const App: React.FC = () => {
             onSelectLocation={handleLocationSelect}
           />
         </Suspense>
+      )}
+
+      {!isSplashDismissed && (
+        <SplashScreen
+          message={splashMessage}
+          progress={splashProgress}
+          ready={splashReady}
+          onComplete={() => setIsSplashDismissed(true)}
+        />
       )}
     </div>
   );

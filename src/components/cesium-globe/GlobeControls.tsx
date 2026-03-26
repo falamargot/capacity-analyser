@@ -70,7 +70,6 @@ interface DisplayOptionRowProps {
     enabled: boolean;
     onClick: () => void;
     disabled?: boolean;
-    shortcut?: string;
     accent?: 'amber' | 'violet' | 'blue';
     title?: string;
 }
@@ -148,7 +147,6 @@ const DisplayOptionRow: React.FC<DisplayOptionRowProps> = ({
     enabled,
     onClick,
     disabled = false,
-    shortcut,
     accent = 'blue',
     title
 }) => (
@@ -175,11 +173,6 @@ const DisplayOptionRow: React.FC<DisplayOptionRowProps> = ({
             <span className="mt-0.5 block text-xs leading-4 text-slate-500 dark:text-slate-400">{description}</span>
         </span>
         <span className="shrink-0 text-right">
-            {shortcut && (
-                <span className="mb-1 inline-flex rounded-full border border-slate-200 px-1.5 py-0.5 text-[10px] font-medium text-slate-500 dark:border-slate-700 dark:text-slate-400">
-                    {shortcut}
-                </span>
-            )}
             <span
                 className={[
                     'block rounded-full px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.18em]',
@@ -403,7 +396,6 @@ const GlobeControls: React.FC<GlobeControlsProps> = ({
                                             description="Add solar shading."
                                             enabled={!!enableLighting}
                                             onClick={() => onToggleLighting?.()}
-                                            shortcut="L"
                                             accent="amber"
                                             title="Toggle sun lighting"
                                         />
@@ -414,7 +406,6 @@ const GlobeControls: React.FC<GlobeControlsProps> = ({
                                             description="Show the selected orbit."
                                             enabled={!!showSatelliteTrajectory}
                                             onClick={() => onToggleSatelliteTrajectory?.()}
-                                            shortcut="T"
                                             accent="violet"
                                             title="Toggle satellite trajectory"
                                         />

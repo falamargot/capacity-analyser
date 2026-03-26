@@ -13,36 +13,36 @@
   },
   "dependencies": {
     "@types/leaflet": "^1.9.21",
-    "cesium": "1.135.0",
+    "cesium": "1.139.1",
     "date-fns": "^4.1.0",
     "html2canvas": "^1.4.1",
-    "jspdf": "^4.0.0",
-    "lucide-react": "^0.562.0",
-    "react": "19.2.1",
-    "react-dom": "19.2.1",
-    "resium": "1.19.2",
-    "satellite.js": "^6.0.2",
+    "jspdf": "^4.2.1",
+    "lucide-react": "^1.7.0",
+    "react": "19.2.4",
+    "react-dom": "19.2.4",
+    "resium": "1.20.0",
+    "satellite.js": "^7.0.0",
     "typescript": "^5.9.3",
-    "vite": "^7.3.1",
+    "vite": "^8.0.3",
     "vite-plugin-cesium": "^1.2.23"
   },
   "devDependencies": {
-    "@typescript-eslint/eslint-plugin": "^8.46.1",
-    "@typescript-eslint/parser": "^8.46.1",
-    "@tailwindcss/vite": "^4.1.18",
+    "@typescript-eslint/eslint-plugin": "^8.57.2",
+    "@typescript-eslint/parser": "^8.57.2",
+    "@tailwindcss/vite": "^4.2.2",
     "@types/geojson": "^7946.0.16",
     "@types/react": "^19.2.8",
     "@types/react-dom": "^19.2.3",
-    "@vitejs/plugin-react": "^4.3.1",
+    "@vitejs/plugin-react": "^6.0.1",
     "autoprefixer": "^10.4.18",
-    "eslint": "^9.37.0",
-    "eslint-plugin-react-hooks": "^5.2.0",
-    "eslint-plugin-react-refresh": "^0.4.21",
-    "postcss": "^8.4.35",
-    "tailwindcss": "^4.0.0",
-    "vitest": "^3.2.4"
+    "eslint": "^9.39.4",
+    "eslint-plugin-react-hooks": "^7.0.1",
+    "eslint-plugin-react-refresh": "^0.5.2",
+    "postcss": "^8.5.8",
+    "tailwindcss": "^4.2.2",
+    "vitest": "^4.1.1"
   },
   "engines": {
-    "node": ">=18.0.0"
+    "node": "^20.19.0 || >=22.12.0"
   }
 }

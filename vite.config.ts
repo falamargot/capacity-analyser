@@ -1,3 +1,4 @@
+import { fileURLToPath, URL } from 'node:url';
 import { defineConfig, loadEnv, type Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
 import cesium from 'vite-plugin-cesium';
@@ -188,6 +189,12 @@ function aisStreamProxyPlugin(): Plugin {
 
 // https://vitejs.dev/config/
 export default defineConfig({
+  resolve: {
+    alias: {
+      resium: fileURLToPath(new URL('./node_modules/resium/src/index.ts', import.meta.url)),
+      'satellite.js': fileURLToPath(new URL('./src/vendor/satellite-compat.ts', import.meta.url))
+    }
+  },
   plugins: [
     react(),
     cesium(),

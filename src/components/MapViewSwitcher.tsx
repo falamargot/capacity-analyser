@@ -64,6 +64,8 @@ interface MapViewSwitcherProps {
   leoServiceViewModel?: LeoConnectivityViewModel | null;
   geoPointStatus?: GeoPointStatus | null;
   selectedRegulatoryResult?: RegulatoryResult | null;
+  onGlobeBootPhaseChange?: (phase: 'mounting' | 'viewer-ready' | 'imagery-ready') => void;
+  onInitialGlobeReady?: () => void;
 }
 
 const MapViewSwitcher: React.FC<MapViewSwitcherProps> = ({
@@ -117,6 +119,8 @@ const MapViewSwitcher: React.FC<MapViewSwitcherProps> = ({
   leoServiceViewModel = null,
   geoPointStatus = null,
   selectedRegulatoryResult = null,
+  onGlobeBootPhaseChange,
+  onInitialGlobeReady,
 }) => {
   const [sceneMode, setSceneMode] = useState<'2D' | '3D'>('3D');
 
@@ -176,6 +180,8 @@ const MapViewSwitcher: React.FC<MapViewSwitcherProps> = ({
         leoServiceViewModel={leoServiceViewModel}
         geoPointStatus={geoPointStatus}
         selectedRegulatoryResult={selectedRegulatoryResult}
+        onGlobeBootPhaseChange={onGlobeBootPhaseChange}
+        onInitialGlobeReady={onInitialGlobeReady}
       />
     </div>
   );
