@@ -247,30 +247,3 @@ export function footprintRadiusKm(altKm: number, minElevationDeg: number): numbe
 
   return R * ((lo + hi) / 2);
 }
-
-// Helper function to calculate destination point from bearing and distance
-export function destinationPoint(
-  start: { lat: number; lng: number },
-  bearingDeg: number,
-  distanceKm: number
-): { lat: number; lng: number } {
-  const R = EARTH_RADIUS_KM;
-  const d = distanceKm / R; // angular distance in radians
-  const bearing = toRad(bearingDeg);
-  const lat1 = toRad(start.lat);
-  const lng1 = toRad(start.lng);
-
-  const lat2 = Math.asin(
-    Math.sin(lat1) * Math.cos(d) +
-    Math.cos(lat1) * Math.sin(d) * Math.cos(bearing)
-  );
-  const lng2 = lng1 + Math.atan2(
-    Math.sin(bearing) * Math.sin(d) * Math.cos(lat1),
-    Math.cos(d) - Math.sin(lat1) * Math.sin(d) * Math.cos(bearing)
-  );
-
-  return {
-    lat: toDeg(lat2),
-    lng: toDeg(lng2)
-  };
-}

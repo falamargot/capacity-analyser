@@ -15,7 +15,6 @@ import SimulationSettings from './components/layout/SimulationSettings';
 import { SatelliteData } from './types/satellites';
 import type { CandidateCoverage, GEOBeam, MobileAnalysisMetrics, SelectedSNP } from './types/analysis';
 import { useSatelliteLoader } from './hooks/useSatelliteLoader';
-import { footprintRadiusKm, BACKHAUL_ELEVATION_DEG } from './utils/leoFootprint';
 import { Feature, Geometry, GeoJsonProperties } from 'geojson';
 import { GEO_GATEWAYS, SNPS_DATA, type GeoGatewayData, type SNPData } from './components/globe/GlobeConfig';
 

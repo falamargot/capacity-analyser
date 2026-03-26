@@ -301,26 +301,3 @@ export function regulatoryLookup(lat: number, lng: number): RegulatoryResult {
 export function isRegulatoryLoaded(): boolean {
   return _loaded;
 }
-
-// ─── Legacy export (backwards compatibility) ──────────────────────────────
-
-/** @deprecated Use regulatoryLookup() instead */
-export interface RestrictedTerritory {
-  name: string;
-  minLat: number;
-  maxLat: number;
-  minLng: number;
-  maxLng: number;
-}
-
-/** @deprecated Use regulatoryLookup() instead */
-export const isRestrictedTerritory = (
-  lat: number,
-  lng: number,
-): { isRestricted: boolean; territoryName?: string } => {
-  const result = regulatoryLookup(lat, lng);
-  if (result.status === 'BLOCKED' || result.status === 'RESTRICTED') {
-    return { isRestricted: true, territoryName: result.countryName ?? undefined };
-  }
-  return { isRestricted: false };
-};

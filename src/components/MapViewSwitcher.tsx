@@ -1,6 +1,5 @@
 
 import CesiumGlobe from './CesiumGlobe';
-// import GlobeViewer from './Globe';
 import React, { useState } from 'react';
 import { Viewer as CesiumViewerType } from 'cesium';
 import { Feature, Geometry, GeoJsonProperties } from 'geojson';
