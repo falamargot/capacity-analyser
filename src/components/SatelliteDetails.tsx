@@ -4,7 +4,7 @@ import { getNearestSNPInBackhaul } from '../services/coverageService';
 import { getActiveBeamCount } from '../utils/oneWebComb';
 import { calculateElevationAngle } from '../utils/capacityCalculator';
 import { JulianDate } from 'cesium';
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import * as satellite from 'satellite.js';
 import { useGSOAvoidance } from '../hooks/useGSOAvoidance';
 import { ShieldCheck, ShieldAlert, ShieldX, Users } from 'lucide-react';
@@ -13,7 +13,6 @@ import {
   getCoverageBeamId,
   getCoverageDisplayName,
   getCoverageGroupId,
-  getCoverageMissionName,
 } from '../utils/geoCoverageSelection';
 import { hasRFConnectivity } from '../utils/rfConnectivity';
 import { getBestConnectedGateway } from '../utils/connectivityRules';
@@ -153,7 +152,7 @@ interface SatelliteDetailsProps {
   selectedGeoBeamId?: string | null;
   onSelectGeoMission?: (mission: string | null) => void;
   onSelectGeoCoverage?: (coverageName: string | null) => void;
-  onSelectGeoBeam?: (beamId: string | null) => void;
+  onSelectGeoBeam?: (coverageName: string, beamId: string | null) => void;
   onSnpClick?: (snpName: string) => void;
   compactDesktop?: boolean;
   externalHeader?: boolean;
@@ -294,53 +293,50 @@ const SatelliteDetails: React.FC<SatelliteDetailsProps> = ({
       return [];
     }
 
-    const groups = new Map<string, Map<string, {
+    const groups = new Map<string, {
       key: string;
       label: string;
-      contours: { id: string; label: string }[];
-    }>>();
+      isUplink: boolean;
+      contours: { id: string; level: number | null; label: string }[];
+    }>();
 
     for (const coverage of selectedSatellite.coverages) {
-      const mission = getCoverageMissionName(coverage) || 'Unknown mission';
       const coverageKey = getCoverageGroupId(coverage);
-      const missionGroups = groups.get(mission) || new Map<string, {
-        key: string;
-        label: string;
-        contours: { id: string; label: string }[];
-      }>();
-      const currentCoverage = missionGroups.get(coverageKey) || {
+      const properties = (coverage.feature?.properties as Record<string, unknown>) ?? {};
+      const isUplink = properties.isUplink === true;
+
+      const current = groups.get(coverageKey) ?? {
         key: coverageKey,
         label: getCoverageDisplayName(coverage),
+        isUplink,
         contours: [],
       };
 
       const contourId = getCoverageBeamId(coverage);
-      if (!currentCoverage.contours.some((contour) => contour.id === contourId)) {
-        currentCoverage.contours.push({
-          id: contourId,
-          label: getCoverageBeamName(coverage),
-        });
+      if (!current.contours.some((c) => c.id === contourId)) {
+        const rawLevel = typeof properties.level === 'number' ? properties.level : null;
+        const contourLabel = rawLevel !== null
+          ? isUplink ? `${rawLevel.toFixed(1)} dB/K` : `${rawLevel.toFixed(1)} dBW`
+          : getCoverageBeamName(coverage);
+        current.contours.push({ id: contourId, level: rawLevel, label: contourLabel });
       }
 
-      missionGroups.set(coverageKey, currentCoverage);
-      groups.set(mission, missionGroups);
+      groups.set(coverageKey, current);
     }
 
-    return Array.from(groups.entries())
-      .map(([mission, coverages]) => ({
-        mission,
-        coverages: Array.from(coverages.values())
-          .map((coverage) => ({
-            ...coverage,
-            contours: [...coverage.contours].sort((a, b) => a.label.localeCompare(b.label, undefined, { numeric: true })),
-          }))
-          .sort((a, b) => a.label.localeCompare(b.label, undefined, { numeric: true })),
+    return Array.from(groups.values())
+      .map((coverage) => ({
+        ...coverage,
+        contours: [...coverage.contours].sort((a, b) => {
+          if (a.level !== null && b.level !== null) return b.level - a.level;
+          return 0;
+        }),
       }))
-      .sort((a, b) => a.mission.localeCompare(b.mission));
+      .sort((a, b) => a.label.localeCompare(b.label, undefined, { numeric: true }));
   }, [selectedSatellite]);
 
   const isGeoCoverageFiltered = selectedSatellite.type === 'EUTELSAT' && (
-    selectedGeoMission !== null || selectedGeoCoverageName !== null || selectedGeoBeamId !== null
+    selectedGeoCoverageName !== null || selectedGeoBeamId !== null
   );
 
   const handlePanelClickCapture = (event: React.MouseEvent<HTMLDivElement>) => {
@@ -353,9 +349,7 @@ const SatelliteDetails: React.FC<SatelliteDetailsProps> = ({
       return;
     }
 
-    onSelectGeoMission?.(null);
     onSelectGeoCoverage?.(null);
-    onSelectGeoBeam?.(null);
   };
 
   const serviceStatusColor = (status: ServiceLayerResult['status'] | undefined) => {
@@ -754,105 +748,83 @@ const SatelliteDetails: React.FC<SatelliteDetailsProps> = ({
           {/* Coverage Areas - only for GEO satellites */}
           {selectedSatellite.type === 'EUTELSAT' && isOperational && (
             <div className="mb-4">
-              <h3 className="text-lg font-semibold mb-2 text-gray-900 dark:text-gray-100 flex items-center">Coverage Areas<SectionTooltip content="GEO satellite beam footprints organized by mission. Select a beam or mission to visualize its coverage polygon on the map and check which user positions fall within it." /></h3>
+              <h3 className="text-lg font-semibold mb-2 text-gray-900 dark:text-gray-100 flex items-center">Coverage Areas<SectionTooltip content="GEO satellite coverage footprints. Click a coverage to display all its contours on the map; click a specific contour to isolate it." /></h3>
               <div className="bg-gray-50 dark:bg-slate-800/50 rounded-lg p-4 border border-gray-100 dark:border-slate-700">
                 {geoCoverageByMission.length > 0 ? (
                   <div className="space-y-2" data-geo-coverage-list="true">
-                    {geoCoverageByMission.map((group, groupIndex) => (
-                      <details key={`${group.mission}-${groupIndex}`} open className="group">
-                        <summary className="cursor-pointer list-none text-sm font-semibold text-gray-800 dark:text-gray-200 flex items-center">
-                          <span className="mr-2 text-blue-600 dark:text-blue-400 group-open:rotate-90 transition-transform">▶</span>
-                          <button
-                            type="button"
-                            onClick={(event) => {
-                              event.preventDefault();
-                              event.stopPropagation();
-                              const nextMission = selectedGeoMission === group.mission ? null : group.mission;
-                              onSelectGeoMission?.(nextMission);
-                              onSelectGeoCoverage?.(null);
-                            }}
-                            className={`text-left hover:underline ${selectedGeoMission === group.mission && !selectedGeoCoverageName
-                              ? 'text-blue-700 dark:text-blue-300'
-                              : 'text-gray-800 dark:text-gray-200'
+                    {geoCoverageByMission.map((coverage, coverageIndex) => {
+                      const coverageHasSelectedBeam = coverage.contours.some((c) => c.id === selectedGeoBeamId);
+                      const isCoverageSelected = selectedGeoCoverageName === coverage.key;
+                      const isCoverageActive = isCoverageSelected || coverageHasSelectedBeam;
+                      return (
+                        <details
+                          key={`${coverage.key}-${coverageIndex}`}
+                          open={isCoverageActive}
+                          className="group/coverage"
+                        >
+                          <summary className="cursor-pointer list-none text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center gap-1.5">
+                            <span className="shrink-0 text-blue-500 dark:text-blue-400 group-open/coverage:rotate-90 transition-transform">▶</span>
+                            <button
+                              type="button"
+                              onClick={(event) => {
+                                event.preventDefault();
+                                event.stopPropagation();
+                                if (isCoverageSelected && !coverageHasSelectedBeam) {
+                                  return;
+                                }
+                                onSelectGeoCoverage?.(coverage.key);
+                              }}
+                              className={`flex-1 text-left hover:underline ${isCoverageActive
+                                ? 'text-blue-700 dark:text-blue-300 font-semibold'
+                                : 'text-gray-700 dark:text-gray-300'
                               }`}
-                          >
-                            {group.mission}
-                          </button>
-                          <span className="ml-2 text-xs font-medium text-gray-500 dark:text-gray-400">({group.coverages.length})</span>
-                        </summary>
-                        <div className="mt-1 ml-6 space-y-2">
-                          {group.coverages.map((coverage, coverageIndex) => (
-                            <details
-                              key={`${group.mission}-${coverage.key}-${coverageIndex}`}
-                              className="group/coverage"
                             >
-                              {(() => {
-                                const coverageHasSelectedBeam = coverage.contours.some((contour) => contour.id === selectedGeoBeamId);
-                                const isCoverageSelected = selectedGeoCoverageName === coverage.key;
-                                const isCoverageActive = isCoverageSelected || coverageHasSelectedBeam;
-
-                                return (
-                                  <>
-                                    <summary className="cursor-pointer list-none text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center">
-                                      <span className="mr-2 text-blue-500 dark:text-blue-400 group-open/coverage:rotate-90 transition-transform">▶</span>
-                                      <span className={`w-1.5 h-1.5 rounded-full mr-2 ${isCoverageActive ? 'bg-blue-700 dark:bg-blue-300' : 'bg-blue-500'}`}></span>
-                                <button
-                                  type="button"
-                                  onClick={(event) => {
-                                    event.preventDefault();
-                                    event.stopPropagation();
-                                    const nextCoverageName = isCoverageSelected && !coverageHasSelectedBeam ? null : coverage.key;
-                                    onSelectGeoCoverage?.(nextCoverageName);
-                                    onSelectGeoMission?.(null);
-                                    onSelectGeoBeam?.(null);
-                                  }}
-                                  className={`text-left hover:underline ${isCoverageActive
-                                    ? 'text-blue-700 dark:text-blue-300 font-semibold'
-                                    : 'text-gray-700 dark:text-gray-300'
-                                    }`}
+                              {coverage.label}
+                            </button>
+                            <span className={`shrink-0 text-[10px] font-semibold uppercase tracking-[0.1em] px-1 py-0.5 rounded ${
+                              coverage.isUplink
+                                ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400'
+                                : 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400'
+                            }`}>
+                              {coverage.isUplink ? 'UL' : 'DL'}
+                            </span>
+                            <span className="shrink-0 text-xs font-medium text-gray-500 dark:text-gray-400">
+                              ({coverage.contours.length})
+                            </span>
+                          </summary>
+                          <ul className="mt-1 ml-5 space-y-1">
+                            {coverage.contours.map((contour, contourIndex) => {
+                              const isContourSelected = selectedGeoBeamId === contour.id;
+                              return (
+                                <li
+                                  key={`${coverage.key}-${contour.id}-${contourIndex}`}
+                                  className="text-sm flex items-center"
                                 >
-                                  {coverage.label}
-                                </button>
-                                <span className="ml-2 text-xs font-medium text-gray-500 dark:text-gray-400">({coverage.contours.length})</span>
-                                    </summary>
-                                    <ul className="mt-1 ml-6 space-y-1">
-                                      {coverage.contours.map((contour, contourIndex) => {
-                                        const isContourSelected = selectedGeoBeamId === contour.id;
-                                        return (
-                                          <li
-                                            key={`${coverage.key}-${contour.id}-${contourIndex}`}
-                                            className="text-sm text-gray-600 dark:text-gray-400 flex items-center"
-                                          >
-                                            <span className={`w-1.5 h-1.5 rounded-full mr-2 ${isContourSelected ? 'bg-blue-700 dark:bg-blue-300' : isCoverageActive ? 'bg-blue-400 dark:bg-blue-300' : 'bg-blue-300 dark:bg-slate-500'}`}></span>
-                                            <button
-                                              type="button"
-                                              onClick={() => {
-                                                const nextBeamId = isContourSelected ? null : contour.id;
-                                                onSelectGeoBeam?.(nextBeamId);
-                                                onSelectGeoCoverage?.(null);
-                                                onSelectGeoMission?.(null);
-                                              }}
-                                              className={`text-left hover:underline ${isContourSelected
-                                                ? 'text-blue-700 dark:text-blue-300 font-semibold'
-                                                : isCoverageActive
-                                                  ? 'text-blue-600 dark:text-blue-400'
-                                                  : 'text-gray-600 dark:text-gray-400'
-                                                }`}
-                                            >
-                                              {contour.label}
-                                            </button>
-                                          </li>
-                                        );
-                                      })}
-                                    </ul>
-                                  </>
-                                );
-                              })()}
-                            </details>
-                          ))}
-                        </div>
-                      </details>
-                    ))}
+                                  <span className={`w-1.5 h-1.5 shrink-0 rounded-full mr-2 ${isContourSelected ? 'bg-blue-700 dark:bg-blue-300' : isCoverageActive ? 'bg-blue-400 dark:bg-blue-300' : 'bg-blue-300 dark:bg-slate-500'}`}></span>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      if (isContourSelected) {
+                                        return;
+                                      }
+                                      onSelectGeoBeam?.(coverage.key, contour.id);
+                                    }}
+                                    className={`text-left font-mono hover:underline ${isContourSelected
+                                      ? 'text-blue-700 dark:text-blue-300 font-semibold'
+                                      : isCoverageActive
+                                        ? 'text-blue-600 dark:text-blue-400'
+                                        : 'text-gray-600 dark:text-gray-400'
+                                    }`}
+                                  >
+                                    {contour.label}
+                                  </button>
+                                </li>
+                              );
+                            })}
+                          </ul>
+                        </details>
+                      );
+                    })}
                   </div>
                 ) : (
                   <p className="text-sm text-gray-500 dark:text-gray-400 italic">No coverage areas defined</p>

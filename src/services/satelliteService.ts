@@ -23,10 +23,8 @@ const CELESTRAK_FILE = {
 };
 
 const CACHE_KEYS = {
-  EUTELSAT_TLE: 'tle_eutelsat_data',
-  EUTELSAT_TS: 'tle_eutelsat_ts',
-  ONEWEB_TLE: 'tle_oneweb_data',
-  ONEWEB_TS: 'tle_oneweb_ts',
+  EUTELSAT: 'tle_eutelsat',
+  ONEWEB: 'tle_oneweb',
 };
 
 type CoverageManifest = Record<string, boolean>;
@@ -36,24 +34,30 @@ const EUTELSAT_COVERAGE_FILE_BY_ALIAS: Record<string, string> = {
   E117WA: '39122',
   E117WB: '41589',
   E139WA: '28187',
-  E16A: '32487',
-  E172B: '42432',
+  E16A: '37836',
+  E172B: '42741',
   E174A: '28924',
-  E21B: '38652',
-  E33F: '43216',
-  E36D: '44333',
-  E53A: '39021',
-  E5WB: '40882',
-  E65WA: '41389',
-  E70B: '40985',
-  E7B: '41036',
-  E7C: '43215',
-  E7WA: '36101',
-  E8WB: '41550',
-  E9B: '41954',
+  E21B: '38992',
+  E28E: '39285',
+  E28F: '38778',
+  E28G: '40364',
+  E33F: '29270',
+  E36C: '41191',
+  E36D: '59346',
+  E3B: '39773',
+  E53A: '40277',
+  E5WB: '44624',
+  E65WA: '41382',
+  E70B: '39020',
+  E7B: '39163',
+  E7C: '44334',
+  E7WA: '37816',
+  E8WB: '40875',
+  E9B: '41310',
   HB13F: '54048',
-  HB13G: '55842',
-  KONNECT: '44914',
+  HB13G: '54225',
+  KONNECT: '45027',
+  KVHTS: '53765',
 };
 
 const EUTELSAT_ALIAS_BY_COVERAGE_FILE_ID: Record<string, string> = Object.fromEntries(
@@ -63,59 +67,142 @@ const EUTELSAT_ALIAS_BY_COVERAGE_FILE_ID: Record<string, string> = Object.fromEn
 let coverageManifestPromise: Promise<Set<string>> | null = null;
 const FORCE_LOCAL_CELESTRAK = String(import.meta.env.VITE_FORCE_LOCAL_CELESTRAK ?? '').toLowerCase() === 'true';
 
-// ─── localStorage TLE Cache Helpers ──────────────────────────────────────────
+// ─── IndexedDB + CompressionStream TLE Cache ─────────────────────────────────
+// A raw TLE file is ~500 KB. After gzip it drops to ~80 KB. IndexedDB has no
+// practical quota at this scale, unlike localStorage's 5 MB budget which two
+// raw TLE strings would consume entirely.
+// CompressionStream / DecompressionStream are native browser APIs (no deps),
+// available in Chrome 80+, Firefox 113+, Safari 16.4+.
 
-function isCacheValid(tsKey: string): boolean {
+interface TLECacheEntry {
+  data: Uint8Array;   // gzip-compressed TLE text
+  timestamp: number;  // Date.now() at write time
+}
+
+let _dbPromise: Promise<IDBDatabase> | null = null;
+
+function openTLECacheDB(): Promise<IDBDatabase> {
+  if (_dbPromise) return _dbPromise;
+  _dbPromise = new Promise<IDBDatabase>((resolve, reject) => {
+    const req = indexedDB.open('tleCache', 1);
+    req.onupgradeneeded = () => { req.result.createObjectStore('entries'); };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => { _dbPromise = null; reject(req.error); };
+  });
+  return _dbPromise;
+}
+
+async function compressTLE(text: string): Promise<Uint8Array> {
+  const cs = new CompressionStream('gzip');
+  const writer = cs.writable.getWriter();
+  writer.write(new TextEncoder().encode(text));
+  writer.close();
+  const chunks: Uint8Array[] = [];
+  const reader = cs.readable.getReader();
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    chunks.push(value);
+  }
+  const out = new Uint8Array(chunks.reduce((n, c) => n + c.length, 0));
+  let offset = 0;
+  for (const c of chunks) { out.set(c, offset); offset += c.length; }
+  return out;
+}
+
+async function decompressTLE(data: Uint8Array): Promise<string> {
+  const ds = new DecompressionStream('gzip');
+  const writer = ds.writable.getWriter();
+  writer.write(data);
+  writer.close();
+  const chunks: Uint8Array[] = [];
+  const reader = ds.readable.getReader();
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    chunks.push(value);
+  }
+  const out = new Uint8Array(chunks.reduce((n, c) => n + c.length, 0));
+  let offset = 0;
+  for (const c of chunks) { out.set(c, offset); offset += c.length; }
+  return new TextDecoder().decode(out);
+}
+
+async function isCacheValid(key: string): Promise<boolean> {
   try {
-    const ts = localStorage.getItem(tsKey);
-    if (!ts) return false;
-    return Date.now() - parseInt(ts, 10) < TLE_CACHE_TTL_MS;
+    const db = await openTLECacheDB();
+    const entry = await new Promise<TLECacheEntry | undefined>((resolve, reject) => {
+      const req = db.transaction('entries', 'readonly').objectStore('entries').get(key);
+      req.onsuccess = () => resolve(req.result as TLECacheEntry | undefined);
+      req.onerror = () => reject(req.error);
+    });
+    return !!entry && (Date.now() - entry.timestamp) < TLE_CACHE_TTL_MS;
   } catch {
     return false;
   }
 }
 
-/**
- * Remove localStorage TLE entries that have outlived their TTL.
- * Called once at module load so stale megabyte-sized TLE strings do not
- * linger in localStorage across page loads when they would be re-fetched
- * anyway on next use.
- */
-function clearStaleTLECache(): void {
-  const pairs = [
-    { dataKey: CACHE_KEYS.EUTELSAT_TLE, tsKey: CACHE_KEYS.EUTELSAT_TS },
-    { dataKey: CACHE_KEYS.ONEWEB_TLE,   tsKey: CACHE_KEYS.ONEWEB_TS   },
-  ];
+// Reads regardless of TTL — used for the stale-cache fallback path.
+async function readFromCache(key: string): Promise<string | null> {
   try {
-    for (const { dataKey, tsKey } of pairs) {
-      if (!isCacheValid(tsKey)) {
-        localStorage.removeItem(dataKey);
-        localStorage.removeItem(tsKey);
-      }
-    }
-  } catch {
-    // localStorage unavailable — no-op
-  }
-}
-clearStaleTLECache();
-
-function readFromCache(dataKey: string): string | null {
-  try {
-    return localStorage.getItem(dataKey);
+    const db = await openTLECacheDB();
+    const entry = await new Promise<TLECacheEntry | undefined>((resolve, reject) => {
+      const req = db.transaction('entries', 'readonly').objectStore('entries').get(key);
+      req.onsuccess = () => resolve(req.result as TLECacheEntry | undefined);
+      req.onerror = () => reject(req.error);
+    });
+    if (!entry) return null;
+    return await decompressTLE(entry.data);
   } catch {
     return null;
   }
 }
 
-function writeToCache(dataKey: string, tsKey: string, data: string): void {
+// Fire-and-forget — caller does not need to await the write to return TLE text.
+async function writeToCache(key: string, data: string): Promise<void> {
   try {
-    localStorage.setItem(dataKey, data);
-    localStorage.setItem(tsKey, String(Date.now()));
+    const [db, compressed] = await Promise.all([openTLECacheDB(), compressTLE(data)]);
+    await new Promise<void>((resolve, reject) => {
+      const tx = db.transaction('entries', 'readwrite');
+      tx.objectStore('entries').put({ data: compressed, timestamp: Date.now() } as TLECacheEntry, key);
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    });
   } catch (e) {
-    // If localStorage is full/unavailable, silently skip
-    console.warn('[TLE Cache] Failed to write to localStorage:', e);
+    console.warn('[TLE Cache] Failed to write to IndexedDB:', e);
   }
 }
+
+// Best-effort cleanup of expired entries. Runs once at module load.
+// Also purges the old localStorage keys left over from before this migration.
+async function clearStaleTLECache(): Promise<void> {
+  // Remove legacy localStorage entries (one-time migration).
+  try {
+    ['tle_eutelsat_data', 'tle_eutelsat_ts', 'tle_oneweb_data', 'tle_oneweb_ts'].forEach(
+      (k) => localStorage.removeItem(k)
+    );
+  } catch { /* localStorage unavailable */ }
+
+  try {
+    const db = await openTLECacheDB();
+    for (const key of Object.values(CACHE_KEYS)) {
+      const entry = await new Promise<TLECacheEntry | undefined>((resolve, reject) => {
+        const req = db.transaction('entries', 'readonly').objectStore('entries').get(key);
+        req.onsuccess = () => resolve(req.result as TLECacheEntry | undefined);
+        req.onerror = () => reject(req.error);
+      });
+      if (entry && (Date.now() - entry.timestamp) >= TLE_CACHE_TTL_MS) {
+        await new Promise<void>((resolve, reject) => {
+          const tx = db.transaction('entries', 'readwrite');
+          tx.objectStore('entries').delete(key);
+          tx.oncomplete = () => resolve();
+          tx.onerror = () => reject(tx.error);
+        });
+      }
+    }
+  } catch { /* IndexedDB unavailable — no-op */ }
+}
+void clearStaleTLECache();
 
 async function loadCoverageManifest(): Promise<Set<string>> {
   if (coverageManifestPromise) {
@@ -156,15 +243,14 @@ async function fetchBundledTLE(operator: 'EUTELSAT' | 'ONEWEB'): Promise<string>
 
 /**
  * Fetch TLE data for a given operator with cache-first strategy:
- *   1. Return localStorage entry if < TTL_MS old.
- *   2. Try CelesTrak live API; if successful, update cache.
+ *   1. Return IndexedDB entry if < TTL_MS old.
+ *   2. Try CelesTrak live API; if successful, update cache (async, non-blocking).
  *   3. If API fails but stale cache exists, use stale cache (better than nothing).
  *   4. Last resort: fall back to bundled static file.
  */
 async function fetchTLE(
   operator: 'EUTELSAT' | 'ONEWEB',
-  dataKey: string,
-  tsKey: string
+  cacheKey: string
 ): Promise<string> {
   if (FORCE_LOCAL_CELESTRAK) {
     try {
@@ -172,7 +258,7 @@ async function fetchTLE(
       return await fetchBundledTLE(operator);
     } catch (fileError) {
       console.warn(`[TLE] Bundled static file failed for ${operator}:`, fileError);
-      const stale = readFromCache(dataKey);
+      const stale = await readFromCache(cacheKey);
       if (stale) {
         console.warn(`[TLE] Falling back to cached ${operator} TLEs because bundled static file is unavailable.`);
         return stale;
@@ -182,10 +268,10 @@ async function fetchTLE(
   }
 
   // 1. Cache hit (fresh)
-  if (isCacheValid(tsKey)) {
-    const cached = readFromCache(dataKey);
+  if (await isCacheValid(cacheKey)) {
+    const cached = await readFromCache(cacheKey);
     if (cached) {
-      log(`[TLE Cache] Serving fresh ${operator} TLEs from localStorage.`);
+      log(`[TLE Cache] Serving fresh ${operator} TLEs from IndexedDB.`);
       return cached;
     }
   }
@@ -197,7 +283,7 @@ async function fetchTLE(
     if (resp.ok) {
       const text = await resp.text();
       if (text.trim().length > 100) { // Sanity check: not an error page
-        writeToCache(dataKey, tsKey, text);
+        void writeToCache(cacheKey, text); // async write — don't block returning TLE text
         return text;
       }
     }
@@ -206,13 +292,13 @@ async function fetchTLE(
     console.warn(`[TLE Cache] CelesTrak API failed for ${operator}:`, apiError);
 
     // 3. Stale cache fallback
-    const stale = readFromCache(dataKey);
+    const stale = await readFromCache(cacheKey);
     if (stale) {
-      console.warn(`[TLE Cache] Using stale ${operator} TLEs from localStorage (age > ${TLE_CACHE_TTL_MS / 60000} min).`);
+      console.warn(`[TLE Cache] Using stale ${operator} TLEs from IndexedDB (age > ${TLE_CACHE_TTL_MS / 60000} min).`);
       return stale;
     }
 
-    // 4. Last resort: bundled static file (only if one exists for this operator)
+    // 4. Last resort: bundled static file
     console.warn(`[TLE Cache] Falling back to bundled static file for ${operator}.`);
     return await fetchBundledTLE(operator);
   }
@@ -399,8 +485,8 @@ export async function fetchSatellites(): Promise<SatelliteData[]> {
     // Fetch TLE data and SATCAT status map in parallel — SATCAT is independent
     // of TLE data and both requests hit different CelesTrak endpoints.
     const [eutelsatTLE, onewebTLE, satcatMap, coverageManifest] = await Promise.all([
-      fetchTLE('EUTELSAT', CACHE_KEYS.EUTELSAT_TLE, CACHE_KEYS.EUTELSAT_TS),
-      fetchTLE('ONEWEB',   CACHE_KEYS.ONEWEB_TLE,   CACHE_KEYS.ONEWEB_TS),
+      fetchTLE('EUTELSAT', CACHE_KEYS.EUTELSAT),
+      fetchTLE('ONEWEB',   CACHE_KEYS.ONEWEB),
       fetchSatcatStatusMap(),
       loadCoverageManifest(),
     ]);

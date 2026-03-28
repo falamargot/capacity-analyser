@@ -38,7 +38,7 @@ import type { AircraftInterpolation } from '../modules/airTraffic/useAirTraffic'
 import type { Vessel } from '../modules/maritimeTraffic/maritimeTrafficService';
 import type { VesselInterpolation } from '../modules/maritimeTraffic/useMaritimeTraffic';
 import type { SatelliteScope } from './SatelliteScopeFilter';
-import type { CandidateCoverage, GEOBeam } from '../types/analysis';
+import type { CandidateCoverage, GEOBeam, Selection } from '../types/analysis';
 import { getPosition, DPR_FACTOR, calculateDynamicScale, type CameraMetricsSnapshot } from './cesium-globe/utils';
 import { useCesiumTheme } from '../hooks/useCesiumTheme';
 
@@ -47,7 +47,7 @@ import SatelliteLayer from './cesium-globe/SatelliteLayer';
 import AircraftLayer from './cesium-globe/AircraftLayer';
 import VesselLayer from './cesium-globe/VesselLayer';
 import SnpLayer from './cesium-globe/SnpLayer';
-import CoverageLayer from './cesium-globe/CoverageLayer';
+import CoverageLayer, { GEO_COVERAGE_ENTITY_PREFIX } from './cesium-globe/CoverageLayer';
 import OneWebCombLayer from './cesium-globe/OneWebCombLayer';
 import AggregatedCoverageVolumeLayer from './cesium-globe/AggregatedCoverageVolumeLayer';
 import TransmissionLinks from './cesium-globe/TransmissionLinks';
@@ -125,10 +125,8 @@ interface CesiumGlobeProps {
     onVesselHover?: (vessel: Vessel | null) => void;
     interpolatedVesselMapRef?: React.MutableRefObject<Map<string, VesselInterpolation>>;
     selectedGEOBeam?: GEOBeam | null;
-    candidateCoverages?: CandidateCoverage[];
+    selection: Selection;
     selectedCoverage?: CandidateCoverage | null;
-    selectedGeoCoverageName?: string | null;
-    selectedGeoBeamKey?: string | null;
     cameraTarget?: { lat: number; lng: number; alt: number } | null;
     onCameraReady?: (viewer: CesiumViewerType) => void;
     onGlobeContainerReady?: (ref: React.RefObject<HTMLDivElement | null>) => void;
@@ -150,6 +148,7 @@ interface CesiumGlobeProps {
     selectedRegulatoryResult?: RegulatoryResult | null;
     onGlobeBootPhaseChange?: (phase: 'mounting' | 'viewer-ready' | 'imagery-ready') => void;
     onInitialGlobeReady?: () => void;
+    onCoverageClick?: (coverageKey: string) => void;
 }
 
 const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
@@ -185,10 +184,8 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
     onVesselHover,
     interpolatedVesselMapRef,
     selectedGEOBeam,
-    candidateCoverages = [],
+    selection,
     selectedCoverage = null,
-    selectedGeoCoverageName = null,
-    selectedGeoBeamKey = null,
     cameraTarget,
     onCameraReady,
     onGlobeContainerReady,
@@ -210,6 +207,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
     selectedRegulatoryResult = null,
     onGlobeBootPhaseChange,
     onInitialGlobeReady,
+    onCoverageClick,
 }) => {
     // Stable refs for click-handler lookups — avoids recreating handleMapClick
     // (and re-registering the Cesium ScreenSpaceEvent) when aircraft/vessels/satellites
@@ -453,6 +451,13 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         if (defined(pickedObject)) {
             const pickedEntity = pickedObject.id;
 
+            if (pickedEntity && typeof pickedEntity.id === 'string' && pickedEntity.id.startsWith(GEO_COVERAGE_ENTITY_PREFIX)) {
+                if (selection.type === 'satellite') {
+                    onCoverageClick?.(pickedEntity.id.slice(GEO_COVERAGE_ENTITY_PREFIX.length));
+                    return;
+                }
+            }
+
             if (pickedEntity && (pickedEntity.billboard || pickedEntity.point)) {
                 const entityId = typeof pickedEntity.id === 'string' ? pickedEntity.id : '';
 
@@ -511,7 +516,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         const lat = CesiumMath.toDegrees(cartographic.latitude);
         const lng = CesiumMath.toDegrees(cartographic.longitude);
         onPointClick(lat, lng);
-    }, [onPointClick, onSatelliteClick, onSnpClick, onAircraftClick, onVesselClick]);
+    }, [onPointClick, onSatelliteClick, onSnpClick, onAircraftClick, onVesselClick, onCoverageClick]);
 
     // Determine target satellite for OneWeb comb layer
     const oneWebTargetSat = useMemo(() => {
@@ -883,19 +888,31 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                         status={selectedCountryOutlineStatus}
                     />
 
-                    {/* Coverage Layer */}
+                    {/* Coverage Layer — ANALYSIS LAYER
+                        The key prop implements clearAnalysisLayer() + drawNewCoverage():
+                        when the key changes React fully unmounts the old layer (removing
+                        all Cesium entities) then mounts a fresh one. This guarantees
+                        zero entity accumulation across selection transitions.
+
+                        Key composition rules:
+                          • satellite-inspection mode  → sat::<id>::<beam>::<coverage>
+                            Changes when the user selects a different satellite or
+                            drills into a beam/coverage within the same satellite.
+                          • analysis mode (position/aircraft/vessel)
+                            → pos::<satelliteId>::<coverageKey>
+                            Changes whenever the best coverage changes, even if the
+                            satellite is the same (different beam selected).
+                          • no selection → 'none'
+                            Key differs from every data key, so if candidates arrive
+                            later the layer WILL remount cleanly.
+
+                        IMPORTANT: the key is NEVER 'empty' — that string was used
+                        previously and caused a silent no-remount bug when candidates
+                        arrived after clearing. */}
                     <CoverageLayer
-                        coverageFeatures={coverageFeatures}
-                        satelliteTypeByName={satelliteTypeByName}
-                        candidateCoverages={candidateCoverages}
+                        satellites={satellites}
+                        selection={selection}
                         selectedCoverage={selectedCoverage}
-                        selectedGeoCoverageName={selectedGeoCoverageName}
-                        selectedGeoBeamKey={selectedGeoBeamKey}
-                        manualGeoSatelliteName={
-                            selectedSatellite?.type === 'EUTELSAT' && isOperationalSatellite(selectedSatellite)
-                                ? selectedSatellite.name
-                                : null
-                        }
                     />
 
                     {/* OneWeb Comb Layer - Only shown for operational ONEWEB targets */}

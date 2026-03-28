@@ -16,6 +16,34 @@ export interface CoverageData {
   features: Feature[];
 }
 
+// ─── New coverage format (v2) ─────────────────────────────────────────────────
+
+interface RawFootprintV2 {
+  id: number;
+  level: number;
+  geometry: { type: 'Polygon' | 'MultiPolygon'; coordinates: unknown };
+}
+
+interface RawCoverageEntryV2 {
+  id: number;
+  name: string;
+  commercialName?: string;
+  up: boolean;
+  footprints: RawFootprintV2[];
+}
+
+interface RawCoverageFileV2 {
+  coverages: RawCoverageEntryV2[];
+}
+
+const isNewCoverageFormat = (data: unknown): data is RawCoverageFileV2 =>
+  typeof data === 'object' &&
+  data !== null &&
+  'coverages' in data &&
+  !('type' in data);
+
+// ─── Shared geometry helpers ──────────────────────────────────────────────────
+
 const attachCoverageGeometryMetadata = (
   feature: Feature,
   geometry: Polygon,
@@ -31,6 +59,56 @@ const attachCoverageGeometryMetadata = (
   },
   geometry,
 });
+
+// ─── v2 parser ────────────────────────────────────────────────────────────────
+
+const parseCoverageV2 = (data: RawCoverageFileV2): CoverageData => {
+  const features: Feature[] = [];
+
+  data.coverages.forEach((coverage, coverageIndex) => {
+    const baseProperties = {
+      name: coverage.name,
+      mission: coverage.name,
+      commercialName: coverage.commercialName ?? null,
+      isUplink: coverage.up,
+      type: 'EUTELSAT',
+    };
+
+    coverage.footprints.forEach((footprint) => {
+      const { geometry } = footprint;
+      const props = { ...baseProperties, level: footprint.level, contour: footprint.level };
+
+      if (geometry.type === 'Polygon') {
+        const polygonGeometry = geometry as Polygon;
+        features.push(
+          attachCoverageGeometryMetadata(
+            { type: 'Feature', properties: props, geometry: polygonGeometry },
+            polygonGeometry,
+            coverageIndex,
+            0
+          )
+        );
+      } else if (geometry.type === 'MultiPolygon') {
+        const coords = geometry.coordinates as unknown[][];
+        coords.forEach((coordinates, polygonIndex) => {
+          const polygonGeometry: Polygon = { type: 'Polygon', coordinates: coordinates as number[][][] };
+          features.push(
+            attachCoverageGeometryMetadata(
+              { type: 'Feature', properties: props, geometry: polygonGeometry },
+              polygonGeometry,
+              coverageIndex,
+              polygonIndex
+            )
+          );
+        });
+      }
+    });
+  });
+
+  return { type: 'FeatureCollection', features };
+};
+
+// ─── v1 parser (legacy GeoJSON FeatureCollection) ─────────────────────────────
 
 export const normalizeCoverageData = (data: FeatureCollection): CoverageData => ({
   ...data,
@@ -66,9 +144,12 @@ export const loadSatelliteCoverage = async (satelliteId: string, satelliteName: 
     // Coverage GeoJSON must live under /public so it can be fetched at runtime.
     const response = await fetch(`/coverage/${satelliteId}.json`);
     if (!response.ok) return null;
-    const data: FeatureCollection = await response.json();
+    const data: unknown = await response.json();
     log(`Loading real coverage for satellite ${satelliteId}`);
-    return normalizeCoverageData(data);
+    if (isNewCoverageFormat(data)) {
+      return parseCoverageV2(data);
+    }
+    return normalizeCoverageData(data as FeatureCollection);
   } catch (error) {
     // Only process satellite coverage if GeoJSON loading has failed
     const data: FeatureCollection = {

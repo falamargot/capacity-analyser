@@ -37,6 +37,11 @@ const clamp = (value: number, min: number, max: number): number => {
   return Math.max(min, Math.min(max, value));
 };
 
+// Minimum operational elevation for a GEO terminal.
+// Below this threshold the atmospheric path length (∝ 1/sin(elevation)) degrades
+// the link budget beyond any practical margin, even in clear-sky conditions.
+const MIN_ELEVATION_DEG = 5;
+
 // ─── Bounding-Box Cache ────────────────────────────────────────────────────────
 // Keyed by the GeoJSON Feature object, which is stable for GEO (EUTELSAT) satellites
 // across renders. The cache converts the O(n) ray-cast in isPointInPolygon into an
@@ -297,7 +302,7 @@ export const findCandidateCoverages = (
     if (satellite.orbitType !== 'GEO' || !satellite.coverages?.length) continue;
 
     const elevation = calculateElevationAngle(userPoint, satellite);
-    if (elevation <= 0) continue;
+    if (elevation < MIN_ELEVATION_DEG) continue;
 
     const candidatesByCoverageKey = new Map<string, CandidateCoverage & {
       _approximateArea: number;
@@ -327,6 +332,9 @@ export const findCandidateCoverages = (
       const coverageKey = getCoverageGroupId(coverage);
       const approximateArea = getCoverageApproximateArea(ring);
       const throughputEstimate = satellite.capacity.maxThroughput * (0.35 + (0.65 * (1 - beamMetrics.normalizedDistance)));
+      const properties = getCoverageProperties(coverage);
+      const level = typeof properties.level === 'number' ? properties.level : null;
+      const isUplink = properties.isUplink === true;
       const nextCandidate: CandidateCoverage & {
         _approximateArea: number;
         _normalizedDistance: number;
@@ -341,6 +349,16 @@ export const findCandidateCoverages = (
         elevation,
         distanceFromBeamCenter: beamMetrics.distanceKm,
         throughputEstimate,
+        level,
+        isUplink,
+        latencyMs: null,
+        status: 'available',
+        scoreBreakdown: {
+          elevation: 0,
+          throughput: 0,
+          latency: 0,
+          total: 0,
+        },
         score: 0,
         _approximateArea: approximateArea,
         _normalizedDistance: beamMetrics.normalizedDistance,
@@ -377,36 +395,159 @@ export const findCandidateCoverages = (
   return candidates;
 };
 
-export const rankCandidateCoverages = (
-  candidates: CandidateCoverage[]
-): CandidateCoverage[] => {
-  if (candidates.length === 0) return [];
+// ─── Scoring weights ──────────────────────────────────────────────────────────
+//
+// Score formula (implemented in rankPool below):
+//
+//   score = W_ELEVATION × elevationScore
+//         + W_THROUGHPUT × throughputScore
+//         - W_LATENCY × latencyPenalty
+//
+// The spec requires elevation, throughput, and latency. We normalize all three
+// terms to keep the score dimensionless and deterministic across different GEO
+// fleets and contour files:
+//   • elevationScore  = elevation / 90
+//   • throughputScore = candidate throughput normalized within the pool
+//   • latencyPenalty  = candidate RTT normalized within the pool
+//
+// Weight rationale:
+//   • Elevation 0.45: strongest factor because low-elevation GEO links have the
+//     worst atmospheric path length and the weakest engineering margin.
+//   • Throughput 0.40: second strongest factor because beam-center proximity and
+//     contour strength directly affect usable service capacity.
+//   • Latency 0.15: still important, but GEO RTT varies in a narrower envelope
+//     than throughput/headroom across eligible beams.
 
-  // Single-pass loops: avoids two O(n) temporary arrays + spread into Math.max.
-  let maxDistance = 0;
-  let maxThroughput = 0;
-  for (const candidate of candidates) {
-    if (candidate.distanceFromBeamCenter > maxDistance) maxDistance = candidate.distanceFromBeamCenter;
-    if (candidate.throughputEstimate > maxThroughput) maxThroughput = candidate.throughputEstimate;
+export const TARGET_SELECTION_WEIGHTS = {
+  elevation: 0.45,
+  throughput: 0.40,
+  latency: 0.15,
+} as const;
+
+const GEO_LATENCY_FALLBACK_MS = 800;
+
+const normalizeMetric = (value: number, min: number, max: number): number => {
+  if (!Number.isFinite(value)) return 1;
+  if (!Number.isFinite(min) || !Number.isFinite(max) || max <= min) return 0;
+  return clamp((value - min) / (max - min), 0, 1);
+};
+
+const getCandidateLatencyMs = (
+  candidate: CandidateCoverage,
+  satellites: SatelliteData[],
+  userPoint: { lat: number; lng: number; altitude?: number },
+  gateways: GeoGatewayData[]
+): { latencyMs: number | null; status: CandidateCoverage['status'] } => {
+  const connectivity = computeGeoConnectivity(candidate, userPoint, satellites, gateways);
+  if (!connectivity?.geometry) {
+    return { latencyMs: null, status: 'gateway_unavailable' };
   }
 
-  return candidates
+  if (!connectivity.geometry.satelliteToGateway.gateway) {
+    return {
+      latencyMs: connectivity.geometry.rttPropagationMs ?? null,
+      status: 'gateway_unavailable',
+    };
+  }
+
+  if (connectivity.geometry.isUserLinkUnstable) {
+    return {
+      latencyMs: connectivity.geometry.rttTotalMs ?? connectivity.geometry.rttPropagationMs ?? null,
+      status: 'unstable',
+    };
+  }
+
+  return {
+    latencyMs: connectivity.geometry.rttTotalMs ?? connectivity.geometry.rttPropagationMs ?? null,
+    status: 'available',
+  };
+};
+
+// Rank a homogeneous pool of candidates (all DL or all UL).
+// Each pool is scored independently so downlink and uplink contours are never
+// mixed in the same throughput/latency normalisation window.
+const rankPool = (
+  pool: CandidateCoverage[],
+  satellites: SatelliteData[],
+  userPoint: { lat: number; lng: number; altitude?: number },
+  gateways: GeoGatewayData[]
+): CandidateCoverage[] => {
+  if (pool.length === 0) return [];
+
+  const hydratedPool = pool.map((candidate) => {
+    const latency = getCandidateLatencyMs(candidate, satellites, userPoint, gateways);
+    return {
+      ...candidate,
+      latencyMs: latency.latencyMs,
+      status: latency.status,
+    };
+  });
+
+  let minThroughput = Infinity;
+  let maxThroughput = -Infinity;
+  let minLatency = Infinity;
+  let maxLatency = -Infinity;
+
+  for (const candidate of hydratedPool) {
+    if (candidate.throughputEstimate < minThroughput) minThroughput = candidate.throughputEstimate;
+    if (candidate.throughputEstimate > maxThroughput) maxThroughput = candidate.throughputEstimate;
+
+    const latencyMs = candidate.latencyMs ?? GEO_LATENCY_FALLBACK_MS;
+    if (latencyMs < minLatency) minLatency = latencyMs;
+    if (latencyMs > maxLatency) maxLatency = latencyMs;
+  }
+
+  return hydratedPool
     .map((candidate) => {
       const elevationScore = clamp(candidate.elevation / 90, 0, 1);
-      const normalizedDistance = maxDistance > 0
-        ? clamp(candidate.distanceFromBeamCenter / maxDistance, 0, 1)
-        : 0;
-      const beamCenterScore = clamp(1 - normalizedDistance, 0, 1);
-      const throughputScore = maxThroughput > 0
-        ? clamp(candidate.throughputEstimate / maxThroughput, 0, 1)
-        : 0;
+      const throughputScore = normalizeMetric(
+        candidate.throughputEstimate,
+        minThroughput,
+        maxThroughput
+      );
+      const latencyPenalty = normalizeMetric(
+        candidate.latencyMs ?? GEO_LATENCY_FALLBACK_MS,
+        minLatency,
+        maxLatency
+      );
+      const total =
+        (TARGET_SELECTION_WEIGHTS.elevation * elevationScore) +
+        (TARGET_SELECTION_WEIGHTS.throughput * throughputScore) -
+        (TARGET_SELECTION_WEIGHTS.latency * latencyPenalty);
 
       return {
         ...candidate,
-        score: (0.4 * elevationScore) + (0.3 * beamCenterScore) + (0.3 * throughputScore),
+        score: total,
+        scoreBreakdown: {
+          elevation: TARGET_SELECTION_WEIGHTS.elevation * elevationScore,
+          throughput: TARGET_SELECTION_WEIGHTS.throughput * throughputScore,
+          latency: TARGET_SELECTION_WEIGHTS.latency * latencyPenalty,
+          total,
+        },
       };
     })
     .sort((left, right) => right.score - left.score);
+};
+
+export const rankCandidateCoverages = (
+  candidates: CandidateCoverage[],
+  satellites: SatelliteData[],
+  userPoint: { lat: number; lng: number; altitude?: number },
+  gateways: GeoGatewayData[] = GEO_GATEWAYS
+): CandidateCoverage[] => {
+  if (candidates.length === 0) return [];
+
+  // Split by direction before ranking so that IPFD (dBW for DL) and G/T (dB/K
+  // for UL) are normalised within their own pool and never compared against each
+  // other. Downlink candidates are returned first — they are the primary selection
+  // dimension for a receiving terminal.
+  const dlCandidates = candidates.filter((c) => !c.isUplink);
+  const ulCandidates = candidates.filter((c) => c.isUplink);
+
+  return [
+    ...rankPool(dlCandidates, satellites, userPoint, gateways),
+    ...rankPool(ulCandidates, satellites, userPoint, gateways),
+  ];
 };
 
 export const resolveCandidateCoverage = (

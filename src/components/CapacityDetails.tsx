@@ -57,7 +57,7 @@ interface CapacityDetailsProps {
   selectedGeoBeamId?: string | null;
   onSelectGeoMission?: (mission: string | null) => void;
   onSelectGeoCoverage?: (coverageName: string | null) => void;
-  onSelectGeoBeam?: (beamId: string | null) => void;
+  onSelectGeoBeam?: (coverageName: string, beamId: string | null) => void;
   onSnpClick?: (snpName: string) => void;
   compactDesktop?: boolean;
   externalHeader?: boolean;
@@ -992,7 +992,10 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
   if (!selectedPoint && !selectedSatellite) {
     return (
       <div className="h-full bg-white dark:bg-slate-900 rounded-lg shadow-lg p-6 flex items-center justify-center text-gray-500 dark:text-gray-400 border border-gray-100 dark:border-slate-800 transition-colors duration-300">
-        <p className="text-lg text-center">Click on the globe to analyze satellite capacity</p>
+        <div className="space-y-2 text-center">
+          <p className="text-lg font-semibold text-gray-700 dark:text-gray-200">No active target</p>
+          <p className="text-sm">Click on the globe to analyze satellite capacity</p>
+        </div>
       </div>
     );
   }
@@ -1110,6 +1113,7 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
                   calculateGEOPerformance={calculateGEOPerformance}
                   terminalType={terminalType}
                   candidateCoverages={candidateCoverages}
+                  bestCoverage={candidateCoverages[0] ?? null}
                   selectedCoverage={selectedCoverage}
                   onSelectCoverage={onSelectCoverage}
                   analysisSource={analysisSource}

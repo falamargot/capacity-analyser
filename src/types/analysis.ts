@@ -25,6 +25,31 @@ export interface GEOBeam {
     type?: string;
 }
 
+export interface SelectionPosition {
+    lat: number;
+    lng: number;
+    altitude?: number;
+}
+
+export type Selection =
+    | { type: 'none' }
+    | { type: 'satellite'; satelliteId: string }
+    | { type: 'coverage'; satelliteId: string; coverageId: string }
+    | { type: 'contour'; satelliteId: string; coverageId: string; contourId: string }
+    | { type: 'target'; targetType: 'point' | 'aircraft' | 'vessel'; position: SelectionPosition };
+
+export interface CandidateCoverageScoreBreakdown {
+    elevation: number;
+    throughput: number;
+    latency: number;
+    total: number;
+}
+
+export type CandidateCoverageStatus =
+    | 'available'
+    | 'gateway_unavailable'
+    | 'unstable';
+
 export interface CandidateCoverage {
     satelliteId: string;
     satelliteName: string;
@@ -36,6 +61,13 @@ export interface CandidateCoverage {
     elevation: number;
     distanceFromBeamCenter: number;
     throughputEstimate: number;
+    /** IPFD in dBW (downlink) or G/T threshold in dB/K (uplink). Null for legacy coverage files. */
+    level: number | null;
+    /** True when this coverage is an uplink (G/T), false for downlink (IPFD). */
+    isUplink: boolean;
+    latencyMs: number | null;
+    status: CandidateCoverageStatus;
+    scoreBreakdown: CandidateCoverageScoreBreakdown;
     score: number;
 }
 

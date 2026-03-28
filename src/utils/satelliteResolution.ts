@@ -41,7 +41,9 @@ export const resolveAutoSelectedSatellites = (
     if (satelliteScope === 'ALL' || satelliteScope === 'GEO') {
         const geoSatellites = satellites.filter(sat => sat.orbitType === 'GEO' && sat.opsStatus === 'operational');
         const rankedCandidates = rankCandidateCoverages(
-            findCandidateCoverages(userLocation, geoSatellites)
+            findCandidateCoverages(userLocation, geoSatellites),
+            geoSatellites,
+            userLocation
         );
         autoSelectedGEOSat = rankedCandidates.length > 0
             ? geoSatellites.find((sat) => sat.id === rankedCandidates[0].satelliteId) ?? null
@@ -186,7 +188,9 @@ export const findBestGEOBeam = (
     }
 
     const rankedCandidates = rankCandidateCoverages(
-        findCandidateCoverages(position, [satellite])
+        findCandidateCoverages(position, [satellite]),
+        [satellite],
+        position
     );
     const resolved = resolveCandidateCoverage(rankedCandidates[0] ?? null, [satellite]);
 

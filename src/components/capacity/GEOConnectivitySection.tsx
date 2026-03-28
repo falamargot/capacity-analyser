@@ -127,6 +127,7 @@ interface GEOConnectivitySectionProps {
   };
   terminalType: TerminalType;
   candidateCoverages: CandidateCoverage[];
+  bestCoverage: CandidateCoverage | null;
   selectedCoverage: CandidateCoverage | null;
   onSelectCoverage?: (coverage: CandidateCoverage) => void;
   analysisSource?: 'earth' | 'aircraft';
@@ -142,6 +143,7 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
   calculateGEOPerformance,
   terminalType,
   candidateCoverages,
+  bestCoverage,
   selectedCoverage,
   onSelectCoverage,
   analysisSource,
@@ -190,7 +192,7 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
           maxDlGbps={TERMINAL_PROFILES[terminalType].maxDlGbps}
           maxUlGbps={TERMINAL_PROFILES[terminalType].maxUlGbps}
           accentColor="#2563eb"
-          noDataMessage="No GEO coverage available"
+          noDataMessage="No GEO coverage available for the active target"
         />
       )}
     </CollapsibleSection>
@@ -203,12 +205,13 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
         <SectionTooltip content="Geostationary orbit connectivity block. Shows how the user terminal connects through a Eutelsat GEO satellite and its nearest eligible ground gateway." />
       </h3>
 
-      {candidateCoverages.length > 0 && selectedCoverage && (
+      {candidateCoverages.length > 0 && (
         <div className="mb-4">
           <CoverageSelector
             candidateCoverages={candidateCoverages}
+            bestCoverage={bestCoverage}
             selectedCoverage={selectedCoverage}
-            onSelectCoverage={(coverage) => onSelectCoverage?.(coverage)}
+            onSelectCoverage={onSelectCoverage}
           />
         </div>
       )}

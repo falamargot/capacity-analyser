@@ -7,7 +7,7 @@ import { SatelliteData } from '../types/satellites';
 import { SatelliteScope } from './SatelliteScopeFilter';
 import { Aircraft } from '../modules/airTraffic/airTrafficService';
 import { Vessel } from '../modules/maritimeTraffic/maritimeTrafficService';
-import type { CandidateCoverage, GEOBeam } from '../types/analysis';
+import type { CandidateCoverage, GEOBeam, Selection } from '../types/analysis';
 import type { GeoGatewayData, SNPData } from './globe/GlobeConfig';
 import type { LeoConnectivityViewModel } from '../utils/leoServiceViewModel';
 import type { RegulatoryResult } from '../services/regulatoryService';
@@ -44,10 +44,8 @@ interface MapViewSwitcherProps {
   onVesselClick?: (vessel: Vessel | null) => void;
   onVesselHover?: (vessel: Vessel | null) => void;
   selectedGEOBeam?: GEOBeam | null;
-  candidateCoverages?: CandidateCoverage[];
+  selection: Selection;
   selectedCoverage?: CandidateCoverage | null;
-  selectedGeoCoverageName?: string | null;
-  selectedGeoBeamKey?: string | null;
   cameraTarget?: { lat: number; lng: number; alt: number } | null;
   onCameraReady?: (viewer: CesiumViewerType) => void;
   onGlobeContainerReady?: (ref: React.RefObject<HTMLDivElement | null>) => void;
@@ -67,6 +65,7 @@ interface MapViewSwitcherProps {
   selectedRegulatoryResult?: RegulatoryResult | null;
   onGlobeBootPhaseChange?: (phase: 'mounting' | 'viewer-ready' | 'imagery-ready') => void;
   onInitialGlobeReady?: () => void;
+  onCoverageClick?: (coverageKey: string) => void;
 }
 
 const MapViewSwitcher: React.FC<MapViewSwitcherProps> = ({
@@ -100,10 +99,8 @@ const MapViewSwitcher: React.FC<MapViewSwitcherProps> = ({
   onVesselClick,
   onVesselHover,
   selectedGEOBeam,
-  candidateCoverages = [],
+  selection,
   selectedCoverage = null,
-  selectedGeoCoverageName = null,
-  selectedGeoBeamKey = null,
   cameraTarget,
   onCameraReady,
   onGlobeContainerReady,
@@ -123,6 +120,7 @@ const MapViewSwitcher: React.FC<MapViewSwitcherProps> = ({
   selectedRegulatoryResult = null,
   onGlobeBootPhaseChange,
   onInitialGlobeReady,
+  onCoverageClick,
 }) => {
   const [sceneMode, setSceneMode] = useState<'2D' | '3D'>('3D');
 
@@ -160,10 +158,8 @@ const MapViewSwitcher: React.FC<MapViewSwitcherProps> = ({
         onVesselClick={onVesselClick}
         onVesselHover={onVesselHover}
         selectedGEOBeam={selectedGEOBeam}
-        candidateCoverages={candidateCoverages}
+        selection={selection}
         selectedCoverage={selectedCoverage}
-        selectedGeoCoverageName={selectedGeoCoverageName}
-        selectedGeoBeamKey={selectedGeoBeamKey}
         cameraTarget={cameraTarget}
         onCameraReady={onCameraReady}
         onGlobeContainerReady={onGlobeContainerReady}
@@ -185,6 +181,7 @@ const MapViewSwitcher: React.FC<MapViewSwitcherProps> = ({
         selectedRegulatoryResult={selectedRegulatoryResult}
         onGlobeBootPhaseChange={onGlobeBootPhaseChange}
         onInitialGlobeReady={onInitialGlobeReady}
+        onCoverageClick={onCoverageClick}
       />
     </div>
   );
