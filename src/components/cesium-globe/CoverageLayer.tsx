@@ -400,7 +400,7 @@ const CoverageLayer: React.FC<CoverageLayerProps> = ({
   const dataSourceRef = useRef<CustomDataSource | null>(null);
   const isAddedRef = useRef(false);
   const previousRenderSignatureRef = useRef<string | null>(null);
-  const renderSignature = useMemo(
+  const selectionRenderSignature = useMemo(
     () => getSelectionRenderSignature(selection, selectedCoverage),
     [selection, selectedCoverage]
   );
@@ -426,6 +426,21 @@ const CoverageLayer: React.FC<CoverageLayerProps> = ({
       selectedCoverage
     ),
     [relevantSatellite, selection, selectedCoverage]
+  );
+  const renderContentSignature = useMemo(() => (
+    renderContours
+      .map((contour) => [
+        contour.coverageKey,
+        contour.contourKey,
+        contour.geometryPartKey,
+        contour.mode,
+        contour.normalizedLevel.toFixed(4),
+      ].join('::'))
+      .join('|')
+  ), [renderContours]);
+  const renderSignature = useMemo(
+    () => `${selectionRenderSignature}::${renderContentSignature}`,
+    [renderContentSignature, selectionRenderSignature]
   );
 
   useEffect(() => {
