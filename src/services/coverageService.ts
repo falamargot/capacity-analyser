@@ -1,4 +1,4 @@
-import { Feature, FeatureCollection, Polygon } from 'geojson';
+import { Feature, Polygon } from 'geojson';
 import { SNPS_DATA } from '../components/globe/GlobeConfig';
 import { isPointInCoverage } from '../utils/coverageCalculator';
 import { SatelliteData } from '../types/satellites';
@@ -16,31 +16,30 @@ export interface CoverageData {
   features: Feature[];
 }
 
-// ─── New coverage format (v2) ─────────────────────────────────────────────────
+// ─── Coverage file format ──────────────────────────────────────────────────────
 
-interface RawFootprintV2 {
+interface RawFootprint {
   id: number;
   level: number;
   geometry: { type: 'Polygon' | 'MultiPolygon'; coordinates: unknown };
 }
 
-interface RawCoverageEntryV2 {
+interface RawCoverageEntry {
   id: number;
   name: string;
   commercialName?: string;
   up: boolean;
-  footprints: RawFootprintV2[];
+  footprints: RawFootprint[];
 }
 
-interface RawCoverageFileV2 {
-  coverages: RawCoverageEntryV2[];
+interface RawCoverageFile {
+  coverages: RawCoverageEntry[];
 }
 
-const isNewCoverageFormat = (data: unknown): data is RawCoverageFileV2 =>
+const isCoverageFileFormat = (data: unknown): data is RawCoverageFile =>
   typeof data === 'object' &&
   data !== null &&
-  'coverages' in data &&
-  !('type' in data);
+  'coverages' in data;
 
 // ─── Shared geometry helpers ──────────────────────────────────────────────────
 
@@ -60,9 +59,9 @@ const attachCoverageGeometryMetadata = (
   geometry,
 });
 
-// ─── v2 parser ────────────────────────────────────────────────────────────────
+// ─── Coverage parser ───────────────────────────────────────────────────────────
 
-const parseCoverageV2 = (data: RawCoverageFileV2): CoverageData => {
+export const parseCoverageFile = (data: RawCoverageFile): CoverageData => {
   const features: Feature[] = [];
 
   data.coverages.forEach((coverage, coverageIndex) => {
@@ -108,51 +107,21 @@ const parseCoverageV2 = (data: RawCoverageFileV2): CoverageData => {
   return { type: 'FeatureCollection', features };
 };
 
-// ─── v1 parser (legacy GeoJSON FeatureCollection) ─────────────────────────────
-
-export const normalizeCoverageData = (data: FeatureCollection): CoverageData => ({
-  ...data,
-  features: data.features.flatMap((feature, featureIndex) => {
-    const geometry = feature.geometry;
-
-    if (!geometry) {
-      return [feature];
-    }
-
-    if (geometry.type === 'Polygon') {
-      return [attachCoverageGeometryMetadata(feature, geometry, featureIndex, 0)];
-    }
-
-    if (geometry.type === 'MultiPolygon') {
-      return geometry.coordinates.map((coordinates, polygonIndex) => (
-        attachCoverageGeometryMetadata(
-          feature,
-          { type: 'Polygon', coordinates },
-          featureIndex,
-          polygonIndex
-        )
-      ));
-    }
-
-    return [feature];
-  }),
-});
-
 export const loadSatelliteCoverage = async (satelliteId: string, satelliteName: string, satelliteType: string, coverageRadius: number): Promise<CoverageData | null> => {
   try {
     // In Vite production builds, files under /src are bundled and not served as static runtime assets.
-    // Coverage GeoJSON must live under /public so it can be fetched at runtime.
+    // Coverage JSON files must live under /public so they can be fetched at runtime.
     const response = await fetch(`/coverage/${satelliteId}.json`);
     if (!response.ok) return null;
     const data: unknown = await response.json();
     log(`Loading real coverage for satellite ${satelliteId}`);
-    if (isNewCoverageFormat(data)) {
-      return parseCoverageV2(data);
+    if (!isCoverageFileFormat(data)) {
+      throw new Error(`Unsupported coverage format for satellite ${satelliteId}`);
     }
-    return normalizeCoverageData(data as FeatureCollection);
+    return parseCoverageFile(data);
   } catch (error) {
-    // Only process satellite coverage if GeoJSON loading has failed
-    const data: FeatureCollection = {
+    // Only synthesize a fallback footprint if coverage loading or parsing failed.
+    const data: CoverageData = {
       type: 'FeatureCollection',
       features: []
     };

@@ -1,4 +1,4 @@
-import { Feature, FeatureCollection } from 'geojson';
+import { Feature } from 'geojson';
 import type { CoverageData } from '../services/coverageService';
 import type { SatelliteStatusCategory } from '../utils/satelliteStatus';
 
@@ -52,7 +52,7 @@ export interface SatelliteData {
      */
     simulatedEffectiveBeamCapacityMbps?: number;
   };
-  referenced_coverages: CoverageData | FeatureCollection;
+  referenced_coverages: CoverageData;
   coverages: Coverage[];
 }
 
