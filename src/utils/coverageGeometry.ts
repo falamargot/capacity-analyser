@@ -1,4 +1,8 @@
 const DEFAULT_MAX_SEGMENT_DEGREES = 2.5;
+const COVERAGE_LOD_NEAR_MAX_HEIGHT_M = 2_500_000;
+const COVERAGE_LOD_MEDIUM_MAX_HEIGHT_M = 10_000_000;
+
+export type CoverageGeometryLod = 'near' | 'medium' | 'far';
 
 const normalizeLongitude = (lng: number): number => {
   if (!Number.isFinite(lng)) return lng;
@@ -56,6 +60,19 @@ export const densifyRingForGlobe = (
   }
 
   return densified;
+};
+
+export const getCoverageGeometryLod = (cameraHeightMeters: number | null | undefined): CoverageGeometryLod => {
+  if (!Number.isFinite(cameraHeightMeters)) return 'medium';
+  if (cameraHeightMeters <= COVERAGE_LOD_NEAR_MAX_HEIGHT_M) return 'near';
+  if (cameraHeightMeters <= COVERAGE_LOD_MEDIUM_MAX_HEIGHT_M) return 'medium';
+  return 'far';
+};
+
+export const getCoverageMaxSegmentDegreesForLod = (lod: CoverageGeometryLod): number => {
+  if (lod === 'near') return 1.25;
+  if (lod === 'far') return 3.75;
+  return DEFAULT_MAX_SEGMENT_DEGREES;
 };
 
 export const getMaxWrappedRingStep = (ring: number[][]): number => {

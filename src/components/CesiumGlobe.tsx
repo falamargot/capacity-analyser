@@ -449,6 +449,13 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
 
         const pickedObject = viewerRef.current.scene.pick(movement.position);
         if (defined(pickedObject)) {
+            if (typeof pickedObject.id === 'string' && pickedObject.id.startsWith(GEO_COVERAGE_ENTITY_PREFIX)) {
+                if (selection.type === 'satellite') {
+                    onCoverageClick?.(pickedObject.id.slice(GEO_COVERAGE_ENTITY_PREFIX.length));
+                    return;
+                }
+            }
+
             const pickedEntity = pickedObject.id;
 
             if (pickedEntity && typeof pickedEntity.id === 'string' && pickedEntity.id.startsWith(GEO_COVERAGE_ENTITY_PREFIX)) {

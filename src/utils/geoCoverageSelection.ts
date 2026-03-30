@@ -48,6 +48,15 @@ const MIN_ELEVATION_DEG = 5;
 // O(1) AABB check that rejects the vast majority of beams before the ray-cast runs.
 interface BBox { minLat: number; maxLat: number; minLng: number; maxLng: number; }
 const bboxCache = new WeakMap<object, BBox>();
+interface CoverageShapeMetrics {
+  approximateArea: number;
+  centroid: Point;
+  maxDistanceKm: number;
+}
+const coverageShapeCache = new WeakMap<object, CoverageShapeMetrics>();
+const gatewaySignatureCache = new WeakMap<GeoGatewayData[], string>();
+const GEO_CONNECTIVITY_CACHE_MAX_ENTRIES = 512;
+const geoConnectivityCache = new Map<string, GeoConnectivityResult>();
 
 const computeRingBBox = (ring: number[][]): BBox => {
   let minLat = Infinity, maxLat = -Infinity;
@@ -141,6 +150,38 @@ const getCoverageCentroid = (ring: number[][]): Point => {
     lng: centroidLng / (3 * twiceArea),
     lat: centroidLat / (3 * twiceArea),
   };
+};
+
+const getCoverageShapeMetrics = (
+  coverage: Coverage,
+  ring: number[][]
+): CoverageShapeMetrics => {
+  const feature = coverage.feature;
+  if (feature) {
+    const cached = coverageShapeCache.get(feature);
+    if (cached) return cached;
+  }
+
+  const centroid = getCoverageCentroid(ring);
+  const approximateArea = getCoverageApproximateArea(ring);
+
+  let maxDistanceKm = 1;
+  for (const [lng, lat] of ring) {
+    const distanceKm = haversineDistanceKm(centroid, { lat, lng });
+    if (distanceKm > maxDistanceKm) maxDistanceKm = distanceKm;
+  }
+
+  const metrics: CoverageShapeMetrics = {
+    approximateArea,
+    centroid,
+    maxDistanceKm,
+  };
+
+  if (feature) {
+    coverageShapeCache.set(feature, metrics);
+  }
+
+  return metrics;
 };
 
 const getCoverageProperties = (coverage: Coverage): Record<string, unknown> => (
@@ -274,21 +315,12 @@ const getBeamDistanceMetrics = (
   const ring = getCoverageRing(coverage);
   if (!ring || ring.length === 0) return null;
 
-  const centroid = getCoverageCentroid(ring);
-  const distanceKm = haversineDistanceKm(userPoint, centroid);
-
-  // Loop instead of Math.max(...ring.map(...)) to avoid:
-  //   1. O(n) temporary array allocation per candidate
-  //   2. Potential call-stack overflow on large rings (spread of 500+ args)
-  let maxDistanceKm = 1;
-  for (const [lng, lat] of ring) {
-    const d = haversineDistanceKm(centroid, { lat, lng });
-    if (d > maxDistanceKm) maxDistanceKm = d;
-  }
+  const shapeMetrics = getCoverageShapeMetrics(coverage, ring);
+  const distanceKm = haversineDistanceKm(userPoint, shapeMetrics.centroid);
 
   return {
     distanceKm,
-    normalizedDistance: clamp(distanceKm / maxDistanceKm, 0, 1),
+    normalizedDistance: clamp(distanceKm / shapeMetrics.maxDistanceKm, 0, 1),
   };
 };
 
@@ -328,9 +360,10 @@ export const findCandidateCoverages = (
 
       const beamMetrics = getBeamDistanceMetrics(userPoint, coverage);
       if (!beamMetrics) continue;
+      const shapeMetrics = getCoverageShapeMetrics(coverage, ring);
 
       const coverageKey = getCoverageGroupId(coverage);
-      const approximateArea = getCoverageApproximateArea(ring);
+      const approximateArea = shapeMetrics.approximateArea;
       const throughputEstimate = satellite.capacity.maxThroughput * (0.35 + (0.65 * (1 - beamMetrics.normalizedDistance)));
       const properties = getCoverageProperties(coverage);
       const level = typeof properties.level === 'number' ? properties.level : null;
@@ -590,11 +623,38 @@ export const computeGeoConnectivity = (
   const resolved = resolveCandidateCoverage(selectedCoverage, satellites);
   if (!resolved) return null;
 
-  const geometry = analyzeGeoConnectivity({
-    userPoint,
-    satellite: resolved.satellite,
-    gateways,
-  });
+  let gatewaySignature = gatewaySignatureCache.get(gateways);
+  if (!gatewaySignature) {
+    gatewaySignature = gateways.map((gateway) => gateway.name).join('|');
+    gatewaySignatureCache.set(gateways, gatewaySignature);
+  }
+
+  const cacheKey = [
+    resolved.satellite.id,
+    resolved.satellite.position.lat.toFixed(3),
+    resolved.satellite.position.lng.toFixed(3),
+    resolved.satellite.position.alt.toFixed(1),
+    userPoint.lat.toFixed(4),
+    userPoint.lng.toFixed(4),
+    (userPoint.altitude ?? 0).toFixed(3),
+    gatewaySignature,
+  ].join('::');
+
+  let geometry = geoConnectivityCache.get(cacheKey);
+  if (!geometry) {
+    geometry = analyzeGeoConnectivity({
+      userPoint,
+      satellite: resolved.satellite,
+      gateways,
+    });
+    if (geoConnectivityCache.size >= GEO_CONNECTIVITY_CACHE_MAX_ENTRIES) {
+      const oldestKey = geoConnectivityCache.keys().next().value;
+      if (oldestKey !== undefined) {
+        geoConnectivityCache.delete(oldestKey);
+      }
+    }
+    geoConnectivityCache.set(cacheKey, geometry);
+  }
 
   return {
     candidate: selectedCoverage!,

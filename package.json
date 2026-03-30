@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "npm run build:geo-coverage-prebuilt && vite build",
+    "build:geo-coverage-prebuilt": "node scripts/build-geo-coverage-prebuilt.mjs",
     "build:regulatory-overlay": "node scripts/build-regulatory-overlay.mjs",
     "lint": "eslint .",
     "test": "vitest run",

@@ -11,7 +11,11 @@ import { useCesium } from 'resium';
 import type { Feature, Geometry, GeoJsonProperties } from 'geojson';
 import type { CandidateCoverage, Selection } from '../../types/analysis';
 import type { Coverage, SatelliteData } from '../../types/satellites';
-import { densifyRingForGlobe } from '../../utils/coverageGeometry';
+import {
+  densifyRingForGlobe,
+  getCoverageMaxSegmentDegreesForLod,
+  type CoverageGeometryLod,
+} from '../../utils/coverageGeometry';
 import {
   getCandidateCoverageKey,
   getCoverageBeamId,
@@ -40,6 +44,7 @@ interface CoverageLayerProps {
 interface SanitizedPolygonGeometry {
   outerRing: number[][];
   holes: number[][][];
+  isPrebuiltDensified: boolean;
 }
 
 interface RenderContour {
@@ -53,6 +58,9 @@ interface RenderContour {
 }
 
 const _sanitizedGeometryCache = new WeakMap<object, SanitizedPolygonGeometry | null>();
+const _densifiedRingCache = new WeakMap<number[][], Map<CoverageGeometryLod, number[][]>>();
+const _polygonHierarchyCache = new WeakMap<SanitizedPolygonGeometry, Map<CoverageGeometryLod, PolygonHierarchy | null>>();
+const _contourPositionsCache = new WeakMap<number[][], Map<string, Cartesian3[] | null>>();
 
 const isFiniteLngLat = (value: unknown): value is [number, number] => (
   Array.isArray(value) &&
@@ -141,6 +149,7 @@ const getSanitizedPolygonGeometry = (
       .map((ring) => sanitizeRing(ring))
       .map((ring) => (ring ? normalizeRingAreaSign(ring, false) : null))
       .filter((ring): ring is number[][] => ring !== null),
+    isPrebuiltDensified: feature.properties?.prebuiltDensified === true,
   };
 
   _sanitizedGeometryCache.set(feature, result);
@@ -149,32 +158,92 @@ const getSanitizedPolygonGeometry = (
 
 const approximateRingArea = (ring: number[][]): number => Math.abs(getSignedRingArea(ring));
 
-const buildPolygonHierarchy = (geometry: SanitizedPolygonGeometry): PolygonHierarchy | null => {
+const getDensifiedRingForLod = (
+  ring: number[][],
+  lod: CoverageGeometryLod,
+  isPrebuiltDensified: boolean
+): number[][] => {
+  if (isPrebuiltDensified) {
+    return ring;
+  }
+
+  const cachedByLod = _densifiedRingCache.get(ring);
+  if (cachedByLod?.has(lod)) {
+    return cachedByLod.get(lod)!;
+  }
+
+  const densified = densifyRingForGlobe(ring, getCoverageMaxSegmentDegreesForLod(lod));
+  if (cachedByLod) {
+    cachedByLod.set(lod, densified);
+  } else {
+    _densifiedRingCache.set(ring, new Map([[lod, densified]]));
+  }
+  return densified;
+};
+
+const buildPolygonHierarchy = (
+  geometry: SanitizedPolygonGeometry,
+  lod: CoverageGeometryLod
+): PolygonHierarchy | null => {
+  const cachedByLod = _polygonHierarchyCache.get(geometry);
+  if (cachedByLod?.has(lod)) {
+    return cachedByLod.get(lod)!;
+  }
+
+  let hierarchy: PolygonHierarchy | null = null;
   try {
-    return new PolygonHierarchy(
-      Cartesian3.fromDegreesArray(densifyRingForGlobe(geometry.outerRing).flat() as number[]),
+    hierarchy = new PolygonHierarchy(
+      Cartesian3.fromDegreesArray(getDensifiedRingForLod(geometry.outerRing, lod, geometry.isPrebuiltDensified).flat() as number[]),
       geometry.holes.map((ring) => (
         new PolygonHierarchy(
-          Cartesian3.fromDegreesArray(densifyRingForGlobe(ring).flat() as number[])
+          Cartesian3.fromDegreesArray(getDensifiedRingForLod(ring, lod, geometry.isPrebuiltDensified).flat() as number[])
         )
       ))
     );
   } catch {
-    return null;
+    hierarchy = null;
   }
+
+  if (cachedByLod) {
+    cachedByLod.set(lod, hierarchy);
+  } else {
+    _polygonHierarchyCache.set(geometry, new Map([[lod, hierarchy]]));
+  }
+
+  return hierarchy;
 };
 
-const buildContourPositions = (ring: number[][], height: number): Cartesian3[] | null => {
+const buildContourPositions = (
+  ring: number[][],
+  height: number,
+  lod: CoverageGeometryLod,
+  isPrebuiltDensified: boolean
+): Cartesian3[] | null => {
+  const cacheKey = `${lod}:${height}:${isPrebuiltDensified ? 'prebuilt' : 'raw'}`;
+  const cachedByLod = _contourPositionsCache.get(ring);
+  if (cachedByLod?.has(cacheKey)) {
+    return cachedByLod.get(cacheKey)!;
+  }
+
+  let positions: Cartesian3[] | null = null;
   try {
-    const closed = buildClosedRing(densifyRingForGlobe(ring));
+    const closed = buildClosedRing(getDensifiedRingForLod(ring, lod, isPrebuiltDensified));
     const degrees: number[] = [];
     for (const [lng, lat] of closed) {
       degrees.push(lng, lat, height);
     }
-    return Cartesian3.fromDegreesArrayHeights(degrees);
+    positions = Cartesian3.fromDegreesArrayHeights(degrees);
   } catch {
-    return null;
+    positions = null;
   }
+
+  if (cachedByLod) {
+    cachedByLod.set(cacheKey, positions);
+  } else {
+    _contourPositionsCache.set(ring, new Map([[cacheKey, positions]]));
+  }
+
+  return positions;
 };
 
 const getCoverageBandStyle = (
@@ -400,6 +469,7 @@ const CoverageLayer: React.FC<CoverageLayerProps> = ({
   const dataSourceRef = useRef<CustomDataSource | null>(null);
   const isAddedRef = useRef(false);
   const previousRenderSignatureRef = useRef<string | null>(null);
+  const geometryLod: CoverageGeometryLod = 'medium';
   const selectionRenderSignature = useMemo(
     () => getSelectionRenderSignature(selection, selectedCoverage),
     [selection, selectedCoverage]
@@ -486,26 +556,23 @@ const CoverageLayer: React.FC<CoverageLayerProps> = ({
 
     dataSource.entities.removeAll();
 
-    console.debug('[CoverageLayer] render', {
-      renderSignature,
-      selectionType: selection.type,
-      contourCount: renderContours.length,
-      selectedCoverageId: selectedCoverage ? getCandidateCoverageKey(selectedCoverage) : 'none',
-    });
-
     renderContours.forEach((contour) => {
-      const hierarchy = buildPolygonHierarchy(contour.geometry);
+      const hierarchy = buildPolygonHierarchy(contour.geometry, geometryLod);
       const polylinePositions = buildContourPositions(
         contour.geometry.outerRing,
-        GEO_FOOTPRINT_OUTLINE_LAYER_HEIGHT_M
+        GEO_FOOTPRINT_OUTLINE_LAYER_HEIGHT_M,
+        geometryLod,
+        contour.geometry.isPrebuiltDensified
       );
       if (!hierarchy || !polylinePositions) return;
 
       const coverageEntityId = `${GEO_COVERAGE_ENTITY_PREFIX}${contour.satelliteName}::${contour.coverageKey}`;
       const style = getCoverageBandStyle(contour.normalizedLevel, contour.mode);
+      const fillId = `${coverageEntityId}::fill::${contour.contourKey}::${contour.geometryPartKey}`;
+      const outlineId = `${coverageEntityId}::outline::${contour.contourKey}::${contour.geometryPartKey}`;
 
       dataSource.entities.add({
-        id: `${coverageEntityId}::fill::${contour.contourKey}::${contour.geometryPartKey}`,
+        id: fillId,
         name: contour.coverageKey,
         polygon: {
           hierarchy,
@@ -517,7 +584,7 @@ const CoverageLayer: React.FC<CoverageLayerProps> = ({
       });
 
       dataSource.entities.add({
-        id: `${coverageEntityId}::outline::${contour.contourKey}::${contour.geometryPartKey}`,
+        id: outlineId,
         name: `${contour.coverageKey} contour`,
         polyline: {
           positions: polylinePositions,
@@ -531,7 +598,7 @@ const CoverageLayer: React.FC<CoverageLayerProps> = ({
     });
 
     viewer?.scene.requestRender();
-  }, [renderContours, renderSignature, selectedCoverage, selection, viewer]);
+  }, [geometryLod, renderContours, renderSignature, selectedCoverage, selection, viewer]);
 
   return null;
 };

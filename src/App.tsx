@@ -728,33 +728,6 @@ const App: React.FC = () => {
     return 'available';
   }, [activeAnalysisPoint, activeGeoSatellite, satelliteScope, satellites, selectedCoverage]);
 
-  useEffect(() => {
-    if (selectedSelection.type !== 'target') {
-      console.debug('[GEO Selection]', {
-        selectionType: selectedSelection.type,
-        candidateCount: 0,
-        selectedCoverageId: selectedGeoCoverageName ?? 'none',
-      });
-      return;
-    }
-
-    console.debug('[GEO Selection]', {
-      selectionType: selectedSelection.type,
-      candidateCount: candidateCoverages.length,
-      selectedCoverageId: selectedCoverage ? getCandidateCoverageKey(selectedCoverage) : 'none',
-      scoringBreakdown: candidateCoverages.slice(0, 5).map((candidate) => ({
-        coverageId: getCandidateCoverageKey(candidate),
-        total: candidate.score.toFixed(3),
-        elevation: candidate.scoreBreakdown.elevation.toFixed(3),
-        throughput: candidate.scoreBreakdown.throughput.toFixed(3),
-        latencyPenalty: candidate.scoreBreakdown.latency.toFixed(3),
-        latencyMs: candidate.latencyMs,
-        status: candidate.status,
-      })),
-    });
-  }, [candidateCoverages, selectedCoverage, selectedGeoCoverageName, selectedSelection]);
-
-
   // Update coverage features based on analyzis position or manual satellite selection
   const coverageFeaturesMemo = useMemo(() => {
     const features = new Map<string, Feature<Geometry, GeoJsonProperties>>();

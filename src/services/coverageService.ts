@@ -36,10 +36,48 @@ interface RawCoverageFile {
   coverages: RawCoverageEntry[];
 }
 
+interface PrebuiltCoverageMesh {
+  vertexFormat: 'lnglat';
+  vertexCount: number;
+  triangleCount: number;
+  vertices: number[];
+  indices: number[];
+}
+
+interface PrebuiltCoverageFeature extends Feature {
+  mesh?: PrebuiltCoverageMesh | null;
+}
+
+interface PrebuiltCoverageFileV1 {
+  format: 'geo-coverage-prebuilt-v1';
+  type: 'FeatureCollection';
+  features: Feature[];
+}
+
+interface PrebuiltCoverageFileV2 {
+  format: 'geo-coverage-prebuilt-v2';
+  type: 'FeatureCollection';
+  features: PrebuiltCoverageFeature[];
+}
+
+type PrebuiltCoverageFile = PrebuiltCoverageFileV1 | PrebuiltCoverageFileV2;
+
 const isCoverageFileFormat = (data: unknown): data is RawCoverageFile =>
   typeof data === 'object' &&
   data !== null &&
   'coverages' in data;
+
+const isPrebuiltCoverageFileFormat = (data: unknown): data is PrebuiltCoverageFile =>
+  typeof data === 'object' &&
+  data !== null &&
+  'format' in data &&
+  (
+    (data as { format?: unknown }).format === 'geo-coverage-prebuilt-v1' ||
+    (data as { format?: unknown }).format === 'geo-coverage-prebuilt-v2'
+  ) &&
+  'type' in data &&
+  (data as { type?: unknown }).type === 'FeatureCollection' &&
+  Array.isArray((data as { features?: unknown }).features);
 
 // ─── Shared geometry helpers ──────────────────────────────────────────────────
 
@@ -107,14 +145,41 @@ export const parseCoverageFile = (data: RawCoverageFile): CoverageData => {
   return { type: 'FeatureCollection', features };
 };
 
+export const parsePrebuiltCoverageFile = (data: PrebuiltCoverageFile): CoverageData => ({
+  type: 'FeatureCollection',
+  features: data.features.map((feature) => ({
+    ...feature,
+    properties: {
+      ...(feature.properties ?? {}),
+      prebuiltDensified: true,
+      prebuiltTriangulated: 'mesh' in feature && feature.mesh !== null,
+      prebuiltTriangleCount: 'mesh' in feature ? (feature.mesh?.triangleCount ?? 0) : 0,
+    },
+  }) as Feature),
+});
+
+const fetchCoverageJson = async (path: string): Promise<unknown | null> => {
+  const response = await fetch(path);
+  if (!response.ok) return null;
+  return response.json();
+};
+
 export const loadSatelliteCoverage = async (satelliteId: string, satelliteName: string, satelliteType: string, coverageRadius: number): Promise<CoverageData | null> => {
   try {
     // In Vite production builds, files under /src are bundled and not served as static runtime assets.
     // Coverage JSON files must live under /public so they can be fetched at runtime.
-    const response = await fetch(`/coverage/${satelliteId}.json`);
-    if (!response.ok) return null;
-    const data: unknown = await response.json();
+    const data: unknown = satelliteType === 'EUTELSAT'
+      ? (
+          await fetchCoverageJson(`/coverage-prebuilt/${satelliteId}.json`)
+          ?? await fetchCoverageJson(`/coverage/${satelliteId}.json`)
+        )
+      : await fetchCoverageJson(`/coverage/${satelliteId}.json`);
+    if (!data) return null;
+
     log(`Loading real coverage for satellite ${satelliteId}`);
+    if (isPrebuiltCoverageFileFormat(data)) {
+      return parsePrebuiltCoverageFile(data);
+    }
     if (!isCoverageFileFormat(data)) {
       throw new Error(`Unsupported coverage format for satellite ${satelliteId}`);
     }

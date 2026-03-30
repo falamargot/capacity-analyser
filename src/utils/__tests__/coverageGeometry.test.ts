@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { densifyRingForGlobe, getMaxWrappedRingStep } from '../coverageGeometry';
+import {
+  densifyRingForGlobe,
+  getCoverageGeometryLod,
+  getCoverageMaxSegmentDegreesForLod,
+  getMaxWrappedRingStep,
+} from '../coverageGeometry';
 
 describe('densifyRingForGlobe', () => {
   it('splits long high-latitude segments into shorter steps', () => {
@@ -29,5 +34,17 @@ describe('densifyRingForGlobe', () => {
 
     expect(densifiedRing.length).toBeGreaterThan(datelineRing.length);
     expect(getMaxWrappedRingStep(densifiedRing)).toBeLessThanOrEqual(5);
+  });
+});
+
+describe('coverage geometry LOD', () => {
+  it('keeps the current density at medium range and increases detail only when zoomed in', () => {
+    expect(getCoverageGeometryLod(1_000_000)).toBe('near');
+    expect(getCoverageGeometryLod(5_000_000)).toBe('medium');
+    expect(getCoverageGeometryLod(20_000_000)).toBe('far');
+
+    expect(getCoverageMaxSegmentDegreesForLod('near')).toBeLessThan(getCoverageMaxSegmentDegreesForLod('medium'));
+    expect(getCoverageMaxSegmentDegreesForLod('medium')).toBe(2.5);
+    expect(getCoverageMaxSegmentDegreesForLod('far')).toBeGreaterThan(getCoverageMaxSegmentDegreesForLod('medium'));
   });
 });
