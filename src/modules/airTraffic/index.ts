@@ -5,4 +5,3 @@
 
 export * from './airTrafficService';
 export * from './useAirTraffic';
-export * from './AirTrafficLayer';

@@ -427,20 +427,6 @@ export function getMockVesselData(): Vessel[] {
 }
 
 /**
- * Get all cached vessels
- */
-export function getCachedVessels(): Vessel[] {
-  // Cleanup stale vessels periodically
-  const now = Date.now();
-  if (now - lastCleanup > CLEANUP_INTERVAL) {
-    cleanupStaleVessels();
-    lastCleanup = now;
-  }
-
-  return Array.from(vesselCache.values());
-}
-
-/**
  * Remove vessels that haven't been updated recently
  */
 function cleanupStaleVessels(): void {

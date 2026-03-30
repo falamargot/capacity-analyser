@@ -5,4 +5,3 @@
 
 export * from './maritimeTrafficService';
 export * from './useMaritimeTraffic';
-export * from './MaritimeTrafficLayer';

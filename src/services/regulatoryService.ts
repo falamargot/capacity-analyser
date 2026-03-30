@@ -296,8 +296,3 @@ export function regulatoryLookup(lat: number, lng: number): RegulatoryResult {
   _lookupCache.set(cacheKey, OCEAN_RESULT);
   return OCEAN_RESULT;
 }
-
-/** Returns true once the GeoJSON has been fully loaded and indexed */
-export function isRegulatoryLoaded(): boolean {
-  return _loaded;
-}

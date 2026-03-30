@@ -302,20 +302,6 @@ export const getCoverageColor = (
   return `rgba(${baseColor}, ${opacity})`;
 };
 
-export const getCoverageAltitude = (type: string | null): number => {
-  // Double-zone coverage altitudes - layered properly
-  if (type === 'ONEWEB_BACKHAUL') return 0.004; // Lowest altitude for largest backhaul coverage
-  if (type === 'ONEWEB_STANDARD') return 0.005; // Higher altitude for standard coverage (on top)
-
-  // Legacy coverage types
-  if (type === 'SNP_VISIBILITY_AREA') return 0.002; // Low altitude for SNP visibility area
-  return type === 'EUTELSAT' ? 0.003 : type === 'ONEWEB' ? 0.005 : 0.004;
-}
-
-export const getSatelliteColor = (type: string | null): string => {
-  return type === 'EUTELSAT' ? '#2563eb' : type === 'ONEWEB' ? '#db2777' : '#ccc';
-}
-
 // Calculate 3D line-of-sight distance between satellite and ground station
 function calculate3DDistanceKm(satellitePosition: { lat: number; lng: number; alt: number }, groundPosition: { lat: number; lng: number }): number {
 

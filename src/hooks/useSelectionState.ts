@@ -116,5 +116,3 @@ export function useSelectionState() {
     selectTarget,
   };
 }
-
-export type SelectionStateActions = ReturnType<typeof useSelectionState>;
