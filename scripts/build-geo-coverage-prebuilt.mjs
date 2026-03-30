@@ -1,13 +1,27 @@
-import { mkdir, readdir, readFile, rm, writeFile } from 'node:fs/promises';
-import { Cartesian2, PolygonPipeline } from 'cesium';
+import { mkdir, readdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
+import {
+  ArcType,
+  Cartesian2,
+  Cartesian3,
+  Math as CesiumMath,
+  PerInstanceColorAppearance,
+  PolygonGeometry,
+  PolygonHierarchy,
+  PolygonPipeline,
+} from 'cesium';
 
 const SOURCE_DIR = new URL('../public/coverage/', import.meta.url);
 const TARGET_DIR = new URL('../public/coverage-prebuilt/', import.meta.url);
-const MANIFEST_PATH = new URL('../public/coverage-prebuilt/manifest.json', import.meta.url);
-const PREBUILT_FORMAT = 'geo-coverage-prebuilt-v2';
+const STAGING_DIR = new URL('../public/coverage-prebuilt.tmp/', import.meta.url);
+const SUMMARY_MANIFEST_PATH = new URL('../public/coverage-prebuilt/manifest.json', import.meta.url);
+const PREBUILT_FORMAT = 'geo-coverage-prebuilt-v3';
 const MAX_SEGMENT_DEGREES = 2.5;
-
-const VERTEX_FORMAT = 'lnglat';
+const RENDER_HEIGHT_METERS = 1100;
+const RENDER_GRANULARITY_RADIANS = CesiumMath.toRadians(MAX_SEGMENT_DEGREES);
+const POSITION_COMPONENTS = 3;
+const POSITION_COMPONENT_TYPE = 'float64';
+const INDEX_COMPONENT_TYPE = 'uint32';
+const VERTEX_FORMAT = 'cartesian3';
 
 const isFiniteCoordinate = (value) => typeof value === 'number' && Number.isFinite(value);
 
@@ -126,40 +140,93 @@ const computeBBox = (ring) => {
   return { minLng, maxLng, minLat, maxLat };
 };
 
-const buildTriangulatedMesh = (outerRing, holes) => {
-  const vertices = [];
-  const positions = [];
-  const holeIndices = [];
+const getFeatureMeshKey = (name, level, coverageGeometryKey) => `${name}::${level}::${coverageGeometryKey}`;
 
-  const appendRing = (ring) => {
-    for (const [lng, lat] of ring) {
-      vertices.push(lng, lat);
-      positions.push(new Cartesian2(lng, lat));
-    }
-  };
+const buildRenderMesh = (outerRing, holes) => {
+  const ringToCartesian3 = (ring) => Cartesian3.fromDegreesArray(
+    ring.flatMap(([lng, lat]) => [lng, lat]),
+  );
 
-  appendRing(outerRing);
+  const polygonHierarchy = new PolygonHierarchy(
+    ringToCartesian3(outerRing),
+    holes.map((ring) => new PolygonHierarchy(ringToCartesian3(ring))),
+  );
 
-  for (const ring of holes) {
-    holeIndices.push(vertices.length / 2);
-    appendRing(ring);
-  }
+  const positions2d = [];
 
   try {
-    const indices = PolygonPipeline.triangulate(
-      positions,
-      holeIndices.length > 0 ? holeIndices : undefined,
+    const geometry = PolygonGeometry.createGeometry(
+      new PolygonGeometry({
+        polygonHierarchy,
+        height: RENDER_HEIGHT_METERS,
+        arcType: ArcType.RHUMB,
+        granularity: RENDER_GRANULARITY_RADIANS,
+        vertexFormat: PerInstanceColorAppearance.FLAT_VERTEX_FORMAT,
+      }),
     );
+    if (!geometry?.attributes.position?.values || !geometry.indices || !geometry.boundingSphere) {
+      return null;
+    }
 
     return {
       vertexFormat: VERTEX_FORMAT,
-      vertexCount: vertices.length / 2,
-      triangleCount: indices.length / 3,
-      vertices,
-      indices,
+      positionCount: geometry.attributes.position.values.length / POSITION_COMPONENTS,
+      triangleCount: geometry.indices.length / 3,
+      positions: Float64Array.from(geometry.attributes.position.values),
+      indices: Uint32Array.from(geometry.indices),
+      boundingSphere: {
+        center: [
+          geometry.boundingSphere.center.x,
+          geometry.boundingSphere.center.y,
+          geometry.boundingSphere.center.z,
+        ],
+        radius: geometry.boundingSphere.radius,
+      },
     };
   } catch {
-    return null;
+    // Fallback for rare cases where Cesium cannot build the final surface mesh.
+    const vertices = [];
+    const holeIndices = [];
+
+    const appendRing = (ring) => {
+      for (const [lng, lat] of ring) {
+        vertices.push(lng, lat);
+        positions2d.push(new Cartesian2(lng, lat));
+      }
+    };
+
+    appendRing(outerRing);
+
+    for (const ring of holes) {
+      holeIndices.push(vertices.length / 2);
+      appendRing(ring);
+    }
+
+    try {
+      const indices = PolygonPipeline.triangulate(
+        positions2d,
+        holeIndices.length > 0 ? holeIndices : undefined,
+      );
+
+      const cartesianPositions = Cartesian3.fromDegreesArrayHeights(
+        vertices.flatMap((value, index) => (
+          index % 2 === 0
+            ? [value, vertices[index + 1], RENDER_HEIGHT_METERS]
+            : []
+        )),
+      );
+
+      return {
+        vertexFormat: VERTEX_FORMAT,
+        positionCount: cartesianPositions.length,
+        triangleCount: indices.length / 3,
+        positions: Float64Array.from(cartesianPositions.flatMap((position) => [position.x, position.y, position.z])),
+        indices: Uint32Array.from(indices),
+        boundingSphere: null,
+      };
+    } catch {
+      return null;
+    }
   }
 };
 
@@ -184,40 +251,35 @@ const buildPrebuiltPolygonFeature = ({
 
   const densifiedOuterRing = densifyRingForGlobe(normalizedOuterRing);
   const densifiedHoles = normalizedHoles.map((ring) => densifyRingForGlobe(ring));
-  const mesh = buildTriangulatedMesh(densifiedOuterRing, densifiedHoles);
+  const coverageGeometryKey = `${coverageIndex}:${polygonIndex}`;
+  const mesh = buildRenderMesh(densifiedOuterRing, densifiedHoles);
 
   const sourcePointCount = normalizedOuterRing.length + normalizedHoles.reduce((sum, ring) => sum + ring.length, 0);
   const renderPointCount = densifiedOuterRing.length + densifiedHoles.reduce((sum, ring) => sum + ring.length, 0);
 
   return {
-    type: 'Feature',
-    properties: {
-      satelliteId,
-      name: coverage.name,
-      mission: coverage.name,
-      commercialName: coverage.commercialName ?? null,
-      isUplink: coverage.up,
-      type: 'EUTELSAT',
-      level: coverage.level,
-      contour: coverage.level,
-      coverageGeometryKey: `${coverageIndex}:${polygonIndex}`,
-      coveragePartIndex: polygonIndex,
-      coverageSourceFeatureIndex: coverageIndex,
-      sourceCoverageId,
-      sourceFootprintId,
-      sourcePointCount,
-      renderPointCount,
-      bbox: computeBBox(densifiedOuterRing),
-    },
-    geometry: {
-      type: 'Polygon',
-      coordinates: [densifiedOuterRing, ...densifiedHoles],
-    },
+    key: getFeatureMeshKey(coverage.name, coverage.level, coverageGeometryKey),
+    satelliteId,
+    name: coverage.name,
+    mission: coverage.name,
+    commercialName: coverage.commercialName ?? null,
+    isUplink: coverage.up,
+    type: 'EUTELSAT',
+    level: coverage.level,
+    contour: coverage.level,
+    coverageGeometryKey,
+    coveragePartIndex: polygonIndex,
+    coverageSourceFeatureIndex: coverageIndex,
+    sourceCoverageId,
+    sourceFootprintId,
+    sourcePointCount,
+    renderPointCount,
+    bbox: computeBBox(densifiedOuterRing),
     mesh,
   };
 };
 
-const buildPrebuiltFile = (sourceFileName, data) => {
+const buildBinaryArtifact = (sourceFileName, data) => {
   const satelliteId = sourceFileName.replace(/\.json$/i, '');
   const features = [];
   let sourcePointCount = 0;
@@ -247,55 +309,116 @@ const buildPrebuiltFile = (sourceFileName, data) => {
 
         if (!feature) return;
 
-        sourcePointCount += feature.properties.sourcePointCount;
-        renderPointCount += feature.properties.renderPointCount;
+        sourcePointCount += feature.sourcePointCount;
+        renderPointCount += feature.renderPointCount;
         triangleCount += feature.mesh?.triangleCount ?? 0;
         features.push(feature);
       });
     });
   });
 
+  const totalPositionValues = features.reduce((sum, feature) => sum + (feature.mesh?.positions.length ?? 0), 0);
+  const totalIndices = features.reduce((sum, feature) => sum + (feature.mesh?.indices.length ?? 0), 0);
+  const positions = new Float64Array(totalPositionValues);
+  const indices = new Uint32Array(totalIndices);
+  const manifestFeatures = [];
+  let positionValueOffset = 0;
+  let indexOffset = 0;
+
+  for (const feature of features) {
+    const mesh = feature.mesh;
+    if (!mesh) continue;
+
+    positions.set(mesh.positions, positionValueOffset);
+    indices.set(mesh.indices, indexOffset);
+
+    manifestFeatures.push({
+      key: feature.key,
+      satelliteId: feature.satelliteId,
+      name: feature.name,
+      mission: feature.mission,
+      commercialName: feature.commercialName,
+      isUplink: feature.isUplink,
+      type: feature.type,
+      level: feature.level,
+      contour: feature.contour,
+      coverageGeometryKey: feature.coverageGeometryKey,
+      coveragePartIndex: feature.coveragePartIndex,
+      coverageSourceFeatureIndex: feature.coverageSourceFeatureIndex,
+      sourceCoverageId: feature.sourceCoverageId,
+      sourceFootprintId: feature.sourceFootprintId,
+      sourcePointCount: feature.sourcePointCount,
+      renderPointCount: feature.renderPointCount,
+      bbox: feature.bbox,
+      triangleCount: mesh.triangleCount,
+      positionCount: mesh.positionCount,
+      positionByteOffset: positionValueOffset * Float64Array.BYTES_PER_ELEMENT,
+      indexCount: mesh.indices.length,
+      indexByteOffset: (positions.byteLength + (indexOffset * Uint32Array.BYTES_PER_ELEMENT)),
+      boundingSphere: mesh.boundingSphere,
+    });
+
+    positionValueOffset += mesh.positions.length;
+    indexOffset += mesh.indices.length;
+  }
+
+  const meshBinary = new Uint8Array(positions.byteLength + indices.byteLength);
+  meshBinary.set(new Uint8Array(positions.buffer), 0);
+  meshBinary.set(new Uint8Array(indices.buffer), positions.byteLength);
+
   return {
-    format: PREBUILT_FORMAT,
-    generatedAt: new Date().toISOString(),
-    sourceFile: sourceFileName,
     satelliteId,
-    stats: {
-      coverageCount: data.coverages.length,
-      polygonCount: features.length,
-      sourcePointCount,
-      renderPointCount,
-      triangleCount,
-      densificationRatio: sourcePointCount === 0
-        ? 1
-        : Number((renderPointCount / sourcePointCount).toFixed(4)),
+    manifest: {
+      format: PREBUILT_FORMAT,
+      generatedAt: new Date().toISOString(),
+      sourceFile: sourceFileName,
+      satelliteId,
+      meshFile: `${satelliteId}.mesh.bin`,
+      meshEncoding: {
+        vertexFormat: VERTEX_FORMAT,
+        positionComponentType: POSITION_COMPONENT_TYPE,
+        positionComponents: POSITION_COMPONENTS,
+        indexComponentType: INDEX_COMPONENT_TYPE,
+      },
+      stats: {
+        coverageCount: data.coverages.length,
+        polygonCount: features.length,
+        sourcePointCount,
+        renderPointCount,
+        triangleCount,
+        densificationRatio: sourcePointCount === 0
+          ? 1
+          : Number((renderPointCount / sourcePointCount).toFixed(4)),
+        meshBytes: meshBinary.byteLength,
+      },
+      features: manifestFeatures,
     },
-    type: 'FeatureCollection',
-    features,
+    meshBinary,
   };
 };
 
-const buildManifestEntry = (fileName, artifact) => ({
-  fileName,
-  satelliteId: artifact.satelliteId,
-  coverageCount: artifact.stats.coverageCount,
-  polygonCount: artifact.stats.polygonCount,
-  sourcePointCount: artifact.stats.sourcePointCount,
-  renderPointCount: artifact.stats.renderPointCount,
-  triangleCount: artifact.stats.triangleCount,
-  densificationRatio: artifact.stats.densificationRatio,
+const buildSummaryManifestEntry = ({ satelliteId, manifest }) => ({
+  satelliteId,
+  manifestFileName: `${satelliteId}.manifest.json`,
+  meshFileName: manifest.meshFile,
+  coverageCount: manifest.stats.coverageCount,
+  polygonCount: manifest.stats.polygonCount,
+  sourcePointCount: manifest.stats.sourcePointCount,
+  renderPointCount: manifest.stats.renderPointCount,
+  triangleCount: manifest.stats.triangleCount,
+  densificationRatio: manifest.stats.densificationRatio,
+  meshBytes: manifest.stats.meshBytes,
 });
 
 const main = async () => {
-  await mkdir(TARGET_DIR, { recursive: true });
-  await rm(TARGET_DIR, { recursive: true, force: true });
-  await mkdir(TARGET_DIR, { recursive: true });
+  await rm(STAGING_DIR, { recursive: true, force: true });
+  await mkdir(STAGING_DIR, { recursive: true });
 
   const sourceFileNames = (await readdir(SOURCE_DIR))
     .filter((fileName) => fileName.endsWith('.json') && fileName !== 'coverageManifest.json')
     .sort();
 
-  const manifest = [];
+  const summaryEntries = [];
 
   for (const fileName of sourceFileNames) {
     const sourcePath = new URL(fileName, SOURCE_DIR);
@@ -306,37 +429,43 @@ const main = async () => {
       continue;
     }
 
-    const artifact = buildPrebuiltFile(fileName, data);
-    const targetPath = new URL(fileName, TARGET_DIR);
-    await writeFile(targetPath, JSON.stringify(artifact));
-    manifest.push(buildManifestEntry(fileName, artifact));
+    const artifact = buildBinaryArtifact(fileName, data);
+    await writeFile(new URL(`${artifact.satelliteId}.manifest.json`, STAGING_DIR), JSON.stringify(artifact.manifest));
+    await writeFile(new URL(`${artifact.satelliteId}.mesh.bin`, STAGING_DIR), artifact.meshBinary);
+    summaryEntries.push(buildSummaryManifestEntry(artifact));
   }
 
-  await writeFile(MANIFEST_PATH, JSON.stringify({
+  await writeFile(new URL('manifest.json', STAGING_DIR), JSON.stringify({
     format: PREBUILT_FORMAT,
     generatedAt: new Date().toISOString(),
-    fileCount: manifest.length,
-    entries: manifest,
+    fileCount: summaryEntries.length,
+    entries: summaryEntries,
   }));
 
-  const totals = manifest.reduce((acc, entry) => ({
+  await rm(TARGET_DIR, { recursive: true, force: true });
+  await rename(STAGING_DIR, TARGET_DIR);
+
+  const totals = summaryEntries.reduce((acc, entry) => ({
     coverageCount: acc.coverageCount + entry.coverageCount,
     polygonCount: acc.polygonCount + entry.polygonCount,
     sourcePointCount: acc.sourcePointCount + entry.sourcePointCount,
     renderPointCount: acc.renderPointCount + entry.renderPointCount,
     triangleCount: acc.triangleCount + entry.triangleCount,
+    meshBytes: acc.meshBytes + entry.meshBytes,
   }), {
     coverageCount: 0,
     polygonCount: 0,
     sourcePointCount: 0,
     renderPointCount: 0,
     triangleCount: 0,
+    meshBytes: 0,
   });
 
   console.log(
-    `Prebuilt GEO coverage written to ${TARGET_DIR.pathname} (${manifest.length} files, `
+    `Prebuilt GEO coverage written to ${TARGET_DIR.pathname} (${summaryEntries.length} satellites, `
     + `${totals.coverageCount} coverages, ${totals.polygonCount} polygons, `
-    + `${totals.renderPointCount} render points, ${totals.triangleCount} triangles).`,
+    + `${totals.renderPointCount} render points, ${totals.triangleCount} triangles, `
+    + `${totals.meshBytes} mesh bytes).`,
   );
 };
 

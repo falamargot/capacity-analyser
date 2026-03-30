@@ -439,6 +439,7 @@ function buildSatelliteData(
   sat: { name: string; satrec: any; noradId: string },
   type: 'EUTELSAT' | 'ONEWEB',
   orbitType: 'GEO' | 'LEO',
+  coverageFileId: string | null,
   coverageData: ReturnType<typeof attachSatelliteId>,
   satcatMap: SatcatStatusMap | null,
   capacity: SatelliteData['capacity'],
@@ -464,6 +465,7 @@ function buildSatelliteData(
     id: sat.noradId,
     name: sat.name,
     noradId: sat.noradId,
+    coverageFileId,
     type,
     orbitType,
     opsStatus,
@@ -509,7 +511,7 @@ export async function fetchSatellites(): Promise<SatelliteData[]> {
           )
         : null;
       return buildSatelliteData(
-        sat, 'EUTELSAT', 'GEO', coverageData, satcatMap,
+        sat, 'EUTELSAT', 'GEO', coverageFileId ?? null, coverageData, satcatMap,
         { maxThroughput: 100, bandwidth: { ku: 500, ka: 300, c: 200 }, availability: 0.99 },
         'beam'
       );
@@ -523,7 +525,7 @@ export async function fetchSatellites(): Promise<SatelliteData[]> {
           )
         : null;
       return buildSatelliteData(
-        sat, 'ONEWEB', 'LEO', coverageData, satcatMap,
+        sat, 'ONEWEB', 'LEO', sat.noradId, coverageData, satcatMap,
         {
           // Source: EOPortal OneWeb mission profile — "capacity per satellite: 7.2 Gbps"
           maxThroughput: 7.2,

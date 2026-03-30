@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { parseCoverageFile, parsePrebuiltCoverageFile } from '../coverageService';
+import {
+  parseCoverageFile,
+  parsePrebuiltCoverageMeshBinaryBundle,
+} from '../coverageService';
 
 describe('parseCoverageFile', () => {
   it('splits MultiPolygon footprints into Polygon features with stable part keys', () => {
@@ -42,68 +45,46 @@ describe('parseCoverageFile', () => {
   });
 });
 
-describe('parsePrebuiltCoverageFile', () => {
-  it('marks v2 prebuilt features so coverage rendering can skip runtime densification', () => {
-    const parsed = parsePrebuiltCoverageFile({
-      format: 'geo-coverage-prebuilt-v2',
-      type: 'FeatureCollection',
-      features: [{
-        type: 'Feature',
-        properties: {
-          name: 'HB13G Widebeam 2 Transmit',
-          coverageGeometryKey: '2:0',
+describe('parsePrebuiltCoverageMeshBinaryBundle', () => {
+  it('builds typed array views from a binary mesh bundle', () => {
+    const positions = new Float64Array([0, 0, 0, 1, 0, 0, 1, 1, 0]);
+    const indices = new Uint32Array([0, 1, 2]);
+    const binary = new Uint8Array(positions.byteLength + indices.byteLength);
+    binary.set(new Uint8Array(positions.buffer), 0);
+    binary.set(new Uint8Array(indices.buffer), positions.byteLength);
+
+    const meshIndex = parsePrebuiltCoverageMeshBinaryBundle(
+      {
+        format: 'geo-coverage-prebuilt-v3',
+        satelliteId: '54259',
+        meshFile: '54259.mesh.bin',
+        meshEncoding: {
+          vertexFormat: 'cartesian3',
+          positionComponentType: 'float64',
+          positionComponents: 3,
+          indexComponentType: 'uint32',
         },
-        geometry: {
-          type: 'Polygon',
-          coordinates: [[
-            [0, 0],
-            [1, 0],
-            [1, 1],
-            [0, 0],
-          ]],
-        },
-        mesh: {
-          vertexFormat: 'lnglat',
-          vertexCount: 3,
+        features: [{
+          key: 'E10B C-band downlink::42::0:0',
+          name: 'E10B C-band downlink',
+          level: 42,
+          coverageGeometryKey: '0:0',
+          positionCount: 3,
+          positionByteOffset: 0,
+          indexCount: 3,
+          indexByteOffset: positions.byteLength,
           triangleCount: 1,
-          vertices: [0, 0, 1, 0, 1, 1],
-          indices: [0, 1, 2],
-        },
-      }],
-    });
+          boundingSphere: { center: [0, 0, 0], radius: 1 },
+        }],
+      },
+      binary.buffer,
+    );
 
-    expect(parsed.features).toHaveLength(1);
-    expect(parsed.features[0].properties?.prebuiltDensified).toBe(true);
-    expect(parsed.features[0].properties?.prebuiltTriangulated).toBe(true);
-    expect(parsed.features[0].properties?.prebuiltTriangleCount).toBe(1);
-    expect(parsed.features[0].properties?.coverageGeometryKey).toBe('2:0');
-  });
-
-  it('continues to accept v1 prebuilt files during the transition', () => {
-    const parsed = parsePrebuiltCoverageFile({
-      format: 'geo-coverage-prebuilt-v1',
-      type: 'FeatureCollection',
-      features: [{
-        type: 'Feature',
-        properties: {
-          name: 'Legacy prebuilt contour',
-          coverageGeometryKey: '5:0',
-        },
-        geometry: {
-          type: 'Polygon',
-          coordinates: [[
-            [0, 0],
-            [1, 0],
-            [1, 1],
-            [0, 0],
-          ]],
-        },
-      }],
-    });
-
-    expect(parsed.features).toHaveLength(1);
-    expect(parsed.features[0].properties?.prebuiltDensified).toBe(true);
-    expect(parsed.features[0].properties?.prebuiltTriangulated).toBe(false);
-    expect(parsed.features[0].properties?.prebuiltTriangleCount).toBe(0);
+    const mesh = meshIndex.get('E10B C-band downlink::42::0:0');
+    expect(mesh).toBeDefined();
+    expect(mesh?.positions).toBeInstanceOf(Float64Array);
+    expect(mesh?.indices).toBeInstanceOf(Uint32Array);
+    expect(Array.from(mesh?.positions ?? [])).toEqual(Array.from(positions));
+    expect(Array.from(mesh?.indices ?? [])).toEqual(Array.from(indices));
   });
 });

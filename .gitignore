@@ -87,3 +87,6 @@ temp/
 # !public/coverage/53765.json
 # !public/coverage/54048.json
 # !public/coverage/54259.json
+
+# Generated GEO prebuilt meshes/manifests are rebuilt from public/coverage.
+public/coverage-prebuilt/

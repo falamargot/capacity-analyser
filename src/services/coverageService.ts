@@ -36,47 +36,60 @@ interface RawCoverageFile {
   coverages: RawCoverageEntry[];
 }
 
-interface PrebuiltCoverageMesh {
-  vertexFormat: 'lnglat';
-  vertexCount: number;
+export interface PrebuiltCoverageMesh {
+  vertexFormat: 'cartesian3';
+  positionCount: number;
   triangleCount: number;
-  vertices: number[];
-  indices: number[];
+  positions: Float64Array;
+  indices: Uint32Array;
+  boundingSphere: {
+    center: [number, number, number];
+    radius: number;
+  } | null;
 }
 
-interface PrebuiltCoverageFeature extends Feature {
-  mesh?: PrebuiltCoverageMesh | null;
+interface PrebuiltCoverageManifestFeatureV3 {
+  key: string;
+  name: string;
+  level: number;
+  coverageGeometryKey: string;
+  positionCount: number;
+  positionByteOffset: number;
+  indexCount: number;
+  indexByteOffset: number;
+  triangleCount: number;
+  boundingSphere: {
+    center: [number, number, number];
+    radius: number;
+  } | null;
 }
 
-interface PrebuiltCoverageFileV1 {
-  format: 'geo-coverage-prebuilt-v1';
-  type: 'FeatureCollection';
-  features: Feature[];
+interface PrebuiltCoverageManifestV3 {
+  format: 'geo-coverage-prebuilt-v3';
+  satelliteId: string;
+  meshFile: string;
+  meshEncoding: {
+    vertexFormat: 'cartesian3';
+    positionComponentType: 'float64';
+    positionComponents: 3;
+    indexComponentType: 'uint32';
+  };
+  features: PrebuiltCoverageManifestFeatureV3[];
 }
-
-interface PrebuiltCoverageFileV2 {
-  format: 'geo-coverage-prebuilt-v2';
-  type: 'FeatureCollection';
-  features: PrebuiltCoverageFeature[];
-}
-
-type PrebuiltCoverageFile = PrebuiltCoverageFileV1 | PrebuiltCoverageFileV2;
 
 const isCoverageFileFormat = (data: unknown): data is RawCoverageFile =>
   typeof data === 'object' &&
   data !== null &&
   'coverages' in data;
 
-const isPrebuiltCoverageFileFormat = (data: unknown): data is PrebuiltCoverageFile =>
+const isPrebuiltCoverageManifestV3Format = (data: unknown): data is PrebuiltCoverageManifestV3 =>
   typeof data === 'object' &&
   data !== null &&
   'format' in data &&
-  (
-    (data as { format?: unknown }).format === 'geo-coverage-prebuilt-v1' ||
-    (data as { format?: unknown }).format === 'geo-coverage-prebuilt-v2'
-  ) &&
-  'type' in data &&
-  (data as { type?: unknown }).type === 'FeatureCollection' &&
+  (data as { format?: unknown }).format === 'geo-coverage-prebuilt-v3' &&
+  'meshFile' in data &&
+  typeof (data as { meshFile?: unknown }).meshFile === 'string' &&
+  'features' in data &&
   Array.isArray((data as { features?: unknown }).features);
 
 // ─── Shared geometry helpers ──────────────────────────────────────────────────
@@ -145,18 +158,33 @@ export const parseCoverageFile = (data: RawCoverageFile): CoverageData => {
   return { type: 'FeatureCollection', features };
 };
 
-export const parsePrebuiltCoverageFile = (data: PrebuiltCoverageFile): CoverageData => ({
-  type: 'FeatureCollection',
-  features: data.features.map((feature) => ({
-    ...feature,
-    properties: {
-      ...(feature.properties ?? {}),
-      prebuiltDensified: true,
-      prebuiltTriangulated: 'mesh' in feature && feature.mesh !== null,
-      prebuiltTriangleCount: 'mesh' in feature ? (feature.mesh?.triangleCount ?? 0) : 0,
-    },
-  }) as Feature),
-});
+export const parsePrebuiltCoverageMeshBinaryBundle = (
+  manifest: PrebuiltCoverageManifestV3,
+  meshBuffer: ArrayBuffer,
+): Map<string, PrebuiltCoverageMesh> => {
+  const meshIndex = new Map<string, PrebuiltCoverageMesh>();
+
+  for (const feature of manifest.features) {
+    meshIndex.set(feature.key, {
+      vertexFormat: manifest.meshEncoding.vertexFormat,
+      positionCount: feature.positionCount,
+      triangleCount: feature.triangleCount,
+      positions: new Float64Array(
+        meshBuffer,
+        feature.positionByteOffset,
+        feature.positionCount * manifest.meshEncoding.positionComponents,
+      ),
+      indices: new Uint32Array(
+        meshBuffer,
+        feature.indexByteOffset,
+        feature.indexCount,
+      ),
+      boundingSphere: feature.boundingSphere,
+    });
+  }
+
+  return meshIndex;
+};
 
 const fetchCoverageJson = async (path: string): Promise<unknown | null> => {
   const response = await fetch(path);
@@ -164,22 +192,20 @@ const fetchCoverageJson = async (path: string): Promise<unknown | null> => {
   return response.json();
 };
 
+const fetchCoverageArrayBuffer = async (path: string): Promise<ArrayBuffer | null> => {
+  const response = await fetch(path);
+  if (!response.ok) return null;
+  return response.arrayBuffer();
+};
+
 export const loadSatelliteCoverage = async (satelliteId: string, satelliteName: string, satelliteType: string, coverageRadius: number): Promise<CoverageData | null> => {
   try {
     // In Vite production builds, files under /src are bundled and not served as static runtime assets.
     // Coverage JSON files must live under /public so they can be fetched at runtime.
-    const data: unknown = satelliteType === 'EUTELSAT'
-      ? (
-          await fetchCoverageJson(`/coverage-prebuilt/${satelliteId}.json`)
-          ?? await fetchCoverageJson(`/coverage/${satelliteId}.json`)
-        )
-      : await fetchCoverageJson(`/coverage/${satelliteId}.json`);
+    const data: unknown = await fetchCoverageJson(`/coverage/${satelliteId}.json`);
     if (!data) return null;
 
     log(`Loading real coverage for satellite ${satelliteId}`);
-    if (isPrebuiltCoverageFileFormat(data)) {
-      return parsePrebuiltCoverageFile(data);
-    }
     if (!isCoverageFileFormat(data)) {
       throw new Error(`Unsupported coverage format for satellite ${satelliteId}`);
     }
@@ -217,6 +243,20 @@ export const loadSatelliteCoverage = async (satelliteId: string, satelliteName: 
     return data;
   }
 }
+
+export const loadSatelliteCoverageMeshIndex = async (satelliteId: string): Promise<Map<string, PrebuiltCoverageMesh>> => {
+  try {
+    const manifest = await fetchCoverageJson(`/coverage-prebuilt/${satelliteId}.manifest.json`);
+    if (manifest && isPrebuiltCoverageManifestV3Format(manifest)) {
+      const meshBuffer = await fetchCoverageArrayBuffer(`/coverage-prebuilt/${manifest.meshFile}`);
+      if (meshBuffer) {
+        return parsePrebuiltCoverageMeshBinaryBundle(manifest, meshBuffer);
+      }
+    }
+  } catch {
+  }
+  return new Map();
+};
 
 export const getCoverageColor = (
   type: string | null,

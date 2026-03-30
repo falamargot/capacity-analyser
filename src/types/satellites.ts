@@ -6,6 +6,7 @@ export interface SatelliteData {
   id: string;
   name: string;
   noradId: string;
+  coverageFileId: string | null;
   type: 'EUTELSAT' | 'ONEWEB';
   orbitType: 'GEO' | 'LEO'; // Mandatory orbit type
   /**
