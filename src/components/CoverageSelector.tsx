@@ -1,4 +1,5 @@
-import { memo } from 'react';
+import { memo, useEffect, useMemo, useState } from 'react';
+import { ChevronDown } from 'lucide-react';
 import type { CandidateCoverage } from '../types/analysis';
 import { getCandidateCoverageKey } from '../utils/geoCoverageSelection';
 
@@ -21,30 +22,62 @@ const statusLabel: Record<CandidateCoverage['status'], string> = {
   unstable: 'Unstable',
 };
 
+const COLLAPSED_VISIBLE_COUNT = 5;
+
 const CoverageSelector = memo<CoverageSelectorProps>(({
   candidateCoverages,
   bestCoverage,
   selectedCoverage = null,
   onSelectCoverage,
 }) => {
-  if (candidateCoverages.length === 0) {
-    return null;
-  }
+  const [isExpanded, setIsExpanded] = useState(false);
 
   const selectedKey = selectedCoverage ? getCandidateCoverageKey(selectedCoverage) : null;
   const bestKey = bestCoverage ? getCandidateCoverageKey(bestCoverage) : null;
+  const candidateListKey = useMemo(
+    () => candidateCoverages.map((candidate) => getCandidateCoverageKey(candidate)).join('|'),
+    [candidateCoverages]
+  );
+  const hasOverflow = candidateCoverages.length > COLLAPSED_VISIBLE_COUNT;
+  const visibleCandidates = isExpanded || !hasOverflow
+    ? candidateCoverages
+    : candidateCoverages.slice(0, COLLAPSED_VISIBLE_COUNT);
+
+  useEffect(() => {
+    setIsExpanded(false);
+  }, [candidateListKey]);
+
+  if (candidateCoverages.length === 0) {
+    return null;
+  }
 
   return (
     <div className="rounded-lg border border-gray-100 bg-gray-50 p-4 dark:border-slate-700 dark:bg-slate-800/50">
       <div className="mb-3 flex items-center justify-between gap-3">
         <h3 className="text-sm font-semibold text-blue-600 dark:text-blue-400">Candidate GEO Coverages</h3>
-        <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-gray-500 dark:text-gray-400">
-          {candidateCoverages.length} candidate{candidateCoverages.length > 1 ? 's' : ''}
-        </span>
+        <div className="flex items-center gap-2">
+          <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-gray-500 dark:text-gray-400">
+            {candidateCoverages.length} candidate{candidateCoverages.length > 1 ? 's' : ''}
+          </span>
+          {hasOverflow && (
+            <button
+              type="button"
+              onClick={() => setIsExpanded((expanded) => !expanded)}
+              className="flex shrink-0 items-center justify-center rounded-md p-1 text-gray-500 transition-colors hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
+              aria-expanded={isExpanded}
+              aria-label={isExpanded ? `Collapse GEO candidates to the top ${COLLAPSED_VISIBLE_COUNT}` : `Expand GEO candidates to show all ${candidateCoverages.length}`}
+              title={isExpanded ? `Show fewer (top ${COLLAPSED_VISIBLE_COUNT})` : `Show all ${candidateCoverages.length} candidates`}
+            >
+              <ChevronDown
+                className={`h-4 w-4 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}
+              />
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="space-y-2">
-        {candidateCoverages.map((candidate) => {
+        {visibleCandidates.map((candidate) => {
           const coverageKey = getCandidateCoverageKey(candidate);
           const isBest = coverageKey === bestKey;
           const isSelected = coverageKey === selectedKey;

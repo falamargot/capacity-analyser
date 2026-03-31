@@ -12,6 +12,7 @@ import SidebarHeroCard from './components/layout/SidebarHeroCard';
 import SatelliteStatusLegend from './components/cesium-globe/SatelliteStatusLegend';
 import ExportButton, { type ExportButtonPayload } from './components/ExportButton';
 import SimulationSettings from './components/layout/SimulationSettings';
+import { WeatherControl, type TerminalType, type WeatherType, toWeatherCondition } from './components/capacity';
 import { SatelliteData } from './types/satellites';
 import type { CandidateCoverage, GEOBeam, MobileAnalysisMetrics, SelectedSNP } from './types/analysis';
 import type { Selection } from './types/analysis';
@@ -137,14 +138,25 @@ interface AnalyzisPosition {
   aircraftCallsign?: string;
 }
 
+const weatherTypeFromCondition = (condition: ReturnType<typeof toWeatherCondition>): WeatherType => {
+  if (condition === 'CLEAR') return 'clear';
+  if (condition === 'CLOUDS') return 'light_rain';
+  return 'heavy_rain';
+};
+
 const App: React.FC = () => {
-  const { coveragePolicy, failedSnps, beamHealthFactors, hsBeamsSet, weatherCondition } = useSimulation();
+  const { coveragePolicy, failedSnps, beamHealthFactors, hsBeamsSet, weatherCondition, setWeatherCondition } = useSimulation();
   const initialViewportSnapshot = getViewportSnapshot();
   const initialSavedSizeScale = typeof window !== 'undefined'
     ? parseFloat(localStorage.getItem('globeSizeScale') ?? '')
     : Number.NaN;
   const hasInitialSizeScaleOverride = Number.isFinite(initialSavedSizeScale) && initialSavedSizeScale > 0;
   const [searchQuery, setSearchQuery] = useState('');
+  const [leoTerminalType, setLeoTerminalType] = useState<TerminalType>('fixed');
+  const [geoTerminalType, setGeoTerminalType] = useState<TerminalType>('fixed');
+  const [weatherType, setWeatherType] = useState<WeatherType>(() => weatherTypeFromCondition(weatherCondition));
+  const [autoWeatherEnabled, setAutoWeatherEnabled] = useState<boolean>(true);
+  const [previousAnalysisSource, setPreviousAnalysisSource] = useState<'earth' | 'aircraft' | undefined>(undefined);
   const [viewportSnapshot, setViewportSnapshot] = useState<ViewportSnapshot>(initialViewportSnapshot);
   const [isMobile, setIsMobile] = useState(() => initialViewportSnapshot.innerWidth < 1100);
   const [isPhone, setIsPhone] = useState(() => initialViewportSnapshot.innerWidth < 920);
@@ -250,6 +262,83 @@ const App: React.FC = () => {
         : undefined,
     };
   }, [selectedAircraft?.callsign, selectedSelection]);
+  const activeAnalysisSource = selectedAircraft ? 'aircraft' : analyzisPosition ? 'earth' : undefined;
+  const activeAnalysisPoint = analyzisPosition || selectedPosition;
+
+  useEffect(() => {
+    if (toWeatherCondition(weatherType) === weatherCondition) return;
+    setWeatherType(weatherTypeFromCondition(weatherCondition));
+  }, [weatherCondition, weatherType]);
+
+  useEffect(() => {
+    if (activeAnalysisSource === 'aircraft') {
+      if (leoTerminalType !== 'aviation') setLeoTerminalType('aviation');
+      if (geoTerminalType !== 'aviation') setGeoTerminalType('aviation');
+      if (weatherType !== 'clear') setWeatherType('clear');
+      setWeatherCondition('CLEAR');
+      if (autoWeatherEnabled) setAutoWeatherEnabled(false);
+    } else if (activeAnalysisSource === 'earth' && previousAnalysisSource === 'aircraft') {
+      if (leoTerminalType === 'aviation') setLeoTerminalType('fixed');
+      if (geoTerminalType === 'aviation') setGeoTerminalType('fixed');
+    }
+
+    setPreviousAnalysisSource(activeAnalysisSource);
+  }, [
+    activeAnalysisSource,
+    autoWeatherEnabled,
+    geoTerminalType,
+    leoTerminalType,
+    previousAnalysisSource,
+    setWeatherCondition,
+    weatherType,
+  ]);
+
+  useEffect(() => {
+    if (!autoWeatherEnabled || !activeAnalysisPoint) return;
+
+    let cancelled = false;
+
+    const mapPrecipToWeatherType = (precipMmPerHour: number): WeatherType => {
+      if (!isFinite(precipMmPerHour)) return 'clear';
+      if (precipMmPerHour <= 0.0) return 'clear';
+      if (precipMmPerHour <= 1.0) return 'light_rain';
+      if (precipMmPerHour <= 5.0) return 'heavy_rain';
+      return 'storm';
+    };
+
+    const fetchWeather = async () => {
+      try {
+        const url = `https://api.open-meteo.com/v1/forecast?latitude=${activeAnalysisPoint.lat}&longitude=${activeAnalysisPoint.lng}&current=precipitation,rain,showers&timezone=UTC`;
+        const res = await fetch(url);
+        const data = await res.json();
+        const precipitation = Number(data?.current?.precipitation ?? 0);
+        const nextType = mapPrecipToWeatherType(precipitation);
+
+        if (!cancelled) {
+          setWeatherType(nextType);
+          setWeatherCondition(toWeatherCondition(nextType));
+        }
+      } catch {
+        // Keep current weather selection on API failure.
+      }
+    };
+
+    fetchWeather();
+
+    const intervalMs = activeAnalysisSource === 'aircraft' ? 30_000 : 0;
+    const interval = intervalMs > 0 ? setInterval(fetchWeather, intervalMs) : null;
+
+    return () => {
+      cancelled = true;
+      if (interval) clearInterval(interval);
+    };
+  }, [activeAnalysisPoint, activeAnalysisSource, autoWeatherEnabled, setWeatherCondition]);
+
+  const handleWeatherTypeChange = useCallback((nextType: WeatherType) => {
+    setWeatherType(nextType);
+    setWeatherCondition(toWeatherCondition(nextType));
+    setAutoWeatherEnabled(false);
+  }, [setWeatherCondition]);
 
   useEffect(() => {
     const timeout = setTimeout(() => {
@@ -378,7 +467,6 @@ const App: React.FC = () => {
     beamHealthFactors,
     hsBeams: hsBeamsSet,
   }), [coveragePolicy, weatherCondition, beamHealthFactors, hsBeamsSet]);
-  const activeAnalysisPoint = analyzisPosition || selectedPosition;
   const [regulatoryReady, setRegulatoryReady] = useState(false);
 
   useEffect(() => {
@@ -1454,10 +1542,13 @@ const App: React.FC = () => {
     inspectedSNP, snpConnectedSatellites, showRegulatoryOverlay, handleToggleRegulatoryOverlay, handleSizeScaleReset,
     isPhone, isMobileAnalysisPanelOpen,
   ]);
+  const desktopCompactProgress = isMobile ? 0 : getCompactDesktopProgress(viewportSnapshot);
+  const useCompactDesktopSidebar = desktopCompactProgress >= 0.35;
+  const useCompactDesktopHeader = desktopCompactProgress >= 0.2;
+  const desktopSidebarWidth = Math.round(lerp(500, 405, desktopCompactProgress));
+  const desktopLayoutGap = Math.round(lerp(32, 20, desktopCompactProgress));
 
   const desktopSidebarHero = useMemo(() => {
-    const heroAnalysisSource = selectedAircraft ? 'aircraft' : analyzisPosition ? 'earth' : undefined;
-
     if (selectedSatellite) {
       const heroTone = selectedSatellite.opsStatus !== 'operational'
         ? 'satelliteInactive'
@@ -1469,6 +1560,7 @@ const App: React.FC = () => {
         eyebrow: 'Active Target',
         title: selectedSatellite.name,
         subtitle: `${selectedSatellite.orbitType} satellite inspection`,
+        footer: null,
         tone: heroTone,
         badges: [
           { label: selectedSatellite.type, tone: selectedSatellite.type === 'EUTELSAT' ? 'blue' as const : 'pink' as const },
@@ -1483,6 +1575,7 @@ const App: React.FC = () => {
         eyebrow: 'Ground Segment',
         title: inspectedSNP.name,
         subtitle: `${inspectedSNP.region} ground node`,
+        footer: null,
         tone: 'snp' as const,
         badges: [
           { label: 'SNP', tone: 'amber' as const },
@@ -1496,6 +1589,7 @@ const App: React.FC = () => {
         eyebrow: 'Ground Segment',
         title: selectedGateway.name,
         subtitle: 'GEO gateway inspection',
+        footer: null,
         tone: 'gateway' as const,
         badges: [
           { label: 'Gateway', tone: 'blue' as const },
@@ -1510,6 +1604,7 @@ const App: React.FC = () => {
         eyebrow: 'Air Traffic',
         title: selectedAircraft.callsign || selectedAircraft.icao24,
         subtitle: 'Aircraft analysis target',
+        footer: null,
         tone: 'aircraft' as const,
         badges: [
           { label: 'Aircraft', tone: 'blue' as const },
@@ -1523,6 +1618,7 @@ const App: React.FC = () => {
         eyebrow: 'Maritime Traffic',
         title: selectedVessel.name || selectedVessel.mmsi,
         subtitle: 'Maritime analysis target',
+        footer: null,
         tone: 'vessel' as const,
         badges: [
           { label: 'Vessel', tone: 'teal' as const },
@@ -1531,18 +1627,30 @@ const App: React.FC = () => {
       };
     }
 
-    const activePoint = analyzisPosition || selectedPosition;
-    if (activePoint) {
+    if (activeAnalysisPoint) {
       const nearestLocationLabel = [nearestLocation?.city, nearestLocation?.country].filter(Boolean).join(', ');
+      const footer = activeAnalysisSource !== 'aircraft' ? (
+        <WeatherControl
+          terminalType="fixed"
+          weatherType={weatherType}
+          onWeatherTypeChange={handleWeatherTypeChange}
+          autoWeatherEnabled={autoWeatherEnabled}
+          onAutoWeatherChange={setAutoWeatherEnabled}
+          compact={useCompactDesktopSidebar}
+          showLabel
+          inline
+        />
+      ) : null;
 
       return {
-        eyebrow: heroAnalysisSource === 'aircraft' ? 'Airborne Analysis' : 'Surface Analysis',
-        title: formatCoordinates({ lat: activePoint.lat, lng: activePoint.lng }),
-        subtitle: heroAnalysisSource === 'aircraft'
+        eyebrow: activeAnalysisSource === 'aircraft' ? 'Airborne Analysis' : 'Surface Analysis',
+        title: formatCoordinates({ lat: activeAnalysisPoint.lat, lng: activeAnalysisPoint.lng }),
+        subtitle: activeAnalysisSource === 'aircraft'
           ? `${selectedAircraft?.callsign || 'Aircraft'} corridor`
-          : (nearestLocationLabel || (activePoint.altitude ? `Altitude ${activePoint.altitude.toFixed(1)} km` : 'Ground position')),
+          : (nearestLocationLabel || (activeAnalysisPoint.altitude ? `Altitude ${activeAnalysisPoint.altitude.toFixed(1)} km` : 'Ground position')),
+        footer,
         tone: 'position' as const,
-        badges: heroAnalysisSource === 'aircraft'
+        badges: activeAnalysisSource === 'aircraft'
           ? [{ label: 'Aircraft', tone: 'slate' as const }]
           : [],
       };
@@ -1552,22 +1660,27 @@ const App: React.FC = () => {
       eyebrow: 'Ready',
       title: 'No active target',
       subtitle: 'Click on the globe to analyze satellite capacity',
+      footer: null,
       tone: 'idle' as const,
       badges: [
         { label: satelliteScope, tone: 'slate' as const },
       ],
     };
   }, [
-    analyzisPosition,
+    activeAnalysisPoint,
+    activeAnalysisSource,
+    autoWeatherEnabled,
     failedSnps,
     inspectedSNP,
     nearestLocation,
     selectedGateway,
     satelliteScope,
     selectedAircraft,
-    selectedPosition,
     selectedSatellite,
     selectedVessel,
+    handleWeatherTypeChange,
+    useCompactDesktopSidebar,
+    weatherType,
   ]);
 
   const mobileBackgroundMetricsCollectorVisible = isMobile
@@ -1608,11 +1721,6 @@ const App: React.FC = () => {
 
   const entryPointCardClassName = 'group relative overflow-hidden rounded-[20px] border border-slate-200/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.94),rgba(248,250,252,0.84))] p-3.5 shadow-[0_16px_34px_-30px_rgba(15,23,42,0.7)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_22px_46px_-30px_rgba(37,99,235,0.28)] dark:border-slate-700 dark:bg-[linear-gradient(180deg,rgba(15,23,42,0.78),rgba(15,23,42,0.62))]';
   const entryPointDescriptionClassName = 'mt-0.5 truncate text-[11px] leading-4 text-slate-500 dark:text-slate-400';
-  const desktopCompactProgress = isMobile ? 0 : getCompactDesktopProgress(viewportSnapshot);
-  const useCompactDesktopSidebar = desktopCompactProgress >= 0.35;
-  const useCompactDesktopHeader = desktopCompactProgress >= 0.2;
-  const desktopSidebarWidth = Math.round(lerp(500, 405, desktopCompactProgress));
-  const desktopLayoutGap = Math.round(lerp(32, 20, desktopCompactProgress));
 
   return (
     <div className="min-h-screen bg-white dark:bg-slate-950 transition-colors duration-300">
@@ -2121,14 +2229,22 @@ const App: React.FC = () => {
                 <Suspense fallback={null}>
                   <CapacityDetails
                     satellites={filteredSatellites}
-                    selectedPoint={analyzisPosition || selectedPosition}
+                    selectedPoint={activeAnalysisPoint}
                     selectedSatellite={selectedSatellite}
                     autoSelectedLEOSatellite={resolvedAutoLEO}
                     autoSelectedGEOSatellite={activeGeoSatellite}
                     satelliteScope={satelliteScope}
                     onSatelliteClick={handleSatelliteClick}
-                    analysisSource={selectedAircraft ? 'aircraft' : analyzisPosition ? 'earth' : undefined}
+                    analysisSource={activeAnalysisSource}
                     aircraftCallsign={selectedAircraft?.callsign}
+                    leoTerminalType={leoTerminalType}
+                    onLeoTerminalTypeChange={setLeoTerminalType}
+                    geoTerminalType={geoTerminalType}
+                    onGeoTerminalTypeChange={setGeoTerminalType}
+                    weatherType={weatherType}
+                    onWeatherTypeChange={handleWeatherTypeChange}
+                    autoWeatherEnabled={autoWeatherEnabled}
+                    onAutoWeatherChange={setAutoWeatherEnabled}
                     selectedSNP={selectedSNP}
                     candidateCoverages={candidateCoverages}
                     selectedCoverage={selectedCoverage}
@@ -2242,14 +2358,22 @@ const App: React.FC = () => {
                             ) : (
                               <CapacityDetails
                                 satellites={filteredSatellites}
-                                selectedPoint={analyzisPosition || selectedPosition}
+                                selectedPoint={activeAnalysisPoint}
                                 selectedSatellite={selectedSatellite}
                                 autoSelectedLEOSatellite={resolvedAutoLEO}
                                 autoSelectedGEOSatellite={activeGeoSatellite}
                                 satelliteScope={satelliteScope}
                                 onSatelliteClick={handleSatelliteClick}
-                                analysisSource={selectedAircraft ? 'aircraft' : analyzisPosition ? 'earth' : undefined}
+                                analysisSource={activeAnalysisSource}
                                 aircraftCallsign={selectedAircraft?.callsign}
+                                leoTerminalType={leoTerminalType}
+                                onLeoTerminalTypeChange={setLeoTerminalType}
+                                geoTerminalType={geoTerminalType}
+                                onGeoTerminalTypeChange={setGeoTerminalType}
+                                weatherType={weatherType}
+                                onWeatherTypeChange={handleWeatherTypeChange}
+                                autoWeatherEnabled={autoWeatherEnabled}
+                                onAutoWeatherChange={setAutoWeatherEnabled}
                                 selectedSNP={selectedSNP}
                                 candidateCoverages={candidateCoverages}
                                 selectedCoverage={selectedCoverage}
@@ -2306,6 +2430,7 @@ const App: React.FC = () => {
                   eyebrow={desktopSidebarHero.eyebrow}
                   title={desktopSidebarHero.title}
                   subtitle={desktopSidebarHero.subtitle}
+                  footer={desktopSidebarHero.footer}
                   tone={desktopSidebarHero.tone}
                   badges={desktopSidebarHero.badges}
                   compact={useCompactDesktopSidebar}
@@ -2332,14 +2457,22 @@ const App: React.FC = () => {
                     ) : (
                       <CapacityDetails
                         satellites={filteredSatellites}
-                        selectedPoint={analyzisPosition || selectedPosition}
+                        selectedPoint={activeAnalysisPoint}
                         selectedSatellite={selectedSatellite}
                         autoSelectedLEOSatellite={resolvedAutoLEO}
                         autoSelectedGEOSatellite={activeGeoSatellite}
                         satelliteScope={satelliteScope}
                         onSatelliteClick={handleSatelliteClick}
-                        analysisSource={selectedAircraft ? 'aircraft' : analyzisPosition ? 'earth' : undefined}
+                        analysisSource={activeAnalysisSource}
                         aircraftCallsign={selectedAircraft?.callsign}
+                        leoTerminalType={leoTerminalType}
+                        onLeoTerminalTypeChange={setLeoTerminalType}
+                        geoTerminalType={geoTerminalType}
+                        onGeoTerminalTypeChange={setGeoTerminalType}
+                        weatherType={weatherType}
+                        onWeatherTypeChange={handleWeatherTypeChange}
+                        autoWeatherEnabled={autoWeatherEnabled}
+                        onAutoWeatherChange={setAutoWeatherEnabled}
                         selectedSNP={selectedSNP}
                         candidateCoverages={candidateCoverages}
                         selectedCoverage={selectedCoverage}

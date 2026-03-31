@@ -4,6 +4,7 @@ import { PerformancePanel } from '../MetricWidgets';
 import { SectionTooltip } from '../SectionTooltip';
 import PassBeamTimeline from '../PassBeamTimeline';
 import CollapsibleSection from '../layout/CollapsibleSection';
+import TerminalConfig, { TERMINAL_PROFILES, type WeatherType } from './TerminalConfig';
 import { SPEED_OF_LIGHT_RADIO_KM_S } from '../../utils/capacityCalculator';
 import type { SatelliteData } from '../../types/satellites';
 import type { BeamHealthData, WeatherCondition } from '../../utils/realisticSimulation';
@@ -11,7 +12,6 @@ import type { RegulatoryResult } from '../../services/regulatoryService';
 import type { BeamLoadResult } from '../../utils/capacityLayer';
 import type { ServiceLayerResult } from '../../utils/serviceLayer';
 import type { TerminalType } from './TerminalConfig';
-import { TERMINAL_PROFILES } from './TerminalConfig';
 import type { LeoConnectivityViewModel } from '../../utils/leoServiceViewModel';
 import LeoStatusCards from './LeoStatusCards';
 
@@ -128,6 +128,11 @@ interface LEOConnectivitySectionProps {
   mobileLeoMetrics: { rtt: number; downlinkGbps: number; uplinkGbps: number } | null;
   activePoint: { lat: number; lng: number; altitude?: number } | null;
   terminalType: TerminalType;
+  onTerminalTypeChange: (type: TerminalType) => void;
+  weatherType: WeatherType;
+  onWeatherTypeChange: (type: WeatherType) => void;
+  autoWeatherEnabled: boolean;
+  onAutoWeatherChange: (enabled: boolean) => void;
   analysisSource?: 'earth' | 'aircraft';
   aircraftCallsign?: string;
   onSatelliteClick?: (satellite: SatelliteData | null) => void;
@@ -141,6 +146,7 @@ interface LEOConnectivitySectionProps {
   beamLoadResult?: BeamLoadResult | null;
   serviceLayerResult?: ServiceLayerResult | null;
   leoServiceViewModel?: LeoConnectivityViewModel | null;
+  showEstimatedPerformance?: boolean;
 }
 
 const RTT_VISUAL_SCALE_MAX_MS = 600;
@@ -152,6 +158,11 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
   mobileLeoMetrics,
   activePoint,
   terminalType,
+  onTerminalTypeChange,
+  weatherType,
+  onWeatherTypeChange,
+  autoWeatherEnabled,
+  onAutoWeatherChange,
   analysisSource,
   aircraftCallsign,
   onSatelliteClick,
@@ -161,6 +172,7 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
   beamHealthFactors,
   serviceLayerResult,
   leoServiceViewModel,
+  showEstimatedPerformance = true,
 }) => {
   const userLabel = analysisSource === 'aircraft' && aircraftCallsign ? aircraftCallsign : 'User';
   const showPerformanceBeforeRadioPath = analysisSource !== 'aircraft';
@@ -229,8 +241,20 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
         <SectionTooltip content="Low Earth Orbit connectivity block. Shows how the user terminal connects through the nearest OneWeb LEO satellite and its associated SNP (Satellite Network Point) backhaul gateway." />
       </h3>
       <div className="space-y-4">
+        <TerminalConfig
+          terminalType={terminalType}
+          onTerminalTypeChange={onTerminalTypeChange}
+          weatherType={weatherType}
+          onWeatherTypeChange={onWeatherTypeChange}
+          autoWeatherEnabled={autoWeatherEnabled}
+          onAutoWeatherChange={onAutoWeatherChange}
+          analysisSource={analysisSource}
+          compact
+          showWeather={false}
+          className="mb-0"
+        />
         <LeoStatusCards viewModel={leoServiceViewModel ?? null} />
-        {showPerformanceBeforeRadioPath && estimatedPerformanceSection}
+        {showEstimatedPerformance && showPerformanceBeforeRadioPath && estimatedPerformanceSection}
 
         {/* LEO Radio Path */}
         <CollapsibleSection
@@ -351,7 +375,7 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
             />
           </div>
         )}
-        {!showPerformanceBeforeRadioPath && estimatedPerformanceSection}
+        {showEstimatedPerformance && !showPerformanceBeforeRadioPath && estimatedPerformanceSection}
 
       </div>
     </>

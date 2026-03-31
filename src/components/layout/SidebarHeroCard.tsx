@@ -1,4 +1,4 @@
-import { memo } from 'react';
+import { memo, type ReactNode } from 'react';
 import { RotateCcw } from 'lucide-react';
 
 type HeroTone = 'satelliteLeo' | 'satelliteGeo' | 'satelliteInactive' | 'gateway' | 'snp' | 'aircraft' | 'vessel' | 'position' | 'idle';
@@ -13,6 +13,7 @@ interface SidebarHeroCardProps {
   eyebrow: string;
   title: string;
   subtitle: string;
+  footer?: ReactNode;
   tone?: HeroTone;
   badges?: SidebarHeroBadge[];
   compact?: boolean;
@@ -45,6 +46,7 @@ const SidebarHeroCard = memo<SidebarHeroCardProps>(({
   eyebrow,
   title,
   subtitle,
+  footer,
   tone = 'idle',
   badges = [],
   compact = false,
@@ -76,6 +78,11 @@ const SidebarHeroCard = memo<SidebarHeroCardProps>(({
                       {badge.label}
                     </span>
                   ))}
+                </div>
+              )}
+              {footer && (
+                <div className={`mt-3 border-t border-slate-200/80 pt-3 dark:border-slate-700/80 ${compact ? 'text-[12px]' : 'text-sm'}`}>
+                  {footer}
                 </div>
               )}
             </div>

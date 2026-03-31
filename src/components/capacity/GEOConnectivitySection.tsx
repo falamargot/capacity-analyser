@@ -4,11 +4,11 @@ import { PerformancePanel } from '../MetricWidgets';
 import { SectionTooltip } from '../SectionTooltip';
 import CoverageSelector from '../CoverageSelector';
 import CollapsibleSection from '../layout/CollapsibleSection';
+import TerminalConfig, { TERMINAL_PROFILES, type WeatherType } from './TerminalConfig';
 import { SPEED_OF_LIGHT_RADIO_KM_S } from '../../utils/capacityCalculator';
 import type { SatelliteData } from '../../types/satellites';
 import type { CandidateCoverage } from '../../types/analysis';
 import type { TerminalType } from './TerminalConfig';
-import { TERMINAL_PROFILES } from './TerminalConfig';
 
 // ─── Sub-component: LatencyBreakdownCard ──────────────────────────────────────
 
@@ -126,6 +126,11 @@ interface GEOConnectivitySectionProps {
     weatherLabel: string;
   };
   terminalType: TerminalType;
+  onTerminalTypeChange: (type: TerminalType) => void;
+  weatherType: WeatherType;
+  onWeatherTypeChange: (type: WeatherType) => void;
+  autoWeatherEnabled: boolean;
+  onAutoWeatherChange: (enabled: boolean) => void;
   candidateCoverages: CandidateCoverage[];
   bestCoverage: CandidateCoverage | null;
   selectedCoverage: CandidateCoverage | null;
@@ -133,6 +138,7 @@ interface GEOConnectivitySectionProps {
   analysisSource?: 'earth' | 'aircraft';
   aircraftCallsign?: string;
   onSatelliteClick?: (satellite: SatelliteData | null) => void;
+  showEstimatedPerformance?: boolean;
 }
 
 const RTT_VISUAL_SCALE_MAX_MS = 600;
@@ -142,6 +148,11 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
   geoGeometry,
   calculateGEOPerformance,
   terminalType,
+  onTerminalTypeChange,
+  weatherType,
+  onWeatherTypeChange,
+  autoWeatherEnabled,
+  onAutoWeatherChange,
   candidateCoverages,
   bestCoverage,
   selectedCoverage,
@@ -149,6 +160,7 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
   analysisSource,
   aircraftCallsign,
   onSatelliteClick,
+  showEstimatedPerformance = true,
 }) => {
   const userLabel = analysisSource === 'aircraft' && aircraftCallsign ? aircraftCallsign : 'User';
   const showPerformanceBeforeRadioPath = analysisSource !== 'aircraft';
@@ -205,6 +217,21 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
         <SectionTooltip content="Geostationary orbit connectivity block. Shows how the user terminal connects through a Eutelsat GEO satellite and its nearest eligible ground gateway." />
       </h3>
 
+      <div className="mb-4">
+        <TerminalConfig
+          terminalType={terminalType}
+          onTerminalTypeChange={onTerminalTypeChange}
+          weatherType={weatherType}
+          onWeatherTypeChange={onWeatherTypeChange}
+          autoWeatherEnabled={autoWeatherEnabled}
+          onAutoWeatherChange={onAutoWeatherChange}
+          analysisSource={analysisSource}
+          compact
+          showWeather={false}
+          className="mb-0"
+        />
+      </div>
+
       {candidateCoverages.length > 0 && (
         <div className="mb-4">
           <CoverageSelector
@@ -217,7 +244,7 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
       )}
 
       <div className="space-y-4">
-        {showPerformanceBeforeRadioPath && estimatedPerformanceSection}
+        {showEstimatedPerformance && showPerformanceBeforeRadioPath && estimatedPerformanceSection}
         {/* GEO Radio Path */}
         <CollapsibleSection
           storageKey="geo-radio-path"
@@ -299,7 +326,7 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
             </div>
           )}
         </LatencyBreakdownCard>
-        {!showPerformanceBeforeRadioPath && estimatedPerformanceSection}
+        {showEstimatedPerformance && !showPerformanceBeforeRadioPath && estimatedPerformanceSection}
       </div>
     </>
   );

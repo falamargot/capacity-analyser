@@ -22,16 +22,17 @@ import type { RegulatoryResult } from '../services/regulatoryService';
 import type { BeamLoadResult } from '../utils/capacityLayer';
 import type { ServiceLayerResult } from '../utils/serviceLayer';
 import type { LeoConnectivityViewModel } from '../utils/leoServiceViewModel';
+import { PerformancePanel } from './MetricWidgets';
+import { SectionTooltip } from './SectionTooltip';
+import CollapsibleSection from './layout/CollapsibleSection';
 
 // ─── Extracted sub-components ─────────────────────────────────────────────────
 import {
   AnalysisHeader,
-  TerminalConfig,
   LEOConnectivitySection,
   GEOConnectivitySection,
   TERMINAL_PROFILES,
   WEATHER_PROFILES,
-  toWeatherCondition,
   getWeatherFactor,
 } from './capacity';
 import type { TerminalType, WeatherType } from './capacity';
@@ -68,16 +69,40 @@ interface CapacityDetailsProps {
   beamLoadResultOverride?: BeamLoadResult | null;
   serviceLayerResultOverride?: ServiceLayerResult | null;
   leoServiceViewModelOverride?: LeoConnectivityViewModel | null;
+  leoTerminalType: TerminalType;
+  onLeoTerminalTypeChange: (type: TerminalType) => void;
+  geoTerminalType: TerminalType;
+  onGeoTerminalTypeChange: (type: TerminalType) => void;
+  weatherType: WeatherType;
+  onWeatherTypeChange: (type: WeatherType) => void;
+  autoWeatherEnabled: boolean;
+  onAutoWeatherChange: (enabled: boolean) => void;
 }
 
-const weatherTypeFromCondition = (condition: ReturnType<typeof toWeatherCondition>): WeatherType => {
-  if (condition === 'CLEAR') return 'clear';
-  if (condition === 'CLOUDS') return 'light_rain';
-  return 'heavy_rain';
+const RTT_VISUAL_SCALE_MAX_MS = 600;
+
+const formatGeoStabilityTooltip = (elevationDeg: number, isUserLinkUnstable: boolean): string => {
+  const currentRule = isUserLinkUnstable
+    ? 'Current status: Unstable (elevation is below 5 deg).'
+    : elevationDeg >= 40
+      ? 'Current status: High (elevation is at least 40 deg).'
+      : elevationDeg >= 25
+        ? 'Current status: Medium (elevation is between 25 deg and 40 deg).'
+        : elevationDeg >= 5
+          ? 'Current status: Low (elevation is between 5 deg and 25 deg).'
+          : 'Current status: Unstable (elevation is below 5 deg).';
+
+  return `GEO stability rule:
+  - Unstable below 5 deg elevation
+  - Low from 5 deg to below 25 deg
+  - Medium from 25 deg to below 40 deg
+  - High at 40 deg and above
+Current elevation: ${elevationDeg.toFixed(1)} deg.
+${currentRule}`;
 };
 
 // Performance optimization: Memoize component to prevent unnecessary re-renders
-const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint, selectedSatellite, autoSelectedLEOSatellite, satelliteScope, onMetricsChange, onSatelliteClick, analysisSource, aircraftCallsign, selectedSNP: propSelectedSNP, candidateCoverages = [], selectedCoverage = null, onSelectCoverage, selectedGeoMission, selectedGeoCoverageName, selectedGeoBeamId, onSelectGeoMission, onSelectGeoCoverage, onSelectGeoBeam, onSnpClick, compactDesktop = false, externalHeader = false, globeRef, cesiumViewerRef, onExportStateChange, regulatoryResultOverride = null, beamLoadResultOverride = null, serviceLayerResultOverride = null, leoServiceViewModelOverride = null }) => {
+const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint, selectedSatellite, autoSelectedLEOSatellite, satelliteScope, onMetricsChange, onSatelliteClick, analysisSource, aircraftCallsign, selectedSNP: propSelectedSNP, candidateCoverages = [], selectedCoverage = null, onSelectCoverage, selectedGeoMission, selectedGeoCoverageName, selectedGeoBeamId, onSelectGeoMission, onSelectGeoCoverage, onSelectGeoBeam, onSnpClick, compactDesktop = false, externalHeader = false, globeRef, cesiumViewerRef, onExportStateChange, regulatoryResultOverride = null, beamLoadResultOverride = null, serviceLayerResultOverride = null, leoServiceViewModelOverride = null, leoTerminalType, onLeoTerminalTypeChange, geoTerminalType, onGeoTerminalTypeChange, weatherType, onWeatherTypeChange, autoWeatherEnabled, onAutoWeatherChange }) => {
   // Feature 1+3: read simulation context for failedSnps, hsBeamsSet
   const {
     coveragePolicy,
@@ -85,7 +110,6 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
     beamHealthFactors,
     hsBeamsSet,
     weatherCondition: ctxWeather,
-    setWeatherCondition,
   } = useSimulation();
   const simulationState = useMemo(() => buildSimulationStateSnapshot({
     coveragePolicy,
@@ -108,51 +132,15 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
     coveredSatellites: []
   });
 
-  const [terminalType, setTerminalType] = useState<TerminalType>('fixed');
-  const [previousAnalysisSource, setPreviousAnalysisSource] = useState<'earth' | 'aircraft' | undefined>(undefined);
-
-  // Auto-select aviation terminal type when aircraft is selected
-  useEffect(() => {
-    if (analysisSource === 'aircraft' && terminalType !== 'aviation') {
-      setTerminalType('aviation');
-    } else if (analysisSource === 'earth' && previousAnalysisSource === 'aircraft' && terminalType === 'aviation') {
-      // Reset to fixed only when switching from aircraft to earth analysis
-      setTerminalType('fixed');
-    }
-
-    // Update previous analysis source for next comparison
-    setPreviousAnalysisSource(analysisSource);
-  }, [analysisSource, terminalType, previousAnalysisSource]);
-
-
-  // ── Pillar 5: Physics-based weather attenuation ───────────────────────────
-  // Maps UI weather type → real dB loss → linear power ratio
-  // Clear Sky: 0 dB  | Clouds: -1.5 dB  | Rain: -5.0 dB
-  const [weatherType, setWeatherType] = useState<WeatherType>(() => weatherTypeFromCondition(ctxWeather));
-  const [autoWeatherEnabled, setAutoWeatherEnabled] = useState<boolean>(true);
   const [activeConnTab, setActiveConnTab] = useState<'LEO' | 'GEO'>(
     satelliteScope === 'GEO' ? 'GEO' : 'LEO'
   );
-
-  useEffect(() => {
-    if (toWeatherCondition(weatherType) === ctxWeather) return;
-    setWeatherType(weatherTypeFromCondition(ctxWeather));
-  }, [ctxWeather, weatherType]);
 
   // Sync active tab when scope changes
   useEffect(() => {
     if (satelliteScope === 'LEO') setActiveConnTab('LEO');
     else if (satelliteScope === 'GEO') setActiveConnTab('GEO');
   }, [satelliteScope]);
-
-  // Force Clear Sky for aviation terminals and disable auto-weather
-  useEffect(() => {
-    if (terminalType === 'aviation') {
-      setWeatherType('clear');
-      setWeatherCondition('CLEAR');
-      setAutoWeatherEnabled(false);
-    }
-  }, [terminalType, setWeatherCondition]);
 
   // Fallback approximation kept for SERVICE_ZONE mode, where individual beam
   // geometry is intentionally abstracted away.
@@ -169,11 +157,11 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
     const fallbackPropagationRttMs = (2 * oneWayDistanceKm / SPEED_OF_LIGHT_RADIO_KM_S) * 1000;
     const rtt = estimatedRttMs ?? Math.max(5, fallbackPropagationRttMs);
 
-    const profile = TERMINAL_PROFILES[terminalType];
+    const profile = TERMINAL_PROFILES[leoTerminalType];
     const MAX_USER_DL_Gbps = profile.maxDlGbps;
     const MAX_USER_UL_Gbps = profile.maxUlGbps;
     // Aviation terminals are above clouds, so weather factor is always 1.0
-    const weatherFactor = getWeatherFactor(weatherType, terminalType === 'aviation');
+    const weatherFactor = getWeatherFactor(weatherType, leoTerminalType === 'aviation');
 
     // Limiting link = the weaker geometry between user<->sat and snp<->sat
     const limitingElevation = Math.min(userLEOElevation, snpLEOElevation);
@@ -242,7 +230,7 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
       weatherFactor,
       weatherLabel: WEATHER_PROFILES[weatherType].label
     };
-  }, [terminalType, weatherType]);
+  }, [leoTerminalType, weatherType]);
 
   const calculateBeamAwareLEOPerformance = useCallback((
     deliveredDownlinkMbps: number,
@@ -251,9 +239,9 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
     estimatedRttMs: number | null,
     fallbackPropagationRttMs: number
   ) => {
-    const profile = TERMINAL_PROFILES[terminalType];
+    const profile = TERMINAL_PROFILES[leoTerminalType];
     const maxDlMbps = profile.maxDlGbps * 1000;
-    const weatherFactor = getWeatherFactor(weatherType, terminalType === 'aviation');
+    const weatherFactor = getWeatherFactor(weatherType, leoTerminalType === 'aviation');
     const downlinkMbps = Math.max(0, Math.min(deliveredDownlinkMbps, maxDlMbps));
     const performanceFactor = maxDlMbps > 0 ? Math.min(downlinkMbps / maxDlMbps, 1) : 0;
     const rtt = estimatedRttMs ?? Math.max(5, fallbackPropagationRttMs);
@@ -279,11 +267,11 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
       weatherFactor,
       weatherLabel: WEATHER_PROFILES[weatherType].label
     };
-  }, [terminalType, weatherType]);
+  }, [leoTerminalType, weatherType]);
 
   const calculateGEOPerformance = useCallback((elevationDeg: number) => {
-    const profile = TERMINAL_PROFILES[terminalType];
-    const weatherFactor = getWeatherFactor(weatherType, terminalType === 'aviation');
+    const profile = TERMINAL_PROFILES[geoTerminalType];
+    const weatherFactor = getWeatherFactor(weatherType, geoTerminalType === 'aviation');
 
     if (elevationDeg < 5) {
       return {
@@ -319,57 +307,12 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
       weatherFactor,
       weatherLabel: WEATHER_PROFILES[weatherType].label
     };
-  }, [terminalType, weatherType]);
+  }, [geoTerminalType, weatherType]);
 
   // Use selectedPoint as the unified active point
   const activePoint = useMemo(() => {
     return selectedPoint;
   }, [selectedPoint]);
-
-  // Auto-weather selection using Open-Meteo (no API key)
-  useEffect(() => {
-    if (!autoWeatherEnabled) return;
-    if (!activePoint) return;
-
-    let cancelled = false;
-
-    const mapPrecipToWeatherType = (precipMmPerHour: number): WeatherType => {
-      if (!isFinite(precipMmPerHour)) return 'clear';
-      if (precipMmPerHour <= 0.0) return 'clear';
-      if (precipMmPerHour <= 1.0) return 'light_rain';
-      if (precipMmPerHour <= 5.0) return 'heavy_rain';
-      return 'storm';
-    };
-
-    const fetchWeather = async () => {
-      try {
-        const url = `https://api.open-meteo.com/v1/forecast?latitude=${activePoint.lat}&longitude=${activePoint.lng}&current=precipitation,rain,showers&timezone=UTC`;
-        const res = await fetch(url);
-        const data = await res.json();
-
-        const current = data?.current;
-        const precipitation = Number(current?.precipitation ?? 0);
-        const nextType = mapPrecipToWeatherType(precipitation);
-
-        if (!cancelled) {
-          setWeatherType(nextType);
-          setWeatherCondition(toWeatherCondition(nextType));
-        }
-      } catch {
-        // If the API fails, keep the existing selection
-      }
-    };
-
-    fetchWeather();
-
-    const intervalMs = analysisSource === 'aircraft' ? 30_000 : 0;
-    const interval = intervalMs > 0 ? setInterval(fetchWeather, intervalMs) : null;
-
-    return () => {
-      cancelled = true;
-      if (interval) clearInterval(interval);
-    };
-  }, [activePoint, autoWeatherEnabled, analysisSource, setWeatherCondition]);
 
   // Get resolved LEO connectivity data for display
   const resolvedLEOConnectivity = useMemo(() => {
@@ -563,6 +506,121 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
     return calculateGEOPerformance(geoGeometry.userToSatellite.elevationDeg);
   }, [resolvedGEOConnectivity, geoGeometry, calculateGEOPerformance]);
 
+  const activeEstimatedPerformanceScope = satelliteScope === 'ALL' ? activeConnTab : satelliteScope;
+  const isLeoPerformanceDiagnosticOnly = leoServiceViewModel?.decisionDriver === 'REGULATORY'
+    && leoServiceViewModel.serviceStatus === 'BLOCKED';
+  const leoDiagnosticMessage = 'Underlying RF geometry only — service blocked by regulation.';
+
+  const bottomEstimatedPerformanceSection = useMemo(() => {
+    if (!selectedPoint) return null;
+
+    if (activeEstimatedPerformanceScope === 'LEO') {
+      return (
+        <CollapsibleSection
+          storageKey="leo-performance"
+          title={<>{isLeoPerformanceDiagnosticOnly ? 'Estimated Performance (Diagnostic only)' : 'Estimated Performance'}<SectionTooltip content="Predicted downlink/uplink throughput and round-trip latency based on LEO link geometry, beam health factors, weather attenuation, and the current corridor DC level." /></>}
+          subtitle={isLeoPerformanceDiagnosticOnly ? leoDiagnosticMessage : undefined}
+          accentColor="#db2777"
+          defaultOpen={true}
+          collapsible={false}
+        >
+          {leoPerformance ? (
+            <PerformancePanel
+              rtt={mobileLeoMetrics?.rtt ?? null}
+              downlinkGbps={mobileLeoMetrics?.downlinkGbps ?? null}
+              uplinkGbps={mobileLeoMetrics?.uplinkGbps ?? null}
+              maxDlGbps={TERMINAL_PROFILES[leoTerminalType].maxDlGbps}
+              maxUlGbps={TERMINAL_PROFILES[leoTerminalType].maxUlGbps}
+              performanceFactor={leoPerformance.performanceFactor}
+              accentColor="#db2777"
+              rttMaxMs={RTT_VISUAL_SCALE_MAX_MS}
+              rttLabel="End-to-End LEO RTT"
+            />
+          ) : resolvedLEOConnectivity ? (
+            <PerformancePanel
+              rtt={null}
+              downlinkGbps={null}
+              uplinkGbps={null}
+              maxDlGbps={TERMINAL_PROFILES[leoTerminalType].maxDlGbps}
+              maxUlGbps={TERMINAL_PROFILES[leoTerminalType].maxUlGbps}
+              accentColor="#db2777"
+              noDataMessage="No performance data available without SNP connectivity"
+            />
+          ) : (
+            <PerformancePanel
+              rtt={null}
+              downlinkGbps={null}
+              uplinkGbps={null}
+              maxDlGbps={TERMINAL_PROFILES[leoTerminalType].maxDlGbps}
+              maxUlGbps={TERMINAL_PROFILES[leoTerminalType].maxUlGbps}
+              accentColor="#db2777"
+            />
+          )}
+        </CollapsibleSection>
+      );
+    }
+
+    if (activeEstimatedPerformanceScope === 'GEO') {
+      const geoStabilityTooltip = geoGeometry
+        ? formatGeoStabilityTooltip(
+          geoGeometry.userToSatellite.elevationDeg,
+          geoGeometry.isUserLinkUnstable,
+        )
+        : undefined;
+
+      return (
+        <CollapsibleSection
+          storageKey="geo-performance"
+          title={<>Estimated Performance<SectionTooltip content="Predicted GEO link throughput and end-to-end RTT. Throughput degrades at low elevation angles. Note the ~600 ms RTT inherent to all GEO orbits due to the 35,786 km orbital altitude." /></>}
+          accentColor="#2563eb"
+          defaultOpen={true}
+          collapsible={false}
+        >
+          {resolvedGEOConnectivity && geoGeometry && geoPerformance ? (
+            <PerformancePanel
+              rtt={geoGeometry.rttTotalMs}
+              downlinkGbps={geoPerformance.downlinkGbps}
+              uplinkGbps={geoPerformance.uplinkGbps}
+              maxDlGbps={TERMINAL_PROFILES[geoTerminalType].maxDlGbps}
+              maxUlGbps={TERMINAL_PROFILES[geoTerminalType].maxUlGbps}
+              stability={geoGeometry.isUserLinkUnstable ? 'Unstable' : geoPerformance.stability}
+              performanceFactor={geoPerformance.performanceFactor}
+              accentColor="#2563eb"
+              rttMaxMs={RTT_VISUAL_SCALE_MAX_MS}
+              rttLabel="End-to-End GEO RTT"
+              stabilityTooltip={geoStabilityTooltip}
+            />
+          ) : (
+            <PerformancePanel
+              rtt={null}
+              downlinkGbps={null}
+              uplinkGbps={null}
+              maxDlGbps={TERMINAL_PROFILES[geoTerminalType].maxDlGbps}
+              maxUlGbps={TERMINAL_PROFILES[geoTerminalType].maxUlGbps}
+              accentColor="#2563eb"
+              noDataMessage="No GEO coverage available for the active target"
+            />
+          )}
+        </CollapsibleSection>
+      );
+    }
+
+    return null;
+  }, [
+    activeEstimatedPerformanceScope,
+    geoGeometry,
+    geoPerformance,
+    isLeoPerformanceDiagnosticOnly,
+    leoDiagnosticMessage,
+    leoPerformance,
+    mobileLeoMetrics,
+    resolvedGEOConnectivity,
+    resolvedLEOConnectivity,
+    selectedPoint,
+    geoTerminalType,
+    leoTerminalType,
+  ]);
+
   const leoPdfDetails = useMemo<PDFConnectionDetails | null>(() => {
     if (!resolvedLEOConnectivity) {
       return {
@@ -572,7 +630,7 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
     }
 
     const userLabel = analysisSource === 'aircraft' && aircraftCallsign ? aircraftCallsign : 'User';
-    const terminalProfile = TERMINAL_PROFILES[terminalType];
+    const terminalProfile = TERMINAL_PROFILES[leoTerminalType];
 
     if (!resolvedLEOConnectivity.snp) {
       return {
@@ -649,7 +707,7 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
     resolvedLEOConnectivity,
     analysisSource,
     aircraftCallsign,
-    terminalType,
+    leoTerminalType,
     leoPerformance,
     leoGeometry,
     mobileLeoMetrics,
@@ -665,8 +723,8 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
           rttMs: null,
           downlinkGbps: null,
           uplinkGbps: null,
-          maxDlGbps: TERMINAL_PROFILES[terminalType].maxDlGbps,
-          maxUlGbps: TERMINAL_PROFILES[terminalType].maxUlGbps,
+          maxDlGbps: TERMINAL_PROFILES[geoTerminalType].maxDlGbps,
+          maxUlGbps: TERMINAL_PROFILES[geoTerminalType].maxUlGbps,
           notes: ['No GEO coverage available'],
         },
       };
@@ -714,8 +772,8 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
         rttMs: geoGeometry.rttTotalMs,
         downlinkGbps: geoPerformance?.downlinkGbps ?? null,
         uplinkGbps: geoPerformance?.uplinkGbps ?? null,
-        maxDlGbps: TERMINAL_PROFILES[terminalType].maxDlGbps,
-        maxUlGbps: TERMINAL_PROFILES[terminalType].maxUlGbps,
+        maxDlGbps: TERMINAL_PROFILES[geoTerminalType].maxDlGbps,
+        maxUlGbps: TERMINAL_PROFILES[geoTerminalType].maxUlGbps,
         stability: geoGeometry.isUserLinkUnstable ? 'Unstable' : geoPerformance?.stability ?? null,
         performanceFactor: geoPerformance?.performanceFactor ?? null,
         notes: geoPerformance ? [`Weather profile: ${geoPerformance.weatherLabel} (${Math.round(geoPerformance.weatherFactor * 100)}% link factor)`] : [],
@@ -724,7 +782,7 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
   }, [
     resolvedGEOConnectivity,
     geoGeometry,
-    terminalType,
+    geoTerminalType,
     analysisSource,
     aircraftCallsign,
     geoPerformance,
@@ -1039,23 +1097,7 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
         )}
 
         <div className="flex-1 min-h-0 overflow-y-auto">
-          {/* Section 2: Terminal Configuration */}
-          <TerminalConfig
-            terminalType={terminalType}
-            onTerminalTypeChange={setTerminalType}
-            weatherType={weatherType}
-            onWeatherTypeChange={(wt) => {
-              setWeatherType(wt);
-              setWeatherCondition(toWeatherCondition(wt));
-              setAutoWeatherEnabled(false);
-            }}
-            autoWeatherEnabled={autoWeatherEnabled}
-            onAutoWeatherChange={setAutoWeatherEnabled}
-            analysisSource={analysisSource}
-            compact={compactDesktop}
-          />
-
-          {/* Section 3: Constellation-based Connectivity */}
+          {/* Section 2: Constellation-based Connectivity */}
           {(satelliteScope === 'LEO' || satelliteScope === 'GEO' || satelliteScope === 'ALL') && (
             <div className="mb-6">
               {/* Tab buttons (only when scope is ALL) */}
@@ -1090,7 +1132,12 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
                   leoPerformance={leoPerformance}
                   mobileLeoMetrics={mobileLeoMetrics}
                   activePoint={activePoint}
-                  terminalType={terminalType}
+                  terminalType={leoTerminalType}
+                  onTerminalTypeChange={onLeoTerminalTypeChange}
+                  weatherType={weatherType}
+                  onWeatherTypeChange={onWeatherTypeChange}
+                  autoWeatherEnabled={autoWeatherEnabled}
+                  onAutoWeatherChange={onAutoWeatherChange}
                   analysisSource={analysisSource}
                   aircraftCallsign={aircraftCallsign}
                   onSatelliteClick={onSatelliteClick}
@@ -1102,6 +1149,7 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
                   beamLoadResult={beamLoadResult}
                   serviceLayerResult={serviceLayerResult}
                   leoServiceViewModel={leoServiceViewModel}
+                  showEstimatedPerformance={false}
                 />
               )}
 
@@ -1111,7 +1159,12 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
                   resolvedGEOConnectivity={resolvedGEOConnectivity}
                   geoGeometry={geoGeometry}
                   calculateGEOPerformance={calculateGEOPerformance}
-                  terminalType={terminalType}
+                  terminalType={geoTerminalType}
+                  onTerminalTypeChange={onGeoTerminalTypeChange}
+                  weatherType={weatherType}
+                  onWeatherTypeChange={onWeatherTypeChange}
+                  autoWeatherEnabled={autoWeatherEnabled}
+                  onAutoWeatherChange={onAutoWeatherChange}
                   candidateCoverages={candidateCoverages}
                   bestCoverage={candidateCoverages[0] ?? null}
                   selectedCoverage={selectedCoverage}
@@ -1119,8 +1172,16 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
                   analysisSource={analysisSource}
                   aircraftCallsign={aircraftCallsign}
                   onSatelliteClick={onSatelliteClick}
+                  showEstimatedPerformance={false}
                 />
               )}
+            </div>
+          )}
+
+          {/* Section 3: Estimated Performance */}
+          {bottomEstimatedPerformanceSection && (
+            <div className="mb-4">
+              {bottomEstimatedPerformanceSection}
             </div>
           )}
 
