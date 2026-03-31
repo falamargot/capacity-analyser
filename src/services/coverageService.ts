@@ -244,18 +244,28 @@ export const loadSatelliteCoverage = async (satelliteId: string, satelliteName: 
   }
 }
 
-export const loadSatelliteCoverageMeshIndex = async (satelliteId: string): Promise<Map<string, PrebuiltCoverageMesh>> => {
-  try {
-    const manifest = await fetchCoverageJson(`/coverage-prebuilt/${satelliteId}.manifest.json`);
-    if (manifest && isPrebuiltCoverageManifestV3Format(manifest)) {
-      const meshBuffer = await fetchCoverageArrayBuffer(`/coverage-prebuilt/${manifest.meshFile}`);
-      if (meshBuffer) {
-        return parsePrebuiltCoverageMeshBinaryBundle(manifest, meshBuffer);
+const _meshIndexCache = new Map<string, Promise<Map<string, PrebuiltCoverageMesh>>>();
+
+export const loadSatelliteCoverageMeshIndex = (satelliteId: string): Promise<Map<string, PrebuiltCoverageMesh>> => {
+  const cached = _meshIndexCache.get(satelliteId);
+  if (cached) return cached;
+
+  const promise = (async () => {
+    try {
+      const manifest = await fetchCoverageJson(`/coverage-prebuilt/${satelliteId}.manifest.json`);
+      if (manifest && isPrebuiltCoverageManifestV3Format(manifest)) {
+        const meshBuffer = await fetchCoverageArrayBuffer(`/coverage-prebuilt/${manifest.meshFile}`);
+        if (meshBuffer) {
+          return parsePrebuiltCoverageMeshBinaryBundle(manifest, meshBuffer);
+        }
       }
+    } catch {
     }
-  } catch {
-  }
-  return new Map();
+    return new Map<string, PrebuiltCoverageMesh>();
+  })();
+
+  _meshIndexCache.set(satelliteId, promise);
+  return promise;
 };
 
 export const getCoverageColor = (

@@ -613,7 +613,6 @@ const CoverageLayer: React.FC<CoverageLayerProps> = ({
     }
 
     let cancelled = false;
-    setActiveMeshState(null);
 
     void loadSatelliteCoverageMeshIndex(coverageFileId).then((meshIndex) => {
       if (!cancelled) {
