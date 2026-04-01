@@ -138,6 +138,7 @@ interface CesiumGlobeProps {
     onSizeScaleReset?: () => void;
     hideSatelliteScreenLabels?: boolean;
     isPhone?: boolean;
+    isMobileViewport?: boolean;
     sceneMode?: '2D' | '3D';
     onSceneModeChange?: (mode: '2D' | '3D') => void;
     inspectedSNP?: SNPData | null;
@@ -200,6 +201,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
     onSizeScaleReset,
     hideSatelliteScreenLabels = false,
     isPhone,
+    isMobileViewport = false,
     sceneMode = '3D',
     onSceneModeChange,
     inspectedSNP,
@@ -552,11 +554,14 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
 
     const geoBeamCone = useMemo(() => {
         // Only render the beam cone in auto-selection context (no manual satellite selected)
-        if (selectedSatellite) return { beamFeature: null, sat: null };
-        if (!autoSelectedGEOSatellite) return { beamFeature: null, sat: null };
+        if (selectedSatellite) return { beamFeature: null, coverageFeatures: [], sat: null };
+        if (!autoSelectedGEOSatellite) return { beamFeature: null, coverageFeatures: [], sat: null };
         const beamFeature = selectedGEOBeam?.feature ?? null;
-        if (!beamFeature) return { beamFeature: null, sat: null };
-        return { beamFeature, sat: autoSelectedGEOSatellite };
+        const coverageFeatures = selectedGEOBeam?.coverageFeatures ?? [];
+        if (!beamFeature && coverageFeatures.length === 0) {
+            return { beamFeature: null, coverageFeatures: [], sat: null };
+        }
+        return { beamFeature, coverageFeatures, sat: autoSelectedGEOSatellite };
     }, [selectedSatellite, autoSelectedGEOSatellite, selectedGEOBeam]);
 
     // Gateway selection only depends on the satellite position — not on user position.
@@ -846,6 +851,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                 isFullscreen={isFullscreen}
                 onToggleFullscreen={onToggleFullscreen}
                 isPhone={isPhone}
+                isMobileViewport={isMobileViewport}
                 enableLighting={enableLighting}
                 onToggleLighting={onToggleLighting}
                 showSatelliteTrajectory={showSatelliteTrajectory}
@@ -961,6 +967,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                         <AggregatedCoverageVolumeLayer
                             selectedSatellite={selectedSatellite}
                             selectedBeamFeature={geoBeamCone.beamFeature}
+                            selectedCoverageFeatures={geoBeamCone.coverageFeatures}
                             beamSatellite={geoBeamCone.sat}
                             autoSelectedSatellite={autoSelectedLEOSatellite}
                             selectedPosition={selectedPosition}

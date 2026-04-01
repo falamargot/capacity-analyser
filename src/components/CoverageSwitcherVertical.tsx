@@ -124,7 +124,7 @@ const CoverageSwitcherVertical = memo<CoverageSwitcherVerticalProps>(({
       : 'left-2 top-12';
 
   return (
-    <div className={`pointer-events-none absolute z-20 flex max-w-[calc(100vw-1rem)] justify-start ${positionClassName}`}>
+    <div className={`pointer-events-none absolute ${isExpanded ? 'z-[1100]' : 'z-20'} flex max-w-[calc(100vw-1rem)] justify-start ${positionClassName}`}>
       <div
         ref={containerRef}
         className="pointer-events-auto relative w-52 max-w-full"
@@ -149,7 +149,7 @@ const CoverageSwitcherVertical = memo<CoverageSwitcherVerticalProps>(({
         </button>
 
           <div
-            className={`pointer-events-none absolute left-0 right-0 top-[calc(100%+0.45rem)] origin-top transition duration-200 ${
+            className={`pointer-events-none absolute left-0 right-0 top-[calc(100%+0.45rem)] z-[1110] origin-top transition duration-200 ${
               isExpanded ? 'translate-y-0 opacity-100' : '-translate-y-1 opacity-0'
             }`}
           >

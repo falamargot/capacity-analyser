@@ -687,6 +687,9 @@ const App: React.FC = () => {
 
     return {
       feature: resolvedCoverage.primaryBeam.feature,
+      coverageFeatures: resolvedCoverage.beams
+        .map((beam) => beam.feature)
+        .filter(Boolean),
       name: resolvedCoverage.primaryBeam.name,
       type: resolvedCoverage.primaryBeam.feature?.properties?.type as string | undefined,
     };
@@ -2215,7 +2218,7 @@ const App: React.FC = () => {
             <div
               className={`absolute inset-0 bg-white overflow-hidden transition-all duration-300 ${isFullscreen ? 'fixed inset-0 z-50' : ''}`}
             >
-              <MapViewSwitcher {...sharedMapProps} isPhone={isPhone} />
+              <MapViewSwitcher {...sharedMapProps} isPhone={isPhone} isMobileViewport={isMobile} />
               <SatelliteStatusLegend />
             </div>
 
@@ -2435,7 +2438,7 @@ const App: React.FC = () => {
             <div
               className={`flex-1 relative bg-white rounded-lg shadow-lg overflow-hidden transition-all duration-300 ${isFullscreen ? 'fixed inset-0 z-50' : ''}`}
             >
-              <MapViewSwitcher {...sharedMapProps} isPhone={false} />
+              <MapViewSwitcher {...sharedMapProps} isPhone={false} isMobileViewport={false} />
               {isFullscreen && fullscreenExportButtonProps && (
                 <div className="pointer-events-none absolute bottom-28 right-4 z-[20]">
                   <div className="pointer-events-auto w-[148px] sm:w-40">

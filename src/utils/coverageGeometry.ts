@@ -1,3 +1,6 @@
+import type { Feature, Geometry as GeoJsonGeometry, GeoJsonProperties } from 'geojson';
+import { isPointInPolygon } from './geoUtils';
+
 const DEFAULT_MAX_SEGMENT_DEGREES = 2.5;
 const COVERAGE_LOD_NEAR_MAX_HEIGHT_M = 2_500_000;
 const COVERAGE_LOD_MEDIUM_MAX_HEIGHT_M = 10_000_000;
@@ -93,4 +96,62 @@ export const getMaxWrappedRingStep = (ring: number[][]): number => {
   }
 
   return maxStep;
+};
+
+const getPolygonOuterRing = (
+  feature: Feature<GeoJsonGeometry, GeoJsonProperties>
+): number[][] | null => {
+  if (feature.geometry?.type !== 'Polygon') return null;
+
+  const ring = feature.geometry.coordinates?.[0];
+  if (!Array.isArray(ring) || ring.length < 3) return null;
+
+  return ring
+    .filter((coordinate): coordinate is number[] => (
+      Array.isArray(coordinate) &&
+      coordinate.length >= 2 &&
+      Number.isFinite(coordinate[0]) &&
+      Number.isFinite(coordinate[1])
+    ))
+    .map(([lng, lat]) => [lng, lat]);
+};
+
+const trimClosedRing = (ring: number[][]): number[][] => {
+  if (ring.length < 2) return ring;
+
+  const [firstLng, firstLat] = ring[0];
+  const [lastLng, lastLat] = ring[ring.length - 1];
+  if (firstLng === lastLng && firstLat === lastLat) {
+    return ring.slice(0, -1);
+  }
+
+  return ring;
+};
+
+const isRingContainedByRing = (innerRing: number[][], outerRing: number[][]): boolean => {
+  const normalizedInner = trimClosedRing(innerRing);
+  const normalizedOuter = trimClosedRing(outerRing);
+  if (normalizedInner.length < 3 || normalizedOuter.length < 3) return false;
+
+  return normalizedInner.every(([lng, lat]) => isPointInPolygon({ lat, lng }, normalizedOuter));
+};
+
+export const getOutermostCoverageFeatures = (
+  features: Feature<GeoJsonGeometry, GeoJsonProperties>[]
+): Feature<GeoJsonGeometry, GeoJsonProperties>[] => {
+  if (features.length <= 1) return features;
+
+  return features.filter((candidate, candidateIndex) => {
+    const candidateRing = getPolygonOuterRing(candidate);
+    if (!candidateRing) return false;
+
+    return !features.some((other, otherIndex) => {
+      if (candidateIndex === otherIndex) return false;
+
+      const otherRing = getPolygonOuterRing(other);
+      if (!otherRing) return false;
+
+      return isRingContainedByRing(candidateRing, otherRing);
+    });
+  });
 };

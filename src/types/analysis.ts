@@ -21,6 +21,7 @@ export interface AnalyzisPosition {
  */
 export interface GEOBeam {
     feature: any;
+    coverageFeatures?: any[];
     name?: string;
     type?: string;
 }
