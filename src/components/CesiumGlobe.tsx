@@ -74,6 +74,7 @@ import type { LeoConnectivityViewModel } from '../utils/leoServiceViewModel';
 import type { RegulatoryResult } from '../services/regulatoryService';
 import type { GeoPointStatus } from '../utils/selectedPointStatus';
 import { GROUND_POINT_ALTITUDE_KM } from './cesium-globe/layerHeights';
+import CoverageSwitcherVertical, { type CoverageSwitcherCoverage } from './CoverageSwitcherVertical';
 
 const BASEMAP_STORAGE_KEY = 'cesium:basemap';
 
@@ -149,6 +150,9 @@ interface CesiumGlobeProps {
     onGlobeBootPhaseChange?: (phase: 'mounting' | 'viewer-ready' | 'imagery-ready') => void;
     onInitialGlobeReady?: () => void;
     onCoverageClick?: (coverageKey: string) => void;
+    coverageSwitcherCoverages?: CoverageSwitcherCoverage[];
+    selectedCoverageId?: string;
+    onCoverageSwitcherSelect?: (id: string) => void;
 }
 
 const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
@@ -208,6 +212,9 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
     onGlobeBootPhaseChange,
     onInitialGlobeReady,
     onCoverageClick,
+    coverageSwitcherCoverages = [],
+    selectedCoverageId = '',
+    onCoverageSwitcherSelect,
 }) => {
     // Stable refs for click-handler lookups — avoids recreating handleMapClick
     // (and re-registering the Cesium ScreenSpaceEvent) when aircraft/vessels/satellites
@@ -523,7 +530,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         const lat = CesiumMath.toDegrees(cartographic.latitude);
         const lng = CesiumMath.toDegrees(cartographic.longitude);
         onPointClick(lat, lng);
-    }, [onPointClick, onSatelliteClick, onSnpClick, onAircraftClick, onVesselClick, onCoverageClick]);
+    }, [onPointClick, onSatelliteClick, onSnpClick, onAircraftClick, onVesselClick, onCoverageClick, selection.type]);
 
     // Determine target satellite for OneWeb comb layer
     const oneWebTargetSat = useMemo(() => {
@@ -804,6 +811,8 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         && !!selectedRegulatoryResult
         && !selectedRegulatoryResult.isOcean
         && !!selectedRegulatoryResult.countryName;
+    const hasSatelliteIndicator =
+        !isPhone && !!(selectedSatellite || autoSelectedLEOSatellite || autoSelectedGEOSatellite);
     const selectedCountryOutlineStatus =
         satelliteScope === 'GEO'
             ? 'UNKNOWN'
@@ -856,6 +865,17 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                 selectedBasemapId={selectedBasemapId}
                 onBasemapChange={setSelectedBasemapId}
             />
+
+            {selection.type === 'target' && selection.targetType === 'point' && coverageSwitcherCoverages.length >= 2 && onCoverageSwitcherSelect && (
+                <CoverageSwitcherVertical
+                    coverages={coverageSwitcherCoverages}
+                    selectedId={selectedCoverageId}
+                    onSelect={onCoverageSwitcherSelect}
+                    isPhone={!!isPhone}
+                    isFullscreen={isFullscreen}
+                    hasSatelliteIndicator={hasSatelliteIndicator}
+                />
+            )}
 
             {/* Cesium Viewer */}
             <div ref={globeContainerRef} className="w-full h-full">

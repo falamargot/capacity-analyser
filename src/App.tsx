@@ -16,6 +16,7 @@ import { WeatherControl, type TerminalType, type WeatherType, toWeatherCondition
 import { SatelliteData } from './types/satellites';
 import type { CandidateCoverage, GEOBeam, MobileAnalysisMetrics, SelectedSNP } from './types/analysis';
 import type { Selection } from './types/analysis';
+import type { CoverageSwitcherCoverage } from './components/CoverageSwitcherVertical';
 import { useSatelliteLoader } from './hooks/useSatelliteLoader';
 import { Feature, Geometry, GeoJsonProperties } from 'geojson';
 import { GEO_GATEWAYS, SNPS_DATA, type GeoGatewayData, type SNPData } from './components/globe/GlobeConfig';
@@ -640,6 +641,20 @@ const App: React.FC = () => {
       (candidate) => getCandidateCoverageKey(candidate) === selectedTargetCoverageKey
     ) ?? defaultTargetCoverage;
   }, [candidateCoverages, defaultTargetCoverage, selectedSelection, selectedTargetCoverageKey]);
+  const selectedCoverageId = useMemo(
+    () => (selectedCoverage ? getCandidateCoverageKey(selectedCoverage) : ''),
+    [selectedCoverage]
+  );
+  const coverageSwitcherCoverages = useMemo<CoverageSwitcherCoverage[]>(
+    () => candidateCoverages.map((coverage) => ({
+      id: getCandidateCoverageKey(coverage),
+      name: coverage.coverageName,
+      throughput: coverage.throughputEstimate * 1000,
+      elevation: coverage.elevation,
+      score: coverage.score,
+    })),
+    [candidateCoverages]
+  );
 
   const resolvedSelectedGeoCoverage = useMemo(() => {
     if (!selectedSatellite || selectedSatellite.type !== 'EUTELSAT' || !selectedGeoCoverageName) {
@@ -1273,18 +1288,25 @@ const App: React.FC = () => {
     setSearchQuery('');
   }, [selectTarget]);
 
-  const handleSelectTargetCoverage = useCallback((coverage: CandidateCoverage) => {
+  const handleSelectTargetCoverageById = useCallback((coverageId: string) => {
     if (selectedSelection.type !== 'target') {
       return;
     }
 
-    const coverageKey = getCandidateCoverageKey(coverage);
-    if (coverageKey === selectedTargetCoverageKey) {
+    if (coverageId === selectedTargetCoverageKey) {
       return;
     }
 
-    setSelectedTargetCoverageKey(coverageKey);
-  }, [selectedSelection.type, selectedTargetCoverageKey]);
+    if (!candidateCoverages.some((coverage) => getCandidateCoverageKey(coverage) === coverageId)) {
+      return;
+    }
+
+    setSelectedTargetCoverageKey(coverageId);
+  }, [candidateCoverages, selectedSelection.type, selectedTargetCoverageKey]);
+
+  const handleSelectTargetCoverage = useCallback((coverage: CandidateCoverage) => {
+    handleSelectTargetCoverageById(getCandidateCoverageKey(coverage));
+  }, [handleSelectTargetCoverageById]);
 
   const handleOpenCommandPalette = useCallback(() => {
     setIsSatelliteModalOpen(false);
@@ -1531,6 +1553,9 @@ const App: React.FC = () => {
     hideSatelliteScreenLabels: isPhone && isMobileAnalysisPanelOpen,
     inspectedSNP,
     snpConnectedSatellites,
+    coverageSwitcherCoverages,
+    selectedCoverageId,
+    onCoverageSwitcherSelect: handleSelectTargetCoverageById,
   }), [
     filteredSatellites, satelliteTypeByName, coverageFeaturesMemo, handlePointClick, handleCoverageClick, selectedPosition,
     handleSatelliteClick, handleSatelliteHover, handleSnpClick, handleGatewaySelectByName, handleSnpHover,
@@ -1540,7 +1565,7 @@ const App: React.FC = () => {
     maritimeTrafficEnabled, maritimeTraffic.vessels, selectedVessel, handleVesselSelect, cameraTarget,
     handleCameraReady, handleGlobeContainerReady, handleGlobeBootPhaseChange, handleInitialGlobeReady, handleSizeScaleChange, handleToggleFullscreen, handleToggleSatelliteTrajectory, interpolatedAircraftMapRef, interpolatedVesselMapRef, showSatelliteTrajectory, sizeScale,
     inspectedSNP, snpConnectedSatellites, showRegulatoryOverlay, handleToggleRegulatoryOverlay, handleSizeScaleReset,
-    isPhone, isMobileAnalysisPanelOpen,
+    isPhone, isMobileAnalysisPanelOpen, coverageSwitcherCoverages, selectedCoverageId, handleSelectTargetCoverageById,
   ]);
   const desktopCompactProgress = isMobile ? 0 : getCompactDesktopProgress(viewportSnapshot);
   const useCompactDesktopSidebar = desktopCompactProgress >= 0.35;
@@ -2194,9 +2219,9 @@ const App: React.FC = () => {
               <SatelliteStatusLegend />
             </div>
 
-            {isPhone && (
+            {isPhone && !isFullscreen && (
               <div
-                className={`pointer-events-none inset-x-0 top-0 px-3 ${isFullscreen ? 'fixed z-[60]' : 'absolute z-[25]'}`}
+                className="pointer-events-none absolute inset-x-0 top-0 z-[25] px-3"
                 style={{ paddingTop: 'calc(env(safe-area-inset-top) + 0.75rem)' }}
               >
                 <div className="pointer-events-auto rounded-[28px] border border-white/65 bg-[linear-gradient(180deg,rgba(255,255,255,0.94),rgba(241,245,249,0.88))] p-2.5 shadow-[0_24px_60px_-36px_rgba(15,23,42,0.78)] backdrop-blur-xl dark:border-slate-700/80 dark:bg-[linear-gradient(180deg,rgba(15,23,42,0.95),rgba(30,41,59,0.86))]">

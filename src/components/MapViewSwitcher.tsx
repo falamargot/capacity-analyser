@@ -12,6 +12,7 @@ import type { GeoGatewayData, SNPData } from './globe/GlobeConfig';
 import type { LeoConnectivityViewModel } from '../utils/leoServiceViewModel';
 import type { RegulatoryResult } from '../services/regulatoryService';
 import type { GeoPointStatus } from '../utils/selectedPointStatus';
+import type { CoverageSwitcherCoverage } from './CoverageSwitcherVertical';
 
 interface MapViewSwitcherProps {
   satellites: SatelliteData[];
@@ -66,6 +67,9 @@ interface MapViewSwitcherProps {
   onGlobeBootPhaseChange?: (phase: 'mounting' | 'viewer-ready' | 'imagery-ready') => void;
   onInitialGlobeReady?: () => void;
   onCoverageClick?: (coverageKey: string) => void;
+  coverageSwitcherCoverages?: CoverageSwitcherCoverage[];
+  selectedCoverageId?: string;
+  onCoverageSwitcherSelect?: (id: string) => void;
 }
 
 const MapViewSwitcher: React.FC<MapViewSwitcherProps> = ({
@@ -121,6 +125,9 @@ const MapViewSwitcher: React.FC<MapViewSwitcherProps> = ({
   onGlobeBootPhaseChange,
   onInitialGlobeReady,
   onCoverageClick,
+  coverageSwitcherCoverages = [],
+  selectedCoverageId = '',
+  onCoverageSwitcherSelect,
 }) => {
   const [sceneMode, setSceneMode] = useState<'2D' | '3D'>('3D');
 
@@ -182,6 +189,9 @@ const MapViewSwitcher: React.FC<MapViewSwitcherProps> = ({
         onGlobeBootPhaseChange={onGlobeBootPhaseChange}
         onInitialGlobeReady={onInitialGlobeReady}
         onCoverageClick={onCoverageClick}
+        coverageSwitcherCoverages={coverageSwitcherCoverages}
+        selectedCoverageId={selectedCoverageId}
+        onCoverageSwitcherSelect={onCoverageSwitcherSelect}
       />
     </div>
   );

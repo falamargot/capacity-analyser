@@ -76,12 +76,19 @@ interface DisplayOptionRowProps {
     title?: string;
 }
 
-const CONTROL_SURFACE_CLASS_NAME = 'border border-white/65 bg-[linear-gradient(180deg,rgba(255,255,255,0.94),rgba(241,245,249,0.86))] shadow-[0_18px_40px_-26px_rgba(15,23,42,0.78)] ring-1 ring-slate-200/60 backdrop-blur-xl dark:border-slate-700/80 dark:bg-[linear-gradient(180deg,rgba(15,23,42,0.94),rgba(30,41,59,0.84))] dark:ring-slate-700/70';
+const CONTROL_SURFACE_CLASS_NAME = 'border border-slate-700/80 bg-[linear-gradient(180deg,rgba(15,23,42,0.94),rgba(30,41,59,0.84))] shadow-[0_18px_40px_-26px_rgba(15,23,42,0.78)] ring-1 ring-slate-700/70 backdrop-blur-xl';
+const CONTROL_BUTTON_SURFACE_CLASS_NAME = 'border-slate-700/80 bg-[linear-gradient(180deg,rgba(15,23,42,0.94),rgba(30,41,59,0.84))] text-slate-200 shadow-[0_12px_28px_-24px_rgba(15,23,42,0.72)] hover:-translate-y-0.5 hover:bg-[linear-gradient(180deg,rgba(15,23,42,0.98),rgba(30,41,59,0.9))]';
 
 const accentClassNames: Record<NonNullable<ControlButtonProps['accent']>, string> = {
-    blue: 'border-blue-200/90 bg-blue-50/95 text-blue-700 shadow-[0_14px_28px_-22px_rgba(37,99,235,0.78)] dark:border-blue-400/25 dark:bg-blue-500/15 dark:text-blue-200',
-    emerald: 'border-emerald-200/90 bg-emerald-50/95 text-emerald-700 shadow-[0_14px_28px_-22px_rgba(5,150,105,0.72)] dark:border-emerald-400/25 dark:bg-emerald-500/15 dark:text-emerald-200',
-    amber: 'border-amber-200/90 bg-amber-50/95 text-amber-700 shadow-[0_14px_28px_-22px_rgba(217,119,6,0.72)] dark:border-amber-400/25 dark:bg-amber-500/15 dark:text-amber-200'
+    blue: 'text-blue-200 ring-1 ring-blue-400/20',
+    emerald: 'text-emerald-200 ring-1 ring-emerald-400/20',
+    amber: 'text-amber-200 ring-1 ring-amber-400/20'
+};
+
+const iconAccentClassNames: Record<NonNullable<ControlButtonProps['accent']>, string> = {
+    blue: 'bg-blue-500/15 text-blue-200',
+    emerald: 'bg-emerald-500/15 text-emerald-200',
+    amber: 'bg-amber-500/15 text-amber-200'
 };
 
 const optionAccentClassNames: Record<NonNullable<DisplayOptionRowProps['accent']>, string> = {
@@ -119,21 +126,28 @@ const ControlButton: React.FC<ControlButtonProps> = ({
             'group relative inline-flex items-center gap-2 rounded-2xl border text-left transition-all duration-200',
             compact ? 'h-10 w-10 justify-center rounded-xl p-0' : 'min-h-[44px] rounded-[18px] px-3 py-2',
             disabled
-                ? 'cursor-not-allowed border-slate-200/80 bg-slate-100/90 text-slate-400 shadow-none dark:border-slate-700 dark:bg-slate-800/70 dark:text-slate-500'
+                ? 'cursor-not-allowed border-slate-700/80 bg-slate-900/70 text-slate-500 shadow-none'
                 : active
-                    ? accentClassNames[accent]
-                    : 'border-white/70 bg-white/78 text-slate-700 shadow-[0_12px_28px_-24px_rgba(15,23,42,0.65)] hover:-translate-y-0.5 hover:bg-white dark:border-slate-700/80 dark:bg-slate-900/72 dark:text-slate-200 dark:hover:bg-slate-900'
+                    ? `${CONTROL_BUTTON_SURFACE_CLASS_NAME} ${accentClassNames[accent]}`
+                    : CONTROL_BUTTON_SURFACE_CLASS_NAME
         ].join(' ')}
     >
-        <span className="pointer-events-none absolute inset-x-3 top-0 h-px bg-gradient-to-r from-transparent via-white/80 to-transparent dark:via-slate-400/30" />
-        <span className={compact ? '' : 'flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-slate-100/85 text-current dark:bg-slate-800/85'}>
+        <span className="pointer-events-none absolute inset-x-3 top-0 h-px bg-gradient-to-r from-transparent via-slate-400/30 to-transparent" />
+        <span
+            className={[
+                compact ? '' : 'flex h-7 w-7 shrink-0 items-center justify-center rounded-lg',
+                active
+                    ? iconAccentClassNames[accent]
+                    : 'bg-slate-800/85 text-current'
+            ].join(' ')}
+        >
             {icon}
         </span>
         {!compact && (
             <span className="min-w-0">
                 <span className="block text-[11px] font-semibold leading-4">{label}</span>
                 {subtitle && (
-                    <span className="mt-0.5 block text-[10px] leading-3 text-slate-500 dark:text-slate-400">
+                    <span className="mt-0.5 block text-[10px] leading-3 text-slate-400">
                         {subtitle}
                     </span>
                 )}
@@ -328,7 +342,7 @@ const GlobeControls: React.FC<GlobeControlsProps> = ({
     }, [onToggleFootprintProjection, onToggleLighting, onToggleSatelliteTrajectory, handleZoomIn, handleZoomOut, handleReset]);
 
     return (
-        <div className={`absolute right-3 z-10 flex flex-col items-end gap-2 ${isPhone ? 'top-24' : 'top-3'}`}>
+        <div className={`absolute right-3 z-10 flex flex-col items-end gap-2 ${isPhone ? (isFullscreen ? 'top-3' : 'top-24') : 'top-3'}`}>
             <div className={`relative rounded-[20px] p-1.5 ${CONTROL_SURFACE_CLASS_NAME} ${isMapOptionsOpen ? 'z-20' : ''}`}>
                 <div className={`flex items-center ${isPhone ? 'gap-1.5' : 'gap-1.5'}`} ref={popoverRef}>
                     {onSceneModeChange && (

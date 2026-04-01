@@ -38,16 +38,17 @@ const SatelliteStatusLegend: React.FC = () => {
     <div
       className="
         absolute bottom-6 right-4 z-10
-        bg-white/90 dark:bg-slate-900/90
-        backdrop-blur-md
+        border border-slate-700/80
+        bg-[linear-gradient(180deg,rgba(15,23,42,0.94),rgba(30,41,59,0.84))]
+        backdrop-blur-xl
         px-3 py-2 rounded-lg shadow-lg
-        border border-gray-200 dark:border-slate-800
+        ring-1 ring-slate-700/70
         flex flex-col gap-1.5
         pointer-events-none
       "
       aria-label="Satellite status legend"
     >
-      <span className="text-[9px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-0.5">
+      <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">
         Satellite status
       </span>
       {LEGEND_ITEMS.map(({ label, swatchClass, swatchStyle }) => (
@@ -56,7 +57,7 @@ const SatelliteStatusLegend: React.FC = () => {
             className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${swatchClass}`}
             style={swatchStyle}
           />
-          <span className="text-[11px] font-medium text-gray-700 dark:text-gray-300 leading-none">
+          <span className="text-[11px] font-medium text-slate-300 leading-none">
             {label}
           </span>
         </div>

@@ -7,6 +7,8 @@ interface FullscreenButtonProps {
   compact?: boolean;
 }
 
+const CONTROL_BUTTON_SURFACE_CLASS_NAME = 'border-slate-700/80 bg-[linear-gradient(180deg,rgba(15,23,42,0.94),rgba(30,41,59,0.84))] text-slate-200 shadow-[0_12px_28px_-24px_rgba(15,23,42,0.72)] hover:-translate-y-0.5 hover:bg-[linear-gradient(180deg,rgba(15,23,42,0.98),rgba(30,41,59,0.9))]';
+
 const FullscreenButton: React.FC<FullscreenButtonProps> = ({ isFullscreen, onClick, compact = false }) => {
   return (
     <button
@@ -18,13 +20,19 @@ const FullscreenButton: React.FC<FullscreenButtonProps> = ({ isFullscreen, onCli
         compact ? 'h-10 w-10 justify-center rounded-xl p-0' : 'min-h-[44px] rounded-[18px] px-3 py-2'
       } ${
         isFullscreen
-          ? 'border-emerald-200/90 bg-emerald-50/95 text-emerald-700 shadow-[0_14px_28px_-22px_rgba(5,150,105,0.72)] dark:border-emerald-400/25 dark:bg-emerald-500/15 dark:text-emerald-200'
-          : 'border-white/70 bg-white/78 text-slate-700 shadow-[0_12px_28px_-24px_rgba(15,23,42,0.65)] hover:-translate-y-0.5 hover:bg-white dark:border-slate-700/80 dark:bg-slate-900/72 dark:text-slate-200 dark:hover:bg-slate-900'
+          ? `${CONTROL_BUTTON_SURFACE_CLASS_NAME} ring-1 ring-emerald-400/20 text-emerald-200`
+          : CONTROL_BUTTON_SURFACE_CLASS_NAME
       }`}
       title={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
     >
-      <span className="pointer-events-none absolute inset-x-3 top-0 h-px bg-gradient-to-r from-transparent via-white/80 to-transparent dark:via-slate-400/30" />
-      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-slate-100/85 text-current dark:bg-slate-800/85">
+      <span className="pointer-events-none absolute inset-x-3 top-0 h-px bg-gradient-to-r from-transparent via-slate-400/30 to-transparent" />
+      <span
+        className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg ${
+          isFullscreen
+            ? 'bg-emerald-500/15 text-emerald-200'
+            : 'bg-slate-800/85 text-current'
+        }`}
+      >
         {isFullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
       </span>
       {!compact && (
