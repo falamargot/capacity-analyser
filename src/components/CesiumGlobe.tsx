@@ -812,7 +812,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         && !selectedRegulatoryResult.isOcean
         && !!selectedRegulatoryResult.countryName;
     const hasSatelliteIndicator =
-        !isPhone && !!(selectedSatellite || autoSelectedLEOSatellite || autoSelectedGEOSatellite);
+        !!(selectedSatellite || autoSelectedLEOSatellite || autoSelectedGEOSatellite);
     const selectedCountryOutlineStatus =
         satelliteScope === 'GEO'
             ? 'UNKNOWN'
@@ -833,6 +833,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                 autoSelectedGEOSatellite={autoSelectedGEOSatellite}
                 viewerRef={viewerRef}
                 isPhone={isPhone}
+                isFullscreen={isFullscreen}
             />
 
             <RegulatoryOverlayLegend

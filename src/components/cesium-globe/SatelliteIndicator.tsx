@@ -1,7 +1,7 @@
 /**
  * SatelliteIndicator - Shows satellite status indicator at top of globe
  */
-import React, { useMemo } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import { Viewer as CesiumViewerType } from 'cesium';
 import type { SatelliteData } from '../../types/satellites';
 import { useGSOAvoidance } from '../../hooks/useGSOAvoidance';
@@ -12,14 +12,37 @@ interface SatelliteIndicatorProps {
     autoSelectedGEOSatellite?: SatelliteData | null;
     viewerRef: React.RefObject<CesiumViewerType | null>;
     isPhone?: boolean;
+    isFullscreen?: boolean;
 }
+
+const getCompactSatelliteName = (satellite: SatelliteData) => {
+    const parts = satellite.name.trim().split(/\s+/);
+
+    if (satellite.type === 'EUTELSAT') {
+        return parts.slice(0, 2).join(' ');
+    }
+
+    return parts[0] ?? satellite.name;
+};
+
+const typeChipClassName = (type: SatelliteData['type']) => (
+    type === 'EUTELSAT'
+        ? 'bg-blue-100/92 border-blue-300 text-blue-800'
+        : 'bg-pink-100/92 border-pink-300 text-pink-800'
+);
 
 const SatelliteIndicator: React.FC<SatelliteIndicatorProps> = ({
     selectedSatellite,
     autoSelectedLEOSatellite,
     autoSelectedGEOSatellite,
-    isPhone = false
+    isPhone = false,
+    isFullscreen = false,
 }) => {
+    const indicatorContainerClassName = isPhone
+        ? 'px-2.5 py-0.5 rounded-md'
+        : 'px-3 py-1 rounded-md';
+    const indicatorTextClassName = isPhone ? 'text-[12px] leading-5' : '';
+
     // Determine which satellite to track for GSO Protection
     const trackedSatellite = selectedSatellite || autoSelectedLEOSatellite;
 
@@ -29,62 +52,64 @@ const SatelliteIndicator: React.FC<SatelliteIndicatorProps> = ({
     );
     const gsoAvoidanceActive = gsoData?.isGSOAvoidance ?? false;
 
+    const renderChip = useCallback((satellite: SatelliteData, content?: React.ReactNode, maxWidthClassName = 'max-w-full') => (
+        <div className={`${indicatorContainerClassName} min-w-0 ${maxWidthClassName} backdrop-blur-sm shadow-sm border ${typeChipClassName(satellite.type)}`}>
+            <span className={`${indicatorTextClassName} block truncate font-medium`}>
+                {content ?? (isPhone ? getCompactSatelliteName(satellite) : satellite.name)}
+            </span>
+        </div>
+    ), [indicatorContainerClassName, indicatorTextClassName, isPhone]);
+
     const indicator = useMemo(() => {
         if (selectedSatellite) {
-            const isGsoActive = selectedSatellite.type === 'ONEWEB' && gsoAvoidanceActive;
-            const bgClass = isGsoActive ? "bg-orange-100/90 border-orange-300" : "bg-green-100/90 border-green-300";
-            const textClass = isGsoActive ? "text-orange-800" : "text-green-800";
-            return (
-                <div className={`${isPhone ? 'px-2 py-1' : 'px-3 py-1'} backdrop-blur-sm rounded-md shadow-sm border ${bgClass}`}>
-                    <span className={`${isPhone ? 'text-xs' : ''} font-medium ${textClass}`}>
-                        {selectedSatellite.name}
-                        {selectedSatellite.type === 'ONEWEB' && !isPhone && (
-                            <> {gsoAvoidanceActive ? "(GSO Protection)" : ""}</>
-                        )}
-                    </span>
-                </div>
+            return renderChip(
+                selectedSatellite,
+                selectedSatellite.type === 'ONEWEB' && !isPhone
+                    ? <>{selectedSatellite.name} {gsoAvoidanceActive ? "(GSO Protection)" : ""}</>
+                    : undefined
             );
         }
         if (autoSelectedLEOSatellite && autoSelectedGEOSatellite) {
             return (
-                <div className={`${isPhone ? 'px-2 py-1' : 'px-3 py-1'} bg-yellow-100/90 backdrop-blur-sm rounded-md shadow-sm border border-yellow-300`}>
-                    <span className={`${isPhone ? 'text-xs' : ''} text-yellow-800 font-medium`}>
-                        {isPhone
-                            ? `${autoSelectedLEOSatellite.name.split(' ')[0]} + ${autoSelectedGEOSatellite.name.split(' ')[0]}`
-                            : `${autoSelectedLEOSatellite.name} + ${autoSelectedGEOSatellite.name}`}
-                    </span>
+                <div className="flex max-w-full items-start gap-1.5">
+                    {renderChip(autoSelectedGEOSatellite, undefined, 'max-w-[calc((100vw-2.75rem)/2)]')}
+                    {renderChip(autoSelectedLEOSatellite, undefined, 'max-w-[calc((100vw-2.75rem)/2)]')}
                 </div>
             );
         }
         if (autoSelectedLEOSatellite) {
-            const isGsoActive = autoSelectedLEOSatellite.type === 'ONEWEB' && gsoAvoidanceActive;
-            const bgClass = isGsoActive ? "bg-orange-100/90 border-orange-300" : "bg-green-100/90 border-green-300";
-            const textClass = isGsoActive ? "text-orange-800" : "text-green-800";
-            return (
-                <div className={`${isPhone ? 'px-2 py-1' : 'px-3 py-1'} backdrop-blur-sm rounded-md shadow-sm border ${bgClass}`}>
-                    <span className={`${isPhone ? 'text-xs' : ''} font-medium ${textClass}`}>
-                        {autoSelectedLEOSatellite.name}
-                        {autoSelectedLEOSatellite.type === 'ONEWEB' && !isPhone && (
-                            <> {gsoAvoidanceActive ? "(GSO Protection)" : ""}</>
-                        )}
-                    </span>
-                </div>
+            return renderChip(
+                autoSelectedLEOSatellite,
+                autoSelectedLEOSatellite.type === 'ONEWEB' && !isPhone
+                    ? <>{autoSelectedLEOSatellite.name} {gsoAvoidanceActive ? "(GSO Protection)" : ""}</>
+                    : undefined
             );
         }
         if (autoSelectedGEOSatellite) {
-            return (
-                <div className={`${isPhone ? 'px-2 py-1' : 'px-3 py-1'} bg-yellow-100/90 backdrop-blur-sm rounded-md shadow-sm border border-yellow-300`}>
-                    <span className={`${isPhone ? 'text-xs' : ''} text-yellow-800 font-medium`}>{autoSelectedGEOSatellite.name}</span>
-                </div>
-            );
+            return renderChip(autoSelectedGEOSatellite);
         }
         return null;
-    }, [selectedSatellite, autoSelectedLEOSatellite, autoSelectedGEOSatellite, gsoAvoidanceActive, isPhone]);
+    }, [
+        selectedSatellite,
+        autoSelectedLEOSatellite,
+        autoSelectedGEOSatellite,
+        gsoAvoidanceActive,
+        isPhone,
+        renderChip,
+    ]);
 
-    if (isPhone || !indicator) return null;
+    if (!indicator) return null;
 
     return (
-        <div className={`absolute ${isPhone ? 'top-10' : 'top-12'} left-2 z-10`}>
+        <div
+            className={`absolute left-2 z-10 max-w-[calc(100vw-1rem)] ${
+                isPhone
+                    ? (isFullscreen
+                        ? 'top-[calc(env(safe-area-inset-top)+0.5rem)]'
+                        : 'top-[calc(env(safe-area-inset-top)+6rem)]')
+                    : 'top-12'
+            }`}
+        >
             {indicator}
         </div>
     );

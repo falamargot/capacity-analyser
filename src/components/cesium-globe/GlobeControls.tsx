@@ -76,7 +76,6 @@ interface DisplayOptionRowProps {
     title?: string;
 }
 
-const CONTROL_SURFACE_CLASS_NAME = 'border border-slate-700/80 bg-[linear-gradient(180deg,rgba(15,23,42,0.94),rgba(30,41,59,0.84))] shadow-[0_18px_40px_-26px_rgba(15,23,42,0.78)] ring-1 ring-slate-700/70 backdrop-blur-xl';
 const CONTROL_BUTTON_SURFACE_CLASS_NAME = 'border-slate-700/80 bg-[linear-gradient(180deg,rgba(15,23,42,0.94),rgba(30,41,59,0.84))] text-slate-200 shadow-[0_12px_28px_-24px_rgba(15,23,42,0.72)] hover:-translate-y-0.5 hover:bg-[linear-gradient(180deg,rgba(15,23,42,0.98),rgba(30,41,59,0.9))]';
 
 const accentClassNames: Record<NonNullable<ControlButtonProps['accent']>, string> = {
@@ -343,8 +342,8 @@ const GlobeControls: React.FC<GlobeControlsProps> = ({
 
     return (
         <div className={`absolute right-3 z-10 flex flex-col items-end gap-2 ${isPhone ? (isFullscreen ? 'top-3' : 'top-24') : 'top-3'}`}>
-            <div className={`relative rounded-[20px] p-1.5 ${CONTROL_SURFACE_CLASS_NAME} ${isMapOptionsOpen ? 'z-20' : ''}`}>
-                <div className={`flex items-center ${isPhone ? 'gap-1.5' : 'gap-1.5'}`} ref={popoverRef}>
+            <div className={`relative ${isMapOptionsOpen ? 'z-20' : ''}`}>
+                <div className="flex items-center gap-1.5" ref={popoverRef}>
                     {onSceneModeChange && (
                         <ControlButton
                             icon={sceneMode === '3D' ? <Map className="h-4 w-4" /> : <Globe className="h-4 w-4" />}
@@ -521,32 +520,30 @@ const GlobeControls: React.FC<GlobeControlsProps> = ({
                 </div>
             </div>
 
-            <div className={`rounded-[20px] p-1.5 ${CONTROL_SURFACE_CLASS_NAME}`}>
-                <div className="flex items-center gap-1.5">
-                    <ControlButton
-                        icon={<Minus className="h-4 w-4" />}
-                        label="Zoom out"
-                        onClick={handleZoomOut}
-                        title="Zoom out"
-                        compact
-                    />
-                    <ControlButton
-                        icon={<RotateCcw className="h-4 w-4" />}
-                        label="Reset view"
-                        onClick={handleReset}
-                        title="Reset view"
-                        compact
-                        active
-                        accent="emerald"
-                    />
-                    <ControlButton
-                        icon={<Plus className="h-4 w-4" />}
-                        label="Zoom in"
-                        onClick={handleZoomIn}
-                        title="Zoom in"
-                        compact
-                    />
-                </div>
+            <div className="flex items-center gap-1.5">
+                <ControlButton
+                    icon={<Minus className="h-4 w-4" />}
+                    label="Zoom out"
+                    onClick={handleZoomOut}
+                    title="Zoom out"
+                    compact
+                />
+                <ControlButton
+                    icon={<RotateCcw className="h-4 w-4" />}
+                    label="Reset view"
+                    onClick={handleReset}
+                    title="Reset view"
+                    compact
+                    active
+                    accent="emerald"
+                />
+                <ControlButton
+                    icon={<Plus className="h-4 w-4" />}
+                    label="Zoom in"
+                    onClick={handleZoomIn}
+                    title="Zoom in"
+                    compact
+                />
             </div>
         </div>
     );
