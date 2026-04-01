@@ -41,9 +41,10 @@ export const GEO_COVERAGE_ENTITY_PREFIX = 'geo-coverage::';
 
 const OVERVIEW_CONTOUR_COLOR = Color.fromCssColorString('#60a5fa').withAlpha(0.55);
 const OVERVIEW_FILL_COLOR = Color.fromCssColorString('#93c5fd').withAlpha(0.04);
-const SELECTED_GEO_CONTOUR_BASE_COLOR = Color.fromCssColorString('#2563eb');
-const SELECTED_GEO_FILL_OUTER_COLOR = Color.fromCssColorString('#93c5fd');
-const SELECTED_GEO_FILL_INNER_COLOR = Color.fromCssColorString('#3b82f6');
+const SELECTED_GEO_CONTOUR_COLOR = Color.fromCssColorString('#2563eb');
+const SELECTED_GEO_FILL_OUTER_COLOR = Color.fromCssColorString('#f0f9ff');
+const SELECTED_GEO_FILL_MID_COLOR = Color.fromCssColorString('#60a5fa');
+const SELECTED_GEO_FILL_INNER_COLOR = Color.fromCssColorString('#1e40af');
 const DIMMED_CONTOUR_COLOR = Color.fromCssColorString('#94a3b8').withAlpha(0.34);
 const MAX_PREBUILT_FILL_TRIANGLES_PER_PART = 500_000;
 
@@ -68,6 +69,7 @@ interface RenderContour {
   prebuiltMesh: PrebuiltCoverageMesh | null;
   normalizedLevel: number;
   mode: 'overview' | 'full' | 'dimmed';
+  showFill: boolean;
 }
 
 const _sanitizedGeometryCache = new WeakMap<object, SanitizedPolygonGeometry | null>();
@@ -297,38 +299,52 @@ const shouldUsePrebuiltFillForContour = (contour: RenderContour): boolean => (
   contour.prebuiltMesh.triangleCount <= MAX_PREBUILT_FILL_TRIANGLES_PER_PART
 );
 
+const smoothstep = (value: number): number => {
+  const clamped = Math.max(0, Math.min(1, value));
+  return clamped * clamped * (3 - (2 * clamped));
+};
+
 const getCoverageBandStyle = (
   normalizedBand: number,
   mode: RenderContour['mode']
 ): { fillColor: Color; contourColor: Color; contourWidth: number } => {
   if (mode === 'overview') {
     return {
-      fillColor: OVERVIEW_FILL_COLOR,
-      contourColor: OVERVIEW_CONTOUR_COLOR,
-      contourWidth: 1.2,
-    };
-  }
-
-  if (mode === 'dimmed') {
-    return {
-      fillColor: Color.fromCssColorString('#cbd5e1').withAlpha(0.02 + (normalizedBand * 0.04)),
-      contourColor: DIMMED_CONTOUR_COLOR,
+      fillColor: OVERVIEW_FILL_COLOR.withAlpha(0.05),
+      contourColor: OVERVIEW_CONTOUR_COLOR.withAlpha(0.4),
       contourWidth: 1,
     };
   }
 
-  const fillColor = Color.lerp(
-    SELECTED_GEO_FILL_OUTER_COLOR,
-    SELECTED_GEO_FILL_INNER_COLOR,
-    0.14 + (normalizedBand * 0.86),
-    new Color()
-  );
-  fillColor.alpha = 0.085 + (normalizedBand * 0.17);
+  const easedBand = smoothstep(normalizedBand);
+
+  if (mode === 'dimmed') {
+    return {
+      fillColor: Color.fromCssColorString('#bfdbfe').withAlpha(0.038 + (easedBand * 0.06)),
+      contourColor: DIMMED_CONTOUR_COLOR.withAlpha(0.2 + (easedBand * 0.14)),
+      contourWidth: 0.95,
+    };
+  }
+
+  const fillColor = easedBand < 0.52
+    ? Color.lerp(
+        SELECTED_GEO_FILL_OUTER_COLOR,
+        SELECTED_GEO_FILL_MID_COLOR,
+        easedBand / 0.52,
+        new Color()
+      )
+    : Color.lerp(
+        SELECTED_GEO_FILL_MID_COLOR,
+        SELECTED_GEO_FILL_INNER_COLOR,
+        (easedBand - 0.52) / 0.48,
+        new Color()
+      );
+  fillColor.alpha = 0.055 + (easedBand * easedBand * 0.34);
 
   return {
     fillColor,
-    contourColor: SELECTED_GEO_CONTOUR_BASE_COLOR.withAlpha(0.6 + (normalizedBand * 0.32)),
-    contourWidth: 1.6,
+    contourColor: SELECTED_GEO_CONTOUR_COLOR.withAlpha(0.72),
+    contourWidth: 1.2,
   };
 };
 
@@ -390,6 +406,35 @@ const getCoverageLevelNormalizer = (coverages: Coverage[]): Map<string, number> 
   );
 };
 
+const getPrimaryContourKey = (
+  coverages: Coverage[]
+): string | null => {
+  const areaByContourKey = new Map<string, number>();
+
+  for (const coverage of coverages) {
+    const geometry = getSanitizedPolygonGeometry(coverage.feature as Feature<Geometry, GeoJsonProperties>);
+    if (!geometry) continue;
+
+    const contourKey = getCoverageBeamId(coverage);
+    areaByContourKey.set(
+      contourKey,
+      (areaByContourKey.get(contourKey) ?? 0) + approximateRingArea(geometry.outerRing)
+    );
+  }
+
+  let selectedContourKey: string | null = null;
+  let largestArea = -Infinity;
+
+  for (const [contourKey, area] of areaByContourKey.entries()) {
+    if (area > largestArea) {
+      largestArea = area;
+      selectedContourKey = contourKey;
+    }
+  }
+
+  return selectedContourKey;
+};
+
 const getGeometryPartKey = (feature: Feature<Geometry, GeoJsonProperties>, fallbackIndex: number): string => {
   const key = feature.properties?.coverageGeometryKey;
   return typeof key === 'string' ? key : `part-${fallbackIndex}`;
@@ -406,18 +451,29 @@ const getMeshLookupKey = (feature: Feature<Geometry, GeoJsonProperties>, geometr
   return `${name}::${level}::${geometryPartKey}`;
 };
 
+const getFeaturePrebuiltMesh = (
+  feature: Feature<Geometry, GeoJsonProperties>,
+  geometryPartKey: string,
+  meshIndex: Map<string, PrebuiltCoverageMesh> | null,
+): PrebuiltCoverageMesh | null => {
+  const meshLookupKey = getMeshLookupKey(feature, geometryPartKey);
+  return meshLookupKey ? (meshIndex?.get(meshLookupKey) ?? null) : null;
+};
+
 const toRenderContour = (
   satellite: SatelliteData,
   coverage: Coverage,
   meshIndex: Map<string, PrebuiltCoverageMesh> | null,
   normalizedLevel: number,
   mode: RenderContour['mode'],
-  index: number
+  index: number,
+  showFill: boolean
 ): RenderContour | null => {
   const geometry = getSanitizedPolygonGeometry(coverage.feature as Feature<Geometry, GeoJsonProperties>);
   if (!geometry) return null;
-  const geometryPartKey = getGeometryPartKey(coverage.feature as Feature<Geometry, GeoJsonProperties>, index);
-  const meshLookupKey = getMeshLookupKey(coverage.feature as Feature<Geometry, GeoJsonProperties>, geometryPartKey);
+  const feature = coverage.feature as Feature<Geometry, GeoJsonProperties>;
+  const geometryPartKey = getGeometryPartKey(feature, index);
+  const prebuiltMesh = getFeaturePrebuiltMesh(feature, geometryPartKey, meshIndex);
 
   return {
     satelliteName: satellite.name,
@@ -425,9 +481,10 @@ const toRenderContour = (
     contourKey: getCoverageBeamId(coverage),
     geometryPartKey,
     geometry,
-    prebuiltMesh: meshLookupKey ? (meshIndex?.get(meshLookupKey) ?? null) : null,
+    prebuiltMesh,
     normalizedLevel,
     mode,
+    showFill,
   };
 };
 
@@ -462,7 +519,7 @@ const buildSatelliteOverviewContours = (
 
     if (!selectedCoverage) continue;
 
-    const renderContour = toRenderContour(satellite, selectedCoverage, meshIndex, 1, 'overview', 0);
+    const renderContour = toRenderContour(satellite, selectedCoverage, meshIndex, 1, 'overview', 0, true);
     if (renderContour) {
       contours.push({ ...renderContour, coverageKey });
     }
@@ -479,6 +536,16 @@ const buildCoverageContours = (
 ): RenderContour[] => {
   const coverages = getCoverageParts(satellite, coverageKey);
   const normalizedLevels = getCoverageLevelNormalizer(coverages);
+  const primaryContourKey = getPrimaryContourKey(coverages);
+  const canUseBandedGradientFill = coverages.length > 0 && coverages.every((coverage, index) => {
+    const feature = coverage.feature as Feature<Geometry, GeoJsonProperties>;
+    const geometryPartKey = getGeometryPartKey(feature, index);
+    const prebuiltMesh = getFeaturePrebuiltMesh(feature, geometryPartKey, meshIndex);
+
+    return prebuiltMesh !== null
+      && prebuiltMesh.fillMode === 'banded'
+      && prebuiltMesh.triangleCount <= MAX_PREBUILT_FILL_TRIANGLES_PER_PART;
+  });
 
   return coverages
     .map((coverage, index) => {
@@ -486,6 +553,7 @@ const buildCoverageContours = (
       const mode = selectedContourKey === null || selectedContourKey === contourKey
         ? 'full'
         : 'dimmed';
+      const showFill = canUseBandedGradientFill || (primaryContourKey !== null && contourKey === primaryContourKey);
 
       return toRenderContour(
         satellite,
@@ -493,7 +561,8 @@ const buildCoverageContours = (
         meshIndex,
         normalizedLevels.get(contourKey) ?? 1,
         mode,
-        index
+        index,
+        showFill
       );
     })
     .filter((contour): contour is RenderContour => contour !== null);
@@ -526,11 +595,38 @@ const resolveRenderContours = (
 
   if (selection.type === 'target' && selectedCoverage) {
     const satellite = getSatelliteById(satellites, selectedCoverage.satelliteId);
-    return satellite ? buildCoverageContours(satellite, selectedCoverage.coverageKey, meshIndex, null) : [];
+    return satellite
+      ? buildCoverageContours(satellite, selectedCoverage.coverageKey, meshIndex, null)
+      : [];
   }
 
   return [];
 };
+
+const getRenderModeOrder = (mode: RenderContour['mode']): number => {
+  if (mode === 'dimmed') return 0;
+  if (mode === 'overview') return 1;
+  return 2;
+};
+
+const sortRenderContoursForDisplay = (contours: RenderContour[]): RenderContour[] => (
+  [...contours].sort((a, b) => {
+    const modeDelta = getRenderModeOrder(a.mode) - getRenderModeOrder(b.mode);
+    if (modeDelta !== 0) return modeDelta;
+
+    if (a.normalizedLevel !== b.normalizedLevel) {
+      return a.normalizedLevel - b.normalizedLevel;
+    }
+
+    const coverageDelta = a.coverageKey.localeCompare(b.coverageKey);
+    if (coverageDelta !== 0) return coverageDelta;
+
+    const contourDelta = a.contourKey.localeCompare(b.contourKey);
+    if (contourDelta !== 0) return contourDelta;
+
+    return a.geometryPartKey.localeCompare(b.geometryPartKey);
+  })
+);
 
 const CoverageLayer: React.FC<CoverageLayerProps> = ({
   satellites,
@@ -577,12 +673,12 @@ const CoverageLayer: React.FC<CoverageLayerProps> = ({
       : null;
   }, [activeMeshState, relevantSatellite?.coverageFileId]);
   const renderContours = useMemo(
-    () => resolveRenderContours(
+    () => sortRenderContoursForDisplay(resolveRenderContours(
       relevantSatellite ? [relevantSatellite] : [],
       selection,
       selectedCoverage,
       activeMeshIndex
-    ),
+    )),
     [activeMeshIndex, relevantSatellite, selection, selectedCoverage]
   );
   const renderContentSignature = useMemo(() => (
@@ -591,8 +687,9 @@ const CoverageLayer: React.FC<CoverageLayerProps> = ({
         contour.coverageKey,
         contour.contourKey,
         contour.geometryPartKey,
-        contour.prebuiltMesh ? 'mesh' : 'polygon',
+        contour.prebuiltMesh ? `mesh:${contour.prebuiltMesh.fillMode}` : 'polygon',
         contour.mode,
+        contour.showFill ? 'fill' : 'outline',
         contour.normalizedLevel.toFixed(4),
       ].join('::'))
       .join('|')
@@ -693,49 +790,51 @@ const CoverageLayer: React.FC<CoverageLayerProps> = ({
       const fillId = `${coverageEntityId}::fill::${contour.contourKey}::${contour.geometryPartKey}`;
       const outlineId = `${coverageEntityId}::outline::${contour.contourKey}::${contour.geometryPartKey}`;
 
-      if (shouldUsePrebuiltFillForContour(contour) && contour.prebuiltMesh) {
-        const meshBuffers = getPrebuiltMeshBuffers(contour.prebuiltMesh);
-        fillPrimitives.add(new Primitive({
-          geometryInstances: new GeometryInstance({
-            id: fillId,
-            geometry: new CesiumGeometry({
+      if (contour.showFill) {
+        if (shouldUsePrebuiltFillForContour(contour) && contour.prebuiltMesh) {
+          const meshBuffers = getPrebuiltMeshBuffers(contour.prebuiltMesh);
+          fillPrimitives.add(new Primitive({
+            geometryInstances: new GeometryInstance({
+              id: fillId,
+              geometry: new CesiumGeometry({
+                attributes: {
+                  position: new GeometryAttribute({
+                    componentDatatype: ComponentDatatype.DOUBLE,
+                    componentsPerAttribute: 3,
+                    values: meshBuffers.positions,
+                  }),
+                },
+                indices: meshBuffers.indices,
+                primitiveType: PrimitiveType.TRIANGLES,
+                boundingSphere: meshBuffers.boundingSphere,
+              }),
               attributes: {
-                position: new GeometryAttribute({
-                  componentDatatype: ComponentDatatype.DOUBLE,
-                  componentsPerAttribute: 3,
-                  values: meshBuffers.positions,
-                }),
+                color: ColorGeometryInstanceAttribute.fromColor(style.fillColor),
               },
-              indices: meshBuffers.indices,
-              primitiveType: PrimitiveType.TRIANGLES,
-              boundingSphere: meshBuffers.boundingSphere,
             }),
-            attributes: {
-              color: ColorGeometryInstanceAttribute.fromColor(style.fillColor),
-            },
-          }),
-          appearance: new PerInstanceColorAppearance({
-            flat: true,
-            translucent: style.fillColor.alpha < 1,
-            closed: false,
-          }),
-          asynchronous: false,
-        }));
-      } else {
-        const hierarchy = buildPolygonHierarchy(contour.geometry, geometryLod);
-        if (!hierarchy) return;
+            appearance: new PerInstanceColorAppearance({
+              flat: true,
+              translucent: style.fillColor.alpha < 1,
+              closed: false,
+            }),
+            asynchronous: false,
+          }));
+        } else {
+          const hierarchy = buildPolygonHierarchy(contour.geometry, geometryLod);
+          if (!hierarchy) return;
 
-        dataSource.entities.add({
-          id: fillId,
-          name: contour.coverageKey,
-          polygon: {
-            hierarchy,
-            material: new ColorMaterialProperty(style.fillColor),
-            arcType: ArcType.RHUMB,
-            outline: false,
-            height: GEO_FOOTPRINT_LAYER_HEIGHT_M,
-          },
-        });
+          dataSource.entities.add({
+            id: fillId,
+            name: contour.coverageKey,
+            polygon: {
+              hierarchy,
+              material: new ColorMaterialProperty(style.fillColor),
+              arcType: ArcType.RHUMB,
+              outline: false,
+              height: GEO_FOOTPRINT_LAYER_HEIGHT_M,
+            },
+          });
+        }
       }
 
       dataSource.entities.add({

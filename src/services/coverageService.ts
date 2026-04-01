@@ -38,6 +38,7 @@ interface RawCoverageFile {
 
 export interface PrebuiltCoverageMesh {
   vertexFormat: 'cartesian3';
+  fillMode: 'simple' | 'banded';
   positionCount: number;
   triangleCount: number;
   positions: Float64Array;
@@ -53,6 +54,7 @@ interface PrebuiltCoverageManifestFeatureV3 {
   name: string;
   level: number;
   coverageGeometryKey: string;
+  fillMode: 'simple' | 'banded';
   positionCount: number;
   positionByteOffset: number;
   indexCount: number;
@@ -64,8 +66,8 @@ interface PrebuiltCoverageManifestFeatureV3 {
   } | null;
 }
 
-interface PrebuiltCoverageManifestV3 {
-  format: 'geo-coverage-prebuilt-v3';
+interface PrebuiltCoverageManifestV5 {
+  format: 'geo-coverage-prebuilt-v5';
   satelliteId: string;
   meshFile: string;
   meshEncoding: {
@@ -82,11 +84,11 @@ const isCoverageFileFormat = (data: unknown): data is RawCoverageFile =>
   data !== null &&
   'coverages' in data;
 
-const isPrebuiltCoverageManifestV3Format = (data: unknown): data is PrebuiltCoverageManifestV3 =>
+const isPrebuiltCoverageManifestV5Format = (data: unknown): data is PrebuiltCoverageManifestV5 =>
   typeof data === 'object' &&
   data !== null &&
   'format' in data &&
-  (data as { format?: unknown }).format === 'geo-coverage-prebuilt-v3' &&
+  (data as { format?: unknown }).format === 'geo-coverage-prebuilt-v5' &&
   'meshFile' in data &&
   typeof (data as { meshFile?: unknown }).meshFile === 'string' &&
   'features' in data &&
@@ -159,7 +161,7 @@ export const parseCoverageFile = (data: RawCoverageFile): CoverageData => {
 };
 
 export const parsePrebuiltCoverageMeshBinaryBundle = (
-  manifest: PrebuiltCoverageManifestV3,
+  manifest: PrebuiltCoverageManifestV5,
   meshBuffer: ArrayBuffer,
 ): Map<string, PrebuiltCoverageMesh> => {
   const meshIndex = new Map<string, PrebuiltCoverageMesh>();
@@ -167,6 +169,7 @@ export const parsePrebuiltCoverageMeshBinaryBundle = (
   for (const feature of manifest.features) {
     meshIndex.set(feature.key, {
       vertexFormat: manifest.meshEncoding.vertexFormat,
+      fillMode: feature.fillMode,
       positionCount: feature.positionCount,
       triangleCount: feature.triangleCount,
       positions: new Float64Array(
@@ -253,7 +256,7 @@ export const loadSatelliteCoverageMeshIndex = (satelliteId: string): Promise<Map
   const promise = (async () => {
     try {
       const manifest = await fetchCoverageJson(`/coverage-prebuilt/${satelliteId}.manifest.json`);
-      if (manifest && isPrebuiltCoverageManifestV3Format(manifest)) {
+      if (manifest && isPrebuiltCoverageManifestV5Format(manifest)) {
         const meshBuffer = await fetchCoverageArrayBuffer(`/coverage-prebuilt/${manifest.meshFile}`);
         if (meshBuffer) {
           return parsePrebuiltCoverageMeshBinaryBundle(manifest, meshBuffer);

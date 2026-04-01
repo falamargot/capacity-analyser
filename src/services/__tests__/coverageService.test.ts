@@ -55,7 +55,7 @@ describe('parsePrebuiltCoverageMeshBinaryBundle', () => {
 
     const meshIndex = parsePrebuiltCoverageMeshBinaryBundle(
       {
-        format: 'geo-coverage-prebuilt-v3',
+        format: 'geo-coverage-prebuilt-v5',
         satelliteId: '54259',
         meshFile: '54259.mesh.bin',
         meshEncoding: {
@@ -69,6 +69,7 @@ describe('parsePrebuiltCoverageMeshBinaryBundle', () => {
           name: 'E10B C-band downlink',
           level: 42,
           coverageGeometryKey: '0:0',
+          fillMode: 'banded',
           positionCount: 3,
           positionByteOffset: 0,
           indexCount: 3,
@@ -84,6 +85,7 @@ describe('parsePrebuiltCoverageMeshBinaryBundle', () => {
     expect(mesh).toBeDefined();
     expect(mesh?.positions).toBeInstanceOf(Float64Array);
     expect(mesh?.indices).toBeInstanceOf(Uint32Array);
+    expect(mesh?.fillMode).toBe('banded');
     expect(Array.from(mesh?.positions ?? [])).toEqual(Array.from(positions));
     expect(Array.from(mesh?.indices ?? [])).toEqual(Array.from(indices));
   });

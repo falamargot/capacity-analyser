@@ -16,7 +16,7 @@ const getSatelliteIdFromSourceFile = (fileName) => fileName.replace(/\.json$/i, 
 const isSummaryManifestFormat = (data) => (
   typeof data === 'object' &&
   data !== null &&
-  data.format === 'geo-coverage-prebuilt-v3' &&
+  data.format === 'geo-coverage-prebuilt-v5' &&
   Array.isArray(data.entries)
 );
 
