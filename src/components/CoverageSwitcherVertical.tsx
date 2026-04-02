@@ -136,7 +136,7 @@ const CoverageSwitcherVertical = memo<CoverageSwitcherVerticalProps>(({
           aria-haspopup="listbox"
           aria-label={isExpanded ? 'Hide GEO coverage candidates' : 'Show GEO coverage candidates'}
           title={formatTooltip(selectedCoverage)}
-          className="group flex w-full items-center gap-2 rounded-[6px] border border-blue-400/25 bg-[linear-gradient(180deg,rgba(10,37,99,0.9),rgba(15,23,42,0.82))] px-2.5 py-2 shadow-[0_18px_40px_-28px_rgba(15,23,42,0.65)] ring-1 ring-blue-500/15 backdrop-blur-md transition duration-200 hover:border-blue-300/40 hover:bg-[linear-gradient(180deg,rgba(16,55,130,0.94),rgba(15,23,42,0.86))]"
+          className="group flex w-full items-center gap-2 rounded-[6px] border border-blue-400/25 bg-[linear-gradient(180deg,rgba(10,37,99,0.78),rgba(15,23,42,0.68))] px-2.5 py-2 shadow-[0_18px_40px_-28px_rgba(15,23,42,0.65)] ring-1 ring-blue-500/15 backdrop-blur-md transition duration-200 hover:border-blue-300/40 hover:bg-[linear-gradient(180deg,rgba(16,55,130,0.84),rgba(15,23,42,0.74))]"
         >
           <div className="min-w-0 flex-1 text-left">
             <div className={`truncate text-[12px] font-semibold leading-4 ${selectedTone?.text ?? 'text-sky-200'}`}>
@@ -154,7 +154,7 @@ const CoverageSwitcherVertical = memo<CoverageSwitcherVerticalProps>(({
             }`}
           >
             <div
-              className={`pointer-events-auto overflow-hidden rounded-[14px] border border-blue-400/20 bg-[linear-gradient(180deg,rgba(9,25,58,0.88),rgba(15,23,42,0.8))] shadow-[0_22px_45px_-30px_rgba(15,23,42,0.85)] ring-1 ring-blue-500/10 ${
+              className={`pointer-events-auto overflow-hidden rounded-[14px] border border-blue-400/20 bg-[linear-gradient(180deg,rgba(9,25,58,0.78),rgba(15,23,42,0.7))] shadow-[0_22px_45px_-30px_rgba(15,23,42,0.85)] ring-1 ring-blue-500/10 ${
                 isExpanded ? 'max-h-[40vh]' : 'max-h-0'
               }`}
             >

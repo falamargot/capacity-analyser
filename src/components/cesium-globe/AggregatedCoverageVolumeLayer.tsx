@@ -30,6 +30,9 @@ interface Props {
     viewerRef: React.RefObject<CesiumViewerType | null>;
 }
 
+const DEFAULT_PROJECTION_ALPHA = 0.1;
+const GEO_PROJECTION_ALPHA = 0.08;
+
 type Point2 = { x: number; y: number; index: number };
 function cross(o: Point2, a: Point2, b: Point2) { return (a.x - o.x) * (b.y - o.y) - (a.y - o.y) * (b.x - o.x); }
 
@@ -232,10 +235,10 @@ function buildStandardFootprintRing(subSat: { lat: number; lng: number }, segmen
     return sanitizeCartesianRing(ring);
 }
 
-function pickBeamFootprintPoints(
-    beamFeature: Feature<GeoJsonGeometry, GeoJsonProperties>
+export function pickBeamFootprintPoints(
+    beamFeature: Feature<GeoJsonGeometry, GeoJsonProperties> | null
 ): Cartesian3[] {
-    if (beamFeature.geometry?.type !== 'Polygon') return [];
+    if (beamFeature?.geometry?.type !== 'Polygon') return [];
     const coords = (beamFeature.geometry.coordinates?.[0] ?? []) as unknown as number[][];
     const pts: Cartesian3[] = [];
     for (const coord of coords) {
@@ -282,6 +285,10 @@ function resolveRenderableCoverageSatellite(
     return isOperationalSatellite(autoSelectedSatellite) ? autoSelectedSatellite : null;
 }
 
+function getProjectionAlpha(satellite: SatelliteData): number {
+    return satellite.orbitType === 'GEO' ? GEO_PROJECTION_ALPHA : DEFAULT_PROJECTION_ALPHA;
+}
+
 const AggregatedCoverageVolumeLayer: React.FC<Props> = ({
     selectedSatellite,
     selectedBeamFeature = null,
@@ -316,7 +323,7 @@ const AggregatedCoverageVolumeLayer: React.FC<Props> = ({
         );
         if (!satForColor) return null;
         const typeForColor = (selectedBeamFeature as any)?.properties?.type ?? satForColor.type;
-        const colorHex = getCoverageColor(typeForColor, 0.1, satForColor);
+        const colorHex = getCoverageColor(typeForColor, 1, satForColor);
         return Color.fromCssColorString(colorHex);
     }, [selectedSatellite, beamSatellite, autoSelectedSatellite, selectedBeamFeature, satellites]);
     const baseColorRef = useRef<Color | null>(null);
@@ -360,11 +367,13 @@ const AggregatedCoverageVolumeLayer: React.FC<Props> = ({
                 satellitesRef.current
             );
             const currentBaseColor = baseColorRef.current;
-            if (!sat || !currentBaseColor) { state.targetAlpha = 0; } else { state.targetAlpha = 0.1; }
+            if (!sat || !currentBaseColor) { state.targetAlpha = 0; } else { state.targetAlpha = getProjectionAlpha(sat); }
             if (now) {
                 const dt = state.lastTickTime ? Math.max(0, JulianDate.secondsDifference(now, state.lastTickTime)) : 0;
                 state.lastTickTime = now.clone();
-                const fadeDuration = 0.35; const maxStep = dt > 0 ? (dt / fadeDuration) * 0.1 : 0.1;
+                const fadeDuration = 0.35;
+                const maxAlpha = Math.max(DEFAULT_PROJECTION_ALPHA, GEO_PROJECTION_ALPHA);
+                const maxStep = dt > 0 ? (dt / fadeDuration) * maxAlpha : maxAlpha;
                 if (state.alpha < state.targetAlpha) { state.alpha = Math.min(state.targetAlpha, state.alpha + maxStep); }
                 else if (state.alpha > state.targetAlpha) { state.alpha = Math.max(state.targetAlpha, state.alpha - maxStep); }
             }
@@ -389,9 +398,13 @@ const AggregatedCoverageVolumeLayer: React.FC<Props> = ({
                     && sat!.type === 'ONEWEB'
                     && (!!selectedPositionRef.current || !!selectedAircraftRef.current);
 
-                const beamModeRings = selectedCoverageFeaturesRef.current.length > 0
-                    ? pickCoverageFootprintRings(selectedCoverageFeaturesRef.current)
-                    : [pickBeamFootprintPoints(beamFeature!)].filter((ring) => ring.length >= 3);
+                const beamModeRings = useBeamMode
+                    ? (
+                        selectedCoverageFeaturesRef.current.length > 0
+                            ? pickCoverageFootprintRings(selectedCoverageFeaturesRef.current)
+                            : [pickBeamFootprintPoints(beamFeature)].filter((ring) => ring.length >= 3)
+                    )
+                    : [];
 
                 const footprintPoints = useBeamMode
                     ? []
