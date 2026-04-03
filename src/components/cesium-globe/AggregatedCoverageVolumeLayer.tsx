@@ -31,7 +31,7 @@ interface Props {
 }
 
 const DEFAULT_PROJECTION_ALPHA = 0.1;
-const GEO_PROJECTION_ALPHA = 0.08;
+const GEO_PROJECTION_ALPHA = 0.04;
 
 type Point2 = { x: number; y: number; index: number };
 function cross(o: Point2, a: Point2, b: Point2) { return (a.x - o.x) * (b.y - o.y) - (a.y - o.y) * (b.x - o.x); }

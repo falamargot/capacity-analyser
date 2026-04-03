@@ -21,11 +21,13 @@ interface MapViewSwitcherProps {
   selectedPosition?: { lat: number; lng: number; altitude?: number } | null;
   onPointClick: (lat: number, lng: number) => void;
   onSatelliteClick: (satellite: SatelliteData | null) => void;
+  onMoonSelectionChange?: (selected: boolean) => void;
   onSatelliteHover: (satelliteId: string | null) => void;
   onSnpClick: (snpName: string | { lat: number; lng: number; name: string } | null) => void;
   onGatewayClick?: (gatewayName: string | null) => void;
   onSnpHover: (snpName: string | null) => void;
   selectedSatellite: SatelliteData | null;
+  selectedMoon?: boolean;
   autoSelectedLEOSatellite?: SatelliteData | null;
   autoSelectedGEOSatellite?: SatelliteData | null;
   selectedSNP?: string | { lat: number; lng: number; name: string } | null;
@@ -57,6 +59,8 @@ interface MapViewSwitcherProps {
   onSizeScaleReset?: () => void;
   showRegulatoryOverlay?: boolean;
   onToggleRegulatoryOverlay?: () => void;
+  showArtemisTracker?: boolean;
+  onToggleArtemisTracker?: () => void;
   hideSatelliteScreenLabels?: boolean;
   isPhone?: boolean;
   isMobileViewport?: boolean;
@@ -80,9 +84,11 @@ const MapViewSwitcher: React.FC<MapViewSwitcherProps> = ({
   selectedPosition,
   onPointClick,
   selectedSatellite,
+  selectedMoon,
   autoSelectedLEOSatellite,
   autoSelectedGEOSatellite,
   onSatelliteClick,
+  onMoonSelectionChange,
   onSatelliteHover,
   onSnpClick,
   onGatewayClick,
@@ -116,6 +122,8 @@ const MapViewSwitcher: React.FC<MapViewSwitcherProps> = ({
   onSizeScaleReset,
   showRegulatoryOverlay = false,
   onToggleRegulatoryOverlay,
+  showArtemisTracker = false,
+  onToggleArtemisTracker,
   hideSatelliteScreenLabels = false,
   isPhone = false,
   isMobileViewport = false,
@@ -143,11 +151,13 @@ const MapViewSwitcher: React.FC<MapViewSwitcherProps> = ({
         selectedPosition={selectedPosition}
         onPointClick={onPointClick}
         onSatelliteClick={onSatelliteClick}
+        onMoonSelectionChange={onMoonSelectionChange}
         onSatelliteHover={onSatelliteHover}
         onSnpClick={onSnpClick}
         onGatewayClick={onGatewayClick}
         onSnpHover={onSnpHover}
         selectedSatellite={selectedSatellite}
+        selectedMoon={selectedMoon}
         autoSelectedLEOSatellite={autoSelectedLEOSatellite}
         autoSelectedGEOSatellite={autoSelectedGEOSatellite}
         selectedSNP={typeof selectedSNP === 'string' ? { lat: 0, lng: 0, name: selectedSNP } : selectedSNP}
@@ -179,6 +189,8 @@ const MapViewSwitcher: React.FC<MapViewSwitcherProps> = ({
         onSizeScaleReset={onSizeScaleReset}
         showRegulatoryOverlay={showRegulatoryOverlay}
         onToggleRegulatoryOverlay={onToggleRegulatoryOverlay}
+        showArtemisTracker={showArtemisTracker}
+        onToggleArtemisTracker={onToggleArtemisTracker}
         hideSatelliteScreenLabels={hideSatelliteScreenLabels}
         isPhone={isPhone}
         isMobileViewport={isMobileViewport}

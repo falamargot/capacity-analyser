@@ -1,5 +1,5 @@
 import { memo, useState, useEffect, useRef, useMemo, useCallback, type CSSProperties, type RefObject } from 'react';
-import { Search, Satellite, Plane, Ship, Radio, MapPin, Waypoints } from 'lucide-react';
+import { Search, Satellite, Plane, Ship, Radio, MapPin, Waypoints, Moon as MoonIcon } from 'lucide-react';
 import type { SatelliteData } from '../types/satellites';
 import type { Aircraft } from '../modules/airTraffic/airTrafficService';
 import type { Vessel } from '../modules/maritimeTraffic/maritimeTrafficService';
@@ -11,6 +11,7 @@ type ResultItem =
   | { type: 'vessel'; data: Vessel }
   | { type: 'snp'; data: SNPData }
   | { type: 'gateway'; data: GeoGatewayData }
+  | { type: 'moon'; data: { name: string } }
   | { type: 'location'; data: { name: string; lat: number; lng: number } };
 
 interface CommandPaletteProps {
@@ -29,6 +30,7 @@ interface CommandPaletteProps {
   onSelectVessel: (vessel: Vessel) => void;
   onSelectSnp: (snpName: string) => void;
   onSelectGateway: (gateway: GeoGatewayData) => void;
+  onSelectMoon: () => void;
   onSelectLocation: (lat: number, lng: number) => void;
 }
 
@@ -51,6 +53,7 @@ const CommandPalette = memo<CommandPaletteProps>(({
   onSelectVessel,
   onSelectSnp,
   onSelectGateway,
+  onSelectMoon,
   onSelectLocation,
 }) => {
   const [activeIndex, setActiveIndex] = useState(0);
@@ -63,30 +66,20 @@ const CommandPalette = memo<CommandPaletteProps>(({
   const paletteRef = useRef<HTMLDivElement>(null);
   const shouldShowInlineSearch = !hideInlineSearchWhenAnchored || !anchorRef?.current;
   const allowedTypes = useMemo(
-    () => new Set<ResultItem['type']>(resultTypes ?? ['satellite', 'aircraft', 'vessel', 'snp', 'gateway', 'location']),
+    () => new Set<ResultItem['type']>(resultTypes ?? ['satellite', 'aircraft', 'vessel', 'snp', 'gateway', 'moon', 'location']),
     [resultTypes],
   );
   const searchPlaceholder = useMemo(() => {
     if (allowedTypes.size === 1 && allowedTypes.has('satellite')) return 'Search satellites...';
-    if (allowedTypes.size === 2 && allowedTypes.has('satellite') && allowedTypes.has('location')) return 'Search satellites or locations...';
-    if (allowedTypes.size === 3 && allowedTypes.has('satellite') && allowedTypes.has('location') && allowedTypes.has('gateway')) {
-      return 'Search satellites, gateways, or locations...';
-    }
-    if (allowedTypes.size === 4 && allowedTypes.has('satellite') && allowedTypes.has('location') && allowedTypes.has('snp') && allowedTypes.has('gateway')) {
-      return 'Search satellites, gateways, locations, or SNPs...';
-    }
-    return 'Search satellites, gateways, aircraft, vessels, SNPs, locations...';
+    if (allowedTypes.size === 1 && allowedTypes.has('moon')) return 'Search the Moon...';
+    if (allowedTypes.size === 3 && allowedTypes.has('satellite') && allowedTypes.has('moon') && allowedTypes.has('location')) return 'Search satellites, the Moon, or locations...';
+    return 'Search satellites, the Moon, gateways, aircraft, vessels, SNPs, or locations...';
   }, [allowedTypes]);
   const emptyStateMessage = useMemo(() => {
     if (allowedTypes.size === 1 && allowedTypes.has('satellite')) return 'Start typing to search satellites.';
-    if (allowedTypes.size === 2 && allowedTypes.has('satellite') && allowedTypes.has('location')) return 'Start typing to search satellites or locations.';
-    if (allowedTypes.size === 3 && allowedTypes.has('satellite') && allowedTypes.has('location') && allowedTypes.has('gateway')) {
-      return 'Start typing to search satellites, gateways, or locations.';
-    }
-    if (allowedTypes.size === 4 && allowedTypes.has('satellite') && allowedTypes.has('location') && allowedTypes.has('snp') && allowedTypes.has('gateway')) {
-      return 'Start typing to search satellites, gateways, locations, or SNPs.';
-    }
-    return 'Start typing to search satellites, gateways, aircraft, vessels, SNPs, or locations.';
+    if (allowedTypes.size === 1 && allowedTypes.has('moon')) return 'Start typing to search the Moon.';
+    if (allowedTypes.size === 3 && allowedTypes.has('satellite') && allowedTypes.has('moon') && allowedTypes.has('location')) return 'Start typing to search satellites, the Moon, or locations.';
+    return 'Start typing to search satellites, the Moon, gateways, aircraft, vessels, SNPs, or locations.';
   }, [allowedTypes]);
 
   // Reset state when opened
@@ -243,6 +236,10 @@ const CommandPalette = memo<CommandPaletteProps>(({
       for (const v of vesselMatches) items.push({ type: 'vessel', data: v });
     }
 
+    if (allowedTypes.has('moon') && ['moon', 'lune', 'luna', 'lunar'].some((term) => term.includes(q) || q.includes(term))) {
+      items.push({ type: 'moon', data: { name: 'Moon' } });
+    }
+
     if (allowedTypes.has('location')) {
       for (const loc of locationResults) {
         items.push({ type: 'location', data: loc });
@@ -266,10 +263,11 @@ const CommandPalette = memo<CommandPaletteProps>(({
       case 'vessel': onSelectVessel(item.data); break;
       case 'snp': onSelectSnp(item.data.name); break;
       case 'gateway': onSelectGateway(item.data); break;
+      case 'moon': onSelectMoon(); break;
       case 'location': onSelectLocation(item.data.lat, item.data.lng); break;
     }
     onClose();
-  }, [onSelectSatellite, onSelectAircraft, onSelectVessel, onSelectSnp, onSelectGateway, onSelectLocation, onClose]);
+  }, [onSelectSatellite, onSelectAircraft, onSelectVessel, onSelectSnp, onSelectGateway, onSelectMoon, onSelectLocation, onClose]);
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     switch (e.key) {
@@ -316,6 +314,7 @@ const CommandPalette = memo<CommandPaletteProps>(({
       case 'vessel': return <Ship className="h-4 w-4 text-teal-500" />;
       case 'snp': return <Radio className="h-4 w-4 text-orange-500" />;
       case 'gateway': return <Waypoints className="h-4 w-4 text-cyan-500" />;
+      case 'moon': return <MoonIcon className="h-4 w-4 text-slate-500" />;
       case 'location': return <MapPin className="h-4 w-4 text-gray-500" />;
     }
   };
@@ -327,6 +326,7 @@ const CommandPalette = memo<CommandPaletteProps>(({
       case 'vessel': return { primary: item.data.name || item.data.mmsi, secondary: `Vessel · ${item.data.mmsi}` };
       case 'snp': return { primary: item.data.name, secondary: `SNP · ${item.data.region}` };
       case 'gateway': return { primary: item.data.name, secondary: `Gateway · ${item.data.region}` };
+      case 'moon': return { primary: item.data.name, secondary: 'Natural satellite of Earth' };
       case 'location': return { primary: item.data.name, secondary: `${item.data.lat.toFixed(4)}°, ${item.data.lng.toFixed(4)}°` };
     }
   };

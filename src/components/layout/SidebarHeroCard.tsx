@@ -1,7 +1,7 @@
 import { memo, type ReactNode } from 'react';
 import { RotateCcw } from 'lucide-react';
 
-type HeroTone = 'satelliteLeo' | 'satelliteGeo' | 'satelliteInactive' | 'gateway' | 'snp' | 'aircraft' | 'vessel' | 'position' | 'idle';
+type HeroTone = 'satelliteLeo' | 'satelliteGeo' | 'satelliteInactive' | 'gateway' | 'snp' | 'aircraft' | 'vessel' | 'moon' | 'position' | 'idle';
 type BadgeTone = 'pink' | 'blue' | 'emerald' | 'teal' | 'amber' | 'slate' | 'red';
 
 interface SidebarHeroBadge {
@@ -28,6 +28,7 @@ const toneStyles: Record<HeroTone, string> = {
   snp: 'from-amber-500/16 via-orange-500/8 to-transparent border-amber-200/70 dark:border-amber-500/20',
   aircraft: 'from-sky-500/18 via-blue-500/10 to-transparent border-sky-200/70 dark:border-sky-500/20',
   vessel: 'from-teal-500/18 via-emerald-500/10 to-transparent border-teal-200/70 dark:border-teal-500/20',
+  moon: 'from-slate-300/18 via-amber-200/8 to-transparent border-slate-200/70 dark:border-slate-500/25',
   position: 'from-slate-400/16 via-slate-300/8 to-transparent border-slate-200/70 dark:border-slate-600/30',
   idle: 'from-slate-300/12 via-transparent to-transparent border-slate-200/70 dark:border-slate-700/60',
 };

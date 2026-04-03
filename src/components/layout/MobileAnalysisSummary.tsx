@@ -17,6 +17,8 @@ import { BACKHAUL_RADIUS_KM } from '../../utils/leoFootprint';
 import { GEO_GATEWAYS } from '../globe/GlobeConfig';
 import { getAssignedGeoSatellitesForGateway } from '../../utils/geoConnectivityModel';
 import type { SNPConnectedSatellite } from '../../services/coverageService';
+import { getMoonSnapshot, MOON_MEAN_RADIUS_KM } from '../../utils/moonInfo';
+import { JulianDate } from 'cesium';
 
 interface MobileSelectedPoint {
     lat: number;
@@ -30,6 +32,7 @@ interface MobileAnalysisSummaryProps {
     autoSelectedLEOSatellite: SatelliteData | null;
     autoSelectedGEOSatellite: SatelliteData | null;
     selectedSatellite: SatelliteData | null;
+    selectedMoon?: boolean;
     selectedPoint?: MobileSelectedPoint | null;
     selectedAircraft?: Aircraft | null;
     selectedGateway?: GeoGatewayData | null;
@@ -215,6 +218,7 @@ function SummaryStatCard({
 
 const MobileAnalysisSummary: React.FC<MobileAnalysisSummaryProps> = ({
     selectedSatellite,
+    selectedMoon = false,
     autoSelectedLEOSatellite,
     autoSelectedGEOSatellite,
     selectedPoint = null,
@@ -244,8 +248,22 @@ const MobileAnalysisSummary: React.FC<MobileAnalysisSummaryProps> = ({
         if (!selectedGateway) return null;
         return getAssignedGeoSatellitesForGateway(selectedGateway, satellites, GEO_GATEWAYS);
     }, [selectedGateway, satellites]);
+    const moonSnapshot = useMemo(
+        () => (selectedMoon ? getMoonSnapshot(JulianDate.now()) : null),
+        [selectedMoon]
+    );
 
     const summary = useMemo(() => {
+        if (selectedMoon) {
+            return {
+                eyebrow: 'Celestial Body',
+                title: 'Moon',
+                subtitle: 'Real-time lunar ephemeris',
+                status: 'Selected object',
+                statusTone: 'neutral' as const,
+            };
+        }
+
         if (selectedGateway) {
             return {
                 eyebrow: 'Gateway',
@@ -324,11 +342,10 @@ const MobileAnalysisSummary: React.FC<MobileAnalysisSummaryProps> = ({
     }, [
         autoSelectedGEOSatellite?.name,
         autoSelectedLEOSatellite?.name,
-        geoPointStatus,
         inspectedSNP,
         leoServiceViewModel?.finalServiceStatus,
         leoServiceViewModel?.primaryReasonLabel,
-        satelliteScope,
+        selectedMoon,
         selectedAircraft,
         selectedGateway,
         selectedPoint,
@@ -424,6 +441,33 @@ const MobileAnalysisSummary: React.FC<MobileAnalysisSummaryProps> = ({
             return compact ? cards.filter((card) => card.key !== 'sat-position') : cards;
         }
 
+        if (selectedMoon && moonSnapshot) {
+            return [
+                {
+                    key: 'moon-distance',
+                    label: 'Earth Distance',
+                    value: `${Math.round(moonSnapshot.distanceFromEarthCenterKm).toLocaleString()} km`,
+                    hint: `${Math.round(moonSnapshot.distanceFromEarthSurfaceKm).toLocaleString()} km surface-to-surface`,
+                    accentClassName: 'text-slate-700 dark:text-slate-200',
+                },
+                {
+                    key: 'moon-sunlit',
+                    label: 'Sunlit Fraction',
+                    value: `${Math.round(moonSnapshot.illuminatedFraction * 100)}%`,
+                    hint: 'Earth-view illumination',
+                    accentClassName: 'text-amber-600 dark:text-amber-300',
+                },
+                {
+                    key: 'moon-radius',
+                    label: 'Radius',
+                    value: `${MOON_MEAN_RADIUS_KM.toLocaleString(undefined, { maximumFractionDigits: 1 })} km`,
+                    hint: moonSnapshot.subEarthLatitudeDeg != null && moonSnapshot.subEarthLongitudeDeg != null
+                        ? formatCoordinates({ lat: moonSnapshot.subEarthLatitudeDeg, lng: moonSnapshot.subEarthLongitudeDeg })
+                        : 'Sub-Earth point unavailable',
+                },
+            ];
+        }
+
         if (inspectedSNP) {
             const avgElevation = snpConnectedSatellites.length > 0
                 ? snpConnectedSatellites.reduce((sum, entry) => sum + entry.elevation, 0) / snpConnectedSatellites.length
@@ -484,8 +528,11 @@ const MobileAnalysisSummary: React.FC<MobileAnalysisSummaryProps> = ({
 
         return [];
     }, [
+        compact,
         failedSnps,
         inspectedSNP,
+        moonSnapshot,
+        selectedMoon,
         selectedGateway,
         selectedGatewayAssignments,
         selectedSatellite,

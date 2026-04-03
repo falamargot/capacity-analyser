@@ -54,6 +54,7 @@ import type { GeoPointStatus } from './utils/selectedPointStatus';
 const CapacityDetails = lazy(() => import('./components/CapacityDetails'));
 const CommandPalette = lazy(() => import('./components/CommandPalette'));
 const GatewayDetails = lazy(() => import('./components/GatewayDetails'));
+const MoonDetails = lazy(() => import('./components/MoonDetails'));
 const SNPDetails = lazy(() => import('./components/SNPDetails'));
 
 // ─── Module-level constants ───────────────────────────────────────────────────
@@ -174,6 +175,7 @@ const App: React.FC = () => {
   const [selectedSNP, setSelectedSNP] = useState<SelectedSNP>(null);
   const [inspectedSNP, setInspectedSNP] = useState<SNPData | null>(null);
   const [selectedGateway, setSelectedGateway] = useState<GeoGatewayData | null>(null);
+  const [selectedMoon, setSelectedMoon] = useState(false);
   const [selectedAircraft, setSelectedAircraft] = useState<Aircraft | null>(null);
   const [selectedVessel, setSelectedVessel] = useState<Vessel | null>(null);
   const [nearestLocation, setNearestLocation] = useState<{ city: string; country: string } | null>(null);
@@ -185,6 +187,7 @@ const App: React.FC = () => {
   const [maritimeTrafficEnabled, setMaritimeTrafficEnabled] = useState(false);
   const [showSatelliteTrajectory, setShowSatelliteTrajectory] = useState(false);
   const [showRegulatoryOverlay, setShowRegulatoryOverlay] = useState(false);
+  const [showArtemisTracker, setShowArtemisTracker] = useState(false);
   const commandPaletteSearchRef = useRef<HTMLInputElement>(null);
   const helpMenuRef = useRef<HTMLDivElement>(null);
   const targetSourcesMenuRef = useRef<HTMLDivElement>(null);
@@ -380,6 +383,7 @@ const App: React.FC = () => {
     selectedPosition
     || analyzisPosition
     || selectedSatelliteId
+    || selectedMoon
     || selectedAircraft
     || selectedGateway
     || inspectedSNP
@@ -981,6 +985,7 @@ const App: React.FC = () => {
     } else {
       clearSelection();
     }
+    setSelectedMoon(false);
     setSelectedAircraft(null);
     setSelectedVessel(null);
     setSelectedSNP(null);
@@ -1026,6 +1031,7 @@ const App: React.FC = () => {
       setSelectedSNP(null);
       setInspectedSNP(null);
       setSelectedGateway(null);
+      setSelectedMoon(false);
       setIsTargetSourcesMenuOpen(false);
       return;
     }
@@ -1039,6 +1045,7 @@ const App: React.FC = () => {
 
     // Enter SNP inspection mode: clear other selections
     clearSelection();
+    setSelectedMoon(false);
     setInspectedSNP(snp);
     setSelectedSNP(null);
     setAutoSelectedLEOId(null);
@@ -1064,11 +1071,13 @@ const App: React.FC = () => {
   const handleGatewaySelect = useCallback((gateway: GeoGatewayData | null, fromComboBox: boolean = false) => {
     if (!gateway) {
       setSelectedGateway(null);
+      setSelectedMoon(false);
       setIsTargetSourcesMenuOpen(false);
       return;
     }
 
     clearSelection();
+    setSelectedMoon(false);
     setSelectedGateway(gateway);
     setAutoSelectedLEOId(null);
     setSelectedSNP(null);
@@ -1220,6 +1229,7 @@ const App: React.FC = () => {
 
   // Handle geographic point click (earth-based analyzis)
   const handlePointClick = useCallback((lat: number, lng: number) => {
+    setSelectedMoon(false);
     setSelectedAircraft(null);
     setSelectedVessel(null);
     setSelectedGateway(null);
@@ -1230,6 +1240,7 @@ const App: React.FC = () => {
 
   // Handle aircraft selection (aircraft-based analyzis)
   const handleAircraftSelect = useCallback((aircraft: Aircraft | null, fromComboBox: boolean = false) => {
+    setSelectedMoon(false);
     setSelectedAircraft(aircraft);
     setSelectedVessel(null);
     setIsTargetSourcesMenuOpen(false);
@@ -1255,6 +1266,7 @@ const App: React.FC = () => {
 
   // Handle vessel selection (vessel-based analyzis)
   const handleVesselSelect = useCallback((vessel: Vessel | null, fromComboBox: boolean = false) => {
+    setSelectedMoon(false);
     setSelectedVessel(vessel);
     setSelectedAircraft(null);
     setIsTargetSourcesMenuOpen(false);
@@ -1280,6 +1292,7 @@ const App: React.FC = () => {
 
   const handleLocationSelect = useCallback((lat: number, lng: number) => {
     setCameraTarget({ lat, lng, alt: 10000 });
+    setSelectedMoon(false);
     setSelectedAircraft(null);
     setSelectedVessel(null);
     setSelectedGateway(null);
@@ -1370,6 +1383,7 @@ const App: React.FC = () => {
     setSelectedSNP(null);
     setInspectedSNP(null);
     setSelectedGateway(null);
+    setSelectedMoon(false);
     setSelectedAircraft(null);
     setSelectedVessel(null);
     setHoveredSatelliteId(null);
@@ -1488,6 +1502,24 @@ const App: React.FC = () => {
   const handleToggleFullscreen = useCallback(() => setIsFullscreen(v => !v), []);
   const handleToggleSatelliteTrajectory = useCallback(() => setShowSatelliteTrajectory(v => !v), []);
   const handleToggleRegulatoryOverlay = useCallback(() => setShowRegulatoryOverlay(v => !v), []);
+  const handleToggleArtemisTracker = useCallback(() => setShowArtemisTracker(v => !v), []);
+  const handleMoonSelectionChange = useCallback((selected: boolean) => {
+    if (!selected) {
+      setSelectedMoon(false);
+      return;
+    }
+
+    clearSelection();
+    setSelectedMoon(true);
+    setAutoSelectedLEOId(null);
+    setSelectedSNP(null);
+    setInspectedSNP(null);
+    setSelectedGateway(null);
+    setSelectedAircraft(null);
+    setSelectedVessel(null);
+    setSelectedTargetCoverageKey(null);
+    setIsTargetSourcesMenuOpen(false);
+  }, [clearSelection]);
   const handleSizeScaleChange = useCallback((v: number) => {
     setSizeScale(v);
     setIsSizeScaleUserOverridden(true);
@@ -1510,11 +1542,13 @@ const App: React.FC = () => {
     onCoverageClick: handleCoverageClick,
     selectedPosition,
     onSatelliteClick: handleSatelliteClick,
+    onMoonSelectionChange: handleMoonSelectionChange,
     onSatelliteHover: handleSatelliteHover,
     onSnpClick: handleSnpClick,
     onGatewayClick: handleGatewaySelectByName,
     onSnpHover: handleSnpHover,
     selectedSatellite,
+    selectedMoon,
     autoSelectedLEOSatellite: resolvedAutoLEO,
     autoSelectedGEOSatellite: activeGeoSatellite,
     selectedGEOBeam,
@@ -1551,6 +1585,8 @@ const App: React.FC = () => {
     onToggleSatelliteTrajectory: handleToggleSatelliteTrajectory,
     showRegulatoryOverlay,
     onToggleRegulatoryOverlay: handleToggleRegulatoryOverlay,
+    showArtemisTracker,
+    onToggleArtemisTracker: handleToggleArtemisTracker,
     onSizeScaleChange: handleSizeScaleChange,
     onSizeScaleReset: handleSizeScaleReset,
     hideSatelliteScreenLabels: isPhone && isMobileAnalysisPanelOpen,
@@ -1562,12 +1598,12 @@ const App: React.FC = () => {
   }), [
     filteredSatellites, satelliteTypeByName, coverageFeaturesMemo, handlePointClick, handleCoverageClick, selectedPosition,
     handleSatelliteClick, handleSatelliteHover, handleSnpClick, handleGatewaySelectByName, handleSnpHover,
-    selectedSatellite, resolvedAutoLEO, activeGeoSatellite, selectedGEOBeam, selectedSelection, selectedCoverage, selectedSNP, selectedGateway, dedicatedSNPForSelectedLEO, leoServiceViewModel, geoPointStatus, leoRegulatoryResult,
+    handleMoonSelectionChange, selectedSatellite, selectedMoon, resolvedAutoLEO, activeGeoSatellite, selectedGEOBeam, selectedSelection, selectedCoverage, selectedSNP, selectedGateway, dedicatedSNPForSelectedLEO, leoServiceViewModel, geoPointStatus, leoRegulatoryResult,
     isFullscreen, satelliteScope, airTrafficEnabled, airTraffic.aircraft,
     selectedAircraft, handleAircraftSelect, handleAircraftHover,
     maritimeTrafficEnabled, maritimeTraffic.vessels, selectedVessel, handleVesselSelect, cameraTarget,
     handleCameraReady, handleGlobeContainerReady, handleGlobeBootPhaseChange, handleInitialGlobeReady, handleSizeScaleChange, handleToggleFullscreen, handleToggleSatelliteTrajectory, interpolatedAircraftMapRef, interpolatedVesselMapRef, showSatelliteTrajectory, sizeScale,
-    inspectedSNP, snpConnectedSatellites, showRegulatoryOverlay, handleToggleRegulatoryOverlay, handleSizeScaleReset,
+    inspectedSNP, snpConnectedSatellites, showRegulatoryOverlay, handleToggleRegulatoryOverlay, showArtemisTracker, handleToggleArtemisTracker, handleSizeScaleReset,
     isPhone, isMobileAnalysisPanelOpen, coverageSwitcherCoverages, selectedCoverageId, handleSelectTargetCoverageById,
   ]);
   const desktopCompactProgress = isMobile ? 0 : getCompactDesktopProgress(viewportSnapshot);
@@ -1577,6 +1613,20 @@ const App: React.FC = () => {
   const desktopLayoutGap = Math.round(lerp(32, 20, desktopCompactProgress));
 
   const desktopSidebarHero = useMemo(() => {
+    if (selectedMoon) {
+      return {
+        eyebrow: 'Celestial Body',
+        title: 'Moon',
+        subtitle: 'Real-time lunar ephemeris',
+        footer: null,
+        tone: 'moon' as const,
+        badges: [
+          { label: 'Natural Satellite', tone: 'slate' as const },
+          { label: 'Real Time', tone: 'blue' as const },
+        ],
+      };
+    }
+
     if (selectedSatellite) {
       const heroTone = selectedSatellite.opsStatus !== 'operational'
         ? 'satelliteInactive'
@@ -1702,6 +1752,7 @@ const App: React.FC = () => {
     inspectedSNP,
     nearestLocation,
     selectedGateway,
+    selectedMoon,
     satelliteScope,
     selectedAircraft,
     selectedSatellite,
@@ -1716,6 +1767,7 @@ const App: React.FC = () => {
     && !isMobileAnalysisPanelOpen
     && !selectedGateway
     && !inspectedSNP
+    && !selectedMoon
     && !selectedSatellite;
   const splashReady = !loading && hasSplashMinimumElapsed && isInitialGlobeReady;
   const splashMessage = loading
@@ -1829,7 +1881,7 @@ const App: React.FC = () => {
                               Choose another entry point
                             </div>
                             <div className="mt-0.5 text-[13px] text-slate-600 dark:text-slate-300">
-                              Jump to a satellite, gateway, location, SNP, aircraft, or vessel.
+                              Jump to a satellite, the Moon, gateway, location, SNP, aircraft, or vessel.
                             </div>
                           </div>
 
@@ -2306,6 +2358,7 @@ const App: React.FC = () => {
                     <div className="p-2">
                       <MobileAnalysisSummary
                         selectedSatellite={selectedSatellite}
+                        selectedMoon={selectedMoon}
                         autoSelectedLEOSatellite={resolvedAutoLEO}
                         autoSelectedGEOSatellite={activeGeoSatellite}
                         selectedPoint={analyzisPosition || selectedPosition}
@@ -2383,6 +2436,8 @@ const App: React.FC = () => {
                                 connectedSatellites={snpConnectedSatellites}
                                 onSatelliteClick={handleSatelliteClick}
                               />
+                            ) : selectedMoon ? (
+                              <MoonDetails />
                             ) : (
                               <CapacityDetails
                                 satellites={filteredSatellites}
@@ -2482,6 +2537,11 @@ const App: React.FC = () => {
                         compactDesktop={useCompactDesktopSidebar}
                         externalHeader
                       />
+                    ) : selectedMoon ? (
+                      <MoonDetails
+                        compactDesktop={useCompactDesktopSidebar}
+                        externalHeader
+                      />
                     ) : (
                       <CapacityDetails
                         satellites={filteredSatellites}
@@ -2541,7 +2601,7 @@ const App: React.FC = () => {
             vessels={maritimeTraffic.vessels}
             anchorRef={commandPaletteSearchRef}
             hideInlineSearchWhenAnchored
-            resultTypes={satelliteScope === 'GEO' ? ['satellite', 'location', 'gateway'] : satelliteScope === 'LEO' ? ['satellite', 'location', 'snp'] : ['satellite', 'location', 'snp', 'gateway']}
+            resultTypes={satelliteScope === 'GEO' ? ['satellite', 'moon', 'location', 'gateway'] : satelliteScope === 'LEO' ? ['satellite', 'moon', 'location', 'snp'] : ['satellite', 'moon', 'location', 'snp', 'gateway']}
             query={commandPaletteQuery}
             onQueryChange={setCommandPaletteQuery}
             onSelectSatellite={handleSatelliteSelectFromUI}
@@ -2549,6 +2609,7 @@ const App: React.FC = () => {
             onSelectVessel={(vessel) => handleVesselSelect(vessel, true)}
             onSelectSnp={(snpName) => handleSnpClick(snpName)}
             onSelectGateway={(gateway) => handleGatewaySelect(gateway, true)}
+            onSelectMoon={() => handleMoonSelectionChange(true)}
             onSelectLocation={handleLocationSelect}
           />
         </Suspense>
