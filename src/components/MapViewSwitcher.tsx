@@ -13,6 +13,7 @@ import type { LeoConnectivityViewModel } from '../utils/leoServiceViewModel';
 import type { RegulatoryResult } from '../services/regulatoryService';
 import type { GeoPointStatus } from '../utils/selectedPointStatus';
 import type { CoverageSwitcherCoverage } from './CoverageSwitcherVertical';
+import type { CountryOverlayMode } from '../types/countryOverlays';
 
 interface MapViewSwitcherProps {
   satellites: SatelliteData[];
@@ -57,8 +58,8 @@ interface MapViewSwitcherProps {
   onToggleSatelliteTrajectory?: () => void;
   onSizeScaleChange?: (scale: number) => void;
   onSizeScaleReset?: () => void;
-  showRegulatoryOverlay?: boolean;
-  onToggleRegulatoryOverlay?: () => void;
+  countryOverlayMode?: CountryOverlayMode;
+  onCountryOverlayModeChange?: (mode: CountryOverlayMode) => void;
   showArtemisTracker?: boolean;
   onToggleArtemisTracker?: () => void;
   hideSatelliteScreenLabels?: boolean;
@@ -120,8 +121,8 @@ const MapViewSwitcher: React.FC<MapViewSwitcherProps> = ({
   onToggleSatelliteTrajectory,
   onSizeScaleChange,
   onSizeScaleReset,
-  showRegulatoryOverlay = false,
-  onToggleRegulatoryOverlay,
+  countryOverlayMode = 'none',
+  onCountryOverlayModeChange,
   showArtemisTracker = false,
   onToggleArtemisTracker,
   hideSatelliteScreenLabels = false,
@@ -187,8 +188,8 @@ const MapViewSwitcher: React.FC<MapViewSwitcherProps> = ({
         onToggleSatelliteTrajectory={onToggleSatelliteTrajectory}
         onSizeScaleChange={onSizeScaleChange}
         onSizeScaleReset={onSizeScaleReset}
-        showRegulatoryOverlay={showRegulatoryOverlay}
-        onToggleRegulatoryOverlay={onToggleRegulatoryOverlay}
+        countryOverlayMode={countryOverlayMode}
+        onCountryOverlayModeChange={onCountryOverlayModeChange}
         showArtemisTracker={showArtemisTracker}
         onToggleArtemisTracker={onToggleArtemisTracker}
         hideSatelliteScreenLabels={hideSatelliteScreenLabels}

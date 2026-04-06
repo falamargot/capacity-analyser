@@ -4,43 +4,8 @@ const SOURCE_PATH = new URL('../public/oneweb_regulatory_map.geojson', import.me
 const TARGET_PATH = new URL('../public/oneweb_regulatory_overlay.geojson', import.meta.url);
 
 const MIN_RING_AREA = 1e-4;
-const MAX_RING_POINTS = 160;
-
 const isFiniteCoordinate = (value) => typeof value === 'number' && Number.isFinite(value);
 const arePointsEqual = (a, b) => a[0] === b[0] && a[1] === b[1];
-
-const triangleAreaTwice = (a, b, c) =>
-  (b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0]);
-
-const removeCollinearPoints = (ring) => {
-  if (ring.length <= 4) return ring;
-
-  const closed = arePointsEqual(ring[0], ring[ring.length - 1]) ? ring : [...ring, ring[0]];
-  const core = closed.slice(0, -1);
-  const simplified = core.filter((point, index, arr) => {
-    const prev = arr[(index - 1 + arr.length) % arr.length];
-    const next = arr[(index + 1) % arr.length];
-    return Math.abs(triangleAreaTwice(prev, point, next)) > 1e-10;
-  });
-
-  if (simplified.length < 3) return ring;
-  return [...simplified, simplified[0]];
-};
-
-const downsampleRing = (ring) => {
-  if (ring.length <= MAX_RING_POINTS) return ring;
-
-  const closed = arePointsEqual(ring[0], ring[ring.length - 1]) ? ring : [...ring, ring[0]];
-  const core = closed.slice(0, -1);
-  const step = Math.ceil(core.length / (MAX_RING_POINTS - 1));
-  const sampled = core.filter((_, index) => index % step === 0);
-
-  if (!sampled.length || !arePointsEqual(sampled[0], core[core.length - 1])) {
-    sampled.push(core[core.length - 1]);
-  }
-
-  return [...sampled, sampled[0]];
-};
 
 const normalizeRing = (ring) => {
   if (!Array.isArray(ring) || ring.length < 4) return null;
@@ -67,8 +32,9 @@ const normalizeRing = (ring) => {
     deduped.push([firstLng, firstLat]);
   }
 
-  const simplified = downsampleRing(removeCollinearPoints(deduped));
-  if (simplified.length < 4) return null;
+  // Preserve the full source ring so shared borders remain identical between
+  // neighboring countries in the rendered overlay.
+  const simplified = deduped;
 
   const uniqueVertices = new Set(
     simplified
@@ -133,6 +99,8 @@ const buildOverlayAsset = async () => {
       type: 'Feature',
       properties: {
         name: feature?.properties?.name ?? null,
+        isoA2: feature?.properties?.['ISO3166-1-Alpha-2'] ?? null,
+        isoA3: feature?.properties?.['ISO3166-1-Alpha-3'] ?? null,
         regulatory_status: feature?.properties?.regulatory_status ?? 'UNKNOWN',
       },
       geometry,

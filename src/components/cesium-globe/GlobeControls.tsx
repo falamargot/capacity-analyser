@@ -17,11 +17,11 @@ import {
     Rocket,
     RotateCcw,
     Settings2,
-    ShieldCheck,
     SunMedium,
     Waves
 } from 'lucide-react';
 import FullscreenButton from '../FullscreenButton';
+import type { CountryOverlayMode } from '../../types/countryOverlays';
 
 interface GlobeControlsProps {
     viewerRef: React.RefObject<CesiumViewerType | null>;
@@ -44,8 +44,8 @@ interface GlobeControlsProps {
     onToggleAggregatedConnectivity?: () => void;
     showFootprintProjection?: boolean;
     onToggleFootprintProjection?: () => void;
-    showRegulatoryOverlay?: boolean;
-    onToggleRegulatoryOverlay?: () => void;
+    countryOverlayMode?: CountryOverlayMode;
+    onCountryOverlayModeChange?: (mode: CountryOverlayMode) => void;
     showArtemisTracker?: boolean;
     onToggleArtemisTracker?: () => void;
     satelliteScope?: 'LEO' | 'GEO' | 'ALL';
@@ -215,6 +215,36 @@ const DisplayOptionRow: React.FC<DisplayOptionRowProps> = ({
     </button>
 );
 
+interface OverlayModeButtonProps {
+    label: string;
+    selected: boolean;
+    onClick: () => void;
+    disabled?: boolean;
+}
+
+const OverlayModeButton: React.FC<OverlayModeButtonProps> = ({
+    label,
+    selected,
+    onClick,
+    disabled = false,
+}) => (
+    <button
+        type="button"
+        onClick={onClick}
+        disabled={disabled}
+        className={[
+            'rounded-xl border px-3 py-2 text-left text-[12px] font-semibold transition-all duration-200',
+            disabled
+                ? 'cursor-not-allowed border-slate-200/80 bg-slate-50 text-slate-400 dark:border-slate-700 dark:bg-slate-900/60 dark:text-slate-500'
+                : selected
+                    ? 'border-slate-900 bg-slate-900 text-white shadow-sm dark:border-slate-100 dark:bg-slate-100 dark:text-slate-950'
+                    : 'border-slate-200/80 bg-white/90 text-slate-700 hover:border-slate-300 hover:bg-white dark:border-slate-700 dark:bg-slate-900/70 dark:text-slate-200 dark:hover:bg-slate-900'
+        ].join(' ')}
+    >
+        {label}
+    </button>
+);
+
 const GlobeControls: React.FC<GlobeControlsProps> = ({
     viewerRef,
     isFullscreen,
@@ -234,8 +264,8 @@ const GlobeControls: React.FC<GlobeControlsProps> = ({
     onToggleAggregatedConnectivity,
     showFootprintProjection,
     onToggleFootprintProjection,
-    showRegulatoryOverlay,
-    onToggleRegulatoryOverlay,
+    countryOverlayMode = 'none',
+    onCountryOverlayModeChange,
     showArtemisTracker,
     onToggleArtemisTracker,
     satelliteScope,
@@ -481,24 +511,6 @@ const GlobeControls: React.FC<GlobeControlsProps> = ({
                                         />
                                     )}
 
-                                    {onToggleRegulatoryOverlay && (
-                                        <DisplayOptionRow
-                                            icon={<ShieldCheck className="h-4 w-4" />}
-                                            label="Regulatory Overlay"
-                                            description={leoDisplayOptionsDisabled ? 'Use in ALL or LEO' : 'Show policy zones'}
-                                            enabled={!leoDisplayOptionsDisabled && !!showRegulatoryOverlay}
-                                            onClick={() => {
-                                                if (!leoDisplayOptionsDisabled) {
-                                                    onToggleRegulatoryOverlay?.();
-                                                }
-                                            }}
-                                            disabled={leoDisplayOptionsDisabled}
-                                            accent="violet"
-                                            title={leoDisplayOptionsDisabled ? 'Not available in GEO scope' : 'Toggle regulatory overlay (simulated demo data)'}
-                                            compact={useCompactDisplayPanel}
-                                        />
-                                    )}
-
                                     {onToggleArtemisTracker && (
                                         <DisplayOptionRow
                                             icon={<Rocket className="h-4 w-4" />}
@@ -513,6 +525,32 @@ const GlobeControls: React.FC<GlobeControlsProps> = ({
                                     )}
 
                                 </div>
+
+                                {onCountryOverlayModeChange && (
+                                    <div className={`${useCompactDisplayPanel ? 'mt-2 rounded-[18px] px-2.5 py-2' : 'mt-2.5 rounded-[18px] px-3 py-2.5'} border border-slate-200/80 bg-white/78 dark:border-slate-700 dark:bg-slate-900/72`}>
+                                        <div className={`${useCompactDisplayPanel ? 'mb-1.5' : 'mb-2'}`}>
+                                            <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">Country Overlay</div>
+                                        </div>
+                                        <div className="grid grid-cols-3 gap-2">
+                                            <OverlayModeButton
+                                                label="None"
+                                                selected={countryOverlayMode === 'none'}
+                                                onClick={() => onCountryOverlayModeChange('none')}
+                                            />
+                                            <OverlayModeButton
+                                                label="LEO Regulatory"
+                                                selected={countryOverlayMode === 'regulatory'}
+                                                onClick={() => onCountryOverlayModeChange('regulatory')}
+                                                disabled={leoDisplayOptionsDisabled}
+                                            />
+                                            <OverlayModeButton
+                                                label="5G Spectrum"
+                                                selected={countryOverlayMode === '5g-spectrum'}
+                                                onClick={() => onCountryOverlayModeChange('5g-spectrum')}
+                                            />
+                                        </div>
+                                    </div>
+                                )}
 
                                 <div className={`${useCompactDisplayPanel ? 'mt-2 rounded-[18px] px-2.5 py-2' : 'mt-2.5 rounded-[20px] px-3 py-2.5'} border border-slate-200/80 bg-white/78 dark:border-slate-700 dark:bg-slate-900/72`}>
                                     <div className="flex items-center justify-between gap-3">

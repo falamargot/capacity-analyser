@@ -60,7 +60,8 @@ import TrajectoryLayer from './cesium-globe/TrajectoryLayer';
 import GeoGatewayLayer from './cesium-globe/GeoGatewayLayer';
 import AggregatedConnectivityLayer from './cesium-globe/AggregatedConnectivityLayer';
 import RegulatoryLayer from './cesium-globe/RegulatoryLayer';
-import SelectedRegulatoryCountryOutline from './cesium-globe/SelectedRegulatoryCountryOutline';
+import FiveGSpectrumLayer from './cesium-globe/FiveGSpectrumLayer';
+import SelectedCountryOutline from './cesium-globe/SelectedCountryOutline';
 import SelectedPointStatusMarker, { SelectionPulseMarker } from './cesium-globe/SelectedPointStatusMarker';
 import { usePositionCallbacks } from './cesium-globe/hooks';
 
@@ -69,7 +70,7 @@ import GlobeControls from './cesium-globe/GlobeControls';
 import PositionDisplay from './cesium-globe/PositionDisplay';
 import SatelliteIndicator from './cesium-globe/SatelliteIndicator';
 import InspectionCard, { type HoveredEntity } from './cesium-globe/InspectionCard';
-import RegulatoryOverlayLegend from './cesium-globe/RegulatoryOverlayLegend';
+import CountryOverlayLegend from './cesium-globe/CountryOverlayLegend';
 import SelectedPointScreenLabel from './cesium-globe/SelectedPointScreenLabel';
 import SatelliteScreenLabels from './cesium-globe/SatelliteScreenLabels';
 import ArtemisLayer from './cesium-globe/ArtemisLayer';
@@ -84,6 +85,8 @@ import type { GeoPointStatus } from '../utils/selectedPointStatus';
 import { GROUND_POINT_ALTITUDE_KM } from './cesium-globe/layerHeights';
 import CoverageSwitcherVertical, { type CoverageSwitcherCoverage } from './CoverageSwitcherVertical';
 import { useArtemisTracker } from '../hooks/useArtemisTracker';
+import type { CountryOverlayMode } from '../types/countryOverlays';
+import { getFiveGSpectrumCountryInfo } from '../services/fiveGSpectrumService';
 
 const BASEMAP_STORAGE_KEY = 'cesium:basemap';
 
@@ -101,6 +104,17 @@ const DESIRED_BASEMAPS = [
     { id: 'earth-at-night', name: 'Earth at night', label: 'Earth at Night' },
     { id: 'natural-earth-ii', name: 'Natural Earth II', label: 'Natural Earth II' },
 ] as const;
+
+const getEntityPropertyValue = (entity: any, key: string): string | null => {
+    const property = entity?.properties?.[key];
+    if (!property) return null;
+
+    const value = typeof property.getValue === 'function'
+        ? property.getValue(JulianDate.now())
+        : property;
+
+    return value == null ? null : String(value);
+};
 
 interface CesiumGlobeProps {
     satellites: SatelliteData[];
@@ -154,8 +168,8 @@ interface CesiumGlobeProps {
     onSceneModeChange?: (mode: '2D' | '3D') => void;
     inspectedSNP?: SNPData | null;
     snpConnectedSatellites?: import('../services/coverageService').SNPConnectedSatellite[];
-    showRegulatoryOverlay?: boolean;
-    onToggleRegulatoryOverlay?: () => void;
+    countryOverlayMode?: CountryOverlayMode;
+    onCountryOverlayModeChange?: (mode: CountryOverlayMode) => void;
     showArtemisTracker?: boolean;
     onToggleArtemisTracker?: () => void;
     leoServiceViewModel?: LeoConnectivityViewModel | null;
@@ -221,8 +235,8 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
     onSceneModeChange,
     inspectedSNP,
     snpConnectedSatellites = [],
-    showRegulatoryOverlay = false,
-    onToggleRegulatoryOverlay,
+    countryOverlayMode = 'none',
+    onCountryOverlayModeChange,
     showArtemisTracker = false,
     onToggleArtemisTracker,
     leoServiceViewModel = null,
@@ -599,7 +613,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         const lat = CesiumMath.toDegrees(cartographic.latitude);
         const lng = CesiumMath.toDegrees(cartographic.longitude);
         onPointClick(lat, lng);
-    }, [onPointClick, onSatelliteClick, onSnpClick, onAircraftClick, onVesselClick, onCoverageClick, onMoonSelectionChange, selection.type]);
+    }, [onAircraftClick, onCoverageClick, onMoonSelectionChange, onPointClick, onSatelliteClick, onSnpClick, onVesselClick, selection.type]);
 
     // Determine target satellite for OneWeb comb layer
     const oneWebTargetSat = useMemo(() => {
@@ -798,6 +812,49 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         );
     }, [gatewayByName, onSnpHover, setHoveredEntityIfChanged]);
 
+    const handleFiveGSpectrumHover = useCallback((movement: { endPosition: Cartesian2 }) => {
+        if (!viewerRef.current || countryOverlayMode !== '5g-spectrum') {
+            if (hoveredEntityKeyRef.current?.startsWith('country5g:')) {
+                setHoveredEntityIfChanged(null, null);
+            }
+            return;
+        }
+
+        const pickedObject = viewerRef.current.scene.pick(movement.endPosition);
+        const pickedEntity = defined(pickedObject) && typeof pickedObject.id === 'object'
+            ? pickedObject.id
+            : null;
+
+        if (!pickedEntity) {
+            if (hoveredEntityKeyRef.current?.startsWith('country5g:')) {
+                setHoveredEntityIfChanged(null, null);
+            }
+            return;
+        }
+
+        const overlayType = getEntityPropertyValue(pickedEntity, 'overlayType');
+        if (overlayType !== '5g-spectrum') {
+            if (hoveredEntityKeyRef.current?.startsWith('country5g:')) {
+                setHoveredEntityIfChanged(null, null);
+            }
+            return;
+        }
+
+        const countryName = getEntityPropertyValue(pickedEntity, 'countryName') ?? 'Unknown territory';
+        const isoA2 = getEntityPropertyValue(pickedEntity, 'isoA2');
+        const info = getFiveGSpectrumCountryInfo(isoA2, countryName);
+        setHoveredEntityIfChanged(`country5g:${info.isoA2 ?? info.countryName}`, {
+            type: 'country5g',
+            data: info,
+        });
+    }, [countryOverlayMode, setHoveredEntityIfChanged]);
+
+    useEffect(() => {
+        if (countryOverlayMode !== '5g-spectrum' && hoveredEntityKeyRef.current?.startsWith('country5g:')) {
+            setHoveredEntityIfChanged(null, null);
+        }
+    }, [countryOverlayMode, setHoveredEntityIfChanged]);
+
     // This effect keeps the hoveredEntity card in sync when the underlying data
     // objects change (e.g. satellite position update, aircraft data refresh).
     // aircraftById and vesselById are now read from stable refs so this effect
@@ -876,10 +933,13 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
     }, [selectedPosition, sizeScale]);
 
     const leoDisplayOptionsAvailable = satelliteScope !== 'GEO';
-    const effectiveRegulatoryOverlayVisible =
-        leoDisplayOptionsAvailable && showRegulatoryOverlay;
-    const selectedCountryOutlineVisible =
-        !!selectedPosition
+    const effectiveCountryOverlayMode: CountryOverlayMode =
+        countryOverlayMode === 'regulatory'
+            ? (leoDisplayOptionsAvailable ? 'regulatory' : 'none')
+            : countryOverlayMode;
+    const selectedRegulatoryCountryOutlineVisible =
+        effectiveCountryOverlayMode === 'regulatory'
+        && !!selectedPosition
         && !!selectedRegulatoryResult
         && !selectedRegulatoryResult.isOcean
         && !!selectedRegulatoryResult.countryName;
@@ -908,8 +968,8 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                 isFullscreen={isFullscreen}
             />
 
-            <RegulatoryOverlayLegend
-                visible={effectiveRegulatoryOverlayVisible}
+            <CountryOverlayLegend
+                mode={effectiveCountryOverlayMode}
                 isPhone={isPhone}
             />
 
@@ -932,8 +992,8 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                 onToggleAggregatedConnectivity={() => setShowAggregatedConnectivity(!showAggregatedConnectivity)}
                 showFootprintProjection={showFootprintProjection}
                 onToggleFootprintProjection={() => setShowFootprintProjection(!showFootprintProjection)}
-                showRegulatoryOverlay={showRegulatoryOverlay}
-                onToggleRegulatoryOverlay={onToggleRegulatoryOverlay}
+                countryOverlayMode={effectiveCountryOverlayMode}
+                onCountryOverlayModeChange={onCountryOverlayModeChange}
                 showArtemisTracker={showArtemisTracker}
                 onToggleArtemisTracker={onToggleArtemisTracker}
                 satelliteScope={satelliteScope}
@@ -990,10 +1050,12 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                 >
                     <ScreenSpaceEventHandler>
                         <ScreenSpaceEvent action={handleMapClick} type={ScreenSpaceEventType.LEFT_CLICK} />
+                        <ScreenSpaceEvent action={handleFiveGSpectrumHover} type={ScreenSpaceEventType.MOUSE_MOVE} />
                     </ScreenSpaceEventHandler>
 
                     {/* Regulatory overlay — country polygons coloured by simulated regulatory status */}
-                    <RegulatoryLayer visible={effectiveRegulatoryOverlayVisible} />
+                    <RegulatoryLayer visible={effectiveCountryOverlayMode === 'regulatory'} />
+                    <FiveGSpectrumLayer visible={effectiveCountryOverlayMode === '5g-spectrum'} />
 
                     {/* Aggregated Connectivity Layer (Bottom most coverage layer) */}
                     <AggregatedConnectivityLayer
@@ -1002,10 +1064,21 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                         show={showAggregatedConnectivity}
                     />
 
-                    <SelectedRegulatoryCountryOutline
-                        visible={selectedCountryOutlineVisible}
+                    <SelectedCountryOutline
+                        visible={selectedRegulatoryCountryOutlineVisible}
                         countryName={selectedRegulatoryResult?.countryName ?? null}
-                        status={selectedCountryOutlineStatus}
+                        countryCode={selectedRegulatoryResult?.isoA2 ?? null}
+                        outlineColor={
+                            selectedCountryOutlineStatus === 'BLOCKED'
+                                ? '#ef4444'
+                                : selectedCountryOutlineStatus === 'RESTRICTED'
+                                    ? '#f97316'
+                                    : selectedCountryOutlineStatus === 'ALLOWED_CONFIRMED'
+                                        ? '#10b981'
+                                        : selectedCountryOutlineStatus === 'ALLOWED_ESTIMATED'
+                                            ? '#22c55e'
+                                            : '#94a3b8'
+                        }
                     />
 
                     {/* Coverage Layer — ANALYSIS LAYER
@@ -1051,7 +1124,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                         selectedPosition={selectedPosition}
                         selectedAircraft={selectedAircraft}
                         highlightServingFootprint={highlightServingFootprint}
-                        regulatoryOverlayActive={effectiveRegulatoryOverlayVisible}
+                        regulatoryOverlayActive={effectiveCountryOverlayMode === 'regulatory'}
                         leoServiceViewModel={leoServiceViewModel}
                     />
 

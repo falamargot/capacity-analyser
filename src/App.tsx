@@ -50,6 +50,7 @@ import { computeServiceStatus } from './utils/serviceLayer';
 import { getConnectivityStatus, hasRFConnectivity } from './utils/rfConnectivity';
 import { deriveLeoConnectivityViewModel } from './utils/leoServiceViewModel';
 import type { GeoPointStatus } from './utils/selectedPointStatus';
+import type { CountryOverlayMode } from './types/countryOverlays';
 
 const CapacityDetails = lazy(() => import('./components/CapacityDetails'));
 const CommandPalette = lazy(() => import('./components/CommandPalette'));
@@ -186,7 +187,7 @@ const App: React.FC = () => {
   const [airTrafficEnabled, setAirTrafficEnabled] = useState(false);
   const [maritimeTrafficEnabled, setMaritimeTrafficEnabled] = useState(false);
   const [showSatelliteTrajectory, setShowSatelliteTrajectory] = useState(false);
-  const [showRegulatoryOverlay, setShowRegulatoryOverlay] = useState(false);
+  const [countryOverlayMode, setCountryOverlayMode] = useState<CountryOverlayMode>('none');
   const [showArtemisTracker, setShowArtemisTracker] = useState(false);
   const commandPaletteSearchRef = useRef<HTMLInputElement>(null);
   const helpMenuRef = useRef<HTMLDivElement>(null);
@@ -960,8 +961,8 @@ const App: React.FC = () => {
   const handleSatelliteScopeChange = useCallback((newScope: SatelliteScope) => {
     setSatelliteScope(newScope);
 
-    if (newScope === 'GEO') {
-      setShowRegulatoryOverlay(false);
+    if (newScope === 'GEO' && countryOverlayMode === 'regulatory') {
+      setCountryOverlayMode('none');
     }
 
     if (newScope === 'LEO') {
@@ -976,7 +977,7 @@ const App: React.FC = () => {
       setSelectedAircraft(null);
       setSelectedVessel(null);
     }
-  }, [clearSelection, selectedSatellite]);
+  }, [clearSelection, countryOverlayMode, selectedSatellite]);
 
   // Performance optimization: Memoize event handlers to prevent unnecessary re-renders
   const handleSatelliteClick = useCallback((satellite: SatelliteData | null) => {
@@ -1501,7 +1502,9 @@ const App: React.FC = () => {
   // causes CesiumGlobe to re-render for no reason.
   const handleToggleFullscreen = useCallback(() => setIsFullscreen(v => !v), []);
   const handleToggleSatelliteTrajectory = useCallback(() => setShowSatelliteTrajectory(v => !v), []);
-  const handleToggleRegulatoryOverlay = useCallback(() => setShowRegulatoryOverlay(v => !v), []);
+  const handleCountryOverlayModeChange = useCallback((mode: CountryOverlayMode) => {
+    setCountryOverlayMode(mode);
+  }, []);
   const handleToggleArtemisTracker = useCallback(() => setShowArtemisTracker(v => !v), []);
   const handleMoonSelectionChange = useCallback((selected: boolean) => {
     if (!selected) {
@@ -1583,8 +1586,8 @@ const App: React.FC = () => {
     showSatelliteTrajectory,
     sizeScale,
     onToggleSatelliteTrajectory: handleToggleSatelliteTrajectory,
-    showRegulatoryOverlay,
-    onToggleRegulatoryOverlay: handleToggleRegulatoryOverlay,
+    countryOverlayMode,
+    onCountryOverlayModeChange: handleCountryOverlayModeChange,
     showArtemisTracker,
     onToggleArtemisTracker: handleToggleArtemisTracker,
     onSizeScaleChange: handleSizeScaleChange,
@@ -1603,7 +1606,7 @@ const App: React.FC = () => {
     selectedAircraft, handleAircraftSelect, handleAircraftHover,
     maritimeTrafficEnabled, maritimeTraffic.vessels, selectedVessel, handleVesselSelect, cameraTarget,
     handleCameraReady, handleGlobeContainerReady, handleGlobeBootPhaseChange, handleInitialGlobeReady, handleSizeScaleChange, handleToggleFullscreen, handleToggleSatelliteTrajectory, interpolatedAircraftMapRef, interpolatedVesselMapRef, showSatelliteTrajectory, sizeScale,
-    inspectedSNP, snpConnectedSatellites, showRegulatoryOverlay, handleToggleRegulatoryOverlay, showArtemisTracker, handleToggleArtemisTracker, handleSizeScaleReset,
+    inspectedSNP, snpConnectedSatellites, countryOverlayMode, handleCountryOverlayModeChange, showArtemisTracker, handleToggleArtemisTracker, handleSizeScaleReset,
     isPhone, isMobileAnalysisPanelOpen, coverageSwitcherCoverages, selectedCoverageId, handleSelectTargetCoverageById,
   ]);
   const desktopCompactProgress = isMobile ? 0 : getCompactDesktopProgress(viewportSnapshot);

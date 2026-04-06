@@ -4,6 +4,7 @@ import type { SatelliteData } from '../../types/satellites';
 import type { Aircraft } from '../../modules/airTraffic/airTrafficService';
 import type { Vessel } from '../../modules/maritimeTraffic/maritimeTrafficService';
 import type { GeoGatewayData, SNPData } from '../globe/GlobeConfig';
+import type { FiveGSpectrumCountryInfo } from '../../services/fiveGSpectrumService';
 
 type HoveredEntity =
   | { type: 'satellite'; data: SatelliteData }
@@ -11,6 +12,7 @@ type HoveredEntity =
   | { type: 'vessel'; data: Vessel }
   | { type: 'snp'; data: SNPData }
   | { type: 'gateway'; data: GeoGatewayData }
+  | { type: 'country5g'; data: FiveGSpectrumCountryInfo }
   | null;
 
 interface InspectionCardProps {
@@ -210,6 +212,31 @@ const InspectionCard = memo<InspectionCardProps>(({ entity, containerRef }) => {
               <span className="text-gray-700 dark:text-gray-300">{gateway.region}</span>
               <span className="text-gray-500 dark:text-gray-400">Lat/Lng</span>
               <span className="text-gray-700 dark:text-gray-300">{gateway.lat.toFixed(2)}° / {gateway.lng.toFixed(2)}°</span>
+            </div>
+          </>
+        );
+      }
+      case 'country5g': {
+        const country = displayEntity.data;
+        return (
+          <>
+            <div className="mb-1.5 flex items-center gap-2">
+              <Radio className="h-3.5 w-3.5 flex-shrink-0" style={{ color: country.outlineColor }} />
+              <span className="truncate text-xs font-semibold text-gray-900 dark:text-gray-100">{country.countryName}</span>
+            </div>
+            <div className="grid grid-cols-2 gap-x-3 gap-y-0.5 text-[11px]">
+              <span className="text-gray-500 dark:text-gray-400">Status</span>
+              <span className="text-gray-700 dark:text-gray-300">{country.statusLabel}</span>
+              <span className="text-gray-500 dark:text-gray-400">Deployed</span>
+              <span className="text-gray-700 dark:text-gray-300">{country.deployedBandLabel ?? '—'}</span>
+              <span className="text-gray-500 dark:text-gray-400">Planned</span>
+              <span className="text-gray-700 dark:text-gray-300">{country.plannedBandLabel ?? '—'}</span>
+              {country.isoA2 && (
+                <>
+                  <span className="text-gray-500 dark:text-gray-400">ISO</span>
+                  <span className="text-gray-700 dark:text-gray-300">{country.isoA2}</span>
+                </>
+              )}
             </div>
           </>
         );
