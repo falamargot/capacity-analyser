@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Clock3, ExternalLink, Orbit, Rocket, Rows3 } from 'lucide-react';
+import { Clock3, ExternalLink, Orbit, Rocket } from 'lucide-react';
 import type { ArtemisMissionPhase, ArtemisTrackerSnapshot } from '../../services/artemisService';
 
 interface ArtemisTrackerCardProps {
@@ -8,7 +8,6 @@ interface ArtemisTrackerCardProps {
   launchTimeUtc: string;
   estimatedMissionDurationMs: number;
   officialTrackerUrl: string;
-  embedUrl: string;
   telemetryEndpoint: string | null;
   telemetryAvailable: boolean;
   snapshot: ArtemisTrackerSnapshot | null;
@@ -65,7 +64,6 @@ const ArtemisTrackerCard: React.FC<ArtemisTrackerCardProps> = ({
   launchTimeUtc,
   estimatedMissionDurationMs,
   officialTrackerUrl,
-  embedUrl,
   telemetryEndpoint,
   telemetryAvailable,
   snapshot,
@@ -76,19 +74,12 @@ const ArtemisTrackerCard: React.FC<ArtemisTrackerCardProps> = ({
   isFullscreen = false,
   hasSatelliteIndicator = false,
 }) => {
-  const [showPreview, setShowPreview] = useState(false);
   const [nowMs, setNowMs] = useState(Date.now());
 
   useEffect(() => {
     if (!visible) return undefined;
     const interval = window.setInterval(() => setNowMs(Date.now()), 1000);
     return () => window.clearInterval(interval);
-  }, [visible]);
-
-  useEffect(() => {
-    if (!visible) {
-      setShowPreview(false);
-    }
   }, [visible]);
 
   const launchMs = Date.parse(launchTimeUtc);
@@ -129,7 +120,7 @@ const ArtemisTrackerCard: React.FC<ArtemisTrackerCardProps> = ({
     },
   ]), [launchMs, missionPhase, nowMs, snapshot?.distanceFromEarthKm, snapshot?.distanceToMoonKm, snapshot?.missionElapsedSeconds, snapshot?.velocityKmS]);
 
-  if (!visible) {
+  if (!visible || (isPhone && isFullscreen)) {
     return null;
   }
 
@@ -154,7 +145,6 @@ const ArtemisTrackerCard: React.FC<ArtemisTrackerCardProps> = ({
             </span>
           </div>
           <div className="mt-3 text-sm font-semibold text-orange-50">{copy.title}</div>
-          <div className="mt-1 text-xs leading-5 text-slate-300">{copy.body}</div>
         </div>
 
         <div className="space-y-3 px-4 py-3">
@@ -209,14 +199,6 @@ const ArtemisTrackerCard: React.FC<ArtemisTrackerCardProps> = ({
               <ExternalLink className="h-3.5 w-3.5" />
               Open NASA AROW
             </a>
-            <button
-              type="button"
-              onClick={() => setShowPreview((current) => !current)}
-              className="inline-flex items-center gap-2 rounded-full border border-white/12 bg-white/6 px-3 py-2 text-xs font-semibold text-white transition hover:bg-white/10"
-            >
-              <Rows3 className="h-3.5 w-3.5" />
-              {showPreview ? 'Hide preview' : 'Preview tracker'}
-            </button>
             {telemetryAvailable && onFocusArtemis && (
               <button
                 type="button"
@@ -234,22 +216,6 @@ const ArtemisTrackerCard: React.FC<ArtemisTrackerCardProps> = ({
             <br />
             Mission window end: {new Date(missionWindowEnd).toUTCString()}
           </div>
-
-          {showPreview && (
-            <div className="overflow-hidden rounded-[18px] border border-white/8 bg-slate-950/55">
-              <div className="border-b border-white/8 px-3 py-2 text-[11px] text-slate-300">
-                Embedded preview of NASA’s official tracker. If NASA blocks embedding in your browser, use the button above.
-              </div>
-              <iframe
-                title="NASA Artemis II tracker"
-                src={embedUrl}
-                loading="lazy"
-                className="h-72 w-full bg-slate-950"
-                allowFullScreen
-                referrerPolicy="strict-origin-when-cross-origin"
-              />
-            </div>
-          )}
         </div>
       </div>
     </div>

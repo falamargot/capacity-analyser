@@ -948,7 +948,6 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                 launchTimeUtc={artemisTracker.launchTimeUtc}
                 estimatedMissionDurationMs={artemisTracker.estimatedMissionDurationMs}
                 officialTrackerUrl={artemisTracker.officialTrackerUrl}
-                embedUrl={artemisTracker.embedUrl}
                 telemetryEndpoint={artemisTracker.telemetryEndpoint}
                 telemetryAvailable={artemisTracker.telemetryAvailable}
                 snapshot={artemisTracker.snapshot}
