@@ -156,7 +156,13 @@ interface CesiumGlobeProps {
     cameraTarget?: { lat: number; lng: number; alt: number } | null;
     onCameraReady?: (viewer: CesiumViewerType) => void;
     onGlobeContainerReady?: (ref: React.RefObject<HTMLDivElement | null>) => void;
+    enableLighting?: boolean;
+    onToggleLighting?: () => void;
     showSatelliteTrajectory?: boolean;
+    showAggregatedConnectivity?: boolean;
+    onToggleAggregatedConnectivity?: () => void;
+    showFootprintProjection?: boolean;
+    onToggleFootprintProjection?: () => void;
     sizeScale?: number;
     onToggleSatelliteTrajectory?: () => void;
     onSizeScaleChange?: (scale: number) => void;
@@ -223,7 +229,13 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
     cameraTarget,
     onCameraReady,
     onGlobeContainerReady,
+    enableLighting = false,
+    onToggleLighting,
     showSatelliteTrajectory = false,
+    showAggregatedConnectivity = false,
+    onToggleAggregatedConnectivity,
+    showFootprintProjection = false,
+    onToggleFootprintProjection,
     sizeScale,
     onToggleSatelliteTrajectory,
     onSizeScaleChange,
@@ -259,11 +271,6 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
     const satellitesRef = useRef<SatelliteData[]>([]);
     satellitesRef.current = satellites;
 
-    const [localEnableLighting, setLocalEnableLighting] = useState(false);
-    const enableLighting = localEnableLighting;
-    const onToggleLighting = () => setLocalEnableLighting(!enableLighting);
-    const [showAggregatedConnectivity, setShowAggregatedConnectivity] = useState(false);
-    const [showFootprintProjection, setShowFootprintProjection] = useState(true);
     const [imageryThemeRevision, setImageryThemeRevision] = useState(0);
     const [hoveredEntity, setHoveredEntity] = useState<HoveredEntity>(null);
     const hoveredEntityKeyRef = useRef<string | null>(null);
@@ -989,9 +996,9 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                 sceneMode={sceneMode}
                 onSceneModeChange={onSceneModeChange}
                 showAggregatedConnectivity={showAggregatedConnectivity}
-                onToggleAggregatedConnectivity={() => setShowAggregatedConnectivity(!showAggregatedConnectivity)}
+                onToggleAggregatedConnectivity={onToggleAggregatedConnectivity}
                 showFootprintProjection={showFootprintProjection}
-                onToggleFootprintProjection={() => setShowFootprintProjection(!showFootprintProjection)}
+                onToggleFootprintProjection={onToggleFootprintProjection}
                 countryOverlayMode={effectiveCountryOverlayMode}
                 onCountryOverlayModeChange={onCountryOverlayModeChange}
                 showArtemisTracker={showArtemisTracker}

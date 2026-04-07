@@ -147,13 +147,97 @@ const weatherTypeFromCondition = (condition: ReturnType<typeof toWeatherConditio
   return 'heavy_rain';
 };
 
+type InitialDisplayDefaults = {
+  enableLighting: boolean;
+  showSatelliteTrajectory: boolean;
+  showAggregatedConnectivity: boolean;
+  showFootprintProjection: boolean;
+  showArtemisTracker: boolean;
+  countryOverlayMode: CountryOverlayMode;
+  sizeScaleOverride: number | null;
+};
+
+const parseBooleanQueryValue = (value: string | null): boolean | undefined => {
+  if (!value) return undefined;
+
+  switch (value.trim().toLowerCase()) {
+    case '1':
+    case 'true':
+    case 'on':
+    case 'yes':
+      return true;
+    case '0':
+    case 'false':
+    case 'off':
+    case 'no':
+      return false;
+    default:
+      return undefined;
+  }
+};
+
+const parseOverlayQueryValue = (value: string | null): CountryOverlayMode | undefined => {
+  if (!value) return undefined;
+
+  switch (value.trim().toLowerCase()) {
+    case 'none':
+      return 'none';
+    case 'regulatory':
+      return 'regulatory';
+    case '5g':
+    case 'spectrum':
+    case '5g-spectrum':
+      return '5g-spectrum';
+    default:
+      return undefined;
+  }
+};
+
+const parseMarkerScaleQueryValue = (value: string | null): number | null => {
+  if (!value) return null;
+
+  const parsed = Number.parseFloat(value);
+  if (!Number.isFinite(parsed) || parsed <= 0) return null;
+
+  return snapMarkerScaleToStep(parsed);
+};
+
+const getInitialDisplayDefaults = (savedSizeScale: number): InitialDisplayDefaults => {
+  if (typeof window === 'undefined') {
+    return {
+      enableLighting: false,
+      showSatelliteTrajectory: false,
+      showAggregatedConnectivity: false,
+      showFootprintProjection: false,
+      showArtemisTracker: false,
+      countryOverlayMode: 'none',
+      sizeScaleOverride: Number.isFinite(savedSizeScale) && savedSizeScale > 0 ? savedSizeScale : null,
+    };
+  }
+
+  const params = new URLSearchParams(window.location.search);
+  const querySizeScale = parseMarkerScaleQueryValue(params.get('markerScale'));
+  const savedScaleOverride = Number.isFinite(savedSizeScale) && savedSizeScale > 0 ? savedSizeScale : null;
+
+  return {
+    enableLighting: parseBooleanQueryValue(params.get('lighting')) ?? false,
+    showSatelliteTrajectory: parseBooleanQueryValue(params.get('trajectory')) ?? false,
+    showAggregatedConnectivity: parseBooleanQueryValue(params.get('connectivity')) ?? false,
+    showFootprintProjection: parseBooleanQueryValue(params.get('footprint')) ?? false,
+    showArtemisTracker: parseBooleanQueryValue(params.get('artemis')) ?? false,
+    countryOverlayMode: parseOverlayQueryValue(params.get('overlay')) ?? 'none',
+    sizeScaleOverride: querySizeScale ?? savedScaleOverride,
+  };
+};
+
 const App: React.FC = () => {
   const { coveragePolicy, failedSnps, beamHealthFactors, hsBeamsSet, weatherCondition, setWeatherCondition } = useSimulation();
   const initialViewportSnapshot = getViewportSnapshot();
   const initialSavedSizeScale = typeof window !== 'undefined'
     ? parseFloat(localStorage.getItem('globeSizeScale') ?? '')
     : Number.NaN;
-  const hasInitialSizeScaleOverride = Number.isFinite(initialSavedSizeScale) && initialSavedSizeScale > 0;
+  const initialDisplayDefaults = getInitialDisplayDefaults(initialSavedSizeScale);
+  const hasInitialSizeScaleOverride = initialDisplayDefaults.sizeScaleOverride !== null;
   const [searchQuery, setSearchQuery] = useState('');
   const [leoTerminalType, setLeoTerminalType] = useState<TerminalType>('fixed');
   const [geoTerminalType, setGeoTerminalType] = useState<TerminalType>('fixed');
@@ -186,15 +270,18 @@ const App: React.FC = () => {
   const [satelliteScope, setSatelliteScope] = useState<SatelliteScope>('ALL');
   const [airTrafficEnabled, setAirTrafficEnabled] = useState(false);
   const [maritimeTrafficEnabled, setMaritimeTrafficEnabled] = useState(false);
-  const [showSatelliteTrajectory, setShowSatelliteTrajectory] = useState(false);
-  const [countryOverlayMode, setCountryOverlayMode] = useState<CountryOverlayMode>('none');
-  const [showArtemisTracker, setShowArtemisTracker] = useState(false);
+  const [enableLighting, setEnableLighting] = useState(initialDisplayDefaults.enableLighting);
+  const [showSatelliteTrajectory, setShowSatelliteTrajectory] = useState(initialDisplayDefaults.showSatelliteTrajectory);
+  const [showAggregatedConnectivity, setShowAggregatedConnectivity] = useState(initialDisplayDefaults.showAggregatedConnectivity);
+  const [showFootprintProjection, setShowFootprintProjection] = useState(initialDisplayDefaults.showFootprintProjection);
+  const [countryOverlayMode, setCountryOverlayMode] = useState<CountryOverlayMode>(initialDisplayDefaults.countryOverlayMode);
+  const [showArtemisTracker, setShowArtemisTracker] = useState(initialDisplayDefaults.showArtemisTracker);
   const commandPaletteSearchRef = useRef<HTMLInputElement>(null);
   const helpMenuRef = useRef<HTMLDivElement>(null);
   const targetSourcesMenuRef = useRef<HTMLDivElement>(null);
   const [sizeScale, setSizeScale] = useState<number>(() => (
     hasInitialSizeScaleOverride
-      ? initialSavedSizeScale
+      ? initialDisplayDefaults.sizeScaleOverride!
       : snapMarkerScaleToStep(getResponsiveAutoMarkerScale(initialViewportSnapshot))
   ));
   const [isSizeScaleUserOverridden, setIsSizeScaleUserOverridden] = useState(hasInitialSizeScaleOverride);
@@ -1496,12 +1583,15 @@ const App: React.FC = () => {
     enabled: !isCommandPaletteOpen,
   });
 
-  // Stable callbacks for sharedMapProps — functional updaters mean these never
+  // Stable callbacks for sharedMapProps - functional updaters mean these never
   // need to capture current state, so they stay reference-stable forever.
   // Without these, every toggle/slider event rebuilds sharedMapProps and
   // causes CesiumGlobe to re-render for no reason.
   const handleToggleFullscreen = useCallback(() => setIsFullscreen(v => !v), []);
+  const handleToggleLighting = useCallback(() => setEnableLighting(v => !v), []);
   const handleToggleSatelliteTrajectory = useCallback(() => setShowSatelliteTrajectory(v => !v), []);
+  const handleToggleAggregatedConnectivity = useCallback(() => setShowAggregatedConnectivity(v => !v), []);
+  const handleToggleFootprintProjection = useCallback(() => setShowFootprintProjection(v => !v), []);
   const handleCountryOverlayModeChange = useCallback((mode: CountryOverlayMode) => {
     setCountryOverlayMode(mode);
   }, []);
@@ -1583,7 +1673,13 @@ const App: React.FC = () => {
     onGlobeContainerReady: handleGlobeContainerReady,
     onGlobeBootPhaseChange: handleGlobeBootPhaseChange,
     onInitialGlobeReady: handleInitialGlobeReady,
+    enableLighting,
+    onToggleLighting: handleToggleLighting,
     showSatelliteTrajectory,
+    showAggregatedConnectivity,
+    onToggleAggregatedConnectivity: handleToggleAggregatedConnectivity,
+    showFootprintProjection,
+    onToggleFootprintProjection: handleToggleFootprintProjection,
     sizeScale,
     onToggleSatelliteTrajectory: handleToggleSatelliteTrajectory,
     countryOverlayMode,
@@ -1605,7 +1701,7 @@ const App: React.FC = () => {
     isFullscreen, satelliteScope, airTrafficEnabled, airTraffic.aircraft,
     selectedAircraft, handleAircraftSelect, handleAircraftHover,
     maritimeTrafficEnabled, maritimeTraffic.vessels, selectedVessel, handleVesselSelect, cameraTarget,
-    handleCameraReady, handleGlobeContainerReady, handleGlobeBootPhaseChange, handleInitialGlobeReady, handleSizeScaleChange, handleToggleFullscreen, handleToggleSatelliteTrajectory, interpolatedAircraftMapRef, interpolatedVesselMapRef, showSatelliteTrajectory, sizeScale,
+    handleCameraReady, handleGlobeContainerReady, handleGlobeBootPhaseChange, handleInitialGlobeReady, enableLighting, handleToggleLighting, handleSizeScaleChange, handleToggleAggregatedConnectivity, handleToggleFootprintProjection, handleToggleFullscreen, handleToggleSatelliteTrajectory, interpolatedAircraftMapRef, interpolatedVesselMapRef, showSatelliteTrajectory, showAggregatedConnectivity, showFootprintProjection, sizeScale,
     inspectedSNP, snpConnectedSatellites, countryOverlayMode, handleCountryOverlayModeChange, showArtemisTracker, handleToggleArtemisTracker, handleSizeScaleReset,
     isPhone, isMobileAnalysisPanelOpen, coverageSwitcherCoverages, selectedCoverageId, handleSelectTargetCoverageById,
   ]);

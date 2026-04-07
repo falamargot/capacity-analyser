@@ -53,7 +53,13 @@ interface MapViewSwitcherProps {
   cameraTarget?: { lat: number; lng: number; alt: number } | null;
   onCameraReady?: (viewer: CesiumViewerType) => void;
   onGlobeContainerReady?: (ref: React.RefObject<HTMLDivElement | null>) => void;
+  enableLighting?: boolean;
+  onToggleLighting?: () => void;
   showSatelliteTrajectory?: boolean;
+  showAggregatedConnectivity?: boolean;
+  onToggleAggregatedConnectivity?: () => void;
+  showFootprintProjection?: boolean;
+  onToggleFootprintProjection?: () => void;
   sizeScale?: number;
   onToggleSatelliteTrajectory?: () => void;
   onSizeScaleChange?: (scale: number) => void;
@@ -116,7 +122,13 @@ const MapViewSwitcher: React.FC<MapViewSwitcherProps> = ({
   cameraTarget,
   onCameraReady,
   onGlobeContainerReady,
+  enableLighting = false,
+  onToggleLighting,
   showSatelliteTrajectory,
+  showAggregatedConnectivity = false,
+  onToggleAggregatedConnectivity,
+  showFootprintProjection = false,
+  onToggleFootprintProjection,
   sizeScale,
   onToggleSatelliteTrajectory,
   onSizeScaleChange,
@@ -183,7 +195,13 @@ const MapViewSwitcher: React.FC<MapViewSwitcherProps> = ({
         cameraTarget={cameraTarget}
         onCameraReady={onCameraReady}
         onGlobeContainerReady={onGlobeContainerReady}
+        enableLighting={enableLighting}
+        onToggleLighting={onToggleLighting}
         showSatelliteTrajectory={showSatelliteTrajectory}
+        showAggregatedConnectivity={showAggregatedConnectivity}
+        onToggleAggregatedConnectivity={onToggleAggregatedConnectivity}
+        showFootprintProjection={showFootprintProjection}
+        onToggleFootprintProjection={onToggleFootprintProjection}
         sizeScale={sizeScale}
         onToggleSatelliteTrajectory={onToggleSatelliteTrajectory}
         onSizeScaleChange={onSizeScaleChange}
