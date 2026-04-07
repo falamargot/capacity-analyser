@@ -1,15 +1,10 @@
 import { Cartesian3, Matrix3, JulianDate, Color, Math as CesiumMath, Quaternion, Cartographic } from 'cesium';
 import * as satellite from 'satellite.js';
 import { EARTH_RADIUS_KM } from './capacityCalculator';
-import { getRadiusAtPowerLevel } from './leoFootprint';
-import {
-    getScanLossLinear,
-    getPowerBoostLinear,
-    WEATHER_ATTENUATION_DB,
-    type WeatherCondition,
-} from './realisticSimulation';
 import { getBeamBaseColor } from '../config/beamVisualization';
 import type { SimulationStateSnapshot } from '../types/simulation';
+import { calculateCombGeometryLatLng } from './oneWebCombCore';
+export { calculateCombGeometryLatLng } from './oneWebCombCore';
 
 export const BEAM_WIDTH_KM = 67.5;
 export const TOTAL_BEAMS = 16;
@@ -313,79 +308,12 @@ export function calculateCombGeometry(
     simulationState?: Pick<SimulationStateSnapshot, 'coveragePolicy' | 'thresholdDb' | 'weatherCondition' | 'beamHealthByIndex'>
 ): Cartesian3[][] | null {
     if (!satrec) return null;
-
-    const thresholdDb = simulationState?.coveragePolicy?.type === 'DB_THRESHOLD'
-        ? simulationState.coveragePolicy.thresholdDb
-        : (simulationState?.thresholdDb ?? -10);
-    const weather: WeatherCondition = simulationState?.weatherCondition ?? 'CLEAR';
-    const healthFactors = simulationState?.beamHealthByIndex ?? new Map<number, number>();
-    const activeBeams = getActiveBeamCount(satrec, time);
-
-    const beamCenters = calculateCombBeamCenters(satrec, time);
-    if (!beamCenters) return null;
-
-    const polygonsIndices: Cartesian3[][] = [];
-
-    // Reference scale from threshold (kept for backward compat)
-    const referenceRadiusKm = getRadiusAtPowerLevel(-10);
-    const currentRadiusKm = getRadiusAtPowerLevel(thresholdDb);
-    const thresholdScaleFactor = currentRadiusKm / referenceRadiusKm;
-
-    // ── Pillar 2: Power boost scale (uniform across all active beams) ──────
-    const powerBoostScale = Math.sqrt(getPowerBoostLinear(activeBeams, weather));
-
-    // ── Pillar 5: Weather attenuation scale (uniform) ──────────────────────
-    const weatherDb = WEATHER_ATTENUATION_DB[weather];
-    const weatherScale = Math.sqrt(Math.pow(10, weatherDb / 10));
-
-    const ellipseSegments = 32; // Number of points to approximate ellipse
-
-    for (let i = 0; i < TOTAL_BEAMS; i++) {
-        // ── Pillar 1: Per-beam scan loss (peripheral beams are smaller) ────
-        const scanScale = getScanLossLinear(i);
-
-        // ── Pillar 3: Per-beam health factor ──────────────────────────────
-        const health = healthFactors.get(i) ?? 1.0;
-        const healthScale = Math.sqrt(Math.max(0, health));
-
-        // Combined per-beam scale factor
-        const beamScale = thresholdScaleFactor * scanScale * powerBoostScale * healthScale * weatherScale;
-        if (!Number.isFinite(beamScale) || beamScale <= 0) {
-            polygonsIndices.push([]);
-            continue;
-        }
-
-        // Dimensions adjusted by all physics factors
-        const semiMajorAxisKm = (1600 / 2) * beamScale;
-        const semiMinorAxisKm = (102 / 2) * beamScale;
-        const beamCenterGeo = beamCenters[i];
-
-        const polygonHierarchy: Cartesian3[] = [];
-
-        for (let j = 0; j <= ellipseSegments; j++) {
-            const angle = (j / ellipseSegments) * 2 * Math.PI;
-
-            const localX = semiMajorAxisKm * Math.cos(angle);
-            const localY = semiMinorAxisKm * Math.sin(angle);
-
-            const dist = Math.hypot(localX, localY);
-            const angleFromMajorAxis = Math.atan2(localY, localX);
-            // Major axis fixed to geographic east (90°) — beams are E-W oriented strips,
-            // consistent with the N-S beam center arrangement and the near-polar orbit cross-track.
-            const finalBearingDeg = 90 + CesiumMath.toDegrees(angleFromMajorAxis);
-
-            const pointGeo = destinationPointGeodesic(beamCenterGeo.lat, beamCenterGeo.lng, finalBearingDeg, dist);
-            if (!Number.isFinite(pointGeo.lat) || !Number.isFinite(pointGeo.lng)) {
-                continue;
-            }
-
-            polygonHierarchy.push(Cartesian3.fromDegrees(pointGeo.lng, pointGeo.lat, 0));
-        }
-
-        polygonsIndices.push(sanitizePolygonPoints(polygonHierarchy));
-    }
-
-    return polygonsIndices;
+    const timeMs = JulianDate.toDate(time).getTime();
+    const latLngBeams = calculateCombGeometryLatLng(satrec, timeMs, simulationState);
+    if (!latLngBeams) return null;
+    return latLngBeams.map((beam) =>
+        sanitizePolygonPoints(beam.map(([lat, lng]) => Cartesian3.fromDegrees(lng, lat, 0)))
+    );
 }
 
 function destinationPointGeodesic(lat: number, lng: number, brng: number, distKm: number): { lat: number, lng: number } {

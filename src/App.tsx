@@ -44,7 +44,7 @@ import useKeyboardShortcuts from './hooks/useKeyboardShortcuts';
 import { useSelectionState } from './hooks/useSelectionState';
 import { formatCoordinates } from './utils/formatters';
 import { buildSimulationStateSnapshot } from './types/simulation';
-import { ensureLoaded, regulatoryLookup } from './services/regulatoryService';
+import { regulatoryLookup, type RegulatoryResult } from './services/regulatoryService';
 import { estimateBeamLoad } from './utils/capacityLayer';
 import { computeServiceStatus } from './utils/serviceLayer';
 import { getConnectivityStatus, hasRFConnectivity } from './utils/rfConnectivity';
@@ -557,11 +557,6 @@ const App: React.FC = () => {
     beamHealthFactors,
     hsBeams: hsBeamsSet,
   }), [coveragePolicy, weatherCondition, beamHealthFactors, hsBeamsSet]);
-  const [regulatoryReady, setRegulatoryReady] = useState(false);
-
-  useEffect(() => {
-    ensureLoaded().then(() => setRegulatoryReady(true));
-  }, []);
 
   useEffect(() => {
     const groundPoint = analyzisPosition?.source === 'earth'
@@ -816,11 +811,19 @@ const App: React.FC = () => {
     return getSatellitesConnectedToSNP(inspectedSNP, satellites, failedSnps);
   }, [inspectedSNP, satellites, failedSnps]);
 
-  const leoRegulatoryResult = useMemo(() => {
-    if (!activeAnalysisPoint) return null;
-    void regulatoryReady;
-    return regulatoryLookup(activeAnalysisPoint.lat, activeAnalysisPoint.lng);
-  }, [activeAnalysisPoint, regulatoryReady]);
+  const [leoRegulatoryResult, setLeoRegulatoryResult] = useState<RegulatoryResult | null>(null);
+
+  useEffect(() => {
+    if (!activeAnalysisPoint) {
+      setLeoRegulatoryResult(null);
+      return;
+    }
+    let cancelled = false;
+    regulatoryLookup(activeAnalysisPoint.lat, activeAnalysisPoint.lng).then((result) => {
+      if (!cancelled) setLeoRegulatoryResult(result);
+    });
+    return () => { cancelled = true; };
+  }, [activeAnalysisPoint]);
 
   const leoBeamLoadResult = useMemo(() => {
     if (!activeAnalysisPoint || !leoRegulatoryResult) return null;

@@ -10,8 +10,9 @@ import {
 import { useCesium } from 'resium';
 import { BASE_OVERLAY_LAYER_HEIGHT_M } from './layerHeights';
 import { getFiveGSpectrumCountryInfo } from '../../services/fiveGSpectrumService';
+import { REGULATORY_OVERLAY_URL } from '../../services/regulatoryService';
 
-const FIVE_G_SPECTRUM_OVERLAY_URL = '/oneweb_regulatory_overlay.geojson';
+const FIVE_G_SPECTRUM_OVERLAY_URL = REGULATORY_OVERLAY_URL;
 
 let cachedDataSourcePromise: Promise<CustomDataSource> | null = null;
 

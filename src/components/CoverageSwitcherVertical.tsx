@@ -21,18 +21,18 @@ interface CoverageSwitcherVerticalProps {
 const getScoreTone = (score: number) => {
   if (score > 0.7) {
     return {
-      text: 'text-emerald-300',
+      dot: 'bg-emerald-300',
     };
   }
 
   if (score > 0.4) {
     return {
-      text: 'text-amber-300',
+      dot: 'bg-amber-300',
     };
   }
 
   return {
-    text: 'text-rose-300',
+    dot: 'bg-rose-300',
   };
 };
 
@@ -124,10 +124,10 @@ const CoverageSwitcherVertical = memo<CoverageSwitcherVerticalProps>(({
       : 'left-2 top-12';
 
   return (
-    <div className={`pointer-events-none absolute ${isExpanded ? 'z-[1100]' : 'z-20'} flex max-w-[calc(100vw-1rem)] justify-start ${positionClassName}`}>
+    <div className={`pointer-events-none absolute ${isExpanded ? 'z-[1220]' : 'z-20'} flex max-w-[calc(100vw-1rem)] justify-start ${positionClassName}`}>
       <div
         ref={containerRef}
-        className="pointer-events-auto relative w-52 max-w-full"
+        className="pointer-events-auto relative max-w-full"
       >
         <button
           type="button"
@@ -136,29 +136,32 @@ const CoverageSwitcherVertical = memo<CoverageSwitcherVerticalProps>(({
           aria-haspopup="listbox"
           aria-label={isExpanded ? 'Hide GEO coverage candidates' : 'Show GEO coverage candidates'}
           title={formatTooltip(selectedCoverage)}
-          className="group flex w-full items-center gap-2 rounded-[6px] border border-blue-400/25 bg-[linear-gradient(180deg,rgba(10,37,99,0.78),rgba(15,23,42,0.68))] px-2.5 py-2 shadow-[0_18px_40px_-28px_rgba(15,23,42,0.65)] ring-1 ring-blue-500/15 backdrop-blur-md transition duration-200 hover:border-blue-300/40 hover:bg-[linear-gradient(180deg,rgba(16,55,130,0.84),rgba(15,23,42,0.74))]"
+          className="group flex min-w-[13.5rem] max-w-[min(21rem,calc(100vw-1rem))] items-center gap-2.5 rounded-[14px] border border-white/10 bg-[linear-gradient(180deg,rgba(7,18,40,0.82),rgba(10,20,38,0.62))] px-3 py-2 shadow-[0_18px_44px_-32px_rgba(15,23,42,0.85)] ring-1 ring-cyan-300/10 backdrop-blur-xl transition duration-200 hover:border-white/14 hover:bg-[linear-gradient(180deg,rgba(9,23,50,0.88),rgba(10,20,38,0.7))]"
         >
+          <span className="flex h-4 w-4 shrink-0 items-center justify-center">
+            <span className={`h-1.5 w-1.5 rounded-full ${selectedTone?.dot ?? 'bg-cyan-300'}`} />
+          </span>
           <div className="min-w-0 flex-1 text-left">
-            <div className={`truncate text-[12px] font-semibold leading-4 ${selectedTone?.text ?? 'text-sky-200'}`}>
+            <div className="truncate text-[11px] font-medium leading-4 text-sky-200">
               {selectedCoverage.name}
             </div>
           </div>
           <ChevronDown
-            className={`h-4 w-4 shrink-0 text-white/55 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}
+            className={`h-3.5 w-3.5 shrink-0 text-white/42 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}
           />
         </button>
 
           <div
-            className={`pointer-events-none absolute left-0 right-0 top-[calc(100%+0.45rem)] z-[1110] origin-top transition duration-200 ${
+            className={`pointer-events-none absolute left-0 right-0 top-[calc(100%+0.45rem)] z-[1230] origin-top transition duration-200 ${
               isExpanded ? 'translate-y-0 opacity-100' : '-translate-y-1 opacity-0'
             }`}
           >
             <div
-              className={`pointer-events-auto overflow-hidden rounded-[14px] border border-blue-400/20 bg-[linear-gradient(180deg,rgba(9,25,58,0.78),rgba(15,23,42,0.7))] shadow-[0_22px_45px_-30px_rgba(15,23,42,0.85)] ring-1 ring-blue-500/10 ${
+              className={`pointer-events-auto overflow-hidden rounded-[18px] border border-white/10 bg-[linear-gradient(180deg,rgba(6,17,40,0.9),rgba(10,20,38,0.78))] shadow-[0_24px_56px_-34px_rgba(15,23,42,0.95)] ring-1 ring-cyan-300/10 backdrop-blur-xl ${
                 isExpanded ? 'max-h-[40vh]' : 'max-h-0'
               }`}
             >
-            <div role="listbox" aria-label="GEO coverage candidates" className="max-h-[40vh] overflow-y-auto p-1">
+            <div role="listbox" aria-label="GEO coverage candidates" className="max-h-[40vh] overflow-y-auto p-1.5">
               {sortedCoverages.map((coverage) => {
                 const isSelected = coverage.id === selectedId;
                 const tone = getScoreTone(coverage.score);
@@ -177,24 +180,25 @@ const CoverageSwitcherVertical = memo<CoverageSwitcherVerticalProps>(({
                     aria-label={tooltip}
                     title={tooltip}
                     className={[
-                      'group relative w-full rounded-[12px] py-2 pl-2 text-left transition-all duration-200',
-                      isSelected ? 'pr-7' : 'pr-2',
+                      'group relative flex w-full items-center gap-2.5 rounded-[14px] py-2 pl-2.5 text-left transition-all duration-200',
+                      isSelected ? 'pr-7' : 'pr-2.5',
                       isSelected
-                        ? 'bg-sky-400/12 text-sky-200'
-                        : 'text-white/92 hover:bg-white/6'
+                        ? 'bg-white/[0.08] text-white shadow-[0_0_0_1px_rgba(103,232,249,0.12)]'
+                        : 'text-white/92 hover:bg-white/[0.045]'
                     ].join(' ')}
                   >
+                    <span className="flex h-4 w-4 shrink-0 items-center justify-center">
+                      <span className={`h-1.5 w-1.5 rounded-full ${isSelected ? 'bg-cyan-300' : tone.dot}`} />
+                    </span>
                     <div
-                      className={`truncate text-[12px] font-semibold leading-4 ${
-                        isSelected ? 'text-sky-200' : tone.text
-                      }`}
+                      className={`truncate text-[11px] font-medium leading-4 ${isSelected ? 'text-white' : 'text-sky-200'}`}
                     >
                       {coverage.name}
                     </div>
 
                     {isSelected && (
                       <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2">
-                        <Check className="h-3.5 w-3.5 text-sky-300" />
+                        <Check className="h-3.5 w-3.5 text-cyan-300" />
                       </span>
                     )}
                   </button>

@@ -52,7 +52,7 @@ import SatelliteLayer from './cesium-globe/SatelliteLayer';
 import AircraftLayer from './cesium-globe/AircraftLayer';
 import VesselLayer from './cesium-globe/VesselLayer';
 import SnpLayer from './cesium-globe/SnpLayer';
-import CoverageLayer, { GEO_COVERAGE_ENTITY_PREFIX } from './cesium-globe/CoverageLayer';
+import CoverageLayer, { GEO_COVERAGE_ENTITY_PREFIX, type GeoCoverageLegendItem } from './cesium-globe/CoverageLayer';
 import OneWebCombLayer from './cesium-globe/OneWebCombLayer';
 import AggregatedCoverageVolumeLayer from './cesium-globe/AggregatedCoverageVolumeLayer';
 import TransmissionLinks from './cesium-globe/TransmissionLinks';
@@ -67,6 +67,7 @@ import { usePositionCallbacks } from './cesium-globe/hooks';
 
 // UI components
 import GlobeControls from './cesium-globe/GlobeControls';
+import GeoCoverageLegendPanel from './cesium-globe/GeoCoverageLegendPanel';
 import PositionDisplay from './cesium-globe/PositionDisplay';
 import SatelliteIndicator from './cesium-globe/SatelliteIndicator';
 import InspectionCard, { type HoveredEntity } from './cesium-globe/InspectionCard';
@@ -273,6 +274,8 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
 
     const [imageryThemeRevision, setImageryThemeRevision] = useState(0);
     const [hoveredEntity, setHoveredEntity] = useState<HoveredEntity>(null);
+    const [geoCoverageLegendItems, setGeoCoverageLegendItems] = useState<GeoCoverageLegendItem[]>([]);
+    const [focusedGeoCoverageLegendKey, setFocusedGeoCoverageLegendKey] = useState<string | null>(null);
     const hoveredEntityKeyRef = useRef<string | null>(null);
     const cameraMetricsRef = useRef<CameraMetricsSnapshot>({
         position: new Cartesian3(),
@@ -819,18 +822,34 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         );
     }, [gatewayByName, onSnpHover, setHoveredEntityIfChanged]);
 
-    const handleFiveGSpectrumHover = useCallback((movement: { endPosition: Cartesian2 }) => {
-        if (!viewerRef.current || countryOverlayMode !== '5g-spectrum') {
+    const handleGeoCoverageLegendItemsChange = useCallback((items: GeoCoverageLegendItem[]) => {
+        setGeoCoverageLegendItems(items);
+    }, []);
+
+    const handleGeoCoverageLegendHoverChange = useCallback((itemKey: string | null) => {
+        setFocusedGeoCoverageLegendKey(itemKey);
+    }, []);
+
+    const handleMapHover = useCallback((movement: { endPosition: Cartesian2 }) => {
+        const viewer = viewerRef.current;
+        if (!viewer) {
             if (hoveredEntityKeyRef.current?.startsWith('country5g:')) {
                 setHoveredEntityIfChanged(null, null);
             }
             return;
         }
 
-        const pickedObject = viewerRef.current.scene.pick(movement.endPosition);
+        const pickedObject = viewer.scene.pick(movement.endPosition);
         const pickedEntity = defined(pickedObject) && typeof pickedObject.id === 'object'
             ? pickedObject.id
             : null;
+
+        if (countryOverlayMode !== '5g-spectrum') {
+            if (hoveredEntityKeyRef.current?.startsWith('country5g:')) {
+                setHoveredEntityIfChanged(null, null);
+            }
+            return;
+        }
 
         if (!pickedEntity) {
             if (hoveredEntityKeyRef.current?.startsWith('country5g:')) {
@@ -861,6 +880,11 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
             setHoveredEntityIfChanged(null, null);
         }
     }, [countryOverlayMode, setHoveredEntityIfChanged]);
+
+    useEffect(() => {
+        if (geoCoverageLegendItems.length > 0) return;
+        setFocusedGeoCoverageLegendKey(null);
+    }, [geoCoverageLegendItems.length]);
 
     // This effect keeps the hoveredEntity card in sync when the underlying data
     // objects change (e.g. satellite position update, aircraft data refresh).
@@ -952,6 +976,11 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         && !!selectedRegulatoryResult.countryName;
     const hasSatelliteIndicator =
         !!(selectedSatellite || autoSelectedLEOSatellite || autoSelectedGEOSatellite);
+    const hasCoverageSwitcher =
+        selection.type === 'target'
+        && selection.targetType === 'point'
+        && coverageSwitcherCoverages.length >= 2
+        && !!onCoverageSwitcherSelect;
     const selectedCountryOutlineStatus =
         satelliteScope === 'GEO'
             ? 'UNKNOWN'
@@ -1037,6 +1066,16 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                 />
             )}
 
+            <GeoCoverageLegendPanel
+                items={geoCoverageLegendItems}
+                hoveredItemKey={focusedGeoCoverageLegendKey}
+                onHoverItemChange={handleGeoCoverageLegendHoverChange}
+                isPhone={!!isPhone}
+                isFullscreen={isFullscreen}
+                hasSatelliteIndicator={hasSatelliteIndicator}
+                hasCoverageSwitcher={hasCoverageSwitcher}
+            />
+
             {/* Cesium Viewer */}
             <div ref={globeContainerRef} className="w-full h-full">
                 <Viewer
@@ -1057,7 +1096,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                 >
                     <ScreenSpaceEventHandler>
                         <ScreenSpaceEvent action={handleMapClick} type={ScreenSpaceEventType.LEFT_CLICK} />
-                        <ScreenSpaceEvent action={handleFiveGSpectrumHover} type={ScreenSpaceEventType.MOUSE_MOVE} />
+                        <ScreenSpaceEvent action={handleMapHover} type={ScreenSpaceEventType.MOUSE_MOVE} />
                     </ScreenSpaceEventHandler>
 
                     {/* Regulatory overlay — country polygons coloured by simulated regulatory status */}
@@ -1113,6 +1152,8 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                         satellites={satellites}
                         selection={selection}
                         selectedCoverage={selectedCoverage}
+                        onLegendItemsChange={handleGeoCoverageLegendItemsChange}
+                        highlightedLegendItemKey={focusedGeoCoverageLegendKey}
                     />
 
                     <MoonLayer enableLighting={enableLighting} selected={selectedMoon} />

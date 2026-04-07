@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Entity } from 'resium';
 import { Cartesian3, Color } from 'cesium';
-import type { RegulatoryResult } from '../../services/regulatoryService';
+import { REGULATORY_OVERLAY_URL } from '../../services/regulatoryService';
 import { getRegulatoryOverlayState } from './materials/regulatoryMaterials';
 import { COUNTRY_OUTLINE_LAYER_HEIGHT_M } from './layerHeights';
 
@@ -16,7 +16,7 @@ interface SelectedRegulatoryCountryOutlineProps {
   status?: string | null;
 }
 
-const REGULATORY_OUTLINE_URL = '/oneweb_regulatory_overlay.geojson';
+const REGULATORY_OUTLINE_URL = REGULATORY_OVERLAY_URL;
 let cachedOutlineFeaturesPromise: Promise<RegulatoryOutlineFeature[]> | null = null;
 
 const normalizeName = (value?: string | null) => value?.trim().toLowerCase() ?? '';
@@ -130,7 +130,6 @@ const SelectedRegulatoryCountryOutline: React.FC<SelectedRegulatoryCountryOutlin
             positions: polyline.positions,
             width: 3,
             material: outlineColor,
-            depthFailMaterial: outlineColor,
             clampToGround: false,
           }}
         />

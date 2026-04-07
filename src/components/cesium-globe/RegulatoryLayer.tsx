@@ -15,6 +15,7 @@ import {
 import { useCesium } from 'resium';
 import { getRegulatoryOverlayState } from './materials/regulatoryMaterials';
 import { BASE_OVERLAY_LAYER_HEIGHT_M } from './layerHeights';
+import { REGULATORY_OVERLAY_URL } from '../../services/regulatoryService';
 
 declare global {
   interface Window {
@@ -32,7 +33,6 @@ const STATUS_STYLES = {
 } as const;
 
 let cachedDataSourcePromise: Promise<CustomDataSource> | null = null;
-const REGULATORY_OVERLAY_URL = '/oneweb_regulatory_overlay.geojson';
 
 /**
  * Fetch the GeoJSON and build a CustomDataSource with explicit Cartesian3

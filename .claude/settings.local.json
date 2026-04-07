@@ -1,7 +1,20 @@
 {
   "permissions": {
     "allow": [
-      "Bash(node -e \":*)"
+      "Bash(node -e \":*)",
+      "Bash(node_modules/.bin/tsx src/server/server.ts)",
+      "Bash(node -e \"const {createRequire} = require\\('module'\\); const r = createRequire\\(import.meta.url ?? __filename\\); console.log\\(r.resolve\\('tsx/dist/cli.mjs'\\)\\)\")",
+      "Bash(node scripts/dev-with-geo-coverage-prebuilt.mjs --dry-run)",
+      "Bash(node -e \"import\\('module'\\).then\\(m => { const r = m.createRequire\\(import.meta.url\\); console.log\\(r.resolve\\('tsx/dist/cli.mjs'\\)\\); }\\)\" --input-type=module)",
+      "Bash(python3 -m json.tool)",
+      "Bash(node --input-type=module)",
+      "Bash(lsof -ti:3001)",
+      "Bash(xargs kill:*)",
+      "Bash(npm run:*)",
+      "Bash(curl -s http://localhost:3001/api/regulatory?lat=51.5)",
+      "Bash(lng=-0.12 2>&1)",
+      "Bash(lsof -ti:3001 -ti:3000)",
+      "Bash(lsof -ti:3001 -ti:3000 -ti:3002)"
     ]
   }
 }

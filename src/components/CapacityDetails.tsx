@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useMemo, useCallback, memo, type RefObject } from 'react';
-import { ensureLoaded, regulatoryLookup } from '../services/regulatoryService';
+import { regulatoryLookup } from '../services/regulatoryService';
 import { estimateBeamLoad } from '../utils/capacityLayer';
 import { computeServiceStatus } from '../utils/serviceLayer';
 import { SatelliteData } from '../types/satellites';
@@ -119,11 +119,6 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
   }), [beamHealthFactors, coveragePolicy, ctxWeather, hsBeamsSet]);
 
   // ── Regulatory + Capacity + Service layers ────────────────────────────────
-  // Trigger async GeoJSON load on component mount; result feeds into useMemos below.
-  const [regulatoryReady, setRegulatoryReady] = useState(false);
-  useEffect(() => {
-    ensureLoaded().then(() => setRegulatoryReady(true));
-  }, []);
 
   const [nearestLocation, setNearestLocation] = useState<{ city: string; country: string } | null>(null);
 
@@ -428,13 +423,16 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
     );
   }, [activePoint, autoSelectedLEOSatellite, simulationState]);
 
-  // ── Regulatory lookup (re-evaluates when GeoJSON finishes loading) ────────
-  const computedRegulatoryResult = useMemo(() => {
-    if (!activePoint) return null;
-    // regulatoryReady triggers re-evaluation after async GeoJSON load
-    void regulatoryReady;
-    return regulatoryLookup(activePoint.lat, activePoint.lng);
-  }, [activePoint, regulatoryReady]);
+  // ── Regulatory lookup (async, via API server) ─────────────────────────────
+  const [computedRegulatoryResult, setComputedRegulatoryResult] = useState<RegulatoryResult | null>(null);
+  useEffect(() => {
+    if (!activePoint) { setComputedRegulatoryResult(null); return; }
+    let cancelled = false;
+    regulatoryLookup(activePoint.lat, activePoint.lng).then((result) => {
+      if (!cancelled) setComputedRegulatoryResult(result);
+    });
+    return () => { cancelled = true; };
+  }, [activePoint]);
   const regulatoryResult = regulatoryResultOverride ?? computedRegulatoryResult;
 
   // ── Capacity layer (beam load estimation) ────────────────────────────────

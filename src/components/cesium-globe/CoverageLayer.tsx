@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ArcType,
   BoundingSphere,
+  Cartesian2,
   Cartesian3,
   Color,
   ColorGeometryInstanceAttribute,
@@ -11,11 +12,15 @@ import {
   Geometry as CesiumGeometry,
   GeometryAttribute,
   GeometryInstance,
+  HorizontalOrigin,
+  LabelStyle,
+  NearFarScalar,
   PerInstanceColorAppearance,
   PolygonHierarchy,
   Primitive,
   PrimitiveCollection,
   PrimitiveType,
+  VerticalOrigin,
 } from 'cesium';
 import { useCesium } from 'resium';
 import type { Feature, Geometry, GeoJsonProperties } from 'geojson';
@@ -28,6 +33,8 @@ import {
   type CoverageGeometryLod,
 } from '../../utils/coverageGeometry';
 import {
+  getCoverageBeamName,
+  getCoverageDisplayName,
   getCandidateCoverageKey,
   getCoverageBeamId,
   getCoverageGroupId,
@@ -47,11 +54,14 @@ const SELECTED_GEO_FILL_MID_COLOR = Color.fromCssColorString('#60a5fa');
 const SELECTED_GEO_FILL_INNER_COLOR = Color.fromCssColorString('#1e40af');
 const DIMMED_CONTOUR_COLOR = Color.fromCssColorString('#94a3b8').withAlpha(0.34);
 const MAX_PREBUILT_FILL_TRIANGLES_PER_PART = 500_000;
+const GEO_FOOTPRINT_LABEL_LAYER_HEIGHT_M = GEO_FOOTPRINT_OUTLINE_LAYER_HEIGHT_M + 800;
 
 interface CoverageLayerProps {
   satellites: SatelliteData[];
   selection: Selection;
   selectedCoverage?: CandidateCoverage | null;
+  onLegendItemsChange?: (items: GeoCoverageLegendItem[]) => void;
+  highlightedLegendItemKey?: string | null;
 }
 
 interface SanitizedPolygonGeometry {
@@ -63,13 +73,41 @@ interface SanitizedPolygonGeometry {
 interface RenderContour {
   satelliteName: string;
   coverageKey: string;
+  coverageLabel: string;
   contourKey: string;
+  contourLabel: string;
+  levelValue: number | null;
+  levelUnit: string;
   geometryPartKey: string;
   geometry: SanitizedPolygonGeometry;
   prebuiltMesh: PrebuiltCoverageMesh | null;
   normalizedLevel: number;
   mode: 'overview' | 'full' | 'dimmed';
   showFill: boolean;
+}
+
+interface RenderContourLabel {
+  id: string;
+  text: string;
+  position: Cartesian3;
+  coverageKey: string;
+  contourKey: string;
+  coverageLabel: string;
+  contourLabel: string;
+  mode: RenderContour['mode'];
+}
+
+export interface GeoCoverageLegendItem {
+  key: string;
+  satelliteName: string;
+  coverageKey: string;
+  coverageLabel: string;
+  contourKey: string;
+  contourLabel: string;
+  levelValue: number | null;
+  levelUnit: string;
+  mode: RenderContour['mode'];
+  normalizedLevel: number;
 }
 
 const _sanitizedGeometryCache = new WeakMap<object, SanitizedPolygonGeometry | null>();
@@ -126,6 +164,66 @@ const getSignedRingArea = (ring: number[][]): number => {
   }
 
   return area * 0.5;
+};
+
+const getRingCentroid = (ring: number[][]): { lng: number; lat: number } | null => {
+  if (ring.length < 3) return null;
+
+  let twiceArea = 0;
+  let centroidLng = 0;
+  let centroidLat = 0;
+
+  for (let i = 0; i < ring.length; i += 1) {
+    const [x1, y1] = ring[i];
+    const [x2, y2] = ring[(i + 1) % ring.length];
+    const cross = x1 * y2 - x2 * y1;
+    twiceArea += cross;
+    centroidLng += (x1 + x2) * cross;
+    centroidLat += (y1 + y2) * cross;
+  }
+
+  if (Math.abs(twiceArea) < 1e-8) {
+    const [lngSum, latSum] = ring.reduce<[number, number]>(
+      (acc, [lng, lat]) => [acc[0] + lng, acc[1] + lat],
+      [0, 0],
+    );
+    return {
+      lng: lngSum / ring.length,
+      lat: latSum / ring.length,
+    };
+  }
+
+  return {
+    lng: centroidLng / (3 * twiceArea),
+    lat: centroidLat / (3 * twiceArea),
+  };
+};
+
+const getRingLabelAnchor = (ring: number[][]): { lng: number; lat: number } | null => {
+  if (ring.length === 0) return null;
+
+  let minLat = Infinity;
+  let maxLat = -Infinity;
+  for (const [, lat] of ring) {
+    minLat = Math.min(minLat, lat);
+    maxLat = Math.max(maxLat, lat);
+  }
+
+  const epsilon = Math.max(0.08, (maxLat - minLat) * 0.035);
+  const nearTopPoints = ring.filter(([, lat]) => maxLat - lat <= epsilon);
+
+  if (nearTopPoints.length > 0) {
+    const [lngSum, latSum] = nearTopPoints.reduce<[number, number]>(
+      (acc, [lng, lat]) => [acc[0] + lng, acc[1] + lat],
+      [0, 0],
+    );
+    return {
+      lng: lngSum / nearTopPoints.length,
+      lat: latSum / nearTopPoints.length,
+    };
+  }
+
+  return getRingCentroid(ring);
 };
 
 const normalizeRingAreaSign = (ring: number[][], wantPositiveArea: boolean): number[][] => {
@@ -304,15 +402,21 @@ const smoothstep = (value: number): number => {
   return clamped * clamped * (3 - (2 * clamped));
 };
 
+const getCoverageLevelUnit = (coverage: Coverage): string => {
+  const properties = (coverage.feature?.properties as Record<string, unknown> | undefined) ?? {};
+  return properties.isUplink === true ? 'dB/K' : 'dBW';
+};
+
 const getCoverageBandStyle = (
   normalizedBand: number,
-  mode: RenderContour['mode']
+  mode: RenderContour['mode'],
+  isHighlighted: boolean,
 ): { fillColor: Color; contourColor: Color; contourWidth: number } => {
   if (mode === 'overview') {
     return {
       fillColor: OVERVIEW_FILL_COLOR.withAlpha(0.05),
-      contourColor: OVERVIEW_CONTOUR_COLOR.withAlpha(0.4),
-      contourWidth: 1,
+      contourColor: OVERVIEW_CONTOUR_COLOR.withAlpha(isHighlighted ? 0.9 : 0.4),
+      contourWidth: isHighlighted ? 2.4 : 1,
     };
   }
 
@@ -321,8 +425,8 @@ const getCoverageBandStyle = (
   if (mode === 'dimmed') {
     return {
       fillColor: Color.fromCssColorString('#bfdbfe').withAlpha(0.038 + (easedBand * 0.06)),
-      contourColor: DIMMED_CONTOUR_COLOR.withAlpha(0.2 + (easedBand * 0.14)),
-      contourWidth: 0.95,
+      contourColor: DIMMED_CONTOUR_COLOR.withAlpha(isHighlighted ? 0.88 : 0.2 + (easedBand * 0.14)),
+      contourWidth: isHighlighted ? 2.2 : 0.95,
     };
   }
 
@@ -343,8 +447,40 @@ const getCoverageBandStyle = (
 
   return {
     fillColor,
-    contourColor: SELECTED_GEO_CONTOUR_COLOR.withAlpha(0.72),
-    contourWidth: 1.2,
+    contourColor: SELECTED_GEO_CONTOUR_COLOR.withAlpha(isHighlighted ? 0.98 : 0.72),
+    contourWidth: isHighlighted ? 2.8 : 1.2,
+  };
+};
+
+const getCoverageLabelStyle = (mode: RenderContour['mode']): {
+  fillColor: Color;
+  outlineColor: Color;
+  backgroundColor: Color;
+  scale: number;
+} => {
+  if (mode === 'overview') {
+    return {
+      fillColor: Color.fromCssColorString('#eff6ff'),
+      outlineColor: Color.fromCssColorString('#0f172a').withAlpha(0.92),
+      backgroundColor: Color.fromCssColorString('#1d4ed8').withAlpha(0.84),
+      scale: 0.58,
+    };
+  }
+
+  if (mode === 'dimmed') {
+    return {
+      fillColor: Color.fromCssColorString('#f8fafc').withAlpha(0.82),
+      outlineColor: Color.fromCssColorString('#0f172a').withAlpha(0.85),
+      backgroundColor: Color.fromCssColorString('#475569').withAlpha(0.68),
+      scale: 0.54,
+    };
+  }
+
+  return {
+    fillColor: Color.WHITE,
+    outlineColor: Color.fromCssColorString('#0f172a').withAlpha(0.96),
+    backgroundColor: Color.fromCssColorString('#1e40af').withAlpha(0.9),
+    scale: 0.64,
   };
 };
 
@@ -478,7 +614,11 @@ const toRenderContour = (
   return {
     satelliteName: satellite.name,
     coverageKey: getCoverageGroupId(coverage),
+    coverageLabel: getCoverageDisplayName(coverage),
     contourKey: getCoverageBeamId(coverage),
+    contourLabel: getCoverageBeamName(coverage),
+    levelValue: typeof feature.properties?.level === 'number' ? feature.properties.level : null,
+    levelUnit: getCoverageLevelUnit(coverage),
     geometryPartKey,
     geometry,
     prebuiltMesh,
@@ -609,6 +749,12 @@ const getRenderModeOrder = (mode: RenderContour['mode']): number => {
   return 2;
 };
 
+const getLegendModeOrder = (mode: RenderContour['mode']): number => {
+  if (mode === 'full') return 0;
+  if (mode === 'dimmed') return 1;
+  return 2;
+};
+
 const sortRenderContoursForDisplay = (contours: RenderContour[]): RenderContour[] => (
   [...contours].sort((a, b) => {
     const modeDelta = getRenderModeOrder(a.mode) - getRenderModeOrder(b.mode);
@@ -628,10 +774,98 @@ const sortRenderContoursForDisplay = (contours: RenderContour[]): RenderContour[
   })
 );
 
+const buildRenderContourLabels = (contours: RenderContour[]): RenderContourLabel[] => {
+  const bestContourByLabelKey = new Map<string, { contour: RenderContour; area: number }>();
+
+  for (const contour of contours) {
+    const labelKey = contour.mode === 'overview'
+      ? `overview::${contour.coverageKey}`
+      : `contour::${contour.coverageKey}::${contour.contourKey}`;
+    const area = approximateRingArea(contour.geometry.outerRing);
+    const currentBest = bestContourByLabelKey.get(labelKey);
+
+    if (!currentBest || area > currentBest.area) {
+      bestContourByLabelKey.set(labelKey, { contour, area });
+    }
+  }
+
+  return Array.from(bestContourByLabelKey.values())
+    .map(({ contour }) => {
+      const anchor = getRingLabelAnchor(contour.geometry.outerRing);
+      if (!anchor) return null;
+
+      const rawText = contour.mode === 'overview'
+        ? contour.coverageLabel
+        : contour.contourLabel;
+      const text = rawText.trim();
+      if (!text) return null;
+
+      return {
+        id: `${GEO_COVERAGE_ENTITY_PREFIX}${contour.satelliteName}::label::${contour.coverageKey}::${contour.contourKey}::${contour.mode}`,
+        text,
+        position: Cartesian3.fromDegrees(anchor.lng, anchor.lat, GEO_FOOTPRINT_LABEL_LAYER_HEIGHT_M),
+        coverageKey: contour.coverageKey,
+        contourKey: contour.contourKey,
+        coverageLabel: contour.coverageLabel,
+        contourLabel: contour.contourLabel,
+        mode: contour.mode,
+      } satisfies RenderContourLabel;
+    })
+    .filter((label): label is RenderContourLabel => label !== null);
+};
+
+const buildGeoCoverageLegendItems = (contours: RenderContour[]): GeoCoverageLegendItem[] => {
+  const itemByKey = new Map<string, GeoCoverageLegendItem>();
+
+  for (const contour of contours) {
+    const key = `${contour.coverageKey}::${contour.contourKey}`;
+    const existing = itemByKey.get(key);
+    if (existing) {
+      if (getLegendModeOrder(contour.mode) < getLegendModeOrder(existing.mode)) {
+        itemByKey.set(key, {
+          ...existing,
+          mode: contour.mode,
+          normalizedLevel: contour.normalizedLevel,
+        });
+      }
+      continue;
+    }
+
+    itemByKey.set(key, {
+      key,
+      satelliteName: contour.satelliteName,
+      coverageKey: contour.coverageKey,
+      coverageLabel: contour.coverageLabel,
+      contourKey: contour.contourKey,
+      contourLabel: contour.contourLabel,
+      levelValue: contour.levelValue,
+      levelUnit: contour.levelUnit,
+      mode: contour.mode,
+      normalizedLevel: contour.normalizedLevel,
+    });
+  }
+
+  return Array.from(itemByKey.values()).sort((left, right) => {
+    const modeDelta = getLegendModeOrder(left.mode) - getLegendModeOrder(right.mode);
+    if (modeDelta !== 0) return modeDelta;
+
+    if (left.normalizedLevel !== right.normalizedLevel) {
+      return right.normalizedLevel - left.normalizedLevel;
+    }
+
+    const coverageDelta = left.coverageLabel.localeCompare(right.coverageLabel);
+    if (coverageDelta !== 0) return coverageDelta;
+
+    return left.contourLabel.localeCompare(right.contourLabel);
+  });
+};
+
 const CoverageLayer: React.FC<CoverageLayerProps> = ({
   satellites,
   selection,
   selectedCoverage = null,
+  onLegendItemsChange,
+  highlightedLegendItemKey = null,
 }) => {
   const { viewer } = useCesium();
   const dataSourceRef = useRef<CustomDataSource | null>(null);
@@ -681,6 +915,14 @@ const CoverageLayer: React.FC<CoverageLayerProps> = ({
     )),
     [activeMeshIndex, relevantSatellite, selection, selectedCoverage]
   );
+  const renderLabels = useMemo(
+    () => buildRenderContourLabels(renderContours),
+    [renderContours]
+  );
+  const legendItems = useMemo(
+    () => buildGeoCoverageLegendItems(renderContours),
+    [renderContours]
+  );
   const renderContentSignature = useMemo(() => (
     renderContours
       .map((contour) => [
@@ -695,8 +937,8 @@ const CoverageLayer: React.FC<CoverageLayerProps> = ({
       .join('|')
   ), [renderContours]);
   const renderSignature = useMemo(
-    () => `${selectionRenderSignature}::${renderContentSignature}`,
-    [renderContentSignature, selectionRenderSignature]
+    () => `${selectionRenderSignature}::${renderContentSignature}::${highlightedLegendItemKey ?? 'none'}`,
+    [highlightedLegendItemKey, renderContentSignature, selectionRenderSignature]
   );
   useEffect(() => {
     if (!relevantSatellite || relevantSatellite.type !== 'EUTELSAT' || !relevantSatellite.coverageFileId) {
@@ -721,6 +963,16 @@ const CoverageLayer: React.FC<CoverageLayerProps> = ({
       cancelled = true;
     };
   }, [activeMeshState?.coverageFileId, relevantSatellite]);
+
+  useEffect(() => {
+    onLegendItemsChange?.(legendItems);
+  }, [legendItems, onLegendItemsChange]);
+
+  useEffect(() => {
+    return () => {
+      onLegendItemsChange?.([]);
+    };
+  }, [onLegendItemsChange]);
 
   useEffect(() => {
     if (!viewer) return;
@@ -786,7 +1038,12 @@ const CoverageLayer: React.FC<CoverageLayerProps> = ({
       if (!polylinePositions) return;
 
       const coverageEntityId = `${GEO_COVERAGE_ENTITY_PREFIX}${contour.satelliteName}::${contour.coverageKey}`;
-      const style = getCoverageBandStyle(contour.normalizedLevel, contour.mode);
+      const contourLegendKey = `${contour.coverageKey}::${contour.contourKey}`;
+      const style = getCoverageBandStyle(
+        contour.normalizedLevel,
+        contour.mode,
+        highlightedLegendItemKey === contourLegendKey,
+      );
       const fillId = `${coverageEntityId}::fill::${contour.contourKey}::${contour.geometryPartKey}`;
       const outlineId = `${coverageEntityId}::outline::${contour.contourKey}::${contour.geometryPartKey}`;
 
@@ -826,6 +1083,14 @@ const CoverageLayer: React.FC<CoverageLayerProps> = ({
           dataSource.entities.add({
             id: fillId,
             name: contour.coverageKey,
+            properties: {
+              overlayType: 'geo-coverage',
+              coverageKey: contour.coverageKey,
+              coverageLabel: contour.coverageLabel,
+              contourKey: contour.contourKey,
+              contourLabel: contour.contourLabel,
+              mode: contour.mode,
+            },
             polygon: {
               hierarchy,
               material: new ColorMaterialProperty(style.fillColor),
@@ -840,19 +1105,59 @@ const CoverageLayer: React.FC<CoverageLayerProps> = ({
       dataSource.entities.add({
         id: outlineId,
         name: `${contour.coverageKey} contour`,
+        properties: {
+          overlayType: 'geo-coverage',
+          coverageKey: contour.coverageKey,
+          coverageLabel: contour.coverageLabel,
+          contourKey: contour.contourKey,
+          contourLabel: contour.contourLabel,
+          mode: contour.mode,
+        },
         polyline: {
           positions: polylinePositions,
           width: style.contourWidth,
           material: style.contourColor,
           arcType: ArcType.RHUMB,
           clampToGround: false,
-          depthFailMaterial: style.contourColor,
+        },
+      });
+    });
+
+    renderLabels.forEach((labelSpec) => {
+      const labelStyle = getCoverageLabelStyle(labelSpec.mode);
+
+      dataSource.entities.add({
+        id: labelSpec.id,
+        position: labelSpec.position,
+        properties: {
+          overlayType: 'geo-coverage',
+          coverageKey: labelSpec.coverageKey,
+          coverageLabel: labelSpec.coverageLabel,
+          contourKey: labelSpec.contourKey,
+          contourLabel: labelSpec.contourLabel,
+          mode: labelSpec.mode,
+        },
+        label: {
+          text: labelSpec.text,
+          fillColor: labelStyle.fillColor,
+          outlineColor: labelStyle.outlineColor,
+          outlineWidth: 2,
+          style: LabelStyle.FILL_AND_OUTLINE,
+          showBackground: true,
+          backgroundColor: labelStyle.backgroundColor,
+          backgroundPadding: new Cartesian2(8, 5),
+          horizontalOrigin: HorizontalOrigin.CENTER,
+          verticalOrigin: VerticalOrigin.BOTTOM,
+          pixelOffset: new Cartesian2(0, -10),
+          scale: labelStyle.scale,
+          scaleByDistance: new NearFarScalar(2.0e6, 1.0, 1.8e7, 0.45),
+          translucencyByDistance: new NearFarScalar(2.0e6, 1.0, 2.1e7, 0.0),
         },
       });
     });
 
     viewer?.scene.requestRender();
-  }, [geometryLod, renderContours, renderSignature, selectedCoverage, selection, viewer]);
+  }, [geometryLod, renderContours, renderLabels, renderSignature, selectedCoverage, selection, viewer]);
 
   return null;
 };
