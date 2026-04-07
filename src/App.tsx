@@ -148,6 +148,7 @@ const weatherTypeFromCondition = (condition: ReturnType<typeof toWeatherConditio
 };
 
 type InitialDisplayDefaults = {
+  isFullscreen: boolean;
   enableLighting: boolean;
   showSatelliteTrajectory: boolean;
   showAggregatedConnectivity: boolean;
@@ -162,14 +163,8 @@ const parseBooleanQueryValue = (value: string | null): boolean | undefined => {
 
   switch (value.trim().toLowerCase()) {
     case '1':
-    case 'true':
-    case 'on':
-    case 'yes':
       return true;
     case '0':
-    case 'false':
-    case 'off':
-    case 'no':
       return false;
     default:
       return undefined;
@@ -205,6 +200,7 @@ const parseMarkerScaleQueryValue = (value: string | null): number | null => {
 const getInitialDisplayDefaults = (savedSizeScale: number): InitialDisplayDefaults => {
   if (typeof window === 'undefined') {
     return {
+      isFullscreen: false,
       enableLighting: false,
       showSatelliteTrajectory: false,
       showAggregatedConnectivity: false,
@@ -220,6 +216,7 @@ const getInitialDisplayDefaults = (savedSizeScale: number): InitialDisplayDefaul
   const savedScaleOverride = Number.isFinite(savedSizeScale) && savedSizeScale > 0 ? savedSizeScale : null;
 
   return {
+    isFullscreen: parseBooleanQueryValue(params.get('fullscreen')) ?? false,
     enableLighting: parseBooleanQueryValue(params.get('lighting')) ?? false,
     showSatelliteTrajectory: parseBooleanQueryValue(params.get('trajectory')) ?? false,
     showAggregatedConnectivity: parseBooleanQueryValue(params.get('connectivity')) ?? false,
@@ -265,7 +262,7 @@ const App: React.FC = () => {
   const [selectedVessel, setSelectedVessel] = useState<Vessel | null>(null);
   const [nearestLocation, setNearestLocation] = useState<{ city: string; country: string } | null>(null);
   const [hoveredSatelliteId, setHoveredSatelliteId] = useState<string | null>(null);
-  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(initialDisplayDefaults.isFullscreen);
   const [fullscreenExportButtonProps, setFullscreenExportButtonProps] = useState<ExportButtonPayload | null>(null);
   const [satelliteScope, setSatelliteScope] = useState<SatelliteScope>('ALL');
   const [airTrafficEnabled, setAirTrafficEnabled] = useState(false);
