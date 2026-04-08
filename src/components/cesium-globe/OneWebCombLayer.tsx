@@ -161,29 +161,66 @@ const BeamRing = React.memo<{
     regulatoryBlockedRef: React.MutableRefObject<boolean>;
 }>(({ beamIndex, ringIndex, scaleFactor, ringOpacity, targetSat, getCombGeometries, viewerRef, hsBeamsRef, regulatoryBlockedRef }) => {
 
+    // Cached PolygonHierarchy — recomputed only when the worker posts new geometry
+    // (i.e. when getCombGeometries returns a new array reference). Between worker
+    // updates the same reference is returned on every frame, so both callbacks
+    // hit the identity guard and return the cached values with zero allocation.
+    // Whichever callback (show or hierarchy) runs first in a given update frame
+    // writes the cache; the second one reads it for free.
+    const cachedRef = useRef<{
+        sourceGeometries: Cartesian3[][] | null;
+        hierarchy: PolygonHierarchy;
+        show: boolean;
+    }>({ sourceGeometries: null, hierarchy: _dummyHierarchy, show: false });
+
     const showCallback = useMemo(() => {
         return new CallbackProperty((time?: JulianDate) => {
             if (!time || !viewerRef.current) return false;
             const geometries = getCombGeometries(targetSat, time);
-            return getRenderablePolygon(geometries, beamIndex).length >= 3;
+            if (geometries !== cachedRef.current.sourceGeometries) {
+                const polygon = getRenderablePolygon(geometries, beamIndex);
+                if (polygon.length >= 3) {
+                    try {
+                        const scaled = sanitizeCartesianRing(scalePolygon(polygon, scaleFactor));
+                        cachedRef.current = {
+                            sourceGeometries: geometries,
+                            hierarchy: scaled.length >= 3 ? new PolygonHierarchy(scaled) : _dummyHierarchy,
+                            show: scaled.length >= 3,
+                        };
+                    } catch (e) {
+                        cachedRef.current = { sourceGeometries: geometries, hierarchy: _dummyHierarchy, show: false };
+                    }
+                } else {
+                    cachedRef.current = { sourceGeometries: geometries, hierarchy: _dummyHierarchy, show: false };
+                }
+            }
+            return cachedRef.current.show;
         }, false);
-    }, [beamIndex, targetSat.id, getCombGeometries, viewerRef]);
+    }, [beamIndex, scaleFactor, targetSat.id, getCombGeometries, viewerRef]);
 
     const hierarchyCallback = useMemo(() => {
         return new CallbackProperty((time?: JulianDate) => {
-            try {
-                if (!time || !viewerRef.current) return _dummyHierarchy;
-                const geometries = getCombGeometries(targetSat, time);
+            if (!time || !viewerRef.current) return _dummyHierarchy;
+            const geometries = getCombGeometries(targetSat, time);
+            if (geometries !== cachedRef.current.sourceGeometries) {
                 const polygon = getRenderablePolygon(geometries, beamIndex);
                 if (polygon.length >= 3) {
-                    const scaled = sanitizeCartesianRing(scalePolygon(polygon, scaleFactor));
-                    if (scaled.length < 3) return _dummyHierarchy;
-                    return new PolygonHierarchy(scaled);
+                    try {
+                        const scaled = sanitizeCartesianRing(scalePolygon(polygon, scaleFactor));
+                        cachedRef.current = {
+                            sourceGeometries: geometries,
+                            hierarchy: scaled.length >= 3 ? new PolygonHierarchy(scaled) : _dummyHierarchy,
+                            show: scaled.length >= 3,
+                        };
+                    } catch (e) {
+                        console.error('Error pre-scaling beam polygon', e);
+                        cachedRef.current = { sourceGeometries: geometries, hierarchy: _dummyHierarchy, show: false };
+                    }
+                } else {
+                    cachedRef.current = { sourceGeometries: geometries, hierarchy: _dummyHierarchy, show: false };
                 }
-            } catch (e) {
-                console.error('Error in gradient hierarchy callback', e);
             }
-            return _dummyHierarchy;
+            return cachedRef.current.hierarchy;
         }, false);
     }, [beamIndex, scaleFactor, targetSat.id, getCombGeometries, viewerRef]);
 
