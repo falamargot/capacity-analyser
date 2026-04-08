@@ -43,7 +43,7 @@ import type { AircraftInterpolation } from '../modules/airTraffic/useAirTraffic'
 import type { Vessel } from '../modules/maritimeTraffic/maritimeTrafficService';
 import type { VesselInterpolation } from '../modules/maritimeTraffic/useMaritimeTraffic';
 import type { SatelliteScope } from './SatelliteScopeFilter';
-import type { CandidateCoverage, GEOBeam, Selection } from '../types/analysis';
+import type { CandidateCoverage, GEOBeam, MobileAnalysisMetrics, Selection } from '../types/analysis';
 import { getPosition, DPR_FACTOR, calculateDynamicScale, type CameraMetricsSnapshot } from './cesium-globe/utils';
 import { useCesiumTheme } from '../hooks/useCesiumTheme';
 
@@ -181,6 +181,7 @@ interface CesiumGlobeProps {
     onToggleArtemisTracker?: () => void;
     leoServiceViewModel?: LeoConnectivityViewModel | null;
     geoPointStatus?: GeoPointStatus | null;
+    performanceMetrics?: MobileAnalysisMetrics | null;
     selectedRegulatoryResult?: RegulatoryResult | null;
     onGlobeBootPhaseChange?: (phase: 'mounting' | 'viewer-ready' | 'imagery-ready') => void;
     onInitialGlobeReady?: () => void;
@@ -254,6 +255,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
     onToggleArtemisTracker,
     leoServiceViewModel = null,
     geoPointStatus = null,
+    performanceMetrics = null,
     selectedRegulatoryResult = null,
     onGlobeBootPhaseChange,
     onInitialGlobeReady,
@@ -1074,6 +1076,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                 isFullscreen={isFullscreen}
                 hasSatelliteIndicator={hasSatelliteIndicator}
                 hasCoverageSwitcher={hasCoverageSwitcher}
+                hideHeader={selection.type === 'satellite'}
             />
 
             {/* Cesium Viewer */}
@@ -1329,6 +1332,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                 satelliteScope={satelliteScope}
                 leoServiceViewModel={leoServiceViewModel}
                 geoPointStatus={geoPointStatus}
+                performanceMetrics={performanceMetrics}
                 viewerReady={viewerReady}
                 compact={!!isPhone}
             />

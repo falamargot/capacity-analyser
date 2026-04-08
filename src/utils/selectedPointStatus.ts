@@ -37,38 +37,38 @@ function getLeoStatusLine(
   }
 
   if (viewModel.decisionDriver === 'REGULATORY' && viewModel.finalServiceStatus === 'BLOCKED') {
-    return { text: 'LEO: regulatory block', tone: 'danger' };
+    return { text: 'LEO: Regulatory block', tone: 'danger' };
   }
 
   if (viewModel.decisionDriver === 'NETWORK') {
-    return { text: 'LEO: gateway unavailable', tone: 'warning' };
+    return { text: 'LEO: Gateway unavailable', tone: 'warning' };
   }
 
   if (viewModel.decisionDriver === 'CAPACITY') {
-    return { text: 'LEO: capacity constrained', tone: 'warning' };
+    return { text: 'LEO: Capacity constrained', tone: 'warning' };
   }
 
   if (viewModel.finalServiceStatus === 'DEGRADED') {
-    return { text: 'LEO: degraded', tone: 'warning' };
+    return { text: 'LEO: Degraded', tone: 'warning' };
   }
 
-  return { text: 'LEO: unknown', tone: 'neutral' };
+  return { text: 'LEO: Unknown', tone: 'neutral' };
 }
 
 function getGeoStatusLine(status?: GeoPointStatus | null): SelectedPointStatusLine {
   if (status === 'available') {
-    return { text: 'GEO: available', tone: 'success' };
+    return { text: 'GEO: Available', tone: 'success' };
   }
   if (status === 'unstable') {
-    return { text: 'GEO: unstable', tone: 'warning' };
+    return { text: 'GEO: Unstable', tone: 'warning' };
   }
   if (status === 'gateway_unavailable') {
-    return { text: 'GEO: gateway unavailable', tone: 'danger' };
+    return { text: 'GEO: Gateway unavailable', tone: 'danger' };
   }
   if (status === 'out_of_coverage') {
-    return { text: 'GEO: out of coverage', tone: 'danger' };
+    return { text: 'GEO: Out of coverage', tone: 'danger' };
   }
-  return { text: 'GEO: unknown', tone: 'neutral' };
+  return { text: 'GEO: Unknown', tone: 'neutral' };
 }
 
 function combineTones(lines: SelectedPointStatusLine[]): SelectedPointStatusTone {

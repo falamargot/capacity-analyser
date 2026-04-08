@@ -1651,6 +1651,7 @@ const App: React.FC = () => {
     dedicatedSNPForSelectedLEO,
     leoServiceViewModel,
     geoPointStatus,
+    performanceMetrics: mobileMetrics,
     selectedRegulatoryResult: leoRegulatoryResult,
     isFullscreen,
     onToggleFullscreen: handleToggleFullscreen,
@@ -1697,7 +1698,7 @@ const App: React.FC = () => {
   }), [
     filteredSatellites, satelliteTypeByName, coverageFeaturesMemo, handlePointClick, handleCoverageClick, selectedPosition,
     handleSatelliteClick, handleSatelliteHover, handleSnpClick, handleGatewaySelectByName, handleSnpHover,
-    handleMoonSelectionChange, selectedSatellite, selectedMoon, resolvedAutoLEO, activeGeoSatellite, selectedGEOBeam, selectedSelection, selectedCoverage, selectedSNP, selectedGateway, dedicatedSNPForSelectedLEO, leoServiceViewModel, geoPointStatus, leoRegulatoryResult,
+    handleMoonSelectionChange, selectedSatellite, selectedMoon, resolvedAutoLEO, activeGeoSatellite, selectedGEOBeam, selectedSelection, selectedCoverage, selectedSNP, selectedGateway, dedicatedSNPForSelectedLEO, leoServiceViewModel, geoPointStatus, mobileMetrics, leoRegulatoryResult,
     isFullscreen, satelliteScope, airTrafficEnabled, airTraffic.aircraft,
     selectedAircraft, handleAircraftSelect, handleAircraftHover,
     maritimeTrafficEnabled, maritimeTraffic.vessels, selectedVessel, handleVesselSelect, cameraTarget,
@@ -2671,6 +2672,7 @@ const App: React.FC = () => {
                         onSelectGeoCoverage={handleSelectGeoCoverage}
                         onSelectGeoBeam={handleSelectGeoBeam}
                         onSnpClick={handleSnpClick}
+                        onMetricsChange={setMobileMetrics}
                         compactDesktop={useCompactDesktopSidebar}
                         externalHeader
                         globeRef={globeContainerRef}

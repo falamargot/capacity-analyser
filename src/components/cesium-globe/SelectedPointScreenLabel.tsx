@@ -4,6 +4,7 @@ import {
   Viewer as CesiumViewerType,
   defined,
 } from 'cesium';
+import type { MobileAnalysisMetrics, MobileLinkMetrics } from '../../types/analysis';
 import type { LeoConnectivityViewModel } from '../../utils/leoServiceViewModel';
 import { formatCoordinates } from '../../utils/formatters';
 import {
@@ -21,6 +22,7 @@ interface SelectedPointScreenLabelProps {
   satelliteScope: SelectedPointScope;
   leoServiceViewModel?: LeoConnectivityViewModel | null;
   geoPointStatus?: GeoPointStatus | null;
+  performanceMetrics?: MobileAnalysisMetrics | null;
   viewerReady?: boolean;
   compact?: boolean;
 }
@@ -32,6 +34,23 @@ const statusClassName = (tone: ReturnType<typeof deriveSelectedPointStatusPresen
   return 'bg-slate-500/88';
 };
 
+const formatCompactThroughputMbps = (gbps: number | null | undefined): string => {
+  if (gbps == null || !Number.isFinite(gbps) || gbps <= 0) return '--';
+  return `${Math.round(gbps * 1000)}`;
+};
+
+const formatCompactPerformanceLine = (label: 'LEO' | 'GEO', metrics: MobileLinkMetrics | null | undefined): string | null => {
+  if (!metrics || metrics.rtt == null || !Number.isFinite(metrics.rtt)) {
+    return null;
+  }
+
+  return [
+    `${label}:`,
+    `${Math.round(metrics.rtt)}ms`,
+    `${formatCompactThroughputMbps(metrics.downlinkGbps)}/${formatCompactThroughputMbps(metrics.uplinkGbps)}Mbps`,
+  ].join(' ');
+};
+
 const SelectedPointScreenLabel: React.FC<SelectedPointScreenLabelProps> = ({
   viewerRef,
   containerRef,
@@ -39,6 +58,7 @@ const SelectedPointScreenLabel: React.FC<SelectedPointScreenLabelProps> = ({
   satelliteScope,
   leoServiceViewModel = null,
   geoPointStatus = null,
+  performanceMetrics = null,
   viewerReady = false,
   compact = false,
 }) => {
@@ -54,11 +74,29 @@ const SelectedPointScreenLabel: React.FC<SelectedPointScreenLabelProps> = ({
 
   const text = useMemo(() => {
     if (!selectedPosition) return null;
+
+    const fallbackStatusLines = presentation.lines.map((line) => line.text);
+    const leoPerformanceLine = leoServiceViewModel?.finalServiceStatus === 'ALLOWED'
+      ? formatCompactPerformanceLine('LEO', performanceMetrics?.leo)
+      : null;
+    const geoPerformanceLine = geoPointStatus === 'available'
+      ? formatCompactPerformanceLine('GEO', performanceMetrics?.geo)
+      : null;
+
+    const statusLines = satelliteScope === 'LEO'
+      ? [leoPerformanceLine ?? fallbackStatusLines[0]]
+      : satelliteScope === 'GEO'
+        ? [geoPerformanceLine ?? fallbackStatusLines[0]]
+        : [
+            leoPerformanceLine ?? fallbackStatusLines[0],
+            geoPerformanceLine ?? fallbackStatusLines[1],
+          ];
+
     return {
       coordinates: formatCoordinates({ lat: selectedPosition.lat, lng: selectedPosition.lng }),
-      statusLines: presentation.lines.map((line) => line.text),
+      statusLines: statusLines.filter((line): line is string => typeof line === 'string' && line.length > 0),
     };
-  }, [presentation.lines, selectedPosition]);
+  }, [geoPointStatus, leoServiceViewModel?.finalServiceStatus, performanceMetrics?.geo, performanceMetrics?.leo, presentation.lines, satelliteScope, selectedPosition]);
 
   const badgeClassName = useMemo(
     () => statusClassName(presentation.tone),

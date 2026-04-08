@@ -1,6 +1,8 @@
 import { memo, useEffect, useMemo, useRef, useState } from 'react';
 import { Check, ChevronDown } from 'lucide-react';
 
+const COVERAGE_SWITCHER_WIDTH_CLASS = 'w-[min(13.5rem,calc(100vw-1rem))]';
+
 export interface CoverageSwitcherCoverage {
   id: string;
   name: string;
@@ -117,7 +119,7 @@ const CoverageSwitcherVertical = memo<CoverageSwitcherVerticalProps>(({
           aria-haspopup="listbox"
           aria-label={isExpanded ? 'Hide GEO coverage candidates' : 'Show GEO coverage candidates'}
           title={formatTooltip(selectedCoverage)}
-          className="group flex min-w-[13.5rem] max-w-[min(21rem,calc(100vw-1rem))] items-center gap-2.5 rounded-[14px] border border-white/10 bg-[linear-gradient(180deg,rgba(7,18,40,0.82),rgba(10,20,38,0.62))] px-3 py-2 shadow-[0_18px_44px_-32px_rgba(15,23,42,0.85)] ring-1 ring-cyan-300/10 backdrop-blur-xl transition duration-200 hover:border-white/14 hover:bg-[linear-gradient(180deg,rgba(9,23,50,0.88),rgba(10,20,38,0.7))]"
+          className={`${COVERAGE_SWITCHER_WIDTH_CLASS} group flex items-center gap-2.5 rounded-[14px] border border-white/10 bg-[linear-gradient(180deg,rgba(7,18,40,0.82),rgba(10,20,38,0.62))] px-3 py-2 shadow-[0_18px_44px_-32px_rgba(15,23,42,0.85)] ring-1 ring-cyan-300/10 backdrop-blur-xl transition duration-200 hover:border-white/14 hover:bg-[linear-gradient(180deg,rgba(9,23,50,0.88),rgba(10,20,38,0.7))]`}
         >
           <div className="min-w-0 flex-1 text-left">
             <div className="truncate text-[11px] font-medium leading-4 text-sky-200">

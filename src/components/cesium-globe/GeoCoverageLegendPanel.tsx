@@ -1,6 +1,8 @@
 import React, { useMemo, useState } from 'react';
 import type { GeoCoverageLegendItem } from './CoverageLayer';
 
+const COVERAGE_PANEL_WIDTH_CLASS = 'w-[min(13.5rem,calc(100vw-1rem))]';
+
 interface GeoCoverageLegendPanelProps {
   items: GeoCoverageLegendItem[];
   hoveredItemKey?: string | null;
@@ -9,6 +11,7 @@ interface GeoCoverageLegendPanelProps {
   isFullscreen?: boolean;
   hasSatelliteIndicator?: boolean;
   hasCoverageSwitcher?: boolean;
+  hideHeader?: boolean;
 }
 
 const DESKTOP_TOP_DEFAULT_PX = 56;
@@ -76,6 +79,7 @@ const GeoCoverageLegendPanel: React.FC<GeoCoverageLegendPanelProps> = ({
   isFullscreen = false,
   hasSatelliteIndicator = false,
   hasCoverageSwitcher = false,
+  hideHeader = false,
 }) => {
   const [focusedItemKey, setFocusedItemKey] = useState<string | null>(null);
 
@@ -128,7 +132,7 @@ const GeoCoverageLegendPanel: React.FC<GeoCoverageLegendPanelProps> = ({
     ? 'min(13rem, calc(100% - 1rem))'
     : `min(15rem, max(8rem, calc(100% - ${desktopTopOffsetPx + 20}px)))`;
   const singleGroup = groupedItems.length === 1 ? groupedItems[0] : null;
-  const useUltraCompactHeaderlessMode = !!singleGroup && hasCoverageSwitcher;
+  const shouldHideHeader = hideHeader || groupedItems.length >= 2 || (!!singleGroup && hasCoverageSwitcher);
 
   if (sortedItems.length === 0 || (isPhone && isFullscreen)) {
     return null;
@@ -137,9 +141,9 @@ const GeoCoverageLegendPanel: React.FC<GeoCoverageLegendPanelProps> = ({
   return (
     <div className={`pointer-events-none absolute ${panelZIndexClassName} max-w-[calc(100vw-0.25rem)] ${positionClassName}`}>
       <div
-        className={`pointer-events-auto overflow-hidden rounded-[18px] border border-slate-700/80 bg-[linear-gradient(180deg,rgba(15,23,42,0.9),rgba(17,24,39,0.82))] shadow-[0_22px_48px_-30px_rgba(15,23,42,0.92)] ring-1 ring-slate-700/70 backdrop-blur-xl ${isPhone ? 'w-[min(13rem,calc(100vw-1rem))]' : 'w-[min(16rem,calc(100vw-1rem))]'}`}
+        className={`pointer-events-auto overflow-hidden rounded-[18px] border border-slate-700/80 bg-[linear-gradient(180deg,rgba(15,23,42,0.9),rgba(17,24,39,0.82))] shadow-[0_22px_48px_-30px_rgba(15,23,42,0.92)] ring-1 ring-slate-700/70 backdrop-blur-xl ${COVERAGE_PANEL_WIDTH_CLASS}`}
       >
-        {!useUltraCompactHeaderlessMode && (
+        {!shouldHideHeader && (
           <div className="border-b border-white/8 px-3 py-2.5">
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
@@ -163,7 +167,7 @@ const GeoCoverageLegendPanel: React.FC<GeoCoverageLegendPanelProps> = ({
           </div>
         )}
 
-        <div className={`overflow-y-auto overscroll-contain ${useUltraCompactHeaderlessMode ? 'px-2 py-1.5' : 'px-2 py-2'}`} style={{ maxHeight: maxPanelHeight }}>
+        <div className={`overflow-y-auto overscroll-contain ${shouldHideHeader ? 'px-1.5 py-1.5' : 'px-1.5 py-2'}`} style={{ maxHeight: maxPanelHeight }}>
           <div className="space-y-2">
             {groupedItems.map((group, groupIndex) => (
               <section
@@ -176,7 +180,7 @@ const GeoCoverageLegendPanel: React.FC<GeoCoverageLegendPanelProps> = ({
                   </div>
                 )}
 
-                <div className={`grid gap-1 ${isPhone ? 'grid-cols-3' : 'grid-cols-4'}`}>
+                <div className="flex flex-wrap gap-0.5">
                   {group.items.map((item) => {
                     const tone = getModeTone(item.mode);
                     const isActive = activeItemKey === item.key;
@@ -196,7 +200,7 @@ const GeoCoverageLegendPanel: React.FC<GeoCoverageLegendPanelProps> = ({
                           onHoverItemChange?.(null);
                         }}
                         className={[
-                          'group flex min-w-0 flex-col items-start justify-center rounded-[12px] border px-1.5 py-1 text-left transition-all duration-200',
+                          'group flex min-w-0 flex-col items-start justify-center rounded-[10px] border px-0.5 py-1 text-left transition-all duration-200',
                           isActive ? 'border-blue-400 bg-blue-500/[0.12] ring-1 ring-blue-300/70 shadow-[0_0_0_1px_rgba(96,165,250,0.35)]' : tone.border,
                           isActive
                             ? ''
@@ -205,11 +209,11 @@ const GeoCoverageLegendPanel: React.FC<GeoCoverageLegendPanelProps> = ({
                         aria-label={showUnit ? `${valueText} ${item.levelUnit}` : valueText}
                       >
                         <span className="min-w-0">
-                          <span className={`block truncate font-semibold tabular-nums leading-none ${showUnit ? 'text-[12px]' : 'text-[10px]'} ${isActive ? 'text-blue-50' : tone.value}`}>
+                          <span className={`block truncate font-semibold tabular-nums leading-none ${showUnit ? 'text-[10px]' : 'text-[10px]'} ${isActive ? 'text-blue-50' : tone.value}`}>
                             {valueText}
                           </span>
                           {showUnit && (
-                            <span className={`mt-0.5 block text-[8px] font-medium leading-none ${isActive ? 'text-blue-100/90' : tone.unit}`}>
+                            <span className={`mt-0.5 block text-[7px] font-medium leading-none ${isActive ? 'text-blue-100/90' : tone.unit}`}>
                               {item.levelUnit}
                             </span>
                           )}

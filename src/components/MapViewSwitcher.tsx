@@ -7,7 +7,7 @@ import { SatelliteData } from '../types/satellites';
 import { SatelliteScope } from './SatelliteScopeFilter';
 import { Aircraft } from '../modules/airTraffic/airTrafficService';
 import { Vessel } from '../modules/maritimeTraffic/maritimeTrafficService';
-import type { CandidateCoverage, GEOBeam, Selection } from '../types/analysis';
+import type { CandidateCoverage, GEOBeam, MobileAnalysisMetrics, Selection } from '../types/analysis';
 import type { GeoGatewayData, SNPData } from './globe/GlobeConfig';
 import type { LeoConnectivityViewModel } from '../utils/leoServiceViewModel';
 import type { RegulatoryResult } from '../services/regulatoryService';
@@ -75,6 +75,7 @@ interface MapViewSwitcherProps {
   snpConnectedSatellites?: import('../services/coverageService').SNPConnectedSatellite[];
   leoServiceViewModel?: LeoConnectivityViewModel | null;
   geoPointStatus?: GeoPointStatus | null;
+  performanceMetrics?: MobileAnalysisMetrics | null;
   selectedRegulatoryResult?: RegulatoryResult | null;
   onGlobeBootPhaseChange?: (phase: 'mounting' | 'viewer-ready' | 'imagery-ready') => void;
   onInitialGlobeReady?: () => void;
@@ -144,6 +145,7 @@ const MapViewSwitcher: React.FC<MapViewSwitcherProps> = ({
   snpConnectedSatellites = [],
   leoServiceViewModel = null,
   geoPointStatus = null,
+  performanceMetrics = null,
   selectedRegulatoryResult = null,
   onGlobeBootPhaseChange,
   onInitialGlobeReady,
@@ -219,6 +221,7 @@ const MapViewSwitcher: React.FC<MapViewSwitcherProps> = ({
         snpConnectedSatellites={snpConnectedSatellites}
         leoServiceViewModel={leoServiceViewModel}
         geoPointStatus={geoPointStatus}
+        performanceMetrics={performanceMetrics}
         selectedRegulatoryResult={selectedRegulatoryResult}
         onGlobeBootPhaseChange={onGlobeBootPhaseChange}
         onInitialGlobeReady={onInitialGlobeReady}

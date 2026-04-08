@@ -10,7 +10,12 @@
 
 // ─── Public types ──────────────────────────────────────────────────────────
 
-export type RegulatoryStatus = 'ALLOWED' | 'RESTRICTED' | 'BLOCKED';
+export type RegulatoryStatus =
+  | 'ALLOWED'
+  | 'ALLOWED_CONFIRMED'
+  | 'ALLOWED_ESTIMATED'
+  | 'RESTRICTED'
+  | 'BLOCKED';
 
 export interface RegulatoryResult {
   /** ISO 3166-1 Alpha-2 code, null for ocean/international waters */
@@ -58,9 +63,9 @@ const OCEAN_RESULT: RegulatoryResult = {
   isoA2: null,
   isoA3: null,
   countryName: null,
-  status: 'RESTRICTED',
-  reason: 'International waters — no specific regulatory jurisdiction. Service subject to flag-state licensing.',
-  confidence: 0.15,
+  status: 'ALLOWED_ESTIMATED',
+  reason: 'International waters — no specific regulatory jurisdiction. Service treated as estimated-allowed, subject to flag-state licensing.',
+  confidence: 0.3,
   emitAllowed: true,
   serviceAllowed: true,
   styleFill: '#78909c',
