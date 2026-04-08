@@ -39,10 +39,18 @@ export interface RegulatoryResult {
 
 // ─── Configuration ─────────────────────────────────────────────────────────
 
-const API_BASE = (import.meta.env['VITE_API_URL'] as string | undefined) ?? 'http://localhost:3001';
+const CONFIGURED_API_BASE = (import.meta.env['VITE_API_URL'] as string | undefined)
+  ?.trim()
+  .replace(/\/$/, '');
+const API_BASE = CONFIGURED_API_BASE ?? 'http://localhost:3001';
 
-/** Base URL for the regulatory overlay GeoJSON (used by rendering layers) */
-export const REGULATORY_OVERLAY_URL = `${API_BASE}/api/regulatory/overlay`;
+/** Static fallback bundled with the frontend build (works on Vercel and preview deployments). */
+export const REGULATORY_OVERLAY_STATIC_URL = '/oneweb_regulatory_overlay.geojson';
+
+/** Preferred URL for the regulatory overlay GeoJSON (used by rendering layers). */
+export const REGULATORY_OVERLAY_URL = CONFIGURED_API_BASE
+  ? `${CONFIGURED_API_BASE}/api/regulatory/overlay`
+  : REGULATORY_OVERLAY_STATIC_URL;
 
 // ─── Graceful degradation ──────────────────────────────────────────────────
 
@@ -63,6 +71,7 @@ const OCEAN_RESULT: RegulatoryResult = {
 // ─── Client-side cache (0.5° resolution) ──────────────────────────────────
 
 const _cache = new Map<string, RegulatoryResult>();
+let overlayGeoJsonPromise: Promise<any> | null = null;
 
 // ─── Public API ────────────────────────────────────────────────────────────
 
@@ -86,6 +95,44 @@ export async function regulatoryLookup(lat: number, lng: number): Promise<Regula
   } catch {
     return OCEAN_RESULT;
   }
+}
+
+/**
+ * Loads the overlay GeoJSON used by country-level rendering.
+ *
+ * When no explicit API base is configured, prefer the static asset bundled in
+ * `public/` so deployments without the Fastify backend (for example Vercel)
+ * can still render country overlays.
+ */
+export async function fetchRegulatoryOverlayGeoJson(): Promise<any> {
+  if (overlayGeoJsonPromise) return overlayGeoJsonPromise;
+
+  const candidateUrls = CONFIGURED_API_BASE
+    ? [REGULATORY_OVERLAY_URL, REGULATORY_OVERLAY_STATIC_URL]
+    : [REGULATORY_OVERLAY_STATIC_URL, `${API_BASE}/api/regulatory/overlay`];
+
+  overlayGeoJsonPromise = (async () => {
+    let lastError: unknown = null;
+
+    for (const url of candidateUrls) {
+      try {
+        const response = await fetch(url);
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status} loading ${url}`);
+        }
+        return await response.json();
+      } catch (error) {
+        lastError = error;
+      }
+    }
+
+    overlayGeoJsonPromise = null;
+    throw lastError instanceof Error
+      ? lastError
+      : new Error('Failed to load regulatory overlay GeoJSON.');
+  })();
+
+  return overlayGeoJsonPromise;
 }
 
 /**

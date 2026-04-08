@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Entity } from 'resium';
 import { Cartesian3, Color } from 'cesium';
 import { COUNTRY_OUTLINE_LAYER_HEIGHT_M } from './layerHeights';
-import { REGULATORY_OVERLAY_URL } from '../../services/regulatoryService';
+import { fetchRegulatoryOverlayGeoJson } from '../../services/regulatoryService';
 
 interface CountryOutlineFeature {
   name: string;
@@ -17,7 +17,6 @@ interface SelectedCountryOutlineProps {
   outlineColor: string;
 }
 
-const COUNTRY_OUTLINE_URL = REGULATORY_OVERLAY_URL;
 let cachedOutlineFeaturesPromise: Promise<CountryOutlineFeature[]> | null = null;
 
 const normalizeName = (value?: string | null) => value?.trim().toLowerCase() ?? '';
@@ -40,12 +39,7 @@ const loadOutlineFeatures = (): Promise<CountryOutlineFeature[]> => {
   if (cachedOutlineFeaturesPromise) return cachedOutlineFeaturesPromise;
 
   cachedOutlineFeaturesPromise = (async () => {
-    const response = await fetch(COUNTRY_OUTLINE_URL);
-    if (!response.ok) {
-      throw new Error(`[SelectedCountryOutline] HTTP ${response.status} loading ${COUNTRY_OUTLINE_URL}`);
-    }
-
-    const geojson = await response.json();
+    const geojson = await fetchRegulatoryOverlayGeoJson();
     return (geojson.features ?? [])
       .map((feature: any) => ({
         name: String(feature.properties?.name ?? ''),

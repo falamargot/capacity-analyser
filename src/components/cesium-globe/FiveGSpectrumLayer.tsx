@@ -10,9 +10,7 @@ import {
 import { useCesium } from 'resium';
 import { BASE_OVERLAY_LAYER_HEIGHT_M } from './layerHeights';
 import { getFiveGSpectrumCountryInfo } from '../../services/fiveGSpectrumService';
-import { REGULATORY_OVERLAY_URL } from '../../services/regulatoryService';
-
-const FIVE_G_SPECTRUM_OVERLAY_URL = REGULATORY_OVERLAY_URL;
+import { fetchRegulatoryOverlayGeoJson } from '../../services/regulatoryService';
 
 let cachedDataSourcePromise: Promise<CustomDataSource> | null = null;
 
@@ -20,12 +18,7 @@ const loadFiveGSpectrumDataSource = (): Promise<CustomDataSource> => {
   if (cachedDataSourcePromise) return cachedDataSourcePromise;
 
   cachedDataSourcePromise = (async () => {
-    const response = await fetch(FIVE_G_SPECTRUM_OVERLAY_URL);
-    if (!response.ok) {
-      throw new Error(`[FiveGSpectrumLayer] HTTP ${response.status} loading ${FIVE_G_SPECTRUM_OVERLAY_URL}`);
-    }
-
-    const geojson = await response.json() as any;
+    const geojson = await fetchRegulatoryOverlayGeoJson() as any;
     const ds = new CustomDataSource('fiveg-spectrum-overlay');
 
     const addRing = (

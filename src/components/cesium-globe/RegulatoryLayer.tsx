@@ -15,7 +15,7 @@ import {
 import { useCesium } from 'resium';
 import { getRegulatoryOverlayState } from './materials/regulatoryMaterials';
 import { BASE_OVERLAY_LAYER_HEIGHT_M } from './layerHeights';
-import { REGULATORY_OVERLAY_URL } from '../../services/regulatoryService';
+import { fetchRegulatoryOverlayGeoJson } from '../../services/regulatoryService';
 
 declare global {
   interface Window {
@@ -43,12 +43,7 @@ const loadRegulatoryDataSource = (): Promise<CustomDataSource> => {
   if (cachedDataSourcePromise) return cachedDataSourcePromise;
 
   cachedDataSourcePromise = (async () => {
-    const response = await fetch(REGULATORY_OVERLAY_URL);
-    if (!response.ok) {
-      throw new Error(`[RegulatoryLayer] HTTP ${response.status} loading ${REGULATORY_OVERLAY_URL}`);
-    }
-
-    const geojson = await response.json() as any;
+    const geojson = await fetchRegulatoryOverlayGeoJson() as any;
     const ds = new CustomDataSource('regulatory-overlay');
 
     const addRing = (ring: number[][], fillColor: Color) => {
