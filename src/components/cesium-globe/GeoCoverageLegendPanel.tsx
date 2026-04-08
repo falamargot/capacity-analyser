@@ -91,6 +91,7 @@ const GeoCoverageLegendPanel: React.FC<GeoCoverageLegendPanelProps> = ({
 
   const activeItemKey = focusedItemKey ?? hoveredItemKey;
   const shouldCollapseSingleCoverage = hasCoverageSwitcher && groupedItems.length === 1;
+  const panelZIndexClassName = isPhone && !isFullscreen ? 'z-20' : 'z-[1180]';
   const positionClassName = hasCoverageSwitcher
     ? (isPhone
         ? 'left-2 top-[calc(env(safe-area-inset-top)+11.25rem)]'
@@ -112,7 +113,7 @@ const GeoCoverageLegendPanel: React.FC<GeoCoverageLegendPanelProps> = ({
   }
 
   return (
-    <div className={`pointer-events-none absolute z-[1180] max-w-[calc(100vw-1rem)] ${positionClassName}`}>
+    <div className={`pointer-events-none absolute ${panelZIndexClassName} max-w-[calc(100vw-1rem)] ${positionClassName}`}>
       <div className={`pointer-events-auto inline-block max-w-[min(18rem,calc(100vw-1rem))] ${isPhone ? 'max-w-[min(14rem,calc(100vw-1rem))]' : ''}`}>
         <div className="relative px-2 py-2">
           <div className="pointer-events-none absolute bottom-2 left-[0.8rem] top-2 w-px bg-[linear-gradient(180deg,rgba(148,163,184,0),rgba(148,163,184,0.42),rgba(148,163,184,0))]" />
