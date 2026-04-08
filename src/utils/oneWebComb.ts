@@ -80,13 +80,16 @@ function sanitizePolygonPoints(points: Cartesian3[]): Cartesian3[] {
 
     if (sanitized.length < 3) return [];
 
-    const uniqueCount = sanitized.reduce((count, point, index) => (
-        sanitized.slice(0, index).some((candidate) => Cartesian3.equalsEpsilon(candidate, point, 0, 1e-3))
-            ? count
-            : count + 1
-    ), 0);
+    // O(n): bucket each point onto a 1mm-snapped grid.
+    // Replaces the previous O(n²) reduce+slice.some() — semantically equivalent
+    // for well-formed beam polygons where non-consecutive exact duplicates cannot arise.
+    const seen = new Set<string>();
+    for (const point of sanitized) {
+        const key = `${Math.round(point.x * 1000)},${Math.round(point.y * 1000)},${Math.round(point.z * 1000)}`;
+        seen.add(key);
+    }
 
-    return uniqueCount >= 3 ? sanitized : [];
+    return seen.size >= 3 ? sanitized : [];
 }
 
 function getTimeMs(time: JulianDate): number {

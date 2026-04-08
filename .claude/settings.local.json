@@ -14,7 +14,8 @@
       "Bash(curl -s http://localhost:3001/api/regulatory?lat=51.5)",
       "Bash(lng=-0.12 2>&1)",
       "Bash(lsof -ti:3001 -ti:3000)",
-      "Bash(lsof -ti:3001 -ti:3000 -ti:3002)"
+      "Bash(lsof -ti:3001 -ti:3000 -ti:3002)",
+      "Bash(wc -l /Users/falamargot/Developpement/capacity-analyser/src/**/*.ts /Users/falamargot/Developpement/capacity-analyser/src/**/*.tsx)"
     ]
   }
 }

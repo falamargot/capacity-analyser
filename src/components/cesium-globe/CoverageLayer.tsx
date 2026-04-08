@@ -144,11 +144,8 @@ const sanitizeRing = (ring: unknown): number[][] | null => {
 
   if (sanitized.length < 3) return null;
 
-  const uniqueCount = sanitized.reduce((count, [lng, lat], index) => (
-    sanitized.slice(0, index).some(([candidateLng, candidateLat]) => candidateLng === lng && candidateLat === lat)
-      ? count
-      : count + 1
-  ), 0);
+  // O(n): replaces the previous O(n³)-memory/O(n²)-time reduce+slice.some() pattern.
+  const uniqueCount = new Set(sanitized.map(([lng, lat]) => `${lng},${lat}`)).size;
 
   return uniqueCount >= 3 ? sanitized : null;
 };

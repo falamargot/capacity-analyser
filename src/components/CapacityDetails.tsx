@@ -304,10 +304,16 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
     };
   }, [geoTerminalType, weatherType]);
 
-  // Use selectedPoint as the unified active point
-  const activePoint = useMemo(() => {
-    return selectedPoint;
-  }, [selectedPoint]);
+  // Direct alias — useMemo wrapper removed (memoizing an identity reference has no benefit).
+  const activePoint = selectedPoint;
+
+  // Shared time snapshot for all RF-layer computations in this render cycle.
+  // Ensures resolvedLEOConnectivity, leoPerformance, and hasCurrentLEORF all see
+  // the same JulianDate, eliminating the previous temporal inconsistency between layers.
+  const nowTime = useMemo(
+    () => JulianDate.fromDate(new Date()),
+    [selectedPoint, simulationState],
+  );
 
   // Get resolved LEO connectivity data for display
   const resolvedLEOConnectivity = useMemo(() => {
@@ -321,7 +327,7 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
     const connectedBeamIndex = findConnectedBeamIndex(
       activePoint,
       sat,
-      JulianDate.fromDate(new Date()),
+      nowTime,
       simulationState
     );
 
@@ -351,7 +357,7 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
       snpLEODistance,
       connectedBeamIndex
     };
-  }, [activePoint, autoSelectedLEOSatellite, propSelectedSNP, simulationState]);
+  }, [activePoint, autoSelectedLEOSatellite, propSelectedSNP, simulationState, nowTime]);
 
   const leoGeometry = useMemo(() => {
     if (!resolvedLEOConnectivity || !resolvedLEOConnectivity.snp) return null;
@@ -381,7 +387,7 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
         satellite: resolvedLEOConnectivity.satellite,
         beamIndex: resolvedLEOConnectivity.connectedBeamIndex,
         snpPosition: resolvedLEOConnectivity.snp,
-        time: JulianDate.fromDate(new Date()),
+        time: nowTime,
         simulationState,
       });
 
@@ -408,6 +414,7 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
     activePoint,
     leoGeometry,
     simulationState,
+    nowTime,
     calculateApproximateLEOPerformance,
     calculateBeamAwareLEOPerformance,
   ]);
@@ -418,10 +425,10 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
     return hasRFConnectivity(
       activePoint,
       autoSelectedLEOSatellite,
-      JulianDate.fromDate(new Date()),
+      nowTime,
       simulationState
     );
-  }, [activePoint, autoSelectedLEOSatellite, simulationState]);
+  }, [activePoint, autoSelectedLEOSatellite, simulationState, nowTime]);
 
   // ── Regulatory lookup (async, via API server) ─────────────────────────────
   const [computedRegulatoryResult, setComputedRegulatoryResult] = useState<RegulatoryResult | null>(null);

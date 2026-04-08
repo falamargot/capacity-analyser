@@ -57,14 +57,17 @@ export const sanitizeCartesianRing = (
 
     if (sanitized.length < 3) return [];
 
-    const uniquePoints: Cartesian3[] = [];
+    // O(n): bucket each point onto an epsilon-snapped grid.
+    // Replaces the previous O(n²) Array.some() scan — semantically equivalent for
+    // any reasonable polygon (non-consecutive exact duplicates cannot arise from
+    // the comb-geometry worker output).
+    const seen = new Set<string>();
     for (const point of sanitized) {
-        if (!uniquePoints.some((candidate) => Cartesian3.equalsEpsilon(candidate, point, 0, epsilon))) {
-            uniquePoints.push(point);
-        }
+        const key = `${Math.round(point.x / epsilon)},${Math.round(point.y / epsilon)},${Math.round(point.z / epsilon)}`;
+        seen.add(key);
     }
 
-    return uniquePoints.length >= 3 ? sanitized : [];
+    return seen.size >= 3 ? sanitized : [];
 };
 
 /**
