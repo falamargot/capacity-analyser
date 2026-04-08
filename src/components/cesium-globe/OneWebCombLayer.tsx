@@ -155,11 +155,11 @@ const BeamRing = React.memo<{
     scaleFactor: number;
     ringOpacity: number;
     targetSat: SatelliteData;
-    getCombGeometries: (sat: SatelliteData, time: JulianDate) => any;
+    getCombGeometriesRef: React.MutableRefObject<(sat: SatelliteData, time: JulianDate) => Cartesian3[][] | null>;
     viewerRef: React.RefObject<CesiumViewerType | null>;
     hsBeamsRef: React.MutableRefObject<ReadonlySet<number>>;
     regulatoryBlockedRef: React.MutableRefObject<boolean>;
-}>(({ beamIndex, ringIndex, scaleFactor, ringOpacity, targetSat, getCombGeometries, viewerRef, hsBeamsRef, regulatoryBlockedRef }) => {
+}>(({ beamIndex, ringIndex, scaleFactor, ringOpacity, targetSat, getCombGeometriesRef, viewerRef, hsBeamsRef, regulatoryBlockedRef }) => {
 
     // Cached PolygonHierarchy — recomputed only when the worker posts new geometry
     // (i.e. when getCombGeometries returns a new array reference). Between worker
@@ -176,7 +176,7 @@ const BeamRing = React.memo<{
     const showCallback = useMemo(() => {
         return new CallbackProperty((time?: JulianDate) => {
             if (!time || !viewerRef.current) return false;
-            const geometries = getCombGeometries(targetSat, time);
+            const geometries = getCombGeometriesRef.current(targetSat, time);
             if (geometries !== cachedRef.current.sourceGeometries) {
                 const polygon = getRenderablePolygon(geometries, beamIndex);
                 if (polygon.length >= 3) {
@@ -196,12 +196,12 @@ const BeamRing = React.memo<{
             }
             return cachedRef.current.show;
         }, false);
-    }, [beamIndex, scaleFactor, targetSat.id, getCombGeometries, viewerRef]);
+    }, [beamIndex, scaleFactor, targetSat.id, viewerRef]);
 
     const hierarchyCallback = useMemo(() => {
         return new CallbackProperty((time?: JulianDate) => {
             if (!time || !viewerRef.current) return _dummyHierarchy;
-            const geometries = getCombGeometries(targetSat, time);
+            const geometries = getCombGeometriesRef.current(targetSat, time);
             if (geometries !== cachedRef.current.sourceGeometries) {
                 const polygon = getRenderablePolygon(geometries, beamIndex);
                 if (polygon.length >= 3) {
@@ -222,7 +222,7 @@ const BeamRing = React.memo<{
             }
             return cachedRef.current.hierarchy;
         }, false);
-    }, [beamIndex, scaleFactor, targetSat.id, getCombGeometries, viewerRef]);
+    }, [beamIndex, scaleFactor, targetSat.id, viewerRef]);
 
     const colorCallback = useMemo(() => {
         return new ColorMaterialProperty(new CallbackProperty((time?: JulianDate) => {
@@ -292,12 +292,12 @@ BeamRing.displayName = 'BeamRing';
 const GradientBeamPolygon = React.memo<{
     beamIndex: number;
     targetSat: SatelliteData;
-    getCombGeometries: (sat: SatelliteData, time: JulianDate) => any;
+    getCombGeometriesRef: React.MutableRefObject<(sat: SatelliteData, time: JulianDate) => Cartesian3[][] | null>;
     viewerRef: React.RefObject<CesiumViewerType | null>;
     hasBackhaul: boolean;
     hsBeamsRef: React.MutableRefObject<ReadonlySet<number>>;
     regulatoryBlockedRef: React.MutableRefObject<boolean>;
-}>(({ beamIndex, targetSat, getCombGeometries, viewerRef, hsBeamsRef, regulatoryBlockedRef }) => {
+}>(({ beamIndex, targetSat, getCombGeometriesRef, viewerRef, hsBeamsRef, regulatoryBlockedRef }) => {
 
     if (!GRADIENT_RENDERING.ENABLE_GRADIENT) {
         // Fallback: single flat polygon (original behaviour)
@@ -308,7 +308,7 @@ const GradientBeamPolygon = React.memo<{
                 scaleFactor={1.0}
                 ringOpacity={0.4}
                 targetSat={targetSat}
-                getCombGeometries={getCombGeometries}
+                getCombGeometriesRef={getCombGeometriesRef}
                 viewerRef={viewerRef}
                 hsBeamsRef={hsBeamsRef}
                 regulatoryBlockedRef={regulatoryBlockedRef}
@@ -326,7 +326,7 @@ const GradientBeamPolygon = React.memo<{
                     scaleFactor={ring.scaleFactor}
                     ringOpacity={ring.opacity}
                     targetSat={targetSat}
-                    getCombGeometries={getCombGeometries}
+                    getCombGeometriesRef={getCombGeometriesRef}
                     viewerRef={viewerRef}
                     hsBeamsRef={hsBeamsRef}
                     regulatoryBlockedRef={regulatoryBlockedRef}
@@ -347,6 +347,10 @@ const OneWebCombLayer: React.FC<OneWebCombLayerProps> = ({
     leoServiceViewModel = null,
 }) => {
     const { getCombGeometries } = useCombGeometry();
+    // Stable ref so BeamRing/highlight callbacks always call the latest getCombGeometries
+    // without being recreated when sim state (beam health, weather, SNP) changes.
+    const getCombGeometriesRef = useRef(getCombGeometries);
+    getCombGeometriesRef.current = getCombGeometries;
     const { coveragePolicy, failedSnps, hsBeamsSet } = useSimulation();
 
     // Stable ref so CallbackProperty callbacks always read the latest HS set
@@ -403,7 +407,7 @@ const OneWebCombLayer: React.FC<OneWebCombLayerProps> = ({
             if (!time || !viewerRef.current || !targetSat) return null;
             if (!selectedPosition && !selectedAircraft) return null;
 
-            const geometries = getCombGeometries(targetSat, time);
+            const geometries = getCombGeometriesRef.current(targetSat, time);
             if (!geometries) return null;
 
             let point: { lat: number; lng: number } | null = null;
@@ -490,7 +494,7 @@ const OneWebCombLayer: React.FC<OneWebCombLayerProps> = ({
         const contourMaterial = new ColorMaterialProperty(outlineColor);
 
         return { show, hierarchy, contourPositions, material, outlineColor, contourMaterial };
-    }, [highlightServingFootprint, viewerRef, targetSat?.id, selectedPosition?.lat, selectedPosition?.lng, selectedAircraft?.icao24, getCombGeometries]);
+    }, [highlightServingFootprint, viewerRef, targetSat?.id, selectedPosition?.lat, selectedPosition?.lng, selectedAircraft?.icao24]);
 
     // These useMemo hooks MUST be before the early return to satisfy the Rules of Hooks.
     // They guard against null targetSat internally and produce no-op values in that case.
@@ -585,7 +589,7 @@ const OneWebCombLayer: React.FC<OneWebCombLayerProps> = ({
                     key={`comb-beam-${i}`}
                     beamIndex={i}
                     targetSat={targetSat}
-                    getCombGeometries={getCombGeometries}
+                    getCombGeometriesRef={getCombGeometriesRef}
                     viewerRef={viewerRef}
                     hasBackhaul={hasBackhaul}
                     hsBeamsRef={hsBeamsRef}
