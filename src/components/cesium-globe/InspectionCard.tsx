@@ -19,11 +19,13 @@ interface InspectionCardProps {
   entity: HoveredEntity;
   /** Globe container element for positioning bounds */
   containerRef: React.RefObject<HTMLDivElement | null>;
+  /** Cursor position captured from the Cesium viewer hover stream */
+  cursorPositionRef: React.RefObject<{ x: number; y: number } | null>;
 }
 
 const FADE_DELAY_MS = 150;
 
-const InspectionCard = memo<InspectionCardProps>(({ entity, containerRef }) => {
+const InspectionCard = memo<InspectionCardProps>(({ entity, containerRef, cursorPositionRef }) => {
   const [visible, setVisible] = useState(false);
   const [displayEntity, setDisplayEntity] = useState<HoveredEntity>(null);
   const cardRef = useRef<HTMLDivElement | null>(null);
@@ -38,6 +40,11 @@ const InspectionCard = memo<InspectionCardProps>(({ entity, containerRef }) => {
     const container = containerRef.current;
     const card = cardRef.current;
     if (!container || !card) return;
+
+    const cursorPosition = cursorPositionRef.current;
+    if (cursorPosition) {
+      mousePosRef.current = cursorPosition;
+    }
 
     const cardWidth = card.offsetWidth || 240;
     const cardHeight = card.offsetHeight || 100;
@@ -59,7 +66,7 @@ const InspectionCard = memo<InspectionCardProps>(({ entity, containerRef }) => {
 
     card.style.left = `${left}px`;
     card.style.top = `${top}px`;
-  }, [containerRef]);
+  }, [containerRef, cursorPositionRef]);
 
   // Track mouse position only while the inspection card is active.
   useEffect(() => {
@@ -90,6 +97,9 @@ const InspectionCard = memo<InspectionCardProps>(({ entity, containerRef }) => {
     if (clearDisplayTimeout.current) clearTimeout(clearDisplayTimeout.current);
 
     if (entity) {
+      if (cursorPositionRef.current) {
+        mousePosRef.current = cursorPositionRef.current;
+      }
       setDisplayEntity(entity);
       setVisible(true);
       if (frameRef.current == null) {
@@ -107,7 +117,7 @@ const InspectionCard = memo<InspectionCardProps>(({ entity, containerRef }) => {
       if (hideTimeout.current) clearTimeout(hideTimeout.current);
       if (clearDisplayTimeout.current) clearTimeout(clearDisplayTimeout.current);
     };
-  }, [entity, updatePosition]);
+  }, [cursorPositionRef, entity, updatePosition]);
 
   useEffect(() => {
     return () => {

@@ -75,6 +75,7 @@ const GeoGatewayEntity = React.memo<{
 
     return (
         <Entity
+            id={`gateway-${gateway.name}`}
             position={position}
             point={{
                 pixelSize: pixelSizeCallback,

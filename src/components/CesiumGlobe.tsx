@@ -87,7 +87,6 @@ import { GROUND_POINT_ALTITUDE_KM } from './cesium-globe/layerHeights';
 import CoverageSwitcherVertical, { type CoverageSwitcherCoverage } from './CoverageSwitcherVertical';
 import { useArtemisTracker } from '../hooks/useArtemisTracker';
 import type { CountryOverlayMode } from '../types/countryOverlays';
-import { getFiveGSpectrumCountryInfo } from '../services/fiveGSpectrumService';
 
 const BASEMAP_STORAGE_KEY = 'cesium:basemap';
 
@@ -106,15 +105,40 @@ const DESIRED_BASEMAPS = [
     { id: 'natural-earth-ii', name: 'Natural Earth II', label: 'Natural Earth II' },
 ] as const;
 
-const getEntityPropertyValue = (entity: any, key: string): string | null => {
-    const property = entity?.properties?.[key];
-    if (!property) return null;
+const getPickedObjectId = (pickedObject: unknown): string => {
+    if (!pickedObject || typeof pickedObject !== 'object' || !('id' in pickedObject)) return '';
 
-    const value = typeof property.getValue === 'function'
-        ? property.getValue(JulianDate.now())
-        : property;
+    const id = (pickedObject as { id?: unknown }).id;
+    if (typeof id === 'string') return id;
+    if (id && typeof id === 'object' && 'id' in id) {
+        const nestedId = (id as { id?: unknown }).id;
+        return typeof nestedId === 'string' ? nestedId : '';
+    }
 
-    return value == null ? null : String(value);
+    return '';
+};
+
+const getHoverKeyFromPickedObject = (pickedObject: unknown): string | null => {
+    const pickedId = getPickedObjectId(pickedObject);
+    if (!pickedId) return null;
+
+    if (pickedId.startsWith('satellite-')) {
+        return `satellite:${pickedId.slice('satellite-'.length)}`;
+    }
+    if (pickedId.startsWith('aircraft-')) {
+        return `aircraft:${pickedId.slice('aircraft-'.length)}`;
+    }
+    if (pickedId.startsWith('vessel-')) {
+        return `vessel:${pickedId.slice('vessel-'.length)}`;
+    }
+    if (pickedId.startsWith('snp-')) {
+        return `snp:${pickedId.slice('snp-'.length)}`;
+    }
+    if (pickedId.startsWith('gateway-')) {
+        return `gateway:${pickedId.slice('gateway-'.length)}`;
+    }
+
+    return null;
 };
 
 interface CesiumGlobeProps {
@@ -279,6 +303,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
     const [geoCoverageLegendItems, setGeoCoverageLegendItems] = useState<GeoCoverageLegendItem[]>([]);
     const [focusedGeoCoverageLegendKey, setFocusedGeoCoverageLegendKey] = useState<string | null>(null);
     const hoveredEntityKeyRef = useRef<string | null>(null);
+    const inspectionCursorPositionRef = useRef<{ x: number; y: number } | null>(null);
     const cameraMetricsRef = useRef<CameraMetricsSnapshot>({
         position: new Cartesian3(),
         height: 20000000,
@@ -764,6 +789,14 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         setHoveredEntity(nextEntity);
     }, []);
 
+    const clearInspectionHover = useCallback(() => {
+        onSatelliteHover(null);
+        onAircraftHover?.(null);
+        onVesselHover?.(null);
+        onSnpHover(null);
+        setHoveredEntityIfChanged(null, null);
+    }, [onAircraftHover, onSatelliteHover, onSnpHover, onVesselHover, setHoveredEntityIfChanged]);
+
     const handleSatelliteHover = useCallback((satelliteId: string | null) => {
         onSatelliteHover(satelliteId);
         if (!satelliteId) {
@@ -832,50 +865,54 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         setFocusedGeoCoverageLegendKey(itemKey);
     }, []);
 
-    const handleMapHover = useCallback((movement: { endPosition: Cartesian2 }) => {
+    const handleMapHover = useCallback((movement: { position: Cartesian2 } | { startPosition: Cartesian2; endPosition: Cartesian2 }) => {
+        const screenPosition = 'endPosition' in movement ? movement.endPosition : movement.position;
+        inspectionCursorPositionRef.current = { x: screenPosition.x, y: screenPosition.y };
+        const currentHoveredKey = hoveredEntityKeyRef.current;
+
         const viewer = viewerRef.current;
         if (!viewer) {
-            if (hoveredEntityKeyRef.current?.startsWith('country5g:')) {
+            if (currentHoveredKey?.startsWith('country5g:')) {
                 setHoveredEntityIfChanged(null, null);
             }
             return;
         }
-
-        const pickedObject = viewer.scene.pick(movement.endPosition);
-        const pickedEntity = defined(pickedObject) && typeof pickedObject.id === 'object'
-            ? pickedObject.id
-            : null;
 
         if (countryOverlayMode !== '5g-spectrum') {
-            if (hoveredEntityKeyRef.current?.startsWith('country5g:')) {
+            if (currentHoveredKey?.startsWith('country5g:')) {
                 setHoveredEntityIfChanged(null, null);
             }
+        } else if (currentHoveredKey?.startsWith('country5g:')) {
+            // Keep the 5G overlay interactive for clicks/selection, but suppress the
+            // hover inspection tooltip over countries in this mode.
+            setHoveredEntityIfChanged(null, null);
+        }
+
+        if (!currentHoveredKey || currentHoveredKey.startsWith('country5g:')) {
             return;
         }
 
-        if (!pickedEntity) {
-            if (hoveredEntityKeyRef.current?.startsWith('country5g:')) {
-                setHoveredEntityIfChanged(null, null);
-            }
-            return;
+        const pickedObject = viewer.scene.pick(screenPosition);
+        const pickedHoverKey = getHoverKeyFromPickedObject(pickedObject);
+        if (pickedHoverKey !== currentHoveredKey) {
+            clearInspectionHover();
         }
+    }, [clearInspectionHover, countryOverlayMode, setHoveredEntityIfChanged]);
 
-        const overlayType = getEntityPropertyValue(pickedEntity, 'overlayType');
-        if (overlayType !== '5g-spectrum') {
-            if (hoveredEntityKeyRef.current?.startsWith('country5g:')) {
-                setHoveredEntityIfChanged(null, null);
-            }
-            return;
-        }
+    useEffect(() => {
+        const container = globeContainerRef.current;
+        if (!container) return;
 
-        const countryName = getEntityPropertyValue(pickedEntity, 'countryName') ?? 'Unknown territory';
-        const isoA2 = getEntityPropertyValue(pickedEntity, 'isoA2');
-        const info = getFiveGSpectrumCountryInfo(isoA2, countryName);
-        setHoveredEntityIfChanged(`country5g:${info.isoA2 ?? info.countryName}`, {
-            type: 'country5g',
-            data: info,
-        });
-    }, [countryOverlayMode, setHoveredEntityIfChanged]);
+        const handleMouseLeave = () => {
+            inspectionCursorPositionRef.current = null;
+            clearInspectionHover();
+        };
+
+        container.addEventListener('mouseleave', handleMouseLeave);
+        return () => {
+            container.removeEventListener('mouseleave', handleMouseLeave);
+        };
+    }, [clearInspectionHover]);
 
     useEffect(() => {
         if (countryOverlayMode !== '5g-spectrum' && hoveredEntityKeyRef.current?.startsWith('country5g:')) {
@@ -1324,7 +1361,13 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                 </Viewer>
             </div>
 
-            {!isPhone && <InspectionCard entity={hoveredEntity} containerRef={globeContainerRef} />}
+            {!isPhone && (
+                <InspectionCard
+                    entity={hoveredEntity}
+                    containerRef={globeContainerRef}
+                    cursorPositionRef={inspectionCursorPositionRef}
+                />
+            )}
             <SelectedPointScreenLabel
                 viewerRef={viewerRef}
                 containerRef={globeContainerRef}
