@@ -1,7 +1,7 @@
 /**
  * TransmissionLinks - Renders satellite/aircraft communication links
  */
-import React, { useMemo } from 'react';
+import React, { useMemo, useRef } from 'react';
 import { Entity, PolylineGraphics } from 'resium';
 import {
     Color,
@@ -16,7 +16,7 @@ import {
 import type { SatelliteData } from '../../types/satellites';
 import type { Aircraft } from '../../modules/airTraffic/airTrafficService';
 import type { SatelliteScope } from '../SatelliteScopeFilter';
-import { getPosition, propagateSatellite, calculateDeadReckoning } from './utils';
+import { getPosition, calculateDeadReckoning } from './utils';
 import { hasRFConnectivity } from '../../utils/rfConnectivity';
 import { useSimulation } from '../../contexts/SimulationContext';
 import { GEO_GATEWAYS, type GeoGatewayData, type SNPData } from '../globe/GlobeConfig';
@@ -92,6 +92,16 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
     leoServiceViewModel = null,
 }) => {
     const { coveragePolicy, weatherCondition, beamHealthFactors, hsBeamsSet } = useSimulation();
+
+    // Live refs — callbacks always read the latest satellite position without running SGP4.
+    // Link lines are 500–40 000 km long; a sub-km positional error between React updates
+    // is visually imperceptible.
+    const autoSelectedLEORef = useRef(autoSelectedLEOSatellite);
+    autoSelectedLEORef.current = autoSelectedLEOSatellite;
+    const autoSelectedGEORef = useRef(autoSelectedGEOSatellite);
+    autoSelectedGEORef.current = autoSelectedGEOSatellite;
+    const selectedSatelliteRef = useRef(selectedSatellite);
+    selectedSatelliteRef.current = selectedSatellite;
     const simulationState = useMemo(() => buildSimulationStateSnapshot({
         coveragePolicy,
         weatherCondition,
@@ -150,8 +160,9 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
                 return []; // No link if no RF connectivity
             }
 
-            // Point B: LEO Satellite
-            const endPos = propagateSatellite(autoSelectedLEOSatellite, time);
+            // Point B: LEO Satellite (live ref — no SGP4 per frame)
+            const s = autoSelectedLEORef.current!;
+            const endPos = getPosition(s.position.lat, s.position.lng, s.position.alt);
 
             return [startPos, endPos];
         }, false);
@@ -164,7 +175,8 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
         return new CallbackProperty((time?: JulianDate) => {
             if (!time) return [];
 
-            const satPos = propagateSatellite(autoSelectedLEOSatellite, time);
+            const s = autoSelectedLEORef.current!;
+            const satPos = getPosition(s.position.lat, s.position.lng, s.position.alt);
             const snpPos = getPosition(selectedSNP.lat, selectedSNP.lng, 0.01);
 
             return [satPos, snpPos];
@@ -179,7 +191,8 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
             if (!time) return [];
 
             const { userPosition } = resolveCurrentUser(time);
-            const satPos = propagateSatellite(autoSelectedGEOSatellite, time);
+            const g = autoSelectedGEORef.current!;
+            const satPos = getPosition(g.position.lat, g.position.lng, g.position.alt);
 
             return [userPosition, satPos];
         }, false);
@@ -212,7 +225,8 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
 
         return new CallbackProperty((time?: JulianDate) => {
             if (!time) return [];
-            const satPos = propagateSatellite(autoSelectedGEOSatellite, time);
+            const g = autoSelectedGEORef.current!;
+            const satPos = getPosition(g.position.lat, g.position.lng, g.position.alt);
             return [satPos, gatewayPos];
         }, false);
     }, [autoSelectedGEOSatellite, hasUserSelection, bestGeoGateway]);
@@ -251,7 +265,8 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
         return new CallbackProperty((time?: JulianDate) => {
             if (!time) return [];
 
-            const satPos = propagateSatellite(selectedSatellite, time);
+            const s = selectedSatelliteRef.current!;
+            const satPos = getPosition(s.position.lat, s.position.lng, s.position.alt);
             const snpPos = getPosition(dedicatedSNPForSelectedLEO.lat, dedicatedSNPForSelectedLEO.lng, 0);
 
             return [satPos, snpPos];
@@ -268,7 +283,8 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
         return new CallbackProperty((time?: JulianDate) => {
             if (!time) return [];
 
-            const satPos = propagateSatellite(selectedSatellite, time);
+            const s = selectedSatelliteRef.current!;
+            const satPos = getPosition(s.position.lat, s.position.lng, s.position.alt);
             return [satPos, gatewayPos];
         }, false);
     }, [selectedSatellite, dedicatedGeoGateway]);
@@ -279,10 +295,8 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
         const snpPos = getPosition(inspectedSNP.lat, inspectedSNP.lng, 0.01);
 
         return snpConnectedSatellites.filter(({ satellite }) => satellite.opsStatus === 'operational').map(({ satellite }) => {
-            const callback = new CallbackProperty((time?: JulianDate) => {
-                if (!time) return [];
-                const satPos = propagateSatellite(satellite, time);
-                return [satPos, snpPos];
+            const callback = new CallbackProperty((_time?: JulianDate) => {
+                return [getPosition(satellite.position.lat, satellite.position.lng, satellite.position.alt), snpPos];
             }, false);
             return { id: satellite.id, callback };
         });
@@ -303,10 +317,8 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
                 id: satellite.id,
                 name: satellite.name,
                 role,
-                callback: new CallbackProperty((time?: JulianDate) => {
-                    if (!time) return [];
-                    const satPos = propagateSatellite(satellite, time);
-                    return [gatewayPos, satPos];
+                callback: new CallbackProperty((_time?: JulianDate) => {
+                    return [gatewayPos, getPosition(satellite.position.lat, satellite.position.lng, satellite.position.alt)];
                 }, false),
             }));
     }, [selectedGateway, satelliteScope, satellites]);

@@ -25,7 +25,7 @@ import { footprintRadiusKm, BACKHAUL_ELEVATION_DEG, STANDARD_ELEVATION_DEG } fro
 import { getCoverageColor, hasSNPInCoverage } from '../../services/coverageService';
 import { useSimulation } from '../../contexts/SimulationContext';
 import { useCombGeometry } from './hooks';
-import { getPosition, DUMMY_POLYGON, propagateSatellite, calculateDeadReckoning, sanitizeCartesianRing } from './utils';
+import { getPosition, DUMMY_POLYGON, calculateDeadReckoning, sanitizeCartesianRing } from './utils';
 import {
     GRADIENT_RENDERING,
     getBeamBaseColor,
@@ -374,22 +374,21 @@ const OneWebCombLayer: React.FC<OneWebCombLayerProps> = ({
     // Generate beam indices array once - MUST be before any early return
     const beamIndices = useMemo(() => Array.from({ length: TOTAL_BEAMS }, (_, i) => i), []);
 
+    // Live ref so positionCallback always reads the latest satellite position
+    // without running SGP4. Coverage circles are ~1000 km radius — the sub-km
+    // position delta between React update cycles is visually imperceptible.
+    const targetSatLiveRef = useRef(targetSat);
+    targetSatLiveRef.current = targetSat;
+
     // Create stable position callback for coverage circles - MUST be before any early return
     const positionCallback = useMemo(() => {
         if (!targetSat) return null;
 
-        return new CallbackPositionProperty((time?: JulianDate) => {
-            if (!time || !targetSat) {
-                return getPosition(targetSat?.position.lat || 0, targetSat?.position.lng || 0, 0);
-            }
-            // Coverage circles follow the ground projection of the satellite in real-time
-            const satCartesian = propagateSatellite(targetSat, time);
-            const cartographic = Cartographic.fromCartesian(satCartesian);
-            const lat = CesiumMath.toDegrees(cartographic.latitude);
-            const lng = CesiumMath.toDegrees(cartographic.longitude);
-            return getPosition(lat, lng, 0);
+        return new CallbackPositionProperty(() => {
+            const sat = targetSatLiveRef.current;
+            return getPosition(sat?.position.lat ?? 0, sat?.position.lng ?? 0, 0);
         }, false);
-    }, [targetSat?.id, targetSat?.satrec]);
+    }, [targetSat?.id]);
 
     const highlight = useMemo(() => {
         if (!highlightServingFootprint) {
