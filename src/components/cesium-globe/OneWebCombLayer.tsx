@@ -73,12 +73,30 @@ const BLOCKED_BEAM_BASE = Color.fromCssColorString('#cbd5e1');
 const HIGH_LOAD_TINT = Color.fromCssColorString('#fb7185');
 const SATURATED_LOAD_TINT = Color.fromCssColorString('#ef4444');
 const SOFT_LOAD_TINT = Color.fromCssColorString('#fdf2f8');
+
+// ─── Pre-allocated scratch instances ─────────────────────────────────────────
+// Reused in Cesium frame callbacks so the GC never sees per-frame Color allocations.
+// JavaScript is single-threaded — no concurrent mutation risk.
+const _scratchColor     = new Color(); // lerp target in getDiagnosticBeamColor / getServingBeamColor
+const _scratchBeamColor = new Color(); // direct writes in BeamRing colorCallback
+
+// Constant colors computed once at module load — returned from highlight callbacks
+// instead of calling Color.PALEVIOLETRED.withAlpha() on every frame.
+const _HIGHLIGHT_FILL_COLOR    = Color.PALEVIOLETRED.withAlpha(0.4);
+const _HIGHLIGHT_OUTLINE_COLOR = Color.PALEVIOLETRED.withAlpha(0.95);
+
+// Outline color for beam polygon graphics — never changes.
+const _BEAM_OUTLINE_COLOR = Color.WHITE.withAlpha(0.15);
+
+// Dummy PolygonHierarchy returned from hierarchy callbacks when geometry is not
+// yet available — allocated once instead of new PolygonHierarchy() every frame.
+const _dummyHierarchy = new PolygonHierarchy(DUMMY_POLYGON);
+
 function getDiagnosticBeamColor(baseColor: Color, ringOpacity: number): Color {
-    const mixed = new Color();
-    Color.lerp(baseColor, BLOCKED_BEAM_BASE, 0.72, mixed);
-    Color.lerp(mixed, BLOCKED_BEAM_TINT, 0.22, mixed);
-    mixed.alpha = ringOpacity * 0.42;
-    return mixed;
+    Color.lerp(baseColor, BLOCKED_BEAM_BASE, 0.72, _scratchColor);
+    Color.lerp(_scratchColor, BLOCKED_BEAM_TINT, 0.22, _scratchColor);
+    _scratchColor.alpha = ringOpacity * 0.42;
+    return _scratchColor;
 }
 
 function getServingBeamColor(
@@ -90,26 +108,25 @@ function getServingBeamColor(
         return getDiagnosticBeamColor(baseColor, alpha);
     }
 
-    const mixed = new Color();
     if (beamVisualState === 'LOW') {
-        Color.lerp(baseColor, SOFT_LOAD_TINT, 0.38, mixed);
-        mixed.alpha = alpha * 0.8;
-        return mixed;
+        Color.lerp(baseColor, SOFT_LOAD_TINT, 0.38, _scratchColor);
+        _scratchColor.alpha = alpha * 0.8;
+        return _scratchColor;
     }
     if (beamVisualState === 'MEDIUM') {
-        Color.lerp(baseColor, Color.WHITE, 0.12, mixed);
-        mixed.alpha = alpha;
-        return mixed;
+        Color.lerp(baseColor, Color.WHITE, 0.12, _scratchColor);
+        _scratchColor.alpha = alpha;
+        return _scratchColor;
     }
     if (beamVisualState === 'HIGH') {
-        Color.lerp(baseColor, HIGH_LOAD_TINT, 0.34, mixed);
-        mixed.alpha = Math.min(1, alpha * 1.08);
-        return mixed;
+        Color.lerp(baseColor, HIGH_LOAD_TINT, 0.34, _scratchColor);
+        _scratchColor.alpha = Math.min(1, alpha * 1.08);
+        return _scratchColor;
     }
 
-    Color.lerp(baseColor, SATURATED_LOAD_TINT, 0.58, mixed);
-    mixed.alpha = Math.min(1, alpha * 1.16);
-    return mixed;
+    Color.lerp(baseColor, SATURATED_LOAD_TINT, 0.58, _scratchColor);
+    _scratchColor.alpha = Math.min(1, alpha * 1.16);
+    return _scratchColor;
 }
 
 const isPointInPolygon = (point: { lat: number; lng: number }, ring: Array<[number, number]>): boolean => {
@@ -154,20 +171,19 @@ const BeamRing = React.memo<{
 
     const hierarchyCallback = useMemo(() => {
         return new CallbackProperty((time?: JulianDate) => {
-            const dummyHierarchy = new PolygonHierarchy(DUMMY_POLYGON);
             try {
-                if (!time || !viewerRef.current) return dummyHierarchy;
+                if (!time || !viewerRef.current) return _dummyHierarchy;
                 const geometries = getCombGeometries(targetSat, time);
                 const polygon = getRenderablePolygon(geometries, beamIndex);
                 if (polygon.length >= 3) {
                     const scaled = sanitizeCartesianRing(scalePolygon(polygon, scaleFactor));
-                    if (scaled.length < 3) return dummyHierarchy;
+                    if (scaled.length < 3) return _dummyHierarchy;
                     return new PolygonHierarchy(scaled);
                 }
             } catch (e) {
                 console.error('Error in gradient hierarchy callback', e);
             }
-            return dummyHierarchy;
+            return _dummyHierarchy;
         }, false);
     }, [beamIndex, scaleFactor, targetSat.id, getCombGeometries, viewerRef]);
 
@@ -175,7 +191,9 @@ const BeamRing = React.memo<{
         return new ColorMaterialProperty(new CallbackProperty((time?: JulianDate) => {
             // HS beam → solid red (out of service)
             if (hsBeamsRef.current.has(beamIndex)) {
-                return Color.RED.withAlpha(ringOpacity * 0.85);
+                Color.clone(Color.RED, _scratchBeamColor);
+                _scratchBeamColor.alpha = ringOpacity * 0.85;
+                return _scratchBeamColor;
             }
 
             if (!time || !targetSat.satrec) {
@@ -186,7 +204,11 @@ const BeamRing = React.memo<{
                 calculateGSOAvoidanceAngle(targetSat.satrec, time);
 
             // Inactive beam → gray, no gradient
-            if (isBlankingZone) return Color.GRAY.withAlpha(0.3 * (ringOpacity / 0.75));
+            if (isBlankingZone) {
+                Color.clone(Color.GRAY, _scratchBeamColor);
+                _scratchBeamColor.alpha = 0.3 * (ringOpacity / 0.75);
+                return _scratchBeamColor;
+            }
 
             if (isGSOAvoidance) {
                 // Beam IDs fixed: 0 = northernmost, 15 = southernmost.
@@ -195,7 +217,11 @@ const BeamRing = React.memo<{
                 const isActiveBeam = shouldActivateNorthernBeams
                     ? beamIndex >= 0 && beamIndex <= 7
                     : beamIndex >= 8 && beamIndex <= 15;
-                if (!isActiveBeam) return Color.GRAY.withAlpha(0.15 * (ringOpacity / 0.75));
+                if (!isActiveBeam) {
+                    Color.clone(Color.GRAY, _scratchBeamColor);
+                    _scratchBeamColor.alpha = 0.15 * (ringOpacity / 0.75);
+                    return _scratchBeamColor;
+                }
             }
 
             // Active beam → frequency-reuse color with gradient opacity
@@ -203,7 +229,9 @@ const BeamRing = React.memo<{
             if (regulatoryBlockedRef.current) {
                 return getDiagnosticBeamColor(baseColor, ringOpacity);
             }
-            return baseColor.withAlpha(ringOpacity);
+            Color.clone(baseColor, _scratchBeamColor);
+            _scratchBeamColor.alpha = ringOpacity;
+            return _scratchBeamColor;
         }, false));
     }, [beamIndex, ringOpacity, targetSat.id, targetSat.satrec, hsBeamsRef, regulatoryBlockedRef]);
 
@@ -214,7 +242,7 @@ const BeamRing = React.memo<{
                 hierarchy={hierarchyCallback}
                 material={colorCallback}
                 outline={ringIndex === 0} // outline only on outermost ring
-                outlineColor={Color.WHITE.withAlpha(0.15)}
+                outlineColor={_BEAM_OUTLINE_COLOR}
                 outlineWidth={1}
                 height={FOOTPRINT_LAYER_HEIGHT_M}
             />
@@ -326,11 +354,11 @@ const OneWebCombLayer: React.FC<OneWebCombLayerProps> = ({
         if (!highlightServingFootprint) {
             return {
                 show: new CallbackProperty(() => false, false),
-                hierarchy: new CallbackProperty(() => new PolygonHierarchy(DUMMY_POLYGON), false),
+                hierarchy: new CallbackProperty(() => _dummyHierarchy, false),
                 contourPositions: new CallbackProperty(() => DUMMY_POLYGON, false),
-                material: new ColorMaterialProperty(new CallbackProperty(() => Color.PALEVIOLETRED.withAlpha(0.4), false)),
-                outlineColor: new CallbackProperty(() => Color.PALEVIOLETRED.withAlpha(0.95), false),
-                contourMaterial: new ColorMaterialProperty(new CallbackProperty(() => Color.PALEVIOLETRED.withAlpha(0.95), false)),
+                material: new ColorMaterialProperty(new CallbackProperty(() => _HIGHLIGHT_FILL_COLOR, false)),
+                outlineColor: new CallbackProperty(() => _HIGHLIGHT_OUTLINE_COLOR, false),
+                contourMaterial: new ColorMaterialProperty(new CallbackProperty(() => _HIGHLIGHT_OUTLINE_COLOR, false)),
             };
         }
 
@@ -373,11 +401,10 @@ const OneWebCombLayer: React.FC<OneWebCombLayerProps> = ({
         }, false);
 
         const hierarchy = new CallbackProperty((time?: JulianDate) => {
-            const dummyHierarchy = new PolygonHierarchy(DUMMY_POLYGON);
             const servingBeam = resolveServingBeam(time);
-            if (!servingBeam) return dummyHierarchy;
+            if (!servingBeam) return _dummyHierarchy;
             const polygon = sanitizeCartesianRing(servingBeam.polygon);
-            if (polygon.length < 3) return dummyHierarchy;
+            if (polygon.length < 3) return _dummyHierarchy;
             return new PolygonHierarchy(polygon);
         }, false);
 
@@ -405,7 +432,7 @@ const OneWebCombLayer: React.FC<OneWebCombLayerProps> = ({
 
         const material = new ColorMaterialProperty(new CallbackProperty((time?: JulianDate) => {
             const servingBeam = resolveServingBeam(time);
-            if (!servingBeam) return Color.PALEVIOLETRED.withAlpha(0.4);
+            if (!servingBeam) return _HIGHLIGHT_FILL_COLOR;
             return getServingBeamColor(
                 getBeamBaseColor(servingBeam.beamIndex),
                 beamVisualStateRef.current,
@@ -415,7 +442,7 @@ const OneWebCombLayer: React.FC<OneWebCombLayerProps> = ({
 
         const outlineColor = new CallbackProperty((time?: JulianDate) => {
             const servingBeam = resolveServingBeam(time);
-            if (!servingBeam) return Color.PALEVIOLETRED.withAlpha(0.95);
+            if (!servingBeam) return _HIGHLIGHT_OUTLINE_COLOR;
             return getServingBeamColor(
                 getBeamBaseColor(servingBeam.beamIndex),
                 beamVisualStateRef.current,
