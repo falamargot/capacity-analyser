@@ -49,7 +49,7 @@ const PositionDisplay: React.FC<PositionDisplayProps> = ({
     }
 
     return (
-        <div className={`absolute top-2 left-2 z-10 ${isPhone ? 'bg-white/90 px-2 py-1 rounded-md shadow-sm' : 'bg-white/80 px-3 py-1 rounded-md shadow-sm'}`}>
+        <div className={`absolute top-2 left-0.5 z-10 ${isPhone ? 'bg-white/90 px-2 py-1 rounded-md shadow-sm' : 'bg-white/80 px-3 py-1 rounded-md shadow-sm'}`}>
             <div className={`flex items-center ${isPhone ? 'gap-2' : 'gap-4'}`}>
                 <span className={`${isPhone ? 'text-gray-700 text-xs font-medium' : 'text-gray-700 font-medium'}`}>
                     {formattedTime}

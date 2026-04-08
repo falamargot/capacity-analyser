@@ -18,24 +18,6 @@ interface CoverageSwitcherVerticalProps {
   hasSatelliteIndicator?: boolean;
 }
 
-const getScoreTone = (score: number) => {
-  if (score > 0.7) {
-    return {
-      dot: 'bg-emerald-300',
-    };
-  }
-
-  if (score > 0.4) {
-    return {
-      dot: 'bg-amber-300',
-    };
-  }
-
-  return {
-    dot: 'bg-rose-300',
-  };
-};
-
 const formatThroughput = (throughput: number) => {
   if (throughput >= 1000) {
     return `${(throughput / 1000).toFixed(1).replace(/\.0$/, '')} Gbps`;
@@ -74,7 +56,6 @@ const CoverageSwitcherVertical = memo<CoverageSwitcherVerticalProps>(({
     () => sortedCoverages.find((coverage) => coverage.id === selectedId) ?? sortedCoverages[0] ?? null,
     [selectedId, sortedCoverages]
   );
-  const selectedTone = selectedCoverage ? getScoreTone(selectedCoverage.score) : null;
   useEffect(() => {
     if (!isExpanded) {
       return undefined;
@@ -116,15 +97,15 @@ const CoverageSwitcherVertical = memo<CoverageSwitcherVerticalProps>(({
   const positionClassName = hasSatelliteIndicator
     ? (isPhone
         ? (isFullscreen
-            ? 'left-2 top-[calc(env(safe-area-inset-top)+3.2rem)]'
-            : 'left-2 top-[calc(env(safe-area-inset-top)+8.1rem)]')
-        : 'left-2 top-24')
+            ? 'left-0.5 top-[calc(env(safe-area-inset-top)+3.2rem)]'
+            : 'left-0.5 top-[calc(env(safe-area-inset-top)+8.1rem)]')
+        : 'left-0.5 top-24')
     : isPhone
-      ? (isFullscreen ? 'left-2 top-[calc(env(safe-area-inset-top)+0.75rem)]' : 'left-2 top-[calc(env(safe-area-inset-top)+5.75rem)]')
-      : 'left-2 top-12';
+      ? (isFullscreen ? 'left-0.5 top-[calc(env(safe-area-inset-top)+0.75rem)]' : 'left-0.5 top-[calc(env(safe-area-inset-top)+5.75rem)]')
+      : 'left-0.5 top-12';
 
   return (
-    <div className={`pointer-events-none absolute ${isExpanded ? 'z-[1220]' : 'z-20'} flex max-w-[calc(100vw-1rem)] justify-start ${positionClassName}`}>
+    <div className={`pointer-events-none absolute ${isExpanded ? 'z-[1220]' : 'z-20'} flex max-w-[calc(100vw-0.25rem)] justify-start ${positionClassName}`}>
       <div
         ref={containerRef}
         className="pointer-events-auto relative max-w-full"
@@ -138,9 +119,6 @@ const CoverageSwitcherVertical = memo<CoverageSwitcherVerticalProps>(({
           title={formatTooltip(selectedCoverage)}
           className="group flex min-w-[13.5rem] max-w-[min(21rem,calc(100vw-1rem))] items-center gap-2.5 rounded-[14px] border border-white/10 bg-[linear-gradient(180deg,rgba(7,18,40,0.82),rgba(10,20,38,0.62))] px-3 py-2 shadow-[0_18px_44px_-32px_rgba(15,23,42,0.85)] ring-1 ring-cyan-300/10 backdrop-blur-xl transition duration-200 hover:border-white/14 hover:bg-[linear-gradient(180deg,rgba(9,23,50,0.88),rgba(10,20,38,0.7))]"
         >
-          <span className="flex h-4 w-4 shrink-0 items-center justify-center">
-            <span className={`h-1.5 w-1.5 rounded-full ${selectedTone?.dot ?? 'bg-cyan-300'}`} />
-          </span>
           <div className="min-w-0 flex-1 text-left">
             <div className="truncate text-[11px] font-medium leading-4 text-sky-200">
               {selectedCoverage.name}
@@ -164,7 +142,6 @@ const CoverageSwitcherVertical = memo<CoverageSwitcherVerticalProps>(({
             <div role="listbox" aria-label="GEO coverage candidates" className="max-h-[40vh] overflow-y-auto p-1.5">
               {sortedCoverages.map((coverage) => {
                 const isSelected = coverage.id === selectedId;
-                const tone = getScoreTone(coverage.score);
                 const tooltip = formatTooltip(coverage);
 
                 return (
@@ -187,9 +164,6 @@ const CoverageSwitcherVertical = memo<CoverageSwitcherVerticalProps>(({
                         : 'text-white/92 hover:bg-white/[0.045]'
                     ].join(' ')}
                   >
-                    <span className="flex h-4 w-4 shrink-0 items-center justify-center">
-                      <span className={`h-1.5 w-1.5 rounded-full ${isSelected ? 'bg-cyan-300' : tone.dot}`} />
-                    </span>
                     <div
                       className={`truncate text-[11px] font-medium leading-4 ${isSelected ? 'text-white' : 'text-sky-200'}`}
                     >

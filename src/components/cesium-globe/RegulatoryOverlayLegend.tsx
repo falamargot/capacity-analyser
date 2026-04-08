@@ -16,7 +16,7 @@ const RegulatoryOverlayLegend: React.FC<RegulatoryOverlayLegendProps> = ({
   return (
     <div
       className={[
-        'pointer-events-none absolute bottom-4 left-4 z-30 w-[280px] max-w-[calc(100vw-2rem)] transition-all duration-300',
+        'pointer-events-none absolute bottom-0.5 left-0.5 z-30 w-[280px] max-w-[calc(100vw-0.25rem)] transition-all duration-300',
         visible ? 'translate-y-0 opacity-100' : 'translate-y-3 opacity-0',
       ].join(' ')}
       aria-hidden={!visible}

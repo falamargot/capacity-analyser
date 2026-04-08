@@ -88,14 +88,14 @@ const ArtemisTrackerCard: React.FC<ArtemisTrackerCardProps> = ({
   const positionClassName = hasSatelliteIndicator
     ? (isPhone
         ? (isFullscreen
-            ? 'left-2 top-[calc(env(safe-area-inset-top)+7.2rem)]'
-            : 'left-2 top-[calc(env(safe-area-inset-top)+12.1rem)]')
-        : 'left-2 top-36')
+            ? 'left-0.5 top-[calc(env(safe-area-inset-top)+7.2rem)]'
+            : 'left-0.5 top-[calc(env(safe-area-inset-top)+12.1rem)]')
+        : 'left-0.5 top-36')
     : isPhone
       ? (isFullscreen
-          ? 'left-2 top-[calc(env(safe-area-inset-top)+4.8rem)]'
-          : 'left-2 top-[calc(env(safe-area-inset-top)+9.75rem)]')
-      : 'left-2 top-24';
+          ? 'left-0.5 top-[calc(env(safe-area-inset-top)+4.8rem)]'
+          : 'left-0.5 top-[calc(env(safe-area-inset-top)+9.75rem)]')
+      : 'left-0.5 top-24';
 
   const metaRows = useMemo(() => ([
     {
@@ -125,7 +125,7 @@ const ArtemisTrackerCard: React.FC<ArtemisTrackerCardProps> = ({
   }
 
   return (
-    <div className={`pointer-events-none absolute z-[1200] max-w-[calc(100vw-1rem)] ${positionClassName}`}>
+    <div className={`pointer-events-none absolute z-[1200] max-w-[calc(100vw-0.25rem)] ${positionClassName}`}>
       <div className={`pointer-events-auto ${isPhone ? 'w-[min(22rem,calc(100vw-1rem))]' : 'w-[22rem]'} overflow-hidden rounded-[20px] border border-orange-300/40 bg-[linear-gradient(180deg,rgba(15,23,42,0.88),rgba(17,24,39,0.8))] shadow-[0_24px_60px_-34px_rgba(15,23,42,0.86)] ring-1 ring-orange-400/18 backdrop-blur-xl`}>
         <div className="border-b border-white/8 px-4 py-3">
           <div className="flex items-start justify-between gap-3">

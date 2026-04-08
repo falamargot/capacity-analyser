@@ -26,7 +26,7 @@ const CountryOverlayLegend: React.FC<CountryOverlayLegendProps> = ({
   if (mode === '5g-spectrum') {
     return (
       <div
-        className="pointer-events-none absolute bottom-4 left-4 z-30 w-[280px] max-w-[calc(100vw-2rem)] transition-all duration-300 translate-y-0 opacity-100"
+        className="pointer-events-none absolute bottom-0.5 left-0.5 z-30 w-[280px] max-w-[calc(100vw-0.25rem)] transition-all duration-300 translate-y-0 opacity-100"
         aria-hidden={false}
       >
         <div className="overflow-hidden rounded-[22px] border border-white/65 bg-[linear-gradient(180deg,rgba(255,255,255,0.88),rgba(248,250,252,0.8))] p-4 shadow-[0_24px_50px_-30px_rgba(15,23,42,0.78)] ring-1 ring-slate-200/70 backdrop-blur-xl dark:border-slate-700/80 dark:bg-[linear-gradient(180deg,rgba(15,23,42,0.88),rgba(30,41,59,0.78))] dark:ring-slate-700/70">
@@ -96,7 +96,7 @@ const CountryOverlayLegend: React.FC<CountryOverlayLegendProps> = ({
 
   return (
     <div
-      className="pointer-events-none absolute bottom-4 left-4 z-30 w-[280px] max-w-[calc(100vw-2rem)] transition-all duration-300 translate-y-0 opacity-100"
+      className="pointer-events-none absolute bottom-0.5 left-0.5 z-30 w-[280px] max-w-[calc(100vw-0.25rem)] transition-all duration-300 translate-y-0 opacity-100"
       aria-hidden={false}
     >
       <div className="overflow-hidden rounded-[22px] border border-white/65 bg-[linear-gradient(180deg,rgba(255,255,255,0.88),rgba(248,250,252,0.8))] p-4 shadow-[0_24px_50px_-30px_rgba(15,23,42,0.78)] ring-1 ring-slate-200/70 backdrop-blur-xl dark:border-slate-700/80 dark:bg-[linear-gradient(180deg,rgba(15,23,42,0.88),rgba(30,41,59,0.78))] dark:ring-slate-700/70">

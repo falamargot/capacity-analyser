@@ -102,7 +102,7 @@ const SatelliteIndicator: React.FC<SatelliteIndicatorProps> = ({
 
     return (
         <div
-            className={`absolute left-2 z-10 max-w-[calc(100vw-1rem)] ${
+            className={`absolute left-0.5 z-10 max-w-[calc(100vw-0.25rem)] ${
                 isPhone
                     ? (isFullscreen
                         ? 'top-[calc(env(safe-area-inset-top)+0.5rem)]'

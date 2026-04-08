@@ -1709,7 +1709,7 @@ const App: React.FC = () => {
   const useCompactDesktopSidebar = desktopCompactProgress >= 0.35;
   const useCompactDesktopHeader = desktopCompactProgress >= 0.2;
   const desktopSidebarWidth = Math.round(lerp(500, 405, desktopCompactProgress));
-  const desktopLayoutGap = Math.round(lerp(32, 20, desktopCompactProgress));
+  const desktopLayoutGap = Math.round(lerp(24, 16, desktopCompactProgress));
 
   const desktopSidebarHero = useMemo(() => {
     if (selectedMoon) {
@@ -2587,7 +2587,7 @@ const App: React.FC = () => {
           </div>
         </main>
       ) : (
-        <main className="px-4 py-6 sm:px-6 lg:px-8">
+        <main className="px-2 py-4 sm:px-3 lg:px-4">
           <div className="flex h-[calc(100vh-8rem)] flex-row" style={{ gap: desktopLayoutGap }}>
             <div
               className={`flex-1 relative bg-white rounded-lg shadow-lg overflow-hidden transition-all duration-300 ${isFullscreen ? 'fixed inset-0 z-50' : ''}`}
