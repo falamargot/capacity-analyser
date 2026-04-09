@@ -22,7 +22,7 @@ const statusLabel: Record<CandidateCoverage['status'], string> = {
   unstable: 'Unstable',
 };
 
-const COLLAPSED_VISIBLE_COUNT = 5;
+const COLLAPSED_VISIBLE_COUNT = 3;
 
 const formatThroughput = (throughputMbps: number): string => (
   throughputMbps >= 1000
