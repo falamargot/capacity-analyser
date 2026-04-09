@@ -24,6 +24,12 @@ const statusLabel: Record<CandidateCoverage['status'], string> = {
 
 const COLLAPSED_VISIBLE_COUNT = 5;
 
+const formatThroughput = (throughputMbps: number): string => (
+  throughputMbps >= 1000
+    ? `${(throughputMbps / 1000).toFixed(1)} Gbps`
+    : `${throughputMbps.toFixed(1)} Mbps`
+);
+
 const CoverageSelector = memo<CoverageSelectorProps>(({
   candidateCoverages,
   bestCoverage,
@@ -117,7 +123,7 @@ const CoverageSelector = memo<CoverageSelectorProps>(({
               <div className="mt-3 grid grid-cols-2 gap-2 text-xs text-gray-600 dark:text-gray-300 sm:grid-cols-4">
                 <div>
                   <div className="text-[10px] uppercase tracking-[0.1em] text-gray-400 dark:text-gray-500">Throughput</div>
-                  <div className="mt-1 font-semibold">{candidate.throughputEstimate.toFixed(1)} Gbps</div>
+                  <div className="mt-1 font-semibold">{formatThroughput(candidate.throughputEstimate)}</div>
                 </div>
                 <div>
                   <div className="text-[10px] uppercase tracking-[0.1em] text-gray-400 dark:text-gray-500">Latency</div>

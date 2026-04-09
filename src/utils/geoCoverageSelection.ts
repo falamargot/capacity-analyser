@@ -4,6 +4,15 @@ import type { CandidateCoverage } from '../types/analysis';
 import type { Coverage, SatelliteData } from '../types/satellites';
 import { calculateElevationAngle } from './capacityCalculator';
 import { analyzeGeoConnectivity, type GeoConnectivityResult } from './geoConnectivityModel';
+import {
+  BAND_PARAMS,
+  computeDownlinkBudget,
+  computeSlantRange,
+  computeUplinkBudget,
+  DEFAULT_TERMINAL,
+  type GeoBand,
+  type LinkBudgetResult,
+} from './geoLinkBudget';
 import { isPointInPolygon } from './geoUtils';
 
 interface Point {
@@ -188,6 +197,24 @@ const getCoverageProperties = (coverage: Coverage): Record<string, unknown> => (
   (coverage.feature?.properties as Record<string, unknown> | undefined) ?? {}
 );
 
+const getNumericCoverageLevel = (properties: Record<string, unknown>): number | null => {
+  const level = properties.level;
+  if (typeof level === 'number' && Number.isFinite(level)) return level;
+  if (typeof level === 'string') {
+    const parsed = Number.parseFloat(level);
+    if (Number.isFinite(parsed)) return parsed;
+  }
+
+  const contour = properties.contour;
+  if (typeof contour === 'number' && Number.isFinite(contour)) return contour;
+  if (typeof contour === 'string') {
+    const parsed = Number.parseFloat(contour);
+    if (Number.isFinite(parsed)) return parsed;
+  }
+
+  return null;
+};
+
 const getRawCoverageValue = (properties: Record<string, unknown>, fallbackName?: string): string => {
   const name = properties.name;
   if (typeof name === 'string' || typeof name === 'number') {
@@ -218,6 +245,28 @@ const getRawBeamValue = (properties: Record<string, unknown>, fallbackName?: str
   }
 
   return fallbackName?.trim() || 'Unknown beam';
+};
+
+const detectBand = (
+  coverageName: string,
+  properties: Record<string, unknown>,
+  missionName?: string,
+): GeoBand => {
+  const explicitBand = properties.band;
+  const bandText = [
+    coverageName,
+    missionName,
+    typeof explicitBand === 'string' ? explicitBand : null,
+  ]
+    .filter((value): value is string => typeof value === 'string' && value.trim().length > 0)
+    .join(' ')
+    .toLowerCase();
+
+  if (/\bc(?:\s|-)?band\b/.test(bandText)) return 'C';
+  if (/\bka(?:\s|-)?band\b|\bka\b/.test(bandText)) return 'Ka';
+  if (/\bku(?:\s|-)?band\b|\bku\b/.test(bandText)) return 'Ku';
+
+  return 'Ku';
 };
 
 export const getCoverageMissionName = (coverage: Coverage): string => {
@@ -360,34 +409,74 @@ export const findCandidateCoverages = (
 
       const beamMetrics = getBeamDistanceMetrics(userPoint, coverage);
       if (!beamMetrics) continue;
-      const shapeMetrics = getCoverageShapeMetrics(coverage, ring);
+      const properties = getCoverageProperties(coverage);
+      const missionName = getCoverageMissionName(coverage);
+      const coverageName = getCoverageDisplayName(coverage);
+      const band = detectBand(coverageName, properties, missionName);
+      const bandParams = BAND_PARAMS[band];
+      const level = getNumericCoverageLevel(properties);
+      const isUplink = properties.isUplink === true;
+      const eirpDbw = !isUplink && level !== null ? level : undefined;
+      const gtDbk = isUplink && level !== null ? level : undefined;
+      if ((!isUplink && eirpDbw == null) || (isUplink && gtDbk == null)) continue;
+      const slantRangeKm = computeSlantRange(elevation, satellite.position.alt);
 
+      const linkResult: LinkBudgetResult = isUplink
+        ? computeUplinkBudget(
+            DEFAULT_TERMINAL.eirpTerminalDbw,
+            gtDbk!,
+            slantRangeKm,
+            bandParams.freqUpGhz,
+            bandParams.defaultBwMhz,
+            bandParams.atmosLossDb,
+          )
+        : computeDownlinkBudget(
+            eirpDbw!,
+            DEFAULT_TERMINAL.gtTerminalDbk,
+            slantRangeKm,
+            bandParams.freqDownGhz,
+            bandParams.defaultBwMhz,
+            bandParams.atmosLossDb,
+          );
+      if (linkResult.linkMarginDb < 0) continue;
+
+      const shapeMetrics = getCoverageShapeMetrics(coverage, ring);
       const coverageKey = getCoverageGroupId(coverage);
       const approximateArea = shapeMetrics.approximateArea;
-      const throughputEstimate = satellite.capacity.maxThroughput * (0.35 + (0.65 * (1 - beamMetrics.normalizedDistance)));
-      const properties = getCoverageProperties(coverage);
-      const level = typeof properties.level === 'number' ? properties.level : null;
-      const isUplink = properties.isUplink === true;
       const nextCandidate: CandidateCoverage & {
         _approximateArea: number;
         _normalizedDistance: number;
       } = {
         satelliteId: satellite.id,
         satelliteName: satellite.name,
-        missionName: getCoverageMissionName(coverage),
+        missionName,
         coverageKey,
-        coverageName: getCoverageDisplayName(coverage),
+        coverageName,
         beamId: getCoverageBeamId(coverage),
         beamName: getCoverageBeamName(coverage),
         elevation,
         distanceFromBeamCenter: beamMetrics.distanceKm,
-        throughputEstimate,
+        throughputEstimate: linkResult.achievableThroughputMbps,
         level,
         isUplink,
+        eirpDbw,
+        gtDbk,
+        band,
+        frequencyGhz: linkResult.frequencyGhz,
+        bandwidthMhz: linkResult.bandwidthMhz,
+        atmosphericLossDb: linkResult.atmosphericLossDb,
+        slantRangeKm: linkResult.slantRangeKm,
+        fsplDb: linkResult.fsplDb,
+        cn0Dbhz: linkResult.cn0Dbhz,
+        cnDb: linkResult.cnDb,
+        linkMarginDb: linkResult.linkMarginDb,
+        modcod: linkResult.modcod,
+        spectralEfficiency: linkResult.spectralEfficiency,
         latencyMs: null,
         status: 'available',
         scoreBreakdown: {
           elevation: 0,
+          linkMargin: 0,
           throughput: 0,
           latency: 0,
           total: 0,
@@ -432,29 +521,34 @@ export const findCandidateCoverages = (
 //
 // Score formula (implemented in rankPool below):
 //
-//   score = W_ELEVATION × elevationScore
+//   score = W_LINK_MARGIN × linkMarginScore
 //         + W_THROUGHPUT × throughputScore
 //         - W_LATENCY × latencyPenalty
+//         + W_ELEVATION × elevationScore
 //
-// The spec requires elevation, throughput, and latency. We normalize all three
+// The spec requires link margin, throughput, latency, and a smaller tie-break
+// role for elevation. We normalize all four
 // terms to keep the score dimensionless and deterministic across different GEO
 // fleets and contour files:
+//   • linkMarginScore = candidate link margin normalized within the pool
 //   • elevationScore  = elevation / 90
 //   • throughputScore = candidate throughput normalized within the pool
 //   • latencyPenalty  = candidate RTT normalized within the pool
 //
 // Weight rationale:
-//   • Elevation 0.45: strongest factor because low-elevation GEO links have the
-//     worst atmospheric path length and the weakest engineering margin.
-//   • Throughput 0.40: second strongest factor because beam-center proximity and
-//     contour strength directly affect usable service capacity.
+//   • Link margin 0.35: captures actual RF headroom and replaces the previous
+//     distance heuristic as the primary physical quality measure.
+//   • Throughput 0.40: strongest factor because the link budget now estimates
+//     usable capacity directly from contour EIRP/G/T and path loss.
 //   • Latency 0.15: still important, but GEO RTT varies in a narrower envelope
 //     than throughput/headroom across eligible beams.
+//   • Elevation 0.10: retained as a slight geometry preference and tie-breaker.
 
 export const TARGET_SELECTION_WEIGHTS = {
-  elevation: 0.45,
+  linkMargin: 0.35,
   throughput: 0.40,
   latency: 0.15,
+  elevation: 0.10,
 } as const;
 
 const GEO_LATENCY_FALLBACK_MS = 800;
@@ -518,12 +612,17 @@ const rankPool = (
 
   let minThroughput = Infinity;
   let maxThroughput = -Infinity;
+  let minLinkMargin = Infinity;
+  let maxLinkMargin = -Infinity;
   let minLatency = Infinity;
   let maxLatency = -Infinity;
 
   for (const candidate of hydratedPool) {
     if (candidate.throughputEstimate < minThroughput) minThroughput = candidate.throughputEstimate;
     if (candidate.throughputEstimate > maxThroughput) maxThroughput = candidate.throughputEstimate;
+    const linkMarginDb = candidate.linkMarginDb ?? 0;
+    if (linkMarginDb < minLinkMargin) minLinkMargin = linkMarginDb;
+    if (linkMarginDb > maxLinkMargin) maxLinkMargin = linkMarginDb;
 
     const latencyMs = candidate.latencyMs ?? GEO_LATENCY_FALLBACK_MS;
     if (latencyMs < minLatency) minLatency = latencyMs;
@@ -533,6 +632,11 @@ const rankPool = (
   return hydratedPool
     .map((candidate) => {
       const elevationScore = clamp(candidate.elevation / 90, 0, 1);
+      const linkMarginScore = normalizeMetric(
+        candidate.linkMarginDb ?? 0,
+        minLinkMargin,
+        maxLinkMargin
+      );
       const throughputScore = normalizeMetric(
         candidate.throughputEstimate,
         minThroughput,
@@ -544,15 +648,17 @@ const rankPool = (
         maxLatency
       );
       const total =
-        (TARGET_SELECTION_WEIGHTS.elevation * elevationScore) +
+        (TARGET_SELECTION_WEIGHTS.linkMargin * linkMarginScore) +
         (TARGET_SELECTION_WEIGHTS.throughput * throughputScore) -
-        (TARGET_SELECTION_WEIGHTS.latency * latencyPenalty);
+        (TARGET_SELECTION_WEIGHTS.latency * latencyPenalty) +
+        (TARGET_SELECTION_WEIGHTS.elevation * elevationScore);
 
       return {
         ...candidate,
         score: total,
         scoreBreakdown: {
           elevation: TARGET_SELECTION_WEIGHTS.elevation * elevationScore,
+          linkMargin: TARGET_SELECTION_WEIGHTS.linkMargin * linkMarginScore,
           throughput: TARGET_SELECTION_WEIGHTS.throughput * throughputScore,
           latency: TARGET_SELECTION_WEIGHTS.latency * latencyPenalty,
           total,
@@ -570,7 +676,7 @@ export const rankCandidateCoverages = (
 ): CandidateCoverage[] => {
   if (candidates.length === 0) return [];
 
-  // Split by direction before ranking so that IPFD (dBW for DL) and G/T (dB/K
+  // Split by direction before ranking so that EIRP (dBW for DL) and G/T (dB/K
   // for UL) are normalised within their own pool and never compared against each
   // other. Downlink candidates are returned first — they are the primary selection
   // dimension for a receiving terminal.

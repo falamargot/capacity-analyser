@@ -733,7 +733,7 @@ const App: React.FC = () => {
     () => candidateCoverages.map((coverage) => ({
       id: getCandidateCoverageKey(coverage),
       name: coverage.coverageName,
-      throughput: coverage.throughputEstimate * 1000,
+      throughput: coverage.throughputEstimate,
       elevation: coverage.elevation,
       score: coverage.score,
     })),

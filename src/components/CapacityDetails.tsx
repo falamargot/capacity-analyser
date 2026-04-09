@@ -80,6 +80,33 @@ interface CapacityDetailsProps {
 }
 
 const RTT_VISUAL_SCALE_MAX_MS = 600;
+const GEO_LINK_MARGIN_STABILITY = {
+  medium: 2,
+  high: 5,
+} as const;
+
+const getGeoCompanionCoverage = (
+  selectedCoverage: CandidateCoverage | null,
+  candidateCoverages: CandidateCoverage[],
+  wantUplink: boolean,
+): CandidateCoverage | null => {
+  if (candidateCoverages.length === 0) return null;
+
+  if (selectedCoverage?.isUplink === wantUplink) {
+    return selectedCoverage;
+  }
+
+  const sameSatellite = candidateCoverages.filter((candidate) => (
+    candidate.isUplink === wantUplink &&
+    (!selectedCoverage || candidate.satelliteId === selectedCoverage.satelliteId)
+  ));
+
+  const sameBand = sameSatellite.filter((candidate) => (
+    !selectedCoverage?.band || !candidate.band || candidate.band === selectedCoverage.band
+  ));
+
+  return sameBand[0] ?? sameSatellite[0] ?? candidateCoverages.find((candidate) => candidate.isUplink === wantUplink) ?? null;
+};
 
 const formatGeoStabilityTooltip = (elevationDeg: number, isUserLinkUnstable: boolean): string => {
   const currentRule = isUserLinkUnstable
@@ -266,7 +293,8 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
 
   const calculateGEOPerformance = useCallback((elevationDeg: number) => {
     const profile = TERMINAL_PROFILES[geoTerminalType];
-    const weatherFactor = getWeatherFactor(weatherType, geoTerminalType === 'aviation');
+    const downlinkCoverage = getGeoCompanionCoverage(selectedCoverage, candidateCoverages, false);
+    const uplinkCoverage = getGeoCompanionCoverage(selectedCoverage, candidateCoverages, true);
 
     if (elevationDeg < 5) {
       return {
@@ -274,11 +302,46 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
         uplinkGbps: 0,
         stability: 'Unstable',
         performanceFactor: 0,
-        weatherFactor,
-        weatherLabel: WEATHER_PROFILES[weatherType].label
+        weatherFactor: 1,
+        weatherLabel: 'Selected link budget',
       };
     }
 
+    if (downlinkCoverage || uplinkCoverage) {
+      const downlinkGbps = downlinkCoverage
+        ? Math.min(downlinkCoverage.throughputEstimate / 1000, profile.maxDlGbps)
+        : 0;
+      const uplinkGbps = uplinkCoverage
+        ? Math.min(uplinkCoverage.throughputEstimate / 1000, profile.maxUlGbps)
+        : 0;
+      const downlinkRatio = profile.maxDlGbps > 0
+        ? Math.min(downlinkGbps / profile.maxDlGbps, 1)
+        : 0;
+      const uplinkRatio = profile.maxUlGbps > 0
+        ? Math.min(uplinkGbps / profile.maxUlGbps, 1)
+        : 0;
+      const weakestMarginDb = [downlinkCoverage?.linkMarginDb, uplinkCoverage?.linkMarginDb]
+        .filter((value): value is number => typeof value === 'number' && Number.isFinite(value))
+        .reduce<number | null>((current, value) => current == null ? value : Math.min(current, value), null);
+
+      const stability =
+        weakestMarginDb == null ? 'Low'
+        : weakestMarginDb < 0 ? 'Unstable'
+        : weakestMarginDb < GEO_LINK_MARGIN_STABILITY.medium ? 'Low'
+        : weakestMarginDb < GEO_LINK_MARGIN_STABILITY.high ? 'Medium'
+        : 'High';
+
+      return {
+        downlinkGbps,
+        uplinkGbps,
+        stability,
+        performanceFactor: Math.max(downlinkRatio, uplinkRatio),
+        weatherFactor: 1,
+        weatherLabel: 'Selected link budget',
+      };
+    }
+
+    const weatherFactor = getWeatherFactor(weatherType, geoTerminalType === 'aviation');
     const elevationFactor = (() => {
       if (elevationDeg >= 50) return 1;
       return (elevationDeg - 5) / (50 - 5);
@@ -302,7 +365,7 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
       weatherFactor,
       weatherLabel: WEATHER_PROFILES[weatherType].label
     };
-  }, [geoTerminalType, weatherType]);
+  }, [candidateCoverages, geoTerminalType, selectedCoverage, weatherType]);
 
   // Direct alias — useMemo wrapper removed (memoizing an identity reference has no benefit).
   const activePoint = selectedPoint;
@@ -576,7 +639,7 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
       return (
         <CollapsibleSection
           storageKey="geo-performance"
-          title={<>Estimated Performance<SectionTooltip content="Predicted GEO link throughput and end-to-end RTT. Throughput degrades at low elevation angles. Note the ~600 ms RTT inherent to all GEO orbits due to the 35,786 km orbital altitude." /></>}
+          title={<>Estimated Performance<SectionTooltip content="Predicted GEO link throughput and end-to-end RTT derived from the selected GEO link budget and terminal caps. RTT remains dominated by the ~35,786 km GEO orbital altitude." /></>}
           accentColor="#2563eb"
           defaultOpen={true}
           collapsible={false}
@@ -781,7 +844,7 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
         maxUlGbps: TERMINAL_PROFILES[geoTerminalType].maxUlGbps,
         stability: geoGeometry.isUserLinkUnstable ? 'Unstable' : geoPerformance?.stability ?? null,
         performanceFactor: geoPerformance?.performanceFactor ?? null,
-        notes: geoPerformance ? [`Weather profile: ${geoPerformance.weatherLabel} (${Math.round(geoPerformance.weatherFactor * 100)}% link factor)`] : [],
+        notes: geoPerformance ? [`Basis: ${geoPerformance.weatherLabel}`] : [],
       },
     };
   }, [
@@ -1009,16 +1072,13 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
         elevation: geoGeometry?.userToSatellite.elevationDeg || 0,
         rtt: geoGeometry?.rttTotalMs || 0,
         downlinkGbps: (() => {
-          const performance = calculateGEOPerformance(geoGeometry?.userToSatellite.elevationDeg || 0);
-          return performance.downlinkGbps;
+          return geoPerformance?.downlinkGbps ?? 0;
         })(),
         uplinkGbps: (() => {
-          const performance = calculateGEOPerformance(geoGeometry?.userToSatellite.elevationDeg || 0);
-          return performance.uplinkGbps;
+          return geoPerformance?.uplinkGbps ?? 0;
         })(),
         stability: (() => {
-          const performance = calculateGEOPerformance(geoGeometry?.userToSatellite.elevationDeg || 0);
-          return geoGeometry?.isUserLinkUnstable ? 'Unstable' : performance.stability;
+          return geoGeometry?.isUserLinkUnstable ? 'Unstable' : geoPerformance?.stability ?? 'Unstable';
         })(),
         distance: geoGeometry?.userToSatellite.slantRangeKm || 0,
         radioPath: `${userLabel} → ${resolvedGEOConnectivity.satellite.name} → ${userLabel}`

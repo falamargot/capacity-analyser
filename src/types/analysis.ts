@@ -41,6 +41,7 @@ export type Selection =
 
 export interface CandidateCoverageScoreBreakdown {
     elevation: number;
+    linkMargin: number;
     throughput: number;
     latency: number;
     total: number;
@@ -61,11 +62,25 @@ export interface CandidateCoverage {
     beamName: string;
     elevation: number;
     distanceFromBeamCenter: number;
+    /** Estimated achievable throughput from the GEO link budget (Mbps). */
     throughputEstimate: number;
-    /** IPFD in dBW (downlink) or G/T threshold in dB/K (uplink). Null for legacy coverage files. */
+    /** Raw contour RF value: EIRP in dBW (downlink) or G/T in dB/K (uplink). Null for legacy coverage files. */
     level: number | null;
     /** True when this coverage is an uplink (G/T), false for downlink (IPFD). */
     isUplink: boolean;
+    eirpDbw?: number;
+    gtDbk?: number;
+    band?: 'C' | 'Ku' | 'Ka';
+    frequencyGhz?: number;
+    bandwidthMhz?: number;
+    atmosphericLossDb?: number;
+    slantRangeKm?: number;
+    fsplDb?: number;
+    cn0Dbhz?: number;
+    cnDb?: number;
+    linkMarginDb?: number;
+    modcod?: string;
+    spectralEfficiency?: number;
     latencyMs: number | null;
     status: CandidateCoverageStatus;
     scoreBreakdown: CandidateCoverageScoreBreakdown;
