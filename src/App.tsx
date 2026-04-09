@@ -1243,11 +1243,12 @@ const App: React.FC = () => {
       satelliteScope,
       simulationState,
       now,
-      failedSnps
+      failedSnps,
+      autoSelectedLEOId
     );
     setAutoSelectedLEOId(autoSelectedLEOSat?.id || null);
     setSelectedSNP(newSelectedSNP);
-  }, [analyzisPosition, failedSnps, satelliteScope, simulationState, satellitesForResolutionRef]); // §1.1 — satellites removed
+  }, [analyzisPosition, autoSelectedLEOId, failedSnps, satelliteScope, simulationState, satellitesForResolutionRef]); // §1.1 — satellites removed
 
   // §1.3 — Periodic re-resolution for fixed positions (earth / vessel).
   //
@@ -1283,7 +1284,8 @@ const App: React.FC = () => {
         satelliteScope,
         simulationState,
         now,
-        failedSnps
+        failedSnps,
+        autoSelectedLEOId
       );
 
       setAutoSelectedLEOId(autoSelectedLEOSat?.id || null);
@@ -1292,7 +1294,7 @@ const App: React.FC = () => {
 
     const interval = setInterval(reResolve, RESOLUTION_INTERVAL_MS);
     return () => clearInterval(interval);
-  }, [analyzisPosition, failedSnps, satelliteScope, simulationState, satellitesForResolutionRef]); // re-arm when position/scope/policy change
+  }, [analyzisPosition, autoSelectedLEOId, failedSnps, satelliteScope, simulationState, satellitesForResolutionRef]); // re-arm when position/scope/policy change
 
   // Handle coverage polygon click on the globe
   const handleCoverageClick = useCallback((coverageKey: string) => {

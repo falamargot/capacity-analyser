@@ -440,7 +440,7 @@ const getCoverageBandStyle = (
         (easedBand - 0.52) / 0.48,
         new Color()
       );
-  fillColor.alpha = 0.055 + (easedBand * easedBand * 0.34);
+  fillColor.alpha = 0.09 + (easedBand * easedBand * 0.34);
 
   return {
     fillColor,
