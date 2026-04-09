@@ -14,6 +14,46 @@ interface PositionCallbackCache {
     aircraft: Map<string, CallbackPositionProperty>;
 }
 
+type SatellitePosition = Pick<SatelliteData['position'], 'lat' | 'lng' | 'alt'>;
+
+interface SatelliteLiveCell {
+    value: SatelliteData;
+    previousPosition: SatellitePosition;
+    currentPosition: SatellitePosition;
+    transitionStartMs: number;
+    transitionDurationMs: number;
+}
+
+const SATELLITE_INTERPOLATION_MIN_MS = 250;
+const SATELLITE_INTERPOLATION_MAX_MS = 2500;
+
+const cloneSatellitePosition = (position: SatelliteData['position']): SatellitePosition => ({
+    lat: position.lat,
+    lng: position.lng,
+    alt: position.alt,
+});
+
+const positionsMatch = (a: SatellitePosition, b: SatellitePosition): boolean => (
+    a.lat === b.lat &&
+    a.lng === b.lng &&
+    a.alt === b.alt
+);
+
+const lerp = (start: number, end: number, t: number): number => (
+    start + ((end - start) * t)
+);
+
+const interpolateLongitudeDegrees = (start: number, end: number, t: number): number => {
+    let delta = end - start;
+    if (delta > 180) delta -= 360;
+    if (delta < -180) delta += 360;
+
+    const value = start + (delta * t);
+    if (value > 180) return value - 360;
+    if (value < -180) return value + 360;
+    return value;
+};
+
 /**
  * Hook that provides stable CallbackPositionProperty instances for entities
  * The callbacks are cached and reused across renders
@@ -27,6 +67,15 @@ export function usePositionCallbacks(
         satellites: new Map(),
         aircraft: new Map()
     });
+
+    // Per-satellite live cell: stores the latest worker snapshot plus the previous one
+    // so Cesium can blend smoothly between 2-second propagation ticks.
+    const satLiveCellsRef = useRef<Map<string, SatelliteLiveCell>>(new Map());
+
+    // Per-aircraft live cell: holds the most recent Aircraft from the fetch cycle.
+    // Callbacks close over the cell so they always read the latest
+    // velocity / heading / last_contact without needing a new CallbackPositionProperty.
+    const acLiveCellsRef = useRef<Map<string, { value: Aircraft }>>(new Map());
 
     // Track current entity IDs to clean up stale entries
     const currentSatelliteIds = useMemo(
@@ -73,30 +122,52 @@ export function usePositionCallbacks(
     /**
      * Get or create a cached CallbackPositionProperty for a satellite.
      *
-     * Reads position from a live cell that is refreshed on every React render
-     * (i.e., whenever the parent propagates new satellite positions) — no SGP4
-     * runs inside the Cesium frame callback. This eliminates ~36 000 SGP4
-     * calls/sec (600 sats × 60 fps) without changing visual fidelity: at LEO
-     * orbital speed (~7 km/s) the position delta between parent update cycles
-     * is imperceptible at any normal globe zoom level.
+     * Reads position from a live cell refreshed on every React render and linearly
+     * blends between the previous and current worker snapshots. This keeps the
+     * markers visually continuous between the 2-second SGP4 worker ticks without
+     * re-running SGP4 on the main thread for every frame and every satellite.
      */
     const getSatellitePositionCallback = useMemo(() => {
         return (sat: SatelliteData): CallbackPositionProperty => {
             const cache = cacheRef.current.satellites;
+            const now = Date.now();
+            const nextPosition = cloneSatellitePosition(sat.position);
 
-            // Always refresh the live cell so the callback reads the latest position.
             const existing = satLiveCellsRef.current.get(sat.id);
             if (existing) {
                 existing.value = sat;
+                if (!positionsMatch(existing.currentPosition, nextPosition)) {
+                    const elapsed = now - existing.transitionStartMs;
+                    existing.previousPosition = existing.currentPosition;
+                    existing.currentPosition = nextPosition;
+                    existing.transitionStartMs = now;
+                    existing.transitionDurationMs = Math.min(
+                        Math.max(elapsed, SATELLITE_INTERPOLATION_MIN_MS),
+                        SATELLITE_INTERPOLATION_MAX_MS
+                    );
+                }
             } else {
-                satLiveCellsRef.current.set(sat.id, { value: sat });
+                satLiveCellsRef.current.set(sat.id, {
+                    value: sat,
+                    previousPosition: nextPosition,
+                    currentPosition: nextPosition,
+                    transitionStartMs: now,
+                    transitionDurationMs: 1,
+                });
             }
 
             if (!cache.has(sat.id)) {
                 const liveCell = satLiveCellsRef.current.get(sat.id)!;
 
                 const callback = new CallbackPositionProperty(() => {
-                    const { lat, lng, alt } = liveCell.value.position;
+                    const elapsed = Date.now() - liveCell.transitionStartMs;
+                    const progress = liveCell.transitionDurationMs > 0
+                        ? Math.min(elapsed / liveCell.transitionDurationMs, 1)
+                        : 1;
+                    const { previousPosition, currentPosition } = liveCell;
+                    const lat = lerp(previousPosition.lat, currentPosition.lat, progress);
+                    const lng = interpolateLongitudeDegrees(previousPosition.lng, currentPosition.lng, progress);
+                    const alt = lerp(previousPosition.alt, currentPosition.alt, progress);
                     return Cartesian3.fromDegrees(lng, lat, alt * 1000);
                 }, false);
 
@@ -106,16 +177,6 @@ export function usePositionCallbacks(
             return cache.get(sat.id)!;
         };
     }, []);
-
-    // Per-satellite live cell: holds the most recent SatelliteData from the React update cycle.
-    // Callbacks close over the cell so they always read sat.position without re-running SGP4.
-    // Position accuracy matches the parent's update interval — imperceptible at orbital speeds.
-    const satLiveCellsRef = useRef<Map<string, { value: SatelliteData }>>(new Map());
-
-    // Per-aircraft live cell: holds the most recent Aircraft from the fetch cycle.
-    // Callbacks close over the cell so they always read the latest
-    // velocity / heading / last_contact without needing a new CallbackPositionProperty.
-    const acLiveCellsRef = useRef<Map<string, { value: Aircraft }>>(new Map());
 
     /**
      * Get or create a cached CallbackPositionProperty for aircraft.

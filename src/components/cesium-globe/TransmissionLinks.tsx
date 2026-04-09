@@ -16,7 +16,7 @@ import {
 import type { SatelliteData } from '../../types/satellites';
 import type { Aircraft } from '../../modules/airTraffic/airTrafficService';
 import type { SatelliteScope } from '../SatelliteScopeFilter';
-import { getPosition, calculateDeadReckoning } from './utils';
+import { getPosition, calculateDeadReckoning, propagateSatellite } from './utils';
 import { hasRFConnectivity } from '../../utils/rfConnectivity';
 import { useSimulation } from '../../contexts/SimulationContext';
 import { GEO_GATEWAYS, type GeoGatewayData, type SNPData } from '../globe/GlobeConfig';
@@ -93,9 +93,8 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
 }) => {
     const { coveragePolicy, weatherCondition, beamHealthFactors, hsBeamsSet } = useSimulation();
 
-    // Live refs — callbacks always read the latest satellite position without running SGP4.
-    // Link lines are 500–40 000 km long; a sub-km positional error between React updates
-    // is visually imperceptible.
+    // Live refs let stable callbacks read the latest selected satellites while still
+    // propagating LEO links against Cesium time so they stay visually aligned with beams.
     const autoSelectedLEORef = useRef(autoSelectedLEOSatellite);
     autoSelectedLEORef.current = autoSelectedLEOSatellite;
     const autoSelectedGEORef = useRef(autoSelectedGEOSatellite);
@@ -160,9 +159,10 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
                 return []; // No link if no RF connectivity
             }
 
-            // Point B: LEO Satellite (live ref — no SGP4 per frame)
+            // Point B: LEO satellite propagated at the current Cesium time so the
+            // link endpoint stays synchronized with the moving beams.
             const s = autoSelectedLEORef.current!;
-            const endPos = getPosition(s.position.lat, s.position.lng, s.position.alt);
+            const endPos = propagateSatellite(s, time);
 
             return [startPos, endPos];
         }, false);
@@ -176,7 +176,7 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
             if (!time) return [];
 
             const s = autoSelectedLEORef.current!;
-            const satPos = getPosition(s.position.lat, s.position.lng, s.position.alt);
+            const satPos = propagateSatellite(s, time);
             const snpPos = getPosition(selectedSNP.lat, selectedSNP.lng, 0.01);
 
             return [satPos, snpPos];
@@ -266,7 +266,7 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
             if (!time) return [];
 
             const s = selectedSatelliteRef.current!;
-            const satPos = getPosition(s.position.lat, s.position.lng, s.position.alt);
+            const satPos = propagateSatellite(s, time);
             const snpPos = getPosition(dedicatedSNPForSelectedLEO.lat, dedicatedSNPForSelectedLEO.lng, 0);
 
             return [satPos, snpPos];
@@ -295,8 +295,11 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
         const snpPos = getPosition(inspectedSNP.lat, inspectedSNP.lng, 0.01);
 
         return snpConnectedSatellites.filter(({ satellite }) => satellite.opsStatus === 'operational').map(({ satellite }) => {
-            const callback = new CallbackProperty((_time?: JulianDate) => {
-                return [getPosition(satellite.position.lat, satellite.position.lng, satellite.position.alt), snpPos];
+            const callback = new CallbackProperty((time?: JulianDate) => {
+                const satPos = time && satellite.type === 'ONEWEB'
+                    ? propagateSatellite(satellite, time)
+                    : getPosition(satellite.position.lat, satellite.position.lng, satellite.position.alt);
+                return [satPos, snpPos];
             }, false);
             return { id: satellite.id, callback };
         });
