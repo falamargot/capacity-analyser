@@ -1443,6 +1443,17 @@ const App: React.FC = () => {
     setIsCommandPaletteOpen(true);
   }, []);
 
+  const handleMobileTargetSearchFocus = useCallback(() => {
+    setIsTargetSourcesMenuOpen(false);
+    setIsCommandPaletteOpen(true);
+  }, []);
+
+  const handleMobileTargetSearchChange = useCallback((value: string) => {
+    setCommandPaletteQuery(value);
+    setIsTargetSourcesMenuOpen(false);
+    setIsCommandPaletteOpen(true);
+  }, []);
+
   const handleToggleTargetSourcesMenu = useCallback(() => {
     setIsCommandPaletteOpen(false);
     setCommandPaletteQuery('');
@@ -2370,6 +2381,19 @@ const App: React.FC = () => {
           </div>
 
           <div className="p-4 flex flex-col gap-4">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-500" />
+              <input
+                ref={commandPaletteSearchRef}
+                type="text"
+                value={commandPaletteQuery}
+                onFocus={handleMobileTargetSearchFocus}
+                onChange={(event) => handleMobileTargetSearchChange(event.target.value)}
+                placeholder="Search location, satellite, SNP, gateway..."
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-slate-800 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
+              />
+            </div>
+
             <SatelliteSelector
               satellites={satellites}
               onSelect={(sat) => {
@@ -2379,20 +2403,6 @@ const App: React.FC = () => {
               selectedSatellite={selectedSatellite}
               satelliteScope={satelliteScope}
             />
-
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-500" />
-              <form onSubmit={handleSearchInput}>
-                <input
-                  type="text"
-                  name="search"
-                  placeholder="Search a location..."
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-slate-800 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
-              </form>
-            </div>
 
             <AircraftSelector
               aircraft={airTraffic.aircraft}
@@ -2762,13 +2772,34 @@ const App: React.FC = () => {
             resultTypes={satelliteScope === 'GEO' ? ['satellite', 'moon', 'location', 'gateway'] : satelliteScope === 'LEO' ? ['satellite', 'moon', 'location', 'snp'] : ['satellite', 'moon', 'location', 'snp', 'gateway']}
             query={commandPaletteQuery}
             onQueryChange={setCommandPaletteQuery}
-            onSelectSatellite={handleSatelliteSelectFromUI}
-            onSelectAircraft={(aircraft) => handleAircraftSelect(aircraft, true)}
-            onSelectVessel={(vessel) => handleVesselSelect(vessel, true)}
-            onSelectSnp={(snpName) => handleSnpClick(snpName)}
-            onSelectGateway={(gateway) => handleGatewaySelect(gateway, true)}
-            onSelectMoon={() => handleMoonSelectionChange(true)}
-            onSelectLocation={handleLocationSelect}
+            onSelectSatellite={(satellite) => {
+              handleSatelliteSelectFromUI(satellite);
+              if (isMobile) setIsSatelliteModalOpen(false);
+            }}
+            onSelectAircraft={(aircraft) => {
+              handleAircraftSelect(aircraft, true);
+              if (isMobile) setIsSatelliteModalOpen(false);
+            }}
+            onSelectVessel={(vessel) => {
+              handleVesselSelect(vessel, true);
+              if (isMobile) setIsSatelliteModalOpen(false);
+            }}
+            onSelectSnp={(snpName) => {
+              handleSnpClick(snpName);
+              if (isMobile) setIsSatelliteModalOpen(false);
+            }}
+            onSelectGateway={(gateway) => {
+              handleGatewaySelect(gateway, true);
+              if (isMobile) setIsSatelliteModalOpen(false);
+            }}
+            onSelectMoon={() => {
+              handleMoonSelectionChange(true);
+              if (isMobile) setIsSatelliteModalOpen(false);
+            }}
+            onSelectLocation={(lat, lng) => {
+              handleLocationSelect(lat, lng);
+              if (isMobile) setIsSatelliteModalOpen(false);
+            }}
           />
         </Suspense>
       )}
