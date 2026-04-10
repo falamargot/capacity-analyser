@@ -56,6 +56,7 @@ export const SNPS_DATA: SNPData[] = [
 ];
 
 export interface GeoGatewayData {
+  teleportCode: string;
   gateway_id: string;
   name: string;
   latitude: number;
@@ -64,10 +65,12 @@ export interface GeoGatewayData {
   lat: number;
   lng: number;
   region: string;
+  role: string;
 }
 
 export const GEO_GATEWAYS: GeoGatewayData[] = [
   {
+    teleportCode: 'RAM',
     gateway_id: 'geo-rambouillet',
     name: 'Rambouillet',
     latitude: 48.5178,
@@ -75,9 +78,11 @@ export const GEO_GATEWAYS: GeoGatewayData[] = [
     supported_satellites: ['EUTELSAT', '*'],
     lat: 48.5178,
     lng: 1.7617,
-    region: 'Europe'
+    region: 'EMEA',
+    role: 'Global_SCC_Nominal'
   },
   {
+    teleportCode: 'CAG',
     gateway_id: 'geo-cagliari',
     name: 'Cagliari',
     latitude: 39.2154,
@@ -85,9 +90,11 @@ export const GEO_GATEWAYS: GeoGatewayData[] = [
     supported_satellites: ['EUTELSAT', '*'],
     lat: 39.2154,
     lng: 9.1093,
-    region: 'Europe'
+    region: 'EMEA',
+    role: 'EMEA_SCC_Backup'
   },
   {
+    teleportCode: 'TUR',
     gateway_id: 'geo-turin',
     name: 'Turin',
     latitude: 45.0709,
@@ -95,29 +102,35 @@ export const GEO_GATEWAYS: GeoGatewayData[] = [
     supported_satellites: ['EUTELSAT', '*'],
     lat: 45.0709,
     lng: 7.6843,
-    region: 'Europe'
+    region: 'EMEA',
+    role: 'EMEA_SCC_Backup'
   },
   {
-    gateway_id: 'geo-madeira',
-    name: 'Madeira',
-    latitude: 32.7402,
-    longitude: -16.7348,
-    supported_satellites: ['EUTELSAT', '*'],
-    lat: 32.7402,
-    lng: -16.7348,
-    region: 'Europe'
-  },
-  {
-    gateway_id: 'geo-mexico',
-    name: 'Mexico',
+    teleportCode: 'MEX',
+    gateway_id: 'geo-mexico-city',
+    name: 'Mexico City',
     latitude: 19.3574,
     longitude: -99.0671,
     supported_satellites: ['EUTELSAT', '*'],
     lat: 19.3574,
     lng: -99.0671,
-    region: 'Americas'
+    region: 'AMERICAS',
+    role: 'AMERICAS_SCC_Nominal'
   },
   {
+    teleportCode: 'HER',
+    gateway_id: 'geo-hermosillo',
+    name: 'Hermosillo',
+    latitude: 29.0729,
+    longitude: -110.9559,
+    supported_satellites: ['EUTELSAT', '*'],
+    lat: 29.0729,
+    lng: -110.9559,
+    region: 'AMERICAS',
+    role: 'AMERICAS_SCC_Backup'
+  },
+  {
+    teleportCode: 'MAR',
     gateway_id: 'geo-martinique',
     name: 'Martinique',
     latitude: 14.6000,
@@ -125,7 +138,56 @@ export const GEO_GATEWAYS: GeoGatewayData[] = [
     supported_satellites: ['EUTELSAT', '*'],
     lat: 14.6000,
     lng: -61.0000,
-    region: 'Americas'
+    region: 'AMERICAS',
+    role: 'Relay_Monitoring'
+  },
+  {
+    teleportCode: 'DUB',
+    gateway_id: 'geo-dubai',
+    name: 'Dubai',
+    latitude: 25.2048,
+    longitude: 55.2708,
+    supported_satellites: ['EUTELSAT', '*'],
+    lat: 25.2048,
+    lng: 55.2708,
+    region: 'MIDDLE_EAST',
+    role: 'CSC_Monitoring'
+  },
+  {
+    teleportCode: 'SIN',
+    gateway_id: 'geo-singapore',
+    name: 'Singapore',
+    latitude: 1.3521,
+    longitude: 103.8198,
+    supported_satellites: ['EUTELSAT', '*'],
+    lat: 1.3521,
+    lng: 103.8198,
+    region: 'APAC',
+    role: 'CSC_Monitoring'
+  },
+  {
+    teleportCode: 'IBA',
+    gateway_id: 'geo-ibaraki',
+    name: 'Ibaraki',
+    latitude: 36.3418,
+    longitude: 140.4468,
+    supported_satellites: ['EUTELSAT', '*'],
+    lat: 36.3418,
+    lng: 140.4468,
+    region: 'APAC',
+    role: 'TTC_Monitoring'
+  },
+  {
+    teleportCode: 'PER',
+    gateway_id: 'geo-perth',
+    name: 'Perth',
+    latitude: -31.9523,
+    longitude: 115.8613,
+    supported_satellites: ['EUTELSAT', '*'],
+    lat: -31.9523,
+    lng: 115.8613,
+    region: 'APAC',
+    role: 'TTC_Monitoring'
   }
 ];
 

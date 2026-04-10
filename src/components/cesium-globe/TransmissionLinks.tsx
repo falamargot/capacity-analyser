@@ -20,7 +20,7 @@ import { getPosition, calculateDeadReckoning, propagateSatellite } from './utils
 import { hasRFConnectivity } from '../../utils/rfConnectivity';
 import { useSimulation } from '../../contexts/SimulationContext';
 import { GEO_GATEWAYS, type GeoGatewayData, type SNPData } from '../globe/GlobeConfig';
-import { getAssignedGeoSatellitesForGateway, getGatewayAssignmentsForSatellite, selectBestGeoGateway } from '../../utils/geoConnectivityModel';
+import { getMonitoredGeoSatellitesForGateway, selectOperationalGeoGateway } from '../../utils/geoConnectivityModel';
 import type { SNPConnectedSatellite } from '../../services/coverageService';
 import { buildSimulationStateSnapshot } from '../../types/simulation';
 import type { LeoConnectivityViewModel } from '../../utils/leoServiceViewModel';
@@ -203,15 +203,7 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
     // Eliminates O(gateways) ECEF work from the per-frame CallbackProperty callbacks below.
     const bestGeoGateway = useMemo(() => {
         if (!autoSelectedGEOSatellite) return null;
-        const assignedGateway = getGatewayAssignmentsForSatellite(autoSelectedGEOSatellite, GEO_GATEWAYS).primary;
-        if (assignedGateway) {
-            return {
-                gateway: assignedGateway,
-                gatewayElevationDeg: 0,
-                satToGatewayDistanceKm: 0,
-            };
-        }
-        return selectBestGeoGateway(autoSelectedGEOSatellite, GEO_GATEWAYS);
+        return selectOperationalGeoGateway(autoSelectedGEOSatellite, GEO_GATEWAYS);
     }, [autoSelectedGEOSatellite]);
 
     // GEO Satellite -> Gateway feeder link
@@ -247,15 +239,7 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
 
     const dedicatedGeoGateway = useMemo(() => {
         if (!selectedSatellite || selectedSatellite.type !== 'EUTELSAT') return null;
-        const assignedGateway = getGatewayAssignmentsForSatellite(selectedSatellite, GEO_GATEWAYS).primary;
-        if (assignedGateway) {
-            return {
-                gateway: assignedGateway,
-                gatewayElevationDeg: 0,
-                satToGatewayDistanceKm: 0,
-            };
-        }
-        return selectBestGeoGateway(selectedSatellite, GEO_GATEWAYS);
+        return selectOperationalGeoGateway(selectedSatellite, GEO_GATEWAYS);
     }, [selectedSatellite]);
 
     // Dedicated SNP link for manually selected LEO satellite
@@ -309,17 +293,11 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
         if (!selectedGateway || satelliteScope === 'LEO') return null;
 
         const gatewayPos = getPosition(selectedGateway.lat, selectedGateway.lng, 0.01);
-        const assignedSatellites = getAssignedGeoSatellitesForGateway(selectedGateway, satellites, GEO_GATEWAYS);
+        const monitoredSatellites = getMonitoredGeoSatellitesForGateway(selectedGateway, satellites, GEO_GATEWAYS);
 
-        return [
-            ...assignedSatellites.primary.map((satellite) => ({ satellite, role: 'primary' as const })),
-            ...assignedSatellites.backup.map((satellite) => ({ satellite, role: 'backup' as const })),
-        ]
-            .filter(({ satellite }) => satellite.opsStatus === 'operational')
-            .map(({ satellite, role }) => ({
+        return monitoredSatellites.map((satellite) => ({
                 id: satellite.id,
                 name: satellite.name,
-                role,
                 callback: new CallbackProperty((_time?: JulianDate) => {
                     return [gatewayPos, getPosition(satellite.position.lat, satellite.position.lng, satellite.position.alt)];
                 }, false),
@@ -432,11 +410,11 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
             ))}
 
             {/* Gateway inspection: links from the selected gateway to each monitored GEO satellite */}
-            {selectedGatewayLinks && selectedGatewayLinks.map(({ id, name, role, callback }) => (
+            {selectedGatewayLinks && selectedGatewayLinks.map(({ id, name, callback }) => (
                 <Entity key={`gateway-link-${id}`} name={`${selectedGateway?.name} → ${name}`}>
                     <PolylineGraphics
                         positions={callback}
-                        width={role === 'backup' ? 1.5 : 2.5}
+                        width={2.5}
                         material={geoFeederMaterial}
                         clampToGround={false}
                         arcType={ArcType.NONE}

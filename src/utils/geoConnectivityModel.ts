@@ -19,12 +19,17 @@ export const DEFAULT_GEO_OVERHEAD_MS = {
 
 const DEFAULT_RANGES = {
   minUserStableElevationDeg: 5,
-  minGatewayElevationDeg: 10,
+  minGatewayElevationDeg: 5,
   userSatLatencyToleranceMs: 1.0,
   expectedRttMinMs: 500,
   expectedRttMaxMs: 700,
   suspiciousLowRttMs: 450,
 };
+
+const SCC_FAILOVER_MAX_LATENCY_MS = 500;
+
+const APAC_MONITORING_CODES = new Set(['PER', 'SIN', 'IBA'] as const);
+const CSC_VERIFICATION_CODES = ['TUR', 'RAM'] as const;
 
 interface PointLLA {
   lat: number;
@@ -46,10 +51,39 @@ export interface GeoGatewaySelection {
 
 export type GatewayAssignmentRole = 'primary' | 'backup';
 
+export type GroundSegmentTeleportCode =
+  | 'RAM'
+  | 'TUR'
+  | 'CAG'
+  | 'MEX'
+  | 'HER'
+  | 'DUB'
+  | 'PER'
+  | 'SIN'
+  | 'IBA'
+  | 'MAR';
+
 export interface GatewaySatelliteAssignment {
   satelliteName: string;
-  primaryGatewayName: string;
-  backupGatewayName: string | null;
+  satelliteId: string;
+  nominalSccCode: GroundSegmentTeleportCode;
+  backupSccCode: GroundSegmentTeleportCode | null;
+  monitoringCodes: GroundSegmentTeleportCode[];
+}
+
+export interface GroundSegmentRouting {
+  satelliteId: string;
+  satelliteName: string;
+  nominalScc: GeoGatewayData | null;
+  backupScc: GeoGatewayData | null;
+  nominalMonitoring: GeoGatewayData | null;
+  monitoring: GeoGatewayData[];
+}
+
+interface GroundSegmentSelectionOptions {
+  criticalFailureRegions?: string[];
+  maxLatencyMs?: number;
+  minVisibilityDeg?: number;
 }
 
 export interface GeoConnectivityResult {
@@ -216,49 +250,155 @@ function getGeoSatellitePoint(satellite: SatelliteData): PointLLA {
 }
 
 const GEO_GATEWAY_ASSIGNMENTS: GatewaySatelliteAssignment[] = [
-  { satelliteName: 'EUTELSAT 139 WEST A', primaryGatewayName: 'Mexico', backupGatewayName: 'Martinique' },
-  { satelliteName: 'EUTELSAT 174A', primaryGatewayName: 'Mexico', backupGatewayName: 'Rambouillet' },
-  { satelliteName: 'EUTELSAT 33F', primaryGatewayName: 'Rambouillet', backupGatewayName: 'Cagliari' },
-  { satelliteName: 'EUTELSAT HOTBIRD 13C', primaryGatewayName: 'Rambouillet', backupGatewayName: 'Turin' },
-  { satelliteName: 'EUTELSAT 36B', primaryGatewayName: 'Rambouillet', backupGatewayName: 'Cagliari' },
-  { satelliteName: 'EUTELSAT KA-SAT 9A', primaryGatewayName: 'Turin', backupGatewayName: 'Rambouillet' },
-  { satelliteName: 'EUTELSAT 7 WEST A', primaryGatewayName: 'Rambouillet', backupGatewayName: 'Madeira' },
-  { satelliteName: 'EUTELSAT 16A', primaryGatewayName: 'Rambouillet', backupGatewayName: 'Cagliari' },
-  { satelliteName: 'EUTELSAT 21B', primaryGatewayName: 'Rambouillet', backupGatewayName: 'Cagliari' },
-  { satelliteName: 'EUTELSAT 70B', primaryGatewayName: 'Rambouillet', backupGatewayName: 'Madeira' },
-  { satelliteName: 'EUTELSAT 117 WEST A', primaryGatewayName: 'Mexico', backupGatewayName: 'Martinique' },
-  { satelliteName: 'EUTELSAT 7B', primaryGatewayName: 'Rambouillet', backupGatewayName: 'Cagliari' },
-  { satelliteName: 'EUTELSAT 3B', primaryGatewayName: 'Rambouillet', backupGatewayName: 'Cagliari' },
-  { satelliteName: 'EUTELSAT 53A', primaryGatewayName: 'Rambouillet', backupGatewayName: 'Madeira' },
-  { satelliteName: 'EUTELSAT 115 WEST B', primaryGatewayName: 'Mexico', backupGatewayName: 'Martinique' },
-  { satelliteName: 'EUTELSAT 8 WEST B', primaryGatewayName: 'Rambouillet', backupGatewayName: 'Madeira' },
-  { satelliteName: 'EUTELSAT 9B', primaryGatewayName: 'Rambouillet', backupGatewayName: 'Turin' },
-  { satelliteName: 'EUTELSAT 65 WEST A', primaryGatewayName: 'Mexico', backupGatewayName: 'Martinique' },
-  { satelliteName: 'EUTELSAT 117 WEST B', primaryGatewayName: 'Mexico', backupGatewayName: 'Martinique' },
-  { satelliteName: 'EUTELSAT 172B', primaryGatewayName: 'Mexico', backupGatewayName: 'Rambouillet' },
-  { satelliteName: 'EUTELSAT 7C', primaryGatewayName: 'Rambouillet', backupGatewayName: 'Cagliari' },
-  { satelliteName: 'EUTELSAT 5 WEST B', primaryGatewayName: 'Rambouillet', backupGatewayName: 'Madeira' },
-  { satelliteName: 'EUTELSAT KONNECT', primaryGatewayName: 'Turin', backupGatewayName: 'Rambouillet' },
-  { satelliteName: 'EUTELSAT QUANTUM', primaryGatewayName: 'Rambouillet', backupGatewayName: 'Turin' },
-  { satelliteName: 'EUTELSAT KONNECT VHTS', primaryGatewayName: 'Turin', backupGatewayName: 'Rambouillet' },
-  { satelliteName: 'EUTELSAT HOTBIRD 13F', primaryGatewayName: 'Rambouillet', backupGatewayName: 'Turin' },
-  { satelliteName: 'EUTELSAT HOTBIRD 13G', primaryGatewayName: 'Rambouillet', backupGatewayName: 'Turin' },
-  { satelliteName: 'EUTELSAT 10B', primaryGatewayName: 'Rambouillet', backupGatewayName: 'Cagliari' },
-  { satelliteName: 'EUTELSAT 36D', primaryGatewayName: 'Rambouillet', backupGatewayName: 'Cagliari' },
+  { satelliteId: '139WA', satelliteName: 'EUTELSAT 139 WEST A', nominalSccCode: 'MEX', backupSccCode: 'HER', monitoringCodes: ['MEX', 'MAR', 'PER'] },
+  { satelliteId: '174A', satelliteName: 'EUTELSAT 174A', nominalSccCode: 'RAM', backupSccCode: 'TUR', monitoringCodes: ['IBA', 'SIN', 'PER'] },
+  { satelliteId: '33F', satelliteName: 'EUTELSAT 33F', nominalSccCode: 'RAM', backupSccCode: 'TUR', monitoringCodes: ['RAM', 'TUR'] },
+  { satelliteId: '13C', satelliteName: 'EUTELSAT HOTBIRD 13C', nominalSccCode: 'RAM', backupSccCode: 'TUR', monitoringCodes: ['RAM', 'TUR'] },
+  { satelliteId: '36B', satelliteName: 'EUTELSAT 36B', nominalSccCode: 'RAM', backupSccCode: 'TUR', monitoringCodes: ['RAM', 'DUB'] },
+  { satelliteId: 'KA-SAT_9A', satelliteName: 'EUTELSAT KA-SAT 9A', nominalSccCode: 'RAM', backupSccCode: 'TUR', monitoringCodes: ['TUR', 'RAM'] },
+  { satelliteId: '7WA', satelliteName: 'EUTELSAT 7 WEST A', nominalSccCode: 'RAM', backupSccCode: 'TUR', monitoringCodes: ['DUB', 'RAM'] },
+  { satelliteId: '16A', satelliteName: 'EUTELSAT 16A', nominalSccCode: 'RAM', backupSccCode: 'TUR', monitoringCodes: ['RAM', 'TUR'] },
+  { satelliteId: '21B', satelliteName: 'EUTELSAT 21B', nominalSccCode: 'RAM', backupSccCode: 'TUR', monitoringCodes: ['DUB', 'RAM'] },
+  { satelliteId: '70B', satelliteName: 'EUTELSAT 70B', nominalSccCode: 'RAM', backupSccCode: 'TUR', monitoringCodes: ['PER', 'DUB'] },
+  { satelliteId: '117WA', satelliteName: 'EUTELSAT 117 WEST A', nominalSccCode: 'MEX', backupSccCode: 'HER', monitoringCodes: ['MEX', 'MAR'] },
+  { satelliteId: '7B', satelliteName: 'EUTELSAT 7B', nominalSccCode: 'RAM', backupSccCode: 'TUR', monitoringCodes: ['RAM', 'DUB'] },
+  { satelliteId: '3B', satelliteName: 'EUTELSAT 3B', nominalSccCode: 'RAM', backupSccCode: 'TUR', monitoringCodes: ['DUB', 'RAM'] },
+  { satelliteId: '53A', satelliteName: 'EUTELSAT 53A', nominalSccCode: 'RAM', backupSccCode: 'TUR', monitoringCodes: ['DUB', 'RAM'] },
+  { satelliteId: '115WB', satelliteName: 'EUTELSAT 115 WEST B', nominalSccCode: 'MEX', backupSccCode: 'HER', monitoringCodes: ['MEX', 'MAR'] },
+  { satelliteId: '8WB', satelliteName: 'EUTELSAT 8 WEST B', nominalSccCode: 'RAM', backupSccCode: 'TUR', monitoringCodes: ['DUB', 'RAM'] },
+  { satelliteId: '9B', satelliteName: 'EUTELSAT 9B', nominalSccCode: 'RAM', backupSccCode: 'TUR', monitoringCodes: ['RAM', 'TUR'] },
+  { satelliteId: '65WA', satelliteName: 'EUTELSAT 65 WEST A', nominalSccCode: 'MEX', backupSccCode: 'HER', monitoringCodes: ['MAR', 'MEX'] },
+  { satelliteId: '117WB', satelliteName: 'EUTELSAT 117 WEST B', nominalSccCode: 'MEX', backupSccCode: 'HER', monitoringCodes: ['MEX', 'MAR'] },
+  { satelliteId: '172B', satelliteName: 'EUTELSAT 172B', nominalSccCode: 'RAM', backupSccCode: 'TUR', monitoringCodes: ['PER', 'SIN', 'IBA'] },
+  { satelliteId: '7C', satelliteName: 'EUTELSAT 7C', nominalSccCode: 'RAM', backupSccCode: 'TUR', monitoringCodes: ['RAM', 'DUB'] },
+  { satelliteId: '5WB', satelliteName: 'EUTELSAT 5 WEST B', nominalSccCode: 'RAM', backupSccCode: 'CAG', monitoringCodes: ['RAM', 'CAG'] },
+  { satelliteId: 'KONNECT', satelliteName: 'EUTELSAT KONNECT', nominalSccCode: 'RAM', backupSccCode: 'TUR', monitoringCodes: ['TUR', 'RAM'] },
+  { satelliteId: 'QUANTUM', satelliteName: 'EUTELSAT QUANTUM', nominalSccCode: 'RAM', backupSccCode: 'TUR', monitoringCodes: ['RAM', 'TUR'] },
+  { satelliteId: 'KONNECT_VHTS', satelliteName: 'EUTELSAT KONNECT VHTS', nominalSccCode: 'RAM', backupSccCode: 'TUR', monitoringCodes: ['TUR', 'RAM'] },
+  { satelliteId: '13F', satelliteName: 'EUTELSAT HOTBIRD 13F', nominalSccCode: 'RAM', backupSccCode: 'TUR', monitoringCodes: ['RAM', 'TUR'] },
+  { satelliteId: '13G', satelliteName: 'EUTELSAT HOTBIRD 13G', nominalSccCode: 'RAM', backupSccCode: 'TUR', monitoringCodes: ['RAM', 'TUR'] },
+  { satelliteId: '10B', satelliteName: 'EUTELSAT 10B', nominalSccCode: 'RAM', backupSccCode: 'TUR', monitoringCodes: ['RAM', 'MAR', 'DUB'] },
+  { satelliteId: '36D', satelliteName: 'EUTELSAT 36D', nominalSccCode: 'RAM', backupSccCode: 'TUR', monitoringCodes: ['RAM', 'DUB'] },
 ];
 
 const GATEWAY_ASSIGNMENT_BY_SATELLITE = new Map(
   GEO_GATEWAY_ASSIGNMENTS.map((assignment) => [assignment.satelliteName.toUpperCase(), assignment])
 );
 
-function getGatewayByName(gateways: GeoGatewayData[], gatewayName: string | null): GeoGatewayData | null {
-  if (!gatewayName) return null;
-  return gateways.find((gateway) => gateway.name === gatewayName) ?? null;
+function getGatewayByCode(
+  gateways: GeoGatewayData[],
+  teleportCode: GroundSegmentTeleportCode | null
+): GeoGatewayData | null {
+  if (!teleportCode) return null;
+  return gateways.find((gateway) => gateway.teleportCode === teleportCode) ?? null;
+}
+
+function getGatewaySelectionForCandidate(
+  satellite: SatelliteData,
+  gateway: GeoGatewayData | null,
+  minGatewayElevationDeg = DEFAULT_RANGES.minGatewayElevationDeg
+): GeoGatewaySelection | null {
+  if (!gateway || !gatewaySupportsSatellite(gateway, satellite)) return null;
+
+  const satPoint = getGeoSatellitePoint(satellite);
+  const coords = getGatewayLatLng(gateway);
+  const gatewayPoint: PointLLA = { lat: coords.lat, lng: coords.lng, altKm: 0 };
+  const gatewayElevationDeg = elevationDeg(gatewayPoint, satPoint);
+  if (gatewayElevationDeg < minGatewayElevationDeg) return null;
+
+  return {
+    gateway,
+    gatewayElevationDeg,
+    satToGatewayDistanceKm: distanceKm(satPoint, gatewayPoint),
+  };
+}
+
+function isAsiaPacificSatellite(satellite: SatelliteData): boolean {
+  return satellite.position.lng >= 70 && satellite.position.lng <= 180;
+}
+
+function isAmericasAutonomySatellite(assignment: GatewaySatelliteAssignment): boolean {
+  return assignment.satelliteId === '115WB' || assignment.satelliteId === '117WA' || assignment.satelliteId === '117WB';
+}
+
+function isKaMonitoringConstrainedSatellite(satellite: SatelliteData): boolean {
+  const normalized = satellite.name.toUpperCase();
+  return normalized === 'EUTELSAT KONNECT' || normalized === 'EUTELSAT KONNECT VHTS';
+}
+
+function getMonitoringCodesForAssignment(
+  assignment: GatewaySatelliteAssignment,
+  satellite: SatelliteData
+): GroundSegmentTeleportCode[] {
+  let monitoringCodes = [...assignment.monitoringCodes];
+
+  if (isAsiaPacificSatellite(satellite) && !monitoringCodes.some((code) => APAC_MONITORING_CODES.has(code))) {
+    monitoringCodes = ['PER', ...monitoringCodes];
+  }
+
+  if (isKaMonitoringConstrainedSatellite(satellite)) {
+    monitoringCodes = monitoringCodes.filter((code) => CSC_VERIFICATION_CODES.includes(code as typeof CSC_VERIFICATION_CODES[number]));
+  }
+
+  return monitoringCodes;
+}
+
+function getGatewayLatencyMs(selection: GeoGatewaySelection | null): number | null {
+  if (!selection) return null;
+  return latencyMsFromDistanceKm(selection.satToGatewayDistanceKm);
+}
+
+function selectConfiguredGateway(
+  satellite: SatelliteData,
+  gateways: GeoGatewayData[],
+  primaryCode: GroundSegmentTeleportCode | null,
+  backupCode: GroundSegmentTeleportCode | null,
+  {
+    maxLatencyMs = SCC_FAILOVER_MAX_LATENCY_MS,
+    minVisibilityDeg = DEFAULT_RANGES.minGatewayElevationDeg,
+  }: GroundSegmentSelectionOptions = {}
+): GeoGatewaySelection | null {
+  const primarySelection = getGatewaySelectionForCandidate(
+    satellite,
+    getGatewayByCode(gateways, primaryCode),
+    minVisibilityDeg
+  );
+  const backupSelection = getGatewaySelectionForCandidate(
+    satellite,
+    getGatewayByCode(gateways, backupCode),
+    minVisibilityDeg
+  );
+
+  const primaryLatencyMs = getGatewayLatencyMs(primarySelection);
+  if (primarySelection && primaryLatencyMs != null && primaryLatencyMs <= maxLatencyMs) {
+    return primarySelection;
+  }
+
+  const backupLatencyMs = getGatewayLatencyMs(backupSelection);
+  if (backupSelection && backupLatencyMs != null && backupLatencyMs <= maxLatencyMs) {
+    return backupSelection;
+  }
+
+  return primarySelection ?? backupSelection;
+}
+
+function isGatewayEligibleForSatellite(
+  gateway: GeoGatewayData | null,
+  satellite: SatelliteData,
+  minGatewayElevationDeg = DEFAULT_RANGES.minGatewayElevationDeg
+): gateway is GeoGatewayData {
+  if (!gateway || !gatewaySupportsSatellite(gateway, satellite)) return false;
+
+  const satPoint = getGeoSatellitePoint(satellite);
+  const coords = getGatewayLatLng(gateway);
+  const gatewayPoint: PointLLA = { lat: coords.lat, lng: coords.lng, altKm: 0 };
+  return elevationDeg(gatewayPoint, satPoint) >= minGatewayElevationDeg;
 }
 
 export function getGatewayAssignmentsForSatellite(
   satellite: SatelliteData,
-  gateways: GeoGatewayData[]
+  gateways: GeoGatewayData[],
+  options: GroundSegmentSelectionOptions = {}
 ): { primary: GeoGatewayData | null; backup: GeoGatewayData | null } {
   if (satellite.orbitType !== 'GEO' || satellite.type !== 'EUTELSAT' || satellite.opsStatus !== 'operational') {
     return { primary: null, backup: null };
@@ -266,10 +406,26 @@ export function getGatewayAssignmentsForSatellite(
 
   const assignment = GATEWAY_ASSIGNMENT_BY_SATELLITE.get(satellite.name.toUpperCase());
   if (assignment) {
-    return {
-      primary: getGatewayByName(gateways, assignment.primaryGatewayName),
-      backup: getGatewayByName(gateways, assignment.backupGatewayName),
-    };
+    const criticalFailureRegions = new Set(options.criticalFailureRegions ?? []);
+    const enforceAmericasAutonomy = isAmericasAutonomySatellite(assignment) && !criticalFailureRegions.has('AMERICAS');
+    const nominalScc = getGatewayByCode(gateways, assignment.nominalSccCode);
+    const backupScc = getGatewayByCode(gateways, assignment.backupSccCode);
+    const eligiblePrimary = isGatewayEligibleForSatellite(nominalScc, satellite) ? nominalScc : null;
+    const eligibleBackup = isGatewayEligibleForSatellite(backupScc, satellite) ? backupScc : null;
+
+    if (enforceAmericasAutonomy) {
+      return {
+        primary: eligiblePrimary ?? eligibleBackup,
+        backup: eligiblePrimary && eligibleBackup ? eligibleBackup : null,
+      };
+    }
+
+    if (nominalScc || backupScc) {
+      return {
+        primary: nominalScc,
+        backup: backupScc,
+      };
+    }
   }
 
   const fallback = selectBestGeoGateway(satellite, gateways);
@@ -304,29 +460,135 @@ export function getAssignedGeoSatellitesForGateway(
   return { primary, backup };
 }
 
+export function getGroundSegmentRoutingForSatellite(
+  satellite: SatelliteData,
+  gateways: GeoGatewayData[],
+  options: GroundSegmentSelectionOptions = {}
+): GroundSegmentRouting | null {
+  if (satellite.orbitType !== 'GEO' || satellite.type !== 'EUTELSAT' || satellite.opsStatus !== 'operational') {
+    return null;
+  }
+
+  const assignment = GATEWAY_ASSIGNMENT_BY_SATELLITE.get(satellite.name.toUpperCase());
+  if (!assignment) {
+    const fallbackGateway = selectBestGeoGateway(satellite, gateways, options.minVisibilityDeg)?.gateway ?? null;
+    return {
+      satelliteId: satellite.id,
+      satelliteName: satellite.name,
+      nominalScc: fallbackGateway,
+      backupScc: null,
+      nominalMonitoring: fallbackGateway,
+      monitoring: fallbackGateway ? [fallbackGateway] : [],
+    };
+  }
+
+  const nominalScc = getGatewayByCode(gateways, assignment.nominalSccCode);
+  const backupScc = getGatewayByCode(gateways, assignment.backupSccCode);
+  const monitoringCodes = getMonitoringCodesForAssignment(assignment, satellite);
+  const monitoring = monitoringCodes
+    .map((code) => getGatewayByCode(gateways, code))
+    .filter((gateway): gateway is GeoGatewayData => gateway != null);
+
+  return {
+    satelliteId: assignment.satelliteId,
+    satelliteName: satellite.name,
+    nominalScc,
+    backupScc,
+    nominalMonitoring: monitoring[0] ?? null,
+    monitoring,
+  };
+}
+
+export function getGroundSegmentConfirmationStatuses(
+  gateways: GeoGatewayData[]
+): Array<{ satelliteId: string; nominalScc: string | null; nominalMonitoring: string | null }> {
+  return GEO_GATEWAY_ASSIGNMENTS.map((assignment) => {
+    const nominalScc = getGatewayByCode(gateways, assignment.nominalSccCode);
+    const nominalMonitoring = getGatewayByCode(
+      gateways,
+      getMonitoringCodesForAssignment(
+        {
+          ...assignment,
+          monitoringCodes: [...assignment.monitoringCodes],
+        },
+        {
+          id: assignment.satelliteId,
+          name: assignment.satelliteName,
+          noradId: assignment.satelliteId,
+          coverageFileId: null,
+          type: 'EUTELSAT',
+          orbitType: 'GEO',
+          opsStatus: 'operational',
+          satrec: null,
+          position: { lat: 0, lng: 0, alt: GEO_ALTITUDE_KM },
+          referenced_coverages: { type: 'FeatureCollection', features: [] },
+          coverages: [],
+          capacity: {
+            maxThroughput: 0,
+            bandwidth: { ku: 0, ka: 0, c: 0 },
+            availability: 1,
+          },
+        }
+      )[0] ?? null
+    );
+
+    return {
+      satelliteId: assignment.satelliteId,
+      nominalScc: nominalScc?.name ?? null,
+      nominalMonitoring: nominalMonitoring?.name ?? null,
+    };
+  });
+}
+
+export function selectOperationalGeoGateway(
+  satellite: SatelliteData,
+  gateways: GeoGatewayData[],
+  options: GroundSegmentSelectionOptions = {}
+): GeoGatewaySelection | null {
+  const assignment = GATEWAY_ASSIGNMENT_BY_SATELLITE.get(satellite.name.toUpperCase());
+  if (!assignment) {
+    return selectBestGeoGateway(satellite, gateways, options.minVisibilityDeg);
+  }
+
+  const criticalFailureRegions = new Set(options.criticalFailureRegions ?? []);
+  if (isAmericasAutonomySatellite(assignment) && criticalFailureRegions.has('AMERICAS')) {
+    return selectBestGeoGateway(satellite, gateways, options.minVisibilityDeg);
+  }
+
+  const monitoringCodes = getMonitoringCodesForAssignment(assignment, satellite);
+  for (const code of monitoringCodes) {
+    const selection = getGatewaySelectionForCandidate(
+      satellite,
+      getGatewayByCode(gateways, code),
+      options.minVisibilityDeg
+    );
+    const latencyMs = getGatewayLatencyMs(selection);
+    if (selection && latencyMs != null && latencyMs <= (options.maxLatencyMs ?? SCC_FAILOVER_MAX_LATENCY_MS)) {
+      return selection;
+    }
+  }
+
+  return selectConfiguredGateway(
+    satellite,
+    gateways,
+    assignment.nominalSccCode,
+    assignment.backupSccCode,
+    options
+  );
+}
+
 export function selectBestGeoGateway(
   satellite: SatelliteData,
   gateways: GeoGatewayData[],
   minGatewayElevationDeg = DEFAULT_RANGES.minGatewayElevationDeg
 ): GeoGatewaySelection | null {
-  const satPoint = getGeoSatellitePoint(satellite);
   let best: GeoGatewaySelection | null = null;
 
   for (const gateway of gateways) {
-    if (!gatewaySupportsSatellite(gateway, satellite)) continue;
-
-    const coords = getGatewayLatLng(gateway);
-    const gatewayPoint: PointLLA = { lat: coords.lat, lng: coords.lng, altKm: 0 };
-    const gwElevation = elevationDeg(gatewayPoint, satPoint);
-    if (gwElevation < minGatewayElevationDeg) continue;
-
-    const satToGw = distanceKm(satPoint, gatewayPoint);
-    if (!best || satToGw < best.satToGatewayDistanceKm) {
-      best = {
-        gateway,
-        gatewayElevationDeg: gwElevation,
-        satToGatewayDistanceKm: satToGw,
-      };
+    const candidate = getGatewaySelectionForCandidate(satellite, gateway, minGatewayElevationDeg);
+    if (!candidate) continue;
+    if (!best || candidate.satToGatewayDistanceKm < best.satToGatewayDistanceKm) {
+      best = candidate;
     }
   }
 
@@ -338,8 +600,13 @@ export function getMonitoredGeoSatellitesForGateway(
   satellites: SatelliteData[],
   gateways: GeoGatewayData[]
 ): SatelliteData[] {
-  const assigned = getAssignedGeoSatellitesForGateway(gateway, satellites, gateways);
-  return [...assigned.primary, ...assigned.backup];
+  const operationalGeo = satellites.filter(
+    (s) => s.orbitType === 'GEO' && s.type === 'EUTELSAT' && s.opsStatus === 'operational'
+  );
+  return operationalGeo.filter((satellite) => {
+    const routing = getGroundSegmentRoutingForSatellite(satellite, gateways);
+    return routing?.monitoring.some((gw) => gw.name === gateway.name) ?? false;
+  });
 }
 
 export function analyzeGeoConnectivity({
@@ -358,7 +625,7 @@ export function analyzeGeoConnectivity({
   const userSatDistanceKm = distanceKm(userLla, satPoint);
   const userElevationDeg = elevationDeg(userLla, satPoint);
   const userSatLatencyMs = latencyMsFromDistanceKm(userSatDistanceKm);
-  const selectedGateway = selectBestGeoGateway(satellite, gateways);
+  const selectedGateway = selectOperationalGeoGateway(satellite, gateways);
 
   const delays = {
     ...DEFAULT_GEO_OVERHEAD_MS,
@@ -395,7 +662,7 @@ export function analyzeGeoConnectivity({
   }
   if (!selectedGateway) {
     warnings.push(
-      `No eligible gateway found (supporting satellite + gateway elevation >= ${DEFAULT_RANGES.minGatewayElevationDeg} deg).`
+      `No eligible monitoring gateway found (visibility >= ${DEFAULT_RANGES.minGatewayElevationDeg} deg).`
     );
   }
   if (userSatLatencyMs < geoUserLatencyBoundsMs.minMs - DEFAULT_RANGES.userSatLatencyToleranceMs) {

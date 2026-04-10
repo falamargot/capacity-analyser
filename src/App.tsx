@@ -49,6 +49,7 @@ import { estimateBeamLoad } from './utils/capacityLayer';
 import { computeServiceStatus } from './utils/serviceLayer';
 import { getConnectivityStatus, hasRFConnectivity } from './utils/rfConnectivity';
 import { deriveLeoConnectivityViewModel } from './utils/leoServiceViewModel';
+import { getGroundSegmentRoutingForSatellite } from './utils/geoConnectivityModel';
 import type { GeoPointStatus } from './utils/selectedPointStatus';
 import type { CountryOverlayMode } from './types/countryOverlays';
 
@@ -62,6 +63,7 @@ const SNPDetails = lazy(() => import('./components/SNPDetails'));
 const COMPACT_DESKTOP_DIAG_MIN = Math.hypot(1920, 1080);
 const COMPACT_DESKTOP_DIAG_MAX = Math.hypot(2560, 1440);
 const LEGACY_AUTO_MARKER_REF_DIAG = Math.hypot(1024, 768);
+const REPRESENTATIVE_TELEPORT_IMAGE_URL = 'https://upload.wikimedia.org/wikipedia/commons/thumb/f/fe/Teleport_of_satellite_communications_provider.jpg/960px-Teleport_of_satellite_communications_provider.jpg';
 
 type ViewportSnapshot = {
   innerWidth: number;
@@ -1714,6 +1716,28 @@ const App: React.FC = () => {
   const desktopSidebarWidth = Math.round(lerp(500, 405, desktopCompactProgress));
   const desktopLayoutGap = Math.round(lerp(24, 16, desktopCompactProgress));
 
+  const selectedGatewayHeroData = useMemo(() => {
+    if (!selectedGateway) return null;
+
+    const operationalGeoSatellites = satellites.filter((satellite) => (
+      satellite.orbitType === 'GEO' && satellite.type === 'EUTELSAT' && satellite.opsStatus === 'operational'
+    ));
+
+    const routedSatellites = operationalGeoSatellites
+      .map((satellite) => ({ satellite, routing: getGroundSegmentRoutingForSatellite(satellite, GEO_GATEWAYS) }))
+      .filter((entry): entry is { satellite: SatelliteData; routing: NonNullable<ReturnType<typeof getGroundSegmentRoutingForSatellite>> } => entry.routing != null);
+
+    return {
+      nominalCount: routedSatellites.filter(({ routing }) => routing.nominalScc?.name === selectedGateway.name).length,
+      backupCount: routedSatellites.filter(({ routing }) => routing.backupScc?.name === selectedGateway.name).length,
+      monitoringCount: routedSatellites.filter(({ routing }) => routing.monitoring.some((gateway) => gateway.name === selectedGateway.name)).length,
+      hasKaVerification: routedSatellites.some(({ satellite, routing }) => (
+        routing.monitoring.some((gateway) => gateway.name === selectedGateway.name)
+        && (satellite.name === 'EUTELSAT KONNECT' || satellite.name === 'EUTELSAT KONNECT VHTS')
+      )),
+    };
+  }, [selectedGateway, satellites]);
+
   const desktopSidebarHero = useMemo(() => {
     if (selectedMoon) {
       return {
@@ -1755,7 +1779,12 @@ const App: React.FC = () => {
         eyebrow: 'Ground Segment',
         title: inspectedSNP.name,
         subtitle: `${inspectedSNP.region} ground node`,
-        footer: null,
+        footer: (
+          <div className="flex items-center gap-1.5 text-[13px] font-semibold text-slate-700 dark:text-slate-200">
+            <MapPin className="h-3.5 w-3.5 shrink-0 text-slate-500 dark:text-slate-400" />
+            {formatCoordinates({ lat: inspectedSNP.lat, lng: inspectedSNP.lng })}
+          </div>
+        ),
         tone: 'snp' as const,
         badges: [
           { label: 'SNP', tone: 'amber' as const },
@@ -1768,13 +1797,36 @@ const App: React.FC = () => {
       return {
         eyebrow: 'Ground Segment',
         title: selectedGateway.name,
-        subtitle: 'GEO gateway inspection',
-        footer: null,
+        subtitle: `${selectedGateway.teleportCode} · ${selectedGateway.role.replaceAll('_', ' ')}`,
+        footer: (
+          <div className="space-y-2.5">
+            <div className="flex items-center gap-1.5 text-[13px] font-semibold text-slate-700 dark:text-slate-200">
+              <MapPin className="h-3.5 w-3.5 shrink-0 text-slate-500 dark:text-slate-400" />
+              {formatCoordinates({ lat: selectedGateway.lat, lng: selectedGateway.lng })}
+            </div>
+            {selectedGatewayHeroData && (
+              <div className="flex gap-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-700 dark:text-slate-200">
+                <span className="flex-1 whitespace-nowrap rounded-full bg-white/80 px-2.5 py-1 text-center dark:bg-slate-800/90">
+                  Nominal SCC {selectedGatewayHeroData.nominalCount}
+                </span>
+                <span className="flex-1 whitespace-nowrap rounded-full bg-white/80 px-2.5 py-1 text-center dark:bg-slate-800/90">
+                  Backup {selectedGatewayHeroData.backupCount}
+                </span>
+                <span className="flex-1 whitespace-nowrap rounded-full bg-white/80 px-2.5 py-1 text-center dark:bg-slate-800/90">
+                  Monitoring {selectedGatewayHeroData.monitoringCount}
+                </span>
+              </div>
+            )}
+          </div>
+        ),
+        backgroundImageUrl: REPRESENTATIVE_TELEPORT_IMAGE_URL,
+        backgroundImageLabel: 'Representative teleport infrastructure photo',
         tone: 'gateway' as const,
         badges: [
-          { label: 'Gateway', tone: 'blue' as const },
+          { label: selectedGateway.role.includes('Monitoring') ? 'Monitoring' : selectedGateway.role.includes('Backup') ? 'Backup SCC' : 'Nominal SCC', tone: selectedGateway.role.includes('Backup') ? 'amber' as const : 'blue' as const },
           { label: selectedGateway.region, tone: 'slate' as const },
-          { label: 'GEO', tone: 'blue' as const },
+          { label: selectedGateway.teleportCode, tone: 'slate' as const },
+          ...(selectedGatewayHeroData?.hasKaVerification ? [{ label: 'Ka Verification', tone: 'teal' as const }] : []),
         ],
       };
     }
@@ -1854,6 +1906,7 @@ const App: React.FC = () => {
     inspectedSNP,
     nearestLocation,
     selectedGateway,
+    selectedGatewayHeroData,
     selectedMoon,
     satelliteScope,
     selectedAircraft,
@@ -2616,6 +2669,8 @@ const App: React.FC = () => {
                   title={desktopSidebarHero.title}
                   subtitle={desktopSidebarHero.subtitle}
                   footer={desktopSidebarHero.footer}
+                  backgroundImageUrl={desktopSidebarHero.backgroundImageUrl}
+                  backgroundImageLabel={desktopSidebarHero.backgroundImageLabel}
                   tone={desktopSidebarHero.tone}
                   badges={desktopSidebarHero.badges}
                   compact={useCompactDesktopSidebar}

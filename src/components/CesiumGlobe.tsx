@@ -78,7 +78,7 @@ import ArtemisLayer from './cesium-globe/ArtemisLayer';
 import ArtemisTrackerCard from './cesium-globe/ArtemisTrackerCard';
 import MoonLayer from './cesium-globe/MoonLayer';
 import { GEO_GATEWAYS, SNPS_DATA, type GeoGatewayData, type SNPData } from './globe/GlobeConfig';
-import { getGatewayAssignmentsForSatellite, selectBestGeoGateway } from '../utils/geoConnectivityModel';
+import { selectOperationalGeoGateway } from '../utils/geoConnectivityModel';
 import { isOperationalSatellite } from '../utils/satelliteStatus';
 import type { LeoConnectivityViewModel } from '../utils/leoServiceViewModel';
 import type { RegulatoryResult } from '../services/regulatoryService';
@@ -691,10 +691,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
             : autoSelectedGEOSatellite;
         if (!geoSatellite) return null;
 
-        const assignedGateway = getGatewayAssignmentsForSatellite(geoSatellite, GEO_GATEWAYS).primary;
-        if (assignedGateway) return assignedGateway.name;
-
-        return selectBestGeoGateway(geoSatellite, GEO_GATEWAYS)?.gateway.name ?? null;
+        return selectOperationalGeoGateway(geoSatellite, GEO_GATEWAYS)?.gateway.name ?? null;
     }, [selectedSatellite, autoSelectedGEOSatellite]);
 
     // satelliteById, aircraftById, vesselById are only consulted in hover/click

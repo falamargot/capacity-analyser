@@ -593,6 +593,16 @@ const getFeaturePrebuiltMesh = (
   return meshLookupKey ? (meshIndex?.get(meshLookupKey) ?? null) : null;
 };
 
+const hasRenderablePrebuiltFill = (
+  feature: Feature<Geometry, GeoJsonProperties>,
+  geometryPartKey: string,
+  meshIndex: Map<string, PrebuiltCoverageMesh> | null,
+): boolean => {
+  const prebuiltMesh = getFeaturePrebuiltMesh(feature, geometryPartKey, meshIndex);
+  return prebuiltMesh !== null
+    && prebuiltMesh.triangleCount <= MAX_PREBUILT_FILL_TRIANGLES_PER_PART;
+};
+
 const toRenderContour = (
   satellite: SatelliteData,
   coverage: Coverage,
@@ -674,23 +684,20 @@ const buildCoverageContours = (
   const coverages = getCoverageParts(satellite, coverageKey);
   const normalizedLevels = getCoverageLevelNormalizer(coverages);
   const primaryContourKey = getPrimaryContourKey(coverages);
-  const canUseBandedGradientFill = coverages.length > 0 && coverages.every((coverage, index) => {
-    const feature = coverage.feature as Feature<Geometry, GeoJsonProperties>;
-    const geometryPartKey = getGeometryPartKey(feature, index);
-    const prebuiltMesh = getFeaturePrebuiltMesh(feature, geometryPartKey, meshIndex);
-
-    return prebuiltMesh !== null
-      && prebuiltMesh.fillMode === 'banded'
-      && prebuiltMesh.triangleCount <= MAX_PREBUILT_FILL_TRIANGLES_PER_PART;
-  });
 
   return coverages
     .map((coverage, index) => {
+      const feature = coverage.feature as Feature<Geometry, GeoJsonProperties>;
       const contourKey = getCoverageBeamId(coverage);
+      const geometryPartKey = getGeometryPartKey(feature, index);
+      const hasLocalPrebuiltFill = hasRenderablePrebuiltFill(feature, geometryPartKey, meshIndex);
       const mode = selectedContourKey === null || selectedContourKey === contourKey
         ? 'full'
         : 'dimmed';
-      const showFill = canUseBandedGradientFill || (primaryContourKey !== null && contourKey === primaryContourKey);
+      // Mixed banded/simple datasets should only degrade locally. If a part has
+      // a renderable prebuilt mesh, keep its fill instead of disabling fills for
+      // the whole coverage because another part fell back to a simple mesh.
+      const showFill = hasLocalPrebuiltFill || (primaryContourKey !== null && contourKey === primaryContourKey);
 
       return toRenderContour(
         satellite,

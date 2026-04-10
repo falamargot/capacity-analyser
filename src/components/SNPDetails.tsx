@@ -53,18 +53,6 @@ const SNPDetails = memo<SNPDetailsProps>(({ snp, connectedSatellites, onSatellit
             </div>
           )}
 
-          {/* Location */}
-          <div className="grid grid-cols-2 gap-3">
-            <div className="bg-gray-50 dark:bg-slate-800/50 backdrop-blur-sm rounded-lg shadow-sm py-2 px-4 border border-gray-100 dark:border-slate-700">
-              <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Latitude</h3>
-              <p className="text-lg font-semibold text-gray-900 dark:text-gray-100 font-mono">{snp.lat.toFixed(2)}°</p>
-            </div>
-            <div className="bg-gray-50 dark:bg-slate-800/50 backdrop-blur-sm rounded-lg shadow-sm py-2 px-4 border border-gray-100 dark:border-slate-700">
-              <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Longitude</h3>
-              <p className="text-lg font-semibold text-gray-900 dark:text-gray-100 font-mono">{snp.lng.toFixed(2)}°</p>
-            </div>
-          </div>
-
           {/* Backhaul Coverage */}
           <div className="bg-gray-50 dark:bg-slate-800/50 rounded-lg p-3 border border-gray-100 dark:border-slate-700">
             <h3 className="mb-2 flex items-center text-sm font-semibold text-gray-900 dark:text-gray-100">

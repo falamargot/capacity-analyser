@@ -14,6 +14,8 @@ interface SidebarHeroCardProps {
   title: string;
   subtitle: string;
   footer?: ReactNode;
+  backgroundImageUrl?: string;
+  backgroundImageLabel?: string;
   tone?: HeroTone;
   badges?: SidebarHeroBadge[];
   compact?: boolean;
@@ -49,6 +51,8 @@ const SidebarHeroCard = memo<SidebarHeroCardProps>(({
   title,
   subtitle,
   footer,
+  backgroundImageUrl,
+  backgroundImageLabel,
   tone = 'idle',
   badges = [],
   compact = false,
@@ -56,7 +60,14 @@ const SidebarHeroCard = memo<SidebarHeroCardProps>(({
 }) => {
   return (
     <div className={compact ? 'px-2.5 pt-2.5 pb-2' : 'px-3 pt-3 pb-2'}>
-      <div className={`overflow-hidden rounded-2xl border bg-gradient-to-br ${toneStyles[tone]} bg-white dark:bg-slate-900 shadow-[0_20px_45px_-28px_rgba(15,23,42,0.55)]`}>
+      <div
+        className={`overflow-hidden rounded-2xl border bg-gradient-to-br ${toneStyles[tone]} bg-white dark:bg-slate-900 shadow-[0_20px_45px_-28px_rgba(15,23,42,0.55)]`}
+        style={backgroundImageUrl ? {
+          backgroundImage: `linear-gradient(135deg, rgba(8, 15, 30, 0.78), rgba(8, 47, 73, 0.60)), url(${backgroundImageUrl})`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+        } : undefined}
+      >
         <div className={`relative ${compact ? 'px-3.5 py-3.5' : 'px-4 py-4'}`}>
           <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.85),transparent_42%)] dark:bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.06),transparent_42%)]" />
           <div className={`relative flex items-start justify-between ${compact ? 'gap-3' : 'gap-4'}`}>
@@ -85,6 +96,11 @@ const SidebarHeroCard = memo<SidebarHeroCardProps>(({
               {footer && (
                 <div className={`mt-3 border-t border-slate-200/80 pt-3 dark:border-slate-700/80 ${compact ? 'text-[12px]' : 'text-sm'}`}>
                   {footer}
+                </div>
+              )}
+              {backgroundImageUrl && backgroundImageLabel && (
+                <div className={`mt-2 text-slate-500 dark:text-slate-400 ${compact ? 'text-[10px]' : 'text-[11px]'}`}>
+                  {backgroundImageLabel}
                 </div>
               )}
             </div>

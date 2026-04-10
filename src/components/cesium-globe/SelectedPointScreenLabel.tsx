@@ -11,6 +11,8 @@ import {
   deriveSelectedPointStatusPresentation,
   type GeoPointStatus,
   type SelectedPointScope,
+  type SelectedPointStatusLine,
+  type SelectedPointStatusTone,
 } from '../../utils/selectedPointStatus';
 import { getPosition } from './utils';
 import { GROUND_POINT_ALTITUDE_KM } from './layerHeights';
@@ -27,11 +29,11 @@ interface SelectedPointScreenLabelProps {
   compact?: boolean;
 }
 
-const statusClassName = (tone: ReturnType<typeof deriveSelectedPointStatusPresentation>['tone']): string => {
-  if (tone === 'danger') return 'bg-red-500/88';
-  if (tone === 'warning') return 'bg-orange-500/88';
-  if (tone === 'success') return 'bg-emerald-500/88';
-  return 'bg-slate-500/88';
+const statusTextClassName = (tone: SelectedPointStatusTone): string => {
+  if (tone === 'danger') return 'text-red-400';
+  if (tone === 'warning') return 'text-orange-300';
+  if (tone === 'success') return 'text-emerald-300';
+  return 'text-slate-200';
 };
 
 const formatCompactThroughputMbps = (gbps: number | null | undefined): string => {
@@ -39,7 +41,10 @@ const formatCompactThroughputMbps = (gbps: number | null | undefined): string =>
   return `${Math.round(gbps * 1000)}`;
 };
 
-const formatCompactPerformanceLine = (label: 'LEO' | 'GEO', metrics: MobileLinkMetrics | null | undefined): string | null => {
+const formatCompactPerformanceLine = (
+  label: 'LEO' | 'GEO',
+  metrics: MobileLinkMetrics | null | undefined,
+): string | null => {
   if (!metrics || metrics.rtt == null || !Number.isFinite(metrics.rtt)) {
     return null;
   }
@@ -49,6 +54,15 @@ const formatCompactPerformanceLine = (label: 'LEO' | 'GEO', metrics: MobileLinkM
     `${Math.round(metrics.rtt)}ms`,
     `${formatCompactThroughputMbps(metrics.downlinkGbps)}/${formatCompactThroughputMbps(metrics.uplinkGbps)}Mbps`,
   ].join(' ');
+};
+
+const buildPerformanceStatusLine = (
+  label: 'LEO' | 'GEO',
+  metrics: MobileLinkMetrics | null | undefined,
+  tone: SelectedPointStatusTone,
+): SelectedPointStatusLine | null => {
+  const text = formatCompactPerformanceLine(label, metrics);
+  return text ? { text, tone } : null;
 };
 
 const SelectedPointScreenLabel: React.FC<SelectedPointScreenLabelProps> = ({
@@ -75,33 +89,27 @@ const SelectedPointScreenLabel: React.FC<SelectedPointScreenLabelProps> = ({
   const text = useMemo(() => {
     if (!selectedPosition) return null;
 
-    const fallbackStatusLines = presentation.lines.map((line) => line.text);
-    const leoPerformanceLine = leoServiceViewModel?.finalServiceStatus === 'ALLOWED'
-      ? formatCompactPerformanceLine('LEO', performanceMetrics?.leo)
-      : null;
-    const geoPerformanceLine = geoPointStatus === 'available'
-      ? formatCompactPerformanceLine('GEO', performanceMetrics?.geo)
-      : null;
+    const fallbackStatusLines = presentation.lines;
+    const leoStatusLine = leoServiceViewModel?.finalServiceStatus === 'ALLOWED'
+      ? buildPerformanceStatusLine('LEO', performanceMetrics?.leo, 'success') ?? fallbackStatusLines[0]
+      : leoServiceViewModel?.finalServiceStatus === 'DEGRADED'
+        ? buildPerformanceStatusLine('LEO', performanceMetrics?.leo, 'warning') ?? fallbackStatusLines[0]
+        : fallbackStatusLines[0];
+    const geoStatusLine = geoPointStatus === 'available'
+      ? buildPerformanceStatusLine('GEO', performanceMetrics?.geo, 'success') ?? fallbackStatusLines[fallbackStatusLines.length - 1]
+      : fallbackStatusLines[fallbackStatusLines.length - 1];
 
     const statusLines = satelliteScope === 'LEO'
-      ? [leoPerformanceLine ?? fallbackStatusLines[0]]
+      ? [leoStatusLine]
       : satelliteScope === 'GEO'
-        ? [geoPerformanceLine ?? fallbackStatusLines[0]]
-        : [
-            leoPerformanceLine ?? fallbackStatusLines[0],
-            geoPerformanceLine ?? fallbackStatusLines[1],
-          ];
+        ? [geoStatusLine]
+        : [leoStatusLine, geoStatusLine];
 
     return {
       coordinates: formatCoordinates({ lat: selectedPosition.lat, lng: selectedPosition.lng }),
-      statusLines: statusLines.filter((line): line is string => typeof line === 'string' && line.length > 0),
+      statusLines: statusLines.filter((line): line is SelectedPointStatusLine => typeof line?.text === 'string' && line.text.length > 0),
     };
   }, [geoPointStatus, leoServiceViewModel?.finalServiceStatus, performanceMetrics?.geo, performanceMetrics?.leo, presentation.lines, satelliteScope, selectedPosition]);
-
-  const badgeClassName = useMemo(
-    () => statusClassName(presentation.tone),
-    [presentation.tone]
-  );
 
   useEffect(() => {
     const label = labelRef.current;
@@ -156,7 +164,7 @@ const SelectedPointScreenLabel: React.FC<SelectedPointScreenLabelProps> = ({
       viewer.scene.postRender.removeEventListener(updatePosition);
       window.removeEventListener('resize', updatePosition);
     };
-  }, [containerRef, selectedPosition, viewerReady, viewerRef]);
+  }, [compact, containerRef, selectedPosition, viewerReady, viewerRef]);
 
   if (!selectedPosition || !text) return null;
 
@@ -166,13 +174,16 @@ const SelectedPointScreenLabel: React.FC<SelectedPointScreenLabelProps> = ({
       className="absolute z-50 pointer-events-none -translate-x-1/2 -translate-y-full opacity-0"
       style={{ left: 0, top: 0 }}
     >
-      <div className={`${badgeClassName} ${compact ? 'rounded-[10px] px-2.5 py-1.5' : 'rounded px-3 py-1.5'} text-white shadow-lg ring-1 ring-white/25 backdrop-blur-sm`}>
-        <div className={`${compact ? 'text-[11px]' : 'text-[12px] sm:text-sm'} font-semibold leading-tight`}>
+      <div className={`${compact ? 'rounded-[10px] px-2.5 py-1.5' : 'rounded px-3 py-1.5'} bg-slate-900/82 text-white shadow-lg ring-1 ring-white/20 backdrop-blur-sm`}>
+        <div className={`${compact ? 'text-[11px]' : 'text-[12px] sm:text-sm'} font-semibold leading-tight text-white`}>
           {text.coordinates}
         </div>
         {text.statusLines.map((statusLine, index) => (
-          <div key={`${statusLine}-${index}`} className={`${compact ? 'text-[11px]' : 'text-[12px] sm:text-sm'} font-semibold leading-tight`}>
-            {statusLine}
+          <div
+            key={`${statusLine.text}-${index}`}
+            className={`${compact ? 'text-[11px]' : 'text-[12px] sm:text-sm'} font-semibold leading-tight ${statusTextClassName(statusLine.tone)}`}
+          >
+            {statusLine.text}
           </div>
         ))}
       </div>

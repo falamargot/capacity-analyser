@@ -1,11 +1,23 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import * as satellite from 'satellite.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const TARGET_TLE_FILE    = path.join(__dirname, '../public/celestrak.txt');
 const TARGET_SATCAT_FILE = path.join(__dirname, '../public/satcat-status.json');
+
+const GEO_POSITION_OVERRIDES = {
+  '28187': {
+    name: 'EUTELSAT 139 WEST A',
+    targetLongitudeDeg: -139.2,
+    inclinationDeg: 0.05,
+    eccentricity: 0.0001,
+    meanMotionRevPerDay: 1.0027,
+    reason: 'Operational slot override for inclined-orbit / end-of-life GEO display.',
+  },
+};
 
 // ─── TLE helpers ──────────────────────────────────────────────────────────────
 
@@ -31,6 +43,97 @@ function filterTLEs(content) {
   }
 
   return { filteredText: filteredLines.join('\n'), noradIds };
+}
+
+function normalizeLongitudeDeg(value) {
+  return ((value + 540) % 360) - 180;
+}
+
+function epochDateFromTLELine1(line1) {
+  const year2 = Number(line1.slice(18, 20));
+  const year = year2 < 57 ? 2000 + year2 : 1900 + year2;
+  const dayOfYear = Number(line1.slice(20, 32));
+  const yearStart = Date.UTC(year, 0, 1);
+  return new Date(yearStart + (dayOfYear - 1) * 24 * 60 * 60 * 1000);
+}
+
+function tleChecksum(lineWithoutChecksum) {
+  let checksum = 0;
+  for (const char of lineWithoutChecksum) {
+    if (char >= '0' && char <= '9') checksum += Number(char);
+    else if (char === '-') checksum += 1;
+  }
+  return checksum % 10;
+}
+
+function buildTLELine2({
+  satnum,
+  inclinationDeg,
+  raanDeg,
+  eccentricity,
+  argPerigeeDeg,
+  meanAnomalyDeg,
+  meanMotionRevPerDay,
+  revolutionNumber,
+}) {
+  const eccentricityDigits = Math.round(eccentricity * 1e7).toString().padStart(7, '0');
+  const body =
+    `2 ${String(satnum).padStart(5, ' ')}`
+    + `${inclinationDeg.toFixed(4).padStart(9, ' ')}`
+    + `${raanDeg.toFixed(4).padStart(9, ' ')}`
+    + ` ${eccentricityDigits}`
+    + `${argPerigeeDeg.toFixed(4).padStart(9, ' ')}`
+    + `${meanAnomalyDeg.toFixed(4).padStart(9, ' ')}`
+    + `${meanMotionRevPerDay.toFixed(8).padStart(12, ' ')}`
+    + `${String(revolutionNumber).padStart(6, ' ')}`;
+
+  return `${body}${tleChecksum(body)}`;
+}
+
+function applyGeoPositionOverrides(content) {
+  const lines = content.split('\n');
+  const patchedLines = [...lines];
+
+  for (let i = 0; i + 2 < lines.length; i += 3) {
+    const nameLine = lines[i]?.trim();
+    const line1 = lines[i + 1]?.trim();
+    const line2 = lines[i + 2]?.trim();
+
+    if (!nameLine || !line1 || !line2) continue;
+
+    const noradId = line1.substring(2, 7).trim();
+    const override = GEO_POSITION_OVERRIDES[noradId];
+    if (!override) continue;
+
+    const satrec = satellite.twoline2satrec(line1, line2);
+    const epochDate = epochDateFromTLELine1(line1);
+    const gmstDeg = satellite.gstime(epochDate) * 180 / Math.PI;
+    const raanDeg = satrec.nodeo * 180 / Math.PI;
+    const argPerigeeDeg = satrec.argpo * 180 / Math.PI;
+    const meanAnomalyDeg = normalizeLongitudeDeg(
+      override.targetLongitudeDeg + gmstDeg - raanDeg - argPerigeeDeg
+    );
+
+    const revolutionNumber = line2.slice(63, 68).trim() || '0';
+
+    patchedLines[i + 2] = buildTLELine2({
+      satnum: noradId,
+      inclinationDeg: override.inclinationDeg,
+      raanDeg,
+      eccentricity: override.eccentricity,
+      argPerigeeDeg,
+      meanAnomalyDeg,
+      meanMotionRevPerDay: override.meanMotionRevPerDay,
+      revolutionNumber,
+    });
+
+    console.log(
+      `[TLE Override] ${override.name} (${noradId}) forced to ${override.targetLongitudeDeg.toFixed(1)}° `
+      + `using synthetic GEO line 2. ${override.reason}`
+    );
+  }
+
+  return patchedLines.join('\n');
 }
 
 // ─── SATCAT helpers ───────────────────────────────────────────────────────────
@@ -71,8 +174,9 @@ async function update() {
 
     const tleRaw = await tleResp.text();
     const { filteredText, noradIds: ids } = filterTLEs(tleRaw);
+    const patchedText = applyGeoPositionOverrides(filteredText);
     noradIds = ids;
-    fs.writeFileSync(TARGET_TLE_FILE, filteredText);
+    fs.writeFileSync(TARGET_TLE_FILE, patchedText);
     console.log(`[TLE] Wrote ${noradIds.size} satellites to ${TARGET_TLE_FILE}`);
   } catch (err) {
     console.error('[TLE] Failed:', err.message, '— existing celestrak.txt unchanged.');

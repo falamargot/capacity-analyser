@@ -30,6 +30,18 @@ const formatThroughput = (throughputMbps: number): string => (
     : `${throughputMbps.toFixed(1)} Mbps`
 );
 
+const formatLinkMargin = (linkMarginDb?: number): string => (
+  linkMarginDb != null ? `${linkMarginDb.toFixed(1)} dB` : '--'
+);
+
+const metricLabels = {
+  throughput: 'Tput',
+  latency: 'RTT',
+  elevation: 'Elev',
+  linkMargin: 'Margin',
+  score: 'Score',
+} as const;
+
 const CoverageSelector = memo<CoverageSelectorProps>(({
   candidateCoverages,
   bestCoverage,
@@ -87,21 +99,22 @@ const CoverageSelector = memo<CoverageSelectorProps>(({
           const coverageKey = getCandidateCoverageKey(candidate);
           const isBest = coverageKey === bestKey;
           const isSelected = coverageKey === selectedKey;
+          const showStatusBadge = candidate.status !== 'available';
           const Component = onSelectCoverage ? 'button' : 'div';
 
           return (
             <Component
               key={coverageKey}
               {...(onSelectCoverage ? { type: 'button', onClick: () => onSelectCoverage(candidate) } : {})}
-              className={`w-full rounded-lg border px-3 py-3 text-left transition-colors ${
+              className={`w-full rounded-lg border px-3 py-2.5 text-left transition-colors ${
                 isSelected
                   ? 'border-blue-300 bg-blue-50/80 dark:border-blue-500/50 dark:bg-blue-950/30'
                   : 'border-gray-200 bg-white/80 dark:border-slate-700 dark:bg-slate-900/30'
               } ${onSelectCoverage ? 'hover:border-blue-300 hover:bg-blue-50/40 dark:hover:border-blue-500/40 dark:hover:bg-blue-950/20' : ''}`}
             >
-              <div className="flex flex-wrap items-start justify-between gap-2">
+              <div className="flex flex-wrap items-start justify-between gap-1.5">
                 <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-1.5">
                     <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">
                       {candidate.coverageName}
                     </div>
@@ -111,31 +124,37 @@ const CoverageSelector = memo<CoverageSelectorProps>(({
                       </span>
                     )}
                   </div>
-                  <div className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                  <div className="mt-0.5 text-[11px] leading-tight text-gray-500 dark:text-gray-400">
                     {candidate.satelliteName}
                   </div>
                 </div>
-                <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] ${statusClasses[candidate.status]}`}>
-                  {statusLabel[candidate.status]}
-                </span>
+                {showStatusBadge && (
+                  <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] ${statusClasses[candidate.status]}`}>
+                    {statusLabel[candidate.status]}
+                  </span>
+                )}
               </div>
 
-              <div className="mt-3 grid grid-cols-2 gap-2 text-xs text-gray-600 dark:text-gray-300 sm:grid-cols-4">
+              <div className="mt-2 grid grid-cols-5 gap-x-2 gap-y-1 text-gray-600 dark:text-gray-300">
                 <div>
-                  <div className="text-[10px] uppercase tracking-[0.1em] text-gray-400 dark:text-gray-500">Throughput</div>
-                  <div className="mt-1 font-semibold">{formatThroughput(candidate.throughputEstimate)}</div>
+                  <div className="text-[9px] uppercase tracking-[0.08em] text-gray-400 dark:text-gray-500">{metricLabels.throughput}</div>
+                  <div className="mt-0.5 text-[12px] leading-tight font-semibold">{formatThroughput(candidate.throughputEstimate)}</div>
                 </div>
                 <div>
-                  <div className="text-[10px] uppercase tracking-[0.1em] text-gray-400 dark:text-gray-500">Latency</div>
-                  <div className="mt-1 font-semibold">{candidate.latencyMs != null ? `${candidate.latencyMs.toFixed(1)} ms` : '--'}</div>
+                  <div className="text-[9px] uppercase tracking-[0.08em] text-gray-400 dark:text-gray-500">{metricLabels.latency}</div>
+                  <div className="mt-0.5 text-[12px] leading-tight font-semibold">{candidate.latencyMs != null ? `${candidate.latencyMs.toFixed(1)} ms` : '--'}</div>
                 </div>
                 <div>
-                  <div className="text-[10px] uppercase tracking-[0.1em] text-gray-400 dark:text-gray-500">Elevation</div>
-                  <div className="mt-1 font-semibold">{candidate.elevation.toFixed(1)}°</div>
+                  <div className="text-[9px] uppercase tracking-[0.08em] text-gray-400 dark:text-gray-500">{metricLabels.elevation}</div>
+                  <div className="mt-0.5 text-[12px] leading-tight font-semibold">{candidate.elevation.toFixed(1)}°</div>
                 </div>
                 <div>
-                  <div className="text-[10px] uppercase tracking-[0.1em] text-gray-400 dark:text-gray-500">Score</div>
-                  <div className="mt-1 font-semibold">{candidate.score.toFixed(3)}</div>
+                  <div className="text-[9px] uppercase tracking-[0.08em] text-gray-400 dark:text-gray-500">{metricLabels.linkMargin}</div>
+                  <div className="mt-0.5 text-[12px] leading-tight font-semibold">{formatLinkMargin(candidate.linkMarginDb)}</div>
+                </div>
+                <div>
+                  <div className="text-[9px] uppercase tracking-[0.08em] text-gray-400 dark:text-gray-500">{metricLabels.score}</div>
+                  <div className="mt-0.5 text-[12px] leading-tight font-semibold">{candidate.score.toFixed(3)}</div>
                 </div>
               </div>
             </Component>
