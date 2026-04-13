@@ -28,6 +28,7 @@ import {
     ClockStep,
     JulianDate,
     ImageryLayer,
+    Simon1994PlanetaryPositions,
     createDefaultImageryProviderViewModels,
     type ProviderViewModel
 } from 'cesium';
@@ -504,6 +505,52 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
             });
         }
     }, [cameraTarget]);
+
+    useEffect(() => {
+        if (!selectedMoon || !viewerRef.current || sceneMode !== '3D') return;
+
+        const viewer = viewerRef.current;
+        const time = viewer.clock.currentTime;
+        const moonPosition = Simon1994PlanetaryPositions.computeMoonPositionInEarthInertialFrame(
+            time,
+            new Cartesian3(),
+        );
+        const moonDirection = Cartesian3.normalize(moonPosition, new Cartesian3());
+        const cameraDistanceFromEarthCenter = 70000000; // 70,000 km
+        const destination = Cartesian3.multiplyByScalar(
+            moonDirection,
+            cameraDistanceFromEarthCenter,
+            new Cartesian3(),
+        );
+        const direction = Cartesian3.normalize(
+            Cartesian3.subtract(moonPosition, destination, new Cartesian3()),
+            new Cartesian3(),
+        );
+
+        let upReference = Cartesian3.UNIT_Z;
+        const alignmentWithNorth = Math.abs(Cartesian3.dot(direction, upReference));
+        if (alignmentWithNorth > 0.98) {
+            upReference = Cartesian3.UNIT_Y;
+        }
+
+        const right = Cartesian3.normalize(
+            Cartesian3.cross(direction, upReference, new Cartesian3()),
+            new Cartesian3(),
+        );
+        const up = Cartesian3.normalize(
+            Cartesian3.cross(right, direction, new Cartesian3()),
+            new Cartesian3(),
+        );
+
+        viewer.camera.flyTo({
+            destination,
+            orientation: {
+                direction,
+                up,
+            },
+            duration: 2.5,
+        });
+    }, [sceneMode, selectedMoon]);
 
     // Handle map click with proper entity detection.
     // aircraft/vessels/satellites are read from stable refs so this callback is
