@@ -155,7 +155,6 @@ type InitialDisplayDefaults = {
   showSatelliteTrajectory: boolean;
   showAggregatedConnectivity: boolean;
   showFootprintProjection: boolean;
-  showArtemisTracker: boolean;
   countryOverlayMode: CountryOverlayMode;
   sizeScaleOverride: number | null;
 };
@@ -207,7 +206,6 @@ const getInitialDisplayDefaults = (savedSizeScale: number): InitialDisplayDefaul
       showSatelliteTrajectory: false,
       showAggregatedConnectivity: false,
       showFootprintProjection: false,
-      showArtemisTracker: false,
       countryOverlayMode: 'none',
       sizeScaleOverride: Number.isFinite(savedSizeScale) && savedSizeScale > 0 ? savedSizeScale : null,
     };
@@ -223,7 +221,6 @@ const getInitialDisplayDefaults = (savedSizeScale: number): InitialDisplayDefaul
     showSatelliteTrajectory: parseBooleanQueryValue(params.get('trajectory')) ?? false,
     showAggregatedConnectivity: parseBooleanQueryValue(params.get('connectivity')) ?? false,
     showFootprintProjection: parseBooleanQueryValue(params.get('footprint')) ?? false,
-    showArtemisTracker: parseBooleanQueryValue(params.get('artemis')) ?? false,
     countryOverlayMode: parseOverlayQueryValue(params.get('overlay')) ?? 'none',
     sizeScaleOverride: querySizeScale ?? savedScaleOverride,
   };
@@ -274,7 +271,6 @@ const App: React.FC = () => {
   const [showAggregatedConnectivity, setShowAggregatedConnectivity] = useState(initialDisplayDefaults.showAggregatedConnectivity);
   const [showFootprintProjection, setShowFootprintProjection] = useState(initialDisplayDefaults.showFootprintProjection);
   const [countryOverlayMode, setCountryOverlayMode] = useState<CountryOverlayMode>(initialDisplayDefaults.countryOverlayMode);
-  const [showArtemisTracker, setShowArtemisTracker] = useState(initialDisplayDefaults.showArtemisTracker);
   const commandPaletteSearchRef = useRef<HTMLInputElement>(null);
   const helpMenuRef = useRef<HTMLDivElement>(null);
   const targetSourcesMenuRef = useRef<HTMLDivElement>(null);
@@ -1610,7 +1606,6 @@ const App: React.FC = () => {
   const handleCountryOverlayModeChange = useCallback((mode: CountryOverlayMode) => {
     setCountryOverlayMode(mode);
   }, []);
-  const handleToggleArtemisTracker = useCallback(() => setShowArtemisTracker(v => !v), []);
   const handleMoonSelectionChange = useCallback((selected: boolean) => {
     if (!selected) {
       setSelectedMoon(false);
@@ -1700,8 +1695,6 @@ const App: React.FC = () => {
     onToggleSatelliteTrajectory: handleToggleSatelliteTrajectory,
     countryOverlayMode,
     onCountryOverlayModeChange: handleCountryOverlayModeChange,
-    showArtemisTracker,
-    onToggleArtemisTracker: handleToggleArtemisTracker,
     onSizeScaleChange: handleSizeScaleChange,
     onSizeScaleReset: handleSizeScaleReset,
     hideSatelliteScreenLabels: isPhone && isMobileAnalysisPanelOpen,
@@ -1718,7 +1711,7 @@ const App: React.FC = () => {
     selectedAircraft, handleAircraftSelect, handleAircraftHover,
     maritimeTrafficEnabled, maritimeTraffic.vessels, selectedVessel, handleVesselSelect, cameraTarget,
     handleCameraReady, handleGlobeContainerReady, handleGlobeBootPhaseChange, handleInitialGlobeReady, enableLighting, handleToggleLighting, handleSizeScaleChange, handleToggleAggregatedConnectivity, handleToggleFootprintProjection, handleToggleFullscreen, handleToggleSatelliteTrajectory, interpolatedAircraftMapRef, interpolatedVesselMapRef, showSatelliteTrajectory, showAggregatedConnectivity, showFootprintProjection, sizeScale,
-    inspectedSNP, snpConnectedSatellites, countryOverlayMode, handleCountryOverlayModeChange, showArtemisTracker, handleToggleArtemisTracker, handleSizeScaleReset,
+    inspectedSNP, snpConnectedSatellites, countryOverlayMode, handleCountryOverlayModeChange, handleSizeScaleReset,
     isPhone, isMobileAnalysisPanelOpen, coverageSwitcherCoverages, selectedCoverageId, handleSelectTargetCoverageById,
   ]);
   const desktopCompactProgress = isMobile ? 0 : getCompactDesktopProgress(viewportSnapshot);

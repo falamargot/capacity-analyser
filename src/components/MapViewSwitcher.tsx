@@ -66,8 +66,6 @@ interface MapViewSwitcherProps {
   onSizeScaleReset?: () => void;
   countryOverlayMode?: CountryOverlayMode;
   onCountryOverlayModeChange?: (mode: CountryOverlayMode) => void;
-  showArtemisTracker?: boolean;
-  onToggleArtemisTracker?: () => void;
   hideSatelliteScreenLabels?: boolean;
   isPhone?: boolean;
   isMobileViewport?: boolean;
@@ -136,8 +134,6 @@ const MapViewSwitcher: React.FC<MapViewSwitcherProps> = ({
   onSizeScaleReset,
   countryOverlayMode = 'none',
   onCountryOverlayModeChange,
-  showArtemisTracker = false,
-  onToggleArtemisTracker,
   hideSatelliteScreenLabels = false,
   isPhone = false,
   isMobileViewport = false,
@@ -210,8 +206,6 @@ const MapViewSwitcher: React.FC<MapViewSwitcherProps> = ({
         onSizeScaleReset={onSizeScaleReset}
         countryOverlayMode={countryOverlayMode}
         onCountryOverlayModeChange={onCountryOverlayModeChange}
-        showArtemisTracker={showArtemisTracker}
-        onToggleArtemisTracker={onToggleArtemisTracker}
         hideSatelliteScreenLabels={hideSatelliteScreenLabels}
         isPhone={isPhone}
         isMobileViewport={isMobileViewport}

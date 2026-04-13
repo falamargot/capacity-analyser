@@ -19,12 +19,7 @@ import {
     Cartesian3,
     Cartographic,
     Color,
-    BoundingSphere,
-    HeadingPitchRange,
     Math as CesiumMath,
-    Matrix3,
-    Simon1994PlanetaryPositions,
-    Transforms,
     Viewer as CesiumViewerType,
     ScreenSpaceEventType,
     defined,
@@ -74,8 +69,6 @@ import InspectionCard, { type HoveredEntity } from './cesium-globe/InspectionCar
 import CountryOverlayLegend from './cesium-globe/CountryOverlayLegend';
 import SelectedPointScreenLabel from './cesium-globe/SelectedPointScreenLabel';
 import SatelliteScreenLabels from './cesium-globe/SatelliteScreenLabels';
-import ArtemisLayer from './cesium-globe/ArtemisLayer';
-import ArtemisTrackerCard from './cesium-globe/ArtemisTrackerCard';
 import MoonLayer from './cesium-globe/MoonLayer';
 import { GEO_GATEWAYS, SNPS_DATA, type GeoGatewayData, type SNPData } from './globe/GlobeConfig';
 import { selectOperationalGeoGateway } from '../utils/geoConnectivityModel';
@@ -85,7 +78,6 @@ import type { RegulatoryResult } from '../services/regulatoryService';
 import type { GeoPointStatus } from '../utils/selectedPointStatus';
 import { GROUND_POINT_ALTITUDE_KM } from './cesium-globe/layerHeights';
 import CoverageSwitcherVertical, { type CoverageSwitcherCoverage } from './CoverageSwitcherVertical';
-import { useArtemisTracker } from '../hooks/useArtemisTracker';
 import type { CountryOverlayMode } from '../types/countryOverlays';
 
 const BASEMAP_STORAGE_KEY = 'cesium:basemap';
@@ -201,8 +193,6 @@ interface CesiumGlobeProps {
     snpConnectedSatellites?: import('../services/coverageService').SNPConnectedSatellite[];
     countryOverlayMode?: CountryOverlayMode;
     onCountryOverlayModeChange?: (mode: CountryOverlayMode) => void;
-    showArtemisTracker?: boolean;
-    onToggleArtemisTracker?: () => void;
     leoServiceViewModel?: LeoConnectivityViewModel | null;
     geoPointStatus?: GeoPointStatus | null;
     performanceMetrics?: MobileAnalysisMetrics | null;
@@ -275,8 +265,6 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
     snpConnectedSatellites = [],
     countryOverlayMode = 'none',
     onCountryOverlayModeChange,
-    showArtemisTracker = false,
-    onToggleArtemisTracker,
     leoServiceViewModel = null,
     geoPointStatus = null,
     performanceMetrics = null,
@@ -313,7 +301,6 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
     const [viewerReady, setViewerReady] = useState(false);
     const initialSceneReadyRef = useRef(false);
     const { getSatellitePositionCallback } = usePositionCallbacks(satellites, aircraft, interpolatedAircraftMapRef);
-    const artemisTracker = useArtemisTracker(showArtemisTracker);
     const basemapApplyTokenRef = useRef(0);
     const basemapOptions = useMemo(() => {
         const byName = new Map<string, ProviderViewModel>();
@@ -508,41 +495,6 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         return () => viewer.scene.preRender.removeEventListener(updateCameraMetrics);
     }, [viewerReady]);
 
-    const handleFocusArtemis = useCallback(() => {
-        if (!viewerRef.current || !artemisTracker.snapshot?.position) {
-            return;
-        }
-
-        const telemetryTimestamp = artemisTracker.snapshot.telemetryTimestamp;
-        const { xKm, yKm, zKm } = artemisTracker.snapshot.position;
-        if (!telemetryTimestamp || xKm == null || yKm == null || zKm == null) {
-            return;
-        }
-
-        const time = JulianDate.fromIso8601(telemetryTimestamp);
-        const inertialPosition = new Cartesian3(xKm * 1000, yKm * 1000, zKm * 1000);
-        const icrfToFixed = Transforms.computeIcrfToFixedMatrix(time) ?? Transforms.computeTemeToPseudoFixedMatrix(time);
-        const fixedPosition = icrfToFixed
-            ? Matrix3.multiplyByVector(icrfToFixed, inertialPosition, new Cartesian3())
-            : inertialPosition;
-
-        const moonInertial = Simon1994PlanetaryPositions.computeMoonPositionInEarthInertialFrame(time, new Cartesian3());
-        const moonFixed = icrfToFixed
-            ? Matrix3.multiplyByVector(icrfToFixed, moonInertial, new Cartesian3())
-            : moonInertial;
-
-        const bounds = BoundingSphere.fromPoints([
-            Cartesian3.ZERO,
-            fixedPosition,
-            moonFixed,
-        ]);
-
-        viewerRef.current.camera.flyToBoundingSphere(bounds, {
-            duration: 2.4,
-            offset: new HeadingPitchRange(0.15, -0.45, bounds.radius * 2.6),
-        });
-    }, [artemisTracker.snapshot]);
-
     // Handle camera target flyTo
     useEffect(() => {
         if (cameraTarget && viewerRef.current) {
@@ -584,10 +536,6 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
 
             if (pickedId === 'moon-label' || pickedId === 'moon-body') {
                 onMoonSelectionChange?.(true);
-                return;
-            }
-
-            if (pickedEntity && typeof pickedEntity.id === 'string' && pickedEntity.id.startsWith('artemis-ii-moon')) {
                 return;
             }
 
@@ -1066,29 +1014,10 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                 onToggleFootprintProjection={onToggleFootprintProjection}
                 countryOverlayMode={effectiveCountryOverlayMode}
                 onCountryOverlayModeChange={onCountryOverlayModeChange}
-                showArtemisTracker={showArtemisTracker}
-                onToggleArtemisTracker={onToggleArtemisTracker}
                 satelliteScope={satelliteScope}
                 basemapOptions={basemapOptions.map(({ id, label }) => ({ id, label }))}
                 selectedBasemapId={selectedBasemapId}
                 onBasemapChange={setSelectedBasemapId}
-            />
-
-            <ArtemisTrackerCard
-                visible={showArtemisTracker}
-                missionPhase={artemisTracker.missionPhase}
-                launchTimeUtc={artemisTracker.launchTimeUtc}
-                estimatedMissionDurationMs={artemisTracker.estimatedMissionDurationMs}
-                officialTrackerUrl={artemisTracker.officialTrackerUrl}
-                telemetryEndpoint={artemisTracker.telemetryEndpoint}
-                telemetryAvailable={artemisTracker.telemetryAvailable}
-                snapshot={artemisTracker.snapshot}
-                isLoading={artemisTracker.isLoading}
-                error={artemisTracker.error}
-                onFocusArtemis={handleFocusArtemis}
-                isPhone={isPhone}
-                isFullscreen={isFullscreen}
-                hasSatelliteIndicator={hasSatelliteIndicator}
             />
 
             {selection.type === 'target' && selection.targetType === 'point' && coverageSwitcherCoverages.length >= 2 && onCoverageSwitcherSelect && (
@@ -1194,11 +1123,6 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                     />
 
                     <MoonLayer enableLighting={enableLighting} selected={selectedMoon} />
-
-                    <ArtemisLayer
-                        snapshot={artemisTracker.snapshot}
-                        show={showArtemisTracker && artemisTracker.telemetryAvailable}
-                    />
 
                     {/* OneWeb Comb Layer - Only shown for operational ONEWEB targets */}
                     {/* In ONEWEB_PREMIUM mode: shows coverage circles only (no individual beams) */}

@@ -14,7 +14,6 @@ import {
     Minus,
     Orbit,
     Plus,
-    Rocket,
     RotateCcw,
     Settings2,
     SunMedium,
@@ -46,8 +45,6 @@ interface GlobeControlsProps {
     onToggleFootprintProjection?: () => void;
     countryOverlayMode?: CountryOverlayMode;
     onCountryOverlayModeChange?: (mode: CountryOverlayMode) => void;
-    showArtemisTracker?: boolean;
-    onToggleArtemisTracker?: () => void;
     satelliteScope?: 'LEO' | 'GEO' | 'ALL';
     basemapOptions?: Array<{ id: string; label: string }>;
     selectedBasemapId?: string;
@@ -266,8 +263,6 @@ const GlobeControls: React.FC<GlobeControlsProps> = ({
     onToggleFootprintProjection,
     countryOverlayMode = 'none',
     onCountryOverlayModeChange,
-    showArtemisTracker,
-    onToggleArtemisTracker,
     satelliteScope,
     basemapOptions = [],
     selectedBasemapId,
@@ -507,19 +502,6 @@ const GlobeControls: React.FC<GlobeControlsProps> = ({
                                             onClick={() => onToggleFootprintProjection()}
                                             accent="blue"
                                             title="Toggle selected satellite footprint projection (P)"
-                                            compact={useCompactDisplayPanel}
-                                        />
-                                    )}
-
-                                    {onToggleArtemisTracker && (
-                                        <DisplayOptionRow
-                                            icon={<Rocket className="h-4 w-4" />}
-                                            label="Artemis II"
-                                            description="Open NASA live mission tracking"
-                                            enabled={!!showArtemisTracker}
-                                            onClick={() => onToggleArtemisTracker()}
-                                            accent="amber"
-                                            title="Toggle Artemis II mission tracker"
                                             compact={useCompactDisplayPanel}
                                         />
                                     )}
