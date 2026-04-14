@@ -213,7 +213,12 @@ function getMaritimeStreamUrl(): string {
   if (typeof configured === 'string' && configured.trim().length > 0) {
     return configured.trim();
   }
-  return '/api/ais/stream';
+  const apiBase = (
+    (import.meta.env.VITE_LOCAL_API_BASE as string | undefined)
+    ?? (import.meta.env.VITE_REGULATORY_API_BASE as string | undefined)
+    ?? 'http://localhost:3001'
+  ).replace(/\/$/, '');
+  return `${apiBase}/api/ais/stream`;
 }
 
 /**

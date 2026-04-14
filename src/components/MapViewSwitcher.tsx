@@ -14,13 +14,14 @@ import type { RegulatoryResult } from '../services/regulatoryService';
 import type { GeoPointStatus } from '../utils/selectedPointStatus';
 import type { CoverageSwitcherCoverage } from './CoverageSwitcherVertical';
 import type { CountryOverlayMode } from '../types/countryOverlays';
+import type { LinkMode } from '../types/linkMode';
 
 interface MapViewSwitcherProps {
   satellites: SatelliteData[];
   satelliteTypeByName: Map<string, SatelliteData['type']>;
   coverageFeatures: Feature<Geometry, GeoJsonProperties>[];
   selectedPosition?: { lat: number; lng: number; altitude?: number } | null;
-  onPointClick: (lat: number, lng: number) => void;
+  onPointClick: (lat: number, lng: number, shiftKey: boolean) => void;
   onSatelliteClick: (satellite: SatelliteData | null) => void;
   onMoonSelectionChange?: (selected: boolean) => void;
   onSatelliteHover: (satelliteId: string | null) => void;
@@ -50,6 +51,8 @@ interface MapViewSwitcherProps {
   selectedGEOBeam?: GEOBeam | null;
   selection: Selection;
   selectedCoverage?: CandidateCoverage | null;
+  selectedUplinkCoverage?: CandidateCoverage | null;
+  selectedDownlinkCoverage?: CandidateCoverage | null;
   cameraTarget?: { lat: number; lng: number; alt: number } | null;
   onCameraReady?: (viewer: CesiumViewerType) => void;
   onGlobeContainerReady?: (ref: React.RefObject<HTMLDivElement | null>) => void;
@@ -81,6 +84,8 @@ interface MapViewSwitcherProps {
   coverageSwitcherCoverages?: CoverageSwitcherCoverage[];
   selectedCoverageId?: string;
   onCoverageSwitcherSelect?: (id: string) => void;
+  pointB?: { lat: number; lng: number } | null;
+  linkMode?: LinkMode;
 }
 
 const MapViewSwitcher: React.FC<MapViewSwitcherProps> = ({
@@ -118,6 +123,8 @@ const MapViewSwitcher: React.FC<MapViewSwitcherProps> = ({
   selectedGEOBeam,
   selection,
   selectedCoverage = null,
+  selectedUplinkCoverage = null,
+  selectedDownlinkCoverage = null,
   cameraTarget,
   onCameraReady,
   onGlobeContainerReady,
@@ -149,6 +156,8 @@ const MapViewSwitcher: React.FC<MapViewSwitcherProps> = ({
   coverageSwitcherCoverages = [],
   selectedCoverageId = '',
   onCoverageSwitcherSelect,
+  pointB = null,
+  linkMode,
 }) => {
   const [sceneMode, setSceneMode] = useState<'2D' | '3D'>('3D');
 
@@ -190,6 +199,8 @@ const MapViewSwitcher: React.FC<MapViewSwitcherProps> = ({
         selectedGEOBeam={selectedGEOBeam}
         selection={selection}
         selectedCoverage={selectedCoverage}
+        selectedUplinkCoverage={selectedUplinkCoverage}
+        selectedDownlinkCoverage={selectedDownlinkCoverage}
         cameraTarget={cameraTarget}
         onCameraReady={onCameraReady}
         onGlobeContainerReady={onGlobeContainerReady}
@@ -223,6 +234,8 @@ const MapViewSwitcher: React.FC<MapViewSwitcherProps> = ({
         coverageSwitcherCoverages={coverageSwitcherCoverages}
         selectedCoverageId={selectedCoverageId}
         onCoverageSwitcherSelect={onCoverageSwitcherSelect}
+        pointB={pointB}
+        linkMode={linkMode}
       />
     </div>
   );

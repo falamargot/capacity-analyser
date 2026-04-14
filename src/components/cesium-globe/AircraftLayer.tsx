@@ -61,9 +61,9 @@ const AircraftEntity = React.memo<{
             const dynamicScale = calculateDynamicScale(cameraMetricsRef.current.height, DPR_FACTOR);
 
             const baseScale = dynamicScale * 2000000 / Math.max(distance, 10000000);
-            return baseScale * aircraftSizeScale;
+            return baseScale * aircraftSizeScale * (isSelected ? 1.25 : 1);
         }, false);
-    }, [positionCallback, viewerRef, cameraMetricsRef, aircraftSizeScale]);
+    }, [positionCallback, viewerRef, cameraMetricsRef, aircraftSizeScale, isSelected]);
 
     const handleClick = useCallback(() => onAircraftClick?.(ac), [ac, onAircraftClick]);
     const handleMouseEnter = useCallback(() => onAircraftHover?.(ac), [ac, onAircraftHover]);

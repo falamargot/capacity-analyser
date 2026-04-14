@@ -179,9 +179,10 @@ const VesselEntity = React.memo<{
 
             // Keep vessels visible at global zoom levels (they sit at sea level).
             const baseScale = dynamicScale * 4000000 / Math.max(distance, 6000000);
-            return Math.max(baseScale * vesselSizeScale, 0.12 * vesselSizeScale);
+            const selectedScaleBoost = isSelected ? 1.25 : 1;
+            return Math.max(baseScale * vesselSizeScale * selectedScaleBoost, 0.12 * vesselSizeScale * selectedScaleBoost);
         }, false);
-    }, [positionCallback, viewerRef, cameraMetricsRef, vesselSizeScale]);
+    }, [positionCallback, viewerRef, cameraMetricsRef, vesselSizeScale, isSelected]);
 
     const handleClick = useCallback(() => onVesselClick?.(vessel), [vessel, onVesselClick]);
     const handleMouseEnter = useCallback(() => onVesselHover?.(vessel), [vessel, onVesselHover]);

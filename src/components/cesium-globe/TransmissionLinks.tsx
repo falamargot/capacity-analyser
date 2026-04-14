@@ -29,6 +29,8 @@ import { RegulatoryBlockedPathMaterialProperty } from './materials/regulatoryMat
 interface TransmissionLinksProps {
     satellites: SatelliteData[];
     selectedPosition?: { lat: number; lng: number; altitude?: number } | null;
+    pointB?: { lat: number; lng: number } | null;
+    linkMode?: string;
     selectedAircraft?: Aircraft | null;
     selectedSatellite: SatelliteData | null;
     autoSelectedLEOSatellite?: SatelliteData | null;
@@ -64,6 +66,12 @@ const geoBackhaulMaterial = new PolylineDashMaterialProperty({
     dashPattern: 3855
 });
 
+const pointToPointMaterial = new PolylineGlowMaterialProperty({
+    color: Color.fromCssColorString('#f59e0b').withAlpha(0.95),
+    glowPower: 0.18,
+    taperPower: 0.35,
+});
+
 const blockedDiagnosticMaterial = new RegulatoryBlockedPathMaterialProperty({
     color: Color.fromCssColorString('#fb7185').withAlpha(0.95),
     stopColor: Color.fromCssColorString('#fecdd3').withAlpha(0.98),
@@ -79,6 +87,8 @@ const degradedMaterial = new PolylineDashMaterialProperty({
 const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
     satellites,
     selectedPosition,
+    pointB = null,
+    linkMode,
     selectedAircraft,
     selectedSatellite,
     autoSelectedLEOSatellite,
@@ -304,6 +314,24 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
             }));
     }, [selectedGateway, satelliteScope, satellites]);
 
+    // In MESH / P2P mode with both points set, draw Satellite → Point B.
+    // Point A → Satellite is already rendered by geoUserLinkCallback.
+    // The feeder (Sat→Gateway) and backhaul (Gateway→Internet) links are hidden in this mode.
+    const isDualPointActive = (linkMode === 'MESH' || linkMode === 'POINT_TO_POINT') && !!pointB;
+
+    const meshSatToBCallback = useMemo(() => {
+        if (!isDualPointActive || !autoSelectedGEOSatellite || !pointB) return null;
+
+        const pointBPos = getPosition(pointB.lat, pointB.lng, 0.01);
+
+        return new CallbackProperty((_time?: JulianDate) => {
+            const g = autoSelectedGEORef.current;
+            if (!g) return [];
+            const satPos = getPosition(g.position.lat, g.position.lng, g.position.alt);
+            return [satPos, pointBPos];
+        }, false);
+    }, [isDualPointActive, autoSelectedGEOSatellite, pointB]);
+
     if (!hasUserSelection && !dedicatedSnpCallback && !dedicatedGeoFeederCallback && !inspectedSNP && !selectedGatewayLinks?.length) {
         return null;
     }
@@ -347,8 +375,8 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
                 </Entity>
             )}
 
-            {/* GEO Satellite -> Gateway */}
-            {geoFeederLinkCallback && satelliteScope !== 'LEO' && (
+            {/* GEO Satellite -> Gateway — hidden in MESH/P2P (gateway not in the path) */}
+            {geoFeederLinkCallback && satelliteScope !== 'LEO' && !isDualPointActive && (
                 <Entity name="GEO Feeder Link">
                     <PolylineGraphics
                         positions={geoFeederLinkCallback}
@@ -359,13 +387,26 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
                 </Entity>
             )}
 
-            {/* GEO Gateway -> Internet */}
-            {geoBackhaulCallback && satelliteScope !== 'LEO' && (
+            {/* GEO Gateway -> Internet — hidden in MESH/P2P */}
+            {geoBackhaulCallback && satelliteScope !== 'LEO' && !isDualPointActive && (
                 <Entity name="GEO Backhaul Link">
                     <PolylineGraphics
                         positions={geoBackhaulCallback}
                         width={2.5}
                         material={geoBackhaulMaterial}
+                        arcType={ArcType.NONE}
+                    />
+                </Entity>
+            )}
+
+            {/* MESH/P2P: Satellite → Point B (Point A→Satellite already shown by geoUserLinkCallback) */}
+            {meshSatToBCallback && satelliteScope !== 'LEO' && (
+                <Entity name="Satellite → Point B">
+                    <PolylineGraphics
+                        positions={meshSatToBCallback}
+                        width={3.2}
+                        material={pointToPointMaterial}
+                        clampToGround={false}
                         arcType={ArcType.NONE}
                     />
                 </Entity>

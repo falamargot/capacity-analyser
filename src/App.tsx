@@ -52,6 +52,9 @@ import { deriveLeoConnectivityViewModel } from './utils/leoServiceViewModel';
 import { getGroundSegmentRoutingForSatellite } from './utils/geoConnectivityModel';
 import type { GeoPointStatus } from './utils/selectedPointStatus';
 import type { CountryOverlayMode } from './types/countryOverlays';
+import type { LinkMode } from './types/linkMode';
+import { LINK_MODE_REQUIRES_POINT_B } from './types/linkMode';
+import { synthesizeUplinkCandidate, synthesizeDownlinkCandidate } from './utils/geoDualSegmentBudget';
 
 const CapacityDetails = lazy(() => import('./components/CapacityDetails'));
 const CommandPalette = lazy(() => import('./components/CommandPalette'));
@@ -122,6 +125,24 @@ const getResponsiveAutoMarkerScale = (viewportSnapshot: ViewportSnapshot) => {
 
   return clampNumber(lerp(legacyScale, 0.75, getCompactDesktopProgress(viewportSnapshot)), 0.5, 8);
 };
+
+const satelliteHasModeledDirection = (
+  satellite: SatelliteData,
+  wantUplink: boolean,
+): boolean => (
+  (satellite.coverages ?? []).some((coverage) => {
+    const properties = coverage.feature?.properties as Record<string, unknown> | undefined;
+    const isUplink = properties?.isUplink === true;
+    const rawLevel = properties?.level ?? properties?.contour;
+    const numericLevel = typeof rawLevel === 'number'
+      ? rawLevel
+      : typeof rawLevel === 'string'
+        ? Number.parseFloat(rawLevel)
+        : Number.NaN;
+
+    return isUplink === wantUplink && Number.isFinite(numericLevel);
+  })
+);
 
 const snapMarkerScaleToStep = (value: number, step = 0.25) => {
   const snappedValue = Math.round(value / step) * step;
@@ -252,6 +273,17 @@ const App: React.FC = () => {
     selectContour,
     selectTarget,
   } = useSelectionState();
+  // ── Link mode & dual-point selection ─────────────────────────────────────
+  const [linkMode, setLinkMode] = useState<LinkMode>('STAR_FORWARD');
+  const [pointB, setPointB] = useState<{ lat: number; lng: number } | null>(null);
+
+  // Clear Point B whenever the user switches to a single-point mode
+  useEffect(() => {
+    if (!LINK_MODE_REQUIRES_POINT_B.has(linkMode)) {
+      setPointB(null);
+    }
+  }, [linkMode]);
+
   const [autoSelectedLEOId, setAutoSelectedLEOId] = useState<string | null>(null);
   const [selectedSNP, setSelectedSNP] = useState<SelectedSNP>(null);
   const [inspectedSNP, setInspectedSNP] = useState<SNPData | null>(null);
@@ -325,7 +357,8 @@ const App: React.FC = () => {
   const selectedPosition = useMemo(() => (
     selectedSelection.type === 'target' ? selectedSelection.position : null
   ), [selectedSelection]);
-  const [selectedTargetCoverageKey, setSelectedTargetCoverageKey] = useState<string | null>(null);
+  const [selectedUplinkKey, setSelectedUplinkKey] = useState<string | null>(null);
+  const [selectedDownlinkKey, setSelectedDownlinkKey] = useState<string | null>(null);
 
   const selectedSatelliteId = useMemo(() => {
     if (selectedSelection.type === 'satellite') return selectedSelection.satelliteId;
@@ -671,12 +704,54 @@ const App: React.FC = () => {
       (satellite) => satellite.orbitType === 'GEO' && satellite.opsStatus === 'operational'
     );
 
-    return rankCandidateCoverages(
+    const ranked = rankCandidateCoverages(
       findCandidateCoverages(selectedSelection.position, geoSatellites),
       geoSatellites,
       selectedSelection.position
     );
+
+    // For satellites that only have contour data for one direction (most GEO
+    // satellites only publish EIRP / downlink footprints), synthesize the missing
+    // direction using nominal per-band satellite parameters so the dual
+    // uplink/downlink beam picker always has both rows populated.
+    const synthPool: CandidateCoverage[] = [];
+    const satIds = [...new Set(ranked.map(c => c.satelliteId))];
+    for (const satId of satIds) {
+      const satCands = ranked.filter(c => c.satelliteId === satId);
+      const sat = geoSatellites.find((candidate) => candidate.id === satId);
+      if (!sat) continue;
+      const hasUplink = satCands.some(c => c.isUplink);
+      const hasDownlink = satCands.some(c => !c.isUplink);
+      const uplinkModeledOnSatellite = satelliteHasModeledDirection(sat, true);
+      const downlinkModeledOnSatellite = satelliteHasModeledDirection(sat, false);
+      if (!hasUplink && !uplinkModeledOnSatellite) {
+        const bestDl = satCands.find(c => !c.isUplink);
+        if (bestDl) synthPool.push(synthesizeUplinkCandidate(bestDl));
+      }
+      if (!hasDownlink && !downlinkModeledOnSatellite) {
+        const bestUl = satCands.find(c => c.isUplink);
+        if (bestUl) synthPool.push(synthesizeDownlinkCandidate(bestUl));
+      }
+    }
+
+    return [...ranked, ...synthPool];
   }, [satelliteScope, satellites, selectedSelection]);
+
+  // Coverage candidates for Point B (MESH / Point-to-Point modes only).
+  const candidateCoveragesB = useMemo(() => {
+    if (!LINK_MODE_REQUIRES_POINT_B.has(linkMode) || !pointB) return [];
+    if (satelliteScope !== 'ALL' && satelliteScope !== 'GEO') return [];
+
+    const geoSatellites = satellites.filter(
+      (satellite) => satellite.orbitType === 'GEO' && satellite.opsStatus === 'operational'
+    );
+
+    return rankCandidateCoverages(
+      findCandidateCoverages(pointB, geoSatellites),
+      geoSatellites,
+      pointB
+    );
+  }, [linkMode, pointB, satelliteScope, satellites]);
 
   const targetSelectionResetKey = useMemo(() => (
     selectedSelection.type === 'target'
@@ -689,40 +764,83 @@ const App: React.FC = () => {
       : selectedSelection.type
   ), [selectedSelection]);
 
+  // Reset both keys whenever the target point changes
   useEffect(() => {
-    setSelectedTargetCoverageKey(null);
+    setSelectedUplinkKey(null);
+    setSelectedDownlinkKey(null);
   }, [targetSelectionResetKey]);
 
+  // Invalidate stale keys when the candidate list changes.
+  // Also clear keys that point to synthesised candidates — those should never be
+  // stored as explicit selections (they are internal budget-computation helpers).
   useEffect(() => {
-    if (selectedSelection.type !== 'target' || !selectedTargetCoverageKey) {
-      return;
+    if (selectedSelection.type !== 'target') return;
+    if (selectedUplinkKey) {
+      const c = candidateCoverages.find(cc => getCandidateCoverageKey(cc) === selectedUplinkKey);
+      if (!c || c.isSynthesized) setSelectedUplinkKey(null);
     }
-
-    if (
-      !candidateCoverages.some((candidate) => getCandidateCoverageKey(candidate) === selectedTargetCoverageKey)
-    ) {
-      setSelectedTargetCoverageKey(null);
+    if (selectedDownlinkKey) {
+      const c = candidateCoverages.find(cc => getCandidateCoverageKey(cc) === selectedDownlinkKey);
+      if (!c || c.isSynthesized) setSelectedDownlinkKey(null);
     }
-  }, [candidateCoverages, selectedSelection, selectedTargetCoverageKey]);
+  }, [candidateCoverages, selectedSelection.type, selectedUplinkKey, selectedDownlinkKey]);
 
-  const defaultTargetCoverage = useMemo(
-    () => candidateCoverages.find((candidate) => !candidate.isUplink) ?? candidateCoverages[0] ?? null,
-    [candidateCoverages]
+  // Default uplink / downlink when nothing is explicitly selected.
+  // Rules:
+  //   1. Only real (non-synthesised) candidates — synthesised ones have no contour data.
+  //   2. Same-satellite constraint: the default uplink must share the satellite of the
+  //      default downlink. Without this, a point covered by E65WA (EIRP-only) and
+  //      E115WB (has G/T data) would show E65WA in the sidebar but E115WB on the globe.
+  const defaultDownlinkCoverage = useMemo(
+    () => selectedSelection.type === 'target'
+      ? (candidateCoverages.find(c => !c.isUplink && !c.isSynthesized) ?? null)
+      : null,
+    [candidateCoverages, selectedSelection.type]
   );
-
-  const selectedCoverage = useMemo(() => {
-    if (selectedSelection.type !== 'target') {
-      return null;
+  const defaultUplinkCoverage = useMemo(() => {
+    if (selectedSelection.type !== 'target') return null;
+    // Prefer the uplink of the same satellite as the default downlink.
+    if (defaultDownlinkCoverage) {
+      return candidateCoverages.find(
+        c => c.isUplink && !c.isSynthesized && c.satelliteId === defaultDownlinkCoverage.satelliteId
+      ) ?? null;
     }
+    return candidateCoverages.find(c => c.isUplink && !c.isSynthesized) ?? null;
+  }, [candidateCoverages, selectedSelection.type, defaultDownlinkCoverage]);
 
-    if (!selectedTargetCoverageKey) {
-      return defaultTargetCoverage;
-    }
+  const selectedUplinkCoverage = useMemo(() => {
+    if (selectedSelection.type !== 'target') return null;
+    if (selectedUplinkKey) return candidateCoverages.find(c => getCandidateCoverageKey(c) === selectedUplinkKey) ?? defaultUplinkCoverage;
+    return defaultUplinkCoverage;
+  }, [candidateCoverages, defaultUplinkCoverage, selectedSelection.type, selectedUplinkKey]);
 
-    return candidateCoverages.find(
-      (candidate) => getCandidateCoverageKey(candidate) === selectedTargetCoverageKey
-    ) ?? defaultTargetCoverage;
-  }, [candidateCoverages, defaultTargetCoverage, selectedSelection, selectedTargetCoverageKey]);
+  const selectedDownlinkCoverage = useMemo(() => {
+    if (selectedSelection.type !== 'target') return null;
+    if (selectedDownlinkKey) return candidateCoverages.find(c => getCandidateCoverageKey(c) === selectedDownlinkKey) ?? defaultDownlinkCoverage;
+    return defaultDownlinkCoverage;
+  }, [candidateCoverages, defaultDownlinkCoverage, selectedSelection.type, selectedDownlinkKey]);
+
+  // Globe-visible coverages: only the user-terminal side for the active link mode,
+  // only when real contour data exists (synthesised → nothing on globe),
+  // and only when uplink + downlink share the same satellite (satellite mismatch
+  // would show a footprint from a different satellite than what the sidebar displays).
+  const globeUplinkCoverage = useMemo(() => {
+    if (linkMode === 'STAR_FORWARD') return null;
+    if (!selectedUplinkCoverage || selectedUplinkCoverage.isSynthesized) return null;
+    // Satellite must match the downlink selection shown in the sidebar
+    if (selectedDownlinkCoverage && selectedUplinkCoverage.satelliteId !== selectedDownlinkCoverage.satelliteId) return null;
+    return selectedUplinkCoverage;
+  }, [linkMode, selectedUplinkCoverage, selectedDownlinkCoverage]);
+  const globeDownlinkCoverage = useMemo(() => {
+    if (linkMode === 'STAR_RETURN') return null;
+    if (!selectedDownlinkCoverage || selectedDownlinkCoverage.isSynthesized) return null;
+    // Satellite must match the uplink selection shown in the sidebar
+    if (selectedUplinkCoverage && selectedDownlinkCoverage.satelliteId !== selectedUplinkCoverage.satelliteId) return null;
+    return selectedDownlinkCoverage;
+  }, [linkMode, selectedDownlinkCoverage, selectedUplinkCoverage]);
+
+  // Single coverage reference kept for CoverageSwitcher / CoverageLayer (downlink preferred)
+  const selectedCoverage = selectedDownlinkCoverage ?? selectedUplinkCoverage ?? null;
   const selectedCoverageId = useMemo(
     () => (selectedCoverage ? getCandidateCoverageKey(selectedCoverage) : ''),
     [selectedCoverage]
@@ -1315,16 +1433,31 @@ const App: React.FC = () => {
     selectCoverage(selectedSatellite.id, coverageId);
   }, [selectCoverage, selectedSatellite]);
 
-  // Handle geographic point click (earth-based analyzis)
-  const handlePointClick = useCallback((lat: number, lng: number) => {
+  // Handle geographic point click (earth-based analysis)
+  // In GEO Mesh / Point-to-Point, Shift+click sets Point B.
+  // Any plain click sets Point A and clears Point B.
+  const handlePointClick = useCallback((lat: number, lng: number, shiftKey: boolean) => {
+    const supportsSecondaryPoint =
+      satelliteScope !== 'LEO' &&
+      LINK_MODE_REQUIRES_POINT_B.has(linkMode);
+
+    if (supportsSecondaryPoint && shiftKey && selectedPosition) {
+      // Shift+click → set Point B without disturbing Point A
+      setPointB({ lat, lng });
+      return;
+    }
+
+    // Plain click → set Point A, clear Point B and other selections
     setSelectedMoon(false);
     setSelectedAircraft(null);
     setSelectedVessel(null);
     setSelectedGateway(null);
     setInspectedSNP(null);
-    setSelectedTargetCoverageKey(null);
+    setPointB(null);
+    setSelectedUplinkKey(null);
+    setSelectedDownlinkKey(null);
     selectTarget('point', { lat, lng });
-  }, [selectTarget]);
+  }, [linkMode, satelliteScope, selectedPosition, selectTarget]);
 
   // Handle aircraft selection (aircraft-based analyzis)
   const handleAircraftSelect = useCallback((aircraft: Aircraft | null, fromComboBox: boolean = false) => {
@@ -1332,7 +1465,8 @@ const App: React.FC = () => {
     setSelectedAircraft(aircraft);
     setSelectedVessel(null);
     setIsTargetSourcesMenuOpen(false);
-    setSelectedTargetCoverageKey(null);
+    setSelectedUplinkKey(null);
+    setSelectedDownlinkKey(null);
 
     if (aircraft?.latitude != null && aircraft.longitude != null) {
       setSelectedGateway(null);
@@ -1358,7 +1492,8 @@ const App: React.FC = () => {
     setSelectedVessel(vessel);
     setSelectedAircraft(null);
     setIsTargetSourcesMenuOpen(false);
-    setSelectedTargetCoverageKey(null);
+    setSelectedUplinkKey(null);
+    setSelectedDownlinkKey(null);
 
     if (vessel?.latitude != null && vessel.longitude != null) {
       setSelectedGateway(null);
@@ -1386,27 +1521,45 @@ const App: React.FC = () => {
     setSelectedGateway(null);
     setInspectedSNP(null);
     setIsTargetSourcesMenuOpen(false);
-    setSelectedTargetCoverageKey(null);
+    setSelectedUplinkKey(null);
+    setSelectedDownlinkKey(null);
     selectTarget('point', { lat, lng });
 
     setSearchQuery('');
   }, [selectTarget]);
 
+  // Routes a coverage selection to the uplink or downlink key.
+  // Enforces the same-satellite constraint: when one direction changes satellite,
+  // the other is auto-updated to the best candidate of that satellite.
   const handleSelectTargetCoverageById = useCallback((coverageId: string) => {
-    if (selectedSelection.type !== 'target') {
-      return;
-    }
+    if (selectedSelection.type !== 'target') return;
+    const coverage = candidateCoverages.find(c => getCandidateCoverageKey(c) === coverageId);
+    if (!coverage) return;
 
-    if (coverageId === selectedTargetCoverageKey) {
-      return;
+    if (coverage.isUplink) {
+      setSelectedUplinkKey(coverageId);
+      if (selectedDownlinkCoverage?.satelliteId !== coverage.satelliteId) {
+        // Companion downlink: real candidates only, same satellite
+        const bestDl = candidateCoverages.find(c => !c.isUplink && !c.isSynthesized && c.satelliteId === coverage.satelliteId);
+        setSelectedDownlinkKey(bestDl ? getCandidateCoverageKey(bestDl) : null);
+      }
+    } else {
+      setSelectedDownlinkKey(coverageId);
+      if (selectedUplinkCoverage?.satelliteId !== coverage.satelliteId) {
+        // Companion uplink: real candidates only, same satellite
+        const bestUl = candidateCoverages.find(c => c.isUplink && !c.isSynthesized && c.satelliteId === coverage.satelliteId);
+        setSelectedUplinkKey(bestUl ? getCandidateCoverageKey(bestUl) : null);
+      }
     }
+  }, [candidateCoverages, selectedSelection.type, selectedUplinkCoverage, selectedDownlinkCoverage]);
 
-    if (!candidateCoverages.some((coverage) => getCandidateCoverageKey(coverage) === coverageId)) {
-      return;
-    }
+  const handleSelectUplinkCoverage = useCallback((coverage: CandidateCoverage) => {
+    handleSelectTargetCoverageById(getCandidateCoverageKey(coverage));
+  }, [handleSelectTargetCoverageById]);
 
-    setSelectedTargetCoverageKey(coverageId);
-  }, [candidateCoverages, selectedSelection.type, selectedTargetCoverageKey]);
+  const handleSelectDownlinkCoverage = useCallback((coverage: CandidateCoverage) => {
+    handleSelectTargetCoverageById(getCandidateCoverageKey(coverage));
+  }, [handleSelectTargetCoverageById]);
 
   const handleSelectTargetCoverage = useCallback((coverage: CandidateCoverage) => {
     handleSelectTargetCoverageById(getCandidateCoverageKey(coverage));
@@ -1476,7 +1629,8 @@ const App: React.FC = () => {
   const handleResetView = useCallback(() => {
     setSearchQuery('');
     setCameraTarget(null);
-    setSelectedTargetCoverageKey(null);
+    setSelectedUplinkKey(null);
+    setSelectedDownlinkKey(null);
     clearSelection();
     setAutoSelectedLEOId(null);
     setSelectedSNP(null);
@@ -1560,6 +1714,30 @@ const App: React.FC = () => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedAircraft, airTrafficEnabled, selectTarget]); // interpolatedAircraftMapRef/airTraffic.aircraft read via closure, not deps
 
+  useEffect(() => {
+    if (!selectedVessel || !maritimeTrafficEnabled) return;
+
+    const updateSelectedVesselPosition = () => {
+      const pos = interpolatedVesselMapRef.current.get(selectedVessel.mmsi);
+      const raw = maritimeTraffic.vessels.find((vessel) => vessel.mmsi === selectedVessel.mmsi);
+      const lat = pos?.latitude ?? raw?.latitude;
+      const lng = pos?.longitude ?? raw?.longitude;
+
+      if (lat != null && lng != null) {
+        selectTarget('vessel', {
+          lat,
+          lng,
+          altitude: 0,
+        });
+      }
+    };
+
+    updateSelectedVesselPosition();
+    const interval = setInterval(updateSelectedVesselPosition, 5000);
+    return () => clearInterval(interval);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedVessel, maritimeTrafficEnabled, selectTarget]);
+
   const handleSearchInput = useCallback(async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (searchQuery.trim()) {
@@ -1620,7 +1798,8 @@ const App: React.FC = () => {
     setSelectedGateway(null);
     setSelectedAircraft(null);
     setSelectedVessel(null);
-    setSelectedTargetCoverageKey(null);
+    setSelectedUplinkKey(null);
+    setSelectedDownlinkKey(null);
     setIsTargetSourcesMenuOpen(false);
   }, [clearSelection]);
   const handleSizeScaleChange = useCallback((v: number) => {
@@ -1644,6 +1823,8 @@ const App: React.FC = () => {
     onPointClick: handlePointClick,
     onCoverageClick: handleCoverageClick,
     selectedPosition,
+    pointB,
+    linkMode,
     onSatelliteClick: handleSatelliteClick,
     onMoonSelectionChange: handleMoonSelectionChange,
     onSatelliteHover: handleSatelliteHover,
@@ -1656,6 +1837,8 @@ const App: React.FC = () => {
     autoSelectedGEOSatellite: activeGeoSatellite,
     selectedGEOBeam,
     selectedCoverage,
+    selectedUplinkCoverage: globeUplinkCoverage,
+    selectedDownlinkCoverage: globeDownlinkCoverage,
     selectedSNP,
     selectedGateway,
     dedicatedSNPForSelectedLEO,
@@ -1706,13 +1889,14 @@ const App: React.FC = () => {
   }), [
     filteredSatellites, satelliteTypeByName, coverageFeaturesMemo, handlePointClick, handleCoverageClick, selectedPosition,
     handleSatelliteClick, handleSatelliteHover, handleSnpClick, handleGatewaySelectByName, handleSnpHover,
-    handleMoonSelectionChange, selectedSatellite, selectedMoon, resolvedAutoLEO, activeGeoSatellite, selectedGEOBeam, selectedSelection, selectedCoverage, selectedSNP, selectedGateway, dedicatedSNPForSelectedLEO, leoServiceViewModel, geoPointStatus, mobileMetrics, leoRegulatoryResult,
+    handleMoonSelectionChange, selectedSatellite, selectedMoon, resolvedAutoLEO, activeGeoSatellite, selectedGEOBeam, selectedSelection, selectedCoverage, globeUplinkCoverage, globeDownlinkCoverage, selectedSNP, selectedGateway, dedicatedSNPForSelectedLEO, leoServiceViewModel, geoPointStatus, mobileMetrics, leoRegulatoryResult,
     isFullscreen, satelliteScope, airTrafficEnabled, airTraffic.aircraft,
     selectedAircraft, handleAircraftSelect, handleAircraftHover,
     maritimeTrafficEnabled, maritimeTraffic.vessels, selectedVessel, handleVesselSelect, cameraTarget,
     handleCameraReady, handleGlobeContainerReady, handleGlobeBootPhaseChange, handleInitialGlobeReady, enableLighting, handleToggleLighting, handleSizeScaleChange, handleToggleAggregatedConnectivity, handleToggleFootprintProjection, handleToggleFullscreen, handleToggleSatelliteTrajectory, interpolatedAircraftMapRef, interpolatedVesselMapRef, showSatelliteTrajectory, showAggregatedConnectivity, showFootprintProjection, sizeScale,
     inspectedSNP, snpConnectedSatellites, countryOverlayMode, handleCountryOverlayModeChange, handleSizeScaleReset,
     isPhone, isMobileAnalysisPanelOpen, coverageSwitcherCoverages, selectedCoverageId, handleSelectTargetCoverageById,
+    pointB, linkMode,
   ]);
   const desktopCompactProgress = isMobile ? 0 : getCompactDesktopProgress(viewportSnapshot);
   const useCompactDesktopSidebar = desktopCompactProgress >= 0.35;
@@ -1836,11 +2020,33 @@ const App: React.FC = () => {
     }
 
     if (selectedAircraft) {
+      const aircraftPosition = analyzisPosition?.source === 'aircraft'
+        ? analyzisPosition
+        : (
+          selectedAircraft.latitude != null && selectedAircraft.longitude != null
+            ? {
+              lat: selectedAircraft.latitude,
+              lng: selectedAircraft.longitude,
+              altitude: selectedAircraft.altitude_km || undefined,
+            }
+            : null
+        );
+
       return {
         eyebrow: 'Air Traffic',
         title: selectedAircraft.callsign || selectedAircraft.icao24,
         subtitle: 'Aircraft analysis target',
-        footer: null,
+        footer: aircraftPosition ? (
+          <div className="flex items-center gap-1.5 text-[13px] font-semibold text-slate-700 dark:text-slate-200">
+            <MapPin className="h-3.5 w-3.5 shrink-0 text-slate-500 dark:text-slate-400" />
+            {formatCoordinates({ lat: aircraftPosition.lat, lng: aircraftPosition.lng })}
+            {aircraftPosition.altitude != null && (
+              <span className="text-slate-500 dark:text-slate-400">
+                ({aircraftPosition.altitude.toFixed(1)} km)
+              </span>
+            )}
+          </div>
+        ) : null,
         tone: 'aircraft' as const,
         badges: [
           { label: 'Aircraft', tone: 'blue' as const },
@@ -1850,11 +2056,28 @@ const App: React.FC = () => {
     }
 
     if (selectedVessel) {
+      const vesselPosition = selectedSelection.type === 'target' && selectedSelection.targetType === 'vessel'
+        ? selectedSelection.position
+        : (
+          selectedVessel.latitude != null && selectedVessel.longitude != null
+            ? {
+              lat: selectedVessel.latitude,
+              lng: selectedVessel.longitude,
+              altitude: 0,
+            }
+            : null
+        );
+
       return {
         eyebrow: 'Maritime Traffic',
         title: selectedVessel.name || selectedVessel.mmsi,
         subtitle: 'Maritime analysis target',
-        footer: null,
+        footer: vesselPosition ? (
+          <div className="flex items-center gap-1.5 text-[13px] font-semibold text-slate-700 dark:text-slate-200">
+            <MapPin className="h-3.5 w-3.5 shrink-0 text-slate-500 dark:text-slate-400" />
+            {formatCoordinates({ lat: vesselPosition.lat, lng: vesselPosition.lng })}
+          </div>
+        ) : null,
         tone: 'vessel' as const,
         badges: [
           { label: 'Vessel', tone: 'teal' as const },
@@ -1909,12 +2132,14 @@ const App: React.FC = () => {
     failedSnps,
     inspectedSNP,
     nearestLocation,
+    analyzisPosition,
     selectedGateway,
     selectedGatewayHeroData,
     selectedMoon,
     satelliteScope,
     selectedAircraft,
     selectedSatellite,
+    selectedSelection,
     selectedVessel,
     handleWeatherTypeChange,
     useCompactDesktopSidebar,
@@ -2485,8 +2710,10 @@ const App: React.FC = () => {
                     onAutoWeatherChange={setAutoWeatherEnabled}
                     selectedSNP={selectedSNP}
                     candidateCoverages={candidateCoverages}
-                    selectedCoverage={selectedCoverage}
-                    onSelectCoverage={handleSelectTargetCoverage}
+                    selectedUplinkCoverage={selectedUplinkCoverage}
+                    selectedDownlinkCoverage={selectedDownlinkCoverage}
+                    onSelectUplinkCoverage={handleSelectUplinkCoverage}
+                    onSelectDownlinkCoverage={handleSelectDownlinkCoverage}
                     selectedGeoMission={selectedGeoMission}
                     selectedGeoCoverageName={selectedGeoCoverageName}
                     selectedGeoBeamId={selectedGeoBeamId}
@@ -2501,6 +2728,10 @@ const App: React.FC = () => {
                     beamLoadResultOverride={leoBeamLoadResult}
                     serviceLayerResultOverride={leoServiceLayerResult}
                     leoServiceViewModelOverride={leoServiceViewModel}
+                    linkMode={linkMode}
+                    onLinkModeChange={setLinkMode}
+                    pointB={pointB}
+                    candidateCoveragesB={candidateCoveragesB}
                   />
                 </Suspense>
               </div>
@@ -2633,6 +2864,10 @@ const App: React.FC = () => {
                                 beamLoadResultOverride={leoBeamLoadResult}
                                 serviceLayerResultOverride={leoServiceLayerResult}
                                 leoServiceViewModelOverride={leoServiceViewModel}
+                                linkMode={linkMode}
+                                onLinkModeChange={setLinkMode}
+                                pointB={pointB}
+                                candidateCoveragesB={candidateCoveragesB}
                               />
                             )}
                           </Suspense>
@@ -2742,6 +2977,10 @@ const App: React.FC = () => {
                         beamLoadResultOverride={leoBeamLoadResult}
                         serviceLayerResultOverride={leoServiceLayerResult}
                         leoServiceViewModelOverride={leoServiceViewModel}
+                        linkMode={linkMode}
+                        onLinkModeChange={setLinkMode}
+                        pointB={pointB}
+                        candidateCoveragesB={candidateCoveragesB}
                       />
                     )}
                   </Suspense>

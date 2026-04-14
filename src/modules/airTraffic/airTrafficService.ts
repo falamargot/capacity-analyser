@@ -1,199 +1,161 @@
 import { log } from '../../utils/logger';
-/**
- * Air Traffic Service
- * Handles fetching and caching of ADS-B aircraft data from OpenSky Network API
- */
 
 export interface Aircraft {
-  // OpenSky API fields
   icao24: string;
   callsign: string;
   latitude: number | null;
   longitude: number | null;
-  baro_altitude: number | null; // meters
-  velocity: number | null; // m/s
-  heading: number | null; // degrees
+  baro_altitude: number | null;
+  velocity: number | null;
+  heading: number | null;
   on_ground: boolean;
-  last_contact: number;
-  // Computed fields
+  last_contact: number | null;
   altitude_km: number | null;
   speed_kmh: number | null;
 }
 
-export interface AirTrafficResponse {
-  time: number;
-  states: any[][]; // Raw OpenSky states array
+interface AirTrafficBackendResponse {
+  aircraft: Aircraft[];
+  meta?: {
+    source: 'opensky' | 'mock';
+    authenticated: boolean;
+    note?: string;
+  };
 }
 
-// Cache for aircraft data
-let aircraftCache: Aircraft[] = [];
-let lastFetchTime = 0;
-const CACHE_DURATION = 60000; // 60 seconds
+interface FocusPoint {
+  lat: number;
+  lng: number;
+}
 
-/**
- * Fetch aircraft data from OpenSky Network API
- * Falls back to mock data if API is unavailable
- */
-export async function fetchAircraftData(): Promise<Aircraft[] | null> {
+type CacheEntry = {
+  aircraft: Aircraft[];
+  lastFetchTime: number;
+};
+
+const API_BASE = (
+  (import.meta.env.VITE_LOCAL_API_BASE as string | undefined)
+  ?? (import.meta.env.VITE_REGULATORY_API_BASE as string | undefined)
+  ?? 'http://localhost:3001'
+).replace(/\/$/, '');
+
+const CACHE_DURATION = 60_000;
+const aircraftCache = new Map<string, CacheEntry>();
+
+const getCacheKey = (focusPoint: FocusPoint | null = null): string => {
+  if (!focusPoint) return 'default';
+  const latBucket = Math.round(focusPoint.lat * 2) / 2;
+  const lngBucket = Math.round(focusPoint.lng * 2) / 2;
+  return `${latBucket.toFixed(1)},${lngBucket.toFixed(1)}`;
+};
+
+const getMockAircraftData = (): Aircraft[] => ([
+  {
+    icao24: 'a80897',
+    callsign: 'AF1234',
+    latitude: 48.8566,
+    longitude: 2.3522,
+    baro_altitude: 10668,
+    velocity: 250,
+    heading: 270,
+    on_ground: false,
+    last_contact: Math.floor(Date.now() / 1000),
+    altitude_km: 10.668,
+    speed_kmh: 900,
+  },
+  {
+    icao24: 'a1b2c3',
+    callsign: 'LH5678',
+    latitude: 50.1109,
+    longitude: 8.6821,
+    baro_altitude: 11277,
+    velocity: 240,
+    heading: 90,
+    on_ground: false,
+    last_contact: Math.floor(Date.now() / 1000),
+    altitude_km: 11.277,
+    speed_kmh: 864,
+  },
+  {
+    icao24: 'd4e5f6',
+    callsign: 'BA9012',
+    latitude: 51.4700,
+    longitude: -0.4543,
+    baro_altitude: 11887,
+    velocity: 260,
+    heading: 45,
+    on_ground: false,
+    last_contact: Math.floor(Date.now() / 1000),
+    altitude_km: 11.887,
+    speed_kmh: 936,
+  },
+]);
+
+export function clearAircraftCache(): void {
+  aircraftCache.clear();
+}
+
+export async function fetchAircraftData(focusPoint: FocusPoint | null = null): Promise<Aircraft[] | null> {
   try {
-    log('🛩️ Fetching aircraft data from OpenSky API...');
-    const response = await fetch('https://opensky-network.org/api/states/all', {
+    log('🛩️ Fetching aircraft data from local OpenSky proxy...');
+    const url = new URL(`${API_BASE}/api/air-traffic`);
+    if (focusPoint) {
+      url.searchParams.set('lat', String(focusPoint.lat));
+      url.searchParams.set('lng', String(focusPoint.lng));
+    }
+
+    const response = await fetch(url.toString(), {
       method: 'GET',
       headers: {
-        'Accept': 'application/json'
-      }
+        Accept: 'application/json',
+      },
     });
 
     if (!response.ok) {
-      console.warn(`🛩️ API returned HTTP ${response.status}, using mock data`);
+      console.warn(`🛩️ Air traffic proxy returned HTTP ${response.status}, using mock data`);
       return getMockAircraftData();
     }
 
-    const data: AirTrafficResponse = await response.json();
-
-    if (!data.states || !Array.isArray(data.states)) {
-      console.warn('🛩️ Invalid API response, using mock data');
+    const data = await response.json() as AirTrafficBackendResponse;
+    if (!Array.isArray(data.aircraft) || data.aircraft.length === 0) {
+      console.warn('🛩️ Air traffic proxy returned no aircraft, using mock data');
       return getMockAircraftData();
     }
 
-    log(`🛩️ Received ${data.states.length} aircraft states from API`);
+    if (data.meta?.source === 'mock') {
+      console.warn(`🛩️ Air traffic proxy is serving mock data${data.meta.note ? `: ${data.meta.note}` : ''}`);
+    } else {
+      log(`🛩️ Received ${data.aircraft.length} aircraft from local OpenSky proxy`);
+    }
 
-    // Parse and filter aircraft data
-    const aircraft: Aircraft[] = data.states
-      .filter(state => state && state.length >= 17)
-      .map(state => {
-        const [
-          icao24, callsign, , ,
-          last_contact, longitude, latitude, baro_altitude,
-          on_ground, velocity, heading
-        ] = state;
-
-        // Convert to our Aircraft interface
-        const aircraft: Aircraft = {
-          icao24,
-          callsign: callsign?.trim() || '',
-          latitude,
-          longitude,
-          baro_altitude,
-          velocity,
-          heading,
-          on_ground: !!on_ground,
-          last_contact,
-          altitude_km: baro_altitude ? baro_altitude / 1000 : null,
-          speed_kmh: velocity ? velocity * 3.6 : null
-        };
-
-        return aircraft;
-      })
-      .filter(aircraft => {
-        // Apply performance filters
-        if (!aircraft.latitude || !aircraft.longitude) return false;
-        if (aircraft.on_ground) return false;
-        if (!aircraft.altitude_km || aircraft.altitude_km < 5.0) return false; // Below 5000m
-        if (!aircraft.callsign) return false; // Require callsign for display
-
-        return true;
-      });
-
-    log(`🛩️ Filtered to ${aircraft.length} valid aircraft`);
-    return aircraft;
+    return data.aircraft;
   } catch (error) {
-    console.warn('🛩️ Failed to fetch aircraft data, using mock data:', error);
+    console.warn('🛩️ Failed to fetch aircraft data from local proxy, using mock data:', error);
     return getMockAircraftData();
   }
 }
 
-/**
- * Generate mock aircraft data for testing
- */
-function getMockAircraftData(): Aircraft[] {
-  log('🛩️ Using mock aircraft data');
-  
-  return [
-    {
-      icao24: 'a80897',
-      callsign: 'AF1234',
-      latitude: 48.8566,
-      longitude: 2.3522,
-      baro_altitude: 10668, // 35,000 feet
-      velocity: 250, // m/s
-      heading: 270,
-      on_ground: false,
-      last_contact: Date.now() / 1000,
-      altitude_km: 10.668,
-      speed_kmh: 900
-    },
-    {
-      icao24: 'a1b2c3',
-      callsign: 'LH5678',
-      latitude: 51.5074,
-      longitude: -0.1278,
-      baro_altitude: 11277, // 37,000 feet
-      velocity: 240,
-      heading: 90,
-      on_ground: false,
-      last_contact: Date.now() / 1000,
-      altitude_km: 11.277,
-      speed_kmh: 864
-    },
-    {
-      icao24: 'd4e5f6',
-      callsign: 'BA9012',
-      latitude: 40.7128,
-      longitude: -74.0060,
-      baro_altitude: 11887, // 39,000 feet
-      velocity: 260,
-      heading: 45,
-      on_ground: false,
-      last_contact: Date.now() / 1000,
-      altitude_km: 11.887,
-      speed_kmh: 936
-    }
-  ];
-}
-
-/**
- * Release the in-memory aircraft cache.
- * Call when the air traffic feature is disabled so the full OpenSky dataset
- * (up to ~10 000 Aircraft objects) is not retained until the next fetch cycle.
- */
-export function clearAircraftCache(): void {
-  aircraftCache = [];
-  lastFetchTime = 0;
-}
-
-/**
- * Get cached aircraft data or fetch fresh data if cache is expired
- */
-export async function getAircraftData(): Promise<Aircraft[]> {
+export async function getAircraftData(focusPoint: FocusPoint | null = null): Promise<Aircraft[]> {
+  const cacheKey = getCacheKey(focusPoint);
+  const cached = aircraftCache.get(cacheKey);
   const now = Date.now();
 
-  // Return cached data if still valid
-  if (aircraftCache.length > 0 && (now - lastFetchTime) < CACHE_DURATION) {
-    return aircraftCache;
+  if (cached && (now - cached.lastFetchTime) < CACHE_DURATION) {
+    return cached.aircraft;
   }
 
-  // Fetch fresh data
-  const freshData = await fetchAircraftData();
-
+  const freshData = await fetchAircraftData(focusPoint);
   if (freshData && freshData.length > 0) {
-    aircraftCache = freshData;
-    lastFetchTime = now;
+    aircraftCache.set(cacheKey, {
+      aircraft: freshData,
+      lastFetchTime: now,
+    });
+    return freshData;
   }
 
-  return aircraftCache;
+  return cached?.aircraft ?? [];
 }
 
-/**
- * Filter aircraft based on camera bounds, then sort by relevance and apply a hard cap.
- *
- * Relevance priority:
- *  - If a focusPoint is provided: closest aircraft first (most useful for current analysis)
- *  - Otherwise: highest altitude first (commercial cruising traffic = most visible/important)
- *
- * This ensures global coverage while guaranteeing the most relevant aircraft are always
- * within the rendering budget when the cap is reached.
- */
 export function filterAircraftByView(
   aircraft: Aircraft[],
   cameraBounds: {
@@ -207,9 +169,8 @@ export function filterAircraftByView(
 ): Aircraft[] {
   let filtered = aircraft;
 
-  // Filter by camera bounds if available
   if (cameraBounds) {
-    filtered = filtered.filter(ac =>
+    filtered = filtered.filter((ac) =>
       ac.latitude !== null &&
       ac.longitude !== null &&
       ac.latitude >= cameraBounds.south &&
@@ -219,9 +180,7 @@ export function filterAircraftByView(
     );
   }
 
-  // Sort by relevance so the most useful aircraft are kept when the cap is reached
   if (focusPoint) {
-    // Closest to analysis point first
     const haversineKm = (lat: number, lng: number): number => {
       const R = 6371;
       const dLat = (lat - focusPoint.lat) * Math.PI / 180;
@@ -236,10 +195,8 @@ export function filterAircraftByView(
       haversineKm(a.latitude!, a.longitude!) - haversineKm(b.latitude!, b.longitude!)
     );
   } else {
-    // Highest altitude first (commercial cruising traffic priority)
     filtered = [...filtered].sort((a, b) => (b.altitude_km ?? 0) - (a.altitude_km ?? 0));
   }
 
-  // Apply hard cap
   return filtered.slice(0, maxAircraft);
 }

@@ -89,7 +89,7 @@ export function useAirTraffic(
     setState(prev => ({ ...prev, isLoading: true, error: null }));
 
     try {
-      const allAircraft = await getAircraftData();
+      const allAircraft = await getAircraftData(focusPointRef.current);
 
       // Read from refs — no dep needed, always current when callback fires.
       const filteredAircraft = filterAircraftByView(

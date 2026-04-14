@@ -95,15 +95,104 @@ const resolveModcod = (cnDb: number): ModcodEntry | null => {
   return best;
 };
 
-export function lookupModcod(cnDb: number): { name: string; efficiency: number } {
+export function lookupModcod(cnDb: number): { name: string; efficiency: number; requiredCnDb: number } {
   const modcod = resolveModcod(cnDb);
   if (!modcod) {
-    return { name: 'Below threshold', efficiency: 0 };
+    return { name: 'Below threshold', efficiency: 0, requiredCnDb: LOWEST_MODCOD.requiredCnDb };
   }
 
   return {
     name: modcod.name,
     efficiency: modcod.efficiency,
+    requiredCnDb: modcod.requiredCnDb,
+  };
+}
+
+// ─── Gateway Terminal Parameters ─────────────────────────────────────────────
+//
+// Representative teleport assumptions for STAR Forward/Return link budgets.
+// A medium-sized teleport with a 4.5 m Ku-band or 3.7 m Ka-band antenna.
+
+export const GATEWAY_EIRP_DBW = 55.0;   // dBW — teleport TX power + antenna gain
+
+export const GATEWAY_GT_DBK: Record<GeoBand, number> = {
+  C:  20.0,  // dB/K — large C-band dish
+  Ku: 25.0,  // dB/K — medium Ku-band dish
+  Ka: 30.0,  // dB/K — medium Ka-band dish
+};
+
+/**
+ * Nominal satellite receive G/T — used as fallback when the satellite data
+ * only provides downlink (EIRP) contours but not uplink (G/T) contours.
+ * Values represent typical user-facing beam performance.
+ */
+export const NOMINAL_SAT_GT_DBK: Record<GeoBand, number> = {
+  C:  -2.0,  // dB/K — wide regional C-band beam
+  Ku:  2.0,  // dB/K — regional / medium spot Ku-band beam
+  Ka:  6.0,  // dB/K — spot Ka-band beam
+};
+
+/**
+ * Nominal satellite transmit EIRP — used as fallback when the satellite data
+ * only provides uplink (G/T) contours but not downlink (EIRP) contours.
+ */
+export const NOMINAL_SAT_EIRP_DBW: Record<GeoBand, number> = {
+  C:  38.0,  // dBW
+  Ku: 45.0,  // dBW
+  Ka: 50.0,  // dBW
+};
+
+// ─── End-to-End Budget ───────────────────────────────────────────────────────
+
+export interface EndToEndBudget {
+  uplinkCNDb: number;
+  downlinkCNDb: number;
+  endToEndCNDb: number;
+  /** The segment that is the bottleneck (lower C/N). */
+  limitingSegment: 'uplink' | 'downlink';
+  endToEndModcod: string;
+  endToEndSpectralEfficiency: number;
+  endToEndThroughputMbps: number;
+  endToEndLinkMarginDb: number;
+  bandwidthMhz: number;
+}
+
+/**
+ * Combines uplink and downlink C/N into the end-to-end C/N.
+ *
+ * RF noise addition law (in linear power units):
+ *   1 / C_N_total = 1 / C_N_up + 1 / C_N_down
+ *
+ * All arguments and the return value are in dB.
+ */
+export function combineEndToEndCNDb(uplinkCNDb: number, downlinkCNDb: number): number {
+  const cnUpLinear   = Math.pow(10, uplinkCNDb   / 10);
+  const cnDownLinear = Math.pow(10, downlinkCNDb / 10);
+  const cnTotalLinear = 1 / (1 / cnUpLinear + 1 / cnDownLinear);
+  return 10 * Math.log10(cnTotalLinear);
+}
+
+/**
+ * Computes the full end-to-end link budget from individual segment C/N values.
+ */
+export function computeEndToEndBudget(
+  uplinkCNDb: number,
+  downlinkCNDb: number,
+  bandwidthMhz: number,
+): EndToEndBudget {
+  const e2eCNDb = combineEndToEndCNDb(uplinkCNDb, downlinkCNDb);
+  const modcod  = lookupModcod(e2eCNDb);
+
+  return {
+    uplinkCNDb,
+    downlinkCNDb,
+    endToEndCNDb: e2eCNDb,
+    limitingSegment: uplinkCNDb <= downlinkCNDb ? 'uplink' : 'downlink',
+    endToEndModcod: modcod.name,
+    endToEndSpectralEfficiency: modcod.efficiency,
+    endToEndThroughputMbps: modcod.efficiency * bandwidthMhz,
+    endToEndLinkMarginDb: e2eCNDb - modcod.requiredCnDb,
+    bandwidthMhz,
   };
 }
 

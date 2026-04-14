@@ -1,0 +1,33 @@
+/**
+ * GEO link connectivity modes.
+ *
+ * STAR_FORWARD  — Gateway → Satellite → User  (forward link, user receives)
+ * STAR_RETURN   — User → Satellite → Gateway  (return link, user transmits)
+ * MESH          — Point A ↔ Satellite ↔ Point B  (both directions computed)
+ * POINT_TO_POINT— Same RF as MESH, distinct semantic (site-to-site)
+ */
+export type LinkMode = 'STAR_FORWARD' | 'STAR_RETURN' | 'MESH' | 'POINT_TO_POINT';
+
+export const LINK_MODE_LABELS: Record<LinkMode, string> = {
+  STAR_FORWARD: 'Forward',
+  STAR_RETURN: 'Return',
+  MESH: 'Mesh',
+  POINT_TO_POINT: 'Point-to-Point',
+};
+
+export const LINK_MODE_DESCRIPTIONS: Record<LinkMode, string> = {
+  STAR_FORWARD: 'Gateway → User (Forward Link)',
+  STAR_RETURN: 'User → Gateway (Return Link)',
+  MESH: 'Point A ↔ Point B (Mesh Link)',
+  POINT_TO_POINT: 'Point A ↔ Point B (Point-to-Point)',
+};
+
+/**
+ * Modes that require a second geographic point (Point B) to be selected.
+ */
+export const LINK_MODE_REQUIRES_POINT_B = new Set<LinkMode>(['MESH', 'POINT_TO_POINT']);
+
+/**
+ * Whether the mode uses a ground gateway as one endpoint (auto-resolved).
+ */
+export const LINK_MODE_USES_GATEWAY = new Set<LinkMode>(['STAR_FORWARD', 'STAR_RETURN']);

@@ -15,6 +15,8 @@ import fastifyCors from '@fastify/cors';
 import fastifyCompress from '@fastify/compress';
 import { loadAndIndex } from './services/regulatoryIndex.js';
 import { regulatoryRoutes } from './routes/regulatory.js';
+import { airTrafficRoutes } from './routes/airTraffic.js';
+import { maritimeTrafficRoutes } from './routes/maritimeTraffic.js';
 
 const PORT = Number(process.env['PORT'] ?? 3001);
 const HOST = process.env['HOST'] ?? '0.0.0.0';
@@ -30,8 +32,10 @@ async function start() {
   await app.register(fastifyCors, {
     origin: [
       'http://localhost:3000',
+      'http://localhost:4173',
       'http://localhost:5173',
       'http://127.0.0.1:3000',
+      'http://127.0.0.1:4173',
       'http://127.0.0.1:5173',
     ],
   });
@@ -41,6 +45,8 @@ async function start() {
   await loadAndIndex(PUBLIC_DIR);
 
   await app.register(regulatoryRoutes, { publicDir: PUBLIC_DIR });
+  await app.register(airTrafficRoutes);
+  await app.register(maritimeTrafficRoutes);
 
   await app.listen({ port: PORT, host: HOST });
   console.log(`[regulatory-api] ready on :${PORT}`);

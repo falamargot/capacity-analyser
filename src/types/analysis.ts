@@ -68,6 +68,13 @@ export interface CandidateCoverage {
     level: number | null;
     /** True when this coverage is an uplink (G/T), false for downlink (IPFD). */
     isUplink: boolean;
+    /**
+     * True when this candidate was synthesised from the opposite direction using
+     * nominal satellite parameters (no real contour data available). Synthesised
+     * candidates are used for internal link-budget computation only and should
+     * not be shown as selectable beams in the coverage picker UI.
+     */
+    isSynthesized?: boolean;
     eirpDbw?: number;
     gtDbk?: number;
     band?: 'C' | 'Ku' | 'Ka';

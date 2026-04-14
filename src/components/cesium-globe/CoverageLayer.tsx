@@ -48,10 +48,21 @@ export const GEO_COVERAGE_ENTITY_PREFIX = 'geo-coverage::';
 
 const OVERVIEW_CONTOUR_COLOR = Color.fromCssColorString('#60a5fa').withAlpha(0.55);
 const OVERVIEW_FILL_COLOR = Color.fromCssColorString('#93c5fd').withAlpha(0.04);
-const SELECTED_GEO_CONTOUR_COLOR = Color.fromCssColorString('#2563eb');
-const SELECTED_GEO_FILL_OUTER_COLOR = Color.fromCssColorString('#f0f9ff');
-const SELECTED_GEO_FILL_MID_COLOR = Color.fromCssColorString('#60a5fa');
-const SELECTED_GEO_FILL_INNER_COLOR = Color.fromCssColorString('#1e40af');
+// Downlink palette — blue (🔵)
+const DOWNLINK_CONTOUR_COLOR = Color.fromCssColorString('#2563eb');
+const DOWNLINK_FILL_OUTER_COLOR = Color.fromCssColorString('#f0f9ff');
+const DOWNLINK_FILL_MID_COLOR = Color.fromCssColorString('#60a5fa');
+const DOWNLINK_FILL_INNER_COLOR = Color.fromCssColorString('#1e40af');
+// Uplink palette — emerald (🟢)
+const UPLINK_CONTOUR_COLOR = Color.fromCssColorString('#059669');
+const UPLINK_FILL_OUTER_COLOR = Color.fromCssColorString('#f0fdf4');
+const UPLINK_FILL_MID_COLOR = Color.fromCssColorString('#6ee7b7');
+const UPLINK_FILL_INNER_COLOR = Color.fromCssColorString('#047857');
+// Legacy alias (no direction context → falls back to downlink/blue)
+const SELECTED_GEO_CONTOUR_COLOR = DOWNLINK_CONTOUR_COLOR;
+const SELECTED_GEO_FILL_OUTER_COLOR = DOWNLINK_FILL_OUTER_COLOR;
+const SELECTED_GEO_FILL_MID_COLOR = DOWNLINK_FILL_MID_COLOR;
+const SELECTED_GEO_FILL_INNER_COLOR = DOWNLINK_FILL_INNER_COLOR;
 const DIMMED_CONTOUR_COLOR = Color.fromCssColorString('#94a3b8').withAlpha(0.34);
 const MAX_PREBUILT_FILL_TRIANGLES_PER_PART = 500_000;
 const GEO_FOOTPRINT_LABEL_LAYER_HEIGHT_M = GEO_FOOTPRINT_OUTLINE_LAYER_HEIGHT_M + 800;
@@ -60,6 +71,8 @@ interface CoverageLayerProps {
   satellites: SatelliteData[];
   selection: Selection;
   selectedCoverage?: CandidateCoverage | null;
+  selectedUplinkCoverage?: CandidateCoverage | null;
+  selectedDownlinkCoverage?: CandidateCoverage | null;
   onLegendItemsChange?: (items: GeoCoverageLegendItem[]) => void;
   highlightedLegendItemKey?: string | null;
 }
@@ -84,6 +97,8 @@ interface RenderContour {
   normalizedLevel: number;
   mode: 'overview' | 'full' | 'dimmed';
   showFill: boolean;
+  /** Direction tag for dual-coverage coloring: blue for uplink, green for downlink. */
+  direction?: 'uplink' | 'downlink';
 }
 
 interface RenderContourLabel {
@@ -408,6 +423,7 @@ const getCoverageBandStyle = (
   normalizedBand: number,
   mode: RenderContour['mode'],
   isHighlighted: boolean,
+  direction?: RenderContour['direction'],
 ): { fillColor: Color; contourColor: Color; contourWidth: number } => {
   if (mode === 'overview') {
     return {
@@ -427,24 +443,21 @@ const getCoverageBandStyle = (
     };
   }
 
+  // Pick the right palette: blue for downlink (or untagged), green for uplink
+  const isUplink = direction === 'uplink';
+  const outerFill   = isUplink ? UPLINK_FILL_OUTER_COLOR   : DOWNLINK_FILL_OUTER_COLOR;
+  const midFill     = isUplink ? UPLINK_FILL_MID_COLOR     : DOWNLINK_FILL_MID_COLOR;
+  const innerFill   = isUplink ? UPLINK_FILL_INNER_COLOR   : DOWNLINK_FILL_INNER_COLOR;
+  const contourBase = isUplink ? UPLINK_CONTOUR_COLOR      : DOWNLINK_CONTOUR_COLOR;
+
   const fillColor = easedBand < 0.52
-    ? Color.lerp(
-        SELECTED_GEO_FILL_OUTER_COLOR,
-        SELECTED_GEO_FILL_MID_COLOR,
-        easedBand / 0.52,
-        new Color()
-      )
-    : Color.lerp(
-        SELECTED_GEO_FILL_MID_COLOR,
-        SELECTED_GEO_FILL_INNER_COLOR,
-        (easedBand - 0.52) / 0.48,
-        new Color()
-      );
+    ? Color.lerp(outerFill, midFill, easedBand / 0.52, new Color())
+    : Color.lerp(midFill, innerFill, (easedBand - 0.52) / 0.48, new Color());
   fillColor.alpha = 0.09 + (easedBand * easedBand * 0.34);
 
   return {
     fillColor,
-    contourColor: SELECTED_GEO_CONTOUR_COLOR.withAlpha(isHighlighted ? 0.98 : 0.72),
+    contourColor: contourBase.withAlpha(isHighlighted ? 0.98 : 0.72),
     contourWidth: isHighlighted ? 2.8 : 1.2,
   };
 };
@@ -487,7 +500,9 @@ const getSatelliteById = (satellites: SatelliteData[], satelliteId: string): Sat
 
 const getSelectionRenderSignature = (
   selection: Selection,
-  selectedCoverage: CandidateCoverage | null
+  selectedCoverage: CandidateCoverage | null,
+  selectedUplinkCoverage: CandidateCoverage | null,
+  selectedDownlinkCoverage: CandidateCoverage | null,
 ): string => {
   if (selection.type === 'none') {
     return 'none';
@@ -506,9 +521,11 @@ const getSelectionRenderSignature = (
   }
 
   if (selection.type === 'target') {
-    return selectedCoverage
-      ? `target::${getCandidateCoverageKey(selectedCoverage)}`
-      : `target::none::${selection.targetType}`;
+    const ulKey = selectedUplinkCoverage ? getCandidateCoverageKey(selectedUplinkCoverage) : null;
+    const dlKey = selectedDownlinkCoverage ? getCandidateCoverageKey(selectedDownlinkCoverage) : null;
+    const legacyKey = selectedCoverage ? getCandidateCoverageKey(selectedCoverage) : null;
+    const parts = [ulKey, dlKey, legacyKey].filter(Boolean).join('+') || `none::${selection.targetType}`;
+    return `target::${parts}`;
   }
 
   return 'unknown';
@@ -716,6 +733,8 @@ const resolveRenderContours = (
   satellites: SatelliteData[],
   selection: Selection,
   selectedCoverage: CandidateCoverage | null,
+  selectedUplinkCoverage: CandidateCoverage | null,
+  selectedDownlinkCoverage: CandidateCoverage | null,
   meshIndex: Map<string, PrebuiltCoverageMesh> | null
 ): RenderContour[] => {
   if (selection.type === 'none') {
@@ -737,11 +756,39 @@ const resolveRenderContours = (
     return satellite ? buildCoverageContours(satellite, selection.coverageId, meshIndex, selection.contourId) : [];
   }
 
-  if (selection.type === 'target' && selectedCoverage) {
-    const satellite = getSatelliteById(satellites, selectedCoverage.satelliteId);
-    return satellite
-      ? buildCoverageContours(satellite, selectedCoverage.coverageKey, meshIndex, null)
-      : [];
+  if (selection.type === 'target') {
+    // selectedDownlinkCoverage / selectedUplinkCoverage are already filtered by
+    // App.tsx (link mode + isSynthesized). The legacy selectedCoverage fallback
+    // is intentionally dropped here — it would bypass those filters and render
+    // the wrong footprint (e.g. a downlink beam in RETURN mode).
+    const candidatePairs: Array<[CandidateCoverage, RenderContour['direction']]> = [
+      // Downlink first (blue, rendered below) — uplink on top (green, outline visible)
+      ...(selectedDownlinkCoverage ? [[selectedDownlinkCoverage, 'downlink']] as const : []),
+      ...(selectedUplinkCoverage   ? [[selectedUplinkCoverage,   'uplink'  ]] as const : []),
+    ];
+
+    if (candidatePairs.length === 0) return [];
+
+    const satellite = getSatelliteById(satellites, candidatePairs[0][0].satelliteId);
+    if (!satellite) return [];
+
+    // Strip the `::synth-ul` / `::synth-dl` suffix to look up real contour geometry.
+    const resolveSourceKey = (key: string) => key.replace(/::synth-(ul|dl)$/, '');
+
+    // Deduplicate by direction + source key: the same beam can appear twice (once
+    // as uplink, once as downlink) so both colored outlines are visible on the globe.
+    const renderedSlots = new Set<string>();
+    const result: RenderContour[] = [];
+    for (const [c, dir] of candidatePairs) {
+      const sourceKey = resolveSourceKey(c.coverageKey);
+      const slot = `${dir ?? 'none'}::${sourceKey}`;
+      if (!renderedSlots.has(slot)) {
+        renderedSlots.add(slot);
+        const contours = buildCoverageContours(satellite, sourceKey, meshIndex, null);
+        result.push(...contours.map(ct => ({ ...ct, direction: dir })));
+      }
+    }
+    return result;
   }
 
   return [];
@@ -868,6 +915,8 @@ const CoverageLayer: React.FC<CoverageLayerProps> = ({
   satellites,
   selection,
   selectedCoverage = null,
+  selectedUplinkCoverage = null,
+  selectedDownlinkCoverage = null,
   onLegendItemsChange,
   highlightedLegendItemKey = null,
 }) => {
@@ -883,8 +932,8 @@ const CoverageLayer: React.FC<CoverageLayerProps> = ({
   } | null>(null);
   const geometryLod: CoverageGeometryLod = 'medium';
   const selectionRenderSignature = useMemo(
-    () => getSelectionRenderSignature(selection, selectedCoverage),
-    [selection, selectedCoverage]
+    () => getSelectionRenderSignature(selection, selectedCoverage, selectedUplinkCoverage, selectedDownlinkCoverage),
+    [selection, selectedCoverage, selectedUplinkCoverage, selectedDownlinkCoverage]
   );
   const relevantSatelliteId = useMemo(() => {
     if (selection.type === 'satellite' || selection.type === 'coverage' || selection.type === 'contour') {
@@ -892,11 +941,11 @@ const CoverageLayer: React.FC<CoverageLayerProps> = ({
     }
 
     if (selection.type === 'target') {
-      return selectedCoverage?.satelliteId ?? null;
+      return selectedUplinkCoverage?.satelliteId ?? selectedDownlinkCoverage?.satelliteId ?? selectedCoverage?.satelliteId ?? null;
     }
 
     return null;
-  }, [selection, selectedCoverage?.satelliteId]);
+  }, [selection, selectedCoverage?.satelliteId, selectedUplinkCoverage?.satelliteId, selectedDownlinkCoverage?.satelliteId]);
   const relevantSatellite = useMemo(
     () => (relevantSatelliteId ? getSatelliteById(satellites, relevantSatelliteId) : null),
     [relevantSatelliteId, satellites]
@@ -915,9 +964,11 @@ const CoverageLayer: React.FC<CoverageLayerProps> = ({
       relevantSatellite ? [relevantSatellite] : [],
       selection,
       selectedCoverage,
+      selectedUplinkCoverage,
+      selectedDownlinkCoverage,
       activeMeshIndex
     )),
-    [activeMeshIndex, relevantSatellite, selection, selectedCoverage]
+    [activeMeshIndex, relevantSatellite, selection, selectedCoverage, selectedUplinkCoverage, selectedDownlinkCoverage]
   );
   const renderLabels = useMemo(
     () => buildRenderContourLabels(renderContours),
@@ -935,6 +986,7 @@ const CoverageLayer: React.FC<CoverageLayerProps> = ({
         contour.geometryPartKey,
         contour.prebuiltMesh ? `mesh:${contour.prebuiltMesh.fillMode}` : 'polygon',
         contour.mode,
+        contour.direction ?? 'none',
         contour.showFill ? 'fill' : 'outline',
         contour.normalizedLevel.toFixed(4),
       ].join('::'))
@@ -1041,12 +1093,16 @@ const CoverageLayer: React.FC<CoverageLayerProps> = ({
       );
       if (!polylinePositions) return;
 
-      const coverageEntityId = `${GEO_COVERAGE_ENTITY_PREFIX}${contour.satelliteName}::${contour.coverageKey}`;
+      // Include direction in the entity ID so uplink and downlink renderings of
+      // the same source beam (shared coverageKey) don't produce duplicate IDs.
+      const dirTag = contour.direction ?? 'none';
+      const coverageEntityId = `${GEO_COVERAGE_ENTITY_PREFIX}${contour.satelliteName}::${dirTag}::${contour.coverageKey}`;
       const contourLegendKey = `${contour.coverageKey}::${contour.contourKey}`;
       const style = getCoverageBandStyle(
         contour.normalizedLevel,
         contour.mode,
         highlightedLegendItemKey === contourLegendKey,
+        contour.direction,
       );
       const fillId = `${coverageEntityId}::fill::${contour.contourKey}::${contour.geometryPartKey}`;
       const outlineId = `${coverageEntityId}::outline::${contour.contourKey}::${contour.geometryPartKey}`;
@@ -1161,7 +1217,7 @@ const CoverageLayer: React.FC<CoverageLayerProps> = ({
     });
 
     viewer?.scene.requestRender();
-  }, [geometryLod, renderContours, renderLabels, renderSignature, selectedCoverage, selection, viewer]);
+  }, [geometryLod, renderContours, renderLabels, renderSignature, selectedCoverage, selectedUplinkCoverage, selectedDownlinkCoverage, selection, viewer]);
 
   return null;
 };

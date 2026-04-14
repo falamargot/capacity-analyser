@@ -22,6 +22,7 @@ import {
     Math as CesiumMath,
     Viewer as CesiumViewerType,
     ScreenSpaceEventType,
+    KeyboardEventModifier,
     defined,
     CallbackProperty,
     SceneMode,
@@ -139,7 +140,7 @@ interface CesiumGlobeProps {
     satelliteTypeByName: Map<string, SatelliteData['type']>;
     coverageFeatures: Feature<Geometry, GeoJsonProperties>[];
     selectedPosition?: { lat: number; lng: number; altitude?: number } | null;
-    onPointClick: (lat: number, lng: number) => void;
+    onPointClick: (lat: number, lng: number, shiftKey: boolean) => void;
     onSatelliteClick: (satellite: SatelliteData | null) => void;
     onMoonSelectionChange?: (selected: boolean) => void;
     onSatelliteHover: (satelliteId: string | null) => void;
@@ -171,6 +172,8 @@ interface CesiumGlobeProps {
     selectedGEOBeam?: GEOBeam | null;
     selection: Selection;
     selectedCoverage?: CandidateCoverage | null;
+    selectedUplinkCoverage?: CandidateCoverage | null;
+    selectedDownlinkCoverage?: CandidateCoverage | null;
     cameraTarget?: { lat: number; lng: number; alt: number } | null;
     onCameraReady?: (viewer: CesiumViewerType) => void;
     onGlobeContainerReady?: (ref: React.RefObject<HTMLDivElement | null>) => void;
@@ -204,6 +207,10 @@ interface CesiumGlobeProps {
     coverageSwitcherCoverages?: CoverageSwitcherCoverage[];
     selectedCoverageId?: string;
     onCoverageSwitcherSelect?: (id: string) => void;
+    /** Second geographic point for MESH / Point-to-Point modes (rendered as a green marker). */
+    pointB?: { lat: number; lng: number } | null;
+    /** Active link mode — used to label markers correctly. */
+    linkMode?: string;
 }
 
 const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
@@ -243,6 +250,8 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
     selectedGEOBeam,
     selection,
     selectedCoverage = null,
+    selectedUplinkCoverage = null,
+    selectedDownlinkCoverage = null,
     cameraTarget,
     onCameraReady,
     onGlobeContainerReady,
@@ -276,6 +285,8 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
     coverageSwitcherCoverages = [],
     selectedCoverageId = '',
     onCoverageSwitcherSelect,
+    pointB = null,
+    linkMode,
 }) => {
     // Stable refs for click-handler lookups — avoids recreating handleMapClick
     // (and re-registering the Cesium ScreenSpaceEvent) when aircraft/vessels/satellites
@@ -300,6 +311,63 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
     const viewerRef = useRef<CesiumViewerType | null>(null);
     const globeContainerRef = useRef<HTMLDivElement>(null);
     const [viewerReady, setViewerReady] = useState(false);
+    const shiftPressedRef = useRef(false);
+    const pointerShiftPressedRef = useRef(false);
+
+    useEffect(() => {
+        const onKeyDown = (event: KeyboardEvent) => {
+            if (event.key === 'Shift') {
+                shiftPressedRef.current = true;
+            }
+        };
+        const onKeyUp = (event: KeyboardEvent) => {
+            if (event.key === 'Shift') {
+                shiftPressedRef.current = false;
+            }
+        };
+        const resetShift = () => {
+            shiftPressedRef.current = false;
+        };
+
+        window.addEventListener('keydown', onKeyDown);
+        window.addEventListener('keyup', onKeyUp);
+        window.addEventListener('blur', resetShift);
+        document.addEventListener('visibilitychange', resetShift);
+
+        return () => {
+            window.removeEventListener('keydown', onKeyDown);
+            window.removeEventListener('keyup', onKeyUp);
+            window.removeEventListener('blur', resetShift);
+            document.removeEventListener('visibilitychange', resetShift);
+        };
+    }, []);
+
+    useEffect(() => {
+        const canvas = viewerRef.current?.scene?.canvas;
+        if (!canvas) return;
+
+        const updatePointerShiftState = (event: MouseEvent | PointerEvent) => {
+            pointerShiftPressedRef.current = !!event.shiftKey;
+        };
+
+        const resetPointerShiftState = () => {
+            pointerShiftPressedRef.current = false;
+        };
+
+        canvas.addEventListener('pointerdown', updatePointerShiftState);
+        canvas.addEventListener('mousedown', updatePointerShiftState);
+        canvas.addEventListener('pointerup', resetPointerShiftState);
+        canvas.addEventListener('mouseup', resetPointerShiftState);
+        canvas.addEventListener('mouseleave', resetPointerShiftState);
+
+        return () => {
+            canvas.removeEventListener('pointerdown', updatePointerShiftState);
+            canvas.removeEventListener('mousedown', updatePointerShiftState);
+            canvas.removeEventListener('pointerup', resetPointerShiftState);
+            canvas.removeEventListener('mouseup', resetPointerShiftState);
+            canvas.removeEventListener('mouseleave', resetPointerShiftState);
+        };
+    }, [viewerReady]);
     const initialSceneReadyRef = useRef(false);
     const { getSatellitePositionCallback } = usePositionCallbacks(satellites, aircraft, interpolatedAircraftMapRef);
     const basemapApplyTokenRef = useRef(0);
@@ -644,7 +712,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         const cartographic = Cartographic.fromCartesian(cartesian);
         const lat = CesiumMath.toDegrees(cartographic.latitude);
         const lng = CesiumMath.toDegrees(cartographic.longitude);
-        onPointClick(lat, lng);
+        onPointClick(lat, lng, pointerShiftPressedRef.current || shiftPressedRef.current);
     }, [onAircraftClick, onCoverageClick, onMoonSelectionChange, onPointClick, onSatelliteClick, onSnpClick, onVesselClick, selection.type]);
 
     // Determine target satellite for OneWeb comb layer
@@ -990,11 +1058,23 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
             const dynamicScale = calculateDynamicScale(cameraMetricsRef.current.height, DPR_FACTOR);
 
             const baseScale = dynamicScale * 3000000 / Math.max(distance, 10000000);
-            return baseScale * 20 * (sizeScale || 1);
+            return baseScale * 16 * (sizeScale || 1);
         }, false);
     }, [selectedPosition, sizeScale]);
 
+    const pointBMarkerPixelSize = useMemo(() => {
+        return new CallbackProperty(() => {
+            if (!pointB) return 4;
+            const position = getPosition(pointB.lat, pointB.lng, 0.01);
+            const distance = Cartesian3.distance(cameraMetricsRef.current.position, position);
+            const dynamicScale = calculateDynamicScale(cameraMetricsRef.current.height, DPR_FACTOR);
+            const baseScale = dynamicScale * 3000000 / Math.max(distance, 10000000);
+            return baseScale * 16 * (sizeScale || 1);
+        }, false);
+    }, [pointB, sizeScale]);
+
     const leoDisplayOptionsAvailable = satelliteScope !== 'GEO';
+    const showGroundSelectedPoint = !!selectedPosition && !selectedAircraft && !selectedVessel;
     const effectiveCountryOverlayMode: CountryOverlayMode =
         countryOverlayMode === 'regulatory'
             ? (leoDisplayOptionsAvailable ? 'regulatory' : 'none')
@@ -1109,6 +1189,8 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                 >
                     <ScreenSpaceEventHandler>
                         <ScreenSpaceEvent action={handleMapClick} type={ScreenSpaceEventType.LEFT_CLICK} />
+                        {/* Shift+click is routed by Cesium to a separate modifier event — register it explicitly */}
+                        <ScreenSpaceEvent action={handleMapClick} type={ScreenSpaceEventType.LEFT_CLICK} modifier={KeyboardEventModifier.SHIFT} />
                         <ScreenSpaceEvent action={handleMapHover} type={ScreenSpaceEventType.MOUSE_MOVE} />
                     </ScreenSpaceEventHandler>
 
@@ -1165,6 +1247,8 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                         satellites={satellites}
                         selection={selection}
                         selectedCoverage={selectedCoverage}
+                        selectedUplinkCoverage={selectedUplinkCoverage}
+                        selectedDownlinkCoverage={selectedDownlinkCoverage}
                         onLegendItemsChange={handleGeoCoverageLegendItemsChange}
                         highlightedLegendItemKey={focusedGeoCoverageLegendKey}
                     />
@@ -1204,6 +1288,8 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                     <TransmissionLinks
                         satellites={satellites}
                         selectedPosition={selectedPosition}
+                        pointB={pointB}
+                        linkMode={linkMode}
                         selectedAircraft={selectedAircraft}
                         selectedSatellite={selectedSatellite}
                         autoSelectedLEOSatellite={autoSelectedLEOSatellite}
@@ -1217,13 +1303,23 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                         leoServiceViewModel={leoServiceViewModel}
                     />
 
-                    {/* Selected Position Marker */}
-                    {selectedPosition && (
+                    {/* Selected Position Marker — Point A */}
+                    {showGroundSelectedPoint && selectedPosition && (
                         <SelectedPointStatusMarker
                             selectedPosition={selectedPosition}
                             pixelSize={positionMarkerPixelSize}
                             satelliteScope={satelliteScope}
                             leoServiceViewModel={leoServiceViewModel}
+                            geoPointStatus={geoPointStatus}
+                        />
+                    )}
+
+                    {/* Point B marker — explicit visible endpoint for Mesh / Point-to-Point */}
+                    {pointB && linkMode && (linkMode === 'MESH' || linkMode === 'POINT_TO_POINT') && (
+                        <SelectedPointStatusMarker
+                            selectedPosition={pointB}
+                            pixelSize={pointBMarkerPixelSize}
+                            satelliteScope="GEO"
                             geoPointStatus={geoPointStatus}
                         />
                     )}
@@ -1339,7 +1435,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
             <SelectedPointScreenLabel
                 viewerRef={viewerRef}
                 containerRef={globeContainerRef}
-                selectedPosition={selectedPosition}
+                selectedPosition={showGroundSelectedPoint ? selectedPosition : null}
                 satelliteScope={satelliteScope}
                 leoServiceViewModel={leoServiceViewModel}
                 geoPointStatus={geoPointStatus}
@@ -1347,6 +1443,18 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                 viewerReady={viewerReady}
                 compact={!!isPhone}
             />
+            {pointB && linkMode && (linkMode === 'MESH' || linkMode === 'POINT_TO_POINT') && (
+                <SelectedPointScreenLabel
+                    viewerRef={viewerRef}
+                    containerRef={globeContainerRef}
+                    selectedPosition={pointB}
+                    satelliteScope="GEO"
+                    geoPointStatus={geoPointStatus}
+                    performanceMetrics={performanceMetrics}
+                    viewerReady={viewerReady}
+                    compact={!!isPhone}
+                />
+            )}
             {!hideSatelliteScreenLabels && (
                 <SatelliteScreenLabels
                     viewerRef={viewerRef}

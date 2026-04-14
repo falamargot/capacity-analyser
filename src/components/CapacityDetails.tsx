@@ -6,7 +6,7 @@ import { SatelliteData } from '../types/satellites';
 import { SatelliteScope } from './SatelliteScopeFilter';
 import SatelliteDetails from './SatelliteDetails';
 import { SPEED_OF_LIGHT_RADIO_KM_S, RealTimeCapacityData, calculateElevationAngle, compute3DDistanceKm } from '../utils/capacityCalculator';
-import { SNPS_DATA } from './globe/GlobeConfig';
+import { GEO_GATEWAYS, SNPS_DATA } from './globe/GlobeConfig';
 import { findConnectedBeamIndex, hasRFConnectivity, estimateCurrentLeoBeamLink } from '../utils/rfConnectivity';
 import { isPointInCoverage } from '../utils/coverageCalculator';
 import { getBestConnectedGateway } from '../utils/connectivityRules';
@@ -14,7 +14,7 @@ import { JulianDate } from 'cesium';
 import ExportButton, { type ExportButtonPayload } from './ExportButton';
 import type { CandidateCoverage, MobileAnalysisMetrics } from '../types/analysis';
 import { analyzeLeoConnectivity } from '../utils/leoConnectivityModel';
-import { computeGeoConnectivity } from '../utils/geoCoverageSelection';
+import { computeGeoConnectivity, findCandidateCoverages } from '../utils/geoCoverageSelection';
 import { useSimulation } from '../contexts/SimulationContext';
 import { buildSimulationStateSnapshot } from '../types/simulation';
 import type { PDFConnectionDetails } from '../utils/pdfExport';
@@ -25,6 +25,18 @@ import type { LeoConnectivityViewModel } from '../utils/leoServiceViewModel';
 import { PerformancePanel } from './MetricWidgets';
 import { SectionTooltip } from './SectionTooltip';
 import CollapsibleSection from './layout/CollapsibleSection';
+import type { LinkMode } from '../types/linkMode';
+import { LINK_MODE_REQUIRES_POINT_B } from '../types/linkMode';
+import {
+  findBestUplinkMatch,
+  findBestDownlinkMatch,
+  buildStarForwardResult,
+  buildStarReturnResult,
+  buildMeshResult,
+  synthesizeUplinkCandidate,
+  synthesizeDownlinkCandidate,
+  type DualSegmentResult,
+} from '../utils/geoDualSegmentBudget';
 
 // ─── Extracted sub-components ─────────────────────────────────────────────────
 import {
@@ -53,6 +65,10 @@ interface CapacityDetailsProps {
   candidateCoverages?: CandidateCoverage[];
   selectedCoverage?: CandidateCoverage | null;
   onSelectCoverage?: (coverage: CandidateCoverage) => void;
+  selectedUplinkCoverage?: CandidateCoverage | null;
+  selectedDownlinkCoverage?: CandidateCoverage | null;
+  onSelectUplinkCoverage?: (coverage: CandidateCoverage) => void;
+  onSelectDownlinkCoverage?: (coverage: CandidateCoverage) => void;
   selectedGeoMission?: string | null;
   selectedGeoCoverageName?: string | null;
   selectedGeoBeamId?: string | null;
@@ -77,6 +93,13 @@ interface CapacityDetailsProps {
   onWeatherTypeChange: (type: WeatherType) => void;
   autoWeatherEnabled: boolean;
   onAutoWeatherChange: (enabled: boolean) => void;
+  /** Current link connectivity mode. */
+  linkMode?: LinkMode;
+  onLinkModeChange?: (mode: LinkMode) => void;
+  /** Second geographic point for MESH / Point-to-Point modes. */
+  pointB?: { lat: number; lng: number } | null;
+  /** Coverage candidates at Point B (MESH / Point-to-Point only). */
+  candidateCoveragesB?: CandidateCoverage[];
 }
 
 const RTT_VISUAL_SCALE_MAX_MS = 600;
@@ -108,6 +131,24 @@ const getGeoCompanionCoverage = (
   return sameBand[0] ?? sameSatellite[0] ?? candidateCoverages.find((candidate) => candidate.isUplink === wantUplink) ?? null;
 };
 
+const satelliteHasModeledDirection = (
+  satellite: SatelliteData | null | undefined,
+  wantUplink: boolean,
+): boolean => (
+  !!satellite && (satellite.coverages ?? []).some((coverage) => {
+    const properties = coverage.feature?.properties as Record<string, unknown> | undefined;
+    const isUplink = properties?.isUplink === true;
+    const rawLevel = properties?.level ?? properties?.contour;
+    const numericLevel = typeof rawLevel === 'number'
+      ? rawLevel
+      : typeof rawLevel === 'string'
+        ? Number.parseFloat(rawLevel)
+        : Number.NaN;
+
+    return isUplink === wantUplink && Number.isFinite(numericLevel);
+  })
+);
+
 const formatGeoStabilityTooltip = (elevationDeg: number, isUserLinkUnstable: boolean): string => {
   const currentRule = isUserLinkUnstable
     ? 'Current status: Unstable (elevation is below 5 deg).'
@@ -129,7 +170,7 @@ ${currentRule}`;
 };
 
 // Performance optimization: Memoize component to prevent unnecessary re-renders
-const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint, selectedSatellite, autoSelectedLEOSatellite, satelliteScope, onMetricsChange, onSatelliteClick, analysisSource, aircraftCallsign, selectedSNP: propSelectedSNP, candidateCoverages = [], selectedCoverage = null, onSelectCoverage, selectedGeoMission, selectedGeoCoverageName, selectedGeoBeamId, onSelectGeoMission, onSelectGeoCoverage, onSelectGeoBeam, onSnpClick, compactDesktop = false, externalHeader = false, globeRef, cesiumViewerRef, onExportStateChange, regulatoryResultOverride = null, beamLoadResultOverride = null, serviceLayerResultOverride = null, leoServiceViewModelOverride = null, leoTerminalType, onLeoTerminalTypeChange, geoTerminalType, onGeoTerminalTypeChange, weatherType, onWeatherTypeChange, autoWeatherEnabled, onAutoWeatherChange }) => {
+const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint, selectedSatellite, autoSelectedLEOSatellite, satelliteScope, onMetricsChange, onSatelliteClick, analysisSource, aircraftCallsign, selectedSNP: propSelectedSNP, candidateCoverages = [], selectedCoverage = null, onSelectCoverage, selectedUplinkCoverage = null, selectedDownlinkCoverage = null, onSelectUplinkCoverage, onSelectDownlinkCoverage, selectedGeoMission, selectedGeoCoverageName, selectedGeoBeamId, onSelectGeoMission, onSelectGeoCoverage, onSelectGeoBeam, onSnpClick, compactDesktop = false, externalHeader = false, globeRef, cesiumViewerRef, onExportStateChange, regulatoryResultOverride = null, beamLoadResultOverride = null, serviceLayerResultOverride = null, leoServiceViewModelOverride = null, leoTerminalType, onLeoTerminalTypeChange, geoTerminalType, onGeoTerminalTypeChange, weatherType, onWeatherTypeChange, autoWeatherEnabled, onAutoWeatherChange, linkMode = 'STAR_FORWARD', onLinkModeChange, pointB = null, candidateCoveragesB = [] }) => {
   // Feature 1+3: read simulation context for failedSnps, hsBeamsSet
   const {
     coveragePolicy,
@@ -531,13 +572,120 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
   const serviceLayerResult = serviceLayerResultOverride ?? computedServiceLayerResult;
   const leoServiceViewModel = leoServiceViewModelOverride ?? null;
 
+  // The "active" coverage for connectivity geometry — prefer downlink (EIRP) since
+  // computeGeoConnectivity uses it to resolve the satellite and gateway.
+  const activeCoverageForGeo = selectedDownlinkCoverage ?? selectedUplinkCoverage ?? selectedCoverage;
+
   // Get resolved GEO connectivity data for display
   const resolvedGEOConnectivity = useMemo(() => {
     if (!activePoint || satellites.length === 0) return null;
     if (satelliteScope !== 'ALL' && satelliteScope !== 'GEO') return null;
-    return computeGeoConnectivity(selectedCoverage, activePoint, satellites);
-  }, [activePoint, satellites, satelliteScope, selectedCoverage]);
+    return computeGeoConnectivity(activeCoverageForGeo, activePoint, satellites);
+  }, [activePoint, satellites, satelliteScope, activeCoverageForGeo]);
 
+  // ── Dual-segment budget ───────────────────────────────────────────────────
+  // Resolve gateway from existing connectivity result
+  const resolvedGatewayData = useMemo(() => {
+    const gwName = resolvedGEOConnectivity?.geometry?.satelliteToGateway?.gateway?.name;
+    if (!gwName) return null;
+    return GEO_GATEWAYS.find((g) => g.name === gwName) ?? null;
+  }, [resolvedGEOConnectivity]);
+
+  // Use explicit uplink/downlink coverages from the dual picker when available;
+  // fall back to companion lookup for backward compat.
+  const refCoverage = selectedDownlinkCoverage ?? selectedUplinkCoverage ?? selectedCoverage;
+  const downlinkAtUser = selectedDownlinkCoverage
+    ?? getGeoCompanionCoverage(refCoverage, candidateCoverages, false);
+  const uplinkAtUser = selectedUplinkCoverage
+    ?? getGeoCompanionCoverage(refCoverage, candidateCoverages, true);
+
+  // Coverage candidates at gateway location (for STAR modes)
+  const candidateCoveragesAtGateway = useMemo(() => {
+    if (!resolvedGatewayData || !refCoverage) return [];
+    const geoSats = satellites.filter(
+      (s) => s.orbitType === 'GEO' && s.opsStatus === 'operational'
+    );
+    return findCandidateCoverages(
+      { lat: resolvedGatewayData.lat, lng: resolvedGatewayData.lng },
+      geoSats
+    );
+  }, [resolvedGatewayData, refCoverage, satellites]);
+
+  const uplinkAtGateway = useMemo(
+    () => refCoverage ? findBestUplinkMatch(refCoverage, candidateCoveragesAtGateway) : null,
+    [refCoverage, candidateCoveragesAtGateway]
+  );
+  const downlinkAtGateway = useMemo(
+    () => refCoverage ? findBestDownlinkMatch(refCoverage, candidateCoveragesAtGateway) : null,
+    [refCoverage, candidateCoveragesAtGateway]
+  );
+
+  // For MESH: candidates at Point B
+  const uplinkAtB = useMemo(
+    () => refCoverage ? findBestUplinkMatch(refCoverage, candidateCoveragesB) : null,
+    [refCoverage, candidateCoveragesB]
+  );
+  const downlinkAtB = useMemo(
+    () => refCoverage ? findBestDownlinkMatch(refCoverage, candidateCoveragesB) : null,
+    [refCoverage, candidateCoveragesB]
+  );
+
+  const refSatellite = useMemo(
+    () => refCoverage ? satellites.find((satellite) => satellite.id === refCoverage.satelliteId) ?? null : null,
+    [refCoverage, satellites]
+  );
+  const userUplinkModeledOnSatellite = useMemo(
+    () => satelliteHasModeledDirection(refSatellite, true),
+    [refSatellite]
+  );
+  const userDownlinkModeledOnSatellite = useMemo(
+    () => satelliteHasModeledDirection(refSatellite, false),
+    [refSatellite]
+  );
+
+  // Build the dual-segment result depending on mode.
+  // When explicit uplink (G/T) or downlink (EIRP) contour data is absent for a
+  // location, synthesize a candidate from the companion direction using nominal
+  // per-band satellite parameters — avoids spurious "No valid connectivity".
+  const dualSegmentResult = useMemo((): DualSegmentResult | null => {
+    if (satelliteScope !== 'ALL' && satelliteScope !== 'GEO') return null;
+
+    if (linkMode === 'STAR_FORWARD') {
+      if (!resolvedGatewayData) return null;
+      const dl = downlinkAtUser;
+      const ul = uplinkAtGateway ?? (downlinkAtUser ? synthesizeUplinkCandidate(downlinkAtUser) : null);
+      if (!dl || !ul) return null;
+      return buildStarForwardResult(dl, ul, resolvedGatewayData);
+    }
+
+    if (linkMode === 'STAR_RETURN') {
+      if (!resolvedGatewayData) return null;
+      // User side: synthesize only when the satellite has no modeled uplink dataset at all.
+      const ul = uplinkAtUser ?? (!userUplinkModeledOnSatellite && downlinkAtUser ? synthesizeUplinkCandidate(downlinkAtUser) : null);
+      // Downlink at gateway: prefer explicit EIRP data, fall back to synthesis from G/T
+      const dl = downlinkAtGateway ?? (uplinkAtGateway ? synthesizeDownlinkCandidate(uplinkAtGateway) : null);
+      if (!ul || !dl) return null;
+      return buildStarReturnResult(ul, dl, resolvedGatewayData);
+    }
+
+    if (linkMode === 'MESH' || linkMode === 'POINT_TO_POINT') {
+      const ulA = uplinkAtUser ?? (!userUplinkModeledOnSatellite && downlinkAtUser ? synthesizeUplinkCandidate(downlinkAtUser) : null);
+      const dlA = downlinkAtUser ?? (!userDownlinkModeledOnSatellite && uplinkAtUser ? synthesizeDownlinkCandidate(uplinkAtUser) : null);
+      const ulB = uplinkAtB ?? (!userUplinkModeledOnSatellite && downlinkAtB ? synthesizeUplinkCandidate(downlinkAtB) : null);
+      const dlB = downlinkAtB ?? (!userDownlinkModeledOnSatellite && uplinkAtB ? synthesizeDownlinkCandidate(uplinkAtB) : null);
+      if (!ulA || !dlA || !ulB || !dlB) return null;
+      return buildMeshResult(ulA, dlB, ulB, dlA);
+    }
+
+    return null;
+  }, [
+    linkMode, satelliteScope,
+    downlinkAtUser, uplinkAtUser,
+    uplinkAtGateway, downlinkAtGateway,
+    uplinkAtB, downlinkAtB,
+    userUplinkModeledOnSatellite, userDownlinkModeledOnSatellite,
+    resolvedGatewayData,
+  ]);
 
   // Performance optimization: Memoize SNP detection to prevent recalculation
   const selectedSNP = useMemo(() => {
@@ -1220,25 +1368,40 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
 
               {/* GEO Connectivity */}
               {(satelliteScope === 'GEO' || activeConnTab === 'GEO') && (
-                <GEOConnectivitySection
-                  resolvedGEOConnectivity={resolvedGEOConnectivity}
-                  geoGeometry={geoGeometry}
-                  calculateGEOPerformance={calculateGEOPerformance}
-                  terminalType={geoTerminalType}
-                  onTerminalTypeChange={onGeoTerminalTypeChange}
-                  weatherType={weatherType}
-                  onWeatherTypeChange={onWeatherTypeChange}
-                  autoWeatherEnabled={autoWeatherEnabled}
-                  onAutoWeatherChange={onAutoWeatherChange}
-                  candidateCoverages={candidateCoverages}
-                  bestCoverage={candidateCoverages[0] ?? null}
-                  selectedCoverage={selectedCoverage}
-                  onSelectCoverage={onSelectCoverage}
-                  analysisSource={analysisSource}
-                  aircraftCallsign={aircraftCallsign}
-                  onSatelliteClick={onSatelliteClick}
-                  showEstimatedPerformance={false}
-                />
+                <>
+                  <GEOConnectivitySection
+                    resolvedGEOConnectivity={resolvedGEOConnectivity}
+                    geoGeometry={geoGeometry}
+                    calculateGEOPerformance={calculateGEOPerformance}
+                    terminalType={geoTerminalType}
+                    onTerminalTypeChange={onGeoTerminalTypeChange}
+                    weatherType={weatherType}
+                    onWeatherTypeChange={onWeatherTypeChange}
+                    autoWeatherEnabled={autoWeatherEnabled}
+                    onAutoWeatherChange={onAutoWeatherChange}
+                    candidateCoverages={candidateCoverages}
+                    bestCoverage={candidateCoverages[0] ?? null}
+                    selectedCoverage={selectedCoverage}
+                    onSelectCoverage={onSelectCoverage}
+                    selectedUplinkCoverage={selectedUplinkCoverage}
+                    selectedDownlinkCoverage={selectedDownlinkCoverage}
+                    onSelectUplinkCoverage={onSelectUplinkCoverage}
+                    onSelectDownlinkCoverage={onSelectDownlinkCoverage}
+                    analysisSource={analysisSource}
+                    aircraftCallsign={aircraftCallsign}
+                    onSatelliteClick={onSatelliteClick}
+                    showEstimatedPerformance={false}
+                    linkMode={linkMode}
+                    onLinkModeChange={onLinkModeChange}
+                    awaitingPointB={
+                      LINK_MODE_REQUIRES_POINT_B.has(linkMode) &&
+                      !!activePoint &&
+                      !pointB
+                    }
+                    dualSegmentResult={dualSegmentResult}
+                    pointB={pointB}
+                  />
+                </>
               )}
             </div>
           )}

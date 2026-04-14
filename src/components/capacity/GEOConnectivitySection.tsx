@@ -5,11 +5,14 @@ import { SectionTooltip } from '../SectionTooltip';
 import CoverageSelector from '../CoverageSelector';
 import CollapsibleSection from '../layout/CollapsibleSection';
 import TerminalConfig, { TERMINAL_PROFILES, type WeatherType } from './TerminalConfig';
-import { SPEED_OF_LIGHT_RADIO_KM_S } from '../../utils/capacityCalculator';
 import type { SatelliteData } from '../../types/satellites';
 import type { CandidateCoverage } from '../../types/analysis';
 import type { TerminalType } from './TerminalConfig';
-import { DEFAULT_TERMINAL } from '../../utils/geoLinkBudget';
+import type { LinkMode } from '../../types/linkMode';
+import { LINK_MODE_LABELS, LINK_MODE_DESCRIPTIONS } from '../../types/linkMode';
+import DualSegmentPanel from './DualSegmentPanel';
+import type { DualSegmentResult } from '../../utils/geoDualSegmentBudget';
+import LinkModeSelector from './LinkModeSelector';
 
 // ─── Sub-component: LatencyBreakdownCard ──────────────────────────────────────
 
@@ -113,45 +116,6 @@ Current elevation: ${elevationDeg.toFixed(1)} deg.
 ${currentRule}`;
 };
 
-const formatDb = (value: number | undefined | null, digits = 1): string => (
-  typeof value === 'number' && Number.isFinite(value) ? `${value.toFixed(digits)} dB` : '--'
-);
-
-const formatDbHz = (value: number | undefined | null, digits = 1): string => (
-  typeof value === 'number' && Number.isFinite(value) ? `${value.toFixed(digits)} dB-Hz` : '--'
-);
-
-const formatDistanceKm = (value: number | undefined | null): string => (
-  typeof value === 'number' && Number.isFinite(value) ? `${value.toFixed(0)} km` : '--'
-);
-
-const formatFrequencyGhz = (value: number | undefined | null): string => (
-  typeof value === 'number' && Number.isFinite(value) ? `${value.toFixed(1)} GHz` : '--'
-);
-
-const formatBandwidthMhz = (value: number | undefined | null): string => (
-  typeof value === 'number' && Number.isFinite(value) ? `${value.toFixed(0)} MHz` : '--'
-);
-
-const formatEfficiency = (value: number | undefined | null): string => (
-  typeof value === 'number' && Number.isFinite(value) ? `${value.toFixed(2)} b/s/Hz` : '--'
-);
-
-const formatThroughputMbps = (value: number | undefined | null): string => {
-  if (typeof value !== 'number' || !Number.isFinite(value)) return '--';
-  if (value >= 1000) return `${(value / 1000).toFixed(2)} Gbps`;
-  return `${value.toFixed(1)} Mbps`;
-};
-
-const getMarginTone = (value: number | undefined): string => {
-  if (typeof value !== 'number' || !Number.isFinite(value)) {
-    return 'text-gray-700 dark:text-gray-200';
-  }
-
-  if (value < 0) return 'text-red-700 dark:text-red-300';
-  if (value < 2) return 'text-amber-700 dark:text-amber-300';
-  return 'text-emerald-700 dark:text-emerald-300';
-};
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
@@ -176,10 +140,22 @@ interface GEOConnectivitySectionProps {
   bestCoverage: CandidateCoverage | null;
   selectedCoverage: CandidateCoverage | null;
   onSelectCoverage?: (coverage: CandidateCoverage) => void;
+  selectedUplinkCoverage?: CandidateCoverage | null;
+  selectedDownlinkCoverage?: CandidateCoverage | null;
+  onSelectUplinkCoverage?: (coverage: CandidateCoverage) => void;
+  onSelectDownlinkCoverage?: (coverage: CandidateCoverage) => void;
   analysisSource?: 'earth' | 'aircraft';
   aircraftCallsign?: string;
   onSatelliteClick?: (satellite: SatelliteData | null) => void;
   showEstimatedPerformance?: boolean;
+  /** Active link connectivity mode — drives the dual-segment display. */
+  linkMode?: LinkMode;
+  onLinkModeChange?: (mode: LinkMode) => void;
+  awaitingPointB?: boolean;
+  /** Dual-segment RF budget computed by geoDualSegmentBudget. Null when no path is found. */
+  dualSegmentResult?: DualSegmentResult | null;
+  /** Second geographic point (MESH / P2P) — used only for label display. */
+  pointB?: { lat: number; lng: number } | null;
 }
 
 const RTT_VISUAL_SCALE_MAX_MS = 600;
@@ -198,10 +174,18 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
   bestCoverage,
   selectedCoverage,
   onSelectCoverage,
+  selectedUplinkCoverage = null,
+  selectedDownlinkCoverage = null,
+  onSelectUplinkCoverage,
+  onSelectDownlinkCoverage,
   analysisSource,
   aircraftCallsign,
   onSatelliteClick,
   showEstimatedPerformance = true,
+  linkMode = 'STAR_FORWARD',
+  onLinkModeChange,
+  awaitingPointB = false,
+  dualSegmentResult = null,
 }) => {
   const userLabel = analysisSource === 'aircraft' && aircraftCallsign ? aircraftCallsign : 'User';
   const showPerformanceBeforeRadioPath = analysisSource !== 'aircraft';
@@ -258,6 +242,21 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
         <SectionTooltip content="Geostationary orbit connectivity block. Shows how the user terminal connects through a Eutelsat GEO satellite and its nearest eligible ground gateway." />
       </h3>
 
+      {onLinkModeChange && (
+        <div className="mb-4">
+          <LinkModeSelector
+            linkMode={linkMode}
+            onChange={onLinkModeChange}
+            awaitingPointB={awaitingPointB}
+          />
+        </div>
+      )}
+
+      <div className="mb-4 rounded-md bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 px-3 py-2">
+        <p className="text-xs font-bold text-blue-700 dark:text-blue-300">{LINK_MODE_LABELS[linkMode]}</p>
+        <p className="text-xs text-blue-600 dark:text-blue-400 mt-0.5">{LINK_MODE_DESCRIPTIONS[linkMode]}</p>
+      </div>
+
       <div className="mb-4">
         <TerminalConfig
           terminalType={terminalType}
@@ -278,78 +277,22 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
           <CoverageSelector
             candidateCoverages={candidateCoverages}
             bestCoverage={bestCoverage}
+            linkMode={linkMode}
             selectedCoverage={selectedCoverage}
             onSelectCoverage={onSelectCoverage}
+            selectedUplinkCoverage={selectedUplinkCoverage}
+            selectedDownlinkCoverage={selectedDownlinkCoverage}
+            onSelectUplinkCoverage={onSelectUplinkCoverage}
+            onSelectDownlinkCoverage={onSelectDownlinkCoverage}
           />
         </div>
       )}
 
       <div className="space-y-4">
+        {/* Dual-segment RF budget */}
+        <DualSegmentPanel linkMode={linkMode} result={dualSegmentResult} />
+
         {showEstimatedPerformance && showPerformanceBeforeRadioPath && estimatedPerformanceSection}
-        <LatencyBreakdownCard
-          accentColor="#2563eb"
-          title="Link budget"
-          tooltip="Detailed RF budget for the selected GEO contour. Shows the matched contour performance, propagation loss, estimated C/N0 and C/N, selected MODCOD, and achievable throughput."
-          summary={selectedCoverage
-            ? `${selectedCoverage.isUplink ? 'Uplink' : 'Downlink'} ${selectedCoverage.band ?? 'Ku'} · ${selectedCoverage.modcod ?? 'No MODCOD'} · Margin ${formatDb(selectedCoverage.linkMarginDb)}`
-            : 'No GEO link budget available'}
-        >
-          {selectedCoverage ? (
-            <div className="text-xs text-gray-600 dark:text-gray-400 space-y-2">
-              <div className="flex justify-between">
-                <span>Direction</span>
-                <span className="font-semibold text-gray-700 dark:text-gray-200">
-                  {selectedCoverage.isUplink ? 'Uplink' : 'Downlink'}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span>Band</span>
-                <span className="font-semibold text-gray-700 dark:text-gray-200">{selectedCoverage.band ?? 'Ku'}</span>
-              </div>
-              <div className="flex justify-between">
-                <span>{selectedCoverage.isUplink ? 'Contour G/T' : 'Contour EIRP'}</span>
-                <span className="font-semibold text-gray-700 dark:text-gray-200">
-                  {selectedCoverage.isUplink
-                    ? (selectedCoverage.gtDbk != null ? `${selectedCoverage.gtDbk.toFixed(1)} dB/K` : '--')
-                    : (selectedCoverage.eirpDbw != null ? `${selectedCoverage.eirpDbw.toFixed(1)} dBW` : '--')}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span>{selectedCoverage.isUplink ? 'Terminal EIRP' : 'Terminal G/T'}</span>
-                <span className="font-semibold text-gray-700 dark:text-gray-200">
-                  {selectedCoverage.isUplink
-                    ? `${DEFAULT_TERMINAL.eirpTerminalDbw.toFixed(1)} dBW`
-                    : `${DEFAULT_TERMINAL.gtTerminalDbk.toFixed(1)} dB/K`}
-                </span>
-              </div>
-              <div className="pt-1 font-semibold text-gray-700 dark:text-gray-200">Propagation inputs</div>
-              <div className="ml-2 flex justify-between"><span>Slant range</span><span>{formatDistanceKm(selectedCoverage.slantRangeKm)}</span></div>
-              <div className="ml-2 flex justify-between"><span>Frequency</span><span>{formatFrequencyGhz(selectedCoverage.frequencyGhz)}</span></div>
-              <div className="ml-2 flex justify-between"><span>Bandwidth</span><span>{formatBandwidthMhz(selectedCoverage.bandwidthMhz)}</span></div>
-              <div className="ml-2 flex justify-between"><span>Atmospheric loss</span><span>{formatDb(selectedCoverage.atmosphericLossDb)}</span></div>
-              <div className="ml-2 flex justify-between"><span>FSPL</span><span>{formatDb(selectedCoverage.fsplDb)}</span></div>
-              <div className="border-t border-gray-200 dark:border-slate-700 pt-2 font-semibold text-gray-700 dark:text-gray-200">
-                Carrier quality
-              </div>
-              <div className="ml-2 flex justify-between"><span>C/N0</span><span>{formatDbHz(selectedCoverage.cn0Dbhz)}</span></div>
-              <div className="ml-2 flex justify-between"><span>C/N</span><span>{formatDb(selectedCoverage.cnDb)}</span></div>
-              <div className="ml-2 flex justify-between"><span>MODCOD</span><span>{selectedCoverage.modcod ?? '--'}</span></div>
-              <div className="ml-2 flex justify-between"><span>Spectral efficiency</span><span>{formatEfficiency(selectedCoverage.spectralEfficiency)}</span></div>
-              <div className={`border-t border-gray-200 dark:border-slate-700 pt-2 flex justify-between font-semibold ${getMarginTone(selectedCoverage.linkMarginDb)}`}>
-                <span>Link margin</span>
-                <span>{formatDb(selectedCoverage.linkMarginDb)}</span>
-              </div>
-              <div className="flex justify-between font-semibold text-gray-800 dark:text-gray-100">
-                <span>Achievable throughput</span>
-                <span>{formatThroughputMbps(selectedCoverage.throughputEstimate)}</span>
-              </div>
-            </div>
-          ) : (
-            <div className="text-sm text-gray-700 dark:text-gray-300 text-center">
-              <div>No GEO link budget available</div>
-            </div>
-          )}
-        </LatencyBreakdownCard>
         {/* GEO Radio Path */}
         <CollapsibleSection
           storageKey="geo-radio-path"
