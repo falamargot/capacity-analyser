@@ -1346,7 +1346,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                             ringBaseRadius={36000}
                         />
                     )}
-                    {pulsedGateway && (
+                    {pulsedGateway && linkMode !== 'MESH' && linkMode !== 'POINT_TO_POINT' && (
                         <SelectionPulseMarker
                             key={`selection-pulse-gateway-${pulsedGateway.name}`}
                             position={getPosition(pulsedGateway.lat, pulsedGateway.lng, GROUND_POINT_ALTITUDE_KM)}
@@ -1462,6 +1462,23 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                     highlightedSatellites={highlightedSatelliteLabels}
                     viewerReady={viewerReady}
                 />
+            )}
+
+            {/* Interaction hint — shown only when MESH/P2P mode is active */}
+            {(linkMode === 'MESH' || linkMode === 'POINT_TO_POINT') && (
+                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 pointer-events-none z-10">
+                    {!pointB ? (
+                        <div className="flex items-center gap-2 rounded-full bg-black/60 backdrop-blur-sm px-4 py-1.5 text-white text-xs shadow-lg">
+                            <span className="inline-block h-2 w-2 rounded-full bg-amber-400 shrink-0 animate-pulse" />
+                            Hold <kbd className="mx-0.5 rounded bg-white/20 px-1 font-mono text-[10px]">Shift</kbd> + click to place <strong>User Terminal B</strong>
+                        </div>
+                    ) : (
+                        <div className="flex items-center gap-2 rounded-full bg-black/60 backdrop-blur-sm px-4 py-1.5 text-white text-xs shadow-lg">
+                            <span className="inline-block h-2 w-2 rounded-full bg-green-400 shrink-0" />
+                            Click the globe (no Shift) to move <strong>User Terminal A</strong>
+                        </div>
+                    )}
+                </div>
             )}
         </div>
     );

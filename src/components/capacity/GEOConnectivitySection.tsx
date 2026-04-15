@@ -9,7 +9,6 @@ import type { SatelliteData } from '../../types/satellites';
 import type { CandidateCoverage } from '../../types/analysis';
 import type { TerminalType } from './TerminalConfig';
 import type { LinkMode } from '../../types/linkMode';
-import { LINK_MODE_LABELS, LINK_MODE_DESCRIPTIONS } from '../../types/linkMode';
 import DualSegmentPanel from './DualSegmentPanel';
 import type { DualSegmentResult } from '../../utils/geoDualSegmentBudget';
 import LinkModeSelector from './LinkModeSelector';
@@ -151,11 +150,15 @@ interface GEOConnectivitySectionProps {
   /** Active link connectivity mode — drives the dual-segment display. */
   linkMode?: LinkMode;
   onLinkModeChange?: (mode: LinkMode) => void;
-  awaitingPointB?: boolean;
   /** Dual-segment RF budget computed by geoDualSegmentBudget. Null when no path is found. */
   dualSegmentResult?: DualSegmentResult | null;
   /** Second geographic point (MESH / P2P) — used only for label display. */
   pointB?: { lat: number; lng: number } | null;
+  /** Terminal type for Point B — only relevant in MESH / P2P. */
+  terminalTypeB?: TerminalType;
+  onTerminalTypeBChange?: (type: TerminalType) => void;
+  pointAIsUserDefined?: boolean;
+  pointBIsUserDefined?: boolean;
 }
 
 const RTT_VISUAL_SCALE_MAX_MS = 600;
@@ -184,11 +187,17 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
   showEstimatedPerformance = true,
   linkMode = 'STAR_FORWARD',
   onLinkModeChange,
-  awaitingPointB = false,
   dualSegmentResult = null,
+  pointAIsUserDefined = false,
+  pointBIsUserDefined = false,
+  terminalTypeB,
+  onTerminalTypeBChange,
 }) => {
+  const isMeshOrP2P = linkMode === 'MESH' || linkMode === 'POINT_TO_POINT';
+  const isStarForward = linkMode === 'STAR_FORWARD';
   const userLabel = analysisSource === 'aircraft' && aircraftCallsign ? aircraftCallsign : 'User';
   const showPerformanceBeforeRadioPath = analysisSource !== 'aircraft';
+  const gatewayName = geoGeometry?.satelliteToGateway.gateway?.name ?? 'Gateway';
 
   const estimatedPerformanceSection = (
     <CollapsibleSection
@@ -247,29 +256,126 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
           <LinkModeSelector
             linkMode={linkMode}
             onChange={onLinkModeChange}
-            awaitingPointB={awaitingPointB}
           />
         </div>
       )}
 
-      <div className="mb-4 rounded-md bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 px-3 py-2">
-        <p className="text-xs font-bold text-blue-700 dark:text-blue-300">{LINK_MODE_LABELS[linkMode]}</p>
-        <p className="text-xs text-blue-600 dark:text-blue-400 mt-0.5">{LINK_MODE_DESCRIPTIONS[linkMode]}</p>
-      </div>
-
-      <div className="mb-4">
-        <TerminalConfig
-          terminalType={terminalType}
-          onTerminalTypeChange={onTerminalTypeChange}
-          weatherType={weatherType}
-          onWeatherTypeChange={onWeatherTypeChange}
-          autoWeatherEnabled={autoWeatherEnabled}
-          onAutoWeatherChange={onAutoWeatherChange}
-          analysisSource={analysisSource}
-          compact
-          showWeather={false}
-          className="mb-0"
-        />
+<div className="mb-4">
+        {isMeshOrP2P && terminalTypeB != null && onTerminalTypeBChange ? (
+          <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
+            <TerminalConfig
+              terminalType={terminalType}
+              onTerminalTypeChange={onTerminalTypeChange}
+              weatherType={weatherType}
+              onWeatherTypeChange={onWeatherTypeChange}
+              autoWeatherEnabled={autoWeatherEnabled}
+              onAutoWeatherChange={onAutoWeatherChange}
+              analysisSource={analysisSource}
+              compact
+              showWeather={false}
+              className="mb-0"
+              title="User Terminal A"
+              stacked
+              tone={pointAIsUserDefined ? 'user-defined' : 'not-user-defined'}
+              statusLabel={pointAIsUserDefined ? 'Manual' : 'Auto'}
+            />
+            <TerminalConfig
+              terminalType={terminalTypeB}
+              onTerminalTypeChange={onTerminalTypeBChange}
+              weatherType={weatherType}
+              onWeatherTypeChange={onWeatherTypeChange}
+              autoWeatherEnabled={autoWeatherEnabled}
+              onAutoWeatherChange={onAutoWeatherChange}
+              compact
+              showWeather={false}
+              className="mb-0"
+              title="User Terminal B"
+              stacked
+              tone={pointBIsUserDefined ? 'user-defined' : 'not-user-defined'}
+              statusLabel={pointBIsUserDefined ? 'Manual' : 'Unset'}
+            />
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
+            {isStarForward ? (
+              <>
+                <TerminalConfig
+                  terminalType="fixed"
+                  onTerminalTypeChange={() => {}}
+                  weatherType={weatherType}
+                  onWeatherTypeChange={onWeatherTypeChange}
+                  autoWeatherEnabled={autoWeatherEnabled}
+                  onAutoWeatherChange={onAutoWeatherChange}
+                  compact
+                  showWeather={false}
+                  className="mb-0"
+                  title={gatewayName}
+                  stacked
+                  tone="user-defined"
+                  statusLabel="Auto"
+                  statusTitle="Resolved automatically"
+                  readOnly
+                  terminalDisplayLabel="Gateway"
+                  terminalDisplayIcon="📡"
+                />
+                <TerminalConfig
+                  terminalType={terminalType}
+                  onTerminalTypeChange={onTerminalTypeChange}
+                  weatherType={weatherType}
+                  onWeatherTypeChange={onWeatherTypeChange}
+                  autoWeatherEnabled={autoWeatherEnabled}
+                  onAutoWeatherChange={onAutoWeatherChange}
+                  analysisSource={analysisSource}
+                  compact
+                  showWeather={false}
+                  className="mb-0"
+                  title={userLabel === 'User' ? 'User Terminal' : userLabel}
+                  stacked
+                  tone={pointAIsUserDefined ? 'user-defined' : 'not-user-defined'}
+                  statusLabel={pointAIsUserDefined ? 'Manual' : 'Auto'}
+                />
+              </>
+            ) : (
+              <>
+                <TerminalConfig
+                  terminalType={terminalType}
+                  onTerminalTypeChange={onTerminalTypeChange}
+                  weatherType={weatherType}
+                  onWeatherTypeChange={onWeatherTypeChange}
+                  autoWeatherEnabled={autoWeatherEnabled}
+                  onAutoWeatherChange={onAutoWeatherChange}
+                  analysisSource={analysisSource}
+                  compact
+                  showWeather={false}
+                  className="mb-0"
+                  title={userLabel === 'User' ? 'User Terminal' : userLabel}
+                  stacked
+                  tone={pointAIsUserDefined ? 'user-defined' : 'not-user-defined'}
+                  statusLabel={pointAIsUserDefined ? 'Manual' : 'Auto'}
+                />
+                <TerminalConfig
+                  terminalType="fixed"
+                  onTerminalTypeChange={() => {}}
+                  weatherType={weatherType}
+                  onWeatherTypeChange={onWeatherTypeChange}
+                  autoWeatherEnabled={autoWeatherEnabled}
+                  onAutoWeatherChange={onAutoWeatherChange}
+                  compact
+                  showWeather={false}
+                  className="mb-0"
+                  title={gatewayName}
+                  stacked
+                  tone="user-defined"
+                  statusLabel="Auto"
+                  statusTitle="Resolved automatically"
+                  readOnly
+                  terminalDisplayLabel="Gateway"
+                  terminalDisplayIcon="📡"
+                />
+              </>
+            )}
+          </div>
+        )}
       </div>
 
       {candidateCoverages.length > 0 && (

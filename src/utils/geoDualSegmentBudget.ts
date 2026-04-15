@@ -17,6 +17,7 @@ import type { GeoGatewayData } from '../components/globe/GlobeConfig';
 import type { GeoBand } from './geoLinkBudget';
 import {
   DEFAULT_TERMINAL,
+  TERMINAL_GEO_RF_PARAMS,
   GATEWAY_EIRP_DBW,
   GATEWAY_GT_DBK,
   NOMINAL_SAT_GT_DBK,
@@ -57,6 +58,17 @@ export interface LinkSegment {
   adjustmentDb: number;
 }
 
+/**
+ * Whether the satellite can route a MESH / P2P link on the same transponder.
+ *
+ * - loopback      — both points fall within the same named beam; the transponder
+ *                   can retransmit without inter-beam routing.
+ * - cross-connect — points are in different beams; routing depends on satellite
+ *                   switching matrix configuration (not guaranteed).
+ * - unknown       — beam data is missing or synthesised; cannot determine.
+ */
+export type TransponderMode = 'loopback' | 'cross-connect' | 'unknown';
+
 export interface DualSegmentResult {
   /** Forward path (primary direction). */
   forward: {
@@ -73,6 +85,16 @@ export interface DualSegmentResult {
     downlink: LinkSegment;
     endToEnd: EndToEndBudget;
   };
+  /**
+   * MESH / P2P only — whether the satellite transponder can route the signal
+   * between the two points without cross-beam switching.
+   */
+  transponderMode?: TransponderMode;
+}
+
+export interface MeshEndpointLabels {
+  pointA?: string;
+  pointB?: string;
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -272,6 +294,7 @@ export function buildStarForwardResult(
   downlinkAtUser: CandidateCoverage,
   uplinkAtGateway: CandidateCoverage,
   gateway: GeoGatewayData,
+  userLabel?: string,
 ): DualSegmentResult | null {
   const band = downlinkAtUser.band ?? uplinkAtGateway.band ?? 'Ku';
   const gatewayGTDbk = GATEWAY_GT_DBK[band as GeoBand] ?? GATEWAY_GT_DBK.Ku;
@@ -286,7 +309,7 @@ export function buildStarForwardResult(
   const downlinkSeg = buildDownlinkSegment(
     downlinkAtUser,
     { label: downlinkAtUser.satelliteName },
-    { label: 'User terminal', gtDbk: DEFAULT_TERMINAL.gtTerminalDbk },
+    { label: userLabel ?? 'User terminal', gtDbk: DEFAULT_TERMINAL.gtTerminalDbk },
   );
 
   const e2e = computeEndToEndBudget(
@@ -317,13 +340,14 @@ export function buildStarReturnResult(
   uplinkAtUser: CandidateCoverage,
   downlinkAtGateway: CandidateCoverage,
   gateway: GeoGatewayData,
+  userLabel?: string,
 ): DualSegmentResult | null {
   const band = uplinkAtUser.band ?? downlinkAtGateway.band ?? 'Ku';
   const gatewayGTDbk = GATEWAY_GT_DBK[band as GeoBand] ?? GATEWAY_GT_DBK.Ku;
 
   const uplinkSeg = buildUplinkSegment(
     uplinkAtUser,
-    { label: 'User terminal', eirpDbw: DEFAULT_TERMINAL.eirpTerminalDbw },
+    { label: userLabel ?? 'User terminal', eirpDbw: DEFAULT_TERMINAL.eirpTerminalDbw },
     { label: uplinkAtUser.satelliteName },
   );
 
@@ -341,6 +365,47 @@ export function buildStarReturnResult(
   );
 
   return { forward: { uplink: uplinkSeg, downlink: downlinkSeg, endToEnd: e2e } };
+}
+
+// ─── Transponder mode detection ──────────────────────────────────────────────
+
+/**
+ * Strips common direction suffixes so uplink/downlink contours of the same
+ * physical beam normalise to the same string.
+ * e.g. "EU-1 G/T" → "eu-1", "EU-1 EIRP" → "eu-1"
+ */
+function normaliseBeamName(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/\b(uplink|downlink|ul|dl|eirp|g\/t|rx|tx)\b/g, '')
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim();
+}
+
+/**
+ * Detects whether A→satellite→B can be served by a single transponder (loopback)
+ * or requires cross-beam routing (cross-connect).
+ */
+function detectTransponderMode(
+  uplinkAtA: CandidateCoverage,
+  downlinkAtB: CandidateCoverage,
+): TransponderMode {
+  // If both sides are synthesised we have no real beam data
+  if (uplinkAtA.isSynthesized && downlinkAtB.isSynthesized) return 'unknown';
+
+  // Prefer explicit beamName if present on both
+  if (uplinkAtA.beamName && downlinkAtB.beamName) {
+    return uplinkAtA.beamName === downlinkAtB.beamName ? 'loopback' : 'cross-connect';
+  }
+
+  // Fall back to normalised coverageName comparison
+  const nameA = normaliseBeamName(uplinkAtA.coverageName);
+  const nameB = normaliseBeamName(downlinkAtB.coverageName);
+  if (nameA && nameB) {
+    return nameA === nameB ? 'loopback' : 'cross-connect';
+  }
+
+  return 'unknown';
 }
 
 // ─── MESH / Point-to-Point ───────────────────────────────────────────────────
@@ -366,16 +431,26 @@ export function buildMeshResult(
   downlinkAtB: CandidateCoverage,
   uplinkAtB: CandidateCoverage,
   downlinkAtA: CandidateCoverage,
+  endpointLabels?: MeshEndpointLabels,
+  terminalTypeA?: string,
+  terminalTypeB?: string,
 ): DualSegmentResult {
+  const pointALabel = endpointLabels?.pointA ?? 'User Terminal A';
+  const pointBLabel = endpointLabels?.pointB ?? 'User Terminal B';
+  const paramsA = (terminalTypeA ? TERMINAL_GEO_RF_PARAMS[terminalTypeA] : null) ?? DEFAULT_TERMINAL;
+  const paramsB = (terminalTypeB ? TERMINAL_GEO_RF_PARAMS[terminalTypeB] : null) ?? DEFAULT_TERMINAL;
+
   const fwUplinkSeg = buildUplinkSegment(
     uplinkAtA,
-    { label: 'Point A', eirpDbw: DEFAULT_TERMINAL.eirpTerminalDbw },
+    { label: pointALabel, eirpDbw: paramsA.eirpTerminalDbw },
     { label: uplinkAtA.satelliteName },
+    paramsA.eirpTerminalDbw,
   );
   const fwDownlinkSeg = buildDownlinkSegment(
     downlinkAtB,
     { label: downlinkAtB.satelliteName },
-    { label: 'Point B', gtDbk: DEFAULT_TERMINAL.gtTerminalDbk },
+    { label: pointBLabel, gtDbk: paramsB.gtTerminalDbk },
+    paramsB.gtTerminalDbk,
   );
   const fwE2E = computeEndToEndBudget(
     fwUplinkSeg.effectiveCNDb,
@@ -385,13 +460,15 @@ export function buildMeshResult(
 
   const rvUplinkSeg = buildUplinkSegment(
     uplinkAtB,
-    { label: 'Point B', eirpDbw: DEFAULT_TERMINAL.eirpTerminalDbw },
+    { label: pointBLabel, eirpDbw: paramsB.eirpTerminalDbw },
     { label: uplinkAtB.satelliteName },
+    paramsB.eirpTerminalDbw,
   );
   const rvDownlinkSeg = buildDownlinkSegment(
     downlinkAtA,
     { label: downlinkAtA.satelliteName },
-    { label: 'Point A', gtDbk: DEFAULT_TERMINAL.gtTerminalDbk },
+    { label: pointALabel, gtDbk: paramsA.gtTerminalDbk },
+    paramsA.gtTerminalDbk,
   );
   const rvE2E = computeEndToEndBudget(
     rvUplinkSeg.effectiveCNDb,
@@ -399,8 +476,11 @@ export function buildMeshResult(
     downlinkAtA.bandwidthMhz ?? uplinkAtB.bandwidthMhz ?? 36,
   );
 
+  const transponderMode = detectTransponderMode(uplinkAtA, downlinkAtB);
+
   return {
     forward: { uplink: fwUplinkSeg, downlink: fwDownlinkSeg, endToEnd: fwE2E },
     reverse: { uplink: rvUplinkSeg, downlink: rvDownlinkSeg, endToEnd: rvE2E },
+    transponderMode,
   };
 }

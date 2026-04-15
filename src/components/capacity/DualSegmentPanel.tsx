@@ -11,10 +11,10 @@
  * For MESH mode, renders two DirectionBlock instances (forward + reverse).
  */
 
-import { memo } from 'react';
+import { memo, useEffect, useState } from 'react';
 import type { LinkMode } from '../../types/linkMode';
 import { LINK_MODE_DESCRIPTIONS } from '../../types/linkMode';
-import type { DualSegmentResult, LinkSegment } from '../../utils/geoDualSegmentBudget';
+import type { DualSegmentResult, LinkSegment, TransponderMode } from '../../utils/geoDualSegmentBudget';
 import type { EndToEndBudget } from '../../utils/geoLinkBudget';
 import { SectionTooltip } from '../SectionTooltip';
 
@@ -187,9 +187,29 @@ const DownlinkCard = ({ seg }: { seg: LinkSegment }) => {
 
 // ─── E2ECard ──────────────────────────────────────────────────────────────────
 
-const E2ECard = ({ e2e }: { e2e: EndToEndBudget }) => {
+// Contextual explanation of the limiting segment per STAR topology.
+// Returns null for MESH / P2P (covered by TopologyContextCard at panel level).
+function bottleneckNote(
+  linkMode: LinkMode | undefined,
+  limiting: 'uplink' | 'downlink',
+): { text: string; expected: boolean } | null {
+  if (linkMode === 'STAR_RETURN') {
+    return limiting === 'uplink'
+      ? { expected: true,  text: 'Expected — user terminal EIRP is much lower than the gateway antenna, making the user uplink the typical bottleneck in return links.' }
+      : { expected: false, text: 'The satellite-to-gateway downlink is limiting — this may indicate reduced satellite EIRP over the gateway coverage area.' };
+  }
+  if (linkMode === 'STAR_FORWARD') {
+    return limiting === 'downlink'
+      ? { expected: true,  text: 'Expected — satellite EIRP toward the user terminal is the main constraint. The gateway uplink is generally not limiting.' }
+      : { expected: false, text: 'The gateway uplink is limiting — this may indicate non-standard gateway conditions or a very low sat G/T in this region.' };
+  }
+  return null;
+}
+
+const E2ECard = ({ e2e, linkMode }: { e2e: EndToEndBudget; linkMode?: LinkMode }) => {
   const limitText = e2e.limitingSegment === 'uplink' ? 'UPLINK' : 'DOWNLINK';
   const limitColor = e2e.limitingSegment === 'uplink' ? '#2563eb' : '#059669';
+  const note = bottleneckNote(linkMode, e2e.limitingSegment);
 
   return (
     <SegmentCard accentColor="#d97706" title="End-to-End Result" icon="🟡">
@@ -215,6 +235,12 @@ const E2ECard = ({ e2e }: { e2e: EndToEndBudget }) => {
           (C/N = {fmtDb(e2e.limitingSegment === 'uplink' ? e2e.uplinkCNDb : e2e.downlinkCNDb)})
         </span>
       </div>
+      {/* Contextual bottleneck explanation */}
+      {note && (
+        <p className={`text-[11px] leading-snug mt-1 ${note.expected ? 'text-gray-400 dark:text-gray-500' : 'text-amber-600 dark:text-amber-400 font-medium'}`}>
+          {note.expected ? 'ℹ ' : '⚠ '}{note.text}
+        </p>
+      )}
     </SegmentCard>
   );
 };
@@ -226,9 +252,10 @@ interface DirectionBlockProps {
   uplink: LinkSegment;
   downlink: LinkSegment;
   endToEnd: EndToEndBudget;
+  linkMode?: LinkMode;
 }
 
-const DirectionBlock = ({ title, uplink, downlink, endToEnd }: DirectionBlockProps) => {
+const DirectionBlock = ({ title, uplink, downlink, endToEnd, linkMode }: DirectionBlockProps) => {
   const satelliteName = uplink.candidate.satelliteName;
   const beamName = uplink.candidate.beamName;
   const band = uplink.candidate.band ?? downlink.candidate.band;
@@ -243,7 +270,107 @@ const DirectionBlock = ({ title, uplink, downlink, endToEnd }: DirectionBlockPro
       <UplinkCard seg={uplink} />
       <PayloadCard satelliteName={satelliteName} beamName={beamName} band={band} />
       <DownlinkCard seg={downlink} />
-      <E2ECard e2e={endToEnd} />
+      <E2ECard e2e={endToEnd} linkMode={linkMode} />
+    </div>
+  );
+};
+
+// ─── Transponder mode card (MESH / P2P) ──────────────────────────────────────
+
+const TRANSPONDER_CONFIG: Record<TransponderMode, {
+  icon: string;
+  label: string;
+  detail: string;
+  colors: { bg: string; border: string; text: string; subtext: string };
+}> = {
+  loopback: {
+    icon: '✅',
+    label: 'Loopback — same beam',
+    detail: 'Both points share the same transponder beam. The satellite routes the signal directly without cross-beam switching.',
+    colors: {
+      bg: 'bg-emerald-50 dark:bg-emerald-900/20',
+      border: 'border-emerald-200 dark:border-emerald-700',
+      text: 'text-emerald-800 dark:text-emerald-200',
+      subtext: 'text-emerald-700 dark:text-emerald-300',
+    },
+  },
+  'cross-connect': {
+    icon: '⚠️',
+    label: 'Cross-connect required',
+    detail: 'Points are in different beams. The satellite must route through its switching matrix — feasibility depends on transponder configuration.',
+    colors: {
+      bg: 'bg-amber-50 dark:bg-amber-900/20',
+      border: 'border-amber-200 dark:border-amber-700',
+      text: 'text-amber-800 dark:text-amber-200',
+      subtext: 'text-amber-700 dark:text-amber-300',
+    },
+  },
+  unknown: {
+    icon: '❓',
+    label: 'Beam routing unknown',
+    detail: 'Beam data is missing or estimated — transponder mode cannot be determined.',
+    colors: {
+      bg: 'bg-gray-50 dark:bg-slate-800',
+      border: 'border-gray-200 dark:border-slate-600',
+      text: 'text-gray-600 dark:text-gray-300',
+      subtext: 'text-gray-500 dark:text-gray-400',
+    },
+  },
+};
+
+const TransponderCard = ({ mode }: { mode: TransponderMode }) => {
+  const { icon, label, detail, colors } = TRANSPONDER_CONFIG[mode];
+  return (
+    <div className={`rounded-lg border px-3 py-2.5 ${colors.bg} ${colors.border}`}>
+      <div className="flex items-center gap-2">
+        <span className="text-base leading-none shrink-0">{icon}</span>
+        <div>
+          <p className={`text-xs font-bold ${colors.text}`}>Transponder — {label}</p>
+          <p className={`text-[11px] mt-0.5 leading-snug ${colors.subtext}`}>{detail}</p>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ─── Topology context card (MESH vs P2P) ─────────────────────────────────────
+
+const TopologyContextCard = ({ linkMode }: { linkMode: LinkMode }) => {
+  if (linkMode === 'POINT_TO_POINT') {
+    return (
+      <div className="rounded-lg border border-violet-200 dark:border-violet-700 bg-violet-50 dark:bg-violet-900/20 px-3 py-2.5">
+        <div className="flex items-center gap-2">
+          <span className="text-base leading-none shrink-0">📡</span>
+          <div>
+            <p className="text-xs font-bold text-violet-800 dark:text-violet-200">
+              SCPC · Dedicated carrier
+            </p>
+            <p className="text-[11px] mt-0.5 leading-snug text-violet-700 dark:text-violet-300">
+              100% of the allocated bandwidth is used continuously — no TDMA overhead.
+              Throughput is bounded by the transponder bandwidth (MHz) assigned to this link,
+              not by terminal C/N alone.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // MESH
+  return (
+    <div className="rounded-lg border border-sky-200 dark:border-sky-700 bg-sky-50 dark:bg-sky-900/20 px-3 py-2.5">
+      <div className="flex items-center gap-2">
+        <span className="text-base leading-none shrink-0">📶</span>
+        <div>
+          <p className="text-xs font-bold text-sky-800 dark:text-sky-200">
+            Mesh — Terminal-to-terminal
+          </p>
+          <p className="text-[11px] mt-0.5 leading-snug text-sky-700 dark:text-sky-300">
+            Both endpoints are user-grade terminals. C/N is significantly lower than
+            STAR topology — expect throughput well below a hub-and-spoke link.
+          </p>
+        </div>
+      </div>
     </div>
   );
 };
@@ -254,6 +381,44 @@ const IncompatibilityWarning = ({ message }: { message: string }) => (
   <div className="rounded-lg border border-red-200 dark:border-red-700 bg-red-50 dark:bg-red-900/20 px-4 py-3">
     <p className="text-sm font-semibold text-red-700 dark:text-red-300">No valid connectivity</p>
     <p className="mt-1 text-xs text-red-600 dark:text-red-400">{message}</p>
+  </div>
+);
+
+const MeshDirectionTabs = ({
+  forwardLabel,
+  reverseLabel,
+  activeTab,
+  onChange,
+}: {
+  forwardLabel: string;
+  reverseLabel: string;
+  activeTab: 'forward' | 'reverse';
+  onChange: (tab: 'forward' | 'reverse') => void;
+}) => (
+  <div className="rounded-lg border border-gray-200 bg-gray-50 p-1 dark:border-slate-700 dark:bg-slate-800/70">
+    <div className="grid grid-cols-2 gap-1">
+      {[
+        { key: 'forward' as const, label: forwardLabel },
+        { key: 'reverse' as const, label: reverseLabel },
+      ].map((tab) => {
+        const isActive = activeTab === tab.key;
+        return (
+          <button
+            key={tab.key}
+            type="button"
+            onClick={() => onChange(tab.key)}
+            className={[
+              'rounded-md px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-wide transition-colors',
+              isActive
+                ? 'bg-blue-600 text-white shadow-sm'
+                : 'text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-slate-700',
+            ].join(' ')}
+          >
+            {tab.label}
+          </button>
+        );
+      })}
+    </div>
   </div>
 );
 
@@ -268,6 +433,14 @@ export interface DualSegmentPanelProps {
 
 const DualSegmentPanel = memo<DualSegmentPanelProps>(({ linkMode, result, incompatible }) => {
   const description = LINK_MODE_DESCRIPTIONS[linkMode];
+  const [activeMeshTab, setActiveMeshTab] = useState<'forward' | 'reverse'>('forward');
+  const isMesh = result?.reverse != null;
+  const forwardLabel = isMesh ? 'User Terminal A → User Terminal B' : '';
+  const reverseLabel = isMesh && result.reverse ? 'User Terminal B → User Terminal A' : '';
+
+  useEffect(() => {
+    setActiveMeshTab('forward');
+  }, [linkMode, forwardLabel, reverseLabel]);
 
   if (incompatible) {
     return (
@@ -287,32 +460,40 @@ const DualSegmentPanel = memo<DualSegmentPanelProps>(({ linkMode, result, incomp
     );
   }
 
-  const isMesh = result.reverse != null;
-
   return (
     <div className="space-y-4">
       {isMesh ? (
         <>
-          <DirectionBlock
-            title={`${result.forward.uplink.source.label} → ${result.forward.downlink.destination.label}`}
-            uplink={result.forward.uplink}
-            downlink={result.forward.downlink}
-            endToEnd={result.forward.endToEnd}
+          <TopologyContextCard linkMode={linkMode} />
+          {result.transponderMode && (
+            <TransponderCard mode={result.transponderMode} />
+          )}
+          <MeshDirectionTabs
+            forwardLabel={forwardLabel}
+            reverseLabel={reverseLabel}
+            activeTab={activeMeshTab}
+            onChange={setActiveMeshTab}
           />
-          <div className="border-t border-gray-200 dark:border-slate-700 pt-3">
+          {activeMeshTab === 'forward' ? (
             <DirectionBlock
-              title={`${result.reverse!.uplink.source.label} → ${result.reverse!.downlink.destination.label}`}
+              uplink={result.forward.uplink}
+              downlink={result.forward.downlink}
+              endToEnd={result.forward.endToEnd}
+            />
+          ) : (
+            <DirectionBlock
               uplink={result.reverse!.uplink}
               downlink={result.reverse!.downlink}
               endToEnd={result.reverse!.endToEnd}
             />
-          </div>
+          )}
         </>
       ) : (
         <DirectionBlock
           uplink={result.forward.uplink}
           downlink={result.forward.downlink}
           endToEnd={result.forward.endToEnd}
+          linkMode={linkMode}
         />
       )}
     </div>

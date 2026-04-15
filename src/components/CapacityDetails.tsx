@@ -22,11 +22,11 @@ import type { RegulatoryResult } from '../services/regulatoryService';
 import type { BeamLoadResult } from '../utils/capacityLayer';
 import type { ServiceLayerResult } from '../utils/serviceLayer';
 import type { LeoConnectivityViewModel } from '../utils/leoServiceViewModel';
+import { formatCoordinates } from '../utils/formatters';
 import { PerformancePanel } from './MetricWidgets';
 import { SectionTooltip } from './SectionTooltip';
 import CollapsibleSection from './layout/CollapsibleSection';
 import type { LinkMode } from '../types/linkMode';
-import { LINK_MODE_REQUIRES_POINT_B } from '../types/linkMode';
 import {
   findBestUplinkMatch,
   findBestDownlinkMatch,
@@ -89,6 +89,8 @@ interface CapacityDetailsProps {
   onLeoTerminalTypeChange: (type: TerminalType) => void;
   geoTerminalType: TerminalType;
   onGeoTerminalTypeChange: (type: TerminalType) => void;
+  geoTerminalTypeB?: TerminalType;
+  onGeoTerminalTypeBChange?: (type: TerminalType) => void;
   weatherType: WeatherType;
   onWeatherTypeChange: (type: WeatherType) => void;
   autoWeatherEnabled: boolean;
@@ -100,6 +102,8 @@ interface CapacityDetailsProps {
   pointB?: { lat: number; lng: number } | null;
   /** Coverage candidates at Point B (MESH / Point-to-Point only). */
   candidateCoveragesB?: CandidateCoverage[];
+  pointAIsUserDefined?: boolean;
+  pointBIsUserDefined?: boolean;
 }
 
 const RTT_VISUAL_SCALE_MAX_MS = 600;
@@ -170,7 +174,7 @@ ${currentRule}`;
 };
 
 // Performance optimization: Memoize component to prevent unnecessary re-renders
-const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint, selectedSatellite, autoSelectedLEOSatellite, satelliteScope, onMetricsChange, onSatelliteClick, analysisSource, aircraftCallsign, selectedSNP: propSelectedSNP, candidateCoverages = [], selectedCoverage = null, onSelectCoverage, selectedUplinkCoverage = null, selectedDownlinkCoverage = null, onSelectUplinkCoverage, onSelectDownlinkCoverage, selectedGeoMission, selectedGeoCoverageName, selectedGeoBeamId, onSelectGeoMission, onSelectGeoCoverage, onSelectGeoBeam, onSnpClick, compactDesktop = false, externalHeader = false, globeRef, cesiumViewerRef, onExportStateChange, regulatoryResultOverride = null, beamLoadResultOverride = null, serviceLayerResultOverride = null, leoServiceViewModelOverride = null, leoTerminalType, onLeoTerminalTypeChange, geoTerminalType, onGeoTerminalTypeChange, weatherType, onWeatherTypeChange, autoWeatherEnabled, onAutoWeatherChange, linkMode = 'STAR_FORWARD', onLinkModeChange, pointB = null, candidateCoveragesB = [] }) => {
+const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint, selectedSatellite, autoSelectedLEOSatellite, satelliteScope, onMetricsChange, onSatelliteClick, analysisSource, aircraftCallsign, selectedSNP: propSelectedSNP, candidateCoverages = [], selectedCoverage = null, onSelectCoverage, selectedUplinkCoverage = null, selectedDownlinkCoverage = null, onSelectUplinkCoverage, onSelectDownlinkCoverage, selectedGeoMission, selectedGeoCoverageName, selectedGeoBeamId, onSelectGeoMission, onSelectGeoCoverage, onSelectGeoBeam, onSnpClick, compactDesktop = false, externalHeader = false, globeRef, cesiumViewerRef, onExportStateChange, regulatoryResultOverride = null, beamLoadResultOverride = null, serviceLayerResultOverride = null, leoServiceViewModelOverride = null, leoTerminalType, onLeoTerminalTypeChange, geoTerminalType, onGeoTerminalTypeChange, geoTerminalTypeB, onGeoTerminalTypeBChange, weatherType, onWeatherTypeChange, autoWeatherEnabled, onAutoWeatherChange, linkMode = 'STAR_FORWARD', onLinkModeChange, pointB = null, candidateCoveragesB = [], pointAIsUserDefined = false, pointBIsUserDefined = false }) => {
   // Feature 1+3: read simulation context for failedSnps, hsBeamsSet
   const {
     coveragePolicy,
@@ -189,6 +193,7 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
   // ── Regulatory + Capacity + Service layers ────────────────────────────────
 
   const [nearestLocation, setNearestLocation] = useState<{ city: string; country: string } | null>(null);
+  const [pointBNearestLocation, setPointBNearestLocation] = useState<{ city: string; country: string } | null>(null);
 
   const [realTimeData, setRealTimeData] = useState<RealTimeCapacityData>({
     totalCapacity: 0,
@@ -642,6 +647,20 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
     () => satelliteHasModeledDirection(refSatellite, false),
     [refSatellite]
   );
+  const pointALabel = useMemo(() => {
+    if (!activePoint) return 'User Terminal A';
+    const nearest = [nearestLocation?.city, nearestLocation?.country].filter(Boolean).join(', ');
+    return nearest
+      ? `${formatCoordinates(activePoint)} (${nearest})`
+      : formatCoordinates(activePoint);
+  }, [activePoint, nearestLocation]);
+  const pointBLabel = useMemo(() => {
+    if (!pointB) return 'User Terminal B';
+    const nearest = [pointBNearestLocation?.city, pointBNearestLocation?.country].filter(Boolean).join(', ');
+    return nearest
+      ? `${formatCoordinates(pointB)} (${nearest})`
+      : formatCoordinates(pointB);
+  }, [pointB, pointBNearestLocation]);
 
   // Build the dual-segment result depending on mode.
   // When explicit uplink (G/T) or downlink (EIRP) contour data is absent for a
@@ -655,7 +674,7 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
       const dl = downlinkAtUser;
       const ul = uplinkAtGateway ?? (downlinkAtUser ? synthesizeUplinkCandidate(downlinkAtUser) : null);
       if (!dl || !ul) return null;
-      return buildStarForwardResult(dl, ul, resolvedGatewayData);
+      return buildStarForwardResult(dl, ul, resolvedGatewayData, pointALabel);
     }
 
     if (linkMode === 'STAR_RETURN') {
@@ -665,7 +684,7 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
       // Downlink at gateway: prefer explicit EIRP data, fall back to synthesis from G/T
       const dl = downlinkAtGateway ?? (uplinkAtGateway ? synthesizeDownlinkCandidate(uplinkAtGateway) : null);
       if (!ul || !dl) return null;
-      return buildStarReturnResult(ul, dl, resolvedGatewayData);
+      return buildStarReturnResult(ul, dl, resolvedGatewayData, pointALabel);
     }
 
     if (linkMode === 'MESH' || linkMode === 'POINT_TO_POINT') {
@@ -674,7 +693,10 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
       const ulB = uplinkAtB ?? (!userUplinkModeledOnSatellite && downlinkAtB ? synthesizeUplinkCandidate(downlinkAtB) : null);
       const dlB = downlinkAtB ?? (!userDownlinkModeledOnSatellite && uplinkAtB ? synthesizeDownlinkCandidate(uplinkAtB) : null);
       if (!ulA || !dlA || !ulB || !dlB) return null;
-      return buildMeshResult(ulA, dlB, ulB, dlA);
+      return buildMeshResult(ulA, dlB, ulB, dlA, {
+        pointA: pointALabel,
+        pointB: pointBLabel,
+      }, geoTerminalType, geoTerminalTypeB ?? geoTerminalType);
     }
 
     return null;
@@ -684,7 +706,9 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
     uplinkAtGateway, downlinkAtGateway,
     uplinkAtB, downlinkAtB,
     userUplinkModeledOnSatellite, userDownlinkModeledOnSatellite,
+    pointALabel, pointBLabel,
     resolvedGatewayData,
+    geoTerminalType, geoTerminalTypeB,
   ]);
 
   // Performance optimization: Memoize SNP detection to prevent recalculation
@@ -1160,6 +1184,42 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
   }, [activePoint]);
 
   useEffect(() => {
+    const fetchNearestLocation = async () => {
+      if (!pointB) return;
+
+      try {
+        const response = await fetch(
+          `https://nominatim.openstreetmap.org/reverse?format=json&lat=${pointB.lat}&lon=${pointB.lng}&zoom=10`
+        );
+        const data = await response.json();
+
+        if (data && data.address) {
+          const city = data.address.city || data.address.town || data.address.village;
+          const country = data.address.country;
+          if (city && country) {
+            setPointBNearestLocation({ city, country });
+          } else if (country) {
+            setPointBNearestLocation({ city: '', country });
+          } else {
+            setPointBNearestLocation(null);
+          }
+        } else {
+          setPointBNearestLocation(null);
+        }
+      } catch (error) {
+        console.error('Error fetching Point B nearest location:', error);
+        setPointBNearestLocation(null);
+      }
+    };
+
+    if (pointB) {
+      fetchNearestLocation();
+    } else {
+      setPointBNearestLocation(null);
+    }
+  }, [pointB]);
+
+  useEffect(() => {
     const updateRealTimeData = () => {
       const newRealTimeData = calculateServiceAwareRealTimeCapacity(
         satellitesRef.current,
@@ -1393,13 +1453,12 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
                     showEstimatedPerformance={false}
                     linkMode={linkMode}
                     onLinkModeChange={onLinkModeChange}
-                    awaitingPointB={
-                      LINK_MODE_REQUIRES_POINT_B.has(linkMode) &&
-                      !!activePoint &&
-                      !pointB
-                    }
                     dualSegmentResult={dualSegmentResult}
                     pointB={pointB}
+                    terminalTypeB={geoTerminalTypeB}
+                    onTerminalTypeBChange={onGeoTerminalTypeBChange}
+                    pointAIsUserDefined={pointAIsUserDefined}
+                    pointBIsUserDefined={pointBIsUserDefined}
                   />
                 </>
               )}

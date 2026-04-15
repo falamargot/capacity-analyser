@@ -314,10 +314,10 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
             }));
     }, [selectedGateway, satelliteScope, satellites]);
 
-    // In MESH / P2P mode with both points set, draw Satellite → Point B.
-    // Point A → Satellite is already rendered by geoUserLinkCallback.
-    // The feeder (Sat→Gateway) and backhaul (Gateway→Internet) links are hidden in this mode.
-    const isDualPointActive = (linkMode === 'MESH' || linkMode === 'POINT_TO_POINT') && !!pointB;
+    // In MESH / P2P the gateway is not part of the RF path — hide all gateway links
+    // as soon as the mode is active, regardless of whether Point B has been placed.
+    const isMeshOrP2P = linkMode === 'MESH' || linkMode === 'POINT_TO_POINT';
+    const isDualPointActive = isMeshOrP2P && !!pointB;
 
     const meshSatToBCallback = useMemo(() => {
         if (!isDualPointActive || !autoSelectedGEOSatellite || !pointB) return null;
@@ -376,7 +376,7 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
             )}
 
             {/* GEO Satellite -> Gateway — hidden in MESH/P2P (gateway not in the path) */}
-            {geoFeederLinkCallback && satelliteScope !== 'LEO' && !isDualPointActive && (
+            {geoFeederLinkCallback && satelliteScope !== 'LEO' && !isMeshOrP2P && (
                 <Entity name="GEO Feeder Link">
                     <PolylineGraphics
                         positions={geoFeederLinkCallback}
@@ -388,7 +388,7 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
             )}
 
             {/* GEO Gateway -> Internet — hidden in MESH/P2P */}
-            {geoBackhaulCallback && satelliteScope !== 'LEO' && !isDualPointActive && (
+            {geoBackhaulCallback && satelliteScope !== 'LEO' && !isMeshOrP2P && (
                 <Entity name="GEO Backhaul Link">
                     <PolylineGraphics
                         positions={geoBackhaulCallback}
@@ -401,7 +401,7 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
 
             {/* MESH/P2P: Satellite → Point B (Point A→Satellite already shown by geoUserLinkCallback) */}
             {meshSatToBCallback && satelliteScope !== 'LEO' && (
-                <Entity name="Satellite → Point B">
+                <Entity name="Satellite → User Terminal B">
                     <PolylineGraphics
                         positions={meshSatToBCallback}
                         width={3.2}

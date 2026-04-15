@@ -15,6 +15,17 @@ export const DEFAULT_TERMINAL: TerminalParams = {
   eirpTerminalDbw: 44.0,
 };
 
+/**
+ * RF parameters (G/T, EIRP) per user terminal type — Ku-band typical values.
+ * Keys match TerminalType from TerminalConfig.tsx.
+ */
+export const TERMINAL_GEO_RF_PARAMS: Record<string, TerminalParams> = {
+  fixed:    { antennaDiameterM: 1.2,  gtTerminalDbk: 17.0, eirpTerminalDbw: 44.0 },
+  mobile:   { antennaDiameterM: 0.6,  gtTerminalDbk: 12.0, eirpTerminalDbw: 38.0 },
+  aviation: { antennaDiameterM: 0.45, gtTerminalDbk:  8.0, eirpTerminalDbw: 35.0 },
+  maritime: { antennaDiameterM: 0.9,  gtTerminalDbk: 14.0, eirpTerminalDbw: 40.0 },
+};
+
 export const BAND_PARAMS: Record<GeoBand, {
   freqDownGhz: number;
   freqUpGhz: number;

@@ -126,23 +126,6 @@ const getResponsiveAutoMarkerScale = (viewportSnapshot: ViewportSnapshot) => {
   return clampNumber(lerp(legacyScale, 0.75, getCompactDesktopProgress(viewportSnapshot)), 0.5, 8);
 };
 
-const satelliteHasModeledDirection = (
-  satellite: SatelliteData,
-  wantUplink: boolean,
-): boolean => (
-  (satellite.coverages ?? []).some((coverage) => {
-    const properties = coverage.feature?.properties as Record<string, unknown> | undefined;
-    const isUplink = properties?.isUplink === true;
-    const rawLevel = properties?.level ?? properties?.contour;
-    const numericLevel = typeof rawLevel === 'number'
-      ? rawLevel
-      : typeof rawLevel === 'string'
-        ? Number.parseFloat(rawLevel)
-        : Number.NaN;
-
-    return isUplink === wantUplink && Number.isFinite(numericLevel);
-  })
-);
 
 const snapMarkerScaleToStep = (value: number, step = 0.25) => {
   const snappedValue = Math.round(value / step) * step;
@@ -258,6 +241,7 @@ const App: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [leoTerminalType, setLeoTerminalType] = useState<TerminalType>('fixed');
   const [geoTerminalType, setGeoTerminalType] = useState<TerminalType>('fixed');
+  const [geoTerminalTypeB, setGeoTerminalTypeB] = useState<TerminalType>('fixed');
   const [weatherType, setWeatherType] = useState<WeatherType>(() => weatherTypeFromCondition(weatherCondition));
   const [autoWeatherEnabled, setAutoWeatherEnabled] = useState<boolean>(true);
   const [previousAnalysisSource, setPreviousAnalysisSource] = useState<'earth' | 'aircraft' | undefined>(undefined);
@@ -357,6 +341,8 @@ const App: React.FC = () => {
   const selectedPosition = useMemo(() => (
     selectedSelection.type === 'target' ? selectedSelection.position : null
   ), [selectedSelection]);
+  const pointAIsUserDefined = selectedSelection.type === 'target' && selectedSelection.targetType === 'point';
+  const pointBIsUserDefined = pointB !== null;
   const [selectedUplinkKey, setSelectedUplinkKey] = useState<string | null>(null);
   const [selectedDownlinkKey, setSelectedDownlinkKey] = useState<string | null>(null);
 
@@ -722,13 +708,16 @@ const App: React.FC = () => {
       if (!sat) continue;
       const hasUplink = satCands.some(c => c.isUplink);
       const hasDownlink = satCands.some(c => !c.isUplink);
-      const uplinkModeledOnSatellite = satelliteHasModeledDirection(sat, true);
-      const downlinkModeledOnSatellite = satelliteHasModeledDirection(sat, false);
-      if (!hasUplink && !uplinkModeledOnSatellite) {
+      // Synthesize a nominal candidate whenever no real candidates exist at this
+      // point for a given direction — regardless of whether the satellite has
+      // contour data for that direction elsewhere. Uplink Ka-band budgets are
+      // particularly prone to negative margins with the default 250 MHz BW
+      // assumption, which would otherwise silently hide all uplink options.
+      if (!hasUplink) {
         const bestDl = satCands.find(c => !c.isUplink);
         if (bestDl) synthPool.push(synthesizeUplinkCandidate(bestDl));
       }
-      if (!hasDownlink && !downlinkModeledOnSatellite) {
+      if (!hasDownlink) {
         const bestUl = satCands.find(c => c.isUplink);
         if (bestUl) synthPool.push(synthesizeDownlinkCandidate(bestUl));
       }
@@ -2704,6 +2693,8 @@ const App: React.FC = () => {
                     onLeoTerminalTypeChange={setLeoTerminalType}
                     geoTerminalType={geoTerminalType}
                     onGeoTerminalTypeChange={setGeoTerminalType}
+                    geoTerminalTypeB={geoTerminalTypeB}
+                    onGeoTerminalTypeBChange={setGeoTerminalTypeB}
                     weatherType={weatherType}
                     onWeatherTypeChange={handleWeatherTypeChange}
                     autoWeatherEnabled={autoWeatherEnabled}
@@ -2732,6 +2723,8 @@ const App: React.FC = () => {
                     onLinkModeChange={setLinkMode}
                     pointB={pointB}
                     candidateCoveragesB={candidateCoveragesB}
+                    pointAIsUserDefined={pointAIsUserDefined}
+                    pointBIsUserDefined={pointBIsUserDefined}
                   />
                 </Suspense>
               </div>
@@ -2842,6 +2835,8 @@ const App: React.FC = () => {
                                 onLeoTerminalTypeChange={setLeoTerminalType}
                                 geoTerminalType={geoTerminalType}
                                 onGeoTerminalTypeChange={setGeoTerminalType}
+                    geoTerminalTypeB={geoTerminalTypeB}
+                    onGeoTerminalTypeBChange={setGeoTerminalTypeB}
                                 weatherType={weatherType}
                                 onWeatherTypeChange={handleWeatherTypeChange}
                                 autoWeatherEnabled={autoWeatherEnabled}
@@ -2868,6 +2863,8 @@ const App: React.FC = () => {
                                 onLinkModeChange={setLinkMode}
                                 pointB={pointB}
                                 candidateCoveragesB={candidateCoveragesB}
+                                pointAIsUserDefined={pointAIsUserDefined}
+                                pointBIsUserDefined={pointBIsUserDefined}
                               />
                             )}
                           </Suspense>
@@ -2952,6 +2949,8 @@ const App: React.FC = () => {
                         onLeoTerminalTypeChange={setLeoTerminalType}
                         geoTerminalType={geoTerminalType}
                         onGeoTerminalTypeChange={setGeoTerminalType}
+                    geoTerminalTypeB={geoTerminalTypeB}
+                    onGeoTerminalTypeBChange={setGeoTerminalTypeB}
                         weatherType={weatherType}
                         onWeatherTypeChange={handleWeatherTypeChange}
                         autoWeatherEnabled={autoWeatherEnabled}
@@ -2981,6 +2980,8 @@ const App: React.FC = () => {
                         onLinkModeChange={setLinkMode}
                         pointB={pointB}
                         candidateCoveragesB={candidateCoveragesB}
+                        pointAIsUserDefined={pointAIsUserDefined}
+                        pointBIsUserDefined={pointBIsUserDefined}
                       />
                     )}
                   </Suspense>

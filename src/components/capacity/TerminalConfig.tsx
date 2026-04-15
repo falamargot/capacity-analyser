@@ -1,3 +1,4 @@
+import { CheckCircle2, CircleDashed, Sparkles, type LucideIcon } from 'lucide-react';
 import { memo, type ReactNode } from 'react';
 import { SectionTooltip } from '../SectionTooltip';
 import { WEATHER_ATTENUATION_DB, type WeatherCondition } from '../../utils/realisticSimulation';
@@ -46,7 +47,7 @@ const weatherIcon = (key: WeatherType): string => {
 };
 
 const selectClassName = (compact: boolean, widthClass: string) =>
-  `${widthClass} shrink-0 appearance-none rounded-lg border border-gray-300 bg-white text-gray-900 transition-colors focus:border-transparent focus:ring-2 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-700 dark:text-gray-100 ${compact ? 'py-1.5 pl-3 pr-7 text-[13px]' : 'py-2 pl-3 pr-8 text-sm'}`;
+  `${widthClass} shrink-0 appearance-none rounded-lg border border-gray-300 bg-white text-gray-900 transition-colors focus:border-transparent focus:ring-2 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-700 dark:text-gray-100 ${compact ? 'py-1.5 pl-3 pr-7 text-[12px]' : 'py-2 pl-3 pr-8 text-sm'}`;
 
 const selectStyle = (disabled: boolean) => ({
   backgroundImage: disabled ? 'none' : `url("data:image/svg+xml;charset=US-ASCII,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 4 5'%3E%3Cpath fill='%236B7280' d='M2 0L0 2h4zm0 5L0 3h4z'/%3E%3C/svg>")`,
@@ -62,6 +63,10 @@ interface TerminalTypeControlProps {
   analysisSource?: 'earth' | 'aircraft';
   compact?: boolean;
   showMaxLabel?: boolean;
+  stacked?: boolean;
+  readOnly?: boolean;
+  displayLabel?: string;
+  displayIcon?: string;
 }
 
 export const TerminalTypeControl = memo<TerminalTypeControlProps>(({
@@ -70,25 +75,40 @@ export const TerminalTypeControl = memo<TerminalTypeControlProps>(({
   analysisSource,
   compact = false,
   showMaxLabel = true,
+  stacked = false,
+  readOnly = false,
+  displayLabel,
+  displayIcon,
 }) => (
-  <div className="flex items-center gap-2 sm:gap-3">
-    <label className={`w-16 shrink-0 font-medium text-gray-600 dark:text-gray-400 sm:w-[4.5rem] ${compact ? 'text-[13px]' : 'text-sm'}`}>Type:</label>
-    <div className="min-w-0 flex flex-1 items-center gap-2 sm:gap-3">
+  <div className={`flex ${stacked ? 'flex-col items-start gap-1.5' : 'items-center gap-2 sm:gap-3'}`}>
+    <div className={`min-w-0 flex flex-1 ${stacked ? 'w-full flex-col items-start gap-1.5' : 'items-center gap-2 sm:gap-3'}`}>
+      {(() => {
+        const isDisabled = analysisSource === 'aircraft' || readOnly;
+        const effectiveIcon = displayIcon ?? terminalIcon(terminalType);
+        const effectiveLabel = displayLabel ?? TERMINAL_PROFILES[terminalType].label;
+        return (
       <select
         value={terminalType}
         onChange={(e) => onTerminalTypeChange(e.target.value as TerminalType)}
-        className={selectClassName(compact, compact ? 'w-40 sm:w-44' : 'w-44 sm:w-48')}
-        disabled={analysisSource === 'aircraft'}
-        style={selectStyle(analysisSource === 'aircraft')}
+        className={selectClassName(compact, stacked ? 'w-full' : compact ? 'w-40 sm:w-44' : 'w-44 sm:w-48')}
+        disabled={isDisabled}
+        style={selectStyle(isDisabled)}
       >
+        {readOnly && displayLabel ? (
+          <option value={terminalType}>
+            {`${effectiveIcon} ${effectiveLabel}`}
+          </option>
+        ) : null}
         {Object.entries(TERMINAL_PROFILES).map(([key, profile]) => (
           <option key={key} value={key}>
             {`${terminalIcon(key as TerminalType)} ${profile.label}`}
           </option>
         ))}
       </select>
+        );
+      })()}
       {showMaxLabel && (
-        <span className={`min-w-0 flex-1 text-gray-500 dark:text-gray-400 sm:whitespace-nowrap ${compact ? 'text-[11px]' : 'text-xs'}`}>
+        <span className={`min-w-0 flex-1 leading-none text-gray-500 dark:text-gray-400 ${stacked ? '' : 'sm:whitespace-nowrap'} ${compact ? 'text-[11px]' : 'text-xs'}`}>
           Max: {Math.round(TERMINAL_PROFILES[terminalType].maxDlGbps * 1000)} / {Math.round(TERMINAL_PROFILES[terminalType].maxUlGbps * 1000)} Mbps
         </span>
       )}
@@ -174,7 +194,20 @@ interface TerminalConfigProps {
   title?: ReactNode;
   showWeather?: boolean;
   className?: string;
+  stacked?: boolean;
+  tone?: 'neutral' | 'user-defined' | 'not-user-defined';
+  statusLabel?: ReactNode;
+  readOnly?: boolean;
+  terminalDisplayLabel?: string;
+  terminalDisplayIcon?: string;
+  statusTitle?: string;
 }
+
+const STATUS_ICON_BY_LABEL: Record<string, LucideIcon> = {
+  MANUAL: CheckCircle2,
+  AUTO: Sparkles,
+  UNSET: CircleDashed,
+};
 
 const TerminalConfig = memo<TerminalConfigProps>(({
   terminalType,
@@ -188,19 +221,60 @@ const TerminalConfig = memo<TerminalConfigProps>(({
   title = 'User Terminal',
   showWeather = true,
   className = 'mb-4',
+  stacked = false,
+  tone = 'neutral',
+  statusLabel,
+  readOnly = false,
+  terminalDisplayLabel,
+  terminalDisplayIcon,
+  statusTitle,
 }) => (
   <div className={className}>
-    <div className={`rounded-lg border border-gray-100 bg-gray-50 dark:border-slate-700 dark:bg-slate-800/50 ${compact ? 'p-2.5' : 'p-3'}`}>
-      <h3 className={`mb-2 flex items-center font-semibold text-gray-800 dark:text-gray-200 ${compact ? 'text-[13px]' : 'text-sm'}`}>
-        {title}
-        <SectionTooltip content="The ground equipment (antenna + modem) used to connect to the satellite network. The selected type defines maximum achievable downlink/uplink throughput. Weather attenuation is applied on top of this profile." />
-      </h3>
-      <div className="space-y-3">
+    <div className={[
+      'flex h-full min-h-[96px] flex-col rounded-xl border transition-colors',
+      tone === 'user-defined'
+        ? 'border-emerald-200 bg-emerald-50/90 dark:border-emerald-800/70 dark:bg-emerald-950/25'
+        : tone === 'not-user-defined'
+          ? 'border-rose-200 bg-rose-50/90 dark:border-rose-900/70 dark:bg-rose-950/25'
+          : 'border-gray-100 bg-gray-50 dark:border-slate-700 dark:bg-slate-800/50',
+      compact ? 'p-1.5' : 'p-3',
+    ].join(' ')}>
+      <div className="mb-1 flex min-h-[24px] items-start justify-between gap-1.5">
+        <h3 className={`flex min-w-0 items-center font-semibold leading-tight text-gray-800 dark:text-gray-200 ${compact ? 'text-[13px]' : 'text-sm'}`}>
+          <span className="line-clamp-2">{title}</span>
+          <SectionTooltip content="The ground equipment (antenna + modem) used to connect to the satellite network. The selected type defines maximum achievable downlink/uplink throughput. Weather attenuation is applied on top of this profile." />
+        </h3>
+        {statusLabel ? (() => {
+          const labelText = typeof statusLabel === 'string' ? statusLabel.toUpperCase() : null;
+          const StatusIcon = labelText ? (STATUS_ICON_BY_LABEL[labelText] ?? Sparkles) : Sparkles;
+          return (
+            <span
+              className={[
+                'inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full border',
+                tone === 'user-defined'
+                  ? 'border-emerald-300 bg-emerald-100 text-emerald-700 dark:border-emerald-700 dark:bg-emerald-900/60 dark:text-emerald-200'
+                  : tone === 'not-user-defined'
+                    ? 'border-rose-300 bg-rose-100 text-rose-700 dark:border-rose-800 dark:bg-rose-900/60 dark:text-rose-200'
+                    : 'border-slate-300 bg-slate-200 text-slate-600 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200',
+              ].join(' ')}
+              title={statusTitle ?? labelText ?? undefined}
+              aria-label={statusTitle ?? labelText ?? undefined}
+            >
+              <StatusIcon className="h-2.5 w-2.5" />
+            </span>
+          );
+        })() : null}
+      </div>
+      <div className="flex flex-1 flex-col justify-end space-y-1">
         <TerminalTypeControl
           terminalType={terminalType}
           onTerminalTypeChange={onTerminalTypeChange}
           analysisSource={analysisSource}
           compact={compact}
+          stacked={stacked}
+          readOnly={readOnly}
+          displayLabel={terminalDisplayLabel}
+          displayIcon={terminalDisplayIcon}
         />
         {showWeather && (
           <WeatherControl
