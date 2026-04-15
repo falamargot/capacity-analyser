@@ -12,7 +12,7 @@ import { isPointInCoverage } from '../utils/coverageCalculator';
 import { getBestConnectedGateway } from '../utils/connectivityRules';
 import { JulianDate } from 'cesium';
 import ExportButton, { type ExportButtonPayload } from './ExportButton';
-import type { CandidateCoverage, MobileAnalysisMetrics } from '../types/analysis';
+import type { CandidateCoverage, MeshLinkMetrics, MobileAnalysisMetrics } from '../types/analysis';
 import { analyzeLeoConnectivity } from '../utils/leoConnectivityModel';
 import { computeGeoConnectivity, findCandidateCoverages } from '../utils/geoCoverageSelection';
 import { useSimulation } from '../contexts/SimulationContext';
@@ -104,6 +104,9 @@ interface CapacityDetailsProps {
   candidateCoveragesB?: CandidateCoverage[];
   pointAIsUserDefined?: boolean;
   pointBIsUserDefined?: boolean;
+  /** Controlled MESH direction tab — lifted to App so the globe can reflect the active direction. */
+  activeMeshTab?: 'forward' | 'reverse';
+  onActiveMeshTabChange?: (tab: 'forward' | 'reverse') => void;
 }
 
 const RTT_VISUAL_SCALE_MAX_MS = 600;
@@ -174,7 +177,7 @@ ${currentRule}`;
 };
 
 // Performance optimization: Memoize component to prevent unnecessary re-renders
-const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint, selectedSatellite, autoSelectedLEOSatellite, satelliteScope, onMetricsChange, onSatelliteClick, analysisSource, aircraftCallsign, selectedSNP: propSelectedSNP, candidateCoverages = [], selectedCoverage = null, onSelectCoverage, selectedUplinkCoverage = null, selectedDownlinkCoverage = null, onSelectUplinkCoverage, onSelectDownlinkCoverage, selectedGeoMission, selectedGeoCoverageName, selectedGeoBeamId, onSelectGeoMission, onSelectGeoCoverage, onSelectGeoBeam, onSnpClick, compactDesktop = false, externalHeader = false, globeRef, cesiumViewerRef, onExportStateChange, regulatoryResultOverride = null, beamLoadResultOverride = null, serviceLayerResultOverride = null, leoServiceViewModelOverride = null, leoTerminalType, onLeoTerminalTypeChange, geoTerminalType, onGeoTerminalTypeChange, geoTerminalTypeB, onGeoTerminalTypeBChange, weatherType, onWeatherTypeChange, autoWeatherEnabled, onAutoWeatherChange, linkMode = 'STAR_FORWARD', onLinkModeChange, pointB = null, candidateCoveragesB = [], pointAIsUserDefined = false, pointBIsUserDefined = false }) => {
+const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint, selectedSatellite, autoSelectedLEOSatellite, satelliteScope, onMetricsChange, onSatelliteClick, analysisSource, aircraftCallsign, selectedSNP: propSelectedSNP, candidateCoverages = [], selectedCoverage = null, onSelectCoverage, selectedUplinkCoverage = null, selectedDownlinkCoverage = null, onSelectUplinkCoverage, onSelectDownlinkCoverage, selectedGeoMission, selectedGeoCoverageName, selectedGeoBeamId, onSelectGeoMission, onSelectGeoCoverage, onSelectGeoBeam, onSnpClick, compactDesktop = false, externalHeader = false, globeRef, cesiumViewerRef, onExportStateChange, regulatoryResultOverride = null, beamLoadResultOverride = null, serviceLayerResultOverride = null, leoServiceViewModelOverride = null, leoTerminalType, onLeoTerminalTypeChange, geoTerminalType, onGeoTerminalTypeChange, geoTerminalTypeB, onGeoTerminalTypeBChange, weatherType, onWeatherTypeChange, autoWeatherEnabled, onAutoWeatherChange, linkMode = 'STAR_FORWARD', onLinkModeChange, pointB = null, candidateCoveragesB = [], pointAIsUserDefined = false, pointBIsUserDefined = false, activeMeshTab, onActiveMeshTabChange }) => {
   // Feature 1+3: read simulation context for failedSnps, hsBeamsSet
   const {
     coveragePolicy,
@@ -648,14 +651,14 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
     [refSatellite]
   );
   const pointALabel = useMemo(() => {
-    if (!activePoint) return 'User Terminal A';
+    if (!activePoint) return 'Terminal A';
     const nearest = [nearestLocation?.city, nearestLocation?.country].filter(Boolean).join(', ');
     return nearest
       ? `${formatCoordinates(activePoint)} (${nearest})`
       : formatCoordinates(activePoint);
   }, [activePoint, nearestLocation]);
   const pointBLabel = useMemo(() => {
-    if (!pointB) return 'User Terminal B';
+    if (!pointB) return 'Terminal B';
     const nearest = [pointBNearestLocation?.city, pointBNearestLocation?.country].filter(Boolean).join(', ');
     return nearest
       ? `${formatCoordinates(pointB)} (${nearest})`
@@ -740,6 +743,25 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
       uplinkGbps: performance.uplinkGbps,
     };
   }, [resolvedGEOConnectivity, geoGeometry, calculateGEOPerformance]);
+
+  const meshMetrics = useMemo((): MeshLinkMetrics | null => {
+    if ((linkMode !== 'MESH' && linkMode !== 'POINT_TO_POINT') || !dualSegmentResult) return null;
+    const C_KM_PER_MS = 299.792458;
+    const fwUl = dualSegmentResult.forward.uplink.candidate;
+    const fwDl = dualSegmentResult.forward.downlink.candidate;
+    const rvUl = dualSegmentResult.reverse?.uplink.candidate;
+    const rvDl = dualSegmentResult.reverse?.downlink.candidate;
+    const aToSatKm = fwUl.slantRangeKm ?? 37500;
+    const satToBKm = fwDl.slantRangeKm ?? 37500;
+    const bToSatKm = rvUl?.slantRangeKm ?? satToBKm;
+    const satToAKm = rvDl?.slantRangeKm ?? aToSatKm;
+    const rttMs = (aToSatKm + satToBKm + bToSatKm + satToAKm) / C_KM_PER_MS + 40;
+    return {
+      forwardMbps: dualSegmentResult.forward.endToEnd.endToEndThroughputMbps,
+      reverseMbps: dualSegmentResult.reverse?.endToEnd.endToEndThroughputMbps ?? null,
+      rttMs,
+    };
+  }, [linkMode, dualSegmentResult]);
 
   const geoPerformance = useMemo(() => {
     if (!resolvedGEOConnectivity || !geoGeometry) return null;
@@ -1062,10 +1084,12 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
       geo: mobileGeoMetrics,
       totalGbps: realTimeData.totalCapacity,
       coveredCount: realTimeData.coveredSatellites.length,
+      mesh: meshMetrics,
     });
   }, [
     mobileGeoMetrics,
     mobileLeoMetrics,
+    meshMetrics,
     onMetricsChange,
     realTimeData.coveredSatellites.length,
     realTimeData.totalCapacity,
@@ -1459,6 +1483,11 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
                     onTerminalTypeBChange={onGeoTerminalTypeBChange}
                     pointAIsUserDefined={pointAIsUserDefined}
                     pointBIsUserDefined={pointBIsUserDefined}
+                    candidateCoveragesB={candidateCoveragesB}
+                    uplinkCoverageAtB={uplinkAtB}
+                    downlinkCoverageAtB={downlinkAtB}
+                    activeMeshTab={activeMeshTab}
+                    onActiveMeshTabChange={onActiveMeshTabChange}
                   />
                 </>
               )}

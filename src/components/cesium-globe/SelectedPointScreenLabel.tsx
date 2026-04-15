@@ -6,6 +6,7 @@ import {
 } from 'cesium';
 import type { MobileAnalysisMetrics, MobileLinkMetrics } from '../../types/analysis';
 import type { LeoConnectivityViewModel } from '../../utils/leoServiceViewModel';
+import type { LinkMode } from '../../types/linkMode';
 import { formatCoordinates } from '../../utils/formatters';
 import {
   deriveSelectedPointStatusPresentation,
@@ -27,6 +28,9 @@ interface SelectedPointScreenLabelProps {
   performanceMetrics?: MobileAnalysisMetrics | null;
   viewerReady?: boolean;
   compact?: boolean;
+  meshRole?: 'A' | 'B';
+  activeMeshTab?: 'forward' | 'reverse';
+  linkMode?: LinkMode;
 }
 
 const statusTextClassName = (tone: SelectedPointStatusTone): string => {
@@ -75,6 +79,9 @@ const SelectedPointScreenLabel: React.FC<SelectedPointScreenLabelProps> = ({
   performanceMetrics = null,
   viewerReady = false,
   compact = false,
+  meshRole,
+  activeMeshTab = 'forward',
+  linkMode,
 }) => {
   const labelRef = useRef<HTMLDivElement | null>(null);
   const presentation = useMemo(
@@ -88,6 +95,30 @@ const SelectedPointScreenLabel: React.FC<SelectedPointScreenLabelProps> = ({
 
   const text = useMemo(() => {
     if (!selectedPosition) return null;
+
+    const isMesh = linkMode === 'MESH' || linkMode === 'POINT_TO_POINT';
+    const meshData = performanceMetrics?.mesh;
+
+    // In MESH/P2P mode, always show both TX and RX throughput regardless of active tab
+    if (isMesh && meshRole && meshData) {
+      const fmt = (mbps: number | null | undefined) =>
+        mbps != null && Number.isFinite(mbps) && mbps > 0 ? `${Math.round(mbps)} Mbps` : '--';
+      // Terminal A: TX = forward (A→B), RX = reverse (B→A)
+      // Terminal B: TX = reverse (B→A), RX = forward (A→B)
+      const txMbps = meshRole === 'A' ? meshData.forwardMbps : meshData.reverseMbps;
+      const rxMbps = meshRole === 'A' ? meshData.reverseMbps : meshData.forwardMbps;
+      const rttStr = meshData.rttMs != null && Number.isFinite(meshData.rttMs)
+        ? `${Math.round(meshData.rttMs)} ms RTT`
+        : null;
+      return {
+        coordinates: `Terminal ${meshRole} · ${formatCoordinates({ lat: selectedPosition.lat, lng: selectedPosition.lng })}`,
+        statusLines: [
+          { text: `TX \u2191 ${fmt(txMbps)}`, tone: 'warning' as SelectedPointStatusTone },
+          { text: `RX \u2193 ${fmt(rxMbps)}`, tone: 'success' as SelectedPointStatusTone },
+          ...(rttStr ? [{ text: rttStr, tone: 'neutral' as SelectedPointStatusTone }] : []),
+        ],
+      };
+    }
 
     const fallbackStatusLines = presentation.lines;
     const leoStatusLine = leoServiceViewModel?.finalServiceStatus === 'ALLOWED'
@@ -109,7 +140,7 @@ const SelectedPointScreenLabel: React.FC<SelectedPointScreenLabelProps> = ({
       coordinates: formatCoordinates({ lat: selectedPosition.lat, lng: selectedPosition.lng }),
       statusLines: statusLines.filter((line): line is SelectedPointStatusLine => typeof line?.text === 'string' && line.text.length > 0),
     };
-  }, [geoPointStatus, leoServiceViewModel?.finalServiceStatus, performanceMetrics?.geo, performanceMetrics?.leo, presentation.lines, satelliteScope, selectedPosition]);
+  }, [geoPointStatus, leoServiceViewModel?.finalServiceStatus, linkMode, meshRole, performanceMetrics?.geo, performanceMetrics?.leo, performanceMetrics?.mesh, presentation.lines, satelliteScope, selectedPosition]);
 
   useEffect(() => {
     const label = labelRef.current;

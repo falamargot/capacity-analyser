@@ -435,8 +435,8 @@ export function buildMeshResult(
   terminalTypeA?: string,
   terminalTypeB?: string,
 ): DualSegmentResult {
-  const pointALabel = endpointLabels?.pointA ?? 'User Terminal A';
-  const pointBLabel = endpointLabels?.pointB ?? 'User Terminal B';
+  const pointALabel = endpointLabels?.pointA ?? 'Terminal A';
+  const pointBLabel = endpointLabels?.pointB ?? 'Terminal B';
   const paramsA = (terminalTypeA ? TERMINAL_GEO_RF_PARAMS[terminalTypeA] : null) ?? DEFAULT_TERMINAL;
   const paramsB = (terminalTypeB ? TERMINAL_GEO_RF_PARAMS[terminalTypeB] : null) ?? DEFAULT_TERMINAL;
 

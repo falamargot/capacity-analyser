@@ -115,9 +115,16 @@ export interface MobileLinkMetrics {
     uplinkGbps: number;
 }
 
+export interface MeshLinkMetrics {
+    forwardMbps: number | null;
+    reverseMbps: number | null;
+    rttMs: number | null;
+}
+
 export interface MobileAnalysisMetrics {
     leo: MobileLinkMetrics | null;
     geo: MobileLinkMetrics | null;
     totalGbps: number;
     coveredCount: number;
+    mesh?: MeshLinkMetrics | null;
 }

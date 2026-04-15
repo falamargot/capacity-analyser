@@ -86,6 +86,7 @@ interface MapViewSwitcherProps {
   onCoverageSwitcherSelect?: (id: string) => void;
   pointB?: { lat: number; lng: number } | null;
   linkMode?: LinkMode;
+  activeMeshTab?: 'forward' | 'reverse';
 }
 
 const MapViewSwitcher: React.FC<MapViewSwitcherProps> = ({
@@ -158,6 +159,7 @@ const MapViewSwitcher: React.FC<MapViewSwitcherProps> = ({
   onCoverageSwitcherSelect,
   pointB = null,
   linkMode,
+  activeMeshTab,
 }) => {
   const [sceneMode, setSceneMode] = useState<'2D' | '3D'>('3D');
 
@@ -236,6 +238,7 @@ const MapViewSwitcher: React.FC<MapViewSwitcherProps> = ({
         onCoverageSwitcherSelect={onCoverageSwitcherSelect}
         pointB={pointB}
         linkMode={linkMode}
+        activeMeshTab={activeMeshTab}
       />
     </div>
   );

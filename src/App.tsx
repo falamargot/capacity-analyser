@@ -260,6 +260,8 @@ const App: React.FC = () => {
   // ── Link mode & dual-point selection ─────────────────────────────────────
   const [linkMode, setLinkMode] = useState<LinkMode>('STAR_FORWARD');
   const [pointB, setPointB] = useState<{ lat: number; lng: number } | null>(null);
+  const [activeMeshTab, setActiveMeshTab] = useState<'forward' | 'reverse'>('forward');
+  useEffect(() => { setActiveMeshTab('forward'); }, [linkMode]);
 
   // Clear Point B whenever the user switches to a single-point mode
   useEffect(() => {
@@ -1885,7 +1887,7 @@ const App: React.FC = () => {
     handleCameraReady, handleGlobeContainerReady, handleGlobeBootPhaseChange, handleInitialGlobeReady, enableLighting, handleToggleLighting, handleSizeScaleChange, handleToggleAggregatedConnectivity, handleToggleFootprintProjection, handleToggleFullscreen, handleToggleSatelliteTrajectory, interpolatedAircraftMapRef, interpolatedVesselMapRef, showSatelliteTrajectory, showAggregatedConnectivity, showFootprintProjection, sizeScale,
     inspectedSNP, snpConnectedSatellites, countryOverlayMode, handleCountryOverlayModeChange, handleSizeScaleReset,
     isPhone, isMobileAnalysisPanelOpen, coverageSwitcherCoverages, selectedCoverageId, handleSelectTargetCoverageById,
-    pointB, linkMode,
+    pointB, linkMode, activeMeshTab,
   ]);
   const desktopCompactProgress = isMobile ? 0 : getCompactDesktopProgress(viewportSnapshot);
   const useCompactDesktopSidebar = desktopCompactProgress >= 0.35;
@@ -2725,6 +2727,8 @@ const App: React.FC = () => {
                     candidateCoveragesB={candidateCoveragesB}
                     pointAIsUserDefined={pointAIsUserDefined}
                     pointBIsUserDefined={pointBIsUserDefined}
+                    activeMeshTab={activeMeshTab}
+                    onActiveMeshTabChange={setActiveMeshTab}
                   />
                 </Suspense>
               </div>
@@ -2865,6 +2869,8 @@ const App: React.FC = () => {
                                 candidateCoveragesB={candidateCoveragesB}
                                 pointAIsUserDefined={pointAIsUserDefined}
                                 pointBIsUserDefined={pointBIsUserDefined}
+                                activeMeshTab={activeMeshTab}
+                                onActiveMeshTabChange={setActiveMeshTab}
                               />
                             )}
                           </Suspense>
@@ -2982,6 +2988,8 @@ const App: React.FC = () => {
                         candidateCoveragesB={candidateCoveragesB}
                         pointAIsUserDefined={pointAIsUserDefined}
                         pointBIsUserDefined={pointBIsUserDefined}
+                        activeMeshTab={activeMeshTab}
+                        onActiveMeshTabChange={setActiveMeshTab}
                       />
                     )}
                   </Suspense>

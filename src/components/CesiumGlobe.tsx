@@ -211,6 +211,8 @@ interface CesiumGlobeProps {
     pointB?: { lat: number; lng: number } | null;
     /** Active link mode — used to label markers correctly. */
     linkMode?: string;
+    /** Active direction tab in MESH/P2P — drives directional link rendering on the globe. */
+    activeMeshTab?: 'forward' | 'reverse';
 }
 
 const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
@@ -287,6 +289,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
     onCoverageSwitcherSelect,
     pointB = null,
     linkMode,
+    activeMeshTab,
 }) => {
     // Stable refs for click-handler lookups — avoids recreating handleMapClick
     // (and re-registering the Cesium ScreenSpaceEvent) when aircraft/vessels/satellites
@@ -1290,6 +1293,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                         selectedPosition={selectedPosition}
                         pointB={pointB}
                         linkMode={linkMode}
+                        activeMeshTab={activeMeshTab}
                         selectedAircraft={selectedAircraft}
                         selectedSatellite={selectedSatellite}
                         autoSelectedLEOSatellite={autoSelectedLEOSatellite}
@@ -1442,6 +1446,9 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                 performanceMetrics={performanceMetrics}
                 viewerReady={viewerReady}
                 compact={!!isPhone}
+                meshRole="A"
+                activeMeshTab={activeMeshTab}
+                linkMode={linkMode}
             />
             {pointB && linkMode && (linkMode === 'MESH' || linkMode === 'POINT_TO_POINT') && (
                 <SelectedPointScreenLabel
@@ -1453,6 +1460,9 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                     performanceMetrics={performanceMetrics}
                     viewerReady={viewerReady}
                     compact={!!isPhone}
+                    meshRole="B"
+                    activeMeshTab={activeMeshTab}
+                    linkMode={linkMode}
                 />
             )}
             {!hideSatelliteScreenLabels && (
@@ -1470,12 +1480,12 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                     {!pointB ? (
                         <div className="flex items-center gap-2 rounded-full bg-black/60 backdrop-blur-sm px-4 py-1.5 text-white text-xs shadow-lg">
                             <span className="inline-block h-2 w-2 rounded-full bg-amber-400 shrink-0 animate-pulse" />
-                            Hold <kbd className="mx-0.5 rounded bg-white/20 px-1 font-mono text-[10px]">Shift</kbd> + click to place <strong>User Terminal B</strong>
+                            Hold <kbd className="mx-0.5 rounded bg-white/20 px-1 font-mono text-[10px]">Shift</kbd> + click to place <strong>Terminal B</strong>
                         </div>
                     ) : (
                         <div className="flex items-center gap-2 rounded-full bg-black/60 backdrop-blur-sm px-4 py-1.5 text-white text-xs shadow-lg">
                             <span className="inline-block h-2 w-2 rounded-full bg-green-400 shrink-0" />
-                            Click the globe (no Shift) to move <strong>User Terminal A</strong>
+                            Click the globe (no Shift) to move <strong>Terminal A</strong>
                         </div>
                     )}
                 </div>

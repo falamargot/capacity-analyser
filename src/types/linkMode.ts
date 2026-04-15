@@ -3,7 +3,7 @@
  *
  * STAR_FORWARD  — Gateway → Satellite → User  (forward link, user receives)
  * STAR_RETURN   — User → Satellite → Gateway  (return link, user transmits)
- * MESH          — User Terminal A ↔ Satellite ↔ User Terminal B  (both directions computed)
+ * MESH          — Terminal A ↔ Satellite ↔ Terminal B  (both directions computed)
  * POINT_TO_POINT— Same RF as MESH, distinct semantic (site-to-site)
  */
 export type LinkMode = 'STAR_FORWARD' | 'STAR_RETURN' | 'MESH' | 'POINT_TO_POINT';
@@ -18,8 +18,8 @@ export const LINK_MODE_LABELS: Record<LinkMode, string> = {
 export const LINK_MODE_DESCRIPTIONS: Record<LinkMode, string> = {
   STAR_FORWARD: 'Gateway → User (Forward Link)',
   STAR_RETURN: 'User → Gateway (Return Link)',
-  MESH: 'User Terminal A ↔ User Terminal B (Mesh Link)',
-  POINT_TO_POINT: 'User Terminal A ↔ User Terminal B (Point-to-Point)',
+  MESH: 'Terminal A ↔ Terminal B (Mesh Link)',
+  POINT_TO_POINT: 'Terminal A ↔ Terminal B (Point-to-Point)',
 };
 
 /**

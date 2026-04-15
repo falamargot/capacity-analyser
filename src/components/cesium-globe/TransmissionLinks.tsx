@@ -31,6 +31,8 @@ interface TransmissionLinksProps {
     selectedPosition?: { lat: number; lng: number; altitude?: number } | null;
     pointB?: { lat: number; lng: number } | null;
     linkMode?: string;
+    /** Active direction tab in MESH/P2P — drives which leg is styled as transmit vs receive. */
+    activeMeshTab?: 'forward' | 'reverse';
     selectedAircraft?: Aircraft | null;
     selectedSatellite: SatelliteData | null;
     autoSelectedLEOSatellite?: SatelliteData | null;
@@ -72,6 +74,27 @@ const pointToPointMaterial = new PolylineGlowMaterialProperty({
     taperPower: 0.35,
 });
 
+// MESH/P2P full-path glow — colours the long Sat link so it's visible at any zoom.
+// Transmit leg: orange glow
+const meshTransmitMaterial = new PolylineGlowMaterialProperty({
+    color: Color.fromCssColorString('#f97316').withAlpha(0.98),
+    glowPower: 0.28,
+    taperPower: 0.5,
+});
+// Receive leg: cyan glow
+const meshReceiveMaterial = new PolylineGlowMaterialProperty({
+    color: Color.fromCssColorString('#06b6d4').withAlpha(0.98),
+    glowPower: 0.28,
+    taperPower: 0.5,
+});
+
+
+// STAR_RETURN: user transmits → amber dashed (vs STAR_FORWARD blue)
+const geoUplinkMaterial = new PolylineDashMaterialProperty({
+    color: Color.fromCssColorString('#f59e0b').withAlpha(0.9),
+    dashPattern: 3855,
+});
+
 const blockedDiagnosticMaterial = new RegulatoryBlockedPathMaterialProperty({
     color: Color.fromCssColorString('#fb7185').withAlpha(0.95),
     stopColor: Color.fromCssColorString('#fecdd3').withAlpha(0.98),
@@ -89,6 +112,7 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
     selectedPosition,
     pointB = null,
     linkMode,
+    activeMeshTab = 'forward',
     selectedAircraft,
     selectedSatellite,
     autoSelectedLEOSatellite,
@@ -332,6 +356,32 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
         }, false);
     }, [isDualPointActive, autoSelectedGEOSatellite, pointB]);
 
+    // B→A direction: B transmits (B→Sat) then satellite transmits to A (Sat→A).
+    // Same physical segments as A→B but with reversed position arrays so arrow
+    // heads point in the correct RF flow direction.
+    const meshBtoSatCallback = useMemo(() => {
+        if (!isDualPointActive || !autoSelectedGEOSatellite || !pointB) return null;
+        const pointBPos = getPosition(pointB.lat, pointB.lng, 0.01);
+        return new CallbackProperty((_time?: JulianDate) => {
+            const g = autoSelectedGEORef.current;
+            if (!g) return [];
+            const satPos = getPosition(g.position.lat, g.position.lng, g.position.alt);
+            return [pointBPos, satPos]; // reversed: arrow at Sat end → B transmits
+        }, false);
+    }, [isDualPointActive, autoSelectedGEOSatellite, pointB]);
+
+    const meshSatToACallback = useMemo(() => {
+        if (!isDualPointActive || !autoSelectedGEOSatellite || !hasUserSelection) return null;
+        return new CallbackProperty((time?: JulianDate) => {
+            const g = autoSelectedGEORef.current;
+            if (!g || !time) return [];
+            const satPos = getPosition(g.position.lat, g.position.lng, g.position.alt);
+            const { userPosition } = resolveCurrentUser(time);
+            return [satPos, userPosition];
+        }, false);
+    }, [isDualPointActive, autoSelectedGEOSatellite, hasUserSelection, resolveCurrentUser]);
+
+
     if (!hasUserSelection && !dedicatedSnpCallback && !dedicatedGeoFeederCallback && !inspectedSNP && !selectedGatewayLinks?.length) {
         return null;
     }
@@ -363,13 +413,13 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
                 </Entity>
             )}
 
-            {/* GEO User -> Satellite */}
-            {geoUserLinkCallback && satelliteScope !== 'LEO' && (
+            {/* GEO User → Satellite (STAR modes only; MESH uses directional callbacks below) */}
+            {geoUserLinkCallback && satelliteScope !== 'LEO' && !isMeshOrP2P && (
                 <Entity name="GEO User Link">
                     <PolylineGraphics
                         positions={geoUserLinkCallback}
                         width={2.5}
-                        material={geoUserMaterial}
+                        material={linkMode === 'STAR_RETURN' ? geoUplinkMaterial : geoUserMaterial}
                         arcType={ArcType.NONE}
                     />
                 </Entity>
@@ -399,17 +449,37 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
                 </Entity>
             )}
 
-            {/* MESH/P2P: Satellite → Point B (Point A→Satellite already shown by geoUserLinkCallback) */}
-            {meshSatToBCallback && satelliteScope !== 'LEO' && (
-                <Entity name="Satellite → User Terminal B">
-                    <PolylineGraphics
-                        positions={meshSatToBCallback}
-                        width={3.2}
-                        material={pointToPointMaterial}
-                        clampToGround={false}
-                        arcType={ArcType.NONE}
-                    />
-                </Entity>
+            {/* ── MESH/P2P directional links ──────────────────────────────────────────
+                Orange glow = transmit leg (terminal that emits in the active direction).
+                Cyan glow   = receive leg (terminal that receives in the active direction).
+                Colours swap when switching the A→B / B→A direction tab.            */}
+            {isMeshOrP2P && satelliteScope !== 'LEO' && activeMeshTab === 'forward' && (
+                <>
+                    {geoUserLinkCallback && (
+                        <Entity name="A → Satellite (transmit)">
+                            <PolylineGraphics positions={geoUserLinkCallback} width={5} material={meshTransmitMaterial} arcType={ArcType.NONE} />
+                        </Entity>
+                    )}
+                    {meshSatToBCallback && (
+                        <Entity name="Satellite → B (receive)">
+                            <PolylineGraphics positions={meshSatToBCallback} width={5} material={meshReceiveMaterial} clampToGround={false} arcType={ArcType.NONE} />
+                        </Entity>
+                    )}
+                </>
+            )}
+            {isMeshOrP2P && satelliteScope !== 'LEO' && activeMeshTab === 'reverse' && (
+                <>
+                    {meshBtoSatCallback && (
+                        <Entity name="B → Satellite (transmit)">
+                            <PolylineGraphics positions={meshBtoSatCallback} width={5} material={meshTransmitMaterial} clampToGround={false} arcType={ArcType.NONE} />
+                        </Entity>
+                    )}
+                    {meshSatToACallback && (
+                        <Entity name="Satellite → A (receive)">
+                            <PolylineGraphics positions={meshSatToACallback} width={5} material={meshReceiveMaterial} arcType={ArcType.NONE} />
+                        </Entity>
+                    )}
+                </>
             )}
 
             {/* Dedicated SNP Link for manually selected satellite */}

@@ -429,18 +429,29 @@ export interface DualSegmentPanelProps {
   result: DualSegmentResult | null;
   /** Set to true when uplink + downlink beams are from different satellites. */
   incompatible?: boolean;
+  /** Controlled active tab (lifted to parent so Radio Path/Latency/Performance
+   *  sections outside this panel stay in sync with the selected direction). */
+  activeMeshTab?: 'forward' | 'reverse';
+  onMeshTabChange?: (tab: 'forward' | 'reverse') => void;
 }
 
-const DualSegmentPanel = memo<DualSegmentPanelProps>(({ linkMode, result, incompatible }) => {
+const DualSegmentPanel = memo<DualSegmentPanelProps>(({
+  linkMode, result, incompatible,
+  activeMeshTab: controlledTab, onMeshTabChange,
+}) => {
   const description = LINK_MODE_DESCRIPTIONS[linkMode];
-  const [activeMeshTab, setActiveMeshTab] = useState<'forward' | 'reverse'>('forward');
+  const [internalTab, setInternalTab] = useState<'forward' | 'reverse'>('forward');
+  const activeMeshTab = controlledTab ?? internalTab;
+  const setActiveMeshTab = onMeshTabChange ?? setInternalTab;
   const isMesh = result?.reverse != null;
-  const forwardLabel = isMesh ? 'User Terminal A → User Terminal B' : '';
-  const reverseLabel = isMesh && result.reverse ? 'User Terminal B → User Terminal A' : '';
+  const forwardLabel = isMesh ? 'Terminal A → Terminal B' : '';
+  const reverseLabel = isMesh && result.reverse ? 'Terminal B → Terminal A' : '';
 
   useEffect(() => {
     setActiveMeshTab('forward');
-  }, [linkMode, forwardLabel, reverseLabel]);
+  // reset only when the link mode changes, not on every render
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [linkMode]);
 
   if (incompatible) {
     return (

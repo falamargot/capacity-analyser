@@ -24,6 +24,10 @@ interface CoverageSelectorProps {
   selectedDownlinkCoverage?: CandidateCoverage | null;
   onSelectUplinkCoverage?: (coverage: CandidateCoverage) => void;
   onSelectDownlinkCoverage?: (coverage: CandidateCoverage) => void;
+  /** When provided, replaces the isUplink-filtered candidates for the uplink row. */
+  uplinkCandidatesOverride?: CandidateCoverage[];
+  /** When provided, replaces the isUplink-filtered candidates for the downlink row. */
+  downlinkCandidatesOverride?: CandidateCoverage[];
 }
 
 // ─── Formatters ───────────────────────────────────────────────────────────────
@@ -366,18 +370,31 @@ const CoverageSelector = memo<CoverageSelectorProps>(({
   selectedDownlinkCoverage,
   onSelectUplinkCoverage,
   onSelectDownlinkCoverage,
+  uplinkCandidatesOverride,
+  downlinkCandidatesOverride,
 }) => {
   const showUplink   = !linkMode || linkMode === 'STAR_RETURN'  || linkMode === 'MESH' || linkMode === 'POINT_TO_POINT';
   const showDownlink = !linkMode || linkMode === 'STAR_FORWARD' || linkMode === 'MESH' || linkMode === 'POINT_TO_POINT';
 
-  const activeSatId = useMemo(() => (
-    selectedDownlinkCoverage?.satelliteId ??
-    selectedUplinkCoverage?.satelliteId ??
-    selectedCoverage?.satelliteId ??
-    bestCoverage?.satelliteId ??
-    candidateCoverages[0]?.satelliteId ??
-    null
-  ), [selectedDownlinkCoverage, selectedUplinkCoverage, selectedCoverage, bestCoverage, candidateCoverages]);
+  const activeSatId = useMemo(() => {
+    // When one side comes from an override pool (different location), prefer the
+    // satellite of the non-overridden side so the main candidateCoverages filter
+    // stays in sync.  Example: MESH forward — uplink uses candidateCoverages (A),
+    // downlink uses downlinkCandidatesOverride (B) → derive satId from A's uplink.
+    const fromNonOverride =
+      (uplinkCandidatesOverride === undefined ? selectedUplinkCoverage?.satelliteId : undefined)
+      ?? (downlinkCandidatesOverride === undefined ? selectedDownlinkCoverage?.satelliteId : undefined);
+
+    return (
+      fromNonOverride
+      ?? selectedDownlinkCoverage?.satelliteId
+      ?? selectedUplinkCoverage?.satelliteId
+      ?? selectedCoverage?.satelliteId
+      ?? bestCoverage?.satelliteId
+      ?? candidateCoverages[0]?.satelliteId
+      ?? null
+    );
+  }, [uplinkCandidatesOverride, downlinkCandidatesOverride, selectedDownlinkCoverage, selectedUplinkCoverage, selectedCoverage, bestCoverage, candidateCoverages]);
 
   const satellites = useMemo(() => {
     const seen = new Map<string, { id: string; name: string; band?: string }>();
@@ -397,12 +414,16 @@ const CoverageSelector = memo<CoverageSelectorProps>(({
   };
 
   const uplinkBeams = useMemo(
-    () => candidateCoverages.filter(c =>  c.isUplink && !c.isSynthesized && c.satelliteId === activeSatId),
-    [candidateCoverages, activeSatId],
+    () => uplinkCandidatesOverride
+      ? uplinkCandidatesOverride.filter(c => !c.isSynthesized && c.satelliteId === activeSatId)
+      : candidateCoverages.filter(c =>  c.isUplink && !c.isSynthesized && c.satelliteId === activeSatId),
+    [uplinkCandidatesOverride, candidateCoverages, activeSatId],
   );
   const downlinkBeams = useMemo(
-    () => candidateCoverages.filter(c => !c.isUplink && !c.isSynthesized && c.satelliteId === activeSatId),
-    [candidateCoverages, activeSatId],
+    () => downlinkCandidatesOverride
+      ? downlinkCandidatesOverride.filter(c => !c.isSynthesized && c.satelliteId === activeSatId)
+      : candidateCoverages.filter(c => !c.isUplink && !c.isSynthesized && c.satelliteId === activeSatId),
+    [downlinkCandidatesOverride, candidateCoverages, activeSatId],
   );
 
   const [bestUplinkKey, bestDownlinkKey] = useMemo(() => {

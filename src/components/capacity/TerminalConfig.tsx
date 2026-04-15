@@ -218,7 +218,7 @@ const TerminalConfig = memo<TerminalConfigProps>(({
   onAutoWeatherChange,
   analysisSource,
   compact = false,
-  title = 'User Terminal',
+  title = 'Terminal',
   showWeather = true,
   className = 'mb-4',
   stacked = false,
