@@ -118,6 +118,8 @@ export interface MobileLinkMetrics {
 export interface MeshLinkMetrics {
     forwardMbps: number | null;
     reverseMbps: number | null;
+    forwardLatencyMs: number | null;
+    reverseLatencyMs: number | null;
     rttMs: number | null;
 }
 

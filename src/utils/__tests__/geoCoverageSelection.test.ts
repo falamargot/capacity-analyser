@@ -162,4 +162,24 @@ describe('findCandidateCoverages', () => {
     const candidates = findCandidateCoverages({ lat: 14.11, lng: 5.21 }, [satellite]);
     expect(candidates).toHaveLength(0);
   });
+
+  it('keeps JSON uplink coverages that geographically match even with a weak link budget', () => {
+    const satellite = createSatellite([
+      createCoverage('E10B weak uplink', -20, true, [
+        [-10, -5],
+        [20, -5],
+        [20, 25],
+        [-10, 25],
+        [-10, -5],
+      ]),
+    ]);
+
+    const candidates = findCandidateCoverages({ lat: 14.11, lng: 5.21 }, [satellite]);
+
+    expect(candidates).toHaveLength(1);
+    expect(candidates[0].coverageName).toBe('E10B weak uplink');
+    expect(candidates[0].isUplink).toBe(true);
+    expect(candidates[0].gtDbk).toBe(-20);
+    expect(candidates[0].linkMarginDb).toBeLessThan(0);
+  });
 });

@@ -110,7 +110,6 @@ export function findBestUplinkMatch(
   return (
     uplinkPool.find(c => c.isUplink && c.satelliteId === reference.satelliteId && c.band === reference.band) ??
     uplinkPool.find(c => c.isUplink && c.satelliteId === reference.satelliteId) ??
-    uplinkPool.find(c => c.isUplink) ??
     null
   );
 }
@@ -126,7 +125,6 @@ export function findBestDownlinkMatch(
   return (
     downlinkPool.find(c => !c.isUplink && c.satelliteId === reference.satelliteId && c.band === reference.band) ??
     downlinkPool.find(c => !c.isUplink && c.satelliteId === reference.satelliteId) ??
-    downlinkPool.find(c => !c.isUplink) ??
     null
   );
 }

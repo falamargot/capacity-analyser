@@ -577,6 +577,30 @@ export function selectOperationalGeoGateway(
   );
 }
 
+export function selectTrafficGeoGateway(
+  satellite: SatelliteData,
+  gateways: GeoGatewayData[],
+  options: GroundSegmentSelectionOptions = {}
+): GeoGatewaySelection | null {
+  const assignment = GATEWAY_ASSIGNMENT_BY_SATELLITE.get(satellite.name.toUpperCase());
+  if (!assignment) {
+    return selectBestGeoGateway(satellite, gateways, options.minVisibilityDeg);
+  }
+
+  const criticalFailureRegions = new Set(options.criticalFailureRegions ?? []);
+  if (isAmericasAutonomySatellite(assignment) && criticalFailureRegions.has('AMERICAS')) {
+    return selectBestGeoGateway(satellite, gateways, options.minVisibilityDeg);
+  }
+
+  return selectConfiguredGateway(
+    satellite,
+    gateways,
+    assignment.nominalSccCode,
+    assignment.backupSccCode,
+    options
+  ) ?? selectBestGeoGateway(satellite, gateways, options.minVisibilityDeg);
+}
+
 export function selectBestGeoGateway(
   satellite: SatelliteData,
   gateways: GeoGatewayData[],
@@ -625,7 +649,7 @@ export function analyzeGeoConnectivity({
   const userSatDistanceKm = distanceKm(userLla, satPoint);
   const userElevationDeg = elevationDeg(userLla, satPoint);
   const userSatLatencyMs = latencyMsFromDistanceKm(userSatDistanceKm);
-  const selectedGateway = selectOperationalGeoGateway(satellite, gateways);
+  const selectedGateway = selectTrafficGeoGateway(satellite, gateways);
 
   const delays = {
     ...DEFAULT_GEO_OVERHEAD_MS,

@@ -54,7 +54,9 @@ import type { GeoPointStatus } from './utils/selectedPointStatus';
 import type { CountryOverlayMode } from './types/countryOverlays';
 import type { LinkMode } from './types/linkMode';
 import { LINK_MODE_REQUIRES_POINT_B } from './types/linkMode';
-import { synthesizeUplinkCandidate, synthesizeDownlinkCandidate } from './utils/geoDualSegmentBudget';
+import {
+  selectBestTopologyPath,
+} from './utils/geoTopologySelection';
 
 const CapacityDetails = lazy(() => import('./components/CapacityDetails'));
 const CommandPalette = lazy(() => import('./components/CommandPalette'));
@@ -697,35 +699,7 @@ const App: React.FC = () => {
       geoSatellites,
       selectedSelection.position
     );
-
-    // For satellites that only have contour data for one direction (most GEO
-    // satellites only publish EIRP / downlink footprints), synthesize the missing
-    // direction using nominal per-band satellite parameters so the dual
-    // uplink/downlink beam picker always has both rows populated.
-    const synthPool: CandidateCoverage[] = [];
-    const satIds = [...new Set(ranked.map(c => c.satelliteId))];
-    for (const satId of satIds) {
-      const satCands = ranked.filter(c => c.satelliteId === satId);
-      const sat = geoSatellites.find((candidate) => candidate.id === satId);
-      if (!sat) continue;
-      const hasUplink = satCands.some(c => c.isUplink);
-      const hasDownlink = satCands.some(c => !c.isUplink);
-      // Synthesize a nominal candidate whenever no real candidates exist at this
-      // point for a given direction — regardless of whether the satellite has
-      // contour data for that direction elsewhere. Uplink Ka-band budgets are
-      // particularly prone to negative margins with the default 250 MHz BW
-      // assumption, which would otherwise silently hide all uplink options.
-      if (!hasUplink) {
-        const bestDl = satCands.find(c => !c.isUplink);
-        if (bestDl) synthPool.push(synthesizeUplinkCandidate(bestDl));
-      }
-      if (!hasDownlink) {
-        const bestUl = satCands.find(c => c.isUplink);
-        if (bestUl) synthPool.push(synthesizeDownlinkCandidate(bestUl));
-      }
-    }
-
-    return [...ranked, ...synthPool];
+    return ranked;
   }, [satelliteScope, satellites, selectedSelection]);
 
   // Coverage candidates for Point B (MESH / Point-to-Point modes only).
@@ -737,11 +711,12 @@ const App: React.FC = () => {
       (satellite) => satellite.orbitType === 'GEO' && satellite.opsStatus === 'operational'
     );
 
-    return rankCandidateCoverages(
+    const ranked = rankCandidateCoverages(
       findCandidateCoverages(pointB, geoSatellites),
       geoSatellites,
       pointB
     );
+    return ranked;
   }, [linkMode, pointB, satelliteScope, satellites]);
 
   const targetSelectionResetKey = useMemo(() => (
@@ -762,42 +737,69 @@ const App: React.FC = () => {
   }, [targetSelectionResetKey]);
 
   // Invalidate stale keys when the candidate list changes.
-  // Also clear keys that point to synthesised candidates — those should never be
-  // stored as explicit selections (they are internal budget-computation helpers).
   useEffect(() => {
     if (selectedSelection.type !== 'target') return;
     if (selectedUplinkKey) {
       const c = candidateCoverages.find(cc => getCandidateCoverageKey(cc) === selectedUplinkKey);
-      if (!c || c.isSynthesized) setSelectedUplinkKey(null);
+      if (!c) setSelectedUplinkKey(null);
     }
     if (selectedDownlinkKey) {
       const c = candidateCoverages.find(cc => getCandidateCoverageKey(cc) === selectedDownlinkKey);
-      if (!c || c.isSynthesized) setSelectedDownlinkKey(null);
+      if (!c) setSelectedDownlinkKey(null);
     }
   }, [candidateCoverages, selectedSelection.type, selectedUplinkKey, selectedDownlinkKey]);
 
+  const topologyDefaultSelection = useMemo(() => {
+    if (selectedSelection.type !== 'target') return null;
+    if (candidateCoverages.length === 0) return null;
+
+    const geoSatellites = satellites.filter(
+      (satellite) => satellite.orbitType === 'GEO' && satellite.opsStatus === 'operational'
+    );
+
+    return selectBestTopologyPath({
+      linkMode,
+      satellites: geoSatellites,
+      candidateCoveragesA: candidateCoverages,
+      candidateCoveragesB,
+      pointB,
+      terminalTypeA: geoTerminalType,
+      terminalTypeB: geoTerminalTypeB,
+      pointALabel: 'Terminal A',
+      pointBLabel: 'Terminal B',
+    });
+  }, [
+    candidateCoverages,
+    candidateCoveragesB,
+    geoTerminalType,
+    geoTerminalTypeB,
+    linkMode,
+    pointB,
+    satellites,
+    selectedSelection.type,
+  ]);
+
   // Default uplink / downlink when nothing is explicitly selected.
-  // Rules:
-  //   1. Only real (non-synthesised) candidates — synthesised ones have no contour data.
-  //   2. Same-satellite constraint: the default uplink must share the satellite of the
-  //      default downlink. Without this, a point covered by E65WA (EIRP-only) and
-  //      E115WB (has G/T data) would show E65WA in the sidebar but E115WB on the globe.
   const defaultDownlinkCoverage = useMemo(
     () => selectedSelection.type === 'target'
-      ? (candidateCoverages.find(c => !c.isUplink && !c.isSynthesized) ?? null)
+      ? (
+        topologyDefaultSelection?.downlinkA
+        ?? candidateCoverages.find(c => !c.isUplink)
+        ?? null
+      )
       : null,
-    [candidateCoverages, selectedSelection.type]
+    [candidateCoverages, selectedSelection.type, topologyDefaultSelection]
   );
   const defaultUplinkCoverage = useMemo(() => {
     if (selectedSelection.type !== 'target') return null;
-    // Prefer the uplink of the same satellite as the default downlink.
+    if (topologyDefaultSelection?.uplinkA) return topologyDefaultSelection.uplinkA;
     if (defaultDownlinkCoverage) {
       return candidateCoverages.find(
-        c => c.isUplink && !c.isSynthesized && c.satelliteId === defaultDownlinkCoverage.satelliteId
+        c => c.isUplink && c.satelliteId === defaultDownlinkCoverage.satelliteId
       ) ?? null;
     }
-    return candidateCoverages.find(c => c.isUplink && !c.isSynthesized) ?? null;
-  }, [candidateCoverages, selectedSelection.type, defaultDownlinkCoverage]);
+    return candidateCoverages.find(c => c.isUplink) ?? null;
+  }, [candidateCoverages, selectedSelection.type, defaultDownlinkCoverage, topologyDefaultSelection]);
 
   const selectedUplinkCoverage = useMemo(() => {
     if (selectedSelection.type !== 'target') return null;
@@ -817,21 +819,36 @@ const App: React.FC = () => {
   // would show a footprint from a different satellite than what the sidebar displays).
   const globeUplinkCoverage = useMemo(() => {
     if (linkMode === 'STAR_FORWARD') return null;
-    if (!selectedUplinkCoverage || selectedUplinkCoverage.isSynthesized) return null;
+    if (!selectedUplinkCoverage) return null;
+    if (linkMode === 'STAR_RETURN') return selectedUplinkCoverage;
     // Satellite must match the downlink selection shown in the sidebar
     if (selectedDownlinkCoverage && selectedUplinkCoverage.satelliteId !== selectedDownlinkCoverage.satelliteId) return null;
     return selectedUplinkCoverage;
   }, [linkMode, selectedUplinkCoverage, selectedDownlinkCoverage]);
   const globeDownlinkCoverage = useMemo(() => {
     if (linkMode === 'STAR_RETURN') return null;
-    if (!selectedDownlinkCoverage || selectedDownlinkCoverage.isSynthesized) return null;
+    if (!selectedDownlinkCoverage) return null;
+    if (linkMode === 'STAR_FORWARD') return selectedDownlinkCoverage;
     // Satellite must match the uplink selection shown in the sidebar
     if (selectedUplinkCoverage && selectedDownlinkCoverage.satelliteId !== selectedUplinkCoverage.satelliteId) return null;
     return selectedDownlinkCoverage;
   }, [linkMode, selectedDownlinkCoverage, selectedUplinkCoverage]);
 
-  // Single coverage reference kept for CoverageSwitcher / CoverageLayer (downlink preferred)
-  const selectedCoverage = selectedDownlinkCoverage ?? selectedUplinkCoverage ?? null;
+  // Single coverage reference kept for legacy consumers and for the map switcher.
+  // It must represent the user-terminal side of the active topology:
+  //   STAR Forward: gateway uplink -> user downlink, so user side is downlink.
+  //   STAR Return: user uplink -> gateway downlink, so user side is uplink.
+  const selectedCoverage = useMemo(() => {
+    if (linkMode === 'STAR_RETURN') {
+      return selectedUplinkCoverage ?? null;
+    }
+
+    if (linkMode === 'STAR_FORWARD') {
+      return selectedDownlinkCoverage ?? null;
+    }
+
+    return selectedDownlinkCoverage ?? selectedUplinkCoverage ?? null;
+  }, [linkMode, selectedDownlinkCoverage, selectedUplinkCoverage]);
   const selectedCoverageId = useMemo(
     () => (selectedCoverage ? getCandidateCoverageKey(selectedCoverage) : ''),
     [selectedCoverage]
@@ -840,6 +857,8 @@ const App: React.FC = () => {
     () => candidateCoverages.map((coverage) => ({
       id: getCandidateCoverageKey(coverage),
       name: coverage.coverageName,
+      satelliteName: coverage.satelliteName,
+      isUplink: coverage.isUplink,
       throughput: coverage.throughputEstimate,
       elevation: coverage.elevation,
       score: coverage.score,
@@ -1527,22 +1546,47 @@ const App: React.FC = () => {
     const coverage = candidateCoverages.find(c => getCandidateCoverageKey(c) === coverageId);
     if (!coverage) return;
 
+    const findCompanion = (wantUplink: boolean) => (
+      candidateCoverages.find(c => (
+        c.isUplink === wantUplink &&
+        c.satelliteId === coverage.satelliteId &&
+        c.band === coverage.band
+      ))
+      ?? candidateCoverages.find(c => (
+        c.isUplink === wantUplink &&
+        c.satelliteId === coverage.satelliteId
+      ))
+      ?? null
+    );
+
+    if (linkMode === 'STAR_RETURN' && !coverage.isUplink) {
+      const companionUplink = findCompanion(true);
+      setSelectedDownlinkKey(coverageId);
+      setSelectedUplinkKey(companionUplink ? getCandidateCoverageKey(companionUplink) : null);
+      return;
+    }
+
+    if (linkMode === 'STAR_FORWARD' && coverage.isUplink) {
+      const companionDownlink = findCompanion(false);
+      setSelectedUplinkKey(coverageId);
+      setSelectedDownlinkKey(companionDownlink ? getCandidateCoverageKey(companionDownlink) : null);
+      return;
+    }
+
     if (coverage.isUplink) {
       setSelectedUplinkKey(coverageId);
       if (selectedDownlinkCoverage?.satelliteId !== coverage.satelliteId) {
-        // Companion downlink: real candidates only, same satellite
-        const bestDl = candidateCoverages.find(c => !c.isUplink && !c.isSynthesized && c.satelliteId === coverage.satelliteId);
+        const bestDl = findCompanion(false);
         setSelectedDownlinkKey(bestDl ? getCandidateCoverageKey(bestDl) : null);
       }
     } else {
       setSelectedDownlinkKey(coverageId);
       if (selectedUplinkCoverage?.satelliteId !== coverage.satelliteId) {
-        // Companion uplink: real candidates only, same satellite
-        const bestUl = candidateCoverages.find(c => c.isUplink && !c.isSynthesized && c.satelliteId === coverage.satelliteId);
+        const bestUl = findCompanion(true);
         setSelectedUplinkKey(bestUl ? getCandidateCoverageKey(bestUl) : null);
       }
     }
-  }, [candidateCoverages, selectedSelection.type, selectedUplinkCoverage, selectedDownlinkCoverage]);
+  }, [candidateCoverages, linkMode, selectedSelection.type, selectedUplinkCoverage, selectedDownlinkCoverage]);
 
   const handleSelectUplinkCoverage = useCallback((coverage: CandidateCoverage) => {
     handleSelectTargetCoverageById(getCandidateCoverageKey(coverage));
@@ -2965,6 +3009,10 @@ const App: React.FC = () => {
                         candidateCoverages={candidateCoverages}
                         selectedCoverage={selectedCoverage}
                         onSelectCoverage={handleSelectTargetCoverage}
+                        selectedUplinkCoverage={selectedUplinkCoverage}
+                        selectedDownlinkCoverage={selectedDownlinkCoverage}
+                        onSelectUplinkCoverage={handleSelectUplinkCoverage}
+                        onSelectDownlinkCoverage={handleSelectDownlinkCoverage}
                         selectedGeoMission={selectedGeoMission}
                         selectedGeoCoverageName={selectedGeoCoverageName}
                         selectedGeoBeamId={selectedGeoBeamId}

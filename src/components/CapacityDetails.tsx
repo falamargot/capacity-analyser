@@ -33,10 +33,12 @@ import {
   buildStarForwardResult,
   buildStarReturnResult,
   buildMeshResult,
-  synthesizeUplinkCandidate,
   synthesizeDownlinkCandidate,
   type DualSegmentResult,
 } from '../utils/geoDualSegmentBudget';
+import {
+  augmentCandidatesWithSynthesizedDirections,
+} from '../utils/geoTopologySelection';
 
 // ─── Extracted sub-components ─────────────────────────────────────────────────
 import {
@@ -137,24 +139,6 @@ const getGeoCompanionCoverage = (
 
   return sameBand[0] ?? sameSatellite[0] ?? candidateCoverages.find((candidate) => candidate.isUplink === wantUplink) ?? null;
 };
-
-const satelliteHasModeledDirection = (
-  satellite: SatelliteData | null | undefined,
-  wantUplink: boolean,
-): boolean => (
-  !!satellite && (satellite.coverages ?? []).some((coverage) => {
-    const properties = coverage.feature?.properties as Record<string, unknown> | undefined;
-    const isUplink = properties?.isUplink === true;
-    const rawLevel = properties?.level ?? properties?.contour;
-    const numericLevel = typeof rawLevel === 'number'
-      ? rawLevel
-      : typeof rawLevel === 'string'
-        ? Number.parseFloat(rawLevel)
-        : Number.NaN;
-
-    return isUplink === wantUplink && Number.isFinite(numericLevel);
-  })
-);
 
 const formatGeoStabilityTooltip = (elevationDeg: number, isUserLinkUnstable: boolean): string => {
   const currentRule = isUserLinkUnstable
@@ -613,8 +597,11 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
     const geoSats = satellites.filter(
       (s) => s.orbitType === 'GEO' && s.opsStatus === 'operational'
     );
-    return findCandidateCoverages(
-      { lat: resolvedGatewayData.lat, lng: resolvedGatewayData.lng },
+    return augmentCandidatesWithSynthesizedDirections(
+      findCandidateCoverages(
+        { lat: resolvedGatewayData.lat, lng: resolvedGatewayData.lng },
+        geoSats
+      ),
       geoSats
     );
   }, [resolvedGatewayData, refCoverage, satellites]);
@@ -638,18 +625,6 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
     [refCoverage, candidateCoveragesB]
   );
 
-  const refSatellite = useMemo(
-    () => refCoverage ? satellites.find((satellite) => satellite.id === refCoverage.satelliteId) ?? null : null,
-    [refCoverage, satellites]
-  );
-  const userUplinkModeledOnSatellite = useMemo(
-    () => satelliteHasModeledDirection(refSatellite, true),
-    [refSatellite]
-  );
-  const userDownlinkModeledOnSatellite = useMemo(
-    () => satelliteHasModeledDirection(refSatellite, false),
-    [refSatellite]
-  );
   const pointALabel = useMemo(() => {
     if (!activePoint) return 'Terminal A';
     const nearest = [nearestLocation?.city, nearestLocation?.country].filter(Boolean).join(', ');
@@ -666,24 +641,22 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
   }, [pointB, pointBNearestLocation]);
 
   // Build the dual-segment result depending on mode.
-  // When explicit uplink (G/T) or downlink (EIRP) contour data is absent for a
-  // location, synthesize a candidate from the companion direction using nominal
-  // per-band satellite parameters — avoids spurious "No valid connectivity".
+  // User terminals must be covered by real attached beams. Only the gateway side
+  // may fall back to nominal synthesized contours when feeder data is missing.
   const dualSegmentResult = useMemo((): DualSegmentResult | null => {
     if (satelliteScope !== 'ALL' && satelliteScope !== 'GEO') return null;
 
     if (linkMode === 'STAR_FORWARD') {
       if (!resolvedGatewayData) return null;
       const dl = downlinkAtUser;
-      const ul = uplinkAtGateway ?? (downlinkAtUser ? synthesizeUplinkCandidate(downlinkAtUser) : null);
+      const ul = uplinkAtGateway;
       if (!dl || !ul) return null;
       return buildStarForwardResult(dl, ul, resolvedGatewayData, pointALabel);
     }
 
     if (linkMode === 'STAR_RETURN') {
       if (!resolvedGatewayData) return null;
-      // User side: synthesize only when the satellite has no modeled uplink dataset at all.
-      const ul = uplinkAtUser ?? (!userUplinkModeledOnSatellite && downlinkAtUser ? synthesizeUplinkCandidate(downlinkAtUser) : null);
+      const ul = uplinkAtUser;
       // Downlink at gateway: prefer explicit EIRP data, fall back to synthesis from G/T
       const dl = downlinkAtGateway ?? (uplinkAtGateway ? synthesizeDownlinkCandidate(uplinkAtGateway) : null);
       if (!ul || !dl) return null;
@@ -691,10 +664,10 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
     }
 
     if (linkMode === 'MESH' || linkMode === 'POINT_TO_POINT') {
-      const ulA = uplinkAtUser ?? (!userUplinkModeledOnSatellite && downlinkAtUser ? synthesizeUplinkCandidate(downlinkAtUser) : null);
-      const dlA = downlinkAtUser ?? (!userDownlinkModeledOnSatellite && uplinkAtUser ? synthesizeDownlinkCandidate(uplinkAtUser) : null);
-      const ulB = uplinkAtB ?? (!userUplinkModeledOnSatellite && downlinkAtB ? synthesizeUplinkCandidate(downlinkAtB) : null);
-      const dlB = downlinkAtB ?? (!userDownlinkModeledOnSatellite && uplinkAtB ? synthesizeDownlinkCandidate(uplinkAtB) : null);
+      const ulA = uplinkAtUser;
+      const dlA = downlinkAtUser;
+      const ulB = uplinkAtB;
+      const dlB = downlinkAtB;
       if (!ulA || !dlA || !ulB || !dlB) return null;
       return buildMeshResult(ulA, dlB, ulB, dlA, {
         pointA: pointALabel,
@@ -708,7 +681,6 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
     downlinkAtUser, uplinkAtUser,
     uplinkAtGateway, downlinkAtGateway,
     uplinkAtB, downlinkAtB,
-    userUplinkModeledOnSatellite, userDownlinkModeledOnSatellite,
     pointALabel, pointBLabel,
     resolvedGatewayData,
     geoTerminalType, geoTerminalTypeB,
@@ -755,10 +727,14 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
     const satToBKm = fwDl.slantRangeKm ?? 37500;
     const bToSatKm = rvUl?.slantRangeKm ?? satToBKm;
     const satToAKm = rvDl?.slantRangeKm ?? aToSatKm;
+    const forwardLatencyMs = (aToSatKm + satToBKm) / C_KM_PER_MS;
+    const reverseLatencyMs = (bToSatKm + satToAKm) / C_KM_PER_MS;
     const rttMs = (aToSatKm + satToBKm + bToSatKm + satToAKm) / C_KM_PER_MS + 40;
     return {
       forwardMbps: dualSegmentResult.forward.endToEnd.endToEndThroughputMbps,
       reverseMbps: dualSegmentResult.reverse?.endToEnd.endToEndThroughputMbps ?? null,
+      forwardLatencyMs,
+      reverseLatencyMs,
       rttMs,
     };
   }, [linkMode, dualSegmentResult]);

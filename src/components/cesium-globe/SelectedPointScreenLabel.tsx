@@ -99,22 +99,28 @@ const SelectedPointScreenLabel: React.FC<SelectedPointScreenLabelProps> = ({
     const isMesh = linkMode === 'MESH' || linkMode === 'POINT_TO_POINT';
     const meshData = performanceMetrics?.mesh;
 
-    // In MESH/P2P mode, always show both TX and RX throughput regardless of active tab
+    // In MESH/P2P mode, always show both directions regardless of active tab.
     if (isMesh && meshRole && meshData) {
-      const fmt = (mbps: number | null | undefined) =>
+      const fmtMbps = (mbps: number | null | undefined) =>
         mbps != null && Number.isFinite(mbps) && mbps > 0 ? `${Math.round(mbps)} Mbps` : '--';
-      // Terminal A: TX = forward (A→B), RX = reverse (B→A)
-      // Terminal B: TX = reverse (B→A), RX = forward (A→B)
-      const txMbps = meshRole === 'A' ? meshData.forwardMbps : meshData.reverseMbps;
-      const rxMbps = meshRole === 'A' ? meshData.reverseMbps : meshData.forwardMbps;
+      const fmtLatency = (latencyMs: number | null | undefined) =>
+        latencyMs != null && Number.isFinite(latencyMs) && latencyMs > 0 ? `${Math.round(latencyMs)} ms` : '--';
       const rttStr = meshData.rttMs != null && Number.isFinite(meshData.rttMs)
         ? `${Math.round(meshData.rttMs)} ms RTT`
         : null;
+      const forwardLabel = 'A→B';
+      const reverseLabel = 'B→A';
       return {
         coordinates: `Terminal ${meshRole} · ${formatCoordinates({ lat: selectedPosition.lat, lng: selectedPosition.lng })}`,
         statusLines: [
-          { text: `TX \u2191 ${fmt(txMbps)}`, tone: 'warning' as SelectedPointStatusTone },
-          { text: `RX \u2193 ${fmt(rxMbps)}`, tone: 'success' as SelectedPointStatusTone },
+          {
+            text: `${forwardLabel}: ${fmtMbps(meshData.forwardMbps)} · ${fmtLatency(meshData.forwardLatencyMs)}`,
+            tone: meshRole === 'A' ? 'warning' as SelectedPointStatusTone : 'success' as SelectedPointStatusTone,
+          },
+          {
+            text: `${reverseLabel}: ${fmtMbps(meshData.reverseMbps)} · ${fmtLatency(meshData.reverseLatencyMs)}`,
+            tone: meshRole === 'A' ? 'success' as SelectedPointStatusTone : 'warning' as SelectedPointStatusTone,
+          },
           ...(rttStr ? [{ text: rttStr, tone: 'neutral' as SelectedPointStatusTone }] : []),
         ],
       };

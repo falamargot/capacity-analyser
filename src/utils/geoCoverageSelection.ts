@@ -438,7 +438,11 @@ export const findCandidateCoverages = (
             bandParams.defaultBwMhz,
             bandParams.atmosLossDb,
           );
-      if (linkResult.linkMarginDb < 0) continue;
+      // Uplink receive contours are source data: keep them in the picker when
+      // the selected point is geographically inside the JSON footprint. A weak
+      // link budget should be visible as a weak uplink, not disappear and tempt
+      // the UI into showing only downlink candidates.
+      if (!isUplink && linkResult.linkMarginDb < 0) continue;
 
       const shapeMetrics = getCoverageShapeMetrics(coverage, ring);
       const coverageKey = getCoverageGroupId(coverage);

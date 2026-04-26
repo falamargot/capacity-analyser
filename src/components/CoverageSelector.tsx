@@ -67,11 +67,17 @@ interface ComboboxProps {
   open: boolean;
   onToggle: () => void;
   accentColor: string;
+  tone?: 'uplink' | 'downlink' | 'neutral';
   disabled?: boolean;
 }
 
-const Combobox = ({ trigger, children, open, onToggle, accentColor, disabled }: ComboboxProps) => {
+const Combobox = ({ trigger, children, open, onToggle, accentColor, tone = 'neutral', disabled }: ComboboxProps) => {
   const ref = useRef<HTMLDivElement>(null);
+  const closedToneClass = tone === 'uplink'
+    ? 'border-emerald-200 dark:border-emerald-800/80 bg-emerald-50/70 dark:bg-emerald-950/20 hover:border-emerald-300 dark:hover:border-emerald-700'
+    : tone === 'downlink'
+      ? 'border-blue-200 dark:border-blue-800/80 bg-blue-50/70 dark:bg-blue-950/20 hover:border-blue-300 dark:hover:border-blue-700'
+      : 'border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900/40 hover:border-blue-200 dark:hover:border-blue-700';
 
   // Close on outside click
   useEffect(() => {
@@ -93,7 +99,7 @@ const Combobox = ({ trigger, children, open, onToggle, accentColor, disabled }: 
           'w-full flex items-center gap-2 rounded-lg border px-3 py-2 text-left transition-colors',
           open
             ? 'border-blue-300 dark:border-blue-500/60 bg-blue-50/60 dark:bg-blue-950/20'
-            : 'border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900/40 hover:border-blue-200 dark:hover:border-blue-700',
+            : closedToneClass,
           disabled ? 'opacity-50 cursor-default' : 'cursor-pointer',
         ].join(' ')}
         style={open ? { borderColor: `${accentColor}60` } : undefined}
@@ -211,6 +217,24 @@ const BeamCombobox = ({
 }: BeamComboboxProps) => {
   const [open, setOpen] = useState(false);
   const selectedKey = selected ? getCandidateCoverageKey(selected) : null;
+  const availableCoverages = coverages.length > 0
+    ? coverages
+    : selected
+      ? [selected]
+      : [];
+  const emptyStatePalette = direction === 'uplink'
+    ? {
+        border: 'border-emerald-200 dark:border-emerald-300',
+        background: 'bg-emerald-50/85 dark:bg-emerald-50/85',
+        textColor: '#047857',
+        subtextColor: '#065f46',
+      }
+    : {
+        border: 'border-blue-200 dark:border-blue-300',
+        background: 'bg-blue-50/85 dark:bg-blue-50/85',
+        textColor: '#1d4ed8',
+        subtextColor: '#1e40af',
+      };
 
   // Trigger row — shows the currently-selected beam compactly
   const trigger = selected ? (
@@ -224,6 +248,11 @@ const BeamCombobox = ({
           <span className="text-xs font-semibold text-gray-800 dark:text-gray-100 truncate">
             {selected.coverageName}
           </span>
+          {selected.isSynthesized && (
+            <span className="text-[9px] font-bold uppercase tracking-wider px-1 py-0.5 rounded shrink-0 text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-900/30">
+              Estimated
+            </span>
+          )}
           {selectedKey === bestKey && (
             <span className="text-[9px] font-bold uppercase tracking-wider px-1 py-0.5 rounded shrink-0"
               style={{ color: accentColor, backgroundColor: `${accentColor}18` }}>
@@ -252,17 +281,37 @@ const BeamCombobox = ({
   ) : (
     <div className="flex items-center gap-2">
       <span className="text-sm leading-none">{icon}</span>
-      <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: accentColor }}>{label}</span>
-      <span className="text-xs text-gray-400 italic">No beam coverage</span>
+      <span
+        className="text-[10px] font-bold uppercase tracking-wider"
+        style={{ color: emptyStatePalette.textColor }}
+      >
+        {label}
+      </span>
+      <span
+        className="text-xs italic font-medium"
+        style={{ color: emptyStatePalette.subtextColor }}
+      >
+        No beam coverage
+      </span>
     </div>
   );
 
-  if (coverages.length === 0) {
+  if (availableCoverages.length === 0) {
     return (
-      <div className="flex items-center gap-2 rounded-lg border border-gray-100 dark:border-slate-700 bg-white dark:bg-slate-900/40 px-3 py-2">
+      <div className={`flex items-center gap-2 rounded-lg border px-3 py-2 ${emptyStatePalette.border} ${emptyStatePalette.background}`}>
         <span className="text-sm leading-none">{icon}</span>
-        <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: accentColor }}>{label}</span>
-        <span className="text-xs text-gray-400 dark:text-gray-500 italic">No {direction} beam at this location</span>
+        <span
+          className="text-[10px] font-bold uppercase tracking-wider"
+          style={{ color: emptyStatePalette.textColor }}
+        >
+          {label}
+        </span>
+        <span
+          className="text-xs italic font-medium"
+          style={{ color: emptyStatePalette.subtextColor }}
+        >
+          No {direction} beam at this location
+        </span>
       </div>
     );
   }
@@ -273,10 +322,11 @@ const BeamCombobox = ({
       open={open}
       onToggle={() => setOpen(v => !v)}
       accentColor={accentColor}
-      disabled={coverages.length <= 1}
+      tone={direction}
+      disabled={availableCoverages.length <= 1}
     >
       <div className="max-h-64 overflow-y-auto divide-y divide-gray-100 dark:divide-slate-700/60">
-        {coverages.map(c => {
+        {availableCoverages.map(c => {
           const key = getCandidateCoverageKey(c);
           const isActive = key === selectedKey;
           const isBest   = key === bestKey;
@@ -298,6 +348,11 @@ const BeamCombobox = ({
                   <span className="text-xs font-semibold text-gray-800 dark:text-gray-100 truncate">
                     {c.coverageName}
                   </span>
+                  {c.isSynthesized && (
+                    <span className="text-[9px] font-bold uppercase tracking-wider px-1 py-0.5 rounded text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-900/30">
+                      Estimated
+                    </span>
+                  )}
                   {isBest && (
                     <span className="text-[9px] font-bold uppercase tracking-wider px-1 py-0.5 rounded"
                       style={{ color: accentColor, backgroundColor: `${accentColor}18` }}>
@@ -375,6 +430,12 @@ const CoverageSelector = memo<CoverageSelectorProps>(({
 }) => {
   const showUplink   = !linkMode || linkMode === 'STAR_RETURN'  || linkMode === 'MESH' || linkMode === 'POINT_TO_POINT';
   const showDownlink = !linkMode || linkMode === 'STAR_FORWARD' || linkMode === 'MESH' || linkMode === 'POINT_TO_POINT';
+  const filterBySatellite = (pool: CandidateCoverage[], satId: string | null, isUplink: boolean): CandidateCoverage[] => {
+    if (!satId) return [];
+    const sameSatellite = pool.filter((candidate) => candidate.isUplink === isUplink && candidate.satelliteId === satId);
+    const real = sameSatellite.filter((candidate) => !candidate.isSynthesized);
+    return real.length > 0 ? real : sameSatellite;
+  };
 
   const activeSatId = useMemo(() => {
     // When one side comes from an override pool (different location), prefer the
@@ -415,14 +476,14 @@ const CoverageSelector = memo<CoverageSelectorProps>(({
 
   const uplinkBeams = useMemo(
     () => uplinkCandidatesOverride
-      ? uplinkCandidatesOverride.filter(c => !c.isSynthesized && c.satelliteId === activeSatId)
-      : candidateCoverages.filter(c =>  c.isUplink && !c.isSynthesized && c.satelliteId === activeSatId),
+      ? filterBySatellite(uplinkCandidatesOverride, activeSatId, true)
+      : filterBySatellite(candidateCoverages, activeSatId, true),
     [uplinkCandidatesOverride, candidateCoverages, activeSatId],
   );
   const downlinkBeams = useMemo(
     () => downlinkCandidatesOverride
-      ? downlinkCandidatesOverride.filter(c => !c.isSynthesized && c.satelliteId === activeSatId)
-      : candidateCoverages.filter(c => !c.isUplink && !c.isSynthesized && c.satelliteId === activeSatId),
+      ? filterBySatellite(downlinkCandidatesOverride, activeSatId, false)
+      : filterBySatellite(candidateCoverages, activeSatId, false),
     [downlinkCandidatesOverride, candidateCoverages, activeSatId],
   );
 
