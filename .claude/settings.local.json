@@ -15,7 +15,9 @@
       "Bash(lng=-0.12 2>&1)",
       "Bash(lsof -ti:3001 -ti:3000)",
       "Bash(lsof -ti:3001 -ti:3000 -ti:3002)",
-      "Bash(wc -l /Users/falamargot/Developpement/capacity-analyser/src/**/*.ts /Users/falamargot/Developpement/capacity-analyser/src/**/*.tsx)"
+      "Bash(wc -l /Users/falamargot/Developpement/capacity-analyser/src/**/*.ts /Users/falamargot/Developpement/capacity-analyser/src/**/*.tsx)",
+      "WebSearch",
+      "Bash(node -e ' *)"
     ]
   }
 }

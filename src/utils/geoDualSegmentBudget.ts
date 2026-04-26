@@ -241,10 +241,12 @@ const buildUplinkSegment = (
   source: SegmentEndpoint,
   destination: SegmentEndpoint,
   eirpOverrideDbw?: number,
+  weatherAdjDb?: number,
 ): LinkSegment => {
   const adjDb = eirpOverrideDbw != null ? eirpAdjustmentDb(eirpOverrideDbw) : 0;
-  const effectiveCNDb = (candidate.cnDb ?? 0) + adjDb;
-  const effectiveLinkMarginDb = (candidate.linkMarginDb ?? 0) + adjDb;
+  const fadeDb = weatherAdjDb ?? 0;
+  const effectiveCNDb = (candidate.cnDb ?? 0) + adjDb - fadeDb;
+  const effectiveLinkMarginDb = (candidate.linkMarginDb ?? 0) + adjDb - fadeDb;
 
   return {
     source: { ...source, eirpDbw: eirpOverrideDbw ?? candidate.eirpDbw ?? DEFAULT_TERMINAL.eirpTerminalDbw },
@@ -261,10 +263,12 @@ const buildDownlinkSegment = (
   source: SegmentEndpoint,
   destination: SegmentEndpoint,
   gtOverrideDbk?: number,
+  weatherAdjDb?: number,
 ): LinkSegment => {
   const adjDb = gtOverrideDbk != null ? gtAdjustmentDb(gtOverrideDbk) : 0;
-  const effectiveCNDb = (candidate.cnDb ?? 0) + adjDb;
-  const effectiveLinkMarginDb = (candidate.linkMarginDb ?? 0) + adjDb;
+  const fadeDb = weatherAdjDb ?? 0;
+  const effectiveCNDb = (candidate.cnDb ?? 0) + adjDb - fadeDb;
+  const effectiveLinkMarginDb = (candidate.linkMarginDb ?? 0) + adjDb - fadeDb;
 
   return {
     source,
@@ -281,7 +285,7 @@ const buildDownlinkSegment = (
 /**
  * Builds a STAR Forward dual-segment result.
  *
- * Uplink:   Gateway (GATEWAY_EIRP_DBW) → Satellite (sat G/T at gateway)
+ * Uplink:   Gateway (GATEWAY_EIRP_DBW[band]) → Satellite (sat G/T at gateway)
  * Downlink: Satellite (sat EIRP at user) → User terminal (DEFAULT_TERMINAL.gtTerminalDbk)
  *
  * @param downlinkAtUser   Downlink candidate at the user location (sat EIRP at user).
@@ -293,21 +297,27 @@ export function buildStarForwardResult(
   uplinkAtGateway: CandidateCoverage,
   gateway: GeoGatewayData,
   userLabel?: string,
+  weatherAdjDb?: number,
 ): DualSegmentResult | null {
   const band = downlinkAtUser.band ?? uplinkAtGateway.band ?? 'Ku';
-  const gatewayGTDbk = GATEWAY_GT_DBK[band as GeoBand] ?? GATEWAY_GT_DBK.Ku;
+  const geoBand = band as GeoBand;
+  const gatewayEirpDbw = GATEWAY_EIRP_DBW[geoBand] ?? GATEWAY_EIRP_DBW.Ku;
+  const gatewayGTDbk = GATEWAY_GT_DBK[geoBand] ?? GATEWAY_GT_DBK.Ku;
 
   const uplinkSeg = buildUplinkSegment(
     uplinkAtGateway,
-    { label: gateway.name, eirpDbw: GATEWAY_EIRP_DBW },
+    { label: gateway.name, eirpDbw: gatewayEirpDbw },
     { label: uplinkAtGateway.satelliteName },
-    GATEWAY_EIRP_DBW,
+    gatewayEirpDbw,
+    weatherAdjDb,
   );
 
   const downlinkSeg = buildDownlinkSegment(
     downlinkAtUser,
     { label: downlinkAtUser.satelliteName },
     { label: userLabel ?? 'User terminal', gtDbk: DEFAULT_TERMINAL.gtTerminalDbk },
+    undefined,
+    weatherAdjDb,
   );
 
   const e2e = computeEndToEndBudget(
@@ -339,6 +349,7 @@ export function buildStarReturnResult(
   downlinkAtGateway: CandidateCoverage,
   gateway: GeoGatewayData,
   userLabel?: string,
+  weatherAdjDb?: number,
 ): DualSegmentResult | null {
   const band = uplinkAtUser.band ?? downlinkAtGateway.band ?? 'Ku';
   const gatewayGTDbk = GATEWAY_GT_DBK[band as GeoBand] ?? GATEWAY_GT_DBK.Ku;
@@ -347,6 +358,8 @@ export function buildStarReturnResult(
     uplinkAtUser,
     { label: userLabel ?? 'User terminal', eirpDbw: DEFAULT_TERMINAL.eirpTerminalDbw },
     { label: uplinkAtUser.satelliteName },
+    undefined,
+    weatherAdjDb,
   );
 
   const downlinkSeg = buildDownlinkSegment(
@@ -354,6 +367,7 @@ export function buildStarReturnResult(
     { label: downlinkAtGateway.satelliteName },
     { label: gateway.name, gtDbk: gatewayGTDbk },
     gatewayGTDbk,
+    weatherAdjDb,
   );
 
   const e2e = computeEndToEndBudget(
@@ -432,6 +446,7 @@ export function buildMeshResult(
   endpointLabels?: MeshEndpointLabels,
   terminalTypeA?: string,
   terminalTypeB?: string,
+  weatherAdjDb?: number,
 ): DualSegmentResult {
   const pointALabel = endpointLabels?.pointA ?? 'Terminal A';
   const pointBLabel = endpointLabels?.pointB ?? 'Terminal B';
@@ -443,12 +458,14 @@ export function buildMeshResult(
     { label: pointALabel, eirpDbw: paramsA.eirpTerminalDbw },
     { label: uplinkAtA.satelliteName },
     paramsA.eirpTerminalDbw,
+    weatherAdjDb,
   );
   const fwDownlinkSeg = buildDownlinkSegment(
     downlinkAtB,
     { label: downlinkAtB.satelliteName },
     { label: pointBLabel, gtDbk: paramsB.gtTerminalDbk },
     paramsB.gtTerminalDbk,
+    weatherAdjDb,
   );
   const fwE2E = computeEndToEndBudget(
     fwUplinkSeg.effectiveCNDb,
@@ -461,12 +478,14 @@ export function buildMeshResult(
     { label: pointBLabel, eirpDbw: paramsB.eirpTerminalDbw },
     { label: uplinkAtB.satelliteName },
     paramsB.eirpTerminalDbw,
+    weatherAdjDb,
   );
   const rvDownlinkSeg = buildDownlinkSegment(
     downlinkAtA,
     { label: downlinkAtA.satelliteName },
     { label: pointALabel, gtDbk: paramsA.gtTerminalDbk },
     paramsA.gtTerminalDbk,
+    weatherAdjDb,
   );
   const rvE2E = computeEndToEndBudget(
     rvUplinkSeg.effectiveCNDb,

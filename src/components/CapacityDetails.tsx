@@ -39,6 +39,8 @@ import {
 import {
   augmentCandidatesWithSynthesizedDirections,
 } from '../utils/geoTopologySelection';
+import { RAIN_FADE_DB } from '../utils/geoLinkBudget';
+import type { GeoBand } from '../utils/geoLinkBudget';
 
 // ─── Extracted sub-components ─────────────────────────────────────────────────
 import {
@@ -646,12 +648,23 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
   const dualSegmentResult = useMemo((): DualSegmentResult | null => {
     if (satelliteScope !== 'ALL' && satelliteScope !== 'GEO') return null;
 
+    // Determine the active band from whichever candidate is available.
+    const activeBand = (
+      downlinkAtUser?.band ??
+      uplinkAtUser?.band ??
+      uplinkAtB?.band ??
+      downlinkAtB?.band ??
+      'Ku'
+    ) as GeoBand;
+    const fadeTable = RAIN_FADE_DB[activeBand] ?? RAIN_FADE_DB.Ku;
+    const weatherAdjDb: number = fadeTable[weatherType as keyof typeof fadeTable] ?? 0;
+
     if (linkMode === 'STAR_FORWARD') {
       if (!resolvedGatewayData) return null;
       const dl = downlinkAtUser;
       const ul = uplinkAtGateway;
       if (!dl || !ul) return null;
-      return buildStarForwardResult(dl, ul, resolvedGatewayData, pointALabel);
+      return buildStarForwardResult(dl, ul, resolvedGatewayData, pointALabel, weatherAdjDb);
     }
 
     if (linkMode === 'STAR_RETURN') {
@@ -660,7 +673,7 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
       // Downlink at gateway: prefer explicit EIRP data, fall back to synthesis from G/T
       const dl = downlinkAtGateway ?? (uplinkAtGateway ? synthesizeDownlinkCandidate(uplinkAtGateway) : null);
       if (!ul || !dl) return null;
-      return buildStarReturnResult(ul, dl, resolvedGatewayData, pointALabel);
+      return buildStarReturnResult(ul, dl, resolvedGatewayData, pointALabel, weatherAdjDb);
     }
 
     if (linkMode === 'MESH' || linkMode === 'POINT_TO_POINT') {
@@ -672,7 +685,7 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
       return buildMeshResult(ulA, dlB, ulB, dlA, {
         pointA: pointALabel,
         pointB: pointBLabel,
-      }, geoTerminalType, geoTerminalTypeB ?? geoTerminalType);
+      }, geoTerminalType, geoTerminalTypeB ?? geoTerminalType, weatherAdjDb);
     }
 
     return null;
@@ -684,6 +697,7 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
     pointALabel, pointBLabel,
     resolvedGatewayData,
     geoTerminalType, geoTerminalTypeB,
+    weatherType,
   ]);
 
   // Performance optimization: Memoize SNP detection to prevent recalculation
@@ -799,6 +813,14 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
     }
 
     if (activeEstimatedPerformanceScope === 'GEO') {
+      const isMeshMode = linkMode === 'MESH' || linkMode === 'POINT_TO_POINT';
+      // In MESH/P2P the star-topology gateway RTT (2-hop user↔gateway) is wrong.
+      // The correct value is the 4-hop A→sat→B→sat→A RTT from meshMetrics.
+      const effectiveRttMs = isMeshMode && meshMetrics?.rttMs != null
+        ? meshMetrics.rttMs
+        : geoGeometry?.rttTotalMs ?? null;
+      const rttLabel = isMeshMode ? 'Mesh A↔B RTT (4-hop)' : 'End-to-End GEO RTT';
+
       const geoStabilityTooltip = geoGeometry
         ? formatGeoStabilityTooltip(
           geoGeometry.userToSatellite.elevationDeg,
@@ -816,7 +838,7 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
         >
           {resolvedGEOConnectivity && geoGeometry && geoPerformance ? (
             <PerformancePanel
-              rtt={geoGeometry.rttTotalMs}
+              rtt={effectiveRttMs}
               downlinkGbps={geoPerformance.downlinkGbps}
               uplinkGbps={geoPerformance.uplinkGbps}
               maxDlGbps={TERMINAL_PROFILES[geoTerminalType].maxDlGbps}
@@ -825,7 +847,7 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
               performanceFactor={geoPerformance.performanceFactor}
               accentColor="#2563eb"
               rttMaxMs={RTT_VISUAL_SCALE_MAX_MS}
-              rttLabel="End-to-End GEO RTT"
+              rttLabel={rttLabel}
               stabilityTooltip={geoStabilityTooltip}
             />
           ) : (
@@ -850,7 +872,9 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
     geoPerformance,
     isLeoPerformanceDiagnosticOnly,
     leoDiagnosticMessage,
+    linkMode,
     leoPerformance,
+    meshMetrics,
     mobileLeoMetrics,
     resolvedGEOConnectivity,
     resolvedLEOConnectivity,

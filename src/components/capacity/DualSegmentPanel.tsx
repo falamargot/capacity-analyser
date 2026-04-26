@@ -277,56 +277,99 @@ const DirectionBlock = ({ title, uplink, downlink, endToEnd, linkMode }: Directi
 
 // ─── Transponder mode card (MESH / P2P) ──────────────────────────────────────
 
-const TRANSPONDER_CONFIG: Record<TransponderMode, {
-  icon: string;
-  label: string;
-  detail: string;
-  colors: { bg: string; border: string; text: string; subtext: string };
-}> = {
-  loopback: {
-    icon: '✅',
-    label: 'Loopback — same beam',
-    detail: 'Both points share the same transponder beam. The satellite routes the signal directly without cross-beam switching.',
-    colors: {
-      bg: 'bg-emerald-50 dark:bg-emerald-900/20',
-      border: 'border-emerald-200 dark:border-emerald-700',
-      text: 'text-emerald-800 dark:text-emerald-200',
-      subtext: 'text-emerald-700 dark:text-emerald-300',
-    },
+/**
+ * Classifies a satellite's beam-routing capability from its name.
+ *
+ * - flexible   : Software-defined payload (QUANTUM) — any beam-to-beam cross-connect
+ *                is electronically reconfigurable and guaranteed.
+ * - hts        : Ka-band HTS with a gateway mesh architecture (KONNECT family,
+ *                KA-SAT). User spots all backhaul to feeder beams, so a
+ *                user↔user path requires two hops through the gateway — no direct
+ *                on-board switching between user beams.
+ * - conventional: Classic analog transponder with a fixed switching matrix.
+ *                Cross-connect between beams requires a pre-configured routing
+ *                plan and is not guaranteed without operator confirmation.
+ */
+type TransponderCapability = 'flexible' | 'hts' | 'conventional';
+
+function classifyTransponderCapability(satelliteName: string | undefined): TransponderCapability {
+  if (!satelliteName) return 'conventional';
+  const upper = satelliteName.toUpperCase();
+  if (upper.includes('QUANTUM')) return 'flexible';
+  if (upper.includes('KONNECT') || upper.includes('KA-SAT') || upper.includes('KASAT')) return 'hts';
+  return 'conventional';
+}
+
+const CROSS_CONNECT_DETAILS: Record<TransponderCapability, { label: string; detail: string; icon: string }> = {
+  flexible: {
+    icon: '🔀',
+    label: 'Cross-connect — flexible payload',
+    detail: 'Software-defined satellite: beam routing is electronically reconfigurable. Cross-connect between any two beams is supported without hardware constraints.',
   },
-  'cross-connect': {
+  hts: {
     icon: '⚠️',
-    label: 'Cross-connect required',
-    detail: 'Points are in different beams. The satellite must route through its switching matrix — feasibility depends on transponder configuration.',
-    colors: {
-      bg: 'bg-amber-50 dark:bg-amber-900/20',
-      border: 'border-amber-200 dark:border-amber-700',
-      text: 'text-amber-800 dark:text-amber-200',
-      subtext: 'text-amber-700 dark:text-amber-300',
-    },
+    label: 'Cross-connect via gateway (double-hop)',
+    detail: 'HTS architecture: all user beams backhaul to feeder beams. A direct user↔user mesh requires two satellite hops through the gateway — doubles the latency budget.',
   },
-  unknown: {
-    icon: '❓',
-    label: 'Beam routing unknown',
-    detail: 'Beam data is missing or estimated — transponder mode cannot be determined.',
-    colors: {
-      bg: 'bg-gray-50 dark:bg-slate-800',
-      border: 'border-gray-200 dark:border-slate-600',
-      text: 'text-gray-600 dark:text-gray-300',
-      subtext: 'text-gray-500 dark:text-gray-400',
-    },
+  conventional: {
+    icon: '⚠️',
+    label: 'Cross-connect required — verify with operator',
+    detail: 'Fixed switching matrix: cross-beam routing depends on the transponder plan loaded at launch. Confirm the required connection is pre-configured before service activation.',
   },
 };
 
-const TransponderCard = ({ mode }: { mode: TransponderMode }) => {
-  const { icon, label, detail, colors } = TRANSPONDER_CONFIG[mode];
+const BASE_TRANSPONDER_COLORS: Record<'ok' | 'warn' | 'neutral', { bg: string; border: string; text: string; subtext: string }> = {
+  ok:      { bg: 'bg-emerald-50 dark:bg-emerald-900/20', border: 'border-emerald-200 dark:border-emerald-700', text: 'text-emerald-800 dark:text-emerald-200',   subtext: 'text-emerald-700 dark:text-emerald-300' },
+  warn:    { bg: 'bg-amber-50 dark:bg-amber-900/20',     border: 'border-amber-200 dark:border-amber-700',     text: 'text-amber-800 dark:text-amber-200',       subtext: 'text-amber-700 dark:text-amber-300' },
+  neutral: { bg: 'bg-gray-50 dark:bg-slate-800',         border: 'border-gray-200 dark:border-slate-600',      text: 'text-gray-600 dark:text-gray-300',         subtext: 'text-gray-500 dark:text-gray-400' },
+};
+
+const TransponderCard = ({ mode, satelliteName }: { mode: TransponderMode; satelliteName?: string }) => {
+  if (mode === 'loopback') {
+    const colors = BASE_TRANSPONDER_COLORS.ok;
+    return (
+      <div className={`rounded-lg border px-3 py-2.5 ${colors.bg} ${colors.border}`}>
+        <div className="flex items-center gap-2">
+          <span className="text-base leading-none shrink-0">✅</span>
+          <div>
+            <p className={`text-xs font-bold ${colors.text}`}>Transponder — Loopback · same beam</p>
+            <p className={`text-[11px] mt-0.5 leading-snug ${colors.subtext}`}>
+              Both points share the same transponder beam. The satellite routes the signal directly without cross-beam switching.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (mode === 'cross-connect') {
+    const capability = classifyTransponderCapability(satelliteName);
+    const { icon, label, detail } = CROSS_CONNECT_DETAILS[capability];
+    const colors = capability === 'flexible' ? BASE_TRANSPONDER_COLORS.ok : BASE_TRANSPONDER_COLORS.warn;
+    return (
+      <div className={`rounded-lg border px-3 py-2.5 ${colors.bg} ${colors.border}`}>
+        <div className="flex items-center gap-2">
+          <span className="text-base leading-none shrink-0">{icon}</span>
+          <div>
+            <p className={`text-xs font-bold ${colors.text}`}>Transponder — {label}</p>
+            <p className={`text-[11px] mt-0.5 leading-snug ${colors.subtext}`}>{detail}</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // unknown
+  const colors = BASE_TRANSPONDER_COLORS.neutral;
   return (
     <div className={`rounded-lg border px-3 py-2.5 ${colors.bg} ${colors.border}`}>
       <div className="flex items-center gap-2">
-        <span className="text-base leading-none shrink-0">{icon}</span>
+        <span className="text-base leading-none shrink-0">❓</span>
         <div>
-          <p className={`text-xs font-bold ${colors.text}`}>Transponder — {label}</p>
-          <p className={`text-[11px] mt-0.5 leading-snug ${colors.subtext}`}>{detail}</p>
+          <p className={`text-xs font-bold ${colors.text}`}>Transponder — Beam routing unknown</p>
+          <p className={`text-[11px] mt-0.5 leading-snug ${colors.subtext}`}>
+            Beam data is missing or estimated — transponder mode cannot be determined.
+          </p>
         </div>
       </div>
     </div>
@@ -433,11 +476,13 @@ export interface DualSegmentPanelProps {
    *  sections outside this panel stay in sync with the selected direction). */
   activeMeshTab?: 'forward' | 'reverse';
   onMeshTabChange?: (tab: 'forward' | 'reverse') => void;
+  /** Satellite name — used to classify cross-connect capability in the transponder card. */
+  satelliteName?: string;
 }
 
 const DualSegmentPanel = memo<DualSegmentPanelProps>(({
   linkMode, result, incompatible,
-  activeMeshTab: controlledTab, onMeshTabChange,
+  activeMeshTab: controlledTab, onMeshTabChange, satelliteName,
 }) => {
   const description = LINK_MODE_DESCRIPTIONS[linkMode];
   const [internalTab, setInternalTab] = useState<'forward' | 'reverse'>('forward');
@@ -477,7 +522,7 @@ const DualSegmentPanel = memo<DualSegmentPanelProps>(({
         <>
           <TopologyContextCard linkMode={linkMode} />
           {result.transponderMode && (
-            <TransponderCard mode={result.transponderMode} />
+            <TransponderCard mode={result.transponderMode} satelliteName={satelliteName} />
           )}
           <MeshDirectionTabs
             forwardLabel={forwardLabel}

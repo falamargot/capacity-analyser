@@ -30,12 +30,53 @@ export const BAND_PARAMS: Record<GeoBand, {
   freqDownGhz: number;
   freqUpGhz: number;
   defaultBwMhz: number;
+  /** Clear-sky atmospheric loss (gaseous absorption + tropospheric scintillation). */
   atmosLossDb: number;
 }> = {
-  C: { freqDownGhz: 3.8, freqUpGhz: 5.9, defaultBwMhz: 36, atmosLossDb: 0.5 },
-  Ku: { freqDownGhz: 11.7, freqUpGhz: 14.0, defaultBwMhz: 36, atmosLossDb: 1.5 },
-  Ka: { freqDownGhz: 19.7, freqUpGhz: 29.5, defaultBwMhz: 250, atmosLossDb: 4.0 },
+  C:  { freqDownGhz: 3.8,  freqUpGhz: 5.9,  defaultBwMhz: 36,  atmosLossDb: 0.3 },
+  Ku: { freqDownGhz: 11.7, freqUpGhz: 14.0, defaultBwMhz: 36,  atmosLossDb: 0.5 },
+  Ka: { freqDownGhz: 19.7, freqUpGhz: 29.5, defaultBwMhz: 250, atmosLossDb: 2.0 },
 };
+
+/**
+ * Rain-fade attenuation budget per band and weather condition.
+ *
+ * Values are one-way path excess losses relative to clear sky, expressed in dB.
+ * Derived from ITU-R P.618-14 (point-rain model) at typical GEO elevation angles
+ * (30°–45°) for a mid-latitude site (e.g. Western Europe, 0.01 % rain rate):
+ *
+ *   C  band: rain attenuation is negligible — Rayleigh scattering regime.
+ *   Ku band: moderate fade; a 36 MHz transponder becomes marginal in heavy rain.
+ *   Ka band: severe fade; a 250 MHz spot beam can close-down in a storm cell.
+ *
+ * These are single-path budgets (terminal ↔ satellite). For end-to-end STAR
+ * links the gateway segment uses the same table (applied to gateway path too).
+ */
+export const RAIN_FADE_DB: Record<GeoBand, {
+  clear: number;
+  light_rain: number;
+  heavy_rain: number;
+  storm: number;
+}> = {
+  C:  { clear: 0, light_rain: 0.2, heavy_rain: 0.5,  storm:  1.5 },
+  Ku: { clear: 0, light_rain: 1.0, heavy_rain: 3.0,  storm:  6.0 },
+  Ka: { clear: 0, light_rain: 2.0, heavy_rain: 8.0,  storm: 20.0 },
+};
+
+/**
+ * DVB-S2X roll-off factor (α).
+ *
+ * `bandwidthMhz` throughout this module represents the **occupied RF bandwidth**
+ * (the allocated transponder channel, e.g. 36 MHz for a standard Ku transponder).
+ * The receiver's noise bandwidth — and the MODCOD symbol rate — is the narrower
+ * **symbol rate**: symbol_rate = BW_occupied / (1 + α).
+ *
+ * ETSI EN 302 307-2 defines α ∈ {0.05, 0.10, 0.15, 0.20, 0.25, 0.35}.
+ * Modern DVB-S2X deployments predominantly use 0.10–0.20; 0.15 is a
+ * conservative mid-range default suitable for mixed DVB-S2 / DVB-S2X fleets.
+ * Impact on throughput: factor of 1/(1+α) ≈ −13 % at α = 0.15.
+ */
+export const DVB_S2X_ROLL_OFF = 0.15;
 
 const BOLTZMANN_CONSTANT_DBW_PER_K_PER_HZ = -228.6;
 
@@ -122,9 +163,21 @@ export function lookupModcod(cnDb: number): { name: string; efficiency: number; 
 // ─── Gateway Terminal Parameters ─────────────────────────────────────────────
 //
 // Representative teleport assumptions for STAR Forward/Return link budgets.
-// A medium-sized teleport with a 4.5 m Ku-band or 3.7 m Ka-band antenna.
+// Reference configuration: 4.5 m Ku/C-band dish, 3.7 m Ka-band dish, 100 W HPA.
+//
+// Derivation (antenna gain η=0.55, 100 W HPA = +20 dBW, ~1–2 dB system losses):
+//   C  band: G(4.5 m @ 5.9 GHz)  ≈ 46.3 dBi → EIRP ≈ 46.3 + 20 − 1.0 = 65 dBW
+//   Ku band: G(4.5 m @ 14.0 GHz) ≈ 53.8 dBi → EIRP ≈ 53.8 + 20 − 1.5 = 72 dBW
+//   Ka band: G(3.7 m @ 29.5 GHz) ≈ 58.6 dBi → EIRP ≈ 58.6 + 20 − 2.0 = 77 dBW (capped at 75)
+//
+// These are conservative values. Professional teleports with 400 W HPAs or
+// larger dishes (7 m+) operate in the 76–85 dBW range (FCC §25.204 limit: 85 dBW).
 
-export const GATEWAY_EIRP_DBW = 55.0;   // dBW — teleport TX power + antenna gain
+export const GATEWAY_EIRP_DBW: Record<GeoBand, number> = {
+  C:  65.0,  // dBW — 4.5 m dish, 100 W HPA, 5.9 GHz
+  Ku: 72.0,  // dBW — 4.5 m dish, 100 W HPA, 14.0 GHz
+  Ka: 75.0,  // dBW — 3.7 m dish, 100 W HPA, 29.5 GHz
+};
 
 export const GATEWAY_GT_DBK: Record<GeoBand, number> = {
   C:  20.0,  // dB/K — large C-band dish
@@ -193,6 +246,7 @@ export function computeEndToEndBudget(
 ): EndToEndBudget {
   const e2eCNDb = combineEndToEndCNDb(uplinkCNDb, downlinkCNDb);
   const modcod  = lookupModcod(e2eCNDb);
+  const symbolRateMhz = bandwidthMhz / (1 + DVB_S2X_ROLL_OFF);
 
   return {
     uplinkCNDb,
@@ -201,7 +255,7 @@ export function computeEndToEndBudget(
     limitingSegment: uplinkCNDb <= downlinkCNDb ? 'uplink' : 'downlink',
     endToEndModcod: modcod.name,
     endToEndSpectralEfficiency: modcod.efficiency,
-    endToEndThroughputMbps: modcod.efficiency * bandwidthMhz,
+    endToEndThroughputMbps: modcod.efficiency * symbolRateMhz,
     endToEndLinkMarginDb: e2eCNDb - modcod.requiredCnDb,
     bandwidthMhz,
   };
@@ -216,13 +270,16 @@ const computeLinkBudget = (
   atmosphericLossDb: number,
 ): LinkBudgetResult => {
   const fsplDb = computeFsplDb(slantRangeKm, frequencyGhz);
+  // Receiver noise bandwidth = symbol rate = occupied BW / (1 + roll-off).
+  // Using occupied BW directly would understate C/N by 10·log10(1+α) ≈ 0.6 dB.
+  const symbolRateMhz = bandwidthMhz / (1 + DVB_S2X_ROLL_OFF);
   const cn0Dbhz =
     eirpTxDbw +
     gtRxDbk -
     fsplDb -
     atmosphericLossDb -
     BOLTZMANN_CONSTANT_DBW_PER_K_PER_HZ;
-  const cnDb = cn0Dbhz - (10 * Math.log10(bandwidthMhz * 1e6));
+  const cnDb = cn0Dbhz - (10 * Math.log10(symbolRateMhz * 1e6));
   const selectedModcod = resolveModcod(cnDb);
   const requiredCnDb = selectedModcod?.requiredCnDb ?? LOWEST_MODCOD.requiredCnDb;
   const spectralEfficiency = selectedModcod?.efficiency ?? 0;
@@ -237,7 +294,7 @@ const computeLinkBudget = (
     cnDb,
     linkMarginDb: cnDb - requiredCnDb,
     spectralEfficiency,
-    achievableThroughputMbps: spectralEfficiency * bandwidthMhz,
+    achievableThroughputMbps: spectralEfficiency * symbolRateMhz,
     modcod: selectedModcod?.name ?? 'Below threshold',
   };
 };

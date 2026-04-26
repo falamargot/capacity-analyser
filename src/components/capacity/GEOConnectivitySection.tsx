@@ -543,6 +543,7 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
           result={dualSegmentResult}
           activeMeshTab={isMeshOrP2P ? activeMeshTab : undefined}
           onMeshTabChange={isMeshOrP2P ? setActiveMeshTab : undefined}
+          satelliteName={dualSegmentResult?.forward.uplink.candidate.satelliteName}
         />
 
         {showEstimatedPerformance && showPerformanceBeforeRadioPath && estimatedPerformanceSection}
