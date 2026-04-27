@@ -8,6 +8,7 @@ import SatelliteDetails from './SatelliteDetails';
 import { SPEED_OF_LIGHT_RADIO_KM_S, RealTimeCapacityData, calculateElevationAngle, compute3DDistanceKm } from '../utils/capacityCalculator';
 import { GEO_GATEWAYS, SNPS_DATA } from './globe/GlobeConfig';
 import { findConnectedBeamIndex, hasRFConnectivity, estimateCurrentLeoBeamLink } from '../utils/rfConnectivity';
+import { selectTrafficGeoGateway } from '../utils/geoConnectivityModel';
 import { isPointInCoverage } from '../utils/coverageCalculator';
 import { getBestConnectedGateway } from '../utils/connectivityRules';
 import { JulianDate } from 'cesium';
@@ -626,6 +627,47 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
     () => refCoverage ? findBestDownlinkMatch(refCoverage, candidateCoveragesB) : null,
     [refCoverage, candidateCoveragesB]
   );
+
+  const validSatelliteIds = useMemo((): ReadonlySet<string> | undefined => {
+    const isMeshOrP2P = linkMode === 'MESH' || linkMode === 'POINT_TO_POINT';
+
+    if (isMeshOrP2P) {
+      if (candidateCoveragesB.length === 0) return undefined;
+      return new Set(candidateCoveragesB.map(c => c.satelliteId));
+    }
+
+    if (linkMode === 'STAR_FORWARD' || linkMode === 'STAR_RETURN') {
+      const geoSatellites = satellites.filter(
+        s => s.orbitType === 'GEO' && s.opsStatus === 'operational'
+      );
+      const candidateSatIds = new Set(candidateCoverages.map(c => c.satelliteId));
+      const candidateSatellites = geoSatellites.filter(s => candidateSatIds.has(s.id));
+
+      const gwPosBySatId = new Map<string, { lat: number; lng: number }>();
+      for (const sat of candidateSatellites) {
+        const gw = selectTrafficGeoGateway(sat, GEO_GATEWAYS);
+        if (gw) gwPosBySatId.set(sat.id, { lat: gw.gateway.lat, lng: gw.gateway.lng });
+      }
+
+      const posKey = (p: { lat: number; lng: number }) => `${p.lat},${p.lng}`;
+      const uniquePos = new Map<string, { lat: number; lng: number }>();
+      for (const pos of gwPosBySatId.values()) uniquePos.set(posKey(pos), pos);
+
+      const covByGw = new Map<string, Set<string>>();
+      for (const [key, pos] of uniquePos) {
+        const cands = findCandidateCoverages(pos, geoSatellites);
+        covByGw.set(key, new Set(cands.map(c => c.satelliteId)));
+      }
+
+      const validIds = new Set<string>();
+      for (const [satId, pos] of gwPosBySatId) {
+        if (covByGw.get(posKey(pos))?.has(satId)) validIds.add(satId);
+      }
+      return validIds;
+    }
+
+    return undefined;
+  }, [linkMode, candidateCoverages, candidateCoveragesB, satellites]);
 
   const pointALabel = useMemo(() => {
     if (!activePoint) return 'Terminal A';
@@ -1569,6 +1611,7 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
                     downlinkCoverageAtB={downlinkAtB}
                     activeMeshTab={activeMeshTab}
                     onActiveMeshTabChange={onActiveMeshTabChange}
+                    validSatelliteIds={validSatelliteIds}
                   />
                 </>
               )}

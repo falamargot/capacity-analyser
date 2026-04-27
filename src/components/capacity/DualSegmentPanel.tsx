@@ -44,6 +44,12 @@ const fmtMbps = (v: number | undefined | null) => {
   return `${v.toFixed(1)} Mbps`;
 };
 
+const coverageLabel = (seg: LinkSegment) => {
+  const c = seg.candidate;
+  const name = c.coverageName || c.beamName || c.satelliteName;
+  return c.isSynthesized ? `${name} (estimated)` : name;
+};
+
 // ─── Margin colour helper ─────────────────────────────────────────────────────
 
 const marginClass = (v: number | undefined | null): string => {
@@ -102,11 +108,12 @@ const SegmentCard = ({ accentColor, title, icon, children }: SegmentCardProps) =
 
 // ─── UplinkCard ───────────────────────────────────────────────────────────────
 
-const UplinkCard = ({ seg }: { seg: LinkSegment }) => {
+const UplinkCard = ({ seg, coverageName }: { seg: LinkSegment; coverageName?: string }) => {
   const c = seg.candidate;
   return (
     <SegmentCard accentColor="#2563eb" title="Uplink Segment" icon="🔵">
       <Row label="Source" value={seg.source.label} bold />
+      <Row label="Coverage" value={coverageName ?? coverageLabel(seg)} bold />
       <Row label="Transmitter EIRP" value={fmtDbw(seg.source.eirpDbw)} />
       <Row label={`Sat G/T (${c.band ?? 'Ku'})`} value={fmtDbk(c.gtDbk)} />
       <div className="border-t border-gray-100 dark:border-slate-700 pt-1.5 space-y-1.5">
@@ -136,15 +143,21 @@ const UplinkCard = ({ seg }: { seg: LinkSegment }) => {
 
 // ─── PayloadCard ──────────────────────────────────────────────────────────────
 
-const PayloadCard = ({ satelliteName, beamName, band }: {
+const PayloadCard = ({ satelliteName, beamName, band, uplinkCoverageName, downlinkCoverageName }: {
   satelliteName: string;
   beamName?: string;
   band?: string;
+  uplinkCoverageName?: string;
+  downlinkCoverageName?: string;
 }) => (
   <SegmentCard accentColor="#7c3aed" title="Satellite / Payload" icon="🟣">
     <Row label="Satellite" value={satelliteName} bold />
     {beamName && beamName !== satelliteName && <Row label="Beam" value={beamName} />}
     {band && <Row label="Band" value={band} />}
+    {uplinkCoverageName && <Row label="Uplink coverage" value={uplinkCoverageName} />}
+    {downlinkCoverageName && downlinkCoverageName !== uplinkCoverageName && (
+      <Row label="Downlink coverage" value={downlinkCoverageName} />
+    )}
     <p className="text-xs text-gray-400 dark:text-gray-500 italic pt-0.5">
       OBO / SFD: not yet modelled
     </p>
@@ -153,11 +166,12 @@ const PayloadCard = ({ satelliteName, beamName, band }: {
 
 // ─── DownlinkCard ─────────────────────────────────────────────────────────────
 
-const DownlinkCard = ({ seg }: { seg: LinkSegment }) => {
+const DownlinkCard = ({ seg, coverageName }: { seg: LinkSegment; coverageName?: string }) => {
   const c = seg.candidate;
   return (
     <SegmentCard accentColor="#059669" title="Downlink Segment" icon="🟢">
       <Row label="Destination" value={seg.destination.label} bold />
+      <Row label="Coverage" value={coverageName ?? coverageLabel(seg)} bold />
       <Row label={`Sat EIRP (${c.band ?? 'Ku'})`} value={fmtDbw(c.eirpDbw)} />
       <Row label="Terminal G/T" value={fmtDbk(seg.destination.gtDbk)} />
       <div className="border-t border-gray-100 dark:border-slate-700 pt-1.5 space-y-1.5">
@@ -253,12 +267,18 @@ interface DirectionBlockProps {
   downlink: LinkSegment;
   endToEnd: EndToEndBudget;
   linkMode?: LinkMode;
+  coverageLabels?: {
+    uplink?: string;
+    downlink?: string;
+  };
 }
 
-const DirectionBlock = ({ title, uplink, downlink, endToEnd, linkMode }: DirectionBlockProps) => {
+const DirectionBlock = ({ title, uplink, downlink, endToEnd, linkMode, coverageLabels }: DirectionBlockProps) => {
   const satelliteName = uplink.candidate.satelliteName;
   const beamName = uplink.candidate.beamName;
   const band = uplink.candidate.band ?? downlink.candidate.band;
+  const uplinkCoverageName = coverageLabels?.uplink ?? coverageLabel(uplink);
+  const downlinkCoverageName = coverageLabels?.downlink ?? coverageLabel(downlink);
 
   return (
     <div className="space-y-2">
@@ -267,9 +287,15 @@ const DirectionBlock = ({ title, uplink, downlink, endToEnd, linkMode }: Directi
           {title}
         </p>
       )}
-      <UplinkCard seg={uplink} />
-      <PayloadCard satelliteName={satelliteName} beamName={beamName} band={band} />
-      <DownlinkCard seg={downlink} />
+      <UplinkCard seg={uplink} coverageName={uplinkCoverageName} />
+      <PayloadCard
+        satelliteName={satelliteName}
+        beamName={beamName}
+        band={band}
+        uplinkCoverageName={uplinkCoverageName}
+        downlinkCoverageName={downlinkCoverageName}
+      />
+      <DownlinkCard seg={downlink} coverageName={downlinkCoverageName} />
       <E2ECard e2e={endToEnd} linkMode={linkMode} />
     </div>
   );
@@ -478,17 +504,29 @@ export interface DualSegmentPanelProps {
   onMeshTabChange?: (tab: 'forward' | 'reverse') => void;
   /** Satellite name — used to classify cross-connect capability in the transponder card. */
   satelliteName?: string;
+  /** Display labels for the coverage rows, aligned with the sidebar selections. */
+  coverageLabels?: {
+    forward?: {
+      uplink?: string;
+      downlink?: string;
+    };
+    reverse?: {
+      uplink?: string;
+      downlink?: string;
+    };
+  };
 }
 
 const DualSegmentPanel = memo<DualSegmentPanelProps>(({
   linkMode, result, incompatible,
-  activeMeshTab: controlledTab, onMeshTabChange, satelliteName,
+  activeMeshTab: controlledTab, onMeshTabChange, satelliteName, coverageLabels,
 }) => {
   const description = LINK_MODE_DESCRIPTIONS[linkMode];
   const [internalTab, setInternalTab] = useState<'forward' | 'reverse'>('forward');
   const activeMeshTab = controlledTab ?? internalTab;
   const setActiveMeshTab = onMeshTabChange ?? setInternalTab;
   const isMesh = result?.reverse != null;
+  const directionControlled = controlledTab != null;
   const forwardLabel = isMesh ? 'Terminal A → Terminal B' : '';
   const reverseLabel = isMesh && result.reverse ? 'Terminal B → Terminal A' : '';
 
@@ -524,23 +562,27 @@ const DualSegmentPanel = memo<DualSegmentPanelProps>(({
           {result.transponderMode && (
             <TransponderCard mode={result.transponderMode} satelliteName={satelliteName} />
           )}
-          <MeshDirectionTabs
-            forwardLabel={forwardLabel}
-            reverseLabel={reverseLabel}
-            activeTab={activeMeshTab}
-            onChange={setActiveMeshTab}
-          />
+          {!directionControlled && (
+            <MeshDirectionTabs
+              forwardLabel={forwardLabel}
+              reverseLabel={reverseLabel}
+              activeTab={activeMeshTab}
+              onChange={setActiveMeshTab}
+            />
+          )}
           {activeMeshTab === 'forward' ? (
             <DirectionBlock
               uplink={result.forward.uplink}
               downlink={result.forward.downlink}
               endToEnd={result.forward.endToEnd}
+              coverageLabels={coverageLabels?.forward}
             />
           ) : (
             <DirectionBlock
               uplink={result.reverse!.uplink}
               downlink={result.reverse!.downlink}
               endToEnd={result.reverse!.endToEnd}
+              coverageLabels={coverageLabels?.reverse}
             />
           )}
         </>
@@ -550,6 +592,7 @@ const DualSegmentPanel = memo<DualSegmentPanelProps>(({
           downlink={result.forward.downlink}
           endToEnd={result.forward.endToEnd}
           linkMode={linkMode}
+          coverageLabels={coverageLabels?.forward}
         />
       )}
     </div>

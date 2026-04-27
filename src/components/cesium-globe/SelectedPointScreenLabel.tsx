@@ -111,27 +111,22 @@ const SelectedPointScreenLabel: React.FC<SelectedPointScreenLabelProps> = ({
     const isMesh = linkMode === 'MESH' || linkMode === 'POINT_TO_POINT';
     const meshData = performanceMetrics?.mesh;
 
-    // In MESH/P2P mode, always show both directions regardless of active tab.
+    // In MESH/P2P mode, show only the active direction.
     if (isMesh && meshRole && meshData) {
       const fmtMbps = (mbps: number | null | undefined) =>
         mbps != null && Number.isFinite(mbps) && mbps > 0 ? `${Math.round(mbps)} Mbps` : '--';
-      const fmtLatency = (latencyMs: number | null | undefined) =>
-        latencyMs != null && Number.isFinite(latencyMs) && latencyMs > 0 ? `${Math.round(latencyMs)} ms` : '--';
       const rttStr = meshData.rttMs != null && Number.isFinite(meshData.rttMs)
         ? `${Math.round(meshData.rttMs)} ms RTT`
         : null;
-      const forwardLabel = 'A→B';
-      const reverseLabel = 'B→A';
+      // Terminal A transmits on the forward path, receives on the reverse path.
+      const ulMbps = meshRole === 'A' ? meshData.forwardMbps : meshData.reverseMbps;
+      const dlMbps = meshRole === 'A' ? meshData.reverseMbps : meshData.forwardMbps;
       return {
         coordinates: `Terminal ${meshRole} · ${formatCoordinates({ lat: selectedPosition.lat, lng: selectedPosition.lng })}`,
         statusLines: [
           {
-            text: `${forwardLabel}: ${fmtMbps(meshData.forwardMbps)} · ${fmtLatency(meshData.forwardLatencyMs)}`,
-            tone: meshRole === 'A' ? 'warning' as SelectedPointStatusTone : 'success' as SelectedPointStatusTone,
-          },
-          {
-            text: `${reverseLabel}: ${fmtMbps(meshData.reverseMbps)} · ${fmtLatency(meshData.reverseLatencyMs)}`,
-            tone: meshRole === 'A' ? 'success' as SelectedPointStatusTone : 'warning' as SelectedPointStatusTone,
+            text: `↑ ${fmtMbps(ulMbps)} · ↓ ${fmtMbps(dlMbps)}`,
+            tone: 'success' as SelectedPointStatusTone,
           },
           ...(rttStr ? [{ text: rttStr, tone: 'neutral' as SelectedPointStatusTone }] : []),
         ],

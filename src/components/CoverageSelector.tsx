@@ -28,6 +28,12 @@ interface CoverageSelectorProps {
   uplinkCandidatesOverride?: CandidateCoverage[];
   /** When provided, replaces the isUplink-filtered candidates for the downlink row. */
   downlinkCandidatesOverride?: CandidateCoverage[];
+  /** When provided, only satellites whose ID is in this set are shown in the dropdown. */
+  validSatelliteIds?: ReadonlySet<string>;
+  /** Custom label for the uplink row (e.g. "Terminal A → Sat G/T"). Defaults to "Uplink — Sat G/T". */
+  uplinkRowLabel?: string;
+  /** Custom label for the downlink row (e.g. "Sat EIRP → Terminal B"). Defaults to "Downlink — Sat EIRP". */
+  downlinkRowLabel?: string;
 }
 
 // ─── Formatters ───────────────────────────────────────────────────────────────
@@ -427,6 +433,9 @@ const CoverageSelector = memo<CoverageSelectorProps>(({
   onSelectDownlinkCoverage,
   uplinkCandidatesOverride,
   downlinkCandidatesOverride,
+  validSatelliteIds,
+  uplinkRowLabel = 'Uplink — Sat G/T',
+  downlinkRowLabel = 'Downlink — Sat EIRP',
 }) => {
   const showUplink   = !linkMode || linkMode === 'STAR_RETURN'  || linkMode === 'MESH' || linkMode === 'POINT_TO_POINT';
   const showDownlink = !linkMode || linkMode === 'STAR_FORWARD' || linkMode === 'MESH' || linkMode === 'POINT_TO_POINT';
@@ -461,11 +470,13 @@ const CoverageSelector = memo<CoverageSelectorProps>(({
     const seen = new Map<string, { id: string; name: string; band?: string }>();
     for (const c of candidateCoverages) {
       if (!c.isSynthesized && !seen.has(c.satelliteId)) {
-        seen.set(c.satelliteId, { id: c.satelliteId, name: c.satelliteName, band: c.band ?? undefined });
+        if (!validSatelliteIds || validSatelliteIds.has(c.satelliteId)) {
+          seen.set(c.satelliteId, { id: c.satelliteId, name: c.satelliteName, band: c.band ?? undefined });
+        }
       }
     }
     return [...seen.values()];
-  }, [candidateCoverages]);
+  }, [candidateCoverages, validSatelliteIds]);
 
   const handleSatelliteSelect = (satId: string) => {
     const bestDl = candidateCoverages.find(c => !c.isUplink && !c.isSynthesized && c.satelliteId === satId);
@@ -510,7 +521,7 @@ const CoverageSelector = memo<CoverageSelectorProps>(({
 
       {showUplink ? (
         <BeamCombobox
-          label="Uplink — Sat G/T"
+          label={uplinkRowLabel}
           icon="🟢"
           accentColor="#059669"
           direction="uplink"
@@ -525,7 +536,7 @@ const CoverageSelector = memo<CoverageSelectorProps>(({
 
       {showDownlink ? (
         <BeamCombobox
-          label="Downlink — Sat EIRP"
+          label={downlinkRowLabel}
           icon="🔵"
           accentColor="#2563eb"
           direction="downlink"

@@ -817,22 +817,42 @@ const App: React.FC = () => {
   // only when real contour data exists (synthesised → nothing on globe),
   // and only when uplink + downlink share the same satellite (satellite mismatch
   // would show a footprint from a different satellite than what the sidebar displays).
+  // For MESH/P2P the active side (uplink transmitter, downlink receiver) flips with direction.
+  const activeSatId = selectedDownlinkCoverage?.satelliteId ?? selectedUplinkCoverage?.satelliteId ?? null;
+  const uplinkAtBForGlobe = useMemo(() => {
+    if (!LINK_MODE_REQUIRES_POINT_B.has(linkMode) || !activeSatId) return null;
+    return candidateCoveragesB.find(c => c.isUplink && !c.isSynthesized && c.satelliteId === activeSatId) ?? null;
+  }, [linkMode, activeSatId, candidateCoveragesB]);
+  const downlinkAtBForGlobe = useMemo(() => {
+    if (!LINK_MODE_REQUIRES_POINT_B.has(linkMode) || !activeSatId) return null;
+    return candidateCoveragesB.find(c => !c.isUplink && !c.isSynthesized && c.satelliteId === activeSatId) ?? null;
+  }, [linkMode, activeSatId, candidateCoveragesB]);
+
   const globeUplinkCoverage = useMemo(() => {
     if (linkMode === 'STAR_FORWARD') return null;
+    if (linkMode === 'STAR_RETURN') return selectedUplinkCoverage ?? null;
+    if (LINK_MODE_REQUIRES_POINT_B.has(linkMode)) {
+      // MESH/P2P forward (A→B): uplink transmitter is Point A
+      // MESH/P2P reverse (B→A): uplink transmitter is Point B
+      return (activeMeshTab === 'forward' ? selectedUplinkCoverage : uplinkAtBForGlobe) ?? null;
+    }
     if (!selectedUplinkCoverage) return null;
-    if (linkMode === 'STAR_RETURN') return selectedUplinkCoverage;
-    // Satellite must match the downlink selection shown in the sidebar
     if (selectedDownlinkCoverage && selectedUplinkCoverage.satelliteId !== selectedDownlinkCoverage.satelliteId) return null;
     return selectedUplinkCoverage;
-  }, [linkMode, selectedUplinkCoverage, selectedDownlinkCoverage]);
+  }, [linkMode, selectedUplinkCoverage, selectedDownlinkCoverage, activeMeshTab, uplinkAtBForGlobe]);
+
   const globeDownlinkCoverage = useMemo(() => {
     if (linkMode === 'STAR_RETURN') return null;
+    if (linkMode === 'STAR_FORWARD') return selectedDownlinkCoverage ?? null;
+    if (LINK_MODE_REQUIRES_POINT_B.has(linkMode)) {
+      // MESH/P2P forward (A→B): downlink receiver is Point B
+      // MESH/P2P reverse (B→A): downlink receiver is Point A
+      return (activeMeshTab === 'forward' ? downlinkAtBForGlobe : selectedDownlinkCoverage) ?? null;
+    }
     if (!selectedDownlinkCoverage) return null;
-    if (linkMode === 'STAR_FORWARD') return selectedDownlinkCoverage;
-    // Satellite must match the uplink selection shown in the sidebar
     if (selectedUplinkCoverage && selectedDownlinkCoverage.satelliteId !== selectedUplinkCoverage.satelliteId) return null;
     return selectedDownlinkCoverage;
-  }, [linkMode, selectedDownlinkCoverage, selectedUplinkCoverage]);
+  }, [linkMode, selectedDownlinkCoverage, selectedUplinkCoverage, activeMeshTab, downlinkAtBForGlobe]);
 
   // Single coverage reference kept for legacy consumers and for the map switcher.
   // It must represent the user-terminal side of the active topology:

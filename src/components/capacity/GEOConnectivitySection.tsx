@@ -1,5 +1,5 @@
 import { memo, useState, useMemo, useEffect, type ReactNode } from 'react';
-import { Activity, ChevronDown, Gauge, Maximize2, Route, X } from 'lucide-react';
+import { Activity, ArrowLeft, ArrowRight, ChevronDown, Gauge, Maximize2, Route, X } from 'lucide-react';
 import { PerformancePanel } from '../MetricWidgets';
 import { SectionTooltip } from '../SectionTooltip';
 import CoverageSelector from '../CoverageSelector';
@@ -207,6 +207,16 @@ interface LinkBudgetDrawerProps {
   activeMeshTab?: 'forward' | 'reverse';
   onMeshTabChange?: (tab: 'forward' | 'reverse') => void;
   satelliteName?: string;
+  coverageLabels?: {
+    forward?: {
+      uplink?: string;
+      downlink?: string;
+    };
+    reverse?: {
+      uplink?: string;
+      downlink?: string;
+    };
+  };
 }
 
 const LinkBudgetDrawer = ({
@@ -217,6 +227,7 @@ const LinkBudgetDrawer = ({
   activeMeshTab,
   onMeshTabChange,
   satelliteName,
+  coverageLabels,
 }: LinkBudgetDrawerProps) => {
   useEffect(() => {
     if (!open) return;
@@ -259,6 +270,7 @@ const LinkBudgetDrawer = ({
               activeMeshTab={activeMeshTab}
               onMeshTabChange={onMeshTabChange}
               satelliteName={satelliteName}
+              coverageLabels={coverageLabels}
             />
           </div>
         </div>
@@ -266,6 +278,44 @@ const LinkBudgetDrawer = ({
     </div>
   );
 };
+
+interface DirectionArrowControlProps {
+  direction: 'forward' | 'reverse';
+  interactive?: boolean;
+  onToggle?: () => void;
+}
+
+const DirectionArrowControl = ({ direction, interactive = false, onToggle }: DirectionArrowControlProps) => (
+  <div className="flex items-center justify-center">
+    <button
+      type="button"
+      onClick={interactive ? onToggle : undefined}
+      disabled={!interactive}
+      className={[
+        'inline-flex h-8 w-8 items-center justify-center rounded-full shadow-sm ring-1 transition-colors',
+        interactive
+          ? 'bg-blue-600 text-white ring-blue-500/20 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-400'
+          : 'cursor-default bg-slate-100 text-slate-400 ring-slate-200 dark:bg-slate-800 dark:text-slate-500 dark:ring-slate-700',
+      ].join(' ')}
+      aria-label={interactive
+        ? direction === 'forward'
+          ? 'Switch direction to Terminal B to Terminal A'
+          : 'Switch direction to Terminal A to Terminal B'
+        : direction === 'forward'
+          ? 'Forward direction'
+          : 'Reverse direction'}
+      title={interactive
+        ? direction === 'forward'
+          ? 'A -> B. Click to reverse.'
+          : 'B -> A. Click to reverse.'
+        : direction === 'forward'
+          ? 'Forward direction'
+          : 'Reverse direction'}
+    >
+      {direction === 'forward' ? <ArrowRight className="h-4 w-4" /> : <ArrowLeft className="h-4 w-4" />}
+    </button>
+  </div>
+);
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -384,6 +434,8 @@ interface GEOConnectivitySectionProps {
   uplinkCoverageAtB?: CandidateCoverage | null;
   /** Best downlink coverage at Point B (auto-selected). */
   downlinkCoverageAtB?: CandidateCoverage | null;
+  /** When provided, only satellites whose ID is in this set appear in the satellite dropdown. */
+  validSatelliteIds?: ReadonlySet<string>;
 }
 
 const RTT_VISUAL_SCALE_MAX_MS = 600;
@@ -425,16 +477,25 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
   downlinkCoverageAtB = null,
   activeMeshTab: controlledMeshTab,
   onActiveMeshTabChange,
+  validSatelliteIds,
 }) => {
   const isMeshOrP2P = linkMode === 'MESH' || linkMode === 'POINT_TO_POINT';
   const isStarForward = linkMode === 'STAR_FORWARD';
 
-  // Active MESH direction tab — controlled by parent (App) when provided so the
-  // globe can reflect the same direction. Falls back to internal state otherwise.
-  const [internalMeshTab, setInternalMeshTab] = useState<'forward' | 'reverse'>('forward');
+  // Active MESH direction tab. Uses local state for immediate UI feedback;
+  // syncs to the controlled prop from App so the globe stays in sync.
+  const [internalMeshTab, setInternalMeshTab] = useState<'forward' | 'reverse'>(controlledMeshTab ?? 'forward');
   const [isLinkBudgetDrawerOpen, setIsLinkBudgetDrawerOpen] = useState(false);
   useEffect(() => { setInternalMeshTab('forward'); }, [linkMode]);
-  const activeMeshTab = controlledMeshTab ?? internalMeshTab;
+  // Keep local state in sync when App propagates an external change (e.g. globe click).
+  useEffect(() => {
+    if (controlledMeshTab && controlledMeshTab !== internalMeshTab) {
+      setInternalMeshTab(controlledMeshTab);
+    }
+  // Only sync on external prop change, not on internal change.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [controlledMeshTab]);
+  const activeMeshTab = internalMeshTab;
   const setActiveMeshTab = (tab: 'forward' | 'reverse') => {
     setInternalMeshTab(tab);
     onActiveMeshTabChange?.(tab);
@@ -627,6 +688,73 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
   const drawerSatelliteName = dualSegmentResult?.forward.uplink.candidate.satelliteName
     ?? resolvedGEOConnectivity?.satellite.name;
 
+  const formatCoverageName = (coverage: CandidateCoverage | null | undefined): string | undefined => {
+    if (!coverage) return undefined;
+    const name = coverage.coverageName || coverage.beamName || coverage.satelliteName;
+    return coverage.isSynthesized ? `${name} (estimated)` : name;
+  };
+
+  const linkBudgetCoverageLabels = useMemo(() => {
+    if (!dualSegmentResult) return undefined;
+
+    const segmentFallback = {
+      forward: {
+        uplink: formatCoverageName(dualSegmentResult.forward.uplink.candidate),
+        downlink: formatCoverageName(dualSegmentResult.forward.downlink.candidate),
+      },
+      reverse: dualSegmentResult.reverse ? {
+        uplink: formatCoverageName(dualSegmentResult.reverse.uplink.candidate),
+        downlink: formatCoverageName(dualSegmentResult.reverse.downlink.candidate),
+      } : undefined,
+    };
+
+    if (linkMode === 'STAR_FORWARD') {
+      return {
+        forward: {
+          // Gateway side: mirror the sidebar row exactly.
+          uplink: 'Gateway side — resolved automatically',
+          // User side: align with the downlink row visible in the sidebar.
+          downlink: formatCoverageName(selectedDownlinkCoverage ?? selectedCoverage) ?? segmentFallback.forward.downlink,
+        },
+      };
+    }
+
+    if (linkMode === 'STAR_RETURN') {
+      return {
+        forward: {
+          // User side: align with the uplink row visible in the sidebar.
+          uplink: formatCoverageName(selectedUplinkCoverage) ?? segmentFallback.forward.uplink,
+          // Gateway side: mirror the sidebar row exactly.
+          downlink: 'Gateway side — resolved automatically',
+        },
+      };
+    }
+
+    if (isMeshOrP2P) {
+      return {
+        forward: {
+          uplink: formatCoverageName(selectedUplinkCoverage) ?? segmentFallback.forward.uplink,
+          downlink: formatCoverageName(downlinkCoverageAtB) ?? segmentFallback.forward.downlink,
+        },
+        reverse: {
+          uplink: formatCoverageName(uplinkCoverageAtB) ?? segmentFallback.reverse?.uplink,
+          downlink: formatCoverageName(selectedDownlinkCoverage) ?? segmentFallback.reverse?.downlink,
+        },
+      };
+    }
+
+    return segmentFallback;
+  }, [
+    downlinkCoverageAtB,
+    dualSegmentResult,
+    isMeshOrP2P,
+    linkMode,
+    selectedCoverage,
+    selectedDownlinkCoverage,
+    selectedUplinkCoverage,
+    uplinkCoverageAtB,
+  ]);
+
   return (
     <>
       <h3 className="text-lg font-semibold mb-1 flex items-center" style={{ color: '#2563eb' }}>
@@ -645,41 +773,48 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
 
 <div className="mb-4">
         {isMeshOrP2P && terminalTypeB != null && onTerminalTypeBChange ? (
-          <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
-            <TerminalConfig
-              terminalType={terminalType}
-              onTerminalTypeChange={onTerminalTypeChange}
-              weatherType={weatherType}
-              onWeatherTypeChange={onWeatherTypeChange}
-              autoWeatherEnabled={autoWeatherEnabled}
-              onAutoWeatherChange={onAutoWeatherChange}
-              analysisSource={analysisSource}
-              compact
-              showWeather={false}
-              className="mb-0"
-              title="Terminal A"
-              stacked
-              tone={pointAIsUserDefined ? 'user-defined' : 'not-user-defined'}
-              statusLabel={pointAIsUserDefined ? 'Manual' : 'Auto'}
-            />
-            <TerminalConfig
-              terminalType={terminalTypeB}
-              onTerminalTypeChange={onTerminalTypeBChange}
-              weatherType={weatherType}
-              onWeatherTypeChange={onWeatherTypeChange}
-              autoWeatherEnabled={autoWeatherEnabled}
-              onAutoWeatherChange={onAutoWeatherChange}
-              compact
-              showWeather={false}
-              className="mb-0"
-              title="Terminal B"
-              stacked
-              tone={pointBIsUserDefined ? 'user-defined' : 'not-user-defined'}
-              statusLabel={pointBIsUserDefined ? 'Manual' : 'Unset'}
-            />
-          </div>
+          <>
+            <div className="grid grid-cols-1 items-stretch gap-1.5 xl:grid-cols-[minmax(0,1fr)_34px_minmax(0,1fr)]">
+              <TerminalConfig
+                terminalType={terminalType}
+                onTerminalTypeChange={onTerminalTypeChange}
+                weatherType={weatherType}
+                onWeatherTypeChange={onWeatherTypeChange}
+                autoWeatherEnabled={autoWeatherEnabled}
+                onAutoWeatherChange={onAutoWeatherChange}
+                analysisSource={analysisSource}
+                compact
+                showWeather={false}
+                className="mb-0"
+                title="Terminal A"
+                stacked
+                tone={pointAIsUserDefined ? 'user-defined' : 'not-user-defined'}
+                statusLabel={pointAIsUserDefined ? 'Manual' : 'Auto'}
+              />
+              <DirectionArrowControl
+                direction={candidateCoveragesB.length > 0 ? activeMeshTab : 'forward'}
+                interactive={candidateCoveragesB.length > 0}
+                onToggle={() => setActiveMeshTab(activeMeshTab === 'forward' ? 'reverse' : 'forward')}
+              />
+              <TerminalConfig
+                terminalType={terminalTypeB}
+                onTerminalTypeChange={onTerminalTypeBChange}
+                weatherType={weatherType}
+                onWeatherTypeChange={onWeatherTypeChange}
+                autoWeatherEnabled={autoWeatherEnabled}
+                onAutoWeatherChange={onAutoWeatherChange}
+                compact
+                showWeather={false}
+                className="mb-0"
+                title="Terminal B"
+                stacked
+                tone={pointBIsUserDefined ? 'user-defined' : 'not-user-defined'}
+                statusLabel={pointBIsUserDefined ? 'Manual' : 'Unset'}
+              />
+            </div>
+          </>
         ) : (
-          <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
+          <div className="grid grid-cols-1 items-stretch gap-1.5 xl:grid-cols-[minmax(0,1fr)_34px_minmax(0,1fr)]">
             {isStarForward ? (
               <>
                 <TerminalConfig
@@ -701,6 +836,7 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
                   terminalDisplayLabel="Gateway"
                   terminalDisplayIcon="📡"
                 />
+                <DirectionArrowControl direction="forward" />
                 <TerminalConfig
                   terminalType={terminalType}
                   onTerminalTypeChange={onTerminalTypeChange}
@@ -736,6 +872,7 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
                   tone={pointAIsUserDefined ? 'user-defined' : 'not-user-defined'}
                   statusLabel={pointAIsUserDefined ? 'Manual' : 'Auto'}
                 />
+                <DirectionArrowControl direction="forward" />
                 <TerminalConfig
                   terminalType="fixed"
                   onTerminalTypeChange={() => {}}
@@ -761,7 +898,7 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
         )}
       </div>
 
-      {candidateCoverages.length > 0 && (() => {
+      {candidateCoverages.length > 0 && (!isMeshOrP2P || candidateCoveragesB.length > 0) && (() => {
         // In MESH/P2P the uplink and downlink candidates swap with the active direction:
         //   A→B: uplink = A-side (selectable), downlink = B-side (display only)
         //   B→A: uplink = B-side (display only), downlink = A-side (selectable)
@@ -782,6 +919,7 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
               onSelectDownlinkCoverage={isMeshOrP2P ? (isReverse ? onSelectDownlinkCoverage : undefined) : onSelectDownlinkCoverage}
               uplinkCandidatesOverride={isMeshOrP2P ? (isReverse ? bUplinks   : undefined) : undefined}
               downlinkCandidatesOverride={isMeshOrP2P ? (isReverse ? undefined : bDownlinks) : undefined}
+              validSatelliteIds={validSatelliteIds}
             />
           </div>
         );
@@ -805,6 +943,7 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
           activeMeshTab={isMeshOrP2P ? activeMeshTab : undefined}
           onMeshTabChange={isMeshOrP2P ? setActiveMeshTab : undefined}
           satelliteName={drawerSatelliteName}
+          coverageLabels={linkBudgetCoverageLabels}
         />
 
         {showEstimatedPerformance && showPerformanceBeforeRadioPath && estimatedPerformanceSection}
