@@ -171,6 +171,8 @@ interface PerformancePanelProps {
     rttLabel?: string;
     noDataMessage?: string;
     stabilityTooltip?: string;
+    downlinkLabel?: string;
+    uplinkLabel?: string;
 }
 
 /** Full performance panel combining RTT + DL + UL + Stability */
@@ -180,6 +182,8 @@ export const PerformancePanel: React.FC<PerformancePanelProps> = ({
     rttLabel = 'RTT',
     noDataMessage,
     stabilityTooltip,
+    downlinkLabel = 'Downlink throughput',
+    uplinkLabel = 'Uplink throughput',
 }) => {
     const allEmpty = rtt == null && downlinkGbps == null && uplinkGbps == null;
     const DL_WIDTH_RATIO = 3 / 5;
@@ -198,7 +202,7 @@ export const PerformancePanel: React.FC<PerformancePanelProps> = ({
                 <div className="grid grid-cols-1 gap-3 items-start sm:grid-cols-5">
                     <div className="sm:col-span-3">
                         <ThroughputBar
-                            label="Downlink throughput"
+                            label={downlinkLabel}
                             gbps={null}
                             maxGbps={maxDlGbps}
                             accentColor={accentColor}
@@ -208,7 +212,7 @@ export const PerformancePanel: React.FC<PerformancePanelProps> = ({
                     </div>
                     <div className="sm:col-span-2">
                         <ThroughputBar
-                            label="Uplink throughput"
+                            label={uplinkLabel}
                             gbps={null}
                             maxGbps={maxUlGbps}
                             accentColor={accentColor}
@@ -228,7 +232,7 @@ export const PerformancePanel: React.FC<PerformancePanelProps> = ({
             <div className="grid grid-cols-1 gap-3 items-start sm:grid-cols-5">
                 <div className="sm:col-span-3">
                     <ThroughputBar
-                        label="Downlink throughput"
+                        label={downlinkLabel}
                         gbps={downlinkGbps}
                         maxGbps={maxDlGbps}
                         accentColor={accentColor}
@@ -239,7 +243,7 @@ export const PerformancePanel: React.FC<PerformancePanelProps> = ({
                 </div>
                 <div className="sm:col-span-2">
                     <ThroughputBar
-                        label="Uplink throughput"
+                        label={uplinkLabel}
                         gbps={uplinkGbps}
                         maxGbps={maxUlGbps}
                         accentColor={accentColor}

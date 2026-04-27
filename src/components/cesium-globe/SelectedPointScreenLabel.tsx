@@ -48,24 +48,36 @@ const formatCompactThroughputMbps = (gbps: number | null | undefined): string =>
 const formatCompactPerformanceLine = (
   label: 'LEO' | 'GEO',
   metrics: MobileLinkMetrics | null | undefined,
+  linkMode?: LinkMode,
 ): string | null => {
   if (!metrics || metrics.rtt == null || !Number.isFinite(metrics.rtt)) {
     return null;
   }
 
-  return [
-    `${label}:`,
-    `${Math.round(metrics.rtt)}ms`,
-    `${formatCompactThroughputMbps(metrics.downlinkGbps)}/${formatCompactThroughputMbps(metrics.uplinkGbps)}Mbps`,
-  ].join(' ');
+  const dl = formatCompactThroughputMbps(metrics.downlinkGbps);
+  const ul = formatCompactThroughputMbps(metrics.uplinkGbps);
+
+  // In STAR modes only one direction is computed; show just that value with
+  // a directional arrow so the user knows which path is displayed.
+  let throughput: string;
+  if (linkMode === 'STAR_FORWARD') {
+    throughput = `${dl}Mbps↓`;
+  } else if (linkMode === 'STAR_RETURN') {
+    throughput = `${ul}Mbps↑`;
+  } else {
+    throughput = `${dl}↓/${ul}↑Mbps`;
+  }
+
+  return [`${label}:`, `${Math.round(metrics.rtt)}ms`, throughput].join(' ');
 };
 
 const buildPerformanceStatusLine = (
   label: 'LEO' | 'GEO',
   metrics: MobileLinkMetrics | null | undefined,
   tone: SelectedPointStatusTone,
+  linkMode?: LinkMode,
 ): SelectedPointStatusLine | null => {
-  const text = formatCompactPerformanceLine(label, metrics);
+  const text = formatCompactPerformanceLine(label, metrics, linkMode);
   return text ? { text, tone } : null;
 };
 
@@ -133,7 +145,7 @@ const SelectedPointScreenLabel: React.FC<SelectedPointScreenLabelProps> = ({
         ? buildPerformanceStatusLine('LEO', performanceMetrics?.leo, 'warning') ?? fallbackStatusLines[0]
         : fallbackStatusLines[0];
     const geoStatusLine = geoPointStatus === 'available'
-      ? buildPerformanceStatusLine('GEO', performanceMetrics?.geo, 'success') ?? fallbackStatusLines[fallbackStatusLines.length - 1]
+      ? buildPerformanceStatusLine('GEO', performanceMetrics?.geo, 'success', linkMode) ?? fallbackStatusLines[fallbackStatusLines.length - 1]
       : fallbackStatusLines[fallbackStatusLines.length - 1];
 
     const statusLines = satelliteScope === 'LEO'

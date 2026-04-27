@@ -719,17 +719,6 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
     };
   }, [leoGeometry, leoPerformance]);
 
-  const mobileGeoMetrics = useMemo(() => {
-    if (!resolvedGEOConnectivity || !geoGeometry) return null;
-
-    const performance = calculateGEOPerformance(geoGeometry.userToSatellite.elevationDeg);
-    return {
-      rtt: geoGeometry.rttTotalMs,
-      downlinkGbps: performance.downlinkGbps,
-      uplinkGbps: performance.uplinkGbps,
-    };
-  }, [resolvedGEOConnectivity, geoGeometry, calculateGEOPerformance]);
-
   const meshMetrics = useMemo((): MeshLinkMetrics | null => {
     if ((linkMode !== 'MESH' && linkMode !== 'POINT_TO_POINT') || !dualSegmentResult) return null;
     const C_KM_PER_MS = 299.792458;
@@ -757,6 +746,87 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
     if (!resolvedGEOConnectivity || !geoGeometry) return null;
     return calculateGEOPerformance(geoGeometry.userToSatellite.elevationDeg);
   }, [resolvedGEOConnectivity, geoGeometry, calculateGEOPerformance]);
+
+  /**
+   * Merges the proper end-to-end link budget (dualSegmentResult) into the
+   * per-segment geoPerformance estimate.
+   *
+   * calculateGEOPerformance only looks at one segment at a time (e.g. sat→user
+   * for STAR_FORWARD), so it ignores the bottleneck from the other segment
+   * (gateway→sat) and misses the noise addition law combination. When a
+   * dualSegmentResult is available we replace the affected direction with the
+   * correct end-to-end throughput and derive stability from the e2e link margin.
+   */
+  const geoEffectivePerformance = useMemo(() => {
+    if (!geoPerformance) return null;
+    // MESH/P2P requires both endpoints to be valid — never show single-terminal
+    // fallback values as if they represent the mesh path.
+    if (!dualSegmentResult) {
+      return (linkMode === 'MESH' || linkMode === 'POINT_TO_POINT') ? null : geoPerformance;
+    }
+
+    const profile = TERMINAL_PROFILES[geoTerminalType];
+    const fwE2E = dualSegmentResult.forward.endToEnd;
+    const rvE2E = dualSegmentResult.reverse?.endToEnd ?? null;
+
+    const worstMarginDb = rvE2E
+      ? Math.min(fwE2E.endToEndLinkMarginDb, rvE2E.endToEndLinkMarginDb)
+      : fwE2E.endToEndLinkMarginDb;
+
+    const stability: 'Unstable' | 'Low' | 'Medium' | 'High' =
+      worstMarginDb < 0                             ? 'Unstable' :
+      worstMarginDb < GEO_LINK_MARGIN_STABILITY.medium ? 'Low'  :
+      worstMarginDb < GEO_LINK_MARGIN_STABILITY.high   ? 'Medium' :
+                                                          'High';
+
+    if (linkMode === 'STAR_FORWARD') {
+      const dlGbps = Math.min(fwE2E.endToEndThroughputMbps / 1000, profile.maxDlGbps);
+      return {
+        ...geoPerformance,
+        downlinkGbps: dlGbps,
+        stability,
+        performanceFactor: profile.maxDlGbps > 0 ? dlGbps / profile.maxDlGbps : 0,
+      };
+    }
+
+    if (linkMode === 'STAR_RETURN') {
+      const ulGbps = Math.min(fwE2E.endToEndThroughputMbps / 1000, profile.maxUlGbps);
+      return {
+        ...geoPerformance,
+        uplinkGbps: ulGbps,
+        stability,
+        performanceFactor: profile.maxUlGbps > 0 ? ulGbps / profile.maxUlGbps : 0,
+      };
+    }
+
+    if (linkMode === 'MESH' || linkMode === 'POINT_TO_POINT') {
+      // Forward = A→B (uplink from A's perspective), reverse = B→A (downlink at A).
+      const ulGbps = Math.min(fwE2E.endToEndThroughputMbps / 1000, profile.maxUlGbps);
+      const dlGbps = rvE2E
+        ? Math.min(rvE2E.endToEndThroughputMbps / 1000, profile.maxDlGbps)
+        : geoPerformance.downlinkGbps;
+      const dlRatio = profile.maxDlGbps > 0 && dlGbps != null ? dlGbps / profile.maxDlGbps : 0;
+      const ulRatio = profile.maxUlGbps > 0 ? ulGbps / profile.maxUlGbps : 0;
+      return {
+        ...geoPerformance,
+        downlinkGbps: dlGbps,
+        uplinkGbps: ulGbps,
+        stability,
+        performanceFactor: Math.max(dlRatio, ulRatio),
+      };
+    }
+
+    return geoPerformance;
+  }, [geoPerformance, dualSegmentResult, geoTerminalType, linkMode]);
+
+  const mobileGeoMetrics = useMemo(() => {
+    if (!resolvedGEOConnectivity || !geoGeometry || !geoEffectivePerformance) return null;
+    return {
+      rtt: geoGeometry.rttTotalMs,
+      downlinkGbps: geoEffectivePerformance.downlinkGbps,
+      uplinkGbps: geoEffectivePerformance.uplinkGbps,
+    };
+  }, [resolvedGEOConnectivity, geoGeometry, geoEffectivePerformance]);
 
   const activeEstimatedPerformanceScope = satelliteScope === 'ALL' ? activeConnTab : satelliteScope;
   const isLeoPerformanceDiagnosticOnly = leoServiceViewModel?.decisionDriver === 'REGULATORY'
@@ -821,6 +891,15 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
         : geoGeometry?.rttTotalMs ?? null;
       const rttLabel = isMeshMode ? 'Mesh A↔B RTT (4-hop)' : 'End-to-End GEO RTT';
 
+      // Label the DL/UL bars to reflect which link direction is actually computed.
+      // STAR_FORWARD only computes gateway→user; the return path (user→gateway)
+      // is not modelled in this mode and correctly shows as "--".
+      const { dlLabel, ulLabel } = (() => {
+        if (linkMode === 'STAR_FORWARD') return { dlLabel: 'Forward link (Rx)', ulLabel: 'Return link — switch to STAR Return' };
+        if (linkMode === 'STAR_RETURN')  return { dlLabel: 'Forward link — switch to STAR Forward', ulLabel: 'Return link (Tx)' };
+        return { dlLabel: 'Downlink throughput', ulLabel: 'Uplink throughput' };
+      })();
+
       const geoStabilityTooltip = geoGeometry
         ? formatGeoStabilityTooltip(
           geoGeometry.userToSatellite.elevationDeg,
@@ -836,19 +915,21 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
           defaultOpen={true}
           collapsible={false}
         >
-          {resolvedGEOConnectivity && geoGeometry && geoPerformance ? (
+          {resolvedGEOConnectivity && geoGeometry && geoEffectivePerformance ? (
             <PerformancePanel
               rtt={effectiveRttMs}
-              downlinkGbps={geoPerformance.downlinkGbps}
-              uplinkGbps={geoPerformance.uplinkGbps}
+              downlinkGbps={geoEffectivePerformance.downlinkGbps}
+              uplinkGbps={geoEffectivePerformance.uplinkGbps}
               maxDlGbps={TERMINAL_PROFILES[geoTerminalType].maxDlGbps}
               maxUlGbps={TERMINAL_PROFILES[geoTerminalType].maxUlGbps}
-              stability={geoGeometry.isUserLinkUnstable ? 'Unstable' : geoPerformance.stability}
-              performanceFactor={geoPerformance.performanceFactor}
+              stability={geoGeometry.isUserLinkUnstable ? 'Unstable' : geoEffectivePerformance.stability}
+              performanceFactor={geoEffectivePerformance.performanceFactor}
               accentColor="#2563eb"
               rttMaxMs={RTT_VISUAL_SCALE_MAX_MS}
               rttLabel={rttLabel}
               stabilityTooltip={geoStabilityTooltip}
+              downlinkLabel={dlLabel}
+              uplinkLabel={ulLabel}
             />
           ) : (
             <PerformancePanel
@@ -869,7 +950,7 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
   }, [
     activeEstimatedPerformanceScope,
     geoGeometry,
-    geoPerformance,
+    geoEffectivePerformance,
     isLeoPerformanceDiagnosticOnly,
     leoDiagnosticMessage,
     linkMode,
