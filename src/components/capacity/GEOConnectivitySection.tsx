@@ -1,5 +1,5 @@
 import { memo, useState, useMemo, useEffect, type ReactNode } from 'react';
-import { ChevronDown } from 'lucide-react';
+import { Activity, ChevronDown, Gauge, Maximize2, Route, X } from 'lucide-react';
 import { PerformancePanel } from '../MetricWidgets';
 import { SectionTooltip } from '../SectionTooltip';
 import CoverageSelector from '../CoverageSelector';
@@ -47,6 +47,222 @@ const LatencyBreakdownCard = ({ accentColor, summary, title = 'Latency breakdown
           {children}
         </div>
       )}
+    </div>
+  );
+};
+
+// ─── Sub-component: Link budget cockpit + detail drawer ──────────────────────
+
+const fmtDb = (v: number | undefined | null, d = 1) =>
+  typeof v === 'number' && isFinite(v) ? `${v.toFixed(d)} dB` : '--';
+
+const fmtMbps = (v: number | undefined | null) => {
+  if (typeof v !== 'number' || !isFinite(v)) return '--';
+  if (v >= 1000) return `${(v / 1000).toFixed(2)} Gbps`;
+  return `${v.toFixed(0)} Mbps`;
+};
+
+const fmtMs = (v: number | undefined | null) =>
+  typeof v === 'number' && isFinite(v) ? `${Math.round(v)} ms` : '--';
+
+const linkMarginTone = (margin: number | undefined | null) => {
+  if (typeof margin !== 'number' || !isFinite(margin)) {
+    return {
+      label: 'No budget',
+      className: 'border-slate-200 bg-slate-50 text-slate-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300',
+      accent: '#64748b',
+    };
+  }
+  if (margin < 0) {
+    return {
+      label: 'Blocked',
+      className: 'border-red-200 bg-red-50 text-red-700 dark:border-red-800 dark:bg-red-950/30 dark:text-red-300',
+      accent: '#dc2626',
+    };
+  }
+  if (margin < 2) {
+    return {
+      label: 'Marginal',
+      className: 'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-300',
+      accent: '#d97706',
+    };
+  }
+  return {
+    label: 'Healthy',
+    className: 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-300',
+    accent: '#059669',
+  };
+};
+
+interface LinkBudgetSummaryCardProps {
+  linkMode: LinkMode;
+  result: DualSegmentResult | null;
+  rttMs: number | null;
+  routeLabel: string;
+  activeMeshTab?: 'forward' | 'reverse';
+  onOpen: () => void;
+}
+
+const LinkBudgetSummaryCard = ({
+  linkMode,
+  result,
+  rttMs,
+  routeLabel,
+  activeMeshTab = 'forward',
+  onOpen,
+}: LinkBudgetSummaryCardProps) => {
+  const direction = result
+    ? (activeMeshTab === 'reverse' && result.reverse ? result.reverse : result.forward)
+    : null;
+  const e2e = direction?.endToEnd ?? null;
+  const uplink = direction?.uplink ?? null;
+  const downlink = direction?.downlink ?? null;
+  const limiting = e2e?.limitingSegment === 'uplink' ? 'Uplink' : e2e?.limitingSegment === 'downlink' ? 'Downlink' : '--';
+  const margin = e2e?.endToEndLinkMarginDb;
+  const tone = linkMarginTone(margin);
+  const satelliteName = uplink?.candidate.satelliteName ?? downlink?.candidate.satelliteName ?? 'No GEO path';
+  const band = uplink?.candidate.band ?? downlink?.candidate.band ?? 'Band --';
+  const beamName = uplink?.candidate.beamName ?? downlink?.candidate.beamName ?? uplink?.candidate.coverageName ?? downlink?.candidate.coverageName ?? '--';
+
+  return (
+    <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900">
+      <div className="border-b border-slate-100 bg-slate-50/80 px-3.5 py-3 dark:border-slate-800 dark:bg-slate-900/70">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className={`rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${tone.className}`}>
+                {tone.label}
+              </span>
+              <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">
+                Link Budget
+              </span>
+            </div>
+            <h4 className="mt-1.5 truncate text-sm font-semibold text-slate-950 dark:text-slate-50">
+              {satelliteName}
+            </h4>
+            <p className="mt-1 truncate text-xs text-slate-500 dark:text-slate-400">
+              {band} · {beamName}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onOpen}
+            className="inline-flex h-9 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-white px-2.5 text-slate-600 shadow-sm transition-colors hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+            aria-label="Open detailed link budget"
+            title="Open detailed link budget"
+          >
+            <Maximize2 className="h-4 w-4" />
+          </button>
+        </div>
+        <div className="mt-3 flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs text-slate-600 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-300">
+          <Route className="h-4 w-4 shrink-0 text-blue-500" />
+          <span className="min-w-0 truncate">{routeLabel}</span>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-px bg-slate-100 dark:bg-slate-800 sm:grid-cols-4">
+        {[
+          { label: 'Throughput', value: fmtMbps(e2e?.endToEndThroughputMbps), icon: Gauge },
+          { label: 'RTT', value: fmtMs(rttMs), icon: Activity },
+          { label: 'Margin', value: fmtDb(margin), icon: Gauge },
+          { label: 'Limit', value: limiting, icon: Route },
+        ].map((item) => {
+          const Icon = item.icon;
+          return (
+            <div key={item.label} className="min-w-0 bg-white px-3 py-3 dark:bg-slate-900">
+              <div className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">
+                <Icon className="h-3.5 w-3.5" />
+                <span>{item.label}</span>
+              </div>
+              <div className="mt-1 truncate text-sm font-bold tabular-nums text-slate-950 dark:text-slate-50" style={item.label === 'Margin' ? { color: tone.accent } : undefined}>
+                {item.value}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      <div className="flex items-center justify-between gap-3 px-3.5 py-2.5 text-xs text-slate-500 dark:text-slate-400">
+        <span className="truncate">
+          {linkMode === 'MESH' || linkMode === 'POINT_TO_POINT'
+            ? `Direction ${activeMeshTab === 'reverse' ? 'B -> A' : 'A -> B'}`
+            : 'Selected topology budget'}
+        </span>
+        <button
+          type="button"
+          onClick={onOpen}
+          className="shrink-0 font-semibold text-blue-600 transition-colors hover:text-blue-700 dark:text-blue-300 dark:hover:text-blue-200"
+        >
+          Details
+        </button>
+      </div>
+    </section>
+  );
+};
+
+interface LinkBudgetDrawerProps {
+  open: boolean;
+  onClose: () => void;
+  linkMode: LinkMode;
+  result: DualSegmentResult | null;
+  activeMeshTab?: 'forward' | 'reverse';
+  onMeshTabChange?: (tab: 'forward' | 'reverse') => void;
+  satelliteName?: string;
+}
+
+const LinkBudgetDrawer = ({
+  open,
+  onClose,
+  linkMode,
+  result,
+  activeMeshTab,
+  onMeshTabChange,
+  satelliteName,
+}: LinkBudgetDrawerProps) => {
+  useEffect(() => {
+    if (!open) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') onClose();
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, [onClose, open]);
+
+  if (!open) return null;
+
+  return (
+    <div className="fixed inset-0 z-[80] bg-slate-950/35 backdrop-blur-sm" role="dialog" aria-modal="true" aria-label="Detailed GEO link budget">
+      <div className="absolute inset-y-0 right-0 flex w-full justify-end sm:pl-10">
+        <div className="flex h-full w-full max-w-3xl flex-col border-l border-slate-200 bg-white shadow-2xl dark:border-slate-800 dark:bg-slate-950">
+          <div className="flex items-start justify-between gap-4 border-b border-slate-200 px-5 py-4 dark:border-slate-800">
+            <div className="min-w-0">
+              <p className="text-[11px] font-bold uppercase tracking-wide text-blue-500 dark:text-blue-300">GEO Link Budget</p>
+              <h3 className="mt-1 truncate text-lg font-semibold text-slate-950 dark:text-slate-50">
+                {satelliteName ?? result?.forward.uplink.candidate.satelliteName ?? 'Detailed RF path'}
+              </h3>
+              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                Full segment budget, unchanged from the calculation engine.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={onClose}
+              className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 shadow-sm transition-colors hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+              aria-label="Close link budget detail"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+          <div className="flex-1 overflow-y-auto px-5 py-4">
+            <DualSegmentPanel
+              linkMode={linkMode}
+              result={result}
+              activeMeshTab={activeMeshTab}
+              onMeshTabChange={onMeshTabChange}
+              satelliteName={satelliteName}
+            />
+          </div>
+        </div>
+      </div>
     </div>
   );
 };
@@ -216,6 +432,7 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
   // Active MESH direction tab — controlled by parent (App) when provided so the
   // globe can reflect the same direction. Falls back to internal state otherwise.
   const [internalMeshTab, setInternalMeshTab] = useState<'forward' | 'reverse'>('forward');
+  const [isLinkBudgetDrawerOpen, setIsLinkBudgetDrawerOpen] = useState(false);
   useEffect(() => { setInternalMeshTab('forward'); }, [linkMode]);
   const activeMeshTab = controlledMeshTab ?? internalMeshTab;
   const setActiveMeshTab = (tab: 'forward' | 'reverse') => {
@@ -375,6 +592,40 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
       )}
     </CollapsibleSection>
   );
+
+  const budgetRouteLabel = useMemo(() => {
+    const satelliteName = dualSegmentResult?.forward.uplink.candidate.satelliteName
+      ?? resolvedGEOConnectivity?.satellite.name
+      ?? 'GEO satellite';
+
+    if (isMeshOrP2P) {
+      const pointALabel = meshGeometry?.pointALabel ?? 'Terminal A';
+      const pointBLabel = meshGeometry?.pointBLabel ?? 'Terminal B';
+      return activeMeshTab === 'reverse'
+        ? `${pointBLabel} -> ${satelliteName} -> ${pointALabel}`
+        : `${pointALabel} -> ${satelliteName} -> ${pointBLabel}`;
+    }
+
+    return linkMode === 'STAR_RETURN'
+      ? `${userLabel} -> ${satelliteName} -> ${gatewayName}`
+      : `${gatewayName} -> ${satelliteName} -> ${userLabel}`;
+  }, [
+    activeMeshTab,
+    dualSegmentResult,
+    gatewayName,
+    isMeshOrP2P,
+    linkMode,
+    meshGeometry,
+    resolvedGEOConnectivity,
+    userLabel,
+  ]);
+
+  const budgetRttMs = isMeshOrP2P
+    ? meshGeometry?.rttTotalMs ?? null
+    : geoGeometry?.rttTotalMs ?? null;
+
+  const drawerSatelliteName = dualSegmentResult?.forward.uplink.candidate.satelliteName
+    ?? resolvedGEOConnectivity?.satellite.name;
 
   return (
     <>
@@ -537,13 +788,23 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
       })()}
 
       <div className="space-y-4">
-        {/* Dual-segment RF budget */}
-        <DualSegmentPanel
+        <LinkBudgetSummaryCard
+          linkMode={linkMode}
+          result={dualSegmentResult}
+          rttMs={budgetRttMs}
+          routeLabel={budgetRouteLabel}
+          activeMeshTab={isMeshOrP2P ? activeMeshTab : undefined}
+          onOpen={() => setIsLinkBudgetDrawerOpen(true)}
+        />
+
+        <LinkBudgetDrawer
+          open={isLinkBudgetDrawerOpen}
+          onClose={() => setIsLinkBudgetDrawerOpen(false)}
           linkMode={linkMode}
           result={dualSegmentResult}
           activeMeshTab={isMeshOrP2P ? activeMeshTab : undefined}
           onMeshTabChange={isMeshOrP2P ? setActiveMeshTab : undefined}
-          satelliteName={dualSegmentResult?.forward.uplink.candidate.satelliteName}
+          satelliteName={drawerSatelliteName}
         />
 
         {showEstimatedPerformance && showPerformanceBeforeRadioPath && estimatedPerformanceSection}
@@ -557,7 +818,7 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
               : <> Radio Path <SectionTooltip content="End-to-end signal route: User → GEO Satellite → Ground Gateway and back. Shows elevation angle, slant range, and propagation delay per segment." /></>
           }
           accentColor="#2563eb"
-          defaultOpen={true}
+          defaultOpen={false}
         >
           {isMeshOrP2P ? (
             // ── MESH/P2P: A → Sat → B (no gateway) ──────────────────────────
