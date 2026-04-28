@@ -81,6 +81,15 @@ h1, h2, h3, h4 {
   height: 100%;
 }
 
+@media (min-width: 1100px) {
+  .geo-link-budget-drawer {
+    top: 6.5rem;
+    bottom: 1rem;
+    right: calc(var(--desktop-sidebar-width, 420px) + var(--desktop-layout-gap, 16px) + 1rem);
+    width: min(52rem, calc(100vw - var(--desktop-sidebar-width, 420px) - var(--desktop-layout-gap, 16px) - 3rem));
+  }
+}
+
 /* Styles pour le mode plein écran */
 .fixed.inset-4 {
   margin: 1rem;

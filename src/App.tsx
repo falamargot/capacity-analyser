@@ -2949,7 +2949,14 @@ const App: React.FC = () => {
         </main>
       ) : (
         <main className="px-2 py-4 sm:px-3 lg:px-4">
-          <div className="flex h-[calc(100vh-8rem)] flex-row" style={{ gap: desktopLayoutGap }}>
+          <div
+            className="flex h-[calc(100vh-8rem)] flex-row"
+            style={{
+              gap: desktopLayoutGap,
+              ['--desktop-sidebar-width' as string]: `${desktopSidebarWidth}px`,
+              ['--desktop-layout-gap' as string]: `${desktopLayoutGap}px`,
+            } as React.CSSProperties}
+          >
             <div
               className={`flex-1 relative bg-white rounded-lg shadow-lg overflow-hidden transition-all duration-300 ${isFullscreen ? 'fixed inset-0 z-50' : ''}`}
             >

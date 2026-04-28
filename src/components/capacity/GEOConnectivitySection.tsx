@@ -1,5 +1,5 @@
 import { memo, useState, useMemo, useEffect, type ReactNode } from 'react';
-import { Activity, ArrowLeft, ArrowRight, ChevronDown, Gauge, Maximize2, Route, X } from 'lucide-react';
+import { Activity, ArrowLeft, ArrowRight, ChevronDown, Gauge, Maximize2, Minimize2, Route, X } from 'lucide-react';
 import { PerformancePanel } from '../MetricWidgets';
 import { SectionTooltip } from '../SectionTooltip';
 import CoverageSelector from '../CoverageSelector';
@@ -100,7 +100,8 @@ interface LinkBudgetSummaryCardProps {
   rttMs: number | null;
   routeLabel: string;
   activeMeshTab?: 'forward' | 'reverse';
-  onOpen: () => void;
+  highlighted?: boolean;
+  onToggle: () => void;
 }
 
 const LinkBudgetSummaryCard = ({
@@ -109,7 +110,8 @@ const LinkBudgetSummaryCard = ({
   rttMs,
   routeLabel,
   activeMeshTab = 'forward',
-  onOpen,
+  highlighted = false,
+  onToggle,
 }: LinkBudgetSummaryCardProps) => {
   const direction = result
     ? (activeMeshTab === 'reverse' && result.reverse ? result.reverse : result.forward)
@@ -125,8 +127,23 @@ const LinkBudgetSummaryCard = ({
   const beamName = uplink?.candidate.beamName ?? downlink?.candidate.beamName ?? uplink?.candidate.coverageName ?? downlink?.candidate.coverageName ?? '--';
 
   return (
-    <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900">
-      <div className="border-b border-slate-100 bg-slate-50/80 px-3.5 py-3 dark:border-slate-800 dark:bg-slate-900/70">
+    <section
+      className={[
+        'relative overflow-hidden rounded-xl border bg-white shadow-sm transition-all duration-200 dark:bg-slate-900',
+        highlighted
+          ? 'border-blue-300 ring-2 ring-blue-500/30 dark:border-blue-500/70 dark:ring-blue-400/30'
+          : 'border-slate-200 dark:border-slate-700',
+      ].join(' ')}
+    >
+      {highlighted && <div className="absolute inset-y-0 left-0 w-1 bg-blue-500" aria-hidden="true" />}
+      <div
+        className={[
+          'border-b px-3.5 py-3',
+          highlighted
+            ? 'border-blue-100 bg-blue-50/75 dark:border-blue-900/70 dark:bg-blue-950/30'
+            : 'border-slate-100 bg-slate-50/80 dark:border-slate-800 dark:bg-slate-900/70',
+        ].join(' ')}
+      >
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
@@ -146,12 +163,18 @@ const LinkBudgetSummaryCard = ({
           </div>
           <button
             type="button"
-            onClick={onOpen}
-            className="inline-flex h-9 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-white px-2.5 text-slate-600 shadow-sm transition-colors hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
-            aria-label="Open detailed link budget"
-            title="Open detailed link budget"
+            onClick={onToggle}
+            className={[
+              'inline-flex h-9 shrink-0 items-center justify-center rounded-lg border px-2.5 shadow-sm transition-colors',
+              highlighted
+                ? 'border-blue-300 bg-blue-600 text-white hover:bg-blue-700 dark:border-blue-400 dark:bg-blue-500 dark:hover:bg-blue-400'
+                : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700',
+            ].join(' ')}
+            aria-label={highlighted ? 'Close detailed link budget' : 'Open detailed link budget'}
+            title={highlighted ? 'Close detailed link budget' : 'Open detailed link budget'}
+            aria-pressed={highlighted}
           >
-            <Maximize2 className="h-4 w-4" />
+            {highlighted ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
           </button>
         </div>
         <div className="mt-3 flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs text-slate-600 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-300">
@@ -189,10 +212,10 @@ const LinkBudgetSummaryCard = ({
         </span>
         <button
           type="button"
-          onClick={onOpen}
+          onClick={onToggle}
           className="shrink-0 font-semibold text-blue-600 transition-colors hover:text-blue-700 dark:text-blue-300 dark:hover:text-blue-200"
         >
-          Details
+          {highlighted ? 'Hide details' : 'Details'}
         </button>
       </div>
     </section>
@@ -241,9 +264,14 @@ const LinkBudgetDrawer = ({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-[80] bg-slate-950/35 backdrop-blur-sm" role="dialog" aria-modal="true" aria-label="Detailed GEO link budget">
-      <div className="absolute inset-y-0 right-0 flex w-full justify-end sm:pl-10">
-        <div className="flex h-full w-full max-w-3xl flex-col border-l border-slate-200 bg-white shadow-2xl dark:border-slate-800 dark:bg-slate-950">
+    <div
+      className="geo-link-budget-drawer fixed z-[80] max-[1099px]:inset-0 max-[1099px]:bg-slate-950/35 max-[1099px]:backdrop-blur-sm min-[1100px]:pointer-events-none"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Detailed GEO link budget"
+    >
+      <div className="absolute inset-y-0 right-0 flex w-full justify-end max-[1099px]:sm:pl-10 min-[1100px]:pointer-events-auto">
+        <div className="flex h-full w-full max-w-3xl flex-col border-l border-slate-200 bg-white shadow-2xl dark:border-slate-800 dark:bg-slate-950 min-[1100px]:overflow-hidden min-[1100px]:rounded-[24px] min-[1100px]:border">
           <div className="flex items-start justify-between gap-4 border-b border-slate-200 px-5 py-4 dark:border-slate-800">
             <div className="min-w-0">
               <p className="text-[11px] font-bold uppercase tracking-wide text-blue-500 dark:text-blue-300">GEO Link Budget</p>
@@ -932,7 +960,8 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
           rttMs={budgetRttMs}
           routeLabel={budgetRouteLabel}
           activeMeshTab={isMeshOrP2P ? activeMeshTab : undefined}
-          onOpen={() => setIsLinkBudgetDrawerOpen(true)}
+          highlighted={isLinkBudgetDrawerOpen}
+          onToggle={() => setIsLinkBudgetDrawerOpen((open) => !open)}
         />
 
         <LinkBudgetDrawer
