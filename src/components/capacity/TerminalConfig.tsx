@@ -228,18 +228,22 @@ const TerminalConfig = memo<TerminalConfigProps>(({
   terminalDisplayLabel,
   terminalDisplayIcon,
   statusTitle,
-}) => (
+}) => {
+  const dense = compact && !showWeather;
+
+  return (
   <div className={className}>
     <div className={[
-      'flex h-full min-h-[96px] flex-col rounded-xl border transition-colors',
+      'flex h-full flex-col rounded-xl border transition-colors',
+      dense ? 'min-h-[64px]' : 'min-h-[96px]',
       tone === 'user-defined'
         ? 'border-emerald-200 bg-emerald-50/90 dark:border-emerald-800/70 dark:bg-emerald-950/25'
         : tone === 'not-user-defined'
           ? 'border-rose-200 bg-rose-50/90 dark:border-rose-900/70 dark:bg-rose-950/25'
           : 'border-gray-100 bg-gray-50 dark:border-slate-700 dark:bg-slate-800/50',
-      compact ? 'p-1.5' : 'p-3',
+      dense ? 'p-2' : compact ? 'p-1.5' : 'p-3',
     ].join(' ')}>
-      <div className="mb-1 flex min-h-[24px] items-start justify-between gap-1.5">
+      <div className={`${dense ? 'mb-2 min-h-0' : 'mb-1 min-h-[24px]'} flex items-start justify-between gap-1.5`}>
         <h3 className={`flex min-w-0 items-center font-semibold leading-tight text-gray-800 dark:text-gray-200 ${compact ? 'text-[13px]' : 'text-sm'}`}>
           <span className="line-clamp-2">{title}</span>
           <SectionTooltip content="The ground equipment (antenna + modem) used to connect to the satellite network. The selected type defines maximum achievable downlink/uplink throughput. Weather attenuation is applied on top of this profile." />
@@ -265,7 +269,7 @@ const TerminalConfig = memo<TerminalConfigProps>(({
           );
         })() : null}
       </div>
-      <div className="flex flex-1 flex-col justify-end space-y-1">
+      <div className={`flex flex-col space-y-1 ${dense ? '' : 'flex-1 justify-end'}`}>
         <TerminalTypeControl
           terminalType={terminalType}
           onTerminalTypeChange={onTerminalTypeChange}
@@ -289,7 +293,8 @@ const TerminalConfig = memo<TerminalConfigProps>(({
       </div>
     </div>
   </div>
-));
+  );
+});
 
 TerminalConfig.displayName = 'TerminalConfig';
 export default TerminalConfig;

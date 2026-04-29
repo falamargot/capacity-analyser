@@ -50,6 +50,12 @@ const coverageLabel = (seg: LinkSegment) => {
   return c.isSynthesized ? `${name} (estimated)` : name;
 };
 
+const isDisplayableBeamName = (beamName: string | undefined): beamName is string => {
+  const value = beamName?.trim();
+  if (!value) return false;
+  return !Number.isFinite(Number(value));
+};
+
 // ─── Margin colour helper ─────────────────────────────────────────────────────
 
 const marginClass = (v: number | undefined | null): string => {
@@ -74,9 +80,9 @@ const Row = ({ label, value, bold = false, className = '' }: {
   bold?: boolean;
   className?: string;
 }) => (
-  <div className={`flex justify-between items-baseline gap-2 ${className}`}>
-    <span className="text-xs text-gray-500 dark:text-gray-400 shrink-0">{label}</span>
-    <span className={`text-xs text-right ${bold ? 'font-semibold text-gray-800 dark:text-gray-100' : 'text-gray-700 dark:text-gray-200'}`}>
+  <div className={`grid grid-cols-[minmax(7.5rem,11rem)_minmax(0,1fr)] items-baseline gap-x-3 gap-y-0.5 ${className}`}>
+    <span className="text-xs text-gray-500 dark:text-gray-400">{label}</span>
+    <span className={`min-w-0 break-words text-xs text-left ${bold ? 'font-semibold text-gray-800 dark:text-gray-100' : 'text-gray-700 dark:text-gray-200'}`}>
       {value}
     </span>
   </div>
@@ -125,9 +131,9 @@ const UplinkCard = ({ seg, coverageName }: { seg: LinkSegment; coverageName?: st
       </div>
       <div className="border-t border-gray-100 dark:border-slate-700 pt-1.5 space-y-1.5">
         <Row label="C/N uplink" value={fmtDb(seg.effectiveCNDb)} bold />
-        <div className="flex justify-between items-center">
+        <div className="grid grid-cols-[minmax(7.5rem,11rem)_minmax(0,1fr)] items-center gap-x-3 gap-y-0.5">
           <span className="text-xs text-gray-500 dark:text-gray-400">Margin</span>
-          <span className={`text-xs font-semibold px-1.5 py-0.5 rounded ${marginBadge(seg.effectiveLinkMarginDb)}`}>
+          <span className={`w-fit text-xs font-semibold px-1.5 py-0.5 rounded ${marginBadge(seg.effectiveLinkMarginDb)}`}>
             {fmtDb(seg.effectiveLinkMarginDb)}
           </span>
         </div>
@@ -152,7 +158,7 @@ const PayloadCard = ({ satelliteName, beamName, band, uplinkCoverageName, downli
 }) => (
   <SegmentCard accentColor="#7c3aed" title="Satellite / Payload" icon="🟣">
     <Row label="Satellite" value={satelliteName} bold />
-    {beamName && beamName !== satelliteName && <Row label="Beam" value={beamName} />}
+    {isDisplayableBeamName(beamName) && beamName !== satelliteName && <Row label="Beam" value={beamName} />}
     {band && <Row label="Band" value={band} />}
     {uplinkCoverageName && <Row label="Uplink coverage" value={uplinkCoverageName} />}
     {downlinkCoverageName && downlinkCoverageName !== uplinkCoverageName && (
@@ -183,9 +189,9 @@ const DownlinkCard = ({ seg, coverageName }: { seg: LinkSegment; coverageName?: 
       </div>
       <div className="border-t border-gray-100 dark:border-slate-700 pt-1.5 space-y-1.5">
         <Row label="C/N downlink" value={fmtDb(seg.effectiveCNDb)} bold />
-        <div className="flex justify-between items-center">
+        <div className="grid grid-cols-[minmax(7.5rem,11rem)_minmax(0,1fr)] items-center gap-x-3 gap-y-0.5">
           <span className="text-xs text-gray-500 dark:text-gray-400">Margin</span>
-          <span className={`text-xs font-semibold px-1.5 py-0.5 rounded ${marginBadge(seg.effectiveLinkMarginDb)}`}>
+          <span className={`w-fit text-xs font-semibold px-1.5 py-0.5 rounded ${marginBadge(seg.effectiveLinkMarginDb)}`}>
             {fmtDb(seg.effectiveLinkMarginDb)}
           </span>
         </div>
@@ -209,12 +215,12 @@ function bottleneckNote(
 ): { text: string; expected: boolean } | null {
   if (linkMode === 'STAR_RETURN') {
     return limiting === 'uplink'
-      ? { expected: true,  text: 'Expected — user terminal EIRP is much lower than the gateway antenna, making the user uplink the typical bottleneck in return links.' }
+      ? null
       : { expected: false, text: 'The satellite-to-gateway downlink is limiting — this may indicate reduced satellite EIRP over the gateway coverage area.' };
   }
   if (linkMode === 'STAR_FORWARD') {
     return limiting === 'downlink'
-      ? { expected: true,  text: 'Expected — satellite EIRP toward the user terminal is the main constraint. The gateway uplink is generally not limiting.' }
+      ? null
       : { expected: false, text: 'The gateway uplink is limiting — this may indicate non-standard gateway conditions or a very low sat G/T in this region.' };
   }
   return null;
@@ -232,7 +238,7 @@ const E2ECard = ({ e2e, linkMode }: { e2e: EndToEndBudget; linkMode?: LinkMode }
       <Row label="Spectral efficiency" value={`${e2e.endToEndSpectralEfficiency.toFixed(2)} b/s/Hz`} />
       <Row label="Achievable throughput" value={fmtMbps(e2e.endToEndThroughputMbps)} bold />
       <div className="border-t border-gray-100 dark:border-slate-700 pt-1.5">
-        <div className="flex justify-between items-center">
+        <div className="grid grid-cols-[minmax(7.5rem,11rem)_minmax(0,1fr)] items-center gap-x-3 gap-y-0.5">
           <span className="text-xs text-gray-500 dark:text-gray-400">Link margin</span>
           <span className={`text-sm font-bold ${marginClass(e2e.endToEndLinkMarginDb)}`}>
             {fmtDb(e2e.endToEndLinkMarginDb)}

@@ -94,6 +94,17 @@ const linkMarginTone = (margin: number | undefined | null) => {
   };
 };
 
+const displayableBeamOrCoverageName = (
+  beamName: string | undefined,
+  coverageName: string | undefined,
+  fallback: string,
+) => {
+  const trimmedBeamName = beamName?.trim();
+  return trimmedBeamName && !Number.isFinite(Number(trimmedBeamName))
+    ? trimmedBeamName
+    : coverageName ?? fallback;
+};
+
 interface LinkBudgetSummaryCardProps {
   linkMode: LinkMode;
   result: DualSegmentResult | null;
@@ -124,7 +135,11 @@ const LinkBudgetSummaryCard = ({
   const tone = linkMarginTone(margin);
   const satelliteName = uplink?.candidate.satelliteName ?? downlink?.candidate.satelliteName ?? 'No GEO path';
   const band = uplink?.candidate.band ?? downlink?.candidate.band ?? 'Band --';
-  const beamName = uplink?.candidate.beamName ?? downlink?.candidate.beamName ?? uplink?.candidate.coverageName ?? downlink?.candidate.coverageName ?? '--';
+  const beamName = displayableBeamOrCoverageName(
+    uplink?.candidate.beamName ?? downlink?.candidate.beamName,
+    uplink?.candidate.coverageName ?? downlink?.candidate.coverageName,
+    '--',
+  );
 
   return (
     <section
@@ -270,17 +285,14 @@ const LinkBudgetDrawer = ({
       aria-modal="true"
       aria-label="Detailed GEO link budget"
     >
-      <div className="absolute inset-y-0 right-0 flex w-full justify-end max-[1099px]:sm:pl-10 min-[1100px]:pointer-events-auto">
-        <div className="flex h-full w-full max-w-3xl flex-col border-l border-slate-200 bg-white shadow-2xl dark:border-slate-800 dark:bg-slate-950 min-[1100px]:overflow-hidden min-[1100px]:rounded-[24px] min-[1100px]:border">
+      <div className="absolute inset-y-0 right-0 flex w-full justify-end max-[1099px]:sm:pl-10 min-[1100px]:pointer-events-none">
+        <div className="flex h-full w-full max-w-[38rem] flex-col border-l border-slate-200 bg-white shadow-2xl dark:border-slate-800 dark:bg-slate-950 min-[1100px]:pointer-events-auto min-[1100px]:overflow-hidden min-[1100px]:rounded-[24px] min-[1100px]:border">
           <div className="flex items-start justify-between gap-4 border-b border-slate-200 px-5 py-4 dark:border-slate-800">
             <div className="min-w-0">
               <p className="text-[11px] font-bold uppercase tracking-wide text-blue-500 dark:text-blue-300">GEO Link Budget</p>
               <h3 className="mt-1 truncate text-lg font-semibold text-slate-950 dark:text-slate-50">
                 {satelliteName ?? result?.forward.uplink.candidate.satelliteName ?? 'Detailed RF path'}
               </h3>
-              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                Full segment budget, unchanged from the calculation engine.
-              </p>
             </div>
             <button
               type="button"
