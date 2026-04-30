@@ -37,6 +37,7 @@ import { Feature, Geometry, GeoJsonProperties } from 'geojson';
 import type { SatelliteData } from '../types/satellites';
 import type { Aircraft } from '../modules/airTraffic/airTrafficService';
 import type { AircraftInterpolation } from '../modules/airTraffic/useAirTraffic';
+import type { IssPosition, IssOrbitPath } from '../modules/iss/issService';
 import type { Vessel } from '../modules/maritimeTraffic/maritimeTrafficService';
 import type { VesselInterpolation } from '../modules/maritimeTraffic/useMaritimeTraffic';
 import type { SatelliteScope } from './SatelliteScopeFilter';
@@ -48,6 +49,7 @@ import { useCesiumTheme } from '../hooks/useCesiumTheme';
 import SatelliteLayer from './cesium-globe/SatelliteLayer';
 import AircraftLayer from './cesium-globe/AircraftLayer';
 import VesselLayer from './cesium-globe/VesselLayer';
+import IssLayer from './cesium-globe/IssLayer';
 import SnpLayer from './cesium-globe/SnpLayer';
 import CoverageLayer, { GEO_COVERAGE_ENTITY_PREFIX, type GeoCoverageLegendItem } from './cesium-globe/CoverageLayer';
 import OneWebCombLayer from './cesium-globe/OneWebCombLayer';
@@ -213,6 +215,13 @@ interface CesiumGlobeProps {
     linkMode?: string;
     /** Active direction tab in MESH/P2P — drives directional link rendering on the globe. */
     activeMeshTab?: 'forward' | 'reverse';
+    issLiveEnabled?: boolean;
+    issPositionRef?: React.RefObject<IssPosition | null>;
+    issOrbitPath?: IssOrbitPath | null;
+    issHasPosition?: boolean;
+    issIsSelected?: boolean;
+    issIsFollowing?: boolean;
+    onIssClick?: () => void;
 }
 
 const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
@@ -290,6 +299,13 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
     pointB = null,
     linkMode,
     activeMeshTab,
+    issLiveEnabled = false,
+    issPositionRef,
+    issOrbitPath = null,
+    issHasPosition = false,
+    issIsSelected = false,
+    issIsFollowing = false,
+    onIssClick,
 }) => {
     // Stable refs for click-handler lookups — avoids recreating handleMapClick
     // (and re-registering the Cesium ScreenSpaceEvent) when aircraft/vessels/satellites
@@ -311,6 +327,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         position: new Cartesian3(),
         height: 20000000,
     });
+    const emptyIssPositionRef = useRef<IssPosition | null>(null);
     const viewerRef = useRef<CesiumViewerType | null>(null);
     const globeContainerRef = useRef<HTMLDivElement>(null);
     const [viewerReady, setViewerReady] = useState(false);
@@ -686,6 +703,11 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                     return;
                 }
 
+                if (entityId === 'iss-entity') {
+                    onIssClick?.();
+                    return;
+                }
+
                 return;
             }
         }
@@ -716,7 +738,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         const lat = CesiumMath.toDegrees(cartographic.latitude);
         const lng = CesiumMath.toDegrees(cartographic.longitude);
         onPointClick(lat, lng, pointerShiftPressedRef.current || shiftPressedRef.current);
-    }, [onAircraftClick, onCoverageClick, onMoonSelectionChange, onPointClick, onSatelliteClick, onSnpClick, onVesselClick, selection.type]);
+    }, [onAircraftClick, onCoverageClick, onIssClick, onMoonSelectionChange, onPointClick, onSatelliteClick, onSnpClick, onVesselClick, selection.type]);
 
     // Determine target satellite for OneWeb comb layer
     const oneWebTargetSat = useMemo(() => {
@@ -1426,6 +1448,19 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                             interpolatedVesselMapRef={interpolatedVesselMapRef}
                         />
                     )}
+
+                    {/* ISS Live Layer */}
+                    <IssLayer
+                        positionRef={issPositionRef ?? emptyIssPositionRef}
+                        orbitPath={issOrbitPath}
+                        hasPosition={issHasPosition}
+                        isSelected={issIsSelected}
+                        isFollowing={issIsFollowing}
+                        enabled={issLiveEnabled}
+                        onIssClick={onIssClick ?? (() => {})}
+                        viewerRef={viewerRef}
+                        cameraMetricsRef={cameraMetricsRef}
+                    />
                 </Viewer>
             </div>
 
@@ -1473,7 +1508,6 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                     viewerReady={viewerReady}
                 />
             )}
-
             {/* Interaction hint — shown only when MESH/P2P mode is active */}
             {(linkMode === 'MESH' || linkMode === 'POINT_TO_POINT') && (
                 <div className="absolute bottom-4 left-1/2 -translate-x-1/2 pointer-events-none z-10">

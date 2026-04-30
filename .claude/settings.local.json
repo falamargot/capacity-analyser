@@ -17,7 +17,9 @@
       "Bash(lsof -ti:3001 -ti:3000 -ti:3002)",
       "Bash(wc -l /Users/falamargot/Developpement/capacity-analyser/src/**/*.ts /Users/falamargot/Developpement/capacity-analyser/src/**/*.tsx)",
       "WebSearch",
-      "Bash(node -e ' *)"
+      "Bash(node -e ' *)",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\('\\\\n'.join\\(f'{k}: {v}' for k,v in d['dependencies'].items\\(\\)\\)\\)\")",
+      "Bash(curl -s -L \"https://celestrak.org/gp.php?CATNR=25544&FORMAT=JSON\")"
     ]
   }
 }

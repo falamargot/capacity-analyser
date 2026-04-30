@@ -28,6 +28,7 @@ interface PosResult {
   lat: number;
   lng: number;
   alt: number;
+  sampleTimeMs: number;
 }
 
 export interface WorkerInput {
@@ -64,12 +65,13 @@ ctx.addEventListener('message', (event: MessageEvent<WorkerInput>) => {
           lat: satellite.degreesLat(geo.latitude),
           lng: satellite.degreesLong(geo.longitude),
           alt: geo.height,
+          sampleTimeMs: timestamp,
         };
       }
     } catch {
       // Propagation errors (decayed orbit, bad TLE) → return zero position.
     }
-    return { id, lat: 0, lng: 0, alt: 0 };
+    return { id, lat: 0, lng: 0, alt: 0, sampleTimeMs: timestamp };
   });
 
   ctx.postMessage({ positions } satisfies WorkerOutput);

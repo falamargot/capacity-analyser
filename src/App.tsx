@@ -36,6 +36,7 @@ import {
 import { JulianDate, Viewer as CesiumViewerType } from 'cesium';
 import { useAirTraffic, useAirTrafficInterpolation } from './modules/airTraffic';
 import { Aircraft } from './modules/airTraffic/airTrafficService';
+import { useIssLiveTracking } from './modules/iss';
 import { useMaritimeTraffic, useMaritimeTrafficInterpolation } from './modules/maritimeTraffic';
 import { Vessel } from './modules/maritimeTraffic/maritimeTrafficService';
 import { useSimulation } from './contexts/SimulationContext';
@@ -60,6 +61,7 @@ import {
 
 const CapacityDetails = lazy(() => import('./components/CapacityDetails'));
 const CommandPalette = lazy(() => import('./components/CommandPalette'));
+const IssDetails = lazy(() => import('./components/IssDetails'));
 const GatewayDetails = lazy(() => import('./components/GatewayDetails'));
 const MoonDetails = lazy(() => import('./components/MoonDetails'));
 const SNPDetails = lazy(() => import('./components/SNPDetails'));
@@ -286,6 +288,9 @@ const App: React.FC = () => {
   const [satelliteScope, setSatelliteScope] = useState<SatelliteScope>('ALL');
   const [airTrafficEnabled, setAirTrafficEnabled] = useState(false);
   const [maritimeTrafficEnabled, setMaritimeTrafficEnabled] = useState(false);
+  const [issLiveEnabled, setIssLiveEnabled] = useState(false);
+  const [selectedIss, setSelectedIss] = useState(false);
+  const pendingIssAutoCenterRef = useRef(false);
   const [enableLighting, setEnableLighting] = useState(initialDisplayDefaults.enableLighting);
   const [showSatelliteTrajectory, setShowSatelliteTrajectory] = useState(initialDisplayDefaults.showSatelliteTrajectory);
   const [showAggregatedConnectivity, setShowAggregatedConnectivity] = useState(initialDisplayDefaults.showAggregatedConnectivity);
@@ -494,6 +499,7 @@ const App: React.FC = () => {
     || selectedGateway
     || inspectedSNP
     || selectedVessel
+    || selectedIss
   );
 
   useEffect(() => {
@@ -640,6 +646,24 @@ const App: React.FC = () => {
     null, // camera bounds - will be implemented with globe integration
     selectedPosition // focus point for distance filtering
   );
+
+  // ISS live tracking
+  const iss = useIssLiveTracking(issLiveEnabled);
+  const issPositionRef = useRef<typeof iss.position>(null);
+  issPositionRef.current = iss.position;
+  const issHasPosition = !!iss.position;
+
+  useEffect(() => {
+    if (!issLiveEnabled) {
+      pendingIssAutoCenterRef.current = false;
+      return;
+    }
+
+    if (!pendingIssAutoCenterRef.current || !selectedIss || !iss.position) return;
+
+    setCameraTarget({ lat: iss.position.lat, lng: iss.position.lng, alt: 2500 });
+    pendingIssAutoCenterRef.current = false;
+  }, [issLiveEnabled, iss.position, selectedIss]);
 
   // Maritime traffic data fetching and filtering
   const maritimeTraffic = useMaritimeTraffic(
@@ -1226,6 +1250,7 @@ const App: React.FC = () => {
     setInspectedSNP(null);
     setSelectedGateway(null);
     setAutoSelectedLEOId(null);
+    setSelectedIss(false);
   }, [clearSelection, selectSatellite]);
 
   // Wrapper for UI selection (triggers FlyTo)
@@ -1334,6 +1359,28 @@ const App: React.FC = () => {
     const gateway = GEO_GATEWAYS.find((item) => item.name === gatewayName) ?? null;
     handleGatewaySelect(gateway, false);
   }, [handleGatewaySelect]);
+
+  const handleIssClick = useCallback(() => {
+    setSelectedIss(true);
+    clearSelection();
+    setSelectedMoon(false);
+    setSelectedAircraft(null);
+    setSelectedVessel(null);
+    setSelectedSNP(null);
+    setInspectedSNP(null);
+    setSelectedGateway(null);
+    setAutoSelectedLEOId(null);
+    setIsTargetSourcesMenuOpen(false);
+  }, [clearSelection]);
+
+  const handleIssCenterOnIss = useCallback(() => {
+    if (!iss.position || !viewerRef.current) return;
+    setCameraTarget({ lat: iss.position.lat, lng: iss.position.lng, alt: 2500 });
+  }, [iss.position]);
+
+  const handleIssToggleFollow = useCallback(() => {
+    iss.setFollowing(!iss.isFollowing);
+  }, [iss.isFollowing, iss.setFollowing]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleAircraftHover = useCallback((_aircraft: Aircraft | null) => {
     // Aircraft hover logic - currently a no-op
@@ -1483,6 +1530,7 @@ const App: React.FC = () => {
     setSelectedVessel(null);
     setSelectedGateway(null);
     setInspectedSNP(null);
+    setSelectedIss(false);
     setPointB(null);
     setSelectedUplinkKey(null);
     setSelectedDownlinkKey(null);
@@ -1694,6 +1742,8 @@ const App: React.FC = () => {
     setSelectedMoon(false);
     setSelectedAircraft(null);
     setSelectedVessel(null);
+    setSelectedIss(false);
+    iss.setFollowing(false);
     setHoveredSatelliteId(null);
     setIsFullscreen(false);
     setIsSatelliteModalOpen(false);
@@ -1701,7 +1751,7 @@ const App: React.FC = () => {
     setIsTargetSourcesMenuOpen(false);
     setCommandPaletteQuery('');
     setIsHelpMenuOpen(false);
-  }, [clearSelection]);
+  }, [clearSelection, iss.setFollowing]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!isHelpMenuOpen) return;
@@ -1853,6 +1903,7 @@ const App: React.FC = () => {
     setSelectedGateway(null);
     setSelectedAircraft(null);
     setSelectedVessel(null);
+    setSelectedIss(false);
     setSelectedUplinkKey(null);
     setSelectedDownlinkKey(null);
     setIsTargetSourcesMenuOpen(false);
@@ -1941,6 +1992,13 @@ const App: React.FC = () => {
     coverageSwitcherCoverages,
     selectedCoverageId,
     onCoverageSwitcherSelect: handleSelectTargetCoverageById,
+    issLiveEnabled,
+    issPositionRef,
+    issOrbitPath: iss.orbitPath,
+    issHasPosition,
+    issIsSelected: selectedIss,
+    issIsFollowing: iss.isFollowing,
+    onIssClick: handleIssClick,
   }), [
     filteredSatellites, satelliteTypeByName, coverageFeaturesMemo, handlePointClick, handleCoverageClick, selectedPosition,
     handleSatelliteClick, handleSatelliteHover, handleSnpClick, handleGatewaySelectByName, handleSnpHover,
@@ -1952,6 +2010,7 @@ const App: React.FC = () => {
     inspectedSNP, snpConnectedSatellites, countryOverlayMode, handleCountryOverlayModeChange, handleSizeScaleReset,
     isPhone, isMobileAnalysisPanelOpen, coverageSwitcherCoverages, selectedCoverageId, handleSelectTargetCoverageById,
     pointB, linkMode, activeMeshTab,
+    issLiveEnabled, iss.orbitPath, issHasPosition, selectedIss, iss.isFollowing, handleIssClick,
   ]);
   const desktopCompactProgress = isMobile ? 0 : getCompactDesktopProgress(viewportSnapshot);
   const useCompactDesktopSidebar = desktopCompactProgress >= 0.35;
@@ -1992,6 +2051,25 @@ const App: React.FC = () => {
         badges: [
           { label: 'Natural Satellite', tone: 'slate' as const },
           { label: 'Real Time', tone: 'blue' as const },
+        ],
+      };
+    }
+
+    if (selectedIss) {
+      const freshnessLabel = iss.freshness === 'live' ? 'Live' : iss.freshness === 'stale' ? 'Stale' : 'Offline';
+      const freshnessTone = iss.freshness === 'live' ? 'emerald' as const : iss.freshness === 'stale' ? 'amber' as const : 'red' as const;
+      return {
+        eyebrow: 'Space Station',
+        title: 'ISS',
+        subtitle: iss.position
+          ? `Alt ${iss.position.altKm.toFixed(0)} km · ${(iss.position.velocityKmS * 3600).toFixed(0)} km/h`
+          : 'International Space Station',
+        footer: null,
+        tone: 'iss' as const,
+        badges: [
+          { label: 'ISS Live', tone: 'teal' as const },
+          { label: freshnessLabel, tone: freshnessTone },
+          { label: 'LEO', tone: 'slate' as const },
         ],
       };
     }
@@ -2196,6 +2274,9 @@ const App: React.FC = () => {
     selectedSatellite,
     selectedSelection,
     selectedVessel,
+    selectedIss,
+    iss.freshness,
+    iss.position,
     handleWeatherTypeChange,
     useCompactDesktopSidebar,
     weatherType,
@@ -2207,7 +2288,8 @@ const App: React.FC = () => {
     && !selectedGateway
     && !inspectedSNP
     && !selectedMoon
-    && !selectedSatellite;
+    && !selectedSatellite
+    && !selectedIss;
   const splashReady = !loading && hasSplashMinimumElapsed && isInitialGlobeReady;
   const splashMessage = loading
     ? 'Loading satellite data and coverage...'
@@ -2533,6 +2615,64 @@ const App: React.FC = () => {
                                   onToggleLiveMode={() => setMaritimeTrafficEnabled(!maritimeTrafficEnabled)}
                                 />
                               </div>
+                            </div>
+
+                            {/* ISS Live entry point */}
+                            <div className={entryPointCardClassName} style={{ gridColumn: 'span 2' }}>
+                              <div className="pointer-events-none absolute inset-x-4 top-0 h-px bg-gradient-to-r from-transparent via-cyan-300/80 to-transparent dark:via-cyan-400/40" />
+                              <div className="flex items-start gap-2.5">
+                                <div className="mt-0.5 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-[18px] bg-gradient-to-br from-cyan-500/15 via-teal-500/12 to-sky-500/12 text-cyan-600 dark:text-cyan-300">
+                                  <Satellite className="h-4 w-4" />
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                  <label className="text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-700 dark:text-slate-300">
+                                    ISS Live
+                                  </label>
+                                  <p
+                                    className={entryPointDescriptionClassName}
+                                    title="Track the International Space Station in real time with orbit visualization."
+                                  >
+                                    Track the ISS with real-time orbit visualization.
+                                  </p>
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    if (!issLiveEnabled) {
+                                      pendingIssAutoCenterRef.current = true;
+                                      setIssLiveEnabled(true);
+                                      handleIssClick();
+                                    } else {
+                                      pendingIssAutoCenterRef.current = false;
+                                      setIssLiveEnabled(false);
+                                      setSelectedIss(false);
+                                      iss.setFollowing(false);
+                                    }
+                                    setIsTargetSourcesMenuOpen(false);
+                                  }}
+                                  className={`shrink-0 inline-flex items-center gap-2 rounded-xl border px-4 py-2 text-sm font-semibold transition-colors ${
+                                    issLiveEnabled
+                                      ? 'border-cyan-300/60 bg-cyan-50 text-cyan-700 hover:bg-cyan-100 dark:border-cyan-500/30 dark:bg-cyan-500/10 dark:text-cyan-300'
+                                      : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200'
+                                  }`}
+                                >
+                                  {issLiveEnabled ? '● Live' : 'Enable'}
+                                </button>
+                              </div>
+                              {issLiveEnabled && iss.position && (
+                                <div className="mt-2.5 flex items-center gap-4 rounded-xl border border-cyan-200/60 bg-cyan-50/50 px-3 py-2 text-[12px] dark:border-cyan-500/15 dark:bg-cyan-500/5">
+                                  <span className="text-slate-500 dark:text-slate-400">Altitude</span>
+                                  <span className="font-semibold text-slate-900 dark:text-slate-100 tabular-nums">{iss.position.altKm.toFixed(0)} km</span>
+                                  <span className="text-slate-500 dark:text-slate-400">Velocity</span>
+                                  <span className="font-semibold text-slate-900 dark:text-slate-100 tabular-nums">{(iss.position.velocityKmS * 3600).toFixed(0)} km/h</span>
+                                  <span className={`ml-auto text-[11px] font-semibold ${iss.freshness === 'live' ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}`}>
+                                    {iss.freshness === 'live' ? '● Live' : '◐ Stale'}
+                                  </span>
+                                </div>
+                              )}
+                              {issLiveEnabled && iss.error && !iss.position && (
+                                <p className="mt-1.5 text-[12px] text-red-600 dark:text-red-400">{iss.error}</p>
+                              )}
                             </div>
                           </div>
                         </div>
@@ -2878,7 +3018,21 @@ const App: React.FC = () => {
                           style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 1.25rem)' }}
                         >
                           <Suspense fallback={panelFallback}>
-                            {selectedGateway ? (
+                            {selectedIss ? (
+                              <IssDetails
+                                position={iss.position}
+                                orbitPath={iss.orbitPath}
+                                freshness={iss.freshness}
+                                isFollowing={iss.isFollowing}
+                                error={iss.error}
+                                isLoading={iss.isLoading}
+                                selectedLocation={selectedPosition}
+                                onCenterOnIss={handleIssCenterOnIss}
+                                onToggleFollow={handleIssToggleFollow}
+                                onRefresh={iss.refresh}
+                                externalHeader
+                              />
+                            ) : selectedGateway ? (
                               <GatewayDetails gateway={selectedGateway} satellites={satellites} />
                             ) : inspectedSNP ? (
                               <SNPDetails
@@ -2991,7 +3145,22 @@ const App: React.FC = () => {
 
                 <div className={`flex-1 min-h-0 overflow-y-auto ${useCompactDesktopSidebar ? 'px-2.5 pb-2.5' : 'px-3 pb-3'}`}>
                   <Suspense fallback={panelFallback}>
-                    {selectedGateway ? (
+                    {selectedIss ? (
+                      <IssDetails
+                        position={iss.position}
+                        orbitPath={iss.orbitPath}
+                        freshness={iss.freshness}
+                        isFollowing={iss.isFollowing}
+                        error={iss.error}
+                        isLoading={iss.isLoading}
+                        selectedLocation={selectedPosition}
+                        onCenterOnIss={handleIssCenterOnIss}
+                        onToggleFollow={handleIssToggleFollow}
+                        onRefresh={iss.refresh}
+                        compactDesktop={useCompactDesktopSidebar}
+                        externalHeader
+                      />
+                    ) : selectedGateway ? (
                       <GatewayDetails
                         gateway={selectedGateway}
                         satellites={satellites}

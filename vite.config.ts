@@ -187,6 +187,51 @@ function aisStreamProxyPlugin(): Plugin {
   };
 }
 
+function issTleProxyPlugin(): Plugin {
+  const issTleUrl = 'https://celestrak.org/NORAD/elements/gp.php?CATNR=25544&FORMAT=TLE';
+
+  return {
+    name: 'iss-tle-proxy',
+    configureServer(server) {
+      server.middlewares.use('/api/iss/tle', async (req, res, next) => {
+        if (req.method !== 'GET') {
+          next();
+          return;
+        }
+
+        try {
+          const upstream = await fetch(issTleUrl, {
+            signal: AbortSignal.timeout(12_000),
+            headers: {
+              'User-Agent': 'capacity-analyser/1.0',
+            },
+          });
+
+          if (!upstream.ok) {
+            res.statusCode = 502;
+            res.setHeader('Content-Type', 'application/json; charset=utf-8');
+            res.end(JSON.stringify({ error: `CelesTrak ISS TLE request failed with HTTP ${upstream.status}` }));
+            return;
+          }
+
+          const text = await upstream.text();
+          res.statusCode = 200;
+          res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+          res.setHeader('Cache-Control', 'public, max-age=300, stale-while-revalidate=3600');
+          res.setHeader('Access-Control-Allow-Origin', '*');
+          res.end(text);
+        } catch (error) {
+          res.statusCode = 502;
+          res.setHeader('Content-Type', 'application/json; charset=utf-8');
+          res.end(JSON.stringify({
+            error: error instanceof Error ? error.message : 'ISS TLE proxy request failed',
+          }));
+        }
+      });
+    },
+  };
+}
+
 // https://vitejs.dev/config/
 export default defineConfig({
   resolve: {
@@ -199,6 +244,7 @@ export default defineConfig({
     react(),
     cesium(),
     tailwindcss(),
+    issTleProxyPlugin(),
     aisStreamProxyPlugin()
   ],
   server: {

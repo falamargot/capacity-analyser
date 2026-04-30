@@ -15,6 +15,7 @@ import type { GeoPointStatus } from '../utils/selectedPointStatus';
 import type { CoverageSwitcherCoverage } from './CoverageSwitcherVertical';
 import type { CountryOverlayMode } from '../types/countryOverlays';
 import type { LinkMode } from '../types/linkMode';
+import type { IssPosition, IssOrbitPath } from '../modules/iss/issService';
 
 interface MapViewSwitcherProps {
   satellites: SatelliteData[];
@@ -87,6 +88,13 @@ interface MapViewSwitcherProps {
   pointB?: { lat: number; lng: number } | null;
   linkMode?: LinkMode;
   activeMeshTab?: 'forward' | 'reverse';
+  issLiveEnabled?: boolean;
+  issPositionRef?: React.RefObject<IssPosition | null>;
+  issOrbitPath?: IssOrbitPath | null;
+  issHasPosition?: boolean;
+  issIsSelected?: boolean;
+  issIsFollowing?: boolean;
+  onIssClick?: () => void;
 }
 
 const MapViewSwitcher: React.FC<MapViewSwitcherProps> = ({
@@ -160,6 +168,13 @@ const MapViewSwitcher: React.FC<MapViewSwitcherProps> = ({
   pointB = null,
   linkMode,
   activeMeshTab,
+  issLiveEnabled = false,
+  issPositionRef,
+  issOrbitPath = null,
+  issHasPosition = false,
+  issIsSelected = false,
+  issIsFollowing = false,
+  onIssClick,
 }) => {
   const [sceneMode, setSceneMode] = useState<'2D' | '3D'>('3D');
 
@@ -239,6 +254,13 @@ const MapViewSwitcher: React.FC<MapViewSwitcherProps> = ({
         pointB={pointB}
         linkMode={linkMode}
         activeMeshTab={activeMeshTab}
+        issLiveEnabled={issLiveEnabled}
+        issPositionRef={issPositionRef}
+        issOrbitPath={issOrbitPath}
+        issHasPosition={issHasPosition}
+        issIsSelected={issIsSelected}
+        issIsFollowing={issIsFollowing}
+        onIssClick={onIssClick}
       />
     </div>
   );

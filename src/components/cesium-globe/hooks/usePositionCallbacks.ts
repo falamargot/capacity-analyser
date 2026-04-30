@@ -20,12 +20,11 @@ interface SatelliteLiveCell {
     value: SatelliteData;
     previousPosition: SatellitePosition;
     currentPosition: SatellitePosition;
-    transitionStartMs: number;
-    transitionDurationMs: number;
+    previousSampleTimeMs: number;
+    currentSampleTimeMs: number;
 }
 
-const SATELLITE_INTERPOLATION_MIN_MS = 250;
-const SATELLITE_INTERPOLATION_MAX_MS = 2500;
+const SATELLITE_INTERPOLATION_FALLBACK_MS = 1000;
 
 const cloneSatellitePosition = (position: SatelliteData['position']): SatellitePosition => ({
     lat: position.lat,
@@ -52,6 +51,22 @@ const interpolateLongitudeDegrees = (start: number, end: number, t: number): num
     if (value > 180) return value - 360;
     if (value < -180) return value + 360;
     return value;
+};
+
+const getInterpolatedSatellitePosition = (
+    previousPosition: SatellitePosition,
+    currentPosition: SatellitePosition,
+    previousSampleTimeMs: number,
+    currentSampleTimeMs: number,
+    nowMs: number
+): SatellitePosition => {
+    const sampleDuration = Math.max(currentSampleTimeMs - previousSampleTimeMs, 1);
+    const progress = Math.min(Math.max((nowMs - previousSampleTimeMs) / sampleDuration, 0), 1);
+    return {
+        lat: lerp(previousPosition.lat, currentPosition.lat, progress),
+        lng: interpolateLongitudeDegrees(previousPosition.lng, currentPosition.lng, progress),
+        alt: lerp(previousPosition.alt, currentPosition.alt, progress),
+    };
 };
 
 /**
@@ -132,27 +147,30 @@ export function usePositionCallbacks(
             const cache = cacheRef.current.satellites;
             const now = Date.now();
             const nextPosition = cloneSatellitePosition(sat.position);
+            const nextSampleTimeMs = sat.position.sampleTimeMs ?? now;
 
             const existing = satLiveCellsRef.current.get(sat.id);
             if (existing) {
                 existing.value = sat;
                 if (!positionsMatch(existing.currentPosition, nextPosition)) {
-                    const elapsed = now - existing.transitionStartMs;
-                    existing.previousPosition = existing.currentPosition;
-                    existing.currentPosition = nextPosition;
-                    existing.transitionStartMs = now;
-                    existing.transitionDurationMs = Math.min(
-                        Math.max(elapsed, SATELLITE_INTERPOLATION_MIN_MS),
-                        SATELLITE_INTERPOLATION_MAX_MS
+                    existing.previousPosition = getInterpolatedSatellitePosition(
+                        existing.previousPosition,
+                        existing.currentPosition,
+                        existing.previousSampleTimeMs,
+                        existing.currentSampleTimeMs,
+                        now
                     );
+                    existing.previousSampleTimeMs = now;
+                    existing.currentPosition = nextPosition;
+                    existing.currentSampleTimeMs = nextSampleTimeMs;
                 }
             } else {
                 satLiveCellsRef.current.set(sat.id, {
                     value: sat,
                     previousPosition: nextPosition,
                     currentPosition: nextPosition,
-                    transitionStartMs: now,
-                    transitionDurationMs: 1,
+                    previousSampleTimeMs: nextSampleTimeMs - SATELLITE_INTERPOLATION_FALLBACK_MS,
+                    currentSampleTimeMs: nextSampleTimeMs,
                 });
             }
 
@@ -160,15 +178,21 @@ export function usePositionCallbacks(
                 const liveCell = satLiveCellsRef.current.get(sat.id)!;
 
                 const callback = new CallbackPositionProperty(() => {
-                    const elapsed = Date.now() - liveCell.transitionStartMs;
-                    const progress = liveCell.transitionDurationMs > 0
-                        ? Math.min(elapsed / liveCell.transitionDurationMs, 1)
-                        : 1;
-                    const { previousPosition, currentPosition } = liveCell;
-                    const lat = lerp(previousPosition.lat, currentPosition.lat, progress);
-                    const lng = interpolateLongitudeDegrees(previousPosition.lng, currentPosition.lng, progress);
-                    const alt = lerp(previousPosition.alt, currentPosition.alt, progress);
-                    return Cartesian3.fromDegrees(lng, lat, alt * 1000);
+                    const position = getInterpolatedSatellitePosition(
+                        liveCell.previousPosition,
+                        liveCell.currentPosition,
+                        liveCell.previousSampleTimeMs,
+                        liveCell.currentSampleTimeMs,
+                        Date.now()
+                    );
+                    const {
+                        previousPosition,
+                        currentPosition,
+                    } = liveCell;
+                    if (positionsMatch(previousPosition, currentPosition)) {
+                        return Cartesian3.fromDegrees(currentPosition.lng, currentPosition.lat, currentPosition.alt * 1000);
+                    }
+                    return Cartesian3.fromDegrees(position.lng, position.lat, position.alt * 1000);
                 }, false);
 
                 cache.set(sat.id, callback);

@@ -28,6 +28,8 @@ import type { SatelliteData } from '../types/satellites';
 //   downstream re-computation and defeating the entire stability mechanism.
 const POSITION_EPSILON_DEG = 0.01;
 const ALTITUDE_EPSILON_KM  = 0.5;
+const SATELLITE_PROPAGATION_INTERVAL_MS = 1000;
+const SATELLITE_PROPAGATION_LOOKAHEAD_MS = 1200;
 
 interface SatelliteLoaderOptions {
   /** ID of the currently selected satellite, or null. Used to trigger an
@@ -125,7 +127,7 @@ export function useSatelliteLoader({
       workerBusyRef.current = true;
       worker.postMessage({
         satellites: sats.map((sat) => ({ id: sat.id, satrec: sat.satrec })),
-        timestamp: Date.now(),
+        timestamp: Date.now() + SATELLITE_PROPAGATION_LOOKAHEAD_MS,
       });
     };
 
@@ -133,7 +135,7 @@ export function useSatelliteLoader({
       workerBusyRef.current = false;
 
       const { positions } = event.data as {
-        positions: Array<{ id: string; lat: number; lng: number; alt: number }>;
+        positions: Array<{ id: string; lat: number; lng: number; alt: number; sampleTimeMs: number }>;
       };
       const posMap = new Map(positions.map((p) => [p.id, p]));
 
@@ -150,7 +152,12 @@ export function useSatelliteLoader({
           const workerPos = posMap.get(sat.id);
           if (!workerPos) return sat;
 
-          const newPosition = { lat: workerPos.lat, lng: workerPos.lng, alt: workerPos.alt };
+          const newPosition = {
+            lat: workerPos.lat,
+            lng: workerPos.lng,
+            alt: workerPos.alt,
+            sampleTimeMs: workerPos.sampleTimeMs,
+          };
           const prev = prevById.get(sat.id);
 
           const positionChanged =
@@ -184,12 +191,12 @@ export function useSatelliteLoader({
       });
 
       // Schedule next tick after state update is applied
-      satelliteUpdateTimeoutRef.current = setTimeout(scheduleTick, 2000);
+      satelliteUpdateTimeoutRef.current = setTimeout(scheduleTick, SATELLITE_PROPAGATION_INTERVAL_MS);
     };
 
     worker.onerror = () => {
       workerBusyRef.current = false;
-      satelliteUpdateTimeoutRef.current = setTimeout(scheduleTick, 2000);
+      satelliteUpdateTimeoutRef.current = setTimeout(scheduleTick, SATELLITE_PROPAGATION_INTERVAL_MS);
     };
 
     scheduleTick();
@@ -216,7 +223,7 @@ export function useSatelliteLoader({
     workerBusyRef.current = true;
     worker.postMessage({
       satellites: sats.map((sat) => ({ id: sat.id, satrec: sat.satrec })),
-      timestamp: Date.now(),
+      timestamp: Date.now() + SATELLITE_PROPAGATION_LOOKAHEAD_MS,
     });
   }, [selectedSatelliteId]);
 

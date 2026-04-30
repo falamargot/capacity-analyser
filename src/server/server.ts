@@ -17,6 +17,7 @@ import { loadAndIndex } from './services/regulatoryIndex.js';
 import { regulatoryRoutes } from './routes/regulatory.js';
 import { airTrafficRoutes } from './routes/airTraffic.js';
 import { maritimeTrafficRoutes } from './routes/maritimeTraffic.js';
+import { issRoutes } from './routes/iss.js';
 
 const PORT = Number(process.env['PORT'] ?? 3001);
 const HOST = process.env['HOST'] ?? '0.0.0.0';
@@ -47,6 +48,7 @@ async function start() {
   await app.register(regulatoryRoutes, { publicDir: PUBLIC_DIR });
   await app.register(airTrafficRoutes);
   await app.register(maritimeTrafficRoutes);
+  await app.register(issRoutes);
 
   await app.listen({ port: PORT, host: HOST });
   console.log(`[regulatory-api] ready on :${PORT}`);

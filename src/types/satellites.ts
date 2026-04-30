@@ -20,6 +20,8 @@ export interface SatelliteData {
     lat: number;
     lng: number;
     alt: number;
+    /** UTC timestamp (Date.now) used to propagate this position. */
+    sampleTimeMs?: number;
     x?: number;
     y?: number;
     z?: number;
