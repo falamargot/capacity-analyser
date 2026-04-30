@@ -220,6 +220,8 @@ export function selectBestTopologyPath({
         downlinkGateway,
         gatewaySelection.gateway,
         pointALabel,
+        undefined,
+        terminalTypeA,
       );
       if (!result) continue;
 

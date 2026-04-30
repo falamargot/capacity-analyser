@@ -26,6 +26,39 @@ export const TERMINAL_GEO_RF_PARAMS: Record<string, TerminalParams> = {
   maritime: { antennaDiameterM: 0.9,  gtTerminalDbk: 14.0, eirpTerminalDbw: 40.0 },
 };
 
+/**
+ * User terminal transmit EIRP for the Return uplink (terminal → satellite), per band and
+ * terminal type. C-band earth stations are significantly larger than Ku-band VSATs, so their
+ * EIRP must be modelled separately.
+ *
+ * Reference configurations:
+ *   C  fixed   : 2.4 m dish (η=0.55) @ 5.9 GHz → 43.0 dBi, 20 W HPA → 55.0 dBW
+ *   Ku fixed   : 1.2 m dish            @ 14 GHz  → 41.5 dBi,  2 W HPA → 44.0 dBW  (= TERMINAL_GEO_RF_PARAMS)
+ *   Ka fixed   : 0.75 m dish           @ 29.5 GHz → 42.0 dBi,  4 W HPA → 47.0 dBW
+ *
+ * Keys match TerminalType from TerminalConfig.tsx.
+ */
+export const TERMINAL_RETURN_EIRP_DBW: Record<GeoBand, Record<string, number>> = {
+  C: {
+    fixed:    55.0,
+    mobile:   44.0,
+    aviation: 38.0,
+    maritime: 47.0,
+  },
+  Ku: {
+    fixed:    44.0,
+    mobile:   38.0,
+    aviation: 35.0,
+    maritime: 40.0,
+  },
+  Ka: {
+    fixed:    47.0,
+    mobile:   36.0,
+    aviation: 33.0,
+    maritime: 39.0,
+  },
+};
+
 export const BAND_PARAMS: Record<GeoBand, {
   freqDownGhz: number;
   freqUpGhz: number;

@@ -715,7 +715,7 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
       // Downlink at gateway: prefer explicit EIRP data, fall back to synthesis from G/T
       const dl = downlinkAtGateway ?? (uplinkAtGateway ? synthesizeDownlinkCandidate(uplinkAtGateway) : null);
       if (!ul || !dl) return null;
-      return buildStarReturnResult(ul, dl, resolvedGatewayData, pointALabel, weatherAdjDb);
+      return buildStarReturnResult(ul, dl, resolvedGatewayData, pointALabel, weatherAdjDb, geoTerminalType);
     }
 
     if (linkMode === 'MESH' || linkMode === 'POINT_TO_POINT') {

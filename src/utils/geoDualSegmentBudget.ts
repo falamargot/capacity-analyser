@@ -18,6 +18,7 @@ import type { GeoBand } from './geoLinkBudget';
 import {
   DEFAULT_TERMINAL,
   TERMINAL_GEO_RF_PARAMS,
+  TERMINAL_RETURN_EIRP_DBW,
   GATEWAY_EIRP_DBW,
   GATEWAY_GT_DBK,
   NOMINAL_SAT_GT_DBK,
@@ -337,12 +338,15 @@ export function buildStarForwardResult(
 /**
  * Builds a STAR Return dual-segment result.
  *
- * Uplink:   User terminal (DEFAULT_TERMINAL.eirpTerminalDbw) → Satellite (sat G/T at user)
+ * Uplink:   User terminal → Satellite (sat G/T at user).
+ *           Terminal EIRP is selected from TERMINAL_RETURN_EIRP_DBW[band][terminalType]
+ *           so that C-band earth stations (larger dishes) are modelled correctly.
  * Downlink: Satellite (sat EIRP at gateway) → Gateway (GATEWAY_GT_DBK)
  *
  * @param uplinkAtUser       Uplink candidate at user location (sat G/T at user).
  * @param downlinkAtGateway  Downlink candidate at gateway location (sat EIRP at gateway).
  * @param gateway            The resolved gateway data.
+ * @param terminalType       Terminal type key (e.g. 'fixed', 'mobile') — used to select EIRP.
  */
 export function buildStarReturnResult(
   uplinkAtUser: CandidateCoverage,
@@ -350,15 +354,21 @@ export function buildStarReturnResult(
   gateway: GeoGatewayData,
   userLabel?: string,
   weatherAdjDb?: number,
+  terminalType?: string,
 ): DualSegmentResult | null {
   const band = uplinkAtUser.band ?? downlinkAtGateway.band ?? 'Ku';
   const gatewayGTDbk = GATEWAY_GT_DBK[band as GeoBand] ?? GATEWAY_GT_DBK.Ku;
 
+  const bandEirpTable = TERMINAL_RETURN_EIRP_DBW[band as GeoBand] ?? TERMINAL_RETURN_EIRP_DBW.Ku;
+  const terminalEirpDbw = (terminalType ? bandEirpTable[terminalType] : null)
+    ?? bandEirpTable.fixed
+    ?? DEFAULT_TERMINAL.eirpTerminalDbw;
+
   const uplinkSeg = buildUplinkSegment(
     uplinkAtUser,
-    { label: userLabel ?? 'User terminal', eirpDbw: DEFAULT_TERMINAL.eirpTerminalDbw },
+    { label: userLabel ?? 'User terminal', eirpDbw: terminalEirpDbw },
     { label: uplinkAtUser.satelliteName },
-    undefined,
+    terminalEirpDbw,
     weatherAdjDb,
   );
 
