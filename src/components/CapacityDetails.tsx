@@ -115,6 +115,7 @@ interface CapacityDetailsProps {
 }
 
 const RTT_VISUAL_SCALE_MAX_MS = 600;
+const ONE_WAY_VISUAL_SCALE_MAX_MS = 350;
 const GEO_LINK_MARGIN_STABILITY = {
   medium: 2,
   high: 5,
@@ -926,21 +927,10 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
 
     if (activeEstimatedPerformanceScope === 'GEO') {
       const isMeshMode = linkMode === 'MESH' || linkMode === 'POINT_TO_POINT';
-      // In MESH/P2P the star-topology gateway RTT (2-hop user↔gateway) is wrong.
-      // The correct value is the 4-hop A→sat→B→sat→A RTT from meshMetrics.
-      const effectiveRttMs = isMeshMode && meshMetrics?.rttMs != null
-        ? meshMetrics.rttMs
-        : geoGeometry?.rttTotalMs ?? null;
-      const rttLabel = isMeshMode ? 'Mesh A↔B RTT (4-hop)' : 'End-to-End GEO RTT';
-
-      // Label the DL/UL bars to reflect which link direction is actually computed.
-      // STAR_FORWARD only computes gateway→user; the return path (user→gateway)
-      // is not modelled in this mode and correctly shows as "--".
-      const { dlLabel, ulLabel } = (() => {
-        if (linkMode === 'STAR_FORWARD') return { dlLabel: 'Forward link (Rx)', ulLabel: 'Return link — switch to STAR Return' };
-        if (linkMode === 'STAR_RETURN')  return { dlLabel: 'Forward link — switch to STAR Forward', ulLabel: 'Return link (Tx)' };
-        return { dlLabel: 'Downlink throughput', ulLabel: 'Uplink throughput' };
-      })();
+      const isStarForward = linkMode === 'STAR_FORWARD';
+      const isStarReturn = linkMode === 'STAR_RETURN';
+      const userLabel = analysisSource === 'aircraft' && aircraftCallsign ? aircraftCallsign : 'User';
+      const gwLabel = geoGeometry?.satelliteToGateway.gateway?.name ?? 'GW';
 
       const geoStabilityTooltip = geoGeometry
         ? formatGeoStabilityTooltip(
@@ -949,29 +939,45 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
         )
         : undefined;
 
+      // MESH/P2P: use 4-hop RTT from meshMetrics.
+      // STAR: show one-way latency (active direction only — RTT is in Latency Breakdown).
+      const effectiveLatencyMs = isMeshMode
+        ? (meshMetrics?.rttMs ?? null)
+        : (geoGeometry?.oneWayRadioMs ?? null);
+
+      const latencyLabel = isMeshMode
+        ? 'Mesh A↔B RTT (4-hop)'
+        : isStarForward
+          ? `One-way latency (${gwLabel} → ${userLabel})`
+          : `One-way latency (${userLabel} → ${gwLabel})`;
+
+      const latencyScaleMs = isMeshMode ? RTT_VISUAL_SCALE_MAX_MS : ONE_WAY_VISUAL_SCALE_MAX_MS;
+
       return (
         <CollapsibleSection
           storageKey="geo-performance"
-          title={<>Estimated Performance<SectionTooltip content="Predicted GEO link throughput and end-to-end RTT derived from the selected GEO link budget and terminal caps. RTT remains dominated by the ~35,786 km GEO orbital altitude." /></>}
+          title={<>Estimated Performance<SectionTooltip content="Predicted GEO link throughput derived from the RF link budget. STAR modes show the active direction only and one-way latency. MESH/P2P shows both directions and full RTT." /></>}
           accentColor="#2563eb"
           defaultOpen={true}
           collapsible={false}
         >
           {resolvedGEOConnectivity && geoGeometry && geoEffectivePerformance ? (
             <PerformancePanel
-              rtt={effectiveRttMs}
-              downlinkGbps={geoEffectivePerformance.downlinkGbps}
-              uplinkGbps={geoEffectivePerformance.uplinkGbps}
+              rtt={effectiveLatencyMs}
+              downlinkGbps={isStarReturn ? null : geoEffectivePerformance.downlinkGbps}
+              uplinkGbps={isStarForward ? null : geoEffectivePerformance.uplinkGbps}
+              hideUplink={isStarForward}
+              hideDownlink={isStarReturn}
               maxDlGbps={TERMINAL_PROFILES[geoTerminalType].maxDlGbps}
               maxUlGbps={TERMINAL_PROFILES[geoTerminalType].maxUlGbps}
               stability={geoGeometry.isUserLinkUnstable ? 'Unstable' : geoEffectivePerformance.stability}
               performanceFactor={geoEffectivePerformance.performanceFactor}
               accentColor="#2563eb"
-              rttMaxMs={RTT_VISUAL_SCALE_MAX_MS}
-              rttLabel={rttLabel}
+              rttMaxMs={latencyScaleMs}
+              rttLabel={latencyLabel}
               stabilityTooltip={geoStabilityTooltip}
-              downlinkLabel={dlLabel}
-              uplinkLabel={ulLabel}
+              downlinkLabel={isStarForward ? 'Forward link throughput' : 'Downlink throughput'}
+              uplinkLabel={isStarReturn ? 'Return link throughput' : 'Uplink throughput'}
             />
           ) : (
             <PerformancePanel
@@ -1004,6 +1010,8 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
     selectedPoint,
     geoTerminalType,
     leoTerminalType,
+    analysisSource,
+    aircraftCallsign,
   ]);
 
   const leoPdfDetails = useMemo<PDFConnectionDetails | null>(() => {

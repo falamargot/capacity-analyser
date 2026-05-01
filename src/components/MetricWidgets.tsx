@@ -173,6 +173,10 @@ interface PerformancePanelProps {
     stabilityTooltip?: string;
     downlinkLabel?: string;
     uplinkLabel?: string;
+    /** Hide the uplink bar — the downlink bar takes full width */
+    hideUplink?: boolean;
+    /** Hide the downlink bar — the uplink bar takes full width */
+    hideDownlink?: boolean;
 }
 
 /** Full performance panel combining RTT + DL + UL + Stability */
@@ -184,6 +188,8 @@ export const PerformancePanel: React.FC<PerformancePanelProps> = ({
     stabilityTooltip,
     downlinkLabel = 'Downlink throughput',
     uplinkLabel = 'Uplink throughput',
+    hideUplink = false,
+    hideDownlink = false,
 }) => {
     const allEmpty = rtt == null && downlinkGbps == null && uplinkGbps == null;
     const DL_WIDTH_RATIO = 3 / 5;
@@ -195,31 +201,38 @@ export const PerformancePanel: React.FC<PerformancePanelProps> = ({
         maxUlMbps / UL_WIDTH_RATIO
     );
 
+    const dlColSpan = hideUplink ? 'sm:col-span-5' : 'sm:col-span-3';
+    const ulColSpan = hideDownlink ? 'sm:col-span-5' : 'sm:col-span-2';
+
     if (allEmpty && noDataMessage) {
         return (
             <div className="space-y-3">
                 <RttIndicator value={null} label={rttLabel} />
                 <div className="grid grid-cols-1 gap-3 items-start sm:grid-cols-5">
-                    <div className="sm:col-span-3">
-                        <ThroughputBar
-                            label={downlinkLabel}
-                            gbps={null}
-                            maxGbps={maxDlGbps}
-                            accentColor={accentColor}
-                            sharedScaleMaxMbps={sharedScaleMaxMbps}
-                            trackWidthRatio={DL_WIDTH_RATIO}
-                        />
-                    </div>
-                    <div className="sm:col-span-2">
-                        <ThroughputBar
-                            label={uplinkLabel}
-                            gbps={null}
-                            maxGbps={maxUlGbps}
-                            accentColor={accentColor}
-                            sharedScaleMaxMbps={sharedScaleMaxMbps}
-                            trackWidthRatio={UL_WIDTH_RATIO}
-                        />
-                    </div>
+                    {!hideDownlink && (
+                        <div className={dlColSpan}>
+                            <ThroughputBar
+                                label={downlinkLabel}
+                                gbps={null}
+                                maxGbps={maxDlGbps}
+                                accentColor={accentColor}
+                                sharedScaleMaxMbps={sharedScaleMaxMbps}
+                                trackWidthRatio={DL_WIDTH_RATIO}
+                            />
+                        </div>
+                    )}
+                    {!hideUplink && (
+                        <div className={ulColSpan}>
+                            <ThroughputBar
+                                label={uplinkLabel}
+                                gbps={null}
+                                maxGbps={maxUlGbps}
+                                accentColor={accentColor}
+                                sharedScaleMaxMbps={sharedScaleMaxMbps}
+                                trackWidthRatio={UL_WIDTH_RATIO}
+                            />
+                        </div>
+                    )}
                 </div>
                 <div className="text-xs text-gray-500 dark:text-gray-400 text-center mt-2">{noDataMessage}</div>
             </div>
@@ -230,28 +243,32 @@ export const PerformancePanel: React.FC<PerformancePanelProps> = ({
         <div className="space-y-3">
             <RttIndicator value={rtt} maxMs={rttMaxMs} accentColor={accentColor} label={rttLabel} />
             <div className="grid grid-cols-1 gap-3 items-start sm:grid-cols-5">
-                <div className="sm:col-span-3">
-                    <ThroughputBar
-                        label={downlinkLabel}
-                        gbps={downlinkGbps}
-                        maxGbps={maxDlGbps}
-                        accentColor={accentColor}
-                        performanceFactor={performanceFactor}
-                        sharedScaleMaxMbps={sharedScaleMaxMbps}
-                        trackWidthRatio={DL_WIDTH_RATIO}
-                    />
-                </div>
-                <div className="sm:col-span-2">
-                    <ThroughputBar
-                        label={uplinkLabel}
-                        gbps={uplinkGbps}
-                        maxGbps={maxUlGbps}
-                        accentColor={accentColor}
-                        performanceFactor={performanceFactor}
-                        sharedScaleMaxMbps={sharedScaleMaxMbps}
-                        trackWidthRatio={UL_WIDTH_RATIO}
-                    />
-                </div>
+                {!hideDownlink && (
+                    <div className={dlColSpan}>
+                        <ThroughputBar
+                            label={downlinkLabel}
+                            gbps={downlinkGbps}
+                            maxGbps={maxDlGbps}
+                            accentColor={accentColor}
+                            performanceFactor={performanceFactor}
+                            sharedScaleMaxMbps={sharedScaleMaxMbps}
+                            trackWidthRatio={DL_WIDTH_RATIO}
+                        />
+                    </div>
+                )}
+                {!hideUplink && (
+                    <div className={ulColSpan}>
+                        <ThroughputBar
+                            label={uplinkLabel}
+                            gbps={uplinkGbps}
+                            maxGbps={maxUlGbps}
+                            accentColor={accentColor}
+                            performanceFactor={performanceFactor}
+                            sharedScaleMaxMbps={sharedScaleMaxMbps}
+                            trackWidthRatio={UL_WIDTH_RATIO}
+                        />
+                    </div>
+                )}
             </div>
             {stability !== undefined && <StabilityIndicator stability={stability ?? null} tooltip={stabilityTooltip} />}
         </div>

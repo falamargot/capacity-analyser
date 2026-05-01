@@ -461,6 +461,7 @@ interface GEOConnectivitySectionProps {
 }
 
 const RTT_VISUAL_SCALE_MAX_MS = 600;
+const ONE_WAY_VISUAL_SCALE_MAX_MS = 350;
 
 // Speed of light used for propagation delay (km/ms)
 const SPEED_OF_LIGHT_KM_PER_MS = 299.792458;
@@ -468,7 +469,7 @@ const SPEED_OF_LIGHT_KM_PER_MS = 299.792458;
 const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
   resolvedGEOConnectivity,
   geoGeometry,
-  calculateGEOPerformance,
+  calculateGEOPerformance: _calculateGEOPerformance,
   terminalType,
   onTerminalTypeChange,
   weatherType,
@@ -600,15 +601,13 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
   const estimatedPerformanceSection = (
     <CollapsibleSection
       storageKey="geo-performance"
-      title={<>Estimated Performance<SectionTooltip content="Predicted GEO link throughput and end-to-end RTT derived from the selected GEO link budget and terminal caps. RTT remains dominated by the ~35,786 km GEO orbital altitude." /></>}
+      title={<>Estimated Performance<SectionTooltip content="Predicted GEO link throughput derived from the RF link budget. STAR modes show one active direction only. MESH/P2P shows RTT for the full round-trip (4 hops, no gateway)." /></>}
       accentColor="#2563eb"
       defaultOpen={true}
       collapsible={false}
     >
       {isMeshOrP2P ? (
-        // MESH/P2P: derive performance from the dual-segment RF budget directly.
-        // RTT = 4 propagation hops (A→Sat→B→Sat→A) + 2×modem overhead.
-        // No gateway processing or routing delay — there is no gateway in the RF path.
+        // MESH/P2P: both directions are budgeted — show RTT (4 hops) and active-direction throughput.
         meshGeometry ? (() => {
           const isForward = activeMeshTab === 'forward';
           const srcLabel = isForward ? 'A' : 'B';
@@ -641,24 +640,57 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
           />
         )
       ) : resolvedGEOConnectivity && geoGeometry ? (
+        // STAR FORWARD / RETURN: only one direction is budgeted by the RF model.
+        // Show that direction's throughput (from the real link budget) + one-way latency.
+        // RTT is not shown here — it belongs in the Latency Breakdown section.
         (() => {
-          const performance = calculateGEOPerformance(geoGeometry.userToSatellite.elevationDeg);
-          const geoStabilityTooltip = formatGeoStabilityTooltip(
-            geoGeometry.userToSatellite.elevationDeg,
-            geoGeometry.isUserLinkUnstable,
-          );
+          const elevDeg = geoGeometry.userToSatellite.elevationDeg;
+          const stability = geoGeometry.isUserLinkUnstable ? 'Unstable'
+            : elevDeg >= 40 ? 'High'
+            : elevDeg >= 25 ? 'Medium'
+            : elevDeg >= 5  ? 'Low'
+            : 'Unstable';
+          const geoStabilityTooltip = formatGeoStabilityTooltip(elevDeg, geoGeometry.isUserLinkUnstable);
+          const throughputMbps = dualSegmentResult?.forward.endToEnd.endToEndThroughputMbps ?? null;
+          const throughputGbps = throughputMbps != null ? throughputMbps / 1000 : null;
+
+          if (isStarForward) {
+            const gwLabel = geoGeometry.satelliteToGateway.gateway?.name ?? 'GW';
+            return (
+              <PerformancePanel
+                rtt={geoGeometry.oneWayRadioMs}
+                downlinkGbps={throughputGbps}
+                uplinkGbps={null}
+                hideUplink
+                maxDlGbps={TERMINAL_PROFILES[terminalType].maxDlGbps}
+                maxUlGbps={TERMINAL_PROFILES[terminalType].maxUlGbps}
+                stability={stability}
+                performanceFactor={1}
+                accentColor="#2563eb"
+                rttMaxMs={ONE_WAY_VISUAL_SCALE_MAX_MS}
+                rttLabel={`One-way latency (${gwLabel} → ${userLabel})`}
+                downlinkLabel="Forward link throughput"
+                stabilityTooltip={geoStabilityTooltip}
+              />
+            );
+          }
+
+          // STAR_RETURN
+          const gwLabel = geoGeometry.satelliteToGateway.gateway?.name ?? 'GW';
           return (
             <PerformancePanel
-              rtt={geoGeometry.rttTotalMs}
-              downlinkGbps={performance.downlinkGbps}
-              uplinkGbps={performance.uplinkGbps}
+              rtt={geoGeometry.oneWayRadioMs}
+              downlinkGbps={null}
+              uplinkGbps={throughputGbps}
+              hideDownlink
               maxDlGbps={TERMINAL_PROFILES[terminalType].maxDlGbps}
               maxUlGbps={TERMINAL_PROFILES[terminalType].maxUlGbps}
-              stability={geoGeometry.isUserLinkUnstable ? 'Unstable' : performance.stability}
-              performanceFactor={performance.performanceFactor}
+              stability={stability}
+              performanceFactor={1}
               accentColor="#2563eb"
-              rttMaxMs={RTT_VISUAL_SCALE_MAX_MS}
-              rttLabel="End-to-End GEO RTT"
+              rttMaxMs={ONE_WAY_VISUAL_SCALE_MAX_MS}
+              rttLabel={`One-way latency (${userLabel} → ${gwLabel})`}
+              uplinkLabel="Return link throughput"
               stabilityTooltip={geoStabilityTooltip}
             />
           );
