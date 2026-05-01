@@ -1,5 +1,5 @@
 import { memo, useState, type ReactNode } from 'react';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, Route } from 'lucide-react';
 import { PerformancePanel } from '../MetricWidgets';
 import { SectionTooltip } from '../SectionTooltip';
 import PassBeamTimeline from '../PassBeamTimeline';
@@ -151,6 +151,12 @@ interface LEOConnectivitySectionProps {
 
 const RTT_VISUAL_SCALE_MAX_MS = 600;
 
+const formatHopDistance = (distanceKm: number | null | undefined, latencyMs: number | null | undefined): string => {
+  const distance = distanceKm != null ? `${distanceKm.toFixed(0)} km` : '--';
+  const latency = latencyMs != null ? `${latencyMs.toFixed(1)} ms` : '--';
+  return `${distance} (${latency})`;
+};
+
 const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
   resolvedLEOConnectivity,
   leoGeometry,
@@ -253,13 +259,15 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
           showWeather={false}
           className="mb-0"
         />
-        <LeoStatusCards viewModel={leoServiceViewModel ?? null} />
+        <div className="pt-1">
+          <LeoStatusCards viewModel={leoServiceViewModel ?? null} />
+        </div>
         {showEstimatedPerformance && showPerformanceBeforeRadioPath && estimatedPerformanceSection}
 
         {/* LEO Radio Path */}
         <CollapsibleSection
           storageKey="leo-radio-path"
-          title={<>{isRegulatoryBlocked ? 'Radio Path (Diagnostic only)' : 'Radio Path'}<SectionTooltip content="End-to-end signal route: User → LEO Satellite → SNP gateway and back. Shows elevation angle, slant range, and one-way propagation delay for each segment. No SNP means no service is available." /></>}
+          title={<>{isRegulatoryBlocked ? 'Radio Path (Diagnostic only)' : 'Radio Path'}<SectionTooltip content="Active one-way LEO signal route: User → LEO Satellite → SNP gateway. RTT details are shown in the latency breakdown below. No SNP means no service is available." /></>}
           subtitle={isRegulatoryBlocked ? blockedDiagnosticMessage : undefined}
           accentColor="#db2777"
           defaultOpen={true}
@@ -268,19 +276,46 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
             <div className="text-sm text-gray-700 dark:text-gray-300 text-center space-y-3 min-w-0">
               {isRegulatoryBlocked && diagnosticOnlyNotice}
               {resolvedLEOConnectivity.snp ? (
-                <div className="break-words leading-relaxed">{userLabel} → <button onClick={() => onSatelliteClick?.(resolvedLEOConnectivity.satellite)} className="underline hover:no-underline text-pink-600 dark:text-pink-400 font-medium cursor-pointer break-all">{resolvedLEOConnectivity.satellite.name}</button> → {resolvedLEOConnectivity.snp.name} → <button onClick={() => onSatelliteClick?.(resolvedLEOConnectivity.satellite)} className="underline hover:no-underline text-pink-600 dark:text-pink-400 font-medium cursor-pointer break-all">{resolvedLEOConnectivity.satellite.name}</button> → {userLabel}</div>
+                <div className="flex items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs text-slate-700 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200">
+                  <Route className="h-4 w-4 shrink-0 text-pink-500" />
+                  <div className="min-w-0 break-words leading-relaxed">
+                    {userLabel}
+                    {' → '}
+                    <button onClick={() => onSatelliteClick?.(resolvedLEOConnectivity.satellite)} className="underline hover:no-underline text-pink-600 dark:text-pink-400 font-medium cursor-pointer break-all">{resolvedLEOConnectivity.satellite.name}</button>
+                    {' → '}
+                    {resolvedLEOConnectivity.snp.name}
+                  </div>
+                </div>
               ) : (
-                <div className="break-words leading-relaxed">{userLabel} → <button onClick={() => onSatelliteClick?.(resolvedLEOConnectivity.satellite)} className="underline hover:no-underline text-pink-600 dark:text-pink-400 font-medium cursor-pointer break-all">{resolvedLEOConnectivity.satellite.name}</button> (→ No SNP connectivity)</div>
+                <div className="flex items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs text-slate-700 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200">
+                  <Route className="h-4 w-4 shrink-0 text-pink-500" />
+                  <div className="min-w-0 break-words leading-relaxed">
+                    {userLabel}
+                    {' → '}
+                    <button onClick={() => onSatelliteClick?.(resolvedLEOConnectivity.satellite)} className="underline hover:no-underline text-pink-600 dark:text-pink-400 font-medium cursor-pointer break-all">{resolvedLEOConnectivity.satellite.name}</button>
+                    {' → No SNP connectivity'}
+                  </div>
+                </div>
               )}
               {resolvedLEOConnectivity.snp ? (
                 <div className="text-xs text-gray-500 dark:text-gray-400 space-y-2 text-left">
                   <div>
                     <div className="break-words">{userLabel} → {resolvedLEOConnectivity.satellite.name}{resolvedLEOConnectivity.connectedBeamIndex !== null ? ` · Beam ${resolvedLEOConnectivity.connectedBeamIndex}` : ''}</div>
-                    <div className="pl-3 sm:pl-4 break-words">→ Elevation: {resolvedLEOConnectivity.userLEOElevation?.toFixed(1)}° | Distance: {resolvedLEOConnectivity.userLEODistance?.toFixed(0)} km ({(leoGeometry?.propagationBreakdownMs.userToSatellite ?? (resolvedLEOConnectivity.userLEODistance / SPEED_OF_LIGHT_RADIO_KM_S * 1000)).toFixed(1)} ms)</div>
+                    <div className="pl-3 sm:pl-4 break-words">
+                      → Slant Range: {formatHopDistance(
+                        resolvedLEOConnectivity.userLEODistance,
+                        leoGeometry?.propagationBreakdownMs.userToSatellite ?? (resolvedLEOConnectivity.userLEODistance / SPEED_OF_LIGHT_RADIO_KM_S * 1000)
+                      )} | Elevation: {resolvedLEOConnectivity.userLEOElevation?.toFixed(1)}°
+                    </div>
                   </div>
                   <div>
-                    <div className="break-words">{resolvedLEOConnectivity.snp.name} → {resolvedLEOConnectivity.satellite.name}</div>
-                    <div className="pl-3 sm:pl-4 break-words">→ Elevation: {resolvedLEOConnectivity.snpLEOElevation?.toFixed(1)}° | Distance: {resolvedLEOConnectivity.snpLEODistance?.toFixed(0)} km ({(leoGeometry?.propagationBreakdownMs.satelliteToGateway ?? ((resolvedLEOConnectivity.snpLEODistance || 0) / SPEED_OF_LIGHT_RADIO_KM_S * 1000)).toFixed(1)} ms)</div>
+                    <div className="break-words">{resolvedLEOConnectivity.satellite.name} → {resolvedLEOConnectivity.snp.name}</div>
+                    <div className="pl-3 sm:pl-4 break-words">
+                      → Slant Range: {formatHopDistance(
+                        resolvedLEOConnectivity.snpLEODistance,
+                        leoGeometry?.propagationBreakdownMs.satelliteToGateway ?? ((resolvedLEOConnectivity.snpLEODistance || 0) / SPEED_OF_LIGHT_RADIO_KM_S * 1000)
+                      )} | Elevation: {resolvedLEOConnectivity.snpLEOElevation?.toFixed(1)}°
+                    </div>
                   </div>
                   <div className="border-t border-gray-200 dark:border-slate-700 pt-2 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between font-semibold text-gray-700 dark:text-gray-200">
                     <span>One-way propagation</span>
@@ -295,7 +330,12 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
                 </div>
               ) : (
                 <div className="text-xs text-gray-500 dark:text-gray-400 text-left break-words">
-                  <div>→ Elevation: {resolvedLEOConnectivity.userLEOElevation?.toFixed(1)}° | Distance: {resolvedLEOConnectivity.userLEODistance?.toFixed(0)} km ({(resolvedLEOConnectivity.userLEODistance * 2 / SPEED_OF_LIGHT_RADIO_KM_S * 1000).toFixed(1)} ms)</div>
+                  <div>
+                    → Slant Range: {formatHopDistance(
+                      resolvedLEOConnectivity.userLEODistance,
+                      resolvedLEOConnectivity.userLEODistance / SPEED_OF_LIGHT_RADIO_KM_S * 1000
+                    )} | Elevation: {resolvedLEOConnectivity.userLEOElevation?.toFixed(1)}°
+                  </div>
                 </div>
               )}
             </div>

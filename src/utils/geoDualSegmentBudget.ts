@@ -14,6 +14,7 @@
 
 import type { CandidateCoverage } from '../types/analysis';
 import type { GeoGatewayData } from '../components/globe/GlobeConfig';
+import type { GeoRfContext } from '../types/geoRfContext';
 import type { GeoBand } from './geoLinkBudget';
 import {
   DEFAULT_TERMINAL,
@@ -91,6 +92,8 @@ export interface DualSegmentResult {
    * between the two points without cross-beam switching.
    */
   transponderMode?: TransponderMode;
+  /** Explanatory RF context attached by the UI/service layer; does not affect calculations. */
+  rfContext?: GeoRfContext;
 }
 
 export interface MeshEndpointLabels {

@@ -15,6 +15,7 @@ import { satBeamsAdapter } from './satBeamsAdapter';
 
 const adapters = [lyngSatAdapter, satBeamsAdapter, ituAdapter];
 const requestCache = new Map<string, Promise<PublicTransponder[]>>();
+const normalizedRequestCache = new Map<string, Promise<PublicTransponder[] | null>>();
 
 const getCandidateIds = (lookup: {
   coverageFileId?: string | null;
@@ -168,3 +169,18 @@ export const loadPublicFrequencyPlanRawCount = async (lookup: {
 export const loadPublicFrequencyPlan = (satellite: SatelliteData): Promise<PublicTransponder[]> => (
   loadPublicFrequencyPlanByIds(satellite)
 );
+
+export const loadNormalizedPublicTranspondersBySatelliteId = (satelliteId: string): Promise<PublicTransponder[] | null> => {
+  const cached = normalizedRequestCache.get(satelliteId);
+  if (cached) return cached;
+
+  const request = (async () => {
+    const normalized = await fetchJsonIfAvailable(`/data/frequency-plans/normalized/${satelliteId}.json`).catch(() => null);
+    if (!normalized) return null;
+    const parsed = parseFrequencyPlanInput(normalized);
+    return parsed;
+  })();
+
+  normalizedRequestCache.set(satelliteId, request);
+  return request;
+};

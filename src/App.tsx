@@ -50,7 +50,7 @@ import { estimateBeamLoad } from './utils/capacityLayer';
 import { computeServiceStatus } from './utils/serviceLayer';
 import { getConnectivityStatus, hasRFConnectivity } from './utils/rfConnectivity';
 import { deriveLeoConnectivityViewModel } from './utils/leoServiceViewModel';
-import { getGroundSegmentRoutingForSatellite } from './utils/geoConnectivityModel';
+import { getGroundSegmentRoutingForSatellite, selectTrafficGeoGateway } from './utils/geoConnectivityModel';
 import type { GeoPointStatus } from './utils/selectedPointStatus';
 import type { CountryOverlayMode } from './types/countryOverlays';
 import type { LinkMode } from './types/linkMode';
@@ -83,6 +83,23 @@ type ViewportSnapshot = {
 const clampNumber = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
 
 const lerp = (start: number, end: number, progress: number) => start + (end - start) * progress;
+
+const getCandidateLinkMargin = (candidate: CandidateCoverage): number => (
+  Number.isFinite(candidate.linkMarginDb) ? candidate.linkMarginDb! : -Infinity
+);
+
+const compareCandidateLinkMargin = (left: CandidateCoverage, right: CandidateCoverage): number => {
+  const marginDelta = getCandidateLinkMargin(right) - getCandidateLinkMargin(left);
+  if (marginDelta !== 0) return marginDelta;
+  return right.score - left.score;
+};
+
+const pickBestGeoLinkMargin = (candidates: CandidateCoverage[]): CandidateCoverage | null => (
+  candidates.reduce<CandidateCoverage | null>(
+    (best, candidate) => (!best || compareCandidateLinkMargin(candidate, best) < 0 ? candidate : best),
+    null
+  )
+);
 
 const getViewportSnapshot = (): ViewportSnapshot => {
   if (typeof window === 'undefined') {
@@ -743,6 +760,62 @@ const App: React.FC = () => {
     return ranked;
   }, [linkMode, pointB, satelliteScope, satellites]);
 
+  const eligibleCandidateCoverages = useMemo(() => {
+    if (candidateCoverages.length === 0) return candidateCoverages;
+
+    if (LINK_MODE_REQUIRES_POINT_B.has(linkMode)) {
+      if (candidateCoveragesB.length === 0) return candidateCoverages;
+      const pointBSatelliteIds = new Set(candidateCoveragesB.map((candidate) => candidate.satelliteId));
+      return candidateCoverages.filter((candidate) => pointBSatelliteIds.has(candidate.satelliteId));
+    }
+
+    if (linkMode !== 'STAR_FORWARD' && linkMode !== 'STAR_RETURN') {
+      return candidateCoverages;
+    }
+
+    const geoSatellites = satellites.filter(
+      (satellite) => satellite.orbitType === 'GEO' && satellite.opsStatus === 'operational'
+    );
+    const candidateSatelliteIds = new Set(candidateCoverages.map((candidate) => candidate.satelliteId));
+    const candidateSatellites = geoSatellites.filter((satellite) => candidateSatelliteIds.has(satellite.id));
+
+    const gatewayByPosition = new Map<string, { lat: number; lng: number }>();
+    const gatewayPositionBySatelliteId = new Map<string, string>();
+
+    for (const satellite of candidateSatellites) {
+      const gatewaySelection = selectTrafficGeoGateway(satellite, GEO_GATEWAYS);
+      if (!gatewaySelection) continue;
+
+      const gatewayPosition = {
+        lat: gatewaySelection.gateway.lat,
+        lng: gatewaySelection.gateway.lng,
+      };
+      const positionKey = `${gatewayPosition.lat},${gatewayPosition.lng}`;
+      gatewayByPosition.set(positionKey, gatewayPosition);
+      gatewayPositionBySatelliteId.set(satellite.id, positionKey);
+    }
+
+    if (gatewayPositionBySatelliteId.size === 0) return [];
+
+    const coveredSatelliteIdsByGatewayPosition = new Map<string, Set<string>>();
+    for (const [positionKey, gatewayPosition] of gatewayByPosition) {
+      const gatewayCandidates = findCandidateCoverages(gatewayPosition, geoSatellites);
+      coveredSatelliteIdsByGatewayPosition.set(
+        positionKey,
+        new Set(gatewayCandidates.map((candidate) => candidate.satelliteId))
+      );
+    }
+
+    const eligibleSatelliteIds = new Set<string>();
+    for (const [satelliteId, positionKey] of gatewayPositionBySatelliteId) {
+      if (coveredSatelliteIdsByGatewayPosition.get(positionKey)?.has(satelliteId)) {
+        eligibleSatelliteIds.add(satelliteId);
+      }
+    }
+
+    return candidateCoverages.filter((candidate) => eligibleSatelliteIds.has(candidate.satelliteId));
+  }, [candidateCoverages, candidateCoveragesB, linkMode, satellites]);
+
   const targetSelectionResetKey = useMemo(() => (
     selectedSelection.type === 'target'
       ? [
@@ -764,18 +837,18 @@ const App: React.FC = () => {
   useEffect(() => {
     if (selectedSelection.type !== 'target') return;
     if (selectedUplinkKey) {
-      const c = candidateCoverages.find(cc => getCandidateCoverageKey(cc) === selectedUplinkKey);
+      const c = eligibleCandidateCoverages.find(cc => getCandidateCoverageKey(cc) === selectedUplinkKey);
       if (!c) setSelectedUplinkKey(null);
     }
     if (selectedDownlinkKey) {
-      const c = candidateCoverages.find(cc => getCandidateCoverageKey(cc) === selectedDownlinkKey);
+      const c = eligibleCandidateCoverages.find(cc => getCandidateCoverageKey(cc) === selectedDownlinkKey);
       if (!c) setSelectedDownlinkKey(null);
     }
-  }, [candidateCoverages, selectedSelection.type, selectedUplinkKey, selectedDownlinkKey]);
+  }, [eligibleCandidateCoverages, selectedSelection.type, selectedUplinkKey, selectedDownlinkKey]);
 
   const topologyDefaultSelection = useMemo(() => {
     if (selectedSelection.type !== 'target') return null;
-    if (candidateCoverages.length === 0) return null;
+    if (eligibleCandidateCoverages.length === 0) return null;
 
     const geoSatellites = satellites.filter(
       (satellite) => satellite.orbitType === 'GEO' && satellite.opsStatus === 'operational'
@@ -784,7 +857,7 @@ const App: React.FC = () => {
     return selectBestTopologyPath({
       linkMode,
       satellites: geoSatellites,
-      candidateCoveragesA: candidateCoverages,
+      candidateCoveragesA: eligibleCandidateCoverages,
       candidateCoveragesB,
       pointB,
       terminalTypeA: geoTerminalType,
@@ -793,7 +866,7 @@ const App: React.FC = () => {
       pointBLabel: 'Terminal B',
     });
   }, [
-    candidateCoverages,
+    eligibleCandidateCoverages,
     candidateCoveragesB,
     geoTerminalType,
     geoTerminalTypeB,
@@ -807,35 +880,36 @@ const App: React.FC = () => {
   const defaultDownlinkCoverage = useMemo(
     () => selectedSelection.type === 'target'
       ? (
-        topologyDefaultSelection?.downlinkA
-        ?? candidateCoverages.find(c => !c.isUplink)
+        pickBestGeoLinkMargin(eligibleCandidateCoverages.filter((c) => !c.isUplink && !c.isSynthesized))
+        ?? topologyDefaultSelection?.downlinkA
+        ?? pickBestGeoLinkMargin(eligibleCandidateCoverages.filter((c) => !c.isUplink))
         ?? null
       )
       : null,
-    [candidateCoverages, selectedSelection.type, topologyDefaultSelection]
+    [eligibleCandidateCoverages, selectedSelection.type, topologyDefaultSelection]
   );
   const defaultUplinkCoverage = useMemo(() => {
     if (selectedSelection.type !== 'target') return null;
-    if (topologyDefaultSelection?.uplinkA) return topologyDefaultSelection.uplinkA;
     if (defaultDownlinkCoverage) {
-      return candidateCoverages.find(
+      return pickBestGeoLinkMargin(eligibleCandidateCoverages.filter(
         c => c.isUplink && c.satelliteId === defaultDownlinkCoverage.satelliteId
-      ) ?? null;
+      )) ?? topologyDefaultSelection?.uplinkA ?? null;
     }
-    return candidateCoverages.find(c => c.isUplink) ?? null;
-  }, [candidateCoverages, selectedSelection.type, defaultDownlinkCoverage, topologyDefaultSelection]);
+    if (topologyDefaultSelection?.uplinkA) return topologyDefaultSelection.uplinkA;
+    return pickBestGeoLinkMargin(eligibleCandidateCoverages.filter(c => c.isUplink));
+  }, [eligibleCandidateCoverages, selectedSelection.type, defaultDownlinkCoverage, topologyDefaultSelection]);
 
   const selectedUplinkCoverage = useMemo(() => {
     if (selectedSelection.type !== 'target') return null;
-    if (selectedUplinkKey) return candidateCoverages.find(c => getCandidateCoverageKey(c) === selectedUplinkKey) ?? defaultUplinkCoverage;
+    if (selectedUplinkKey) return eligibleCandidateCoverages.find(c => getCandidateCoverageKey(c) === selectedUplinkKey) ?? defaultUplinkCoverage;
     return defaultUplinkCoverage;
-  }, [candidateCoverages, defaultUplinkCoverage, selectedSelection.type, selectedUplinkKey]);
+  }, [eligibleCandidateCoverages, defaultUplinkCoverage, selectedSelection.type, selectedUplinkKey]);
 
   const selectedDownlinkCoverage = useMemo(() => {
     if (selectedSelection.type !== 'target') return null;
-    if (selectedDownlinkKey) return candidateCoverages.find(c => getCandidateCoverageKey(c) === selectedDownlinkKey) ?? defaultDownlinkCoverage;
+    if (selectedDownlinkKey) return eligibleCandidateCoverages.find(c => getCandidateCoverageKey(c) === selectedDownlinkKey) ?? defaultDownlinkCoverage;
     return defaultDownlinkCoverage;
-  }, [candidateCoverages, defaultDownlinkCoverage, selectedSelection.type, selectedDownlinkKey]);
+  }, [eligibleCandidateCoverages, defaultDownlinkCoverage, selectedSelection.type, selectedDownlinkKey]);
 
   // Globe-visible coverages: only the user-terminal side for the active link mode,
   // only when real contour data exists (synthesised → nothing on globe),
@@ -898,7 +972,7 @@ const App: React.FC = () => {
     [selectedCoverage]
   );
   const coverageSwitcherCoverages = useMemo<CoverageSwitcherCoverage[]>(
-    () => candidateCoverages.map((coverage) => ({
+    () => eligibleCandidateCoverages.map((coverage) => ({
       id: getCandidateCoverageKey(coverage),
       name: coverage.coverageName,
       satelliteName: coverage.satelliteName,
@@ -907,7 +981,7 @@ const App: React.FC = () => {
       elevation: coverage.elevation,
       score: coverage.score,
     })),
-    [candidateCoverages]
+    [eligibleCandidateCoverages]
   );
 
   const resolvedSelectedGeoCoverage = useMemo(() => {
@@ -1611,16 +1685,16 @@ const App: React.FC = () => {
   // the other is auto-updated to the best candidate of that satellite.
   const handleSelectTargetCoverageById = useCallback((coverageId: string) => {
     if (selectedSelection.type !== 'target') return;
-    const coverage = candidateCoverages.find(c => getCandidateCoverageKey(c) === coverageId);
+    const coverage = eligibleCandidateCoverages.find(c => getCandidateCoverageKey(c) === coverageId);
     if (!coverage) return;
 
     const findCompanion = (wantUplink: boolean) => (
-      candidateCoverages.find(c => (
+      eligibleCandidateCoverages.find(c => (
         c.isUplink === wantUplink &&
         c.satelliteId === coverage.satelliteId &&
         c.band === coverage.band
       ))
-      ?? candidateCoverages.find(c => (
+      ?? eligibleCandidateCoverages.find(c => (
         c.isUplink === wantUplink &&
         c.satelliteId === coverage.satelliteId
       ))
@@ -1654,7 +1728,7 @@ const App: React.FC = () => {
         setSelectedUplinkKey(bestUl ? getCandidateCoverageKey(bestUl) : null);
       }
     }
-  }, [candidateCoverages, linkMode, selectedSelection.type, selectedUplinkCoverage, selectedDownlinkCoverage]);
+  }, [eligibleCandidateCoverages, linkMode, selectedSelection.type, selectedUplinkCoverage, selectedDownlinkCoverage]);
 
   const handleSelectUplinkCoverage = useCallback((coverage: CandidateCoverage) => {
     handleSelectTargetCoverageById(getCandidateCoverageKey(coverage));
@@ -2906,7 +2980,7 @@ const App: React.FC = () => {
                     autoWeatherEnabled={autoWeatherEnabled}
                     onAutoWeatherChange={setAutoWeatherEnabled}
                     selectedSNP={selectedSNP}
-                    candidateCoverages={candidateCoverages}
+                    candidateCoverages={eligibleCandidateCoverages}
                     selectedUplinkCoverage={selectedUplinkCoverage}
                     selectedDownlinkCoverage={selectedDownlinkCoverage}
                     onSelectUplinkCoverage={handleSelectUplinkCoverage}
@@ -3064,7 +3138,7 @@ const App: React.FC = () => {
                                 autoWeatherEnabled={autoWeatherEnabled}
                                 onAutoWeatherChange={setAutoWeatherEnabled}
                                 selectedSNP={selectedSNP}
-                                candidateCoverages={candidateCoverages}
+                                candidateCoverages={eligibleCandidateCoverages}
                                 selectedCoverage={selectedCoverage}
                                 onSelectCoverage={handleSelectTargetCoverage}
                                 selectedGeoMission={selectedGeoMission}
@@ -3202,7 +3276,7 @@ const App: React.FC = () => {
                         autoWeatherEnabled={autoWeatherEnabled}
                         onAutoWeatherChange={setAutoWeatherEnabled}
                         selectedSNP={selectedSNP}
-                        candidateCoverages={candidateCoverages}
+                        candidateCoverages={eligibleCandidateCoverages}
                         selectedCoverage={selectedCoverage}
                         onSelectCoverage={handleSelectTargetCoverage}
                         selectedUplinkCoverage={selectedUplinkCoverage}

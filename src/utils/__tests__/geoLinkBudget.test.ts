@@ -6,6 +6,7 @@ describe('geoLinkBudget', () => {
     expect(lookupModcod(-3)).toEqual({
       name: 'Below threshold',
       efficiency: 0,
+      requiredCnDb: -2.35,
     });
   });
 

@@ -11,12 +11,16 @@
  * For MESH mode, renders two DirectionBlock instances (forward + reverse).
  */
 
-import { memo, useEffect, useState } from 'react';
+import { memo, useEffect, useMemo, useState } from 'react';
 import type { LinkMode } from '../../types/linkMode';
 import { LINK_MODE_DESCRIPTIONS } from '../../types/linkMode';
 import type { DualSegmentResult, LinkSegment, TransponderMode } from '../../utils/geoDualSegmentBudget';
 import type { EndToEndBudget } from '../../utils/geoLinkBudget';
-import { SectionTooltip } from '../SectionTooltip';
+import type { SatelliteData } from '../../types/satellites';
+import type { GeoRfContext, PublicFrequencyMatchStatus } from '../../types/geoRfContext';
+import { loadNormalizedPublicTranspondersBySatelliteId } from '../../services/frequencyPlan/frequencyPlanService';
+import { matchPublicTransponders } from '../../services/frequencyPlan/publicTransponderMatcher';
+import { applyPublicFrequencyMatchToContext, buildGeoRfContext } from '../../services/geo/rfContextService';
 
 // ─── Formatters ───────────────────────────────────────────────────────────────
 
@@ -37,6 +41,8 @@ const fmtGhz = (v: number | undefined | null) =>
 
 const fmtMhz = (v: number | undefined | null) =>
   typeof v === 'number' && isFinite(v) ? `${v.toFixed(0)} MHz` : '--';
+
+const fmtPol = (v: string | undefined | null) => v && v !== 'UNKNOWN' ? v : '--';
 
 const fmtMbps = (v: number | undefined | null) => {
   if (typeof v !== 'number' || !isFinite(v)) return '--';
@@ -72,6 +78,31 @@ const marginBadge = (v: number | undefined | null): string => {
   return 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300';
 };
 
+const matchLabel = (status: PublicFrequencyMatchStatus | undefined): string => {
+  if (status === 'EXACT_MATCH') return 'Exact match';
+  if (status === 'NEAR_MATCH') return 'Near match';
+  if (status === 'BEAM_ONLY_MATCH') return 'Beam-only match';
+  if (status === 'NO_MATCH') return 'No match';
+  if (status === 'NO_PUBLIC_DATA') return 'No public data';
+  return 'Checking';
+};
+
+const matchBadgeClass = (status: PublicFrequencyMatchStatus | undefined, confidence?: string): string => {
+  if (status === 'EXACT_MATCH') return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300';
+  if (status === 'NEAR_MATCH') return 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300';
+  if (status === 'BEAM_ONLY_MATCH') return 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300';
+  if (status === 'NO_PUBLIC_DATA') return 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300';
+  if (confidence === 'LOW') return 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300';
+  return 'bg-gray-100 text-gray-600 dark:bg-slate-700 dark:text-slate-300';
+};
+
+const confidenceBadgeClass = (confidence: string | undefined): string => {
+  if (confidence === 'HIGH') return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300';
+  if (confidence === 'MEDIUM') return 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300';
+  if (confidence === 'LOW') return 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300';
+  return 'bg-gray-100 text-gray-600 dark:bg-slate-700 dark:text-slate-300';
+};
+
 // ─── Row helper ───────────────────────────────────────────────────────────────
 
 const Row = ({ label, value, bold = false, className = '' }: {
@@ -87,6 +118,165 @@ const Row = ({ label, value, bold = false, className = '' }: {
     </span>
   </div>
 );
+
+const SmallBadge = ({ children, className }: { children: React.ReactNode; className: string }) => (
+  <span className={`inline-flex w-fit items-center rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${className}`}>
+    {children}
+  </span>
+);
+
+const RFContextCard = ({ context }: { context: GeoRfContext }) => {
+  const [showCandidates, setShowCandidates] = useState(false);
+  const [showAllCandidates, setShowAllCandidates] = useState(false);
+  const publicMatch = context.publicFrequencyMatch;
+  const candidates = publicMatch?.candidates ?? [];
+  const visibleCandidates = showAllCandidates ? candidates : candidates.slice(0, 5);
+  const warnings = Array.from(new Set([
+    ...context.uplink.warnings,
+    ...context.downlink.warnings,
+    ...(publicMatch?.warnings ?? []),
+  ]));
+  const selectedCoverage = context.payload.selectedCoverageName ?? context.downlink.coverageName ?? context.uplink.coverageName ?? '--';
+  const band = context.band && context.band !== 'UNKNOWN' ? `${context.band === 'KU' ? 'Ku' : context.band === 'KA' ? 'Ka' : 'C'}-band` : 'Unknown band';
+  const summary = [
+    band,
+    selectedCoverage,
+    `UL ${fmtGhz(context.uplink.frequencyGHz)}`,
+    `DL ${fmtGhz(context.downlink.frequencyGHz)}`,
+    `Public match: ${matchLabel(publicMatch?.status)}`,
+  ].filter(Boolean).join(' · ');
+
+  return (
+    <details className="rounded-lg border border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-900/70">
+      <summary className="cursor-pointer list-none px-3 py-2.5">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2">
+              <p className="text-xs font-bold uppercase tracking-wide text-slate-700 dark:text-slate-200">RF Context</p>
+              <SmallBadge className={matchBadgeClass(publicMatch?.status, publicMatch?.confidence)}>
+                {matchLabel(publicMatch?.status)}
+              </SmallBadge>
+              {publicMatch?.confidence === 'LOW' && (
+                <SmallBadge className={confidenceBadgeClass('LOW')}>Low confidence</SmallBadge>
+              )}
+            </div>
+            <p className="mt-1 truncate text-[11px] text-slate-500 dark:text-slate-400">{summary}</p>
+          </div>
+        </div>
+      </summary>
+
+      <div className="space-y-3 border-t border-slate-200 px-3 py-3 dark:border-slate-700">
+        <div className="grid grid-cols-1 gap-3 text-xs sm:grid-cols-2">
+          <div className="space-y-1.5">
+            <Row label="Satellite" value={context.satelliteName} bold />
+            <Row label="Topology" value={context.topology.replace(/_/g, ' ')} />
+            <Row label="Band" value={band} />
+            <Row label="Selected coverage" value={selectedCoverage} />
+            <Row label="RF source" value={context.provenance.rfParametersSource.join(' / ')} />
+          </div>
+          <div className="space-y-1.5">
+            <Row label="Uplink" value={fmtGhz(context.uplink.frequencyGHz)} bold />
+            <Row label="Downlink" value={fmtGhz(context.downlink.frequencyGHz)} bold />
+            <Row label="Bandwidth" value={fmtMhz(context.downlink.bandwidthMHz ?? context.uplink.bandwidthMHz)} />
+            <Row label="UL polarization" value={fmtPol(context.uplink.polarization)} />
+            <Row label="DL polarization" value={fmtPol(context.downlink.polarization)} />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 gap-2 text-xs sm:grid-cols-2">
+          <div className="rounded-md bg-white px-2 py-1.5 dark:bg-slate-950">
+            <div className="font-semibold text-slate-700 dark:text-slate-200">Uplink beam/coverage</div>
+            <div className="mt-0.5 text-slate-500 dark:text-slate-400">{context.uplink.coverageName ?? context.uplink.beamName ?? 'Unknown uplink beam'}</div>
+            <div className="mt-1 flex flex-wrap gap-1">
+              <SmallBadge className={context.uplink.source === 'INFERRED' ? matchBadgeClass('BEAM_ONLY_MATCH') : matchBadgeClass('EXACT_MATCH')}>
+                {context.uplink.source === 'INFERRED' ? 'Inferred UL' : 'Selected coverage'}
+              </SmallBadge>
+            </div>
+          </div>
+          <div className="rounded-md bg-white px-2 py-1.5 dark:bg-slate-950">
+            <div className="font-semibold text-slate-700 dark:text-slate-200">Downlink beam/coverage</div>
+            <div className="mt-0.5 text-slate-500 dark:text-slate-400">{context.downlink.coverageName ?? context.downlink.beamName ?? 'Unknown downlink beam'}</div>
+            <div className="mt-1 flex flex-wrap gap-1">
+              <SmallBadge className={matchBadgeClass('EXACT_MATCH')}>Selected coverage</SmallBadge>
+            </div>
+          </div>
+        </div>
+
+        <div className="rounded-md bg-white px-2 py-2 text-xs dark:bg-slate-950">
+          <div className="mb-1 flex flex-wrap items-center gap-1.5">
+            <span className="font-semibold text-slate-700 dark:text-slate-200">Public frequency data</span>
+            <SmallBadge className={matchBadgeClass(publicMatch?.status, publicMatch?.confidence)}>{matchLabel(publicMatch?.status)}</SmallBadge>
+            <SmallBadge className={confidenceBadgeClass(publicMatch?.confidence)}>{publicMatch?.confidence ?? 'UNKNOWN'}</SmallBadge>
+            {publicMatch?.source === 'LYNGSAT_NORMALIZED' && <SmallBadge className={matchBadgeClass('EXACT_MATCH')}>Public DL</SmallBadge>}
+          </div>
+          <Row label="Source" value={publicMatch?.source === 'LYNGSAT_NORMALIZED' ? 'LyngSat-derived normalized public data' : 'None'} />
+          <Row label="Matched candidate" value={context.payload.selectedTransponderName ?? context.payload.selectedTransponderNumber ?? publicMatch?.selectedCandidateId ?? '--'} />
+          <Row label="Candidate count" value={String(publicMatch?.candidateCount ?? 0)} />
+        </div>
+
+        {warnings.length > 0 && (
+          <div className="rounded-md border border-amber-200 bg-amber-50 px-2 py-2 text-[11px] text-amber-800 dark:border-amber-800/60 dark:bg-amber-950/30 dark:text-amber-200">
+            <div className="font-semibold">Warnings</div>
+            <ul className="mt-1 space-y-0.5">
+              {warnings.map((warning) => <li key={warning}>- {warning}</li>)}
+            </ul>
+          </div>
+        )}
+
+        {candidates.length > 0 && (
+          <div className="rounded-md border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-950">
+            <button
+              type="button"
+              onClick={() => setShowCandidates((show) => !show)}
+              className="flex w-full items-center justify-between px-2 py-2 text-left text-xs font-semibold text-slate-700 dark:text-slate-200"
+            >
+              <span>Show candidate public transponders</span>
+              <span>{showCandidates ? 'Hide' : 'Show'}</span>
+            </button>
+            {showCandidates && (
+              <div className="space-y-1 border-t border-slate-200 px-2 py-2 dark:border-slate-700">
+                {visibleCandidates.map((candidate) => {
+                  const tp = candidate.transponder;
+                  return (
+                    <div key={tp.id} className="rounded-md bg-slate-50 px-2 py-1.5 text-[11px] dark:bg-slate-900">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <div className="truncate font-semibold text-slate-700 dark:text-slate-200">
+                            {tp.transponder.publicName ?? tp.transponder.publicNumber ?? 'Public transponder'}
+                          </div>
+                          <div className="mt-0.5 text-slate-500 dark:text-slate-400">
+                            DL {fmtGhz(tp.downlink.frequencyMHz / 1000)} {tp.downlink.polarization ?? 'UNKNOWN'} · {tp.downlink.beamName ?? 'Unknown beam'}
+                          </div>
+                          <div className="mt-0.5 text-slate-500 dark:text-slate-400">
+                            Inferred UL {fmtGhz(tp.uplink.frequencyMHz ? tp.uplink.frequencyMHz / 1000 : undefined)}
+                          </div>
+                        </div>
+                        <div className="flex shrink-0 flex-col items-end gap-1">
+                          <SmallBadge className={confidenceBadgeClass(candidate.confidence)}>{candidate.score}</SmallBadge>
+                          {tp.groupedObservationCount !== undefined && <span className="text-slate-400">{tp.groupedObservationCount} obs</span>}
+                          {candidate.warnings.length > 0 && <span className="text-amber-500">Warnings</span>}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+                {candidates.length > 5 && (
+                  <button
+                    type="button"
+                    onClick={() => setShowAllCandidates((show) => !show)}
+                    className="text-[11px] font-semibold text-blue-600 hover:text-blue-700 dark:text-blue-300"
+                  >
+                    {showAllCandidates ? 'Show top 5' : `Show ${candidates.length - 5} more`}
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </details>
+  );
+};
 
 // ─── SegmentCard ──────────────────────────────────────────────────────────────
 
@@ -510,6 +700,8 @@ export interface DualSegmentPanelProps {
   onMeshTabChange?: (tab: 'forward' | 'reverse') => void;
   /** Satellite name — used to classify cross-connect capability in the transponder card. */
   satelliteName?: string;
+  /** Selected GEO satellite — used for NORAD-based public frequency matching. */
+  satellite?: SatelliteData | null;
   /** Display labels for the coverage rows, aligned with the sidebar selections. */
   coverageLabels?: {
     forward?: {
@@ -525,7 +717,7 @@ export interface DualSegmentPanelProps {
 
 const DualSegmentPanel = memo<DualSegmentPanelProps>(({
   linkMode, result, incompatible,
-  activeMeshTab: controlledTab, onMeshTabChange, satelliteName, coverageLabels,
+  activeMeshTab: controlledTab, onMeshTabChange, satelliteName, satellite, coverageLabels,
 }) => {
   const description = LINK_MODE_DESCRIPTIONS[linkMode];
   const [internalTab, setInternalTab] = useState<'forward' | 'reverse'>('forward');
@@ -535,6 +727,59 @@ const DualSegmentPanel = memo<DualSegmentPanelProps>(({
   const directionControlled = controlledTab != null;
   const forwardLabel = isMesh ? 'Terminal A → Terminal B' : '';
   const reverseLabel = isMesh && result.reverse ? 'Terminal B → Terminal A' : '';
+  const activeSegments = useMemo(() => {
+    if (!result) return null;
+    if (isMesh && activeMeshTab === 'reverse' && result.reverse) {
+      return {
+        uplink: result.reverse.uplink,
+        downlink: result.reverse.downlink,
+        labels: coverageLabels?.reverse,
+      };
+    }
+    return {
+      uplink: result.forward.uplink,
+      downlink: result.forward.downlink,
+      labels: coverageLabels?.forward,
+    };
+  }, [activeMeshTab, coverageLabels?.forward, coverageLabels?.reverse, isMesh, result]);
+
+  const baseRfContext = useMemo(() => {
+    if (!activeSegments) return null;
+    return buildGeoRfContext({
+      satellite,
+      linkMode,
+      uplink: activeSegments.uplink,
+      downlink: activeSegments.downlink,
+      coverageLabels: activeSegments.labels,
+    });
+  }, [activeSegments, linkMode, satellite]);
+  const [matchedRfContext, setMatchedRfContext] = useState<GeoRfContext | null>(null);
+  const rfContext = matchedRfContext ?? baseRfContext ?? result?.rfContext ?? null;
+  const resultWithRfContext = useMemo(() => (
+    result && rfContext ? { ...result, rfContext } : result
+  ), [result, rfContext]);
+
+  useEffect(() => {
+    let cancelled = false;
+    setMatchedRfContext(null);
+    if (!baseRfContext || baseRfContext.satelliteId === 'UNKNOWN') return;
+
+    loadNormalizedPublicTranspondersBySatelliteId(baseRfContext.satelliteId)
+      .then((transponders) => {
+        if (cancelled) return;
+        const publicMatch = matchPublicTransponders(baseRfContext, transponders ?? []);
+        setMatchedRfContext(applyPublicFrequencyMatchToContext(baseRfContext, publicMatch));
+      })
+      .catch(() => {
+        if (cancelled) return;
+        const publicMatch = matchPublicTransponders(baseRfContext, []);
+        setMatchedRfContext(applyPublicFrequencyMatchToContext(baseRfContext, publicMatch));
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [baseRfContext]);
 
   useEffect(() => {
     setActiveMeshTab('forward');
@@ -577,29 +822,38 @@ const DualSegmentPanel = memo<DualSegmentPanelProps>(({
             />
           )}
           {activeMeshTab === 'forward' ? (
-            <DirectionBlock
-              uplink={result.forward.uplink}
-              downlink={result.forward.downlink}
-              endToEnd={result.forward.endToEnd}
-              coverageLabels={coverageLabels?.forward}
-            />
+            <>
+              {rfContext && <RFContextCard context={rfContext} />}
+              <DirectionBlock
+                uplink={resultWithRfContext!.forward.uplink}
+                downlink={resultWithRfContext!.forward.downlink}
+                endToEnd={resultWithRfContext!.forward.endToEnd}
+                coverageLabels={coverageLabels?.forward}
+              />
+            </>
           ) : (
-            <DirectionBlock
-              uplink={result.reverse!.uplink}
-              downlink={result.reverse!.downlink}
-              endToEnd={result.reverse!.endToEnd}
-              coverageLabels={coverageLabels?.reverse}
-            />
+            <>
+              {rfContext && <RFContextCard context={rfContext} />}
+              <DirectionBlock
+                uplink={resultWithRfContext!.reverse!.uplink}
+                downlink={resultWithRfContext!.reverse!.downlink}
+                endToEnd={resultWithRfContext!.reverse!.endToEnd}
+                coverageLabels={coverageLabels?.reverse}
+              />
+            </>
           )}
         </>
       ) : (
-        <DirectionBlock
-          uplink={result.forward.uplink}
-          downlink={result.forward.downlink}
-          endToEnd={result.forward.endToEnd}
-          linkMode={linkMode}
-          coverageLabels={coverageLabels?.forward}
-        />
+        <>
+          {rfContext && <RFContextCard context={rfContext} />}
+          <DirectionBlock
+            uplink={resultWithRfContext!.forward.uplink}
+            downlink={resultWithRfContext!.forward.downlink}
+            endToEnd={resultWithRfContext!.forward.endToEnd}
+            linkMode={linkMode}
+            coverageLabels={coverageLabels?.forward}
+          />
+        </>
       )}
     </div>
   );

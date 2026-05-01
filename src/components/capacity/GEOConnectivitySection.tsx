@@ -1,5 +1,5 @@
 import { memo, useState, useMemo, useEffect, type ReactNode } from 'react';
-import { Activity, ArrowLeft, ArrowRight, ChevronDown, Gauge, Maximize2, Minimize2, Route, X } from 'lucide-react';
+import { ArrowLeft, ArrowRight, ChevronDown, Gauge, Maximize2, Minimize2, Route, X } from 'lucide-react';
 import { PerformancePanel } from '../MetricWidgets';
 import { SectionTooltip } from '../SectionTooltip';
 import CoverageSelector from '../CoverageSelector';
@@ -62,9 +62,6 @@ const fmtMbps = (v: number | undefined | null) => {
   return `${v.toFixed(0)} Mbps`;
 };
 
-const fmtMs = (v: number | undefined | null) =>
-  typeof v === 'number' && isFinite(v) ? `${Math.round(v)} ms` : '--';
-
 const linkMarginTone = (margin: number | undefined | null) => {
   if (typeof margin !== 'number' || !isFinite(margin)) {
     return {
@@ -108,8 +105,6 @@ const displayableBeamOrCoverageName = (
 interface LinkBudgetSummaryCardProps {
   linkMode: LinkMode;
   result: DualSegmentResult | null;
-  rttMs: number | null;
-  routeLabel: string;
   activeMeshTab?: 'forward' | 'reverse';
   highlighted?: boolean;
   onToggle: () => void;
@@ -118,8 +113,6 @@ interface LinkBudgetSummaryCardProps {
 const LinkBudgetSummaryCard = ({
   linkMode,
   result,
-  rttMs,
-  routeLabel,
   activeMeshTab = 'forward',
   highlighted = false,
   onToggle,
@@ -130,14 +123,19 @@ const LinkBudgetSummaryCard = ({
   const e2e = direction?.endToEnd ?? null;
   const uplink = direction?.uplink ?? null;
   const downlink = direction?.downlink ?? null;
+  const displaySegment = linkMode === 'STAR_FORWARD'
+    ? (downlink ?? uplink)
+    : linkMode === 'STAR_RETURN'
+      ? (uplink ?? downlink)
+      : (uplink ?? downlink);
   const limiting = e2e?.limitingSegment === 'uplink' ? 'Uplink' : e2e?.limitingSegment === 'downlink' ? 'Downlink' : '--';
   const margin = e2e?.endToEndLinkMarginDb;
   const tone = linkMarginTone(margin);
-  const satelliteName = uplink?.candidate.satelliteName ?? downlink?.candidate.satelliteName ?? 'No GEO path';
-  const band = uplink?.candidate.band ?? downlink?.candidate.band ?? 'Band --';
+  const satelliteName = displaySegment?.candidate.satelliteName ?? 'No GEO path';
+  const band = displaySegment?.candidate.band ?? 'Band --';
   const beamName = displayableBeamOrCoverageName(
-    uplink?.candidate.beamName ?? downlink?.candidate.beamName,
-    uplink?.candidate.coverageName ?? downlink?.candidate.coverageName,
+    displaySegment?.candidate.beamName,
+    displaySegment?.candidate.coverageName,
     '--',
   );
 
@@ -192,16 +190,11 @@ const LinkBudgetSummaryCard = ({
             {highlighted ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
           </button>
         </div>
-        <div className="mt-3 flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs text-slate-600 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-300">
-          <Route className="h-4 w-4 shrink-0 text-blue-500" />
-          <span className="min-w-0 truncate">{routeLabel}</span>
-        </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-px bg-slate-100 dark:bg-slate-800 sm:grid-cols-4">
+      <div className="grid grid-cols-3 gap-px bg-slate-100 dark:bg-slate-800">
         {[
           { label: 'Throughput', value: fmtMbps(e2e?.endToEndThroughputMbps), icon: Gauge },
-          { label: 'RTT', value: fmtMs(rttMs), icon: Activity },
           { label: 'Margin', value: fmtDb(margin), icon: Gauge },
           { label: 'Limit', value: limiting, icon: Route },
         ].map((item) => {
@@ -219,20 +212,6 @@ const LinkBudgetSummaryCard = ({
           );
         })}
       </div>
-      <div className="flex items-center justify-between gap-3 px-3.5 py-2.5 text-xs text-slate-500 dark:text-slate-400">
-        <span className="truncate">
-          {linkMode === 'MESH' || linkMode === 'POINT_TO_POINT'
-            ? `Direction ${activeMeshTab === 'reverse' ? 'B -> A' : 'A -> B'}`
-            : 'Selected topology budget'}
-        </span>
-        <button
-          type="button"
-          onClick={onToggle}
-          className="shrink-0 font-semibold text-blue-600 transition-colors hover:text-blue-700 dark:text-blue-300 dark:hover:text-blue-200"
-        >
-          {highlighted ? 'Hide details' : 'Details'}
-        </button>
-      </div>
     </section>
   );
 };
@@ -245,6 +224,7 @@ interface LinkBudgetDrawerProps {
   activeMeshTab?: 'forward' | 'reverse';
   onMeshTabChange?: (tab: 'forward' | 'reverse') => void;
   satelliteName?: string;
+  satellite?: SatelliteData | null;
   coverageLabels?: {
     forward?: {
       uplink?: string;
@@ -266,6 +246,7 @@ const LinkBudgetDrawer = ({
   onMeshTabChange,
   satelliteName,
   coverageLabels,
+  satellite,
 }: LinkBudgetDrawerProps) => {
   useEffect(() => {
     if (!open) return;
@@ -310,6 +291,7 @@ const LinkBudgetDrawer = ({
               activeMeshTab={activeMeshTab}
               onMeshTabChange={onMeshTabChange}
               satelliteName={satelliteName}
+              satellite={satellite}
               coverageLabels={coverageLabels}
             />
           </div>
@@ -521,6 +503,7 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
 }) => {
   const isMeshOrP2P = linkMode === 'MESH' || linkMode === 'POINT_TO_POINT';
   const isStarForward = linkMode === 'STAR_FORWARD';
+  const isStarReturn = linkMode === 'STAR_RETURN';
 
   // Active MESH direction tab. Uses local state for immediate UI feedback;
   // syncs to the controlled prop from App so the globe stays in sync.
@@ -694,37 +677,6 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
     </CollapsibleSection>
   );
 
-  const budgetRouteLabel = useMemo(() => {
-    const satelliteName = dualSegmentResult?.forward.uplink.candidate.satelliteName
-      ?? resolvedGEOConnectivity?.satellite.name
-      ?? 'GEO satellite';
-
-    if (isMeshOrP2P) {
-      const pointALabel = meshGeometry?.pointALabel ?? 'Terminal A';
-      const pointBLabel = meshGeometry?.pointBLabel ?? 'Terminal B';
-      return activeMeshTab === 'reverse'
-        ? `${pointBLabel} -> ${satelliteName} -> ${pointALabel}`
-        : `${pointALabel} -> ${satelliteName} -> ${pointBLabel}`;
-    }
-
-    return linkMode === 'STAR_RETURN'
-      ? `${userLabel} -> ${satelliteName} -> ${gatewayName}`
-      : `${gatewayName} -> ${satelliteName} -> ${userLabel}`;
-  }, [
-    activeMeshTab,
-    dualSegmentResult,
-    gatewayName,
-    isMeshOrP2P,
-    linkMode,
-    meshGeometry,
-    resolvedGEOConnectivity,
-    userLabel,
-  ]);
-
-  const budgetRttMs = isMeshOrP2P
-    ? meshGeometry?.rttTotalMs ?? null
-    : geoGeometry?.rttTotalMs ?? null;
-
   const drawerSatelliteName = dualSegmentResult?.forward.uplink.candidate.satelliteName
     ?? resolvedGEOConnectivity?.satellite.name;
 
@@ -732,6 +684,12 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
     if (!coverage) return undefined;
     const name = coverage.coverageName || coverage.beamName || coverage.satelliteName;
     return coverage.isSynthesized ? `${name} (estimated)` : name;
+  };
+
+  const formatHopDistance = (distanceKm: number | null | undefined, latencyMs: number | null | undefined): string => {
+    const distance = distanceKm != null ? `${distanceKm.toFixed(0)} km` : '--';
+    const latency = latencyMs != null ? `${latencyMs.toFixed(1)} ms` : '--';
+    return `${distance} (${latency})`;
   };
 
   const linkBudgetCoverageLabels = useMemo(() => {
@@ -969,8 +927,6 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
         <LinkBudgetSummaryCard
           linkMode={linkMode}
           result={dualSegmentResult}
-          rttMs={budgetRttMs}
-          routeLabel={budgetRouteLabel}
           activeMeshTab={isMeshOrP2P ? activeMeshTab : undefined}
           highlighted={isLinkBudgetDrawerOpen}
           onToggle={() => setIsLinkBudgetDrawerOpen((open) => !open)}
@@ -984,6 +940,7 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
           activeMeshTab={isMeshOrP2P ? activeMeshTab : undefined}
           onMeshTabChange={isMeshOrP2P ? setActiveMeshTab : undefined}
           satelliteName={drawerSatelliteName}
+          satellite={resolvedGEOConnectivity?.satellite ?? null}
           coverageLabels={linkBudgetCoverageLabels}
         />
 
@@ -995,7 +952,7 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
           title={
             isMeshOrP2P
               ? <> Radio Path <SectionTooltip content="Terminal-to-terminal signal route: Point A → GEO Satellite → Point B. No gateway in the RF path. Shows elevation, slant range and propagation delay for each hop." /></>
-              : <> Radio Path <SectionTooltip content="End-to-end signal route: User → GEO Satellite → Ground Gateway and back. Shows elevation angle, slant range, and propagation delay per segment." /></>
+              : <> Radio Path <SectionTooltip content="Active one-way STAR signal route. Forward mode is Gateway → GEO Satellite → User; Return mode is User → GEO Satellite → Gateway. RTT details are shown in the latency breakdown below." /></>
           }
           accentColor="#2563eb"
           defaultOpen={false}
@@ -1020,14 +977,17 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
               const dstShort  = isForward ? 'B' : 'A';
               return (
                 <div className="text-sm text-gray-700 dark:text-gray-300 text-center space-y-3 min-w-0">
-                  <div className="break-words leading-relaxed text-xs">
-                    <span className="font-medium">{srcLabel}</span>
-                    {' → '}
-                    <button onClick={() => onSatelliteClick?.(resolvedGEOConnectivity?.satellite ?? null)} className="underline hover:no-underline text-blue-600 dark:text-blue-400 font-medium cursor-pointer">
-                      {meshGeometry.satelliteName}
-                    </button>
-                    {' → '}
-                    <span className="font-medium">{dstLabel}</span>
+                  <div className="flex items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs text-slate-700 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200">
+                    <Route className="h-4 w-4 shrink-0 text-blue-500" />
+                    <div className="min-w-0 break-words leading-relaxed">
+                      <span className="font-medium">{srcLabel}</span>
+                      {' → '}
+                      <button onClick={() => onSatelliteClick?.(resolvedGEOConnectivity?.satellite ?? null)} className="underline hover:no-underline text-blue-600 dark:text-blue-400 font-medium cursor-pointer">
+                        {meshGeometry.satelliteName}
+                      </button>
+                      {' → '}
+                      <span className="font-medium">{dstLabel}</span>
+                    </div>
                   </div>
                   <div className="text-xs text-gray-500 dark:text-gray-400 space-y-2 text-left">
                     <div>
@@ -1051,28 +1011,63 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
               </div>
             )
           ) : (
-            // ── STAR Forward/Return: User → Sat → Gateway ────────────────────
+            // ── STAR Forward/Return: active one-way traffic route ────────────
             resolvedGEOConnectivity && geoGeometry ? (
               (() => {
                 const gwName = geoGeometry.satelliteToGateway.gateway?.name ?? 'No eligible gateway';
-                const userToSatelliteLabel = resolvedGEOConnectivity.candidate.coverageName || resolvedGEOConnectivity.satellite.name;
+                const satelliteName = resolvedGEOConnectivity.satellite.name;
+                const primarySource = isStarReturn ? userLabel : gwName;
+                const primaryDestination = isStarReturn ? gwName : userLabel;
+                const firstHopLabel = isStarReturn
+                  ? `${userLabel} → ${formatCoverageName(selectedUplinkCoverage ?? selectedCoverage) ?? resolvedGEOConnectivity.candidate.coverageName}`
+                  : `${gwName} → ${satelliteName}`;
+                const secondHopLabel = isStarReturn
+                  ? `${satelliteName} → ${gwName}`
+                  : `${satelliteName} → ${formatCoverageName(selectedDownlinkCoverage ?? selectedCoverage) ?? resolvedGEOConnectivity.candidate.coverageName}`;
+                const firstHopDistanceKm = isStarReturn
+                  ? geoGeometry.userToSatellite.slantRangeKm
+                  : geoGeometry.satelliteToGateway.slantRangeKm;
+                const firstHopLatencyMs = isStarReturn
+                  ? geoGeometry.userToSatellite.latencyMs
+                  : geoGeometry.satelliteToGateway.latencyMs;
+                const secondHopDistanceKm = isStarReturn
+                  ? geoGeometry.satelliteToGateway.slantRangeKm
+                  : geoGeometry.userToSatellite.slantRangeKm;
+                const secondHopLatencyMs = isStarReturn
+                  ? geoGeometry.satelliteToGateway.latencyMs
+                  : geoGeometry.userToSatellite.latencyMs;
                 const oneWayDistanceKm = geoGeometry.satelliteToGateway.slantRangeKm != null
                   ? geoGeometry.userToSatellite.slantRangeKm + geoGeometry.satelliteToGateway.slantRangeKm
                   : null;
                 return (
                   <div className="text-sm text-gray-700 dark:text-gray-300 text-center space-y-3 min-w-0">
-                    <div className="break-words leading-relaxed">{userLabel} → <button onClick={() => onSatelliteClick?.(resolvedGEOConnectivity.satellite)} className="underline hover:no-underline text-blue-600 dark:text-blue-400 font-medium cursor-pointer break-all">{resolvedGEOConnectivity.satellite.name}</button> → {gwName} → <button onClick={() => onSatelliteClick?.(resolvedGEOConnectivity.satellite)} className="underline hover:no-underline text-blue-600 dark:text-blue-400 font-medium cursor-pointer break-all">{resolvedGEOConnectivity.satellite.name}</button> → {userLabel}</div>
+                    <div className="flex items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs text-slate-700 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200">
+                      <Route className="h-4 w-4 shrink-0 text-blue-500" />
+                      <div className="min-w-0 break-words leading-relaxed">
+                        {primarySource}
+                        {' → '}
+                        <button onClick={() => onSatelliteClick?.(resolvedGEOConnectivity.satellite)} className="underline hover:no-underline text-blue-600 dark:text-blue-400 font-medium cursor-pointer break-all">{satelliteName}</button>
+                        {' → '}
+                        {primaryDestination}
+                      </div>
+                    </div>
                     <div className="text-xs text-gray-500 dark:text-gray-400 space-y-2 text-left">
                       <div>
-                        <div className="break-words">{userLabel} → {userToSatelliteLabel}</div>
-                        <div className="pl-3 sm:pl-4 break-words">→ Elevation: {geoGeometry.userToSatellite.elevationDeg.toFixed(1)}° | Slant Range: {geoGeometry.userToSatellite.slantRangeKm.toFixed(0)} km ({geoGeometry.userToSatellite.latencyMs.toFixed(1)} ms)</div>
+                        <div className="break-words">{firstHopLabel}</div>
+                        <div className="pl-3 sm:pl-4 break-words">
+                          → Slant Range: {formatHopDistance(firstHopDistanceKm, firstHopLatencyMs)}
+                          {isStarReturn ? ` | Elevation: ${geoGeometry.userToSatellite.elevationDeg.toFixed(1)}°` : ''}
+                        </div>
                       </div>
                       <div>
-                        <div className="break-words">{gwName} → {resolvedGEOConnectivity.satellite.name}</div>
-                        <div className="pl-3 sm:pl-4 break-words">→ Slant Range: {geoGeometry.satelliteToGateway.slantRangeKm != null ? `${geoGeometry.satelliteToGateway.slantRangeKm.toFixed(0)} km` : '--'} ({geoGeometry.satelliteToGateway.latencyMs != null ? `${geoGeometry.satelliteToGateway.latencyMs.toFixed(1)} ms` : '--'})</div>
+                        <div className="break-words">{secondHopLabel}</div>
+                        <div className="pl-3 sm:pl-4 break-words">
+                          → Slant Range: {formatHopDistance(secondHopDistanceKm, secondHopLatencyMs)}
+                          {isStarForward ? ` | Elevation: ${geoGeometry.userToSatellite.elevationDeg.toFixed(1)}°` : ''}
+                        </div>
                       </div>
                       <div className="border-t border-gray-200 dark:border-slate-700 pt-2 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between font-semibold text-gray-700 dark:text-gray-200">
-                        <span>One-way propagation</span>
+                        <span>{isStarReturn ? 'Return' : 'Forward'} one-way propagation</span>
                         <span className="break-words">{oneWayDistanceKm != null && geoGeometry.oneWayRadioMs != null ? `${oneWayDistanceKm.toFixed(0)} km (${geoGeometry.oneWayRadioMs.toFixed(1)} ms)` : '--'}</span>
                       </div>
                     </div>
@@ -1131,38 +1126,74 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
           // ── STAR: 4-hop via gateway ───────────────────────────────────────
           <LatencyBreakdownCard
             accentColor="#2563eb"
-            tooltip="Breakdown of the full round-trip propagation delay over the GEO link: User → Satellite → Gateway → Satellite → User, plus network overhead. GEO propagation alone accounts for ~480 ms due to the 35,786 km orbital altitude."
+            tooltip="Breakdown of the full STAR round-trip delay. Forward mode sends Gateway → Satellite → User, then accounts for the return path. Return mode reverses that order. Network overhead is added after RF propagation."
             summary={geoGeometry ? `Estimated RTT total: ${geoGeometry.rttTotalMs?.toFixed(1) ?? '--'} ms` : 'No GEO latency breakdown available'}
           >
-            {geoGeometry ? (
-              <div className="text-xs text-gray-600 dark:text-gray-400 space-y-2">
-                <div className="font-semibold text-gray-700 dark:text-gray-200">RTT propagation components</div>
-                <div className="flex justify-between"><span>User {'->'} Satellite</span><span>{geoGeometry.propagationBreakdownMs.userToSatellite?.toFixed(1) ?? '--'} ms</span></div>
-                <div className="flex justify-between"><span>Satellite {'->'} Gateway</span><span>{geoGeometry.propagationBreakdownMs.satelliteToGateway?.toFixed(1) ?? '--'} ms</span></div>
-                <div className="flex justify-between"><span>Gateway {'->'} Satellite</span><span>{geoGeometry.propagationBreakdownMs.gatewayToSatellite?.toFixed(1) ?? '--'} ms</span></div>
-                <div className="flex justify-between"><span>Satellite {'->'} User</span><span>{geoGeometry.propagationBreakdownMs.satelliteToUser?.toFixed(1) ?? '--'} ms</span></div>
-                <div className="border-t border-gray-200 dark:border-slate-700 pt-2 flex justify-between font-semibold text-gray-700 dark:text-gray-200">
-                  <span>RTT propagation</span><span>{geoGeometry.rttPropagationMs?.toFixed(1) ?? '--'} ms</span>
-                </div>
-                <div className="pt-1 font-semibold text-gray-700 dark:text-gray-200">Network overhead components</div>
-                <div className="ml-2 flex justify-between"><span>Gateway processing delay</span><span>{geoGeometry.overheadMs.gatewayProcessing.toFixed(0)} ms</span></div>
-                <div className="ml-2 flex justify-between"><span>Modem processing delay</span><span>{geoGeometry.overheadMs.modemProcessing.toFixed(0)} ms</span></div>
-                <div className="ml-2 flex justify-between"><span>Routing delay</span><span>{geoGeometry.overheadMs.routing.toFixed(0)} ms</span></div>
-                <div className="ml-2 flex justify-between font-semibold text-gray-700 dark:text-gray-200">
-                  <span>Network overhead total</span><span>{geoGeometry.overheadMs.total.toFixed(1)} ms</span>
-                </div>
-                <div className="border-t border-gray-200 dark:border-slate-700 pt-2 flex justify-between font-semibold text-gray-800 dark:text-gray-100">
-                  <span>Estimated RTT total</span><span>{geoGeometry.rttTotalMs?.toFixed(1) ?? '--'} ms</span>
-                </div>
-                {geoGeometry.warnings.length > 0 && (
-                  <div className="mt-2 rounded border border-amber-300 bg-amber-50 dark:bg-amber-900/20 p-2 text-amber-800 dark:text-amber-300">
-                    {geoGeometry.warnings.map((warning, index) => (
-                      <div key={`${warning}-${index}`}>Warning: {warning}</div>
-                    ))}
+            {geoGeometry ? (() => {
+              const userSatMs = geoGeometry.propagationBreakdownMs.userToSatellite ?? geoGeometry.propagationBreakdownMs.satelliteToUser ?? null;
+              const satGatewayMs = geoGeometry.propagationBreakdownMs.satelliteToGateway ?? geoGeometry.propagationBreakdownMs.gatewayToSatellite ?? null;
+              const primaryRows = isStarReturn
+                ? [
+                    { label: `${userLabel} -> Satellite`, value: userSatMs },
+                    { label: 'Satellite -> Gateway', value: satGatewayMs },
+                  ]
+                : [
+                    { label: 'Gateway -> Satellite', value: satGatewayMs },
+                    { label: `Satellite -> ${userLabel}`, value: userSatMs },
+                  ];
+              const returnRows = isStarReturn
+                ? [
+                    { label: 'Gateway -> Satellite', value: satGatewayMs },
+                    { label: `Satellite -> ${userLabel}`, value: userSatMs },
+                  ]
+                : [
+                    { label: `${userLabel} -> Satellite`, value: userSatMs },
+                    { label: 'Satellite -> Gateway', value: satGatewayMs },
+                  ];
+
+              return (
+                <div className="text-xs text-gray-600 dark:text-gray-400 space-y-2">
+                  <div className="font-semibold text-gray-700 dark:text-gray-200">
+                    {isStarReturn ? 'Return path propagation' : 'Forward path propagation'}
                   </div>
-                )}
-              </div>
-            ) : (
+                  {primaryRows.map((row) => (
+                    <div key={row.label} className="flex justify-between gap-3">
+                      <span>{row.label}</span>
+                      <span>{row.value != null ? `${row.value.toFixed(1)} ms` : '--'}</span>
+                    </div>
+                  ))}
+                  <div className="pt-1 font-semibold text-gray-700 dark:text-gray-200">
+                    {isStarReturn ? 'Forward acknowledgement path' : 'Return acknowledgement path'}
+                  </div>
+                  {returnRows.map((row) => (
+                    <div key={row.label} className="flex justify-between gap-3">
+                      <span>{row.label}</span>
+                      <span>{row.value != null ? `${row.value.toFixed(1)} ms` : '--'}</span>
+                    </div>
+                  ))}
+                  <div className="border-t border-gray-200 dark:border-slate-700 pt-2 flex justify-between font-semibold text-gray-700 dark:text-gray-200">
+                    <span>RTT propagation</span><span>{geoGeometry.rttPropagationMs?.toFixed(1) ?? '--'} ms</span>
+                  </div>
+                  <div className="pt-1 font-semibold text-gray-700 dark:text-gray-200">Network overhead components</div>
+                  <div className="ml-2 flex justify-between"><span>Gateway processing delay</span><span>{geoGeometry.overheadMs.gatewayProcessing.toFixed(0)} ms</span></div>
+                  <div className="ml-2 flex justify-between"><span>Modem processing delay</span><span>{geoGeometry.overheadMs.modemProcessing.toFixed(0)} ms</span></div>
+                  <div className="ml-2 flex justify-between"><span>Routing delay</span><span>{geoGeometry.overheadMs.routing.toFixed(0)} ms</span></div>
+                  <div className="ml-2 flex justify-between font-semibold text-gray-700 dark:text-gray-200">
+                    <span>Network overhead total</span><span>{geoGeometry.overheadMs.total.toFixed(1)} ms</span>
+                  </div>
+                  <div className="border-t border-gray-200 dark:border-slate-700 pt-2 flex justify-between font-semibold text-gray-800 dark:text-gray-100">
+                    <span>Estimated RTT total</span><span>{geoGeometry.rttTotalMs?.toFixed(1) ?? '--'} ms</span>
+                  </div>
+                  {geoGeometry.warnings.length > 0 && (
+                    <div className="mt-2 rounded border border-amber-300 bg-amber-50 dark:bg-amber-900/20 p-2 text-amber-800 dark:text-amber-300">
+                      {geoGeometry.warnings.map((warning, index) => (
+                        <div key={`${warning}-${index}`}>Warning: {warning}</div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })() : (
               <div className="text-sm text-gray-700 dark:text-gray-300 text-center">
                 <div>No GEO latency breakdown available</div>
               </div>

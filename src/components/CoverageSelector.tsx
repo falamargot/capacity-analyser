@@ -51,6 +51,23 @@ const marginClass = (v?: number) => {
   return 'text-emerald-500 dark:text-emerald-400';
 };
 
+const getLinkMarginValue = (candidate: CandidateCoverage): number => (
+  Number.isFinite(candidate.linkMarginDb) ? candidate.linkMarginDb! : -Infinity
+);
+
+const compareByLinkMargin = (left: CandidateCoverage, right: CandidateCoverage): number => {
+  const marginDelta = getLinkMarginValue(right) - getLinkMarginValue(left);
+  if (marginDelta !== 0) return marginDelta;
+  return right.score - left.score;
+};
+
+const pickBestByLinkMargin = (candidates: CandidateCoverage[]): CandidateCoverage | null => (
+  candidates.reduce<CandidateCoverage | null>(
+    (best, candidate) => (!best || compareByLinkMargin(candidate, best) < 0 ? candidate : best),
+    null
+  )
+);
+
 // ─── Chevron ─────────────────────────────────────────────────────────────────
 
 const Chevron = ({ open }: { open: boolean }) => (
@@ -126,7 +143,7 @@ const Combobox = ({ trigger, children, open, onToggle, accentColor, tone = 'neut
 // ─── Satellite combobox ───────────────────────────────────────────────────────
 
 interface SatComboboxProps {
-  satellites: { id: string; name: string; band?: string }[];
+  satellites: { id: string; name: string; band?: string; linkMarginDb?: number }[];
   activeSatId: string | null;
   onSelect: (id: string) => void;
 }
@@ -446,7 +463,61 @@ const CoverageSelector = memo<CoverageSelectorProps>(({
     return real.length > 0 ? real : sameSatellite;
   };
 
+  const satellites = useMemo(() => {
+    const bySatellite = new Map<string, {
+      id: string;
+      name: string;
+      band?: string;
+      linkMarginDb?: number;
+      bestCandidate: CandidateCoverage;
+    }>();
+
+    for (const candidate of candidateCoverages) {
+      if (candidate.isSynthesized) continue;
+      if (validSatelliteIds && !validSatelliteIds.has(candidate.satelliteId)) continue;
+
+      const current = bySatellite.get(candidate.satelliteId);
+      if (!current || compareByLinkMargin(candidate, current.bestCandidate) < 0) {
+        bySatellite.set(candidate.satelliteId, {
+          id: candidate.satelliteId,
+          name: candidate.satelliteName,
+          band: candidate.band ?? current?.band,
+          linkMarginDb: candidate.linkMarginDb,
+          bestCandidate: candidate,
+        });
+      }
+    }
+
+    return [...bySatellite.values()]
+      .sort((left, right) => {
+        const marginDelta = (right.linkMarginDb ?? -Infinity) - (left.linkMarginDb ?? -Infinity);
+        if (marginDelta !== 0) return marginDelta;
+        return left.name.localeCompare(right.name);
+      })
+      .map(({ bestCandidate, ...satellite }) => satellite);
+  }, [candidateCoverages, validSatelliteIds]);
+
   const activeSatId = useMemo(() => {
+    if (linkMode === 'STAR_FORWARD') {
+      return (
+        selectedDownlinkCoverage?.satelliteId
+        ?? selectedCoverage?.satelliteId
+        ?? bestCoverage?.satelliteId
+        ?? satellites[0]?.id
+        ?? null
+      );
+    }
+
+    if (linkMode === 'STAR_RETURN') {
+      return (
+        selectedUplinkCoverage?.satelliteId
+        ?? selectedCoverage?.satelliteId
+        ?? bestCoverage?.satelliteId
+        ?? satellites[0]?.id
+        ?? null
+      );
+    }
+
     // When one side comes from an override pool (different location), prefer the
     // satellite of the non-overridden side so the main candidateCoverages filter
     // stays in sync.  Example: MESH forward — uplink uses candidateCoverages (A),
@@ -461,26 +532,18 @@ const CoverageSelector = memo<CoverageSelectorProps>(({
       ?? selectedUplinkCoverage?.satelliteId
       ?? selectedCoverage?.satelliteId
       ?? bestCoverage?.satelliteId
-      ?? candidateCoverages[0]?.satelliteId
+      ?? satellites[0]?.id
       ?? null
     );
-  }, [uplinkCandidatesOverride, downlinkCandidatesOverride, selectedDownlinkCoverage, selectedUplinkCoverage, selectedCoverage, bestCoverage, candidateCoverages]);
-
-  const satellites = useMemo(() => {
-    const seen = new Map<string, { id: string; name: string; band?: string }>();
-    for (const c of candidateCoverages) {
-      if (!c.isSynthesized && !seen.has(c.satelliteId)) {
-        if (!validSatelliteIds || validSatelliteIds.has(c.satelliteId)) {
-          seen.set(c.satelliteId, { id: c.satelliteId, name: c.satelliteName, band: c.band ?? undefined });
-        }
-      }
-    }
-    return [...seen.values()];
-  }, [candidateCoverages, validSatelliteIds]);
+  }, [linkMode, uplinkCandidatesOverride, downlinkCandidatesOverride, selectedDownlinkCoverage, selectedUplinkCoverage, selectedCoverage, bestCoverage, satellites]);
 
   const handleSatelliteSelect = (satId: string) => {
-    const bestDl = candidateCoverages.find(c => !c.isUplink && !c.isSynthesized && c.satelliteId === satId);
-    const bestUl = candidateCoverages.find(c =>  c.isUplink && !c.isSynthesized && c.satelliteId === satId);
+    const realCandidates = candidateCoverages.filter((candidate) => (
+      !candidate.isSynthesized &&
+      candidate.satelliteId === satId
+    ));
+    const bestDl = pickBestByLinkMargin(realCandidates.filter((candidate) => !candidate.isUplink));
+    const bestUl = pickBestByLinkMargin(realCandidates.filter((candidate) => candidate.isUplink));
     if (bestDl) (onSelectDownlinkCoverage ?? onSelectCoverage)?.(bestDl);
     else if (bestUl) (onSelectUplinkCoverage ?? onSelectCoverage)?.(bestUl);
   };

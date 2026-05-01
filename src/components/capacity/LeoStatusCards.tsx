@@ -1,7 +1,6 @@
 import { memo } from 'react';
 import { MapPin, ShieldAlert, ShieldCheck, ShieldX } from 'lucide-react';
 import type { LeoConnectivityViewModel, LeoInfoRow, LeoStatusTone } from '../../utils/leoServiceViewModel';
-import { SectionTooltip } from '../SectionTooltip';
 
 const toneClasses: Record<LeoStatusTone, {
   badge: string;
@@ -121,9 +120,9 @@ const MetaPill = ({
   const classes = toneClasses[tone];
 
   return (
-    <div className="inline-flex items-center gap-1.5 rounded-full border border-slate-200/90 bg-white/72 px-2.5 py-1 text-[10px] text-slate-600 shadow-[0_10px_24px_-20px_rgba(15,23,42,0.32)] backdrop-blur-sm sm:gap-2 sm:px-3 sm:py-1.5 sm:text-[11px] dark:border-white/10 dark:bg-white/5 dark:text-slate-200/90">
+    <div className="inline-flex items-center gap-1.5 rounded-full border border-slate-200/90 bg-white/72 px-2.5 py-1 text-[10px] text-slate-600 shadow-[0_10px_24px_-20px_rgba(15,23,42,0.32)] backdrop-blur-sm dark:border-white/10 dark:bg-white/5 dark:text-slate-200/90">
       {label === 'Location' ? (
-        <MapPin className="h-3.5 w-3.5 text-slate-500 sm:h-4 sm:w-4 dark:text-slate-400" aria-hidden="true" />
+        <MapPin className="h-3.5 w-3.5 text-slate-500 dark:text-slate-400" aria-hidden="true" />
       ) : (
         <span className={`h-2 w-2 rounded-full ${classes.dot}`} />
       )}
@@ -150,17 +149,17 @@ const ReasonTile = ({
   const tone = toneClasses[row.tone ?? 'neutral'];
 
   return (
-    <div className={`rounded-[18px] border px-3 py-2.5 shadow-[0_18px_38px_-32px_rgba(15,23,42,0.9)] sm:rounded-[20px] sm:px-4 sm:py-3 ${tone.tile}`}>
-      <div className="flex w-full flex-col items-start gap-1.5 sm:gap-2">
-        <span className="shrink-0 text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-500 sm:text-[11px] sm:tracking-[0.22em] dark:text-slate-400">
+    <div className={`rounded-xl border px-3 py-2 shadow-[0_18px_38px_-32px_rgba(15,23,42,0.9)] ${tone.tile}`}>
+      <div className="flex w-full flex-col items-start gap-1">
+        <span className="shrink-0 text-[9px] font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
           {row.label}
         </span>
-        <span className={`max-w-full text-[13px] font-semibold leading-4 sm:text-[14px] ${tone.text} whitespace-normal break-words`}>
+        <span className={`max-w-full text-[12px] font-semibold leading-4 ${tone.text} whitespace-normal break-words`}>
           {row.value}
         </span>
       </div>
       {detail && (
-        <p className="mt-1 text-[10px] leading-3.5 text-slate-600 sm:mt-1.5 sm:text-[11px] sm:leading-4 dark:text-slate-300/80">
+        <p className="mt-0.5 text-[10px] leading-3.5 text-slate-600 dark:text-slate-300/80">
           {detail}
         </p>
       )}
@@ -174,17 +173,17 @@ export const ConnectivityStatusCard = memo(({ viewModel }: { viewModel: LeoConne
   const Icon = getStatusIcon(viewModel);
 
   return (
-    <div className={`relative overflow-hidden rounded-[24px] border p-4 shadow-[0_28px_70px_-40px_rgba(15,23,42,0.24)] sm:rounded-[28px] sm:p-5 dark:shadow-[0_28px_70px_-40px_rgba(15,23,42,0.9)] ${classes.border} ${classes.panel}`}>
+    <div className={`relative overflow-hidden rounded-2xl border p-3 shadow-[0_22px_54px_-38px_rgba(15,23,42,0.24)] dark:shadow-[0_22px_54px_-38px_rgba(15,23,42,0.9)] ${classes.border} ${classes.panel}`}>
       <div className={`pointer-events-none absolute inset-0 ${classes.halo}`} />
       <div className="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-slate-300/80 to-transparent dark:via-white/30" />
 
       <div className="relative">
-        <div className="flex items-center justify-between gap-2.5 sm:gap-3">
-          <div className="inline-flex items-center gap-2 rounded-full border border-slate-200/90 bg-white/76 px-2.5 py-1 shadow-[0_12px_26px_-22px_rgba(15,23,42,0.34)] sm:px-3 sm:py-1.5 dark:border-white/10 dark:bg-white/6 dark:shadow-none">
-            <span className={`inline-flex h-7 w-7 items-center justify-center rounded-full sm:h-8 sm:w-8 ${classes.iconShell}`}>
-              <Icon className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+        <div className="flex items-center justify-between gap-2.5">
+          <div className="inline-flex items-center gap-2 rounded-full border border-slate-200/90 bg-white/76 px-2.5 py-1 shadow-[0_12px_26px_-22px_rgba(15,23,42,0.34)] dark:border-white/10 dark:bg-white/6 dark:shadow-none">
+            <span className={`inline-flex h-6 w-6 items-center justify-center rounded-full ${classes.iconShell}`}>
+              <Icon className="h-3.5 w-3.5" />
             </span>
-            <span className={`text-[10px] font-bold uppercase tracking-[0.18em] sm:text-[11px] sm:tracking-[0.22em] ${classes.text}`}>
+            <span className={`text-[10px] font-bold uppercase tracking-[0.18em] ${classes.text}`}>
               {viewModel.primaryStatusLabel}
             </span>
           </div>
@@ -194,22 +193,15 @@ export const ConnectivityStatusCard = memo(({ viewModel }: { viewModel: LeoConne
           )}
         </div>
 
-        <div className="mt-3 sm:mt-4">
-          <h4 className="text-[17px] font-semibold tracking-tight text-slate-950 sm:text-[18px] dark:text-white">
+        <div className="mt-2.5">
+          <h4 className="text-[15px] font-semibold tracking-tight text-slate-950 dark:text-white">
             {viewModel.primaryReasonLabel}
           </h4>
-          <p className="mt-1 text-[13px] leading-5 text-slate-600 sm:mt-1.5 sm:text-sm dark:text-slate-300/88">
+          <p className="mt-0.5 text-[12px] leading-4 text-slate-600 dark:text-slate-300/88">
             {getStatusSummary(viewModel)}
           </p>
         </div>
-        <div className="mt-4 flex items-center gap-2 sm:mt-5">
-          <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-500 sm:text-[11px] sm:tracking-[0.22em] dark:text-slate-400">
-            Decision Breakdown
-          </span>
-          <SectionTooltip content="Compact explanation of the live LEO decision chain. Each factor appears once so the final state is easier to scan." />
-        </div>
-
-        <div className="mt-2.5 grid grid-cols-1 items-start gap-2.5 sm:mt-3 sm:gap-3 sm:grid-cols-2">
+        <div className="mt-3 grid grid-cols-1 items-start gap-2 sm:grid-cols-2">
           {viewModel.whyRows.map((row) => (
             <ReasonTile
               key={`${row.label}:${row.value}`}
