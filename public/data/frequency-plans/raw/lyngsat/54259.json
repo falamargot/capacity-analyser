@@ -1,0 +1,2411 @@
+{
+  "version": "2",
+  "satelliteName": "EUTELSAT 10B",
+  "orbitalPosition": "10E",
+  "source": "LYNGSAT",
+  "sourceUrl": "https://www.lyngsat.com/Eutelsat-10B.html",
+  "generatedAt": "2026-05-01T07:49:01.536Z",
+  "observations": [
+    {
+      "id": "lyngsat-eutelsat-10b-10e-row-1-3807",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 10B",
+      "orbitalPosition": "10E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-10B.html",
+      "retrievedAt": "2026-05-01T07:48:58.584Z",
+      "raw": {
+        "frequencyText": "3807",
+        "polarizationText": "R",
+        "beamText": "N Stanislav 260213"
+      },
+      "parsed": {
+        "frequencyMHz": 3807,
+        "polarization": "R",
+        "beamName": "N Stanislav 260213"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": false,
+        "confidence": "MEDIUM",
+        "warnings": [
+          "No DVB system/SR/FEC parameters found."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-10b-10e-s2-3836",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 10B",
+      "orbitalPosition": "10E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-10B.html",
+      "retrievedAt": "2026-05-01T07:48:58.584Z",
+      "raw": {
+        "frequencyText": "3836",
+        "polarizationText": "R",
+        "transponderText": "S2",
+        "beamText": "N Stanislav 260421",
+        "systemText": "DVB-S2",
+        "symbolRateText": "1650",
+        "fecText": "5/6",
+        "providerText": "Loveworld XP; 9.4 4113 Eng"
+      },
+      "parsed": {
+        "frequencyMHz": 3836,
+        "polarization": "R",
+        "transponderNumber": "S2",
+        "beamName": "N Stanislav 260421",
+        "system": "DVB-S2",
+        "symbolRate": 1650,
+        "fec": "5/6",
+        "providerName": "Loveworld XP; 9.4 4113 Eng"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-10b-10e-s2-3861",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 10B",
+      "orbitalPosition": "10E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-10B.html",
+      "retrievedAt": "2026-05-01T07:48:58.584Z",
+      "raw": {
+        "frequencyText": "3861",
+        "polarizationText": "R",
+        "transponderText": "S2",
+        "beamText": "N Stanislav 260109",
+        "systemText": "DVB-S2",
+        "symbolRateText": "4042",
+        "fecText": "2/3",
+        "providerText": "6.6 512 Fre; Télé Tchad"
+      },
+      "parsed": {
+        "frequencyMHz": 3861,
+        "polarization": "R",
+        "transponderNumber": "S2",
+        "beamName": "N Stanislav 260109",
+        "system": "DVB-S2",
+        "symbolRate": 4042,
+        "fec": "2/3",
+        "providerName": "6.6 512 Fre; Télé Tchad"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-10b-10e-s2-3870",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 10B",
+      "orbitalPosition": "10E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-10B.html",
+      "retrievedAt": "2026-05-01T07:48:58.584Z",
+      "raw": {
+        "frequencyText": "3870",
+        "polarizationText": "R",
+        "transponderText": "S2",
+        "beamText": "N Stanislav 260107",
+        "systemText": "DVB-S2",
+        "symbolRateText": "3333",
+        "fecText": "2/3",
+        "providerText": "Rwanda TV; 1000-1"
+      },
+      "parsed": {
+        "frequencyMHz": 3870,
+        "polarization": "R",
+        "transponderNumber": "S2",
+        "beamName": "N Stanislav 260107",
+        "system": "DVB-S2",
+        "symbolRate": 3333,
+        "fec": "2/3",
+        "providerName": "Rwanda TV; 1000-1"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-10b-10e-kc2-nofreq",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 10B",
+      "orbitalPosition": "10E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-10B.html",
+      "retrievedAt": "2026-05-01T07:48:58.584Z",
+      "raw": {
+        "transponderText": "KC2",
+        "beamText": "122 Eng",
+        "systemText": "MPEG-4"
+      },
+      "parsed": {
+        "transponderNumber": "KC2",
+        "beamName": "122 Eng",
+        "system": "MPEG-4"
+      },
+      "parseQuality": {
+        "hasFrequency": false,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Downlink frequency not parseable; row kept due to transponder ID.",
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-10b-10e-s2-3874",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 10B",
+      "orbitalPosition": "10E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-10B.html",
+      "retrievedAt": "2026-05-01T07:48:58.584Z",
+      "raw": {
+        "frequencyText": "3874",
+        "polarizationText": "R",
+        "transponderText": "S2",
+        "beamText": "Deeper Christian Life Ministry feeds",
+        "systemText": "DVB-S2",
+        "symbolRateText": "2080",
+        "fecText": "5/6",
+        "providerText": "N Stanislav 260327"
+      },
+      "parsed": {
+        "frequencyMHz": 3874,
+        "polarization": "R",
+        "transponderNumber": "S2",
+        "beamName": "Deeper Christian Life Ministry feeds",
+        "system": "DVB-S2",
+        "symbolRate": 2080,
+        "fec": "5/6",
+        "providerName": "N Stanislav 260327"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-10b-10e-s2-3890",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 10B",
+      "orbitalPosition": "10E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-10B.html",
+      "retrievedAt": "2026-05-01T07:48:58.584Z",
+      "raw": {
+        "frequencyText": "3890",
+        "polarizationText": "L",
+        "transponderText": "S2",
+        "beamText": "DX Bozóth 260217",
+        "systemText": "DVB-S2",
+        "symbolRateText": "3750",
+        "fecText": "3/4",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 3890,
+        "polarization": "L",
+        "transponderNumber": "S2",
+        "beamName": "DX Bozóth 260217",
+        "system": "DVB-S2",
+        "symbolRate": 3750,
+        "fec": "3/4",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-10b-10e-s2-3900",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 10B",
+      "orbitalPosition": "10E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-10B.html",
+      "retrievedAt": "2026-05-01T07:48:58.584Z",
+      "raw": {
+        "frequencyText": "3900",
+        "polarizationText": "R",
+        "transponderText": "S2",
+        "beamText": "StarTimes TV Kenya",
+        "systemText": "DVB-S2",
+        "symbolRateText": "23330",
+        "fecText": "8/9",
+        "providerText": "Anonymous 260418; 1-4"
+      },
+      "parsed": {
+        "frequencyMHz": 3900,
+        "polarization": "R",
+        "transponderNumber": "S2",
+        "beamName": "StarTimes TV Kenya",
+        "system": "DVB-S2",
+        "symbolRate": 23330,
+        "fec": "8/9",
+        "providerName": "Anonymous 260418; 1-4"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-10b-10e-k24-nofreq",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 10B",
+      "orbitalPosition": "10E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-10B.html",
+      "retrievedAt": "2026-05-01T07:48:58.584Z",
+      "raw": {
+        "transponderText": "K24",
+        "beamText": "1042 Eng",
+        "systemText": "MPEG-4"
+      },
+      "parsed": {
+        "transponderNumber": "K24",
+        "beamName": "1042 Eng",
+        "system": "MPEG-4"
+      },
+      "parseQuality": {
+        "hasFrequency": false,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Downlink frequency not parseable; row kept due to transponder ID.",
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-10b-10e-row-10-4119",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 10B",
+      "orbitalPosition": "10E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-10B.html",
+      "retrievedAt": "2026-05-01T07:48:58.584Z",
+      "raw": {
+        "frequencyText": "4119",
+        "beamText": "Emoo FM"
+      },
+      "parsed": {
+        "frequencyMHz": 4119,
+        "beamName": "Emoo FM"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": false,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable.",
+          "No DVB system/SR/FEC parameters found."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-10b-10e-s2-3949",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 10B",
+      "orbitalPosition": "10E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-10B.html",
+      "retrievedAt": "2026-05-01T07:48:58.584Z",
+      "raw": {
+        "frequencyText": "3949",
+        "polarizationText": "R",
+        "transponderText": "S2",
+        "beamText": "S Ugbeda 240530",
+        "systemText": "DVB-S2",
+        "symbolRateText": "1212",
+        "fecText": "3/4",
+        "providerText": "4.0 4112 Eng; Hip TV"
+      },
+      "parsed": {
+        "frequencyMHz": 3949,
+        "polarization": "R",
+        "transponderNumber": "S2",
+        "beamName": "S Ugbeda 240530",
+        "system": "DVB-S2",
+        "symbolRate": 1212,
+        "fec": "3/4",
+        "providerName": "4.0 4112 Eng; Hip TV"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-10b-10e-s2-3986",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 10B",
+      "orbitalPosition": "10E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-10B.html",
+      "retrievedAt": "2026-05-01T07:48:58.584Z",
+      "raw": {
+        "frequencyText": "3986",
+        "polarizationText": "R",
+        "transponderText": "S2",
+        "beamText": "DX Bozóth 250322",
+        "systemText": "DVB-S2",
+        "symbolRateText": "18260",
+        "fecText": "3/4",
+        "providerText": "Ugandan mux; 4660-1"
+      },
+      "parsed": {
+        "frequencyMHz": 3986,
+        "polarization": "R",
+        "transponderNumber": "S2",
+        "beamName": "DX Bozóth 250322",
+        "system": "DVB-S2",
+        "symbolRate": 18260,
+        "fec": "3/4",
+        "providerName": "Ugandan mux; 4660-1"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-10b-10e-row-13-3482",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 10B",
+      "orbitalPosition": "10E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-10B.html",
+      "retrievedAt": "2026-05-01T07:48:58.584Z",
+      "raw": {
+        "frequencyText": "3482",
+        "beamText": "Salam TV (Uganda)",
+        "systemText": "MPEG-4",
+        "providerText": "3483 Eng"
+      },
+      "parsed": {
+        "frequencyMHz": 3482,
+        "beamName": "Salam TV (Uganda)",
+        "system": "MPEG-4",
+        "providerName": "3483 Eng"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-10b-10e-row-14-3492",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 10B",
+      "orbitalPosition": "10E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-10B.html",
+      "retrievedAt": "2026-05-01T07:48:58.584Z",
+      "raw": {
+        "frequencyText": "3492",
+        "beamText": "Uganda Catholic TV",
+        "systemText": "MPEG-4",
+        "providerText": "3493 Eng"
+      },
+      "parsed": {
+        "frequencyMHz": 3492,
+        "beamName": "Uganda Catholic TV",
+        "system": "MPEG-4",
+        "providerName": "3493 Eng"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-10b-10e-row-15-3502",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 10B",
+      "orbitalPosition": "10E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-10B.html",
+      "retrievedAt": "2026-05-01T07:48:58.584Z",
+      "raw": {
+        "frequencyText": "3502",
+        "beamText": "UBC TV",
+        "systemText": "MPEG-4"
+      },
+      "parsed": {
+        "frequencyMHz": 3502,
+        "beamName": "UBC TV",
+        "system": "MPEG-4"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-10b-10e-row-16-3512",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 10B",
+      "orbitalPosition": "10E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-10B.html",
+      "retrievedAt": "2026-05-01T07:48:58.584Z",
+      "raw": {
+        "frequencyText": "3512",
+        "beamText": "NTV Uganda",
+        "systemText": "MPEG-4",
+        "providerText": "3513 Eng"
+      },
+      "parsed": {
+        "frequencyMHz": 3512,
+        "beamName": "NTV Uganda",
+        "system": "MPEG-4",
+        "providerName": "3513 Eng"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-10b-10e-row-17-3522",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 10B",
+      "orbitalPosition": "10E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-10B.html",
+      "retrievedAt": "2026-05-01T07:48:58.584Z",
+      "raw": {
+        "frequencyText": "3522",
+        "beamText": "3523 Swa",
+        "systemText": "MPEG-4",
+        "providerText": "NBS TV"
+      },
+      "parsed": {
+        "frequencyMHz": 3522,
+        "beamName": "3523 Swa",
+        "system": "MPEG-4",
+        "providerName": "NBS TV"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-10b-10e-row-18-3532",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 10B",
+      "orbitalPosition": "10E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-10B.html",
+      "retrievedAt": "2026-05-01T07:48:58.584Z",
+      "raw": {
+        "frequencyText": "3532",
+        "beamText": "Bukedde 1",
+        "systemText": "MPEG-4"
+      },
+      "parsed": {
+        "frequencyMHz": 3532,
+        "beamName": "Bukedde 1",
+        "system": "MPEG-4"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-10b-10e-row-19-3542",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 10B",
+      "orbitalPosition": "10E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-10B.html",
+      "retrievedAt": "2026-05-01T07:48:58.584Z",
+      "raw": {
+        "frequencyText": "3542",
+        "beamText": "Bukedde 2",
+        "systemText": "MPEG-4"
+      },
+      "parsed": {
+        "frequencyMHz": 3542,
+        "beamName": "Bukedde 2",
+        "system": "MPEG-4"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-10b-10e-row-20-3552",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 10B",
+      "orbitalPosition": "10E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-10B.html",
+      "retrievedAt": "2026-05-01T07:48:58.584Z",
+      "raw": {
+        "frequencyText": "3552",
+        "beamText": "3553 Swa",
+        "systemText": "MPEG-4",
+        "providerText": "BBS TV"
+      },
+      "parsed": {
+        "frequencyMHz": 3552,
+        "beamName": "3553 Swa",
+        "system": "MPEG-4",
+        "providerName": "BBS TV"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-10b-10e-row-21-3562",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 10B",
+      "orbitalPosition": "10E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-10B.html",
+      "retrievedAt": "2026-05-01T07:48:58.584Z",
+      "raw": {
+        "frequencyText": "3562",
+        "beamText": "Tayari West",
+        "systemText": "MPEG-4",
+        "providerText": "3563 Swa"
+      },
+      "parsed": {
+        "frequencyMHz": 3562,
+        "beamName": "Tayari West",
+        "system": "MPEG-4",
+        "providerName": "3563 Swa"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-10b-10e-row-22-3572",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 10B",
+      "orbitalPosition": "10E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-10B.html",
+      "retrievedAt": "2026-05-01T07:48:58.584Z",
+      "raw": {
+        "frequencyText": "3572",
+        "beamText": "TV West (Uganda)",
+        "systemText": "MPEG-4",
+        "providerText": "3573 Eng"
+      },
+      "parsed": {
+        "frequencyMHz": 3572,
+        "beamName": "TV West (Uganda)",
+        "system": "MPEG-4",
+        "providerName": "3573 Eng"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-10b-10e-row-23-3582",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 10B",
+      "orbitalPosition": "10E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-10B.html",
+      "retrievedAt": "2026-05-01T07:48:58.584Z",
+      "raw": {
+        "frequencyText": "3582",
+        "beamText": "Spark TV",
+        "systemText": "MPEG-4",
+        "providerText": "3583 Eng"
+      },
+      "parsed": {
+        "frequencyMHz": 3582,
+        "beamName": "Spark TV",
+        "system": "MPEG-4",
+        "providerName": "3583 Eng"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-10b-10e-row-24-3592",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 10B",
+      "orbitalPosition": "10E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-10B.html",
+      "retrievedAt": "2026-05-01T07:48:58.584Z",
+      "raw": {
+        "frequencyText": "3592",
+        "beamText": "3593 Eng",
+        "systemText": "MPEG-4",
+        "providerText": "Salt TV"
+      },
+      "parsed": {
+        "frequencyMHz": 3592,
+        "beamName": "3593 Eng",
+        "system": "MPEG-4",
+        "providerName": "Salt TV"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-10b-10e-row-25-3602",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 10B",
+      "orbitalPosition": "10E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-10B.html",
+      "retrievedAt": "2026-05-01T07:48:58.584Z",
+      "raw": {
+        "frequencyText": "3602",
+        "beamText": "Channel 44",
+        "systemText": "MPEG-4",
+        "eirpText": "44",
+        "providerText": "3603 Eng"
+      },
+      "parsed": {
+        "frequencyMHz": 3602,
+        "beamName": "Channel 44",
+        "system": "MPEG-4",
+        "eirpDbw": 44,
+        "providerName": "3603 Eng"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-10b-10e-row-26-3612",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 10B",
+      "orbitalPosition": "10E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-10B.html",
+      "retrievedAt": "2026-05-01T07:48:58.584Z",
+      "raw": {
+        "frequencyText": "3612",
+        "beamText": "Top TV (Uganda)",
+        "systemText": "MPEG-4",
+        "providerText": "3613 Eng"
+      },
+      "parsed": {
+        "frequencyMHz": 3612,
+        "beamName": "Top TV (Uganda)",
+        "system": "MPEG-4",
+        "providerName": "3613 Eng"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-10b-10e-row-27-3622",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 10B",
+      "orbitalPosition": "10E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-10B.html",
+      "retrievedAt": "2026-05-01T07:48:58.584Z",
+      "raw": {
+        "frequencyText": "3622",
+        "beamText": "Chamuka TV",
+        "systemText": "MPEG-4",
+        "providerText": "3623 Eng"
+      },
+      "parsed": {
+        "frequencyMHz": 3622,
+        "beamName": "Chamuka TV",
+        "system": "MPEG-4",
+        "providerName": "3623 Eng"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-10b-10e-row-28-3632",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 10B",
+      "orbitalPosition": "10E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-10B.html",
+      "retrievedAt": "2026-05-01T07:48:58.584Z",
+      "raw": {
+        "frequencyText": "3632",
+        "beamText": "Kingdom TV (Uganda)",
+        "systemText": "MPEG-4",
+        "providerText": "3633 Eng"
+      },
+      "parsed": {
+        "frequencyMHz": 3632,
+        "beamName": "Kingdom TV (Uganda)",
+        "system": "MPEG-4",
+        "providerName": "3633 Eng"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-10b-10e-row-29-3642",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 10B",
+      "orbitalPosition": "10E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-10B.html",
+      "retrievedAt": "2026-05-01T07:48:58.584Z",
+      "raw": {
+        "frequencyText": "3642",
+        "beamText": "King Solomon TV",
+        "systemText": "MPEG-4",
+        "providerText": "3643 Eng"
+      },
+      "parsed": {
+        "frequencyMHz": 3642,
+        "beamName": "King Solomon TV",
+        "system": "MPEG-4",
+        "providerName": "3643 Eng"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-10b-10e-row-30-3652",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 10B",
+      "orbitalPosition": "10E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-10B.html",
+      "retrievedAt": "2026-05-01T07:48:58.584Z",
+      "raw": {
+        "frequencyText": "3652",
+        "beamText": "3.53 Eng",
+        "systemText": "MPEG-4",
+        "eirpText": "53",
+        "providerText": "KBS TV"
+      },
+      "parsed": {
+        "frequencyMHz": 3652,
+        "beamName": "3.53 Eng",
+        "system": "MPEG-4",
+        "eirpDbw": 53,
+        "providerName": "KBS TV"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-10b-10e-row-31-3662",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 10B",
+      "orbitalPosition": "10E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-10B.html",
+      "retrievedAt": "2026-05-01T07:48:58.584Z",
+      "raw": {
+        "frequencyText": "3662",
+        "beamText": "Sanyuka TV",
+        "systemText": "MPEG-4"
+      },
+      "parsed": {
+        "frequencyMHz": 3662,
+        "beamName": "Sanyuka TV",
+        "system": "MPEG-4"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-10b-10e-row-32-3672",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 10B",
+      "orbitalPosition": "10E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-10B.html",
+      "retrievedAt": "2026-05-01T07:48:58.584Z",
+      "raw": {
+        "frequencyText": "3672",
+        "beamText": "3673 Eng",
+        "systemText": "MPEG-4",
+        "providerText": "Baba TV"
+      },
+      "parsed": {
+        "frequencyMHz": 3672,
+        "beamName": "3673 Eng",
+        "system": "MPEG-4",
+        "providerName": "Baba TV"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-10b-10e-row-33-3682",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 10B",
+      "orbitalPosition": "10E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-10B.html",
+      "retrievedAt": "2026-05-01T07:48:58.584Z",
+      "raw": {
+        "frequencyText": "3682",
+        "beamText": "Bunyoro TV",
+        "systemText": "MPEG-4",
+        "providerText": "3683 Eng"
+      },
+      "parsed": {
+        "frequencyMHz": 3682,
+        "beamName": "Bunyoro TV",
+        "system": "MPEG-4",
+        "providerName": "3683 Eng"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-10b-10e-row-34-3692",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 10B",
+      "orbitalPosition": "10E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-10B.html",
+      "retrievedAt": "2026-05-01T07:48:58.584Z",
+      "raw": {
+        "frequencyText": "3692",
+        "beamText": "Westnile TV",
+        "systemText": "MPEG-4",
+        "providerText": "3693 Eng"
+      },
+      "parsed": {
+        "frequencyMHz": 3692,
+        "beamName": "Westnile TV",
+        "system": "MPEG-4",
+        "providerName": "3693 Eng"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-10b-10e-row-35-4008",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 10B",
+      "orbitalPosition": "10E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-10B.html",
+      "retrievedAt": "2026-05-01T07:48:58.584Z",
+      "raw": {
+        "frequencyText": "4008",
+        "polarizationText": "R",
+        "beamText": "N Stanislav 260327"
+      },
+      "parsed": {
+        "frequencyMHz": 4008,
+        "polarization": "R",
+        "beamName": "N Stanislav 260327"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": false,
+        "confidence": "MEDIUM",
+        "warnings": [
+          "No DVB system/SR/FEC parameters found."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-10b-10e-s2-4028",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 10B",
+      "orbitalPosition": "10E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-10B.html",
+      "retrievedAt": "2026-05-01T07:48:58.584Z",
+      "raw": {
+        "frequencyText": "4028",
+        "polarizationText": "R",
+        "transponderText": "S2",
+        "beamText": "N Stanislav 250301",
+        "systemText": "DVB-S2",
+        "symbolRateText": "2480",
+        "fecText": "1/2",
+        "providerText": "Morning Cloud TV; 1.0 2102 Eng"
+      },
+      "parsed": {
+        "frequencyMHz": 4028,
+        "polarization": "R",
+        "transponderNumber": "S2",
+        "beamName": "N Stanislav 250301",
+        "system": "DVB-S2",
+        "symbolRate": 2480,
+        "fec": "1/2",
+        "providerName": "Morning Cloud TV; 1.0 2102 Eng"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-10b-10e-s2-4034",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 10B",
+      "orbitalPosition": "10E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-10B.html",
+      "retrievedAt": "2026-05-01T07:48:58.584Z",
+      "raw": {
+        "frequencyText": "4034",
+        "polarizationText": "R",
+        "transponderText": "S2",
+        "beamText": "(Deeper Christian Life Ministry feeds)",
+        "systemText": "DVB-S2",
+        "symbolRateText": "5415",
+        "fecText": "3/4",
+        "providerText": "Torrex12 260129"
+      },
+      "parsed": {
+        "frequencyMHz": 4034,
+        "polarization": "R",
+        "transponderNumber": "S2",
+        "beamName": "(Deeper Christian Life Ministry feeds)",
+        "system": "DVB-S2",
+        "symbolRate": 5415,
+        "fec": "3/4",
+        "providerName": "Torrex12 260129"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-10b-10e-s2-4039",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 10B",
+      "orbitalPosition": "10E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-10B.html",
+      "retrievedAt": "2026-05-01T07:48:58.584Z",
+      "raw": {
+        "frequencyText": "4039",
+        "polarizationText": "R",
+        "transponderText": "S2",
+        "beamText": "N Stanislav 231102",
+        "systemText": "DVB-S2",
+        "symbolRateText": "3333",
+        "fecText": "3/4",
+        "providerText": "1-1"
+      },
+      "parsed": {
+        "frequencyMHz": 4039,
+        "polarization": "R",
+        "transponderNumber": "S2",
+        "beamName": "N Stanislav 231102",
+        "system": "DVB-S2",
+        "symbolRate": 3333,
+        "fec": "3/4",
+        "providerName": "1-1"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-10b-10e-s2-4065",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 10B",
+      "orbitalPosition": "10E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-10B.html",
+      "retrievedAt": "2026-05-01T07:48:58.584Z",
+      "raw": {
+        "frequencyText": "4065",
+        "polarizationText": "R",
+        "transponderText": "S2",
+        "beamText": "N Stanislav 260426",
+        "systemText": "DVB-S2",
+        "symbolRateText": "3400",
+        "fecText": "3/4",
+        "providerText": "1-3"
+      },
+      "parsed": {
+        "frequencyMHz": 4065,
+        "polarization": "R",
+        "transponderNumber": "S2",
+        "beamName": "N Stanislav 260426",
+        "system": "DVB-S2",
+        "symbolRate": 3400,
+        "fec": "3/4",
+        "providerName": "1-3"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-10b-10e-s2-10721",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 10B",
+      "orbitalPosition": "10E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-10B.html",
+      "retrievedAt": "2026-05-01T07:48:58.584Z",
+      "raw": {
+        "frequencyText": "10721",
+        "polarizationText": "H",
+        "transponderText": "S2",
+        "beamText": "Jamie A 260412",
+        "systemText": "DVB-S2",
+        "symbolRateText": "7200",
+        "fecText": "3/4",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 10721,
+        "polarization": "H",
+        "transponderNumber": "S2",
+        "beamName": "Jamie A 260412",
+        "system": "DVB-S2",
+        "symbolRate": 7200,
+        "fec": "3/4",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-10b-10e-s2-10736",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 10B",
+      "orbitalPosition": "10E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-10B.html",
+      "retrievedAt": "2026-05-01T07:48:58.584Z",
+      "raw": {
+        "frequencyText": "10736",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "Roli 250704",
+        "systemText": "DVB-S2",
+        "symbolRateText": "9600",
+        "fecText": "3/4",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 10736,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "Roli 250704",
+        "system": "DVB-S2",
+        "symbolRate": 9600,
+        "fec": "3/4",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-10b-10e-s2-10746",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 10B",
+      "orbitalPosition": "10E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-10B.html",
+      "retrievedAt": "2026-05-01T07:48:58.584Z",
+      "raw": {
+        "frequencyText": "10746",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "Roli Jamie A 250628",
+        "systemText": "DVB-S2",
+        "symbolRateText": "7200",
+        "fecText": "3/4",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 10746,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "Roli Jamie A 250628",
+        "system": "DVB-S2",
+        "symbolRate": 7200,
+        "fec": "3/4",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-10b-10e-s2-10760",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 10B",
+      "orbitalPosition": "10E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-10B.html",
+      "retrievedAt": "2026-05-01T07:48:58.584Z",
+      "raw": {
+        "frequencyText": "10760",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "Roli 250704",
+        "systemText": "DVB-S2",
+        "symbolRateText": "9600",
+        "fecText": "3/4",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 10760,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "Roli 250704",
+        "system": "DVB-S2",
+        "symbolRate": 9600,
+        "fec": "3/4",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-10b-10e-s2-10769",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 10B",
+      "orbitalPosition": "10E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-10B.html",
+      "retrievedAt": "2026-05-01T07:48:58.584Z",
+      "raw": {
+        "frequencyText": "10769",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "Roli 250628",
+        "systemText": "DVB-S2",
+        "symbolRateText": "9600",
+        "fecText": "3/4",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 10769,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "Roli 250628",
+        "system": "DVB-S2",
+        "symbolRate": 9600,
+        "fec": "3/4",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-10b-10e-row-45-10771",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 10B",
+      "orbitalPosition": "10E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-10B.html",
+      "retrievedAt": "2026-05-01T07:48:58.584Z",
+      "raw": {
+        "frequencyText": "10771",
+        "polarizationText": "H",
+        "beamText": "N Stanislav 260301"
+      },
+      "parsed": {
+        "frequencyMHz": 10771,
+        "polarization": "H",
+        "beamName": "N Stanislav 260301"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": false,
+        "confidence": "MEDIUM",
+        "warnings": [
+          "No DVB system/SR/FEC parameters found."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-10b-10e-s2-10781",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 10B",
+      "orbitalPosition": "10E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-10B.html",
+      "retrievedAt": "2026-05-01T07:48:58.584Z",
+      "raw": {
+        "frequencyText": "10781",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "Roli 250628",
+        "systemText": "DVB-S2",
+        "symbolRateText": "9600",
+        "fecText": "3/4",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 10781,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "Roli 250628",
+        "system": "DVB-S2",
+        "symbolRate": 9600,
+        "fec": "3/4",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-10b-10e-s2-10803",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 10B",
+      "orbitalPosition": "10E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-10B.html",
+      "retrievedAt": "2026-05-01T07:48:58.584Z",
+      "raw": {
+        "frequencyText": "10803",
+        "polarizationText": "H",
+        "transponderText": "S2",
+        "beamText": "Roli 251231",
+        "systemText": "DVB-S2",
+        "symbolRateText": "9874",
+        "fecText": "3/4",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 10803,
+        "polarization": "H",
+        "transponderNumber": "S2",
+        "beamName": "Roli 251231",
+        "system": "DVB-S2",
+        "symbolRate": 9874,
+        "fec": "3/4",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-10b-10e-s2-10875",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 10B",
+      "orbitalPosition": "10E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-10B.html",
+      "retrievedAt": "2026-05-01T07:48:58.584Z",
+      "raw": {
+        "frequencyText": "10875",
+        "polarizationText": "H",
+        "transponderText": "S2",
+        "beamText": "Roli 251014",
+        "systemText": "DVB-S2",
+        "symbolRateText": "7200",
+        "fecText": "3/4",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 10875,
+        "polarization": "H",
+        "transponderNumber": "S2",
+        "beamName": "Roli 251014",
+        "system": "DVB-S2",
+        "symbolRate": 7200,
+        "fec": "3/4",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-10b-10e-s2-10998",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 10B",
+      "orbitalPosition": "10E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-10B.html",
+      "retrievedAt": "2026-05-01T07:48:58.584Z",
+      "raw": {
+        "frequencyText": "10998",
+        "polarizationText": "H",
+        "transponderText": "S2",
+        "beamText": "Roli 260124",
+        "systemText": "DVB-S2",
+        "symbolRateText": "7200",
+        "fecText": "3/4",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 10998,
+        "polarization": "H",
+        "transponderNumber": "S2",
+        "beamName": "Roli 260124",
+        "system": "DVB-S2",
+        "symbolRate": 7200,
+        "fec": "3/4",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-10b-10e-s2-11165",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 10B",
+      "orbitalPosition": "10E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-10B.html",
+      "retrievedAt": "2026-05-01T07:48:58.584Z",
+      "raw": {
+        "frequencyText": "11165",
+        "polarizationText": "H",
+        "transponderText": "S2",
+        "beamText": "Roli 251105",
+        "systemText": "DVB-S2",
+        "symbolRateText": "9874",
+        "fecText": "3/4",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 11165,
+        "polarization": "H",
+        "transponderNumber": "S2",
+        "beamName": "Roli 251105",
+        "system": "DVB-S2",
+        "symbolRate": 9874,
+        "fec": "3/4",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-10b-10e-s2-11167",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 10B",
+      "orbitalPosition": "10E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-10B.html",
+      "retrievedAt": "2026-05-01T07:48:58.584Z",
+      "raw": {
+        "frequencyText": "11167",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "Roli 260402",
+        "systemText": "DVB-S2",
+        "symbolRateText": "7200",
+        "fecText": "3/4",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 11167,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "Roli 260402",
+        "system": "DVB-S2",
+        "symbolRate": 7200,
+        "fec": "3/4",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-10b-10e-s2-11176",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 10B",
+      "orbitalPosition": "10E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-10B.html",
+      "retrievedAt": "2026-05-01T07:48:58.584Z",
+      "raw": {
+        "frequencyText": "11176",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "Jamie A 260401",
+        "systemText": "DVB-S2",
+        "symbolRateText": "7200",
+        "fecText": "3/4",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 11176,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "Jamie A 260401",
+        "system": "DVB-S2",
+        "symbolRate": 7200,
+        "fec": "3/4",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-10b-10e-s2-11188",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 10B",
+      "orbitalPosition": "10E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-10B.html",
+      "retrievedAt": "2026-05-01T07:48:58.584Z",
+      "raw": {
+        "frequencyText": "11188",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "Roli Jamie A 251120",
+        "systemText": "DVB-S2",
+        "symbolRateText": "7200",
+        "fecText": "3/4",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 11188,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "Roli Jamie A 251120",
+        "system": "DVB-S2",
+        "symbolRate": 7200,
+        "fec": "3/4",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-10b-10e-c2-11200",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 10B",
+      "orbitalPosition": "10E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-10B.html",
+      "retrievedAt": "2026-05-01T07:48:58.584Z",
+      "raw": {
+        "frequencyText": "11200",
+        "polarizationText": "H",
+        "transponderText": "C2",
+        "beamText": "Anonymous 240728",
+        "symbolRateText": "70000",
+        "fecText": "3/4",
+        "providerText": "EBU feeds"
+      },
+      "parsed": {
+        "frequencyMHz": 11200,
+        "polarization": "H",
+        "transponderNumber": "C2",
+        "transponderName": "TP C2",
+        "beamName": "Anonymous 240728",
+        "symbolRate": 70000,
+        "fec": "3/4",
+        "providerName": "EBU feeds"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-10b-10e-c1-11221",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 10B",
+      "orbitalPosition": "10E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-10B.html",
+      "retrievedAt": "2026-05-01T07:48:58.584Z",
+      "raw": {
+        "frequencyText": "11221",
+        "polarizationText": "V",
+        "transponderText": "C1",
+        "beamText": "S Evans P Piotrowski D Shimoni D de Jong 260331",
+        "systemText": "DVB-S2",
+        "symbolRateText": "24760",
+        "fecText": "5/6",
+        "providerText": "Irdeto; BFBS; 16-1"
+      },
+      "parsed": {
+        "frequencyMHz": 11221,
+        "polarization": "V",
+        "transponderNumber": "C1",
+        "transponderName": "TP C1",
+        "beamName": "S Evans P Piotrowski D Shimoni D de Jong 260331",
+        "system": "DVB-S2",
+        "symbolRate": 24760,
+        "fec": "5/6",
+        "providerName": "Irdeto; BFBS; 16-1"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-10b-10e-s2-11247",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 10B",
+      "orbitalPosition": "10E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-10B.html",
+      "retrievedAt": "2026-05-01T07:48:58.584Z",
+      "raw": {
+        "frequencyText": "11247",
+        "polarizationText": "H",
+        "transponderText": "S2",
+        "beamText": "Roli 251025",
+        "systemText": "DVB-S2",
+        "symbolRateText": "7400",
+        "fecText": "5/6",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 11247,
+        "polarization": "H",
+        "transponderNumber": "S2",
+        "beamName": "Roli 251025",
+        "system": "DVB-S2",
+        "symbolRate": 7400,
+        "fec": "5/6",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-10b-10e-s2-11256",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 10B",
+      "orbitalPosition": "10E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-10B.html",
+      "retrievedAt": "2026-05-01T07:48:58.584Z",
+      "raw": {
+        "frequencyText": "11256",
+        "polarizationText": "H",
+        "transponderText": "S2",
+        "beamText": "Roli 251025",
+        "systemText": "DVB-S2",
+        "symbolRateText": "7400",
+        "fecText": "5/6",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 11256,
+        "polarization": "H",
+        "transponderNumber": "S2",
+        "beamName": "Roli 251025",
+        "system": "DVB-S2",
+        "symbolRate": 7400,
+        "fec": "5/6",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-10b-10e-s2-11265",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 10B",
+      "orbitalPosition": "10E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-10B.html",
+      "retrievedAt": "2026-05-01T07:48:58.584Z",
+      "raw": {
+        "frequencyText": "11265",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "Roli Jamie A Jonali 260315",
+        "systemText": "DVB-S2",
+        "symbolRateText": "4800",
+        "fecText": "3/4",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 11265,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "Roli Jamie A Jonali 260315",
+        "system": "DVB-S2",
+        "symbolRate": 4800,
+        "fec": "3/4",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-10b-10e-s2-11271",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 10B",
+      "orbitalPosition": "10E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-10B.html",
+      "retrievedAt": "2026-05-01T07:48:58.584Z",
+      "raw": {
+        "frequencyText": "11271",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "Roli Jamie A 260315",
+        "systemText": "DVB-S2",
+        "symbolRateText": "4800",
+        "fecText": "3/4",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 11271,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "Roli Jamie A 260315",
+        "system": "DVB-S2",
+        "symbolRate": 4800,
+        "fec": "3/4",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-10b-10e-s2-11275",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 10B",
+      "orbitalPosition": "10E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-10B.html",
+      "retrievedAt": "2026-05-01T07:48:58.584Z",
+      "raw": {
+        "frequencyText": "11275",
+        "polarizationText": "H",
+        "transponderText": "S2",
+        "beamText": "Jamie A 251117",
+        "systemText": "DVB-S2",
+        "symbolRateText": "4800",
+        "fecText": "3/4",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 11275,
+        "polarization": "H",
+        "transponderNumber": "S2",
+        "beamName": "Jamie A 251117",
+        "system": "DVB-S2",
+        "symbolRate": 4800,
+        "fec": "3/4",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-10b-10e-s2-11277",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 10B",
+      "orbitalPosition": "10E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-10B.html",
+      "retrievedAt": "2026-05-01T07:48:58.584Z",
+      "raw": {
+        "frequencyText": "11277",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "Roli Jamie A 260315",
+        "systemText": "DVB-S2",
+        "symbolRateText": "3600",
+        "fecText": "5/6",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 11277,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "Roli Jamie A 260315",
+        "system": "DVB-S2",
+        "symbolRate": 3600,
+        "fec": "5/6",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-10b-10e-s2-11281",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 10B",
+      "orbitalPosition": "10E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-10B.html",
+      "retrievedAt": "2026-05-01T07:48:58.584Z",
+      "raw": {
+        "frequencyText": "11281",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "Roli Jamie A 260315",
+        "systemText": "DVB-S2",
+        "symbolRateText": "3600",
+        "fecText": "5/6",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 11281,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "Roli Jamie A 260315",
+        "system": "DVB-S2",
+        "symbolRate": 3600,
+        "fec": "5/6",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-10b-10e-s2-11284",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 10B",
+      "orbitalPosition": "10E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-10B.html",
+      "retrievedAt": "2026-05-01T07:48:58.584Z",
+      "raw": {
+        "frequencyText": "11284",
+        "polarizationText": "H",
+        "transponderText": "S2",
+        "beamText": "Jamie A 251020",
+        "systemText": "DVB-S2",
+        "symbolRateText": "3214",
+        "fecText": "3/4",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 11284,
+        "polarization": "H",
+        "transponderNumber": "S2",
+        "beamName": "Jamie A 251020",
+        "system": "DVB-S2",
+        "symbolRate": 3214,
+        "fec": "3/4",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-10b-10e-s2-11289",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 10B",
+      "orbitalPosition": "10E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-10B.html",
+      "retrievedAt": "2026-05-01T07:48:58.584Z",
+      "raw": {
+        "frequencyText": "11289",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "Jamie A 260116",
+        "systemText": "DVB-S2",
+        "symbolRateText": "7200",
+        "fecText": "3/4",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 11289,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "Jamie A 260116",
+        "system": "DVB-S2",
+        "symbolRate": 7200,
+        "fec": "3/4",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-10b-10e-s2-11291",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 10B",
+      "orbitalPosition": "10E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-10B.html",
+      "retrievedAt": "2026-05-01T07:48:58.584Z",
+      "raw": {
+        "frequencyText": "11291",
+        "polarizationText": "H",
+        "transponderText": "S2",
+        "beamText": "Roli 251227",
+        "systemText": "DVB-S2",
+        "symbolRateText": "7500",
+        "fecText": "2/3",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 11291,
+        "polarization": "H",
+        "transponderNumber": "S2",
+        "beamName": "Roli 251227",
+        "system": "DVB-S2",
+        "symbolRate": 7500,
+        "fec": "2/3",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-10b-10e-s2-11306",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 10B",
+      "orbitalPosition": "10E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-10B.html",
+      "retrievedAt": "2026-05-01T07:48:58.584Z",
+      "raw": {
+        "frequencyText": "11306",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "Roli 260221",
+        "systemText": "DVB-S2",
+        "symbolRateText": "7200",
+        "fecText": "3/4",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 11306,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "Roli 260221",
+        "system": "DVB-S2",
+        "symbolRate": 7200,
+        "fec": "3/4",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-10b-10e-row-67-12507",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 10B",
+      "orbitalPosition": "10E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-10B.html",
+      "retrievedAt": "2026-05-01T07:48:58.584Z",
+      "raw": {
+        "frequencyText": "12507",
+        "polarizationText": "H",
+        "beamText": "Radio Maria Italia",
+        "systemText": "DVB-S",
+        "symbolRateText": "769",
+        "fecText": "1/2",
+        "providerText": "N Stanislav 230722; 2.7 769 Ita; ?-?"
+      },
+      "parsed": {
+        "frequencyMHz": 12507,
+        "polarization": "H",
+        "beamName": "Radio Maria Italia",
+        "system": "DVB-S",
+        "symbolRate": 769,
+        "fec": "1/2",
+        "providerName": "N Stanislav 230722; 2.7 769 Ita; ?-?"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-10b-10e-f4-12618",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 10B",
+      "orbitalPosition": "10E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-10B.html",
+      "retrievedAt": "2026-05-01T07:48:58.584Z",
+      "raw": {
+        "frequencyText": "12618",
+        "polarizationText": "V",
+        "transponderText": "F4",
+        "beamText": "Stanley_cassidy Jamie A Roli 251206",
+        "systemText": "DVB-S2",
+        "symbolRateText": "7200",
+        "fecText": "3/4",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 12618,
+        "polarization": "V",
+        "transponderNumber": "F4",
+        "transponderName": "TP F4",
+        "beamName": "Stanley_cassidy Jamie A Roli 251206",
+        "system": "DVB-S2",
+        "symbolRate": 7200,
+        "fec": "3/4",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-10b-10e-s2-12736",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 10B",
+      "orbitalPosition": "10E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-10B.html",
+      "retrievedAt": "2026-05-01T07:48:58.584Z",
+      "raw": {
+        "frequencyText": "12736",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "N Stanislav D Shimoni 230721",
+        "systemText": "DVB-S2",
+        "symbolRateText": "4000",
+        "fecText": "9/10",
+        "providerText": "Zap Viva Internacional; 11.0 Por"
+      },
+      "parsed": {
+        "frequencyMHz": 12736,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "N Stanislav D Shimoni 230721",
+        "system": "DVB-S2",
+        "symbolRate": 4000,
+        "fec": "9/10",
+        "providerName": "Zap Viva Internacional; 11.0 Por"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-10b-10e-s2-nofreq",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 10B",
+      "orbitalPosition": "10E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-10B.html",
+      "retrievedAt": "2026-05-01T07:48:58.584Z",
+      "raw": {
+        "transponderText": "S2",
+        "beamText": "System:",
+        "systemText": "DVB-S2",
+        "providerText": "non-DTH"
+      },
+      "parsed": {
+        "transponderNumber": "S2",
+        "beamName": "System:",
+        "system": "DVB-S2",
+        "providerName": "non-DTH"
+      },
+      "parseQuality": {
+        "hasFrequency": false,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Downlink frequency not parseable; row kept due to transponder ID.",
+          "Polarization not present or not parseable."
+        ]
+      }
+    }
+  ]
+}

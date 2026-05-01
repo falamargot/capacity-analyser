@@ -1,0 +1,6057 @@
+{
+  "version": "2",
+  "satelliteName": "EUTELSAT 8 WEST B",
+  "orbitalPosition": "8W",
+  "generatedAt": "2026-05-01T07:49:01.526Z",
+  "totalRawObservations": 99,
+  "transponders": [
+    {
+      "id": "eutelsat-8-west-b-8w-s2-l",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "downlink": {
+        "frequencyMHz": 3732,
+        "polarization": "L",
+        "beamName": "Easy TV Côte d'Ivoire",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 6213.125,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 3,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          40410
+        ],
+        "fecValues": [
+          "2/3"
+        ],
+        "services": [],
+        "providers": [
+          "N Stanislav 251211",
+          "N Stanislav 251211; Nagravision"
+        ]
+      },
+      "band": "C",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-8-west-b-8w-s2-3732",
+          "lyngsat-eutelsat-8-west-b-8w-s2-3732",
+          "lyngsat-eutelsat-8-west-b-8w-s2-3732"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+            "retrievedAt": "2026-05-01T07:48:27.674Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-8-west-b-8w-s2-l",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "downlink": {
+        "frequencyMHz": 3823,
+        "polarization": "L",
+        "beamName": "DX Bozóth 260414",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 6312.656,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          7430
+        ],
+        "fecValues": [
+          "9/10"
+        ],
+        "services": [],
+        "providers": [
+          "(feeds)"
+        ]
+      },
+      "band": "C",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-8-west-b-8w-s2-3823"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+            "retrievedAt": "2026-05-01T07:48:27.674Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-8-west-b-8w-s2-r",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "downlink": {
+        "frequencyMHz": 3826,
+        "polarization": "R",
+        "beamName": "J Orton 240715",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 6315.938,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          13830
+        ],
+        "fecValues": [
+          "4/5"
+        ],
+        "services": [],
+        "providers": [
+          "1918-8031"
+        ]
+      },
+      "band": "C",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-8-west-b-8w-s2-3826"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+            "retrievedAt": "2026-05-01T07:48:27.674Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-8-west-b-8w-3651.0mhz-unknown-pol",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "downlink": {
+        "frequencyMHz": 3651,
+        "beamName": "Equi Africa",
+        "source": "LYNGSAT",
+        "confidence": "LOW"
+      },
+      "uplink": {
+        "frequencyMHz": 6124.531,
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "groupedObservationCount": 1,
+        "systems": [
+          "MPEG-4"
+        ],
+        "symbolRates": [],
+        "fecValues": [],
+        "services": [],
+        "providers": [
+          "3652 Fre"
+        ]
+      },
+      "band": "C",
+      "serviceType": "UNKNOWN",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-8-west-b-8w-row-6-3651"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+            "retrievedAt": "2026-05-01T07:48:27.674Z",
+            "fieldsUsed": [
+              "frequency",
+              "beam",
+              "system"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Uplink beam unknown in public data.",
+        "Polarization not present or not parseable."
+      ]
+    },
+    {
+      "id": "eutelsat-8-west-b-8w-s2-l",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "downlink": {
+        "frequencyMHz": 3832,
+        "polarization": "L",
+        "beamName": "Zelda 230909",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 6322.5,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          7585
+        ],
+        "fecValues": [
+          "2/3"
+        ],
+        "services": [],
+        "providers": [
+          "CRTV; 1-1"
+        ]
+      },
+      "band": "C",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-8-west-b-8w-s2-3832"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+            "retrievedAt": "2026-05-01T07:48:27.674Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-8-west-b-8w-s2-r",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "downlink": {
+        "frequencyMHz": 3852,
+        "polarization": "R",
+        "beamName": "DX Bozóth 260416",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 6344.375,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          14167
+        ],
+        "fecValues": [
+          "3/4"
+        ],
+        "services": [],
+        "providers": [
+          "TopStar; 136-8"
+        ]
+      },
+      "band": "C",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-8-west-b-8w-s2-3852"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+            "retrievedAt": "2026-05-01T07:48:27.674Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-8-west-b-8w-4098.0mhz-unknown-pol",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "downlink": {
+        "frequencyMHz": 4098,
+        "beamName": "Crown TV (Zambia)",
+        "source": "LYNGSAT",
+        "confidence": "LOW"
+      },
+      "uplink": {
+        "frequencyMHz": 6613.438,
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "groupedObservationCount": 1,
+        "systems": [
+          "MPEG-4"
+        ],
+        "symbolRates": [],
+        "fecValues": [],
+        "services": [],
+        "providers": [
+          "4097 Eng"
+        ]
+      },
+      "band": "C",
+      "serviceType": "UNKNOWN",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-8-west-b-8w-row-9-4098"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+            "retrievedAt": "2026-05-01T07:48:27.674Z",
+            "fieldsUsed": [
+              "frequency",
+              "beam",
+              "system"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Uplink beam unknown in public data.",
+        "Polarization not present or not parseable."
+      ]
+    },
+    {
+      "id": "eutelsat-8-west-b-8w-s2-l",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "downlink": {
+        "frequencyMHz": 3896,
+        "polarization": "L",
+        "beamName": "TVE Internacional Europa",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 6392.5,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          3500
+        ],
+        "fecValues": [
+          "5/6"
+        ],
+        "services": [],
+        "providers": [
+          "5.2 3554 Spa 3555 Qaa; M Al-Taie 260306"
+        ]
+      },
+      "band": "C",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-8-west-b-8w-s2-3896"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+            "retrievedAt": "2026-05-01T07:48:27.674Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-8-west-b-8w-3581.0mhz-unknown-pol",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "downlink": {
+        "frequencyMHz": 3581,
+        "beamName": "RNE Radio Nacional",
+        "source": "LYNGSAT",
+        "confidence": "LOW"
+      },
+      "uplink": {
+        "frequencyMHz": 6047.969,
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "groupedObservationCount": 1,
+        "systems": [],
+        "symbolRates": [],
+        "fecValues": [],
+        "services": [],
+        "providers": [
+          "3523 Spa"
+        ]
+      },
+      "band": "C",
+      "serviceType": "UNKNOWN",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-8-west-b-8w-row-11-3581"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+            "retrievedAt": "2026-05-01T07:48:27.674Z",
+            "fieldsUsed": [
+              "frequency",
+              "beam"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Uplink beam unknown in public data.",
+        "Polarization not present or not parseable.",
+        "No DVB system/SR/FEC parameters found."
+      ]
+    },
+    {
+      "id": "eutelsat-8-west-b-8w-3585.0mhz-unknown-pol",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "downlink": {
+        "frequencyMHz": 3585,
+        "beamName": "Radio Exterior",
+        "source": "LYNGSAT",
+        "confidence": "LOW"
+      },
+      "uplink": {
+        "frequencyMHz": 6052.344,
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "groupedObservationCount": 1,
+        "systems": [],
+        "symbolRates": [],
+        "fecValues": [],
+        "services": [],
+        "providers": [
+          "3559 Spa"
+        ]
+      },
+      "band": "C",
+      "serviceType": "UNKNOWN",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-8-west-b-8w-row-12-3585"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+            "retrievedAt": "2026-05-01T07:48:27.674Z",
+            "fieldsUsed": [
+              "frequency",
+              "beam"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Uplink beam unknown in public data.",
+        "Polarization not present or not parseable.",
+        "No DVB system/SR/FEC parameters found."
+      ]
+    },
+    {
+      "id": "eutelsat-8-west-b-8w-s2-r",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "downlink": {
+        "frequencyMHz": 3901,
+        "polarization": "R",
+        "beamName": "N Stanislav 251129",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 6397.969,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          1457
+        ],
+        "fecValues": [
+          "3/4"
+        ],
+        "services": [],
+        "providers": [
+          "7.9 514 Spa; Asonga TV"
+        ]
+      },
+      "band": "C",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-8-west-b-8w-s2-3901"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+            "retrievedAt": "2026-05-01T07:48:27.674Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-8-west-b-8w-s2-unknown-pol",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "downlink": {
+        "frequencyMHz": 3903,
+        "beamName": "R Dávid 250916",
+        "source": "LYNGSAT",
+        "confidence": "LOW"
+      },
+      "uplink": {
+        "frequencyMHz": 6400.156,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          1000
+        ],
+        "fecValues": [
+          "3/4"
+        ],
+        "services": [],
+        "providers": [
+          "Radio Miraya; 4.0 101 Eng; 1-1"
+        ]
+      },
+      "band": "C",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-8-west-b-8w-s2-3903"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+            "retrievedAt": "2026-05-01T07:48:27.674Z",
+            "fieldsUsed": [
+              "frequency",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data.",
+        "Polarization not present or not parseable."
+      ]
+    },
+    {
+      "id": "eutelsat-8-west-b-8w-s2-r",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "downlink": {
+        "frequencyMHz": 3925,
+        "polarization": "R",
+        "beamName": "DX Bozóth 260415",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 6424.219,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          30000
+        ],
+        "fecValues": [
+          "5/6"
+        ],
+        "services": [],
+        "providers": [
+          "Irdeto Viaccess; Vivacom MCPC; 1-8125"
+        ]
+      },
+      "band": "C",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-8-west-b-8w-s2-3925"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+            "retrievedAt": "2026-05-01T07:48:27.674Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-8-west-b-8w-s2-r",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "downlink": {
+        "frequencyMHz": 3964,
+        "polarization": "R",
+        "beamName": "Radio Notre Dame International",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 6466.875,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          4166
+        ],
+        "fecValues": [
+          "1/2"
+        ],
+        "services": [],
+        "providers": [
+          "S Evans 260306; 1.0 2191 Fre; 1918-8071"
+        ]
+      },
+      "band": "C",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-8-west-b-8w-s2-3964"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+            "retrievedAt": "2026-05-01T07:48:27.674Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-8-west-b-8w-s2-r",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "downlink": {
+        "frequencyMHz": 3977,
+        "polarization": "R",
+        "beamName": "R Dávid 250914",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 6481.094,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          3410
+        ],
+        "fecValues": [
+          "2/3"
+        ],
+        "services": [],
+        "providers": [
+          "6.6 139 Fre; Télé Congo"
+        ]
+      },
+      "band": "C",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-8-west-b-8w-s2-3977"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+            "retrievedAt": "2026-05-01T07:48:27.674Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-8-west-b-8w-s2-r",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "downlink": {
+        "frequencyMHz": 3986,
+        "polarization": "R",
+        "beamName": "4.0 512 Spa 513 Eng 513 Por 514 Fre 515 Kin 515 Swa",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 6490.938,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          4543
+        ],
+        "fecValues": [
+          "3/4"
+        ],
+        "services": [],
+        "providers": [
+          "La Gran Carpa Catedral TV; N Stanislav 240120"
+        ]
+      },
+      "band": "C",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-8-west-b-8w-s2-3986"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+            "retrievedAt": "2026-05-01T07:48:27.674Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-8-west-b-8w-10727.0mhz-h",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "downlink": {
+        "frequencyMHz": 10727,
+        "polarization": "H",
+        "beamName": "Torrex12 260303",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 13759.878,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S"
+        ],
+        "symbolRates": [
+          27500
+        ],
+        "fecValues": [
+          "7/8"
+        ],
+        "services": [],
+        "providers": [
+          "20480-500; Gulfsat"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-8-west-b-8w-row-19-10727"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+            "retrievedAt": "2026-05-01T07:48:27.674Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-8-west-b-8w-10960.0mhz-h",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "downlink": {
+        "frequencyMHz": 10960,
+        "polarization": "H",
+        "beamName": "TV Assembléia RN",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 13845.122,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S"
+        ],
+        "symbolRates": [
+          3255
+        ],
+        "fecValues": [
+          "3/4"
+        ],
+        "services": [],
+        "providers": [
+          "EnoSat 251018; 5.5 3004 Por"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-8-west-b-8w-row-20-10960"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+            "retrievedAt": "2026-05-01T07:48:27.674Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-8-west-b-8w-10971.0mhz-h",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "downlink": {
+        "frequencyMHz": 10971,
+        "polarization": "H",
+        "beamName": "M Al-Taie 260403",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 13849.146,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S"
+        ],
+        "symbolRates": [
+          27500
+        ],
+        "fecValues": [
+          "7/8"
+        ],
+        "services": [],
+        "providers": [
+          "20480-800; My TV"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-8-west-b-8w-row-21-10971"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+            "retrievedAt": "2026-05-01T07:48:27.674Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-8-west-b-8w-10971.0mhz-v",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "downlink": {
+        "frequencyMHz": 10971,
+        "polarization": "V",
+        "beamName": "DX Bozóth 200929",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 13849.146,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S"
+        ],
+        "symbolRates": [
+          27500
+        ],
+        "fecValues": [
+          "3/4"
+        ],
+        "services": [],
+        "providers": [
+          "1918-20200; Aljazeera"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-8-west-b-8w-row-22-10971"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+            "retrievedAt": "2026-05-01T07:48:27.674Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-8-west-b-8w-s2-h",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "downlink": {
+        "frequencyMHz": 11013,
+        "polarization": "H",
+        "beamName": "Irdeto Videoguard",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 13864.512,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          27500
+        ],
+        "fecValues": [
+          "2/3"
+        ],
+        "services": [],
+        "providers": [
+          "A7Sats 260121; 1918-100; BeIn"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-8-west-b-8w-s2-11013"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+            "retrievedAt": "2026-05-01T07:48:27.674Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-8-west-b-8w-11013.0mhz-v",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "downlink": {
+        "frequencyMHz": 11013,
+        "polarization": "V",
+        "beamName": "Sharjah Broadcasting Authority",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 13864.512,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S"
+        ],
+        "symbolRates": [
+          27500
+        ],
+        "fecValues": [
+          "5/6"
+        ],
+        "services": [],
+        "providers": [
+          "M Al-Taie 251025; 702-520"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-8-west-b-8w-row-24-11013"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+            "retrievedAt": "2026-05-01T07:48:27.674Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-8-west-b-8w-s2-h",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "downlink": {
+        "frequencyMHz": 11054,
+        "polarization": "H",
+        "beamName": "Irdeto Videoguard",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 13879.512,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 2,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          27500
+        ],
+        "fecValues": [
+          "2/3"
+        ],
+        "services": [],
+        "providers": [
+          "M Al-Taie 240717; 1918-200; BeIn",
+          "1918-30100; Kuwait TV"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-8-west-b-8w-s2-11054",
+          "lyngsat-eutelsat-8-west-b-8w-s2-11054"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+            "retrievedAt": "2026-05-01T07:48:27.674Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-8-west-b-8w-11096.0mhz-h",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "downlink": {
+        "frequencyMHz": 11096,
+        "polarization": "H",
+        "beamName": "M Al-Taie 260425",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 13894.878,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S"
+        ],
+        "symbolRates": [
+          27500
+        ],
+        "fecValues": [
+          "7/8"
+        ],
+        "services": [],
+        "providers": [
+          "ViewMedia; 65535-8"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-8-west-b-8w-row-27-11096"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+            "retrievedAt": "2026-05-01T07:48:27.674Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-8-west-b-8w-11096.0mhz-v",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "downlink": {
+        "frequencyMHz": 11096,
+        "polarization": "V",
+        "beamName": "R Cervi 260217",
+        "source": "LYNGSAT",
+        "confidence": "MEDIUM"
+      },
+      "uplink": {
+        "frequencyMHz": 13894.878,
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "groupedObservationCount": 1,
+        "systems": [],
+        "symbolRates": [],
+        "fecValues": [],
+        "services": [],
+        "providers": []
+      },
+      "band": "Ku",
+      "serviceType": "UNKNOWN",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-8-west-b-8w-row-28-11096"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+            "retrievedAt": "2026-05-01T07:48:27.674Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Uplink beam unknown in public data.",
+        "No DVB system/SR/FEC parameters found."
+      ]
+    },
+    {
+      "id": "eutelsat-8-west-b-8w-s2-h",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "downlink": {
+        "frequencyMHz": 11137,
+        "polarization": "H",
+        "beamName": "Hadowooalsatan 251223",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 13909.878,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 2,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          27500
+        ],
+        "fecValues": [
+          "5/6",
+          "3/4"
+        ],
+        "eirpDbw": 73,
+        "services": [],
+        "providers": [
+          "Verimatrix (B); 42-1",
+          "2048-73"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-8-west-b-8w-s2-11137",
+          "lyngsat-eutelsat-8-west-b-8w-s2-11137"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+            "retrievedAt": "2026-05-01T07:48:27.674Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-8-west-b-8w-a2-unknown-pol",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "downlink": {
+        "source": "LYNGSAT",
+        "confidence": "LOW"
+      },
+      "uplink": {
+        "inferenceMethod": "UNKNOWN",
+        "source": "UNKNOWN",
+        "confidence": "UNKNOWN"
+      },
+      "publicTransponder": {
+        "number": "A2",
+        "groupedObservationCount": 1,
+        "systems": [],
+        "symbolRates": [],
+        "fecValues": [],
+        "services": [],
+        "providers": []
+      },
+      "band": "Unknown",
+      "serviceType": "UNKNOWN",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-8-west-b-8w-a2-nofreq"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+            "retrievedAt": "2026-05-01T07:48:27.674Z",
+            "fieldsUsed": [
+              "transponderNumber"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Unable to infer uplink frequency: downlink frequency unknown.",
+        "Uplink beam unknown in public data.",
+        "Downlink frequency not parseable; row kept due to transponder ID.",
+        "Polarization not present or not parseable.",
+        "Beam name not present.",
+        "No DVB system/SR/FEC parameters found."
+      ]
+    },
+    {
+      "id": "eutelsat-8-west-b-8w-s2-h",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "downlink": {
+        "frequencyMHz": 11179,
+        "polarization": "H",
+        "beamName": "Er Balvinder Singh 260429",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 13925.244,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          27500
+        ],
+        "fecValues": [
+          "5/6"
+        ],
+        "services": [],
+        "providers": [
+          "1918-30110; Gulfsat"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-8-west-b-8w-s2-11179"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+            "retrievedAt": "2026-05-01T07:48:27.674Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-8-west-b-8w-11179.0mhz-v",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "downlink": {
+        "frequencyMHz": 11179,
+        "polarization": "V",
+        "beamName": "Hadowooalsatan 260202",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 13925.244,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S"
+        ],
+        "symbolRates": [
+          27500
+        ],
+        "fecValues": [
+          "5/6"
+        ],
+        "eirpDbw": 74,
+        "services": [],
+        "providers": [
+          "2048-74"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-8-west-b-8w-row-33-11179"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+            "retrievedAt": "2026-05-01T07:48:27.674Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-8-west-b-8w-11471.0mhz-v",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "downlink": {
+        "frequencyMHz": 11471,
+        "polarization": "V",
+        "beamName": "Y Fareed 260415",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 14032.073,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S"
+        ],
+        "symbolRates": [
+          27500
+        ],
+        "fecValues": [
+          "5/6"
+        ],
+        "eirpDbw": 59,
+        "services": [],
+        "providers": [
+          "2048-59"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-8-west-b-8w-row-34-11471"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+            "retrievedAt": "2026-05-01T07:48:27.674Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-8-west-b-8w-11554.0mhz-v",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "downlink": {
+        "frequencyMHz": 11554,
+        "polarization": "V",
+        "beamName": "Dondohodho 260428",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 14062.439,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S"
+        ],
+        "symbolRates": [
+          27500
+        ],
+        "fecValues": [
+          "7/8"
+        ],
+        "services": [],
+        "providers": [
+          "20480-300; Gulfsat"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-8-west-b-8w-row-35-11554"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+            "retrievedAt": "2026-05-01T07:48:27.674Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-8-west-b-8w-s2-h",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "downlink": {
+        "frequencyMHz": 11564,
+        "polarization": "H",
+        "beamName": "M Al-Taie 260401",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 14066.098,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          27500
+        ],
+        "fecValues": [
+          "5/6"
+        ],
+        "services": [],
+        "providers": [
+          "20480-400; My TV"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-8-west-b-8w-s2-11564"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+            "retrievedAt": "2026-05-01T07:48:27.674Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-8-west-b-8w-s2-v",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "downlink": {
+        "frequencyMHz": 11637,
+        "polarization": "V",
+        "beamName": "R Cervi 260406",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 14092.805,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          27500
+        ],
+        "fecValues": [
+          "5/6"
+        ],
+        "services": [],
+        "providers": [
+          "1918-50100; Eutelsat"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-8-west-b-8w-s2-11637"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+            "retrievedAt": "2026-05-01T07:48:27.674Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-8-west-b-8w-11678.0mhz-v",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "downlink": {
+        "frequencyMHz": 11678,
+        "polarization": "V",
+        "beamName": "Hadowooalsatan 260314",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 14107.805,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S"
+        ],
+        "symbolRates": [
+          27500
+        ],
+        "fecValues": [
+          "7/8"
+        ],
+        "services": [],
+        "providers": [
+          "Gulfsat; 1-700"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-8-west-b-8w-row-38-11678"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+            "retrievedAt": "2026-05-01T07:48:27.674Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-8-west-b-8w-s2-v",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "downlink": {
+        "frequencyMHz": 12514,
+        "polarization": "V",
+        "beamName": "Roli 250921",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 14413.659,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          4800
+        ],
+        "fecValues": [
+          "3/4"
+        ],
+        "services": [],
+        "providers": [
+          "(feeds)"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-8-west-b-8w-s2-12514"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+            "retrievedAt": "2026-05-01T07:48:27.674Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-8-west-b-8w-s2-h",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "downlink": {
+        "frequencyMHz": 12521,
+        "polarization": "H",
+        "beamName": "Lexzie 190109",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 14416.22,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 2,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          27500,
+          4666
+        ],
+        "fecValues": [
+          "2/3",
+          "3/4"
+        ],
+        "services": [],
+        "providers": [
+          "1918-60100; Aljazeera",
+          "(feeds)"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-8-west-b-8w-s2-12521",
+          "lyngsat-eutelsat-8-west-b-8w-s2-12521"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+            "retrievedAt": "2026-05-01T07:48:27.674Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-8-west-b-8w-s2-v",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "downlink": {
+        "frequencyMHz": 12527,
+        "polarization": "V",
+        "beamName": "DX Bozóth 260315",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 14418.415,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          4800
+        ],
+        "fecValues": [
+          "3/4"
+        ],
+        "services": [],
+        "providers": [
+          "(feeds)"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-8-west-b-8w-s2-12527"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+            "retrievedAt": "2026-05-01T07:48:27.674Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-8-west-b-8w-s2-v",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "downlink": {
+        "frequencyMHz": 12531,
+        "polarization": "V",
+        "beamName": "Roli 260322",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 14419.878,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          3600
+        ],
+        "fecValues": [
+          "2/3"
+        ],
+        "services": [],
+        "providers": [
+          "(feeds)"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-8-west-b-8w-s2-12531"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+            "retrievedAt": "2026-05-01T07:48:27.674Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-8-west-b-8w-s2-v",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "downlink": {
+        "frequencyMHz": 12536,
+        "polarization": "V",
+        "beamName": "Roli DX Bozóth 260315",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 14421.707,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          3400
+        ],
+        "fecValues": [
+          "5/6"
+        ],
+        "services": [],
+        "providers": [
+          "(feeds)"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-8-west-b-8w-s2-12536"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+            "retrievedAt": "2026-05-01T07:48:27.674Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-8-west-b-8w-s2-v",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "downlink": {
+        "frequencyMHz": 12546,
+        "polarization": "V",
+        "beamName": "Roli 251219",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 14425.366,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          3400
+        ],
+        "fecValues": [
+          "5/6"
+        ],
+        "services": [],
+        "providers": [
+          "(feeds)"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-8-west-b-8w-s2-12546"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+            "retrievedAt": "2026-05-01T07:48:27.674Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-8-west-b-8w-s2-v",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "downlink": {
+        "frequencyMHz": 12551,
+        "polarization": "V",
+        "beamName": "Roli 251219",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 14427.195,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          3400
+        ],
+        "fecValues": [
+          "5/6"
+        ],
+        "services": [],
+        "providers": [
+          "(feeds)"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-8-west-b-8w-s2-12551"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+            "retrievedAt": "2026-05-01T07:48:27.674Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-8-west-b-8w-s2-v",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "downlink": {
+        "frequencyMHz": 12555,
+        "polarization": "V",
+        "beamName": "Roli 260322",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 14428.659,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          3400
+        ],
+        "fecValues": [
+          "5/6"
+        ],
+        "services": [],
+        "providers": [
+          "(feeds)"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-8-west-b-8w-s2-12555"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+            "retrievedAt": "2026-05-01T07:48:27.674Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-8-west-b-8w-s2-v",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "downlink": {
+        "frequencyMHz": 12559,
+        "polarization": "V",
+        "beamName": "Roli 260322",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 14430.122,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          3400
+        ],
+        "fecValues": [
+          "5/6"
+        ],
+        "services": [],
+        "providers": [
+          "(feeds)"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-8-west-b-8w-s2-12559"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+            "retrievedAt": "2026-05-01T07:48:27.674Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-8-west-b-8w-12563.0mhz-h",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "downlink": {
+        "frequencyMHz": 12563,
+        "polarization": "H",
+        "beamName": "Iraqi Media Network",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 14431.585,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S"
+        ],
+        "symbolRates": [
+          27500
+        ],
+        "fecValues": [
+          "5/6"
+        ],
+        "eirpDbw": 72,
+        "services": [],
+        "providers": [
+          "M Al-Taie 241206; 1-72"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-8-west-b-8w-row-49-12563"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+            "retrievedAt": "2026-05-01T07:48:27.674Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-8-west-b-8w-12563.0mhz-v",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "downlink": {
+        "frequencyMHz": 12563,
+        "polarization": "V",
+        "beamName": "R Cervi 260330",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 14431.585,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S"
+        ],
+        "symbolRates": [
+          27500
+        ],
+        "fecValues": [
+          "7/8"
+        ],
+        "services": [],
+        "providers": [
+          "Eutelsat MENA; 1918-65500"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-8-west-b-8w-row-50-12563"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+            "retrievedAt": "2026-05-01T07:48:27.674Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-8-west-b-8w-12582.0mhz-v",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "downlink": {
+        "frequencyMHz": 12582,
+        "polarization": "V",
+        "beamName": "DX Bozóth 240116",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 14438.537,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S"
+        ],
+        "symbolRates": [
+          2222
+        ],
+        "fecValues": [
+          "1/2"
+        ],
+        "services": [],
+        "providers": [
+          "[test card]"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-8-west-b-8w-row-51-12582"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+            "retrievedAt": "2026-05-01T07:48:27.674Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-8-west-b-8w-s2-h",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "downlink": {
+        "frequencyMHz": 12604,
+        "polarization": "H",
+        "beamName": "Irdeto Videoguard",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 14446.585,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          27500
+        ],
+        "fecValues": [
+          "2/3"
+        ],
+        "services": [],
+        "providers": [
+          "M Al-Taie 260126; 1918-300; BeIn"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-8-west-b-8w-s2-12604"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+            "retrievedAt": "2026-05-01T07:48:27.674Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-8-west-b-8w-12604.0mhz-v",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "downlink": {
+        "frequencyMHz": 12604,
+        "polarization": "V",
+        "beamName": "Hadowooalsatan 260316",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 14446.585,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S"
+        ],
+        "symbolRates": [
+          27500
+        ],
+        "fecValues": [
+          "7/8"
+        ],
+        "services": [],
+        "providers": [
+          "Eutelsat MENA; 110-29"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-8-west-b-8w-row-53-12604"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+            "retrievedAt": "2026-05-01T07:48:27.674Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-8-west-b-8w-4010.0mhz-unknown-pol",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "downlink": {
+        "frequencyMHz": 4010,
+        "beamName": "Imam Hussein TV 2",
+        "source": "LYNGSAT",
+        "confidence": "LOW"
+      },
+      "uplink": {
+        "frequencyMHz": 6517.188,
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "groupedObservationCount": 1,
+        "systems": [
+          "MPEG-2"
+        ],
+        "symbolRates": [
+          1010
+        ],
+        "fecValues": [],
+        "services": [],
+        "providers": [
+          "1021 Per"
+        ]
+      },
+      "band": "C",
+      "serviceType": "UNKNOWN",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-8-west-b-8w-row-54-4010"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+            "retrievedAt": "2026-05-01T07:48:27.674Z",
+            "fieldsUsed": [
+              "frequency",
+              "beam",
+              "system",
+              "symbolRate"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Uplink beam unknown in public data.",
+        "Polarization not present or not parseable."
+      ]
+    },
+    {
+      "id": "eutelsat-8-west-b-8w-4013.0mhz-unknown-pol",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "downlink": {
+        "frequencyMHz": 4013,
+        "beamName": "Manu Chat",
+        "source": "LYNGSAT",
+        "confidence": "LOW"
+      },
+      "uplink": {
+        "frequencyMHz": 6520.469,
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "groupedObservationCount": 1,
+        "systems": [
+          "MPEG-2"
+        ],
+        "symbolRates": [
+          1040
+        ],
+        "fecValues": [],
+        "services": [],
+        "providers": [
+          "1024 Ara"
+        ]
+      },
+      "band": "C",
+      "serviceType": "UNKNOWN",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-8-west-b-8w-row-55-4013"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+            "retrievedAt": "2026-05-01T07:48:27.674Z",
+            "fieldsUsed": [
+              "frequency",
+              "beam",
+              "system",
+              "symbolRate"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Uplink beam unknown in public data.",
+        "Polarization not present or not parseable."
+      ]
+    },
+    {
+      "id": "eutelsat-8-west-b-8w-4022.0mhz-unknown-pol",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "downlink": {
+        "frequencyMHz": 4022,
+        "beamName": "Music Iraq",
+        "source": "LYNGSAT",
+        "confidence": "LOW"
+      },
+      "uplink": {
+        "frequencyMHz": 6530.313,
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "groupedObservationCount": 1,
+        "systems": [
+          "MPEG-2"
+        ],
+        "symbolRates": [
+          1130
+        ],
+        "fecValues": [],
+        "services": [],
+        "providers": [
+          "1033 Ara"
+        ]
+      },
+      "band": "C",
+      "serviceType": "UNKNOWN",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-8-west-b-8w-row-56-4022"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+            "retrievedAt": "2026-05-01T07:48:27.674Z",
+            "fieldsUsed": [
+              "frequency",
+              "beam",
+              "system",
+              "symbolRate"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Uplink beam unknown in public data.",
+        "Polarization not present or not parseable."
+      ]
+    },
+    {
+      "id": "eutelsat-8-west-b-8w-4035.0mhz-unknown-pol",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "downlink": {
+        "frequencyMHz": 4035,
+        "beamName": "Iraqi Drama TV",
+        "source": "LYNGSAT",
+        "confidence": "LOW"
+      },
+      "uplink": {
+        "frequencyMHz": 6544.531,
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "groupedObservationCount": 1,
+        "systems": [
+          "MPEG-2"
+        ],
+        "symbolRates": [
+          1197
+        ],
+        "fecValues": [],
+        "services": [],
+        "providers": [
+          "1046 Ara"
+        ]
+      },
+      "band": "C",
+      "serviceType": "UNKNOWN",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-8-west-b-8w-row-57-4035"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+            "retrievedAt": "2026-05-01T07:48:27.674Z",
+            "fieldsUsed": [
+              "frequency",
+              "beam",
+              "system",
+              "symbolRate"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Uplink beam unknown in public data.",
+        "Polarization not present or not parseable."
+      ]
+    },
+    {
+      "id": "eutelsat-8-west-b-8w-4036.0mhz-unknown-pol",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "downlink": {
+        "frequencyMHz": 4036,
+        "beamName": "Al Salam TV",
+        "source": "LYNGSAT",
+        "confidence": "LOW"
+      },
+      "uplink": {
+        "frequencyMHz": 6545.625,
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "groupedObservationCount": 1,
+        "systems": [
+          "MPEG-2"
+        ],
+        "symbolRates": [
+          1198
+        ],
+        "fecValues": [],
+        "services": [],
+        "providers": [
+          "1047 Ara"
+        ]
+      },
+      "band": "C",
+      "serviceType": "UNKNOWN",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-8-west-b-8w-row-58-4036"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+            "retrievedAt": "2026-05-01T07:48:27.674Z",
+            "fieldsUsed": [
+              "frequency",
+              "beam",
+              "system",
+              "symbolRate"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Uplink beam unknown in public data.",
+        "Polarization not present or not parseable."
+      ]
+    },
+    {
+      "id": "eutelsat-8-west-b-8w-4037.0mhz-unknown-pol",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "downlink": {
+        "frequencyMHz": 4037,
+        "beamName": "Sout Masr",
+        "source": "LYNGSAT",
+        "confidence": "LOW"
+      },
+      "uplink": {
+        "frequencyMHz": 6546.719,
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "groupedObservationCount": 1,
+        "systems": [
+          "MPEG-4"
+        ],
+        "symbolRates": [
+          1199
+        ],
+        "fecValues": [],
+        "services": [],
+        "providers": [
+          "1048 Ara"
+        ]
+      },
+      "band": "C",
+      "serviceType": "UNKNOWN",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-8-west-b-8w-row-59-4037"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+            "retrievedAt": "2026-05-01T07:48:27.674Z",
+            "fieldsUsed": [
+              "frequency",
+              "beam",
+              "system",
+              "symbolRate"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Uplink beam unknown in public data.",
+        "Polarization not present or not parseable."
+      ]
+    },
+    {
+      "id": "eutelsat-8-west-b-8w-4038.0mhz-unknown-pol",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "downlink": {
+        "frequencyMHz": 4038,
+        "beamName": "Radio Miraya",
+        "source": "LYNGSAT",
+        "confidence": "LOW"
+      },
+      "uplink": {
+        "frequencyMHz": 6547.813,
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "groupedObservationCount": 1,
+        "systems": [],
+        "symbolRates": [
+          1200
+        ],
+        "fecValues": [],
+        "services": [],
+        "providers": [
+          "1200 Eng"
+        ]
+      },
+      "band": "C",
+      "serviceType": "UNKNOWN",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-8-west-b-8w-row-60-4038"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+            "retrievedAt": "2026-05-01T07:48:27.674Z",
+            "fieldsUsed": [
+              "frequency",
+              "beam",
+              "symbolRate"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Uplink beam unknown in public data.",
+        "Polarization not present or not parseable."
+      ]
+    },
+    {
+      "id": "eutelsat-8-west-b-8w-s2-v",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "downlink": {
+        "frequencyMHz": 12608,
+        "polarization": "V",
+        "beamName": "Jamie A 251231",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 14448.049,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          3616
+        ],
+        "fecValues": [
+          "5/6"
+        ],
+        "services": [],
+        "providers": [
+          "(feeds)"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-8-west-b-8w-s2-12608"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+            "retrievedAt": "2026-05-01T07:48:27.674Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-8-west-b-8w-12620.0mhz-v",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "downlink": {
+        "frequencyMHz": 12620,
+        "polarization": "V",
+        "beamName": "DX Bozóth 181111",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 14452.439,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S"
+        ],
+        "symbolRates": [
+          890
+        ],
+        "fecValues": [
+          "1/2"
+        ],
+        "services": [],
+        "providers": [
+          "Belgian mux"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-8-west-b-8w-row-62-12620"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+            "retrievedAt": "2026-05-01T07:48:27.674Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-8-west-b-8w-s2-v",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "downlink": {
+        "frequencyMHz": 12621,
+        "polarization": "V",
+        "beamName": "Wellikan 230303",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 14452.805,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [],
+        "fecValues": [
+          "3/4"
+        ],
+        "services": [],
+        "providers": [
+          "French mux; 1-1"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-8-west-b-8w-s2-12621"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+            "retrievedAt": "2026-05-01T07:48:27.674Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-8-west-b-8w-12622.0mhz-v",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "downlink": {
+        "frequencyMHz": 12622,
+        "polarization": "V",
+        "beamName": "Radio Maria Italia",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 14453.171,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S"
+        ],
+        "symbolRates": [
+          769
+        ],
+        "fecValues": [
+          "1/2"
+        ],
+        "services": [],
+        "providers": [
+          "EnoSat 200503; 2.7 769 Ita; ?-1"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-8-west-b-8w-row-64-12622"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+            "retrievedAt": "2026-05-01T07:48:27.674Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-8-west-b-8w-s2-v",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "downlink": {
+        "frequencyMHz": 12636,
+        "polarization": "V",
+        "beamName": "DX Bozóth 260315",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 14458.293,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          7700
+        ],
+        "fecValues": [
+          "3/4"
+        ],
+        "services": [],
+        "providers": [
+          "(feeds)"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-8-west-b-8w-s2-12636"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+            "retrievedAt": "2026-05-01T07:48:27.674Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-8-west-b-8w-12646.0mhz-h",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "downlink": {
+        "frequencyMHz": 12646,
+        "polarization": "H",
+        "beamName": "Dondohodho 260429",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 14461.951,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S"
+        ],
+        "symbolRates": [
+          27500
+        ],
+        "fecValues": [
+          "7/8"
+        ],
+        "services": [],
+        "providers": [
+          "20480-900; Palsat"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-8-west-b-8w-row-66-12646"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+            "retrievedAt": "2026-05-01T07:48:27.674Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-8-west-b-8w-3430.0mhz-unknown-pol",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "downlink": {
+        "frequencyMHz": 3430,
+        "beamName": "Palestine Sport",
+        "source": "LYNGSAT",
+        "confidence": "LOW"
+      },
+      "uplink": {
+        "frequencyMHz": 5882.813,
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "groupedObservationCount": 1,
+        "systems": [
+          "MPEG-4"
+        ],
+        "symbolRates": [],
+        "fecValues": [],
+        "services": [],
+        "providers": [
+          "3433 Ara"
+        ]
+      },
+      "band": "C",
+      "serviceType": "UNKNOWN",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-8-west-b-8w-row-67-3430"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+            "retrievedAt": "2026-05-01T07:48:27.674Z",
+            "fieldsUsed": [
+              "frequency",
+              "beam",
+              "system"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Uplink beam unknown in public data.",
+        "Polarization not present or not parseable."
+      ]
+    },
+    {
+      "id": "eutelsat-8-west-b-8w-3800.0mhz-unknown-pol",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "downlink": {
+        "frequencyMHz": 3800,
+        "beamName": "Alaraby TV",
+        "source": "LYNGSAT",
+        "confidence": "LOW"
+      },
+      "uplink": {
+        "frequencyMHz": 6287.5,
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "groupedObservationCount": 1,
+        "systems": [
+          "MPEG-4"
+        ],
+        "symbolRates": [],
+        "fecValues": [],
+        "services": [],
+        "providers": [
+          "3803 Ara"
+        ]
+      },
+      "band": "C",
+      "serviceType": "UNKNOWN",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-8-west-b-8w-row-68-3800"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+            "retrievedAt": "2026-05-01T07:48:27.674Z",
+            "fieldsUsed": [
+              "frequency",
+              "beam",
+              "system"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Uplink beam unknown in public data.",
+        "Polarization not present or not parseable."
+      ]
+    },
+    {
+      "id": "eutelsat-8-west-b-8w-3810.0mhz-unknown-pol",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "downlink": {
+        "frequencyMHz": 3810,
+        "beamName": "Majestic Cinema",
+        "source": "LYNGSAT",
+        "confidence": "LOW"
+      },
+      "uplink": {
+        "frequencyMHz": 6298.438,
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "groupedObservationCount": 1,
+        "systems": [
+          "MPEG-4"
+        ],
+        "symbolRates": [],
+        "fecValues": [],
+        "services": [],
+        "providers": [
+          "3813 Ara"
+        ]
+      },
+      "band": "C",
+      "serviceType": "UNKNOWN",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-8-west-b-8w-row-69-3810"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+            "retrievedAt": "2026-05-01T07:48:27.674Z",
+            "fieldsUsed": [
+              "frequency",
+              "beam",
+              "system"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Uplink beam unknown in public data.",
+        "Polarization not present or not parseable."
+      ]
+    },
+    {
+      "id": "eutelsat-8-west-b-8w-3820.0mhz-unknown-pol",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "downlink": {
+        "frequencyMHz": 3820,
+        "beamName": "Moga Cinema",
+        "source": "LYNGSAT",
+        "confidence": "LOW"
+      },
+      "uplink": {
+        "frequencyMHz": 6309.375,
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "groupedObservationCount": 1,
+        "systems": [
+          "MPEG-4"
+        ],
+        "symbolRates": [],
+        "fecValues": [],
+        "services": [],
+        "providers": [
+          "3823 Ara"
+        ]
+      },
+      "band": "C",
+      "serviceType": "UNKNOWN",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-8-west-b-8w-row-70-3820"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+            "retrievedAt": "2026-05-01T07:48:27.674Z",
+            "fieldsUsed": [
+              "frequency",
+              "beam",
+              "system"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Uplink beam unknown in public data.",
+        "Polarization not present or not parseable."
+      ]
+    },
+    {
+      "id": "eutelsat-8-west-b-8w-3830.0mhz-unknown-pol",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "downlink": {
+        "frequencyMHz": 3830,
+        "beamName": "Moga Drama",
+        "source": "LYNGSAT",
+        "confidence": "LOW"
+      },
+      "uplink": {
+        "frequencyMHz": 6320.313,
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "groupedObservationCount": 1,
+        "systems": [
+          "MPEG-4"
+        ],
+        "symbolRates": [],
+        "fecValues": [],
+        "services": [],
+        "providers": [
+          "3833 Ara"
+        ]
+      },
+      "band": "C",
+      "serviceType": "UNKNOWN",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-8-west-b-8w-row-71-3830"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+            "retrievedAt": "2026-05-01T07:48:27.674Z",
+            "fieldsUsed": [
+              "frequency",
+              "beam",
+              "system"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Uplink beam unknown in public data.",
+        "Polarization not present or not parseable."
+      ]
+    },
+    {
+      "id": "eutelsat-8-west-b-8w-3840.0mhz-unknown-pol",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "downlink": {
+        "frequencyMHz": 3840,
+        "beamName": "El Fadjer TV",
+        "source": "LYNGSAT",
+        "confidence": "LOW"
+      },
+      "uplink": {
+        "frequencyMHz": 6331.25,
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "groupedObservationCount": 1,
+        "systems": [
+          "MPEG-4"
+        ],
+        "symbolRates": [],
+        "fecValues": [],
+        "services": [],
+        "providers": [
+          "3843 Ara"
+        ]
+      },
+      "band": "C",
+      "serviceType": "UNKNOWN",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-8-west-b-8w-row-72-3840"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+            "retrievedAt": "2026-05-01T07:48:27.674Z",
+            "fieldsUsed": [
+              "frequency",
+              "beam",
+              "system"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Uplink beam unknown in public data.",
+        "Polarization not present or not parseable."
+      ]
+    },
+    {
+      "id": "eutelsat-8-west-b-8w-3850.0mhz-unknown-pol",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "downlink": {
+        "frequencyMHz": 3850,
+        "beamName": "Alkeraza TV",
+        "source": "LYNGSAT",
+        "confidence": "LOW"
+      },
+      "uplink": {
+        "frequencyMHz": 6342.188,
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "groupedObservationCount": 1,
+        "systems": [
+          "MPEG-2"
+        ],
+        "symbolRates": [],
+        "fecValues": [],
+        "services": [],
+        "providers": [
+          "3853 Ara"
+        ]
+      },
+      "band": "C",
+      "serviceType": "UNKNOWN",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-8-west-b-8w-row-73-3850"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+            "retrievedAt": "2026-05-01T07:48:27.674Z",
+            "fieldsUsed": [
+              "frequency",
+              "beam",
+              "system"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Uplink beam unknown in public data.",
+        "Polarization not present or not parseable."
+      ]
+    },
+    {
+      "id": "eutelsat-8-west-b-8w-3870.0mhz-unknown-pol",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "downlink": {
+        "frequencyMHz": 3870,
+        "beamName": "Moga Comedy",
+        "source": "LYNGSAT",
+        "confidence": "LOW"
+      },
+      "uplink": {
+        "frequencyMHz": 6364.063,
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "groupedObservationCount": 1,
+        "systems": [
+          "MPEG-4"
+        ],
+        "symbolRates": [],
+        "fecValues": [],
+        "services": [],
+        "providers": [
+          "3873 Ara"
+        ]
+      },
+      "band": "C",
+      "serviceType": "UNKNOWN",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-8-west-b-8w-row-74-3870"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+            "retrievedAt": "2026-05-01T07:48:27.674Z",
+            "fieldsUsed": [
+              "frequency",
+              "beam",
+              "system"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Uplink beam unknown in public data.",
+        "Polarization not present or not parseable."
+      ]
+    },
+    {
+      "id": "eutelsat-8-west-b-8w-3880.0mhz-unknown-pol",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "downlink": {
+        "frequencyMHz": 3880,
+        "beamName": "Moga Today",
+        "source": "LYNGSAT",
+        "confidence": "LOW"
+      },
+      "uplink": {
+        "frequencyMHz": 6375,
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "groupedObservationCount": 1,
+        "systems": [
+          "MPEG-4"
+        ],
+        "symbolRates": [],
+        "fecValues": [],
+        "services": [],
+        "providers": [
+          "3883 Ara"
+        ]
+      },
+      "band": "C",
+      "serviceType": "UNKNOWN",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-8-west-b-8w-row-75-3880"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+            "retrievedAt": "2026-05-01T07:48:27.674Z",
+            "fieldsUsed": [
+              "frequency",
+              "beam",
+              "system"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Uplink beam unknown in public data.",
+        "Polarization not present or not parseable."
+      ]
+    },
+    {
+      "id": "eutelsat-8-west-b-8w-3890.0mhz-unknown-pol",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "downlink": {
+        "frequencyMHz": 3890,
+        "beamName": "[Gulfsat info card]",
+        "source": "LYNGSAT",
+        "confidence": "LOW"
+      },
+      "uplink": {
+        "frequencyMHz": 6385.938,
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "groupedObservationCount": 1,
+        "systems": [
+          "MPEG-4"
+        ],
+        "symbolRates": [],
+        "fecValues": [],
+        "services": [],
+        "providers": []
+      },
+      "band": "C",
+      "serviceType": "UNKNOWN",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-8-west-b-8w-row-76-3890"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+            "retrievedAt": "2026-05-01T07:48:27.674Z",
+            "fieldsUsed": [
+              "frequency",
+              "beam",
+              "system"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Uplink beam unknown in public data.",
+        "Polarization not present or not parseable."
+      ]
+    },
+    {
+      "id": "eutelsat-8-west-b-8w-3900.0mhz-unknown-pol",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "downlink": {
+        "frequencyMHz": 3900,
+        "beamName": "Play Aflam",
+        "source": "LYNGSAT",
+        "confidence": "LOW"
+      },
+      "uplink": {
+        "frequencyMHz": 6396.875,
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "groupedObservationCount": 1,
+        "systems": [
+          "MPEG-4"
+        ],
+        "symbolRates": [],
+        "fecValues": [],
+        "services": [],
+        "providers": [
+          "3903 Ara"
+        ]
+      },
+      "band": "C",
+      "serviceType": "UNKNOWN",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-8-west-b-8w-row-77-3900"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+            "retrievedAt": "2026-05-01T07:48:27.674Z",
+            "fieldsUsed": [
+              "frequency",
+              "beam",
+              "system"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Uplink beam unknown in public data.",
+        "Polarization not present or not parseable."
+      ]
+    },
+    {
+      "id": "eutelsat-8-west-b-8w-3910.0mhz-unknown-pol",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "downlink": {
+        "frequencyMHz": 3910,
+        "beamName": "Play Cinema",
+        "source": "LYNGSAT",
+        "confidence": "LOW"
+      },
+      "uplink": {
+        "frequencyMHz": 6407.813,
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "groupedObservationCount": 1,
+        "systems": [
+          "MPEG-4"
+        ],
+        "symbolRates": [],
+        "fecValues": [],
+        "services": [],
+        "providers": [
+          "3913 Ara"
+        ]
+      },
+      "band": "C",
+      "serviceType": "UNKNOWN",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-8-west-b-8w-row-78-3910"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+            "retrievedAt": "2026-05-01T07:48:27.674Z",
+            "fieldsUsed": [
+              "frequency",
+              "beam",
+              "system"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Uplink beam unknown in public data.",
+        "Polarization not present or not parseable."
+      ]
+    },
+    {
+      "id": "eutelsat-8-west-b-8w-3920.0mhz-unknown-pol",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "downlink": {
+        "frequencyMHz": 3920,
+        "beamName": "Play Drama",
+        "source": "LYNGSAT",
+        "confidence": "LOW"
+      },
+      "uplink": {
+        "frequencyMHz": 6418.75,
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "groupedObservationCount": 1,
+        "systems": [
+          "MPEG-4"
+        ],
+        "symbolRates": [],
+        "fecValues": [],
+        "services": [],
+        "providers": [
+          "3923 Ara"
+        ]
+      },
+      "band": "C",
+      "serviceType": "UNKNOWN",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-8-west-b-8w-row-79-3920"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+            "retrievedAt": "2026-05-01T07:48:27.674Z",
+            "fieldsUsed": [
+              "frequency",
+              "beam",
+              "system"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Uplink beam unknown in public data.",
+        "Polarization not present or not parseable."
+      ]
+    },
+    {
+      "id": "eutelsat-8-west-b-8w-3930.0mhz-unknown-pol",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "downlink": {
+        "frequencyMHz": 3930,
+        "beamName": "Play Hekayat",
+        "source": "LYNGSAT",
+        "confidence": "LOW"
+      },
+      "uplink": {
+        "frequencyMHz": 6429.688,
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "groupedObservationCount": 1,
+        "systems": [
+          "MPEG-4"
+        ],
+        "symbolRates": [],
+        "fecValues": [],
+        "services": [],
+        "providers": [
+          "3933 Ara"
+        ]
+      },
+      "band": "C",
+      "serviceType": "UNKNOWN",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-8-west-b-8w-row-80-3930"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+            "retrievedAt": "2026-05-01T07:48:27.674Z",
+            "fieldsUsed": [
+              "frequency",
+              "beam",
+              "system"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Uplink beam unknown in public data.",
+        "Polarization not present or not parseable."
+      ]
+    },
+    {
+      "id": "eutelsat-8-west-b-8w-3940.0mhz-unknown-pol",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "downlink": {
+        "frequencyMHz": 3940,
+        "beamName": "Play Today",
+        "source": "LYNGSAT",
+        "confidence": "LOW"
+      },
+      "uplink": {
+        "frequencyMHz": 6440.625,
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "groupedObservationCount": 1,
+        "systems": [
+          "MPEG-4"
+        ],
+        "symbolRates": [],
+        "fecValues": [],
+        "services": [],
+        "providers": [
+          "3943 Ara"
+        ]
+      },
+      "band": "C",
+      "serviceType": "UNKNOWN",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-8-west-b-8w-row-81-3940"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+            "retrievedAt": "2026-05-01T07:48:27.674Z",
+            "fieldsUsed": [
+              "frequency",
+              "beam",
+              "system"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Uplink beam unknown in public data.",
+        "Polarization not present or not parseable."
+      ]
+    },
+    {
+      "id": "eutelsat-8-west-b-8w-3950.0mhz-unknown-pol",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "downlink": {
+        "frequencyMHz": 3950,
+        "beamName": "[Majestic Drama info card]",
+        "source": "LYNGSAT",
+        "confidence": "LOW"
+      },
+      "uplink": {
+        "frequencyMHz": 6451.563,
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "groupedObservationCount": 1,
+        "systems": [
+          "MPEG-4"
+        ],
+        "symbolRates": [],
+        "fecValues": [],
+        "services": [],
+        "providers": [
+          "3953 Ara"
+        ]
+      },
+      "band": "C",
+      "serviceType": "UNKNOWN",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-8-west-b-8w-row-82-3950"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+            "retrievedAt": "2026-05-01T07:48:27.674Z",
+            "fieldsUsed": [
+              "frequency",
+              "beam",
+              "system"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Uplink beam unknown in public data.",
+        "Polarization not present or not parseable."
+      ]
+    },
+    {
+      "id": "eutelsat-8-west-b-8w-3960.0mhz-unknown-pol",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "downlink": {
+        "frequencyMHz": 3960,
+        "beamName": "[Majestic Classic info card]",
+        "source": "LYNGSAT",
+        "confidence": "LOW"
+      },
+      "uplink": {
+        "frequencyMHz": 6462.5,
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "groupedObservationCount": 1,
+        "systems": [
+          "MPEG-4"
+        ],
+        "symbolRates": [],
+        "fecValues": [],
+        "services": [],
+        "providers": [
+          "3963 Ara"
+        ]
+      },
+      "band": "C",
+      "serviceType": "UNKNOWN",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-8-west-b-8w-row-83-3960"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+            "retrievedAt": "2026-05-01T07:48:27.674Z",
+            "fieldsUsed": [
+              "frequency",
+              "beam",
+              "system"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Uplink beam unknown in public data.",
+        "Polarization not present or not parseable."
+      ]
+    },
+    {
+      "id": "eutelsat-8-west-b-8w-3970.0mhz-unknown-pol",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "downlink": {
+        "frequencyMHz": 3970,
+        "beamName": "[Majestic Aflam info card]",
+        "source": "LYNGSAT",
+        "confidence": "LOW"
+      },
+      "uplink": {
+        "frequencyMHz": 6473.438,
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "groupedObservationCount": 1,
+        "systems": [
+          "MPEG-4"
+        ],
+        "symbolRates": [],
+        "fecValues": [],
+        "services": [],
+        "providers": [
+          "3973 Ara"
+        ]
+      },
+      "band": "C",
+      "serviceType": "UNKNOWN",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-8-west-b-8w-row-84-3970"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+            "retrievedAt": "2026-05-01T07:48:27.674Z",
+            "fieldsUsed": [
+              "frequency",
+              "beam",
+              "system"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Uplink beam unknown in public data.",
+        "Polarization not present or not parseable."
+      ]
+    },
+    {
+      "id": "eutelsat-8-west-b-8w-3980.0mhz-unknown-pol",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "downlink": {
+        "frequencyMHz": 3980,
+        "beamName": "[Majestic Mosalsalat info card]",
+        "source": "LYNGSAT",
+        "confidence": "LOW"
+      },
+      "uplink": {
+        "frequencyMHz": 6484.375,
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "groupedObservationCount": 1,
+        "systems": [
+          "MPEG-4"
+        ],
+        "symbolRates": [],
+        "fecValues": [],
+        "services": [],
+        "providers": [
+          "3983 Ara"
+        ]
+      },
+      "band": "C",
+      "serviceType": "UNKNOWN",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-8-west-b-8w-row-85-3980"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+            "retrievedAt": "2026-05-01T07:48:27.674Z",
+            "fieldsUsed": [
+              "frequency",
+              "beam",
+              "system"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Uplink beam unknown in public data.",
+        "Polarization not present or not parseable."
+      ]
+    },
+    {
+      "id": "eutelsat-8-west-b-8w-s2-v",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "downlink": {
+        "frequencyMHz": 12652,
+        "polarization": "V",
+        "beamName": "(Mediaset feeds)",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 14464.146,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          2500
+        ],
+        "fecValues": [
+          "8/9"
+        ],
+        "services": [],
+        "providers": [
+          "Jamie A 251118"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-8-west-b-8w-s2-12652"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+            "retrievedAt": "2026-05-01T07:48:27.674Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-8-west-b-8w-s2-v",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "downlink": {
+        "frequencyMHz": 12656,
+        "polarization": "V",
+        "beamName": "(Mediaset feeds)",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 14465.61,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          2500
+        ],
+        "fecValues": [
+          "5/6"
+        ],
+        "services": [],
+        "providers": [
+          "Jamie A 251118"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-8-west-b-8w-s2-12656"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+            "retrievedAt": "2026-05-01T07:48:27.674Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-8-west-b-8w-s2-v",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "downlink": {
+        "frequencyMHz": 12660,
+        "polarization": "V",
+        "beamName": "Roli 250921",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 14467.073,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          4600
+        ],
+        "fecValues": [
+          "3/4"
+        ],
+        "services": [],
+        "providers": [
+          "(feeds)"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-8-west-b-8w-s2-12660"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+            "retrievedAt": "2026-05-01T07:48:27.674Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-8-west-b-8w-s2-v",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "downlink": {
+        "frequencyMHz": 12673,
+        "polarization": "V",
+        "beamName": "DX Bozóth 251205",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 14471.829,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          7200
+        ],
+        "fecValues": [
+          "3/4"
+        ],
+        "services": [],
+        "providers": [
+          "(feeds)"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-8-west-b-8w-s2-12673"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+            "retrievedAt": "2026-05-01T07:48:27.674Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-8-west-b-8w-s2-v",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "downlink": {
+        "frequencyMHz": 12682,
+        "polarization": "V",
+        "beamName": "Jamie A 251025",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 14475.122,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          7066
+        ],
+        "fecValues": [
+          "3/4"
+        ],
+        "services": [],
+        "providers": [
+          "(feeds)"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-8-west-b-8w-s2-12682"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+            "retrievedAt": "2026-05-01T07:48:27.674Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-8-west-b-8w-12687.0mhz-h",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "downlink": {
+        "frequencyMHz": 12687,
+        "polarization": "H",
+        "beamName": "M Al-Taie 260423",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 14476.951,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S"
+        ],
+        "symbolRates": [
+          27500
+        ],
+        "fecValues": [
+          "7/8"
+        ],
+        "services": [],
+        "providers": [
+          "Menasat; 1-65500"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-8-west-b-8w-row-91-12687"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+            "retrievedAt": "2026-05-01T07:48:27.674Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-8-west-b-8w-s2-v",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "downlink": {
+        "frequencyMHz": 12687,
+        "polarization": "V",
+        "beamName": "Hadowooalsatan 260217",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 14476.951,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          27500
+        ],
+        "fecValues": [
+          "3/4"
+        ],
+        "services": [],
+        "providers": [
+          "20480-950; Gulfsat"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-8-west-b-8w-s2-12687"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+            "retrievedAt": "2026-05-01T07:48:27.674Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-8-west-b-8w-s2-v",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "downlink": {
+        "frequencyMHz": 12720,
+        "polarization": "V",
+        "beamName": "DX Bozóth 260315",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 14489.024,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          3600
+        ],
+        "fecValues": [
+          "2/3"
+        ],
+        "services": [],
+        "providers": [
+          "(feeds)"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-8-west-b-8w-s2-12720"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+            "retrievedAt": "2026-05-01T07:48:27.674Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-8-west-b-8w-s2-v",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "downlink": {
+        "frequencyMHz": 12725,
+        "polarization": "V",
+        "beamName": "DX Bozóth 260315",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 14490.854,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          3600
+        ],
+        "fecValues": [
+          "2/3"
+        ],
+        "services": [],
+        "providers": [
+          "(feeds)"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-8-west-b-8w-s2-12725"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+            "retrievedAt": "2026-05-01T07:48:27.674Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-8-west-b-8w-12729.0mhz-h",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "downlink": {
+        "frequencyMHz": 12729,
+        "polarization": "H",
+        "beamName": "R Cervi 260408",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 14492.317,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S"
+        ],
+        "symbolRates": [
+          27500
+        ],
+        "fecValues": [
+          "5/6"
+        ],
+        "eirpDbw": 75,
+        "services": [],
+        "providers": [
+          "Nilesat; 2048-75"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-8-west-b-8w-row-95-12729"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+            "retrievedAt": "2026-05-01T07:48:27.674Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-8-west-b-8w-12729.0mhz-v",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "downlink": {
+        "frequencyMHz": 12729,
+        "polarization": "V",
+        "beamName": "R Cervi 250814",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 14492.317,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S"
+        ],
+        "symbolRates": [
+          27500
+        ],
+        "fecValues": [
+          "5/6"
+        ],
+        "eirpDbw": 70,
+        "services": [],
+        "providers": [
+          "2048-70"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-8-west-b-8w-row-96-12729"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+            "retrievedAt": "2026-05-01T07:48:27.674Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-8-west-b-8w-s2-v",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "downlink": {
+        "frequencyMHz": 12739,
+        "polarization": "V",
+        "beamName": "Roli 250922",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 14495.976,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          3600
+        ],
+        "fecValues": [
+          "3/4"
+        ],
+        "services": [],
+        "providers": [
+          "(feeds)"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-8-west-b-8w-s2-12739"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+            "retrievedAt": "2026-05-01T07:48:27.674Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-8-west-b-8w-s2-v",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "downlink": {
+        "frequencyMHz": 12744,
+        "polarization": "V",
+        "beamName": "Jamie A 251206",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 14497.805,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          4800
+        ],
+        "fecValues": [
+          "3/4"
+        ],
+        "services": [],
+        "providers": [
+          "(feeds)"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-8-west-b-8w-s2-12744"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+            "retrievedAt": "2026-05-01T07:48:27.674Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-8-west-b-8w-s2-unknown-pol",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "downlink": {
+        "beamName": "System:",
+        "source": "LYNGSAT",
+        "confidence": "LOW"
+      },
+      "uplink": {
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "UNKNOWN",
+        "source": "UNKNOWN",
+        "confidence": "UNKNOWN"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [],
+        "fecValues": [],
+        "services": [],
+        "providers": [
+          "non-DTH"
+        ]
+      },
+      "band": "Unknown",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-8-west-b-8w-s2-nofreq"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+            "retrievedAt": "2026-05-01T07:48:27.674Z",
+            "fieldsUsed": [
+              "beam",
+              "transponderNumber",
+              "system"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Unable to infer uplink frequency: downlink frequency unknown.",
+        "Broadcast uplink gateway / teleport beam unknown in public data.",
+        "Downlink frequency not parseable; row kept due to transponder ID.",
+        "Polarization not present or not parseable."
+      ]
+    }
+  ],
+  "summary": {
+    "total": 94,
+    "downlinkKnown": 92,
+    "downlinkBeamKnown": 93,
+    "uplinkInferred": 92,
+    "uplinkUnknown": 2
+  }
+}

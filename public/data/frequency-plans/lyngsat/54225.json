@@ -1,0 +1,826 @@
+{
+  "source": "LYNGSAT",
+  "satelliteName": "EUTELSAT HOTBIRD 13G",
+  "orbitalPosition": "13E",
+  "url": "https://www.lyngsat.com/Hotbird-13G.html",
+  "retrievedAt": "2026-05-01T07:48:55.716Z",
+  "parserStats": {
+    "totalRowsSeen": 423,
+    "rowsWithFrequency": 86,
+    "rowsWithBeam": 87,
+    "rowsWithTransponderId": 49,
+    "rowsSkipped": 336,
+    "skipReasons": {
+      "too_few_cells": 54,
+      "no_frequency_no_transponder": 282
+    }
+  },
+  "rows": [
+    {
+      "frequencyMHz": 10719,
+      "polarization": "V",
+      "transponderNumber": "S2",
+      "beamName": "Conax Irdeto Mediaguard Nagravision Viaccess",
+      "system": "DVB-S2",
+      "symbolRate": 27500,
+      "fec": "5/6",
+      "provider": "M Al-Taie 260320; Canal+ Polska; 318-11000",
+      "htmlRowText": "10719 V tp 110 Wide 53 | DVB-S2 8PSK 27500 5/6 | Canal+ Polska | 318-11000 | 9.4 | Conax Irdeto Mediaguard Nagravision Viaccess | M Al-Taie 260320"
+    },
+    {
+      "frequencyMHz": 10758,
+      "polarization": "V",
+      "transponderNumber": "S2",
+      "beamName": "Conax Irdeto Mediaguard Nagravision Viaccess",
+      "system": "DVB-S2",
+      "symbolRate": 27500,
+      "fec": "3/4",
+      "provider": "P Piotrowski 250415; Polsat Box; 318-11200",
+      "htmlRowText": "10758 V tp 112 Wide 53 | DVB-S2 8PSK 27500 3/4 | Polsat Box | 318-11200 | 7.9 | Conax Irdeto Mediaguard Nagravision Viaccess | P Piotrowski 250415"
+    },
+    {
+      "frequencyMHz": 10775,
+      "polarization": "H",
+      "transponderNumber": "S2",
+      "beamName": "T Viererbe P Piotrowski 250801",
+      "system": "DVB-S2",
+      "symbolRate": 29900,
+      "fec": "2/3",
+      "provider": "318-11300; Panaccess; Kabelio",
+      "htmlRowText": "10775 H tp 113 Wide 53 | DVB-S2 8PSK 29900 2/3 | Kabelio | 318-11300 | 6.6 | Panaccess | T Viererbe P Piotrowski 250801"
+    },
+    {
+      "frequencyMHz": 10796,
+      "polarization": "V",
+      "transponderNumber": "S2",
+      "beamName": "Conax Irdeto Mediaguard Nagravision Viaccess",
+      "system": "DVB-S2",
+      "symbolRate": 27500,
+      "fec": "5/6",
+      "provider": "N Schlammer 260325; Canal+ Polska; 318-11400",
+      "htmlRowText": "10796 V tp 114 Wide 53 | DVB-S2 8PSK 27500 5/6 | Canal+ Polska | 318-11400 | 9.4 | Conax Irdeto Mediaguard Nagravision Viaccess | N Schlammer 260325"
+    },
+    {
+      "frequencyMHz": 10802,
+      "polarization": "H",
+      "transponderNumber": "S2",
+      "beamName": "Stanley_cassidy Roli 250802",
+      "system": "DVB-S2",
+      "symbolRate": 7200,
+      "fec": "3/4",
+      "provider": "(feeds)",
+      "htmlRowText": "10802 H tp 115 Wide | DVB-S2 8PSK 7200 3/4 | (feeds) | Stanley_cassidy Roli 250802"
+    },
+    {
+      "frequencyMHz": 10811,
+      "polarization": "H",
+      "transponderNumber": "S2",
+      "beamName": "Jamie A 250918",
+      "system": "DVB-S2",
+      "symbolRate": 7500,
+      "fec": "3/4",
+      "provider": "(feeds)",
+      "htmlRowText": "10811 H tp 115 Wide | DVB-S2 8PSK 7500 3/4 | (feeds) | Jamie A 250918"
+    },
+    {
+      "frequencyMHz": 10820,
+      "polarization": "H",
+      "transponderNumber": "S2",
+      "beamName": "Stanley_cassidy Roli 250920",
+      "system": "DVB-S2",
+      "symbolRate": 7200,
+      "fec": "3/4",
+      "provider": "(feeds)",
+      "htmlRowText": "10820 H tp 115 Wide | DVB-S2 8PSK 7200 3/4 | (feeds) | Stanley_cassidy Roli 250920"
+    },
+    {
+      "frequencyMHz": 10828,
+      "polarization": "H",
+      "transponderNumber": "S2",
+      "beamName": "Jamie A 250918",
+      "system": "DVB-S2",
+      "symbolRate": 7200,
+      "fec": "3/4",
+      "provider": "(feeds)",
+      "htmlRowText": "10828 H tp 115 Wide | DVB-S2 8PSK 7200 3/4 | (feeds) | Jamie A 250918"
+    },
+    {
+      "frequencyMHz": 10892,
+      "polarization": "H",
+      "transponderNumber": "S2",
+      "beamName": "Conax Nagravision Panaccess Viaccess",
+      "system": "DVB-S2",
+      "symbolRate": 27500,
+      "fec": "3/4",
+      "provider": "M Al-Taie D de Jong 251001; 319-11900; Bis TV",
+      "htmlRowText": "10892 H tp 119 Wide 53 | DVB-S2 8PSK 27500 3/4 | Bis TV | 319-11900 | 7.9 | Conax Nagravision Panaccess Viaccess | M Al-Taie D de Jong 251001"
+    },
+    {
+      "frequencyMHz": 10911,
+      "polarization": "V",
+      "transponderNumber": "S2",
+      "beamName": "Conax Irdeto Mediaguard Nagravision Viaccess",
+      "system": "DVB-S2",
+      "symbolRate": 27500,
+      "fec": "3/4",
+      "provider": "A7Sats 250901; Polsat Box; 318-12000",
+      "htmlRowText": "10911 V tp 120 Wide 53 | DVB-S2 8PSK 27500 3/4 | Polsat Box | 318-12000 | 7.9 | Conax Irdeto Mediaguard Nagravision Viaccess | A7Sats 250901"
+    },
+    {
+      "frequencyMHz": 10930,
+      "polarization": "H",
+      "transponderNumber": "S2",
+      "beamName": "Conax Irdeto Mediaguard Nagravision Viaccess Videoguard",
+      "system": "DVB-S2",
+      "symbolRate": 30000,
+      "fec": "2/3",
+      "provider": "Dondohodho 260424; 318-12100",
+      "htmlRowText": "10930 H tp 121 Wide 53 | DVB-S2 8PSK 30000 2/3 | 318-12100 | 6.6 | Conax Irdeto Mediaguard Nagravision Viaccess Videoguard | Dondohodho 260424"
+    },
+    {
+      "frequencyMHz": 10949,
+      "polarization": "V",
+      "transponderNumber": "S2",
+      "beamName": "Lexzie M Al-Taie 250922",
+      "system": "DVB-S2",
+      "symbolRate": 27500,
+      "fec": "2/3",
+      "provider": "Svoboda Satellite; 318-12200",
+      "htmlRowText": "10949 V tp 122 Wide 53 | DVB-S2 8PSK 27500 2/3 | Svoboda Satellite | 318-12200 | 6.6 | Lexzie M Al-Taie 250922"
+    },
+    {
+      "frequencyMHz": 10971,
+      "polarization": "H",
+      "transponderNumber": "S2",
+      "beamName": "Panaccess Viaccess",
+      "system": "DVB-S2",
+      "symbolRate": 29700,
+      "fec": "2/3",
+      "provider": "P Alarud 220905; 318-12300; Kabelio",
+      "htmlRowText": "10971 H tp 123 Wide 53 | DVB-S2 8PSK 29700 2/3 | Kabelio | 318-12300 | 6.6 | Panaccess Viaccess | P Alarud 220905"
+    },
+    {
+      "frequencyMHz": 11034,
+      "polarization": "V",
+      "beamName": "F Dibba 260425",
+      "system": "DVB-S",
+      "symbolRate": 27500,
+      "fec": "3/4",
+      "provider": "Globecast; 318-12600",
+      "htmlRowText": "11034 V tp 126 Wide 53 | DVB-S 27500 3/4 | Globecast | 318-12600 | 5.5 | F Dibba 260425"
+    },
+    {
+      "frequencyMHz": 11117,
+      "polarization": "V",
+      "transponderNumber": "S2",
+      "beamName": "Irdeto Nagravision",
+      "system": "DVB-S2",
+      "symbolRate": 27500,
+      "fec": "3/4",
+      "provider": "T Viererbe 251203; Polsat Box; 318-13000",
+      "htmlRowText": "11117 V tp 130 Wide 53 | DVB-S2 8PSK 27500 3/4 | Polsat Box | 318-13000 | 7.9 | Irdeto Nagravision | T Viererbe 251203"
+    },
+    {
+      "frequencyMHz": 11137,
+      "polarization": "H",
+      "beamName": "T Viererbe 260311",
+      "system": "DVB-S",
+      "symbolRate": 27500,
+      "fec": "3/4",
+      "provider": "318-13100; Arqiva",
+      "htmlRowText": "11137 H tp 131 Wide 53 | DVB-S 27500 3/4 | Arqiva | 318-13100 | 5.5 | T Viererbe 260311"
+    },
+    {
+      "frequencyMHz": 3501,
+      "beamName": "Daystar TV",
+      "system": "MPEG-2",
+      "symbolRate": 7301,
+      "provider": "3621 Eng",
+      "htmlRowText": "7301 | Daystar TV | MPEG-2/SD | 3501 | 3621 Eng"
+    },
+    {
+      "frequencyMHz": 3502,
+      "beamName": "Bloomberg TV Europe",
+      "system": "MPEG-2",
+      "symbolRate": 7302,
+      "provider": "3622 Eng",
+      "htmlRowText": "7302 | Bloomberg TV Europe | MPEG-2/SD | 3502 | 3622 Eng"
+    },
+    {
+      "frequencyMHz": 3506,
+      "beamName": "Aljazeera English",
+      "system": "MPEG-4",
+      "symbolRate": 7306,
+      "provider": "3626 Eng 3686 Eng",
+      "htmlRowText": "7306 | Aljazeera English | MPEG-4/HD | 3506 | 3626 Eng 3686 Eng"
+    },
+    {
+      "frequencyMHz": 3507,
+      "beamName": "Iran International",
+      "system": "MPEG-2",
+      "symbolRate": 7307,
+      "provider": "3627 Per",
+      "htmlRowText": "7307 | Iran International | MPEG-2/SD | 3507 | 3627 Per"
+    },
+    {
+      "frequencyMHz": 3508,
+      "beamName": "1TV Satellite",
+      "system": "MPEG-2",
+      "symbolRate": 7308,
+      "provider": "3618 Arm",
+      "htmlRowText": "7308 | 1TV Satellite | MPEG-2/SD | 3508 | 3618 Arm"
+    },
+    {
+      "frequencyMHz": 3510,
+      "beamName": "GNC Evropa",
+      "system": "MPEG-2",
+      "symbolRate": 7310,
+      "provider": "3610 Rus",
+      "htmlRowText": "7310 | GNC Evropa | MPEG-2/SD | 3510 | 3610 Rus"
+    },
+    {
+      "frequencyMHz": 3511,
+      "beamName": "TBN Rossiya",
+      "system": "MPEG-2",
+      "symbolRate": 7311,
+      "provider": "3611 Rus",
+      "htmlRowText": "7311 | TBN Rossiya | MPEG-2/SD | 3511 | 3611 Rus"
+    },
+    {
+      "frequencyMHz": 3514,
+      "beamName": "Perviy kanal Eurasia",
+      "system": "MPEG-2",
+      "symbolRate": 7314,
+      "provider": "3614 Rus",
+      "htmlRowText": "7314 | Perviy kanal Eurasia | MPEG-2/SD | 3514 | 3614 Rus"
+    },
+    {
+      "frequencyMHz": 11158,
+      "polarization": "V",
+      "transponderNumber": "S2",
+      "beamName": "Conax Irdeto Nagravision Viaccess",
+      "system": "DVB-S2",
+      "symbolRate": 27500,
+      "fec": "3/4",
+      "provider": "P Piotrowski 240416; Polsat Box; 113-13200",
+      "htmlRowText": "11158 V tp 132 Wide 53 | DVB-S2 8PSK 27500 3/4 | Polsat Box | 113-13200 | 7.9 | Conax Irdeto Nagravision Viaccess | P Piotrowski 240416"
+    },
+    {
+      "frequencyMHz": 11186,
+      "polarization": "V",
+      "transponderNumber": "S2",
+      "beamName": "Stanley_cassidy 251101",
+      "system": "DVB-S2",
+      "symbolRate": 7200,
+      "fec": "3/4",
+      "provider": "(feeds)",
+      "htmlRowText": "11186 V tp 134 Wide | DVB-S2 7200 3/4 | (feeds) | Stanley_cassidy 251101"
+    },
+    {
+      "frequencyMHz": 11194,
+      "polarization": "V",
+      "transponderNumber": "S2",
+      "beamName": "Stanley_cassidy Roli 251004",
+      "system": "DVB-S2",
+      "symbolRate": 7200,
+      "fec": "3/4",
+      "provider": "(feeds)",
+      "htmlRowText": "11194 V tp 134 Wide | DVB-S2 8PSK 7200 3/4 | (feeds) | Stanley_cassidy Roli 251004"
+    },
+    {
+      "frequencyMHz": 11203,
+      "polarization": "V",
+      "transponderNumber": "S2",
+      "beamName": "Stanley_cassidy 251102",
+      "system": "DVB-S2",
+      "symbolRate": 7200,
+      "fec": "3/4",
+      "provider": "(feeds)",
+      "htmlRowText": "11203 V tp 134 Wide | DVB-S2 7200 3/4 | (feeds) | Stanley_cassidy 251102"
+    },
+    {
+      "frequencyMHz": 11214,
+      "polarization": "V",
+      "transponderNumber": "S2",
+      "beamName": "Roli 260425",
+      "system": "DVB-S2",
+      "symbolRate": 7120,
+      "fec": "2/3",
+      "provider": "(feeds)",
+      "htmlRowText": "11214 V tp 134 Wide | DVB-S2 8PSK 7120 2/3 | (feeds) | Roli 260425"
+    },
+    {
+      "frequencyMHz": 11278,
+      "polarization": "V",
+      "transponderNumber": "S2",
+      "beamName": "P Piotrowski 260225",
+      "system": "DVB-S2",
+      "symbolRate": 27500,
+      "fec": "5/6",
+      "provider": "Canal+ Polska; 318-400",
+      "htmlRowText": "11278 V tp 4 Wide 53 | DVB-S2 8PSK 27500 5/6 | Canal+ Polska | 318-400 | 9.4 | Conax Irdeto Mediaguard Nagravision Viaccess Videoguard Verimatrix | P Piotrowski 260225"
+    },
+    {
+      "frequencyMHz": 11296,
+      "polarization": "H",
+      "beamName": "R Cervi 260203",
+      "system": "DVB-S",
+      "symbolRate": 27500,
+      "fec": "5/6",
+      "provider": "252-500",
+      "htmlRowText": "11296 H tp 5 Wide 53 | DVB-S 27500 5/6 | STN | 252-500 | 6.5 | R Cervi 260203"
+    },
+    {
+      "frequencyMHz": 11373,
+      "polarization": "H",
+      "transponderNumber": "S2",
+      "beamName": "Dondohodho M Al-Taie 260429",
+      "system": "DVB-S2",
+      "symbolRate": 27500,
+      "fec": "3/4",
+      "provider": "318-900",
+      "htmlRowText": "11373 H tp 9 Wide 53 | DVB-S2 8PSK 27500 3/4 | 318-900 | 7.9 | Dondohodho M Al-Taie 260429"
+    },
+    {
+      "frequencyMHz": 11411,
+      "polarization": "H",
+      "transponderNumber": "S2",
+      "beamName": "Conax Irdeto Mediaguard Nagravision Viaccess",
+      "system": "DVB-S2",
+      "symbolRate": 27500,
+      "fec": "5/6",
+      "provider": "M Al-Taie P Piotrowski 260414; 318-1100",
+      "htmlRowText": "11411 H tp 11 Wide 53 | DVB-S2 8PSK 27500 5/6 | 318-1100 | 9.4 | Conax Irdeto Mediaguard Nagravision Viaccess | M Al-Taie P Piotrowski 260414"
+    },
+    {
+      "frequencyMHz": 11449,
+      "polarization": "H",
+      "transponderNumber": "S2",
+      "beamName": "Conax Irdeto Mediaguard Nagravision Viaccess",
+      "system": "DVB-S2",
+      "symbolRate": 27500,
+      "fec": "5/6",
+      "provider": "M Al-Taie 260321; Canal+ Polska; 318-1300",
+      "htmlRowText": "11449 H tp 13 Wide 53 | DVB-S2 8PSK 27500 5/6 | Canal+ Polska | 318-1300 | 9.4 | Conax Irdeto Mediaguard Nagravision Viaccess | M Al-Taie 260321"
+    },
+    {
+      "frequencyMHz": 11488,
+      "polarization": "H",
+      "transponderNumber": "S2",
+      "beamName": "Conax Irdeto Mediaguard Nagravision Viaccess",
+      "system": "DVB-S2",
+      "symbolRate": 27500,
+      "fec": "5/6",
+      "provider": "P Piotrowski DXAndy 260414; Canal+ Polska; 318-1500",
+      "htmlRowText": "11488 H tp 15 Wide 53 | DVB-S2 8PSK 27500 5/6 | Canal+ Polska | 318-1500 | 9.4 | Conax Irdeto Mediaguard Nagravision Viaccess | P Piotrowski DXAndy 260414"
+    },
+    {
+      "frequencyMHz": 11566,
+      "polarization": "H",
+      "transponderNumber": "S2",
+      "beamName": "M Al-Taie T Viererbe Hadowooalsatan 251103",
+      "system": "DVB-S2",
+      "symbolRate": 29900,
+      "fec": "3/4",
+      "provider": "Globecast; 318-15300",
+      "htmlRowText": "11566 H tp 153 Wide 53 | DVB-S2 8PSK 29900 3/4 | Globecast | 318-15300 | 7.9 | M Al-Taie T Viererbe Hadowooalsatan 251103"
+    },
+    {
+      "frequencyMHz": 11585,
+      "polarization": "V",
+      "transponderNumber": "S2",
+      "beamName": "Z Viglidán 211022",
+      "system": "DVB-S2",
+      "symbolRate": 27500,
+      "fec": "5/6",
+      "provider": "318-15400; CCTV",
+      "htmlRowText": "11585 V tp 154 Wide 53 | DVB-S2 8PSK 27500 5/6 | CCTV | 318-15400 | 9.4 | Z Viglidán 211022"
+    },
+    {
+      "frequencyMHz": 11610,
+      "polarization": "V",
+      "transponderNumber": "S2",
+      "beamName": "Jamie A Roli 250510",
+      "system": "DVB-S2",
+      "symbolRate": 7200,
+      "fec": "3/4",
+      "provider": "(feeds)",
+      "htmlRowText": "11610 V tp 156 Wide | DVB-S2 8PSK 7200 3/4 | (feeds) | Jamie A Roli 250510"
+    },
+    {
+      "frequencyMHz": 11620,
+      "polarization": "V",
+      "transponderNumber": "S2",
+      "beamName": "Roli 251018",
+      "system": "DVB-S2",
+      "symbolRate": 4900,
+      "fec": "3/4",
+      "provider": "(feeds)",
+      "htmlRowText": "11620 V tp 156 Wide | DVB-S2 8PSK 4900 3/4 | (feeds) | Roli 251018"
+    },
+    {
+      "frequencyMHz": 11626,
+      "polarization": "V",
+      "transponderNumber": "S2",
+      "beamName": "Roli 251018",
+      "system": "DVB-S2",
+      "symbolRate": 4900,
+      "fec": "3/4",
+      "provider": "(feeds)",
+      "htmlRowText": "11626 V tp 156 Wide | DVB-S2 8PSK 4900 3/4 | (feeds) | Roli 251018"
+    },
+    {
+      "frequencyMHz": 11636,
+      "polarization": "V",
+      "transponderNumber": "S2",
+      "beamName": "Roli 260425",
+      "system": "DVB-S2",
+      "symbolRate": 9600,
+      "fec": "3/4",
+      "provider": "(feeds)",
+      "htmlRowText": "11636 V tp 156 Wide | DVB-S2 8PSK 9600 3/4 | (feeds) | Roli 260425"
+    },
+    {
+      "frequencyMHz": 11681,
+      "polarization": "H",
+      "beamName": "T Viererbe M Gusset 260306",
+      "htmlRowText": "11681 H tp 159 Wide 53 | T Viererbe M Gusset 260306"
+    },
+    {
+      "frequencyMHz": 11727,
+      "polarization": "V",
+      "transponderNumber": "S2",
+      "beamName": "T Viererbe 251129",
+      "system": "DVB-S2",
+      "symbolRate": 29900,
+      "fec": "3/4",
+      "provider": "Globecast; 318-5000",
+      "htmlRowText": "11727 V tp 50 Wide 53 | DVB-S2 8PSK 29900 3/4 | Globecast | 318-5000 | 7.9 | T Viererbe 251129"
+    },
+    {
+      "frequencyMHz": 11747,
+      "polarization": "H",
+      "transponderNumber": "S2",
+      "beamName": "M Al-Taie T Viererbe 260324",
+      "system": "DVB-S2",
+      "symbolRate": 27500,
+      "fec": "3/4",
+      "provider": "318-5103",
+      "htmlRowText": "11747 H tp 51 Wide 53 | DVB-S2 8PSK 27500 3/4 | Du | 318-5103 | 7.9 | M Al-Taie T Viererbe 260324"
+    },
+    {
+      "frequencyMHz": 12015,
+      "polarization": "H",
+      "transponderNumber": "S2",
+      "beamName": "Conax Irdeto Mediaguard Nagravision Viaccess",
+      "system": "DVB-S2",
+      "symbolRate": 27500,
+      "fec": "3/4",
+      "provider": "M Al-Taie 260116; Polsat Box; 318-6500",
+      "htmlRowText": "12015 H tp 65 Wide 53 | DVB-S2 8PSK 27500 3/4 | Polsat Box | 318-6500 | 7.9 | Conax Irdeto Mediaguard Nagravision Viaccess | M Al-Taie 260116"
+    },
+    {
+      "frequencyMHz": 12149,
+      "polarization": "V",
+      "beamName": "M Al-Taie 260324",
+      "system": "DVB-S",
+      "symbolRate": 27500,
+      "fec": "3/4",
+      "provider": "M-Three satcom; 318-7200",
+      "htmlRowText": "12149 V tp 72 Wide 53 | DVB-S 27500 3/4 | M-Three satcom | 318-7200 | 5.5 | M Al-Taie 260324"
+    },
+    {
+      "frequencyMHz": 10701,
+      "beamName": "Télé Congo",
+      "system": "MPEG-2",
+      "provider": "241 Fre",
+      "htmlRowText": "10701 | Télé Congo | MPEG-2/SD | 221 | 241 Fre"
+    },
+    {
+      "frequencyMHz": 10705,
+      "beamName": "EWTN Europe",
+      "system": "MPEG-2",
+      "provider": "235 Eng",
+      "htmlRowText": "10705 | EWTN Europe | MPEG-2/SD | 215 | 235 Eng"
+    },
+    {
+      "frequencyMHz": 3630,
+      "beamName": "Radio Freccia",
+      "provider": "3516 Ita",
+      "htmlRowText": "3630 | Radio Freccia | 3516 Ita"
+    },
+    {
+      "frequencyMHz": 3632,
+      "beamName": "Radio Italia",
+      "symbolRate": 6320,
+      "provider": "6320 Ita",
+      "htmlRowText": "3632 | Radio Italia | 6320 Ita"
+    },
+    {
+      "frequencyMHz": 3633,
+      "beamName": "Giornale Radio",
+      "symbolRate": 6330,
+      "provider": "6330 Ita",
+      "htmlRowText": "3633 | Giornale Radio | 6330 Ita"
+    },
+    {
+      "frequencyMHz": 3637,
+      "beamName": "Radio Sportiva",
+      "provider": "3512 Ita",
+      "htmlRowText": "3637 | Radio Sportiva | 3512 Ita"
+    },
+    {
+      "frequencyMHz": 3642,
+      "beamName": "RTL 102.5",
+      "symbolRate": 6420,
+      "provider": "6420 Ita",
+      "htmlRowText": "3642 | RTL 102.5 | 6420 Ita"
+    },
+    {
+      "frequencyMHz": 3643,
+      "beamName": "Radio Zeta FM",
+      "symbolRate": 6430,
+      "provider": "6430 Ita",
+      "htmlRowText": "3643 | Radio Zeta FM | 6430 Ita"
+    },
+    {
+      "frequencyMHz": 3644,
+      "beamName": "Radio 24 (Italy)",
+      "provider": "3526 Ita",
+      "htmlRowText": "3644 | Radio 24 (Italy) | 3526 Ita"
+    },
+    {
+      "frequencyMHz": 3645,
+      "beamName": "Radio Onda d'Urto",
+      "provider": "3531 Ita",
+      "htmlRowText": "3645 | Radio Onda d'Urto | 3531 Ita"
+    },
+    {
+      "frequencyMHz": 3651,
+      "beamName": "Radio Deejay",
+      "provider": "3542 Ita",
+      "htmlRowText": "3651 | Radio Deejay | 3542 Ita"
+    },
+    {
+      "frequencyMHz": 3652,
+      "beamName": "Radio Capital",
+      "provider": "3544 Ita",
+      "htmlRowText": "3652 | Radio Capital | 3544 Ita"
+    },
+    {
+      "frequencyMHz": 3653,
+      "beamName": "3546 Ita",
+      "htmlRowText": "3653 | M2o | 3546 Ita"
+    },
+    {
+      "frequencyMHz": 3654,
+      "beamName": "Radio Iglesias",
+      "provider": "3548 Ita",
+      "htmlRowText": "3654 | Radio Iglesias | 3548 Ita"
+    },
+    {
+      "frequencyMHz": 3656,
+      "beamName": "Radio Popolare",
+      "provider": "3553 Ita",
+      "htmlRowText": "3656 | Radio Popolare | 3553 Ita"
+    },
+    {
+      "frequencyMHz": 3641,
+      "beamName": "Radio Mater",
+      "symbolRate": 7280,
+      "htmlRowText": "7280 | Radio Mater | 3641 Ita"
+    },
+    {
+      "frequencyMHz": 12188,
+      "polarization": "V",
+      "transponderNumber": "S2",
+      "beamName": "Conax Irdeto Mediaguard Nagravision Viaccess",
+      "system": "DVB-S2",
+      "symbolRate": 27500,
+      "fec": "3/4",
+      "provider": "Lexzie 260302; Polsat Box; 113-7400",
+      "htmlRowText": "12188 V tp 74 Wide 53 | DVB-S2 8PSK 27500 3/4 | Polsat Box | 113-7400 | 7.9 | Conax Irdeto Mediaguard Nagravision Viaccess | Lexzie 260302"
+    },
+    {
+      "frequencyMHz": 12265,
+      "polarization": "V",
+      "transponderNumber": "S2",
+      "beamName": "Conax Irdeto Mediaguard Nagravision Viaccess",
+      "system": "DVB-S2",
+      "symbolRate": 27500,
+      "fec": "3/4",
+      "provider": "A7Sats 250901; Polsat Box; 113-7800",
+      "htmlRowText": "12265 V tp 78 Wide 53 | DVB-S2 8PSK 27500 3/4 | Polsat Box | 113-7800 | 7.9 | Conax Irdeto Mediaguard Nagravision Viaccess | A7Sats 250901"
+    },
+    {
+      "frequencyMHz": 12284,
+      "polarization": "H",
+      "transponderNumber": "S2",
+      "beamName": "Conax Irdeto Mediaguard Nagravision Viaccess",
+      "system": "DVB-S2",
+      "symbolRate": 27500,
+      "fec": "3/4",
+      "provider": "Dondohodho P Piotrowski 260427; Polsat Box; 113-7900",
+      "htmlRowText": "12284 H tp 79 Wide 53 | DVB-S2 8PSK 27500 3/4 | Polsat Box | 113-7900 | 7.9 | Conax Irdeto Mediaguard Nagravision Viaccess | Dondohodho P Piotrowski 260427"
+    },
+    {
+      "frequencyMHz": 12303,
+      "polarization": "V",
+      "transponderNumber": "S2",
+      "beamName": "Telefónica Servicios Audiovisuales",
+      "system": "DVB-S2",
+      "symbolRate": 27500,
+      "fec": "3/4",
+      "provider": "Hadowooalsatan 251201; 318-8000",
+      "htmlRowText": "12303 V tp 80 Wide 53 | DVB-S2 8PSK 27500 3/4 | Telefónica Servicios Audiovisuales | 318-8000 | 7.9 | Hadowooalsatan 251201"
+    },
+    {
+      "frequencyMHz": 3501,
+      "beamName": "TVE Internacional Europa",
+      "system": "MPEG-4",
+      "provider": "3522 Spa 3527 Qaa",
+      "htmlRowText": "3501 | TVE Internacional Europa | MPEG-4/HD | 3521 | 3522 Spa 3527 Qaa"
+    },
+    {
+      "frequencyMHz": 3502,
+      "beamName": "3570 Spa 3571 Qaa",
+      "system": "MPEG-4",
+      "provider": "Canal 24 Horas",
+      "htmlRowText": "3502 | Canal 24 Horas | MPEG-4/HD | 3569 | 3570 Spa 3571 Qaa"
+    },
+    {
+      "frequencyMHz": 3581,
+      "beamName": "RNE Radio Nacional",
+      "provider": "3523 Spa",
+      "htmlRowText": "3581 | RNE Radio Nacional | 3523 Spa"
+    },
+    {
+      "frequencyMHz": 3582,
+      "beamName": "RNE Radio Clásica",
+      "provider": "3531 Spa",
+      "htmlRowText": "3582 | RNE Radio Clásica | 3531 Spa"
+    },
+    {
+      "frequencyMHz": 3583,
+      "beamName": "RNE Radio 3",
+      "provider": "3539 Spa",
+      "htmlRowText": "3583 | RNE Radio 3 | 3539 Spa"
+    },
+    {
+      "frequencyMHz": 3584,
+      "beamName": "RNE Radio 5",
+      "provider": "3547 Spa",
+      "htmlRowText": "3584 | RNE Radio 5 | 3547 Spa"
+    },
+    {
+      "frequencyMHz": 3585,
+      "beamName": "Radio Exterior",
+      "provider": "3555 Spa",
+      "htmlRowText": "3585 | Radio Exterior | 3555 Spa"
+    },
+    {
+      "frequencyMHz": 3586,
+      "beamName": "RNE Ràdio 4",
+      "provider": "3563 Cat",
+      "htmlRowText": "3586 | RNE Ràdio 4 | 3563 Cat"
+    },
+    {
+      "frequencyMHz": 12322,
+      "polarization": "H",
+      "beamName": "M Al-Taie 260324",
+      "system": "DVB-S",
+      "symbolRate": 27500,
+      "fec": "3/4",
+      "provider": "Eutelsat; 318-8100",
+      "htmlRowText": "12322 H tp 81 Wide 53 | DVB-S 27500 3/4 | Eutelsat | 318-8100 | 5.5 | M Al-Taie 260324"
+    },
+    {
+      "frequencyMHz": 12380,
+      "polarization": "V",
+      "transponderNumber": "S2",
+      "beamName": "A Ishchenko Dallara T Viererbe 250930",
+      "system": "DVB-S2",
+      "symbolRate": 30000,
+      "fec": "5/6",
+      "provider": "318-8400",
+      "htmlRowText": "12380 V tp 84 Wide 53 | DVB-S2 8PSK 30000 5/6 | 318-8400 | 9.4 | A Ishchenko Dallara T Viererbe 250930"
+    },
+    {
+      "frequencyMHz": 12399,
+      "polarization": "H",
+      "transponderNumber": "S2",
+      "beamName": "M Al-Taie 260413",
+      "system": "DVB-S2",
+      "symbolRate": 29700,
+      "fec": "2/3",
+      "provider": "318-8500",
+      "htmlRowText": "12399 H tp 85 Wide 53 | DVB-S2 8PSK 29700 2/3 | Du | 318-8500 | 6.6 | M Al-Taie 260413"
+    },
+    {
+      "frequencyMHz": 12437,
+      "polarization": "H",
+      "transponderNumber": "S2",
+      "beamName": "Dondohodho 260319",
+      "system": "DVB-S2",
+      "symbolRate": 27500,
+      "fec": "3/4",
+      "provider": "(feeds)",
+      "htmlRowText": "12437 H tp 87 Wide | DVB-S2 8PSK 27500 3/4 | (feeds) | Dondohodho 260319"
+    },
+    {
+      "frequencyMHz": 12476,
+      "polarization": "H",
+      "transponderNumber": "S2",
+      "beamName": "Conax Irdeto Mediaguard Nagravision Viaccess",
+      "system": "DVB-S2",
+      "symbolRate": 29900,
+      "fec": "3/4",
+      "provider": "Hadowooalsatan 260126; Globecast; 318-8900",
+      "htmlRowText": "12476 H tp 89 Wide 53 | DVB-S2 8PSK 29900 3/4 | Globecast | 318-8900 | 7.9 | Conax Irdeto Mediaguard Nagravision Viaccess | Hadowooalsatan 260126"
+    },
+    {
+      "frequencyMHz": 12520,
+      "polarization": "V",
+      "transponderNumber": "S2",
+      "beamName": "N Schlammer M Al-Taie 260419",
+      "system": "DVB-S2",
+      "symbolRate": 27500,
+      "fec": "2/3",
+      "provider": "318-9000",
+      "htmlRowText": "12520 V tp 90 Wide 53 | DVB-S2 8PSK 27500 2/3 | STN | 318-9000 | 6.6 | N Schlammer M Al-Taie 260419"
+    },
+    {
+      "frequencyMHz": 12577,
+      "polarization": "H",
+      "transponderNumber": "S2",
+      "beamName": "M Al-Taie 260401",
+      "system": "DVB-S2",
+      "symbolRate": 27500,
+      "fec": "3/4",
+      "provider": "318-9300",
+      "htmlRowText": "12577 H tp 93 Wide 53 | DVB-S2 8PSK 27500 3/4 | 318-9300 | 7.9 | M Al-Taie 260401"
+    },
+    {
+      "frequencyMHz": 12583,
+      "polarization": "V",
+      "transponderNumber": "S2",
+      "beamName": "Jamie A 250906",
+      "system": "DVB-S2",
+      "symbolRate": 7120,
+      "fec": "3/4",
+      "provider": "(feeds)",
+      "htmlRowText": "12583 V tp 94 Wide | DVB-S2 8PSK 7120 3/4 | (feeds) | Jamie A 250906"
+    },
+    {
+      "frequencyMHz": 12592,
+      "polarization": "V",
+      "transponderNumber": "S2",
+      "beamName": "Jamie A 250906",
+      "system": "DVB-S2",
+      "symbolRate": 7120,
+      "fec": "3/4",
+      "provider": "(feeds)",
+      "htmlRowText": "12592 V tp 94 Wide | DVB-S2 8PSK 7120 3/4 | (feeds) | Jamie A 250906"
+    },
+    {
+      "frequencyMHz": 12598,
+      "polarization": "V",
+      "transponderNumber": "S2",
+      "beamName": "Roli 250906",
+      "system": "DVB-S2",
+      "symbolRate": 3674,
+      "fec": "3/4",
+      "provider": "(feeds)",
+      "htmlRowText": "12598 V tp 94 Wide | DVB-S2 8PSK 3674 3/4 | (feeds) | Roli 250906"
+    },
+    {
+      "frequencyMHz": 12603,
+      "polarization": "V",
+      "transponderNumber": "S2",
+      "beamName": "Roli 250906",
+      "system": "DVB-S2",
+      "symbolRate": 3674,
+      "fec": "3/4",
+      "provider": "(feeds)",
+      "htmlRowText": "12603 V tp 94 Wide | DVB-S2 8PSK 3674 3/4 | (feeds) | Roli 250906"
+    },
+    {
+      "frequencyMHz": 12610,
+      "polarization": "V",
+      "transponderNumber": "S2",
+      "beamName": "Jamie A 251025",
+      "system": "DVB-S2",
+      "symbolRate": 7200,
+      "fec": "3/4",
+      "provider": "(feeds)",
+      "htmlRowText": "12610 V tp 94 Wide | DVB-S2 8PSK 7200 3/4 | (feeds) | Jamie A 251025"
+    },
+    {
+      "transponderNumber": "S2",
+      "beamName": "System:",
+      "system": "DVB-S2",
+      "provider": "non-DTH",
+      "htmlRowText": "System: | DVB-S2 | DVB-S | non-DTH | - | -"
+    }
+  ]
+}

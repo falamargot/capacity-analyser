@@ -1,0 +1,42 @@
+{
+  "version": "2",
+  "satelliteName": "EUTELSAT QUANTUM",
+  "orbitalPosition": "47.7E",
+  "source": "LYNGSAT",
+  "sourceUrl": "https://www.lyngsat.com/Eutelsat-Quantum.html",
+  "generatedAt": "2026-05-01T07:49:01.532Z",
+  "observations": [
+    {
+      "id": "lyngsat-eutelsat-quantum-47.7e-s2-nofreq",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT QUANTUM",
+      "orbitalPosition": "47.7E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-Quantum.html",
+      "retrievedAt": "2026-05-01T07:48:47.211Z",
+      "raw": {
+        "transponderText": "S2",
+        "beamText": "System:",
+        "systemText": "DVB-S2",
+        "providerText": "non-DTH"
+      },
+      "parsed": {
+        "transponderNumber": "S2",
+        "beamName": "System:",
+        "system": "DVB-S2",
+        "providerName": "non-DTH"
+      },
+      "parseQuality": {
+        "hasFrequency": false,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Downlink frequency not parseable; row kept due to transponder ID.",
+          "Polarization not present or not parseable."
+        ]
+      }
+    }
+  ]
+}

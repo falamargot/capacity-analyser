@@ -1,0 +1,322 @@
+{
+  "version": "2",
+  "satelliteName": "EUTELSAT 115 WEST B",
+  "orbitalPosition": "115W",
+  "source": "LYNGSAT",
+  "sourceUrl": "https://www.lyngsat.com/Eutelsat-115-West-B.html",
+  "generatedAt": "2026-05-01T07:49:01.525Z",
+  "observations": [
+    {
+      "id": "lyngsat-eutelsat-115-west-b-115w-row-1-4038",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 115 WEST B",
+      "orbitalPosition": "115W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-115-West-B.html",
+      "retrievedAt": "2026-05-01T07:48:24.788Z",
+      "raw": {
+        "frequencyText": "4038",
+        "polarizationText": "H",
+        "beamText": "Ecuavisa Quito",
+        "systemText": "DVB-S",
+        "symbolRateText": "1600",
+        "providerText": "NOS482 240203; 256 Spa"
+      },
+      "parsed": {
+        "frequencyMHz": 4038,
+        "polarization": "H",
+        "beamName": "Ecuavisa Quito",
+        "system": "DVB-S",
+        "symbolRate": 1600,
+        "providerName": "NOS482 240203; 256 Spa"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-115-west-b-115w-s2-4109",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 115 WEST B",
+      "orbitalPosition": "115W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-115-West-B.html",
+      "retrievedAt": "2026-05-01T07:48:24.788Z",
+      "raw": {
+        "frequencyText": "4109",
+        "polarizationText": "H",
+        "transponderText": "S2",
+        "beamText": "J Figueroa 221130",
+        "systemText": "DVB-S2",
+        "symbolRateText": "9600",
+        "fecText": "3/4"
+      },
+      "parsed": {
+        "frequencyMHz": 4109,
+        "polarization": "H",
+        "transponderNumber": "S2",
+        "beamName": "J Figueroa 221130",
+        "system": "DVB-S2",
+        "symbolRate": 9600,
+        "fec": "3/4"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-115-west-b-115w-row-3-4118",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 115 WEST B",
+      "orbitalPosition": "115W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-115-West-B.html",
+      "retrievedAt": "2026-05-01T07:48:24.788Z",
+      "raw": {
+        "frequencyText": "4118",
+        "polarizationText": "H",
+        "beamText": "Grupo Radio Centro",
+        "systemText": "DVB-S",
+        "symbolRateText": "1550",
+        "providerText": "Cyberham 251124"
+      },
+      "parsed": {
+        "frequencyMHz": 4118,
+        "polarization": "H",
+        "beamName": "Grupo Radio Centro",
+        "system": "DVB-S",
+        "symbolRate": 1550,
+        "providerName": "Cyberham 251124"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-115-west-b-115w-s2-4124",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 115 WEST B",
+      "orbitalPosition": "115W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-115-West-B.html",
+      "retrievedAt": "2026-05-01T07:48:24.788Z",
+      "raw": {
+        "frequencyText": "4124",
+        "polarizationText": "H",
+        "transponderText": "S2",
+        "beamText": "Canal 10 Chiapas",
+        "systemText": "DVB-S2",
+        "symbolRateText": "3609",
+        "fecText": "3/4",
+        "providerText": "Cyberham 251124; 7.9 258 Spa"
+      },
+      "parsed": {
+        "frequencyMHz": 4124,
+        "polarization": "H",
+        "transponderNumber": "S2",
+        "beamName": "Canal 10 Chiapas",
+        "system": "DVB-S2",
+        "symbolRate": 3609,
+        "fec": "3/4",
+        "providerName": "Cyberham 251124; 7.9 258 Spa"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-115-west-b-115w-s2-4132",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 115 WEST B",
+      "orbitalPosition": "115W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-115-West-B.html",
+      "retrievedAt": "2026-05-01T07:48:24.788Z",
+      "raw": {
+        "frequencyText": "4132",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "Justicia TV (Mexico)",
+        "systemText": "DVB-S2",
+        "symbolRateText": "6400",
+        "fecText": "3/4",
+        "providerText": "R Chavez 231018; 4.0 4112 Spa"
+      },
+      "parsed": {
+        "frequencyMHz": 4132,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "Justicia TV (Mexico)",
+        "system": "DVB-S2",
+        "symbolRate": 6400,
+        "fec": "3/4",
+        "providerName": "R Chavez 231018; 4.0 4112 Spa"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-115-west-b-115w-s2-4141",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 115 WEST B",
+      "orbitalPosition": "115W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-115-West-B.html",
+      "retrievedAt": "2026-05-01T07:48:24.788Z",
+      "raw": {
+        "frequencyText": "4141",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "Cyberham 251124",
+        "systemText": "DVB-S2",
+        "symbolRateText": "6666",
+        "fecText": "3/4"
+      },
+      "parsed": {
+        "frequencyMHz": 4141,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "Cyberham 251124",
+        "system": "DVB-S2",
+        "symbolRate": 6666,
+        "fec": "3/4"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-115-west-b-115w-s2-4155",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 115 WEST B",
+      "orbitalPosition": "115W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-115-West-B.html",
+      "retrievedAt": "2026-05-01T07:48:24.788Z",
+      "raw": {
+        "frequencyText": "4155",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "Cyberham 251124",
+        "systemText": "DVB-S2",
+        "symbolRateText": "14400",
+        "fecText": "3/4"
+      },
+      "parsed": {
+        "frequencyMHz": 4155,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "Cyberham 251124",
+        "system": "DVB-S2",
+        "symbolRate": 14400,
+        "fec": "3/4"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-115-west-b-115w-s2-4172",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 115 WEST B",
+      "orbitalPosition": "115W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-115-West-B.html",
+      "retrievedAt": "2026-05-01T07:48:24.788Z",
+      "raw": {
+        "frequencyText": "4172",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "Cyberham 251124",
+        "systemText": "DVB-S2",
+        "symbolRateText": "13330",
+        "fecText": "3/4"
+      },
+      "parsed": {
+        "frequencyMHz": 4172,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "Cyberham 251124",
+        "system": "DVB-S2",
+        "symbolRate": 13330,
+        "fec": "3/4"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-115-west-b-115w-s2-nofreq",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 115 WEST B",
+      "orbitalPosition": "115W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-115-West-B.html",
+      "retrievedAt": "2026-05-01T07:48:24.788Z",
+      "raw": {
+        "transponderText": "S2",
+        "beamText": "System:",
+        "systemText": "DVB-S2",
+        "providerText": "non-DTH"
+      },
+      "parsed": {
+        "transponderNumber": "S2",
+        "beamName": "System:",
+        "system": "DVB-S2",
+        "providerName": "non-DTH"
+      },
+      "parseQuality": {
+        "hasFrequency": false,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Downlink frequency not parseable; row kept due to transponder ID.",
+          "Polarization not present or not parseable."
+        ]
+      }
+    }
+  ]
+}

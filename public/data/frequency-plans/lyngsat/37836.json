@@ -1,0 +1,1969 @@
+{
+  "source": "LYNGSAT",
+  "satelliteName": "EUTELSAT 16A",
+  "orbitalPosition": "16E",
+  "url": "https://www.lyngsat.com/Eutelsat-16A.html",
+  "retrievedAt": "2026-05-01T07:48:10.435Z",
+  "parserStats": {
+    "totalRowsSeen": 640,
+    "rowsWithFrequency": 184,
+    "rowsWithBeam": 191,
+    "rowsWithTransponderId": 134,
+    "rowsSkipped": 447,
+    "skipReasons": {
+      "too_few_cells": 50,
+      "no_frequency_no_transponder": 397
+    }
+  },
+  "rows": [
+    {
+      "frequencyMHz": 10721,
+      "polarization": "H",
+      "transponderNumber": "A1",
+      "transponderName": "TP A1",
+      "beamName": "Backspeed 67 260322",
+      "system": "DVB-S2",
+      "symbolRate": 30000,
+      "fec": "3/4",
+      "provider": "Irdeto Videoguard; 366-20100; M:Sat TV",
+      "htmlRowText": "10721 H tp A1 Europe B 50 | DVB-S2 8PSK 30000 3/4 | M:Sat TV | 366-20100 | 7.9 | Irdeto Videoguard | Backspeed 67 260322"
+    },
+    {
+      "frequencyMHz": 10762,
+      "polarization": "H",
+      "transponderNumber": "A3",
+      "transponderName": "TP A3",
+      "beamName": "M Al-Taie 260420",
+      "system": "DVB-S2",
+      "symbolRate": 30000,
+      "fec": "3/5",
+      "provider": "366-20300; DigitAlb; Conax",
+      "htmlRowText": "10762 H tp A3 Europe B 50 | DVB-S2 8PSK 30000 3/5 | DigitAlb | 366-20300 | 5.5 | Conax | M Al-Taie 260420"
+    },
+    {
+      "frequencyMHz": 10804,
+      "polarization": "H",
+      "transponderNumber": "A5",
+      "transponderName": "TP A5",
+      "beamName": "M Al-Taie 260420",
+      "system": "DVB-S2",
+      "symbolRate": 29950,
+      "fec": "2/3",
+      "provider": "366-20500; DigitAlb; Conax",
+      "htmlRowText": "10804 H tp A5 Europe B 50 | DVB-S2 8PSK 29950 2/3 | DigitAlb | 366-20500 | 6.6 | Conax | M Al-Taie 260420"
+    },
+    {
+      "frequencyMHz": 10804,
+      "polarization": "H",
+      "transponderNumber": "K5",
+      "transponderName": "TP K5",
+      "beamName": "R Bargash 251005",
+      "system": "DVB-S2",
+      "symbolRate": 30000,
+      "fec": "2/3",
+      "provider": "New World TV; 367-60500",
+      "htmlRowText": "10804 H tp K5 Africa 0 | DVB-S2 8PSK 30000 2/3 | New World TV | 367-60500 | 6.6 | R Bargash 251005"
+    },
+    {
+      "frequencyMHz": 3451,
+      "beamName": "Canal 2 International",
+      "system": "MPEG-4",
+      "provider": "3452 Fre",
+      "htmlRowText": "345 | Canal 2 International | MPEG-4/SD | 3451 | 3452 Fre"
+    },
+    {
+      "frequencyMHz": 3611,
+      "beamName": "Impact TV",
+      "system": "MPEG-4",
+      "provider": "3612 Fre",
+      "htmlRowText": "361 | Impact TV | MPEG-4/SD | 3611 | 3612 Fre"
+    },
+    {
+      "frequencyMHz": 10845,
+      "polarization": "H",
+      "transponderNumber": "A7",
+      "transponderName": "TP A7",
+      "beamName": "366-20700",
+      "system": "DVB-S2",
+      "symbolRate": 30000,
+      "fec": "3/5",
+      "provider": "DigitAlb; Conax",
+      "htmlRowText": "10845 H tp A7 Europe B 50 | DVB-S2 8PSK 30000 3/5 | DigitAlb | 366-20700 | 5.5 | Conax | A7Sats Ahmad 1ilil21 251213"
+    },
+    {
+      "frequencyMHz": 10845,
+      "polarization": "H",
+      "transponderNumber": "K7",
+      "transponderName": "TP K7",
+      "beamName": "Mediaguard Viaccess",
+      "system": "DVB-S2",
+      "symbolRate": 30000,
+      "fec": "2/3",
+      "provider": "M Al-Taie 260101; Canal+ Réunion; 366-50100",
+      "htmlRowText": "10845 H tp K7 South East Africa 0 | DVB-S2 8PSK 30000 2/3 | Canal+ Réunion | 366-50100 | 6.6 | Mediaguard Viaccess | M Al-Taie 260101"
+    },
+    {
+      "frequencyMHz": 10887,
+      "polarization": "H",
+      "transponderNumber": "A9",
+      "transponderName": "TP A9",
+      "beamName": "Conax Irdeto Videoguard",
+      "system": "DVB-S2",
+      "symbolRate": 30000,
+      "fec": "3/5",
+      "provider": "Torrex12 260425; 366-20900; DigitAlb",
+      "htmlRowText": "10887 H tp A9 Europe B 50 | DVB-S2 8PSK 30000 3/5 | DigitAlb | 366-20900 | 5.5 | Conax Irdeto Videoguard | Torrex12 260425"
+    },
+    {
+      "frequencyMHz": 10887,
+      "polarization": "H",
+      "transponderNumber": "K9",
+      "transponderName": "TP K9",
+      "beamName": "Anonymous 220418",
+      "system": "DVB-S2",
+      "symbolRate": 30000,
+      "fec": "2/3",
+      "provider": "Canal+ Réunion; Mediaguard; 366-15000",
+      "htmlRowText": "10887 H tp K9 South East Africa 0 | DVB-S2 8PSK 30000 2/3 | Canal+ Réunion | 366-15000 | 6.6 | Mediaguard | Anonymous 220418"
+    },
+    {
+      "frequencyMHz": 10928,
+      "polarization": "H",
+      "transponderNumber": "A11",
+      "transponderName": "TP A11",
+      "beamName": "Conax Irdeto Nagravision Videoguard",
+      "system": "DVB-S2",
+      "symbolRate": 30000,
+      "fec": "3/5",
+      "provider": "Backspeed 67 260322; 366-21100",
+      "htmlRowText": "10928 H tp A11 Europe B 50 | DVB-S2 8PSK 30000 3/5 | 366-21100 | 5.5 | Conax Irdeto Nagravision Videoguard | Backspeed 67 260322"
+    },
+    {
+      "frequencyMHz": 10928,
+      "polarization": "H",
+      "transponderNumber": "K11",
+      "transponderName": "TP K11",
+      "beamName": "Mediaguard Nagravision Viaccess",
+      "system": "DVB-S2",
+      "symbolRate": 30000,
+      "fec": "2/3",
+      "provider": "M Al-Taie T Viererbe 250301; Canal+ Réunion; 366-50200",
+      "htmlRowText": "10928 H tp K11 South East Africa 0 | DVB-S2 8PSK 30000 2/3 | Canal+ Réunion | 366-50200 | 6.6 | Mediaguard Nagravision Viaccess | M Al-Taie T Viererbe 250301"
+    },
+    {
+      "frequencyMHz": 10958,
+      "polarization": "H",
+      "transponderNumber": "B1",
+      "transponderName": "TP B1",
+      "beamName": "Jamie A 260117",
+      "system": "DVB-S2",
+      "symbolRate": 3333,
+      "fec": "5/6",
+      "provider": "(AJMN feeds)",
+      "htmlRowText": "10958 H tp B1 Europe A | DVB-S2 8PSK 3333 5/6 | (AJMN feeds) | Jamie A 260117"
+    },
+    {
+      "frequencyMHz": 10962,
+      "polarization": "H",
+      "transponderNumber": "B1",
+      "transponderName": "TP B1",
+      "beamName": "Jamie A 260117",
+      "system": "DVB-S2",
+      "symbolRate": 3333,
+      "fec": "5/6",
+      "provider": "(AJMN feeds)",
+      "htmlRowText": "10962 H tp B1 Europe A | DVB-S2 8PSK 3333 5/6 | (AJMN feeds) | Jamie A 260117"
+    },
+    {
+      "frequencyMHz": 10966,
+      "polarization": "H",
+      "transponderNumber": "B1",
+      "transponderName": "TP B1",
+      "beamName": "Jamie A 250622",
+      "system": "DVB-S2",
+      "symbolRate": 3333,
+      "fec": "5/6",
+      "provider": "(AJMN feeds)",
+      "htmlRowText": "10966 H tp B1 Europe A | DVB-S2 8PSK 3333 5/6 | (AJMN feeds) | Jamie A 250622"
+    },
+    {
+      "frequencyMHz": 10970,
+      "polarization": "H",
+      "transponderNumber": "B1",
+      "transponderName": "TP B1",
+      "beamName": "Jamie A 260308",
+      "system": "DVB-S2",
+      "symbolRate": 3333,
+      "fec": "5/6",
+      "provider": "(AJMN feeds)",
+      "htmlRowText": "10970 H tp B1 Europe A | DVB-S2 8PSK 3333 5/6 | (AJMN feeds) | Jamie A 260308"
+    },
+    {
+      "frequencyMHz": 10976,
+      "polarization": "H",
+      "transponderNumber": "B1",
+      "transponderName": "TP B1",
+      "beamName": "Jamie A 260308",
+      "system": "DVB-S2",
+      "symbolRate": 3600,
+      "fec": "5/6",
+      "provider": "(feeds)",
+      "htmlRowText": "10976 H tp B1 Europe A | DVB-S2 8PSK 3600 5/6 | (feeds) | Jamie A 260308"
+    },
+    {
+      "frequencyMHz": 10977,
+      "polarization": "V",
+      "transponderNumber": "B2",
+      "transponderName": "TP B2",
+      "beamName": "Jamie A 260308",
+      "system": "DVB-S2",
+      "symbolRate": 4800,
+      "fec": "3/4",
+      "provider": "(feeds)",
+      "htmlRowText": "10977 V tp B2 Europe B | DVB-S2 8PSK 4800 3/4 | (feeds) | Jamie A 260308"
+    },
+    {
+      "frequencyMHz": 10980,
+      "polarization": "H",
+      "transponderNumber": "B1",
+      "transponderName": "TP B1",
+      "beamName": "Jamie A Roli 250822",
+      "system": "DVB-S2",
+      "symbolRate": 3600,
+      "fec": "5/6",
+      "provider": "(feeds)",
+      "htmlRowText": "10980 H tp B1 Europe A | DVB-S2 8PSK 3600 5/6 | (feeds) | Jamie A Roli 250822"
+    },
+    {
+      "frequencyMHz": 10988,
+      "polarization": "V",
+      "transponderNumber": "B2",
+      "transponderName": "TP B2",
+      "beamName": "Jamie A 250627",
+      "system": "DVB-S2",
+      "symbolRate": 4800,
+      "fec": "3/4",
+      "provider": "(feeds)",
+      "htmlRowText": "10988 V tp B2 Europe B | DVB-S2 8PSK 4800 3/4 | (feeds) | Jamie A 250627"
+    },
+    {
+      "frequencyMHz": 10995,
+      "polarization": "V",
+      "transponderNumber": "B2",
+      "transponderName": "TP B2",
+      "beamName": "Roli Stanley_cassidy 250503",
+      "system": "DVB-S2",
+      "symbolRate": 4937,
+      "fec": "3/4",
+      "provider": "(feeds)",
+      "htmlRowText": "10995 V tp B2 Europe A | DVB-S2 8PSK 4937 3/4 | (feeds) | Roli Stanley_cassidy 250503"
+    },
+    {
+      "frequencyMHz": 11008,
+      "polarization": "V",
+      "transponderNumber": "B2",
+      "transponderName": "TP B2",
+      "beamName": "Roli 250831",
+      "system": "DVB-S2",
+      "symbolRate": 3600,
+      "fec": "3/4",
+      "provider": "(feeds)",
+      "htmlRowText": "11008 V tp B2 Europe A | DVB-S2 8PSK 3600 3/4 | (feeds) | Roli 250831"
+    },
+    {
+      "frequencyMHz": 11009,
+      "polarization": "H",
+      "transponderNumber": "B1",
+      "transponderName": "TP B1",
+      "beamName": "Jamie A 250503",
+      "system": "DVB-S2",
+      "symbolRate": 3600,
+      "fec": "3/4",
+      "provider": "(feeds)",
+      "htmlRowText": "11009 H tp B1 Europe A | DVB-S2 8PSK 3600 3/4 | (feeds) | Jamie A 250503"
+    },
+    {
+      "frequencyMHz": 11012,
+      "polarization": "V",
+      "transponderNumber": "B2",
+      "transponderName": "TP B2",
+      "beamName": "Stanley_cassidy 250503",
+      "system": "DVB-S2",
+      "symbolRate": 4937,
+      "fec": "3/4",
+      "provider": "(feeds)",
+      "htmlRowText": "11012 V tp B2 Europe A | DVB-S2 4937 3/4 | (feeds) | Stanley_cassidy 250503"
+    },
+    {
+      "frequencyMHz": 11022,
+      "polarization": "V",
+      "transponderNumber": "B2",
+      "transponderName": "TP B2",
+      "beamName": "Jamie A 251018",
+      "system": "DVB-S2",
+      "symbolRate": 4937,
+      "fec": "3/4",
+      "provider": "(feeds)",
+      "htmlRowText": "11022 V tp B2 Europe A | DVB-S2 8PSK 4937 3/4 | (feeds) | Jamie A 251018"
+    },
+    {
+      "frequencyMHz": 11024,
+      "polarization": "H",
+      "transponderNumber": "G1",
+      "transponderName": "TP G1",
+      "beamName": "DB4VQ 170721",
+      "system": "DVB-S",
+      "symbolRate": 3333,
+      "fec": "5/6",
+      "provider": "TV Malagasy; 6.5 768",
+      "htmlRowText": "11024 H tp G1 Africa 0 | DVB-S 3333 5/6 | 1 | TV Malagasy | 65535-1 MPEG-2/SD | 512 | 6.5 768 | DB4VQ 170721"
+    },
+    {
+      "frequencyMHz": 11026,
+      "polarization": "V",
+      "transponderNumber": "B2",
+      "transponderName": "TP B2",
+      "beamName": "Roli 260208",
+      "system": "DVB-S2",
+      "symbolRate": 3750,
+      "fec": "3/4",
+      "provider": "(feeds)",
+      "htmlRowText": "11026 V tp B2 Europe A | DVB-S2 8PSK 3750 3/4 | (feeds) | Roli 260208"
+    },
+    {
+      "frequencyMHz": 11052,
+      "polarization": "H",
+      "transponderNumber": "B3",
+      "transponderName": "TP B3",
+      "beamName": "Jamie A Roli 250907",
+      "system": "DVB-S2",
+      "symbolRate": 2500,
+      "fec": "8/9",
+      "provider": "(feeds)",
+      "htmlRowText": "11052 H tp B3 Europe A | DVB-S2 8PSK 2500 8/9 | (feeds) | Jamie A Roli 250907"
+    },
+    {
+      "frequencyMHz": 11053,
+      "transponderNumber": "B3",
+      "transponderName": "TP B3",
+      "beamName": "D de Jong 230911",
+      "system": "DVB-S",
+      "fec": "3/4",
+      "provider": "Castor Networks",
+      "htmlRowText": "11053. 4 H tp B3 Europe A 49 | DVB-S 365 3/4 | Castor Networks | 5.5 | D de Jong 230911"
+    },
+    {
+      "frequencyMHz": 11053,
+      "transponderNumber": "B3",
+      "transponderName": "TP B3",
+      "beamName": "Broadcast Partners",
+      "system": "DVB-S2",
+      "fec": "3/5",
+      "provider": "D de Jong 230911",
+      "htmlRowText": "11053. 9 H tp B3 Europe A 49 | DVB-S2 QPSK 365 3/5 | Broadcast Partners | 2.2 | D de Jong 230911"
+    },
+    {
+      "frequencyMHz": 11054,
+      "transponderNumber": "B3",
+      "transponderName": "TP B3",
+      "beamName": "BNR Nieuwsradio",
+      "system": "DVB-S",
+      "fec": "3/4",
+      "eirpDbw": 64,
+      "provider": "S Evans 230320; 5.5 64 Dut",
+      "htmlRowText": "11054. 2 H tp B3 Europe A 49 | DVB-S 176 3/4 | BNR Nieuwsradio | 5.5 64 Dut | S Evans 230320"
+    },
+    {
+      "frequencyMHz": 11054,
+      "transponderNumber": "B3",
+      "transponderName": "TP B3",
+      "beamName": "Broadcast Partners",
+      "system": "DVB-S",
+      "fec": "2/3",
+      "provider": "D de Jong 230911",
+      "htmlRowText": "11054. 6 H tp B3 Europe A 49 | DVB-S 365 2/3 | Broadcast Partners | 4.4 | D de Jong 230911"
+    },
+    {
+      "frequencyMHz": 11055,
+      "polarization": "V",
+      "transponderNumber": "B4",
+      "transponderName": "TP B4",
+      "beamName": "F Dibba 251214",
+      "system": "DVB-S2",
+      "symbolRate": 27500,
+      "fec": "4/5",
+      "provider": "Antik Sat; 366-30400; Conax",
+      "htmlRowText": "11055 V tp B4 Europe B 50 | DVB-S2 QPSK 27500 4/5 | Antik Sat | 366-30400 | 4.7 | Conax | F Dibba 251214"
+    },
+    {
+      "frequencyMHz": 11059,
+      "polarization": "H",
+      "transponderNumber": "B3",
+      "transponderName": "TP B3",
+      "beamName": "Jamie A 251122",
+      "system": "DVB-S2",
+      "symbolRate": 4937,
+      "fec": "3/4",
+      "provider": "(feeds)",
+      "htmlRowText": "11059 H tp B3 Europe A | DVB-S2 8PSK 4937 3/4 | (feeds) | Jamie A 251122"
+    },
+    {
+      "frequencyMHz": 11065,
+      "polarization": "H",
+      "transponderNumber": "B3",
+      "transponderName": "TP B3",
+      "beamName": "Jamie A 251122",
+      "system": "DVB-S2",
+      "symbolRate": 4937,
+      "fec": "3/4",
+      "provider": "(feeds)",
+      "htmlRowText": "11065 H tp B3 Europe A | DVB-S2 8PSK 4937 3/4 | (feeds) | Jamie A 251122"
+    },
+    {
+      "frequencyMHz": 11080,
+      "polarization": "H",
+      "transponderNumber": "B3",
+      "transponderName": "TP B3",
+      "beamName": "Roli 260425",
+      "system": "DVB-S2",
+      "symbolRate": 9874,
+      "fec": "3/4",
+      "provider": "(feeds)",
+      "htmlRowText": "11080 H tp B3 Europe A | DVB-S2 8PSK 9874 3/4 | (feeds) | Roli 260425"
+    },
+    {
+      "frequencyMHz": 11090,
+      "polarization": "H",
+      "transponderNumber": "B3",
+      "transponderName": "TP B3",
+      "beamName": "Roli 250928",
+      "system": "DVB-S2",
+      "symbolRate": 3000,
+      "fec": "3/4",
+      "provider": "(feeds)",
+      "htmlRowText": "11090 H tp B3 Europe A | DVB-S2 QPSK 3000 3/4 | (feeds) | Roli 250928"
+    },
+    {
+      "frequencyMHz": 11094,
+      "polarization": "V",
+      "transponderNumber": "B4",
+      "transponderName": "TP B4",
+      "beamName": "Conax Irdeto Videoguard",
+      "system": "DVB-S2",
+      "symbolRate": 27500,
+      "fec": "4/5",
+      "provider": "Lexzie 250729; Antik Sat; 366-30401",
+      "htmlRowText": "11094 V tp B4 Europe B 50 | DVB-S2 QPSK 27500 4/5 | Antik Sat | 366-30401 | 4.7 | Conax Irdeto Videoguard | Lexzie 250729"
+    },
+    {
+      "frequencyMHz": 11096,
+      "polarization": "H",
+      "transponderNumber": "B3",
+      "transponderName": "TP B3",
+      "beamName": "Jamie A 250907",
+      "system": "DVB-S2",
+      "symbolRate": 4800,
+      "fec": "3/4",
+      "provider": "(feeds)",
+      "htmlRowText": "11096 H tp B3 Europe A | DVB-S2 8PSK 4800 3/4 | (feeds) | Jamie A 250907"
+    },
+    {
+      "frequencyMHz": 11101,
+      "polarization": "H",
+      "transponderNumber": "B3",
+      "transponderName": "TP B3",
+      "beamName": "Roli 250901",
+      "system": "DVB-S2",
+      "symbolRate": 4937,
+      "fec": "3/4",
+      "provider": "(feeds)",
+      "htmlRowText": "11101 H tp B3 Europe A | DVB-S2 8PSK 4937 3/4 | (feeds) | Roli 250901"
+    },
+    {
+      "frequencyMHz": 11109,
+      "polarization": "H",
+      "transponderNumber": "B3",
+      "transponderName": "TP B3",
+      "beamName": "Roli 250901",
+      "system": "DVB-S2",
+      "symbolRate": 3600,
+      "fec": "3/4",
+      "provider": "(feeds)",
+      "htmlRowText": "11109 H tp B3 Europe A | DVB-S2 8PSK 3600 3/4 | (feeds) | Roli 250901"
+    },
+    {
+      "frequencyMHz": 11126,
+      "polarization": "H",
+      "transponderNumber": "B5",
+      "transponderName": "TP B5",
+      "beamName": "Jamie A 251107",
+      "system": "DVB-S2",
+      "symbolRate": 7200,
+      "fec": "3/4",
+      "provider": "(Rai feeds)",
+      "htmlRowText": "11126 H tp B5 Europe A | DVB-S2 8PSK 7200 3/4 | (Rai feeds) | Jamie A 251107"
+    },
+    {
+      "frequencyMHz": 11139,
+      "polarization": "V",
+      "transponderNumber": "B6",
+      "transponderName": "TP B6",
+      "beamName": "Irdeto Videoguard",
+      "system": "DVB-S2",
+      "symbolRate": 27500,
+      "fec": "3/5",
+      "provider": "Lexzie 241218; 366-52012; Total TV",
+      "htmlRowText": "11139 V tp B6 Europe B 50 | DVB-S2 8PSK 27500 3/5 | Total TV | 366-52012 | 5.5 | Irdeto Videoguard | Lexzie 241218"
+    },
+    {
+      "frequencyMHz": 11144,
+      "polarization": "H",
+      "transponderNumber": "B5",
+      "transponderName": "TP B5",
+      "beamName": "Jamie A 251108",
+      "system": "DVB-S2",
+      "symbolRate": 4937,
+      "fec": "3/4",
+      "provider": "(feeds)",
+      "htmlRowText": "11144 H tp B5 Europe A | DVB-S2 8PSK 4937 3/4 | (feeds) | Jamie A 251108"
+    },
+    {
+      "frequencyMHz": 11150,
+      "polarization": "H",
+      "transponderNumber": "B5",
+      "transponderName": "TP B5",
+      "beamName": "Jamie A 251108",
+      "system": "DVB-S2",
+      "symbolRate": 4937,
+      "fec": "3/4",
+      "provider": "(feeds)",
+      "htmlRowText": "11150 H tp B5 Europe A | DVB-S2 8PSK 4937 3/4 | (feeds) | Jamie A 251108"
+    },
+    {
+      "frequencyMHz": 11156,
+      "polarization": "H",
+      "transponderNumber": "B5",
+      "transponderName": "TP B5",
+      "beamName": "Jamie A 251108",
+      "system": "DVB-S2",
+      "symbolRate": 4937,
+      "fec": "3/4",
+      "provider": "(feeds)",
+      "htmlRowText": "11156 H tp B5 Europe A | DVB-S2 8PSK 4937 3/4 | (feeds) | Jamie A 251108"
+    },
+    {
+      "frequencyMHz": 11162,
+      "polarization": "H",
+      "transponderNumber": "B5",
+      "transponderName": "TP B5",
+      "beamName": "Jamie A 251108",
+      "system": "DVB-S2",
+      "symbolRate": 4937,
+      "fec": "3/4",
+      "provider": "(feeds)",
+      "htmlRowText": "11162 H tp B5 Europe A | DVB-S2 8PSK 4937 3/4 | (feeds) | Jamie A 251108"
+    },
+    {
+      "frequencyMHz": 11168,
+      "polarization": "H",
+      "transponderNumber": "B5",
+      "transponderName": "TP B5",
+      "beamName": "Jamie A 251108",
+      "system": "DVB-S2",
+      "symbolRate": 4937,
+      "fec": "3/4",
+      "provider": "(feeds)",
+      "htmlRowText": "11168 H tp B5 Europe A | DVB-S2 8PSK 4937 3/4 | (feeds) | Jamie A 251108"
+    },
+    {
+      "frequencyMHz": 11174,
+      "polarization": "H",
+      "transponderNumber": "B5",
+      "transponderName": "TP B5",
+      "beamName": "Jamie A 251108",
+      "system": "DVB-S2",
+      "symbolRate": 4937,
+      "fec": "3/4",
+      "provider": "(feeds)",
+      "htmlRowText": "11174 H tp B5 Europe A | DVB-S2 8PSK 4937 3/4 | (feeds) | Jamie A 251108"
+    },
+    {
+      "frequencyMHz": 11178,
+      "polarization": "V",
+      "transponderNumber": "B6",
+      "transponderName": "TP B6",
+      "beamName": "Irdeto Videoguard",
+      "system": "DVB-S2",
+      "symbolRate": 27500,
+      "fec": "3/5",
+      "provider": "D Lita 210312; 366-52011; Total TV",
+      "htmlRowText": "11178 V tp B6 Europe B 50 | DVB-S2 8PSK 27500 3/5 | Total TV | 366-52011 | 5.5 | Irdeto Videoguard | D Lita 210312"
+    },
+    {
+      "frequencyMHz": 11181,
+      "polarization": "H",
+      "transponderNumber": "B5",
+      "transponderName": "TP B5",
+      "beamName": "Roli 251220",
+      "system": "DVB-S2",
+      "symbolRate": 7200,
+      "fec": "3/4",
+      "provider": "(feeds)",
+      "htmlRowText": "11181 H tp B5 Europe A | DVB-S2 8PSK 7200 3/4 | (feeds) | Roli 251220"
+    },
+    {
+      "frequencyMHz": 11189,
+      "polarization": "H",
+      "transponderNumber": "B5",
+      "transponderName": "TP B5",
+      "beamName": "Roli 251101",
+      "system": "DVB-S2",
+      "symbolRate": 9874,
+      "fec": "3/4",
+      "provider": "(feeds)",
+      "htmlRowText": "11189 H tp B5 Europe A | DVB-S2 8PSK 9874 3/4 | (feeds) | Roli 251101"
+    },
+    {
+      "frequencyMHz": 11216,
+      "polarization": "H",
+      "transponderNumber": "C1",
+      "transponderName": "TP C1",
+      "beamName": "A7Sats 250115",
+      "system": "DVB-S2",
+      "symbolRate": 22500,
+      "fec": "3/4",
+      "provider": "65315-103; Tippmix; Conax",
+      "htmlRowText": "11216 H tp C1 Europe A 49 | DVB-S2 QPSK 22500 3/4 | Tippmix | 65315-103 | 4.0 | Conax | A7Sats 250115"
+    },
+    {
+      "frequencyMHz": 11231,
+      "polarization": "V",
+      "transponderNumber": "C2",
+      "transponderName": "TP C2",
+      "beamName": "Conax Irdeto Nagravision Videoguard",
+      "system": "DVB-S2",
+      "symbolRate": 42000,
+      "fec": "5/6",
+      "provider": "M Al-Taie 260423; 366-40200; Total TV",
+      "htmlRowText": "11231 V tp C2 Europe A 49 | DVB-S2 QPSK 42000 5/6 | Total TV | 366-40200 | 5.2 | Conax Irdeto Nagravision Videoguard | M Al-Taie 260423"
+    },
+    {
+      "frequencyMHz": 3731,
+      "beamName": "Play",
+      "symbolRate": 773,
+      "htmlRowText": "773 | Play | 3731 Srp"
+    },
+    {
+      "frequencyMHz": 3831,
+      "beamName": "Radio BN",
+      "symbolRate": 783,
+      "htmlRowText": "783 | Radio BN | 3831 Srp"
+    },
+    {
+      "frequencyMHz": 11234,
+      "polarization": "H",
+      "transponderNumber": "C1",
+      "transponderName": "TP C1",
+      "beamName": "Irdeto Videoguard",
+      "system": "DVB-S2",
+      "symbolRate": 7500,
+      "fec": "2/3",
+      "provider": "M Al-Taie 250604; 366-40100; M:Sat TV",
+      "htmlRowText": "11234 H tp C1 Europe A 49 | DVB-S2 QPSK 7500 2/3 | M:Sat TV | 366-40100 | 3.1 | Irdeto Videoguard | M Al-Taie 250604"
+    },
+    {
+      "frequencyMHz": 11262,
+      "polarization": "H",
+      "transponderNumber": "C3",
+      "transponderName": "TP C3",
+      "beamName": "Conax Irdeto Viaccess Videoguard",
+      "system": "DVB-S2",
+      "symbolRate": 30000,
+      "fec": "2/3",
+      "provider": "M Al-Taie 250804; Team:Media; 366-1",
+      "htmlRowText": "11262 H tp C3 Europe B 50 | DVB-S2 8PSK 30000 2/3 | Team:Media | 366-1 | 6.6 | Conax Irdeto Viaccess Videoguard | M Al-Taie 250804"
+    },
+    {
+      "transponderNumber": "V5",
+      "beamName": "Irdeto Videoguard",
+      "system": "MPEG-4",
+      "eirpDbw": 59,
+      "provider": "5592 Srp",
+      "htmlRowText": "59 | V5 | MPEG-4/SD | 5591 | 5592 Srp | Irdeto Videoguard"
+    },
+    {
+      "transponderNumber": "K3",
+      "beamName": "Irdeto Videoguard",
+      "system": "MPEG-4",
+      "eirpDbw": 67,
+      "provider": "5672 Srp",
+      "htmlRowText": "67 | TV K3 | MPEG-4/SD | 5671 | 5672 Srp | Irdeto Videoguard"
+    },
+    {
+      "frequencyMHz": 11283,
+      "polarization": "V",
+      "transponderNumber": "C4",
+      "transponderName": "TP C4",
+      "beamName": "Janlakomcik Lexzie 260419",
+      "system": "DVB-S2",
+      "symbolRate": 30000,
+      "fec": "2/3",
+      "provider": "Conax Irdeto Videoguard; A1 Telekom Austria; 366-40400",
+      "htmlRowText": "11283 V tp C4 Europe B 50 | DVB-S2 8PSK 30000 2/3 | A1 Telekom Austria | 366-40400 | 6.6 | Conax Irdeto Videoguard | Janlakomcik Lexzie 260419"
+    },
+    {
+      "frequencyMHz": 3401,
+      "beamName": "Gametoon",
+      "system": "MPEG-4",
+      "symbolRate": 2705,
+      "provider": "3402 Eng; 2705*; Conax",
+      "htmlRowText": "2705* | Gametoon | MPEG-4/HD | 3401 | 3402 Eng | Conax"
+    },
+    {
+      "frequencyMHz": 11324,
+      "polarization": "V",
+      "transponderNumber": "C6",
+      "transponderName": "TP C6",
+      "beamName": "M Al-Taie 260407",
+      "system": "DVB-S2",
+      "symbolRate": 30000,
+      "fec": "2/3",
+      "provider": "Antik Sat; 366-40600; Conax",
+      "htmlRowText": "11324 V tp C6 Europe B 50 | DVB-S2 8PSK 30000 2/3 | Antik Sat | 366-40600 | 6.6 | Conax | M Al-Taie 260407"
+    },
+    {
+      "frequencyMHz": 11366,
+      "polarization": "V",
+      "transponderNumber": "C8",
+      "transponderName": "TP C8",
+      "beamName": "Irdeto Videoguard",
+      "system": "DVB-S2",
+      "symbolRate": 30000,
+      "fec": "3/4",
+      "provider": "M Al-Taie 251208; 366-40800; M:Sat TV",
+      "htmlRowText": "11366 V tp C8 Europe A 49 | DVB-S2 8PSK 30000 3/4 | M:Sat TV | 366-40800 | 7.9 | Irdeto Videoguard | M Al-Taie 251208"
+    },
+    {
+      "frequencyMHz": 11387,
+      "polarization": "H",
+      "transponderNumber": "C9",
+      "transponderName": "TP C9",
+      "beamName": "Conax Irdeto Nagravision Videoguard",
+      "system": "DVB-S2",
+      "symbolRate": 32000,
+      "fec": "3/4",
+      "provider": "Backspeed 67 260214; 366-40900; Total TV",
+      "htmlRowText": "11387 H tp C9 Europe B 50 | DVB-S2 8PSK 32000 3/4 | Total TV | 366-40900 | 7.9 | Conax Irdeto Nagravision Videoguard | Backspeed 67 260214"
+    },
+    {
+      "frequencyMHz": 11402,
+      "polarization": "V",
+      "transponderNumber": "C10",
+      "transponderName": "TP C10",
+      "beamName": "F Dibba 250503",
+      "system": "DVB-S2",
+      "symbolRate": 17500,
+      "fec": "3/4",
+      "provider": "2046-400; Vidi TV",
+      "htmlRowText": "11402 V tp C10 Europe B 50 | DVB-S2 8PSK 17500 3/4 T2-MI PLP 0 | Vidi TV | 2046-400 | 7.9 | F Dibba 250503"
+    },
+    {
+      "frequencyMHz": 4001,
+      "beamName": "4115 Bos",
+      "system": "MPEG-4",
+      "provider": "O Kanal",
+      "htmlRowText": "4001 | O Kanal | MPEG-4/HD | 4113 | 4115 Bos"
+    },
+    {
+      "frequencyMHz": 4003,
+      "beamName": "4275 Srp",
+      "system": "MPEG-4",
+      "symbolRate": 4273,
+      "provider": "Nova BH",
+      "htmlRowText": "4003 | Nova BH | MPEG-4/HD | 4273 | 4275 Srp"
+    },
+    {
+      "frequencyMHz": 4004,
+      "beamName": "4099 Srp",
+      "system": "MPEG-4",
+      "htmlRowText": "4004 | BN | MPEG-4/HD | 4097 | 4099 Srp"
+    },
+    {
+      "frequencyMHz": 4005,
+      "beamName": "O Kanal Music",
+      "system": "MPEG-4",
+      "symbolRate": 4257,
+      "provider": "4259 Bos",
+      "htmlRowText": "4005 | O Kanal Music | MPEG-4/SD | 4257 | 4259 Bos"
+    },
+    {
+      "frequencyMHz": 4006,
+      "beamName": "OBN (Bosnia and Herzegovina)",
+      "system": "MPEG-4",
+      "provider": "4195 Bos",
+      "htmlRowText": "4006 | OBN (Bosnia and Herzegovina) | MPEG-4/SD | 4193 | 4195 Bos"
+    },
+    {
+      "frequencyMHz": 4007,
+      "transponderNumber": "N1",
+      "beamName": "4227 Bos",
+      "system": "MPEG-4",
+      "symbolRate": 4225,
+      "htmlRowText": "4007 | N1 Bosna i Hercegovina | MPEG-4/SD | 4225 | 4227 Bos"
+    },
+    {
+      "frequencyMHz": 4008,
+      "beamName": "TV Sarajevo",
+      "system": "MPEG-4",
+      "provider": "4163 Bos",
+      "htmlRowText": "4008 | TV Sarajevo | MPEG-4/SD | 4161 | 4163 Bos"
+    },
+    {
+      "frequencyMHz": 4009,
+      "beamName": "4291 Bos",
+      "system": "MPEG-4",
+      "symbolRate": 4289,
+      "provider": "RTV TK",
+      "htmlRowText": "4009 | RTV TK | MPEG-4/SD | 4289 | 4291 Bos"
+    },
+    {
+      "frequencyMHz": 4010,
+      "beamName": "Hit TV (Bosnia and Herzegovina)",
+      "system": "MPEG-4",
+      "symbolRate": 4209,
+      "htmlRowText": "4010 | Hit TV (Bosnia and Herzegovina) | MPEG-4/SD | 4209 | 4211"
+    },
+    {
+      "frequencyMHz": 4013,
+      "beamName": "4307 Bos",
+      "system": "MPEG-4",
+      "symbolRate": 4305,
+      "provider": "TV USK",
+      "htmlRowText": "4013 | TV USK | MPEG-4/HD | 4305 | 4307 Bos"
+    },
+    {
+      "frequencyMHz": 4014,
+      "beamName": "4147 Bos",
+      "system": "MPEG-4",
+      "provider": "TV BPK",
+      "htmlRowText": "4014 | TV BPK | MPEG-4/SD | 4145 | 4147 Bos"
+    },
+    {
+      "frequencyMHz": 4015,
+      "beamName": "Herceg TV",
+      "system": "MPEG-4",
+      "symbolRate": 4241,
+      "provider": "4243 Srp",
+      "htmlRowText": "4015 | Herceg TV | MPEG-4/HD | 4241 | 4243 Srp"
+    },
+    {
+      "frequencyMHz": 4016,
+      "beamName": "Pro TV",
+      "system": "MPEG-4",
+      "symbolRate": 4337,
+      "htmlRowText": "4016 | Pro TV | MPEG-4/SD | 4337 | 4339"
+    },
+    {
+      "frequencyMHz": 4017,
+      "beamName": "NTV Arena",
+      "system": "MPEG-4",
+      "symbolRate": 4321,
+      "htmlRowText": "4017 | NTV Arena | MPEG-4/SD | 4321 | 4323"
+    },
+    {
+      "frequencyMHz": 4019,
+      "beamName": "4179 Srp",
+      "system": "MPEG-4",
+      "provider": "RTVIS",
+      "htmlRowText": "4019 | RTVIS | MPEG-4/SD | 4177 | 4179 Srp"
+    },
+    {
+      "frequencyMHz": 4020,
+      "transponderNumber": "K3",
+      "beamName": "4131 Srp",
+      "system": "MPEG-4",
+      "htmlRowText": "4020 | TV K3 | MPEG-4/SD | 4129 | 4131 Srp"
+    },
+    {
+      "frequencyMHz": 11429,
+      "polarization": "V",
+      "transponderNumber": "C10",
+      "transponderName": "TP C10",
+      "beamName": "A7Sats Ahmad 1ilil21 M Al-Taie 250728",
+      "system": "DVB-S2",
+      "symbolRate": 28330,
+      "fec": "3/5",
+      "provider": "Irdeto Videoguard; 366-41000; M:Sat TV",
+      "htmlRowText": "11429 V tp C10 Europe B 50 | DVB-S2 8PSK 28330 3/5 | M:Sat TV | 366-41000 | 5.5 | Irdeto Videoguard | A7Sats Ahmad 1ilil21 M Al-Taie 250728"
+    },
+    {
+      "frequencyMHz": 11471,
+      "polarization": "H",
+      "transponderNumber": "D1",
+      "transponderName": "TP D1",
+      "beamName": "Conax Irdeto Nagravision Videoguard",
+      "system": "DVB-S2",
+      "symbolRate": 30000,
+      "fec": "3/4",
+      "provider": "M Al-Taie 260402; 366-50100; Total TV",
+      "htmlRowText": "11471 H tp D1 Europe B 50 | DVB-S2 8PSK 30000 3/4 | Total TV | 366-50100 | 7.9 | Conax Irdeto Nagravision Videoguard | M Al-Taie 260402"
+    },
+    {
+      "frequencyMHz": 3771,
+      "beamName": "TV Slovenija 1",
+      "system": "MPEG-4",
+      "symbolRate": 877,
+      "htmlRowText": "877 | TV Slovenija 1 | MPEG-4/HD | 277 | 3771 Slv"
+    },
+    {
+      "frequencyMHz": 3781,
+      "beamName": "TV Slovenija 2",
+      "system": "MPEG-4",
+      "symbolRate": 878,
+      "htmlRowText": "878 | TV Slovenija 2 | MPEG-4/HD | 278 | 3781 Slv"
+    },
+    {
+      "frequencyMHz": 3791,
+      "beamName": "TV Slovenija 3",
+      "system": "MPEG-4",
+      "symbolRate": 879,
+      "htmlRowText": "879 | TV Slovenija 3 | MPEG-4/HD | 279 | 3791 Slv"
+    },
+    {
+      "frequencyMHz": 3801,
+      "beamName": "Prvi",
+      "symbolRate": 880,
+      "htmlRowText": "880 | Prvi | 3801 Slv"
+    },
+    {
+      "frequencyMHz": 3811,
+      "beamName": "Val 202",
+      "symbolRate": 881,
+      "htmlRowText": "881 | Val 202 | 3811 Slv"
+    },
+    {
+      "frequencyMHz": 3821,
+      "symbolRate": 882,
+      "htmlRowText": "882 | Ars | 3821 Slv"
+    },
+    {
+      "frequencyMHz": 3831,
+      "beamName": "Radio Si",
+      "symbolRate": 883,
+      "htmlRowText": "883 | Radio Si | 3831"
+    },
+    {
+      "frequencyMHz": 11471,
+      "polarization": "V",
+      "transponderNumber": "D2",
+      "transponderName": "TP D2",
+      "beamName": "Conax Irdeto Videoguard",
+      "system": "DVB-S2",
+      "symbolRate": 30000,
+      "fec": "5/6",
+      "provider": "M Al-Taie 260313; A1 Croatia; 366-50200",
+      "htmlRowText": "11471 V tp D2 Europe B 50 | DVB-S2 8PSK 30000 5/6 | A1 Croatia | 366-50200 | 9.4 | Conax Irdeto Videoguard | M Al-Taie 260313"
+    },
+    {
+      "frequencyMHz": 4001,
+      "beamName": "4002 Bul 4003 Eng",
+      "system": "MPEG-4",
+      "symbolRate": 626,
+      "provider": "TLC Balkan; Conax; 626*",
+      "htmlRowText": "626* | TLC Balkan | MPEG-4/SD | 4001 | 4002 Bul 4003 Eng | Conax"
+    },
+    {
+      "frequencyMHz": 11471,
+      "polarization": "H",
+      "transponderNumber": "L1",
+      "transponderName": "TP L1",
+      "beamName": "M Al-Taie T Viererbe 250301",
+      "system": "DVB-S2",
+      "symbolRate": 30000,
+      "fec": "2/3",
+      "provider": "Mediaguard Viaccess; Canal+ Réunion; 366-50300",
+      "htmlRowText": "11471 H tp L1 South East Africa 0 | DVB-S2 8PSK 30000 2/3 | Canal+ Réunion | 366-50300 | 6.6 | Mediaguard Viaccess | M Al-Taie T Viererbe 250301"
+    },
+    {
+      "frequencyMHz": 11512,
+      "polarization": "H",
+      "transponderNumber": "D3",
+      "transponderName": "TP D3",
+      "beamName": "Conax Irdeto Nagravision Viaccess Videoguard",
+      "system": "DVB-S2",
+      "symbolRate": 30000,
+      "fec": "3/4",
+      "eirpDbw": 64,
+      "provider": "Backspeed 67 260214; Max TV; 64-1",
+      "htmlRowText": "11512 H tp D3 Europe B 50 | DVB-S2 8PSK 30000 3/4 | Max TV | 64-1 | 7.9 | Conax Irdeto Nagravision Viaccess Videoguard | Backspeed 67 260214"
+    },
+    {
+      "frequencyMHz": 11512,
+      "polarization": "V",
+      "transponderNumber": "D4",
+      "transponderName": "TP D4",
+      "beamName": "D Lita Crazylee Janlakomcik M Al-Taie 260401",
+      "system": "DVB-S2",
+      "symbolRate": 29950,
+      "fec": "2/3",
+      "provider": "TV Româna; 1-200",
+      "htmlRowText": "11512 V tp D4 Europe B 50 | DVB-S2 8PSK 29950 2/3 | TV Româna | 1-200 | 6.6 | D Lita Crazylee Janlakomcik M Al-Taie 260401"
+    },
+    {
+      "frequencyMHz": 11512,
+      "polarization": "H",
+      "transponderNumber": "L3",
+      "transponderName": "TP L3",
+      "beamName": "Mediaguard Viaccess",
+      "system": "DVB-S2",
+      "symbolRate": 30000,
+      "fec": "2/3",
+      "provider": "D de Jong 260102; Canal+ Réunion; 366-50400",
+      "htmlRowText": "11512 H tp L3 South East Africa 0 | DVB-S2 8PSK 30000 2/3 | Canal+ Réunion | 366-50400 | 6.6 | Mediaguard Viaccess | D de Jong 260102"
+    },
+    {
+      "frequencyMHz": 11554,
+      "polarization": "H",
+      "transponderNumber": "D5",
+      "transponderName": "TP D5",
+      "beamName": "Conax Irdeto Nagravision Videoguard",
+      "system": "DVB-S2",
+      "symbolRate": 30000,
+      "fec": "3/4",
+      "provider": "M Al-Taie 260402; 366-50500; Total TV",
+      "htmlRowText": "11554 H tp D5 Europe B 50 | DVB-S2 8PSK 30000 3/4 | Total TV | 366-50500 | 7.9 | Conax Irdeto Nagravision Videoguard | M Al-Taie 260402"
+    },
+    {
+      "frequencyMHz": 3641,
+      "beamName": "Nova S",
+      "system": "MPEG-4",
+      "symbolRate": 1764,
+      "htmlRowText": "1764 | Nova S | MPEG-4/HD | 264 | 3641 Srp"
+    },
+    {
+      "frequencyMHz": 11554,
+      "polarization": "V",
+      "transponderNumber": "D6",
+      "transponderName": "TP D6",
+      "beamName": "Conax Irdeto Nagravision Videoguard",
+      "system": "DVB-S2",
+      "symbolRate": 30000,
+      "fec": "5/6",
+      "provider": "M Al-Taie 260224; A1 Croatia; 366-50600",
+      "htmlRowText": "11554 V tp D6 Europe B 50 | DVB-S2 8PSK 30000 5/6 | A1 Croatia | 366-50600 | 9.4 | Conax Irdeto Nagravision Videoguard | M Al-Taie 260224"
+    },
+    {
+      "frequencyMHz": 11554,
+      "polarization": "H",
+      "transponderNumber": "L5",
+      "transponderName": "TP L5",
+      "beamName": "Mediaguard Nagravision Viaccess",
+      "system": "DVB-S2",
+      "symbolRate": 30000,
+      "fec": "5/6",
+      "provider": "Sigma Réunion 211026; Canal+ Réunion; 171-171",
+      "htmlRowText": "11554 H tp L5 South East Africa 0 | DVB-S2 QPSK 30000 5/6 | Canal+ Réunion | 171-171 | 5.2 | Mediaguard Nagravision Viaccess | Sigma Réunion 211026"
+    },
+    {
+      "frequencyMHz": 11595,
+      "polarization": "H",
+      "transponderNumber": "D7",
+      "transponderName": "TP D7",
+      "beamName": "Conax Irdeto Nagravision Videoguard",
+      "system": "DVB-S2",
+      "symbolRate": 30000,
+      "fec": "3/4",
+      "eirpDbw": 64,
+      "provider": "M Al-Taie 260101; Max TV; 64-2",
+      "htmlRowText": "11595 H tp D7 Europe B 50 | DVB-S2 8PSK 30000 3/4 | Max TV | 64-2 | 7.9 | Conax Irdeto Nagravision Videoguard | M Al-Taie 260101"
+    },
+    {
+      "frequencyMHz": 11595,
+      "polarization": "V",
+      "transponderNumber": "D8",
+      "transponderName": "TP D8",
+      "beamName": "Irdeto Nagravision Videoguard",
+      "system": "DVB-S2",
+      "symbolRate": 30000,
+      "fec": "3/4",
+      "provider": "M Al-Taie 260402; 366-30203; Total TV",
+      "htmlRowText": "11595 V tp D8 Europe B 50 | DVB-S2 8PSK 30000 3/4 | Total TV | 366-30203 | 7.9 | Irdeto Nagravision Videoguard | M Al-Taie 260402"
+    },
+    {
+      "frequencyMHz": 3511,
+      "beamName": "K CN 1",
+      "system": "MPEG-4",
+      "symbolRate": 1351,
+      "htmlRowText": "1351 | K CN 1 | MPEG-4/HD | 251 | 3511 Srp"
+    },
+    {
+      "frequencyMHz": 3691,
+      "beamName": "K CN 2",
+      "system": "MPEG-4",
+      "symbolRate": 1369,
+      "htmlRowText": "1369 | K CN 2 | MPEG-4/SD | 269 | 3691 Srp"
+    },
+    {
+      "frequencyMHz": 3701,
+      "beamName": "K CN 3",
+      "system": "MPEG-4",
+      "symbolRate": 1370,
+      "htmlRowText": "1370 | K CN 3 | MPEG-4/SD | 270 | 3701 Srp"
+    },
+    {
+      "frequencyMHz": 11596,
+      "polarization": "H",
+      "transponderNumber": "L7",
+      "transponderName": "TP L7",
+      "beamName": "R Jeremy 260215",
+      "htmlRowText": "11596 H tp L7 South East Africa 0 | R Jeremy 260215"
+    },
+    {
+      "frequencyMHz": 11637,
+      "polarization": "H",
+      "transponderNumber": "D9",
+      "transponderName": "TP D9",
+      "beamName": "Conax Irdeto Nagravision Videoguard",
+      "system": "DVB-S2",
+      "symbolRate": 30000,
+      "fec": "5/6",
+      "provider": "A1 Telekom Austria; M Al-Taie 260206; 366-50900",
+      "htmlRowText": "11637 H tp D9 Europe B 50 | DVB-S2 8PSK 30000 5/6 | A1 Telekom Austria | 366-50900 | 9.4 | Conax Irdeto Nagravision Videoguard | M Al-Taie 260206"
+    },
+    {
+      "frequencyMHz": 3401,
+      "beamName": "3402 Hrv 3404 Slv 3405 Mac 3406 Srp 3421 Eng",
+      "system": "MPEG-4",
+      "symbolRate": 1924,
+      "provider": "Conax Irdeto Nagravision; HBO Adria",
+      "htmlRowText": "1924 | HBO Adria | MPEG-4/HD | 3401 | 3402 Hrv 3404 Slv 3405 Mac 3406 Srp 3421 Eng | Conax Irdeto Nagravision"
+    },
+    {
+      "frequencyMHz": 3501,
+      "beamName": "3502 Hrv 3504 Slv 3505 Mac 3506 Srp 3521 Eng",
+      "system": "MPEG-4",
+      "symbolRate": 1925,
+      "provider": "Conax Irdeto Nagravision Videoguard; HBO 2 Central Europe",
+      "htmlRowText": "1925 | HBO 2 Central Europe | MPEG-4/HD | 3501 | 3502 Hrv 3504 Slv 3505 Mac 3506 Srp 3521 Eng | Conax Irdeto Nagravision Videoguard"
+    },
+    {
+      "frequencyMHz": 3601,
+      "beamName": "Conax Irdeto Nagravision Videoguard",
+      "system": "MPEG-4",
+      "symbolRate": 1926,
+      "provider": "3602 Hrv 3605 Slv 3606 Srp; Cinemax Central Europe; 1926*",
+      "htmlRowText": "1926* | Cinemax Central Europe | MPEG-4/HD | 3601 | 3602 Hrv 3605 Slv 3606 Srp | Conax Irdeto Nagravision Videoguard"
+    },
+    {
+      "frequencyMHz": 3701,
+      "beamName": "Conax Irdeto Nagravision Videoguard",
+      "system": "MPEG-4",
+      "symbolRate": 1927,
+      "provider": "3702 Hrv 3705 Slv 3706 Srp; Cinemax 2 Central Europe; 1927*",
+      "htmlRowText": "1927* | Cinemax 2 Central Europe | MPEG-4/HD | 3701 | 3702 Hrv 3705 Slv 3706 Srp | Conax Irdeto Nagravision Videoguard"
+    },
+    {
+      "frequencyMHz": 11637,
+      "polarization": "V",
+      "transponderNumber": "D10",
+      "transponderName": "TP D10",
+      "beamName": "M Gusset Wellikan 250401",
+      "system": "DVB-S2",
+      "symbolRate": 30000,
+      "fec": "2/3",
+      "provider": "366-51000",
+      "htmlRowText": "11637 V tp D10 Europe B 50 | DVB-S2 8PSK 30000 2/3 | OIV | 366-51000 | 6.6 | M Gusset Wellikan 250401"
+    },
+    {
+      "frequencyMHz": 3401,
+      "beamName": "112 Hrv",
+      "system": "MPEG-4",
+      "provider": "HRT 1",
+      "htmlRowText": "3401 | HRT 1 | MPEG-4/HD | 111 | 112 Hrv"
+    },
+    {
+      "frequencyMHz": 3402,
+      "beamName": "Viaccess",
+      "system": "MPEG-4",
+      "provider": "122 Hrv; HRT 2",
+      "htmlRowText": "3402 | HRT 2 | MPEG-4/HD | 121 | 122 Hrv | Viaccess"
+    },
+    {
+      "frequencyMHz": 3403,
+      "beamName": "Viaccess",
+      "system": "MPEG-4",
+      "provider": "132 Hrv; HRT 3",
+      "htmlRowText": "3403 | HRT 3 | MPEG-4/HD | 131 | 132 Hrv | Viaccess"
+    },
+    {
+      "frequencyMHz": 3404,
+      "beamName": "142 Hrv",
+      "system": "MPEG-4",
+      "provider": "HRT 4",
+      "htmlRowText": "3404 | HRT 4 | MPEG-4/HD | 141 | 142 Hrv"
+    },
+    {
+      "frequencyMHz": 3406,
+      "beamName": "HRT International",
+      "system": "MPEG-4",
+      "provider": "162 Hrv",
+      "htmlRowText": "3406 | HRT International | MPEG-4/HD | 161 | 162 Hrv"
+    },
+    {
+      "frequencyMHz": 3411,
+      "beamName": "HR Prvi program",
+      "provider": "212 Hrv",
+      "htmlRowText": "3411 | HR Prvi program | 212 Hrv"
+    },
+    {
+      "frequencyMHz": 3412,
+      "beamName": "HR Drugi program",
+      "provider": "222 Hrv",
+      "htmlRowText": "3412 | HR Drugi program | 222 Hrv"
+    },
+    {
+      "frequencyMHz": 3413,
+      "beamName": "HR Treci program",
+      "provider": "232 Hrv",
+      "htmlRowText": "3413 | HR Treci program | 232 Hrv"
+    },
+    {
+      "frequencyMHz": 3416,
+      "beamName": "Hrvatski Katolicki Radio",
+      "provider": "262 Hrv",
+      "htmlRowText": "3416 | Hrvatski Katolicki Radio | 262 Hrv"
+    },
+    {
+      "frequencyMHz": 11637,
+      "polarization": "H",
+      "transponderNumber": "L9",
+      "transponderName": "TP L9",
+      "beamName": "Anonymous 250115",
+      "system": "DVB-S2",
+      "symbolRate": 30000,
+      "fec": "2/3",
+      "provider": "Canal+ Réunion; Mediaguard; 366-50500",
+      "htmlRowText": "11637 H tp L9 South East Africa 0 | DVB-S2 8PSK 30000 2/3 | Canal+ Réunion | 366-50500 | 6.6 | Mediaguard | Anonymous 250115"
+    },
+    {
+      "frequencyMHz": 11678,
+      "polarization": "H",
+      "transponderNumber": "D11",
+      "transponderName": "TP D11",
+      "beamName": "Conax Irdeto Nagravision Viaccess Videoguard",
+      "system": "DVB-S2",
+      "symbolRate": 30000,
+      "fec": "3/4",
+      "eirpDbw": 64,
+      "provider": "Janlakomcik 260419; Max TV; 64-3",
+      "htmlRowText": "11678 H tp D11 Europe B 50 | DVB-S2 8PSK 30000 3/4 | Max TV | 64-3 | 7.9 | Conax Irdeto Nagravision Viaccess Videoguard | Janlakomcik 260419"
+    },
+    {
+      "frequencyMHz": 11678,
+      "polarization": "V",
+      "transponderNumber": "D12",
+      "transponderName": "TP D12",
+      "beamName": "Conax Irdeto Nagravision Videoguard",
+      "system": "DVB-S2",
+      "symbolRate": 30000,
+      "fec": "3/4",
+      "provider": "M Al-Taie 260416; 366-30204; Total TV",
+      "htmlRowText": "11678 V tp D12 Europe B 50 | DVB-S2 8PSK 30000 3/4 | Total TV | 366-30204 | 7.9 | Conax Irdeto Nagravision Videoguard | M Al-Taie 260416"
+    },
+    {
+      "frequencyMHz": 3661,
+      "transponderNumber": "N1",
+      "system": "MPEG-4",
+      "symbolRate": 1466,
+      "htmlRowText": "1466 | N1 Srbija | MPEG-4/HD | 266 | 3661 Srp"
+    },
+    {
+      "frequencyMHz": 12508,
+      "polarization": "V",
+      "transponderNumber": "F2",
+      "transponderName": "TP F2",
+      "beamName": "Roli 250928",
+      "system": "DVB-S2",
+      "symbolRate": 7200,
+      "fec": "3/4",
+      "provider": "(feeds)",
+      "htmlRowText": "12508 V tp F2 Europe B | DVB-S2 8PSK 7200 3/4 | (feeds) | Roli 250928"
+    },
+    {
+      "frequencyMHz": 12509,
+      "polarization": "H",
+      "transponderNumber": "F1",
+      "transponderName": "TP F1",
+      "beamName": "Jamie A Roli 251018",
+      "system": "DVB-S2",
+      "symbolRate": 4800,
+      "fec": "3/4",
+      "provider": "(feeds)",
+      "htmlRowText": "12509 H tp F1 Europe A | DVB-S2 8PSK 4800 3/4 | (feeds) | Jamie A Roli 251018"
+    },
+    {
+      "frequencyMHz": 12517,
+      "polarization": "H",
+      "transponderNumber": "F1",
+      "transponderName": "TP F1",
+      "beamName": "Roli 260425",
+      "system": "DVB-S2",
+      "symbolRate": 4937,
+      "fec": "3/4",
+      "provider": "(feeds)",
+      "htmlRowText": "12517 H tp F1 Europe A | DVB-S2 8PSK 4937 3/4 | (feeds) | Roli 260425"
+    },
+    {
+      "frequencyMHz": 12522,
+      "polarization": "V",
+      "transponderNumber": "F2",
+      "transponderName": "TP F2",
+      "beamName": "A Busneag 250921",
+      "system": "DVB-S2",
+      "symbolRate": 10833,
+      "fec": "3/5",
+      "provider": "366-1; RTSH",
+      "htmlRowText": "12522 V tp F2 Europe B 50 | DVB-S2 8PSK 10833 3/5 | RTSH | 366-1 | 5.5 | A Busneag 250921"
+    },
+    {
+      "frequencyMHz": 12523,
+      "polarization": "H",
+      "transponderNumber": "F1",
+      "transponderName": "TP F1",
+      "beamName": "Roli 260425",
+      "system": "DVB-S2",
+      "symbolRate": 4937,
+      "fec": "3/4",
+      "provider": "(feeds)",
+      "htmlRowText": "12523 H tp F1 Europe A | DVB-S2 8PSK 4937 3/4 | (feeds) | Roli 260425"
+    },
+    {
+      "frequencyMHz": 12537,
+      "polarization": "V",
+      "transponderNumber": "F2",
+      "transponderName": "TP F2",
+      "beamName": "P Piotrowski 260107",
+      "system": "DVB-S2",
+      "symbolRate": 13910,
+      "fec": "3/4",
+      "provider": "Vivacom DTT; 8292-5300",
+      "htmlRowText": "12537 V tp F2 Europe B 50 | DVB-S2 QPSK 13910 3/4 PLS Gold 210115 Multistream Stream 3 | Vivacom DTT | 8292-5300 | 4.0 | P Piotrowski 260107"
+    },
+    {
+      "frequencyMHz": 12541,
+      "transponderNumber": "F1",
+      "transponderName": "TP F1",
+      "beamName": "A Wisher 260408",
+      "system": "DVB-S2",
+      "symbolRate": 25599,
+      "fec": "3/5",
+      "provider": "Joe Vlaanderen; 2.2 111 Dut; ?-?",
+      "htmlRowText": "12541. 1 H tp F1 Europe A 49 | DVB-S2 QPSK 405 3/5 | 25599 | Joe Vlaanderen | ?-? | 2.2 111 Dut | A Wisher 260408"
+    },
+    {
+      "frequencyMHz": 12541,
+      "transponderNumber": "F1",
+      "transponderName": "TP F1",
+      "beamName": "Q-music Vlaanderen",
+      "system": "DVB-S2",
+      "symbolRate": 21438,
+      "fec": "3/5",
+      "provider": "A Wisher 260408; 2.2 101 Dut; ?-?",
+      "htmlRowText": "12541. 6 H tp F1 Europe A 49 | DVB-S2 QPSK 405 3/5 | 21438 | Q-music Vlaanderen | ?-? | 2.2 101 Dut | A Wisher 260408"
+    },
+    {
+      "frequencyMHz": 12542,
+      "transponderNumber": "F1",
+      "transponderName": "TP F1",
+      "beamName": "Q-music Nederland",
+      "system": "DVB-S2",
+      "symbolRate": 21411,
+      "fec": "3/5",
+      "provider": "A Wisher 260408; 2.2 101 Dut; ?-?",
+      "htmlRowText": "12542. 1 H tp F1 Europe A 49 | DVB-S2 QPSK 405 3/5 | 21411 | Q-music Nederland | ?-? | 2.2 101 Dut | A Wisher 260408"
+    },
+    {
+      "frequencyMHz": 12548,
+      "polarization": "V",
+      "transponderNumber": "F2",
+      "transponderName": "TP F2",
+      "beamName": "Jamie A 260427",
+      "system": "DVB-S2",
+      "symbolRate": 4800,
+      "fec": "3/4",
+      "provider": "(feeds)",
+      "htmlRowText": "12548 V tp F2 Europe B | DVB-S2 8PSK 4800 3/4 | (feeds) | Jamie A 260427"
+    },
+    {
+      "frequencyMHz": 12550,
+      "polarization": "H",
+      "transponderNumber": "F1",
+      "transponderName": "TP F1",
+      "beamName": "Jamie A 260412",
+      "system": "DVB-S2",
+      "symbolRate": 3600,
+      "fec": "3/4",
+      "provider": "(ENEX feeds)",
+      "htmlRowText": "12550 H tp F1 Europe A | DVB-S2 8PSK 3600 3/4 | (ENEX feeds) | Jamie A 260412"
+    },
+    {
+      "frequencyMHz": 12554,
+      "polarization": "V",
+      "transponderNumber": "F2",
+      "transponderName": "TP F2",
+      "beamName": "(Polsat feeds)",
+      "system": "DVB-S2",
+      "symbolRate": 4800,
+      "fec": "3/4",
+      "provider": "Roli 250509",
+      "htmlRowText": "12554 V tp F2 Europe B | DVB-S2 8PSK 4800 3/4 | (Polsat feeds) | Roli 250509"
+    },
+    {
+      "frequencyMHz": 12555,
+      "polarization": "H",
+      "transponderNumber": "F1",
+      "transponderName": "TP F1",
+      "beamName": "Roli Jamie A 250918",
+      "system": "DVB-S2",
+      "symbolRate": 3700,
+      "fec": "5/6",
+      "provider": "(ENEX feeds)",
+      "htmlRowText": "12555 H tp F1 Europe A | DVB-S2 8PSK 3700 5/6 | (ENEX feeds) | Roli Jamie A 250918"
+    },
+    {
+      "frequencyMHz": 12562,
+      "polarization": "H",
+      "transponderNumber": "H2",
+      "transponderName": "TP H2",
+      "beamName": "Anonymous 241010",
+      "system": "DVB-S2",
+      "symbolRate": 30000,
+      "fec": "2/3",
+      "provider": "New World TV; 367-60200; Conax",
+      "htmlRowText": "12562 H tp H2 Africa 0 | DVB-S2 8PSK 30000 2/3 | New World TV | 367-60200 | 6.6 | Conax | Anonymous 241010"
+    },
+    {
+      "frequencyMHz": 12563,
+      "polarization": "H",
+      "transponderNumber": "F1",
+      "transponderName": "TP F1",
+      "beamName": "Roli 250802",
+      "system": "DVB-S2",
+      "symbolRate": 4937,
+      "fec": "3/4",
+      "provider": "(feeds)",
+      "htmlRowText": "12563 H tp F1 Europe A | DVB-S2 8PSK 4937 3/4 | (feeds) | Roli 250802"
+    },
+    {
+      "frequencyMHz": 12568,
+      "polarization": "V",
+      "transponderNumber": "F2",
+      "transponderName": "TP F2",
+      "beamName": "M Al-Taie R-D Alexandru 260125",
+      "system": "DVB-S2",
+      "symbolRate": 16667,
+      "fec": "3/5",
+      "provider": "TV Româna; 366-17022",
+      "htmlRowText": "12568 V tp F2 Europe B 50 | DVB-S2 8PSK 16667 3/5 | TV Româna | 366-17022 | 5.5 | M Al-Taie R-D Alexandru 260125"
+    },
+    {
+      "frequencyMHz": 12571,
+      "polarization": "H",
+      "transponderNumber": "F1",
+      "transponderName": "TP F1",
+      "beamName": "Roli 251124",
+      "system": "DVB-S2",
+      "symbolRate": 9600,
+      "fec": "3/4",
+      "provider": "(feeds)",
+      "htmlRowText": "12571 H tp F1 Europe A | DVB-S2 8PSK 9600 3/4 | (feeds) | Roli 251124"
+    },
+    {
+      "frequencyMHz": 12589,
+      "transponderNumber": "F4",
+      "transponderName": "TP F4",
+      "beamName": "Jamie A 201101",
+      "system": "DVB-S",
+      "fec": "3/4",
+      "provider": "Radio Gdansk; 5.5 101 Pol; 10-100",
+      "htmlRowText": "12589. 0 V tp F4 Europe B 50 | DVB-S 146 3/4 | 104 | Radio Gdansk | 10-100 | 5.5 101 Pol | Jamie A 201101"
+    },
+    {
+      "frequencyMHz": 12593,
+      "polarization": "V",
+      "transponderNumber": "F4",
+      "transponderName": "TP F4",
+      "beamName": "W Zaremba 120312",
+      "system": "DVB-S",
+      "symbolRate": 2500,
+      "fec": "2/3",
+      "provider": "4.4 768 Srp; DM Sat",
+      "htmlRowText": "12593 V tp F4 Europe B 50 | DVB-S 2500 2/3 | 1 | DM Sat | 1-2680 MPEG-2/SD | 512 | 4.4 768 Srp | W Zaremba 120312"
+    },
+    {
+      "frequencyMHz": 12595,
+      "polarization": "H",
+      "transponderNumber": "F3",
+      "transponderName": "TP F3",
+      "beamName": "Jamie A Roli 250503",
+      "system": "DVB-S2",
+      "symbolRate": 3750,
+      "fec": "5/6",
+      "provider": "(feeds)",
+      "htmlRowText": "12595 H tp F3 Europe B | DVB-S2 8PSK 3750 5/6 | (feeds) | Jamie A Roli 250503"
+    },
+    {
+      "frequencyMHz": 12600,
+      "polarization": "H",
+      "transponderNumber": "F3",
+      "transponderName": "TP F3",
+      "beamName": "Jamie A 250503",
+      "system": "DVB-S2",
+      "symbolRate": 3750,
+      "fec": "5/6",
+      "provider": "(feeds)",
+      "htmlRowText": "12600 H tp F3 Europe B | DVB-S2 8PSK 3750 5/6 | (feeds) | Jamie A 250503"
+    },
+    {
+      "frequencyMHz": 12604,
+      "polarization": "H",
+      "transponderNumber": "H3",
+      "transponderName": "TP H3",
+      "beamName": "Anonymous 241010",
+      "system": "DVB-S2",
+      "symbolRate": 30000,
+      "fec": "3/4",
+      "provider": "New World TV; 367-60300; Conax",
+      "htmlRowText": "12604 H tp H3 Africa 0 | DVB-S2 8PSK 30000 3/4 | New World TV | 367-60300 | 7.9 | Conax | Anonymous 241010"
+    },
+    {
+      "frequencyMHz": 12607,
+      "polarization": "V",
+      "transponderNumber": "F4",
+      "transponderName": "TP F4",
+      "beamName": "Jamie A 260408",
+      "system": "DVB-S2",
+      "symbolRate": 10000,
+      "fec": "3/4",
+      "provider": "(feeds)",
+      "htmlRowText": "12607 V tp F4 Europe B | DVB-S2 8PSK 10000 3/4 | (feeds) | Jamie A 260408"
+    },
+    {
+      "frequencyMHz": 12627,
+      "polarization": "V",
+      "transponderNumber": "F4",
+      "transponderName": "TP F4",
+      "beamName": "Roli 250901",
+      "system": "DVB-S2",
+      "symbolRate": 4800,
+      "fec": "3/4",
+      "provider": "(feeds)",
+      "htmlRowText": "12627 V tp F4 Europe B | DVB-S2 8PSK 4800 3/4 | (feeds) | Roli 250901"
+    },
+    {
+      "frequencyMHz": 12636,
+      "polarization": "V",
+      "transponderNumber": "F4",
+      "transponderName": "TP F4",
+      "beamName": "Jamie A Roli 251004",
+      "system": "DVB-S2",
+      "symbolRate": 3600,
+      "fec": "3/4",
+      "provider": "(feeds)",
+      "htmlRowText": "12636 V tp F4 Europe B | DVB-S2 8PSK 3600 3/4 | (feeds) | Jamie A Roli 251004"
+    },
+    {
+      "frequencyMHz": 12641,
+      "polarization": "V",
+      "transponderNumber": "F4",
+      "transponderName": "TP F4",
+      "beamName": "Jamie A 251004",
+      "system": "DVB-S2",
+      "symbolRate": 3600,
+      "fec": "3/4",
+      "provider": "(feeds)",
+      "htmlRowText": "12641 V tp F4 Europe B | DVB-S2 8PSK 3600 3/4 | (feeds) | Jamie A 251004"
+    },
+    {
+      "frequencyMHz": 12646,
+      "polarization": "H",
+      "transponderNumber": "F3",
+      "transponderName": "TP F3",
+      "beamName": "Roli 250509",
+      "system": "DVB-S2",
+      "symbolRate": 7200,
+      "fec": "3/4",
+      "provider": "(feeds)",
+      "htmlRowText": "12646 H tp F3 Europe B | DVB-S2 8PSK 7200 3/4 | (feeds) | Roli 250509"
+    },
+    {
+      "frequencyMHz": 12647,
+      "polarization": "V",
+      "transponderNumber": "F4",
+      "transponderName": "TP F4",
+      "beamName": "Jamie A Roli 250905",
+      "system": "DVB-S2",
+      "symbolRate": 7200,
+      "fec": "3/4",
+      "provider": "(feeds)",
+      "htmlRowText": "12647 V tp F4 Europe B | DVB-S2 8PSK 7200 3/4 | (feeds) | Jamie A Roli 250905"
+    },
+    {
+      "frequencyMHz": 12655,
+      "polarization": "H",
+      "transponderNumber": "F3",
+      "transponderName": "TP F3",
+      "beamName": "Roli 250509",
+      "system": "DVB-S2",
+      "symbolRate": 7200,
+      "fec": "3/4",
+      "provider": "(feeds)",
+      "htmlRowText": "12655 H tp F3 Europe B | DVB-S2 8PSK 7200 3/4 | (feeds) | Roli 250509"
+    },
+    {
+      "frequencyMHz": 12656,
+      "polarization": "V",
+      "transponderNumber": "F4",
+      "transponderName": "TP F4",
+      "beamName": "Jamie A Roli 250905",
+      "system": "DVB-S2",
+      "symbolRate": 7200,
+      "fec": "3/4",
+      "provider": "(feeds)",
+      "htmlRowText": "12656 V tp F4 Europe B | DVB-S2 8PSK 7200 3/4 | (feeds) | Jamie A Roli 250905"
+    },
+    {
+      "frequencyMHz": 12682,
+      "polarization": "H",
+      "transponderNumber": "F5",
+      "transponderName": "TP F5",
+      "beamName": "Grupa ZPR Media",
+      "system": "DVB-S2",
+      "symbolRate": 7425,
+      "fec": "2/3",
+      "provider": "Lexzie 250716; 1-1",
+      "htmlRowText": "12682 H tp F5 Europe B 50 | DVB-S2 8PSK 7425 2/3 | Grupa ZPR Media | 1-1 | 6.6 | Lexzie 250716"
+    },
+    {
+      "frequencyMHz": 3990,
+      "beamName": "Radio Vox FM",
+      "provider": "3992 Pol",
+      "htmlRowText": "3990 | Radio Vox FM | 3992 Pol"
+    },
+    {
+      "frequencyMHz": 4000,
+      "beamName": "Radio Plus FM (Poland)",
+      "provider": "4002 Pol",
+      "htmlRowText": "4000 | Radio Plus FM (Poland) | 4002 Pol"
+    },
+    {
+      "frequencyMHz": 4070,
+      "beamName": "Radio Plus Kraków",
+      "provider": "4072 Pol",
+      "htmlRowText": "4070 | Radio Plus Kraków | 4072 Pol"
+    },
+    {
+      "frequencyMHz": 4100,
+      "beamName": "Radio Plus Lodz",
+      "provider": "4102 Pol",
+      "htmlRowText": "4100 | Radio Plus Lodz | 4102 Pol"
+    },
+    {
+      "frequencyMHz": 4110,
+      "beamName": "Radio Plus Olsztyn",
+      "provider": "4112 Pol",
+      "htmlRowText": "4110 | Radio Plus Olsztyn | 4112 Pol"
+    },
+    {
+      "frequencyMHz": 4130,
+      "beamName": "Radio Plus Lublin",
+      "provider": "4132 Pol",
+      "htmlRowText": "4130 | Radio Plus Lublin | 4132 Pol"
+    },
+    {
+      "frequencyMHz": 12687,
+      "polarization": "H",
+      "transponderNumber": "H5",
+      "transponderName": "TP H5",
+      "beamName": "Anonymous 241122",
+      "system": "DVB-S2",
+      "symbolRate": 30000,
+      "fec": "3/4",
+      "provider": "Red Media; 367-60400",
+      "htmlRowText": "12687 H tp H5 Africa 0 | DVB-S2 8PSK 30000 3/4 | Red Media | 367-60400 | 7.9 | Anonymous 241122"
+    },
+    {
+      "frequencyMHz": 12687,
+      "polarization": "V",
+      "transponderNumber": "F6",
+      "transponderName": "TP F6",
+      "beamName": "Jamie A 260313",
+      "system": "DVB-S2",
+      "symbolRate": 2000,
+      "fec": "2/3",
+      "provider": "(BBC feeds)",
+      "htmlRowText": "12687 V tp F6 Europe A | DVB-S2 16APSK 2000 2/3 | (BBC feeds) | Jamie A 260313"
+    },
+    {
+      "frequencyMHz": 12690,
+      "polarization": "H",
+      "transponderNumber": "F5",
+      "transponderName": "TP F5",
+      "beamName": "EnoSat 251222",
+      "system": "DVB-S",
+      "symbolRate": 2963,
+      "fec": "3/4",
+      "provider": "5.5 201 Hun; Hír TV; Conax",
+      "htmlRowText": "12690 H tp F5 Europe B 50 | DVB-S 2963 3/4 | 2 | Hír TV | 1-1 MPEG-2/SD | 200 | 5.5 201 Hun | Conax | EnoSat 251222"
+    },
+    {
+      "frequencyMHz": 12693,
+      "polarization": "H",
+      "transponderNumber": "F5",
+      "transponderName": "TP F5",
+      "beamName": "EnoSat 250106",
+      "system": "DVB-S2",
+      "symbolRate": 2222,
+      "fec": "4/5",
+      "provider": "SNAI mosaic; 1-1 HEVC/HD; 4.7 700 Ita",
+      "htmlRowText": "12693 H tp F5 Europe B 50 | DVB-S2 QPSK 2222 4/5 | 1 | SNAI mosaic | 1-1 HEVC/HD | 512 | 4.7 700 Ita | EnoSat 250106"
+    },
+    {
+      "frequencyMHz": 12698,
+      "polarization": "V",
+      "transponderNumber": "F6",
+      "transponderName": "TP F6",
+      "beamName": "(BBC feeds)",
+      "system": "DVB-S2",
+      "symbolRate": 2000,
+      "fec": "2/3",
+      "provider": "Roli 250822",
+      "htmlRowText": "12698 V tp F6 Europe A | DVB-S2 16APSK 2000 2/3 | (BBC feeds) | Roli 250822"
+    },
+    {
+      "frequencyMHz": 12700,
+      "polarization": "H",
+      "transponderNumber": "F5",
+      "transponderName": "TP F5",
+      "beamName": "EnoSat 250105",
+      "system": "DVB-S",
+      "symbolRate": 9880,
+      "fec": "2/3",
+      "provider": "1-101; SNAI",
+      "htmlRowText": "12700 H tp F5 Europe B 50 | DVB-S 9880 2/3 | SNAI | 1-101 | 4.4 | EnoSat 250105"
+    },
+    {
+      "frequencyMHz": 12707,
+      "polarization": "V",
+      "transponderNumber": "F6",
+      "transponderName": "TP F6",
+      "beamName": "Jamie A 260313",
+      "system": "DVB-S2",
+      "symbolRate": 6000,
+      "fec": "2/3",
+      "provider": "(BBC feeds)",
+      "htmlRowText": "12707 V tp F6 Europe A | DVB-S2 16APSK 6000 2/3 | (BBC feeds) | Jamie A 260313"
+    },
+    {
+      "frequencyMHz": 12713,
+      "polarization": "V",
+      "transponderNumber": "F6",
+      "transponderName": "TP F6",
+      "beamName": "(BBC feeds)",
+      "system": "DVB-S2",
+      "symbolRate": 6000,
+      "fec": "2/3",
+      "provider": "Roli 250822",
+      "htmlRowText": "12713 V tp F6 Europe A | DVB-S2 16APSK 6000 2/3 | (BBC feeds) | Roli 250822"
+    },
+    {
+      "frequencyMHz": 12719,
+      "polarization": "H",
+      "transponderNumber": "F5",
+      "transponderName": "TP F5",
+      "beamName": "Centrul National Media",
+      "system": "DVB-S2",
+      "symbolRate": 5000,
+      "fec": "3/4",
+      "provider": "D Lita 240630; 100-100",
+      "htmlRowText": "12719 H tp F5 Europe B 50 | DVB-S2 QPSK 5000 3/4 | Centrul National Media | 100-100 | 4.0 | BISS 1 | D Lita 240630"
+    },
+    {
+      "frequencyMHz": 12721,
+      "polarization": "V",
+      "transponderNumber": "F6",
+      "transponderName": "TP F6",
+      "beamName": "(BBC feeds)",
+      "system": "DVB-S2",
+      "symbolRate": 6000,
+      "fec": "3/4",
+      "provider": "Roli 250822",
+      "htmlRowText": "12721 V tp F6 Europe A | DVB-S2 8PSK 6000 3/4 | (BBC feeds) | Roli 250822"
+    },
+    {
+      "frequencyMHz": 12724,
+      "polarization": "H",
+      "transponderNumber": "F5",
+      "transponderName": "TP F5",
+      "beamName": "EnoSat 240124",
+      "system": "DVB-S2",
+      "symbolRate": 4100,
+      "fec": "3/4",
+      "provider": "65535-101; PowerVu; Ippica",
+      "htmlRowText": "12724 H tp F5 Europe B 50 | DVB-S2 QPSK 4100 3/4 | Ippica | 65535-101 | 4.0 | PowerVu | EnoSat 240124"
+    },
+    {
+      "frequencyMHz": 12731,
+      "polarization": "H",
+      "transponderNumber": "F5",
+      "transponderName": "TP F5",
+      "beamName": "Grupa Radiowa Agory",
+      "system": "DVB-S2",
+      "symbolRate": 1700,
+      "fec": "2/3",
+      "provider": "EnoSat 260203; .-.",
+      "htmlRowText": "12731 H tp F5 Europe B 50 | DVB-S2 8PSK 1700 2/3 | Grupa Radiowa Agory | .-. | 6.6 | EnoSat 260203"
+    },
+    {
+      "frequencyMHz": 4000,
+      "beamName": "401 Pol",
+      "provider": "Tok FM",
+      "htmlRowText": "4000 | Tok FM | 401 Pol"
+    },
+    {
+      "frequencyMHz": 11000,
+      "beamName": "Radio Zlote Przeboje",
+      "symbolRate": 1101,
+      "provider": "1101 Pol",
+      "htmlRowText": "11000 | Radio Zlote Przeboje | 1101 Pol"
+    },
+    {
+      "frequencyMHz": 12000,
+      "beamName": "Antyradio",
+      "symbolRate": 1201,
+      "provider": "1201 Pol",
+      "htmlRowText": "12000 | Antyradio | 1201 Pol"
+    },
+    {
+      "frequencyMHz": 12734,
+      "polarization": "H",
+      "transponderNumber": "F5",
+      "transponderName": "TP F5",
+      "beamName": "N Stanislav EnoSat P Piotrowski 240804",
+      "system": "DVB-S2",
+      "symbolRate": 3780,
+      "fec": "4/5",
+      "provider": "Grupa RMF; 3-11",
+      "htmlRowText": "12734 H tp F5 Europe B 50 | DVB-S2 QPSK 3780 4/5 | Grupa RMF | 3-11 | 4.7 | N Stanislav EnoSat P Piotrowski 240804"
+    },
+    {
+      "frequencyMHz": 3401,
+      "beamName": "RMF Maxx Pila",
+      "htmlRowText": "0 | RMF Maxx Pila | 3401 Pol"
+    },
+    {
+      "frequencyMHz": 3501,
+      "beamName": "Radio Gra Wroclaw",
+      "htmlRowText": "0 | Radio Gra Wroclaw | 3501 Pol"
+    },
+    {
+      "frequencyMHz": 3601,
+      "beamName": "RMF Classic Warszawa",
+      "htmlRowText": "0 | RMF Classic Warszawa | 3601 Pol"
+    },
+    {
+      "frequencyMHz": 3701,
+      "beamName": "RMF Maxx Warszawa",
+      "htmlRowText": "0 | RMF Maxx Warszawa | 3701 Pol"
+    },
+    {
+      "frequencyMHz": 3801,
+      "beamName": "RMF Maxx Mazowsze",
+      "htmlRowText": "0 | RMF Maxx Mazowsze | 3801 Pol"
+    },
+    {
+      "frequencyMHz": 4101,
+      "beamName": "RMF Maxx Nowy Sacz",
+      "htmlRowText": "0 | RMF Maxx Nowy Sacz | 4101 Pol"
+    },
+    {
+      "frequencyMHz": 12738,
+      "polarization": "H",
+      "transponderNumber": "F5",
+      "transponderName": "TP F5",
+      "beamName": "(TV TRWAM feeds)",
+      "system": "DVB-S2",
+      "symbolRate": 2667,
+      "fec": "3/5",
+      "provider": "Jamie A 260314",
+      "htmlRowText": "12738 H tp F5 Europe B | DVB-S2 8PSK 2667 3/5 | (TV TRWAM feeds) | Jamie A 260314"
+    },
+    {
+      "transponderNumber": "J2",
+      "transponderName": "TP J2",
+      "beamName": "Onacila 130405",
+      "system": "DVB-S2",
+      "symbolRate": 1010,
+      "fec": "2/3",
+      "provider": "6.6 102 Fre; Impact TV",
+      "htmlRowText": "21562 H tp J2 Europe C | DVB-S2 8PSK 1010 2/3 | 200 | Impact TV | 321-103 MPEG-4/SD | 101 | 6.6 102 Fre | Onacila 130405"
+    },
+    {
+      "transponderNumber": "J2",
+      "transponderName": "TP J2",
+      "beamName": "Radio Immaculée Conception",
+      "system": "DVB-S",
+      "fec": "3/4",
+      "provider": "Onacila 140915; 5.5 101 Fre; 1-1",
+      "htmlRowText": "21564 H tp J2 Europe C | DVB-S 128 3/4 | 1000 | Radio Immaculée Conception | 1-1 | 5.5 101 Fre | Onacila 140915"
+    },
+    {
+      "transponderNumber": "J2",
+      "transponderName": "TP J2",
+      "beamName": "Jamie A 230118",
+      "system": "DVB-S2",
+      "symbolRate": 1383,
+      "fec": "3/4",
+      "eirpDbw": 61,
+      "provider": "Equinoxe TV; 7.9 62 Fre",
+      "htmlRowText": "21568 H tp J2 Europe C | DVB-S2 8PSK 1383 3/4 | 1 | Equinoxe TV | 65535-1 MPEG-4/HD | 61 | 7.9 62 Fre | Jamie A 230118"
+    },
+    {
+      "transponderNumber": "J2",
+      "transponderName": "TP J2",
+      "beamName": "Canal 2 International",
+      "system": "DVB-S2",
+      "symbolRate": 2420,
+      "fec": "3/4",
+      "provider": "N Stanislav 241215; 7.9 82 Fre",
+      "htmlRowText": "21576 H tp J2 Europe C | DVB-S2 8PSK 2420 3/4 | 1 | Canal 2 International | 1-1 MPEG-4/HD | 81 | 7.9 82 Fre | N Stanislav 241215"
+    },
+    {
+      "transponderNumber": "J2",
+      "transponderName": "TP J2",
+      "beamName": "N Stanislav 260425",
+      "system": "DVB-S2",
+      "symbolRate": 2200,
+      "fec": "2/3",
+      "provider": "6.6 258 Fre; 2S TV",
+      "htmlRowText": "21620 H tp J2 Europe C | DVB-S2 8PSK 2200 2/3 | 1 | 2S TV | 1-1 MPEG-4/HD | 256 | 6.6 258 Fre | N Stanislav 260425"
+    },
+    {
+      "transponderNumber": "J2",
+      "transponderName": "TP J2",
+      "beamName": "N Stanislav 260425",
+      "system": "DVB-S2",
+      "symbolRate": 1100,
+      "fec": "2/3",
+      "provider": "Bantamba TV; 6.6 908 Fre",
+      "htmlRowText": "21638 H tp J2 Europe C | DVB-S2 8PSK 1100 2/3 | 1 | Bantamba TV | 1-1 MPEG-4/SD | 906 | 6.6 908 Fre | N Stanislav 260425"
+    },
+    {
+      "transponderNumber": "S2",
+      "beamName": "System:",
+      "system": "DVB-S2",
+      "provider": "non-DTH",
+      "htmlRowText": "System: | DVB-S2 | DVB-S | non-DTH | - | -"
+    }
+  ]
+}

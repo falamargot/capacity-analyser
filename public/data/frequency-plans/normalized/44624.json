@@ -1,0 +1,2074 @@
+{
+  "version": "2",
+  "satelliteName": "EUTELSAT 5 WEST B",
+  "orbitalPosition": "5W",
+  "generatedAt": "2026-05-01T07:49:01.531Z",
+  "totalRawObservations": 46,
+  "transponders": [
+    {
+      "id": "eutelsat-5-west-b-5w-b2-v",
+      "satelliteName": "EUTELSAT 5 WEST B",
+      "orbitalPosition": "5W",
+      "downlink": {
+        "frequencyMHz": 10972,
+        "polarization": "V",
+        "beamName": "N Stanislav 221126",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 13849.512,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "B2",
+        "name": "TP B2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          29950
+        ],
+        "fecValues": [
+          "2/3"
+        ],
+        "services": [],
+        "providers": [
+          "1375-20600; Viaccess; Fransat"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-5-west-b-5w-b2-10972"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-5-West-B.html",
+            "retrievedAt": "2026-05-01T07:48:41.592Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-5-west-b-5w-b6-v",
+      "satelliteName": "EUTELSAT 5 WEST B",
+      "orbitalPosition": "5W",
+      "downlink": {
+        "frequencyMHz": 11054,
+        "polarization": "V",
+        "beamName": "Lexzie 260322",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 13879.512,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "B6",
+        "name": "TP B6",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          29950
+        ],
+        "fecValues": [
+          "2/3"
+        ],
+        "services": [],
+        "providers": [
+          "1375-20500; Viaccess; Fransat"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-5-west-b-5w-b6-11054"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-5-West-B.html",
+            "retrievedAt": "2026-05-01T07:48:41.592Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-5-west-b-5w-b8-v",
+      "satelliteName": "EUTELSAT 5 WEST B",
+      "orbitalPosition": "5W",
+      "downlink": {
+        "frequencyMHz": 11096,
+        "polarization": "V",
+        "beamName": "M Al-Taie 260427",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 13894.878,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "B8",
+        "name": "TP B8",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          29950
+        ],
+        "fecValues": [
+          "3/4"
+        ],
+        "services": [],
+        "providers": [
+          "1375-20400; Viaccess; Fransat"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-5-west-b-5w-b8-11096"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-5-West-B.html",
+            "retrievedAt": "2026-05-01T07:48:41.592Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-5-west-b-5w-d1-h",
+      "satelliteName": "EUTELSAT 5 WEST B",
+      "orbitalPosition": "5W",
+      "downlink": {
+        "frequencyMHz": 11456,
+        "polarization": "H",
+        "beamName": "M Al-Taie 240928",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 14026.585,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "D1",
+        "name": "TP D1",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          2548
+        ],
+        "fecValues": [
+          "3/4"
+        ],
+        "services": [],
+        "providers": [
+          "TowerCast; 8442-4"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-5-west-b-5w-d1-11456"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-5-West-B.html",
+            "retrievedAt": "2026-05-01T07:48:41.592Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-5-west-b-5w-d1-h",
+      "satelliteName": "EUTELSAT 5 WEST B",
+      "orbitalPosition": "5W",
+      "downlink": {
+        "frequencyMHz": 11461,
+        "polarization": "H",
+        "beamName": "M Al-Taie 251005",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 14028.415,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "D1",
+        "name": "TP D1",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          5780
+        ],
+        "fecValues": [
+          "3/4"
+        ],
+        "services": [],
+        "providers": [
+          "TowerCast; 8442-3"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-5-west-b-5w-d1-11461"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-5-West-B.html",
+            "retrievedAt": "2026-05-01T07:48:41.592Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-5-west-b-5w-d1-unknown-pol",
+      "satelliteName": "EUTELSAT 5 WEST B",
+      "orbitalPosition": "5W",
+      "downlink": {
+        "frequencyMHz": 11465,
+        "beamName": "EnoSat 200702",
+        "source": "LYNGSAT",
+        "confidence": "LOW"
+      },
+      "uplink": {
+        "frequencyMHz": 14029.878,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "D1",
+        "name": "TP D1",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          667
+        ],
+        "fecValues": [
+          "3/5"
+        ],
+        "services": [],
+        "providers": [
+          "Alouette; 1-1"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-5-west-b-5w-d1-11465"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-5-West-B.html",
+            "retrievedAt": "2026-05-01T07:48:41.592Z",
+            "fieldsUsed": [
+              "frequency",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data.",
+        "Polarization not present or not parseable."
+      ]
+    },
+    {
+      "id": "eutelsat-5-west-b-5w-4000.0mhz-unknown-pol",
+      "satelliteName": "EUTELSAT 5 WEST B",
+      "orbitalPosition": "5W",
+      "downlink": {
+        "frequencyMHz": 4000,
+        "beamName": "Magic Alouette Creuse",
+        "source": "LYNGSAT",
+        "confidence": "LOW"
+      },
+      "uplink": {
+        "frequencyMHz": 6506.25,
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "groupedObservationCount": 1,
+        "systems": [],
+        "symbolRates": [],
+        "fecValues": [],
+        "services": [],
+        "providers": [
+          "401 Fre"
+        ]
+      },
+      "band": "C",
+      "serviceType": "UNKNOWN",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-5-west-b-5w-row-7-4000"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-5-West-B.html",
+            "retrievedAt": "2026-05-01T07:48:41.592Z",
+            "fieldsUsed": [
+              "frequency",
+              "beam"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Uplink beam unknown in public data.",
+        "Polarization not present or not parseable.",
+        "No DVB system/SR/FEC parameters found."
+      ]
+    },
+    {
+      "id": "eutelsat-5-west-b-5w-d2-v",
+      "satelliteName": "EUTELSAT 5 WEST B",
+      "orbitalPosition": "5W",
+      "downlink": {
+        "frequencyMHz": 11471,
+        "polarization": "V",
+        "beamName": "M Al-Taie 260427",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 14032.073,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "D2",
+        "name": "TP D2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          29950
+        ],
+        "fecValues": [
+          "3/4"
+        ],
+        "services": [],
+        "providers": [
+          "1375-20100; Viaccess; Fransat"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-5-west-b-5w-d2-11471"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-5-West-B.html",
+            "retrievedAt": "2026-05-01T07:48:41.592Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-5-west-b-5w-d1-h",
+      "satelliteName": "EUTELSAT 5 WEST B",
+      "orbitalPosition": "5W",
+      "downlink": {
+        "frequencyMHz": 11472,
+        "polarization": "H",
+        "beamName": "M Al-Taie 260115",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 14032.439,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "D1",
+        "name": "TP D1",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          9900
+        ],
+        "fecValues": [
+          "4/5"
+        ],
+        "services": [],
+        "providers": [
+          "1375-13010"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-5-west-b-5w-d1-11472"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-5-West-B.html",
+            "retrievedAt": "2026-05-01T07:48:41.592Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-5-west-b-5w-d1-h",
+      "satelliteName": "EUTELSAT 5 WEST B",
+      "orbitalPosition": "5W",
+      "downlink": {
+        "frequencyMHz": 11480,
+        "polarization": "H",
+        "beamName": "EnoSat 251218",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 14035.366,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "D1",
+        "name": "TP D1",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          3167
+        ],
+        "fecValues": [
+          "3/4"
+        ],
+        "services": [],
+        "providers": [
+          "144-10001"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-5-west-b-5w-d1-11480"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-5-West-B.html",
+            "retrievedAt": "2026-05-01T07:48:41.592Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-5-west-b-5w-4100.0mhz-unknown-pol",
+      "satelliteName": "EUTELSAT 5 WEST B",
+      "orbitalPosition": "5W",
+      "downlink": {
+        "frequencyMHz": 4100,
+        "beamName": "4130 Fre",
+        "source": "LYNGSAT",
+        "confidence": "LOW"
+      },
+      "uplink": {
+        "frequencyMHz": 6615.625,
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "groupedObservationCount": 1,
+        "systems": [],
+        "symbolRates": [],
+        "fecValues": [],
+        "services": [],
+        "providers": []
+      },
+      "band": "C",
+      "serviceType": "UNKNOWN",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-5-west-b-5w-row-11-4100"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-5-West-B.html",
+            "retrievedAt": "2026-05-01T07:48:41.592Z",
+            "fieldsUsed": [
+              "frequency",
+              "beam"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Uplink beam unknown in public data.",
+        "Polarization not present or not parseable.",
+        "No DVB system/SR/FEC parameters found."
+      ]
+    },
+    {
+      "id": "eutelsat-5-west-b-5w-4200.0mhz-unknown-pol",
+      "satelliteName": "EUTELSAT 5 WEST B",
+      "orbitalPosition": "5W",
+      "downlink": {
+        "frequencyMHz": 4200,
+        "beamName": "BFM Business Radio",
+        "source": "LYNGSAT",
+        "confidence": "LOW"
+      },
+      "uplink": {
+        "frequencyMHz": 6725,
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "groupedObservationCount": 1,
+        "systems": [],
+        "symbolRates": [
+          4230
+        ],
+        "fecValues": [],
+        "services": [],
+        "providers": [
+          "4230 Fre"
+        ]
+      },
+      "band": "C",
+      "serviceType": "UNKNOWN",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-5-west-b-5w-row-12-4200"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-5-West-B.html",
+            "retrievedAt": "2026-05-01T07:48:41.592Z",
+            "fieldsUsed": [
+              "frequency",
+              "beam",
+              "symbolRate"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Uplink beam unknown in public data.",
+        "Polarization not present or not parseable."
+      ]
+    },
+    {
+      "id": "eutelsat-5-west-b-5w-d1-unknown-pol",
+      "satelliteName": "EUTELSAT 5 WEST B",
+      "orbitalPosition": "5W",
+      "downlink": {
+        "frequencyMHz": 11481,
+        "beamName": "EnoSat 251217",
+        "source": "LYNGSAT",
+        "confidence": "LOW"
+      },
+      "uplink": {
+        "frequencyMHz": 14035.732,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "D1",
+        "name": "TP D1",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S"
+        ],
+        "symbolRates": [
+          543
+        ],
+        "fecValues": [
+          "1/2"
+        ],
+        "services": [],
+        "providers": [
+          "TowerCast; 1-1000"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-5-west-b-5w-d1-11481"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-5-West-B.html",
+            "retrievedAt": "2026-05-01T07:48:41.592Z",
+            "fieldsUsed": [
+              "frequency",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data.",
+        "Polarization not present or not parseable."
+      ]
+    },
+    {
+      "id": "eutelsat-5-west-b-5w-d4-v",
+      "satelliteName": "EUTELSAT 5 WEST B",
+      "orbitalPosition": "5W",
+      "downlink": {
+        "frequencyMHz": 11512,
+        "polarization": "V",
+        "beamName": "M Al-Taie 240902",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 14047.073,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "D4",
+        "name": "TP D4",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          29950
+        ],
+        "fecValues": [
+          "2/3"
+        ],
+        "services": [],
+        "providers": [
+          "1375-20200; Viaccess; Bis TV"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-5-west-b-5w-d4-11512"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-5-West-B.html",
+            "retrievedAt": "2026-05-01T07:48:41.592Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-5-west-b-5w-d6-v",
+      "satelliteName": "EUTELSAT 5 WEST B",
+      "orbitalPosition": "5W",
+      "downlink": {
+        "frequencyMHz": 11554,
+        "polarization": "V",
+        "beamName": "Gompo 260127",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 14062.439,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "D6",
+        "name": "TP D6",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          29950
+        ],
+        "fecValues": [
+          "3/4"
+        ],
+        "services": [],
+        "providers": [
+          "1375-20300; Viaccess; Fransat"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-5-west-b-5w-d6-11554"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-5-West-B.html",
+            "retrievedAt": "2026-05-01T07:48:41.592Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-5-west-b-5w-d12-v",
+      "satelliteName": "EUTELSAT 5 WEST B",
+      "orbitalPosition": "5W",
+      "downlink": {
+        "frequencyMHz": 11679,
+        "polarization": "V",
+        "beamName": "M Al-Taie 220706",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 14108.171,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "D12",
+        "name": "TP D12",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          29950
+        ],
+        "fecValues": [
+          "2/3"
+        ],
+        "services": [],
+        "providers": [
+          "1375-20800; Viaccess; Fransat"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-5-west-b-5w-d12-11679"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-5-West-B.html",
+            "retrievedAt": "2026-05-01T07:48:41.592Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-5-west-b-5w-f2-v",
+      "satelliteName": "EUTELSAT 5 WEST B",
+      "orbitalPosition": "5W",
+      "downlink": {
+        "frequencyMHz": 12522,
+        "polarization": "V",
+        "beamName": "Gompo 260128",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 14416.585,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "F2",
+        "name": "TP F2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          29950
+        ],
+        "fecValues": [
+          "2/3"
+        ],
+        "services": [],
+        "providers": [
+          "1375-20700; Viaccess; Fransat"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-5-west-b-5w-f2-12522"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-5-West-B.html",
+            "retrievedAt": "2026-05-01T07:48:41.592Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-5-west-b-5w-f1-h",
+      "satelliteName": "EUTELSAT 5 WEST B",
+      "orbitalPosition": "5W",
+      "downlink": {
+        "frequencyMHz": 12536,
+        "polarization": "H",
+        "beamName": "Lexzie 250818",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 14421.707,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "F1",
+        "name": "TP F1",
+        "groupedObservationCount": 3,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          35300
+        ],
+        "fecValues": [
+          "2/3"
+        ],
+        "services": [],
+        "providers": [
+          "RAI mux MR 5; 8572-153",
+          "Lexzie 250818; 8572-203",
+          "M Al-Taie 250902; 8572-34816"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-5-west-b-5w-f1-12536",
+          "lyngsat-eutelsat-5-west-b-5w-f1-12536",
+          "lyngsat-eutelsat-5-west-b-5w-f1-12536"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-5-West-B.html",
+            "retrievedAt": "2026-05-01T07:48:41.592Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-5-west-b-5w-h24-unknown-pol",
+      "satelliteName": "EUTELSAT 5 WEST B",
+      "orbitalPosition": "5W",
+      "downlink": {
+        "beamName": "679 Ita",
+        "source": "LYNGSAT",
+        "confidence": "LOW"
+      },
+      "uplink": {
+        "inferenceMethod": "UNKNOWN",
+        "source": "UNKNOWN",
+        "confidence": "UNKNOWN"
+      },
+      "publicTransponder": {
+        "number": "H24",
+        "groupedObservationCount": 1,
+        "systems": [
+          "MPEG-4"
+        ],
+        "symbolRates": [],
+        "fecValues": [],
+        "services": [],
+        "providers": []
+      },
+      "band": "Unknown",
+      "serviceType": "UNKNOWN",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-5-west-b-5w-h24-nofreq"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-5-West-B.html",
+            "retrievedAt": "2026-05-01T07:48:41.592Z",
+            "fieldsUsed": [
+              "beam",
+              "transponderNumber",
+              "system"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Unable to infer uplink frequency: downlink frequency unknown.",
+        "Uplink beam unknown in public data.",
+        "Downlink frequency not parseable; row kept due to transponder ID.",
+        "Polarization not present or not parseable."
+      ]
+    },
+    {
+      "id": "eutelsat-5-west-b-5w-f4-v",
+      "satelliteName": "EUTELSAT 5 WEST B",
+      "orbitalPosition": "5W",
+      "downlink": {
+        "frequencyMHz": 12564,
+        "polarization": "V",
+        "beamName": "M Al-Taie Lexzie 250814",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 14431.951,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "F4",
+        "name": "TP F4",
+        "groupedObservationCount": 3,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          35300
+        ],
+        "fecValues": [
+          "3/4"
+        ],
+        "services": [],
+        "providers": [
+          "RAI mux MR 1; 8572-113",
+          "RAI mux MR 8; 8572-183",
+          "RAI mux MR 2; 8572-123"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-5-west-b-5w-f4-12564",
+          "lyngsat-eutelsat-5-west-b-5w-f4-12564",
+          "lyngsat-eutelsat-5-west-b-5w-f4-12564"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-5-West-B.html",
+            "retrievedAt": "2026-05-01T07:48:41.592Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-5-west-b-5w-f3-h",
+      "satelliteName": "EUTELSAT 5 WEST B",
+      "orbitalPosition": "5W",
+      "downlink": {
+        "frequencyMHz": 12585,
+        "polarization": "H",
+        "beamName": "M Al-Taie Lexzie 250814",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 14439.634,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "F3",
+        "name": "TP F3",
+        "groupedObservationCount": 2,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          35500
+        ],
+        "fecValues": [
+          "2/3"
+        ],
+        "services": [],
+        "providers": [
+          "Cairo Communication; 8572-263",
+          "Lexzie 250814; 8572-43009"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-5-west-b-5w-f3-12585",
+          "lyngsat-eutelsat-5-west-b-5w-f3-12585"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-5-West-B.html",
+            "retrievedAt": "2026-05-01T07:48:41.592Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-5-west-b-5w-f6-v",
+      "satelliteName": "EUTELSAT 5 WEST B",
+      "orbitalPosition": "5W",
+      "downlink": {
+        "frequencyMHz": 12606,
+        "polarization": "V",
+        "beamName": "EnoSat 240904",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 14447.317,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "F6",
+        "name": "TP F6",
+        "groupedObservationCount": 2,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          35300
+        ],
+        "fecValues": [
+          "2/3"
+        ],
+        "services": [],
+        "providers": [
+          "RAI mux A; 8572-1",
+          "RAI mux B; 8572-2"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-5-west-b-5w-f6-12606",
+          "lyngsat-eutelsat-5-west-b-5w-f6-12606"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-5-West-B.html",
+            "retrievedAt": "2026-05-01T07:48:41.592Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-5-west-b-5w-f5-h",
+      "satelliteName": "EUTELSAT 5 WEST B",
+      "orbitalPosition": "5W",
+      "downlink": {
+        "frequencyMHz": 12627,
+        "polarization": "H",
+        "beamName": "Lexzie 250814",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 14455,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "F5",
+        "name": "TP F5",
+        "groupedObservationCount": 4,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          35295
+        ],
+        "fecValues": [
+          "2/3"
+        ],
+        "services": [],
+        "providers": [
+          "RAI mux MR 6; 8572-163",
+          "1-1",
+          "RAI mux MR 4; 8572-143",
+          "RAI mux MR 7; 8572-173"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-5-west-b-5w-f5-12627",
+          "lyngsat-eutelsat-5-west-b-5w-f5-12627",
+          "lyngsat-eutelsat-5-west-b-5w-f5-12627",
+          "lyngsat-eutelsat-5-west-b-5w-f5-12627"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-5-West-B.html",
+            "retrievedAt": "2026-05-01T07:48:41.592Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-5-west-b-5w-f8-v",
+      "satelliteName": "EUTELSAT 5 WEST B",
+      "orbitalPosition": "5W",
+      "downlink": {
+        "frequencyMHz": 12648,
+        "polarization": "V",
+        "beamName": "M Al-Taie D de Jong 251001",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 14462.683,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "F8",
+        "name": "TP F8",
+        "groupedObservationCount": 2,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          29500
+        ],
+        "fecValues": [
+          "8/9"
+        ],
+        "services": [],
+        "providers": [
+          "8442-10",
+          "8442-2"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-5-west-b-5w-f8-12648",
+          "lyngsat-eutelsat-5-west-b-5w-f8-12648"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-5-West-B.html",
+            "retrievedAt": "2026-05-01T07:48:41.592Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-5-west-b-5w-t18-unknown-pol",
+      "satelliteName": "EUTELSAT 5 WEST B",
+      "orbitalPosition": "5W",
+      "downlink": {
+        "beamName": "7.0 Fre",
+        "source": "LYNGSAT",
+        "confidence": "LOW"
+      },
+      "uplink": {
+        "inferenceMethod": "UNKNOWN",
+        "source": "UNKNOWN",
+        "confidence": "UNKNOWN"
+      },
+      "publicTransponder": {
+        "number": "T18",
+        "groupedObservationCount": 1,
+        "systems": [
+          "MPEG-4"
+        ],
+        "symbolRates": [],
+        "fecValues": [],
+        "services": [],
+        "providers": []
+      },
+      "band": "Unknown",
+      "serviceType": "UNKNOWN",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-5-west-b-5w-t18-nofreq"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-5-West-B.html",
+            "retrievedAt": "2026-05-01T07:48:41.592Z",
+            "fieldsUsed": [
+              "beam",
+              "transponderNumber",
+              "system"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Unable to infer uplink frequency: downlink frequency unknown.",
+        "Uplink beam unknown in public data.",
+        "Downlink frequency not parseable; row kept due to transponder ID.",
+        "Polarization not present or not parseable."
+      ]
+    },
+    {
+      "id": "eutelsat-5-west-b-5w-f10-v",
+      "satelliteName": "EUTELSAT 5 WEST B",
+      "orbitalPosition": "5W",
+      "downlink": {
+        "frequencyMHz": 12690,
+        "polarization": "V",
+        "beamName": "EnoSat 241112",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 14478.049,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "F10",
+        "name": "TP F10",
+        "groupedObservationCount": 4,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          35296
+        ],
+        "fecValues": [
+          "2/3"
+        ],
+        "services": [],
+        "providers": [
+          "318-1",
+          "RAI mux MR 3; 8572-133",
+          "RAI mux MR 9; 8572-193",
+          "Lexzie 250814; 8572-213"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-5-west-b-5w-f10-12690",
+          "lyngsat-eutelsat-5-west-b-5w-f10-12690",
+          "lyngsat-eutelsat-5-west-b-5w-f10-12690",
+          "lyngsat-eutelsat-5-west-b-5w-f10-12690"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-5-West-B.html",
+            "retrievedAt": "2026-05-01T07:48:41.592Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-5-west-b-5w-3403.0mhz-unknown-pol",
+      "satelliteName": "EUTELSAT 5 WEST B",
+      "orbitalPosition": "5W",
+      "downlink": {
+        "frequencyMHz": 3403,
+        "beamName": "652 Ita",
+        "source": "LYNGSAT",
+        "confidence": "LOW"
+      },
+      "uplink": {
+        "frequencyMHz": 5853.281,
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "groupedObservationCount": 1,
+        "systems": [
+          "MPEG-4"
+        ],
+        "symbolRates": [
+          514
+        ],
+        "fecValues": [],
+        "services": [],
+        "providers": [
+          "Rai 3"
+        ]
+      },
+      "band": "C",
+      "serviceType": "UNKNOWN",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-5-west-b-5w-row-37-3403"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-5-West-B.html",
+            "retrievedAt": "2026-05-01T07:48:41.592Z",
+            "fieldsUsed": [
+              "frequency",
+              "beam",
+              "system",
+              "symbolRate"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Uplink beam unknown in public data.",
+        "Polarization not present or not parseable."
+      ]
+    },
+    {
+      "id": "eutelsat-5-west-b-5w-f12-v",
+      "satelliteName": "EUTELSAT 5 WEST B",
+      "orbitalPosition": "5W",
+      "downlink": {
+        "frequencyMHz": 12732,
+        "polarization": "V",
+        "beamName": "K Bamik 210630",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 14493.415,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "F12",
+        "name": "TP F12",
+        "groupedObservationCount": 3,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          29500
+        ],
+        "fecValues": [
+          "8/9"
+        ],
+        "services": [],
+        "providers": [
+          "8442-1",
+          "8442-4",
+          "8442-6"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-5-west-b-5w-f12-12732",
+          "lyngsat-eutelsat-5-west-b-5w-f12-12732",
+          "lyngsat-eutelsat-5-west-b-5w-f12-12732"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-5-West-B.html",
+            "retrievedAt": "2026-05-01T07:48:41.592Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-5-west-b-5w-m6-unknown-pol",
+      "satelliteName": "EUTELSAT 5 WEST B",
+      "orbitalPosition": "5W",
+      "downlink": {
+        "beamName": "130 Fre 132 Qaa",
+        "source": "LYNGSAT",
+        "confidence": "LOW"
+      },
+      "uplink": {
+        "inferenceMethod": "UNKNOWN",
+        "source": "UNKNOWN",
+        "confidence": "UNKNOWN"
+      },
+      "publicTransponder": {
+        "number": "M6",
+        "groupedObservationCount": 1,
+        "systems": [
+          "MPEG-4"
+        ],
+        "symbolRates": [],
+        "fecValues": [],
+        "services": [],
+        "providers": []
+      },
+      "band": "Unknown",
+      "serviceType": "UNKNOWN",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-5-west-b-5w-m6-nofreq"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-5-West-B.html",
+            "retrievedAt": "2026-05-01T07:48:41.592Z",
+            "fieldsUsed": [
+              "beam",
+              "transponderNumber",
+              "system"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Unable to infer uplink frequency: downlink frequency unknown.",
+        "Uplink beam unknown in public data.",
+        "Downlink frequency not parseable; row kept due to transponder ID.",
+        "Polarization not present or not parseable."
+      ]
+    },
+    {
+      "id": "eutelsat-5-west-b-5w-w9-unknown-pol",
+      "satelliteName": "EUTELSAT 5 WEST B",
+      "orbitalPosition": "5W",
+      "downlink": {
+        "beamName": "230 Fre 232 Qaa",
+        "source": "LYNGSAT",
+        "confidence": "LOW"
+      },
+      "uplink": {
+        "inferenceMethod": "UNKNOWN",
+        "source": "UNKNOWN",
+        "confidence": "UNKNOWN"
+      },
+      "publicTransponder": {
+        "number": "W9",
+        "groupedObservationCount": 1,
+        "systems": [
+          "MPEG-4"
+        ],
+        "symbolRates": [],
+        "fecValues": [],
+        "services": [],
+        "providers": []
+      },
+      "band": "Unknown",
+      "serviceType": "UNKNOWN",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-5-west-b-5w-w9-nofreq"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-5-West-B.html",
+            "retrievedAt": "2026-05-01T07:48:41.592Z",
+            "fieldsUsed": [
+              "beam",
+              "transponderNumber",
+              "system"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Unable to infer uplink frequency: downlink frequency unknown.",
+        "Uplink beam unknown in public data.",
+        "Downlink frequency not parseable; row kept due to transponder ID.",
+        "Polarization not present or not parseable."
+      ]
+    },
+    {
+      "id": "eutelsat-5-west-b-5w-s2-unknown-pol",
+      "satelliteName": "EUTELSAT 5 WEST B",
+      "orbitalPosition": "5W",
+      "downlink": {
+        "beamName": "System:",
+        "source": "LYNGSAT",
+        "confidence": "LOW"
+      },
+      "uplink": {
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "UNKNOWN",
+        "source": "UNKNOWN",
+        "confidence": "UNKNOWN"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [],
+        "fecValues": [],
+        "services": [],
+        "providers": [
+          "non-DTH"
+        ]
+      },
+      "band": "Unknown",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-5-west-b-5w-s2-nofreq"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-5-West-B.html",
+            "retrievedAt": "2026-05-01T07:48:41.592Z",
+            "fieldsUsed": [
+              "beam",
+              "transponderNumber",
+              "system"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Unable to infer uplink frequency: downlink frequency unknown.",
+        "Broadcast uplink gateway / teleport beam unknown in public data.",
+        "Downlink frequency not parseable; row kept due to transponder ID.",
+        "Polarization not present or not parseable."
+      ]
+    }
+  ],
+  "summary": {
+    "total": 31,
+    "downlinkKnown": 26,
+    "downlinkBeamKnown": 31,
+    "uplinkInferred": 26,
+    "uplinkUnknown": 5
+  }
+}

@@ -1,0 +1,1137 @@
+{
+  "source": "LYNGSAT",
+  "satelliteName": "EUTELSAT 21B",
+  "orbitalPosition": "21E",
+  "url": "https://www.lyngsat.com/Eutelsat-21B.html",
+  "retrievedAt": "2026-05-01T07:48:13.323Z",
+  "parserStats": {
+    "totalRowsSeen": 210,
+    "rowsWithFrequency": 108,
+    "rowsWithBeam": 109,
+    "rowsWithTransponderId": 101,
+    "rowsSkipped": 101,
+    "skipReasons": {
+      "too_few_cells": 48,
+      "no_frequency_no_transponder": 53
+    }
+  },
+  "rows": [
+    {
+      "frequencyMHz": 10723,
+      "polarization": "V",
+      "transponderNumber": "A2",
+      "transponderName": "TP A2",
+      "beamName": "Warner Bros. Discovery",
+      "system": "DVB-S2",
+      "symbolRate": 32115,
+      "fec": "1/2",
+      "provider": "M Al-Taie 250128; Viaccess; 1-1",
+      "htmlRowText": "10723 V tp A2 Wide 47 | DVB-S2 QPSK 32115 1/2 | Warner Bros. Discovery | 1-1 | 1.0 | Viaccess | M Al-Taie 250128"
+    },
+    {
+      "frequencyMHz": 4000,
+      "beamName": "Discovery Channel Central Europe",
+      "system": "MPEG-4",
+      "provider": "4021 Eng 4022 Rus; Viaccess",
+      "htmlRowText": "4000 | Discovery Channel Central Europe | MPEG-4/SD | 4011 | 4021 Eng 4022 Rus | Viaccess"
+    },
+    {
+      "frequencyMHz": 4100,
+      "beamName": "Animal Planet Rossiya",
+      "system": "MPEG-4",
+      "provider": "4121 Rus 4122 Eng; Viaccess",
+      "htmlRowText": "4100 | Animal Planet Rossiya | MPEG-4/SD | 4111 | 4121 Rus 4122 Eng | Viaccess"
+    },
+    {
+      "frequencyMHz": 4200,
+      "beamName": "Investigation Discovery Rossiya",
+      "system": "MPEG-4",
+      "symbolRate": 4211,
+      "provider": "4221 Rus 4222 Eng; Viaccess",
+      "htmlRowText": "4200 | Investigation Discovery Rossiya | MPEG-4/SD | 4211 | 4221 Rus 4222 Eng | Viaccess"
+    },
+    {
+      "frequencyMHz": 10919,
+      "polarization": "V",
+      "transponderNumber": "A8",
+      "transponderName": "TP A8",
+      "beamName": "Topwell VisionCrypt",
+      "system": "DVB-S2",
+      "symbolRate": 30000,
+      "fec": "1/2",
+      "provider": "Janlakomcik 260409; Chinese mux; 0-2",
+      "htmlRowText": "10919 V tp A8 Wide 47 | DVB-S2 QPSK 30000 1/2 | Chinese mux | 0-2 | 1.0 | Topwell VisionCrypt | Janlakomcik 260409"
+    },
+    {
+      "frequencyMHz": 10953,
+      "polarization": "V",
+      "transponderNumber": "BM2",
+      "beamName": "Jamie A 250503",
+      "system": "DVB-S2",
+      "symbolRate": 2170,
+      "fec": "3/4",
+      "provider": "(feeds)",
+      "htmlRowText": "10953 V tp BM2 Wide | DVB-S2 8PSK 2170 3/4 | (feeds) | Jamie A 250503"
+    },
+    {
+      "frequencyMHz": 10993,
+      "polarization": "H",
+      "transponderNumber": "BM1",
+      "beamName": "Jamie A 260306",
+      "system": "DVB-S2",
+      "symbolRate": 1600,
+      "fec": "3/4",
+      "provider": "(feeds)",
+      "htmlRowText": "10993 H tp BM1 Wide | DVB-S2 QPSK 1600 3/4 | (feeds) | Jamie A 260306"
+    },
+    {
+      "frequencyMHz": 10995,
+      "polarization": "H",
+      "transponderNumber": "BM1",
+      "beamName": "Jamie A 260308",
+      "system": "DVB-S2",
+      "symbolRate": 1600,
+      "fec": "3/4",
+      "provider": "(feeds)",
+      "htmlRowText": "10995 H tp BM1 Wide | DVB-S2 QPSK 1600 3/4 | (feeds) | Jamie A 260308"
+    },
+    {
+      "frequencyMHz": 10997,
+      "polarization": "H",
+      "transponderNumber": "BM1",
+      "beamName": "Jamie A 260306",
+      "system": "DVB-S2",
+      "symbolRate": 1600,
+      "fec": "3/4",
+      "provider": "(feeds)",
+      "htmlRowText": "10997 H tp BM1 Wide | DVB-S2 QPSK 1600 3/4 | (feeds) | Jamie A 260306"
+    },
+    {
+      "frequencyMHz": 11004,
+      "polarization": "H",
+      "transponderNumber": "BM1",
+      "beamName": "Roli Jamie A 260306",
+      "system": "DVB-S2",
+      "symbolRate": 2857,
+      "fec": "3/4",
+      "provider": "(feeds)",
+      "htmlRowText": "11004 H tp BM1 Wide | DVB-S2 QPSK 2857 3/4 | (feeds) | Roli Jamie A 260306"
+    },
+    {
+      "frequencyMHz": 11007,
+      "polarization": "H",
+      "transponderNumber": "BM1",
+      "beamName": "N Stanislav 260310",
+      "htmlRowText": "11007 H tp BM1 Wide 47 | N Stanislav 260310"
+    },
+    {
+      "frequencyMHz": 11009,
+      "polarization": "H",
+      "transponderNumber": "BM1",
+      "beamName": "N Stanislav 260310",
+      "htmlRowText": "11009 H tp BM1 Wide 47 | N Stanislav 260310"
+    },
+    {
+      "frequencyMHz": 11015,
+      "polarization": "H",
+      "transponderNumber": "BM1",
+      "beamName": "Roli Jamie A 260306",
+      "system": "DVB-S2",
+      "symbolRate": 7500,
+      "fec": "5/6",
+      "provider": "(feeds)",
+      "htmlRowText": "11015 H tp BM1 Wide | DVB-S2 8PSK 7500 5/6 | (feeds) | Roli Jamie A 260306"
+    },
+    {
+      "frequencyMHz": 11027,
+      "polarization": "H",
+      "transponderNumber": "BM1",
+      "beamName": "Jamie A 260427",
+      "system": "DVB-S",
+      "symbolRate": 3000,
+      "fec": "3/4",
+      "provider": "(feeds)",
+      "htmlRowText": "11027 H tp BM1 Wide | DVB-S 3000 3/4 | (feeds) | Jamie A 260427"
+    },
+    {
+      "frequencyMHz": 11052,
+      "polarization": "H",
+      "transponderNumber": "BM3",
+      "beamName": "Jamie A 260412",
+      "system": "DVB-S2",
+      "symbolRate": 7200,
+      "fec": "3/4",
+      "provider": "(feeds)",
+      "htmlRowText": "11052 H tp BM3 Western | DVB-S2 8PSK 7200 3/4 | (feeds) | Jamie A 260412"
+    },
+    {
+      "frequencyMHz": 11100,
+      "polarization": "H",
+      "transponderNumber": "BW3",
+      "beamName": "Roli 250903",
+      "system": "DVB-S2",
+      "symbolRate": 2200,
+      "fec": "5/6",
+      "provider": "(feeds)",
+      "htmlRowText": "11100 H tp BW3 Western | DVB-S2 QPSK 2200 5/6 | (feeds) | Roli 250903"
+    },
+    {
+      "frequencyMHz": 11103,
+      "polarization": "H",
+      "transponderNumber": "BW3",
+      "beamName": "Roli 250903",
+      "system": "DVB-S2",
+      "symbolRate": 2150,
+      "fec": "5/6",
+      "provider": "(feeds)",
+      "htmlRowText": "11103 H tp BW3 Western | DVB-S2 QPSK 2150 5/6 | (feeds) | Roli 250903"
+    },
+    {
+      "frequencyMHz": 11109,
+      "polarization": "H",
+      "transponderNumber": "BW3",
+      "beamName": "Jamie A 250622",
+      "system": "DVB-S2",
+      "symbolRate": 1100,
+      "fec": "2/3",
+      "provider": "(feeds)",
+      "htmlRowText": "11109 H tp BW3 Western | DVB-S2 8PSK 1100 2/3 | (feeds) | Jamie A 250622"
+    },
+    {
+      "frequencyMHz": 11172,
+      "polarization": "V",
+      "transponderNumber": "BW6",
+      "beamName": "Jamie A 250823",
+      "system": "DVB-S2",
+      "symbolRate": 7200,
+      "fec": "5/6",
+      "provider": "(feeds)",
+      "htmlRowText": "11172 V tp BW6 Western | DVB-S2 QPSK 7200 5/6 | (feeds) | Jamie A 250823"
+    },
+    {
+      "frequencyMHz": 11190,
+      "polarization": "H",
+      "transponderNumber": "BW5",
+      "beamName": "Roli 260201",
+      "system": "DVB-S2",
+      "symbolRate": 7200,
+      "fec": "5/6",
+      "provider": "(feeds)",
+      "htmlRowText": "11190 H tp BW5 Western | DVB-S2 QPSK 7200 5/6 | (feeds) | Roli 260201"
+    },
+    {
+      "frequencyMHz": 11403,
+      "polarization": "V",
+      "transponderNumber": "C10",
+      "transponderName": "TP C10",
+      "beamName": "Janlakomcik 260309",
+      "htmlRowText": "11403 V tp C10 Wide 47 | Janlakomcik 260309"
+    },
+    {
+      "frequencyMHz": 11470,
+      "polarization": "H",
+      "transponderNumber": "DM1",
+      "beamName": "Hadowooalsatan 260228",
+      "system": "DVB-S",
+      "symbolRate": 2400,
+      "fec": "5/6",
+      "provider": "(feeds)",
+      "htmlRowText": "11470 H tp DM1 Wide | DVB-S 2400 5/6 | (feeds) | Hadowooalsatan 260228"
+    },
+    {
+      "frequencyMHz": 11475,
+      "polarization": "V",
+      "transponderNumber": "DM2",
+      "beamName": "N Stanislav 240418",
+      "system": "DVB-S2",
+      "symbolRate": 2300,
+      "fec": "3/4",
+      "provider": "Al Mayadeen TV; 7.9 256 Ara",
+      "htmlRowText": "11475 V tp DM2 Wide 47 | DVB-S2 8PSK 2300 3/4 | 1 | Al Mayadeen TV | 65535-1 MPEG-2/SD | 308 | 7.9 256 Ara | N Stanislav 240418"
+    },
+    {
+      "frequencyMHz": 11477,
+      "polarization": "H",
+      "transponderNumber": "DM1",
+      "beamName": "Jamie A 260330",
+      "system": "DVB-S2",
+      "symbolRate": 3200,
+      "fec": "5/6",
+      "provider": "(feeds)",
+      "htmlRowText": "11477 H tp DM1 Wide | DVB-S2 QPSK 3200 5/6 | (feeds) | Jamie A 260330"
+    },
+    {
+      "frequencyMHz": 11480,
+      "polarization": "H",
+      "transponderNumber": "DM1",
+      "beamName": "Roli 250924",
+      "system": "DVB-S2",
+      "symbolRate": 2250,
+      "fec": "3/4",
+      "provider": "(feeds)",
+      "htmlRowText": "11480 H tp DM1 Wide | DVB-S2 QPSK 2250 3/4 | (feeds) | Roli 250924"
+    },
+    {
+      "frequencyMHz": 11480,
+      "polarization": "V",
+      "transponderNumber": "DM2",
+      "beamName": "Jamie A 251004",
+      "system": "DVB-S",
+      "symbolRate": 2200,
+      "fec": "7/8",
+      "provider": "(feeds)",
+      "htmlRowText": "11480 V tp DM2 Wide | DVB-S 2200 7/8 | (feeds) | Jamie A 251004"
+    },
+    {
+      "frequencyMHz": 11483,
+      "polarization": "H",
+      "transponderNumber": "DM1",
+      "beamName": "Jamie A 251205",
+      "system": "DVB-S2",
+      "symbolRate": 2150,
+      "fec": "2/3",
+      "provider": "(feeds)",
+      "htmlRowText": "11483 H tp DM1 Wide | DVB-S2 8PSK 2150 2/3 | (feeds) | Jamie A 251205"
+    },
+    {
+      "frequencyMHz": 11483,
+      "polarization": "V",
+      "transponderNumber": "DM2",
+      "beamName": "Jamie A 260330",
+      "system": "DVB-S",
+      "symbolRate": 2200,
+      "fec": "3/4",
+      "provider": "(feeds)",
+      "htmlRowText": "11483 V tp DM2 Wide | DVB-S 2200 3/4 | (feeds) | Jamie A 260330"
+    },
+    {
+      "frequencyMHz": 11490,
+      "polarization": "V",
+      "transponderNumber": "DM2",
+      "beamName": "Jamie A 260112",
+      "system": "DVB-S",
+      "symbolRate": 1800,
+      "fec": "3/4",
+      "provider": "(feeds)",
+      "htmlRowText": "11490 V tp DM2 Wide | DVB-S 1800 3/4 | (feeds) | Jamie A 260112"
+    },
+    {
+      "frequencyMHz": 11492,
+      "polarization": "V",
+      "transponderNumber": "DM2",
+      "beamName": "Jamie A 260309",
+      "system": "DVB-S2",
+      "symbolRate": 1800,
+      "fec": "5/6",
+      "provider": "(feeds)",
+      "htmlRowText": "11492 V tp DM2 Wide | DVB-S2 8PSK 1800 5/6 | (feeds) | Jamie A 260309"
+    },
+    {
+      "frequencyMHz": 11494,
+      "polarization": "V",
+      "transponderNumber": "DM2",
+      "beamName": "Jamie A 260309",
+      "system": "DVB-S",
+      "symbolRate": 1800,
+      "fec": "5/6",
+      "provider": "(feeds)",
+      "htmlRowText": "11494 V tp DM2 Wide | DVB-S 1800 5/6 | (feeds) | Jamie A 260309"
+    },
+    {
+      "frequencyMHz": 11497,
+      "polarization": "H",
+      "transponderNumber": "DM1",
+      "beamName": "N Stanislav 260310",
+      "system": "DVB-S2",
+      "symbolRate": 2200,
+      "fec": "5/6",
+      "provider": "(feeds)",
+      "htmlRowText": "11497 H tp DM1 Wide | DVB-S2 8PSK 2200 5/6 | (feeds) | N Stanislav 260310"
+    },
+    {
+      "frequencyMHz": 11497,
+      "polarization": "V",
+      "transponderNumber": "DM2",
+      "beamName": "Roli 250902",
+      "system": "DVB-S",
+      "symbolRate": 1500,
+      "fec": "3/4",
+      "provider": "(feeds)",
+      "htmlRowText": "11497 V tp DM2 Wide | DVB-S 1500 3/4 | (feeds) | Roli 250902"
+    },
+    {
+      "frequencyMHz": 11500,
+      "polarization": "H",
+      "transponderNumber": "DM1",
+      "beamName": "N Stanislav 260310",
+      "system": "DVB-S2",
+      "symbolRate": 2200,
+      "fec": "3/4",
+      "provider": "(feeds)",
+      "htmlRowText": "11500 H tp DM1 Wide | DVB-S2 8PSK 2200 3/4 | (feeds) | N Stanislav 260310"
+    },
+    {
+      "frequencyMHz": 11500,
+      "polarization": "V",
+      "transponderNumber": "DM2",
+      "beamName": "N Schlammer 260407",
+      "system": "DVB-S",
+      "symbolRate": 3200,
+      "fec": "5/6",
+      "provider": "6.5 309 Eng; Iran Press",
+      "htmlRowText": "11500 V tp DM2 Wide 47 | DVB-S 3200 5/6 | 7907 | Iran Press | 318-8700 MPEG-2/SD | 308 | 6.5 309 Eng | N Schlammer 260407"
+    },
+    {
+      "frequencyMHz": 11507,
+      "polarization": "H",
+      "transponderNumber": "DM1",
+      "beamName": "Janlakomcik 260311",
+      "htmlRowText": "11507 H tp DM1 Wide 47 | Janlakomcik 260311"
+    },
+    {
+      "frequencyMHz": 11509,
+      "polarization": "V",
+      "transponderNumber": "DM2",
+      "beamName": "Janlakomcik 260315",
+      "htmlRowText": "11509 V tp DM2 Wide 47 | Janlakomcik 260315"
+    },
+    {
+      "frequencyMHz": 11513,
+      "polarization": "H",
+      "transponderNumber": "DM1",
+      "beamName": "Roli 260211",
+      "system": "DVB-S2",
+      "symbolRate": 4400,
+      "fec": "3/4",
+      "provider": "(feeds)",
+      "htmlRowText": "11513 H tp DM1 Wide | DVB-S2 QPSK 4400 3/4 | (feeds) | Roli 260211"
+    },
+    {
+      "frequencyMHz": 11516,
+      "polarization": "H",
+      "transponderNumber": "DM1",
+      "beamName": "Roli 260204",
+      "system": "DVB-S",
+      "symbolRate": 2200,
+      "fec": "7/8",
+      "provider": "(feeds)",
+      "htmlRowText": "11516 H tp DM1 Wide | DVB-S 2200 7/8 | (feeds) | Roli 260204"
+    },
+    {
+      "frequencyMHz": 11520,
+      "polarization": "H",
+      "transponderNumber": "DM3",
+      "beamName": "Libya Alrasmia Channel",
+      "system": "DVB-S2",
+      "symbolRate": 2857,
+      "fec": "5/6",
+      "eirpDbw": 33,
+      "provider": "R Eckendorff 240508; 9.4 34 Ara",
+      "htmlRowText": "11520 H tp DM3 Wide 47 | DVB-S2 8PSK 2857 5/6 | 1 | Libya Alrasmia Channel | 65535-1 MPEG-4/HD | 33 | 9.4 34 Ara | R Eckendorff 240508"
+    },
+    {
+      "frequencyMHz": 11523,
+      "polarization": "H",
+      "transponderNumber": "DM3",
+      "beamName": "Janlakomcik 260311",
+      "htmlRowText": "11523 H tp DM3 Wide 47 | Janlakomcik 260311"
+    },
+    {
+      "frequencyMHz": 11523,
+      "polarization": "V",
+      "transponderNumber": "DM4",
+      "beamName": "Jamie A 251110",
+      "system": "DVB-S",
+      "symbolRate": 3500,
+      "fec": "7/8",
+      "provider": "(feeds)",
+      "htmlRowText": "11523 V tp DM4 Wide | DVB-S 3500 7/8 | (feeds) | Jamie A 251110"
+    },
+    {
+      "frequencyMHz": 11550,
+      "polarization": "H",
+      "transponderNumber": "DE5",
+      "beamName": "N Stanislav 250827",
+      "system": "DVB-S2",
+      "symbolRate": 3000,
+      "fec": "3/4",
+      "provider": "(feeds)",
+      "htmlRowText": "11550 H tp DE5 Eastern | DVB-S2 8PSK 3000 3/4 | (feeds) | N Stanislav 250827"
+    },
+    {
+      "frequencyMHz": 11551,
+      "polarization": "V",
+      "transponderNumber": "DM4",
+      "beamName": "Roli 260324",
+      "system": "DVB-S",
+      "symbolRate": 2200,
+      "fec": "3/4",
+      "provider": "(feeds)",
+      "htmlRowText": "11551 V tp DM4 Wide | DVB-S 2200 3/4 | (feeds) | Roli 260324"
+    },
+    {
+      "frequencyMHz": 11559,
+      "polarization": "V",
+      "transponderNumber": "DM6",
+      "beamName": "Serdar 22 180524",
+      "system": "DVB-S2",
+      "symbolRate": 5000,
+      "fec": "5/6",
+      "eirpDbw": 69,
+      "provider": "MBC Maser; 2048-69",
+      "htmlRowText": "11559 V tp DM6 Wide 47 | DVB-S2 QPSK 5000 5/6 | MBC Maser | 2048-69 | 5.2 | BISS 1 | Serdar 22 180524"
+    },
+    {
+      "frequencyMHz": 11564,
+      "polarization": "V",
+      "transponderNumber": "DM6",
+      "beamName": "Marcel 2 191010",
+      "system": "DVB-S2",
+      "symbolRate": 3333,
+      "fec": "5/6",
+      "provider": "5.2 110 Ara; MBC Maser",
+      "htmlRowText": "11564 V tp DM6 Wide 47 | DVB-S2 QPSK 3333 5/6 | 1 | MBC Maser | 2048-65 MPEG-4/HD | 100 | 5.2 110 Ara | BISS 2 | Marcel 2 191010"
+    },
+    {
+      "frequencyMHz": 11567,
+      "polarization": "V",
+      "transponderNumber": "DM6",
+      "beamName": "Panorama FM TV",
+      "system": "DVB-S2",
+      "symbolRate": 2850,
+      "fec": "3/4",
+      "provider": "EnoSat 240720; 4.0 4112 Ara; 0-0 HEVC/HD",
+      "htmlRowText": "11567 V tp DM6 Wide 47 | DVB-S2 QPSK 2850 3/4 | 1 | Panorama FM TV | 0-0 HEVC/HD | 512 | 4.0 4112 Ara | BISS 1 | EnoSat 240720"
+    },
+    {
+      "frequencyMHz": 4128,
+      "beamName": "MBC FM",
+      "system": "BISS",
+      "htmlRowText": "1 | MBC FM | 4128 Ara | BISS 1"
+    },
+    {
+      "frequencyMHz": 4144,
+      "beamName": "Panorama FM",
+      "system": "BISS",
+      "htmlRowText": "1 | Panorama FM | 4144 Ara | BISS 1"
+    },
+    {
+      "frequencyMHz": 4160,
+      "beamName": "MBC Loud FM",
+      "system": "BISS",
+      "htmlRowText": "1 | MBC Loud FM | 4160 Ara | BISS 1"
+    },
+    {
+      "frequencyMHz": 4176,
+      "beamName": "MBC FM",
+      "system": "BISS",
+      "htmlRowText": "1 | MBC FM | 4176 Ara | BISS 1"
+    },
+    {
+      "frequencyMHz": 4192,
+      "beamName": "MBC FM",
+      "system": "BISS",
+      "htmlRowText": "1 | MBC FM | 4192 Ara | BISS 1"
+    },
+    {
+      "frequencyMHz": 11572,
+      "polarization": "V",
+      "transponderNumber": "DM6",
+      "beamName": "Roli 251206",
+      "system": "DVB-S2",
+      "symbolRate": 5700,
+      "fec": "5/6",
+      "provider": "(feeds)",
+      "htmlRowText": "11572 V tp DM6 Wide | DVB-S2 8PSK 5700 5/6 | (feeds) | Roli 251206"
+    },
+    {
+      "frequencyMHz": 11577,
+      "polarization": "H",
+      "transponderNumber": "DW7",
+      "beamName": "Serdar 22 140821",
+      "system": "DVB-S",
+      "symbolRate": 512,
+      "fec": "2/3",
+      "provider": "Medi 1 Radio; 1-1",
+      "htmlRowText": "11577 H tp DW7 Western 46-47 | DVB-S 512 2/3 | Medi 1 Radio | 1-1 | 4.4 | Serdar 22 140821"
+    },
+    {
+      "frequencyMHz": 11578,
+      "polarization": "V",
+      "transponderNumber": "DM6",
+      "beamName": "Roli 251206",
+      "system": "DVB-S2",
+      "symbolRate": 5700,
+      "fec": "5/6",
+      "provider": "(feeds)",
+      "htmlRowText": "11578 V tp DM6 Wide | DVB-S2 8PSK 5700 5/6 | (feeds) | Roli 251206"
+    },
+    {
+      "frequencyMHz": 11583,
+      "polarization": "V",
+      "transponderNumber": "DM6",
+      "beamName": "MBC (Saudi Arabia)",
+      "system": "DVB-S",
+      "symbolRate": 2850,
+      "fec": "7/8",
+      "eirpDbw": 43,
+      "provider": "Marcel 2 141009; 7.2 46 Ara",
+      "htmlRowText": "11583 V tp DM6 Wide 47 | DVB-S 2850 7/8 | 1 | MBC (Saudi Arabia) | 1-1 MPEG-2/SD | 43 | 7.2 46 Ara | BISS 1 | Marcel 2 141009"
+    },
+    {
+      "frequencyMHz": 11587,
+      "polarization": "V",
+      "transponderNumber": "DM6",
+      "beamName": "Jamie A 251102",
+      "system": "DVB-S2",
+      "symbolRate": 3333,
+      "fec": "3/4",
+      "provider": "(feeds)",
+      "htmlRowText": "11587 V tp DM6 Wide | DVB-S2 8PSK 3333 3/4 | (feeds) | Jamie A 251102"
+    },
+    {
+      "frequencyMHz": 11587,
+      "polarization": "H",
+      "transponderNumber": "DE7",
+      "beamName": "N Stanislav 250901",
+      "system": "DVB-S2",
+      "symbolRate": 5000,
+      "fec": "3/4",
+      "eirpDbw": 33,
+      "provider": "?-? HEVC/HD; 7.9 .4 Ara; Al Hadath",
+      "htmlRowText": "11587 H tp DE7 Eastern | DVB-S2 8PSK 5000 3/4 | 1 | Al Hadath | ?-? HEVC/HD | 33 | 7.9 .4 Ara | BISS | N Stanislav 250901"
+    },
+    {
+      "frequencyMHz": 11591,
+      "polarization": "V",
+      "transponderNumber": "DM6",
+      "beamName": "Jamie A 251206",
+      "system": "DVB-S2",
+      "symbolRate": 3333,
+      "fec": "3/4",
+      "provider": "(feeds)",
+      "htmlRowText": "11591 V tp DM6 Wide | DVB-S2 8PSK 3333 3/4 | (feeds) | Jamie A 251206"
+    },
+    {
+      "frequencyMHz": 11594,
+      "polarization": "H",
+      "transponderNumber": "DW7",
+      "beamName": "(SNRT feeds)",
+      "system": "DVB-S2",
+      "symbolRate": 7200,
+      "fec": "3/4",
+      "provider": "Roli 260213",
+      "htmlRowText": "11594 H tp DW7 Western | DVB-S2 8PSK 7200 3/4 | (SNRT feeds) | Roli 260213"
+    },
+    {
+      "frequencyMHz": 11599,
+      "transponderNumber": "DW7",
+      "beamName": "R Dávid 230621",
+      "system": "DVB-S",
+      "symbolRate": 1000,
+      "fec": "3/4",
+      "provider": "5.5 101 Ara; Chada FM; ?-1",
+      "htmlRowText": "11599. 0 H tp DW7 Western 46-47 | DVB-S 255 3/4 | 1000 | Chada FM | ?-1 | 5.5 101 Ara | R Dávid 230621"
+    },
+    {
+      "frequencyMHz": 11599,
+      "transponderNumber": "DW7",
+      "beamName": "R Dávid 230620",
+      "system": "DVB-S",
+      "symbolRate": 1000,
+      "fec": "3/4",
+      "provider": "5.5 101 Ara; Medina FM; 0-1",
+      "htmlRowText": "11599. 3 H tp DW7 Western 46-47 | DVB-S 185 3/4 | 1000 | Medina FM | 0-1 | 5.5 101 Ara | R Dávid 230620"
+    },
+    {
+      "frequencyMHz": 11599,
+      "transponderNumber": "DW7",
+      "beamName": "R Dávid 240802",
+      "system": "DVB-S",
+      "symbolRate": 1004,
+      "fec": "3/4",
+      "provider": "5.5 1004 Ara; Med Radio",
+      "htmlRowText": "11599. 8 H tp DW7 Western 46-47 | DVB-S 171 3/4 | Med Radio | 5.5 1004 Ara | R Dávid 240802"
+    },
+    {
+      "frequencyMHz": 11602,
+      "polarization": "V",
+      "transponderNumber": "DE8",
+      "beamName": "N Stanislav 210516",
+      "system": "DVB-S2",
+      "symbolRate": 4400,
+      "fec": "5/6",
+      "eirpDbw": 33,
+      "provider": "Oman TV Cultural; 9.4 34 Ara",
+      "htmlRowText": "11602 V tp DE8 Eastern | DVB-S2 8PSK 4400 5/6 | 1 | Oman TV Cultural | ?-? MPEG-4/HD | 33 | 9.4 34 Ara | N Stanislav 210516"
+    },
+    {
+      "frequencyMHz": 11602,
+      "transponderNumber": "DW7",
+      "beamName": "Atlantic Radio",
+      "system": "DVB-S2",
+      "symbolRate": 1000,
+      "fec": "3/4",
+      "provider": "R Dávid 230621; 4.0 101 Fre; ?-1",
+      "htmlRowText": "11602. 6 H tp DW7 Western 46-47 | DVB-S2 QPSK 170 3/4 | 1000 | Atlantic Radio | ?-1 | 4.0 101 Fre | R Dávid 230621"
+    },
+    {
+      "frequencyMHz": 11603,
+      "transponderNumber": "DW7",
+      "beamName": "R Dávid 230620",
+      "system": "DVB-S",
+      "symbolRate": 1000,
+      "fec": "3/4",
+      "provider": "5.5 101 Fre; Luxe Radio; ?-1",
+      "htmlRowText": "11603. 9 H tp DW7 Western 46-47 | DVB-S 185 3/4 | 1000 | Luxe Radio | ?-1 | 5.5 101 Fre | R Dávid 230620"
+    },
+    {
+      "frequencyMHz": 11604,
+      "transponderNumber": "DW7",
+      "beamName": "R Dávid 230620",
+      "system": "DVB-S2",
+      "symbolRate": 1111,
+      "fec": "3/4",
+      "provider": "Radio Dakhla; 7.9 1111; 1-2",
+      "htmlRowText": "11604. 1 H tp DW7 Western 46-47 | DVB-S2 8PSK 175 3/4 | 111 | Radio Dakhla | 1-2 | 7.9 1111 | R Dávid 230620"
+    },
+    {
+      "frequencyMHz": 11604,
+      "transponderNumber": "DW7",
+      "beamName": "Radio Laayoune",
+      "system": "DVB-S2",
+      "symbolRate": 1231,
+      "fec": "5/6",
+      "provider": "R Dávid 230620; 9.4 1231; 1-3",
+      "htmlRowText": "11604. 3 H tp DW7 Western 46-47 | DVB-S2 8PSK 175 5/6 | 123 | Radio Laayoune | 1-3 | 9.4 1231 | R Dávid 230620"
+    },
+    {
+      "frequencyMHz": 11604,
+      "transponderNumber": "DW7",
+      "beamName": "R Dávid 230620",
+      "system": "DVB-S2",
+      "fec": "5/6",
+      "eirpDbw": 34,
+      "provider": "Radio Oujda; 9.4 34; 1-1",
+      "htmlRowText": "11604. 5 H tp DW7 Western 46-47 | DVB-S2 8PSK 180 5/6 | 1 | Radio Oujda | 1-1 | 9.4 34 | R Dávid 230620"
+    },
+    {
+      "frequencyMHz": 11610,
+      "polarization": "V",
+      "transponderNumber": "DE8",
+      "beamName": "N Stanislav 250901",
+      "system": "DVB-S2",
+      "symbolRate": 4400,
+      "fec": "5/6",
+      "provider": "(feeds)",
+      "htmlRowText": "11610 V tp DE8 Eastern | DVB-S2 8PSK 4400 5/6 | (feeds) | N Stanislav 250901"
+    },
+    {
+      "frequencyMHz": 11620,
+      "polarization": "H",
+      "transponderNumber": "DM9",
+      "beamName": "Jamie A 250825",
+      "system": "DVB-S2",
+      "symbolRate": 2500,
+      "fec": "2/3",
+      "provider": "(feeds)",
+      "htmlRowText": "11620 H tp DM9 Wide | DVB-S2 8PSK 2500 2/3 | (feeds) | Jamie A 250825"
+    },
+    {
+      "frequencyMHz": 11622,
+      "polarization": "H",
+      "transponderNumber": "DM9",
+      "beamName": "Al-Iman TV (Lebanon)",
+      "system": "DVB-S2",
+      "symbolRate": 1250,
+      "fec": "3/4",
+      "provider": "N Stanislav 250308; 7.9 256 Ara",
+      "htmlRowText": "11622 H tp DM9 Wide 47 | DVB-S2 8PSK 1250 3/4 | 1 | Al-Iman TV (Lebanon) | 65535-1 MPEG-2/SD | 308 | 7.9 256 Ara | N Stanislav 250308"
+    },
+    {
+      "frequencyMHz": 11627,
+      "polarization": "V",
+      "transponderNumber": "DE8",
+      "beamName": "EnoSat 221127",
+      "system": "DVB-S2",
+      "symbolRate": 14400,
+      "fec": "3/5",
+      "provider": "Oman TV; 1-1",
+      "htmlRowText": "11627 V tp DE8 Eastern | DVB-S2 8PSK 14400 3/5 T2-MI PLP 0 | Oman TV | 1-1 | 5.5 | EnoSat 221127"
+    },
+    {
+      "frequencyMHz": 11627,
+      "polarization": "H",
+      "transponderNumber": "DM9",
+      "beamName": "Jamie A 250823",
+      "system": "DVB-S2",
+      "symbolRate": 4800,
+      "fec": "3/4",
+      "provider": "(feeds)",
+      "htmlRowText": "11627 H tp DM9 Wide | DVB-S2 8PSK 4800 3/4 | (feeds) | Jamie A 250823"
+    },
+    {
+      "frequencyMHz": 11643,
+      "polarization": "V",
+      "transponderNumber": "DM10",
+      "beamName": "Hadowooalsatan 250724",
+      "system": "DVB-S2",
+      "symbolRate": 1667,
+      "fec": "5/6",
+      "eirpDbw": 33,
+      "provider": "Libya Sport TV 1; 9.4 34 Ara",
+      "htmlRowText": "11643 V tp DM10 Wide 47 | DVB-S2 8PSK 1667 5/6 | 1 | Libya Sport TV 1 | 65535-1 MPEG-4/HD | 33 | 9.4 34 Ara | Hadowooalsatan 250724"
+    },
+    {
+      "frequencyMHz": 11649,
+      "polarization": "V",
+      "transponderNumber": "DM10",
+      "beamName": "Jamie A 260314",
+      "system": "DVB-S2",
+      "symbolRate": 1600,
+      "fec": "3/4",
+      "provider": "(feeds)",
+      "htmlRowText": "11649 V tp DM10 Wide | DVB-S2 QPSK 1600 3/4 | (feeds) | Jamie A 260314"
+    },
+    {
+      "frequencyMHz": 11652,
+      "polarization": "H",
+      "transponderNumber": "DM9",
+      "beamName": "Roli 260307",
+      "system": "DVB-S2",
+      "symbolRate": 6666,
+      "fec": "3/4",
+      "provider": "(feeds)",
+      "htmlRowText": "11652 H tp DM9 Wide | DVB-S2 8PSK 6666 3/4 | (feeds) | Roli 260307"
+    },
+    {
+      "frequencyMHz": 11652,
+      "polarization": "V",
+      "transponderNumber": "DM10",
+      "beamName": "Jamie A 251031",
+      "system": "DVB-S2",
+      "symbolRate": 2850,
+      "fec": "3/4",
+      "provider": "(feeds)",
+      "htmlRowText": "11652 V tp DM10 Wide | DVB-S2 QPSK 2850 3/4 | (feeds) | Jamie A 251031"
+    },
+    {
+      "frequencyMHz": 11656,
+      "polarization": "V",
+      "transponderNumber": "DM10",
+      "beamName": "Jamie A 251031",
+      "system": "DVB-S2",
+      "symbolRate": 2850,
+      "fec": "5/6",
+      "provider": "(feeds)",
+      "htmlRowText": "11656 V tp DM10 Wide | DVB-S2 QPSK 2850 5/6 | (feeds) | Jamie A 251031"
+    },
+    {
+      "frequencyMHz": 11661,
+      "polarization": "H",
+      "transponderNumber": "DM9",
+      "beamName": "Roli 260215",
+      "system": "DVB-S2",
+      "symbolRate": 3600,
+      "fec": "5/6",
+      "provider": "(feeds)",
+      "htmlRowText": "11661 H tp DM9 Wide | DVB-S2 8PSK 3600 5/6 | (feeds) | Roli 260215"
+    },
+    {
+      "frequencyMHz": 11661,
+      "polarization": "V",
+      "transponderNumber": "DM10",
+      "beamName": "Janlakomcik 260309",
+      "htmlRowText": "11661 V tp DM10 Wide 47 | Janlakomcik 260309"
+    },
+    {
+      "frequencyMHz": 11665,
+      "polarization": "V",
+      "transponderNumber": "DM10",
+      "beamName": "Jamie A 250912",
+      "system": "DVB-S2",
+      "symbolRate": 2500,
+      "fec": "5/6",
+      "provider": "(feeds)",
+      "htmlRowText": "11665 V tp DM10 Wide | DVB-S2 8PSK 2500 5/6 | (feeds) | Jamie A 250912"
+    },
+    {
+      "frequencyMHz": 11668,
+      "polarization": "V",
+      "transponderNumber": "DM10",
+      "beamName": "Janlakomcik 260311",
+      "system": "DVB-S2",
+      "symbolRate": 2295,
+      "fec": "3/4",
+      "provider": "7.9 256 Ara; Afaq TV",
+      "htmlRowText": "11668 V tp DM10 Wide 47 | DVB-S2 8PSK 2295 3/4 | 1 | Afaq TV | 65535-1 MPEG-4/HD | 308 | 7.9 256 Ara | Janlakomcik 260311"
+    },
+    {
+      "frequencyMHz": 11671,
+      "polarization": "V",
+      "transponderNumber": "DM10",
+      "beamName": "Libya Sport TV 2",
+      "system": "DVB-S2",
+      "symbolRate": 2917,
+      "fec": "3/4",
+      "provider": "EnoSat 231017; 7.9 256 Ara",
+      "htmlRowText": "11671 V tp DM10 Wide 47 | DVB-S2 8PSK 2917 3/4 | 1 | Libya Sport TV 2 | 65535-1 MPEG-4/HD | 101 | 7.9 256 Ara | EnoSat 231017"
+    },
+    {
+      "frequencyMHz": 11672,
+      "polarization": "H",
+      "transponderNumber": "DM9",
+      "beamName": "Jamie A Roli 251212",
+      "system": "DVB-S",
+      "symbolRate": 4400,
+      "fec": "3/4",
+      "provider": "(feeds)",
+      "htmlRowText": "11672 H tp DM9 Wide | DVB-S 4400 3/4 | (feeds) | Jamie A Roli 251212"
+    },
+    {
+      "frequencyMHz": 11675,
+      "polarization": "V",
+      "transponderNumber": "DM10",
+      "beamName": "Roli 260211",
+      "system": "DVB-S2",
+      "symbolRate": 2700,
+      "fec": "3/4",
+      "provider": "(feeds)",
+      "htmlRowText": "11675 V tp DM10 Wide | DVB-S2 8PSK 2700 3/4 | (feeds) | Roli 260211"
+    },
+    {
+      "frequencyMHz": 11678,
+      "polarization": "V",
+      "transponderNumber": "DM10",
+      "beamName": "Serdar 22 140809",
+      "system": "DVB-S",
+      "symbolRate": 2850,
+      "fec": "7/8",
+      "provider": "7.2 256 Ara; Al Hadath",
+      "htmlRowText": "11678 V tp DM10 Wide 47 | DVB-S 2850 7/8 | 1 | Al Hadath | 1-5 MPEG-2/SD | 308 | 7.2 256 Ara | Serdar 22 140809"
+    },
+    {
+      "frequencyMHz": 11687,
+      "polarization": "V",
+      "transponderNumber": "DM10",
+      "beamName": "Roli 250901",
+      "system": "DVB-S2",
+      "symbolRate": 9600,
+      "fec": "3/4",
+      "provider": "(feeds)",
+      "htmlRowText": "11687 V tp DM10 Wide | DVB-S2 8PSK 9600 3/4 | (feeds) | Roli 250901"
+    },
+    {
+      "frequencyMHz": 11692,
+      "polarization": "H",
+      "transponderNumber": "DM9",
+      "beamName": "Jamie A 250823",
+      "system": "DVB-S2",
+      "symbolRate": 1600,
+      "fec": "3/4",
+      "provider": "(feeds)",
+      "htmlRowText": "11692 H tp DM9 Wide | DVB-S2 8PSK 1600 3/4 | (feeds) | Jamie A 250823"
+    },
+    {
+      "frequencyMHz": 11693,
+      "polarization": "V",
+      "transponderNumber": "DM10",
+      "beamName": "Janlakomcik 260428",
+      "htmlRowText": "11693 V tp DM10 Wide 47 | Janlakomcik 260428"
+    },
+    {
+      "frequencyMHz": 11694,
+      "polarization": "V",
+      "transponderNumber": "DM10",
+      "beamName": "Janlakomcik 260426",
+      "htmlRowText": "11694 V tp DM10 Wide 47 | Janlakomcik 260426"
+    },
+    {
+      "frequencyMHz": 11696,
+      "polarization": "H",
+      "transponderNumber": "DM9",
+      "beamName": "Jamie A 260308",
+      "system": "DVB-S",
+      "symbolRate": 3255,
+      "fec": "3/4",
+      "provider": "(feeds)",
+      "htmlRowText": "11696 H tp DM9 Wide | DVB-S 3255 3/4 | (feeds) | Jamie A 260308"
+    },
+    {
+      "frequencyMHz": 11696,
+      "polarization": "V",
+      "transponderNumber": "DM10",
+      "beamName": "N Stanislav 260310",
+      "system": "DVB-S2",
+      "symbolRate": 1481,
+      "fec": "3/4",
+      "eirpDbw": 33,
+      "provider": "Altaleaa TV; 7.9 34 Ara",
+      "htmlRowText": "11696 V tp DM10 Wide 47 | DVB-S2 8PSK 1481 3/4 | 1 | Altaleaa TV | 65535-1 MPEG-4/HD | 33 | 7.9 34 Ara | N Stanislav 260310"
+    },
+    {
+      "frequencyMHz": 12507,
+      "polarization": "H",
+      "transponderNumber": "FM1",
+      "beamName": "Roli 250629",
+      "system": "DVB-S2",
+      "symbolRate": 3333,
+      "fec": "3/4",
+      "provider": "(feeds)",
+      "htmlRowText": "12507 H tp FM1 Wide | DVB-S2 QPSK 3333 3/4 | (feeds) | Roli 250629"
+    },
+    {
+      "frequencyMHz": 12526,
+      "polarization": "H",
+      "transponderNumber": "FM1",
+      "beamName": "Roli 250918",
+      "system": "DVB-S2",
+      "symbolRate": 5000,
+      "fec": "3/4",
+      "provider": "(feeds)",
+      "htmlRowText": "12526 H tp FM1 Wide | DVB-S2 8PSK 5000 3/4 | (feeds) | Roli 250918"
+    },
+    {
+      "frequencyMHz": 12532,
+      "polarization": "H",
+      "transponderNumber": "FM1",
+      "beamName": "Anonymous Roli 250829",
+      "system": "DVB-S2",
+      "symbolRate": 3300,
+      "fec": "3/4",
+      "provider": "(feeds)",
+      "htmlRowText": "12532 H tp FM1 Wide | DVB-S2 QPSK 3300 3/4 | (feeds) | Anonymous Roli 250829"
+    },
+    {
+      "frequencyMHz": 12542,
+      "polarization": "H",
+      "transponderNumber": "FM1",
+      "beamName": "Roli 251109",
+      "system": "DVB-S2",
+      "symbolRate": 2200,
+      "fec": "3/4",
+      "provider": "(feeds)",
+      "htmlRowText": "12542 H tp FM1 Wide | DVB-S2 QPSK 2200 3/4 | (feeds) | Roli 251109"
+    },
+    {
+      "frequencyMHz": 12550,
+      "polarization": "H",
+      "transponderNumber": "FM1",
+      "beamName": "Jamie A 260112",
+      "system": "DVB-S",
+      "symbolRate": 3200,
+      "fec": "2/3",
+      "provider": "(feeds)",
+      "htmlRowText": "12550 H tp FM1 Wide | DVB-S 3200 2/3 | (feeds) | Jamie A 260112"
+    },
+    {
+      "frequencyMHz": 12557,
+      "polarization": "V",
+      "transponderNumber": "FW2",
+      "beamName": "Jamie A 251018",
+      "system": "DVB-S2",
+      "symbolRate": 4937,
+      "fec": "3/4",
+      "provider": "(feeds)",
+      "htmlRowText": "12557 V tp FW2 Western | DVB-S2 8PSK 4937 3/4 | (feeds) | Jamie A 251018"
+    },
+    {
+      "frequencyMHz": 12563,
+      "polarization": "H",
+      "transponderNumber": "FM1",
+      "beamName": "Roli 250517",
+      "system": "DVB-S2",
+      "symbolRate": 7500,
+      "fec": "3/4",
+      "provider": "(feeds)",
+      "htmlRowText": "12563 H tp FM1 Wide | DVB-S2 8PSK 7500 3/4 | (feeds) | Roli 250517"
+    },
+    {
+      "frequencyMHz": 12564,
+      "polarization": "V",
+      "transponderNumber": "FW2",
+      "beamName": "Jamie A 251018",
+      "system": "DVB-S2",
+      "symbolRate": 7200,
+      "fec": "3/4",
+      "provider": "(feeds)",
+      "htmlRowText": "12564 V tp FW2 Western | DVB-S2 8PSK 7200 3/4 | (feeds) | Jamie A 251018"
+    },
+    {
+      "frequencyMHz": 12570,
+      "polarization": "H",
+      "transponderNumber": "FM1",
+      "beamName": "Roli 250621",
+      "system": "DVB-S2",
+      "symbolRate": 3200,
+      "fec": "3/4",
+      "provider": "(feeds)",
+      "htmlRowText": "12570 H tp FM1 Wide | DVB-S2 8PSK 3200 3/4 | (feeds) | Roli 250621"
+    },
+    {
+      "frequencyMHz": 12593,
+      "polarization": "H",
+      "transponderNumber": "FW3",
+      "beamName": "Jamie A 250912",
+      "system": "DVB-S2",
+      "symbolRate": 7200,
+      "fec": "3/4",
+      "provider": "(feeds)",
+      "htmlRowText": "12593 H tp FW3 Western | DVB-S2 8PSK 7200 3/4 | (feeds) | Jamie A 250912"
+    },
+    {
+      "frequencyMHz": 12601,
+      "polarization": "H",
+      "transponderNumber": "FW3",
+      "beamName": "Roli 260208",
+      "system": "DVB-S2",
+      "symbolRate": 7200,
+      "fec": "5/6",
+      "provider": "(feeds)",
+      "htmlRowText": "12601 H tp FW3 Western | DVB-S2 8PSK 7200 5/6 | (feeds) | Roli 260208"
+    },
+    {
+      "frequencyMHz": 12612,
+      "polarization": "H",
+      "transponderNumber": "FW3",
+      "beamName": "Jamie A Roli 251212",
+      "system": "DVB-S2",
+      "symbolRate": 7200,
+      "fec": "3/4",
+      "provider": "(feeds)",
+      "htmlRowText": "12612 H tp FW3 Western | DVB-S2 8PSK 7200 3/4 | (feeds) | Jamie A Roli 251212"
+    },
+    {
+      "frequencyMHz": 12637,
+      "polarization": "H",
+      "transponderNumber": "FW3",
+      "beamName": "S Evans 260209",
+      "htmlRowText": "12637 H tp FW3 Western 46-47 | S Evans 260209"
+    },
+    {
+      "frequencyMHz": 12692,
+      "polarization": "V",
+      "transponderNumber": "FM6",
+      "beamName": "N Stanislav 260420",
+      "htmlRowText": "12692 V tp FM6 Wide 47 | N Stanislav 260420"
+    },
+    {
+      "frequencyMHz": 12745,
+      "polarization": "H",
+      "transponderNumber": "FE5",
+      "beamName": "N Stanislav 250709",
+      "system": "DVB-S2",
+      "symbolRate": 2200,
+      "fec": "3/4",
+      "provider": "(feeds)",
+      "htmlRowText": "12745 H tp FE5 Eastern | DVB-S2 8PSK 2200 3/4 | (feeds) | N Stanislav 250709"
+    },
+    {
+      "transponderNumber": "S2",
+      "beamName": "System:",
+      "system": "DVB-S2",
+      "provider": "non-DTH",
+      "htmlRowText": "System: | DVB-S2 | DVB-S | non-DTH | - | -"
+    }
+  ]
+}

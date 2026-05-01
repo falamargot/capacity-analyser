@@ -1,0 +1,27 @@
+{
+  "source": "LYNGSAT",
+  "satelliteName": "EUTELSAT 174A",
+  "orbitalPosition": "174E",
+  "url": "https://www.lyngsat.com/Eutelsat-174A.html",
+  "retrievedAt": "2026-05-01T07:47:59.188Z",
+  "parserStats": {
+    "totalRowsSeen": 47,
+    "rowsWithFrequency": 0,
+    "rowsWithBeam": 1,
+    "rowsWithTransponderId": 1,
+    "rowsSkipped": 46,
+    "skipReasons": {
+      "too_few_cells": 40,
+      "no_frequency_no_transponder": 6
+    }
+  },
+  "rows": [
+    {
+      "transponderNumber": "S2",
+      "beamName": "System:",
+      "system": "DVB-S2",
+      "provider": "non-DTH",
+      "htmlRowText": "System: | DVB-S2 | DVB-S | non-DTH | - | -"
+    }
+  ]
+}

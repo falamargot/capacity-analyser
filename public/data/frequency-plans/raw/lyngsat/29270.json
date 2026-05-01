@@ -1,0 +1,375 @@
+{
+  "version": "2",
+  "satelliteName": "EUTELSAT 33F",
+  "orbitalPosition": "33E",
+  "source": "LYNGSAT",
+  "sourceUrl": "https://www.lyngsat.com/Eutelsat-33F.html",
+  "generatedAt": "2026-05-01T07:49:01.512Z",
+  "observations": [
+    {
+      "id": "lyngsat-eutelsat-33f-33e-s2-10958",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 33F",
+      "orbitalPosition": "33E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-33F.html",
+      "retrievedAt": "2026-05-01T07:48:01.970Z",
+      "raw": {
+        "frequencyText": "10958",
+        "polarizationText": "H",
+        "transponderText": "S2",
+        "beamText": "Roli 250928",
+        "systemText": "DVB-S2",
+        "symbolRateText": "7200",
+        "fecText": "3/4",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 10958,
+        "polarization": "H",
+        "transponderNumber": "S2",
+        "beamName": "Roli 250928",
+        "system": "DVB-S2",
+        "symbolRate": 7200,
+        "fec": "3/4",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-33f-33e-s2-10987",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 33F",
+      "orbitalPosition": "33E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-33F.html",
+      "retrievedAt": "2026-05-01T07:48:01.970Z",
+      "raw": {
+        "frequencyText": "10987",
+        "polarizationText": "H",
+        "transponderText": "S2",
+        "beamText": "Roli 250504",
+        "systemText": "DVB-S2",
+        "symbolRateText": "3750",
+        "fecText": "3/4",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 10987,
+        "polarization": "H",
+        "transponderNumber": "S2",
+        "beamName": "Roli 250504",
+        "system": "DVB-S2",
+        "symbolRate": 3750,
+        "fec": "3/4",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-33f-33e-s2-11096",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 33F",
+      "orbitalPosition": "33E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-33F.html",
+      "retrievedAt": "2026-05-01T07:48:01.970Z",
+      "raw": {
+        "frequencyText": "11096",
+        "polarizationText": "H",
+        "transponderText": "S2",
+        "beamText": "Stanley_cassidy 250818",
+        "systemText": "DVB-S2",
+        "symbolRateText": "9600",
+        "fecText": "3/4",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 11096,
+        "polarization": "H",
+        "transponderNumber": "S2",
+        "beamName": "Stanley_cassidy 250818",
+        "system": "DVB-S2",
+        "symbolRate": 9600,
+        "fec": "3/4",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-33f-33e-s2-11108",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 33F",
+      "orbitalPosition": "33E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-33F.html",
+      "retrievedAt": "2026-05-01T07:48:01.970Z",
+      "raw": {
+        "frequencyText": "11108",
+        "polarizationText": "H",
+        "transponderText": "S2",
+        "beamText": "Stanley_cassidy 250818",
+        "systemText": "DVB-S2",
+        "symbolRateText": "9600",
+        "fecText": "3/4",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 11108,
+        "polarization": "H",
+        "transponderNumber": "S2",
+        "beamName": "Stanley_cassidy 250818",
+        "system": "DVB-S2",
+        "symbolRate": 9600,
+        "fec": "3/4",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-33f-33e-s2-11132",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 33F",
+      "orbitalPosition": "33E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-33F.html",
+      "retrievedAt": "2026-05-01T07:48:01.970Z",
+      "raw": {
+        "frequencyText": "11132",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "Roli 250706",
+        "systemText": "DVB-S2",
+        "symbolRateText": "3600",
+        "fecText": "5/6",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 11132,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "Roli 250706",
+        "system": "DVB-S2",
+        "symbolRate": 3600,
+        "fec": "5/6",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-33f-33e-s2-11137",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 33F",
+      "orbitalPosition": "33E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-33F.html",
+      "retrievedAt": "2026-05-01T07:48:01.970Z",
+      "raw": {
+        "frequencyText": "11137",
+        "polarizationText": "H",
+        "transponderText": "S2",
+        "beamText": "Stanley_cassidy 250818",
+        "systemText": "DVB-S2",
+        "symbolRateText": "9600",
+        "fecText": "3/4",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 11137,
+        "polarization": "H",
+        "transponderNumber": "S2",
+        "beamName": "Stanley_cassidy 250818",
+        "system": "DVB-S2",
+        "symbolRate": 9600,
+        "fec": "3/4",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-33f-33e-s2-11149",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 33F",
+      "orbitalPosition": "33E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-33F.html",
+      "retrievedAt": "2026-05-01T07:48:01.970Z",
+      "raw": {
+        "frequencyText": "11149",
+        "polarizationText": "H",
+        "transponderText": "S2",
+        "beamText": "Stanley_cassidy 250818",
+        "systemText": "DVB-S2",
+        "symbolRateText": "9600",
+        "fecText": "3/4",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 11149,
+        "polarization": "H",
+        "transponderNumber": "S2",
+        "beamName": "Stanley_cassidy 250818",
+        "system": "DVB-S2",
+        "symbolRate": 9600,
+        "fec": "3/4",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-33f-33e-s2-12567",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 33F",
+      "orbitalPosition": "33E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-33F.html",
+      "retrievedAt": "2026-05-01T07:48:01.970Z",
+      "raw": {
+        "frequencyText": "12567",
+        "polarizationText": "H",
+        "transponderText": "S2",
+        "beamText": "Stanley_cassidy Roli 250518",
+        "systemText": "DVB-S2",
+        "symbolRateText": "14400",
+        "fecText": "3/4",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 12567,
+        "polarization": "H",
+        "transponderNumber": "S2",
+        "beamName": "Stanley_cassidy Roli 250518",
+        "system": "DVB-S2",
+        "symbolRate": 14400,
+        "fec": "3/4",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-33f-33e-s2-12585",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 33F",
+      "orbitalPosition": "33E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-33F.html",
+      "retrievedAt": "2026-05-01T07:48:01.970Z",
+      "raw": {
+        "frequencyText": "12585",
+        "polarizationText": "H",
+        "transponderText": "S2",
+        "beamText": "Stanley_cassidy Roli 250518",
+        "systemText": "DVB-S2",
+        "symbolRateText": "14400",
+        "fecText": "3/4",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 12585,
+        "polarization": "H",
+        "transponderNumber": "S2",
+        "beamName": "Stanley_cassidy Roli 250518",
+        "system": "DVB-S2",
+        "symbolRate": 14400,
+        "fec": "3/4",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-33f-33e-s2-nofreq",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 33F",
+      "orbitalPosition": "33E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-33F.html",
+      "retrievedAt": "2026-05-01T07:48:01.970Z",
+      "raw": {
+        "transponderText": "S2",
+        "beamText": "System:",
+        "systemText": "DVB-S2",
+        "providerText": "non-DTH"
+      },
+      "parsed": {
+        "transponderNumber": "S2",
+        "beamName": "System:",
+        "system": "DVB-S2",
+        "providerName": "non-DTH"
+      },
+      "parseQuality": {
+        "hasFrequency": false,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Downlink frequency not parseable; row kept due to transponder ID.",
+          "Polarization not present or not parseable."
+        ]
+      }
+    }
+  ]
+}

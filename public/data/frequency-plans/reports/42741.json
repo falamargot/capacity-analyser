@@ -1,0 +1,13 @@
+{
+  "satelliteName": "EUTELSAT 172B",
+  "source": "LYNGSAT",
+  "generatedAt": "2026-05-01T07:49:01.530Z",
+  "totalRowsSeen": 17,
+  "observationsCreated": 17,
+  "rowsWithFrequency": 15,
+  "rowsWithBeam": 17,
+  "rowsWithTransponderId": 14,
+  "rowsSkipped": 0,
+  "skipReasons": {},
+  "normalizedTransponders": 13
+}

@@ -1,0 +1,6517 @@
+{
+  "version": "2",
+  "satelliteName": "EUTELSAT 117 WEST A",
+  "orbitalPosition": "117W",
+  "generatedAt": "2026-05-01T07:49:01.521Z",
+  "totalRawObservations": 105,
+  "transponders": [
+    {
+      "id": "eutelsat-117-west-a-117w-3720.0mhz-v",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "downlink": {
+        "frequencyMHz": 3720,
+        "polarization": "V",
+        "beamName": "Cyberham 251114",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 6200,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S"
+        ],
+        "symbolRates": [
+          27000
+        ],
+        "fecValues": [
+          "3/4"
+        ],
+        "services": [],
+        "providers": [
+          "Edusat"
+        ]
+      },
+      "band": "C",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-117-west-a-117w-row-1-3720"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+            "retrievedAt": "2026-05-01T07:48:16.198Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-117-west-a-117w-s2-h",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "downlink": {
+        "frequencyMHz": 3766,
+        "polarization": "H",
+        "beamName": "Edinho fta 240213",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 6250.313,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          5200
+        ],
+        "fecValues": [
+          "3/4"
+        ],
+        "services": [],
+        "providers": [
+          "7.9 482 Spa; Espacio U"
+        ]
+      },
+      "band": "C",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-117-west-a-117w-s2-3766"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+            "retrievedAt": "2026-05-01T07:48:16.198Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-117-west-a-117w-s2-h",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "downlink": {
+        "frequencyMHz": 3773,
+        "polarization": "H",
+        "beamName": "Canal Iberoamericano",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 6257.969,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          5200
+        ],
+        "fecValues": [
+          "3/4"
+        ],
+        "services": [],
+        "providers": [
+          "Edinho fta 230619; 7.9 482 Spa"
+        ]
+      },
+      "band": "C",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-117-west-a-117w-s2-3773"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+            "retrievedAt": "2026-05-01T07:48:16.198Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-117-west-a-117w-3779.0mhz-h",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "downlink": {
+        "frequencyMHz": 3779,
+        "polarization": "H",
+        "beamName": "Canal Iberoamericano",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 6264.531,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S"
+        ],
+        "symbolRates": [
+          3600
+        ],
+        "fecValues": [
+          "3/4"
+        ],
+        "services": [],
+        "providers": [
+          "Edinho fta 230619; 5.5 258 Spa"
+        ]
+      },
+      "band": "C",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-117-west-a-117w-row-4-3779"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+            "retrievedAt": "2026-05-01T07:48:16.198Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-117-west-a-117w-3786.0mhz-v",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "downlink": {
+        "frequencyMHz": 3786,
+        "polarization": "V",
+        "beamName": "Telecentro (Dominican Republic)",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 6272.188,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S"
+        ],
+        "symbolRates": [
+          4000
+        ],
+        "fecValues": [
+          "3/4"
+        ],
+        "eirpDbw": 49,
+        "services": [],
+        "providers": [
+          "Edinho fta 230318; 5.5 51 Spa"
+        ]
+      },
+      "band": "C",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-117-west-a-117w-row-5-3786"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+            "retrievedAt": "2026-05-01T07:48:16.198Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-117-west-a-117w-s2-h",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "downlink": {
+        "frequencyMHz": 3787,
+        "polarization": "H",
+        "beamName": "Justicia TV (Mexico)",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 6273.281,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          4090
+        ],
+        "fecValues": [
+          "3/4"
+        ],
+        "services": [],
+        "providers": [
+          "R Chavez 231020; 7.9 482 Spa"
+        ]
+      },
+      "band": "C",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-117-west-a-117w-s2-3787"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+            "retrievedAt": "2026-05-01T07:48:16.198Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-117-west-a-117w-s2-v",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "downlink": {
+        "frequencyMHz": 3791,
+        "polarization": "V",
+        "beamName": "Edinho fta 230619",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 6277.656,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          3080
+        ],
+        "fecValues": [
+          "3/4"
+        ],
+        "services": [],
+        "providers": [
+          "7.9 256 Spa; TV Más"
+        ]
+      },
+      "band": "C",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-117-west-a-117w-s2-3791"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+            "retrievedAt": "2026-05-01T07:48:16.198Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-117-west-a-117w-s2-h",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "downlink": {
+        "frequencyMHz": 3792,
+        "polarization": "H",
+        "beamName": "Canal del Congreso 45.1",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 6278.75,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          4090
+        ],
+        "fecValues": [
+          "3/4"
+        ],
+        "services": [],
+        "providers": [
+          "Edinho fta 230619; 7.9 256 Spa"
+        ]
+      },
+      "band": "C",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-117-west-a-117w-s2-3792"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+            "retrievedAt": "2026-05-01T07:48:16.198Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-117-west-a-117w-3796.0mhz-v",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "downlink": {
+        "frequencyMHz": 3796,
+        "polarization": "V",
+        "beamName": "Cyberham 251119",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 6283.125,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S"
+        ],
+        "symbolRates": [
+          2242
+        ],
+        "fecValues": [
+          "3/4"
+        ],
+        "services": [],
+        "providers": [
+          "5.5 4112 Spa"
+        ]
+      },
+      "band": "C",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-117-west-a-117w-row-9-3796"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+            "retrievedAt": "2026-05-01T07:48:16.198Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-117-west-a-117w-s2-h",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "downlink": {
+        "frequencyMHz": 3797,
+        "polarization": "H",
+        "beamName": "Cyberham 251115",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 6284.219,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          4090
+        ],
+        "fecValues": [
+          "5/6"
+        ],
+        "services": [],
+        "providers": [
+          "[test card]; 9.4 482"
+        ]
+      },
+      "band": "C",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-117-west-a-117w-s2-3797"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+            "retrievedAt": "2026-05-01T07:48:16.198Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-117-west-a-117w-s2-v",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "downlink": {
+        "frequencyMHz": 3810,
+        "polarization": "V",
+        "beamName": "H Ortega 250407",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 6298.438,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          15000
+        ],
+        "fecValues": [
+          "3/4"
+        ],
+        "services": [],
+        "providers": [
+          "Azteca"
+        ]
+      },
+      "band": "C",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-117-west-a-117w-s2-3810"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+            "retrievedAt": "2026-05-01T07:48:16.198Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-117-west-a-117w-s2-h",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "downlink": {
+        "frequencyMHz": 3820,
+        "polarization": "H",
+        "beamName": "Cyberham 251119",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 6309.375,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          30000
+        ],
+        "fecValues": [
+          "3/4"
+        ],
+        "services": [],
+        "providers": [
+          "Conax PowerVu; PCTV"
+        ]
+      },
+      "band": "C",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-117-west-a-117w-s2-3820"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+            "retrievedAt": "2026-05-01T07:48:16.198Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-117-west-a-117w-3400.0mhz-unknown-pol",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "downlink": {
+        "frequencyMHz": 3400,
+        "beamName": "Pasiones Latinoamérica",
+        "source": "LYNGSAT",
+        "confidence": "LOW"
+      },
+      "uplink": {
+        "frequencyMHz": 5850,
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "groupedObservationCount": 1,
+        "systems": [
+          "MPEG-4"
+        ],
+        "symbolRates": [],
+        "fecValues": [],
+        "eirpDbw": 34,
+        "services": [],
+        "providers": [
+          "Conax PowerVu; 3430 Spa"
+        ]
+      },
+      "band": "C",
+      "serviceType": "UNKNOWN",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-117-west-a-117w-row-13-3400"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+            "retrievedAt": "2026-05-01T07:48:16.198Z",
+            "fieldsUsed": [
+              "frequency",
+              "beam",
+              "system"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Uplink beam unknown in public data.",
+        "Polarization not present or not parseable."
+      ]
+    },
+    {
+      "id": "eutelsat-117-west-a-117w-3500.0mhz-unknown-pol",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "downlink": {
+        "frequencyMHz": 3500,
+        "beamName": "Hola! TV América Latina",
+        "source": "LYNGSAT",
+        "confidence": "LOW"
+      },
+      "uplink": {
+        "frequencyMHz": 5959.375,
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "groupedObservationCount": 1,
+        "systems": [
+          "MPEG-4"
+        ],
+        "symbolRates": [],
+        "fecValues": [],
+        "eirpDbw": 35,
+        "services": [],
+        "providers": [
+          "Conax PowerVu; 3530 Spa"
+        ]
+      },
+      "band": "C",
+      "serviceType": "UNKNOWN",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-117-west-a-117w-row-14-3500"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+            "retrievedAt": "2026-05-01T07:48:16.198Z",
+            "fieldsUsed": [
+              "frequency",
+              "beam",
+              "system"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Uplink beam unknown in public data.",
+        "Polarization not present or not parseable."
+      ]
+    },
+    {
+      "id": "eutelsat-117-west-a-117w-3600.0mhz-unknown-pol",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "downlink": {
+        "frequencyMHz": 3600,
+        "beamName": "Conax PowerVu",
+        "source": "LYNGSAT",
+        "confidence": "LOW"
+      },
+      "uplink": {
+        "frequencyMHz": 6068.75,
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "groupedObservationCount": 1,
+        "systems": [
+          "MPEG-4"
+        ],
+        "symbolRates": [],
+        "fecValues": [],
+        "eirpDbw": 36,
+        "services": [],
+        "providers": [
+          "Beat Box; 3630 Spa"
+        ]
+      },
+      "band": "C",
+      "serviceType": "UNKNOWN",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-117-west-a-117w-row-15-3600"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+            "retrievedAt": "2026-05-01T07:48:16.198Z",
+            "fieldsUsed": [
+              "frequency",
+              "beam",
+              "system"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Uplink beam unknown in public data.",
+        "Polarization not present or not parseable."
+      ]
+    },
+    {
+      "id": "eutelsat-117-west-a-117w-3700.0mhz-unknown-pol",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "downlink": {
+        "frequencyMHz": 3700,
+        "beamName": "TVC Deportes 2",
+        "source": "LYNGSAT",
+        "confidence": "LOW"
+      },
+      "uplink": {
+        "frequencyMHz": 6178.125,
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "groupedObservationCount": 1,
+        "systems": [
+          "MPEG-4"
+        ],
+        "symbolRates": [],
+        "fecValues": [],
+        "eirpDbw": 37,
+        "services": [],
+        "providers": [
+          "Conax PowerVu; 3730 Spa"
+        ]
+      },
+      "band": "C",
+      "serviceType": "UNKNOWN",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-117-west-a-117w-row-16-3700"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+            "retrievedAt": "2026-05-01T07:48:16.198Z",
+            "fieldsUsed": [
+              "frequency",
+              "beam",
+              "system"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Uplink beam unknown in public data.",
+        "Polarization not present or not parseable."
+      ]
+    },
+    {
+      "id": "eutelsat-117-west-a-117w-s2-v",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "downlink": {
+        "frequencyMHz": 3831,
+        "polarization": "V",
+        "beamName": "Cyberham 251115",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 6321.406,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          15000
+        ],
+        "fecValues": [
+          "2/3"
+        ],
+        "services": [],
+        "providers": [
+          "6.6 102 Spa; Unife"
+        ]
+      },
+      "band": "C",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-117-west-a-117w-s2-3831"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+            "retrievedAt": "2026-05-01T07:48:16.198Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-117-west-a-117w-s2-h",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "downlink": {
+        "frequencyMHz": 3845,
+        "polarization": "H",
+        "beamName": "Sistema Michoacano de TV",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 6336.719,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          3500
+        ],
+        "fecValues": [
+          "3/4"
+        ],
+        "services": [],
+        "providers": [
+          "Cyberham 251119"
+        ]
+      },
+      "band": "C",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-117-west-a-117w-s2-3845"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+            "retrievedAt": "2026-05-01T07:48:16.198Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-117-west-a-117w-s2-h",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "downlink": {
+        "frequencyMHz": 3849,
+        "polarization": "H",
+        "beamName": "9.4 631 Spa 632 Spa",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 6341.094,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 2,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          2800,
+          15000
+        ],
+        "fecValues": [
+          "5/6",
+          "3/5"
+        ],
+        "services": [],
+        "providers": [
+          "Edinho fta 230303; Azteca Honduras",
+          "Imagen TV"
+        ]
+      },
+      "band": "C",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-117-west-a-117w-s2-3849",
+          "lyngsat-eutelsat-117-west-a-117w-s2-3849"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+            "retrievedAt": "2026-05-01T07:48:16.198Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-117-west-a-117w-s2-h",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "downlink": {
+        "frequencyMHz": 3852,
+        "polarization": "H",
+        "beamName": "Edinho fta 230303",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 6344.375,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          2082
+        ],
+        "fecValues": [
+          "3/4"
+        ],
+        "eirpDbw": 33,
+        "services": [],
+        "providers": [
+          "Tele Saltillo; ?-? HEVC/HD; 7.9 36 Spa"
+        ]
+      },
+      "band": "C",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-117-west-a-117w-s2-3852"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+            "retrievedAt": "2026-05-01T07:48:16.198Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-117-west-a-117w-s2-h",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "downlink": {
+        "frequencyMHz": 3854,
+        "polarization": "H",
+        "beamName": "WilkieJr 250527",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 6346.563,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          1600
+        ],
+        "fecValues": [
+          "3/4"
+        ],
+        "services": [],
+        "providers": [
+          "4.0 482 Spa; Teleceiba"
+        ]
+      },
+      "band": "C",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-117-west-a-117w-s2-3854"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+            "retrievedAt": "2026-05-01T07:48:16.198Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-117-west-a-117w-s2-h",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "downlink": {
+        "frequencyMHz": 3858,
+        "polarization": "H",
+        "beamName": "Edinho fta 230523",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 6350.938,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          4440
+        ],
+        "fecValues": [
+          "3/4"
+        ],
+        "services": [],
+        "providers": [
+          "7.9 482 Spa; Heraldo TV"
+        ]
+      },
+      "band": "C",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-117-west-a-117w-s2-3858"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+            "retrievedAt": "2026-05-01T07:48:16.198Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-117-west-a-117w-s2-h",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "downlink": {
+        "frequencyMHz": 3865,
+        "polarization": "H",
+        "beamName": "TM Global Communications",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 6358.594,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 2,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          2500,
+          6165
+        ],
+        "fecValues": [
+          "5/6"
+        ],
+        "services": [],
+        "providers": [
+          "Cyberham 251112"
+        ]
+      },
+      "band": "C",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-117-west-a-117w-s2-3865",
+          "lyngsat-eutelsat-117-west-a-117w-s2-3865"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+            "retrievedAt": "2026-05-01T07:48:16.198Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-117-west-a-117w-s2-h",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "downlink": {
+        "frequencyMHz": 3870,
+        "polarization": "H",
+        "beamName": "TV Arquidiocesana",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 6364.063,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          2500
+        ],
+        "fecValues": [
+          "3/4"
+        ],
+        "services": [],
+        "providers": [
+          "Edinho fta 230619; 7.9 257 Spa"
+        ]
+      },
+      "band": "C",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-117-west-a-117w-s2-3870"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+            "retrievedAt": "2026-05-01T07:48:16.198Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-117-west-a-117w-s2-v",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "downlink": {
+        "frequencyMHz": 3872,
+        "polarization": "V",
+        "beamName": "Edinho fta 230701",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 6366.25,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          2875
+        ],
+        "fecValues": [
+          "5/6"
+        ],
+        "services": [],
+        "providers": [
+          "Tele Yucatán; 9.4 256 Spa"
+        ]
+      },
+      "band": "C",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-117-west-a-117w-s2-3872"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+            "retrievedAt": "2026-05-01T07:48:16.198Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-117-west-a-117w-s2-v",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "downlink": {
+        "frequencyMHz": 3877,
+        "polarization": "V",
+        "beamName": "Cyberham 251113",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 6371.719,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          5000
+        ],
+        "fecValues": [
+          "5/6"
+        ],
+        "services": [],
+        "providers": [
+          "9.4 256 Spa; AyM Sports"
+        ]
+      },
+      "band": "C",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-117-west-a-117w-s2-3877"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+            "retrievedAt": "2026-05-01T07:48:16.198Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-117-west-a-117w-s2-v",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "downlink": {
+        "frequencyMHz": 3882,
+        "polarization": "V",
+        "beamName": "Latin American Sports USA",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 6377.188,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [],
+        "fecValues": [],
+        "services": [],
+        "providers": [
+          "Cyberham 251115; ?-? /HD; 256 Spa"
+        ]
+      },
+      "band": "C",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-117-west-a-117w-s2-3882"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+            "retrievedAt": "2026-05-01T07:48:16.198Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-117-west-a-117w-s2-h",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "downlink": {
+        "frequencyMHz": 3884,
+        "polarization": "H",
+        "beamName": "C de Berazategui 251029",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 6379.375,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          3255
+        ],
+        "fecValues": [
+          "5/6"
+        ],
+        "eirpDbw": 33,
+        "services": [],
+        "providers": [
+          "Hidalgo TV; 5.2 36 Spa"
+        ]
+      },
+      "band": "C",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-117-west-a-117w-s2-3884"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+            "retrievedAt": "2026-05-01T07:48:16.198Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-117-west-a-117w-s2-v",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "downlink": {
+        "frequencyMHz": 3888,
+        "polarization": "V",
+        "beamName": "BeisbolLatino TV",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 6383.75,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          3327
+        ],
+        "fecValues": [
+          "3/4"
+        ],
+        "services": [],
+        "providers": [
+          "Cyberham 251113; 7.9 256 Spa"
+        ]
+      },
+      "band": "C",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-117-west-a-117w-s2-3888"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+            "retrievedAt": "2026-05-01T07:48:16.198Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-117-west-a-117w-3888.0mhz-h",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "downlink": {
+        "frequencyMHz": 3888,
+        "polarization": "H",
+        "beamName": "Edinho fta 230303",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 6383.75,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S"
+        ],
+        "symbolRates": [
+          2540
+        ],
+        "fecValues": [
+          "5/6"
+        ],
+        "services": [],
+        "providers": [
+          "6.5 512 Spa; Jalisco TV"
+        ]
+      },
+      "band": "C",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-117-west-a-117w-row-32-3888"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+            "retrievedAt": "2026-05-01T07:48:16.198Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-117-west-a-117w-s2-h",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "downlink": {
+        "frequencyMHz": 3892,
+        "polarization": "H",
+        "beamName": "TV Azteca Guate",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 6388.125,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          5000
+        ],
+        "fecValues": [
+          "3/4"
+        ],
+        "services": [],
+        "providers": [
+          "Cyberham 251119"
+        ]
+      },
+      "band": "C",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-117-west-a-117w-s2-3892"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+            "retrievedAt": "2026-05-01T07:48:16.198Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-117-west-a-117w-4128.0mhz-unknown-pol",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "downlink": {
+        "frequencyMHz": 4128,
+        "beamName": "A Más + Guate",
+        "source": "LYNGSAT",
+        "confidence": "LOW"
+      },
+      "uplink": {
+        "frequencyMHz": 6646.25,
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "groupedObservationCount": 1,
+        "systems": [
+          "MPEG-4"
+        ],
+        "symbolRates": [],
+        "fecValues": [],
+        "services": [],
+        "providers": [
+          "4130 Spa"
+        ]
+      },
+      "band": "C",
+      "serviceType": "UNKNOWN",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-117-west-a-117w-row-34-4128"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+            "retrievedAt": "2026-05-01T07:48:16.198Z",
+            "fieldsUsed": [
+              "frequency",
+              "beam",
+              "system"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Uplink beam unknown in public data.",
+        "Polarization not present or not parseable."
+      ]
+    },
+    {
+      "id": "eutelsat-117-west-a-117w-s2-v",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "downlink": {
+        "frequencyMHz": 3894,
+        "polarization": "V",
+        "beamName": "Edinho fta 230818",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 6390.313,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          2415
+        ],
+        "fecValues": [
+          "3/5"
+        ],
+        "services": [],
+        "providers": [
+          "Tlaxcala TV; 5.5 256 Spa"
+        ]
+      },
+      "band": "C",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-117-west-a-117w-s2-3894"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+            "retrievedAt": "2026-05-01T07:48:16.198Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-117-west-a-117w-s2-v",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "downlink": {
+        "frequencyMHz": 3898,
+        "polarization": "V",
+        "beamName": "Edinho fta 230302",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 6394.688,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          2080
+        ],
+        "fecValues": [
+          "4/5"
+        ],
+        "services": [],
+        "providers": [
+          "4.7 4112 Spa; CB TV"
+        ]
+      },
+      "band": "C",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-117-west-a-117w-s2-3898"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+            "retrievedAt": "2026-05-01T07:48:16.198Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-117-west-a-117w-3903.0mhz-v",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "downlink": {
+        "frequencyMHz": 3903,
+        "polarization": "V",
+        "beamName": "Luis Alberto Rosario 120326",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 6400.156,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S"
+        ],
+        "symbolRates": [
+          2200
+        ],
+        "fecValues": [
+          "7/8"
+        ],
+        "services": [],
+        "providers": [
+          "La Voz de María; 7.2 256 Spa"
+        ]
+      },
+      "band": "C",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-117-west-a-117w-row-37-3903"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+            "retrievedAt": "2026-05-01T07:48:16.198Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-117-west-a-117w-s2-h",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "downlink": {
+        "frequencyMHz": 3908,
+        "polarization": "H",
+        "beamName": "Cyberham 251119",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 6405.625,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          2500
+        ],
+        "fecValues": [
+          "4/5"
+        ],
+        "services": [],
+        "providers": [
+          "4.7 131 Spa; TV UNAH"
+        ]
+      },
+      "band": "C",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-117-west-a-117w-s2-3908"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+            "retrievedAt": "2026-05-01T07:48:16.198Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-117-west-a-117w-3909.0mhz-v",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "downlink": {
+        "frequencyMHz": 3909,
+        "polarization": "V",
+        "beamName": "Dominican Republic mux",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 6406.719,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S"
+        ],
+        "symbolRates": [
+          6379
+        ],
+        "fecValues": [
+          "3/4"
+        ],
+        "services": [],
+        "providers": [
+          "J Cordero 190114"
+        ]
+      },
+      "band": "C",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-117-west-a-117w-row-39-3909"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+            "retrievedAt": "2026-05-01T07:48:16.198Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-117-west-a-117w-s2-h",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "downlink": {
+        "frequencyMHz": 3917,
+        "polarization": "H",
+        "beamName": "Cyberham 251119",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 6415.469,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 2,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          4167,
+          4500
+        ],
+        "fecValues": [
+          "3/4"
+        ],
+        "eirpDbw": 49,
+        "services": [],
+        "providers": [
+          "7.9 51 Spa; CORTV",
+          "UDG TV"
+        ]
+      },
+      "band": "C",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-117-west-a-117w-s2-3917",
+          "lyngsat-eutelsat-117-west-a-117w-s2-3917"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+            "retrievedAt": "2026-05-01T07:48:16.198Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-117-west-a-117w-s2-v",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "downlink": {
+        "frequencyMHz": 3924,
+        "polarization": "V",
+        "beamName": "Cyberham 251119",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 6423.125,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          7257
+        ],
+        "fecValues": [
+          "8/9"
+        ],
+        "services": [],
+        "providers": [
+          "TPSD"
+        ]
+      },
+      "band": "C",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-117-west-a-117w-s2-3924"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+            "retrievedAt": "2026-05-01T07:48:16.198Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-117-west-a-117w-3925.0mhz-h",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "downlink": {
+        "frequencyMHz": 3925,
+        "polarization": "H",
+        "beamName": "Cyberham 251119",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 6424.219,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S"
+        ],
+        "symbolRates": [
+          4400
+        ],
+        "fecValues": [
+          "3/4"
+        ],
+        "services": [],
+        "providers": [
+          "Ecuador TV"
+        ]
+      },
+      "band": "C",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-117-west-a-117w-row-43-3925"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+            "retrievedAt": "2026-05-01T07:48:16.198Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-117-west-a-117w-4112.0mhz-unknown-pol",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "downlink": {
+        "frequencyMHz": 4112,
+        "beamName": "Ecuador TV",
+        "source": "LYNGSAT",
+        "confidence": "LOW"
+      },
+      "uplink": {
+        "frequencyMHz": 6628.75,
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "groupedObservationCount": 1,
+        "systems": [
+          "MPEG-2"
+        ],
+        "symbolRates": [
+          512
+        ],
+        "fecValues": [],
+        "services": [],
+        "providers": []
+      },
+      "band": "C",
+      "serviceType": "UNKNOWN",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-117-west-a-117w-row-44-4112"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+            "retrievedAt": "2026-05-01T07:48:16.198Z",
+            "fieldsUsed": [
+              "frequency",
+              "beam",
+              "system",
+              "symbolRate"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Uplink beam unknown in public data.",
+        "Polarization not present or not parseable."
+      ]
+    },
+    {
+      "id": "eutelsat-117-west-a-117w-4111.0mhz-unknown-pol",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "downlink": {
+        "frequencyMHz": 4111,
+        "beamName": "Ecuador TV Internacional",
+        "source": "LYNGSAT",
+        "confidence": "LOW"
+      },
+      "uplink": {
+        "frequencyMHz": 6627.656,
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "groupedObservationCount": 1,
+        "systems": [
+          "MPEG-2"
+        ],
+        "symbolRates": [
+          514
+        ],
+        "fecValues": [],
+        "services": [],
+        "providers": []
+      },
+      "band": "C",
+      "serviceType": "UNKNOWN",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-117-west-a-117w-row-45-4111"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+            "retrievedAt": "2026-05-01T07:48:16.198Z",
+            "fieldsUsed": [
+              "frequency",
+              "beam",
+              "system",
+              "symbolRate"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Uplink beam unknown in public data.",
+        "Polarization not present or not parseable."
+      ]
+    },
+    {
+      "id": "eutelsat-117-west-a-117w-4128.0mhz-unknown-pol",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "downlink": {
+        "frequencyMHz": 4128,
+        "beamName": "Püblica FM",
+        "source": "LYNGSAT",
+        "confidence": "LOW"
+      },
+      "uplink": {
+        "frequencyMHz": 6646.25,
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "groupedObservationCount": 1,
+        "systems": [],
+        "symbolRates": [],
+        "fecValues": [],
+        "services": [],
+        "providers": []
+      },
+      "band": "C",
+      "serviceType": "UNKNOWN",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-117-west-a-117w-row-46-4128"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+            "retrievedAt": "2026-05-01T07:48:16.198Z",
+            "fieldsUsed": [
+              "frequency",
+              "beam"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Uplink beam unknown in public data.",
+        "Polarization not present or not parseable.",
+        "No DVB system/SR/FEC parameters found."
+      ]
+    },
+    {
+      "id": "eutelsat-117-west-a-117w-4127.0mhz-unknown-pol",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "downlink": {
+        "frequencyMHz": 4127,
+        "beamName": "Radio Nacional del Ecuador",
+        "source": "LYNGSAT",
+        "confidence": "LOW"
+      },
+      "uplink": {
+        "frequencyMHz": 6645.156,
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "groupedObservationCount": 1,
+        "systems": [],
+        "symbolRates": [],
+        "fecValues": [],
+        "services": [],
+        "providers": []
+      },
+      "band": "C",
+      "serviceType": "UNKNOWN",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-117-west-a-117w-row-47-4127"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+            "retrievedAt": "2026-05-01T07:48:16.198Z",
+            "fieldsUsed": [
+              "frequency",
+              "beam"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Uplink beam unknown in public data.",
+        "Polarization not present or not parseable.",
+        "No DVB system/SR/FEC parameters found."
+      ]
+    },
+    {
+      "id": "eutelsat-117-west-a-117w-s2-v",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "downlink": {
+        "frequencyMHz": 3930,
+        "polarization": "V",
+        "beamName": "Edinho fta 230515",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 6429.688,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 2,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          667,
+          2500
+        ],
+        "fecValues": [
+          "5/6"
+        ],
+        "eirpDbw": 66,
+        "services": [],
+        "providers": [
+          "Emisoras Unidas",
+          "5.2 67 Spa; EDN TV"
+        ]
+      },
+      "band": "C",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-117-west-a-117w-s2-3930",
+          "lyngsat-eutelsat-117-west-a-117w-s2-3930"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+            "retrievedAt": "2026-05-01T07:48:16.198Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-117-west-a-117w-s2-v",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "downlink": {
+        "frequencyMHz": 3938,
+        "polarization": "V",
+        "beamName": "Cyberham 251119",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 6438.438,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          674
+        ],
+        "fecValues": [],
+        "services": [],
+        "providers": [
+          "Grupo ACIR"
+        ]
+      },
+      "band": "C",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-117-west-a-117w-s2-3938"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+            "retrievedAt": "2026-05-01T07:48:16.198Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-117-west-a-117w-4000.0mhz-unknown-pol",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "downlink": {
+        "frequencyMHz": 4000,
+        "beamName": "106.5 Mix FM",
+        "source": "LYNGSAT",
+        "confidence": "LOW"
+      },
+      "uplink": {
+        "frequencyMHz": 6506.25,
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "groupedObservationCount": 1,
+        "systems": [],
+        "symbolRates": [],
+        "fecValues": [],
+        "services": [],
+        "providers": [
+          "401 Spa"
+        ]
+      },
+      "band": "C",
+      "serviceType": "UNKNOWN",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-117-west-a-117w-row-51-4000"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+            "retrievedAt": "2026-05-01T07:48:16.198Z",
+            "fieldsUsed": [
+              "frequency",
+              "beam"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Uplink beam unknown in public data.",
+        "Polarization not present or not parseable.",
+        "No DVB system/SR/FEC parameters found."
+      ]
+    },
+    {
+      "id": "eutelsat-117-west-a-117w-s2-v",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "downlink": {
+        "frequencyMHz": 3947,
+        "polarization": "V",
+        "beamName": "Cyberham 251116",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 6448.281,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          8333
+        ],
+        "fecValues": [
+          "5/6"
+        ],
+        "services": [],
+        "providers": [
+          "Cable Color"
+        ]
+      },
+      "band": "C",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-117-west-a-117w-s2-3947"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+            "retrievedAt": "2026-05-01T07:48:16.198Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-117-west-a-117w-4098.0mhz-unknown-pol",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "downlink": {
+        "frequencyMHz": 4098,
+        "beamName": "DTV (Honduras)",
+        "source": "LYNGSAT",
+        "confidence": "LOW"
+      },
+      "uplink": {
+        "frequencyMHz": 6613.438,
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "groupedObservationCount": 1,
+        "systems": [
+          "MPEG-4"
+        ],
+        "symbolRates": [],
+        "fecValues": [],
+        "services": [],
+        "providers": [
+          "4099 Spa"
+        ]
+      },
+      "band": "C",
+      "serviceType": "UNKNOWN",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-117-west-a-117w-row-53-4098"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+            "retrievedAt": "2026-05-01T07:48:16.198Z",
+            "fieldsUsed": [
+              "frequency",
+              "beam",
+              "system"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Uplink beam unknown in public data.",
+        "Polarization not present or not parseable."
+      ]
+    },
+    {
+      "id": "eutelsat-117-west-a-117w-4100.0mhz-unknown-pol",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "downlink": {
+        "frequencyMHz": 4100,
+        "beamName": "Q'hubo TV",
+        "source": "LYNGSAT",
+        "confidence": "LOW"
+      },
+      "uplink": {
+        "frequencyMHz": 6615.625,
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "groupedObservationCount": 1,
+        "systems": [
+          "MPEG-4"
+        ],
+        "symbolRates": [],
+        "fecValues": [],
+        "services": [],
+        "providers": [
+          "4097 Spa"
+        ]
+      },
+      "band": "C",
+      "serviceType": "UNKNOWN",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-117-west-a-117w-row-54-4100"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+            "retrievedAt": "2026-05-01T07:48:16.198Z",
+            "fieldsUsed": [
+              "frequency",
+              "beam",
+              "system"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Uplink beam unknown in public data.",
+        "Polarization not present or not parseable."
+      ]
+    },
+    {
+      "id": "eutelsat-117-west-a-117w-4134.0mhz-unknown-pol",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "downlink": {
+        "frequencyMHz": 4134,
+        "beamName": "Canal 11 (Honduras)",
+        "source": "LYNGSAT",
+        "confidence": "LOW"
+      },
+      "uplink": {
+        "frequencyMHz": 6652.813,
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "groupedObservationCount": 1,
+        "systems": [
+          "MPEG-4"
+        ],
+        "symbolRates": [],
+        "fecValues": [],
+        "services": [],
+        "providers": [
+          "4133 Spa"
+        ]
+      },
+      "band": "C",
+      "serviceType": "UNKNOWN",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-117-west-a-117w-row-55-4134"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+            "retrievedAt": "2026-05-01T07:48:16.198Z",
+            "fieldsUsed": [
+              "frequency",
+              "beam",
+              "system"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Uplink beam unknown in public data.",
+        "Polarization not present or not parseable."
+      ]
+    },
+    {
+      "id": "eutelsat-117-west-a-117w-4136.0mhz-unknown-pol",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "downlink": {
+        "frequencyMHz": 4136,
+        "beamName": "Nuevo Mundo TV",
+        "source": "LYNGSAT",
+        "confidence": "LOW"
+      },
+      "uplink": {
+        "frequencyMHz": 6655,
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "groupedObservationCount": 1,
+        "systems": [
+          "MPEG-4"
+        ],
+        "symbolRates": [],
+        "fecValues": [],
+        "services": [],
+        "providers": [
+          "4135 Spa"
+        ]
+      },
+      "band": "C",
+      "serviceType": "UNKNOWN",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-117-west-a-117w-row-56-4136"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+            "retrievedAt": "2026-05-01T07:48:16.198Z",
+            "fieldsUsed": [
+              "frequency",
+              "beam",
+              "system"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Uplink beam unknown in public data.",
+        "Polarization not present or not parseable."
+      ]
+    },
+    {
+      "id": "eutelsat-117-west-a-117w-s2-h",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "downlink": {
+        "frequencyMHz": 3948,
+        "polarization": "H",
+        "beamName": "Edinho fta 231017",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 6449.375,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          15145
+        ],
+        "fecValues": [
+          "3/5"
+        ],
+        "services": [],
+        "providers": [
+          "Az TV de Paga"
+        ]
+      },
+      "band": "C",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-117-west-a-117w-s2-3948"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+            "retrievedAt": "2026-05-01T07:48:16.198Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-117-west-a-117w-3962.0mhz-v",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "downlink": {
+        "frequencyMHz": 3962,
+        "polarization": "V",
+        "beamName": "Telefuturo (Dominican Republic)",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 6464.688,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S"
+        ],
+        "symbolRates": [
+          2500
+        ],
+        "fecValues": [],
+        "eirpDbw": 61,
+        "services": [],
+        "providers": [
+          "Cyberham 251113; 51 Spa"
+        ]
+      },
+      "band": "C",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-117-west-a-117w-row-58-3962"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+            "retrievedAt": "2026-05-01T07:48:16.198Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "system",
+              "symbolRate"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-117-west-a-117w-s2-v",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "downlink": {
+        "frequencyMHz": 3968,
+        "polarization": "V",
+        "beamName": "Ecuavisa Internacional",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 6471.25,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          3750
+        ],
+        "fecValues": [
+          "3/4"
+        ],
+        "services": [],
+        "providers": [
+          "Cyberham 251119; 7.9 203 Spa"
+        ]
+      },
+      "band": "C",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-117-west-a-117w-s2-3968"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+            "retrievedAt": "2026-05-01T07:48:16.198Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-117-west-a-117w-s2-h",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "downlink": {
+        "frequencyMHz": 3973,
+        "polarization": "H",
+        "beamName": "Cyberham 251119",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 6476.719,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          2916
+        ],
+        "fecValues": [
+          "3/4"
+        ],
+        "services": [],
+        "providers": [
+          "Guatevisión; 7.9 769 Spa"
+        ]
+      },
+      "band": "C",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-117-west-a-117w-s2-3973"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+            "retrievedAt": "2026-05-01T07:48:16.198Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-117-west-a-117w-s2-h",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "downlink": {
+        "frequencyMHz": 3977,
+        "polarization": "H",
+        "beamName": "Edinho fta 230303",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 6481.094,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          1666
+        ],
+        "fecValues": [
+          "3/4"
+        ],
+        "services": [],
+        "providers": [
+          "7.9 2.6 Spa; Gamavisión"
+        ]
+      },
+      "band": "C",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-117-west-a-117w-s2-3977"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+            "retrievedAt": "2026-05-01T07:48:16.198Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-117-west-a-117w-s2-h",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "downlink": {
+        "frequencyMHz": 3980,
+        "polarization": "H",
+        "beamName": "Cyberham 251119",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 6484.375,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          832
+        ],
+        "fecValues": [
+          "5/6"
+        ],
+        "services": [],
+        "providers": []
+      },
+      "band": "C",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-117-west-a-117w-s2-3980"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+            "retrievedAt": "2026-05-01T07:48:16.198Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-117-west-a-117w-4000.0mhz-unknown-pol",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "downlink": {
+        "frequencyMHz": 4000,
+        "beamName": "La Ke Buena",
+        "source": "LYNGSAT",
+        "confidence": "LOW"
+      },
+      "uplink": {
+        "frequencyMHz": 6506.25,
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "groupedObservationCount": 1,
+        "systems": [],
+        "symbolRates": [],
+        "fecValues": [],
+        "services": [],
+        "providers": [
+          "401 Spa"
+        ]
+      },
+      "band": "C",
+      "serviceType": "UNKNOWN",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-117-west-a-117w-row-63-4000"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+            "retrievedAt": "2026-05-01T07:48:16.198Z",
+            "fieldsUsed": [
+              "frequency",
+              "beam"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Uplink beam unknown in public data.",
+        "Polarization not present or not parseable.",
+        "No DVB system/SR/FEC parameters found."
+      ]
+    },
+    {
+      "id": "eutelsat-117-west-a-117w-s2-v",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "downlink": {
+        "frequencyMHz": 3996,
+        "polarization": "V",
+        "beamName": "Edinho fta PowerLat 231031",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 6501.875,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          4050
+        ],
+        "fecValues": [
+          "5/6"
+        ],
+        "eirpDbw": 49,
+        "services": [],
+        "providers": [
+          "Telemax (Mexico); 9.4 51 Spa"
+        ]
+      },
+      "band": "C",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-117-west-a-117w-s2-3996"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+            "retrievedAt": "2026-05-01T07:48:16.198Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-117-west-a-117w-s2-h",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "downlink": {
+        "frequencyMHz": 3997,
+        "polarization": "H",
+        "beamName": "Cyberham 251113",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 6502.969,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          1480
+        ],
+        "fecValues": [
+          "3/4"
+        ],
+        "services": [],
+        "providers": [
+          "7.9 102 Spa; Oromar TV"
+        ]
+      },
+      "band": "C",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-117-west-a-117w-s2-3997"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+            "retrievedAt": "2026-05-01T07:48:16.198Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-117-west-a-117w-s2-v",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "downlink": {
+        "frequencyMHz": 4004,
+        "polarization": "V",
+        "beamName": "Cyberham 251113",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 6510.625,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          1660
+        ],
+        "fecValues": [
+          "3/5"
+        ],
+        "services": [],
+        "providers": [
+          "5.5 300 Spa; RCG TV"
+        ]
+      },
+      "band": "C",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-117-west-a-117w-s2-4004"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+            "retrievedAt": "2026-05-01T07:48:16.198Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-117-west-a-117w-s2-v",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "downlink": {
+        "frequencyMHz": 4013,
+        "polarization": "V",
+        "beamName": "Edinho fta 230620",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 6520.469,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          9425
+        ],
+        "fecValues": [
+          "3/4"
+        ],
+        "services": [],
+        "providers": [
+          "KeyFly; RTVE"
+        ]
+      },
+      "band": "C",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-117-west-a-117w-s2-4013"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+            "retrievedAt": "2026-05-01T07:48:16.198Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-117-west-a-117w-s2-h",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "downlink": {
+        "frequencyMHz": 4015,
+        "polarization": "H",
+        "beamName": "ML 250214",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 6522.656,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          23200
+        ],
+        "fecValues": [
+          "5/6"
+        ],
+        "services": [],
+        "providers": []
+      },
+      "band": "C",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-117-west-a-117w-s2-4015"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+            "retrievedAt": "2026-05-01T07:48:16.198Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-117-west-a-117w-4031.0mhz-v",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "downlink": {
+        "frequencyMHz": 4031,
+        "polarization": "V",
+        "beamName": "J Cordero 221018",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 6540.156,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S"
+        ],
+        "symbolRates": [
+          15200
+        ],
+        "fecValues": [
+          "5/6"
+        ],
+        "services": [],
+        "providers": [
+          "Grupo Telemicro"
+        ]
+      },
+      "band": "C",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-117-west-a-117w-row-69-4031"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+            "retrievedAt": "2026-05-01T07:48:16.198Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-117-west-a-117w-s2-v",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "downlink": {
+        "frequencyMHz": 4067,
+        "polarization": "V",
+        "beamName": "Edinho fta 230816",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 6579.531,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          3100
+        ],
+        "fecValues": [
+          "2/3"
+        ],
+        "services": [],
+        "providers": [
+          "6.6 4112 Spa; Mexicanal"
+        ]
+      },
+      "band": "C",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-117-west-a-117w-s2-4067"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+            "retrievedAt": "2026-05-01T07:48:16.198Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-117-west-a-117w-s2-v",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "downlink": {
+        "frequencyMHz": 4076,
+        "polarization": "V",
+        "beamName": "Teleuniverso (Dominican Republic)",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 6589.375,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          2500
+        ],
+        "fecValues": [
+          "3/4"
+        ],
+        "services": [],
+        "providers": [
+          "Mike 4 230205; 7.9 1122 Spa; ?-? HEVC/HD"
+        ]
+      },
+      "band": "C",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-117-west-a-117w-s2-4076"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+            "retrievedAt": "2026-05-01T07:48:16.198Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-117-west-a-117w-s2-v",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "downlink": {
+        "frequencyMHz": 4086,
+        "polarization": "V",
+        "beamName": "United Teleports",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 6600.313,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          8333
+        ],
+        "fecValues": [
+          "5/6"
+        ],
+        "services": [],
+        "providers": [
+          "Cyberham 251113"
+        ]
+      },
+      "band": "C",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-117-west-a-117w-s2-4086"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+            "retrievedAt": "2026-05-01T07:48:16.198Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-117-west-a-117w-s2-v",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "downlink": {
+        "frequencyMHz": 4094,
+        "polarization": "V",
+        "beamName": "Edinho fta 230619",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 6609.063,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          6333
+        ],
+        "fecValues": [
+          "3/4"
+        ],
+        "services": [],
+        "providers": [
+          "Atresmedia; PowerVu"
+        ]
+      },
+      "band": "C",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-117-west-a-117w-s2-4094"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+            "retrievedAt": "2026-05-01T07:48:16.198Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-117-west-a-117w-4101.0mhz-unknown-pol",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "downlink": {
+        "frequencyMHz": 4101,
+        "beamName": "Atrecine",
+        "source": "LYNGSAT",
+        "confidence": "LOW"
+      },
+      "uplink": {
+        "frequencyMHz": 6616.719,
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "groupedObservationCount": 1,
+        "systems": [
+          "MPEG-4"
+        ],
+        "symbolRates": [],
+        "fecValues": [],
+        "services": [],
+        "providers": [
+          "4102 Spa; PowerVu"
+        ]
+      },
+      "band": "C",
+      "serviceType": "UNKNOWN",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-117-west-a-117w-row-74-4101"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+            "retrievedAt": "2026-05-01T07:48:16.198Z",
+            "fieldsUsed": [
+              "frequency",
+              "beam",
+              "system"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Uplink beam unknown in public data.",
+        "Polarization not present or not parseable."
+      ]
+    },
+    {
+      "id": "eutelsat-117-west-a-117w-4111.0mhz-unknown-pol",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "downlink": {
+        "frequencyMHz": 4111,
+        "beamName": "Atreseries",
+        "source": "LYNGSAT",
+        "confidence": "LOW"
+      },
+      "uplink": {
+        "frequencyMHz": 6627.656,
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "groupedObservationCount": 1,
+        "systems": [
+          "MPEG-4"
+        ],
+        "symbolRates": [],
+        "fecValues": [],
+        "services": [],
+        "providers": [
+          "4112 Spa; PowerVu"
+        ]
+      },
+      "band": "C",
+      "serviceType": "UNKNOWN",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-117-west-a-117w-row-75-4111"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+            "retrievedAt": "2026-05-01T07:48:16.198Z",
+            "fieldsUsed": [
+              "frequency",
+              "beam",
+              "system"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Uplink beam unknown in public data.",
+        "Polarization not present or not parseable."
+      ]
+    },
+    {
+      "id": "eutelsat-117-west-a-117w-s2-h",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "downlink": {
+        "frequencyMHz": 4100,
+        "polarization": "H",
+        "beamName": "Televisa Networks",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 6615.625,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          30000
+        ],
+        "fecValues": [
+          "5/6"
+        ],
+        "services": [],
+        "providers": [
+          "Mike 4 210914; Digicipher"
+        ]
+      },
+      "band": "C",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-117-west-a-117w-s2-4100"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+            "retrievedAt": "2026-05-01T07:48:16.198Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-117-west-a-117w-s2-v",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "downlink": {
+        "frequencyMHz": 4111,
+        "polarization": "V",
+        "beamName": "Cyberham 251112",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 6627.656,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          15834
+        ],
+        "fecValues": [
+          "5/6"
+        ],
+        "services": [],
+        "providers": [
+          "Thema America; PowerVu"
+        ]
+      },
+      "band": "C",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-117-west-a-117w-s2-4111"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+            "retrievedAt": "2026-05-01T07:48:16.198Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-117-west-a-117w-3500.0mhz-unknown-pol",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "downlink": {
+        "frequencyMHz": 3500,
+        "beamName": "Telemicro Internacional",
+        "source": "LYNGSAT",
+        "confidence": "LOW"
+      },
+      "uplink": {
+        "frequencyMHz": 5959.375,
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "groupedObservationCount": 1,
+        "systems": [
+          "MPEG-4"
+        ],
+        "symbolRates": [],
+        "fecValues": [],
+        "services": [],
+        "providers": [
+          "3501 Spa; PowerVu"
+        ]
+      },
+      "band": "C",
+      "serviceType": "UNKNOWN",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-117-west-a-117w-row-78-3500"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+            "retrievedAt": "2026-05-01T07:48:16.198Z",
+            "fieldsUsed": [
+              "frequency",
+              "beam",
+              "system"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Uplink beam unknown in public data.",
+        "Polarization not present or not parseable."
+      ]
+    },
+    {
+      "id": "eutelsat-117-west-a-117w-3510.0mhz-unknown-pol",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "downlink": {
+        "frequencyMHz": 3510,
+        "beamName": "Once México Internacional",
+        "source": "LYNGSAT",
+        "confidence": "LOW"
+      },
+      "uplink": {
+        "frequencyMHz": 5970.313,
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "groupedObservationCount": 1,
+        "systems": [
+          "MPEG-4"
+        ],
+        "symbolRates": [],
+        "fecValues": [],
+        "services": [],
+        "providers": [
+          "3511 Spa; PowerVu"
+        ]
+      },
+      "band": "C",
+      "serviceType": "UNKNOWN",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-117-west-a-117w-row-79-3510"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+            "retrievedAt": "2026-05-01T07:48:16.198Z",
+            "fieldsUsed": [
+              "frequency",
+              "beam",
+              "system"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Uplink beam unknown in public data.",
+        "Polarization not present or not parseable."
+      ]
+    },
+    {
+      "id": "eutelsat-117-west-a-117w-3530.0mhz-unknown-pol",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "downlink": {
+        "frequencyMHz": 3530,
+        "beamName": "AyM Sports",
+        "source": "LYNGSAT",
+        "confidence": "LOW"
+      },
+      "uplink": {
+        "frequencyMHz": 5992.188,
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "groupedObservationCount": 1,
+        "systems": [
+          "MPEG-4"
+        ],
+        "symbolRates": [],
+        "fecValues": [],
+        "services": [],
+        "providers": [
+          "3531 Spa; PowerVu"
+        ]
+      },
+      "band": "C",
+      "serviceType": "UNKNOWN",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-117-west-a-117w-row-80-3530"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+            "retrievedAt": "2026-05-01T07:48:16.198Z",
+            "fieldsUsed": [
+              "frequency",
+              "beam",
+              "system"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Uplink beam unknown in public data.",
+        "Polarization not present or not parseable."
+      ]
+    },
+    {
+      "id": "eutelsat-117-west-a-117w-3540.0mhz-unknown-pol",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "downlink": {
+        "frequencyMHz": 3540,
+        "beamName": "Latin American Sports USA",
+        "source": "LYNGSAT",
+        "confidence": "LOW"
+      },
+      "uplink": {
+        "frequencyMHz": 6003.125,
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "groupedObservationCount": 1,
+        "systems": [
+          "MPEG-4"
+        ],
+        "symbolRates": [],
+        "fecValues": [],
+        "services": [],
+        "providers": [
+          "3541 Spa; PowerVu"
+        ]
+      },
+      "band": "C",
+      "serviceType": "UNKNOWN",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-117-west-a-117w-row-81-3540"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+            "retrievedAt": "2026-05-01T07:48:16.198Z",
+            "fieldsUsed": [
+              "frequency",
+              "beam",
+              "system"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Uplink beam unknown in public data.",
+        "Polarization not present or not parseable."
+      ]
+    },
+    {
+      "id": "eutelsat-117-west-a-117w-3550.0mhz-unknown-pol",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "downlink": {
+        "frequencyMHz": 3550,
+        "beamName": "Kanal D Drama",
+        "source": "LYNGSAT",
+        "confidence": "LOW"
+      },
+      "uplink": {
+        "frequencyMHz": 6014.063,
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "groupedObservationCount": 1,
+        "systems": [
+          "MPEG-4"
+        ],
+        "symbolRates": [],
+        "fecValues": [],
+        "services": [],
+        "providers": [
+          "3551 Spa; PowerVu"
+        ]
+      },
+      "band": "C",
+      "serviceType": "UNKNOWN",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-117-west-a-117w-row-82-3550"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+            "retrievedAt": "2026-05-01T07:48:16.198Z",
+            "fieldsUsed": [
+              "frequency",
+              "beam",
+              "system"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Uplink beam unknown in public data.",
+        "Polarization not present or not parseable."
+      ]
+    },
+    {
+      "id": "eutelsat-117-west-a-117w-3570.0mhz-unknown-pol",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "downlink": {
+        "frequencyMHz": 3570,
+        "beamName": "Ecuavisa Internacional",
+        "source": "LYNGSAT",
+        "confidence": "LOW"
+      },
+      "uplink": {
+        "frequencyMHz": 6035.938,
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "groupedObservationCount": 1,
+        "systems": [
+          "MPEG-4"
+        ],
+        "symbolRates": [],
+        "fecValues": [],
+        "services": [],
+        "providers": [
+          "3571 Spa; PowerVu"
+        ]
+      },
+      "band": "C",
+      "serviceType": "UNKNOWN",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-117-west-a-117w-row-83-3570"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+            "retrievedAt": "2026-05-01T07:48:16.198Z",
+            "fieldsUsed": [
+              "frequency",
+              "beam",
+              "system"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Uplink beam unknown in public data.",
+        "Polarization not present or not parseable."
+      ]
+    },
+    {
+      "id": "eutelsat-117-west-a-117w-3580.0mhz-unknown-pol",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "downlink": {
+        "frequencyMHz": 3580,
+        "beamName": "CB TV Michoacan",
+        "source": "LYNGSAT",
+        "confidence": "LOW"
+      },
+      "uplink": {
+        "frequencyMHz": 6046.875,
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "groupedObservationCount": 1,
+        "systems": [
+          "MPEG-4"
+        ],
+        "symbolRates": [],
+        "fecValues": [],
+        "services": [],
+        "providers": [
+          "3581 Spa; PowerVu"
+        ]
+      },
+      "band": "C",
+      "serviceType": "UNKNOWN",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-117-west-a-117w-row-84-3580"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+            "retrievedAt": "2026-05-01T07:48:16.198Z",
+            "fieldsUsed": [
+              "frequency",
+              "beam",
+              "system"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Uplink beam unknown in public data.",
+        "Polarization not present or not parseable."
+      ]
+    },
+    {
+      "id": "eutelsat-117-west-a-117w-3590.0mhz-unknown-pol",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "downlink": {
+        "frequencyMHz": 3590,
+        "beamName": "Kanal D Drama",
+        "source": "LYNGSAT",
+        "confidence": "LOW"
+      },
+      "uplink": {
+        "frequencyMHz": 6057.813,
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "groupedObservationCount": 1,
+        "systems": [
+          "MPEG-4"
+        ],
+        "symbolRates": [],
+        "fecValues": [],
+        "services": [],
+        "providers": [
+          "3591 Spa; PowerVu"
+        ]
+      },
+      "band": "C",
+      "serviceType": "UNKNOWN",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-117-west-a-117w-row-85-3590"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+            "retrievedAt": "2026-05-01T07:48:16.198Z",
+            "fieldsUsed": [
+              "frequency",
+              "beam",
+              "system"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Uplink beam unknown in public data.",
+        "Polarization not present or not parseable."
+      ]
+    },
+    {
+      "id": "eutelsat-117-west-a-117w-3600.0mhz-unknown-pol",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "downlink": {
+        "frequencyMHz": 3600,
+        "beamName": "Canal 22 Internacional",
+        "source": "LYNGSAT",
+        "confidence": "LOW"
+      },
+      "uplink": {
+        "frequencyMHz": 6068.75,
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "groupedObservationCount": 1,
+        "systems": [
+          "MPEG-4"
+        ],
+        "symbolRates": [],
+        "fecValues": [],
+        "services": [],
+        "providers": [
+          "3601 Spa; PowerVu"
+        ]
+      },
+      "band": "C",
+      "serviceType": "UNKNOWN",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-117-west-a-117w-row-86-3600"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+            "retrievedAt": "2026-05-01T07:48:16.198Z",
+            "fieldsUsed": [
+              "frequency",
+              "beam",
+              "system"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Uplink beam unknown in public data.",
+        "Polarization not present or not parseable."
+      ]
+    },
+    {
+      "id": "eutelsat-117-west-a-117w-s2-v",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "downlink": {
+        "frequencyMHz": 4132,
+        "polarization": "V",
+        "beamName": "Luis Alberto Rosario 251003",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 6650.625,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          2500
+        ],
+        "fecValues": [
+          "5/6"
+        ],
+        "services": [],
+        "providers": [
+          "La Voz de María; 5.2 4114 Spa"
+        ]
+      },
+      "band": "C",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-117-west-a-117w-s2-4132"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+            "retrievedAt": "2026-05-01T07:48:16.198Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-117-west-a-117w-s2-h",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "downlink": {
+        "frequencyMHz": 4140,
+        "polarization": "H",
+        "beamName": "Televisa Networks",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 6659.375,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          30000
+        ],
+        "fecValues": [
+          "5/6"
+        ],
+        "services": [],
+        "providers": [
+          "Mike 4 230205; Digicipher"
+        ]
+      },
+      "band": "C",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-117-west-a-117w-s2-4140"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+            "retrievedAt": "2026-05-01T07:48:16.198Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-117-west-a-117w-3536.0mhz-unknown-pol",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "downlink": {
+        "frequencyMHz": 3536,
+        "beamName": "Golden Premier",
+        "source": "LYNGSAT",
+        "confidence": "LOW"
+      },
+      "uplink": {
+        "frequencyMHz": 5998.75,
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "groupedObservationCount": 1,
+        "systems": [
+          "MPEG-4"
+        ],
+        "symbolRates": [],
+        "fecValues": [],
+        "eirpDbw": 25,
+        "services": [],
+        "providers": [
+          "Digicipher; 3537 Spa"
+        ]
+      },
+      "band": "C",
+      "serviceType": "UNKNOWN",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-117-west-a-117w-row-89-3536"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+            "retrievedAt": "2026-05-01T07:48:16.198Z",
+            "fieldsUsed": [
+              "frequency",
+              "beam",
+              "system"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Uplink beam unknown in public data.",
+        "Polarization not present or not parseable."
+      ]
+    },
+    {
+      "id": "eutelsat-117-west-a-117w-3792.0mhz-unknown-pol",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "downlink": {
+        "frequencyMHz": 3792,
+        "beamName": "Digicipher",
+        "source": "LYNGSAT",
+        "confidence": "LOW"
+      },
+      "uplink": {
+        "frequencyMHz": 6278.75,
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "groupedObservationCount": 1,
+        "systems": [],
+        "symbolRates": [],
+        "fecValues": [],
+        "eirpDbw": 26,
+        "services": [],
+        "providers": [
+          "(feeds)"
+        ]
+      },
+      "band": "C",
+      "serviceType": "UNKNOWN",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-117-west-a-117w-row-90-3792"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+            "retrievedAt": "2026-05-01T07:48:16.198Z",
+            "fieldsUsed": [
+              "frequency",
+              "beam"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Uplink beam unknown in public data.",
+        "Polarization not present or not parseable.",
+        "No DVB system/SR/FEC parameters found."
+      ]
+    },
+    {
+      "id": "eutelsat-117-west-a-117w-4047.0mhz-unknown-pol",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "downlink": {
+        "frequencyMHz": 4047,
+        "beamName": "Digicipher",
+        "source": "LYNGSAT",
+        "confidence": "LOW"
+      },
+      "uplink": {
+        "frequencyMHz": 6557.656,
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "groupedObservationCount": 1,
+        "systems": [],
+        "symbolRates": [],
+        "fecValues": [],
+        "eirpDbw": 27,
+        "services": [],
+        "providers": [
+          "(feeds)"
+        ]
+      },
+      "band": "C",
+      "serviceType": "UNKNOWN",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-117-west-a-117w-row-91-4047"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+            "retrievedAt": "2026-05-01T07:48:16.198Z",
+            "fieldsUsed": [
+              "frequency",
+              "beam"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Uplink beam unknown in public data.",
+        "Polarization not present or not parseable.",
+        "No DVB system/SR/FEC parameters found."
+      ]
+    },
+    {
+      "id": "eutelsat-117-west-a-117w-s2-v",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "downlink": {
+        "frequencyMHz": 4160,
+        "polarization": "V",
+        "beamName": "NOS482 240721",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 6681.25,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          30000
+        ],
+        "fecValues": [
+          "5/6"
+        ],
+        "services": [],
+        "providers": [
+          "PowerVu"
+        ]
+      },
+      "band": "C",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-117-west-a-117w-s2-4160"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+            "retrievedAt": "2026-05-01T07:48:16.198Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-117-west-a-117w-s2-h",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "downlink": {
+        "frequencyMHz": 4164,
+        "polarization": "H",
+        "beamName": "Edinho fta 240313",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 6685.625,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          2400
+        ],
+        "fecValues": [
+          "3/4"
+        ],
+        "services": [],
+        "providers": [
+          "Panamericana TV"
+        ]
+      },
+      "band": "C",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-117-west-a-117w-s2-4164"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+            "retrievedAt": "2026-05-01T07:48:16.198Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-117-west-a-117w-s2-h",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "downlink": {
+        "frequencyMHz": 4184,
+        "polarization": "H",
+        "beamName": "Cyberham 251119",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 6707.5,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          25800
+        ],
+        "fecValues": [
+          "2/3"
+        ],
+        "services": [],
+        "providers": [
+          "Multimedios; PowerVu"
+        ]
+      },
+      "band": "C",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-117-west-a-117w-s2-4184"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+            "retrievedAt": "2026-05-01T07:48:16.198Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-117-west-a-117w-s2-v",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "downlink": {
+        "frequencyMHz": 11814,
+        "polarization": "V",
+        "beamName": "D Brockwell Cyberham 250105",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 14157.561,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          2500
+        ],
+        "fecValues": [
+          "3/5"
+        ],
+        "services": [],
+        "providers": []
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-117-west-a-117w-s2-11814"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+            "retrievedAt": "2026-05-01T07:48:16.198Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-117-west-a-117w-s2-v",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "downlink": {
+        "frequencyMHz": 12060,
+        "polarization": "V",
+        "beamName": "C de Berazategui 250210",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 14247.561,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          30000
+        ],
+        "fecValues": [],
+        "services": [],
+        "providers": [
+          "Conax Verimatrix; Tigo"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-117-west-a-117w-s2-12060"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+            "retrievedAt": "2026-05-01T07:48:16.198Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-117-west-a-117w-s2-h",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "downlink": {
+        "frequencyMHz": 12080,
+        "polarization": "H",
+        "beamName": "Conax Verimatrix",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 14254.878,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          30000
+        ],
+        "fecValues": [],
+        "services": [],
+        "providers": [
+          "D de Jong 260102; Tigo"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-117-west-a-117w-s2-12080"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+            "retrievedAt": "2026-05-01T07:48:16.198Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-117-west-a-117w-s2-v",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "downlink": {
+        "frequencyMHz": 12100,
+        "polarization": "V",
+        "beamName": "C de Berazategui 251122",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 14262.195,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          30000
+        ],
+        "fecValues": [
+          "3/4"
+        ],
+        "services": [],
+        "providers": [
+          "Conax Verimatrix; 5-501; Tigo"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-117-west-a-117w-s2-12100"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+            "retrievedAt": "2026-05-01T07:48:16.198Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-117-west-a-117w-s2-v",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "downlink": {
+        "frequencyMHz": 12123,
+        "polarization": "V",
+        "beamName": "Cyberham 240306",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 14270.61,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          3330
+        ],
+        "fecValues": [
+          "2/3"
+        ],
+        "services": [],
+        "providers": []
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-117-west-a-117w-s2-12123"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+            "retrievedAt": "2026-05-01T07:48:16.198Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-117-west-a-117w-3601.0mhz-unknown-pol",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "downlink": {
+        "frequencyMHz": 3601,
+        "beamName": "Hope Channel Inter-America",
+        "source": "LYNGSAT",
+        "confidence": "LOW"
+      },
+      "uplink": {
+        "frequencyMHz": 6069.844,
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "groupedObservationCount": 1,
+        "systems": [
+          "MPEG-4"
+        ],
+        "symbolRates": [],
+        "fecValues": [],
+        "services": [],
+        "providers": [
+          "3604 Spa"
+        ]
+      },
+      "band": "C",
+      "serviceType": "UNKNOWN",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-117-west-a-117w-row-100-3601"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+            "retrievedAt": "2026-05-01T07:48:16.198Z",
+            "fieldsUsed": [
+              "frequency",
+              "beam",
+              "system"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Uplink beam unknown in public data.",
+        "Polarization not present or not parseable."
+      ]
+    },
+    {
+      "id": "eutelsat-117-west-a-117w-3602.0mhz-unknown-pol",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "downlink": {
+        "frequencyMHz": 3602,
+        "beamName": "Hope Channel Inter-America English",
+        "source": "LYNGSAT",
+        "confidence": "LOW"
+      },
+      "uplink": {
+        "frequencyMHz": 6070.938,
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "groupedObservationCount": 1,
+        "systems": [
+          "MPEG-4"
+        ],
+        "symbolRates": [],
+        "fecValues": [],
+        "services": [],
+        "providers": [
+          "3606 Eng"
+        ]
+      },
+      "band": "C",
+      "serviceType": "UNKNOWN",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-117-west-a-117w-row-101-3602"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+            "retrievedAt": "2026-05-01T07:48:16.198Z",
+            "fieldsUsed": [
+              "frequency",
+              "beam",
+              "system"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Uplink beam unknown in public data.",
+        "Polarization not present or not parseable."
+      ]
+    },
+    {
+      "id": "eutelsat-117-west-a-117w-3704.0mhz-unknown-pol",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "downlink": {
+        "frequencyMHz": 3704,
+        "beamName": "Radio Nuevo Tiempo",
+        "source": "LYNGSAT",
+        "confidence": "LOW"
+      },
+      "uplink": {
+        "frequencyMHz": 6182.5,
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "groupedObservationCount": 1,
+        "systems": [],
+        "symbolRates": [],
+        "fecValues": [],
+        "services": [],
+        "providers": []
+      },
+      "band": "C",
+      "serviceType": "UNKNOWN",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-117-west-a-117w-row-102-3704"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+            "retrievedAt": "2026-05-01T07:48:16.198Z",
+            "fieldsUsed": [
+              "frequency",
+              "beam"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Uplink beam unknown in public data.",
+        "Polarization not present or not parseable.",
+        "No DVB system/SR/FEC parameters found."
+      ]
+    },
+    {
+      "id": "eutelsat-117-west-a-117w-s2-h",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "downlink": {
+        "frequencyMHz": 12147,
+        "polarization": "H",
+        "beamName": "J Drexhage 231107",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 14279.39,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          3600
+        ],
+        "fecValues": [
+          "1/2"
+        ],
+        "services": [],
+        "providers": [
+          "1.0 3001 Dut; BVN Amerika"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-117-west-a-117w-s2-12147"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+            "retrievedAt": "2026-05-01T07:48:16.198Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-117-west-a-117w-s2-h",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "downlink": {
+        "frequencyMHz": 12151,
+        "polarization": "H",
+        "beamName": "Cyberham 211011",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 14280.854,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          2678
+        ],
+        "fecValues": [
+          "2/3"
+        ],
+        "services": [],
+        "providers": [
+          "6.6 5121 Eng; BYU TV"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-117-west-a-117w-s2-12151"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+            "retrievedAt": "2026-05-01T07:48:16.198Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-117-west-a-117w-s2-unknown-pol",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "downlink": {
+        "beamName": "System:",
+        "source": "LYNGSAT",
+        "confidence": "LOW"
+      },
+      "uplink": {
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "UNKNOWN",
+        "source": "UNKNOWN",
+        "confidence": "UNKNOWN"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [],
+        "fecValues": [],
+        "services": [],
+        "providers": [
+          "non-DTH"
+        ]
+      },
+      "band": "Unknown",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-117-west-a-117w-s2-nofreq"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+            "retrievedAt": "2026-05-01T07:48:16.198Z",
+            "fieldsUsed": [
+              "beam",
+              "transponderNumber",
+              "system"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Unable to infer uplink frequency: downlink frequency unknown.",
+        "Broadcast uplink gateway / teleport beam unknown in public data.",
+        "Downlink frequency not parseable; row kept due to transponder ID.",
+        "Polarization not present or not parseable."
+      ]
+    }
+  ],
+  "summary": {
+    "total": 101,
+    "downlinkKnown": 100,
+    "downlinkBeamKnown": 101,
+    "uplinkInferred": 100,
+    "uplinkUnknown": 1
+  }
+}

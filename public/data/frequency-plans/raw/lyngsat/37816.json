@@ -1,0 +1,2677 @@
+{
+  "version": "2",
+  "satelliteName": "EUTELSAT 7 WEST A",
+  "orbitalPosition": "7W",
+  "source": "LYNGSAT",
+  "sourceUrl": "https://www.lyngsat.com/Eutelsat-7-West-A.html",
+  "generatedAt": "2026-05-01T07:49:01.513Z",
+  "observations": [
+    {
+      "id": "lyngsat-eutelsat-7-west-a-7w-a5-10815",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 7 WEST A",
+      "orbitalPosition": "7W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-7-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:07.608Z",
+      "raw": {
+        "frequencyText": "10815",
+        "polarizationText": "H",
+        "transponderText": "A5",
+        "beamText": "M Al-Taie Er Balvinder Singh 260429",
+        "systemText": "DVB-S",
+        "symbolRateText": "27500",
+        "fecText": "7/8",
+        "providerText": "Viewsat; 65535-1"
+      },
+      "parsed": {
+        "frequencyMHz": 10815,
+        "polarization": "H",
+        "transponderNumber": "A5",
+        "transponderName": "TP A5",
+        "beamName": "M Al-Taie Er Balvinder Singh 260429",
+        "system": "DVB-S",
+        "symbolRate": 27500,
+        "fec": "7/8",
+        "providerName": "Viewsat; 65535-1"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-7-west-a-7w-a8-10834",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 7 WEST A",
+      "orbitalPosition": "7W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-7-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:07.608Z",
+      "raw": {
+        "frequencyText": "10834",
+        "polarizationText": "V",
+        "transponderText": "A8",
+        "beamText": "Dondohodho 260426",
+        "systemText": "DVB-S2",
+        "symbolRateText": "27500",
+        "fecText": "3/4",
+        "providerText": "Qatar TV; 1-1"
+      },
+      "parsed": {
+        "frequencyMHz": 10834,
+        "polarization": "V",
+        "transponderNumber": "A8",
+        "transponderName": "TP A8",
+        "beamName": "Dondohodho 260426",
+        "system": "DVB-S2",
+        "symbolRate": 27500,
+        "fec": "3/4",
+        "providerName": "Qatar TV; 1-1"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-7-west-a-7w-a7-10853",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 7 WEST A",
+      "orbitalPosition": "7W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-7-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:07.608Z",
+      "raw": {
+        "frequencyText": "10853",
+        "polarizationText": "H",
+        "transponderText": "A7",
+        "beamText": "R Cervi 260215"
+      },
+      "parsed": {
+        "frequencyMHz": 10853,
+        "polarization": "H",
+        "transponderNumber": "A7",
+        "transponderName": "TP A7",
+        "beamName": "R Cervi 260215"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": false,
+        "confidence": "MEDIUM",
+        "warnings": [
+          "No DVB system/SR/FEC parameters found."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-7-west-a-7w-a10-10873",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 7 WEST A",
+      "orbitalPosition": "7W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-7-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:07.608Z",
+      "raw": {
+        "frequencyText": "10873",
+        "polarizationText": "V",
+        "transponderText": "A10",
+        "beamText": "M Al-Taie 260417",
+        "systemText": "DVB-S",
+        "symbolRateText": "27500",
+        "fecText": "7/8",
+        "providerText": "Eutelsat MENA; 110-18"
+      },
+      "parsed": {
+        "frequencyMHz": 10873,
+        "polarization": "V",
+        "transponderNumber": "A10",
+        "transponderName": "TP A10",
+        "beamName": "M Al-Taie 260417",
+        "system": "DVB-S",
+        "symbolRate": 27500,
+        "fec": "7/8",
+        "providerName": "Eutelsat MENA; 110-18"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-7-west-a-7w-a9-10892",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 7 WEST A",
+      "orbitalPosition": "7W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-7-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:07.608Z",
+      "raw": {
+        "frequencyText": "10892",
+        "polarizationText": "H",
+        "transponderText": "A9",
+        "beamText": "Best gamer 251203",
+        "systemText": "DVB-S",
+        "symbolRateText": "27500",
+        "fecText": "7/8",
+        "providerText": "Eutelsat MENA; 110-20"
+      },
+      "parsed": {
+        "frequencyMHz": 10892,
+        "polarization": "H",
+        "transponderNumber": "A9",
+        "transponderName": "TP A9",
+        "beamName": "Best gamer 251203",
+        "system": "DVB-S",
+        "symbolRate": 27500,
+        "fec": "7/8",
+        "providerName": "Eutelsat MENA; 110-20"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-7-west-a-7w-a12-10922",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 7 WEST A",
+      "orbitalPosition": "7W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-7-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:07.608Z",
+      "raw": {
+        "frequencyText": "10922",
+        "polarizationText": "V",
+        "transponderText": "A12",
+        "beamText": "M Al-Taie 260305",
+        "systemText": "DVB-S",
+        "symbolRateText": "27500",
+        "fecText": "7/8",
+        "providerText": "110-17"
+      },
+      "parsed": {
+        "frequencyMHz": 10922,
+        "polarization": "V",
+        "transponderNumber": "A12",
+        "transponderName": "TP A12",
+        "beamName": "M Al-Taie 260305",
+        "system": "DVB-S",
+        "symbolRate": 27500,
+        "fec": "7/8",
+        "providerName": "110-17"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-7-west-a-7w-n1-nofreq",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 7 WEST A",
+      "orbitalPosition": "7W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-7-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:07.608Z",
+      "raw": {
+        "transponderText": "N1",
+        "beamText": "3302 Ara",
+        "systemText": "MPEG-4"
+      },
+      "parsed": {
+        "transponderNumber": "N1",
+        "beamName": "3302 Ara",
+        "system": "MPEG-4"
+      },
+      "parseQuality": {
+        "hasFrequency": false,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Downlink frequency not parseable; row kept due to transponder ID.",
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-7-west-a-7w-row-8-3401",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 7 WEST A",
+      "orbitalPosition": "7W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-7-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:07.608Z",
+      "raw": {
+        "frequencyText": "3401",
+        "beamText": "Ennahar TV",
+        "systemText": "MPEG-4",
+        "symbolRateText": "2040",
+        "providerText": "3402 Ara"
+      },
+      "parsed": {
+        "frequencyMHz": 3401,
+        "beamName": "Ennahar TV",
+        "system": "MPEG-4",
+        "symbolRate": 2040,
+        "providerName": "3402 Ara"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-7-west-a-7w-row-9-3421",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 7 WEST A",
+      "orbitalPosition": "7W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-7-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:07.608Z",
+      "raw": {
+        "frequencyText": "3421",
+        "beamText": "Zahra TV (Algeria)",
+        "systemText": "MPEG-4",
+        "symbolRateText": "2042",
+        "providerText": "3422 Ara"
+      },
+      "parsed": {
+        "frequencyMHz": 3421,
+        "beamName": "Zahra TV (Algeria)",
+        "system": "MPEG-4",
+        "symbolRate": 2042,
+        "providerName": "3422 Ara"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-7-west-a-7w-row-10-3431",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 7 WEST A",
+      "orbitalPosition": "7W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-7-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:07.608Z",
+      "raw": {
+        "frequencyText": "3431",
+        "beamText": "3432 Ara",
+        "systemText": "MPEG-4",
+        "symbolRateText": "2043",
+        "providerText": "4Kids"
+      },
+      "parsed": {
+        "frequencyMHz": 3431,
+        "beamName": "3432 Ara",
+        "system": "MPEG-4",
+        "symbolRate": 2043,
+        "providerName": "4Kids"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-7-west-a-7w-b2-10992",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 7 WEST A",
+      "orbitalPosition": "7W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-7-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:07.608Z",
+      "raw": {
+        "frequencyText": "10992",
+        "polarizationText": "V",
+        "transponderText": "B2",
+        "beamText": "R Cervi 230408",
+        "systemText": "DVB-S2",
+        "symbolRateText": "5000",
+        "fecText": "9/10",
+        "providerText": "Eutelsat MENA; 1918-20200"
+      },
+      "parsed": {
+        "frequencyMHz": 10992,
+        "polarization": "V",
+        "transponderNumber": "B2",
+        "transponderName": "TP B2",
+        "beamName": "R Cervi 230408",
+        "system": "DVB-S2",
+        "symbolRate": 5000,
+        "fec": "9/10",
+        "providerName": "Eutelsat MENA; 1918-20200"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-7-west-a-7w-b4-11034",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 7 WEST A",
+      "orbitalPosition": "7W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-7-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:07.608Z",
+      "raw": {
+        "frequencyText": "11034",
+        "polarizationText": "V",
+        "transponderText": "B4",
+        "beamText": "R Cervi 230425",
+        "systemText": "DVB-S2",
+        "symbolRateText": "5000",
+        "fecText": "3/4"
+      },
+      "parsed": {
+        "frequencyMHz": 11034,
+        "polarization": "V",
+        "transponderNumber": "B4",
+        "transponderName": "TP B4",
+        "beamName": "R Cervi 230425",
+        "system": "DVB-S2",
+        "symbolRate": 5000,
+        "fec": "3/4"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-7-west-a-7w-b10-11158",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 7 WEST A",
+      "orbitalPosition": "7W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-7-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:07.608Z",
+      "raw": {
+        "frequencyText": "11158",
+        "polarizationText": "V",
+        "transponderText": "B10",
+        "beamText": "M Al-Taie 260301",
+        "systemText": "DVB-S2",
+        "symbolRateText": "5000",
+        "fecText": "9/10",
+        "providerText": "1918-20100; SNRT"
+      },
+      "parsed": {
+        "frequencyMHz": 11158,
+        "polarization": "V",
+        "transponderNumber": "B10",
+        "transponderName": "TP B10",
+        "beamName": "M Al-Taie 260301",
+        "system": "DVB-S2",
+        "symbolRate": 5000,
+        "fec": "9/10",
+        "providerName": "1918-20100; SNRT"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-7-west-a-7w-c1-11219",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 7 WEST A",
+      "orbitalPosition": "7W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-7-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:07.608Z",
+      "raw": {
+        "frequencyText": "11219",
+        "polarizationText": "H",
+        "transponderText": "C1",
+        "beamText": "Hadowooalsatan M Al-Taie A7Sats 250306",
+        "systemText": "DVB-S2",
+        "symbolRateText": "27500",
+        "fecText": "3/4",
+        "providerText": "1918-53900"
+      },
+      "parsed": {
+        "frequencyMHz": 11219,
+        "polarization": "H",
+        "transponderNumber": "C1",
+        "transponderName": "TP C1",
+        "beamName": "Hadowooalsatan M Al-Taie A7Sats 250306",
+        "system": "DVB-S2",
+        "symbolRate": 27500,
+        "fec": "3/4",
+        "providerName": "1918-53900"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-7-west-a-7w-c2-11227",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 7 WEST A",
+      "orbitalPosition": "7W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-7-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:07.608Z",
+      "raw": {
+        "frequencyText": "11227",
+        "polarizationText": "V",
+        "transponderText": "C2",
+        "beamText": "M Al-Taie Dondohodho 260424"
+      },
+      "parsed": {
+        "frequencyMHz": 11227,
+        "polarization": "V",
+        "transponderNumber": "C2",
+        "transponderName": "TP C2",
+        "beamName": "M Al-Taie Dondohodho 260424"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": false,
+        "confidence": "MEDIUM",
+        "warnings": [
+          "No DVB system/SR/FEC parameters found."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-7-west-a-7w-c3-11258",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 7 WEST A",
+      "orbitalPosition": "7W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-7-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:07.608Z",
+      "raw": {
+        "frequencyText": "11258",
+        "polarizationText": "H",
+        "transponderText": "C3",
+        "beamText": "R Cervi 260426",
+        "systemText": "DVB-S2",
+        "symbolRateText": "27500",
+        "fecText": "5/6",
+        "providerText": "Eutelsat MENA; 110-16"
+      },
+      "parsed": {
+        "frequencyMHz": 11258,
+        "polarization": "H",
+        "transponderNumber": "C3",
+        "transponderName": "TP C3",
+        "beamName": "R Cervi 260426",
+        "system": "DVB-S2",
+        "symbolRate": 27500,
+        "fec": "5/6",
+        "providerName": "Eutelsat MENA; 110-16"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-7-west-a-7w-row-17-4062",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 7 WEST A",
+      "orbitalPosition": "7W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-7-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:07.608Z",
+      "raw": {
+        "frequencyText": "4062",
+        "beamText": "Hawa Dijlah Radio"
+      },
+      "parsed": {
+        "frequencyMHz": 4062,
+        "beamName": "Hawa Dijlah Radio"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": false,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable.",
+          "No DVB system/SR/FEC parameters found."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-7-west-a-7w-c4-11277",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 7 WEST A",
+      "orbitalPosition": "7W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-7-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:07.608Z",
+      "raw": {
+        "frequencyText": "11277",
+        "polarizationText": "V",
+        "transponderText": "C4",
+        "beamText": "M Al-Taie 260214",
+        "systemText": "DVB-S",
+        "symbolRateText": "27500",
+        "fecText": "5/6",
+        "providerText": "1918-40040; Eutelsat"
+      },
+      "parsed": {
+        "frequencyMHz": 11277,
+        "polarization": "V",
+        "transponderNumber": "C4",
+        "transponderName": "TP C4",
+        "beamName": "M Al-Taie 260214",
+        "system": "DVB-S",
+        "symbolRate": 27500,
+        "fec": "5/6",
+        "providerName": "1918-40040; Eutelsat"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-7-west-a-7w-row-19-4171",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 7 WEST A",
+      "orbitalPosition": "7W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-7-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:07.608Z",
+      "raw": {
+        "frequencyText": "4171",
+        "beamText": "Zee Alwan Egypt",
+        "systemText": "MPEG-2",
+        "providerText": "4172 Ara"
+      },
+      "parsed": {
+        "frequencyMHz": 4171,
+        "beamName": "Zee Alwan Egypt",
+        "system": "MPEG-2",
+        "providerName": "4172 Ara"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-7-west-a-7w-row-20-4061",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 7 WEST A",
+      "orbitalPosition": "7W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-7-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:07.608Z",
+      "raw": {
+        "frequencyText": "4061",
+        "beamText": "4062 Ara",
+        "systemText": "MPEG-2",
+        "providerText": "Lana TV"
+      },
+      "parsed": {
+        "frequencyMHz": 4061,
+        "beamName": "4062 Ara",
+        "system": "MPEG-2",
+        "providerName": "Lana TV"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-7-west-a-7w-row-21-4071",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 7 WEST A",
+      "orbitalPosition": "7W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-7-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:07.608Z",
+      "raw": {
+        "frequencyText": "4071",
+        "beamText": "4072 Ara",
+        "systemText": "MPEG-2",
+        "providerText": "Zad TV"
+      },
+      "parsed": {
+        "frequencyMHz": 4071,
+        "beamName": "4072 Ara",
+        "system": "MPEG-2",
+        "providerName": "Zad TV"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-7-west-a-7w-row-22-4081",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 7 WEST A",
+      "orbitalPosition": "7W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-7-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:07.608Z",
+      "raw": {
+        "frequencyText": "4081",
+        "beamText": "Cartoon Network Arabic",
+        "systemText": "MPEG-2",
+        "providerText": "4082 Ara"
+      },
+      "parsed": {
+        "frequencyMHz": 4081,
+        "beamName": "Cartoon Network Arabic",
+        "system": "MPEG-2",
+        "providerName": "4082 Ara"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-7-west-a-7w-row-23-4141",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 7 WEST A",
+      "orbitalPosition": "7W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-7-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:07.608Z",
+      "raw": {
+        "frequencyText": "4141",
+        "beamText": "KBS World",
+        "systemText": "MPEG-2",
+        "providerText": "4142 Kor"
+      },
+      "parsed": {
+        "frequencyMHz": 4141,
+        "beamName": "KBS World",
+        "system": "MPEG-2",
+        "providerName": "4142 Kor"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-7-west-a-7w-row-24-4161",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 7 WEST A",
+      "orbitalPosition": "7W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-7-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:07.608Z",
+      "raw": {
+        "frequencyText": "4161",
+        "beamText": "China Arab TV",
+        "systemText": "MPEG-2",
+        "providerText": "4162 Ara"
+      },
+      "parsed": {
+        "frequencyMHz": 4161,
+        "beamName": "China Arab TV",
+        "system": "MPEG-2",
+        "providerName": "4162 Ara"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-7-west-a-7w-c5-11296",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 7 WEST A",
+      "orbitalPosition": "7W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-7-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:07.608Z",
+      "raw": {
+        "frequencyText": "11296",
+        "polarizationText": "H",
+        "transponderText": "C5",
+        "beamText": "M Al-Taie 260310",
+        "systemText": "DVB-S2",
+        "symbolRateText": "27500",
+        "fecText": "3/4",
+        "providerText": "1918-40500; Eutelsat"
+      },
+      "parsed": {
+        "frequencyMHz": 11296,
+        "polarization": "H",
+        "transponderNumber": "C5",
+        "transponderName": "TP C5",
+        "beamName": "M Al-Taie 260310",
+        "system": "DVB-S2",
+        "symbolRate": 27500,
+        "fec": "3/4",
+        "providerName": "1918-40500; Eutelsat"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-7-west-a-7w-c6-11315",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 7 WEST A",
+      "orbitalPosition": "7W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-7-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:07.608Z",
+      "raw": {
+        "frequencyText": "11315",
+        "polarizationText": "V",
+        "transponderText": "C6",
+        "beamText": "M Al-Taie 250601",
+        "systemText": "DVB-S",
+        "symbolRateText": "27500",
+        "fecText": "5/6",
+        "providerText": "Eutelsat MENA; 1918-40060"
+      },
+      "parsed": {
+        "frequencyMHz": 11315,
+        "polarization": "V",
+        "transponderNumber": "C6",
+        "transponderName": "TP C6",
+        "beamName": "M Al-Taie 250601",
+        "system": "DVB-S",
+        "symbolRate": 27500,
+        "fec": "5/6",
+        "providerName": "Eutelsat MENA; 1918-40060"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-7-west-a-7w-c7-11334",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 7 WEST A",
+      "orbitalPosition": "7W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-7-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:07.608Z",
+      "raw": {
+        "frequencyText": "11334",
+        "polarizationText": "H",
+        "transponderText": "C7",
+        "beamText": "R Cervi 260311",
+        "systemText": "DVB-S2",
+        "symbolRateText": "27500",
+        "fecText": "5/6",
+        "providerText": "Eutelsat MENA; 1918-40700"
+      },
+      "parsed": {
+        "frequencyMHz": 11334,
+        "polarization": "H",
+        "transponderNumber": "C7",
+        "transponderName": "TP C7",
+        "beamName": "R Cervi 260311",
+        "system": "DVB-S2",
+        "symbolRate": 27500,
+        "fec": "5/6",
+        "providerName": "Eutelsat MENA; 1918-40700"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-7-west-a-7w-c8-11354",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 7 WEST A",
+      "orbitalPosition": "7W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-7-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:07.608Z",
+      "raw": {
+        "frequencyText": "11354",
+        "polarizationText": "V",
+        "transponderText": "C8",
+        "beamText": "R Cervi 260408",
+        "systemText": "DVB-S2",
+        "symbolRateText": "27500",
+        "fecText": "5/6",
+        "providerText": "Eutelsat; 2048-800"
+      },
+      "parsed": {
+        "frequencyMHz": 11354,
+        "polarization": "V",
+        "transponderNumber": "C8",
+        "transponderName": "TP C8",
+        "beamName": "R Cervi 260408",
+        "system": "DVB-S2",
+        "symbolRate": 27500,
+        "fec": "5/6",
+        "providerName": "Eutelsat; 2048-800"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-7-west-a-7w-row-29-3503",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 7 WEST A",
+      "orbitalPosition": "7W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-7-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:07.608Z",
+      "raw": {
+        "frequencyText": "3503",
+        "beamText": "PraiseLive Global",
+        "symbolRateText": "1035"
+      },
+      "parsed": {
+        "frequencyMHz": 3503,
+        "beamName": "PraiseLive Global",
+        "symbolRate": 1035
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-7-west-a-7w-c9-11373",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 7 WEST A",
+      "orbitalPosition": "7W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-7-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:07.608Z",
+      "raw": {
+        "frequencyText": "11373",
+        "polarizationText": "H",
+        "transponderText": "C9",
+        "beamText": "M Al-Taie 260202",
+        "systemText": "DVB-S2",
+        "symbolRateText": "27500",
+        "fecText": "5/6",
+        "providerText": "Eutelsat MENA; 2048-201"
+      },
+      "parsed": {
+        "frequencyMHz": 11373,
+        "polarization": "H",
+        "transponderNumber": "C9",
+        "transponderName": "TP C9",
+        "beamName": "M Al-Taie 260202",
+        "system": "DVB-S2",
+        "symbolRate": 27500,
+        "fec": "5/6",
+        "providerName": "Eutelsat MENA; 2048-201"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-7-west-a-7w-row-31-3531",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 7 WEST A",
+      "orbitalPosition": "7W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-7-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:07.608Z",
+      "raw": {
+        "frequencyText": "3531",
+        "beamText": "Atfal & Mawaheb",
+        "systemText": "MPEG-4",
+        "providerText": "3532 Ara"
+      },
+      "parsed": {
+        "frequencyMHz": 3531,
+        "beamName": "Atfal & Mawaheb",
+        "system": "MPEG-4",
+        "providerName": "3532 Ara"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-7-west-a-7w-row-32-3561",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 7 WEST A",
+      "orbitalPosition": "7W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-7-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:07.608Z",
+      "raw": {
+        "frequencyText": "3561",
+        "beamText": "LuaLua TV",
+        "systemText": "MPEG-4",
+        "providerText": "3562 Ara"
+      },
+      "parsed": {
+        "frequencyMHz": 3561,
+        "beamName": "LuaLua TV",
+        "system": "MPEG-4",
+        "providerName": "3562 Ara"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-7-west-a-7w-row-33-3571",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 7 WEST A",
+      "orbitalPosition": "7W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-7-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:07.608Z",
+      "raw": {
+        "frequencyText": "3571",
+        "beamText": "Dijlah Zaman",
+        "systemText": "MPEG-4",
+        "providerText": "3572 Ara"
+      },
+      "parsed": {
+        "frequencyMHz": 3571,
+        "beamName": "Dijlah Zaman",
+        "system": "MPEG-4",
+        "providerName": "3572 Ara"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-7-west-a-7w-row-34-3591",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 7 WEST A",
+      "orbitalPosition": "7W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-7-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:07.608Z",
+      "raw": {
+        "frequencyText": "3591",
+        "beamText": "Al-Mawqef TV",
+        "systemText": "MPEG-4",
+        "providerText": "3592 Ara"
+      },
+      "parsed": {
+        "frequencyMHz": 3591,
+        "beamName": "Al-Mawqef TV",
+        "system": "MPEG-4",
+        "providerName": "3592 Ara"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-7-west-a-7w-row-35-3601",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 7 WEST A",
+      "orbitalPosition": "7W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-7-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:07.608Z",
+      "raw": {
+        "frequencyText": "3601",
+        "beamText": "3602 Ara",
+        "systemText": "MPEG-4",
+        "providerText": "Afaq TV"
+      },
+      "parsed": {
+        "frequencyMHz": 3601,
+        "beamName": "3602 Ara",
+        "system": "MPEG-4",
+        "providerName": "Afaq TV"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-7-west-a-7w-row-36-3611",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 7 WEST A",
+      "orbitalPosition": "7W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-7-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:07.608Z",
+      "raw": {
+        "frequencyText": "3611",
+        "beamText": "3612 Ara",
+        "systemText": "MPEG-4",
+        "providerText": "2M TV"
+      },
+      "parsed": {
+        "frequencyMHz": 3611,
+        "beamName": "3612 Ara",
+        "system": "MPEG-4",
+        "providerName": "2M TV"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-7-west-a-7w-row-37-3621",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 7 WEST A",
+      "orbitalPosition": "7W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-7-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:07.608Z",
+      "raw": {
+        "frequencyText": "3621",
+        "beamText": "Angel TV Arabic",
+        "systemText": "MPEG-4",
+        "symbolRateText": "2000",
+        "providerText": "2000 Ara"
+      },
+      "parsed": {
+        "frequencyMHz": 3621,
+        "beamName": "Angel TV Arabic",
+        "system": "MPEG-4",
+        "symbolRate": 2000,
+        "providerName": "2000 Ara"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-7-west-a-7w-c10-11392",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 7 WEST A",
+      "orbitalPosition": "7W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-7-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:07.608Z",
+      "raw": {
+        "frequencyText": "11392",
+        "polarizationText": "V",
+        "transponderText": "C10",
+        "beamText": "M Al-Taie 260407",
+        "systemText": "DVB-S",
+        "symbolRateText": "27500",
+        "fecText": "7/8",
+        "providerText": "Eutelsat MENA; 110-23"
+      },
+      "parsed": {
+        "frequencyMHz": 11392,
+        "polarization": "V",
+        "transponderNumber": "C10",
+        "transponderName": "TP C10",
+        "beamName": "M Al-Taie 260407",
+        "system": "DVB-S",
+        "symbolRate": 27500,
+        "fec": "7/8",
+        "providerName": "Eutelsat MENA; 110-23"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-7-west-a-7w-c11-11411",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 7 WEST A",
+      "orbitalPosition": "7W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-7-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:07.608Z",
+      "raw": {
+        "frequencyText": "11411",
+        "polarizationText": "H",
+        "transponderText": "C11",
+        "beamText": "Abu Dhabi Media Network",
+        "systemText": "DVB-S2",
+        "symbolRateText": "30000",
+        "fecText": "3/4",
+        "providerText": "Crazylee 250628; 100-50"
+      },
+      "parsed": {
+        "frequencyMHz": 11411,
+        "polarization": "H",
+        "transponderNumber": "C11",
+        "transponderName": "TP C11",
+        "beamName": "Abu Dhabi Media Network",
+        "system": "DVB-S2",
+        "symbolRate": 30000,
+        "fec": "3/4",
+        "providerName": "Crazylee 250628; 100-50"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-7-west-a-7w-c12-11430",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 7 WEST A",
+      "orbitalPosition": "7W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-7-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:07.608Z",
+      "raw": {
+        "frequencyText": "11430",
+        "polarizationText": "V",
+        "transponderText": "C12",
+        "beamText": "R Cervi 260408",
+        "systemText": "DVB-S",
+        "symbolRateText": "27500",
+        "fecText": "7/8",
+        "providerText": "Eutelsat MENA; 918-41200"
+      },
+      "parsed": {
+        "frequencyMHz": 11430,
+        "polarization": "V",
+        "transponderNumber": "C12",
+        "transponderName": "TP C12",
+        "beamName": "R Cervi 260408",
+        "system": "DVB-S",
+        "symbolRate": 27500,
+        "fec": "7/8",
+        "providerName": "Eutelsat MENA; 918-41200"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-7-west-a-7w-m24-nofreq",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 7 WEST A",
+      "orbitalPosition": "7W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-7-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:07.608Z",
+      "raw": {
+        "transponderText": "M24",
+        "beamText": "2082 Ara",
+        "systemText": "MPEG-2"
+      },
+      "parsed": {
+        "transponderNumber": "M24",
+        "beamName": "2082 Ara",
+        "system": "MPEG-2"
+      },
+      "parseQuality": {
+        "hasFrequency": false,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Downlink frequency not parseable; row kept due to transponder ID.",
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-7-west-a-7w-c13-11449",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 7 WEST A",
+      "orbitalPosition": "7W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-7-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:07.608Z",
+      "raw": {
+        "frequencyText": "11449",
+        "polarizationText": "H",
+        "transponderText": "C13",
+        "beamText": "Er Balvinder Singh 260429",
+        "systemText": "DVB-S2",
+        "symbolRateText": "27500",
+        "fecText": "3/4",
+        "providerText": "Eutelsat MENA; 65535-2"
+      },
+      "parsed": {
+        "frequencyMHz": 11449,
+        "polarization": "H",
+        "transponderNumber": "C13",
+        "transponderName": "TP C13",
+        "beamName": "Er Balvinder Singh 260429",
+        "system": "DVB-S2",
+        "symbolRate": 27500,
+        "fec": "3/4",
+        "providerName": "Eutelsat MENA; 65535-2"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-7-west-a-7w-d2-11475",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 7 WEST A",
+      "orbitalPosition": "7W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-7-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:07.608Z",
+      "raw": {
+        "frequencyText": "11475",
+        "polarizationText": "V",
+        "transponderText": "D2",
+        "beamText": "R Cervi 241125",
+        "systemText": "DVB-S",
+        "symbolRateText": "27500",
+        "fecText": "3/4",
+        "providerText": "1918-40200; SNRT"
+      },
+      "parsed": {
+        "frequencyMHz": 11475,
+        "polarization": "V",
+        "transponderNumber": "D2",
+        "transponderName": "TP D2",
+        "beamName": "R Cervi 241125",
+        "system": "DVB-S",
+        "symbolRate": 27500,
+        "fec": "3/4",
+        "providerName": "1918-40200; SNRT"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-7-west-a-7w-c15-11488",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 7 WEST A",
+      "orbitalPosition": "7W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-7-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:07.608Z",
+      "raw": {
+        "frequencyText": "11488",
+        "polarizationText": "H",
+        "transponderText": "C15",
+        "beamText": "M Al-Taie A7Sats 251030",
+        "systemText": "DVB-S",
+        "symbolRateText": "27500",
+        "fecText": "7/8",
+        "providerText": "Eutelsat MENA; 1918-41500"
+      },
+      "parsed": {
+        "frequencyMHz": 11488,
+        "polarization": "H",
+        "transponderNumber": "C15",
+        "transponderName": "TP C15",
+        "beamName": "M Al-Taie A7Sats 251030",
+        "system": "DVB-S",
+        "symbolRate": 27500,
+        "fec": "7/8",
+        "providerName": "Eutelsat MENA; 1918-41500"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-7-west-a-7w-d2-11514",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 7 WEST A",
+      "orbitalPosition": "7W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-7-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:07.608Z",
+      "raw": {
+        "frequencyText": "11514",
+        "polarizationText": "V",
+        "transponderText": "D2",
+        "beamText": "R Cervi 240803",
+        "systemText": "DVB-S2",
+        "symbolRateText": "27500",
+        "fecText": "2/3",
+        "providerText": "1918-40300; SNRT"
+      },
+      "parsed": {
+        "frequencyMHz": 11514,
+        "polarization": "V",
+        "transponderNumber": "D2",
+        "transponderName": "TP D2",
+        "beamName": "R Cervi 240803",
+        "system": "DVB-S2",
+        "symbolRate": 27500,
+        "fec": "2/3",
+        "providerName": "1918-40300; SNRT"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-7-west-a-7w-row-46-4001",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 7 WEST A",
+      "orbitalPosition": "7W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-7-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:07.608Z",
+      "raw": {
+        "frequencyText": "4001",
+        "beamText": "Athaqafia",
+        "systemText": "MPEG-4",
+        "providerText": "4002 Ara"
+      },
+      "parsed": {
+        "frequencyMHz": 4001,
+        "beamName": "Athaqafia",
+        "system": "MPEG-4",
+        "providerName": "4002 Ara"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-7-west-a-7w-c17-11526",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 7 WEST A",
+      "orbitalPosition": "7W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-7-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:07.608Z",
+      "raw": {
+        "frequencyText": "11526",
+        "polarizationText": "H",
+        "transponderText": "C17",
+        "beamText": "Verimatrix (B) Nagravision Viaccess",
+        "systemText": "DVB-S2",
+        "symbolRateText": "27500",
+        "fecText": "5/6",
+        "providerText": "M Al-Taie 251219; 1918-40150; EClutch"
+      },
+      "parsed": {
+        "frequencyMHz": 11526,
+        "polarization": "H",
+        "transponderNumber": "C17",
+        "transponderName": "TP C17",
+        "beamName": "Verimatrix (B) Nagravision Viaccess",
+        "system": "DVB-S2",
+        "symbolRate": 27500,
+        "fec": "5/6",
+        "providerName": "M Al-Taie 251219; 1918-40150; EClutch"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-7-west-a-7w-d4-11559",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 7 WEST A",
+      "orbitalPosition": "7W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-7-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:07.608Z",
+      "raw": {
+        "frequencyText": "11559",
+        "polarizationText": "V",
+        "transponderText": "D4",
+        "beamText": "A7Sats 250912",
+        "systemText": "DVB-S",
+        "symbolRateText": "27500",
+        "fecText": "5/6",
+        "eirpText": "60",
+        "providerText": "2048-60"
+      },
+      "parsed": {
+        "frequencyMHz": 11559,
+        "polarization": "V",
+        "transponderNumber": "D4",
+        "transponderName": "TP D4",
+        "beamName": "A7Sats 250912",
+        "system": "DVB-S",
+        "symbolRate": 27500,
+        "fec": "5/6",
+        "eirpDbw": 60,
+        "providerName": "2048-60"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-7-west-a-7w-c21-11603",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 7 WEST A",
+      "orbitalPosition": "7W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-7-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:07.608Z",
+      "raw": {
+        "frequencyText": "11603",
+        "polarizationText": "H",
+        "transponderText": "C21",
+        "beamText": "R Cervi 260406",
+        "systemText": "DVB-S",
+        "symbolRateText": "27500",
+        "fecText": "5/6",
+        "providerText": "Eutelsat MENA; 110-3105"
+      },
+      "parsed": {
+        "frequencyMHz": 11603,
+        "polarization": "H",
+        "transponderNumber": "C21",
+        "transponderName": "TP C21",
+        "beamName": "R Cervi 260406",
+        "system": "DVB-S",
+        "symbolRate": 27500,
+        "fec": "5/6",
+        "providerName": "Eutelsat MENA; 110-3105"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-7-west-a-7w-row-50-3601",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 7 WEST A",
+      "orbitalPosition": "7W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-7-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:07.608Z",
+      "raw": {
+        "frequencyText": "3601",
+        "beamText": "Karbala TV",
+        "systemText": "MPEG-4",
+        "symbolRateText": "601"
+      },
+      "parsed": {
+        "frequencyMHz": 3601,
+        "beamName": "Karbala TV",
+        "system": "MPEG-4",
+        "symbolRate": 601
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-7-west-a-7w-row-51-3603",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 7 WEST A",
+      "orbitalPosition": "7W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-7-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:07.608Z",
+      "raw": {
+        "frequencyText": "3603",
+        "beamText": "[Faith TV info card]",
+        "systemText": "MPEG-4",
+        "symbolRateText": "603"
+      },
+      "parsed": {
+        "frequencyMHz": 3603,
+        "beamName": "[Faith TV info card]",
+        "system": "MPEG-4",
+        "symbolRate": 603
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-7-west-a-7w-row-52-3604",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 7 WEST A",
+      "orbitalPosition": "7W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-7-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:07.608Z",
+      "raw": {
+        "frequencyText": "3604",
+        "beamText": "EriPM",
+        "systemText": "MPEG-2",
+        "symbolRateText": "604"
+      },
+      "parsed": {
+        "frequencyMHz": 3604,
+        "beamName": "EriPM",
+        "system": "MPEG-2",
+        "symbolRate": 604
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-7-west-a-7w-row-53-3606",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 7 WEST A",
+      "orbitalPosition": "7W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-7-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:07.608Z",
+      "raw": {
+        "frequencyText": "3606",
+        "beamText": "Sawt Alitra TV",
+        "systemText": "MPEG-2",
+        "symbolRateText": "606"
+      },
+      "parsed": {
+        "frequencyMHz": 3606,
+        "beamName": "Sawt Alitra TV",
+        "system": "MPEG-2",
+        "symbolRate": 606
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-7-west-a-7w-row-54-3609",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 7 WEST A",
+      "orbitalPosition": "7W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-7-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:07.608Z",
+      "raw": {
+        "frequencyText": "3609",
+        "beamText": "Suhail TV",
+        "systemText": "MPEG-2",
+        "symbolRateText": "609"
+      },
+      "parsed": {
+        "frequencyMHz": 3609,
+        "beamName": "Suhail TV",
+        "system": "MPEG-2",
+        "symbolRate": 609
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-7-west-a-7w-row-55-3610",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 7 WEST A",
+      "orbitalPosition": "7W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-7-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:07.608Z",
+      "raw": {
+        "frequencyText": "3610",
+        "beamText": "Taha TV",
+        "systemText": "MPEG-2",
+        "symbolRateText": "610"
+      },
+      "parsed": {
+        "frequencyMHz": 3610,
+        "beamName": "Taha TV",
+        "system": "MPEG-2",
+        "symbolRate": 610
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-7-west-a-7w-row-56-3612",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 7 WEST A",
+      "orbitalPosition": "7W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-7-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:07.608Z",
+      "raw": {
+        "frequencyText": "3612",
+        "systemText": "MPEG-2",
+        "symbolRateText": "612"
+      },
+      "parsed": {
+        "frequencyMHz": 3612,
+        "system": "MPEG-2",
+        "symbolRate": 612
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": false,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable.",
+          "Beam name not present."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-7-west-a-7w-row-57-3613",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 7 WEST A",
+      "orbitalPosition": "7W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-7-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:07.608Z",
+      "raw": {
+        "frequencyText": "3613",
+        "beamText": "ME Sat",
+        "systemText": "MPEG-2",
+        "symbolRateText": "613"
+      },
+      "parsed": {
+        "frequencyMHz": 3613,
+        "beamName": "ME Sat",
+        "system": "MPEG-2",
+        "symbolRate": 613
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-7-west-a-7w-c23-11641",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 7 WEST A",
+      "orbitalPosition": "7W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-7-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:07.608Z",
+      "raw": {
+        "frequencyText": "11641",
+        "polarizationText": "H",
+        "transponderText": "C23",
+        "beamText": "Janlakomcik 260311",
+        "systemText": "DVB-S2",
+        "symbolRateText": "27500",
+        "fecText": "3/4",
+        "providerText": "Eutelsat MENA; 110-3107"
+      },
+      "parsed": {
+        "frequencyMHz": 11641,
+        "polarization": "H",
+        "transponderNumber": "C23",
+        "transponderName": "TP C23",
+        "beamName": "Janlakomcik 260311",
+        "system": "DVB-S2",
+        "symbolRate": 27500,
+        "fec": "3/4",
+        "providerName": "Eutelsat MENA; 110-3107"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-7-west-a-7w-row-59-4031",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 7 WEST A",
+      "orbitalPosition": "7W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-7-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:07.608Z",
+      "raw": {
+        "frequencyText": "4031",
+        "beamText": "Al Maaref TV",
+        "systemText": "MPEG-2",
+        "providerText": "4032 Ara"
+      },
+      "parsed": {
+        "frequencyMHz": 4031,
+        "beamName": "Al Maaref TV",
+        "system": "MPEG-2",
+        "providerName": "4032 Ara"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-7-west-a-7w-row-60-4051",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 7 WEST A",
+      "orbitalPosition": "7W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-7-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:07.608Z",
+      "raw": {
+        "frequencyText": "4051",
+        "beamText": "Menhag TV",
+        "systemText": "MPEG-4",
+        "providerText": "4052 Ara"
+      },
+      "parsed": {
+        "frequencyMHz": 4051,
+        "beamName": "Menhag TV",
+        "system": "MPEG-4",
+        "providerName": "4052 Ara"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-7-west-a-7w-d6-11658",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 7 WEST A",
+      "orbitalPosition": "7W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-7-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:07.608Z",
+      "raw": {
+        "frequencyText": "11658",
+        "polarizationText": "V",
+        "transponderText": "D6",
+        "beamText": "M Al-Taie 260204",
+        "systemText": "DVB-S",
+        "symbolRateText": "27500",
+        "fecText": "2/3",
+        "providerText": "65535-0"
+      },
+      "parsed": {
+        "frequencyMHz": 11658,
+        "polarization": "V",
+        "transponderNumber": "D6",
+        "transponderName": "TP D6",
+        "beamName": "M Al-Taie 260204",
+        "system": "DVB-S",
+        "symbolRate": 27500,
+        "fec": "2/3",
+        "providerName": "65535-0"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-7-west-a-7w-c25-11680",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 7 WEST A",
+      "orbitalPosition": "7W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-7-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:07.608Z",
+      "raw": {
+        "frequencyText": "11680",
+        "polarizationText": "H",
+        "transponderText": "C25",
+        "beamText": "R Cervi 240424",
+        "systemText": "DVB-S2",
+        "symbolRateText": "27500",
+        "fecText": "2/3",
+        "providerText": "0-1"
+      },
+      "parsed": {
+        "frequencyMHz": 11680,
+        "polarization": "H",
+        "transponderNumber": "C25",
+        "transponderName": "TP C25",
+        "beamName": "R Cervi 240424",
+        "system": "DVB-S2",
+        "symbolRate": 27500,
+        "fec": "2/3",
+        "providerName": "0-1"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-7-west-a-7w-a3-nofreq",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 7 WEST A",
+      "orbitalPosition": "7W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-7-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:07.608Z",
+      "raw": {
+        "transponderText": "A3",
+        "beamText": "110 Ara",
+        "systemText": "MPEG-4",
+        "eirpText": "25"
+      },
+      "parsed": {
+        "transponderNumber": "A3",
+        "beamName": "110 Ara",
+        "system": "MPEG-4",
+        "eirpDbw": 25
+      },
+      "parseQuality": {
+        "hasFrequency": false,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Downlink frequency not parseable; row kept due to transponder ID.",
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-7-west-a-7w-e24-12169",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 7 WEST A",
+      "orbitalPosition": "7W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-7-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:07.608Z",
+      "raw": {
+        "frequencyText": "12169",
+        "polarizationText": "V",
+        "transponderText": "E24",
+        "beamText": "Dondohodho M Al-Taie 260319",
+        "systemText": "DVB-S2",
+        "symbolRateText": "27500",
+        "fecText": "2/3",
+        "providerText": "1918-30100; Kuwait TV"
+      },
+      "parsed": {
+        "frequencyMHz": 12169,
+        "polarization": "V",
+        "transponderNumber": "E24",
+        "transponderName": "TP E24",
+        "beamName": "Dondohodho M Al-Taie 260319",
+        "system": "DVB-S2",
+        "symbolRate": 27500,
+        "fec": "2/3",
+        "providerName": "1918-30100; Kuwait TV"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-7-west-a-7w-e25-12188",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 7 WEST A",
+      "orbitalPosition": "7W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-7-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:07.608Z",
+      "raw": {
+        "frequencyText": "12188",
+        "polarizationText": "H",
+        "transponderText": "E25",
+        "beamText": "Irdeto Videoguard",
+        "systemText": "DVB-S2",
+        "symbolRateText": "27500",
+        "fecText": "2/3",
+        "providerText": "A7Sats 260121; 1918-500; BeIn"
+      },
+      "parsed": {
+        "frequencyMHz": 12188,
+        "polarization": "H",
+        "transponderNumber": "E25",
+        "transponderName": "TP E25",
+        "beamName": "Irdeto Videoguard",
+        "system": "DVB-S2",
+        "symbolRate": 27500,
+        "fec": "2/3",
+        "providerName": "A7Sats 260121; 1918-500; BeIn"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-7-west-a-7w-e28-12245",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 7 WEST A",
+      "orbitalPosition": "7W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-7-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:07.608Z",
+      "raw": {
+        "frequencyText": "12245",
+        "polarizationText": "V",
+        "transponderText": "E28",
+        "beamText": "Irdeto Videoguard",
+        "systemText": "DVB-S2",
+        "symbolRateText": "27500",
+        "fecText": "2/3",
+        "providerText": "M Al-Taie 260126; 1918-400; BeIn"
+      },
+      "parsed": {
+        "frequencyMHz": 12245,
+        "polarization": "V",
+        "transponderNumber": "E28",
+        "transponderName": "TP E28",
+        "beamName": "Irdeto Videoguard",
+        "system": "DVB-S2",
+        "symbolRate": 27500,
+        "fec": "2/3",
+        "providerName": "M Al-Taie 260126; 1918-400; BeIn"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-7-west-a-7w-e32-12322",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 7 WEST A",
+      "orbitalPosition": "7W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-7-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:07.608Z",
+      "raw": {
+        "frequencyText": "12322",
+        "polarizationText": "V",
+        "transponderText": "E32",
+        "beamText": "M Al-Taie A7Sats 251025",
+        "systemText": "DVB-S2",
+        "symbolRateText": "30000",
+        "fecText": "3/4",
+        "eirpText": "66",
+        "providerText": "2048-66"
+      },
+      "parsed": {
+        "frequencyMHz": 12322,
+        "polarization": "V",
+        "transponderNumber": "E32",
+        "transponderName": "TP E32",
+        "beamName": "M Al-Taie A7Sats 251025",
+        "system": "DVB-S2",
+        "symbolRate": 30000,
+        "fec": "3/4",
+        "eirpDbw": 66,
+        "providerName": "2048-66"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-7-west-a-7w-e34-12360",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 7 WEST A",
+      "orbitalPosition": "7W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-7-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:07.608Z",
+      "raw": {
+        "frequencyText": "12360",
+        "polarizationText": "V",
+        "transponderText": "E34",
+        "beamText": "Anonymous 250903",
+        "systemText": "DVB-S2",
+        "symbolRateText": "27500",
+        "fecText": "3/4",
+        "providerText": "1918-53400; Asharq"
+      },
+      "parsed": {
+        "frequencyMHz": 12360,
+        "polarization": "V",
+        "transponderNumber": "E34",
+        "transponderName": "TP E34",
+        "beamName": "Anonymous 250903",
+        "system": "DVB-S2",
+        "symbolRate": 27500,
+        "fec": "3/4",
+        "providerName": "1918-53400; Asharq"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-7-west-a-7w-row-69-3411",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 7 WEST A",
+      "orbitalPosition": "7W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-7-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:07.608Z",
+      "raw": {
+        "frequencyText": "3411",
+        "beamText": "Asharq News",
+        "systemText": "MPEG-4",
+        "providerText": "341. Ara"
+      },
+      "parsed": {
+        "frequencyMHz": 3411,
+        "beamName": "Asharq News",
+        "system": "MPEG-4",
+        "providerName": "341. Ara"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-7-west-a-7w-row-70-3421",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 7 WEST A",
+      "orbitalPosition": "7W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-7-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:07.608Z",
+      "raw": {
+        "frequencyText": "3421",
+        "beamText": "Asharq Documentary",
+        "systemText": "MPEG-4",
+        "providerText": "3422 Ara"
+      },
+      "parsed": {
+        "frequencyMHz": 3421,
+        "beamName": "Asharq Documentary",
+        "system": "MPEG-4",
+        "providerName": "3422 Ara"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-7-west-a-7w-row-71-3431",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 7 WEST A",
+      "orbitalPosition": "7W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-7-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:07.608Z",
+      "raw": {
+        "frequencyText": "3431",
+        "beamText": "3432 Ara 3433 Eng",
+        "systemText": "MPEG-4",
+        "providerText": "Asharq Discovery"
+      },
+      "parsed": {
+        "frequencyMHz": 3431,
+        "beamName": "3432 Ara 3433 Eng",
+        "system": "MPEG-4",
+        "providerName": "Asharq Discovery"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-7-west-a-7w-row-72-3471",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 7 WEST A",
+      "orbitalPosition": "7W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-7-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:07.608Z",
+      "raw": {
+        "frequencyText": "3471",
+        "beamText": "Thamanya 1",
+        "systemText": "MPEG-4",
+        "providerText": "3472 Ara"
+      },
+      "parsed": {
+        "frequencyMHz": 3471,
+        "beamName": "Thamanya 1",
+        "system": "MPEG-4",
+        "providerName": "3472 Ara"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-7-west-a-7w-row-73-3481",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 7 WEST A",
+      "orbitalPosition": "7W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-7-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:07.608Z",
+      "raw": {
+        "frequencyText": "3481",
+        "beamText": "Thamanya 2",
+        "systemText": "MPEG-4",
+        "providerText": "3482 Ara"
+      },
+      "parsed": {
+        "frequencyMHz": 3481,
+        "beamName": "Thamanya 2",
+        "system": "MPEG-4",
+        "providerName": "3482 Ara"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-7-west-a-7w-row-74-3491",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 7 WEST A",
+      "orbitalPosition": "7W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-7-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:07.608Z",
+      "raw": {
+        "frequencyText": "3491",
+        "beamText": "Thamanya 3",
+        "systemText": "MPEG-4",
+        "providerText": "3492 Ara"
+      },
+      "parsed": {
+        "frequencyMHz": 3491,
+        "beamName": "Thamanya 3",
+        "system": "MPEG-4",
+        "providerName": "3492 Ara"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-7-west-a-7w-row-75-3413",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 7 WEST A",
+      "orbitalPosition": "7W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-7-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:07.608Z",
+      "raw": {
+        "frequencyText": "3413",
+        "beamText": "Radio Asharq"
+      },
+      "parsed": {
+        "frequencyMHz": 3413,
+        "beamName": "Radio Asharq"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": false,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable.",
+          "No DVB system/SR/FEC parameters found."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-7-west-a-7w-e36-12399",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 7 WEST A",
+      "orbitalPosition": "7W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-7-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:07.608Z",
+      "raw": {
+        "frequencyText": "12399",
+        "polarizationText": "V",
+        "transponderText": "E36",
+        "beamText": "M Al-Taie 260306"
+      },
+      "parsed": {
+        "frequencyMHz": 12399,
+        "polarization": "V",
+        "transponderNumber": "E36",
+        "transponderName": "TP E36",
+        "beamName": "M Al-Taie 260306"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": false,
+        "confidence": "MEDIUM",
+        "warnings": [
+          "No DVB system/SR/FEC parameters found."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-7-west-a-7w-e37-12418",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 7 WEST A",
+      "orbitalPosition": "7W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-7-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:07.608Z",
+      "raw": {
+        "frequencyText": "12418",
+        "polarizationText": "H",
+        "transponderText": "E37",
+        "beamText": "M Al-Taie 240427",
+        "systemText": "DVB-S2",
+        "symbolRateText": "30000",
+        "fecText": "3/4",
+        "providerText": "Dubai Media; 1918-53700"
+      },
+      "parsed": {
+        "frequencyMHz": 12418,
+        "polarization": "H",
+        "transponderNumber": "E37",
+        "transponderName": "TP E37",
+        "beamName": "M Al-Taie 240427",
+        "system": "DVB-S2",
+        "symbolRate": 30000,
+        "fec": "3/4",
+        "providerName": "Dubai Media; 1918-53700"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-7-west-a-7w-s2-nofreq",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 7 WEST A",
+      "orbitalPosition": "7W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-7-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:07.608Z",
+      "raw": {
+        "transponderText": "S2",
+        "beamText": "System:",
+        "systemText": "DVB-S2",
+        "providerText": "non-DTH"
+      },
+      "parsed": {
+        "transponderNumber": "S2",
+        "beamName": "System:",
+        "system": "DVB-S2",
+        "providerName": "non-DTH"
+      },
+      "parseQuality": {
+        "hasFrequency": false,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Downlink frequency not parseable; row kept due to transponder ID.",
+          "Polarization not present or not parseable."
+        ]
+      }
+    }
+  ]
+}

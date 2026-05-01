@@ -1,0 +1,4461 @@
+{
+  "version": "2",
+  "satelliteName": "EUTELSAT 10B",
+  "orbitalPosition": "10E",
+  "generatedAt": "2026-05-01T07:49:01.536Z",
+  "totalRawObservations": 70,
+  "transponders": [
+    {
+      "id": "eutelsat-10b-10e-3807.0mhz-r",
+      "satelliteName": "EUTELSAT 10B",
+      "orbitalPosition": "10E",
+      "downlink": {
+        "frequencyMHz": 3807,
+        "polarization": "R",
+        "beamName": "N Stanislav 260213",
+        "source": "LYNGSAT",
+        "confidence": "MEDIUM"
+      },
+      "uplink": {
+        "frequencyMHz": 6295.156,
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "groupedObservationCount": 1,
+        "systems": [],
+        "symbolRates": [],
+        "fecValues": [],
+        "services": [],
+        "providers": []
+      },
+      "band": "C",
+      "serviceType": "UNKNOWN",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-10b-10e-row-1-3807"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-10B.html",
+            "retrievedAt": "2026-05-01T07:48:58.584Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Uplink beam unknown in public data.",
+        "No DVB system/SR/FEC parameters found."
+      ]
+    },
+    {
+      "id": "eutelsat-10b-10e-s2-r",
+      "satelliteName": "EUTELSAT 10B",
+      "orbitalPosition": "10E",
+      "downlink": {
+        "frequencyMHz": 3836,
+        "polarization": "R",
+        "beamName": "N Stanislav 260421",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 6326.875,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          1650
+        ],
+        "fecValues": [
+          "5/6"
+        ],
+        "services": [],
+        "providers": [
+          "Loveworld XP; 9.4 4113 Eng"
+        ]
+      },
+      "band": "C",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-10b-10e-s2-3836"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-10B.html",
+            "retrievedAt": "2026-05-01T07:48:58.584Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-10b-10e-s2-r",
+      "satelliteName": "EUTELSAT 10B",
+      "orbitalPosition": "10E",
+      "downlink": {
+        "frequencyMHz": 3861,
+        "polarization": "R",
+        "beamName": "N Stanislav 260109",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 6354.219,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          4042
+        ],
+        "fecValues": [
+          "2/3"
+        ],
+        "services": [],
+        "providers": [
+          "6.6 512 Fre; Télé Tchad"
+        ]
+      },
+      "band": "C",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-10b-10e-s2-3861"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-10B.html",
+            "retrievedAt": "2026-05-01T07:48:58.584Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-10b-10e-s2-r",
+      "satelliteName": "EUTELSAT 10B",
+      "orbitalPosition": "10E",
+      "downlink": {
+        "frequencyMHz": 3870,
+        "polarization": "R",
+        "beamName": "N Stanislav 260107",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 6364.063,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          3333
+        ],
+        "fecValues": [
+          "2/3"
+        ],
+        "services": [],
+        "providers": [
+          "Rwanda TV; 1000-1"
+        ]
+      },
+      "band": "C",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-10b-10e-s2-3870"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-10B.html",
+            "retrievedAt": "2026-05-01T07:48:58.584Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-10b-10e-kc2-unknown-pol",
+      "satelliteName": "EUTELSAT 10B",
+      "orbitalPosition": "10E",
+      "downlink": {
+        "beamName": "122 Eng",
+        "source": "LYNGSAT",
+        "confidence": "LOW"
+      },
+      "uplink": {
+        "inferenceMethod": "UNKNOWN",
+        "source": "UNKNOWN",
+        "confidence": "UNKNOWN"
+      },
+      "publicTransponder": {
+        "number": "KC2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "MPEG-4"
+        ],
+        "symbolRates": [],
+        "fecValues": [],
+        "services": [],
+        "providers": []
+      },
+      "band": "Unknown",
+      "serviceType": "UNKNOWN",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-10b-10e-kc2-nofreq"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-10B.html",
+            "retrievedAt": "2026-05-01T07:48:58.584Z",
+            "fieldsUsed": [
+              "beam",
+              "transponderNumber",
+              "system"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Unable to infer uplink frequency: downlink frequency unknown.",
+        "Uplink beam unknown in public data.",
+        "Downlink frequency not parseable; row kept due to transponder ID.",
+        "Polarization not present or not parseable."
+      ]
+    },
+    {
+      "id": "eutelsat-10b-10e-s2-r",
+      "satelliteName": "EUTELSAT 10B",
+      "orbitalPosition": "10E",
+      "downlink": {
+        "frequencyMHz": 3874,
+        "polarization": "R",
+        "beamName": "Deeper Christian Life Ministry feeds",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 6368.438,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          2080
+        ],
+        "fecValues": [
+          "5/6"
+        ],
+        "services": [],
+        "providers": [
+          "N Stanislav 260327"
+        ]
+      },
+      "band": "C",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-10b-10e-s2-3874"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-10B.html",
+            "retrievedAt": "2026-05-01T07:48:58.584Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-10b-10e-s2-l",
+      "satelliteName": "EUTELSAT 10B",
+      "orbitalPosition": "10E",
+      "downlink": {
+        "frequencyMHz": 3890,
+        "polarization": "L",
+        "beamName": "DX Bozóth 260217",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 6385.938,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          3750
+        ],
+        "fecValues": [
+          "3/4"
+        ],
+        "services": [],
+        "providers": [
+          "(feeds)"
+        ]
+      },
+      "band": "C",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-10b-10e-s2-3890"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-10B.html",
+            "retrievedAt": "2026-05-01T07:48:58.584Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-10b-10e-s2-r",
+      "satelliteName": "EUTELSAT 10B",
+      "orbitalPosition": "10E",
+      "downlink": {
+        "frequencyMHz": 3900,
+        "polarization": "R",
+        "beamName": "StarTimes TV Kenya",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 6396.875,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          23330
+        ],
+        "fecValues": [
+          "8/9"
+        ],
+        "services": [],
+        "providers": [
+          "Anonymous 260418; 1-4"
+        ]
+      },
+      "band": "C",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-10b-10e-s2-3900"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-10B.html",
+            "retrievedAt": "2026-05-01T07:48:58.584Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-10b-10e-k24-unknown-pol",
+      "satelliteName": "EUTELSAT 10B",
+      "orbitalPosition": "10E",
+      "downlink": {
+        "beamName": "1042 Eng",
+        "source": "LYNGSAT",
+        "confidence": "LOW"
+      },
+      "uplink": {
+        "inferenceMethod": "UNKNOWN",
+        "source": "UNKNOWN",
+        "confidence": "UNKNOWN"
+      },
+      "publicTransponder": {
+        "number": "K24",
+        "groupedObservationCount": 1,
+        "systems": [
+          "MPEG-4"
+        ],
+        "symbolRates": [],
+        "fecValues": [],
+        "services": [],
+        "providers": []
+      },
+      "band": "Unknown",
+      "serviceType": "UNKNOWN",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-10b-10e-k24-nofreq"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-10B.html",
+            "retrievedAt": "2026-05-01T07:48:58.584Z",
+            "fieldsUsed": [
+              "beam",
+              "transponderNumber",
+              "system"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Unable to infer uplink frequency: downlink frequency unknown.",
+        "Uplink beam unknown in public data.",
+        "Downlink frequency not parseable; row kept due to transponder ID.",
+        "Polarization not present or not parseable."
+      ]
+    },
+    {
+      "id": "eutelsat-10b-10e-4119.0mhz-unknown-pol",
+      "satelliteName": "EUTELSAT 10B",
+      "orbitalPosition": "10E",
+      "downlink": {
+        "frequencyMHz": 4119,
+        "beamName": "Emoo FM",
+        "source": "LYNGSAT",
+        "confidence": "LOW"
+      },
+      "uplink": {
+        "frequencyMHz": 6636.406,
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "groupedObservationCount": 1,
+        "systems": [],
+        "symbolRates": [],
+        "fecValues": [],
+        "services": [],
+        "providers": []
+      },
+      "band": "C",
+      "serviceType": "UNKNOWN",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-10b-10e-row-10-4119"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-10B.html",
+            "retrievedAt": "2026-05-01T07:48:58.584Z",
+            "fieldsUsed": [
+              "frequency",
+              "beam"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Uplink beam unknown in public data.",
+        "Polarization not present or not parseable.",
+        "No DVB system/SR/FEC parameters found."
+      ]
+    },
+    {
+      "id": "eutelsat-10b-10e-s2-r",
+      "satelliteName": "EUTELSAT 10B",
+      "orbitalPosition": "10E",
+      "downlink": {
+        "frequencyMHz": 3949,
+        "polarization": "R",
+        "beamName": "S Ugbeda 240530",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 6450.469,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          1212
+        ],
+        "fecValues": [
+          "3/4"
+        ],
+        "services": [],
+        "providers": [
+          "4.0 4112 Eng; Hip TV"
+        ]
+      },
+      "band": "C",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-10b-10e-s2-3949"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-10B.html",
+            "retrievedAt": "2026-05-01T07:48:58.584Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-10b-10e-s2-r",
+      "satelliteName": "EUTELSAT 10B",
+      "orbitalPosition": "10E",
+      "downlink": {
+        "frequencyMHz": 3986,
+        "polarization": "R",
+        "beamName": "DX Bozóth 250322",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 6490.938,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          18260
+        ],
+        "fecValues": [
+          "3/4"
+        ],
+        "services": [],
+        "providers": [
+          "Ugandan mux; 4660-1"
+        ]
+      },
+      "band": "C",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-10b-10e-s2-3986"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-10B.html",
+            "retrievedAt": "2026-05-01T07:48:58.584Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-10b-10e-3482.0mhz-unknown-pol",
+      "satelliteName": "EUTELSAT 10B",
+      "orbitalPosition": "10E",
+      "downlink": {
+        "frequencyMHz": 3482,
+        "beamName": "Salam TV (Uganda)",
+        "source": "LYNGSAT",
+        "confidence": "LOW"
+      },
+      "uplink": {
+        "frequencyMHz": 5939.688,
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "groupedObservationCount": 1,
+        "systems": [
+          "MPEG-4"
+        ],
+        "symbolRates": [],
+        "fecValues": [],
+        "services": [],
+        "providers": [
+          "3483 Eng"
+        ]
+      },
+      "band": "C",
+      "serviceType": "UNKNOWN",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-10b-10e-row-13-3482"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-10B.html",
+            "retrievedAt": "2026-05-01T07:48:58.584Z",
+            "fieldsUsed": [
+              "frequency",
+              "beam",
+              "system"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Uplink beam unknown in public data.",
+        "Polarization not present or not parseable."
+      ]
+    },
+    {
+      "id": "eutelsat-10b-10e-3492.0mhz-unknown-pol",
+      "satelliteName": "EUTELSAT 10B",
+      "orbitalPosition": "10E",
+      "downlink": {
+        "frequencyMHz": 3492,
+        "beamName": "Uganda Catholic TV",
+        "source": "LYNGSAT",
+        "confidence": "LOW"
+      },
+      "uplink": {
+        "frequencyMHz": 5950.625,
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "groupedObservationCount": 1,
+        "systems": [
+          "MPEG-4"
+        ],
+        "symbolRates": [],
+        "fecValues": [],
+        "services": [],
+        "providers": [
+          "3493 Eng"
+        ]
+      },
+      "band": "C",
+      "serviceType": "UNKNOWN",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-10b-10e-row-14-3492"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-10B.html",
+            "retrievedAt": "2026-05-01T07:48:58.584Z",
+            "fieldsUsed": [
+              "frequency",
+              "beam",
+              "system"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Uplink beam unknown in public data.",
+        "Polarization not present or not parseable."
+      ]
+    },
+    {
+      "id": "eutelsat-10b-10e-3502.0mhz-unknown-pol",
+      "satelliteName": "EUTELSAT 10B",
+      "orbitalPosition": "10E",
+      "downlink": {
+        "frequencyMHz": 3502,
+        "beamName": "UBC TV",
+        "source": "LYNGSAT",
+        "confidence": "LOW"
+      },
+      "uplink": {
+        "frequencyMHz": 5961.563,
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "groupedObservationCount": 1,
+        "systems": [
+          "MPEG-4"
+        ],
+        "symbolRates": [],
+        "fecValues": [],
+        "services": [],
+        "providers": []
+      },
+      "band": "C",
+      "serviceType": "UNKNOWN",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-10b-10e-row-15-3502"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-10B.html",
+            "retrievedAt": "2026-05-01T07:48:58.584Z",
+            "fieldsUsed": [
+              "frequency",
+              "beam",
+              "system"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Uplink beam unknown in public data.",
+        "Polarization not present or not parseable."
+      ]
+    },
+    {
+      "id": "eutelsat-10b-10e-3512.0mhz-unknown-pol",
+      "satelliteName": "EUTELSAT 10B",
+      "orbitalPosition": "10E",
+      "downlink": {
+        "frequencyMHz": 3512,
+        "beamName": "NTV Uganda",
+        "source": "LYNGSAT",
+        "confidence": "LOW"
+      },
+      "uplink": {
+        "frequencyMHz": 5972.5,
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "groupedObservationCount": 1,
+        "systems": [
+          "MPEG-4"
+        ],
+        "symbolRates": [],
+        "fecValues": [],
+        "services": [],
+        "providers": [
+          "3513 Eng"
+        ]
+      },
+      "band": "C",
+      "serviceType": "UNKNOWN",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-10b-10e-row-16-3512"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-10B.html",
+            "retrievedAt": "2026-05-01T07:48:58.584Z",
+            "fieldsUsed": [
+              "frequency",
+              "beam",
+              "system"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Uplink beam unknown in public data.",
+        "Polarization not present or not parseable."
+      ]
+    },
+    {
+      "id": "eutelsat-10b-10e-3522.0mhz-unknown-pol",
+      "satelliteName": "EUTELSAT 10B",
+      "orbitalPosition": "10E",
+      "downlink": {
+        "frequencyMHz": 3522,
+        "beamName": "3523 Swa",
+        "source": "LYNGSAT",
+        "confidence": "LOW"
+      },
+      "uplink": {
+        "frequencyMHz": 5983.438,
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "groupedObservationCount": 1,
+        "systems": [
+          "MPEG-4"
+        ],
+        "symbolRates": [],
+        "fecValues": [],
+        "services": [],
+        "providers": [
+          "NBS TV"
+        ]
+      },
+      "band": "C",
+      "serviceType": "UNKNOWN",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-10b-10e-row-17-3522"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-10B.html",
+            "retrievedAt": "2026-05-01T07:48:58.584Z",
+            "fieldsUsed": [
+              "frequency",
+              "beam",
+              "system"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Uplink beam unknown in public data.",
+        "Polarization not present or not parseable."
+      ]
+    },
+    {
+      "id": "eutelsat-10b-10e-3532.0mhz-unknown-pol",
+      "satelliteName": "EUTELSAT 10B",
+      "orbitalPosition": "10E",
+      "downlink": {
+        "frequencyMHz": 3532,
+        "beamName": "Bukedde 1",
+        "source": "LYNGSAT",
+        "confidence": "LOW"
+      },
+      "uplink": {
+        "frequencyMHz": 5994.375,
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "groupedObservationCount": 1,
+        "systems": [
+          "MPEG-4"
+        ],
+        "symbolRates": [],
+        "fecValues": [],
+        "services": [],
+        "providers": []
+      },
+      "band": "C",
+      "serviceType": "UNKNOWN",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-10b-10e-row-18-3532"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-10B.html",
+            "retrievedAt": "2026-05-01T07:48:58.584Z",
+            "fieldsUsed": [
+              "frequency",
+              "beam",
+              "system"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Uplink beam unknown in public data.",
+        "Polarization not present or not parseable."
+      ]
+    },
+    {
+      "id": "eutelsat-10b-10e-3542.0mhz-unknown-pol",
+      "satelliteName": "EUTELSAT 10B",
+      "orbitalPosition": "10E",
+      "downlink": {
+        "frequencyMHz": 3542,
+        "beamName": "Bukedde 2",
+        "source": "LYNGSAT",
+        "confidence": "LOW"
+      },
+      "uplink": {
+        "frequencyMHz": 6005.313,
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "groupedObservationCount": 1,
+        "systems": [
+          "MPEG-4"
+        ],
+        "symbolRates": [],
+        "fecValues": [],
+        "services": [],
+        "providers": []
+      },
+      "band": "C",
+      "serviceType": "UNKNOWN",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-10b-10e-row-19-3542"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-10B.html",
+            "retrievedAt": "2026-05-01T07:48:58.584Z",
+            "fieldsUsed": [
+              "frequency",
+              "beam",
+              "system"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Uplink beam unknown in public data.",
+        "Polarization not present or not parseable."
+      ]
+    },
+    {
+      "id": "eutelsat-10b-10e-3552.0mhz-unknown-pol",
+      "satelliteName": "EUTELSAT 10B",
+      "orbitalPosition": "10E",
+      "downlink": {
+        "frequencyMHz": 3552,
+        "beamName": "3553 Swa",
+        "source": "LYNGSAT",
+        "confidence": "LOW"
+      },
+      "uplink": {
+        "frequencyMHz": 6016.25,
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "groupedObservationCount": 1,
+        "systems": [
+          "MPEG-4"
+        ],
+        "symbolRates": [],
+        "fecValues": [],
+        "services": [],
+        "providers": [
+          "BBS TV"
+        ]
+      },
+      "band": "C",
+      "serviceType": "UNKNOWN",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-10b-10e-row-20-3552"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-10B.html",
+            "retrievedAt": "2026-05-01T07:48:58.584Z",
+            "fieldsUsed": [
+              "frequency",
+              "beam",
+              "system"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Uplink beam unknown in public data.",
+        "Polarization not present or not parseable."
+      ]
+    },
+    {
+      "id": "eutelsat-10b-10e-3562.0mhz-unknown-pol",
+      "satelliteName": "EUTELSAT 10B",
+      "orbitalPosition": "10E",
+      "downlink": {
+        "frequencyMHz": 3562,
+        "beamName": "Tayari West",
+        "source": "LYNGSAT",
+        "confidence": "LOW"
+      },
+      "uplink": {
+        "frequencyMHz": 6027.188,
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "groupedObservationCount": 1,
+        "systems": [
+          "MPEG-4"
+        ],
+        "symbolRates": [],
+        "fecValues": [],
+        "services": [],
+        "providers": [
+          "3563 Swa"
+        ]
+      },
+      "band": "C",
+      "serviceType": "UNKNOWN",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-10b-10e-row-21-3562"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-10B.html",
+            "retrievedAt": "2026-05-01T07:48:58.584Z",
+            "fieldsUsed": [
+              "frequency",
+              "beam",
+              "system"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Uplink beam unknown in public data.",
+        "Polarization not present or not parseable."
+      ]
+    },
+    {
+      "id": "eutelsat-10b-10e-3572.0mhz-unknown-pol",
+      "satelliteName": "EUTELSAT 10B",
+      "orbitalPosition": "10E",
+      "downlink": {
+        "frequencyMHz": 3572,
+        "beamName": "TV West (Uganda)",
+        "source": "LYNGSAT",
+        "confidence": "LOW"
+      },
+      "uplink": {
+        "frequencyMHz": 6038.125,
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "groupedObservationCount": 1,
+        "systems": [
+          "MPEG-4"
+        ],
+        "symbolRates": [],
+        "fecValues": [],
+        "services": [],
+        "providers": [
+          "3573 Eng"
+        ]
+      },
+      "band": "C",
+      "serviceType": "UNKNOWN",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-10b-10e-row-22-3572"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-10B.html",
+            "retrievedAt": "2026-05-01T07:48:58.584Z",
+            "fieldsUsed": [
+              "frequency",
+              "beam",
+              "system"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Uplink beam unknown in public data.",
+        "Polarization not present or not parseable."
+      ]
+    },
+    {
+      "id": "eutelsat-10b-10e-3582.0mhz-unknown-pol",
+      "satelliteName": "EUTELSAT 10B",
+      "orbitalPosition": "10E",
+      "downlink": {
+        "frequencyMHz": 3582,
+        "beamName": "Spark TV",
+        "source": "LYNGSAT",
+        "confidence": "LOW"
+      },
+      "uplink": {
+        "frequencyMHz": 6049.063,
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "groupedObservationCount": 1,
+        "systems": [
+          "MPEG-4"
+        ],
+        "symbolRates": [],
+        "fecValues": [],
+        "services": [],
+        "providers": [
+          "3583 Eng"
+        ]
+      },
+      "band": "C",
+      "serviceType": "UNKNOWN",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-10b-10e-row-23-3582"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-10B.html",
+            "retrievedAt": "2026-05-01T07:48:58.584Z",
+            "fieldsUsed": [
+              "frequency",
+              "beam",
+              "system"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Uplink beam unknown in public data.",
+        "Polarization not present or not parseable."
+      ]
+    },
+    {
+      "id": "eutelsat-10b-10e-3592.0mhz-unknown-pol",
+      "satelliteName": "EUTELSAT 10B",
+      "orbitalPosition": "10E",
+      "downlink": {
+        "frequencyMHz": 3592,
+        "beamName": "3593 Eng",
+        "source": "LYNGSAT",
+        "confidence": "LOW"
+      },
+      "uplink": {
+        "frequencyMHz": 6060,
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "groupedObservationCount": 1,
+        "systems": [
+          "MPEG-4"
+        ],
+        "symbolRates": [],
+        "fecValues": [],
+        "services": [],
+        "providers": [
+          "Salt TV"
+        ]
+      },
+      "band": "C",
+      "serviceType": "UNKNOWN",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-10b-10e-row-24-3592"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-10B.html",
+            "retrievedAt": "2026-05-01T07:48:58.584Z",
+            "fieldsUsed": [
+              "frequency",
+              "beam",
+              "system"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Uplink beam unknown in public data.",
+        "Polarization not present or not parseable."
+      ]
+    },
+    {
+      "id": "eutelsat-10b-10e-3602.0mhz-unknown-pol",
+      "satelliteName": "EUTELSAT 10B",
+      "orbitalPosition": "10E",
+      "downlink": {
+        "frequencyMHz": 3602,
+        "beamName": "Channel 44",
+        "source": "LYNGSAT",
+        "confidence": "LOW"
+      },
+      "uplink": {
+        "frequencyMHz": 6070.938,
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "groupedObservationCount": 1,
+        "systems": [
+          "MPEG-4"
+        ],
+        "symbolRates": [],
+        "fecValues": [],
+        "eirpDbw": 44,
+        "services": [],
+        "providers": [
+          "3603 Eng"
+        ]
+      },
+      "band": "C",
+      "serviceType": "UNKNOWN",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-10b-10e-row-25-3602"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-10B.html",
+            "retrievedAt": "2026-05-01T07:48:58.584Z",
+            "fieldsUsed": [
+              "frequency",
+              "beam",
+              "system"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Uplink beam unknown in public data.",
+        "Polarization not present or not parseable."
+      ]
+    },
+    {
+      "id": "eutelsat-10b-10e-3612.0mhz-unknown-pol",
+      "satelliteName": "EUTELSAT 10B",
+      "orbitalPosition": "10E",
+      "downlink": {
+        "frequencyMHz": 3612,
+        "beamName": "Top TV (Uganda)",
+        "source": "LYNGSAT",
+        "confidence": "LOW"
+      },
+      "uplink": {
+        "frequencyMHz": 6081.875,
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "groupedObservationCount": 1,
+        "systems": [
+          "MPEG-4"
+        ],
+        "symbolRates": [],
+        "fecValues": [],
+        "services": [],
+        "providers": [
+          "3613 Eng"
+        ]
+      },
+      "band": "C",
+      "serviceType": "UNKNOWN",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-10b-10e-row-26-3612"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-10B.html",
+            "retrievedAt": "2026-05-01T07:48:58.584Z",
+            "fieldsUsed": [
+              "frequency",
+              "beam",
+              "system"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Uplink beam unknown in public data.",
+        "Polarization not present or not parseable."
+      ]
+    },
+    {
+      "id": "eutelsat-10b-10e-3622.0mhz-unknown-pol",
+      "satelliteName": "EUTELSAT 10B",
+      "orbitalPosition": "10E",
+      "downlink": {
+        "frequencyMHz": 3622,
+        "beamName": "Chamuka TV",
+        "source": "LYNGSAT",
+        "confidence": "LOW"
+      },
+      "uplink": {
+        "frequencyMHz": 6092.813,
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "groupedObservationCount": 1,
+        "systems": [
+          "MPEG-4"
+        ],
+        "symbolRates": [],
+        "fecValues": [],
+        "services": [],
+        "providers": [
+          "3623 Eng"
+        ]
+      },
+      "band": "C",
+      "serviceType": "UNKNOWN",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-10b-10e-row-27-3622"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-10B.html",
+            "retrievedAt": "2026-05-01T07:48:58.584Z",
+            "fieldsUsed": [
+              "frequency",
+              "beam",
+              "system"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Uplink beam unknown in public data.",
+        "Polarization not present or not parseable."
+      ]
+    },
+    {
+      "id": "eutelsat-10b-10e-3632.0mhz-unknown-pol",
+      "satelliteName": "EUTELSAT 10B",
+      "orbitalPosition": "10E",
+      "downlink": {
+        "frequencyMHz": 3632,
+        "beamName": "Kingdom TV (Uganda)",
+        "source": "LYNGSAT",
+        "confidence": "LOW"
+      },
+      "uplink": {
+        "frequencyMHz": 6103.75,
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "groupedObservationCount": 1,
+        "systems": [
+          "MPEG-4"
+        ],
+        "symbolRates": [],
+        "fecValues": [],
+        "services": [],
+        "providers": [
+          "3633 Eng"
+        ]
+      },
+      "band": "C",
+      "serviceType": "UNKNOWN",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-10b-10e-row-28-3632"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-10B.html",
+            "retrievedAt": "2026-05-01T07:48:58.584Z",
+            "fieldsUsed": [
+              "frequency",
+              "beam",
+              "system"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Uplink beam unknown in public data.",
+        "Polarization not present or not parseable."
+      ]
+    },
+    {
+      "id": "eutelsat-10b-10e-3642.0mhz-unknown-pol",
+      "satelliteName": "EUTELSAT 10B",
+      "orbitalPosition": "10E",
+      "downlink": {
+        "frequencyMHz": 3642,
+        "beamName": "King Solomon TV",
+        "source": "LYNGSAT",
+        "confidence": "LOW"
+      },
+      "uplink": {
+        "frequencyMHz": 6114.688,
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "groupedObservationCount": 1,
+        "systems": [
+          "MPEG-4"
+        ],
+        "symbolRates": [],
+        "fecValues": [],
+        "services": [],
+        "providers": [
+          "3643 Eng"
+        ]
+      },
+      "band": "C",
+      "serviceType": "UNKNOWN",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-10b-10e-row-29-3642"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-10B.html",
+            "retrievedAt": "2026-05-01T07:48:58.584Z",
+            "fieldsUsed": [
+              "frequency",
+              "beam",
+              "system"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Uplink beam unknown in public data.",
+        "Polarization not present or not parseable."
+      ]
+    },
+    {
+      "id": "eutelsat-10b-10e-3652.0mhz-unknown-pol",
+      "satelliteName": "EUTELSAT 10B",
+      "orbitalPosition": "10E",
+      "downlink": {
+        "frequencyMHz": 3652,
+        "beamName": "3.53 Eng",
+        "source": "LYNGSAT",
+        "confidence": "LOW"
+      },
+      "uplink": {
+        "frequencyMHz": 6125.625,
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "groupedObservationCount": 1,
+        "systems": [
+          "MPEG-4"
+        ],
+        "symbolRates": [],
+        "fecValues": [],
+        "eirpDbw": 53,
+        "services": [],
+        "providers": [
+          "KBS TV"
+        ]
+      },
+      "band": "C",
+      "serviceType": "UNKNOWN",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-10b-10e-row-30-3652"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-10B.html",
+            "retrievedAt": "2026-05-01T07:48:58.584Z",
+            "fieldsUsed": [
+              "frequency",
+              "beam",
+              "system"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Uplink beam unknown in public data.",
+        "Polarization not present or not parseable."
+      ]
+    },
+    {
+      "id": "eutelsat-10b-10e-3662.0mhz-unknown-pol",
+      "satelliteName": "EUTELSAT 10B",
+      "orbitalPosition": "10E",
+      "downlink": {
+        "frequencyMHz": 3662,
+        "beamName": "Sanyuka TV",
+        "source": "LYNGSAT",
+        "confidence": "LOW"
+      },
+      "uplink": {
+        "frequencyMHz": 6136.563,
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "groupedObservationCount": 1,
+        "systems": [
+          "MPEG-4"
+        ],
+        "symbolRates": [],
+        "fecValues": [],
+        "services": [],
+        "providers": []
+      },
+      "band": "C",
+      "serviceType": "UNKNOWN",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-10b-10e-row-31-3662"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-10B.html",
+            "retrievedAt": "2026-05-01T07:48:58.584Z",
+            "fieldsUsed": [
+              "frequency",
+              "beam",
+              "system"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Uplink beam unknown in public data.",
+        "Polarization not present or not parseable."
+      ]
+    },
+    {
+      "id": "eutelsat-10b-10e-3672.0mhz-unknown-pol",
+      "satelliteName": "EUTELSAT 10B",
+      "orbitalPosition": "10E",
+      "downlink": {
+        "frequencyMHz": 3672,
+        "beamName": "3673 Eng",
+        "source": "LYNGSAT",
+        "confidence": "LOW"
+      },
+      "uplink": {
+        "frequencyMHz": 6147.5,
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "groupedObservationCount": 1,
+        "systems": [
+          "MPEG-4"
+        ],
+        "symbolRates": [],
+        "fecValues": [],
+        "services": [],
+        "providers": [
+          "Baba TV"
+        ]
+      },
+      "band": "C",
+      "serviceType": "UNKNOWN",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-10b-10e-row-32-3672"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-10B.html",
+            "retrievedAt": "2026-05-01T07:48:58.584Z",
+            "fieldsUsed": [
+              "frequency",
+              "beam",
+              "system"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Uplink beam unknown in public data.",
+        "Polarization not present or not parseable."
+      ]
+    },
+    {
+      "id": "eutelsat-10b-10e-3682.0mhz-unknown-pol",
+      "satelliteName": "EUTELSAT 10B",
+      "orbitalPosition": "10E",
+      "downlink": {
+        "frequencyMHz": 3682,
+        "beamName": "Bunyoro TV",
+        "source": "LYNGSAT",
+        "confidence": "LOW"
+      },
+      "uplink": {
+        "frequencyMHz": 6158.438,
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "groupedObservationCount": 1,
+        "systems": [
+          "MPEG-4"
+        ],
+        "symbolRates": [],
+        "fecValues": [],
+        "services": [],
+        "providers": [
+          "3683 Eng"
+        ]
+      },
+      "band": "C",
+      "serviceType": "UNKNOWN",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-10b-10e-row-33-3682"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-10B.html",
+            "retrievedAt": "2026-05-01T07:48:58.584Z",
+            "fieldsUsed": [
+              "frequency",
+              "beam",
+              "system"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Uplink beam unknown in public data.",
+        "Polarization not present or not parseable."
+      ]
+    },
+    {
+      "id": "eutelsat-10b-10e-3692.0mhz-unknown-pol",
+      "satelliteName": "EUTELSAT 10B",
+      "orbitalPosition": "10E",
+      "downlink": {
+        "frequencyMHz": 3692,
+        "beamName": "Westnile TV",
+        "source": "LYNGSAT",
+        "confidence": "LOW"
+      },
+      "uplink": {
+        "frequencyMHz": 6169.375,
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "groupedObservationCount": 1,
+        "systems": [
+          "MPEG-4"
+        ],
+        "symbolRates": [],
+        "fecValues": [],
+        "services": [],
+        "providers": [
+          "3693 Eng"
+        ]
+      },
+      "band": "C",
+      "serviceType": "UNKNOWN",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-10b-10e-row-34-3692"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-10B.html",
+            "retrievedAt": "2026-05-01T07:48:58.584Z",
+            "fieldsUsed": [
+              "frequency",
+              "beam",
+              "system"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Uplink beam unknown in public data.",
+        "Polarization not present or not parseable."
+      ]
+    },
+    {
+      "id": "eutelsat-10b-10e-4008.0mhz-r",
+      "satelliteName": "EUTELSAT 10B",
+      "orbitalPosition": "10E",
+      "downlink": {
+        "frequencyMHz": 4008,
+        "polarization": "R",
+        "beamName": "N Stanislav 260327",
+        "source": "LYNGSAT",
+        "confidence": "MEDIUM"
+      },
+      "uplink": {
+        "frequencyMHz": 6515,
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "groupedObservationCount": 1,
+        "systems": [],
+        "symbolRates": [],
+        "fecValues": [],
+        "services": [],
+        "providers": []
+      },
+      "band": "C",
+      "serviceType": "UNKNOWN",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-10b-10e-row-35-4008"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-10B.html",
+            "retrievedAt": "2026-05-01T07:48:58.584Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Uplink beam unknown in public data.",
+        "No DVB system/SR/FEC parameters found."
+      ]
+    },
+    {
+      "id": "eutelsat-10b-10e-s2-r",
+      "satelliteName": "EUTELSAT 10B",
+      "orbitalPosition": "10E",
+      "downlink": {
+        "frequencyMHz": 4028,
+        "polarization": "R",
+        "beamName": "N Stanislav 250301",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 6536.875,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          2480
+        ],
+        "fecValues": [
+          "1/2"
+        ],
+        "services": [],
+        "providers": [
+          "Morning Cloud TV; 1.0 2102 Eng"
+        ]
+      },
+      "band": "C",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-10b-10e-s2-4028"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-10B.html",
+            "retrievedAt": "2026-05-01T07:48:58.584Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-10b-10e-s2-r",
+      "satelliteName": "EUTELSAT 10B",
+      "orbitalPosition": "10E",
+      "downlink": {
+        "frequencyMHz": 4034,
+        "polarization": "R",
+        "beamName": "(Deeper Christian Life Ministry feeds)",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 6543.438,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          5415
+        ],
+        "fecValues": [
+          "3/4"
+        ],
+        "services": [],
+        "providers": [
+          "Torrex12 260129"
+        ]
+      },
+      "band": "C",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-10b-10e-s2-4034"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-10B.html",
+            "retrievedAt": "2026-05-01T07:48:58.584Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-10b-10e-s2-r",
+      "satelliteName": "EUTELSAT 10B",
+      "orbitalPosition": "10E",
+      "downlink": {
+        "frequencyMHz": 4039,
+        "polarization": "R",
+        "beamName": "N Stanislav 231102",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 6548.906,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          3333
+        ],
+        "fecValues": [
+          "3/4"
+        ],
+        "services": [],
+        "providers": [
+          "1-1"
+        ]
+      },
+      "band": "C",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-10b-10e-s2-4039"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-10B.html",
+            "retrievedAt": "2026-05-01T07:48:58.584Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-10b-10e-s2-r",
+      "satelliteName": "EUTELSAT 10B",
+      "orbitalPosition": "10E",
+      "downlink": {
+        "frequencyMHz": 4065,
+        "polarization": "R",
+        "beamName": "N Stanislav 260426",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 6577.344,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          3400
+        ],
+        "fecValues": [
+          "3/4"
+        ],
+        "services": [],
+        "providers": [
+          "1-3"
+        ]
+      },
+      "band": "C",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-10b-10e-s2-4065"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-10B.html",
+            "retrievedAt": "2026-05-01T07:48:58.584Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-10b-10e-s2-h",
+      "satelliteName": "EUTELSAT 10B",
+      "orbitalPosition": "10E",
+      "downlink": {
+        "frequencyMHz": 10721,
+        "polarization": "H",
+        "beamName": "Jamie A 260412",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 13757.683,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          7200
+        ],
+        "fecValues": [
+          "3/4"
+        ],
+        "services": [],
+        "providers": [
+          "(feeds)"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-10b-10e-s2-10721"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-10B.html",
+            "retrievedAt": "2026-05-01T07:48:58.584Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-10b-10e-s2-v",
+      "satelliteName": "EUTELSAT 10B",
+      "orbitalPosition": "10E",
+      "downlink": {
+        "frequencyMHz": 10736,
+        "polarization": "V",
+        "beamName": "Roli 250704",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 13763.171,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          9600
+        ],
+        "fecValues": [
+          "3/4"
+        ],
+        "services": [],
+        "providers": [
+          "(feeds)"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-10b-10e-s2-10736"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-10B.html",
+            "retrievedAt": "2026-05-01T07:48:58.584Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-10b-10e-s2-v",
+      "satelliteName": "EUTELSAT 10B",
+      "orbitalPosition": "10E",
+      "downlink": {
+        "frequencyMHz": 10746,
+        "polarization": "V",
+        "beamName": "Roli Jamie A 250628",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 13766.829,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          7200
+        ],
+        "fecValues": [
+          "3/4"
+        ],
+        "services": [],
+        "providers": [
+          "(feeds)"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-10b-10e-s2-10746"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-10B.html",
+            "retrievedAt": "2026-05-01T07:48:58.584Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-10b-10e-s2-v",
+      "satelliteName": "EUTELSAT 10B",
+      "orbitalPosition": "10E",
+      "downlink": {
+        "frequencyMHz": 10760,
+        "polarization": "V",
+        "beamName": "Roli 250704",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 13771.951,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          9600
+        ],
+        "fecValues": [
+          "3/4"
+        ],
+        "services": [],
+        "providers": [
+          "(feeds)"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-10b-10e-s2-10760"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-10B.html",
+            "retrievedAt": "2026-05-01T07:48:58.584Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-10b-10e-s2-v",
+      "satelliteName": "EUTELSAT 10B",
+      "orbitalPosition": "10E",
+      "downlink": {
+        "frequencyMHz": 10769,
+        "polarization": "V",
+        "beamName": "Roli 250628",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 13775.244,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          9600
+        ],
+        "fecValues": [
+          "3/4"
+        ],
+        "services": [],
+        "providers": [
+          "(feeds)"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-10b-10e-s2-10769"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-10B.html",
+            "retrievedAt": "2026-05-01T07:48:58.584Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-10b-10e-10771.0mhz-h",
+      "satelliteName": "EUTELSAT 10B",
+      "orbitalPosition": "10E",
+      "downlink": {
+        "frequencyMHz": 10771,
+        "polarization": "H",
+        "beamName": "N Stanislav 260301",
+        "source": "LYNGSAT",
+        "confidence": "MEDIUM"
+      },
+      "uplink": {
+        "frequencyMHz": 13775.976,
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "groupedObservationCount": 1,
+        "systems": [],
+        "symbolRates": [],
+        "fecValues": [],
+        "services": [],
+        "providers": []
+      },
+      "band": "Ku",
+      "serviceType": "UNKNOWN",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-10b-10e-row-45-10771"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-10B.html",
+            "retrievedAt": "2026-05-01T07:48:58.584Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Uplink beam unknown in public data.",
+        "No DVB system/SR/FEC parameters found."
+      ]
+    },
+    {
+      "id": "eutelsat-10b-10e-s2-v",
+      "satelliteName": "EUTELSAT 10B",
+      "orbitalPosition": "10E",
+      "downlink": {
+        "frequencyMHz": 10781,
+        "polarization": "V",
+        "beamName": "Roli 250628",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 13779.634,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          9600
+        ],
+        "fecValues": [
+          "3/4"
+        ],
+        "services": [],
+        "providers": [
+          "(feeds)"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-10b-10e-s2-10781"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-10B.html",
+            "retrievedAt": "2026-05-01T07:48:58.584Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-10b-10e-s2-h",
+      "satelliteName": "EUTELSAT 10B",
+      "orbitalPosition": "10E",
+      "downlink": {
+        "frequencyMHz": 10803,
+        "polarization": "H",
+        "beamName": "Roli 251231",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 13787.683,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          9874
+        ],
+        "fecValues": [
+          "3/4"
+        ],
+        "services": [],
+        "providers": [
+          "(feeds)"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-10b-10e-s2-10803"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-10B.html",
+            "retrievedAt": "2026-05-01T07:48:58.584Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-10b-10e-s2-h",
+      "satelliteName": "EUTELSAT 10B",
+      "orbitalPosition": "10E",
+      "downlink": {
+        "frequencyMHz": 10875,
+        "polarization": "H",
+        "beamName": "Roli 251014",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 13814.024,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          7200
+        ],
+        "fecValues": [
+          "3/4"
+        ],
+        "services": [],
+        "providers": [
+          "(feeds)"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-10b-10e-s2-10875"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-10B.html",
+            "retrievedAt": "2026-05-01T07:48:58.584Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-10b-10e-s2-h",
+      "satelliteName": "EUTELSAT 10B",
+      "orbitalPosition": "10E",
+      "downlink": {
+        "frequencyMHz": 10998,
+        "polarization": "H",
+        "beamName": "Roli 260124",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 13859.024,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          7200
+        ],
+        "fecValues": [
+          "3/4"
+        ],
+        "services": [],
+        "providers": [
+          "(feeds)"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-10b-10e-s2-10998"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-10B.html",
+            "retrievedAt": "2026-05-01T07:48:58.584Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-10b-10e-s2-h",
+      "satelliteName": "EUTELSAT 10B",
+      "orbitalPosition": "10E",
+      "downlink": {
+        "frequencyMHz": 11165,
+        "polarization": "H",
+        "beamName": "Roli 251105",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 13920.122,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          9874
+        ],
+        "fecValues": [
+          "3/4"
+        ],
+        "services": [],
+        "providers": [
+          "(feeds)"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-10b-10e-s2-11165"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-10B.html",
+            "retrievedAt": "2026-05-01T07:48:58.584Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-10b-10e-s2-v",
+      "satelliteName": "EUTELSAT 10B",
+      "orbitalPosition": "10E",
+      "downlink": {
+        "frequencyMHz": 11167,
+        "polarization": "V",
+        "beamName": "Roli 260402",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 13920.854,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          7200
+        ],
+        "fecValues": [
+          "3/4"
+        ],
+        "services": [],
+        "providers": [
+          "(feeds)"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-10b-10e-s2-11167"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-10B.html",
+            "retrievedAt": "2026-05-01T07:48:58.584Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-10b-10e-s2-v",
+      "satelliteName": "EUTELSAT 10B",
+      "orbitalPosition": "10E",
+      "downlink": {
+        "frequencyMHz": 11176,
+        "polarization": "V",
+        "beamName": "Jamie A 260401",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 13924.146,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          7200
+        ],
+        "fecValues": [
+          "3/4"
+        ],
+        "services": [],
+        "providers": [
+          "(feeds)"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-10b-10e-s2-11176"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-10B.html",
+            "retrievedAt": "2026-05-01T07:48:58.584Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-10b-10e-s2-v",
+      "satelliteName": "EUTELSAT 10B",
+      "orbitalPosition": "10E",
+      "downlink": {
+        "frequencyMHz": 11188,
+        "polarization": "V",
+        "beamName": "Roli Jamie A 251120",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 13928.537,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          7200
+        ],
+        "fecValues": [
+          "3/4"
+        ],
+        "services": [],
+        "providers": [
+          "(feeds)"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-10b-10e-s2-11188"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-10B.html",
+            "retrievedAt": "2026-05-01T07:48:58.584Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-10b-10e-c2-h",
+      "satelliteName": "EUTELSAT 10B",
+      "orbitalPosition": "10E",
+      "downlink": {
+        "frequencyMHz": 11200,
+        "polarization": "H",
+        "beamName": "Anonymous 240728",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 13932.927,
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "C2",
+        "name": "TP C2",
+        "groupedObservationCount": 1,
+        "systems": [],
+        "symbolRates": [
+          70000
+        ],
+        "fecValues": [
+          "3/4"
+        ],
+        "services": [],
+        "providers": [
+          "EBU feeds"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "UNKNOWN",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-10b-10e-c2-11200"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-10B.html",
+            "retrievedAt": "2026-05-01T07:48:58.584Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Uplink beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-10b-10e-c1-v",
+      "satelliteName": "EUTELSAT 10B",
+      "orbitalPosition": "10E",
+      "downlink": {
+        "frequencyMHz": 11221,
+        "polarization": "V",
+        "beamName": "S Evans P Piotrowski D Shimoni D de Jong 260331",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 13940.61,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "C1",
+        "name": "TP C1",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          24760
+        ],
+        "fecValues": [
+          "5/6"
+        ],
+        "services": [],
+        "providers": [
+          "Irdeto; BFBS; 16-1"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-10b-10e-c1-11221"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-10B.html",
+            "retrievedAt": "2026-05-01T07:48:58.584Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-10b-10e-s2-h",
+      "satelliteName": "EUTELSAT 10B",
+      "orbitalPosition": "10E",
+      "downlink": {
+        "frequencyMHz": 11247,
+        "polarization": "H",
+        "beamName": "Roli 251025",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 13950.122,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          7400
+        ],
+        "fecValues": [
+          "5/6"
+        ],
+        "services": [],
+        "providers": [
+          "(feeds)"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-10b-10e-s2-11247"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-10B.html",
+            "retrievedAt": "2026-05-01T07:48:58.584Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-10b-10e-s2-h",
+      "satelliteName": "EUTELSAT 10B",
+      "orbitalPosition": "10E",
+      "downlink": {
+        "frequencyMHz": 11256,
+        "polarization": "H",
+        "beamName": "Roli 251025",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 13953.415,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          7400
+        ],
+        "fecValues": [
+          "5/6"
+        ],
+        "services": [],
+        "providers": [
+          "(feeds)"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-10b-10e-s2-11256"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-10B.html",
+            "retrievedAt": "2026-05-01T07:48:58.584Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-10b-10e-s2-v",
+      "satelliteName": "EUTELSAT 10B",
+      "orbitalPosition": "10E",
+      "downlink": {
+        "frequencyMHz": 11265,
+        "polarization": "V",
+        "beamName": "Roli Jamie A Jonali 260315",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 13956.707,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          4800
+        ],
+        "fecValues": [
+          "3/4"
+        ],
+        "services": [],
+        "providers": [
+          "(feeds)"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-10b-10e-s2-11265"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-10B.html",
+            "retrievedAt": "2026-05-01T07:48:58.584Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-10b-10e-s2-v",
+      "satelliteName": "EUTELSAT 10B",
+      "orbitalPosition": "10E",
+      "downlink": {
+        "frequencyMHz": 11271,
+        "polarization": "V",
+        "beamName": "Roli Jamie A 260315",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 13958.902,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          4800
+        ],
+        "fecValues": [
+          "3/4"
+        ],
+        "services": [],
+        "providers": [
+          "(feeds)"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-10b-10e-s2-11271"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-10B.html",
+            "retrievedAt": "2026-05-01T07:48:58.584Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-10b-10e-s2-h",
+      "satelliteName": "EUTELSAT 10B",
+      "orbitalPosition": "10E",
+      "downlink": {
+        "frequencyMHz": 11275,
+        "polarization": "H",
+        "beamName": "Jamie A 251117",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 13960.366,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          4800
+        ],
+        "fecValues": [
+          "3/4"
+        ],
+        "services": [],
+        "providers": [
+          "(feeds)"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-10b-10e-s2-11275"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-10B.html",
+            "retrievedAt": "2026-05-01T07:48:58.584Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-10b-10e-s2-v",
+      "satelliteName": "EUTELSAT 10B",
+      "orbitalPosition": "10E",
+      "downlink": {
+        "frequencyMHz": 11277,
+        "polarization": "V",
+        "beamName": "Roli Jamie A 260315",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 13961.098,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          3600
+        ],
+        "fecValues": [
+          "5/6"
+        ],
+        "services": [],
+        "providers": [
+          "(feeds)"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-10b-10e-s2-11277"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-10B.html",
+            "retrievedAt": "2026-05-01T07:48:58.584Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-10b-10e-s2-v",
+      "satelliteName": "EUTELSAT 10B",
+      "orbitalPosition": "10E",
+      "downlink": {
+        "frequencyMHz": 11281,
+        "polarization": "V",
+        "beamName": "Roli Jamie A 260315",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 13962.561,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          3600
+        ],
+        "fecValues": [
+          "5/6"
+        ],
+        "services": [],
+        "providers": [
+          "(feeds)"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-10b-10e-s2-11281"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-10B.html",
+            "retrievedAt": "2026-05-01T07:48:58.584Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-10b-10e-s2-h",
+      "satelliteName": "EUTELSAT 10B",
+      "orbitalPosition": "10E",
+      "downlink": {
+        "frequencyMHz": 11284,
+        "polarization": "H",
+        "beamName": "Jamie A 251020",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 13963.659,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          3214
+        ],
+        "fecValues": [
+          "3/4"
+        ],
+        "services": [],
+        "providers": [
+          "(feeds)"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-10b-10e-s2-11284"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-10B.html",
+            "retrievedAt": "2026-05-01T07:48:58.584Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-10b-10e-s2-v",
+      "satelliteName": "EUTELSAT 10B",
+      "orbitalPosition": "10E",
+      "downlink": {
+        "frequencyMHz": 11289,
+        "polarization": "V",
+        "beamName": "Jamie A 260116",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 13965.488,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          7200
+        ],
+        "fecValues": [
+          "3/4"
+        ],
+        "services": [],
+        "providers": [
+          "(feeds)"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-10b-10e-s2-11289"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-10B.html",
+            "retrievedAt": "2026-05-01T07:48:58.584Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-10b-10e-s2-h",
+      "satelliteName": "EUTELSAT 10B",
+      "orbitalPosition": "10E",
+      "downlink": {
+        "frequencyMHz": 11291,
+        "polarization": "H",
+        "beamName": "Roli 251227",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 13966.22,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          7500
+        ],
+        "fecValues": [
+          "2/3"
+        ],
+        "services": [],
+        "providers": [
+          "(feeds)"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-10b-10e-s2-11291"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-10B.html",
+            "retrievedAt": "2026-05-01T07:48:58.584Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-10b-10e-s2-v",
+      "satelliteName": "EUTELSAT 10B",
+      "orbitalPosition": "10E",
+      "downlink": {
+        "frequencyMHz": 11306,
+        "polarization": "V",
+        "beamName": "Roli 260221",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 13971.707,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          7200
+        ],
+        "fecValues": [
+          "3/4"
+        ],
+        "services": [],
+        "providers": [
+          "(feeds)"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-10b-10e-s2-11306"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-10B.html",
+            "retrievedAt": "2026-05-01T07:48:58.584Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-10b-10e-12507.0mhz-h",
+      "satelliteName": "EUTELSAT 10B",
+      "orbitalPosition": "10E",
+      "downlink": {
+        "frequencyMHz": 12507,
+        "polarization": "H",
+        "beamName": "Radio Maria Italia",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 14411.098,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S"
+        ],
+        "symbolRates": [
+          769
+        ],
+        "fecValues": [
+          "1/2"
+        ],
+        "services": [],
+        "providers": [
+          "N Stanislav 230722; 2.7 769 Ita; ?-?"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-10b-10e-row-67-12507"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-10B.html",
+            "retrievedAt": "2026-05-01T07:48:58.584Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-10b-10e-f4-v",
+      "satelliteName": "EUTELSAT 10B",
+      "orbitalPosition": "10E",
+      "downlink": {
+        "frequencyMHz": 12618,
+        "polarization": "V",
+        "beamName": "Stanley_cassidy Jamie A Roli 251206",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 14451.707,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "F4",
+        "name": "TP F4",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          7200
+        ],
+        "fecValues": [
+          "3/4"
+        ],
+        "services": [],
+        "providers": [
+          "(feeds)"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-10b-10e-f4-12618"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-10B.html",
+            "retrievedAt": "2026-05-01T07:48:58.584Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-10b-10e-s2-v",
+      "satelliteName": "EUTELSAT 10B",
+      "orbitalPosition": "10E",
+      "downlink": {
+        "frequencyMHz": 12736,
+        "polarization": "V",
+        "beamName": "N Stanislav D Shimoni 230721",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 14494.878,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          4000
+        ],
+        "fecValues": [
+          "9/10"
+        ],
+        "services": [],
+        "providers": [
+          "Zap Viva Internacional; 11.0 Por"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-10b-10e-s2-12736"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-10B.html",
+            "retrievedAt": "2026-05-01T07:48:58.584Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-10b-10e-s2-unknown-pol",
+      "satelliteName": "EUTELSAT 10B",
+      "orbitalPosition": "10E",
+      "downlink": {
+        "beamName": "System:",
+        "source": "LYNGSAT",
+        "confidence": "LOW"
+      },
+      "uplink": {
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "UNKNOWN",
+        "source": "UNKNOWN",
+        "confidence": "UNKNOWN"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [],
+        "fecValues": [],
+        "services": [],
+        "providers": [
+          "non-DTH"
+        ]
+      },
+      "band": "Unknown",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-10b-10e-s2-nofreq"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-10B.html",
+            "retrievedAt": "2026-05-01T07:48:58.584Z",
+            "fieldsUsed": [
+              "beam",
+              "transponderNumber",
+              "system"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Unable to infer uplink frequency: downlink frequency unknown.",
+        "Broadcast uplink gateway / teleport beam unknown in public data.",
+        "Downlink frequency not parseable; row kept due to transponder ID.",
+        "Polarization not present or not parseable."
+      ]
+    }
+  ],
+  "summary": {
+    "total": 70,
+    "downlinkKnown": 67,
+    "downlinkBeamKnown": 70,
+    "uplinkInferred": 67,
+    "uplinkUnknown": 3
+  }
+}

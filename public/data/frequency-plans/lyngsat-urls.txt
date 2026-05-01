@@ -1,0 +1,22 @@
+# Public LyngSat satellite URLs — one URL per line.
+# Lines starting with # are comments.
+#
+# Run:  node scripts/discover-lyngsat-registry.mjs
+# to import these into registry.json as draft entries.
+# Then review the draft entries, set the correct satelliteId,
+# verify orbitalPosition, set enabled:true, and run:
+#
+#   npm run fetch:frequency-plans
+#   npm run build:frequency-plans
+#
+# ── Currently registered ──────────────────────────────────────────────────────
+https://www.lyngsat.com/Eutelsat-70B.html
+https://www.lyngsat.com/Eutelsat-9B.html
+#
+# ── Add more satellites below this line ──────────────────────────────────────
+# https://www.lyngsat.com/Hotbird-13E.html
+# https://www.lyngsat.com/Astra-19E.html
+# https://www.lyngsat.com/Astra-28E.html
+# https://www.lyngsat.com/Eutelsat-16A.html
+# https://www.lyngsat.com/Eutelsat-21B.html
+# https://www.lyngsat.com/Eutelsat-33E.html

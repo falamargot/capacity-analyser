@@ -1,0 +1,16 @@
+{
+  "source": "LYNGSAT",
+  "satelliteName": "EUTELSAT HOTBIRD 13C",
+  "orbitalPosition": "13E",
+  "url": "https://www.lyngsat.com/Hotbird-13C.html",
+  "retrievedAt": "2026-05-01T07:48:04.788Z",
+  "parserStats": {
+    "totalRowsSeen": 0,
+    "rowsWithFrequency": 0,
+    "rowsWithBeam": 0,
+    "rowsWithTransponderId": 0,
+    "rowsSkipped": 0,
+    "skipReasons": {}
+  },
+  "rows": []
+}

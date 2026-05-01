@@ -1,0 +1,13 @@
+{
+  "satelliteName": "EUTELSAT 9B",
+  "source": "LYNGSAT",
+  "generatedAt": "2026-05-01T07:49:01.509Z",
+  "totalRowsSeen": 112,
+  "observationsCreated": 112,
+  "rowsWithFrequency": 95,
+  "rowsWithBeam": 112,
+  "rowsWithTransponderId": 66,
+  "rowsSkipped": 0,
+  "skipReasons": {},
+  "normalizedTransponders": 92
+}

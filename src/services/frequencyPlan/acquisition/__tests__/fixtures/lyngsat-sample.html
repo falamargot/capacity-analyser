@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Test Satellite at 9.0°E - LyngSat (Fixture)</title>
+</head>
+<body>
+<h1>Test Satellite 9E</h1>
+
+<table width="100%" border="0" cellpadding="3" cellspacing="1" bgcolor="#000000">
+
+<!-- Header row: all header words → should be skipped -->
+<tr bgcolor="#808080">
+  <td><b>Freq</b></td>
+  <td><b>Pol</b></td>
+  <td><b>Beam</b></td>
+  <td><b>EIRP</b></td>
+  <td><b>System</b></td>
+  <td><b>SR/FEC</b></td>
+  <td><b>Info</b></td>
+</tr>
+
+<!-- Row 1: Normal Ku-band row, separate freq and pol cells -->
+<tr bgcolor="#FFD700">
+  <td><b>11727</b></td>
+  <td>V</td>
+  <td>Widebeam</td>
+  <td>50 dBW</td>
+  <td>DVB-S2</td>
+  <td>30000&nbsp;3/4</td>
+  <td>TP C1</td>
+</tr>
+
+<!-- Row 2: Combined freq+pol in one cell -->
+<tr bgcolor="#90EE90">
+  <td><b>11804 H</b></td>
+  <td>&nbsp;</td>
+  <td>German Alternative</td>
+  <td>52</td>
+  <td>DVB-S2</td>
+  <td>27500&nbsp;2/3</td>
+  <td>C4</td>
+</tr>
+
+<!-- Row 3: Missing beam name -->
+<tr bgcolor="#ADD8E6">
+  <td>12092</td>
+  <td>H</td>
+  <td>&nbsp;</td>
+  <td>51 dBW</td>
+  <td>DVB-S2</td>
+  <td>29900&nbsp;3/4</td>
+  <td>D8</td>
+</tr>
+
+<!-- Row 4: Minimal — only frequency and polarization present -->
+<tr bgcolor="#FFA07A">
+  <td>12341</td>
+  <td>V</td>
+  <td>&nbsp;</td>
+  <td>&nbsp;</td>
+  <td>&nbsp;</td>
+  <td>&nbsp;</td>
+  <td>&nbsp;</td>
+</tr>
+
+<!-- Row 5: C-band row with combined SR+FEC and EIRP in dBW -->
+<tr bgcolor="#E0E0FF">
+  <td><b>3840</b></td>
+  <td>H</td>
+  <td>Footprint A</td>
+  <td>37 dBW</td>
+  <td>DVB-S2</td>
+  <td>3000&nbsp;3/4</td>
+  <td>F1</td>
+</tr>
+
+<!-- Row 6: Transponder-only — no frequency (should be kept, warned) -->
+<tr bgcolor="#FFCCCC">
+  <td>&nbsp;</td>
+  <td>&nbsp;</td>
+  <td>Nordic and Baltic</td>
+  <td>49 dBW</td>
+  <td>DVB-S</td>
+  <td>27500&nbsp;5/6</td>
+  <td>E3</td>
+</tr>
+
+<!-- Row 7: Service continuation row — no frequency, no transponder → skip -->
+<tr>
+  <td>Provider Corp.</td>
+  <td colspan="6">Some TV Package - Basic channels lineup details here</td>
+</tr>
+
+<!-- Row 8: Navigation link row — skip (too few useful cells) -->
+<tr>
+  <td colspan="7"><a href="/index.html">Back to index</a></td>
+</tr>
+
+<!-- Row 9: DVB-S2X system variant -->
+<tr bgcolor="#FFFACD">
+  <td>12730</td>
+  <td>H</td>
+  <td>Europe Wide</td>
+  <td>48 dBW</td>
+  <td>DVB-S2X</td>
+  <td>32000&nbsp;3/5</td>
+  <td>TP F9</td>
+</tr>
+
+<!-- Row 10: Ka-band row -->
+<tr bgcolor="#DDF0FF">
+  <td><b>20000</b></td>
+  <td>V</td>
+  <td>Ka Spot 1</td>
+  <td>60 dBW</td>
+  <td>DVB-S2</td>
+  <td>500&nbsp;3/4</td>
+  <td>KA1</td>
+</tr>
+
+<!-- Row 11: Malformed HTML — should not crash the parser -->
+<tr bgcolor="#FF0000">
+  <td>bad data <td broken>
+  <td>11500</td>
+  <!-- unclosed comment
+</tr>
+
+<!-- Row 12: Completely empty row → skip -->
+<tr></tr>
+
+<!-- Row 13: Row with provider/service info and a real frequency -->
+<tr bgcolor="#C8FFD7">
+  <td>11956</td>
+  <td>V</td>
+  <td>Pan-European</td>
+  <td>47 dBW</td>
+  <td>DVB-S2</td>
+  <td>30000&nbsp;2/3</td>
+  <td>TP G3</td>
+</tr>
+
+</table>
+</body>
+</html>

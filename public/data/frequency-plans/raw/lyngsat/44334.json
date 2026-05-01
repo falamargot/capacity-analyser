@@ -1,0 +1,2025 @@
+{
+  "version": "2",
+  "satelliteName": "EUTELSAT 7C",
+  "orbitalPosition": "7E",
+  "source": "LYNGSAT",
+  "sourceUrl": "https://www.lyngsat.com/Eutelsat-7C.html",
+  "generatedAt": "2026-05-01T07:49:01.531Z",
+  "observations": [
+    {
+      "id": "lyngsat-eutelsat-7c-7e-row-1-10721",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 7C",
+      "orbitalPosition": "7E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-7C.html",
+      "retrievedAt": "2026-05-01T07:48:38.725Z",
+      "raw": {
+        "frequencyText": "10721",
+        "polarizationText": "V",
+        "beamText": "Wellikan 250401",
+        "systemText": "DVB-S",
+        "symbolRateText": "27500",
+        "fecText": "3/4",
+        "providerText": "126-2578"
+      },
+      "parsed": {
+        "frequencyMHz": 10721,
+        "polarization": "V",
+        "beamName": "Wellikan 250401",
+        "system": "DVB-S",
+        "symbolRate": 27500,
+        "fec": "3/4",
+        "providerName": "126-2578"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-7c-7e-s2-10762",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 7C",
+      "orbitalPosition": "7E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-7C.html",
+      "retrievedAt": "2026-05-01T07:48:38.725Z",
+      "raw": {
+        "frequencyText": "10762",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "A Ishchenko 250929",
+        "systemText": "DVB-S2",
+        "symbolRateText": "30000",
+        "fecText": "3/4",
+        "providerText": "(Telstra feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 10762,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "A Ishchenko 250929",
+        "system": "DVB-S2",
+        "symbolRate": 30000,
+        "fec": "3/4",
+        "providerName": "(Telstra feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-7c-7e-s2-10971",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 7C",
+      "orbitalPosition": "7E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-7C.html",
+      "retrievedAt": "2026-05-01T07:48:38.725Z",
+      "raw": {
+        "frequencyText": "10971",
+        "polarizationText": "H",
+        "transponderText": "S2",
+        "beamText": "Anonymous 250519",
+        "systemText": "DVB-S2",
+        "symbolRateText": "30000",
+        "fecText": "2/3",
+        "providerText": "Azam Digital; Nagravision; 126-60400"
+      },
+      "parsed": {
+        "frequencyMHz": 10971,
+        "polarization": "H",
+        "transponderNumber": "S2",
+        "beamName": "Anonymous 250519",
+        "system": "DVB-S2",
+        "symbolRate": 30000,
+        "fec": "2/3",
+        "providerName": "Azam Digital; Nagravision; 126-60400"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-7c-7e-s2-10981",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 7C",
+      "orbitalPosition": "7E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-7C.html",
+      "retrievedAt": "2026-05-01T07:48:38.725Z",
+      "raw": {
+        "frequencyText": "10981",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "Anonymous 240825",
+        "systemText": "DVB-S2",
+        "symbolRateText": "45000",
+        "fecText": "5/6",
+        "providerText": "Azam Digital; Nagravision; 126-60302"
+      },
+      "parsed": {
+        "frequencyMHz": 10981,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "Anonymous 240825",
+        "system": "DVB-S2",
+        "symbolRate": 45000,
+        "fec": "5/6",
+        "providerName": "Azam Digital; Nagravision; 126-60302"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-7c-7e-s2-11044",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 7C",
+      "orbitalPosition": "7E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-7C.html",
+      "retrievedAt": "2026-05-01T07:48:38.725Z",
+      "raw": {
+        "frequencyText": "11044",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "Anonymous 260206",
+        "systemText": "DVB-S2",
+        "symbolRateText": "45000",
+        "fecText": "5/6",
+        "providerText": "Azam Digital; Nagravision; 126-60100"
+      },
+      "parsed": {
+        "frequencyMHz": 11044,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "Anonymous 260206",
+        "system": "DVB-S2",
+        "symbolRate": 45000,
+        "fec": "5/6",
+        "providerName": "Azam Digital; Nagravision; 126-60100"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-7c-7e-s2-11106",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 7C",
+      "orbitalPosition": "7E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-7C.html",
+      "retrievedAt": "2026-05-01T07:48:38.725Z",
+      "raw": {
+        "frequencyText": "11106",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "D de Jong 251231",
+        "systemText": "DVB-S2",
+        "symbolRateText": "45000",
+        "fecText": "5/6",
+        "providerText": "Azam Digital; Nagravision; 126-60301"
+      },
+      "parsed": {
+        "frequencyMHz": 11106,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "D de Jong 251231",
+        "system": "DVB-S2",
+        "symbolRate": 45000,
+        "fec": "5/6",
+        "providerName": "Azam Digital; Nagravision; 126-60301"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-7c-7e-s2-11152",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 7C",
+      "orbitalPosition": "7E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-7C.html",
+      "retrievedAt": "2026-05-01T07:48:38.725Z",
+      "raw": {
+        "frequencyText": "11152",
+        "polarizationText": "H",
+        "transponderText": "S2",
+        "beamText": "Anonymous 241115",
+        "systemText": "DVB-S2",
+        "symbolRateText": "4165",
+        "fecText": "2/3",
+        "providerText": "Vivacom MCPC; 1-81"
+      },
+      "parsed": {
+        "frequencyMHz": 11152,
+        "polarization": "H",
+        "transponderNumber": "S2",
+        "beamName": "Anonymous 241115",
+        "system": "DVB-S2",
+        "symbolRate": 4165,
+        "fec": "2/3",
+        "providerName": "Vivacom MCPC; 1-81"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-7c-7e-s2-11285",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 7C",
+      "orbitalPosition": "7E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-7C.html",
+      "retrievedAt": "2026-05-01T07:48:38.725Z",
+      "raw": {
+        "frequencyText": "11285",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "Lexzie 260425",
+        "systemText": "DVB-S2",
+        "symbolRateText": "30000",
+        "fecText": "2/3",
+        "providerText": "126-3300"
+      },
+      "parsed": {
+        "frequencyMHz": 11285,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "Lexzie 260425",
+        "system": "DVB-S2",
+        "symbolRate": 30000,
+        "fec": "2/3",
+        "providerName": "126-3300"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-7c-7e-row-9-11410",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 7C",
+      "orbitalPosition": "7E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-7C.html",
+      "retrievedAt": "2026-05-01T07:48:38.725Z",
+      "raw": {
+        "frequencyText": "11410",
+        "polarizationText": "V",
+        "beamText": "EnoSat 260421",
+        "systemText": "DVB-S",
+        "symbolRateText": "30000",
+        "fecText": "5/6",
+        "providerText": "126-3304"
+      },
+      "parsed": {
+        "frequencyMHz": 11410,
+        "polarization": "V",
+        "beamName": "EnoSat 260421",
+        "system": "DVB-S",
+        "symbolRate": 30000,
+        "fec": "5/6",
+        "providerName": "126-3304"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-7c-7e-s2-11457",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 7C",
+      "orbitalPosition": "7E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-7C.html",
+      "retrievedAt": "2026-05-01T07:48:38.725Z",
+      "raw": {
+        "frequencyText": "11457",
+        "polarizationText": "H",
+        "transponderText": "S2",
+        "beamText": "Jamie A 251011",
+        "systemText": "DVB-S2",
+        "symbolRateText": "7500",
+        "fecText": "3/4",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 11457,
+        "polarization": "H",
+        "transponderNumber": "S2",
+        "beamName": "Jamie A 251011",
+        "system": "DVB-S2",
+        "symbolRate": 7500,
+        "fec": "3/4",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-7c-7e-s2-11460",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 7C",
+      "orbitalPosition": "7E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-7C.html",
+      "retrievedAt": "2026-05-01T07:48:38.725Z",
+      "raw": {
+        "frequencyText": "11460",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "Roli 251121",
+        "systemText": "DVB-S2",
+        "symbolRateText": "7500",
+        "fecText": "3/4",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 11460,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "Roli 251121",
+        "system": "DVB-S2",
+        "symbolRate": 7500,
+        "fec": "3/4",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-7c-7e-s2-11467",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 7C",
+      "orbitalPosition": "7E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-7C.html",
+      "retrievedAt": "2026-05-01T07:48:38.725Z",
+      "raw": {
+        "frequencyText": "11467",
+        "polarizationText": "H",
+        "transponderText": "S2",
+        "beamText": "Roli 250601",
+        "systemText": "DVB-S2",
+        "symbolRateText": "7500",
+        "fecText": "3/4",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 11467,
+        "polarization": "H",
+        "transponderNumber": "S2",
+        "beamName": "Roli 250601",
+        "system": "DVB-S2",
+        "symbolRate": 7500,
+        "fec": "3/4",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-7c-7e-s2-11467",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 7C",
+      "orbitalPosition": "7E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-7C.html",
+      "retrievedAt": "2026-05-01T07:48:38.725Z",
+      "raw": {
+        "frequencyText": "11467",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "Roli 250706",
+        "systemText": "DVB-S2",
+        "symbolRateText": "4800",
+        "fecText": "3/4",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 11467,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "Roli 250706",
+        "system": "DVB-S2",
+        "symbolRate": 4800,
+        "fec": "3/4",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-7c-7e-s2-11475",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 7C",
+      "orbitalPosition": "7E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-7C.html",
+      "retrievedAt": "2026-05-01T07:48:38.725Z",
+      "raw": {
+        "frequencyText": "11475",
+        "polarizationText": "H",
+        "transponderText": "S2",
+        "beamText": "Jamie A 260412",
+        "systemText": "DVB-S2",
+        "symbolRateText": "7200",
+        "fecText": "3/5",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 11475,
+        "polarization": "H",
+        "transponderNumber": "S2",
+        "beamName": "Jamie A 260412",
+        "system": "DVB-S2",
+        "symbolRate": 7200,
+        "fec": "3/5",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-7c-7e-s2-11477",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 7C",
+      "orbitalPosition": "7E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-7C.html",
+      "retrievedAt": "2026-05-01T07:48:38.725Z",
+      "raw": {
+        "frequencyText": "11477",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "Roli 260309",
+        "systemText": "DVB-S2",
+        "symbolRateText": "4937",
+        "fecText": "3/4",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 11477,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "Roli 260309",
+        "system": "DVB-S2",
+        "symbolRate": 4937,
+        "fec": "3/4",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-7c-7e-s2-11480",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 7C",
+      "orbitalPosition": "7E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-7C.html",
+      "retrievedAt": "2026-05-01T07:48:38.725Z",
+      "raw": {
+        "frequencyText": "11480",
+        "polarizationText": "H",
+        "transponderText": "S2",
+        "beamText": "Janlakomcik M Al-Taie 260422",
+        "systemText": "DVB-S2",
+        "symbolRateText": "1480",
+        "fecText": "1/2",
+        "providerText": "1.0 258 Eng; Or Hachaim"
+      },
+      "parsed": {
+        "frequencyMHz": 11480,
+        "polarization": "H",
+        "transponderNumber": "S2",
+        "beamName": "Janlakomcik M Al-Taie 260422",
+        "system": "DVB-S2",
+        "symbolRate": 1480,
+        "fec": "1/2",
+        "providerName": "1.0 258 Eng; Or Hachaim"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-7c-7e-s2-11481",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 7C",
+      "orbitalPosition": "7E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-7C.html",
+      "retrievedAt": "2026-05-01T07:48:38.725Z",
+      "raw": {
+        "frequencyText": "11481",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "Anonymous 241006",
+        "systemText": "DVB-S2",
+        "symbolRateText": "45000",
+        "fecText": "2/3",
+        "providerText": "Moreplex TV"
+      },
+      "parsed": {
+        "frequencyMHz": 11481,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "Anonymous 241006",
+        "system": "DVB-S2",
+        "symbolRate": 45000,
+        "fec": "2/3",
+        "providerName": "Moreplex TV"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-7c-7e-row-18-11486",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 7C",
+      "orbitalPosition": "7E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-7C.html",
+      "retrievedAt": "2026-05-01T07:48:38.725Z",
+      "raw": {
+        "frequencyText": "11486",
+        "polarizationText": "V",
+        "beamText": "Jamie A 250526",
+        "systemText": "DVB-S",
+        "symbolRateText": "3333",
+        "fecText": "3/4",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 11486,
+        "polarization": "V",
+        "beamName": "Jamie A 250526",
+        "system": "DVB-S",
+        "symbolRate": 3333,
+        "fec": "3/4",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-7c-7e-s2-11492",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 7C",
+      "orbitalPosition": "7E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-7C.html",
+      "retrievedAt": "2026-05-01T07:48:38.725Z",
+      "raw": {
+        "frequencyText": "11492",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "Jamie A 251102",
+        "systemText": "DVB-S2",
+        "symbolRateText": "4200",
+        "fecText": "3/4",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 11492,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "Jamie A 251102",
+        "system": "DVB-S2",
+        "symbolRate": 4200,
+        "fec": "3/4",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-7c-7e-s2-11497",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 7C",
+      "orbitalPosition": "7E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-7C.html",
+      "retrievedAt": "2026-05-01T07:48:38.725Z",
+      "raw": {
+        "frequencyText": "11497",
+        "polarizationText": "H",
+        "transponderText": "S2",
+        "beamText": "Roli 250525",
+        "systemText": "DVB-S2",
+        "symbolRateText": "3674",
+        "fecText": "3/4",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 11497,
+        "polarization": "H",
+        "transponderNumber": "S2",
+        "beamName": "Roli 250525",
+        "system": "DVB-S2",
+        "symbolRate": 3674,
+        "fec": "3/4",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-7c-7e-s2-11505",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 7C",
+      "orbitalPosition": "7E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-7C.html",
+      "retrievedAt": "2026-05-01T07:48:38.725Z",
+      "raw": {
+        "frequencyText": "11505",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "Jamie A 260322",
+        "systemText": "DVB-S2",
+        "symbolRateText": "7200",
+        "fecText": "3/4",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 11505,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "Jamie A 260322",
+        "system": "DVB-S2",
+        "symbolRate": 7200,
+        "fec": "3/4",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-7c-7e-s2-11508",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 7C",
+      "orbitalPosition": "7E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-7C.html",
+      "retrievedAt": "2026-05-01T07:48:38.725Z",
+      "raw": {
+        "frequencyText": "11508",
+        "polarizationText": "H",
+        "transponderText": "S2",
+        "beamText": "Roli 251025",
+        "systemText": "DVB-S2",
+        "symbolRateText": "7500",
+        "fecText": "3/4",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 11508,
+        "polarization": "H",
+        "transponderNumber": "S2",
+        "beamName": "Roli 251025",
+        "system": "DVB-S2",
+        "symbolRate": 7500,
+        "fec": "3/4",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-7c-7e-s2-11514",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 7C",
+      "orbitalPosition": "7E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-7C.html",
+      "retrievedAt": "2026-05-01T07:48:38.725Z",
+      "raw": {
+        "frequencyText": "11514",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "Jamie A 260322",
+        "systemText": "DVB-S2",
+        "symbolRateText": "7200",
+        "fecText": "3/4",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 11514,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "Jamie A 260322",
+        "system": "DVB-S2",
+        "symbolRate": 7200,
+        "fec": "3/4",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-7c-7e-s2-11517",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 7C",
+      "orbitalPosition": "7E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-7C.html",
+      "retrievedAt": "2026-05-01T07:48:38.725Z",
+      "raw": {
+        "frequencyText": "11517",
+        "polarizationText": "H",
+        "transponderText": "S2",
+        "beamText": "Roli 250928",
+        "systemText": "DVB-S2",
+        "symbolRateText": "7200",
+        "fecText": "3/4",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 11517,
+        "polarization": "H",
+        "transponderNumber": "S2",
+        "beamName": "Roli 250928",
+        "system": "DVB-S2",
+        "symbolRate": 7200,
+        "fec": "3/4",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-7c-7e-s2-11521",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 7C",
+      "orbitalPosition": "7E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-7C.html",
+      "retrievedAt": "2026-05-01T07:48:38.725Z",
+      "raw": {
+        "frequencyText": "11521",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "Stanley_cassidy Roli 250906",
+        "systemText": "DVB-S2",
+        "symbolRateText": "3674",
+        "fecText": "3/4",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 11521,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "Stanley_cassidy Roli 250906",
+        "system": "DVB-S2",
+        "symbolRate": 3674,
+        "fec": "3/4",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-7c-7e-s2-11525",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 7C",
+      "orbitalPosition": "7E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-7C.html",
+      "retrievedAt": "2026-05-01T07:48:38.725Z",
+      "raw": {
+        "frequencyText": "11525",
+        "polarizationText": "H",
+        "transponderText": "S2",
+        "beamText": "Stanley_cassidy 250906",
+        "systemText": "DVB-S2",
+        "symbolRateText": "7200",
+        "fecText": "3/4",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 11525,
+        "polarization": "H",
+        "transponderNumber": "S2",
+        "beamName": "Stanley_cassidy 250906",
+        "system": "DVB-S2",
+        "symbolRate": 7200,
+        "fec": "3/4",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-7c-7e-s2-11526",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 7C",
+      "orbitalPosition": "7E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-7C.html",
+      "retrievedAt": "2026-05-01T07:48:38.725Z",
+      "raw": {
+        "frequencyText": "11526",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "Roli 251018",
+        "systemText": "DVB-S2",
+        "symbolRateText": "3674",
+        "fecText": "3/4",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 11526,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "Roli 251018",
+        "system": "DVB-S2",
+        "symbolRate": 3674,
+        "fec": "3/4",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-7c-7e-s2-11543",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 7C",
+      "orbitalPosition": "7E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-7C.html",
+      "retrievedAt": "2026-05-01T07:48:38.725Z",
+      "raw": {
+        "frequencyText": "11543",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "Roli 251231",
+        "systemText": "DVB-S2",
+        "symbolRateText": "6750",
+        "fecText": "3/4",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 11543,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "Roli 251231",
+        "system": "DVB-S2",
+        "symbolRate": 6750,
+        "fec": "3/4",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-7c-7e-s2-11552",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 7C",
+      "orbitalPosition": "7E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-7C.html",
+      "retrievedAt": "2026-05-01T07:48:38.725Z",
+      "raw": {
+        "frequencyText": "11552",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "Roli 251231",
+        "systemText": "DVB-S2",
+        "symbolRateText": "6750",
+        "fecText": "3/4",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 11552,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "Roli 251231",
+        "system": "DVB-S2",
+        "symbolRate": 6750,
+        "fec": "3/4",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-7c-7e-s2-11569",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 7C",
+      "orbitalPosition": "7E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-7C.html",
+      "retrievedAt": "2026-05-01T07:48:38.725Z",
+      "raw": {
+        "frequencyText": "11569",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "Roli 260307",
+        "systemText": "DVB-S2",
+        "symbolRateText": "9800",
+        "fecText": "3/4",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 11569,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "Roli 260307",
+        "system": "DVB-S2",
+        "symbolRate": 9800,
+        "fec": "3/4",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-7c-7e-s2-11580",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 7C",
+      "orbitalPosition": "7E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-7C.html",
+      "retrievedAt": "2026-05-01T07:48:38.725Z",
+      "raw": {
+        "frequencyText": "11580",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "Jamie A 260125",
+        "systemText": "DVB-S2",
+        "symbolRateText": "7200",
+        "fecText": "3/4",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 11580,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "Jamie A 260125",
+        "system": "DVB-S2",
+        "symbolRate": 7200,
+        "fec": "3/4",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-7c-7e-s2-11582",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 7C",
+      "orbitalPosition": "7E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-7C.html",
+      "retrievedAt": "2026-05-01T07:48:38.725Z",
+      "raw": {
+        "frequencyText": "11582",
+        "polarizationText": "H",
+        "transponderText": "S2",
+        "beamText": "Jamie A 260407",
+        "systemText": "DVB-S2",
+        "symbolRateText": "7200",
+        "fecText": "3/4",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 11582,
+        "polarization": "H",
+        "transponderNumber": "S2",
+        "beamName": "Jamie A 260407",
+        "system": "DVB-S2",
+        "symbolRate": 7200,
+        "fec": "3/4",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-7c-7e-s2-11589",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 7C",
+      "orbitalPosition": "7E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-7C.html",
+      "retrievedAt": "2026-05-01T07:48:38.725Z",
+      "raw": {
+        "frequencyText": "11589",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "Jamie A 251102",
+        "systemText": "DVB-S2",
+        "symbolRateText": "7200",
+        "fecText": "3/4",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 11589,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "Jamie A 251102",
+        "system": "DVB-S2",
+        "symbolRate": 7200,
+        "fec": "3/4",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-7c-7e-s2-11591",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 7C",
+      "orbitalPosition": "7E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-7C.html",
+      "retrievedAt": "2026-05-01T07:48:38.725Z",
+      "raw": {
+        "frequencyText": "11591",
+        "polarizationText": "H",
+        "transponderText": "S2",
+        "beamText": "Jamie A 260412",
+        "systemText": "DVB-S2",
+        "symbolRateText": "7200",
+        "fecText": "3/4",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 11591,
+        "polarization": "H",
+        "transponderNumber": "S2",
+        "beamName": "Jamie A 260412",
+        "system": "DVB-S2",
+        "symbolRate": 7200,
+        "fec": "3/4",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-7c-7e-s2-11598",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 7C",
+      "orbitalPosition": "7E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-7C.html",
+      "retrievedAt": "2026-05-01T07:48:38.725Z",
+      "raw": {
+        "frequencyText": "11598",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "Roli 250525",
+        "systemText": "DVB-S2",
+        "symbolRateText": "7120",
+        "fecText": "2/3",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 11598,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "Roli 250525",
+        "system": "DVB-S2",
+        "symbolRate": 7120,
+        "fec": "2/3",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-7c-7e-s2-11604",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 7C",
+      "orbitalPosition": "7E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-7C.html",
+      "retrievedAt": "2026-05-01T07:48:38.725Z",
+      "raw": {
+        "frequencyText": "11604",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "Roli 251111",
+        "systemText": "DVB-S2",
+        "symbolRateText": "2200",
+        "fecText": "3/4",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 11604,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "Roli 251111",
+        "system": "DVB-S2",
+        "symbolRate": 2200,
+        "fec": "3/4",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-7c-7e-s2-11606",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 7C",
+      "orbitalPosition": "7E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-7C.html",
+      "retrievedAt": "2026-05-01T07:48:38.725Z",
+      "raw": {
+        "frequencyText": "11606",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "D de Jong 251231",
+        "systemText": "DVB-S2",
+        "symbolRateText": "45000",
+        "fecText": "2/3",
+        "providerText": "Moreplex TV; StreamGuard"
+      },
+      "parsed": {
+        "frequencyMHz": 11606,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "D de Jong 251231",
+        "system": "DVB-S2",
+        "symbolRate": 45000,
+        "fec": "2/3",
+        "providerName": "Moreplex TV; StreamGuard"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-7c-7e-s2-11607",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 7C",
+      "orbitalPosition": "7E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-7C.html",
+      "retrievedAt": "2026-05-01T07:48:38.725Z",
+      "raw": {
+        "frequencyText": "11607",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "Jamie A Roli 250918",
+        "systemText": "DVB-S2",
+        "symbolRateText": "3333",
+        "fecText": "3/4",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 11607,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "Jamie A Roli 250918",
+        "system": "DVB-S2",
+        "symbolRate": 3333,
+        "fec": "3/4",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-7c-7e-s2-11609",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 7C",
+      "orbitalPosition": "7E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-7C.html",
+      "retrievedAt": "2026-05-01T07:48:38.725Z",
+      "raw": {
+        "frequencyText": "11609",
+        "polarizationText": "H",
+        "transponderText": "S2",
+        "beamText": "Roli 250901",
+        "systemText": "DVB-S2",
+        "symbolRateText": "9700",
+        "fecText": "3/4",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 11609,
+        "polarization": "H",
+        "transponderNumber": "S2",
+        "beamName": "Roli 250901",
+        "system": "DVB-S2",
+        "symbolRate": 9700,
+        "fec": "3/4",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-7c-7e-s2-11612",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 7C",
+      "orbitalPosition": "7E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-7C.html",
+      "retrievedAt": "2026-05-01T07:48:38.725Z",
+      "raw": {
+        "frequencyText": "11612",
+        "polarizationText": "H",
+        "transponderText": "S2",
+        "beamText": "Jamie A 260320",
+        "systemText": "DVB-S2",
+        "symbolRateText": "1480",
+        "fecText": "1/2",
+        "providerText": "1.0 258 Eng; Or Hachaim"
+      },
+      "parsed": {
+        "frequencyMHz": 11612,
+        "polarization": "H",
+        "transponderNumber": "S2",
+        "beamName": "Jamie A 260320",
+        "system": "DVB-S2",
+        "symbolRate": 1480,
+        "fec": "1/2",
+        "providerName": "1.0 258 Eng; Or Hachaim"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-7c-7e-s2-11621",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 7C",
+      "orbitalPosition": "7E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-7C.html",
+      "retrievedAt": "2026-05-01T07:48:38.725Z",
+      "raw": {
+        "frequencyText": "11621",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "Roli 251111",
+        "systemText": "DVB-S2",
+        "symbolRateText": "2000",
+        "fecText": "5/6",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 11621,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "Roli 251111",
+        "system": "DVB-S2",
+        "symbolRate": 2000,
+        "fec": "5/6",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-7c-7e-s2-11648",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 7C",
+      "orbitalPosition": "7E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-7C.html",
+      "retrievedAt": "2026-05-01T07:48:38.725Z",
+      "raw": {
+        "frequencyText": "11648",
+        "polarizationText": "H",
+        "transponderText": "S2",
+        "beamText": "Stanley_cassidy Jamie A 250906",
+        "systemText": "DVB-S2",
+        "symbolRateText": "3674",
+        "fecText": "3/4",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 11648,
+        "polarization": "H",
+        "transponderNumber": "S2",
+        "beamName": "Stanley_cassidy Jamie A 250906",
+        "system": "DVB-S2",
+        "symbolRate": 3674,
+        "fec": "3/4",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-7c-7e-s2-11662",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 7C",
+      "orbitalPosition": "7E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-7C.html",
+      "retrievedAt": "2026-05-01T07:48:38.725Z",
+      "raw": {
+        "frequencyText": "11662",
+        "polarizationText": "H",
+        "transponderText": "S2",
+        "beamText": "Roli 251117",
+        "systemText": "DVB-S2",
+        "symbolRateText": "2222",
+        "fecText": "3/4",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 11662,
+        "polarization": "H",
+        "transponderNumber": "S2",
+        "beamName": "Roli 251117",
+        "system": "DVB-S2",
+        "symbolRate": 2222,
+        "fec": "3/4",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-7c-7e-s2-11662",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 7C",
+      "orbitalPosition": "7E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-7C.html",
+      "retrievedAt": "2026-05-01T07:48:38.725Z",
+      "raw": {
+        "frequencyText": "11662",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "Roli 251110",
+        "systemText": "DVB-S2",
+        "symbolRateText": "2222",
+        "fecText": "3/4",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 11662,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "Roli 251110",
+        "system": "DVB-S2",
+        "symbolRate": 2222,
+        "fec": "3/4",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-7c-7e-s2-11667",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 7C",
+      "orbitalPosition": "7E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-7C.html",
+      "retrievedAt": "2026-05-01T07:48:38.725Z",
+      "raw": {
+        "frequencyText": "11667",
+        "polarizationText": "H",
+        "transponderText": "S2",
+        "beamText": "Roli 251014",
+        "systemText": "DVB-S2",
+        "symbolRateText": "9700",
+        "fecText": "3/4",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 11667,
+        "polarization": "H",
+        "transponderNumber": "S2",
+        "beamName": "Roli 251014",
+        "system": "DVB-S2",
+        "symbolRate": 9700,
+        "fec": "3/4",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-7c-7e-s2-11667",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 7C",
+      "orbitalPosition": "7E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-7C.html",
+      "retrievedAt": "2026-05-01T07:48:38.725Z",
+      "raw": {
+        "frequencyText": "11667",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "Lexzie 250112",
+        "systemText": "DVB-S2",
+        "symbolRateText": "3780",
+        "fecText": "4/5",
+        "providerText": "4.7 201 Kur; Shams TV"
+      },
+      "parsed": {
+        "frequencyMHz": 11667,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "Lexzie 250112",
+        "system": "DVB-S2",
+        "symbolRate": 3780,
+        "fec": "4/5",
+        "providerName": "4.7 201 Kur; Shams TV"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-7c-7e-s2-11672",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 7C",
+      "orbitalPosition": "7E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-7C.html",
+      "retrievedAt": "2026-05-01T07:48:38.725Z",
+      "raw": {
+        "frequencyText": "11672",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "Stanley_cassidy 211205",
+        "systemText": "DVB-S2",
+        "symbolRateText": "3780",
+        "fecText": "4/5",
+        "providerText": "Kurdistan TV; 4.7 201 Kur"
+      },
+      "parsed": {
+        "frequencyMHz": 11672,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "Stanley_cassidy 211205",
+        "system": "DVB-S2",
+        "symbolRate": 3780,
+        "fec": "4/5",
+        "providerName": "Kurdistan TV; 4.7 201 Kur"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-7c-7e-s2-11677",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 7C",
+      "orbitalPosition": "7E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-7C.html",
+      "retrievedAt": "2026-05-01T07:48:38.725Z",
+      "raw": {
+        "frequencyText": "11677",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "Stanley_cassidy 211205",
+        "systemText": "DVB-S2",
+        "symbolRateText": "5040",
+        "fecText": "4/5",
+        "providerText": "Kurdistan 24; 4.7 101 Kur"
+      },
+      "parsed": {
+        "frequencyMHz": 11677,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "Stanley_cassidy 211205",
+        "system": "DVB-S2",
+        "symbolRate": 5040,
+        "fec": "4/5",
+        "providerName": "Kurdistan 24; 4.7 101 Kur"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-7c-7e-s2-11682",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 7C",
+      "orbitalPosition": "7E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-7C.html",
+      "retrievedAt": "2026-05-01T07:48:38.725Z",
+      "raw": {
+        "frequencyText": "11682",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "Hadowooalsatan 260312",
+        "systemText": "DVB-S2",
+        "symbolRateText": "2500",
+        "fecText": "3/4",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 11682,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "Hadowooalsatan 260312",
+        "system": "DVB-S2",
+        "symbolRate": 2500,
+        "fec": "3/4",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-7c-7e-s2-11683",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 7C",
+      "orbitalPosition": "7E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-7C.html",
+      "retrievedAt": "2026-05-01T07:48:38.725Z",
+      "raw": {
+        "frequencyText": "11683",
+        "polarizationText": "H",
+        "transponderText": "S2",
+        "beamText": "Jamie A 251018",
+        "systemText": "DVB-S2",
+        "symbolRateText": "7200",
+        "fecText": "3/4",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 11683,
+        "polarization": "H",
+        "transponderNumber": "S2",
+        "beamName": "Jamie A 251018",
+        "system": "DVB-S2",
+        "symbolRate": 7200,
+        "fec": "3/4",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-7c-7e-s2-11685",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 7C",
+      "orbitalPosition": "7E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-7C.html",
+      "retrievedAt": "2026-05-01T07:48:38.725Z",
+      "raw": {
+        "frequencyText": "11685",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "Jamie A 251231",
+        "systemText": "DVB-S2",
+        "symbolRateText": "2500",
+        "fecText": "5/6",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 11685,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "Jamie A 251231",
+        "system": "DVB-S2",
+        "symbolRate": 2500,
+        "fec": "5/6",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-7c-7e-s2-11689",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 7C",
+      "orbitalPosition": "7E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-7C.html",
+      "retrievedAt": "2026-05-01T07:48:38.725Z",
+      "raw": {
+        "frequencyText": "11689",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "William-1 231202",
+        "systemText": "DVB-S2",
+        "symbolRateText": "5040",
+        "fecText": "4/5",
+        "providerText": "4.7 4112 Kur; Ava News"
+      },
+      "parsed": {
+        "frequencyMHz": 11689,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "William-1 231202",
+        "system": "DVB-S2",
+        "symbolRate": 5040,
+        "fec": "4/5",
+        "providerName": "4.7 4112 Kur; Ava News"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-7c-7e-row-53-4128",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 7C",
+      "orbitalPosition": "7E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-7C.html",
+      "retrievedAt": "2026-05-01T07:48:38.725Z",
+      "raw": {
+        "frequencyText": "4128",
+        "beamText": "Ava Radio"
+      },
+      "parsed": {
+        "frequencyMHz": 4128,
+        "beamName": "Ava Radio"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": false,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable.",
+          "No DVB system/SR/FEC parameters found."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-7c-7e-s2-11691",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 7C",
+      "orbitalPosition": "7E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-7C.html",
+      "retrievedAt": "2026-05-01T07:48:38.725Z",
+      "raw": {
+        "frequencyText": "11691",
+        "polarizationText": "H",
+        "transponderText": "S2",
+        "beamText": "Roli 251127",
+        "systemText": "DVB-S2",
+        "symbolRateText": "9874",
+        "fecText": "3/4",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 11691,
+        "polarization": "H",
+        "transponderNumber": "S2",
+        "beamName": "Roli 251127",
+        "system": "DVB-S2",
+        "symbolRate": 9874,
+        "fec": "3/4",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-7c-7e-s2-nofreq",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 7C",
+      "orbitalPosition": "7E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-7C.html",
+      "retrievedAt": "2026-05-01T07:48:38.725Z",
+      "raw": {
+        "transponderText": "S2",
+        "beamText": "System:",
+        "systemText": "DVB-S2",
+        "providerText": "non-DTH"
+      },
+      "parsed": {
+        "transponderNumber": "S2",
+        "beamName": "System:",
+        "system": "DVB-S2",
+        "providerName": "non-DTH"
+      },
+      "parseQuality": {
+        "hasFrequency": false,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Downlink frequency not parseable; row kept due to transponder ID.",
+          "Polarization not present or not parseable."
+        ]
+      }
+    }
+  ]
+}

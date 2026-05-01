@@ -1,0 +1,5255 @@
+{
+  "version": "2",
+  "satelliteName": "EUTELSAT 36D",
+  "orbitalPosition": "36E",
+  "generatedAt": "2026-05-01T07:49:01.538Z",
+  "totalRawObservations": 86,
+  "transponders": [
+    {
+      "id": "eutelsat-36d-36e-s2-v",
+      "satelliteName": "EUTELSAT 36D",
+      "orbitalPosition": "36E",
+      "downlink": {
+        "frequencyMHz": 10960,
+        "polarization": "V",
+        "beamName": "Stanley_cassidy Roli 251105",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 13845.122,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          7200
+        ],
+        "fecValues": [
+          "3/4"
+        ],
+        "services": [],
+        "providers": [
+          "(feeds)"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-36d-36e-s2-10960"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-36D.html",
+            "retrievedAt": "2026-05-01T07:49:01.453Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-36d-36e-s2-v",
+      "satelliteName": "EUTELSAT 36D",
+      "orbitalPosition": "36E",
+      "downlink": {
+        "frequencyMHz": 10968,
+        "polarization": "V",
+        "beamName": "Stanley_cassidy 251104",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 13848.049,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          7200
+        ],
+        "fecValues": [
+          "3/4"
+        ],
+        "services": [],
+        "providers": [
+          "(feeds)"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-36d-36e-s2-10968"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-36D.html",
+            "retrievedAt": "2026-05-01T07:49:01.453Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-36d-36e-s2-v",
+      "satelliteName": "EUTELSAT 36D",
+      "orbitalPosition": "36E",
+      "downlink": {
+        "frequencyMHz": 10995,
+        "polarization": "V",
+        "beamName": "Stanley_cassidy 251104",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 13857.927,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          7200
+        ],
+        "fecValues": [
+          "3/4"
+        ],
+        "services": [],
+        "providers": [
+          "(feeds)"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-36d-36e-s2-10995"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-36D.html",
+            "retrievedAt": "2026-05-01T07:49:01.453Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-36d-36e-s2-v",
+      "satelliteName": "EUTELSAT 36D",
+      "orbitalPosition": "36E",
+      "downlink": {
+        "frequencyMHz": 11004,
+        "polarization": "V",
+        "beamName": "Stanley_cassidy 251104",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 13861.22,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          7200
+        ],
+        "fecValues": [
+          "3/4"
+        ],
+        "services": [],
+        "providers": [
+          "(feeds)"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-36d-36e-s2-11004"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-36D.html",
+            "retrievedAt": "2026-05-01T07:49:01.453Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-36d-36e-s2-v",
+      "satelliteName": "EUTELSAT 36D",
+      "orbitalPosition": "36E",
+      "downlink": {
+        "frequencyMHz": 11013,
+        "polarization": "V",
+        "beamName": "Stanley_cassidy 251105",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 13864.512,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          7200
+        ],
+        "fecValues": [
+          "3/4"
+        ],
+        "services": [],
+        "providers": [
+          "(feeds)"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-36d-36e-s2-11013"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-36D.html",
+            "retrievedAt": "2026-05-01T07:49:01.453Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-36d-36e-s2-h",
+      "satelliteName": "EUTELSAT 36D",
+      "orbitalPosition": "36E",
+      "downlink": {
+        "frequencyMHz": 11020,
+        "polarization": "H",
+        "beamName": "Roli 250626",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 13867.073,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          2000
+        ],
+        "fecValues": [
+          "3/4"
+        ],
+        "services": [],
+        "providers": [
+          "(feeds)"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-36d-36e-s2-11020"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-36D.html",
+            "retrievedAt": "2026-05-01T07:49:01.453Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-36d-36e-s2-v",
+      "satelliteName": "EUTELSAT 36D",
+      "orbitalPosition": "36E",
+      "downlink": {
+        "frequencyMHz": 11022,
+        "polarization": "V",
+        "beamName": "Stanley_cassidy 251104",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 13867.805,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          7200
+        ],
+        "fecValues": [
+          "3/4"
+        ],
+        "services": [],
+        "providers": [
+          "(feeds)"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-36d-36e-s2-11022"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-36D.html",
+            "retrievedAt": "2026-05-01T07:49:01.453Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-36d-36e-s2-h",
+      "satelliteName": "EUTELSAT 36D",
+      "orbitalPosition": "36E",
+      "downlink": {
+        "frequencyMHz": 11028,
+        "polarization": "H",
+        "beamName": "Roli 251015",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 13870,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          2000
+        ],
+        "fecValues": [
+          "5/6"
+        ],
+        "services": [],
+        "providers": [
+          "(feeds)"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-36d-36e-s2-11028"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-36D.html",
+            "retrievedAt": "2026-05-01T07:49:01.453Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-36d-36e-s2-h",
+      "satelliteName": "EUTELSAT 36D",
+      "orbitalPosition": "36E",
+      "downlink": {
+        "frequencyMHz": 11031,
+        "polarization": "H",
+        "beamName": "Roli 251124",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 13871.098,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          2000
+        ],
+        "fecValues": [
+          "5/6"
+        ],
+        "services": [],
+        "providers": [
+          "(feeds)"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-36d-36e-s2-11031"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-36D.html",
+            "retrievedAt": "2026-05-01T07:49:01.453Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-36d-36e-s2-v",
+      "satelliteName": "EUTELSAT 36D",
+      "orbitalPosition": "36E",
+      "downlink": {
+        "frequencyMHz": 11106,
+        "polarization": "V",
+        "beamName": "N Stanislav 230526",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 13898.537,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          3333
+        ],
+        "fecValues": [
+          "3/5"
+        ],
+        "services": [],
+        "providers": [
+          "Al Rasheed TV; 5.5 100 Ara"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-36d-36e-s2-11106"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-36D.html",
+            "retrievedAt": "2026-05-01T07:49:01.453Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-36d-36e-s2-h",
+      "satelliteName": "EUTELSAT 36D",
+      "orbitalPosition": "36E",
+      "downlink": {
+        "frequencyMHz": 11221,
+        "polarization": "H",
+        "beamName": "M Al-Taie 251007",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 13940.61,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 2,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          30000
+        ],
+        "fecValues": [
+          "2/3",
+          "5/6"
+        ],
+        "eirpDbw": 55,
+        "services": [],
+        "providers": [
+          "Vivacom MCPC; Irdeto; 1-55",
+          "Nagravision; 91-21"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-36d-36e-s2-11221",
+          "lyngsat-eutelsat-36d-36e-s2-11221"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-36D.html",
+            "retrievedAt": "2026-05-01T07:49:01.453Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-36d-36e-s2-v",
+      "satelliteName": "EUTELSAT 36D",
+      "orbitalPosition": "36E",
+      "downlink": {
+        "frequencyMHz": 11263,
+        "polarization": "V",
+        "beamName": "Anonymous 260320",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 13955.976,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          30000
+        ],
+        "fecValues": [
+          "5/6"
+        ],
+        "services": [],
+        "providers": [
+          "Nagravision; 91-22"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-36d-36e-s2-11263"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-36D.html",
+            "retrievedAt": "2026-05-01T07:49:01.453Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-36d-36e-s2-v",
+      "satelliteName": "EUTELSAT 36D",
+      "orbitalPosition": "36E",
+      "downlink": {
+        "frequencyMHz": 11304,
+        "polarization": "V",
+        "beamName": "Anonymous 241102",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 13970.976,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          30000
+        ],
+        "fecValues": [
+          "5/6"
+        ],
+        "services": [],
+        "providers": [
+          "Nagravision; 91-23"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-36d-36e-s2-11304"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-36D.html",
+            "retrievedAt": "2026-05-01T07:49:01.453Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-36d-36e-s2-h",
+      "satelliteName": "EUTELSAT 36D",
+      "orbitalPosition": "36E",
+      "downlink": {
+        "frequencyMHz": 11346,
+        "polarization": "H",
+        "beamName": "M Al-Taie 260401",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 13986.341,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 2,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          30000
+        ],
+        "fecValues": [
+          "3/4",
+          "5/6"
+        ],
+        "services": [],
+        "providers": [
+          "Vivacom MCPC; Irdeto; 1-245",
+          "Nagravision; 91-24"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-36d-36e-s2-11346",
+          "lyngsat-eutelsat-36d-36e-s2-11346"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-36D.html",
+            "retrievedAt": "2026-05-01T07:49:01.453Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-36d-36e-s2-v",
+      "satelliteName": "EUTELSAT 36D",
+      "orbitalPosition": "36E",
+      "downlink": {
+        "frequencyMHz": 11388,
+        "polarization": "V",
+        "beamName": "Anonymous 240906",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 14001.707,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          30000
+        ],
+        "fecValues": [
+          "5/6"
+        ],
+        "services": [],
+        "providers": [
+          "Nagravision; 91-25"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-36d-36e-s2-11388"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-36D.html",
+            "retrievedAt": "2026-05-01T07:49:01.453Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-36d-36e-s2-v",
+      "satelliteName": "EUTELSAT 36D",
+      "orbitalPosition": "36E",
+      "downlink": {
+        "frequencyMHz": 11429,
+        "polarization": "V",
+        "beamName": "Anonymous 250920",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 14016.707,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          30000
+        ],
+        "fecValues": [
+          "5/6"
+        ],
+        "services": [],
+        "providers": [
+          "Nagravision; 91-26"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-36d-36e-s2-11429"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-36D.html",
+            "retrievedAt": "2026-05-01T07:49:01.453Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-36d-36e-s2-v",
+      "satelliteName": "EUTELSAT 36D",
+      "orbitalPosition": "36E",
+      "downlink": {
+        "frequencyMHz": 11457,
+        "polarization": "V",
+        "beamName": "Roli 251208",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 14026.951,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          2250
+        ],
+        "fecValues": [
+          "3/4"
+        ],
+        "services": [],
+        "providers": [
+          "(feeds)"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-36d-36e-s2-11457"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-36D.html",
+            "retrievedAt": "2026-05-01T07:49:01.453Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-36d-36e-s2-h",
+      "satelliteName": "EUTELSAT 36D",
+      "orbitalPosition": "36E",
+      "downlink": {
+        "frequencyMHz": 11458,
+        "polarization": "H",
+        "beamName": "Roli 251231",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 14027.317,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          4937
+        ],
+        "fecValues": [
+          "3/4"
+        ],
+        "services": [],
+        "providers": [
+          "(feeds)"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-36d-36e-s2-11458"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-36D.html",
+            "retrievedAt": "2026-05-01T07:49:01.453Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-36d-36e-s2-v",
+      "satelliteName": "EUTELSAT 36D",
+      "orbitalPosition": "36E",
+      "downlink": {
+        "frequencyMHz": 11460,
+        "polarization": "V",
+        "beamName": "Roli 251208",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 14028.049,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          2400
+        ],
+        "fecValues": [
+          "3/4"
+        ],
+        "services": [],
+        "providers": [
+          "(feeds)"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-36d-36e-s2-11460"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-36D.html",
+            "retrievedAt": "2026-05-01T07:49:01.453Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-36d-36e-s2-v",
+      "satelliteName": "EUTELSAT 36D",
+      "orbitalPosition": "36E",
+      "downlink": {
+        "frequencyMHz": 11463,
+        "polarization": "V",
+        "beamName": "Roli 251208",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 14029.146,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          2250
+        ],
+        "fecValues": [
+          "3/4"
+        ],
+        "services": [],
+        "providers": [
+          "(feeds)"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-36d-36e-s2-11463"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-36D.html",
+            "retrievedAt": "2026-05-01T07:49:01.453Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-36d-36e-s2-h",
+      "satelliteName": "EUTELSAT 36D",
+      "orbitalPosition": "36E",
+      "downlink": {
+        "frequencyMHz": 11464,
+        "polarization": "H",
+        "beamName": "Roli 251231",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 14029.512,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          4937
+        ],
+        "fecValues": [
+          "3/4"
+        ],
+        "services": [],
+        "providers": [
+          "(feeds)"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-36d-36e-s2-11464"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-36D.html",
+            "retrievedAt": "2026-05-01T07:49:01.453Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-36d-36e-s2-v",
+      "satelliteName": "EUTELSAT 36D",
+      "orbitalPosition": "36E",
+      "downlink": {
+        "frequencyMHz": 11466,
+        "polarization": "V",
+        "beamName": "Roli 251208",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 14030.244,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          2400
+        ],
+        "fecValues": [
+          "3/4"
+        ],
+        "services": [],
+        "providers": [
+          "(feeds)"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-36d-36e-s2-11466"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-36D.html",
+            "retrievedAt": "2026-05-01T07:49:01.453Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-36d-36e-s2-h",
+      "satelliteName": "EUTELSAT 36D",
+      "orbitalPosition": "36E",
+      "downlink": {
+        "frequencyMHz": 11471,
+        "polarization": "H",
+        "beamName": "Roli 250918",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 14032.073,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          4937
+        ],
+        "fecValues": [
+          "3/4"
+        ],
+        "services": [],
+        "providers": [
+          "(feeds)"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-36d-36e-s2-11471"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-36D.html",
+            "retrievedAt": "2026-05-01T07:49:01.453Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-36d-36e-s2-v",
+      "satelliteName": "EUTELSAT 36D",
+      "orbitalPosition": "36E",
+      "downlink": {
+        "frequencyMHz": 11473,
+        "polarization": "V",
+        "beamName": "Roli 251121",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 14032.805,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          9874
+        ],
+        "fecValues": [
+          "3/4"
+        ],
+        "services": [],
+        "providers": [
+          "(feeds)"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-36d-36e-s2-11473"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-36D.html",
+            "retrievedAt": "2026-05-01T07:49:01.453Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-36d-36e-s2-v",
+      "satelliteName": "EUTELSAT 36D",
+      "orbitalPosition": "36E",
+      "downlink": {
+        "frequencyMHz": 11484,
+        "polarization": "V",
+        "beamName": "Roli 250601",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 14036.829,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          3700
+        ],
+        "fecValues": [
+          "5/6"
+        ],
+        "services": [],
+        "providers": [
+          "(feeds)"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-36d-36e-s2-11484"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-36D.html",
+            "retrievedAt": "2026-05-01T07:49:01.453Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-36d-36e-s2-v",
+      "satelliteName": "EUTELSAT 36D",
+      "orbitalPosition": "36E",
+      "downlink": {
+        "frequencyMHz": 11488,
+        "polarization": "V",
+        "beamName": "Roli 251018",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 14038.293,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          3333
+        ],
+        "fecValues": [
+          "5/6"
+        ],
+        "services": [],
+        "providers": [
+          "(feeds)"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-36d-36e-s2-11488"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-36D.html",
+            "retrievedAt": "2026-05-01T07:49:01.453Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-36d-36e-s2-v",
+      "satelliteName": "EUTELSAT 36D",
+      "orbitalPosition": "36E",
+      "downlink": {
+        "frequencyMHz": 11492,
+        "polarization": "V",
+        "beamName": "N Stanislav 250827",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 14039.756,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          2962
+        ],
+        "fecValues": [
+          "3/4"
+        ],
+        "services": [],
+        "providers": [
+          "(feeds)"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-36d-36e-s2-11492"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-36D.html",
+            "retrievedAt": "2026-05-01T07:49:01.453Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-36d-36e-s2-h",
+      "satelliteName": "EUTELSAT 36D",
+      "orbitalPosition": "36E",
+      "downlink": {
+        "frequencyMHz": 11494,
+        "polarization": "H",
+        "beamName": "Stanley_cassidy 251227",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 14040.488,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          4937
+        ],
+        "fecValues": [
+          "3/4"
+        ],
+        "services": [],
+        "providers": [
+          "(feeds)"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-36d-36e-s2-11494"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-36D.html",
+            "retrievedAt": "2026-05-01T07:49:01.453Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-36d-36e-s2-v",
+      "satelliteName": "EUTELSAT 36D",
+      "orbitalPosition": "36E",
+      "downlink": {
+        "frequencyMHz": 11497,
+        "polarization": "V",
+        "beamName": "Roli 250510",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 14041.585,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          2962
+        ],
+        "fecValues": [
+          "3/4"
+        ],
+        "services": [],
+        "providers": [
+          "(feeds)"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-36d-36e-s2-11497"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-36D.html",
+            "retrievedAt": "2026-05-01T07:49:01.453Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-36d-36e-s2-h",
+      "satelliteName": "EUTELSAT 36D",
+      "orbitalPosition": "36E",
+      "downlink": {
+        "frequencyMHz": 11506,
+        "polarization": "H",
+        "beamName": "Roli 250926",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 14044.878,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          9874
+        ],
+        "fecValues": [
+          "3/4"
+        ],
+        "services": [],
+        "providers": [
+          "(feeds)"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-36d-36e-s2-11506"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-36D.html",
+            "retrievedAt": "2026-05-01T07:49:01.453Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-36d-36e-s2-v",
+      "satelliteName": "EUTELSAT 36D",
+      "orbitalPosition": "36E",
+      "downlink": {
+        "frequencyMHz": 11508,
+        "polarization": "V",
+        "beamName": "N Stanislav 250308",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 14045.61,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          2800
+        ],
+        "fecValues": [
+          "2/3"
+        ],
+        "eirpDbw": 33,
+        "services": [],
+        "providers": [
+          "Iraq Alhadath; 6.6 34 Ara"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-36d-36e-s2-11508"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-36D.html",
+            "retrievedAt": "2026-05-01T07:49:01.453Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-36d-36e-s2-v",
+      "satelliteName": "EUTELSAT 36D",
+      "orbitalPosition": "36E",
+      "downlink": {
+        "frequencyMHz": 11512,
+        "polarization": "V",
+        "beamName": "Roli 250726",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 14047.073,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          3333
+        ],
+        "fecValues": [
+          "3/4"
+        ],
+        "services": [],
+        "providers": [
+          "(feeds)"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-36d-36e-s2-11512"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-36D.html",
+            "retrievedAt": "2026-05-01T07:49:01.453Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-36d-36e-s2-v",
+      "satelliteName": "EUTELSAT 36D",
+      "orbitalPosition": "36E",
+      "downlink": {
+        "frequencyMHz": 11542,
+        "polarization": "V",
+        "beamName": "M Al-Taie 250110",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 14058.049,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          6582
+        ],
+        "fecValues": [
+          "2/3"
+        ],
+        "services": [],
+        "providers": [
+          "Iraqi mux; 1337-1"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-36d-36e-s2-11542"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-36D.html",
+            "retrievedAt": "2026-05-01T07:49:01.453Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-36d-36e-s2-v",
+      "satelliteName": "EUTELSAT 36D",
+      "orbitalPosition": "36E",
+      "downlink": {
+        "frequencyMHz": 11556,
+        "polarization": "V",
+        "beamName": "С Ткачук 251225",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 14063.171,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          3333
+        ],
+        "fecValues": [
+          "3/4"
+        ],
+        "services": [],
+        "providers": [
+          "(IHA feeds)"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-36d-36e-s2-11556"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-36D.html",
+            "retrievedAt": "2026-05-01T07:49:01.453Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-36d-36e-11587.0mhz-h",
+      "satelliteName": "EUTELSAT 36D",
+      "orbitalPosition": "36E",
+      "downlink": {
+        "frequencyMHz": 11587,
+        "polarization": "H",
+        "beamName": "Anbar TV Channel",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 14074.512,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S"
+        ],
+        "symbolRates": [
+          2170
+        ],
+        "fecValues": [
+          "3/4"
+        ],
+        "services": [],
+        "providers": [
+          "Marcel 2 190902; 5.5 4112 Ara"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-36d-36e-row-37-11587"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-36D.html",
+            "retrievedAt": "2026-05-01T07:49:01.453Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-36d-36e-s2-v",
+      "satelliteName": "EUTELSAT 36D",
+      "orbitalPosition": "36E",
+      "downlink": {
+        "frequencyMHz": 11593,
+        "polarization": "V",
+        "beamName": "N Stanislav 230415",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 14076.707,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          2500
+        ],
+        "fecValues": [
+          "3/4"
+        ],
+        "eirpDbw": 33,
+        "services": [],
+        "providers": [
+          "7.9 34 Ara; Iraq 24"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-36d-36e-s2-11593"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-36D.html",
+            "retrievedAt": "2026-05-01T07:49:01.453Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-36d-36e-s2-h",
+      "satelliteName": "EUTELSAT 36D",
+      "orbitalPosition": "36E",
+      "downlink": {
+        "frequencyMHz": 11599,
+        "polarization": "H",
+        "beamName": "N Stanislav 250607",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 14078.902,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          1750
+        ],
+        "fecValues": [
+          "5/6"
+        ],
+        "services": [],
+        "providers": [
+          "9.4 4112 Ara; Alyaum TV"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-36d-36e-s2-11599"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-36D.html",
+            "retrievedAt": "2026-05-01T07:49:01.453Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-36d-36e-s2-h",
+      "satelliteName": "EUTELSAT 36D",
+      "orbitalPosition": "36E",
+      "downlink": {
+        "frequencyMHz": 11627,
+        "polarization": "H",
+        "beamName": "Roli 260128",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 14089.146,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 2,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          7200
+        ],
+        "fecValues": [
+          "3/4"
+        ],
+        "services": [],
+        "providers": [
+          "(feeds)"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-36d-36e-s2-11627",
+          "lyngsat-eutelsat-36d-36e-s2-11627"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-36D.html",
+            "retrievedAt": "2026-05-01T07:49:01.453Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-36d-36e-s2-v",
+      "satelliteName": "EUTELSAT 36D",
+      "orbitalPosition": "36E",
+      "downlink": {
+        "frequencyMHz": 11635,
+        "polarization": "V",
+        "beamName": "Stanley_cassidy 251104",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 14092.073,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          7200
+        ],
+        "fecValues": [
+          "3/4"
+        ],
+        "services": [],
+        "providers": [
+          "(feeds)"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-36d-36e-s2-11635"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-36D.html",
+            "retrievedAt": "2026-05-01T07:49:01.453Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-36d-36e-s2-v",
+      "satelliteName": "EUTELSAT 36D",
+      "orbitalPosition": "36E",
+      "downlink": {
+        "frequencyMHz": 11644,
+        "polarization": "V",
+        "beamName": "Stanley_cassidy 251104",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 14095.366,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          7200
+        ],
+        "fecValues": [
+          "3/4"
+        ],
+        "services": [],
+        "providers": [
+          "(feeds)"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-36d-36e-s2-11644"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-36D.html",
+            "retrievedAt": "2026-05-01T07:49:01.453Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-36d-36e-s2-h",
+      "satelliteName": "EUTELSAT 36D",
+      "orbitalPosition": "36E",
+      "downlink": {
+        "frequencyMHz": 11645,
+        "polarization": "H",
+        "beamName": "Roli 260128",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 14095.732,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          7200
+        ],
+        "fecValues": [
+          "3/4"
+        ],
+        "services": [],
+        "providers": [
+          "(feeds)"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-36d-36e-s2-11645"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-36D.html",
+            "retrievedAt": "2026-05-01T07:49:01.453Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-36d-36e-s2-v",
+      "satelliteName": "EUTELSAT 36D",
+      "orbitalPosition": "36E",
+      "downlink": {
+        "frequencyMHz": 11652,
+        "polarization": "V",
+        "beamName": "Roli 260128",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 14098.293,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          9874
+        ],
+        "fecValues": [
+          "3/4"
+        ],
+        "services": [],
+        "providers": [
+          "(feeds)"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-36d-36e-s2-11652"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-36D.html",
+            "retrievedAt": "2026-05-01T07:49:01.453Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-36d-36e-s2-h",
+      "satelliteName": "EUTELSAT 36D",
+      "orbitalPosition": "36E",
+      "downlink": {
+        "frequencyMHz": 11667,
+        "polarization": "H",
+        "beamName": "Roli 250914",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 14103.78,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          4000
+        ],
+        "fecValues": [
+          "5/6"
+        ],
+        "services": [],
+        "providers": [
+          "(feeds)"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-36d-36e-s2-11667"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-36D.html",
+            "retrievedAt": "2026-05-01T07:49:01.453Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-36d-36e-s2-h",
+      "satelliteName": "EUTELSAT 36D",
+      "orbitalPosition": "36E",
+      "downlink": {
+        "frequencyMHz": 11672,
+        "polarization": "H",
+        "beamName": "Roli 250921",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 14105.61,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          4000
+        ],
+        "fecValues": [
+          "5/6"
+        ],
+        "services": [],
+        "providers": [
+          "(feeds)"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-36d-36e-s2-11672"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-36D.html",
+            "retrievedAt": "2026-05-01T07:49:01.453Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-36d-36e-s2-h",
+      "satelliteName": "EUTELSAT 36D",
+      "orbitalPosition": "36E",
+      "downlink": {
+        "frequencyMHz": 11677,
+        "polarization": "H",
+        "beamName": "Roli 250914",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 14107.439,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          4000
+        ],
+        "fecValues": [
+          "5/6"
+        ],
+        "services": [],
+        "providers": [
+          "(feeds)"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-36d-36e-s2-11677"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-36D.html",
+            "retrievedAt": "2026-05-01T07:49:01.453Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-36d-36e-s2-v",
+      "satelliteName": "EUTELSAT 36D",
+      "orbitalPosition": "36E",
+      "downlink": {
+        "frequencyMHz": 11678,
+        "polarization": "V",
+        "beamName": "N Stanislav 220508",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 14107.805,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          3200
+        ],
+        "fecValues": [
+          "5/6"
+        ],
+        "services": [],
+        "providers": [
+          "9.4 1201 Kur; Rûdaw"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-36d-36e-s2-11678"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-36D.html",
+            "retrievedAt": "2026-05-01T07:49:01.453Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-36d-36e-s2-h",
+      "satelliteName": "EUTELSAT 36D",
+      "orbitalPosition": "36E",
+      "downlink": {
+        "frequencyMHz": 11682,
+        "polarization": "H",
+        "beamName": "Roli 250926",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 14109.268,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          4000
+        ],
+        "fecValues": [
+          "5/6"
+        ],
+        "services": [],
+        "providers": [
+          "(feeds)"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-36d-36e-s2-11682"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-36D.html",
+            "retrievedAt": "2026-05-01T07:49:01.453Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-36d-36e-s2-v",
+      "satelliteName": "EUTELSAT 36D",
+      "orbitalPosition": "36E",
+      "downlink": {
+        "frequencyMHz": 11686,
+        "polarization": "V",
+        "beamName": "Roli 260212",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 14110.732,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          9874
+        ],
+        "fecValues": [
+          "3/4"
+        ],
+        "services": [],
+        "providers": [
+          "(feeds)"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-36d-36e-s2-11686"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-36D.html",
+            "retrievedAt": "2026-05-01T07:49:01.453Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-36d-36e-s2-h",
+      "satelliteName": "EUTELSAT 36D",
+      "orbitalPosition": "36E",
+      "downlink": {
+        "frequencyMHz": 11692,
+        "polarization": "H",
+        "beamName": "Roli 250918",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 14112.927,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          4000
+        ],
+        "fecValues": [
+          "5/6"
+        ],
+        "services": [],
+        "providers": [
+          "(feeds)"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-36d-36e-s2-11692"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-36D.html",
+            "retrievedAt": "2026-05-01T07:49:01.453Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-36d-36e-11693.0mhz-v",
+      "satelliteName": "EUTELSAT 36D",
+      "orbitalPosition": "36E",
+      "downlink": {
+        "frequencyMHz": 11693,
+        "polarization": "V",
+        "beamName": "Janlakomcik 260407",
+        "source": "LYNGSAT",
+        "confidence": "MEDIUM"
+      },
+      "uplink": {
+        "frequencyMHz": 14113.293,
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "groupedObservationCount": 1,
+        "systems": [],
+        "symbolRates": [],
+        "fecValues": [],
+        "services": [],
+        "providers": []
+      },
+      "band": "Ku",
+      "serviceType": "UNKNOWN",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-36d-36e-row-53-11693"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-36D.html",
+            "retrievedAt": "2026-05-01T07:49:01.453Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Uplink beam unknown in public data.",
+        "No DVB system/SR/FEC parameters found."
+      ]
+    },
+    {
+      "id": "eutelsat-36d-36e-s2-h",
+      "satelliteName": "EUTELSAT 36D",
+      "orbitalPosition": "36E",
+      "downlink": {
+        "frequencyMHz": 11696,
+        "polarization": "H",
+        "beamName": "Roli 251101",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 14114.39,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          2000
+        ],
+        "fecValues": [
+          "5/6"
+        ],
+        "services": [],
+        "providers": [
+          "(feeds)"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-36d-36e-s2-11696"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-36D.html",
+            "retrievedAt": "2026-05-01T07:49:01.453Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-36d-36e-ea1-v",
+      "satelliteName": "EUTELSAT 36D",
+      "orbitalPosition": "36E",
+      "downlink": {
+        "frequencyMHz": 11727,
+        "polarization": "V",
+        "beamName": "N Stanislav 250410",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 14125.732,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "EA1",
+        "groupedObservationCount": 2,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          29330
+        ],
+        "fecValues": [
+          "3/4"
+        ],
+        "services": [],
+        "providers": [
+          "GoTV Kenya; Irdeto"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-36d-36e-ea1-11727",
+          "lyngsat-eutelsat-36d-36e-ea1-11727"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-36D.html",
+            "retrievedAt": "2026-05-01T07:49:01.453Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-36d-36e-er3-l",
+      "satelliteName": "EUTELSAT 36D",
+      "orbitalPosition": "36E",
+      "downlink": {
+        "frequencyMHz": 11766,
+        "polarization": "L",
+        "beamName": "Exset DRECrypt DREGuard",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 14140,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "ER3",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          27500
+        ],
+        "fecValues": [
+          "3/4"
+        ],
+        "services": [],
+        "providers": [
+          "Anonymous 250701; Trikolor Centr; 253-3"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-36d-36e-er3-11766"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-36D.html",
+            "retrievedAt": "2026-05-01T07:49:01.453Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-36d-36e-er4-r",
+      "satelliteName": "EUTELSAT 36D",
+      "orbitalPosition": "36E",
+      "downlink": {
+        "frequencyMHz": 11785,
+        "polarization": "R",
+        "beamName": "Compunicate Viaccess",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 14146.951,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "ER4",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          27500
+        ],
+        "fecValues": [
+          "3/4"
+        ],
+        "services": [],
+        "providers": [
+          "Torrex12 260417; NTV Plus; 112-13"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-36d-36e-er4-11785"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-36D.html",
+            "retrievedAt": "2026-05-01T07:49:01.453Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-36d-36e-ea5-v",
+      "satelliteName": "EUTELSAT 36D",
+      "orbitalPosition": "36E",
+      "downlink": {
+        "frequencyMHz": 11804,
+        "polarization": "V",
+        "beamName": "N Stanislav 250410",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 14153.902,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "EA5",
+        "groupedObservationCount": 4,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          26650
+        ],
+        "fecValues": [
+          "3/4"
+        ],
+        "services": [],
+        "providers": [
+          "GoTV Africa; Irdeto"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-36d-36e-ea5-11804",
+          "lyngsat-eutelsat-36d-36e-ea5-11804",
+          "lyngsat-eutelsat-36d-36e-ea5-11804",
+          "lyngsat-eutelsat-36d-36e-ea5-11804"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-36D.html",
+            "retrievedAt": "2026-05-01T07:49:01.453Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-36d-36e-3431.0mhz-unknown-pol",
+      "satelliteName": "EUTELSAT 36D",
+      "orbitalPosition": "36E",
+      "downlink": {
+        "frequencyMHz": 3431,
+        "beamName": "Sanyuka TV",
+        "source": "LYNGSAT",
+        "confidence": "LOW"
+      },
+      "uplink": {
+        "frequencyMHz": 5883.906,
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "groupedObservationCount": 1,
+        "systems": [
+          "MPEG-4"
+        ],
+        "symbolRates": [
+          7431
+        ],
+        "fecValues": [],
+        "services": [],
+        "providers": [
+          "Irdeto"
+        ]
+      },
+      "band": "C",
+      "serviceType": "UNKNOWN",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-36d-36e-row-60-3431"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-36D.html",
+            "retrievedAt": "2026-05-01T07:49:01.453Z",
+            "fieldsUsed": [
+              "frequency",
+              "beam",
+              "system",
+              "symbolRate"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Uplink beam unknown in public data.",
+        "Polarization not present or not parseable."
+      ]
+    },
+    {
+      "id": "eutelsat-36d-36e-3412.0mhz-unknown-pol",
+      "satelliteName": "EUTELSAT 36D",
+      "orbitalPosition": "36E",
+      "downlink": {
+        "frequencyMHz": 3412,
+        "beamName": "OneZed",
+        "source": "LYNGSAT",
+        "confidence": "LOW"
+      },
+      "uplink": {
+        "frequencyMHz": 5863.125,
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "groupedObservationCount": 1,
+        "systems": [
+          "MPEG-4"
+        ],
+        "symbolRates": [
+          7412
+        ],
+        "fecValues": [],
+        "services": [],
+        "providers": [
+          "Irdeto"
+        ]
+      },
+      "band": "C",
+      "serviceType": "UNKNOWN",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-36d-36e-row-64-3412"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-36D.html",
+            "retrievedAt": "2026-05-01T07:49:01.453Z",
+            "fieldsUsed": [
+              "frequency",
+              "beam",
+              "system",
+              "symbolRate"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Uplink beam unknown in public data.",
+        "Polarization not present or not parseable."
+      ]
+    },
+    {
+      "id": "eutelsat-36d-36e-3413.0mhz-unknown-pol",
+      "satelliteName": "EUTELSAT 36D",
+      "orbitalPosition": "36E",
+      "downlink": {
+        "frequencyMHz": 3413,
+        "beamName": "Mzansi Magic",
+        "source": "LYNGSAT",
+        "confidence": "LOW"
+      },
+      "uplink": {
+        "frequencyMHz": 5864.219,
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "groupedObservationCount": 1,
+        "systems": [
+          "MPEG-4"
+        ],
+        "symbolRates": [
+          7413
+        ],
+        "fecValues": [],
+        "services": [],
+        "providers": [
+          "Irdeto"
+        ]
+      },
+      "band": "C",
+      "serviceType": "UNKNOWN",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-36d-36e-row-65-3413"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-36D.html",
+            "retrievedAt": "2026-05-01T07:49:01.453Z",
+            "fieldsUsed": [
+              "frequency",
+              "beam",
+              "system",
+              "symbolRate"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Uplink beam unknown in public data.",
+        "Polarization not present or not parseable."
+      ]
+    },
+    {
+      "id": "eutelsat-36d-36e-3414.0mhz-unknown-pol",
+      "satelliteName": "EUTELSAT 36D",
+      "orbitalPosition": "36E",
+      "downlink": {
+        "frequencyMHz": 3414,
+        "beamName": "Zambezi Magic",
+        "source": "LYNGSAT",
+        "confidence": "LOW"
+      },
+      "uplink": {
+        "frequencyMHz": 5865.313,
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "groupedObservationCount": 1,
+        "systems": [
+          "MPEG-4"
+        ],
+        "symbolRates": [
+          7414
+        ],
+        "fecValues": [],
+        "services": [],
+        "providers": [
+          "Irdeto"
+        ]
+      },
+      "band": "C",
+      "serviceType": "UNKNOWN",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-36d-36e-row-66-3414"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-36D.html",
+            "retrievedAt": "2026-05-01T07:49:01.453Z",
+            "fieldsUsed": [
+              "frequency",
+              "beam",
+              "system",
+              "symbolRate"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Uplink beam unknown in public data.",
+        "Polarization not present or not parseable."
+      ]
+    },
+    {
+      "id": "eutelsat-36d-36e-3415.0mhz-unknown-pol",
+      "satelliteName": "EUTELSAT 36D",
+      "orbitalPosition": "36E",
+      "downlink": {
+        "frequencyMHz": 3415,
+        "beamName": "Power TV (Zambia)",
+        "source": "LYNGSAT",
+        "confidence": "LOW"
+      },
+      "uplink": {
+        "frequencyMHz": 5866.406,
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "groupedObservationCount": 1,
+        "systems": [
+          "MPEG-4"
+        ],
+        "symbolRates": [
+          7415
+        ],
+        "fecValues": [],
+        "services": [],
+        "providers": [
+          "Irdeto"
+        ]
+      },
+      "band": "C",
+      "serviceType": "UNKNOWN",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-36d-36e-row-67-3415"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-36D.html",
+            "retrievedAt": "2026-05-01T07:49:01.453Z",
+            "fieldsUsed": [
+              "frequency",
+              "beam",
+              "system",
+              "symbolRate"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Uplink beam unknown in public data.",
+        "Polarization not present or not parseable."
+      ]
+    },
+    {
+      "id": "eutelsat-36d-36e-3416.0mhz-unknown-pol",
+      "satelliteName": "EUTELSAT 36D",
+      "orbitalPosition": "36E",
+      "downlink": {
+        "frequencyMHz": 3416,
+        "beamName": "Mibawa TV",
+        "source": "LYNGSAT",
+        "confidence": "LOW"
+      },
+      "uplink": {
+        "frequencyMHz": 5867.5,
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "groupedObservationCount": 1,
+        "systems": [
+          "MPEG-4"
+        ],
+        "symbolRates": [
+          7416
+        ],
+        "fecValues": [],
+        "services": [],
+        "providers": [
+          "Irdeto"
+        ]
+      },
+      "band": "C",
+      "serviceType": "UNKNOWN",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-36d-36e-row-68-3416"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-36D.html",
+            "retrievedAt": "2026-05-01T07:49:01.453Z",
+            "fieldsUsed": [
+              "frequency",
+              "beam",
+              "system",
+              "symbolRate"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "C-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Uplink beam unknown in public data.",
+        "Polarization not present or not parseable."
+      ]
+    },
+    {
+      "id": "eutelsat-36d-36e-er6-r",
+      "satelliteName": "EUTELSAT 36D",
+      "orbitalPosition": "36E",
+      "downlink": {
+        "frequencyMHz": 11823,
+        "polarization": "R",
+        "beamName": "Compunicate Viaccess",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 14160.854,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "ER6",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          27500
+        ],
+        "fecValues": [
+          "3/4"
+        ],
+        "services": [],
+        "providers": [
+          "Anonymous 240701; NTV Plus; 112-14"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-36d-36e-er6-11823"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-36D.html",
+            "retrievedAt": "2026-05-01T07:49:01.453Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-36d-36e-ea7-v",
+      "satelliteName": "EUTELSAT 36D",
+      "orbitalPosition": "36E",
+      "downlink": {
+        "frequencyMHz": 11843,
+        "polarization": "V",
+        "beamName": "Anonymous 260418",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 14168.171,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "EA7",
+        "groupedObservationCount": 2,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          29330
+        ],
+        "fecValues": [
+          "3/4"
+        ],
+        "services": [],
+        "providers": [
+          "GoTV Zambia; Irdeto"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-36d-36e-ea7-11843",
+          "lyngsat-eutelsat-36d-36e-ea7-11843"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-36D.html",
+            "retrievedAt": "2026-05-01T07:49:01.453Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-36d-36e-er7-l",
+      "satelliteName": "EUTELSAT 36D",
+      "orbitalPosition": "36E",
+      "downlink": {
+        "frequencyMHz": 11843,
+        "polarization": "L",
+        "beamName": "Exset DRECrypt DREGuard",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 14168.171,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "ER7",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          27500
+        ],
+        "fecValues": [
+          "3/4"
+        ],
+        "services": [],
+        "providers": [
+          "Anonymous 260301; Trikolor Centr; 253-7"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-36d-36e-er7-11843"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-36D.html",
+            "retrievedAt": "2026-05-01T07:49:01.453Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-36d-36e-er8-r",
+      "satelliteName": "EUTELSAT 36D",
+      "orbitalPosition": "36E",
+      "downlink": {
+        "frequencyMHz": 11862,
+        "polarization": "R",
+        "beamName": "Compunicate Viaccess",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 14175.122,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "ER8",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          27500
+        ],
+        "fecValues": [
+          "3/4"
+        ],
+        "services": [],
+        "providers": [
+          "Anonymous 250508; NTV Plus; 112-2"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-36d-36e-er8-11862"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-36D.html",
+            "retrievedAt": "2026-05-01T07:49:01.453Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-36d-36e-er10-r",
+      "satelliteName": "EUTELSAT 36D",
+      "orbitalPosition": "36E",
+      "downlink": {
+        "frequencyMHz": 11900,
+        "polarization": "R",
+        "beamName": "Compunicate Viaccess",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 14189.024,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "ER10",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          27500
+        ],
+        "fecValues": [
+          "3/4"
+        ],
+        "services": [],
+        "providers": [
+          "Anonymous 260402; NTV Plus; 112-19"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-36d-36e-er10-11900"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-36D.html",
+            "retrievedAt": "2026-05-01T07:49:01.453Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-36d-36e-er12-r",
+      "satelliteName": "EUTELSAT 36D",
+      "orbitalPosition": "36E",
+      "downlink": {
+        "frequencyMHz": 11938,
+        "polarization": "R",
+        "beamName": "Compunicate Viaccess",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 14202.927,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "ER12",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          27500
+        ],
+        "fecValues": [
+          "3/4"
+        ],
+        "services": [],
+        "providers": [
+          "Anonymous 260101; NTV Plus; 112-17"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-36d-36e-er12-11938"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-36D.html",
+            "retrievedAt": "2026-05-01T07:49:01.453Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-36d-36e-er14-r",
+      "satelliteName": "EUTELSAT 36D",
+      "orbitalPosition": "36E",
+      "downlink": {
+        "frequencyMHz": 11977,
+        "polarization": "R",
+        "beamName": "Compunicate Viaccess",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 14217.195,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "ER14",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          27500
+        ],
+        "fecValues": [
+          "3/4"
+        ],
+        "services": [],
+        "providers": [
+          "Anonymous 260402; NTV Plus; 112-18"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-36d-36e-er14-11977"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-36D.html",
+            "retrievedAt": "2026-05-01T07:49:01.453Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-36d-36e-er15-l",
+      "satelliteName": "EUTELSAT 36D",
+      "orbitalPosition": "36E",
+      "downlink": {
+        "frequencyMHz": 11996,
+        "polarization": "L",
+        "beamName": "Exset DRECrypt DREGuard",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 14224.146,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "ER15",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          27500
+        ],
+        "fecValues": [
+          "3/4"
+        ],
+        "services": [],
+        "providers": [
+          "Anonymous 260421; Trikolor Centr; 253-15"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-36d-36e-er15-11996"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-36D.html",
+            "retrievedAt": "2026-05-01T07:49:01.453Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-36d-36e-er16-r",
+      "satelliteName": "EUTELSAT 36D",
+      "orbitalPosition": "36E",
+      "downlink": {
+        "frequencyMHz": 12015,
+        "polarization": "R",
+        "beamName": "Compunicate Viaccess",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 14231.098,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "ER16",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          27500
+        ],
+        "fecValues": [
+          "3/4"
+        ],
+        "services": [],
+        "providers": [
+          "Anonymous 230703; NTV Plus; 112-22"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-36d-36e-er16-12015"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-36D.html",
+            "retrievedAt": "2026-05-01T07:49:01.453Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-36d-36e-er17-l",
+      "satelliteName": "EUTELSAT 36D",
+      "orbitalPosition": "36E",
+      "downlink": {
+        "frequencyMHz": 12034,
+        "polarization": "L",
+        "beamName": "Exset DRECrypt DREGuard",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 14238.049,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "ER17",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          27500
+        ],
+        "fecValues": [
+          "3/4"
+        ],
+        "services": [],
+        "providers": [
+          "Anonymous 250701; Trikolor Centr; 253-17"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-36d-36e-er17-12034"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-36D.html",
+            "retrievedAt": "2026-05-01T07:49:01.453Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-36d-36e-er23-l",
+      "satelliteName": "EUTELSAT 36D",
+      "orbitalPosition": "36E",
+      "downlink": {
+        "frequencyMHz": 12149,
+        "polarization": "L",
+        "beamName": "Exset DRECrypt DREGuard",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 14280.122,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "ER23",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          27500
+        ],
+        "fecValues": [
+          "3/4"
+        ],
+        "services": [],
+        "providers": [
+          "Anonymous 250702; Trikolor Centr; 253-23"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-36d-36e-er23-12149"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-36D.html",
+            "retrievedAt": "2026-05-01T07:49:01.453Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-36d-36e-s2-v",
+      "satelliteName": "EUTELSAT 36D",
+      "orbitalPosition": "36E",
+      "downlink": {
+        "frequencyMHz": 12508,
+        "polarization": "V",
+        "beamName": "Roli 250904",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 14411.463,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          2222
+        ],
+        "fecValues": [
+          "3/4"
+        ],
+        "services": [],
+        "providers": [
+          "(feeds)"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-36d-36e-s2-12508"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-36D.html",
+            "retrievedAt": "2026-05-01T07:49:01.453Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-36d-36e-12511.0mhz-v",
+      "satelliteName": "EUTELSAT 36D",
+      "orbitalPosition": "36E",
+      "downlink": {
+        "frequencyMHz": 12511,
+        "polarization": "V",
+        "beamName": "Roli 250904",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 14412.561,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S"
+        ],
+        "symbolRates": [
+          2100
+        ],
+        "fecValues": [
+          "3/4"
+        ],
+        "services": [],
+        "providers": [
+          "(feeds)"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-36d-36e-row-82-12511"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-36D.html",
+            "retrievedAt": "2026-05-01T07:49:01.453Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-36d-36e-s2-h",
+      "satelliteName": "EUTELSAT 36D",
+      "orbitalPosition": "36E",
+      "downlink": {
+        "frequencyMHz": 12572,
+        "polarization": "H",
+        "beamName": "Roli 260210",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 14434.878,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          7200
+        ],
+        "fecValues": [
+          "3/4"
+        ],
+        "services": [],
+        "providers": [
+          "(feeds)"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-36d-36e-s2-12572"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-36D.html",
+            "retrievedAt": "2026-05-01T07:49:01.453Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-36d-36e-f5-h",
+      "satelliteName": "EUTELSAT 36D",
+      "orbitalPosition": "36E",
+      "downlink": {
+        "frequencyMHz": 12686,
+        "polarization": "H",
+        "beamName": "Roli 251101",
+        "source": "LYNGSAT",
+        "confidence": "HIGH"
+      },
+      "uplink": {
+        "frequencyMHz": 14476.585,
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "number": "F5",
+        "name": "TP F5",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [
+          6500
+        ],
+        "fecValues": [
+          "3/4"
+        ],
+        "services": [],
+        "providers": [
+          "(feeds)"
+        ]
+      },
+      "band": "Ku",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-36d-36e-f5-12686"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-36D.html",
+            "retrievedAt": "2026-05-01T07:49:01.453Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam",
+              "transponderNumber",
+              "system",
+              "symbolRate",
+              "fec"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Broadcast uplink gateway / teleport beam unknown in public data."
+      ]
+    },
+    {
+      "id": "eutelsat-36d-36e-12692.0mhz-h",
+      "satelliteName": "EUTELSAT 36D",
+      "orbitalPosition": "36E",
+      "downlink": {
+        "frequencyMHz": 12692,
+        "polarization": "H",
+        "beamName": "Janlakomcik 260407",
+        "source": "LYNGSAT",
+        "confidence": "MEDIUM"
+      },
+      "uplink": {
+        "frequencyMHz": 14478.78,
+        "inferenceMethod": "NORMALIZED_BAND_POSITION",
+        "source": "INFERRED",
+        "confidence": "LOW"
+      },
+      "publicTransponder": {
+        "groupedObservationCount": 1,
+        "systems": [],
+        "symbolRates": [],
+        "fecValues": [],
+        "services": [],
+        "providers": []
+      },
+      "band": "Ku",
+      "serviceType": "UNKNOWN",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-36d-36e-row-85-12692"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-36D.html",
+            "retrievedAt": "2026-05-01T07:49:01.453Z",
+            "fieldsUsed": [
+              "frequency",
+              "polarization",
+              "beam"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Ku-band uplink inferred from normalized public band position, not from operational payload data.",
+        "Uplink beam unknown in public data.",
+        "No DVB system/SR/FEC parameters found."
+      ]
+    },
+    {
+      "id": "eutelsat-36d-36e-s2-unknown-pol",
+      "satelliteName": "EUTELSAT 36D",
+      "orbitalPosition": "36E",
+      "downlink": {
+        "beamName": "System:",
+        "source": "LYNGSAT",
+        "confidence": "LOW"
+      },
+      "uplink": {
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "UNKNOWN",
+        "source": "UNKNOWN",
+        "confidence": "UNKNOWN"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [],
+        "fecValues": [],
+        "services": [],
+        "providers": [
+          "non-DTH"
+        ]
+      },
+      "band": "Unknown",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-36d-36e-s2-nofreq"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-36D.html",
+            "retrievedAt": "2026-05-01T07:49:01.453Z",
+            "fieldsUsed": [
+              "beam",
+              "transponderNumber",
+              "system"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Unable to infer uplink frequency: downlink frequency unknown.",
+        "Broadcast uplink gateway / teleport beam unknown in public data.",
+        "Downlink frequency not parseable; row kept due to transponder ID.",
+        "Polarization not present or not parseable."
+      ]
+    }
+  ],
+  "summary": {
+    "total": 78,
+    "downlinkKnown": 77,
+    "downlinkBeamKnown": 78,
+    "uplinkInferred": 77,
+    "uplinkUnknown": 1
+  }
+}

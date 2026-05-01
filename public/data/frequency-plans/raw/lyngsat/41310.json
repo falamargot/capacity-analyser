@@ -1,0 +1,3853 @@
+{
+  "version": "2",
+  "satelliteName": "EUTELSAT 9B",
+  "orbitalPosition": "9.0E",
+  "source": "LYNGSAT",
+  "sourceUrl": "https://www.lyngsat.com/Eutelsat-9B.html",
+  "generatedAt": "2026-05-01T07:49:01.509Z",
+  "observations": [
+    {
+      "id": "lyngsat-eutelsat-9b-9.0e-e1-11727",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 9B",
+      "orbitalPosition": "9.0E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-9B.html",
+      "retrievedAt": "2026-05-01T07:26:17.993Z",
+      "raw": {
+        "frequencyText": "11727",
+        "polarizationText": "V",
+        "transponderText": "E1",
+        "beamText": "A1 Telekom Austria",
+        "systemText": "DVB-S2",
+        "symbolRateText": "30000",
+        "fecText": "3/4",
+        "providerText": "M Al-Taie 250508; 158-50010; Viaccess"
+      },
+      "parsed": {
+        "frequencyMHz": 11727,
+        "polarization": "V",
+        "transponderNumber": "E1",
+        "transponderName": "TP E1",
+        "beamName": "A1 Telekom Austria",
+        "system": "DVB-S2",
+        "symbolRate": 30000,
+        "fec": "3/4",
+        "providerName": "M Al-Taie 250508; 158-50010; Viaccess"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-9b-9.0e-e4-11785",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 9B",
+      "orbitalPosition": "9.0E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-9B.html",
+      "retrievedAt": "2026-05-01T07:26:17.993Z",
+      "raw": {
+        "frequencyText": "11785",
+        "polarizationText": "H",
+        "transponderText": "E4",
+        "beamText": "Conax Nagravision Videoguard",
+        "systemText": "DVB-S2",
+        "symbolRateText": "27500",
+        "fecText": "2/3",
+        "providerText": "William-1 T Viererbe 200929; M7 Deutschland; 156-5300"
+      },
+      "parsed": {
+        "frequencyMHz": 11785,
+        "polarization": "H",
+        "transponderNumber": "E4",
+        "transponderName": "TP E4",
+        "beamName": "Conax Nagravision Videoguard",
+        "system": "DVB-S2",
+        "symbolRate": 27500,
+        "fec": "2/3",
+        "providerName": "William-1 T Viererbe 200929; M7 Deutschland; 156-5300"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-9b-9.0e-e5-11804",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 9B",
+      "orbitalPosition": "9.0E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-9B.html",
+      "retrievedAt": "2026-05-01T07:26:17.993Z",
+      "raw": {
+        "frequencyText": "11804",
+        "polarizationText": "V",
+        "transponderText": "E5",
+        "beamText": "EnoSat M Gusset 260403"
+      },
+      "parsed": {
+        "frequencyMHz": 11804,
+        "polarization": "V",
+        "transponderNumber": "E5",
+        "transponderName": "TP E5",
+        "beamName": "EnoSat M Gusset 260403"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": false,
+        "confidence": "MEDIUM",
+        "warnings": [
+          "No DVB system/SR/FEC parameters found."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-9b-9.0e-e6-11823",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 9B",
+      "orbitalPosition": "9.0E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-9B.html",
+      "retrievedAt": "2026-05-01T07:26:17.993Z",
+      "raw": {
+        "frequencyText": "11823",
+        "polarizationText": "H",
+        "transponderText": "E6",
+        "beamText": "Viaccess Xcrypt",
+        "systemText": "DVB-S",
+        "symbolRateText": "27500",
+        "fecText": "3/4",
+        "providerText": "Lexzie 260418; Skylogic; 100-1"
+      },
+      "parsed": {
+        "frequencyMHz": 11823,
+        "polarization": "H",
+        "transponderNumber": "E6",
+        "transponderName": "TP E6",
+        "beamName": "Viaccess Xcrypt",
+        "system": "DVB-S",
+        "symbolRate": 27500,
+        "fec": "3/4",
+        "providerName": "Lexzie 260418; Skylogic; 100-1"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-9b-9.0e-e7-11843",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 9B",
+      "orbitalPosition": "9.0E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-9B.html",
+      "retrievedAt": "2026-05-01T07:26:17.993Z",
+      "raw": {
+        "frequencyText": "11843",
+        "polarizationText": "V",
+        "transponderText": "E7",
+        "beamText": "T Viererbe 260124",
+        "systemText": "DVB-S2",
+        "symbolRateText": "27500",
+        "fecText": "3/5",
+        "providerText": "Cosmote TV; Videoguard; 170-1"
+      },
+      "parsed": {
+        "frequencyMHz": 11843,
+        "polarization": "V",
+        "transponderNumber": "E7",
+        "transponderName": "TP E7",
+        "beamName": "T Viererbe 260124",
+        "system": "DVB-S2",
+        "symbolRate": 27500,
+        "fec": "3/5",
+        "providerName": "Cosmote TV; Videoguard; 170-1"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-9b-9.0e-e8-11861",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 9B",
+      "orbitalPosition": "9.0E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-9B.html",
+      "retrievedAt": "2026-05-01T07:26:17.993Z",
+      "raw": {
+        "frequencyText": "11861",
+        "polarizationText": "H",
+        "transponderText": "E8",
+        "beamText": "Conax Nagravision Videoguard",
+        "systemText": "DVB-S2",
+        "symbolRateText": "27500",
+        "fecText": "2/3",
+        "providerText": "D Shimoni 210301; M7 Deutschland; 156-5700"
+      },
+      "parsed": {
+        "frequencyMHz": 11861,
+        "polarization": "H",
+        "transponderNumber": "E8",
+        "transponderName": "TP E8",
+        "beamName": "Conax Nagravision Videoguard",
+        "system": "DVB-S2",
+        "symbolRate": 27500,
+        "fec": "2/3",
+        "providerName": "D Shimoni 210301; M7 Deutschland; 156-5700"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-9b-9.0e-e9-11881",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 9B",
+      "orbitalPosition": "9.0E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-9B.html",
+      "retrievedAt": "2026-05-01T07:26:17.993Z",
+      "raw": {
+        "frequencyText": "11881",
+        "polarizationText": "V",
+        "transponderText": "E9",
+        "beamText": "Warner Bros. Discovery",
+        "systemText": "DVB-S2",
+        "symbolRateText": "30000",
+        "fecText": "3/4",
+        "providerText": "Lexzie 240629; 158-50090; Viaccess"
+      },
+      "parsed": {
+        "frequencyMHz": 11881,
+        "polarization": "V",
+        "transponderNumber": "E9",
+        "transponderName": "TP E9",
+        "beamName": "Warner Bros. Discovery",
+        "system": "DVB-S2",
+        "symbolRate": 30000,
+        "fec": "3/4",
+        "providerName": "Lexzie 240629; 158-50090; Viaccess"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-9b-9.0e-e10-11900",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 9B",
+      "orbitalPosition": "9.0E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-9B.html",
+      "retrievedAt": "2026-05-01T07:26:17.993Z",
+      "raw": {
+        "frequencyText": "11900",
+        "polarizationText": "H",
+        "transponderText": "E10",
+        "beamText": "EnoSat M Al-Taie M Gusset 260403",
+        "systemText": "DVB-S2",
+        "symbolRateText": "27500",
+        "fecText": "2/3",
+        "providerText": "158-5900"
+      },
+      "parsed": {
+        "frequencyMHz": 11900,
+        "polarization": "H",
+        "transponderNumber": "E10",
+        "transponderName": "TP E10",
+        "beamName": "EnoSat M Al-Taie M Gusset 260403",
+        "system": "DVB-S2",
+        "symbolRate": 27500,
+        "fec": "2/3",
+        "providerName": "158-5900"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-9b-9.0e-e11-11919",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 9B",
+      "orbitalPosition": "9.0E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-9B.html",
+      "retrievedAt": "2026-05-01T07:26:17.993Z",
+      "raw": {
+        "frequencyText": "11919",
+        "polarizationText": "V",
+        "transponderText": "E11",
+        "beamText": "Warner Bros. Discovery",
+        "systemText": "DVB-S2",
+        "symbolRateText": "30000",
+        "fecText": "3/4",
+        "providerText": "M Al-Taie 250128; 158-50110; Viaccess"
+      },
+      "parsed": {
+        "frequencyMHz": 11919,
+        "polarization": "V",
+        "transponderNumber": "E11",
+        "transponderName": "TP E11",
+        "beamName": "Warner Bros. Discovery",
+        "system": "DVB-S2",
+        "symbolRate": 30000,
+        "fec": "3/4",
+        "providerName": "M Al-Taie 250128; 158-50110; Viaccess"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-9b-9.0e-e12-11938",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 9B",
+      "orbitalPosition": "9.0E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-9B.html",
+      "retrievedAt": "2026-05-01T07:26:17.993Z",
+      "raw": {
+        "frequencyText": "11938",
+        "polarizationText": "H",
+        "transponderText": "E12",
+        "beamText": "M Al-Taie 240806",
+        "systemText": "DVB-S2",
+        "symbolRateText": "27500",
+        "fecText": "2/3",
+        "providerText": "Cosmote TV; Videoguard; 170-9"
+      },
+      "parsed": {
+        "frequencyMHz": 11938,
+        "polarization": "H",
+        "transponderNumber": "E12",
+        "transponderName": "TP E12",
+        "beamName": "M Al-Taie 240806",
+        "system": "DVB-S2",
+        "symbolRate": 27500,
+        "fec": "2/3",
+        "providerName": "Cosmote TV; Videoguard; 170-9"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-9b-9.0e-row-11-4136",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 9B",
+      "orbitalPosition": "9.0E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-9B.html",
+      "retrievedAt": "2026-05-01T07:26:17.993Z",
+      "raw": {
+        "frequencyText": "4136",
+        "beamText": "ERT World",
+        "systemText": "MPEG-4",
+        "symbolRateText": "1136",
+        "providerText": "5136 Gre"
+      },
+      "parsed": {
+        "frequencyMHz": 4136,
+        "beamName": "ERT World",
+        "system": "MPEG-4",
+        "symbolRate": 1136,
+        "providerName": "5136 Gre"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-9b-9.0e-e13-11958",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 9B",
+      "orbitalPosition": "9.0E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-9B.html",
+      "retrievedAt": "2026-05-01T07:26:17.993Z",
+      "raw": {
+        "frequencyText": "11958",
+        "polarizationText": "V",
+        "transponderText": "E13",
+        "beamText": "M Al-Taie 260205",
+        "systemText": "DVB-S2",
+        "symbolRateText": "27500",
+        "fecText": "2/3",
+        "providerText": "158-6200; MTVA"
+      },
+      "parsed": {
+        "frequencyMHz": 11958,
+        "polarization": "V",
+        "transponderNumber": "E13",
+        "transponderName": "TP E13",
+        "beamName": "M Al-Taie 260205",
+        "system": "DVB-S2",
+        "symbolRate": 27500,
+        "fec": "2/3",
+        "providerName": "158-6200; MTVA"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-9b-9.0e-m1-nofreq",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 9B",
+      "orbitalPosition": "9.0E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-9B.html",
+      "retrievedAt": "2026-05-01T07:26:17.993Z",
+      "raw": {
+        "transponderText": "M1",
+        "beamText": "1201 Hun 1301 Qaa",
+        "systemText": "MPEG-4"
+      },
+      "parsed": {
+        "transponderNumber": "M1",
+        "beamName": "1201 Hun 1301 Qaa",
+        "system": "MPEG-4"
+      },
+      "parseQuality": {
+        "hasFrequency": false,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Downlink frequency not parseable; row kept due to transponder ID.",
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-9b-9.0e-m2-nofreq",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 9B",
+      "orbitalPosition": "9.0E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-9B.html",
+      "retrievedAt": "2026-05-01T07:26:17.993Z",
+      "raw": {
+        "transponderText": "M2",
+        "beamText": "1202 Hun 1302 Qaa",
+        "systemText": "MPEG-4"
+      },
+      "parsed": {
+        "transponderNumber": "M2",
+        "beamName": "1202 Hun 1302 Qaa",
+        "system": "MPEG-4"
+      },
+      "parseQuality": {
+        "hasFrequency": false,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Downlink frequency not parseable; row kept due to transponder ID.",
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-9b-9.0e-m4-nofreq",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 9B",
+      "orbitalPosition": "9.0E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-9B.html",
+      "retrievedAt": "2026-05-01T07:26:17.993Z",
+      "raw": {
+        "transponderText": "M4",
+        "beamText": "1204 Hun 1304 Qaa",
+        "systemText": "MPEG-4"
+      },
+      "parsed": {
+        "transponderNumber": "M4",
+        "beamName": "1204 Hun 1304 Qaa",
+        "system": "MPEG-4"
+      },
+      "parseQuality": {
+        "hasFrequency": false,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Downlink frequency not parseable; row kept due to transponder ID.",
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-9b-9.0e-m4-nofreq",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 9B",
+      "orbitalPosition": "9.0E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-9B.html",
+      "retrievedAt": "2026-05-01T07:26:17.993Z",
+      "raw": {
+        "transponderText": "M4",
+        "beamText": "1205 Hun 1305 Qaa",
+        "systemText": "MPEG-4"
+      },
+      "parsed": {
+        "transponderNumber": "M4",
+        "beamName": "1205 Hun 1305 Qaa",
+        "system": "MPEG-4"
+      },
+      "parseQuality": {
+        "hasFrequency": false,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Downlink frequency not parseable; row kept due to transponder ID.",
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-9b-9.0e-m5-nofreq",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 9B",
+      "orbitalPosition": "9.0E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-9B.html",
+      "retrievedAt": "2026-05-01T07:26:17.993Z",
+      "raw": {
+        "transponderText": "M5",
+        "beamText": "1206 Qaa 1306 Hun",
+        "systemText": "MPEG-4"
+      },
+      "parsed": {
+        "transponderNumber": "M5",
+        "beamName": "1206 Qaa 1306 Hun",
+        "system": "MPEG-4"
+      },
+      "parseQuality": {
+        "hasFrequency": false,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Downlink frequency not parseable; row kept due to transponder ID.",
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-9b-9.0e-e14-11977",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 9B",
+      "orbitalPosition": "9.0E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-9B.html",
+      "retrievedAt": "2026-05-01T07:26:17.993Z",
+      "raw": {
+        "frequencyText": "11977",
+        "polarizationText": "H",
+        "transponderText": "E14",
+        "beamText": "Hadowooalsatan M Al-Taie T Viererbe 251209",
+        "systemText": "DVB-S2",
+        "symbolRateText": "30000",
+        "fecText": "3/4",
+        "providerText": "M7 Deutschland; 156-8500; Conax"
+      },
+      "parsed": {
+        "frequencyMHz": 11977,
+        "polarization": "H",
+        "transponderNumber": "E14",
+        "transponderName": "TP E14",
+        "beamName": "Hadowooalsatan M Al-Taie T Viererbe 251209",
+        "system": "DVB-S2",
+        "symbolRate": 30000,
+        "fec": "3/4",
+        "providerName": "M7 Deutschland; 156-8500; Conax"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-9b-9.0e-e15-11996",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 9B",
+      "orbitalPosition": "9.0E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-9B.html",
+      "retrievedAt": "2026-05-01T07:26:17.993Z",
+      "raw": {
+        "frequencyText": "11996",
+        "polarizationText": "V",
+        "transponderText": "E15",
+        "beamText": "M Al-Taie 240304",
+        "systemText": "DVB-S",
+        "symbolRateText": "27500",
+        "fecText": "3/4",
+        "providerText": "Globecast; 156-6400"
+      },
+      "parsed": {
+        "frequencyMHz": 11996,
+        "polarization": "V",
+        "transponderNumber": "E15",
+        "transponderName": "TP E15",
+        "beamName": "M Al-Taie 240304",
+        "system": "DVB-S",
+        "symbolRate": 27500,
+        "fec": "3/4",
+        "providerName": "Globecast; 156-6400"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-9b-9.0e-row-20-3901",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 9B",
+      "orbitalPosition": "9.0E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-9B.html",
+      "retrievedAt": "2026-05-01T07:26:17.993Z",
+      "raw": {
+        "frequencyText": "3901",
+        "beamText": "CCTV 4 Europe",
+        "systemText": "MPEG-2",
+        "symbolRateText": "619",
+        "providerText": "3911 Chi"
+      },
+      "parsed": {
+        "frequencyMHz": 3901,
+        "beamName": "CCTV 4 Europe",
+        "system": "MPEG-2",
+        "symbolRate": 619,
+        "providerName": "3911 Chi"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-9b-9.0e-row-21-4001",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 9B",
+      "orbitalPosition": "9.0E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-9B.html",
+      "retrievedAt": "2026-05-01T07:26:17.993Z",
+      "raw": {
+        "frequencyText": "4001",
+        "beamText": "CGTN Español",
+        "systemText": "MPEG-2",
+        "symbolRateText": "620",
+        "providerText": "4011 Spa"
+      },
+      "parsed": {
+        "frequencyMHz": 4001,
+        "beamName": "CGTN Español",
+        "system": "MPEG-2",
+        "symbolRate": 620,
+        "providerName": "4011 Spa"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-9b-9.0e-row-22-4101",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 9B",
+      "orbitalPosition": "9.0E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-9B.html",
+      "retrievedAt": "2026-05-01T07:26:17.993Z",
+      "raw": {
+        "frequencyText": "4101",
+        "beamText": "CGTN Russkij",
+        "systemText": "MPEG-2",
+        "symbolRateText": "621",
+        "providerText": "4111 Rus"
+      },
+      "parsed": {
+        "frequencyMHz": 4101,
+        "beamName": "CGTN Russkij",
+        "system": "MPEG-2",
+        "symbolRate": 621,
+        "providerName": "4111 Rus"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-9b-9.0e-e16-12015",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 9B",
+      "orbitalPosition": "9.0E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-9B.html",
+      "retrievedAt": "2026-05-01T07:26:17.993Z",
+      "raw": {
+        "frequencyText": "12015",
+        "polarizationText": "H",
+        "transponderText": "E16",
+        "beamText": "Conax Nagravision Videoguard",
+        "systemText": "DVB-S2",
+        "symbolRateText": "27500",
+        "fecText": "2/3",
+        "providerText": "M7 Deutschland; F Dibba 240301; 156-6500"
+      },
+      "parsed": {
+        "frequencyMHz": 12015,
+        "polarization": "H",
+        "transponderNumber": "E16",
+        "transponderName": "TP E16",
+        "beamName": "Conax Nagravision Videoguard",
+        "system": "DVB-S2",
+        "symbolRate": 27500,
+        "fec": "2/3",
+        "providerName": "M7 Deutschland; F Dibba 240301; 156-6500"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-9b-9.0e-e17-12034",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 9B",
+      "orbitalPosition": "9.0E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-9B.html",
+      "retrievedAt": "2026-05-01T07:26:17.993Z",
+      "raw": {
+        "frequencyText": "12034",
+        "polarizationText": "V",
+        "transponderText": "E17",
+        "beamText": "Hadowooalsatan 260228",
+        "systemText": "DVB-S2",
+        "symbolRateText": "27500",
+        "fecText": "3/4",
+        "providerText": "Globecast; 158-6600"
+      },
+      "parsed": {
+        "frequencyMHz": 12034,
+        "polarization": "V",
+        "transponderNumber": "E17",
+        "transponderName": "TP E17",
+        "beamName": "Hadowooalsatan 260228",
+        "system": "DVB-S2",
+        "symbolRate": 27500,
+        "fec": "3/4",
+        "providerName": "Globecast; 158-6600"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-9b-9.0e-m6-nofreq",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 9B",
+      "orbitalPosition": "9.0E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-9B.html",
+      "retrievedAt": "2026-05-01T07:26:17.993Z",
+      "raw": {
+        "transponderText": "M6",
+        "beamText": "2021 Fre",
+        "systemText": "MPEG-4"
+      },
+      "parsed": {
+        "transponderNumber": "M6",
+        "beamName": "2021 Fre",
+        "system": "MPEG-4"
+      },
+      "parseQuality": {
+        "hasFrequency": false,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Downlink frequency not parseable; row kept due to transponder ID.",
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-9b-9.0e-w9-nofreq",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 9B",
+      "orbitalPosition": "9.0E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-9B.html",
+      "retrievedAt": "2026-05-01T07:26:17.993Z",
+      "raw": {
+        "transponderText": "W9",
+        "beamText": "2051 Fre",
+        "systemText": "MPEG-4"
+      },
+      "parsed": {
+        "transponderNumber": "W9",
+        "beamName": "2051 Fre",
+        "system": "MPEG-4"
+      },
+      "parseQuality": {
+        "hasFrequency": false,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Downlink frequency not parseable; row kept due to transponder ID.",
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-9b-9.0e-row-27-3531",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 9B",
+      "orbitalPosition": "9.0E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-9B.html",
+      "retrievedAt": "2026-05-01T07:26:17.993Z",
+      "raw": {
+        "frequencyText": "3531",
+        "beamText": "Phoenix InfoNews Channel",
+        "systemText": "MPEG-2",
+        "providerText": "3532 Chi"
+      },
+      "parsed": {
+        "frequencyMHz": 3531,
+        "beamName": "Phoenix InfoNews Channel",
+        "system": "MPEG-2",
+        "providerName": "3532 Chi"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-9b-9.0e-row-28-3551",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 9B",
+      "orbitalPosition": "9.0E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-9B.html",
+      "retrievedAt": "2026-05-01T07:26:17.993Z",
+      "raw": {
+        "frequencyText": "3551",
+        "beamText": "Télé Sahel",
+        "systemText": "MPEG-4",
+        "symbolRateText": "1101",
+        "providerText": "1101 Fre"
+      },
+      "parsed": {
+        "frequencyMHz": 3551,
+        "beamName": "Télé Sahel",
+        "system": "MPEG-4",
+        "symbolRate": 1101,
+        "providerName": "1101 Fre"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-9b-9.0e-row-29-3561",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 9B",
+      "orbitalPosition": "9.0E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-9B.html",
+      "retrievedAt": "2026-05-01T07:26:17.993Z",
+      "raw": {
+        "frequencyText": "3561",
+        "beamText": "Voix du Sahel"
+      },
+      "parsed": {
+        "frequencyMHz": 3561,
+        "beamName": "Voix du Sahel"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": false,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable.",
+          "No DVB system/SR/FEC parameters found."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-9b-9.0e-e18-12054",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 9B",
+      "orbitalPosition": "9.0E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-9B.html",
+      "retrievedAt": "2026-05-01T07:26:17.993Z",
+      "raw": {
+        "frequencyText": "12054",
+        "polarizationText": "H",
+        "transponderText": "E18",
+        "beamText": "Viaccess Videoguard",
+        "systemText": "DVB-S2",
+        "symbolRateText": "27500",
+        "fecText": "2/3",
+        "providerText": "M Al-Taie 240806; Cosmote TV; 170-2"
+      },
+      "parsed": {
+        "frequencyMHz": 12054,
+        "polarization": "H",
+        "transponderNumber": "E18",
+        "transponderName": "TP E18",
+        "beamName": "Viaccess Videoguard",
+        "system": "DVB-S2",
+        "symbolRate": 27500,
+        "fec": "2/3",
+        "providerName": "M Al-Taie 240806; Cosmote TV; 170-2"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-9b-9.0e-e20-12092",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 9B",
+      "orbitalPosition": "9.0E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-9B.html",
+      "retrievedAt": "2026-05-01T07:26:17.993Z",
+      "raw": {
+        "frequencyText": "12092",
+        "polarizationText": "H",
+        "transponderText": "E20",
+        "beamText": "EnoSat 260329",
+        "systemText": "DVB-S2",
+        "symbolRateText": "27500",
+        "fecText": "3/4",
+        "providerText": "158-6900; Viaccess; Arqiva"
+      },
+      "parsed": {
+        "frequencyMHz": 12092,
+        "polarization": "H",
+        "transponderNumber": "E20",
+        "transponderName": "TP E20",
+        "beamName": "EnoSat 260329",
+        "system": "DVB-S2",
+        "symbolRate": 27500,
+        "fec": "3/4",
+        "providerName": "158-6900; Viaccess; Arqiva"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-9b-9.0e-it1-12111",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 9B",
+      "orbitalPosition": "9.0E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-9B.html",
+      "retrievedAt": "2026-05-01T07:26:17.993Z",
+      "raw": {
+        "frequencyText": "12111",
+        "polarizationText": "V",
+        "transponderText": "IT1",
+        "beamText": "Cairo Communication",
+        "systemText": "DVB-S2",
+        "symbolRateText": "31400",
+        "fecText": "2/3",
+        "providerText": "M Al-Taie 241213; 8572-263"
+      },
+      "parsed": {
+        "frequencyMHz": 12111,
+        "polarization": "V",
+        "transponderNumber": "IT1",
+        "beamName": "Cairo Communication",
+        "system": "DVB-S2",
+        "symbolRate": 31400,
+        "fec": "2/3",
+        "providerName": "M Al-Taie 241213; 8572-263"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-9b-9.0e-row-33-4002",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 9B",
+      "orbitalPosition": "9.0E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-9B.html",
+      "retrievedAt": "2026-05-01T07:26:17.993Z",
+      "raw": {
+        "frequencyText": "4002",
+        "beamText": "Donna TV",
+        "systemText": "MPEG-4",
+        "providerText": "413 Ita"
+      },
+      "parsed": {
+        "frequencyMHz": 4002,
+        "beamName": "Donna TV",
+        "system": "MPEG-4",
+        "providerName": "413 Ita"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-9b-9.0e-row-34-4003",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 9B",
+      "orbitalPosition": "9.0E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-9B.html",
+      "retrievedAt": "2026-05-01T07:26:17.993Z",
+      "raw": {
+        "frequencyText": "4003",
+        "beamText": "Alma TV",
+        "systemText": "MPEG-4",
+        "providerText": "423 Ita"
+      },
+      "parsed": {
+        "frequencyMHz": 4003,
+        "beamName": "Alma TV",
+        "system": "MPEG-4",
+        "providerName": "423 Ita"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-9b-9.0e-row-35-4004",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 9B",
+      "orbitalPosition": "9.0E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-9B.html",
+      "retrievedAt": "2026-05-01T07:26:17.993Z",
+      "raw": {
+        "frequencyText": "4004",
+        "beamText": "TeleCampione",
+        "systemText": "MPEG-4",
+        "providerText": "433 Ita"
+      },
+      "parsed": {
+        "frequencyMHz": 4004,
+        "beamName": "TeleCampione",
+        "system": "MPEG-4",
+        "providerName": "433 Ita"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-9b-9.0e-row-36-4006",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 9B",
+      "orbitalPosition": "9.0E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-9B.html",
+      "retrievedAt": "2026-05-01T07:26:17.993Z",
+      "raw": {
+        "frequencyText": "4006",
+        "beamText": "[test card]",
+        "systemText": "MPEG-4",
+        "symbolRateText": "522",
+        "providerText": "444 Ita"
+      },
+      "parsed": {
+        "frequencyMHz": 4006,
+        "beamName": "[test card]",
+        "system": "MPEG-4",
+        "symbolRate": 522,
+        "providerName": "444 Ita"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-9b-9.0e-row-37-4010",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 9B",
+      "orbitalPosition": "9.0E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-9B.html",
+      "retrievedAt": "2026-05-01T07:26:17.993Z",
+      "raw": {
+        "frequencyText": "4010",
+        "beamText": "Parole di Vita",
+        "systemText": "MPEG-4",
+        "providerText": "493 Ita"
+      },
+      "parsed": {
+        "frequencyMHz": 4010,
+        "beamName": "Parole di Vita",
+        "system": "MPEG-4",
+        "providerName": "493 Ita"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-9b-9.0e-it1-12111",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 9B",
+      "orbitalPosition": "9.0E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-9B.html",
+      "retrievedAt": "2026-05-01T07:26:17.993Z",
+      "raw": {
+        "frequencyText": "12111",
+        "polarizationText": "V",
+        "transponderText": "IT1",
+        "beamText": "M Al-Taie 260116",
+        "systemText": "DVB-S2",
+        "symbolRateText": "31400",
+        "fecText": "2/3",
+        "providerText": "272-900"
+      },
+      "parsed": {
+        "frequencyMHz": 12111,
+        "polarization": "V",
+        "transponderNumber": "IT1",
+        "beamName": "M Al-Taie 260116",
+        "system": "DVB-S2",
+        "symbolRate": 31400,
+        "fec": "2/3",
+        "providerName": "272-900"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-9b-9.0e-it1-12111",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 9B",
+      "orbitalPosition": "9.0E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-9B.html",
+      "retrievedAt": "2026-05-01T07:26:17.993Z",
+      "raw": {
+        "frequencyText": "12111",
+        "polarizationText": "V",
+        "transponderText": "IT1",
+        "beamText": "M Al-Taie 240214",
+        "systemText": "DVB-S2",
+        "symbolRateText": "31400",
+        "fecText": "2/3",
+        "providerText": "272-905"
+      },
+      "parsed": {
+        "frequencyMHz": 12111,
+        "polarization": "V",
+        "transponderNumber": "IT1",
+        "beamName": "M Al-Taie 240214",
+        "system": "DVB-S2",
+        "symbolRate": 31400,
+        "fec": "2/3",
+        "providerName": "272-905"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-9b-9.0e-it2-12149",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 9B",
+      "orbitalPosition": "9.0E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-9B.html",
+      "retrievedAt": "2026-05-01T07:26:17.993Z",
+      "raw": {
+        "frequencyText": "12149",
+        "polarizationText": "V",
+        "transponderText": "IT2",
+        "beamText": "P Grandicelli 230405",
+        "systemText": "DVB-S2",
+        "symbolRateText": "31400",
+        "fecText": "2/3",
+        "providerText": "Mediaset; 272-930"
+      },
+      "parsed": {
+        "frequencyMHz": 12149,
+        "polarization": "V",
+        "transponderNumber": "IT2",
+        "beamName": "P Grandicelli 230405",
+        "system": "DVB-S2",
+        "symbolRate": 31400,
+        "fec": "2/3",
+        "providerName": "Mediaset; 272-930"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-9b-9.0e-it2-12149",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 9B",
+      "orbitalPosition": "9.0E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-9B.html",
+      "retrievedAt": "2026-05-01T07:26:17.993Z",
+      "raw": {
+        "frequencyText": "12149",
+        "polarizationText": "V",
+        "transponderText": "IT2",
+        "beamText": "M Al-Taie 250115",
+        "systemText": "DVB-S2",
+        "symbolRateText": "31400",
+        "fecText": "2/3",
+        "providerText": "Mediaset; 272-901"
+      },
+      "parsed": {
+        "frequencyMHz": 12149,
+        "polarization": "V",
+        "transponderNumber": "IT2",
+        "beamName": "M Al-Taie 250115",
+        "system": "DVB-S2",
+        "symbolRate": 31400,
+        "fec": "2/3",
+        "providerName": "Mediaset; 272-901"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-9b-9.0e-gc2-12169",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 9B",
+      "orbitalPosition": "9.0E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-9B.html",
+      "retrievedAt": "2026-05-01T07:26:17.993Z",
+      "raw": {
+        "frequencyText": "12169",
+        "polarizationText": "H",
+        "transponderText": "GC2",
+        "beamText": "M Al-Taie 250116",
+        "systemText": "DVB-S2",
+        "symbolRateText": "27500",
+        "fecText": "2/3",
+        "providerText": "Cosmote TV; Videoguard; 170-8"
+      },
+      "parsed": {
+        "frequencyMHz": 12169,
+        "polarization": "H",
+        "transponderNumber": "GC2",
+        "beamName": "M Al-Taie 250116",
+        "system": "DVB-S2",
+        "symbolRate": 27500,
+        "fec": "2/3",
+        "providerName": "Cosmote TV; Videoguard; 170-8"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-9b-9.0e-gc3-12207",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 9B",
+      "orbitalPosition": "9.0E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-9B.html",
+      "retrievedAt": "2026-05-01T07:26:17.993Z",
+      "raw": {
+        "frequencyText": "12207",
+        "polarizationText": "H",
+        "transponderText": "GC3",
+        "beamText": "T Viererbe 260124",
+        "systemText": "DVB-S2",
+        "symbolRateText": "27500",
+        "fecText": "2/3",
+        "providerText": "Cosmote TV; Videoguard; 170-4"
+      },
+      "parsed": {
+        "frequencyMHz": 12207,
+        "polarization": "H",
+        "transponderNumber": "GC3",
+        "beamName": "T Viererbe 260124",
+        "system": "DVB-S2",
+        "symbolRate": 27500,
+        "fec": "2/3",
+        "providerName": "Cosmote TV; Videoguard; 170-4"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-9b-9.0e-it4-12226",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 9B",
+      "orbitalPosition": "9.0E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-9B.html",
+      "retrievedAt": "2026-05-01T07:26:17.993Z",
+      "raw": {
+        "frequencyText": "12226",
+        "polarizationText": "V",
+        "transponderText": "IT4",
+        "beamText": "M Al-Taie 260318",
+        "systemText": "DVB-S2",
+        "symbolRateText": "31400",
+        "fecText": "2/3",
+        "providerText": "8572-8417"
+      },
+      "parsed": {
+        "frequencyMHz": 12226,
+        "polarization": "V",
+        "transponderNumber": "IT4",
+        "beamName": "M Al-Taie 260318",
+        "system": "DVB-S2",
+        "symbolRate": 31400,
+        "fec": "2/3",
+        "providerName": "8572-8417"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-9b-9.0e-it4-12226",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 9B",
+      "orbitalPosition": "9.0E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-9B.html",
+      "retrievedAt": "2026-05-01T07:26:17.993Z",
+      "raw": {
+        "frequencyText": "12226",
+        "polarizationText": "V",
+        "transponderText": "IT4",
+        "beamText": "R Cervi 220615",
+        "systemText": "DVB-S2",
+        "symbolRateText": "31400",
+        "fecText": "2/3",
+        "providerText": "8572-6370"
+      },
+      "parsed": {
+        "frequencyMHz": 12226,
+        "polarization": "V",
+        "transponderNumber": "IT4",
+        "beamName": "R Cervi 220615",
+        "system": "DVB-S2",
+        "symbolRate": 31400,
+        "fec": "2/3",
+        "providerName": "8572-6370"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-9b-9.0e-it4-12226",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 9B",
+      "orbitalPosition": "9.0E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-9B.html",
+      "retrievedAt": "2026-05-01T07:26:17.993Z",
+      "raw": {
+        "frequencyText": "12226",
+        "polarizationText": "V",
+        "transponderText": "IT4",
+        "beamText": "M Al-Taie 260421",
+        "systemText": "DVB-S2",
+        "symbolRateText": "31400",
+        "fecText": "2/3",
+        "providerText": "8572-26849"
+      },
+      "parsed": {
+        "frequencyMHz": 12226,
+        "polarization": "V",
+        "transponderNumber": "IT4",
+        "beamName": "M Al-Taie 260421",
+        "system": "DVB-S2",
+        "symbolRate": 31400,
+        "fec": "2/3",
+        "providerName": "8572-26849"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-9b-9.0e-t9-nofreq",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 9B",
+      "orbitalPosition": "9.0E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-9B.html",
+      "retrievedAt": "2026-05-01T07:26:17.993Z",
+      "raw": {
+        "transponderText": "T9",
+        "beamText": "3171 Ita",
+        "systemText": "MPEG-4"
+      },
+      "parsed": {
+        "transponderNumber": "T9",
+        "beamName": "3171 Ita",
+        "system": "MPEG-4"
+      },
+      "parseQuality": {
+        "hasFrequency": false,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Downlink frequency not parseable; row kept due to transponder ID.",
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-9b-9.0e-it4-12226",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 9B",
+      "orbitalPosition": "9.0E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-9B.html",
+      "retrievedAt": "2026-05-01T07:26:17.993Z",
+      "raw": {
+        "frequencyText": "12226",
+        "polarizationText": "V",
+        "transponderText": "IT4",
+        "beamText": "M Al-Taie 260421",
+        "systemText": "DVB-S2",
+        "symbolRateText": "31400",
+        "fecText": "2/3",
+        "providerText": "8572-20705"
+      },
+      "parsed": {
+        "frequencyMHz": 12226,
+        "polarization": "V",
+        "transponderNumber": "IT4",
+        "beamName": "M Al-Taie 260421",
+        "system": "DVB-S2",
+        "symbolRate": 31400,
+        "fec": "2/3",
+        "providerName": "8572-20705"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-9b-9.0e-nb4-12226",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 9B",
+      "orbitalPosition": "9.0E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-9B.html",
+      "retrievedAt": "2026-05-01T07:26:17.993Z",
+      "raw": {
+        "frequencyText": "12226",
+        "polarizationText": "V",
+        "transponderText": "NB4",
+        "beamText": "N Stanislav 241203",
+        "systemText": "DVB-S2",
+        "symbolRateText": "30000",
+        "fecText": "5/6",
+        "providerText": "8996-100; ZeonBud"
+      },
+      "parsed": {
+        "frequencyMHz": 12226,
+        "polarization": "V",
+        "transponderNumber": "NB4",
+        "beamName": "N Stanislav 241203",
+        "system": "DVB-S2",
+        "symbolRate": 30000,
+        "fec": "5/6",
+        "providerName": "8996-100; ZeonBud"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-9b-9.0e-nb4-12226",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 9B",
+      "orbitalPosition": "9.0E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-9B.html",
+      "retrievedAt": "2026-05-01T07:26:17.993Z",
+      "raw": {
+        "frequencyText": "12226",
+        "polarizationText": "V",
+        "transponderText": "NB4",
+        "beamText": "N Stanislav 250209",
+        "systemText": "DVB-S2",
+        "symbolRateText": "30000",
+        "fecText": "5/6",
+        "providerText": "8996-200; ZeonBud"
+      },
+      "parsed": {
+        "frequencyMHz": 12226,
+        "polarization": "V",
+        "transponderNumber": "NB4",
+        "beamName": "N Stanislav 250209",
+        "system": "DVB-S2",
+        "symbolRate": 30000,
+        "fec": "5/6",
+        "providerName": "8996-200; ZeonBud"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-9b-9.0e-m1-nofreq",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 9B",
+      "orbitalPosition": "9.0E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-9B.html",
+      "retrievedAt": "2026-05-01T07:26:17.993Z",
+      "raw": {
+        "transponderText": "M1",
+        "beamText": "2402 Ukr",
+        "systemText": "MPEG-4"
+      },
+      "parsed": {
+        "transponderNumber": "M1",
+        "beamName": "2402 Ukr",
+        "system": "MPEG-4"
+      },
+      "parseQuality": {
+        "hasFrequency": false,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Downlink frequency not parseable; row kept due to transponder ID.",
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-9b-9.0e-ge4-12245",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 9B",
+      "orbitalPosition": "9.0E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-9B.html",
+      "retrievedAt": "2026-05-01T07:26:17.993Z",
+      "raw": {
+        "frequencyText": "12245",
+        "polarizationText": "H",
+        "transponderText": "GE4",
+        "beamText": "Conax Nagravision Videoguard",
+        "systemText": "DVB-S2",
+        "symbolRateText": "27500",
+        "fecText": "2/3",
+        "providerText": "Z Viglidán T Viererbe 200929; M7 Deutschland; 156-7900"
+      },
+      "parsed": {
+        "frequencyMHz": 12245,
+        "polarization": "H",
+        "transponderNumber": "GE4",
+        "beamName": "Conax Nagravision Videoguard",
+        "system": "DVB-S2",
+        "symbolRate": 27500,
+        "fec": "2/3",
+        "providerName": "Z Viglidán T Viererbe 200929; M7 Deutschland; 156-7900"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-9b-9.0e-gc5-12284",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 9B",
+      "orbitalPosition": "9.0E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-9B.html",
+      "retrievedAt": "2026-05-01T07:26:17.993Z",
+      "raw": {
+        "frequencyText": "12284",
+        "polarizationText": "H",
+        "transponderText": "GC5",
+        "beamText": "T Viererbe 241216",
+        "systemText": "DVB-S2",
+        "symbolRateText": "27500",
+        "fecText": "2/3",
+        "providerText": "Cosmote TV; Videoguard; 170-5"
+      },
+      "parsed": {
+        "frequencyMHz": 12284,
+        "polarization": "H",
+        "transponderNumber": "GC5",
+        "beamName": "T Viererbe 241216",
+        "system": "DVB-S2",
+        "symbolRate": 27500,
+        "fec": "2/3",
+        "providerName": "Cosmote TV; Videoguard; 170-5"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-9b-9.0e-it6-12303",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 9B",
+      "orbitalPosition": "9.0E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-9B.html",
+      "retrievedAt": "2026-05-01T07:26:17.993Z",
+      "raw": {
+        "frequencyText": "12303",
+        "polarizationText": "V",
+        "transponderText": "IT6",
+        "beamText": "M Al-Taie 260418",
+        "systemText": "DVB-S2",
+        "symbolRateText": "31400",
+        "fecText": "8/9",
+        "providerText": "RL Piemonte 1; 8572-4321"
+      },
+      "parsed": {
+        "frequencyMHz": 12303,
+        "polarization": "V",
+        "transponderNumber": "IT6",
+        "beamName": "M Al-Taie 260418",
+        "system": "DVB-S2",
+        "symbolRate": 31400,
+        "fec": "8/9",
+        "providerName": "RL Piemonte 1; 8572-4321"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-9b-9.0e-it6-12303",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 9B",
+      "orbitalPosition": "9.0E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-9B.html",
+      "retrievedAt": "2026-05-01T07:26:17.993Z",
+      "raw": {
+        "frequencyText": "12303",
+        "polarizationText": "V",
+        "transponderText": "IT6",
+        "beamText": "M Al-Taie 260418",
+        "systemText": "DVB-S2",
+        "symbolRateText": "31400",
+        "fecText": "8/9",
+        "providerText": "8572-32993"
+      },
+      "parsed": {
+        "frequencyMHz": 12303,
+        "polarization": "V",
+        "transponderNumber": "IT6",
+        "beamName": "M Al-Taie 260418",
+        "system": "DVB-S2",
+        "symbolRate": 31400,
+        "fec": "8/9",
+        "providerName": "8572-32993"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-9b-9.0e-row-56-3400",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 9B",
+      "orbitalPosition": "9.0E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-9B.html",
+      "retrievedAt": "2026-05-01T07:26:17.993Z",
+      "raw": {
+        "frequencyText": "3400",
+        "beamText": "Irpinia TV 75",
+        "systemText": "MPEG-4",
+        "symbolRateText": "8011",
+        "providerText": "3401 Ita"
+      },
+      "parsed": {
+        "frequencyMHz": 3400,
+        "beamName": "Irpinia TV 75",
+        "system": "MPEG-4",
+        "symbolRate": 8011,
+        "providerName": "3401 Ita"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-9b-9.0e-row-57-3410",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 9B",
+      "orbitalPosition": "9.0E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-9B.html",
+      "retrievedAt": "2026-05-01T07:26:17.993Z",
+      "raw": {
+        "frequencyText": "3410",
+        "beamText": "Kiss Kiss Napoli TV",
+        "systemText": "MPEG-4",
+        "symbolRateText": "8012",
+        "providerText": "3411 Ita"
+      },
+      "parsed": {
+        "frequencyMHz": 3410,
+        "beamName": "Kiss Kiss Napoli TV",
+        "system": "MPEG-4",
+        "symbolRate": 8012,
+        "providerName": "3411 Ita"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-9b-9.0e-row-58-3420",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 9B",
+      "orbitalPosition": "9.0E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-9B.html",
+      "retrievedAt": "2026-05-01T07:26:17.993Z",
+      "raw": {
+        "frequencyText": "3420",
+        "beamText": "Teleclubitalia",
+        "systemText": "MPEG-4",
+        "symbolRateText": "8013",
+        "providerText": "3421 Ita"
+      },
+      "parsed": {
+        "frequencyMHz": 3420,
+        "beamName": "Teleclubitalia",
+        "system": "MPEG-4",
+        "symbolRate": 8013,
+        "providerName": "3421 Ita"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-9b-9.0e-it6-12303",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 9B",
+      "orbitalPosition": "9.0E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-9B.html",
+      "retrievedAt": "2026-05-01T07:26:17.993Z",
+      "raw": {
+        "frequencyText": "12303",
+        "polarizationText": "V",
+        "transponderText": "IT6",
+        "beamText": "M Al-Taie 260418",
+        "systemText": "DVB-S2",
+        "symbolRateText": "31400",
+        "fecText": "8/9",
+        "providerText": "8572-32995"
+      },
+      "parsed": {
+        "frequencyMHz": 12303,
+        "polarization": "V",
+        "transponderNumber": "IT6",
+        "beamName": "M Al-Taie 260418",
+        "system": "DVB-S2",
+        "symbolRate": 31400,
+        "fec": "8/9",
+        "providerName": "8572-32995"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-9b-9.0e-row-60-3500",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 9B",
+      "orbitalPosition": "9.0E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-9B.html",
+      "retrievedAt": "2026-05-01T07:26:17.993Z",
+      "raw": {
+        "frequencyText": "3500",
+        "beamText": "3501 Ita",
+        "systemText": "MPEG-4",
+        "symbolRateText": "8031",
+        "providerText": "StileTV"
+      },
+      "parsed": {
+        "frequencyMHz": 3500,
+        "beamName": "3501 Ita",
+        "system": "MPEG-4",
+        "symbolRate": 8031,
+        "providerName": "StileTV"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-9b-9.0e-row-61-3520",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 9B",
+      "orbitalPosition": "9.0E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-9B.html",
+      "retrievedAt": "2026-05-01T07:26:17.993Z",
+      "raw": {
+        "frequencyText": "3520",
+        "beamText": "Canale 58",
+        "systemText": "MPEG-4",
+        "symbolRateText": "8033",
+        "eirpText": "58",
+        "providerText": "3521 Ita"
+      },
+      "parsed": {
+        "frequencyMHz": 3520,
+        "beamName": "Canale 58",
+        "system": "MPEG-4",
+        "symbolRate": 8033,
+        "eirpDbw": 58,
+        "providerName": "3521 Ita"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-9b-9.0e-row-62-3540",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 9B",
+      "orbitalPosition": "9.0E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-9B.html",
+      "retrievedAt": "2026-05-01T07:26:17.993Z",
+      "raw": {
+        "frequencyText": "3540",
+        "beamText": "3541 Ita",
+        "systemText": "MPEG-4",
+        "symbolRateText": "8035"
+      },
+      "parsed": {
+        "frequencyMHz": 3540,
+        "beamName": "3541 Ita",
+        "system": "MPEG-4",
+        "symbolRate": 8035
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-9b-9.0e-row-63-3550",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 9B",
+      "orbitalPosition": "9.0E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-9B.html",
+      "retrievedAt": "2026-05-01T07:26:17.993Z",
+      "raw": {
+        "frequencyText": "3550",
+        "beamText": "Telecapri Sport",
+        "systemText": "MPEG-4",
+        "symbolRateText": "8036",
+        "providerText": "3551 Ita"
+      },
+      "parsed": {
+        "frequencyMHz": 3550,
+        "beamName": "Telecapri Sport",
+        "system": "MPEG-4",
+        "symbolRate": 8036,
+        "providerName": "3551 Ita"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-9b-9.0e-row-64-3561",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 9B",
+      "orbitalPosition": "9.0E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-9B.html",
+      "retrievedAt": "2026-05-01T07:26:17.993Z",
+      "raw": {
+        "frequencyText": "3561",
+        "beamText": "Videonola",
+        "systemText": "MPEG-4",
+        "symbolRateText": "8037",
+        "providerText": "3560 Ita"
+      },
+      "parsed": {
+        "frequencyMHz": 3561,
+        "beamName": "Videonola",
+        "system": "MPEG-4",
+        "symbolRate": 8037,
+        "providerName": "3560 Ita"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-9b-9.0e-row-65-3570",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 9B",
+      "orbitalPosition": "9.0E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-9B.html",
+      "retrievedAt": "2026-05-01T07:26:17.993Z",
+      "raw": {
+        "frequencyText": "3570",
+        "beamText": "3571 Ita",
+        "systemText": "MPEG-4",
+        "symbolRateText": "8038",
+        "providerText": "105 TV"
+      },
+      "parsed": {
+        "frequencyMHz": 3570,
+        "beamName": "3571 Ita",
+        "system": "MPEG-4",
+        "symbolRate": 8038,
+        "providerName": "105 TV"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-9b-9.0e-row-66-3580",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 9B",
+      "orbitalPosition": "9.0E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-9B.html",
+      "retrievedAt": "2026-05-01T07:26:17.993Z",
+      "raw": {
+        "frequencyText": "3580",
+        "beamText": "NapoFlix",
+        "systemText": "MPEG-4",
+        "symbolRateText": "8039",
+        "providerText": "3581 Ita"
+      },
+      "parsed": {
+        "frequencyMHz": 3580,
+        "beamName": "NapoFlix",
+        "system": "MPEG-4",
+        "symbolRate": 8039,
+        "providerName": "3581 Ita"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-9b-9.0e-row-67-3590",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 9B",
+      "orbitalPosition": "9.0E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-9B.html",
+      "retrievedAt": "2026-05-01T07:26:17.993Z",
+      "raw": {
+        "frequencyText": "3590",
+        "beamText": "GT Channel",
+        "systemText": "MPEG-4",
+        "symbolRateText": "8040",
+        "providerText": "3591 Ita"
+      },
+      "parsed": {
+        "frequencyMHz": 3590,
+        "beamName": "GT Channel",
+        "system": "MPEG-4",
+        "symbolRate": 8040,
+        "providerName": "3591 Ita"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-9b-9.0e-row-68-3610",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 9B",
+      "orbitalPosition": "9.0E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-9B.html",
+      "retrievedAt": "2026-05-01T07:26:17.993Z",
+      "raw": {
+        "frequencyText": "3610",
+        "beamText": "Telenostra",
+        "systemText": "MPEG-4",
+        "symbolRateText": "8042",
+        "providerText": "3611 Ita"
+      },
+      "parsed": {
+        "frequencyMHz": 3610,
+        "beamName": "Telenostra",
+        "system": "MPEG-4",
+        "symbolRate": 8042,
+        "providerName": "3611 Ita"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-9b-9.0e-row-69-3640",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 9B",
+      "orbitalPosition": "9.0E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-9B.html",
+      "retrievedAt": "2026-05-01T07:26:17.993Z",
+      "raw": {
+        "frequencyText": "3640",
+        "beamText": "Radio Marte TV",
+        "systemText": "MPEG-4",
+        "symbolRateText": "8045",
+        "providerText": "3641 Ita"
+      },
+      "parsed": {
+        "frequencyMHz": 3640,
+        "beamName": "Radio Marte TV",
+        "system": "MPEG-4",
+        "symbolRate": 8045,
+        "providerName": "3641 Ita"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-9b-9.0e-row-70-3681",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 9B",
+      "orbitalPosition": "9.0E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-9B.html",
+      "retrievedAt": "2026-05-01T07:26:17.993Z",
+      "raw": {
+        "frequencyText": "3681",
+        "beamText": "Romantica Radio",
+        "symbolRateText": "8049"
+      },
+      "parsed": {
+        "frequencyMHz": 3681,
+        "beamName": "Romantica Radio",
+        "symbolRate": 8049
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-9b-9.0e-nb6-12303",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 9B",
+      "orbitalPosition": "9.0E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-9B.html",
+      "retrievedAt": "2026-05-01T07:26:17.993Z",
+      "raw": {
+        "frequencyText": "12303",
+        "polarizationText": "V",
+        "transponderText": "NB6",
+        "beamText": "N Stanislav 260315",
+        "systemText": "DVB-S2",
+        "symbolRateText": "30000",
+        "fecText": "5/6",
+        "providerText": "8996-300; ZeonBud"
+      },
+      "parsed": {
+        "frequencyMHz": 12303,
+        "polarization": "V",
+        "transponderNumber": "NB6",
+        "beamName": "N Stanislav 260315",
+        "system": "DVB-S2",
+        "symbolRate": 30000,
+        "fec": "5/6",
+        "providerName": "8996-300; ZeonBud"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-9b-9.0e-k1-nofreq",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 9B",
+      "orbitalPosition": "9.0E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-9B.html",
+      "retrievedAt": "2026-05-01T07:26:17.993Z",
+      "raw": {
+        "transponderText": "K1",
+        "beamText": "3102 Ukr",
+        "systemText": "MPEG-4",
+        "eirpText": "31"
+      },
+      "parsed": {
+        "transponderNumber": "K1",
+        "beamName": "3102 Ukr",
+        "system": "MPEG-4",
+        "eirpDbw": 31
+      },
+      "parseQuality": {
+        "hasFrequency": false,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Downlink frequency not parseable; row kept due to transponder ID.",
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-9b-9.0e-k2-nofreq",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 9B",
+      "orbitalPosition": "9.0E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-9B.html",
+      "retrievedAt": "2026-05-01T07:26:17.993Z",
+      "raw": {
+        "transponderText": "K2",
+        "beamText": "3202 Ukr",
+        "systemText": "MPEG-4",
+        "eirpText": "32"
+      },
+      "parsed": {
+        "transponderNumber": "K2",
+        "beamName": "3202 Ukr",
+        "system": "MPEG-4",
+        "eirpDbw": 32
+      },
+      "parseQuality": {
+        "hasFrequency": false,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Downlink frequency not parseable; row kept due to transponder ID.",
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-9b-9.0e-row-74-3401",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 9B",
+      "orbitalPosition": "9.0E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-9B.html",
+      "retrievedAt": "2026-05-01T07:26:17.993Z",
+      "raw": {
+        "frequencyText": "3401",
+        "beamText": "3402 Ukr",
+        "systemText": "MPEG-4",
+        "eirpText": "34",
+        "providerText": "Rada"
+      },
+      "parsed": {
+        "frequencyMHz": 3401,
+        "beamName": "3402 Ukr",
+        "system": "MPEG-4",
+        "eirpDbw": 34,
+        "providerName": "Rada"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-9b-9.0e-row-75-3501",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 9B",
+      "orbitalPosition": "9.0E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-9B.html",
+      "retrievedAt": "2026-05-01T07:26:17.993Z",
+      "raw": {
+        "frequencyText": "3501",
+        "beamText": "3502 Ukr",
+        "systemText": "MPEG-4",
+        "eirpText": "35",
+        "providerText": "Rada"
+      },
+      "parsed": {
+        "frequencyMHz": 3501,
+        "beamName": "3502 Ukr",
+        "system": "MPEG-4",
+        "eirpDbw": 35,
+        "providerName": "Rada"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-9b-9.0e-row-76-3601",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 9B",
+      "orbitalPosition": "9.0E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-9B.html",
+      "retrievedAt": "2026-05-01T07:26:17.993Z",
+      "raw": {
+        "frequencyText": "3601",
+        "beamText": "3602 Ukr",
+        "systemText": "MPEG-4",
+        "eirpText": "36",
+        "providerText": "X Sport"
+      },
+      "parsed": {
+        "frequencyMHz": 3601,
+        "beamName": "3602 Ukr",
+        "system": "MPEG-4",
+        "eirpDbw": 36,
+        "providerName": "X Sport"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-9b-9.0e-row-77-3701",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 9B",
+      "orbitalPosition": "9.0E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-9B.html",
+      "retrievedAt": "2026-05-01T07:26:17.993Z",
+      "raw": {
+        "frequencyText": "3701",
+        "beamText": "Enter Film",
+        "systemText": "MPEG-4",
+        "eirpText": "37",
+        "providerText": "3702 Ukr"
+      },
+      "parsed": {
+        "frequencyMHz": 3701,
+        "beamName": "Enter Film",
+        "system": "MPEG-4",
+        "eirpDbw": 37,
+        "providerName": "3702 Ukr"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-9b-9.0e-row-78-3801",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 9B",
+      "orbitalPosition": "9.0E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-9B.html",
+      "retrievedAt": "2026-05-01T07:26:17.993Z",
+      "raw": {
+        "frequencyText": "3801",
+        "beamText": "Piksel TV",
+        "systemText": "MPEG-4",
+        "eirpText": "38",
+        "providerText": "3802 Ukr"
+      },
+      "parsed": {
+        "frequencyMHz": 3801,
+        "beamName": "Piksel TV",
+        "system": "MPEG-4",
+        "eirpDbw": 38,
+        "providerName": "3802 Ukr"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-9b-9.0e-nb6-12303",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 9B",
+      "orbitalPosition": "9.0E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-9B.html",
+      "retrievedAt": "2026-05-01T07:26:17.993Z",
+      "raw": {
+        "frequencyText": "12303",
+        "polarizationText": "V",
+        "transponderText": "NB6",
+        "beamText": "N Stanislav 260107",
+        "systemText": "DVB-S2",
+        "symbolRateText": "30000",
+        "fecText": "5/6",
+        "providerText": "8996-400; ZeonBud"
+      },
+      "parsed": {
+        "frequencyMHz": 12303,
+        "polarization": "V",
+        "transponderNumber": "NB6",
+        "beamName": "N Stanislav 260107",
+        "system": "DVB-S2",
+        "symbolRate": 30000,
+        "fec": "5/6",
+        "providerName": "8996-400; ZeonBud"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-9b-9.0e-row-80-4101",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 9B",
+      "orbitalPosition": "9.0E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-9B.html",
+      "retrievedAt": "2026-05-01T07:26:17.993Z",
+      "raw": {
+        "frequencyText": "4101",
+        "beamText": "4102 Ukr",
+        "systemText": "MPEG-4",
+        "eirpText": "41",
+        "providerText": "Rada"
+      },
+      "parsed": {
+        "frequencyMHz": 4101,
+        "beamName": "4102 Ukr",
+        "system": "MPEG-4",
+        "eirpDbw": 41,
+        "providerName": "Rada"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-9b-9.0e-it7-12341",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 9B",
+      "orbitalPosition": "9.0E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-9B.html",
+      "retrievedAt": "2026-05-01T07:26:17.993Z",
+      "raw": {
+        "frequencyText": "12341",
+        "polarizationText": "V",
+        "transponderText": "IT7",
+        "beamText": "D de Jong 251005",
+        "systemText": "DVB-S2",
+        "symbolRateText": "31400",
+        "fecText": "2/3",
+        "eirpText": "29",
+        "providerText": "Persidera; 29-516"
+      },
+      "parsed": {
+        "frequencyMHz": 12341,
+        "polarization": "V",
+        "transponderNumber": "IT7",
+        "beamName": "D de Jong 251005",
+        "system": "DVB-S2",
+        "symbolRate": 31400,
+        "fec": "2/3",
+        "eirpDbw": 29,
+        "providerName": "Persidera; 29-516"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-9b-9.0e-cs24-nofreq",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 9B",
+      "orbitalPosition": "9.0E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-9B.html",
+      "retrievedAt": "2026-05-01T07:26:17.993Z",
+      "raw": {
+        "transponderText": "CS24",
+        "beamText": "2420 Ita",
+        "systemText": "MPEG-4"
+      },
+      "parsed": {
+        "transponderNumber": "CS24",
+        "beamName": "2420 Ita",
+        "system": "MPEG-4"
+      },
+      "parseQuality": {
+        "hasFrequency": false,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Downlink frequency not parseable; row kept due to transponder ID.",
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-9b-9.0e-it7-12341",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 9B",
+      "orbitalPosition": "9.0E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-9B.html",
+      "retrievedAt": "2026-05-01T07:26:17.993Z",
+      "raw": {
+        "frequencyText": "12341",
+        "polarizationText": "V",
+        "transponderText": "IT7",
+        "beamText": "A7Sats 251111",
+        "systemText": "DVB-S2",
+        "symbolRateText": "31400",
+        "fecText": "2/3",
+        "eirpText": "29",
+        "providerText": "Persidera; 29-512"
+      },
+      "parsed": {
+        "frequencyMHz": 12341,
+        "polarization": "V",
+        "transponderNumber": "IT7",
+        "beamName": "A7Sats 251111",
+        "system": "DVB-S2",
+        "symbolRate": 31400,
+        "fec": "2/3",
+        "eirpDbw": 29,
+        "providerName": "Persidera; 29-512"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-9b-9.0e-k2-nofreq",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 9B",
+      "orbitalPosition": "9.0E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-9B.html",
+      "retrievedAt": "2026-05-01T07:26:17.993Z",
+      "raw": {
+        "transponderText": "K2",
+        "beamText": "982 Ita",
+        "systemText": "MPEG-4"
+      },
+      "parsed": {
+        "transponderNumber": "K2",
+        "beamName": "982 Ita",
+        "system": "MPEG-4"
+      },
+      "parseQuality": {
+        "hasFrequency": false,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Downlink frequency not parseable; row kept due to transponder ID.",
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-9b-9.0e-it7-12341",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 9B",
+      "orbitalPosition": "9.0E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-9B.html",
+      "retrievedAt": "2026-05-01T07:26:17.993Z",
+      "raw": {
+        "frequencyText": "12341",
+        "polarizationText": "V",
+        "transponderText": "IT7",
+        "beamText": "M Al-Taie 260116",
+        "systemText": "DVB-S2",
+        "symbolRateText": "31400",
+        "fecText": "2/3",
+        "providerText": "8572-31000; Persidera"
+      },
+      "parsed": {
+        "frequencyMHz": 12341,
+        "polarization": "V",
+        "transponderNumber": "IT7",
+        "beamName": "M Al-Taie 260116",
+        "system": "DVB-S2",
+        "symbolRate": 31400,
+        "fec": "2/3",
+        "providerName": "8572-31000; Persidera"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-9b-9.0e-il61-nofreq",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 9B",
+      "orbitalPosition": "9.0E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-9B.html",
+      "retrievedAt": "2026-05-01T07:26:17.993Z",
+      "raw": {
+        "transponderText": "IL61",
+        "beamText": "782 Ita",
+        "systemText": "MPEG-4"
+      },
+      "parsed": {
+        "transponderNumber": "IL61",
+        "beamName": "782 Ita",
+        "system": "MPEG-4"
+      },
+      "parseQuality": {
+        "hasFrequency": false,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Downlink frequency not parseable; row kept due to transponder ID.",
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-9b-9.0e-it8-12380",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 9B",
+      "orbitalPosition": "9.0E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-9B.html",
+      "retrievedAt": "2026-05-01T07:26:17.993Z",
+      "raw": {
+        "frequencyText": "12380",
+        "polarizationText": "V",
+        "transponderText": "IT8",
+        "beamText": "M Al-Taie 240921",
+        "systemText": "DVB-S2",
+        "symbolRateText": "31400",
+        "fecText": "2/3",
+        "providerText": "RL Liguria 1; 8572-16609"
+      },
+      "parsed": {
+        "frequencyMHz": 12380,
+        "polarization": "V",
+        "transponderNumber": "IT8",
+        "beamName": "M Al-Taie 240921",
+        "system": "DVB-S2",
+        "symbolRate": 31400,
+        "fec": "2/3",
+        "providerName": "RL Liguria 1; 8572-16609"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-9b-9.0e-row-88-4001",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 9B",
+      "orbitalPosition": "9.0E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-9B.html",
+      "retrievedAt": "2026-05-01T07:26:17.993Z",
+      "raw": {
+        "frequencyText": "4001",
+        "beamText": "Primocanale",
+        "systemText": "MPEG-4",
+        "symbolRateText": "2300",
+        "providerText": "2301 Ita"
+      },
+      "parsed": {
+        "frequencyMHz": 4001,
+        "beamName": "Primocanale",
+        "system": "MPEG-4",
+        "symbolRate": 2300,
+        "providerName": "2301 Ita"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-9b-9.0e-row-89-4002",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 9B",
+      "orbitalPosition": "9.0E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-9B.html",
+      "retrievedAt": "2026-05-01T07:26:17.993Z",
+      "raw": {
+        "frequencyText": "4002",
+        "beamText": "Telenord",
+        "systemText": "MPEG-4",
+        "symbolRateText": "2310",
+        "providerText": "2311 Ita"
+      },
+      "parsed": {
+        "frequencyMHz": 4002,
+        "beamName": "Telenord",
+        "system": "MPEG-4",
+        "symbolRate": 2310,
+        "providerName": "2311 Ita"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-9b-9.0e-row-90-4003",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 9B",
+      "orbitalPosition": "9.0E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-9B.html",
+      "retrievedAt": "2026-05-01T07:26:17.993Z",
+      "raw": {
+        "frequencyText": "4003",
+        "beamText": "Teleradiopace 1",
+        "systemText": "MPEG-4",
+        "symbolRateText": "2320",
+        "providerText": "2321 Ita"
+      },
+      "parsed": {
+        "frequencyMHz": 4003,
+        "beamName": "Teleradiopace 1",
+        "system": "MPEG-4",
+        "symbolRate": 2320,
+        "providerName": "2321 Ita"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-9b-9.0e-row-91-4004",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 9B",
+      "orbitalPosition": "9.0E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-9B.html",
+      "retrievedAt": "2026-05-01T07:26:17.993Z",
+      "raw": {
+        "frequencyText": "4004",
+        "beamText": "Telecity Liguria",
+        "systemText": "MPEG-4",
+        "symbolRateText": "3007",
+        "providerText": "3008 Ita"
+      },
+      "parsed": {
+        "frequencyMHz": 4004,
+        "beamName": "Telecity Liguria",
+        "system": "MPEG-4",
+        "symbolRate": 3007,
+        "providerName": "3008 Ita"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-9b-9.0e-row-92-4005",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 9B",
+      "orbitalPosition": "9.0E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-9B.html",
+      "retrievedAt": "2026-05-01T07:26:17.993Z",
+      "raw": {
+        "frequencyText": "4005",
+        "beamText": "Telegenova",
+        "systemText": "MPEG-4",
+        "symbolRateText": "2340",
+        "providerText": "2341 Ita"
+      },
+      "parsed": {
+        "frequencyMHz": 4005,
+        "beamName": "Telegenova",
+        "system": "MPEG-4",
+        "symbolRate": 2340,
+        "providerName": "2341 Ita"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-9b-9.0e-row-93-4006",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 9B",
+      "orbitalPosition": "9.0E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-9B.html",
+      "retrievedAt": "2026-05-01T07:26:17.993Z",
+      "raw": {
+        "frequencyText": "4006",
+        "beamText": "Tele Liguria Sud",
+        "systemText": "MPEG-4",
+        "symbolRateText": "2350",
+        "providerText": "2351 Ita"
+      },
+      "parsed": {
+        "frequencyMHz": 4006,
+        "beamName": "Tele Liguria Sud",
+        "system": "MPEG-4",
+        "symbolRate": 2350,
+        "providerName": "2351 Ita"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-9b-9.0e-row-94-4007",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 9B",
+      "orbitalPosition": "9.0E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-9B.html",
+      "retrievedAt": "2026-05-01T07:26:17.993Z",
+      "raw": {
+        "frequencyText": "4007",
+        "beamText": "Primopiano",
+        "systemText": "MPEG-4",
+        "symbolRateText": "2360",
+        "providerText": "2361 Ita"
+      },
+      "parsed": {
+        "frequencyMHz": 4007,
+        "beamName": "Primopiano",
+        "system": "MPEG-4",
+        "symbolRate": 2360,
+        "providerName": "2361 Ita"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-9b-9.0e-row-95-4008",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 9B",
+      "orbitalPosition": "9.0E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-9B.html",
+      "retrievedAt": "2026-05-01T07:26:17.993Z",
+      "raw": {
+        "frequencyText": "4008",
+        "beamText": "Telecolor (Italy)",
+        "systemText": "MPEG-4",
+        "symbolRateText": "2370",
+        "providerText": "2371 Ita"
+      },
+      "parsed": {
+        "frequencyMHz": 4008,
+        "beamName": "Telecolor (Italy)",
+        "system": "MPEG-4",
+        "symbolRate": 2370,
+        "providerName": "2371 Ita"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-9b-9.0e-row-96-4009",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 9B",
+      "orbitalPosition": "9.0E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-9B.html",
+      "retrievedAt": "2026-05-01T07:26:17.993Z",
+      "raw": {
+        "frequencyText": "4009",
+        "beamText": "Canale Italia",
+        "systemText": "MPEG-4",
+        "symbolRateText": "2380",
+        "providerText": "2381 Ita"
+      },
+      "parsed": {
+        "frequencyMHz": 4009,
+        "beamName": "Canale Italia",
+        "system": "MPEG-4",
+        "symbolRate": 2380,
+        "providerName": "2381 Ita"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-9b-9.0e-row-97-4010",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 9B",
+      "orbitalPosition": "9.0E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-9B.html",
+      "retrievedAt": "2026-05-01T07:26:17.993Z",
+      "raw": {
+        "frequencyText": "4010",
+        "beamText": "Valenza TV",
+        "systemText": "MPEG-4",
+        "symbolRateText": "1380",
+        "providerText": "1381 Ita"
+      },
+      "parsed": {
+        "frequencyMHz": 4010,
+        "beamName": "Valenza TV",
+        "system": "MPEG-4",
+        "symbolRate": 1380,
+        "providerName": "1381 Ita"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-9b-9.0e-row-98-4011",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 9B",
+      "orbitalPosition": "9.0E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-9B.html",
+      "retrievedAt": "2026-05-01T07:26:17.993Z",
+      "raw": {
+        "frequencyText": "4011",
+        "beamText": "Primantenna",
+        "systemText": "MPEG-4",
+        "symbolRateText": "2400",
+        "providerText": "2401 Ita"
+      },
+      "parsed": {
+        "frequencyMHz": 4011,
+        "beamName": "Primantenna",
+        "system": "MPEG-4",
+        "symbolRate": 2400,
+        "providerName": "2401 Ita"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-9b-9.0e-row-99-4012",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 9B",
+      "orbitalPosition": "9.0E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-9B.html",
+      "retrievedAt": "2026-05-01T07:26:17.993Z",
+      "raw": {
+        "frequencyText": "4012",
+        "beamText": "ReteSette",
+        "systemText": "MPEG-4",
+        "symbolRateText": "2410",
+        "providerText": "2411 Ita"
+      },
+      "parsed": {
+        "frequencyMHz": 4012,
+        "beamName": "ReteSette",
+        "system": "MPEG-4",
+        "symbolRate": 2410,
+        "providerName": "2411 Ita"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-9b-9.0e-row-100-4014",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 9B",
+      "orbitalPosition": "9.0E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-9B.html",
+      "retrievedAt": "2026-05-01T07:26:17.993Z",
+      "raw": {
+        "frequencyText": "4014",
+        "beamText": "Teleradiopace 2",
+        "systemText": "MPEG-4",
+        "symbolRateText": "2430",
+        "providerText": "2431 Ita"
+      },
+      "parsed": {
+        "frequencyMHz": 4014,
+        "beamName": "Teleradiopace 2",
+        "system": "MPEG-4",
+        "symbolRate": 2430,
+        "providerName": "2431 Ita"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-9b-9.0e-row-101-4015",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 9B",
+      "orbitalPosition": "9.0E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-9B.html",
+      "retrievedAt": "2026-05-01T07:26:17.993Z",
+      "raw": {
+        "frequencyText": "4015",
+        "beamText": "2441 Ita",
+        "systemText": "MPEG-4",
+        "symbolRateText": "2440",
+        "providerText": "Luna TV"
+      },
+      "parsed": {
+        "frequencyMHz": 4015,
+        "beamName": "2441 Ita",
+        "system": "MPEG-4",
+        "symbolRate": 2440,
+        "providerName": "Luna TV"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-9b-9.0e-it8-12380",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 9B",
+      "orbitalPosition": "9.0E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-9B.html",
+      "retrievedAt": "2026-05-01T07:26:17.993Z",
+      "raw": {
+        "frequencyText": "12380",
+        "polarizationText": "V",
+        "transponderText": "IT8",
+        "beamText": "M Al-Taie 250603",
+        "systemText": "DVB-S2",
+        "symbolRateText": "31400",
+        "fecText": "2/3",
+        "providerText": "8572-28897"
+      },
+      "parsed": {
+        "frequencyMHz": 12380,
+        "polarization": "V",
+        "transponderNumber": "IT8",
+        "beamName": "M Al-Taie 250603",
+        "system": "DVB-S2",
+        "symbolRate": 31400,
+        "fec": "2/3",
+        "providerName": "8572-28897"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-9b-9.0e-it8-12380",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 9B",
+      "orbitalPosition": "9.0E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-9B.html",
+      "retrievedAt": "2026-05-01T07:26:17.993Z",
+      "raw": {
+        "frequencyText": "12380",
+        "polarizationText": "V",
+        "transponderText": "IT8",
+        "beamText": "M Al-Taie 251029",
+        "systemText": "DVB-S2",
+        "symbolRateText": "31400",
+        "fecText": "2/3",
+        "providerText": "8572-39137"
+      },
+      "parsed": {
+        "frequencyMHz": 12380,
+        "polarization": "V",
+        "transponderNumber": "IT8",
+        "beamName": "M Al-Taie 251029",
+        "system": "DVB-S2",
+        "symbolRate": 31400,
+        "fec": "2/3",
+        "providerName": "8572-39137"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-9b-9.0e-a1-nofreq",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 9B",
+      "orbitalPosition": "9.0E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-9B.html",
+      "retrievedAt": "2026-05-01T07:26:17.993Z",
+      "raw": {
+        "transponderText": "A1",
+        "beamText": "2981 Ita",
+        "systemText": "MPEG-4"
+      },
+      "parsed": {
+        "transponderNumber": "A1",
+        "beamName": "2981 Ita",
+        "system": "MPEG-4"
+      },
+      "parseQuality": {
+        "hasFrequency": false,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Downlink frequency not parseable; row kept due to transponder ID.",
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-9b-9.0e-gc8-12399",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 9B",
+      "orbitalPosition": "9.0E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-9B.html",
+      "retrievedAt": "2026-05-01T07:26:17.993Z",
+      "raw": {
+        "frequencyText": "12399",
+        "polarizationText": "H",
+        "transponderText": "GC8",
+        "beamText": "M Al-Taie 260305",
+        "systemText": "DVB-S2",
+        "symbolRateText": "27500",
+        "fecText": "2/3",
+        "providerText": "Cosmote TV; Videoguard; 170-6"
+      },
+      "parsed": {
+        "frequencyMHz": 12399,
+        "polarization": "H",
+        "transponderNumber": "GC8",
+        "beamName": "M Al-Taie 260305",
+        "system": "DVB-S2",
+        "symbolRate": 27500,
+        "fec": "2/3",
+        "providerName": "Cosmote TV; Videoguard; 170-6"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-9b-9.0e-it10-12466",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 9B",
+      "orbitalPosition": "9.0E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-9B.html",
+      "retrievedAt": "2026-05-01T07:26:17.993Z",
+      "raw": {
+        "frequencyText": "12466",
+        "polarizationText": "V",
+        "transponderText": "IT10",
+        "beamText": "RL Valle d'Aosta",
+        "systemText": "DVB-S2",
+        "symbolRateText": "41950",
+        "fecText": "2/3",
+        "providerText": "M Al-Taie 250619; 8572-6369"
+      },
+      "parsed": {
+        "frequencyMHz": 12466,
+        "polarization": "V",
+        "transponderNumber": "IT10",
+        "beamName": "RL Valle d'Aosta",
+        "system": "DVB-S2",
+        "symbolRate": 41950,
+        "fec": "2/3",
+        "providerName": "M Al-Taie 250619; 8572-6369"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-9b-9.0e-it10-12466",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 9B",
+      "orbitalPosition": "9.0E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-9B.html",
+      "retrievedAt": "2026-05-01T07:26:17.993Z",
+      "raw": {
+        "frequencyText": "12466",
+        "polarizationText": "V",
+        "transponderText": "IT10",
+        "beamText": "M Al-Taie 260416",
+        "systemText": "DVB-S2",
+        "symbolRateText": "41950",
+        "fecText": "2/3",
+        "providerText": "8572-10465"
+      },
+      "parsed": {
+        "frequencyMHz": 12466,
+        "polarization": "V",
+        "transponderNumber": "IT10",
+        "beamName": "M Al-Taie 260416",
+        "system": "DVB-S2",
+        "symbolRate": 41950,
+        "fec": "2/3",
+        "providerName": "8572-10465"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-9b-9.0e-a3-nofreq",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 9B",
+      "orbitalPosition": "9.0E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-9B.html",
+      "retrievedAt": "2026-05-01T07:26:17.993Z",
+      "raw": {
+        "transponderText": "A3",
+        "beamText": "1951 Ita",
+        "systemText": "MPEG-4"
+      },
+      "parsed": {
+        "transponderNumber": "A3",
+        "beamName": "1951 Ita",
+        "system": "MPEG-4"
+      },
+      "parseQuality": {
+        "hasFrequency": false,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Downlink frequency not parseable; row kept due to transponder ID.",
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-9b-9.0e-it10-12466",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 9B",
+      "orbitalPosition": "9.0E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-9B.html",
+      "retrievedAt": "2026-05-01T07:26:17.993Z",
+      "raw": {
+        "frequencyText": "12466",
+        "polarizationText": "V",
+        "transponderText": "IT10",
+        "beamText": "M Al-Taie 260307",
+        "systemText": "DVB-S2",
+        "symbolRateText": "41950",
+        "fecText": "2/3",
+        "providerText": "8572-18657"
+      },
+      "parsed": {
+        "frequencyMHz": 12466,
+        "polarization": "V",
+        "transponderNumber": "IT10",
+        "beamName": "M Al-Taie 260307",
+        "system": "DVB-S2",
+        "symbolRate": 41950,
+        "fec": "2/3",
+        "providerName": "8572-18657"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-9b-9.0e-it10-12466",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 9B",
+      "orbitalPosition": "9.0E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-9B.html",
+      "retrievedAt": "2026-05-01T07:26:17.993Z",
+      "raw": {
+        "frequencyText": "12466",
+        "polarizationText": "V",
+        "transponderText": "IT10",
+        "beamText": "P Grandicelli 241218",
+        "systemText": "DVB-S2",
+        "symbolRateText": "41950",
+        "fecText": "2/3",
+        "providerText": "8572-24801"
+      },
+      "parsed": {
+        "frequencyMHz": 12466,
+        "polarization": "V",
+        "transponderNumber": "IT10",
+        "beamName": "P Grandicelli 241218",
+        "system": "DVB-S2",
+        "symbolRate": 41950,
+        "fec": "2/3",
+        "providerName": "8572-24801"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-9b-9.0e-gc10-12475",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 9B",
+      "orbitalPosition": "9.0E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-9B.html",
+      "retrievedAt": "2026-05-01T07:26:17.993Z",
+      "raw": {
+        "frequencyText": "12475",
+        "polarizationText": "H",
+        "transponderText": "GC10",
+        "beamText": "T Viererbe 260124",
+        "systemText": "DVB-S2",
+        "symbolRateText": "27500",
+        "fecText": "2/3",
+        "providerText": "Cosmote TV; Videoguard; 170-7"
+      },
+      "parsed": {
+        "frequencyMHz": 12475,
+        "polarization": "H",
+        "transponderNumber": "GC10",
+        "beamName": "T Viererbe 260124",
+        "system": "DVB-S2",
+        "symbolRate": 27500,
+        "fec": "2/3",
+        "providerName": "Cosmote TV; Videoguard; 170-7"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-9b-9.0e-s2-nofreq",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 9B",
+      "orbitalPosition": "9.0E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-9B.html",
+      "retrievedAt": "2026-05-01T07:26:17.993Z",
+      "raw": {
+        "transponderText": "S2",
+        "beamText": "System:",
+        "systemText": "DVB-S2",
+        "providerText": "non-DTH"
+      },
+      "parsed": {
+        "transponderNumber": "S2",
+        "beamName": "System:",
+        "system": "DVB-S2",
+        "providerName": "non-DTH"
+      },
+      "parseQuality": {
+        "hasFrequency": false,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Downlink frequency not parseable; row kept due to transponder ID.",
+          "Polarization not present or not parseable."
+        ]
+      }
+    }
+  ]
+}

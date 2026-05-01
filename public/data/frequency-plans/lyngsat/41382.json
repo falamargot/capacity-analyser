@@ -1,0 +1,452 @@
+{
+  "source": "LYNGSAT",
+  "satelliteName": "EUTELSAT 65 WEST A",
+  "orbitalPosition": "65W",
+  "url": "https://www.lyngsat.com/Eutelsat-65-West-A.html",
+  "retrievedAt": "2026-05-01T07:48:30.525Z",
+  "parserStats": {
+    "totalRowsSeen": 177,
+    "rowsWithFrequency": 20,
+    "rowsWithBeam": 43,
+    "rowsWithTransponderId": 40,
+    "rowsSkipped": 134,
+    "skipReasons": {
+      "too_few_cells": 42,
+      "no_frequency_no_transponder": 92
+    }
+  },
+  "rows": [
+    {
+      "transponderNumber": "C2",
+      "transponderName": "TP C2",
+      "beamName": "TV Assembleia Paraná",
+      "system": "DVB-S2",
+      "symbolRate": 2083,
+      "fec": "2/3",
+      "provider": "A Junior 160718; 6.6 620 Por",
+      "htmlRowText": "4510 V tp C2 C 38 | DVB-S2 8PSK 2083 2/3 | 59232 | TV Assembleia Paraná | 59232-177 MPEG-2/SD | 610 | 6.6 620 Por | A Junior 160718"
+    },
+    {
+      "frequencyMHz": 3750,
+      "transponderNumber": "C1",
+      "transponderName": "TP C1",
+      "beamName": "Record Cabrália",
+      "system": "DVB-S2",
+      "symbolRate": 3750,
+      "fec": "3/4",
+      "provider": "EnoSat 250917; 300-300",
+      "htmlRowText": "4511 H tp C1 C 38 | DVB-S2 8PSK 3750 3/4 | Record Cabrália | 300-300 | 7.9 | EnoSat 250917"
+    },
+    {
+      "frequencyMHz": 3750,
+      "transponderNumber": "C1",
+      "transponderName": "TP C1",
+      "beamName": "Record Interior SP",
+      "system": "DVB-S2",
+      "symbolRate": 3750,
+      "fec": "3/4",
+      "provider": "EnoSat 250917; 1857-1857",
+      "htmlRowText": "4516 H tp C1 C 38 | DVB-S2 8PSK 3750 3/4 | Record Interior SP | 1857-1857 | 7.9 | EnoSat 250917"
+    },
+    {
+      "frequencyMHz": 3730,
+      "transponderNumber": "C1",
+      "transponderName": "TP C1",
+      "beamName": "Record Rio Preto",
+      "system": "DVB-S2",
+      "symbolRate": 3730,
+      "fec": "3/4",
+      "provider": "EnoSat 250917; 1861-1861",
+      "htmlRowText": "4520 H tp C1 C 38 | DVB-S2 8PSK 3730 3/4 | Record Rio Preto | 1861-1861 | 7.9 | EnoSat 250917"
+    },
+    {
+      "transponderNumber": "C1",
+      "transponderName": "TP C1",
+      "beamName": "EnoSat 250917",
+      "system": "DVB-S2",
+      "symbolRate": 4800,
+      "fec": "2/3",
+      "provider": "Record News; 1858-1858",
+      "htmlRowText": "4525 H tp C1 C 38 | DVB-S2 QPSK 4800 2/3 | Record News | 1858-1858 | 3.1 | EnoSat 250917"
+    },
+    {
+      "frequencyMHz": 3750,
+      "transponderNumber": "C1",
+      "transponderName": "TP C1",
+      "beamName": "Record Paulista",
+      "system": "DVB-S2",
+      "symbolRate": 3750,
+      "fec": "3/4",
+      "provider": "EnoSat 250917; 1882-1882",
+      "htmlRowText": "4531 H tp C1 C 38 | DVB-S2 8PSK 3750 3/4 | Record Paulista | 1882-1882 | 7.9 | EnoSat 250917"
+    },
+    {
+      "frequencyMHz": 3847,
+      "transponderNumber": "C1",
+      "transponderName": "TP C1",
+      "beamName": "EnoSat 250917",
+      "system": "DVB-S2",
+      "symbolRate": 3847,
+      "fec": "3/4",
+      "provider": "VTV (Brazil); 1890-1890",
+      "htmlRowText": "4535 H tp C1 C 38 | DVB-S2 8PSK 3847 3/4 | VTV (Brazil) | 1890-1890 | 7.9 | BISS | EnoSat 250917"
+    },
+    {
+      "frequencyMHz": 3750,
+      "transponderNumber": "C1",
+      "transponderName": "TP C1",
+      "beamName": "Record Interior RJ",
+      "system": "DVB-S2",
+      "symbolRate": 3750,
+      "fec": "3/4",
+      "provider": "EnoSat 250917; 1516-1516",
+      "htmlRowText": "4549 H tp C1 C 38 | DVB-S2 8PSK 3750 3/4 | Record Interior RJ | 1516-1516 | 7.9 | EnoSat 250917"
+    },
+    {
+      "transponderNumber": "C1",
+      "transponderName": "TP C1",
+      "beamName": "EnoSat 250917",
+      "system": "DVB-S2",
+      "symbolRate": 4780,
+      "fec": "3/4",
+      "provider": "Record Rio; 1513-1513",
+      "htmlRowText": "4554 H tp C1 C 38 | DVB-S2 8PSK 4780 3/4 | Record Rio | 1513-1513 | 7.9 | EnoSat 250917"
+    },
+    {
+      "transponderNumber": "C3",
+      "transponderName": "TP C3",
+      "beamName": "EnoSat 250917",
+      "system": "DVB-S2",
+      "symbolRate": 5083,
+      "fec": "3/4",
+      "provider": "TV Cachoeira; 1624-1624",
+      "htmlRowText": "4566 H tp C3 C 38 | DVB-S2 8PSK 5083 3/4 | TV Cachoeira | 1624-1624 | 7.9 | EnoSat 250917"
+    },
+    {
+      "transponderNumber": "C3",
+      "transponderName": "TP C3",
+      "beamName": "EnoSat 250917",
+      "system": "DVB-S2",
+      "symbolRate": 4780,
+      "fec": "3/4",
+      "provider": "Record Minas; 736-436",
+      "htmlRowText": "4573 H tp C3 C 38 | DVB-S2 8PSK 4780 3/4 | Record Minas | 736-436 | 7.9 | EnoSat 250917"
+    },
+    {
+      "frequencyMHz": 3750,
+      "transponderNumber": "C3",
+      "transponderName": "TP C3",
+      "beamName": "Rede Família TV",
+      "system": "DVB-S2",
+      "symbolRate": 3750,
+      "fec": "4/5",
+      "provider": "EnoSat 250917; 1872-1872",
+      "htmlRowText": "4577 H tp C3 C 38 | DVB-S2 8PSK 3750 4/5 | Rede Família TV | 1872-1872 | EnoSat 250917"
+    },
+    {
+      "transponderNumber": "C3",
+      "transponderName": "TP C3",
+      "beamName": "Edinho fta 230708",
+      "system": "DVB-S2",
+      "symbolRate": 4800,
+      "fec": "2/3",
+      "provider": "Record News; 1858-1858",
+      "htmlRowText": "4583 H tp C3 C 38 | DVB-S2 QPSK 4800 2/3 | Record News | 1858-1858 | 3.1 | Edinho fta 230708"
+    },
+    {
+      "transponderNumber": "C3",
+      "transponderName": "TP C3",
+      "beamName": "EnoSat 250917",
+      "system": "DVB-S2",
+      "symbolRate": 4780,
+      "fec": "3/4",
+      "provider": "Record Goiás; 572-572",
+      "htmlRowText": "4589 H tp C3 C 38 | DVB-S2 8PSK 4780 3/4 | Record Goiás | 572-572 | 7.9 | EnoSat 250917"
+    },
+    {
+      "frequencyMHz": 18304,
+      "beamName": "Record Goiás",
+      "system": "MPEG-4",
+      "provider": "274 Por",
+      "htmlRowText": "18304 | Record Goiás | MPEG-4/HD | 273 | 274 Por"
+    },
+    {
+      "frequencyMHz": 18328,
+      "beamName": "Record Goiás",
+      "system": "MPEG-4",
+      "symbolRate": 641,
+      "provider": "643 Por",
+      "htmlRowText": "18328 | Record Goiás | MPEG-4/1seg | 641 | 643 Por"
+    },
+    {
+      "transponderNumber": "C3",
+      "transponderName": "TP C3",
+      "beamName": "EnoSat 250917",
+      "system": "DVB-S2",
+      "symbolRate": 4780,
+      "fec": "3/4",
+      "provider": "Record RS; 1622-1622",
+      "htmlRowText": "4595 H tp C3 C 38 | DVB-S2 8PSK 4780 3/4 | Record RS | 1622-1622 | 7.9 | EnoSat 250917"
+    },
+    {
+      "transponderNumber": "C3",
+      "transponderName": "TP C3",
+      "beamName": "EnoSat 250917",
+      "system": "DVB-S2",
+      "symbolRate": 4780,
+      "fec": "3/4",
+      "provider": "Record Bahia; 295-295",
+      "htmlRowText": "4601 H tp C3 C 38 | DVB-S2 8PSK 4780 3/4 | Record Bahia | 295-295 | 7.9 | EnoSat 250917"
+    },
+    {
+      "transponderNumber": "C4",
+      "transponderName": "TP C4",
+      "beamName": "EnoSat 250917",
+      "system": "DVB-S2",
+      "symbolRate": 5000,
+      "fec": "2/3",
+      "provider": "TV Paranaíba; 727-727",
+      "htmlRowText": "4601 V tp C4 C 38 | DVB-S2 8PSK 5000 2/3 | TV Paranaíba | 727-727 | 6.6 | EnoSat 250917"
+    },
+    {
+      "transponderNumber": "C3",
+      "transponderName": "TP C3",
+      "beamName": "EnoSat 250917",
+      "system": "DVB-S2",
+      "symbolRate": 4780,
+      "fec": "3/4",
+      "provider": "Record Belém; 1204-1204",
+      "htmlRowText": "4607 H tp C3 C 38 | DVB-S2 8PSK 4780 3/4 | Record Belém | 1204-1204 | 7.9 | EnoSat 250917"
+    },
+    {
+      "frequencyMHz": 3750,
+      "transponderNumber": "C4",
+      "transponderName": "TP C4",
+      "beamName": "EnoSat 250917",
+      "system": "DVB-S2",
+      "symbolRate": 3750,
+      "fec": "2/3",
+      "provider": "6.6 4112 Por; TV Atalaia",
+      "htmlRowText": "4607 V tp C4 C 38 | DVB-S2 8PSK 3750 2/3 | 1 | TV Atalaia | 8192-4096 MPEG-4/HD | 513 | 6.6 4112 Por | EnoSat 250917"
+    },
+    {
+      "frequencyMHz": 4114,
+      "beamName": "Xodó FM",
+      "htmlRowText": "2 | Xodó FM | 4114 Por"
+    },
+    {
+      "frequencyMHz": 3750,
+      "transponderNumber": "C3",
+      "transponderName": "TP C3",
+      "beamName": "EnoSat 250917",
+      "system": "DVB-S2",
+      "symbolRate": 3750,
+      "fec": "2/3",
+      "provider": "6.6 4112 Por; TVAL",
+      "htmlRowText": "4612 H tp C3 C 38 | DVB-S2 8PSK 3750 2/3 | 1 | TVAL | 0-0 MPEG-4/HD | 412 | 6.6 4112 Por | EnoSat 250917"
+    },
+    {
+      "transponderNumber": "C4",
+      "transponderName": "TP C4",
+      "beamName": "EnoSat 250917",
+      "system": "DVB-S2",
+      "symbolRate": 6670,
+      "fec": "2/3",
+      "provider": "TV UNAM; 1337-0",
+      "htmlRowText": "4613 V tp C4 C 38 | DVB-S2 8PSK 6670 2/3 | TV UNAM | 1337-0 | 6.6 | EnoSat 250917"
+    },
+    {
+      "transponderNumber": "C5",
+      "transponderName": "TP C5",
+      "beamName": "EnoSat 250917",
+      "system": "DVB-S2",
+      "symbolRate": 30000,
+      "fec": "5/6",
+      "provider": "(feeds)",
+      "htmlRowText": "4651 H tp C5 C | DVB-S2 8PSK 30000 5/6 | (feeds) | EnoSat 250917"
+    },
+    {
+      "frequencyMHz": 3750,
+      "transponderNumber": "C7",
+      "transponderName": "TP C7",
+      "beamName": "EnoSat 250917",
+      "system": "DVB-S2",
+      "symbolRate": 3750,
+      "fec": "2/3",
+      "provider": "TV ALEPE; 0-0",
+      "htmlRowText": "4688 H tp C7 C 38 | DVB-S2 8PSK 3750 2/3 | TV ALEPE | 0-0 | 6.6 | EnoSat 250917"
+    },
+    {
+      "transponderNumber": "C8",
+      "transponderName": "TP C8",
+      "beamName": "Eutelsat 210614",
+      "system": "DVB-S2",
+      "symbolRate": 7072,
+      "fec": "3/4",
+      "provider": "Verimatrix (B); TV TEM Bauru; 1856-1856",
+      "htmlRowText": "4688 V tp C8 C 38 | DVB-S2 8PSK 7072 3/4 | TV TEM Bauru | 1856-1856 | 7.9 | Verimatrix (B) | Eutelsat 210614"
+    },
+    {
+      "frequencyMHz": 3720,
+      "transponderNumber": "C7",
+      "transponderName": "TP C7",
+      "beamName": "Band Triângulo",
+      "system": "DVB-S2",
+      "symbolRate": 3720,
+      "fec": "3/4",
+      "provider": "EnoSat 250917; Conax; 1-1",
+      "htmlRowText": "4692 H tp C7 C 38 | DVB-S2 8PSK 3720 3/4 | Band Triângulo | 1-1 | 7.9 | Conax | EnoSat 250917"
+    },
+    {
+      "transponderNumber": "C8",
+      "transponderName": "TP C8",
+      "beamName": "TV TEM São José do Rio Preto",
+      "system": "DVB-S2",
+      "symbolRate": 7072,
+      "fec": "3/4",
+      "provider": "Eutelsat 210614; Verimatrix (B); 1866-1866",
+      "htmlRowText": "4696 V tp C8 C 38 | DVB-S2 8PSK 7072 3/4 | TV TEM São José do Rio Preto | 1866-1866 | 7.9 | Verimatrix (B) | Eutelsat 210614"
+    },
+    {
+      "transponderNumber": "C7",
+      "transponderName": "TP C7",
+      "beamName": "TV Integração Juiz de Fora",
+      "system": "DVB-S2",
+      "symbolRate": 6668,
+      "fec": "3/4",
+      "provider": "EnoSat 250921; 725-0",
+      "htmlRowText": "4698 H tp C7 C 38 | DVB-S2 8PSK 6668 3/4 | TV Integração Juiz de Fora | 725-0 | 7.9 | BISS | EnoSat 250921"
+    },
+    {
+      "transponderNumber": "C7",
+      "transponderName": "TP C7",
+      "beamName": "Edinho fta 230707",
+      "system": "DVB-S2",
+      "symbolRate": 2500,
+      "fec": "2/3",
+      "provider": "TV ALBA; 0-1",
+      "htmlRowText": "4704 H tp C7 C 38 | DVB-S2 8PSK 2500 2/3 | TV ALBA | 0-1 | 6.6 | Edinho fta 230707"
+    },
+    {
+      "transponderNumber": "C8",
+      "transponderName": "TP C8",
+      "beamName": "TV TEM Itapetininga",
+      "system": "DVB-S2",
+      "symbolRate": 7072,
+      "fec": "3/4",
+      "provider": "Eutelsat 210614; Verimatrix (B); 1897-1897",
+      "htmlRowText": "4706 V tp C8 C 38 | DVB-S2 8PSK 7072 3/4 | TV TEM Itapetininga | 1897-1897 | 7.9 | Verimatrix (B) | Eutelsat 210614"
+    },
+    {
+      "transponderNumber": "C7",
+      "transponderName": "TP C7",
+      "beamName": "Wilkherdasilva 260214",
+      "htmlRowText": "4708 H tp C7 C 38 | Wilkherdasilva 260214"
+    },
+    {
+      "transponderNumber": "C7",
+      "transponderName": "TP C7",
+      "beamName": "TV Integração",
+      "system": "DVB-S2",
+      "symbolRate": 10000,
+      "fec": "3/4",
+      "provider": "EnoSat 250917; 724-724",
+      "htmlRowText": "4720 H tp C7 C 38 | DVB-S2 8PSK 10000 3/4 | TV Integração | 724-724 | 7.9 | BISS | EnoSat 250917"
+    },
+    {
+      "transponderNumber": "C7",
+      "transponderName": "TP C7",
+      "beamName": "EnoSat 250920",
+      "system": "DVB-S2",
+      "symbolRate": 9165,
+      "fec": "3/4",
+      "provider": "1831-1831",
+      "htmlRowText": "4732 H tp C7 C 38 | DVB-S2 8PSK 9165 3/4 | 1831-1831 | 7.9 | EnoSat 250920"
+    },
+    {
+      "frequencyMHz": 3730,
+      "transponderNumber": "C9",
+      "transponderName": "TP C9",
+      "beamName": "Record Litoral e Vale",
+      "system": "DVB-S2",
+      "symbolRate": 3730,
+      "fec": "3/4",
+      "provider": "EnoSat 250917; 1894-1894",
+      "htmlRowText": "4750 H tp C9 C 38 | DVB-S2 8PSK 3730 3/4 | Record Litoral e Vale | 1894-1894 | 7.9 | EnoSat 250917"
+    },
+    {
+      "transponderNumber": "C10",
+      "transponderName": "TP C10",
+      "beamName": "EnoSat 250917",
+      "system": "DVB-S2",
+      "symbolRate": 30000,
+      "fec": "5/6",
+      "provider": "(feeds)",
+      "htmlRowText": "4770 V tp C10 C | DVB-S2 8PSK 30000 5/6 | (feeds) | EnoSat 250917"
+    },
+    {
+      "frequencyMHz": 11304,
+      "polarization": "H",
+      "transponderNumber": "C5",
+      "transponderName": "TP C5",
+      "beamName": "D de Jong 260102",
+      "system": "DVB-S2",
+      "symbolRate": 30000,
+      "fec": "3/5",
+      "provider": "Eutelsat; Irdeto",
+      "htmlRowText": "11304 H tp C5 Americas | DVB-S2 8PSK 30000 3/5 | Eutelsat | 5.5 | Irdeto | D de Jong 260102"
+    },
+    {
+      "frequencyMHz": 11346,
+      "polarization": "H",
+      "transponderNumber": "C7",
+      "transponderName": "TP C7",
+      "beamName": "Verimatrix (B) Irdeto Verimatrix",
+      "system": "DVB-S2",
+      "symbolRate": 30000,
+      "fec": "2/3",
+      "provider": "C de Berazategui 250210; Eutelsat",
+      "htmlRowText": "11346 H tp C7 Americas | DVB-S2 QPSK 30000 2/3 | Eutelsat | 3.1 | Verimatrix (B) Irdeto Verimatrix | C de Berazategui 250210"
+    },
+    {
+      "frequencyMHz": 11436,
+      "polarization": "V",
+      "transponderNumber": "S2",
+      "beamName": "TV FMUSP-HC News",
+      "system": "DVB-S2",
+      "symbolRate": 2500,
+      "fec": "2/3",
+      "provider": "InfoSat 250714; 6.6 102 Por",
+      "htmlRowText": "11436 V Brazil 0 | DVB-S2 8PSK 2500 2/3 | 1 | TV FMUSP-HC News | ?-? MPEG-4/HD | 101 | 6.6 102 Por | BISS | InfoSat 250714"
+    },
+    {
+      "frequencyMHz": 11440,
+      "polarization": "V",
+      "transponderNumber": "S2",
+      "beamName": "EnoSat 250607",
+      "system": "DVB-S2",
+      "symbolRate": 5000,
+      "fec": "2/3",
+      "provider": "0-0",
+      "htmlRowText": "11440 V Brazil 0 | DVB-S2 8PSK 5000 2/3 | TVE | 0-0 | 6.6 | EnoSat 250607"
+    },
+    {
+      "frequencyMHz": 11445,
+      "polarization": "V",
+      "transponderNumber": "S2",
+      "beamName": "TV Mais Conasems",
+      "system": "DVB-S2",
+      "symbolRate": 2400,
+      "fec": "2/3",
+      "provider": "EnoSat 260422; 6.6 258 Por",
+      "htmlRowText": "11445 V Brazil 0 | DVB-S2 8PSK 2400 2/3 | 1 | TV Mais Conasems | 0-0 MPEG-4/HD | 257 | 6.6 258 Por | EnoSat 260422"
+    },
+    {
+      "transponderNumber": "S2",
+      "beamName": "System:",
+      "system": "DVB-S2",
+      "provider": "non-DTH",
+      "htmlRowText": "System: | DVB-S2 | DVB-S | non-DTH | - | -"
+    }
+  ]
+}

@@ -25,6 +25,7 @@ import { SNPS_DATA } from './globe/GlobeConfig';
 import { SectionTooltip } from './SectionTooltip';
 import type { RegulatoryResult } from '../services/regulatoryService';
 import type { BeamLoadResult } from '../utils/capacityLayer';
+import { PublicTranspondersSection } from './PublicTranspondersSection';
 
 
 // ─── Pitch Monitoring Chart ───────────────────────────────────────────────────
@@ -743,6 +744,16 @@ const SatelliteDetails: React.FC<SatelliteDetailsProps> = ({
           {/* NEW: Coverage Policy Display */}
           {selectedSatellite.type === 'ONEWEB' && isOperational && (
             <CoveragePolicyDisplay policy={coveragePolicy} />
+          )}
+
+          {/* Public frequency plan - only for GEO satellites */}
+          {selectedSatellite.type === 'EUTELSAT' && isOperational && (
+            <PublicTranspondersSection
+              satellite={selectedSatellite}
+              coveragesByMission={geoCoverageByMission}
+              onSelectGeoCoverage={onSelectGeoCoverage}
+              onSelectGeoBeam={onSelectGeoBeam}
+            />
           )}
 
           {/* Coverage Areas - only for GEO satellites */}

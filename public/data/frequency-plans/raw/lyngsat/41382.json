@@ -1,0 +1,1584 @@
+{
+  "version": "2",
+  "satelliteName": "EUTELSAT 65 WEST A",
+  "orbitalPosition": "65W",
+  "source": "LYNGSAT",
+  "sourceUrl": "https://www.lyngsat.com/Eutelsat-65-West-A.html",
+  "generatedAt": "2026-05-01T07:49:01.528Z",
+  "observations": [
+    {
+      "id": "lyngsat-eutelsat-65-west-a-65w-c2-nofreq",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 65 WEST A",
+      "orbitalPosition": "65W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-65-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:30.525Z",
+      "raw": {
+        "transponderText": "C2",
+        "beamText": "TV Assembleia Paraná",
+        "systemText": "DVB-S2",
+        "symbolRateText": "2083",
+        "fecText": "2/3",
+        "providerText": "A Junior 160718; 6.6 620 Por"
+      },
+      "parsed": {
+        "transponderNumber": "C2",
+        "transponderName": "TP C2",
+        "beamName": "TV Assembleia Paraná",
+        "system": "DVB-S2",
+        "symbolRate": 2083,
+        "fec": "2/3",
+        "providerName": "A Junior 160718; 6.6 620 Por"
+      },
+      "parseQuality": {
+        "hasFrequency": false,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Downlink frequency not parseable; row kept due to transponder ID.",
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-65-west-a-65w-c1-3750",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 65 WEST A",
+      "orbitalPosition": "65W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-65-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:30.525Z",
+      "raw": {
+        "frequencyText": "3750",
+        "transponderText": "C1",
+        "beamText": "Record Cabrália",
+        "systemText": "DVB-S2",
+        "symbolRateText": "3750",
+        "fecText": "3/4",
+        "providerText": "EnoSat 250917; 300-300"
+      },
+      "parsed": {
+        "frequencyMHz": 3750,
+        "transponderNumber": "C1",
+        "transponderName": "TP C1",
+        "beamName": "Record Cabrália",
+        "system": "DVB-S2",
+        "symbolRate": 3750,
+        "fec": "3/4",
+        "providerName": "EnoSat 250917; 300-300"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-65-west-a-65w-c1-3750",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 65 WEST A",
+      "orbitalPosition": "65W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-65-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:30.525Z",
+      "raw": {
+        "frequencyText": "3750",
+        "transponderText": "C1",
+        "beamText": "Record Interior SP",
+        "systemText": "DVB-S2",
+        "symbolRateText": "3750",
+        "fecText": "3/4",
+        "providerText": "EnoSat 250917; 1857-1857"
+      },
+      "parsed": {
+        "frequencyMHz": 3750,
+        "transponderNumber": "C1",
+        "transponderName": "TP C1",
+        "beamName": "Record Interior SP",
+        "system": "DVB-S2",
+        "symbolRate": 3750,
+        "fec": "3/4",
+        "providerName": "EnoSat 250917; 1857-1857"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-65-west-a-65w-c1-3730",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 65 WEST A",
+      "orbitalPosition": "65W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-65-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:30.525Z",
+      "raw": {
+        "frequencyText": "3730",
+        "transponderText": "C1",
+        "beamText": "Record Rio Preto",
+        "systemText": "DVB-S2",
+        "symbolRateText": "3730",
+        "fecText": "3/4",
+        "providerText": "EnoSat 250917; 1861-1861"
+      },
+      "parsed": {
+        "frequencyMHz": 3730,
+        "transponderNumber": "C1",
+        "transponderName": "TP C1",
+        "beamName": "Record Rio Preto",
+        "system": "DVB-S2",
+        "symbolRate": 3730,
+        "fec": "3/4",
+        "providerName": "EnoSat 250917; 1861-1861"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-65-west-a-65w-c1-nofreq",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 65 WEST A",
+      "orbitalPosition": "65W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-65-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:30.525Z",
+      "raw": {
+        "transponderText": "C1",
+        "beamText": "EnoSat 250917",
+        "systemText": "DVB-S2",
+        "symbolRateText": "4800",
+        "fecText": "2/3",
+        "providerText": "Record News; 1858-1858"
+      },
+      "parsed": {
+        "transponderNumber": "C1",
+        "transponderName": "TP C1",
+        "beamName": "EnoSat 250917",
+        "system": "DVB-S2",
+        "symbolRate": 4800,
+        "fec": "2/3",
+        "providerName": "Record News; 1858-1858"
+      },
+      "parseQuality": {
+        "hasFrequency": false,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Downlink frequency not parseable; row kept due to transponder ID.",
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-65-west-a-65w-c1-3750",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 65 WEST A",
+      "orbitalPosition": "65W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-65-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:30.525Z",
+      "raw": {
+        "frequencyText": "3750",
+        "transponderText": "C1",
+        "beamText": "Record Paulista",
+        "systemText": "DVB-S2",
+        "symbolRateText": "3750",
+        "fecText": "3/4",
+        "providerText": "EnoSat 250917; 1882-1882"
+      },
+      "parsed": {
+        "frequencyMHz": 3750,
+        "transponderNumber": "C1",
+        "transponderName": "TP C1",
+        "beamName": "Record Paulista",
+        "system": "DVB-S2",
+        "symbolRate": 3750,
+        "fec": "3/4",
+        "providerName": "EnoSat 250917; 1882-1882"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-65-west-a-65w-c1-3847",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 65 WEST A",
+      "orbitalPosition": "65W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-65-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:30.525Z",
+      "raw": {
+        "frequencyText": "3847",
+        "transponderText": "C1",
+        "beamText": "EnoSat 250917",
+        "systemText": "DVB-S2",
+        "symbolRateText": "3847",
+        "fecText": "3/4",
+        "providerText": "VTV (Brazil); 1890-1890"
+      },
+      "parsed": {
+        "frequencyMHz": 3847,
+        "transponderNumber": "C1",
+        "transponderName": "TP C1",
+        "beamName": "EnoSat 250917",
+        "system": "DVB-S2",
+        "symbolRate": 3847,
+        "fec": "3/4",
+        "providerName": "VTV (Brazil); 1890-1890"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-65-west-a-65w-c1-3750",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 65 WEST A",
+      "orbitalPosition": "65W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-65-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:30.525Z",
+      "raw": {
+        "frequencyText": "3750",
+        "transponderText": "C1",
+        "beamText": "Record Interior RJ",
+        "systemText": "DVB-S2",
+        "symbolRateText": "3750",
+        "fecText": "3/4",
+        "providerText": "EnoSat 250917; 1516-1516"
+      },
+      "parsed": {
+        "frequencyMHz": 3750,
+        "transponderNumber": "C1",
+        "transponderName": "TP C1",
+        "beamName": "Record Interior RJ",
+        "system": "DVB-S2",
+        "symbolRate": 3750,
+        "fec": "3/4",
+        "providerName": "EnoSat 250917; 1516-1516"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-65-west-a-65w-c1-nofreq",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 65 WEST A",
+      "orbitalPosition": "65W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-65-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:30.525Z",
+      "raw": {
+        "transponderText": "C1",
+        "beamText": "EnoSat 250917",
+        "systemText": "DVB-S2",
+        "symbolRateText": "4780",
+        "fecText": "3/4",
+        "providerText": "Record Rio; 1513-1513"
+      },
+      "parsed": {
+        "transponderNumber": "C1",
+        "transponderName": "TP C1",
+        "beamName": "EnoSat 250917",
+        "system": "DVB-S2",
+        "symbolRate": 4780,
+        "fec": "3/4",
+        "providerName": "Record Rio; 1513-1513"
+      },
+      "parseQuality": {
+        "hasFrequency": false,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Downlink frequency not parseable; row kept due to transponder ID.",
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-65-west-a-65w-c3-nofreq",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 65 WEST A",
+      "orbitalPosition": "65W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-65-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:30.525Z",
+      "raw": {
+        "transponderText": "C3",
+        "beamText": "EnoSat 250917",
+        "systemText": "DVB-S2",
+        "symbolRateText": "5083",
+        "fecText": "3/4",
+        "providerText": "TV Cachoeira; 1624-1624"
+      },
+      "parsed": {
+        "transponderNumber": "C3",
+        "transponderName": "TP C3",
+        "beamName": "EnoSat 250917",
+        "system": "DVB-S2",
+        "symbolRate": 5083,
+        "fec": "3/4",
+        "providerName": "TV Cachoeira; 1624-1624"
+      },
+      "parseQuality": {
+        "hasFrequency": false,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Downlink frequency not parseable; row kept due to transponder ID.",
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-65-west-a-65w-c3-nofreq",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 65 WEST A",
+      "orbitalPosition": "65W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-65-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:30.525Z",
+      "raw": {
+        "transponderText": "C3",
+        "beamText": "EnoSat 250917",
+        "systemText": "DVB-S2",
+        "symbolRateText": "4780",
+        "fecText": "3/4",
+        "providerText": "Record Minas; 736-436"
+      },
+      "parsed": {
+        "transponderNumber": "C3",
+        "transponderName": "TP C3",
+        "beamName": "EnoSat 250917",
+        "system": "DVB-S2",
+        "symbolRate": 4780,
+        "fec": "3/4",
+        "providerName": "Record Minas; 736-436"
+      },
+      "parseQuality": {
+        "hasFrequency": false,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Downlink frequency not parseable; row kept due to transponder ID.",
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-65-west-a-65w-c3-3750",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 65 WEST A",
+      "orbitalPosition": "65W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-65-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:30.525Z",
+      "raw": {
+        "frequencyText": "3750",
+        "transponderText": "C3",
+        "beamText": "Rede Família TV",
+        "systemText": "DVB-S2",
+        "symbolRateText": "3750",
+        "fecText": "4/5",
+        "providerText": "EnoSat 250917; 1872-1872"
+      },
+      "parsed": {
+        "frequencyMHz": 3750,
+        "transponderNumber": "C3",
+        "transponderName": "TP C3",
+        "beamName": "Rede Família TV",
+        "system": "DVB-S2",
+        "symbolRate": 3750,
+        "fec": "4/5",
+        "providerName": "EnoSat 250917; 1872-1872"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-65-west-a-65w-c3-nofreq",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 65 WEST A",
+      "orbitalPosition": "65W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-65-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:30.525Z",
+      "raw": {
+        "transponderText": "C3",
+        "beamText": "Edinho fta 230708",
+        "systemText": "DVB-S2",
+        "symbolRateText": "4800",
+        "fecText": "2/3",
+        "providerText": "Record News; 1858-1858"
+      },
+      "parsed": {
+        "transponderNumber": "C3",
+        "transponderName": "TP C3",
+        "beamName": "Edinho fta 230708",
+        "system": "DVB-S2",
+        "symbolRate": 4800,
+        "fec": "2/3",
+        "providerName": "Record News; 1858-1858"
+      },
+      "parseQuality": {
+        "hasFrequency": false,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Downlink frequency not parseable; row kept due to transponder ID.",
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-65-west-a-65w-c3-nofreq",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 65 WEST A",
+      "orbitalPosition": "65W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-65-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:30.525Z",
+      "raw": {
+        "transponderText": "C3",
+        "beamText": "EnoSat 250917",
+        "systemText": "DVB-S2",
+        "symbolRateText": "4780",
+        "fecText": "3/4",
+        "providerText": "Record Goiás; 572-572"
+      },
+      "parsed": {
+        "transponderNumber": "C3",
+        "transponderName": "TP C3",
+        "beamName": "EnoSat 250917",
+        "system": "DVB-S2",
+        "symbolRate": 4780,
+        "fec": "3/4",
+        "providerName": "Record Goiás; 572-572"
+      },
+      "parseQuality": {
+        "hasFrequency": false,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Downlink frequency not parseable; row kept due to transponder ID.",
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-65-west-a-65w-row-15-18304",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 65 WEST A",
+      "orbitalPosition": "65W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-65-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:30.525Z",
+      "raw": {
+        "frequencyText": "18304",
+        "beamText": "Record Goiás",
+        "systemText": "MPEG-4",
+        "providerText": "274 Por"
+      },
+      "parsed": {
+        "frequencyMHz": 18304,
+        "beamName": "Record Goiás",
+        "system": "MPEG-4",
+        "providerName": "274 Por"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-65-west-a-65w-row-16-18328",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 65 WEST A",
+      "orbitalPosition": "65W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-65-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:30.525Z",
+      "raw": {
+        "frequencyText": "18328",
+        "beamText": "Record Goiás",
+        "systemText": "MPEG-4",
+        "symbolRateText": "641",
+        "providerText": "643 Por"
+      },
+      "parsed": {
+        "frequencyMHz": 18328,
+        "beamName": "Record Goiás",
+        "system": "MPEG-4",
+        "symbolRate": 641,
+        "providerName": "643 Por"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-65-west-a-65w-c3-nofreq",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 65 WEST A",
+      "orbitalPosition": "65W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-65-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:30.525Z",
+      "raw": {
+        "transponderText": "C3",
+        "beamText": "EnoSat 250917",
+        "systemText": "DVB-S2",
+        "symbolRateText": "4780",
+        "fecText": "3/4",
+        "providerText": "Record RS; 1622-1622"
+      },
+      "parsed": {
+        "transponderNumber": "C3",
+        "transponderName": "TP C3",
+        "beamName": "EnoSat 250917",
+        "system": "DVB-S2",
+        "symbolRate": 4780,
+        "fec": "3/4",
+        "providerName": "Record RS; 1622-1622"
+      },
+      "parseQuality": {
+        "hasFrequency": false,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Downlink frequency not parseable; row kept due to transponder ID.",
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-65-west-a-65w-c3-nofreq",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 65 WEST A",
+      "orbitalPosition": "65W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-65-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:30.525Z",
+      "raw": {
+        "transponderText": "C3",
+        "beamText": "EnoSat 250917",
+        "systemText": "DVB-S2",
+        "symbolRateText": "4780",
+        "fecText": "3/4",
+        "providerText": "Record Bahia; 295-295"
+      },
+      "parsed": {
+        "transponderNumber": "C3",
+        "transponderName": "TP C3",
+        "beamName": "EnoSat 250917",
+        "system": "DVB-S2",
+        "symbolRate": 4780,
+        "fec": "3/4",
+        "providerName": "Record Bahia; 295-295"
+      },
+      "parseQuality": {
+        "hasFrequency": false,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Downlink frequency not parseable; row kept due to transponder ID.",
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-65-west-a-65w-c4-nofreq",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 65 WEST A",
+      "orbitalPosition": "65W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-65-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:30.525Z",
+      "raw": {
+        "transponderText": "C4",
+        "beamText": "EnoSat 250917",
+        "systemText": "DVB-S2",
+        "symbolRateText": "5000",
+        "fecText": "2/3",
+        "providerText": "TV Paranaíba; 727-727"
+      },
+      "parsed": {
+        "transponderNumber": "C4",
+        "transponderName": "TP C4",
+        "beamName": "EnoSat 250917",
+        "system": "DVB-S2",
+        "symbolRate": 5000,
+        "fec": "2/3",
+        "providerName": "TV Paranaíba; 727-727"
+      },
+      "parseQuality": {
+        "hasFrequency": false,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Downlink frequency not parseable; row kept due to transponder ID.",
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-65-west-a-65w-c3-nofreq",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 65 WEST A",
+      "orbitalPosition": "65W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-65-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:30.525Z",
+      "raw": {
+        "transponderText": "C3",
+        "beamText": "EnoSat 250917",
+        "systemText": "DVB-S2",
+        "symbolRateText": "4780",
+        "fecText": "3/4",
+        "providerText": "Record Belém; 1204-1204"
+      },
+      "parsed": {
+        "transponderNumber": "C3",
+        "transponderName": "TP C3",
+        "beamName": "EnoSat 250917",
+        "system": "DVB-S2",
+        "symbolRate": 4780,
+        "fec": "3/4",
+        "providerName": "Record Belém; 1204-1204"
+      },
+      "parseQuality": {
+        "hasFrequency": false,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Downlink frequency not parseable; row kept due to transponder ID.",
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-65-west-a-65w-c4-3750",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 65 WEST A",
+      "orbitalPosition": "65W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-65-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:30.525Z",
+      "raw": {
+        "frequencyText": "3750",
+        "transponderText": "C4",
+        "beamText": "EnoSat 250917",
+        "systemText": "DVB-S2",
+        "symbolRateText": "3750",
+        "fecText": "2/3",
+        "providerText": "6.6 4112 Por; TV Atalaia"
+      },
+      "parsed": {
+        "frequencyMHz": 3750,
+        "transponderNumber": "C4",
+        "transponderName": "TP C4",
+        "beamName": "EnoSat 250917",
+        "system": "DVB-S2",
+        "symbolRate": 3750,
+        "fec": "2/3",
+        "providerName": "6.6 4112 Por; TV Atalaia"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-65-west-a-65w-row-22-4114",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 65 WEST A",
+      "orbitalPosition": "65W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-65-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:30.525Z",
+      "raw": {
+        "frequencyText": "4114",
+        "beamText": "Xodó FM"
+      },
+      "parsed": {
+        "frequencyMHz": 4114,
+        "beamName": "Xodó FM"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": false,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable.",
+          "No DVB system/SR/FEC parameters found."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-65-west-a-65w-c3-3750",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 65 WEST A",
+      "orbitalPosition": "65W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-65-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:30.525Z",
+      "raw": {
+        "frequencyText": "3750",
+        "transponderText": "C3",
+        "beamText": "EnoSat 250917",
+        "systemText": "DVB-S2",
+        "symbolRateText": "3750",
+        "fecText": "2/3",
+        "providerText": "6.6 4112 Por; TVAL"
+      },
+      "parsed": {
+        "frequencyMHz": 3750,
+        "transponderNumber": "C3",
+        "transponderName": "TP C3",
+        "beamName": "EnoSat 250917",
+        "system": "DVB-S2",
+        "symbolRate": 3750,
+        "fec": "2/3",
+        "providerName": "6.6 4112 Por; TVAL"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-65-west-a-65w-c4-nofreq",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 65 WEST A",
+      "orbitalPosition": "65W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-65-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:30.525Z",
+      "raw": {
+        "transponderText": "C4",
+        "beamText": "EnoSat 250917",
+        "systemText": "DVB-S2",
+        "symbolRateText": "6670",
+        "fecText": "2/3",
+        "providerText": "TV UNAM; 1337-0"
+      },
+      "parsed": {
+        "transponderNumber": "C4",
+        "transponderName": "TP C4",
+        "beamName": "EnoSat 250917",
+        "system": "DVB-S2",
+        "symbolRate": 6670,
+        "fec": "2/3",
+        "providerName": "TV UNAM; 1337-0"
+      },
+      "parseQuality": {
+        "hasFrequency": false,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Downlink frequency not parseable; row kept due to transponder ID.",
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-65-west-a-65w-c5-nofreq",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 65 WEST A",
+      "orbitalPosition": "65W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-65-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:30.525Z",
+      "raw": {
+        "transponderText": "C5",
+        "beamText": "EnoSat 250917",
+        "systemText": "DVB-S2",
+        "symbolRateText": "30000",
+        "fecText": "5/6",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "transponderNumber": "C5",
+        "transponderName": "TP C5",
+        "beamName": "EnoSat 250917",
+        "system": "DVB-S2",
+        "symbolRate": 30000,
+        "fec": "5/6",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": false,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Downlink frequency not parseable; row kept due to transponder ID.",
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-65-west-a-65w-c7-3750",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 65 WEST A",
+      "orbitalPosition": "65W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-65-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:30.525Z",
+      "raw": {
+        "frequencyText": "3750",
+        "transponderText": "C7",
+        "beamText": "EnoSat 250917",
+        "systemText": "DVB-S2",
+        "symbolRateText": "3750",
+        "fecText": "2/3",
+        "providerText": "TV ALEPE; 0-0"
+      },
+      "parsed": {
+        "frequencyMHz": 3750,
+        "transponderNumber": "C7",
+        "transponderName": "TP C7",
+        "beamName": "EnoSat 250917",
+        "system": "DVB-S2",
+        "symbolRate": 3750,
+        "fec": "2/3",
+        "providerName": "TV ALEPE; 0-0"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-65-west-a-65w-c8-nofreq",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 65 WEST A",
+      "orbitalPosition": "65W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-65-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:30.525Z",
+      "raw": {
+        "transponderText": "C8",
+        "beamText": "Eutelsat 210614",
+        "systemText": "DVB-S2",
+        "symbolRateText": "7072",
+        "fecText": "3/4",
+        "providerText": "Verimatrix (B); TV TEM Bauru; 1856-1856"
+      },
+      "parsed": {
+        "transponderNumber": "C8",
+        "transponderName": "TP C8",
+        "beamName": "Eutelsat 210614",
+        "system": "DVB-S2",
+        "symbolRate": 7072,
+        "fec": "3/4",
+        "providerName": "Verimatrix (B); TV TEM Bauru; 1856-1856"
+      },
+      "parseQuality": {
+        "hasFrequency": false,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Downlink frequency not parseable; row kept due to transponder ID.",
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-65-west-a-65w-c7-3720",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 65 WEST A",
+      "orbitalPosition": "65W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-65-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:30.525Z",
+      "raw": {
+        "frequencyText": "3720",
+        "transponderText": "C7",
+        "beamText": "Band Triângulo",
+        "systemText": "DVB-S2",
+        "symbolRateText": "3720",
+        "fecText": "3/4",
+        "providerText": "EnoSat 250917; Conax; 1-1"
+      },
+      "parsed": {
+        "frequencyMHz": 3720,
+        "transponderNumber": "C7",
+        "transponderName": "TP C7",
+        "beamName": "Band Triângulo",
+        "system": "DVB-S2",
+        "symbolRate": 3720,
+        "fec": "3/4",
+        "providerName": "EnoSat 250917; Conax; 1-1"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-65-west-a-65w-c8-nofreq",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 65 WEST A",
+      "orbitalPosition": "65W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-65-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:30.525Z",
+      "raw": {
+        "transponderText": "C8",
+        "beamText": "TV TEM São José do Rio Preto",
+        "systemText": "DVB-S2",
+        "symbolRateText": "7072",
+        "fecText": "3/4",
+        "providerText": "Eutelsat 210614; Verimatrix (B); 1866-1866"
+      },
+      "parsed": {
+        "transponderNumber": "C8",
+        "transponderName": "TP C8",
+        "beamName": "TV TEM São José do Rio Preto",
+        "system": "DVB-S2",
+        "symbolRate": 7072,
+        "fec": "3/4",
+        "providerName": "Eutelsat 210614; Verimatrix (B); 1866-1866"
+      },
+      "parseQuality": {
+        "hasFrequency": false,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Downlink frequency not parseable; row kept due to transponder ID.",
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-65-west-a-65w-c7-nofreq",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 65 WEST A",
+      "orbitalPosition": "65W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-65-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:30.525Z",
+      "raw": {
+        "transponderText": "C7",
+        "beamText": "TV Integração Juiz de Fora",
+        "systemText": "DVB-S2",
+        "symbolRateText": "6668",
+        "fecText": "3/4",
+        "providerText": "EnoSat 250921; 725-0"
+      },
+      "parsed": {
+        "transponderNumber": "C7",
+        "transponderName": "TP C7",
+        "beamName": "TV Integração Juiz de Fora",
+        "system": "DVB-S2",
+        "symbolRate": 6668,
+        "fec": "3/4",
+        "providerName": "EnoSat 250921; 725-0"
+      },
+      "parseQuality": {
+        "hasFrequency": false,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Downlink frequency not parseable; row kept due to transponder ID.",
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-65-west-a-65w-c7-nofreq",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 65 WEST A",
+      "orbitalPosition": "65W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-65-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:30.525Z",
+      "raw": {
+        "transponderText": "C7",
+        "beamText": "Edinho fta 230707",
+        "systemText": "DVB-S2",
+        "symbolRateText": "2500",
+        "fecText": "2/3",
+        "providerText": "TV ALBA; 0-1"
+      },
+      "parsed": {
+        "transponderNumber": "C7",
+        "transponderName": "TP C7",
+        "beamName": "Edinho fta 230707",
+        "system": "DVB-S2",
+        "symbolRate": 2500,
+        "fec": "2/3",
+        "providerName": "TV ALBA; 0-1"
+      },
+      "parseQuality": {
+        "hasFrequency": false,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Downlink frequency not parseable; row kept due to transponder ID.",
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-65-west-a-65w-c8-nofreq",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 65 WEST A",
+      "orbitalPosition": "65W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-65-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:30.525Z",
+      "raw": {
+        "transponderText": "C8",
+        "beamText": "TV TEM Itapetininga",
+        "systemText": "DVB-S2",
+        "symbolRateText": "7072",
+        "fecText": "3/4",
+        "providerText": "Eutelsat 210614; Verimatrix (B); 1897-1897"
+      },
+      "parsed": {
+        "transponderNumber": "C8",
+        "transponderName": "TP C8",
+        "beamName": "TV TEM Itapetininga",
+        "system": "DVB-S2",
+        "symbolRate": 7072,
+        "fec": "3/4",
+        "providerName": "Eutelsat 210614; Verimatrix (B); 1897-1897"
+      },
+      "parseQuality": {
+        "hasFrequency": false,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Downlink frequency not parseable; row kept due to transponder ID.",
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-65-west-a-65w-c7-nofreq",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 65 WEST A",
+      "orbitalPosition": "65W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-65-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:30.525Z",
+      "raw": {
+        "transponderText": "C7",
+        "beamText": "Wilkherdasilva 260214"
+      },
+      "parsed": {
+        "transponderNumber": "C7",
+        "transponderName": "TP C7",
+        "beamName": "Wilkherdasilva 260214"
+      },
+      "parseQuality": {
+        "hasFrequency": false,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": false,
+        "confidence": "LOW",
+        "warnings": [
+          "Downlink frequency not parseable; row kept due to transponder ID.",
+          "Polarization not present or not parseable.",
+          "No DVB system/SR/FEC parameters found."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-65-west-a-65w-c7-nofreq",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 65 WEST A",
+      "orbitalPosition": "65W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-65-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:30.525Z",
+      "raw": {
+        "transponderText": "C7",
+        "beamText": "TV Integração",
+        "systemText": "DVB-S2",
+        "symbolRateText": "10000",
+        "fecText": "3/4",
+        "providerText": "EnoSat 250917; 724-724"
+      },
+      "parsed": {
+        "transponderNumber": "C7",
+        "transponderName": "TP C7",
+        "beamName": "TV Integração",
+        "system": "DVB-S2",
+        "symbolRate": 10000,
+        "fec": "3/4",
+        "providerName": "EnoSat 250917; 724-724"
+      },
+      "parseQuality": {
+        "hasFrequency": false,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Downlink frequency not parseable; row kept due to transponder ID.",
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-65-west-a-65w-c7-nofreq",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 65 WEST A",
+      "orbitalPosition": "65W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-65-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:30.525Z",
+      "raw": {
+        "transponderText": "C7",
+        "beamText": "EnoSat 250920",
+        "systemText": "DVB-S2",
+        "symbolRateText": "9165",
+        "fecText": "3/4",
+        "providerText": "1831-1831"
+      },
+      "parsed": {
+        "transponderNumber": "C7",
+        "transponderName": "TP C7",
+        "beamName": "EnoSat 250920",
+        "system": "DVB-S2",
+        "symbolRate": 9165,
+        "fec": "3/4",
+        "providerName": "1831-1831"
+      },
+      "parseQuality": {
+        "hasFrequency": false,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Downlink frequency not parseable; row kept due to transponder ID.",
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-65-west-a-65w-c9-3730",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 65 WEST A",
+      "orbitalPosition": "65W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-65-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:30.525Z",
+      "raw": {
+        "frequencyText": "3730",
+        "transponderText": "C9",
+        "beamText": "Record Litoral e Vale",
+        "systemText": "DVB-S2",
+        "symbolRateText": "3730",
+        "fecText": "3/4",
+        "providerText": "EnoSat 250917; 1894-1894"
+      },
+      "parsed": {
+        "frequencyMHz": 3730,
+        "transponderNumber": "C9",
+        "transponderName": "TP C9",
+        "beamName": "Record Litoral e Vale",
+        "system": "DVB-S2",
+        "symbolRate": 3730,
+        "fec": "3/4",
+        "providerName": "EnoSat 250917; 1894-1894"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-65-west-a-65w-c10-nofreq",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 65 WEST A",
+      "orbitalPosition": "65W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-65-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:30.525Z",
+      "raw": {
+        "transponderText": "C10",
+        "beamText": "EnoSat 250917",
+        "systemText": "DVB-S2",
+        "symbolRateText": "30000",
+        "fecText": "5/6",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "transponderNumber": "C10",
+        "transponderName": "TP C10",
+        "beamName": "EnoSat 250917",
+        "system": "DVB-S2",
+        "symbolRate": 30000,
+        "fec": "5/6",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": false,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Downlink frequency not parseable; row kept due to transponder ID.",
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-65-west-a-65w-c5-11304",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 65 WEST A",
+      "orbitalPosition": "65W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-65-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:30.525Z",
+      "raw": {
+        "frequencyText": "11304",
+        "polarizationText": "H",
+        "transponderText": "C5",
+        "beamText": "D de Jong 260102",
+        "systemText": "DVB-S2",
+        "symbolRateText": "30000",
+        "fecText": "3/5",
+        "providerText": "Eutelsat; Irdeto"
+      },
+      "parsed": {
+        "frequencyMHz": 11304,
+        "polarization": "H",
+        "transponderNumber": "C5",
+        "transponderName": "TP C5",
+        "beamName": "D de Jong 260102",
+        "system": "DVB-S2",
+        "symbolRate": 30000,
+        "fec": "3/5",
+        "providerName": "Eutelsat; Irdeto"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-65-west-a-65w-c7-11346",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 65 WEST A",
+      "orbitalPosition": "65W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-65-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:30.525Z",
+      "raw": {
+        "frequencyText": "11346",
+        "polarizationText": "H",
+        "transponderText": "C7",
+        "beamText": "Verimatrix (B) Irdeto Verimatrix",
+        "systemText": "DVB-S2",
+        "symbolRateText": "30000",
+        "fecText": "2/3",
+        "providerText": "C de Berazategui 250210; Eutelsat"
+      },
+      "parsed": {
+        "frequencyMHz": 11346,
+        "polarization": "H",
+        "transponderNumber": "C7",
+        "transponderName": "TP C7",
+        "beamName": "Verimatrix (B) Irdeto Verimatrix",
+        "system": "DVB-S2",
+        "symbolRate": 30000,
+        "fec": "2/3",
+        "providerName": "C de Berazategui 250210; Eutelsat"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-65-west-a-65w-s2-11436",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 65 WEST A",
+      "orbitalPosition": "65W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-65-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:30.525Z",
+      "raw": {
+        "frequencyText": "11436",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "TV FMUSP-HC News",
+        "systemText": "DVB-S2",
+        "symbolRateText": "2500",
+        "fecText": "2/3",
+        "providerText": "InfoSat 250714; 6.6 102 Por"
+      },
+      "parsed": {
+        "frequencyMHz": 11436,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "TV FMUSP-HC News",
+        "system": "DVB-S2",
+        "symbolRate": 2500,
+        "fec": "2/3",
+        "providerName": "InfoSat 250714; 6.6 102 Por"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-65-west-a-65w-s2-11440",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 65 WEST A",
+      "orbitalPosition": "65W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-65-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:30.525Z",
+      "raw": {
+        "frequencyText": "11440",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "EnoSat 250607",
+        "systemText": "DVB-S2",
+        "symbolRateText": "5000",
+        "fecText": "2/3",
+        "providerText": "0-0"
+      },
+      "parsed": {
+        "frequencyMHz": 11440,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "EnoSat 250607",
+        "system": "DVB-S2",
+        "symbolRate": 5000,
+        "fec": "2/3",
+        "providerName": "0-0"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-65-west-a-65w-s2-11445",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 65 WEST A",
+      "orbitalPosition": "65W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-65-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:30.525Z",
+      "raw": {
+        "frequencyText": "11445",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "TV Mais Conasems",
+        "systemText": "DVB-S2",
+        "symbolRateText": "2400",
+        "fecText": "2/3",
+        "providerText": "EnoSat 260422; 6.6 258 Por"
+      },
+      "parsed": {
+        "frequencyMHz": 11445,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "TV Mais Conasems",
+        "system": "DVB-S2",
+        "symbolRate": 2400,
+        "fec": "2/3",
+        "providerName": "EnoSat 260422; 6.6 258 Por"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-65-west-a-65w-s2-nofreq",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 65 WEST A",
+      "orbitalPosition": "65W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-65-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:30.525Z",
+      "raw": {
+        "transponderText": "S2",
+        "beamText": "System:",
+        "systemText": "DVB-S2",
+        "providerText": "non-DTH"
+      },
+      "parsed": {
+        "transponderNumber": "S2",
+        "beamName": "System:",
+        "system": "DVB-S2",
+        "providerName": "non-DTH"
+      },
+      "parseQuality": {
+        "hasFrequency": false,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Downlink frequency not parseable; row kept due to transponder ID.",
+          "Polarization not present or not parseable."
+        ]
+      }
+    }
+  ]
+}

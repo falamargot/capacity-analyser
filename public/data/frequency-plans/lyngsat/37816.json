@@ -1,0 +1,741 @@
+{
+  "source": "LYNGSAT",
+  "satelliteName": "EUTELSAT 7 WEST A",
+  "orbitalPosition": "7W",
+  "url": "https://www.lyngsat.com/Eutelsat-7-West-A.html",
+  "retrievedAt": "2026-05-01T07:48:07.608Z",
+  "parserStats": {
+    "totalRowsSeen": 483,
+    "rowsWithFrequency": 74,
+    "rowsWithBeam": 77,
+    "rowsWithTransponderId": 42,
+    "rowsSkipped": 405,
+    "skipReasons": {
+      "too_few_cells": 50,
+      "no_frequency_no_transponder": 355
+    }
+  },
+  "rows": [
+    {
+      "frequencyMHz": 10815,
+      "polarization": "H",
+      "transponderNumber": "A5",
+      "transponderName": "TP A5",
+      "beamName": "M Al-Taie Er Balvinder Singh 260429",
+      "system": "DVB-S",
+      "symbolRate": 27500,
+      "fec": "7/8",
+      "provider": "Viewsat; 65535-1",
+      "htmlRowText": "10815 H tp A5 MENA 0 | DVB-S 27500 7/8 | Viewsat | 65535-1 | 7.2 | M Al-Taie Er Balvinder Singh 260429"
+    },
+    {
+      "frequencyMHz": 10834,
+      "polarization": "V",
+      "transponderNumber": "A8",
+      "transponderName": "TP A8",
+      "beamName": "Dondohodho 260426",
+      "system": "DVB-S2",
+      "symbolRate": 27500,
+      "fec": "3/4",
+      "provider": "Qatar TV; 1-1",
+      "htmlRowText": "10834 V tp A8 MENA 0 | DVB-S2 8PSK 27500 3/4 | Qatar TV | 1-1 | 7.9 | Dondohodho 260426"
+    },
+    {
+      "frequencyMHz": 10853,
+      "polarization": "H",
+      "transponderNumber": "A7",
+      "transponderName": "TP A7",
+      "beamName": "R Cervi 260215",
+      "htmlRowText": "10853 H tp A7 MENA 0 | R Cervi 260215"
+    },
+    {
+      "frequencyMHz": 10873,
+      "polarization": "V",
+      "transponderNumber": "A10",
+      "transponderName": "TP A10",
+      "beamName": "M Al-Taie 260417",
+      "system": "DVB-S",
+      "symbolRate": 27500,
+      "fec": "7/8",
+      "provider": "Eutelsat MENA; 110-18",
+      "htmlRowText": "10873 V tp A10 MENA 0 | DVB-S 27500 7/8 | Eutelsat MENA | 110-18 | 7.2 | M Al-Taie 260417"
+    },
+    {
+      "frequencyMHz": 10892,
+      "polarization": "H",
+      "transponderNumber": "A9",
+      "transponderName": "TP A9",
+      "beamName": "Best gamer 251203",
+      "system": "DVB-S",
+      "symbolRate": 27500,
+      "fec": "7/8",
+      "provider": "Eutelsat MENA; 110-20",
+      "htmlRowText": "10892 H tp A9 MENA 0 | DVB-S 27500 7/8 | Eutelsat MENA | 110-20 | 7.2 | Best gamer 251203"
+    },
+    {
+      "frequencyMHz": 10922,
+      "polarization": "V",
+      "transponderNumber": "A12",
+      "transponderName": "TP A12",
+      "beamName": "M Al-Taie 260305",
+      "system": "DVB-S",
+      "symbolRate": 27500,
+      "fec": "7/8",
+      "provider": "110-17",
+      "htmlRowText": "10922 V tp A12 MENA 0 | DVB-S 27500 7/8 | TDA | 110-17 | 7.2 | M Al-Taie 260305"
+    },
+    {
+      "transponderNumber": "N1",
+      "beamName": "3302 Ara",
+      "system": "MPEG-4",
+      "htmlRowText": "2030 | El Djazaïr N1 | MPEG-4/SD | 3301 | 3302 Ara"
+    },
+    {
+      "frequencyMHz": 3401,
+      "beamName": "Ennahar TV",
+      "system": "MPEG-4",
+      "symbolRate": 2040,
+      "provider": "3402 Ara",
+      "htmlRowText": "2040 | Ennahar TV | MPEG-4/HD | 3401 | 3402 Ara"
+    },
+    {
+      "frequencyMHz": 3421,
+      "beamName": "Zahra TV (Algeria)",
+      "system": "MPEG-4",
+      "symbolRate": 2042,
+      "provider": "3422 Ara",
+      "htmlRowText": "2042 | Zahra TV (Algeria) | MPEG-4/SD | 3421 | 3422 Ara"
+    },
+    {
+      "frequencyMHz": 3431,
+      "beamName": "3432 Ara",
+      "system": "MPEG-4",
+      "symbolRate": 2043,
+      "provider": "4Kids",
+      "htmlRowText": "2043 | 4Kids | MPEG-4/HD | 3431 | 3432 Ara"
+    },
+    {
+      "frequencyMHz": 10992,
+      "polarization": "V",
+      "transponderNumber": "B2",
+      "transponderName": "TP B2",
+      "beamName": "R Cervi 230408",
+      "system": "DVB-S2",
+      "symbolRate": 5000,
+      "fec": "9/10",
+      "provider": "Eutelsat MENA; 1918-20200",
+      "htmlRowText": "10992 V tp B2 NW Africa 0 | DVB-S2 8PSK 5000 9/10 | Eutelsat MENA | 1918-20200 | 11.0 | R Cervi 230408"
+    },
+    {
+      "frequencyMHz": 11034,
+      "polarization": "V",
+      "transponderNumber": "B4",
+      "transponderName": "TP B4",
+      "beamName": "R Cervi 230425",
+      "system": "DVB-S2",
+      "symbolRate": 5000,
+      "fec": "3/4",
+      "htmlRowText": "11034 V tp B4 NW Africa 0 | DVB-S2 8PSK 5000 3/4 | {} | 7.9 | R Cervi 230425"
+    },
+    {
+      "frequencyMHz": 11158,
+      "polarization": "V",
+      "transponderNumber": "B10",
+      "transponderName": "TP B10",
+      "beamName": "M Al-Taie 260301",
+      "system": "DVB-S2",
+      "symbolRate": 5000,
+      "fec": "9/10",
+      "provider": "1918-20100; SNRT",
+      "htmlRowText": "11158 V tp B10 NW Africa 0 | DVB-S2 8PSK 5000 9/10 | SNRT | 1918-20100 | 11.0 | M Al-Taie 260301"
+    },
+    {
+      "frequencyMHz": 11219,
+      "polarization": "H",
+      "transponderNumber": "C1",
+      "transponderName": "TP C1",
+      "beamName": "Hadowooalsatan M Al-Taie A7Sats 250306",
+      "system": "DVB-S2",
+      "symbolRate": 27500,
+      "fec": "3/4",
+      "provider": "1918-53900",
+      "htmlRowText": "11219 H tp C1 MENA 0 | DVB-S2 8PSK 27500 3/4 | MBC | 1918-53900 | 7.9 | Hadowooalsatan M Al-Taie A7Sats 250306"
+    },
+    {
+      "frequencyMHz": 11227,
+      "polarization": "V",
+      "transponderNumber": "C2",
+      "transponderName": "TP C2",
+      "beamName": "M Al-Taie Dondohodho 260424",
+      "htmlRowText": "11227 V tp C2 MENA 0 | M Al-Taie Dondohodho 260424"
+    },
+    {
+      "frequencyMHz": 11258,
+      "polarization": "H",
+      "transponderNumber": "C3",
+      "transponderName": "TP C3",
+      "beamName": "R Cervi 260426",
+      "system": "DVB-S2",
+      "symbolRate": 27500,
+      "fec": "5/6",
+      "provider": "Eutelsat MENA; 110-16",
+      "htmlRowText": "11258 H tp C3 MENA 0 | DVB-S2 8PSK 27500 5/6 | Eutelsat MENA | 110-16 | 9.4 | R Cervi 260426"
+    },
+    {
+      "frequencyMHz": 4062,
+      "beamName": "Hawa Dijlah Radio",
+      "htmlRowText": "406 | Hawa Dijlah Radio | 4062 Ara"
+    },
+    {
+      "frequencyMHz": 11277,
+      "polarization": "V",
+      "transponderNumber": "C4",
+      "transponderName": "TP C4",
+      "beamName": "M Al-Taie 260214",
+      "system": "DVB-S",
+      "symbolRate": 27500,
+      "fec": "5/6",
+      "provider": "1918-40040; Eutelsat",
+      "htmlRowText": "11277 V tp C4 MENA 0 | DVB-S 27500 5/6 | Eutelsat | 1918-40040 | 6.5 | M Al-Taie 260214"
+    },
+    {
+      "frequencyMHz": 4171,
+      "beamName": "Zee Alwan Egypt",
+      "system": "MPEG-2",
+      "provider": "4172 Ara",
+      "htmlRowText": "7 | Zee Alwan Egypt | MPEG-2/SD | 4171 | 4172 Ara"
+    },
+    {
+      "frequencyMHz": 4061,
+      "beamName": "4062 Ara",
+      "system": "MPEG-2",
+      "provider": "Lana TV",
+      "htmlRowText": "9 | Lana TV | MPEG-2/SD | 4061 | 4062 Ara"
+    },
+    {
+      "frequencyMHz": 4071,
+      "beamName": "4072 Ara",
+      "system": "MPEG-2",
+      "provider": "Zad TV",
+      "htmlRowText": "10 | Zad TV | MPEG-2/SD | 4071 | 4072 Ara"
+    },
+    {
+      "frequencyMHz": 4081,
+      "beamName": "Cartoon Network Arabic",
+      "system": "MPEG-2",
+      "provider": "4082 Ara",
+      "htmlRowText": "12 | Cartoon Network Arabic | MPEG-2/SD | 4081 | 4082 Ara"
+    },
+    {
+      "frequencyMHz": 4141,
+      "beamName": "KBS World",
+      "system": "MPEG-2",
+      "provider": "4142 Kor",
+      "htmlRowText": "14 | KBS World | MPEG-2/SD | 4141 | 4142 Kor"
+    },
+    {
+      "frequencyMHz": 4161,
+      "beamName": "China Arab TV",
+      "system": "MPEG-2",
+      "provider": "4162 Ara",
+      "htmlRowText": "16 | China Arab TV | MPEG-2/SD | 4161 | 4162 Ara"
+    },
+    {
+      "frequencyMHz": 11296,
+      "polarization": "H",
+      "transponderNumber": "C5",
+      "transponderName": "TP C5",
+      "beamName": "M Al-Taie 260310",
+      "system": "DVB-S2",
+      "symbolRate": 27500,
+      "fec": "3/4",
+      "provider": "1918-40500; Eutelsat",
+      "htmlRowText": "11296 H tp C5 MENA 0 | DVB-S2 8PSK 27500 3/4 | Eutelsat | 1918-40500 | 7.9 | M Al-Taie 260310"
+    },
+    {
+      "frequencyMHz": 11315,
+      "polarization": "V",
+      "transponderNumber": "C6",
+      "transponderName": "TP C6",
+      "beamName": "M Al-Taie 250601",
+      "system": "DVB-S",
+      "symbolRate": 27500,
+      "fec": "5/6",
+      "provider": "Eutelsat MENA; 1918-40060",
+      "htmlRowText": "11315 V tp C6 MENA 0 | DVB-S 27500 5/6 | Eutelsat MENA | 1918-40060 | 6.5 | M Al-Taie 250601"
+    },
+    {
+      "frequencyMHz": 11334,
+      "polarization": "H",
+      "transponderNumber": "C7",
+      "transponderName": "TP C7",
+      "beamName": "R Cervi 260311",
+      "system": "DVB-S2",
+      "symbolRate": 27500,
+      "fec": "5/6",
+      "provider": "Eutelsat MENA; 1918-40700",
+      "htmlRowText": "11334 H tp C7 MENA 0 | DVB-S2 8PSK 27500 5/6 | Eutelsat MENA | 1918-40700 | 9.4 | R Cervi 260311"
+    },
+    {
+      "frequencyMHz": 11354,
+      "polarization": "V",
+      "transponderNumber": "C8",
+      "transponderName": "TP C8",
+      "beamName": "R Cervi 260408",
+      "system": "DVB-S2",
+      "symbolRate": 27500,
+      "fec": "5/6",
+      "provider": "Eutelsat; 2048-800",
+      "htmlRowText": "11354 V tp C8 MENA 0 | DVB-S2 8PSK 27500 5/6 | Eutelsat | 2048-800 | 9.4 | R Cervi 260408"
+    },
+    {
+      "frequencyMHz": 3503,
+      "beamName": "PraiseLive Global",
+      "symbolRate": 1035,
+      "htmlRowText": "1035 | PraiseLive Global | 3503 Eng"
+    },
+    {
+      "frequencyMHz": 11373,
+      "polarization": "H",
+      "transponderNumber": "C9",
+      "transponderName": "TP C9",
+      "beamName": "M Al-Taie 260202",
+      "system": "DVB-S2",
+      "symbolRate": 27500,
+      "fec": "5/6",
+      "provider": "Eutelsat MENA; 2048-201",
+      "htmlRowText": "11373 H tp C9 MENA 0 | DVB-S2 8PSK 27500 5/6 | Eutelsat MENA | 2048-201 | 9.4 | M Al-Taie 260202"
+    },
+    {
+      "frequencyMHz": 3531,
+      "beamName": "Atfal & Mawaheb",
+      "system": "MPEG-4",
+      "provider": "3532 Ara",
+      "htmlRowText": "353 | Atfal & Mawaheb | MPEG-4/SD | 3531 | 3532 Ara"
+    },
+    {
+      "frequencyMHz": 3561,
+      "beamName": "LuaLua TV",
+      "system": "MPEG-4",
+      "provider": "3562 Ara",
+      "htmlRowText": "356 | LuaLua TV | MPEG-4/SD | 3561 | 3562 Ara"
+    },
+    {
+      "frequencyMHz": 3571,
+      "beamName": "Dijlah Zaman",
+      "system": "MPEG-4",
+      "provider": "3572 Ara",
+      "htmlRowText": "357 | Dijlah Zaman | MPEG-4/HD | 3571 | 3572 Ara"
+    },
+    {
+      "frequencyMHz": 3591,
+      "beamName": "Al-Mawqef TV",
+      "system": "MPEG-4",
+      "provider": "3592 Ara",
+      "htmlRowText": "359 | Al-Mawqef TV | MPEG-4/HD | 3591 | 3592 Ara"
+    },
+    {
+      "frequencyMHz": 3601,
+      "beamName": "3602 Ara",
+      "system": "MPEG-4",
+      "provider": "Afaq TV",
+      "htmlRowText": "360 | Afaq TV | MPEG-4/HD | 3601 | 3602 Ara"
+    },
+    {
+      "frequencyMHz": 3611,
+      "beamName": "3612 Ara",
+      "system": "MPEG-4",
+      "provider": "2M TV",
+      "htmlRowText": "361 | 2M TV | MPEG-4/HD | 3611 | 3612 Ara"
+    },
+    {
+      "frequencyMHz": 3621,
+      "beamName": "Angel TV Arabic",
+      "system": "MPEG-4",
+      "symbolRate": 2000,
+      "provider": "2000 Ara",
+      "htmlRowText": "362 | Angel TV Arabic | MPEG-4/SD | 3621 | 2000 Ara | new"
+    },
+    {
+      "frequencyMHz": 11392,
+      "polarization": "V",
+      "transponderNumber": "C10",
+      "transponderName": "TP C10",
+      "beamName": "M Al-Taie 260407",
+      "system": "DVB-S",
+      "symbolRate": 27500,
+      "fec": "7/8",
+      "provider": "Eutelsat MENA; 110-23",
+      "htmlRowText": "11392 V tp C10 MENA 0 | DVB-S 27500 7/8 | Eutelsat MENA | 110-23 | 7.2 | M Al-Taie 260407"
+    },
+    {
+      "frequencyMHz": 11411,
+      "polarization": "H",
+      "transponderNumber": "C11",
+      "transponderName": "TP C11",
+      "beamName": "Abu Dhabi Media Network",
+      "system": "DVB-S2",
+      "symbolRate": 30000,
+      "fec": "3/4",
+      "provider": "Crazylee 250628; 100-50",
+      "htmlRowText": "11411 H tp C11 MENA 0 | DVB-S2 8PSK 30000 3/4 | Abu Dhabi Media Network | 100-50 | 7.9 | Crazylee 250628"
+    },
+    {
+      "frequencyMHz": 11430,
+      "polarization": "V",
+      "transponderNumber": "C12",
+      "transponderName": "TP C12",
+      "beamName": "R Cervi 260408",
+      "system": "DVB-S",
+      "symbolRate": 27500,
+      "fec": "7/8",
+      "provider": "Eutelsat MENA; 918-41200",
+      "htmlRowText": "11430 V tp C12 MENA 0 | DVB-S 27500 7/8 | Eutelsat MENA | 918-41200 | 7.2 | R Cervi 260408"
+    },
+    {
+      "transponderNumber": "M24",
+      "beamName": "2082 Ara",
+      "system": "MPEG-2",
+      "htmlRowText": "1208 | M24 TV | MPEG-2/SD | 2081 | 2082 Ara"
+    },
+    {
+      "frequencyMHz": 11449,
+      "polarization": "H",
+      "transponderNumber": "C13",
+      "transponderName": "TP C13",
+      "beamName": "Er Balvinder Singh 260429",
+      "system": "DVB-S2",
+      "symbolRate": 27500,
+      "fec": "3/4",
+      "provider": "Eutelsat MENA; 65535-2",
+      "htmlRowText": "11449 H tp C13 MENA 0 | DVB-S2 8PSK 27500 3/4 | Eutelsat MENA | 65535-2 | 7.9 | Er Balvinder Singh 260429"
+    },
+    {
+      "frequencyMHz": 11475,
+      "polarization": "V",
+      "transponderNumber": "D2",
+      "transponderName": "TP D2",
+      "beamName": "R Cervi 241125",
+      "system": "DVB-S",
+      "symbolRate": 27500,
+      "fec": "3/4",
+      "provider": "1918-40200; SNRT",
+      "htmlRowText": "11475 V tp D2 NW Africa 0 | DVB-S 27500 3/4 | SNRT | 1918-40200 | 5.5 | R Cervi 241125"
+    },
+    {
+      "frequencyMHz": 11488,
+      "polarization": "H",
+      "transponderNumber": "C15",
+      "transponderName": "TP C15",
+      "beamName": "M Al-Taie A7Sats 251030",
+      "system": "DVB-S",
+      "symbolRate": 27500,
+      "fec": "7/8",
+      "provider": "Eutelsat MENA; 1918-41500",
+      "htmlRowText": "11488 H tp C15 MENA 0 | DVB-S 27500 7/8 | Eutelsat MENA | 1918-41500 | 7.2 | M Al-Taie A7Sats 251030"
+    },
+    {
+      "frequencyMHz": 11514,
+      "polarization": "V",
+      "transponderNumber": "D2",
+      "transponderName": "TP D2",
+      "beamName": "R Cervi 240803",
+      "system": "DVB-S2",
+      "symbolRate": 27500,
+      "fec": "2/3",
+      "provider": "1918-40300; SNRT",
+      "htmlRowText": "11514 V tp D2 NW Africa 0 | DVB-S2 8PSK 27500 2/3 | SNRT | 1918-40300 | 6.6 | R Cervi 240803"
+    },
+    {
+      "frequencyMHz": 4001,
+      "beamName": "Athaqafia",
+      "system": "MPEG-4",
+      "provider": "4002 Ara",
+      "htmlRowText": "140 | Athaqafia | MPEG-4/HD | 4001 | 4002 Ara"
+    },
+    {
+      "frequencyMHz": 11526,
+      "polarization": "H",
+      "transponderNumber": "C17",
+      "transponderName": "TP C17",
+      "beamName": "Verimatrix (B) Nagravision Viaccess",
+      "system": "DVB-S2",
+      "symbolRate": 27500,
+      "fec": "5/6",
+      "provider": "M Al-Taie 251219; 1918-40150; EClutch",
+      "htmlRowText": "11526 H tp C17 MENA 0 | DVB-S2 8PSK 27500 5/6 | EClutch | 1918-40150 | 9.4 | Verimatrix (B) Nagravision Viaccess | M Al-Taie 251219"
+    },
+    {
+      "frequencyMHz": 11559,
+      "polarization": "V",
+      "transponderNumber": "D4",
+      "transponderName": "TP D4",
+      "beamName": "A7Sats 250912",
+      "system": "DVB-S",
+      "symbolRate": 27500,
+      "fec": "5/6",
+      "eirpDbw": 60,
+      "provider": "2048-60",
+      "htmlRowText": "11559 V tp D4 NW Africa 0 | DVB-S 27500 5/6 | MBC | 2048-60 | 6.5 | A7Sats 250912"
+    },
+    {
+      "frequencyMHz": 11603,
+      "polarization": "H",
+      "transponderNumber": "C21",
+      "transponderName": "TP C21",
+      "beamName": "R Cervi 260406",
+      "system": "DVB-S",
+      "symbolRate": 27500,
+      "fec": "5/6",
+      "provider": "Eutelsat MENA; 110-3105",
+      "htmlRowText": "11603 H tp C21 MENA 0 | DVB-S 27500 5/6 | Eutelsat MENA | 110-3105 | 6.5 | R Cervi 260406"
+    },
+    {
+      "frequencyMHz": 3601,
+      "beamName": "Karbala TV",
+      "system": "MPEG-4",
+      "symbolRate": 601,
+      "htmlRowText": "601 | Karbala TV | MPEG-4/HD | 2601 | 3601 Ara"
+    },
+    {
+      "frequencyMHz": 3603,
+      "beamName": "[Faith TV info card]",
+      "system": "MPEG-4",
+      "symbolRate": 603,
+      "htmlRowText": "603 | [Faith TV info card] | MPEG-4/SD | 2603 | 3603"
+    },
+    {
+      "frequencyMHz": 3604,
+      "beamName": "EriPM",
+      "system": "MPEG-2",
+      "symbolRate": 604,
+      "htmlRowText": "604 | EriPM | MPEG-2/SD | 2604 | 3604 Amh"
+    },
+    {
+      "frequencyMHz": 3606,
+      "beamName": "Sawt Alitra TV",
+      "system": "MPEG-2",
+      "symbolRate": 606,
+      "htmlRowText": "606 | Sawt Alitra TV | MPEG-2/SD | 2606 | 3606 Ara"
+    },
+    {
+      "frequencyMHz": 3609,
+      "beamName": "Suhail TV",
+      "system": "MPEG-2",
+      "symbolRate": 609,
+      "htmlRowText": "609 | Suhail TV | MPEG-2/SD | 2609 | 3609 Ara"
+    },
+    {
+      "frequencyMHz": 3610,
+      "beamName": "Taha TV",
+      "system": "MPEG-2",
+      "symbolRate": 610,
+      "htmlRowText": "610 | Taha TV | MPEG-2/SD | 2610 | 3610 Ara"
+    },
+    {
+      "frequencyMHz": 3612,
+      "system": "MPEG-2",
+      "symbolRate": 612,
+      "htmlRowText": "612 | KTO | MPEG-2/SD | 2612 | 3612 Fre"
+    },
+    {
+      "frequencyMHz": 3613,
+      "beamName": "ME Sat",
+      "system": "MPEG-2",
+      "symbolRate": 613,
+      "htmlRowText": "613 | ME Sat | MPEG-2/SD | 2613 | 3613 Ara"
+    },
+    {
+      "frequencyMHz": 11641,
+      "polarization": "H",
+      "transponderNumber": "C23",
+      "transponderName": "TP C23",
+      "beamName": "Janlakomcik 260311",
+      "system": "DVB-S2",
+      "symbolRate": 27500,
+      "fec": "3/4",
+      "provider": "Eutelsat MENA; 110-3107",
+      "htmlRowText": "11641 H tp C23 MENA 0 | DVB-S2 8PSK 27500 3/4 | Eutelsat MENA | 110-3107 | 7.9 | Janlakomcik 260311"
+    },
+    {
+      "frequencyMHz": 4031,
+      "beamName": "Al Maaref TV",
+      "system": "MPEG-2",
+      "provider": "4032 Ara",
+      "htmlRowText": "403 | Al Maaref TV | MPEG-2/SD | 4031 | 4032 Ara"
+    },
+    {
+      "frequencyMHz": 4051,
+      "beamName": "Menhag TV",
+      "system": "MPEG-4",
+      "provider": "4052 Ara",
+      "htmlRowText": "405 | Menhag TV | MPEG-4/SD | 4051 | 4052 Ara"
+    },
+    {
+      "frequencyMHz": 11658,
+      "polarization": "V",
+      "transponderNumber": "D6",
+      "transponderName": "TP D6",
+      "beamName": "M Al-Taie 260204",
+      "system": "DVB-S",
+      "symbolRate": 27500,
+      "fec": "2/3",
+      "provider": "65535-0",
+      "htmlRowText": "11658 V tp D6 NW Africa 0 | DVB-S 27500 2/3 | ONT | 65535-0 | 4.4 | M Al-Taie 260204"
+    },
+    {
+      "frequencyMHz": 11680,
+      "polarization": "H",
+      "transponderNumber": "C25",
+      "transponderName": "TP C25",
+      "beamName": "R Cervi 240424",
+      "system": "DVB-S2",
+      "symbolRate": 27500,
+      "fec": "2/3",
+      "provider": "0-1",
+      "htmlRowText": "11680 H tp C25 MENA 0 | DVB-S2 8PSK 27500 2/3 | TDA | 0-1 | 6.6 | R Cervi 240424"
+    },
+    {
+      "transponderNumber": "A3",
+      "beamName": "110 Ara",
+      "system": "MPEG-4",
+      "eirpDbw": 25,
+      "htmlRowText": "25 | Thalitha A3 | MPEG-4/HD | 101 | 110 Ara"
+    },
+    {
+      "frequencyMHz": 12169,
+      "polarization": "V",
+      "transponderNumber": "E24",
+      "transponderName": "TP E24",
+      "beamName": "Dondohodho M Al-Taie 260319",
+      "system": "DVB-S2",
+      "symbolRate": 27500,
+      "fec": "2/3",
+      "provider": "1918-30100; Kuwait TV",
+      "htmlRowText": "12169 V tp E24 MENA 0 | DVB-S2 8PSK 27500 2/3 | Kuwait TV | 1918-30100 | 6.6 | Dondohodho M Al-Taie 260319"
+    },
+    {
+      "frequencyMHz": 12188,
+      "polarization": "H",
+      "transponderNumber": "E25",
+      "transponderName": "TP E25",
+      "beamName": "Irdeto Videoguard",
+      "system": "DVB-S2",
+      "symbolRate": 27500,
+      "fec": "2/3",
+      "provider": "A7Sats 260121; 1918-500; BeIn",
+      "htmlRowText": "12188 H tp E25 MENA 0 | DVB-S2 8PSK 27500 2/3 | BeIn | 1918-500 | 6.6 | Irdeto Videoguard | A7Sats 260121"
+    },
+    {
+      "frequencyMHz": 12245,
+      "polarization": "V",
+      "transponderNumber": "E28",
+      "transponderName": "TP E28",
+      "beamName": "Irdeto Videoguard",
+      "system": "DVB-S2",
+      "symbolRate": 27500,
+      "fec": "2/3",
+      "provider": "M Al-Taie 260126; 1918-400; BeIn",
+      "htmlRowText": "12245 V tp E28 MENA 0 | DVB-S2 8PSK 27500 2/3 | BeIn | 1918-400 | 6.6 | Irdeto Videoguard | M Al-Taie 260126"
+    },
+    {
+      "frequencyMHz": 12322,
+      "polarization": "V",
+      "transponderNumber": "E32",
+      "transponderName": "TP E32",
+      "beamName": "M Al-Taie A7Sats 251025",
+      "system": "DVB-S2",
+      "symbolRate": 30000,
+      "fec": "3/4",
+      "eirpDbw": 66,
+      "provider": "2048-66",
+      "htmlRowText": "12322 V tp E32 MENA 0 | DVB-S2 8PSK 30000 3/4 | Du | 2048-66 | 7.9 | M Al-Taie A7Sats 251025"
+    },
+    {
+      "frequencyMHz": 12360,
+      "polarization": "V",
+      "transponderNumber": "E34",
+      "transponderName": "TP E34",
+      "beamName": "Anonymous 250903",
+      "system": "DVB-S2",
+      "symbolRate": 27500,
+      "fec": "3/4",
+      "provider": "1918-53400; Asharq",
+      "htmlRowText": "12360 V tp E34 MENA 0 | DVB-S2 8PSK 27500 3/4 | Asharq | 1918-53400 | 7.9 | Anonymous 250903"
+    },
+    {
+      "frequencyMHz": 3411,
+      "beamName": "Asharq News",
+      "system": "MPEG-4",
+      "provider": "341. Ara",
+      "htmlRowText": "101 | Asharq News | MPEG-4/HD | 3411 | 341. Ara"
+    },
+    {
+      "frequencyMHz": 3421,
+      "beamName": "Asharq Documentary",
+      "system": "MPEG-4",
+      "provider": "3422 Ara",
+      "htmlRowText": "102 | Asharq Documentary | MPEG-4/HD | 3421 | 3422 Ara"
+    },
+    {
+      "frequencyMHz": 3431,
+      "beamName": "3432 Ara 3433 Eng",
+      "system": "MPEG-4",
+      "provider": "Asharq Discovery",
+      "htmlRowText": "103 | Asharq Discovery | MPEG-4/HD | 3431 | 3432 Ara 3433 Eng"
+    },
+    {
+      "frequencyMHz": 3471,
+      "beamName": "Thamanya 1",
+      "system": "MPEG-4",
+      "provider": "3472 Ara",
+      "htmlRowText": "107 | Thamanya 1 | MPEG-4/HD | 3471 | 3472 Ara"
+    },
+    {
+      "frequencyMHz": 3481,
+      "beamName": "Thamanya 2",
+      "system": "MPEG-4",
+      "provider": "3482 Ara",
+      "htmlRowText": "108 | Thamanya 2 | MPEG-4/HD | 3481 | 3482 Ara"
+    },
+    {
+      "frequencyMHz": 3491,
+      "beamName": "Thamanya 3",
+      "system": "MPEG-4",
+      "provider": "3492 Ara",
+      "htmlRowText": "109 | Thamanya 3 | MPEG-4/HD | 3491 | 3492 Ara"
+    },
+    {
+      "frequencyMHz": 3413,
+      "beamName": "Radio Asharq",
+      "htmlRowText": "101 | Radio Asharq | 3413 Ara"
+    },
+    {
+      "frequencyMHz": 12399,
+      "polarization": "V",
+      "transponderNumber": "E36",
+      "transponderName": "TP E36",
+      "beamName": "M Al-Taie 260306",
+      "htmlRowText": "12399 V tp E36 MENA 0 | M Al-Taie 260306"
+    },
+    {
+      "frequencyMHz": 12418,
+      "polarization": "H",
+      "transponderNumber": "E37",
+      "transponderName": "TP E37",
+      "beamName": "M Al-Taie 240427",
+      "system": "DVB-S2",
+      "symbolRate": 30000,
+      "fec": "3/4",
+      "provider": "Dubai Media; 1918-53700",
+      "htmlRowText": "12418 H tp E37 MENA 0 | DVB-S2 8PSK 30000 3/4 | Dubai Media | 1918-53700 | 7.9 | M Al-Taie 240427"
+    },
+    {
+      "transponderNumber": "S2",
+      "beamName": "System:",
+      "system": "DVB-S2",
+      "provider": "non-DTH",
+      "htmlRowText": "System: | DVB-S2 | DVB-S | non-DTH | - | -"
+    }
+  ]
+}

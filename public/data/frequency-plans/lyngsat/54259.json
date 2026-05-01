@@ -1,0 +1,666 @@
+{
+  "source": "LYNGSAT",
+  "satelliteName": "EUTELSAT 10B",
+  "orbitalPosition": "10E",
+  "url": "https://www.lyngsat.com/Eutelsat-10B.html",
+  "retrievedAt": "2026-05-01T07:48:58.584Z",
+  "parserStats": {
+    "totalRowsSeen": 240,
+    "rowsWithFrequency": 67,
+    "rowsWithBeam": 70,
+    "rowsWithTransponderId": 43,
+    "rowsSkipped": 170,
+    "skipReasons": {
+      "too_few_cells": 48,
+      "no_frequency_no_transponder": 122
+    }
+  },
+  "rows": [
+    {
+      "frequencyMHz": 3807,
+      "polarization": "R",
+      "beamName": "N Stanislav 260213",
+      "htmlRowText": "3807 R Global 38-40 | N Stanislav 260213"
+    },
+    {
+      "frequencyMHz": 3836,
+      "polarization": "R",
+      "transponderNumber": "S2",
+      "beamName": "N Stanislav 260421",
+      "system": "DVB-S2",
+      "symbolRate": 1650,
+      "fec": "5/6",
+      "provider": "Loveworld XP; 9.4 4113 Eng",
+      "htmlRowText": "3836 R Global 38-40 | DVB-S2 8PSK 1650 5/6 | 2 | Loveworld XP | 2710-257 MPEG-4/HD | 481 | 9.4 4113 Eng | N Stanislav 260421"
+    },
+    {
+      "frequencyMHz": 3861,
+      "polarization": "R",
+      "transponderNumber": "S2",
+      "beamName": "N Stanislav 260109",
+      "system": "DVB-S2",
+      "symbolRate": 4042,
+      "fec": "2/3",
+      "provider": "6.6 512 Fre; Télé Tchad",
+      "htmlRowText": "3861 R Global 38-40 | DVB-S2 8PSK 4042 2/3 | 1 | Télé Tchad | 0-0 MPEG-4/HD | 4212 | 6.6 512 Fre | N Stanislav 260109"
+    },
+    {
+      "frequencyMHz": 3870,
+      "polarization": "R",
+      "transponderNumber": "S2",
+      "beamName": "N Stanislav 260107",
+      "system": "DVB-S2",
+      "symbolRate": 3333,
+      "fec": "2/3",
+      "provider": "Rwanda TV; 1000-1",
+      "htmlRowText": "3870 R Global 38-40 | DVB-S2 8PSK 3333 2/3 | Rwanda TV | 1000-1 | 6.6 | N Stanislav 260107"
+    },
+    {
+      "transponderNumber": "KC2",
+      "beamName": "122 Eng",
+      "system": "MPEG-4",
+      "htmlRowText": "2 | KC2 | MPEG-4/SD | 102 | 122 Eng"
+    },
+    {
+      "frequencyMHz": 3874,
+      "polarization": "R",
+      "transponderNumber": "S2",
+      "beamName": "Deeper Christian Life Ministry feeds",
+      "system": "DVB-S2",
+      "symbolRate": 2080,
+      "fec": "5/6",
+      "provider": "N Stanislav 260327",
+      "htmlRowText": "3874 R Global 38-40 | DVB-S2 8PSK 2080 5/6 | Deeper Christian Life Ministry feeds | N Stanislav 260327"
+    },
+    {
+      "frequencyMHz": 3890,
+      "polarization": "L",
+      "transponderNumber": "S2",
+      "beamName": "DX Bozóth 260217",
+      "system": "DVB-S2",
+      "symbolRate": 3750,
+      "fec": "3/4",
+      "provider": "(feeds)",
+      "htmlRowText": "3890 L Global | DVB-S2 8PSK 3750 3/4 | (feeds) | DX Bozóth 260217"
+    },
+    {
+      "frequencyMHz": 3900,
+      "polarization": "R",
+      "transponderNumber": "S2",
+      "beamName": "StarTimes TV Kenya",
+      "system": "DVB-S2",
+      "symbolRate": 23330,
+      "fec": "8/9",
+      "provider": "Anonymous 260418; 1-4",
+      "htmlRowText": "3900 R Global 38-40 | DVB-S2 8PSK 23330 8/9 | StarTimes TV Kenya | 1-4 | 10.7 | Anonymous 260418"
+    },
+    {
+      "transponderNumber": "K24",
+      "beamName": "1042 Eng",
+      "system": "MPEG-4",
+      "htmlRowText": "104 | K24 | MPEG-4/SD | 1041 | 1042 Eng"
+    },
+    {
+      "frequencyMHz": 4119,
+      "beamName": "Emoo FM",
+      "htmlRowText": "127 | Emoo FM | 4119"
+    },
+    {
+      "frequencyMHz": 3949,
+      "polarization": "R",
+      "transponderNumber": "S2",
+      "beamName": "S Ugbeda 240530",
+      "system": "DVB-S2",
+      "symbolRate": 1212,
+      "fec": "3/4",
+      "provider": "4.0 4112 Eng; Hip TV",
+      "htmlRowText": "3949 R Global 38-40 | DVB-S2 QPSK 1212 3/4 | 1 | Hip TV | 8192-4096 MPEG-4/SD | 512 | 4.0 4112 Eng | S Ugbeda 240530"
+    },
+    {
+      "frequencyMHz": 3986,
+      "polarization": "R",
+      "transponderNumber": "S2",
+      "beamName": "DX Bozóth 250322",
+      "system": "DVB-S2",
+      "symbolRate": 18260,
+      "fec": "3/4",
+      "provider": "Ugandan mux; 4660-1",
+      "htmlRowText": "3986 R Global 38-40 | DVB-S2 8PSK 18260 3/4 | Ugandan mux | 4660-1 | 7.9 | DX Bozóth 250322"
+    },
+    {
+      "frequencyMHz": 3482,
+      "beamName": "Salam TV (Uganda)",
+      "system": "MPEG-4",
+      "provider": "3483 Eng",
+      "htmlRowText": "348 | Salam TV (Uganda) | MPEG-4/SD | 3482 | 3483 Eng"
+    },
+    {
+      "frequencyMHz": 3492,
+      "beamName": "Uganda Catholic TV",
+      "system": "MPEG-4",
+      "provider": "3493 Eng",
+      "htmlRowText": "349 | Uganda Catholic TV | MPEG-4/SD | 3492 | 3493 Eng"
+    },
+    {
+      "frequencyMHz": 3502,
+      "beamName": "UBC TV",
+      "system": "MPEG-4",
+      "htmlRowText": "350 | UBC TV | MPEG-4/SD | 3502 | 3503"
+    },
+    {
+      "frequencyMHz": 3512,
+      "beamName": "NTV Uganda",
+      "system": "MPEG-4",
+      "provider": "3513 Eng",
+      "htmlRowText": "351 | NTV Uganda | MPEG-4/SD | 3512 | 3513 Eng"
+    },
+    {
+      "frequencyMHz": 3522,
+      "beamName": "3523 Swa",
+      "system": "MPEG-4",
+      "provider": "NBS TV",
+      "htmlRowText": "352 | NBS TV | MPEG-4/SD | 3522 | 3523 Swa"
+    },
+    {
+      "frequencyMHz": 3532,
+      "beamName": "Bukedde 1",
+      "system": "MPEG-4",
+      "htmlRowText": "353 | Bukedde 1 | MPEG-4/SD | 3532 | 3533"
+    },
+    {
+      "frequencyMHz": 3542,
+      "beamName": "Bukedde 2",
+      "system": "MPEG-4",
+      "htmlRowText": "354 | Bukedde 2 | MPEG-4/SD | 3542 | 3543"
+    },
+    {
+      "frequencyMHz": 3552,
+      "beamName": "3553 Swa",
+      "system": "MPEG-4",
+      "provider": "BBS TV",
+      "htmlRowText": "355 | BBS TV | MPEG-4/SD | 3552 | 3553 Swa"
+    },
+    {
+      "frequencyMHz": 3562,
+      "beamName": "Tayari West",
+      "system": "MPEG-4",
+      "provider": "3563 Swa",
+      "htmlRowText": "356 | Tayari West | MPEG-4/SD | 3562 | 3563 Swa"
+    },
+    {
+      "frequencyMHz": 3572,
+      "beamName": "TV West (Uganda)",
+      "system": "MPEG-4",
+      "provider": "3573 Eng",
+      "htmlRowText": "357 | TV West (Uganda) | MPEG-4/SD | 3572 | 3573 Eng"
+    },
+    {
+      "frequencyMHz": 3582,
+      "beamName": "Spark TV",
+      "system": "MPEG-4",
+      "provider": "3583 Eng",
+      "htmlRowText": "358 | Spark TV | MPEG-4/SD | 3582 | 3583 Eng"
+    },
+    {
+      "frequencyMHz": 3592,
+      "beamName": "3593 Eng",
+      "system": "MPEG-4",
+      "provider": "Salt TV",
+      "htmlRowText": "359 | Salt TV | MPEG-4/SD | 3592 | 3593 Eng"
+    },
+    {
+      "frequencyMHz": 3602,
+      "beamName": "Channel 44",
+      "system": "MPEG-4",
+      "eirpDbw": 44,
+      "provider": "3603 Eng",
+      "htmlRowText": "360 | Channel 44 | MPEG-4/SD | 3602 | 3603 Eng"
+    },
+    {
+      "frequencyMHz": 3612,
+      "beamName": "Top TV (Uganda)",
+      "system": "MPEG-4",
+      "provider": "3613 Eng",
+      "htmlRowText": "361 | Top TV (Uganda) | MPEG-4/SD | 3612 | 3613 Eng"
+    },
+    {
+      "frequencyMHz": 3622,
+      "beamName": "Chamuka TV",
+      "system": "MPEG-4",
+      "provider": "3623 Eng",
+      "htmlRowText": "362 | Chamuka TV | MPEG-4/SD | 3622 | 3623 Eng"
+    },
+    {
+      "frequencyMHz": 3632,
+      "beamName": "Kingdom TV (Uganda)",
+      "system": "MPEG-4",
+      "provider": "3633 Eng",
+      "htmlRowText": "363 | Kingdom TV (Uganda) | MPEG-4/SD | 3632 | 3633 Eng"
+    },
+    {
+      "frequencyMHz": 3642,
+      "beamName": "King Solomon TV",
+      "system": "MPEG-4",
+      "provider": "3643 Eng",
+      "htmlRowText": "364 | King Solomon TV | MPEG-4/SD | 3642 | 3643 Eng"
+    },
+    {
+      "frequencyMHz": 3652,
+      "beamName": "3.53 Eng",
+      "system": "MPEG-4",
+      "eirpDbw": 53,
+      "provider": "KBS TV",
+      "htmlRowText": "365 | KBS TV | MPEG-4/SD | 3652 | 3.53 Eng"
+    },
+    {
+      "frequencyMHz": 3662,
+      "beamName": "Sanyuka TV",
+      "system": "MPEG-4",
+      "htmlRowText": "366 | Sanyuka TV | MPEG-4/SD | 3662 | 3663"
+    },
+    {
+      "frequencyMHz": 3672,
+      "beamName": "3673 Eng",
+      "system": "MPEG-4",
+      "provider": "Baba TV",
+      "htmlRowText": "367 | Baba TV | MPEG-4/SD | 3672 | 3673 Eng"
+    },
+    {
+      "frequencyMHz": 3682,
+      "beamName": "Bunyoro TV",
+      "system": "MPEG-4",
+      "provider": "3683 Eng",
+      "htmlRowText": "368 | Bunyoro TV | MPEG-4/SD | 3682 | 3683 Eng"
+    },
+    {
+      "frequencyMHz": 3692,
+      "beamName": "Westnile TV",
+      "system": "MPEG-4",
+      "provider": "3693 Eng",
+      "htmlRowText": "369 | Westnile TV | MPEG-4/SD | 3692 | 3693 Eng"
+    },
+    {
+      "frequencyMHz": 4008,
+      "polarization": "R",
+      "beamName": "N Stanislav 260327",
+      "htmlRowText": "4008 R Global 38-40 | N Stanislav 260327"
+    },
+    {
+      "frequencyMHz": 4028,
+      "polarization": "R",
+      "transponderNumber": "S2",
+      "beamName": "N Stanislav 250301",
+      "system": "DVB-S2",
+      "symbolRate": 2480,
+      "fec": "1/2",
+      "provider": "Morning Cloud TV; 1.0 2102 Eng",
+      "htmlRowText": "4028 R Global 38-40 | DVB-S2 QPSK 2480 1/2 | 1 | Morning Cloud TV | 0-0 MPEG-4/HD | 2101 | 1.0 2102 Eng | N Stanislav 250301"
+    },
+    {
+      "frequencyMHz": 4034,
+      "polarization": "R",
+      "transponderNumber": "S2",
+      "beamName": "(Deeper Christian Life Ministry feeds)",
+      "system": "DVB-S2",
+      "symbolRate": 5415,
+      "fec": "3/4",
+      "provider": "Torrex12 260129",
+      "htmlRowText": "4034 R Global | DVB-S2 QPSK 5415 3/4 | (Deeper Christian Life Ministry feeds) | Torrex12 260129"
+    },
+    {
+      "frequencyMHz": 4039,
+      "polarization": "R",
+      "transponderNumber": "S2",
+      "beamName": "N Stanislav 231102",
+      "system": "DVB-S2",
+      "symbolRate": 3333,
+      "fec": "3/4",
+      "provider": "1-1",
+      "htmlRowText": "4039 R Global 38-40 | DVB-S2 8PSK 3333 3/4 | TVT | 1-1 | 7.9 | N Stanislav 231102"
+    },
+    {
+      "frequencyMHz": 4065,
+      "polarization": "R",
+      "transponderNumber": "S2",
+      "beamName": "N Stanislav 260426",
+      "system": "DVB-S2",
+      "symbolRate": 3400,
+      "fec": "3/4",
+      "provider": "1-3",
+      "htmlRowText": "4065 R Global 38-40 | DVB-S2 8PSK 3400 3/4 | 1-3 | 7.9 | BISS 1 | N Stanislav 260426"
+    },
+    {
+      "frequencyMHz": 10721,
+      "polarization": "H",
+      "transponderNumber": "S2",
+      "beamName": "Jamie A 260412",
+      "system": "DVB-S2",
+      "symbolRate": 7200,
+      "fec": "3/4",
+      "provider": "(feeds)",
+      "htmlRowText": "10721 H Europe Wide | DVB-S2 8PSK 7200 3/4 | (feeds) | Jamie A 260412"
+    },
+    {
+      "frequencyMHz": 10736,
+      "polarization": "V",
+      "transponderNumber": "S2",
+      "beamName": "Roli 250704",
+      "system": "DVB-S2",
+      "symbolRate": 9600,
+      "fec": "3/4",
+      "provider": "(feeds)",
+      "htmlRowText": "10736 V Europe Wide | DVB-S2 8PSK 9600 3/4 | (feeds) | Roli 250704"
+    },
+    {
+      "frequencyMHz": 10746,
+      "polarization": "V",
+      "transponderNumber": "S2",
+      "beamName": "Roli Jamie A 250628",
+      "system": "DVB-S2",
+      "symbolRate": 7200,
+      "fec": "3/4",
+      "provider": "(feeds)",
+      "htmlRowText": "10746 V Europe Wide | DVB-S2 8PSK 7200 3/4 | (feeds) | Roli Jamie A 250628"
+    },
+    {
+      "frequencyMHz": 10760,
+      "polarization": "V",
+      "transponderNumber": "S2",
+      "beamName": "Roli 250704",
+      "system": "DVB-S2",
+      "symbolRate": 9600,
+      "fec": "3/4",
+      "provider": "(feeds)",
+      "htmlRowText": "10760 V Europe Wide | DVB-S2 8PSK 9600 3/4 | (feeds) | Roli 250704"
+    },
+    {
+      "frequencyMHz": 10769,
+      "polarization": "V",
+      "transponderNumber": "S2",
+      "beamName": "Roli 250628",
+      "system": "DVB-S2",
+      "symbolRate": 9600,
+      "fec": "3/4",
+      "provider": "(feeds)",
+      "htmlRowText": "10769 V Europe Wide | DVB-S2 8PSK 9600 3/4 | (feeds) | Roli 250628"
+    },
+    {
+      "frequencyMHz": 10771,
+      "polarization": "H",
+      "beamName": "N Stanislav 260301",
+      "htmlRowText": "10771 H Europe Wide 48 | N Stanislav 260301"
+    },
+    {
+      "frequencyMHz": 10781,
+      "polarization": "V",
+      "transponderNumber": "S2",
+      "beamName": "Roli 250628",
+      "system": "DVB-S2",
+      "symbolRate": 9600,
+      "fec": "3/4",
+      "provider": "(feeds)",
+      "htmlRowText": "10781 V Europe Wide | DVB-S2 8PSK 9600 3/4 | (feeds) | Roli 250628"
+    },
+    {
+      "frequencyMHz": 10803,
+      "polarization": "H",
+      "transponderNumber": "S2",
+      "beamName": "Roli 251231",
+      "system": "DVB-S2",
+      "symbolRate": 9874,
+      "fec": "3/4",
+      "provider": "(feeds)",
+      "htmlRowText": "10803 H Europe Wide | DVB-S2 8PSK 9874 3/4 | (feeds) | Roli 251231"
+    },
+    {
+      "frequencyMHz": 10875,
+      "polarization": "H",
+      "transponderNumber": "S2",
+      "beamName": "Roli 251014",
+      "system": "DVB-S2",
+      "symbolRate": 7200,
+      "fec": "3/4",
+      "provider": "(feeds)",
+      "htmlRowText": "10875 H Europe Wide | DVB-S2 8PSK 7200 3/4 | (feeds) | Roli 251014"
+    },
+    {
+      "frequencyMHz": 10998,
+      "polarization": "H",
+      "transponderNumber": "S2",
+      "beamName": "Roli 260124",
+      "system": "DVB-S2",
+      "symbolRate": 7200,
+      "fec": "3/4",
+      "provider": "(feeds)",
+      "htmlRowText": "10998 H Europe Wide | DVB-S2 8PSK 7200 3/4 | (feeds) | Roli 260124"
+    },
+    {
+      "frequencyMHz": 11165,
+      "polarization": "H",
+      "transponderNumber": "S2",
+      "beamName": "Roli 251105",
+      "system": "DVB-S2",
+      "symbolRate": 9874,
+      "fec": "3/4",
+      "provider": "(feeds)",
+      "htmlRowText": "11165 H Europe Wide | DVB-S2 8PSK 9874 3/4 | (feeds) | Roli 251105"
+    },
+    {
+      "frequencyMHz": 11167,
+      "polarization": "V",
+      "transponderNumber": "S2",
+      "beamName": "Roli 260402",
+      "system": "DVB-S2",
+      "symbolRate": 7200,
+      "fec": "3/4",
+      "provider": "(feeds)",
+      "htmlRowText": "11167 V Europe Wide | DVB-S2 8PSK 7200 3/4 | (feeds) | Roli 260402"
+    },
+    {
+      "frequencyMHz": 11176,
+      "polarization": "V",
+      "transponderNumber": "S2",
+      "beamName": "Jamie A 260401",
+      "system": "DVB-S2",
+      "symbolRate": 7200,
+      "fec": "3/4",
+      "provider": "(feeds)",
+      "htmlRowText": "11176 V Europe Wide | DVB-S2 8PSK 7200 3/4 | (feeds) | Jamie A 260401"
+    },
+    {
+      "frequencyMHz": 11188,
+      "polarization": "V",
+      "transponderNumber": "S2",
+      "beamName": "Roli Jamie A 251120",
+      "system": "DVB-S2",
+      "symbolRate": 7200,
+      "fec": "3/4",
+      "provider": "(feeds)",
+      "htmlRowText": "11188 V Europe Wide | DVB-S2 8PSK 7200 3/4 | (feeds) | Roli Jamie A 251120"
+    },
+    {
+      "frequencyMHz": 11200,
+      "polarization": "H",
+      "transponderNumber": "C2",
+      "transponderName": "TP C2",
+      "beamName": "Anonymous 240728",
+      "symbolRate": 70000,
+      "fec": "3/4",
+      "provider": "EBU feeds",
+      "htmlRowText": "11200 H tp C2 Europe Wide 48 | NS4 16APSK 70000 3/4 | EBU feeds | Anonymous 240728"
+    },
+    {
+      "frequencyMHz": 11221,
+      "polarization": "V",
+      "transponderNumber": "C1",
+      "transponderName": "TP C1",
+      "beamName": "S Evans P Piotrowski D Shimoni D de Jong 260331",
+      "system": "DVB-S2",
+      "symbolRate": 24760,
+      "fec": "5/6",
+      "provider": "Irdeto; BFBS; 16-1",
+      "htmlRowText": "11221 V tp C1 Europe Wide 48 | DVB-S2 QPSK 24760 5/6 | BFBS | 16-1 | 5.2 | Irdeto | S Evans P Piotrowski D Shimoni D de Jong 260331"
+    },
+    {
+      "frequencyMHz": 11247,
+      "polarization": "H",
+      "transponderNumber": "S2",
+      "beamName": "Roli 251025",
+      "system": "DVB-S2",
+      "symbolRate": 7400,
+      "fec": "5/6",
+      "provider": "(feeds)",
+      "htmlRowText": "11247 H Europe Wide | DVB-S2 8PSK 7400 5/6 | (feeds) | Roli 251025"
+    },
+    {
+      "frequencyMHz": 11256,
+      "polarization": "H",
+      "transponderNumber": "S2",
+      "beamName": "Roli 251025",
+      "system": "DVB-S2",
+      "symbolRate": 7400,
+      "fec": "5/6",
+      "provider": "(feeds)",
+      "htmlRowText": "11256 H Europe Wide | DVB-S2 8PSK 7400 5/6 | (feeds) | Roli 251025"
+    },
+    {
+      "frequencyMHz": 11265,
+      "polarization": "V",
+      "transponderNumber": "S2",
+      "beamName": "Roli Jamie A Jonali 260315",
+      "system": "DVB-S2",
+      "symbolRate": 4800,
+      "fec": "3/4",
+      "provider": "(feeds)",
+      "htmlRowText": "11265 V Europe Wide | DVB-S2 8PSK 4800 3/4 | (feeds) | Roli Jamie A Jonali 260315"
+    },
+    {
+      "frequencyMHz": 11271,
+      "polarization": "V",
+      "transponderNumber": "S2",
+      "beamName": "Roli Jamie A 260315",
+      "system": "DVB-S2",
+      "symbolRate": 4800,
+      "fec": "3/4",
+      "provider": "(feeds)",
+      "htmlRowText": "11271 V Europe Wide | DVB-S2 8PSK 4800 3/4 | (feeds) | Roli Jamie A 260315"
+    },
+    {
+      "frequencyMHz": 11275,
+      "polarization": "H",
+      "transponderNumber": "S2",
+      "beamName": "Jamie A 251117",
+      "system": "DVB-S2",
+      "symbolRate": 4800,
+      "fec": "3/4",
+      "provider": "(feeds)",
+      "htmlRowText": "11275 H Europe Wide | DVB-S2 8PSK 4800 3/4 | (feeds) | Jamie A 251117"
+    },
+    {
+      "frequencyMHz": 11277,
+      "polarization": "V",
+      "transponderNumber": "S2",
+      "beamName": "Roli Jamie A 260315",
+      "system": "DVB-S2",
+      "symbolRate": 3600,
+      "fec": "5/6",
+      "provider": "(feeds)",
+      "htmlRowText": "11277 V Europe Wide | DVB-S2 8PSK 3600 5/6 | (feeds) | Roli Jamie A 260315"
+    },
+    {
+      "frequencyMHz": 11281,
+      "polarization": "V",
+      "transponderNumber": "S2",
+      "beamName": "Roli Jamie A 260315",
+      "system": "DVB-S2",
+      "symbolRate": 3600,
+      "fec": "5/6",
+      "provider": "(feeds)",
+      "htmlRowText": "11281 V Europe Wide | DVB-S2 8PSK 3600 5/6 | (feeds) | Roli Jamie A 260315"
+    },
+    {
+      "frequencyMHz": 11284,
+      "polarization": "H",
+      "transponderNumber": "S2",
+      "beamName": "Jamie A 251020",
+      "system": "DVB-S2",
+      "symbolRate": 3214,
+      "fec": "3/4",
+      "provider": "(feeds)",
+      "htmlRowText": "11284 H Europe Wide | DVB-S2 8PSK 3214 3/4 | (feeds) | Jamie A 251020"
+    },
+    {
+      "frequencyMHz": 11289,
+      "polarization": "V",
+      "transponderNumber": "S2",
+      "beamName": "Jamie A 260116",
+      "system": "DVB-S2",
+      "symbolRate": 7200,
+      "fec": "3/4",
+      "provider": "(feeds)",
+      "htmlRowText": "11289 V Europe Wide | DVB-S2 8PSK 7200 3/4 | (feeds) | Jamie A 260116"
+    },
+    {
+      "frequencyMHz": 11291,
+      "polarization": "H",
+      "transponderNumber": "S2",
+      "beamName": "Roli 251227",
+      "system": "DVB-S2",
+      "symbolRate": 7500,
+      "fec": "2/3",
+      "provider": "(feeds)",
+      "htmlRowText": "11291 H Europe Wide | DVB-S2 8PSK 7500 2/3 | (feeds) | Roli 251227"
+    },
+    {
+      "frequencyMHz": 11306,
+      "polarization": "V",
+      "transponderNumber": "S2",
+      "beamName": "Roli 260221",
+      "system": "DVB-S2",
+      "symbolRate": 7200,
+      "fec": "3/4",
+      "provider": "(feeds)",
+      "htmlRowText": "11306 V Europe Wide | DVB-S2 8PSK 7200 3/4 | (feeds) | Roli 260221"
+    },
+    {
+      "frequencyMHz": 12507,
+      "polarization": "H",
+      "beamName": "Radio Maria Italia",
+      "system": "DVB-S",
+      "symbolRate": 769,
+      "fec": "1/2",
+      "provider": "N Stanislav 230722; 2.7 769 Ita; ?-?",
+      "htmlRowText": "12507 H spot | DVB-S 255 1/2 | 1 | Radio Maria Italia | ?-? | 2.7 769 Ita | N Stanislav 230722"
+    },
+    {
+      "frequencyMHz": 12618,
+      "polarization": "V",
+      "transponderNumber": "F4",
+      "transponderName": "TP F4",
+      "beamName": "Stanley_cassidy Jamie A Roli 251206",
+      "system": "DVB-S2",
+      "symbolRate": 7200,
+      "fec": "3/4",
+      "provider": "(feeds)",
+      "htmlRowText": "12618 V tp F4 spot | DVB-S2 8PSK 7200 3/4 | (feeds) | Stanley_cassidy Jamie A Roli 251206"
+    },
+    {
+      "frequencyMHz": 12736,
+      "polarization": "V",
+      "transponderNumber": "S2",
+      "beamName": "N Stanislav D Shimoni 230721",
+      "system": "DVB-S2",
+      "symbolRate": 4000,
+      "fec": "9/10",
+      "provider": "Zap Viva Internacional; 11.0 Por",
+      "htmlRowText": "12736 V spot | DVB-S2 8PSK 4000 9/10 Multistream Stream 171 | 1120 | Zap Viva Internacional | 2-1 MPEG-4/HD | 11.0 Por | N Stanislav D Shimoni 230721"
+    },
+    {
+      "transponderNumber": "S2",
+      "beamName": "System:",
+      "system": "DVB-S2",
+      "provider": "non-DTH",
+      "htmlRowText": "System: | DVB-S2 | DVB-S | non-DTH | - | -"
+    }
+  ]
+}

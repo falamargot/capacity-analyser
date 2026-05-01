@@ -1,0 +1,13 @@
+{
+  "satelliteName": "EUTELSAT 21B",
+  "source": "LYNGSAT",
+  "generatedAt": "2026-05-01T07:49:01.519Z",
+  "totalRowsSeen": 109,
+  "observationsCreated": 109,
+  "rowsWithFrequency": 108,
+  "rowsWithBeam": 109,
+  "rowsWithTransponderId": 101,
+  "rowsSkipped": 0,
+  "skipReasons": {},
+  "normalizedTransponders": 105
+}

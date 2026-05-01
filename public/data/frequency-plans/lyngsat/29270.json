@@ -1,0 +1,126 @@
+{
+  "source": "LYNGSAT",
+  "satelliteName": "EUTELSAT 33F",
+  "orbitalPosition": "33E",
+  "url": "https://www.lyngsat.com/Eutelsat-33F.html",
+  "retrievedAt": "2026-05-01T07:48:01.970Z",
+  "parserStats": {
+    "totalRowsSeen": 59,
+    "rowsWithFrequency": 9,
+    "rowsWithBeam": 10,
+    "rowsWithTransponderId": 10,
+    "rowsSkipped": 49,
+    "skipReasons": {
+      "too_few_cells": 42,
+      "no_frequency_no_transponder": 7
+    }
+  },
+  "rows": [
+    {
+      "frequencyMHz": 10958,
+      "polarization": "H",
+      "transponderNumber": "S2",
+      "beamName": "Roli 250928",
+      "system": "DVB-S2",
+      "symbolRate": 7200,
+      "fec": "3/4",
+      "provider": "(feeds)",
+      "htmlRowText": "10958 H tp 123 Wide | DVB-S2 8PSK 7200 3/4 | (feeds) | Roli 250928"
+    },
+    {
+      "frequencyMHz": 10987,
+      "polarization": "H",
+      "transponderNumber": "S2",
+      "beamName": "Roli 250504",
+      "system": "DVB-S2",
+      "symbolRate": 3750,
+      "fec": "3/4",
+      "provider": "(feeds)",
+      "htmlRowText": "10987 H tp 123 Wide | DVB-S2 8PSK 3750 3/4 | (feeds) | Roli 250504"
+    },
+    {
+      "frequencyMHz": 11096,
+      "polarization": "H",
+      "transponderNumber": "S2",
+      "beamName": "Stanley_cassidy 250818",
+      "system": "DVB-S2",
+      "symbolRate": 9600,
+      "fec": "3/4",
+      "provider": "(feeds)",
+      "htmlRowText": "11096 H tp 129 Wide | DVB-S2 9600 3/4 | (feeds) | Stanley_cassidy 250818"
+    },
+    {
+      "frequencyMHz": 11108,
+      "polarization": "H",
+      "transponderNumber": "S2",
+      "beamName": "Stanley_cassidy 250818",
+      "system": "DVB-S2",
+      "symbolRate": 9600,
+      "fec": "3/4",
+      "provider": "(feeds)",
+      "htmlRowText": "11108 H tp 129 Wide | DVB-S2 9600 3/4 | (feeds) | Stanley_cassidy 250818"
+    },
+    {
+      "frequencyMHz": 11132,
+      "polarization": "V",
+      "transponderNumber": "S2",
+      "beamName": "Roli 250706",
+      "system": "DVB-S2",
+      "symbolRate": 3600,
+      "fec": "5/6",
+      "provider": "(feeds)",
+      "htmlRowText": "11132 V tp 130 Wide | DVB-S2 8PSK 3600 5/6 | (feeds) | Roli 250706"
+    },
+    {
+      "frequencyMHz": 11137,
+      "polarization": "H",
+      "transponderNumber": "S2",
+      "beamName": "Stanley_cassidy 250818",
+      "system": "DVB-S2",
+      "symbolRate": 9600,
+      "fec": "3/4",
+      "provider": "(feeds)",
+      "htmlRowText": "11137 H tp 131 Wide | DVB-S2 9600 3/4 | (feeds) | Stanley_cassidy 250818"
+    },
+    {
+      "frequencyMHz": 11149,
+      "polarization": "H",
+      "transponderNumber": "S2",
+      "beamName": "Stanley_cassidy 250818",
+      "system": "DVB-S2",
+      "symbolRate": 9600,
+      "fec": "3/4",
+      "provider": "(feeds)",
+      "htmlRowText": "11149 H tp 131 Wide | DVB-S2 9600 3/4 | (feeds) | Stanley_cassidy 250818"
+    },
+    {
+      "frequencyMHz": 12567,
+      "polarization": "H",
+      "transponderNumber": "S2",
+      "beamName": "Stanley_cassidy Roli 250518",
+      "system": "DVB-S2",
+      "symbolRate": 14400,
+      "fec": "3/4",
+      "provider": "(feeds)",
+      "htmlRowText": "12567 H tp 93 Wide | DVB-S2 8PSK 14400 3/4 | (feeds) | Stanley_cassidy Roli 250518"
+    },
+    {
+      "frequencyMHz": 12585,
+      "polarization": "H",
+      "transponderNumber": "S2",
+      "beamName": "Stanley_cassidy Roli 250518",
+      "system": "DVB-S2",
+      "symbolRate": 14400,
+      "fec": "3/4",
+      "provider": "(feeds)",
+      "htmlRowText": "12585 H tp 93 Wide | DVB-S2 8PSK 14400 3/4 | (feeds) | Stanley_cassidy Roli 250518"
+    },
+    {
+      "transponderNumber": "S2",
+      "beamName": "System:",
+      "system": "DVB-S2",
+      "provider": "non-DTH",
+      "htmlRowText": "System: | DVB-S2 | DVB-S | non-DTH | - | -"
+    }
+  ]
+}

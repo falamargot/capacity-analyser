@@ -1,0 +1,3451 @@
+{
+  "version": "2",
+  "satelliteName": "EUTELSAT 8 WEST B",
+  "orbitalPosition": "8W",
+  "source": "LYNGSAT",
+  "sourceUrl": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+  "generatedAt": "2026-05-01T07:49:01.526Z",
+  "observations": [
+    {
+      "id": "lyngsat-eutelsat-8-west-b-8w-s2-3732",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+      "retrievedAt": "2026-05-01T07:48:27.674Z",
+      "raw": {
+        "frequencyText": "3732",
+        "polarizationText": "L",
+        "transponderText": "S2",
+        "beamText": "Easy TV Côte d'Ivoire",
+        "systemText": "DVB-S2",
+        "symbolRateText": "40410",
+        "fecText": "2/3",
+        "providerText": "N Stanislav 251211"
+      },
+      "parsed": {
+        "frequencyMHz": 3732,
+        "polarization": "L",
+        "transponderNumber": "S2",
+        "beamName": "Easy TV Côte d'Ivoire",
+        "system": "DVB-S2",
+        "symbolRate": 40410,
+        "fec": "2/3",
+        "providerName": "N Stanislav 251211"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-8-west-b-8w-s2-3732",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+      "retrievedAt": "2026-05-01T07:48:27.674Z",
+      "raw": {
+        "frequencyText": "3732",
+        "polarizationText": "L",
+        "transponderText": "S2",
+        "beamText": "Easy TV Côte d'Ivoire",
+        "systemText": "DVB-S2",
+        "symbolRateText": "40410",
+        "fecText": "2/3",
+        "providerText": "N Stanislav 251211; Nagravision"
+      },
+      "parsed": {
+        "frequencyMHz": 3732,
+        "polarization": "L",
+        "transponderNumber": "S2",
+        "beamName": "Easy TV Côte d'Ivoire",
+        "system": "DVB-S2",
+        "symbolRate": 40410,
+        "fec": "2/3",
+        "providerName": "N Stanislav 251211; Nagravision"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-8-west-b-8w-s2-3732",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+      "retrievedAt": "2026-05-01T07:48:27.674Z",
+      "raw": {
+        "frequencyText": "3732",
+        "polarizationText": "L",
+        "transponderText": "S2",
+        "beamText": "Easy TV Côte d'Ivoire",
+        "systemText": "DVB-S2",
+        "symbolRateText": "40410",
+        "fecText": "2/3",
+        "providerText": "N Stanislav 251211"
+      },
+      "parsed": {
+        "frequencyMHz": 3732,
+        "polarization": "L",
+        "transponderNumber": "S2",
+        "beamName": "Easy TV Côte d'Ivoire",
+        "system": "DVB-S2",
+        "symbolRate": 40410,
+        "fec": "2/3",
+        "providerName": "N Stanislav 251211"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-8-west-b-8w-s2-3823",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+      "retrievedAt": "2026-05-01T07:48:27.674Z",
+      "raw": {
+        "frequencyText": "3823",
+        "polarizationText": "L",
+        "transponderText": "S2",
+        "beamText": "DX Bozóth 260414",
+        "systemText": "DVB-S2",
+        "symbolRateText": "7430",
+        "fecText": "9/10",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 3823,
+        "polarization": "L",
+        "transponderNumber": "S2",
+        "beamName": "DX Bozóth 260414",
+        "system": "DVB-S2",
+        "symbolRate": 7430,
+        "fec": "9/10",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-8-west-b-8w-s2-3826",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+      "retrievedAt": "2026-05-01T07:48:27.674Z",
+      "raw": {
+        "frequencyText": "3826",
+        "polarizationText": "R",
+        "transponderText": "S2",
+        "beamText": "J Orton 240715",
+        "systemText": "DVB-S2",
+        "symbolRateText": "13830",
+        "fecText": "4/5",
+        "providerText": "1918-8031"
+      },
+      "parsed": {
+        "frequencyMHz": 3826,
+        "polarization": "R",
+        "transponderNumber": "S2",
+        "beamName": "J Orton 240715",
+        "system": "DVB-S2",
+        "symbolRate": 13830,
+        "fec": "4/5",
+        "providerName": "1918-8031"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-8-west-b-8w-row-6-3651",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+      "retrievedAt": "2026-05-01T07:48:27.674Z",
+      "raw": {
+        "frequencyText": "3651",
+        "beamText": "Equi Africa",
+        "systemText": "MPEG-4",
+        "providerText": "3652 Fre"
+      },
+      "parsed": {
+        "frequencyMHz": 3651,
+        "beamName": "Equi Africa",
+        "system": "MPEG-4",
+        "providerName": "3652 Fre"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-8-west-b-8w-s2-3832",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+      "retrievedAt": "2026-05-01T07:48:27.674Z",
+      "raw": {
+        "frequencyText": "3832",
+        "polarizationText": "L",
+        "transponderText": "S2",
+        "beamText": "Zelda 230909",
+        "systemText": "DVB-S2",
+        "symbolRateText": "7585",
+        "fecText": "2/3",
+        "providerText": "CRTV; 1-1"
+      },
+      "parsed": {
+        "frequencyMHz": 3832,
+        "polarization": "L",
+        "transponderNumber": "S2",
+        "beamName": "Zelda 230909",
+        "system": "DVB-S2",
+        "symbolRate": 7585,
+        "fec": "2/3",
+        "providerName": "CRTV; 1-1"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-8-west-b-8w-s2-3852",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+      "retrievedAt": "2026-05-01T07:48:27.674Z",
+      "raw": {
+        "frequencyText": "3852",
+        "polarizationText": "R",
+        "transponderText": "S2",
+        "beamText": "DX Bozóth 260416",
+        "systemText": "DVB-S2",
+        "symbolRateText": "14167",
+        "fecText": "3/4",
+        "providerText": "TopStar; 136-8"
+      },
+      "parsed": {
+        "frequencyMHz": 3852,
+        "polarization": "R",
+        "transponderNumber": "S2",
+        "beamName": "DX Bozóth 260416",
+        "system": "DVB-S2",
+        "symbolRate": 14167,
+        "fec": "3/4",
+        "providerName": "TopStar; 136-8"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-8-west-b-8w-row-9-4098",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+      "retrievedAt": "2026-05-01T07:48:27.674Z",
+      "raw": {
+        "frequencyText": "4098",
+        "beamText": "Crown TV (Zambia)",
+        "systemText": "MPEG-4",
+        "providerText": "4097 Eng"
+      },
+      "parsed": {
+        "frequencyMHz": 4098,
+        "beamName": "Crown TV (Zambia)",
+        "system": "MPEG-4",
+        "providerName": "4097 Eng"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-8-west-b-8w-s2-3896",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+      "retrievedAt": "2026-05-01T07:48:27.674Z",
+      "raw": {
+        "frequencyText": "3896",
+        "polarizationText": "L",
+        "transponderText": "S2",
+        "beamText": "TVE Internacional Europa",
+        "systemText": "DVB-S2",
+        "symbolRateText": "3500",
+        "fecText": "5/6",
+        "providerText": "5.2 3554 Spa 3555 Qaa; M Al-Taie 260306"
+      },
+      "parsed": {
+        "frequencyMHz": 3896,
+        "polarization": "L",
+        "transponderNumber": "S2",
+        "beamName": "TVE Internacional Europa",
+        "system": "DVB-S2",
+        "symbolRate": 3500,
+        "fec": "5/6",
+        "providerName": "5.2 3554 Spa 3555 Qaa; M Al-Taie 260306"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-8-west-b-8w-row-11-3581",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+      "retrievedAt": "2026-05-01T07:48:27.674Z",
+      "raw": {
+        "frequencyText": "3581",
+        "beamText": "RNE Radio Nacional",
+        "providerText": "3523 Spa"
+      },
+      "parsed": {
+        "frequencyMHz": 3581,
+        "beamName": "RNE Radio Nacional",
+        "providerName": "3523 Spa"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": false,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable.",
+          "No DVB system/SR/FEC parameters found."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-8-west-b-8w-row-12-3585",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+      "retrievedAt": "2026-05-01T07:48:27.674Z",
+      "raw": {
+        "frequencyText": "3585",
+        "beamText": "Radio Exterior",
+        "providerText": "3559 Spa"
+      },
+      "parsed": {
+        "frequencyMHz": 3585,
+        "beamName": "Radio Exterior",
+        "providerName": "3559 Spa"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": false,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable.",
+          "No DVB system/SR/FEC parameters found."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-8-west-b-8w-s2-3901",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+      "retrievedAt": "2026-05-01T07:48:27.674Z",
+      "raw": {
+        "frequencyText": "3901",
+        "polarizationText": "R",
+        "transponderText": "S2",
+        "beamText": "N Stanislav 251129",
+        "systemText": "DVB-S2",
+        "symbolRateText": "1457",
+        "fecText": "3/4",
+        "providerText": "7.9 514 Spa; Asonga TV"
+      },
+      "parsed": {
+        "frequencyMHz": 3901,
+        "polarization": "R",
+        "transponderNumber": "S2",
+        "beamName": "N Stanislav 251129",
+        "system": "DVB-S2",
+        "symbolRate": 1457,
+        "fec": "3/4",
+        "providerName": "7.9 514 Spa; Asonga TV"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-8-west-b-8w-s2-3903",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+      "retrievedAt": "2026-05-01T07:48:27.674Z",
+      "raw": {
+        "frequencyText": "3903",
+        "transponderText": "S2",
+        "beamText": "R Dávid 250916",
+        "systemText": "DVB-S2",
+        "symbolRateText": "1000",
+        "fecText": "3/4",
+        "providerText": "Radio Miraya; 4.0 101 Eng; 1-1"
+      },
+      "parsed": {
+        "frequencyMHz": 3903,
+        "transponderNumber": "S2",
+        "beamName": "R Dávid 250916",
+        "system": "DVB-S2",
+        "symbolRate": 1000,
+        "fec": "3/4",
+        "providerName": "Radio Miraya; 4.0 101 Eng; 1-1"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-8-west-b-8w-s2-3925",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+      "retrievedAt": "2026-05-01T07:48:27.674Z",
+      "raw": {
+        "frequencyText": "3925",
+        "polarizationText": "R",
+        "transponderText": "S2",
+        "beamText": "DX Bozóth 260415",
+        "systemText": "DVB-S2",
+        "symbolRateText": "30000",
+        "fecText": "5/6",
+        "providerText": "Irdeto Viaccess; Vivacom MCPC; 1-8125"
+      },
+      "parsed": {
+        "frequencyMHz": 3925,
+        "polarization": "R",
+        "transponderNumber": "S2",
+        "beamName": "DX Bozóth 260415",
+        "system": "DVB-S2",
+        "symbolRate": 30000,
+        "fec": "5/6",
+        "providerName": "Irdeto Viaccess; Vivacom MCPC; 1-8125"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-8-west-b-8w-s2-3964",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+      "retrievedAt": "2026-05-01T07:48:27.674Z",
+      "raw": {
+        "frequencyText": "3964",
+        "polarizationText": "R",
+        "transponderText": "S2",
+        "beamText": "Radio Notre Dame International",
+        "systemText": "DVB-S2",
+        "symbolRateText": "4166",
+        "fecText": "1/2",
+        "providerText": "S Evans 260306; 1.0 2191 Fre; 1918-8071"
+      },
+      "parsed": {
+        "frequencyMHz": 3964,
+        "polarization": "R",
+        "transponderNumber": "S2",
+        "beamName": "Radio Notre Dame International",
+        "system": "DVB-S2",
+        "symbolRate": 4166,
+        "fec": "1/2",
+        "providerName": "S Evans 260306; 1.0 2191 Fre; 1918-8071"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-8-west-b-8w-s2-3977",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+      "retrievedAt": "2026-05-01T07:48:27.674Z",
+      "raw": {
+        "frequencyText": "3977",
+        "polarizationText": "R",
+        "transponderText": "S2",
+        "beamText": "R Dávid 250914",
+        "systemText": "DVB-S2",
+        "symbolRateText": "3410",
+        "fecText": "2/3",
+        "providerText": "6.6 139 Fre; Télé Congo"
+      },
+      "parsed": {
+        "frequencyMHz": 3977,
+        "polarization": "R",
+        "transponderNumber": "S2",
+        "beamName": "R Dávid 250914",
+        "system": "DVB-S2",
+        "symbolRate": 3410,
+        "fec": "2/3",
+        "providerName": "6.6 139 Fre; Télé Congo"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-8-west-b-8w-s2-3986",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+      "retrievedAt": "2026-05-01T07:48:27.674Z",
+      "raw": {
+        "frequencyText": "3986",
+        "polarizationText": "R",
+        "transponderText": "S2",
+        "beamText": "4.0 512 Spa 513 Eng 513 Por 514 Fre 515 Kin 515 Swa",
+        "systemText": "DVB-S2",
+        "symbolRateText": "4543",
+        "fecText": "3/4",
+        "providerText": "La Gran Carpa Catedral TV; N Stanislav 240120"
+      },
+      "parsed": {
+        "frequencyMHz": 3986,
+        "polarization": "R",
+        "transponderNumber": "S2",
+        "beamName": "4.0 512 Spa 513 Eng 513 Por 514 Fre 515 Kin 515 Swa",
+        "system": "DVB-S2",
+        "symbolRate": 4543,
+        "fec": "3/4",
+        "providerName": "La Gran Carpa Catedral TV; N Stanislav 240120"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-8-west-b-8w-row-19-10727",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+      "retrievedAt": "2026-05-01T07:48:27.674Z",
+      "raw": {
+        "frequencyText": "10727",
+        "polarizationText": "H",
+        "beamText": "Torrex12 260303",
+        "systemText": "DVB-S",
+        "symbolRateText": "27500",
+        "fecText": "7/8",
+        "providerText": "20480-500; Gulfsat"
+      },
+      "parsed": {
+        "frequencyMHz": 10727,
+        "polarization": "H",
+        "beamName": "Torrex12 260303",
+        "system": "DVB-S",
+        "symbolRate": 27500,
+        "fec": "7/8",
+        "providerName": "20480-500; Gulfsat"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-8-west-b-8w-row-20-10960",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+      "retrievedAt": "2026-05-01T07:48:27.674Z",
+      "raw": {
+        "frequencyText": "10960",
+        "polarizationText": "H",
+        "beamText": "TV Assembléia RN",
+        "systemText": "DVB-S",
+        "symbolRateText": "3255",
+        "fecText": "3/4",
+        "providerText": "EnoSat 251018; 5.5 3004 Por"
+      },
+      "parsed": {
+        "frequencyMHz": 10960,
+        "polarization": "H",
+        "beamName": "TV Assembléia RN",
+        "system": "DVB-S",
+        "symbolRate": 3255,
+        "fec": "3/4",
+        "providerName": "EnoSat 251018; 5.5 3004 Por"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-8-west-b-8w-row-21-10971",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+      "retrievedAt": "2026-05-01T07:48:27.674Z",
+      "raw": {
+        "frequencyText": "10971",
+        "polarizationText": "H",
+        "beamText": "M Al-Taie 260403",
+        "systemText": "DVB-S",
+        "symbolRateText": "27500",
+        "fecText": "7/8",
+        "providerText": "20480-800; My TV"
+      },
+      "parsed": {
+        "frequencyMHz": 10971,
+        "polarization": "H",
+        "beamName": "M Al-Taie 260403",
+        "system": "DVB-S",
+        "symbolRate": 27500,
+        "fec": "7/8",
+        "providerName": "20480-800; My TV"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-8-west-b-8w-row-22-10971",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+      "retrievedAt": "2026-05-01T07:48:27.674Z",
+      "raw": {
+        "frequencyText": "10971",
+        "polarizationText": "V",
+        "beamText": "DX Bozóth 200929",
+        "systemText": "DVB-S",
+        "symbolRateText": "27500",
+        "fecText": "3/4",
+        "providerText": "1918-20200; Aljazeera"
+      },
+      "parsed": {
+        "frequencyMHz": 10971,
+        "polarization": "V",
+        "beamName": "DX Bozóth 200929",
+        "system": "DVB-S",
+        "symbolRate": 27500,
+        "fec": "3/4",
+        "providerName": "1918-20200; Aljazeera"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-8-west-b-8w-s2-11013",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+      "retrievedAt": "2026-05-01T07:48:27.674Z",
+      "raw": {
+        "frequencyText": "11013",
+        "polarizationText": "H",
+        "transponderText": "S2",
+        "beamText": "Irdeto Videoguard",
+        "systemText": "DVB-S2",
+        "symbolRateText": "27500",
+        "fecText": "2/3",
+        "providerText": "A7Sats 260121; 1918-100; BeIn"
+      },
+      "parsed": {
+        "frequencyMHz": 11013,
+        "polarization": "H",
+        "transponderNumber": "S2",
+        "beamName": "Irdeto Videoguard",
+        "system": "DVB-S2",
+        "symbolRate": 27500,
+        "fec": "2/3",
+        "providerName": "A7Sats 260121; 1918-100; BeIn"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-8-west-b-8w-row-24-11013",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+      "retrievedAt": "2026-05-01T07:48:27.674Z",
+      "raw": {
+        "frequencyText": "11013",
+        "polarizationText": "V",
+        "beamText": "Sharjah Broadcasting Authority",
+        "systemText": "DVB-S",
+        "symbolRateText": "27500",
+        "fecText": "5/6",
+        "providerText": "M Al-Taie 251025; 702-520"
+      },
+      "parsed": {
+        "frequencyMHz": 11013,
+        "polarization": "V",
+        "beamName": "Sharjah Broadcasting Authority",
+        "system": "DVB-S",
+        "symbolRate": 27500,
+        "fec": "5/6",
+        "providerName": "M Al-Taie 251025; 702-520"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-8-west-b-8w-s2-11054",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+      "retrievedAt": "2026-05-01T07:48:27.674Z",
+      "raw": {
+        "frequencyText": "11054",
+        "polarizationText": "H",
+        "transponderText": "S2",
+        "beamText": "Irdeto Videoguard",
+        "systemText": "DVB-S2",
+        "symbolRateText": "27500",
+        "fecText": "2/3",
+        "providerText": "M Al-Taie 240717; 1918-200; BeIn"
+      },
+      "parsed": {
+        "frequencyMHz": 11054,
+        "polarization": "H",
+        "transponderNumber": "S2",
+        "beamName": "Irdeto Videoguard",
+        "system": "DVB-S2",
+        "symbolRate": 27500,
+        "fec": "2/3",
+        "providerName": "M Al-Taie 240717; 1918-200; BeIn"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-8-west-b-8w-s2-11054",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+      "retrievedAt": "2026-05-01T07:48:27.674Z",
+      "raw": {
+        "frequencyText": "11054",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "Dondohodho 260319",
+        "systemText": "DVB-S2",
+        "symbolRateText": "27500",
+        "fecText": "2/3",
+        "providerText": "1918-30100; Kuwait TV"
+      },
+      "parsed": {
+        "frequencyMHz": 11054,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "Dondohodho 260319",
+        "system": "DVB-S2",
+        "symbolRate": 27500,
+        "fec": "2/3",
+        "providerName": "1918-30100; Kuwait TV"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-8-west-b-8w-row-27-11096",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+      "retrievedAt": "2026-05-01T07:48:27.674Z",
+      "raw": {
+        "frequencyText": "11096",
+        "polarizationText": "H",
+        "beamText": "M Al-Taie 260425",
+        "systemText": "DVB-S",
+        "symbolRateText": "27500",
+        "fecText": "7/8",
+        "providerText": "ViewMedia; 65535-8"
+      },
+      "parsed": {
+        "frequencyMHz": 11096,
+        "polarization": "H",
+        "beamName": "M Al-Taie 260425",
+        "system": "DVB-S",
+        "symbolRate": 27500,
+        "fec": "7/8",
+        "providerName": "ViewMedia; 65535-8"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-8-west-b-8w-row-28-11096",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+      "retrievedAt": "2026-05-01T07:48:27.674Z",
+      "raw": {
+        "frequencyText": "11096",
+        "polarizationText": "V",
+        "beamText": "R Cervi 260217"
+      },
+      "parsed": {
+        "frequencyMHz": 11096,
+        "polarization": "V",
+        "beamName": "R Cervi 260217"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": false,
+        "confidence": "MEDIUM",
+        "warnings": [
+          "No DVB system/SR/FEC parameters found."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-8-west-b-8w-s2-11137",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+      "retrievedAt": "2026-05-01T07:48:27.674Z",
+      "raw": {
+        "frequencyText": "11137",
+        "polarizationText": "H",
+        "transponderText": "S2",
+        "beamText": "Hadowooalsatan 251223",
+        "systemText": "DVB-S2",
+        "symbolRateText": "27500",
+        "fecText": "5/6",
+        "eirpText": "42",
+        "providerText": "Verimatrix (B); 42-1"
+      },
+      "parsed": {
+        "frequencyMHz": 11137,
+        "polarization": "H",
+        "transponderNumber": "S2",
+        "beamName": "Hadowooalsatan 251223",
+        "system": "DVB-S2",
+        "symbolRate": 27500,
+        "fec": "5/6",
+        "eirpDbw": 42,
+        "providerName": "Verimatrix (B); 42-1"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-8-west-b-8w-a2-nofreq",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+      "retrievedAt": "2026-05-01T07:48:27.674Z",
+      "raw": {
+        "transponderText": "A2"
+      },
+      "parsed": {
+        "transponderNumber": "A2"
+      },
+      "parseQuality": {
+        "hasFrequency": false,
+        "hasPolarization": false,
+        "hasBeam": false,
+        "hasTransponderId": true,
+        "hasDvbParams": false,
+        "confidence": "LOW",
+        "warnings": [
+          "Downlink frequency not parseable; row kept due to transponder ID.",
+          "Polarization not present or not parseable.",
+          "Beam name not present.",
+          "No DVB system/SR/FEC parameters found."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-8-west-b-8w-s2-11137",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+      "retrievedAt": "2026-05-01T07:48:27.674Z",
+      "raw": {
+        "frequencyText": "11137",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "M Al-Taie 260407",
+        "systemText": "DVB-S2",
+        "symbolRateText": "27500",
+        "fecText": "3/4",
+        "eirpText": "73",
+        "providerText": "2048-73"
+      },
+      "parsed": {
+        "frequencyMHz": 11137,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "M Al-Taie 260407",
+        "system": "DVB-S2",
+        "symbolRate": 27500,
+        "fec": "3/4",
+        "eirpDbw": 73,
+        "providerName": "2048-73"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-8-west-b-8w-s2-11179",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+      "retrievedAt": "2026-05-01T07:48:27.674Z",
+      "raw": {
+        "frequencyText": "11179",
+        "polarizationText": "H",
+        "transponderText": "S2",
+        "beamText": "Er Balvinder Singh 260429",
+        "systemText": "DVB-S2",
+        "symbolRateText": "27500",
+        "fecText": "5/6",
+        "providerText": "1918-30110; Gulfsat"
+      },
+      "parsed": {
+        "frequencyMHz": 11179,
+        "polarization": "H",
+        "transponderNumber": "S2",
+        "beamName": "Er Balvinder Singh 260429",
+        "system": "DVB-S2",
+        "symbolRate": 27500,
+        "fec": "5/6",
+        "providerName": "1918-30110; Gulfsat"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-8-west-b-8w-row-33-11179",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+      "retrievedAt": "2026-05-01T07:48:27.674Z",
+      "raw": {
+        "frequencyText": "11179",
+        "polarizationText": "V",
+        "beamText": "Hadowooalsatan 260202",
+        "systemText": "DVB-S",
+        "symbolRateText": "27500",
+        "fecText": "5/6",
+        "eirpText": "74",
+        "providerText": "2048-74"
+      },
+      "parsed": {
+        "frequencyMHz": 11179,
+        "polarization": "V",
+        "beamName": "Hadowooalsatan 260202",
+        "system": "DVB-S",
+        "symbolRate": 27500,
+        "fec": "5/6",
+        "eirpDbw": 74,
+        "providerName": "2048-74"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-8-west-b-8w-row-34-11471",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+      "retrievedAt": "2026-05-01T07:48:27.674Z",
+      "raw": {
+        "frequencyText": "11471",
+        "polarizationText": "V",
+        "beamText": "Y Fareed 260415",
+        "systemText": "DVB-S",
+        "symbolRateText": "27500",
+        "fecText": "5/6",
+        "eirpText": "59",
+        "providerText": "2048-59"
+      },
+      "parsed": {
+        "frequencyMHz": 11471,
+        "polarization": "V",
+        "beamName": "Y Fareed 260415",
+        "system": "DVB-S",
+        "symbolRate": 27500,
+        "fec": "5/6",
+        "eirpDbw": 59,
+        "providerName": "2048-59"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-8-west-b-8w-row-35-11554",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+      "retrievedAt": "2026-05-01T07:48:27.674Z",
+      "raw": {
+        "frequencyText": "11554",
+        "polarizationText": "V",
+        "beamText": "Dondohodho 260428",
+        "systemText": "DVB-S",
+        "symbolRateText": "27500",
+        "fecText": "7/8",
+        "providerText": "20480-300; Gulfsat"
+      },
+      "parsed": {
+        "frequencyMHz": 11554,
+        "polarization": "V",
+        "beamName": "Dondohodho 260428",
+        "system": "DVB-S",
+        "symbolRate": 27500,
+        "fec": "7/8",
+        "providerName": "20480-300; Gulfsat"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-8-west-b-8w-s2-11564",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+      "retrievedAt": "2026-05-01T07:48:27.674Z",
+      "raw": {
+        "frequencyText": "11564",
+        "polarizationText": "H",
+        "transponderText": "S2",
+        "beamText": "M Al-Taie 260401",
+        "systemText": "DVB-S2",
+        "symbolRateText": "27500",
+        "fecText": "5/6",
+        "providerText": "20480-400; My TV"
+      },
+      "parsed": {
+        "frequencyMHz": 11564,
+        "polarization": "H",
+        "transponderNumber": "S2",
+        "beamName": "M Al-Taie 260401",
+        "system": "DVB-S2",
+        "symbolRate": 27500,
+        "fec": "5/6",
+        "providerName": "20480-400; My TV"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-8-west-b-8w-s2-11637",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+      "retrievedAt": "2026-05-01T07:48:27.674Z",
+      "raw": {
+        "frequencyText": "11637",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "R Cervi 260406",
+        "systemText": "DVB-S2",
+        "symbolRateText": "27500",
+        "fecText": "5/6",
+        "providerText": "1918-50100; Eutelsat"
+      },
+      "parsed": {
+        "frequencyMHz": 11637,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "R Cervi 260406",
+        "system": "DVB-S2",
+        "symbolRate": 27500,
+        "fec": "5/6",
+        "providerName": "1918-50100; Eutelsat"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-8-west-b-8w-row-38-11678",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+      "retrievedAt": "2026-05-01T07:48:27.674Z",
+      "raw": {
+        "frequencyText": "11678",
+        "polarizationText": "V",
+        "beamText": "Hadowooalsatan 260314",
+        "systemText": "DVB-S",
+        "symbolRateText": "27500",
+        "fecText": "7/8",
+        "providerText": "Gulfsat; 1-700"
+      },
+      "parsed": {
+        "frequencyMHz": 11678,
+        "polarization": "V",
+        "beamName": "Hadowooalsatan 260314",
+        "system": "DVB-S",
+        "symbolRate": 27500,
+        "fec": "7/8",
+        "providerName": "Gulfsat; 1-700"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-8-west-b-8w-s2-12514",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+      "retrievedAt": "2026-05-01T07:48:27.674Z",
+      "raw": {
+        "frequencyText": "12514",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "Roli 250921",
+        "systemText": "DVB-S2",
+        "symbolRateText": "4800",
+        "fecText": "3/4",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 12514,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "Roli 250921",
+        "system": "DVB-S2",
+        "symbolRate": 4800,
+        "fec": "3/4",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-8-west-b-8w-s2-12521",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+      "retrievedAt": "2026-05-01T07:48:27.674Z",
+      "raw": {
+        "frequencyText": "12521",
+        "polarizationText": "H",
+        "transponderText": "S2",
+        "beamText": "Lexzie 190109",
+        "systemText": "DVB-S2",
+        "symbolRateText": "27500",
+        "fecText": "2/3",
+        "providerText": "1918-60100; Aljazeera"
+      },
+      "parsed": {
+        "frequencyMHz": 12521,
+        "polarization": "H",
+        "transponderNumber": "S2",
+        "beamName": "Lexzie 190109",
+        "system": "DVB-S2",
+        "symbolRate": 27500,
+        "fec": "2/3",
+        "providerName": "1918-60100; Aljazeera"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-8-west-b-8w-s2-12521",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+      "retrievedAt": "2026-05-01T07:48:27.674Z",
+      "raw": {
+        "frequencyText": "12521",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "Roli 251109",
+        "systemText": "DVB-S2",
+        "symbolRateText": "4666",
+        "fecText": "3/4",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 12521,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "Roli 251109",
+        "system": "DVB-S2",
+        "symbolRate": 4666,
+        "fec": "3/4",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-8-west-b-8w-s2-12527",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+      "retrievedAt": "2026-05-01T07:48:27.674Z",
+      "raw": {
+        "frequencyText": "12527",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "DX Bozóth 260315",
+        "systemText": "DVB-S2",
+        "symbolRateText": "4800",
+        "fecText": "3/4",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 12527,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "DX Bozóth 260315",
+        "system": "DVB-S2",
+        "symbolRate": 4800,
+        "fec": "3/4",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-8-west-b-8w-s2-12531",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+      "retrievedAt": "2026-05-01T07:48:27.674Z",
+      "raw": {
+        "frequencyText": "12531",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "Roli 260322",
+        "systemText": "DVB-S2",
+        "symbolRateText": "3600",
+        "fecText": "2/3",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 12531,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "Roli 260322",
+        "system": "DVB-S2",
+        "symbolRate": 3600,
+        "fec": "2/3",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-8-west-b-8w-s2-12536",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+      "retrievedAt": "2026-05-01T07:48:27.674Z",
+      "raw": {
+        "frequencyText": "12536",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "Roli DX Bozóth 260315",
+        "systemText": "DVB-S2",
+        "symbolRateText": "3400",
+        "fecText": "5/6",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 12536,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "Roli DX Bozóth 260315",
+        "system": "DVB-S2",
+        "symbolRate": 3400,
+        "fec": "5/6",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-8-west-b-8w-s2-12546",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+      "retrievedAt": "2026-05-01T07:48:27.674Z",
+      "raw": {
+        "frequencyText": "12546",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "Roli 251219",
+        "systemText": "DVB-S2",
+        "symbolRateText": "3400",
+        "fecText": "5/6",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 12546,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "Roli 251219",
+        "system": "DVB-S2",
+        "symbolRate": 3400,
+        "fec": "5/6",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-8-west-b-8w-s2-12551",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+      "retrievedAt": "2026-05-01T07:48:27.674Z",
+      "raw": {
+        "frequencyText": "12551",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "Roli 251219",
+        "systemText": "DVB-S2",
+        "symbolRateText": "3400",
+        "fecText": "5/6",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 12551,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "Roli 251219",
+        "system": "DVB-S2",
+        "symbolRate": 3400,
+        "fec": "5/6",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-8-west-b-8w-s2-12555",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+      "retrievedAt": "2026-05-01T07:48:27.674Z",
+      "raw": {
+        "frequencyText": "12555",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "Roli 260322",
+        "systemText": "DVB-S2",
+        "symbolRateText": "3400",
+        "fecText": "5/6",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 12555,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "Roli 260322",
+        "system": "DVB-S2",
+        "symbolRate": 3400,
+        "fec": "5/6",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-8-west-b-8w-s2-12559",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+      "retrievedAt": "2026-05-01T07:48:27.674Z",
+      "raw": {
+        "frequencyText": "12559",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "Roli 260322",
+        "systemText": "DVB-S2",
+        "symbolRateText": "3400",
+        "fecText": "5/6",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 12559,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "Roli 260322",
+        "system": "DVB-S2",
+        "symbolRate": 3400,
+        "fec": "5/6",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-8-west-b-8w-row-49-12563",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+      "retrievedAt": "2026-05-01T07:48:27.674Z",
+      "raw": {
+        "frequencyText": "12563",
+        "polarizationText": "H",
+        "beamText": "Iraqi Media Network",
+        "systemText": "DVB-S",
+        "symbolRateText": "27500",
+        "fecText": "5/6",
+        "eirpText": "72",
+        "providerText": "M Al-Taie 241206; 1-72"
+      },
+      "parsed": {
+        "frequencyMHz": 12563,
+        "polarization": "H",
+        "beamName": "Iraqi Media Network",
+        "system": "DVB-S",
+        "symbolRate": 27500,
+        "fec": "5/6",
+        "eirpDbw": 72,
+        "providerName": "M Al-Taie 241206; 1-72"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-8-west-b-8w-row-50-12563",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+      "retrievedAt": "2026-05-01T07:48:27.674Z",
+      "raw": {
+        "frequencyText": "12563",
+        "polarizationText": "V",
+        "beamText": "R Cervi 260330",
+        "systemText": "DVB-S",
+        "symbolRateText": "27500",
+        "fecText": "7/8",
+        "providerText": "Eutelsat MENA; 1918-65500"
+      },
+      "parsed": {
+        "frequencyMHz": 12563,
+        "polarization": "V",
+        "beamName": "R Cervi 260330",
+        "system": "DVB-S",
+        "symbolRate": 27500,
+        "fec": "7/8",
+        "providerName": "Eutelsat MENA; 1918-65500"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-8-west-b-8w-row-51-12582",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+      "retrievedAt": "2026-05-01T07:48:27.674Z",
+      "raw": {
+        "frequencyText": "12582",
+        "polarizationText": "V",
+        "beamText": "DX Bozóth 240116",
+        "systemText": "DVB-S",
+        "symbolRateText": "2222",
+        "fecText": "1/2",
+        "providerText": "[test card]"
+      },
+      "parsed": {
+        "frequencyMHz": 12582,
+        "polarization": "V",
+        "beamName": "DX Bozóth 240116",
+        "system": "DVB-S",
+        "symbolRate": 2222,
+        "fec": "1/2",
+        "providerName": "[test card]"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-8-west-b-8w-s2-12604",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+      "retrievedAt": "2026-05-01T07:48:27.674Z",
+      "raw": {
+        "frequencyText": "12604",
+        "polarizationText": "H",
+        "transponderText": "S2",
+        "beamText": "Irdeto Videoguard",
+        "systemText": "DVB-S2",
+        "symbolRateText": "27500",
+        "fecText": "2/3",
+        "providerText": "M Al-Taie 260126; 1918-300; BeIn"
+      },
+      "parsed": {
+        "frequencyMHz": 12604,
+        "polarization": "H",
+        "transponderNumber": "S2",
+        "beamName": "Irdeto Videoguard",
+        "system": "DVB-S2",
+        "symbolRate": 27500,
+        "fec": "2/3",
+        "providerName": "M Al-Taie 260126; 1918-300; BeIn"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-8-west-b-8w-row-53-12604",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+      "retrievedAt": "2026-05-01T07:48:27.674Z",
+      "raw": {
+        "frequencyText": "12604",
+        "polarizationText": "V",
+        "beamText": "Hadowooalsatan 260316",
+        "systemText": "DVB-S",
+        "symbolRateText": "27500",
+        "fecText": "7/8",
+        "providerText": "Eutelsat MENA; 110-29"
+      },
+      "parsed": {
+        "frequencyMHz": 12604,
+        "polarization": "V",
+        "beamName": "Hadowooalsatan 260316",
+        "system": "DVB-S",
+        "symbolRate": 27500,
+        "fec": "7/8",
+        "providerName": "Eutelsat MENA; 110-29"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-8-west-b-8w-row-54-4010",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+      "retrievedAt": "2026-05-01T07:48:27.674Z",
+      "raw": {
+        "frequencyText": "4010",
+        "beamText": "Imam Hussein TV 2",
+        "systemText": "MPEG-2",
+        "symbolRateText": "1010",
+        "providerText": "1021 Per"
+      },
+      "parsed": {
+        "frequencyMHz": 4010,
+        "beamName": "Imam Hussein TV 2",
+        "system": "MPEG-2",
+        "symbolRate": 1010,
+        "providerName": "1021 Per"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-8-west-b-8w-row-55-4013",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+      "retrievedAt": "2026-05-01T07:48:27.674Z",
+      "raw": {
+        "frequencyText": "4013",
+        "beamText": "Manu Chat",
+        "systemText": "MPEG-2",
+        "symbolRateText": "1040",
+        "providerText": "1024 Ara"
+      },
+      "parsed": {
+        "frequencyMHz": 4013,
+        "beamName": "Manu Chat",
+        "system": "MPEG-2",
+        "symbolRate": 1040,
+        "providerName": "1024 Ara"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-8-west-b-8w-row-56-4022",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+      "retrievedAt": "2026-05-01T07:48:27.674Z",
+      "raw": {
+        "frequencyText": "4022",
+        "beamText": "Music Iraq",
+        "systemText": "MPEG-2",
+        "symbolRateText": "1130",
+        "providerText": "1033 Ara"
+      },
+      "parsed": {
+        "frequencyMHz": 4022,
+        "beamName": "Music Iraq",
+        "system": "MPEG-2",
+        "symbolRate": 1130,
+        "providerName": "1033 Ara"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-8-west-b-8w-row-57-4035",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+      "retrievedAt": "2026-05-01T07:48:27.674Z",
+      "raw": {
+        "frequencyText": "4035",
+        "beamText": "Iraqi Drama TV",
+        "systemText": "MPEG-2",
+        "symbolRateText": "1197",
+        "providerText": "1046 Ara"
+      },
+      "parsed": {
+        "frequencyMHz": 4035,
+        "beamName": "Iraqi Drama TV",
+        "system": "MPEG-2",
+        "symbolRate": 1197,
+        "providerName": "1046 Ara"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-8-west-b-8w-row-58-4036",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+      "retrievedAt": "2026-05-01T07:48:27.674Z",
+      "raw": {
+        "frequencyText": "4036",
+        "beamText": "Al Salam TV",
+        "systemText": "MPEG-2",
+        "symbolRateText": "1198",
+        "providerText": "1047 Ara"
+      },
+      "parsed": {
+        "frequencyMHz": 4036,
+        "beamName": "Al Salam TV",
+        "system": "MPEG-2",
+        "symbolRate": 1198,
+        "providerName": "1047 Ara"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-8-west-b-8w-row-59-4037",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+      "retrievedAt": "2026-05-01T07:48:27.674Z",
+      "raw": {
+        "frequencyText": "4037",
+        "beamText": "Sout Masr",
+        "systemText": "MPEG-4",
+        "symbolRateText": "1199",
+        "providerText": "1048 Ara"
+      },
+      "parsed": {
+        "frequencyMHz": 4037,
+        "beamName": "Sout Masr",
+        "system": "MPEG-4",
+        "symbolRate": 1199,
+        "providerName": "1048 Ara"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-8-west-b-8w-row-60-4038",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+      "retrievedAt": "2026-05-01T07:48:27.674Z",
+      "raw": {
+        "frequencyText": "4038",
+        "beamText": "Radio Miraya",
+        "symbolRateText": "1200",
+        "providerText": "1200 Eng"
+      },
+      "parsed": {
+        "frequencyMHz": 4038,
+        "beamName": "Radio Miraya",
+        "symbolRate": 1200,
+        "providerName": "1200 Eng"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-8-west-b-8w-s2-12608",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+      "retrievedAt": "2026-05-01T07:48:27.674Z",
+      "raw": {
+        "frequencyText": "12608",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "Jamie A 251231",
+        "systemText": "DVB-S2",
+        "symbolRateText": "3616",
+        "fecText": "5/6",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 12608,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "Jamie A 251231",
+        "system": "DVB-S2",
+        "symbolRate": 3616,
+        "fec": "5/6",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-8-west-b-8w-row-62-12620",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+      "retrievedAt": "2026-05-01T07:48:27.674Z",
+      "raw": {
+        "frequencyText": "12620",
+        "polarizationText": "V",
+        "beamText": "DX Bozóth 181111",
+        "systemText": "DVB-S",
+        "symbolRateText": "890",
+        "fecText": "1/2",
+        "providerText": "Belgian mux"
+      },
+      "parsed": {
+        "frequencyMHz": 12620,
+        "polarization": "V",
+        "beamName": "DX Bozóth 181111",
+        "system": "DVB-S",
+        "symbolRate": 890,
+        "fec": "1/2",
+        "providerName": "Belgian mux"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-8-west-b-8w-s2-12621",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+      "retrievedAt": "2026-05-01T07:48:27.674Z",
+      "raw": {
+        "frequencyText": "12621",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "Wellikan 230303",
+        "systemText": "DVB-S2",
+        "fecText": "3/4",
+        "providerText": "French mux; 1-1"
+      },
+      "parsed": {
+        "frequencyMHz": 12621,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "Wellikan 230303",
+        "system": "DVB-S2",
+        "fec": "3/4",
+        "providerName": "French mux; 1-1"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-8-west-b-8w-row-64-12622",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+      "retrievedAt": "2026-05-01T07:48:27.674Z",
+      "raw": {
+        "frequencyText": "12622",
+        "polarizationText": "V",
+        "beamText": "Radio Maria Italia",
+        "systemText": "DVB-S",
+        "symbolRateText": "769",
+        "fecText": "1/2",
+        "providerText": "EnoSat 200503; 2.7 769 Ita; ?-1"
+      },
+      "parsed": {
+        "frequencyMHz": 12622,
+        "polarization": "V",
+        "beamName": "Radio Maria Italia",
+        "system": "DVB-S",
+        "symbolRate": 769,
+        "fec": "1/2",
+        "providerName": "EnoSat 200503; 2.7 769 Ita; ?-1"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-8-west-b-8w-s2-12636",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+      "retrievedAt": "2026-05-01T07:48:27.674Z",
+      "raw": {
+        "frequencyText": "12636",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "DX Bozóth 260315",
+        "systemText": "DVB-S2",
+        "symbolRateText": "7700",
+        "fecText": "3/4",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 12636,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "DX Bozóth 260315",
+        "system": "DVB-S2",
+        "symbolRate": 7700,
+        "fec": "3/4",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-8-west-b-8w-row-66-12646",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+      "retrievedAt": "2026-05-01T07:48:27.674Z",
+      "raw": {
+        "frequencyText": "12646",
+        "polarizationText": "H",
+        "beamText": "Dondohodho 260429",
+        "systemText": "DVB-S",
+        "symbolRateText": "27500",
+        "fecText": "7/8",
+        "providerText": "20480-900; Palsat"
+      },
+      "parsed": {
+        "frequencyMHz": 12646,
+        "polarization": "H",
+        "beamName": "Dondohodho 260429",
+        "system": "DVB-S",
+        "symbolRate": 27500,
+        "fec": "7/8",
+        "providerName": "20480-900; Palsat"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-8-west-b-8w-row-67-3430",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+      "retrievedAt": "2026-05-01T07:48:27.674Z",
+      "raw": {
+        "frequencyText": "3430",
+        "beamText": "Palestine Sport",
+        "systemText": "MPEG-4",
+        "providerText": "3433 Ara"
+      },
+      "parsed": {
+        "frequencyMHz": 3430,
+        "beamName": "Palestine Sport",
+        "system": "MPEG-4",
+        "providerName": "3433 Ara"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-8-west-b-8w-row-68-3800",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+      "retrievedAt": "2026-05-01T07:48:27.674Z",
+      "raw": {
+        "frequencyText": "3800",
+        "beamText": "Alaraby TV",
+        "systemText": "MPEG-4",
+        "providerText": "3803 Ara"
+      },
+      "parsed": {
+        "frequencyMHz": 3800,
+        "beamName": "Alaraby TV",
+        "system": "MPEG-4",
+        "providerName": "3803 Ara"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-8-west-b-8w-row-69-3810",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+      "retrievedAt": "2026-05-01T07:48:27.674Z",
+      "raw": {
+        "frequencyText": "3810",
+        "beamText": "Majestic Cinema",
+        "systemText": "MPEG-4",
+        "providerText": "3813 Ara"
+      },
+      "parsed": {
+        "frequencyMHz": 3810,
+        "beamName": "Majestic Cinema",
+        "system": "MPEG-4",
+        "providerName": "3813 Ara"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-8-west-b-8w-row-70-3820",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+      "retrievedAt": "2026-05-01T07:48:27.674Z",
+      "raw": {
+        "frequencyText": "3820",
+        "beamText": "Moga Cinema",
+        "systemText": "MPEG-4",
+        "providerText": "3823 Ara"
+      },
+      "parsed": {
+        "frequencyMHz": 3820,
+        "beamName": "Moga Cinema",
+        "system": "MPEG-4",
+        "providerName": "3823 Ara"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-8-west-b-8w-row-71-3830",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+      "retrievedAt": "2026-05-01T07:48:27.674Z",
+      "raw": {
+        "frequencyText": "3830",
+        "beamText": "Moga Drama",
+        "systemText": "MPEG-4",
+        "providerText": "3833 Ara"
+      },
+      "parsed": {
+        "frequencyMHz": 3830,
+        "beamName": "Moga Drama",
+        "system": "MPEG-4",
+        "providerName": "3833 Ara"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-8-west-b-8w-row-72-3840",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+      "retrievedAt": "2026-05-01T07:48:27.674Z",
+      "raw": {
+        "frequencyText": "3840",
+        "beamText": "El Fadjer TV",
+        "systemText": "MPEG-4",
+        "providerText": "3843 Ara"
+      },
+      "parsed": {
+        "frequencyMHz": 3840,
+        "beamName": "El Fadjer TV",
+        "system": "MPEG-4",
+        "providerName": "3843 Ara"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-8-west-b-8w-row-73-3850",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+      "retrievedAt": "2026-05-01T07:48:27.674Z",
+      "raw": {
+        "frequencyText": "3850",
+        "beamText": "Alkeraza TV",
+        "systemText": "MPEG-2",
+        "providerText": "3853 Ara"
+      },
+      "parsed": {
+        "frequencyMHz": 3850,
+        "beamName": "Alkeraza TV",
+        "system": "MPEG-2",
+        "providerName": "3853 Ara"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-8-west-b-8w-row-74-3870",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+      "retrievedAt": "2026-05-01T07:48:27.674Z",
+      "raw": {
+        "frequencyText": "3870",
+        "beamText": "Moga Comedy",
+        "systemText": "MPEG-4",
+        "providerText": "3873 Ara"
+      },
+      "parsed": {
+        "frequencyMHz": 3870,
+        "beamName": "Moga Comedy",
+        "system": "MPEG-4",
+        "providerName": "3873 Ara"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-8-west-b-8w-row-75-3880",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+      "retrievedAt": "2026-05-01T07:48:27.674Z",
+      "raw": {
+        "frequencyText": "3880",
+        "beamText": "Moga Today",
+        "systemText": "MPEG-4",
+        "providerText": "3883 Ara"
+      },
+      "parsed": {
+        "frequencyMHz": 3880,
+        "beamName": "Moga Today",
+        "system": "MPEG-4",
+        "providerName": "3883 Ara"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-8-west-b-8w-row-76-3890",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+      "retrievedAt": "2026-05-01T07:48:27.674Z",
+      "raw": {
+        "frequencyText": "3890",
+        "beamText": "[Gulfsat info card]",
+        "systemText": "MPEG-4"
+      },
+      "parsed": {
+        "frequencyMHz": 3890,
+        "beamName": "[Gulfsat info card]",
+        "system": "MPEG-4"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-8-west-b-8w-row-77-3900",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+      "retrievedAt": "2026-05-01T07:48:27.674Z",
+      "raw": {
+        "frequencyText": "3900",
+        "beamText": "Play Aflam",
+        "systemText": "MPEG-4",
+        "providerText": "3903 Ara"
+      },
+      "parsed": {
+        "frequencyMHz": 3900,
+        "beamName": "Play Aflam",
+        "system": "MPEG-4",
+        "providerName": "3903 Ara"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-8-west-b-8w-row-78-3910",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+      "retrievedAt": "2026-05-01T07:48:27.674Z",
+      "raw": {
+        "frequencyText": "3910",
+        "beamText": "Play Cinema",
+        "systemText": "MPEG-4",
+        "providerText": "3913 Ara"
+      },
+      "parsed": {
+        "frequencyMHz": 3910,
+        "beamName": "Play Cinema",
+        "system": "MPEG-4",
+        "providerName": "3913 Ara"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-8-west-b-8w-row-79-3920",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+      "retrievedAt": "2026-05-01T07:48:27.674Z",
+      "raw": {
+        "frequencyText": "3920",
+        "beamText": "Play Drama",
+        "systemText": "MPEG-4",
+        "providerText": "3923 Ara"
+      },
+      "parsed": {
+        "frequencyMHz": 3920,
+        "beamName": "Play Drama",
+        "system": "MPEG-4",
+        "providerName": "3923 Ara"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-8-west-b-8w-row-80-3930",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+      "retrievedAt": "2026-05-01T07:48:27.674Z",
+      "raw": {
+        "frequencyText": "3930",
+        "beamText": "Play Hekayat",
+        "systemText": "MPEG-4",
+        "providerText": "3933 Ara"
+      },
+      "parsed": {
+        "frequencyMHz": 3930,
+        "beamName": "Play Hekayat",
+        "system": "MPEG-4",
+        "providerName": "3933 Ara"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-8-west-b-8w-row-81-3940",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+      "retrievedAt": "2026-05-01T07:48:27.674Z",
+      "raw": {
+        "frequencyText": "3940",
+        "beamText": "Play Today",
+        "systemText": "MPEG-4",
+        "providerText": "3943 Ara"
+      },
+      "parsed": {
+        "frequencyMHz": 3940,
+        "beamName": "Play Today",
+        "system": "MPEG-4",
+        "providerName": "3943 Ara"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-8-west-b-8w-row-82-3950",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+      "retrievedAt": "2026-05-01T07:48:27.674Z",
+      "raw": {
+        "frequencyText": "3950",
+        "beamText": "[Majestic Drama info card]",
+        "systemText": "MPEG-4",
+        "providerText": "3953 Ara"
+      },
+      "parsed": {
+        "frequencyMHz": 3950,
+        "beamName": "[Majestic Drama info card]",
+        "system": "MPEG-4",
+        "providerName": "3953 Ara"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-8-west-b-8w-row-83-3960",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+      "retrievedAt": "2026-05-01T07:48:27.674Z",
+      "raw": {
+        "frequencyText": "3960",
+        "beamText": "[Majestic Classic info card]",
+        "systemText": "MPEG-4",
+        "providerText": "3963 Ara"
+      },
+      "parsed": {
+        "frequencyMHz": 3960,
+        "beamName": "[Majestic Classic info card]",
+        "system": "MPEG-4",
+        "providerName": "3963 Ara"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-8-west-b-8w-row-84-3970",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+      "retrievedAt": "2026-05-01T07:48:27.674Z",
+      "raw": {
+        "frequencyText": "3970",
+        "beamText": "[Majestic Aflam info card]",
+        "systemText": "MPEG-4",
+        "providerText": "3973 Ara"
+      },
+      "parsed": {
+        "frequencyMHz": 3970,
+        "beamName": "[Majestic Aflam info card]",
+        "system": "MPEG-4",
+        "providerName": "3973 Ara"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-8-west-b-8w-row-85-3980",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+      "retrievedAt": "2026-05-01T07:48:27.674Z",
+      "raw": {
+        "frequencyText": "3980",
+        "beamText": "[Majestic Mosalsalat info card]",
+        "systemText": "MPEG-4",
+        "providerText": "3983 Ara"
+      },
+      "parsed": {
+        "frequencyMHz": 3980,
+        "beamName": "[Majestic Mosalsalat info card]",
+        "system": "MPEG-4",
+        "providerName": "3983 Ara"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-8-west-b-8w-s2-12652",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+      "retrievedAt": "2026-05-01T07:48:27.674Z",
+      "raw": {
+        "frequencyText": "12652",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "(Mediaset feeds)",
+        "systemText": "DVB-S2",
+        "symbolRateText": "2500",
+        "fecText": "8/9",
+        "providerText": "Jamie A 251118"
+      },
+      "parsed": {
+        "frequencyMHz": 12652,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "(Mediaset feeds)",
+        "system": "DVB-S2",
+        "symbolRate": 2500,
+        "fec": "8/9",
+        "providerName": "Jamie A 251118"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-8-west-b-8w-s2-12656",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+      "retrievedAt": "2026-05-01T07:48:27.674Z",
+      "raw": {
+        "frequencyText": "12656",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "(Mediaset feeds)",
+        "systemText": "DVB-S2",
+        "symbolRateText": "2500",
+        "fecText": "5/6",
+        "providerText": "Jamie A 251118"
+      },
+      "parsed": {
+        "frequencyMHz": 12656,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "(Mediaset feeds)",
+        "system": "DVB-S2",
+        "symbolRate": 2500,
+        "fec": "5/6",
+        "providerName": "Jamie A 251118"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-8-west-b-8w-s2-12660",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+      "retrievedAt": "2026-05-01T07:48:27.674Z",
+      "raw": {
+        "frequencyText": "12660",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "Roli 250921",
+        "systemText": "DVB-S2",
+        "symbolRateText": "4600",
+        "fecText": "3/4",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 12660,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "Roli 250921",
+        "system": "DVB-S2",
+        "symbolRate": 4600,
+        "fec": "3/4",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-8-west-b-8w-s2-12673",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+      "retrievedAt": "2026-05-01T07:48:27.674Z",
+      "raw": {
+        "frequencyText": "12673",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "DX Bozóth 251205",
+        "systemText": "DVB-S2",
+        "symbolRateText": "7200",
+        "fecText": "3/4",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 12673,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "DX Bozóth 251205",
+        "system": "DVB-S2",
+        "symbolRate": 7200,
+        "fec": "3/4",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-8-west-b-8w-s2-12682",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+      "retrievedAt": "2026-05-01T07:48:27.674Z",
+      "raw": {
+        "frequencyText": "12682",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "Jamie A 251025",
+        "systemText": "DVB-S2",
+        "symbolRateText": "7066",
+        "fecText": "3/4",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 12682,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "Jamie A 251025",
+        "system": "DVB-S2",
+        "symbolRate": 7066,
+        "fec": "3/4",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-8-west-b-8w-row-91-12687",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+      "retrievedAt": "2026-05-01T07:48:27.674Z",
+      "raw": {
+        "frequencyText": "12687",
+        "polarizationText": "H",
+        "beamText": "M Al-Taie 260423",
+        "systemText": "DVB-S",
+        "symbolRateText": "27500",
+        "fecText": "7/8",
+        "providerText": "Menasat; 1-65500"
+      },
+      "parsed": {
+        "frequencyMHz": 12687,
+        "polarization": "H",
+        "beamName": "M Al-Taie 260423",
+        "system": "DVB-S",
+        "symbolRate": 27500,
+        "fec": "7/8",
+        "providerName": "Menasat; 1-65500"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-8-west-b-8w-s2-12687",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+      "retrievedAt": "2026-05-01T07:48:27.674Z",
+      "raw": {
+        "frequencyText": "12687",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "Hadowooalsatan 260217",
+        "systemText": "DVB-S2",
+        "symbolRateText": "27500",
+        "fecText": "3/4",
+        "providerText": "20480-950; Gulfsat"
+      },
+      "parsed": {
+        "frequencyMHz": 12687,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "Hadowooalsatan 260217",
+        "system": "DVB-S2",
+        "symbolRate": 27500,
+        "fec": "3/4",
+        "providerName": "20480-950; Gulfsat"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-8-west-b-8w-s2-12720",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+      "retrievedAt": "2026-05-01T07:48:27.674Z",
+      "raw": {
+        "frequencyText": "12720",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "DX Bozóth 260315",
+        "systemText": "DVB-S2",
+        "symbolRateText": "3600",
+        "fecText": "2/3",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 12720,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "DX Bozóth 260315",
+        "system": "DVB-S2",
+        "symbolRate": 3600,
+        "fec": "2/3",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-8-west-b-8w-s2-12725",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+      "retrievedAt": "2026-05-01T07:48:27.674Z",
+      "raw": {
+        "frequencyText": "12725",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "DX Bozóth 260315",
+        "systemText": "DVB-S2",
+        "symbolRateText": "3600",
+        "fecText": "2/3",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 12725,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "DX Bozóth 260315",
+        "system": "DVB-S2",
+        "symbolRate": 3600,
+        "fec": "2/3",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-8-west-b-8w-row-95-12729",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+      "retrievedAt": "2026-05-01T07:48:27.674Z",
+      "raw": {
+        "frequencyText": "12729",
+        "polarizationText": "H",
+        "beamText": "R Cervi 260408",
+        "systemText": "DVB-S",
+        "symbolRateText": "27500",
+        "fecText": "5/6",
+        "eirpText": "75",
+        "providerText": "Nilesat; 2048-75"
+      },
+      "parsed": {
+        "frequencyMHz": 12729,
+        "polarization": "H",
+        "beamName": "R Cervi 260408",
+        "system": "DVB-S",
+        "symbolRate": 27500,
+        "fec": "5/6",
+        "eirpDbw": 75,
+        "providerName": "Nilesat; 2048-75"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-8-west-b-8w-row-96-12729",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+      "retrievedAt": "2026-05-01T07:48:27.674Z",
+      "raw": {
+        "frequencyText": "12729",
+        "polarizationText": "V",
+        "beamText": "R Cervi 250814",
+        "systemText": "DVB-S",
+        "symbolRateText": "27500",
+        "fecText": "5/6",
+        "eirpText": "70",
+        "providerText": "2048-70"
+      },
+      "parsed": {
+        "frequencyMHz": 12729,
+        "polarization": "V",
+        "beamName": "R Cervi 250814",
+        "system": "DVB-S",
+        "symbolRate": 27500,
+        "fec": "5/6",
+        "eirpDbw": 70,
+        "providerName": "2048-70"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-8-west-b-8w-s2-12739",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+      "retrievedAt": "2026-05-01T07:48:27.674Z",
+      "raw": {
+        "frequencyText": "12739",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "Roli 250922",
+        "systemText": "DVB-S2",
+        "symbolRateText": "3600",
+        "fecText": "3/4",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 12739,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "Roli 250922",
+        "system": "DVB-S2",
+        "symbolRate": 3600,
+        "fec": "3/4",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-8-west-b-8w-s2-12744",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+      "retrievedAt": "2026-05-01T07:48:27.674Z",
+      "raw": {
+        "frequencyText": "12744",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "Jamie A 251206",
+        "systemText": "DVB-S2",
+        "symbolRateText": "4800",
+        "fecText": "3/4",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 12744,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "Jamie A 251206",
+        "system": "DVB-S2",
+        "symbolRate": 4800,
+        "fec": "3/4",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-8-west-b-8w-s2-nofreq",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 8 WEST B",
+      "orbitalPosition": "8W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+      "retrievedAt": "2026-05-01T07:48:27.674Z",
+      "raw": {
+        "transponderText": "S2",
+        "beamText": "System:",
+        "systemText": "DVB-S2",
+        "providerText": "non-DTH"
+      },
+      "parsed": {
+        "transponderNumber": "S2",
+        "beamName": "System:",
+        "system": "DVB-S2",
+        "providerName": "non-DTH"
+      },
+      "parseQuality": {
+        "hasFrequency": false,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Downlink frequency not parseable; row kept due to transponder ID.",
+          "Polarization not present or not parseable."
+        ]
+      }
+    }
+  ]
+}

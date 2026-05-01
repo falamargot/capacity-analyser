@@ -1,0 +1,1026 @@
+{
+  "source": "LYNGSAT",
+  "satelliteName": "EUTELSAT 117 WEST A",
+  "orbitalPosition": "117W",
+  "url": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+  "retrievedAt": "2026-05-01T07:48:16.198Z",
+  "parserStats": {
+    "totalRowsSeen": 336,
+    "rowsWithFrequency": 104,
+    "rowsWithBeam": 105,
+    "rowsWithTransponderId": 63,
+    "rowsSkipped": 231,
+    "skipReasons": {
+      "too_few_cells": 46,
+      "no_frequency_no_transponder": 185
+    }
+  },
+  "rows": [
+    {
+      "frequencyMHz": 3720,
+      "polarization": "V",
+      "beamName": "Cyberham 251114",
+      "system": "DVB-S",
+      "symbolRate": 27000,
+      "fec": "3/4",
+      "provider": "Edusat",
+      "htmlRowText": "3720 V tp 1 Hemi C 0 | DVB-S 27000 3/4 | Edusat | 5.5 | Cyberham 251114"
+    },
+    {
+      "frequencyMHz": 3766,
+      "polarization": "H",
+      "transponderNumber": "S2",
+      "beamName": "Edinho fta 240213",
+      "system": "DVB-S2",
+      "symbolRate": 5200,
+      "fec": "3/4",
+      "provider": "7.9 482 Spa; Espacio U",
+      "htmlRowText": "3766 H tp 4 Hemi C 0 | DVB-S2 8PSK 5200 3/4 | Espacio U | MPEG-4/HD | 481 | 7.9 482 Spa | Edinho fta 240213"
+    },
+    {
+      "frequencyMHz": 3773,
+      "polarization": "H",
+      "transponderNumber": "S2",
+      "beamName": "Canal Iberoamericano",
+      "system": "DVB-S2",
+      "symbolRate": 5200,
+      "fec": "3/4",
+      "provider": "Edinho fta 230619; 7.9 482 Spa",
+      "htmlRowText": "3773 H tp 4 Hemi C 0 | DVB-S2 8PSK 5200 3/4 | Canal Iberoamericano | MPEG-4/HD | 481 | 7.9 482 Spa | Edinho fta 230619"
+    },
+    {
+      "frequencyMHz": 3779,
+      "polarization": "H",
+      "beamName": "Canal Iberoamericano",
+      "system": "DVB-S",
+      "symbolRate": 3600,
+      "fec": "3/4",
+      "provider": "Edinho fta 230619; 5.5 258 Spa",
+      "htmlRowText": "3779 H tp 4 Hemi C 0 | DVB-S 3600 3/4 | Canal Iberoamericano | MPEG-2/SD | 257 | 5.5 258 Spa | Edinho fta 230619"
+    },
+    {
+      "frequencyMHz": 3786,
+      "polarization": "V",
+      "beamName": "Telecentro (Dominican Republic)",
+      "system": "DVB-S",
+      "symbolRate": 4000,
+      "fec": "3/4",
+      "eirpDbw": 49,
+      "provider": "Edinho fta 230318; 5.5 51 Spa",
+      "htmlRowText": "3786 V tp 5 Hemi C 0 | DVB-S 4000 3/4 | Telecentro (Dominican Republic) | MPEG-2/SD | 49 | 5.5 51 Spa | Edinho fta 230318"
+    },
+    {
+      "frequencyMHz": 3787,
+      "polarization": "H",
+      "transponderNumber": "S2",
+      "beamName": "Justicia TV (Mexico)",
+      "system": "DVB-S2",
+      "symbolRate": 4090,
+      "fec": "3/4",
+      "provider": "R Chavez 231020; 7.9 482 Spa",
+      "htmlRowText": "3787 H tp 4 Hemi C 0 | DVB-S2 8PSK 4090 3/4 | Justicia TV (Mexico) | MPEG-4/HD | 481 | 7.9 482 Spa | R Chavez 231020"
+    },
+    {
+      "frequencyMHz": 3791,
+      "polarization": "V",
+      "transponderNumber": "S2",
+      "beamName": "Edinho fta 230619",
+      "system": "DVB-S2",
+      "symbolRate": 3080,
+      "fec": "3/4",
+      "provider": "7.9 256 Spa; TV Más",
+      "htmlRowText": "3791 V tp 5 Hemi C 0 | DVB-S2 8PSK 3080 3/4 | TV Más | MPEG-4/HD | 308 | 7.9 256 Spa | Edinho fta 230619"
+    },
+    {
+      "frequencyMHz": 3792,
+      "polarization": "H",
+      "transponderNumber": "S2",
+      "beamName": "Canal del Congreso 45.1",
+      "system": "DVB-S2",
+      "symbolRate": 4090,
+      "fec": "3/4",
+      "provider": "Edinho fta 230619; 7.9 256 Spa",
+      "htmlRowText": "3792 H tp 4 Hemi C 0 | DVB-S2 8PSK 4090 3/4 | Canal del Congreso 45.1 | MPEG-4/HD | 308 | 7.9 256 Spa | Edinho fta 230619"
+    },
+    {
+      "frequencyMHz": 3796,
+      "polarization": "V",
+      "beamName": "Cyberham 251119",
+      "system": "DVB-S",
+      "symbolRate": 2242,
+      "fec": "3/4",
+      "provider": "5.5 4112 Spa",
+      "htmlRowText": "3796 V tp 5 Hemi C 0 | DVB-S 2242 3/4 | 1793 | RTU | ?-? MPEG-2/SD | 512 | 5.5 4112 Spa | Cyberham 251119"
+    },
+    {
+      "frequencyMHz": 3797,
+      "polarization": "H",
+      "transponderNumber": "S2",
+      "beamName": "Cyberham 251115",
+      "system": "DVB-S2",
+      "symbolRate": 4090,
+      "fec": "5/6",
+      "provider": "[test card]; 9.4 482",
+      "htmlRowText": "3797 H tp 4 Hemi C 0 | DVB-S2 8PSK 4090 5/6 | 3 | [test card] | ?-? MPEG-4/HD | 481 | 9.4 482 | Cyberham 251115"
+    },
+    {
+      "frequencyMHz": 3810,
+      "polarization": "V",
+      "transponderNumber": "S2",
+      "beamName": "H Ortega 250407",
+      "system": "DVB-S2",
+      "symbolRate": 15000,
+      "fec": "3/4",
+      "provider": "Azteca",
+      "htmlRowText": "3810 V tp 5 Hemi C 0 | DVB-S2 8PSK 15000 3/4 | Azteca | 7.9 | H Ortega 250407"
+    },
+    {
+      "frequencyMHz": 3820,
+      "polarization": "H",
+      "transponderNumber": "S2",
+      "beamName": "Cyberham 251119",
+      "system": "DVB-S2",
+      "symbolRate": 30000,
+      "fec": "3/4",
+      "provider": "Conax PowerVu; PCTV",
+      "htmlRowText": "3820 H tp 6 Hemi C 0 | DVB-S2 8PSK 30000 3/4 | PCTV | 7.9 | Conax PowerVu | Cyberham 251119"
+    },
+    {
+      "frequencyMHz": 3400,
+      "beamName": "Pasiones Latinoamérica",
+      "system": "MPEG-4",
+      "eirpDbw": 34,
+      "provider": "Conax PowerVu; 3430 Spa",
+      "htmlRowText": "34 | Pasiones Latinoamérica | MPEG-4/SD | 3400 | 3430 Spa | Conax PowerVu"
+    },
+    {
+      "frequencyMHz": 3500,
+      "beamName": "Hola! TV América Latina",
+      "system": "MPEG-4",
+      "eirpDbw": 35,
+      "provider": "Conax PowerVu; 3530 Spa",
+      "htmlRowText": "35 | Hola! TV América Latina | MPEG-4/SD | 3500 | 3530 Spa | Conax PowerVu"
+    },
+    {
+      "frequencyMHz": 3600,
+      "beamName": "Conax PowerVu",
+      "system": "MPEG-4",
+      "eirpDbw": 36,
+      "provider": "Beat Box; 3630 Spa",
+      "htmlRowText": "36 | Beat Box | MPEG-4/SD | 3600 | 3630 Spa | Conax PowerVu"
+    },
+    {
+      "frequencyMHz": 3700,
+      "beamName": "TVC Deportes 2",
+      "system": "MPEG-4",
+      "eirpDbw": 37,
+      "provider": "Conax PowerVu; 3730 Spa",
+      "htmlRowText": "37 | TVC Deportes 2 | MPEG-4/HD | 3700 | 3730 Spa | Conax PowerVu"
+    },
+    {
+      "frequencyMHz": 3831,
+      "polarization": "V",
+      "transponderNumber": "S2",
+      "beamName": "Cyberham 251115",
+      "system": "DVB-S2",
+      "symbolRate": 15000,
+      "fec": "2/3",
+      "provider": "6.6 102 Spa; Unife",
+      "htmlRowText": "3831 V tp 7 Hemi C 0 | DVB-S2 8PSK 15000 2/3 | 10 | Unife | ?-? MPEG-4/HD | 101 | 6.6 102 Spa | Cyberham 251115"
+    },
+    {
+      "frequencyMHz": 3845,
+      "polarization": "H",
+      "transponderNumber": "S2",
+      "beamName": "Sistema Michoacano de TV",
+      "system": "DVB-S2",
+      "symbolRate": 3500,
+      "fec": "3/4",
+      "provider": "Cyberham 251119",
+      "htmlRowText": "3845 H tp 8 Hemi C 0 | DVB-S2 8PSK 3500 3/4 | Sistema Michoacano de TV | 7.9 | Cyberham 251119"
+    },
+    {
+      "frequencyMHz": 3849,
+      "polarization": "H",
+      "transponderNumber": "S2",
+      "beamName": "9.4 631 Spa 632 Spa",
+      "system": "DVB-S2",
+      "symbolRate": 2800,
+      "fec": "5/6",
+      "provider": "Edinho fta 230303; Azteca Honduras",
+      "htmlRowText": "3849 H tp 8 Hemi C 0 | DVB-S2 8PSK 2800 5/6 | 2 | Azteca Honduras | ?-4369 MPEG-4/HD | 611 | 9.4 631 Spa 632 Spa | Edinho fta 230303"
+    },
+    {
+      "frequencyMHz": 3849,
+      "polarization": "V",
+      "transponderNumber": "S2",
+      "beamName": "Cyberham 251112",
+      "system": "DVB-S2",
+      "symbolRate": 15000,
+      "fec": "3/5",
+      "provider": "Imagen TV",
+      "htmlRowText": "3849 V tp 9 Hemi C 0 | DVB-S2 8PSK 15000 3/5 | Imagen TV | 5.5 | Cyberham 251112"
+    },
+    {
+      "frequencyMHz": 3852,
+      "polarization": "H",
+      "transponderNumber": "S2",
+      "beamName": "Edinho fta 230303",
+      "system": "DVB-S2",
+      "symbolRate": 2082,
+      "fec": "3/4",
+      "eirpDbw": 33,
+      "provider": "Tele Saltillo; ?-? HEVC/HD; 7.9 36 Spa",
+      "htmlRowText": "3852 H tp 8 Hemi C 0 | DVB-S2 8PSK 2082 3/4 | 1 | Tele Saltillo | ?-? HEVC/HD | 33 | 7.9 36 Spa | Edinho fta 230303"
+    },
+    {
+      "frequencyMHz": 3854,
+      "polarization": "H",
+      "transponderNumber": "S2",
+      "beamName": "WilkieJr 250527",
+      "system": "DVB-S2",
+      "symbolRate": 1600,
+      "fec": "3/4",
+      "provider": "4.0 482 Spa; Teleceiba",
+      "htmlRowText": "3854 H tp 8 Hemi C 0 | DVB-S2 QPSK 1600 3/4 | Teleceiba | MPEG-4/SD | 481 | 4.0 482 Spa | WilkieJr 250527"
+    },
+    {
+      "frequencyMHz": 3858,
+      "polarization": "H",
+      "transponderNumber": "S2",
+      "beamName": "Edinho fta 230523",
+      "system": "DVB-S2",
+      "symbolRate": 4440,
+      "fec": "3/4",
+      "provider": "7.9 482 Spa; Heraldo TV",
+      "htmlRowText": "3858 H tp 8 Hemi C 0 | DVB-S2 8PSK 4440 3/4 | 1 | Heraldo TV | ?-? MPEG-4/HD | 481 | 7.9 482 Spa | Edinho fta 230523"
+    },
+    {
+      "frequencyMHz": 3865,
+      "polarization": "H",
+      "transponderNumber": "S2",
+      "beamName": "TM Global Communications",
+      "system": "DVB-S2",
+      "symbolRate": 2500,
+      "fec": "5/6",
+      "provider": "Cyberham 251112",
+      "htmlRowText": "3865 H tp 8 Hemi C 0 | DVB-S2 8PSK 2500 5/6 | TM Global Communications | 9.4 | Cyberham 251112"
+    },
+    {
+      "frequencyMHz": 3865,
+      "polarization": "V",
+      "transponderNumber": "S2",
+      "beamName": "Canal 28 Nuevo León",
+      "system": "DVB-S2",
+      "symbolRate": 6165,
+      "fec": "5/6",
+      "provider": "Cyberham 251112",
+      "htmlRowText": "3865 V tp 9 Hemi C 0 | DVB-S2 8PSK 6165 5/6 | Canal 28 Nuevo León | 9.4 | Cyberham 251112"
+    },
+    {
+      "frequencyMHz": 3870,
+      "polarization": "H",
+      "transponderNumber": "S2",
+      "beamName": "TV Arquidiocesana",
+      "system": "DVB-S2",
+      "symbolRate": 2500,
+      "fec": "3/4",
+      "provider": "Edinho fta 230619; 7.9 257 Spa",
+      "htmlRowText": "3870 H tp 8 Hemi C 0 | DVB-S2 8PSK 2500 3/4 | TV Arquidiocesana | MPEG-4/HD | 258 | 7.9 257 Spa | Edinho fta 230619"
+    },
+    {
+      "frequencyMHz": 3872,
+      "polarization": "V",
+      "transponderNumber": "S2",
+      "beamName": "Edinho fta 230701",
+      "system": "DVB-S2",
+      "symbolRate": 2875,
+      "fec": "5/6",
+      "provider": "Tele Yucatán; 9.4 256 Spa",
+      "htmlRowText": "3872 V tp 9 Hemi C 0 | DVB-S2 8PSK 2875 5/6 | Tele Yucatán | MPEG-4/HD | 101 | 9.4 256 Spa | Edinho fta 230701"
+    },
+    {
+      "frequencyMHz": 3877,
+      "polarization": "V",
+      "transponderNumber": "S2",
+      "beamName": "Cyberham 251113",
+      "system": "DVB-S2",
+      "symbolRate": 5000,
+      "fec": "5/6",
+      "provider": "9.4 256 Spa; AyM Sports",
+      "htmlRowText": "3877 V tp 9 Hemi C 0 | DVB-S2 8PSK 5000 5/6 | 1 | AyM Sports | ?-? MPEG-4/HD | 101 | 9.4 256 Spa | Cyberham 251113"
+    },
+    {
+      "frequencyMHz": 3882,
+      "polarization": "V",
+      "transponderNumber": "S2",
+      "beamName": "Latin American Sports USA",
+      "system": "DVB-S2",
+      "provider": "Cyberham 251115; ?-? /HD; 256 Spa",
+      "htmlRowText": "3882 V tp 9 Hemi C 0 | DVB-S2 QPSK 3700 | 1 | Latin American Sports USA | ?-? /HD | 101 | 256 Spa | Cyberham 251115"
+    },
+    {
+      "frequencyMHz": 3884,
+      "polarization": "H",
+      "transponderNumber": "S2",
+      "beamName": "C de Berazategui 251029",
+      "system": "DVB-S2",
+      "symbolRate": 3255,
+      "fec": "5/6",
+      "eirpDbw": 33,
+      "provider": "Hidalgo TV; 5.2 36 Spa",
+      "htmlRowText": "3884 H tp 10 Hemi C 0 | DVB-S2 QPSK 3255 5/6 | 2 | Hidalgo TV | ?-? MPEG-4/HD | 33 | 5.2 36 Spa | C de Berazategui 251029"
+    },
+    {
+      "frequencyMHz": 3888,
+      "polarization": "V",
+      "transponderNumber": "S2",
+      "beamName": "BeisbolLatino TV",
+      "system": "DVB-S2",
+      "symbolRate": 3327,
+      "fec": "3/4",
+      "provider": "Cyberham 251113; 7.9 256 Spa",
+      "htmlRowText": "3888 V tp 9 Hemi C 0 | DVB-S2 8PSK 3327 3/4 | 1 | BeisbolLatino TV | 65535-1 MPEG-4/HD | 101 | 7.9 256 Spa | Cyberham 251113"
+    },
+    {
+      "frequencyMHz": 3888,
+      "polarization": "H",
+      "beamName": "Edinho fta 230303",
+      "system": "DVB-S",
+      "symbolRate": 2540,
+      "fec": "5/6",
+      "provider": "6.5 512 Spa; Jalisco TV",
+      "htmlRowText": "3888 H tp 10 Hemi C 0 | DVB-S 2540 5/6 | 1 | Jalisco TV | ?-? MPEG-2/SD | 256 | 6.5 512 Spa | Edinho fta 230303"
+    },
+    {
+      "frequencyMHz": 3892,
+      "polarization": "H",
+      "transponderNumber": "S2",
+      "beamName": "TV Azteca Guate",
+      "system": "DVB-S2",
+      "symbolRate": 5000,
+      "fec": "3/4",
+      "provider": "Cyberham 251119",
+      "htmlRowText": "3892 H tp 10 Hemi C 0 | DVB-S2 8PSK 5000 3/4 | TV Azteca Guate | 7.9 | Cyberham 251119"
+    },
+    {
+      "frequencyMHz": 4128,
+      "beamName": "A Más + Guate",
+      "system": "MPEG-4",
+      "provider": "4130 Spa",
+      "htmlRowText": "2 | A Más + Guate | MPEG-4/HD | 4128 | 4130 Spa"
+    },
+    {
+      "frequencyMHz": 3894,
+      "polarization": "V",
+      "transponderNumber": "S2",
+      "beamName": "Edinho fta 230818",
+      "system": "DVB-S2",
+      "symbolRate": 2415,
+      "fec": "3/5",
+      "provider": "Tlaxcala TV; 5.5 256 Spa",
+      "htmlRowText": "3894 V tp 9 Hemi C 0 | DVB-S2 8PSK 2415 3/5 | Tlaxcala TV | MPEG-4/SD | 308 | 5.5 256 Spa | Edinho fta 230818"
+    },
+    {
+      "frequencyMHz": 3898,
+      "polarization": "V",
+      "transponderNumber": "S2",
+      "beamName": "Edinho fta 230302",
+      "system": "DVB-S2",
+      "symbolRate": 2080,
+      "fec": "4/5",
+      "provider": "4.7 4112 Spa; CB TV",
+      "htmlRowText": "3898 V tp 9 Hemi C 0 | DVB-S2 QPSK 2080 4/5 | CB TV | MPEG-4/HD | 513 | 4.7 4112 Spa | Edinho fta 230302"
+    },
+    {
+      "frequencyMHz": 3903,
+      "polarization": "V",
+      "beamName": "Luis Alberto Rosario 120326",
+      "system": "DVB-S",
+      "symbolRate": 2200,
+      "fec": "7/8",
+      "provider": "La Voz de María; 7.2 256 Spa",
+      "htmlRowText": "3903 V tp 11 Hemi C 0 | DVB-S 2200 7/8 | 1 | La Voz de María | ?-? MPEG-2/SD | 308 | 7.2 256 Spa | Luis Alberto Rosario 120326"
+    },
+    {
+      "frequencyMHz": 3908,
+      "polarization": "H",
+      "transponderNumber": "S2",
+      "beamName": "Cyberham 251119",
+      "system": "DVB-S2",
+      "symbolRate": 2500,
+      "fec": "4/5",
+      "provider": "4.7 131 Spa; TV UNAH",
+      "htmlRowText": "3908 H tp 10 Hemi C 0 | DVB-S2 QPSK 2500 4/5 | TV UNAH | MPEG-4/HD | 130 | 4.7 131 Spa | Cyberham 251119"
+    },
+    {
+      "frequencyMHz": 3909,
+      "polarization": "V",
+      "beamName": "Dominican Republic mux",
+      "system": "DVB-S",
+      "symbolRate": 6379,
+      "fec": "3/4",
+      "provider": "J Cordero 190114",
+      "htmlRowText": "3909 V tp 11 Hemi C 0 | DVB-S 6379 3/4 | Dominican Republic mux | 5.5 | J Cordero 190114"
+    },
+    {
+      "frequencyMHz": 3917,
+      "polarization": "H",
+      "transponderNumber": "S2",
+      "beamName": "Cyberham 251119",
+      "system": "DVB-S2",
+      "symbolRate": 4167,
+      "fec": "3/4",
+      "eirpDbw": 49,
+      "provider": "7.9 51 Spa; CORTV",
+      "htmlRowText": "3917 H tp 10 Hemi C 0 | DVB-S2 8PSK 4167 3/4 | CORTV | MPEG-2/HD | 49 | 7.9 51 Spa | Cyberham 251119"
+    },
+    {
+      "frequencyMHz": 3917,
+      "polarization": "V",
+      "transponderNumber": "S2",
+      "beamName": "Cyberham 251112",
+      "system": "DVB-S2",
+      "symbolRate": 4500,
+      "fec": "3/4",
+      "provider": "UDG TV",
+      "htmlRowText": "3917 V tp 11 Hemi C 0 | DVB-S2 8PSK 4500 3/4 | UDG TV | 7.9 | Cyberham 251112"
+    },
+    {
+      "frequencyMHz": 3924,
+      "polarization": "V",
+      "transponderNumber": "S2",
+      "beamName": "Cyberham 251119",
+      "system": "DVB-S2",
+      "symbolRate": 7257,
+      "fec": "8/9",
+      "provider": "TPSD",
+      "htmlRowText": "3924 V tp 11 Hemi C 0 | DVB-S2 8PSK 7257 8/9 | TPSD | 10.7 | Cyberham 251119"
+    },
+    {
+      "frequencyMHz": 3925,
+      "polarization": "H",
+      "beamName": "Cyberham 251119",
+      "system": "DVB-S",
+      "symbolRate": 4400,
+      "fec": "3/4",
+      "provider": "Ecuador TV",
+      "htmlRowText": "3925 H tp 12 Hemi C 0 | DVB-S 4400 3/4 | Ecuador TV | 5.5 | Cyberham 251119"
+    },
+    {
+      "frequencyMHz": 4112,
+      "beamName": "Ecuador TV",
+      "system": "MPEG-2",
+      "symbolRate": 512,
+      "htmlRowText": "1 | Ecuador TV | MPEG-2/SD | 512 | 4112 Spa"
+    },
+    {
+      "frequencyMHz": 4111,
+      "beamName": "Ecuador TV Internacional",
+      "system": "MPEG-2",
+      "symbolRate": 514,
+      "htmlRowText": "2 | Ecuador TV Internacional | MPEG-2/SD | 514 | 4111 Spa"
+    },
+    {
+      "frequencyMHz": 4128,
+      "beamName": "Püblica FM",
+      "htmlRowText": "1 | Püblica FM | 4128 Spa"
+    },
+    {
+      "frequencyMHz": 4127,
+      "beamName": "Radio Nacional del Ecuador",
+      "htmlRowText": "2 | Radio Nacional del Ecuador | 4127 Spa"
+    },
+    {
+      "frequencyMHz": 3930,
+      "polarization": "V",
+      "transponderNumber": "S2",
+      "beamName": "Edinho fta 230515",
+      "system": "DVB-S2",
+      "symbolRate": 667,
+      "provider": "Emisoras Unidas",
+      "htmlRowText": "3930 V tp 11 Hemi C 0 | DVB-S2 8PSK 667 | Emisoras Unidas | Edinho fta 230515"
+    },
+    {
+      "frequencyMHz": 3930,
+      "polarization": "H",
+      "transponderNumber": "S2",
+      "beamName": "C de Berazategui 251029",
+      "system": "DVB-S2",
+      "symbolRate": 2500,
+      "fec": "5/6",
+      "eirpDbw": 66,
+      "provider": "5.2 67 Spa; EDN TV",
+      "htmlRowText": "3930 H tp 12 Hemi C 0 | DVB-S2 QPSK 2500 5/6 | 1 | EDN TV | ?-? MPEG-4/SD | 66 | 5.2 67 Spa | C de Berazategui 251029"
+    },
+    {
+      "frequencyMHz": 3938,
+      "polarization": "V",
+      "transponderNumber": "S2",
+      "beamName": "Cyberham 251119",
+      "system": "DVB-S2",
+      "symbolRate": 674,
+      "provider": "Grupo ACIR",
+      "htmlRowText": "3938 V tp 11 Hemi C 0 | DVB-S2 674 | Grupo ACIR | Cyberham 251119"
+    },
+    {
+      "frequencyMHz": 4000,
+      "beamName": "106.5 Mix FM",
+      "provider": "401 Spa",
+      "htmlRowText": "4000 | 106.5 Mix FM | 401 Spa"
+    },
+    {
+      "frequencyMHz": 3947,
+      "polarization": "V",
+      "transponderNumber": "S2",
+      "beamName": "Cyberham 251116",
+      "system": "DVB-S2",
+      "symbolRate": 8333,
+      "fec": "5/6",
+      "provider": "Cable Color",
+      "htmlRowText": "3947 V tp 13 Hemi C 0 | DVB-S2 8PSK 8333 5/6 | Cable Color | 9.4 | Cyberham 251116"
+    },
+    {
+      "frequencyMHz": 4098,
+      "beamName": "DTV (Honduras)",
+      "system": "MPEG-4",
+      "provider": "4099 Spa",
+      "htmlRowText": "1 | DTV (Honduras) | MPEG-4/SD | 4098 | 4099 Spa"
+    },
+    {
+      "frequencyMHz": 4100,
+      "beamName": "Q'hubo TV",
+      "system": "MPEG-4",
+      "provider": "4097 Spa",
+      "htmlRowText": "2 | Q'hubo TV | MPEG-4/SD | 4100 | 4097 Spa"
+    },
+    {
+      "frequencyMHz": 4134,
+      "beamName": "Canal 11 (Honduras)",
+      "system": "MPEG-4",
+      "provider": "4133 Spa",
+      "htmlRowText": "9 | Canal 11 (Honduras) | MPEG-4/SD | 4134 | 4133 Spa"
+    },
+    {
+      "frequencyMHz": 4136,
+      "beamName": "Nuevo Mundo TV",
+      "system": "MPEG-4",
+      "provider": "4135 Spa",
+      "htmlRowText": "19 | Nuevo Mundo TV | MPEG-4/SD | 4136 | 4135 Spa"
+    },
+    {
+      "frequencyMHz": 3948,
+      "polarization": "H",
+      "transponderNumber": "S2",
+      "beamName": "Edinho fta 231017",
+      "system": "DVB-S2",
+      "symbolRate": 15145,
+      "fec": "3/5",
+      "provider": "Az TV de Paga",
+      "htmlRowText": "3948 H tp 12 Hemi C 0 | DVB-S2 8PSK 15145 3/5 | Az TV de Paga | 5.5 | HRT | Edinho fta 231017"
+    },
+    {
+      "frequencyMHz": 3962,
+      "polarization": "V",
+      "beamName": "Telefuturo (Dominican Republic)",
+      "system": "DVB-S",
+      "symbolRate": 2500,
+      "eirpDbw": 61,
+      "provider": "Cyberham 251113; 51 Spa",
+      "htmlRowText": "3962 V tp 13 Hemi C 0 | DVB-S 2500 | 1 | Telefuturo (Dominican Republic) | ?-? MPEG-4/HD | 61 | 51 Spa | Cyberham 251113"
+    },
+    {
+      "frequencyMHz": 3968,
+      "polarization": "V",
+      "transponderNumber": "S2",
+      "beamName": "Ecuavisa Internacional",
+      "system": "DVB-S2",
+      "symbolRate": 3750,
+      "fec": "3/4",
+      "provider": "Cyberham 251119; 7.9 203 Spa",
+      "htmlRowText": "3968 V tp 13 Hemi C 0 | DVB-S2 8PSK 3750 3/4 | 2 | Ecuavisa Internacional | ?-? MPEG-4/HD | 201 | 7.9 203 Spa | Cyberham 251119"
+    },
+    {
+      "frequencyMHz": 3973,
+      "polarization": "H",
+      "transponderNumber": "S2",
+      "beamName": "Cyberham 251119",
+      "system": "DVB-S2",
+      "symbolRate": 2916,
+      "fec": "3/4",
+      "provider": "Guatevisión; 7.9 769 Spa",
+      "htmlRowText": "3973 H tp 14 Hemi C 0 | DVB-S2 8PSK 2916 3/4 | 1 | Guatevisión | ?-? MPEG-4/HD | 768 | 7.9 769 Spa | Cyberham 251119"
+    },
+    {
+      "frequencyMHz": 3977,
+      "polarization": "H",
+      "transponderNumber": "S2",
+      "beamName": "Edinho fta 230303",
+      "system": "DVB-S2",
+      "symbolRate": 1666,
+      "fec": "3/4",
+      "provider": "7.9 2.6 Spa; Gamavisión",
+      "htmlRowText": "3977 H tp 14 Hemi C 0 | DVB-S2 8PSK 1666 3/4 | Gamavisión | MPEG-4/SD | 308 | 7.9 2.6 Spa | Edinho fta 230303"
+    },
+    {
+      "frequencyMHz": 3980,
+      "polarization": "H",
+      "transponderNumber": "S2",
+      "beamName": "Cyberham 251119",
+      "system": "DVB-S2",
+      "symbolRate": 832,
+      "fec": "5/6",
+      "htmlRowText": "3980 H tp 14 Hemi C 0 | DVB-S2 8PSK 832 5/6 | 9.4 | Cyberham 251119"
+    },
+    {
+      "frequencyMHz": 4000,
+      "beamName": "La Ke Buena",
+      "provider": "401 Spa",
+      "htmlRowText": "4000 | La Ke Buena | 401 Spa"
+    },
+    {
+      "frequencyMHz": 3996,
+      "polarization": "V",
+      "transponderNumber": "S2",
+      "beamName": "Edinho fta PowerLat 231031",
+      "system": "DVB-S2",
+      "symbolRate": 4050,
+      "fec": "5/6",
+      "eirpDbw": 49,
+      "provider": "Telemax (Mexico); 9.4 51 Spa",
+      "htmlRowText": "3996 V tp 15 Hemi C 0 | DVB-S2 8PSK 4050 5/6 | Telemax (Mexico) | MPEG-2/HD | 49 | 9.4 51 Spa | Edinho fta PowerLat 231031"
+    },
+    {
+      "frequencyMHz": 3997,
+      "polarization": "H",
+      "transponderNumber": "S2",
+      "beamName": "Cyberham 251113",
+      "system": "DVB-S2",
+      "symbolRate": 1480,
+      "fec": "3/4",
+      "provider": "7.9 102 Spa; Oromar TV",
+      "htmlRowText": "3997 H tp 14 Hemi C 0 | DVB-S2 8PSK 1480 3/4 | 1 | Oromar TV | ?-? MPEG-4/SD | 301 | 7.9 102 Spa | Cyberham 251113"
+    },
+    {
+      "frequencyMHz": 4004,
+      "polarization": "V",
+      "transponderNumber": "S2",
+      "beamName": "Cyberham 251113",
+      "system": "DVB-S2",
+      "symbolRate": 1660,
+      "fec": "3/5",
+      "provider": "5.5 300 Spa; RCG TV",
+      "htmlRowText": "4004 V tp 15 Hemi C 0 | DVB-S2 8PSK 1660 3/5 | 1 | RCG TV | ?-? MPEG-4/HD | 256 | 5.5 300 Spa | Cyberham 251113"
+    },
+    {
+      "frequencyMHz": 4013,
+      "polarization": "V",
+      "transponderNumber": "S2",
+      "beamName": "Edinho fta 230620",
+      "system": "DVB-S2",
+      "symbolRate": 9425,
+      "fec": "3/4",
+      "provider": "KeyFly; RTVE",
+      "htmlRowText": "4013 V tp 15 Hemi C 0 | DVB-S2 8PSK 9425 3/4 | RTVE | 7.9 | KeyFly | Edinho fta 230620"
+    },
+    {
+      "frequencyMHz": 4015,
+      "polarization": "H",
+      "transponderNumber": "S2",
+      "beamName": "ML 250214",
+      "system": "DVB-S2",
+      "symbolRate": 23200,
+      "fec": "5/6",
+      "htmlRowText": "4015 H tp 16 Hemi C 0 | DVB-S2 8PSK 23200 5/6 | 9.4 | BISS Compunicate | ML 250214"
+    },
+    {
+      "frequencyMHz": 4031,
+      "polarization": "V",
+      "beamName": "J Cordero 221018",
+      "system": "DVB-S",
+      "symbolRate": 15200,
+      "fec": "5/6",
+      "provider": "Grupo Telemicro",
+      "htmlRowText": "4031 V tp 17 Hemi C 0 | DVB-S 15200 5/6 | Grupo Telemicro | 6.5 | J Cordero 221018"
+    },
+    {
+      "frequencyMHz": 4067,
+      "polarization": "V",
+      "transponderNumber": "S2",
+      "beamName": "Edinho fta 230816",
+      "system": "DVB-S2",
+      "symbolRate": 3100,
+      "fec": "2/3",
+      "provider": "6.6 4112 Spa; Mexicanal",
+      "htmlRowText": "4067 V tp 19 Hemi C 0 | DVB-S2 8PSK 3100 2/3 | Mexicanal | MPEG-4/HD | 512 | 6.6 4112 Spa | BISS | Edinho fta 230816"
+    },
+    {
+      "frequencyMHz": 4076,
+      "polarization": "V",
+      "transponderNumber": "S2",
+      "beamName": "Teleuniverso (Dominican Republic)",
+      "system": "DVB-S2",
+      "symbolRate": 2500,
+      "fec": "3/4",
+      "provider": "Mike 4 230205; 7.9 1122 Spa; ?-? HEVC/HD",
+      "htmlRowText": "4076 V tp 19 Hemi C 0 | DVB-S2 8PSK 2500 3/4 | 1 | Teleuniverso (Dominican Republic) | ?-? HEVC/HD | 1121 | 7.9 1122 Spa | Mike 4 230205"
+    },
+    {
+      "frequencyMHz": 4086,
+      "polarization": "V",
+      "transponderNumber": "S2",
+      "beamName": "United Teleports",
+      "system": "DVB-S2",
+      "symbolRate": 8333,
+      "fec": "5/6",
+      "provider": "Cyberham 251113",
+      "htmlRowText": "4086 V tp 19 Hemi C 0 | DVB-S2 8PSK 8333 5/6 | United Teleports | 9.4 | Cyberham 251113"
+    },
+    {
+      "frequencyMHz": 4094,
+      "polarization": "V",
+      "transponderNumber": "S2",
+      "beamName": "Edinho fta 230619",
+      "system": "DVB-S2",
+      "symbolRate": 6333,
+      "fec": "3/4",
+      "provider": "Atresmedia; PowerVu",
+      "htmlRowText": "4094 V tp 19 Hemi C 0 | DVB-S2 8PSK 6333 3/4 | Atresmedia | 7.9 | PowerVu | Edinho fta 230619"
+    },
+    {
+      "frequencyMHz": 4101,
+      "beamName": "Atrecine",
+      "system": "MPEG-4",
+      "provider": "4102 Spa; PowerVu",
+      "htmlRowText": "Atrecine | MPEG-4/HD | 4101 | 4102 Spa | PowerVu"
+    },
+    {
+      "frequencyMHz": 4111,
+      "beamName": "Atreseries",
+      "system": "MPEG-4",
+      "provider": "4112 Spa; PowerVu",
+      "htmlRowText": "Atreseries | MPEG-4/HD | 4111 | 4112 Spa | PowerVu"
+    },
+    {
+      "frequencyMHz": 4100,
+      "polarization": "H",
+      "transponderNumber": "S2",
+      "beamName": "Televisa Networks",
+      "system": "DVB-S2",
+      "symbolRate": 30000,
+      "fec": "5/6",
+      "provider": "Mike 4 210914; Digicipher",
+      "htmlRowText": "4100 H tp 20 Hemi C 0 | DVB-S2 8PSK 30000 5/6 | Televisa Networks | 9.4 | Digicipher | Mike 4 210914"
+    },
+    {
+      "frequencyMHz": 4111,
+      "polarization": "V",
+      "transponderNumber": "S2",
+      "beamName": "Cyberham 251112",
+      "system": "DVB-S2",
+      "symbolRate": 15834,
+      "fec": "5/6",
+      "provider": "Thema America; PowerVu",
+      "htmlRowText": "4111 V tp 21 Hemi C 0 | DVB-S2 8PSK 15834 5/6 | Thema America | 9.4 | PowerVu | Cyberham 251112"
+    },
+    {
+      "frequencyMHz": 3500,
+      "beamName": "Telemicro Internacional",
+      "system": "MPEG-4",
+      "provider": "3501 Spa; PowerVu",
+      "htmlRowText": "200 | Telemicro Internacional | MPEG-4/HD | 3500 | 3501 Spa | PowerVu"
+    },
+    {
+      "frequencyMHz": 3510,
+      "beamName": "Once México Internacional",
+      "system": "MPEG-4",
+      "provider": "3511 Spa; PowerVu",
+      "htmlRowText": "201 | Once México Internacional | MPEG-4/SD | 3510 | 3511 Spa | PowerVu"
+    },
+    {
+      "frequencyMHz": 3530,
+      "beamName": "AyM Sports",
+      "system": "MPEG-4",
+      "provider": "3531 Spa; PowerVu",
+      "htmlRowText": "203 | AyM Sports | MPEG-4/SD | 3530 | 3531 Spa | PowerVu"
+    },
+    {
+      "frequencyMHz": 3540,
+      "beamName": "Latin American Sports USA",
+      "system": "MPEG-4",
+      "provider": "3541 Spa; PowerVu",
+      "htmlRowText": "204 | Latin American Sports USA | MPEG-4/SD | 3540 | 3541 Spa | PowerVu"
+    },
+    {
+      "frequencyMHz": 3550,
+      "beamName": "Kanal D Drama",
+      "system": "MPEG-4",
+      "provider": "3551 Spa; PowerVu",
+      "htmlRowText": "205 | Kanal D Drama | MPEG-4/HD | 3550 | 3551 Spa | PowerVu"
+    },
+    {
+      "frequencyMHz": 3570,
+      "beamName": "Ecuavisa Internacional",
+      "system": "MPEG-4",
+      "provider": "3571 Spa; PowerVu",
+      "htmlRowText": "207 | Ecuavisa Internacional | MPEG-4/SD | 3570 | 3571 Spa | PowerVu"
+    },
+    {
+      "frequencyMHz": 3580,
+      "beamName": "CB TV Michoacan",
+      "system": "MPEG-4",
+      "provider": "3581 Spa; PowerVu",
+      "htmlRowText": "208 | CB TV Michoacan | MPEG-4/SD | 3580 | 3581 Spa | PowerVu"
+    },
+    {
+      "frequencyMHz": 3590,
+      "beamName": "Kanal D Drama",
+      "system": "MPEG-4",
+      "provider": "3591 Spa; PowerVu",
+      "htmlRowText": "209 | Kanal D Drama | MPEG-4/HD | 3590 | 3591 Spa | PowerVu"
+    },
+    {
+      "frequencyMHz": 3600,
+      "beamName": "Canal 22 Internacional",
+      "system": "MPEG-4",
+      "provider": "3601 Spa; PowerVu",
+      "htmlRowText": "210 | Canal 22 Internacional | MPEG-4/HD | 3600 | 3601 Spa | PowerVu"
+    },
+    {
+      "frequencyMHz": 4132,
+      "polarization": "V",
+      "transponderNumber": "S2",
+      "beamName": "Luis Alberto Rosario 251003",
+      "system": "DVB-S2",
+      "symbolRate": 2500,
+      "fec": "5/6",
+      "provider": "La Voz de María; 5.2 4114 Spa",
+      "htmlRowText": "4132 V tp 21 Hemi C 0 | DVB-S2 QPSK 2500 5/6 | La Voz de María | MPEG-4/HD | 4112 | 5.2 4114 Spa | Luis Alberto Rosario 251003"
+    },
+    {
+      "frequencyMHz": 4140,
+      "polarization": "H",
+      "transponderNumber": "S2",
+      "beamName": "Televisa Networks",
+      "system": "DVB-S2",
+      "symbolRate": 30000,
+      "fec": "5/6",
+      "provider": "Mike 4 230205; Digicipher",
+      "htmlRowText": "4140 H tp 22 Hemi C 0 | DVB-S2 8PSK 30000 5/6 | Televisa Networks | 9.4 | Digicipher | Mike 4 230205"
+    },
+    {
+      "frequencyMHz": 3536,
+      "beamName": "Golden Premier",
+      "system": "MPEG-4",
+      "eirpDbw": 25,
+      "provider": "Digicipher; 3537 Spa",
+      "htmlRowText": "25 | Golden Premier | MPEG-4/HD | 3536 | 3537 Spa | Digicipher"
+    },
+    {
+      "frequencyMHz": 3792,
+      "beamName": "Digicipher",
+      "eirpDbw": 26,
+      "provider": "(feeds)",
+      "htmlRowText": "26 | (feeds) | 3792 | 3793 | Digicipher"
+    },
+    {
+      "frequencyMHz": 4047,
+      "beamName": "Digicipher",
+      "eirpDbw": 27,
+      "provider": "(feeds)",
+      "htmlRowText": "27 | (feeds) | 4047 | 4048 | Digicipher"
+    },
+    {
+      "frequencyMHz": 4160,
+      "polarization": "V",
+      "transponderNumber": "S2",
+      "beamName": "NOS482 240721",
+      "system": "DVB-S2",
+      "symbolRate": 30000,
+      "fec": "5/6",
+      "provider": "PowerVu",
+      "htmlRowText": "4160 V tp 23 Hemi C 0 | DVB-S2 8PSK 30000 5/6 | 9.4 | PowerVu | NOS482 240721"
+    },
+    {
+      "frequencyMHz": 4164,
+      "polarization": "H",
+      "transponderNumber": "S2",
+      "beamName": "Edinho fta 240313",
+      "system": "DVB-S2",
+      "symbolRate": 2400,
+      "fec": "3/4",
+      "provider": "Panamericana TV",
+      "htmlRowText": "4164 H tp 24 Hemi C 0 | DVB-S2 8PSK 2400 3/4 | Panamericana TV | 7.9 | Edinho fta 240313"
+    },
+    {
+      "frequencyMHz": 4184,
+      "polarization": "H",
+      "transponderNumber": "S2",
+      "beamName": "Cyberham 251119",
+      "system": "DVB-S2",
+      "symbolRate": 25800,
+      "fec": "2/3",
+      "provider": "Multimedios; PowerVu",
+      "htmlRowText": "4184 H tp 24 Hemi C 0 | DVB-S2 8PSK 25800 2/3 | Multimedios | 6.6 | PowerVu | Cyberham 251119"
+    },
+    {
+      "frequencyMHz": 11814,
+      "polarization": "V",
+      "transponderNumber": "S2",
+      "beamName": "D Brockwell Cyberham 250105",
+      "system": "DVB-S2",
+      "symbolRate": 2500,
+      "fec": "3/5",
+      "htmlRowText": "11814 V tp 6 North America | DVB-S2 8PSK 2500 3/5 | 5.5 | D Brockwell Cyberham 250105"
+    },
+    {
+      "frequencyMHz": 12060,
+      "polarization": "V",
+      "transponderNumber": "S2",
+      "beamName": "C de Berazategui 250210",
+      "system": "DVB-S2",
+      "symbolRate": 30000,
+      "provider": "Conax Verimatrix; Tigo",
+      "htmlRowText": "12060 V tp 18 Hemi Ku 0 | DVB-S2 30000 | Tigo | Conax Verimatrix | C de Berazategui 250210"
+    },
+    {
+      "frequencyMHz": 12080,
+      "polarization": "H",
+      "transponderNumber": "S2",
+      "beamName": "Conax Verimatrix",
+      "system": "DVB-S2",
+      "symbolRate": 30000,
+      "provider": "D de Jong 260102; Tigo",
+      "htmlRowText": "12080 H tp 19 Hemi Ku 0 | DVB-S2 30000 | Tigo | Conax Verimatrix | D de Jong 260102"
+    },
+    {
+      "frequencyMHz": 12100,
+      "polarization": "V",
+      "transponderNumber": "S2",
+      "beamName": "C de Berazategui 251122",
+      "system": "DVB-S2",
+      "symbolRate": 30000,
+      "fec": "3/4",
+      "provider": "Conax Verimatrix; 5-501; Tigo",
+      "htmlRowText": "12100 V tp 20 Hemi Ku 0 | DVB-S2 30000 3/4 | Tigo | 5-501 | Conax Verimatrix | C de Berazategui 251122"
+    },
+    {
+      "frequencyMHz": 12123,
+      "polarization": "V",
+      "transponderNumber": "S2",
+      "beamName": "Cyberham 240306",
+      "system": "DVB-S2",
+      "symbolRate": 3330,
+      "fec": "2/3",
+      "htmlRowText": "12123 V tp 22 Hemi Ku 0 | DVB-S2 QPSK 3330 2/3 | 3.1 | Cyberham 240306"
+    },
+    {
+      "frequencyMHz": 3601,
+      "beamName": "Hope Channel Inter-America",
+      "system": "MPEG-4",
+      "provider": "3604 Spa",
+      "htmlRowText": "1 | Hope Channel Inter-America | MPEG-4/SD | 3601 | 3604 Spa"
+    },
+    {
+      "frequencyMHz": 3602,
+      "beamName": "Hope Channel Inter-America English",
+      "system": "MPEG-4",
+      "provider": "3606 Eng",
+      "htmlRowText": "2 | Hope Channel Inter-America English | MPEG-4/SD | 3602 | 3606 Eng"
+    },
+    {
+      "frequencyMHz": 3704,
+      "beamName": "Radio Nuevo Tiempo",
+      "htmlRowText": "17 | Radio Nuevo Tiempo | 3704 Spa"
+    },
+    {
+      "frequencyMHz": 12147,
+      "polarization": "H",
+      "transponderNumber": "S2",
+      "beamName": "J Drexhage 231107",
+      "system": "DVB-S2",
+      "symbolRate": 3600,
+      "fec": "1/2",
+      "provider": "1.0 3001 Dut; BVN Amerika",
+      "htmlRowText": "12147 H tp 23 Hemi Ku 0 | DVB-S2 QPSK 3600 1/2 | 1 | BVN Amerika | 1-1 MPEG-4/SD | 2001 | 1.0 3001 Dut | J Drexhage 231107"
+    },
+    {
+      "frequencyMHz": 12151,
+      "polarization": "H",
+      "transponderNumber": "S2",
+      "beamName": "Cyberham 211011",
+      "system": "DVB-S2",
+      "symbolRate": 2678,
+      "fec": "2/3",
+      "provider": "6.6 5121 Eng; BYU TV",
+      "htmlRowText": "12151 H tp 23 Hemi Ku 0 | DVB-S2 8PSK 2678 2/3 | 401 | BYU TV | 1-4 MPEG-4/HD | 5120 | 6.6 5121 Eng | Cyberham 211011"
+    },
+    {
+      "transponderNumber": "S2",
+      "beamName": "System:",
+      "system": "DVB-S2",
+      "provider": "non-DTH",
+      "htmlRowText": "System: | DVB-S2 | DVB-S | non-DTH | - | -"
+    }
+  ]
+}

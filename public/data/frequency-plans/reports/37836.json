@@ -1,0 +1,13 @@
+{
+  "satelliteName": "EUTELSAT 16A",
+  "source": "LYNGSAT",
+  "generatedAt": "2026-05-01T07:49:01.516Z",
+  "totalRowsSeen": 193,
+  "observationsCreated": 193,
+  "rowsWithFrequency": 184,
+  "rowsWithBeam": 191,
+  "rowsWithTransponderId": 134,
+  "rowsSkipped": 0,
+  "skipReasons": {},
+  "normalizedTransponders": 185
+}

@@ -1,0 +1,293 @@
+[
+  {
+    "satelliteId": "39020",
+    "satelliteName": "EUTELSAT 70B",
+    "orbitalPosition": "70.5E",
+    "source": "LYNGSAT",
+    "url": "https://www.lyngsat.com/Eutelsat-70B.html",
+    "enabled": true,
+    "urlConfidence": "HIGH"
+  },
+  {
+    "satelliteId": "41310",
+    "satelliteName": "EUTELSAT 9B",
+    "orbitalPosition": "9.0E",
+    "source": "LYNGSAT",
+    "url": "https://www.lyngsat.com/Eutelsat-9B.html",
+    "enabled": true,
+    "urlConfidence": "HIGH"
+  },
+  {
+    "satelliteId": "28187",
+    "satelliteName": "EUTELSAT 139 WEST A",
+    "orbitalPosition": "139W",
+    "source": "LYNGSAT",
+    "generatedFrom": "celestrak.txt",
+    "url": "https://www.lyngsat.com/Eutelsat-139-West-A.html",
+    "enabled": true,
+    "urlConfidence": "LOW"
+  },
+  {
+    "satelliteId": "28924",
+    "satelliteName": "EUTELSAT 174A",
+    "orbitalPosition": "174E",
+    "source": "LYNGSAT",
+    "generatedFrom": "celestrak.txt",
+    "url": "https://www.lyngsat.com/Eutelsat-174A.html",
+    "enabled": true,
+    "urlConfidence": "MEDIUM"
+  },
+  {
+    "satelliteId": "29270",
+    "satelliteName": "EUTELSAT 33F",
+    "orbitalPosition": "33E",
+    "source": "LYNGSAT",
+    "generatedFrom": "celestrak.txt",
+    "url": "https://www.lyngsat.com/Eutelsat-33F.html",
+    "enabled": true,
+    "urlConfidence": "MEDIUM"
+  },
+  {
+    "satelliteId": "33459",
+    "satelliteName": "EUTELSAT HOTBIRD 13C",
+    "orbitalPosition": "13E",
+    "source": "LYNGSAT",
+    "generatedFrom": "celestrak.txt",
+    "url": "https://www.lyngsat.com/Hotbird-13C.html",
+    "enabled": true,
+    "urlConfidence": "HIGH"
+  },
+  {
+    "satelliteId": "36101",
+    "satelliteName": "EUTELSAT 36B",
+    "orbitalPosition": "36E",
+    "source": "LYNGSAT",
+    "generatedFrom": "celestrak.txt",
+    "url": "https://www.lyngsat.com/Eutelsat-36B.html",
+    "enabled": false,
+    "urlConfidence": "MEDIUM",
+    "warning": "LyngSat returned 404: https://www.lyngsat.com/Eutelsat-36B.html"
+  },
+  {
+    "satelliteId": "37258",
+    "satelliteName": "EUTELSAT KA-SAT 9A",
+    "orbitalPosition": "9E",
+    "source": "LYNGSAT",
+    "generatedFrom": "celestrak.txt",
+    "url": "https://www.lyngsat.com/Ka-Sat-9A.html",
+    "enabled": false,
+    "urlConfidence": "HIGH",
+    "warning": "LyngSat returned 404: https://www.lyngsat.com/Ka-Sat-9A.html"
+  },
+  {
+    "satelliteId": "37816",
+    "satelliteName": "EUTELSAT 7 WEST A",
+    "orbitalPosition": "7W",
+    "source": "LYNGSAT",
+    "generatedFrom": "celestrak.txt",
+    "url": "https://www.lyngsat.com/Eutelsat-7-West-A.html",
+    "enabled": true,
+    "urlConfidence": "LOW"
+  },
+  {
+    "satelliteId": "37836",
+    "satelliteName": "EUTELSAT 16A",
+    "orbitalPosition": "16E",
+    "source": "LYNGSAT",
+    "generatedFrom": "celestrak.txt",
+    "url": "https://www.lyngsat.com/Eutelsat-16A.html",
+    "enabled": true,
+    "urlConfidence": "HIGH"
+  },
+  {
+    "satelliteId": "38992",
+    "satelliteName": "EUTELSAT 21B",
+    "orbitalPosition": "21E",
+    "source": "LYNGSAT",
+    "generatedFrom": "celestrak.txt",
+    "url": "https://www.lyngsat.com/Eutelsat-21B.html",
+    "enabled": true,
+    "urlConfidence": "HIGH"
+  },
+  {
+    "satelliteId": "39122",
+    "satelliteName": "EUTELSAT 117 WEST A",
+    "orbitalPosition": "117W",
+    "source": "LYNGSAT",
+    "generatedFrom": "celestrak.txt",
+    "url": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+    "enabled": true,
+    "urlConfidence": "LOW"
+  },
+  {
+    "satelliteId": "39163",
+    "satelliteName": "EUTELSAT 7B",
+    "orbitalPosition": "7E",
+    "source": "LYNGSAT",
+    "generatedFrom": "celestrak.txt",
+    "url": "https://www.lyngsat.com/Eutelsat-7B.html",
+    "enabled": true,
+    "urlConfidence": "MEDIUM"
+  },
+  {
+    "satelliteId": "39773",
+    "satelliteName": "EUTELSAT 3B",
+    "orbitalPosition": "3E",
+    "source": "LYNGSAT",
+    "generatedFrom": "celestrak.txt",
+    "url": "https://www.lyngsat.com/Eutelsat-3B.html",
+    "enabled": true,
+    "urlConfidence": "MEDIUM"
+  },
+  {
+    "satelliteId": "40277",
+    "satelliteName": "EUTELSAT 53A",
+    "orbitalPosition": "53E",
+    "source": "LYNGSAT",
+    "generatedFrom": "celestrak.txt",
+    "url": "https://www.lyngsat.com/Eutelsat-53A.html",
+    "enabled": false,
+    "urlConfidence": "MEDIUM",
+    "warning": "LyngSat returned 404: https://www.lyngsat.com/Eutelsat-53A.html"
+  },
+  {
+    "satelliteId": "40425",
+    "satelliteName": "EUTELSAT 115 WEST B",
+    "orbitalPosition": "115W",
+    "source": "LYNGSAT",
+    "generatedFrom": "celestrak.txt",
+    "url": "https://www.lyngsat.com/Eutelsat-115-West-B.html",
+    "enabled": true,
+    "urlConfidence": "LOW"
+  },
+  {
+    "satelliteId": "40875",
+    "satelliteName": "EUTELSAT 8 WEST B",
+    "orbitalPosition": "8W",
+    "source": "LYNGSAT",
+    "generatedFrom": "celestrak.txt",
+    "url": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+    "enabled": true,
+    "urlConfidence": "LOW"
+  },
+  {
+    "satelliteId": "41382",
+    "satelliteName": "EUTELSAT 65 WEST A",
+    "orbitalPosition": "65W",
+    "source": "LYNGSAT",
+    "generatedFrom": "celestrak.txt",
+    "url": "https://www.lyngsat.com/Eutelsat-65-West-A.html",
+    "enabled": true,
+    "urlConfidence": "LOW"
+  },
+  {
+    "satelliteId": "41589",
+    "satelliteName": "EUTELSAT 117 WEST B",
+    "orbitalPosition": "117W",
+    "source": "LYNGSAT",
+    "generatedFrom": "celestrak.txt",
+    "url": "https://www.lyngsat.com/Eutelsat-117-West-B.html",
+    "enabled": true,
+    "urlConfidence": "LOW"
+  },
+  {
+    "satelliteId": "42741",
+    "satelliteName": "EUTELSAT 172B",
+    "orbitalPosition": "172E",
+    "source": "LYNGSAT",
+    "generatedFrom": "celestrak.txt",
+    "url": "https://www.lyngsat.com/Eutelsat-172B.html",
+    "enabled": true,
+    "urlConfidence": "MEDIUM"
+  },
+  {
+    "satelliteId": "44334",
+    "satelliteName": "EUTELSAT 7C",
+    "orbitalPosition": "7E",
+    "source": "LYNGSAT",
+    "generatedFrom": "celestrak.txt",
+    "url": "https://www.lyngsat.com/Eutelsat-7C.html",
+    "enabled": true,
+    "urlConfidence": "MEDIUM"
+  },
+  {
+    "satelliteId": "44624",
+    "satelliteName": "EUTELSAT 5 WEST B",
+    "orbitalPosition": "5W",
+    "source": "LYNGSAT",
+    "generatedFrom": "celestrak.txt",
+    "url": "https://www.lyngsat.com/Eutelsat-5-West-B.html",
+    "enabled": true,
+    "urlConfidence": "LOW"
+  },
+  {
+    "satelliteId": "45027",
+    "satelliteName": "EUTELSAT KONNECT",
+    "orbitalPosition": "7.2E",
+    "source": "LYNGSAT",
+    "generatedFrom": "celestrak.txt",
+    "url": "https://www.lyngsat.com/Eutelsat-Konnect.html",
+    "enabled": true,
+    "urlConfidence": "HIGH"
+  },
+  {
+    "satelliteId": "49056",
+    "satelliteName": "EUTELSAT QUANTUM",
+    "orbitalPosition": "47.7E",
+    "source": "LYNGSAT",
+    "generatedFrom": "celestrak.txt",
+    "url": "https://www.lyngsat.com/Eutelsat-Quantum.html",
+    "enabled": true,
+    "urlConfidence": "LOW"
+  },
+  {
+    "satelliteId": "53765",
+    "satelliteName": "EUTELSAT KONNECT VHTS",
+    "orbitalPosition": "2.7E",
+    "source": "LYNGSAT",
+    "generatedFrom": "celestrak.txt",
+    "url": "https://www.lyngsat.com/Eutelsat-Konnect-VHTS.html",
+    "enabled": true,
+    "urlConfidence": "HIGH"
+  },
+  {
+    "satelliteId": "54048",
+    "satelliteName": "EUTELSAT HOTBIRD 13F",
+    "orbitalPosition": "13E",
+    "source": "LYNGSAT",
+    "generatedFrom": "celestrak.txt",
+    "url": "https://www.lyngsat.com/Hotbird-13F.html",
+    "enabled": true,
+    "urlConfidence": "HIGH"
+  },
+  {
+    "satelliteId": "54225",
+    "satelliteName": "EUTELSAT HOTBIRD 13G",
+    "orbitalPosition": "13E",
+    "source": "LYNGSAT",
+    "generatedFrom": "celestrak.txt",
+    "url": "https://www.lyngsat.com/Hotbird-13G.html",
+    "enabled": true,
+    "urlConfidence": "HIGH"
+  },
+  {
+    "satelliteId": "54259",
+    "satelliteName": "EUTELSAT 10B",
+    "orbitalPosition": "10E",
+    "source": "LYNGSAT",
+    "generatedFrom": "celestrak.txt",
+    "url": "https://www.lyngsat.com/Eutelsat-10B.html",
+    "enabled": true,
+    "urlConfidence": "MEDIUM"
+  },
+  {
+    "satelliteId": "59346",
+    "satelliteName": "EUTELSAT 36D",
+    "orbitalPosition": "36E",
+    "source": "LYNGSAT",
+    "generatedFrom": "celestrak.txt",
+    "url": "https://www.lyngsat.com/Eutelsat-36D.html",
+    "enabled": true,
+    "urlConfidence": "MEDIUM"
+  }
+]

@@ -1,0 +1,1037 @@
+{
+  "source": "LYNGSAT",
+  "satelliteName": "EUTELSAT 9B",
+  "orbitalPosition": "9.0E",
+  "url": "https://www.lyngsat.com/Eutelsat-9B.html",
+  "retrievedAt": "2026-05-01T07:26:17.993Z",
+  "parserStats": {
+    "totalRowsSeen": 570,
+    "rowsWithFrequency": 95,
+    "rowsWithBeam": 112,
+    "rowsWithTransponderId": 66,
+    "rowsSkipped": 458,
+    "skipReasons": {
+      "too_few_cells": 45,
+      "no_frequency_no_transponder": 413
+    }
+  },
+  "rows": [
+    {
+      "frequencyMHz": 11727,
+      "polarization": "V",
+      "transponderNumber": "E1",
+      "transponderName": "TP E1",
+      "beamName": "A1 Telekom Austria",
+      "system": "DVB-S2",
+      "symbolRate": 30000,
+      "fec": "3/4",
+      "provider": "M Al-Taie 250508; 158-50010; Viaccess",
+      "htmlRowText": "11727 V tp E1 Wide 51 | DVB-S2 8PSK 30000 3/4 | A1 Telekom Austria | 158-50010 | 7.9 | Viaccess | M Al-Taie 250508"
+    },
+    {
+      "frequencyMHz": 11785,
+      "polarization": "H",
+      "transponderNumber": "E4",
+      "transponderName": "TP E4",
+      "beamName": "Conax Nagravision Videoguard",
+      "system": "DVB-S2",
+      "symbolRate": 27500,
+      "fec": "2/3",
+      "provider": "William-1 T Viererbe 200929; M7 Deutschland; 156-5300",
+      "htmlRowText": "11785 H tp E4 Wide 51 | DVB-S2 8PSK 27500 2/3 | M7 Deutschland | 156-5300 | 6.6 | Conax Nagravision Videoguard | William-1 T Viererbe 200929"
+    },
+    {
+      "frequencyMHz": 11804,
+      "polarization": "V",
+      "transponderNumber": "E5",
+      "transponderName": "TP E5",
+      "beamName": "EnoSat M Gusset 260403",
+      "htmlRowText": "11804 V tp E5 Wide 51 | EnoSat M Gusset 260403"
+    },
+    {
+      "frequencyMHz": 11823,
+      "polarization": "H",
+      "transponderNumber": "E6",
+      "transponderName": "TP E6",
+      "beamName": "Viaccess Xcrypt",
+      "system": "DVB-S",
+      "symbolRate": 27500,
+      "fec": "3/4",
+      "provider": "Lexzie 260418; Skylogic; 100-1",
+      "htmlRowText": "11823 H tp E6 Wide 51 | DVB-S 27500 3/4 | Skylogic | 100-1 | 5.5 | Viaccess Xcrypt | Lexzie 260418"
+    },
+    {
+      "frequencyMHz": 11843,
+      "polarization": "V",
+      "transponderNumber": "E7",
+      "transponderName": "TP E7",
+      "beamName": "T Viererbe 260124",
+      "system": "DVB-S2",
+      "symbolRate": 27500,
+      "fec": "3/5",
+      "provider": "Cosmote TV; Videoguard; 170-1",
+      "htmlRowText": "11843 V tp E7 Wide 51 | DVB-S2 8PSK 27500 3/5 | Cosmote TV | 170-1 | 5.5 | Videoguard | T Viererbe 260124"
+    },
+    {
+      "frequencyMHz": 11861,
+      "polarization": "H",
+      "transponderNumber": "E8",
+      "transponderName": "TP E8",
+      "beamName": "Conax Nagravision Videoguard",
+      "system": "DVB-S2",
+      "symbolRate": 27500,
+      "fec": "2/3",
+      "provider": "D Shimoni 210301; M7 Deutschland; 156-5700",
+      "htmlRowText": "11861 H tp E8 Wide 51 | DVB-S2 8PSK 27500 2/3 | M7 Deutschland | 156-5700 | 6.6 | Conax Nagravision Videoguard | D Shimoni 210301"
+    },
+    {
+      "frequencyMHz": 11881,
+      "polarization": "V",
+      "transponderNumber": "E9",
+      "transponderName": "TP E9",
+      "beamName": "Warner Bros. Discovery",
+      "system": "DVB-S2",
+      "symbolRate": 30000,
+      "fec": "3/4",
+      "provider": "Lexzie 240629; 158-50090; Viaccess",
+      "htmlRowText": "11881 V tp E9 Wide 51 | DVB-S2 8PSK 30000 3/4 | Warner Bros. Discovery | 158-50090 | 7.9 | Viaccess | Lexzie 240629"
+    },
+    {
+      "frequencyMHz": 11900,
+      "polarization": "H",
+      "transponderNumber": "E10",
+      "transponderName": "TP E10",
+      "beamName": "EnoSat M Al-Taie M Gusset 260403",
+      "system": "DVB-S2",
+      "symbolRate": 27500,
+      "fec": "2/3",
+      "provider": "158-5900",
+      "htmlRowText": "11900 H tp E10 Wide 51 | DVB-S2 8PSK 27500 2/3 | 158-5900 | 6.6 | EnoSat M Al-Taie M Gusset 260403"
+    },
+    {
+      "frequencyMHz": 11919,
+      "polarization": "V",
+      "transponderNumber": "E11",
+      "transponderName": "TP E11",
+      "beamName": "Warner Bros. Discovery",
+      "system": "DVB-S2",
+      "symbolRate": 30000,
+      "fec": "3/4",
+      "provider": "M Al-Taie 250128; 158-50110; Viaccess",
+      "htmlRowText": "11919 V tp E11 Wide 51 | DVB-S2 8PSK 30000 3/4 | Warner Bros. Discovery | 158-50110 | 7.9 | Viaccess | M Al-Taie 250128"
+    },
+    {
+      "frequencyMHz": 11938,
+      "polarization": "H",
+      "transponderNumber": "E12",
+      "transponderName": "TP E12",
+      "beamName": "M Al-Taie 240806",
+      "system": "DVB-S2",
+      "symbolRate": 27500,
+      "fec": "2/3",
+      "provider": "Cosmote TV; Videoguard; 170-9",
+      "htmlRowText": "11938 H tp E12 Wide 51 | DVB-S2 8PSK 27500 2/3 | Cosmote TV | 170-9 | 6.6 | Videoguard | M Al-Taie 240806"
+    },
+    {
+      "frequencyMHz": 4136,
+      "beamName": "ERT World",
+      "system": "MPEG-4",
+      "symbolRate": 1136,
+      "provider": "5136 Gre",
+      "htmlRowText": "1136 | ERT World | MPEG-4/SD | 4136 | 5136 Gre"
+    },
+    {
+      "frequencyMHz": 11958,
+      "polarization": "V",
+      "transponderNumber": "E13",
+      "transponderName": "TP E13",
+      "beamName": "M Al-Taie 260205",
+      "system": "DVB-S2",
+      "symbolRate": 27500,
+      "fec": "2/3",
+      "provider": "158-6200; MTVA",
+      "htmlRowText": "11958 V tp E13 Wide 51 | DVB-S2 8PSK 27500 2/3 | MTVA | 158-6200 | 6.6 | M Al-Taie 260205"
+    },
+    {
+      "transponderNumber": "M1",
+      "beamName": "1201 Hun 1301 Qaa",
+      "system": "MPEG-4",
+      "htmlRowText": "101 | M1 (Hungary) | MPEG-4/HD | 1101 | 1201 Hun 1301 Qaa"
+    },
+    {
+      "transponderNumber": "M2",
+      "beamName": "1202 Hun 1302 Qaa",
+      "system": "MPEG-4",
+      "htmlRowText": "102 | M2 | MPEG-4/HD | 1102 | 1202 Hun 1302 Qaa"
+    },
+    {
+      "transponderNumber": "M4",
+      "beamName": "1204 Hun 1304 Qaa",
+      "system": "MPEG-4",
+      "htmlRowText": "104 | M4 Sport | MPEG-4/HD | 1104 | 1204 Hun 1304 Qaa"
+    },
+    {
+      "transponderNumber": "M4",
+      "beamName": "1205 Hun 1305 Qaa",
+      "system": "MPEG-4",
+      "htmlRowText": "105 | M4 Sport+ (Sat-Sun 14-22) | MPEG-4/HD | 1105 | 1205 Hun 1305 Qaa"
+    },
+    {
+      "transponderNumber": "M5",
+      "beamName": "1206 Qaa 1306 Hun",
+      "system": "MPEG-4",
+      "htmlRowText": "106 | M5 | MPEG-4/HD | 1106 | 1206 Qaa 1306 Hun"
+    },
+    {
+      "frequencyMHz": 11977,
+      "polarization": "H",
+      "transponderNumber": "E14",
+      "transponderName": "TP E14",
+      "beamName": "Hadowooalsatan M Al-Taie T Viererbe 251209",
+      "system": "DVB-S2",
+      "symbolRate": 30000,
+      "fec": "3/4",
+      "provider": "M7 Deutschland; 156-8500; Conax",
+      "htmlRowText": "11977 H tp E14 Wide 51 | DVB-S2 8PSK 30000 3/4 | M7 Deutschland | 156-8500 | 7.9 | Conax | Hadowooalsatan M Al-Taie T Viererbe 251209"
+    },
+    {
+      "frequencyMHz": 11996,
+      "polarization": "V",
+      "transponderNumber": "E15",
+      "transponderName": "TP E15",
+      "beamName": "M Al-Taie 240304",
+      "system": "DVB-S",
+      "symbolRate": 27500,
+      "fec": "3/4",
+      "provider": "Globecast; 156-6400",
+      "htmlRowText": "11996 V tp E15 Wide 51 | DVB-S 27500 3/4 | Globecast | 156-6400 | 5.5 | M Al-Taie 240304"
+    },
+    {
+      "frequencyMHz": 3901,
+      "beamName": "CCTV 4 Europe",
+      "system": "MPEG-2",
+      "symbolRate": 619,
+      "provider": "3911 Chi",
+      "htmlRowText": "619 | CCTV 4 Europe | MPEG-2/SD | 3901 | 3911 Chi"
+    },
+    {
+      "frequencyMHz": 4001,
+      "beamName": "CGTN Español",
+      "system": "MPEG-2",
+      "symbolRate": 620,
+      "provider": "4011 Spa",
+      "htmlRowText": "620 | CGTN Español | MPEG-2/SD | 4001 | 4011 Spa"
+    },
+    {
+      "frequencyMHz": 4101,
+      "beamName": "CGTN Russkij",
+      "system": "MPEG-2",
+      "symbolRate": 621,
+      "provider": "4111 Rus",
+      "htmlRowText": "621 | CGTN Russkij | MPEG-2/SD | 4101 | 4111 Rus"
+    },
+    {
+      "frequencyMHz": 12015,
+      "polarization": "H",
+      "transponderNumber": "E16",
+      "transponderName": "TP E16",
+      "beamName": "Conax Nagravision Videoguard",
+      "system": "DVB-S2",
+      "symbolRate": 27500,
+      "fec": "2/3",
+      "provider": "M7 Deutschland; F Dibba 240301; 156-6500",
+      "htmlRowText": "12015 H tp E16 Wide 51 | DVB-S2 8PSK 27500 2/3 | M7 Deutschland | 156-6500 | 6.6 | Conax Nagravision Videoguard | F Dibba 240301"
+    },
+    {
+      "frequencyMHz": 12034,
+      "polarization": "V",
+      "transponderNumber": "E17",
+      "transponderName": "TP E17",
+      "beamName": "Hadowooalsatan 260228",
+      "system": "DVB-S2",
+      "symbolRate": 27500,
+      "fec": "3/4",
+      "provider": "Globecast; 158-6600",
+      "htmlRowText": "12034 V tp E17 Wide 51 | DVB-S2 8PSK 27500 3/4 | Globecast | 158-6600 | 7.9 | Hadowooalsatan 260228"
+    },
+    {
+      "transponderNumber": "M6",
+      "beamName": "2021 Fre",
+      "system": "MPEG-4",
+      "htmlRowText": "202 | M6 Suisse | MPEG-4/HD | 2020 | 2021 Fre"
+    },
+    {
+      "transponderNumber": "W9",
+      "beamName": "2051 Fre",
+      "system": "MPEG-4",
+      "htmlRowText": "205 | W9 Suisse | MPEG-4/HD | 2050 | 2051 Fre"
+    },
+    {
+      "frequencyMHz": 3531,
+      "beamName": "Phoenix InfoNews Channel",
+      "system": "MPEG-2",
+      "provider": "3532 Chi",
+      "htmlRowText": "353 | Phoenix InfoNews Channel | MPEG-2/SD | 3531 | 3532 Chi"
+    },
+    {
+      "frequencyMHz": 3551,
+      "beamName": "Télé Sahel",
+      "system": "MPEG-4",
+      "symbolRate": 1101,
+      "provider": "1101 Fre",
+      "htmlRowText": "355 | Télé Sahel | MPEG-4/SD | 3551 | 1101 Fre"
+    },
+    {
+      "frequencyMHz": 3561,
+      "beamName": "Voix du Sahel",
+      "htmlRowText": "356 | Voix du Sahel | 3561 Fre"
+    },
+    {
+      "frequencyMHz": 12054,
+      "polarization": "H",
+      "transponderNumber": "E18",
+      "transponderName": "TP E18",
+      "beamName": "Viaccess Videoguard",
+      "system": "DVB-S2",
+      "symbolRate": 27500,
+      "fec": "2/3",
+      "provider": "M Al-Taie 240806; Cosmote TV; 170-2",
+      "htmlRowText": "12054 H tp E18 Wide 51 | DVB-S2 8PSK 27500 2/3 | Cosmote TV | 170-2 | 6.6 | Viaccess Videoguard | M Al-Taie 240806"
+    },
+    {
+      "frequencyMHz": 12092,
+      "polarization": "H",
+      "transponderNumber": "E20",
+      "transponderName": "TP E20",
+      "beamName": "EnoSat 260329",
+      "system": "DVB-S2",
+      "symbolRate": 27500,
+      "fec": "3/4",
+      "provider": "158-6900; Viaccess; Arqiva",
+      "htmlRowText": "12092 H tp E20 Wide 51 | DVB-S2 8PSK 27500 3/4 | Arqiva | 158-6900 | 7.9 | Viaccess | EnoSat 260329"
+    },
+    {
+      "frequencyMHz": 12111,
+      "polarization": "V",
+      "transponderNumber": "IT1",
+      "beamName": "Cairo Communication",
+      "system": "DVB-S2",
+      "symbolRate": 31400,
+      "fec": "2/3",
+      "provider": "M Al-Taie 241213; 8572-263",
+      "htmlRowText": "12111 V tp IT1 Italy 0 | DVB-S2 16APSK 31400 2/3 PLS Gold 262140 Multistream Stream 1 | Cairo Communication | 8572-263 | 9.0 | M Al-Taie 241213"
+    },
+    {
+      "frequencyMHz": 4002,
+      "beamName": "Donna TV",
+      "system": "MPEG-4",
+      "provider": "413 Ita",
+      "htmlRowText": "4002 | Donna TV | MPEG-4/SD | 412 | 413 Ita"
+    },
+    {
+      "frequencyMHz": 4003,
+      "beamName": "Alma TV",
+      "system": "MPEG-4",
+      "provider": "423 Ita",
+      "htmlRowText": "4003 | Alma TV | MPEG-4/SD | 422 | 423 Ita"
+    },
+    {
+      "frequencyMHz": 4004,
+      "beamName": "TeleCampione",
+      "system": "MPEG-4",
+      "provider": "433 Ita",
+      "htmlRowText": "4004 | TeleCampione | MPEG-4/SD | 432 | 433 Ita"
+    },
+    {
+      "frequencyMHz": 4006,
+      "beamName": "[test card]",
+      "system": "MPEG-4",
+      "symbolRate": 522,
+      "provider": "444 Ita",
+      "htmlRowText": "4006 | [test card] | MPEG-4/SD | 522 | 444 Ita"
+    },
+    {
+      "frequencyMHz": 4010,
+      "beamName": "Parole di Vita",
+      "system": "MPEG-4",
+      "provider": "493 Ita",
+      "htmlRowText": "4010 | Parole di Vita | MPEG-4/SD | 492 | 493 Ita"
+    },
+    {
+      "frequencyMHz": 12111,
+      "polarization": "V",
+      "transponderNumber": "IT1",
+      "beamName": "M Al-Taie 260116",
+      "system": "DVB-S2",
+      "symbolRate": 31400,
+      "fec": "2/3",
+      "provider": "272-900",
+      "htmlRowText": "12111 V tp IT1 Italy 0 | DVB-S2 16APSK 31400 2/3 PLS Gold 262140 Multistream Stream 3 | 272-900 | 9.0 | M Al-Taie 260116"
+    },
+    {
+      "frequencyMHz": 12111,
+      "polarization": "V",
+      "transponderNumber": "IT1",
+      "beamName": "M Al-Taie 240214",
+      "system": "DVB-S2",
+      "symbolRate": 31400,
+      "fec": "2/3",
+      "provider": "272-905",
+      "htmlRowText": "12111 V tp IT1 Italy 0 | DVB-S2 16APSK 31400 2/3 PLS Gold 262140 Multistream Stream 4 | 272-905 | 9.0 | M Al-Taie 240214"
+    },
+    {
+      "frequencyMHz": 12149,
+      "polarization": "V",
+      "transponderNumber": "IT2",
+      "beamName": "P Grandicelli 230405",
+      "system": "DVB-S2",
+      "symbolRate": 31400,
+      "fec": "2/3",
+      "provider": "Mediaset; 272-930",
+      "htmlRowText": "12149 V tp IT2 Italy 0 | DVB-S2 16APSK 31400 2/3 PLS Gold 262140 Multistream Stream 1 | Mediaset | 272-930 | 9.0 | P Grandicelli 230405"
+    },
+    {
+      "frequencyMHz": 12149,
+      "polarization": "V",
+      "transponderNumber": "IT2",
+      "beamName": "M Al-Taie 250115",
+      "system": "DVB-S2",
+      "symbolRate": 31400,
+      "fec": "2/3",
+      "provider": "Mediaset; 272-901",
+      "htmlRowText": "12149 V tp IT2 Italy 0 | DVB-S2 16APSK 31400 2/3 PLS Gold 262140 Multistream Stream 2 | Mediaset | 272-901 | 9.0 | M Al-Taie 250115"
+    },
+    {
+      "frequencyMHz": 12169,
+      "polarization": "H",
+      "transponderNumber": "GC2",
+      "beamName": "M Al-Taie 250116",
+      "system": "DVB-S2",
+      "symbolRate": 27500,
+      "fec": "2/3",
+      "provider": "Cosmote TV; Videoguard; 170-8",
+      "htmlRowText": "12169 H tp GC2 Extended Greece 51 | DVB-S2 8PSK 27500 2/3 | Cosmote TV | 170-8 | 6.6 | Videoguard | M Al-Taie 250116"
+    },
+    {
+      "frequencyMHz": 12207,
+      "polarization": "H",
+      "transponderNumber": "GC3",
+      "beamName": "T Viererbe 260124",
+      "system": "DVB-S2",
+      "symbolRate": 27500,
+      "fec": "2/3",
+      "provider": "Cosmote TV; Videoguard; 170-4",
+      "htmlRowText": "12207 H tp GC3 Extended Greece 51 | DVB-S2 8PSK 27500 2/3 | Cosmote TV | 170-4 | 6.6 | Videoguard | T Viererbe 260124"
+    },
+    {
+      "frequencyMHz": 12226,
+      "polarization": "V",
+      "transponderNumber": "IT4",
+      "beamName": "M Al-Taie 260318",
+      "system": "DVB-S2",
+      "symbolRate": 31400,
+      "fec": "2/3",
+      "provider": "8572-8417",
+      "htmlRowText": "12226 V tp IT4 Italy 0 | DVB-S2 16APSK 31400 2/3 PLS Gold 262140 Multistream Stream 14 | 8572-8417 | 9.0 | M Al-Taie 260318"
+    },
+    {
+      "frequencyMHz": 12226,
+      "polarization": "V",
+      "transponderNumber": "IT4",
+      "beamName": "R Cervi 220615",
+      "system": "DVB-S2",
+      "symbolRate": 31400,
+      "fec": "2/3",
+      "provider": "8572-6370",
+      "htmlRowText": "12226 V tp IT4 Italy 0 | DVB-S2 16APSK 31400 2/3 PLS Gold 262140 Multistream Stream 16 | 8572-6370 | 9.0 | R Cervi 220615"
+    },
+    {
+      "frequencyMHz": 12226,
+      "polarization": "V",
+      "transponderNumber": "IT4",
+      "beamName": "M Al-Taie 260421",
+      "system": "DVB-S2",
+      "symbolRate": 31400,
+      "fec": "2/3",
+      "provider": "8572-26849",
+      "htmlRowText": "12226 V tp IT4 Italy 0 | DVB-S2 16APSK 31400 2/3 PLS Gold 262140 Multistream Stream 19 | 8572-26849 | 9.0 | M Al-Taie 260421"
+    },
+    {
+      "transponderNumber": "T9",
+      "beamName": "3171 Ita",
+      "system": "MPEG-4",
+      "htmlRowText": "6808 | T9 | MPEG-4/SD | 3170 | 3171 Ita"
+    },
+    {
+      "frequencyMHz": 12226,
+      "polarization": "V",
+      "transponderNumber": "IT4",
+      "beamName": "M Al-Taie 260421",
+      "system": "DVB-S2",
+      "symbolRate": 31400,
+      "fec": "2/3",
+      "provider": "8572-20705",
+      "htmlRowText": "12226 V tp IT4 Italy 0 | DVB-S2 16APSK 31400 2/3 PLS Gold 262140 Multistream Stream 20 | 8572-20705 | 9.0 | M Al-Taie 260421"
+    },
+    {
+      "frequencyMHz": 12226,
+      "polarization": "V",
+      "transponderNumber": "NB4",
+      "beamName": "N Stanislav 241203",
+      "system": "DVB-S2",
+      "symbolRate": 30000,
+      "fec": "5/6",
+      "provider": "8996-100; ZeonBud",
+      "htmlRowText": "12226 V tp NB4 Nordic & Eastern 0 | DVB-S2 8PSK 30000 5/6 Multistream Stream 10 T2-MI PLP 0 | ZeonBud | 8996-100 | 9.4 | N Stanislav 241203"
+    },
+    {
+      "frequencyMHz": 12226,
+      "polarization": "V",
+      "transponderNumber": "NB4",
+      "beamName": "N Stanislav 250209",
+      "system": "DVB-S2",
+      "symbolRate": 30000,
+      "fec": "5/6",
+      "provider": "8996-200; ZeonBud",
+      "htmlRowText": "12226 V tp NB4 Nordic & Eastern 0 | DVB-S2 8PSK 30000 5/6 Multistream Stream 20 T2-MI PLP 0 | ZeonBud | 8996-200 | 9.4 | N Stanislav 250209"
+    },
+    {
+      "transponderNumber": "M1",
+      "beamName": "2402 Ukr",
+      "system": "MPEG-4",
+      "htmlRowText": "24 | M1 (Ukraine) | MPEG-4/SD | 2401 | 2402 Ukr"
+    },
+    {
+      "frequencyMHz": 12245,
+      "polarization": "H",
+      "transponderNumber": "GE4",
+      "beamName": "Conax Nagravision Videoguard",
+      "system": "DVB-S2",
+      "symbolRate": 27500,
+      "fec": "2/3",
+      "provider": "Z Viglidán T Viererbe 200929; M7 Deutschland; 156-7900",
+      "htmlRowText": "12245 H tp GE4 Germany Ge 51 | DVB-S2 8PSK 27500 2/3 | M7 Deutschland | 156-7900 | 6.6 | Conax Nagravision Videoguard | Z Viglidán T Viererbe 200929"
+    },
+    {
+      "frequencyMHz": 12284,
+      "polarization": "H",
+      "transponderNumber": "GC5",
+      "beamName": "T Viererbe 241216",
+      "system": "DVB-S2",
+      "symbolRate": 27500,
+      "fec": "2/3",
+      "provider": "Cosmote TV; Videoguard; 170-5",
+      "htmlRowText": "12284 H tp GC5 Extended Greece 51 | DVB-S2 8PSK 27500 2/3 | Cosmote TV | 170-5 | 6.6 | Videoguard | T Viererbe 241216"
+    },
+    {
+      "frequencyMHz": 12303,
+      "polarization": "V",
+      "transponderNumber": "IT6",
+      "beamName": "M Al-Taie 260418",
+      "system": "DVB-S2",
+      "symbolRate": 31400,
+      "fec": "8/9",
+      "provider": "RL Piemonte 1; 8572-4321",
+      "htmlRowText": "12303 V tp IT6 Italy 0 | DVB-S2 8PSK 31400 8/9 PLS Gold 262140 Multistream Stream 15 | RL Piemonte 1 | 8572-4321 | 10.7 | M Al-Taie 260418"
+    },
+    {
+      "frequencyMHz": 12303,
+      "polarization": "V",
+      "transponderNumber": "IT6",
+      "beamName": "M Al-Taie 260418",
+      "system": "DVB-S2",
+      "symbolRate": 31400,
+      "fec": "8/9",
+      "provider": "8572-32993",
+      "htmlRowText": "12303 V tp IT6 Italy 0 | DVB-S2 8PSK 31400 8/9 PLS Gold 262140 Multistream Stream 21 | 8572-32993 | 10.7 | M Al-Taie 260418"
+    },
+    {
+      "frequencyMHz": 3400,
+      "beamName": "Irpinia TV 75",
+      "system": "MPEG-4",
+      "symbolRate": 8011,
+      "provider": "3401 Ita",
+      "htmlRowText": "8011 | Irpinia TV 75 | MPEG-4/HD | 3400 | 3401 Ita"
+    },
+    {
+      "frequencyMHz": 3410,
+      "beamName": "Kiss Kiss Napoli TV",
+      "system": "MPEG-4",
+      "symbolRate": 8012,
+      "provider": "3411 Ita",
+      "htmlRowText": "8012 | Kiss Kiss Napoli TV | MPEG-4/HD | 3410 | 3411 Ita"
+    },
+    {
+      "frequencyMHz": 3420,
+      "beamName": "Teleclubitalia",
+      "system": "MPEG-4",
+      "symbolRate": 8013,
+      "provider": "3421 Ita",
+      "htmlRowText": "8013 | Teleclubitalia | MPEG-4/HD | 3420 | 3421 Ita"
+    },
+    {
+      "frequencyMHz": 12303,
+      "polarization": "V",
+      "transponderNumber": "IT6",
+      "beamName": "M Al-Taie 260418",
+      "system": "DVB-S2",
+      "symbolRate": 31400,
+      "fec": "8/9",
+      "provider": "8572-32995",
+      "htmlRowText": "12303 V tp IT6 Italy 0 | DVB-S2 8PSK 31400 8/9 PLS Gold 262140 Multistream Stream 22 | 8572-32995 | 10.7 | M Al-Taie 260418"
+    },
+    {
+      "frequencyMHz": 3500,
+      "beamName": "3501 Ita",
+      "system": "MPEG-4",
+      "symbolRate": 8031,
+      "provider": "StileTV",
+      "htmlRowText": "8031 | StileTV | MPEG-4/HD | 3500 | 3501 Ita | new"
+    },
+    {
+      "frequencyMHz": 3520,
+      "beamName": "Canale 58",
+      "system": "MPEG-4",
+      "symbolRate": 8033,
+      "eirpDbw": 58,
+      "provider": "3521 Ita",
+      "htmlRowText": "8033 | Canale 58 | MPEG-4/SD | 3520 | 3521 Ita"
+    },
+    {
+      "frequencyMHz": 3540,
+      "beamName": "3541 Ita",
+      "system": "MPEG-4",
+      "symbolRate": 8035,
+      "htmlRowText": "8035 | TDS | MPEG-4/HD | 3540 | 3541 Ita"
+    },
+    {
+      "frequencyMHz": 3550,
+      "beamName": "Telecapri Sport",
+      "system": "MPEG-4",
+      "symbolRate": 8036,
+      "provider": "3551 Ita",
+      "htmlRowText": "8036 | Telecapri Sport | MPEG-4/HD | 3550 | 3551 Ita"
+    },
+    {
+      "frequencyMHz": 3561,
+      "beamName": "Videonola",
+      "system": "MPEG-4",
+      "symbolRate": 8037,
+      "provider": "3560 Ita",
+      "htmlRowText": "8037 | Videonola | MPEG-4/SD | 3561 | 3560 Ita"
+    },
+    {
+      "frequencyMHz": 3570,
+      "beamName": "3571 Ita",
+      "system": "MPEG-4",
+      "symbolRate": 8038,
+      "provider": "105 TV",
+      "htmlRowText": "8038 | 105 TV | MPEG-4/SD | 3570 | 3571 Ita"
+    },
+    {
+      "frequencyMHz": 3580,
+      "beamName": "NapoFlix",
+      "system": "MPEG-4",
+      "symbolRate": 8039,
+      "provider": "3581 Ita",
+      "htmlRowText": "8039 | NapoFlix | MPEG-4/SD | 3580 | 3581 Ita"
+    },
+    {
+      "frequencyMHz": 3590,
+      "beamName": "GT Channel",
+      "system": "MPEG-4",
+      "symbolRate": 8040,
+      "provider": "3591 Ita",
+      "htmlRowText": "8040 | GT Channel | MPEG-4/HD | 3590 | 3591 Ita"
+    },
+    {
+      "frequencyMHz": 3610,
+      "beamName": "Telenostra",
+      "system": "MPEG-4",
+      "symbolRate": 8042,
+      "provider": "3611 Ita",
+      "htmlRowText": "8042 | Telenostra | MPEG-4/SD | 3610 | 3611 Ita"
+    },
+    {
+      "frequencyMHz": 3640,
+      "beamName": "Radio Marte TV",
+      "system": "MPEG-4",
+      "symbolRate": 8045,
+      "provider": "3641 Ita",
+      "htmlRowText": "8045 | Radio Marte TV | MPEG-4/HD | 3640 | 3641 Ita"
+    },
+    {
+      "frequencyMHz": 3681,
+      "beamName": "Romantica Radio",
+      "symbolRate": 8049,
+      "htmlRowText": "8049 | Romantica Radio | 3681 Ita | new"
+    },
+    {
+      "frequencyMHz": 12303,
+      "polarization": "V",
+      "transponderNumber": "NB6",
+      "beamName": "N Stanislav 260315",
+      "system": "DVB-S2",
+      "symbolRate": 30000,
+      "fec": "5/6",
+      "provider": "8996-300; ZeonBud",
+      "htmlRowText": "12303 V tp NB6 Nordic & Eastern 0 | DVB-S2 8PSK 30000 5/6 Multistream Stream 30 T2-MI PLP 0 | ZeonBud | 8996-300 | 9.4 | N Stanislav 260315"
+    },
+    {
+      "transponderNumber": "K1",
+      "beamName": "3102 Ukr",
+      "system": "MPEG-4",
+      "eirpDbw": 31,
+      "htmlRowText": "31 | K1 | MPEG-4/SD | 3101 | 3102 Ukr"
+    },
+    {
+      "transponderNumber": "K2",
+      "beamName": "3202 Ukr",
+      "system": "MPEG-4",
+      "eirpDbw": 32,
+      "htmlRowText": "32 | K2 (Ukraine) | MPEG-4/SD | 3201 | 3202 Ukr"
+    },
+    {
+      "frequencyMHz": 3401,
+      "beamName": "3402 Ukr",
+      "system": "MPEG-4",
+      "eirpDbw": 34,
+      "provider": "Rada",
+      "htmlRowText": "34 | Rada | MPEG-4/SD | 3401 | 3402 Ukr"
+    },
+    {
+      "frequencyMHz": 3501,
+      "beamName": "3502 Ukr",
+      "system": "MPEG-4",
+      "eirpDbw": 35,
+      "provider": "Rada",
+      "htmlRowText": "35 | Rada | MPEG-4/SD | 3501 | 3502 Ukr"
+    },
+    {
+      "frequencyMHz": 3601,
+      "beamName": "3602 Ukr",
+      "system": "MPEG-4",
+      "eirpDbw": 36,
+      "provider": "X Sport",
+      "htmlRowText": "36 | X Sport | MPEG-4/SD | 3601 | 3602 Ukr"
+    },
+    {
+      "frequencyMHz": 3701,
+      "beamName": "Enter Film",
+      "system": "MPEG-4",
+      "eirpDbw": 37,
+      "provider": "3702 Ukr",
+      "htmlRowText": "37 | Enter Film | MPEG-4/SD | 3701 | 3702 Ukr"
+    },
+    {
+      "frequencyMHz": 3801,
+      "beamName": "Piksel TV",
+      "system": "MPEG-4",
+      "eirpDbw": 38,
+      "provider": "3802 Ukr",
+      "htmlRowText": "38 | Piksel TV | MPEG-4/SD | 3801 | 3802 Ukr"
+    },
+    {
+      "frequencyMHz": 12303,
+      "polarization": "V",
+      "transponderNumber": "NB6",
+      "beamName": "N Stanislav 260107",
+      "system": "DVB-S2",
+      "symbolRate": 30000,
+      "fec": "5/6",
+      "provider": "8996-400; ZeonBud",
+      "htmlRowText": "12303 V tp NB6 Nordic & Eastern 0 | DVB-S2 8PSK 30000 5/6 Multistream Stream 40 | ZeonBud | 8996-400 | 9.4 | N Stanislav 260107"
+    },
+    {
+      "frequencyMHz": 4101,
+      "beamName": "4102 Ukr",
+      "system": "MPEG-4",
+      "eirpDbw": 41,
+      "provider": "Rada",
+      "htmlRowText": "41 | Rada | MPEG-4/SD | 4101 | 4102 Ukr"
+    },
+    {
+      "frequencyMHz": 12341,
+      "polarization": "V",
+      "transponderNumber": "IT7",
+      "beamName": "D de Jong 251005",
+      "system": "DVB-S2",
+      "symbolRate": 31400,
+      "fec": "2/3",
+      "eirpDbw": 29,
+      "provider": "Persidera; 29-516",
+      "htmlRowText": "12341 V tp IT7 Italy 0 | DVB-S2 16APSK 31400 2/3 PLS Gold 0 Multistream Stream 33 | Persidera | 29-516 | 9.0 | D de Jong 251005"
+    },
+    {
+      "transponderNumber": "CS24",
+      "beamName": "2420 Ita",
+      "system": "MPEG-4",
+      "htmlRowText": "24 | CS24 Live | MPEG-4/SD | 2410 | 2420 Ita"
+    },
+    {
+      "frequencyMHz": 12341,
+      "polarization": "V",
+      "transponderNumber": "IT7",
+      "beamName": "A7Sats 251111",
+      "system": "DVB-S2",
+      "symbolRate": 31400,
+      "fec": "2/3",
+      "eirpDbw": 29,
+      "provider": "Persidera; 29-512",
+      "htmlRowText": "12341 V tp IT7 Italy 0 | DVB-S2 16APSK 31400 2/3 PLS Gold 0 Multistream Stream 35 | Persidera | 29-512 | 9.0 | A7Sats 251111"
+    },
+    {
+      "transponderNumber": "K2",
+      "beamName": "982 Ita",
+      "system": "MPEG-4",
+      "htmlRowText": "151 | K2 | MPEG-4/HD | 981 | 982 Ita"
+    },
+    {
+      "frequencyMHz": 12341,
+      "polarization": "V",
+      "transponderNumber": "IT7",
+      "beamName": "M Al-Taie 260116",
+      "system": "DVB-S2",
+      "symbolRate": 31400,
+      "fec": "2/3",
+      "provider": "8572-31000; Persidera",
+      "htmlRowText": "12341 V tp IT7 Italy 0 | DVB-S2 16APSK 31400 2/3 PLS Gold 0 Multistream Stream 36 | Persidera | 8572-31000 | 9.0 | M Al-Taie 260116"
+    },
+    {
+      "transponderNumber": "IL61",
+      "beamName": "782 Ita",
+      "system": "MPEG-4",
+      "htmlRowText": "78 | IL61 | MPEG-4/SD | 781 | 782 Ita"
+    },
+    {
+      "frequencyMHz": 12380,
+      "polarization": "V",
+      "transponderNumber": "IT8",
+      "beamName": "M Al-Taie 240921",
+      "system": "DVB-S2",
+      "symbolRate": 31400,
+      "fec": "2/3",
+      "provider": "RL Liguria 1; 8572-16609",
+      "htmlRowText": "12380 V tp IT8 Italy 0 | DVB-S2 16APSK 31400 2/3 PLS Gold 262140 Multistream Stream 18 | RL Liguria 1 | 8572-16609 | 9.0 | M Al-Taie 240921"
+    },
+    {
+      "frequencyMHz": 4001,
+      "beamName": "Primocanale",
+      "system": "MPEG-4",
+      "symbolRate": 2300,
+      "provider": "2301 Ita",
+      "htmlRowText": "4001 | Primocanale | MPEG-4/HD | 2300 | 2301 Ita"
+    },
+    {
+      "frequencyMHz": 4002,
+      "beamName": "Telenord",
+      "system": "MPEG-4",
+      "symbolRate": 2310,
+      "provider": "2311 Ita",
+      "htmlRowText": "4002 | Telenord | MPEG-4/HD | 2310 | 2311 Ita"
+    },
+    {
+      "frequencyMHz": 4003,
+      "beamName": "Teleradiopace 1",
+      "system": "MPEG-4",
+      "symbolRate": 2320,
+      "provider": "2321 Ita",
+      "htmlRowText": "4003 | Teleradiopace 1 | MPEG-4/HD | 2320 | 2321 Ita"
+    },
+    {
+      "frequencyMHz": 4004,
+      "beamName": "Telecity Liguria",
+      "system": "MPEG-4",
+      "symbolRate": 3007,
+      "provider": "3008 Ita",
+      "htmlRowText": "4004 | Telecity Liguria | MPEG-4/HD | 3007 | 3008 Ita"
+    },
+    {
+      "frequencyMHz": 4005,
+      "beamName": "Telegenova",
+      "system": "MPEG-4",
+      "symbolRate": 2340,
+      "provider": "2341 Ita",
+      "htmlRowText": "4005 | Telegenova | MPEG-4/SD | 2340 | 2341 Ita"
+    },
+    {
+      "frequencyMHz": 4006,
+      "beamName": "Tele Liguria Sud",
+      "system": "MPEG-4",
+      "symbolRate": 2350,
+      "provider": "2351 Ita",
+      "htmlRowText": "4006 | Tele Liguria Sud | MPEG-4/HD | 2350 | 2351 Ita"
+    },
+    {
+      "frequencyMHz": 4007,
+      "beamName": "Primopiano",
+      "system": "MPEG-4",
+      "symbolRate": 2360,
+      "provider": "2361 Ita",
+      "htmlRowText": "4007 | Primopiano | MPEG-4/SD | 2360 | 2361 Ita"
+    },
+    {
+      "frequencyMHz": 4008,
+      "beamName": "Telecolor (Italy)",
+      "system": "MPEG-4",
+      "symbolRate": 2370,
+      "provider": "2371 Ita",
+      "htmlRowText": "4008 | Telecolor (Italy) | MPEG-4/SD | 2370 | 2371 Ita"
+    },
+    {
+      "frequencyMHz": 4009,
+      "beamName": "Canale Italia",
+      "system": "MPEG-4",
+      "symbolRate": 2380,
+      "provider": "2381 Ita",
+      "htmlRowText": "4009 | Canale Italia | MPEG-4/SD | 2380 | 2381 Ita"
+    },
+    {
+      "frequencyMHz": 4010,
+      "beamName": "Valenza TV",
+      "system": "MPEG-4",
+      "symbolRate": 1380,
+      "provider": "1381 Ita",
+      "htmlRowText": "4010 | Valenza TV | MPEG-4/HD | 1380 | 1381 Ita"
+    },
+    {
+      "frequencyMHz": 4011,
+      "beamName": "Primantenna",
+      "system": "MPEG-4",
+      "symbolRate": 2400,
+      "provider": "2401 Ita",
+      "htmlRowText": "4011 | Primantenna | MPEG-4/HD | 2400 | 2401 Ita"
+    },
+    {
+      "frequencyMHz": 4012,
+      "beamName": "ReteSette",
+      "system": "MPEG-4",
+      "symbolRate": 2410,
+      "provider": "2411 Ita",
+      "htmlRowText": "4012 | ReteSette | MPEG-4/HD | 2410 | 2411 Ita"
+    },
+    {
+      "frequencyMHz": 4014,
+      "beamName": "Teleradiopace 2",
+      "system": "MPEG-4",
+      "symbolRate": 2430,
+      "provider": "2431 Ita",
+      "htmlRowText": "4014 | Teleradiopace 2 | MPEG-4/HD | 2430 | 2431 Ita"
+    },
+    {
+      "frequencyMHz": 4015,
+      "beamName": "2441 Ita",
+      "system": "MPEG-4",
+      "symbolRate": 2440,
+      "provider": "Luna TV",
+      "htmlRowText": "4015 | Luna TV | MPEG-4/HD | 2440 | 2441 Ita"
+    },
+    {
+      "frequencyMHz": 12380,
+      "polarization": "V",
+      "transponderNumber": "IT8",
+      "beamName": "M Al-Taie 250603",
+      "system": "DVB-S2",
+      "symbolRate": 31400,
+      "fec": "2/3",
+      "provider": "8572-28897",
+      "htmlRowText": "12380 V tp IT8 Italy 0 | DVB-S2 16APSK 31400 2/3 PLS Gold 262140 Multistream Stream 24 | 8572-28897 | 9.0 | M Al-Taie 250603"
+    },
+    {
+      "frequencyMHz": 12380,
+      "polarization": "V",
+      "transponderNumber": "IT8",
+      "beamName": "M Al-Taie 251029",
+      "system": "DVB-S2",
+      "symbolRate": 31400,
+      "fec": "2/3",
+      "provider": "8572-39137",
+      "htmlRowText": "12380 V tp IT8 Italy 0 | DVB-S2 16APSK 31400 2/3 PLS Gold 262140 Multistream Stream 25 | 8572-39137 | 9.0 | M Al-Taie 251029"
+    },
+    {
+      "transponderNumber": "A1",
+      "beamName": "2981 Ita",
+      "system": "MPEG-4",
+      "htmlRowText": "9809 | Tele A1 | MPEG-4/SD | 2980 | 2981 Ita"
+    },
+    {
+      "frequencyMHz": 12399,
+      "polarization": "H",
+      "transponderNumber": "GC8",
+      "beamName": "M Al-Taie 260305",
+      "system": "DVB-S2",
+      "symbolRate": 27500,
+      "fec": "2/3",
+      "provider": "Cosmote TV; Videoguard; 170-6",
+      "htmlRowText": "12399 H tp GC8 Extended Greece 51 | DVB-S2 8PSK 27500 2/3 | Cosmote TV | 170-6 | 6.6 | Videoguard | M Al-Taie 260305"
+    },
+    {
+      "frequencyMHz": 12466,
+      "polarization": "V",
+      "transponderNumber": "IT10",
+      "beamName": "RL Valle d'Aosta",
+      "system": "DVB-S2",
+      "symbolRate": 41950,
+      "fec": "2/3",
+      "provider": "M Al-Taie 250619; 8572-6369",
+      "htmlRowText": "12466 V tp IT10 Italy 0 | DVB-S2 16APSK 41950 2/3 PLS Gold 262140 Multistream Stream 12 | RL Valle d'Aosta | 8572-6369 | 9.0 | M Al-Taie 250619"
+    },
+    {
+      "frequencyMHz": 12466,
+      "polarization": "V",
+      "transponderNumber": "IT10",
+      "beamName": "M Al-Taie 260416",
+      "system": "DVB-S2",
+      "symbolRate": 41950,
+      "fec": "2/3",
+      "provider": "8572-10465",
+      "htmlRowText": "12466 V tp IT10 Italy 0 | DVB-S2 16APSK 41950 2/3 PLS Gold 262140 Multistream Stream 13 | 8572-10465 | 9.0 | M Al-Taie 260416"
+    },
+    {
+      "transponderNumber": "A3",
+      "beamName": "1951 Ita",
+      "system": "MPEG-4",
+      "htmlRowText": "2806 | A3 | MPEG-4/HD | 1950 | 1951 Ita"
+    },
+    {
+      "frequencyMHz": 12466,
+      "polarization": "V",
+      "transponderNumber": "IT10",
+      "beamName": "M Al-Taie 260307",
+      "system": "DVB-S2",
+      "symbolRate": 41950,
+      "fec": "2/3",
+      "provider": "8572-18657",
+      "htmlRowText": "12466 V tp IT10 Italy 0 | DVB-S2 16APSK 41950 2/3 PLS Gold 262140 Multistream Stream 17 | 8572-18657 | 9.0 | M Al-Taie 260307"
+    },
+    {
+      "frequencyMHz": 12466,
+      "polarization": "V",
+      "transponderNumber": "IT10",
+      "beamName": "P Grandicelli 241218",
+      "system": "DVB-S2",
+      "symbolRate": 41950,
+      "fec": "2/3",
+      "provider": "8572-24801",
+      "htmlRowText": "12466 V tp IT10 Italy 0 | DVB-S2 16APSK 41950 2/3 PLS Gold 262140 Multistream Stream 23 | 8572-24801 | 9.0 | P Grandicelli 241218"
+    },
+    {
+      "frequencyMHz": 12475,
+      "polarization": "H",
+      "transponderNumber": "GC10",
+      "beamName": "T Viererbe 260124",
+      "system": "DVB-S2",
+      "symbolRate": 27500,
+      "fec": "2/3",
+      "provider": "Cosmote TV; Videoguard; 170-7",
+      "htmlRowText": "12475 H tp GC10 Extended Greece 51 | DVB-S2 8PSK 27500 2/3 | Cosmote TV | 170-7 | 6.6 | Videoguard | T Viererbe 260124"
+    },
+    {
+      "transponderNumber": "S2",
+      "beamName": "System:",
+      "system": "DVB-S2",
+      "provider": "non-DTH",
+      "htmlRowText": "System: | DVB-S2 | DVB-S | non-DTH | - | -"
+    }
+  ]
+}

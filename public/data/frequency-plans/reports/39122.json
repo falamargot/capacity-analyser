@@ -1,0 +1,13 @@
+{
+  "satelliteName": "EUTELSAT 117 WEST A",
+  "source": "LYNGSAT",
+  "generatedAt": "2026-05-01T07:49:01.521Z",
+  "totalRowsSeen": 105,
+  "observationsCreated": 105,
+  "rowsWithFrequency": 104,
+  "rowsWithBeam": 105,
+  "rowsWithTransponderId": 63,
+  "rowsSkipped": 0,
+  "skipReasons": {},
+  "normalizedTransponders": 101
+}

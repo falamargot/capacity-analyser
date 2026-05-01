@@ -1,0 +1,13 @@
+{
+  "satelliteName": "EUTELSAT 7C",
+  "source": "LYNGSAT",
+  "generatedAt": "2026-05-01T07:49:01.531Z",
+  "totalRowsSeen": 55,
+  "observationsCreated": 55,
+  "rowsWithFrequency": 54,
+  "rowsWithBeam": 55,
+  "rowsWithTransponderId": 51,
+  "rowsSkipped": 0,
+  "skipReasons": {},
+  "normalizedTransponders": 52
+}

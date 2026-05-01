@@ -1,0 +1,762 @@
+{
+  "version": "2",
+  "satelliteName": "EUTELSAT 70B",
+  "orbitalPosition": "70.5E",
+  "source": "LYNGSAT",
+  "sourceUrl": "https://www.lyngsat.com/Eutelsat-70B.html",
+  "generatedAt": "2026-05-01T07:49:01.505Z",
+  "observations": [
+    {
+      "id": "lyngsat-eutelsat-70b-70.5e-s2-10953",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 70B",
+      "orbitalPosition": "70.5E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-70B.html",
+      "retrievedAt": "2026-05-01T07:26:15.084Z",
+      "raw": {
+        "frequencyText": "10953",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "N Stanislav 250511",
+        "systemText": "DVB-S2",
+        "symbolRateText": "2100",
+        "fecText": "2/3",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 10953,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "N Stanislav 250511",
+        "system": "DVB-S2",
+        "symbolRate": 2100,
+        "fec": "2/3",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-70b-70.5e-s2-11050",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 70B",
+      "orbitalPosition": "70.5E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-70B.html",
+      "retrievedAt": "2026-05-01T07:26:15.084Z",
+      "raw": {
+        "frequencyText": "11050",
+        "polarizationText": "H",
+        "transponderText": "S2",
+        "beamText": "Anonymous 260303",
+        "systemText": "DVB-S2",
+        "symbolRateText": "17670",
+        "fecText": "3/5",
+        "providerText": "TRBNA; 1-2"
+      },
+      "parsed": {
+        "frequencyMHz": 11050,
+        "polarization": "H",
+        "transponderNumber": "S2",
+        "beamName": "Anonymous 260303",
+        "system": "DVB-S2",
+        "symbolRate": 17670,
+        "fec": "3/5",
+        "providerName": "TRBNA; 1-2"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-70b-70.5e-row-3-4001",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 70B",
+      "orbitalPosition": "70.5E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-70B.html",
+      "retrievedAt": "2026-05-01T07:26:15.084Z",
+      "raw": {
+        "frequencyText": "4001",
+        "beamText": "Public Radio of Armenia"
+      },
+      "parsed": {
+        "frequencyMHz": 4001,
+        "beamName": "Public Radio of Armenia"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": false,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable.",
+          "No DVB system/SR/FEC parameters found."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-70b-70.5e-s2-11097",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 70B",
+      "orbitalPosition": "70.5E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-70B.html",
+      "retrievedAt": "2026-05-01T07:26:15.084Z",
+      "raw": {
+        "frequencyText": "11097",
+        "polarizationText": "H",
+        "transponderText": "S2",
+        "beamText": "N Stanislav 260416",
+        "systemText": "DVB-S2",
+        "symbolRateText": "23627",
+        "fecText": "3/5",
+        "providerText": "Kyrgyz mux; 1821-0"
+      },
+      "parsed": {
+        "frequencyMHz": 11097,
+        "polarization": "H",
+        "transponderNumber": "S2",
+        "beamName": "N Stanislav 260416",
+        "system": "DVB-S2",
+        "symbolRate": 23627,
+        "fec": "3/5",
+        "providerName": "Kyrgyz mux; 1821-0"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-70b-70.5e-row-5-4113",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 70B",
+      "orbitalPosition": "70.5E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-70B.html",
+      "retrievedAt": "2026-05-01T07:26:15.084Z",
+      "raw": {
+        "frequencyText": "4113",
+        "beamText": "Ala Too 24",
+        "systemText": "MPEG-4",
+        "symbolRateText": "4352",
+        "providerText": "4352 Kir"
+      },
+      "parsed": {
+        "frequencyMHz": 4113,
+        "beamName": "Ala Too 24",
+        "system": "MPEG-4",
+        "symbolRate": 4352,
+        "providerName": "4352 Kir"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-70b-70.5e-s2-11113",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 70B",
+      "orbitalPosition": "70.5E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-70B.html",
+      "retrievedAt": "2026-05-01T07:26:15.084Z",
+      "raw": {
+        "frequencyText": "11113",
+        "polarizationText": "H",
+        "transponderText": "S2",
+        "beamText": "N Stanislav 250511",
+        "systemText": "DVB-S2",
+        "symbolRateText": "4000",
+        "fecText": "5/6"
+      },
+      "parsed": {
+        "frequencyMHz": 11113,
+        "polarization": "H",
+        "transponderNumber": "S2",
+        "beamName": "N Stanislav 250511",
+        "system": "DVB-S2",
+        "symbolRate": 4000,
+        "fec": "5/6"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-70b-70.5e-s2-11456",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 70B",
+      "orbitalPosition": "70.5E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-70B.html",
+      "retrievedAt": "2026-05-01T07:26:15.084Z",
+      "raw": {
+        "frequencyText": "11456",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "N Stanislav 250628",
+        "systemText": "DVB-S2",
+        "symbolRateText": "3000",
+        "fecText": "5/6",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 11456,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "N Stanislav 250628",
+        "system": "DVB-S2",
+        "symbolRate": 3000,
+        "fec": "5/6",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-70b-70.5e-s2-12507",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 70B",
+      "orbitalPosition": "70.5E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-70B.html",
+      "retrievedAt": "2026-05-01T07:26:15.084Z",
+      "raw": {
+        "frequencyText": "12507",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "N Stanislav 250628",
+        "systemText": "DVB-S2",
+        "symbolRateText": "2222",
+        "fecText": "3/4",
+        "providerText": "Al Ayyam TV; 7.9 512 Ara"
+      },
+      "parsed": {
+        "frequencyMHz": 12507,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "N Stanislav 250628",
+        "system": "DVB-S2",
+        "symbolRate": 2222,
+        "fec": "3/4",
+        "providerName": "Al Ayyam TV; 7.9 512 Ara"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-70b-70.5e-s2-12520",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 70B",
+      "orbitalPosition": "70.5E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-70B.html",
+      "retrievedAt": "2026-05-01T07:26:15.084Z",
+      "raw": {
+        "frequencyText": "12520",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "N Stanislav 211105",
+        "systemText": "DVB-S2",
+        "symbolRateText": "1600",
+        "fecText": "5/6",
+        "providerText": "Al Nujaba TV; 9.4 256 Ara"
+      },
+      "parsed": {
+        "frequencyMHz": 12520,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "N Stanislav 211105",
+        "system": "DVB-S2",
+        "symbolRate": 1600,
+        "fec": "5/6",
+        "providerName": "Al Nujaba TV; 9.4 256 Ara"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-70b-70.5e-s2-12522",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 70B",
+      "orbitalPosition": "70.5E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-70B.html",
+      "retrievedAt": "2026-05-01T07:26:15.084Z",
+      "raw": {
+        "frequencyText": "12522",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "N Stanislav 250628",
+        "systemText": "DVB-S2",
+        "symbolRateText": "1600",
+        "fecText": "5/6",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 12522,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "N Stanislav 250628",
+        "system": "DVB-S2",
+        "symbolRate": 1600,
+        "fec": "5/6",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-70b-70.5e-s2-12524",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 70B",
+      "orbitalPosition": "70.5E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-70B.html",
+      "retrievedAt": "2026-05-01T07:26:15.084Z",
+      "raw": {
+        "frequencyText": "12524",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "N Stanislav 210821",
+        "systemText": "DVB-S2",
+        "symbolRateText": "1600",
+        "fecText": "5/6",
+        "providerText": "Alanwar TV 2; 9.4 512 Ara"
+      },
+      "parsed": {
+        "frequencyMHz": 12524,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "N Stanislav 210821",
+        "system": "DVB-S2",
+        "symbolRate": 1600,
+        "fec": "5/6",
+        "providerName": "Alanwar TV 2; 9.4 512 Ara"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-70b-70.5e-s2-12529",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 70B",
+      "orbitalPosition": "70.5E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-70B.html",
+      "retrievedAt": "2026-05-01T07:26:15.084Z",
+      "raw": {
+        "frequencyText": "12529",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "N Stanislav 250813",
+        "systemText": "DVB-S2",
+        "symbolRateText": "1600",
+        "fecText": "5/6",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 12529,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "N Stanislav 250813",
+        "system": "DVB-S2",
+        "symbolRate": 1600,
+        "fec": "5/6",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-70b-70.5e-row-13-12533",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 70B",
+      "orbitalPosition": "70.5E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-70B.html",
+      "retrievedAt": "2026-05-01T07:26:15.084Z",
+      "raw": {
+        "frequencyText": "12533",
+        "polarizationText": "V",
+        "beamText": "N Stanislav 260303"
+      },
+      "parsed": {
+        "frequencyMHz": 12533,
+        "polarization": "V",
+        "beamName": "N Stanislav 260303"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": false,
+        "confidence": "MEDIUM",
+        "warnings": [
+          "No DVB system/SR/FEC parameters found."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-70b-70.5e-row-14-12535",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 70B",
+      "orbitalPosition": "70.5E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-70B.html",
+      "retrievedAt": "2026-05-01T07:26:15.084Z",
+      "raw": {
+        "frequencyText": "12535",
+        "polarizationText": "V",
+        "beamText": "N Stanislav 260107",
+        "systemText": "DVB-S",
+        "symbolRateText": "1500",
+        "fecText": "5/6",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 12535,
+        "polarization": "V",
+        "beamName": "N Stanislav 260107",
+        "system": "DVB-S",
+        "symbolRate": 1500,
+        "fec": "5/6",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-70b-70.5e-s2-12569",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 70B",
+      "orbitalPosition": "70.5E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-70B.html",
+      "retrievedAt": "2026-05-01T07:26:15.084Z",
+      "raw": {
+        "frequencyText": "12569",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "С Ткачук 251224",
+        "systemText": "DVB-S2",
+        "symbolRateText": "1500",
+        "fecText": "5/6",
+        "providerText": "Al Eshraq TV; 9.4 1011 Ara"
+      },
+      "parsed": {
+        "frequencyMHz": 12569,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "С Ткачук 251224",
+        "system": "DVB-S2",
+        "symbolRate": 1500,
+        "fec": "5/6",
+        "providerName": "Al Eshraq TV; 9.4 1011 Ara"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-70b-70.5e-s2-12571",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 70B",
+      "orbitalPosition": "70.5E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-70B.html",
+      "retrievedAt": "2026-05-01T07:26:15.084Z",
+      "raw": {
+        "frequencyText": "12571",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "С Ткачук 251215",
+        "systemText": "DVB-S2",
+        "symbolRateText": "1500",
+        "fecText": "3/4",
+        "eirpText": "33",
+        "providerText": "Bayyinat TV; 7.9 34 Ara"
+      },
+      "parsed": {
+        "frequencyMHz": 12571,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "С Ткачук 251215",
+        "system": "DVB-S2",
+        "symbolRate": 1500,
+        "fec": "3/4",
+        "eirpDbw": 33,
+        "providerName": "Bayyinat TV; 7.9 34 Ara"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-70b-70.5e-s2-12573",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 70B",
+      "orbitalPosition": "70.5E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-70B.html",
+      "retrievedAt": "2026-05-01T07:26:15.084Z",
+      "raw": {
+        "frequencyText": "12573",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "С Ткачук 251215",
+        "systemText": "DVB-S2",
+        "symbolRateText": "1500",
+        "fecText": "5/6",
+        "eirpText": "33",
+        "providerText": "Al-Naeem TV; 9.4 36 Ara"
+      },
+      "parsed": {
+        "frequencyMHz": 12573,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "С Ткачук 251215",
+        "system": "DVB-S2",
+        "symbolRate": 1500,
+        "fec": "5/6",
+        "eirpDbw": 33,
+        "providerName": "Al-Naeem TV; 9.4 36 Ara"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-70b-70.5e-s2-12575",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 70B",
+      "orbitalPosition": "70.5E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-70B.html",
+      "retrievedAt": "2026-05-01T07:26:15.084Z",
+      "raw": {
+        "frequencyText": "12575",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "С Ткачук 251215",
+        "systemText": "DVB-S2",
+        "symbolRateText": "1500",
+        "fecText": "3/4",
+        "providerText": "Thaqalayn TV; 7.9 2031 Ara"
+      },
+      "parsed": {
+        "frequencyMHz": 12575,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "С Ткачук 251215",
+        "system": "DVB-S2",
+        "symbolRate": 1500,
+        "fec": "3/4",
+        "providerName": "Thaqalayn TV; 7.9 2031 Ara"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-70b-70.5e-s2-12577",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 70B",
+      "orbitalPosition": "70.5E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-70B.html",
+      "retrievedAt": "2026-05-01T07:26:15.084Z",
+      "raw": {
+        "frequencyText": "12577",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "С Ткачук 251215",
+        "systemText": "DVB-S2",
+        "symbolRateText": "1500",
+        "fecText": "3/4",
+        "providerText": "Thaqalayn TV; 7.9 257 Ara"
+      },
+      "parsed": {
+        "frequencyMHz": 12577,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "С Ткачук 251215",
+        "system": "DVB-S2",
+        "symbolRate": 1500,
+        "fec": "3/4",
+        "providerName": "Thaqalayn TV; 7.9 257 Ara"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-70b-70.5e-f6-12682",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 70B",
+      "orbitalPosition": "70.5E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-70B.html",
+      "retrievedAt": "2026-05-01T07:26:15.084Z",
+      "raw": {
+        "frequencyText": "12682",
+        "polarizationText": "V",
+        "transponderText": "F6",
+        "beamText": "N Stanislav 250930",
+        "systemText": "DVB-S2",
+        "symbolRateText": "16046",
+        "fecText": "1/2",
+        "providerText": "M-Three satcom; 1-1"
+      },
+      "parsed": {
+        "frequencyMHz": 12682,
+        "polarization": "V",
+        "transponderNumber": "F6",
+        "transponderName": "TP F6",
+        "beamName": "N Stanislav 250930",
+        "system": "DVB-S2",
+        "symbolRate": 16046,
+        "fec": "1/2",
+        "providerName": "M-Three satcom; 1-1"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-70b-70.5e-s2-nofreq",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 70B",
+      "orbitalPosition": "70.5E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-70B.html",
+      "retrievedAt": "2026-05-01T07:26:15.084Z",
+      "raw": {
+        "transponderText": "S2",
+        "beamText": "System:",
+        "systemText": "DVB-S2",
+        "providerText": "non-DTH"
+      },
+      "parsed": {
+        "transponderNumber": "S2",
+        "beamName": "System:",
+        "system": "DVB-S2",
+        "providerName": "non-DTH"
+      },
+      "parseQuality": {
+        "hasFrequency": false,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Downlink frequency not parseable; row kept due to transponder ID.",
+          "Polarization not present or not parseable."
+        ]
+      }
+    }
+  ]
+}

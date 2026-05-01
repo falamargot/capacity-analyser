@@ -1,0 +1,190 @@
+{
+  "source": "LYNGSAT",
+  "satelliteName": "EUTELSAT 172B",
+  "orbitalPosition": "172E",
+  "url": "https://www.lyngsat.com/Eutelsat-172B.html",
+  "retrievedAt": "2026-05-01T07:48:36.058Z",
+  "parserStats": {
+    "totalRowsSeen": 261,
+    "rowsWithFrequency": 15,
+    "rowsWithBeam": 17,
+    "rowsWithTransponderId": 14,
+    "rowsSkipped": 244,
+    "skipReasons": {
+      "too_few_cells": 47,
+      "no_frequency_no_transponder": 197
+    }
+  },
+  "rows": [
+    {
+      "frequencyMHz": 3888,
+      "polarization": "H",
+      "transponderNumber": "S2",
+      "beamName": "Papua New Guinean mux",
+      "system": "DVB-S2",
+      "symbolRate": 10414,
+      "fec": "5/6",
+      "provider": "远方的星星 260317; StreamGuard; 10000-4",
+      "htmlRowText": "3888 H tp 8 C 0 | DVB-S2 8PSK 10414 5/6 T2-MI PLP 0 | Papua New Guinean mux | 10000-4 | 9.4 | StreamGuard | 远方的星星 260317"
+    },
+    {
+      "frequencyMHz": 3916,
+      "polarization": "H",
+      "transponderNumber": "S2",
+      "beamName": "Hope Channel Australia",
+      "system": "DVB-S2",
+      "symbolRate": 3330,
+      "fec": "3/4",
+      "provider": "C Sutton 210204; 4.0 1120 Eng",
+      "htmlRowText": "3916 H tp 8 C 0 | DVB-S2 QPSK 3330 3/4 | 10 | Hope Channel Australia | 1-14 MPEG-2/SD | 1160 | 4.0 1120 Eng | C Sutton 210204"
+    },
+    {
+      "frequencyMHz": 3947,
+      "polarization": "H",
+      "transponderNumber": "S2",
+      "beamName": "远方的星星 260411",
+      "system": "DVB-S2",
+      "symbolRate": 15000,
+      "fec": "3/5",
+      "provider": "Verimatrix; 65520-1; Walesi",
+      "htmlRowText": "3947 H tp 8 C 0 | DVB-S2 8PSK 15000 3/5 | Walesi | 65520-1 | 5.5 | Verimatrix | 远方的星星 260411"
+    },
+    {
+      "frequencyMHz": 4096,
+      "beamName": "Parliament of Fiji",
+      "system": "MPEG-4",
+      "symbolRate": 3001,
+      "provider": "3001 Eng 4097 Eng; Verimatrix",
+      "htmlRowText": "140 | Parliament of Fiji | MPEG-4/SD | 4096 | 3001 Eng 4097 Eng | Verimatrix"
+    },
+    {
+      "frequencyMHz": 4198,
+      "polarization": "H",
+      "transponderNumber": "S2",
+      "beamName": "C Sutton 211113",
+      "system": "DVB-S2",
+      "symbolRate": 520,
+      "fec": "5/6",
+      "htmlRowText": "4198 H tp 14 C 0 | DVB-S2 QPSK 520 5/6 | 5.2 | C Sutton 211113"
+    },
+    {
+      "frequencyMHz": 4181,
+      "beamName": "K-Love",
+      "htmlRowText": "1 | K-Love | 4181 Eng"
+    },
+    {
+      "frequencyMHz": 4197,
+      "beamName": "Air 1 Worship Now",
+      "htmlRowText": "2 | Air 1 Worship Now | 4197 Eng"
+    },
+    {
+      "frequencyMHz": 11044,
+      "polarization": "V",
+      "transponderNumber": "B4",
+      "transponderName": "TP B4",
+      "beamName": "C Sutton 250925",
+      "system": "DVB-S2",
+      "symbolRate": 45000,
+      "fec": "4/5",
+      "provider": "ABC NT",
+      "htmlRowText": "11044 V tp B4 South Pacific 0 | DVB-S2 16APSK 45000 4/5 Multistream Stream 123 | ABC NT | 11.0 | C Sutton 250925"
+    },
+    {
+      "frequencyMHz": 11044,
+      "polarization": "V",
+      "transponderNumber": "B4",
+      "transponderName": "TP B4",
+      "beamName": "C Sutton 250925",
+      "system": "DVB-S2",
+      "symbolRate": 45000,
+      "fec": "4/5",
+      "provider": "ABC WA",
+      "htmlRowText": "11044 V tp B4 South Pacific 0 | DVB-S2 16APSK 45000 4/5 Multistream Stream 124 | ABC WA | 11.0 | C Sutton 250925"
+    },
+    {
+      "frequencyMHz": 11044,
+      "polarization": "V",
+      "transponderNumber": "B4",
+      "transponderName": "TP B4",
+      "beamName": "C Sutton 250925",
+      "system": "DVB-S2",
+      "symbolRate": 45000,
+      "fec": "4/5",
+      "provider": "ABC Queensland",
+      "htmlRowText": "11044 V tp B4 South Pacific 0 | DVB-S2 16APSK 45000 4/5 Multistream Stream 126 | ABC Queensland | 11.0 | C Sutton 250925"
+    },
+    {
+      "frequencyMHz": 11044,
+      "polarization": "V",
+      "transponderNumber": "B4",
+      "transponderName": "TP B4",
+      "beamName": "C Sutton 250925",
+      "system": "DVB-S2",
+      "symbolRate": 45000,
+      "fec": "4/5",
+      "provider": "SBS WA",
+      "htmlRowText": "11044 V tp B4 South Pacific 0 | DVB-S2 16APSK 45000 4/5 Multistream Stream 132 | SBS WA | 11.0 | C Sutton 250925"
+    },
+    {
+      "frequencyMHz": 11044,
+      "polarization": "V",
+      "transponderNumber": "B4",
+      "transponderName": "TP B4",
+      "beamName": "C Sutton 250925",
+      "system": "DVB-S2",
+      "symbolRate": 45000,
+      "fec": "4/5",
+      "provider": "SBS Queensland",
+      "htmlRowText": "11044 V tp B4 South Pacific 0 | DVB-S2 16APSK 45000 4/5 Multistream Stream 135 | SBS Queensland | 11.0 | C Sutton 250925"
+    },
+    {
+      "frequencyMHz": 11537,
+      "polarization": "V",
+      "transponderNumber": "G3",
+      "transponderName": "TP G3",
+      "beamName": "S Holzt 100701",
+      "system": "DVB-S2",
+      "symbolRate": 1500,
+      "provider": "@ SpeedCast",
+      "htmlRowText": "11537 V tp G3 SW Pacific | DVB-S2 ACM 1500 | @ SpeedCast | S Holzt 100701"
+    },
+    {
+      "frequencyMHz": 11646,
+      "polarization": "V",
+      "transponderNumber": "G7",
+      "transponderName": "TP G7",
+      "beamName": "S Holzt 090921",
+      "system": "DVB-S2",
+      "symbolRate": 2200,
+      "provider": "@ SpeedCast",
+      "htmlRowText": "11646 V tp G7 SE Pacific | DVB-S2 ACM 2200 | @ SpeedCast | S Holzt 090921"
+    },
+    {
+      "frequencyMHz": 12611,
+      "polarization": "H",
+      "transponderNumber": "F3",
+      "transponderName": "TP F3",
+      "beamName": "Paul 9 251202",
+      "system": "DVB-S2",
+      "symbolRate": 30000,
+      "fec": "3/4",
+      "provider": "TV Plus; Irdeto",
+      "htmlRowText": "12611 H tp F3 South Pacific 0 | DVB-S2 8PSK 30000 3/4 | TV Plus | 7.9 | Irdeto | Paul 9 251202"
+    },
+    {
+      "transponderNumber": "B92",
+      "beamName": "853 Srp",
+      "system": "MPEG-4",
+      "eirpDbw": 53,
+      "provider": "Irdeto",
+      "htmlRowText": "53 | B92 | MPEG-4/SD | 553 | 853 Srp | Irdeto"
+    },
+    {
+      "transponderNumber": "S2",
+      "beamName": "System:",
+      "system": "DVB-S2",
+      "provider": "non-DTH",
+      "htmlRowText": "System: | DVB-S2 | DVB-S | non-DTH | - | -"
+    }
+  ]
+}

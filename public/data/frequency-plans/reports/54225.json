@@ -1,0 +1,13 @@
+{
+  "satelliteName": "EUTELSAT HOTBIRD 13G",
+  "source": "LYNGSAT",
+  "generatedAt": "2026-05-01T07:49:01.535Z",
+  "totalRowsSeen": 87,
+  "observationsCreated": 87,
+  "rowsWithFrequency": 86,
+  "rowsWithBeam": 87,
+  "rowsWithTransponderId": 49,
+  "rowsSkipped": 0,
+  "skipReasons": {},
+  "normalizedTransponders": 87
+}

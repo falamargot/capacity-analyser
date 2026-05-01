@@ -1,0 +1,42 @@
+{
+  "version": "2",
+  "satelliteName": "EUTELSAT KONNECT",
+  "orbitalPosition": "7.2E",
+  "source": "LYNGSAT",
+  "sourceUrl": "https://www.lyngsat.com/Eutelsat-Konnect.html",
+  "generatedAt": "2026-05-01T07:49:01.532Z",
+  "observations": [
+    {
+      "id": "lyngsat-eutelsat-konnect-7.2e-s2-nofreq",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT KONNECT",
+      "orbitalPosition": "7.2E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-Konnect.html",
+      "retrievedAt": "2026-05-01T07:48:44.339Z",
+      "raw": {
+        "transponderText": "S2",
+        "beamText": "System:",
+        "systemText": "DVB-S2",
+        "providerText": "non-DTH"
+      },
+      "parsed": {
+        "transponderNumber": "S2",
+        "beamName": "System:",
+        "system": "DVB-S2",
+        "providerName": "non-DTH"
+      },
+      "parseQuality": {
+        "hasFrequency": false,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Downlink frequency not parseable; row kept due to transponder ID.",
+          "Polarization not present or not parseable."
+        ]
+      }
+    }
+  ]
+}

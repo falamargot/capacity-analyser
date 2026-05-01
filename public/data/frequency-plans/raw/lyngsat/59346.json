@@ -1,0 +1,3150 @@
+{
+  "version": "2",
+  "satelliteName": "EUTELSAT 36D",
+  "orbitalPosition": "36E",
+  "source": "LYNGSAT",
+  "sourceUrl": "https://www.lyngsat.com/Eutelsat-36D.html",
+  "generatedAt": "2026-05-01T07:49:01.538Z",
+  "observations": [
+    {
+      "id": "lyngsat-eutelsat-36d-36e-s2-10960",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 36D",
+      "orbitalPosition": "36E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-36D.html",
+      "retrievedAt": "2026-05-01T07:49:01.453Z",
+      "raw": {
+        "frequencyText": "10960",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "Stanley_cassidy Roli 251105",
+        "systemText": "DVB-S2",
+        "symbolRateText": "7200",
+        "fecText": "3/4",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 10960,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "Stanley_cassidy Roli 251105",
+        "system": "DVB-S2",
+        "symbolRate": 7200,
+        "fec": "3/4",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-36d-36e-s2-10968",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 36D",
+      "orbitalPosition": "36E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-36D.html",
+      "retrievedAt": "2026-05-01T07:49:01.453Z",
+      "raw": {
+        "frequencyText": "10968",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "Stanley_cassidy 251104",
+        "systemText": "DVB-S2",
+        "symbolRateText": "7200",
+        "fecText": "3/4",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 10968,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "Stanley_cassidy 251104",
+        "system": "DVB-S2",
+        "symbolRate": 7200,
+        "fec": "3/4",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-36d-36e-s2-10995",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 36D",
+      "orbitalPosition": "36E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-36D.html",
+      "retrievedAt": "2026-05-01T07:49:01.453Z",
+      "raw": {
+        "frequencyText": "10995",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "Stanley_cassidy 251104",
+        "systemText": "DVB-S2",
+        "symbolRateText": "7200",
+        "fecText": "3/4",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 10995,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "Stanley_cassidy 251104",
+        "system": "DVB-S2",
+        "symbolRate": 7200,
+        "fec": "3/4",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-36d-36e-s2-11004",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 36D",
+      "orbitalPosition": "36E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-36D.html",
+      "retrievedAt": "2026-05-01T07:49:01.453Z",
+      "raw": {
+        "frequencyText": "11004",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "Stanley_cassidy 251104",
+        "systemText": "DVB-S2",
+        "symbolRateText": "7200",
+        "fecText": "3/4",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 11004,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "Stanley_cassidy 251104",
+        "system": "DVB-S2",
+        "symbolRate": 7200,
+        "fec": "3/4",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-36d-36e-s2-11013",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 36D",
+      "orbitalPosition": "36E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-36D.html",
+      "retrievedAt": "2026-05-01T07:49:01.453Z",
+      "raw": {
+        "frequencyText": "11013",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "Stanley_cassidy 251105",
+        "systemText": "DVB-S2",
+        "symbolRateText": "7200",
+        "fecText": "3/4",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 11013,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "Stanley_cassidy 251105",
+        "system": "DVB-S2",
+        "symbolRate": 7200,
+        "fec": "3/4",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-36d-36e-s2-11020",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 36D",
+      "orbitalPosition": "36E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-36D.html",
+      "retrievedAt": "2026-05-01T07:49:01.453Z",
+      "raw": {
+        "frequencyText": "11020",
+        "polarizationText": "H",
+        "transponderText": "S2",
+        "beamText": "Roli 250626",
+        "systemText": "DVB-S2",
+        "symbolRateText": "2000",
+        "fecText": "3/4",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 11020,
+        "polarization": "H",
+        "transponderNumber": "S2",
+        "beamName": "Roli 250626",
+        "system": "DVB-S2",
+        "symbolRate": 2000,
+        "fec": "3/4",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-36d-36e-s2-11022",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 36D",
+      "orbitalPosition": "36E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-36D.html",
+      "retrievedAt": "2026-05-01T07:49:01.453Z",
+      "raw": {
+        "frequencyText": "11022",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "Stanley_cassidy 251104",
+        "systemText": "DVB-S2",
+        "symbolRateText": "7200",
+        "fecText": "3/4",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 11022,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "Stanley_cassidy 251104",
+        "system": "DVB-S2",
+        "symbolRate": 7200,
+        "fec": "3/4",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-36d-36e-s2-11028",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 36D",
+      "orbitalPosition": "36E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-36D.html",
+      "retrievedAt": "2026-05-01T07:49:01.453Z",
+      "raw": {
+        "frequencyText": "11028",
+        "polarizationText": "H",
+        "transponderText": "S2",
+        "beamText": "Roli 251015",
+        "systemText": "DVB-S2",
+        "symbolRateText": "2000",
+        "fecText": "5/6",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 11028,
+        "polarization": "H",
+        "transponderNumber": "S2",
+        "beamName": "Roli 251015",
+        "system": "DVB-S2",
+        "symbolRate": 2000,
+        "fec": "5/6",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-36d-36e-s2-11031",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 36D",
+      "orbitalPosition": "36E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-36D.html",
+      "retrievedAt": "2026-05-01T07:49:01.453Z",
+      "raw": {
+        "frequencyText": "11031",
+        "polarizationText": "H",
+        "transponderText": "S2",
+        "beamText": "Roli 251124",
+        "systemText": "DVB-S2",
+        "symbolRateText": "2000",
+        "fecText": "5/6",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 11031,
+        "polarization": "H",
+        "transponderNumber": "S2",
+        "beamName": "Roli 251124",
+        "system": "DVB-S2",
+        "symbolRate": 2000,
+        "fec": "5/6",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-36d-36e-s2-11106",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 36D",
+      "orbitalPosition": "36E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-36D.html",
+      "retrievedAt": "2026-05-01T07:49:01.453Z",
+      "raw": {
+        "frequencyText": "11106",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "N Stanislav 230526",
+        "systemText": "DVB-S2",
+        "symbolRateText": "3333",
+        "fecText": "3/5",
+        "providerText": "Al Rasheed TV; 5.5 100 Ara"
+      },
+      "parsed": {
+        "frequencyMHz": 11106,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "N Stanislav 230526",
+        "system": "DVB-S2",
+        "symbolRate": 3333,
+        "fec": "3/5",
+        "providerName": "Al Rasheed TV; 5.5 100 Ara"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-36d-36e-s2-11221",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 36D",
+      "orbitalPosition": "36E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-36D.html",
+      "retrievedAt": "2026-05-01T07:49:01.453Z",
+      "raw": {
+        "frequencyText": "11221",
+        "polarizationText": "H",
+        "transponderText": "S2",
+        "beamText": "M Al-Taie 251007",
+        "systemText": "DVB-S2",
+        "symbolRateText": "30000",
+        "fecText": "2/3",
+        "eirpText": "55",
+        "providerText": "Vivacom MCPC; Irdeto; 1-55"
+      },
+      "parsed": {
+        "frequencyMHz": 11221,
+        "polarization": "H",
+        "transponderNumber": "S2",
+        "beamName": "M Al-Taie 251007",
+        "system": "DVB-S2",
+        "symbolRate": 30000,
+        "fec": "2/3",
+        "eirpDbw": 55,
+        "providerName": "Vivacom MCPC; Irdeto; 1-55"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-36d-36e-s2-11221",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 36D",
+      "orbitalPosition": "36E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-36D.html",
+      "retrievedAt": "2026-05-01T07:49:01.453Z",
+      "raw": {
+        "frequencyText": "11221",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "Anonymous 260320",
+        "systemText": "DVB-S2",
+        "symbolRateText": "30000",
+        "fecText": "5/6",
+        "providerText": "Nagravision; 91-21"
+      },
+      "parsed": {
+        "frequencyMHz": 11221,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "Anonymous 260320",
+        "system": "DVB-S2",
+        "symbolRate": 30000,
+        "fec": "5/6",
+        "providerName": "Nagravision; 91-21"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-36d-36e-s2-11263",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 36D",
+      "orbitalPosition": "36E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-36D.html",
+      "retrievedAt": "2026-05-01T07:49:01.453Z",
+      "raw": {
+        "frequencyText": "11263",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "Anonymous 260320",
+        "systemText": "DVB-S2",
+        "symbolRateText": "30000",
+        "fecText": "5/6",
+        "providerText": "Nagravision; 91-22"
+      },
+      "parsed": {
+        "frequencyMHz": 11263,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "Anonymous 260320",
+        "system": "DVB-S2",
+        "symbolRate": 30000,
+        "fec": "5/6",
+        "providerName": "Nagravision; 91-22"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-36d-36e-s2-11304",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 36D",
+      "orbitalPosition": "36E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-36D.html",
+      "retrievedAt": "2026-05-01T07:49:01.453Z",
+      "raw": {
+        "frequencyText": "11304",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "Anonymous 241102",
+        "systemText": "DVB-S2",
+        "symbolRateText": "30000",
+        "fecText": "5/6",
+        "providerText": "Nagravision; 91-23"
+      },
+      "parsed": {
+        "frequencyMHz": 11304,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "Anonymous 241102",
+        "system": "DVB-S2",
+        "symbolRate": 30000,
+        "fec": "5/6",
+        "providerName": "Nagravision; 91-23"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-36d-36e-s2-11346",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 36D",
+      "orbitalPosition": "36E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-36D.html",
+      "retrievedAt": "2026-05-01T07:49:01.453Z",
+      "raw": {
+        "frequencyText": "11346",
+        "polarizationText": "H",
+        "transponderText": "S2",
+        "beamText": "M Al-Taie 260401",
+        "systemText": "DVB-S2",
+        "symbolRateText": "30000",
+        "fecText": "3/4",
+        "providerText": "Vivacom MCPC; Irdeto; 1-245"
+      },
+      "parsed": {
+        "frequencyMHz": 11346,
+        "polarization": "H",
+        "transponderNumber": "S2",
+        "beamName": "M Al-Taie 260401",
+        "system": "DVB-S2",
+        "symbolRate": 30000,
+        "fec": "3/4",
+        "providerName": "Vivacom MCPC; Irdeto; 1-245"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-36d-36e-s2-11346",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 36D",
+      "orbitalPosition": "36E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-36D.html",
+      "retrievedAt": "2026-05-01T07:49:01.453Z",
+      "raw": {
+        "frequencyText": "11346",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "Anonymous 240114",
+        "systemText": "DVB-S2",
+        "symbolRateText": "30000",
+        "fecText": "5/6",
+        "providerText": "Nagravision; 91-24"
+      },
+      "parsed": {
+        "frequencyMHz": 11346,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "Anonymous 240114",
+        "system": "DVB-S2",
+        "symbolRate": 30000,
+        "fec": "5/6",
+        "providerName": "Nagravision; 91-24"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-36d-36e-s2-11388",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 36D",
+      "orbitalPosition": "36E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-36D.html",
+      "retrievedAt": "2026-05-01T07:49:01.453Z",
+      "raw": {
+        "frequencyText": "11388",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "Anonymous 240906",
+        "systemText": "DVB-S2",
+        "symbolRateText": "30000",
+        "fecText": "5/6",
+        "providerText": "Nagravision; 91-25"
+      },
+      "parsed": {
+        "frequencyMHz": 11388,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "Anonymous 240906",
+        "system": "DVB-S2",
+        "symbolRate": 30000,
+        "fec": "5/6",
+        "providerName": "Nagravision; 91-25"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-36d-36e-s2-11429",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 36D",
+      "orbitalPosition": "36E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-36D.html",
+      "retrievedAt": "2026-05-01T07:49:01.453Z",
+      "raw": {
+        "frequencyText": "11429",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "Anonymous 250920",
+        "systemText": "DVB-S2",
+        "symbolRateText": "30000",
+        "fecText": "5/6",
+        "providerText": "Nagravision; 91-26"
+      },
+      "parsed": {
+        "frequencyMHz": 11429,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "Anonymous 250920",
+        "system": "DVB-S2",
+        "symbolRate": 30000,
+        "fec": "5/6",
+        "providerName": "Nagravision; 91-26"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-36d-36e-s2-11457",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 36D",
+      "orbitalPosition": "36E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-36D.html",
+      "retrievedAt": "2026-05-01T07:49:01.453Z",
+      "raw": {
+        "frequencyText": "11457",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "Roli 251208",
+        "systemText": "DVB-S2",
+        "symbolRateText": "2250",
+        "fecText": "3/4",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 11457,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "Roli 251208",
+        "system": "DVB-S2",
+        "symbolRate": 2250,
+        "fec": "3/4",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-36d-36e-s2-11458",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 36D",
+      "orbitalPosition": "36E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-36D.html",
+      "retrievedAt": "2026-05-01T07:49:01.453Z",
+      "raw": {
+        "frequencyText": "11458",
+        "polarizationText": "H",
+        "transponderText": "S2",
+        "beamText": "Roli 251231",
+        "systemText": "DVB-S2",
+        "symbolRateText": "4937",
+        "fecText": "3/4",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 11458,
+        "polarization": "H",
+        "transponderNumber": "S2",
+        "beamName": "Roli 251231",
+        "system": "DVB-S2",
+        "symbolRate": 4937,
+        "fec": "3/4",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-36d-36e-s2-11460",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 36D",
+      "orbitalPosition": "36E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-36D.html",
+      "retrievedAt": "2026-05-01T07:49:01.453Z",
+      "raw": {
+        "frequencyText": "11460",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "Roli 251208",
+        "systemText": "DVB-S2",
+        "symbolRateText": "2400",
+        "fecText": "3/4",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 11460,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "Roli 251208",
+        "system": "DVB-S2",
+        "symbolRate": 2400,
+        "fec": "3/4",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-36d-36e-s2-11463",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 36D",
+      "orbitalPosition": "36E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-36D.html",
+      "retrievedAt": "2026-05-01T07:49:01.453Z",
+      "raw": {
+        "frequencyText": "11463",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "Roli 251208",
+        "systemText": "DVB-S2",
+        "symbolRateText": "2250",
+        "fecText": "3/4",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 11463,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "Roli 251208",
+        "system": "DVB-S2",
+        "symbolRate": 2250,
+        "fec": "3/4",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-36d-36e-s2-11464",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 36D",
+      "orbitalPosition": "36E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-36D.html",
+      "retrievedAt": "2026-05-01T07:49:01.453Z",
+      "raw": {
+        "frequencyText": "11464",
+        "polarizationText": "H",
+        "transponderText": "S2",
+        "beamText": "Roli 251231",
+        "systemText": "DVB-S2",
+        "symbolRateText": "4937",
+        "fecText": "3/4",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 11464,
+        "polarization": "H",
+        "transponderNumber": "S2",
+        "beamName": "Roli 251231",
+        "system": "DVB-S2",
+        "symbolRate": 4937,
+        "fec": "3/4",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-36d-36e-s2-11466",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 36D",
+      "orbitalPosition": "36E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-36D.html",
+      "retrievedAt": "2026-05-01T07:49:01.453Z",
+      "raw": {
+        "frequencyText": "11466",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "Roli 251208",
+        "systemText": "DVB-S2",
+        "symbolRateText": "2400",
+        "fecText": "3/4",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 11466,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "Roli 251208",
+        "system": "DVB-S2",
+        "symbolRate": 2400,
+        "fec": "3/4",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-36d-36e-s2-11471",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 36D",
+      "orbitalPosition": "36E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-36D.html",
+      "retrievedAt": "2026-05-01T07:49:01.453Z",
+      "raw": {
+        "frequencyText": "11471",
+        "polarizationText": "H",
+        "transponderText": "S2",
+        "beamText": "Roli 250918",
+        "systemText": "DVB-S2",
+        "symbolRateText": "4937",
+        "fecText": "3/4",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 11471,
+        "polarization": "H",
+        "transponderNumber": "S2",
+        "beamName": "Roli 250918",
+        "system": "DVB-S2",
+        "symbolRate": 4937,
+        "fec": "3/4",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-36d-36e-s2-11473",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 36D",
+      "orbitalPosition": "36E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-36D.html",
+      "retrievedAt": "2026-05-01T07:49:01.453Z",
+      "raw": {
+        "frequencyText": "11473",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "Roli 251121",
+        "systemText": "DVB-S2",
+        "symbolRateText": "9874",
+        "fecText": "3/4",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 11473,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "Roli 251121",
+        "system": "DVB-S2",
+        "symbolRate": 9874,
+        "fec": "3/4",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-36d-36e-s2-11484",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 36D",
+      "orbitalPosition": "36E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-36D.html",
+      "retrievedAt": "2026-05-01T07:49:01.453Z",
+      "raw": {
+        "frequencyText": "11484",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "Roli 250601",
+        "systemText": "DVB-S2",
+        "symbolRateText": "3700",
+        "fecText": "5/6",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 11484,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "Roli 250601",
+        "system": "DVB-S2",
+        "symbolRate": 3700,
+        "fec": "5/6",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-36d-36e-s2-11488",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 36D",
+      "orbitalPosition": "36E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-36D.html",
+      "retrievedAt": "2026-05-01T07:49:01.453Z",
+      "raw": {
+        "frequencyText": "11488",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "Roli 251018",
+        "systemText": "DVB-S2",
+        "symbolRateText": "3333",
+        "fecText": "5/6",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 11488,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "Roli 251018",
+        "system": "DVB-S2",
+        "symbolRate": 3333,
+        "fec": "5/6",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-36d-36e-s2-11492",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 36D",
+      "orbitalPosition": "36E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-36D.html",
+      "retrievedAt": "2026-05-01T07:49:01.453Z",
+      "raw": {
+        "frequencyText": "11492",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "N Stanislav 250827",
+        "systemText": "DVB-S2",
+        "symbolRateText": "2962",
+        "fecText": "3/4",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 11492,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "N Stanislav 250827",
+        "system": "DVB-S2",
+        "symbolRate": 2962,
+        "fec": "3/4",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-36d-36e-s2-11494",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 36D",
+      "orbitalPosition": "36E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-36D.html",
+      "retrievedAt": "2026-05-01T07:49:01.453Z",
+      "raw": {
+        "frequencyText": "11494",
+        "polarizationText": "H",
+        "transponderText": "S2",
+        "beamText": "Stanley_cassidy 251227",
+        "systemText": "DVB-S2",
+        "symbolRateText": "4937",
+        "fecText": "3/4",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 11494,
+        "polarization": "H",
+        "transponderNumber": "S2",
+        "beamName": "Stanley_cassidy 251227",
+        "system": "DVB-S2",
+        "symbolRate": 4937,
+        "fec": "3/4",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-36d-36e-s2-11497",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 36D",
+      "orbitalPosition": "36E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-36D.html",
+      "retrievedAt": "2026-05-01T07:49:01.453Z",
+      "raw": {
+        "frequencyText": "11497",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "Roli 250510",
+        "systemText": "DVB-S2",
+        "symbolRateText": "2962",
+        "fecText": "3/4",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 11497,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "Roli 250510",
+        "system": "DVB-S2",
+        "symbolRate": 2962,
+        "fec": "3/4",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-36d-36e-s2-11506",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 36D",
+      "orbitalPosition": "36E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-36D.html",
+      "retrievedAt": "2026-05-01T07:49:01.453Z",
+      "raw": {
+        "frequencyText": "11506",
+        "polarizationText": "H",
+        "transponderText": "S2",
+        "beamText": "Roli 250926",
+        "systemText": "DVB-S2",
+        "symbolRateText": "9874",
+        "fecText": "3/4",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 11506,
+        "polarization": "H",
+        "transponderNumber": "S2",
+        "beamName": "Roli 250926",
+        "system": "DVB-S2",
+        "symbolRate": 9874,
+        "fec": "3/4",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-36d-36e-s2-11508",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 36D",
+      "orbitalPosition": "36E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-36D.html",
+      "retrievedAt": "2026-05-01T07:49:01.453Z",
+      "raw": {
+        "frequencyText": "11508",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "N Stanislav 250308",
+        "systemText": "DVB-S2",
+        "symbolRateText": "2800",
+        "fecText": "2/3",
+        "eirpText": "33",
+        "providerText": "Iraq Alhadath; 6.6 34 Ara"
+      },
+      "parsed": {
+        "frequencyMHz": 11508,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "N Stanislav 250308",
+        "system": "DVB-S2",
+        "symbolRate": 2800,
+        "fec": "2/3",
+        "eirpDbw": 33,
+        "providerName": "Iraq Alhadath; 6.6 34 Ara"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-36d-36e-s2-11512",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 36D",
+      "orbitalPosition": "36E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-36D.html",
+      "retrievedAt": "2026-05-01T07:49:01.453Z",
+      "raw": {
+        "frequencyText": "11512",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "Roli 250726",
+        "systemText": "DVB-S2",
+        "symbolRateText": "3333",
+        "fecText": "3/4",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 11512,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "Roli 250726",
+        "system": "DVB-S2",
+        "symbolRate": 3333,
+        "fec": "3/4",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-36d-36e-s2-11542",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 36D",
+      "orbitalPosition": "36E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-36D.html",
+      "retrievedAt": "2026-05-01T07:49:01.453Z",
+      "raw": {
+        "frequencyText": "11542",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "M Al-Taie 250110",
+        "systemText": "DVB-S2",
+        "symbolRateText": "6582",
+        "fecText": "2/3",
+        "providerText": "Iraqi mux; 1337-1"
+      },
+      "parsed": {
+        "frequencyMHz": 11542,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "M Al-Taie 250110",
+        "system": "DVB-S2",
+        "symbolRate": 6582,
+        "fec": "2/3",
+        "providerName": "Iraqi mux; 1337-1"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-36d-36e-s2-11556",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 36D",
+      "orbitalPosition": "36E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-36D.html",
+      "retrievedAt": "2026-05-01T07:49:01.453Z",
+      "raw": {
+        "frequencyText": "11556",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "С Ткачук 251225",
+        "systemText": "DVB-S2",
+        "symbolRateText": "3333",
+        "fecText": "3/4",
+        "providerText": "(IHA feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 11556,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "С Ткачук 251225",
+        "system": "DVB-S2",
+        "symbolRate": 3333,
+        "fec": "3/4",
+        "providerName": "(IHA feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-36d-36e-row-37-11587",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 36D",
+      "orbitalPosition": "36E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-36D.html",
+      "retrievedAt": "2026-05-01T07:49:01.453Z",
+      "raw": {
+        "frequencyText": "11587",
+        "polarizationText": "H",
+        "beamText": "Anbar TV Channel",
+        "systemText": "DVB-S",
+        "symbolRateText": "2170",
+        "fecText": "3/4",
+        "providerText": "Marcel 2 190902; 5.5 4112 Ara"
+      },
+      "parsed": {
+        "frequencyMHz": 11587,
+        "polarization": "H",
+        "beamName": "Anbar TV Channel",
+        "system": "DVB-S",
+        "symbolRate": 2170,
+        "fec": "3/4",
+        "providerName": "Marcel 2 190902; 5.5 4112 Ara"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-36d-36e-s2-11593",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 36D",
+      "orbitalPosition": "36E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-36D.html",
+      "retrievedAt": "2026-05-01T07:49:01.453Z",
+      "raw": {
+        "frequencyText": "11593",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "N Stanislav 230415",
+        "systemText": "DVB-S2",
+        "symbolRateText": "2500",
+        "fecText": "3/4",
+        "eirpText": "33",
+        "providerText": "7.9 34 Ara; Iraq 24"
+      },
+      "parsed": {
+        "frequencyMHz": 11593,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "N Stanislav 230415",
+        "system": "DVB-S2",
+        "symbolRate": 2500,
+        "fec": "3/4",
+        "eirpDbw": 33,
+        "providerName": "7.9 34 Ara; Iraq 24"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-36d-36e-s2-11599",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 36D",
+      "orbitalPosition": "36E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-36D.html",
+      "retrievedAt": "2026-05-01T07:49:01.453Z",
+      "raw": {
+        "frequencyText": "11599",
+        "polarizationText": "H",
+        "transponderText": "S2",
+        "beamText": "N Stanislav 250607",
+        "systemText": "DVB-S2",
+        "symbolRateText": "1750",
+        "fecText": "5/6",
+        "providerText": "9.4 4112 Ara; Alyaum TV"
+      },
+      "parsed": {
+        "frequencyMHz": 11599,
+        "polarization": "H",
+        "transponderNumber": "S2",
+        "beamName": "N Stanislav 250607",
+        "system": "DVB-S2",
+        "symbolRate": 1750,
+        "fec": "5/6",
+        "providerName": "9.4 4112 Ara; Alyaum TV"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-36d-36e-s2-11627",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 36D",
+      "orbitalPosition": "36E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-36D.html",
+      "retrievedAt": "2026-05-01T07:49:01.453Z",
+      "raw": {
+        "frequencyText": "11627",
+        "polarizationText": "H",
+        "transponderText": "S2",
+        "beamText": "Roli 260128",
+        "systemText": "DVB-S2",
+        "symbolRateText": "7200",
+        "fecText": "3/4",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 11627,
+        "polarization": "H",
+        "transponderNumber": "S2",
+        "beamName": "Roli 260128",
+        "system": "DVB-S2",
+        "symbolRate": 7200,
+        "fec": "3/4",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-36d-36e-s2-11627",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 36D",
+      "orbitalPosition": "36E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-36D.html",
+      "retrievedAt": "2026-05-01T07:49:01.453Z",
+      "raw": {
+        "frequencyText": "11627",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "Roli 251115",
+        "systemText": "DVB-S2",
+        "symbolRateText": "7200",
+        "fecText": "3/4",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 11627,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "Roli 251115",
+        "system": "DVB-S2",
+        "symbolRate": 7200,
+        "fec": "3/4",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-36d-36e-s2-11635",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 36D",
+      "orbitalPosition": "36E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-36D.html",
+      "retrievedAt": "2026-05-01T07:49:01.453Z",
+      "raw": {
+        "frequencyText": "11635",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "Stanley_cassidy 251104",
+        "systemText": "DVB-S2",
+        "symbolRateText": "7200",
+        "fecText": "3/4",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 11635,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "Stanley_cassidy 251104",
+        "system": "DVB-S2",
+        "symbolRate": 7200,
+        "fec": "3/4",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-36d-36e-s2-11644",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 36D",
+      "orbitalPosition": "36E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-36D.html",
+      "retrievedAt": "2026-05-01T07:49:01.453Z",
+      "raw": {
+        "frequencyText": "11644",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "Stanley_cassidy 251104",
+        "systemText": "DVB-S2",
+        "symbolRateText": "7200",
+        "fecText": "3/4",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 11644,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "Stanley_cassidy 251104",
+        "system": "DVB-S2",
+        "symbolRate": 7200,
+        "fec": "3/4",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-36d-36e-s2-11645",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 36D",
+      "orbitalPosition": "36E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-36D.html",
+      "retrievedAt": "2026-05-01T07:49:01.453Z",
+      "raw": {
+        "frequencyText": "11645",
+        "polarizationText": "H",
+        "transponderText": "S2",
+        "beamText": "Roli 260128",
+        "systemText": "DVB-S2",
+        "symbolRateText": "7200",
+        "fecText": "3/4",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 11645,
+        "polarization": "H",
+        "transponderNumber": "S2",
+        "beamName": "Roli 260128",
+        "system": "DVB-S2",
+        "symbolRate": 7200,
+        "fec": "3/4",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-36d-36e-s2-11652",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 36D",
+      "orbitalPosition": "36E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-36D.html",
+      "retrievedAt": "2026-05-01T07:49:01.453Z",
+      "raw": {
+        "frequencyText": "11652",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "Roli 260128",
+        "systemText": "DVB-S2",
+        "symbolRateText": "9874",
+        "fecText": "3/4",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 11652,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "Roli 260128",
+        "system": "DVB-S2",
+        "symbolRate": 9874,
+        "fec": "3/4",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-36d-36e-s2-11667",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 36D",
+      "orbitalPosition": "36E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-36D.html",
+      "retrievedAt": "2026-05-01T07:49:01.453Z",
+      "raw": {
+        "frequencyText": "11667",
+        "polarizationText": "H",
+        "transponderText": "S2",
+        "beamText": "Roli 250914",
+        "systemText": "DVB-S2",
+        "symbolRateText": "4000",
+        "fecText": "5/6",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 11667,
+        "polarization": "H",
+        "transponderNumber": "S2",
+        "beamName": "Roli 250914",
+        "system": "DVB-S2",
+        "symbolRate": 4000,
+        "fec": "5/6",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-36d-36e-s2-11672",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 36D",
+      "orbitalPosition": "36E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-36D.html",
+      "retrievedAt": "2026-05-01T07:49:01.453Z",
+      "raw": {
+        "frequencyText": "11672",
+        "polarizationText": "H",
+        "transponderText": "S2",
+        "beamText": "Roli 250921",
+        "systemText": "DVB-S2",
+        "symbolRateText": "4000",
+        "fecText": "5/6",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 11672,
+        "polarization": "H",
+        "transponderNumber": "S2",
+        "beamName": "Roli 250921",
+        "system": "DVB-S2",
+        "symbolRate": 4000,
+        "fec": "5/6",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-36d-36e-s2-11677",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 36D",
+      "orbitalPosition": "36E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-36D.html",
+      "retrievedAt": "2026-05-01T07:49:01.453Z",
+      "raw": {
+        "frequencyText": "11677",
+        "polarizationText": "H",
+        "transponderText": "S2",
+        "beamText": "Roli 250914",
+        "systemText": "DVB-S2",
+        "symbolRateText": "4000",
+        "fecText": "5/6",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 11677,
+        "polarization": "H",
+        "transponderNumber": "S2",
+        "beamName": "Roli 250914",
+        "system": "DVB-S2",
+        "symbolRate": 4000,
+        "fec": "5/6",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-36d-36e-s2-11678",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 36D",
+      "orbitalPosition": "36E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-36D.html",
+      "retrievedAt": "2026-05-01T07:49:01.453Z",
+      "raw": {
+        "frequencyText": "11678",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "N Stanislav 220508",
+        "systemText": "DVB-S2",
+        "symbolRateText": "3200",
+        "fecText": "5/6",
+        "providerText": "9.4 1201 Kur; Rûdaw"
+      },
+      "parsed": {
+        "frequencyMHz": 11678,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "N Stanislav 220508",
+        "system": "DVB-S2",
+        "symbolRate": 3200,
+        "fec": "5/6",
+        "providerName": "9.4 1201 Kur; Rûdaw"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-36d-36e-s2-11682",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 36D",
+      "orbitalPosition": "36E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-36D.html",
+      "retrievedAt": "2026-05-01T07:49:01.453Z",
+      "raw": {
+        "frequencyText": "11682",
+        "polarizationText": "H",
+        "transponderText": "S2",
+        "beamText": "Roli 250926",
+        "systemText": "DVB-S2",
+        "symbolRateText": "4000",
+        "fecText": "5/6",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 11682,
+        "polarization": "H",
+        "transponderNumber": "S2",
+        "beamName": "Roli 250926",
+        "system": "DVB-S2",
+        "symbolRate": 4000,
+        "fec": "5/6",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-36d-36e-s2-11686",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 36D",
+      "orbitalPosition": "36E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-36D.html",
+      "retrievedAt": "2026-05-01T07:49:01.453Z",
+      "raw": {
+        "frequencyText": "11686",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "Roli 260212",
+        "systemText": "DVB-S2",
+        "symbolRateText": "9874",
+        "fecText": "3/4",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 11686,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "Roli 260212",
+        "system": "DVB-S2",
+        "symbolRate": 9874,
+        "fec": "3/4",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-36d-36e-s2-11692",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 36D",
+      "orbitalPosition": "36E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-36D.html",
+      "retrievedAt": "2026-05-01T07:49:01.453Z",
+      "raw": {
+        "frequencyText": "11692",
+        "polarizationText": "H",
+        "transponderText": "S2",
+        "beamText": "Roli 250918",
+        "systemText": "DVB-S2",
+        "symbolRateText": "4000",
+        "fecText": "5/6",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 11692,
+        "polarization": "H",
+        "transponderNumber": "S2",
+        "beamName": "Roli 250918",
+        "system": "DVB-S2",
+        "symbolRate": 4000,
+        "fec": "5/6",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-36d-36e-row-53-11693",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 36D",
+      "orbitalPosition": "36E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-36D.html",
+      "retrievedAt": "2026-05-01T07:49:01.453Z",
+      "raw": {
+        "frequencyText": "11693",
+        "polarizationText": "V",
+        "beamText": "Janlakomcik 260407"
+      },
+      "parsed": {
+        "frequencyMHz": 11693,
+        "polarization": "V",
+        "beamName": "Janlakomcik 260407"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": false,
+        "confidence": "MEDIUM",
+        "warnings": [
+          "No DVB system/SR/FEC parameters found."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-36d-36e-s2-11696",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 36D",
+      "orbitalPosition": "36E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-36D.html",
+      "retrievedAt": "2026-05-01T07:49:01.453Z",
+      "raw": {
+        "frequencyText": "11696",
+        "polarizationText": "H",
+        "transponderText": "S2",
+        "beamText": "Roli 251101",
+        "systemText": "DVB-S2",
+        "symbolRateText": "2000",
+        "fecText": "5/6",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 11696,
+        "polarization": "H",
+        "transponderNumber": "S2",
+        "beamName": "Roli 251101",
+        "system": "DVB-S2",
+        "symbolRate": 2000,
+        "fec": "5/6",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-36d-36e-ea1-11727",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 36D",
+      "orbitalPosition": "36E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-36D.html",
+      "retrievedAt": "2026-05-01T07:49:01.453Z",
+      "raw": {
+        "frequencyText": "11727",
+        "polarizationText": "V",
+        "transponderText": "EA1",
+        "beamText": "N Stanislav 250410",
+        "systemText": "DVB-S2",
+        "symbolRateText": "29330",
+        "fecText": "3/4",
+        "providerText": "GoTV Kenya; Irdeto"
+      },
+      "parsed": {
+        "frequencyMHz": 11727,
+        "polarization": "V",
+        "transponderNumber": "EA1",
+        "beamName": "N Stanislav 250410",
+        "system": "DVB-S2",
+        "symbolRate": 29330,
+        "fec": "3/4",
+        "providerName": "GoTV Kenya; Irdeto"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-36d-36e-ea1-11727",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 36D",
+      "orbitalPosition": "36E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-36D.html",
+      "retrievedAt": "2026-05-01T07:49:01.453Z",
+      "raw": {
+        "frequencyText": "11727",
+        "polarizationText": "V",
+        "transponderText": "EA1",
+        "beamText": "Anonymous 260401",
+        "systemText": "DVB-S2",
+        "symbolRateText": "29330",
+        "fecText": "3/4",
+        "providerText": "GoTV Kenya; Irdeto"
+      },
+      "parsed": {
+        "frequencyMHz": 11727,
+        "polarization": "V",
+        "transponderNumber": "EA1",
+        "beamName": "Anonymous 260401",
+        "system": "DVB-S2",
+        "symbolRate": 29330,
+        "fec": "3/4",
+        "providerName": "GoTV Kenya; Irdeto"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-36d-36e-er3-11766",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 36D",
+      "orbitalPosition": "36E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-36D.html",
+      "retrievedAt": "2026-05-01T07:49:01.453Z",
+      "raw": {
+        "frequencyText": "11766",
+        "polarizationText": "L",
+        "transponderText": "ER3",
+        "beamText": "Exset DRECrypt DREGuard",
+        "systemText": "DVB-S2",
+        "symbolRateText": "27500",
+        "fecText": "3/4",
+        "providerText": "Anonymous 250701; Trikolor Centr; 253-3"
+      },
+      "parsed": {
+        "frequencyMHz": 11766,
+        "polarization": "L",
+        "transponderNumber": "ER3",
+        "beamName": "Exset DRECrypt DREGuard",
+        "system": "DVB-S2",
+        "symbolRate": 27500,
+        "fec": "3/4",
+        "providerName": "Anonymous 250701; Trikolor Centr; 253-3"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-36d-36e-er4-11785",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 36D",
+      "orbitalPosition": "36E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-36D.html",
+      "retrievedAt": "2026-05-01T07:49:01.453Z",
+      "raw": {
+        "frequencyText": "11785",
+        "polarizationText": "R",
+        "transponderText": "ER4",
+        "beamText": "Compunicate Viaccess",
+        "systemText": "DVB-S2",
+        "symbolRateText": "27500",
+        "fecText": "3/4",
+        "providerText": "Torrex12 260417; NTV Plus; 112-13"
+      },
+      "parsed": {
+        "frequencyMHz": 11785,
+        "polarization": "R",
+        "transponderNumber": "ER4",
+        "beamName": "Compunicate Viaccess",
+        "system": "DVB-S2",
+        "symbolRate": 27500,
+        "fec": "3/4",
+        "providerName": "Torrex12 260417; NTV Plus; 112-13"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-36d-36e-ea5-11804",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 36D",
+      "orbitalPosition": "36E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-36D.html",
+      "retrievedAt": "2026-05-01T07:49:01.453Z",
+      "raw": {
+        "frequencyText": "11804",
+        "polarizationText": "V",
+        "transponderText": "EA5",
+        "beamText": "N Stanislav 250410",
+        "systemText": "DVB-S2",
+        "symbolRateText": "26650",
+        "fecText": "3/4",
+        "providerText": "GoTV Africa; Irdeto"
+      },
+      "parsed": {
+        "frequencyMHz": 11804,
+        "polarization": "V",
+        "transponderNumber": "EA5",
+        "beamName": "N Stanislav 250410",
+        "system": "DVB-S2",
+        "symbolRate": 26650,
+        "fec": "3/4",
+        "providerName": "GoTV Africa; Irdeto"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-36d-36e-row-60-3431",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 36D",
+      "orbitalPosition": "36E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-36D.html",
+      "retrievedAt": "2026-05-01T07:49:01.453Z",
+      "raw": {
+        "frequencyText": "3431",
+        "beamText": "Sanyuka TV",
+        "systemText": "MPEG-4",
+        "symbolRateText": "7431",
+        "providerText": "Irdeto"
+      },
+      "parsed": {
+        "frequencyMHz": 3431,
+        "beamName": "Sanyuka TV",
+        "system": "MPEG-4",
+        "symbolRate": 7431,
+        "providerName": "Irdeto"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-36d-36e-ea5-11804",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 36D",
+      "orbitalPosition": "36E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-36D.html",
+      "retrievedAt": "2026-05-01T07:49:01.453Z",
+      "raw": {
+        "frequencyText": "11804",
+        "polarizationText": "V",
+        "transponderText": "EA5",
+        "beamText": "N Stanislav 250410",
+        "systemText": "DVB-S2",
+        "symbolRateText": "26650",
+        "fecText": "3/4",
+        "providerText": "GoTV Africa; Irdeto"
+      },
+      "parsed": {
+        "frequencyMHz": 11804,
+        "polarization": "V",
+        "transponderNumber": "EA5",
+        "beamName": "N Stanislav 250410",
+        "system": "DVB-S2",
+        "symbolRate": 26650,
+        "fec": "3/4",
+        "providerName": "GoTV Africa; Irdeto"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-36d-36e-ea5-11804",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 36D",
+      "orbitalPosition": "36E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-36D.html",
+      "retrievedAt": "2026-05-01T07:49:01.453Z",
+      "raw": {
+        "frequencyText": "11804",
+        "polarizationText": "V",
+        "transponderText": "EA5",
+        "beamText": "Anonymous 250422",
+        "systemText": "DVB-S2",
+        "symbolRateText": "26650",
+        "fecText": "3/4",
+        "providerText": "GoTV Africa; Irdeto"
+      },
+      "parsed": {
+        "frequencyMHz": 11804,
+        "polarization": "V",
+        "transponderNumber": "EA5",
+        "beamName": "Anonymous 250422",
+        "system": "DVB-S2",
+        "symbolRate": 26650,
+        "fec": "3/4",
+        "providerName": "GoTV Africa; Irdeto"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-36d-36e-ea5-11804",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 36D",
+      "orbitalPosition": "36E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-36D.html",
+      "retrievedAt": "2026-05-01T07:49:01.453Z",
+      "raw": {
+        "frequencyText": "11804",
+        "polarizationText": "V",
+        "transponderText": "EA5",
+        "beamText": "N Stanislav 250410",
+        "systemText": "DVB-S2",
+        "symbolRateText": "26650",
+        "fecText": "3/4",
+        "providerText": "GoTV Africa; Irdeto"
+      },
+      "parsed": {
+        "frequencyMHz": 11804,
+        "polarization": "V",
+        "transponderNumber": "EA5",
+        "beamName": "N Stanislav 250410",
+        "system": "DVB-S2",
+        "symbolRate": 26650,
+        "fec": "3/4",
+        "providerName": "GoTV Africa; Irdeto"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-36d-36e-row-64-3412",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 36D",
+      "orbitalPosition": "36E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-36D.html",
+      "retrievedAt": "2026-05-01T07:49:01.453Z",
+      "raw": {
+        "frequencyText": "3412",
+        "beamText": "OneZed",
+        "systemText": "MPEG-4",
+        "symbolRateText": "7412",
+        "providerText": "Irdeto"
+      },
+      "parsed": {
+        "frequencyMHz": 3412,
+        "beamName": "OneZed",
+        "system": "MPEG-4",
+        "symbolRate": 7412,
+        "providerName": "Irdeto"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-36d-36e-row-65-3413",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 36D",
+      "orbitalPosition": "36E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-36D.html",
+      "retrievedAt": "2026-05-01T07:49:01.453Z",
+      "raw": {
+        "frequencyText": "3413",
+        "beamText": "Mzansi Magic",
+        "systemText": "MPEG-4",
+        "symbolRateText": "7413",
+        "providerText": "Irdeto"
+      },
+      "parsed": {
+        "frequencyMHz": 3413,
+        "beamName": "Mzansi Magic",
+        "system": "MPEG-4",
+        "symbolRate": 7413,
+        "providerName": "Irdeto"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-36d-36e-row-66-3414",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 36D",
+      "orbitalPosition": "36E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-36D.html",
+      "retrievedAt": "2026-05-01T07:49:01.453Z",
+      "raw": {
+        "frequencyText": "3414",
+        "beamText": "Zambezi Magic",
+        "systemText": "MPEG-4",
+        "symbolRateText": "7414",
+        "providerText": "Irdeto"
+      },
+      "parsed": {
+        "frequencyMHz": 3414,
+        "beamName": "Zambezi Magic",
+        "system": "MPEG-4",
+        "symbolRate": 7414,
+        "providerName": "Irdeto"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-36d-36e-row-67-3415",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 36D",
+      "orbitalPosition": "36E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-36D.html",
+      "retrievedAt": "2026-05-01T07:49:01.453Z",
+      "raw": {
+        "frequencyText": "3415",
+        "beamText": "Power TV (Zambia)",
+        "systemText": "MPEG-4",
+        "symbolRateText": "7415",
+        "providerText": "Irdeto"
+      },
+      "parsed": {
+        "frequencyMHz": 3415,
+        "beamName": "Power TV (Zambia)",
+        "system": "MPEG-4",
+        "symbolRate": 7415,
+        "providerName": "Irdeto"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-36d-36e-row-68-3416",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 36D",
+      "orbitalPosition": "36E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-36D.html",
+      "retrievedAt": "2026-05-01T07:49:01.453Z",
+      "raw": {
+        "frequencyText": "3416",
+        "beamText": "Mibawa TV",
+        "systemText": "MPEG-4",
+        "symbolRateText": "7416",
+        "providerText": "Irdeto"
+      },
+      "parsed": {
+        "frequencyMHz": 3416,
+        "beamName": "Mibawa TV",
+        "system": "MPEG-4",
+        "symbolRate": 7416,
+        "providerName": "Irdeto"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-36d-36e-er6-11823",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 36D",
+      "orbitalPosition": "36E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-36D.html",
+      "retrievedAt": "2026-05-01T07:49:01.453Z",
+      "raw": {
+        "frequencyText": "11823",
+        "polarizationText": "R",
+        "transponderText": "ER6",
+        "beamText": "Compunicate Viaccess",
+        "systemText": "DVB-S2",
+        "symbolRateText": "27500",
+        "fecText": "3/4",
+        "providerText": "Anonymous 240701; NTV Plus; 112-14"
+      },
+      "parsed": {
+        "frequencyMHz": 11823,
+        "polarization": "R",
+        "transponderNumber": "ER6",
+        "beamName": "Compunicate Viaccess",
+        "system": "DVB-S2",
+        "symbolRate": 27500,
+        "fec": "3/4",
+        "providerName": "Anonymous 240701; NTV Plus; 112-14"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-36d-36e-ea7-11843",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 36D",
+      "orbitalPosition": "36E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-36D.html",
+      "retrievedAt": "2026-05-01T07:49:01.453Z",
+      "raw": {
+        "frequencyText": "11843",
+        "polarizationText": "V",
+        "transponderText": "EA7",
+        "beamText": "Anonymous 260418",
+        "systemText": "DVB-S2",
+        "symbolRateText": "29330",
+        "fecText": "3/4",
+        "providerText": "GoTV Zambia; Irdeto"
+      },
+      "parsed": {
+        "frequencyMHz": 11843,
+        "polarization": "V",
+        "transponderNumber": "EA7",
+        "beamName": "Anonymous 260418",
+        "system": "DVB-S2",
+        "symbolRate": 29330,
+        "fec": "3/4",
+        "providerName": "GoTV Zambia; Irdeto"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-36d-36e-ea7-11843",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 36D",
+      "orbitalPosition": "36E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-36D.html",
+      "retrievedAt": "2026-05-01T07:49:01.453Z",
+      "raw": {
+        "frequencyText": "11843",
+        "polarizationText": "V",
+        "transponderText": "EA7",
+        "beamText": "N Stanislav 250410",
+        "systemText": "DVB-S2",
+        "symbolRateText": "29330",
+        "fecText": "3/4",
+        "providerText": "GoTV Zambia; Irdeto"
+      },
+      "parsed": {
+        "frequencyMHz": 11843,
+        "polarization": "V",
+        "transponderNumber": "EA7",
+        "beamName": "N Stanislav 250410",
+        "system": "DVB-S2",
+        "symbolRate": 29330,
+        "fec": "3/4",
+        "providerName": "GoTV Zambia; Irdeto"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-36d-36e-er7-11843",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 36D",
+      "orbitalPosition": "36E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-36D.html",
+      "retrievedAt": "2026-05-01T07:49:01.453Z",
+      "raw": {
+        "frequencyText": "11843",
+        "polarizationText": "L",
+        "transponderText": "ER7",
+        "beamText": "Exset DRECrypt DREGuard",
+        "systemText": "DVB-S2",
+        "symbolRateText": "27500",
+        "fecText": "3/4",
+        "providerText": "Anonymous 260301; Trikolor Centr; 253-7"
+      },
+      "parsed": {
+        "frequencyMHz": 11843,
+        "polarization": "L",
+        "transponderNumber": "ER7",
+        "beamName": "Exset DRECrypt DREGuard",
+        "system": "DVB-S2",
+        "symbolRate": 27500,
+        "fec": "3/4",
+        "providerName": "Anonymous 260301; Trikolor Centr; 253-7"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-36d-36e-er8-11862",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 36D",
+      "orbitalPosition": "36E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-36D.html",
+      "retrievedAt": "2026-05-01T07:49:01.453Z",
+      "raw": {
+        "frequencyText": "11862",
+        "polarizationText": "R",
+        "transponderText": "ER8",
+        "beamText": "Compunicate Viaccess",
+        "systemText": "DVB-S2",
+        "symbolRateText": "27500",
+        "fecText": "3/4",
+        "providerText": "Anonymous 250508; NTV Plus; 112-2"
+      },
+      "parsed": {
+        "frequencyMHz": 11862,
+        "polarization": "R",
+        "transponderNumber": "ER8",
+        "beamName": "Compunicate Viaccess",
+        "system": "DVB-S2",
+        "symbolRate": 27500,
+        "fec": "3/4",
+        "providerName": "Anonymous 250508; NTV Plus; 112-2"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-36d-36e-er10-11900",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 36D",
+      "orbitalPosition": "36E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-36D.html",
+      "retrievedAt": "2026-05-01T07:49:01.453Z",
+      "raw": {
+        "frequencyText": "11900",
+        "polarizationText": "R",
+        "transponderText": "ER10",
+        "beamText": "Compunicate Viaccess",
+        "systemText": "DVB-S2",
+        "symbolRateText": "27500",
+        "fecText": "3/4",
+        "providerText": "Anonymous 260402; NTV Plus; 112-19"
+      },
+      "parsed": {
+        "frequencyMHz": 11900,
+        "polarization": "R",
+        "transponderNumber": "ER10",
+        "beamName": "Compunicate Viaccess",
+        "system": "DVB-S2",
+        "symbolRate": 27500,
+        "fec": "3/4",
+        "providerName": "Anonymous 260402; NTV Plus; 112-19"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-36d-36e-er12-11938",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 36D",
+      "orbitalPosition": "36E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-36D.html",
+      "retrievedAt": "2026-05-01T07:49:01.453Z",
+      "raw": {
+        "frequencyText": "11938",
+        "polarizationText": "R",
+        "transponderText": "ER12",
+        "beamText": "Compunicate Viaccess",
+        "systemText": "DVB-S2",
+        "symbolRateText": "27500",
+        "fecText": "3/4",
+        "providerText": "Anonymous 260101; NTV Plus; 112-17"
+      },
+      "parsed": {
+        "frequencyMHz": 11938,
+        "polarization": "R",
+        "transponderNumber": "ER12",
+        "beamName": "Compunicate Viaccess",
+        "system": "DVB-S2",
+        "symbolRate": 27500,
+        "fec": "3/4",
+        "providerName": "Anonymous 260101; NTV Plus; 112-17"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-36d-36e-er14-11977",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 36D",
+      "orbitalPosition": "36E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-36D.html",
+      "retrievedAt": "2026-05-01T07:49:01.453Z",
+      "raw": {
+        "frequencyText": "11977",
+        "polarizationText": "R",
+        "transponderText": "ER14",
+        "beamText": "Compunicate Viaccess",
+        "systemText": "DVB-S2",
+        "symbolRateText": "27500",
+        "fecText": "3/4",
+        "providerText": "Anonymous 260402; NTV Plus; 112-18"
+      },
+      "parsed": {
+        "frequencyMHz": 11977,
+        "polarization": "R",
+        "transponderNumber": "ER14",
+        "beamName": "Compunicate Viaccess",
+        "system": "DVB-S2",
+        "symbolRate": 27500,
+        "fec": "3/4",
+        "providerName": "Anonymous 260402; NTV Plus; 112-18"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-36d-36e-er15-11996",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 36D",
+      "orbitalPosition": "36E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-36D.html",
+      "retrievedAt": "2026-05-01T07:49:01.453Z",
+      "raw": {
+        "frequencyText": "11996",
+        "polarizationText": "L",
+        "transponderText": "ER15",
+        "beamText": "Exset DRECrypt DREGuard",
+        "systemText": "DVB-S2",
+        "symbolRateText": "27500",
+        "fecText": "3/4",
+        "providerText": "Anonymous 260421; Trikolor Centr; 253-15"
+      },
+      "parsed": {
+        "frequencyMHz": 11996,
+        "polarization": "L",
+        "transponderNumber": "ER15",
+        "beamName": "Exset DRECrypt DREGuard",
+        "system": "DVB-S2",
+        "symbolRate": 27500,
+        "fec": "3/4",
+        "providerName": "Anonymous 260421; Trikolor Centr; 253-15"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-36d-36e-er16-12015",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 36D",
+      "orbitalPosition": "36E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-36D.html",
+      "retrievedAt": "2026-05-01T07:49:01.453Z",
+      "raw": {
+        "frequencyText": "12015",
+        "polarizationText": "R",
+        "transponderText": "ER16",
+        "beamText": "Compunicate Viaccess",
+        "systemText": "DVB-S2",
+        "symbolRateText": "27500",
+        "fecText": "3/4",
+        "providerText": "Anonymous 230703; NTV Plus; 112-22"
+      },
+      "parsed": {
+        "frequencyMHz": 12015,
+        "polarization": "R",
+        "transponderNumber": "ER16",
+        "beamName": "Compunicate Viaccess",
+        "system": "DVB-S2",
+        "symbolRate": 27500,
+        "fec": "3/4",
+        "providerName": "Anonymous 230703; NTV Plus; 112-22"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-36d-36e-er17-12034",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 36D",
+      "orbitalPosition": "36E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-36D.html",
+      "retrievedAt": "2026-05-01T07:49:01.453Z",
+      "raw": {
+        "frequencyText": "12034",
+        "polarizationText": "L",
+        "transponderText": "ER17",
+        "beamText": "Exset DRECrypt DREGuard",
+        "systemText": "DVB-S2",
+        "symbolRateText": "27500",
+        "fecText": "3/4",
+        "providerText": "Anonymous 250701; Trikolor Centr; 253-17"
+      },
+      "parsed": {
+        "frequencyMHz": 12034,
+        "polarization": "L",
+        "transponderNumber": "ER17",
+        "beamName": "Exset DRECrypt DREGuard",
+        "system": "DVB-S2",
+        "symbolRate": 27500,
+        "fec": "3/4",
+        "providerName": "Anonymous 250701; Trikolor Centr; 253-17"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-36d-36e-er23-12149",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 36D",
+      "orbitalPosition": "36E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-36D.html",
+      "retrievedAt": "2026-05-01T07:49:01.453Z",
+      "raw": {
+        "frequencyText": "12149",
+        "polarizationText": "L",
+        "transponderText": "ER23",
+        "beamText": "Exset DRECrypt DREGuard",
+        "systemText": "DVB-S2",
+        "symbolRateText": "27500",
+        "fecText": "3/4",
+        "providerText": "Anonymous 250702; Trikolor Centr; 253-23"
+      },
+      "parsed": {
+        "frequencyMHz": 12149,
+        "polarization": "L",
+        "transponderNumber": "ER23",
+        "beamName": "Exset DRECrypt DREGuard",
+        "system": "DVB-S2",
+        "symbolRate": 27500,
+        "fec": "3/4",
+        "providerName": "Anonymous 250702; Trikolor Centr; 253-23"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-36d-36e-s2-12508",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 36D",
+      "orbitalPosition": "36E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-36D.html",
+      "retrievedAt": "2026-05-01T07:49:01.453Z",
+      "raw": {
+        "frequencyText": "12508",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "Roli 250904",
+        "systemText": "DVB-S2",
+        "symbolRateText": "2222",
+        "fecText": "3/4",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 12508,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "Roli 250904",
+        "system": "DVB-S2",
+        "symbolRate": 2222,
+        "fec": "3/4",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-36d-36e-row-82-12511",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 36D",
+      "orbitalPosition": "36E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-36D.html",
+      "retrievedAt": "2026-05-01T07:49:01.453Z",
+      "raw": {
+        "frequencyText": "12511",
+        "polarizationText": "V",
+        "beamText": "Roli 250904",
+        "systemText": "DVB-S",
+        "symbolRateText": "2100",
+        "fecText": "3/4",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 12511,
+        "polarization": "V",
+        "beamName": "Roli 250904",
+        "system": "DVB-S",
+        "symbolRate": 2100,
+        "fec": "3/4",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-36d-36e-s2-12572",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 36D",
+      "orbitalPosition": "36E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-36D.html",
+      "retrievedAt": "2026-05-01T07:49:01.453Z",
+      "raw": {
+        "frequencyText": "12572",
+        "polarizationText": "H",
+        "transponderText": "S2",
+        "beamText": "Roli 260210",
+        "systemText": "DVB-S2",
+        "symbolRateText": "7200",
+        "fecText": "3/4",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 12572,
+        "polarization": "H",
+        "transponderNumber": "S2",
+        "beamName": "Roli 260210",
+        "system": "DVB-S2",
+        "symbolRate": 7200,
+        "fec": "3/4",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-36d-36e-f5-12686",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 36D",
+      "orbitalPosition": "36E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-36D.html",
+      "retrievedAt": "2026-05-01T07:49:01.453Z",
+      "raw": {
+        "frequencyText": "12686",
+        "polarizationText": "H",
+        "transponderText": "F5",
+        "beamText": "Roli 251101",
+        "systemText": "DVB-S2",
+        "symbolRateText": "6500",
+        "fecText": "3/4",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 12686,
+        "polarization": "H",
+        "transponderNumber": "F5",
+        "transponderName": "TP F5",
+        "beamName": "Roli 251101",
+        "system": "DVB-S2",
+        "symbolRate": 6500,
+        "fec": "3/4",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-36d-36e-row-85-12692",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 36D",
+      "orbitalPosition": "36E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-36D.html",
+      "retrievedAt": "2026-05-01T07:49:01.453Z",
+      "raw": {
+        "frequencyText": "12692",
+        "polarizationText": "H",
+        "beamText": "Janlakomcik 260407"
+      },
+      "parsed": {
+        "frequencyMHz": 12692,
+        "polarization": "H",
+        "beamName": "Janlakomcik 260407"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": false,
+        "confidence": "MEDIUM",
+        "warnings": [
+          "No DVB system/SR/FEC parameters found."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-36d-36e-s2-nofreq",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 36D",
+      "orbitalPosition": "36E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-36D.html",
+      "retrievedAt": "2026-05-01T07:49:01.453Z",
+      "raw": {
+        "transponderText": "S2",
+        "beamText": "System:",
+        "systemText": "DVB-S2",
+        "providerText": "non-DTH"
+      },
+      "parsed": {
+        "transponderNumber": "S2",
+        "beamName": "System:",
+        "system": "DVB-S2",
+        "providerName": "non-DTH"
+      },
+      "parseQuality": {
+        "hasFrequency": false,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Downlink frequency not parseable; row kept due to transponder ID.",
+          "Polarization not present or not parseable."
+        ]
+      }
+    }
+  ]
+}

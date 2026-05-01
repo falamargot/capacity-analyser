@@ -1,0 +1,75 @@
+{
+  "version": "2",
+  "satelliteName": "EUTELSAT 139 WEST A",
+  "orbitalPosition": "139W",
+  "generatedAt": "2026-05-01T07:49:01.510Z",
+  "totalRawObservations": 1,
+  "transponders": [
+    {
+      "id": "eutelsat-139-west-a-139w-s2-unknown-pol",
+      "satelliteName": "EUTELSAT 139 WEST A",
+      "orbitalPosition": "139W",
+      "downlink": {
+        "beamName": "System:",
+        "source": "LYNGSAT",
+        "confidence": "LOW"
+      },
+      "uplink": {
+        "beamName": "Unknown gateway / teleport beam",
+        "inferenceMethod": "UNKNOWN",
+        "source": "UNKNOWN",
+        "confidence": "UNKNOWN"
+      },
+      "publicTransponder": {
+        "number": "S2",
+        "groupedObservationCount": 1,
+        "systems": [
+          "DVB-S2"
+        ],
+        "symbolRates": [],
+        "fecValues": [],
+        "services": [],
+        "providers": [
+          "non-DTH"
+        ]
+      },
+      "band": "Unknown",
+      "serviceType": "BROADCAST",
+      "provenance": {
+        "observations": [
+          "lyngsat-eutelsat-139-west-a-139w-s2-nofreq"
+        ],
+        "sources": [
+          {
+            "name": "LyngSat",
+            "url": "https://www.lyngsat.com/Eutelsat-139-West-A.html",
+            "retrievedAt": "2026-05-01T07:47:56.334Z",
+            "fieldsUsed": [
+              "beam",
+              "transponderNumber",
+              "system"
+            ]
+          }
+        ],
+        "notes": [
+          "Public frequency data from non-operational public sources.",
+          "Uplink values are inferred from public band rules, not operational data.",
+          "Data may be incomplete, outdated, or inaccurate."
+        ]
+      },
+      "warnings": [
+        "Unable to infer uplink frequency: downlink frequency unknown.",
+        "Broadcast uplink gateway / teleport beam unknown in public data.",
+        "Downlink frequency not parseable; row kept due to transponder ID.",
+        "Polarization not present or not parseable."
+      ]
+    }
+  ],
+  "summary": {
+    "total": 1,
+    "downlinkKnown": 0,
+    "downlinkBeamKnown": 1,
+    "uplinkInferred": 0,
+    "uplinkUnknown": 1
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "satelliteName": "EUTELSAT 7 WEST A",
+  "source": "LYNGSAT",
+  "generatedAt": "2026-05-01T07:49:01.513Z",
+  "totalRowsSeen": 78,
+  "observationsCreated": 78,
+  "rowsWithFrequency": 74,
+  "rowsWithBeam": 77,
+  "rowsWithTransponderId": 42,
+  "rowsSkipped": 0,
+  "skipReasons": {},
+  "normalizedTransponders": 78
+}

@@ -1,0 +1,13 @@
+{
+  "satelliteName": "EUTELSAT 10B",
+  "source": "LYNGSAT",
+  "generatedAt": "2026-05-01T07:49:01.536Z",
+  "totalRowsSeen": 70,
+  "observationsCreated": 70,
+  "rowsWithFrequency": 67,
+  "rowsWithBeam": 70,
+  "rowsWithTransponderId": 43,
+  "rowsSkipped": 0,
+  "skipReasons": {},
+  "normalizedTransponders": 70
+}

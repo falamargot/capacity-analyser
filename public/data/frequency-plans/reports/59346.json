@@ -1,0 +1,13 @@
+{
+  "satelliteName": "EUTELSAT 36D",
+  "source": "LYNGSAT",
+  "generatedAt": "2026-05-01T07:49:01.538Z",
+  "totalRowsSeen": 86,
+  "observationsCreated": 86,
+  "rowsWithFrequency": 85,
+  "rowsWithBeam": 86,
+  "rowsWithTransponderId": 76,
+  "rowsSkipped": 0,
+  "skipReasons": {},
+  "normalizedTransponders": 78
+}

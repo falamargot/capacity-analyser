@@ -1,0 +1,13 @@
+{
+  "satelliteName": "EUTELSAT 70B",
+  "source": "LYNGSAT",
+  "generatedAt": "2026-05-01T07:49:01.505Z",
+  "totalRowsSeen": 21,
+  "observationsCreated": 21,
+  "rowsWithFrequency": 20,
+  "rowsWithBeam": 21,
+  "rowsWithTransponderId": 17,
+  "rowsSkipped": 0,
+  "skipReasons": {},
+  "normalizedTransponders": 21
+}

@@ -1,0 +1,961 @@
+{
+  "source": "LYNGSAT",
+  "satelliteName": "EUTELSAT 8 WEST B",
+  "orbitalPosition": "8W",
+  "url": "https://www.lyngsat.com/Eutelsat-8-West-B.html",
+  "retrievedAt": "2026-05-01T07:48:27.674Z",
+  "parserStats": {
+    "totalRowsSeen": 601,
+    "rowsWithFrequency": 97,
+    "rowsWithBeam": 98,
+    "rowsWithTransponderId": 48,
+    "rowsSkipped": 502,
+    "skipReasons": {
+      "too_few_cells": 48,
+      "no_frequency_no_transponder": 454
+    }
+  },
+  "rows": [
+    {
+      "frequencyMHz": 3732,
+      "polarization": "L",
+      "transponderNumber": "S2",
+      "beamName": "Easy TV Côte d'Ivoire",
+      "system": "DVB-S2",
+      "symbolRate": 40410,
+      "fec": "2/3",
+      "provider": "N Stanislav 251211",
+      "htmlRowText": "3732 L tp 2C C 39-40 | DVB-S2 8PSK 40410 2/3 Multistream Stream 171 T2-MI PLP 0 | Easy TV Côte d'Ivoire | 6.6 | N Stanislav 251211"
+    },
+    {
+      "frequencyMHz": 3732,
+      "polarization": "L",
+      "transponderNumber": "S2",
+      "beamName": "Easy TV Côte d'Ivoire",
+      "system": "DVB-S2",
+      "symbolRate": 40410,
+      "fec": "2/3",
+      "provider": "N Stanislav 251211; Nagravision",
+      "htmlRowText": "3732 L tp 2C C 39-40 | DVB-S2 8PSK 40410 2/3 Multistream Stream 173 T2-MI PLP 2 | Easy TV Côte d'Ivoire | 6.6 | Nagravision | N Stanislav 251211"
+    },
+    {
+      "frequencyMHz": 3732,
+      "polarization": "L",
+      "transponderNumber": "S2",
+      "beamName": "Easy TV Côte d'Ivoire",
+      "system": "DVB-S2",
+      "symbolRate": 40410,
+      "fec": "2/3",
+      "provider": "N Stanislav 251211",
+      "htmlRowText": "3732 L tp 2C C 39-40 | DVB-S2 8PSK 40410 2/3 Multistream Stream 174 T2-MI PLP 5 | Easy TV Côte d'Ivoire | 6.6 | N Stanislav 251211"
+    },
+    {
+      "frequencyMHz": 3823,
+      "polarization": "L",
+      "transponderNumber": "S2",
+      "beamName": "DX Bozóth 260414",
+      "system": "DVB-S2",
+      "symbolRate": 7430,
+      "fec": "9/10",
+      "provider": "(feeds)",
+      "htmlRowText": "3823 L tp 4C C | DVB-S2 QPSK 7430 9/10 | (feeds) | DX Bozóth 260414"
+    },
+    {
+      "frequencyMHz": 3826,
+      "polarization": "R",
+      "transponderNumber": "S2",
+      "beamName": "J Orton 240715",
+      "system": "DVB-S2",
+      "symbolRate": 13830,
+      "fec": "4/5",
+      "provider": "1918-8031",
+      "htmlRowText": "3826 R tp 3C C 39-40 | DVB-S2 QPSK 13830 4/5 | 1918-8031 | 4.7 | J Orton 240715"
+    },
+    {
+      "frequencyMHz": 3651,
+      "beamName": "Equi Africa",
+      "system": "MPEG-4",
+      "provider": "3652 Fre",
+      "htmlRowText": "365 | Equi Africa | MPEG-4/HD | 3651 | 3652 Fre"
+    },
+    {
+      "frequencyMHz": 3832,
+      "polarization": "L",
+      "transponderNumber": "S2",
+      "beamName": "Zelda 230909",
+      "system": "DVB-S2",
+      "symbolRate": 7585,
+      "fec": "2/3",
+      "provider": "CRTV; 1-1",
+      "htmlRowText": "3832 L tp 4C C 39-40 | DVB-S2 8PSK 7585 2/3 | CRTV | 1-1 | 6.6 | Zelda 230909"
+    },
+    {
+      "frequencyMHz": 3852,
+      "polarization": "R",
+      "transponderNumber": "S2",
+      "beamName": "DX Bozóth 260416",
+      "system": "DVB-S2",
+      "symbolRate": 14167,
+      "fec": "3/4",
+      "provider": "TopStar; 136-8",
+      "htmlRowText": "3852 R tp 3C C 39-40 | DVB-S2 8PSK 14167 3/4 | TopStar | 136-8 | 7.9 | DX Bozóth 260416"
+    },
+    {
+      "frequencyMHz": 4098,
+      "beamName": "Crown TV (Zambia)",
+      "system": "MPEG-4",
+      "provider": "4097 Eng",
+      "htmlRowText": "89 | Crown TV (Zambia) | MPEG-4/SD | 4098 | 4097 Eng"
+    },
+    {
+      "frequencyMHz": 3896,
+      "polarization": "L",
+      "transponderNumber": "S2",
+      "beamName": "TVE Internacional Europa",
+      "system": "DVB-S2",
+      "symbolRate": 3500,
+      "fec": "5/6",
+      "provider": "5.2 3554 Spa 3555 Qaa; M Al-Taie 260306",
+      "htmlRowText": "3896 L tp 6C C 39-40 | DVB-S2 QPSK 3500 5/6 | 3580 | TVE Internacional Europa | 8916-1 MPEG-4/HD | 3553 | 5.2 3554 Spa 3555 Qaa | M Al-Taie 260306"
+    },
+    {
+      "frequencyMHz": 3581,
+      "beamName": "RNE Radio Nacional",
+      "provider": "3523 Spa",
+      "htmlRowText": "3581 | RNE Radio Nacional | 3523 Spa"
+    },
+    {
+      "frequencyMHz": 3585,
+      "beamName": "Radio Exterior",
+      "provider": "3559 Spa",
+      "htmlRowText": "3585 | Radio Exterior | 3559 Spa"
+    },
+    {
+      "frequencyMHz": 3901,
+      "polarization": "R",
+      "transponderNumber": "S2",
+      "beamName": "N Stanislav 251129",
+      "system": "DVB-S2",
+      "symbolRate": 1457,
+      "fec": "3/4",
+      "provider": "7.9 514 Spa; Asonga TV",
+      "htmlRowText": "3901 R tp 5C C 39-40 | DVB-S2 8PSK 1457 3/4 | 2 | Asonga TV | 1-1 MPEG-4/HD | 513 | 7.9 514 Spa | N Stanislav 251129"
+    },
+    {
+      "frequencyMHz": 3903,
+      "transponderNumber": "S2",
+      "beamName": "R Dávid 250916",
+      "system": "DVB-S2",
+      "symbolRate": 1000,
+      "fec": "3/4",
+      "provider": "Radio Miraya; 4.0 101 Eng; 1-1",
+      "htmlRowText": "3903. 7 L tp 6C C 39-40 | DVB-S2 QPSK 128 3/4 | 1000 | Radio Miraya | 1-1 | 4.0 101 Eng | R Dávid 250916"
+    },
+    {
+      "frequencyMHz": 3925,
+      "polarization": "R",
+      "transponderNumber": "S2",
+      "beamName": "DX Bozóth 260415",
+      "system": "DVB-S2",
+      "symbolRate": 30000,
+      "fec": "5/6",
+      "provider": "Irdeto Viaccess; Vivacom MCPC; 1-8125",
+      "htmlRowText": "3925 R tp 5C C 39-40 | DVB-S2 QPSK 30000 5/6 | Vivacom MCPC | 1-8125 | 5.2 | Irdeto Viaccess | DX Bozóth 260415"
+    },
+    {
+      "frequencyMHz": 3964,
+      "polarization": "R",
+      "transponderNumber": "S2",
+      "beamName": "Radio Notre Dame International",
+      "system": "DVB-S2",
+      "symbolRate": 4166,
+      "fec": "1/2",
+      "provider": "S Evans 260306; 1.0 2191 Fre; 1918-8071",
+      "htmlRowText": "3964 R tp 7C C 39-40 | DVB-S2 QPSK 4166 1/2 | 1780 | Radio Notre Dame International | 1918-8071 | 1.0 2191 Fre | S Evans 260306"
+    },
+    {
+      "frequencyMHz": 3977,
+      "polarization": "R",
+      "transponderNumber": "S2",
+      "beamName": "R Dávid 250914",
+      "system": "DVB-S2",
+      "symbolRate": 3410,
+      "fec": "2/3",
+      "provider": "6.6 139 Fre; Télé Congo",
+      "htmlRowText": "3977 R tp 7C C 39-40 | DVB-S2 8PSK 3410 2/3 | 108 | Télé Congo | 65535-1 MPEG-4/HD | 138 | 6.6 139 Fre | R Dávid 250914"
+    },
+    {
+      "frequencyMHz": 3986,
+      "polarization": "R",
+      "transponderNumber": "S2",
+      "beamName": "4.0 512 Spa 513 Eng 513 Por 514 Fre 515 Kin 515 Swa",
+      "system": "DVB-S2",
+      "symbolRate": 4543,
+      "fec": "3/4",
+      "provider": "La Gran Carpa Catedral TV; N Stanislav 240120",
+      "htmlRowText": "3986 R tp 7C C 39-40 | DVB-S2 QPSK 4543 3/4 | 1 | La Gran Carpa Catedral TV | 0-0 MPEG-2/HD | 256 | 4.0 512 Spa 513 Eng 513 Por 514 Fre 515 Kin 515 Swa | N Stanislav 240120"
+    },
+    {
+      "frequencyMHz": 10727,
+      "polarization": "H",
+      "beamName": "Torrex12 260303",
+      "system": "DVB-S",
+      "symbolRate": 27500,
+      "fec": "7/8",
+      "provider": "20480-500; Gulfsat",
+      "htmlRowText": "10727 H tp AWM1 MENA 0 | DVB-S 27500 7/8 | Gulfsat | 20480-500 | 7.2 | Torrex12 260303"
+    },
+    {
+      "frequencyMHz": 10960,
+      "polarization": "H",
+      "beamName": "TV Assembléia RN",
+      "system": "DVB-S",
+      "symbolRate": 3255,
+      "fec": "3/4",
+      "provider": "EnoSat 251018; 5.5 3004 Por",
+      "htmlRowText": "10960 H Americas | DVB-S 3255 3/4 | 1 | TV Assembléia RN | 16514-1 MPEG-4/HD | 3002 | 5.5 3004 Por | EnoSat 251018"
+    },
+    {
+      "frequencyMHz": 10971,
+      "polarization": "H",
+      "beamName": "M Al-Taie 260403",
+      "system": "DVB-S",
+      "symbolRate": 27500,
+      "fec": "7/8",
+      "provider": "20480-800; My TV",
+      "htmlRowText": "10971 H tp BEM1 MENA 0 | DVB-S 27500 7/8 | My TV | 20480-800 | 7.2 | M Al-Taie 260403"
+    },
+    {
+      "frequencyMHz": 10971,
+      "polarization": "V",
+      "beamName": "DX Bozóth 200929",
+      "system": "DVB-S",
+      "symbolRate": 27500,
+      "fec": "3/4",
+      "provider": "1918-20200; Aljazeera",
+      "htmlRowText": "10971 V tp BEM2 MENA 0 | DVB-S 27500 3/4 | Aljazeera | 1918-20200 | 5.5 | DX Bozóth 200929"
+    },
+    {
+      "frequencyMHz": 11013,
+      "polarization": "H",
+      "transponderNumber": "S2",
+      "beamName": "Irdeto Videoguard",
+      "system": "DVB-S2",
+      "symbolRate": 27500,
+      "fec": "2/3",
+      "provider": "A7Sats 260121; 1918-100; BeIn",
+      "htmlRowText": "11013 H tp BEM3 MENA 0 | DVB-S2 8PSK 27500 2/3 | BeIn | 1918-100 | 6.6 | Irdeto Videoguard | A7Sats 260121"
+    },
+    {
+      "frequencyMHz": 11013,
+      "polarization": "V",
+      "beamName": "Sharjah Broadcasting Authority",
+      "system": "DVB-S",
+      "symbolRate": 27500,
+      "fec": "5/6",
+      "provider": "M Al-Taie 251025; 702-520",
+      "htmlRowText": "11013 V tp BEM4 MENA 0 | DVB-S 27500 5/6 | Sharjah Broadcasting Authority | 702-520 | 6.5 | M Al-Taie 251025"
+    },
+    {
+      "frequencyMHz": 11054,
+      "polarization": "H",
+      "transponderNumber": "S2",
+      "beamName": "Irdeto Videoguard",
+      "system": "DVB-S2",
+      "symbolRate": 27500,
+      "fec": "2/3",
+      "provider": "M Al-Taie 240717; 1918-200; BeIn",
+      "htmlRowText": "11054 H tp BEM5 MENA 0 | DVB-S2 8PSK 27500 2/3 | BeIn | 1918-200 | 6.6 | Irdeto Videoguard | M Al-Taie 240717"
+    },
+    {
+      "frequencyMHz": 11054,
+      "polarization": "V",
+      "transponderNumber": "S2",
+      "beamName": "Dondohodho 260319",
+      "system": "DVB-S2",
+      "symbolRate": 27500,
+      "fec": "2/3",
+      "provider": "1918-30100; Kuwait TV",
+      "htmlRowText": "11054 V tp BEM6 MENA 0 | DVB-S2 8PSK 27500 2/3 | Kuwait TV | 1918-30100 | 6.6 | Dondohodho 260319"
+    },
+    {
+      "frequencyMHz": 11096,
+      "polarization": "H",
+      "beamName": "M Al-Taie 260425",
+      "system": "DVB-S",
+      "symbolRate": 27500,
+      "fec": "7/8",
+      "provider": "ViewMedia; 65535-8",
+      "htmlRowText": "11096 H tp BEM7 MENA 0 | DVB-S 27500 7/8 | ViewMedia | 65535-8 | 7.2 | M Al-Taie 260425"
+    },
+    {
+      "frequencyMHz": 11096,
+      "polarization": "V",
+      "beamName": "R Cervi 260217",
+      "htmlRowText": "11096 V tp BEM8 MENA 0 | R Cervi 260217"
+    },
+    {
+      "frequencyMHz": 11137,
+      "polarization": "H",
+      "transponderNumber": "S2",
+      "beamName": "Hadowooalsatan 251223",
+      "system": "DVB-S2",
+      "symbolRate": 27500,
+      "fec": "5/6",
+      "eirpDbw": 42,
+      "provider": "Verimatrix (B); 42-1",
+      "htmlRowText": "11137 H tp BEM9 MENA 0 | DVB-S2 8PSK 27500 5/6 | 42-1 | 9.4 | Verimatrix (B) | Hadowooalsatan 251223"
+    },
+    {
+      "transponderNumber": "A2",
+      "htmlRowText": "2713 | DW-Radio A2 | 7132"
+    },
+    {
+      "frequencyMHz": 11137,
+      "polarization": "V",
+      "transponderNumber": "S2",
+      "beamName": "M Al-Taie 260407",
+      "system": "DVB-S2",
+      "symbolRate": 27500,
+      "fec": "3/4",
+      "eirpDbw": 73,
+      "provider": "2048-73",
+      "htmlRowText": "11137 V tp BEM10 MENA 0 | DVB-S2 8PSK 27500 3/4 | 2048-73 | 7.9 | M Al-Taie 260407"
+    },
+    {
+      "frequencyMHz": 11179,
+      "polarization": "H",
+      "transponderNumber": "S2",
+      "beamName": "Er Balvinder Singh 260429",
+      "system": "DVB-S2",
+      "symbolRate": 27500,
+      "fec": "5/6",
+      "provider": "1918-30110; Gulfsat",
+      "htmlRowText": "11179 H tp BEM11 MENA 0 | DVB-S2 8PSK 27500 5/6 | Gulfsat | 1918-30110 | 9.4 | Er Balvinder Singh 260429"
+    },
+    {
+      "frequencyMHz": 11179,
+      "polarization": "V",
+      "beamName": "Hadowooalsatan 260202",
+      "system": "DVB-S",
+      "symbolRate": 27500,
+      "fec": "5/6",
+      "eirpDbw": 74,
+      "provider": "2048-74",
+      "htmlRowText": "11179 V tp BEM12 MENA 0 | DVB-S 27500 5/6 | 2048-74 | 6.5 | Hadowooalsatan 260202"
+    },
+    {
+      "frequencyMHz": 11471,
+      "polarization": "V",
+      "beamName": "Y Fareed 260415",
+      "system": "DVB-S",
+      "symbolRate": 27500,
+      "fec": "5/6",
+      "eirpDbw": 59,
+      "provider": "2048-59",
+      "htmlRowText": "11471 V tp DAE2 East 0 | DVB-S 27500 5/6 | MBC | 2048-59 | 6.5 | Y Fareed 260415"
+    },
+    {
+      "frequencyMHz": 11554,
+      "polarization": "V",
+      "beamName": "Dondohodho 260428",
+      "system": "DVB-S",
+      "symbolRate": 27500,
+      "fec": "7/8",
+      "provider": "20480-300; Gulfsat",
+      "htmlRowText": "11554 V tp DAE6 East 0 | DVB-S 27500 7/8 | Gulfsat | 20480-300 | 7.2 | Dondohodho 260428"
+    },
+    {
+      "frequencyMHz": 11564,
+      "polarization": "H",
+      "transponderNumber": "S2",
+      "beamName": "M Al-Taie 260401",
+      "system": "DVB-S2",
+      "symbolRate": 27500,
+      "fec": "5/6",
+      "provider": "20480-400; My TV",
+      "htmlRowText": "11564 H tp JEM5 MENA 0 | DVB-S2 8PSK 27500 5/6 | My TV | 20480-400 | 9.4 | M Al-Taie 260401"
+    },
+    {
+      "frequencyMHz": 11637,
+      "polarization": "V",
+      "transponderNumber": "S2",
+      "beamName": "R Cervi 260406",
+      "system": "DVB-S2",
+      "symbolRate": 27500,
+      "fec": "5/6",
+      "provider": "1918-50100; Eutelsat",
+      "htmlRowText": "11637 V tp DAE10 East 0 | DVB-S2 8PSK 27500 5/6 | Eutelsat | 1918-50100 | 9.4 | R Cervi 260406"
+    },
+    {
+      "frequencyMHz": 11678,
+      "polarization": "V",
+      "beamName": "Hadowooalsatan 260314",
+      "system": "DVB-S",
+      "symbolRate": 27500,
+      "fec": "7/8",
+      "provider": "Gulfsat; 1-700",
+      "htmlRowText": "11678 V tp DAE12 East 0 | DVB-S 27500 7/8 | Gulfsat | 1-700 | 7.2 | Hadowooalsatan 260314"
+    },
+    {
+      "frequencyMHz": 12514,
+      "polarization": "V",
+      "transponderNumber": "S2",
+      "beamName": "Roli 250921",
+      "system": "DVB-S2",
+      "symbolRate": 4800,
+      "fec": "3/4",
+      "provider": "(feeds)",
+      "htmlRowText": "12514 V tp FUU2 Europe | DVB-S2 8PSK 4800 3/4 | (feeds) | Roli 250921"
+    },
+    {
+      "frequencyMHz": 12521,
+      "polarization": "H",
+      "transponderNumber": "S2",
+      "beamName": "Lexzie 190109",
+      "system": "DVB-S2",
+      "symbolRate": 27500,
+      "fec": "2/3",
+      "provider": "1918-60100; Aljazeera",
+      "htmlRowText": "12521 H tp FEM1 MENA 0 | DVB-S2 8PSK 27500 2/3 | Aljazeera | 1918-60100 | 6.6 | Lexzie 190109"
+    },
+    {
+      "frequencyMHz": 12521,
+      "polarization": "V",
+      "transponderNumber": "S2",
+      "beamName": "Roli 251109",
+      "system": "DVB-S2",
+      "symbolRate": 4666,
+      "fec": "3/4",
+      "provider": "(feeds)",
+      "htmlRowText": "12521 V tp FUU2 Europe | DVB-S2 8PSK 4666 3/4 | (feeds) | Roli 251109"
+    },
+    {
+      "frequencyMHz": 12527,
+      "polarization": "V",
+      "transponderNumber": "S2",
+      "beamName": "DX Bozóth 260315",
+      "system": "DVB-S2",
+      "symbolRate": 4800,
+      "fec": "3/4",
+      "provider": "(feeds)",
+      "htmlRowText": "12527 V tp FUU2 Europe | DVB-S2 8PSK 4800 3/4 | (feeds) | DX Bozóth 260315"
+    },
+    {
+      "frequencyMHz": 12531,
+      "polarization": "V",
+      "transponderNumber": "S2",
+      "beamName": "Roli 260322",
+      "system": "DVB-S2",
+      "symbolRate": 3600,
+      "fec": "2/3",
+      "provider": "(feeds)",
+      "htmlRowText": "12531 V tp FUU2 Europe | DVB-S2 8PSK 3600 2/3 | (feeds) | Roli 260322"
+    },
+    {
+      "frequencyMHz": 12536,
+      "polarization": "V",
+      "transponderNumber": "S2",
+      "beamName": "Roli DX Bozóth 260315",
+      "system": "DVB-S2",
+      "symbolRate": 3400,
+      "fec": "5/6",
+      "provider": "(feeds)",
+      "htmlRowText": "12536 V tp FUU2 Europe | DVB-S2 8PSK 3400 5/6 | (feeds) | Roli DX Bozóth 260315"
+    },
+    {
+      "frequencyMHz": 12546,
+      "polarization": "V",
+      "transponderNumber": "S2",
+      "beamName": "Roli 251219",
+      "system": "DVB-S2",
+      "symbolRate": 3400,
+      "fec": "5/6",
+      "provider": "(feeds)",
+      "htmlRowText": "12546 V tp FUU4 Europe | DVB-S2 8PSK 3400 5/6 | (feeds) | Roli 251219"
+    },
+    {
+      "frequencyMHz": 12551,
+      "polarization": "V",
+      "transponderNumber": "S2",
+      "beamName": "Roli 251219",
+      "system": "DVB-S2",
+      "symbolRate": 3400,
+      "fec": "5/6",
+      "provider": "(feeds)",
+      "htmlRowText": "12551 V tp FUU4 Europe | DVB-S2 8PSK 3400 5/6 | (feeds) | Roli 251219"
+    },
+    {
+      "frequencyMHz": 12555,
+      "polarization": "V",
+      "transponderNumber": "S2",
+      "beamName": "Roli 260322",
+      "system": "DVB-S2",
+      "symbolRate": 3400,
+      "fec": "5/6",
+      "provider": "(feeds)",
+      "htmlRowText": "12555 V tp FUU4 Europe | DVB-S2 8PSK 3400 5/6 | (feeds) | Roli 260322"
+    },
+    {
+      "frequencyMHz": 12559,
+      "polarization": "V",
+      "transponderNumber": "S2",
+      "beamName": "Roli 260322",
+      "system": "DVB-S2",
+      "symbolRate": 3400,
+      "fec": "5/6",
+      "provider": "(feeds)",
+      "htmlRowText": "12559 V tp FUU4 Europe | DVB-S2 8PSK 3400 5/6 | (feeds) | Roli 260322"
+    },
+    {
+      "frequencyMHz": 12563,
+      "polarization": "H",
+      "beamName": "Iraqi Media Network",
+      "system": "DVB-S",
+      "symbolRate": 27500,
+      "fec": "5/6",
+      "eirpDbw": 72,
+      "provider": "M Al-Taie 241206; 1-72",
+      "htmlRowText": "12563 H tp FEM3 MENA 0 | DVB-S 27500 5/6 | Iraqi Media Network | 1-72 | 6.5 | M Al-Taie 241206"
+    },
+    {
+      "frequencyMHz": 12563,
+      "polarization": "V",
+      "beamName": "R Cervi 260330",
+      "system": "DVB-S",
+      "symbolRate": 27500,
+      "fec": "7/8",
+      "provider": "Eutelsat MENA; 1918-65500",
+      "htmlRowText": "12563 V tp FEE4 East 0 | DVB-S 27500 7/8 | Eutelsat MENA | 1918-65500 | 7.2 | R Cervi 260330"
+    },
+    {
+      "frequencyMHz": 12582,
+      "polarization": "V",
+      "beamName": "DX Bozóth 240116",
+      "system": "DVB-S",
+      "symbolRate": 2222,
+      "fec": "1/2",
+      "provider": "[test card]",
+      "htmlRowText": "12582 V Europe | DVB-S 2222 1/2 | 1 | [test card] | 235-3400 MPEG-2/SD | 512 | 2.7 | DX Bozóth 240116"
+    },
+    {
+      "frequencyMHz": 12604,
+      "polarization": "H",
+      "transponderNumber": "S2",
+      "beamName": "Irdeto Videoguard",
+      "system": "DVB-S2",
+      "symbolRate": 27500,
+      "fec": "2/3",
+      "provider": "M Al-Taie 260126; 1918-300; BeIn",
+      "htmlRowText": "12604 H tp FEM5 MENA 0 | DVB-S2 8PSK 27500 2/3 | BeIn | 1918-300 | 6.6 | Irdeto Videoguard | M Al-Taie 260126"
+    },
+    {
+      "frequencyMHz": 12604,
+      "polarization": "V",
+      "beamName": "Hadowooalsatan 260316",
+      "system": "DVB-S",
+      "symbolRate": 27500,
+      "fec": "7/8",
+      "provider": "Eutelsat MENA; 110-29",
+      "htmlRowText": "12604 V tp FEE6 East 0 | DVB-S 27500 7/8 | Eutelsat MENA | 110-29 | 7.2 | Hadowooalsatan 260316"
+    },
+    {
+      "frequencyMHz": 4010,
+      "beamName": "Imam Hussein TV 2",
+      "system": "MPEG-2",
+      "symbolRate": 1010,
+      "provider": "1021 Per",
+      "htmlRowText": "4010 | Imam Hussein TV 2 | MPEG-2/SD | 1010 | 1021 Per"
+    },
+    {
+      "frequencyMHz": 4013,
+      "beamName": "Manu Chat",
+      "system": "MPEG-2",
+      "symbolRate": 1040,
+      "provider": "1024 Ara",
+      "htmlRowText": "4013 | Manu Chat | MPEG-2/SD | 1040 | 1024 Ara"
+    },
+    {
+      "frequencyMHz": 4022,
+      "beamName": "Music Iraq",
+      "system": "MPEG-2",
+      "symbolRate": 1130,
+      "provider": "1033 Ara",
+      "htmlRowText": "4022 | Music Iraq | MPEG-2/SD | 1130 | 1033 Ara"
+    },
+    {
+      "frequencyMHz": 4035,
+      "beamName": "Iraqi Drama TV",
+      "system": "MPEG-2",
+      "symbolRate": 1197,
+      "provider": "1046 Ara",
+      "htmlRowText": "4035 | Iraqi Drama TV | MPEG-2/SD | 1197 | 1046 Ara"
+    },
+    {
+      "frequencyMHz": 4036,
+      "beamName": "Al Salam TV",
+      "system": "MPEG-2",
+      "symbolRate": 1198,
+      "provider": "1047 Ara",
+      "htmlRowText": "4036 | Al Salam TV | MPEG-2/SD | 1198 | 1047 Ara"
+    },
+    {
+      "frequencyMHz": 4037,
+      "beamName": "Sout Masr",
+      "system": "MPEG-4",
+      "symbolRate": 1199,
+      "provider": "1048 Ara",
+      "htmlRowText": "4037 | Sout Masr | MPEG-4/SD | 1199 | 1048 Ara"
+    },
+    {
+      "frequencyMHz": 4038,
+      "beamName": "Radio Miraya",
+      "symbolRate": 1200,
+      "provider": "1200 Eng",
+      "htmlRowText": "4038 | Radio Miraya | 1200 Eng"
+    },
+    {
+      "frequencyMHz": 12608,
+      "polarization": "V",
+      "transponderNumber": "S2",
+      "beamName": "Jamie A 251231",
+      "system": "DVB-S2",
+      "symbolRate": 3616,
+      "fec": "5/6",
+      "provider": "(feeds)",
+      "htmlRowText": "12608 V tp FUU6 Europe | DVB-S2 8PSK 3616 5/6 | (feeds) | Jamie A 251231"
+    },
+    {
+      "frequencyMHz": 12620,
+      "polarization": "V",
+      "beamName": "DX Bozóth 181111",
+      "system": "DVB-S",
+      "symbolRate": 890,
+      "fec": "1/2",
+      "provider": "Belgian mux",
+      "htmlRowText": "12620 V tp FUU6 Europe | DVB-S 890 1/2 | Belgian mux | 2.7 | DX Bozóth 181111"
+    },
+    {
+      "frequencyMHz": 12621,
+      "polarization": "V",
+      "transponderNumber": "S2",
+      "beamName": "Wellikan 230303",
+      "system": "DVB-S2",
+      "fec": "3/4",
+      "provider": "French mux; 1-1",
+      "htmlRowText": "12621 V tp FUU6 Europe | DVB-S2 QPSK 468 3/4 | French mux | 1-1 | 4.0 | Wellikan 230303"
+    },
+    {
+      "frequencyMHz": 12622,
+      "polarization": "V",
+      "beamName": "Radio Maria Italia",
+      "system": "DVB-S",
+      "symbolRate": 769,
+      "fec": "1/2",
+      "provider": "EnoSat 200503; 2.7 769 Ita; ?-1",
+      "htmlRowText": "12622 V tp FUU6 Europe | DVB-S 255 1/2 | 1 | Radio Maria Italia | ?-1 | 2.7 769 Ita | EnoSat 200503"
+    },
+    {
+      "frequencyMHz": 12636,
+      "polarization": "V",
+      "transponderNumber": "S2",
+      "beamName": "DX Bozóth 260315",
+      "system": "DVB-S2",
+      "symbolRate": 7700,
+      "fec": "3/4",
+      "provider": "(feeds)",
+      "htmlRowText": "12636 V tp FUU8 Europe | DVB-S2 8PSK 7700 3/4 | (feeds) | DX Bozóth 260315"
+    },
+    {
+      "frequencyMHz": 12646,
+      "polarization": "H",
+      "beamName": "Dondohodho 260429",
+      "system": "DVB-S",
+      "symbolRate": 27500,
+      "fec": "7/8",
+      "provider": "20480-900; Palsat",
+      "htmlRowText": "12646 H tp FEM7 MENA 0 | DVB-S 27500 7/8 | Palsat | 20480-900 | 7.2 | Dondohodho 260429"
+    },
+    {
+      "frequencyMHz": 3430,
+      "beamName": "Palestine Sport",
+      "system": "MPEG-4",
+      "provider": "3433 Ara",
+      "htmlRowText": "3430 | Palestine Sport | MPEG-4/HD | 3432 | 3433 Ara"
+    },
+    {
+      "frequencyMHz": 3800,
+      "beamName": "Alaraby TV",
+      "system": "MPEG-4",
+      "provider": "3803 Ara",
+      "htmlRowText": "3800 | Alaraby TV | MPEG-4/HD | 3802 | 3803 Ara"
+    },
+    {
+      "frequencyMHz": 3810,
+      "beamName": "Majestic Cinema",
+      "system": "MPEG-4",
+      "provider": "3813 Ara",
+      "htmlRowText": "3810 | Majestic Cinema | MPEG-4/SD | 3812 | 3813 Ara"
+    },
+    {
+      "frequencyMHz": 3820,
+      "beamName": "Moga Cinema",
+      "system": "MPEG-4",
+      "provider": "3823 Ara",
+      "htmlRowText": "3820 | Moga Cinema | MPEG-4/SD | 3822 | 3823 Ara"
+    },
+    {
+      "frequencyMHz": 3830,
+      "beamName": "Moga Drama",
+      "system": "MPEG-4",
+      "provider": "3833 Ara",
+      "htmlRowText": "3830 | Moga Drama | MPEG-4/SD | 3832 | 3833 Ara"
+    },
+    {
+      "frequencyMHz": 3840,
+      "beamName": "El Fadjer TV",
+      "system": "MPEG-4",
+      "provider": "3843 Ara",
+      "htmlRowText": "3840 | El Fadjer TV | MPEG-4/HD | 3842 | 3843 Ara"
+    },
+    {
+      "frequencyMHz": 3850,
+      "beamName": "Alkeraza TV",
+      "system": "MPEG-2",
+      "provider": "3853 Ara",
+      "htmlRowText": "3850 | Alkeraza TV | MPEG-2/SD | 3852 | 3853 Ara"
+    },
+    {
+      "frequencyMHz": 3870,
+      "beamName": "Moga Comedy",
+      "system": "MPEG-4",
+      "provider": "3873 Ara",
+      "htmlRowText": "3870 | Moga Comedy | MPEG-4/SD | 3872 | 3873 Ara"
+    },
+    {
+      "frequencyMHz": 3880,
+      "beamName": "Moga Today",
+      "system": "MPEG-4",
+      "provider": "3883 Ara",
+      "htmlRowText": "3880 | Moga Today | MPEG-4/SD | 3882 | 3883 Ara"
+    },
+    {
+      "frequencyMHz": 3890,
+      "beamName": "[Gulfsat info card]",
+      "system": "MPEG-4",
+      "htmlRowText": "3890 | [Gulfsat info card] | MPEG-4/HD | 3892"
+    },
+    {
+      "frequencyMHz": 3900,
+      "beamName": "Play Aflam",
+      "system": "MPEG-4",
+      "provider": "3903 Ara",
+      "htmlRowText": "3900 | Play Aflam | MPEG-4/SD | 3902 | 3903 Ara"
+    },
+    {
+      "frequencyMHz": 3910,
+      "beamName": "Play Cinema",
+      "system": "MPEG-4",
+      "provider": "3913 Ara",
+      "htmlRowText": "3910 | Play Cinema | MPEG-4/SD | 3912 | 3913 Ara"
+    },
+    {
+      "frequencyMHz": 3920,
+      "beamName": "Play Drama",
+      "system": "MPEG-4",
+      "provider": "3923 Ara",
+      "htmlRowText": "3920 | Play Drama | MPEG-4/SD | 3922 | 3923 Ara"
+    },
+    {
+      "frequencyMHz": 3930,
+      "beamName": "Play Hekayat",
+      "system": "MPEG-4",
+      "provider": "3933 Ara",
+      "htmlRowText": "3930 | Play Hekayat | MPEG-4/SD | 3932 | 3933 Ara"
+    },
+    {
+      "frequencyMHz": 3940,
+      "beamName": "Play Today",
+      "system": "MPEG-4",
+      "provider": "3943 Ara",
+      "htmlRowText": "3940 | Play Today | MPEG-4/SD | 3942 | 3943 Ara"
+    },
+    {
+      "frequencyMHz": 3950,
+      "beamName": "[Majestic Drama info card]",
+      "system": "MPEG-4",
+      "provider": "3953 Ara",
+      "htmlRowText": "3950 | [Majestic Drama info card] | MPEG-4/SD | 3952 | 3953 Ara"
+    },
+    {
+      "frequencyMHz": 3960,
+      "beamName": "[Majestic Classic info card]",
+      "system": "MPEG-4",
+      "provider": "3963 Ara",
+      "htmlRowText": "3960 | [Majestic Classic info card] | MPEG-4/SD | 3962 | 3963 Ara"
+    },
+    {
+      "frequencyMHz": 3970,
+      "beamName": "[Majestic Aflam info card]",
+      "system": "MPEG-4",
+      "provider": "3973 Ara",
+      "htmlRowText": "3970 | [Majestic Aflam info card] | MPEG-4/SD | 3972 | 3973 Ara"
+    },
+    {
+      "frequencyMHz": 3980,
+      "beamName": "[Majestic Mosalsalat info card]",
+      "system": "MPEG-4",
+      "provider": "3983 Ara",
+      "htmlRowText": "3980 | [Majestic Mosalsalat info card] | MPEG-4/SD | 3982 | 3983 Ara"
+    },
+    {
+      "frequencyMHz": 12652,
+      "polarization": "V",
+      "transponderNumber": "S2",
+      "beamName": "(Mediaset feeds)",
+      "system": "DVB-S2",
+      "symbolRate": 2500,
+      "fec": "8/9",
+      "provider": "Jamie A 251118",
+      "htmlRowText": "12652 V tp FUU8 Europe | DVB-S2 16APSK 2500 8/9 | (Mediaset feeds) | Jamie A 251118"
+    },
+    {
+      "frequencyMHz": 12656,
+      "polarization": "V",
+      "transponderNumber": "S2",
+      "beamName": "(Mediaset feeds)",
+      "system": "DVB-S2",
+      "symbolRate": 2500,
+      "fec": "5/6",
+      "provider": "Jamie A 251118",
+      "htmlRowText": "12656 V tp FUU8 Europe | DVB-S2 8PSK 2500 5/6 | (Mediaset feeds) | Jamie A 251118"
+    },
+    {
+      "frequencyMHz": 12660,
+      "polarization": "V",
+      "transponderNumber": "S2",
+      "beamName": "Roli 250921",
+      "system": "DVB-S2",
+      "symbolRate": 4600,
+      "fec": "3/4",
+      "provider": "(feeds)",
+      "htmlRowText": "12660 V tp FUU8 Europe | DVB-S2 8PSK 4600 3/4 | (feeds) | Roli 250921"
+    },
+    {
+      "frequencyMHz": 12673,
+      "polarization": "V",
+      "transponderNumber": "S2",
+      "beamName": "DX Bozóth 251205",
+      "system": "DVB-S2",
+      "symbolRate": 7200,
+      "fec": "3/4",
+      "provider": "(feeds)",
+      "htmlRowText": "12673 V tp FUU10 Europe | DVB-S2 8PSK 7200 3/4 | (feeds) | DX Bozóth 251205"
+    },
+    {
+      "frequencyMHz": 12682,
+      "polarization": "V",
+      "transponderNumber": "S2",
+      "beamName": "Jamie A 251025",
+      "system": "DVB-S2",
+      "symbolRate": 7066,
+      "fec": "3/4",
+      "provider": "(feeds)",
+      "htmlRowText": "12682 V tp FUU10 Europe | DVB-S2 8PSK 7066 3/4 | (feeds) | Jamie A 251025"
+    },
+    {
+      "frequencyMHz": 12687,
+      "polarization": "H",
+      "beamName": "M Al-Taie 260423",
+      "system": "DVB-S",
+      "symbolRate": 27500,
+      "fec": "7/8",
+      "provider": "Menasat; 1-65500",
+      "htmlRowText": "12687 H tp FEM9 MENA 0 | DVB-S 27500 7/8 | Menasat | 1-65500 | 7.2 | M Al-Taie 260423"
+    },
+    {
+      "frequencyMHz": 12687,
+      "polarization": "V",
+      "transponderNumber": "S2",
+      "beamName": "Hadowooalsatan 260217",
+      "system": "DVB-S2",
+      "symbolRate": 27500,
+      "fec": "3/4",
+      "provider": "20480-950; Gulfsat",
+      "htmlRowText": "12687 V tp FEE10 East 0 | DVB-S2 8PSK 27500 3/4 | Gulfsat | 20480-950 | 7.9 | Hadowooalsatan 260217"
+    },
+    {
+      "frequencyMHz": 12720,
+      "polarization": "V",
+      "transponderNumber": "S2",
+      "beamName": "DX Bozóth 260315",
+      "system": "DVB-S2",
+      "symbolRate": 3600,
+      "fec": "2/3",
+      "provider": "(feeds)",
+      "htmlRowText": "12720 V tp FUU12 Europe | DVB-S2 8PSK 3600 2/3 | (feeds) | DX Bozóth 260315"
+    },
+    {
+      "frequencyMHz": 12725,
+      "polarization": "V",
+      "transponderNumber": "S2",
+      "beamName": "DX Bozóth 260315",
+      "system": "DVB-S2",
+      "symbolRate": 3600,
+      "fec": "2/3",
+      "provider": "(feeds)",
+      "htmlRowText": "12725 V tp FUU12 Europe | DVB-S2 8PSK 3600 2/3 | (feeds) | DX Bozóth 260315"
+    },
+    {
+      "frequencyMHz": 12729,
+      "polarization": "H",
+      "beamName": "R Cervi 260408",
+      "system": "DVB-S",
+      "symbolRate": 27500,
+      "fec": "5/6",
+      "eirpDbw": 75,
+      "provider": "Nilesat; 2048-75",
+      "htmlRowText": "12729 H tp FEM11 MENA 0 | DVB-S 27500 5/6 | Nilesat | 2048-75 | 6.5 | R Cervi 260408"
+    },
+    {
+      "frequencyMHz": 12729,
+      "polarization": "V",
+      "beamName": "R Cervi 250814",
+      "system": "DVB-S",
+      "symbolRate": 27500,
+      "fec": "5/6",
+      "eirpDbw": 70,
+      "provider": "2048-70",
+      "htmlRowText": "12729 V tp FEE12 East 0 | DVB-S 27500 5/6 | 2048-70 | 6.5 | R Cervi 250814"
+    },
+    {
+      "frequencyMHz": 12739,
+      "polarization": "V",
+      "transponderNumber": "S2",
+      "beamName": "Roli 250922",
+      "system": "DVB-S2",
+      "symbolRate": 3600,
+      "fec": "3/4",
+      "provider": "(feeds)",
+      "htmlRowText": "12739 V tp FUU12 Europe | DVB-S2 8PSK 3600 3/4 | (feeds) | Roli 250922"
+    },
+    {
+      "frequencyMHz": 12744,
+      "polarization": "V",
+      "transponderNumber": "S2",
+      "beamName": "Jamie A 251206",
+      "system": "DVB-S2",
+      "symbolRate": 4800,
+      "fec": "3/4",
+      "provider": "(feeds)",
+      "htmlRowText": "12744 V tp FUU12 Europe | DVB-S2 8PSK 4800 3/4 | (feeds) | Jamie A 251206"
+    },
+    {
+      "transponderNumber": "S2",
+      "beamName": "System:",
+      "system": "DVB-S2",
+      "provider": "non-DTH",
+      "htmlRowText": "System: | DVB-S2 | DVB-S | non-DTH | - | -"
+    }
+  ]
+}

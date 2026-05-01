@@ -1,0 +1,13 @@
+{
+  "satelliteName": "EUTELSAT 115 WEST B",
+  "source": "LYNGSAT",
+  "generatedAt": "2026-05-01T07:49:01.525Z",
+  "totalRowsSeen": 9,
+  "observationsCreated": 9,
+  "rowsWithFrequency": 8,
+  "rowsWithBeam": 9,
+  "rowsWithTransponderId": 7,
+  "rowsSkipped": 0,
+  "skipReasons": {},
+  "normalizedTransponders": 9
+}

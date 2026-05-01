@@ -1,0 +1,3011 @@
+{
+  "version": "2",
+  "satelliteName": "EUTELSAT HOTBIRD 13G",
+  "orbitalPosition": "13E",
+  "source": "LYNGSAT",
+  "sourceUrl": "https://www.lyngsat.com/Hotbird-13G.html",
+  "generatedAt": "2026-05-01T07:49:01.535Z",
+  "observations": [
+    {
+      "id": "lyngsat-eutelsat-hotbird-13g-13e-s2-10719",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT HOTBIRD 13G",
+      "orbitalPosition": "13E",
+      "sourceUrl": "https://www.lyngsat.com/Hotbird-13G.html",
+      "retrievedAt": "2026-05-01T07:48:55.716Z",
+      "raw": {
+        "frequencyText": "10719",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "Conax Irdeto Mediaguard Nagravision Viaccess",
+        "systemText": "DVB-S2",
+        "symbolRateText": "27500",
+        "fecText": "5/6",
+        "providerText": "M Al-Taie 260320; Canal+ Polska; 318-11000"
+      },
+      "parsed": {
+        "frequencyMHz": 10719,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "Conax Irdeto Mediaguard Nagravision Viaccess",
+        "system": "DVB-S2",
+        "symbolRate": 27500,
+        "fec": "5/6",
+        "providerName": "M Al-Taie 260320; Canal+ Polska; 318-11000"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-hotbird-13g-13e-s2-10758",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT HOTBIRD 13G",
+      "orbitalPosition": "13E",
+      "sourceUrl": "https://www.lyngsat.com/Hotbird-13G.html",
+      "retrievedAt": "2026-05-01T07:48:55.716Z",
+      "raw": {
+        "frequencyText": "10758",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "Conax Irdeto Mediaguard Nagravision Viaccess",
+        "systemText": "DVB-S2",
+        "symbolRateText": "27500",
+        "fecText": "3/4",
+        "providerText": "P Piotrowski 250415; Polsat Box; 318-11200"
+      },
+      "parsed": {
+        "frequencyMHz": 10758,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "Conax Irdeto Mediaguard Nagravision Viaccess",
+        "system": "DVB-S2",
+        "symbolRate": 27500,
+        "fec": "3/4",
+        "providerName": "P Piotrowski 250415; Polsat Box; 318-11200"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-hotbird-13g-13e-s2-10775",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT HOTBIRD 13G",
+      "orbitalPosition": "13E",
+      "sourceUrl": "https://www.lyngsat.com/Hotbird-13G.html",
+      "retrievedAt": "2026-05-01T07:48:55.716Z",
+      "raw": {
+        "frequencyText": "10775",
+        "polarizationText": "H",
+        "transponderText": "S2",
+        "beamText": "T Viererbe P Piotrowski 250801",
+        "systemText": "DVB-S2",
+        "symbolRateText": "29900",
+        "fecText": "2/3",
+        "providerText": "318-11300; Panaccess; Kabelio"
+      },
+      "parsed": {
+        "frequencyMHz": 10775,
+        "polarization": "H",
+        "transponderNumber": "S2",
+        "beamName": "T Viererbe P Piotrowski 250801",
+        "system": "DVB-S2",
+        "symbolRate": 29900,
+        "fec": "2/3",
+        "providerName": "318-11300; Panaccess; Kabelio"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-hotbird-13g-13e-s2-10796",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT HOTBIRD 13G",
+      "orbitalPosition": "13E",
+      "sourceUrl": "https://www.lyngsat.com/Hotbird-13G.html",
+      "retrievedAt": "2026-05-01T07:48:55.716Z",
+      "raw": {
+        "frequencyText": "10796",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "Conax Irdeto Mediaguard Nagravision Viaccess",
+        "systemText": "DVB-S2",
+        "symbolRateText": "27500",
+        "fecText": "5/6",
+        "providerText": "N Schlammer 260325; Canal+ Polska; 318-11400"
+      },
+      "parsed": {
+        "frequencyMHz": 10796,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "Conax Irdeto Mediaguard Nagravision Viaccess",
+        "system": "DVB-S2",
+        "symbolRate": 27500,
+        "fec": "5/6",
+        "providerName": "N Schlammer 260325; Canal+ Polska; 318-11400"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-hotbird-13g-13e-s2-10802",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT HOTBIRD 13G",
+      "orbitalPosition": "13E",
+      "sourceUrl": "https://www.lyngsat.com/Hotbird-13G.html",
+      "retrievedAt": "2026-05-01T07:48:55.716Z",
+      "raw": {
+        "frequencyText": "10802",
+        "polarizationText": "H",
+        "transponderText": "S2",
+        "beamText": "Stanley_cassidy Roli 250802",
+        "systemText": "DVB-S2",
+        "symbolRateText": "7200",
+        "fecText": "3/4",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 10802,
+        "polarization": "H",
+        "transponderNumber": "S2",
+        "beamName": "Stanley_cassidy Roli 250802",
+        "system": "DVB-S2",
+        "symbolRate": 7200,
+        "fec": "3/4",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-hotbird-13g-13e-s2-10811",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT HOTBIRD 13G",
+      "orbitalPosition": "13E",
+      "sourceUrl": "https://www.lyngsat.com/Hotbird-13G.html",
+      "retrievedAt": "2026-05-01T07:48:55.716Z",
+      "raw": {
+        "frequencyText": "10811",
+        "polarizationText": "H",
+        "transponderText": "S2",
+        "beamText": "Jamie A 250918",
+        "systemText": "DVB-S2",
+        "symbolRateText": "7500",
+        "fecText": "3/4",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 10811,
+        "polarization": "H",
+        "transponderNumber": "S2",
+        "beamName": "Jamie A 250918",
+        "system": "DVB-S2",
+        "symbolRate": 7500,
+        "fec": "3/4",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-hotbird-13g-13e-s2-10820",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT HOTBIRD 13G",
+      "orbitalPosition": "13E",
+      "sourceUrl": "https://www.lyngsat.com/Hotbird-13G.html",
+      "retrievedAt": "2026-05-01T07:48:55.716Z",
+      "raw": {
+        "frequencyText": "10820",
+        "polarizationText": "H",
+        "transponderText": "S2",
+        "beamText": "Stanley_cassidy Roli 250920",
+        "systemText": "DVB-S2",
+        "symbolRateText": "7200",
+        "fecText": "3/4",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 10820,
+        "polarization": "H",
+        "transponderNumber": "S2",
+        "beamName": "Stanley_cassidy Roli 250920",
+        "system": "DVB-S2",
+        "symbolRate": 7200,
+        "fec": "3/4",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-hotbird-13g-13e-s2-10828",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT HOTBIRD 13G",
+      "orbitalPosition": "13E",
+      "sourceUrl": "https://www.lyngsat.com/Hotbird-13G.html",
+      "retrievedAt": "2026-05-01T07:48:55.716Z",
+      "raw": {
+        "frequencyText": "10828",
+        "polarizationText": "H",
+        "transponderText": "S2",
+        "beamText": "Jamie A 250918",
+        "systemText": "DVB-S2",
+        "symbolRateText": "7200",
+        "fecText": "3/4",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 10828,
+        "polarization": "H",
+        "transponderNumber": "S2",
+        "beamName": "Jamie A 250918",
+        "system": "DVB-S2",
+        "symbolRate": 7200,
+        "fec": "3/4",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-hotbird-13g-13e-s2-10892",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT HOTBIRD 13G",
+      "orbitalPosition": "13E",
+      "sourceUrl": "https://www.lyngsat.com/Hotbird-13G.html",
+      "retrievedAt": "2026-05-01T07:48:55.716Z",
+      "raw": {
+        "frequencyText": "10892",
+        "polarizationText": "H",
+        "transponderText": "S2",
+        "beamText": "Conax Nagravision Panaccess Viaccess",
+        "systemText": "DVB-S2",
+        "symbolRateText": "27500",
+        "fecText": "3/4",
+        "providerText": "M Al-Taie D de Jong 251001; 319-11900; Bis TV"
+      },
+      "parsed": {
+        "frequencyMHz": 10892,
+        "polarization": "H",
+        "transponderNumber": "S2",
+        "beamName": "Conax Nagravision Panaccess Viaccess",
+        "system": "DVB-S2",
+        "symbolRate": 27500,
+        "fec": "3/4",
+        "providerName": "M Al-Taie D de Jong 251001; 319-11900; Bis TV"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-hotbird-13g-13e-s2-10911",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT HOTBIRD 13G",
+      "orbitalPosition": "13E",
+      "sourceUrl": "https://www.lyngsat.com/Hotbird-13G.html",
+      "retrievedAt": "2026-05-01T07:48:55.716Z",
+      "raw": {
+        "frequencyText": "10911",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "Conax Irdeto Mediaguard Nagravision Viaccess",
+        "systemText": "DVB-S2",
+        "symbolRateText": "27500",
+        "fecText": "3/4",
+        "providerText": "A7Sats 250901; Polsat Box; 318-12000"
+      },
+      "parsed": {
+        "frequencyMHz": 10911,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "Conax Irdeto Mediaguard Nagravision Viaccess",
+        "system": "DVB-S2",
+        "symbolRate": 27500,
+        "fec": "3/4",
+        "providerName": "A7Sats 250901; Polsat Box; 318-12000"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-hotbird-13g-13e-s2-10930",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT HOTBIRD 13G",
+      "orbitalPosition": "13E",
+      "sourceUrl": "https://www.lyngsat.com/Hotbird-13G.html",
+      "retrievedAt": "2026-05-01T07:48:55.716Z",
+      "raw": {
+        "frequencyText": "10930",
+        "polarizationText": "H",
+        "transponderText": "S2",
+        "beamText": "Conax Irdeto Mediaguard Nagravision Viaccess Videoguard",
+        "systemText": "DVB-S2",
+        "symbolRateText": "30000",
+        "fecText": "2/3",
+        "providerText": "Dondohodho 260424; 318-12100"
+      },
+      "parsed": {
+        "frequencyMHz": 10930,
+        "polarization": "H",
+        "transponderNumber": "S2",
+        "beamName": "Conax Irdeto Mediaguard Nagravision Viaccess Videoguard",
+        "system": "DVB-S2",
+        "symbolRate": 30000,
+        "fec": "2/3",
+        "providerName": "Dondohodho 260424; 318-12100"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-hotbird-13g-13e-s2-10949",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT HOTBIRD 13G",
+      "orbitalPosition": "13E",
+      "sourceUrl": "https://www.lyngsat.com/Hotbird-13G.html",
+      "retrievedAt": "2026-05-01T07:48:55.716Z",
+      "raw": {
+        "frequencyText": "10949",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "Lexzie M Al-Taie 250922",
+        "systemText": "DVB-S2",
+        "symbolRateText": "27500",
+        "fecText": "2/3",
+        "providerText": "Svoboda Satellite; 318-12200"
+      },
+      "parsed": {
+        "frequencyMHz": 10949,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "Lexzie M Al-Taie 250922",
+        "system": "DVB-S2",
+        "symbolRate": 27500,
+        "fec": "2/3",
+        "providerName": "Svoboda Satellite; 318-12200"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-hotbird-13g-13e-s2-10971",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT HOTBIRD 13G",
+      "orbitalPosition": "13E",
+      "sourceUrl": "https://www.lyngsat.com/Hotbird-13G.html",
+      "retrievedAt": "2026-05-01T07:48:55.716Z",
+      "raw": {
+        "frequencyText": "10971",
+        "polarizationText": "H",
+        "transponderText": "S2",
+        "beamText": "Panaccess Viaccess",
+        "systemText": "DVB-S2",
+        "symbolRateText": "29700",
+        "fecText": "2/3",
+        "providerText": "P Alarud 220905; 318-12300; Kabelio"
+      },
+      "parsed": {
+        "frequencyMHz": 10971,
+        "polarization": "H",
+        "transponderNumber": "S2",
+        "beamName": "Panaccess Viaccess",
+        "system": "DVB-S2",
+        "symbolRate": 29700,
+        "fec": "2/3",
+        "providerName": "P Alarud 220905; 318-12300; Kabelio"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-hotbird-13g-13e-row-14-11034",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT HOTBIRD 13G",
+      "orbitalPosition": "13E",
+      "sourceUrl": "https://www.lyngsat.com/Hotbird-13G.html",
+      "retrievedAt": "2026-05-01T07:48:55.716Z",
+      "raw": {
+        "frequencyText": "11034",
+        "polarizationText": "V",
+        "beamText": "F Dibba 260425",
+        "systemText": "DVB-S",
+        "symbolRateText": "27500",
+        "fecText": "3/4",
+        "providerText": "Globecast; 318-12600"
+      },
+      "parsed": {
+        "frequencyMHz": 11034,
+        "polarization": "V",
+        "beamName": "F Dibba 260425",
+        "system": "DVB-S",
+        "symbolRate": 27500,
+        "fec": "3/4",
+        "providerName": "Globecast; 318-12600"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-hotbird-13g-13e-s2-11117",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT HOTBIRD 13G",
+      "orbitalPosition": "13E",
+      "sourceUrl": "https://www.lyngsat.com/Hotbird-13G.html",
+      "retrievedAt": "2026-05-01T07:48:55.716Z",
+      "raw": {
+        "frequencyText": "11117",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "Irdeto Nagravision",
+        "systemText": "DVB-S2",
+        "symbolRateText": "27500",
+        "fecText": "3/4",
+        "providerText": "T Viererbe 251203; Polsat Box; 318-13000"
+      },
+      "parsed": {
+        "frequencyMHz": 11117,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "Irdeto Nagravision",
+        "system": "DVB-S2",
+        "symbolRate": 27500,
+        "fec": "3/4",
+        "providerName": "T Viererbe 251203; Polsat Box; 318-13000"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-hotbird-13g-13e-row-16-11137",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT HOTBIRD 13G",
+      "orbitalPosition": "13E",
+      "sourceUrl": "https://www.lyngsat.com/Hotbird-13G.html",
+      "retrievedAt": "2026-05-01T07:48:55.716Z",
+      "raw": {
+        "frequencyText": "11137",
+        "polarizationText": "H",
+        "beamText": "T Viererbe 260311",
+        "systemText": "DVB-S",
+        "symbolRateText": "27500",
+        "fecText": "3/4",
+        "providerText": "318-13100; Arqiva"
+      },
+      "parsed": {
+        "frequencyMHz": 11137,
+        "polarization": "H",
+        "beamName": "T Viererbe 260311",
+        "system": "DVB-S",
+        "symbolRate": 27500,
+        "fec": "3/4",
+        "providerName": "318-13100; Arqiva"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-hotbird-13g-13e-row-17-3501",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT HOTBIRD 13G",
+      "orbitalPosition": "13E",
+      "sourceUrl": "https://www.lyngsat.com/Hotbird-13G.html",
+      "retrievedAt": "2026-05-01T07:48:55.716Z",
+      "raw": {
+        "frequencyText": "3501",
+        "beamText": "Daystar TV",
+        "systemText": "MPEG-2",
+        "symbolRateText": "7301",
+        "providerText": "3621 Eng"
+      },
+      "parsed": {
+        "frequencyMHz": 3501,
+        "beamName": "Daystar TV",
+        "system": "MPEG-2",
+        "symbolRate": 7301,
+        "providerName": "3621 Eng"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-hotbird-13g-13e-row-18-3502",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT HOTBIRD 13G",
+      "orbitalPosition": "13E",
+      "sourceUrl": "https://www.lyngsat.com/Hotbird-13G.html",
+      "retrievedAt": "2026-05-01T07:48:55.716Z",
+      "raw": {
+        "frequencyText": "3502",
+        "beamText": "Bloomberg TV Europe",
+        "systemText": "MPEG-2",
+        "symbolRateText": "7302",
+        "providerText": "3622 Eng"
+      },
+      "parsed": {
+        "frequencyMHz": 3502,
+        "beamName": "Bloomberg TV Europe",
+        "system": "MPEG-2",
+        "symbolRate": 7302,
+        "providerName": "3622 Eng"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-hotbird-13g-13e-row-19-3506",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT HOTBIRD 13G",
+      "orbitalPosition": "13E",
+      "sourceUrl": "https://www.lyngsat.com/Hotbird-13G.html",
+      "retrievedAt": "2026-05-01T07:48:55.716Z",
+      "raw": {
+        "frequencyText": "3506",
+        "beamText": "Aljazeera English",
+        "systemText": "MPEG-4",
+        "symbolRateText": "7306",
+        "providerText": "3626 Eng 3686 Eng"
+      },
+      "parsed": {
+        "frequencyMHz": 3506,
+        "beamName": "Aljazeera English",
+        "system": "MPEG-4",
+        "symbolRate": 7306,
+        "providerName": "3626 Eng 3686 Eng"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-hotbird-13g-13e-row-20-3507",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT HOTBIRD 13G",
+      "orbitalPosition": "13E",
+      "sourceUrl": "https://www.lyngsat.com/Hotbird-13G.html",
+      "retrievedAt": "2026-05-01T07:48:55.716Z",
+      "raw": {
+        "frequencyText": "3507",
+        "beamText": "Iran International",
+        "systemText": "MPEG-2",
+        "symbolRateText": "7307",
+        "providerText": "3627 Per"
+      },
+      "parsed": {
+        "frequencyMHz": 3507,
+        "beamName": "Iran International",
+        "system": "MPEG-2",
+        "symbolRate": 7307,
+        "providerName": "3627 Per"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-hotbird-13g-13e-row-21-3508",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT HOTBIRD 13G",
+      "orbitalPosition": "13E",
+      "sourceUrl": "https://www.lyngsat.com/Hotbird-13G.html",
+      "retrievedAt": "2026-05-01T07:48:55.716Z",
+      "raw": {
+        "frequencyText": "3508",
+        "beamText": "1TV Satellite",
+        "systemText": "MPEG-2",
+        "symbolRateText": "7308",
+        "providerText": "3618 Arm"
+      },
+      "parsed": {
+        "frequencyMHz": 3508,
+        "beamName": "1TV Satellite",
+        "system": "MPEG-2",
+        "symbolRate": 7308,
+        "providerName": "3618 Arm"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-hotbird-13g-13e-row-22-3510",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT HOTBIRD 13G",
+      "orbitalPosition": "13E",
+      "sourceUrl": "https://www.lyngsat.com/Hotbird-13G.html",
+      "retrievedAt": "2026-05-01T07:48:55.716Z",
+      "raw": {
+        "frequencyText": "3510",
+        "beamText": "GNC Evropa",
+        "systemText": "MPEG-2",
+        "symbolRateText": "7310",
+        "providerText": "3610 Rus"
+      },
+      "parsed": {
+        "frequencyMHz": 3510,
+        "beamName": "GNC Evropa",
+        "system": "MPEG-2",
+        "symbolRate": 7310,
+        "providerName": "3610 Rus"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-hotbird-13g-13e-row-23-3511",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT HOTBIRD 13G",
+      "orbitalPosition": "13E",
+      "sourceUrl": "https://www.lyngsat.com/Hotbird-13G.html",
+      "retrievedAt": "2026-05-01T07:48:55.716Z",
+      "raw": {
+        "frequencyText": "3511",
+        "beamText": "TBN Rossiya",
+        "systemText": "MPEG-2",
+        "symbolRateText": "7311",
+        "providerText": "3611 Rus"
+      },
+      "parsed": {
+        "frequencyMHz": 3511,
+        "beamName": "TBN Rossiya",
+        "system": "MPEG-2",
+        "symbolRate": 7311,
+        "providerName": "3611 Rus"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-hotbird-13g-13e-row-24-3514",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT HOTBIRD 13G",
+      "orbitalPosition": "13E",
+      "sourceUrl": "https://www.lyngsat.com/Hotbird-13G.html",
+      "retrievedAt": "2026-05-01T07:48:55.716Z",
+      "raw": {
+        "frequencyText": "3514",
+        "beamText": "Perviy kanal Eurasia",
+        "systemText": "MPEG-2",
+        "symbolRateText": "7314",
+        "providerText": "3614 Rus"
+      },
+      "parsed": {
+        "frequencyMHz": 3514,
+        "beamName": "Perviy kanal Eurasia",
+        "system": "MPEG-2",
+        "symbolRate": 7314,
+        "providerName": "3614 Rus"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-hotbird-13g-13e-s2-11158",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT HOTBIRD 13G",
+      "orbitalPosition": "13E",
+      "sourceUrl": "https://www.lyngsat.com/Hotbird-13G.html",
+      "retrievedAt": "2026-05-01T07:48:55.716Z",
+      "raw": {
+        "frequencyText": "11158",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "Conax Irdeto Nagravision Viaccess",
+        "systemText": "DVB-S2",
+        "symbolRateText": "27500",
+        "fecText": "3/4",
+        "providerText": "P Piotrowski 240416; Polsat Box; 113-13200"
+      },
+      "parsed": {
+        "frequencyMHz": 11158,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "Conax Irdeto Nagravision Viaccess",
+        "system": "DVB-S2",
+        "symbolRate": 27500,
+        "fec": "3/4",
+        "providerName": "P Piotrowski 240416; Polsat Box; 113-13200"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-hotbird-13g-13e-s2-11186",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT HOTBIRD 13G",
+      "orbitalPosition": "13E",
+      "sourceUrl": "https://www.lyngsat.com/Hotbird-13G.html",
+      "retrievedAt": "2026-05-01T07:48:55.716Z",
+      "raw": {
+        "frequencyText": "11186",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "Stanley_cassidy 251101",
+        "systemText": "DVB-S2",
+        "symbolRateText": "7200",
+        "fecText": "3/4",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 11186,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "Stanley_cassidy 251101",
+        "system": "DVB-S2",
+        "symbolRate": 7200,
+        "fec": "3/4",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-hotbird-13g-13e-s2-11194",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT HOTBIRD 13G",
+      "orbitalPosition": "13E",
+      "sourceUrl": "https://www.lyngsat.com/Hotbird-13G.html",
+      "retrievedAt": "2026-05-01T07:48:55.716Z",
+      "raw": {
+        "frequencyText": "11194",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "Stanley_cassidy Roli 251004",
+        "systemText": "DVB-S2",
+        "symbolRateText": "7200",
+        "fecText": "3/4",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 11194,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "Stanley_cassidy Roli 251004",
+        "system": "DVB-S2",
+        "symbolRate": 7200,
+        "fec": "3/4",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-hotbird-13g-13e-s2-11203",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT HOTBIRD 13G",
+      "orbitalPosition": "13E",
+      "sourceUrl": "https://www.lyngsat.com/Hotbird-13G.html",
+      "retrievedAt": "2026-05-01T07:48:55.716Z",
+      "raw": {
+        "frequencyText": "11203",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "Stanley_cassidy 251102",
+        "systemText": "DVB-S2",
+        "symbolRateText": "7200",
+        "fecText": "3/4",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 11203,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "Stanley_cassidy 251102",
+        "system": "DVB-S2",
+        "symbolRate": 7200,
+        "fec": "3/4",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-hotbird-13g-13e-s2-11214",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT HOTBIRD 13G",
+      "orbitalPosition": "13E",
+      "sourceUrl": "https://www.lyngsat.com/Hotbird-13G.html",
+      "retrievedAt": "2026-05-01T07:48:55.716Z",
+      "raw": {
+        "frequencyText": "11214",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "Roli 260425",
+        "systemText": "DVB-S2",
+        "symbolRateText": "7120",
+        "fecText": "2/3",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 11214,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "Roli 260425",
+        "system": "DVB-S2",
+        "symbolRate": 7120,
+        "fec": "2/3",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-hotbird-13g-13e-s2-11278",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT HOTBIRD 13G",
+      "orbitalPosition": "13E",
+      "sourceUrl": "https://www.lyngsat.com/Hotbird-13G.html",
+      "retrievedAt": "2026-05-01T07:48:55.716Z",
+      "raw": {
+        "frequencyText": "11278",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "P Piotrowski 260225",
+        "systemText": "DVB-S2",
+        "symbolRateText": "27500",
+        "fecText": "5/6",
+        "providerText": "Canal+ Polska; 318-400"
+      },
+      "parsed": {
+        "frequencyMHz": 11278,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "P Piotrowski 260225",
+        "system": "DVB-S2",
+        "symbolRate": 27500,
+        "fec": "5/6",
+        "providerName": "Canal+ Polska; 318-400"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-hotbird-13g-13e-row-31-11296",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT HOTBIRD 13G",
+      "orbitalPosition": "13E",
+      "sourceUrl": "https://www.lyngsat.com/Hotbird-13G.html",
+      "retrievedAt": "2026-05-01T07:48:55.716Z",
+      "raw": {
+        "frequencyText": "11296",
+        "polarizationText": "H",
+        "beamText": "R Cervi 260203",
+        "systemText": "DVB-S",
+        "symbolRateText": "27500",
+        "fecText": "5/6",
+        "providerText": "252-500"
+      },
+      "parsed": {
+        "frequencyMHz": 11296,
+        "polarization": "H",
+        "beamName": "R Cervi 260203",
+        "system": "DVB-S",
+        "symbolRate": 27500,
+        "fec": "5/6",
+        "providerName": "252-500"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-hotbird-13g-13e-s2-11373",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT HOTBIRD 13G",
+      "orbitalPosition": "13E",
+      "sourceUrl": "https://www.lyngsat.com/Hotbird-13G.html",
+      "retrievedAt": "2026-05-01T07:48:55.716Z",
+      "raw": {
+        "frequencyText": "11373",
+        "polarizationText": "H",
+        "transponderText": "S2",
+        "beamText": "Dondohodho M Al-Taie 260429",
+        "systemText": "DVB-S2",
+        "symbolRateText": "27500",
+        "fecText": "3/4",
+        "providerText": "318-900"
+      },
+      "parsed": {
+        "frequencyMHz": 11373,
+        "polarization": "H",
+        "transponderNumber": "S2",
+        "beamName": "Dondohodho M Al-Taie 260429",
+        "system": "DVB-S2",
+        "symbolRate": 27500,
+        "fec": "3/4",
+        "providerName": "318-900"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-hotbird-13g-13e-s2-11411",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT HOTBIRD 13G",
+      "orbitalPosition": "13E",
+      "sourceUrl": "https://www.lyngsat.com/Hotbird-13G.html",
+      "retrievedAt": "2026-05-01T07:48:55.716Z",
+      "raw": {
+        "frequencyText": "11411",
+        "polarizationText": "H",
+        "transponderText": "S2",
+        "beamText": "Conax Irdeto Mediaguard Nagravision Viaccess",
+        "systemText": "DVB-S2",
+        "symbolRateText": "27500",
+        "fecText": "5/6",
+        "providerText": "M Al-Taie P Piotrowski 260414; 318-1100"
+      },
+      "parsed": {
+        "frequencyMHz": 11411,
+        "polarization": "H",
+        "transponderNumber": "S2",
+        "beamName": "Conax Irdeto Mediaguard Nagravision Viaccess",
+        "system": "DVB-S2",
+        "symbolRate": 27500,
+        "fec": "5/6",
+        "providerName": "M Al-Taie P Piotrowski 260414; 318-1100"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-hotbird-13g-13e-s2-11449",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT HOTBIRD 13G",
+      "orbitalPosition": "13E",
+      "sourceUrl": "https://www.lyngsat.com/Hotbird-13G.html",
+      "retrievedAt": "2026-05-01T07:48:55.716Z",
+      "raw": {
+        "frequencyText": "11449",
+        "polarizationText": "H",
+        "transponderText": "S2",
+        "beamText": "Conax Irdeto Mediaguard Nagravision Viaccess",
+        "systemText": "DVB-S2",
+        "symbolRateText": "27500",
+        "fecText": "5/6",
+        "providerText": "M Al-Taie 260321; Canal+ Polska; 318-1300"
+      },
+      "parsed": {
+        "frequencyMHz": 11449,
+        "polarization": "H",
+        "transponderNumber": "S2",
+        "beamName": "Conax Irdeto Mediaguard Nagravision Viaccess",
+        "system": "DVB-S2",
+        "symbolRate": 27500,
+        "fec": "5/6",
+        "providerName": "M Al-Taie 260321; Canal+ Polska; 318-1300"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-hotbird-13g-13e-s2-11488",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT HOTBIRD 13G",
+      "orbitalPosition": "13E",
+      "sourceUrl": "https://www.lyngsat.com/Hotbird-13G.html",
+      "retrievedAt": "2026-05-01T07:48:55.716Z",
+      "raw": {
+        "frequencyText": "11488",
+        "polarizationText": "H",
+        "transponderText": "S2",
+        "beamText": "Conax Irdeto Mediaguard Nagravision Viaccess",
+        "systemText": "DVB-S2",
+        "symbolRateText": "27500",
+        "fecText": "5/6",
+        "providerText": "P Piotrowski DXAndy 260414; Canal+ Polska; 318-1500"
+      },
+      "parsed": {
+        "frequencyMHz": 11488,
+        "polarization": "H",
+        "transponderNumber": "S2",
+        "beamName": "Conax Irdeto Mediaguard Nagravision Viaccess",
+        "system": "DVB-S2",
+        "symbolRate": 27500,
+        "fec": "5/6",
+        "providerName": "P Piotrowski DXAndy 260414; Canal+ Polska; 318-1500"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-hotbird-13g-13e-s2-11566",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT HOTBIRD 13G",
+      "orbitalPosition": "13E",
+      "sourceUrl": "https://www.lyngsat.com/Hotbird-13G.html",
+      "retrievedAt": "2026-05-01T07:48:55.716Z",
+      "raw": {
+        "frequencyText": "11566",
+        "polarizationText": "H",
+        "transponderText": "S2",
+        "beamText": "M Al-Taie T Viererbe Hadowooalsatan 251103",
+        "systemText": "DVB-S2",
+        "symbolRateText": "29900",
+        "fecText": "3/4",
+        "providerText": "Globecast; 318-15300"
+      },
+      "parsed": {
+        "frequencyMHz": 11566,
+        "polarization": "H",
+        "transponderNumber": "S2",
+        "beamName": "M Al-Taie T Viererbe Hadowooalsatan 251103",
+        "system": "DVB-S2",
+        "symbolRate": 29900,
+        "fec": "3/4",
+        "providerName": "Globecast; 318-15300"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-hotbird-13g-13e-s2-11585",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT HOTBIRD 13G",
+      "orbitalPosition": "13E",
+      "sourceUrl": "https://www.lyngsat.com/Hotbird-13G.html",
+      "retrievedAt": "2026-05-01T07:48:55.716Z",
+      "raw": {
+        "frequencyText": "11585",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "Z Viglidán 211022",
+        "systemText": "DVB-S2",
+        "symbolRateText": "27500",
+        "fecText": "5/6",
+        "providerText": "318-15400; CCTV"
+      },
+      "parsed": {
+        "frequencyMHz": 11585,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "Z Viglidán 211022",
+        "system": "DVB-S2",
+        "symbolRate": 27500,
+        "fec": "5/6",
+        "providerName": "318-15400; CCTV"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-hotbird-13g-13e-s2-11610",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT HOTBIRD 13G",
+      "orbitalPosition": "13E",
+      "sourceUrl": "https://www.lyngsat.com/Hotbird-13G.html",
+      "retrievedAt": "2026-05-01T07:48:55.716Z",
+      "raw": {
+        "frequencyText": "11610",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "Jamie A Roli 250510",
+        "systemText": "DVB-S2",
+        "symbolRateText": "7200",
+        "fecText": "3/4",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 11610,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "Jamie A Roli 250510",
+        "system": "DVB-S2",
+        "symbolRate": 7200,
+        "fec": "3/4",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-hotbird-13g-13e-s2-11620",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT HOTBIRD 13G",
+      "orbitalPosition": "13E",
+      "sourceUrl": "https://www.lyngsat.com/Hotbird-13G.html",
+      "retrievedAt": "2026-05-01T07:48:55.716Z",
+      "raw": {
+        "frequencyText": "11620",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "Roli 251018",
+        "systemText": "DVB-S2",
+        "symbolRateText": "4900",
+        "fecText": "3/4",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 11620,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "Roli 251018",
+        "system": "DVB-S2",
+        "symbolRate": 4900,
+        "fec": "3/4",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-hotbird-13g-13e-s2-11626",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT HOTBIRD 13G",
+      "orbitalPosition": "13E",
+      "sourceUrl": "https://www.lyngsat.com/Hotbird-13G.html",
+      "retrievedAt": "2026-05-01T07:48:55.716Z",
+      "raw": {
+        "frequencyText": "11626",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "Roli 251018",
+        "systemText": "DVB-S2",
+        "symbolRateText": "4900",
+        "fecText": "3/4",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 11626,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "Roli 251018",
+        "system": "DVB-S2",
+        "symbolRate": 4900,
+        "fec": "3/4",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-hotbird-13g-13e-s2-11636",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT HOTBIRD 13G",
+      "orbitalPosition": "13E",
+      "sourceUrl": "https://www.lyngsat.com/Hotbird-13G.html",
+      "retrievedAt": "2026-05-01T07:48:55.716Z",
+      "raw": {
+        "frequencyText": "11636",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "Roli 260425",
+        "systemText": "DVB-S2",
+        "symbolRateText": "9600",
+        "fecText": "3/4",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 11636,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "Roli 260425",
+        "system": "DVB-S2",
+        "symbolRate": 9600,
+        "fec": "3/4",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-hotbird-13g-13e-row-42-11681",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT HOTBIRD 13G",
+      "orbitalPosition": "13E",
+      "sourceUrl": "https://www.lyngsat.com/Hotbird-13G.html",
+      "retrievedAt": "2026-05-01T07:48:55.716Z",
+      "raw": {
+        "frequencyText": "11681",
+        "polarizationText": "H",
+        "beamText": "T Viererbe M Gusset 260306"
+      },
+      "parsed": {
+        "frequencyMHz": 11681,
+        "polarization": "H",
+        "beamName": "T Viererbe M Gusset 260306"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": false,
+        "confidence": "MEDIUM",
+        "warnings": [
+          "No DVB system/SR/FEC parameters found."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-hotbird-13g-13e-s2-11727",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT HOTBIRD 13G",
+      "orbitalPosition": "13E",
+      "sourceUrl": "https://www.lyngsat.com/Hotbird-13G.html",
+      "retrievedAt": "2026-05-01T07:48:55.716Z",
+      "raw": {
+        "frequencyText": "11727",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "T Viererbe 251129",
+        "systemText": "DVB-S2",
+        "symbolRateText": "29900",
+        "fecText": "3/4",
+        "providerText": "Globecast; 318-5000"
+      },
+      "parsed": {
+        "frequencyMHz": 11727,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "T Viererbe 251129",
+        "system": "DVB-S2",
+        "symbolRate": 29900,
+        "fec": "3/4",
+        "providerName": "Globecast; 318-5000"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-hotbird-13g-13e-s2-11747",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT HOTBIRD 13G",
+      "orbitalPosition": "13E",
+      "sourceUrl": "https://www.lyngsat.com/Hotbird-13G.html",
+      "retrievedAt": "2026-05-01T07:48:55.716Z",
+      "raw": {
+        "frequencyText": "11747",
+        "polarizationText": "H",
+        "transponderText": "S2",
+        "beamText": "M Al-Taie T Viererbe 260324",
+        "systemText": "DVB-S2",
+        "symbolRateText": "27500",
+        "fecText": "3/4",
+        "providerText": "318-5103"
+      },
+      "parsed": {
+        "frequencyMHz": 11747,
+        "polarization": "H",
+        "transponderNumber": "S2",
+        "beamName": "M Al-Taie T Viererbe 260324",
+        "system": "DVB-S2",
+        "symbolRate": 27500,
+        "fec": "3/4",
+        "providerName": "318-5103"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-hotbird-13g-13e-s2-12015",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT HOTBIRD 13G",
+      "orbitalPosition": "13E",
+      "sourceUrl": "https://www.lyngsat.com/Hotbird-13G.html",
+      "retrievedAt": "2026-05-01T07:48:55.716Z",
+      "raw": {
+        "frequencyText": "12015",
+        "polarizationText": "H",
+        "transponderText": "S2",
+        "beamText": "Conax Irdeto Mediaguard Nagravision Viaccess",
+        "systemText": "DVB-S2",
+        "symbolRateText": "27500",
+        "fecText": "3/4",
+        "providerText": "M Al-Taie 260116; Polsat Box; 318-6500"
+      },
+      "parsed": {
+        "frequencyMHz": 12015,
+        "polarization": "H",
+        "transponderNumber": "S2",
+        "beamName": "Conax Irdeto Mediaguard Nagravision Viaccess",
+        "system": "DVB-S2",
+        "symbolRate": 27500,
+        "fec": "3/4",
+        "providerName": "M Al-Taie 260116; Polsat Box; 318-6500"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-hotbird-13g-13e-row-46-12149",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT HOTBIRD 13G",
+      "orbitalPosition": "13E",
+      "sourceUrl": "https://www.lyngsat.com/Hotbird-13G.html",
+      "retrievedAt": "2026-05-01T07:48:55.716Z",
+      "raw": {
+        "frequencyText": "12149",
+        "polarizationText": "V",
+        "beamText": "M Al-Taie 260324",
+        "systemText": "DVB-S",
+        "symbolRateText": "27500",
+        "fecText": "3/4",
+        "providerText": "M-Three satcom; 318-7200"
+      },
+      "parsed": {
+        "frequencyMHz": 12149,
+        "polarization": "V",
+        "beamName": "M Al-Taie 260324",
+        "system": "DVB-S",
+        "symbolRate": 27500,
+        "fec": "3/4",
+        "providerName": "M-Three satcom; 318-7200"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-hotbird-13g-13e-row-47-10701",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT HOTBIRD 13G",
+      "orbitalPosition": "13E",
+      "sourceUrl": "https://www.lyngsat.com/Hotbird-13G.html",
+      "retrievedAt": "2026-05-01T07:48:55.716Z",
+      "raw": {
+        "frequencyText": "10701",
+        "beamText": "Télé Congo",
+        "systemText": "MPEG-2",
+        "providerText": "241 Fre"
+      },
+      "parsed": {
+        "frequencyMHz": 10701,
+        "beamName": "Télé Congo",
+        "system": "MPEG-2",
+        "providerName": "241 Fre"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-hotbird-13g-13e-row-48-10705",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT HOTBIRD 13G",
+      "orbitalPosition": "13E",
+      "sourceUrl": "https://www.lyngsat.com/Hotbird-13G.html",
+      "retrievedAt": "2026-05-01T07:48:55.716Z",
+      "raw": {
+        "frequencyText": "10705",
+        "beamText": "EWTN Europe",
+        "systemText": "MPEG-2",
+        "providerText": "235 Eng"
+      },
+      "parsed": {
+        "frequencyMHz": 10705,
+        "beamName": "EWTN Europe",
+        "system": "MPEG-2",
+        "providerName": "235 Eng"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-hotbird-13g-13e-row-49-3630",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT HOTBIRD 13G",
+      "orbitalPosition": "13E",
+      "sourceUrl": "https://www.lyngsat.com/Hotbird-13G.html",
+      "retrievedAt": "2026-05-01T07:48:55.716Z",
+      "raw": {
+        "frequencyText": "3630",
+        "beamText": "Radio Freccia",
+        "providerText": "3516 Ita"
+      },
+      "parsed": {
+        "frequencyMHz": 3630,
+        "beamName": "Radio Freccia",
+        "providerName": "3516 Ita"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": false,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable.",
+          "No DVB system/SR/FEC parameters found."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-hotbird-13g-13e-row-50-3632",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT HOTBIRD 13G",
+      "orbitalPosition": "13E",
+      "sourceUrl": "https://www.lyngsat.com/Hotbird-13G.html",
+      "retrievedAt": "2026-05-01T07:48:55.716Z",
+      "raw": {
+        "frequencyText": "3632",
+        "beamText": "Radio Italia",
+        "symbolRateText": "6320",
+        "providerText": "6320 Ita"
+      },
+      "parsed": {
+        "frequencyMHz": 3632,
+        "beamName": "Radio Italia",
+        "symbolRate": 6320,
+        "providerName": "6320 Ita"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-hotbird-13g-13e-row-51-3633",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT HOTBIRD 13G",
+      "orbitalPosition": "13E",
+      "sourceUrl": "https://www.lyngsat.com/Hotbird-13G.html",
+      "retrievedAt": "2026-05-01T07:48:55.716Z",
+      "raw": {
+        "frequencyText": "3633",
+        "beamText": "Giornale Radio",
+        "symbolRateText": "6330",
+        "providerText": "6330 Ita"
+      },
+      "parsed": {
+        "frequencyMHz": 3633,
+        "beamName": "Giornale Radio",
+        "symbolRate": 6330,
+        "providerName": "6330 Ita"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-hotbird-13g-13e-row-52-3637",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT HOTBIRD 13G",
+      "orbitalPosition": "13E",
+      "sourceUrl": "https://www.lyngsat.com/Hotbird-13G.html",
+      "retrievedAt": "2026-05-01T07:48:55.716Z",
+      "raw": {
+        "frequencyText": "3637",
+        "beamText": "Radio Sportiva",
+        "providerText": "3512 Ita"
+      },
+      "parsed": {
+        "frequencyMHz": 3637,
+        "beamName": "Radio Sportiva",
+        "providerName": "3512 Ita"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": false,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable.",
+          "No DVB system/SR/FEC parameters found."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-hotbird-13g-13e-row-53-3642",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT HOTBIRD 13G",
+      "orbitalPosition": "13E",
+      "sourceUrl": "https://www.lyngsat.com/Hotbird-13G.html",
+      "retrievedAt": "2026-05-01T07:48:55.716Z",
+      "raw": {
+        "frequencyText": "3642",
+        "beamText": "RTL 102.5",
+        "symbolRateText": "6420",
+        "providerText": "6420 Ita"
+      },
+      "parsed": {
+        "frequencyMHz": 3642,
+        "beamName": "RTL 102.5",
+        "symbolRate": 6420,
+        "providerName": "6420 Ita"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-hotbird-13g-13e-row-54-3643",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT HOTBIRD 13G",
+      "orbitalPosition": "13E",
+      "sourceUrl": "https://www.lyngsat.com/Hotbird-13G.html",
+      "retrievedAt": "2026-05-01T07:48:55.716Z",
+      "raw": {
+        "frequencyText": "3643",
+        "beamText": "Radio Zeta FM",
+        "symbolRateText": "6430",
+        "providerText": "6430 Ita"
+      },
+      "parsed": {
+        "frequencyMHz": 3643,
+        "beamName": "Radio Zeta FM",
+        "symbolRate": 6430,
+        "providerName": "6430 Ita"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-hotbird-13g-13e-row-55-3644",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT HOTBIRD 13G",
+      "orbitalPosition": "13E",
+      "sourceUrl": "https://www.lyngsat.com/Hotbird-13G.html",
+      "retrievedAt": "2026-05-01T07:48:55.716Z",
+      "raw": {
+        "frequencyText": "3644",
+        "beamText": "Radio 24 (Italy)",
+        "providerText": "3526 Ita"
+      },
+      "parsed": {
+        "frequencyMHz": 3644,
+        "beamName": "Radio 24 (Italy)",
+        "providerName": "3526 Ita"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": false,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable.",
+          "No DVB system/SR/FEC parameters found."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-hotbird-13g-13e-row-56-3645",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT HOTBIRD 13G",
+      "orbitalPosition": "13E",
+      "sourceUrl": "https://www.lyngsat.com/Hotbird-13G.html",
+      "retrievedAt": "2026-05-01T07:48:55.716Z",
+      "raw": {
+        "frequencyText": "3645",
+        "beamText": "Radio Onda d'Urto",
+        "providerText": "3531 Ita"
+      },
+      "parsed": {
+        "frequencyMHz": 3645,
+        "beamName": "Radio Onda d'Urto",
+        "providerName": "3531 Ita"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": false,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable.",
+          "No DVB system/SR/FEC parameters found."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-hotbird-13g-13e-row-57-3651",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT HOTBIRD 13G",
+      "orbitalPosition": "13E",
+      "sourceUrl": "https://www.lyngsat.com/Hotbird-13G.html",
+      "retrievedAt": "2026-05-01T07:48:55.716Z",
+      "raw": {
+        "frequencyText": "3651",
+        "beamText": "Radio Deejay",
+        "providerText": "3542 Ita"
+      },
+      "parsed": {
+        "frequencyMHz": 3651,
+        "beamName": "Radio Deejay",
+        "providerName": "3542 Ita"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": false,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable.",
+          "No DVB system/SR/FEC parameters found."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-hotbird-13g-13e-row-58-3652",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT HOTBIRD 13G",
+      "orbitalPosition": "13E",
+      "sourceUrl": "https://www.lyngsat.com/Hotbird-13G.html",
+      "retrievedAt": "2026-05-01T07:48:55.716Z",
+      "raw": {
+        "frequencyText": "3652",
+        "beamText": "Radio Capital",
+        "providerText": "3544 Ita"
+      },
+      "parsed": {
+        "frequencyMHz": 3652,
+        "beamName": "Radio Capital",
+        "providerName": "3544 Ita"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": false,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable.",
+          "No DVB system/SR/FEC parameters found."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-hotbird-13g-13e-row-59-3653",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT HOTBIRD 13G",
+      "orbitalPosition": "13E",
+      "sourceUrl": "https://www.lyngsat.com/Hotbird-13G.html",
+      "retrievedAt": "2026-05-01T07:48:55.716Z",
+      "raw": {
+        "frequencyText": "3653",
+        "beamText": "3546 Ita"
+      },
+      "parsed": {
+        "frequencyMHz": 3653,
+        "beamName": "3546 Ita"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": false,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable.",
+          "No DVB system/SR/FEC parameters found."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-hotbird-13g-13e-row-60-3654",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT HOTBIRD 13G",
+      "orbitalPosition": "13E",
+      "sourceUrl": "https://www.lyngsat.com/Hotbird-13G.html",
+      "retrievedAt": "2026-05-01T07:48:55.716Z",
+      "raw": {
+        "frequencyText": "3654",
+        "beamText": "Radio Iglesias",
+        "providerText": "3548 Ita"
+      },
+      "parsed": {
+        "frequencyMHz": 3654,
+        "beamName": "Radio Iglesias",
+        "providerName": "3548 Ita"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": false,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable.",
+          "No DVB system/SR/FEC parameters found."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-hotbird-13g-13e-row-61-3656",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT HOTBIRD 13G",
+      "orbitalPosition": "13E",
+      "sourceUrl": "https://www.lyngsat.com/Hotbird-13G.html",
+      "retrievedAt": "2026-05-01T07:48:55.716Z",
+      "raw": {
+        "frequencyText": "3656",
+        "beamText": "Radio Popolare",
+        "providerText": "3553 Ita"
+      },
+      "parsed": {
+        "frequencyMHz": 3656,
+        "beamName": "Radio Popolare",
+        "providerName": "3553 Ita"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": false,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable.",
+          "No DVB system/SR/FEC parameters found."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-hotbird-13g-13e-row-62-3641",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT HOTBIRD 13G",
+      "orbitalPosition": "13E",
+      "sourceUrl": "https://www.lyngsat.com/Hotbird-13G.html",
+      "retrievedAt": "2026-05-01T07:48:55.716Z",
+      "raw": {
+        "frequencyText": "3641",
+        "beamText": "Radio Mater",
+        "symbolRateText": "7280"
+      },
+      "parsed": {
+        "frequencyMHz": 3641,
+        "beamName": "Radio Mater",
+        "symbolRate": 7280
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-hotbird-13g-13e-s2-12188",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT HOTBIRD 13G",
+      "orbitalPosition": "13E",
+      "sourceUrl": "https://www.lyngsat.com/Hotbird-13G.html",
+      "retrievedAt": "2026-05-01T07:48:55.716Z",
+      "raw": {
+        "frequencyText": "12188",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "Conax Irdeto Mediaguard Nagravision Viaccess",
+        "systemText": "DVB-S2",
+        "symbolRateText": "27500",
+        "fecText": "3/4",
+        "providerText": "Lexzie 260302; Polsat Box; 113-7400"
+      },
+      "parsed": {
+        "frequencyMHz": 12188,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "Conax Irdeto Mediaguard Nagravision Viaccess",
+        "system": "DVB-S2",
+        "symbolRate": 27500,
+        "fec": "3/4",
+        "providerName": "Lexzie 260302; Polsat Box; 113-7400"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-hotbird-13g-13e-s2-12265",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT HOTBIRD 13G",
+      "orbitalPosition": "13E",
+      "sourceUrl": "https://www.lyngsat.com/Hotbird-13G.html",
+      "retrievedAt": "2026-05-01T07:48:55.716Z",
+      "raw": {
+        "frequencyText": "12265",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "Conax Irdeto Mediaguard Nagravision Viaccess",
+        "systemText": "DVB-S2",
+        "symbolRateText": "27500",
+        "fecText": "3/4",
+        "providerText": "A7Sats 250901; Polsat Box; 113-7800"
+      },
+      "parsed": {
+        "frequencyMHz": 12265,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "Conax Irdeto Mediaguard Nagravision Viaccess",
+        "system": "DVB-S2",
+        "symbolRate": 27500,
+        "fec": "3/4",
+        "providerName": "A7Sats 250901; Polsat Box; 113-7800"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-hotbird-13g-13e-s2-12284",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT HOTBIRD 13G",
+      "orbitalPosition": "13E",
+      "sourceUrl": "https://www.lyngsat.com/Hotbird-13G.html",
+      "retrievedAt": "2026-05-01T07:48:55.716Z",
+      "raw": {
+        "frequencyText": "12284",
+        "polarizationText": "H",
+        "transponderText": "S2",
+        "beamText": "Conax Irdeto Mediaguard Nagravision Viaccess",
+        "systemText": "DVB-S2",
+        "symbolRateText": "27500",
+        "fecText": "3/4",
+        "providerText": "Dondohodho P Piotrowski 260427; Polsat Box; 113-7900"
+      },
+      "parsed": {
+        "frequencyMHz": 12284,
+        "polarization": "H",
+        "transponderNumber": "S2",
+        "beamName": "Conax Irdeto Mediaguard Nagravision Viaccess",
+        "system": "DVB-S2",
+        "symbolRate": 27500,
+        "fec": "3/4",
+        "providerName": "Dondohodho P Piotrowski 260427; Polsat Box; 113-7900"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-hotbird-13g-13e-s2-12303",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT HOTBIRD 13G",
+      "orbitalPosition": "13E",
+      "sourceUrl": "https://www.lyngsat.com/Hotbird-13G.html",
+      "retrievedAt": "2026-05-01T07:48:55.716Z",
+      "raw": {
+        "frequencyText": "12303",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "Telefónica Servicios Audiovisuales",
+        "systemText": "DVB-S2",
+        "symbolRateText": "27500",
+        "fecText": "3/4",
+        "providerText": "Hadowooalsatan 251201; 318-8000"
+      },
+      "parsed": {
+        "frequencyMHz": 12303,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "Telefónica Servicios Audiovisuales",
+        "system": "DVB-S2",
+        "symbolRate": 27500,
+        "fec": "3/4",
+        "providerName": "Hadowooalsatan 251201; 318-8000"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-hotbird-13g-13e-row-67-3501",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT HOTBIRD 13G",
+      "orbitalPosition": "13E",
+      "sourceUrl": "https://www.lyngsat.com/Hotbird-13G.html",
+      "retrievedAt": "2026-05-01T07:48:55.716Z",
+      "raw": {
+        "frequencyText": "3501",
+        "beamText": "TVE Internacional Europa",
+        "systemText": "MPEG-4",
+        "providerText": "3522 Spa 3527 Qaa"
+      },
+      "parsed": {
+        "frequencyMHz": 3501,
+        "beamName": "TVE Internacional Europa",
+        "system": "MPEG-4",
+        "providerName": "3522 Spa 3527 Qaa"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-hotbird-13g-13e-row-68-3502",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT HOTBIRD 13G",
+      "orbitalPosition": "13E",
+      "sourceUrl": "https://www.lyngsat.com/Hotbird-13G.html",
+      "retrievedAt": "2026-05-01T07:48:55.716Z",
+      "raw": {
+        "frequencyText": "3502",
+        "beamText": "3570 Spa 3571 Qaa",
+        "systemText": "MPEG-4",
+        "providerText": "Canal 24 Horas"
+      },
+      "parsed": {
+        "frequencyMHz": 3502,
+        "beamName": "3570 Spa 3571 Qaa",
+        "system": "MPEG-4",
+        "providerName": "Canal 24 Horas"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-hotbird-13g-13e-row-69-3581",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT HOTBIRD 13G",
+      "orbitalPosition": "13E",
+      "sourceUrl": "https://www.lyngsat.com/Hotbird-13G.html",
+      "retrievedAt": "2026-05-01T07:48:55.716Z",
+      "raw": {
+        "frequencyText": "3581",
+        "beamText": "RNE Radio Nacional",
+        "providerText": "3523 Spa"
+      },
+      "parsed": {
+        "frequencyMHz": 3581,
+        "beamName": "RNE Radio Nacional",
+        "providerName": "3523 Spa"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": false,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable.",
+          "No DVB system/SR/FEC parameters found."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-hotbird-13g-13e-row-70-3582",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT HOTBIRD 13G",
+      "orbitalPosition": "13E",
+      "sourceUrl": "https://www.lyngsat.com/Hotbird-13G.html",
+      "retrievedAt": "2026-05-01T07:48:55.716Z",
+      "raw": {
+        "frequencyText": "3582",
+        "beamText": "RNE Radio Clásica",
+        "providerText": "3531 Spa"
+      },
+      "parsed": {
+        "frequencyMHz": 3582,
+        "beamName": "RNE Radio Clásica",
+        "providerName": "3531 Spa"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": false,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable.",
+          "No DVB system/SR/FEC parameters found."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-hotbird-13g-13e-row-71-3583",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT HOTBIRD 13G",
+      "orbitalPosition": "13E",
+      "sourceUrl": "https://www.lyngsat.com/Hotbird-13G.html",
+      "retrievedAt": "2026-05-01T07:48:55.716Z",
+      "raw": {
+        "frequencyText": "3583",
+        "beamText": "RNE Radio 3",
+        "providerText": "3539 Spa"
+      },
+      "parsed": {
+        "frequencyMHz": 3583,
+        "beamName": "RNE Radio 3",
+        "providerName": "3539 Spa"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": false,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable.",
+          "No DVB system/SR/FEC parameters found."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-hotbird-13g-13e-row-72-3584",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT HOTBIRD 13G",
+      "orbitalPosition": "13E",
+      "sourceUrl": "https://www.lyngsat.com/Hotbird-13G.html",
+      "retrievedAt": "2026-05-01T07:48:55.716Z",
+      "raw": {
+        "frequencyText": "3584",
+        "beamText": "RNE Radio 5",
+        "providerText": "3547 Spa"
+      },
+      "parsed": {
+        "frequencyMHz": 3584,
+        "beamName": "RNE Radio 5",
+        "providerName": "3547 Spa"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": false,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable.",
+          "No DVB system/SR/FEC parameters found."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-hotbird-13g-13e-row-73-3585",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT HOTBIRD 13G",
+      "orbitalPosition": "13E",
+      "sourceUrl": "https://www.lyngsat.com/Hotbird-13G.html",
+      "retrievedAt": "2026-05-01T07:48:55.716Z",
+      "raw": {
+        "frequencyText": "3585",
+        "beamText": "Radio Exterior",
+        "providerText": "3555 Spa"
+      },
+      "parsed": {
+        "frequencyMHz": 3585,
+        "beamName": "Radio Exterior",
+        "providerName": "3555 Spa"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": false,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable.",
+          "No DVB system/SR/FEC parameters found."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-hotbird-13g-13e-row-74-3586",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT HOTBIRD 13G",
+      "orbitalPosition": "13E",
+      "sourceUrl": "https://www.lyngsat.com/Hotbird-13G.html",
+      "retrievedAt": "2026-05-01T07:48:55.716Z",
+      "raw": {
+        "frequencyText": "3586",
+        "beamText": "RNE Ràdio 4",
+        "providerText": "3563 Cat"
+      },
+      "parsed": {
+        "frequencyMHz": 3586,
+        "beamName": "RNE Ràdio 4",
+        "providerName": "3563 Cat"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": false,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable.",
+          "No DVB system/SR/FEC parameters found."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-hotbird-13g-13e-row-75-12322",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT HOTBIRD 13G",
+      "orbitalPosition": "13E",
+      "sourceUrl": "https://www.lyngsat.com/Hotbird-13G.html",
+      "retrievedAt": "2026-05-01T07:48:55.716Z",
+      "raw": {
+        "frequencyText": "12322",
+        "polarizationText": "H",
+        "beamText": "M Al-Taie 260324",
+        "systemText": "DVB-S",
+        "symbolRateText": "27500",
+        "fecText": "3/4",
+        "providerText": "Eutelsat; 318-8100"
+      },
+      "parsed": {
+        "frequencyMHz": 12322,
+        "polarization": "H",
+        "beamName": "M Al-Taie 260324",
+        "system": "DVB-S",
+        "symbolRate": 27500,
+        "fec": "3/4",
+        "providerName": "Eutelsat; 318-8100"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-hotbird-13g-13e-s2-12380",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT HOTBIRD 13G",
+      "orbitalPosition": "13E",
+      "sourceUrl": "https://www.lyngsat.com/Hotbird-13G.html",
+      "retrievedAt": "2026-05-01T07:48:55.716Z",
+      "raw": {
+        "frequencyText": "12380",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "A Ishchenko Dallara T Viererbe 250930",
+        "systemText": "DVB-S2",
+        "symbolRateText": "30000",
+        "fecText": "5/6",
+        "providerText": "318-8400"
+      },
+      "parsed": {
+        "frequencyMHz": 12380,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "A Ishchenko Dallara T Viererbe 250930",
+        "system": "DVB-S2",
+        "symbolRate": 30000,
+        "fec": "5/6",
+        "providerName": "318-8400"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-hotbird-13g-13e-s2-12399",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT HOTBIRD 13G",
+      "orbitalPosition": "13E",
+      "sourceUrl": "https://www.lyngsat.com/Hotbird-13G.html",
+      "retrievedAt": "2026-05-01T07:48:55.716Z",
+      "raw": {
+        "frequencyText": "12399",
+        "polarizationText": "H",
+        "transponderText": "S2",
+        "beamText": "M Al-Taie 260413",
+        "systemText": "DVB-S2",
+        "symbolRateText": "29700",
+        "fecText": "2/3",
+        "providerText": "318-8500"
+      },
+      "parsed": {
+        "frequencyMHz": 12399,
+        "polarization": "H",
+        "transponderNumber": "S2",
+        "beamName": "M Al-Taie 260413",
+        "system": "DVB-S2",
+        "symbolRate": 29700,
+        "fec": "2/3",
+        "providerName": "318-8500"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-hotbird-13g-13e-s2-12437",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT HOTBIRD 13G",
+      "orbitalPosition": "13E",
+      "sourceUrl": "https://www.lyngsat.com/Hotbird-13G.html",
+      "retrievedAt": "2026-05-01T07:48:55.716Z",
+      "raw": {
+        "frequencyText": "12437",
+        "polarizationText": "H",
+        "transponderText": "S2",
+        "beamText": "Dondohodho 260319",
+        "systemText": "DVB-S2",
+        "symbolRateText": "27500",
+        "fecText": "3/4",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 12437,
+        "polarization": "H",
+        "transponderNumber": "S2",
+        "beamName": "Dondohodho 260319",
+        "system": "DVB-S2",
+        "symbolRate": 27500,
+        "fec": "3/4",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-hotbird-13g-13e-s2-12476",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT HOTBIRD 13G",
+      "orbitalPosition": "13E",
+      "sourceUrl": "https://www.lyngsat.com/Hotbird-13G.html",
+      "retrievedAt": "2026-05-01T07:48:55.716Z",
+      "raw": {
+        "frequencyText": "12476",
+        "polarizationText": "H",
+        "transponderText": "S2",
+        "beamText": "Conax Irdeto Mediaguard Nagravision Viaccess",
+        "systemText": "DVB-S2",
+        "symbolRateText": "29900",
+        "fecText": "3/4",
+        "providerText": "Hadowooalsatan 260126; Globecast; 318-8900"
+      },
+      "parsed": {
+        "frequencyMHz": 12476,
+        "polarization": "H",
+        "transponderNumber": "S2",
+        "beamName": "Conax Irdeto Mediaguard Nagravision Viaccess",
+        "system": "DVB-S2",
+        "symbolRate": 29900,
+        "fec": "3/4",
+        "providerName": "Hadowooalsatan 260126; Globecast; 318-8900"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-hotbird-13g-13e-s2-12520",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT HOTBIRD 13G",
+      "orbitalPosition": "13E",
+      "sourceUrl": "https://www.lyngsat.com/Hotbird-13G.html",
+      "retrievedAt": "2026-05-01T07:48:55.716Z",
+      "raw": {
+        "frequencyText": "12520",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "N Schlammer M Al-Taie 260419",
+        "systemText": "DVB-S2",
+        "symbolRateText": "27500",
+        "fecText": "2/3",
+        "providerText": "318-9000"
+      },
+      "parsed": {
+        "frequencyMHz": 12520,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "N Schlammer M Al-Taie 260419",
+        "system": "DVB-S2",
+        "symbolRate": 27500,
+        "fec": "2/3",
+        "providerName": "318-9000"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-hotbird-13g-13e-s2-12577",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT HOTBIRD 13G",
+      "orbitalPosition": "13E",
+      "sourceUrl": "https://www.lyngsat.com/Hotbird-13G.html",
+      "retrievedAt": "2026-05-01T07:48:55.716Z",
+      "raw": {
+        "frequencyText": "12577",
+        "polarizationText": "H",
+        "transponderText": "S2",
+        "beamText": "M Al-Taie 260401",
+        "systemText": "DVB-S2",
+        "symbolRateText": "27500",
+        "fecText": "3/4",
+        "providerText": "318-9300"
+      },
+      "parsed": {
+        "frequencyMHz": 12577,
+        "polarization": "H",
+        "transponderNumber": "S2",
+        "beamName": "M Al-Taie 260401",
+        "system": "DVB-S2",
+        "symbolRate": 27500,
+        "fec": "3/4",
+        "providerName": "318-9300"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-hotbird-13g-13e-s2-12583",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT HOTBIRD 13G",
+      "orbitalPosition": "13E",
+      "sourceUrl": "https://www.lyngsat.com/Hotbird-13G.html",
+      "retrievedAt": "2026-05-01T07:48:55.716Z",
+      "raw": {
+        "frequencyText": "12583",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "Jamie A 250906",
+        "systemText": "DVB-S2",
+        "symbolRateText": "7120",
+        "fecText": "3/4",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 12583,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "Jamie A 250906",
+        "system": "DVB-S2",
+        "symbolRate": 7120,
+        "fec": "3/4",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-hotbird-13g-13e-s2-12592",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT HOTBIRD 13G",
+      "orbitalPosition": "13E",
+      "sourceUrl": "https://www.lyngsat.com/Hotbird-13G.html",
+      "retrievedAt": "2026-05-01T07:48:55.716Z",
+      "raw": {
+        "frequencyText": "12592",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "Jamie A 250906",
+        "systemText": "DVB-S2",
+        "symbolRateText": "7120",
+        "fecText": "3/4",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 12592,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "Jamie A 250906",
+        "system": "DVB-S2",
+        "symbolRate": 7120,
+        "fec": "3/4",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-hotbird-13g-13e-s2-12598",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT HOTBIRD 13G",
+      "orbitalPosition": "13E",
+      "sourceUrl": "https://www.lyngsat.com/Hotbird-13G.html",
+      "retrievedAt": "2026-05-01T07:48:55.716Z",
+      "raw": {
+        "frequencyText": "12598",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "Roli 250906",
+        "systemText": "DVB-S2",
+        "symbolRateText": "3674",
+        "fecText": "3/4",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 12598,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "Roli 250906",
+        "system": "DVB-S2",
+        "symbolRate": 3674,
+        "fec": "3/4",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-hotbird-13g-13e-s2-12603",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT HOTBIRD 13G",
+      "orbitalPosition": "13E",
+      "sourceUrl": "https://www.lyngsat.com/Hotbird-13G.html",
+      "retrievedAt": "2026-05-01T07:48:55.716Z",
+      "raw": {
+        "frequencyText": "12603",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "Roli 250906",
+        "systemText": "DVB-S2",
+        "symbolRateText": "3674",
+        "fecText": "3/4",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 12603,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "Roli 250906",
+        "system": "DVB-S2",
+        "symbolRate": 3674,
+        "fec": "3/4",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-hotbird-13g-13e-s2-12610",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT HOTBIRD 13G",
+      "orbitalPosition": "13E",
+      "sourceUrl": "https://www.lyngsat.com/Hotbird-13G.html",
+      "retrievedAt": "2026-05-01T07:48:55.716Z",
+      "raw": {
+        "frequencyText": "12610",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "Jamie A 251025",
+        "systemText": "DVB-S2",
+        "symbolRateText": "7200",
+        "fecText": "3/4",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 12610,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "Jamie A 251025",
+        "system": "DVB-S2",
+        "symbolRate": 7200,
+        "fec": "3/4",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-hotbird-13g-13e-s2-nofreq",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT HOTBIRD 13G",
+      "orbitalPosition": "13E",
+      "sourceUrl": "https://www.lyngsat.com/Hotbird-13G.html",
+      "retrievedAt": "2026-05-01T07:48:55.716Z",
+      "raw": {
+        "transponderText": "S2",
+        "beamText": "System:",
+        "systemText": "DVB-S2",
+        "providerText": "non-DTH"
+      },
+      "parsed": {
+        "transponderNumber": "S2",
+        "beamName": "System:",
+        "system": "DVB-S2",
+        "providerName": "non-DTH"
+      },
+      "parseQuality": {
+        "hasFrequency": false,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Downlink frequency not parseable; row kept due to transponder ID.",
+          "Polarization not present or not parseable."
+        ]
+      }
+    }
+  ]
+}

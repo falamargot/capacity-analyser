@@ -1,0 +1,15 @@
+{
+  "version": "2",
+  "satelliteName": "EUTELSAT HOTBIRD 13C",
+  "orbitalPosition": "13E",
+  "generatedAt": "2026-05-01T07:49:01.512Z",
+  "totalRawObservations": 0,
+  "transponders": [],
+  "summary": {
+    "total": 0,
+    "downlinkKnown": 0,
+    "downlinkBeamKnown": 0,
+    "uplinkInferred": 0,
+    "uplinkUnknown": 0
+  }
+}

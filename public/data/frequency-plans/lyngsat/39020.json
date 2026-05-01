@@ -1,0 +1,234 @@
+{
+  "source": "LYNGSAT",
+  "satelliteName": "EUTELSAT 70B",
+  "orbitalPosition": "70.5E",
+  "url": "https://www.lyngsat.com/Eutelsat-70B.html",
+  "retrievedAt": "2026-05-01T07:26:15.084Z",
+  "parserStats": {
+    "totalRowsSeen": 110,
+    "rowsWithFrequency": 20,
+    "rowsWithBeam": 21,
+    "rowsWithTransponderId": 17,
+    "rowsSkipped": 89,
+    "skipReasons": {
+      "too_few_cells": 45,
+      "no_frequency_no_transponder": 44
+    }
+  },
+  "rows": [
+    {
+      "frequencyMHz": 10953,
+      "polarization": "V",
+      "transponderNumber": "S2",
+      "beamName": "N Stanislav 250511",
+      "system": "DVB-S2",
+      "symbolRate": 2100,
+      "fec": "2/3",
+      "provider": "(feeds)",
+      "htmlRowText": "10953 V tp BAA2 Central Asia | DVB-S2 QPSK 2100 2/3 | (feeds) | N Stanislav 250511"
+    },
+    {
+      "frequencyMHz": 11050,
+      "polarization": "H",
+      "transponderNumber": "S2",
+      "beamName": "Anonymous 260303",
+      "system": "DVB-S2",
+      "symbolRate": 17670,
+      "fec": "3/5",
+      "provider": "TRBNA; 1-2",
+      "htmlRowText": "11050 H tp BCC3 Central Asia 0 | DVB-S2 QPSK 17670 3/5 | TRBNA | 1-2 | 2.2 | BISS | Anonymous 260303"
+    },
+    {
+      "frequencyMHz": 4001,
+      "beamName": "Public Radio of Armenia",
+      "htmlRowText": "10 | Public Radio of Armenia | 4001 Arm"
+    },
+    {
+      "frequencyMHz": 11097,
+      "polarization": "H",
+      "transponderNumber": "S2",
+      "beamName": "N Stanislav 260416",
+      "system": "DVB-S2",
+      "symbolRate": 23627,
+      "fec": "3/5",
+      "provider": "Kyrgyz mux; 1821-0",
+      "htmlRowText": "11097 H tp BCC3 Central Asia 0 | DVB-S2 QPSK 23627 3/5 | Kyrgyz mux | 1821-0 | 2.2 | N Stanislav 260416"
+    },
+    {
+      "frequencyMHz": 4113,
+      "beamName": "Ala Too 24",
+      "system": "MPEG-4",
+      "symbolRate": 4352,
+      "provider": "4352 Kir",
+      "htmlRowText": "2 | Ala Too 24 | MPEG-4/SD | 4113 | 4352 Kir"
+    },
+    {
+      "frequencyMHz": 11113,
+      "polarization": "H",
+      "transponderNumber": "S2",
+      "beamName": "N Stanislav 250511",
+      "system": "DVB-S2",
+      "symbolRate": 4000,
+      "fec": "5/6",
+      "htmlRowText": "11113 H tp BCC3 Central Asia 0 | DVB-S2 8PSK 4000 5/6 | 9.4 | N Stanislav 250511"
+    },
+    {
+      "frequencyMHz": 11456,
+      "polarization": "V",
+      "transponderNumber": "S2",
+      "beamName": "N Stanislav 250628",
+      "system": "DVB-S2",
+      "symbolRate": 3000,
+      "fec": "5/6",
+      "provider": "(feeds)",
+      "htmlRowText": "11456 V Wide | DVB-S2 QPSK 3000 5/6 | (feeds) | N Stanislav 250628"
+    },
+    {
+      "frequencyMHz": 12507,
+      "polarization": "V",
+      "transponderNumber": "S2",
+      "beamName": "N Stanislav 250628",
+      "system": "DVB-S2",
+      "symbolRate": 2222,
+      "fec": "3/4",
+      "provider": "Al Ayyam TV; 7.9 512 Ara",
+      "htmlRowText": "12507 V Wide 42-44 | DVB-S2 8PSK 2222 3/4 | 1 | Al Ayyam TV | ?-? MPEG-4/SD | 256 | 7.9 512 Ara | N Stanislav 250628"
+    },
+    {
+      "frequencyMHz": 12520,
+      "polarization": "V",
+      "transponderNumber": "S2",
+      "beamName": "N Stanislav 211105",
+      "system": "DVB-S2",
+      "symbolRate": 1600,
+      "fec": "5/6",
+      "provider": "Al Nujaba TV; 9.4 256 Ara",
+      "htmlRowText": "12520 V Wide 42-44 | DVB-S2 8PSK 1600 5/6 | 1 | Al Nujaba TV | ?-? MPEG-2/SD | 308 | 9.4 256 Ara | N Stanislav 211105"
+    },
+    {
+      "frequencyMHz": 12522,
+      "polarization": "V",
+      "transponderNumber": "S2",
+      "beamName": "N Stanislav 250628",
+      "system": "DVB-S2",
+      "symbolRate": 1600,
+      "fec": "5/6",
+      "provider": "(feeds)",
+      "htmlRowText": "12522 V Wide | DVB-S2 8PSK 1600 5/6 | (feeds) | N Stanislav 250628"
+    },
+    {
+      "frequencyMHz": 12524,
+      "polarization": "V",
+      "transponderNumber": "S2",
+      "beamName": "N Stanislav 210821",
+      "system": "DVB-S2",
+      "symbolRate": 1600,
+      "fec": "5/6",
+      "provider": "Alanwar TV 2; 9.4 512 Ara",
+      "htmlRowText": "12524 V Wide 42-44 | DVB-S2 8PSK 1600 5/6 | 1 | Alanwar TV 2 | 0-0 MPEG-4/SD | 256 | 9.4 512 Ara | N Stanislav 210821"
+    },
+    {
+      "frequencyMHz": 12529,
+      "polarization": "V",
+      "transponderNumber": "S2",
+      "beamName": "N Stanislav 250813",
+      "system": "DVB-S2",
+      "symbolRate": 1600,
+      "fec": "5/6",
+      "provider": "(feeds)",
+      "htmlRowText": "12529 V Wide | DVB-S2 8PSK 1600 5/6 | (feeds) | N Stanislav 250813"
+    },
+    {
+      "frequencyMHz": 12533,
+      "polarization": "V",
+      "beamName": "N Stanislav 260303",
+      "htmlRowText": "12533 V Wide 42-44 | N Stanislav 260303"
+    },
+    {
+      "frequencyMHz": 12535,
+      "polarization": "V",
+      "beamName": "N Stanislav 260107",
+      "system": "DVB-S",
+      "symbolRate": 1500,
+      "fec": "5/6",
+      "provider": "(feeds)",
+      "htmlRowText": "12535 V Wide | DVB-S 1500 5/6 | (feeds) | N Stanislav 260107"
+    },
+    {
+      "frequencyMHz": 12569,
+      "polarization": "V",
+      "transponderNumber": "S2",
+      "beamName": "С Ткачук 251224",
+      "system": "DVB-S2",
+      "symbolRate": 1500,
+      "fec": "5/6",
+      "provider": "Al Eshraq TV; 9.4 1011 Ara",
+      "htmlRowText": "12569 V Wide 42-44 | DVB-S2 8PSK 1500 5/6 | 1 | Al Eshraq TV | 65535-1 MPEG-2/SD | 1010 | 9.4 1011 Ara | С Ткачук 251224"
+    },
+    {
+      "frequencyMHz": 12571,
+      "polarization": "V",
+      "transponderNumber": "S2",
+      "beamName": "С Ткачук 251215",
+      "system": "DVB-S2",
+      "symbolRate": 1500,
+      "fec": "3/4",
+      "eirpDbw": 33,
+      "provider": "Bayyinat TV; 7.9 34 Ara",
+      "htmlRowText": "12571 V Wide 42-44 | DVB-S2 8PSK 1500 3/4 | 1 | Bayyinat TV | ?-? MPEG-4/HD | 33 | 7.9 34 Ara | С Ткачук 251215"
+    },
+    {
+      "frequencyMHz": 12573,
+      "polarization": "V",
+      "transponderNumber": "S2",
+      "beamName": "С Ткачук 251215",
+      "system": "DVB-S2",
+      "symbolRate": 1500,
+      "fec": "5/6",
+      "eirpDbw": 33,
+      "provider": "Al-Naeem TV; 9.4 36 Ara",
+      "htmlRowText": "12573 V Wide 42-44 | DVB-S2 8PSK 1500 5/6 | 2 | Al-Naeem TV | ?-? MPEG-4/HD | 33 | 9.4 36 Ara | С Ткачук 251215"
+    },
+    {
+      "frequencyMHz": 12575,
+      "polarization": "V",
+      "transponderNumber": "S2",
+      "beamName": "С Ткачук 251215",
+      "system": "DVB-S2",
+      "symbolRate": 1500,
+      "fec": "3/4",
+      "provider": "Thaqalayn TV; 7.9 2031 Ara",
+      "htmlRowText": "12575 V Wide 42-44 | DVB-S2 8PSK 1500 3/4 | 203 | Thaqalayn TV | 65535-1 MPEG-2/SD | 2030 | 7.9 2031 Ara | С Ткачук 251215"
+    },
+    {
+      "frequencyMHz": 12577,
+      "polarization": "V",
+      "transponderNumber": "S2",
+      "beamName": "С Ткачук 251215",
+      "system": "DVB-S2",
+      "symbolRate": 1500,
+      "fec": "3/4",
+      "provider": "Thaqalayn TV; 7.9 257 Ara",
+      "htmlRowText": "12577 V Wide 42-44 | DVB-S2 8PSK 1500 3/4 | 1 | Thaqalayn TV | 1-1 MPEG-2/SD | 310 | 7.9 257 Ara | С Ткачук 251215"
+    },
+    {
+      "frequencyMHz": 12682,
+      "polarization": "V",
+      "transponderNumber": "F6",
+      "transponderName": "TP F6",
+      "beamName": "N Stanislav 250930",
+      "system": "DVB-S2",
+      "symbolRate": 16046,
+      "fec": "1/2",
+      "provider": "M-Three satcom; 1-1",
+      "htmlRowText": "12682 V tp F6 Wide 42-44 | DVB-S2 QPSK 16046 1/2 | M-Three satcom | 1-1 | 1.0 | N Stanislav 250930"
+    },
+    {
+      "transponderNumber": "S2",
+      "beamName": "System:",
+      "system": "DVB-S2",
+      "provider": "non-DTH",
+      "htmlRowText": "System: | DVB-S2 | DVB-S | non-DTH | - | -"
+    }
+  ]
+}

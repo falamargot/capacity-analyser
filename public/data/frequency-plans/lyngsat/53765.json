@@ -1,0 +1,27 @@
+{
+  "source": "LYNGSAT",
+  "satelliteName": "EUTELSAT KONNECT VHTS",
+  "orbitalPosition": "2.7E",
+  "url": "https://www.lyngsat.com/Eutelsat-Konnect-VHTS.html",
+  "retrievedAt": "2026-05-01T07:48:50.078Z",
+  "parserStats": {
+    "totalRowsSeen": 47,
+    "rowsWithFrequency": 0,
+    "rowsWithBeam": 1,
+    "rowsWithTransponderId": 1,
+    "rowsSkipped": 46,
+    "skipReasons": {
+      "too_few_cells": 40,
+      "no_frequency_no_transponder": 6
+    }
+  },
+  "rows": [
+    {
+      "transponderNumber": "S2",
+      "beamName": "System:",
+      "system": "DVB-S2",
+      "provider": "non-DTH",
+      "htmlRowText": "System: | DVB-S2 | DVB-S | non-DTH | - | -"
+    }
+  ]
+}

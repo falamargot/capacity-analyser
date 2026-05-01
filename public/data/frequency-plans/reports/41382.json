@@ -1,0 +1,13 @@
+{
+  "satelliteName": "EUTELSAT 65 WEST A",
+  "source": "LYNGSAT",
+  "generatedAt": "2026-05-01T07:49:01.528Z",
+  "totalRowsSeen": 43,
+  "observationsCreated": 43,
+  "rowsWithFrequency": 20,
+  "rowsWithBeam": 43,
+  "rowsWithTransponderId": 40,
+  "rowsSkipped": 0,
+  "skipReasons": {},
+  "normalizedTransponders": 25
+}

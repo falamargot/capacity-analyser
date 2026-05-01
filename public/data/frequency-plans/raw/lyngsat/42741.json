@@ -1,0 +1,611 @@
+{
+  "version": "2",
+  "satelliteName": "EUTELSAT 172B",
+  "orbitalPosition": "172E",
+  "source": "LYNGSAT",
+  "sourceUrl": "https://www.lyngsat.com/Eutelsat-172B.html",
+  "generatedAt": "2026-05-01T07:49:01.530Z",
+  "observations": [
+    {
+      "id": "lyngsat-eutelsat-172b-172e-s2-3888",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 172B",
+      "orbitalPosition": "172E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-172B.html",
+      "retrievedAt": "2026-05-01T07:48:36.058Z",
+      "raw": {
+        "frequencyText": "3888",
+        "polarizationText": "H",
+        "transponderText": "S2",
+        "beamText": "Papua New Guinean mux",
+        "systemText": "DVB-S2",
+        "symbolRateText": "10414",
+        "fecText": "5/6",
+        "providerText": "远方的星星 260317; StreamGuard; 10000-4"
+      },
+      "parsed": {
+        "frequencyMHz": 3888,
+        "polarization": "H",
+        "transponderNumber": "S2",
+        "beamName": "Papua New Guinean mux",
+        "system": "DVB-S2",
+        "symbolRate": 10414,
+        "fec": "5/6",
+        "providerName": "远方的星星 260317; StreamGuard; 10000-4"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-172b-172e-s2-3916",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 172B",
+      "orbitalPosition": "172E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-172B.html",
+      "retrievedAt": "2026-05-01T07:48:36.058Z",
+      "raw": {
+        "frequencyText": "3916",
+        "polarizationText": "H",
+        "transponderText": "S2",
+        "beamText": "Hope Channel Australia",
+        "systemText": "DVB-S2",
+        "symbolRateText": "3330",
+        "fecText": "3/4",
+        "providerText": "C Sutton 210204; 4.0 1120 Eng"
+      },
+      "parsed": {
+        "frequencyMHz": 3916,
+        "polarization": "H",
+        "transponderNumber": "S2",
+        "beamName": "Hope Channel Australia",
+        "system": "DVB-S2",
+        "symbolRate": 3330,
+        "fec": "3/4",
+        "providerName": "C Sutton 210204; 4.0 1120 Eng"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-172b-172e-s2-3947",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 172B",
+      "orbitalPosition": "172E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-172B.html",
+      "retrievedAt": "2026-05-01T07:48:36.058Z",
+      "raw": {
+        "frequencyText": "3947",
+        "polarizationText": "H",
+        "transponderText": "S2",
+        "beamText": "远方的星星 260411",
+        "systemText": "DVB-S2",
+        "symbolRateText": "15000",
+        "fecText": "3/5",
+        "providerText": "Verimatrix; 65520-1; Walesi"
+      },
+      "parsed": {
+        "frequencyMHz": 3947,
+        "polarization": "H",
+        "transponderNumber": "S2",
+        "beamName": "远方的星星 260411",
+        "system": "DVB-S2",
+        "symbolRate": 15000,
+        "fec": "3/5",
+        "providerName": "Verimatrix; 65520-1; Walesi"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-172b-172e-row-4-4096",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 172B",
+      "orbitalPosition": "172E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-172B.html",
+      "retrievedAt": "2026-05-01T07:48:36.058Z",
+      "raw": {
+        "frequencyText": "4096",
+        "beamText": "Parliament of Fiji",
+        "systemText": "MPEG-4",
+        "symbolRateText": "3001",
+        "providerText": "3001 Eng 4097 Eng; Verimatrix"
+      },
+      "parsed": {
+        "frequencyMHz": 4096,
+        "beamName": "Parliament of Fiji",
+        "system": "MPEG-4",
+        "symbolRate": 3001,
+        "providerName": "3001 Eng 4097 Eng; Verimatrix"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-172b-172e-s2-4198",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 172B",
+      "orbitalPosition": "172E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-172B.html",
+      "retrievedAt": "2026-05-01T07:48:36.058Z",
+      "raw": {
+        "frequencyText": "4198",
+        "polarizationText": "H",
+        "transponderText": "S2",
+        "beamText": "C Sutton 211113",
+        "systemText": "DVB-S2",
+        "symbolRateText": "520",
+        "fecText": "5/6"
+      },
+      "parsed": {
+        "frequencyMHz": 4198,
+        "polarization": "H",
+        "transponderNumber": "S2",
+        "beamName": "C Sutton 211113",
+        "system": "DVB-S2",
+        "symbolRate": 520,
+        "fec": "5/6"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-172b-172e-row-6-4181",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 172B",
+      "orbitalPosition": "172E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-172B.html",
+      "retrievedAt": "2026-05-01T07:48:36.058Z",
+      "raw": {
+        "frequencyText": "4181",
+        "beamText": "K-Love"
+      },
+      "parsed": {
+        "frequencyMHz": 4181,
+        "beamName": "K-Love"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": false,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable.",
+          "No DVB system/SR/FEC parameters found."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-172b-172e-row-7-4197",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 172B",
+      "orbitalPosition": "172E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-172B.html",
+      "retrievedAt": "2026-05-01T07:48:36.058Z",
+      "raw": {
+        "frequencyText": "4197",
+        "beamText": "Air 1 Worship Now"
+      },
+      "parsed": {
+        "frequencyMHz": 4197,
+        "beamName": "Air 1 Worship Now"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": false,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable.",
+          "No DVB system/SR/FEC parameters found."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-172b-172e-b4-11044",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 172B",
+      "orbitalPosition": "172E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-172B.html",
+      "retrievedAt": "2026-05-01T07:48:36.058Z",
+      "raw": {
+        "frequencyText": "11044",
+        "polarizationText": "V",
+        "transponderText": "B4",
+        "beamText": "C Sutton 250925",
+        "systemText": "DVB-S2",
+        "symbolRateText": "45000",
+        "fecText": "4/5",
+        "providerText": "ABC NT"
+      },
+      "parsed": {
+        "frequencyMHz": 11044,
+        "polarization": "V",
+        "transponderNumber": "B4",
+        "transponderName": "TP B4",
+        "beamName": "C Sutton 250925",
+        "system": "DVB-S2",
+        "symbolRate": 45000,
+        "fec": "4/5",
+        "providerName": "ABC NT"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-172b-172e-b4-11044",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 172B",
+      "orbitalPosition": "172E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-172B.html",
+      "retrievedAt": "2026-05-01T07:48:36.058Z",
+      "raw": {
+        "frequencyText": "11044",
+        "polarizationText": "V",
+        "transponderText": "B4",
+        "beamText": "C Sutton 250925",
+        "systemText": "DVB-S2",
+        "symbolRateText": "45000",
+        "fecText": "4/5",
+        "providerText": "ABC WA"
+      },
+      "parsed": {
+        "frequencyMHz": 11044,
+        "polarization": "V",
+        "transponderNumber": "B4",
+        "transponderName": "TP B4",
+        "beamName": "C Sutton 250925",
+        "system": "DVB-S2",
+        "symbolRate": 45000,
+        "fec": "4/5",
+        "providerName": "ABC WA"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-172b-172e-b4-11044",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 172B",
+      "orbitalPosition": "172E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-172B.html",
+      "retrievedAt": "2026-05-01T07:48:36.058Z",
+      "raw": {
+        "frequencyText": "11044",
+        "polarizationText": "V",
+        "transponderText": "B4",
+        "beamText": "C Sutton 250925",
+        "systemText": "DVB-S2",
+        "symbolRateText": "45000",
+        "fecText": "4/5",
+        "providerText": "ABC Queensland"
+      },
+      "parsed": {
+        "frequencyMHz": 11044,
+        "polarization": "V",
+        "transponderNumber": "B4",
+        "transponderName": "TP B4",
+        "beamName": "C Sutton 250925",
+        "system": "DVB-S2",
+        "symbolRate": 45000,
+        "fec": "4/5",
+        "providerName": "ABC Queensland"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-172b-172e-b4-11044",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 172B",
+      "orbitalPosition": "172E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-172B.html",
+      "retrievedAt": "2026-05-01T07:48:36.058Z",
+      "raw": {
+        "frequencyText": "11044",
+        "polarizationText": "V",
+        "transponderText": "B4",
+        "beamText": "C Sutton 250925",
+        "systemText": "DVB-S2",
+        "symbolRateText": "45000",
+        "fecText": "4/5",
+        "providerText": "SBS WA"
+      },
+      "parsed": {
+        "frequencyMHz": 11044,
+        "polarization": "V",
+        "transponderNumber": "B4",
+        "transponderName": "TP B4",
+        "beamName": "C Sutton 250925",
+        "system": "DVB-S2",
+        "symbolRate": 45000,
+        "fec": "4/5",
+        "providerName": "SBS WA"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-172b-172e-b4-11044",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 172B",
+      "orbitalPosition": "172E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-172B.html",
+      "retrievedAt": "2026-05-01T07:48:36.058Z",
+      "raw": {
+        "frequencyText": "11044",
+        "polarizationText": "V",
+        "transponderText": "B4",
+        "beamText": "C Sutton 250925",
+        "systemText": "DVB-S2",
+        "symbolRateText": "45000",
+        "fecText": "4/5",
+        "providerText": "SBS Queensland"
+      },
+      "parsed": {
+        "frequencyMHz": 11044,
+        "polarization": "V",
+        "transponderNumber": "B4",
+        "transponderName": "TP B4",
+        "beamName": "C Sutton 250925",
+        "system": "DVB-S2",
+        "symbolRate": 45000,
+        "fec": "4/5",
+        "providerName": "SBS Queensland"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-172b-172e-g3-11537",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 172B",
+      "orbitalPosition": "172E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-172B.html",
+      "retrievedAt": "2026-05-01T07:48:36.058Z",
+      "raw": {
+        "frequencyText": "11537",
+        "polarizationText": "V",
+        "transponderText": "G3",
+        "beamText": "S Holzt 100701",
+        "systemText": "DVB-S2",
+        "symbolRateText": "1500",
+        "providerText": "@ SpeedCast"
+      },
+      "parsed": {
+        "frequencyMHz": 11537,
+        "polarization": "V",
+        "transponderNumber": "G3",
+        "transponderName": "TP G3",
+        "beamName": "S Holzt 100701",
+        "system": "DVB-S2",
+        "symbolRate": 1500,
+        "providerName": "@ SpeedCast"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-172b-172e-g7-11646",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 172B",
+      "orbitalPosition": "172E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-172B.html",
+      "retrievedAt": "2026-05-01T07:48:36.058Z",
+      "raw": {
+        "frequencyText": "11646",
+        "polarizationText": "V",
+        "transponderText": "G7",
+        "beamText": "S Holzt 090921",
+        "systemText": "DVB-S2",
+        "symbolRateText": "2200",
+        "providerText": "@ SpeedCast"
+      },
+      "parsed": {
+        "frequencyMHz": 11646,
+        "polarization": "V",
+        "transponderNumber": "G7",
+        "transponderName": "TP G7",
+        "beamName": "S Holzt 090921",
+        "system": "DVB-S2",
+        "symbolRate": 2200,
+        "providerName": "@ SpeedCast"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-172b-172e-f3-12611",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 172B",
+      "orbitalPosition": "172E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-172B.html",
+      "retrievedAt": "2026-05-01T07:48:36.058Z",
+      "raw": {
+        "frequencyText": "12611",
+        "polarizationText": "H",
+        "transponderText": "F3",
+        "beamText": "Paul 9 251202",
+        "systemText": "DVB-S2",
+        "symbolRateText": "30000",
+        "fecText": "3/4",
+        "providerText": "TV Plus; Irdeto"
+      },
+      "parsed": {
+        "frequencyMHz": 12611,
+        "polarization": "H",
+        "transponderNumber": "F3",
+        "transponderName": "TP F3",
+        "beamName": "Paul 9 251202",
+        "system": "DVB-S2",
+        "symbolRate": 30000,
+        "fec": "3/4",
+        "providerName": "TV Plus; Irdeto"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-172b-172e-b92-nofreq",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 172B",
+      "orbitalPosition": "172E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-172B.html",
+      "retrievedAt": "2026-05-01T07:48:36.058Z",
+      "raw": {
+        "transponderText": "B92",
+        "beamText": "853 Srp",
+        "systemText": "MPEG-4",
+        "eirpText": "53",
+        "providerText": "Irdeto"
+      },
+      "parsed": {
+        "transponderNumber": "B92",
+        "beamName": "853 Srp",
+        "system": "MPEG-4",
+        "eirpDbw": 53,
+        "providerName": "Irdeto"
+      },
+      "parseQuality": {
+        "hasFrequency": false,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Downlink frequency not parseable; row kept due to transponder ID.",
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-172b-172e-s2-nofreq",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 172B",
+      "orbitalPosition": "172E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-172B.html",
+      "retrievedAt": "2026-05-01T07:48:36.058Z",
+      "raw": {
+        "transponderText": "S2",
+        "beamText": "System:",
+        "systemText": "DVB-S2",
+        "providerText": "non-DTH"
+      },
+      "parsed": {
+        "transponderNumber": "S2",
+        "beamName": "System:",
+        "system": "DVB-S2",
+        "providerName": "non-DTH"
+      },
+      "parseQuality": {
+        "hasFrequency": false,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Downlink frequency not parseable; row kept due to transponder ID.",
+          "Polarization not present or not parseable."
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "satelliteName": "EUTELSAT 33F",
+  "source": "LYNGSAT",
+  "generatedAt": "2026-05-01T07:49:01.512Z",
+  "totalRowsSeen": 10,
+  "observationsCreated": 10,
+  "rowsWithFrequency": 9,
+  "rowsWithBeam": 10,
+  "rowsWithTransponderId": 10,
+  "rowsSkipped": 0,
+  "skipReasons": {},
+  "normalizedTransponders": 10
+}

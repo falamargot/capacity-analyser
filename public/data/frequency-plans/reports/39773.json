@@ -1,0 +1,13 @@
+{
+  "satelliteName": "EUTELSAT 3B",
+  "source": "LYNGSAT",
+  "generatedAt": "2026-05-01T07:49:01.524Z",
+  "totalRowsSeen": 68,
+  "observationsCreated": 68,
+  "rowsWithFrequency": 66,
+  "rowsWithBeam": 67,
+  "rowsWithTransponderId": 57,
+  "rowsSkipped": 0,
+  "skipReasons": {},
+  "normalizedTransponders": 58
+}

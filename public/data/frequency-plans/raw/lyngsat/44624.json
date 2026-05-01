@@ -1,0 +1,1690 @@
+{
+  "version": "2",
+  "satelliteName": "EUTELSAT 5 WEST B",
+  "orbitalPosition": "5W",
+  "source": "LYNGSAT",
+  "sourceUrl": "https://www.lyngsat.com/Eutelsat-5-West-B.html",
+  "generatedAt": "2026-05-01T07:49:01.531Z",
+  "observations": [
+    {
+      "id": "lyngsat-eutelsat-5-west-b-5w-b2-10972",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 5 WEST B",
+      "orbitalPosition": "5W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-5-West-B.html",
+      "retrievedAt": "2026-05-01T07:48:41.592Z",
+      "raw": {
+        "frequencyText": "10972",
+        "polarizationText": "V",
+        "transponderText": "B2",
+        "beamText": "N Stanislav 221126",
+        "systemText": "DVB-S2",
+        "symbolRateText": "29950",
+        "fecText": "2/3",
+        "providerText": "1375-20600; Viaccess; Fransat"
+      },
+      "parsed": {
+        "frequencyMHz": 10972,
+        "polarization": "V",
+        "transponderNumber": "B2",
+        "transponderName": "TP B2",
+        "beamName": "N Stanislav 221126",
+        "system": "DVB-S2",
+        "symbolRate": 29950,
+        "fec": "2/3",
+        "providerName": "1375-20600; Viaccess; Fransat"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-5-west-b-5w-b6-11054",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 5 WEST B",
+      "orbitalPosition": "5W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-5-West-B.html",
+      "retrievedAt": "2026-05-01T07:48:41.592Z",
+      "raw": {
+        "frequencyText": "11054",
+        "polarizationText": "V",
+        "transponderText": "B6",
+        "beamText": "Lexzie 260322",
+        "systemText": "DVB-S2",
+        "symbolRateText": "29950",
+        "fecText": "2/3",
+        "providerText": "1375-20500; Viaccess; Fransat"
+      },
+      "parsed": {
+        "frequencyMHz": 11054,
+        "polarization": "V",
+        "transponderNumber": "B6",
+        "transponderName": "TP B6",
+        "beamName": "Lexzie 260322",
+        "system": "DVB-S2",
+        "symbolRate": 29950,
+        "fec": "2/3",
+        "providerName": "1375-20500; Viaccess; Fransat"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-5-west-b-5w-b8-11096",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 5 WEST B",
+      "orbitalPosition": "5W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-5-West-B.html",
+      "retrievedAt": "2026-05-01T07:48:41.592Z",
+      "raw": {
+        "frequencyText": "11096",
+        "polarizationText": "V",
+        "transponderText": "B8",
+        "beamText": "M Al-Taie 260427",
+        "systemText": "DVB-S2",
+        "symbolRateText": "29950",
+        "fecText": "3/4",
+        "providerText": "1375-20400; Viaccess; Fransat"
+      },
+      "parsed": {
+        "frequencyMHz": 11096,
+        "polarization": "V",
+        "transponderNumber": "B8",
+        "transponderName": "TP B8",
+        "beamName": "M Al-Taie 260427",
+        "system": "DVB-S2",
+        "symbolRate": 29950,
+        "fec": "3/4",
+        "providerName": "1375-20400; Viaccess; Fransat"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-5-west-b-5w-d1-11456",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 5 WEST B",
+      "orbitalPosition": "5W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-5-West-B.html",
+      "retrievedAt": "2026-05-01T07:48:41.592Z",
+      "raw": {
+        "frequencyText": "11456",
+        "polarizationText": "H",
+        "transponderText": "D1",
+        "beamText": "M Al-Taie 240928",
+        "systemText": "DVB-S2",
+        "symbolRateText": "2548",
+        "fecText": "3/4",
+        "providerText": "TowerCast; 8442-4"
+      },
+      "parsed": {
+        "frequencyMHz": 11456,
+        "polarization": "H",
+        "transponderNumber": "D1",
+        "transponderName": "TP D1",
+        "beamName": "M Al-Taie 240928",
+        "system": "DVB-S2",
+        "symbolRate": 2548,
+        "fec": "3/4",
+        "providerName": "TowerCast; 8442-4"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-5-west-b-5w-d1-11461",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 5 WEST B",
+      "orbitalPosition": "5W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-5-West-B.html",
+      "retrievedAt": "2026-05-01T07:48:41.592Z",
+      "raw": {
+        "frequencyText": "11461",
+        "polarizationText": "H",
+        "transponderText": "D1",
+        "beamText": "M Al-Taie 251005",
+        "systemText": "DVB-S2",
+        "symbolRateText": "5780",
+        "fecText": "3/4",
+        "providerText": "TowerCast; 8442-3"
+      },
+      "parsed": {
+        "frequencyMHz": 11461,
+        "polarization": "H",
+        "transponderNumber": "D1",
+        "transponderName": "TP D1",
+        "beamName": "M Al-Taie 251005",
+        "system": "DVB-S2",
+        "symbolRate": 5780,
+        "fec": "3/4",
+        "providerName": "TowerCast; 8442-3"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-5-west-b-5w-d1-11465",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 5 WEST B",
+      "orbitalPosition": "5W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-5-West-B.html",
+      "retrievedAt": "2026-05-01T07:48:41.592Z",
+      "raw": {
+        "frequencyText": "11465",
+        "transponderText": "D1",
+        "beamText": "EnoSat 200702",
+        "systemText": "DVB-S2",
+        "symbolRateText": "667",
+        "fecText": "3/5",
+        "providerText": "Alouette; 1-1"
+      },
+      "parsed": {
+        "frequencyMHz": 11465,
+        "transponderNumber": "D1",
+        "transponderName": "TP D1",
+        "beamName": "EnoSat 200702",
+        "system": "DVB-S2",
+        "symbolRate": 667,
+        "fec": "3/5",
+        "providerName": "Alouette; 1-1"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-5-west-b-5w-row-7-4000",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 5 WEST B",
+      "orbitalPosition": "5W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-5-West-B.html",
+      "retrievedAt": "2026-05-01T07:48:41.592Z",
+      "raw": {
+        "frequencyText": "4000",
+        "beamText": "Magic Alouette Creuse",
+        "providerText": "401 Fre"
+      },
+      "parsed": {
+        "frequencyMHz": 4000,
+        "beamName": "Magic Alouette Creuse",
+        "providerName": "401 Fre"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": false,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable.",
+          "No DVB system/SR/FEC parameters found."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-5-west-b-5w-d2-11471",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 5 WEST B",
+      "orbitalPosition": "5W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-5-West-B.html",
+      "retrievedAt": "2026-05-01T07:48:41.592Z",
+      "raw": {
+        "frequencyText": "11471",
+        "polarizationText": "V",
+        "transponderText": "D2",
+        "beamText": "M Al-Taie 260427",
+        "systemText": "DVB-S2",
+        "symbolRateText": "29950",
+        "fecText": "3/4",
+        "providerText": "1375-20100; Viaccess; Fransat"
+      },
+      "parsed": {
+        "frequencyMHz": 11471,
+        "polarization": "V",
+        "transponderNumber": "D2",
+        "transponderName": "TP D2",
+        "beamName": "M Al-Taie 260427",
+        "system": "DVB-S2",
+        "symbolRate": 29950,
+        "fec": "3/4",
+        "providerName": "1375-20100; Viaccess; Fransat"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-5-west-b-5w-d1-11472",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 5 WEST B",
+      "orbitalPosition": "5W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-5-West-B.html",
+      "retrievedAt": "2026-05-01T07:48:41.592Z",
+      "raw": {
+        "frequencyText": "11472",
+        "polarizationText": "H",
+        "transponderText": "D1",
+        "beamText": "M Al-Taie 260115",
+        "systemText": "DVB-S2",
+        "symbolRateText": "9900",
+        "fecText": "4/5",
+        "providerText": "1375-13010"
+      },
+      "parsed": {
+        "frequencyMHz": 11472,
+        "polarization": "H",
+        "transponderNumber": "D1",
+        "transponderName": "TP D1",
+        "beamName": "M Al-Taie 260115",
+        "system": "DVB-S2",
+        "symbolRate": 9900,
+        "fec": "4/5",
+        "providerName": "1375-13010"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-5-west-b-5w-d1-11480",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 5 WEST B",
+      "orbitalPosition": "5W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-5-West-B.html",
+      "retrievedAt": "2026-05-01T07:48:41.592Z",
+      "raw": {
+        "frequencyText": "11480",
+        "polarizationText": "H",
+        "transponderText": "D1",
+        "beamText": "EnoSat 251218",
+        "systemText": "DVB-S2",
+        "symbolRateText": "3167",
+        "fecText": "3/4",
+        "providerText": "144-10001"
+      },
+      "parsed": {
+        "frequencyMHz": 11480,
+        "polarization": "H",
+        "transponderNumber": "D1",
+        "transponderName": "TP D1",
+        "beamName": "EnoSat 251218",
+        "system": "DVB-S2",
+        "symbolRate": 3167,
+        "fec": "3/4",
+        "providerName": "144-10001"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-5-west-b-5w-row-11-4100",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 5 WEST B",
+      "orbitalPosition": "5W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-5-West-B.html",
+      "retrievedAt": "2026-05-01T07:48:41.592Z",
+      "raw": {
+        "frequencyText": "4100",
+        "beamText": "4130 Fre"
+      },
+      "parsed": {
+        "frequencyMHz": 4100,
+        "beamName": "4130 Fre"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": false,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable.",
+          "No DVB system/SR/FEC parameters found."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-5-west-b-5w-row-12-4200",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 5 WEST B",
+      "orbitalPosition": "5W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-5-West-B.html",
+      "retrievedAt": "2026-05-01T07:48:41.592Z",
+      "raw": {
+        "frequencyText": "4200",
+        "beamText": "BFM Business Radio",
+        "symbolRateText": "4230",
+        "providerText": "4230 Fre"
+      },
+      "parsed": {
+        "frequencyMHz": 4200,
+        "beamName": "BFM Business Radio",
+        "symbolRate": 4230,
+        "providerName": "4230 Fre"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-5-west-b-5w-d1-11481",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 5 WEST B",
+      "orbitalPosition": "5W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-5-West-B.html",
+      "retrievedAt": "2026-05-01T07:48:41.592Z",
+      "raw": {
+        "frequencyText": "11481",
+        "transponderText": "D1",
+        "beamText": "EnoSat 251217",
+        "systemText": "DVB-S",
+        "symbolRateText": "543",
+        "fecText": "1/2",
+        "providerText": "TowerCast; 1-1000"
+      },
+      "parsed": {
+        "frequencyMHz": 11481,
+        "transponderNumber": "D1",
+        "transponderName": "TP D1",
+        "beamName": "EnoSat 251217",
+        "system": "DVB-S",
+        "symbolRate": 543,
+        "fec": "1/2",
+        "providerName": "TowerCast; 1-1000"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-5-west-b-5w-d4-11512",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 5 WEST B",
+      "orbitalPosition": "5W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-5-West-B.html",
+      "retrievedAt": "2026-05-01T07:48:41.592Z",
+      "raw": {
+        "frequencyText": "11512",
+        "polarizationText": "V",
+        "transponderText": "D4",
+        "beamText": "M Al-Taie 240902",
+        "systemText": "DVB-S2",
+        "symbolRateText": "29950",
+        "fecText": "2/3",
+        "providerText": "1375-20200; Viaccess; Bis TV"
+      },
+      "parsed": {
+        "frequencyMHz": 11512,
+        "polarization": "V",
+        "transponderNumber": "D4",
+        "transponderName": "TP D4",
+        "beamName": "M Al-Taie 240902",
+        "system": "DVB-S2",
+        "symbolRate": 29950,
+        "fec": "2/3",
+        "providerName": "1375-20200; Viaccess; Bis TV"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-5-west-b-5w-d6-11554",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 5 WEST B",
+      "orbitalPosition": "5W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-5-West-B.html",
+      "retrievedAt": "2026-05-01T07:48:41.592Z",
+      "raw": {
+        "frequencyText": "11554",
+        "polarizationText": "V",
+        "transponderText": "D6",
+        "beamText": "Gompo 260127",
+        "systemText": "DVB-S2",
+        "symbolRateText": "29950",
+        "fecText": "3/4",
+        "providerText": "1375-20300; Viaccess; Fransat"
+      },
+      "parsed": {
+        "frequencyMHz": 11554,
+        "polarization": "V",
+        "transponderNumber": "D6",
+        "transponderName": "TP D6",
+        "beamName": "Gompo 260127",
+        "system": "DVB-S2",
+        "symbolRate": 29950,
+        "fec": "3/4",
+        "providerName": "1375-20300; Viaccess; Fransat"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-5-west-b-5w-d12-11679",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 5 WEST B",
+      "orbitalPosition": "5W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-5-West-B.html",
+      "retrievedAt": "2026-05-01T07:48:41.592Z",
+      "raw": {
+        "frequencyText": "11679",
+        "polarizationText": "V",
+        "transponderText": "D12",
+        "beamText": "M Al-Taie 220706",
+        "systemText": "DVB-S2",
+        "symbolRateText": "29950",
+        "fecText": "2/3",
+        "providerText": "1375-20800; Viaccess; Fransat"
+      },
+      "parsed": {
+        "frequencyMHz": 11679,
+        "polarization": "V",
+        "transponderNumber": "D12",
+        "transponderName": "TP D12",
+        "beamName": "M Al-Taie 220706",
+        "system": "DVB-S2",
+        "symbolRate": 29950,
+        "fec": "2/3",
+        "providerName": "1375-20800; Viaccess; Fransat"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-5-west-b-5w-f2-12522",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 5 WEST B",
+      "orbitalPosition": "5W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-5-West-B.html",
+      "retrievedAt": "2026-05-01T07:48:41.592Z",
+      "raw": {
+        "frequencyText": "12522",
+        "polarizationText": "V",
+        "transponderText": "F2",
+        "beamText": "Gompo 260128",
+        "systemText": "DVB-S2",
+        "symbolRateText": "29950",
+        "fecText": "2/3",
+        "providerText": "1375-20700; Viaccess; Fransat"
+      },
+      "parsed": {
+        "frequencyMHz": 12522,
+        "polarization": "V",
+        "transponderNumber": "F2",
+        "transponderName": "TP F2",
+        "beamName": "Gompo 260128",
+        "system": "DVB-S2",
+        "symbolRate": 29950,
+        "fec": "2/3",
+        "providerName": "1375-20700; Viaccess; Fransat"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-5-west-b-5w-f1-12536",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 5 WEST B",
+      "orbitalPosition": "5W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-5-West-B.html",
+      "retrievedAt": "2026-05-01T07:48:41.592Z",
+      "raw": {
+        "frequencyText": "12536",
+        "polarizationText": "H",
+        "transponderText": "F1",
+        "beamText": "Lexzie 250818",
+        "systemText": "DVB-S2",
+        "symbolRateText": "35300",
+        "fecText": "2/3",
+        "providerText": "RAI mux MR 5; 8572-153"
+      },
+      "parsed": {
+        "frequencyMHz": 12536,
+        "polarization": "H",
+        "transponderNumber": "F1",
+        "transponderName": "TP F1",
+        "beamName": "Lexzie 250818",
+        "system": "DVB-S2",
+        "symbolRate": 35300,
+        "fec": "2/3",
+        "providerName": "RAI mux MR 5; 8572-153"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-5-west-b-5w-f1-12536",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 5 WEST B",
+      "orbitalPosition": "5W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-5-West-B.html",
+      "retrievedAt": "2026-05-01T07:48:41.592Z",
+      "raw": {
+        "frequencyText": "12536",
+        "polarizationText": "H",
+        "transponderText": "F1",
+        "beamText": "RAI mux MR 10",
+        "systemText": "DVB-S2",
+        "symbolRateText": "35300",
+        "fecText": "2/3",
+        "providerText": "Lexzie 250818; 8572-203"
+      },
+      "parsed": {
+        "frequencyMHz": 12536,
+        "polarization": "H",
+        "transponderNumber": "F1",
+        "transponderName": "TP F1",
+        "beamName": "RAI mux MR 10",
+        "system": "DVB-S2",
+        "symbolRate": 35300,
+        "fec": "2/3",
+        "providerName": "Lexzie 250818; 8572-203"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-5-west-b-5w-f1-12536",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 5 WEST B",
+      "orbitalPosition": "5W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-5-West-B.html",
+      "retrievedAt": "2026-05-01T07:48:41.592Z",
+      "raw": {
+        "frequencyText": "12536",
+        "polarizationText": "H",
+        "transponderText": "F1",
+        "beamText": "Puglia/Basilcata Locale 1",
+        "systemText": "DVB-S2",
+        "symbolRateText": "35300",
+        "fecText": "2/3",
+        "providerText": "M Al-Taie 250902; 8572-34816"
+      },
+      "parsed": {
+        "frequencyMHz": 12536,
+        "polarization": "H",
+        "transponderNumber": "F1",
+        "transponderName": "TP F1",
+        "beamName": "Puglia/Basilcata Locale 1",
+        "system": "DVB-S2",
+        "symbolRate": 35300,
+        "fec": "2/3",
+        "providerName": "M Al-Taie 250902; 8572-34816"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-5-west-b-5w-h24-nofreq",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 5 WEST B",
+      "orbitalPosition": "5W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-5-West-B.html",
+      "retrievedAt": "2026-05-01T07:48:41.592Z",
+      "raw": {
+        "transponderText": "H24",
+        "beamText": "679 Ita",
+        "systemText": "MPEG-4"
+      },
+      "parsed": {
+        "transponderNumber": "H24",
+        "beamName": "679 Ita",
+        "system": "MPEG-4"
+      },
+      "parseQuality": {
+        "hasFrequency": false,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Downlink frequency not parseable; row kept due to transponder ID.",
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-5-west-b-5w-f4-12564",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 5 WEST B",
+      "orbitalPosition": "5W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-5-West-B.html",
+      "retrievedAt": "2026-05-01T07:48:41.592Z",
+      "raw": {
+        "frequencyText": "12564",
+        "polarizationText": "V",
+        "transponderText": "F4",
+        "beamText": "M Al-Taie Lexzie 250814",
+        "systemText": "DVB-S2",
+        "symbolRateText": "35300",
+        "fecText": "3/4",
+        "providerText": "RAI mux MR 1; 8572-113"
+      },
+      "parsed": {
+        "frequencyMHz": 12564,
+        "polarization": "V",
+        "transponderNumber": "F4",
+        "transponderName": "TP F4",
+        "beamName": "M Al-Taie Lexzie 250814",
+        "system": "DVB-S2",
+        "symbolRate": 35300,
+        "fec": "3/4",
+        "providerName": "RAI mux MR 1; 8572-113"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-5-west-b-5w-f4-12564",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 5 WEST B",
+      "orbitalPosition": "5W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-5-West-B.html",
+      "retrievedAt": "2026-05-01T07:48:41.592Z",
+      "raw": {
+        "frequencyText": "12564",
+        "polarizationText": "V",
+        "transponderText": "F4",
+        "beamText": "M Al-Taie Lexzie 250814",
+        "systemText": "DVB-S2",
+        "symbolRateText": "35300",
+        "fecText": "3/4",
+        "providerText": "RAI mux MR 8; 8572-183"
+      },
+      "parsed": {
+        "frequencyMHz": 12564,
+        "polarization": "V",
+        "transponderNumber": "F4",
+        "transponderName": "TP F4",
+        "beamName": "M Al-Taie Lexzie 250814",
+        "system": "DVB-S2",
+        "symbolRate": 35300,
+        "fec": "3/4",
+        "providerName": "RAI mux MR 8; 8572-183"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-5-west-b-5w-f4-12564",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 5 WEST B",
+      "orbitalPosition": "5W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-5-West-B.html",
+      "retrievedAt": "2026-05-01T07:48:41.592Z",
+      "raw": {
+        "frequencyText": "12564",
+        "polarizationText": "V",
+        "transponderText": "F4",
+        "beamText": "M Al-Taie Lexzie 250814",
+        "systemText": "DVB-S2",
+        "symbolRateText": "35300",
+        "fecText": "3/4",
+        "providerText": "RAI mux MR 2; 8572-123"
+      },
+      "parsed": {
+        "frequencyMHz": 12564,
+        "polarization": "V",
+        "transponderNumber": "F4",
+        "transponderName": "TP F4",
+        "beamName": "M Al-Taie Lexzie 250814",
+        "system": "DVB-S2",
+        "symbolRate": 35300,
+        "fec": "3/4",
+        "providerName": "RAI mux MR 2; 8572-123"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-5-west-b-5w-f3-12585",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 5 WEST B",
+      "orbitalPosition": "5W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-5-West-B.html",
+      "retrievedAt": "2026-05-01T07:48:41.592Z",
+      "raw": {
+        "frequencyText": "12585",
+        "polarizationText": "H",
+        "transponderText": "F3",
+        "beamText": "M Al-Taie Lexzie 250814",
+        "systemText": "DVB-S2",
+        "symbolRateText": "35500",
+        "fecText": "2/3",
+        "providerText": "Cairo Communication; 8572-263"
+      },
+      "parsed": {
+        "frequencyMHz": 12585,
+        "polarization": "H",
+        "transponderNumber": "F3",
+        "transponderName": "TP F3",
+        "beamName": "M Al-Taie Lexzie 250814",
+        "system": "DVB-S2",
+        "symbolRate": 35500,
+        "fec": "2/3",
+        "providerName": "Cairo Communication; 8572-263"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-5-west-b-5w-f3-12585",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 5 WEST B",
+      "orbitalPosition": "5W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-5-West-B.html",
+      "retrievedAt": "2026-05-01T07:48:41.592Z",
+      "raw": {
+        "frequencyText": "12585",
+        "polarizationText": "H",
+        "transponderText": "F3",
+        "beamText": "Sardegna Locale 1",
+        "systemText": "DVB-S2",
+        "symbolRateText": "35500",
+        "fecText": "2/3",
+        "providerText": "Lexzie 250814; 8572-43009"
+      },
+      "parsed": {
+        "frequencyMHz": 12585,
+        "polarization": "H",
+        "transponderNumber": "F3",
+        "transponderName": "TP F3",
+        "beamName": "Sardegna Locale 1",
+        "system": "DVB-S2",
+        "symbolRate": 35500,
+        "fec": "2/3",
+        "providerName": "Lexzie 250814; 8572-43009"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-5-west-b-5w-f6-12606",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 5 WEST B",
+      "orbitalPosition": "5W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-5-West-B.html",
+      "retrievedAt": "2026-05-01T07:48:41.592Z",
+      "raw": {
+        "frequencyText": "12606",
+        "polarizationText": "V",
+        "transponderText": "F6",
+        "beamText": "EnoSat 240904",
+        "systemText": "DVB-S2",
+        "symbolRateText": "35300",
+        "fecText": "2/3",
+        "providerText": "RAI mux A; 8572-1"
+      },
+      "parsed": {
+        "frequencyMHz": 12606,
+        "polarization": "V",
+        "transponderNumber": "F6",
+        "transponderName": "TP F6",
+        "beamName": "EnoSat 240904",
+        "system": "DVB-S2",
+        "symbolRate": 35300,
+        "fec": "2/3",
+        "providerName": "RAI mux A; 8572-1"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-5-west-b-5w-f6-12606",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 5 WEST B",
+      "orbitalPosition": "5W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-5-West-B.html",
+      "retrievedAt": "2026-05-01T07:48:41.592Z",
+      "raw": {
+        "frequencyText": "12606",
+        "polarizationText": "V",
+        "transponderText": "F6",
+        "beamText": "D de Jong 260217",
+        "systemText": "DVB-S2",
+        "symbolRateText": "35300",
+        "fecText": "2/3",
+        "providerText": "RAI mux B; 8572-2"
+      },
+      "parsed": {
+        "frequencyMHz": 12606,
+        "polarization": "V",
+        "transponderNumber": "F6",
+        "transponderName": "TP F6",
+        "beamName": "D de Jong 260217",
+        "system": "DVB-S2",
+        "symbolRate": 35300,
+        "fec": "2/3",
+        "providerName": "RAI mux B; 8572-2"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-5-west-b-5w-f5-12627",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 5 WEST B",
+      "orbitalPosition": "5W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-5-West-B.html",
+      "retrievedAt": "2026-05-01T07:48:41.592Z",
+      "raw": {
+        "frequencyText": "12627",
+        "polarizationText": "H",
+        "transponderText": "F5",
+        "beamText": "Lexzie 250814",
+        "systemText": "DVB-S2",
+        "symbolRateText": "35295",
+        "fecText": "2/3",
+        "providerText": "RAI mux MR 6; 8572-163"
+      },
+      "parsed": {
+        "frequencyMHz": 12627,
+        "polarization": "H",
+        "transponderNumber": "F5",
+        "transponderName": "TP F5",
+        "beamName": "Lexzie 250814",
+        "system": "DVB-S2",
+        "symbolRate": 35295,
+        "fec": "2/3",
+        "providerName": "RAI mux MR 6; 8572-163"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-5-west-b-5w-f5-12627",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 5 WEST B",
+      "orbitalPosition": "5W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-5-West-B.html",
+      "retrievedAt": "2026-05-01T07:48:41.592Z",
+      "raw": {
+        "frequencyText": "12627",
+        "polarizationText": "H",
+        "transponderText": "F5",
+        "beamText": "D de Jong 241128",
+        "systemText": "DVB-S2",
+        "symbolRateText": "35295",
+        "fecText": "2/3",
+        "providerText": "1-1"
+      },
+      "parsed": {
+        "frequencyMHz": 12627,
+        "polarization": "H",
+        "transponderNumber": "F5",
+        "transponderName": "TP F5",
+        "beamName": "D de Jong 241128",
+        "system": "DVB-S2",
+        "symbolRate": 35295,
+        "fec": "2/3",
+        "providerName": "1-1"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-5-west-b-5w-f5-12627",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 5 WEST B",
+      "orbitalPosition": "5W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-5-West-B.html",
+      "retrievedAt": "2026-05-01T07:48:41.592Z",
+      "raw": {
+        "frequencyText": "12627",
+        "polarizationText": "H",
+        "transponderText": "F5",
+        "beamText": "Lexzie 250814",
+        "systemText": "DVB-S2",
+        "symbolRateText": "35295",
+        "fecText": "2/3",
+        "providerText": "RAI mux MR 4; 8572-143"
+      },
+      "parsed": {
+        "frequencyMHz": 12627,
+        "polarization": "H",
+        "transponderNumber": "F5",
+        "transponderName": "TP F5",
+        "beamName": "Lexzie 250814",
+        "system": "DVB-S2",
+        "symbolRate": 35295,
+        "fec": "2/3",
+        "providerName": "RAI mux MR 4; 8572-143"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-5-west-b-5w-f5-12627",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 5 WEST B",
+      "orbitalPosition": "5W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-5-West-B.html",
+      "retrievedAt": "2026-05-01T07:48:41.592Z",
+      "raw": {
+        "frequencyText": "12627",
+        "polarizationText": "H",
+        "transponderText": "F5",
+        "beamText": "Lexzie 250814",
+        "systemText": "DVB-S2",
+        "symbolRateText": "35295",
+        "fecText": "2/3",
+        "providerText": "RAI mux MR 7; 8572-173"
+      },
+      "parsed": {
+        "frequencyMHz": 12627,
+        "polarization": "H",
+        "transponderNumber": "F5",
+        "transponderName": "TP F5",
+        "beamName": "Lexzie 250814",
+        "system": "DVB-S2",
+        "symbolRate": 35295,
+        "fec": "2/3",
+        "providerName": "RAI mux MR 7; 8572-173"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-5-west-b-5w-f8-12648",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 5 WEST B",
+      "orbitalPosition": "5W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-5-West-B.html",
+      "retrievedAt": "2026-05-01T07:48:41.592Z",
+      "raw": {
+        "frequencyText": "12648",
+        "polarizationText": "V",
+        "transponderText": "F8",
+        "beamText": "M Al-Taie D de Jong 251001",
+        "systemText": "DVB-S2",
+        "symbolRateText": "29500",
+        "fecText": "8/9",
+        "providerText": "8442-10"
+      },
+      "parsed": {
+        "frequencyMHz": 12648,
+        "polarization": "V",
+        "transponderNumber": "F8",
+        "transponderName": "TP F8",
+        "beamName": "M Al-Taie D de Jong 251001",
+        "system": "DVB-S2",
+        "symbolRate": 29500,
+        "fec": "8/9",
+        "providerName": "8442-10"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-5-west-b-5w-f8-12648",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 5 WEST B",
+      "orbitalPosition": "5W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-5-West-B.html",
+      "retrievedAt": "2026-05-01T07:48:41.592Z",
+      "raw": {
+        "frequencyText": "12648",
+        "polarizationText": "V",
+        "transponderText": "F8",
+        "beamText": "F Dibba 250902",
+        "systemText": "DVB-S2",
+        "symbolRateText": "29500",
+        "fecText": "8/9",
+        "providerText": "8442-2"
+      },
+      "parsed": {
+        "frequencyMHz": 12648,
+        "polarization": "V",
+        "transponderNumber": "F8",
+        "transponderName": "TP F8",
+        "beamName": "F Dibba 250902",
+        "system": "DVB-S2",
+        "symbolRate": 29500,
+        "fec": "8/9",
+        "providerName": "8442-2"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-5-west-b-5w-t18-nofreq",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 5 WEST B",
+      "orbitalPosition": "5W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-5-West-B.html",
+      "retrievedAt": "2026-05-01T07:48:41.592Z",
+      "raw": {
+        "transponderText": "T18",
+        "beamText": "7.0 Fre",
+        "systemText": "MPEG-4"
+      },
+      "parsed": {
+        "transponderNumber": "T18",
+        "beamName": "7.0 Fre",
+        "system": "MPEG-4"
+      },
+      "parseQuality": {
+        "hasFrequency": false,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Downlink frequency not parseable; row kept due to transponder ID.",
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-5-west-b-5w-f10-12690",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 5 WEST B",
+      "orbitalPosition": "5W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-5-West-B.html",
+      "retrievedAt": "2026-05-01T07:48:41.592Z",
+      "raw": {
+        "frequencyText": "12690",
+        "polarizationText": "V",
+        "transponderText": "F10",
+        "beamText": "EnoSat 241112",
+        "systemText": "DVB-S2",
+        "symbolRateText": "35296",
+        "fecText": "2/3",
+        "providerText": "318-1"
+      },
+      "parsed": {
+        "frequencyMHz": 12690,
+        "polarization": "V",
+        "transponderNumber": "F10",
+        "transponderName": "TP F10",
+        "beamName": "EnoSat 241112",
+        "system": "DVB-S2",
+        "symbolRate": 35296,
+        "fec": "2/3",
+        "providerName": "318-1"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-5-west-b-5w-row-37-3403",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 5 WEST B",
+      "orbitalPosition": "5W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-5-West-B.html",
+      "retrievedAt": "2026-05-01T07:48:41.592Z",
+      "raw": {
+        "frequencyText": "3403",
+        "beamText": "652 Ita",
+        "systemText": "MPEG-4",
+        "symbolRateText": "514",
+        "providerText": "Rai 3"
+      },
+      "parsed": {
+        "frequencyMHz": 3403,
+        "beamName": "652 Ita",
+        "system": "MPEG-4",
+        "symbolRate": 514,
+        "providerName": "Rai 3"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-5-west-b-5w-f10-12690",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 5 WEST B",
+      "orbitalPosition": "5W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-5-West-B.html",
+      "retrievedAt": "2026-05-01T07:48:41.592Z",
+      "raw": {
+        "frequencyText": "12690",
+        "polarizationText": "V",
+        "transponderText": "F10",
+        "beamText": "Lexzie 250814",
+        "systemText": "DVB-S2",
+        "symbolRateText": "35296",
+        "fecText": "2/3",
+        "providerText": "RAI mux MR 3; 8572-133"
+      },
+      "parsed": {
+        "frequencyMHz": 12690,
+        "polarization": "V",
+        "transponderNumber": "F10",
+        "transponderName": "TP F10",
+        "beamName": "Lexzie 250814",
+        "system": "DVB-S2",
+        "symbolRate": 35296,
+        "fec": "2/3",
+        "providerName": "RAI mux MR 3; 8572-133"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-5-west-b-5w-f10-12690",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 5 WEST B",
+      "orbitalPosition": "5W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-5-West-B.html",
+      "retrievedAt": "2026-05-01T07:48:41.592Z",
+      "raw": {
+        "frequencyText": "12690",
+        "polarizationText": "V",
+        "transponderText": "F10",
+        "beamText": "Lexzie 250814",
+        "systemText": "DVB-S2",
+        "symbolRateText": "35296",
+        "fecText": "2/3",
+        "providerText": "RAI mux MR 9; 8572-193"
+      },
+      "parsed": {
+        "frequencyMHz": 12690,
+        "polarization": "V",
+        "transponderNumber": "F10",
+        "transponderName": "TP F10",
+        "beamName": "Lexzie 250814",
+        "system": "DVB-S2",
+        "symbolRate": 35296,
+        "fec": "2/3",
+        "providerName": "RAI mux MR 9; 8572-193"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-5-west-b-5w-f10-12690",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 5 WEST B",
+      "orbitalPosition": "5W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-5-West-B.html",
+      "retrievedAt": "2026-05-01T07:48:41.592Z",
+      "raw": {
+        "frequencyText": "12690",
+        "polarizationText": "V",
+        "transponderText": "F10",
+        "beamText": "RAI mux MR 11",
+        "systemText": "DVB-S2",
+        "symbolRateText": "35296",
+        "fecText": "2/3",
+        "providerText": "Lexzie 250814; 8572-213"
+      },
+      "parsed": {
+        "frequencyMHz": 12690,
+        "polarization": "V",
+        "transponderNumber": "F10",
+        "transponderName": "TP F10",
+        "beamName": "RAI mux MR 11",
+        "system": "DVB-S2",
+        "symbolRate": 35296,
+        "fec": "2/3",
+        "providerName": "Lexzie 250814; 8572-213"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-5-west-b-5w-f12-12732",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 5 WEST B",
+      "orbitalPosition": "5W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-5-West-B.html",
+      "retrievedAt": "2026-05-01T07:48:41.592Z",
+      "raw": {
+        "frequencyText": "12732",
+        "polarizationText": "V",
+        "transponderText": "F12",
+        "beamText": "K Bamik 210630",
+        "systemText": "DVB-S2",
+        "symbolRateText": "29500",
+        "fecText": "8/9",
+        "providerText": "8442-1"
+      },
+      "parsed": {
+        "frequencyMHz": 12732,
+        "polarization": "V",
+        "transponderNumber": "F12",
+        "transponderName": "TP F12",
+        "beamName": "K Bamik 210630",
+        "system": "DVB-S2",
+        "symbolRate": 29500,
+        "fec": "8/9",
+        "providerName": "8442-1"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-5-west-b-5w-f12-12732",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 5 WEST B",
+      "orbitalPosition": "5W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-5-West-B.html",
+      "retrievedAt": "2026-05-01T07:48:41.592Z",
+      "raw": {
+        "frequencyText": "12732",
+        "polarizationText": "V",
+        "transponderText": "F12",
+        "beamText": "Gompo 260205",
+        "systemText": "DVB-S2",
+        "symbolRateText": "29500",
+        "fecText": "8/9",
+        "providerText": "8442-4"
+      },
+      "parsed": {
+        "frequencyMHz": 12732,
+        "polarization": "V",
+        "transponderNumber": "F12",
+        "transponderName": "TP F12",
+        "beamName": "Gompo 260205",
+        "system": "DVB-S2",
+        "symbolRate": 29500,
+        "fec": "8/9",
+        "providerName": "8442-4"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-5-west-b-5w-m6-nofreq",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 5 WEST B",
+      "orbitalPosition": "5W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-5-West-B.html",
+      "retrievedAt": "2026-05-01T07:48:41.592Z",
+      "raw": {
+        "transponderText": "M6",
+        "beamText": "130 Fre 132 Qaa",
+        "systemText": "MPEG-4"
+      },
+      "parsed": {
+        "transponderNumber": "M6",
+        "beamName": "130 Fre 132 Qaa",
+        "system": "MPEG-4"
+      },
+      "parseQuality": {
+        "hasFrequency": false,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Downlink frequency not parseable; row kept due to transponder ID.",
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-5-west-b-5w-w9-nofreq",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 5 WEST B",
+      "orbitalPosition": "5W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-5-West-B.html",
+      "retrievedAt": "2026-05-01T07:48:41.592Z",
+      "raw": {
+        "transponderText": "W9",
+        "beamText": "230 Fre 232 Qaa",
+        "systemText": "MPEG-4"
+      },
+      "parsed": {
+        "transponderNumber": "W9",
+        "beamName": "230 Fre 232 Qaa",
+        "system": "MPEG-4"
+      },
+      "parseQuality": {
+        "hasFrequency": false,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Downlink frequency not parseable; row kept due to transponder ID.",
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-5-west-b-5w-f12-12732",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 5 WEST B",
+      "orbitalPosition": "5W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-5-West-B.html",
+      "retrievedAt": "2026-05-01T07:48:41.592Z",
+      "raw": {
+        "frequencyText": "12732",
+        "polarizationText": "V",
+        "transponderText": "F12",
+        "beamText": "M Al-Taie Lexzie M Weljamin 250606",
+        "systemText": "DVB-S2",
+        "symbolRateText": "29500",
+        "fecText": "8/9",
+        "providerText": "8442-6"
+      },
+      "parsed": {
+        "frequencyMHz": 12732,
+        "polarization": "V",
+        "transponderNumber": "F12",
+        "transponderName": "TP F12",
+        "beamName": "M Al-Taie Lexzie M Weljamin 250606",
+        "system": "DVB-S2",
+        "symbolRate": 29500,
+        "fec": "8/9",
+        "providerName": "8442-6"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-5-west-b-5w-s2-nofreq",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 5 WEST B",
+      "orbitalPosition": "5W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-5-West-B.html",
+      "retrievedAt": "2026-05-01T07:48:41.592Z",
+      "raw": {
+        "transponderText": "S2",
+        "beamText": "System:",
+        "systemText": "DVB-S2",
+        "providerText": "non-DTH"
+      },
+      "parsed": {
+        "transponderNumber": "S2",
+        "beamName": "System:",
+        "system": "DVB-S2",
+        "providerName": "non-DTH"
+      },
+      "parseQuality": {
+        "hasFrequency": false,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Downlink frequency not parseable; row kept due to transponder ID.",
+          "Polarization not present or not parseable."
+        ]
+      }
+    }
+  ]
+}

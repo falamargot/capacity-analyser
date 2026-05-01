@@ -1,0 +1,13 @@
+{
+  "satelliteName": "EUTELSAT 8 WEST B",
+  "source": "LYNGSAT",
+  "generatedAt": "2026-05-01T07:49:01.526Z",
+  "totalRowsSeen": 99,
+  "observationsCreated": 99,
+  "rowsWithFrequency": 97,
+  "rowsWithBeam": 98,
+  "rowsWithTransponderId": 48,
+  "rowsSkipped": 0,
+  "skipReasons": {},
+  "normalizedTransponders": 94
+}

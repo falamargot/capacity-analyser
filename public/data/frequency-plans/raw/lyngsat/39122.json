@@ -1,0 +1,3671 @@
+{
+  "version": "2",
+  "satelliteName": "EUTELSAT 117 WEST A",
+  "orbitalPosition": "117W",
+  "source": "LYNGSAT",
+  "sourceUrl": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+  "generatedAt": "2026-05-01T07:49:01.521Z",
+  "observations": [
+    {
+      "id": "lyngsat-eutelsat-117-west-a-117w-row-1-3720",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:16.198Z",
+      "raw": {
+        "frequencyText": "3720",
+        "polarizationText": "V",
+        "beamText": "Cyberham 251114",
+        "systemText": "DVB-S",
+        "symbolRateText": "27000",
+        "fecText": "3/4",
+        "providerText": "Edusat"
+      },
+      "parsed": {
+        "frequencyMHz": 3720,
+        "polarization": "V",
+        "beamName": "Cyberham 251114",
+        "system": "DVB-S",
+        "symbolRate": 27000,
+        "fec": "3/4",
+        "providerName": "Edusat"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-117-west-a-117w-s2-3766",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:16.198Z",
+      "raw": {
+        "frequencyText": "3766",
+        "polarizationText": "H",
+        "transponderText": "S2",
+        "beamText": "Edinho fta 240213",
+        "systemText": "DVB-S2",
+        "symbolRateText": "5200",
+        "fecText": "3/4",
+        "providerText": "7.9 482 Spa; Espacio U"
+      },
+      "parsed": {
+        "frequencyMHz": 3766,
+        "polarization": "H",
+        "transponderNumber": "S2",
+        "beamName": "Edinho fta 240213",
+        "system": "DVB-S2",
+        "symbolRate": 5200,
+        "fec": "3/4",
+        "providerName": "7.9 482 Spa; Espacio U"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-117-west-a-117w-s2-3773",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:16.198Z",
+      "raw": {
+        "frequencyText": "3773",
+        "polarizationText": "H",
+        "transponderText": "S2",
+        "beamText": "Canal Iberoamericano",
+        "systemText": "DVB-S2",
+        "symbolRateText": "5200",
+        "fecText": "3/4",
+        "providerText": "Edinho fta 230619; 7.9 482 Spa"
+      },
+      "parsed": {
+        "frequencyMHz": 3773,
+        "polarization": "H",
+        "transponderNumber": "S2",
+        "beamName": "Canal Iberoamericano",
+        "system": "DVB-S2",
+        "symbolRate": 5200,
+        "fec": "3/4",
+        "providerName": "Edinho fta 230619; 7.9 482 Spa"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-117-west-a-117w-row-4-3779",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:16.198Z",
+      "raw": {
+        "frequencyText": "3779",
+        "polarizationText": "H",
+        "beamText": "Canal Iberoamericano",
+        "systemText": "DVB-S",
+        "symbolRateText": "3600",
+        "fecText": "3/4",
+        "providerText": "Edinho fta 230619; 5.5 258 Spa"
+      },
+      "parsed": {
+        "frequencyMHz": 3779,
+        "polarization": "H",
+        "beamName": "Canal Iberoamericano",
+        "system": "DVB-S",
+        "symbolRate": 3600,
+        "fec": "3/4",
+        "providerName": "Edinho fta 230619; 5.5 258 Spa"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-117-west-a-117w-row-5-3786",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:16.198Z",
+      "raw": {
+        "frequencyText": "3786",
+        "polarizationText": "V",
+        "beamText": "Telecentro (Dominican Republic)",
+        "systemText": "DVB-S",
+        "symbolRateText": "4000",
+        "fecText": "3/4",
+        "eirpText": "49",
+        "providerText": "Edinho fta 230318; 5.5 51 Spa"
+      },
+      "parsed": {
+        "frequencyMHz": 3786,
+        "polarization": "V",
+        "beamName": "Telecentro (Dominican Republic)",
+        "system": "DVB-S",
+        "symbolRate": 4000,
+        "fec": "3/4",
+        "eirpDbw": 49,
+        "providerName": "Edinho fta 230318; 5.5 51 Spa"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-117-west-a-117w-s2-3787",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:16.198Z",
+      "raw": {
+        "frequencyText": "3787",
+        "polarizationText": "H",
+        "transponderText": "S2",
+        "beamText": "Justicia TV (Mexico)",
+        "systemText": "DVB-S2",
+        "symbolRateText": "4090",
+        "fecText": "3/4",
+        "providerText": "R Chavez 231020; 7.9 482 Spa"
+      },
+      "parsed": {
+        "frequencyMHz": 3787,
+        "polarization": "H",
+        "transponderNumber": "S2",
+        "beamName": "Justicia TV (Mexico)",
+        "system": "DVB-S2",
+        "symbolRate": 4090,
+        "fec": "3/4",
+        "providerName": "R Chavez 231020; 7.9 482 Spa"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-117-west-a-117w-s2-3791",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:16.198Z",
+      "raw": {
+        "frequencyText": "3791",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "Edinho fta 230619",
+        "systemText": "DVB-S2",
+        "symbolRateText": "3080",
+        "fecText": "3/4",
+        "providerText": "7.9 256 Spa; TV Más"
+      },
+      "parsed": {
+        "frequencyMHz": 3791,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "Edinho fta 230619",
+        "system": "DVB-S2",
+        "symbolRate": 3080,
+        "fec": "3/4",
+        "providerName": "7.9 256 Spa; TV Más"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-117-west-a-117w-s2-3792",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:16.198Z",
+      "raw": {
+        "frequencyText": "3792",
+        "polarizationText": "H",
+        "transponderText": "S2",
+        "beamText": "Canal del Congreso 45.1",
+        "systemText": "DVB-S2",
+        "symbolRateText": "4090",
+        "fecText": "3/4",
+        "providerText": "Edinho fta 230619; 7.9 256 Spa"
+      },
+      "parsed": {
+        "frequencyMHz": 3792,
+        "polarization": "H",
+        "transponderNumber": "S2",
+        "beamName": "Canal del Congreso 45.1",
+        "system": "DVB-S2",
+        "symbolRate": 4090,
+        "fec": "3/4",
+        "providerName": "Edinho fta 230619; 7.9 256 Spa"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-117-west-a-117w-row-9-3796",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:16.198Z",
+      "raw": {
+        "frequencyText": "3796",
+        "polarizationText": "V",
+        "beamText": "Cyberham 251119",
+        "systemText": "DVB-S",
+        "symbolRateText": "2242",
+        "fecText": "3/4",
+        "providerText": "5.5 4112 Spa"
+      },
+      "parsed": {
+        "frequencyMHz": 3796,
+        "polarization": "V",
+        "beamName": "Cyberham 251119",
+        "system": "DVB-S",
+        "symbolRate": 2242,
+        "fec": "3/4",
+        "providerName": "5.5 4112 Spa"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-117-west-a-117w-s2-3797",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:16.198Z",
+      "raw": {
+        "frequencyText": "3797",
+        "polarizationText": "H",
+        "transponderText": "S2",
+        "beamText": "Cyberham 251115",
+        "systemText": "DVB-S2",
+        "symbolRateText": "4090",
+        "fecText": "5/6",
+        "providerText": "[test card]; 9.4 482"
+      },
+      "parsed": {
+        "frequencyMHz": 3797,
+        "polarization": "H",
+        "transponderNumber": "S2",
+        "beamName": "Cyberham 251115",
+        "system": "DVB-S2",
+        "symbolRate": 4090,
+        "fec": "5/6",
+        "providerName": "[test card]; 9.4 482"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-117-west-a-117w-s2-3810",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:16.198Z",
+      "raw": {
+        "frequencyText": "3810",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "H Ortega 250407",
+        "systemText": "DVB-S2",
+        "symbolRateText": "15000",
+        "fecText": "3/4",
+        "providerText": "Azteca"
+      },
+      "parsed": {
+        "frequencyMHz": 3810,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "H Ortega 250407",
+        "system": "DVB-S2",
+        "symbolRate": 15000,
+        "fec": "3/4",
+        "providerName": "Azteca"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-117-west-a-117w-s2-3820",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:16.198Z",
+      "raw": {
+        "frequencyText": "3820",
+        "polarizationText": "H",
+        "transponderText": "S2",
+        "beamText": "Cyberham 251119",
+        "systemText": "DVB-S2",
+        "symbolRateText": "30000",
+        "fecText": "3/4",
+        "providerText": "Conax PowerVu; PCTV"
+      },
+      "parsed": {
+        "frequencyMHz": 3820,
+        "polarization": "H",
+        "transponderNumber": "S2",
+        "beamName": "Cyberham 251119",
+        "system": "DVB-S2",
+        "symbolRate": 30000,
+        "fec": "3/4",
+        "providerName": "Conax PowerVu; PCTV"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-117-west-a-117w-row-13-3400",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:16.198Z",
+      "raw": {
+        "frequencyText": "3400",
+        "beamText": "Pasiones Latinoamérica",
+        "systemText": "MPEG-4",
+        "eirpText": "34",
+        "providerText": "Conax PowerVu; 3430 Spa"
+      },
+      "parsed": {
+        "frequencyMHz": 3400,
+        "beamName": "Pasiones Latinoamérica",
+        "system": "MPEG-4",
+        "eirpDbw": 34,
+        "providerName": "Conax PowerVu; 3430 Spa"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-117-west-a-117w-row-14-3500",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:16.198Z",
+      "raw": {
+        "frequencyText": "3500",
+        "beamText": "Hola! TV América Latina",
+        "systemText": "MPEG-4",
+        "eirpText": "35",
+        "providerText": "Conax PowerVu; 3530 Spa"
+      },
+      "parsed": {
+        "frequencyMHz": 3500,
+        "beamName": "Hola! TV América Latina",
+        "system": "MPEG-4",
+        "eirpDbw": 35,
+        "providerName": "Conax PowerVu; 3530 Spa"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-117-west-a-117w-row-15-3600",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:16.198Z",
+      "raw": {
+        "frequencyText": "3600",
+        "beamText": "Conax PowerVu",
+        "systemText": "MPEG-4",
+        "eirpText": "36",
+        "providerText": "Beat Box; 3630 Spa"
+      },
+      "parsed": {
+        "frequencyMHz": 3600,
+        "beamName": "Conax PowerVu",
+        "system": "MPEG-4",
+        "eirpDbw": 36,
+        "providerName": "Beat Box; 3630 Spa"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-117-west-a-117w-row-16-3700",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:16.198Z",
+      "raw": {
+        "frequencyText": "3700",
+        "beamText": "TVC Deportes 2",
+        "systemText": "MPEG-4",
+        "eirpText": "37",
+        "providerText": "Conax PowerVu; 3730 Spa"
+      },
+      "parsed": {
+        "frequencyMHz": 3700,
+        "beamName": "TVC Deportes 2",
+        "system": "MPEG-4",
+        "eirpDbw": 37,
+        "providerName": "Conax PowerVu; 3730 Spa"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-117-west-a-117w-s2-3831",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:16.198Z",
+      "raw": {
+        "frequencyText": "3831",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "Cyberham 251115",
+        "systemText": "DVB-S2",
+        "symbolRateText": "15000",
+        "fecText": "2/3",
+        "providerText": "6.6 102 Spa; Unife"
+      },
+      "parsed": {
+        "frequencyMHz": 3831,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "Cyberham 251115",
+        "system": "DVB-S2",
+        "symbolRate": 15000,
+        "fec": "2/3",
+        "providerName": "6.6 102 Spa; Unife"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-117-west-a-117w-s2-3845",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:16.198Z",
+      "raw": {
+        "frequencyText": "3845",
+        "polarizationText": "H",
+        "transponderText": "S2",
+        "beamText": "Sistema Michoacano de TV",
+        "systemText": "DVB-S2",
+        "symbolRateText": "3500",
+        "fecText": "3/4",
+        "providerText": "Cyberham 251119"
+      },
+      "parsed": {
+        "frequencyMHz": 3845,
+        "polarization": "H",
+        "transponderNumber": "S2",
+        "beamName": "Sistema Michoacano de TV",
+        "system": "DVB-S2",
+        "symbolRate": 3500,
+        "fec": "3/4",
+        "providerName": "Cyberham 251119"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-117-west-a-117w-s2-3849",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:16.198Z",
+      "raw": {
+        "frequencyText": "3849",
+        "polarizationText": "H",
+        "transponderText": "S2",
+        "beamText": "9.4 631 Spa 632 Spa",
+        "systemText": "DVB-S2",
+        "symbolRateText": "2800",
+        "fecText": "5/6",
+        "providerText": "Edinho fta 230303; Azteca Honduras"
+      },
+      "parsed": {
+        "frequencyMHz": 3849,
+        "polarization": "H",
+        "transponderNumber": "S2",
+        "beamName": "9.4 631 Spa 632 Spa",
+        "system": "DVB-S2",
+        "symbolRate": 2800,
+        "fec": "5/6",
+        "providerName": "Edinho fta 230303; Azteca Honduras"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-117-west-a-117w-s2-3849",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:16.198Z",
+      "raw": {
+        "frequencyText": "3849",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "Cyberham 251112",
+        "systemText": "DVB-S2",
+        "symbolRateText": "15000",
+        "fecText": "3/5",
+        "providerText": "Imagen TV"
+      },
+      "parsed": {
+        "frequencyMHz": 3849,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "Cyberham 251112",
+        "system": "DVB-S2",
+        "symbolRate": 15000,
+        "fec": "3/5",
+        "providerName": "Imagen TV"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-117-west-a-117w-s2-3852",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:16.198Z",
+      "raw": {
+        "frequencyText": "3852",
+        "polarizationText": "H",
+        "transponderText": "S2",
+        "beamText": "Edinho fta 230303",
+        "systemText": "DVB-S2",
+        "symbolRateText": "2082",
+        "fecText": "3/4",
+        "eirpText": "33",
+        "providerText": "Tele Saltillo; ?-? HEVC/HD; 7.9 36 Spa"
+      },
+      "parsed": {
+        "frequencyMHz": 3852,
+        "polarization": "H",
+        "transponderNumber": "S2",
+        "beamName": "Edinho fta 230303",
+        "system": "DVB-S2",
+        "symbolRate": 2082,
+        "fec": "3/4",
+        "eirpDbw": 33,
+        "providerName": "Tele Saltillo; ?-? HEVC/HD; 7.9 36 Spa"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-117-west-a-117w-s2-3854",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:16.198Z",
+      "raw": {
+        "frequencyText": "3854",
+        "polarizationText": "H",
+        "transponderText": "S2",
+        "beamText": "WilkieJr 250527",
+        "systemText": "DVB-S2",
+        "symbolRateText": "1600",
+        "fecText": "3/4",
+        "providerText": "4.0 482 Spa; Teleceiba"
+      },
+      "parsed": {
+        "frequencyMHz": 3854,
+        "polarization": "H",
+        "transponderNumber": "S2",
+        "beamName": "WilkieJr 250527",
+        "system": "DVB-S2",
+        "symbolRate": 1600,
+        "fec": "3/4",
+        "providerName": "4.0 482 Spa; Teleceiba"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-117-west-a-117w-s2-3858",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:16.198Z",
+      "raw": {
+        "frequencyText": "3858",
+        "polarizationText": "H",
+        "transponderText": "S2",
+        "beamText": "Edinho fta 230523",
+        "systemText": "DVB-S2",
+        "symbolRateText": "4440",
+        "fecText": "3/4",
+        "providerText": "7.9 482 Spa; Heraldo TV"
+      },
+      "parsed": {
+        "frequencyMHz": 3858,
+        "polarization": "H",
+        "transponderNumber": "S2",
+        "beamName": "Edinho fta 230523",
+        "system": "DVB-S2",
+        "symbolRate": 4440,
+        "fec": "3/4",
+        "providerName": "7.9 482 Spa; Heraldo TV"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-117-west-a-117w-s2-3865",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:16.198Z",
+      "raw": {
+        "frequencyText": "3865",
+        "polarizationText": "H",
+        "transponderText": "S2",
+        "beamText": "TM Global Communications",
+        "systemText": "DVB-S2",
+        "symbolRateText": "2500",
+        "fecText": "5/6",
+        "providerText": "Cyberham 251112"
+      },
+      "parsed": {
+        "frequencyMHz": 3865,
+        "polarization": "H",
+        "transponderNumber": "S2",
+        "beamName": "TM Global Communications",
+        "system": "DVB-S2",
+        "symbolRate": 2500,
+        "fec": "5/6",
+        "providerName": "Cyberham 251112"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-117-west-a-117w-s2-3865",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:16.198Z",
+      "raw": {
+        "frequencyText": "3865",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "Canal 28 Nuevo León",
+        "systemText": "DVB-S2",
+        "symbolRateText": "6165",
+        "fecText": "5/6",
+        "providerText": "Cyberham 251112"
+      },
+      "parsed": {
+        "frequencyMHz": 3865,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "Canal 28 Nuevo León",
+        "system": "DVB-S2",
+        "symbolRate": 6165,
+        "fec": "5/6",
+        "providerName": "Cyberham 251112"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-117-west-a-117w-s2-3870",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:16.198Z",
+      "raw": {
+        "frequencyText": "3870",
+        "polarizationText": "H",
+        "transponderText": "S2",
+        "beamText": "TV Arquidiocesana",
+        "systemText": "DVB-S2",
+        "symbolRateText": "2500",
+        "fecText": "3/4",
+        "providerText": "Edinho fta 230619; 7.9 257 Spa"
+      },
+      "parsed": {
+        "frequencyMHz": 3870,
+        "polarization": "H",
+        "transponderNumber": "S2",
+        "beamName": "TV Arquidiocesana",
+        "system": "DVB-S2",
+        "symbolRate": 2500,
+        "fec": "3/4",
+        "providerName": "Edinho fta 230619; 7.9 257 Spa"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-117-west-a-117w-s2-3872",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:16.198Z",
+      "raw": {
+        "frequencyText": "3872",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "Edinho fta 230701",
+        "systemText": "DVB-S2",
+        "symbolRateText": "2875",
+        "fecText": "5/6",
+        "providerText": "Tele Yucatán; 9.4 256 Spa"
+      },
+      "parsed": {
+        "frequencyMHz": 3872,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "Edinho fta 230701",
+        "system": "DVB-S2",
+        "symbolRate": 2875,
+        "fec": "5/6",
+        "providerName": "Tele Yucatán; 9.4 256 Spa"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-117-west-a-117w-s2-3877",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:16.198Z",
+      "raw": {
+        "frequencyText": "3877",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "Cyberham 251113",
+        "systemText": "DVB-S2",
+        "symbolRateText": "5000",
+        "fecText": "5/6",
+        "providerText": "9.4 256 Spa; AyM Sports"
+      },
+      "parsed": {
+        "frequencyMHz": 3877,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "Cyberham 251113",
+        "system": "DVB-S2",
+        "symbolRate": 5000,
+        "fec": "5/6",
+        "providerName": "9.4 256 Spa; AyM Sports"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-117-west-a-117w-s2-3882",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:16.198Z",
+      "raw": {
+        "frequencyText": "3882",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "Latin American Sports USA",
+        "systemText": "DVB-S2",
+        "providerText": "Cyberham 251115; ?-? /HD; 256 Spa"
+      },
+      "parsed": {
+        "frequencyMHz": 3882,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "Latin American Sports USA",
+        "system": "DVB-S2",
+        "providerName": "Cyberham 251115; ?-? /HD; 256 Spa"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-117-west-a-117w-s2-3884",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:16.198Z",
+      "raw": {
+        "frequencyText": "3884",
+        "polarizationText": "H",
+        "transponderText": "S2",
+        "beamText": "C de Berazategui 251029",
+        "systemText": "DVB-S2",
+        "symbolRateText": "3255",
+        "fecText": "5/6",
+        "eirpText": "33",
+        "providerText": "Hidalgo TV; 5.2 36 Spa"
+      },
+      "parsed": {
+        "frequencyMHz": 3884,
+        "polarization": "H",
+        "transponderNumber": "S2",
+        "beamName": "C de Berazategui 251029",
+        "system": "DVB-S2",
+        "symbolRate": 3255,
+        "fec": "5/6",
+        "eirpDbw": 33,
+        "providerName": "Hidalgo TV; 5.2 36 Spa"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-117-west-a-117w-s2-3888",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:16.198Z",
+      "raw": {
+        "frequencyText": "3888",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "BeisbolLatino TV",
+        "systemText": "DVB-S2",
+        "symbolRateText": "3327",
+        "fecText": "3/4",
+        "providerText": "Cyberham 251113; 7.9 256 Spa"
+      },
+      "parsed": {
+        "frequencyMHz": 3888,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "BeisbolLatino TV",
+        "system": "DVB-S2",
+        "symbolRate": 3327,
+        "fec": "3/4",
+        "providerName": "Cyberham 251113; 7.9 256 Spa"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-117-west-a-117w-row-32-3888",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:16.198Z",
+      "raw": {
+        "frequencyText": "3888",
+        "polarizationText": "H",
+        "beamText": "Edinho fta 230303",
+        "systemText": "DVB-S",
+        "symbolRateText": "2540",
+        "fecText": "5/6",
+        "providerText": "6.5 512 Spa; Jalisco TV"
+      },
+      "parsed": {
+        "frequencyMHz": 3888,
+        "polarization": "H",
+        "beamName": "Edinho fta 230303",
+        "system": "DVB-S",
+        "symbolRate": 2540,
+        "fec": "5/6",
+        "providerName": "6.5 512 Spa; Jalisco TV"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-117-west-a-117w-s2-3892",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:16.198Z",
+      "raw": {
+        "frequencyText": "3892",
+        "polarizationText": "H",
+        "transponderText": "S2",
+        "beamText": "TV Azteca Guate",
+        "systemText": "DVB-S2",
+        "symbolRateText": "5000",
+        "fecText": "3/4",
+        "providerText": "Cyberham 251119"
+      },
+      "parsed": {
+        "frequencyMHz": 3892,
+        "polarization": "H",
+        "transponderNumber": "S2",
+        "beamName": "TV Azteca Guate",
+        "system": "DVB-S2",
+        "symbolRate": 5000,
+        "fec": "3/4",
+        "providerName": "Cyberham 251119"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-117-west-a-117w-row-34-4128",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:16.198Z",
+      "raw": {
+        "frequencyText": "4128",
+        "beamText": "A Más + Guate",
+        "systemText": "MPEG-4",
+        "providerText": "4130 Spa"
+      },
+      "parsed": {
+        "frequencyMHz": 4128,
+        "beamName": "A Más + Guate",
+        "system": "MPEG-4",
+        "providerName": "4130 Spa"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-117-west-a-117w-s2-3894",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:16.198Z",
+      "raw": {
+        "frequencyText": "3894",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "Edinho fta 230818",
+        "systemText": "DVB-S2",
+        "symbolRateText": "2415",
+        "fecText": "3/5",
+        "providerText": "Tlaxcala TV; 5.5 256 Spa"
+      },
+      "parsed": {
+        "frequencyMHz": 3894,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "Edinho fta 230818",
+        "system": "DVB-S2",
+        "symbolRate": 2415,
+        "fec": "3/5",
+        "providerName": "Tlaxcala TV; 5.5 256 Spa"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-117-west-a-117w-s2-3898",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:16.198Z",
+      "raw": {
+        "frequencyText": "3898",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "Edinho fta 230302",
+        "systemText": "DVB-S2",
+        "symbolRateText": "2080",
+        "fecText": "4/5",
+        "providerText": "4.7 4112 Spa; CB TV"
+      },
+      "parsed": {
+        "frequencyMHz": 3898,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "Edinho fta 230302",
+        "system": "DVB-S2",
+        "symbolRate": 2080,
+        "fec": "4/5",
+        "providerName": "4.7 4112 Spa; CB TV"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-117-west-a-117w-row-37-3903",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:16.198Z",
+      "raw": {
+        "frequencyText": "3903",
+        "polarizationText": "V",
+        "beamText": "Luis Alberto Rosario 120326",
+        "systemText": "DVB-S",
+        "symbolRateText": "2200",
+        "fecText": "7/8",
+        "providerText": "La Voz de María; 7.2 256 Spa"
+      },
+      "parsed": {
+        "frequencyMHz": 3903,
+        "polarization": "V",
+        "beamName": "Luis Alberto Rosario 120326",
+        "system": "DVB-S",
+        "symbolRate": 2200,
+        "fec": "7/8",
+        "providerName": "La Voz de María; 7.2 256 Spa"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-117-west-a-117w-s2-3908",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:16.198Z",
+      "raw": {
+        "frequencyText": "3908",
+        "polarizationText": "H",
+        "transponderText": "S2",
+        "beamText": "Cyberham 251119",
+        "systemText": "DVB-S2",
+        "symbolRateText": "2500",
+        "fecText": "4/5",
+        "providerText": "4.7 131 Spa; TV UNAH"
+      },
+      "parsed": {
+        "frequencyMHz": 3908,
+        "polarization": "H",
+        "transponderNumber": "S2",
+        "beamName": "Cyberham 251119",
+        "system": "DVB-S2",
+        "symbolRate": 2500,
+        "fec": "4/5",
+        "providerName": "4.7 131 Spa; TV UNAH"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-117-west-a-117w-row-39-3909",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:16.198Z",
+      "raw": {
+        "frequencyText": "3909",
+        "polarizationText": "V",
+        "beamText": "Dominican Republic mux",
+        "systemText": "DVB-S",
+        "symbolRateText": "6379",
+        "fecText": "3/4",
+        "providerText": "J Cordero 190114"
+      },
+      "parsed": {
+        "frequencyMHz": 3909,
+        "polarization": "V",
+        "beamName": "Dominican Republic mux",
+        "system": "DVB-S",
+        "symbolRate": 6379,
+        "fec": "3/4",
+        "providerName": "J Cordero 190114"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-117-west-a-117w-s2-3917",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:16.198Z",
+      "raw": {
+        "frequencyText": "3917",
+        "polarizationText": "H",
+        "transponderText": "S2",
+        "beamText": "Cyberham 251119",
+        "systemText": "DVB-S2",
+        "symbolRateText": "4167",
+        "fecText": "3/4",
+        "eirpText": "49",
+        "providerText": "7.9 51 Spa; CORTV"
+      },
+      "parsed": {
+        "frequencyMHz": 3917,
+        "polarization": "H",
+        "transponderNumber": "S2",
+        "beamName": "Cyberham 251119",
+        "system": "DVB-S2",
+        "symbolRate": 4167,
+        "fec": "3/4",
+        "eirpDbw": 49,
+        "providerName": "7.9 51 Spa; CORTV"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-117-west-a-117w-s2-3917",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:16.198Z",
+      "raw": {
+        "frequencyText": "3917",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "Cyberham 251112",
+        "systemText": "DVB-S2",
+        "symbolRateText": "4500",
+        "fecText": "3/4",
+        "providerText": "UDG TV"
+      },
+      "parsed": {
+        "frequencyMHz": 3917,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "Cyberham 251112",
+        "system": "DVB-S2",
+        "symbolRate": 4500,
+        "fec": "3/4",
+        "providerName": "UDG TV"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-117-west-a-117w-s2-3924",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:16.198Z",
+      "raw": {
+        "frequencyText": "3924",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "Cyberham 251119",
+        "systemText": "DVB-S2",
+        "symbolRateText": "7257",
+        "fecText": "8/9",
+        "providerText": "TPSD"
+      },
+      "parsed": {
+        "frequencyMHz": 3924,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "Cyberham 251119",
+        "system": "DVB-S2",
+        "symbolRate": 7257,
+        "fec": "8/9",
+        "providerName": "TPSD"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-117-west-a-117w-row-43-3925",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:16.198Z",
+      "raw": {
+        "frequencyText": "3925",
+        "polarizationText": "H",
+        "beamText": "Cyberham 251119",
+        "systemText": "DVB-S",
+        "symbolRateText": "4400",
+        "fecText": "3/4",
+        "providerText": "Ecuador TV"
+      },
+      "parsed": {
+        "frequencyMHz": 3925,
+        "polarization": "H",
+        "beamName": "Cyberham 251119",
+        "system": "DVB-S",
+        "symbolRate": 4400,
+        "fec": "3/4",
+        "providerName": "Ecuador TV"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-117-west-a-117w-row-44-4112",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:16.198Z",
+      "raw": {
+        "frequencyText": "4112",
+        "beamText": "Ecuador TV",
+        "systemText": "MPEG-2",
+        "symbolRateText": "512"
+      },
+      "parsed": {
+        "frequencyMHz": 4112,
+        "beamName": "Ecuador TV",
+        "system": "MPEG-2",
+        "symbolRate": 512
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-117-west-a-117w-row-45-4111",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:16.198Z",
+      "raw": {
+        "frequencyText": "4111",
+        "beamText": "Ecuador TV Internacional",
+        "systemText": "MPEG-2",
+        "symbolRateText": "514"
+      },
+      "parsed": {
+        "frequencyMHz": 4111,
+        "beamName": "Ecuador TV Internacional",
+        "system": "MPEG-2",
+        "symbolRate": 514
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-117-west-a-117w-row-46-4128",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:16.198Z",
+      "raw": {
+        "frequencyText": "4128",
+        "beamText": "Püblica FM"
+      },
+      "parsed": {
+        "frequencyMHz": 4128,
+        "beamName": "Püblica FM"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": false,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable.",
+          "No DVB system/SR/FEC parameters found."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-117-west-a-117w-row-47-4127",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:16.198Z",
+      "raw": {
+        "frequencyText": "4127",
+        "beamText": "Radio Nacional del Ecuador"
+      },
+      "parsed": {
+        "frequencyMHz": 4127,
+        "beamName": "Radio Nacional del Ecuador"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": false,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable.",
+          "No DVB system/SR/FEC parameters found."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-117-west-a-117w-s2-3930",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:16.198Z",
+      "raw": {
+        "frequencyText": "3930",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "Edinho fta 230515",
+        "systemText": "DVB-S2",
+        "symbolRateText": "667",
+        "providerText": "Emisoras Unidas"
+      },
+      "parsed": {
+        "frequencyMHz": 3930,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "Edinho fta 230515",
+        "system": "DVB-S2",
+        "symbolRate": 667,
+        "providerName": "Emisoras Unidas"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-117-west-a-117w-s2-3930",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:16.198Z",
+      "raw": {
+        "frequencyText": "3930",
+        "polarizationText": "H",
+        "transponderText": "S2",
+        "beamText": "C de Berazategui 251029",
+        "systemText": "DVB-S2",
+        "symbolRateText": "2500",
+        "fecText": "5/6",
+        "eirpText": "66",
+        "providerText": "5.2 67 Spa; EDN TV"
+      },
+      "parsed": {
+        "frequencyMHz": 3930,
+        "polarization": "H",
+        "transponderNumber": "S2",
+        "beamName": "C de Berazategui 251029",
+        "system": "DVB-S2",
+        "symbolRate": 2500,
+        "fec": "5/6",
+        "eirpDbw": 66,
+        "providerName": "5.2 67 Spa; EDN TV"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-117-west-a-117w-s2-3938",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:16.198Z",
+      "raw": {
+        "frequencyText": "3938",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "Cyberham 251119",
+        "systemText": "DVB-S2",
+        "symbolRateText": "674",
+        "providerText": "Grupo ACIR"
+      },
+      "parsed": {
+        "frequencyMHz": 3938,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "Cyberham 251119",
+        "system": "DVB-S2",
+        "symbolRate": 674,
+        "providerName": "Grupo ACIR"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-117-west-a-117w-row-51-4000",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:16.198Z",
+      "raw": {
+        "frequencyText": "4000",
+        "beamText": "106.5 Mix FM",
+        "providerText": "401 Spa"
+      },
+      "parsed": {
+        "frequencyMHz": 4000,
+        "beamName": "106.5 Mix FM",
+        "providerName": "401 Spa"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": false,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable.",
+          "No DVB system/SR/FEC parameters found."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-117-west-a-117w-s2-3947",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:16.198Z",
+      "raw": {
+        "frequencyText": "3947",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "Cyberham 251116",
+        "systemText": "DVB-S2",
+        "symbolRateText": "8333",
+        "fecText": "5/6",
+        "providerText": "Cable Color"
+      },
+      "parsed": {
+        "frequencyMHz": 3947,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "Cyberham 251116",
+        "system": "DVB-S2",
+        "symbolRate": 8333,
+        "fec": "5/6",
+        "providerName": "Cable Color"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-117-west-a-117w-row-53-4098",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:16.198Z",
+      "raw": {
+        "frequencyText": "4098",
+        "beamText": "DTV (Honduras)",
+        "systemText": "MPEG-4",
+        "providerText": "4099 Spa"
+      },
+      "parsed": {
+        "frequencyMHz": 4098,
+        "beamName": "DTV (Honduras)",
+        "system": "MPEG-4",
+        "providerName": "4099 Spa"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-117-west-a-117w-row-54-4100",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:16.198Z",
+      "raw": {
+        "frequencyText": "4100",
+        "beamText": "Q'hubo TV",
+        "systemText": "MPEG-4",
+        "providerText": "4097 Spa"
+      },
+      "parsed": {
+        "frequencyMHz": 4100,
+        "beamName": "Q'hubo TV",
+        "system": "MPEG-4",
+        "providerName": "4097 Spa"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-117-west-a-117w-row-55-4134",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:16.198Z",
+      "raw": {
+        "frequencyText": "4134",
+        "beamText": "Canal 11 (Honduras)",
+        "systemText": "MPEG-4",
+        "providerText": "4133 Spa"
+      },
+      "parsed": {
+        "frequencyMHz": 4134,
+        "beamName": "Canal 11 (Honduras)",
+        "system": "MPEG-4",
+        "providerName": "4133 Spa"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-117-west-a-117w-row-56-4136",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:16.198Z",
+      "raw": {
+        "frequencyText": "4136",
+        "beamText": "Nuevo Mundo TV",
+        "systemText": "MPEG-4",
+        "providerText": "4135 Spa"
+      },
+      "parsed": {
+        "frequencyMHz": 4136,
+        "beamName": "Nuevo Mundo TV",
+        "system": "MPEG-4",
+        "providerName": "4135 Spa"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-117-west-a-117w-s2-3948",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:16.198Z",
+      "raw": {
+        "frequencyText": "3948",
+        "polarizationText": "H",
+        "transponderText": "S2",
+        "beamText": "Edinho fta 231017",
+        "systemText": "DVB-S2",
+        "symbolRateText": "15145",
+        "fecText": "3/5",
+        "providerText": "Az TV de Paga"
+      },
+      "parsed": {
+        "frequencyMHz": 3948,
+        "polarization": "H",
+        "transponderNumber": "S2",
+        "beamName": "Edinho fta 231017",
+        "system": "DVB-S2",
+        "symbolRate": 15145,
+        "fec": "3/5",
+        "providerName": "Az TV de Paga"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-117-west-a-117w-row-58-3962",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:16.198Z",
+      "raw": {
+        "frequencyText": "3962",
+        "polarizationText": "V",
+        "beamText": "Telefuturo (Dominican Republic)",
+        "systemText": "DVB-S",
+        "symbolRateText": "2500",
+        "eirpText": "61",
+        "providerText": "Cyberham 251113; 51 Spa"
+      },
+      "parsed": {
+        "frequencyMHz": 3962,
+        "polarization": "V",
+        "beamName": "Telefuturo (Dominican Republic)",
+        "system": "DVB-S",
+        "symbolRate": 2500,
+        "eirpDbw": 61,
+        "providerName": "Cyberham 251113; 51 Spa"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-117-west-a-117w-s2-3968",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:16.198Z",
+      "raw": {
+        "frequencyText": "3968",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "Ecuavisa Internacional",
+        "systemText": "DVB-S2",
+        "symbolRateText": "3750",
+        "fecText": "3/4",
+        "providerText": "Cyberham 251119; 7.9 203 Spa"
+      },
+      "parsed": {
+        "frequencyMHz": 3968,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "Ecuavisa Internacional",
+        "system": "DVB-S2",
+        "symbolRate": 3750,
+        "fec": "3/4",
+        "providerName": "Cyberham 251119; 7.9 203 Spa"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-117-west-a-117w-s2-3973",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:16.198Z",
+      "raw": {
+        "frequencyText": "3973",
+        "polarizationText": "H",
+        "transponderText": "S2",
+        "beamText": "Cyberham 251119",
+        "systemText": "DVB-S2",
+        "symbolRateText": "2916",
+        "fecText": "3/4",
+        "providerText": "Guatevisión; 7.9 769 Spa"
+      },
+      "parsed": {
+        "frequencyMHz": 3973,
+        "polarization": "H",
+        "transponderNumber": "S2",
+        "beamName": "Cyberham 251119",
+        "system": "DVB-S2",
+        "symbolRate": 2916,
+        "fec": "3/4",
+        "providerName": "Guatevisión; 7.9 769 Spa"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-117-west-a-117w-s2-3977",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:16.198Z",
+      "raw": {
+        "frequencyText": "3977",
+        "polarizationText": "H",
+        "transponderText": "S2",
+        "beamText": "Edinho fta 230303",
+        "systemText": "DVB-S2",
+        "symbolRateText": "1666",
+        "fecText": "3/4",
+        "providerText": "7.9 2.6 Spa; Gamavisión"
+      },
+      "parsed": {
+        "frequencyMHz": 3977,
+        "polarization": "H",
+        "transponderNumber": "S2",
+        "beamName": "Edinho fta 230303",
+        "system": "DVB-S2",
+        "symbolRate": 1666,
+        "fec": "3/4",
+        "providerName": "7.9 2.6 Spa; Gamavisión"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-117-west-a-117w-s2-3980",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:16.198Z",
+      "raw": {
+        "frequencyText": "3980",
+        "polarizationText": "H",
+        "transponderText": "S2",
+        "beamText": "Cyberham 251119",
+        "systemText": "DVB-S2",
+        "symbolRateText": "832",
+        "fecText": "5/6"
+      },
+      "parsed": {
+        "frequencyMHz": 3980,
+        "polarization": "H",
+        "transponderNumber": "S2",
+        "beamName": "Cyberham 251119",
+        "system": "DVB-S2",
+        "symbolRate": 832,
+        "fec": "5/6"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-117-west-a-117w-row-63-4000",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:16.198Z",
+      "raw": {
+        "frequencyText": "4000",
+        "beamText": "La Ke Buena",
+        "providerText": "401 Spa"
+      },
+      "parsed": {
+        "frequencyMHz": 4000,
+        "beamName": "La Ke Buena",
+        "providerName": "401 Spa"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": false,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable.",
+          "No DVB system/SR/FEC parameters found."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-117-west-a-117w-s2-3996",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:16.198Z",
+      "raw": {
+        "frequencyText": "3996",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "Edinho fta PowerLat 231031",
+        "systemText": "DVB-S2",
+        "symbolRateText": "4050",
+        "fecText": "5/6",
+        "eirpText": "49",
+        "providerText": "Telemax (Mexico); 9.4 51 Spa"
+      },
+      "parsed": {
+        "frequencyMHz": 3996,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "Edinho fta PowerLat 231031",
+        "system": "DVB-S2",
+        "symbolRate": 4050,
+        "fec": "5/6",
+        "eirpDbw": 49,
+        "providerName": "Telemax (Mexico); 9.4 51 Spa"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-117-west-a-117w-s2-3997",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:16.198Z",
+      "raw": {
+        "frequencyText": "3997",
+        "polarizationText": "H",
+        "transponderText": "S2",
+        "beamText": "Cyberham 251113",
+        "systemText": "DVB-S2",
+        "symbolRateText": "1480",
+        "fecText": "3/4",
+        "providerText": "7.9 102 Spa; Oromar TV"
+      },
+      "parsed": {
+        "frequencyMHz": 3997,
+        "polarization": "H",
+        "transponderNumber": "S2",
+        "beamName": "Cyberham 251113",
+        "system": "DVB-S2",
+        "symbolRate": 1480,
+        "fec": "3/4",
+        "providerName": "7.9 102 Spa; Oromar TV"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-117-west-a-117w-s2-4004",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:16.198Z",
+      "raw": {
+        "frequencyText": "4004",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "Cyberham 251113",
+        "systemText": "DVB-S2",
+        "symbolRateText": "1660",
+        "fecText": "3/5",
+        "providerText": "5.5 300 Spa; RCG TV"
+      },
+      "parsed": {
+        "frequencyMHz": 4004,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "Cyberham 251113",
+        "system": "DVB-S2",
+        "symbolRate": 1660,
+        "fec": "3/5",
+        "providerName": "5.5 300 Spa; RCG TV"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-117-west-a-117w-s2-4013",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:16.198Z",
+      "raw": {
+        "frequencyText": "4013",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "Edinho fta 230620",
+        "systemText": "DVB-S2",
+        "symbolRateText": "9425",
+        "fecText": "3/4",
+        "providerText": "KeyFly; RTVE"
+      },
+      "parsed": {
+        "frequencyMHz": 4013,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "Edinho fta 230620",
+        "system": "DVB-S2",
+        "symbolRate": 9425,
+        "fec": "3/4",
+        "providerName": "KeyFly; RTVE"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-117-west-a-117w-s2-4015",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:16.198Z",
+      "raw": {
+        "frequencyText": "4015",
+        "polarizationText": "H",
+        "transponderText": "S2",
+        "beamText": "ML 250214",
+        "systemText": "DVB-S2",
+        "symbolRateText": "23200",
+        "fecText": "5/6"
+      },
+      "parsed": {
+        "frequencyMHz": 4015,
+        "polarization": "H",
+        "transponderNumber": "S2",
+        "beamName": "ML 250214",
+        "system": "DVB-S2",
+        "symbolRate": 23200,
+        "fec": "5/6"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-117-west-a-117w-row-69-4031",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:16.198Z",
+      "raw": {
+        "frequencyText": "4031",
+        "polarizationText": "V",
+        "beamText": "J Cordero 221018",
+        "systemText": "DVB-S",
+        "symbolRateText": "15200",
+        "fecText": "5/6",
+        "providerText": "Grupo Telemicro"
+      },
+      "parsed": {
+        "frequencyMHz": 4031,
+        "polarization": "V",
+        "beamName": "J Cordero 221018",
+        "system": "DVB-S",
+        "symbolRate": 15200,
+        "fec": "5/6",
+        "providerName": "Grupo Telemicro"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-117-west-a-117w-s2-4067",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:16.198Z",
+      "raw": {
+        "frequencyText": "4067",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "Edinho fta 230816",
+        "systemText": "DVB-S2",
+        "symbolRateText": "3100",
+        "fecText": "2/3",
+        "providerText": "6.6 4112 Spa; Mexicanal"
+      },
+      "parsed": {
+        "frequencyMHz": 4067,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "Edinho fta 230816",
+        "system": "DVB-S2",
+        "symbolRate": 3100,
+        "fec": "2/3",
+        "providerName": "6.6 4112 Spa; Mexicanal"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-117-west-a-117w-s2-4076",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:16.198Z",
+      "raw": {
+        "frequencyText": "4076",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "Teleuniverso (Dominican Republic)",
+        "systemText": "DVB-S2",
+        "symbolRateText": "2500",
+        "fecText": "3/4",
+        "providerText": "Mike 4 230205; 7.9 1122 Spa; ?-? HEVC/HD"
+      },
+      "parsed": {
+        "frequencyMHz": 4076,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "Teleuniverso (Dominican Republic)",
+        "system": "DVB-S2",
+        "symbolRate": 2500,
+        "fec": "3/4",
+        "providerName": "Mike 4 230205; 7.9 1122 Spa; ?-? HEVC/HD"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-117-west-a-117w-s2-4086",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:16.198Z",
+      "raw": {
+        "frequencyText": "4086",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "United Teleports",
+        "systemText": "DVB-S2",
+        "symbolRateText": "8333",
+        "fecText": "5/6",
+        "providerText": "Cyberham 251113"
+      },
+      "parsed": {
+        "frequencyMHz": 4086,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "United Teleports",
+        "system": "DVB-S2",
+        "symbolRate": 8333,
+        "fec": "5/6",
+        "providerName": "Cyberham 251113"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-117-west-a-117w-s2-4094",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:16.198Z",
+      "raw": {
+        "frequencyText": "4094",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "Edinho fta 230619",
+        "systemText": "DVB-S2",
+        "symbolRateText": "6333",
+        "fecText": "3/4",
+        "providerText": "Atresmedia; PowerVu"
+      },
+      "parsed": {
+        "frequencyMHz": 4094,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "Edinho fta 230619",
+        "system": "DVB-S2",
+        "symbolRate": 6333,
+        "fec": "3/4",
+        "providerName": "Atresmedia; PowerVu"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-117-west-a-117w-row-74-4101",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:16.198Z",
+      "raw": {
+        "frequencyText": "4101",
+        "beamText": "Atrecine",
+        "systemText": "MPEG-4",
+        "providerText": "4102 Spa; PowerVu"
+      },
+      "parsed": {
+        "frequencyMHz": 4101,
+        "beamName": "Atrecine",
+        "system": "MPEG-4",
+        "providerName": "4102 Spa; PowerVu"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-117-west-a-117w-row-75-4111",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:16.198Z",
+      "raw": {
+        "frequencyText": "4111",
+        "beamText": "Atreseries",
+        "systemText": "MPEG-4",
+        "providerText": "4112 Spa; PowerVu"
+      },
+      "parsed": {
+        "frequencyMHz": 4111,
+        "beamName": "Atreseries",
+        "system": "MPEG-4",
+        "providerName": "4112 Spa; PowerVu"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-117-west-a-117w-s2-4100",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:16.198Z",
+      "raw": {
+        "frequencyText": "4100",
+        "polarizationText": "H",
+        "transponderText": "S2",
+        "beamText": "Televisa Networks",
+        "systemText": "DVB-S2",
+        "symbolRateText": "30000",
+        "fecText": "5/6",
+        "providerText": "Mike 4 210914; Digicipher"
+      },
+      "parsed": {
+        "frequencyMHz": 4100,
+        "polarization": "H",
+        "transponderNumber": "S2",
+        "beamName": "Televisa Networks",
+        "system": "DVB-S2",
+        "symbolRate": 30000,
+        "fec": "5/6",
+        "providerName": "Mike 4 210914; Digicipher"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-117-west-a-117w-s2-4111",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:16.198Z",
+      "raw": {
+        "frequencyText": "4111",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "Cyberham 251112",
+        "systemText": "DVB-S2",
+        "symbolRateText": "15834",
+        "fecText": "5/6",
+        "providerText": "Thema America; PowerVu"
+      },
+      "parsed": {
+        "frequencyMHz": 4111,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "Cyberham 251112",
+        "system": "DVB-S2",
+        "symbolRate": 15834,
+        "fec": "5/6",
+        "providerName": "Thema America; PowerVu"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-117-west-a-117w-row-78-3500",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:16.198Z",
+      "raw": {
+        "frequencyText": "3500",
+        "beamText": "Telemicro Internacional",
+        "systemText": "MPEG-4",
+        "providerText": "3501 Spa; PowerVu"
+      },
+      "parsed": {
+        "frequencyMHz": 3500,
+        "beamName": "Telemicro Internacional",
+        "system": "MPEG-4",
+        "providerName": "3501 Spa; PowerVu"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-117-west-a-117w-row-79-3510",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:16.198Z",
+      "raw": {
+        "frequencyText": "3510",
+        "beamText": "Once México Internacional",
+        "systemText": "MPEG-4",
+        "providerText": "3511 Spa; PowerVu"
+      },
+      "parsed": {
+        "frequencyMHz": 3510,
+        "beamName": "Once México Internacional",
+        "system": "MPEG-4",
+        "providerName": "3511 Spa; PowerVu"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-117-west-a-117w-row-80-3530",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:16.198Z",
+      "raw": {
+        "frequencyText": "3530",
+        "beamText": "AyM Sports",
+        "systemText": "MPEG-4",
+        "providerText": "3531 Spa; PowerVu"
+      },
+      "parsed": {
+        "frequencyMHz": 3530,
+        "beamName": "AyM Sports",
+        "system": "MPEG-4",
+        "providerName": "3531 Spa; PowerVu"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-117-west-a-117w-row-81-3540",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:16.198Z",
+      "raw": {
+        "frequencyText": "3540",
+        "beamText": "Latin American Sports USA",
+        "systemText": "MPEG-4",
+        "providerText": "3541 Spa; PowerVu"
+      },
+      "parsed": {
+        "frequencyMHz": 3540,
+        "beamName": "Latin American Sports USA",
+        "system": "MPEG-4",
+        "providerName": "3541 Spa; PowerVu"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-117-west-a-117w-row-82-3550",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:16.198Z",
+      "raw": {
+        "frequencyText": "3550",
+        "beamText": "Kanal D Drama",
+        "systemText": "MPEG-4",
+        "providerText": "3551 Spa; PowerVu"
+      },
+      "parsed": {
+        "frequencyMHz": 3550,
+        "beamName": "Kanal D Drama",
+        "system": "MPEG-4",
+        "providerName": "3551 Spa; PowerVu"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-117-west-a-117w-row-83-3570",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:16.198Z",
+      "raw": {
+        "frequencyText": "3570",
+        "beamText": "Ecuavisa Internacional",
+        "systemText": "MPEG-4",
+        "providerText": "3571 Spa; PowerVu"
+      },
+      "parsed": {
+        "frequencyMHz": 3570,
+        "beamName": "Ecuavisa Internacional",
+        "system": "MPEG-4",
+        "providerName": "3571 Spa; PowerVu"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-117-west-a-117w-row-84-3580",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:16.198Z",
+      "raw": {
+        "frequencyText": "3580",
+        "beamText": "CB TV Michoacan",
+        "systemText": "MPEG-4",
+        "providerText": "3581 Spa; PowerVu"
+      },
+      "parsed": {
+        "frequencyMHz": 3580,
+        "beamName": "CB TV Michoacan",
+        "system": "MPEG-4",
+        "providerName": "3581 Spa; PowerVu"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-117-west-a-117w-row-85-3590",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:16.198Z",
+      "raw": {
+        "frequencyText": "3590",
+        "beamText": "Kanal D Drama",
+        "systemText": "MPEG-4",
+        "providerText": "3591 Spa; PowerVu"
+      },
+      "parsed": {
+        "frequencyMHz": 3590,
+        "beamName": "Kanal D Drama",
+        "system": "MPEG-4",
+        "providerName": "3591 Spa; PowerVu"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-117-west-a-117w-row-86-3600",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:16.198Z",
+      "raw": {
+        "frequencyText": "3600",
+        "beamText": "Canal 22 Internacional",
+        "systemText": "MPEG-4",
+        "providerText": "3601 Spa; PowerVu"
+      },
+      "parsed": {
+        "frequencyMHz": 3600,
+        "beamName": "Canal 22 Internacional",
+        "system": "MPEG-4",
+        "providerName": "3601 Spa; PowerVu"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-117-west-a-117w-s2-4132",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:16.198Z",
+      "raw": {
+        "frequencyText": "4132",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "Luis Alberto Rosario 251003",
+        "systemText": "DVB-S2",
+        "symbolRateText": "2500",
+        "fecText": "5/6",
+        "providerText": "La Voz de María; 5.2 4114 Spa"
+      },
+      "parsed": {
+        "frequencyMHz": 4132,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "Luis Alberto Rosario 251003",
+        "system": "DVB-S2",
+        "symbolRate": 2500,
+        "fec": "5/6",
+        "providerName": "La Voz de María; 5.2 4114 Spa"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-117-west-a-117w-s2-4140",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:16.198Z",
+      "raw": {
+        "frequencyText": "4140",
+        "polarizationText": "H",
+        "transponderText": "S2",
+        "beamText": "Televisa Networks",
+        "systemText": "DVB-S2",
+        "symbolRateText": "30000",
+        "fecText": "5/6",
+        "providerText": "Mike 4 230205; Digicipher"
+      },
+      "parsed": {
+        "frequencyMHz": 4140,
+        "polarization": "H",
+        "transponderNumber": "S2",
+        "beamName": "Televisa Networks",
+        "system": "DVB-S2",
+        "symbolRate": 30000,
+        "fec": "5/6",
+        "providerName": "Mike 4 230205; Digicipher"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-117-west-a-117w-row-89-3536",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:16.198Z",
+      "raw": {
+        "frequencyText": "3536",
+        "beamText": "Golden Premier",
+        "systemText": "MPEG-4",
+        "eirpText": "25",
+        "providerText": "Digicipher; 3537 Spa"
+      },
+      "parsed": {
+        "frequencyMHz": 3536,
+        "beamName": "Golden Premier",
+        "system": "MPEG-4",
+        "eirpDbw": 25,
+        "providerName": "Digicipher; 3537 Spa"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-117-west-a-117w-row-90-3792",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:16.198Z",
+      "raw": {
+        "frequencyText": "3792",
+        "beamText": "Digicipher",
+        "eirpText": "26",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 3792,
+        "beamName": "Digicipher",
+        "eirpDbw": 26,
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": false,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable.",
+          "No DVB system/SR/FEC parameters found."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-117-west-a-117w-row-91-4047",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:16.198Z",
+      "raw": {
+        "frequencyText": "4047",
+        "beamText": "Digicipher",
+        "eirpText": "27",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 4047,
+        "beamName": "Digicipher",
+        "eirpDbw": 27,
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": false,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable.",
+          "No DVB system/SR/FEC parameters found."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-117-west-a-117w-s2-4160",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:16.198Z",
+      "raw": {
+        "frequencyText": "4160",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "NOS482 240721",
+        "systemText": "DVB-S2",
+        "symbolRateText": "30000",
+        "fecText": "5/6",
+        "providerText": "PowerVu"
+      },
+      "parsed": {
+        "frequencyMHz": 4160,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "NOS482 240721",
+        "system": "DVB-S2",
+        "symbolRate": 30000,
+        "fec": "5/6",
+        "providerName": "PowerVu"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-117-west-a-117w-s2-4164",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:16.198Z",
+      "raw": {
+        "frequencyText": "4164",
+        "polarizationText": "H",
+        "transponderText": "S2",
+        "beamText": "Edinho fta 240313",
+        "systemText": "DVB-S2",
+        "symbolRateText": "2400",
+        "fecText": "3/4",
+        "providerText": "Panamericana TV"
+      },
+      "parsed": {
+        "frequencyMHz": 4164,
+        "polarization": "H",
+        "transponderNumber": "S2",
+        "beamName": "Edinho fta 240313",
+        "system": "DVB-S2",
+        "symbolRate": 2400,
+        "fec": "3/4",
+        "providerName": "Panamericana TV"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-117-west-a-117w-s2-4184",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:16.198Z",
+      "raw": {
+        "frequencyText": "4184",
+        "polarizationText": "H",
+        "transponderText": "S2",
+        "beamText": "Cyberham 251119",
+        "systemText": "DVB-S2",
+        "symbolRateText": "25800",
+        "fecText": "2/3",
+        "providerText": "Multimedios; PowerVu"
+      },
+      "parsed": {
+        "frequencyMHz": 4184,
+        "polarization": "H",
+        "transponderNumber": "S2",
+        "beamName": "Cyberham 251119",
+        "system": "DVB-S2",
+        "symbolRate": 25800,
+        "fec": "2/3",
+        "providerName": "Multimedios; PowerVu"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-117-west-a-117w-s2-11814",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:16.198Z",
+      "raw": {
+        "frequencyText": "11814",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "D Brockwell Cyberham 250105",
+        "systemText": "DVB-S2",
+        "symbolRateText": "2500",
+        "fecText": "3/5"
+      },
+      "parsed": {
+        "frequencyMHz": 11814,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "D Brockwell Cyberham 250105",
+        "system": "DVB-S2",
+        "symbolRate": 2500,
+        "fec": "3/5"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-117-west-a-117w-s2-12060",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:16.198Z",
+      "raw": {
+        "frequencyText": "12060",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "C de Berazategui 250210",
+        "systemText": "DVB-S2",
+        "symbolRateText": "30000",
+        "providerText": "Conax Verimatrix; Tigo"
+      },
+      "parsed": {
+        "frequencyMHz": 12060,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "C de Berazategui 250210",
+        "system": "DVB-S2",
+        "symbolRate": 30000,
+        "providerName": "Conax Verimatrix; Tigo"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-117-west-a-117w-s2-12080",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:16.198Z",
+      "raw": {
+        "frequencyText": "12080",
+        "polarizationText": "H",
+        "transponderText": "S2",
+        "beamText": "Conax Verimatrix",
+        "systemText": "DVB-S2",
+        "symbolRateText": "30000",
+        "providerText": "D de Jong 260102; Tigo"
+      },
+      "parsed": {
+        "frequencyMHz": 12080,
+        "polarization": "H",
+        "transponderNumber": "S2",
+        "beamName": "Conax Verimatrix",
+        "system": "DVB-S2",
+        "symbolRate": 30000,
+        "providerName": "D de Jong 260102; Tigo"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-117-west-a-117w-s2-12100",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:16.198Z",
+      "raw": {
+        "frequencyText": "12100",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "C de Berazategui 251122",
+        "systemText": "DVB-S2",
+        "symbolRateText": "30000",
+        "fecText": "3/4",
+        "providerText": "Conax Verimatrix; 5-501; Tigo"
+      },
+      "parsed": {
+        "frequencyMHz": 12100,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "C de Berazategui 251122",
+        "system": "DVB-S2",
+        "symbolRate": 30000,
+        "fec": "3/4",
+        "providerName": "Conax Verimatrix; 5-501; Tigo"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-117-west-a-117w-s2-12123",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:16.198Z",
+      "raw": {
+        "frequencyText": "12123",
+        "polarizationText": "V",
+        "transponderText": "S2",
+        "beamText": "Cyberham 240306",
+        "systemText": "DVB-S2",
+        "symbolRateText": "3330",
+        "fecText": "2/3"
+      },
+      "parsed": {
+        "frequencyMHz": 12123,
+        "polarization": "V",
+        "transponderNumber": "S2",
+        "beamName": "Cyberham 240306",
+        "system": "DVB-S2",
+        "symbolRate": 3330,
+        "fec": "2/3"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-117-west-a-117w-row-100-3601",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:16.198Z",
+      "raw": {
+        "frequencyText": "3601",
+        "beamText": "Hope Channel Inter-America",
+        "systemText": "MPEG-4",
+        "providerText": "3604 Spa"
+      },
+      "parsed": {
+        "frequencyMHz": 3601,
+        "beamName": "Hope Channel Inter-America",
+        "system": "MPEG-4",
+        "providerName": "3604 Spa"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-117-west-a-117w-row-101-3602",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:16.198Z",
+      "raw": {
+        "frequencyText": "3602",
+        "beamText": "Hope Channel Inter-America English",
+        "systemText": "MPEG-4",
+        "providerText": "3606 Eng"
+      },
+      "parsed": {
+        "frequencyMHz": 3602,
+        "beamName": "Hope Channel Inter-America English",
+        "system": "MPEG-4",
+        "providerName": "3606 Eng"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-117-west-a-117w-row-102-3704",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:16.198Z",
+      "raw": {
+        "frequencyText": "3704",
+        "beamText": "Radio Nuevo Tiempo"
+      },
+      "parsed": {
+        "frequencyMHz": 3704,
+        "beamName": "Radio Nuevo Tiempo"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": false,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable.",
+          "No DVB system/SR/FEC parameters found."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-117-west-a-117w-s2-12147",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:16.198Z",
+      "raw": {
+        "frequencyText": "12147",
+        "polarizationText": "H",
+        "transponderText": "S2",
+        "beamText": "J Drexhage 231107",
+        "systemText": "DVB-S2",
+        "symbolRateText": "3600",
+        "fecText": "1/2",
+        "providerText": "1.0 3001 Dut; BVN Amerika"
+      },
+      "parsed": {
+        "frequencyMHz": 12147,
+        "polarization": "H",
+        "transponderNumber": "S2",
+        "beamName": "J Drexhage 231107",
+        "system": "DVB-S2",
+        "symbolRate": 3600,
+        "fec": "1/2",
+        "providerName": "1.0 3001 Dut; BVN Amerika"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-117-west-a-117w-s2-12151",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:16.198Z",
+      "raw": {
+        "frequencyText": "12151",
+        "polarizationText": "H",
+        "transponderText": "S2",
+        "beamText": "Cyberham 211011",
+        "systemText": "DVB-S2",
+        "symbolRateText": "2678",
+        "fecText": "2/3",
+        "providerText": "6.6 5121 Eng; BYU TV"
+      },
+      "parsed": {
+        "frequencyMHz": 12151,
+        "polarization": "H",
+        "transponderNumber": "S2",
+        "beamName": "Cyberham 211011",
+        "system": "DVB-S2",
+        "symbolRate": 2678,
+        "fec": "2/3",
+        "providerName": "6.6 5121 Eng; BYU TV"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-117-west-a-117w-s2-nofreq",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 117 WEST A",
+      "orbitalPosition": "117W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-117-West-A.html",
+      "retrievedAt": "2026-05-01T07:48:16.198Z",
+      "raw": {
+        "transponderText": "S2",
+        "beamText": "System:",
+        "systemText": "DVB-S2",
+        "providerText": "non-DTH"
+      },
+      "parsed": {
+        "transponderNumber": "S2",
+        "beamName": "System:",
+        "system": "DVB-S2",
+        "providerName": "non-DTH"
+      },
+      "parseQuality": {
+        "hasFrequency": false,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Downlink frequency not parseable; row kept due to transponder ID.",
+          "Polarization not present or not parseable."
+        ]
+      }
+    }
+  ]
+}

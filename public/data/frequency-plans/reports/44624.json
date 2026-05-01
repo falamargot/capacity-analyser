@@ -1,0 +1,13 @@
+{
+  "satelliteName": "EUTELSAT 5 WEST B",
+  "source": "LYNGSAT",
+  "generatedAt": "2026-05-01T07:49:01.531Z",
+  "totalRowsSeen": 46,
+  "observationsCreated": 46,
+  "rowsWithFrequency": 41,
+  "rowsWithBeam": 46,
+  "rowsWithTransponderId": 42,
+  "rowsSkipped": 0,
+  "skipReasons": {},
+  "normalizedTransponders": 31
+}

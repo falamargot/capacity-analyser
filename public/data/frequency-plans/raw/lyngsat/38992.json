@@ -1,0 +1,3933 @@
+{
+  "version": "2",
+  "satelliteName": "EUTELSAT 21B",
+  "orbitalPosition": "21E",
+  "source": "LYNGSAT",
+  "sourceUrl": "https://www.lyngsat.com/Eutelsat-21B.html",
+  "generatedAt": "2026-05-01T07:49:01.519Z",
+  "observations": [
+    {
+      "id": "lyngsat-eutelsat-21b-21e-a2-10723",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 21B",
+      "orbitalPosition": "21E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-21B.html",
+      "retrievedAt": "2026-05-01T07:48:13.323Z",
+      "raw": {
+        "frequencyText": "10723",
+        "polarizationText": "V",
+        "transponderText": "A2",
+        "beamText": "Warner Bros. Discovery",
+        "systemText": "DVB-S2",
+        "symbolRateText": "32115",
+        "fecText": "1/2",
+        "providerText": "M Al-Taie 250128; Viaccess; 1-1"
+      },
+      "parsed": {
+        "frequencyMHz": 10723,
+        "polarization": "V",
+        "transponderNumber": "A2",
+        "transponderName": "TP A2",
+        "beamName": "Warner Bros. Discovery",
+        "system": "DVB-S2",
+        "symbolRate": 32115,
+        "fec": "1/2",
+        "providerName": "M Al-Taie 250128; Viaccess; 1-1"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-21b-21e-row-2-4000",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 21B",
+      "orbitalPosition": "21E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-21B.html",
+      "retrievedAt": "2026-05-01T07:48:13.323Z",
+      "raw": {
+        "frequencyText": "4000",
+        "beamText": "Discovery Channel Central Europe",
+        "systemText": "MPEG-4",
+        "providerText": "4021 Eng 4022 Rus; Viaccess"
+      },
+      "parsed": {
+        "frequencyMHz": 4000,
+        "beamName": "Discovery Channel Central Europe",
+        "system": "MPEG-4",
+        "providerName": "4021 Eng 4022 Rus; Viaccess"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-21b-21e-row-3-4100",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 21B",
+      "orbitalPosition": "21E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-21B.html",
+      "retrievedAt": "2026-05-01T07:48:13.323Z",
+      "raw": {
+        "frequencyText": "4100",
+        "beamText": "Animal Planet Rossiya",
+        "systemText": "MPEG-4",
+        "providerText": "4121 Rus 4122 Eng; Viaccess"
+      },
+      "parsed": {
+        "frequencyMHz": 4100,
+        "beamName": "Animal Planet Rossiya",
+        "system": "MPEG-4",
+        "providerName": "4121 Rus 4122 Eng; Viaccess"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-21b-21e-row-4-4200",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 21B",
+      "orbitalPosition": "21E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-21B.html",
+      "retrievedAt": "2026-05-01T07:48:13.323Z",
+      "raw": {
+        "frequencyText": "4200",
+        "beamText": "Investigation Discovery Rossiya",
+        "systemText": "MPEG-4",
+        "symbolRateText": "4211",
+        "providerText": "4221 Rus 4222 Eng; Viaccess"
+      },
+      "parsed": {
+        "frequencyMHz": 4200,
+        "beamName": "Investigation Discovery Rossiya",
+        "system": "MPEG-4",
+        "symbolRate": 4211,
+        "providerName": "4221 Rus 4222 Eng; Viaccess"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-21b-21e-a8-10919",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 21B",
+      "orbitalPosition": "21E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-21B.html",
+      "retrievedAt": "2026-05-01T07:48:13.323Z",
+      "raw": {
+        "frequencyText": "10919",
+        "polarizationText": "V",
+        "transponderText": "A8",
+        "beamText": "Topwell VisionCrypt",
+        "systemText": "DVB-S2",
+        "symbolRateText": "30000",
+        "fecText": "1/2",
+        "providerText": "Janlakomcik 260409; Chinese mux; 0-2"
+      },
+      "parsed": {
+        "frequencyMHz": 10919,
+        "polarization": "V",
+        "transponderNumber": "A8",
+        "transponderName": "TP A8",
+        "beamName": "Topwell VisionCrypt",
+        "system": "DVB-S2",
+        "symbolRate": 30000,
+        "fec": "1/2",
+        "providerName": "Janlakomcik 260409; Chinese mux; 0-2"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-21b-21e-bm2-10953",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 21B",
+      "orbitalPosition": "21E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-21B.html",
+      "retrievedAt": "2026-05-01T07:48:13.323Z",
+      "raw": {
+        "frequencyText": "10953",
+        "polarizationText": "V",
+        "transponderText": "BM2",
+        "beamText": "Jamie A 250503",
+        "systemText": "DVB-S2",
+        "symbolRateText": "2170",
+        "fecText": "3/4",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 10953,
+        "polarization": "V",
+        "transponderNumber": "BM2",
+        "beamName": "Jamie A 250503",
+        "system": "DVB-S2",
+        "symbolRate": 2170,
+        "fec": "3/4",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-21b-21e-bm1-10993",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 21B",
+      "orbitalPosition": "21E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-21B.html",
+      "retrievedAt": "2026-05-01T07:48:13.323Z",
+      "raw": {
+        "frequencyText": "10993",
+        "polarizationText": "H",
+        "transponderText": "BM1",
+        "beamText": "Jamie A 260306",
+        "systemText": "DVB-S2",
+        "symbolRateText": "1600",
+        "fecText": "3/4",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 10993,
+        "polarization": "H",
+        "transponderNumber": "BM1",
+        "beamName": "Jamie A 260306",
+        "system": "DVB-S2",
+        "symbolRate": 1600,
+        "fec": "3/4",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-21b-21e-bm1-10995",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 21B",
+      "orbitalPosition": "21E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-21B.html",
+      "retrievedAt": "2026-05-01T07:48:13.323Z",
+      "raw": {
+        "frequencyText": "10995",
+        "polarizationText": "H",
+        "transponderText": "BM1",
+        "beamText": "Jamie A 260308",
+        "systemText": "DVB-S2",
+        "symbolRateText": "1600",
+        "fecText": "3/4",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 10995,
+        "polarization": "H",
+        "transponderNumber": "BM1",
+        "beamName": "Jamie A 260308",
+        "system": "DVB-S2",
+        "symbolRate": 1600,
+        "fec": "3/4",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-21b-21e-bm1-10997",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 21B",
+      "orbitalPosition": "21E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-21B.html",
+      "retrievedAt": "2026-05-01T07:48:13.323Z",
+      "raw": {
+        "frequencyText": "10997",
+        "polarizationText": "H",
+        "transponderText": "BM1",
+        "beamText": "Jamie A 260306",
+        "systemText": "DVB-S2",
+        "symbolRateText": "1600",
+        "fecText": "3/4",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 10997,
+        "polarization": "H",
+        "transponderNumber": "BM1",
+        "beamName": "Jamie A 260306",
+        "system": "DVB-S2",
+        "symbolRate": 1600,
+        "fec": "3/4",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-21b-21e-bm1-11004",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 21B",
+      "orbitalPosition": "21E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-21B.html",
+      "retrievedAt": "2026-05-01T07:48:13.323Z",
+      "raw": {
+        "frequencyText": "11004",
+        "polarizationText": "H",
+        "transponderText": "BM1",
+        "beamText": "Roli Jamie A 260306",
+        "systemText": "DVB-S2",
+        "symbolRateText": "2857",
+        "fecText": "3/4",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 11004,
+        "polarization": "H",
+        "transponderNumber": "BM1",
+        "beamName": "Roli Jamie A 260306",
+        "system": "DVB-S2",
+        "symbolRate": 2857,
+        "fec": "3/4",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-21b-21e-bm1-11007",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 21B",
+      "orbitalPosition": "21E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-21B.html",
+      "retrievedAt": "2026-05-01T07:48:13.323Z",
+      "raw": {
+        "frequencyText": "11007",
+        "polarizationText": "H",
+        "transponderText": "BM1",
+        "beamText": "N Stanislav 260310"
+      },
+      "parsed": {
+        "frequencyMHz": 11007,
+        "polarization": "H",
+        "transponderNumber": "BM1",
+        "beamName": "N Stanislav 260310"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": false,
+        "confidence": "MEDIUM",
+        "warnings": [
+          "No DVB system/SR/FEC parameters found."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-21b-21e-bm1-11009",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 21B",
+      "orbitalPosition": "21E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-21B.html",
+      "retrievedAt": "2026-05-01T07:48:13.323Z",
+      "raw": {
+        "frequencyText": "11009",
+        "polarizationText": "H",
+        "transponderText": "BM1",
+        "beamText": "N Stanislav 260310"
+      },
+      "parsed": {
+        "frequencyMHz": 11009,
+        "polarization": "H",
+        "transponderNumber": "BM1",
+        "beamName": "N Stanislav 260310"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": false,
+        "confidence": "MEDIUM",
+        "warnings": [
+          "No DVB system/SR/FEC parameters found."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-21b-21e-bm1-11015",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 21B",
+      "orbitalPosition": "21E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-21B.html",
+      "retrievedAt": "2026-05-01T07:48:13.323Z",
+      "raw": {
+        "frequencyText": "11015",
+        "polarizationText": "H",
+        "transponderText": "BM1",
+        "beamText": "Roli Jamie A 260306",
+        "systemText": "DVB-S2",
+        "symbolRateText": "7500",
+        "fecText": "5/6",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 11015,
+        "polarization": "H",
+        "transponderNumber": "BM1",
+        "beamName": "Roli Jamie A 260306",
+        "system": "DVB-S2",
+        "symbolRate": 7500,
+        "fec": "5/6",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-21b-21e-bm1-11027",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 21B",
+      "orbitalPosition": "21E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-21B.html",
+      "retrievedAt": "2026-05-01T07:48:13.323Z",
+      "raw": {
+        "frequencyText": "11027",
+        "polarizationText": "H",
+        "transponderText": "BM1",
+        "beamText": "Jamie A 260427",
+        "systemText": "DVB-S",
+        "symbolRateText": "3000",
+        "fecText": "3/4",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 11027,
+        "polarization": "H",
+        "transponderNumber": "BM1",
+        "beamName": "Jamie A 260427",
+        "system": "DVB-S",
+        "symbolRate": 3000,
+        "fec": "3/4",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-21b-21e-bm3-11052",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 21B",
+      "orbitalPosition": "21E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-21B.html",
+      "retrievedAt": "2026-05-01T07:48:13.323Z",
+      "raw": {
+        "frequencyText": "11052",
+        "polarizationText": "H",
+        "transponderText": "BM3",
+        "beamText": "Jamie A 260412",
+        "systemText": "DVB-S2",
+        "symbolRateText": "7200",
+        "fecText": "3/4",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 11052,
+        "polarization": "H",
+        "transponderNumber": "BM3",
+        "beamName": "Jamie A 260412",
+        "system": "DVB-S2",
+        "symbolRate": 7200,
+        "fec": "3/4",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-21b-21e-bw3-11100",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 21B",
+      "orbitalPosition": "21E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-21B.html",
+      "retrievedAt": "2026-05-01T07:48:13.323Z",
+      "raw": {
+        "frequencyText": "11100",
+        "polarizationText": "H",
+        "transponderText": "BW3",
+        "beamText": "Roli 250903",
+        "systemText": "DVB-S2",
+        "symbolRateText": "2200",
+        "fecText": "5/6",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 11100,
+        "polarization": "H",
+        "transponderNumber": "BW3",
+        "beamName": "Roli 250903",
+        "system": "DVB-S2",
+        "symbolRate": 2200,
+        "fec": "5/6",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-21b-21e-bw3-11103",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 21B",
+      "orbitalPosition": "21E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-21B.html",
+      "retrievedAt": "2026-05-01T07:48:13.323Z",
+      "raw": {
+        "frequencyText": "11103",
+        "polarizationText": "H",
+        "transponderText": "BW3",
+        "beamText": "Roli 250903",
+        "systemText": "DVB-S2",
+        "symbolRateText": "2150",
+        "fecText": "5/6",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 11103,
+        "polarization": "H",
+        "transponderNumber": "BW3",
+        "beamName": "Roli 250903",
+        "system": "DVB-S2",
+        "symbolRate": 2150,
+        "fec": "5/6",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-21b-21e-bw3-11109",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 21B",
+      "orbitalPosition": "21E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-21B.html",
+      "retrievedAt": "2026-05-01T07:48:13.323Z",
+      "raw": {
+        "frequencyText": "11109",
+        "polarizationText": "H",
+        "transponderText": "BW3",
+        "beamText": "Jamie A 250622",
+        "systemText": "DVB-S2",
+        "symbolRateText": "1100",
+        "fecText": "2/3",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 11109,
+        "polarization": "H",
+        "transponderNumber": "BW3",
+        "beamName": "Jamie A 250622",
+        "system": "DVB-S2",
+        "symbolRate": 1100,
+        "fec": "2/3",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-21b-21e-bw6-11172",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 21B",
+      "orbitalPosition": "21E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-21B.html",
+      "retrievedAt": "2026-05-01T07:48:13.323Z",
+      "raw": {
+        "frequencyText": "11172",
+        "polarizationText": "V",
+        "transponderText": "BW6",
+        "beamText": "Jamie A 250823",
+        "systemText": "DVB-S2",
+        "symbolRateText": "7200",
+        "fecText": "5/6",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 11172,
+        "polarization": "V",
+        "transponderNumber": "BW6",
+        "beamName": "Jamie A 250823",
+        "system": "DVB-S2",
+        "symbolRate": 7200,
+        "fec": "5/6",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-21b-21e-bw5-11190",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 21B",
+      "orbitalPosition": "21E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-21B.html",
+      "retrievedAt": "2026-05-01T07:48:13.323Z",
+      "raw": {
+        "frequencyText": "11190",
+        "polarizationText": "H",
+        "transponderText": "BW5",
+        "beamText": "Roli 260201",
+        "systemText": "DVB-S2",
+        "symbolRateText": "7200",
+        "fecText": "5/6",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 11190,
+        "polarization": "H",
+        "transponderNumber": "BW5",
+        "beamName": "Roli 260201",
+        "system": "DVB-S2",
+        "symbolRate": 7200,
+        "fec": "5/6",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-21b-21e-c10-11403",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 21B",
+      "orbitalPosition": "21E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-21B.html",
+      "retrievedAt": "2026-05-01T07:48:13.323Z",
+      "raw": {
+        "frequencyText": "11403",
+        "polarizationText": "V",
+        "transponderText": "C10",
+        "beamText": "Janlakomcik 260309"
+      },
+      "parsed": {
+        "frequencyMHz": 11403,
+        "polarization": "V",
+        "transponderNumber": "C10",
+        "transponderName": "TP C10",
+        "beamName": "Janlakomcik 260309"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": false,
+        "confidence": "MEDIUM",
+        "warnings": [
+          "No DVB system/SR/FEC parameters found."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-21b-21e-dm1-11470",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 21B",
+      "orbitalPosition": "21E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-21B.html",
+      "retrievedAt": "2026-05-01T07:48:13.323Z",
+      "raw": {
+        "frequencyText": "11470",
+        "polarizationText": "H",
+        "transponderText": "DM1",
+        "beamText": "Hadowooalsatan 260228",
+        "systemText": "DVB-S",
+        "symbolRateText": "2400",
+        "fecText": "5/6",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 11470,
+        "polarization": "H",
+        "transponderNumber": "DM1",
+        "beamName": "Hadowooalsatan 260228",
+        "system": "DVB-S",
+        "symbolRate": 2400,
+        "fec": "5/6",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-21b-21e-dm2-11475",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 21B",
+      "orbitalPosition": "21E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-21B.html",
+      "retrievedAt": "2026-05-01T07:48:13.323Z",
+      "raw": {
+        "frequencyText": "11475",
+        "polarizationText": "V",
+        "transponderText": "DM2",
+        "beamText": "N Stanislav 240418",
+        "systemText": "DVB-S2",
+        "symbolRateText": "2300",
+        "fecText": "3/4",
+        "providerText": "Al Mayadeen TV; 7.9 256 Ara"
+      },
+      "parsed": {
+        "frequencyMHz": 11475,
+        "polarization": "V",
+        "transponderNumber": "DM2",
+        "beamName": "N Stanislav 240418",
+        "system": "DVB-S2",
+        "symbolRate": 2300,
+        "fec": "3/4",
+        "providerName": "Al Mayadeen TV; 7.9 256 Ara"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-21b-21e-dm1-11477",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 21B",
+      "orbitalPosition": "21E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-21B.html",
+      "retrievedAt": "2026-05-01T07:48:13.323Z",
+      "raw": {
+        "frequencyText": "11477",
+        "polarizationText": "H",
+        "transponderText": "DM1",
+        "beamText": "Jamie A 260330",
+        "systemText": "DVB-S2",
+        "symbolRateText": "3200",
+        "fecText": "5/6",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 11477,
+        "polarization": "H",
+        "transponderNumber": "DM1",
+        "beamName": "Jamie A 260330",
+        "system": "DVB-S2",
+        "symbolRate": 3200,
+        "fec": "5/6",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-21b-21e-dm1-11480",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 21B",
+      "orbitalPosition": "21E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-21B.html",
+      "retrievedAt": "2026-05-01T07:48:13.323Z",
+      "raw": {
+        "frequencyText": "11480",
+        "polarizationText": "H",
+        "transponderText": "DM1",
+        "beamText": "Roli 250924",
+        "systemText": "DVB-S2",
+        "symbolRateText": "2250",
+        "fecText": "3/4",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 11480,
+        "polarization": "H",
+        "transponderNumber": "DM1",
+        "beamName": "Roli 250924",
+        "system": "DVB-S2",
+        "symbolRate": 2250,
+        "fec": "3/4",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-21b-21e-dm2-11480",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 21B",
+      "orbitalPosition": "21E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-21B.html",
+      "retrievedAt": "2026-05-01T07:48:13.323Z",
+      "raw": {
+        "frequencyText": "11480",
+        "polarizationText": "V",
+        "transponderText": "DM2",
+        "beamText": "Jamie A 251004",
+        "systemText": "DVB-S",
+        "symbolRateText": "2200",
+        "fecText": "7/8",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 11480,
+        "polarization": "V",
+        "transponderNumber": "DM2",
+        "beamName": "Jamie A 251004",
+        "system": "DVB-S",
+        "symbolRate": 2200,
+        "fec": "7/8",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-21b-21e-dm1-11483",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 21B",
+      "orbitalPosition": "21E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-21B.html",
+      "retrievedAt": "2026-05-01T07:48:13.323Z",
+      "raw": {
+        "frequencyText": "11483",
+        "polarizationText": "H",
+        "transponderText": "DM1",
+        "beamText": "Jamie A 251205",
+        "systemText": "DVB-S2",
+        "symbolRateText": "2150",
+        "fecText": "2/3",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 11483,
+        "polarization": "H",
+        "transponderNumber": "DM1",
+        "beamName": "Jamie A 251205",
+        "system": "DVB-S2",
+        "symbolRate": 2150,
+        "fec": "2/3",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-21b-21e-dm2-11483",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 21B",
+      "orbitalPosition": "21E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-21B.html",
+      "retrievedAt": "2026-05-01T07:48:13.323Z",
+      "raw": {
+        "frequencyText": "11483",
+        "polarizationText": "V",
+        "transponderText": "DM2",
+        "beamText": "Jamie A 260330",
+        "systemText": "DVB-S",
+        "symbolRateText": "2200",
+        "fecText": "3/4",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 11483,
+        "polarization": "V",
+        "transponderNumber": "DM2",
+        "beamName": "Jamie A 260330",
+        "system": "DVB-S",
+        "symbolRate": 2200,
+        "fec": "3/4",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-21b-21e-dm2-11490",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 21B",
+      "orbitalPosition": "21E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-21B.html",
+      "retrievedAt": "2026-05-01T07:48:13.323Z",
+      "raw": {
+        "frequencyText": "11490",
+        "polarizationText": "V",
+        "transponderText": "DM2",
+        "beamText": "Jamie A 260112",
+        "systemText": "DVB-S",
+        "symbolRateText": "1800",
+        "fecText": "3/4",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 11490,
+        "polarization": "V",
+        "transponderNumber": "DM2",
+        "beamName": "Jamie A 260112",
+        "system": "DVB-S",
+        "symbolRate": 1800,
+        "fec": "3/4",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-21b-21e-dm2-11492",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 21B",
+      "orbitalPosition": "21E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-21B.html",
+      "retrievedAt": "2026-05-01T07:48:13.323Z",
+      "raw": {
+        "frequencyText": "11492",
+        "polarizationText": "V",
+        "transponderText": "DM2",
+        "beamText": "Jamie A 260309",
+        "systemText": "DVB-S2",
+        "symbolRateText": "1800",
+        "fecText": "5/6",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 11492,
+        "polarization": "V",
+        "transponderNumber": "DM2",
+        "beamName": "Jamie A 260309",
+        "system": "DVB-S2",
+        "symbolRate": 1800,
+        "fec": "5/6",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-21b-21e-dm2-11494",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 21B",
+      "orbitalPosition": "21E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-21B.html",
+      "retrievedAt": "2026-05-01T07:48:13.323Z",
+      "raw": {
+        "frequencyText": "11494",
+        "polarizationText": "V",
+        "transponderText": "DM2",
+        "beamText": "Jamie A 260309",
+        "systemText": "DVB-S",
+        "symbolRateText": "1800",
+        "fecText": "5/6",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 11494,
+        "polarization": "V",
+        "transponderNumber": "DM2",
+        "beamName": "Jamie A 260309",
+        "system": "DVB-S",
+        "symbolRate": 1800,
+        "fec": "5/6",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-21b-21e-dm1-11497",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 21B",
+      "orbitalPosition": "21E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-21B.html",
+      "retrievedAt": "2026-05-01T07:48:13.323Z",
+      "raw": {
+        "frequencyText": "11497",
+        "polarizationText": "H",
+        "transponderText": "DM1",
+        "beamText": "N Stanislav 260310",
+        "systemText": "DVB-S2",
+        "symbolRateText": "2200",
+        "fecText": "5/6",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 11497,
+        "polarization": "H",
+        "transponderNumber": "DM1",
+        "beamName": "N Stanislav 260310",
+        "system": "DVB-S2",
+        "symbolRate": 2200,
+        "fec": "5/6",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-21b-21e-dm2-11497",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 21B",
+      "orbitalPosition": "21E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-21B.html",
+      "retrievedAt": "2026-05-01T07:48:13.323Z",
+      "raw": {
+        "frequencyText": "11497",
+        "polarizationText": "V",
+        "transponderText": "DM2",
+        "beamText": "Roli 250902",
+        "systemText": "DVB-S",
+        "symbolRateText": "1500",
+        "fecText": "3/4",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 11497,
+        "polarization": "V",
+        "transponderNumber": "DM2",
+        "beamName": "Roli 250902",
+        "system": "DVB-S",
+        "symbolRate": 1500,
+        "fec": "3/4",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-21b-21e-dm1-11500",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 21B",
+      "orbitalPosition": "21E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-21B.html",
+      "retrievedAt": "2026-05-01T07:48:13.323Z",
+      "raw": {
+        "frequencyText": "11500",
+        "polarizationText": "H",
+        "transponderText": "DM1",
+        "beamText": "N Stanislav 260310",
+        "systemText": "DVB-S2",
+        "symbolRateText": "2200",
+        "fecText": "3/4",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 11500,
+        "polarization": "H",
+        "transponderNumber": "DM1",
+        "beamName": "N Stanislav 260310",
+        "system": "DVB-S2",
+        "symbolRate": 2200,
+        "fec": "3/4",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-21b-21e-dm2-11500",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 21B",
+      "orbitalPosition": "21E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-21B.html",
+      "retrievedAt": "2026-05-01T07:48:13.323Z",
+      "raw": {
+        "frequencyText": "11500",
+        "polarizationText": "V",
+        "transponderText": "DM2",
+        "beamText": "N Schlammer 260407",
+        "systemText": "DVB-S",
+        "symbolRateText": "3200",
+        "fecText": "5/6",
+        "providerText": "6.5 309 Eng; Iran Press"
+      },
+      "parsed": {
+        "frequencyMHz": 11500,
+        "polarization": "V",
+        "transponderNumber": "DM2",
+        "beamName": "N Schlammer 260407",
+        "system": "DVB-S",
+        "symbolRate": 3200,
+        "fec": "5/6",
+        "providerName": "6.5 309 Eng; Iran Press"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-21b-21e-dm1-11507",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 21B",
+      "orbitalPosition": "21E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-21B.html",
+      "retrievedAt": "2026-05-01T07:48:13.323Z",
+      "raw": {
+        "frequencyText": "11507",
+        "polarizationText": "H",
+        "transponderText": "DM1",
+        "beamText": "Janlakomcik 260311"
+      },
+      "parsed": {
+        "frequencyMHz": 11507,
+        "polarization": "H",
+        "transponderNumber": "DM1",
+        "beamName": "Janlakomcik 260311"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": false,
+        "confidence": "MEDIUM",
+        "warnings": [
+          "No DVB system/SR/FEC parameters found."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-21b-21e-dm2-11509",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 21B",
+      "orbitalPosition": "21E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-21B.html",
+      "retrievedAt": "2026-05-01T07:48:13.323Z",
+      "raw": {
+        "frequencyText": "11509",
+        "polarizationText": "V",
+        "transponderText": "DM2",
+        "beamText": "Janlakomcik 260315"
+      },
+      "parsed": {
+        "frequencyMHz": 11509,
+        "polarization": "V",
+        "transponderNumber": "DM2",
+        "beamName": "Janlakomcik 260315"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": false,
+        "confidence": "MEDIUM",
+        "warnings": [
+          "No DVB system/SR/FEC parameters found."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-21b-21e-dm1-11513",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 21B",
+      "orbitalPosition": "21E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-21B.html",
+      "retrievedAt": "2026-05-01T07:48:13.323Z",
+      "raw": {
+        "frequencyText": "11513",
+        "polarizationText": "H",
+        "transponderText": "DM1",
+        "beamText": "Roli 260211",
+        "systemText": "DVB-S2",
+        "symbolRateText": "4400",
+        "fecText": "3/4",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 11513,
+        "polarization": "H",
+        "transponderNumber": "DM1",
+        "beamName": "Roli 260211",
+        "system": "DVB-S2",
+        "symbolRate": 4400,
+        "fec": "3/4",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-21b-21e-dm1-11516",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 21B",
+      "orbitalPosition": "21E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-21B.html",
+      "retrievedAt": "2026-05-01T07:48:13.323Z",
+      "raw": {
+        "frequencyText": "11516",
+        "polarizationText": "H",
+        "transponderText": "DM1",
+        "beamText": "Roli 260204",
+        "systemText": "DVB-S",
+        "symbolRateText": "2200",
+        "fecText": "7/8",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 11516,
+        "polarization": "H",
+        "transponderNumber": "DM1",
+        "beamName": "Roli 260204",
+        "system": "DVB-S",
+        "symbolRate": 2200,
+        "fec": "7/8",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-21b-21e-dm3-11520",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 21B",
+      "orbitalPosition": "21E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-21B.html",
+      "retrievedAt": "2026-05-01T07:48:13.323Z",
+      "raw": {
+        "frequencyText": "11520",
+        "polarizationText": "H",
+        "transponderText": "DM3",
+        "beamText": "Libya Alrasmia Channel",
+        "systemText": "DVB-S2",
+        "symbolRateText": "2857",
+        "fecText": "5/6",
+        "eirpText": "33",
+        "providerText": "R Eckendorff 240508; 9.4 34 Ara"
+      },
+      "parsed": {
+        "frequencyMHz": 11520,
+        "polarization": "H",
+        "transponderNumber": "DM3",
+        "beamName": "Libya Alrasmia Channel",
+        "system": "DVB-S2",
+        "symbolRate": 2857,
+        "fec": "5/6",
+        "eirpDbw": 33,
+        "providerName": "R Eckendorff 240508; 9.4 34 Ara"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-21b-21e-dm3-11523",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 21B",
+      "orbitalPosition": "21E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-21B.html",
+      "retrievedAt": "2026-05-01T07:48:13.323Z",
+      "raw": {
+        "frequencyText": "11523",
+        "polarizationText": "H",
+        "transponderText": "DM3",
+        "beamText": "Janlakomcik 260311"
+      },
+      "parsed": {
+        "frequencyMHz": 11523,
+        "polarization": "H",
+        "transponderNumber": "DM3",
+        "beamName": "Janlakomcik 260311"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": false,
+        "confidence": "MEDIUM",
+        "warnings": [
+          "No DVB system/SR/FEC parameters found."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-21b-21e-dm4-11523",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 21B",
+      "orbitalPosition": "21E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-21B.html",
+      "retrievedAt": "2026-05-01T07:48:13.323Z",
+      "raw": {
+        "frequencyText": "11523",
+        "polarizationText": "V",
+        "transponderText": "DM4",
+        "beamText": "Jamie A 251110",
+        "systemText": "DVB-S",
+        "symbolRateText": "3500",
+        "fecText": "7/8",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 11523,
+        "polarization": "V",
+        "transponderNumber": "DM4",
+        "beamName": "Jamie A 251110",
+        "system": "DVB-S",
+        "symbolRate": 3500,
+        "fec": "7/8",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-21b-21e-de5-11550",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 21B",
+      "orbitalPosition": "21E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-21B.html",
+      "retrievedAt": "2026-05-01T07:48:13.323Z",
+      "raw": {
+        "frequencyText": "11550",
+        "polarizationText": "H",
+        "transponderText": "DE5",
+        "beamText": "N Stanislav 250827",
+        "systemText": "DVB-S2",
+        "symbolRateText": "3000",
+        "fecText": "3/4",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 11550,
+        "polarization": "H",
+        "transponderNumber": "DE5",
+        "beamName": "N Stanislav 250827",
+        "system": "DVB-S2",
+        "symbolRate": 3000,
+        "fec": "3/4",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-21b-21e-dm4-11551",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 21B",
+      "orbitalPosition": "21E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-21B.html",
+      "retrievedAt": "2026-05-01T07:48:13.323Z",
+      "raw": {
+        "frequencyText": "11551",
+        "polarizationText": "V",
+        "transponderText": "DM4",
+        "beamText": "Roli 260324",
+        "systemText": "DVB-S",
+        "symbolRateText": "2200",
+        "fecText": "3/4",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 11551,
+        "polarization": "V",
+        "transponderNumber": "DM4",
+        "beamName": "Roli 260324",
+        "system": "DVB-S",
+        "symbolRate": 2200,
+        "fec": "3/4",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-21b-21e-dm6-11559",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 21B",
+      "orbitalPosition": "21E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-21B.html",
+      "retrievedAt": "2026-05-01T07:48:13.323Z",
+      "raw": {
+        "frequencyText": "11559",
+        "polarizationText": "V",
+        "transponderText": "DM6",
+        "beamText": "Serdar 22 180524",
+        "systemText": "DVB-S2",
+        "symbolRateText": "5000",
+        "fecText": "5/6",
+        "eirpText": "69",
+        "providerText": "MBC Maser; 2048-69"
+      },
+      "parsed": {
+        "frequencyMHz": 11559,
+        "polarization": "V",
+        "transponderNumber": "DM6",
+        "beamName": "Serdar 22 180524",
+        "system": "DVB-S2",
+        "symbolRate": 5000,
+        "fec": "5/6",
+        "eirpDbw": 69,
+        "providerName": "MBC Maser; 2048-69"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-21b-21e-dm6-11564",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 21B",
+      "orbitalPosition": "21E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-21B.html",
+      "retrievedAt": "2026-05-01T07:48:13.323Z",
+      "raw": {
+        "frequencyText": "11564",
+        "polarizationText": "V",
+        "transponderText": "DM6",
+        "beamText": "Marcel 2 191010",
+        "systemText": "DVB-S2",
+        "symbolRateText": "3333",
+        "fecText": "5/6",
+        "providerText": "5.2 110 Ara; MBC Maser"
+      },
+      "parsed": {
+        "frequencyMHz": 11564,
+        "polarization": "V",
+        "transponderNumber": "DM6",
+        "beamName": "Marcel 2 191010",
+        "system": "DVB-S2",
+        "symbolRate": 3333,
+        "fec": "5/6",
+        "providerName": "5.2 110 Ara; MBC Maser"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-21b-21e-dm6-11567",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 21B",
+      "orbitalPosition": "21E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-21B.html",
+      "retrievedAt": "2026-05-01T07:48:13.323Z",
+      "raw": {
+        "frequencyText": "11567",
+        "polarizationText": "V",
+        "transponderText": "DM6",
+        "beamText": "Panorama FM TV",
+        "systemText": "DVB-S2",
+        "symbolRateText": "2850",
+        "fecText": "3/4",
+        "providerText": "EnoSat 240720; 4.0 4112 Ara; 0-0 HEVC/HD"
+      },
+      "parsed": {
+        "frequencyMHz": 11567,
+        "polarization": "V",
+        "transponderNumber": "DM6",
+        "beamName": "Panorama FM TV",
+        "system": "DVB-S2",
+        "symbolRate": 2850,
+        "fec": "3/4",
+        "providerName": "EnoSat 240720; 4.0 4112 Ara; 0-0 HEVC/HD"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-21b-21e-row-48-4128",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 21B",
+      "orbitalPosition": "21E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-21B.html",
+      "retrievedAt": "2026-05-01T07:48:13.323Z",
+      "raw": {
+        "frequencyText": "4128",
+        "beamText": "MBC FM",
+        "systemText": "BISS"
+      },
+      "parsed": {
+        "frequencyMHz": 4128,
+        "beamName": "MBC FM",
+        "system": "BISS"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-21b-21e-row-49-4144",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 21B",
+      "orbitalPosition": "21E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-21B.html",
+      "retrievedAt": "2026-05-01T07:48:13.323Z",
+      "raw": {
+        "frequencyText": "4144",
+        "beamText": "Panorama FM",
+        "systemText": "BISS"
+      },
+      "parsed": {
+        "frequencyMHz": 4144,
+        "beamName": "Panorama FM",
+        "system": "BISS"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-21b-21e-row-50-4160",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 21B",
+      "orbitalPosition": "21E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-21B.html",
+      "retrievedAt": "2026-05-01T07:48:13.323Z",
+      "raw": {
+        "frequencyText": "4160",
+        "beamText": "MBC Loud FM",
+        "systemText": "BISS"
+      },
+      "parsed": {
+        "frequencyMHz": 4160,
+        "beamName": "MBC Loud FM",
+        "system": "BISS"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-21b-21e-row-51-4176",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 21B",
+      "orbitalPosition": "21E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-21B.html",
+      "retrievedAt": "2026-05-01T07:48:13.323Z",
+      "raw": {
+        "frequencyText": "4176",
+        "beamText": "MBC FM",
+        "systemText": "BISS"
+      },
+      "parsed": {
+        "frequencyMHz": 4176,
+        "beamName": "MBC FM",
+        "system": "BISS"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-21b-21e-row-52-4192",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 21B",
+      "orbitalPosition": "21E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-21B.html",
+      "retrievedAt": "2026-05-01T07:48:13.323Z",
+      "raw": {
+        "frequencyText": "4192",
+        "beamText": "MBC FM",
+        "systemText": "BISS"
+      },
+      "parsed": {
+        "frequencyMHz": 4192,
+        "beamName": "MBC FM",
+        "system": "BISS"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": false,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-21b-21e-dm6-11572",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 21B",
+      "orbitalPosition": "21E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-21B.html",
+      "retrievedAt": "2026-05-01T07:48:13.323Z",
+      "raw": {
+        "frequencyText": "11572",
+        "polarizationText": "V",
+        "transponderText": "DM6",
+        "beamText": "Roli 251206",
+        "systemText": "DVB-S2",
+        "symbolRateText": "5700",
+        "fecText": "5/6",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 11572,
+        "polarization": "V",
+        "transponderNumber": "DM6",
+        "beamName": "Roli 251206",
+        "system": "DVB-S2",
+        "symbolRate": 5700,
+        "fec": "5/6",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-21b-21e-dw7-11577",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 21B",
+      "orbitalPosition": "21E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-21B.html",
+      "retrievedAt": "2026-05-01T07:48:13.323Z",
+      "raw": {
+        "frequencyText": "11577",
+        "polarizationText": "H",
+        "transponderText": "DW7",
+        "beamText": "Serdar 22 140821",
+        "systemText": "DVB-S",
+        "symbolRateText": "512",
+        "fecText": "2/3",
+        "providerText": "Medi 1 Radio; 1-1"
+      },
+      "parsed": {
+        "frequencyMHz": 11577,
+        "polarization": "H",
+        "transponderNumber": "DW7",
+        "beamName": "Serdar 22 140821",
+        "system": "DVB-S",
+        "symbolRate": 512,
+        "fec": "2/3",
+        "providerName": "Medi 1 Radio; 1-1"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-21b-21e-dm6-11578",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 21B",
+      "orbitalPosition": "21E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-21B.html",
+      "retrievedAt": "2026-05-01T07:48:13.323Z",
+      "raw": {
+        "frequencyText": "11578",
+        "polarizationText": "V",
+        "transponderText": "DM6",
+        "beamText": "Roli 251206",
+        "systemText": "DVB-S2",
+        "symbolRateText": "5700",
+        "fecText": "5/6",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 11578,
+        "polarization": "V",
+        "transponderNumber": "DM6",
+        "beamName": "Roli 251206",
+        "system": "DVB-S2",
+        "symbolRate": 5700,
+        "fec": "5/6",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-21b-21e-dm6-11583",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 21B",
+      "orbitalPosition": "21E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-21B.html",
+      "retrievedAt": "2026-05-01T07:48:13.323Z",
+      "raw": {
+        "frequencyText": "11583",
+        "polarizationText": "V",
+        "transponderText": "DM6",
+        "beamText": "MBC (Saudi Arabia)",
+        "systemText": "DVB-S",
+        "symbolRateText": "2850",
+        "fecText": "7/8",
+        "eirpText": "43",
+        "providerText": "Marcel 2 141009; 7.2 46 Ara"
+      },
+      "parsed": {
+        "frequencyMHz": 11583,
+        "polarization": "V",
+        "transponderNumber": "DM6",
+        "beamName": "MBC (Saudi Arabia)",
+        "system": "DVB-S",
+        "symbolRate": 2850,
+        "fec": "7/8",
+        "eirpDbw": 43,
+        "providerName": "Marcel 2 141009; 7.2 46 Ara"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-21b-21e-dm6-11587",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 21B",
+      "orbitalPosition": "21E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-21B.html",
+      "retrievedAt": "2026-05-01T07:48:13.323Z",
+      "raw": {
+        "frequencyText": "11587",
+        "polarizationText": "V",
+        "transponderText": "DM6",
+        "beamText": "Jamie A 251102",
+        "systemText": "DVB-S2",
+        "symbolRateText": "3333",
+        "fecText": "3/4",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 11587,
+        "polarization": "V",
+        "transponderNumber": "DM6",
+        "beamName": "Jamie A 251102",
+        "system": "DVB-S2",
+        "symbolRate": 3333,
+        "fec": "3/4",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-21b-21e-de7-11587",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 21B",
+      "orbitalPosition": "21E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-21B.html",
+      "retrievedAt": "2026-05-01T07:48:13.323Z",
+      "raw": {
+        "frequencyText": "11587",
+        "polarizationText": "H",
+        "transponderText": "DE7",
+        "beamText": "N Stanislav 250901",
+        "systemText": "DVB-S2",
+        "symbolRateText": "5000",
+        "fecText": "3/4",
+        "eirpText": "33",
+        "providerText": "?-? HEVC/HD; 7.9 .4 Ara; Al Hadath"
+      },
+      "parsed": {
+        "frequencyMHz": 11587,
+        "polarization": "H",
+        "transponderNumber": "DE7",
+        "beamName": "N Stanislav 250901",
+        "system": "DVB-S2",
+        "symbolRate": 5000,
+        "fec": "3/4",
+        "eirpDbw": 33,
+        "providerName": "?-? HEVC/HD; 7.9 .4 Ara; Al Hadath"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-21b-21e-dm6-11591",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 21B",
+      "orbitalPosition": "21E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-21B.html",
+      "retrievedAt": "2026-05-01T07:48:13.323Z",
+      "raw": {
+        "frequencyText": "11591",
+        "polarizationText": "V",
+        "transponderText": "DM6",
+        "beamText": "Jamie A 251206",
+        "systemText": "DVB-S2",
+        "symbolRateText": "3333",
+        "fecText": "3/4",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 11591,
+        "polarization": "V",
+        "transponderNumber": "DM6",
+        "beamName": "Jamie A 251206",
+        "system": "DVB-S2",
+        "symbolRate": 3333,
+        "fec": "3/4",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-21b-21e-dw7-11594",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 21B",
+      "orbitalPosition": "21E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-21B.html",
+      "retrievedAt": "2026-05-01T07:48:13.323Z",
+      "raw": {
+        "frequencyText": "11594",
+        "polarizationText": "H",
+        "transponderText": "DW7",
+        "beamText": "(SNRT feeds)",
+        "systemText": "DVB-S2",
+        "symbolRateText": "7200",
+        "fecText": "3/4",
+        "providerText": "Roli 260213"
+      },
+      "parsed": {
+        "frequencyMHz": 11594,
+        "polarization": "H",
+        "transponderNumber": "DW7",
+        "beamName": "(SNRT feeds)",
+        "system": "DVB-S2",
+        "symbolRate": 7200,
+        "fec": "3/4",
+        "providerName": "Roli 260213"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-21b-21e-dw7-11599",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 21B",
+      "orbitalPosition": "21E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-21B.html",
+      "retrievedAt": "2026-05-01T07:48:13.323Z",
+      "raw": {
+        "frequencyText": "11599",
+        "transponderText": "DW7",
+        "beamText": "R Dávid 230621",
+        "systemText": "DVB-S",
+        "symbolRateText": "1000",
+        "fecText": "3/4",
+        "providerText": "5.5 101 Ara; Chada FM; ?-1"
+      },
+      "parsed": {
+        "frequencyMHz": 11599,
+        "transponderNumber": "DW7",
+        "beamName": "R Dávid 230621",
+        "system": "DVB-S",
+        "symbolRate": 1000,
+        "fec": "3/4",
+        "providerName": "5.5 101 Ara; Chada FM; ?-1"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-21b-21e-dw7-11599",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 21B",
+      "orbitalPosition": "21E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-21B.html",
+      "retrievedAt": "2026-05-01T07:48:13.323Z",
+      "raw": {
+        "frequencyText": "11599",
+        "transponderText": "DW7",
+        "beamText": "R Dávid 230620",
+        "systemText": "DVB-S",
+        "symbolRateText": "1000",
+        "fecText": "3/4",
+        "providerText": "5.5 101 Ara; Medina FM; 0-1"
+      },
+      "parsed": {
+        "frequencyMHz": 11599,
+        "transponderNumber": "DW7",
+        "beamName": "R Dávid 230620",
+        "system": "DVB-S",
+        "symbolRate": 1000,
+        "fec": "3/4",
+        "providerName": "5.5 101 Ara; Medina FM; 0-1"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-21b-21e-dw7-11599",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 21B",
+      "orbitalPosition": "21E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-21B.html",
+      "retrievedAt": "2026-05-01T07:48:13.323Z",
+      "raw": {
+        "frequencyText": "11599",
+        "transponderText": "DW7",
+        "beamText": "R Dávid 240802",
+        "systemText": "DVB-S",
+        "symbolRateText": "1004",
+        "fecText": "3/4",
+        "providerText": "5.5 1004 Ara; Med Radio"
+      },
+      "parsed": {
+        "frequencyMHz": 11599,
+        "transponderNumber": "DW7",
+        "beamName": "R Dávid 240802",
+        "system": "DVB-S",
+        "symbolRate": 1004,
+        "fec": "3/4",
+        "providerName": "5.5 1004 Ara; Med Radio"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-21b-21e-de8-11602",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 21B",
+      "orbitalPosition": "21E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-21B.html",
+      "retrievedAt": "2026-05-01T07:48:13.323Z",
+      "raw": {
+        "frequencyText": "11602",
+        "polarizationText": "V",
+        "transponderText": "DE8",
+        "beamText": "N Stanislav 210516",
+        "systemText": "DVB-S2",
+        "symbolRateText": "4400",
+        "fecText": "5/6",
+        "eirpText": "33",
+        "providerText": "Oman TV Cultural; 9.4 34 Ara"
+      },
+      "parsed": {
+        "frequencyMHz": 11602,
+        "polarization": "V",
+        "transponderNumber": "DE8",
+        "beamName": "N Stanislav 210516",
+        "system": "DVB-S2",
+        "symbolRate": 4400,
+        "fec": "5/6",
+        "eirpDbw": 33,
+        "providerName": "Oman TV Cultural; 9.4 34 Ara"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-21b-21e-dw7-11602",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 21B",
+      "orbitalPosition": "21E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-21B.html",
+      "retrievedAt": "2026-05-01T07:48:13.323Z",
+      "raw": {
+        "frequencyText": "11602",
+        "transponderText": "DW7",
+        "beamText": "Atlantic Radio",
+        "systemText": "DVB-S2",
+        "symbolRateText": "1000",
+        "fecText": "3/4",
+        "providerText": "R Dávid 230621; 4.0 101 Fre; ?-1"
+      },
+      "parsed": {
+        "frequencyMHz": 11602,
+        "transponderNumber": "DW7",
+        "beamName": "Atlantic Radio",
+        "system": "DVB-S2",
+        "symbolRate": 1000,
+        "fec": "3/4",
+        "providerName": "R Dávid 230621; 4.0 101 Fre; ?-1"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-21b-21e-dw7-11603",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 21B",
+      "orbitalPosition": "21E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-21B.html",
+      "retrievedAt": "2026-05-01T07:48:13.323Z",
+      "raw": {
+        "frequencyText": "11603",
+        "transponderText": "DW7",
+        "beamText": "R Dávid 230620",
+        "systemText": "DVB-S",
+        "symbolRateText": "1000",
+        "fecText": "3/4",
+        "providerText": "5.5 101 Fre; Luxe Radio; ?-1"
+      },
+      "parsed": {
+        "frequencyMHz": 11603,
+        "transponderNumber": "DW7",
+        "beamName": "R Dávid 230620",
+        "system": "DVB-S",
+        "symbolRate": 1000,
+        "fec": "3/4",
+        "providerName": "5.5 101 Fre; Luxe Radio; ?-1"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-21b-21e-dw7-11604",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 21B",
+      "orbitalPosition": "21E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-21B.html",
+      "retrievedAt": "2026-05-01T07:48:13.323Z",
+      "raw": {
+        "frequencyText": "11604",
+        "transponderText": "DW7",
+        "beamText": "R Dávid 230620",
+        "systemText": "DVB-S2",
+        "symbolRateText": "1111",
+        "fecText": "3/4",
+        "providerText": "Radio Dakhla; 7.9 1111; 1-2"
+      },
+      "parsed": {
+        "frequencyMHz": 11604,
+        "transponderNumber": "DW7",
+        "beamName": "R Dávid 230620",
+        "system": "DVB-S2",
+        "symbolRate": 1111,
+        "fec": "3/4",
+        "providerName": "Radio Dakhla; 7.9 1111; 1-2"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-21b-21e-dw7-11604",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 21B",
+      "orbitalPosition": "21E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-21B.html",
+      "retrievedAt": "2026-05-01T07:48:13.323Z",
+      "raw": {
+        "frequencyText": "11604",
+        "transponderText": "DW7",
+        "beamText": "Radio Laayoune",
+        "systemText": "DVB-S2",
+        "symbolRateText": "1231",
+        "fecText": "5/6",
+        "providerText": "R Dávid 230620; 9.4 1231; 1-3"
+      },
+      "parsed": {
+        "frequencyMHz": 11604,
+        "transponderNumber": "DW7",
+        "beamName": "Radio Laayoune",
+        "system": "DVB-S2",
+        "symbolRate": 1231,
+        "fec": "5/6",
+        "providerName": "R Dávid 230620; 9.4 1231; 1-3"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-21b-21e-dw7-11604",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 21B",
+      "orbitalPosition": "21E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-21B.html",
+      "retrievedAt": "2026-05-01T07:48:13.323Z",
+      "raw": {
+        "frequencyText": "11604",
+        "transponderText": "DW7",
+        "beamText": "R Dávid 230620",
+        "systemText": "DVB-S2",
+        "fecText": "5/6",
+        "eirpText": "34",
+        "providerText": "Radio Oujda; 9.4 34; 1-1"
+      },
+      "parsed": {
+        "frequencyMHz": 11604,
+        "transponderNumber": "DW7",
+        "beamName": "R Dávid 230620",
+        "system": "DVB-S2",
+        "fec": "5/6",
+        "eirpDbw": 34,
+        "providerName": "Radio Oujda; 9.4 34; 1-1"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Polarization not present or not parseable."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-21b-21e-de8-11610",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 21B",
+      "orbitalPosition": "21E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-21B.html",
+      "retrievedAt": "2026-05-01T07:48:13.323Z",
+      "raw": {
+        "frequencyText": "11610",
+        "polarizationText": "V",
+        "transponderText": "DE8",
+        "beamText": "N Stanislav 250901",
+        "systemText": "DVB-S2",
+        "symbolRateText": "4400",
+        "fecText": "5/6",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 11610,
+        "polarization": "V",
+        "transponderNumber": "DE8",
+        "beamName": "N Stanislav 250901",
+        "system": "DVB-S2",
+        "symbolRate": 4400,
+        "fec": "5/6",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-21b-21e-dm9-11620",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 21B",
+      "orbitalPosition": "21E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-21B.html",
+      "retrievedAt": "2026-05-01T07:48:13.323Z",
+      "raw": {
+        "frequencyText": "11620",
+        "polarizationText": "H",
+        "transponderText": "DM9",
+        "beamText": "Jamie A 250825",
+        "systemText": "DVB-S2",
+        "symbolRateText": "2500",
+        "fecText": "2/3",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 11620,
+        "polarization": "H",
+        "transponderNumber": "DM9",
+        "beamName": "Jamie A 250825",
+        "system": "DVB-S2",
+        "symbolRate": 2500,
+        "fec": "2/3",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-21b-21e-dm9-11622",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 21B",
+      "orbitalPosition": "21E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-21B.html",
+      "retrievedAt": "2026-05-01T07:48:13.323Z",
+      "raw": {
+        "frequencyText": "11622",
+        "polarizationText": "H",
+        "transponderText": "DM9",
+        "beamText": "Al-Iman TV (Lebanon)",
+        "systemText": "DVB-S2",
+        "symbolRateText": "1250",
+        "fecText": "3/4",
+        "providerText": "N Stanislav 250308; 7.9 256 Ara"
+      },
+      "parsed": {
+        "frequencyMHz": 11622,
+        "polarization": "H",
+        "transponderNumber": "DM9",
+        "beamName": "Al-Iman TV (Lebanon)",
+        "system": "DVB-S2",
+        "symbolRate": 1250,
+        "fec": "3/4",
+        "providerName": "N Stanislav 250308; 7.9 256 Ara"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-21b-21e-de8-11627",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 21B",
+      "orbitalPosition": "21E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-21B.html",
+      "retrievedAt": "2026-05-01T07:48:13.323Z",
+      "raw": {
+        "frequencyText": "11627",
+        "polarizationText": "V",
+        "transponderText": "DE8",
+        "beamText": "EnoSat 221127",
+        "systemText": "DVB-S2",
+        "symbolRateText": "14400",
+        "fecText": "3/5",
+        "providerText": "Oman TV; 1-1"
+      },
+      "parsed": {
+        "frequencyMHz": 11627,
+        "polarization": "V",
+        "transponderNumber": "DE8",
+        "beamName": "EnoSat 221127",
+        "system": "DVB-S2",
+        "symbolRate": 14400,
+        "fec": "3/5",
+        "providerName": "Oman TV; 1-1"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-21b-21e-dm9-11627",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 21B",
+      "orbitalPosition": "21E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-21B.html",
+      "retrievedAt": "2026-05-01T07:48:13.323Z",
+      "raw": {
+        "frequencyText": "11627",
+        "polarizationText": "H",
+        "transponderText": "DM9",
+        "beamText": "Jamie A 250823",
+        "systemText": "DVB-S2",
+        "symbolRateText": "4800",
+        "fecText": "3/4",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 11627,
+        "polarization": "H",
+        "transponderNumber": "DM9",
+        "beamName": "Jamie A 250823",
+        "system": "DVB-S2",
+        "symbolRate": 4800,
+        "fec": "3/4",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-21b-21e-dm10-11643",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 21B",
+      "orbitalPosition": "21E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-21B.html",
+      "retrievedAt": "2026-05-01T07:48:13.323Z",
+      "raw": {
+        "frequencyText": "11643",
+        "polarizationText": "V",
+        "transponderText": "DM10",
+        "beamText": "Hadowooalsatan 250724",
+        "systemText": "DVB-S2",
+        "symbolRateText": "1667",
+        "fecText": "5/6",
+        "eirpText": "33",
+        "providerText": "Libya Sport TV 1; 9.4 34 Ara"
+      },
+      "parsed": {
+        "frequencyMHz": 11643,
+        "polarization": "V",
+        "transponderNumber": "DM10",
+        "beamName": "Hadowooalsatan 250724",
+        "system": "DVB-S2",
+        "symbolRate": 1667,
+        "fec": "5/6",
+        "eirpDbw": 33,
+        "providerName": "Libya Sport TV 1; 9.4 34 Ara"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-21b-21e-dm10-11649",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 21B",
+      "orbitalPosition": "21E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-21B.html",
+      "retrievedAt": "2026-05-01T07:48:13.323Z",
+      "raw": {
+        "frequencyText": "11649",
+        "polarizationText": "V",
+        "transponderText": "DM10",
+        "beamText": "Jamie A 260314",
+        "systemText": "DVB-S2",
+        "symbolRateText": "1600",
+        "fecText": "3/4",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 11649,
+        "polarization": "V",
+        "transponderNumber": "DM10",
+        "beamName": "Jamie A 260314",
+        "system": "DVB-S2",
+        "symbolRate": 1600,
+        "fec": "3/4",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-21b-21e-dm9-11652",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 21B",
+      "orbitalPosition": "21E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-21B.html",
+      "retrievedAt": "2026-05-01T07:48:13.323Z",
+      "raw": {
+        "frequencyText": "11652",
+        "polarizationText": "H",
+        "transponderText": "DM9",
+        "beamText": "Roli 260307",
+        "systemText": "DVB-S2",
+        "symbolRateText": "6666",
+        "fecText": "3/4",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 11652,
+        "polarization": "H",
+        "transponderNumber": "DM9",
+        "beamName": "Roli 260307",
+        "system": "DVB-S2",
+        "symbolRate": 6666,
+        "fec": "3/4",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-21b-21e-dm10-11652",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 21B",
+      "orbitalPosition": "21E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-21B.html",
+      "retrievedAt": "2026-05-01T07:48:13.323Z",
+      "raw": {
+        "frequencyText": "11652",
+        "polarizationText": "V",
+        "transponderText": "DM10",
+        "beamText": "Jamie A 251031",
+        "systemText": "DVB-S2",
+        "symbolRateText": "2850",
+        "fecText": "3/4",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 11652,
+        "polarization": "V",
+        "transponderNumber": "DM10",
+        "beamName": "Jamie A 251031",
+        "system": "DVB-S2",
+        "symbolRate": 2850,
+        "fec": "3/4",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-21b-21e-dm10-11656",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 21B",
+      "orbitalPosition": "21E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-21B.html",
+      "retrievedAt": "2026-05-01T07:48:13.323Z",
+      "raw": {
+        "frequencyText": "11656",
+        "polarizationText": "V",
+        "transponderText": "DM10",
+        "beamText": "Jamie A 251031",
+        "systemText": "DVB-S2",
+        "symbolRateText": "2850",
+        "fecText": "5/6",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 11656,
+        "polarization": "V",
+        "transponderNumber": "DM10",
+        "beamName": "Jamie A 251031",
+        "system": "DVB-S2",
+        "symbolRate": 2850,
+        "fec": "5/6",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-21b-21e-dm9-11661",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 21B",
+      "orbitalPosition": "21E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-21B.html",
+      "retrievedAt": "2026-05-01T07:48:13.323Z",
+      "raw": {
+        "frequencyText": "11661",
+        "polarizationText": "H",
+        "transponderText": "DM9",
+        "beamText": "Roli 260215",
+        "systemText": "DVB-S2",
+        "symbolRateText": "3600",
+        "fecText": "5/6",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 11661,
+        "polarization": "H",
+        "transponderNumber": "DM9",
+        "beamName": "Roli 260215",
+        "system": "DVB-S2",
+        "symbolRate": 3600,
+        "fec": "5/6",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-21b-21e-dm10-11661",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 21B",
+      "orbitalPosition": "21E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-21B.html",
+      "retrievedAt": "2026-05-01T07:48:13.323Z",
+      "raw": {
+        "frequencyText": "11661",
+        "polarizationText": "V",
+        "transponderText": "DM10",
+        "beamText": "Janlakomcik 260309"
+      },
+      "parsed": {
+        "frequencyMHz": 11661,
+        "polarization": "V",
+        "transponderNumber": "DM10",
+        "beamName": "Janlakomcik 260309"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": false,
+        "confidence": "MEDIUM",
+        "warnings": [
+          "No DVB system/SR/FEC parameters found."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-21b-21e-dm10-11665",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 21B",
+      "orbitalPosition": "21E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-21B.html",
+      "retrievedAt": "2026-05-01T07:48:13.323Z",
+      "raw": {
+        "frequencyText": "11665",
+        "polarizationText": "V",
+        "transponderText": "DM10",
+        "beamText": "Jamie A 250912",
+        "systemText": "DVB-S2",
+        "symbolRateText": "2500",
+        "fecText": "5/6",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 11665,
+        "polarization": "V",
+        "transponderNumber": "DM10",
+        "beamName": "Jamie A 250912",
+        "system": "DVB-S2",
+        "symbolRate": 2500,
+        "fec": "5/6",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-21b-21e-dm10-11668",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 21B",
+      "orbitalPosition": "21E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-21B.html",
+      "retrievedAt": "2026-05-01T07:48:13.323Z",
+      "raw": {
+        "frequencyText": "11668",
+        "polarizationText": "V",
+        "transponderText": "DM10",
+        "beamText": "Janlakomcik 260311",
+        "systemText": "DVB-S2",
+        "symbolRateText": "2295",
+        "fecText": "3/4",
+        "providerText": "7.9 256 Ara; Afaq TV"
+      },
+      "parsed": {
+        "frequencyMHz": 11668,
+        "polarization": "V",
+        "transponderNumber": "DM10",
+        "beamName": "Janlakomcik 260311",
+        "system": "DVB-S2",
+        "symbolRate": 2295,
+        "fec": "3/4",
+        "providerName": "7.9 256 Ara; Afaq TV"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-21b-21e-dm10-11671",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 21B",
+      "orbitalPosition": "21E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-21B.html",
+      "retrievedAt": "2026-05-01T07:48:13.323Z",
+      "raw": {
+        "frequencyText": "11671",
+        "polarizationText": "V",
+        "transponderText": "DM10",
+        "beamText": "Libya Sport TV 2",
+        "systemText": "DVB-S2",
+        "symbolRateText": "2917",
+        "fecText": "3/4",
+        "providerText": "EnoSat 231017; 7.9 256 Ara"
+      },
+      "parsed": {
+        "frequencyMHz": 11671,
+        "polarization": "V",
+        "transponderNumber": "DM10",
+        "beamName": "Libya Sport TV 2",
+        "system": "DVB-S2",
+        "symbolRate": 2917,
+        "fec": "3/4",
+        "providerName": "EnoSat 231017; 7.9 256 Ara"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-21b-21e-dm9-11672",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 21B",
+      "orbitalPosition": "21E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-21B.html",
+      "retrievedAt": "2026-05-01T07:48:13.323Z",
+      "raw": {
+        "frequencyText": "11672",
+        "polarizationText": "H",
+        "transponderText": "DM9",
+        "beamText": "Jamie A Roli 251212",
+        "systemText": "DVB-S",
+        "symbolRateText": "4400",
+        "fecText": "3/4",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 11672,
+        "polarization": "H",
+        "transponderNumber": "DM9",
+        "beamName": "Jamie A Roli 251212",
+        "system": "DVB-S",
+        "symbolRate": 4400,
+        "fec": "3/4",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-21b-21e-dm10-11675",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 21B",
+      "orbitalPosition": "21E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-21B.html",
+      "retrievedAt": "2026-05-01T07:48:13.323Z",
+      "raw": {
+        "frequencyText": "11675",
+        "polarizationText": "V",
+        "transponderText": "DM10",
+        "beamText": "Roli 260211",
+        "systemText": "DVB-S2",
+        "symbolRateText": "2700",
+        "fecText": "3/4",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 11675,
+        "polarization": "V",
+        "transponderNumber": "DM10",
+        "beamName": "Roli 260211",
+        "system": "DVB-S2",
+        "symbolRate": 2700,
+        "fec": "3/4",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-21b-21e-dm10-11678",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 21B",
+      "orbitalPosition": "21E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-21B.html",
+      "retrievedAt": "2026-05-01T07:48:13.323Z",
+      "raw": {
+        "frequencyText": "11678",
+        "polarizationText": "V",
+        "transponderText": "DM10",
+        "beamText": "Serdar 22 140809",
+        "systemText": "DVB-S",
+        "symbolRateText": "2850",
+        "fecText": "7/8",
+        "providerText": "7.2 256 Ara; Al Hadath"
+      },
+      "parsed": {
+        "frequencyMHz": 11678,
+        "polarization": "V",
+        "transponderNumber": "DM10",
+        "beamName": "Serdar 22 140809",
+        "system": "DVB-S",
+        "symbolRate": 2850,
+        "fec": "7/8",
+        "providerName": "7.2 256 Ara; Al Hadath"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-21b-21e-dm10-11687",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 21B",
+      "orbitalPosition": "21E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-21B.html",
+      "retrievedAt": "2026-05-01T07:48:13.323Z",
+      "raw": {
+        "frequencyText": "11687",
+        "polarizationText": "V",
+        "transponderText": "DM10",
+        "beamText": "Roli 250901",
+        "systemText": "DVB-S2",
+        "symbolRateText": "9600",
+        "fecText": "3/4",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 11687,
+        "polarization": "V",
+        "transponderNumber": "DM10",
+        "beamName": "Roli 250901",
+        "system": "DVB-S2",
+        "symbolRate": 9600,
+        "fec": "3/4",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-21b-21e-dm9-11692",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 21B",
+      "orbitalPosition": "21E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-21B.html",
+      "retrievedAt": "2026-05-01T07:48:13.323Z",
+      "raw": {
+        "frequencyText": "11692",
+        "polarizationText": "H",
+        "transponderText": "DM9",
+        "beamText": "Jamie A 250823",
+        "systemText": "DVB-S2",
+        "symbolRateText": "1600",
+        "fecText": "3/4",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 11692,
+        "polarization": "H",
+        "transponderNumber": "DM9",
+        "beamName": "Jamie A 250823",
+        "system": "DVB-S2",
+        "symbolRate": 1600,
+        "fec": "3/4",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-21b-21e-dm10-11693",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 21B",
+      "orbitalPosition": "21E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-21B.html",
+      "retrievedAt": "2026-05-01T07:48:13.323Z",
+      "raw": {
+        "frequencyText": "11693",
+        "polarizationText": "V",
+        "transponderText": "DM10",
+        "beamText": "Janlakomcik 260428"
+      },
+      "parsed": {
+        "frequencyMHz": 11693,
+        "polarization": "V",
+        "transponderNumber": "DM10",
+        "beamName": "Janlakomcik 260428"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": false,
+        "confidence": "MEDIUM",
+        "warnings": [
+          "No DVB system/SR/FEC parameters found."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-21b-21e-dm10-11694",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 21B",
+      "orbitalPosition": "21E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-21B.html",
+      "retrievedAt": "2026-05-01T07:48:13.323Z",
+      "raw": {
+        "frequencyText": "11694",
+        "polarizationText": "V",
+        "transponderText": "DM10",
+        "beamText": "Janlakomcik 260426"
+      },
+      "parsed": {
+        "frequencyMHz": 11694,
+        "polarization": "V",
+        "transponderNumber": "DM10",
+        "beamName": "Janlakomcik 260426"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": false,
+        "confidence": "MEDIUM",
+        "warnings": [
+          "No DVB system/SR/FEC parameters found."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-21b-21e-dm9-11696",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 21B",
+      "orbitalPosition": "21E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-21B.html",
+      "retrievedAt": "2026-05-01T07:48:13.323Z",
+      "raw": {
+        "frequencyText": "11696",
+        "polarizationText": "H",
+        "transponderText": "DM9",
+        "beamText": "Jamie A 260308",
+        "systemText": "DVB-S",
+        "symbolRateText": "3255",
+        "fecText": "3/4",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 11696,
+        "polarization": "H",
+        "transponderNumber": "DM9",
+        "beamName": "Jamie A 260308",
+        "system": "DVB-S",
+        "symbolRate": 3255,
+        "fec": "3/4",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-21b-21e-dm10-11696",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 21B",
+      "orbitalPosition": "21E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-21B.html",
+      "retrievedAt": "2026-05-01T07:48:13.323Z",
+      "raw": {
+        "frequencyText": "11696",
+        "polarizationText": "V",
+        "transponderText": "DM10",
+        "beamText": "N Stanislav 260310",
+        "systemText": "DVB-S2",
+        "symbolRateText": "1481",
+        "fecText": "3/4",
+        "eirpText": "33",
+        "providerText": "Altaleaa TV; 7.9 34 Ara"
+      },
+      "parsed": {
+        "frequencyMHz": 11696,
+        "polarization": "V",
+        "transponderNumber": "DM10",
+        "beamName": "N Stanislav 260310",
+        "system": "DVB-S2",
+        "symbolRate": 1481,
+        "fec": "3/4",
+        "eirpDbw": 33,
+        "providerName": "Altaleaa TV; 7.9 34 Ara"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-21b-21e-fm1-12507",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 21B",
+      "orbitalPosition": "21E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-21B.html",
+      "retrievedAt": "2026-05-01T07:48:13.323Z",
+      "raw": {
+        "frequencyText": "12507",
+        "polarizationText": "H",
+        "transponderText": "FM1",
+        "beamText": "Roli 250629",
+        "systemText": "DVB-S2",
+        "symbolRateText": "3333",
+        "fecText": "3/4",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 12507,
+        "polarization": "H",
+        "transponderNumber": "FM1",
+        "beamName": "Roli 250629",
+        "system": "DVB-S2",
+        "symbolRate": 3333,
+        "fec": "3/4",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-21b-21e-fm1-12526",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 21B",
+      "orbitalPosition": "21E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-21B.html",
+      "retrievedAt": "2026-05-01T07:48:13.323Z",
+      "raw": {
+        "frequencyText": "12526",
+        "polarizationText": "H",
+        "transponderText": "FM1",
+        "beamText": "Roli 250918",
+        "systemText": "DVB-S2",
+        "symbolRateText": "5000",
+        "fecText": "3/4",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 12526,
+        "polarization": "H",
+        "transponderNumber": "FM1",
+        "beamName": "Roli 250918",
+        "system": "DVB-S2",
+        "symbolRate": 5000,
+        "fec": "3/4",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-21b-21e-fm1-12532",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 21B",
+      "orbitalPosition": "21E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-21B.html",
+      "retrievedAt": "2026-05-01T07:48:13.323Z",
+      "raw": {
+        "frequencyText": "12532",
+        "polarizationText": "H",
+        "transponderText": "FM1",
+        "beamText": "Anonymous Roli 250829",
+        "systemText": "DVB-S2",
+        "symbolRateText": "3300",
+        "fecText": "3/4",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 12532,
+        "polarization": "H",
+        "transponderNumber": "FM1",
+        "beamName": "Anonymous Roli 250829",
+        "system": "DVB-S2",
+        "symbolRate": 3300,
+        "fec": "3/4",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-21b-21e-fm1-12542",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 21B",
+      "orbitalPosition": "21E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-21B.html",
+      "retrievedAt": "2026-05-01T07:48:13.323Z",
+      "raw": {
+        "frequencyText": "12542",
+        "polarizationText": "H",
+        "transponderText": "FM1",
+        "beamText": "Roli 251109",
+        "systemText": "DVB-S2",
+        "symbolRateText": "2200",
+        "fecText": "3/4",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 12542,
+        "polarization": "H",
+        "transponderNumber": "FM1",
+        "beamName": "Roli 251109",
+        "system": "DVB-S2",
+        "symbolRate": 2200,
+        "fec": "3/4",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-21b-21e-fm1-12550",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 21B",
+      "orbitalPosition": "21E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-21B.html",
+      "retrievedAt": "2026-05-01T07:48:13.323Z",
+      "raw": {
+        "frequencyText": "12550",
+        "polarizationText": "H",
+        "transponderText": "FM1",
+        "beamText": "Jamie A 260112",
+        "systemText": "DVB-S",
+        "symbolRateText": "3200",
+        "fecText": "2/3",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 12550,
+        "polarization": "H",
+        "transponderNumber": "FM1",
+        "beamName": "Jamie A 260112",
+        "system": "DVB-S",
+        "symbolRate": 3200,
+        "fec": "2/3",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-21b-21e-fw2-12557",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 21B",
+      "orbitalPosition": "21E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-21B.html",
+      "retrievedAt": "2026-05-01T07:48:13.323Z",
+      "raw": {
+        "frequencyText": "12557",
+        "polarizationText": "V",
+        "transponderText": "FW2",
+        "beamText": "Jamie A 251018",
+        "systemText": "DVB-S2",
+        "symbolRateText": "4937",
+        "fecText": "3/4",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 12557,
+        "polarization": "V",
+        "transponderNumber": "FW2",
+        "beamName": "Jamie A 251018",
+        "system": "DVB-S2",
+        "symbolRate": 4937,
+        "fec": "3/4",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-21b-21e-fm1-12563",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 21B",
+      "orbitalPosition": "21E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-21B.html",
+      "retrievedAt": "2026-05-01T07:48:13.323Z",
+      "raw": {
+        "frequencyText": "12563",
+        "polarizationText": "H",
+        "transponderText": "FM1",
+        "beamText": "Roli 250517",
+        "systemText": "DVB-S2",
+        "symbolRateText": "7500",
+        "fecText": "3/4",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 12563,
+        "polarization": "H",
+        "transponderNumber": "FM1",
+        "beamName": "Roli 250517",
+        "system": "DVB-S2",
+        "symbolRate": 7500,
+        "fec": "3/4",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-21b-21e-fw2-12564",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 21B",
+      "orbitalPosition": "21E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-21B.html",
+      "retrievedAt": "2026-05-01T07:48:13.323Z",
+      "raw": {
+        "frequencyText": "12564",
+        "polarizationText": "V",
+        "transponderText": "FW2",
+        "beamText": "Jamie A 251018",
+        "systemText": "DVB-S2",
+        "symbolRateText": "7200",
+        "fecText": "3/4",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 12564,
+        "polarization": "V",
+        "transponderNumber": "FW2",
+        "beamName": "Jamie A 251018",
+        "system": "DVB-S2",
+        "symbolRate": 7200,
+        "fec": "3/4",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-21b-21e-fm1-12570",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 21B",
+      "orbitalPosition": "21E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-21B.html",
+      "retrievedAt": "2026-05-01T07:48:13.323Z",
+      "raw": {
+        "frequencyText": "12570",
+        "polarizationText": "H",
+        "transponderText": "FM1",
+        "beamText": "Roli 250621",
+        "systemText": "DVB-S2",
+        "symbolRateText": "3200",
+        "fecText": "3/4",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 12570,
+        "polarization": "H",
+        "transponderNumber": "FM1",
+        "beamName": "Roli 250621",
+        "system": "DVB-S2",
+        "symbolRate": 3200,
+        "fec": "3/4",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-21b-21e-fw3-12593",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 21B",
+      "orbitalPosition": "21E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-21B.html",
+      "retrievedAt": "2026-05-01T07:48:13.323Z",
+      "raw": {
+        "frequencyText": "12593",
+        "polarizationText": "H",
+        "transponderText": "FW3",
+        "beamText": "Jamie A 250912",
+        "systemText": "DVB-S2",
+        "symbolRateText": "7200",
+        "fecText": "3/4",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 12593,
+        "polarization": "H",
+        "transponderNumber": "FW3",
+        "beamName": "Jamie A 250912",
+        "system": "DVB-S2",
+        "symbolRate": 7200,
+        "fec": "3/4",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-21b-21e-fw3-12601",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 21B",
+      "orbitalPosition": "21E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-21B.html",
+      "retrievedAt": "2026-05-01T07:48:13.323Z",
+      "raw": {
+        "frequencyText": "12601",
+        "polarizationText": "H",
+        "transponderText": "FW3",
+        "beamText": "Roli 260208",
+        "systemText": "DVB-S2",
+        "symbolRateText": "7200",
+        "fecText": "5/6",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 12601,
+        "polarization": "H",
+        "transponderNumber": "FW3",
+        "beamName": "Roli 260208",
+        "system": "DVB-S2",
+        "symbolRate": 7200,
+        "fec": "5/6",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-21b-21e-fw3-12612",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 21B",
+      "orbitalPosition": "21E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-21B.html",
+      "retrievedAt": "2026-05-01T07:48:13.323Z",
+      "raw": {
+        "frequencyText": "12612",
+        "polarizationText": "H",
+        "transponderText": "FW3",
+        "beamText": "Jamie A Roli 251212",
+        "systemText": "DVB-S2",
+        "symbolRateText": "7200",
+        "fecText": "3/4",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 12612,
+        "polarization": "H",
+        "transponderNumber": "FW3",
+        "beamName": "Jamie A Roli 251212",
+        "system": "DVB-S2",
+        "symbolRate": 7200,
+        "fec": "3/4",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-21b-21e-fw3-12637",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 21B",
+      "orbitalPosition": "21E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-21B.html",
+      "retrievedAt": "2026-05-01T07:48:13.323Z",
+      "raw": {
+        "frequencyText": "12637",
+        "polarizationText": "H",
+        "transponderText": "FW3",
+        "beamText": "S Evans 260209"
+      },
+      "parsed": {
+        "frequencyMHz": 12637,
+        "polarization": "H",
+        "transponderNumber": "FW3",
+        "beamName": "S Evans 260209"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": false,
+        "confidence": "MEDIUM",
+        "warnings": [
+          "No DVB system/SR/FEC parameters found."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-21b-21e-fm6-12692",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 21B",
+      "orbitalPosition": "21E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-21B.html",
+      "retrievedAt": "2026-05-01T07:48:13.323Z",
+      "raw": {
+        "frequencyText": "12692",
+        "polarizationText": "V",
+        "transponderText": "FM6",
+        "beamText": "N Stanislav 260420"
+      },
+      "parsed": {
+        "frequencyMHz": 12692,
+        "polarization": "V",
+        "transponderNumber": "FM6",
+        "beamName": "N Stanislav 260420"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": false,
+        "confidence": "MEDIUM",
+        "warnings": [
+          "No DVB system/SR/FEC parameters found."
+        ]
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-21b-21e-fe5-12745",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 21B",
+      "orbitalPosition": "21E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-21B.html",
+      "retrievedAt": "2026-05-01T07:48:13.323Z",
+      "raw": {
+        "frequencyText": "12745",
+        "polarizationText": "H",
+        "transponderText": "FE5",
+        "beamText": "N Stanislav 250709",
+        "systemText": "DVB-S2",
+        "symbolRateText": "2200",
+        "fecText": "3/4",
+        "providerText": "(feeds)"
+      },
+      "parsed": {
+        "frequencyMHz": 12745,
+        "polarization": "H",
+        "transponderNumber": "FE5",
+        "beamName": "N Stanislav 250709",
+        "system": "DVB-S2",
+        "symbolRate": 2200,
+        "fec": "3/4",
+        "providerName": "(feeds)"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-21b-21e-s2-nofreq",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 21B",
+      "orbitalPosition": "21E",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-21B.html",
+      "retrievedAt": "2026-05-01T07:48:13.323Z",
+      "raw": {
+        "transponderText": "S2",
+        "beamText": "System:",
+        "systemText": "DVB-S2",
+        "providerText": "non-DTH"
+      },
+      "parsed": {
+        "transponderNumber": "S2",
+        "beamName": "System:",
+        "system": "DVB-S2",
+        "providerName": "non-DTH"
+      },
+      "parseQuality": {
+        "hasFrequency": false,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Downlink frequency not parseable; row kept due to transponder ID.",
+          "Polarization not present or not parseable."
+        ]
+      }
+    }
+  ]
+}

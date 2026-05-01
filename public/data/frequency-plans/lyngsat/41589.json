@@ -1,0 +1,103 @@
+{
+  "source": "LYNGSAT",
+  "satelliteName": "EUTELSAT 117 WEST B",
+  "orbitalPosition": "117W",
+  "url": "https://www.lyngsat.com/Eutelsat-117-West-B.html",
+  "retrievedAt": "2026-05-01T07:48:33.289Z",
+  "parserStats": {
+    "totalRowsSeen": 67,
+    "rowsWithFrequency": 7,
+    "rowsWithBeam": 8,
+    "rowsWithTransponderId": 8,
+    "rowsSkipped": 59,
+    "skipReasons": {
+      "too_few_cells": 44,
+      "no_frequency_no_transponder": 15
+    }
+  },
+  "rows": [
+    {
+      "frequencyMHz": 10970,
+      "polarization": "H",
+      "transponderNumber": "S2",
+      "beamName": "Star TV México",
+      "system": "DVB-S2",
+      "symbolRate": 30000,
+      "fec": "3/4",
+      "provider": "J Orton 240905; 1-1157; Irdeto",
+      "htmlRowText": "10970 H tp 11 North America 0 | DVB-S2 8PSK 30000 3/4 | Star TV México | 1-1157 | 7.9 | Irdeto | J Orton 240905"
+    },
+    {
+      "frequencyMHz": 11040,
+      "polarization": "H",
+      "transponderNumber": "S2",
+      "beamName": "Conax Verimatrix",
+      "system": "DVB-S2",
+      "symbolRate": 45000,
+      "provider": "Cyberham 251119; Tigo",
+      "htmlRowText": "11040 H tp 33 South America 0 | DVB-S2 45000 | Tigo | Conax Verimatrix | Cyberham 251119"
+    },
+    {
+      "frequencyMHz": 11480,
+      "polarization": "H",
+      "transponderNumber": "S2",
+      "beamName": "Star TV México",
+      "system": "DVB-S2",
+      "symbolRate": 30000,
+      "fec": "3/4",
+      "provider": "TomDwo 240804; 1-1154; Irdeto",
+      "htmlRowText": "11480 H tp 1 North America 0 | DVB-S2 8PSK 30000 3/4 | Star TV México | 1-1154 | 7.9 | Irdeto | TomDwo 240804"
+    },
+    {
+      "frequencyMHz": 11520,
+      "polarization": "H",
+      "transponderNumber": "S2",
+      "beamName": "D de Jong 260102",
+      "system": "DVB-S2",
+      "symbolRate": 30000,
+      "fec": "3/4",
+      "provider": "Star TV México; 1-1155; Irdeto",
+      "htmlRowText": "11520 H tp 3 North America 0 | DVB-S2 8PSK 30000 3/4 | Star TV México | 1-1155 | 7.9 | Irdeto | D de Jong 260102"
+    },
+    {
+      "frequencyMHz": 11560,
+      "polarization": "H",
+      "transponderNumber": "S2",
+      "beamName": "Star TV México",
+      "system": "DVB-S2",
+      "symbolRate": 30000,
+      "fec": "3/5",
+      "provider": "TomDwo 240804; 1-1156; Irdeto",
+      "htmlRowText": "11560 H tp 5 North America 0 | DVB-S2 8PSK 30000 3/5 | Star TV México | 1-1156 | 5.5 | Irdeto | TomDwo 240804"
+    },
+    {
+      "frequencyMHz": 11610,
+      "polarization": "H",
+      "transponderNumber": "S2",
+      "beamName": "Star TV México",
+      "system": "DVB-S2",
+      "symbolRate": 30000,
+      "fec": "3/4",
+      "provider": "TomDwo 240810; 1-1157; Irdeto",
+      "htmlRowText": "11610 H tp 7 North America 0 | DVB-S2 8PSK 30000 3/4 | Star TV México | 1-1157 | 7.9 | Irdeto | TomDwo 240810"
+    },
+    {
+      "frequencyMHz": 11670,
+      "polarization": "H",
+      "transponderNumber": "S2",
+      "beamName": "Gompo D de Jong Albert I 251231",
+      "system": "DVB-S2",
+      "symbolRate": 30000,
+      "fec": "3/4",
+      "provider": "Star TV México; 1-1158; Irdeto",
+      "htmlRowText": "11670 H tp 9 North America 0 | DVB-S2 8PSK 30000 3/4 | Star TV México | 1-1158 | 7.9 | Irdeto | Gompo D de Jong Albert I 251231"
+    },
+    {
+      "transponderNumber": "S2",
+      "beamName": "System:",
+      "system": "DVB-S2",
+      "provider": "non-DTH",
+      "htmlRowText": "System: | DVB-S2 | DVB-S | non-DTH | - | -"
+    }
+  ]
+}

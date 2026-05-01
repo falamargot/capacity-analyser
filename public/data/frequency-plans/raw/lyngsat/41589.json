@@ -1,0 +1,299 @@
+{
+  "version": "2",
+  "satelliteName": "EUTELSAT 117 WEST B",
+  "orbitalPosition": "117W",
+  "source": "LYNGSAT",
+  "sourceUrl": "https://www.lyngsat.com/Eutelsat-117-West-B.html",
+  "generatedAt": "2026-05-01T07:49:01.528Z",
+  "observations": [
+    {
+      "id": "lyngsat-eutelsat-117-west-b-117w-s2-10970",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 117 WEST B",
+      "orbitalPosition": "117W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-117-West-B.html",
+      "retrievedAt": "2026-05-01T07:48:33.289Z",
+      "raw": {
+        "frequencyText": "10970",
+        "polarizationText": "H",
+        "transponderText": "S2",
+        "beamText": "Star TV México",
+        "systemText": "DVB-S2",
+        "symbolRateText": "30000",
+        "fecText": "3/4",
+        "providerText": "J Orton 240905; 1-1157; Irdeto"
+      },
+      "parsed": {
+        "frequencyMHz": 10970,
+        "polarization": "H",
+        "transponderNumber": "S2",
+        "beamName": "Star TV México",
+        "system": "DVB-S2",
+        "symbolRate": 30000,
+        "fec": "3/4",
+        "providerName": "J Orton 240905; 1-1157; Irdeto"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-117-west-b-117w-s2-11040",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 117 WEST B",
+      "orbitalPosition": "117W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-117-West-B.html",
+      "retrievedAt": "2026-05-01T07:48:33.289Z",
+      "raw": {
+        "frequencyText": "11040",
+        "polarizationText": "H",
+        "transponderText": "S2",
+        "beamText": "Conax Verimatrix",
+        "systemText": "DVB-S2",
+        "symbolRateText": "45000",
+        "providerText": "Cyberham 251119; Tigo"
+      },
+      "parsed": {
+        "frequencyMHz": 11040,
+        "polarization": "H",
+        "transponderNumber": "S2",
+        "beamName": "Conax Verimatrix",
+        "system": "DVB-S2",
+        "symbolRate": 45000,
+        "providerName": "Cyberham 251119; Tigo"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-117-west-b-117w-s2-11480",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 117 WEST B",
+      "orbitalPosition": "117W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-117-West-B.html",
+      "retrievedAt": "2026-05-01T07:48:33.289Z",
+      "raw": {
+        "frequencyText": "11480",
+        "polarizationText": "H",
+        "transponderText": "S2",
+        "beamText": "Star TV México",
+        "systemText": "DVB-S2",
+        "symbolRateText": "30000",
+        "fecText": "3/4",
+        "providerText": "TomDwo 240804; 1-1154; Irdeto"
+      },
+      "parsed": {
+        "frequencyMHz": 11480,
+        "polarization": "H",
+        "transponderNumber": "S2",
+        "beamName": "Star TV México",
+        "system": "DVB-S2",
+        "symbolRate": 30000,
+        "fec": "3/4",
+        "providerName": "TomDwo 240804; 1-1154; Irdeto"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-117-west-b-117w-s2-11520",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 117 WEST B",
+      "orbitalPosition": "117W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-117-West-B.html",
+      "retrievedAt": "2026-05-01T07:48:33.289Z",
+      "raw": {
+        "frequencyText": "11520",
+        "polarizationText": "H",
+        "transponderText": "S2",
+        "beamText": "D de Jong 260102",
+        "systemText": "DVB-S2",
+        "symbolRateText": "30000",
+        "fecText": "3/4",
+        "providerText": "Star TV México; 1-1155; Irdeto"
+      },
+      "parsed": {
+        "frequencyMHz": 11520,
+        "polarization": "H",
+        "transponderNumber": "S2",
+        "beamName": "D de Jong 260102",
+        "system": "DVB-S2",
+        "symbolRate": 30000,
+        "fec": "3/4",
+        "providerName": "Star TV México; 1-1155; Irdeto"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-117-west-b-117w-s2-11560",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 117 WEST B",
+      "orbitalPosition": "117W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-117-West-B.html",
+      "retrievedAt": "2026-05-01T07:48:33.289Z",
+      "raw": {
+        "frequencyText": "11560",
+        "polarizationText": "H",
+        "transponderText": "S2",
+        "beamText": "Star TV México",
+        "systemText": "DVB-S2",
+        "symbolRateText": "30000",
+        "fecText": "3/5",
+        "providerText": "TomDwo 240804; 1-1156; Irdeto"
+      },
+      "parsed": {
+        "frequencyMHz": 11560,
+        "polarization": "H",
+        "transponderNumber": "S2",
+        "beamName": "Star TV México",
+        "system": "DVB-S2",
+        "symbolRate": 30000,
+        "fec": "3/5",
+        "providerName": "TomDwo 240804; 1-1156; Irdeto"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-117-west-b-117w-s2-11610",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 117 WEST B",
+      "orbitalPosition": "117W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-117-West-B.html",
+      "retrievedAt": "2026-05-01T07:48:33.289Z",
+      "raw": {
+        "frequencyText": "11610",
+        "polarizationText": "H",
+        "transponderText": "S2",
+        "beamText": "Star TV México",
+        "systemText": "DVB-S2",
+        "symbolRateText": "30000",
+        "fecText": "3/4",
+        "providerText": "TomDwo 240810; 1-1157; Irdeto"
+      },
+      "parsed": {
+        "frequencyMHz": 11610,
+        "polarization": "H",
+        "transponderNumber": "S2",
+        "beamName": "Star TV México",
+        "system": "DVB-S2",
+        "symbolRate": 30000,
+        "fec": "3/4",
+        "providerName": "TomDwo 240810; 1-1157; Irdeto"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-117-west-b-117w-s2-11670",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 117 WEST B",
+      "orbitalPosition": "117W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-117-West-B.html",
+      "retrievedAt": "2026-05-01T07:48:33.289Z",
+      "raw": {
+        "frequencyText": "11670",
+        "polarizationText": "H",
+        "transponderText": "S2",
+        "beamText": "Gompo D de Jong Albert I 251231",
+        "systemText": "DVB-S2",
+        "symbolRateText": "30000",
+        "fecText": "3/4",
+        "providerText": "Star TV México; 1-1158; Irdeto"
+      },
+      "parsed": {
+        "frequencyMHz": 11670,
+        "polarization": "H",
+        "transponderNumber": "S2",
+        "beamName": "Gompo D de Jong Albert I 251231",
+        "system": "DVB-S2",
+        "symbolRate": 30000,
+        "fec": "3/4",
+        "providerName": "Star TV México; 1-1158; Irdeto"
+      },
+      "parseQuality": {
+        "hasFrequency": true,
+        "hasPolarization": true,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "HIGH",
+        "warnings": []
+      }
+    },
+    {
+      "id": "lyngsat-eutelsat-117-west-b-117w-s2-nofreq",
+      "source": "LYNGSAT",
+      "satelliteName": "EUTELSAT 117 WEST B",
+      "orbitalPosition": "117W",
+      "sourceUrl": "https://www.lyngsat.com/Eutelsat-117-West-B.html",
+      "retrievedAt": "2026-05-01T07:48:33.289Z",
+      "raw": {
+        "transponderText": "S2",
+        "beamText": "System:",
+        "systemText": "DVB-S2",
+        "providerText": "non-DTH"
+      },
+      "parsed": {
+        "transponderNumber": "S2",
+        "beamName": "System:",
+        "system": "DVB-S2",
+        "providerName": "non-DTH"
+      },
+      "parseQuality": {
+        "hasFrequency": false,
+        "hasPolarization": false,
+        "hasBeam": true,
+        "hasTransponderId": true,
+        "hasDvbParams": true,
+        "confidence": "LOW",
+        "warnings": [
+          "Downlink frequency not parseable; row kept due to transponder ID.",
+          "Polarization not present or not parseable."
+        ]
+      }
+    }
+  ]
+}

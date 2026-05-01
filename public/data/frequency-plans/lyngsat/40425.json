@@ -1,0 +1,107 @@
+{
+  "source": "LYNGSAT",
+  "satelliteName": "EUTELSAT 115 WEST B",
+  "orbitalPosition": "115W",
+  "url": "https://www.lyngsat.com/Eutelsat-115-West-B.html",
+  "retrievedAt": "2026-05-01T07:48:24.788Z",
+  "parserStats": {
+    "totalRowsSeen": 82,
+    "rowsWithFrequency": 8,
+    "rowsWithBeam": 9,
+    "rowsWithTransponderId": 7,
+    "rowsSkipped": 73,
+    "skipReasons": {
+      "too_few_cells": 42,
+      "no_frequency_no_transponder": 31
+    }
+  },
+  "rows": [
+    {
+      "frequencyMHz": 4038,
+      "polarization": "H",
+      "beamName": "Ecuavisa Quito",
+      "system": "DVB-S",
+      "symbolRate": 1600,
+      "provider": "NOS482 240203; 256 Spa",
+      "htmlRowText": "4038 H tp 9 Hemi 0 | DVB-S 1600 | 1 | Ecuavisa Quito | ?-? MPEG-2/SD | 101 | 256 Spa | BISS Director | NOS482 240203"
+    },
+    {
+      "frequencyMHz": 4109,
+      "polarization": "H",
+      "transponderNumber": "S2",
+      "beamName": "J Figueroa 221130",
+      "system": "DVB-S2",
+      "symbolRate": 9600,
+      "fec": "3/4",
+      "htmlRowText": "4109 H tp 11 Hemi 0 | DVB-S2 8PSK 9600 3/4 | 7.9 | J Figueroa 221130"
+    },
+    {
+      "frequencyMHz": 4118,
+      "polarization": "H",
+      "beamName": "Grupo Radio Centro",
+      "system": "DVB-S",
+      "symbolRate": 1550,
+      "provider": "Cyberham 251124",
+      "htmlRowText": "4118 H tp 11 Hemi 0 | DVB-S 1550 | Grupo Radio Centro | Cyberham 251124"
+    },
+    {
+      "frequencyMHz": 4124,
+      "polarization": "H",
+      "transponderNumber": "S2",
+      "beamName": "Canal 10 Chiapas",
+      "system": "DVB-S2",
+      "symbolRate": 3609,
+      "fec": "3/4",
+      "provider": "Cyberham 251124; 7.9 258 Spa",
+      "htmlRowText": "4124 H tp 11 Hemi 0 | DVB-S2 8PSK 3609 3/4 | Canal 10 Chiapas | MPEG-4/HD | 257 | 7.9 258 Spa | Cyberham 251124"
+    },
+    {
+      "frequencyMHz": 4132,
+      "polarization": "V",
+      "transponderNumber": "S2",
+      "beamName": "Justicia TV (Mexico)",
+      "system": "DVB-S2",
+      "symbolRate": 6400,
+      "fec": "3/4",
+      "provider": "R Chavez 231018; 4.0 4112 Spa",
+      "htmlRowText": "4132 V tp 12 Hemi 0 | DVB-S2 QPSK 6400 3/4 | 1 | Justicia TV (Mexico) | ?-? MPEG-4/HD | 512 | 4.0 4112 Spa | R Chavez 231018"
+    },
+    {
+      "frequencyMHz": 4141,
+      "polarization": "V",
+      "transponderNumber": "S2",
+      "beamName": "Cyberham 251124",
+      "system": "DVB-S2",
+      "symbolRate": 6666,
+      "fec": "3/4",
+      "htmlRowText": "4141 V tp 12 Hemi 0 | DVB-S2 QPSK 6666 3/4 | 4.0 | Cyberham 251124"
+    },
+    {
+      "frequencyMHz": 4155,
+      "polarization": "V",
+      "transponderNumber": "S2",
+      "beamName": "Cyberham 251124",
+      "system": "DVB-S2",
+      "symbolRate": 14400,
+      "fec": "3/4",
+      "htmlRowText": "4155 V tp 12 Hemi 0 | DVB-S2 8PSK 14400 3/4 | 7.9 | Cyberham 251124"
+    },
+    {
+      "frequencyMHz": 4172,
+      "polarization": "V",
+      "transponderNumber": "S2",
+      "beamName": "Cyberham 251124",
+      "system": "DVB-S2",
+      "symbolRate": 13330,
+      "fec": "3/4",
+      "htmlRowText": "4172 V tp 12 Hemi 0 | DVB-S2 8PSK 13330 3/4 | 7.9 | Cyberham 251124"
+    },
+    {
+      "transponderNumber": "S2",
+      "beamName": "System:",
+      "system": "DVB-S2",
+      "provider": "non-DTH",
+      "htmlRowText": "System: | DVB-S2 | DVB-S | non-DTH | - | -"
+    }
+  ]
+}
