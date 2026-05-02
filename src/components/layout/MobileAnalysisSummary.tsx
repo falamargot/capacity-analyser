@@ -4,6 +4,8 @@ import type { Vessel } from '../../modules/maritimeTraffic/maritimeTrafficServic
 import type { GeoGatewayData, SNPData } from '../globe/GlobeConfig';
 import type { SatelliteData } from '../../types/satellites';
 import type { MobileAnalysisMetrics, MobileLinkMetrics } from '../../types/analysis';
+import type { LinkMode } from '../../types/linkMode';
+import { LINK_MODE_LABELS } from '../../types/linkMode';
 import type { LeoConnectivityViewModel } from '../../utils/leoServiceViewModel';
 import { formatCoordinates } from '../../utils/formatters';
 import { useSimulation } from '../../contexts/SimulationContext';
@@ -45,7 +47,17 @@ interface MobileAnalysisSummaryProps {
     geoPointStatus?: GeoPointStatus | null;
     satellites?: SatelliteData[];
     snpConnectedSatellites?: SNPConnectedSatellite[];
+    linkMode?: LinkMode;
+    onLinkModeChange?: (mode: LinkMode) => void;
+    pointB?: { lat: number; lng: number } | null;
 }
+
+const MOBILE_LINK_MODE_OPTIONS: Array<{ mode: LinkMode; label: string }> = [
+    { mode: 'STAR_FORWARD', label: 'Forward' },
+    { mode: 'STAR_RETURN', label: 'Return' },
+    { mode: 'MESH', label: 'Mesh' },
+    { mode: 'POINT_TO_POINT', label: 'P2P' },
+];
 
 function formatMbpsFromGbps(gbps: number | null | undefined): string {
     if (gbps == null || !isFinite(gbps)) return '--';
@@ -99,14 +111,33 @@ function MetricCard({
     metrics,
     accentClassName,
     borderClassName,
+    topologyLabel,
+    latencyLabel = 'RTT',
+    downlinkLabel = 'Downlink',
+    uplinkLabel = 'Uplink',
+    linkModeControls,
     compact = false,
 }: {
     label: string;
     metrics: MobileLinkMetrics | null | undefined;
     accentClassName: string;
     borderClassName: string;
+    topologyLabel?: string;
+    latencyLabel?: string;
+    downlinkLabel?: string;
+    uplinkLabel?: string;
+    linkModeControls?: {
+        activeMode: LinkMode;
+        onChange: (mode: LinkMode) => void;
+    };
     compact?: boolean;
 }) {
+    const metricTiles = [
+        metrics?.downlinkGbps != null ? { key: 'downlink', label: downlinkLabel, value: formatMbpsFromGbps(metrics.downlinkGbps) } : null,
+        metrics?.uplinkGbps != null ? { key: 'uplink', label: uplinkLabel, value: formatMbpsFromGbps(metrics.uplinkGbps) } : null,
+    ].filter(Boolean) as Array<{ key: string; label: string; value: string }>;
+    const metricGridClass = metricTiles.length === 1 ? 'grid-cols-1' : 'grid-cols-2';
+
     if (compact) {
         return (
             <div className={`border bg-white/82 shadow-sm dark:bg-slate-900/72 rounded-[20px] px-3 py-2.5 ${borderClassName}`}>
@@ -115,73 +146,119 @@ function MetricCard({
                         <div className={`text-[10px] font-semibold uppercase tracking-[0.2em] ${accentClassName}`}>
                             {label}
                         </div>
+                        {topologyLabel ? (
+                            <div className="mt-1 text-[10px] font-semibold leading-3 text-slate-500 dark:text-slate-400">
+                                {topologyLabel}
+                            </div>
+                        ) : null}
                     </div>
                     <div className="flex items-baseline justify-end gap-2 text-right whitespace-nowrap">
                         <div className="text-[9px] font-semibold uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500">
-                            RTT
+                            {latencyLabel}
                         </div>
                         <div className="text-[12px] font-semibold leading-4 text-slate-900 dark:text-slate-100">
                             {formatRtt(metrics?.rtt)}
                         </div>
                     </div>
-                    <div className="col-span-2 grid grid-cols-2 gap-2">
-                        <div className="rounded-[14px] bg-slate-100/70 px-2.5 py-2 dark:bg-slate-800/55">
-                            <div className="text-[9px] font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
-                                Downlink
-                            </div>
-                            <div className="mt-1 text-[12px] font-semibold leading-4 text-slate-900 dark:text-slate-100">
-                                {formatMbpsFromGbps(metrics?.downlinkGbps)}
-                            </div>
+                    {metricTiles.length > 0 ? (
+                        <div className={`col-span-2 grid ${metricGridClass} gap-2`}>
+                            {metricTiles.map((tile) => (
+                                <div key={tile.key} className="rounded-[14px] bg-slate-100/70 px-2.5 py-2 dark:bg-slate-800/55">
+                                    <div className="truncate text-[9px] font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
+                                        {tile.label}
+                                    </div>
+                                    <div className="mt-1 text-[12px] font-semibold leading-4 text-slate-900 dark:text-slate-100">
+                                        {tile.value}
+                                    </div>
+                                </div>
+                            ))}
                         </div>
-                        <div className="rounded-[14px] bg-slate-100/70 px-2.5 py-2 dark:bg-slate-800/55">
-                            <div className="text-[9px] font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
-                                Uplink
-                            </div>
-                            <div className="mt-1 text-[12px] font-semibold leading-4 text-slate-900 dark:text-slate-100">
-                                {formatMbpsFromGbps(metrics?.uplinkGbps)}
-                            </div>
+                    ) : null}
+                    {linkModeControls ? (
+                        <div className="col-span-2 grid grid-cols-4 gap-1 rounded-[14px] bg-slate-950/5 p-1 dark:bg-white/[0.08]">
+                            {MOBILE_LINK_MODE_OPTIONS.map((option) => {
+                                const isActive = linkModeControls.activeMode === option.mode;
+                                return (
+                                    <button
+                                        key={option.mode}
+                                        type="button"
+                                        onClick={() => linkModeControls.onChange(option.mode)}
+                                        className={`min-h-8 rounded-[10px] px-1.5 text-[10px] font-semibold leading-3 transition-colors ${isActive
+                                            ? 'bg-blue-600 text-white shadow-sm'
+                                            : 'text-slate-600 hover:bg-white/70 dark:text-slate-300 dark:hover:bg-slate-700/70'
+                                            }`}
+                                        aria-pressed={isActive}
+                                        aria-label={`Select GEO topology ${LINK_MODE_LABELS[option.mode]}`}
+                                    >
+                                        {option.label}
+                                    </button>
+                                );
+                            })}
                         </div>
-                    </div>
+                    ) : null}
                 </div>
             </div>
         );
     }
 
     return (
-        <div className={`border bg-white/82 shadow-sm dark:bg-slate-900/72 ${compact ? 'rounded-[20px] px-3 py-2.5' : 'rounded-2xl px-3 py-3'} ${borderClassName}`}>
-            <div className={`items-start ${compact ? 'grid grid-cols-[minmax(0,1fr)_auto] gap-x-3 gap-y-2' : 'flex justify-between gap-3'}`}>
+        <div className={`border bg-white/82 shadow-sm dark:bg-slate-900/72 rounded-2xl px-3 py-3 ${borderClassName}`}>
+            <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                    <div className={`${compact ? 'text-[10px] tracking-[0.2em]' : 'text-[11px] tracking-[0.18em]'} font-semibold uppercase ${accentClassName}`}>
+                    <div className={`text-[11px] font-semibold uppercase tracking-[0.18em] ${accentClassName}`}>
                         {label}
                     </div>
+                    {topologyLabel ? (
+                        <div className="mt-1 text-[11px] font-semibold leading-4 text-slate-500 dark:text-slate-400">
+                            {topologyLabel}
+                        </div>
+                    ) : null}
                 </div>
                 <div className="flex items-baseline justify-end gap-2 text-right whitespace-nowrap">
-                    <div className={`${compact ? 'text-[9px] tracking-[0.2em]' : 'text-[10px] tracking-[0.18em]'} font-semibold uppercase text-slate-400 dark:text-slate-500`}>
-                        RTT
+                    <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-400 dark:text-slate-500">
+                        {latencyLabel}
                     </div>
-                    <div className={`${compact ? 'text-[12px] leading-4' : 'text-[13px] leading-5'} font-semibold text-slate-900 dark:text-slate-100`}>
+                    <div className="text-[13px] font-semibold leading-5 text-slate-900 dark:text-slate-100">
                         {formatRtt(metrics?.rtt)}
                     </div>
                 </div>
             </div>
-            <div className={`grid grid-cols-2 ${compact ? 'mt-2.5 gap-2' : 'mt-3 gap-3'}`}>
-                <div>
-                    <div className={`${compact ? 'text-[9px] tracking-[0.18em]' : 'text-[10px] tracking-[0.16em]'} font-semibold uppercase text-slate-400 dark:text-slate-500`}>
-                        Downlink
-                    </div>
-                    <div className={`${compact ? 'mt-0.5 text-[12px] leading-4' : 'mt-1 text-[13px] leading-5'} font-semibold text-slate-900 dark:text-slate-100`}>
-                        {formatMbpsFromGbps(metrics?.downlinkGbps)}
-                    </div>
+            {metricTiles.length > 0 ? (
+                <div className={`mt-3 grid ${metricGridClass} gap-3`}>
+                    {metricTiles.map((tile) => (
+                        <div key={tile.key}>
+                            <div className="truncate text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-400 dark:text-slate-500">
+                                {tile.label}
+                            </div>
+                            <div className="mt-1 text-[13px] font-semibold leading-5 text-slate-900 dark:text-slate-100">
+                                {tile.value}
+                            </div>
+                        </div>
+                    ))}
                 </div>
-                <div>
-                    <div className={`${compact ? 'text-[9px] tracking-[0.18em]' : 'text-[10px] tracking-[0.16em]'} font-semibold uppercase text-slate-400 dark:text-slate-500`}>
-                        Uplink
-                    </div>
-                    <div className={`${compact ? 'mt-0.5 text-[12px] leading-4' : 'mt-1 text-[13px] leading-5'} font-semibold text-slate-900 dark:text-slate-100`}>
-                        {formatMbpsFromGbps(metrics?.uplinkGbps)}
-                    </div>
+            ) : null}
+            {linkModeControls ? (
+                <div className="mt-3 grid grid-cols-4 gap-1 rounded-xl bg-slate-950/5 p-1 dark:bg-white/[0.08]">
+                    {MOBILE_LINK_MODE_OPTIONS.map((option) => {
+                        const isActive = linkModeControls.activeMode === option.mode;
+                        return (
+                            <button
+                                key={option.mode}
+                                type="button"
+                                onClick={() => linkModeControls.onChange(option.mode)}
+                                className={`min-h-8 rounded-lg px-1.5 text-[10px] font-semibold leading-3 transition-colors ${isActive
+                                    ? 'bg-blue-600 text-white shadow-sm'
+                                    : 'text-slate-600 hover:bg-white/70 dark:text-slate-300 dark:hover:bg-slate-700/70'
+                                    }`}
+                                aria-pressed={isActive}
+                                aria-label={`Select GEO topology ${LINK_MODE_LABELS[option.mode]}`}
+                            >
+                                {option.label}
+                            </button>
+                        );
+                    })}
                 </div>
-            </div>
+            ) : null}
         </div>
     );
 }
@@ -233,6 +310,9 @@ const MobileAnalysisSummary: React.FC<MobileAnalysisSummaryProps> = ({
     geoPointStatus = null,
     satellites = [],
     snpConnectedSatellites = [],
+    linkMode = 'STAR_FORWARD',
+    onLinkModeChange,
+    pointB = null,
 }) => {
     const { failedSnps } = useSimulation();
     const selectedPointStatus = useMemo(
@@ -362,6 +442,14 @@ const MobileAnalysisSummary: React.FC<MobileAnalysisSummaryProps> = ({
             metrics: MobileLinkMetrics | null | undefined;
             accentClassName: string;
             borderClassName: string;
+            topologyLabel?: string;
+            latencyLabel?: string;
+            downlinkLabel?: string;
+            uplinkLabel?: string;
+            linkModeControls?: {
+                activeMode: LinkMode;
+                onChange: (mode: LinkMode) => void;
+            };
         }> = [];
 
         if (metrics?.leo) {
@@ -374,18 +462,40 @@ const MobileAnalysisSummary: React.FC<MobileAnalysisSummaryProps> = ({
             });
         }
 
-        if (metrics?.geo) {
+        const canShowGeoTopologyControls = Boolean(onLinkModeChange)
+            && satelliteScope !== 'LEO'
+            && (Boolean(selectedPoint) || Boolean(selectedAircraft) || Boolean(metrics?.geo));
+
+        if (metrics?.geo || canShowGeoTopologyControls) {
+            const isMeshMode = linkMode === 'MESH' || linkMode === 'POINT_TO_POINT';
+            const isStarForward = linkMode === 'STAR_FORWARD';
+            const isStarReturn = linkMode === 'STAR_RETURN';
+            const meshDisplayMetrics: MobileLinkMetrics | null = isMeshMode && pointB && metrics?.mesh
+                ? {
+                    rtt: metrics.mesh.rttMs,
+                    downlinkGbps: metrics.mesh.forwardMbps != null ? metrics.mesh.forwardMbps / 1000 : null,
+                    uplinkGbps: metrics.mesh.reverseMbps != null ? metrics.mesh.reverseMbps / 1000 : null,
+                }
+                : null;
             cards.push({
                 key: 'geo',
                 label: 'GEO',
-                metrics: metrics.geo,
+                metrics: meshDisplayMetrics ?? metrics?.geo,
                 accentClassName: 'text-blue-600 dark:text-blue-300',
                 borderClassName: 'border-blue-200/80 dark:border-blue-400/20',
+                topologyLabel: onLinkModeChange ? undefined : `Topology · ${LINK_MODE_LABELS[linkMode]}`,
+                latencyLabel: isMeshMode ? 'RTT' : 'Latency',
+                downlinkLabel: isMeshMode ? 'A→B' : isStarForward ? 'Forward link' : 'Downlink',
+                uplinkLabel: isMeshMode ? 'B→A' : isStarReturn ? 'Return link' : 'Uplink',
+                linkModeControls: onLinkModeChange ? {
+                    activeMode: linkMode,
+                    onChange: onLinkModeChange,
+                } : undefined,
             });
         }
 
         return cards;
-    }, [metrics?.geo, metrics?.leo]);
+    }, [linkMode, metrics?.geo, metrics?.leo, metrics?.mesh, onLinkModeChange, pointB, satelliteScope, selectedAircraft, selectedPoint]);
 
     const hasMetrics = metricCards.length > 0;
     const isCompactCoordinateSummary = compact && !!selectedPoint;
@@ -630,6 +740,11 @@ const MobileAnalysisSummary: React.FC<MobileAnalysisSummaryProps> = ({
                                 metrics={card.metrics}
                                 accentClassName={card.accentClassName}
                                 borderClassName={card.borderClassName}
+                                topologyLabel={card.topologyLabel}
+                                latencyLabel={card.latencyLabel}
+                                downlinkLabel={card.downlinkLabel}
+                                uplinkLabel={card.uplinkLabel}
+                                linkModeControls={card.linkModeControls}
                                 compact={compact}
                             />
                         ))}

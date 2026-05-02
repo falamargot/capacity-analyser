@@ -607,26 +607,23 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
       collapsible={false}
     >
       {isMeshOrP2P ? (
-        // MESH/P2P: both directions are budgeted — show RTT (4 hops) and active-direction throughput.
+        // MESH/P2P: both directions are budgeted separately — show full RTT
+        // and the forward/return bottleneck throughput side by side.
         meshGeometry ? (() => {
-          const isForward = activeMeshTab === 'forward';
-          const srcLabel = isForward ? 'A' : 'B';
-          const dstLabel = isForward ? 'B' : 'A';
-          const throughput = isForward
-            ? meshGeometry.forwardThroughputMbps
-            : (meshGeometry.reverseThroughputMbps ?? meshGeometry.forwardThroughputMbps);
           return (
             <PerformancePanel
               rtt={meshGeometry.rttTotalMs}
-              downlinkGbps={throughput / 1000}
-              uplinkGbps={throughput / 1000}
+              downlinkGbps={meshGeometry.forwardThroughputMbps / 1000}
+              uplinkGbps={meshGeometry.reverseThroughputMbps != null ? meshGeometry.reverseThroughputMbps / 1000 : null}
               maxDlGbps={TERMINAL_PROFILES[terminalType].maxDlGbps}
               maxUlGbps={TERMINAL_PROFILES[terminalType].maxUlGbps}
               stability={meshGeometry.isUnstable ? 'Unstable' : meshGeometry.stability}
               performanceFactor={1}
               accentColor="#2563eb"
               rttMaxMs={RTT_VISUAL_SCALE_MAX_MS}
-              rttLabel={`RTT (A ↔ B) — showing ${srcLabel}→${dstLabel} direction`}
+              rttLabel="Mesh/P2P RTT (4-hop)"
+              downlinkLabel="Forward A→B throughput"
+              uplinkLabel="Return B→A throughput"
               stabilityTooltip={`MESH/P2P stability = weakest link.\nPoint A elevation: ${meshGeometry.elevA.toFixed(1)}°\nPoint B elevation: ${meshGeometry.elevB.toFixed(1)}°`}
             />
           );

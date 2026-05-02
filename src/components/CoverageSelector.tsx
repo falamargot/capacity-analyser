@@ -68,6 +68,14 @@ const pickBestByLinkMargin = (candidates: CandidateCoverage[]): CandidateCoverag
   )
 );
 
+const getLimitingLinkMargin = (...candidates: Array<CandidateCoverage | null | undefined>): number => {
+  const margins = candidates
+    .filter((candidate): candidate is CandidateCoverage => candidate != null)
+    .map(getLinkMarginValue);
+
+  return margins.length > 0 ? Math.min(...margins) : -Infinity;
+};
+
 // ─── Chevron ─────────────────────────────────────────────────────────────────
 
 const Chevron = ({ open }: { open: boolean }) => (
@@ -469,23 +477,42 @@ const CoverageSelector = memo<CoverageSelectorProps>(({
       name: string;
       band?: string;
       linkMarginDb?: number;
-      bestCandidate: CandidateCoverage;
     }>();
+    const uplinkPool = uplinkCandidatesOverride ?? candidateCoverages;
+    const downlinkPool = downlinkCandidatesOverride ?? candidateCoverages;
+    const sourceSatelliteIds = new Set(candidateCoverages.map((candidate) => candidate.satelliteId));
 
-    for (const candidate of candidateCoverages) {
-      if (candidate.isSynthesized) continue;
-      if (validSatelliteIds && !validSatelliteIds.has(candidate.satelliteId)) continue;
+    for (const satelliteId of sourceSatelliteIds) {
+      if (validSatelliteIds && !validSatelliteIds.has(satelliteId)) continue;
+      const sourceCandidate = candidateCoverages.find((candidate) => (
+        candidate.satelliteId === satelliteId &&
+        !candidate.isSynthesized
+      ));
+      if (!sourceCandidate) continue;
 
-      const current = bySatellite.get(candidate.satelliteId);
-      if (!current || compareByLinkMargin(candidate, current.bestCandidate) < 0) {
-        bySatellite.set(candidate.satelliteId, {
-          id: candidate.satelliteId,
-          name: candidate.satelliteName,
-          band: candidate.band ?? current?.band,
-          linkMarginDb: candidate.linkMarginDb,
-          bestCandidate: candidate,
-        });
-      }
+      const bestUplink = showUplink
+        ? pickBestByLinkMargin(uplinkPool.filter((candidate) => (
+          candidate.satelliteId === satelliteId &&
+          candidate.isUplink &&
+          !candidate.isSynthesized
+        )))
+        : null;
+      const bestDownlink = showDownlink
+        ? pickBestByLinkMargin(downlinkPool.filter((candidate) => (
+          candidate.satelliteId === satelliteId &&
+          !candidate.isUplink &&
+          !candidate.isSynthesized
+        )))
+        : null;
+
+      if ((showUplink && !bestUplink) || (showDownlink && !bestDownlink)) continue;
+
+      bySatellite.set(satelliteId, {
+        id: satelliteId,
+        name: sourceCandidate.satelliteName,
+        band: bestUplink?.band ?? bestDownlink?.band ?? sourceCandidate.band,
+        linkMarginDb: getLimitingLinkMargin(bestUplink, bestDownlink),
+      });
     }
 
     return [...bySatellite.values()]
@@ -493,9 +520,8 @@ const CoverageSelector = memo<CoverageSelectorProps>(({
         const marginDelta = (right.linkMarginDb ?? -Infinity) - (left.linkMarginDb ?? -Infinity);
         if (marginDelta !== 0) return marginDelta;
         return left.name.localeCompare(right.name);
-      })
-      .map(({ bestCandidate, ...satellite }) => satellite);
-  }, [candidateCoverages, validSatelliteIds]);
+      });
+  }, [candidateCoverages, downlinkCandidatesOverride, showDownlink, showUplink, uplinkCandidatesOverride, validSatelliteIds]);
 
   const activeSatId = useMemo(() => {
     if (linkMode === 'STAR_FORWARD') {
@@ -544,8 +570,12 @@ const CoverageSelector = memo<CoverageSelectorProps>(({
     ));
     const bestDl = pickBestByLinkMargin(realCandidates.filter((candidate) => !candidate.isUplink));
     const bestUl = pickBestByLinkMargin(realCandidates.filter((candidate) => candidate.isUplink));
-    if (bestDl) (onSelectDownlinkCoverage ?? onSelectCoverage)?.(bestDl);
-    else if (bestUl) (onSelectUplinkCoverage ?? onSelectCoverage)?.(bestUl);
+    if (bestUl && onSelectUplinkCoverage) onSelectUplinkCoverage(bestUl);
+    if (bestDl && onSelectDownlinkCoverage) onSelectDownlinkCoverage(bestDl);
+    if (!onSelectUplinkCoverage && !onSelectDownlinkCoverage) {
+      if (bestDl) onSelectCoverage?.(bestDl);
+      else if (bestUl) onSelectCoverage?.(bestUl);
+    }
   };
 
   const uplinkBeams = useMemo(

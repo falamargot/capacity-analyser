@@ -110,9 +110,9 @@ export interface AutoSelectionState {
 }
 
 export interface MobileLinkMetrics {
-    rtt: number;
-    downlinkGbps: number;
-    uplinkGbps: number;
+    rtt: number | null;
+    downlinkGbps: number | null;
+    uplinkGbps: number | null;
 }
 
 export interface MeshLinkMetrics {

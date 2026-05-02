@@ -85,6 +85,7 @@ import CoverageSwitcherVertical, { type CoverageSwitcherCoverage } from './Cover
 import type { CountryOverlayMode } from '../types/countryOverlays';
 
 const BASEMAP_STORAGE_KEY = 'cesium:basemap';
+const FALLBACK_BASEMAP_ID = 'natural-earth-ii';
 
 const normalizeBasemapName = (value: string) =>
     value.replace(/\u00ad/g, '').replace(/\u00a0/g, ' ').trim();
@@ -100,6 +101,12 @@ const DESIRED_BASEMAPS = [
     { id: 'earth-at-night', name: 'Earth at night', label: 'Earth at Night' },
     { id: 'natural-earth-ii', name: 'Natural Earth II', label: 'Natural Earth II' },
 ] as const;
+
+type BasemapOption = {
+    id: string;
+    label: string;
+    viewModel: ProviderViewModel;
+};
 
 const getPickedObjectId = (pickedObject: unknown): string => {
     if (!pickedObject || typeof pickedObject !== 'object' || !('id' in pickedObject)) return '';
@@ -407,7 +414,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                     viewModel,
                 };
             })
-            .filter((entry): entry is { id: string; label: string; viewModel: ProviderViewModel } => entry !== null);
+            .filter((entry): entry is BasemapOption => entry !== null);
     }, []);
     const [selectedBasemapId, setSelectedBasemapId] = useState<string>(() => {
         try {
@@ -512,44 +519,144 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
 
         const applyToken = ++basemapApplyTokenRef.current;
         let cancelled = false;
+        const removeBasemapErrorListeners: Array<() => void> = [];
 
-        const applyBasemap = async () => {
-            try {
-                const created = selectedBasemap.viewModel.creationCommand();
-                const resolved = await Promise.resolve(created) as unknown;
-                const providers = Array.isArray(resolved) ? resolved : [resolved];
+        const addBasemapErrorListener = (
+            target: unknown,
+            basemap: BasemapOption,
+            source: string,
+            onError: (error: unknown) => void,
+        ) => {
+            const errorEvent = (target as { errorEvent?: unknown } | null)?.errorEvent;
+            if (!errorEvent || typeof errorEvent !== 'object') return;
 
-                if (cancelled || applyToken !== basemapApplyTokenRef.current || !viewerRef.current) return;
+            const addEventListener = (errorEvent as { addEventListener?: unknown }).addEventListener;
+            const removeEventListener = (errorEvent as { removeEventListener?: unknown }).removeEventListener;
+            if (typeof addEventListener !== 'function' || typeof removeEventListener !== 'function') return;
 
-                const layers = viewerRef.current.imageryLayers;
-                layers.removeAll();
+            const listener = (error: unknown) => {
+                console.warn(`[Basemap] "${basemap.label}" ${source} error:`, error);
+                onError(error);
+            };
 
-                for (const provider of providers) {
-                    if (!provider) continue;
-                    layers.add(new ImageryLayer(provider as ConstructorParameters<typeof ImageryLayer>[0]));
+            addEventListener.call(errorEvent, listener);
+            removeBasemapErrorListeners.push(() => {
+                removeEventListener.call(errorEvent, listener);
+            });
+        };
+
+        const cleanupBasemapErrorListeners = () => {
+            while (removeBasemapErrorListeners.length > 0) {
+                const removeListener = removeBasemapErrorListeners.pop();
+                try {
+                    removeListener?.();
+                } catch {
+                    // no-op
                 }
+            }
+        };
 
-                onGlobeBootPhaseChange?.('imagery-ready');
-                setImageryThemeRevision((value) => value + 1);
-                const viewer = viewerRef.current;
-                viewer.scene.requestRender();
+        const addImageryForBasemap = async (
+            basemap: BasemapOption,
+            onTileError?: (error: unknown) => void,
+        ) => {
+            const created = basemap.viewModel.creationCommand();
+            const resolved = await Promise.resolve(created) as unknown;
+            const providers = Array.isArray(resolved) ? resolved : [resolved];
 
-                if (!initialSceneReadyRef.current) {
-                    const markSceneReady = () => {
-                        viewer.scene.postRender.removeEventListener(markSceneReady);
-                        if (initialSceneReadyRef.current) return;
-                        initialSceneReadyRef.current = true;
-                        onInitialGlobeReady?.();
-                    };
+            if (cancelled || applyToken !== basemapApplyTokenRef.current || !viewerRef.current) return false;
 
-                    viewer.scene.postRender.addEventListener(markSceneReady);
+            const layers = viewerRef.current.imageryLayers;
+            cleanupBasemapErrorListeners();
+            layers.removeAll();
+
+            for (const provider of providers) {
+                if (!provider) continue;
+                const layer = layers.add(new ImageryLayer(provider as ConstructorParameters<typeof ImageryLayer>[0]));
+
+                if (onTileError) {
+                    addBasemapErrorListener(provider, basemap, 'provider', onTileError);
+                    addBasemapErrorListener(layer, basemap, 'layer', onTileError);
                 }
-            } catch (error) {
-                console.error(`[Basemap] Failed to apply "${selectedBasemap.label}":`, error);
-                if (!initialSceneReadyRef.current) {
+            }
+
+            console.info(`[Basemap] Applied "${basemap.label}".`);
+            return true;
+        };
+
+        const markImageryReady = () => {
+            onGlobeBootPhaseChange?.('imagery-ready');
+            setImageryThemeRevision((value) => value + 1);
+
+            const viewer = viewerRef.current;
+            if (!viewer) return;
+            viewer.scene.requestRender();
+
+            if (!initialSceneReadyRef.current) {
+                const markSceneReady = () => {
+                    viewer.scene.postRender.removeEventListener(markSceneReady);
+                    if (initialSceneReadyRef.current) return;
                     initialSceneReadyRef.current = true;
                     onInitialGlobeReady?.();
+                };
+
+                viewer.scene.postRender.addEventListener(markSceneReady);
+            }
+        };
+
+        const markInitialSceneReadyAfterFailure = () => {
+            if (!initialSceneReadyRef.current) {
+                initialSceneReadyRef.current = true;
+                onInitialGlobeReady?.();
+            }
+        };
+
+        const applyBasemap = async () => {
+            let tileFallbackInProgress = false;
+            const fallbackOnTileError = async (error: unknown) => {
+                if (tileFallbackInProgress) return;
+                if (selectedBasemap.id === FALLBACK_BASEMAP_ID) return;
+                if (cancelled || applyToken !== basemapApplyTokenRef.current) return;
+
+                const fallbackBasemap = basemapOptions.find((option) => option.id === FALLBACK_BASEMAP_ID);
+                if (!fallbackBasemap) return;
+
+                tileFallbackInProgress = true;
+                try {
+                    console.warn(`[Basemap] Falling back to "${fallbackBasemap.label}" after tile error.`, error);
+                    const applied = await addImageryForBasemap(fallbackBasemap);
+                    if (applied) {
+                        setSelectedBasemapId(fallbackBasemap.id);
+                        markImageryReady();
+                    }
+                } catch (fallbackError) {
+                    console.error(`[Basemap] Failed to apply fallback "${fallbackBasemap.label}":`, fallbackError);
+                    markInitialSceneReadyAfterFailure();
                 }
+            };
+
+            try {
+                const applied = await addImageryForBasemap(selectedBasemap, fallbackOnTileError);
+                if (applied) markImageryReady();
+            } catch (error) {
+                console.error(`[Basemap] Failed to apply "${selectedBasemap.label}":`, error);
+
+                const fallbackBasemap = basemapOptions.find((option) => option.id === FALLBACK_BASEMAP_ID);
+                if (fallbackBasemap && fallbackBasemap.id !== selectedBasemap.id) {
+                    try {
+                        const applied = await addImageryForBasemap(fallbackBasemap);
+                        if (applied) {
+                            console.warn(`[Basemap] Falling back to "${fallbackBasemap.label}".`);
+                            setSelectedBasemapId(fallbackBasemap.id);
+                            markImageryReady();
+                            return;
+                        }
+                    } catch (fallbackError) {
+                        console.error(`[Basemap] Failed to apply fallback "${fallbackBasemap.label}":`, fallbackError);
+                    }
+                }
+
+                markInitialSceneReadyAfterFailure();
             }
         };
 
@@ -557,6 +664,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
 
         return () => {
             cancelled = true;
+            cleanupBasemapErrorListeners();
         };
     }, [basemapOptions, onGlobeBootPhaseChange, onInitialGlobeReady, selectedBasemapId, viewerReady]);
 
@@ -1199,6 +1307,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                 <Viewer
                     full
                     ref={handleViewerRef}
+                    baseLayer={false}
                     timeline={false}
                     animation={false}
                     shouldAnimate={true}
@@ -1482,7 +1591,6 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                 viewerReady={viewerReady}
                 compact={!!isPhone}
                 meshRole="A"
-                activeMeshTab={activeMeshTab}
                 linkMode={linkMode}
             />
             {pointB && linkMode && (linkMode === 'MESH' || linkMode === 'POINT_TO_POINT') && (
@@ -1496,7 +1604,6 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                     viewerReady={viewerReady}
                     compact={!!isPhone}
                     meshRole="B"
-                    activeMeshTab={activeMeshTab}
                     linkMode={linkMode}
                 />
             )}

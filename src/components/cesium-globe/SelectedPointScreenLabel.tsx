@@ -29,7 +29,6 @@ interface SelectedPointScreenLabelProps {
   viewerReady?: boolean;
   compact?: boolean;
   meshRole?: 'A' | 'B';
-  activeMeshTab?: 'forward' | 'reverse';
   linkMode?: LinkMode;
 }
 
@@ -92,7 +91,6 @@ const SelectedPointScreenLabel: React.FC<SelectedPointScreenLabelProps> = ({
   viewerReady = false,
   compact = false,
   meshRole,
-  activeMeshTab = 'forward',
   linkMode,
 }) => {
   const labelRef = useRef<HTMLDivElement | null>(null);
@@ -111,23 +109,23 @@ const SelectedPointScreenLabel: React.FC<SelectedPointScreenLabelProps> = ({
     const isMesh = linkMode === 'MESH' || linkMode === 'POINT_TO_POINT';
     const meshData = performanceMetrics?.mesh;
 
-    // In MESH/P2P mode, show only the active direction.
+    // In MESH/P2P mode, show both A→B and B→A throughput at each endpoint.
     if (isMesh && meshRole && meshData) {
       const fmtMbps = (mbps: number | null | undefined) =>
         mbps != null && Number.isFinite(mbps) && mbps > 0 ? `${Math.round(mbps)} Mbps` : '--';
       const rttStr = meshData.rttMs != null && Number.isFinite(meshData.rttMs)
         ? `${Math.round(meshData.rttMs)} ms RTT`
         : null;
-      // Terminal A transmits on the forward path, receives on the reverse path.
-      const ulMbps = meshRole === 'A' ? meshData.forwardMbps : meshData.reverseMbps;
-      const dlMbps = meshRole === 'A' ? meshData.reverseMbps : meshData.forwardMbps;
+      // A→B: outgoing from A (↑), incoming to B (↓)
+      const fwdArrow = meshRole === 'A' ? '↑' : '↓';
+      // B→A: outgoing from B (↑), incoming to A (↓)
+      const revArrow = meshRole === 'B' ? '↑' : '↓';
+
       return {
         coordinates: `Terminal ${meshRole} · ${formatCoordinates({ lat: selectedPosition.lat, lng: selectedPosition.lng })}`,
         statusLines: [
-          {
-            text: `↑ ${fmtMbps(ulMbps)} · ↓ ${fmtMbps(dlMbps)}`,
-            tone: 'success' as SelectedPointStatusTone,
-          },
+          { text: `A→B ${fwdArrow} ${fmtMbps(meshData.forwardMbps)}`, tone: 'success' as SelectedPointStatusTone },
+          { text: `B→A ${revArrow} ${fmtMbps(meshData.reverseMbps)}`, tone: 'success' as SelectedPointStatusTone },
           ...(rttStr ? [{ text: rttStr, tone: 'neutral' as SelectedPointStatusTone }] : []),
         ],
       };

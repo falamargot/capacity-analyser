@@ -281,6 +281,7 @@ const App: React.FC = () => {
   // ── Link mode & dual-point selection ─────────────────────────────────────
   const [linkMode, setLinkMode] = useState<LinkMode>('STAR_FORWARD');
   const [pointB, setPointB] = useState<{ lat: number; lng: number } | null>(null);
+  const [isPointBPlacementArmed, setIsPointBPlacementArmed] = useState(false);
   const [activeMeshTab, setActiveMeshTab] = useState<'forward' | 'reverse'>('forward');
   useEffect(() => { setActiveMeshTab('forward'); }, [linkMode]);
 
@@ -288,6 +289,7 @@ const App: React.FC = () => {
   useEffect(() => {
     if (!LINK_MODE_REQUIRES_POINT_B.has(linkMode)) {
       setPointB(null);
+      setIsPointBPlacementArmed(false);
     }
   }, [linkMode]);
 
@@ -763,20 +765,45 @@ const App: React.FC = () => {
   const eligibleCandidateCoverages = useMemo(() => {
     if (candidateCoverages.length === 0) return candidateCoverages;
 
+    const hasRealDirectionPair = (pool: CandidateCoverage[], satelliteId: string) => {
+      const satelliteCandidates = pool.filter((candidate) => (
+        candidate.satelliteId === satelliteId &&
+        !candidate.isSynthesized
+      ));
+
+      return satelliteCandidates.some((candidate) => candidate.isUplink)
+        && satelliteCandidates.some((candidate) => !candidate.isUplink);
+    };
+
+    const candidateSatelliteIdsWithUserPair = new Set(
+      [...new Set(candidateCoverages.map((candidate) => candidate.satelliteId))]
+        .filter((satelliteId) => hasRealDirectionPair(candidateCoverages, satelliteId))
+    );
+
+    if (candidateSatelliteIdsWithUserPair.size === 0) return [];
+
     if (LINK_MODE_REQUIRES_POINT_B.has(linkMode)) {
-      if (candidateCoveragesB.length === 0) return candidateCoverages;
-      const pointBSatelliteIds = new Set(candidateCoveragesB.map((candidate) => candidate.satelliteId));
-      return candidateCoverages.filter((candidate) => pointBSatelliteIds.has(candidate.satelliteId));
+      if (candidateCoveragesB.length === 0) {
+        return candidateCoverages.filter((candidate) => candidateSatelliteIdsWithUserPair.has(candidate.satelliteId));
+      }
+      const pointBSatelliteIdsWithPair = new Set(
+        [...new Set(candidateCoveragesB.map((candidate) => candidate.satelliteId))]
+          .filter((satelliteId) => hasRealDirectionPair(candidateCoveragesB, satelliteId))
+      );
+      return candidateCoverages.filter((candidate) => (
+        candidateSatelliteIdsWithUserPair.has(candidate.satelliteId) &&
+        pointBSatelliteIdsWithPair.has(candidate.satelliteId)
+      ));
     }
 
     if (linkMode !== 'STAR_FORWARD' && linkMode !== 'STAR_RETURN') {
-      return candidateCoverages;
+      return candidateCoverages.filter((candidate) => candidateSatelliteIdsWithUserPair.has(candidate.satelliteId));
     }
 
     const geoSatellites = satellites.filter(
       (satellite) => satellite.orbitType === 'GEO' && satellite.opsStatus === 'operational'
     );
-    const candidateSatelliteIds = new Set(candidateCoverages.map((candidate) => candidate.satelliteId));
+    const candidateSatelliteIds = candidateSatelliteIdsWithUserPair;
     const candidateSatellites = geoSatellites.filter((satellite) => candidateSatelliteIds.has(satellite.id));
 
     const gatewayByPosition = new Map<string, { lat: number; lng: number }>();
@@ -813,7 +840,10 @@ const App: React.FC = () => {
       }
     }
 
-    return candidateCoverages.filter((candidate) => eligibleSatelliteIds.has(candidate.satelliteId));
+    return candidateCoverages.filter((candidate) => (
+      candidateSatelliteIdsWithUserPair.has(candidate.satelliteId) &&
+      eligibleSatelliteIds.has(candidate.satelliteId)
+    ));
   }, [candidateCoverages, candidateCoveragesB, linkMode, satellites]);
 
   const targetSelectionResetKey = useMemo(() => (
@@ -876,40 +906,141 @@ const App: React.FC = () => {
     selectedSelection.type,
   ]);
 
-  // Default uplink / downlink when nothing is explicitly selected.
-  const defaultDownlinkCoverage = useMemo(
-    () => selectedSelection.type === 'target'
-      ? (
-        pickBestGeoLinkMargin(eligibleCandidateCoverages.filter((c) => !c.isUplink && !c.isSynthesized))
-        ?? topologyDefaultSelection?.downlinkA
-        ?? pickBestGeoLinkMargin(eligibleCandidateCoverages.filter((c) => !c.isUplink))
-        ?? null
-      )
-      : null,
-    [eligibleCandidateCoverages, selectedSelection.type, topologyDefaultSelection]
-  );
-  const defaultUplinkCoverage = useMemo(() => {
-    if (selectedSelection.type !== 'target') return null;
-    if (defaultDownlinkCoverage) {
-      return pickBestGeoLinkMargin(eligibleCandidateCoverages.filter(
-        c => c.isUplink && c.satelliteId === defaultDownlinkCoverage.satelliteId
-      )) ?? topologyDefaultSelection?.uplinkA ?? null;
+  const defaultCoveragePair = useMemo(() => {
+    if (selectedSelection.type !== 'target') {
+      return { uplink: null, downlink: null };
     }
-    if (topologyDefaultSelection?.uplinkA) return topologyDefaultSelection.uplinkA;
-    return pickBestGeoLinkMargin(eligibleCandidateCoverages.filter(c => c.isUplink));
-  }, [eligibleCandidateCoverages, selectedSelection.type, defaultDownlinkCoverage, topologyDefaultSelection]);
 
-  const selectedUplinkCoverage = useMemo(() => {
+    const satelliteIds = [...new Set(eligibleCandidateCoverages.map((candidate) => candidate.satelliteId))];
+    let best: {
+      uplink: CandidateCoverage;
+      downlink: CandidateCoverage;
+      limitingMargin: number;
+      score: number;
+    } | null = null;
+
+    for (const satelliteId of satelliteIds) {
+      const uplink = pickBestGeoLinkMargin(eligibleCandidateCoverages.filter((candidate) => (
+        candidate.satelliteId === satelliteId &&
+        candidate.isUplink &&
+        !candidate.isSynthesized
+      )));
+      const downlink = pickBestGeoLinkMargin(eligibleCandidateCoverages.filter((candidate) => (
+        candidate.satelliteId === satelliteId &&
+        !candidate.isUplink &&
+        !candidate.isSynthesized
+      )));
+
+      if (!uplink || !downlink) continue;
+
+      const limitingMargins = [getCandidateLinkMargin(uplink), getCandidateLinkMargin(downlink)];
+      if (LINK_MODE_REQUIRES_POINT_B.has(linkMode) && candidateCoveragesB.length > 0) {
+        const uplinkB = pickBestGeoLinkMargin(candidateCoveragesB.filter((candidate) => (
+          candidate.satelliteId === satelliteId &&
+          candidate.isUplink &&
+          !candidate.isSynthesized
+        )));
+        const downlinkB = pickBestGeoLinkMargin(candidateCoveragesB.filter((candidate) => (
+          candidate.satelliteId === satelliteId &&
+          !candidate.isUplink &&
+          !candidate.isSynthesized
+        )));
+
+        if (!uplinkB || !downlinkB) continue;
+        limitingMargins.push(getCandidateLinkMargin(uplinkB), getCandidateLinkMargin(downlinkB));
+      }
+
+      const limitingMargin = Math.min(...limitingMargins);
+      const score = uplink.score + downlink.score;
+      if (
+        !best ||
+        limitingMargin > best.limitingMargin ||
+        (limitingMargin === best.limitingMargin && score > best.score)
+      ) {
+        best = { uplink, downlink, limitingMargin, score };
+      }
+    }
+
+    return {
+      uplink: best?.uplink ?? topologyDefaultSelection?.uplinkA ?? null,
+      downlink: best?.downlink ?? topologyDefaultSelection?.downlinkA ?? null,
+    };
+  }, [candidateCoveragesB, eligibleCandidateCoverages, linkMode, selectedSelection.type, topologyDefaultSelection]);
+
+  // Default uplink / downlink when nothing is explicitly selected.
+  const defaultDownlinkCoverage = defaultCoveragePair.downlink;
+  const defaultUplinkCoverage = defaultCoveragePair.uplink;
+
+  const rawSelectedUplinkCoverage = useMemo(() => {
     if (selectedSelection.type !== 'target') return null;
     if (selectedUplinkKey) return eligibleCandidateCoverages.find(c => getCandidateCoverageKey(c) === selectedUplinkKey) ?? defaultUplinkCoverage;
     return defaultUplinkCoverage;
   }, [eligibleCandidateCoverages, defaultUplinkCoverage, selectedSelection.type, selectedUplinkKey]);
 
-  const selectedDownlinkCoverage = useMemo(() => {
+  const rawSelectedDownlinkCoverage = useMemo(() => {
     if (selectedSelection.type !== 'target') return null;
     if (selectedDownlinkKey) return eligibleCandidateCoverages.find(c => getCandidateCoverageKey(c) === selectedDownlinkKey) ?? defaultDownlinkCoverage;
     return defaultDownlinkCoverage;
   }, [eligibleCandidateCoverages, defaultDownlinkCoverage, selectedSelection.type, selectedDownlinkKey]);
+
+  const selectedCoveragePair = useMemo(() => {
+    if (selectedSelection.type !== 'target') {
+      return { uplink: null, downlink: null };
+    }
+
+    const findCompanion = (anchor: CandidateCoverage, wantUplink: boolean) => {
+      const sameSatellite = eligibleCandidateCoverages.filter((candidate) => (
+        candidate.isUplink === wantUplink &&
+        candidate.satelliteId === anchor.satelliteId
+      ));
+
+      return pickBestGeoLinkMargin(sameSatellite.filter((candidate) => candidate.band === anchor.band && !candidate.isSynthesized))
+        ?? pickBestGeoLinkMargin(sameSatellite.filter((candidate) => !candidate.isSynthesized))
+        ?? pickBestGeoLinkMargin(sameSatellite.filter((candidate) => candidate.band === anchor.band))
+        ?? pickBestGeoLinkMargin(sameSatellite)
+        ?? null;
+    };
+
+    if (rawSelectedUplinkCoverage && rawSelectedDownlinkCoverage) {
+      if (rawSelectedUplinkCoverage.satelliteId === rawSelectedDownlinkCoverage.satelliteId) {
+        return { uplink: rawSelectedUplinkCoverage, downlink: rawSelectedDownlinkCoverage };
+      }
+
+      const anchor = linkMode === 'STAR_RETURN'
+        ? rawSelectedUplinkCoverage
+        : rawSelectedDownlinkCoverage;
+      const companion = findCompanion(anchor, !anchor.isUplink);
+
+      return anchor.isUplink
+        ? { uplink: anchor, downlink: companion }
+        : { uplink: companion, downlink: anchor };
+    }
+
+    if (rawSelectedDownlinkCoverage) {
+      return {
+        uplink: findCompanion(rawSelectedDownlinkCoverage, true),
+        downlink: rawSelectedDownlinkCoverage,
+      };
+    }
+
+    if (rawSelectedUplinkCoverage) {
+      return {
+        uplink: rawSelectedUplinkCoverage,
+        downlink: findCompanion(rawSelectedUplinkCoverage, false),
+      };
+    }
+
+    return { uplink: null, downlink: null };
+  }, [
+    eligibleCandidateCoverages,
+    linkMode,
+    rawSelectedDownlinkCoverage,
+    rawSelectedUplinkCoverage,
+    selectedSelection.type,
+  ]);
+
+  const selectedUplinkCoverage = selectedCoveragePair.uplink;
+  const selectedDownlinkCoverage = selectedCoveragePair.downlink;
 
   // Globe-visible coverages: only the user-terminal side for the active link mode,
   // only when real contour data exists (synthesised → nothing on globe),
@@ -1592,13 +1723,16 @@ const App: React.FC = () => {
       satelliteScope !== 'LEO' &&
       LINK_MODE_REQUIRES_POINT_B.has(linkMode);
 
-    if (supportsSecondaryPoint && shiftKey && selectedPosition) {
-      // Shift+click → set Point B without disturbing Point A
+    if (supportsSecondaryPoint && (shiftKey || isPointBPlacementArmed) && selectedPosition) {
+      // Shift+click on desktop, or the mobile "place B" mode, sets Point B
+      // without disturbing Point A.
       setPointB({ lat, lng });
+      setIsPointBPlacementArmed(false);
       return;
     }
 
     // Plain click → set Point A, clear Point B and other selections
+    setIsPointBPlacementArmed(false);
     setSelectedMoon(false);
     setSelectedAircraft(null);
     setSelectedVessel(null);
@@ -1609,7 +1743,7 @@ const App: React.FC = () => {
     setSelectedUplinkKey(null);
     setSelectedDownlinkKey(null);
     selectTarget('point', { lat, lng });
-  }, [linkMode, satelliteScope, selectedPosition, selectTarget]);
+  }, [isPointBPlacementArmed, linkMode, satelliteScope, selectedPosition, selectTarget]);
 
   // Handle aircraft selection (aircraft-based analyzis)
   const handleAircraftSelect = useCallback((aircraft: Aircraft | null, fromComboBox: boolean = false) => {
@@ -1742,6 +1876,14 @@ const App: React.FC = () => {
     handleSelectTargetCoverageById(getCandidateCoverageKey(coverage));
   }, [handleSelectTargetCoverageById]);
 
+  const handleTogglePointBPlacement = useCallback(() => {
+    if (!LINK_MODE_REQUIRES_POINT_B.has(linkMode) || satelliteScope === 'LEO') {
+      setIsPointBPlacementArmed(false);
+      return;
+    }
+    setIsPointBPlacementArmed((current) => !current);
+  }, [linkMode, satelliteScope]);
+
   const handleOpenCommandPalette = useCallback(() => {
     setIsSatelliteModalOpen(false);
     setIsTargetSourcesMenuOpen(false);
@@ -1817,6 +1959,8 @@ const App: React.FC = () => {
     setSelectedAircraft(null);
     setSelectedVessel(null);
     setSelectedIss(false);
+    setPointB(null);
+    setIsPointBPlacementArmed(false);
     iss.setFollowing(false);
     setHoveredSatelliteId(null);
     setIsFullscreen(false);
@@ -2005,6 +2149,7 @@ const App: React.FC = () => {
     selectedPosition,
     pointB,
     linkMode,
+    activeMeshTab,
     onSatelliteClick: handleSatelliteClick,
     onMoonSelectionChange: handleMoonSelectionChange,
     onSatelliteHover: handleSatelliteHover,
@@ -2364,6 +2509,17 @@ const App: React.FC = () => {
     && !selectedMoon
     && !selectedSatellite
     && !selectedIss;
+  const showMobilePointBMapControl = isMobile
+    && !isFullscreen
+    && hasMobileSelection
+    && satelliteScope !== 'LEO'
+    && LINK_MODE_REQUIRES_POINT_B.has(linkMode)
+    && !!activeAnalysisPoint;
+  const mobilePointBMapControlLabel = isPointBPlacementArmed
+    ? 'Tap map for B'
+    : pointB
+      ? 'Move Terminal B'
+      : 'Set Terminal B';
   const splashReady = !loading && hasSplashMinimumElapsed && isInitialGlobeReady;
   const splashMessage = loading
     ? 'Loading satellite data and coverage...'
@@ -3018,37 +3174,60 @@ const App: React.FC = () => {
                   className="pointer-events-none absolute inset-x-0 bottom-0 z-[35] px-2.5"
                   style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 0.5rem)' }}
                 >
-                  <div className="pointer-events-auto mx-auto max-w-3xl overflow-hidden rounded-[30px] border border-white/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(241,245,249,0.94))] shadow-[0_26px_70px_-42px_rgba(15,23,42,0.82)] backdrop-blur-xl dark:border-slate-700/80 dark:bg-[linear-gradient(180deg,rgba(15,23,42,0.96),rgba(30,41,59,0.9))]">
-                    <div className="p-2">
-                      <MobileAnalysisSummary
-                        selectedSatellite={selectedSatellite}
-                        selectedMoon={selectedMoon}
-                        autoSelectedLEOSatellite={resolvedAutoLEO}
-                        autoSelectedGEOSatellite={activeGeoSatellite}
-                        selectedPoint={analyzisPosition || selectedPosition}
-                        selectedAircraft={selectedAircraft}
-                        selectedGateway={selectedGateway}
-                        inspectedSNP={inspectedSNP}
-                        selectedVessel={selectedVessel}
-                        compact
-                        metrics={mobileMetrics}
-                        leoServiceViewModel={leoServiceViewModel}
-                        satelliteScope={satelliteScope}
-                        geoPointStatus={geoPointStatus}
-                        satellites={satellites}
-                        snpConnectedSatellites={snpConnectedSatellites}
-                      />
-                    </div>
-                    <div className="border-t border-slate-200/80 px-2.5 pb-2 pt-1.5 dark:border-slate-700/80">
+                  <div className="mx-auto flex max-w-3xl flex-col items-end gap-2">
+                    {showMobilePointBMapControl && (
                       <button
                         type="button"
-                        onClick={() => setIsMobileAnalysisPanelOpen(true)}
-                        className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-[18px] bg-slate-950 px-4 text-[15px] font-semibold text-white shadow-sm transition-colors hover:bg-slate-800 dark:bg-white dark:text-slate-950 dark:hover:bg-slate-200"
-                        aria-label="Open detailed analysis"
+                        onClick={handleTogglePointBPlacement}
+                        aria-pressed={isPointBPlacementArmed}
+                        aria-label={pointB ? 'Move Terminal B on the map' : 'Set Terminal B on the map'}
+                        className={[
+                          'pointer-events-auto inline-flex h-10 items-center gap-2 rounded-full border px-4 text-sm font-semibold shadow-[0_18px_42px_-24px_rgba(15,23,42,0.85)] backdrop-blur-xl transition-colors',
+                          isPointBPlacementArmed
+                            ? 'border-amber-300/80 bg-amber-400 text-slate-950 hover:bg-amber-300 dark:border-amber-300/80 dark:bg-amber-400 dark:text-slate-950'
+                            : 'border-white/70 bg-slate-950/90 text-white hover:bg-slate-800 dark:border-slate-700/80 dark:bg-white/90 dark:text-slate-950 dark:hover:bg-slate-200',
+                        ].join(' ')}
                       >
-                        <span>Detailed view</span>
-                        <ChevronUp className="h-4 w-4" />
+                        <MapPin className="h-4 w-4" />
+                        <span>{mobilePointBMapControlLabel}</span>
                       </button>
+                    )}
+
+                    <div className="pointer-events-auto w-full overflow-hidden rounded-[30px] border border-white/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(241,245,249,0.94))] shadow-[0_26px_70px_-42px_rgba(15,23,42,0.82)] backdrop-blur-xl dark:border-slate-700/80 dark:bg-[linear-gradient(180deg,rgba(15,23,42,0.96),rgba(30,41,59,0.9))]">
+                      <div className="p-2">
+                        <MobileAnalysisSummary
+                          selectedSatellite={selectedSatellite}
+                          selectedMoon={selectedMoon}
+                          autoSelectedLEOSatellite={resolvedAutoLEO}
+                          autoSelectedGEOSatellite={activeGeoSatellite}
+                          selectedPoint={analyzisPosition || selectedPosition}
+                          selectedAircraft={selectedAircraft}
+                          selectedGateway={selectedGateway}
+                          inspectedSNP={inspectedSNP}
+                          selectedVessel={selectedVessel}
+                          compact
+                          metrics={mobileMetrics}
+                          leoServiceViewModel={leoServiceViewModel}
+                          satelliteScope={satelliteScope}
+                          geoPointStatus={geoPointStatus}
+                          satellites={satellites}
+                          snpConnectedSatellites={snpConnectedSatellites}
+                          linkMode={linkMode}
+                          onLinkModeChange={setLinkMode}
+                          pointB={pointB}
+                        />
+                      </div>
+                      <div className="border-t border-slate-200/80 px-2.5 pb-2 pt-1.5 dark:border-slate-700/80">
+                        <button
+                          type="button"
+                          onClick={() => setIsMobileAnalysisPanelOpen(true)}
+                          className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-[18px] bg-slate-950 px-4 text-[15px] font-semibold text-white shadow-sm transition-colors hover:bg-slate-800 dark:bg-white dark:text-slate-950 dark:hover:bg-slate-200"
+                          aria-label="Open detailed analysis"
+                        >
+                          <span>Detailed view</span>
+                          <ChevronUp className="h-4 w-4" />
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>

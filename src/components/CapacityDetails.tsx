@@ -864,12 +864,18 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
 
   const mobileGeoMetrics = useMemo(() => {
     if (!resolvedGEOConnectivity || !geoGeometry || !geoEffectivePerformance) return null;
+    const isMeshMode = linkMode === 'MESH' || linkMode === 'POINT_TO_POINT';
+    const isStarForward = linkMode === 'STAR_FORWARD';
+    const isStarReturn = linkMode === 'STAR_RETURN';
+
     return {
-      rtt: geoGeometry.rttTotalMs,
-      downlinkGbps: geoEffectivePerformance.downlinkGbps,
-      uplinkGbps: geoEffectivePerformance.uplinkGbps,
+      rtt: isMeshMode
+        ? (meshMetrics?.rttMs ?? null)
+        : (geoGeometry.oneWayRadioMs ?? null),
+      downlinkGbps: isStarReturn ? null : geoEffectivePerformance.downlinkGbps,
+      uplinkGbps: isStarForward ? null : geoEffectivePerformance.uplinkGbps,
     };
-  }, [resolvedGEOConnectivity, geoGeometry, geoEffectivePerformance]);
+  }, [resolvedGEOConnectivity, geoGeometry, geoEffectivePerformance, linkMode, meshMetrics]);
 
   const activeEstimatedPerformanceScope = satelliteScope === 'ALL' ? activeConnTab : satelliteScope;
   const isLeoPerformanceDiagnosticOnly = leoServiceViewModel?.decisionDriver === 'REGULATORY'
@@ -976,8 +982,8 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
               rttMaxMs={latencyScaleMs}
               rttLabel={latencyLabel}
               stabilityTooltip={geoStabilityTooltip}
-              downlinkLabel={isStarForward ? 'Forward link throughput' : 'Downlink throughput'}
-              uplinkLabel={isStarReturn ? 'Return link throughput' : 'Uplink throughput'}
+              downlinkLabel={isMeshMode ? 'A→B throughput' : isStarForward ? 'Forward link throughput' : 'Downlink throughput'}
+              uplinkLabel={isMeshMode ? 'B→A throughput' : isStarReturn ? 'Return link throughput' : 'Uplink throughput'}
             />
           ) : (
             <PerformancePanel
