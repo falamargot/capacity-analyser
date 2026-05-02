@@ -782,10 +782,10 @@ const DualSegmentPanel = memo<DualSegmentPanelProps>(({
   }, [baseRfContext]);
 
   useEffect(() => {
-    setActiveMeshTab('forward');
-  // reset only when the link mode changes, not on every render
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [linkMode]);
+    // When controlled, the parent (GEOConnectivitySection) owns the reset on linkMode change.
+    if (directionControlled) return;
+    setInternalTab('forward');
+  }, [linkMode, directionControlled]);
 
   if (incompatible) {
     return (

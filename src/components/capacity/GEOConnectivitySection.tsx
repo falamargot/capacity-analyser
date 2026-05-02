@@ -18,7 +18,7 @@ import LinkModeSelector from './LinkModeSelector';
 interface LatencyBreakdownCardProps {
   accentColor: string;
   summary: string;
-  title?: string;
+  title?: ReactNode;
   tooltip?: string;
   children: ReactNode;
 }
@@ -102,6 +102,14 @@ const displayableBeamOrCoverageName = (
     : coverageName ?? fallback;
 };
 
+const DirectionPill = ({ dir, aggregate = false }: { dir: string; aggregate?: boolean }) => (
+  <span className={`ml-1.5 inline-flex shrink-0 items-center rounded-full border px-1.5 py-0.5 text-[9px] font-bold tracking-wide ${
+    aggregate
+      ? 'border-slate-200 bg-slate-50 text-slate-400 dark:border-slate-700 dark:bg-slate-800/50 dark:text-slate-500'
+      : 'border-blue-200 bg-blue-50 text-blue-500 dark:border-blue-800/60 dark:bg-blue-950/40 dark:text-blue-400'
+  }`}>{dir}</span>
+);
+
 interface LinkBudgetSummaryCardProps {
   linkMode: LinkMode;
   result: DualSegmentResult | null;
@@ -163,8 +171,11 @@ const LinkBudgetSummaryCard = ({
               <span className={`rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${tone.className}`}>
                 {tone.label}
               </span>
-              <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">
+              <span className="inline-flex items-center text-[10px] font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">
                 Link Budget
+                {activeMeshTab !== undefined && (
+                  <DirectionPill dir={activeMeshTab === 'reverse' ? 'B→A' : 'A→B'} />
+                )}
               </span>
             </div>
             <h4 className="mt-1.5 truncate text-sm font-semibold text-slate-950 dark:text-slate-50">
@@ -520,6 +531,7 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [controlledMeshTab]);
   const activeMeshTab = internalMeshTab;
+  const meshDirectionLabel = activeMeshTab === 'reverse' ? 'B→A' : 'A→B';
   const setActiveMeshTab = (tab: 'forward' | 'reverse') => {
     setInternalMeshTab(tab);
     onActiveMeshTabChange?.(tab);
@@ -601,7 +613,7 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
   const estimatedPerformanceSection = (
     <CollapsibleSection
       storageKey="geo-performance"
-      title={<>Estimated Performance<SectionTooltip content="Predicted GEO link throughput derived from the RF link budget. STAR modes show one active direction only. MESH/P2P shows RTT for the full round-trip (4 hops, no gateway)." /></>}
+      title={<>Estimated Performance{isMeshOrP2P && <DirectionPill dir="A↔B" aggregate />}<SectionTooltip content="Predicted GEO link throughput derived from the RF link budget. STAR modes show one active direction only. MESH/P2P shows RTT for the full round-trip (4 hops, no gateway)." /></>}
       accentColor="#2563eb"
       defaultOpen={true}
       collapsible={false}
@@ -934,6 +946,11 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
         const bDownlinks = candidateCoveragesB.filter(c => !c.isUplink);
         return (
           <div className="mb-4">
+            {isMeshOrP2P && (
+              <div className="mb-1.5 flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">
+                Coverage<DirectionPill dir={meshDirectionLabel} />
+              </div>
+            )}
             <CoverageSelector
               candidateCoverages={candidateCoverages}
               bestCoverage={bestCoverage}
@@ -980,7 +997,7 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
           storageKey="geo-radio-path"
           title={
             isMeshOrP2P
-              ? <> Radio Path <SectionTooltip content="Terminal-to-terminal signal route: Point A → GEO Satellite → Point B. No gateway in the RF path. Shows elevation, slant range and propagation delay for each hop." /></>
+              ? <> Radio Path <DirectionPill dir={meshDirectionLabel} /><SectionTooltip content="Terminal-to-terminal signal route: Point A → GEO Satellite → Point B. No gateway in the RF path. Shows elevation, slant range and propagation delay for each hop." /></>
               : <> Radio Path <SectionTooltip content="Active one-way STAR signal route. Forward mode is Gateway → GEO Satellite → User; Return mode is User → GEO Satellite → Gateway. RTT details are shown in the latency breakdown below." /></>
           }
           accentColor="#2563eb"
@@ -1116,6 +1133,7 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
           // ── MESH/P2P: 4-hop propagation, no gateway overhead ─────────────
           <LatencyBreakdownCard
             accentColor="#2563eb"
+            title={<>Latency breakdown<DirectionPill dir="A↔B" aggregate /></>}
             tooltip="Round-trip propagation for a MESH/P2P link: Point A → Satellite → Point B → Satellite → Point A (4 hops). No gateway in the path — overhead is modem processing only (2 × 20 ms)."
             summary={meshGeometry ? `Estimated RTT: ${meshGeometry.rttTotalMs.toFixed(1)} ms` : 'Place Point B to compute MESH latency'}
           >
