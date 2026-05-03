@@ -103,7 +103,7 @@ const displayableBeamOrCoverageName = (
 };
 
 const DirectionPill = ({ dir, aggregate = false }: { dir: string; aggregate?: boolean }) => (
-  <span className={`ml-1.5 inline-flex shrink-0 items-center rounded-full border px-1.5 py-0.5 text-[9px] font-bold tracking-wide ${
+  <span className={`ml-1.5 inline-flex shrink-0 items-center rounded-full border px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide ${
     aggregate
       ? 'border-slate-200 bg-slate-50 text-slate-400 dark:border-slate-700 dark:bg-slate-800/50 dark:text-slate-500'
       : 'border-blue-200 bg-blue-50 text-blue-500 dark:border-blue-800/60 dark:bg-blue-950/40 dark:text-blue-400'
@@ -146,6 +146,13 @@ const LinkBudgetSummaryCard = ({
     displaySegment?.candidate.coverageName,
     '--',
   );
+  const linkBudgetDirectionLabel = linkMode === 'STAR_FORWARD'
+    ? 'Forward'
+    : linkMode === 'STAR_RETURN'
+      ? 'Return'
+      : activeMeshTab === 'reverse'
+        ? 'B→A'
+        : 'A→B';
 
   return (
     <section
@@ -173,9 +180,7 @@ const LinkBudgetSummaryCard = ({
               </span>
               <span className="inline-flex items-center text-[10px] font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">
                 Link Budget
-                {activeMeshTab !== undefined && (
-                  <DirectionPill dir={activeMeshTab === 'reverse' ? 'B→A' : 'A→B'} />
-                )}
+                <DirectionPill dir={linkBudgetDirectionLabel} />
               </span>
             </div>
             <h4 className="mt-1.5 truncate text-sm font-semibold text-slate-950 dark:text-slate-50">
@@ -467,6 +472,8 @@ interface GEOConnectivitySectionProps {
   uplinkCoverageAtB?: CandidateCoverage | null;
   /** Best downlink coverage at Point B (auto-selected). */
   downlinkCoverageAtB?: CandidateCoverage | null;
+  onSelectUplinkCoverageB?: (coverage: CandidateCoverage) => void;
+  onSelectDownlinkCoverageB?: (coverage: CandidateCoverage) => void;
   /** When provided, only satellites whose ID is in this set appear in the satellite dropdown. */
   validSatelliteIds?: ReadonlySet<string>;
 }
@@ -509,6 +516,8 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
   candidateCoveragesB = [],
   uplinkCoverageAtB = null,
   downlinkCoverageAtB = null,
+  onSelectUplinkCoverageB,
+  onSelectDownlinkCoverageB,
   activeMeshTab: controlledMeshTab,
   onActiveMeshTabChange,
   validSatelliteIds,
@@ -532,6 +541,7 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
   }, [controlledMeshTab]);
   const activeMeshTab = internalMeshTab;
   const meshDirectionLabel = activeMeshTab === 'reverse' ? 'B→A' : 'A→B';
+  const starDirectionLabel = isStarReturn ? 'Return' : 'Forward';
   const setActiveMeshTab = (tab: 'forward' | 'reverse') => {
     setInternalMeshTab(tab);
     onActiveMeshTabChange?.(tab);
@@ -610,10 +620,14 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
     };
   }, [isMeshOrP2P, dualSegmentResult]);
 
+  const estimatedPerformanceDirectionLabel = isMeshOrP2P
+    ? 'A↔B'
+    : starDirectionLabel;
+
   const estimatedPerformanceSection = (
     <CollapsibleSection
       storageKey="geo-performance"
-      title={<>Estimated Performance{isMeshOrP2P && <DirectionPill dir="A↔B" aggregate />}<SectionTooltip content="Predicted GEO link throughput derived from the RF link budget. STAR modes show one active direction only. MESH/P2P shows RTT for the full round-trip (4 hops, no gateway)." /></>}
+      title={<>Estimated Performance<DirectionPill dir={estimatedPerformanceDirectionLabel} aggregate={isMeshOrP2P} /><SectionTooltip content="Predicted GEO link throughput derived from the RF link budget. STAR modes show one active direction only. MESH/P2P shows RTT for the full round-trip (4 hops, no gateway)." /></>}
       accentColor="#2563eb"
       defaultOpen={true}
       collapsible={false}
@@ -732,6 +746,27 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
     const latency = latencyMs != null ? `${latencyMs.toFixed(1)} ms` : '--';
     return `${distance} (${latency})`;
   };
+
+  const radioPathSummary = (() => {
+    if (isMeshOrP2P) {
+      if (!meshGeometry) return 'Place Point B to compute the MESH radio path.';
+      const isForward = activeMeshTab === 'forward';
+      const oneWayKm = isForward ? meshGeometry.fwOneWayKm : meshGeometry.rvOneWayKm;
+      const oneWayMs = isForward ? meshGeometry.fwOneWayMs : meshGeometry.rvOneWayMs;
+      return `One-way ${meshDirectionLabel} ${oneWayKm.toFixed(0)} km (${oneWayMs.toFixed(1)} ms)`;
+    }
+
+    if (!resolvedGEOConnectivity || !geoGeometry) return 'No GEO visibility or beam coverage.';
+
+    const oneWayDistanceKm = geoGeometry.satelliteToGateway.slantRangeKm != null
+      ? geoGeometry.userToSatellite.slantRangeKm + geoGeometry.satelliteToGateway.slantRangeKm
+      : null;
+    const oneWayLabel = oneWayDistanceKm != null && geoGeometry.oneWayRadioMs != null
+      ? `${oneWayDistanceKm.toFixed(0)} km (${geoGeometry.oneWayRadioMs.toFixed(1)} ms)`
+      : '--';
+
+    return `${isStarReturn ? 'Return' : 'Forward'} one-way ${oneWayLabel}`;
+  })();
 
   const linkBudgetCoverageLabels = useMemo(() => {
     if (!dualSegmentResult) return undefined;
@@ -959,8 +994,8 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
               onSelectCoverage={onSelectCoverage}
               selectedUplinkCoverage={isMeshOrP2P ? (isReverse ? uplinkCoverageAtB   : selectedUplinkCoverage)   : selectedUplinkCoverage}
               selectedDownlinkCoverage={isMeshOrP2P ? (isReverse ? selectedDownlinkCoverage : downlinkCoverageAtB) : selectedDownlinkCoverage}
-              onSelectUplinkCoverage={isMeshOrP2P ? (isReverse ? undefined : onSelectUplinkCoverage) : onSelectUplinkCoverage}
-              onSelectDownlinkCoverage={isMeshOrP2P ? (isReverse ? onSelectDownlinkCoverage : undefined) : onSelectDownlinkCoverage}
+              onSelectUplinkCoverage={isMeshOrP2P ? (isReverse ? onSelectUplinkCoverageB : onSelectUplinkCoverage) : onSelectUplinkCoverage}
+              onSelectDownlinkCoverage={isMeshOrP2P ? (isReverse ? onSelectDownlinkCoverage : onSelectDownlinkCoverageB) : onSelectDownlinkCoverage}
               uplinkCandidatesOverride={isMeshOrP2P ? (isReverse ? bUplinks   : undefined) : undefined}
               downlinkCandidatesOverride={isMeshOrP2P ? (isReverse ? undefined : bDownlinks) : undefined}
               validSatelliteIds={validSatelliteIds}
@@ -998,8 +1033,9 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
           title={
             isMeshOrP2P
               ? <> Radio Path <DirectionPill dir={meshDirectionLabel} /><SectionTooltip content="Terminal-to-terminal signal route: Point A → GEO Satellite → Point B. No gateway in the RF path. Shows elevation, slant range and propagation delay for each hop." /></>
-              : <> Radio Path <SectionTooltip content="Active one-way STAR signal route. Forward mode is Gateway → GEO Satellite → User; Return mode is User → GEO Satellite → Gateway. RTT details are shown in the latency breakdown below." /></>
+              : <> Radio Path <DirectionPill dir={starDirectionLabel} /><SectionTooltip content="Active one-way STAR signal route. Forward mode is Gateway → GEO Satellite → User; Return mode is User → GEO Satellite → Gateway. RTT details are shown in the latency breakdown below." /></>
           }
+          subtitle={radioPathSummary}
           accentColor="#2563eb"
           defaultOpen={false}
         >
@@ -1173,6 +1209,7 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
           // ── STAR: 4-hop via gateway ───────────────────────────────────────
           <LatencyBreakdownCard
             accentColor="#2563eb"
+            title={<>Latency breakdown<DirectionPill dir={starDirectionLabel} /></>}
             tooltip="Breakdown of the full STAR round-trip delay. Forward mode sends Gateway → Satellite → User, then accounts for the return path. Return mode reverses that order. Network overhead is added after RF propagation."
             summary={geoGeometry ? `Estimated RTT total: ${geoGeometry.rttTotalMs?.toFixed(1) ?? '--'} ms` : 'No GEO latency breakdown available'}
           >

@@ -373,6 +373,8 @@ const App: React.FC = () => {
   const pointBIsUserDefined = pointB !== null;
   const [selectedUplinkKey, setSelectedUplinkKey] = useState<string | null>(null);
   const [selectedDownlinkKey, setSelectedDownlinkKey] = useState<string | null>(null);
+  const [selectedUplinkKeyB, setSelectedUplinkKeyB] = useState<string | null>(null);
+  const [selectedDownlinkKeyB, setSelectedDownlinkKeyB] = useState<string | null>(null);
 
   const selectedSatelliteId = useMemo(() => {
     if (selectedSelection.type === 'satellite') return selectedSelection.satelliteId;
@@ -861,7 +863,14 @@ const App: React.FC = () => {
   useEffect(() => {
     setSelectedUplinkKey(null);
     setSelectedDownlinkKey(null);
+    setSelectedUplinkKeyB(null);
+    setSelectedDownlinkKeyB(null);
   }, [targetSelectionResetKey]);
+
+  useEffect(() => {
+    setSelectedUplinkKeyB(null);
+    setSelectedDownlinkKeyB(null);
+  }, [linkMode, pointB]);
 
   // Invalidate stale keys when the candidate list changes.
   useEffect(() => {
@@ -875,6 +884,18 @@ const App: React.FC = () => {
       if (!c) setSelectedDownlinkKey(null);
     }
   }, [eligibleCandidateCoverages, selectedSelection.type, selectedUplinkKey, selectedDownlinkKey]);
+
+  useEffect(() => {
+    if (selectedSelection.type !== 'target') return;
+    if (selectedUplinkKeyB) {
+      const c = candidateCoveragesB.find(cc => getCandidateCoverageKey(cc) === selectedUplinkKeyB);
+      if (!c) setSelectedUplinkKeyB(null);
+    }
+    if (selectedDownlinkKeyB) {
+      const c = candidateCoveragesB.find(cc => getCandidateCoverageKey(cc) === selectedDownlinkKeyB);
+      if (!c) setSelectedDownlinkKeyB(null);
+    }
+  }, [candidateCoveragesB, selectedSelection.type, selectedUplinkKeyB, selectedDownlinkKeyB]);
 
   const topologyDefaultSelection = useMemo(() => {
     if (selectedSelection.type !== 'target') return null;
@@ -983,6 +1004,16 @@ const App: React.FC = () => {
     return defaultDownlinkCoverage;
   }, [eligibleCandidateCoverages, defaultDownlinkCoverage, selectedSelection.type, selectedDownlinkKey]);
 
+  const selectedUplinkCoverageB = useMemo(() => {
+    if (selectedSelection.type !== 'target' || !selectedUplinkKeyB) return null;
+    return candidateCoveragesB.find(c => getCandidateCoverageKey(c) === selectedUplinkKeyB) ?? null;
+  }, [candidateCoveragesB, selectedSelection.type, selectedUplinkKeyB]);
+
+  const selectedDownlinkCoverageB = useMemo(() => {
+    if (selectedSelection.type !== 'target' || !selectedDownlinkKeyB) return null;
+    return candidateCoveragesB.find(c => getCandidateCoverageKey(c) === selectedDownlinkKeyB) ?? null;
+  }, [candidateCoveragesB, selectedSelection.type, selectedDownlinkKeyB]);
+
   const selectedCoveragePair = useMemo(() => {
     if (selectedSelection.type !== 'target') {
       return { uplink: null, downlink: null };
@@ -1050,12 +1081,14 @@ const App: React.FC = () => {
   const activeSatId = selectedDownlinkCoverage?.satelliteId ?? selectedUplinkCoverage?.satelliteId ?? null;
   const uplinkAtBForGlobe = useMemo(() => {
     if (!LINK_MODE_REQUIRES_POINT_B.has(linkMode) || !activeSatId) return null;
+    if (selectedUplinkCoverageB?.satelliteId === activeSatId) return selectedUplinkCoverageB;
     return candidateCoveragesB.find(c => c.isUplink && !c.isSynthesized && c.satelliteId === activeSatId) ?? null;
-  }, [linkMode, activeSatId, candidateCoveragesB]);
+  }, [linkMode, activeSatId, candidateCoveragesB, selectedUplinkCoverageB]);
   const downlinkAtBForGlobe = useMemo(() => {
     if (!LINK_MODE_REQUIRES_POINT_B.has(linkMode) || !activeSatId) return null;
+    if (selectedDownlinkCoverageB?.satelliteId === activeSatId) return selectedDownlinkCoverageB;
     return candidateCoveragesB.find(c => !c.isUplink && !c.isSynthesized && c.satelliteId === activeSatId) ?? null;
-  }, [linkMode, activeSatId, candidateCoveragesB]);
+  }, [linkMode, activeSatId, candidateCoveragesB, selectedDownlinkCoverageB]);
 
   const globeUplinkCoverage = useMemo(() => {
     if (linkMode === 'STAR_FORWARD') return null;
@@ -1872,6 +1905,14 @@ const App: React.FC = () => {
     handleSelectTargetCoverageById(getCandidateCoverageKey(coverage));
   }, [handleSelectTargetCoverageById]);
 
+  const handleSelectUplinkCoverageB = useCallback((coverage: CandidateCoverage) => {
+    setSelectedUplinkKeyB(getCandidateCoverageKey(coverage));
+  }, []);
+
+  const handleSelectDownlinkCoverageB = useCallback((coverage: CandidateCoverage) => {
+    setSelectedDownlinkKeyB(getCandidateCoverageKey(coverage));
+  }, []);
+
   const handleSelectTargetCoverage = useCallback((coverage: CandidateCoverage) => {
     handleSelectTargetCoverageById(getCandidateCoverageKey(coverage));
   }, [handleSelectTargetCoverageById]);
@@ -2557,7 +2598,7 @@ const App: React.FC = () => {
     <div className="min-h-screen bg-white dark:bg-slate-950 transition-colors duration-300">
       {!isPhone && (
         <header className="bg-white dark:bg-slate-900 shadow-sm transition-colors duration-300">
-          <div className={`max-w-[1920px] mx-auto px-2 py-0 sm:px-4 lg:px-8 ${useCompactDesktopHeader ? 'md:py-3' : 'md:py-4'}`}>
+          <div className={`max-w-[1920px] mx-auto px-2 py-0 sm:px-4 lg:px-8 ${useCompactDesktopHeader ? 'md:py-2' : 'md:py-3'}`}>
             {isMobile ? (
               <div className="flex items-center justify-between">
                 <div className="flex items-center min-w-0">
@@ -2592,7 +2633,7 @@ const App: React.FC = () => {
 
               <div className="min-w-0 flex-1">
                 <div className={`mx-auto w-full ${useCompactDesktopHeader ? 'max-w-[760px]' : 'max-w-[860px]'}`}>
-                  <div className="relative flex items-center rounded-[26px] border border-slate-200/80 bg-[linear-gradient(135deg,rgba(255,255,255,0.98),rgba(248,250,252,0.92))] p-1.5 shadow-[0_24px_55px_-34px_rgba(15,23,42,0.42)] ring-1 ring-white/60 dark:border-slate-700 dark:bg-[linear-gradient(135deg,rgba(15,23,42,0.98),rgba(30,41,59,0.92))] dark:ring-slate-700/60">
+                  <div className={`relative flex items-center rounded-[22px] border border-slate-200/80 bg-[linear-gradient(135deg,rgba(255,255,255,0.98),rgba(248,250,252,0.92))] shadow-[0_24px_55px_-34px_rgba(15,23,42,0.42)] ring-1 ring-white/60 dark:border-slate-700 dark:bg-[linear-gradient(135deg,rgba(15,23,42,0.98),rgba(30,41,59,0.92))] dark:ring-slate-700/60 ${useCompactDesktopHeader ? 'p-0.5' : 'p-1'}`}>
                     <div className="relative min-w-0 flex-1">
                       <Search className={`pointer-events-none absolute top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 ${useCompactDesktopHeader ? 'left-4 h-4 w-4' : 'left-5 h-5 w-5'}`} />
                       <input
@@ -2602,11 +2643,11 @@ const App: React.FC = () => {
                         onFocus={handleDesktopTargetSearchFocus}
                         onChange={(event) => handleDesktopTargetSearchChange(event.target.value)}
                         placeholder="Search target or location"
-                        className={`w-full rounded-[20px] bg-transparent pr-5 font-medium text-slate-900 outline-none placeholder:text-slate-400 dark:text-slate-50 dark:placeholder:text-slate-500 ${useCompactDesktopHeader ? 'h-12 pl-12 text-[15px]' : 'h-14 pl-14 text-base'}`}
+                        className={`w-full rounded-[18px] bg-transparent pr-5 font-medium text-slate-900 outline-none placeholder:text-slate-400 dark:text-slate-50 dark:placeholder:text-slate-500 ${useCompactDesktopHeader ? 'h-8 pl-12 text-[14px]' : 'h-10 pl-14 text-[15px]'}`}
                       />
                     </div>
 
-                    <div className={`mx-1 w-px shrink-0 bg-slate-200 dark:bg-slate-700 ${useCompactDesktopHeader ? 'h-8' : 'h-9'}`} />
+                    <div className={`mx-1 w-px shrink-0 bg-slate-200 dark:bg-slate-700 ${useCompactDesktopHeader ? 'h-6' : 'h-7'}`} />
 
                     <div className="relative shrink-0" ref={targetSourcesMenuRef}>
                       <button
@@ -2616,7 +2657,7 @@ const App: React.FC = () => {
                           isTargetSourcesMenuOpen
                             ? 'border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-500/30 dark:bg-blue-500/15 dark:text-blue-200'
                             : 'border-white/70 bg-white/88 text-slate-700 hover:bg-white dark:border-slate-700 dark:bg-slate-800/88 dark:text-slate-200 dark:hover:bg-slate-800'
-                        } ${useCompactDesktopHeader ? 'h-10 w-10' : 'h-12 w-12'}`}
+                        } ${useCompactDesktopHeader ? 'h-8 w-8 rounded-2xl' : 'h-10 w-10'}`}
                         aria-expanded={isTargetSourcesMenuOpen}
                         aria-label="Open target selection"
                         title="Open target selection"
@@ -2913,7 +2954,7 @@ const App: React.FC = () => {
               </div>
 
               <div className={`flex shrink-0 items-center ${useCompactDesktopHeader ? 'gap-2' : 'gap-3'}`}>
-                <div className={`flex items-center rounded-lg border border-gray-200 bg-gray-50 dark:border-slate-700 dark:bg-slate-800 ${useCompactDesktopHeader ? 'gap-1.5 p-0.5' : 'gap-2 p-1'}`}>
+                <div className={`flex items-center rounded-lg border border-gray-200 bg-gray-50 dark:border-slate-700 dark:bg-slate-800 ${useCompactDesktopHeader ? 'gap-1 p-0.5' : 'gap-2 p-1'}`}>
                   <SatelliteScopeFilter
                     currentScope={satelliteScope}
                     onScopeChange={handleSatelliteScopeChange}
@@ -2927,7 +2968,7 @@ const App: React.FC = () => {
                   <button
                     type="button"
                     onClick={handleToggleHelpMenu}
-                    className={`inline-flex items-center justify-center rounded-xl border border-gray-200 bg-gray-50 text-slate-600 transition-colors hover:bg-white hover:text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700 dark:hover:text-slate-100 ${useCompactDesktopHeader ? 'h-10 w-10' : 'h-11 w-11'}`}
+                    className={`inline-flex items-center justify-center rounded-xl border border-gray-200 bg-gray-50 text-slate-600 transition-colors hover:bg-white hover:text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700 dark:hover:text-slate-100 ${useCompactDesktopHeader ? 'h-9 w-9' : 'h-10 w-10'}`}
                     aria-label="Open keyboard shortcuts help"
                     aria-expanded={isHelpMenuOpen}
                     title="Keyboard shortcuts"
@@ -3141,6 +3182,10 @@ const App: React.FC = () => {
                     selectedDownlinkCoverage={selectedDownlinkCoverage}
                     onSelectUplinkCoverage={handleSelectUplinkCoverage}
                     onSelectDownlinkCoverage={handleSelectDownlinkCoverage}
+                    selectedUplinkCoverageB={selectedUplinkCoverageB}
+                    selectedDownlinkCoverageB={selectedDownlinkCoverageB}
+                    onSelectUplinkCoverageB={handleSelectUplinkCoverageB}
+                    onSelectDownlinkCoverageB={handleSelectDownlinkCoverageB}
                     selectedGeoMission={selectedGeoMission}
                     selectedGeoCoverageName={selectedGeoCoverageName}
                     selectedGeoBeamId={selectedGeoBeamId}
@@ -3357,7 +3402,7 @@ const App: React.FC = () => {
       ) : (
         <main className="px-2 py-4 sm:px-3 lg:px-4">
           <div
-            className="flex h-[calc(100vh-8rem)] flex-row"
+            className="flex h-[calc(100vh-7rem)] flex-row"
             style={{
               gap: desktopLayoutGap,
               ['--desktop-sidebar-width' as string]: `${desktopSidebarWidth}px`,
@@ -3462,6 +3507,10 @@ const App: React.FC = () => {
                         selectedDownlinkCoverage={selectedDownlinkCoverage}
                         onSelectUplinkCoverage={handleSelectUplinkCoverage}
                         onSelectDownlinkCoverage={handleSelectDownlinkCoverage}
+                        selectedUplinkCoverageB={selectedUplinkCoverageB}
+                        selectedDownlinkCoverageB={selectedDownlinkCoverageB}
+                        onSelectUplinkCoverageB={handleSelectUplinkCoverageB}
+                        onSelectDownlinkCoverageB={handleSelectDownlinkCoverageB}
                         selectedGeoMission={selectedGeoMission}
                         selectedGeoCoverageName={selectedGeoCoverageName}
                         selectedGeoBeamId={selectedGeoBeamId}

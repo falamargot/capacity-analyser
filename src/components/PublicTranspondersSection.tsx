@@ -1,6 +1,6 @@
-import { AlertTriangle, Radio, SlidersHorizontal } from 'lucide-react';
+import { AlertTriangle, ChevronDown, Radio, SlidersHorizontal } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
-import { loadPublicFrequencyPlanByIds, loadPublicFrequencyPlanRawCount } from '../services/frequencyPlan/frequencyPlanService';
+import { loadPublicFrequencyPlanByIds } from '../services/frequencyPlan/frequencyPlanService';
 import {
   getOverallConfidence,
   getTransponderBand,
@@ -42,6 +42,11 @@ const formatMHz = (value?: number): string => {
 const formatSymbolRate = (value?: number): string | null => (
   value === undefined ? null : `SR ${value.toLocaleString()}`
 );
+
+const getTransponderDisplayTitle = (item: PublicTransponder): string => {
+  const polarization = item.downlink.polarization ?? 'UNKNOWN';
+  return `DL ${formatMHz(item.downlink.frequencyMHz)} ${polarization}`;
+};
 
 const unknownLast = (value?: string | number | null): string => {
   if (value === undefined || value === null || value === '') return 'zzzzzz';
@@ -105,16 +110,16 @@ export const PublicTranspondersSection: React.FC<PublicTranspondersSectionProps>
   onSelectGeoBeam,
 }) => {
   const [transponders, setTransponders] = useState<PublicTransponder[]>([]);
-  const [rawObservationCount, setRawObservationCount] = useState<number | undefined>(undefined);
   const [isLoading, setIsLoading] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [bandFilter, setBandFilter] = useState<BandFilter>('ALL');
   const [polarizationFilter, setPolarizationFilter] = useState<PolarizationFilter>('ALL');
   const [confidenceFilter, setConfidenceFilter] = useState<ConfidenceFilter>('ALL');
   const [beamFilter, setBeamFilter] = useState('');
-  const [sortMode, setSortMode] = useState<SortMode>('BEAM');
-  const [groupMode, setGroupMode] = useState<GroupMode>('BEAM');
+  const [sortMode, setSortMode] = useState<SortMode>('FREQUENCY');
+  const [groupMode, setGroupMode] = useState<GroupMode>('BAND');
   const [compactMode, setCompactMode] = useState(false);
+  const [showFilters, setShowFilters] = useState(false);
   const [showInferredUplinks, setShowInferredUplinks] = useState(true);
   const [showOnlyWarnings, setShowOnlyWarnings] = useState(false);
 
@@ -122,7 +127,6 @@ export const PublicTranspondersSection: React.FC<PublicTranspondersSectionProps>
     let cancelled = false;
     setIsLoading(true);
     setSelectedId(null);
-    setRawObservationCount(undefined);
 
     const ids = {
       coverageFileId: satellite.coverageFileId,
@@ -130,21 +134,16 @@ export const PublicTranspondersSection: React.FC<PublicTranspondersSectionProps>
       id: satellite.id,
     };
 
-    Promise.all([
-      loadPublicFrequencyPlanByIds(ids),
-      loadPublicFrequencyPlanRawCount(ids),
-    ])
-      .then(([items, rawCount]) => {
+    loadPublicFrequencyPlanByIds(ids)
+      .then((items) => {
         if (!cancelled) {
           setTransponders(items);
-          setRawObservationCount(rawCount);
-          setCompactMode(items.length > 80);
+          setCompactMode(items.length > 12);
         }
       })
       .catch(() => {
         if (!cancelled) {
           setTransponders([]);
-          setRawObservationCount(undefined);
         }
       })
       .finally(() => {
@@ -156,29 +155,13 @@ export const PublicTranspondersSection: React.FC<PublicTranspondersSectionProps>
     };
   }, [satellite.coverageFileId, satellite.id, satellite.noradId]);
 
-  const summary = useMemo(() => ({
-    ...summarizeFrequencyPlan(transponders),
-    rawObservationCount,
-  }), [transponders, rawObservationCount]);
+  const summary = useMemo(() => summarizeFrequencyPlan(transponders), [transponders]);
 
   const qualitySummary = useMemo(() => {
-    const confidenceCounts = transponders.reduce<Record<PublicFrequencyConfidence, number>>((acc, item) => {
-      const confidence = getOverallConfidence(item);
-      acc[confidence] += 1;
-      return acc;
-    }, { HIGH: 0, MEDIUM: 0, LOW: 0, UNKNOWN: 0 });
-
     const warningRows = transponders.filter((item) => item.warnings.length > 0).length;
-    const unknownUplinkBeamRows = transponders.filter((item) => !item.uplink.beamName).length;
-    const publicDownlinkRows = transponders.filter((item) => item.downlink.source === 'LYNGSAT').length;
-    const inferredUplinkRows = transponders.filter((item) => item.uplink.source === 'INFERRED').length;
 
     return {
-      confidenceCounts,
       warningRows,
-      unknownUplinkBeamRows,
-      publicDownlinkRows,
-      inferredUplinkRows,
     };
   }, [transponders]);
 
@@ -260,6 +243,14 @@ export const PublicTranspondersSection: React.FC<PublicTranspondersSectionProps>
   };
 
   const selectedTransponder = transponders.find((item) => item.id === selectedId);
+  const activeFilterCount = [
+    bandFilter !== 'ALL',
+    polarizationFilter !== 'ALL',
+    confidenceFilter !== 'ALL',
+    beamFilter !== '',
+    !showInferredUplinks,
+    showOnlyWarnings,
+  ].filter(Boolean).length;
 
   return (
     <div className="mb-4">
@@ -275,12 +266,18 @@ export const PublicTranspondersSection: React.FC<PublicTranspondersSectionProps>
               {isLoading ? 'Loading public cache...' : `${summary.total} public transponders found`}
             </span>
           </div>
-          <div className="flex flex-wrap gap-1.5">
-            {(['Public', 'Inferred', 'Unknown'] as const).map((label) => (
-              <span key={label} className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${badgeClass(label)}`}>
-                {label}
+          <div className="flex flex-wrap items-center justify-end gap-1.5 text-[11px]">
+            <span className="rounded-full bg-white px-2 py-0.5 font-semibold text-gray-700 dark:bg-slate-900 dark:text-gray-200">
+              {summary.downlinkKnown} public DL
+            </span>
+            <span className={`rounded-full px-2 py-0.5 font-bold uppercase ${badgeClass('Inferred')}`}>
+              {summary.uplinkInferred} inferred UL
+            </span>
+            {qualitySummary.warningRows > 0 && (
+              <span className="rounded-full bg-amber-100 px-2 py-0.5 font-bold uppercase text-amber-700 dark:bg-amber-900/40 dark:text-amber-300">
+                {qualitySummary.warningRows} warnings
               </span>
-            ))}
+            )}
           </div>
         </div>
 
@@ -289,117 +286,86 @@ export const PublicTranspondersSection: React.FC<PublicTranspondersSectionProps>
           <span>Public frequency data from LyngSat. Uplink values are inferred and not operational.</span>
         </div>
 
-        <div className="mt-3 grid grid-cols-2 gap-2 text-xs sm:grid-cols-4">
-          <div className="rounded-md bg-white px-2 py-1.5 dark:bg-slate-900">
-            <div className="font-semibold text-gray-900 dark:text-gray-100">{summary.downlinkKnown}</div>
-            <div className="text-gray-500 dark:text-gray-400">Public DL rows</div>
-          </div>
-          <div className="rounded-md bg-white px-2 py-1.5 dark:bg-slate-900">
-            <div className="font-semibold text-gray-900 dark:text-gray-100">{summary.downlinkBeamKnown}/{summary.total}</div>
-            <div className="text-gray-500 dark:text-gray-400">Public DL beams</div>
-          </div>
-          <div className="rounded-md bg-white px-2 py-1.5 dark:bg-slate-900">
-            <div className="font-semibold text-gray-900 dark:text-gray-100">{summary.uplinkInferred}</div>
-            <div className="text-gray-500 dark:text-gray-400">Inferred UL rows</div>
-          </div>
-          <div className="rounded-md bg-white px-2 py-1.5 dark:bg-slate-900">
-            <div className="font-semibold text-gray-900 dark:text-gray-100">{qualitySummary.unknownUplinkBeamRows}</div>
-            <div className="text-gray-500 dark:text-gray-400">Unknown UL beam</div>
-          </div>
-        </div>
-
-        <div className="mt-2 grid grid-cols-2 gap-2 text-xs sm:grid-cols-4">
-          <div className="rounded-md bg-white px-2 py-1.5 dark:bg-slate-900">
-            <div className="font-semibold text-gray-900 dark:text-gray-100">{qualitySummary.confidenceCounts.HIGH}</div>
-            <div className="text-gray-500 dark:text-gray-400">High confidence</div>
-          </div>
-          <div className="rounded-md bg-white px-2 py-1.5 dark:bg-slate-900">
-            <div className="font-semibold text-gray-900 dark:text-gray-100">{qualitySummary.confidenceCounts.MEDIUM}</div>
-            <div className="text-gray-500 dark:text-gray-400">Medium confidence</div>
-          </div>
-          <div className="rounded-md bg-white px-2 py-1.5 dark:bg-slate-900">
-            <div className="font-semibold text-gray-900 dark:text-gray-100">{qualitySummary.confidenceCounts.LOW + qualitySummary.confidenceCounts.UNKNOWN}</div>
-            <div className="text-gray-500 dark:text-gray-400">Low/unknown</div>
-          </div>
-          <div className="rounded-md bg-white px-2 py-1.5 dark:bg-slate-900">
-            <div className="font-semibold text-gray-900 dark:text-gray-100">{qualitySummary.warningRows}</div>
-            <div className="text-gray-500 dark:text-gray-400">Rows with warnings</div>
-          </div>
-        </div>
-
-        {rawObservationCount !== undefined && (
-          <div className="mt-2 rounded-md bg-white px-2 py-1.5 text-xs dark:bg-slate-900">
-            <span className="font-semibold text-gray-900 dark:text-gray-100">{rawObservationCount}</span>
-            <span className="ml-1 text-gray-500 dark:text-gray-400">
-              raw observations → {summary.total} grouped transponders
-            </span>
-          </div>
-        )}
-
-        <div className="mt-3 rounded-lg border border-gray-200 bg-white p-3 dark:border-slate-700 dark:bg-slate-900">
-          <div className="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+        <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-gray-600 dark:text-gray-300">
+          <button
+            type="button"
+            onClick={() => setShowFilters((value) => !value)}
+            className="inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-white px-2 py-1 font-semibold text-gray-700 transition-colors hover:border-blue-200 hover:text-blue-700 dark:border-slate-700 dark:bg-slate-900 dark:text-gray-200 dark:hover:border-blue-800 dark:hover:text-blue-300"
+            aria-expanded={showFilters}
+          >
             <SlidersHorizontal className="h-3.5 w-3.5" />
             Filters
-          </div>
-          <div className="grid grid-cols-2 gap-2 text-xs">
-            <select value={bandFilter} onChange={(event) => setBandFilter(event.target.value as BandFilter)} className="rounded-md border border-gray-200 bg-white px-2 py-1 dark:border-slate-700 dark:bg-slate-950 dark:text-gray-200">
-              {(['ALL', 'C', 'Ku', 'Ka', 'Unknown'] as const).map((value) => <option key={value} value={value}>{value === 'ALL' ? 'All bands' : value}</option>)}
-            </select>
-            <select value={polarizationFilter} onChange={(event) => setPolarizationFilter(event.target.value as PolarizationFilter)} className="rounded-md border border-gray-200 bg-white px-2 py-1 dark:border-slate-700 dark:bg-slate-950 dark:text-gray-200">
-              {(['ALL', 'H', 'V', 'R', 'L', 'UNKNOWN'] as const).map((value) => <option key={value} value={value}>{value === 'ALL' ? 'All polarizations' : value}</option>)}
-            </select>
-            <select value={confidenceFilter} onChange={(event) => setConfidenceFilter(event.target.value as ConfidenceFilter)} className="rounded-md border border-gray-200 bg-white px-2 py-1 dark:border-slate-700 dark:bg-slate-950 dark:text-gray-200">
-              {(['ALL', 'HIGH', 'MEDIUM', 'LOW', 'UNKNOWN'] as const).map((value) => <option key={value} value={value}>{value === 'ALL' ? 'All confidence' : value}</option>)}
-            </select>
-            <select value={beamFilter} onChange={(event) => setBeamFilter(event.target.value)} className="rounded-md border border-gray-200 bg-white px-2 py-1 dark:border-slate-700 dark:bg-slate-950 dark:text-gray-200">
-              <option value="">All beams</option>
-              {availableBeams.map((beam) => <option key={beam} value={beam}>{beam}</option>)}
-            </select>
-            <select value={sortMode} onChange={(event) => setSortMode(event.target.value as SortMode)} className="rounded-md border border-gray-200 bg-white px-2 py-1 dark:border-slate-700 dark:bg-slate-950 dark:text-gray-200">
-              <option value="BEAM">Sort by beam</option>
-              <option value="BAND">Sort by band</option>
-              <option value="TRANSPONDER">Sort by transponder</option>
-              <option value="POLARIZATION">Sort by polarization</option>
-              <option value="FREQUENCY">Sort by frequency</option>
-            </select>
-            <select value={groupMode} onChange={(event) => setGroupMode(event.target.value as GroupMode)} className="rounded-md border border-gray-200 bg-white px-2 py-1 dark:border-slate-700 dark:bg-slate-950 dark:text-gray-200">
-              <option value="BEAM">Group by beam</option>
-              <option value="BAND">Group by band</option>
-              <option value="TRANSPONDER">Group by transponder</option>
-              <option value="POLARIZATION">Group by polarization</option>
-              <option value="NONE">No grouping</option>
-            </select>
-          </div>
-          <div className="mt-2 flex flex-col gap-1.5">
-            <label className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-300">
-              <input
-                type="checkbox"
-                checked={compactMode}
-                onChange={(event) => setCompactMode(event.target.checked)}
-                className="h-3.5 w-3.5"
-              />
-              Compact rows
-            </label>
-            <label className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-300">
-              <input
-                type="checkbox"
-                checked={showInferredUplinks}
-                onChange={(event) => setShowInferredUplinks(event.target.checked)}
-                className="h-3.5 w-3.5"
-              />
-              Show inferred uplinks
-            </label>
-            <label className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-300">
-              <input
-                type="checkbox"
-                checked={showOnlyWarnings}
-                onChange={(event) => setShowOnlyWarnings(event.target.checked)}
-                className="h-3.5 w-3.5"
-              />
-              Show only rows with warnings
-            </label>
-          </div>
+            {activeFilterCount > 0 && (
+              <span className="rounded-full bg-blue-100 px-1.5 text-[10px] text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">
+                {activeFilterCount}
+              </span>
+            )}
+            <ChevronDown className={`h-3.5 w-3.5 transition-transform ${showFilters ? 'rotate-180' : ''}`} />
+          </button>
         </div>
+
+        {showFilters && (
+          <div className="mt-3 rounded-lg border border-gray-200 bg-white p-3 dark:border-slate-700 dark:bg-slate-900">
+            <div className="grid grid-cols-2 gap-2 text-xs">
+              <select value={bandFilter} onChange={(event) => setBandFilter(event.target.value as BandFilter)} className="rounded-md border border-gray-200 bg-white px-2 py-1 dark:border-slate-700 dark:bg-slate-950 dark:text-gray-200">
+                {(['ALL', 'C', 'Ku', 'Ka', 'Unknown'] as const).map((value) => <option key={value} value={value}>{value === 'ALL' ? 'All bands' : value}</option>)}
+              </select>
+              <select value={polarizationFilter} onChange={(event) => setPolarizationFilter(event.target.value as PolarizationFilter)} className="rounded-md border border-gray-200 bg-white px-2 py-1 dark:border-slate-700 dark:bg-slate-950 dark:text-gray-200">
+                {(['ALL', 'H', 'V', 'R', 'L', 'UNKNOWN'] as const).map((value) => <option key={value} value={value}>{value === 'ALL' ? 'All polarizations' : value}</option>)}
+              </select>
+              <select value={confidenceFilter} onChange={(event) => setConfidenceFilter(event.target.value as ConfidenceFilter)} className="rounded-md border border-gray-200 bg-white px-2 py-1 dark:border-slate-700 dark:bg-slate-950 dark:text-gray-200">
+                {(['ALL', 'HIGH', 'MEDIUM', 'LOW', 'UNKNOWN'] as const).map((value) => <option key={value} value={value}>{value === 'ALL' ? 'All confidence' : value}</option>)}
+              </select>
+              <select value={beamFilter} onChange={(event) => setBeamFilter(event.target.value)} className="rounded-md border border-gray-200 bg-white px-2 py-1 dark:border-slate-700 dark:bg-slate-950 dark:text-gray-200">
+                <option value="">All beams</option>
+                {availableBeams.map((beam) => <option key={beam} value={beam}>{beam}</option>)}
+              </select>
+              <select value={sortMode} onChange={(event) => setSortMode(event.target.value as SortMode)} className="rounded-md border border-gray-200 bg-white px-2 py-1 dark:border-slate-700 dark:bg-slate-950 dark:text-gray-200">
+                <option value="BEAM">Sort by beam</option>
+                <option value="BAND">Sort by band</option>
+                <option value="TRANSPONDER">Sort by transponder</option>
+                <option value="POLARIZATION">Sort by polarization</option>
+                <option value="FREQUENCY">Sort by frequency</option>
+              </select>
+              <select value={groupMode} onChange={(event) => setGroupMode(event.target.value as GroupMode)} className="rounded-md border border-gray-200 bg-white px-2 py-1 dark:border-slate-700 dark:bg-slate-950 dark:text-gray-200">
+                <option value="BEAM">Group by beam</option>
+                <option value="BAND">Group by band</option>
+                <option value="TRANSPONDER">Group by transponder</option>
+                <option value="POLARIZATION">Group by polarization</option>
+                <option value="NONE">No grouping</option>
+              </select>
+            </div>
+            <div className="mt-2 flex flex-col gap-1.5">
+              <label className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-300">
+                <input
+                  type="checkbox"
+                  checked={compactMode}
+                  onChange={(event) => setCompactMode(event.target.checked)}
+                  className="h-3.5 w-3.5"
+                />
+                Compact rows
+              </label>
+              <label className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-300">
+                <input
+                  type="checkbox"
+                  checked={showInferredUplinks}
+                  onChange={(event) => setShowInferredUplinks(event.target.checked)}
+                  className="h-3.5 w-3.5"
+                />
+                Show inferred uplinks
+              </label>
+              <label className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-300">
+                <input
+                  type="checkbox"
+                  checked={showOnlyWarnings}
+                  onChange={(event) => setShowOnlyWarnings(event.target.checked)}
+                  className="h-3.5 w-3.5"
+                />
+                Show only rows with warnings
+              </label>
+            </div>
+          </div>
+        )}
 
         <div className="mt-3 max-h-[28rem] space-y-3 overflow-y-auto pr-1">
           {!isLoading && transponders.length === 0 && (
@@ -425,6 +391,7 @@ export const PublicTranspondersSection: React.FC<PublicTranspondersSectionProps>
                 const isSelected = selectedId === item.id;
                 const hasWarnings = item.warnings.length > 0;
                 const details = [
+                  item.transponder.publicName ? `Source label: ${item.transponder.publicName}` : null,
                   item.transponder.system,
                   formatSymbolRate(item.transponder.symbolRate),
                   item.transponder.fec ? `FEC ${item.transponder.fec}` : null,
@@ -444,13 +411,12 @@ export const PublicTranspondersSection: React.FC<PublicTranspondersSectionProps>
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0">
                         <div className="truncate text-sm font-semibold text-gray-900 dark:text-gray-100">
-                          {item.transponder.publicName ?? item.transponder.publicNumber ?? 'Public transponder'}
+                          {getTransponderDisplayTitle(item)}
                         </div>
                         <div className="mt-0.5 flex flex-wrap gap-x-2 gap-y-0.5 text-[11px] text-gray-500 dark:text-gray-400">
-                          {item.transponder.publicNumber && item.transponder.publicName && <span>TP {item.transponder.publicNumber}</span>}
                           <span>{getTransponderBand(item)}</span>
-                          <span>{item.downlink.polarization ?? 'UNKNOWN'}</span>
-                          {item.downlink.beamName && <span className="truncate">Beam {item.downlink.beamName}</span>}
+                          {item.transponder.publicNumber && <span>TP {item.transponder.publicNumber}</span>}
+                          {item.transponder.publicName && <span className="truncate">Source {item.transponder.publicName}</span>}
                         </div>
                       </div>
                       <div className="flex shrink-0 flex-wrap justify-end gap-1">
@@ -473,7 +439,7 @@ export const PublicTranspondersSection: React.FC<PublicTranspondersSectionProps>
                           <span className="font-semibold">Public DL</span> {formatMHz(item.downlink.frequencyMHz)}
                         </div>
                         <div className="truncate">
-                          <span className="font-semibold">{item.uplink.source === 'INFERRED' ? 'Inferred UL' : 'Unknown UL'}</span> {formatMHz(item.uplink.frequencyMHz)} · {item.uplink.beamName ?? 'unknown uplink beam'}
+                          <span className="font-semibold">{item.uplink.source === 'INFERRED' ? 'Inferred UL' : 'Unknown UL'}</span> {formatMHz(item.uplink.frequencyMHz)}
                         </div>
                       </div>
                     ) : (
@@ -483,7 +449,9 @@ export const PublicTranspondersSection: React.FC<PublicTranspondersSectionProps>
                             <div className="font-semibold text-gray-700 dark:text-gray-200">Public DL {formatMHz(item.downlink.frequencyMHz)} {item.downlink.polarization ?? 'UNKNOWN'}</div>
                             <span className={`shrink-0 rounded px-1 py-0.5 text-[9px] font-bold uppercase ${badgeClass('Public')}`}>Public</span>
                           </div>
-                          <div className="truncate text-gray-500 dark:text-gray-400">{item.downlink.beamName ?? 'Unknown public downlink beam'}</div>
+                          <div className="truncate text-gray-500 dark:text-gray-400">
+                            {item.transponder.publicName ? `Source label: ${item.transponder.publicName}` : 'No public source label'}
+                          </div>
                         </div>
                         <div className="rounded-md bg-gray-50 px-2 py-1.5 dark:bg-slate-800">
                           <div className="flex items-center justify-between gap-2">
@@ -494,7 +462,7 @@ export const PublicTranspondersSection: React.FC<PublicTranspondersSectionProps>
                               {item.uplink.source === 'UNKNOWN' ? 'Unknown' : 'Inferred'}
                             </span>
                           </div>
-                          <div className="truncate text-gray-500 dark:text-gray-400">{item.uplink.beamName ?? 'Unknown uplink beam'}</div>
+                          <div className="truncate text-gray-500 dark:text-gray-400">Uplink beam not shown; public value is inferred or ambiguous</div>
                         </div>
                       </div>
                     )}

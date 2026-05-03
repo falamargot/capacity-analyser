@@ -105,10 +105,10 @@ interface ComboboxProps {
 const Combobox = ({ trigger, children, open, onToggle, accentColor, tone = 'neutral', disabled }: ComboboxProps) => {
   const ref = useRef<HTMLDivElement>(null);
   const closedToneClass = tone === 'uplink'
-    ? 'border-emerald-200 dark:border-emerald-800/80 bg-emerald-50/70 dark:bg-emerald-950/20 hover:border-emerald-300 dark:hover:border-emerald-700'
+    ? 'border-emerald-200 dark:border-emerald-700/80 bg-emerald-50/70 dark:bg-slate-950/95 hover:border-emerald-300 dark:hover:border-emerald-500'
     : tone === 'downlink'
-      ? 'border-blue-200 dark:border-blue-800/80 bg-blue-50/70 dark:bg-blue-950/20 hover:border-blue-300 dark:hover:border-blue-700'
-      : 'border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900/40 hover:border-blue-200 dark:hover:border-blue-700';
+      ? 'border-blue-200 dark:border-blue-700/80 bg-blue-50/70 dark:bg-slate-950/95 hover:border-blue-300 dark:hover:border-blue-500'
+      : 'border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-950/95 hover:border-blue-200 dark:hover:border-blue-500';
 
   // Close on outside click
   useEffect(() => {
@@ -129,7 +129,7 @@ const Combobox = ({ trigger, children, open, onToggle, accentColor, tone = 'neut
         className={[
           'w-full flex items-center gap-2 rounded-lg border px-3 py-2 text-left transition-colors',
           open
-            ? 'border-blue-300 dark:border-blue-500/60 bg-blue-50/60 dark:bg-blue-950/20'
+            ? 'border-blue-300 dark:border-blue-500/70 bg-blue-50/60 dark:bg-slate-950'
             : closedToneClass,
           disabled ? 'opacity-50 cursor-default' : 'cursor-pointer',
         ].join(' ')}
@@ -140,7 +140,7 @@ const Combobox = ({ trigger, children, open, onToggle, accentColor, tone = 'neut
       </button>
 
       {open && (
-        <div className="absolute z-20 left-0 right-0 top-full mt-1 rounded-lg border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-900 shadow-xl overflow-hidden">
+        <div className="absolute z-20 left-0 right-0 top-full mt-1 rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-950 shadow-xl overflow-hidden">
           {children}
         </div>
       )}
@@ -202,7 +202,7 @@ const SatCombobox = ({ satellites, activeSatId, onSelect }: SatComboboxProps) =>
       onToggle={() => setOpen(v => !v)}
       accentColor="#6366f1"
     >
-      <div className="max-h-48 overflow-y-auto divide-y divide-gray-100 dark:divide-slate-700/60">
+      <div className="max-h-48 overflow-y-auto divide-y divide-gray-100 dark:divide-slate-800">
         {satellites.map(sat => (
           <button
             key={sat.id}
@@ -211,8 +211,8 @@ const SatCombobox = ({ satellites, activeSatId, onSelect }: SatComboboxProps) =>
             className={[
               'w-full flex items-center gap-2 px-3 py-2 text-left text-xs transition-colors',
               sat.id === activeSatId
-                ? 'bg-indigo-50 dark:bg-indigo-950/30 font-semibold text-indigo-700 dark:text-indigo-300'
-                : 'hover:bg-gray-50 dark:hover:bg-slate-800 text-gray-700 dark:text-gray-300',
+                ? 'bg-indigo-50 dark:bg-blue-950/40 font-semibold text-indigo-700 dark:text-blue-200'
+                : 'hover:bg-gray-50 dark:hover:bg-slate-900 text-gray-700 dark:text-gray-300',
             ].join(' ')}
           >
             <span className="flex-1 truncate">{sat.name}</span>
@@ -356,7 +356,7 @@ const BeamCombobox = ({
       tone={direction}
       disabled={availableCoverages.length <= 1}
     >
-      <div className="max-h-64 overflow-y-auto divide-y divide-gray-100 dark:divide-slate-700/60">
+      <div className="max-h-64 overflow-y-auto divide-y divide-gray-100 dark:divide-slate-800">
         {availableCoverages.map(c => {
           const key = getCandidateCoverageKey(c);
           const isActive = key === selectedKey;
@@ -369,8 +369,8 @@ const BeamCombobox = ({
               className={[
                 'w-full flex items-start gap-3 px-3 py-2.5 text-left transition-colors',
                 isActive
-                  ? 'bg-blue-50/80 dark:bg-blue-950/30'
-                  : 'hover:bg-gray-50 dark:hover:bg-slate-800',
+                  ? 'bg-blue-50/80 dark:bg-blue-950/40'
+                  : 'hover:bg-gray-50 dark:hover:bg-slate-900',
               ].join(' ')}
             >
               {/* Left: name + badges */}
@@ -564,12 +564,20 @@ const CoverageSelector = memo<CoverageSelectorProps>(({
   }, [linkMode, uplinkCandidatesOverride, downlinkCandidatesOverride, selectedDownlinkCoverage, selectedUplinkCoverage, selectedCoverage, bestCoverage, satellites]);
 
   const handleSatelliteSelect = (satId: string) => {
-    const realCandidates = candidateCoverages.filter((candidate) => (
+    const uplinkSource = uplinkCandidatesOverride ?? candidateCoverages;
+    const downlinkSource = downlinkCandidatesOverride ?? candidateCoverages;
+    const realUplinkCandidates = uplinkSource.filter((candidate) => (
       !candidate.isSynthesized &&
-      candidate.satelliteId === satId
+      candidate.satelliteId === satId &&
+      candidate.isUplink
     ));
-    const bestDl = pickBestByLinkMargin(realCandidates.filter((candidate) => !candidate.isUplink));
-    const bestUl = pickBestByLinkMargin(realCandidates.filter((candidate) => candidate.isUplink));
+    const realDownlinkCandidates = downlinkSource.filter((candidate) => (
+      !candidate.isSynthesized &&
+      candidate.satelliteId === satId &&
+      !candidate.isUplink
+    ));
+    const bestDl = pickBestByLinkMargin(realDownlinkCandidates);
+    const bestUl = pickBestByLinkMargin(realUplinkCandidates);
     if (bestUl && onSelectUplinkCoverage) onSelectUplinkCoverage(bestUl);
     if (bestDl && onSelectDownlinkCoverage) onSelectDownlinkCoverage(bestDl);
     if (!onSelectUplinkCoverage && !onSelectDownlinkCoverage) {

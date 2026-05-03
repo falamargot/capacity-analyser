@@ -74,6 +74,10 @@ interface CapacityDetailsProps {
   selectedDownlinkCoverage?: CandidateCoverage | null;
   onSelectUplinkCoverage?: (coverage: CandidateCoverage) => void;
   onSelectDownlinkCoverage?: (coverage: CandidateCoverage) => void;
+  selectedUplinkCoverageB?: CandidateCoverage | null;
+  selectedDownlinkCoverageB?: CandidateCoverage | null;
+  onSelectUplinkCoverageB?: (coverage: CandidateCoverage) => void;
+  onSelectDownlinkCoverageB?: (coverage: CandidateCoverage) => void;
   selectedGeoMission?: string | null;
   selectedGeoCoverageName?: string | null;
   selectedGeoBeamId?: string | null;
@@ -116,6 +120,13 @@ interface CapacityDetailsProps {
 
 const RTT_VISUAL_SCALE_MAX_MS = 600;
 const ONE_WAY_VISUAL_SCALE_MAX_MS = 350;
+const EstimatedPerformanceDirectionPill = ({ dir, aggregate = false }: { dir: string; aggregate?: boolean }) => (
+  <span className={`ml-1.5 inline-flex shrink-0 items-center rounded-full border px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide ${
+    aggregate
+      ? 'border-slate-200 bg-slate-50 text-slate-400 dark:border-slate-700 dark:bg-slate-800/50 dark:text-slate-500'
+      : 'border-blue-200 bg-blue-50 text-blue-500 dark:border-blue-800/60 dark:bg-blue-950/40 dark:text-blue-400'
+  }`}>{dir}</span>
+);
 const GEO_LINK_MARGIN_STABILITY = {
   medium: 2,
   high: 5,
@@ -165,7 +176,7 @@ ${currentRule}`;
 };
 
 // Performance optimization: Memoize component to prevent unnecessary re-renders
-const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint, selectedSatellite, autoSelectedLEOSatellite, satelliteScope, onMetricsChange, onSatelliteClick, analysisSource, aircraftCallsign, selectedSNP: propSelectedSNP, candidateCoverages = [], selectedCoverage = null, onSelectCoverage, selectedUplinkCoverage = null, selectedDownlinkCoverage = null, onSelectUplinkCoverage, onSelectDownlinkCoverage, selectedGeoMission, selectedGeoCoverageName, selectedGeoBeamId, onSelectGeoMission, onSelectGeoCoverage, onSelectGeoBeam, onSnpClick, compactDesktop = false, externalHeader = false, globeRef, cesiumViewerRef, onExportStateChange, regulatoryResultOverride = null, beamLoadResultOverride = null, serviceLayerResultOverride = null, leoServiceViewModelOverride = null, leoTerminalType, onLeoTerminalTypeChange, geoTerminalType, onGeoTerminalTypeChange, geoTerminalTypeB, onGeoTerminalTypeBChange, weatherType, onWeatherTypeChange, autoWeatherEnabled, onAutoWeatherChange, linkMode = 'STAR_FORWARD', onLinkModeChange, pointB = null, candidateCoveragesB = [], pointAIsUserDefined = false, pointBIsUserDefined = false, activeMeshTab, onActiveMeshTabChange }) => {
+const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint, selectedSatellite, autoSelectedLEOSatellite, satelliteScope, onMetricsChange, onSatelliteClick, analysisSource, aircraftCallsign, selectedSNP: propSelectedSNP, candidateCoverages = [], selectedCoverage = null, onSelectCoverage, selectedUplinkCoverage = null, selectedDownlinkCoverage = null, onSelectUplinkCoverage, onSelectDownlinkCoverage, selectedUplinkCoverageB = null, selectedDownlinkCoverageB = null, onSelectUplinkCoverageB, onSelectDownlinkCoverageB, selectedGeoMission, selectedGeoCoverageName, selectedGeoBeamId, onSelectGeoMission, onSelectGeoCoverage, onSelectGeoBeam, onSnpClick, compactDesktop = false, externalHeader = false, globeRef, cesiumViewerRef, onExportStateChange, regulatoryResultOverride = null, beamLoadResultOverride = null, serviceLayerResultOverride = null, leoServiceViewModelOverride = null, leoTerminalType, onLeoTerminalTypeChange, geoTerminalType, onGeoTerminalTypeChange, geoTerminalTypeB, onGeoTerminalTypeBChange, weatherType, onWeatherTypeChange, autoWeatherEnabled, onAutoWeatherChange, linkMode = 'STAR_FORWARD', onLinkModeChange, pointB = null, candidateCoveragesB = [], pointAIsUserDefined = false, pointBIsUserDefined = false, activeMeshTab, onActiveMeshTabChange }) => {
   // Feature 1+3: read simulation context for failedSnps, hsBeamsSet
   const {
     coveragePolicy,
@@ -621,12 +632,20 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
 
   // For MESH: candidates at Point B
   const uplinkAtB = useMemo(
-    () => refCoverage ? findBestUplinkMatch(refCoverage, candidateCoveragesB) : null,
-    [refCoverage, candidateCoveragesB]
+    () => {
+      if (!refCoverage) return null;
+      if (selectedUplinkCoverageB?.satelliteId === refCoverage.satelliteId) return selectedUplinkCoverageB;
+      return findBestUplinkMatch(refCoverage, candidateCoveragesB);
+    },
+    [refCoverage, candidateCoveragesB, selectedUplinkCoverageB]
   );
   const downlinkAtB = useMemo(
-    () => refCoverage ? findBestDownlinkMatch(refCoverage, candidateCoveragesB) : null,
-    [refCoverage, candidateCoveragesB]
+    () => {
+      if (!refCoverage) return null;
+      if (selectedDownlinkCoverageB?.satelliteId === refCoverage.satelliteId) return selectedDownlinkCoverageB;
+      return findBestDownlinkMatch(refCoverage, candidateCoveragesB);
+    },
+    [refCoverage, candidateCoveragesB, selectedDownlinkCoverageB]
   );
 
   const validSatelliteIds = useMemo((): ReadonlySet<string> | undefined => {
@@ -937,6 +956,11 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
       const isStarReturn = linkMode === 'STAR_RETURN';
       const userLabel = analysisSource === 'aircraft' && aircraftCallsign ? aircraftCallsign : 'User';
       const gwLabel = geoGeometry?.satelliteToGateway.gateway?.name ?? 'GW';
+      const estimatedPerformanceDirectionLabel = isMeshMode
+        ? 'A↔B'
+        : isStarReturn
+          ? 'Return'
+          : 'Forward';
 
       const geoStabilityTooltip = geoGeometry
         ? formatGeoStabilityTooltip(
@@ -962,7 +986,7 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
       return (
         <CollapsibleSection
           storageKey="geo-performance"
-          title={<>Estimated Performance<SectionTooltip content="Predicted GEO link throughput derived from the RF link budget. STAR modes show the active direction only and one-way latency. MESH/P2P shows both directions and full RTT." /></>}
+          title={<>Estimated Performance<EstimatedPerformanceDirectionPill dir={estimatedPerformanceDirectionLabel} aggregate={isMeshMode} /><SectionTooltip content="Predicted GEO link throughput derived from the RF link budget. STAR modes show the active direction only and one-way latency. MESH/P2P shows both directions and full RTT." /></>}
           accentColor="#2563eb"
           defaultOpen={true}
           collapsible={false}
@@ -1623,6 +1647,8 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
                     candidateCoveragesB={candidateCoveragesB}
                     uplinkCoverageAtB={uplinkAtB}
                     downlinkCoverageAtB={downlinkAtB}
+                    onSelectUplinkCoverageB={onSelectUplinkCoverageB}
+                    onSelectDownlinkCoverageB={onSelectDownlinkCoverageB}
                     activeMeshTab={activeMeshTab}
                     onActiveMeshTabChange={onActiveMeshTabChange}
                     validSatelliteIds={validSatelliteIds}
