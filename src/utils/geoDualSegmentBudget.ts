@@ -18,7 +18,7 @@ import type { GeoRfContext } from '../types/geoRfContext';
 import type { GeoBand } from './geoLinkBudget';
 import {
   DEFAULT_TERMINAL,
-  TERMINAL_GEO_RF_PARAMS,
+  TERMINAL_GEO_RF_PARAMS_BY_BAND,
   TERMINAL_RETURN_EIRP_DBW,
   GATEWAY_EIRP_DBW,
   GATEWAY_GT_DBK,
@@ -28,6 +28,7 @@ import {
   computeUplinkBudget,
   computeDownlinkBudget,
   computeEndToEndBudget,
+  getTerminalDownlinkGT,
   type EndToEndBudget,
 } from './geoLinkBudget';
 
@@ -213,7 +214,7 @@ export function synthesizeDownlinkCandidate(from: CandidateCoverage): CandidateC
 
   const budget = computeDownlinkBudget(
     nominalEIRP,
-    DEFAULT_TERMINAL.gtTerminalDbk,
+    getTerminalDownlinkGT(band),
     slantRange,
     bandParams.freqDownGhz,
     bw,
@@ -268,15 +269,20 @@ const buildDownlinkSegment = (
   destination: SegmentEndpoint,
   gtOverrideDbk?: number,
   weatherAdjDb?: number,
+  baseGtDbk?: number,
 ): LinkSegment => {
-  const adjDb = gtOverrideDbk != null ? gtAdjustmentDb(gtOverrideDbk) : 0;
+  // adjDb = override − baseline used when computing the candidate C/N.
+  // baseGtDbk defaults to DEFAULT_TERMINAL for legacy callers (STAR Forward
+  // passes no override, so adjDb=0 regardless of baseline).
+  const base = baseGtDbk ?? DEFAULT_TERMINAL.gtTerminalDbk;
+  const adjDb = gtOverrideDbk != null ? gtOverrideDbk - base : 0;
   const fadeDb = weatherAdjDb ?? 0;
   const effectiveCNDb = (candidate.cnDb ?? 0) + adjDb - fadeDb;
   const effectiveLinkMarginDb = (candidate.linkMarginDb ?? 0) + adjDb - fadeDb;
 
   return {
     source,
-    destination: { ...destination, gtDbk: gtOverrideDbk ?? candidate.gtDbk ?? DEFAULT_TERMINAL.gtTerminalDbk },
+    destination: { ...destination, gtDbk: gtOverrideDbk ?? candidate.gtDbk ?? base },
     candidate,
     effectiveCNDb,
     effectiveLinkMarginDb,
@@ -319,7 +325,7 @@ export function buildStarForwardResult(
   const downlinkSeg = buildDownlinkSegment(
     downlinkAtUser,
     { label: downlinkAtUser.satelliteName },
-    { label: userLabel ?? 'User terminal', gtDbk: DEFAULT_TERMINAL.gtTerminalDbk },
+    { label: userLabel ?? 'User terminal', gtDbk: getTerminalDownlinkGT(geoBand) },
     undefined,
     weatherAdjDb,
   );
@@ -463,8 +469,12 @@ export function buildMeshResult(
 ): DualSegmentResult {
   const pointALabel = endpointLabels?.pointA ?? 'Terminal A';
   const pointBLabel = endpointLabels?.pointB ?? 'Terminal B';
-  const paramsA = (terminalTypeA ? TERMINAL_GEO_RF_PARAMS[terminalTypeA] : null) ?? DEFAULT_TERMINAL;
-  const paramsB = (terminalTypeB ? TERMINAL_GEO_RF_PARAMS[terminalTypeB] : null) ?? DEFAULT_TERMINAL;
+  const band = (uplinkAtA.band ?? downlinkAtB.band ?? 'Ku') as GeoBand;
+  const bandTable = TERMINAL_GEO_RF_PARAMS_BY_BAND[band];
+  const paramsA = (terminalTypeA ? bandTable[terminalTypeA] : null) ?? bandTable.fixed;
+  const paramsB = (terminalTypeB ? bandTable[terminalTypeB] : null) ?? bandTable.fixed;
+  // Candidate C/N baseline: geoCoverageSelection computes with getTerminalDownlinkGT(band,'fixed')
+  const candidateBaseGt = getTerminalDownlinkGT(band);
 
   const fwUplinkSeg = buildUplinkSegment(
     uplinkAtA,
@@ -479,6 +489,7 @@ export function buildMeshResult(
     { label: pointBLabel, gtDbk: paramsB.gtTerminalDbk },
     paramsB.gtTerminalDbk,
     weatherAdjDb,
+    candidateBaseGt,
   );
   const fwE2E = computeEndToEndBudget(
     fwUplinkSeg.effectiveCNDb,
@@ -499,6 +510,7 @@ export function buildMeshResult(
     { label: pointALabel, gtDbk: paramsA.gtTerminalDbk },
     paramsA.gtTerminalDbk,
     weatherAdjDb,
+    candidateBaseGt,
   );
   const rvE2E = computeEndToEndBudget(
     rvUplinkSeg.effectiveCNDb,

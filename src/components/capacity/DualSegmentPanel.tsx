@@ -122,11 +122,52 @@ const candidateSubtitle = (candidate: PublicTransponderCandidateMatch): string =
   return parts.join(' · ');
 };
 
+// ─── Provenance indicators ────────────────────────────────────────────────────
+
+/**
+ * ● real contour data  /  ○ synthesised from nominal parameters
+ * Tooltip carries source, inference method, and any warnings.
+ */
+const ProvenanceDot = ({ synthesized, warnings }: { synthesized: boolean; warnings?: string[] }) => {
+  const lines = synthesized
+    ? ['○ Estimated — nominal band parameter', 'No coverage contour available for this direction; value derived from standard engineering estimates.']
+    : ['● Measured — interpolated from satellite coverage contour data'];
+  if (warnings?.length) lines.push('', 'Warnings:', ...warnings.map((w) => `- ${w}`));
+  return (
+    <span
+      title={lines.join('\n')}
+      aria-label={synthesized ? 'Estimated value' : 'Measured value'}
+      className={`ml-1 cursor-help select-none text-[10px] leading-none ${synthesized ? 'text-amber-500 dark:text-amber-400' : 'text-emerald-500 dark:text-emerald-400'}`}
+    >
+      {synthesized ? '○' : '●'}
+    </span>
+  );
+};
+
+/**
+ * ~ prefix for uplink frequencies that were inferred from band-plan rules
+ * rather than read from a confirmed public source.
+ */
+const InferredMark = ({ method, warnings }: { method?: string; warnings?: string[] }) => {
+  const lines = ['~ Inferred — uplink frequency derived from band plan rules', 'Source: INFERRED. Not confirmed by operator.'];
+  if (method) lines.push(`Inference method: ${method}`);
+  if (warnings?.length) lines.push('', 'Warnings:', ...warnings.map((w) => `- ${w}`));
+  return (
+    <span
+      title={lines.join('\n')}
+      aria-label="Inferred frequency"
+      className="mr-0.5 cursor-help select-none text-[10px] text-amber-500 dark:text-amber-400"
+    >
+      ~
+    </span>
+  );
+};
+
 // ─── Row helper ───────────────────────────────────────────────────────────────
 
 const Row = ({ label, value, bold = false, className = '' }: {
   label: string;
-  value: string;
+  value: React.ReactNode;
   bold?: boolean;
   className?: string;
 }) => (
@@ -191,7 +232,18 @@ const RFContextCard = ({ context }: { context: GeoRfContext }) => {
             <Row label="Selected coverage" value={selectedCoverage} />
           </div>
           <div className="space-y-1.5">
-            <Row label="Uplink" value={fmtGhz(context.uplink.frequencyGHz)} bold />
+            <Row
+              label="Uplink"
+              bold
+              value={
+                <>
+                  {context.uplink.source === 'INFERRED' && (
+                    <InferredMark warnings={context.uplink.warnings.length ? context.uplink.warnings : undefined} />
+                  )}
+                  {fmtGhz(context.uplink.frequencyGHz)}
+                </>
+              }
+            />
             <Row label="Downlink" value={fmtGhz(context.downlink.frequencyGHz)} bold />
             <Row label="Bandwidth" value={fmtMhz(context.downlink.bandwidthMHz ?? context.uplink.bandwidthMHz)} />
             <Row label="UL polarization" value={fmtPol(context.uplink.polarization)} />
@@ -333,7 +385,7 @@ const UplinkCard = ({ seg, coverageName }: { seg: LinkSegment; coverageName?: st
       <Row label="Source" value={seg.source.label} bold />
       <Row label="Coverage" value={coverageName ?? coverageLabel(seg)} bold />
       <Row label="Transmitter EIRP" value={fmtDbw(seg.source.eirpDbw)} />
-      <Row label={`Sat G/T (${c.band ?? 'Ku'})`} value={fmtDbk(c.gtDbk)} />
+      <Row label={`Sat G/T (${c.band ?? 'Ku'})`} value={<>{fmtDbk(c.gtDbk)}<ProvenanceDot synthesized={!!c.isSynthesized} /></>} />
       <div className="border-t border-gray-100 dark:border-slate-700 pt-1.5 space-y-1.5">
         <Row label="Frequency" value={fmtGhz(c.frequencyGhz)} />
         <Row label="Bandwidth" value={fmtMhz(c.bandwidthMhz)} />
@@ -390,7 +442,7 @@ const DownlinkCard = ({ seg, coverageName }: { seg: LinkSegment; coverageName?: 
     <SegmentCard accentColor="#059669" title="Downlink Segment" icon="🟢">
       <Row label="Destination" value={seg.destination.label} bold />
       <Row label="Coverage" value={coverageName ?? coverageLabel(seg)} bold />
-      <Row label={`Sat EIRP (${c.band ?? 'Ku'})`} value={fmtDbw(c.eirpDbw)} />
+      <Row label={`Sat EIRP (${c.band ?? 'Ku'})`} value={<>{fmtDbw(c.eirpDbw)}<ProvenanceDot synthesized={!!c.isSynthesized} /></>} />
       <Row label="Terminal G/T" value={fmtDbk(seg.destination.gtDbk)} />
       <div className="border-t border-gray-100 dark:border-slate-700 pt-1.5 space-y-1.5">
         <Row label="Frequency" value={fmtGhz(c.frequencyGhz)} />

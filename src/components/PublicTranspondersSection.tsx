@@ -65,6 +65,25 @@ const formatGroupLabel = (mode: GroupMode, value: string): string => {
   return value;
 };
 
+/**
+ * ~ prefix rendered before an uplink frequency that was inferred from band-plan
+ * rules rather than read from a confirmed public source.
+ * Tooltip carries source, inference method, and any row-level warnings.
+ */
+const InferredFreq = ({ warnings }: { warnings?: string[] }) => {
+  const lines = ['~ Inferred — uplink frequency derived from band plan rules', 'Source: INFERRED. Not confirmed by operator.'];
+  if (warnings?.length) lines.push('', 'Warnings:', ...warnings.map((w) => `- ${w}`));
+  return (
+    <span
+      title={lines.join('\n')}
+      aria-label="Inferred frequency"
+      className="mr-0.5 cursor-help select-none text-[10px] text-amber-500 dark:text-amber-400"
+    >
+      ~
+    </span>
+  );
+};
+
 const badgeClass = (kind: 'Public' | 'Inferred' | 'Unknown') => {
   if (kind === 'Public') return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300';
   if (kind === 'Inferred') return 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300';
@@ -439,7 +458,9 @@ export const PublicTranspondersSection: React.FC<PublicTranspondersSectionProps>
                           <span className="font-semibold">Public DL</span> {formatMHz(item.downlink.frequencyMHz)}
                         </div>
                         <div className="truncate">
-                          <span className="font-semibold">{item.uplink.source === 'INFERRED' ? 'Inferred UL' : 'Unknown UL'}</span> {formatMHz(item.uplink.frequencyMHz)}
+                          <span className="font-semibold">{item.uplink.source === 'INFERRED' ? 'Inferred UL' : 'Unknown UL'}</span>{' '}
+                          {item.uplink.source === 'INFERRED' && <InferredFreq warnings={item.warnings.length ? item.warnings : undefined} />}
+                          {formatMHz(item.uplink.frequencyMHz)}
                         </div>
                       </div>
                     ) : (
@@ -456,7 +477,9 @@ export const PublicTranspondersSection: React.FC<PublicTranspondersSectionProps>
                         <div className="rounded-md bg-gray-50 px-2 py-1.5 dark:bg-slate-800">
                           <div className="flex items-center justify-between gap-2">
                             <div className="font-semibold text-gray-700 dark:text-gray-200">
-                              {item.uplink.source === 'INFERRED' ? 'Inferred UL' : 'Unknown UL'} {formatMHz(item.uplink.frequencyMHz)}
+                              {item.uplink.source === 'INFERRED' ? 'Inferred UL' : 'Unknown UL'}{' '}
+                              {item.uplink.source === 'INFERRED' && <InferredFreq warnings={item.warnings.length ? item.warnings : undefined} />}
+                              {formatMHz(item.uplink.frequencyMHz)}
                             </div>
                             <span className={`shrink-0 rounded px-1 py-0.5 text-[9px] font-bold uppercase ${badgeClass(item.uplink.source === 'UNKNOWN' ? 'Unknown' : 'Inferred')}`}>
                               {item.uplink.source === 'UNKNOWN' ? 'Unknown' : 'Inferred'}

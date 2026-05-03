@@ -7,6 +7,51 @@ const COVERAGE_LOD_MEDIUM_MAX_HEIGHT_M = 10_000_000;
 
 export type CoverageGeometryLod = 'near' | 'medium' | 'far';
 
+// ─── Great-circle interpolation helpers ──────────────────────────────────────
+
+const DEG_TO_RAD = Math.PI / 180;
+const RAD_TO_DEG = 180 / Math.PI;
+
+/** Convert (lng°, lat°) → unit ECEF vector [x, y, z]. */
+const llaToUnitXyz = (lngDeg: number, latDeg: number): [number, number, number] => {
+  const lat = latDeg * DEG_TO_RAD;
+  const lng = lngDeg * DEG_TO_RAD;
+  const cosLat = Math.cos(lat);
+  return [cosLat * Math.cos(lng), cosLat * Math.sin(lng), Math.sin(lat)];
+};
+
+/** Convert unit ECEF vector → [lng°, lat°]. */
+const unitXyzToLla = (x: number, y: number, z: number): [number, number] => {
+  // Clamp z to [-1, 1] to guard floating-point overshoot at the poles.
+  const lat = Math.asin(Math.max(-1, Math.min(1, z))) * RAD_TO_DEG;
+  const lng = Math.atan2(y, x) * RAD_TO_DEG;
+  return [lng, lat];
+};
+
+/**
+ * Spherical linear interpolation (SLERP) between two unit vectors.
+ * Produces the great-circle intermediate point at parameter t ∈ [0, 1].
+ * Falls back to linear interpolation when the two points are coincident
+ * (ω < 1 × 10⁻¹⁰ rad) to avoid division by zero.
+ */
+const slerpUnitXyz = (
+  p1: [number, number, number],
+  p2: [number, number, number],
+  t: number,
+): [number, number, number] => {
+  const dot = Math.max(-1, Math.min(1, p1[0] * p2[0] + p1[1] * p2[1] + p1[2] * p2[2]));
+  const omega = Math.acos(dot);
+  if (omega < 1e-10) {
+    return [p1[0] + t * (p2[0] - p1[0]), p1[1] + t * (p2[1] - p1[1]), p1[2] + t * (p2[2] - p1[2])];
+  }
+  const sinOmega = Math.sin(omega);
+  const k1 = Math.sin((1 - t) * omega) / sinOmega;
+  const k2 = Math.sin(t * omega) / sinOmega;
+  return [k1 * p1[0] + k2 * p2[0], k1 * p1[1] + k2 * p2[1], k1 * p1[2] + k2 * p2[2]];
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+
 const normalizeLongitude = (lng: number): number => {
   if (!Number.isFinite(lng)) return lng;
 
@@ -18,12 +63,6 @@ const normalizeLongitude = (lng: number): number => {
   return normalized;
 };
 
-const normalizeLongitudeDelta = (deltaLng: number): number => {
-  if (!Number.isFinite(deltaLng)) return deltaLng;
-  if (deltaLng > 180) return deltaLng - 360;
-  if (deltaLng < -180) return deltaLng + 360;
-  return deltaLng;
-};
 
 export const densifyRingForGlobe = (
   ring: number[][],
@@ -48,17 +87,18 @@ export const densifyRingForGlobe = (
 
     densified.push([currentLng, currentLat]);
 
-    const deltaLng = normalizeLongitudeDelta(nextLng - currentLng);
-    const deltaLat = nextLat - currentLat;
-    const segmentSpan = Math.max(Math.abs(deltaLng), Math.abs(deltaLat));
-    const segments = Math.ceil(segmentSpan / maxSegmentDegrees);
+    const p1 = llaToUnitXyz(currentLng, currentLat);
+    const p2 = llaToUnitXyz(nextLng, nextLat);
+    const dot = Math.max(-1, Math.min(1, p1[0] * p2[0] + p1[1] * p2[1] + p1[2] * p2[2]));
+    const arcDegrees = Math.acos(dot) * RAD_TO_DEG;
+    const segments = Math.ceil(arcDegrees / maxSegmentDegrees);
 
-    for (let step = 1; step < segments; step += 1) {
-      const ratio = step / segments;
-      densified.push([
-        normalizeLongitude(currentLng + (deltaLng * ratio)),
-        currentLat + (deltaLat * ratio),
-      ]);
+    if (segments > 1) {
+      for (let step = 1; step < segments; step += 1) {
+        const t = step / segments;
+        const [intLng, intLat] = unitXyzToLla(...slerpUnitXyz(p1, p2, t));
+        densified.push([normalizeLongitude(intLng), intLat]);
+      }
     }
   }
 
@@ -90,9 +130,10 @@ export const getMaxWrappedRingStep = (ring: number[][]): number => {
       continue;
     }
 
-    const deltaLng = normalizeLongitudeDelta(next[0] - current[0]);
-    const deltaLat = next[1] - current[1];
-    maxStep = Math.max(maxStep, Math.max(Math.abs(deltaLng), Math.abs(deltaLat)));
+    const p1 = llaToUnitXyz(current[0], current[1]);
+    const p2 = llaToUnitXyz(next[0], next[1]);
+    const dot = Math.max(-1, Math.min(1, p1[0] * p2[0] + p1[1] * p2[1] + p1[2] * p2[2]));
+    maxStep = Math.max(maxStep, Math.acos(dot) * RAD_TO_DEG);
   }
 
   return maxStep;

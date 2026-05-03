@@ -6,8 +6,9 @@ import { STANDARD_CAPACITY_GBPS } from './leoFootprint';
 // Earth radius constant
 export const EARTH_RADIUS_KM = 6371;
 
-// Speed of light constant for radio waves (effective propagation speed)
-export const SPEED_OF_LIGHT_RADIO_KM_S = 299792 * 0.97; // Effective propagation speed for radio waves
+// Free-space propagation speed for electromagnetic waves (km/s).
+// The 0.97 velocity factor applies to guided media (coaxial, fiber) — NOT to free-space radio.
+export const SPEED_OF_LIGHT_RADIO_KM_S = 299792.458;
 
 // Calculate one-way latency in milliseconds from distance in kilometers
 export function computeOneWayLatencyMs(distanceKm: number): number {

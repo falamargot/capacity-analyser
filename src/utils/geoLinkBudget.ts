@@ -27,6 +27,46 @@ export const TERMINAL_GEO_RF_PARAMS: Record<string, TerminalParams> = {
 };
 
 /**
+ * DEFAULT ESTIMATED downlink receive G/T per band and terminal type.
+ *
+ * These are engineering estimates for typical earth-station configurations —
+ * NOT operational truth.  Actual G/T depends on antenna gain, LNA noise
+ * figure, feeder losses, and local environment.
+ *
+ * Reference configurations:
+ *   C  fixed   : 1.2 m dish @ 3.8 GHz,  LNA NF ~1 dB  → ~5  dB/K (large Rayleigh wavelength lowers Gmax vs Ku)
+ *   Ku fixed   : 1.2 m dish @ 11.7 GHz, LNA NF ~1 dB  → ~17 dB/K (existing values, unchanged)
+ *   Ka fixed   : 0.75 m dish @ 19.7 GHz, LNA NF ~1.5 dB → ~13 dB/K
+ */
+export const TERMINAL_GEO_RF_PARAMS_BY_BAND: Record<GeoBand, Record<string, TerminalParams>> = {
+  C: {
+    fixed:    { antennaDiameterM: 1.2,  gtTerminalDbk:  5.0, eirpTerminalDbw: 55.0 },
+    mobile:   { antennaDiameterM: 0.6,  gtTerminalDbk:  0.0, eirpTerminalDbw: 44.0 },
+    aviation: { antennaDiameterM: 0.45, gtTerminalDbk: -3.0, eirpTerminalDbw: 38.0 },
+    maritime: { antennaDiameterM: 0.9,  gtTerminalDbk:  3.0, eirpTerminalDbw: 47.0 },
+  },
+  Ku: {
+    fixed:    { antennaDiameterM: 1.2,  gtTerminalDbk: 17.0, eirpTerminalDbw: 44.0 },
+    mobile:   { antennaDiameterM: 0.6,  gtTerminalDbk: 12.0, eirpTerminalDbw: 38.0 },
+    aviation: { antennaDiameterM: 0.45, gtTerminalDbk:  8.0, eirpTerminalDbw: 35.0 },
+    maritime: { antennaDiameterM: 0.9,  gtTerminalDbk: 14.0, eirpTerminalDbw: 40.0 },
+  },
+  Ka: {
+    fixed:    { antennaDiameterM: 0.75, gtTerminalDbk: 13.0, eirpTerminalDbw: 47.0 },
+    mobile:   { antennaDiameterM: 0.45, gtTerminalDbk:  8.0, eirpTerminalDbw: 36.0 },
+    aviation: { antennaDiameterM: 0.3,  gtTerminalDbk:  4.0, eirpTerminalDbw: 33.0 },
+    maritime: { antennaDiameterM: 0.6,  gtTerminalDbk: 10.0, eirpTerminalDbw: 39.0 },
+  },
+};
+
+/** Returns the estimated downlink receive G/T (dB/K) for the given band and terminal type. */
+export function getTerminalDownlinkGT(band: GeoBand, terminalType?: string): number {
+  const bandTable = TERMINAL_GEO_RF_PARAMS_BY_BAND[band];
+  const key = terminalType ?? 'fixed';
+  return (bandTable[key] ?? bandTable.fixed).gtTerminalDbk;
+}
+
+/**
  * User terminal transmit EIRP for the Return uplink (terminal → satellite), per band and
  * terminal type. C-band earth stations are significantly larger than Ku-band VSATs, so their
  * EIRP must be modelled separately.
@@ -120,28 +160,52 @@ interface ModcodEntry {
 }
 
 const DVB_S2X_MODCODS: ModcodEntry[] = [
+  // ── QPSK ──────────────────────────────────────────────────────────────────
   { name: 'QPSK 1/4', requiredCnDb: -2.35, efficiency: 0.49 },
   { name: 'QPSK 1/3', requiredCnDb: -1.24, efficiency: 0.66 },
   { name: 'QPSK 2/5', requiredCnDb: -0.30, efficiency: 0.79 },
-  { name: 'QPSK 1/2', requiredCnDb: 1.00, efficiency: 0.99 },
-  { name: 'QPSK 3/5', requiredCnDb: 2.23, efficiency: 1.19 },
-  { name: 'QPSK 2/3', requiredCnDb: 3.10, efficiency: 1.32 },
-  { name: 'QPSK 3/4', requiredCnDb: 4.03, efficiency: 1.49 },
-  { name: 'QPSK 4/5', requiredCnDb: 4.68, efficiency: 1.59 },
-  { name: 'QPSK 5/6', requiredCnDb: 5.18, efficiency: 1.65 },
-  { name: '8PSK 3/5', requiredCnDb: 5.50, efficiency: 1.78 },
-  { name: '8PSK 2/3', requiredCnDb: 6.62, efficiency: 1.98 },
-  { name: '8PSK 3/4', requiredCnDb: 7.91, efficiency: 2.23 },
-  { name: '8PSK 5/6', requiredCnDb: 9.35, efficiency: 2.48 },
-  { name: '16APSK 2/3', requiredCnDb: 8.97, efficiency: 2.64 },
+  { name: 'QPSK 1/2', requiredCnDb:  1.00, efficiency: 0.99 },
+  { name: 'QPSK 3/5', requiredCnDb:  2.23, efficiency: 1.19 },
+  { name: 'QPSK 2/3', requiredCnDb:  3.10, efficiency: 1.32 },
+  { name: 'QPSK 3/4', requiredCnDb:  4.03, efficiency: 1.49 },
+  { name: 'QPSK 4/5', requiredCnDb:  4.68, efficiency: 1.59 },
+  { name: 'QPSK 5/6', requiredCnDb:  5.18, efficiency: 1.65 },
+  // ── 8PSK ──────────────────────────────────────────────────────────────────
+  { name: '8PSK 3/5', requiredCnDb:  5.50, efficiency: 1.78 },
+  { name: '8PSK 2/3', requiredCnDb:  6.62, efficiency: 1.98 },
+  { name: '8PSK 3/4', requiredCnDb:  7.91, efficiency: 2.23 },
+  { name: '8PSK 5/6', requiredCnDb:  9.35, efficiency: 2.48 },
+  // ── 16APSK ────────────────────────────────────────────────────────────────
+  { name: '16APSK 2/3', requiredCnDb:  8.97, efficiency: 2.64 },
   { name: '16APSK 3/4', requiredCnDb: 10.21, efficiency: 2.97 },
   { name: '16APSK 4/5', requiredCnDb: 11.03, efficiency: 3.17 },
   { name: '16APSK 5/6', requiredCnDb: 11.61, efficiency: 3.30 },
   { name: '16APSK 8/9', requiredCnDb: 12.89, efficiency: 3.52 },
+  // ── 32APSK ────────────────────────────────────────────────────────────────
   { name: '32APSK 3/4', requiredCnDb: 12.73, efficiency: 3.70 },
   { name: '32APSK 4/5', requiredCnDb: 13.64, efficiency: 3.95 },
   { name: '32APSK 5/6', requiredCnDb: 14.28, efficiency: 4.12 },
   { name: '32APSK 8/9', requiredCnDb: 15.69, efficiency: 4.40 },
+  // ── 64APSK / 128APSK / 256APSK — DVB-S2X high-order ──────────────────────
+  //
+  // Source: ETSI EN 302 307-2 (DVB-S2X), Annex E simulation data.
+  // C/N thresholds at quasi-error-free (10⁻⁷ PER), long FECFRAME.
+  // Efficiency values account for LDPC + pilot overhead (~1 % below raw
+  // bits-per-symbol × code-rate).
+  //
+  // Applicability:
+  //   64APSK   — achievable on Ka-band HTS spot beams (strong downlink, clear sky).
+  //   128APSK  — gateway-to-gateway or feeder links; requires high sat EIRP.
+  //   256APSK 32/45 — near-laboratory conditions; C/N ≥ 22.68 dB is rare on
+  //                   consumer downlinks but reachable on professional feeder links.
+  //
+  // 256APSK 29/45 (C/N ≈ 21.66 dB, efficiency ≈ 5.09 b/s/Hz) is intentionally
+  // omitted: it is permanently dominated by 128APSK 3/4 (efficiency 5.17 at
+  // C/N ≥ 19.57 dB) and would never be selected by the MODCOD resolver.
+  { name: '64APSK 4/5',    requiredCnDb: 16.99, efficiency: 4.80 },
+  { name: '64APSK 5/6',    requiredCnDb: 17.73, efficiency: 5.00 },
+  { name: '128APSK 3/4',   requiredCnDb: 19.57, efficiency: 5.17 },
+  { name: '256APSK 32/45', requiredCnDb: 22.68, efficiency: 5.62 },
 ];
 
 const LOWEST_MODCOD = DVB_S2X_MODCODS[0];
@@ -368,6 +432,18 @@ export function computeUplinkBudget(
   );
 }
 
+/**
+ * Analytical slant range (km) from elevation angle and orbital altitude.
+ *
+ * Uses a spherical Earth model (R = 6371 km). Accurate to within ~30 km at GEO
+ * for elevation angles above 5°.
+ *
+ * @deprecated Prefer `distanceKm` from `geoConnectivityModel` when both the
+ * observer and satellite LLA positions are available — it uses WGS84 ECEF and
+ * eliminates the spherical-Earth approximation error (~5–35 km at GEO).
+ * This function remains available for scenarios where only the elevation angle
+ * and altitude are known (e.g. GEO latency-bound estimates).
+ */
 export function computeSlantRange(elevationDeg: number, altitudeKm: number): number {
   const earthRadiusKm = 6371;
   const elevRad = elevationDeg * Math.PI / 180;

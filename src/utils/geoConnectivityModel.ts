@@ -31,7 +31,7 @@ const SCC_FAILOVER_MAX_LATENCY_MS = 500;
 const APAC_MONITORING_CODES = new Set(['PER', 'SIN', 'IBA'] as const);
 const CSC_VERIFICATION_CODES = ['TUR', 'RAM'] as const;
 
-interface PointLLA {
+export interface PointLLA {
   lat: number;
   lng: number;
   altKm: number;
@@ -143,7 +143,8 @@ function toEcef(point: PointLLA): EcefPoint {
   };
 }
 
-function distanceKm(a: PointLLA, b: PointLLA): number {
+/** WGS84 ECEF straight-line distance between two LLA points (km). */
+export function distanceKm(a: PointLLA, b: PointLLA): number {
   const ea = toEcef(a);
   const eb = toEcef(b);
   const dx = eb.x - ea.x;
@@ -152,7 +153,8 @@ function distanceKm(a: PointLLA, b: PointLLA): number {
   return Math.sqrt(dx * dx + dy * dy + dz * dz);
 }
 
-function elevationDeg(observer: PointLLA, target: PointLLA): number {
+/** WGS84 ECEF elevation angle (degrees) from observer to target. */
+export function elevationDeg(observer: PointLLA, target: PointLLA): number {
   const eo = toEcef(observer);
   const et = toEcef(target);
   const dx = et.x - eo.x;

@@ -3,13 +3,13 @@ import { GEO_GATEWAYS, type GeoGatewayData } from '../components/globe/GlobeConf
 import type { CandidateCoverage } from '../types/analysis';
 import type { Coverage, SatelliteData } from '../types/satellites';
 import { calculateElevationAngle } from './capacityCalculator';
-import { analyzeGeoConnectivity, type GeoConnectivityResult } from './geoConnectivityModel';
+import { analyzeGeoConnectivity, distanceKm, type GeoConnectivityResult } from './geoConnectivityModel';
 import {
   BAND_PARAMS,
   computeDownlinkBudget,
-  computeSlantRange,
   computeUplinkBudget,
   DEFAULT_TERMINAL,
+  getTerminalDownlinkGT,
   type GeoBand,
   type LinkBudgetResult,
 } from './geoLinkBudget';
@@ -419,7 +419,10 @@ export const findCandidateCoverages = (
       const eirpDbw = !isUplink && level !== null ? level : undefined;
       const gtDbk = isUplink && level !== null ? level : undefined;
       if ((!isUplink && eirpDbw == null) || (isUplink && gtDbk == null)) continue;
-      const slantRangeKm = computeSlantRange(elevation, satellite.position.alt);
+      const slantRangeKm = distanceKm(
+        { lat: userPoint.lat, lng: userPoint.lng, altKm: 0 },
+        { lat: satellite.position.lat, lng: satellite.position.lng, altKm: satellite.position.alt },
+      );
 
       const linkResult: LinkBudgetResult = isUplink
         ? computeUplinkBudget(
@@ -432,7 +435,7 @@ export const findCandidateCoverages = (
           )
         : computeDownlinkBudget(
             eirpDbw!,
-            DEFAULT_TERMINAL.gtTerminalDbk,
+            getTerminalDownlinkGT(band),
             slantRangeKm,
             bandParams.freqDownGhz,
             bandParams.defaultBwMhz,
