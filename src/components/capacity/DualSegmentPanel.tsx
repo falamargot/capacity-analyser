@@ -11,13 +11,14 @@
  * For MESH mode, renders two DirectionBlock instances (forward + reverse).
  */
 
+import { ChevronDown } from 'lucide-react';
 import { memo, useEffect, useMemo, useState } from 'react';
 import type { LinkMode } from '../../types/linkMode';
 import { LINK_MODE_DESCRIPTIONS } from '../../types/linkMode';
 import type { DualSegmentResult, LinkSegment, TransponderMode } from '../../utils/geoDualSegmentBudget';
 import type { EndToEndBudget } from '../../utils/geoLinkBudget';
 import type { SatelliteData } from '../../types/satellites';
-import type { GeoRfContext, PublicFrequencyMatchStatus } from '../../types/geoRfContext';
+import type { GeoRfContext, PublicFrequencyMatchStatus, PublicTransponderCandidateMatch } from '../../types/geoRfContext';
 import { loadNormalizedPublicTranspondersBySatelliteId } from '../../services/frequencyPlan/frequencyPlanService';
 import { matchPublicTransponders } from '../../services/frequencyPlan/publicTransponderMatcher';
 import { applyPublicFrequencyMatchToContext, buildGeoRfContext } from '../../services/geo/rfContextService';
@@ -103,6 +104,24 @@ const confidenceBadgeClass = (confidence: string | undefined): string => {
   return 'bg-gray-100 text-gray-600 dark:bg-slate-700 dark:text-slate-300';
 };
 
+const candidateTitle = (candidate: PublicTransponderCandidateMatch): string => {
+  const tp = candidate.transponder;
+  const downlink = `DL ${fmtGhz(tp.downlink.frequencyMHz / 1000)} ${fmtPol(tp.downlink.polarization)}`;
+  const identifier = tp.transponder.publicNumber ? ` · TP ${tp.transponder.publicNumber}` : '';
+  return `${downlink}${identifier}`;
+};
+
+const candidateSubtitle = (candidate: PublicTransponderCandidateMatch): string => {
+  const tp = candidate.transponder;
+  const parts = [
+    `UL ${fmtGhz(tp.uplink.frequencyMHz ? tp.uplink.frequencyMHz / 1000 : undefined)}`,
+    tp.uplink.source === 'INFERRED' ? 'uplink inferred' : null,
+    tp.transponder.symbolRate ? `SR ${tp.transponder.symbolRate.toLocaleString()}` : null,
+    tp.transponder.system,
+  ].filter(Boolean);
+  return parts.join(' · ');
+};
+
 // ─── Row helper ───────────────────────────────────────────────────────────────
 
 const Row = ({ label, value, bold = false, className = '' }: {
@@ -126,11 +145,8 @@ const SmallBadge = ({ children, className }: { children: React.ReactNode; classN
 );
 
 const RFContextCard = ({ context }: { context: GeoRfContext }) => {
-  const [showCandidates, setShowCandidates] = useState(false);
-  const [showAllCandidates, setShowAllCandidates] = useState(false);
+  const [showAlternatives, setShowAlternatives] = useState(false);
   const publicMatch = context.publicFrequencyMatch;
-  const candidates = publicMatch?.candidates ?? [];
-  const visibleCandidates = showAllCandidates ? candidates : candidates.slice(0, 5);
   const warnings = Array.from(new Set([
     ...context.uplink.warnings,
     ...context.downlink.warnings,
@@ -147,10 +163,10 @@ const RFContextCard = ({ context }: { context: GeoRfContext }) => {
   ].filter(Boolean).join(' · ');
 
   return (
-    <details className="rounded-lg border border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-900/70">
-      <summary className="cursor-pointer list-none px-3 py-2.5">
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
+    <details className="group rounded-lg border border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-900/70">
+      <summary className="cursor-pointer list-none px-3 py-2.5 hover:bg-slate-100/60 dark:hover:bg-slate-800/60 transition-colors rounded-lg group-open:rounded-b-none">
+        <div className="flex items-center justify-between gap-3">
+          <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2">
               <p className="text-xs font-bold uppercase tracking-wide text-slate-700 dark:text-slate-200">RF Context</p>
               <SmallBadge className={matchBadgeClass(publicMatch?.status, publicMatch?.confidence)}>
@@ -162,6 +178,7 @@ const RFContextCard = ({ context }: { context: GeoRfContext }) => {
             </div>
             <p className="mt-1 truncate text-[11px] text-slate-500 dark:text-slate-400">{summary}</p>
           </div>
+          <ChevronDown className="h-4 w-4 shrink-0 text-slate-400 transition-transform duration-200 group-open:rotate-180" />
         </div>
       </summary>
 
@@ -172,7 +189,6 @@ const RFContextCard = ({ context }: { context: GeoRfContext }) => {
             <Row label="Topology" value={context.topology.replace(/_/g, ' ')} />
             <Row label="Band" value={band} />
             <Row label="Selected coverage" value={selectedCoverage} />
-            <Row label="RF source" value={context.provenance.rfParametersSource.join(' / ')} />
           </div>
           <div className="space-y-1.5">
             <Row label="Uplink" value={fmtGhz(context.uplink.frequencyGHz)} bold />
@@ -202,17 +218,74 @@ const RFContextCard = ({ context }: { context: GeoRfContext }) => {
           </div>
         </div>
 
-        <div className="rounded-md bg-white px-2 py-2 text-xs dark:bg-slate-950">
-          <div className="mb-1 flex flex-wrap items-center gap-1.5">
-            <span className="font-semibold text-slate-700 dark:text-slate-200">Public frequency data</span>
-            <SmallBadge className={matchBadgeClass(publicMatch?.status, publicMatch?.confidence)}>{matchLabel(publicMatch?.status)}</SmallBadge>
-            <SmallBadge className={confidenceBadgeClass(publicMatch?.confidence)}>{publicMatch?.confidence ?? 'UNKNOWN'}</SmallBadge>
-            {publicMatch?.source === 'LYNGSAT_NORMALIZED' && <SmallBadge className={matchBadgeClass('EXACT_MATCH')}>Public DL</SmallBadge>}
-          </div>
-          <Row label="Source" value={publicMatch?.source === 'LYNGSAT_NORMALIZED' ? 'LyngSat-derived normalized public data' : 'None'} />
-          <Row label="Matched candidate" value={context.payload.selectedTransponderName ?? context.payload.selectedTransponderNumber ?? publicMatch?.selectedCandidateId ?? '--'} />
-          <Row label="Candidate count" value={String(publicMatch?.candidateCount ?? 0)} />
-        </div>
+        {(() => {
+          const candidates = publicMatch?.candidates ?? [];
+          const selected = publicMatch?.selectedCandidateId
+            ? candidates.find((c) => c.transponder.id === publicMatch.selectedCandidateId)
+            : undefined;
+          const primary = selected ?? candidates.find((c) => c.status !== 'NO_MATCH');
+          const alternatives = candidates
+            .filter((c) => c.transponder.id !== primary?.transponder.id && c.status !== 'NO_MATCH')
+            .slice(0, 3);
+
+          return (
+            <div className="rounded-md border border-blue-100 bg-blue-50/50 px-2.5 py-2 dark:border-blue-900/40 dark:bg-blue-950/20">
+              <div className="mb-1.5 flex flex-wrap items-center gap-1.5">
+                <span className="text-[11px] font-bold uppercase tracking-wide text-blue-800 dark:text-blue-200">Indicative transponder</span>
+                <SmallBadge className={matchBadgeClass(publicMatch?.status, publicMatch?.confidence)}>
+                  {matchLabel(publicMatch?.status)}
+                </SmallBadge>
+                <SmallBadge className={confidenceBadgeClass(publicMatch?.confidence)}>
+                  {publicMatch?.confidence ?? 'UNKNOWN'}
+                </SmallBadge>
+              </div>
+              {primary ? (
+                <>
+                  <div className="grid grid-cols-[minmax(5.5rem,7rem)_minmax(0,1fr)] gap-x-3 gap-y-0.5 text-xs">
+                    <span className="text-blue-700/80 dark:text-blue-200/70">Candidate</span>
+                    <span className="font-semibold text-blue-950 dark:text-blue-50">{candidateTitle(primary)}</span>
+                    <span className="text-blue-700/80 dark:text-blue-200/70">Public plan</span>
+                    <span className="text-blue-900 dark:text-blue-100">{candidateSubtitle(primary) || '--'}</span>
+                    {primary.reasons.length > 0 && (
+                      <>
+                        <span className="text-blue-700/80 dark:text-blue-200/70">Why</span>
+                        <span className="text-blue-900 dark:text-blue-100">{primary.reasons.slice(0, 2).join(', ')}</span>
+                      </>
+                    )}
+                  </div>
+                  <p className="mt-1.5 text-[10px] italic text-blue-800/70 dark:text-blue-200/60">
+                    Indicative only — does not prove payload routing or operational use.
+                  </p>
+                  {alternatives.length > 0 && (
+                    <div className="mt-1.5">
+                      <button
+                        type="button"
+                        onClick={() => setShowAlternatives((show) => !show)}
+                        className="text-[11px] font-semibold text-blue-700 hover:text-blue-800 dark:text-blue-200 dark:hover:text-blue-100"
+                      >
+                        {showAlternatives ? 'Hide alternatives' : `${alternatives.length} alternative${alternatives.length > 1 ? 's' : ''}`}
+                      </button>
+                      {showAlternatives && (
+                        <div className="mt-1 space-y-1">
+                          {alternatives.map((candidate, index) => (
+                            <div key={`${candidate.transponder.id}-${index}`} className="flex items-center justify-between gap-2 rounded-md bg-white/70 px-2 py-1 dark:bg-slate-950/50">
+                              <span className="min-w-0 truncate text-xs text-blue-900 dark:text-blue-100">{candidateTitle(candidate)}</span>
+                              <SmallBadge className={confidenceBadgeClass(candidate.confidence)}>{candidate.confidence}</SmallBadge>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </>
+              ) : (
+                <p className="text-xs italic text-blue-900/70 dark:text-blue-100/70">
+                  No indicative transponder can be inferred from the loaded public frequency plan.
+                </p>
+              )}
+            </div>
+          );
+        })()}
 
         {warnings.length > 0 && (
           <div className="rounded-md border border-amber-200 bg-amber-50 px-2 py-2 text-[11px] text-amber-800 dark:border-amber-800/60 dark:bg-amber-950/30 dark:text-amber-200">
@@ -220,57 +293,6 @@ const RFContextCard = ({ context }: { context: GeoRfContext }) => {
             <ul className="mt-1 space-y-0.5">
               {warnings.map((warning) => <li key={warning}>- {warning}</li>)}
             </ul>
-          </div>
-        )}
-
-        {candidates.length > 0 && (
-          <div className="rounded-md border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-950">
-            <button
-              type="button"
-              onClick={() => setShowCandidates((show) => !show)}
-              className="flex w-full items-center justify-between px-2 py-2 text-left text-xs font-semibold text-slate-700 dark:text-slate-200"
-            >
-              <span>Show candidate public transponders</span>
-              <span>{showCandidates ? 'Hide' : 'Show'}</span>
-            </button>
-            {showCandidates && (
-              <div className="space-y-1 border-t border-slate-200 px-2 py-2 dark:border-slate-700">
-                {visibleCandidates.map((candidate) => {
-                  const tp = candidate.transponder;
-                  return (
-                    <div key={tp.id} className="rounded-md bg-slate-50 px-2 py-1.5 text-[11px] dark:bg-slate-900">
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="min-w-0">
-                          <div className="truncate font-semibold text-slate-700 dark:text-slate-200">
-                            {tp.transponder.publicName ?? tp.transponder.publicNumber ?? 'Public transponder'}
-                          </div>
-                          <div className="mt-0.5 text-slate-500 dark:text-slate-400">
-                            DL {fmtGhz(tp.downlink.frequencyMHz / 1000)} {tp.downlink.polarization ?? 'UNKNOWN'} · {tp.downlink.beamName ?? 'Unknown beam'}
-                          </div>
-                          <div className="mt-0.5 text-slate-500 dark:text-slate-400">
-                            Inferred UL {fmtGhz(tp.uplink.frequencyMHz ? tp.uplink.frequencyMHz / 1000 : undefined)}
-                          </div>
-                        </div>
-                        <div className="flex shrink-0 flex-col items-end gap-1">
-                          <SmallBadge className={confidenceBadgeClass(candidate.confidence)}>{candidate.score}</SmallBadge>
-                          {tp.groupedObservationCount !== undefined && <span className="text-slate-400">{tp.groupedObservationCount} obs</span>}
-                          {candidate.warnings.length > 0 && <span className="text-amber-500">Warnings</span>}
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-                {candidates.length > 5 && (
-                  <button
-                    type="button"
-                    onClick={() => setShowAllCandidates((show) => !show)}
-                    className="text-[11px] font-semibold text-blue-600 hover:text-blue-700 dark:text-blue-300"
-                  >
-                    {showAllCandidates ? 'Show top 5' : `Show ${candidates.length - 5} more`}
-                  </button>
-                )}
-              </div>
-            )}
           </div>
         )}
       </div>

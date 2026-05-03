@@ -186,7 +186,7 @@ export const matchPublicTransponders = (
       confidence: 'UNKNOWN',
       source: 'LYNGSAT_NORMALIZED',
       candidateCount: candidates.length,
-      warnings: ['No public downlink match found.', 'Public beam labels may be approximate.'],
+      warnings: [],
       candidates: candidates.slice(0, 10),
     };
   }
@@ -197,11 +197,7 @@ export const matchPublicTransponders = (
     source: 'LYNGSAT_NORMALIZED',
     candidateCount: candidates.length,
     selectedCandidateId: best.transponder.id,
-    warnings: Array.from(new Set([
-      ...best.warnings,
-      'Uplink values from public data are inferred and not operational.',
-      'Public beam labels may be approximate.',
-    ])),
+    warnings: Array.from(new Set([...best.warnings])),
     candidates: candidates.slice(0, 10),
   };
 };

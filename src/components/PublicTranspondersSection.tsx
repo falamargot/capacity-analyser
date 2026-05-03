@@ -385,7 +385,7 @@ export const PublicTranspondersSection: React.FC<PublicTranspondersSectionProps>
                 </div>
               )}
 
-              {group.items.map((item) => {
+              {group.items.map((item, itemIndex) => {
                 const evidence = getTransponderEvidenceLabel(item);
                 const confidence = getOverallConfidence(item);
                 const isSelected = selectedId === item.id;
@@ -399,7 +399,7 @@ export const PublicTranspondersSection: React.FC<PublicTranspondersSectionProps>
 
                 return (
                   <button
-                    key={item.id}
+                    key={`${item.id}-${item.downlink.frequencyMHz}-${item.downlink.polarization ?? 'unknown'}-${itemIndex}`}
                     type="button"
                     onClick={() => handleSelectTransponder(item)}
                     className={`w-full rounded-lg border text-left transition-colors ${compactMode ? 'p-2' : 'p-3'} ${
