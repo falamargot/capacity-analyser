@@ -103,9 +103,20 @@ export interface LeoRFDebugInfo {
   fsplDb: number;
   cnDb: number;
   modcod: string | null;
-  /** Physical link-budget result — no sharing, no smoothing applied. */
-  instantRfMbps: number;
+  /**
+   * RF chain throughput at the 50 MHz per-user allocation:
+   *   spectralEfficiency × RF_THROUGHPUT_BW_HZ.
+   * This is a single-carrier result — not a per-user ceiling.
+   * Displayed in the Link Budget section alongside MODCOD / C/N.
+   */
+  rfCarrierMbps: number;
   // ── Network layer pipeline ───────────────────────────────────────────────
+  /**
+   * Per-user RF ceiling: min(rfCarrier × BEAM_BW_SCALE, terminalCap).
+   * The maximum throughput this terminal can receive if it were the only
+   * active user on the beam. Every downstream pipeline stage is ≤ this value.
+   */
+  peakRfMbps: number;
   /** After dividing beam-total throughput by estimated active users (+ terminal cap). */
   afterBeamSharingMbps: number;
   /** After applying SNP elevation backhaul factor to the shared per-user value. */
@@ -163,22 +174,26 @@ export interface LEOPerformance {
 
 // ─── Link Budget panel helpers ─────────────────────────────────────────────
 
-type LimitingFactor = 'backhaul' | 'load' | 'rf' | null;
+type LimitingFactor = 'backhaul' | 'load' | 'rf' | 'terminal' | null;
 
 function detectLimitingFactor(d: LeoRFDebugInfo): LimitingFactor {
+  // Backhaul: SNP elevation reduces throughput by >25% after sharing
   const backhaulRatio = d.afterBeamSharingMbps > 0
     ? d.afterBackhaulMbps / d.afterBeamSharingMbps
     : 1;
   if (backhaulRatio < 0.75) return 'backhaul';
 
-  // Load-limited: per-user share is below the single-user RF ceiling by >20%
-  const loadRatio = d.instantRfMbps > 0
-    ? d.afterBeamSharingMbps / d.instantRfMbps
+  // Load: many concurrent users reduce per-user share >20% below single-user peak
+  const loadRatio = d.peakRfMbps > 0
+    ? d.afterBeamSharingMbps / d.peakRfMbps
     : 1;
   if (loadRatio < 0.8) return 'load';
 
-  // RF-limited: low C/N pushes into low MODCOD territory
-  if (d.cnDb < 14.5 || d.instantRfMbps < 50) return 'rf';
+  // RF: low C/N or low MODCOD (carrier below 16APSK territory)
+  if (d.cnDb < 14.5 || d.rfCarrierMbps < 50) return 'rf';
+
+  // Terminal: hardware ceiling is the active constraint (sharing result is at cap)
+  if (d.afterBeamSharingMbps >= d.terminalCapMbps * 0.97) return 'terminal';
 
   return null;
 }
@@ -195,6 +210,10 @@ const LIMITING_FACTOR_BADGE: Record<NonNullable<LimitingFactor>, { label: string
   rf: {
     label: 'RF limited',
     className: 'bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-700',
+  },
+  terminal: {
+    label: 'Terminal limited',
+    className: 'bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-700',
   },
 };
 
@@ -213,11 +232,14 @@ const PipelineStep = ({ value, dimmed = false }: { value: number; dimmed?: boole
   </div>
 );
 
-// Pipeline arrow + step label
-const PipelineArrow = ({ label }: { label: string }) => (
+// Pipeline arrow + step label; when isLimiting=false the step does not reduce throughput
+const PipelineArrow = ({ label, isLimiting = true }: { label: string; isLimiting?: boolean }) => (
   <div className="flex items-center gap-1.5 py-px pl-1">
-    <span className="text-emerald-500 dark:text-emerald-500 text-[11px] leading-none">↓</span>
-    <span className="text-[10px] text-slate-400 dark:text-slate-500 italic">{label}</span>
+    <span className={`text-[11px] leading-none ${isLimiting ? 'text-emerald-500 dark:text-emerald-400' : 'text-slate-300 dark:text-slate-600'}`}>↓</span>
+    <span className={`text-[10px] italic ${isLimiting ? 'text-slate-400 dark:text-slate-500' : 'text-slate-300 dark:text-slate-600'}`}>{label}</span>
+    {!isLimiting && (
+      <span className="text-[9px] text-slate-300 dark:text-slate-600 ml-0.5">no effect</span>
+    )}
   </div>
 );
 
@@ -226,6 +248,11 @@ const LeoRFLinkBudgetPanel = ({ d }: { d: LeoRFDebugInfo }) => {
   const limitingFactor = detectLimitingFactor(d);
   const badge = limitingFactor ? LIMITING_FACTOR_BADGE[limitingFactor] : null;
   const beamPosPercent = Math.round(Math.min(d.normalizedDistance, 1) * 100);
+
+  // Which pipeline steps actually reduce throughput (>1% drop from their input)?
+  const sharingLimiting  = d.afterBeamSharingMbps < d.peakRfMbps         * 0.99;
+  const backhaulLimiting = d.afterBackhaulMbps    < d.afterBeamSharingMbps * 0.99;
+  const handoverLimiting = d.afterHandoverMbps    < d.afterBackhaulMbps   * 0.99;
 
   return (
     <div className="space-y-3 text-xs">
@@ -268,12 +295,15 @@ const LeoRFLinkBudgetPanel = ({ d }: { d: LeoRFDebugInfo }) => {
         </div>
       </div>
 
-      {/* ── Section 2: Link Budget ─────────────────────────────────────── */}
+      {/* ── Section 2: Link Budget (physical layer) ───────────────────────── */}
       <div className="rounded-lg border border-blue-200 dark:border-blue-900/60 overflow-hidden">
         <div className="px-3 py-1.5 bg-blue-100/70 dark:bg-blue-900/30 border-b border-blue-200 dark:border-blue-900/60">
-          <span className="text-[10px] font-semibold uppercase tracking-wide text-blue-600 dark:text-blue-400">
-            Link Budget
-          </span>
+          <div className="flex items-baseline justify-between">
+            <span className="text-[10px] font-semibold uppercase tracking-wide text-blue-600 dark:text-blue-400">
+              Link Budget
+            </span>
+            <span className="text-[9px] text-blue-400/70 dark:text-blue-500/60 italic">physical layer</span>
+          </div>
         </div>
         <div className="px-3 py-2.5 bg-blue-50/40 dark:bg-blue-950/20 space-y-2.5">
           <div className="grid grid-cols-2 gap-x-6 gap-y-2">
@@ -285,15 +315,20 @@ const LeoRFLinkBudgetPanel = ({ d }: { d: LeoRFDebugInfo }) => {
               <MetricRow label="MODCOD" value={d.modcod ?? '—'} mono={false} />
             </div>
           </div>
-          {/* Instant RF throughput — highlighted */}
-          <div className="flex items-center justify-between rounded-md bg-blue-100 dark:bg-blue-900/40 px-3 py-2 border border-blue-200/60 dark:border-blue-800/40">
-            <span className="text-blue-700 dark:text-blue-300 text-[11px] font-semibold flex items-center gap-0.5">
-              Instant RF throughput
-              <SectionTooltip content="Theoretical throughput from the RF link budget before network effects. Derived from: FSPL → C/N → MODCOD selection → spectral efficiency × terminal bandwidth allocation. No beam sharing, backhaul factor, or EMA smoothing applied." />
-            </span>
-            <span className="text-blue-800 dark:text-blue-200 font-bold text-sm tabular-nums">
-              {d.instantRfMbps.toFixed(1)}{' '}
-              <span className="text-[10px] font-normal text-blue-600 dark:text-blue-400">Mbps</span>
+          {/* RF chain throughput — highlighted */}
+          <div className="rounded-md bg-blue-100 dark:bg-blue-900/40 px-3 py-2 border border-blue-200/60 dark:border-blue-800/40">
+            <div className="flex items-center justify-between">
+              <span className="text-blue-700 dark:text-blue-300 text-[11px] font-semibold flex items-center gap-0.5">
+                RF chain throughput
+                <SectionTooltip content="Throughput computed from RF link budget using a 50 MHz reference carrier (MODCOD-based). Not the full beam capacity — the beam bandwidth is shared across users via a ×5 scaling factor." />
+              </span>
+              <span className="text-blue-800 dark:text-blue-200 font-bold text-sm tabular-nums">
+                {d.rfCarrierMbps.toFixed(1)}{' '}
+                <span className="text-[10px] font-normal text-blue-600 dark:text-blue-400">Mbps</span>
+              </span>
+            </div>
+            <span className="block text-[9px] text-blue-500/70 dark:text-blue-400/50 mt-0.5">
+              MODCOD-driven · 50 MHz reference carrier
             </span>
           </div>
         </div>
@@ -302,23 +337,34 @@ const LeoRFLinkBudgetPanel = ({ d }: { d: LeoRFDebugInfo }) => {
       {/* ── Section 3: Network Layer Effects ─────────────────────────────── */}
       <div className="rounded-lg border border-emerald-200 dark:border-emerald-900/60 overflow-hidden">
         <div className="px-3 py-1.5 bg-emerald-100/70 dark:bg-emerald-900/30 border-b border-emerald-200 dark:border-emerald-900/60">
-          <span className="text-[10px] font-semibold uppercase tracking-wide text-emerald-600 dark:text-emerald-400">
-            Network Layer Effects
-          </span>
+          <div className="flex items-baseline justify-between">
+            <span className="text-[10px] font-semibold uppercase tracking-wide text-emerald-600 dark:text-emerald-400">
+              Network Layer Effects
+            </span>
+            <span className="text-[9px] text-emerald-500/60 dark:text-emerald-400/50 italic">network layer</span>
+          </div>
         </div>
         <div className="px-3 py-2.5 bg-emerald-50/40 dark:bg-emerald-950/20 space-y-0">
+          {/* Explanatory note */}
+          <p className="text-[9px] text-slate-400 dark:text-slate-500 italic pb-1.5 mb-1.5 border-b border-emerald-100 dark:border-emerald-900/40">
+            Derived from RF capacity after beam sharing, backhaul constraints and smoothing.
+          </p>
+
           {/* Throughput pipeline */}
           <div className="flex items-baseline justify-between py-0.5">
-            <span className="text-[10px] text-slate-500 dark:text-slate-400">Instant RF throughput</span>
+            <span className="text-[10px] text-slate-500 dark:text-slate-400 flex items-center gap-0.5">
+              Peak RF throughput
+              <SectionTooltip content="Estimated maximum per-user throughput if alone on the beam, scaled to full beam bandwidth and limited by terminal capability. All downstream stages are guaranteed ≤ this value." />
+            </span>
             <span className="tabular-nums font-mono text-xs text-slate-600 dark:text-slate-300">
-              {d.instantRfMbps.toFixed(1)} Mbps
+              {d.peakRfMbps.toFixed(1)} Mbps
             </span>
           </div>
-          <PipelineArrow label="÷ beam sharing" />
+          <PipelineArrow label="÷ beam sharing" isLimiting={sharingLimiting} />
           <PipelineStep value={d.afterBeamSharingMbps} dimmed />
-          <PipelineArrow label="× backhaul factor" />
+          <PipelineArrow label="× backhaul factor" isLimiting={backhaulLimiting} />
           <PipelineStep value={d.afterBackhaulMbps} dimmed />
-          <PipelineArrow label="× handover" />
+          <PipelineArrow label="× handover" isLimiting={handoverLimiting} />
           <PipelineStep value={d.afterHandoverMbps} dimmed />
           <PipelineArrow label="EMA smoothing" />
 
@@ -328,7 +374,7 @@ const LeoRFLinkBudgetPanel = ({ d }: { d: LeoRFDebugInfo }) => {
               <div className="flex items-center gap-1.5 min-w-0 flex-wrap">
                 <span className="text-emerald-700 dark:text-emerald-300 font-semibold text-[11px] flex items-center gap-0.5">
                   Final user throughput
-                  <SectionTooltip content="Estimated user-experienced throughput after beam capacity sharing, backhaul attenuation, handover transient, and EMA temporal smoothing. This value drives the Estimated Performance panel." />
+                  <SectionTooltip content="User-experienced throughput after beam capacity sharing, backhaul attenuation, handover transient, and EMA temporal smoothing. Always ≤ Peak RF throughput. This value drives the Estimated Performance panel." />
                 </span>
                 {badge && (
                   <span className={`inline-flex items-center rounded border px-1.5 py-0.5 text-[9px] font-semibold ${badge.className}`}>
@@ -520,7 +566,7 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
             title={
               <>
                 Link Budget
-                <SectionTooltip content="Structured RF and network analysis: beam geometry, RF chain (FSPL → C/N → MODCOD), and network layer effects (sharing → backhaul → handover → smoothing). Instant RF throughput is the physical link-budget result. Final user throughput is the EMA-smoothed estimate after all network effects." />
+                <SectionTooltip content="Structured RF and network analysis — physical layer: beam geometry, FSPL → C/N → MODCOD → RF chain throughput (50 MHz reference carrier). Network layer: Peak RF throughput (full beam / single user, terminal-capped) → beam sharing → backhaul → handover → EMA smoothing → Final user throughput. Each network stage is monotonically ≤ Peak RF." />
               </>
             }
             subtitle="Simulated — RF + network effects"

@@ -339,3 +339,67 @@ describe('updateHandoverState / applyHandoverDegradation — Area 4: handover', 
     expect(isInHandover).toBe(false); // not a handover, just loss of signal
   });
 });
+
+// ─── 5. Pipeline monotonicity: smoothedUser ≤ peakRfMbps ─────────────────────
+//
+// peakRfMbps = min(rfCarrier × BEAM_BW_SCALE, terminalCap)
+//   — the per-user RF ceiling when alone on the beam.
+//
+// Every downstream step (sharing → backhaul → handover → EMA) must stay ≤ this.
+
+describe('pipeline monotonicity — finalUserThroughput ≤ peakRfMbps', () => {
+  const terminalCap = 200;
+
+  it('afterBeamSharingMbps ≤ peakRfMbps for all user loads', () => {
+    const rfChainMbps = 187.5; // 32APSK 3/4 at 50 MHz
+    const beamTotal = rfChainMbps * BEAM_BW_SCALE;   // 937.5 Mbps
+    const peakRfMbps = Math.min(beamTotal, terminalCap); // 200 Mbps
+
+    for (const users of [1, 2, 3, 5, 10, 50]) {
+      const { sharedThroughputMbps } = applyBeamCapacitySharing(rfChainMbps, users, terminalCap);
+      expect(sharedThroughputMbps).toBeLessThanOrEqual(peakRfMbps);
+    }
+  });
+
+  it('full pipeline (sharing → backhaul → handover → EMA) never exceeds peakRfMbps', () => {
+    const rfChainMbps = 187.5;
+    const beamTotal = rfChainMbps * BEAM_BW_SCALE;
+    const peakRfMbps = Math.min(beamTotal, terminalCap);
+
+    for (const users of [1, 3, 5, 10]) {
+      const sharing = applyBeamCapacitySharing(rfChainMbps, users, terminalCap);
+      const afterBackhaul = sharing.sharedThroughputMbps * 0.85; // worst-case backhaul
+      const afterHandover = applyHandoverDegradation(afterBackhaul, HANDOVER_DEGRADATION_FACTOR);
+      const smoothed = smoothThroughputMbps(afterHandover, null);
+
+      expect(sharing.sharedThroughputMbps).toBeLessThanOrEqual(peakRfMbps);
+      expect(afterBackhaul).toBeLessThanOrEqual(peakRfMbps);
+      expect(afterHandover).toBeLessThanOrEqual(peakRfMbps);
+      expect(smoothed).toBeLessThanOrEqual(peakRfMbps);
+    }
+  });
+
+  it('peakRfMbps is always ≥ rfCarrierMbps (single-carrier result at 50 MHz)', () => {
+    // peakRf = min(carrier × 5, terminal) ≥ min(carrier, terminal) = rfCarrierMbps
+    for (const rfCarrierMbps of [25, 37.5, 75, 150, 187.5]) {
+      const beamTotal = rfCarrierMbps * BEAM_BW_SCALE;
+      const peakRfMbps = Math.min(beamTotal, terminalCap);
+      const rfCarrierAfterCap = Math.min(rfCarrierMbps, terminalCap);
+      expect(peakRfMbps).toBeGreaterThanOrEqual(rfCarrierAfterCap);
+    }
+  });
+
+  it('EMA smoothing preserves the monotonicity invariant across successive frames', () => {
+    const rfChainMbps = 150; // 16APSK 3/4
+    const beamTotal = rfChainMbps * BEAM_BW_SCALE;
+    const peakRfMbps = Math.min(beamTotal, terminalCap);
+    const sharing = applyBeamCapacitySharing(rfChainMbps, 5, terminalCap);
+
+    let prev: number | null = null;
+    for (let i = 0; i < 10; i++) {
+      const smoothed = smoothThroughputMbps(sharing.sharedThroughputMbps, prev);
+      expect(smoothed).toBeLessThanOrEqual(peakRfMbps);
+      prev = smoothed;
+    }
+  });
+});
