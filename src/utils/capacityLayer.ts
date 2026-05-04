@@ -7,8 +7,11 @@
  *
  * Model assumptions (OneWeb Gen-1 operational context):
  *  - Beam footprint radius: ~450 km → area ≈ 636 000 km²
- *  - Nominal beam capacity: 200 Mbps
- *  - Average session throughput: 4 Mbps → max 50 simultaneous users at full QoS
+ *  - Terminal peak throughput ceiling: 200 Mbps (NOMINAL_TERMINAL_PEAK_MBPS)
+ *    NOTE: this is NOT the shared beam capacity (~450 Mbps) or satellite aggregate (7.2 Gbps).
+ *    The model counts concurrent users relative to the terminal peak, not the beam aggregate,
+ *    which intentionally understates user count to simulate a quality-of-service scenario.
+ *  - Average session throughput: 4 Mbps → max 50 simultaneous users at full terminal QoS
  *  - Load thresholds: <70 % = NOMINAL, 70–95 % = DEGRADED, >95 % = SATURATED
  */
 
@@ -24,28 +27,41 @@ export interface BeamLoadResult {
   /** Estimated number of concurrently active user sessions in beam area (simulated) */
   estimatedActiveUsers: number;
 
-  /** Nominal maximum concurrent users at full QoS for this beam */
+  /** Nominal maximum concurrent users at full terminal QoS for this beam (simulated) */
   maxConcurrentUsers: number;
 
   /** Fraction [0, 1+] — values > 1 indicate saturation */
   beamLoadFraction: number;
   beamLoadPercent: number;
 
-  /** Nominal beam capacity in Mbps */
+  /**
+   * Terminal peak throughput ceiling used for load modelling (Mbps).
+   * This is NOMINAL_TERMINAL_PEAK_MBPS (200 Mbps), NOT the shared beam aggregate (~450 Mbps).
+   * Field name kept for backward compatibility; semantically it is the terminal peak, not beam capacity.
+   */
   beamCapacityMbps: number;
 
-  /** Estimated throughput available to a single user (simulated) */
+  /**
+   * Estimated throughput available to a single user given the simulated load (Mbps).
+   * SIMULATED — based on geographic density heuristics, not real subscriber data.
+   */
   estimatedUserThroughputMbps: number;
 
   /** Capacity status derived from load fraction */
   capacityStatus: 'NOMINAL' | 'DEGRADED' | 'SATURATED';
+
+  /** Always true — all values in this struct are simulated estimates. */
+  isSimulated: true;
 }
 
 // ─── Constants ─────────────────────────────────────────────────────────────
 
-const BEAM_CAPACITY_MBPS = 200;          // OneWeb Gen-1 nominal
+// Terminal peak throughput ceiling for load modelling (Mbps).
+// This is the single-terminal maximum, NOT the shared beam aggregate (~450 Mbps).
+// Used here to derive max concurrent users at full per-terminal QoS.
+const TERMINAL_PEAK_MBPS = 200;
 const AVG_SESSION_THROUGHPUT_MBPS = 4;   // Assumed average per session
-const MAX_CONCURRENT_USERS = Math.round(BEAM_CAPACITY_MBPS / AVG_SESSION_THROUGHPUT_MBPS); // 50
+const MAX_CONCURRENT_USERS = Math.round(TERMINAL_PEAK_MBPS / AVG_SESSION_THROUGHPUT_MBPS); // 50
 
 const LOAD_DEGRADED_THRESHOLD = 0.70;
 const LOAD_SATURATED_THRESHOLD = 0.95;
@@ -178,8 +194,8 @@ export function estimateBeamLoad(
 
   const estimatedUserThroughputMbps =
     estimatedActiveUsers > 0
-      ? Math.min(BEAM_CAPACITY_MBPS / estimatedActiveUsers, BEAM_CAPACITY_MBPS)
-      : BEAM_CAPACITY_MBPS;
+      ? Math.min(TERMINAL_PEAK_MBPS / estimatedActiveUsers, TERMINAL_PEAK_MBPS)
+      : TERMINAL_PEAK_MBPS;
 
   return {
     densityZone: zone,
@@ -188,8 +204,9 @@ export function estimateBeamLoad(
     maxConcurrentUsers: MAX_CONCURRENT_USERS,
     beamLoadFraction,
     beamLoadPercent,
-    beamCapacityMbps: BEAM_CAPACITY_MBPS,
+    beamCapacityMbps: TERMINAL_PEAK_MBPS,
     estimatedUserThroughputMbps: Math.round(estimatedUserThroughputMbps * 10) / 10,
     capacityStatus,
+    isSimulated: true as const,
   };
 }

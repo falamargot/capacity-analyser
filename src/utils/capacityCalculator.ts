@@ -1,7 +1,15 @@
 import { calculatePosition } from '../services/satelliteService';
 import { SatelliteData } from '../types/satellites';
 import { isPointInCoverage } from './coverageCalculator';
-import { STANDARD_CAPACITY_GBPS } from './leoFootprint';
+import { NOMINAL_TERMINAL_PEAK_MBPS } from '../config/oneweb';
+
+// Per-point capacity for LEO (terminal peak, not satellite aggregate).
+// 200 Mbps = NOMINAL_TERMINAL_PEAK_MBPS converted to Gbps for the shared interface.
+const LEO_TERMINAL_PEAK_GBPS = NOMINAL_TERMINAL_PEAK_MBPS / 1000; // 0.2 Gbps
+
+// Placeholder GEO capacity per satellite (not changed in this phase — GEO is out of scope).
+// This is a rough nominal figure; real GEO capacity varies per transponder plan.
+const GEO_NOMINAL_CAPACITY_GBPS = 6;
 
 // Earth radius constant
 export const EARTH_RADIUS_KM = 6371;
@@ -68,13 +76,29 @@ export const compute3DDistanceKm = (
 
 export interface TimeCapacityData {
   time: string;
+  /** Capacity in Gbps. For LEO: terminal peak (0.2 Gbps max), not satellite aggregate. */
   capacity: number;
-} 
+  /** True when a LEO satellite is providing coverage at this time slot. */
+  hasLeoCoverage: boolean;
+}
 
 export interface RealTimeCapacityData {
+  /**
+   * Gbps visible from this point.
+   * For LEO: terminal peak throughput (≤ 0.2 Gbps), not satellite aggregate (7.2 Gbps).
+   * For GEO: nominal per-satellite beam capacity (placeholder — not a link budget value).
+   * Do NOT display this as "network capacity" — it is a per-terminal estimate for LEO.
+   */
   totalCapacity: number;
   coveredSatellites: SatelliteData[];
-  elevationAngle?: number; // Elevation angle in degrees
+  elevationAngle?: number;
+  /**
+   * True when the LEO contribution to totalCapacity is a terminal peak estimate
+   * (not the satellite aggregate). Always true for OneWeb when a point is selected.
+   */
+  leoCapacityIsTerminalPeak: boolean;
+  /** True when at least one OneWeb satellite currently covers this point. */
+  hasLeoCoverage: boolean;
 }
 
 // Calculate elevation angle between ground point and satellite
@@ -143,22 +167,42 @@ export const calculateRealTimeCapacity = (
   selectedSatellite: SatelliteData | null,
 ): RealTimeCapacityData => {
   if (selectedSatellite) {
-    // For selected satellite, use double-zone logic based on elevation angle
+    // Satellite with an invalid propagated position must not contribute coverage.
+    if (selectedSatellite.position.isPositionValid === false) {
+      return {
+        totalCapacity: 0,
+        coveredSatellites: [],
+        leoCapacityIsTerminalPeak: false,
+        hasLeoCoverage: false,
+      };
+    }
+
     if (selectedPoint) {
       const coverageClasses = isPointInCoverage(selectedPoint, selectedSatellite, null);
       const elevationAngle = calculateElevationAngle(selectedPoint, selectedSatellite);
-      const capacity = coverageClasses.includes('user') ? STANDARD_CAPACITY_GBPS : 0;
-      
+      const inCoverage = coverageClasses.includes('user');
+      const isLeo = selectedSatellite.orbitType === 'LEO';
+
+      // For LEO: terminal peak (0.2 Gbps), not satellite aggregate (7.2 Gbps).
+      // For GEO: placeholder nominal capacity.
+      const capacity = inCoverage
+        ? (isLeo ? LEO_TERMINAL_PEAK_GBPS : GEO_NOMINAL_CAPACITY_GBPS)
+        : 0;
+
       return {
         totalCapacity: capacity,
-        coveredSatellites: [selectedSatellite],
-        elevationAngle
+        coveredSatellites: inCoverage ? [selectedSatellite] : [],
+        elevationAngle,
+        leoCapacityIsTerminalPeak: isLeo,
+        hasLeoCoverage: isLeo && inCoverage,
       };
     } else {
-      // No point selected, use satellite's max throughput
+      // No point selected — show satellite aggregate for context (clearly not terminal throughput).
       return {
         totalCapacity: selectedSatellite.capacity.maxThroughput,
-        coveredSatellites: [selectedSatellite]
+        coveredSatellites: [selectedSatellite],
+        leoCapacityIsTerminalPeak: false,
+        hasLeoCoverage: selectedSatellite.orbitType === 'LEO',
       };
     }
   }
@@ -166,11 +210,18 @@ export const calculateRealTimeCapacity = (
   if (!selectedPoint || !satellites) {
     return {
       totalCapacity: 0,
-      coveredSatellites: []
+      coveredSatellites: [],
+      leoCapacityIsTerminalPeak: false,
+      hasLeoCoverage: false,
     };
   }
 
-  const coveredSatellites = satellites.filter((satellite) =>
+  // Exclude satellites whose SGP4 propagation failed.
+  const validSatellites = satellites.filter(
+    (s) => s.position.isPositionValid !== false
+  );
+
+  const coveredSatellites = validSatellites.filter((satellite) =>
     isPointInCoverage(selectedPoint, satellite, null).includes('user')
   );
 
@@ -180,16 +231,19 @@ export const calculateRealTimeCapacity = (
   const onewebCovered = coveredSatellites.filter((s) => s.type === 'ONEWEB');
   const geoCovered = coveredSatellites.filter((s) => s.type !== 'ONEWEB');
 
-  const onewebCapacity = onewebCovered.length > 0 ? STANDARD_CAPACITY_GBPS : 0;
+  // LEO capacity: terminal peak only — satellite aggregate (7.2 Gbps) would be misleading here.
+  const onewebCapacity = onewebCovered.length > 0 ? LEO_TERMINAL_PEAK_GBPS : 0;
   const geoCapacity = geoCovered.reduce((sum, satellite) => {
     return isPointInCoverage(selectedPoint, satellite, null).includes('user')
-      ? sum + STANDARD_CAPACITY_GBPS
+      ? sum + GEO_NOMINAL_CAPACITY_GBPS
       : sum;
   }, 0);
 
   return {
     totalCapacity: onewebCapacity + geoCapacity,
     coveredSatellites,
+    leoCapacityIsTerminalPeak: true,
+    hasLeoCoverage: onewebCovered.length > 0,
   };
 };
 
@@ -204,29 +258,38 @@ export const calculateCapacityOverTime = (
   const now = new Date();
   const data: TimeCapacityData[] = [];
 
-  // Calculate capacity for each hour
-  for (let min = 0; min < 1440; min+=15) {
+  // Calculate capacity for each 15-minute slot.
+  for (let min = 0; min < 1440; min += 15) {
     const timestamp = new Date(now);
     timestamp.setHours(Math.floor(min / 60), min % 60, 0, 0);
 
-    // OneWeb (bent-pipe): one satellite serves at a time — presence = STANDARD_CAPACITY_GBPS once.
-    // GEO: independent beams/spectrum, each counted separately.
-    const onewebVisible = satellites
-      .filter((s) => s.type === 'ONEWEB')
-      .some((s) => isPointInCoverage(selectedPoint, s, calculatePosition(s, timestamp)).includes('user'));
+    // OneWeb (bent-pipe): one satellite serves at a time.
+    // Capacity contribution = terminal peak (0.2 Gbps), NOT satellite aggregate (7.2 Gbps).
+    const validOneweb = satellites.filter(
+      (s) => s.type === 'ONEWEB' && s.position.isPositionValid !== false
+    );
+    const onewebVisible = validOneweb.some((s) => {
+      const pos = calculatePosition(s, timestamp);
+      if (pos.isPositionValid === false) return false;
+      return isPointInCoverage(selectedPoint, s, pos).includes('user');
+    });
 
+    // GEO: independent beams/spectrum, each counted separately.
     const geoCapacity = satellites
-      .filter((s) => s.type !== 'ONEWEB')
+      .filter((s) => s.type !== 'ONEWEB' && s.position.isPositionValid !== false)
       .reduce((sum, satellite) => {
-        const coverageClasses = isPointInCoverage(selectedPoint, satellite, calculatePosition(satellite, timestamp));
-        return coverageClasses.includes('user') ? sum + STANDARD_CAPACITY_GBPS : sum;
+        const pos = calculatePosition(satellite, timestamp);
+        if (pos.isPositionValid === false) return sum;
+        const coverageClasses = isPointInCoverage(selectedPoint, satellite, pos);
+        return coverageClasses.includes('user') ? sum + GEO_NOMINAL_CAPACITY_GBPS : sum;
       }, 0);
 
-    const totalCapacity = (onewebVisible ? STANDARD_CAPACITY_GBPS : 0) + geoCapacity;
+    const totalCapacity = (onewebVisible ? LEO_TERMINAL_PEAK_GBPS : 0) + geoCapacity;
 
     data.push({
       time: `${Math.floor(min / 60).toString().padStart(2, '0')}:${(min % 60).toString().padStart(2, '0')}`,
-      capacity: totalCapacity
+      capacity: totalCapacity,
+      hasLeoCoverage: onewebVisible,
     });
   }
 

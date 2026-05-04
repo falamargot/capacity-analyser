@@ -29,6 +29,12 @@ interface PosResult {
   lng: number;
   alt: number;
   sampleTimeMs: number;
+  /**
+   * False when SGP4 propagation failed (bad TLE, decayed orbit, numerical divergence).
+   * Consumers must exclude satellites with isValid === false from all rendering and
+   * coverage/connectivity logic — never treat (0, 0, 0) as a real position.
+   */
+  isValid: boolean;
 }
 
 export interface WorkerInput {
@@ -66,12 +72,15 @@ ctx.addEventListener('message', (event: MessageEvent<WorkerInput>) => {
           lng: satellite.degreesLong(geo.longitude),
           alt: geo.height,
           sampleTimeMs: timestamp,
+          isValid: true,
         };
       }
     } catch {
-      // Propagation errors (decayed orbit, bad TLE) → return zero position.
+      // Propagation errors (decayed orbit, bad TLE) fall through to the invalid sentinel.
     }
-    return { id, lat: 0, lng: 0, alt: 0, sampleTimeMs: timestamp };
+    // Do NOT use (0, 0, 0) as a real position — that is the Gulf of Guinea.
+    // Mark as invalid so consumers skip this satellite entirely.
+    return { id, lat: 0, lng: 0, alt: 0, sampleTimeMs: timestamp, isValid: false };
   });
 
   ctx.postMessage({ positions } satisfies WorkerOutput);

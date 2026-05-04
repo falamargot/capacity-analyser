@@ -175,12 +175,13 @@ const LinkBudgetSummaryCard = ({
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
-              <span className={`rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${tone.className}`}>
-                {tone.label}
-              </span>
-              <span className="inline-flex items-center text-[10px] font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">
+              <span className="inline-flex items-center text-sm font-semibold" style={{ color: '#2563eb' }}>
                 Link Budget
                 <DirectionPill dir={linkBudgetDirectionLabel} />
+                <span className={`rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${tone.className}`}>
+                  {tone.label}
+                </span>
+                <SectionTooltip content="RF link budget analysis showing end-to-end link margin and throughput. Status: Healthy (margin ≥ 2 dB), Marginal (0-2 dB), Blocked (negative margin), or No budget (insufficient data)." />
               </span>
             </div>
             <h4 className="mt-1.5 truncate text-sm font-semibold text-slate-950 dark:text-slate-50">

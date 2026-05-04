@@ -189,9 +189,14 @@ function isPointInPolygon(point: { lat: number; lng: number }, polygon: number[]
 export function isPointInCoverage(
   point: { lat: number; lng: number; } | null,
   satellite: SatelliteData,
-  satellitePosition: { lat: number; lng: number; alt: number; } | null
+  satellitePosition: { lat: number; lng: number; alt: number; isPositionValid?: boolean } | null
 ): CoverageClass[] {
   if (!point) return [];
+
+  // A satellite whose SGP4 propagation failed must not contribute any coverage.
+  // isPositionValid === false means the position is (0,0,0) — the Gulf of Guinea — not real.
+  if (satellite.position.isPositionValid === false) return [];
+  if (satellitePosition !== null && satellitePosition.isPositionValid === false) return [];
 
   // Check if satellite is in GSO exclusion zone (blanking zone)
   // If in blanking zone, satellite cannot provide any connectivity

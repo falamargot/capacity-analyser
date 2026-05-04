@@ -42,9 +42,6 @@ export const BACKHAUL_ELEVATION_DEG = 15; // Backhaul/visibility zone
 export const STANDARD_RADIUS_KM = 688;  // 55° elevation — footprintRadiusKm(1200, 55)
 export const BACKHAUL_RADIUS_KM = 2500; // 15° elevation
 
-// Capacity values per zone
-export const STANDARD_CAPACITY_GBPS = 6;
-
 /**
  * Returns the ground-distance radius (km) at which the beam power
  * has dropped to `powerLevelDb` relative to boresight (beam center).

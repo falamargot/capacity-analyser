@@ -21,10 +21,13 @@ import {
   TOTAL_BEAMS,
   BEAM_SPACING_KM,
   NOMINAL_BEAM_RADIUS_KM,
+  NOMINAL_BEAM_SEMI_MAJOR_KM,
   PERIPHERAL_BEAM_INDICES,
   NOMINAL_EIRP_DBW,
   G_MAX_DBI,
-  NOMINAL_BEAM_CAPACITY_MBPS,
+  NOMINAL_TERMINAL_PEAK_MBPS,
+  SATELLITE_AGGREGATE_CAPACITY_GBPS,
+  SHARED_BEAM_AGGREGATE_CAPACITY_MBPS,
   MAX_PAYLOAD_POWER,
   KA_BACKHAUL_CONSUMPTION,
   AVAILABLE_USER_POWER,
@@ -32,16 +35,20 @@ import {
   STANDBY_BEAM_POWER,
   NOMINAL_BEAM_POWER,
 } from '../config/oneweb';
+import { computeRfChainThroughput, type RfChainResult } from './leoLinkBudget';
 
 export {
   LEO_ALTITUDE_KM,
   TOTAL_BEAMS,
   BEAM_SPACING_KM,
   NOMINAL_BEAM_RADIUS_KM,
+  NOMINAL_BEAM_SEMI_MAJOR_KM,
   PERIPHERAL_BEAM_INDICES,
   NOMINAL_EIRP_DBW,
   G_MAX_DBI,
-  NOMINAL_BEAM_CAPACITY_MBPS,
+  NOMINAL_TERMINAL_PEAK_MBPS,
+  SATELLITE_AGGREGATE_CAPACITY_GBPS,
+  SHARED_BEAM_AGGREGATE_CAPACITY_MBPS,
   MAX_PAYLOAD_POWER,
   KA_BACKHAUL_CONSUMPTION,
   AVAILABLE_USER_POWER,
@@ -344,7 +351,8 @@ export function getEffectiveBeamRadiusKm(
 
 /**
  * Returns the semi-major axis (along-track) radius scaled by the same factors.
- * The nominal semi-major is 635 km (half of 1270 km beam length).
+ * Nominal = NOMINAL_BEAM_SEMI_MAJOR_KM (800 km) — canonical value from oneweb.ts,
+ * aligned with rendering (oneWebCombCore) and connectivity (rfConnectivity).
  */
 export function getEffectiveBeamMajorAxisKm(
   beamIndex: number,
@@ -352,12 +360,11 @@ export function getEffectiveBeamMajorAxisKm(
   healthFactor: number,
   weather: WeatherCondition
 ): number {
-  const NOMINAL_MAJOR_KM = 635;
   const scanLossLinear = getScanLossLinear(beamIndex);
   const healthScale = Math.sqrt(Math.max(0, healthFactor));
   const boostLinear = Math.sqrt(getPowerBoostLinear(activeBeamCount, weather));
   const weatherLinear = Math.sqrt(weatherDbToLinear(weather));
-  return NOMINAL_MAJOR_KM * scanLossLinear * healthScale * boostLinear * weatherLinear;
+  return NOMINAL_BEAM_SEMI_MAJOR_KM * scanLossLinear * healthScale * boostLinear * weatherLinear;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -390,9 +397,13 @@ export interface BeamPerformanceOutput {
   effectiveBeamRadiusKm: number;
   /** Power at user location relative to boresight (dB, always ≤ 0) */
   powerAtUserDb: number;
-  /** Delivered throughput to user (Mbps) */
+  /**
+   * Simulated terminal throughput (Mbps) — already capped to NOMINAL_TERMINAL_PEAK_MBPS.
+   * Derived from the RF chain: FSPL → C/N → MODCOD → spectral_eff × BW_terminal.
+   * Label: "Simulated link budget — Simplified RF model — Estimated (no real telemetry)"
+   */
   deliveredThroughputMbps: number;
-  /** Throughput ratio [0, 1] */
+  /** Throughput ratio [0, 1] = deliveredThroughputMbps / NOMINAL_TERMINAL_PEAK_MBPS */
   throughputRatio: number;
   /** Scan loss at this beam (dB) */
   scanLossDb: number;
@@ -404,6 +415,18 @@ export interface BeamPerformanceOutput {
   weatherAttenuationDb: number;
   /** Link quality zone */
   linkQuality: 'BORESIGHT' | 'STRICT' | 'STANDARD' | 'EXTENDED' | 'NO_SIGNAL';
+  // ── RF chain outputs (Step 1–4) ──────────────────────────────────────────
+  /** Slant range from satellite to beam center (km) */
+  slantRangeKm: number;
+  /** Free space path loss at beam center (dB) */
+  fsplDb: number;
+  /**
+   * Carrier-to-noise ratio including all impairments (dB).
+   * Label: "Simulated link budget — Estimated (no real telemetry)"
+   */
+  cnDb: number;
+  /** Selected MODCOD name (null = link loss) */
+  selectedModcod: string | null;
 }
 
 /**
@@ -461,16 +484,27 @@ export function getBeamPerformance(input: BeamPerformanceInput): BeamPerformance
   const powerAtUserDb = 10 * Math.log10(Math.max(antennaLinearPower, 1e-10))
     + weatherAttenuationDb; // weather reduces signal at user
 
-  // Throughput ratio from SNR roll-off table
-  const throughputRatio = throughputRatioFromPowerDb(powerAtUserDb);
+  // ── RF chain throughput (Steps 1–4) — replaces heuristic scaling ────────
+  // Old heuristic (removed):
+  //   const eirpDeltaDb = effectiveEirpDb - NOMINAL_EIRP_DBW;
+  //   const eirpLinearScale = Math.pow(10, eirpDeltaDb / 10);
+  //   const deliveredThroughputMbps = NOMINAL_TERMINAL_PEAK_MBPS * throughputRatio * eirpLinearScale;
+  //
+  // New: FSPL → C/N → MODCOD → spectral_efficiency × BW_terminal
+  // powerAtUserDb carries both off-boresight signal loss AND weather attenuation.
+  const rfChain: RfChainResult = computeRfChainThroughput(
+    effectiveEirpDb,
+    beamIndex,
+    powerAtUserDb,
+    NOMINAL_TERMINAL_PEAK_MBPS,
+  );
 
-  // Nominal delivered Mbps is already scaled by EIRP gains vs nominal
-  // EIRP delta from nominal determines available capacity ceiling
-  const eirpDeltaDb = effectiveEirpDb - NOMINAL_EIRP_DBW; // can be positive (boost) or negative
-  const eirpLinearScale = Math.pow(10, eirpDeltaDb / 10);
-  const deliveredThroughputMbps = NOMINAL_BEAM_CAPACITY_MBPS * throughputRatio * eirpLinearScale;
+  const deliveredThroughputMbps = rfChain.deliveredThroughputMbps;
+  const throughputRatio = NOMINAL_TERMINAL_PEAK_MBPS > 0
+    ? deliveredThroughputMbps / NOMINAL_TERMINAL_PEAK_MBPS
+    : 0;
 
-  // Link quality zone classification
+  // Link quality zone classification (unchanged — still driven by powerAtUserDb)
   let linkQuality: BeamPerformanceOutput['linkQuality'];
   if (powerAtUserDb > -3) linkQuality = 'BORESIGHT';
   else if (powerAtUserDb > -10) linkQuality = 'STRICT';
@@ -482,13 +516,17 @@ export function getBeamPerformance(input: BeamPerformanceInput): BeamPerformance
     effectiveEirpDb,
     effectiveBeamRadiusKm,
     powerAtUserDb,
-    deliveredThroughputMbps: Math.max(0, deliveredThroughputMbps),
+    deliveredThroughputMbps,
     throughputRatio,
     scanLossDb,
     powerBoostDb,
     healthDb,
     weatherAttenuationDb,
     linkQuality,
+    slantRangeKm: rfChain.slantRangeKm,
+    fsplDb: rfChain.fsplDb,
+    cnDb: rfChain.cnDb,
+    selectedModcod: rfChain.modcod?.name ?? null,
   };
 }
 
@@ -502,6 +540,38 @@ export interface BeamCharacteristics {
   scanAngleDeg: number;
   scanLossDb: number;
   nominalRadius: number;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Terminal hardware cap — apply at the display layer, not inside the model
+// ─────────────────────────────────────────────────────────────────────────────
+
+export interface TerminalCapResult {
+  /** Throughput after clamping to the terminal hardware maximum (Mbps) */
+  cappedMbps: number;
+  /** True when the model output exceeded the terminal hardware limit */
+  wasTerminalLimited: boolean;
+}
+
+/**
+ * Clamp simulated throughput to what the selected terminal hardware can receive.
+ *
+ * The 5-pillar model returns the beam-side delivered rate. A mobile terminal
+ * capped at 100 Mbps cannot exceed that regardless of beam conditions.
+ * Call this in the UI layer where the terminal profile is known.
+ *
+ * @param deliveredMbps  Raw model output from getBeamPerformance / calculateLink
+ * @param terminalMaxMbps  Hardware ceiling from the selected terminal profile
+ */
+export function capDeliveredToTerminal(
+  deliveredMbps: number,
+  terminalMaxMbps: number
+): TerminalCapResult {
+  const cappedMbps = Math.min(deliveredMbps, terminalMaxMbps);
+  return {
+    cappedMbps: Math.max(0, cappedMbps),
+    wasTerminalLimited: deliveredMbps > terminalMaxMbps,
+  };
 }
 
 /** Returns display-ready characteristics for each beam (scan angle, loss, etc.) */

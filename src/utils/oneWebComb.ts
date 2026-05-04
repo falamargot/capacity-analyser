@@ -2,6 +2,7 @@ import { Cartesian3, Matrix3, JulianDate, Color, Math as CesiumMath, Quaternion,
 import * as satellite from 'satellite.js';
 import { EARTH_RADIUS_KM } from './capacityCalculator';
 import { getBeamBaseColor } from '../config/beamVisualization';
+import { GSO_EXCLUSION_HALF_ANGLE_DEG } from '../config/oneweb';
 import type { SimulationStateSnapshot } from '../types/simulation';
 import { calculateCombGeometryLatLng } from './oneWebCombCore';
 export { calculateCombGeometryLatLng } from './oneWebCombCore';
@@ -253,12 +254,10 @@ export function calculateGSOAvoidanceAngle(
         timeMs,
         pitchAngleRad,
         isGSOAvoidance: Math.abs(pitchAngleRad) > 0.01, // Seuil de détection d'activité GSO Protection
-        // GSO Exclusion Zone: hard blanking when satellite latitude ≤ 5°.
-        // At 1200 km altitude, a satellite within ±5° of the equator can illuminate the GEO arc
-        // (35 786 km, 0° lat) at a separation angle below ITU-R S.1003 safe margins.
-        // ±2° was too narrow: the effective exclusion geometry extends to ~±5° depending on
-        // beam-pointing direction and GEO arc elevation from the satellite.
-        isBlankingZone: Math.abs(satLatDeg) <= 5.0,
+        // GSO exclusion: angular separation between satellite geocentric position and
+        // the equatorial GEO belt = |geocentric latitude| of the satellite.
+        // Threshold = GSO_EXCLUSION_HALF_ANGLE_DEG (canonical constant from oneweb.ts).
+        isBlankingZone: Math.abs(satLatDeg) <= GSO_EXCLUSION_HALF_ANGLE_DEG,
         satLatDeg,
         isMovingNorth
     };

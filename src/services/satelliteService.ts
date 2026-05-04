@@ -392,20 +392,41 @@ export const resolveCoverageFileId = (
 
 // ─── Position Calculation ─────────────────────────────────────────────────────
 
-export function calculatePosition(sat: any, date: Date = new Date()) {
-  const positionAndVelocity = satellite.propagate(sat.satrec, date);
-  const gmst = satellite.gstime(date);
+/**
+ * Propagate a satellite to a given date using SGP4.
+ *
+ * Returns isPositionValid: false on any propagation failure (bad TLE, decayed orbit,
+ * numerical divergence). Do NOT treat a result with lat/lng/alt = 0 as a valid
+ * position — (0°N, 0°E) is the Gulf of Guinea, not an error sentinel.
+ */
+export function calculatePosition(
+  sat: any,
+  date: Date = new Date()
+): { lat: number; lng: number; alt: number; isPositionValid: boolean } {
+  if (!sat.satrec) return { lat: 0, lng: 0, alt: 0, isPositionValid: false };
 
-  if (positionAndVelocity && positionAndVelocity.position && typeof positionAndVelocity.position !== 'boolean') {
-    const geoPosition = satellite.eciToGeodetic(positionAndVelocity.position, gmst);
-    return {
-      lat: satellite.degreesLat(geoPosition.latitude),
-      lng: satellite.degreesLong(geoPosition.longitude),
-      alt: geoPosition.height
-    };
+  try {
+    const positionAndVelocity = satellite.propagate(sat.satrec, date);
+    const gmst = satellite.gstime(date);
+
+    if (positionAndVelocity && positionAndVelocity.position && typeof positionAndVelocity.position !== 'boolean') {
+      const geoPosition = satellite.eciToGeodetic(positionAndVelocity.position, gmst);
+      const lat = satellite.degreesLat(geoPosition.latitude);
+      const lng = satellite.degreesLong(geoPosition.longitude);
+      const alt = geoPosition.height;
+
+      // Malformed satrec objects can produce NaN/Infinity from satellite.js without throwing.
+      if (!isFinite(lat) || !isFinite(lng) || !isFinite(alt)) {
+        return { lat: 0, lng: 0, alt: 0, isPositionValid: false };
+      }
+
+      return { lat, lng, alt, isPositionValid: true };
+    }
+  } catch {
+    // Propagation failure (decayed TLE, numerical divergence) — fall through.
   }
 
-  return { lat: 0, lng: 0, alt: 0 };
+  return { lat: 0, lng: 0, alt: 0, isPositionValid: false };
 }
 
 function attachSatelliteId<T extends { type: string; features: any[] }>(
@@ -470,7 +491,7 @@ function buildSatelliteData(
     orbitType,
     opsStatus,
     satrec: sat.satrec,
-    position: calculatePosition(sat),
+    position: { ...calculatePosition(sat) },
     referenced_coverages: coverageData || { type: 'FeatureCollection' as const, features: [] },
     coverages: coverageData
       ? coverageData.features.map((feature, index) => ({

@@ -25,6 +25,13 @@ export interface SatelliteData {
     x?: number;
     y?: number;
     z?: number;
+    /**
+     * False when the SGP4 propagation failed (bad TLE, decayed orbit, numerical divergence).
+     * Satellites with isPositionValid === false must be excluded from all visibility,
+     * coverage, connectivity, and rendering checks.
+     * Undefined is treated as valid (legacy positions before this field was added).
+     */
+    isPositionValid?: boolean;
   };
   coverageReferencePosition?: {
     lat: number;

@@ -17,6 +17,11 @@ import {
     WEATHER_ATTENUATION_DB,
     type WeatherCondition,
 } from './realisticSimulation';
+import {
+    NOMINAL_BEAM_SEMI_MAJOR_KM,
+    NOMINAL_BEAM_SEMI_MINOR_KM,
+    GSO_EXCLUSION_HALF_ANGLE_DEG,
+} from '../config/oneweb';
 import type { SimulationStateSnapshot } from '../types/simulation';
 
 // Inlined to avoid transitive browser-API imports (capacityCalculator → satelliteService)
@@ -146,10 +151,14 @@ function computeGSOAvoidance(orbit: OrbitState): GSOState {
         }
     }
 
+    // GSO exclusion: angular separation between satellite geocentric position and
+    // the equatorial GEO belt = |geocentric latitude| of the satellite.
+    // Below GSO_EXCLUSION_HALF_ANGLE_DEG all beams are blanked.
+    const geoAngularSeparationDeg = Math.abs(satLatDeg);
     return {
         pitchAngleRad,
         isGSOAvoidance: Math.abs(pitchAngleRad) > 0.01,
-        isBlankingZone: Math.abs(satLatDeg) <= 5.0,
+        isBlankingZone: geoAngularSeparationDeg <= GSO_EXCLUSION_HALF_ANGLE_DEG,
         satLatDeg,
         isMovingNorth,
     };
@@ -275,8 +284,8 @@ export function calculateCombGeometryLatLng(
             continue;
         }
 
-        const semiMajorKm = (1600 / 2) * beamScale;
-        const semiMinorKm = (102 / 2) * beamScale;
+        const semiMajorKm = NOMINAL_BEAM_SEMI_MAJOR_KM * beamScale;
+        const semiMinorKm = NOMINAL_BEAM_SEMI_MINOR_KM * beamScale;
         const center = beamCenters[i];
 
         const polygon: Array<[number, number]> = [];

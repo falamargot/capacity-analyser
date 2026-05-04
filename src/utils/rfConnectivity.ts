@@ -11,6 +11,7 @@ import {
     WEATHER_ATTENUATION_DB,
     type WeatherCondition,
 } from './realisticSimulation';
+import { NOMINAL_BEAM_SEMI_MAJOR_KM, NOMINAL_BEAM_SEMI_MINOR_KM } from '../config/oneweb';
 import type { SimulationStateSnapshot } from '../types/simulation';
 
 // Type alias for the GSO state returned by calculateGSOAvoidanceAngle
@@ -32,6 +33,11 @@ export function hasRFConnectivity(
     simulationState: SimulationStateSnapshot
 ): boolean {
     if (!satellite || satellite.type !== 'ONEWEB') {
+        return false;
+    }
+
+    // Satellites with a failed SGP4 propagation must not appear to provide coverage.
+    if (satellite.position.isPositionValid === false) {
         return false;
     }
 
@@ -116,8 +122,13 @@ function isUserInActiveBeam(
 /**
  * Checks if a point is inside a polygon defined by Cartesian3 coordinates.
  * Uses ray-casting algorithm with Cesium Cartographic conversion.
- * This is distinct from geoUtils.isPointInPolygon which operates on [lng, lat][] rings;
- * this variant accepts Cesium Cartesian3[] as used by calculateCombGeometry output.
+ *
+ * Antimeridian fix: all polygon longitudes are normalised to within 180° of the
+ * query point's longitude before the ray-cast. This prevents the discontinuous
+ * jump from +179° to −179° that breaks the crossing test when a beam polygon
+ * straddles the ±180° meridian.
+ *
+ * This variant accepts Cesium Cartesian3[] as used by calculateCombGeometry output.
  */
 function isPointInPolygon(
     point: { lat: number; lng: number },
@@ -127,9 +138,17 @@ function isPointInPolygon(
         return false;
     }
 
-    let inside = false;
-    const pointLng = point.lng;
     const pointLat = point.lat;
+    const pointLng = point.lng;
+
+    // Normalise a polygon longitude to within 180° of the query longitude.
+    // This keeps the polygon ring continuous across the antimeridian.
+    const normLng = (lng: number): number => {
+        const diff = lng - pointLng;
+        return pointLng + ((diff + 180) % 360 + 360) % 360 - 180;
+    };
+
+    let inside = false;
 
     for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
         const cartographicI = Cartographic.fromCartesian(polygon[i]);
@@ -137,10 +156,14 @@ function isPointInPolygon(
 
         if (!cartographicI || !cartographicJ) continue;
 
-        const lngI = cartographicI.longitude * 180 / Math.PI;
+        const lngI = normLng(cartographicI.longitude * 180 / Math.PI);
         const latI = cartographicI.latitude * 180 / Math.PI;
-        const lngJ = cartographicJ.longitude * 180 / Math.PI;
+        const lngJ = normLng(cartographicJ.longitude * 180 / Math.PI);
         const latJ = cartographicJ.latitude * 180 / Math.PI;
+
+        // Skip degenerate edges (NaN guards)
+        if (!Number.isFinite(lngI) || !Number.isFinite(latI) ||
+            !Number.isFinite(lngJ) || !Number.isFinite(latJ)) continue;
 
         const intersect = ((latI > pointLat) !== (latJ > pointLat))
             && (pointLng < (lngJ - lngI) * (pointLat - latI) / (latJ - latI) + lngI);
@@ -324,6 +347,21 @@ export interface LinkBudgetOutput {
     linkQuality: 'BORESIGHT' | 'STRICT' | 'STANDARD' | 'EXTENDED' | 'NO_SIGNAL';
 }
 
+/** RF chain debug fields exposed from getBeamPerformance output (no physics modification). */
+export interface LeoBeamDebugInfo {
+    fsplDb: number;
+    cnDb: number;
+    selectedModcod: string | null;
+    slantRangeKm: number;
+}
+
+/** Result of findBestConnectedBeamInfo: best beam index + how many beams were candidates. */
+export interface BestConnectedBeamInfo {
+    beamIndex: number;
+    /** Number of active beam polygons that contained the user position. */
+    candidateCount: number;
+}
+
 export interface CurrentLeoBeamLinkEstimate {
     beamIndex: number;
     activeBeamCount: number;
@@ -334,6 +372,8 @@ export interface CurrentLeoBeamLinkEstimate {
     limitingElevationDeg: number;
     backhaulFactor: number;
     deliveredDownlinkMbps: number;
+    /** RF chain internals for developer diagnostics. Never shown in normal UI. */
+    debugInfo: LeoBeamDebugInfo;
 }
 
 function getBeamEllipseGeometry(args: {
@@ -354,11 +394,19 @@ function getBeamEllipseGeometry(args: {
     const beamScale = thresholdScaleFactor * scanScale * powerBoostScale * healthScale * weatherScale;
 
     return {
-        semiMajorAxisKm: (1600 / 2) * beamScale,
-        semiMinorAxisKm: (102 / 2) * beamScale,
+        semiMajorAxisKm: NOMINAL_BEAM_SEMI_MAJOR_KM * beamScale,
+        semiMinorAxisKm: NOMINAL_BEAM_SEMI_MINOR_KM * beamScale,
     };
 }
 
+/**
+ * Elliptical normalised distance from beam centre, using great-circle arc lengths
+ * for both axes. Replaces the previous flat-Earth (cos-lat) approximation that
+ * produced arbitrarily large cross-track errors at high latitudes (|lat| > 60°).
+ *
+ * Along-track axis (major): north/south great-circle arc (same longitude).
+ * Cross-track axis (minor): east/west great-circle arc at the beam centre latitude.
+ */
 function getEllipticalNormalizedDistance(
     userPosition: { lat: number; lng: number },
     beamCenterPosition: { lat: number; lng: number },
@@ -367,11 +415,21 @@ function getEllipticalNormalizedDistance(
 ): number {
     if (semiMajorAxisKm <= 0 || semiMinorAxisKm <= 0) return 1;
 
-    const kmPerDegLat = 111.32;
-    const latRad = (beamCenterPosition.lat * Math.PI) / 180;
-    const kmPerDegLng = kmPerDegLat * Math.cos(latRad);
-    const dxKm = (userPosition.lng - beamCenterPosition.lng) * kmPerDegLng;
-    const dyKm = (userPosition.lat - beamCenterPosition.lat) * kmPerDegLat;
+    // Along-track: great-circle arc along the meridian through the beam centre
+    const dyKm = haversineDistanceKm(
+        { lat: userPosition.lat, lng: beamCenterPosition.lng },
+        beamCenterPosition,
+    ) * Math.sign(userPosition.lat - beamCenterPosition.lat);
+
+    // Cross-track: great-circle arc at constant latitude of beam centre.
+    // Normalise longitude difference to (−180, +180] to handle antimeridian.
+    const rawDeltaLng = userPosition.lng - beamCenterPosition.lng;
+    const deltaDeltaLng = ((rawDeltaLng + 180) % 360 + 360) % 360 - 180;
+    const dxKm = haversineDistanceKm(
+        { lat: beamCenterPosition.lat, lng: beamCenterPosition.lng + deltaDeltaLng },
+        beamCenterPosition,
+    ) * Math.sign(deltaDeltaLng);
+
     const r2 = ((dxKm * dxKm) / (semiMajorAxisKm * semiMajorAxisKm))
         + ((dyKm * dyKm) / (semiMinorAxisKm * semiMinorAxisKm));
 
@@ -544,6 +602,12 @@ export function estimateCurrentLeoBeamLink(args: {
             limitingElevationDeg,
             backhaulFactor,
             deliveredDownlinkMbps: beamLink.deliveredThroughputMbps * backhaulFactor,
+            debugInfo: {
+                fsplDb: perf.fsplDb,
+                cnDb: perf.cnDb,
+                selectedModcod: perf.selectedModcod,
+                slantRangeKm: perf.slantRangeKm,
+            },
         };
     } catch (error) {
         console.warn('Error estimating current LEO beam link:', error);
@@ -593,6 +657,8 @@ export function getBestBeamLink(
  * Returns null if the user is not inside any active beam.
  *
  * C-02 fix: calculateGSOAvoidanceAngle called once; result passed to isUserInActiveBeam.
+ * Best-beam fix: when multiple active beams cover the user, the one with the lowest
+ * normalized elliptical distance (best SNR proxy) is selected instead of the first hit.
  */
 export function findConnectedBeamIndex(
     userPosition: { lat: number; lng: number },
@@ -600,36 +666,110 @@ export function findConnectedBeamIndex(
     time: JulianDate,
     simulationState: SimulationStateSnapshot
 ): number | null {
+    return findBestConnectedBeamInfo(userPosition, satellite, time, simulationState)?.beamIndex ?? null;
+}
+
+/**
+ * Select the best beam from a set of candidate indices that all contain the user.
+ *
+ * Ranking (in order, consistent with selectBestServingCandidate):
+ *   1. Lowest normalized elliptical distance from beam boresight (best SNR proxy)
+ *   2. Physics-aware beam radius used for normalization (scan loss + health + weather)
+ *
+ * Since all candidate beams belong to the same satellite, elevation is identical
+ * across candidates and is not a differentiator here.
+ *
+ * Exported so it can be tested in isolation without Cesium geometry dependencies.
+ */
+export function selectBestBeamIndexByNormalizedDistance(
+    userPosition: { lat: number; lng: number },
+    candidateBeamIndices: number[],
+    beamCenters: ReadonlyArray<{ lat: number; lng: number }>,
+    simulationState: Pick<SimulationStateSnapshot, 'beamHealthByIndex' | 'weatherCondition'>,
+): number {
+    if (candidateBeamIndices.length === 1) return candidateBeamIndices[0];
+
+    let bestIdx = candidateBeamIndices[0];
+    let bestNormDist = Infinity;
+
+    for (const beamIndex of candidateBeamIndices) {
+        const center = beamCenters[beamIndex];
+        if (!center) continue;
+        const distKm = haversineDistanceKm(userPosition, center);
+        const healthFactor = simulationState.beamHealthByIndex.get(beamIndex) ?? 1.0;
+        // activeBeamCount=16: constant across all candidates on same satellite → does not
+        // affect relative ranking; power boost cancels in the normalizedDistance ratio.
+        const radiusKm = getPhysicsAwareBeamRadius(
+            beamIndex,
+            16,
+            healthFactor,
+            simulationState.weatherCondition,
+        );
+        const normDist = radiusKm > 0 ? distKm / radiusKm : Infinity;
+        if (normDist < bestNormDist) {
+            bestNormDist = normDist;
+            bestIdx = beamIndex;
+        }
+    }
+
+    return bestIdx;
+}
+
+/**
+ * Like findConnectedBeamIndex but also returns the number of candidate beams that
+ * contained the user position — useful for debug/display and for avoiding a second
+ * traversal in callers that need both pieces of information.
+ *
+ * Returns null when the user is not covered by any active beam.
+ */
+export function findBestConnectedBeamInfo(
+    userPosition: { lat: number; lng: number },
+    satellite: SatelliteData,
+    time: JulianDate,
+    simulationState: SimulationStateSnapshot,
+): BestConnectedBeamInfo | null {
     if (!satellite || satellite.type !== 'ONEWEB' || !satellite.satrec) return null;
 
     try {
         // FAST PATH: below-horizon check
         const elevation = calculateElevationAngle(userPosition, satellite);
-        if (elevation < 0) {
-            return null;
-        }
+        if (elevation < 0) return null;
 
         // C-02: single SGP4 propagation
         const gsoState = calculateGSOAvoidanceAngle(satellite.satrec, time);
         const { isBlankingZone, isGSOAvoidance, satLatDeg } = gsoState;
 
         if (isBlankingZone) return null;
-        if (simulationState.coveragePolicy.type === "SERVICE_ZONE") return null; // No individual beams in this mode
+        if (simulationState.coveragePolicy.type === 'SERVICE_ZONE') return null;
 
         const beamPolygons = calculateCombGeometry(satellite.satrec, time, simulationState);
         if (!beamPolygons || beamPolygons.length === 0) return null;
 
+        // Collect all active beam polygons that contain the user
+        const coveringBeams: number[] = [];
         for (let beamIndex = 0; beamIndex < beamPolygons.length; beamIndex++) {
-            // M-01 fix: isBeamActive imported from oneWebComb (canonical)
             if (!isBeamActive(beamIndex, isBlankingZone, isGSOAvoidance, satLatDeg, simulationState.hsBeams)) continue;
             if (isPointInPolygon(userPosition, beamPolygons[beamIndex])) {
-                return beamIndex; // Beams ordered 0 (North) → 15 (South)
+                coveringBeams.push(beamIndex);
             }
         }
 
-        return null;
+        if (coveringBeams.length === 0) return null;
+
+        // Single covering beam — return immediately, no ranking needed
+        if (coveringBeams.length === 1) {
+            return { beamIndex: coveringBeams[0], candidateCount: 1 };
+        }
+
+        // Multiple beams cover the user — select best by normalized boresight distance
+        const beamCenters = calculateCombBeamCenters(satellite.satrec, time);
+        const bestIdx = beamCenters
+            ? selectBestBeamIndexByNormalizedDistance(userPosition, coveringBeams, beamCenters, simulationState)
+            : coveringBeams[0]; // defensive fallback when beam centers unavailable
+
+        return { beamIndex: bestIdx, candidateCount: coveringBeams.length };
     } catch (error) {
-        console.warn('Error finding connected beam index:', error);
+        console.warn('Error finding best connected beam:', error);
         return null;
     }
 }
