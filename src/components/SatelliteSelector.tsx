@@ -10,6 +10,10 @@ interface SatelliteSelectorProps {
   satelliteScope: SatelliteScope;
 }
 
+const getGeoOrbitalLongitude = (satellite: SatelliteData): number => (
+  satellite.coverageReferencePosition?.lng ?? satellite.position.lng
+);
+
 const SatelliteSelector: React.FC<SatelliteSelectorProps> = ({
   satellites,
   onSelect,
@@ -24,8 +28,16 @@ const SatelliteSelector: React.FC<SatelliteSelectorProps> = ({
     return satellites.filter(sat => sat.orbitType === satelliteScope);
   }, [satellites, satelliteScope]);
 
-  // Sort satellites alphabetically by name
-  const sortedSatellites = [...filteredSatellites].sort((a, b) => a.name.localeCompare(b.name));
+  const sortedSatellites = React.useMemo(() => (
+    [...filteredSatellites].sort((a, b) => {
+      if (a.orbitType === 'GEO' && b.orbitType === 'GEO') {
+        const positionDelta = getGeoOrbitalLongitude(b) - getGeoOrbitalLongitude(a);
+        return positionDelta || a.name.localeCompare(b.name);
+      }
+
+      return a.name.localeCompare(b.name);
+    })
+  ), [filteredSatellites]);
 
   return (
     <div className="relative min-w-0 flex-1">

@@ -252,7 +252,15 @@ const getInitialDisplayDefaults = (savedSizeScale: number): InitialDisplayDefaul
 };
 
 const App: React.FC = () => {
-  const { coveragePolicy, failedSnps, beamHealthFactors, hsBeamsSet, weatherCondition, setWeatherCondition } = useSimulation();
+  const {
+    coveragePolicy,
+    failedSnps,
+    beamHealthFactors,
+    hsBeamsSet,
+    weatherCondition,
+    setWeatherCondition,
+    showInactiveSatellites,
+  } = useSimulation();
   const initialViewportSnapshot = getViewportSnapshot();
   const initialSavedSizeScale = typeof window !== 'undefined'
     ? parseFloat(localStorage.getItem('globeSizeScale') ?? '')
@@ -579,11 +587,11 @@ const App: React.FC = () => {
 
   // Filter satellites based on satellite scope
   const filteredSatellites = useMemo(() => {
-    if (satelliteScope === 'ALL') {
-      return satellites;
-    }
-    return satellites.filter(sat => sat.orbitType === satelliteScope);
-  }, [satellites, satelliteScope]);
+    return satellites.filter((sat) => {
+      if (!showInactiveSatellites && sat.opsStatus !== 'operational') return false;
+      return satelliteScope === 'ALL' || sat.orbitType === satelliteScope;
+    });
+  }, [satellites, satelliteScope, showInactiveSatellites]);
 
   // Pre-indexed satellite Map — used for O(1) lookups throughout the component.
   // Rebuilds on every satellites update (2s), but replaces multiple O(n) find() calls.
@@ -1517,6 +1525,8 @@ const App: React.FC = () => {
     } else {
       clearSelection();
       setManualGeoCoverageVisibility({ satelliteId: null, keys: [] });
+      setPointB(null);
+      setIsPointBPlacementArmed(false);
     }
     setSelectedMoon(false);
     setSelectedAircraft(null);
@@ -1787,7 +1797,7 @@ const App: React.FC = () => {
 
   // Handle geographic point click (earth-based analysis)
   // In GEO Mesh / Point-to-Point, Shift+click sets Point B.
-  // Any plain click sets Point A and clears Point B.
+  // Plain clicks set Point A without disturbing Point B in dual-point modes.
   const handlePointClick = useCallback((lat: number, lng: number, shiftKey: boolean) => {
     const supportsSecondaryPoint =
       satelliteScope !== 'LEO' &&
@@ -1801,7 +1811,7 @@ const App: React.FC = () => {
       return;
     }
 
-    // Plain click → set Point A, clear Point B and other selections
+    // Plain click → set Point A and clear other entity selections.
     setIsPointBPlacementArmed(false);
     setSelectedMoon(false);
     setSelectedAircraft(null);
@@ -1809,7 +1819,9 @@ const App: React.FC = () => {
     setSelectedGateway(null);
     setInspectedSNP(null);
     setSelectedIss(false);
-    setPointB(null);
+    if (!supportsSecondaryPoint) {
+      setPointB(null);
+    }
     setSelectedUplinkKey(null);
     setSelectedDownlinkKey(null);
     selectTarget('point', { lat, lng });
@@ -2737,7 +2749,7 @@ const App: React.FC = () => {
                               </div>
                               <div className="mt-2.5">
                                 <SatelliteSelector
-                                  satellites={satellites}
+                                  satellites={filteredSatellites}
                                   onSelect={handleSatelliteSelectFromUI}
                                   selectedSatellite={selectedSatellite}
                                   satelliteScope={satelliteScope}
@@ -3118,7 +3130,7 @@ const App: React.FC = () => {
             </div>
 
             <SatelliteSelector
-              satellites={satellites}
+              satellites={filteredSatellites}
               onSelect={(sat) => {
                 handleSatelliteSelectFromUI(sat);
                 setIsSatelliteModalOpen(false);
@@ -3596,7 +3608,7 @@ const App: React.FC = () => {
           <CommandPalette
             isOpen={isCommandPaletteOpen}
             onClose={handleCloseCommandPalette}
-            satellites={satellites}
+            satellites={filteredSatellites}
             aircraft={airTraffic.aircraft}
             vessels={maritimeTraffic.vessels}
             anchorRef={commandPaletteSearchRef}

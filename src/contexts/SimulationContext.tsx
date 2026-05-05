@@ -18,6 +18,7 @@ export type { WeatherCondition };
 
 interface SimulationState {
   coveragePolicy: CoveragePolicy;
+  showInactiveSatellites: boolean;
   weatherCondition: WeatherCondition;
   beamHealthFactors: BeamHealthData[];
   failedSnps: Set<string>;
@@ -28,6 +29,7 @@ interface SimulationState {
 
 type SimulationAction =
   | { type: 'SET_COVERAGE_POLICY'; payload: CoveragePolicy }
+  | { type: 'SET_SHOW_INACTIVE_SATELLITES'; payload: boolean }
   | { type: 'SET_WEATHER'; payload: WeatherCondition }
   | { type: 'SET_BEAM_HEALTH'; beamIndex: number; healthFactor: number }
   | { type: 'RESET_BEAM_HEALTH' }
@@ -42,6 +44,9 @@ function simulationReducer(state: SimulationState, action: SimulationAction): Si
   switch (action.type) {
     case 'SET_COVERAGE_POLICY':
       return { ...state, coveragePolicy: action.payload };
+
+    case 'SET_SHOW_INACTIVE_SATELLITES':
+      return { ...state, showInactiveSatellites: action.payload };
 
     case 'SET_WEATHER':
       return { ...state, weatherCondition: action.payload };
@@ -101,6 +106,7 @@ function getInitialState(): SimulationState {
 
   return {
     coveragePolicy,
+    showInactiveSatellites: false,
     weatherCondition: 'CLEAR',
     beamHealthFactors: DEFAULT_BEAM_HEALTH.map((b) => ({ ...b })),
     failedSnps: new Set(),
@@ -114,6 +120,8 @@ interface SimulationContextType {
   // Coverage policy (legacy)
   coveragePolicy: CoveragePolicy;
   setCoveragePolicy: (value: CoveragePolicy) => void;
+  showInactiveSatellites: boolean;
+  setShowInactiveSatellites: (value: boolean) => void;
 
   // Pillar 5: Weather
   weatherCondition: WeatherCondition;
@@ -143,6 +151,8 @@ interface SimulationContextType {
 const SimulationContext = createContext<SimulationContextType>({
   coveragePolicy:         coverageModeToPolicy(DEFAULT_COVERAGE_MODE),
   setCoveragePolicy:      () => {},
+  showInactiveSatellites: false,
+  setShowInactiveSatellites: () => {},
   weatherCondition:       'CLEAR',
   setWeatherCondition:    () => {},
   weatherLabel:           'Clear Sky',
@@ -169,6 +179,7 @@ export const SimulationProvider: React.FC<{ children: ReactNode }> = ({ children
 
   const {
     coveragePolicy,
+    showInactiveSatellites,
     weatherCondition,
     beamHealthFactors,
     failedSnps,
@@ -178,6 +189,9 @@ export const SimulationProvider: React.FC<{ children: ReactNode }> = ({ children
   // ── Stable action dispatchers ──────────────────────────────────────────
   const setCoveragePolicy  = useCallback((value: CoveragePolicy) =>
     dispatch({ type: 'SET_COVERAGE_POLICY', payload: value }), []);
+
+  const setShowInactiveSatellites = useCallback((value: boolean) =>
+    dispatch({ type: 'SET_SHOW_INACTIVE_SATELLITES', payload: value }), []);
 
   const setWeatherCondition = useCallback((value: WeatherCondition) =>
     dispatch({ type: 'SET_WEATHER', payload: value }), []);
@@ -222,6 +236,8 @@ export const SimulationProvider: React.FC<{ children: ReactNode }> = ({ children
   const contextValue = useMemo(() => ({
     coveragePolicy,
     setCoveragePolicy,
+    showInactiveSatellites,
+    setShowInactiveSatellites,
     weatherCondition,
     setWeatherCondition,
     weatherLabel,
@@ -238,7 +254,7 @@ export const SimulationProvider: React.FC<{ children: ReactNode }> = ({ children
     resetBeamHs,
     hsBeamsSet,
   }), [
-    coveragePolicy, setCoveragePolicy,
+    coveragePolicy, setCoveragePolicy, showInactiveSatellites, setShowInactiveSatellites,
     weatherCondition, setWeatherCondition, weatherLabel, weatherAttenuationDb,
     beamHealthFactors, setBeamHealthFactor, resetBeamHealth, getBeamHealthFactor,
     failedSnps, toggleSnpFailure, resetFailedSnps,
