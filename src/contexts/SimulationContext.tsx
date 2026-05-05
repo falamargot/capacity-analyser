@@ -9,6 +9,7 @@ import {
   WEATHER_ATTENUATION_DB,
   TOTAL_BEAMS,
 } from '../utils/realisticSimulation';
+import { coverageModeToPolicy, DEFAULT_COVERAGE_MODE } from '../utils/coverageMode';
 
 // Re-export so consumers import from a single place
 export type { WeatherCondition };
@@ -85,7 +86,7 @@ function simulationReducer(state: SimulationState, action: SimulationAction): Si
 // ── Initial state ──────────────────────────────────────────────────────────
 
 function getInitialState(): SimulationState {
-  let coveragePolicy: CoveragePolicy = { type: 'DB_THRESHOLD', thresholdDb: -10 };
+  let coveragePolicy: CoveragePolicy = coverageModeToPolicy(DEFAULT_COVERAGE_MODE);
 
   if (typeof window !== 'undefined') {
     const legacyThreshold = localStorage.getItem('beamThresholdDb');
@@ -140,7 +141,7 @@ interface SimulationContextType {
 }
 
 const SimulationContext = createContext<SimulationContextType>({
-  coveragePolicy:         { type: 'DB_THRESHOLD', thresholdDb: -10 },
+  coveragePolicy:         coverageModeToPolicy(DEFAULT_COVERAGE_MODE),
   setCoveragePolicy:      () => {},
   weatherCondition:       'CLEAR',
   setWeatherCondition:    () => {},

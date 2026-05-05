@@ -4,7 +4,12 @@
  */
 
 import React from 'react';
-import { getRadiusAtPowerLevel, type CoveragePolicy } from '../utils/leoFootprint';
+import { type CoveragePolicy } from '../utils/leoFootprint';
+import {
+  getCoverageModeDescription,
+  getCoverageModeFromPolicy,
+  getCoverageModeLabel,
+} from '../utils/coverageMode';
 import { getBeamFrequency, getBeamBaseColor, FREQUENCY_REUSE } from '../config/beamVisualization';
 import {
   type BeamHealthData,
@@ -461,11 +466,12 @@ interface CoveragePolicyDisplayProps {
 
 export const CoveragePolicyDisplay: React.FC<CoveragePolicyDisplayProps> = ({ policy }) => {
   const isServiceZone = policy.type === 'SERVICE_ZONE';
+  const mode = getCoverageModeFromPolicy(policy);
 
   return (
     <div className="mb-4">
       <h3 className="text-lg font-semibold mb-2 text-gray-900 dark:text-gray-100">
-        Coverage Policy
+        Service Eligibility
       </h3>
       <div className="bg-gray-50 dark:bg-slate-800/50 rounded-lg p-4 border border-gray-100 dark:border-slate-700">
         {isServiceZone ? (
@@ -489,7 +495,7 @@ export const CoveragePolicyDisplay: React.FC<CoveragePolicyDisplayProps> = ({ po
               <span className="font-medium text-gray-900 dark:text-gray-100">Circular</span>
             </div>
             <div className="text-xs text-gray-500 dark:text-gray-400 mt-3 p-2 bg-white dark:bg-slate-900 rounded border border-gray-200 dark:border-slate-700">
-              <strong>Simple circular footprint.</strong> Connectivity is based on a simple distance check with 37° minimum elevation. No individual beam calculation required.
+              <strong>Service-zone eligibility.</strong> This legacy mode uses a circular service boundary and does not change physical LEO beam geometry.
             </div>
           </div>
         ) : (
@@ -497,19 +503,13 @@ export const CoveragePolicyDisplay: React.FC<CoveragePolicyDisplayProps> = ({ po
             <div className="flex items-center justify-between">
               <span className="text-sm text-gray-600 dark:text-gray-400">Mode:</span>
               <span className="px-2 py-1 rounded-full text-xs font-medium bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-200 border border-blue-200 dark:border-blue-800">
-                Threshold-based
+                {getCoverageModeLabel(mode)}
               </span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-600 dark:text-gray-400">Threshold:</span>
+              <span className="text-sm text-gray-600 dark:text-gray-400">Beam geometry:</span>
               <span className="font-medium text-gray-900 dark:text-gray-100">
-                {policy.thresholdDb} dB
-              </span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-600 dark:text-gray-400">Beam radius:</span>
-              <span className="font-medium text-gray-900 dark:text-gray-100">
-                ~{Math.round(getRadiusAtPowerLevel(policy.thresholdDb))} km
+                Fixed
               </span>
             </div>
             <div className="flex items-center justify-between">
@@ -519,11 +519,11 @@ export const CoveragePolicyDisplay: React.FC<CoveragePolicyDisplayProps> = ({ po
               </span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-600 dark:text-gray-400">Coverage model:</span>
-              <span className="font-medium text-gray-900 dark:text-gray-100">Beam-based</span>
+              <span className="text-sm text-gray-600 dark:text-gray-400">Eligibility:</span>
+              <span className="font-medium text-gray-900 dark:text-gray-100">RF/service cutoff</span>
             </div>
             <div className="text-xs text-gray-500 dark:text-gray-400 mt-3 p-2 bg-white dark:bg-slate-900 rounded border border-gray-200 dark:border-slate-700">
-              <strong>Individual beam calculation.</strong> Connectivity requires user to be inside one of the 16 active beams with power ≥ {policy.thresholdDb} dB.
+              <strong>{getCoverageModeDescription(mode)}</strong> Physical beam contours stay fixed; this setting only changes service eligibility.
             </div>
           </div>
         )}
