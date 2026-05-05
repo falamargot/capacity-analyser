@@ -151,9 +151,11 @@ interface SatelliteDetailsProps {
   selectedGeoMission?: string | null;
   selectedGeoCoverageName?: string | null;
   selectedGeoBeamId?: string | null;
+  visibleGeoCoverageKeys?: string[];
   onSelectGeoMission?: (mission: string | null) => void;
   onSelectGeoCoverage?: (coverageName: string | null) => void;
   onSelectGeoBeam?: (coverageName: string, beamId: string | null) => void;
+  onVisibleGeoCoverageKeysChange?: (keys: string[]) => void;
   onSnpClick?: (snpName: string) => void;
   compactDesktop?: boolean;
   externalHeader?: boolean;
@@ -175,9 +177,11 @@ const SatelliteDetails: React.FC<SatelliteDetailsProps> = ({
   selectedGeoMission = null,
   selectedGeoCoverageName = null,
   selectedGeoBeamId = null,
+  visibleGeoCoverageKeys,
   onSelectGeoMission,
   onSelectGeoCoverage,
   onSelectGeoBeam,
+  onVisibleGeoCoverageKeysChange,
   onSnpClick,
   compactDesktop = false,
   externalHeader = false,
@@ -335,6 +339,68 @@ const SatelliteDetails: React.FC<SatelliteDetailsProps> = ({
       }))
       .sort((a, b) => a.label.localeCompare(b.label, undefined, { numeric: true }));
   }, [selectedSatellite]);
+
+  const effectiveVisibleGeoCoverageKeys = visibleGeoCoverageKeys ?? geoCoverageByMission.map((coverage) => coverage.key);
+  const visibleGeoCoverageKeySet = useMemo(
+    () => new Set(effectiveVisibleGeoCoverageKeys),
+    [effectiveVisibleGeoCoverageKeys]
+  );
+  const [expandedGeoCoverageState, setExpandedGeoCoverageState] = useState<{
+    satelliteId: string | null;
+    keys: string[];
+  }>({ satelliteId: null, keys: [] });
+  const effectiveExpandedGeoCoverageKeys = expandedGeoCoverageState.satelliteId === selectedSatellite.id
+    ? expandedGeoCoverageState.keys
+    : [];
+  const expandedGeoCoverageKeySet = useMemo(
+    () => new Set(effectiveExpandedGeoCoverageKeys),
+    [effectiveExpandedGeoCoverageKeys]
+  );
+
+  const updateVisibleGeoCoverageKeys = (keys: string[]) => {
+    onVisibleGeoCoverageKeysChange?.(Array.from(new Set(keys)));
+  };
+
+  const setGeoCoverageExpanded = (coverageKey: string, expanded: boolean) => {
+    setExpandedGeoCoverageState((current) => {
+      const currentKeys = current.satelliteId === selectedSatellite.id ? current.keys : [];
+      const nextKeys = expanded
+        ? [...currentKeys, coverageKey]
+        : currentKeys.filter((key) => key !== coverageKey);
+
+      return {
+        satelliteId: selectedSatellite.id,
+        keys: Array.from(new Set(nextKeys)),
+      };
+    });
+  };
+
+  const setVisibleGeoCoverageGroup = (mode: 'all' | 'none' | 'uplink' | 'downlink') => {
+    if (mode === 'all') {
+      updateVisibleGeoCoverageKeys(geoCoverageByMission.map((coverage) => coverage.key));
+      return;
+    }
+
+    if (mode === 'none') {
+      updateVisibleGeoCoverageKeys([]);
+      return;
+    }
+
+    updateVisibleGeoCoverageKeys(
+      geoCoverageByMission
+        .filter((coverage) => (mode === 'uplink' ? coverage.isUplink : !coverage.isUplink))
+        .map((coverage) => coverage.key)
+    );
+  };
+
+  const toggleVisibleGeoCoverage = (coverageKey: string, checked: boolean) => {
+    if (checked) {
+      updateVisibleGeoCoverageKeys([...effectiveVisibleGeoCoverageKeys, coverageKey]);
+      return;
+    }
+
+    updateVisibleGeoCoverageKeys(effectiveVisibleGeoCoverageKeys.filter((key) => key !== coverageKey));
+  };
 
   const isGeoCoverageFiltered = selectedSatellite.type === 'EUTELSAT' && (
     selectedGeoCoverageName !== null || selectedGeoBeamId !== null
@@ -759,39 +825,68 @@ const SatelliteDetails: React.FC<SatelliteDetailsProps> = ({
           {/* Coverage Areas - only for GEO satellites */}
           {selectedSatellite.type === 'EUTELSAT' && isOperational && (
             <div className="mb-4">
-              <h3 className="text-lg font-semibold mb-2 text-gray-900 dark:text-gray-100 flex items-center">Coverage Areas<SectionTooltip content="GEO satellite coverage footprints. Click a coverage to display all its contours on the map; click a specific contour to isolate it." /></h3>
+              <h3 className="text-lg font-semibold mb-2 text-gray-900 dark:text-gray-100 flex items-center">Coverage Areas<SectionTooltip content="GEO satellite coverage footprints. Use checkboxes to display zero, one, or multiple coverages on the map. Each selected coverage renders all of its contours." /></h3>
               <div className="bg-gray-50 dark:bg-slate-800/50 rounded-lg p-4 border border-gray-100 dark:border-slate-700">
                 {geoCoverageByMission.length > 0 ? (
                   <div className="space-y-2" data-geo-coverage-list="true">
+                    <div className="mb-3 flex flex-wrap items-center gap-1.5">
+                      {([
+                        ['downlink', 'Downlink'],
+                        ['uplink', 'Uplink'],
+                        ['all', 'All'],
+                        ['none', 'None'],
+                      ] as const).map(([mode, label]) => (
+                        <button
+                          key={mode}
+                          type="button"
+                          onClick={() => setVisibleGeoCoverageGroup(mode)}
+                          className="rounded-md border border-gray-200 bg-white px-2 py-1 text-[11px] font-semibold text-gray-600 transition hover:border-blue-300 hover:text-blue-700 dark:border-slate-700 dark:bg-slate-900/70 dark:text-slate-300 dark:hover:border-blue-600 dark:hover:text-blue-300"
+                        >
+                          {label}
+                        </button>
+                      ))}
+                      <span className="ml-auto text-[11px] font-medium text-gray-500 dark:text-gray-400">
+                        {effectiveVisibleGeoCoverageKeys.length}/{geoCoverageByMission.length}
+                      </span>
+                    </div>
                     {geoCoverageByMission.map((coverage, coverageIndex) => {
                       const coverageHasSelectedBeam = coverage.contours.some((c) => c.id === selectedGeoBeamId);
                       const isCoverageSelected = selectedGeoCoverageName === coverage.key;
-                      const isCoverageActive = isCoverageSelected || coverageHasSelectedBeam;
+                      const isCoverageVisible = visibleGeoCoverageKeySet.has(coverage.key);
+                      const isCoverageActive = isCoverageVisible || isCoverageSelected || coverageHasSelectedBeam;
+                      const isCoverageExpanded = expandedGeoCoverageKeySet.has(coverage.key);
                       return (
                         <details
                           key={`${coverage.key}-${coverageIndex}`}
-                          open={isCoverageActive}
+                          open={isCoverageExpanded}
+                          onToggle={(event) => {
+                            setGeoCoverageExpanded(coverage.key, event.currentTarget.open);
+                          }}
                           className="group/coverage"
                         >
                           <summary className="cursor-pointer list-none text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center gap-1.5">
                             <span className="shrink-0 text-blue-500 dark:text-blue-400 group-open/coverage:rotate-90 transition-transform">▶</span>
-                            <button
-                              type="button"
+                            <label
                               onClick={(event) => {
-                                event.preventDefault();
                                 event.stopPropagation();
-                                if (isCoverageSelected && !coverageHasSelectedBeam) {
-                                  return;
-                                }
-                                onSelectGeoCoverage?.(coverage.key);
                               }}
-                              className={`flex-1 text-left hover:underline ${isCoverageActive
+                              className={`flex flex-1 cursor-pointer items-center gap-2 text-left ${isCoverageActive
                                 ? 'text-blue-700 dark:text-blue-300 font-semibold'
                                 : 'text-gray-700 dark:text-gray-300'
                               }`}
                             >
+                              <input
+                                type="checkbox"
+                                checked={isCoverageVisible}
+                                onClick={(event) => event.stopPropagation()}
+                                onChange={(event) => {
+                                  event.stopPropagation();
+                                  toggleVisibleGeoCoverage(coverage.key, event.currentTarget.checked);
+                                }}
+                                className="h-3.5 w-3.5 shrink-0 rounded border-gray-300 text-blue-600 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-900"
+                              />
                               {coverage.label}
-                            </button>
+                            </label>
                             <span className={`shrink-0 text-[10px] font-semibold uppercase tracking-[0.1em] px-1 py-0.5 rounded ${
                               coverage.isUplink
                                 ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400'
@@ -815,9 +910,7 @@ const SatelliteDetails: React.FC<SatelliteDetailsProps> = ({
                                   <button
                                     type="button"
                                     onClick={() => {
-                                      if (isContourSelected) {
-                                        return;
-                                      }
+                                      toggleVisibleGeoCoverage(coverage.key, true);
                                       onSelectGeoBeam?.(coverage.key, contour.id);
                                     }}
                                     className={`text-left font-mono hover:underline ${isContourSelected

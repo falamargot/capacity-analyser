@@ -73,6 +73,7 @@ interface CoverageLayerProps {
   selectedCoverage?: CandidateCoverage | null;
   selectedUplinkCoverage?: CandidateCoverage | null;
   selectedDownlinkCoverage?: CandidateCoverage | null;
+  visibleCoverageKeys?: string[] | null;
   onLegendItemsChange?: (items: GeoCoverageLegendItem[]) => void;
   highlightedLegendItemKey?: string | null;
 }
@@ -654,12 +655,17 @@ const toRenderContour = (
 
 const buildSatelliteOverviewContours = (
   satellite: SatelliteData,
-  meshIndex: Map<string, PrebuiltCoverageMesh> | null
+  meshIndex: Map<string, PrebuiltCoverageMesh> | null,
+  visibleCoverageKeys: Set<string> | null
 ): RenderContour[] => {
   const coverageGroups = new Map<string, Coverage[]>();
 
   for (const coverage of satellite.coverages) {
     const coverageKey = getCoverageGroupId(coverage);
+    if (visibleCoverageKeys && !visibleCoverageKeys.has(coverageKey)) {
+      continue;
+    }
+
     const group = coverageGroups.get(coverageKey) ?? [];
     group.push(coverage);
     coverageGroups.set(coverageKey, group);
@@ -735,7 +741,8 @@ const resolveRenderContours = (
   selectedCoverage: CandidateCoverage | null,
   selectedUplinkCoverage: CandidateCoverage | null,
   selectedDownlinkCoverage: CandidateCoverage | null,
-  meshIndex: Map<string, PrebuiltCoverageMesh> | null
+  meshIndex: Map<string, PrebuiltCoverageMesh> | null,
+  visibleCoverageKeys: Set<string> | null
 ): RenderContour[] => {
   if (selection.type === 'none') {
     return [];
@@ -743,15 +750,17 @@ const resolveRenderContours = (
 
   if (selection.type === 'satellite') {
     const satellite = getSatelliteById(satellites, selection.satelliteId);
-    return satellite ? buildSatelliteOverviewContours(satellite, meshIndex) : [];
+    return satellite ? buildSatelliteOverviewContours(satellite, meshIndex, visibleCoverageKeys) : [];
   }
 
   if (selection.type === 'coverage') {
+    if (visibleCoverageKeys && !visibleCoverageKeys.has(selection.coverageId)) return [];
     const satellite = getSatelliteById(satellites, selection.satelliteId);
     return satellite ? buildCoverageContours(satellite, selection.coverageId, meshIndex, null) : [];
   }
 
   if (selection.type === 'contour') {
+    if (visibleCoverageKeys && !visibleCoverageKeys.has(selection.coverageId)) return [];
     const satellite = getSatelliteById(satellites, selection.satelliteId);
     return satellite ? buildCoverageContours(satellite, selection.coverageId, meshIndex, selection.contourId) : [];
   }
@@ -917,6 +926,7 @@ const CoverageLayer: React.FC<CoverageLayerProps> = ({
   selectedCoverage = null,
   selectedUplinkCoverage = null,
   selectedDownlinkCoverage = null,
+  visibleCoverageKeys = null,
   onLegendItemsChange,
   highlightedLegendItemKey = null,
 }) => {
@@ -932,8 +942,12 @@ const CoverageLayer: React.FC<CoverageLayerProps> = ({
   } | null>(null);
   const geometryLod: CoverageGeometryLod = 'medium';
   const selectionRenderSignature = useMemo(
-    () => getSelectionRenderSignature(selection, selectedCoverage, selectedUplinkCoverage, selectedDownlinkCoverage),
-    [selection, selectedCoverage, selectedUplinkCoverage, selectedDownlinkCoverage]
+    () => `${getSelectionRenderSignature(selection, selectedCoverage, selectedUplinkCoverage, selectedDownlinkCoverage)}::visible:${visibleCoverageKeys?.join('|') ?? 'all'}`,
+    [selection, selectedCoverage, selectedUplinkCoverage, selectedDownlinkCoverage, visibleCoverageKeys]
+  );
+  const visibleCoverageKeySet = useMemo(
+    () => (visibleCoverageKeys ? new Set(visibleCoverageKeys) : null),
+    [visibleCoverageKeys]
   );
   const relevantSatelliteId = useMemo(() => {
     if (selection.type === 'satellite' || selection.type === 'coverage' || selection.type === 'contour') {
@@ -966,9 +980,10 @@ const CoverageLayer: React.FC<CoverageLayerProps> = ({
       selectedCoverage,
       selectedUplinkCoverage,
       selectedDownlinkCoverage,
-      activeMeshIndex
+      activeMeshIndex,
+      visibleCoverageKeySet
     )),
-    [activeMeshIndex, relevantSatellite, selection, selectedCoverage, selectedUplinkCoverage, selectedDownlinkCoverage]
+    [activeMeshIndex, relevantSatellite, selection, selectedCoverage, selectedUplinkCoverage, selectedDownlinkCoverage, visibleCoverageKeySet]
   );
   const renderLabels = useMemo(
     () => buildRenderContourLabels(renderContours),

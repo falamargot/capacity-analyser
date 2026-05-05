@@ -183,6 +183,7 @@ interface CesiumGlobeProps {
     selectedCoverage?: CandidateCoverage | null;
     selectedUplinkCoverage?: CandidateCoverage | null;
     selectedDownlinkCoverage?: CandidateCoverage | null;
+    visibleGeoCoverageKeys?: string[];
     cameraTarget?: { lat: number; lng: number; alt: number } | null;
     onCameraReady?: (viewer: CesiumViewerType) => void;
     onGlobeContainerReady?: (ref: React.RefObject<HTMLDivElement | null>) => void;
@@ -270,6 +271,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
     selectedCoverage = null,
     selectedUplinkCoverage = null,
     selectedDownlinkCoverage = null,
+    visibleGeoCoverageKeys,
     cameraTarget,
     onCameraReady,
     onGlobeContainerReady,
@@ -1383,6 +1385,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                         selectedCoverage={selectedCoverage}
                         selectedUplinkCoverage={selectedUplinkCoverage}
                         selectedDownlinkCoverage={selectedDownlinkCoverage}
+                        visibleCoverageKeys={visibleGeoCoverageKeys}
                         onLegendItemsChange={handleGeoCoverageLegendItemsChange}
                         highlightedLegendItemKey={focusedGeoCoverageLegendKey}
                     />

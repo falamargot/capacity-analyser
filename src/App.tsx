@@ -375,6 +375,10 @@ const App: React.FC = () => {
   const [selectedDownlinkKey, setSelectedDownlinkKey] = useState<string | null>(null);
   const [selectedUplinkKeyB, setSelectedUplinkKeyB] = useState<string | null>(null);
   const [selectedDownlinkKeyB, setSelectedDownlinkKeyB] = useState<string | null>(null);
+  const [manualGeoCoverageVisibility, setManualGeoCoverageVisibility] = useState<{
+    satelliteId: string | null;
+    keys: string[];
+  }>({ satelliteId: null, keys: [] });
 
   const selectedSatelliteId = useMemo(() => {
     if (selectedSelection.type === 'satellite') return selectedSelection.satelliteId;
@@ -592,6 +596,39 @@ const App: React.FC = () => {
     () => (selectedSatelliteId ? satelliteById.get(selectedSatelliteId) ?? null : null),
     [satelliteById, selectedSatelliteId]
   );
+
+  const selectedSatelliteGeoCoverageKeys = useMemo(() => {
+    if (!selectedSatellite || selectedSatellite.type !== 'EUTELSAT') {
+      return [];
+    }
+
+    return Array.from(new Set(selectedSatellite.coverages.map((coverage) => getCoverageGroupId(coverage))));
+  }, [selectedSatellite]);
+
+  const visibleManualGeoCoverageKeys = useMemo(() => {
+    if (!selectedSatellite || selectedSatellite.type !== 'EUTELSAT') {
+      return [];
+    }
+
+    if (manualGeoCoverageVisibility.satelliteId !== selectedSatellite.id) {
+      return selectedSatelliteGeoCoverageKeys;
+    }
+
+    const validKeys = new Set(selectedSatelliteGeoCoverageKeys);
+    return manualGeoCoverageVisibility.keys.filter((key) => validKeys.has(key));
+  }, [manualGeoCoverageVisibility, selectedSatellite, selectedSatelliteGeoCoverageKeys]);
+
+  const handleVisibleManualGeoCoverageKeysChange = useCallback((keys: string[]) => {
+    if (!selectedSatellite || selectedSatellite.type !== 'EUTELSAT') {
+      return;
+    }
+
+    const validKeys = new Set(selectedSatelliteGeoCoverageKeys);
+    setManualGeoCoverageVisibility({
+      satelliteId: selectedSatellite.id,
+      keys: keys.filter((key) => validKeys.has(key)),
+    });
+  }, [selectedSatellite, selectedSatelliteGeoCoverageKeys]);
 
   // satelliteTypeByName: satellite types never change post-load, so only rebuild
   // when the constellation count changes (new TLE fetch), not every 2s position tick.
@@ -1358,17 +1395,10 @@ const App: React.FC = () => {
     // If user has explicitly selected a satellite, show its coverage (Satellite Inspection mode)
     if (liveSelectedSatellite) {
       if (liveSelectedSatellite.type === 'EUTELSAT') {
-        if (selectedGeoBeamId) {
-          liveSelectedSatellite.coverages
-            .filter((coverage) => getCoverageBeamId(coverage) === selectedGeoBeamId)
-            .forEach((coverage) => pushFeature(coverage.feature));
-        } else if (selectedGeoCoverageName) {
-          liveSelectedSatellite.coverages
-            .filter((coverage) => getCoverageGroupId(coverage) === selectedGeoCoverageName)
-            .forEach((coverage) => pushFeature(coverage.feature));
-        } else {
-          liveSelectedSatellite.coverages.forEach(c => pushFeature(c.feature));
-        }
+        const visibleCoverageKeys = new Set(visibleManualGeoCoverageKeys);
+        liveSelectedSatellite.coverages
+          .filter((coverage) => visibleCoverageKeys.has(getCoverageGroupId(coverage)))
+          .forEach((coverage) => pushFeature(coverage.feature));
       } else {
         liveSelectedSatellite.coverages.forEach(c => pushFeature(c.feature));
       }
@@ -1447,7 +1477,7 @@ const App: React.FC = () => {
   // resolvedSelectedGeoCoverage cover all necessary re-computation triggers.
   // filteredSatellites omitted: hover lookups use satellitesForResolutionRef.
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [analyzisPosition, liveSelectedSatellite, resolvedAutoLEO, resolvedSelectedGeoCoverage, satelliteScope, selectedCoverage, selectedGeoBeamId, selectedGeoCoverageName, selectedPosition]);
+  }, [analyzisPosition, liveSelectedSatellite, resolvedAutoLEO, resolvedSelectedGeoCoverage, satelliteScope, selectedCoverage, selectedGeoBeamId, selectedGeoCoverageName, selectedPosition, visibleManualGeoCoverageKeys]);
 
 
   // coverageFeaturesMemo is used directly - no need to copy to state
@@ -1478,8 +1508,15 @@ const App: React.FC = () => {
   const handleSatelliteClick = useCallback((satellite: SatelliteData | null) => {
     if (satellite) {
       selectSatellite(satellite.id);
+      setManualGeoCoverageVisibility({
+        satelliteId: satellite.type === 'EUTELSAT' ? satellite.id : null,
+        keys: satellite.type === 'EUTELSAT'
+          ? Array.from(new Set(satellite.coverages.map((coverage) => getCoverageGroupId(coverage))))
+          : [],
+      });
     } else {
       clearSelection();
+      setManualGeoCoverageVisibility({ satelliteId: null, keys: [] });
     }
     setSelectedMoon(false);
     setSelectedAircraft(null);
@@ -1992,6 +2029,7 @@ const App: React.FC = () => {
     setSelectedUplinkKey(null);
     setSelectedDownlinkKey(null);
     clearSelection();
+    setManualGeoCoverageVisibility({ satelliteId: null, keys: [] });
     setAutoSelectedLEOId(null);
     setSelectedSNP(null);
     setInspectedSNP(null);
@@ -2185,6 +2223,7 @@ const App: React.FC = () => {
     satellites: filteredSatellites,
     satelliteTypeByName,
     coverageFeatures: coverageFeaturesMemo,
+    visibleGeoCoverageKeys: selectedSelection.type === 'target' ? undefined : visibleManualGeoCoverageKeys,
     onPointClick: handlePointClick,
     onCoverageClick: handleCoverageClick,
     selectedPosition,
@@ -2260,7 +2299,7 @@ const App: React.FC = () => {
     issIsFollowing: iss.isFollowing,
     onIssClick: handleIssClick,
   }), [
-    filteredSatellites, satelliteTypeByName, coverageFeaturesMemo, handlePointClick, handleCoverageClick, selectedPosition,
+    filteredSatellites, satelliteTypeByName, coverageFeaturesMemo, visibleManualGeoCoverageKeys, handlePointClick, handleCoverageClick, selectedPosition,
     handleSatelliteClick, handleSatelliteHover, handleSnpClick, handleGatewaySelectByName, handleSnpHover,
     handleMoonSelectionChange, selectedSatellite, selectedMoon, resolvedAutoLEO, activeGeoSatellite, selectedGEOBeam, selectedSelection, selectedCoverage, globeUplinkCoverage, globeDownlinkCoverage, selectedSNP, selectedGateway, dedicatedSNPForSelectedLEO, leoServiceViewModel, geoPointStatus, mobileMetrics, leoRegulatoryResult,
     isFullscreen, satelliteScope, airTrafficEnabled, airTraffic.aircraft,
@@ -3189,9 +3228,11 @@ const App: React.FC = () => {
                     selectedGeoMission={selectedGeoMission}
                     selectedGeoCoverageName={selectedGeoCoverageName}
                     selectedGeoBeamId={selectedGeoBeamId}
+                    visibleGeoCoverageKeys={visibleManualGeoCoverageKeys}
                     onSelectGeoMission={handleSelectGeoMission}
                     onSelectGeoCoverage={handleSelectGeoCoverage}
                     onSelectGeoBeam={handleSelectGeoBeam}
+                    onVisibleGeoCoverageKeysChange={handleVisibleManualGeoCoverageKeysChange}
                     onSnpClick={handleSnpClick}
                     onMetricsChange={setMobileMetrics}
                     globeRef={globeContainerRef}
@@ -3368,9 +3409,11 @@ const App: React.FC = () => {
                                 selectedGeoMission={selectedGeoMission}
                                 selectedGeoCoverageName={selectedGeoCoverageName}
                                 selectedGeoBeamId={selectedGeoBeamId}
+                                visibleGeoCoverageKeys={visibleManualGeoCoverageKeys}
                                 onSelectGeoMission={handleSelectGeoMission}
                                 onSelectGeoCoverage={handleSelectGeoCoverage}
                                 onSelectGeoBeam={handleSelectGeoBeam}
+                                onVisibleGeoCoverageKeysChange={handleVisibleManualGeoCoverageKeysChange}
                                 onSnpClick={handleSnpClick}
                                 onMetricsChange={setMobileMetrics}
                                 globeRef={globeContainerRef}
@@ -3514,9 +3557,11 @@ const App: React.FC = () => {
                         selectedGeoMission={selectedGeoMission}
                         selectedGeoCoverageName={selectedGeoCoverageName}
                         selectedGeoBeamId={selectedGeoBeamId}
+                        visibleGeoCoverageKeys={visibleManualGeoCoverageKeys}
                         onSelectGeoMission={handleSelectGeoMission}
                         onSelectGeoCoverage={handleSelectGeoCoverage}
                         onSelectGeoBeam={handleSelectGeoBeam}
+                        onVisibleGeoCoverageKeysChange={handleVisibleManualGeoCoverageKeysChange}
                         onSnpClick={handleSnpClick}
                         onMetricsChange={setMobileMetrics}
                         compactDesktop={useCompactDesktopSidebar}

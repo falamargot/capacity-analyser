@@ -54,6 +54,7 @@ interface MapViewSwitcherProps {
   selectedCoverage?: CandidateCoverage | null;
   selectedUplinkCoverage?: CandidateCoverage | null;
   selectedDownlinkCoverage?: CandidateCoverage | null;
+  visibleGeoCoverageKeys?: string[];
   cameraTarget?: { lat: number; lng: number; alt: number } | null;
   onCameraReady?: (viewer: CesiumViewerType) => void;
   onGlobeContainerReady?: (ref: React.RefObject<HTMLDivElement | null>) => void;
@@ -134,6 +135,7 @@ const MapViewSwitcher: React.FC<MapViewSwitcherProps> = ({
   selectedCoverage = null,
   selectedUplinkCoverage = null,
   selectedDownlinkCoverage = null,
+  visibleGeoCoverageKeys,
   cameraTarget,
   onCameraReady,
   onGlobeContainerReady,
@@ -218,6 +220,7 @@ const MapViewSwitcher: React.FC<MapViewSwitcherProps> = ({
         selectedCoverage={selectedCoverage}
         selectedUplinkCoverage={selectedUplinkCoverage}
         selectedDownlinkCoverage={selectedDownlinkCoverage}
+        visibleGeoCoverageKeys={visibleGeoCoverageKeys}
         cameraTarget={cameraTarget}
         onCameraReady={onCameraReady}
         onGlobeContainerReady={onGlobeContainerReady}
