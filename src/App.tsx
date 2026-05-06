@@ -60,6 +60,7 @@ import {
 } from './utils/geoTopologySelection';
 import {
   USE_CASE_DEFAULT_RF_CLASS,
+  getRFClassBand,
   isRFClassCompatibleWithUseCase,
   type TerminalRFClassId,
   type TerminalRFCustomParams,
@@ -284,14 +285,16 @@ const App: React.FC = () => {
   const handleGeoTerminalTypeChange = (type: TerminalType) => {
     setGeoTerminalType(type);
     if (!isRFClassCompatibleWithUseCase(geoRFClassIdA, type)) {
-      setGeoRFClassIdA(USE_CASE_DEFAULT_RF_CLASS[type]?.Ku ?? 'ku_standard_vsat');
+      const band = getRFClassBand(geoRFClassIdA) ?? 'Ku';
+      setGeoRFClassIdA(USE_CASE_DEFAULT_RF_CLASS[type]?.[band] ?? USE_CASE_DEFAULT_RF_CLASS[type]?.Ku ?? 'ku_standard_vsat');
       setGeoRFCustomParamsA(null);
     }
   };
   const handleGeoTerminalTypeBChange = (type: TerminalType) => {
     setGeoTerminalTypeB(type);
     if (!isRFClassCompatibleWithUseCase(geoRFClassIdB, type)) {
-      setGeoRFClassIdB(USE_CASE_DEFAULT_RF_CLASS[type]?.Ku ?? 'ku_standard_vsat');
+      const band = getRFClassBand(geoRFClassIdB) ?? 'Ku';
+      setGeoRFClassIdB(USE_CASE_DEFAULT_RF_CLASS[type]?.[band] ?? USE_CASE_DEFAULT_RF_CLASS[type]?.Ku ?? 'ku_standard_vsat');
       setGeoRFCustomParamsB(null);
     }
   };
@@ -817,12 +820,12 @@ const App: React.FC = () => {
     );
 
     const ranked = rankCandidateCoverages(
-      findCandidateCoverages(selectedSelection.position, geoSatellites),
+      findCandidateCoverages(selectedSelection.position, geoSatellites, { terminalRFClassId: geoRFClassIdA }),
       geoSatellites,
       selectedSelection.position
     );
     return ranked;
-  }, [satelliteScope, satellites, selectedSelection]);
+  }, [geoRFClassIdA, satelliteScope, satellites, selectedSelection]);
 
   // Coverage candidates for Point B (MESH / Point-to-Point modes only).
   const candidateCoveragesB = useMemo(() => {
@@ -834,12 +837,12 @@ const App: React.FC = () => {
     );
 
     const ranked = rankCandidateCoverages(
-      findCandidateCoverages(pointB, geoSatellites),
+      findCandidateCoverages(pointB, geoSatellites, { terminalRFClassId: geoRFClassIdB }),
       geoSatellites,
       pointB
     );
     return ranked;
-  }, [linkMode, pointB, satelliteScope, satellites]);
+  }, [geoRFClassIdB, linkMode, pointB, satelliteScope, satellites]);
 
   const eligibleCandidateCoverages = useMemo(() => {
     if (candidateCoverages.length === 0) return candidateCoverages;
@@ -905,7 +908,11 @@ const App: React.FC = () => {
 
     const coveredSatelliteIdsByGatewayPosition = new Map<string, Set<string>>();
     for (const [positionKey, gatewayPosition] of gatewayByPosition) {
-      const gatewayCandidates = findCandidateCoverages(gatewayPosition, geoSatellites);
+      const gatewayCandidates = findCandidateCoverages(
+        gatewayPosition,
+        geoSatellites,
+        { compatibleBand: getRFClassBand(geoRFClassIdA) }
+      );
       coveredSatelliteIdsByGatewayPosition.set(
         positionKey,
         new Set(gatewayCandidates.map((candidate) => candidate.satelliteId))
@@ -923,7 +930,7 @@ const App: React.FC = () => {
       candidateSatelliteIdsWithUserPair.has(candidate.satelliteId) &&
       eligibleSatelliteIds.has(candidate.satelliteId)
     ));
-  }, [candidateCoverages, candidateCoveragesB, linkMode, satellites]);
+  }, [candidateCoverages, candidateCoveragesB, geoRFClassIdA, linkMode, satellites]);
 
   const targetSelectionResetKey = useMemo(() => (
     selectedSelection.type === 'target'
@@ -942,7 +949,7 @@ const App: React.FC = () => {
     setSelectedDownlinkKey(null);
     setSelectedUplinkKeyB(null);
     setSelectedDownlinkKeyB(null);
-  }, [targetSelectionResetKey]);
+  }, [targetSelectionResetKey, geoRFClassIdA, geoRFClassIdB]);
 
   useEffect(() => {
     setSelectedUplinkKeyB(null);
@@ -1114,7 +1121,10 @@ const App: React.FC = () => {
     };
 
     if (rawSelectedUplinkCoverage && rawSelectedDownlinkCoverage) {
-      if (rawSelectedUplinkCoverage.satelliteId === rawSelectedDownlinkCoverage.satelliteId) {
+      if (
+        rawSelectedUplinkCoverage.satelliteId === rawSelectedDownlinkCoverage.satelliteId &&
+        rawSelectedUplinkCoverage.band === rawSelectedDownlinkCoverage.band
+      ) {
         return { uplink: rawSelectedUplinkCoverage, downlink: rawSelectedDownlinkCoverage };
       }
 
@@ -1758,11 +1768,12 @@ const App: React.FC = () => {
       simulationState,
       now,
       failedSnps,
-      autoSelectedLEOId
+      autoSelectedLEOId,
+      geoRFClassIdA
     );
     setAutoSelectedLEOId(autoSelectedLEOSat?.id || null);
     setSelectedSNP(newSelectedSNP);
-  }, [analyzisPosition, autoSelectedLEOId, failedSnps, satelliteScope, simulationState, satellitesForResolutionRef]); // §1.1 — satellites removed
+  }, [analyzisPosition, autoSelectedLEOId, failedSnps, geoRFClassIdA, satelliteScope, simulationState, satellitesForResolutionRef]); // §1.1 — satellites removed
 
   // §1.3 — Periodic re-resolution for fixed positions (earth / vessel).
   //
@@ -1799,7 +1810,8 @@ const App: React.FC = () => {
         simulationState,
         now,
         failedSnps,
-        autoSelectedLEOId
+        autoSelectedLEOId,
+        geoRFClassIdA
       );
 
       setAutoSelectedLEOId(autoSelectedLEOSat?.id || null);
@@ -1808,7 +1820,7 @@ const App: React.FC = () => {
 
     const interval = setInterval(reResolve, RESOLUTION_INTERVAL_MS);
     return () => clearInterval(interval);
-  }, [analyzisPosition, autoSelectedLEOId, failedSnps, satelliteScope, simulationState, satellitesForResolutionRef]); // re-arm when position/scope/policy change
+  }, [analyzisPosition, autoSelectedLEOId, failedSnps, geoRFClassIdA, satelliteScope, simulationState, satellitesForResolutionRef]); // re-arm when position/scope/policy change
 
   // Handle coverage polygon click on the globe
   const handleCoverageClick = useCallback((coverageKey: string) => {
@@ -1940,18 +1952,14 @@ const App: React.FC = () => {
     const coverage = eligibleCandidateCoverages.find(c => getCandidateCoverageKey(c) === coverageId);
     if (!coverage) return;
 
-    const findCompanion = (wantUplink: boolean) => (
-      eligibleCandidateCoverages.find(c => (
-        c.isUplink === wantUplink &&
-        c.satelliteId === coverage.satelliteId &&
-        c.band === coverage.band
-      ))
-      ?? eligibleCandidateCoverages.find(c => (
-        c.isUplink === wantUplink &&
-        c.satelliteId === coverage.satelliteId
-      ))
-      ?? null
-    );
+      const findCompanion = (wantUplink: boolean) => (
+        eligibleCandidateCoverages.find(c => (
+          c.isUplink === wantUplink &&
+          c.satelliteId === coverage.satelliteId &&
+          c.band === coverage.band
+        ))
+        ?? null
+      );
 
     if (linkMode === 'STAR_RETURN' && !coverage.isUplink) {
       const companionUplink = findCompanion(true);

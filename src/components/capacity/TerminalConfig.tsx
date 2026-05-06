@@ -5,6 +5,7 @@ import { WEATHER_ATTENUATION_DB, type WeatherCondition } from '../../utils/reali
 import {
   GEO_TERMINAL_RF_CATALOGUE,
   USE_CASE_DEFAULT_RF_CLASS,
+  getRFClassBand,
   resolveTerminalRFParams,
   computeAntennaGainDbi,
   computeTerminalEirpDbw,
@@ -76,6 +77,55 @@ const selectStyle = (disabled: boolean) => ({
   backgroundSize: '.8em .8em',
   opacity: disabled ? 0.5 : 1,
 });
+
+const formatCompactNumber = (value: number, digits = 2): string => (
+  Number.isInteger(value) ? value.toFixed(0) : value.toFixed(digits).replace(/0+$/, '').replace(/\.$/, '')
+);
+
+const RF_CLASS_DISPLAY_ORDER: TerminalRFClassId[] = [
+  'c_standard_vsat',
+  'ku_standard_vsat',
+  'ku_highpower_vsat',
+  'ku_enterprise_vsat',
+  'ka_consumer_terminal',
+  'ka_enterprise_vsat',
+  'c_compact_vsat',
+  'ku_compact_vsat',
+  'ka_consumer_terminal_mobile',
+  'ka_mobility_terminal',
+  'maritime_vsat_compact',
+  'aviation_esim',
+  'ka_aviation_esim',
+  'maritime_vsat_large',
+];
+const RF_CLASS_DISPLAY_RANK = new Map(RF_CLASS_DISPLAY_ORDER.map((id, index) => [id, index]));
+const RF_CLASS_DISPLAY_ORDER_BY_USE_CASE: Record<TerminalUseCase, TerminalRFClassId[]> = {
+  fixed: [
+    'c_standard_vsat',
+    'ku_standard_vsat',
+    'ku_highpower_vsat',
+    'ku_enterprise_vsat',
+    'ka_consumer_terminal',
+    'ka_enterprise_vsat',
+  ],
+  mobile: [
+    'c_compact_vsat',
+    'ku_compact_vsat',
+    'ka_consumer_terminal_mobile',
+    'ka_mobility_terminal',
+    'maritime_vsat_compact',
+  ],
+  aviation: [
+    'aviation_esim',
+    'ka_aviation_esim',
+  ],
+  maritime: [
+    'c_compact_vsat',
+    'maritime_vsat_compact',
+    'maritime_vsat_large',
+    'ka_mobility_terminal',
+  ],
+};
 
 // ─── Terminal use-case control ────────────────────────────────────────────────
 
@@ -166,16 +216,51 @@ export const TerminalRFClassControl = memo<TerminalRFClassControlProps>(({
   onClearCustom,
 }) => {
   const profile = useMemo(() => {
-    try { return resolveTerminalRFParams(band, rfClassId); } catch { return null; }
+    const rfBand = getRFClassBand(rfClassId) ?? band;
+    try { return resolveTerminalRFParams(rfBand, rfClassId); } catch { return null; }
   }, [rfClassId, band]);
 
   const availableClasses = useMemo(() =>
-    GEO_TERMINAL_RF_CATALOGUE.filter((spec) =>
-      spec.supportedBands.includes(band) &&
-      (!useCase || spec.typicalUseCases.includes(useCase)),
-    ),
-    [band, useCase],
+    {
+      const rank = useCase
+        ? new Map(RF_CLASS_DISPLAY_ORDER_BY_USE_CASE[useCase].map((id, index) => [id, index]))
+        : RF_CLASS_DISPLAY_RANK;
+      return GEO_TERMINAL_RF_CATALOGUE.filter((spec) =>
+        !useCase || spec.typicalUseCases.includes(useCase),
+      ).sort((a, b) => (
+        (rank.get(a.id) ?? 999) - (rank.get(b.id) ?? 999) ||
+        a.label.localeCompare(b.label)
+      ));
+    },
+    [useCase],
   );
+
+  if (isCustom) {
+    return (
+      <div className={`flex ${stacked ? 'w-full flex-col items-start gap-1' : 'items-center gap-2 sm:gap-3'}`}>
+        <div
+          className={[
+            selectClassName(compact, stacked ? 'w-full' : compact ? 'w-40 sm:w-44' : 'w-44 sm:w-48'),
+            'flex items-center',
+          ].join(' ')}
+          title={profile ? `Based on ${profile.label}` : 'Custom RF profile'}
+        >
+          Custom RF Profile
+        </div>
+        {onClearCustom && (
+          <button
+            type="button"
+            onClick={onClearCustom}
+            className="shrink-0 flex items-center gap-0.5 rounded-full bg-amber-100 px-1.5 py-px text-[10px] font-semibold text-amber-700 hover:bg-amber-200 dark:bg-amber-900/40 dark:text-amber-300 dark:hover:bg-amber-800/60"
+            title="Reset to preset RF profile"
+          >
+            <X className="h-2.5 w-2.5" />
+            Reset
+          </button>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className={`flex ${stacked ? 'flex-col items-start gap-1' : 'items-center gap-2 sm:gap-3'}`}>
@@ -188,20 +273,9 @@ export const TerminalRFClassControl = memo<TerminalRFClassControlProps>(({
         title={profile ? `Dish: ${profile.antennaDiameterM} m · BUC: ${profile.bucPowerW} W · EIRP: ${profile.eirpDbw.toFixed(1)} dBW · G/T: ${profile.gtDbk.toFixed(1)} dB/K` : 'RF capability class'}
       >
         {availableClasses.map((spec) => (
-          <option key={spec.id} value={spec.id}>{spec.label}</option>
+          <option key={spec.id} value={spec.id}>{spec.band} · {spec.label}</option>
         ))}
       </select>
-      {isCustom && onClearCustom && (
-        <button
-          type="button"
-          onClick={onClearCustom}
-          className="shrink-0 flex items-center gap-0.5 rounded-full bg-amber-100 px-1.5 py-px text-[10px] font-semibold text-amber-700 hover:bg-amber-200 dark:bg-amber-900/40 dark:text-amber-300 dark:hover:bg-amber-800/60"
-          title="Custom RF parameters active — preset values are not used. Click to reset to preset."
-        >
-          <X className="h-2.5 w-2.5" />
-          Custom
-        </button>
-      )}
     </div>
   );
 });
@@ -278,11 +352,6 @@ const TerminalRFSettingsPanel = memo<TerminalRFSettingsPanelProps>(({
 
       {isOpen && (
         <div className="mt-1 rounded-lg border border-gray-200 bg-gray-50/80 px-2.5 py-2 dark:border-slate-700 dark:bg-slate-900/60">
-          {isCustom && (
-            <p className="mb-1.5 text-[10px] text-gray-400 dark:text-slate-500">
-              Based on {basedOnLabel}
-            </p>
-          )}
           <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-2 gap-y-1.5 text-[11px]">
             <span className="col-span-2 -mx-0.5 mb-0.5 text-[10px] font-bold uppercase tracking-wide text-gray-400 dark:text-slate-500">Antenna</span>
             <span className="text-gray-600 dark:text-gray-400">Diameter</span>
@@ -473,22 +542,40 @@ const TerminalConfig = memo<TerminalConfigProps>(({
 }) => {
   const dense = compact && !showWeather;
   const effectiveRFClassId = rfClassId ?? getDefaultRFClassForUseCase(terminalType, band);
+  const effectiveRFBand = getRFClassBand(effectiveRFClassId) ?? band;
 
   const rfIdentityLine = useMemo(() => {
     if (!showRFClass || !onRFClassChange) return null;
-    const { freqUpGhz, freqDownGhz } = BAND_PARAMS[band];
+    const { freqUpGhz, freqDownGhz } = BAND_PARAMS[effectiveRFBand];
+    const presetSpec = GEO_TERMINAL_RF_CATALOGUE.find((spec) => spec.id === effectiveRFClassId);
     if (rfCustomParams) {
       const txGain = computeAntennaGainDbi(rfCustomParams.antennaDiameterM, freqUpGhz, rfCustomParams.antennaEfficiency);
       const liveEirp = computeTerminalEirpDbw(txGain, rfCustomParams.bucPowerW, rfCustomParams.systemLossDb);
       const rxGain = computeAntennaGainDbi(rfCustomParams.antennaDiameterM, freqDownGhz, rfCustomParams.antennaEfficiency);
       const liveGt = computeTerminalGtDbk(rxGain, rfCustomParams.systemNoiseTempK);
-      return { eirp: liveEirp, gt: liveGt, isCustom: true };
+      return {
+        label: 'Custom RF Profile',
+        basedOnLabel: presetSpec?.label ?? effectiveRFClassId,
+        antennaDiameterM: rfCustomParams.antennaDiameterM,
+        bucPowerW: rfCustomParams.bucPowerW,
+        eirp: liveEirp,
+        gt: liveGt,
+        isCustom: true,
+      };
     }
     try {
-      const profile = resolveTerminalRFParams(band, effectiveRFClassId);
-      return { eirp: profile.eirpDbw, gt: profile.gtDbk, isCustom: false };
+      const profile = resolveTerminalRFParams(effectiveRFBand, effectiveRFClassId);
+      return {
+        label: profile.label,
+        basedOnLabel: null,
+        antennaDiameterM: profile.antennaDiameterM,
+        bucPowerW: profile.bucPowerW,
+        eirp: profile.eirpDbw,
+        gt: profile.gtDbk,
+        isCustom: false,
+      };
     } catch { return null; }
-  }, [showRFClass, onRFClassChange, band, rfCustomParams, effectiveRFClassId]);
+  }, [showRFClass, onRFClassChange, effectiveRFBand, rfCustomParams, effectiveRFClassId]);
 
   return (
   <div className={className}>
@@ -557,12 +644,19 @@ const TerminalConfig = memo<TerminalConfigProps>(({
               onClearCustom={() => onRFCustomParamsChange?.(null)}
             />
             {rfIdentityLine && (
-              <span
-                className={`font-mono leading-none ${rfIdentityLine.isCustom ? 'text-amber-600 dark:text-amber-400' : 'text-blue-600 dark:text-blue-400'} ${compact ? 'text-[10px]' : 'text-[11px]'}`}
-                title={`TX EIRP: ${rfIdentityLine.eirp.toFixed(1)} dBW · RX G/T: ${rfIdentityLine.gt.toFixed(1)} dB/K`}
-              >
-                TX {rfIdentityLine.eirp.toFixed(1)} dBW · RX {rfIdentityLine.gt.toFixed(1)} dB/K
-              </span>
+              <div className="min-w-0">
+                <span
+                  className={`block truncate font-mono leading-none ${rfIdentityLine.isCustom ? 'text-amber-600 dark:text-amber-400' : 'text-blue-600 dark:text-blue-400'} ${compact ? 'text-[10px]' : 'text-[11px]'}`}
+                  title={`${rfIdentityLine.label}: ${formatCompactNumber(rfIdentityLine.antennaDiameterM)} m · ${formatCompactNumber(rfIdentityLine.bucPowerW)} W · TX ${rfIdentityLine.eirp.toFixed(1)} dBW · RX ${rfIdentityLine.gt.toFixed(1)} dB/K`}
+                >
+                  {formatCompactNumber(rfIdentityLine.antennaDiameterM)} m · {formatCompactNumber(rfIdentityLine.bucPowerW)} W · TX {rfIdentityLine.eirp.toFixed(1)} dBW · RX {rfIdentityLine.gt.toFixed(1)} dB/K
+                </span>
+                {rfIdentityLine.isCustom && rfIdentityLine.basedOnLabel && (
+                  <span className={`mt-0.5 block truncate text-gray-400 dark:text-slate-500 ${compact ? 'text-[10px]' : 'text-[11px]'}`}>
+                    Based on {rfIdentityLine.basedOnLabel}
+                  </span>
+                )}
+              </div>
             )}
             {onRFCustomParamsChange && (
               <TerminalRFSettingsPanel

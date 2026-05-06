@@ -33,6 +33,9 @@ export {
   computeMinimumRequiredEirpDbw,
   computeUplinkRequirement,
   computeRFConfidence,
+  getRFClassBand,
+  getRFClassSpec,
+  isRFClassCompatibleWithBand,
   getCatalogueForBand,
   getCatalogueForUseCase,
 } from './geoTerminalRFModel';

@@ -27,14 +27,16 @@ export type TerminalRFClassId =
   | 'ku_highpower_vsat'      // 1.8 m, 8 W   — high-power fixed
   | 'ku_enterprise_vsat'     // 2.4 m, 20 W  — large enterprise / professional
   // C-band classes
-  | 'c_compact_vsat'         // 0.9 m, 5 W
-  | 'c_standard_vsat'        // 1.8 m, 10 W
-  | 'c_large_vsat'           // 2.4 m, 20 W
+  | 'c_compact_vsat'         // 1.8 m, 5 W
+  | 'c_standard_vsat'        // 2.4 m, 10 W
   // Ka-band classes
-  | 'ka_compact_vsat'        // 0.45 m, 2 W  — Ka consumer / small VSAT
-  | 'ka_standard_vsat'       // 0.75 m, 4 W  — Ka fixed broadband
+  | 'ka_consumer_terminal'   // 0.75 m, 2 W  — fixed consumer broadband terminal
+  | 'ka_consumer_terminal_mobile' // 0.45 m, 1 W — mobile/deployable consumer terminal
+  | 'ka_enterprise_vsat'     // 1.2 m, 4 W   — enterprise VSAT
+  | 'ka_mobility_terminal'   // 0.65 m, 2 W  — land/mobile ESIM
+  | 'ka_aviation_esim'       // 0.30 m, 1 W  — inflight Ka ESIM
   // Mobility-specific
-  | 'aviation_esim'          // 0.35 m, 1 W  — inflight ESIM flat panel
+  | 'aviation_esim'          // 0.35 m, 1 W  — Ku inflight ESIM flat panel
   | 'maritime_vsat_compact'  // 0.6 m, 4 W   — compact maritime dome
   | 'maritime_vsat_large';   // 1.0 m, 8 W   — large maritime dome
 
@@ -43,12 +45,15 @@ export type TerminalRFClassId =
 export interface TerminalRFClassSpec {
   id: TerminalRFClassId;
   label: string;
+  /** Physical RF band this terminal class can operate in. */
+  band: GeoBand;
   antennaDiameterM: number;
   antennaEfficiency: number;
   bucPowerW: number;
   systemLossDb: number;
   /** Receive system noise temperature (K) — governs G/T calculation. */
   systemNoiseTempK: number;
+  /** @deprecated RF classes are single-band; use `band`. */
   supportedBands: GeoBand[];
   typicalUseCases: TerminalUseCase[];
   notes?: string;
@@ -123,34 +128,37 @@ export interface TerminalRFCustomParams {
 // ─── Catalogue ────────────────────────────────────────────────────────────────
 
 export const GEO_TERMINAL_RF_CATALOGUE: TerminalRFClassSpec[] = [
-  // ── Ku-band ─────────────────────────────────────────────────────────────────
+  // ── Fixed ───────────────────────────────────────────────────────────────────
   {
-    id: 'ku_compact_vsat',
-    label: 'Ku Compact VSAT',
-    antennaDiameterM: 0.6,
+    id: 'c_standard_vsat',
+    label: 'C Standard VSAT',
+    band: 'C',
+    antennaDiameterM: 2.4,
     antennaEfficiency: 0.60,
-    bucPowerW: 2,
+    bucPowerW: 10,
     systemLossDb: 1.5,
-    systemNoiseTempK: 200,
-    supportedBands: ['Ku'],
-    typicalUseCases: ['fixed', 'mobile'],
-    notes: 'Portable / light mobile. Suitable for fixed and mobile deployments.',
+    systemNoiseTempK: 120,
+    supportedBands: ['C'],
+    typicalUseCases: ['fixed'],
+    notes: 'Standard fixed C-band earth station.',
   },
   {
     id: 'ku_standard_vsat',
     label: 'Ku Standard VSAT',
+    band: 'Ku',
     antennaDiameterM: 1.2,
     antennaEfficiency: 0.60,
     bucPowerW: 4,
     systemLossDb: 1.5,
-    systemNoiseTempK: 250,
+    systemNoiseTempK: 200,
     supportedBands: ['Ku'],
-    typicalUseCases: ['fixed', 'mobile', 'maritime'],
-    notes: 'Typical fixed broadband VSAT. Default for Fixed use-case.',
+    typicalUseCases: ['fixed'],
+    notes: 'Typical fixed broadband VSAT.',
   },
   {
     id: 'ku_highpower_vsat',
     label: 'Ku High Power VSAT',
+    band: 'Ku',
     antennaDiameterM: 1.8,
     antennaEfficiency: 0.60,
     bucPowerW: 8,
@@ -158,97 +166,136 @@ export const GEO_TERMINAL_RF_CATALOGUE: TerminalRFClassSpec[] = [
     systemNoiseTempK: 200,
     supportedBands: ['Ku'],
     typicalUseCases: ['fixed'],
-    notes: 'High-power fixed terminal. Recommended for weak uplink beams.',
+    notes: 'High-power fixed terminal for weaker uplink beams.',
   },
   {
     id: 'ku_enterprise_vsat',
     label: 'Ku Large Enterprise VSAT',
+    band: 'Ku',
     antennaDiameterM: 2.4,
-    antennaEfficiency: 0.60,
+    antennaEfficiency: 0.65,
     bucPowerW: 20,
-    systemLossDb: 1.5,
+    systemLossDb: 1.0,
     systemNoiseTempK: 150,
     supportedBands: ['Ku'],
     typicalUseCases: ['fixed'],
     notes: 'Large enterprise / professional teleport class.',
   },
-  // ── C-band ──────────────────────────────────────────────────────────────────
   {
-    id: 'c_compact_vsat',
-    label: 'C Compact VSAT',
-    antennaDiameterM: 0.9,
-    antennaEfficiency: 0.55,
-    bucPowerW: 5,
-    systemLossDb: 1.5,
-    systemNoiseTempK: 100,
-    supportedBands: ['C'],
-    typicalUseCases: ['fixed', 'mobile', 'maritime'],
-  },
-  {
-    id: 'c_standard_vsat',
-    label: 'C Standard VSAT',
-    antennaDiameterM: 1.8,
-    antennaEfficiency: 0.55,
-    bucPowerW: 10,
-    systemLossDb: 1.5,
-    systemNoiseTempK: 80,
-    supportedBands: ['C'],
-    typicalUseCases: ['fixed'],
-    notes: 'Default for C-band Fixed use-case.',
-  },
-  {
-    id: 'c_large_vsat',
-    label: 'C Large VSAT',
-    antennaDiameterM: 2.4,
-    antennaEfficiency: 0.55,
-    bucPowerW: 20,
-    systemLossDb: 1.5,
-    systemNoiseTempK: 60,
-    supportedBands: ['C'],
-    typicalUseCases: ['fixed'],
-  },
-  // ── Ka-band ─────────────────────────────────────────────────────────────────
-  {
-    id: 'ka_compact_vsat',
-    label: 'Ka Compact VSAT',
-    antennaDiameterM: 0.45,
-    antennaEfficiency: 0.60,
-    bucPowerW: 2,
-    systemLossDb: 2.0,
-    systemNoiseTempK: 300,
-    supportedBands: ['Ka'],
-    typicalUseCases: ['fixed', 'mobile'],
-    notes: 'Default for Ka mobile/aviation use-case.',
-  },
-  {
-    id: 'ka_standard_vsat',
-    label: 'Ka Standard VSAT',
+    id: 'ka_consumer_terminal',
+    label: 'Ka Consumer Terminal',
+    band: 'Ka',
     antennaDiameterM: 0.75,
-    antennaEfficiency: 0.60,
-    bucPowerW: 4,
-    systemLossDb: 2.0,
+    antennaEfficiency: 0.65,
+    bucPowerW: 2,
+    systemLossDb: 1.5,
     systemNoiseTempK: 250,
     supportedBands: ['Ka'],
     typicalUseCases: ['fixed'],
-    notes: 'Default for Ka fixed use-case.',
+    notes: 'Fixed Ka HTS consumer broadband terminal.',
   },
-  // ── Mobility-specific ───────────────────────────────────────────────────────
+  {
+    id: 'ka_enterprise_vsat',
+    label: 'Ka Enterprise VSAT',
+    band: 'Ka',
+    antennaDiameterM: 1.2,
+    antennaEfficiency: 0.65,
+    bucPowerW: 4,
+    systemLossDb: 1.5,
+    systemNoiseTempK: 180,
+    supportedBands: ['Ka'],
+    typicalUseCases: ['fixed'],
+    notes: 'Professional fixed Ka VSAT.',
+  },
+
+  // ── Mobile / transportable ─────────────────────────────────────────────────
+  {
+    id: 'c_compact_vsat',
+    label: 'C Compact VSAT',
+    band: 'C',
+    antennaDiameterM: 1.8,
+    antennaEfficiency: 0.55,
+    bucPowerW: 5,
+    systemLossDb: 2.0,
+    systemNoiseTempK: 180,
+    supportedBands: ['C'],
+    typicalUseCases: ['mobile', 'maritime'],
+    notes: 'Compact C-band terminal for transportable and maritime deployments.',
+  },
+  {
+    id: 'ku_compact_vsat',
+    label: 'Ku Compact VSAT',
+    band: 'Ku',
+    antennaDiameterM: 0.6,
+    antennaEfficiency: 0.60,
+    bucPowerW: 2,
+    systemLossDb: 1.5,
+    systemNoiseTempK: 250,
+    supportedBands: ['Ku'],
+    typicalUseCases: ['mobile'],
+    notes: 'Vehicular, deployable, and transportable Ku VSAT.',
+  },
+  {
+    id: 'ka_consumer_terminal_mobile',
+    label: 'Ka Consumer Terminal',
+    band: 'Ka',
+    antennaDiameterM: 0.45,
+    antennaEfficiency: 0.65,
+    bucPowerW: 1,
+    systemLossDb: 1.5,
+    systemNoiseTempK: 300,
+    supportedBands: ['Ka'],
+    typicalUseCases: ['mobile'],
+    notes: 'Small deployable Ka consumer terminal.',
+  },
+  {
+    id: 'ka_mobility_terminal',
+    label: 'Ka Mobility Terminal',
+    band: 'Ka',
+    antennaDiameterM: 0.65,
+    antennaEfficiency: 0.65,
+    bucPowerW: 2,
+    systemLossDb: 1.5,
+    systemNoiseTempK: 250,
+    supportedBands: ['Ka'],
+    typicalUseCases: ['mobile', 'maritime'],
+    notes: 'Stabilised Ka mobility terminal for land and maritime platforms.',
+  },
+
+  // ── Aviation ────────────────────────────────────────────────────────────────
   {
     id: 'aviation_esim',
-    label: 'Aviation ESIM',
+    label: 'Ku Aviation ESIM',
+    band: 'Ku',
     antennaDiameterM: 0.35,
+    antennaEfficiency: 0.50,
+    bucPowerW: 1,
+    systemLossDb: 2.5,
+    systemNoiseTempK: 350,
+    supportedBands: ['Ku'],
+    typicalUseCases: ['aviation'],
+    notes: 'Ku-band electronically steerable inflight antenna.',
+  },
+  {
+    id: 'ka_aviation_esim',
+    label: 'Ka Aviation ESIM',
+    band: 'Ka',
+    antennaDiameterM: 0.30,
     antennaEfficiency: 0.55,
     bucPowerW: 1,
     systemLossDb: 2.5,
-    systemNoiseTempK: 400,
-    supportedBands: ['Ku', 'Ka'],
+    systemNoiseTempK: 320,
+    supportedBands: ['Ka'],
     typicalUseCases: ['aviation'],
-    notes: 'Electronically steerable inflight antenna. Default for Aviation.',
+    notes: 'Ka-band electronically steerable inflight antenna.',
   },
+
+  // ── Maritime ────────────────────────────────────────────────────────────────
   {
     id: 'maritime_vsat_compact',
     label: 'Maritime VSAT Compact',
-    antennaDiameterM: 0.6,
+    band: 'Ku',
+    antennaDiameterM: 0.85,
     antennaEfficiency: 0.55,
     bucPowerW: 4,
     systemLossDb: 2.0,
@@ -260,8 +307,9 @@ export const GEO_TERMINAL_RF_CATALOGUE: TerminalRFClassSpec[] = [
   {
     id: 'maritime_vsat_large',
     label: 'Maritime VSAT Large',
-    antennaDiameterM: 1.0,
-    antennaEfficiency: 0.55,
+    band: 'Ku',
+    antennaDiameterM: 1.2,
+    antennaEfficiency: 0.60,
     bucPowerW: 8,
     systemLossDb: 2.0,
     systemNoiseTempK: 180,
@@ -273,10 +321,10 @@ export const GEO_TERMINAL_RF_CATALOGUE: TerminalRFClassSpec[] = [
 // ─── Default RF class per use-case ────────────────────────────────────────────
 
 export const USE_CASE_DEFAULT_RF_CLASS: Record<TerminalUseCase, Record<GeoBand, TerminalRFClassId>> = {
-  fixed:    { C: 'c_standard_vsat',   Ku: 'ku_standard_vsat',  Ka: 'ka_standard_vsat'  },
-  mobile:   { C: 'c_compact_vsat',    Ku: 'ku_compact_vsat',   Ka: 'ka_compact_vsat'   },
-  aviation: { C: 'c_compact_vsat',    Ku: 'aviation_esim',     Ka: 'aviation_esim'     },
-  maritime: { C: 'c_compact_vsat',    Ku: 'maritime_vsat_compact', Ka: 'ka_compact_vsat' },
+  fixed:    { C: 'c_standard_vsat',   Ku: 'ku_standard_vsat',  Ka: 'ka_consumer_terminal' },
+  mobile:   { C: 'c_compact_vsat',    Ku: 'ku_compact_vsat',   Ka: 'ka_consumer_terminal_mobile' },
+  aviation: { C: 'aviation_esim',     Ku: 'aviation_esim',     Ka: 'ka_aviation_esim' },
+  maritime: { C: 'c_compact_vsat',    Ku: 'maritime_vsat_compact', Ka: 'ka_mobility_terminal' },
 };
 
 /** Returns true when the given RF class is listed as compatible with the use-case. */
@@ -286,6 +334,24 @@ export function isRFClassCompatibleWithUseCase(
 ): boolean {
   const spec = GEO_TERMINAL_RF_CATALOGUE.find((s) => s.id === classId);
   return spec ? spec.typicalUseCases.includes(useCase) : false;
+}
+
+export function getRFClassSpec(classId: string | null | undefined): TerminalRFClassSpec | null {
+  if (!classId) return null;
+  return GEO_TERMINAL_RF_CATALOGUE.find((spec) => spec.id === classId) ?? null;
+}
+
+export function getRFClassBand(classId: string | null | undefined): GeoBand | null {
+  return getRFClassSpec(classId)?.band ?? null;
+}
+
+export function isRFClassCompatibleWithBand(
+  classId: string | null | undefined,
+  band: GeoBand | null | undefined,
+): boolean {
+  const spec = getRFClassSpec(classId);
+  if (!spec || !band) return true;
+  return spec.band === band;
 }
 
 // ─── Fallback satellite G/T range (no real contour available) ─────────────────
@@ -377,6 +443,7 @@ export function getTerminalRFProfile(
 ): TerminalRFProfile {
   const spec = GEO_TERMINAL_RF_CATALOGUE.find((s) => s.id === classId);
   if (!spec) throw new Error(`Unknown RF class: ${classId}`);
+  if (spec.band !== band) throw new Error(`RF class ${classId} is ${spec.band}-band and cannot operate on ${band}-band coverage.`);
   return computeTerminalRFProfile(spec, band);
 }
 
@@ -396,12 +463,13 @@ export function resolveTerminalRFParams(
     const syntheticSpec: TerminalRFClassSpec = {
       id: 'ku_standard_vsat',
       label: 'Custom',
+      band,
       antennaDiameterM: customParams.antennaDiameterM,
       antennaEfficiency: customParams.antennaEfficiency,
       bucPowerW: customParams.bucPowerW,
       systemLossDb: customParams.systemLossDb,
       systemNoiseTempK: customParams.systemNoiseTempK,
-      supportedBands: ['C', 'Ku', 'Ka'],
+      supportedBands: [band],
       typicalUseCases: [],
     };
     return computeTerminalRFProfile(syntheticSpec, band);
@@ -410,6 +478,9 @@ export function resolveTerminalRFParams(
   // Try to match as a direct RF class ID
   const directSpec = GEO_TERMINAL_RF_CATALOGUE.find((s) => s.id === terminalKey);
   if (directSpec) {
+    if (directSpec.band !== band) {
+      throw new Error(`RF class ${terminalKey} is ${directSpec.band}-band and cannot operate on ${band}-band coverage.`);
+    }
     return computeTerminalRFProfile(directSpec, band);
   }
 
@@ -481,13 +552,19 @@ export function computeUplinkRequirement(
     const kuClasses: TerminalRFClassId[] = [
       'ku_compact_vsat', 'ku_standard_vsat', 'ku_highpower_vsat', 'ku_enterprise_vsat',
     ];
-    const kaClasses: TerminalRFClassId[] = ['ka_compact_vsat', 'ka_standard_vsat'];
-    const cClasses: TerminalRFClassId[]  = ['c_compact_vsat', 'c_standard_vsat', 'c_large_vsat'];
+    const kaClasses: TerminalRFClassId[] = [
+      'ka_consumer_terminal',
+      'ka_consumer_terminal_mobile',
+      'ka_mobility_terminal',
+      'ka_enterprise_vsat',
+      'ka_aviation_esim',
+    ];
+    const cClasses: TerminalRFClassId[]  = ['c_compact_vsat', 'c_standard_vsat'];
     const candidateIds = band === 'Ku' ? kuClasses : band === 'Ka' ? kaClasses : cClasses;
 
     for (const classId of candidateIds) {
       const spec = GEO_TERMINAL_RF_CATALOGUE.find((s) => s.id === classId);
-      if (!spec || !spec.supportedBands.includes(band)) continue;
+      if (!spec || spec.band !== band) continue;
       const profile = computeTerminalRFProfile(spec, band);
       if (profile.eirpDbw >= minimumEirpDbw) {
         suggestedRFClassId    = classId;
@@ -556,7 +633,7 @@ export function computeRFConfidence({
 /** Returns all RF classes that support the given band, sorted by EIRP ascending. */
 export function getCatalogueForBand(band: GeoBand): Array<{ spec: TerminalRFClassSpec; profile: TerminalRFProfile }> {
   return GEO_TERMINAL_RF_CATALOGUE
-    .filter((spec) => spec.supportedBands.includes(band))
+    .filter((spec) => spec.band === band)
     .map((spec) => ({ spec, profile: computeTerminalRFProfile(spec, band) }))
     .sort((a, b) => a.profile.eirpDbw - b.profile.eirpDbw);
 }
@@ -567,7 +644,7 @@ export function getCatalogueForUseCase(
   band: GeoBand,
 ): Array<{ spec: TerminalRFClassSpec; profile: TerminalRFProfile }> {
   return GEO_TERMINAL_RF_CATALOGUE
-    .filter((spec) => spec.supportedBands.includes(band) && spec.typicalUseCases.includes(useCase))
+    .filter((spec) => spec.band === band && spec.typicalUseCases.includes(useCase))
     .map((spec) => ({ spec, profile: computeTerminalRFProfile(spec, band) }))
     .sort((a, b) => a.profile.eirpDbw - b.profile.eirpDbw);
 }

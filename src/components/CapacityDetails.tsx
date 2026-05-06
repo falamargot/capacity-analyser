@@ -44,7 +44,7 @@ import {
 } from '../utils/geoTopologySelection';
 import { RAIN_FADE_DB } from '../utils/geoLinkBudget';
 import type { GeoBand } from '../utils/geoLinkBudget';
-import type { TerminalRFClassId } from '../utils/geoTerminalRFModel';
+import { getRFClassBand, type TerminalRFClassId } from '../utils/geoTerminalRFModel';
 import {
   applyBeamCapacitySharing,
   smoothThroughputMbps,
@@ -174,6 +174,10 @@ const getGeoCompanionCoverage = (
   const sameBand = sameSatellite.filter((candidate) => (
     !selectedCoverage?.band || !candidate.band || candidate.band === selectedCoverage.band
   ));
+
+  if (selectedCoverage?.band) {
+    return sameBand[0] ?? null;
+  }
 
   return sameBand[0] ?? sameSatellite[0] ?? candidateCoverages.find((candidate) => candidate.isUplink === wantUplink) ?? null;
 };
@@ -725,11 +729,12 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
     return augmentCandidatesWithSynthesizedDirections(
       findCandidateCoverages(
         { lat: resolvedGatewayData.lat, lng: resolvedGatewayData.lng },
-        geoSats
+        geoSats,
+        { compatibleBand: getRFClassBand(geoRFClassIdA) }
       ),
       geoSats
     );
-  }, [resolvedGatewayData, refCoverage, satellites]);
+  }, [geoRFClassIdA, resolvedGatewayData, refCoverage, satellites]);
 
   const uplinkAtGateway = useMemo(
     () => refCoverage ? findBestUplinkMatch(refCoverage, candidateCoveragesAtGateway) : null,
@@ -785,7 +790,9 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
 
       const covByGw = new Map<string, Set<string>>();
       for (const [key, pos] of uniquePos) {
-        const cands = findCandidateCoverages(pos, geoSatellites);
+        const cands = findCandidateCoverages(pos, geoSatellites, {
+          compatibleBand: getRFClassBand(geoRFClassIdA),
+        });
         covByGw.set(key, new Set(cands.map(c => c.satelliteId)));
       }
 
@@ -797,7 +804,7 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
     }
 
     return undefined;
-  }, [linkMode, candidateCoverages, candidateCoveragesB, satellites]);
+  }, [linkMode, candidateCoverages, candidateCoveragesB, satellites, geoRFClassIdA]);
 
   const pointALabel = useMemo(() => {
     if (!activePoint) return 'Terminal A';

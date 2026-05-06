@@ -9,6 +9,7 @@ import {
   computeDownlinkBudget,
   computeUplinkBudget,
   DEFAULT_TERMINAL,
+  getRFClassBand,
   getTerminalDownlinkGT,
   type GeoBand,
   type LinkBudgetResult,
@@ -39,6 +40,13 @@ export interface GeoConnectivitySelectionResult {
   elevation: number;
   distance: number;
   rtt: number | null;
+}
+
+export interface CandidateCoverageFilterOptions {
+  /** Explicit terminal RF class; direct RF classes are single-band. */
+  terminalRFClassId?: string | null;
+  /** Optional explicit band override for non-terminal callers. */
+  compatibleBand?: GeoBand | null;
 }
 
 const clamp = (value: number, min: number, max: number): number => {
@@ -375,9 +383,11 @@ const getBeamDistanceMetrics = (
 
 export const findCandidateCoverages = (
   userPoint: Point,
-  satellites: SatelliteData[]
+  satellites: SatelliteData[],
+  options: CandidateCoverageFilterOptions = {},
 ): CandidateCoverage[] => {
   const candidates: CandidateCoverage[] = [];
+  const compatibleBand = options.compatibleBand ?? getRFClassBand(options.terminalRFClassId);
 
   for (const satellite of satellites) {
     if (satellite.orbitType !== 'GEO' || !satellite.coverages?.length) continue;
@@ -413,6 +423,7 @@ export const findCandidateCoverages = (
       const missionName = getCoverageMissionName(coverage);
       const coverageName = getCoverageDisplayName(coverage);
       const band = detectBand(coverageName, properties, missionName);
+      if (compatibleBand && band !== compatibleBand) continue;
       const bandParams = BAND_PARAMS[band];
       const level = getNumericCoverageLevel(properties);
       const isUplink = properties.isUplink === true;
@@ -522,6 +533,14 @@ export const findCandidateCoverages = (
   }
 
   return candidates;
+};
+
+export const filterCandidateCoveragesByRFClass = (
+  candidates: CandidateCoverage[],
+  terminalRFClassId?: string | null,
+): CandidateCoverage[] => {
+  const band = getRFClassBand(terminalRFClassId);
+  return band ? candidates.filter((candidate) => candidate.band === band) : candidates;
 };
 
 // ─── Scoring weights ──────────────────────────────────────────────────────────

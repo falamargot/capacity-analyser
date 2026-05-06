@@ -112,6 +112,17 @@ describe('geoTopologySelection', () => {
     expect(findBestUplinkMatch(reference, [uplinkB])).toBeNull();
   });
 
+  it('does not match an uplink from a different RF band on the same satellite', () => {
+    const sat = createSatellite('SAT-A', 'SAT A', 10, []);
+    const reference = createCandidate(sat, false, 140, 8, { band: 'Ku' });
+    const cBandUplink = createCandidate(sat, true, 80, 4, {
+      band: 'C',
+      frequencyGhz: 5.9,
+    });
+
+    expect(findBestUplinkMatch(reference, [cBandUplink])).toBeNull();
+  });
+
   it('prefers a STAR return path that is fully closed over a downlink-only favorite', () => {
     const pointA = { lat: 43.06, lng: 8.6 };
 

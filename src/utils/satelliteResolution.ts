@@ -178,7 +178,8 @@ export const resolveAutoSelectedSatellites = (
     simulationState: SimulationStateSnapshot,
     time?: any, // JulianDate from Cesium
     failedSnps: ReadonlySet<string> = new Set(),
-    previousLEOSatId: string | null = null
+    previousLEOSatId: string | null = null,
+    geoTerminalRFClassId: string | null = null
 ): SatelliteResolutionResult => {
     let autoSelectedGEOSat: SatelliteData | null = null;
     let autoSelectedLEOSat: SatelliteData | null = null;
@@ -188,7 +189,7 @@ export const resolveAutoSelectedSatellites = (
     if (satelliteScope === 'ALL' || satelliteScope === 'GEO') {
         const geoSatellites = satellites.filter(sat => sat.orbitType === 'GEO' && sat.opsStatus === 'operational');
         const rankedCandidates = rankCandidateCoverages(
-            findCandidateCoverages(userLocation, geoSatellites),
+            findCandidateCoverages(userLocation, geoSatellites, { terminalRFClassId: geoTerminalRFClassId }),
             geoSatellites,
             userLocation
         );
@@ -308,14 +309,15 @@ export const resolveAutoSelectedSatellites = (
  */
 export const findBestGEOBeam = (
     position: { lat: number; lng: number },
-    satellite: SatelliteData
+    satellite: SatelliteData,
+    geoTerminalRFClassId: string | null = null
 ): any | null => {
     if (!satellite.coverages || satellite.coverages.length === 0) {
         return null;
     }
 
     const rankedCandidates = rankCandidateCoverages(
-        findCandidateCoverages(position, [satellite]),
+        findCandidateCoverages(position, [satellite], { terminalRFClassId: geoTerminalRFClassId }),
         [satellite],
         position
     );

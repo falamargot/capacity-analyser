@@ -8,6 +8,7 @@ import {
   computeUplinkRequirement,
   resolveTerminalRFParams,
   getTerminalRFProfile,
+  getRFClassBand,
   GEO_TERMINAL_RF_CATALOGUE,
   USE_CASE_DEFAULT_RF_CLASS,
 } from '../geoTerminalRFModel';
@@ -53,21 +54,21 @@ describe('computeTerminalEirpDbw', () => {
 // ─── G/T ──────────────────────────────────────────────────────────────────────
 
 describe('computeTerminalGtDbk', () => {
-  it('Ku Standard VSAT downlink at 11.7 GHz, T=250K ≈ 17.1 dB/K', () => {
+  it('Ku Standard VSAT downlink at 11.7 GHz, T=200K ≈ 18.1 dB/K', () => {
     const gain = computeAntennaGainDbi(1.2, 11.7, 0.60);
-    const gt = computeTerminalGtDbk(gain, 250);
-    expect(gt).toBeCloseTo(17.1, 0);
+    const gt = computeTerminalGtDbk(gain, 200);
+    expect(gt).toBeCloseTo(18.1, 0);
   });
 });
 
 // ─── Full RF profile ──────────────────────────────────────────────────────────
 
 describe('computeTerminalRFProfile', () => {
-  it('ku_standard_vsat Ku profile has EIRP ≈ 47 dBW and G/T ≈ 17 dB/K', () => {
+  it('ku_standard_vsat Ku profile has EIRP ≈ 47 dBW and G/T ≈ 18 dB/K', () => {
     const spec = GEO_TERMINAL_RF_CATALOGUE.find((s) => s.id === 'ku_standard_vsat')!;
     const profile = computeTerminalRFProfile(spec, 'Ku');
     expect(profile.eirpDbw).toBeCloseTo(47, 0);
-    expect(profile.gtDbk).toBeCloseTo(17, 0);
+    expect(profile.gtDbk).toBeCloseTo(18, 0);
     expect(profile.band).toBe('Ku');
     expect(profile.classId).toBe('ku_standard_vsat');
   });
@@ -78,6 +79,97 @@ describe('computeTerminalRFProfile', () => {
     const p1 = computeTerminalRFProfile(compact, 'Ku');
     const p2 = computeTerminalRFProfile(enterprise, 'Ku');
     expect(p2.eirpDbw).toBeGreaterThan(p1.eirpDbw + 10);
+  });
+});
+
+describe('RF class band capability', () => {
+  it('assigns one explicit RF band to every catalogue class', () => {
+    expect(GEO_TERMINAL_RF_CATALOGUE.every((spec) => ['C', 'Ku', 'Ka'].includes(spec.band))).toBe(true);
+    expect(GEO_TERMINAL_RF_CATALOGUE.every((spec) => spec.supportedBands.length === 1 && spec.supportedBands[0] === spec.band)).toBe(true);
+  });
+
+  it('includes realistic C-band and Ka-band user terminal classes', () => {
+    expect(getRFClassBand('c_compact_vsat')).toBe('C');
+    expect(getRFClassBand('c_standard_vsat')).toBe('C');
+    expect(getRFClassBand('ka_consumer_terminal')).toBe('Ka');
+    expect(getRFClassBand('ka_consumer_terminal_mobile')).toBe('Ka');
+    expect(getRFClassBand('ka_enterprise_vsat')).toBe('Ka');
+    expect(getRFClassBand('ka_mobility_terminal')).toBe('Ka');
+    expect(getRFClassBand('ka_aviation_esim')).toBe('Ka');
+  });
+
+  it('matches the finalized use-case compatibility matrix', () => {
+    const idsForUseCase = (useCase: string) => GEO_TERMINAL_RF_CATALOGUE
+      .filter((spec) => spec.typicalUseCases.includes(useCase as any))
+      .map((spec) => spec.id);
+
+    expect(idsForUseCase('fixed')).toEqual([
+      'c_standard_vsat',
+      'ku_standard_vsat',
+      'ku_highpower_vsat',
+      'ku_enterprise_vsat',
+      'ka_consumer_terminal',
+      'ka_enterprise_vsat',
+    ]);
+    expect(idsForUseCase('mobile')).toEqual([
+      'c_compact_vsat',
+      'ku_compact_vsat',
+      'ka_consumer_terminal_mobile',
+      'ka_mobility_terminal',
+      'maritime_vsat_compact',
+    ]);
+    expect(idsForUseCase('aviation')).toEqual([
+      'aviation_esim',
+      'ka_aviation_esim',
+    ]);
+    expect(idsForUseCase('maritime')).toEqual([
+      'c_compact_vsat',
+      'ka_mobility_terminal',
+      'maritime_vsat_compact',
+      'maritime_vsat_large',
+    ]);
+  });
+
+  it('uses the finalized physical parameters for representative catalogue classes', () => {
+    const byId = Object.fromEntries(GEO_TERMINAL_RF_CATALOGUE.map((spec) => [spec.id, spec]));
+
+    expect(byId.c_standard_vsat).toMatchObject({
+      band: 'C',
+      antennaDiameterM: 2.4,
+      bucPowerW: 10,
+      antennaEfficiency: 0.60,
+      systemLossDb: 1.5,
+      systemNoiseTempK: 120,
+    });
+    expect(byId.maritime_vsat_compact).toMatchObject({
+      band: 'Ku',
+      antennaDiameterM: 0.85,
+      bucPowerW: 4,
+      antennaEfficiency: 0.55,
+      systemLossDb: 2.0,
+      systemNoiseTempK: 220,
+    });
+    expect(byId.ka_consumer_terminal).toMatchObject({
+      band: 'Ka',
+      antennaDiameterM: 0.75,
+      bucPowerW: 2,
+      antennaEfficiency: 0.65,
+      systemLossDb: 1.5,
+      systemNoiseTempK: 250,
+    });
+    expect(byId.ka_consumer_terminal_mobile).toMatchObject({
+      band: 'Ka',
+      antennaDiameterM: 0.45,
+      bucPowerW: 1,
+      antennaEfficiency: 0.65,
+      systemLossDb: 1.5,
+      systemNoiseTempK: 300,
+    });
+  });
+
+  it('rejects evaluating a direct RF class against an incompatible band', () => {
+    expect(() => resolveTerminalRFParams('C', 'ku_standard_vsat')).toThrow(/cannot operate/);
+    expect(() => getTerminalRFProfile('ka_consumer_terminal', 'Ku')).toThrow(/cannot operate/);
   });
 });
 

@@ -3,7 +3,8 @@ import type { SatelliteData } from '../types/satellites';
 import type { LinkMode } from '../types/linkMode';
 import type { GeoGatewayData } from '../components/globe/GlobeConfig';
 import { GEO_GATEWAYS } from '../components/globe/GlobeConfig';
-import { findCandidateCoverages } from './geoCoverageSelection';
+import { filterCandidateCoveragesByRFClass, findCandidateCoverages } from './geoCoverageSelection';
+import type { GeoBand } from './geoLinkBudget';
 import {
   buildMeshResult,
   buildStarForwardResult,
@@ -144,9 +145,10 @@ function scoreTopologyResult(result: DualSegmentResult): number {
 function buildGatewayCandidatePool(
   satellite: SatelliteData,
   gateway: GeoGatewayData,
+  compatibleBand?: GeoBand | null,
 ): CandidateCoverage[] {
   return augmentCandidatesWithSynthesizedDirections(
-    findCandidateCoverages({ lat: gateway.lat, lng: gateway.lng }, [satellite]),
+    findCandidateCoverages({ lat: gateway.lat, lng: gateway.lng }, [satellite], { compatibleBand }),
     [satellite],
   );
 }
@@ -165,17 +167,20 @@ export function selectBestTopologyPath({
   pointALabel,
   pointBLabel,
 }: SelectBestTopologyPathArgs): TopologySelectionCandidate | null {
-  if (candidateCoveragesA.length === 0) return null;
+  const compatibleCoveragesA = filterCandidateCoveragesByRFClass(candidateCoveragesA, terminalTypeA);
+  const compatibleCoveragesB = filterCandidateCoveragesByRFClass(candidateCoveragesB, terminalTypeB ?? terminalTypeA);
 
-  const satelliteIds = [...new Set(candidateCoveragesA.map((candidate) => candidate.satelliteId))];
+  if (compatibleCoveragesA.length === 0) return null;
+
+  const satelliteIds = [...new Set(compatibleCoveragesA.map((candidate) => candidate.satelliteId))];
   let best: TopologySelectionCandidate | null = null;
 
   for (const satelliteId of satelliteIds) {
     const satellite = satellites.find((candidate) => candidate.id === satelliteId);
     if (!satellite) continue;
 
-    const downlinkA = getBestDirectionCandidate(candidateCoveragesA, satellite, false);
-    const uplinkA = getBestDirectionCandidate(candidateCoveragesA, satellite, true);
+    const downlinkA = getBestDirectionCandidate(compatibleCoveragesA, satellite, false);
+    const uplinkA = getBestDirectionCandidate(compatibleCoveragesA, satellite, true);
 
     let candidate: TopologySelectionCandidate | null = null;
 
@@ -183,7 +188,7 @@ export function selectBestTopologyPath({
       const gatewaySelection = selectTrafficGeoGateway(satellite, gateways);
       if (!gatewaySelection || !downlinkA) continue;
 
-      const gatewayPool = buildGatewayCandidatePool(satellite, gatewaySelection.gateway);
+      const gatewayPool = buildGatewayCandidatePool(satellite, gatewaySelection.gateway, downlinkA.band ?? null);
       const uplinkGateway = findBestUplinkMatch(
         downlinkA,
         gatewayPool,
@@ -215,7 +220,7 @@ export function selectBestTopologyPath({
       const gatewaySelection = selectTrafficGeoGateway(satellite, gateways);
       if (!gatewaySelection || !uplinkA) continue;
 
-      const gatewayPool = buildGatewayCandidatePool(satellite, gatewaySelection.gateway);
+      const gatewayPool = buildGatewayCandidatePool(satellite, gatewaySelection.gateway, uplinkA.band ?? null);
       const downlinkGateway = findBestDownlinkMatch(
         uplinkA,
         gatewayPool,
@@ -244,28 +249,33 @@ export function selectBestTopologyPath({
         result,
       };
     } else if ((linkMode === 'MESH' || linkMode === 'POINT_TO_POINT') && pointB) {
-      const downlinkB = getBestDirectionCandidate(candidateCoveragesB, satellite, false);
-      const uplinkB = getBestDirectionCandidate(candidateCoveragesB, satellite, true);
+      const downlinkB = getBestDirectionCandidate(compatibleCoveragesB, satellite, false);
+      const uplinkB = getBestDirectionCandidate(compatibleCoveragesB, satellite, true);
 
       if (!uplinkA || !downlinkA || !uplinkB || !downlinkB) {
         continue;
       }
 
-      const result = buildMeshResult(
-        uplinkA,
-        downlinkB,
-        uplinkB,
-        downlinkA,
-        {
-          pointA: pointALabel,
-          pointB: pointBLabel,
-        },
-        terminalTypeA,
-        terminalTypeB,
-        undefined,
-        customParamsA,
-        customParamsB,
-      );
+      let result: DualSegmentResult;
+      try {
+        result = buildMeshResult(
+          uplinkA,
+          downlinkB,
+          uplinkB,
+          downlinkA,
+          {
+            pointA: pointALabel,
+            pointB: pointBLabel,
+          },
+          terminalTypeA,
+          terminalTypeB,
+          undefined,
+          customParamsA,
+          customParamsB,
+        );
+      } catch {
+        continue;
+      }
 
       candidate = {
         satellite,

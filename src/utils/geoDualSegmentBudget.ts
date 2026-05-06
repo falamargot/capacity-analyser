@@ -34,6 +34,7 @@ import {
 import {
   resolveTerminalRFParams,
   computeUplinkRequirement,
+  isRFClassCompatibleWithBand,
   type UplinkRequirement,
   type TerminalRFCustomParams,
 } from './geoTerminalRFModel';
@@ -125,7 +126,6 @@ export function findBestUplinkMatch(
 ): CandidateCoverage | null {
   return (
     uplinkPool.find(c => c.isUplink && c.satelliteId === reference.satelliteId && c.band === reference.band) ??
-    uplinkPool.find(c => c.isUplink && c.satelliteId === reference.satelliteId) ??
     null
   );
 }
@@ -140,10 +140,20 @@ export function findBestDownlinkMatch(
 ): CandidateCoverage | null {
   return (
     downlinkPool.find(c => !c.isUplink && c.satelliteId === reference.satelliteId && c.band === reference.band) ??
-    downlinkPool.find(c => !c.isUplink && c.satelliteId === reference.satelliteId) ??
     null
   );
 }
+
+const haveSameBand = (...candidates: CandidateCoverage[]): boolean => {
+  const bands = candidates.map((candidate) => candidate.band).filter((band): band is GeoBand => !!band);
+  if (bands.length <= 1) return true;
+  return bands.every((band) => band === bands[0]);
+};
+
+const isTerminalCompatibleWithCandidateBand = (
+  terminalType: string | undefined,
+  band: GeoBand,
+): boolean => isRFClassCompatibleWithBand(terminalType, band);
 
 /**
  * Computes the dB adjustment needed when the actual transmitter EIRP differs
@@ -347,8 +357,10 @@ export function buildStarForwardResult(
   terminalType?: string,
   customParams?: TerminalRFCustomParams | null,
 ): DualSegmentResult | null {
+  if (!haveSameBand(downlinkAtUser, uplinkAtGateway)) return null;
   const band = downlinkAtUser.band ?? uplinkAtGateway.band ?? 'Ku';
   const geoBand = band as GeoBand;
+  if (!isTerminalCompatibleWithCandidateBand(terminalType, geoBand)) return null;
   const gatewayEirpDbw = GATEWAY_EIRP_DBW[geoBand] ?? GATEWAY_EIRP_DBW.Ku;
   const gatewayGTDbk = GATEWAY_GT_DBK[geoBand] ?? GATEWAY_GT_DBK.Ku;
 
@@ -409,8 +421,10 @@ export function buildStarReturnResult(
   terminalType?: string,
   customParams?: TerminalRFCustomParams | null,
 ): DualSegmentResult | null {
+  if (!haveSameBand(uplinkAtUser, downlinkAtGateway)) return null;
   const band = uplinkAtUser.band ?? downlinkAtGateway.band ?? 'Ku';
   const geoBand = band as GeoBand;
+  if (!isTerminalCompatibleWithCandidateBand(terminalType, geoBand)) return null;
   const gatewayGTDbk = GATEWAY_GT_DBK[geoBand] ?? GATEWAY_GT_DBK.Ku;
 
   // Resolve terminal EIRP: RF class IDs take priority over legacy table lookup.
@@ -520,9 +534,18 @@ export function buildMeshResult(
   customParamsA?: TerminalRFCustomParams | null,
   customParamsB?: TerminalRFCustomParams | null,
 ): DualSegmentResult {
+  if (!haveSameBand(uplinkAtA, downlinkAtB, uplinkAtB, downlinkAtA)) {
+    throw new Error('MESH GEO link budget requires all segments to use the same RF band.');
+  }
   const pointALabel = endpointLabels?.pointA ?? 'Terminal A';
   const pointBLabel = endpointLabels?.pointB ?? 'Terminal B';
   const band = (uplinkAtA.band ?? downlinkAtB.band ?? 'Ku') as GeoBand;
+  if (
+    !isTerminalCompatibleWithCandidateBand(terminalTypeA, band) ||
+    !isTerminalCompatibleWithCandidateBand(terminalTypeB, band)
+  ) {
+    throw new Error('Terminal RF class is not compatible with the selected GEO coverage band.');
+  }
 
   // resolveTerminalRFParams accepts both legacy use-case keys ('fixed', 'mobile', ...)
   // and new RF class IDs ('ku_standard_vsat', ...) — falls back to fixed if unknown.

@@ -7,7 +7,8 @@ const createCoverage = (
   name: string,
   contour: number,
   isUplink = false,
-  coordinates: number[][]
+  coordinates: number[][],
+  mission = 'C-Band',
 ): { name: string; feature: Feature } => ({
   name: `${name}_${contour}`,
   feature: {
@@ -16,7 +17,7 @@ const createCoverage = (
       name,
       contour,
       level: contour,
-      mission: 'C-Band',
+      mission,
       type: 'EUTELSAT',
       isUplink,
       satelliteId: 'EUTELSAT 10B',
@@ -181,5 +182,90 @@ describe('findCandidateCoverages', () => {
     expect(candidates[0].isUplink).toBe(true);
     expect(candidates[0].gtDbk).toBe(-20);
     expect(candidates[0].linkMarginDb).toBeLessThan(0);
+  });
+
+  it('filters C-band beams out for a Ku terminal RF class', () => {
+    const footprint = [
+      [-10, -5],
+      [20, -5],
+      [20, 25],
+      [-10, 25],
+      [-10, -5],
+    ];
+    const satellite = createSatellite([
+      createCoverage('E10B Ku-band uplink', 15, true, footprint, 'Ku-band'),
+      createCoverage('E10B Ku-band downlink', 58, false, footprint, 'Ku-band'),
+      createCoverage('E10B C-band uplink', 15, true, footprint, 'C-Band'),
+      createCoverage('E10B C-band downlink', 58, false, footprint, 'C-Band'),
+    ]);
+
+    const candidates = findCandidateCoverages(
+      { lat: 14.11, lng: 5.21 },
+      [satellite],
+      { terminalRFClassId: 'ku_highpower_vsat' },
+    );
+
+    expect(candidates).not.toHaveLength(0);
+    expect(candidates.every((candidate) => candidate.band === 'Ku')).toBe(true);
+    expect(candidates.some((candidate) => candidate.band === 'C')).toBe(false);
+  });
+
+  it('filters Ku-band beams out for a Ka terminal RF class', () => {
+    const footprint = [
+      [-10, -5],
+      [20, -5],
+      [20, 25],
+      [-10, 25],
+      [-10, -5],
+    ];
+    const satellite = createSatellite([
+      createCoverage('E10B Ka-band uplink', 18, true, footprint, 'Ka-band'),
+      createCoverage('E10B Ka-band downlink', 70, false, footprint, 'Ka-band'),
+      createCoverage('E10B Ku-band uplink', 15, true, footprint, 'Ku-band'),
+      createCoverage('E10B Ku-band downlink', 58, false, footprint, 'Ku-band'),
+    ]);
+
+    const candidates = findCandidateCoverages(
+      { lat: 14.11, lng: 5.21 },
+      [satellite],
+      { terminalRFClassId: 'ka_aviation_esim' },
+    );
+
+    expect(candidates).not.toHaveLength(0);
+    expect(candidates.every((candidate) => candidate.band === 'Ka')).toBe(true);
+    expect(candidates.some((candidate) => candidate.band === 'Ku')).toBe(false);
+  });
+
+  it('updates candidates automatically when switching RF class band on a multi-band satellite', () => {
+    const footprint = [
+      [-10, -5],
+      [20, -5],
+      [20, 25],
+      [-10, 25],
+      [-10, -5],
+    ];
+    const satellite = createSatellite([
+      createCoverage('E10B Ku-band uplink', 15, true, footprint, 'Ku-band'),
+      createCoverage('E10B Ku-band downlink', 58, false, footprint, 'Ku-band'),
+      createCoverage('E10B C-band uplink', 15, true, footprint, 'C-Band'),
+      createCoverage('E10B C-band downlink', 58, false, footprint, 'C-Band'),
+    ]);
+
+    const kuCandidates = findCandidateCoverages(
+      { lat: 14.11, lng: 5.21 },
+      [satellite],
+      { terminalRFClassId: 'ku_standard_vsat' },
+    );
+    const cCandidates = findCandidateCoverages(
+      { lat: 14.11, lng: 5.21 },
+      [satellite],
+      { terminalRFClassId: 'c_standard_vsat' },
+    );
+
+    expect(kuCandidates.every((candidate) => candidate.band === 'Ku')).toBe(true);
+    expect(cCandidates.every((candidate) => candidate.band === 'C')).toBe(true);
+    expect(kuCandidates.map((candidate) => candidate.coverageName).sort()).not.toEqual(
+      cCandidates.map((candidate) => candidate.coverageName).sort(),
+    );
   });
 });
