@@ -12,6 +12,7 @@ import type { LinkMode } from '../../types/linkMode';
 import DualSegmentPanel from './DualSegmentPanel';
 import type { DualSegmentResult } from '../../utils/geoDualSegmentBudget';
 import LinkModeSelector from './LinkModeSelector';
+import type { ResolvedGeoGateway } from '../../utils/geoConnectivityModel';
 
 // ─── Sub-component: LatencyBreakdownCard ──────────────────────────────────────
 
@@ -368,6 +369,7 @@ export interface GEOGeometry {
     slantRangeKm: number | null;
     latencyMs: number | null;
     gateway: { name: string } | null;
+    resolvedGateway?: ResolvedGeoGateway | null;
   };
   oneWayRadioMs: number | null;
   rttPropagationMs: number | null;
@@ -567,7 +569,10 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
   };
   const userLabel = analysisSource === 'aircraft' && aircraftCallsign ? aircraftCallsign : 'User';
   const showPerformanceBeforeRadioPath = analysisSource !== 'aircraft';
-  const gatewayName = geoGeometry?.satelliteToGateway.gateway?.name ?? 'Gateway';
+  const resolvedGateway = geoGeometry?.satelliteToGateway.resolvedGateway ?? null;
+  const gatewayName = resolvedGateway?.gatewayName ?? geoGeometry?.satelliteToGateway.gateway?.name ?? 'Gateway';
+  const gatewayRole = resolvedGateway?.role ?? null;
+  const gatewayDisplayName = gatewayRole ? `${gatewayName} (${gatewayRole})` : gatewayName;
 
   // ── MESH/P2P geometry — derived entirely from dualSegmentResult ──────────────
   // For MESH/P2P the gateway is NOT in the RF path. All propagation figures
@@ -697,7 +702,7 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
           const throughputGbps = throughputMbps != null ? throughputMbps / 1000 : null;
 
           if (isStarForward) {
-            const gwLabel = geoGeometry.satelliteToGateway.gateway?.name ?? 'GW';
+            const gwLabel = gatewayDisplayName;
             return (
               <PerformancePanel
                 rtt={geoGeometry.oneWayRadioMs}
@@ -718,7 +723,7 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
           }
 
           // STAR_RETURN
-          const gwLabel = geoGeometry.satelliteToGateway.gateway?.name ?? 'GW';
+          const gwLabel = gatewayDisplayName;
           return (
             <PerformancePanel
               rtt={geoGeometry.oneWayRadioMs}
@@ -1135,15 +1140,16 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
             // ── STAR Forward/Return: active one-way traffic route ────────────
             resolvedGEOConnectivity && geoGeometry ? (
               (() => {
-                const gwName = geoGeometry.satelliteToGateway.gateway?.name ?? 'No eligible gateway';
+                const gwName = gatewayName === 'Gateway' ? 'No eligible gateway' : gatewayName;
+                const gwDisplayName = gatewayName === 'Gateway' ? gwName : gatewayDisplayName;
                 const satelliteName = resolvedGEOConnectivity.satellite.name;
-                const primarySource = isStarReturn ? userLabel : gwName;
-                const primaryDestination = isStarReturn ? gwName : userLabel;
+                const primarySource = isStarReturn ? userLabel : gwDisplayName;
+                const primaryDestination = isStarReturn ? gwDisplayName : userLabel;
                 const firstHopLabel = isStarReturn
                   ? `${userLabel} → ${formatCoverageName(selectedUplinkCoverage ?? selectedCoverage) ?? resolvedGEOConnectivity.candidate.coverageName}`
-                  : `${gwName} → ${satelliteName}`;
+                  : `${gwDisplayName} → ${satelliteName}`;
                 const secondHopLabel = isStarReturn
-                  ? `${satelliteName} → ${gwName}`
+                  ? `${satelliteName} → ${gwDisplayName}`
                   : `${satelliteName} → ${formatCoverageName(selectedDownlinkCoverage ?? selectedCoverage) ?? resolvedGEOConnectivity.candidate.coverageName}`;
                 const firstHopDistanceKm = isStarReturn
                   ? geoGeometry.userToSatellite.slantRangeKm
@@ -1162,6 +1168,9 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
                   : null;
                 return (
                   <div className="text-sm text-gray-700 dark:text-gray-300 text-center space-y-3 min-w-0">
+                    <div className="rounded-lg border border-blue-100 bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-700 dark:border-blue-900/60 dark:bg-blue-950/30 dark:text-blue-300">
+                      Gateway: {gwDisplayName}
+                    </div>
                     <div className="flex items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs text-slate-700 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200">
                       <Route className="h-4 w-4 shrink-0 text-blue-500" />
                       <div className="min-w-0 break-words leading-relaxed">

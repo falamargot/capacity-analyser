@@ -21,6 +21,7 @@ interface Props {
     selectedSatellite: SatelliteData | null;
     selectedBeamFeature?: Feature<GeoJsonGeometry, GeoJsonProperties> | null;
     selectedCoverageFeatures?: Feature<GeoJsonGeometry, GeoJsonProperties>[];
+    selectedCoverageGroups?: ProjectionCoverageGroup[];
     beamSatellite?: SatelliteData | null;
     autoSelectedSatellite?: SatelliteData | null;
     selectedPosition?: { lat: number; lng: number; altitude?: number } | null;
@@ -32,6 +33,13 @@ interface Props {
 
 const DEFAULT_PROJECTION_ALPHA = 0.1;
 const GEO_PROJECTION_ALPHA = 0.04;
+const UPLINK_PROJECTION_COLOR = Color.fromCssColorString('#059669');
+const DOWNLINK_PROJECTION_COLOR = Color.fromCssColorString('#2563eb');
+
+export interface ProjectionCoverageGroup {
+    direction: 'uplink' | 'downlink';
+    features: Feature<GeoJsonGeometry, GeoJsonProperties>[];
+}
 
 type Point2 = { x: number; y: number; index: number };
 function cross(o: Point2, a: Point2, b: Point2) { return (a.x - o.x) * (b.y - o.y) - (a.y - o.y) * (b.x - o.x); }
@@ -266,10 +274,33 @@ function pickCoverageFootprintRings(
         .filter((ring) => ring.length >= 3);
 }
 
+const getFeatureSignature = (feature: Feature<GeoJsonGeometry, GeoJsonProperties>): string => {
+    const props = feature.properties ?? {};
+    return [
+        typeof props.name === 'string' ? props.name : 'coverage',
+        typeof props.level === 'number' ? props.level.toFixed(3) : 'level',
+        typeof props.coverageGeometryKey === 'string' ? props.coverageGeometryKey : 'part',
+    ].join(':');
+};
+
+const getProjectionGeometrySignature = (
+    groups: ProjectionCoverageGroup[],
+    features: Feature<GeoJsonGeometry, GeoJsonProperties>[],
+    beamFeature: Feature<GeoJsonGeometry, GeoJsonProperties> | null,
+): string => {
+    const grouped = groups
+        .map((group) => `${group.direction}(${group.features.map(getFeatureSignature).join(',')})`)
+        .join('|');
+    const legacyFeatures = features.map(getFeatureSignature).join(',');
+    const beam = beamFeature ? getFeatureSignature(beamFeature) : '';
+    return `${grouped}::${legacyFeatures}::${beam}`;
+};
+
 function resolveRenderableCoverageSatellite(
     selectedSatellite: SatelliteData | null,
     beamSatellite: SatelliteData | null,
     selectedBeamFeature: Feature<GeoJsonGeometry, GeoJsonProperties> | null,
+    hasBeamCoverageData: boolean,
     autoSelectedSatellite: SatelliteData | null,
     satellites: SatelliteData[]
 ): SatelliteData | null {
@@ -278,7 +309,7 @@ function resolveRenderableCoverageSatellite(
         return satellites.find((sat) => sat.id === selectedSatellite.id) ?? selectedSatellite;
     }
 
-    if (beamSatellite && selectedBeamFeature) {
+    if (beamSatellite && (selectedBeamFeature || hasBeamCoverageData)) {
         return isOperationalSatellite(beamSatellite) ? beamSatellite : null;
     }
 
@@ -293,6 +324,7 @@ const AggregatedCoverageVolumeLayer: React.FC<Props> = ({
     selectedSatellite,
     selectedBeamFeature = null,
     selectedCoverageFeatures = [],
+    selectedCoverageGroups = [],
     beamSatellite = null,
     autoSelectedSatellite = null,
     selectedPosition = null,
@@ -306,6 +338,7 @@ const AggregatedCoverageVolumeLayer: React.FC<Props> = ({
     const selectedSatelliteRef = useRef<SatelliteData | null>(null);
     const selectedBeamFeatureRef = useRef<Feature<GeoJsonGeometry, GeoJsonProperties> | null>(null);
     const selectedCoverageFeaturesRef = useRef<Feature<GeoJsonGeometry, GeoJsonProperties>[]>([]);
+    const selectedCoverageGroupsRef = useRef<ProjectionCoverageGroup[]>([]);
     const beamSatelliteRef = useRef<SatelliteData | null>(null);
     const autoSelectedSatelliteRef = useRef<SatelliteData | null>(null);
     const selectedPositionRef = useRef<{ lat: number; lng: number; altitude?: number } | null>(null);
@@ -318,6 +351,7 @@ const AggregatedCoverageVolumeLayer: React.FC<Props> = ({
             selectedSatellite,
             beamSatellite,
             selectedBeamFeature,
+            selectedCoverageFeatures.length > 0 || selectedCoverageGroups.some((group) => group.features.length > 0),
             autoSelectedSatellite,
             satellites
         );
@@ -333,6 +367,7 @@ const AggregatedCoverageVolumeLayer: React.FC<Props> = ({
     selectedSatelliteRef.current = selectedSatellite;
     selectedBeamFeatureRef.current = selectedBeamFeature;
     selectedCoverageFeaturesRef.current = selectedCoverageFeatures;
+    selectedCoverageGroupsRef.current = selectedCoverageGroups;
     beamSatelliteRef.current = beamSatellite;
     autoSelectedSatelliteRef.current = autoSelectedSatellite;
     selectedPositionRef.current = selectedPosition;
@@ -344,7 +379,9 @@ const AggregatedCoverageVolumeLayer: React.FC<Props> = ({
     const stateRef = useRef<{
         primitive: Primitive | null; instanceIds: string[]; alpha: number; targetAlpha: number;
         lastTickTime: JulianDate | null; lastGeometryUpdateTime: JulianDate | null; satId: string | null;
-    }>({ primitive: null, instanceIds: [], alpha: 0, targetAlpha: 0, lastTickTime: null, lastGeometryUpdateTime: null, satId: null });
+        instanceColors: Map<string, Color>;
+        geometrySignature: string | null;
+    }>({ primitive: null, instanceIds: [], alpha: 0, targetAlpha: 0, lastTickTime: null, lastGeometryUpdateTime: null, satId: null, instanceColors: new Map(), geometrySignature: null });
     useEffect(() => {
         const viewer = viewerRef.current; if (!viewer) return;
         const scene = viewer.scene; const state = stateRef.current;
@@ -363,6 +400,7 @@ const AggregatedCoverageVolumeLayer: React.FC<Props> = ({
                 selected,
                 beamSat,
                 beamFeature,
+                selectedCoverageFeaturesRef.current.length > 0 || selectedCoverageGroupsRef.current.some((group) => group.features.length > 0),
                 autoSat,
                 satellitesRef.current
             );
@@ -383,26 +421,50 @@ const AggregatedCoverageVolumeLayer: React.FC<Props> = ({
                     scene.primitives.remove(state.primitive);
                     state.primitive = null;
                     state.instanceIds = [];
+                    state.instanceColors = new Map();
+                    state.geometrySignature = null;
                 }
                 state.satId = sat?.id ?? null;
                 return;
             }
-            const needsRebuild = !state.primitive || state.satId !== sat!.id || !state.lastGeometryUpdateTime || (now && JulianDate.secondsDifference(now, state.lastGeometryUpdateTime) > 0.75);
+            const geometrySignature = getProjectionGeometrySignature(
+                selectedCoverageGroupsRef.current,
+                selectedCoverageFeaturesRef.current,
+                beamFeature,
+            );
+            const needsRebuild = !state.primitive
+                || state.satId !== sat!.id
+                || state.geometrySignature !== geometrySignature
+                || !state.lastGeometryUpdateTime
+                || (now && JulianDate.secondsDifference(now, state.lastGeometryUpdateTime) > 0.75);
             if (needsRebuild && now) {
                 const useBeamMode = !selectedSatelliteRef.current
                     && !!beamSat
-                    && (!!beamFeature || selectedCoverageFeaturesRef.current.length > 0);
+                    && (
+                        !!beamFeature ||
+                        selectedCoverageFeaturesRef.current.length > 0 ||
+                        selectedCoverageGroupsRef.current.some((group) => group.features.length > 0)
+                    );
                 const useOneWebServingBeamMode = coveragePolicy.type === 'DB_THRESHOLD'
                     && !selectedSatelliteRef.current
                     && !useBeamMode
                     && sat!.type === 'ONEWEB'
                     && (!!selectedPositionRef.current || !!selectedAircraftRef.current);
 
-                const beamModeRings = useBeamMode
+                const beamModeGroups = useBeamMode
                     ? (
-                        selectedCoverageFeaturesRef.current.length > 0
-                            ? pickCoverageFootprintRings(selectedCoverageFeaturesRef.current)
-                            : [pickBeamFootprintPoints(beamFeature)].filter((ring) => ring.length >= 3)
+                        selectedCoverageGroupsRef.current.some((group) => group.features.length > 0)
+                            ? selectedCoverageGroupsRef.current.flatMap((group) => {
+                                const color = group.direction === 'uplink'
+                                    ? UPLINK_PROJECTION_COLOR
+                                    : DOWNLINK_PROJECTION_COLOR;
+                                return pickCoverageFootprintRings(group.features).map((ring) => ({ ring, color }));
+                            })
+                            : (
+                                selectedCoverageFeaturesRef.current.length > 0
+                                    ? pickCoverageFootprintRings(selectedCoverageFeaturesRef.current)
+                                    : [pickBeamFootprintPoints(beamFeature)].filter((ring) => ring.length >= 3)
+                            ).map((ring) => ({ ring, color: currentBaseColor }))
                     )
                     : [];
 
@@ -426,22 +488,26 @@ const AggregatedCoverageVolumeLayer: React.FC<Props> = ({
                         : buildStandardFootprintRing({ lat: sat!.position.lat, lng: sat!.position.lng }))
                     : [];
 
-                const baseRings = useBeamMode
-                    ? beamModeRings
-                    : [(useOneWebServingBeamMode ? oneWebBaseRing : computeLocalHull(footprintPoints))].filter((ring) => ring.length >= 3);
+                const baseGroups = useBeamMode
+                    ? beamModeGroups
+                    : [(useOneWebServingBeamMode ? oneWebBaseRing : computeLocalHull(footprintPoints))]
+                        .filter((ring) => ring.length >= 3)
+                        .map((ring) => ({ ring, color: currentBaseColor }));
 
-                if (baseRings.length > 0) {
+                if (baseGroups.length > 0) {
                     // Use propagated position for the apex to match the satellite entity
                     const apex = propagateSatellite(sat!, now);
-                    const instances = baseRings
-                        .map((baseRing, index) => {
-                            const geometry = buildSideOnlyConeGeometry(apex, baseRing);
+                    const instanceColors = new Map<string, Color>();
+                    const instances = baseGroups
+                        .map(({ ring, color }, index) => {
+                            const geometry = buildSideOnlyConeGeometry(apex, ring);
                             if (!geometry) return null;
                             const instanceId = `aggregated-coverage-volume-${index}`;
+                            instanceColors.set(instanceId, color);
                             return new GeometryInstance({
                                 id: instanceId,
                                 geometry,
-                                attributes: { color: ColorGeometryInstanceAttribute.fromColor(currentBaseColor.withAlpha(state.alpha)) }
+                                attributes: { color: ColorGeometryInstanceAttribute.fromColor(color.withAlpha(state.alpha)) }
                             });
                         })
                         .filter(Boolean) as GeometryInstance[];
@@ -450,6 +516,8 @@ const AggregatedCoverageVolumeLayer: React.FC<Props> = ({
                             scene.primitives.remove(state.primitive);
                             state.primitive = null;
                             state.instanceIds = [];
+                            state.instanceColors = new Map();
+                            state.geometrySignature = null;
                         }
                         const primitive = new Primitive({
                             geometryInstances: instances,
@@ -459,6 +527,8 @@ const AggregatedCoverageVolumeLayer: React.FC<Props> = ({
                         scene.primitives.add(primitive);
                         state.primitive = primitive;
                         state.instanceIds = instances.map((instance) => String(instance.id));
+                        state.instanceColors = instanceColors;
+                        state.geometrySignature = geometrySignature;
                         state.lastGeometryUpdateTime = now.clone();
                         state.satId = sat!.id;
                     }
@@ -466,6 +536,8 @@ const AggregatedCoverageVolumeLayer: React.FC<Props> = ({
                     scene.primitives.remove(state.primitive);
                     state.primitive = null;
                     state.instanceIds = [];
+                    state.instanceColors = new Map();
+                    state.geometrySignature = null;
                 }
             }
             if (state.primitive) {
@@ -473,7 +545,8 @@ const AggregatedCoverageVolumeLayer: React.FC<Props> = ({
                     try {
                         const attrs = (state.primitive as any).getGeometryInstanceAttributes(instanceId);
                         if (attrs?.color) {
-                            attrs.color = ColorGeometryInstanceAttribute.toValue(currentBaseColor!.withAlpha(state.alpha));
+                            const instanceColor = state.instanceColors.get(instanceId) ?? currentBaseColor!;
+                            attrs.color = ColorGeometryInstanceAttribute.toValue(instanceColor.withAlpha(state.alpha));
                         }
                     } catch {
                         /* ignore */
@@ -488,6 +561,8 @@ const AggregatedCoverageVolumeLayer: React.FC<Props> = ({
                 scene.primitives.remove(state.primitive);
                 state.primitive = null;
                 state.instanceIds = [];
+                state.instanceColors = new Map();
+                state.geometrySignature = null;
             }
         };
     }, [coveragePolicy.type, viewerRef]);

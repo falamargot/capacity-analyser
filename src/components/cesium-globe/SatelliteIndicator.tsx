@@ -10,6 +10,7 @@ interface SatelliteIndicatorProps {
     selectedSatellite: SatelliteData | null;
     autoSelectedLEOSatellite?: SatelliteData | null;
     autoSelectedGEOSatellite?: SatelliteData | null;
+    onSatelliteClick?: (satellite: SatelliteData | null) => void;
     viewerRef: React.RefObject<CesiumViewerType | null>;
     isPhone?: boolean;
     isFullscreen?: boolean;
@@ -35,6 +36,7 @@ const SatelliteIndicator: React.FC<SatelliteIndicatorProps> = ({
     selectedSatellite,
     autoSelectedLEOSatellite,
     autoSelectedGEOSatellite,
+    onSatelliteClick,
     isPhone = false,
     isFullscreen = false,
 }) => {
@@ -53,12 +55,18 @@ const SatelliteIndicator: React.FC<SatelliteIndicatorProps> = ({
     const gsoAvoidanceActive = gsoData?.isGSOAvoidance ?? false;
 
     const renderChip = useCallback((satellite: SatelliteData, content?: React.ReactNode, maxWidthClassName = 'max-w-full') => (
-        <div className={`${indicatorContainerClassName} min-w-0 ${maxWidthClassName} backdrop-blur-sm shadow-sm border ${typeChipClassName(satellite.type)}`}>
+        <button
+            type="button"
+            onClick={() => onSatelliteClick?.(satellite)}
+            className={`${indicatorContainerClassName} min-w-0 ${maxWidthClassName} cursor-pointer backdrop-blur-sm shadow-sm border transition-colors hover:brightness-95 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-1 ${typeChipClassName(satellite.type)}`}
+            title={`Select ${satellite.name}`}
+            aria-label={`Select satellite ${satellite.name}`}
+        >
             <span className={`${indicatorTextClassName} block truncate font-medium`}>
                 {content ?? (isPhone ? getCompactSatelliteName(satellite) : satellite.name)}
             </span>
-        </div>
-    ), [indicatorContainerClassName, indicatorTextClassName, isPhone]);
+        </button>
+    ), [indicatorContainerClassName, indicatorTextClassName, isPhone, onSatelliteClick]);
 
     const indicator = useMemo(() => {
         if (selectedSatellite) {

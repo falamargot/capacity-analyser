@@ -707,6 +707,8 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
   // ── Dual-segment budget ───────────────────────────────────────────────────
   // Resolve gateway from existing connectivity result
   const resolvedGatewayData = useMemo(() => {
+    const resolvedGateway = resolvedGEOConnectivity?.geometry?.satelliteToGateway?.resolvedGateway;
+    if (resolvedGateway?.gateway) return resolvedGateway.gateway;
     const gwName = resolvedGEOConnectivity?.geometry?.satelliteToGateway?.gateway?.name;
     if (!gwName) return null;
     return GEO_GATEWAYS.find((g) => g.name === gwName) ?? null;
@@ -1277,7 +1279,10 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
     }
 
     const userLabel = analysisSource === 'aircraft' && aircraftCallsign ? aircraftCallsign : 'User';
-    const gatewayName = geoGeometry.satelliteToGateway.gateway?.name ?? 'No eligible gateway';
+    const resolvedGateway = geoGeometry.satelliteToGateway.resolvedGateway;
+    const gatewayName = resolvedGateway
+      ? `${resolvedGateway.gatewayName} (${resolvedGateway.role})`
+      : geoGeometry.satelliteToGateway.gateway?.name ?? 'No eligible gateway';
     const userToSatelliteLabel = resolvedGEOConnectivity.candidate.coverageName || resolvedGEOConnectivity.satellite.name;
     const oneWayDistanceKm = geoGeometry.satelliteToGateway.slantRangeKm != null
       ? geoGeometry.userToSatellite.slantRangeKm + geoGeometry.satelliteToGateway.slantRangeKm

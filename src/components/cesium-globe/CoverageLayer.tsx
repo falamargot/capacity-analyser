@@ -406,6 +406,7 @@ const getPrebuiltMeshBuffers = (mesh: PrebuiltCoverageMesh): {
 };
 
 const shouldUsePrebuiltFillForContour = (contour: RenderContour): boolean => (
+  contour.mode !== 'overview' &&
   contour.prebuiltMesh !== null &&
   contour.prebuiltMesh.triangleCount <= MAX_PREBUILT_FILL_TRIANGLES_PER_PART
 );
@@ -427,10 +428,18 @@ const getCoverageBandStyle = (
   direction?: RenderContour['direction'],
 ): { fillColor: Color; contourColor: Color; contourWidth: number } => {
   if (mode === 'overview') {
+    const isUplink = direction === 'uplink';
+    const fillBase = direction
+      ? (isUplink ? UPLINK_FILL_MID_COLOR : DOWNLINK_FILL_MID_COLOR)
+      : OVERVIEW_FILL_COLOR;
+    const contourBase = direction
+      ? (isUplink ? UPLINK_CONTOUR_COLOR : DOWNLINK_CONTOUR_COLOR)
+      : OVERVIEW_CONTOUR_COLOR;
+
     return {
-      fillColor: OVERVIEW_FILL_COLOR.withAlpha(0.05),
-      contourColor: OVERVIEW_CONTOUR_COLOR.withAlpha(isHighlighted ? 0.9 : 0.4),
-      contourWidth: isHighlighted ? 2.4 : 1,
+      fillColor: fillBase.withAlpha(isHighlighted ? 0.28 : 0.20),
+      contourColor: contourBase.withAlpha(isHighlighted ? 0.95 : 0.68),
+      contourWidth: isHighlighted ? 2.4 : 1.2,
     };
   }
 
@@ -659,6 +668,7 @@ const buildSatelliteOverviewContours = (
   visibleCoverageKeys: Set<string> | null
 ): RenderContour[] => {
   const coverageGroups = new Map<string, Coverage[]>();
+  const coverageDirectionByKey = new Map<string, 'uplink' | 'downlink'>();
 
   for (const coverage of satellite.coverages) {
     const coverageKey = getCoverageGroupId(coverage);
@@ -666,9 +676,30 @@ const buildSatelliteOverviewContours = (
       continue;
     }
 
+    const properties = (coverage.feature?.properties as Record<string, unknown> | undefined) ?? {};
+    coverageDirectionByKey.set(coverageKey, properties.isUplink === true ? 'uplink' : 'downlink');
+
     const group = coverageGroups.get(coverageKey) ?? [];
     group.push(coverage);
     coverageGroups.set(coverageKey, group);
+  }
+
+  if (visibleCoverageKeys && coverageGroups.size > 0) {
+    const uplinkKeys = [...coverageGroups.keys()].filter((key) => coverageDirectionByKey.get(key) === 'uplink');
+    const downlinkKeys = [...coverageGroups.keys()].filter((key) => coverageDirectionByKey.get(key) === 'downlink');
+    const shouldRenderSelectedCoverageContours = uplinkKeys.length <= 1 && downlinkKeys.length <= 1;
+
+    if (shouldRenderSelectedCoverageContours) {
+      const contours: RenderContour[] = [];
+      for (const [coverageKey, coverages] of coverageGroups.entries()) {
+        const direction = coverageDirectionByKey.get(coverageKey);
+        contours.push(
+          ...buildCoverageContours(satellite, coverageKey, meshIndex, null)
+            .map((contour) => ({ ...contour, direction }))
+        );
+      }
+      return contours;
+    }
   }
 
   const contours: RenderContour[] = [];
@@ -691,7 +722,7 @@ const buildSatelliteOverviewContours = (
 
     const renderContour = toRenderContour(satellite, selectedCoverage, meshIndex, 1, 'overview', 0, true);
     if (renderContour) {
-      contours.push({ ...renderContour, coverageKey });
+      contours.push({ ...renderContour, coverageKey, direction: coverageDirectionByKey.get(coverageKey) });
     }
   }
 

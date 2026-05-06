@@ -26,8 +26,6 @@ const DEFAULT_RANGES = {
   suspiciousLowRttMs: 450,
 };
 
-const SCC_FAILOVER_MAX_LATENCY_MS = 500;
-
 const APAC_MONITORING_CODES = new Set(['PER', 'SIN', 'IBA'] as const);
 const CSC_VERIFICATION_CODES = ['TUR', 'RAM'] as const;
 
@@ -50,6 +48,9 @@ export interface GeoGatewaySelection {
 }
 
 export type GatewayAssignmentRole = 'primary' | 'backup';
+export type ResolvedGatewayRole = 'nominal' | 'backup';
+export type GatewayResolutionPolicy = 'STATIC_NOMINAL' | 'STATIC_BACKUP';
+export type GatewayAssignmentSource = 'traffic-gateway-allocation' | 'fallback-visible-gateway';
 
 export type GroundSegmentTeleportCode =
   | 'RAM'
@@ -71,6 +72,31 @@ export interface GatewaySatelliteAssignment {
   monitoringCodes: GroundSegmentTeleportCode[];
 }
 
+export interface ResolvedGeoGateway {
+  gatewayId: string;
+  gatewayName: string;
+  latitude: number;
+  longitude: number;
+  role: ResolvedGatewayRole;
+  reason: string;
+  assignmentSource: GatewayAssignmentSource;
+  teleportCode: GroundSegmentTeleportCode | string;
+  region: string;
+  gateway: GeoGatewayData;
+  gatewayElevationDeg: number;
+  satToGatewayDistanceKm: number;
+}
+
+export interface ResolvedConnectivityPath {
+  satellite: SatelliteData;
+  userLocation: { lat: number; lng: number; altitude?: number } | null;
+  resolvedGateway: ResolvedGeoGateway | null;
+  pathType: 'GEO_STAR' | 'GEO_MESH' | 'GEO_INSPECTION';
+  topology: string;
+  frequencyContext: unknown | null;
+  linkBudgetInputs: unknown | null;
+}
+
 export interface GroundSegmentRouting {
   satelliteId: string;
   satelliteName: string;
@@ -82,8 +108,8 @@ export interface GroundSegmentRouting {
 
 interface GroundSegmentSelectionOptions {
   criticalFailureRegions?: string[];
-  maxLatencyMs?: number;
   minVisibilityDeg?: number;
+  gatewayPolicy?: GatewayResolutionPolicy;
 }
 
 export interface GeoConnectivityResult {
@@ -95,6 +121,7 @@ export interface GeoConnectivityResult {
   };
   satelliteToGateway: {
     gateway: GeoGatewayData | null;
+    resolvedGateway: ResolvedGeoGateway | null;
     gatewayElevationDeg: number | null;
     slantRangeKm: number | null;
     latencyMs: number | null;
@@ -251,7 +278,7 @@ function getGeoSatellitePoint(satellite: SatelliteData): PointLLA {
   };
 }
 
-const GEO_GATEWAY_ASSIGNMENTS: GatewaySatelliteAssignment[] = [
+export const GEO_GATEWAY_ASSIGNMENTS: GatewaySatelliteAssignment[] = [
   { satelliteId: '139WA', satelliteName: 'EUTELSAT 139 WEST A', nominalSccCode: 'MEX', backupSccCode: 'HER', monitoringCodes: ['MEX', 'MAR', 'PER'] },
   { satelliteId: '174A', satelliteName: 'EUTELSAT 174A', nominalSccCode: 'RAM', backupSccCode: 'TUR', monitoringCodes: ['IBA', 'SIN', 'PER'] },
   { satelliteId: '33F', satelliteName: 'EUTELSAT 33F', nominalSccCode: 'RAM', backupSccCode: 'TUR', monitoringCodes: ['RAM', 'TUR'] },
@@ -283,9 +310,53 @@ const GEO_GATEWAY_ASSIGNMENTS: GatewaySatelliteAssignment[] = [
   { satelliteId: '36D', satelliteName: 'EUTELSAT 36D', nominalSccCode: 'RAM', backupSccCode: 'TUR', monitoringCodes: ['RAM', 'DUB'] },
 ];
 
-const GATEWAY_ASSIGNMENT_BY_SATELLITE = new Map(
-  GEO_GATEWAY_ASSIGNMENTS.map((assignment) => [assignment.satelliteName.toUpperCase(), assignment])
+const normalizeSatelliteGatewayKey = (value: string | null | undefined): string => (
+  (value ?? '')
+    .toUpperCase()
+    .replace(/[^A-Z0-9]+/g, '')
 );
+
+const getSatelliteAssignmentAliases = (assignment: GatewaySatelliteAssignment): string[] => {
+  const aliases = new Set<string>([
+    assignment.satelliteName,
+    assignment.satelliteId,
+  ]);
+
+  if (/^\d/.test(assignment.satelliteId)) {
+    aliases.add(`E${assignment.satelliteId}`);
+  }
+
+  if (assignment.satelliteName.startsWith('EUTELSAT ')) {
+    aliases.add(assignment.satelliteName.replace(/^EUTELSAT\s+/, ''));
+  }
+
+  return [...aliases].map(normalizeSatelliteGatewayKey).filter(Boolean);
+};
+
+const GATEWAY_ASSIGNMENT_BY_SATELLITE = new Map<string, GatewaySatelliteAssignment>();
+for (const assignment of GEO_GATEWAY_ASSIGNMENTS) {
+  for (const alias of getSatelliteAssignmentAliases(assignment)) {
+    GATEWAY_ASSIGNMENT_BY_SATELLITE.set(alias, assignment);
+  }
+}
+
+export function getGatewayAssignmentForSatellite(
+  satellite: Pick<SatelliteData, 'id' | 'name' | 'noradId' | 'coverageFileId'>
+): GatewaySatelliteAssignment | null {
+  const keys = [
+    satellite.name,
+    satellite.id,
+    satellite.coverageFileId ?? null,
+    satellite.noradId,
+  ].map(normalizeSatelliteGatewayKey);
+
+  for (const key of keys) {
+    const assignment = GATEWAY_ASSIGNMENT_BY_SATELLITE.get(key);
+    if (assignment) return assignment;
+  }
+
+  return null;
+}
 
 function getGatewayByCode(
   gateways: GeoGatewayData[],
@@ -345,43 +416,114 @@ function getMonitoringCodesForAssignment(
   return monitoringCodes;
 }
 
-function getGatewayLatencyMs(selection: GeoGatewaySelection | null): number | null {
-  if (!selection) return null;
-  return latencyMsFromDistanceKm(selection.satToGatewayDistanceKm);
+function toResolvedGeoGateway(
+  satellite: SatelliteData,
+  gateway: GeoGatewayData,
+  role: ResolvedGatewayRole,
+  assignmentSource: GatewayAssignmentSource,
+  reason: string,
+): ResolvedGeoGateway {
+  const satPoint = getGeoSatellitePoint(satellite);
+  const coords = getGatewayLatLng(gateway);
+  const gatewayPoint: PointLLA = { lat: coords.lat, lng: coords.lng, altKm: 0 };
+
+  return {
+    gatewayId: gateway.gateway_id,
+    gatewayName: gateway.name,
+    latitude: coords.lat,
+    longitude: coords.lng,
+    role,
+    reason,
+    assignmentSource,
+    teleportCode: gateway.teleportCode,
+    region: gateway.region,
+    gateway,
+    gatewayElevationDeg: elevationDeg(gatewayPoint, satPoint),
+    satToGatewayDistanceKm: distanceKm(satPoint, gatewayPoint),
+  };
 }
 
-function selectConfiguredGateway(
+function toGatewaySelection(resolved: ResolvedGeoGateway | null): GeoGatewaySelection | null {
+  if (!resolved) return null;
+  return {
+    gateway: resolved.gateway,
+    gatewayElevationDeg: resolved.gatewayElevationDeg,
+    satToGatewayDistanceKm: resolved.satToGatewayDistanceKm,
+  };
+}
+
+export function resolveGatewayForSatellite(
   satellite: SatelliteData,
   gateways: GeoGatewayData[],
-  primaryCode: GroundSegmentTeleportCode | null,
-  backupCode: GroundSegmentTeleportCode | null,
   {
-    maxLatencyMs = SCC_FAILOVER_MAX_LATENCY_MS,
+    gatewayPolicy = 'STATIC_NOMINAL',
     minVisibilityDeg = DEFAULT_RANGES.minGatewayElevationDeg,
   }: GroundSegmentSelectionOptions = {}
-): GeoGatewaySelection | null {
-  const primarySelection = getGatewaySelectionForCandidate(
-    satellite,
-    getGatewayByCode(gateways, primaryCode),
-    minVisibilityDeg
-  );
-  const backupSelection = getGatewaySelectionForCandidate(
-    satellite,
-    getGatewayByCode(gateways, backupCode),
-    minVisibilityDeg
-  );
-
-  const primaryLatencyMs = getGatewayLatencyMs(primarySelection);
-  if (primarySelection && primaryLatencyMs != null && primaryLatencyMs <= maxLatencyMs) {
-    return primarySelection;
+): ResolvedGeoGateway | null {
+  if (satellite.orbitType !== 'GEO' || satellite.type !== 'EUTELSAT' || satellite.opsStatus !== 'operational') {
+    return null;
   }
 
-  const backupLatencyMs = getGatewayLatencyMs(backupSelection);
-  if (backupSelection && backupLatencyMs != null && backupLatencyMs <= maxLatencyMs) {
-    return backupSelection;
+  const assignment = getGatewayAssignmentForSatellite(satellite);
+  if (assignment) {
+    const role: ResolvedGatewayRole = gatewayPolicy === 'STATIC_BACKUP' ? 'backup' : 'nominal';
+    const code = role === 'backup'
+      ? (assignment.backupSccCode ?? assignment.nominalSccCode)
+      : assignment.nominalSccCode;
+    const gateway = getGatewayByCode(gateways, code);
+
+    if (!gateway) return null;
+
+    return toResolvedGeoGateway(
+      satellite,
+      gateway,
+      role,
+      'traffic-gateway-allocation',
+      `${gatewayPolicy}: ${role} gateway ${code} from traffic allocation registry.`,
+    );
   }
 
-  return primarySelection ?? backupSelection;
+  const fallback = selectBestGeoGateway(satellite, gateways, minVisibilityDeg);
+  if (!fallback) return null;
+  return toResolvedGeoGateway(
+    satellite,
+    fallback.gateway,
+    'nominal',
+    'fallback-visible-gateway',
+    'No traffic allocation registry entry matched; selected nearest visible fallback gateway.',
+  );
+}
+
+export function resolveConnectivityPathForSatellite({
+  satellite,
+  userLocation,
+  gateways,
+  pathType = 'GEO_STAR',
+  topology = 'STAR',
+  frequencyContext = null,
+  linkBudgetInputs = null,
+  gatewayPolicy,
+}: {
+  satellite: SatelliteData;
+  userLocation?: { lat: number; lng: number; altitude?: number } | null;
+  gateways: GeoGatewayData[];
+  pathType?: ResolvedConnectivityPath['pathType'];
+  topology?: string;
+  frequencyContext?: unknown | null;
+  linkBudgetInputs?: unknown | null;
+  gatewayPolicy?: GatewayResolutionPolicy;
+}): ResolvedConnectivityPath {
+  return {
+    satellite,
+    userLocation: userLocation ?? null,
+    resolvedGateway: pathType === 'GEO_MESH'
+      ? null
+      : resolveGatewayForSatellite(satellite, gateways, { gatewayPolicy }),
+    pathType,
+    topology,
+    frequencyContext,
+    linkBudgetInputs,
+  };
 }
 
 function isGatewayEligibleForSatellite(
@@ -406,7 +548,7 @@ export function getGatewayAssignmentsForSatellite(
     return { primary: null, backup: null };
   }
 
-  const assignment = GATEWAY_ASSIGNMENT_BY_SATELLITE.get(satellite.name.toUpperCase());
+  const assignment = getGatewayAssignmentForSatellite(satellite);
   if (assignment) {
     const criticalFailureRegions = new Set(options.criticalFailureRegions ?? []);
     const enforceAmericasAutonomy = isAmericasAutonomySatellite(assignment) && !criticalFailureRegions.has('AMERICAS');
@@ -471,7 +613,7 @@ export function getGroundSegmentRoutingForSatellite(
     return null;
   }
 
-  const assignment = GATEWAY_ASSIGNMENT_BY_SATELLITE.get(satellite.name.toUpperCase());
+  const assignment = getGatewayAssignmentForSatellite(satellite);
   if (!assignment) {
     const fallbackGateway = selectBestGeoGateway(satellite, gateways, options.minVisibilityDeg)?.gateway ?? null;
     return {
@@ -547,36 +689,7 @@ export function selectOperationalGeoGateway(
   gateways: GeoGatewayData[],
   options: GroundSegmentSelectionOptions = {}
 ): GeoGatewaySelection | null {
-  const assignment = GATEWAY_ASSIGNMENT_BY_SATELLITE.get(satellite.name.toUpperCase());
-  if (!assignment) {
-    return selectBestGeoGateway(satellite, gateways, options.minVisibilityDeg);
-  }
-
-  const criticalFailureRegions = new Set(options.criticalFailureRegions ?? []);
-  if (isAmericasAutonomySatellite(assignment) && criticalFailureRegions.has('AMERICAS')) {
-    return selectBestGeoGateway(satellite, gateways, options.minVisibilityDeg);
-  }
-
-  const monitoringCodes = getMonitoringCodesForAssignment(assignment, satellite);
-  for (const code of monitoringCodes) {
-    const selection = getGatewaySelectionForCandidate(
-      satellite,
-      getGatewayByCode(gateways, code),
-      options.minVisibilityDeg
-    );
-    const latencyMs = getGatewayLatencyMs(selection);
-    if (selection && latencyMs != null && latencyMs <= (options.maxLatencyMs ?? SCC_FAILOVER_MAX_LATENCY_MS)) {
-      return selection;
-    }
-  }
-
-  return selectConfiguredGateway(
-    satellite,
-    gateways,
-    assignment.nominalSccCode,
-    assignment.backupSccCode,
-    options
-  );
+  return toGatewaySelection(resolveGatewayForSatellite(satellite, gateways, options));
 }
 
 export function selectTrafficGeoGateway(
@@ -584,23 +697,7 @@ export function selectTrafficGeoGateway(
   gateways: GeoGatewayData[],
   options: GroundSegmentSelectionOptions = {}
 ): GeoGatewaySelection | null {
-  const assignment = GATEWAY_ASSIGNMENT_BY_SATELLITE.get(satellite.name.toUpperCase());
-  if (!assignment) {
-    return selectBestGeoGateway(satellite, gateways, options.minVisibilityDeg);
-  }
-
-  const criticalFailureRegions = new Set(options.criticalFailureRegions ?? []);
-  if (isAmericasAutonomySatellite(assignment) && criticalFailureRegions.has('AMERICAS')) {
-    return selectBestGeoGateway(satellite, gateways, options.minVisibilityDeg);
-  }
-
-  return selectConfiguredGateway(
-    satellite,
-    gateways,
-    assignment.nominalSccCode,
-    assignment.backupSccCode,
-    options
-  ) ?? selectBestGeoGateway(satellite, gateways, options.minVisibilityDeg);
+  return toGatewaySelection(resolveGatewayForSatellite(satellite, gateways, options));
 }
 
 export function selectBestGeoGateway(
@@ -651,7 +748,7 @@ export function analyzeGeoConnectivity({
   const userSatDistanceKm = distanceKm(userLla, satPoint);
   const userElevationDeg = elevationDeg(userLla, satPoint);
   const userSatLatencyMs = latencyMsFromDistanceKm(userSatDistanceKm);
-  const selectedGateway = selectTrafficGeoGateway(satellite, gateways);
+  const resolvedGateway = resolveGatewayForSatellite(satellite, gateways);
 
   const delays = {
     ...DEFAULT_GEO_OVERHEAD_MS,
@@ -667,9 +764,9 @@ export function analyzeGeoConnectivity({
   let rttPropagationMs: number | null = null;
   let rttTotalMs: number | null = null;
 
-  if (selectedGateway) {
-    gatewayElevationDeg = selectedGateway.gatewayElevationDeg;
-    satGatewayDistanceKm = selectedGateway.satToGatewayDistanceKm;
+  if (resolvedGateway) {
+    gatewayElevationDeg = resolvedGateway.gatewayElevationDeg;
+    satGatewayDistanceKm = resolvedGateway.satToGatewayDistanceKm;
     satGatewayLatencyMs = latencyMsFromDistanceKm(satGatewayDistanceKm);
     oneWayRadioMs = userSatLatencyMs + satGatewayLatencyMs;
     rttPropagationMs = 2 * oneWayRadioMs;
@@ -686,9 +783,9 @@ export function analyzeGeoConnectivity({
   if (isUserLinkUnstable) {
     warnings.push(`User-satellite elevation below ${DEFAULT_RANGES.minUserStableElevationDeg} deg: unstable link.`);
   }
-  if (!selectedGateway) {
+  if (!resolvedGateway) {
     warnings.push(
-      `No eligible monitoring gateway found (visibility >= ${DEFAULT_RANGES.minGatewayElevationDeg} deg).`
+      `No eligible traffic gateway found (visibility >= ${DEFAULT_RANGES.minGatewayElevationDeg} deg).`
     );
   }
   if (userSatLatencyMs < geoUserLatencyBoundsMs.minMs - DEFAULT_RANGES.userSatLatencyToleranceMs) {
@@ -729,7 +826,8 @@ export function analyzeGeoConnectivity({
       latencyMs: userSatLatencyMs,
     },
     satelliteToGateway: {
-      gateway: selectedGateway?.gateway ?? null,
+      gateway: resolvedGateway?.gateway ?? null,
+      resolvedGateway,
       gatewayElevationDeg,
       slantRangeKm: satGatewayDistanceKm,
       latencyMs: satGatewayLatencyMs,

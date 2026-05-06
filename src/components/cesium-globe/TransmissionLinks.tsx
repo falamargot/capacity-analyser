@@ -20,7 +20,11 @@ import { getPosition, calculateDeadReckoning, propagateSatellite } from './utils
 import { hasRFConnectivity } from '../../utils/rfConnectivity';
 import { useSimulation } from '../../contexts/SimulationContext';
 import { GEO_GATEWAYS, type GeoGatewayData, type SNPData } from '../globe/GlobeConfig';
-import { getMonitoredGeoSatellitesForGateway, selectOperationalGeoGateway } from '../../utils/geoConnectivityModel';
+import {
+    getMonitoredGeoSatellitesForGateway,
+    resolveGatewayForSatellite,
+    type ResolvedGeoGateway,
+} from '../../utils/geoConnectivityModel';
 import type { SNPConnectedSatellite } from '../../services/coverageService';
 import { buildSimulationStateSnapshot } from '../../types/simulation';
 import type { LeoConnectivityViewModel } from '../../utils/leoServiceViewModel';
@@ -44,6 +48,8 @@ interface TransmissionLinksProps {
     inspectedSNP?: SNPData | null;
     snpConnectedSatellites?: SNPConnectedSatellite[];
     leoServiceViewModel?: LeoConnectivityViewModel | null;
+    resolvedAutoGeoGateway?: ResolvedGeoGateway | null;
+    resolvedSelectedGeoGateway?: ResolvedGeoGateway | null;
 }
 
 // Dashed material cache
@@ -107,6 +113,23 @@ const degradedMaterial = new PolylineDashMaterialProperty({
     dashPattern: 3855,
 });
 
+function logGatewayDesync(
+    sourceComponent: string,
+    satellite: SatelliteData | null | undefined,
+    rfGateway: ResolvedGeoGateway | null | undefined,
+    renderedGateway: ResolvedGeoGateway | null | undefined,
+) {
+    if (!import.meta.env.DEV || !satellite || !rfGateway || !renderedGateway) return;
+    if (rfGateway.gatewayId === renderedGateway.gatewayId) return;
+
+    console.error('[GEO Gateway Desync]', {
+        satelliteName: satellite.name,
+        rfGatewayId: rfGateway.gatewayId,
+        renderedGatewayId: renderedGateway.gatewayId,
+        sourceComponent,
+    });
+}
+
 const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
     satellites,
     selectedPosition,
@@ -124,6 +147,8 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
     inspectedSNP,
     snpConnectedSatellites = [],
     leoServiceViewModel = null,
+    resolvedAutoGeoGateway = null,
+    resolvedSelectedGeoGateway = null,
 }) => {
     const { coveragePolicy, weatherCondition, beamHealthFactors, hsBeamsSet } = useSimulation();
 
@@ -237,16 +262,23 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
     // Eliminates O(gateways) ECEF work from the per-frame CallbackProperty callbacks below.
     const bestGeoGateway = useMemo(() => {
         if (!autoSelectedGEOSatellite) return null;
-        return selectOperationalGeoGateway(autoSelectedGEOSatellite, GEO_GATEWAYS);
-    }, [autoSelectedGEOSatellite]);
+        const locallyResolved = resolveGatewayForSatellite(autoSelectedGEOSatellite, GEO_GATEWAYS);
+        logGatewayDesync(
+            'TransmissionLinks:autoGeoFeeder',
+            autoSelectedGEOSatellite,
+            resolvedAutoGeoGateway,
+            locallyResolved,
+        );
+        return resolvedAutoGeoGateway ?? locallyResolved;
+    }, [autoSelectedGEOSatellite, resolvedAutoGeoGateway]);
 
     // GEO Satellite -> Gateway feeder link
     const geoFeederLinkCallback = useMemo(() => {
         if (!autoSelectedGEOSatellite || !hasUserSelection || !bestGeoGateway) return null;
 
         // Pre-compute the static gateway position once (avoids allocation every frame)
-        const gwLat = bestGeoGateway.gateway.latitude ?? bestGeoGateway.gateway.lat;
-        const gwLng = bestGeoGateway.gateway.longitude ?? bestGeoGateway.gateway.lng;
+        const gwLat = bestGeoGateway.latitude;
+        const gwLng = bestGeoGateway.longitude;
         const gatewayPos = getPosition(gwLat, gwLng, 0.01);
 
         return new CallbackProperty((time?: JulianDate) => {
@@ -262,8 +294,8 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
         if (!autoSelectedGEOSatellite || !hasUserSelection || !bestGeoGateway) return null;
 
         // Both positions are fully static — no per-frame computation needed
-        const gwLat = bestGeoGateway.gateway.latitude ?? bestGeoGateway.gateway.lat;
-        const gwLng = bestGeoGateway.gateway.longitude ?? bestGeoGateway.gateway.lng;
+        const gwLat = bestGeoGateway.latitude;
+        const gwLng = bestGeoGateway.longitude;
         const gatewayPos = getPosition(gwLat, gwLng, 0.01);
         const internetPos = getPosition(gwLat + 0.3, gwLng + 0.3, 0.01);
         const staticPositions = [gatewayPos, internetPos];
@@ -273,8 +305,15 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
 
     const dedicatedGeoGateway = useMemo(() => {
         if (!selectedSatellite || selectedSatellite.type !== 'EUTELSAT') return null;
-        return selectOperationalGeoGateway(selectedSatellite, GEO_GATEWAYS);
-    }, [selectedSatellite]);
+        const locallyResolved = resolveGatewayForSatellite(selectedSatellite, GEO_GATEWAYS);
+        logGatewayDesync(
+            'TransmissionLinks:dedicatedGeoFeeder',
+            selectedSatellite,
+            resolvedSelectedGeoGateway,
+            locallyResolved,
+        );
+        return resolvedSelectedGeoGateway ?? locallyResolved;
+    }, [selectedSatellite, resolvedSelectedGeoGateway]);
 
     // Dedicated SNP link for manually selected LEO satellite
     const dedicatedSnpCallback = useMemo(() => {
@@ -294,8 +333,8 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
     const dedicatedGeoFeederCallback = useMemo(() => {
         if (!selectedSatellite || selectedSatellite.type !== 'EUTELSAT' || !dedicatedGeoGateway || selectedSatellite.opsStatus !== 'operational') return null;
 
-        const gwLat = dedicatedGeoGateway.gateway.latitude ?? dedicatedGeoGateway.gateway.lat;
-        const gwLng = dedicatedGeoGateway.gateway.longitude ?? dedicatedGeoGateway.gateway.lng;
+        const gwLat = dedicatedGeoGateway.latitude;
+        const gwLng = dedicatedGeoGateway.longitude;
         const gatewayPos = getPosition(gwLat, gwLng, 0.01);
 
         return new CallbackProperty((time?: JulianDate) => {

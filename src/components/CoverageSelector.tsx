@@ -131,7 +131,7 @@ const Combobox = ({ trigger, children, open, onToggle, accentColor, tone = 'neut
           open
             ? 'border-blue-300 dark:border-blue-500/70 bg-blue-50/60 dark:bg-slate-950'
             : closedToneClass,
-          disabled ? 'opacity-50 cursor-default' : 'cursor-pointer',
+          disabled ? 'cursor-default' : 'cursor-pointer',
         ].join(' ')}
         style={open ? { borderColor: `${accentColor}60` } : undefined}
       >

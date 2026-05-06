@@ -53,7 +53,7 @@ import IssLayer from './cesium-globe/IssLayer';
 import SnpLayer from './cesium-globe/SnpLayer';
 import CoverageLayer, { GEO_COVERAGE_ENTITY_PREFIX, type GeoCoverageLegendItem } from './cesium-globe/CoverageLayer';
 import OneWebCombLayer from './cesium-globe/OneWebCombLayer';
-import AggregatedCoverageVolumeLayer from './cesium-globe/AggregatedCoverageVolumeLayer';
+import AggregatedCoverageVolumeLayer, { type ProjectionCoverageGroup } from './cesium-globe/AggregatedCoverageVolumeLayer';
 import TransmissionLinks from './cesium-globe/TransmissionLinks';
 import TrajectoryLayer from './cesium-globe/TrajectoryLayer';
 import GeoGatewayLayer from './cesium-globe/GeoGatewayLayer';
@@ -75,7 +75,8 @@ import SelectedPointScreenLabel from './cesium-globe/SelectedPointScreenLabel';
 import SatelliteScreenLabels from './cesium-globe/SatelliteScreenLabels';
 import MoonLayer from './cesium-globe/MoonLayer';
 import { GEO_GATEWAYS, SNPS_DATA, type GeoGatewayData, type SNPData } from './globe/GlobeConfig';
-import { selectOperationalGeoGateway } from '../utils/geoConnectivityModel';
+import { resolveConnectivityPathForSatellite } from '../utils/geoConnectivityModel';
+import { getCoverageGroupId } from '../utils/geoCoverageSelection';
 import { isOperationalSatellite } from '../utils/satelliteStatus';
 import type { LeoConnectivityViewModel } from '../utils/leoServiceViewModel';
 import type { RegulatoryResult } from '../services/regulatoryService';
@@ -880,17 +881,67 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         return { beamFeature, coverageFeatures, sat: autoSelectedGEOSatellite };
     }, [selectedSatellite, autoSelectedGEOSatellite, selectedGEOBeam]);
 
-    // Gateway selection only depends on the satellite position — not on user position.
-    // Removing selectedAircraft and selectedPosition from deps prevents re-runs
-    // on every aircraft interpolation tick or user position change.
-    const selectedGeoGatewayName = useMemo(() => {
-        const geoSatellite = selectedSatellite?.type === 'EUTELSAT'
-            ? selectedSatellite
-            : autoSelectedGEOSatellite;
-        if (!geoSatellite) return null;
+    const projectionCoverageGroups = useMemo<ProjectionCoverageGroup[]>(() => {
+        if (selectedSatellite) return [];
+        if (!autoSelectedGEOSatellite) return [];
+        if (linkMode !== 'MESH' && linkMode !== 'POINT_TO_POINT') return [];
 
-        return selectOperationalGeoGateway(geoSatellite, GEO_GATEWAYS)?.gateway.name ?? null;
-    }, [selectedSatellite, autoSelectedGEOSatellite]);
+        const satellite = satellites.find((item) => item.id === autoSelectedGEOSatellite.id) ?? autoSelectedGEOSatellite;
+        const toGroup = (
+            coverage: CandidateCoverage | null,
+            direction: ProjectionCoverageGroup['direction'],
+        ): ProjectionCoverageGroup | null => {
+            if (!coverage || coverage.isSynthesized || coverage.satelliteId !== satellite.id) return null;
+            const features = satellite.coverages
+                .filter((item) => getCoverageGroupId(item) === coverage.coverageKey)
+                .map((item) => item.feature)
+                .filter((feature): feature is Feature<Geometry, GeoJsonProperties> => Boolean(feature));
+            return features.length > 0 ? { direction, features } : null;
+        };
+
+        return [
+            toGroup(selectedUplinkCoverage, 'uplink'),
+            toGroup(selectedDownlinkCoverage, 'downlink'),
+        ].filter((group): group is ProjectionCoverageGroup => group !== null);
+    }, [
+        autoSelectedGEOSatellite,
+        linkMode,
+        satellites,
+        selectedDownlinkCoverage,
+        selectedSatellite,
+        selectedUplinkCoverage,
+    ]);
+
+    // Gateway resolution is centralized in the traffic allocation registry.
+    // The globe consumes the same normalized object as analysis/link-budget code.
+    const resolvedAutoGeoPath = useMemo(() => {
+        if (!autoSelectedGEOSatellite) return null;
+        return resolveConnectivityPathForSatellite({
+            satellite: autoSelectedGEOSatellite,
+            userLocation: selectedPosition,
+            gateways: GEO_GATEWAYS,
+        });
+    }, [autoSelectedGEOSatellite, selectedPosition]);
+
+    const resolvedAutoGeoGateway = useMemo(() => {
+        return resolvedAutoGeoPath?.resolvedGateway ?? null;
+    }, [resolvedAutoGeoPath]);
+
+    const resolvedSelectedGeoPath = useMemo(() => {
+        if (!selectedSatellite || selectedSatellite.type !== 'EUTELSAT') return null;
+        return resolveConnectivityPathForSatellite({
+            satellite: selectedSatellite,
+            userLocation: selectedPosition,
+            gateways: GEO_GATEWAYS,
+        });
+    }, [selectedPosition, selectedSatellite]);
+
+    const resolvedSelectedGeoGateway = useMemo(() => {
+        return resolvedSelectedGeoPath?.resolvedGateway ?? null;
+    }, [resolvedSelectedGeoPath]);
+
+    const activeResolvedGeoGateway = resolvedSelectedGeoGateway ?? resolvedAutoGeoGateway;
+    const selectedGeoGatewayName = activeResolvedGeoGateway?.gatewayName ?? null;
 
     // satelliteById, aircraftById, vesselById are only consulted in hover/click
     // callbacks (user interaction). Storing them in refs means the callbacks can
@@ -973,10 +1024,26 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
     }, [inspectedSNP, selectedSNP, snpByName]);
 
     const pulsedGateway = useMemo(() => {
-        if (selectedGateway) return selectedGateway;
-        if (!selectedGeoGatewayName) return null;
-        return gatewayByName.get(selectedGeoGatewayName) ?? null;
-    }, [selectedGateway, selectedGeoGatewayName, gatewayByName]);
+        return activeResolvedGeoGateway?.gateway ?? null;
+    }, [activeResolvedGeoGateway]);
+
+    useEffect(() => {
+        if (!import.meta.env.DEV || !activeResolvedGeoGateway || !pulsedGateway) return;
+        if (activeResolvedGeoGateway.gatewayId === pulsedGateway.gateway_id) return;
+
+        console.error('[GEO Gateway Desync]', {
+            satelliteName: (resolvedSelectedGeoGateway ? selectedSatellite : autoSelectedGEOSatellite)?.name ?? 'Unknown GEO satellite',
+            rfGatewayId: activeResolvedGeoGateway.gatewayId,
+            renderedGatewayId: pulsedGateway.gateway_id,
+            sourceComponent: 'CesiumGlobe:GeoGatewayLayer',
+        });
+    }, [
+        activeResolvedGeoGateway,
+        autoSelectedGEOSatellite,
+        pulsedGateway,
+        resolvedSelectedGeoGateway,
+        selectedSatellite,
+    ]);
 
     const setHoveredEntityIfChanged = useCallback((key: string | null, nextEntity: HoveredEntity) => {
         if (hoveredEntityKeyRef.current === key) return;
@@ -1245,6 +1312,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                 selectedSatellite={selectedSatellite}
                 autoSelectedLEOSatellite={autoSelectedLEOSatellite}
                 autoSelectedGEOSatellite={autoSelectedGEOSatellite}
+                onSatelliteClick={onSatelliteClick}
                 viewerRef={viewerRef}
                 isPhone={isPhone}
                 isFullscreen={isFullscreen}
@@ -1411,6 +1479,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                             selectedSatellite={selectedSatellite}
                             selectedBeamFeature={geoBeamCone.beamFeature}
                             selectedCoverageFeatures={geoBeamCone.coverageFeatures}
+                            selectedCoverageGroups={projectionCoverageGroups}
                             beamSatellite={geoBeamCone.sat}
                             autoSelectedSatellite={autoSelectedLEOSatellite}
                             selectedPosition={selectedPosition}
@@ -1439,6 +1508,8 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                         inspectedSNP={inspectedSNP}
                         snpConnectedSatellites={snpConnectedSatellites}
                         leoServiceViewModel={leoServiceViewModel}
+                        resolvedAutoGeoGateway={resolvedAutoGeoGateway}
+                        resolvedSelectedGeoGateway={resolvedSelectedGeoGateway}
                     />
 
                     {/* Selected Position Marker — Point A */}
@@ -1523,7 +1594,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                         onGatewayHover={handleGatewayHover}
                         viewerRef={viewerRef}
                         cameraMetricsRef={cameraMetricsRef}
-                        selectedGatewayName={selectedGateway?.name ?? selectedGeoGatewayName}
+                        selectedGatewayName={selectedGeoGatewayName}
                         sizeScale={sizeScale}
                     />
 
