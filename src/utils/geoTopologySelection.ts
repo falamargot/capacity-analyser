@@ -36,6 +36,8 @@ interface SelectBestTopologyPathArgs {
   gateways?: GeoGatewayData[];
   terminalTypeA?: string;
   terminalTypeB?: string;
+  customParamsA?: import('./geoTerminalRFModel').TerminalRFCustomParams | null;
+  customParamsB?: import('./geoTerminalRFModel').TerminalRFCustomParams | null;
   pointALabel?: string;
   pointBLabel?: string;
 }
@@ -158,6 +160,8 @@ export function selectBestTopologyPath({
   gateways = GEO_GATEWAYS,
   terminalTypeA,
   terminalTypeB,
+  customParamsA,
+  customParamsB,
   pointALabel,
   pointBLabel,
 }: SelectBestTopologyPathArgs): TopologySelectionCandidate | null {
@@ -191,6 +195,9 @@ export function selectBestTopologyPath({
         uplinkGateway,
         gatewaySelection.gateway,
         pointALabel,
+        undefined,
+        terminalTypeA,
+        customParamsA,
       );
       if (!result) continue;
 
@@ -222,6 +229,7 @@ export function selectBestTopologyPath({
         pointALabel,
         undefined,
         terminalTypeA,
+        customParamsA,
       );
       if (!result) continue;
 
@@ -254,6 +262,9 @@ export function selectBestTopologyPath({
         },
         terminalTypeA,
         terminalTypeB,
+        undefined,
+        customParamsA,
+        customParamsB,
       );
 
       candidate = {

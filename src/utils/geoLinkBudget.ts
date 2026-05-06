@@ -9,6 +9,44 @@ export interface TerminalParams {
   eirpTerminalDbw: number;
 }
 
+// Re-export the new terminal RF model so callers can import from a single place.
+export type {
+  TerminalUseCase,
+  TerminalRFClassId,
+  TerminalRFClassSpec,
+  TerminalRFProfile,
+  UplinkRequirement,
+  RFConfidenceLevel,
+  RFConfidence,
+  SatGTEstimateRange,
+} from './geoTerminalRFModel';
+export {
+  GEO_TERMINAL_RF_CATALOGUE,
+  USE_CASE_DEFAULT_RF_CLASS,
+  NOMINAL_SAT_GT_RANGE,
+  computeAntennaGainDbi,
+  computeTerminalEirpDbw,
+  computeTerminalGtDbk,
+  computeTerminalRFProfile,
+  getTerminalRFProfile,
+  resolveTerminalRFParams,
+  computeMinimumRequiredEirpDbw,
+  computeUplinkRequirement,
+  computeRFConfidence,
+  getCatalogueForBand,
+  getCatalogueForUseCase,
+} from './geoTerminalRFModel';
+
+/**
+ * Legacy default terminal — Ku fixed, 1.2 m dish, 2 W BUC.
+ * Used as the computation baseline when scoring coverage candidates in
+ * geoCoverageSelection (all candidates are computed once with this profile;
+ * segment builders then apply a dB adjustment for the actual terminal class).
+ *
+ * The new terminal RF model (geoTerminalRFModel.ts) computes EIRP dynamically
+ * from physical inputs. These hardcoded values remain here as the candidate
+ * scoring baseline and for backward-compatibility with existing tests.
+ */
 export const DEFAULT_TERMINAL: TerminalParams = {
   antennaDiameterM: 1.2,
   gtTerminalDbk: 17.0,
@@ -59,7 +97,13 @@ export const TERMINAL_GEO_RF_PARAMS_BY_BAND: Record<GeoBand, Record<string, Term
   },
 };
 
-/** Returns the estimated downlink receive G/T (dB/K) for the given band and terminal type. */
+/**
+ * Returns the downlink receive G/T (dB/K) for the given band and terminal type.
+ *
+ * Accepts legacy use-case keys ('fixed', 'mobile', 'aviation', 'maritime').
+ * For RF class IDs (e.g. 'ku_standard_vsat'), use resolveTerminalRFParams() from
+ * geoTerminalRFModel directly — it handles both key spaces without circular imports.
+ */
 export function getTerminalDownlinkGT(band: GeoBand, terminalType?: string): number {
   const bandTable = TERMINAL_GEO_RF_PARAMS_BY_BAND[band];
   const key = terminalType ?? 'fixed';

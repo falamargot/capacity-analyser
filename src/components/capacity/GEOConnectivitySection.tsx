@@ -7,7 +7,7 @@ import CollapsibleSection from '../layout/CollapsibleSection';
 import TerminalConfig, { TERMINAL_PROFILES, type WeatherType } from './TerminalConfig';
 import type { SatelliteData } from '../../types/satellites';
 import type { CandidateCoverage } from '../../types/analysis';
-import type { TerminalType } from './TerminalConfig';
+import type { TerminalType, TerminalRFClassId, TerminalRFCustomParams } from './TerminalConfig';
 import type { LinkMode } from '../../types/linkMode';
 import DualSegmentPanel from './DualSegmentPanel';
 import type { DualSegmentResult } from '../../utils/geoDualSegmentBudget';
@@ -465,6 +465,16 @@ interface GEOConnectivitySectionProps {
   /** Terminal type for Point B — only relevant in MESH / P2P. */
   terminalTypeB?: TerminalType;
   onTerminalTypeBChange?: (type: TerminalType) => void;
+  /** RF capability class for Terminal A (drives computed EIRP/G/T). */
+  rfClassIdA?: TerminalRFClassId;
+  onRFClassIdAChange?: (id: TerminalRFClassId) => void;
+  /** RF capability class for Terminal B (drives computed EIRP/G/T). */
+  rfClassIdB?: TerminalRFClassId;
+  onRFClassIdBChange?: (id: TerminalRFClassId) => void;
+  rfCustomParamsA?: TerminalRFCustomParams | null;
+  onRFCustomParamsAChange?: (params: TerminalRFCustomParams | null) => void;
+  rfCustomParamsB?: TerminalRFCustomParams | null;
+  onRFCustomParamsBChange?: (params: TerminalRFCustomParams | null) => void;
   pointAIsUserDefined?: boolean;
   pointBIsUserDefined?: boolean;
   /** Coverage candidates at Point B — MESH / P2P only. */
@@ -514,6 +524,14 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
   pointBIsUserDefined = false,
   terminalTypeB,
   onTerminalTypeBChange,
+  rfClassIdA,
+  onRFClassIdAChange,
+  rfClassIdB,
+  onRFClassIdBChange,
+  rfCustomParamsA,
+  onRFCustomParamsAChange,
+  rfCustomParamsB,
+  onRFCustomParamsBChange,
   candidateCoveragesB = [],
   uplinkCoverageAtB = null,
   downlinkCoverageAtB = null,
@@ -853,6 +871,10 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
               <TerminalConfig
                 terminalType={terminalType}
                 onTerminalTypeChange={onTerminalTypeChange}
+                rfClassId={rfClassIdA}
+                onRFClassChange={onRFClassIdAChange}
+                rfCustomParams={rfCustomParamsA}
+                onRFCustomParamsChange={onRFCustomParamsAChange}
                 weatherType={weatherType}
                 onWeatherTypeChange={onWeatherTypeChange}
                 autoWeatherEnabled={autoWeatherEnabled}
@@ -860,6 +882,7 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
                 analysisSource={analysisSource}
                 compact
                 showWeather={false}
+                showRFClass={!!onRFClassIdAChange}
                 className="mb-0"
                 title="Terminal A"
                 stacked
@@ -874,12 +897,17 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
               <TerminalConfig
                 terminalType={terminalTypeB}
                 onTerminalTypeChange={onTerminalTypeBChange}
+                rfClassId={rfClassIdB}
+                onRFClassChange={onRFClassIdBChange}
+                rfCustomParams={rfCustomParamsB}
+                onRFCustomParamsChange={onRFCustomParamsBChange}
                 weatherType={weatherType}
                 onWeatherTypeChange={onWeatherTypeChange}
                 autoWeatherEnabled={autoWeatherEnabled}
                 onAutoWeatherChange={onAutoWeatherChange}
                 compact
                 showWeather={false}
+                showRFClass={!!onRFClassIdBChange}
                 className="mb-0"
                 title="Terminal B"
                 stacked
@@ -915,6 +943,10 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
                 <TerminalConfig
                   terminalType={terminalType}
                   onTerminalTypeChange={onTerminalTypeChange}
+                  rfClassId={rfClassIdA}
+                  onRFClassChange={onRFClassIdAChange}
+                  rfCustomParams={rfCustomParamsA}
+                  onRFCustomParamsChange={onRFCustomParamsAChange}
                   weatherType={weatherType}
                   onWeatherTypeChange={onWeatherTypeChange}
                   autoWeatherEnabled={autoWeatherEnabled}
@@ -922,8 +954,9 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
                   analysisSource={analysisSource}
                   compact
                   showWeather={false}
+                  showRFClass={!!onRFClassIdAChange}
                   className="mb-0"
-              title={userLabel === 'User' ? 'Terminal' : userLabel}
+                  title={userLabel === 'User' ? 'Terminal' : userLabel}
                   stacked
                   tone={pointAIsUserDefined ? 'user-defined' : 'not-user-defined'}
                   statusLabel={pointAIsUserDefined ? 'Manual' : 'Auto'}
@@ -934,6 +967,10 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
                 <TerminalConfig
                   terminalType={terminalType}
                   onTerminalTypeChange={onTerminalTypeChange}
+                  rfClassId={rfClassIdA}
+                  onRFClassChange={onRFClassIdAChange}
+                  rfCustomParams={rfCustomParamsA}
+                  onRFCustomParamsChange={onRFCustomParamsAChange}
                   weatherType={weatherType}
                   onWeatherTypeChange={onWeatherTypeChange}
                   autoWeatherEnabled={autoWeatherEnabled}
@@ -941,6 +978,7 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
                   analysisSource={analysisSource}
                   compact
                   showWeather={false}
+                  showRFClass={!!onRFClassIdAChange}
                   className="mb-0"
                   title={userLabel === 'User' ? 'Terminal' : userLabel}
                   stacked

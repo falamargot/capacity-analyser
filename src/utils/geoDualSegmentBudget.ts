@@ -31,6 +31,12 @@ import {
   getTerminalDownlinkGT,
   type EndToEndBudget,
 } from './geoLinkBudget';
+import {
+  resolveTerminalRFParams,
+  computeUplinkRequirement,
+  type UplinkRequirement,
+  type TerminalRFCustomParams,
+} from './geoTerminalRFModel';
 
 // ─── Segment descriptors ──────────────────────────────────────────────────────
 
@@ -59,6 +65,11 @@ export interface LinkSegment {
   effectiveLinkMarginDb: number;
   /** dB offset applied to the candidate's C/N to account for endpoint override. */
   adjustmentDb: number;
+  /**
+   * Uplink requirement analysis (only populated on uplink segments).
+   * Exposes minimum required EIRP, recommended EIRP, shortfall, and suggested RF class.
+   */
+  uplinkRequirement?: UplinkRequirement;
 }
 
 /**
@@ -252,14 +263,33 @@ const buildUplinkSegment = (
   const fadeDb = weatherAdjDb ?? 0;
   const effectiveCNDb = (candidate.cnDb ?? 0) + adjDb - fadeDb;
   const effectiveLinkMarginDb = (candidate.linkMarginDb ?? 0) + adjDb - fadeDb;
+  const effectiveEirpDbw = eirpOverrideDbw ?? candidate.eirpDbw ?? DEFAULT_TERMINAL.eirpTerminalDbw;
+
+  // Compute uplink requirement when satellite G/T is available from real contour data.
+  let uplinkRequirement: UplinkRequirement | undefined;
+  const satGtDbk = candidate.gtDbk;
+  if (satGtDbk != null) {
+    const band = (candidate.band ?? 'Ku') as GeoBand;
+    const bandParams = BAND_PARAMS[band];
+    uplinkRequirement = computeUplinkRequirement(
+      effectiveEirpDbw,
+      satGtDbk,
+      candidate.slantRangeKm ?? 37500,
+      candidate.frequencyGhz ?? bandParams.freqUpGhz,
+      candidate.bandwidthMhz ?? bandParams.defaultBwMhz,
+      candidate.atmosphericLossDb ?? bandParams.atmosLossDb,
+      band,
+    );
+  }
 
   return {
-    source: { ...source, eirpDbw: eirpOverrideDbw ?? candidate.eirpDbw ?? DEFAULT_TERMINAL.eirpTerminalDbw },
+    source: { ...source, eirpDbw: effectiveEirpDbw },
     destination,
     candidate,
     effectiveCNDb,
     effectiveLinkMarginDb,
     adjustmentDb: adjDb,
+    uplinkRequirement,
   };
 };
 
@@ -296,11 +326,17 @@ const buildDownlinkSegment = (
  * Builds a STAR Forward dual-segment result.
  *
  * Uplink:   Gateway (GATEWAY_EIRP_DBW[band]) → Satellite (sat G/T at gateway)
- * Downlink: Satellite (sat EIRP at user) → User terminal (DEFAULT_TERMINAL.gtTerminalDbk)
+ * Downlink: Satellite (sat EIRP at user) → User terminal (G/T from RF class / custom params)
+ *
+ * The terminal G/T adjusts the candidate C/N relative to the baseline used by
+ * geoCoverageSelection (getTerminalDownlinkGT), exactly as MESH does for its
+ * per-terminal downlink corrections.
  *
  * @param downlinkAtUser   Downlink candidate at the user location (sat EIRP at user).
  * @param uplinkAtGateway  Uplink candidate at the gateway location (sat G/T at gateway).
  * @param gateway          The resolved gateway data.
+ * @param terminalType     RF class ID or legacy use-case key — selects G/T for the user terminal.
+ * @param customParams     When non-null, overrides preset RF class physical parameters.
  */
 export function buildStarForwardResult(
   downlinkAtUser: CandidateCoverage,
@@ -308,11 +344,17 @@ export function buildStarForwardResult(
   gateway: GeoGatewayData,
   userLabel?: string,
   weatherAdjDb?: number,
+  terminalType?: string,
+  customParams?: TerminalRFCustomParams | null,
 ): DualSegmentResult | null {
   const band = downlinkAtUser.band ?? uplinkAtGateway.band ?? 'Ku';
   const geoBand = band as GeoBand;
   const gatewayEirpDbw = GATEWAY_EIRP_DBW[geoBand] ?? GATEWAY_EIRP_DBW.Ku;
   const gatewayGTDbk = GATEWAY_GT_DBK[geoBand] ?? GATEWAY_GT_DBK.Ku;
+
+  const terminalGtDbk = terminalType
+    ? resolveTerminalRFParams(geoBand, terminalType, customParams).gtDbk
+    : getTerminalDownlinkGT(geoBand);
 
   const uplinkSeg = buildUplinkSegment(
     uplinkAtGateway,
@@ -325,9 +367,10 @@ export function buildStarForwardResult(
   const downlinkSeg = buildDownlinkSegment(
     downlinkAtUser,
     { label: downlinkAtUser.satelliteName },
-    { label: userLabel ?? 'User terminal', gtDbk: getTerminalDownlinkGT(geoBand) },
-    undefined,
+    { label: userLabel ?? 'User terminal', gtDbk: terminalGtDbk },
+    terminalGtDbk,
     weatherAdjDb,
+    getTerminalDownlinkGT(geoBand),
   );
 
   const e2e = computeEndToEndBudget(
@@ -364,14 +407,21 @@ export function buildStarReturnResult(
   userLabel?: string,
   weatherAdjDb?: number,
   terminalType?: string,
+  customParams?: TerminalRFCustomParams | null,
 ): DualSegmentResult | null {
   const band = uplinkAtUser.band ?? downlinkAtGateway.band ?? 'Ku';
-  const gatewayGTDbk = GATEWAY_GT_DBK[band as GeoBand] ?? GATEWAY_GT_DBK.Ku;
+  const geoBand = band as GeoBand;
+  const gatewayGTDbk = GATEWAY_GT_DBK[geoBand] ?? GATEWAY_GT_DBK.Ku;
 
-  const bandEirpTable = TERMINAL_RETURN_EIRP_DBW[band as GeoBand] ?? TERMINAL_RETURN_EIRP_DBW.Ku;
-  const terminalEirpDbw = (terminalType ? bandEirpTable[terminalType] : null)
-    ?? bandEirpTable.fixed
-    ?? DEFAULT_TERMINAL.eirpTerminalDbw;
+  // Resolve terminal EIRP: RF class IDs take priority over legacy table lookup.
+  let terminalEirpDbw: number;
+  if (terminalType) {
+    const profile = resolveTerminalRFParams(geoBand, terminalType, customParams);
+    terminalEirpDbw = profile.eirpDbw;
+  } else {
+    const bandEirpTable = TERMINAL_RETURN_EIRP_DBW[geoBand] ?? TERMINAL_RETURN_EIRP_DBW.Ku;
+    terminalEirpDbw = bandEirpTable.fixed ?? DEFAULT_TERMINAL.eirpTerminalDbw;
+  }
 
   const uplinkSeg = buildUplinkSegment(
     uplinkAtUser,
@@ -387,6 +437,7 @@ export function buildStarReturnResult(
     { label: gateway.name, gtDbk: gatewayGTDbk },
     gatewayGTDbk,
     weatherAdjDb,
+    getTerminalDownlinkGT(geoBand),
   );
 
   const e2e = computeEndToEndBudget(
@@ -466,13 +517,22 @@ export function buildMeshResult(
   terminalTypeA?: string,
   terminalTypeB?: string,
   weatherAdjDb?: number,
+  customParamsA?: TerminalRFCustomParams | null,
+  customParamsB?: TerminalRFCustomParams | null,
 ): DualSegmentResult {
   const pointALabel = endpointLabels?.pointA ?? 'Terminal A';
   const pointBLabel = endpointLabels?.pointB ?? 'Terminal B';
   const band = (uplinkAtA.band ?? downlinkAtB.band ?? 'Ku') as GeoBand;
-  const bandTable = TERMINAL_GEO_RF_PARAMS_BY_BAND[band];
-  const paramsA = (terminalTypeA ? bandTable[terminalTypeA] : null) ?? bandTable.fixed;
-  const paramsB = (terminalTypeB ? bandTable[terminalTypeB] : null) ?? bandTable.fixed;
+
+  // resolveTerminalRFParams accepts both legacy use-case keys ('fixed', 'mobile', ...)
+  // and new RF class IDs ('ku_standard_vsat', ...) — falls back to fixed if unknown.
+  const profileA = resolveTerminalRFParams(band, terminalTypeA ?? 'fixed', customParamsA);
+  const profileB = resolveTerminalRFParams(band, terminalTypeB ?? 'fixed', customParamsB);
+
+  // Keep a legacy params object for any code that still uses antennaDiameterM:
+  const paramsA = { eirpTerminalDbw: profileA.eirpDbw, gtTerminalDbk: profileA.gtDbk, antennaDiameterM: profileA.antennaDiameterM };
+  const paramsB = { eirpTerminalDbw: profileB.eirpDbw, gtTerminalDbk: profileB.gtDbk, antennaDiameterM: profileB.antennaDiameterM };
+
   // Candidate C/N baseline: geoCoverageSelection computes with getTerminalDownlinkGT(band,'fixed')
   const candidateBaseGt = getTerminalDownlinkGT(band);
 

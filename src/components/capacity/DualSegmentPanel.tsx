@@ -22,6 +22,7 @@ import type { GeoRfContext, PublicFrequencyMatchStatus, PublicTransponderCandida
 import { loadNormalizedPublicTranspondersBySatelliteId } from '../../services/frequencyPlan/frequencyPlanService';
 import { matchPublicTransponders } from '../../services/frequencyPlan/publicTransponderMatcher';
 import { applyPublicFrequencyMatchToContext, buildGeoRfContext } from '../../services/geo/rfContextService';
+import type { UplinkRequirement } from '../../utils/geoTerminalRFModel';
 
 // ─── Formatters ───────────────────────────────────────────────────────────────
 
@@ -376,6 +377,51 @@ const SegmentCard = ({ accentColor, title, icon, children }: SegmentCardProps) =
   </div>
 );
 
+// ─── UplinkRequirementCard ────────────────────────────────────────────────────
+
+const UplinkRequirementCard = ({ req }: { req: UplinkRequirement }) => (
+  <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2.5 dark:border-red-800/60 dark:bg-red-950/30">
+    <div className="mb-2 flex items-center gap-2">
+      <span className="text-base leading-none shrink-0">⚠️</span>
+      <p className="text-xs font-bold text-red-800 dark:text-red-200">
+        Uplink blocked — terminal EIRP insufficient
+      </p>
+    </div>
+    <div className="space-y-1">
+      <Row
+        label="Current EIRP"
+        value={<span className="font-semibold text-red-700 dark:text-red-300">{fmtDbw(req.currentEirpDbw)}</span>}
+      />
+      <Row
+        label="Required (QPSK 1/4)"
+        value={<span className="font-semibold text-amber-700 dark:text-amber-300">{fmtDbw(req.minimumEirpDbw)}</span>}
+      />
+      <Row
+        label="Recommended (+3 dB)"
+        value={fmtDbw(req.recommendedEirpDbw)}
+      />
+      <Row
+        label="Shortfall"
+        value={
+          <span className="font-semibold text-red-700 dark:text-red-300">
+            {Math.abs(req.marginGapDb).toFixed(1)} dB below minimum
+          </span>
+        }
+      />
+      {req.suggestedRFClassLabel && (
+        <Row
+          label="Suggested RF class"
+          value={<span className="font-semibold text-blue-700 dark:text-blue-300">{req.suggestedRFClassLabel}</span>}
+        />
+      )}
+    </div>
+    <p className="mt-2 text-[10px] italic text-red-700/80 dark:text-red-300/70">
+      Coverage exists — satellite G/T is too low for this terminal class and bandwidth.
+      Use a larger antenna or higher-power BUC to close the link.
+    </p>
+  </div>
+);
+
 // ─── UplinkCard ───────────────────────────────────────────────────────────────
 
 const UplinkCard = ({ seg, coverageName }: { seg: LinkSegment; coverageName?: string }) => {
@@ -405,6 +451,9 @@ const UplinkCard = ({ seg, coverageName }: { seg: LinkSegment; coverageName?: st
           <p className="text-xs text-gray-400 dark:text-gray-500 italic">
             ({seg.adjustmentDb > 0 ? '+' : ''}{seg.adjustmentDb.toFixed(1)} dB endpoint correction)
           </p>
+        )}
+        {seg.effectiveLinkMarginDb < 0 && seg.uplinkRequirement && (
+          <UplinkRequirementCard req={seg.uplinkRequirement} />
         )}
       </div>
     </SegmentCard>

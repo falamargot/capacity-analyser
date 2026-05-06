@@ -58,6 +58,12 @@ import { LINK_MODE_REQUIRES_POINT_B } from './types/linkMode';
 import {
   selectBestTopologyPath,
 } from './utils/geoTopologySelection';
+import {
+  USE_CASE_DEFAULT_RF_CLASS,
+  isRFClassCompatibleWithUseCase,
+  type TerminalRFClassId,
+  type TerminalRFCustomParams,
+} from './utils/geoTerminalRFModel';
 
 const CapacityDetails = lazy(() => import('./components/CapacityDetails'));
 const CommandPalette = lazy(() => import('./components/CommandPalette'));
@@ -271,6 +277,24 @@ const App: React.FC = () => {
   const [leoTerminalType, setLeoTerminalType] = useState<TerminalType>('fixed');
   const [geoTerminalType, setGeoTerminalType] = useState<TerminalType>('fixed');
   const [geoTerminalTypeB, setGeoTerminalTypeB] = useState<TerminalType>('fixed');
+  const [geoRFClassIdA, setGeoRFClassIdA] = useState<TerminalRFClassId>(() => USE_CASE_DEFAULT_RF_CLASS.fixed.Ku);
+  const [geoRFClassIdB, setGeoRFClassIdB] = useState<TerminalRFClassId>(() => USE_CASE_DEFAULT_RF_CLASS.fixed.Ku);
+  const [geoRFCustomParamsA, setGeoRFCustomParamsA] = useState<TerminalRFCustomParams | null>(null);
+  const [geoRFCustomParamsB, setGeoRFCustomParamsB] = useState<TerminalRFCustomParams | null>(null);
+  const handleGeoTerminalTypeChange = (type: TerminalType) => {
+    setGeoTerminalType(type);
+    if (!isRFClassCompatibleWithUseCase(geoRFClassIdA, type)) {
+      setGeoRFClassIdA(USE_CASE_DEFAULT_RF_CLASS[type]?.Ku ?? 'ku_standard_vsat');
+      setGeoRFCustomParamsA(null);
+    }
+  };
+  const handleGeoTerminalTypeBChange = (type: TerminalType) => {
+    setGeoTerminalTypeB(type);
+    if (!isRFClassCompatibleWithUseCase(geoRFClassIdB, type)) {
+      setGeoRFClassIdB(USE_CASE_DEFAULT_RF_CLASS[type]?.Ku ?? 'ku_standard_vsat');
+      setGeoRFCustomParamsB(null);
+    }
+  };
   const [weatherType, setWeatherType] = useState<WeatherType>(() => weatherTypeFromCondition(weatherCondition));
   const [autoWeatherEnabled, setAutoWeatherEnabled] = useState<boolean>(true);
   const [previousAnalysisSource, setPreviousAnalysisSource] = useState<'earth' | 'aircraft' | undefined>(undefined);
@@ -421,13 +445,21 @@ const App: React.FC = () => {
   useEffect(() => {
     if (activeAnalysisSource === 'aircraft') {
       if (leoTerminalType !== 'aviation') setLeoTerminalType('aviation');
-      if (geoTerminalType !== 'aviation') setGeoTerminalType('aviation');
+      if (geoTerminalType !== 'aviation') {
+        setGeoTerminalType('aviation');
+        setGeoRFClassIdA(USE_CASE_DEFAULT_RF_CLASS.aviation.Ku);
+        setGeoRFCustomParamsA(null);
+      }
       if (weatherType !== 'clear') setWeatherType('clear');
       setWeatherCondition('CLEAR');
       if (autoWeatherEnabled) setAutoWeatherEnabled(false);
     } else if (activeAnalysisSource === 'earth' && previousAnalysisSource === 'aircraft') {
       if (leoTerminalType === 'aviation') setLeoTerminalType('fixed');
-      if (geoTerminalType === 'aviation') setGeoTerminalType('fixed');
+      if (geoTerminalType === 'aviation') {
+        setGeoTerminalType('fixed');
+        setGeoRFClassIdA(USE_CASE_DEFAULT_RF_CLASS.fixed.Ku);
+        setGeoRFCustomParamsA(null);
+      }
     }
 
     setPreviousAnalysisSource(activeAnalysisSource);
@@ -956,16 +988,20 @@ const App: React.FC = () => {
       candidateCoveragesA: eligibleCandidateCoverages,
       candidateCoveragesB,
       pointB,
-      terminalTypeA: geoTerminalType,
-      terminalTypeB: geoTerminalTypeB,
+      terminalTypeA: geoRFClassIdA,
+      terminalTypeB: geoRFClassIdB,
+      customParamsA: geoRFCustomParamsA,
+      customParamsB: geoRFCustomParamsB,
       pointALabel: 'Terminal A',
       pointBLabel: 'Terminal B',
     });
   }, [
     eligibleCandidateCoverages,
     candidateCoveragesB,
-    geoTerminalType,
-    geoTerminalTypeB,
+    geoRFClassIdA,
+    geoRFClassIdB,
+    geoRFCustomParamsA,
+    geoRFCustomParamsB,
     linkMode,
     pointB,
     satellites,
@@ -3220,9 +3256,17 @@ const App: React.FC = () => {
                     leoTerminalType={leoTerminalType}
                     onLeoTerminalTypeChange={setLeoTerminalType}
                     geoTerminalType={geoTerminalType}
-                    onGeoTerminalTypeChange={setGeoTerminalType}
+                    onGeoTerminalTypeChange={handleGeoTerminalTypeChange}
                     geoTerminalTypeB={geoTerminalTypeB}
-                    onGeoTerminalTypeBChange={setGeoTerminalTypeB}
+                    onGeoTerminalTypeBChange={handleGeoTerminalTypeBChange}
+                    geoRFClassIdA={geoRFClassIdA}
+                    onGeoRFClassIdAChange={setGeoRFClassIdA}
+                    geoRFClassIdB={geoRFClassIdB}
+                    onGeoRFClassIdBChange={setGeoRFClassIdB}
+                    geoRFCustomParamsA={geoRFCustomParamsA}
+                    onGeoRFCustomParamsAChange={setGeoRFCustomParamsA}
+                    geoRFCustomParamsB={geoRFCustomParamsB}
+                    onGeoRFCustomParamsBChange={setGeoRFCustomParamsB}
                     weatherType={weatherType}
                     onWeatherTypeChange={handleWeatherTypeChange}
                     autoWeatherEnabled={autoWeatherEnabled}
@@ -3410,6 +3454,14 @@ const App: React.FC = () => {
                                 onGeoTerminalTypeChange={setGeoTerminalType}
                     geoTerminalTypeB={geoTerminalTypeB}
                     onGeoTerminalTypeBChange={setGeoTerminalTypeB}
+                                geoRFClassIdA={geoRFClassIdA}
+                                onGeoRFClassIdAChange={setGeoRFClassIdA}
+                                geoRFClassIdB={geoRFClassIdB}
+                                onGeoRFClassIdBChange={setGeoRFClassIdB}
+                                geoRFCustomParamsA={geoRFCustomParamsA}
+                                onGeoRFCustomParamsAChange={setGeoRFCustomParamsA}
+                                geoRFCustomParamsB={geoRFCustomParamsB}
+                                onGeoRFCustomParamsBChange={setGeoRFCustomParamsB}
                                 weatherType={weatherType}
                                 onWeatherTypeChange={handleWeatherTypeChange}
                                 autoWeatherEnabled={autoWeatherEnabled}
@@ -3550,6 +3602,14 @@ const App: React.FC = () => {
                         onGeoTerminalTypeChange={setGeoTerminalType}
                     geoTerminalTypeB={geoTerminalTypeB}
                     onGeoTerminalTypeBChange={setGeoTerminalTypeB}
+                        geoRFClassIdA={geoRFClassIdA}
+                        onGeoRFClassIdAChange={setGeoRFClassIdA}
+                        geoRFClassIdB={geoRFClassIdB}
+                        onGeoRFClassIdBChange={setGeoRFClassIdB}
+                        geoRFCustomParamsA={geoRFCustomParamsA}
+                        onGeoRFCustomParamsAChange={setGeoRFCustomParamsA}
+                        geoRFCustomParamsB={geoRFCustomParamsB}
+                        onGeoRFCustomParamsBChange={setGeoRFCustomParamsB}
                         weatherType={weatherType}
                         onWeatherTypeChange={handleWeatherTypeChange}
                         autoWeatherEnabled={autoWeatherEnabled}

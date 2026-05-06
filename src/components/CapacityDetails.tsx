@@ -44,6 +44,7 @@ import {
 } from '../utils/geoTopologySelection';
 import { RAIN_FADE_DB } from '../utils/geoLinkBudget';
 import type { GeoBand } from '../utils/geoLinkBudget';
+import type { TerminalRFClassId } from '../utils/geoTerminalRFModel';
 import {
   applyBeamCapacitySharing,
   smoothThroughputMbps,
@@ -112,6 +113,16 @@ interface CapacityDetailsProps {
   onGeoTerminalTypeChange: (type: TerminalType) => void;
   geoTerminalTypeB?: TerminalType;
   onGeoTerminalTypeBChange?: (type: TerminalType) => void;
+  /** RF capability class for terminal A — drives computed EIRP/G/T in the link budget. */
+  geoRFClassIdA?: TerminalRFClassId;
+  onGeoRFClassIdAChange?: (id: TerminalRFClassId) => void;
+  /** RF capability class for terminal B — drives computed EIRP/G/T in the link budget. */
+  geoRFClassIdB?: TerminalRFClassId;
+  onGeoRFClassIdBChange?: (id: TerminalRFClassId) => void;
+  geoRFCustomParamsA?: import('../utils/geoTerminalRFModel').TerminalRFCustomParams | null;
+  onGeoRFCustomParamsAChange?: (params: import('../utils/geoTerminalRFModel').TerminalRFCustomParams | null) => void;
+  geoRFCustomParamsB?: import('../utils/geoTerminalRFModel').TerminalRFCustomParams | null;
+  onGeoRFCustomParamsBChange?: (params: import('../utils/geoTerminalRFModel').TerminalRFCustomParams | null) => void;
   weatherType: WeatherType;
   onWeatherTypeChange: (type: WeatherType) => void;
   autoWeatherEnabled: boolean;
@@ -188,7 +199,7 @@ ${currentRule}`;
 };
 
 // Performance optimization: Memoize component to prevent unnecessary re-renders
-const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint, selectedSatellite, autoSelectedLEOSatellite, satelliteScope, onMetricsChange, onSatelliteClick, analysisSource, aircraftCallsign, selectedSNP: propSelectedSNP, candidateCoverages = [], selectedCoverage = null, onSelectCoverage, selectedUplinkCoverage = null, selectedDownlinkCoverage = null, onSelectUplinkCoverage, onSelectDownlinkCoverage, selectedUplinkCoverageB = null, selectedDownlinkCoverageB = null, onSelectUplinkCoverageB, onSelectDownlinkCoverageB, selectedGeoMission, selectedGeoCoverageName, selectedGeoBeamId, visibleGeoCoverageKeys, onSelectGeoMission, onSelectGeoCoverage, onSelectGeoBeam, onVisibleGeoCoverageKeysChange, onSnpClick, compactDesktop = false, externalHeader = false, globeRef, cesiumViewerRef, onExportStateChange, regulatoryResultOverride = null, beamLoadResultOverride = null, serviceLayerResultOverride = null, leoServiceViewModelOverride = null, leoTerminalType, onLeoTerminalTypeChange, geoTerminalType, onGeoTerminalTypeChange, geoTerminalTypeB, onGeoTerminalTypeBChange, weatherType, onWeatherTypeChange, autoWeatherEnabled, onAutoWeatherChange, linkMode = 'STAR_FORWARD', onLinkModeChange, pointB = null, candidateCoveragesB = [], pointAIsUserDefined = false, pointBIsUserDefined = false, activeMeshTab, onActiveMeshTabChange }) => {
+const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint, selectedSatellite, autoSelectedLEOSatellite, satelliteScope, onMetricsChange, onSatelliteClick, analysisSource, aircraftCallsign, selectedSNP: propSelectedSNP, candidateCoverages = [], selectedCoverage = null, onSelectCoverage, selectedUplinkCoverage = null, selectedDownlinkCoverage = null, onSelectUplinkCoverage, onSelectDownlinkCoverage, selectedUplinkCoverageB = null, selectedDownlinkCoverageB = null, onSelectUplinkCoverageB, onSelectDownlinkCoverageB, selectedGeoMission, selectedGeoCoverageName, selectedGeoBeamId, visibleGeoCoverageKeys, onSelectGeoMission, onSelectGeoCoverage, onSelectGeoBeam, onVisibleGeoCoverageKeysChange, onSnpClick, compactDesktop = false, externalHeader = false, globeRef, cesiumViewerRef, onExportStateChange, regulatoryResultOverride = null, beamLoadResultOverride = null, serviceLayerResultOverride = null, leoServiceViewModelOverride = null, leoTerminalType, onLeoTerminalTypeChange, geoTerminalType, onGeoTerminalTypeChange, geoTerminalTypeB, onGeoTerminalTypeBChange, geoRFClassIdA, onGeoRFClassIdAChange, geoRFClassIdB, onGeoRFClassIdBChange, geoRFCustomParamsA, onGeoRFCustomParamsAChange, geoRFCustomParamsB, onGeoRFCustomParamsBChange, weatherType, onWeatherTypeChange, autoWeatherEnabled, onAutoWeatherChange, linkMode = 'STAR_FORWARD', onLinkModeChange, pointB = null, candidateCoveragesB = [], pointAIsUserDefined = false, pointBIsUserDefined = false, activeMeshTab, onActiveMeshTabChange }) => {
   // Feature 1+3: read simulation context for failedSnps, hsBeamsSet
   const {
     coveragePolicy,
@@ -825,7 +836,7 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
       const dl = downlinkAtUser;
       const ul = uplinkAtGateway;
       if (!dl || !ul) return null;
-      return buildStarForwardResult(dl, ul, resolvedGatewayData, pointALabel, weatherAdjDb);
+      return buildStarForwardResult(dl, ul, resolvedGatewayData, pointALabel, weatherAdjDb, geoRFClassIdA, geoRFCustomParamsA);
     }
 
     if (linkMode === 'STAR_RETURN') {
@@ -834,7 +845,9 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
       // Downlink at gateway: prefer explicit EIRP data, fall back to synthesis from G/T
       const dl = downlinkAtGateway ?? (uplinkAtGateway ? synthesizeDownlinkCandidate(uplinkAtGateway) : null);
       if (!ul || !dl) return null;
-      return buildStarReturnResult(ul, dl, resolvedGatewayData, pointALabel, weatherAdjDb, geoTerminalType);
+      // Resolve terminal key: RF class ID takes priority over legacy use-case string.
+      const terminalKeyA = geoRFClassIdA ?? geoTerminalType;
+      return buildStarReturnResult(ul, dl, resolvedGatewayData, pointALabel, weatherAdjDb, terminalKeyA, geoRFCustomParamsA);
     }
 
     if (linkMode === 'MESH' || linkMode === 'POINT_TO_POINT') {
@@ -843,10 +856,12 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
       const ulB = uplinkAtB;
       const dlB = downlinkAtB;
       if (!ulA || !dlA || !ulB || !dlB) return null;
+      const terminalKeyA = geoRFClassIdA ?? geoTerminalType;
+      const terminalKeyB = geoRFClassIdB ?? geoTerminalTypeB ?? geoTerminalType;
       return buildMeshResult(ulA, dlB, ulB, dlA, {
         pointA: pointALabel,
         pointB: pointBLabel,
-      }, geoTerminalType, geoTerminalTypeB ?? geoTerminalType, weatherAdjDb);
+      }, terminalKeyA, terminalKeyB, weatherAdjDb, geoRFCustomParamsA, geoRFCustomParamsB);
     }
 
     return null;
@@ -858,6 +873,8 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
     pointALabel, pointBLabel,
     resolvedGatewayData,
     geoTerminalType, geoTerminalTypeB,
+    geoRFClassIdA, geoRFClassIdB,
+    geoRFCustomParamsA, geoRFCustomParamsB,
     weatherType,
   ]);
 
@@ -1727,6 +1744,14 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
                     calculateGEOPerformance={calculateGEOPerformance}
                     terminalType={geoTerminalType}
                     onTerminalTypeChange={onGeoTerminalTypeChange}
+                    rfClassIdA={geoRFClassIdA}
+                    onRFClassIdAChange={onGeoRFClassIdAChange}
+                    rfClassIdB={geoRFClassIdB}
+                    onRFClassIdBChange={onGeoRFClassIdBChange}
+                    rfCustomParamsA={geoRFCustomParamsA}
+                    onRFCustomParamsAChange={onGeoRFCustomParamsAChange}
+                    rfCustomParamsB={geoRFCustomParamsB}
+                    onRFCustomParamsBChange={onGeoRFCustomParamsBChange}
                     weatherType={weatherType}
                     onWeatherTypeChange={onWeatherTypeChange}
                     autoWeatherEnabled={autoWeatherEnabled}
