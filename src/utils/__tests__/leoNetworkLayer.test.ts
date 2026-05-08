@@ -18,13 +18,19 @@ import {
   applyHandoverDegradation,
   createHandoverState,
   BEAM_BW_SCALE,
+  UPLINK_BEAM_BW_SCALE,
   SMOOTHING_ALPHA,
   HANDOVER_DEGRADATION_FACTOR,
   MIN_SERVING_ELEVATION_DEG,
   type SatelliteServingCandidate,
 } from '../leoNetworkLayer';
 
-import { RF_NOISE_BW_HZ, RF_THROUGHPUT_BW_HZ } from '../leoLinkBudget';
+import {
+  RF_NOISE_BW_HZ,
+  RF_THROUGHPUT_BW_HZ,
+  RF_UPLINK_NOISE_BW_HZ,
+  RF_UPLINK_THROUGHPUT_BW_HZ,
+} from '../leoLinkBudget';
 
 // ─── 1. Best satellite selection ─────────────────────────────────────────────
 
@@ -106,6 +112,17 @@ describe('applyBeamCapacitySharing — Area 2: capacity sharing', () => {
   it('BEAM_BW_SCALE equals RF_NOISE_BW_HZ / RF_THROUGHPUT_BW_HZ', () => {
     expect(BEAM_BW_SCALE).toBe(RF_NOISE_BW_HZ / RF_THROUGHPUT_BW_HZ);
     expect(BEAM_BW_SCALE).toBe(5); // 250 MHz / 50 MHz
+  });
+
+  it('UPLINK_BEAM_BW_SCALE uses the independent uplink allocation', () => {
+    expect(UPLINK_BEAM_BW_SCALE).toBe(RF_UPLINK_NOISE_BW_HZ / RF_UPLINK_THROUGHPUT_BW_HZ);
+    expect(UPLINK_BEAM_BW_SCALE).toBe(5); // 100 MHz / 20 MHz
+  });
+
+  it('accepts a direction-specific bandwidth scale', () => {
+    const result = applyBeamCapacitySharing(20, 2, 200, UPLINK_BEAM_BW_SCALE);
+    expect(result.beamTotalThroughputMbps).toBe(100);
+    expect(result.sharedThroughputMbps).toBe(50);
   });
 
   it('with 1 user: per-user throughput equals beam total (no sharing)', () => {

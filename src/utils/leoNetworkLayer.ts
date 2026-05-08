@@ -12,11 +12,16 @@
  *
  * All behavior is DETERMINISTIC. No randomness.
  *
- * Labels: "Estimated shared beam capacity" / "Downlink-dominated model" /
- *         "Symmetric uplink assumption" / "Simulation model — no SLA guarantee"
+ * Labels: "Estimated shared beam capacity" / "Separate DL/UL RF chains" /
+ *         "Simulation model — no SLA guarantee"
  */
 
-import { RF_NOISE_BW_HZ, RF_THROUGHPUT_BW_HZ } from './leoLinkBudget';
+import {
+  RF_NOISE_BW_HZ,
+  RF_THROUGHPUT_BW_HZ,
+  RF_UPLINK_NOISE_BW_HZ,
+  RF_UPLINK_THROUGHPUT_BW_HZ,
+} from './leoLinkBudget';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 1. Best satellite/beam selection
@@ -91,6 +96,7 @@ export function selectBestServingCandidate<T extends SatelliteServingCandidate>(
  * allocation. Multiplying by this factor recovers the beam-total achievable rate.
  */
 export const BEAM_BW_SCALE = RF_NOISE_BW_HZ / RF_THROUGHPUT_BW_HZ; // 5
+export const UPLINK_BEAM_BW_SCALE = RF_UPLINK_NOISE_BW_HZ / RF_UPLINK_THROUGHPUT_BW_HZ; // 5
 
 export interface BeamCapacitySharingResult {
   /** Per-user throughput after dividing beam capacity by active users (Mbps) */
@@ -124,8 +130,9 @@ export function applyBeamCapacitySharing(
   rfChainThroughputMbps: number,
   estimatedActiveUsers: number,
   terminalMaxMbps: number,
+  beamBandwidthScale: number = BEAM_BW_SCALE,
 ): BeamCapacitySharingResult {
-  const beamTotalThroughputMbps = rfChainThroughputMbps * BEAM_BW_SCALE;
+  const beamTotalThroughputMbps = rfChainThroughputMbps * beamBandwidthScale;
   const users = Math.max(1, Math.round(estimatedActiveUsers));
   const rawPerUserMbps = beamTotalThroughputMbps / users;
   const sharedThroughputMbps = Math.max(0, Math.min(rawPerUserMbps, terminalMaxMbps));

@@ -331,6 +331,8 @@ export interface LinkBudgetOutput {
     powerAtUserDb: number;
     /** Delivered throughput to user (Mbps) */
     deliveredThroughputMbps: number;
+    /** Physical-layer throughput on the reference carrier/allocation before terminal profile caps. */
+    rfThroughputMbps: number;
     /** Throughput ratio [0, 1] */
     throughputRatio: number;
     /** Effective EIRP at beam boresight (dBW) */
@@ -482,6 +484,7 @@ export function calculateLink(input: LinkBudgetInput): LinkBudgetOutput {
         effectiveBeamRadiusKm,
         powerAtUserDb: isInBeam ? perf.powerAtUserDb : -Infinity,
         deliveredThroughputMbps: isInBeam ? perf.deliveredThroughputMbps : 0,
+        rfThroughputMbps: isInBeam ? perf.rfThroughputMbps : 0,
         throughputRatio: isInBeam ? perf.throughputRatio : 0,
         effectiveEirpDb: perf.effectiveEirpDb,
         scanLossDb: perf.scanLossDb,
@@ -568,6 +571,7 @@ export function estimateCurrentLeoBeamLink(args: {
             effectiveBeamRadiusKm: Math.max(ellipse.semiMajorAxisKm, ellipse.semiMinorAxisKm),
             powerAtUserDb: perf.powerAtUserDb,
             deliveredThroughputMbps: perf.deliveredThroughputMbps,
+            rfThroughputMbps: perf.rfThroughputMbps,
             throughputRatio: perf.throughputRatio,
             effectiveEirpDb: perf.effectiveEirpDb,
             scanLossDb: perf.scanLossDb,

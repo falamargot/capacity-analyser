@@ -15,14 +15,21 @@ import {
   computeFsplDb,
   computeBeamCenterSlantRangeKm,
   computeCnDb,
+  computeDirectionalRfChainThroughput,
+  computeUplinkRfChainThroughput,
   selectModcod,
   computeRfChainThroughput,
   MODCOD_TABLE,
   RF_KU_FREQ_GHZ,
+  RF_KU_UPLINK_FREQ_GHZ,
   RF_TERMINAL_GOT_DB_PER_K,
+  RF_SATELLITE_GOT_DB_PER_K,
   RF_NOISE_BW_HZ,
   RF_THROUGHPUT_BW_HZ,
+  RF_UPLINK_NOISE_BW_HZ,
+  RF_UPLINK_THROUGHPUT_BW_HZ,
 } from '../leoLinkBudget';
+import { computeLeoTerminalScanLossDb, LEO_TERMINAL_PROFILES } from '../../config/leoTerminals';
 
 import {
   getBeamPerformance,
@@ -114,6 +121,161 @@ describe('computeCnDb — Step 2: C/N vs distance', () => {
     const cnRain = computeCnDb(nominalEirp, 1200, -10 + (-5));  // edge + rain
     expect(cnClear).toBeGreaterThan(cnRain);
     expect(cnClear - cnRain).toBeCloseTo(5.0, 6);
+  });
+});
+
+describe('computeUplinkRfChainThroughput — independent uplink RF chain', () => {
+  it('uses uplink-specific frequency, receiver G/T and bandwidth constants', () => {
+    expect(RF_KU_UPLINK_FREQ_GHZ).toBeGreaterThan(RF_KU_FREQ_GHZ);
+    expect(RF_SATELLITE_GOT_DB_PER_K).not.toBe(RF_TERMINAL_GOT_DB_PER_K);
+    expect(RF_UPLINK_NOISE_BW_HZ).not.toBe(RF_NOISE_BW_HZ);
+    expect(RF_UPLINK_THROUGHPUT_BW_HZ).not.toBe(RF_THROUGHPUT_BW_HZ);
+  });
+
+  it('does not derive uplink throughput from downlink throughput', () => {
+    const dl = computeRfChainThroughput(54, 7, 0, Number.POSITIVE_INFINITY);
+    const ul = computeUplinkRfChainThroughput({
+      terminalEirpDbw: 40,
+      slantRangeKm: dl.slantRangeKm,
+      pathAdjustmentDb: 0,
+    });
+
+    expect(ul.rfThroughputMbps).toBeGreaterThan(0);
+    expect(ul.rfThroughputMbps).not.toBe(dl.rfThroughputMbps);
+    expect(ul.rfThroughputMbps).toBeCloseTo(
+      ((ul.modcod?.spectralEfficiencyBpHz ?? 0) * RF_UPLINK_THROUGHPUT_BW_HZ) / 1e6,
+      6,
+    );
+  });
+
+  it('applies the uplink terminal cap only when requested', () => {
+    const uncapped = computeUplinkRfChainThroughput({
+      terminalEirpDbw: 40,
+      slantRangeKm: 1200,
+      pathAdjustmentDb: 0,
+    });
+    const capped = computeUplinkRfChainThroughput({
+      terminalEirpDbw: 40,
+      slantRangeKm: 1200,
+      pathAdjustmentDb: 0,
+      terminalMaxMbps: 20,
+    });
+
+    expect(uncapped.rfThroughputMbps).toBeGreaterThan(20);
+    expect(capped.deliveredThroughputMbps).toBe(20);
+    expect(capped.rfThroughputMbps).toBe(uncapped.rfThroughputMbps);
+  });
+});
+
+describe('LEO_TERMINAL_PROFILES — terminal-specific RF assumptions', () => {
+  it('each terminal profile exposes RF params, caps and bandwidths in Mbps/Hz units', () => {
+    for (const profile of Object.values(LEO_TERMINAL_PROFILES)) {
+      expect(profile.maxDlMbps).toBeGreaterThan(0);
+      expect(profile.maxUlMbps).toBeGreaterThan(0);
+      expect(profile.modelName.length).toBeGreaterThan(0);
+      expect(['PARABOLIC', 'ESA']).toContain(profile.antennaType);
+      expect(profile.rxGtDbK).toBeGreaterThan(0);
+      expect(profile.txEirpDbw).toBeGreaterThan(0);
+      expect(profile.dlReferenceBandwidthHz).toBeGreaterThan(0);
+      expect(profile.ulReferenceBandwidthHz).toBeGreaterThan(0);
+      expect(profile.dlUsableBeamBandwidthHz).toBeGreaterThanOrEqual(profile.dlReferenceBandwidthHz);
+      expect(profile.ulUsableBeamBandwidthHz).toBeGreaterThanOrEqual(profile.ulReferenceBandwidthHz);
+      expect(profile.sourceNote.length).toBeGreaterThan(0);
+      expect(profile.notes.length + profile.assumptions.length).toBeGreaterThan(0);
+    }
+  });
+
+  it('changing terminal type changes downlink RF through terminal G/T, not just caps', () => {
+    const fixed = LEO_TERMINAL_PROFILES.fixed;
+    const mobile = LEO_TERMINAL_PROFILES.mobile;
+    const common = {
+      eirpDbw: 54,
+      slantRangeKm: 1200,
+      pathAdjustmentDb: 0,
+      frequencyGHz: RF_KU_FREQ_GHZ,
+    };
+
+    const fixedDl = computeDirectionalRfChainThroughput({
+      ...common,
+      receiverGtDbK: fixed.rxGtDbK,
+      noiseBwHz: fixed.dlReferenceBandwidthHz,
+      throughputBwHz: fixed.dlReferenceBandwidthHz,
+    });
+    const mobileDl = computeDirectionalRfChainThroughput({
+      ...common,
+      receiverGtDbK: mobile.rxGtDbK,
+      noiseBwHz: mobile.dlReferenceBandwidthHz,
+      throughputBwHz: mobile.dlReferenceBandwidthHz,
+    });
+
+    expect(fixed.rxGtDbK).not.toBe(mobile.rxGtDbK);
+    expect(fixedDl.cnDb).not.toBe(mobileDl.cnDb);
+  });
+
+  it('changing terminal type changes uplink RF through terminal EIRP, not downlink derivation', () => {
+    const fixed = LEO_TERMINAL_PROFILES.fixed;
+    const mobile = LEO_TERMINAL_PROFILES.mobile;
+    const fixedUl = computeUplinkRfChainThroughput({
+      terminalEirpDbw: fixed.txEirpDbw,
+      slantRangeKm: 1200,
+      pathAdjustmentDb: 0,
+      noiseBwHz: fixed.ulReferenceBandwidthHz,
+      throughputBwHz: fixed.ulReferenceBandwidthHz,
+    });
+    const mobileUl = computeUplinkRfChainThroughput({
+      terminalEirpDbw: mobile.txEirpDbw,
+      slantRangeKm: 1200,
+      pathAdjustmentDb: 0,
+      noiseBwHz: mobile.ulReferenceBandwidthHz,
+      throughputBwHz: mobile.ulReferenceBandwidthHz,
+    });
+
+    expect(fixed.txEirpDbw).not.toBe(mobile.txEirpDbw);
+    expect(fixedUl.cnDb).not.toBe(mobileUl.cnDb);
+    expect(fixedUl.rfThroughputMbps).not.toBe(mobileUl.rfThroughputMbps);
+  });
+
+  it('ESA scan loss reduces low-elevation RF input while parabolic scan loss remains 0 dB', () => {
+    const fixed = LEO_TERMINAL_PROFILES.fixed;
+    const mobile = LEO_TERMINAL_PROFILES.mobile;
+    const fixedLossLow = computeLeoTerminalScanLossDb(fixed.rxScanLossModel, 15);
+    const mobileLossLow = computeLeoTerminalScanLossDb(mobile.rxScanLossModel, 15);
+    const mobileLossHigh = computeLeoTerminalScanLossDb(mobile.rxScanLossModel, 80);
+
+    expect(fixed.antennaType).toBe('PARABOLIC');
+    expect(mobile.antennaType).toBe('ESA');
+    expect(fixedLossLow).toBe(0);
+    expect(mobileLossLow).toBeLessThan(mobileLossHigh);
+    expect(mobile.rxGtDbK + mobileLossLow).toBeLessThan(mobile.rxGtDbK);
+  });
+
+  it('parabolic-to-ESA switch visibly reduces low-elevation downlink RF throughput', () => {
+    const fixed = LEO_TERMINAL_PROFILES.fixed;
+    const mobile = LEO_TERMINAL_PROFILES.mobile;
+    const lowElevationDeg = 15;
+    const common = {
+      eirpDbw: 54,
+      slantRangeKm: 1400,
+      pathAdjustmentDb: 0,
+      frequencyGHz: RF_KU_FREQ_GHZ,
+    };
+    const fixedDl = computeDirectionalRfChainThroughput({
+      ...common,
+      receiverGtDbK: fixed.rxGtDbK + computeLeoTerminalScanLossDb(fixed.rxScanLossModel, lowElevationDeg),
+      noiseBwHz: fixed.dlReferenceBandwidthHz,
+      throughputBwHz: fixed.dlReferenceBandwidthHz,
+    });
+    const mobileDl = computeDirectionalRfChainThroughput({
+      ...common,
+      receiverGtDbK: mobile.rxGtDbK + computeLeoTerminalScanLossDb(mobile.rxScanLossModel, lowElevationDeg),
+      noiseBwHz: mobile.dlReferenceBandwidthHz,
+      throughputBwHz: mobile.dlReferenceBandwidthHz,
+    });
+
+    expect(fixed.antennaType).toBe('PARABOLIC');
+    expect(mobile.antennaType).toBe('ESA');
+    expect(mobileDl.cnDb).toBeLessThan(fixedDl.cnDb);
+    expect(mobileDl.rfThroughputMbps).toBeLessThan(fixedDl.rfThroughputMbps);
   });
 });
 

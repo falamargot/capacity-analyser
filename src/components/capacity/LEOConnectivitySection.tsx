@@ -1,5 +1,5 @@
-import { memo, useState, type ReactNode } from 'react';
-import { ChevronDown, Route } from 'lucide-react';
+import { memo, useEffect, useState, type ReactNode } from 'react';
+import { ChevronDown, Gauge, Maximize2, Minimize2, Route, X } from 'lucide-react';
 import { PerformancePanel } from '../MetricWidgets';
 import { SectionTooltip } from '../SectionTooltip';
 import PassBeamTimeline from '../PassBeamTimeline';
@@ -14,6 +14,7 @@ import type { ServiceLayerResult } from '../../utils/serviceLayer';
 import type { TerminalType } from './TerminalConfig';
 import type { LeoConnectivityViewModel } from '../../utils/leoServiceViewModel';
 import LeoStatusCards from './LeoStatusCards';
+import type { LeoBottleneckFactor, LeoThroughputLeg, LeoThroughputResult } from '../../types/leoThroughput';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // TODO: DC Level / Throughput / Power synchronisation (Q2-Q3-Q4)
@@ -88,49 +89,8 @@ export interface ResolvedLEOConnectivity {
   candidateBeamCount?: number;
 }
 
-/** RF chain internals captured for the Link Budget panel. */
-export interface LeoRFDebugInfo {
-  // ── Geometry / beam selection ───────────────────────────────────────────
-  satelliteId: string;
-  selectedBeamIndex: number;
-  candidateBeamCount: number;
-  normalizedDistance: number;
-  elevationDeg: number;
-  slantRangeKm: number;
-  // ── RF chain (FSPL → C/N → MODCOD) ─────────────────────────────────────
-  scanLossDb: number;
-  effectiveEirpDb: number;
-  fsplDb: number;
-  cnDb: number;
-  modcod: string | null;
-  /**
-   * RF chain throughput at the 50 MHz per-user allocation:
-   *   spectralEfficiency × RF_THROUGHPUT_BW_HZ.
-   * This is a single-carrier result — not a per-user ceiling.
-   * Displayed in the Link Budget section alongside MODCOD / C/N.
-   */
-  rfCarrierMbps: number;
-  // ── Network layer pipeline ───────────────────────────────────────────────
-  /**
-   * Per-user RF ceiling: min(rfCarrier × BEAM_BW_SCALE, terminalCap).
-   * The maximum throughput this terminal can receive if it were the only
-   * active user on the beam. Every downstream pipeline stage is ≤ this value.
-   */
-  peakRfMbps: number;
-  /** After dividing beam-total throughput by estimated active users (+ terminal cap). */
-  afterBeamSharingMbps: number;
-  /** After applying SNP elevation backhaul factor to the shared per-user value. */
-  afterBackhaulMbps: number;
-  /** After applying one-frame handover degradation on satellite switch. */
-  afterHandoverMbps: number;
-  /** Terminal hardware ceiling used in beam-sharing cap (for reference). */
-  terminalCapMbps: number;
-  /**
-   * After EMA temporal smoothing — this is the value forwarded to the
-   * Estimated Performance panel as the displayed user throughput.
-   */
-  smoothedUserMbps: number;
-}
+/** Shared LEO throughput result captured for all Link Budget UI. */
+export type LeoRFDebugInfo = LeoThroughputResult;
 
 export interface LEOGeometry {
   rttTotalMs: number;
@@ -168,32 +128,49 @@ export interface LEOPerformance {
    * and was capped. The displayed value is the terminal-limited figure, not the raw model output.
    */
   wasTerminalLimited?: boolean;
+  /** Single source of truth for final DL/UL throughput and budget details. */
+  throughput?: LeoThroughputResult;
   /** Link Budget panel data — absent in SERVICE_ZONE mode or when no beam is connected. */
   debugInfo?: LeoRFDebugInfo;
 }
 
 // ─── Link Budget panel helpers ─────────────────────────────────────────────
 
-type LimitingFactor = 'backhaul' | 'load' | 'rf' | 'terminal' | null;
+type LimitingFactor = Exclude<LeoBottleneckFactor, 'regulatory' | 'service gate' | null> | null;
+
+function detectLegLimitingFactor(leg: LeoThroughputLeg): LimitingFactor {
+  return leg.network.bottleneck === 'regulatory' || leg.network.bottleneck === 'service gate'
+    ? null
+    : leg.network.bottleneck;
+}
 
 function detectLimitingFactor(d: LeoRFDebugInfo): LimitingFactor {
+  return d.mainBottleneck.factor === 'regulatory' || d.mainBottleneck.factor === 'service gate'
+    ? null
+    : d.mainBottleneck.factor;
+}
+
+function deriveLegLimitingFactor(leg: LeoThroughputLeg): LimitingFactor {
   // Backhaul: SNP elevation reduces throughput by >25% after sharing
-  const backhaulRatio = d.afterBeamSharingMbps > 0
-    ? d.afterBackhaulMbps / d.afterBeamSharingMbps
+  const backhaulRatio = leg.network.beamSharingMbps > 0
+    ? leg.network.backhaulMbps / leg.network.beamSharingMbps
     : 1;
   if (backhaulRatio < 0.75) return 'backhaul';
 
   // Load: many concurrent users reduce per-user share >20% below single-user peak
-  const loadRatio = d.peakRfMbps > 0
-    ? d.afterBeamSharingMbps / d.peakRfMbps
+  const loadRatio = leg.network.peakRfMbps > 0
+    ? leg.network.beamSharingMbps / leg.network.peakRfMbps
     : 1;
-  if (loadRatio < 0.8) return 'load';
+  if (loadRatio < 0.8) return 'beam sharing';
+
+  if (leg.rf.terminalScanLossDb <= -3) return 'scan loss';
+  if (leg.rf.modcod == null || leg.rf.cnDb < 18.5) return 'modcod';
 
   // RF: low C/N or low MODCOD (carrier below 16APSK territory)
-  if (d.cnDb < 14.5 || d.rfCarrierMbps < 50) return 'rf';
+  if (leg.rf.cnDb < 14.5 || leg.rf.rfChainThroughputMbps < 50) return 'rf';
 
   // Terminal: hardware ceiling is the active constraint (sharing result is at cap)
-  if (d.afterBeamSharingMbps >= d.terminalCapMbps * 0.97) return 'terminal';
+  if (leg.network.beamSharingMbps >= leg.network.terminalCapMbps * 0.97) return 'terminal';
 
   return null;
 }
@@ -203,18 +180,153 @@ const LIMITING_FACTOR_BADGE: Record<NonNullable<LimitingFactor>, { label: string
     label: 'Backhaul limited',
     className: 'bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-700',
   },
-  load: {
-    label: 'Load limited',
+  'beam sharing': {
+    label: 'Beam sharing limited',
     className: 'bg-orange-100 text-orange-700 border-orange-200 dark:bg-orange-900/30 dark:text-orange-400 dark:border-orange-700',
   },
   rf: {
     label: 'RF limited',
     className: 'bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-700',
   },
+  'scan loss': {
+    label: 'Scan loss limited',
+    className: 'bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-300 dark:border-yellow-700',
+  },
+  modcod: {
+    label: 'MODCOD limited',
+    className: 'bg-rose-100 text-rose-700 border-rose-200 dark:bg-rose-900/30 dark:text-rose-300 dark:border-rose-700',
+  },
   terminal: {
     label: 'Terminal limited',
     className: 'bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-700',
   },
+};
+
+const fmtDb = (v: number | undefined | null, d = 1) =>
+  typeof v === 'number' && isFinite(v) ? `${v.toFixed(d)} dB` : '--';
+
+const fmtMbps = (v: number | undefined | null) => {
+  if (typeof v !== 'number' || !isFinite(v)) return '--';
+  if (v >= 1000) return `${(v / 1000).toFixed(2)} Gbps`;
+  return `${v.toFixed(0)} Mbps`;
+};
+
+const fmtMhz = (hz: number) => `${(hz / 1e6).toFixed(0)} MHz`;
+
+const linkBudgetTone = (d: LeoRFDebugInfo) => {
+  if (
+    d.downlink.network.finalUserMbps <= 0 ||
+    d.uplink.network.finalUserMbps <= 0 ||
+    Math.min(d.downlink.rf.cnDb, d.uplink.rf.cnDb) < 10
+  ) {
+    return {
+      label: 'Blocked',
+      className: 'border-red-200 bg-red-50 text-red-700 dark:border-red-800 dark:bg-red-950/30 dark:text-red-300',
+      accent: '#dc2626',
+    };
+  }
+
+  if (detectLimitingFactor(d)) {
+    return {
+      label: 'Limited',
+      className: 'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-300',
+      accent: '#d97706',
+    };
+  }
+
+  return {
+    label: 'Healthy',
+    className: 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-300',
+    accent: '#059669',
+  };
+};
+
+interface LeoLinkBudgetSummaryCardProps {
+  debugInfo: LeoRFDebugInfo;
+  highlighted?: boolean;
+  onToggle: () => void;
+}
+
+const LeoLinkBudgetSummaryCard = ({ debugInfo, highlighted = false, onToggle }: LeoLinkBudgetSummaryCardProps) => {
+  const limitingLabel = debugInfo.mainBottleneck.label;
+  const tone = linkBudgetTone(debugInfo);
+
+  return (
+    <section
+      className={[
+        'relative overflow-hidden rounded-xl border bg-white shadow-sm transition-all duration-200 dark:bg-slate-900',
+        highlighted
+          ? 'border-pink-300 ring-2 ring-pink-500/30 dark:border-pink-500/70 dark:ring-pink-400/30'
+          : 'border-slate-200 dark:border-slate-700',
+      ].join(' ')}
+    >
+      {highlighted && <div className="absolute inset-y-0 left-0 w-1 bg-pink-500" aria-hidden="true" />}
+      <div
+        className={[
+          'border-b px-3.5 py-3',
+          highlighted
+            ? 'border-pink-100 bg-pink-50/75 dark:border-pink-900/70 dark:bg-pink-950/30'
+            : 'border-slate-100 bg-slate-50/80 dark:border-slate-800 dark:bg-slate-900/70',
+        ].join(' ')}
+      >
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="inline-flex items-center text-sm font-semibold" style={{ color: '#db2777' }}>
+                Link Budget
+                <span className={`ml-2 rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${tone.className}`}>
+                  {tone.label}
+                </span>
+                <SectionTooltip content="LEO RF and network summary. Open the detail panel to inspect beam geometry, FSPL, C/N, MODCOD, RF chain throughput, beam sharing, backhaul, handover, and smoothing." />
+              </span>
+            </div>
+            <h4 className="mt-1.5 truncate text-sm font-semibold text-slate-950 dark:text-slate-50">
+              {debugInfo.satelliteId}
+            </h4>
+            <p className="mt-1 truncate text-xs text-slate-500 dark:text-slate-400">
+              Beam {debugInfo.selectedBeamIndex} · DL {debugInfo.downlink.rf.modcod ?? 'MODCOD --'} · UL {debugInfo.uplink.rf.modcod ?? 'MODCOD --'}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onToggle}
+            className={[
+              'inline-flex h-9 shrink-0 items-center justify-center rounded-lg border px-2.5 shadow-sm transition-colors',
+              highlighted
+                ? 'border-pink-300 bg-pink-600 text-white hover:bg-pink-700 dark:border-pink-400 dark:bg-pink-500 dark:hover:bg-pink-400'
+                : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700',
+            ].join(' ')}
+            aria-label={highlighted ? 'Close detailed link budget' : 'Open detailed link budget'}
+            title={highlighted ? 'Close detailed link budget' : 'Open detailed link budget'}
+            aria-pressed={highlighted}
+          >
+            {highlighted ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+          </button>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-3 gap-px bg-slate-100 dark:bg-slate-800">
+        {[
+          { label: 'Final DL', value: fmtMbps(debugInfo.downlink.network.finalUserMbps), icon: Gauge, color: undefined },
+          { label: 'Final UL', value: fmtMbps(debugInfo.uplink.network.finalUserMbps), icon: Gauge, color: undefined },
+          { label: 'Main bottleneck', value: limitingLabel, icon: Route, color: undefined },
+        ].map((item) => {
+          const Icon = item.icon;
+          return (
+            <div key={item.label} className="min-w-0 bg-white px-3 py-3 dark:bg-slate-900">
+              <div className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">
+                <Icon className="h-3.5 w-3.5" />
+                <span>{item.label}</span>
+              </div>
+              <div className="mt-1 truncate text-sm font-bold tabular-nums text-slate-950 dark:text-slate-50" style={item.color ? { color: item.color } : undefined}>
+                {item.value}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </section>
+  );
 };
 
 // Atom: one label + value row used in the geometry and RF sections
@@ -243,16 +355,175 @@ const PipelineArrow = ({ label, isLimiting = true }: { label: string; isLimiting
   </div>
 );
 
-// The full Link Budget panel — three sections + pipeline
-const LeoRFLinkBudgetPanel = ({ d }: { d: LeoRFDebugInfo }) => {
-  const limitingFactor = detectLimitingFactor(d);
+const DirectionBudgetSection = ({ leg }: { leg: LeoThroughputLeg }) => {
+  const limitingFactor = detectLegLimitingFactor(leg) ?? deriveLegLimitingFactor(leg);
   const badge = limitingFactor ? LIMITING_FACTOR_BADGE[limitingFactor] : null;
-  const beamPosPercent = Math.round(Math.min(d.normalizedDistance, 1) * 100);
+  const sharingLimiting = leg.network.beamSharingMbps < leg.network.peakRfMbps * 0.99;
+  const backhaulLimiting = leg.network.backhaulMbps < leg.network.beamSharingMbps * 0.99;
+  const handoverLimiting = leg.network.handoverMbps < leg.network.backhaulMbps * 0.99;
 
-  // Which pipeline steps actually reduce throughput (>1% drop from their input)?
-  const sharingLimiting  = d.afterBeamSharingMbps < d.peakRfMbps         * 0.99;
-  const backhaulLimiting = d.afterBackhaulMbps    < d.afterBeamSharingMbps * 0.99;
-  const handoverLimiting = d.afterHandoverMbps    < d.afterBackhaulMbps   * 0.99;
+  return (
+    <div className="rounded-lg border border-blue-200 dark:border-blue-900/60 overflow-hidden">
+      <div className="px-3 py-1.5 bg-blue-100/70 dark:bg-blue-900/30 border-b border-blue-200 dark:border-blue-900/60">
+        <div className="flex items-baseline justify-between">
+          <span className="text-[10px] font-semibold uppercase tracking-wide text-blue-600 dark:text-blue-400">
+            {leg.label} Budget
+          </span>
+          <span className="text-[9px] text-blue-400/70 dark:text-blue-500/60 italic">physical + network</span>
+        </div>
+      </div>
+      <div className="px-3 py-2.5 bg-blue-50/40 dark:bg-blue-950/20 space-y-2.5">
+        <div className="grid grid-cols-2 gap-x-6 gap-y-2">
+          {leg.direction === 'downlink' ? (
+            <>
+              <MetricRow label="Satellite EIRP" value={`${leg.rf.effectiveEirpDb.toFixed(1)} dBW`} />
+              <MetricRow label="DL G/T used" value={`${leg.rf.receiverGtDbK.toFixed(1)} dB/K`} />
+              <MetricRow label="Raw terminal G/T" value={`${leg.rf.rawTerminalRfDb.toFixed(1)} dB/K`} />
+              <MetricRow label="Rx terminal scan loss" value={`${leg.rf.terminalScanLossDb.toFixed(2)} dB`} />
+            </>
+          ) : (
+            <>
+              <MetricRow label="UL EIRP used" value={`${leg.rf.effectiveEirpDb.toFixed(1)} dBW`} />
+              <MetricRow label="Satellite Rx G/T" value={`${leg.rf.receiverGtDbK.toFixed(1)} dB/K`} />
+              <MetricRow label="Raw terminal EIRP" value={`${leg.rf.rawTerminalRfDb.toFixed(1)} dBW`} />
+              <MetricRow label="Tx terminal scan loss" value={`${leg.rf.terminalScanLossDb.toFixed(2)} dB`} />
+            </>
+          )}
+          <MetricRow label="FSPL" value={`${leg.rf.fsplDb.toFixed(1)} dB`} />
+          <MetricRow label="C/N" value={`${leg.rf.cnDb.toFixed(1)} dB`} />
+          <MetricRow label="Satellite beam scan" value={`${leg.rf.scanLossDb.toFixed(2)} dB`} />
+          <MetricRow label="Weather loss" value={`${leg.rf.weatherLossDb.toFixed(1)} dB`} />
+          <div className="col-span-2">
+            <MetricRow label="MODCOD" value={leg.rf.modcod ?? '—'} mono={false} />
+          </div>
+          <div className="col-span-2">
+            <MetricRow label="MODCOD table" value={leg.rf.modcodTableLabel} mono={false} />
+          </div>
+        </div>
+
+        <div className="rounded-md bg-blue-100 dark:bg-blue-900/40 px-3 py-2 border border-blue-200/60 dark:border-blue-800/40">
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-blue-700 dark:text-blue-300 text-[11px] font-semibold flex items-center gap-0.5">
+              RF chain throughput
+              <SectionTooltip content="Physical-layer throughput on the reference carrier/allocation. It comes from FSPL, C/N and MODCOD before beam sharing, backhaul, handover or smoothing." />
+            </span>
+            <span className="text-blue-800 dark:text-blue-200 font-bold text-sm tabular-nums shrink-0">
+              {leg.rf.rfChainThroughputMbps.toFixed(1)}{' '}
+              <span className="text-[10px] font-normal text-blue-600 dark:text-blue-400">Mbps</span>
+            </span>
+          </div>
+          <span className="block text-[9px] text-blue-500/70 dark:text-blue-400/50 mt-0.5">
+            MODCOD-driven · {(leg.rf.referenceBandwidthHz / 1e6).toFixed(0)} MHz reference allocation
+          </span>
+          <span className="block text-[9px] text-blue-500/70 dark:text-blue-400/50 mt-0.5">
+            {leg.rf.modcodTableSourceNote}
+          </span>
+        </div>
+
+        <div className="rounded-lg border border-emerald-200 dark:border-emerald-900/60 overflow-hidden">
+          <div className="px-3 py-1.5 bg-emerald-100/70 dark:bg-emerald-900/30 border-b border-emerald-200 dark:border-emerald-900/60">
+            <div className="flex items-baseline justify-between">
+              <span className="text-[10px] font-semibold uppercase tracking-wide text-emerald-600 dark:text-emerald-400">
+                Network Layer Effects
+              </span>
+              <span className="text-[9px] text-emerald-500/60 dark:text-emerald-400/50 italic">network layer</span>
+            </div>
+          </div>
+          <div className="px-3 py-2.5 bg-emerald-50/40 dark:bg-emerald-950/20 space-y-0">
+            <p className="text-[9px] text-slate-400 dark:text-slate-500 italic pb-1.5 mb-1.5 border-b border-emerald-100 dark:border-emerald-900/40">
+              Derived from RF capacity after beam sharing, gateway constraints and smoothing.
+            </p>
+            <div className="flex items-baseline justify-between py-0.5">
+              <span className="text-[10px] text-slate-500 dark:text-slate-400 flex items-center gap-0.5">
+                Peak RF throughput
+                <SectionTooltip content="RF ceiling after scaling the reference allocation to usable beam bandwidth, then applying the direction-specific terminal cap." />
+              </span>
+              <span className="tabular-nums font-mono text-xs text-slate-600 dark:text-slate-300">
+                {leg.network.peakRfMbps.toFixed(1)} Mbps
+              </span>
+            </div>
+            <PipelineArrow label="÷ beam sharing" isLimiting={sharingLimiting} />
+            <PipelineStep value={leg.network.beamSharingMbps} dimmed />
+            <PipelineArrow label={leg.direction === 'downlink' ? '× backhaul factor' : '× feeder/gateway factor'} isLimiting={backhaulLimiting} />
+            <PipelineStep value={leg.network.backhaulMbps} dimmed />
+            <PipelineArrow label="× handover" isLimiting={handoverLimiting} />
+            <PipelineStep value={leg.network.handoverMbps} dimmed />
+            <PipelineArrow label="EMA smoothing" />
+
+            <div className="mt-1.5 rounded-md bg-emerald-100 dark:bg-emerald-900/40 border border-emerald-200/70 dark:border-emerald-800/40 px-3 py-2">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-1.5 min-w-0 flex-wrap">
+                  <span className="text-emerald-700 dark:text-emerald-300 font-semibold text-[11px] flex items-center gap-0.5">
+                    Final user throughput
+                    <SectionTooltip content="Effective user throughput after all network constraints: beam sharing, gateway/backhaul factor, handover transient and EMA temporal smoothing." />
+                  </span>
+                  {badge && (
+                    <span className={`inline-flex items-center rounded border px-1.5 py-0.5 text-[9px] font-semibold ${badge.className}`}>
+                      {leg.direction === 'downlink' ? 'DL' : 'UL'} {badge.label}
+                    </span>
+                  )}
+                </div>
+                <span className="text-emerald-800 dark:text-emerald-200 font-bold text-base tabular-nums shrink-0">
+                  {leg.network.finalUserMbps.toFixed(1)}{' '}
+                  <span className="text-[10px] font-normal text-emerald-600 dark:text-emerald-400">Mbps</span>
+                </span>
+              </div>
+            </div>
+
+            <div className="mt-1.5 flex items-center justify-between text-[10px] text-slate-400 dark:text-slate-500 px-0.5">
+              <span>Terminal cap</span>
+              <span className="tabular-nums font-mono">{leg.network.terminalCapMbps.toFixed(0)} Mbps</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const TerminalAssumptionsSection = ({ d }: { d: LeoRFDebugInfo }) => (
+  <div className="rounded-lg border border-violet-200 dark:border-violet-900/60 overflow-hidden">
+    <div className="px-3 py-1.5 bg-violet-100/70 dark:bg-violet-900/30 border-b border-violet-200 dark:border-violet-900/60">
+      <div className="flex items-baseline justify-between">
+        <span className="text-[10px] font-semibold uppercase tracking-wide text-violet-600 dark:text-violet-400">
+          Terminal Assumptions
+        </span>
+        <span className="text-[9px] text-violet-500/60 dark:text-violet-400/50 italic">selected terminal</span>
+      </div>
+    </div>
+    <div className="px-3 py-2.5 bg-violet-50/40 dark:bg-violet-950/20 space-y-2.5">
+      <div className="grid grid-cols-2 gap-x-6 gap-y-2">
+        <MetricRow label="Terminal family" value={d.terminal.terminalFamily} mono={false} />
+        <MetricRow label="Model" value={d.terminal.modelName} mono={false} />
+        <MetricRow label="Antenna type" value={d.terminal.antennaType} mono={false} />
+        <MetricRow label="Mobility class" value={d.terminal.mobilityClass} mono={false} />
+        <MetricRow label="DL raw G/T" value={`${d.terminal.rxGtDbK.toFixed(1)} dB/K`} />
+        <MetricRow label="UL raw EIRP" value={`${d.terminal.txEirpDbw.toFixed(1)} dBW`} />
+        <MetricRow label="Rx scan model" value={d.terminal.rxScanLossModelLabel} mono={false} />
+        <MetricRow label="Tx scan model" value={d.terminal.txScanLossModelLabel} mono={false} />
+        <MetricRow label="DL terminal cap" value={`${d.terminal.maxDlMbps.toFixed(0)} Mbps`} />
+        <MetricRow label="UL terminal cap" value={`${d.terminal.maxUlMbps.toFixed(0)} Mbps`} />
+        <MetricRow label="DL reference BW" value={fmtMhz(d.terminal.dlReferenceBandwidthHz)} />
+        <MetricRow label="UL reference BW" value={fmtMhz(d.terminal.ulReferenceBandwidthHz)} />
+        <MetricRow label="DL usable beam BW" value={fmtMhz(d.terminal.dlUsableBeamBandwidthHz)} />
+        <MetricRow label="UL usable beam BW" value={fmtMhz(d.terminal.ulUsableBeamBandwidthHz)} />
+      </div>
+      <div className="rounded-md border border-violet-200/70 bg-white/70 px-3 py-2 text-[10px] leading-relaxed text-violet-800 dark:border-violet-800/50 dark:bg-violet-950/30 dark:text-violet-200">
+        <div>Terminal RF parameters are simplified engineering assumptions, not vendor-certified values.</div>
+        <div>Terminal RF values are representative assumptions unless backed by an official datasheet.</div>
+        <div>Throughput is an estimated user throughput, not a guaranteed SLA.</div>
+        <div>{d.terminal.sourceNote}</div>
+        {[...d.terminal.notes, ...d.terminal.assumptions].slice(0, 3).map((note) => (
+          <div key={note} className="text-violet-700/80 dark:text-violet-300/80">{note}</div>
+        ))}
+      </div>
+    </div>
+  </div>
+);
+
+// The full Link Budget panel — geometry + separate DL/UL budgets
+const LeoRFLinkBudgetPanel = ({ d }: { d: LeoRFDebugInfo }) => {
+  const beamPosPercent = Math.round(Math.min(d.normalizedDistance, 1) * 100);
 
   return (
     <div className="space-y-3 text-xs">
@@ -267,9 +538,9 @@ const LeoRFLinkBudgetPanel = ({ d }: { d: LeoRFDebugInfo }) => {
         <div className="px-3 py-2.5 bg-slate-50 dark:bg-slate-800/40">
           <div className="grid grid-cols-2 gap-x-6 gap-y-2">
             <MetricRow label="Satellite" value={d.satelliteId} mono={false} />
-            <MetricRow label="Elevation" value={`${d.elevationDeg.toFixed(1)} °`} />
+            <MetricRow label="User elevation" value={`${d.userElevationDeg.toFixed(1)} °`} />
             <MetricRow label="Beam index" value={d.selectedBeamIndex} />
-            <MetricRow label="Slant range" value={`${d.slantRangeKm.toFixed(0)} km`} />
+            <MetricRow label="Slant range" value={`${d.downlink.rf.slantRangeKm.toFixed(0)} km`} />
             <MetricRow label="Candidate beams" value={d.candidateBeamCount} />
             {/* Beam position progress bar */}
             <div>
@@ -295,104 +566,58 @@ const LeoRFLinkBudgetPanel = ({ d }: { d: LeoRFDebugInfo }) => {
         </div>
       </div>
 
-      {/* ── Section 2: Link Budget (physical layer) ───────────────────────── */}
-      <div className="rounded-lg border border-blue-200 dark:border-blue-900/60 overflow-hidden">
-        <div className="px-3 py-1.5 bg-blue-100/70 dark:bg-blue-900/30 border-b border-blue-200 dark:border-blue-900/60">
-          <div className="flex items-baseline justify-between">
-            <span className="text-[10px] font-semibold uppercase tracking-wide text-blue-600 dark:text-blue-400">
-              Link Budget
-            </span>
-            <span className="text-[9px] text-blue-400/70 dark:text-blue-500/60 italic">physical layer</span>
-          </div>
-        </div>
-        <div className="px-3 py-2.5 bg-blue-50/40 dark:bg-blue-950/20 space-y-2.5">
-          <div className="grid grid-cols-2 gap-x-6 gap-y-2">
-            <MetricRow label="Eff. EIRP" value={`${d.effectiveEirpDb.toFixed(1)} dBW`} />
-            <MetricRow label="FSPL" value={`${d.fsplDb.toFixed(1)} dB`} />
-            <MetricRow label="Scan loss" value={`${d.scanLossDb.toFixed(2)} dB`} />
-            <MetricRow label="C/N" value={`${d.cnDb.toFixed(1)} dB`} />
-            <div className="col-span-2">
-              <MetricRow label="MODCOD" value={d.modcod ?? '—'} mono={false} />
+      <TerminalAssumptionsSection d={d} />
+      <DirectionBudgetSection leg={d.downlink} />
+      <DirectionBudgetSection leg={d.uplink} />
+    </div>
+  );
+};
+
+interface LeoLinkBudgetDrawerProps {
+  open: boolean;
+  onClose: () => void;
+  debugInfo: LeoRFDebugInfo;
+}
+
+const LeoLinkBudgetDrawer = ({ open, onClose, debugInfo }: LeoLinkBudgetDrawerProps) => {
+  useEffect(() => {
+    if (!open) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') onClose();
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, [onClose, open]);
+
+  if (!open) return null;
+
+  return (
+    <div
+      className="leo-link-budget-drawer fixed z-[80] max-[1099px]:inset-0 max-[1099px]:bg-slate-950/35 max-[1099px]:backdrop-blur-sm min-[1100px]:pointer-events-none"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Detailed LEO link budget"
+    >
+      <div className="absolute inset-y-0 right-0 flex w-full justify-end max-[1099px]:sm:pl-10 min-[1100px]:pointer-events-none">
+        <div className="flex h-full w-full max-w-[38rem] flex-col border-l border-slate-200 bg-white shadow-2xl dark:border-slate-800 dark:bg-slate-950 min-[1100px]:pointer-events-auto min-[1100px]:overflow-hidden min-[1100px]:rounded-[24px] min-[1100px]:border">
+          <div className="flex items-start justify-between gap-4 border-b border-slate-200 px-5 py-4 dark:border-slate-800">
+            <div className="min-w-0">
+              <p className="text-[11px] font-bold uppercase tracking-wide text-pink-500 dark:text-pink-300">LEO Link Budget</p>
+              <h3 className="mt-1 truncate text-lg font-semibold text-slate-950 dark:text-slate-50">
+                {debugInfo.satelliteId}
+              </h3>
             </div>
+            <button
+              type="button"
+              onClick={onClose}
+              className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 shadow-sm transition-colors hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+              aria-label="Close link budget detail"
+            >
+              <X className="h-5 w-5" />
+            </button>
           </div>
-          {/* RF chain throughput — highlighted */}
-          <div className="rounded-md bg-blue-100 dark:bg-blue-900/40 px-3 py-2 border border-blue-200/60 dark:border-blue-800/40">
-            <div className="flex items-center justify-between">
-              <span className="text-blue-700 dark:text-blue-300 text-[11px] font-semibold flex items-center gap-0.5">
-                RF chain throughput
-                <SectionTooltip content="Throughput computed from RF link budget using a 50 MHz reference carrier (MODCOD-based). Not the full beam capacity — the beam bandwidth is shared across users via a ×5 scaling factor." />
-              </span>
-              <span className="text-blue-800 dark:text-blue-200 font-bold text-sm tabular-nums">
-                {d.rfCarrierMbps.toFixed(1)}{' '}
-                <span className="text-[10px] font-normal text-blue-600 dark:text-blue-400">Mbps</span>
-              </span>
-            </div>
-            <span className="block text-[9px] text-blue-500/70 dark:text-blue-400/50 mt-0.5">
-              MODCOD-driven · 50 MHz reference carrier
-            </span>
-          </div>
-        </div>
-      </div>
-
-      {/* ── Section 3: Network Layer Effects ─────────────────────────────── */}
-      <div className="rounded-lg border border-emerald-200 dark:border-emerald-900/60 overflow-hidden">
-        <div className="px-3 py-1.5 bg-emerald-100/70 dark:bg-emerald-900/30 border-b border-emerald-200 dark:border-emerald-900/60">
-          <div className="flex items-baseline justify-between">
-            <span className="text-[10px] font-semibold uppercase tracking-wide text-emerald-600 dark:text-emerald-400">
-              Network Layer Effects
-            </span>
-            <span className="text-[9px] text-emerald-500/60 dark:text-emerald-400/50 italic">network layer</span>
-          </div>
-        </div>
-        <div className="px-3 py-2.5 bg-emerald-50/40 dark:bg-emerald-950/20 space-y-0">
-          {/* Explanatory note */}
-          <p className="text-[9px] text-slate-400 dark:text-slate-500 italic pb-1.5 mb-1.5 border-b border-emerald-100 dark:border-emerald-900/40">
-            Derived from RF capacity after beam sharing, backhaul constraints and smoothing.
-          </p>
-
-          {/* Throughput pipeline */}
-          <div className="flex items-baseline justify-between py-0.5">
-            <span className="text-[10px] text-slate-500 dark:text-slate-400 flex items-center gap-0.5">
-              Peak RF throughput
-              <SectionTooltip content="Estimated maximum per-user throughput if alone on the beam, scaled to full beam bandwidth and limited by terminal capability. All downstream stages are guaranteed ≤ this value." />
-            </span>
-            <span className="tabular-nums font-mono text-xs text-slate-600 dark:text-slate-300">
-              {d.peakRfMbps.toFixed(1)} Mbps
-            </span>
-          </div>
-          <PipelineArrow label="÷ beam sharing" isLimiting={sharingLimiting} />
-          <PipelineStep value={d.afterBeamSharingMbps} dimmed />
-          <PipelineArrow label="× backhaul factor" isLimiting={backhaulLimiting} />
-          <PipelineStep value={d.afterBackhaulMbps} dimmed />
-          <PipelineArrow label="× handover" isLimiting={handoverLimiting} />
-          <PipelineStep value={d.afterHandoverMbps} dimmed />
-          <PipelineArrow label="EMA smoothing" />
-
-          {/* Final user throughput — most prominent */}
-          <div className="mt-1.5 rounded-md bg-emerald-100 dark:bg-emerald-900/40 border border-emerald-200/70 dark:border-emerald-800/40 px-3 py-2">
-            <div className="flex items-center justify-between gap-2">
-              <div className="flex items-center gap-1.5 min-w-0 flex-wrap">
-                <span className="text-emerald-700 dark:text-emerald-300 font-semibold text-[11px] flex items-center gap-0.5">
-                  Final user throughput
-                  <SectionTooltip content="User-experienced throughput after beam capacity sharing, backhaul attenuation, handover transient, and EMA temporal smoothing. Always ≤ Peak RF throughput. This value drives the Estimated Performance panel." />
-                </span>
-                {badge && (
-                  <span className={`inline-flex items-center rounded border px-1.5 py-0.5 text-[9px] font-semibold ${badge.className}`}>
-                    {badge.label}
-                  </span>
-                )}
-              </div>
-              <span className="text-emerald-800 dark:text-emerald-200 font-bold text-base tabular-nums shrink-0">
-                {d.smoothedUserMbps.toFixed(1)}{' '}
-                <span className="text-[10px] font-normal text-emerald-600 dark:text-emerald-400">Mbps</span>
-              </span>
-            </div>
-          </div>
-
-          {/* Terminal cap reference line */}
-          <div className="mt-1.5 flex items-center justify-between text-[10px] text-slate-400 dark:text-slate-500 px-0.5">
-            <span>Terminal hardware cap</span>
-            <span className="tabular-nums font-mono">{d.terminalCapMbps.toFixed(0)} Mbps</span>
+          <div className="flex-1 overflow-y-auto px-5 py-4">
+            <LeoRFLinkBudgetPanel d={debugInfo} />
           </div>
         </div>
       </div>
@@ -462,6 +687,7 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
 }) => {
   const userLabel = analysisSource === 'aircraft' && aircraftCallsign ? aircraftCallsign : 'User';
   const showPerformanceBeforeRadioPath = analysisSource !== 'aircraft';
+  const [isLinkBudgetDrawerOpen, setIsLinkBudgetDrawerOpen] = useState(false);
 
   const isRegulatoryBlocked = leoServiceViewModel?.decisionDriver === 'REGULATORY'
     && leoServiceViewModel.serviceStatus === 'BLOCKED';
@@ -475,21 +701,21 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
 
   const terminalLimitedNotice = leoPerformance?.wasTerminalLimited ? (
     <div className="rounded-md border border-blue-200 bg-blue-50 px-3 py-2 text-xs text-blue-800 dark:border-blue-700 dark:bg-blue-900/20 dark:text-blue-300">
-      Beam delivers more than the terminal hardware maximum — throughput shown is terminal-limited.
+      At least one direction is terminal-limited. Final DL/UL values use the direction-specific terminal cap.
     </div>
   ) : null;
 
   const simulatedNotice = (
     <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-1.5 text-[10px] text-slate-500 dark:border-slate-700 dark:bg-slate-800/40 dark:text-slate-400 space-y-0.5">
       <div>Smoothed user throughput · shared beam capacity · EMA-smoothed · simulation model · no SLA guarantee</div>
-      <div>Downlink: RF chain (FSPL → C/N → MODCOD) → beam sharing → backhaul → handover → EMA · Uplink: symmetric assumption (estimated)</div>
+      <div>Downlink and uplink use separate RF chains, terminal caps, beam sharing, gateway factor, handover and EMA smoothing.</div>
     </div>
   );
 
   const estimatedPerformanceSection = (
     <CollapsibleSection
       storageKey="leo-performance"
-      title={<>{isRegulatoryBlocked ? 'Estimated Performance (Diagnostic only)' : 'Estimated Performance (simulated)'}<SectionTooltip content="Smoothed user throughput from shared beam capacity. Pipeline: RF chain (FSPL → C/N → MODCOD) → beam load sharing (geographic density model) → backhaul factor → handover transient → EMA smoothing → terminal hardware cap. The displayed value is the EMA-smoothed result — it can temporarily differ from the instant RF throughput. Downlink is RF-chain derived. Uplink uses symmetric assumption. NOT a measured or guaranteed value." /></>}
+      title={<>{isRegulatoryBlocked ? 'Estimated Performance (Diagnostic only)' : 'Estimated Performance (simulated)'}<SectionTooltip content="Final post-network user throughput. Downlink and uplink are computed from separate RF chains, then passed through beam sharing, gateway/backhaul factor, handover transient and EMA smoothing. NOT a measured or guaranteed value." /></>}
       subtitle={isRegulatoryBlocked ? blockedDiagnosticMessage : undefined}
       accentColor="#db2777"
       defaultOpen={true}
@@ -559,22 +785,20 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
         </div>
         {showEstimatedPerformance && showPerformanceBeforeRadioPath && estimatedPerformanceSection}
 
-        {/* Link Budget — above Radio Path */}
+        {/* Link Budget — compact sidebar summary + detailed drawer */}
         {leoPerformance?.debugInfo && (
-          <CollapsibleSection
-            storageKey="leo-rf-link-budget"
-            title={
-              <>
-                Link Budget
-                <SectionTooltip content="Structured RF and network analysis — physical layer: beam geometry, FSPL → C/N → MODCOD → RF chain throughput (50 MHz reference carrier). Network layer: Peak RF throughput (full beam / single user, terminal-capped) → beam sharing → backhaul → handover → EMA smoothing → Final user throughput. Each network stage is monotonically ≤ Peak RF." />
-              </>
-            }
-            subtitle="Simulated — RF + network effects"
-            accentColor="#db2777"
-            defaultOpen={false}
-          >
-            <LeoRFLinkBudgetPanel d={leoPerformance.debugInfo} />
-          </CollapsibleSection>
+          <>
+            <LeoLinkBudgetSummaryCard
+              debugInfo={leoPerformance.debugInfo}
+              highlighted={isLinkBudgetDrawerOpen}
+              onToggle={() => setIsLinkBudgetDrawerOpen((open) => !open)}
+            />
+            <LeoLinkBudgetDrawer
+              open={isLinkBudgetDrawerOpen}
+              onClose={() => setIsLinkBudgetDrawerOpen(false)}
+              debugInfo={leoPerformance.debugInfo}
+            />
+          </>
         )}
 
         {/* LEO Radio Path */}

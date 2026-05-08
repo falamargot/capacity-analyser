@@ -25,13 +25,29 @@ import { LEO_ALTITUDE_KM, TOTAL_BEAMS, BEAM_SPACING_KM } from '../config/oneweb'
 export const RF_KU_FREQ_GHZ = 11.5;
 
 /**
- * Terminal G/T (dB/K) — ESTIMATED DEFAULT.
- * Representative value for a compact flat-panel Ku-band outdoor unit.
- * Calibrated so that C/N at beam boresight (1200 km nadir) is ~25 dB,
- * providing a meaningful dynamic range through the MODCOD table.
- * Published OneWeb terminal G/T varies; 4.5 dB/K is a conservative estimate.
+ * Ku-band user uplink center frequency (GHz) — ESTIMATED DEFAULT.
+ * OneWeb Gen-1 user uplink: 14.0–14.5 GHz. 14.25 GHz is representative.
+ */
+export const RF_KU_UPLINK_FREQ_GHZ = 14.25;
+
+/**
+ * Fallback terminal G/T (dB/K) — ESTIMATED DEFAULT.
+ * Representative placeholder for a compact flat-panel Ku-band outdoor unit.
+ * It is calibrated only to keep the legacy generic helper numerically useful;
+ * it is not a vendor-certified terminal value.
+ *
+ * The user-facing LEO DL/UL pipeline should prefer the selected terminal
+ * profile's rxGtDbK after terminal Rx scan loss. This fallback remains for
+ * legacy/generic helpers.
  */
 export const RF_TERMINAL_GOT_DB_PER_K = 4.5;
+
+/**
+ * Satellite receive G/T for the user uplink (dB/K) — ESTIMATED DEFAULT.
+ * Used only for the independent uplink budget; no public OneWeb receive-chain
+ * value is assumed to be exact.
+ */
+export const RF_SATELLITE_GOT_DB_PER_K = 10.0;
 
 /**
  * Beam noise bandwidth (Hz) — ESTIMATED DEFAULT.
@@ -39,6 +55,9 @@ export const RF_TERMINAL_GOT_DB_PER_K = 4.5;
  * Used in the noise power calculation: N = k × T × BW.
  */
 export const RF_NOISE_BW_HZ = 250e6;
+
+/** Uplink beam noise bandwidth (Hz) — ESTIMATED DEFAULT. */
+export const RF_UPLINK_NOISE_BW_HZ = 100e6;
 
 /**
  * Per-terminal throughput bandwidth (Hz) — ESTIMATED DEFAULT.
@@ -48,6 +67,9 @@ export const RF_NOISE_BW_HZ = 250e6;
  * just below the 200 Mbps terminal hardware ceiling.
  */
 export const RF_THROUGHPUT_BW_HZ = 50e6;
+
+/** Uplink per-terminal reference allocation (Hz) — ESTIMATED DEFAULT. */
+export const RF_UPLINK_THROUGHPUT_BW_HZ = 20e6;
 
 /**
  * System implementation + interference margin (dB) — ESTIMATED DEFAULT.
@@ -60,9 +82,9 @@ export const RF_IMPLEMENTATION_MARGIN_DB = 3.0;
 export const BOLTZMANN_DB = -228.6;
 
 // ─────────────────────────────────────────────────────────────────────────────
-// MODCOD Table — DVB-S2X representative thresholds — ESTIMATED DEFAULTS
+// MODCOD Table — configurable engineering approximation.
 // Ordered from lowest to highest spectral efficiency.
-// Thresholds are based on published DVB-S2X Annex E reference curves.
+// This is not claimed to be OneWeb's official adaptive coding/modulation table.
 // ─────────────────────────────────────────────────────────────────────────────
 
 export interface ModcodEntry {
@@ -74,14 +96,30 @@ export interface ModcodEntry {
   spectralEfficiencyBpHz: number;
 }
 
-export const MODCOD_TABLE: ReadonlyArray<ModcodEntry> = [
+export interface ModcodTableConfig {
+  id: string;
+  label: string;
+  metric: 'C/N';
+  sourceNote: string;
+  entries: ReadonlyArray<ModcodEntry>;
+}
+
+export const ENGINEERING_MODCOD_TABLE: ModcodTableConfig = {
+  id: 'dvb-s2x-engineering-approx',
+  label: 'DVB-S2X-like MODCOD table (engineering approximation)',
+  metric: 'C/N',
+  sourceNote: 'Representative engineering approximation for simulation. Not verified as an official OneWeb MODCOD table.',
+  entries: [
   { name: 'QPSK 1/2',   cnThresholdDb:  5.0, spectralEfficiencyBpHz: 1.0  },
   { name: 'QPSK 3/4',   cnThresholdDb:  8.0, spectralEfficiencyBpHz: 1.5  },
   { name: '8PSK 2/3',   cnThresholdDb: 11.0, spectralEfficiencyBpHz: 2.0  },
   { name: '16APSK 3/4', cnThresholdDb: 14.5, spectralEfficiencyBpHz: 3.0  },
   { name: '16APSK 7/8', cnThresholdDb: 17.0, spectralEfficiencyBpHz: 3.5  },
   { name: '32APSK 3/4', cnThresholdDb: 18.5, spectralEfficiencyBpHz: 3.75 },
-] as const;
+  ],
+} as const;
+
+export const MODCOD_TABLE: ReadonlyArray<ModcodEntry> = ENGINEERING_MODCOD_TABLE.entries;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Step 1 — Free Space Path Loss
@@ -169,6 +207,29 @@ export function computeCnDb(
   );
 }
 
+export interface DirectionalCnInput {
+  eirpDbw: number;
+  receiverGtDbK: number;
+  slantRangeKm: number;
+  pathAdjustmentDb: number;
+  frequencyGHz: number;
+  noiseBwHz: number;
+}
+
+export function computeDirectionalCnDb(input: DirectionalCnInput): number {
+  const fsplDb = computeFsplDb(input.slantRangeKm, input.frequencyGHz);
+  const bwDb = 10 * Math.log10(input.noiseBwHz);
+  return (
+    input.eirpDbw
+    + input.receiverGtDbK
+    - fsplDb
+    - BOLTZMANN_DB
+    - bwDb
+    - RF_IMPLEMENTATION_MARGIN_DB
+    + input.pathAdjustmentDb
+  );
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Step 3 — MODCOD Selection
 // ─────────────────────────────────────────────────────────────────────────────
@@ -178,9 +239,12 @@ export function computeCnDb(
  * Returns null if C/N is below the minimum viable threshold (link loss).
  * Iterates through MODCOD_TABLE ordered worst → best; last passing entry wins.
  */
-export function selectModcod(cnDb: number): ModcodEntry | null {
+export function selectModcod(
+  cnDb: number,
+  table: ReadonlyArray<ModcodEntry> = MODCOD_TABLE,
+): ModcodEntry | null {
   let best: ModcodEntry | null = null;
-  for (const entry of MODCOD_TABLE) {
+  for (const entry of table) {
     if (cnDb >= entry.cnThresholdDb) {
       best = entry;
     }
@@ -204,6 +268,7 @@ export interface RfChainResult {
    * Label: "Simulated link budget — Simplified RF model — Estimated (no real telemetry)"
    */
   modcod: ModcodEntry | null;
+  modcodTable: ModcodTableConfig;
   /**
    * Throughput from the RF chain before terminal hardware cap (Mbps).
    * = spectral_efficiency × RF_THROUGHPUT_BW_HZ
@@ -214,6 +279,35 @@ export interface RfChainResult {
   deliveredThroughputMbps: number;
   /** True when the terminal hardware cap — not link quality — is the binding constraint */
   wasTerminalLimited: boolean;
+}
+
+export interface DirectionalRfChainInput extends DirectionalCnInput {
+  throughputBwHz: number;
+  modcodTable?: ModcodTableConfig;
+  terminalMaxMbps?: number;
+}
+
+export function computeDirectionalRfChainThroughput(input: DirectionalRfChainInput): RfChainResult {
+  const fsplDb = computeFsplDb(input.slantRangeKm, input.frequencyGHz);
+  const cnDb = computeDirectionalCnDb(input);
+  const modcodTable = input.modcodTable ?? ENGINEERING_MODCOD_TABLE;
+  const modcod = selectModcod(cnDb, modcodTable.entries);
+  const rfThroughputMbps = modcod !== null
+    ? (modcod.spectralEfficiencyBpHz * input.throughputBwHz) / 1e6
+    : 0;
+  const terminalMaxMbps = input.terminalMaxMbps ?? Number.POSITIVE_INFINITY;
+  const deliveredThroughputMbps = Math.min(rfThroughputMbps, terminalMaxMbps);
+
+  return {
+    slantRangeKm: input.slantRangeKm,
+    fsplDb,
+    cnDb,
+    modcod,
+    modcodTable,
+    rfThroughputMbps,
+    deliveredThroughputMbps,
+    wasTerminalLimited: rfThroughputMbps > terminalMaxMbps,
+  };
 }
 
 /**
@@ -237,7 +331,7 @@ export function computeRfChainThroughput(
   const slantRangeKm = computeBeamCenterSlantRangeKm(beamIndex);
   const fsplDb = computeFsplDb(slantRangeKm, RF_KU_FREQ_GHZ);
   const cnDb = computeCnDb(eirpEffDb, slantRangeKm, powerAtUserDb);
-  const modcod = selectModcod(cnDb);
+  const modcod = selectModcod(cnDb, ENGINEERING_MODCOD_TABLE.entries);
 
   const rfThroughputMbps = modcod !== null
     ? (modcod.spectralEfficiencyBpHz * RF_THROUGHPUT_BW_HZ) / 1e6
@@ -250,8 +344,31 @@ export function computeRfChainThroughput(
     fsplDb,
     cnDb,
     modcod,
+    modcodTable: ENGINEERING_MODCOD_TABLE,
     rfThroughputMbps,
     deliveredThroughputMbps,
     wasTerminalLimited: rfThroughputMbps > terminalMaxMbps,
   };
+}
+
+export function computeUplinkRfChainThroughput(input: {
+  terminalEirpDbw: number;
+  slantRangeKm: number;
+  pathAdjustmentDb: number;
+  noiseBwHz?: number;
+  throughputBwHz?: number;
+  modcodTable?: ModcodTableConfig;
+  terminalMaxMbps?: number;
+}): RfChainResult {
+  return computeDirectionalRfChainThroughput({
+    eirpDbw: input.terminalEirpDbw,
+    receiverGtDbK: RF_SATELLITE_GOT_DB_PER_K,
+    slantRangeKm: input.slantRangeKm,
+    pathAdjustmentDb: input.pathAdjustmentDb,
+    frequencyGHz: RF_KU_UPLINK_FREQ_GHZ,
+    noiseBwHz: input.noiseBwHz ?? RF_UPLINK_NOISE_BW_HZ,
+    throughputBwHz: input.throughputBwHz ?? RF_UPLINK_THROUGHPUT_BW_HZ,
+    modcodTable: input.modcodTable,
+    terminalMaxMbps: input.terminalMaxMbps,
+  });
 }

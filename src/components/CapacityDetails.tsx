@@ -51,8 +51,23 @@ import {
   updateHandoverState,
   applyHandoverDegradation,
   createHandoverState,
+  SMOOTHING_ALPHA,
   type HandoverState,
 } from '../utils/leoNetworkLayer';
+import {
+  computeDirectionalRfChainThroughput,
+  computeUplinkRfChainThroughput,
+  RF_SATELLITE_GOT_DB_PER_K,
+  RF_KU_FREQ_GHZ,
+} from '../utils/leoLinkBudget';
+import { computeLeoTerminalScanLossDb, getLeoTerminalProfile } from '../config/leoTerminals';
+import type {
+  LeoBottleneckFactor,
+  LeoBottleneckScope,
+  LeoNetworkLayerBreakdown,
+  LeoRfChainBreakdown,
+  LeoThroughputLeg,
+} from '../types/leoThroughput';
 
 // ─── Extracted sub-components ─────────────────────────────────────────────────
 import {
@@ -139,6 +154,55 @@ interface CapacityDetailsProps {
   /** Controlled MESH direction tab — lifted to App so the globe can reflect the active direction. */
   activeMeshTab?: 'forward' | 'reverse';
   onActiveMeshTabChange?: (tab: 'forward' | 'reverse') => void;
+}
+
+function detectThroughputBottleneck(leg: LeoThroughputLeg): LeoBottleneckFactor {
+  if (leg.rf.rfChainThroughputMbps <= 0 || leg.rf.cnDb < 14.5) return 'rf';
+  if (leg.rf.terminalScanLossDb <= -3) return 'scan loss';
+  if (leg.rf.modcod == null || leg.rf.cnDb < 18.5) return 'modcod';
+  if (leg.network.backhaulMbps < leg.network.beamSharingMbps * 0.75) return 'backhaul';
+  if (leg.network.handoverMbps < leg.network.backhaulMbps * 0.99) return 'handover';
+  if (leg.network.beamSharingMbps < leg.network.peakRfMbps * 0.8) return 'beam sharing';
+  if (leg.network.peakRfMbps >= leg.network.terminalCapMbps * 0.97) return 'terminal';
+  return null;
+}
+
+function formatBottleneckLabel(factor: LeoBottleneckFactor, scope: LeoBottleneckScope): string {
+  if (!factor || scope === 'none') return 'None';
+  const prefix = scope === 'DL+UL' ? 'DL+UL' : scope;
+  const label = factor === 'beam sharing'
+    ? 'beam sharing'
+    : factor;
+  return `${prefix} ${label}`;
+}
+
+function chooseMainBottleneck(dl: LeoThroughputLeg, ul: LeoThroughputLeg) {
+  const dlFactor = detectThroughputBottleneck(dl);
+  const ulFactor = detectThroughputBottleneck(ul);
+  let scope: LeoBottleneckScope = 'none';
+  let factor: LeoBottleneckFactor = null;
+
+  if (dlFactor && ulFactor && dlFactor === ulFactor) {
+    scope = 'DL+UL';
+    factor = dlFactor;
+  } else if (dlFactor && ulFactor) {
+    const dlRatio = dl.network.peakRfMbps > 0 ? dl.network.finalUserMbps / dl.network.peakRfMbps : 0;
+    const ulRatio = ul.network.peakRfMbps > 0 ? ul.network.finalUserMbps / ul.network.peakRfMbps : 0;
+    scope = dlRatio <= ulRatio ? 'DL' : 'UL';
+    factor = dlRatio <= ulRatio ? dlFactor : ulFactor;
+  } else if (dlFactor) {
+    scope = 'DL';
+    factor = dlFactor;
+  } else if (ulFactor) {
+    scope = 'UL';
+    factor = ulFactor;
+  }
+
+  return {
+    factor,
+    scope,
+    label: formatBottleneckLabel(factor, scope),
+  };
 }
 
 const RTT_VISUAL_SCALE_MAX_MS = 600;
@@ -452,22 +516,23 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
   // ── Network layer state refs — persist smoothed throughput and handover across renders ──
   // Mutated inside leoPerformance useMemo on each recompute. Not React state — these
   // hold the previous-frame values needed by the EMA smoother and handover detector.
-  const smoothedThroughputRef = useRef<number | null>(null);
+  const smoothedDownlinkThroughputRef = useRef<number | null>(null);
+  const smoothedUplinkThroughputRef = useRef<number | null>(null);
   const handoverStateRef = useRef<HandoverState>(createHandoverState());
 
-  // Tick counter incremented every 15 s — matches the LEO auto-selection interval so that
-  // RF computations always use a fresh JulianDate even when selectedPoint / simulationState
-  // have not changed.  GEO paths do not depend on nowTime and are unaffected.
+  // Tick counter incremented every second so every LEO detail panel field
+  // (beam geometry, elevation, RF chain and network pipeline) refreshes with
+  // the same cadence as the satellite propagation loop.
   const [leoClockTick, setLeoClockTick] = useState(0);
   useEffect(() => {
-    const id = setInterval(() => setLeoClockTick((t) => t + 1), 15_000);
+    const id = setInterval(() => setLeoClockTick((t) => t + 1), 1_000);
     return () => clearInterval(id);
   }, []);
 
   // Shared time snapshot for all RF-layer computations in this render cycle.
   // Ensures resolvedLEOConnectivity, leoPerformance, and hasCurrentLEORF all see
   // the same JulianDate, eliminating the previous temporal inconsistency between layers.
-  // leoClockTick keeps this in sync with the 15 s auto-selection cadence.
+  // leoClockTick keeps this in sync with the 1 s LEO detail refresh cadence.
   const nowTime = useMemo(
     () => JulianDate.fromDate(new Date()),
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -583,72 +648,223 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
       });
 
       if (beamEstimate) {
-        // ── Network layer pipeline ───────────────────────────────────────────
-        // Apply on top of the RF chain result. Order: sharing → handover → EMA.
+        const profile = getLeoTerminalProfile(leoTerminalType);
+        const maxDlMbps = profile.maxDlMbps;
+        const maxUlMbps = profile.maxUlMbps;
+        const activeUsers = beamLoadResult?.estimatedActiveUsers ?? 1;
 
-        // 1. Beam capacity sharing: recover beam-total throughput, divide by active users.
-        //    Beam-side throughput (before backhaul factor) is used for fair sharing.
-        const profile = TERMINAL_PROFILES[leoTerminalType];
-        const maxDlMbps = profile.maxDlGbps * 1000;
-        const sharing = applyBeamCapacitySharing(
-          beamEstimate.beamLink.deliveredThroughputMbps,  // beam-side, pre-backhaul
-          beamLoadResult?.estimatedActiveUsers ?? 1,
-          maxDlMbps,
-        );
-        // Reapply backhaul factor after sharing (SNP elevation may further limit link)
-        const sharedWithBackhaulMbps = sharing.sharedThroughputMbps * beamEstimate.backhaulFactor;
-
-        // 2. Handover detection: one-frame degradation when serving satellite changes.
         const { state: newHandoverState, degradationFactor } = updateHandoverState(
           handoverStateRef.current,
           resolvedLEOConnectivity.satellite.id,
         );
         handoverStateRef.current = newHandoverState;
-        const degradedMbps = applyHandoverDegradation(sharedWithBackhaulMbps, degradationFactor);
 
-        // 3. EMA smoothing: damp abrupt MODCOD transitions for a stable UI.
-        const smoothedMbps = smoothThroughputMbps(degradedMbps, smoothedThroughputRef.current);
-        smoothedThroughputRef.current = smoothedMbps;
+        const buildLeg = (args: {
+          direction: 'downlink' | 'uplink';
+          label: string;
+          rfChainThroughputMbps: number;
+          effectiveEirpDb: number;
+          receiverGtDbK: number;
+          rawTerminalRfDb: number;
+          terminalScanLossDb: number;
+          fsplDb: number;
+          cnDb: number;
+          modcod: string | null;
+          modcodTableId: string;
+          modcodTableLabel: string;
+          modcodTableSourceNote: string;
+          referenceBandwidthHz: number;
+          usableBandwidthHz: number;
+          terminalCapMbps: number;
+          bandwidthScale: number;
+          previousSmoothedMbps: number | null;
+        }): { leg: LeoThroughputLeg; sharingWasTerminalLimited: boolean } => {
+          const sharing = applyBeamCapacitySharing(
+            args.rfChainThroughputMbps,
+            activeUsers,
+            args.terminalCapMbps,
+            args.bandwidthScale,
+          );
+          const backhaulMbps = sharing.sharedThroughputMbps * beamEstimate.backhaulFactor;
+          const handoverMbps = applyHandoverDegradation(backhaulMbps, degradationFactor);
+          const finalUserMbps = smoothThroughputMbps(handoverMbps, args.previousSmoothedMbps);
+
+          const rf: LeoRfChainBreakdown = {
+            effectiveEirpDb: args.effectiveEirpDb,
+            receiverGtDbK: args.receiverGtDbK,
+            rawTerminalRfDb: args.rawTerminalRfDb,
+            terminalScanLossDb: args.terminalScanLossDb,
+            scanLossDb: beamEstimate.beamLink.scanLossDb,
+            weatherLossDb: beamEstimate.beamLink.weatherAttenuationDb,
+            fsplDb: args.fsplDb,
+            cnDb: args.cnDb,
+            modcod: args.modcod,
+            modcodTableId: args.modcodTableId,
+            modcodTableLabel: args.modcodTableLabel,
+            modcodTableSourceNote: args.modcodTableSourceNote,
+            slantRangeKm: beamEstimate.debugInfo.slantRangeKm,
+            referenceBandwidthHz: args.referenceBandwidthHz,
+            usableBandwidthHz: args.usableBandwidthHz,
+            rfChainThroughputMbps: args.rfChainThroughputMbps,
+          };
+          const network: LeoNetworkLayerBreakdown = {
+            peakRfMbps: Math.min(sharing.beamTotalThroughputMbps, args.terminalCapMbps),
+            terminalCapMbps: args.terminalCapMbps,
+            activeUsers: sharing.activeUsers,
+            beamSharingMbps: sharing.sharedThroughputMbps,
+            backhaulFactor: beamEstimate.backhaulFactor,
+            backhaulMbps,
+            handoverFactor: degradationFactor,
+            handoverMbps,
+            smoothingAlpha: SMOOTHING_ALPHA,
+            finalUserMbps,
+            bottleneck: null,
+          };
+          const leg: LeoThroughputLeg = {
+            direction: args.direction,
+            label: args.label,
+            rf,
+            network,
+          };
+          leg.network.bottleneck = detectThroughputBottleneck(leg);
+          return { leg, sharingWasTerminalLimited: sharing.wasTerminalLimited };
+        };
+
+        const rxScanLossDb = computeLeoTerminalScanLossDb(
+          profile.rxScanLossModel,
+          beamEstimate.userElevationDeg,
+        );
+        const txScanLossDb = computeLeoTerminalScanLossDb(
+          profile.txScanLossModel,
+          beamEstimate.userElevationDeg,
+        );
+        const rxGtAfterScanDbK = profile.rxGtDbK + rxScanLossDb;
+        const txEirpAfterScanDbw = profile.txEirpDbw + txScanLossDb;
+
+        const downlinkRf = computeDirectionalRfChainThroughput({
+          eirpDbw: beamEstimate.beamLink.effectiveEirpDb,
+          receiverGtDbK: rxGtAfterScanDbK,
+          slantRangeKm: beamEstimate.debugInfo.slantRangeKm,
+          pathAdjustmentDb: beamEstimate.beamLink.powerAtUserDb,
+          frequencyGHz: RF_KU_FREQ_GHZ,
+          noiseBwHz: profile.dlReferenceBandwidthHz,
+          throughputBwHz: profile.dlReferenceBandwidthHz,
+        });
+
+        const downlink = buildLeg({
+          direction: 'downlink',
+          label: 'Downlink',
+          rfChainThroughputMbps: downlinkRf.rfThroughputMbps,
+          effectiveEirpDb: beamEstimate.beamLink.effectiveEirpDb,
+          receiverGtDbK: rxGtAfterScanDbK,
+          rawTerminalRfDb: profile.rxGtDbK,
+          terminalScanLossDb: rxScanLossDb,
+          fsplDb: downlinkRf.fsplDb,
+          cnDb: downlinkRf.cnDb,
+          modcod: downlinkRf.modcod?.name ?? null,
+          modcodTableId: downlinkRf.modcodTable.id,
+          modcodTableLabel: downlinkRf.modcodTable.label,
+          modcodTableSourceNote: downlinkRf.modcodTable.sourceNote,
+          referenceBandwidthHz: profile.dlReferenceBandwidthHz,
+          usableBandwidthHz: profile.dlUsableBeamBandwidthHz,
+          terminalCapMbps: maxDlMbps,
+          bandwidthScale: profile.dlUsableBeamBandwidthHz / profile.dlReferenceBandwidthHz,
+          previousSmoothedMbps: smoothedDownlinkThroughputRef.current,
+        });
+        smoothedDownlinkThroughputRef.current = downlink.leg.network.finalUserMbps;
+
+        const uplinkRf = computeUplinkRfChainThroughput({
+          terminalEirpDbw: txEirpAfterScanDbw,
+          slantRangeKm: beamEstimate.debugInfo.slantRangeKm,
+          pathAdjustmentDb: beamEstimate.beamLink.powerAtUserDb,
+          noiseBwHz: profile.ulReferenceBandwidthHz,
+          throughputBwHz: profile.ulReferenceBandwidthHz,
+        });
+        const uplink = buildLeg({
+          direction: 'uplink',
+          label: 'Uplink',
+          rfChainThroughputMbps: uplinkRf.rfThroughputMbps,
+          effectiveEirpDb: txEirpAfterScanDbw,
+          receiverGtDbK: RF_SATELLITE_GOT_DB_PER_K,
+          rawTerminalRfDb: profile.txEirpDbw,
+          terminalScanLossDb: txScanLossDb,
+          fsplDb: uplinkRf.fsplDb,
+          cnDb: uplinkRf.cnDb,
+          modcod: uplinkRf.modcod?.name ?? null,
+          modcodTableId: uplinkRf.modcodTable.id,
+          modcodTableLabel: uplinkRf.modcodTable.label,
+          modcodTableSourceNote: uplinkRf.modcodTable.sourceNote,
+          referenceBandwidthHz: profile.ulReferenceBandwidthHz,
+          usableBandwidthHz: profile.ulUsableBeamBandwidthHz,
+          terminalCapMbps: maxUlMbps,
+          bandwidthScale: profile.ulUsableBeamBandwidthHz / profile.ulReferenceBandwidthHz,
+          previousSmoothedMbps: smoothedUplinkThroughputRef.current,
+        });
+        smoothedUplinkThroughputRef.current = uplink.leg.network.finalUserMbps;
 
         const debugInfo: LeoRFDebugInfo = {
-          // Geometry / beam selection
-          satelliteId: resolvedLEOConnectivity.satellite.id,
+          satelliteId: resolvedLEOConnectivity.satellite.name || resolvedLEOConnectivity.satellite.id,
           selectedBeamIndex: resolvedLEOConnectivity.connectedBeamIndex!,
           candidateBeamCount: resolvedLEOConnectivity.candidateBeamCount ?? 1,
           normalizedDistance: beamEstimate.beamLink.normalizedDistance,
-          elevationDeg: beamEstimate.userElevationDeg,
-          slantRangeKm: beamEstimate.debugInfo.slantRangeKm,
-          // RF chain
-          scanLossDb: beamEstimate.beamLink.scanLossDb,
-          effectiveEirpDb: beamEstimate.beamLink.effectiveEirpDb,
-          fsplDb: beamEstimate.debugInfo.fsplDb,
-          cnDb: beamEstimate.debugInfo.cnDb,
-          modcod: beamEstimate.debugInfo.selectedModcod,
-          rfCarrierMbps: beamEstimate.beamLink.deliveredThroughputMbps,
-          peakRfMbps: Math.min(sharing.beamTotalThroughputMbps, maxDlMbps),
-          // Network layer pipeline intermediates (no new calculations — captured from above)
-          afterBeamSharingMbps: sharing.sharedThroughputMbps,
-          afterBackhaulMbps: sharedWithBackhaulMbps,
-          afterHandoverMbps: degradedMbps,
-          terminalCapMbps: maxDlMbps,
-          smoothedUserMbps: smoothedMbps,
+          userElevationDeg: beamEstimate.userElevationDeg,
+          snpElevationDeg: beamEstimate.snpElevationDeg,
+          limitingElevationDeg: beamEstimate.limitingElevationDeg,
+          terminal: {
+            id: profile.id,
+            label: profile.label,
+            terminalFamily: profile.terminalFamily,
+            modelName: profile.modelName,
+            category: profile.category,
+            antennaType: profile.antennaType,
+            mobilityClass: profile.mobilityClass,
+            maxDlMbps: profile.maxDlMbps,
+            maxUlMbps: profile.maxUlMbps,
+            rxGtDbK: profile.rxGtDbK,
+            txEirpDbw: profile.txEirpDbw,
+            rxScanLossModelLabel: profile.rxScanLossModel.label,
+            txScanLossModelLabel: profile.txScanLossModel.label,
+            dlReferenceBandwidthHz: profile.dlReferenceBandwidthHz,
+            ulReferenceBandwidthHz: profile.ulReferenceBandwidthHz,
+            dlUsableBeamBandwidthHz: profile.dlUsableBeamBandwidthHz,
+            ulUsableBeamBandwidthHz: profile.ulUsableBeamBandwidthHz,
+            sourceNote: profile.sourceNote,
+            notes: profile.notes,
+            assumptions: profile.assumptions,
+          },
+          downlink: downlink.leg,
+          uplink: uplink.leg,
+          mainBottleneck: chooseMainBottleneck(downlink.leg, uplink.leg),
         };
+
+        const finalDlMbps = downlink.leg.network.finalUserMbps;
+        const finalUlMbps = uplink.leg.network.finalUserMbps;
+        const performanceFactor = Math.max(
+          maxDlMbps > 0 ? Math.min(finalDlMbps / maxDlMbps, 1) : 0,
+          maxUlMbps > 0 ? Math.min(finalUlMbps / maxUlMbps, 1) : 0,
+        );
 
         return {
           ...calculateBeamAwareLEOPerformance(
-            smoothedMbps,
+            finalDlMbps,
             beamEstimate.limitingElevationDeg,
             beamEstimate.beamLink.normalizedDistance,
             leoGeometry?.rttTotalMs ?? null,
             fallbackPropagationRttMs
           ),
+          downlinkGbps: finalDlMbps / 1000,
+          uplinkGbps: finalUlMbps / 1000,
+          performanceFactor,
+          wasTerminalLimited: downlink.sharingWasTerminalLimited || uplink.sharingWasTerminalLimited,
+          throughput: debugInfo,
           debugInfo,
         };
       }
     }
 
     // Reset smoothing state when falling back to approximate mode (no beam data)
-    smoothedThroughputRef.current = null;
+    smoothedDownlinkThroughputRef.current = null;
+    smoothedUplinkThroughputRef.current = null;
 
     return calculateApproximateLEOPerformance(
       resolvedLEOConnectivity.userLEODistance,
@@ -1248,6 +1464,7 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
         performanceFactor: effectivePerformanceFactor,
         notes: [
           leoPerformance ? `Weather profile: ${leoPerformance.weatherLabel} (${Math.round(leoPerformance.weatherFactor * 100)}% link factor)` : '',
+          leoPerformance?.throughput ? `Main bottleneck: ${leoPerformance.throughput.mainBottleneck.label}` : '',
         ].filter(Boolean),
       },
     };
@@ -1619,9 +1836,9 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
     activePoint,
     aircraftCallsign,
     analysisSource,
-    calculateGEOPerformance,
     cesiumViewerRef,
     geoGeometry,
+    geoPerformance,
     geoPdfDetails,
     globeRef,
     leoGeometry,

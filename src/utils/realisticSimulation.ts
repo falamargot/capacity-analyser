@@ -403,6 +403,11 @@ export interface BeamPerformanceOutput {
    * Label: "Simulated link budget — Simplified RF model — Estimated (no real telemetry)"
    */
   deliveredThroughputMbps: number;
+  /**
+   * Physical-layer throughput on the downlink reference allocation before any
+   * terminal profile cap or network-layer sharing/backhaul effects.
+   */
+  rfThroughputMbps: number;
   /** Throughput ratio [0, 1] = deliveredThroughputMbps / NOMINAL_TERMINAL_PEAK_MBPS */
   throughputRatio: number;
   /** Scan loss at this beam (dB) */
@@ -517,6 +522,7 @@ export function getBeamPerformance(input: BeamPerformanceInput): BeamPerformance
     effectiveBeamRadiusKm,
     powerAtUserDb,
     deliveredThroughputMbps,
+    rfThroughputMbps: rfChain.rfThroughputMbps,
     throughputRatio,
     scanLossDb,
     powerBoostDb,

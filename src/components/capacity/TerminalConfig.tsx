@@ -16,17 +16,23 @@ import {
 } from '../../utils/geoTerminalRFModel';
 import type { GeoBand } from '../../utils/geoLinkBudget';
 import { BAND_PARAMS } from '../../utils/geoLinkBudget';
+import { LEO_TERMINAL_PROFILES } from '../../config/leoTerminals';
 
 export type TerminalType = 'fixed' | 'mobile' | 'aviation' | 'maritime';
 export type { TerminalRFClassId };
 export type { TerminalRFCustomParams };
 
-export const TERMINAL_PROFILES: Record<TerminalType, { label: string; maxDlGbps: number; maxUlGbps: number }> = {
-  fixed: { label: 'Fixed', maxDlGbps: 0.25, maxUlGbps: 0.05 },
-  mobile: { label: 'Mobile', maxDlGbps: 0.10, maxUlGbps: 0.02 },
-  aviation: { label: 'Aviation', maxDlGbps: 0.15, maxUlGbps: 0.03 },
-  maritime: { label: 'Maritime', maxDlGbps: 0.20, maxUlGbps: 0.04 },
-};
+export const TERMINAL_PROFILES: Record<TerminalType, { label: string; maxDlGbps: number; maxUlGbps: number }> =
+  Object.fromEntries(
+    Object.entries(LEO_TERMINAL_PROFILES).map(([key, profile]) => [
+      key,
+      {
+        label: profile.label,
+        maxDlGbps: profile.maxDlMbps / 1000,
+        maxUlGbps: profile.maxUlMbps / 1000,
+      },
+    ]),
+  ) as Record<TerminalType, { label: string; maxDlGbps: number; maxUlGbps: number }>;
 
 export type WeatherType = 'clear' | 'light_rain' | 'heavy_rain' | 'storm';
 
