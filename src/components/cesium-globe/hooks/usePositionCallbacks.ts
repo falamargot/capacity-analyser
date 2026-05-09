@@ -25,7 +25,11 @@ interface SatelliteLiveCell {
 }
 
 const SATELLITE_INTERPOLATION_FALLBACK_MS = 1000;
-const SATELLITE_MAX_EXTRAPOLATION_MS = 2500;
+// Extrapolation beyond the latest sample. With the fixed timing model, the next tick
+// arrives ~200 ms before the current sample's timestamp expires, so extrapolation is
+// only needed when a tick is significantly late (tab backgrounded, GC storm).
+// Keep this short to avoid linear drift compounding on orbital curves.
+const SATELLITE_MAX_EXTRAPOLATION_MS = 1200;
 
 const cloneSatellitePosition = (position: SatelliteData['position']): SatellitePosition => ({
     lat: position.lat,
@@ -155,14 +159,13 @@ export function usePositionCallbacks(
             if (existing) {
                 existing.value = sat;
                 if (!positionsMatch(existing.currentPosition, nextPosition)) {
-                    existing.previousPosition = getInterpolatedSatellitePosition(
-                        existing.previousPosition,
-                        existing.currentPosition,
-                        existing.previousSampleTimeMs,
-                        existing.currentSampleTimeMs,
-                        now
-                    );
-                    existing.previousSampleTimeMs = now;
+                    // Advance the window: the previous "current" (future) position becomes
+                    // the new "previous", keyed to its original future timestamp.
+                    // This keeps sampleDuration = tick interval (~1 s) regardless of when
+                    // the React render runs — GC pauses and render delays no longer distort
+                    // the interpolation speed.
+                    existing.previousPosition = existing.currentPosition;
+                    existing.previousSampleTimeMs = existing.currentSampleTimeMs;
                     existing.currentPosition = nextPosition;
                     existing.currentSampleTimeMs = nextSampleTimeMs;
                 }

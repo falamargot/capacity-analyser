@@ -31,6 +31,11 @@ const ALTITUDE_EPSILON_KM  = 0.5;
 const SATELLITE_PROPAGATION_INTERVAL_MS = 1000;
 const SATELLITE_PROPAGATION_LOOKAHEAD_MS = 1200;
 
+// ─── Worker message types ─────────────────────────────────────────────────────
+type WorkerInMessage =
+  | { type: 'init'; satellites: { id: string; satrec: unknown }[] }
+  | { type: 'propagate'; timestamp: number };
+
 interface SatelliteLoaderOptions {
   /** ID of the currently selected satellite, or null. Used to trigger an
    *  immediate worker tick on selection change. */
@@ -65,6 +70,8 @@ export function useSatelliteLoader({
   const workerRef                = useRef<Worker | null>(null);
   const workerBusyRef            = useRef(false);
   const satelliteUpdateTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Signals the worker needs a fresh satrec init (initial load + hourly refresh).
+  const workerNeedsInitRef = useRef(true);
 
   // Refs that carry prop values into the worker callback without stale closure.
   const selectedSatelliteIdRef = useRef(selectedSatelliteId);
@@ -87,6 +94,8 @@ export function useSatelliteLoader({
       try {
         const data = await fetchSatellites();
         setSatellites(data);
+        // Signal the worker to refresh its satrec cache on the next tick.
+        workerNeedsInitRef.current = true;
       } catch (error) {
         console.error('Error loading satellites:', error);
       } finally {
@@ -124,20 +133,33 @@ export function useSatelliteLoader({
         satelliteUpdateTimeoutRef.current = setTimeout(scheduleTick, 500);
         return;
       }
+      // Send satrec objects only when the satellite list has changed (initial load
+      // or hourly refresh). Each tick saves ~240 KB of structured-clone traffic.
+      if (workerNeedsInitRef.current) {
+        const initMsg: WorkerInMessage = {
+          type: 'init',
+          satellites: sats.map((sat) => ({ id: sat.id, satrec: sat.satrec })),
+        };
+        worker.postMessage(initMsg);
+        workerNeedsInitRef.current = false;
+      }
       workerBusyRef.current = true;
-      worker.postMessage({
-        satellites: sats.map((sat) => ({ id: sat.id, satrec: sat.satrec })),
+      const propagateMsg: WorkerInMessage = {
+        type: 'propagate',
         timestamp: Date.now() + SATELLITE_PROPAGATION_LOOKAHEAD_MS,
-      });
+      };
+      worker.postMessage(propagateMsg);
     };
 
     worker.onmessage = (event: MessageEvent) => {
       workerBusyRef.current = false;
 
       const { positions } = event.data as {
-        positions: Array<{ id: string; lat: number; lng: number; alt: number; sampleTimeMs: number }>;
+        positions: Array<{ id: string; lat: number; lng: number; alt: number; sampleTimeMs: number; isValid: boolean }>;
       };
-      const posMap = new Map(positions.map((p) => [p.id, p]));
+      // Exclude invalid propagations (bad TLE, decayed orbit) — never move a
+      // satellite to (0, 0, 0) which is a real coordinate in the Gulf of Guinea.
+      const posMap = new Map(positions.filter((p) => p.isValid).map((p) => [p.id, p]));
 
       // Read selection/hover from refs — avoids stale closure over React state.
       const currentSelectedId = selectedSatelliteIdRef.current;
@@ -221,10 +243,11 @@ export function useSatelliteLoader({
 
     if (satelliteUpdateTimeoutRef.current) clearTimeout(satelliteUpdateTimeoutRef.current);
     workerBusyRef.current = true;
-    worker.postMessage({
-      satellites: sats.map((sat) => ({ id: sat.id, satrec: sat.satrec })),
+    const propagateMsg: WorkerInMessage = {
+      type: 'propagate',
       timestamp: Date.now() + SATELLITE_PROPAGATION_LOOKAHEAD_MS,
-    });
+    };
+    worker.postMessage(propagateMsg);
   }, [selectedSatelliteId]);
 
   return { satellites, loading, satellitesForResolutionRef };

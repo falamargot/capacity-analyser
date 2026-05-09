@@ -1,15 +1,13 @@
 /**
  * satellitePositionWorker — SGP4 propagation off the main thread.
  *
- * Receives a batch of { id, satrec } pairs + a UTC timestamp, propagates every
- * satellite with satellite.js, and posts back an array of { id, lat, lng, alt }.
+ * Protocol:
+ *   init     { type: 'init', satellites: [{id, satrec}] }  → (no response)
+ *   propagate { type: 'propagate', timestamp: number }      → { positions: PosResult[] }
  *
- * Running this in a Worker means the main thread is never blocked by ~600 SGP4
- * calls per 2-second tick (~60 ms of CPU time freed per cycle).
- *
- * Vite handles module Workers natively — no config change required.
- * Usage in the host:
- *   new Worker(new URL('./workers/satellitePositionWorker.ts', import.meta.url), { type: 'module' })
+ * Satrec objects are stored in a persistent Map so the main thread only transfers
+ * them once (on load / hourly refresh) instead of on every 1-second tick.
+ * This eliminates ~240 KB/s of structured-clone traffic and the GC pauses it causes.
  */
 
 import * as satellite from 'satellite.js';
@@ -18,8 +16,6 @@ import * as satellite from 'satellite.js';
 
 interface SatInput {
   id: string;
-  // satrec is a plain-object record produced by satellite.twoline2satrec().
-  // All fields are numbers/strings — safe for structured-clone serialisation.
   satrec: satellite.SatRec;
 }
 
@@ -37,51 +33,62 @@ interface PosResult {
   isValid: boolean;
 }
 
-export interface WorkerInput {
-  satellites: SatInput[];
-  /** Date.now() value — avoids Date object serialisation */
-  timestamp: number;
-}
+type WorkerInMessage =
+  | { type: 'init'; satellites: SatInput[] }
+  | { type: 'propagate'; timestamp: number };
 
 export interface WorkerOutput {
   positions: PosResult[];
 }
 
+// ─── Satrec cache — persists across ticks ────────────────────────────────────
+
+const satrecCache = new Map<string, satellite.SatRec>();
+
 // ─── Propagation ──────────────────────────────────────────────────────────────
 
-// Use DedicatedWorkerGlobalScope via type assertion to avoid conflicts with the
-// DOM lib's Window type (both are available in the compilation unit).
 const ctx = self as unknown as DedicatedWorkerGlobalScope;
 
-ctx.addEventListener('message', (event: MessageEvent<WorkerInput>) => {
-  const { satellites: inputs, timestamp } = event.data;
+ctx.addEventListener('message', (event: MessageEvent<WorkerInMessage>) => {
+  const msg = event.data;
+
+  if (msg.type === 'init') {
+    satrecCache.clear();
+    for (const { id, satrec } of msg.satellites) {
+      satrecCache.set(id, satrec);
+    }
+    return;
+  }
+
+  // type === 'propagate'
+  const { timestamp } = msg;
   const date = new Date(timestamp);
 
-  // Compute GMST once per tick — reused for every satellite's ECI → geodetic
-  // conversion. This was previously computed once per satellite call site.
+  // Compute GMST once per tick — reused for every satellite's ECI → geodetic conversion.
   const gmst = satellite.gstime(date);
 
-  const positions: PosResult[] = inputs.map(({ id, satrec }) => {
+  const positions: PosResult[] = [];
+  for (const [id, satrec] of satrecCache) {
     try {
       const pv = satellite.propagate(satrec, date);
       if (pv?.position && typeof pv.position !== 'boolean') {
         const geo = satellite.eciToGeodetic(pv.position, gmst);
-        return {
+        positions.push({
           id,
           lat: satellite.degreesLat(geo.latitude),
           lng: satellite.degreesLong(geo.longitude),
           alt: geo.height,
           sampleTimeMs: timestamp,
           isValid: true,
-        };
+        });
+        continue;
       }
     } catch {
       // Propagation errors (decayed orbit, bad TLE) fall through to the invalid sentinel.
     }
     // Do NOT use (0, 0, 0) as a real position — that is the Gulf of Guinea.
-    // Mark as invalid so consumers skip this satellite entirely.
-    return { id, lat: 0, lng: 0, alt: 0, sampleTimeMs: timestamp, isValid: false };
-  });
+    positions.push({ id, lat: 0, lng: 0, alt: 0, sampleTimeMs: timestamp, isValid: false });
+  }
 
   ctx.postMessage({ positions } satisfies WorkerOutput);
 });

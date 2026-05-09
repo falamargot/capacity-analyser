@@ -493,49 +493,80 @@ const DirectionBudgetSection = ({ leg }: { leg: LeoThroughputLeg }) => {
   );
 };
 
-const TerminalAssumptionsSection = ({ d }: { d: LeoRFDebugInfo }) => (
-  <div className="rounded-lg border border-violet-200 dark:border-violet-900/60 overflow-hidden">
-    <div className="px-3 py-1.5 bg-violet-100/70 dark:bg-violet-900/30 border-b border-violet-200 dark:border-violet-900/60">
-      <div className="flex items-baseline justify-between">
-        <span className="text-[10px] font-semibold uppercase tracking-wide text-violet-600 dark:text-violet-400">
-          Terminal Assumptions
-        </span>
-        <span className="text-[9px] text-violet-500/60 dark:text-violet-400/50 italic">selected terminal</span>
-      </div>
-    </div>
-    <div className="px-3 py-2.5 bg-violet-50/40 dark:bg-violet-950/20 space-y-2.5">
-      <div className="grid grid-cols-2 gap-x-6 gap-y-2">
-        <MetricRow label="Terminal family" value={d.terminal.terminalFamily} mono={false} />
-        <MetricRow label="Vendor" value={d.terminal.vendor} mono={false} />
-        <MetricRow label="Model" value={d.terminal.model} mono={false} />
-        <MetricRow label="Source type" value={d.terminal.sourceType.replace(/_/g, ' ')} mono={false} />
-        <MetricRow label="Certification" value={d.terminal.certificationStatus.replace(/_/g, ' ')} mono={false} />
-        <MetricRow label="Antenna type" value={d.terminal.antennaType} mono={false} />
-        <MetricRow label="Mobility class" value={d.terminal.mobilityClass} mono={false} />
-        <MetricRow label="Bands" value={d.terminal.supportedBands.join(', ')} mono={false} />
-        <MetricRow label="DL raw G/T" value={`${d.terminal.rxGtDbK.toFixed(1)} dB/K`} />
-        <MetricRow label="UL raw EIRP" value={`${d.terminal.txEirpDbw.toFixed(1)} dBW`} />
-        <MetricRow label="Rx scan model" value={d.terminal.rxScanLossModelLabel} mono={false} />
-        <MetricRow label="Tx scan model" value={d.terminal.txScanLossModelLabel} mono={false} />
-        <MetricRow label="DL terminal cap" value={`${d.terminal.maxDlMbps.toFixed(0)} Mbps`} />
-        <MetricRow label="UL terminal cap" value={`${d.terminal.maxUlMbps.toFixed(0)} Mbps`} />
-        <MetricRow label="DL reference BW" value={fmtMhz(d.terminal.dlReferenceBandwidthHz)} />
-        <MetricRow label="UL reference BW" value={fmtMhz(d.terminal.ulReferenceBandwidthHz)} />
-        <MetricRow label="DL usable beam BW" value={fmtMhz(d.terminal.dlUsableBeamBandwidthHz)} />
-        <MetricRow label="UL usable beam BW" value={fmtMhz(d.terminal.ulUsableBeamBandwidthHz)} />
-      </div>
-      <div className="rounded-md border border-violet-200/70 bg-white/70 px-3 py-1.5 text-[10px] leading-snug text-violet-800 dark:border-violet-800/50 dark:bg-violet-950/30 dark:text-violet-200">
-        <div>
-          <span className="font-semibold">Representative terminal model.</span>{' '}
-          RF values are assumptions unless backed by a datasheet; throughput is estimated, not an SLA.
-        </div>
-        <div className="mt-0.5 text-violet-700/80 dark:text-violet-300/80">
-          Source: {d.terminal.sourceLabel}{d.terminal.sourceUrl ? ` · ${d.terminal.sourceUrl}` : ''}
-        </div>
-      </div>
-    </div>
-  </div>
+const TerminalSummaryMetric = ({ label, value }: { label: string; value: string }) => (
+  <span className="inline-flex items-baseline gap-1 rounded-md border border-violet-200/70 bg-white/70 px-2 py-1 text-[10px] text-violet-700 dark:border-violet-800/60 dark:bg-violet-950/40 dark:text-violet-200">
+    <span className="font-semibold uppercase tracking-wide text-violet-500 dark:text-violet-400">{label}</span>
+    <span className="font-mono tabular-nums text-violet-900 dark:text-violet-100">{value}</span>
+  </span>
 );
+
+const TerminalAssumptionsSection = ({ d }: { d: LeoRFDebugInfo }) => {
+  const terminal = d.terminal;
+  const terminalSummary = [
+    terminal.vendor,
+    terminal.model,
+    terminal.terminalFamily,
+    terminal.supportedBands.join('/'),
+  ].filter(Boolean).join(' · ');
+
+  return (
+    <details className="group overflow-hidden rounded-lg border border-violet-200 dark:border-violet-900/60">
+      <summary className="cursor-pointer list-none bg-violet-100/70 px-3 py-2.5 transition-colors hover:bg-violet-100 dark:bg-violet-900/30 dark:hover:bg-violet-900/45 group-open:border-b group-open:border-violet-200 group-open:dark:border-violet-900/60">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0 flex-1">
+            <div className="flex items-baseline justify-between gap-3">
+              <span className="text-[10px] font-semibold uppercase tracking-wide text-violet-600 dark:text-violet-400">
+                Terminal Assumptions
+              </span>
+              <span className="shrink-0 text-[9px] italic text-violet-500/60 dark:text-violet-400/50">selected terminal</span>
+            </div>
+            <p className="mt-1 truncate text-[11px] text-violet-700/80 dark:text-violet-300/80">
+              {terminalSummary}
+            </p>
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              <TerminalSummaryMetric label="DL cap" value={`${terminal.maxDlMbps.toFixed(0)} Mbps`} />
+              <TerminalSummaryMetric label="UL cap" value={`${terminal.maxUlMbps.toFixed(0)} Mbps`} />
+              <TerminalSummaryMetric label="G/T" value={`${terminal.rxGtDbK.toFixed(1)} dB/K`} />
+              <TerminalSummaryMetric label="EIRP" value={`${terminal.txEirpDbw.toFixed(1)} dBW`} />
+            </div>
+          </div>
+          <ChevronDown className="mt-0.5 h-4 w-4 shrink-0 text-violet-500/70 transition-transform duration-200 group-open:rotate-180 dark:text-violet-400/70" />
+        </div>
+      </summary>
+      <div className="space-y-2.5 bg-violet-50/40 px-3 py-2.5 dark:bg-violet-950/20">
+        <div className="grid grid-cols-2 gap-x-6 gap-y-2">
+          <MetricRow label="Terminal family" value={terminal.terminalFamily} mono={false} />
+          <MetricRow label="Vendor" value={terminal.vendor} mono={false} />
+          <MetricRow label="Model" value={terminal.model} mono={false} />
+          <MetricRow label="Source type" value={terminal.sourceType.replace(/_/g, ' ')} mono={false} />
+          <MetricRow label="Certification" value={terminal.certificationStatus.replace(/_/g, ' ')} mono={false} />
+          <MetricRow label="Antenna type" value={terminal.antennaType} mono={false} />
+          <MetricRow label="Mobility class" value={terminal.mobilityClass} mono={false} />
+          <MetricRow label="Bands" value={terminal.supportedBands.join(', ')} mono={false} />
+          <MetricRow label="DL raw G/T" value={`${terminal.rxGtDbK.toFixed(1)} dB/K`} />
+          <MetricRow label="UL raw EIRP" value={`${terminal.txEirpDbw.toFixed(1)} dBW`} />
+          <MetricRow label="Rx scan model" value={terminal.rxScanLossModelLabel} mono={false} />
+          <MetricRow label="Tx scan model" value={terminal.txScanLossModelLabel} mono={false} />
+          <MetricRow label="DL terminal cap" value={`${terminal.maxDlMbps.toFixed(0)} Mbps`} />
+          <MetricRow label="UL terminal cap" value={`${terminal.maxUlMbps.toFixed(0)} Mbps`} />
+          <MetricRow label="DL reference BW" value={fmtMhz(terminal.dlReferenceBandwidthHz)} />
+          <MetricRow label="UL reference BW" value={fmtMhz(terminal.ulReferenceBandwidthHz)} />
+          <MetricRow label="DL usable beam BW" value={fmtMhz(terminal.dlUsableBeamBandwidthHz)} />
+          <MetricRow label="UL usable beam BW" value={fmtMhz(terminal.ulUsableBeamBandwidthHz)} />
+        </div>
+        <div className="rounded-md border border-violet-200/70 bg-white/70 px-3 py-1.5 text-[10px] leading-snug text-violet-800 dark:border-violet-800/50 dark:bg-violet-950/30 dark:text-violet-200">
+          <div>
+            <span className="font-semibold">Representative terminal model.</span>{' '}
+            RF values are assumptions unless backed by a datasheet; throughput is estimated, not an SLA.
+          </div>
+          <div className="mt-0.5 text-violet-700/80 dark:text-violet-300/80">
+            Source: {terminal.sourceLabel}{terminal.sourceUrl ? ` · ${terminal.sourceUrl}` : ''}
+          </div>
+        </div>
+      </div>
+    </details>
+  );
+};
 
 // The full Link Budget panel — geometry + separate DL/UL budgets
 const LeoRFLinkBudgetPanel = ({ d }: { d: LeoRFDebugInfo }) => {
