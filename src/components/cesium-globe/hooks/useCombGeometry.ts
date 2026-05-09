@@ -3,7 +3,7 @@
  *
  * On cache miss, work is dispatched to a Web Worker so the Cesium render
  * thread is never blocked by beam polygon math. The hook returns the previous
- * cached result immediately (one stale frame, < 16 ms, imperceptible) and
+ * cached result immediately while a quantized worker sample is in flight, then
  * updates the cache when the worker responds.
  */
 import { useRef, useEffect, useCallback, useMemo } from 'react';
@@ -14,7 +14,7 @@ import { buildSimulationStateSnapshot } from '../../../types/simulation';
 import type { CombWorkerRequest, CombWorkerResponse, SerializableSimState } from '../../../workers/combGeometryWorker';
 
 interface CombGeometryCache {
-    time: JulianDate;
+    timeMs: number;
     satId: string;
     policyType: 'DB_THRESHOLD' | 'SERVICE_ZONE';
     thresholdDb?: number;
@@ -24,10 +24,17 @@ interface CombGeometryCache {
     geometries: Cartesian3[][] | null;
 }
 
+const COMB_GEOMETRY_SAMPLE_INTERVAL_MS = 250;
+
+function getQuantizedTimeMs(time: JulianDate): number {
+    const timeMs = JulianDate.toDate(time).getTime();
+    return Math.floor(timeMs / COMB_GEOMETRY_SAMPLE_INTERVAL_MS) * COMB_GEOMETRY_SAMPLE_INTERVAL_MS;
+}
+
 /**
  * Hook that provides cached comb geometry calculations.
  * In SERVICE_ZONE mode: returns empty array (no beams to display).
- * In DB_THRESHOLD mode: dispatches to worker, returns cached result.
+ * In DB_THRESHOLD mode: dispatches to worker on quantized time samples, returns cached result.
  */
 export function useCombGeometry() {
     const cacheRef = useRef<CombGeometryCache | null>(null);
@@ -114,22 +121,28 @@ export function useCombGeometry() {
 
         const cache = cacheRef.current;
 
+        const timeMs = getQuantizedTimeMs(time);
+
         // Cache hit — return immediately, no worker dispatch needed.
         if (cache &&
             cache.satId === sat.id &&
+            cache.timeMs === timeMs &&
             cache.policyType === coveragePolicy.type &&
             cache.thresholdDb === simulationState.thresholdDb &&
             cache.healthString === healthKeyRef.current &&
             cache.hsBeamString === hsKeyRef.current &&
-            cache.weather === weatherCondition &&
-            JulianDate.equals(time, cache.time)) {
+            cache.weather === weatherCondition) {
             return cache.geometries;
         }
 
-        // Cache miss — dispatch to worker if not already in-flight for the same inputs.
-        const requestId = `${sat.id}_${time.dayNumber}_${time.secondsOfDay.toFixed(2)}_${simulationState.thresholdDb}_${healthKeyRef.current}_${hsKeyRef.current}_${weatherCondition}`;
+        if (pendingRef.current) {
+            return cache?.satId === sat.id ? (cache.geometries ?? null) : null;
+        }
 
-        if (pendingRef.current !== requestId && workerRef.current) {
+        // Cache miss — dispatch to worker if not already in-flight for the same inputs.
+        const requestId = `${sat.id}_${timeMs}_${simulationState.thresholdDb}_${healthKeyRef.current}_${hsKeyRef.current}_${weatherCondition}`;
+
+        if (workerRef.current) {
             pendingRef.current = requestId;
 
             // beamHealthByIndex is a Map — must be converted for structured-clone
@@ -143,7 +156,7 @@ export function useCombGeometry() {
             const message: CombWorkerRequest = {
                 requestId,
                 satrec: sat.satrec,
-                timeMs: JulianDate.toDate(time).getTime(),
+                timeMs,
                 simulationState: serializableState,
             };
 
@@ -153,7 +166,7 @@ export function useCombGeometry() {
         // Stamp the cache with the new key so the worker response can update it.
         // Return the previous geometry until the worker replies.
         cacheRef.current = {
-            time: time.clone(),
+            timeMs,
             satId: sat.id,
             policyType: coveragePolicy.type,
             thresholdDb: simulationState.thresholdDb,

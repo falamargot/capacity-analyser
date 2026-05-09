@@ -58,7 +58,9 @@ export interface LeoTerminalAssumptionSnapshot {
   id: string;
   label: string;
   terminalFamily: string;
-  modelName: string;
+  vendor: string;
+  model: string;
+  description: string;
   category: string;
   antennaType: 'PARABOLIC' | 'ESA';
   mobilityClass: string;
@@ -72,9 +74,13 @@ export interface LeoTerminalAssumptionSnapshot {
   ulReferenceBandwidthHz: number;
   dlUsableBeamBandwidthHz: number;
   ulUsableBeamBandwidthHz: number;
-  sourceNote: string;
+  sourceType: string;
+  sourceLabel: string;
+  sourceUrl?: string;
   notes: string[];
   assumptions: string[];
+  certificationStatus: string;
+  supportedBands: string[];
 }
 
 export interface LeoThroughputResult {

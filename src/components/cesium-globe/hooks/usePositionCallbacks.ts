@@ -25,6 +25,7 @@ interface SatelliteLiveCell {
 }
 
 const SATELLITE_INTERPOLATION_FALLBACK_MS = 1000;
+const SATELLITE_MAX_EXTRAPOLATION_MS = 2500;
 
 const cloneSatellitePosition = (position: SatelliteData['position']): SatellitePosition => ({
     lat: position.lat,
@@ -61,7 +62,8 @@ const getInterpolatedSatellitePosition = (
     nowMs: number
 ): SatellitePosition => {
     const sampleDuration = Math.max(currentSampleTimeMs - previousSampleTimeMs, 1);
-    const progress = Math.min(Math.max((nowMs - previousSampleTimeMs) / sampleDuration, 0), 1);
+    const maxProgress = 1 + (SATELLITE_MAX_EXTRAPOLATION_MS / sampleDuration);
+    const progress = Math.min(Math.max((nowMs - previousSampleTimeMs) / sampleDuration, 0), maxProgress);
     return {
         lat: lerp(previousPosition.lat, currentPosition.lat, progress),
         lng: interpolateLongitudeDegrees(previousPosition.lng, currentPosition.lng, progress),
@@ -138,9 +140,9 @@ export function usePositionCallbacks(
      * Get or create a cached CallbackPositionProperty for a satellite.
      *
      * Reads position from a live cell refreshed on every React render and linearly
-     * blends between the previous and current worker snapshots. This keeps the
-     * markers visually continuous between the 2-second SGP4 worker ticks without
-     * re-running SGP4 on the main thread for every frame and every satellite.
+     * blends between the previous and current worker snapshots. If the next worker
+     * sample is late, the same vector is extrapolated briefly so LEO markers do not
+     * visually freeze between propagation ticks.
      */
     const getSatellitePositionCallback = useMemo(() => {
         return (sat: SatelliteData): CallbackPositionProperty => {

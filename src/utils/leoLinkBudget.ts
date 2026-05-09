@@ -108,7 +108,7 @@ export const ENGINEERING_MODCOD_TABLE: ModcodTableConfig = {
   id: 'dvb-s2x-engineering-approx',
   label: 'DVB-S2X-like MODCOD table (engineering approximation)',
   metric: 'C/N',
-  sourceNote: 'Representative engineering approximation for simulation. Not verified as an official OneWeb MODCOD table.',
+  sourceNote: 'Representative engineering approximation for simulation.',
   entries: [
   { name: 'QPSK 1/2',   cnThresholdDb:  5.0, spectralEfficiencyBpHz: 1.0  },
   { name: 'QPSK 3/4',   cnThresholdDb:  8.0, spectralEfficiencyBpHz: 1.5  },

@@ -124,6 +124,8 @@ interface CapacityDetailsProps {
   leoServiceViewModelOverride?: LeoConnectivityViewModel | null;
   leoTerminalType: TerminalType;
   onLeoTerminalTypeChange: (type: TerminalType) => void;
+  leoTerminalModelId?: string | null;
+  onLeoTerminalModelIdChange?: (id: string) => void;
   geoTerminalType: TerminalType;
   onGeoTerminalTypeChange: (type: TerminalType) => void;
   geoTerminalTypeB?: TerminalType;
@@ -267,7 +269,7 @@ ${currentRule}`;
 };
 
 // Performance optimization: Memoize component to prevent unnecessary re-renders
-const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint, selectedSatellite, autoSelectedLEOSatellite, satelliteScope, onMetricsChange, onSatelliteClick, analysisSource, aircraftCallsign, selectedSNP: propSelectedSNP, candidateCoverages = [], selectedCoverage = null, onSelectCoverage, selectedUplinkCoverage = null, selectedDownlinkCoverage = null, onSelectUplinkCoverage, onSelectDownlinkCoverage, selectedUplinkCoverageB = null, selectedDownlinkCoverageB = null, onSelectUplinkCoverageB, onSelectDownlinkCoverageB, selectedGeoMission, selectedGeoCoverageName, selectedGeoBeamId, visibleGeoCoverageKeys, onSelectGeoMission, onSelectGeoCoverage, onSelectGeoBeam, onVisibleGeoCoverageKeysChange, onSnpClick, compactDesktop = false, externalHeader = false, globeRef, cesiumViewerRef, onExportStateChange, regulatoryResultOverride = null, beamLoadResultOverride = null, serviceLayerResultOverride = null, leoServiceViewModelOverride = null, leoTerminalType, onLeoTerminalTypeChange, geoTerminalType, onGeoTerminalTypeChange, geoTerminalTypeB, onGeoTerminalTypeBChange, geoRFClassIdA, onGeoRFClassIdAChange, geoRFClassIdB, onGeoRFClassIdBChange, geoRFCustomParamsA, onGeoRFCustomParamsAChange, geoRFCustomParamsB, onGeoRFCustomParamsBChange, weatherType, onWeatherTypeChange, autoWeatherEnabled, onAutoWeatherChange, linkMode = 'STAR_FORWARD', onLinkModeChange, pointB = null, candidateCoveragesB = [], pointAIsUserDefined = false, pointBIsUserDefined = false, activeMeshTab, onActiveMeshTabChange }) => {
+const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint, selectedSatellite, autoSelectedLEOSatellite, satelliteScope, onMetricsChange, onSatelliteClick, analysisSource, aircraftCallsign, selectedSNP: propSelectedSNP, candidateCoverages = [], selectedCoverage = null, onSelectCoverage, selectedUplinkCoverage = null, selectedDownlinkCoverage = null, onSelectUplinkCoverage, onSelectDownlinkCoverage, selectedUplinkCoverageB = null, selectedDownlinkCoverageB = null, onSelectUplinkCoverageB, onSelectDownlinkCoverageB, selectedGeoMission, selectedGeoCoverageName, selectedGeoBeamId, visibleGeoCoverageKeys, onSelectGeoMission, onSelectGeoCoverage, onSelectGeoBeam, onVisibleGeoCoverageKeysChange, onSnpClick, compactDesktop = false, externalHeader = false, globeRef, cesiumViewerRef, onExportStateChange, regulatoryResultOverride = null, beamLoadResultOverride = null, serviceLayerResultOverride = null, leoServiceViewModelOverride = null, leoTerminalType, onLeoTerminalTypeChange, leoTerminalModelId, onLeoTerminalModelIdChange, geoTerminalType, onGeoTerminalTypeChange, geoTerminalTypeB, onGeoTerminalTypeBChange, geoRFClassIdA, onGeoRFClassIdAChange, geoRFClassIdB, onGeoRFClassIdBChange, geoRFCustomParamsA, onGeoRFCustomParamsAChange, geoRFCustomParamsB, onGeoRFCustomParamsBChange, weatherType, onWeatherTypeChange, autoWeatherEnabled, onAutoWeatherChange, linkMode = 'STAR_FORWARD', onLinkModeChange, pointB = null, candidateCoveragesB = [], pointAIsUserDefined = false, pointBIsUserDefined = false, activeMeshTab, onActiveMeshTabChange }) => {
   // Feature 1+3: read simulation context for failedSnps, hsBeamsSet
   const {
     coveragePolicy,
@@ -296,6 +298,10 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
   const [activeConnTab, setActiveConnTab] = useState<'LEO' | 'GEO'>(
     satelliteScope === 'GEO' ? 'GEO' : 'LEO'
   );
+  const selectedLeoTerminalProfile = useMemo(
+    () => getLeoTerminalProfile(leoTerminalType, leoTerminalModelId),
+    [leoTerminalType, leoTerminalModelId],
+  );
 
   // Sync active tab when scope changes
   useEffect(() => {
@@ -318,9 +324,8 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
     const fallbackPropagationRttMs = (2 * oneWayDistanceKm / SPEED_OF_LIGHT_RADIO_KM_S) * 1000;
     const rtt = estimatedRttMs ?? Math.max(5, fallbackPropagationRttMs);
 
-    const profile = TERMINAL_PROFILES[leoTerminalType];
-    const MAX_USER_DL_Gbps = profile.maxDlGbps;
-    const MAX_USER_UL_Gbps = profile.maxUlGbps;
+    const MAX_USER_DL_Gbps = selectedLeoTerminalProfile.maxDlMbps / 1000;
+    const MAX_USER_UL_Gbps = selectedLeoTerminalProfile.maxUlMbps / 1000;
     // Aviation terminals are above clouds, so weather factor is always 1.0
     const weatherFactor = getWeatherFactor(weatherType, leoTerminalType === 'aviation');
 
@@ -392,7 +397,7 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
       weatherLabel: WEATHER_PROFILES[weatherType].label,
       wasTerminalLimited: false as const,
     };
-  }, [leoTerminalType, weatherType]);
+  }, [leoTerminalType, selectedLeoTerminalProfile, weatherType]);
 
   const calculateBeamAwareLEOPerformance = useCallback((
     deliveredDownlinkMbps: number,
@@ -401,8 +406,7 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
     estimatedRttMs: number | null,
     fallbackPropagationRttMs: number
   ) => {
-    const profile = TERMINAL_PROFILES[leoTerminalType];
-    const maxDlMbps = profile.maxDlGbps * 1000;
+    const maxDlMbps = selectedLeoTerminalProfile.maxDlMbps;
     const weatherFactor = getWeatherFactor(weatherType, leoTerminalType === 'aviation');
     // Cap simulated beam throughput to the selected terminal hardware maximum.
     const downlinkMbps = Math.max(0, Math.min(deliveredDownlinkMbps, maxDlMbps));
@@ -424,7 +428,7 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
     return {
       rtt,
       downlinkGbps: downlinkMbps / 1000,
-      uplinkGbps: profile.maxUlGbps * performanceFactor,
+      uplinkGbps: (selectedLeoTerminalProfile.maxUlMbps / 1000) * performanceFactor,
       stability,
       performanceFactor,
       footprintFactor: Math.max(0, 1 - normalizedDistance),
@@ -432,7 +436,7 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
       weatherLabel: WEATHER_PROFILES[weatherType].label,
       wasTerminalLimited,
     };
-  }, [leoTerminalType, weatherType]);
+  }, [leoTerminalType, selectedLeoTerminalProfile, weatherType]);
 
   const calculateGEOPerformance = useCallback((elevationDeg: number) => {
     const profile = TERMINAL_PROFILES[geoTerminalType];
@@ -519,6 +523,11 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
   const smoothedDownlinkThroughputRef = useRef<number | null>(null);
   const smoothedUplinkThroughputRef = useRef<number | null>(null);
   const handoverStateRef = useRef<HandoverState>(createHandoverState());
+
+  useEffect(() => {
+    smoothedDownlinkThroughputRef.current = null;
+    smoothedUplinkThroughputRef.current = null;
+  }, [selectedLeoTerminalProfile.id]);
 
   // Tick counter incremented every second so every LEO detail panel field
   // (beam geometry, elevation, RF chain and network pipeline) refreshes with
@@ -648,7 +657,7 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
       });
 
       if (beamEstimate) {
-        const profile = getLeoTerminalProfile(leoTerminalType);
+        const profile = selectedLeoTerminalProfile;
         const maxDlMbps = profile.maxDlMbps;
         const maxUlMbps = profile.maxUlMbps;
         const activeUsers = beamLoadResult?.estimatedActiveUsers ?? 1;
@@ -814,7 +823,9 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
             id: profile.id,
             label: profile.label,
             terminalFamily: profile.terminalFamily,
-            modelName: profile.modelName,
+            vendor: profile.vendor,
+            model: profile.model,
+            description: profile.description,
             category: profile.category,
             antennaType: profile.antennaType,
             mobilityClass: profile.mobilityClass,
@@ -828,9 +839,13 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
             ulReferenceBandwidthHz: profile.ulReferenceBandwidthHz,
             dlUsableBeamBandwidthHz: profile.dlUsableBeamBandwidthHz,
             ulUsableBeamBandwidthHz: profile.ulUsableBeamBandwidthHz,
-            sourceNote: profile.sourceNote,
+            sourceType: profile.sourceType,
+            sourceLabel: profile.sourceLabel,
+            sourceUrl: profile.sourceUrl,
             notes: profile.notes,
             assumptions: profile.assumptions,
+            certificationStatus: profile.certificationStatus,
+            supportedBands: profile.supportedBands,
           },
           downlink: downlink.leg,
           uplink: uplink.leg,
@@ -880,7 +895,7 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
     simulationState,
     nowTime,
     beamLoadResult,
-    leoTerminalType,
+    selectedLeoTerminalProfile,
     calculateApproximateLEOPerformance,
     calculateBeamAwareLEOPerformance,
   ]);
@@ -1260,8 +1275,8 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
               rtt={mobileLeoMetrics?.rtt ?? null}
               downlinkGbps={mobileLeoMetrics?.downlinkGbps ?? null}
               uplinkGbps={mobileLeoMetrics?.uplinkGbps ?? null}
-              maxDlGbps={TERMINAL_PROFILES[leoTerminalType].maxDlGbps}
-              maxUlGbps={TERMINAL_PROFILES[leoTerminalType].maxUlGbps}
+              maxDlGbps={selectedLeoTerminalProfile.maxDlMbps / 1000}
+              maxUlGbps={selectedLeoTerminalProfile.maxUlMbps / 1000}
               performanceFactor={leoPerformance.performanceFactor}
               accentColor="#db2777"
               rttMaxMs={RTT_VISUAL_SCALE_MAX_MS}
@@ -1272,8 +1287,8 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
               rtt={null}
               downlinkGbps={null}
               uplinkGbps={null}
-              maxDlGbps={TERMINAL_PROFILES[leoTerminalType].maxDlGbps}
-              maxUlGbps={TERMINAL_PROFILES[leoTerminalType].maxUlGbps}
+              maxDlGbps={selectedLeoTerminalProfile.maxDlMbps / 1000}
+              maxUlGbps={selectedLeoTerminalProfile.maxUlMbps / 1000}
               accentColor="#db2777"
               noDataMessage="No performance data available without SNP connectivity"
             />
@@ -1282,8 +1297,8 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
               rtt={null}
               downlinkGbps={null}
               uplinkGbps={null}
-              maxDlGbps={TERMINAL_PROFILES[leoTerminalType].maxDlGbps}
-              maxUlGbps={TERMINAL_PROFILES[leoTerminalType].maxUlGbps}
+              maxDlGbps={selectedLeoTerminalProfile.maxDlMbps / 1000}
+              maxUlGbps={selectedLeoTerminalProfile.maxUlMbps / 1000}
               accentColor="#db2777"
             />
           )}
@@ -1380,7 +1395,8 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
     resolvedLEOConnectivity,
     selectedPoint,
     geoTerminalType,
-    leoTerminalType,
+    selectedLeoTerminalProfile.maxDlMbps,
+    selectedLeoTerminalProfile.maxUlMbps,
     analysisSource,
     aircraftCallsign,
   ]);
@@ -1394,7 +1410,7 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
     }
 
     const userLabel = analysisSource === 'aircraft' && aircraftCallsign ? aircraftCallsign : 'User';
-    const terminalProfile = TERMINAL_PROFILES[leoTerminalType];
+    const terminalProfile = selectedLeoTerminalProfile;
 
     if (!resolvedLEOConnectivity.snp) {
       return {
@@ -1412,8 +1428,8 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
           rttMs: null,
           downlinkGbps: null,
           uplinkGbps: null,
-          maxDlGbps: terminalProfile.maxDlGbps,
-          maxUlGbps: terminalProfile.maxUlGbps,
+          maxDlGbps: terminalProfile.maxDlMbps / 1000,
+          maxUlGbps: terminalProfile.maxUlMbps / 1000,
           notes: ['No performance data is available without SNP connectivity.'],
         },
       };
@@ -1458,8 +1474,8 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
         rttMs: mobileLeoMetrics?.rtt ?? null,
         downlinkGbps: mobileLeoMetrics?.downlinkGbps ?? null,
         uplinkGbps: mobileLeoMetrics?.uplinkGbps ?? null,
-        maxDlGbps: terminalProfile.maxDlGbps,
-        maxUlGbps: terminalProfile.maxUlGbps,
+        maxDlGbps: terminalProfile.maxDlMbps / 1000,
+        maxUlGbps: terminalProfile.maxUlMbps / 1000,
         stability: leoPerformance?.stability ?? null,
         performanceFactor: effectivePerformanceFactor,
         notes: [
@@ -1472,7 +1488,7 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
     resolvedLEOConnectivity,
     analysisSource,
     aircraftCallsign,
-    leoTerminalType,
+    selectedLeoTerminalProfile,
     leoPerformance,
     leoGeometry,
     mobileLeoMetrics,
@@ -1945,6 +1961,8 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
                   activePoint={activePoint}
                   terminalType={leoTerminalType}
                   onTerminalTypeChange={onLeoTerminalTypeChange}
+                  terminalModelId={selectedLeoTerminalProfile.id}
+                  onTerminalModelIdChange={onLeoTerminalModelIdChange}
                   weatherType={weatherType}
                   onWeatherTypeChange={onWeatherTypeChange}
                   autoWeatherEnabled={autoWeatherEnabled}

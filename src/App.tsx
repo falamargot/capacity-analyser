@@ -65,6 +65,7 @@ import {
   type TerminalRFClassId,
   type TerminalRFCustomParams,
 } from './utils/geoTerminalRFModel';
+import { getLeoTerminalProfile } from './config/leoTerminals';
 
 const CapacityDetails = lazy(() => import('./components/CapacityDetails'));
 const CommandPalette = lazy(() => import('./components/CommandPalette'));
@@ -276,12 +277,17 @@ const App: React.FC = () => {
   const hasInitialSizeScaleOverride = initialDisplayDefaults.sizeScaleOverride !== null;
   const [searchQuery, setSearchQuery] = useState('');
   const [leoTerminalType, setLeoTerminalType] = useState<TerminalType>('fixed');
+  const [leoTerminalModelId, setLeoTerminalModelId] = useState<string>(() => getLeoTerminalProfile('fixed').id);
   const [geoTerminalType, setGeoTerminalType] = useState<TerminalType>('fixed');
   const [geoTerminalTypeB, setGeoTerminalTypeB] = useState<TerminalType>('fixed');
   const [geoRFClassIdA, setGeoRFClassIdA] = useState<TerminalRFClassId>(() => USE_CASE_DEFAULT_RF_CLASS.fixed.Ku);
   const [geoRFClassIdB, setGeoRFClassIdB] = useState<TerminalRFClassId>(() => USE_CASE_DEFAULT_RF_CLASS.fixed.Ku);
   const [geoRFCustomParamsA, setGeoRFCustomParamsA] = useState<TerminalRFCustomParams | null>(null);
   const [geoRFCustomParamsB, setGeoRFCustomParamsB] = useState<TerminalRFCustomParams | null>(null);
+  const handleLeoTerminalTypeChange = useCallback((type: TerminalType) => {
+    setLeoTerminalType(type);
+    setLeoTerminalModelId(getLeoTerminalProfile(type).id);
+  }, []);
   const handleGeoTerminalTypeChange = (type: TerminalType) => {
     setGeoTerminalType(type);
     if (!isRFClassCompatibleWithUseCase(geoRFClassIdA, type)) {
@@ -447,7 +453,7 @@ const App: React.FC = () => {
 
   useEffect(() => {
     if (activeAnalysisSource === 'aircraft') {
-      if (leoTerminalType !== 'aviation') setLeoTerminalType('aviation');
+      if (leoTerminalType !== 'aviation') handleLeoTerminalTypeChange('aviation');
       if (geoTerminalType !== 'aviation') {
         setGeoTerminalType('aviation');
         setGeoRFClassIdA(USE_CASE_DEFAULT_RF_CLASS.aviation.Ku);
@@ -457,7 +463,7 @@ const App: React.FC = () => {
       setWeatherCondition('CLEAR');
       if (autoWeatherEnabled) setAutoWeatherEnabled(false);
     } else if (activeAnalysisSource === 'earth' && previousAnalysisSource === 'aircraft') {
-      if (leoTerminalType === 'aviation') setLeoTerminalType('fixed');
+      if (leoTerminalType === 'aviation') handleLeoTerminalTypeChange('fixed');
       if (geoTerminalType === 'aviation') {
         setGeoTerminalType('fixed');
         setGeoRFClassIdA(USE_CASE_DEFAULT_RF_CLASS.fixed.Ku);
@@ -470,6 +476,7 @@ const App: React.FC = () => {
     activeAnalysisSource,
     autoWeatherEnabled,
     geoTerminalType,
+    handleLeoTerminalTypeChange,
     leoTerminalType,
     previousAnalysisSource,
     setWeatherCondition,
@@ -3262,7 +3269,9 @@ const App: React.FC = () => {
                     analysisSource={activeAnalysisSource}
                     aircraftCallsign={selectedAircraft?.callsign}
                     leoTerminalType={leoTerminalType}
-                    onLeoTerminalTypeChange={setLeoTerminalType}
+                    onLeoTerminalTypeChange={handleLeoTerminalTypeChange}
+                    leoTerminalModelId={leoTerminalModelId}
+                    onLeoTerminalModelIdChange={setLeoTerminalModelId}
                     geoTerminalType={geoTerminalType}
                     onGeoTerminalTypeChange={handleGeoTerminalTypeChange}
                     geoTerminalTypeB={geoTerminalTypeB}
@@ -3457,7 +3466,9 @@ const App: React.FC = () => {
                                 analysisSource={activeAnalysisSource}
                                 aircraftCallsign={selectedAircraft?.callsign}
                                 leoTerminalType={leoTerminalType}
-                                onLeoTerminalTypeChange={setLeoTerminalType}
+                                onLeoTerminalTypeChange={handleLeoTerminalTypeChange}
+                                leoTerminalModelId={leoTerminalModelId}
+                                onLeoTerminalModelIdChange={setLeoTerminalModelId}
                                 geoTerminalType={geoTerminalType}
                                 onGeoTerminalTypeChange={setGeoTerminalType}
                     geoTerminalTypeB={geoTerminalTypeB}
@@ -3605,7 +3616,9 @@ const App: React.FC = () => {
                         analysisSource={activeAnalysisSource}
                         aircraftCallsign={selectedAircraft?.callsign}
                         leoTerminalType={leoTerminalType}
-                        onLeoTerminalTypeChange={setLeoTerminalType}
+                        onLeoTerminalTypeChange={handleLeoTerminalTypeChange}
+                        leoTerminalModelId={leoTerminalModelId}
+                        onLeoTerminalModelIdChange={setLeoTerminalModelId}
                         geoTerminalType={geoTerminalType}
                         onGeoTerminalTypeChange={setGeoTerminalType}
                     geoTerminalTypeB={geoTerminalTypeB}

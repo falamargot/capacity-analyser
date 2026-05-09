@@ -16,7 +16,12 @@ import {
 } from '../../utils/geoTerminalRFModel';
 import type { GeoBand } from '../../utils/geoLinkBudget';
 import { BAND_PARAMS } from '../../utils/geoLinkBudget';
-import { LEO_TERMINAL_PROFILES } from '../../config/leoTerminals';
+import {
+  getEnabledLeoTerminalCatalogEntries,
+  getLeoTerminalProfile,
+  LEO_TERMINAL_PROFILES,
+  type LeoTerminalProfile,
+} from '../../config/leoTerminals';
 
 export type TerminalType = 'fixed' | 'mobile' | 'aviation' | 'maritime';
 export type { TerminalRFClassId };
@@ -145,6 +150,8 @@ interface TerminalTypeControlProps {
   readOnly?: boolean;
   displayLabel?: string;
   displayIcon?: string;
+  maxDlMbps?: number;
+  maxUlMbps?: number;
 }
 
 export const TerminalTypeControl = memo<TerminalTypeControlProps>(({
@@ -157,6 +164,8 @@ export const TerminalTypeControl = memo<TerminalTypeControlProps>(({
   readOnly = false,
   displayLabel,
   displayIcon,
+  maxDlMbps,
+  maxUlMbps,
 }) => (
   <div className={`flex ${stacked ? 'flex-col items-start gap-1.5' : 'items-center gap-2 sm:gap-3'}`}>
     <div className={`min-w-0 flex flex-1 ${stacked ? 'w-full flex-col items-start gap-1.5' : 'items-center gap-2 sm:gap-3'}`}>
@@ -187,7 +196,7 @@ export const TerminalTypeControl = memo<TerminalTypeControlProps>(({
       })()}
       {showMaxLabel && (
         <span className={`min-w-0 flex-1 leading-none text-gray-500 dark:text-gray-400 ${stacked ? '' : 'sm:whitespace-nowrap'} ${compact ? 'text-[11px]' : 'text-xs'}`}>
-          Max: {Math.round(TERMINAL_PROFILES[terminalType].maxDlGbps * 1000)} / {Math.round(TERMINAL_PROFILES[terminalType].maxUlGbps * 1000)} Mbps
+          Max: {Math.round(maxDlMbps ?? TERMINAL_PROFILES[terminalType].maxDlGbps * 1000)} / {Math.round(maxUlMbps ?? TERMINAL_PROFILES[terminalType].maxUlGbps * 1000)} Mbps
         </span>
       )}
     </div>
@@ -195,6 +204,178 @@ export const TerminalTypeControl = memo<TerminalTypeControlProps>(({
 ));
 
 TerminalTypeControl.displayName = 'TerminalTypeControl';
+
+interface LeoTerminalModelControlProps {
+  terminalType: TerminalType;
+  selectedTerminalId: string;
+  onTerminalModelIdChange: (id: string) => void;
+  compact?: boolean;
+  stacked?: boolean;
+  disabled?: boolean;
+}
+
+const formatHzAsMhz = (hz: number): string => `${formatCompactNumber(hz / 1e6, 1)} MHz`;
+
+interface LeoTerminalRFSettingsPanelProps {
+  terminal: LeoTerminalProfile;
+}
+
+const LeoTerminalRFSettingsPanel = memo<LeoTerminalRFSettingsPanelProps>(({ terminal }) => {
+  const [isOpen, setIsOpen] = useState(false);
+
+  const row = (label: string, value: ReactNode) => (
+    <>
+      <span className="text-gray-600 dark:text-gray-400">{label}</span>
+      <span className="text-right font-mono tabular-nums text-gray-700 dark:text-gray-200">{value}</span>
+    </>
+  );
+
+  return (
+    <div className="mt-1">
+      <button
+        type="button"
+        onClick={() => setIsOpen((open) => !open)}
+        className="flex w-full items-center gap-1 rounded px-1 py-0.5 text-left text-[11px] text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-slate-700/60"
+      >
+        <ChevronDown className={`h-3 w-3 shrink-0 transition-transform duration-150 ${isOpen ? 'rotate-180' : ''}`} />
+        <span className="font-medium uppercase tracking-wide">RF Settings</span>
+      </button>
+
+      {isOpen && (
+        <div className="mt-1 rounded-lg border border-pink-200 bg-pink-50/50 px-2.5 py-2 dark:border-pink-900/50 dark:bg-pink-950/20">
+          <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-2 gap-y-1.5 text-[11px]">
+            <span className="col-span-2 -mx-0.5 mb-0.5 text-[10px] font-bold uppercase tracking-wide text-pink-500/70 dark:text-pink-300/70">Terminal</span>
+            {row('Model', `${terminal.vendor} ${terminal.model}`)}
+            {row('Antenna', terminal.antennaType)}
+            {row('Source', terminal.sourceType.replace(/_/g, ' '))}
+
+            <span className="col-span-2 -mx-0.5 mb-0.5 mt-1 text-[10px] font-bold uppercase tracking-wide text-pink-500/70 dark:text-pink-300/70">RF</span>
+            {row('DL G/T', `${terminal.rxGtDbK.toFixed(1)} dB/K`)}
+            {row('UL EIRP', `${terminal.txEirpDbw.toFixed(1)} dBW`)}
+            {row('Rx scan', terminal.rxScanLossModel.label)}
+            {row('Tx scan', terminal.txScanLossModel.label)}
+
+            <span className="col-span-2 -mx-0.5 mb-0.5 mt-1 text-[10px] font-bold uppercase tracking-wide text-pink-500/70 dark:text-pink-300/70">Throughput</span>
+            {row('DL cap', `${terminal.maxDlMbps.toFixed(0)} Mbps`)}
+            {row('UL cap', `${terminal.maxUlMbps.toFixed(0)} Mbps`)}
+            {row('DL ref BW', formatHzAsMhz(terminal.dlReferenceBandwidthHz))}
+            {row('UL ref BW', formatHzAsMhz(terminal.ulReferenceBandwidthHz))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+});
+
+LeoTerminalRFSettingsPanel.displayName = 'LeoTerminalRFSettingsPanel';
+
+const LeoTerminalModelControl = memo<LeoTerminalModelControlProps>(({
+  terminalType,
+  selectedTerminalId,
+  onTerminalModelIdChange,
+  compact = false,
+  stacked = false,
+  disabled = false,
+}) => {
+  const terminalOptions = useMemo(
+    () => getEnabledLeoTerminalCatalogEntries(terminalType),
+    [terminalType],
+  );
+  const selectedTerminal = terminalOptions.find((entry) => entry.id === selectedTerminalId)
+    ?? getLeoTerminalProfile(terminalType);
+
+  return (
+    <div className="flex min-w-0 flex-col">
+      <div className="min-w-0">
+        <span
+          className={`block truncate font-mono leading-none text-pink-600 dark:text-pink-300 ${compact ? 'text-[10px]' : 'text-[11px]'}`}
+          title={`${selectedTerminal.vendor} ${selectedTerminal.model}: DL ${selectedTerminal.maxDlMbps.toFixed(0)} Mbps · UL ${selectedTerminal.maxUlMbps.toFixed(0)} Mbps · RX ${selectedTerminal.rxGtDbK.toFixed(1)} dB/K · TX ${selectedTerminal.txEirpDbw.toFixed(1)} dBW`}
+        >
+          DL {selectedTerminal.maxDlMbps.toFixed(0)} · UL {selectedTerminal.maxUlMbps.toFixed(0)} Mbps · RX {selectedTerminal.rxGtDbK.toFixed(1)} · TX {selectedTerminal.txEirpDbw.toFixed(1)}
+        </span>
+      </div>
+      <div className="min-w-0">
+        <LeoTerminalRFSettingsPanel terminal={selectedTerminal} />
+      </div>
+    </div>
+  );
+});
+
+LeoTerminalModelControl.displayName = 'LeoTerminalModelControl';
+
+interface LeoTerminalSelectorRowProps {
+  terminalType: TerminalType;
+  onTerminalTypeChange: (type: TerminalType) => void;
+  selectedTerminalId: string;
+  onTerminalModelIdChange: (id: string) => void;
+  analysisSource?: 'earth' | 'aircraft';
+  compact?: boolean;
+  stacked?: boolean;
+  readOnly?: boolean;
+  displayLabel?: string;
+  displayIcon?: string;
+}
+
+const LeoTerminalSelectorRow = memo<LeoTerminalSelectorRowProps>(({
+  terminalType,
+  onTerminalTypeChange,
+  selectedTerminalId,
+  onTerminalModelIdChange,
+  analysisSource,
+  compact = false,
+  stacked = false,
+  readOnly = false,
+  displayLabel,
+  displayIcon,
+}) => {
+  const isDisabled = analysisSource === 'aircraft' || readOnly;
+  const effectiveIcon = displayIcon ?? terminalIcon(terminalType);
+  const effectiveLabel = displayLabel ?? TERMINAL_PROFILES[terminalType].label;
+  const terminalOptions = useMemo(
+    () => getEnabledLeoTerminalCatalogEntries(terminalType),
+    [terminalType],
+  );
+  const selectedTerminal = terminalOptions.find((entry) => entry.id === selectedTerminalId)
+    ?? getLeoTerminalProfile(terminalType);
+
+  return (
+    <div className={`flex min-w-0 ${stacked ? 'w-full flex-col gap-1.5' : 'items-center gap-2'}`}>
+      <select
+        value={terminalType}
+        onChange={(event) => onTerminalTypeChange(event.target.value as TerminalType)}
+        className={selectClassName(compact, stacked ? 'w-full' : compact ? 'w-32 sm:w-36' : 'w-40')}
+        disabled={isDisabled}
+        style={selectStyle(isDisabled)}
+      >
+        {readOnly && displayLabel ? (
+          <option value={terminalType}>
+            {`${effectiveIcon} ${effectiveLabel}`}
+          </option>
+        ) : null}
+        {Object.entries(TERMINAL_PROFILES).map(([key, profile]) => (
+          <option key={key} value={key}>
+            {`${terminalIcon(key as TerminalType)} ${profile.label}`}
+          </option>
+        ))}
+      </select>
+      <select
+        value={selectedTerminal.id}
+        onChange={(event) => onTerminalModelIdChange(event.target.value)}
+        className={selectClassName(compact, stacked ? 'w-full' : 'min-w-0 flex-1')}
+        disabled={readOnly || terminalOptions.length <= 1}
+        style={selectStyle(readOnly || terminalOptions.length <= 1)}
+      >
+        {terminalOptions.map((entry) => (
+          <option key={entry.id} value={entry.id}>
+            {entry.vendor} {entry.model}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+});
+
+LeoTerminalSelectorRow.displayName = 'LeoTerminalSelectorRow';
 
 // ─── RF class control ─────────────────────────────────────────────────────────
 
@@ -512,6 +693,9 @@ interface TerminalConfigProps {
   statusTitle?: string;
   rfCustomParams?: TerminalRFCustomParams | null;
   onRFCustomParamsChange?: (params: TerminalRFCustomParams | null) => void;
+  leoTerminalModelId?: string | null;
+  onLeoTerminalModelIdChange?: (id: string) => void;
+  showLeoTerminalModelSelector?: boolean;
 }
 
 const STATUS_ICON_BY_LABEL: Record<string, LucideIcon> = {
@@ -545,10 +729,17 @@ const TerminalConfig = memo<TerminalConfigProps>(({
   statusTitle,
   rfCustomParams,
   onRFCustomParamsChange,
+  leoTerminalModelId,
+  onLeoTerminalModelIdChange,
+  showLeoTerminalModelSelector = false,
 }) => {
   const dense = compact && !showWeather;
   const effectiveRFClassId = rfClassId ?? getDefaultRFClassForUseCase(terminalType, band);
   const effectiveRFBand = getRFClassBand(effectiveRFClassId) ?? band;
+  const selectedLeoTerminal = useMemo(
+    () => getLeoTerminalProfile(terminalType, leoTerminalModelId),
+    [terminalType, leoTerminalModelId],
+  );
 
   const rfIdentityLine = useMemo(() => {
     if (!showRFClass || !onRFClassChange) return null;
@@ -622,17 +813,45 @@ const TerminalConfig = memo<TerminalConfigProps>(({
         })() : null}
       </div>
       <div className={`flex flex-col space-y-1 ${dense ? '' : 'flex-1 justify-end'}`}>
-        <TerminalTypeControl
-          terminalType={terminalType}
-          onTerminalTypeChange={onTerminalTypeChange}
-          analysisSource={analysisSource}
-          compact={compact}
-          stacked={stacked}
-          readOnly={readOnly}
-          displayLabel={terminalDisplayLabel}
-          displayIcon={terminalDisplayIcon}
-          showMaxLabel={!showRFClass}
-        />
+        {showLeoTerminalModelSelector && onLeoTerminalModelIdChange ? (
+          <>
+            <LeoTerminalSelectorRow
+              terminalType={terminalType}
+              onTerminalTypeChange={(type) => {
+                onTerminalTypeChange(type);
+                onLeoTerminalModelIdChange(getLeoTerminalProfile(type).id);
+              }}
+              selectedTerminalId={selectedLeoTerminal.id}
+              onTerminalModelIdChange={onLeoTerminalModelIdChange}
+              analysisSource={analysisSource}
+              compact={compact}
+              stacked={stacked}
+              readOnly={readOnly}
+              displayLabel={terminalDisplayLabel}
+              displayIcon={terminalDisplayIcon}
+            />
+          <LeoTerminalModelControl
+            terminalType={terminalType}
+            selectedTerminalId={selectedLeoTerminal.id}
+            onTerminalModelIdChange={onLeoTerminalModelIdChange}
+            compact={compact}
+            stacked={stacked}
+            disabled={readOnly || analysisSource === 'aircraft'}
+          />
+          </>
+        ) : (
+          <TerminalTypeControl
+            terminalType={terminalType}
+            onTerminalTypeChange={onTerminalTypeChange}
+            analysisSource={analysisSource}
+            compact={compact}
+            stacked={stacked}
+            readOnly={readOnly}
+            displayLabel={terminalDisplayLabel}
+            displayIcon={terminalDisplayIcon}
+            showMaxLabel={!showRFClass}
+          />
+        )}
         {showRFClass && onRFClassChange && (
           <>
             <TerminalRFClassControl

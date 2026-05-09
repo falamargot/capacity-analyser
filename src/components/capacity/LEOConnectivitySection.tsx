@@ -213,7 +213,15 @@ const fmtMbps = (v: number | undefined | null) => {
 
 const fmtMhz = (hz: number) => `${(hz / 1e6).toFixed(0)} MHz`;
 
-const linkBudgetTone = (d: LeoRFDebugInfo) => {
+const NO_LEO_BUDGET_TONE = {
+  label: 'No budget',
+  className: 'border-slate-200 bg-slate-50 text-slate-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300',
+  accent: '#64748b',
+};
+
+const linkBudgetTone = (d: LeoRFDebugInfo | null) => {
+  if (!d) return NO_LEO_BUDGET_TONE;
+
   if (
     d.downlink.network.finalUserMbps <= 0 ||
     d.uplink.network.finalUserMbps <= 0 ||
@@ -242,14 +250,18 @@ const linkBudgetTone = (d: LeoRFDebugInfo) => {
 };
 
 interface LeoLinkBudgetSummaryCardProps {
-  debugInfo: LeoRFDebugInfo;
+  debugInfo: LeoRFDebugInfo | null;
   highlighted?: boolean;
   onToggle: () => void;
 }
 
 const LeoLinkBudgetSummaryCard = ({ debugInfo, highlighted = false, onToggle }: LeoLinkBudgetSummaryCardProps) => {
-  const limitingLabel = debugInfo.mainBottleneck.label;
+  const limitingLabel = debugInfo?.mainBottleneck.label ?? '--';
   const tone = linkBudgetTone(debugInfo);
+  const satelliteName = debugInfo?.satelliteId ?? 'No LEO path';
+  const budgetSubtitle = debugInfo
+    ? `Beam ${debugInfo.selectedBeamIndex} · DL ${debugInfo.downlink.rf.modcod ?? 'MODCOD --'} · UL ${debugInfo.uplink.rf.modcod ?? 'MODCOD --'}`
+    : 'Satellite -- · Beam --';
 
   return (
     <section
@@ -281,10 +293,10 @@ const LeoLinkBudgetSummaryCard = ({ debugInfo, highlighted = false, onToggle }: 
               </span>
             </div>
             <h4 className="mt-1.5 truncate text-sm font-semibold text-slate-950 dark:text-slate-50">
-              {debugInfo.satelliteId}
+              {satelliteName}
             </h4>
             <p className="mt-1 truncate text-xs text-slate-500 dark:text-slate-400">
-              Beam {debugInfo.selectedBeamIndex} · DL {debugInfo.downlink.rf.modcod ?? 'MODCOD --'} · UL {debugInfo.uplink.rf.modcod ?? 'MODCOD --'}
+              {budgetSubtitle}
             </p>
           </div>
           <button
@@ -307,8 +319,8 @@ const LeoLinkBudgetSummaryCard = ({ debugInfo, highlighted = false, onToggle }: 
 
       <div className="grid grid-cols-3 gap-px bg-slate-100 dark:bg-slate-800">
         {[
-          { label: 'Final DL', value: fmtMbps(debugInfo.downlink.network.finalUserMbps), icon: Gauge, color: undefined },
-          { label: 'Final UL', value: fmtMbps(debugInfo.uplink.network.finalUserMbps), icon: Gauge, color: undefined },
+          { label: 'Final DL', value: fmtMbps(debugInfo?.downlink.network.finalUserMbps), icon: Gauge, color: undefined },
+          { label: 'Final UL', value: fmtMbps(debugInfo?.uplink.network.finalUserMbps), icon: Gauge, color: undefined },
           { label: 'Main bottleneck', value: limitingLabel, icon: Route, color: undefined },
         ].map((item) => {
           const Icon = item.icon;
@@ -494,9 +506,13 @@ const TerminalAssumptionsSection = ({ d }: { d: LeoRFDebugInfo }) => (
     <div className="px-3 py-2.5 bg-violet-50/40 dark:bg-violet-950/20 space-y-2.5">
       <div className="grid grid-cols-2 gap-x-6 gap-y-2">
         <MetricRow label="Terminal family" value={d.terminal.terminalFamily} mono={false} />
-        <MetricRow label="Model" value={d.terminal.modelName} mono={false} />
+        <MetricRow label="Vendor" value={d.terminal.vendor} mono={false} />
+        <MetricRow label="Model" value={d.terminal.model} mono={false} />
+        <MetricRow label="Source type" value={d.terminal.sourceType.replace(/_/g, ' ')} mono={false} />
+        <MetricRow label="Certification" value={d.terminal.certificationStatus.replace(/_/g, ' ')} mono={false} />
         <MetricRow label="Antenna type" value={d.terminal.antennaType} mono={false} />
         <MetricRow label="Mobility class" value={d.terminal.mobilityClass} mono={false} />
+        <MetricRow label="Bands" value={d.terminal.supportedBands.join(', ')} mono={false} />
         <MetricRow label="DL raw G/T" value={`${d.terminal.rxGtDbK.toFixed(1)} dB/K`} />
         <MetricRow label="UL raw EIRP" value={`${d.terminal.txEirpDbw.toFixed(1)} dBW`} />
         <MetricRow label="Rx scan model" value={d.terminal.rxScanLossModelLabel} mono={false} />
@@ -508,14 +524,14 @@ const TerminalAssumptionsSection = ({ d }: { d: LeoRFDebugInfo }) => (
         <MetricRow label="DL usable beam BW" value={fmtMhz(d.terminal.dlUsableBeamBandwidthHz)} />
         <MetricRow label="UL usable beam BW" value={fmtMhz(d.terminal.ulUsableBeamBandwidthHz)} />
       </div>
-      <div className="rounded-md border border-violet-200/70 bg-white/70 px-3 py-2 text-[10px] leading-relaxed text-violet-800 dark:border-violet-800/50 dark:bg-violet-950/30 dark:text-violet-200">
-        <div>Terminal RF parameters are simplified engineering assumptions, not vendor-certified values.</div>
-        <div>Terminal RF values are representative assumptions unless backed by an official datasheet.</div>
-        <div>Throughput is an estimated user throughput, not a guaranteed SLA.</div>
-        <div>{d.terminal.sourceNote}</div>
-        {[...d.terminal.notes, ...d.terminal.assumptions].slice(0, 3).map((note) => (
-          <div key={note} className="text-violet-700/80 dark:text-violet-300/80">{note}</div>
-        ))}
+      <div className="rounded-md border border-violet-200/70 bg-white/70 px-3 py-1.5 text-[10px] leading-snug text-violet-800 dark:border-violet-800/50 dark:bg-violet-950/30 dark:text-violet-200">
+        <div>
+          <span className="font-semibold">Representative terminal model.</span>{' '}
+          RF values are assumptions unless backed by a datasheet; throughput is estimated, not an SLA.
+        </div>
+        <div className="mt-0.5 text-violet-700/80 dark:text-violet-300/80">
+          Source: {d.terminal.sourceLabel}{d.terminal.sourceUrl ? ` · ${d.terminal.sourceUrl}` : ''}
+        </div>
       </div>
     </div>
   </div>
@@ -576,7 +592,7 @@ const LeoRFLinkBudgetPanel = ({ d }: { d: LeoRFDebugInfo }) => {
 interface LeoLinkBudgetDrawerProps {
   open: boolean;
   onClose: () => void;
-  debugInfo: LeoRFDebugInfo;
+  debugInfo: LeoRFDebugInfo | null;
 }
 
 const LeoLinkBudgetDrawer = ({ open, onClose, debugInfo }: LeoLinkBudgetDrawerProps) => {
@@ -604,7 +620,7 @@ const LeoLinkBudgetDrawer = ({ open, onClose, debugInfo }: LeoLinkBudgetDrawerPr
             <div className="min-w-0">
               <p className="text-[11px] font-bold uppercase tracking-wide text-pink-500 dark:text-pink-300">LEO Link Budget</p>
               <h3 className="mt-1 truncate text-lg font-semibold text-slate-950 dark:text-slate-50">
-                {debugInfo.satelliteId}
+                {debugInfo?.satelliteId ?? 'No LEO path'}
               </h3>
             </div>
             <button
@@ -617,7 +633,16 @@ const LeoLinkBudgetDrawer = ({ open, onClose, debugInfo }: LeoLinkBudgetDrawerPr
             </button>
           </div>
           <div className="flex-1 overflow-y-auto px-5 py-4">
-            <LeoRFLinkBudgetPanel d={debugInfo} />
+            {debugInfo ? (
+              <LeoRFLinkBudgetPanel d={debugInfo} />
+            ) : (
+              <div className="rounded-xl border border-slate-200 bg-slate-50/80 p-4 text-sm text-slate-600 dark:border-slate-800 dark:bg-slate-900/60 dark:text-slate-300">
+                <div className="font-semibold text-slate-900 dark:text-slate-100">No LEO budget available</div>
+                <p className="mt-1 text-xs leading-relaxed text-slate-500 dark:text-slate-400">
+                  No serving LEO satellite and SNP path is currently selected for this instant. The detail panel stays open and will refresh automatically when a valid LEO RF budget is available again.
+                </p>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -635,6 +660,8 @@ interface LEOConnectivitySectionProps {
   activePoint: { lat: number; lng: number; altitude?: number } | null;
   terminalType: TerminalType;
   onTerminalTypeChange: (type: TerminalType) => void;
+  terminalModelId?: string | null;
+  onTerminalModelIdChange?: (id: string) => void;
   weatherType: WeatherType;
   onWeatherTypeChange: (type: WeatherType) => void;
   autoWeatherEnabled: boolean;
@@ -671,6 +698,8 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
   activePoint,
   terminalType,
   onTerminalTypeChange,
+  terminalModelId,
+  onTerminalModelIdChange,
   weatherType,
   onWeatherTypeChange,
   autoWeatherEnabled,
@@ -771,6 +800,9 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
         <TerminalConfig
           terminalType={terminalType}
           onTerminalTypeChange={onTerminalTypeChange}
+          leoTerminalModelId={terminalModelId}
+          onLeoTerminalModelIdChange={onTerminalModelIdChange}
+          showLeoTerminalModelSelector
           weatherType={weatherType}
           onWeatherTypeChange={onWeatherTypeChange}
           autoWeatherEnabled={autoWeatherEnabled}
@@ -786,20 +818,16 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
         {showEstimatedPerformance && showPerformanceBeforeRadioPath && estimatedPerformanceSection}
 
         {/* Link Budget — compact sidebar summary + detailed drawer */}
-        {leoPerformance?.debugInfo && (
-          <>
-            <LeoLinkBudgetSummaryCard
-              debugInfo={leoPerformance.debugInfo}
-              highlighted={isLinkBudgetDrawerOpen}
-              onToggle={() => setIsLinkBudgetDrawerOpen((open) => !open)}
-            />
-            <LeoLinkBudgetDrawer
-              open={isLinkBudgetDrawerOpen}
-              onClose={() => setIsLinkBudgetDrawerOpen(false)}
-              debugInfo={leoPerformance.debugInfo}
-            />
-          </>
-        )}
+        <LeoLinkBudgetSummaryCard
+          debugInfo={leoPerformance?.debugInfo ?? null}
+          highlighted={isLinkBudgetDrawerOpen}
+          onToggle={() => setIsLinkBudgetDrawerOpen((open) => !open)}
+        />
+        <LeoLinkBudgetDrawer
+          open={isLinkBudgetDrawerOpen}
+          onClose={() => setIsLinkBudgetDrawerOpen(false)}
+          debugInfo={leoPerformance?.debugInfo ?? null}
+        />
 
         {/* LEO Radio Path */}
         <CollapsibleSection

@@ -29,7 +29,13 @@ import {
   RF_UPLINK_NOISE_BW_HZ,
   RF_UPLINK_THROUGHPUT_BW_HZ,
 } from '../leoLinkBudget';
-import { computeLeoTerminalScanLossDb, LEO_TERMINAL_PROFILES } from '../../config/leoTerminals';
+import {
+  computeLeoTerminalScanLossDb,
+  getEnabledLeoTerminalCatalogEntries,
+  getLeoTerminalProfile,
+  LEO_TERMINAL_CATALOG,
+  LEO_TERMINAL_PROFILES,
+} from '../../config/leoTerminals';
 
 import {
   getBeamPerformance,
@@ -168,11 +174,48 @@ describe('computeUplinkRfChainThroughput — independent uplink RF chain', () =>
 });
 
 describe('LEO_TERMINAL_PROFILES — terminal-specific RF assumptions', () => {
+  it('catalog entries expose source metadata and enabled category mappings', () => {
+    expect(LEO_TERMINAL_CATALOG.length).toBeGreaterThanOrEqual(8);
+    for (const entry of LEO_TERMINAL_CATALOG) {
+      expect(entry.vendor.length).toBeGreaterThan(0);
+      expect(entry.model.length).toBeGreaterThan(0);
+      expect(entry.description.length).toBeGreaterThan(0);
+      expect(['OFFICIAL_DATASHEET', 'ENGINEERING_ESTIMATE', 'GENERIC_PROFILE']).toContain(entry.sourceType);
+      expect(entry.sourceLabel.length).toBeGreaterThan(0);
+      expect(['PARABOLIC_ZERO_LOSS', 'ESA_COSINE_N_1_4']).toContain(entry.rxScanLossModel.id);
+      expect(['PARABOLIC_ZERO_LOSS', 'ESA_COSINE_N_1_4']).toContain(entry.txScanLossModel.id);
+      expect(entry.assumptions.length).toBeGreaterThan(0);
+      expect(entry.supportedBands).toContain('Ku');
+      if (entry.sourceType === 'OFFICIAL_DATASHEET') {
+        expect(entry.sourceUrl).toBeTruthy();
+      }
+    }
+    expect(LEO_TERMINAL_CATALOG.some((entry) => entry.id === 'intellian-ow70l')).toBe(true);
+    expect(LEO_TERMINAL_CATALOG.some((entry) => entry.id === 'hughes-hl1120w')).toBe(true);
+    expect(LEO_TERMINAL_CATALOG.some((entry) => entry.id === 'intellian-ow70m')).toBe(true);
+    expect(LEO_TERMINAL_CATALOG.some((entry) => entry.id === 'kymeta-hawk-u8')).toBe(true);
+    expect(LEO_TERMINAL_CATALOG.some((entry) => entry.id === 'stellar-blu-sidewinder')).toBe(true);
+    expect(getEnabledLeoTerminalCatalogEntries('mobile').length).toBeGreaterThan(0);
+  });
+
+  it('selects the default terminal flagged for each simple UI family', () => {
+    expect(LEO_TERMINAL_PROFILES.fixed.id).toBe('intellian-ow70l');
+    expect(LEO_TERMINAL_PROFILES.mobile.id).toBe('kymeta-hawk-u8');
+    expect(LEO_TERMINAL_PROFILES.maritime.id).toBe('intellian-ow70m');
+    expect(LEO_TERMINAL_PROFILES.aviation.id).toBe('stellar-blu-sidewinder');
+  });
+
+  it('allows an explicit terminal model selection within the selected family', () => {
+    expect(getLeoTerminalProfile('fixed', 'hughes-hl1120w').id).toBe('hughes-hl1120w');
+    expect(getLeoTerminalProfile('maritime', 'kymeta-peregrine-u8').id).toBe('kymeta-peregrine-u8');
+    expect(getLeoTerminalProfile('fixed', 'kymeta-hawk-u8').id).toBe('intellian-ow70l');
+  });
+
   it('each terminal profile exposes RF params, caps and bandwidths in Mbps/Hz units', () => {
     for (const profile of Object.values(LEO_TERMINAL_PROFILES)) {
       expect(profile.maxDlMbps).toBeGreaterThan(0);
       expect(profile.maxUlMbps).toBeGreaterThan(0);
-      expect(profile.modelName.length).toBeGreaterThan(0);
+      expect(profile.model.length).toBeGreaterThan(0);
       expect(['PARABOLIC', 'ESA']).toContain(profile.antennaType);
       expect(profile.rxGtDbK).toBeGreaterThan(0);
       expect(profile.txEirpDbw).toBeGreaterThan(0);
@@ -180,8 +223,8 @@ describe('LEO_TERMINAL_PROFILES — terminal-specific RF assumptions', () => {
       expect(profile.ulReferenceBandwidthHz).toBeGreaterThan(0);
       expect(profile.dlUsableBeamBandwidthHz).toBeGreaterThanOrEqual(profile.dlReferenceBandwidthHz);
       expect(profile.ulUsableBeamBandwidthHz).toBeGreaterThanOrEqual(profile.ulReferenceBandwidthHz);
-      expect(profile.sourceNote.length).toBeGreaterThan(0);
-      expect(profile.notes.length + profile.assumptions.length).toBeGreaterThan(0);
+      expect(profile.sourceLabel.length).toBeGreaterThan(0);
+      expect(profile.notes.length).toBeGreaterThan(0);
     }
   });
 
@@ -214,25 +257,25 @@ describe('LEO_TERMINAL_PROFILES — terminal-specific RF assumptions', () => {
 
   it('changing terminal type changes uplink RF through terminal EIRP, not downlink derivation', () => {
     const fixed = LEO_TERMINAL_PROFILES.fixed;
-    const mobile = LEO_TERMINAL_PROFILES.mobile;
+    const aviation = LEO_TERMINAL_PROFILES.aviation;
     const fixedUl = computeUplinkRfChainThroughput({
       terminalEirpDbw: fixed.txEirpDbw,
-      slantRangeKm: 1200,
-      pathAdjustmentDb: 0,
+      slantRangeKm: 1800,
+      pathAdjustmentDb: -10,
       noiseBwHz: fixed.ulReferenceBandwidthHz,
       throughputBwHz: fixed.ulReferenceBandwidthHz,
     });
-    const mobileUl = computeUplinkRfChainThroughput({
-      terminalEirpDbw: mobile.txEirpDbw,
-      slantRangeKm: 1200,
-      pathAdjustmentDb: 0,
-      noiseBwHz: mobile.ulReferenceBandwidthHz,
-      throughputBwHz: mobile.ulReferenceBandwidthHz,
+    const aviationUl = computeUplinkRfChainThroughput({
+      terminalEirpDbw: aviation.txEirpDbw,
+      slantRangeKm: 1800,
+      pathAdjustmentDb: -10,
+      noiseBwHz: aviation.ulReferenceBandwidthHz,
+      throughputBwHz: aviation.ulReferenceBandwidthHz,
     });
 
-    expect(fixed.txEirpDbw).not.toBe(mobile.txEirpDbw);
-    expect(fixedUl.cnDb).not.toBe(mobileUl.cnDb);
-    expect(fixedUl.rfThroughputMbps).not.toBe(mobileUl.rfThroughputMbps);
+    expect(fixed.txEirpDbw).not.toBe(aviation.txEirpDbw);
+    expect(fixedUl.cnDb).not.toBe(aviationUl.cnDb);
+    expect(fixedUl.rfThroughputMbps).not.toBe(aviationUl.rfThroughputMbps);
   });
 
   it('ESA scan loss reduces low-elevation RF input while parabolic scan loss remains 0 dB', () => {
@@ -255,8 +298,8 @@ describe('LEO_TERMINAL_PROFILES — terminal-specific RF assumptions', () => {
     const lowElevationDeg = 15;
     const common = {
       eirpDbw: 54,
-      slantRangeKm: 1400,
-      pathAdjustmentDb: 0,
+      slantRangeKm: 1800,
+      pathAdjustmentDb: -10,
       frequencyGHz: RF_KU_FREQ_GHZ,
     };
     const fixedDl = computeDirectionalRfChainThroughput({

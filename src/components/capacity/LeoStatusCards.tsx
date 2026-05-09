@@ -72,7 +72,7 @@ const getStatusSummary = (vm: LeoConnectivityViewModel): string => {
     return 'All service gates are currently aligned for end-to-end access.';
   }
   if (vm.finalServiceStatus === 'DEGRADED') {
-    return 'Service is still reachable, but a live constraint is reducing quality or certainty.';
+    return 'Service is reachable, but a live constraint is reducing quality.';
   }
   return 'A blocking condition is stopping end-to-end service right now.';
 };
