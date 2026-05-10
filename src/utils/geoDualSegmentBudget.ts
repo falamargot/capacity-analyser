@@ -16,6 +16,8 @@ import type { CandidateCoverage } from '../types/analysis';
 import type { GeoGatewayData } from '../components/globe/GlobeConfig';
 import type { GeoRfContext } from '../types/geoRfContext';
 import type { GeoBand } from './geoLinkBudget';
+import type { LinkMode } from '../types/linkMode';
+import { computeNetworkLayer, type NetworkLayerResult } from './geoNetworkLayer';
 import {
   DEFAULT_TERMINAL,
   TERMINAL_GEO_RF_PARAMS_BY_BAND,
@@ -107,6 +109,44 @@ export interface DualSegmentResult {
   transponderMode?: TransponderMode;
   /** Explanatory RF context attached by the UI/service layer; does not affect calculations. */
   rfContext?: GeoRfContext;
+  /**
+   * Network layer results for each direction.
+   * Applies protocol efficiency and contention ratio on top of the RF result.
+   */
+  networkLayer?: {
+    forward: NetworkLayerResult;
+    reverse?: NetworkLayerResult;
+  };
+}
+
+export type { NetworkLayerResult };
+
+/**
+ * Returns the authoritative user-facing throughput for a given direction.
+ *
+ * For MESH and POINT_TO_POINT the network layer applies protocol efficiency
+ * and contention, so finalThroughputMbps is always lower-or-equal to the raw
+ * RF value. For STAR modes the two are equal (efficiency = 1.0), but the
+ * helper still works uniformly.
+ *
+ * Always use this instead of `endToEnd.endToEndThroughputMbps` when displaying
+ * a final throughput figure to the user.
+ */
+export function getDisplayedThroughput(
+  result: DualSegmentResult,
+  direction: 'forward' | 'reverse',
+): number {
+  if (direction === 'reverse') {
+    return (
+      result.networkLayer?.reverse?.finalThroughputMbps ??
+      result.reverse?.endToEnd.endToEndThroughputMbps ??
+      0
+    );
+  }
+  return (
+    result.networkLayer?.forward.finalThroughputMbps ??
+    result.forward.endToEnd.endToEndThroughputMbps
+  );
 }
 
 export interface MeshEndpointLabels {
@@ -394,7 +434,12 @@ export function buildStarForwardResult(
   // Also compute adjusted uplink segment knowing gateway G/T (for the displayed G/T):
   uplinkSeg.destination.gtDbk = gatewayGTDbk;
 
-  return { forward: { uplink: uplinkSeg, downlink: downlinkSeg, endToEnd: e2e } };
+  return {
+    forward: { uplink: uplinkSeg, downlink: downlinkSeg, endToEnd: e2e },
+    networkLayer: {
+      forward: computeNetworkLayer(e2e.endToEndThroughputMbps, 'STAR_FORWARD'),
+    },
+  };
 }
 
 // ─── STAR Return ──────────────────────────────────────────────────────────────
@@ -460,7 +505,12 @@ export function buildStarReturnResult(
     uplinkAtUser.bandwidthMhz ?? downlinkAtGateway.bandwidthMhz ?? 36,
   );
 
-  return { forward: { uplink: uplinkSeg, downlink: downlinkSeg, endToEnd: e2e } };
+  return {
+    forward: { uplink: uplinkSeg, downlink: downlinkSeg, endToEnd: e2e },
+    networkLayer: {
+      forward: computeNetworkLayer(e2e.endToEndThroughputMbps, 'STAR_RETURN'),
+    },
+  };
 }
 
 // ─── Transponder mode detection ──────────────────────────────────────────────
@@ -533,6 +583,7 @@ export function buildMeshResult(
   weatherAdjDb?: number,
   customParamsA?: TerminalRFCustomParams | null,
   customParamsB?: TerminalRFCustomParams | null,
+  linkMode?: LinkMode,
 ): DualSegmentResult {
   if (!haveSameBand(uplinkAtA, downlinkAtB, uplinkAtB, downlinkAtA)) {
     throw new Error('MESH GEO link budget requires all segments to use the same RF band.');
@@ -602,10 +653,15 @@ export function buildMeshResult(
   );
 
   const transponderMode = detectTransponderMode(uplinkAtA, downlinkAtB);
+  const resolvedMode: LinkMode = linkMode ?? 'MESH';
 
   return {
     forward: { uplink: fwUplinkSeg, downlink: fwDownlinkSeg, endToEnd: fwE2E },
     reverse: { uplink: rvUplinkSeg, downlink: rvDownlinkSeg, endToEnd: rvE2E },
     transponderMode,
+    networkLayer: {
+      forward: computeNetworkLayer(fwE2E.endToEndThroughputMbps, resolvedMode),
+      reverse: computeNetworkLayer(rvE2E.endToEndThroughputMbps, resolvedMode),
+    },
   };
 }

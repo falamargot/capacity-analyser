@@ -10,7 +10,7 @@ import type { CandidateCoverage } from '../../types/analysis';
 import type { TerminalType, TerminalRFClassId, TerminalRFCustomParams } from './TerminalConfig';
 import type { LinkMode } from '../../types/linkMode';
 import DualSegmentPanel from './DualSegmentPanel';
-import type { DualSegmentResult } from '../../utils/geoDualSegmentBudget';
+import { getDisplayedThroughput, type DualSegmentResult } from '../../utils/geoDualSegmentBudget';
 import LinkModeSelector from './LinkModeSelector';
 import type { ResolvedGeoGateway } from '../../utils/geoConnectivityModel';
 
@@ -155,6 +155,19 @@ const LinkBudgetSummaryCard = ({
         ? 'B→A'
         : 'A→B';
 
+  // Network layer — pick the direction matching the active tab
+  const networkLayer = result
+    ? (activeMeshTab === 'reverse' && result.networkLayer?.reverse
+        ? result.networkLayer.reverse
+        : result.networkLayer?.forward)
+    : null;
+  const isMeshOrP2P = linkMode === 'MESH' || linkMode === 'POINT_TO_POINT';
+  // Use final throughput for Mesh/P2P; RF throughput for STAR
+  const displayThroughput = (isMeshOrP2P && networkLayer)
+    ? networkLayer.finalThroughputMbps
+    : e2e?.endToEndThroughputMbps;
+  const throughputLabel = (isMeshOrP2P && networkLayer) ? 'Final Thru.' : 'Throughput';
+
   return (
     <section
       className={[
@@ -185,6 +198,30 @@ const LinkBudgetSummaryCard = ({
                 <SectionTooltip content="RF link budget analysis showing end-to-end link margin and throughput. Status: Healthy (margin ≥ 2 dB), Marginal (0-2 dB), Blocked (negative margin), or No budget (insufficient data)." />
               </span>
             </div>
+            {/* Topology badges for Mesh / P2P */}
+            {isMeshOrP2P && (
+              <div className="mt-1.5 flex flex-wrap gap-1.5">
+                {linkMode === 'POINT_TO_POINT' ? (
+                  <>
+                    <span className="inline-flex items-center rounded-full border border-violet-200 bg-violet-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-violet-700 dark:border-violet-700 dark:bg-violet-900/30 dark:text-violet-300">
+                      Dedicated SCPC
+                    </span>
+                    <span className="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-emerald-700 dark:border-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300">
+                      Protocol Efficiency 100%
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <span className="inline-flex items-center rounded-full border border-sky-200 bg-sky-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-sky-700 dark:border-sky-700 dark:bg-sky-900/30 dark:text-sky-300">
+                      Shared Service
+                    </span>
+                    <span className="inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-700 dark:border-amber-700 dark:bg-amber-900/30 dark:text-amber-300">
+                      Protocol Efficiency 85%
+                    </span>
+                  </>
+                )}
+              </div>
+            )}
             <h4 className="mt-1.5 truncate text-sm font-semibold text-slate-950 dark:text-slate-50">
               {satelliteName}
             </h4>
@@ -212,7 +249,7 @@ const LinkBudgetSummaryCard = ({
 
       <div className="grid grid-cols-3 gap-px bg-slate-100 dark:bg-slate-800">
         {[
-          { label: 'Throughput', value: fmtMbps(e2e?.endToEndThroughputMbps), icon: Gauge },
+          { label: throughputLabel, value: fmtMbps(displayThroughput), icon: Gauge },
           { label: 'Margin', value: fmtDb(margin), icon: Gauge },
           { label: 'Limit', value: limiting, icon: Route },
         ].map((item) => {
@@ -638,9 +675,9 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
       rttTotalMs,
       stability,
       isUnstable,
-      // Per-direction throughput
-      forwardThroughputMbps: dualSegmentResult.forward.endToEnd.endToEndThroughputMbps,
-      reverseThroughputMbps: dualSegmentResult.reverse?.endToEnd.endToEndThroughputMbps ?? null,
+      // Per-direction final throughput (after network layer protocol efficiency + contention)
+      forwardThroughputMbps: getDisplayedThroughput(dualSegmentResult, 'forward'),
+      reverseThroughputMbps: dualSegmentResult.reverse ? getDisplayedThroughput(dualSegmentResult, 'reverse') : null,
     };
   }, [isMeshOrP2P, dualSegmentResult]);
 

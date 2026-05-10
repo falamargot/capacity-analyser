@@ -37,6 +37,7 @@ import {
   buildStarReturnResult,
   buildMeshResult,
   synthesizeDownlinkCandidate,
+  getDisplayedThroughput,
   type DualSegmentResult,
 } from '../utils/geoDualSegmentBudget';
 import {
@@ -1101,7 +1102,7 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
       return buildMeshResult(ulA, dlB, ulB, dlA, {
         pointA: pointALabel,
         pointB: pointBLabel,
-      }, terminalKeyA, terminalKeyB, weatherAdjDb, geoRFCustomParamsA, geoRFCustomParamsB);
+      }, terminalKeyA, terminalKeyB, weatherAdjDb, geoRFCustomParamsA, geoRFCustomParamsB, linkMode);
     }
 
     return null;
@@ -1152,8 +1153,8 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
     const reverseLatencyMs = (bToSatKm + satToAKm) / C_KM_PER_MS;
     const rttMs = (aToSatKm + satToBKm + bToSatKm + satToAKm) / C_KM_PER_MS + 40;
     return {
-      forwardMbps: dualSegmentResult.forward.endToEnd.endToEndThroughputMbps,
-      reverseMbps: dualSegmentResult.reverse?.endToEnd.endToEndThroughputMbps ?? null,
+      forwardMbps: getDisplayedThroughput(dualSegmentResult, 'forward'),
+      reverseMbps: dualSegmentResult.reverse ? getDisplayedThroughput(dualSegmentResult, 'reverse') : null,
       forwardLatencyMs,
       reverseLatencyMs,
       rttMs,
@@ -1218,19 +1219,20 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
     }
 
     if (linkMode === 'MESH' || linkMode === 'POINT_TO_POINT') {
-      // Forward = A→B (uplink from A's perspective), reverse = B→A (downlink at A).
-      const ulGbps = Math.min(fwE2E.endToEndThroughputMbps / 1000, profile.maxUlGbps);
-      const dlGbps = rvE2E
-        ? Math.min(rvE2E.endToEndThroughputMbps / 1000, profile.maxDlGbps)
-        : geoPerformance.downlinkGbps;
-      const dlRatio = profile.maxDlGbps > 0 && dlGbps != null ? dlGbps / profile.maxDlGbps : 0;
-      const ulRatio = profile.maxUlGbps > 0 ? ulGbps / profile.maxUlGbps : 0;
+      // downlinkGbps ← A→B (forward): matches downlinkLabel="A→B throughput" in PerformancePanel.
+      // uplinkGbps   ← B→A (reverse): matches uplinkLabel="B→A throughput" in PerformancePanel.
+      const fwGbps = Math.min(getDisplayedThroughput(dualSegmentResult, 'forward') / 1000, profile.maxDlGbps);
+      const rvGbps = rvE2E
+        ? Math.min(getDisplayedThroughput(dualSegmentResult, 'reverse') / 1000, profile.maxUlGbps)
+        : geoPerformance.uplinkGbps;
+      const fwRatio = profile.maxDlGbps > 0 ? fwGbps / profile.maxDlGbps : 0;
+      const rvRatio = profile.maxUlGbps > 0 && rvGbps != null ? rvGbps / profile.maxUlGbps : 0;
       return {
         ...geoPerformance,
-        downlinkGbps: dlGbps,
-        uplinkGbps: ulGbps,
+        downlinkGbps: fwGbps,
+        uplinkGbps: rvGbps,
         stability,
-        performanceFactor: Math.max(dlRatio, ulRatio),
+        performanceFactor: Math.max(fwRatio, rvRatio),
       };
     }
 

@@ -15,7 +15,7 @@ import { ChevronDown } from 'lucide-react';
 import { memo, useEffect, useMemo, useState } from 'react';
 import type { LinkMode } from '../../types/linkMode';
 import { LINK_MODE_DESCRIPTIONS } from '../../types/linkMode';
-import type { DualSegmentResult, LinkSegment, TransponderMode } from '../../utils/geoDualSegmentBudget';
+import type { DualSegmentResult, LinkSegment, TransponderMode, NetworkLayerResult } from '../../utils/geoDualSegmentBudget';
 import type { EndToEndBudget } from '../../utils/geoLinkBudget';
 import type { SatelliteData } from '../../types/satellites';
 import type { GeoRfContext, PublicFrequencyMatchStatus, PublicTransponderCandidateMatch } from '../../types/geoRfContext';
@@ -578,6 +578,79 @@ const E2ECard = ({ e2e, linkMode }: { e2e: EndToEndBudget; linkMode?: LinkMode }
   );
 };
 
+// ─── NetworkLayerCard ─────────────────────────────────────────────────────────
+
+const fmtPct = (v: number) => `${(v * 100).toFixed(0)}%`;
+const fmtRatio = (v: number) => v === 1.0 ? '1 (dedicated)' : `${v.toFixed(1)}×`;
+
+const LIMITING_FACTOR_LABEL: Record<string, string> = {
+  none:       'RF Link Budget',
+  protocol:   'Protocol Overhead',
+  contention: 'Network Load (contention)',
+  terminal_a: 'Terminal A Capacity',
+  terminal_b: 'Terminal B Capacity',
+};
+
+const NetworkLayerCard = ({ nl, linkMode }: { nl: NetworkLayerResult; linkMode?: LinkMode }) => {
+  const isMesh = linkMode === 'MESH';
+  const isP2P  = linkMode === 'POINT_TO_POINT';
+  if (!isMesh && !isP2P) return null;
+
+  const topologyBadge = isP2P
+    ? { label: 'Dedicated SCPC', className: 'bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-300 border border-violet-200 dark:border-violet-700' }
+    : { label: 'Shared Service', className: 'bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-300 border border-sky-200 dark:border-sky-700' };
+
+  const protEffBadge = isP2P
+    ? { label: 'Protocol Efficiency 100%', className: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-700' }
+    : { label: 'Protocol Efficiency 85%', className: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300 border border-amber-200 dark:border-amber-700' };
+
+  return (
+    <SegmentCard accentColor="#6366f1" title="Network Layer" icon="🔷">
+      {/* Topology badges */}
+      <div className="flex flex-wrap gap-1.5 mb-2">
+        <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${topologyBadge.className}`}>
+          {topologyBadge.label}
+        </span>
+        <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${protEffBadge.className}`}>
+          {protEffBadge.label}
+        </span>
+      </div>
+      {/* Step-by-step breakdown */}
+      <div className="grid grid-cols-[minmax(7.5rem,11rem)_minmax(0,1fr)] items-baseline gap-x-3 gap-y-0.5">
+        <span className="text-xs text-gray-500 dark:text-gray-400" title="Theoretical physical ceiling from the RF link budget — MODCOD × symbol rate, before any protocol or load effects.">Peak RF Throughput ⓘ</span>
+        <span className="min-w-0 text-xs text-gray-700 dark:text-gray-200">{fmtMbps(nl.peakRfMbps)}</span>
+      </div>
+      <div className="grid grid-cols-[minmax(7.5rem,11rem)_minmax(0,1fr)] items-baseline gap-x-3 gap-y-0.5">
+        <span className="text-xs text-gray-500 dark:text-gray-400" title="Fraction of RF throughput available to user data. SCPC = 100% (dedicated carrier). Mesh = 85% typical (TDMA framing, guard times, scheduling overhead).">Protocol Efficiency ⓘ</span>
+        <span className="min-w-0 text-xs text-gray-700 dark:text-gray-200">{fmtPct(nl.protocolEfficiency)}</span>
+      </div>
+      <Row label="Protocol-Adjusted" value={fmtMbps(nl.protocolAdjustedMbps)} />
+      {(nl.contentionRatio > 1.0 || isMesh) && (
+        <div className="grid grid-cols-[minmax(7.5rem,11rem)_minmax(0,1fr)] items-baseline gap-x-3 gap-y-0.5">
+          <span className="text-xs text-gray-500 dark:text-gray-400" title="Number of equivalent users sharing the capacity. 1 = no sharing (dedicated or unloaded). Higher values reduce per-user throughput proportionally.">Contention Ratio ⓘ</span>
+          <span className="min-w-0 text-xs text-gray-700 dark:text-gray-200">{fmtRatio(nl.contentionRatio)}</span>
+        </div>
+      )}
+      <div className="border-t border-gray-100 dark:border-slate-700 pt-1.5 space-y-1.5">
+        <div className="grid grid-cols-[minmax(7.5rem,11rem)_minmax(0,1fr)] items-baseline gap-x-3 gap-y-0.5">
+          <span className="text-xs text-gray-500 dark:text-gray-400" title="Throughput after protocol and load adjustments — before terminal interface limits.">Effective Throughput ⓘ</span>
+          <span className="min-w-0 text-xs text-gray-700 dark:text-gray-200">{fmtMbps(nl.effectiveThroughputMbps)}</span>
+        </div>
+        <div className="grid grid-cols-[minmax(7.5rem,11rem)_minmax(0,1fr)] items-center gap-x-3 gap-y-0.5">
+          <span className="text-xs font-semibold text-indigo-600 dark:text-indigo-400">Final Throughput</span>
+          <span className="text-sm font-bold tabular-nums text-indigo-700 dark:text-indigo-300">{fmtMbps(nl.finalThroughputMbps)}</span>
+        </div>
+      </div>
+      {/* Limiting factor */}
+      <div className="mt-1.5 flex items-center gap-2 rounded-md px-2.5 py-1.5 bg-indigo-50/60 dark:bg-indigo-950/20 border border-indigo-200/60 dark:border-indigo-700/40">
+        <span className="text-xs text-indigo-600 dark:text-indigo-400">
+          👉 Limit: <strong>{LIMITING_FACTOR_LABEL[nl.limitingFactor] ?? nl.limitingFactor}</strong>
+        </span>
+      </div>
+    </SegmentCard>
+  );
+};
+
 // ─── DirectionBlock ───────────────────────────────────────────────────────────
 
 interface DirectionBlockProps {
@@ -586,13 +659,14 @@ interface DirectionBlockProps {
   downlink: LinkSegment;
   endToEnd: EndToEndBudget;
   linkMode?: LinkMode;
+  networkLayer?: NetworkLayerResult;
   coverageLabels?: {
     uplink?: string;
     downlink?: string;
   };
 }
 
-const DirectionBlock = ({ title, uplink, downlink, endToEnd, linkMode, coverageLabels }: DirectionBlockProps) => {
+const DirectionBlock = ({ title, uplink, downlink, endToEnd, linkMode, networkLayer, coverageLabels }: DirectionBlockProps) => {
   const satelliteName = uplink.candidate.satelliteName;
   const beamName = uplink.candidate.beamName;
   const band = uplink.candidate.band ?? downlink.candidate.band;
@@ -616,6 +690,7 @@ const DirectionBlock = ({ title, uplink, downlink, endToEnd, linkMode, coverageL
       />
       <DownlinkCard seg={downlink} coverageName={downlinkCoverageName} />
       <E2ECard e2e={endToEnd} linkMode={linkMode} />
+      {networkLayer && <NetworkLayerCard nl={networkLayer} linkMode={linkMode} />}
     </div>
   );
 };
@@ -951,6 +1026,8 @@ const DualSegmentPanel = memo<DualSegmentPanelProps>(({
                 uplink={resultWithRfContext!.forward.uplink}
                 downlink={resultWithRfContext!.forward.downlink}
                 endToEnd={resultWithRfContext!.forward.endToEnd}
+                linkMode={linkMode}
+                networkLayer={resultWithRfContext!.networkLayer?.forward}
                 coverageLabels={coverageLabels?.forward}
               />
             </>
@@ -961,6 +1038,8 @@ const DualSegmentPanel = memo<DualSegmentPanelProps>(({
                 uplink={resultWithRfContext!.reverse!.uplink}
                 downlink={resultWithRfContext!.reverse!.downlink}
                 endToEnd={resultWithRfContext!.reverse!.endToEnd}
+                linkMode={linkMode}
+                networkLayer={resultWithRfContext!.networkLayer?.reverse}
                 coverageLabels={coverageLabels?.reverse}
               />
             </>
@@ -974,6 +1053,7 @@ const DualSegmentPanel = memo<DualSegmentPanelProps>(({
             downlink={resultWithRfContext!.forward.downlink}
             endToEnd={resultWithRfContext!.forward.endToEnd}
             linkMode={linkMode}
+            networkLayer={resultWithRfContext!.networkLayer?.forward}
             coverageLabels={coverageLabels?.forward}
           />
         </>
