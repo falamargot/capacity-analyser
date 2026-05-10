@@ -10,6 +10,8 @@ import { ThemeSelector } from './components/ThemeSelector';
 import MobileAnalysisSummary from './components/layout/MobileAnalysisSummary';
 import SidebarHeroCard from './components/layout/SidebarHeroCard';
 import SatelliteStatusLegend from './components/cesium-globe/SatelliteStatusLegend';
+import { MemoryMonitorHud } from './components/MemoryMonitorHud';
+import { setMemoryMonitorViewerGetter } from './utils/memoryMonitor';
 import ExportButton, { type ExportButtonPayload } from './components/ExportButton';
 import SimulationSettings from './components/layout/SimulationSettings';
 import { WeatherControl, type TerminalType, type WeatherType, toWeatherCondition } from './components/capacity';
@@ -390,6 +392,7 @@ const App: React.FC = () => {
   // Store viewer reference when ready
   const handleCameraReady = useCallback((viewer: CesiumViewerType) => {
     viewerRef.current = viewer;
+    setMemoryMonitorViewerGetter(() => viewerRef.current);
   }, []);
 
   // Store globe container reference when ready
@@ -3737,6 +3740,7 @@ const App: React.FC = () => {
           onComplete={() => setIsSplashDismissed(true)}
         />
       )}
+      <MemoryMonitorHud />
     </div>
   );
 };

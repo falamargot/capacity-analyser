@@ -1,7 +1,7 @@
 /**
  * AircraftLayer - Renders all aircraft entities with optimized callbacks
  */
-import React, { useMemo, useCallback } from 'react';
+import React, { useMemo, useCallback, useRef } from 'react';
 import { Entity, LabelGraphics } from 'resium';
 import {
     Cartesian2,
@@ -49,21 +49,33 @@ const AircraftEntity = React.memo<{
     onAircraftHover,
     aircraftSizeScale = 1
 }) => {
-    // Create stable scale callback
+    // Per-frame allocation hot path: previously called positionCallback.getValue()
+    // which runs full dead-reckoning + allocates a fresh Cartesian3 every frame
+    // (~600 aircraft × 60fps = real GC pressure). Now we build the aircraft
+    // position into a closure-local scratch from the live ac fields — extrapolation
+    // is irrelevant at camera-distance scale.
+    // The callback reads `ac` via a ref so the CallbackProperty identity stays
+    // stable across aircraft refreshes (no Cesium re-bind per fetch).
+    const acRef = useRef(ac);
+    acRef.current = ac;
     const scaleCallback = useMemo(() => {
+        const scratchPos = new Cartesian3();
         return new CallbackProperty(() => {
             if (!viewerRef.current) return 0.3;
+            const liveAc = acRef.current;
+            const lat = Number(liveAc.latitude);
+            const lng = Number(liveAc.longitude);
+            if (!isFinite(lat) || !isFinite(lng)) return 0.3;
+            const altM = (Number(liveAc.altitude_km) || 10) * 1000;
+            Cartesian3.fromDegrees(lng, lat, altM, undefined, scratchPos);
 
-            const aircraftPosition = positionCallback.getValue(viewerRef.current.clock.currentTime);
-            if (!aircraftPosition) return 0.3;
-
-            const distance = Cartesian3.distance(cameraMetricsRef.current.position, aircraftPosition);
+            const distance = Cartesian3.distance(cameraMetricsRef.current.position, scratchPos);
             const dynamicScale = calculateDynamicScale(cameraMetricsRef.current.height, DPR_FACTOR);
 
             const baseScale = dynamicScale * 2000000 / Math.max(distance, 10000000);
             return baseScale * aircraftSizeScale * (isSelected ? 1.25 : 1);
         }, false);
-    }, [positionCallback, viewerRef, cameraMetricsRef, aircraftSizeScale, isSelected]);
+    }, [viewerRef, cameraMetricsRef, aircraftSizeScale, isSelected]);
 
     const handleClick = useCallback(() => onAircraftClick?.(ac), [ac, onAircraftClick]);
     const handleMouseEnter = useCallback(() => onAircraftHover?.(ac), [ac, onAircraftHover]);

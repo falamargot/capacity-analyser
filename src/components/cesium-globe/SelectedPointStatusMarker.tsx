@@ -65,19 +65,33 @@ export const SelectionPulseMarker: React.FC<SelectionPulseMarkerProps> = ({
     return ringBaseRadius + pulse * ringBaseRadius * 0.55;
   }, false), [pulseSpeed, ringBaseRadius]);
 
-  const ringColor = useMemo(() => new CallbackProperty((time?: JulianDate) => {
-    const now = time ? JulianDate.toDate(time).getTime() / 1000 : Date.now() / 1000;
-    const pulse = 0.5 + 0.5 * Math.sin(now * pulseSpeed * Math.PI);
-    return baseColor.withAlpha(0.12 + pulse * 0.18);
-  }, false), [baseColor, pulseSpeed]);
+  // Scratch instances reused across frames so the per-frame callbacks below never
+  // allocate. Closure-local to each useMemo => one scratch per CallbackProperty
+  // lifetime; recreated only when deps change.
+  const ringColor = useMemo(() => {
+    const scratchColor = new Color();
+    return new CallbackProperty((time?: JulianDate) => {
+      const now = time ? JulianDate.toDate(time).getTime() / 1000 : Date.now() / 1000;
+      const pulse = 0.5 + 0.5 * Math.sin(now * pulseSpeed * Math.PI);
+      Color.clone(baseColor, scratchColor);
+      scratchColor.alpha = 0.12 + pulse * 0.18;
+      return scratchColor;
+    }, false);
+  }, [baseColor, pulseSpeed]);
 
   const ringMaterial = useMemo(() => new ColorMaterialProperty(ringColor), [ringColor]);
-  const orbitalRadii = useMemo(() => new CallbackProperty((time?: JulianDate) => {
-    const now = time ? JulianDate.toDate(time).getTime() / 1000 : Date.now() / 1000;
-    const pulse = 0.5 + 0.5 * Math.sin(now * pulseSpeed * Math.PI);
-    const radius = ringBaseRadius + pulse * ringBaseRadius * 0.4;
-    return new Cartesian3(radius, radius, radius);
-  }, false), [pulseSpeed, ringBaseRadius]);
+  const orbitalRadii = useMemo(() => {
+    const scratchRadii = new Cartesian3();
+    return new CallbackProperty((time?: JulianDate) => {
+      const now = time ? JulianDate.toDate(time).getTime() / 1000 : Date.now() / 1000;
+      const pulse = 0.5 + 0.5 * Math.sin(now * pulseSpeed * Math.PI);
+      const radius = ringBaseRadius + pulse * ringBaseRadius * 0.4;
+      scratchRadii.x = radius;
+      scratchRadii.y = radius;
+      scratchRadii.z = radius;
+      return scratchRadii;
+    }, false);
+  }, [pulseSpeed, ringBaseRadius]);
 
   return (
     <>

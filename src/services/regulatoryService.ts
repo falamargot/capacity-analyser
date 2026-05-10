@@ -74,9 +74,33 @@ const OCEAN_RESULT: RegulatoryResult = {
 };
 
 // ─── Client-side cache (0.5° resolution) ──────────────────────────────────
+// LRU bounded by REGULATORY_CACHE_MAX_ENTRIES — Map preserves insertion order,
+// so re-inserting on hit keeps recently-used keys near the tail and oldest at
+// the head for O(1) eviction. 5000 entries covers typical multi-region session
+// exploration without unbounded growth across long sessions of panning.
 
+const REGULATORY_CACHE_MAX_ENTRIES = 5000;
 const _cache = new Map<string, RegulatoryResult>();
 let overlayGeoJsonPromise: Promise<any> | null = null;
+
+function cacheGet(key: string): RegulatoryResult | undefined {
+  const value = _cache.get(key);
+  if (value !== undefined) {
+    // Move to most-recently-used position
+    _cache.delete(key);
+    _cache.set(key, value);
+  }
+  return value;
+}
+
+function cacheSet(key: string, value: RegulatoryResult): void {
+  if (_cache.has(key)) _cache.delete(key);
+  _cache.set(key, value);
+  if (_cache.size > REGULATORY_CACHE_MAX_ENTRIES) {
+    const oldestKey = _cache.keys().next().value;
+    if (oldestKey !== undefined) _cache.delete(oldestKey);
+  }
+}
 
 // ─── Public API ────────────────────────────────────────────────────────────
 
@@ -88,14 +112,14 @@ let overlayGeoJsonPromise: Promise<any> | null = null;
  */
 export async function regulatoryLookup(lat: number, lng: number): Promise<RegulatoryResult> {
   const cacheKey = `${Math.round(lat * 2)}_${Math.round(lng * 2)}`;
-  const cached = _cache.get(cacheKey);
+  const cached = cacheGet(cacheKey);
   if (cached) return cached;
 
   try {
     const res = await fetch(`${API_BASE}/api/regulatory?lat=${lat}&lng=${lng}`);
     if (!res.ok) return OCEAN_RESULT;
     const result = (await res.json()) as RegulatoryResult;
-    _cache.set(cacheKey, result);
+    cacheSet(cacheKey, result);
     return result;
   } catch {
     return OCEAN_RESULT;

@@ -25,6 +25,8 @@ const getLabelBackgroundColor = (satellite: SatelliteData): string => (
 
 const LABEL_OFFSET_Y_PX = 10;
 const LABEL_POSITION_EASING = 0.22;
+const LABEL_BASE_Z_INDEX = 11;
+const LABEL_MAX_Z_INDEX = 18;
 
 interface SmoothedScreenPosition {
   x: number;
@@ -150,7 +152,7 @@ const SatelliteScreenLabels: React.FC<SatelliteScreenLabelsProps> = ({
 
   return (
     <>
-      {sortedSatellites.map(({ satellite, isManuallySelected }) => (
+      {sortedSatellites.map(({ satellite, isManuallySelected }, index) => (
         <div
           key={satellite.id}
           ref={(node) => {
@@ -164,7 +166,7 @@ const SatelliteScreenLabels: React.FC<SatelliteScreenLabelsProps> = ({
           style={{
             left: 0,
             top: 0,
-            zIndex: 1000 + Math.round(satellite.position.alt ?? 0),
+            zIndex: Math.min(LABEL_BASE_Z_INDEX + index, LABEL_MAX_Z_INDEX),
           }}
         >
           <div

@@ -25,11 +25,19 @@ interface SatelliteLiveCell {
 }
 
 const SATELLITE_INTERPOLATION_FALLBACK_MS = 1000;
-// Extrapolation beyond the latest sample. With the fixed timing model, the next tick
-// arrives ~200 ms before the current sample's timestamp expires, so extrapolation is
-// only needed when a tick is significantly late (tab backgrounded, GC storm).
-// Keep this short to avoid linear drift compounding on orbital curves.
-const SATELLITE_MAX_EXTRAPOLATION_MS = 1200;
+// How far past the latest sample we allow linear extrapolation before the satellite
+// appears frozen. During normal foreground operation the next worker tick arrives
+// ~200 ms before the current sample expires, so this cap is almost never reached.
+//
+// The cap is intentionally generous (4 s) to cover two tab-resume scenarios:
+//   1. The last background timer fired ≥2 s before the tab became visible.
+//   2. A React reconciliation burst on resume blocks rAF for 1-2 s while
+//      calculateCoverages runs for 640 satellites.
+// In both cases the satellite must keep moving on screen until the
+// visibilitychange handler (useSatelliteLoader) delivers fresh positions.
+// Linear drift over 4 s is ~30 km for a LEO satellite — acceptable for a
+// capacity analyser. Tighten this if orbital accuracy becomes a concern.
+const SATELLITE_MAX_EXTRAPOLATION_MS = 4000;
 
 const cloneSatellitePosition = (position: SatelliteData['position']): SatellitePosition => ({
     lat: position.lat,

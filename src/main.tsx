@@ -6,7 +6,12 @@ import { Ion } from 'cesium';
 import App from './App';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { SimulationProvider } from './contexts/SimulationContext';
+import { installMemoryMonitor } from './utils/memoryMonitor';
 import './index.css';
+
+// Dev-only: wrap timers/listeners + expose window.__memStats + 30s console log.
+// No-op in production builds.
+installMemoryMonitor();
 
 // Configure Cesium ION token at app startup (before any components render)
 const ionToken = import.meta.env.VITE_CESIUM_ION_ACCESS_TOKEN;

@@ -40,6 +40,10 @@ const API_BASE = (
 ).replace(/\/$/, '');
 
 const CACHE_DURATION = 60_000;
+// LRU bound: each entry can hold thousands of aircraft (full OpenSky payload),
+// so the cap is much tighter than for regulatoryService. 32 buckets covers
+// recent panning history without unbounded growth.
+const AIRCRAFT_CACHE_MAX_ENTRIES = 32;
 const aircraftCache = new Map<string, CacheEntry>();
 
 const getCacheKey = (focusPoint: FocusPoint | null = null): string => {
@@ -47,6 +51,24 @@ const getCacheKey = (focusPoint: FocusPoint | null = null): string => {
   const latBucket = Math.round(focusPoint.lat * 2) / 2;
   const lngBucket = Math.round(focusPoint.lng * 2) / 2;
   return `${latBucket.toFixed(1)},${lngBucket.toFixed(1)}`;
+};
+
+const aircraftCacheGet = (key: string): CacheEntry | undefined => {
+  const value = aircraftCache.get(key);
+  if (value !== undefined) {
+    aircraftCache.delete(key);
+    aircraftCache.set(key, value);
+  }
+  return value;
+};
+
+const aircraftCacheSet = (key: string, value: CacheEntry): void => {
+  if (aircraftCache.has(key)) aircraftCache.delete(key);
+  aircraftCache.set(key, value);
+  if (aircraftCache.size > AIRCRAFT_CACHE_MAX_ENTRIES) {
+    const oldestKey = aircraftCache.keys().next().value;
+    if (oldestKey !== undefined) aircraftCache.delete(oldestKey);
+  }
 };
 
 const getMockAircraftData = (): Aircraft[] => ([
@@ -137,7 +159,7 @@ export async function fetchAircraftData(focusPoint: FocusPoint | null = null): P
 
 export async function getAircraftData(focusPoint: FocusPoint | null = null): Promise<Aircraft[]> {
   const cacheKey = getCacheKey(focusPoint);
-  const cached = aircraftCache.get(cacheKey);
+  const cached = aircraftCacheGet(cacheKey);
   const now = Date.now();
 
   if (cached && (now - cached.lastFetchTime) < CACHE_DURATION) {
@@ -146,7 +168,7 @@ export async function getAircraftData(focusPoint: FocusPoint | null = null): Pro
 
   const freshData = await fetchAircraftData(focusPoint);
   if (freshData && freshData.length > 0) {
-    aircraftCache.set(cacheKey, {
+    aircraftCacheSet(cacheKey, {
       aircraft: freshData,
       lastFetchTime: now,
     });

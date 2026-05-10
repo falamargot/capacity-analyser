@@ -283,6 +283,15 @@ export function connectAISStream(
           }
           vesselCache.set(vessel.mmsi, vessel);
           onVesselUpdate(vessel);
+
+          // Run stale-vessel cleanup at most once per CLEANUP_INTERVAL.
+          // Without this, the cache only ever grew during a session — the helper
+          // function existed but was never invoked.
+          const nowMs = Date.now();
+          if (nowMs - lastCleanup > CLEANUP_INTERVAL) {
+            lastCleanup = nowMs;
+            cleanupStaleVessels();
+          }
         }
       } catch (error) {
         console.warn('🚢 Failed to process SSE vessel message:', error);

@@ -42,20 +42,37 @@ import {
 /**
  * Scale a polygon toward its centroid by `factor` (0–1).
  * factor=1 → original polygon, factor=0 → single point at centroid.
+ *
+ * Writes into the provided scratch buffer (grown lazily, mutated in place).
+ * The scratch Cartesian3 instances are reused across geometry updates; Cesium
+ * re-reads the polygon hierarchy every frame, so in-place mutation is safe.
  */
-function scalePolygon(vertices: Cartesian3[], factor: number): Cartesian3[] {
-    if (factor >= 1.0) return vertices;
+function scalePolygonInto(vertices: Cartesian3[], factor: number, out: Cartesian3[]): Cartesian3[] {
+    const len = vertices.length;
+    while (out.length < len) out.push(new Cartesian3());
+    out.length = len;
 
-    // Compute centroid
-    const cx = vertices.reduce((s, v) => s + v.x, 0) / vertices.length;
-    const cy = vertices.reduce((s, v) => s + v.y, 0) / vertices.length;
-    const cz = vertices.reduce((s, v) => s + v.z, 0) / vertices.length;
+    if (factor >= 1.0) {
+        for (let i = 0; i < len; i++) Cartesian3.clone(vertices[i], out[i]);
+        return out;
+    }
 
-    return vertices.map(v => new Cartesian3(
-        cx + (v.x - cx) * factor,
-        cy + (v.y - cy) * factor,
-        cz + (v.z - cz) * factor,
-    ));
+    let cx = 0, cy = 0, cz = 0;
+    for (let i = 0; i < len; i++) {
+        cx += vertices[i].x;
+        cy += vertices[i].y;
+        cz += vertices[i].z;
+    }
+    cx /= len; cy /= len; cz /= len;
+
+    for (let i = 0; i < len; i++) {
+        const v = vertices[i];
+        const o = out[i];
+        o.x = cx + (v.x - cx) * factor;
+        o.y = cy + (v.y - cy) * factor;
+        o.z = cz + (v.z - cz) * factor;
+    }
+    return out;
 }
 
 interface OneWebCombLayerProps {
@@ -172,6 +189,10 @@ const BeamRing = React.memo<{
         hierarchy: PolygonHierarchy;
         show: boolean;
     }>({ sourceGeometries: null, hierarchy: _dummyHierarchy, show: false });
+    // Scratch Cartesian3[] reused across geometry updates so scalePolygon never
+    // allocates per-vertex. Cesium re-reads positions every frame; in-place mutation
+    // between updates is safe.
+    const scratchVerticesRef = useRef<Cartesian3[]>([]);
 
     const showCallback = useMemo(() => {
         return new CallbackProperty((time?: JulianDate) => {
@@ -181,7 +202,7 @@ const BeamRing = React.memo<{
                 const polygon = getRenderablePolygon(geometries, beamIndex);
                 if (polygon.length >= 3) {
                     try {
-                        const scaled = sanitizeCartesianRing(scalePolygon(polygon, scaleFactor));
+                        const scaled = sanitizeCartesianRing(scalePolygonInto(polygon, scaleFactor, scratchVerticesRef.current));
                         cachedRef.current = {
                             sourceGeometries: geometries,
                             hierarchy: scaled.length >= 3 ? new PolygonHierarchy(scaled) : _dummyHierarchy,
@@ -206,7 +227,7 @@ const BeamRing = React.memo<{
                 const polygon = getRenderablePolygon(geometries, beamIndex);
                 if (polygon.length >= 3) {
                     try {
-                        const scaled = sanitizeCartesianRing(scalePolygon(polygon, scaleFactor));
+                        const scaled = sanitizeCartesianRing(scalePolygonInto(polygon, scaleFactor, scratchVerticesRef.current));
                         cachedRef.current = {
                             sourceGeometries: geometries,
                             hierarchy: scaled.length >= 3 ? new PolygonHierarchy(scaled) : _dummyHierarchy,

@@ -223,7 +223,56 @@ export function useSatelliteLoader({
 
     scheduleTick();
 
+    // ── Tab visibility resume handler ──────────────────────────────────────────
+    //
+    // When a tab becomes visible again, Chrome may have throttled background
+    // timers to ≥1 s intervals, queuing several deferred scheduleTick callbacks.
+    // On resume those callbacks all fire at once, triggering a cascade of
+    // React reconciliations (calculateCoverages × 640 satellites each) that
+    // blocks the main thread for 1-3 s. During that blockage rAF cannot fire,
+    // so Cesium renders no frames and satellites appear frozen on screen.
+    //
+    // Fix: on resume, cancel every pending timer and fire exactly one fresh
+    // propagation. The workerBusy gate is also cleared in case the last
+    // background round-trip completed just as the tab was hidden, leaving the
+    // flag stuck at true.
+    let tabHiddenAtMs = 0;
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') {
+        tabHiddenAtMs = Date.now();
+        return;
+      }
+
+      // Tab became visible.
+      if (import.meta.env.DEV && tabHiddenAtMs > 0) {
+        const hiddenMs = Date.now() - tabHiddenAtMs;
+        const lastSampleMs = satellitesForResolutionRef.current[0]?.position.sampleTimeMs ?? 0;
+        const ageMs = lastSampleMs > 0 ? Date.now() - lastSampleMs : null;
+        console.log(
+          `[sat] tab resume after ${Math.round(hiddenMs / 1000)}s hidden` +
+          (ageMs !== null ? ` — last sample ${ageMs}ms ago (${ageMs < 0 ? 'future/fresh' : 'stale'})` : '') +
+          ' — forcing immediate propagation'
+        );
+      }
+      tabHiddenAtMs = 0;
+
+      // Cancel all queued tick timers to prevent the cascade of React renders.
+      if (satelliteUpdateTimeoutRef.current) {
+        clearTimeout(satelliteUpdateTimeoutRef.current);
+        satelliteUpdateTimeoutRef.current = null;
+      }
+      // Reset the gate in case it was left true by a background round-trip.
+      workerBusyRef.current = false;
+      // One immediate propagation — satLiveCellsRef will be refreshed before
+      // the next rAF frame that Cesium renders after tab resume.
+      scheduleTick();
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
     return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
       if (satelliteUpdateTimeoutRef.current) clearTimeout(satelliteUpdateTimeoutRef.current);
       worker.terminate();
       workerRef.current = null;
