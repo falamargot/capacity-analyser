@@ -3482,6 +3482,9 @@ const App: React.FC = () => {
                           linkMode={linkMode}
                           onLinkModeChange={setLinkMode}
                           pointB={pointB}
+                          pointBLeo={pointBLeo}
+                          leoTopologyMode={leoTopologyMode}
+                          leoSiteToSiteResult={leoS2SFullResult}
                         />
                       </div>
                       <div className="border-t border-slate-200/80 px-2.5 pb-2 pt-1.5 dark:border-slate-700/80">

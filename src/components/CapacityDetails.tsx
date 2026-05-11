@@ -1366,6 +1366,8 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
     if (!selectedPoint) return null;
 
     if (activeEstimatedPerformanceScope === 'LEO') {
+      if (leoTopologyMode !== 'SINGLE_SITE') return null;
+
       return (
         <CollapsibleSection
           storageKey="leo-performance"
@@ -1492,6 +1494,7 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
     geoEffectivePerformance,
     isLeoPerformanceDiagnosticOnly,
     leoDiagnosticMessage,
+    leoTopologyMode,
     linkMode,
     leoPerformance,
     meshMetrics,
@@ -1514,7 +1517,7 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
       };
     }
 
-    const userLabel = analysisSource === 'aircraft' && aircraftCallsign ? aircraftCallsign : 'User';
+    const userLabel = 'Site A';
     const terminalProfile = selectedLeoTerminalProfile;
 
     if (!resolvedLEOConnectivity.snp) {
@@ -1544,11 +1547,11 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
     const effectivePerformanceFactor = leoPerformance?.performanceFactor ?? null;
 
     return {
-      radioPath: `${userLabel} -> ${resolvedLEOConnectivity.satellite.name} -> ${resolvedLEOConnectivity.snp.name} -> ${resolvedLEOConnectivity.satellite.name} -> ${userLabel}`,
+      radioPath: `${userLabel} -> ${resolvedLEOConnectivity.satellite.name} -> SNP ${resolvedLEOConnectivity.snp.name} -> ${resolvedLEOConnectivity.satellite.name} -> ${userLabel}`,
       routeLines: [
         `${userLabel} -> ${resolvedLEOConnectivity.satellite.name}${resolvedLEOConnectivity.connectedBeamIndex !== null ? ` · Beam ${resolvedLEOConnectivity.connectedBeamIndex}` : ''}`,
         `Elevation: ${resolvedLEOConnectivity.userLEOElevation.toFixed(1)} deg | Distance: ${resolvedLEOConnectivity.userLEODistance.toFixed(0)} km (${(leoGeometry?.propagationBreakdownMs.userToSatellite ?? (resolvedLEOConnectivity.userLEODistance / SPEED_OF_LIGHT_RADIO_KM_S * 1000)).toFixed(1)} ms)`,
-        `${resolvedLEOConnectivity.snp.name} -> ${resolvedLEOConnectivity.satellite.name}`,
+        `SNP ${resolvedLEOConnectivity.snp.name} -> ${resolvedLEOConnectivity.satellite.name}`,
         `Elevation: ${(resolvedLEOConnectivity.snpLEOElevation || 0).toFixed(1)} deg | Distance: ${(resolvedLEOConnectivity.snpLEODistance || 0).toFixed(0)} km (${(leoGeometry?.propagationBreakdownMs.satelliteToGateway ?? ((resolvedLEOConnectivity.snpLEODistance || 0) / SPEED_OF_LIGHT_RADIO_KM_S * 1000)).toFixed(1)} ms)`,
       ],
       oneWayPropagation: {
@@ -1558,10 +1561,10 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
       latency: leoGeometry ? {
         summary: `Estimated RTT total: ${leoGeometry.rttTotalMs.toFixed(1)} ms`,
         propagationRows: [
-          { label: 'User -> Satellite', value: `${leoGeometry.propagationBreakdownMs.userToSatellite.toFixed(1)} ms` },
+          { label: 'Site A -> Satellite', value: `${leoGeometry.propagationBreakdownMs.userToSatellite.toFixed(1)} ms` },
           { label: 'Satellite -> SNP', value: `${leoGeometry.propagationBreakdownMs.satelliteToGateway.toFixed(1)} ms` },
           { label: 'SNP -> Satellite', value: `${leoGeometry.propagationBreakdownMs.gatewayToSatellite.toFixed(1)} ms` },
-          { label: 'Satellite -> User', value: `${leoGeometry.propagationBreakdownMs.satelliteToUser.toFixed(1)} ms` },
+          { label: 'Satellite -> Site A', value: `${leoGeometry.propagationBreakdownMs.satelliteToUser.toFixed(1)} ms` },
         ],
         propagationTotal: `${leoGeometry.rttPropagationMs.toFixed(1)} ms`,
         overheadRows: [
@@ -1591,8 +1594,6 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
     };
   }, [
     resolvedLEOConnectivity,
-    analysisSource,
-    aircraftCallsign,
     selectedLeoTerminalProfile,
     leoPerformance,
     leoGeometry,
@@ -1929,7 +1930,7 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
           : 'Unstable',
         distance: resolvedLEOConnectivity.userLEODistance,
         radioPath: resolvedLEOConnectivity.snp
-          ? `${userLabel} → ${resolvedLEOConnectivity.satellite.name} → ${resolvedLEOConnectivity.snp.name} → ${resolvedLEOConnectivity.satellite.name} → ${userLabel}`
+          ? `${userLabel} → ${resolvedLEOConnectivity.satellite.name} → SNP ${resolvedLEOConnectivity.snp.name} → ${resolvedLEOConnectivity.satellite.name} → ${userLabel}`
           : `${userLabel} → ${resolvedLEOConnectivity.satellite.name} (→ No SNP connectivity)`
       } : null,
       geoData: resolvedGEOConnectivity ? {

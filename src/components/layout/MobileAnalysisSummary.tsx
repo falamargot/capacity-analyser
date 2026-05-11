@@ -6,6 +6,7 @@ import type { SatelliteData } from '../../types/satellites';
 import type { MobileAnalysisMetrics, MobileLinkMetrics } from '../../types/analysis';
 import type { LinkMode } from '../../types/linkMode';
 import { LINK_MODE_LABELS } from '../../types/linkMode';
+import type { LeoSiteToSiteResult } from '../../utils/leoSiteToSiteModel';
 import type { LeoConnectivityViewModel } from '../../utils/leoServiceViewModel';
 import { formatCoordinates } from '../../utils/formatters';
 import { useSimulation } from '../../contexts/SimulationContext';
@@ -50,6 +51,9 @@ interface MobileAnalysisSummaryProps {
     linkMode?: LinkMode;
     onLinkModeChange?: (mode: LinkMode) => void;
     pointB?: { lat: number; lng: number } | null;
+    pointBLeo?: { lat: number; lng: number } | null;
+    leoTopologyMode?: 'SINGLE_SITE' | 'SITE_TO_SITE';
+    leoSiteToSiteResult?: LeoSiteToSiteResult | null;
 }
 
 const MOBILE_LINK_MODE_OPTIONS: Array<{ mode: LinkMode; label: string }> = [
@@ -115,6 +119,7 @@ function MetricCard({
     latencyLabel = 'RTT',
     downlinkLabel = 'Downlink',
     uplinkLabel = 'Uplink',
+    extraMetrics,
     linkModeControls,
     compact = false,
 }: {
@@ -126,6 +131,7 @@ function MetricCard({
     latencyLabel?: string;
     downlinkLabel?: string;
     uplinkLabel?: string;
+    extraMetrics?: Array<{ key: string; label: string; value: string }>;
     linkModeControls?: {
         activeMode: LinkMode;
         onChange: (mode: LinkMode) => void;
@@ -135,8 +141,9 @@ function MetricCard({
     const metricTiles = [
         metrics?.downlinkGbps != null ? { key: 'downlink', label: downlinkLabel, value: formatMbpsFromGbps(metrics.downlinkGbps) } : null,
         metrics?.uplinkGbps != null ? { key: 'uplink', label: uplinkLabel, value: formatMbpsFromGbps(metrics.uplinkGbps) } : null,
+        ...(extraMetrics ?? []),
     ].filter(Boolean) as Array<{ key: string; label: string; value: string }>;
-    const metricGridClass = metricTiles.length === 1 ? 'grid-cols-1' : 'grid-cols-2';
+    const metricGridClass = metricTiles.length === 1 ? 'grid-cols-1' : metricTiles.length === 3 ? 'grid-cols-3' : 'grid-cols-2';
 
     if (compact) {
         return (
@@ -313,6 +320,9 @@ const MobileAnalysisSummary: React.FC<MobileAnalysisSummaryProps> = ({
     linkMode = 'STAR_FORWARD',
     onLinkModeChange,
     pointB = null,
+    pointBLeo = null,
+    leoTopologyMode = 'SINGLE_SITE',
+    leoSiteToSiteResult = null,
 }) => {
     const { failedSnps } = useSimulation();
     const selectedPointStatus = useMemo(
@@ -401,14 +411,19 @@ const MobileAnalysisSummary: React.FC<MobileAnalysisSummaryProps> = ({
         }
 
         if (selectedPoint) {
+            const siteToSiteServiceReady = leoTopologyMode === 'SITE_TO_SITE' && pointBLeo;
             return {
                 eyebrow: selectedPoint.source === 'aircraft' ? 'Air Corridor' : 'Ground Point',
                 title: formatCoordinates({ lat: selectedPoint.lat, lng: selectedPoint.lng }),
                 subtitle: selectedPoint.altitude
                     ? `Altitude ${selectedPoint.altitude.toFixed(1)} km`
                     : null,
-                status: selectedPointStatus.lines.map((line) => line.text).join(' · '),
-                statusTone: selectedPointStatus.tone,
+                status: siteToSiteServiceReady
+                    ? (leoSiteToSiteResult?.serviceAvailable ? 'End-to-end available' : 'End-to-end unavailable')
+                    : selectedPointStatus.lines.map((line) => line.text).join(' · '),
+                statusTone: siteToSiteServiceReady
+                    ? (leoSiteToSiteResult?.serviceAvailable ? 'success' as const : 'danger' as const)
+                    : selectedPointStatus.tone,
             };
         }
 
@@ -425,6 +440,9 @@ const MobileAnalysisSummary: React.FC<MobileAnalysisSummaryProps> = ({
         inspectedSNP,
         leoServiceViewModel?.finalServiceStatus,
         leoServiceViewModel?.primaryReasonLabel,
+        leoSiteToSiteResult?.serviceAvailable,
+        leoTopologyMode,
+        pointBLeo,
         selectedMoon,
         selectedAircraft,
         selectedGateway,
@@ -446,19 +464,39 @@ const MobileAnalysisSummary: React.FC<MobileAnalysisSummaryProps> = ({
             latencyLabel?: string;
             downlinkLabel?: string;
             uplinkLabel?: string;
+            extraMetrics?: Array<{ key: string; label: string; value: string }>;
             linkModeControls?: {
                 activeMode: LinkMode;
                 onChange: (mode: LinkMode) => void;
             };
         }> = [];
 
-        if (metrics?.leo) {
+        const s2sLeoMetrics: MobileLinkMetrics | null = leoTopologyMode === 'SITE_TO_SITE' && leoSiteToSiteResult
+            ? {
+                rtt: leoSiteToSiteResult.rttMs,
+                downlinkGbps: leoSiteToSiteResult.finalThroughputAtoBMbps != null
+                    ? leoSiteToSiteResult.finalThroughputAtoBMbps / 1000
+                    : null,
+                uplinkGbps: leoSiteToSiteResult.finalThroughputBtoAMbps != null
+                    ? leoSiteToSiteResult.finalThroughputBtoAMbps / 1000
+                    : null,
+            }
+            : null;
+        const displayedLeoMetrics = leoTopologyMode === 'SITE_TO_SITE' ? s2sLeoMetrics : metrics?.leo;
+
+        if (displayedLeoMetrics) {
             cards.push({
                 key: 'leo',
                 label: 'LEO',
-                metrics: metrics.leo,
+                metrics: displayedLeoMetrics,
                 accentClassName: 'text-fuchsia-600 dark:text-fuchsia-300',
                 borderClassName: 'border-fuchsia-200/80 dark:border-fuchsia-400/20',
+                latencyLabel: leoTopologyMode === 'SITE_TO_SITE' ? 'Site-to-Site RTT' : 'LEO RTT',
+                downlinkLabel: leoTopologyMode === 'SITE_TO_SITE' ? 'A→B' : 'DL throughput',
+                uplinkLabel: leoTopologyMode === 'SITE_TO_SITE' ? 'B→A' : 'UL throughput',
+                extraMetrics: leoTopologyMode === 'SITE_TO_SITE' && leoSiteToSiteResult
+                    ? [{ key: 'stability', label: 'Stability', value: leoSiteToSiteResult.pathStability }]
+                    : undefined,
             });
         }
 
@@ -495,7 +533,7 @@ const MobileAnalysisSummary: React.FC<MobileAnalysisSummaryProps> = ({
         }
 
         return cards;
-    }, [linkMode, metrics?.geo, metrics?.leo, metrics?.mesh, onLinkModeChange, pointB, satelliteScope, selectedAircraft, selectedPoint]);
+    }, [leoSiteToSiteResult, leoTopologyMode, linkMode, metrics?.geo, metrics?.leo, metrics?.mesh, onLinkModeChange, pointB, satelliteScope, selectedAircraft, selectedPoint]);
 
     const hasMetrics = metricCards.length > 0;
     const isCompactCoordinateSummary = compact && !!selectedPoint;
@@ -744,6 +782,7 @@ const MobileAnalysisSummary: React.FC<MobileAnalysisSummaryProps> = ({
                                 latencyLabel={card.latencyLabel}
                                 downlinkLabel={card.downlinkLabel}
                                 uplinkLabel={card.uplinkLabel}
+                                extraMetrics={card.extraMetrics}
                                 linkModeControls={card.linkModeControls}
                                 compact={compact}
                             />

@@ -83,6 +83,7 @@ const SnpEntity = React.memo<{
             ? Color.ORANGE.withAlpha(0.9)
             : Color.ORANGE.withAlpha(0.7);
     const showLabel = isAutoSelected || isFailed || isInspected;
+    const labelText = isFailed ? `SNP ${snp.name} ✕` : `SNP ${snp.name}`;
 
     return (
         <>
@@ -114,14 +115,14 @@ const SnpEntity = React.memo<{
                     outlineWidth: isInspected || isFailed ? 2 : 0,
                     disableDepthTestDistance: 0
                 }}
-                name={snp.name}
+                name={`SNP ${snp.name}`}
                 onClick={handleClick}
                 onMouseEnter={handleMouseEnter}
                 onMouseLeave={handleMouseLeave}
             >
                 {showLabel && (
                     <LabelGraphics
-                        text={isFailed ? `${snp.name} ✕` : snp.name}
+                        text={labelText}
                         font={isFailed ? "700 13px Inter, sans-serif" : isInspected ? "700 13px Inter, sans-serif" : "600 13px Inter, sans-serif"}
                         fillColor={Color.WHITE}
                         outlineWidth={3}

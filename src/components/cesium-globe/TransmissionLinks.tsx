@@ -603,6 +603,8 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
 
     const reverseGeoUserLinkCallback = useMemo(() => createReversedPathCallback(geoUserLinkCallback), [geoUserLinkCallback]);
     const reverseGeoFeederLinkCallback = useMemo(() => createReversedPathCallback(geoFeederLinkCallback), [geoFeederLinkCallback]);
+    const reverseLeoUplinkCallback = useMemo(() => createReversedPathCallback(leoUplinkCallback), [leoUplinkCallback]);
+    const reverseLeoBackhaulCallback = useMemo(() => createReversedPathCallback(leoBackhaulCallback), [leoBackhaulCallback]);
     const reverseLeoS2SSatACallback = useMemo(() => createReversedPathCallback(leoS2SLinks?.satACallback), [leoS2SLinks?.satACallback]);
     const reverseLeoS2SSatAToSnpACallback = useMemo(() => createReversedPathCallback(leoS2SLinks?.satAToSnpACallback), [leoS2SLinks?.satAToSnpACallback]);
     const reverseLeoS2SSatBCallback = useMemo(() => createReversedPathCallback(leoS2SLinks?.satBCallback), [leoS2SLinks?.satBCallback]);
@@ -619,9 +621,10 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
             positions: CallbackProperty | null | undefined,
             color: Color,
             durationSeconds?: number,
+            phaseOffset?: number,
         ) => {
             if (!positions) return;
-            segments.push({ id, type, positions, color, durationSeconds });
+            segments.push({ id, type, positions, color, durationSeconds, phaseOffset });
         };
 
         if (satelliteScope !== 'LEO') {
@@ -667,8 +670,12 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
                 add('leo-s2s-satb-b', 'USER_LINK', leoS2SLinks.satBCallback, flowLeoUserColor, 1.85);
             }
         } else if (satelliteScope !== 'GEO') {
+            // Single-site LEO is a bidirectional access service:
+            // uplink flows Site A → satellite → SNP, while downlink flows SNP → satellite → Site A.
             add('leo-single-user-sat', 'USER_LINK', leoUplinkCallback, flowLeoUserColor, 1.85);
             add('leo-single-sat-snp', 'FEEDER_LINK', leoBackhaulCallback, flowLeoFeederColor, 1.75);
+            add('leo-single-snp-sat', 'FEEDER_LINK', reverseLeoBackhaulCallback, flowLeoFeederColor, 1.75, 0.38);
+            add('leo-single-sat-user', 'USER_LINK', reverseLeoUplinkCallback, flowLeoUserColor, 1.85, 0.38);
         }
 
         return segments;
@@ -686,6 +693,8 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
         meshSatToBCallback,
         reverseGeoFeederLinkCallback,
         reverseGeoUserLinkCallback,
+        reverseLeoBackhaulCallback,
+        reverseLeoUplinkCallback,
         reverseLeoS2SSatACallback,
         reverseLeoS2SSatAToSnpACallback,
         reverseLeoS2SSatBCallback,

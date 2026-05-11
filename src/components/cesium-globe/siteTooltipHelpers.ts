@@ -90,9 +90,17 @@ export function buildGeoMeshSection(
 export function buildLeoSingleSection(
   viewModel: LeoConnectivityViewModel | null | undefined,
   metrics: MobileLinkMetrics | null | undefined,
-  linkMode?: LinkMode,
+  route?: { satelliteName?: string | null; snpName?: string | null },
 ): SiteLabelSection {
   const lines: SiteLabelLine[] = [];
+  const satelliteName = route?.satelliteName ?? 'OneWeb satellite';
+  const snpName = route?.snpName;
+
+  if (snpName) {
+    lines.push(line(`Site A ↔ ${satelliteName} ↔ SNP ${snpName}`, 'neutral'));
+  } else if (route?.satelliteName) {
+    lines.push(line(`Site A ↔ ${satelliteName} ↔ SNP unavailable`, 'warning'));
+  }
 
   if (!viewModel) {
     lines.push(line('Checking...', 'neutral'));
@@ -107,14 +115,7 @@ export function buildLeoSingleSection(
     const dl = fmtMbpsFromGbps(metrics.downlinkGbps);
     const ul = fmtMbpsFromGbps(metrics.uplinkGbps);
     const tone: SiteLabelTone = viewModel.finalServiceStatus === 'DEGRADED' ? 'warning' : 'success';
-    if (linkMode === 'STAR_FORWARD') {
-      lines.push(line(`A→B ↑ ${dl}`, tone));
-    } else if (linkMode === 'STAR_RETURN') {
-      lines.push(line(`B→A ↑ ${ul}`, tone));
-    } else {
-      lines.push(line(`A→B ↑ ${dl}`, tone));
-      lines.push(line(`B→A ↑ ${ul}`, tone));
-    }
+    lines.push(line(`↓ DL ${dl} · ↑ UL ${ul}`, tone));
     lines.push(line(`RTT ${fmtMs(metrics.rtt)}`, 'neutral'));
   } else {
     lines.push(line(viewModel.finalServiceStatus === 'ALLOWED' ? '--' : 'Checking...', 'neutral'));

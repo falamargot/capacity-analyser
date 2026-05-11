@@ -368,21 +368,51 @@ const PipelineArrow = ({ label, isLimiting = true }: { label: string; isLimiting
   </div>
 );
 
-const DirectionBudgetSection = ({ leg }: { leg: LeoThroughputLeg }) => {
+type DirectionBudgetUsage = 'primary' | 'reference';
+
+const DirectionBudgetSection = ({
+  leg,
+  usage = null,
+  primaryDirectionLabel,
+}: {
+  leg: LeoThroughputLeg;
+  usage?: DirectionBudgetUsage | null;
+  primaryDirectionLabel?: string;
+}) => {
   const limitingFactor = detectLegLimitingFactor(leg) ?? deriveLegLimitingFactor(leg);
   const badge = limitingFactor ? LIMITING_FACTOR_BADGE[limitingFactor] : null;
   const sharingLimiting = leg.network.beamSharingMbps < leg.network.peakRfMbps * 0.99;
   const backhaulLimiting = leg.network.backhaulMbps < leg.network.beamSharingMbps * 0.99;
   const handoverLimiting = leg.network.handoverMbps < leg.network.backhaulMbps * 0.99;
+  const usageLabel = usage === 'primary'
+    ? `PRIMARY FOR ${primaryDirectionLabel ?? ''}`.trim()
+    : usage === 'reference'
+      ? 'Reference only'
+      : null;
+  const usageClassName = usage === 'primary'
+    ? 'border-pink-200 bg-pink-100 text-pink-700 dark:border-pink-800/70 dark:bg-pink-900/30 dark:text-pink-200'
+    : 'border-slate-200 bg-white/70 text-slate-500 dark:border-slate-700 dark:bg-slate-950/40 dark:text-slate-400';
 
   return (
-    <div className="rounded-lg border border-blue-200 dark:border-blue-900/60 overflow-hidden">
+    <div className={[
+      'rounded-lg border overflow-hidden',
+      usage === 'primary'
+        ? 'border-pink-300 shadow-[0_0_0_1px_rgba(219,39,119,0.10)] dark:border-pink-800'
+        : 'border-blue-200 dark:border-blue-900/60',
+    ].join(' ')}>
       <div className="px-3 py-1.5 bg-blue-100/70 dark:bg-blue-900/30 border-b border-blue-200 dark:border-blue-900/60">
-        <div className="flex items-baseline justify-between">
+        <div className="flex items-center justify-between gap-3">
           <span className="text-[10px] font-semibold uppercase tracking-wide text-blue-600 dark:text-blue-400">
             {leg.label} Budget
           </span>
-          <span className="text-[9px] text-blue-400/70 dark:text-blue-500/60 italic">physical + network</span>
+          <div className="flex shrink-0 items-center gap-1.5">
+            {usageLabel && (
+              <span className={`rounded-full border px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide ${usageClassName}`}>
+                {usageLabel}
+              </span>
+            )}
+            <span className="text-[9px] text-blue-400/70 dark:text-blue-500/60 italic">physical + network</span>
+          </div>
         </div>
       </div>
       <div className="px-3 py-2.5 bg-blue-50/40 dark:bg-blue-950/20 space-y-2.5">
@@ -570,7 +600,15 @@ const TerminalAssumptionsSection = ({ d }: { d: LeoRFDebugInfo }) => {
 };
 
 // The full Link Budget panel — geometry + separate DL/UL budgets
-const LeoRFLinkBudgetPanel = ({ d }: { d: LeoRFDebugInfo }) => {
+const LeoRFLinkBudgetPanel = ({
+  d,
+  directionUsage,
+  primaryDirectionLabel,
+}: {
+  d: LeoRFDebugInfo;
+  directionUsage?: Partial<Record<'downlink' | 'uplink', DirectionBudgetUsage>>;
+  primaryDirectionLabel?: string;
+}) => {
   const beamPosPercent = Math.round(Math.min(d.normalizedDistance, 1) * 100);
 
   return (
@@ -615,8 +653,16 @@ const LeoRFLinkBudgetPanel = ({ d }: { d: LeoRFDebugInfo }) => {
       </div>
 
       <TerminalAssumptionsSection d={d} />
-      <DirectionBudgetSection leg={d.downlink} />
-      <DirectionBudgetSection leg={d.uplink} />
+      <DirectionBudgetSection
+        leg={d.downlink}
+        usage={directionUsage?.downlink}
+        primaryDirectionLabel={primaryDirectionLabel}
+      />
+      <DirectionBudgetSection
+        leg={d.uplink}
+        usage={directionUsage?.uplink}
+        primaryDirectionLabel={primaryDirectionLabel}
+      />
     </div>
   );
 };
@@ -626,6 +672,7 @@ interface LeoLinkBudgetDrawerProps {
   onClose: () => void;
   debugInfo: LeoRFDebugInfo | null;
   siteToSiteResult?: LeoSiteToSiteResult | null;
+  siteToSiteDirection?: 'A_TO_B' | 'B_TO_A';
   snpAName?: string;
   snpBName?: string;
   popName?: string;
@@ -640,7 +687,7 @@ const NoBudgetPlaceholder = () => (
   </div>
 );
 
-const LeoLinkBudgetDrawer = ({ open, onClose, debugInfo, siteToSiteResult, snpAName, snpBName, popName }: LeoLinkBudgetDrawerProps) => {
+const LeoLinkBudgetDrawer = ({ open, onClose, debugInfo, siteToSiteResult, siteToSiteDirection = 'A_TO_B', snpAName, snpBName, popName }: LeoLinkBudgetDrawerProps) => {
   useEffect(() => {
     if (!open) return;
     const onKeyDown = (event: KeyboardEvent) => {
@@ -653,6 +700,76 @@ const LeoLinkBudgetDrawer = ({ open, onClose, debugInfo, siteToSiteResult, snpAN
   if (!open) return null;
 
   const isS2S = siteToSiteResult != null;
+  const s2sIsAtoB = siteToSiteDirection === 'A_TO_B';
+  const s2sDirectionLabel = s2sIsAtoB ? 'A → B' : 'B → A';
+  const sourceSiteId = s2sIsAtoB ? 'A' : 'B';
+  const destinationSiteId = s2sIsAtoB ? 'B' : 'A';
+  const sourceAccentClass = sourceSiteId === 'A'
+    ? 'text-emerald-600 dark:text-emerald-400'
+    : 'text-pink-600 dark:text-pink-400';
+  const sourceBadgeClass = sourceSiteId === 'A'
+    ? 'bg-emerald-100 dark:bg-emerald-900/60'
+    : 'bg-pink-100 dark:bg-pink-900/60';
+  const destinationAccentClass = destinationSiteId === 'A'
+    ? 'text-emerald-600 dark:text-emerald-400'
+    : 'text-pink-600 dark:text-pink-400';
+  const destinationBadgeClass = destinationSiteId === 'A'
+    ? 'bg-emerald-100 dark:bg-emerald-900/60'
+    : 'bg-pink-100 dark:bg-pink-900/60';
+
+  const primaryThroughputMbps = siteToSiteResult
+    ? (s2sIsAtoB ? siteToSiteResult.finalThroughputAtoBMbps : siteToSiteResult.finalThroughputBtoAMbps)
+    : null;
+  const primaryLatencyMs = siteToSiteResult
+    ? (s2sIsAtoB ? siteToSiteResult.oneWayLatencyAtoBMs : siteToSiteResult.oneWayLatencyBtoAMs)
+    : null;
+  const sourceUplinkMbps = debugInfo?.uplink.network.finalUserMbps ?? null;
+  const destinationDownlinkMbps = debugInfo?.downlink.network.finalUserMbps ?? null;
+  const sourceIsBottleneck =
+    sourceUplinkMbps != null && destinationDownlinkMbps != null
+      ? sourceUplinkMbps <= destinationDownlinkMbps
+      : sourceUplinkMbps != null;
+  const bottleneckLeg = debugInfo ? (sourceIsBottleneck ? debugInfo.uplink : debugInfo.downlink) : null;
+  const bottleneckFactor = bottleneckLeg
+    ? (detectLegLimitingFactor(bottleneckLeg) ?? deriveLegLimitingFactor(bottleneckLeg))
+    : null;
+  const bottleneckBadge = bottleneckFactor ? LIMITING_FACTOR_BADGE[bottleneckFactor] : null;
+  const bottleneckLabel = bottleneckLeg
+    ? `${sourceIsBottleneck ? `Site ${sourceSiteId} uplink` : `Site ${destinationSiteId} downlink`}${bottleneckBadge ? ` · ${bottleneckBadge.label}` : ''}`
+    : '—';
+
+  const renderS2SAccessBudget = (
+    siteId: 'A' | 'B',
+    role: 'source' | 'destination',
+    accentClass: string,
+    badgeClass: string,
+  ) => {
+    const directionUsage = role === 'source'
+      ? { uplink: 'primary' as const, downlink: 'reference' as const }
+      : { downlink: 'primary' as const, uplink: 'reference' as const };
+
+    return (
+    <div>
+      <h4 className={`mb-1 flex items-center gap-2 text-sm font-bold ${accentClass}`}>
+        <span className={`inline-flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-extrabold ${badgeClass}`}>{siteId}</span>
+        Site {siteId} Access Budget
+        <span className="rounded-full border border-slate-200 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-slate-500 dark:border-slate-700 dark:text-slate-400">
+          {role}
+        </span>
+      </h4>
+      {siteId === 'B' && (
+        <p className="mb-3 text-[10px] italic text-slate-400 dark:text-slate-500">
+          Symmetric terminal assumption — Site B uses the same RF profile as Site A.
+        </p>
+      )}
+      <LeoRFLinkBudgetPanel
+        d={debugInfo!}
+        directionUsage={directionUsage}
+        primaryDirectionLabel={s2sDirectionLabel}
+      />
+    </div>
+    );
+  };
 
   return (
     <div
@@ -669,11 +786,11 @@ const LeoLinkBudgetDrawer = ({ open, onClose, debugInfo, siteToSiteResult, snpAN
                 {isS2S ? 'LEO Link Budget — Site-to-Site' : 'LEO Link Budget'}
               </p>
               <h3 className="mt-1 truncate text-lg font-semibold text-slate-950 dark:text-slate-50">
-                {isS2S ? 'End-to-End Budget' : (debugInfo?.satelliteId ?? 'No LEO path')}
+                {isS2S ? `End-to-End Budget (${s2sDirectionLabel})` : (debugInfo?.satelliteId ?? 'No LEO path')}
               </h3>
               {isS2S && (
                 <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
-                  Site A access · backbone · Site B access (symmetric terminal)
+                  Site {sourceSiteId} source · backbone · Site {destinationSiteId} destination
                 </p>
               )}
             </div>
@@ -690,16 +807,25 @@ const LeoLinkBudgetDrawer = ({ open, onClose, debugInfo, siteToSiteResult, snpAN
             {isS2S ? (
               debugInfo ? (
                 <div className="space-y-8">
-                  {/* ── Site A access budget ─── */}
-                  <div>
-                    <h4 className="mb-3 flex items-center gap-2 text-sm font-bold text-emerald-600 dark:text-emerald-400">
-                      <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-emerald-100 text-[10px] font-extrabold dark:bg-emerald-900/60">A</span>
-                      Site A Access Budget
-                    </h4>
-                    <LeoRFLinkBudgetPanel d={debugInfo} />
+                  <div className="grid grid-cols-3 gap-px overflow-hidden rounded-lg border border-pink-200 bg-pink-100 dark:border-pink-900/60 dark:bg-pink-950/40">
+                    {[
+                      { label: `${s2sDirectionLabel} throughput`, value: fmtMbpsSafe(primaryThroughputMbps), tone: 'text-pink-700 dark:text-pink-200' },
+                      { label: 'Primary bottleneck', value: bottleneckLabel, tone: 'text-slate-900 dark:text-slate-100' },
+                      { label: 'One-way latency', value: fmtMs(primaryLatencyMs), tone: 'text-slate-900 dark:text-slate-100' },
+                    ].map((item) => (
+                      <div key={item.label} className="min-w-0 bg-white px-3 py-3 dark:bg-slate-950">
+                        <div className="text-[10px] font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">
+                          {item.label}
+                        </div>
+                        <div className={`mt-1 truncate text-sm font-bold tabular-nums ${item.tone}`}>
+                          {item.value}
+                        </div>
+                      </div>
+                    ))}
                   </div>
 
-                  {/* ── Backbone network layer ─── */}
+                  {renderS2SAccessBudget(sourceSiteId, 'source', sourceAccentClass, sourceBadgeClass)}
+
                   <div>
                     <h4 className="mb-3 text-sm font-bold text-violet-600 dark:text-violet-400">Backbone Network Layer</h4>
                     <div className="rounded-lg border border-violet-200 dark:border-violet-800/60 overflow-hidden text-xs">
@@ -737,17 +863,7 @@ const LeoLinkBudgetDrawer = ({ open, onClose, debugInfo, siteToSiteResult, snpAN
                     </div>
                   </div>
 
-                  {/* ── Site B access budget ─── */}
-                  <div>
-                    <h4 className="mb-1 flex items-center gap-2 text-sm font-bold text-pink-600 dark:text-pink-400">
-                      <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-pink-100 text-[10px] font-extrabold dark:bg-pink-900/60">B</span>
-                      Site B Access Budget
-                    </h4>
-                    <p className="mb-3 text-[10px] italic text-slate-400 dark:text-slate-500">
-                      Symmetric terminal assumption — Site B uses the same RF profile as Site A.
-                    </p>
-                    <LeoRFLinkBudgetPanel d={debugInfo} />
-                  </div>
+                  {renderS2SAccessBudget(destinationSiteId, 'destination', destinationAccentClass, destinationBadgeClass)}
                 </div>
               ) : <NoBudgetPlaceholder />
             ) : (
@@ -858,7 +974,6 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
   autoWeatherEnabled,
   onAutoWeatherChange,
   analysisSource,
-  aircraftCallsign,
   onSatelliteClick,
   failedSnps,
   hsBeamsSet,
@@ -873,7 +988,7 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
   activeMeshTab,
   onActiveMeshTabChange,
 }) => {
-  const userLabel = analysisSource === 'aircraft' && aircraftCallsign ? aircraftCallsign : 'User';
+  const siteALabel = 'Site A';
   const showPerformanceBeforeRadioPath = analysisSource !== 'aircraft';
   const [isLinkBudgetDrawerOpen, setIsLinkBudgetDrawerOpen] = useState(false);
   const [s2sDirection, setS2SDirection] = useState<'A_TO_B' | 'B_TO_A'>(
@@ -1137,12 +1252,13 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
           snpAName={s2sSnpAName !== '—' ? s2sSnpAName : undefined}
           snpBName={s2sSnpBName !== '—' ? s2sSnpBName : undefined}
           popName={s2sPopName}
+          siteToSiteDirection={s2sDirection}
         />
 
         {/* Radio Path */}
         <CollapsibleSection
           storageKey="leo-radio-path"
-          title={<>{isRegulatoryBlocked && !isS2S ? 'Radio Path (Diagnostic only)' : 'Radio Path'}<SectionTooltip content={isS2S ? "Full OneWeb site-to-site logical path: Site A → Satellite A → SNP A → Backbone → SNP B → Satellite B → Site B. Backbone routing is estimated." : "Active one-way LEO signal route: User → LEO Satellite → SNP gateway. RTT details are shown in the latency breakdown below."} /></>}
+          title={<>{isRegulatoryBlocked && !isS2S ? 'Radio Path (Diagnostic only)' : 'Radio Path'}<SectionTooltip content={isS2S ? "Full OneWeb site-to-site logical path: Site A → Satellite A → SNP A → Backbone → SNP B → Satellite B → Site B. Backbone routing is estimated." : "Active one-way LEO signal route: Site A → LEO Satellite → SNP/Gateway. RTT details are shown in the latency breakdown below."} /></>}
           subtitle={isRegulatoryBlocked && !isS2S ? blockedDiagnosticMessage : undefined}
           accentColor="#db2777"
           defaultOpen={true}
@@ -1240,18 +1356,18 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
                 <div className="flex items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs text-slate-700 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200">
                   <Route className="h-4 w-4 shrink-0 text-pink-500" />
                   <div className="min-w-0 break-words leading-relaxed">
-                    {userLabel}
+                    {siteALabel}
                     {' → '}
                     <button onClick={() => onSatelliteClick?.(resolvedLEOConnectivity.satellite)} className="underline hover:no-underline text-pink-600 dark:text-pink-400 font-medium cursor-pointer break-all">{resolvedLEOConnectivity.satellite.name}</button>
                     {' → '}
-                    {resolvedLEOConnectivity.snp.name}
+                    SNP {resolvedLEOConnectivity.snp.name}
                   </div>
                 </div>
               ) : (
                 <div className="flex items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs text-slate-700 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200">
                   <Route className="h-4 w-4 shrink-0 text-pink-500" />
                   <div className="min-w-0 break-words leading-relaxed">
-                    {userLabel}
+                    {siteALabel}
                     {' → '}
                     <button onClick={() => onSatelliteClick?.(resolvedLEOConnectivity.satellite)} className="underline hover:no-underline text-pink-600 dark:text-pink-400 font-medium cursor-pointer break-all">{resolvedLEOConnectivity.satellite.name}</button>
                     {' → No SNP connectivity'}
@@ -1261,7 +1377,7 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
               {resolvedLEOConnectivity.snp ? (
                 <div className="text-xs text-gray-500 dark:text-gray-400 space-y-2 text-left">
                   <div>
-                    <div className="break-words">{userLabel} → {resolvedLEOConnectivity.satellite.name}{resolvedLEOConnectivity.connectedBeamIndex !== null ? ` · Beam ${resolvedLEOConnectivity.connectedBeamIndex}` : ''}</div>
+                    <div className="break-words">{siteALabel} → {resolvedLEOConnectivity.satellite.name}{resolvedLEOConnectivity.connectedBeamIndex !== null ? ` · Beam ${resolvedLEOConnectivity.connectedBeamIndex}` : ''}</div>
                     <div className="pl-3 sm:pl-4 break-words">
                       → Slant Range: {formatHopDistance(
                         resolvedLEOConnectivity.userLEODistance,
@@ -1270,7 +1386,7 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
                     </div>
                   </div>
                   <div>
-                    <div className="break-words">{resolvedLEOConnectivity.satellite.name} → {resolvedLEOConnectivity.snp.name}</div>
+                    <div className="break-words">{resolvedLEOConnectivity.satellite.name} → SNP {resolvedLEOConnectivity.snp.name}</div>
                     <div className="pl-3 sm:pl-4 break-words">
                       → Slant Range: {formatHopDistance(
                         resolvedLEOConnectivity.snpLEODistance,
@@ -1312,7 +1428,7 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
           accentColor="#db2777"
           tooltip={isS2S
             ? "Full one-way propagation: Access A + Feeder A + Backbone + Feeder B + Access B + Processing margin."
-            : "Breakdown of the full round-trip propagation delay over the LEO link: User → Satellite → SNP → Satellite → User, plus network overhead."}
+            : "Breakdown of the full round-trip propagation delay over the LEO link: Site A → Satellite → SNP/Gateway → Satellite → Site A, plus network overhead."}
           title={isRegulatoryBlocked && !isS2S ? 'Latency breakdown (Diagnostic only)' : 'Latency breakdown'}
           summary={isS2S
             ? (s2sActive
@@ -1356,10 +1472,10 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
                 Propagation delays are physics-derived from slant range. Overhead values are model estimates.
               </div>
               <div className="font-semibold text-gray-700 dark:text-gray-200">RTT propagation components</div>
-              <div className="flex justify-between"><span>User {'->'} Satellite</span><span>{leoGeometry.propagationBreakdownMs.userToSatellite.toFixed(1)} ms</span></div>
+              <div className="flex justify-between"><span>Site A {'->'} Satellite</span><span>{leoGeometry.propagationBreakdownMs.userToSatellite.toFixed(1)} ms</span></div>
               <div className="flex justify-between"><span>Satellite {'->'} SNP</span><span>{leoGeometry.propagationBreakdownMs.satelliteToGateway.toFixed(1)} ms</span></div>
               <div className="flex justify-between"><span>SNP {'->'} Satellite</span><span>{leoGeometry.propagationBreakdownMs.gatewayToSatellite.toFixed(1)} ms</span></div>
-              <div className="flex justify-between"><span>Satellite {'->'} User</span><span>{leoGeometry.propagationBreakdownMs.satelliteToUser.toFixed(1)} ms</span></div>
+              <div className="flex justify-between"><span>Satellite {'->'} Site A</span><span>{leoGeometry.propagationBreakdownMs.satelliteToUser.toFixed(1)} ms</span></div>
               <div className="border-t border-gray-200 dark:border-slate-700 pt-2 flex justify-between font-semibold text-gray-700 dark:text-gray-200">
                 <span>RTT propagation</span><span>{leoGeometry.rttPropagationMs.toFixed(1)} ms</span>
               </div>

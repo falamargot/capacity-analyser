@@ -1811,7 +1811,10 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                     sections.push(
                         hasLeoS2S
                             ? buildLeoS2SSectionA(s2sResult!)
-                            : buildLeoSingleSection(leoServiceViewModel, performanceMetrics?.leo, linkMode)
+                            : buildLeoSingleSection(leoServiceViewModel, performanceMetrics?.leo, {
+                                satelliteName: autoSelectedLEOSatellite?.name ?? null,
+                                snpName: typeof selectedSNP === 'string' ? selectedSNP : (selectedSNP?.name ?? null),
+                            })
                     );
                 }
 
