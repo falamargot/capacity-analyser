@@ -190,6 +190,7 @@ type InitialDisplayDefaults = {
   showSatelliteTrajectory: boolean;
   showAggregatedConnectivity: boolean;
   showFootprintProjection: boolean;
+  showFlowAnimation: boolean;
   countryOverlayMode: CountryOverlayMode;
   sizeScaleOverride: number | null;
 };
@@ -241,6 +242,7 @@ const getInitialDisplayDefaults = (savedSizeScale: number): InitialDisplayDefaul
       showSatelliteTrajectory: false,
       showAggregatedConnectivity: false,
       showFootprintProjection: false,
+      showFlowAnimation: true,
       countryOverlayMode: 'none',
       sizeScaleOverride: Number.isFinite(savedSizeScale) && savedSizeScale > 0 ? savedSizeScale : null,
     };
@@ -256,6 +258,7 @@ const getInitialDisplayDefaults = (savedSizeScale: number): InitialDisplayDefaul
     showSatelliteTrajectory: parseBooleanQueryValue(params.get('trajectory')) ?? false,
     showAggregatedConnectivity: parseBooleanQueryValue(params.get('connectivity')) ?? false,
     showFootprintProjection: parseBooleanQueryValue(params.get('footprint')) ?? false,
+    showFlowAnimation: parseBooleanQueryValue(params.get('flowAnimation')) ?? parseBooleanQueryValue(params.get('flow')) ?? true,
     countryOverlayMode: parseOverlayQueryValue(params.get('overlay')) ?? 'none',
     sizeScaleOverride: querySizeScale ?? savedScaleOverride,
   };
@@ -383,6 +386,7 @@ const App: React.FC = () => {
   const [showSatelliteTrajectory, setShowSatelliteTrajectory] = useState(initialDisplayDefaults.showSatelliteTrajectory);
   const [showAggregatedConnectivity, setShowAggregatedConnectivity] = useState(initialDisplayDefaults.showAggregatedConnectivity);
   const [showFootprintProjection, setShowFootprintProjection] = useState(initialDisplayDefaults.showFootprintProjection);
+  const [showFlowAnimation, setShowFlowAnimation] = useState(initialDisplayDefaults.showFlowAnimation);
   const [countryOverlayMode, setCountryOverlayMode] = useState<CountryOverlayMode>(initialDisplayDefaults.countryOverlayMode);
   const commandPaletteSearchRef = useRef<HTMLInputElement>(null);
   const helpMenuRef = useRef<HTMLDivElement>(null);
@@ -2335,6 +2339,7 @@ const App: React.FC = () => {
   const handleToggleSatelliteTrajectory = useCallback(() => setShowSatelliteTrajectory(v => !v), []);
   const handleToggleAggregatedConnectivity = useCallback(() => setShowAggregatedConnectivity(v => !v), []);
   const handleToggleFootprintProjection = useCallback(() => setShowFootprintProjection(v => !v), []);
+  const handleToggleFlowAnimation = useCallback(() => setShowFlowAnimation(v => !v), []);
   const handleCountryOverlayModeChange = useCallback((mode: CountryOverlayMode) => {
     setCountryOverlayMode(mode);
   }, []);
@@ -2432,6 +2437,8 @@ const App: React.FC = () => {
     onToggleAggregatedConnectivity: handleToggleAggregatedConnectivity,
     showFootprintProjection,
     onToggleFootprintProjection: handleToggleFootprintProjection,
+    showFlowAnimation,
+    onToggleFlowAnimation: handleToggleFlowAnimation,
     sizeScale,
     onToggleSatelliteTrajectory: handleToggleSatelliteTrajectory,
     countryOverlayMode,
@@ -2461,7 +2468,7 @@ const App: React.FC = () => {
     isFullscreen, satelliteScope, airTrafficEnabled, airTraffic.aircraft,
     selectedAircraft, handleAircraftSelect, handleAircraftHover,
     maritimeTrafficEnabled, maritimeTraffic.vessels, selectedVessel, handleVesselSelect, cameraTarget,
-    handleCameraReady, handleGlobeContainerReady, handleGlobeBootPhaseChange, handleInitialGlobeReady, enableLighting, handleToggleLighting, handleSizeScaleChange, handleToggleAggregatedConnectivity, handleToggleFootprintProjection, handleToggleFullscreen, handleToggleSatelliteTrajectory, interpolatedAircraftMapRef, interpolatedVesselMapRef, showSatelliteTrajectory, showAggregatedConnectivity, showFootprintProjection, sizeScale,
+    handleCameraReady, handleGlobeContainerReady, handleGlobeBootPhaseChange, handleInitialGlobeReady, enableLighting, handleToggleLighting, handleSizeScaleChange, handleToggleAggregatedConnectivity, handleToggleFootprintProjection, handleToggleFlowAnimation, handleToggleFullscreen, handleToggleSatelliteTrajectory, interpolatedAircraftMapRef, interpolatedVesselMapRef, showSatelliteTrajectory, showAggregatedConnectivity, showFootprintProjection, showFlowAnimation, sizeScale,
     inspectedSNP, snpConnectedSatellites, countryOverlayMode, handleCountryOverlayModeChange, handleSizeScaleReset,
     isPhone, isMobileAnalysisPanelOpen, coverageSwitcherCoverages, selectedCoverageId, handleSelectTargetCoverageById,
     pointB, pointBLeo, linkMode, activeMeshTab,

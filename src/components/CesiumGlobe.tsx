@@ -204,6 +204,8 @@ interface CesiumGlobeProps {
     onToggleAggregatedConnectivity?: () => void;
     showFootprintProjection?: boolean;
     onToggleFootprintProjection?: () => void;
+    showFlowAnimation?: boolean;
+    onToggleFlowAnimation?: () => void;
     sizeScale?: number;
     onToggleSatelliteTrajectory?: () => void;
     onSizeScaleChange?: (scale: number) => void;
@@ -299,6 +301,8 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
     onToggleAggregatedConnectivity,
     showFootprintProjection = false,
     onToggleFootprintProjection,
+    showFlowAnimation = true,
+    onToggleFlowAnimation,
     sizeScale,
     onToggleSatelliteTrajectory,
     onSizeScaleChange,
@@ -1460,6 +1464,8 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                 onToggleAggregatedConnectivity={onToggleAggregatedConnectivity}
                 showFootprintProjection={showFootprintProjection}
                 onToggleFootprintProjection={onToggleFootprintProjection}
+                showFlowAnimation={showFlowAnimation}
+                onToggleFlowAnimation={onToggleFlowAnimation}
                 countryOverlayMode={effectiveCountryOverlayMode}
                 onCountryOverlayModeChange={onCountryOverlayModeChange}
                 satelliteScope={satelliteScope}
@@ -1635,6 +1641,8 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                         leoServiceViewModel={leoServiceViewModel}
                         resolvedAutoGeoGateway={resolvedAutoGeoGateway}
                         resolvedSelectedGeoGateway={resolvedSelectedGeoGateway}
+                        showFlowAnimation={showFlowAnimation}
+                        cameraMetricsRef={cameraMetricsRef}
                     />
 
                     {/* Selected Position Marker — Point A */}

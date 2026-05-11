@@ -67,6 +67,8 @@ interface MapViewSwitcherProps {
   onToggleAggregatedConnectivity?: () => void;
   showFootprintProjection?: boolean;
   onToggleFootprintProjection?: () => void;
+  showFlowAnimation?: boolean;
+  onToggleFlowAnimation?: () => void;
   sizeScale?: number;
   onToggleSatelliteTrajectory?: () => void;
   onSizeScaleChange?: (scale: number) => void;
@@ -155,6 +157,8 @@ const MapViewSwitcher: React.FC<MapViewSwitcherProps> = ({
   onToggleAggregatedConnectivity,
   showFootprintProjection = false,
   onToggleFootprintProjection,
+  showFlowAnimation = true,
+  onToggleFlowAnimation,
   sizeScale,
   onToggleSatelliteTrajectory,
   onSizeScaleChange,
@@ -244,6 +248,8 @@ const MapViewSwitcher: React.FC<MapViewSwitcherProps> = ({
         onToggleAggregatedConnectivity={onToggleAggregatedConnectivity}
         showFootprintProjection={showFootprintProjection}
         onToggleFootprintProjection={onToggleFootprintProjection}
+        showFlowAnimation={showFlowAnimation}
+        onToggleFlowAnimation={onToggleFlowAnimation}
         sizeScale={sizeScale}
         onToggleSatelliteTrajectory={onToggleSatelliteTrajectory}
         onSizeScaleChange={onSizeScaleChange}

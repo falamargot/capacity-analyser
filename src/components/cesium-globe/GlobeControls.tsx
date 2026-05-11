@@ -9,6 +9,7 @@ import {
     Viewer as CesiumViewerType
 } from 'cesium';
 import {
+    Activity,
     Globe,
     Map,
     Minus,
@@ -43,6 +44,8 @@ interface GlobeControlsProps {
     onToggleAggregatedConnectivity?: () => void;
     showFootprintProjection?: boolean;
     onToggleFootprintProjection?: () => void;
+    showFlowAnimation?: boolean;
+    onToggleFlowAnimation?: () => void;
     countryOverlayMode?: CountryOverlayMode;
     onCountryOverlayModeChange?: (mode: CountryOverlayMode) => void;
     satelliteScope?: 'LEO' | 'GEO' | 'ALL';
@@ -261,6 +264,8 @@ const GlobeControls: React.FC<GlobeControlsProps> = ({
     onToggleAggregatedConnectivity,
     showFootprintProjection,
     onToggleFootprintProjection,
+    showFlowAnimation = true,
+    onToggleFlowAnimation,
     countryOverlayMode = 'none',
     onCountryOverlayModeChange,
     satelliteScope,
@@ -502,6 +507,19 @@ const GlobeControls: React.FC<GlobeControlsProps> = ({
                                             onClick={() => onToggleFootprintProjection()}
                                             accent="blue"
                                             title="Toggle selected satellite footprint projection (P)"
+                                            compact={useCompactDisplayPanel}
+                                        />
+                                    )}
+
+                                    {onToggleFlowAnimation && (
+                                        <DisplayOptionRow
+                                            icon={<Activity className="h-4 w-4" />}
+                                            label="Flow Animation"
+                                            description="Show active traffic pulses"
+                                            enabled={!!showFlowAnimation}
+                                            onClick={() => onToggleFlowAnimation()}
+                                            accent="violet"
+                                            title="Toggle end-to-end flow animation"
                                             compact={useCompactDisplayPanel}
                                         />
                                     )}

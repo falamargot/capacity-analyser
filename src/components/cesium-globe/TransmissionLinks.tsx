@@ -35,6 +35,8 @@ import { buildSimulationStateSnapshot } from '../../types/simulation';
 import type { LeoConnectivityViewModel } from '../../utils/leoServiceViewModel';
 import { RegulatoryBlockedPathMaterialProperty } from './materials/regulatoryMaterials';
 import type { LeoSiteToSiteResult } from '../../utils/leoSiteToSiteModel';
+import PathFlowAnimation, { type PathSegment } from './PathFlowAnimation';
+import type { CameraMetricsSnapshot } from './utils';
 
 interface TransmissionLinksProps {
     satellites: SatelliteData[];
@@ -58,6 +60,8 @@ interface TransmissionLinksProps {
     leoServiceViewModel?: LeoConnectivityViewModel | null;
     resolvedAutoGeoGateway?: ResolvedGeoGateway | null;
     resolvedSelectedGeoGateway?: ResolvedGeoGateway | null;
+    showFlowAnimation?: boolean;
+    cameraMetricsRef?: React.RefObject<CameraMetricsSnapshot>;
 }
 
 // Dashed material cache
@@ -154,8 +158,13 @@ const s2sBackboneGlowMaterial = new PolylineGlowMaterialProperty({
 const S2S_BACKBONE_HALO_WIDTH = 8;
 const S2S_BACKBONE_GLOW_WIDTH = 6;
 const S2S_BACKBONE_MAIN_WIDTH = 3.8;
-const S2S_BACKBONE_FLOW_DOTS = [0, 0.33, 0.66] as const;
-const S2S_BACKBONE_FLOW_EPOCH = JulianDate.fromDate(new Date(0));
+const flowGeoForwardColor = Color.ROYALBLUE;
+const flowGeoReturnColor = Color.fromCssColorString('#f59e0b');
+const flowMeshTransmitColor = Color.fromCssColorString('#f97316');
+const flowMeshReceiveColor = Color.fromCssColorString('#06b6d4');
+const flowLeoUserColor = Color.fromCssColorString('#06b6d4');
+const flowLeoFeederColor = Color.fromCssColorString('#f97316');
+const flowBackboneColor = Color.fromCssColorString('#a78bfa');
 
 function logGatewayDesync(
     sourceComponent: string,
@@ -175,36 +184,14 @@ function logGatewayDesync(
 }
 
 interface S2SBackboneSegmentProps {
-    id: string;
     name: string;
     positions: CallbackProperty;
-    start: Cartesian3;
-    end: Cartesian3;
-    reverseFlow: boolean;
 }
 
 const S2SBackboneSegment = React.memo<S2SBackboneSegmentProps>(({
-    id,
     name,
     positions,
-    start,
-    end,
-    reverseFlow,
 }) => {
-    const flowCallbacks = useMemo(() => (
-        S2S_BACKBONE_FLOW_DOTS.map((phase) => new CallbackProperty((time?: JulianDate) => {
-            if (!time) return reverseFlow ? end : start;
-            const seconds = JulianDate.secondsDifference(time, S2S_BACKBONE_FLOW_EPOCH);
-            const t = ((seconds * 0.18 + phase) % 1 + 1) % 1;
-            return Cartesian3.lerp(
-                reverseFlow ? end : start,
-                reverseFlow ? start : end,
-                t,
-                new Cartesian3(),
-            );
-        }, false))
-    ), [end, reverseFlow, start]);
-
     return (
         <>
             <Entity name={`${name} halo`}>
@@ -234,25 +221,23 @@ const S2SBackboneSegment = React.memo<S2SBackboneSegmentProps>(({
                     arcType={ArcType.GEODESIC}
                 />
             </Entity>
-            {flowCallbacks.map((position, index) => (
-                <Entity
-                    key={`${id}-flow-${index}`}
-                    name={`${name} packet flow ${index + 1}`}
-                    position={position}
-                >
-                    <PointGraphics
-                        pixelSize={6}
-                        color={Color.fromCssColorString('#f5f3ff').withAlpha(0.96)}
-                        outlineColor={Color.fromCssColorString('#7c3aed').withAlpha(0.96)}
-                        outlineWidth={2}
-                        disableDepthTestDistance={Number.POSITIVE_INFINITY}
-                    />
-                </Entity>
-            ))}
         </>
     );
 });
 S2SBackboneSegment.displayName = 'S2SBackboneSegment';
+
+const createStaticPathCallback = (positions: Cartesian3[]) => (
+    new CallbackProperty(() => positions, true)
+);
+
+const createReversedPathCallback = (source: CallbackProperty | null | undefined) => {
+    if (!source) return null;
+    return new CallbackProperty((time?: JulianDate) => {
+        if (!time) return [];
+        const value = source.getValue(time);
+        return Array.isArray(value) ? [...value].reverse() : [];
+    }, false);
+};
 
 const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
     satellites,
@@ -274,6 +259,8 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
     leoServiceViewModel = null,
     resolvedAutoGeoGateway = null,
     resolvedSelectedGeoGateway = null,
+    showFlowAnimation = true,
+    cameraMetricsRef,
 }) => {
     const { coveragePolicy, weatherCondition, beamHealthFactors, hsBeamsSet } = useSimulation();
 
@@ -599,9 +586,13 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
         }, false) : null;
 
         const sameSNP = !!(selectedSnpA && selectedSnpB && selectedSnpA.name === selectedSnpB.name);
+        const snpAToPopCallback = snpAPos && popPos ? createStaticPathCallback([snpAPos, popPos]) : null;
+        const popToSnpBCallback = snpBPos && popPos ? createStaticPathCallback([popPos, snpBPos]) : null;
+        const sameSnpCallback = sameSNP && snpAPos && snpBPos ? createStaticPathCallback([snpAPos, snpBPos]) : null;
 
         return {
             satACallback, satAToSnpACallback, satBCallback, satBToSnpBCallback,
+            snpAToPopCallback, popToSnpBCallback, sameSnpCallback,
             snpAPos, snpBPos, popPos, sameSNP,
             snpAName: selectedSnpA?.name ?? null, snpBName: selectedSnpB?.name ?? null,
             popName: logicalPop?.name ?? 'Core PoP',
@@ -609,7 +600,101 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
     }, [leoSiteToSiteResult, satellites]);
 
     const isSiteToSiteActive = !!(leoS2SLinks);
-    const isBackboneReverse = activeMeshTab === 'reverse';
+
+    const reverseGeoUserLinkCallback = useMemo(() => createReversedPathCallback(geoUserLinkCallback), [geoUserLinkCallback]);
+    const reverseGeoFeederLinkCallback = useMemo(() => createReversedPathCallback(geoFeederLinkCallback), [geoFeederLinkCallback]);
+    const reverseLeoS2SSatACallback = useMemo(() => createReversedPathCallback(leoS2SLinks?.satACallback), [leoS2SLinks?.satACallback]);
+    const reverseLeoS2SSatAToSnpACallback = useMemo(() => createReversedPathCallback(leoS2SLinks?.satAToSnpACallback), [leoS2SLinks?.satAToSnpACallback]);
+    const reverseLeoS2SSatBCallback = useMemo(() => createReversedPathCallback(leoS2SLinks?.satBCallback), [leoS2SLinks?.satBCallback]);
+    const reverseLeoS2SSatBToSnpBCallback = useMemo(() => createReversedPathCallback(leoS2SLinks?.satBToSnpBCallback), [leoS2SLinks?.satBToSnpBCallback]);
+    const reverseSnpAToPopCallback = useMemo(() => createReversedPathCallback(leoS2SLinks?.snpAToPopCallback), [leoS2SLinks?.snpAToPopCallback]);
+    const reversePopToSnpBCallback = useMemo(() => createReversedPathCallback(leoS2SLinks?.popToSnpBCallback), [leoS2SLinks?.popToSnpBCallback]);
+    const reverseSameSnpCallback = useMemo(() => createReversedPathCallback(leoS2SLinks?.sameSnpCallback), [leoS2SLinks?.sameSnpCallback]);
+
+    const flowSegments = useMemo<PathSegment[]>(() => {
+        const segments: PathSegment[] = [];
+        const add = (
+            id: string,
+            type: PathSegment['type'],
+            positions: CallbackProperty | null | undefined,
+            color: Color,
+            durationSeconds?: number,
+        ) => {
+            if (!positions) return;
+            segments.push({ id, type, positions, color, durationSeconds });
+        };
+
+        if (satelliteScope !== 'LEO') {
+            if (isMeshOrP2P) {
+                if (activeMeshTab === 'reverse') {
+                    add('geo-mesh-b-sat', 'GEO_RF', meshBtoSatCallback, flowMeshTransmitColor, 2.2);
+                    add('geo-mesh-sat-a', 'GEO_RF', meshSatToACallback, flowMeshReceiveColor, 2.2);
+                } else {
+                    add('geo-mesh-a-sat', 'GEO_RF', geoUserLinkCallback, flowMeshTransmitColor, 2.2);
+                    add('geo-mesh-sat-b', 'GEO_RF', meshSatToBCallback, flowMeshReceiveColor, 2.2);
+                }
+            } else if (linkMode === 'STAR_RETURN') {
+                add('geo-star-return-gw-sat', 'GEO_RF', reverseGeoFeederLinkCallback, flowGeoForwardColor, 2.15);
+                add('geo-star-return-sat-user', 'GEO_RF', reverseGeoUserLinkCallback, flowGeoReturnColor, 2.15);
+            } else {
+                add('geo-star-forward-user-sat', 'GEO_RF', geoUserLinkCallback, flowGeoForwardColor, 2.15);
+                add('geo-star-forward-sat-gw', 'GEO_RF', geoFeederLinkCallback, flowGeoForwardColor, 2.15);
+            }
+        }
+
+        if (leoS2SLinks) {
+            if (activeMeshTab === 'reverse') {
+                add('leo-s2s-b-sat', 'USER_LINK', reverseLeoS2SSatBCallback, flowLeoUserColor, 1.85);
+                add('leo-s2s-satb-snpb', 'FEEDER_LINK', reverseLeoS2SSatBToSnpBCallback, flowLeoFeederColor, 1.75);
+                if (leoS2SLinks.sameSNP) {
+                    add('leo-s2s-backbone-same-reverse', 'BACKBONE', reverseSameSnpCallback, flowBackboneColor, 2.4);
+                } else {
+                    add('leo-s2s-snpb-pop', 'BACKBONE', reversePopToSnpBCallback, flowBackboneColor, 2.4);
+                    add('leo-s2s-pop-snpa', 'BACKBONE', reverseSnpAToPopCallback, flowBackboneColor, 2.4);
+                }
+                add('leo-s2s-snpa-sata', 'FEEDER_LINK', reverseLeoS2SSatAToSnpACallback, flowLeoFeederColor, 1.75);
+                add('leo-s2s-sata-a', 'USER_LINK', reverseLeoS2SSatACallback, flowLeoUserColor, 1.85);
+            } else {
+                add('leo-s2s-a-sat', 'USER_LINK', leoS2SLinks.satACallback, flowLeoUserColor, 1.85);
+                add('leo-s2s-sata-snpa', 'FEEDER_LINK', leoS2SLinks.satAToSnpACallback, flowLeoFeederColor, 1.75);
+                if (leoS2SLinks.sameSNP) {
+                    add('leo-s2s-backbone-same', 'BACKBONE', leoS2SLinks.sameSnpCallback, flowBackboneColor, 2.4);
+                } else {
+                    add('leo-s2s-snpa-pop', 'BACKBONE', leoS2SLinks.snpAToPopCallback, flowBackboneColor, 2.4);
+                    add('leo-s2s-pop-snpb', 'BACKBONE', leoS2SLinks.popToSnpBCallback, flowBackboneColor, 2.4);
+                }
+                add('leo-s2s-snpb-satb', 'FEEDER_LINK', leoS2SLinks.satBToSnpBCallback, flowLeoFeederColor, 1.75);
+                add('leo-s2s-satb-b', 'USER_LINK', leoS2SLinks.satBCallback, flowLeoUserColor, 1.85);
+            }
+        } else if (satelliteScope !== 'GEO') {
+            add('leo-single-user-sat', 'USER_LINK', leoUplinkCallback, flowLeoUserColor, 1.85);
+            add('leo-single-sat-snp', 'FEEDER_LINK', leoBackhaulCallback, flowLeoFeederColor, 1.75);
+        }
+
+        return segments;
+    }, [
+        activeMeshTab,
+        geoFeederLinkCallback,
+        geoUserLinkCallback,
+        isMeshOrP2P,
+        leoBackhaulCallback,
+        leoS2SLinks,
+        leoUplinkCallback,
+        linkMode,
+        meshBtoSatCallback,
+        meshSatToACallback,
+        meshSatToBCallback,
+        reverseGeoFeederLinkCallback,
+        reverseGeoUserLinkCallback,
+        reverseLeoS2SSatACallback,
+        reverseLeoS2SSatAToSnpACallback,
+        reverseLeoS2SSatBCallback,
+        reverseLeoS2SSatBToSnpBCallback,
+        reversePopToSnpBCallback,
+        reverseSameSnpCallback,
+        reverseSnpAToPopCallback,
+        satelliteScope,
+    ]);
 
     if (!hasUserSelection && !dedicatedSnpCallback && !dedicatedGeoFeederCallback && !inspectedSNP && !selectedGatewayLinks?.length && !isSiteToSiteActive) {
         return null;
@@ -792,38 +877,26 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
                     )}
 
                     {/* SNP A → PoP (backbone) */}
-                    {!leoS2SLinks.sameSNP && leoS2SLinks.snpAPos && leoS2SLinks.popPos && (
+                    {!leoS2SLinks.sameSNP && leoS2SLinks.snpAToPopCallback && (
                         <S2SBackboneSegment
-                            id="snp-a-pop"
                             name="S2S: SNP A → PoP (backbone)"
-                            positions={new CallbackProperty(() => [leoS2SLinks.snpAPos!, leoS2SLinks.popPos!], true)}
-                            start={leoS2SLinks.snpAPos}
-                            end={leoS2SLinks.popPos}
-                            reverseFlow={isBackboneReverse}
+                            positions={leoS2SLinks.snpAToPopCallback}
                         />
                     )}
 
                     {/* PoP → SNP B (backbone) */}
-                    {!leoS2SLinks.sameSNP && leoS2SLinks.snpBPos && leoS2SLinks.popPos && (
+                    {!leoS2SLinks.sameSNP && leoS2SLinks.popToSnpBCallback && (
                         <S2SBackboneSegment
-                            id="pop-snp-b"
                             name="S2S: PoP → SNP B (backbone)"
-                            positions={new CallbackProperty(() => [leoS2SLinks.popPos!, leoS2SLinks.snpBPos!], true)}
-                            start={leoS2SLinks.popPos}
-                            end={leoS2SLinks.snpBPos}
-                            reverseFlow={isBackboneReverse}
+                            positions={leoS2SLinks.popToSnpBCallback}
                         />
                     )}
 
                     {/* SNP A → SNP B direct (when same SNP or no PoP) */}
-                    {leoS2SLinks.sameSNP && leoS2SLinks.snpAPos && leoS2SLinks.snpBPos && (
+                    {leoS2SLinks.sameSNP && leoS2SLinks.sameSnpCallback && (
                         <S2SBackboneSegment
-                            id="same-snp"
                             name="S2S: Same SNP (backbone collapsed)"
-                            positions={new CallbackProperty(() => [leoS2SLinks.snpAPos!, leoS2SLinks.snpBPos!], true)}
-                            start={leoS2SLinks.snpAPos}
-                            end={leoS2SLinks.snpBPos}
-                            reverseFlow={isBackboneReverse}
+                            positions={leoS2SLinks.sameSnpCallback}
                         />
                     )}
 
@@ -940,6 +1013,11 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
                     )}
                 </>
             )}
+            <PathFlowAnimation
+                enabled={showFlowAnimation}
+                segments={flowSegments}
+                cameraMetricsRef={cameraMetricsRef}
+            />
         </>
     );
 };
