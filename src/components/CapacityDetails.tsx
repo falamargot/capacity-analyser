@@ -80,6 +80,10 @@ import {
   getWeatherFactor,
 } from './capacity';
 import type { TerminalType, WeatherType } from './capacity';
+import {
+  computeLeoSiteToSiteResult,
+  type LeoSiteToSiteResult,
+} from '../utils/leoSiteToSiteModel';
 
 interface CapacityDetailsProps {
   satellites: SatelliteData[];
@@ -157,6 +161,20 @@ interface CapacityDetailsProps {
   /** Controlled MESH direction tab — lifted to App so the globe can reflect the active direction. */
   activeMeshTab?: 'forward' | 'reverse';
   onActiveMeshTabChange?: (tab: 'forward' | 'reverse') => void;
+  /** LEO topology mode — single site (default) or site-to-site. */
+  leoTopologyMode?: 'SINGLE_SITE' | 'SITE_TO_SITE';
+  /** Second geographic point for LEO site-to-site mode. */
+  pointBLeo?: { lat: number; lng: number } | null;
+  /** Auto-selected serving satellite for Point B (LEO site-to-site). */
+  autoSelectedLEOSatelliteB?: SatelliteData | null;
+  /** Resolved SNP for Point B (LEO site-to-site). */
+  selectedSNPB?: { name: string; lat: number; lng: number } | null;
+  /** Whether the user has armed the "click to place Point B (LEO)" action. */
+  isPointBLeoArmed?: boolean;
+  /** Called when the user wants to place Point B on the globe for LEO S2S. */
+  onArmPointBLeo?: () => void;
+  /** Called to toggle the LEO topology mode. */
+  onLeoTopologyModeChange?: (mode: 'SINGLE_SITE' | 'SITE_TO_SITE') => void;
 }
 
 function detectThroughputBottleneck(leg: LeoThroughputLeg): LeoBottleneckFactor {
@@ -270,7 +288,15 @@ ${currentRule}`;
 };
 
 // Performance optimization: Memoize component to prevent unnecessary re-renders
-const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint, selectedSatellite, autoSelectedLEOSatellite, satelliteScope, onMetricsChange, onSatelliteClick, analysisSource, aircraftCallsign, selectedSNP: propSelectedSNP, candidateCoverages = [], selectedCoverage = null, onSelectCoverage, selectedUplinkCoverage = null, selectedDownlinkCoverage = null, onSelectUplinkCoverage, onSelectDownlinkCoverage, selectedUplinkCoverageB = null, selectedDownlinkCoverageB = null, onSelectUplinkCoverageB, onSelectDownlinkCoverageB, selectedGeoMission, selectedGeoCoverageName, selectedGeoBeamId, visibleGeoCoverageKeys, onSelectGeoMission, onSelectGeoCoverage, onSelectGeoBeam, onVisibleGeoCoverageKeysChange, onSnpClick, compactDesktop = false, externalHeader = false, globeRef, cesiumViewerRef, onExportStateChange, regulatoryResultOverride = null, beamLoadResultOverride = null, serviceLayerResultOverride = null, leoServiceViewModelOverride = null, leoTerminalType, onLeoTerminalTypeChange, leoTerminalModelId, onLeoTerminalModelIdChange, geoTerminalType, onGeoTerminalTypeChange, geoTerminalTypeB, onGeoTerminalTypeBChange, geoRFClassIdA, onGeoRFClassIdAChange, geoRFClassIdB, onGeoRFClassIdBChange, geoRFCustomParamsA, onGeoRFCustomParamsAChange, geoRFCustomParamsB, onGeoRFCustomParamsBChange, weatherType, onWeatherTypeChange, autoWeatherEnabled, onAutoWeatherChange, linkMode = 'STAR_FORWARD', onLinkModeChange, pointB = null, candidateCoveragesB = [], pointAIsUserDefined = false, pointBIsUserDefined = false, activeMeshTab, onActiveMeshTabChange }) => {
+const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint, selectedSatellite, autoSelectedLEOSatellite, satelliteScope, onMetricsChange, onSatelliteClick, analysisSource, aircraftCallsign, selectedSNP: propSelectedSNP, candidateCoverages = [], selectedCoverage = null, onSelectCoverage, selectedUplinkCoverage = null, selectedDownlinkCoverage = null, onSelectUplinkCoverage, onSelectDownlinkCoverage, selectedUplinkCoverageB = null, selectedDownlinkCoverageB = null, onSelectUplinkCoverageB, onSelectDownlinkCoverageB, selectedGeoMission, selectedGeoCoverageName, selectedGeoBeamId, visibleGeoCoverageKeys, onSelectGeoMission, onSelectGeoCoverage, onSelectGeoBeam, onVisibleGeoCoverageKeysChange, onSnpClick, compactDesktop = false, externalHeader = false, globeRef, cesiumViewerRef, onExportStateChange, regulatoryResultOverride = null, beamLoadResultOverride = null, serviceLayerResultOverride = null, leoServiceViewModelOverride = null, leoTerminalType, onLeoTerminalTypeChange, leoTerminalModelId, onLeoTerminalModelIdChange, geoTerminalType, onGeoTerminalTypeChange, geoTerminalTypeB, onGeoTerminalTypeBChange, geoRFClassIdA, onGeoRFClassIdAChange, geoRFClassIdB, onGeoRFClassIdBChange, geoRFCustomParamsA, onGeoRFCustomParamsAChange, geoRFCustomParamsB, onGeoRFCustomParamsBChange, weatherType, onWeatherTypeChange, autoWeatherEnabled, onAutoWeatherChange, linkMode = 'STAR_FORWARD', onLinkModeChange, pointB = null, candidateCoveragesB = [], pointAIsUserDefined = false, pointBIsUserDefined = false, activeMeshTab, onActiveMeshTabChange,
+  leoTopologyMode = 'SINGLE_SITE',
+  pointBLeo = null,
+  autoSelectedLEOSatelliteB = null,
+  selectedSNPB = null,
+  isPointBLeoArmed = false,
+  onArmPointBLeo,
+  onLeoTopologyModeChange,
+}) => {
   // Feature 1+3: read simulation context for failedSnps, hsBeamsSet
   const {
     coveragePolicy,
@@ -611,7 +637,7 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
     });
   }, [resolvedLEOConnectivity]);
 
-  // ── Regulatory lookup (async, via API server) ─────────────────────────────
+  // ── Regulatory lookup (async, via API server) ──────────────────────��──────
   const [computedRegulatoryResult, setComputedRegulatoryResult] = useState<RegulatoryResult | null>(null);
   useEffect(() => {
     if (!activePoint) { setComputedRegulatoryResult(null); return; }
@@ -911,6 +937,75 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
       simulationState
     );
   }, [activePoint, autoSelectedLEOSatellite, simulationState, nowTime]);
+
+  // ── LEO site-to-site result ───────────────────────────────────────────────
+  const leoSiteToSiteResult = useMemo((): LeoSiteToSiteResult | null => {
+    if (leoTopologyMode !== 'SITE_TO_SITE' || !activePoint || !pointBLeo) return null;
+
+    const userToSatAKm = resolvedLEOConnectivity?.userLEODistance ?? null;
+    const satToSnpAKm = resolvedLEOConnectivity?.snpLEODistance ?? null;
+    const elevationADeg = resolvedLEOConnectivity?.userLEOElevation ?? null;
+
+    let userToSatBKm: number | null = null;
+    let satToSnpBKm: number | null = null;
+    let elevationBDeg: number | null = null;
+
+    if (autoSelectedLEOSatelliteB && pointBLeo) {
+      const satB = autoSelectedLEOSatelliteB;
+      userToSatBKm = compute3DDistanceKm(
+        pointBLeo,
+        { lat: satB.position.lat, lng: satB.position.lng, alt: satB.position.alt }
+      );
+      elevationBDeg = calculateElevationAngle(pointBLeo, satB);
+    }
+    if (autoSelectedLEOSatelliteB && selectedSNPB) {
+      const satB = autoSelectedLEOSatelliteB;
+      satToSnpBKm = compute3DDistanceKm(
+        { lat: selectedSNPB.lat, lng: selectedSNPB.lng },
+        { lat: satB.position.lat, lng: satB.position.lng, alt: satB.position.alt }
+      );
+    }
+
+    const dlThroughputAMbps = leoPerformance?.downlinkGbps != null ? leoPerformance.downlinkGbps * 1000 : null;
+    const ulThroughputAMbps = leoPerformance?.uplinkGbps != null ? leoPerformance.uplinkGbps * 1000 : null;
+    const dlThroughputBMbps = dlThroughputAMbps;
+    const ulThroughputBMbps = ulThroughputAMbps;
+
+    const snpAFull = propSelectedSNP
+      ? SNPS_DATA.find(s => s.name === propSelectedSNP.name) ?? null
+      : null;
+    const snpBFull = selectedSNPB
+      ? SNPS_DATA.find(s => s.name === selectedSNPB.name) ?? null
+      : null;
+
+    return computeLeoSiteToSiteResult({
+      endpointA: { lat: activePoint.lat, lng: activePoint.lng },
+      endpointB: pointBLeo,
+      servingSatelliteA: resolvedLEOConnectivity?.satellite ?? null,
+      servingSatelliteB: autoSelectedLEOSatelliteB ?? null,
+      selectedSnpA: snpAFull,
+      selectedSnpB: snpBFull,
+      userToSatDistanceAKm: userToSatAKm,
+      satToSnpDistanceAKm: satToSnpAKm,
+      userToSatDistanceBKm: userToSatBKm,
+      satToSnpDistanceBKm: satToSnpBKm,
+      elevationADeg,
+      elevationBDeg,
+      dlThroughputAMbps,
+      ulThroughputAMbps,
+      dlThroughputBMbps,
+      ulThroughputBMbps,
+    });
+  }, [
+    leoTopologyMode,
+    activePoint,
+    pointBLeo,
+    resolvedLEOConnectivity,
+    autoSelectedLEOSatelliteB,
+    selectedSNPB,
+    propSelectedSNP,
+    leoPerformance,
+  ]);
 
   // ── Service layer (aggregated status) ────────────────────────────────────
   const computedServiceLayerResult = useMemo(() => {
@@ -1955,6 +2050,70 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
 
               {/* LEO Connectivity */}
               {(satelliteScope === 'LEO' || activeConnTab === 'LEO') && (
+                <>
+                  {/* ── LEO topology mode toggle ───────────────────────────── */}
+                  <div className="mb-3 flex rounded-lg bg-gray-100 p-0.5 dark:bg-slate-800 gap-0.5">
+                    <button
+                      type="button"
+                      onClick={() => onLeoTopologyModeChange?.('SINGLE_SITE')}
+                      className={`flex-1 rounded-md px-2.5 py-1.5 text-[12px] font-semibold transition-all duration-200 ${
+                        leoTopologyMode === 'SINGLE_SITE'
+                          ? 'bg-pink-500 text-white shadow-sm'
+                          : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+                      }`}
+                    >
+                      Single Site
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => onLeoTopologyModeChange?.('SITE_TO_SITE')}
+                      className={`flex-1 rounded-md px-2.5 py-1.5 text-[12px] font-semibold transition-all duration-200 ${
+                        leoTopologyMode === 'SITE_TO_SITE'
+                          ? 'bg-pink-500 text-white shadow-sm'
+                          : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+                      }`}
+                    >
+                      Site-to-Site
+                    </button>
+                  </div>
+
+                  {/* ── Site-to-Site mode ──────────────────────────────────── */}
+                  {leoTopologyMode === 'SITE_TO_SITE' && (
+                <LEOConnectivitySection
+                  resolvedLEOConnectivity={resolvedLEOConnectivity}
+                  leoGeometry={leoGeometry}
+                  leoPerformance={leoPerformance}
+                  mobileLeoMetrics={mobileLeoMetrics}
+                  activePoint={activePoint}
+                  terminalType={leoTerminalType}
+                  onTerminalTypeChange={onLeoTerminalTypeChange}
+                  terminalModelId={selectedLeoTerminalProfile.id}
+                  onTerminalModelIdChange={onLeoTerminalModelIdChange}
+                  weatherType={weatherType}
+                  onWeatherTypeChange={onWeatherTypeChange}
+                  autoWeatherEnabled={autoWeatherEnabled}
+                  onAutoWeatherChange={onAutoWeatherChange}
+                  analysisSource={analysisSource}
+                  aircraftCallsign={aircraftCallsign}
+                  onSatelliteClick={onSatelliteClick}
+                  failedSnps={failedSnps}
+                  hsBeamsSet={hsBeamsSet}
+                  weatherCondition={ctxWeather}
+                  beamHealthFactors={beamHealthFactors}
+                  regulatoryResult={regulatoryResult}
+                  beamLoadResult={beamLoadResult}
+                  serviceLayerResult={serviceLayerResult}
+                  leoServiceViewModel={leoServiceViewModel}
+                  showEstimatedPerformance={false}
+                  siteToSiteResult={leoSiteToSiteResult}
+                  pointBLeo={pointBLeo}
+                  onArmPointBLeo={onArmPointBLeo}
+                  isPointBLeoArmed={isPointBLeoArmed}
+                />
+                  )}
+
+                  {/* ── Single-site mode ───────────────────────────────────── */}
+                  {leoTopologyMode === 'SINGLE_SITE' && (
                 <LEOConnectivitySection
                   resolvedLEOConnectivity={resolvedLEOConnectivity}
                   leoGeometry={leoGeometry}
@@ -1982,6 +2141,8 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
                   leoServiceViewModel={leoServiceViewModel}
                   showEstimatedPerformance={false}
                 />
+                  )}
+                </>
               )}
 
               {/* GEO Connectivity */}

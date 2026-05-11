@@ -29,11 +29,14 @@ import type { SNPConnectedSatellite } from '../../services/coverageService';
 import { buildSimulationStateSnapshot } from '../../types/simulation';
 import type { LeoConnectivityViewModel } from '../../utils/leoServiceViewModel';
 import { RegulatoryBlockedPathMaterialProperty } from './materials/regulatoryMaterials';
+import type { LeoSiteToSiteResult } from '../../utils/leoSiteToSiteModel';
 
 interface TransmissionLinksProps {
     satellites: SatelliteData[];
     selectedPosition?: { lat: number; lng: number; altitude?: number } | null;
     pointB?: { lat: number; lng: number } | null;
+    /** LEO site-to-site result — when present, draws the full routed path on the globe. */
+    leoSiteToSiteResult?: LeoSiteToSiteResult | null;
     linkMode?: string;
     /** Active direction tab in MESH/P2P — drives which leg is styled as transmit vs receive. */
     activeMeshTab?: 'forward' | 'reverse';
@@ -113,6 +116,26 @@ const degradedMaterial = new PolylineDashMaterialProperty({
     dashPattern: 3855,
 });
 
+// ── LEO site-to-site materials ────────────────────────────────────────────────
+// Cyan glow: user access links (UT ↔ Satellite)
+const s2sUserLinkMaterial = new PolylineGlowMaterialProperty({
+    color: Color.fromCssColorString('#06b6d4').withAlpha(0.95),
+    glowPower: 0.22,
+    taperPower: 0.5,
+});
+// Orange glow: feeder links (Satellite ↔ SNP)
+const s2sFeederLinkMaterial = new PolylineGlowMaterialProperty({
+    color: Color.fromCssColorString('#f97316').withAlpha(0.92),
+    glowPower: 0.18,
+    taperPower: 0.5,
+});
+// Violet dashed: terrestrial backbone (SNP ↔ PoP)
+const s2sBackboneMaterial = new PolylineDashMaterialProperty({
+    color: Color.fromCssColorString('#8b5cf6').withAlpha(0.85),
+    gapColor: Color.fromCssColorString('#8b5cf6').withAlpha(0.05),
+    dashPattern: 3855,
+});
+
 function logGatewayDesync(
     sourceComponent: string,
     satellite: SatelliteData | null | undefined,
@@ -134,6 +157,7 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
     satellites,
     selectedPosition,
     pointB = null,
+    leoSiteToSiteResult = null,
     linkMode,
     activeMeshTab = 'forward',
     selectedAircraft,
@@ -420,8 +444,67 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
         }, false);
     }, [isDualPointActive, autoSelectedGEOSatellite, hasUserSelection, resolveCurrentUser]);
 
+    // ── LEO site-to-site static link segments ─────────────────────────────────
+    // All positions are static or satellite-propagated at render time.
+    // Rebuilt whenever the s2s result changes (satellite IDs / SNP / PoP change).
+    const leoS2SLinks = useMemo(() => {
+        const r = leoSiteToSiteResult;
+        if (!r || !r.serviceAvailable) return null;
 
-    if (!hasUserSelection && !dedicatedSnpCallback && !dedicatedGeoFeederCallback && !inspectedSNP && !selectedGatewayLinks?.length) {
+        const { endpointA, endpointB, servingSatelliteA, servingSatelliteB, selectedSnpA, selectedSnpB, logicalPop } = r;
+        if (!servingSatelliteA || !servingSatelliteB || !selectedSnpA || !selectedSnpB) return null;
+
+        const posA = getPosition(endpointA.lat, endpointA.lng, 0.01);
+        const posB = getPosition(endpointB.lat, endpointB.lng, 0.01);
+        const snpAPos = getPosition(selectedSnpA.lat, selectedSnpA.lng, 0.01);
+        const snpBPos = getPosition(selectedSnpB.lat, selectedSnpB.lng, 0.01);
+        const popPos = logicalPop ? getPosition(logicalPop.lat, logicalPop.lng, 0.01) : null;
+
+        // Satellite positions: propagated against current Cesium time so they stay
+        // visually aligned with the moving constellation.
+        const satAId = servingSatelliteA.id;
+        const satBId = servingSatelliteB.id;
+
+        const satACallback = new CallbackProperty((time?: JulianDate) => {
+            if (!time) return [];
+            const sat = satellites.find(s => s.id === satAId);
+            if (!sat) return [];
+            const satPos = propagateSatellite(sat, time);
+            return [posA, satPos];
+        }, false);
+
+        const satAToSnpACallback = new CallbackProperty((time?: JulianDate) => {
+            if (!time) return [];
+            const sat = satellites.find(s => s.id === satAId);
+            if (!sat) return [];
+            const satPos = propagateSatellite(sat, time);
+            return [satPos, snpAPos];
+        }, false);
+
+        const satBCallback = new CallbackProperty((time?: JulianDate) => {
+            if (!time) return [];
+            const sat = satellites.find(s => s.id === satBId);
+            if (!sat) return [];
+            const satPos = propagateSatellite(sat, time);
+            return [satPos, posB];
+        }, false);
+
+        const satBToSnpBCallback = new CallbackProperty((time?: JulianDate) => {
+            if (!time) return [];
+            const sat = satellites.find(s => s.id === satBId);
+            if (!sat) return [];
+            const satPos = propagateSatellite(sat, time);
+            return [snpBPos, satPos];
+        }, false);
+
+        const sameSNP = selectedSnpA.name === selectedSnpB.name;
+
+        return { satACallback, satAToSnpACallback, satBCallback, satBToSnpBCallback, snpAPos, snpBPos, popPos, sameSNP };
+    }, [leoSiteToSiteResult, satellites]);
+
+    const isSiteToSiteActive = !!(leoSiteToSiteResult?.serviceAvailable);
+
+    if (!hasUserSelection && !dedicatedSnpCallback && !dedicatedGeoFeederCallback && !inspectedSNP && !selectedGatewayLinks?.length && !isSiteToSiteActive) {
         return null;
     }
 
@@ -571,6 +654,95 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
                     />
                 </Entity>
             ))}
+
+            {/* ── LEO site-to-site routed path ─────────────────────────────────────
+                Cyan: user access links  (UT A ↔ Sat A, UT B ↔ Sat B)
+                Orange: feeder links     (Sat A ↔ SNP A, Sat B ↔ SNP B)
+                Violet dashed: backbone  (SNP A → PoP → SNP B)            */}
+            {leoS2SLinks && (
+                <>
+                    {/* UT A → Satellite A (user link) */}
+                    <Entity name="S2S: UT A → Satellite A">
+                        <PolylineGraphics
+                            positions={leoS2SLinks.satACallback}
+                            width={3.5}
+                            material={s2sUserLinkMaterial}
+                            arcType={ArcType.NONE}
+                        />
+                    </Entity>
+
+                    {/* Satellite A → SNP A (feeder) */}
+                    <Entity name="S2S: Satellite A → SNP A">
+                        <PolylineGraphics
+                            positions={leoS2SLinks.satAToSnpACallback}
+                            width={3}
+                            material={s2sFeederLinkMaterial}
+                            clampToGround={false}
+                            arcType={ArcType.NONE}
+                        />
+                    </Entity>
+
+                    {/* SNP A → PoP (backbone) */}
+                    {!leoS2SLinks.sameSNP && leoS2SLinks.popPos && (
+                        <Entity name="S2S: SNP A → PoP (backbone)">
+                            <PolylineGraphics
+                                positions={new CallbackProperty(() => [leoS2SLinks.snpAPos, leoS2SLinks.popPos!], true)}
+                                width={2.5}
+                                material={s2sBackboneMaterial}
+                                clampToGround={false}
+                                arcType={ArcType.GEODESIC}
+                            />
+                        </Entity>
+                    )}
+
+                    {/* PoP → SNP B (backbone) */}
+                    {!leoS2SLinks.sameSNP && leoS2SLinks.popPos && (
+                        <Entity name="S2S: PoP → SNP B (backbone)">
+                            <PolylineGraphics
+                                positions={new CallbackProperty(() => [leoS2SLinks.popPos!, leoS2SLinks.snpBPos], true)}
+                                width={2.5}
+                                material={s2sBackboneMaterial}
+                                clampToGround={false}
+                                arcType={ArcType.GEODESIC}
+                            />
+                        </Entity>
+                    )}
+
+                    {/* SNP A → SNP B direct (when same SNP or no PoP) */}
+                    {leoS2SLinks.sameSNP && (
+                        <Entity name="S2S: Same SNP (backbone collapsed)">
+                            <PolylineGraphics
+                                positions={new CallbackProperty(() => [leoS2SLinks.snpAPos, leoS2SLinks.snpBPos], true)}
+                                width={2}
+                                material={s2sBackboneMaterial}
+                                clampToGround={false}
+                                arcType={ArcType.GEODESIC}
+                            />
+                        </Entity>
+                    )}
+
+                    {/* SNP B → Satellite B (feeder) */}
+                    <Entity name="S2S: SNP B → Satellite B">
+                        <PolylineGraphics
+                            positions={leoS2SLinks.satBToSnpBCallback}
+                            width={3}
+                            material={s2sFeederLinkMaterial}
+                            clampToGround={false}
+                            arcType={ArcType.NONE}
+                        />
+                    </Entity>
+
+                    {/* Satellite B → UT B (user link) */}
+                    <Entity name="S2S: Satellite B → UT B">
+                        <PolylineGraphics
+                            positions={leoS2SLinks.satBCallback}
+                            width={3.5}
+                            material={s2sUserLinkMaterial}
+                            arcType={ArcType.NONE}
+                        />
+                    </Entity>
+                </>
+            )}
         </>
     );
 };

@@ -1,4 +1,5 @@
 export { default as AnalysisHeader } from './AnalysisHeader';
+export { default as LeoSiteToSiteSection } from './LeoSiteToSiteSection';
 export { default as TerminalConfig } from './TerminalConfig';
 export { default as LEOConnectivitySection } from './LEOConnectivitySection';
 export { default as GEOConnectivitySection } from './GEOConnectivitySection';

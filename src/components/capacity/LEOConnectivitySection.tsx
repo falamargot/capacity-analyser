@@ -1,5 +1,6 @@
 import { memo, useEffect, useState, type ReactNode } from 'react';
-import { ChevronDown, Gauge, Maximize2, Minimize2, Route, X } from 'lucide-react';
+import { ArrowLeftRight, ChevronDown, Gauge, Maximize2, Minimize2, Route, X } from 'lucide-react';
+import type { LeoSiteToSiteResult } from '../../utils/leoSiteToSiteModel';
 import { PerformancePanel } from '../MetricWidgets';
 import { SectionTooltip } from '../SectionTooltip';
 import PassBeamTimeline from '../PassBeamTimeline';
@@ -624,9 +625,22 @@ interface LeoLinkBudgetDrawerProps {
   open: boolean;
   onClose: () => void;
   debugInfo: LeoRFDebugInfo | null;
+  siteToSiteResult?: LeoSiteToSiteResult | null;
+  snpAName?: string;
+  snpBName?: string;
+  popName?: string;
 }
 
-const LeoLinkBudgetDrawer = ({ open, onClose, debugInfo }: LeoLinkBudgetDrawerProps) => {
+const NoBudgetPlaceholder = () => (
+  <div className="rounded-xl border border-slate-200 bg-slate-50/80 p-4 text-sm text-slate-600 dark:border-slate-800 dark:bg-slate-900/60 dark:text-slate-300">
+    <div className="font-semibold text-slate-900 dark:text-slate-100">No LEO budget available</div>
+    <p className="mt-1 text-xs leading-relaxed text-slate-500 dark:text-slate-400">
+      No serving LEO satellite and SNP path is currently selected for this instant. The detail panel stays open and will refresh automatically when a valid LEO RF budget is available again.
+    </p>
+  </div>
+);
+
+const LeoLinkBudgetDrawer = ({ open, onClose, debugInfo, siteToSiteResult, snpAName, snpBName, popName }: LeoLinkBudgetDrawerProps) => {
   useEffect(() => {
     if (!open) return;
     const onKeyDown = (event: KeyboardEvent) => {
@@ -637,6 +651,8 @@ const LeoLinkBudgetDrawer = ({ open, onClose, debugInfo }: LeoLinkBudgetDrawerPr
   }, [onClose, open]);
 
   if (!open) return null;
+
+  const isS2S = siteToSiteResult != null;
 
   return (
     <div
@@ -649,10 +665,17 @@ const LeoLinkBudgetDrawer = ({ open, onClose, debugInfo }: LeoLinkBudgetDrawerPr
         <div className="flex h-full w-full max-w-[38rem] flex-col border-l border-slate-200 bg-white shadow-2xl dark:border-slate-800 dark:bg-slate-950 min-[1100px]:pointer-events-auto min-[1100px]:overflow-hidden min-[1100px]:rounded-[24px] min-[1100px]:border">
           <div className="flex items-start justify-between gap-4 border-b border-slate-200 px-5 py-4 dark:border-slate-800">
             <div className="min-w-0">
-              <p className="text-[11px] font-bold uppercase tracking-wide text-pink-500 dark:text-pink-300">LEO Link Budget</p>
+              <p className="text-[11px] font-bold uppercase tracking-wide text-pink-500 dark:text-pink-300">
+                {isS2S ? 'LEO Link Budget — Site-to-Site' : 'LEO Link Budget'}
+              </p>
               <h3 className="mt-1 truncate text-lg font-semibold text-slate-950 dark:text-slate-50">
-                {debugInfo?.satelliteId ?? 'No LEO path'}
+                {isS2S ? 'End-to-End Budget' : (debugInfo?.satelliteId ?? 'No LEO path')}
               </h3>
+              {isS2S && (
+                <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
+                  Site A access · backbone · Site B access (symmetric terminal)
+                </p>
+              )}
             </div>
             <button
               type="button"
@@ -664,15 +687,71 @@ const LeoLinkBudgetDrawer = ({ open, onClose, debugInfo }: LeoLinkBudgetDrawerPr
             </button>
           </div>
           <div className="flex-1 overflow-y-auto px-5 py-4">
-            {debugInfo ? (
-              <LeoRFLinkBudgetPanel d={debugInfo} />
+            {isS2S ? (
+              debugInfo ? (
+                <div className="space-y-8">
+                  {/* ── Site A access budget ─── */}
+                  <div>
+                    <h4 className="mb-3 flex items-center gap-2 text-sm font-bold text-emerald-600 dark:text-emerald-400">
+                      <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-emerald-100 text-[10px] font-extrabold dark:bg-emerald-900/60">A</span>
+                      Site A Access Budget
+                    </h4>
+                    <LeoRFLinkBudgetPanel d={debugInfo} />
+                  </div>
+
+                  {/* ── Backbone network layer ─── */}
+                  <div>
+                    <h4 className="mb-3 text-sm font-bold text-violet-600 dark:text-violet-400">Backbone Network Layer</h4>
+                    <div className="rounded-lg border border-violet-200 dark:border-violet-800/60 overflow-hidden text-xs">
+                      <div className="px-3 py-1.5 bg-violet-100/70 dark:bg-violet-900/30 border-b border-violet-200 dark:border-violet-800/60">
+                        <div className="flex items-baseline justify-between">
+                          <span className="text-[10px] font-semibold uppercase tracking-wide text-violet-600 dark:text-violet-400">Ground Segment</span>
+                          <span className="text-[9px] text-violet-400/70 dark:text-violet-500/60 italic">fiber / IP core</span>
+                        </div>
+                      </div>
+                      <div className="px-3 py-2.5 bg-violet-50/40 dark:bg-violet-950/20 space-y-2.5">
+                        <div className="grid grid-cols-2 gap-x-6 gap-y-2">
+                          <MetricRow label="SNP A" value={snpAName ?? '—'} mono={false} />
+                          <MetricRow label="SNP B" value={snpBName ?? '—'} mono={false} />
+                          <MetricRow label="Logical PoP" value={popName ?? 'Core PoP'} mono={false} />
+                          <MetricRow label="Ground distance" value={`${Math.round(siteToSiteResult.backboneDistanceKm).toLocaleString()} km`} />
+                          <MetricRow label="Route factor" value="×1.20 (fiber)" mono={false} />
+                          <MetricRow label="Fiber speed" value="200 km/ms" mono={false} />
+                        </div>
+                        <div className="rounded-md bg-violet-100 dark:bg-violet-900/40 border border-violet-200/60 dark:border-violet-800/40 px-3 py-2">
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="text-violet-700 dark:text-violet-300 font-semibold text-[11px]">One-way latency</span>
+                            <span className="text-violet-800 dark:text-violet-200 font-bold text-sm tabular-nums">
+                              {typeof siteToSiteResult.backboneOneWayLatencyMs === 'number'
+                                ? `${siteToSiteResult.backboneOneWayLatencyMs.toFixed(1)} ms`
+                                : '--'}
+                            </span>
+                          </div>
+                        </div>
+                        {snpAName && snpBName && snpAName === snpBName ? (
+                          <p className="text-[10px] italic text-violet-600/70 dark:text-violet-400/60">Same SNP for both sites — no terrestrial backbone hop required.</p>
+                        ) : (
+                          <p className="text-[10px] italic text-violet-600/70 dark:text-violet-400/60">Routing estimated via logical PoP. Actual OneWeb backbone topology is proprietary.</p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* ── Site B access budget ─── */}
+                  <div>
+                    <h4 className="mb-1 flex items-center gap-2 text-sm font-bold text-pink-600 dark:text-pink-400">
+                      <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-pink-100 text-[10px] font-extrabold dark:bg-pink-900/60">B</span>
+                      Site B Access Budget
+                    </h4>
+                    <p className="mb-3 text-[10px] italic text-slate-400 dark:text-slate-500">
+                      Symmetric terminal assumption — Site B uses the same RF profile as Site A.
+                    </p>
+                    <LeoRFLinkBudgetPanel d={debugInfo} />
+                  </div>
+                </div>
+              ) : <NoBudgetPlaceholder />
             ) : (
-              <div className="rounded-xl border border-slate-200 bg-slate-50/80 p-4 text-sm text-slate-600 dark:border-slate-800 dark:bg-slate-900/60 dark:text-slate-300">
-                <div className="font-semibold text-slate-900 dark:text-slate-100">No LEO budget available</div>
-                <p className="mt-1 text-xs leading-relaxed text-slate-500 dark:text-slate-400">
-                  No serving LEO satellite and SNP path is currently selected for this instant. The detail panel stays open and will refresh automatically when a valid LEO RF budget is available again.
-                </p>
-              </div>
+              debugInfo ? <LeoRFLinkBudgetPanel d={debugInfo} /> : <NoBudgetPlaceholder />
             )}
           </div>
         </div>
@@ -711,7 +790,48 @@ interface LEOConnectivitySectionProps {
   serviceLayerResult?: ServiceLayerResult | null;
   leoServiceViewModel?: LeoConnectivityViewModel | null;
   showEstimatedPerformance?: boolean;
+  // ── Site-to-site extension ──
+  siteToSiteResult?: LeoSiteToSiteResult | null;
+  pointBLeo?: { lat: number; lng: number } | null;
+  onArmPointBLeo?: () => void;
+  isPointBLeoArmed?: boolean;
 }
+
+// ─── Site-to-Site sub-components ─────────────────────────────────────────────
+
+const fmtMs = (v: number | null | undefined, d = 1) =>
+  typeof v === 'number' && isFinite(v) ? `${v.toFixed(d)} ms` : '--';
+
+const fmtMbpsSafe = (v: number | null | undefined) => {
+  if (typeof v !== 'number' || !isFinite(v) || v <= 0) return '--';
+  if (v >= 1000) return `${(v / 1000).toFixed(2)} Gbps`;
+  return `${v.toFixed(0)} Mbps`;
+};
+
+const fmtDeg = (v: number | null | undefined) =>
+  typeof v === 'number' && isFinite(v) ? `${v.toFixed(1)}°` : '--';
+
+const S2SMetricRow = ({ label, value, accent = false }: { label: string; value: string; accent?: boolean }) => (
+  <div className="flex items-baseline justify-between gap-3 py-0.5">
+    <span className="text-xs text-slate-500 dark:text-slate-400 shrink-0">{label}</span>
+    <span className={`tabular-nums font-mono text-xs ${accent ? 'font-semibold text-pink-700 dark:text-pink-300' : 'text-slate-700 dark:text-slate-200'}`}>
+      {value}
+    </span>
+  </div>
+);
+
+const StabilityBadge = ({ stability }: { stability: 'High' | 'Medium' | 'Low' }) => {
+  const cfg = {
+    High: 'bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-700',
+    Medium: 'bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-700',
+    Low: 'bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-700',
+  }[stability];
+  return (
+    <span className={`inline-flex items-center rounded border px-1.5 py-0.5 text-[10px] font-semibold ${cfg}`}>
+      {stability}
+    </span>
+  );
+};
 
 const RTT_VISUAL_SCALE_MAX_MS = 600;
 
@@ -744,10 +864,41 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
   beamHealthFactors,
   leoServiceViewModel,
   showEstimatedPerformance = true,
+  siteToSiteResult = undefined,
+  pointBLeo = null,
+  onArmPointBLeo,
+  isPointBLeoArmed = false,
 }) => {
   const userLabel = analysisSource === 'aircraft' && aircraftCallsign ? aircraftCallsign : 'User';
   const showPerformanceBeforeRadioPath = analysisSource !== 'aircraft';
   const [isLinkBudgetDrawerOpen, setIsLinkBudgetDrawerOpen] = useState(false);
+  const [s2sDirection, setS2SDirection] = useState<'A_TO_B' | 'B_TO_A'>('A_TO_B');
+
+  // ── Site-to-site derived values ───────────────────────────────────────────
+  const isS2S = siteToSiteResult !== undefined;
+  const s2sActive = isS2S && siteToSiteResult != null;
+  const isAtoB = s2sDirection === 'A_TO_B';
+  const s2sPrimaryLabel = isAtoB ? 'A → B' : 'B → A';
+  const s2sPrimaryLatency = s2sActive
+    ? (isAtoB ? siteToSiteResult!.oneWayLatencyAtoBMs : siteToSiteResult!.oneWayLatencyBtoAMs)
+    : null;
+
+  // S2S-adapted debug info: override final DL/UL with end-to-end throughput so the
+  // summary card and drawer header show A→B / B→A values instead of Site A raw values.
+  const s2sLinkBudgetDebugInfo: LeoRFDebugInfo | null =
+    isS2S && s2sActive && leoPerformance?.debugInfo
+      ? {
+          ...leoPerformance.debugInfo,
+          downlink: {
+            ...leoPerformance.debugInfo.downlink,
+            network: { ...leoPerformance.debugInfo.downlink.network, finalUserMbps: siteToSiteResult!.finalThroughputAtoBMbps },
+          },
+          uplink: {
+            ...leoPerformance.debugInfo.uplink,
+            network: { ...leoPerformance.debugInfo.uplink.network, finalUserMbps: siteToSiteResult!.finalThroughputBtoAMbps },
+          },
+        }
+      : (leoPerformance?.debugInfo ?? null);
 
   const isRegulatoryBlocked = leoServiceViewModel?.decisionDriver === 'REGULATORY'
     && leoServiceViewModel.serviceStatus === 'BLOCKED';
@@ -821,13 +972,94 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
     </CollapsibleSection>
   );
 
+  // ── S2S derived display values ────────────────────────────────────────────
+  const s2sSameSNP = s2sActive && siteToSiteResult!.selectedSnpA?.name === siteToSiteResult!.selectedSnpB?.name && siteToSiteResult!.selectedSnpA != null;
+  const s2sSnpAName = s2sActive ? (siteToSiteResult!.selectedSnpA?.name ?? '—') : '—';
+  const s2sSnpBName = s2sActive ? (siteToSiteResult!.selectedSnpB?.name ?? '—') : '—';
+  const s2sSatAName = s2sActive ? (siteToSiteResult!.servingSatelliteA?.name ?? '—') : '—';
+  const s2sSatBName = s2sActive ? (siteToSiteResult!.servingSatelliteB?.name ?? '—') : '—';
+  const s2sPopName  = s2sActive ? (siteToSiteResult!.logicalPop?.name ?? 'Core PoP') : 'Core PoP';
+
   return (
     <>
       <h3 className="text-lg font-semibold mb-1 flex items-center" style={{ color: '#db2777' }}>
-        LEO Connectivity
-        <SectionTooltip content="Low Earth Orbit connectivity block. Shows how the user terminal connects through the nearest OneWeb LEO satellite and its associated SNP (Satellite Network Point) backhaul gateway." />
+        {isS2S ? (
+          <>
+            <ArrowLeftRight className="h-5 w-5 mr-1.5 shrink-0" />
+            LEO Site-to-Site
+          </>
+        ) : 'LEO Connectivity'}
+        <SectionTooltip content={isS2S
+          ? "OneWeb site-to-site logical path: UT A → Satellite A → SNP A → Private backbone → SNP B → Satellite B → UT B. Routing is estimated — actual backbone topology is proprietary."
+          : "Low Earth Orbit connectivity block. Shows how the user terminal connects through the nearest OneWeb LEO satellite and its associated SNP (Satellite Network Point) backhaul gateway."
+        } />
       </h3>
+
+      {/* ── Site-to-site endpoint selector ──────────────────────────────────── */}
+      {isS2S && (
+        <div className="space-y-2 mb-2">
+          <p className="text-[11px] text-slate-400 dark:text-slate-500 select-none">
+            Click to move Site A · Shift+click to move Site B
+          </p>
+          <div className="flex items-center gap-2">
+            {/* Site A chip */}
+            <div className="flex-1 min-w-0 rounded-lg border-2 border-emerald-400 bg-emerald-50 dark:border-emerald-600 dark:bg-emerald-950/30 px-2.5 py-2">
+              <div className="text-[9px] font-bold uppercase tracking-wide text-emerald-600 dark:text-emerald-400 mb-0.5">Site A</div>
+              <div className="font-mono text-[10px] text-emerald-800 dark:text-emerald-200 truncate">
+                {activePoint ? `${activePoint.lat.toFixed(3)}°, ${activePoint.lng.toFixed(3)}°` : '—'}
+              </div>
+            </div>
+            <ArrowLeftRight className="h-4 w-4 shrink-0 text-slate-400" />
+            {/* Site B chip */}
+            {pointBLeo ? (
+              <div className="flex-1 min-w-0 rounded-lg border-2 border-pink-400 bg-pink-50 dark:border-pink-600 dark:bg-pink-950/30 px-2.5 py-2">
+                <div className="flex items-center justify-between">
+                  <div className="text-[9px] font-bold uppercase tracking-wide text-pink-600 dark:text-pink-400 mb-0.5">Site B</div>
+                  <button
+                    type="button"
+                    onClick={onArmPointBLeo}
+                    className="text-[9px] text-pink-500 hover:text-pink-700 dark:text-pink-400 dark:hover:text-pink-200 underline shrink-0"
+                  >
+                    Move
+                  </button>
+                </div>
+                <div className="font-mono text-[10px] text-pink-800 dark:text-pink-200 truncate">
+                  {pointBLeo.lat.toFixed(3)}°, {pointBLeo.lng.toFixed(3)}°
+                </div>
+              </div>
+            ) : (
+              <div className={`flex-1 min-w-0 rounded-lg border-2 border-dashed px-2.5 py-2 ${isPointBLeoArmed ? 'border-pink-400 bg-pink-50/70 dark:border-pink-500 dark:bg-pink-950/20' : 'border-slate-300 bg-slate-50 dark:border-slate-600 dark:bg-slate-900/40'}`}>
+                <div className={`text-[9px] font-bold uppercase tracking-wide mb-0.5 ${isPointBLeoArmed ? 'text-pink-600 dark:text-pink-400' : 'text-slate-400'}`}>Site B</div>
+                <div className={`text-[10px] ${isPointBLeoArmed ? 'text-pink-600 dark:text-pink-300' : 'text-slate-400 dark:text-slate-500'}`}>
+                  {isPointBLeoArmed ? '⊕ Click globe…' : 'Shift+click to place'}
+                </div>
+              </div>
+            )}
+          </div>
+          {/* Direction tabs */}
+          {pointBLeo && (
+            <div className="flex rounded-md bg-gray-100 p-0.5 dark:bg-slate-800 gap-0.5">
+              {(['A_TO_B', 'B_TO_A'] as const).map((dir) => (
+                <button
+                  key={dir}
+                  type="button"
+                  onClick={() => setS2SDirection(dir)}
+                  className={`flex-1 rounded px-2 py-1 text-[11px] font-semibold transition-all duration-150 ${
+                    s2sDirection === dir
+                      ? 'bg-pink-500 text-white shadow-sm'
+                      : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+                  }`}
+                >
+                  {dir === 'A_TO_B' ? 'A → B' : 'B → A'}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
       <div className="space-y-4">
+        {/* Terminal config — labeled "Terminal A" in S2S mode */}
         <TerminalConfig
           terminalType={terminalType}
           onTerminalTypeChange={onTerminalTypeChange}
@@ -843,14 +1075,46 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
           showWeather={false}
           className="mb-0"
         />
+        {/* Terminal B indicator in S2S mode */}
+        {isS2S && (
+          <div className="rounded-lg border border-pink-200 bg-pink-50/50 dark:border-pink-800/50 dark:bg-pink-950/20 px-3 py-2">
+            <div className="flex items-center justify-between mb-0.5">
+              <span className="text-[11px] font-semibold text-pink-700 dark:text-pink-300">Terminal B</span>
+              <span className="text-[10px] text-pink-500 dark:text-pink-400 italic">Same profile as A</span>
+            </div>
+            <p className="text-[10px] text-slate-500 dark:text-slate-400">
+              Site-to-Site uses a symmetric terminal. Independent Terminal B configuration is planned.
+            </p>
+          </div>
+        )}
+
         <div className="pt-1">
           <LeoStatusCards viewModel={leoServiceViewModel ?? null} />
         </div>
-        {showEstimatedPerformance && showPerformanceBeforeRadioPath && estimatedPerformanceSection}
 
-        {/* Link Budget — compact sidebar summary + detailed drawer */}
+        {/* S2S service status */}
+        {isS2S && s2sActive && (
+          <div className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-semibold ${
+            siteToSiteResult!.serviceAvailable
+              ? 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800/60 dark:bg-emerald-950/30 dark:text-emerald-400'
+              : 'border-red-200 bg-red-50 text-red-700 dark:border-red-800/60 dark:bg-red-950/30 dark:text-red-400'
+          }`}>
+            <span className={`h-2 w-2 rounded-full shrink-0 ${siteToSiteResult!.serviceAvailable ? 'bg-emerald-500' : 'bg-red-500'}`} />
+            <span>
+              {siteToSiteResult!.serviceAvailable
+                ? `End-to-end available · ${s2sSatAName} ↔ ${s2sSatBName}`
+                : `Service unavailable — ${!siteToSiteResult!.servingSatelliteA ? 'No satellite at A' : !siteToSiteResult!.selectedSnpA ? 'No SNP at A' : !siteToSiteResult!.servingSatelliteB ? 'No satellite at B' : 'No SNP at B'}`
+              }
+            </span>
+          </div>
+        )}
+
+        {/* Estimated Performance — single-site only; S2S version rendered after Latency Breakdown */}
+        {!isS2S && showEstimatedPerformance && showPerformanceBeforeRadioPath && estimatedPerformanceSection}
+
+        {/* Link Budget */}
         <LeoLinkBudgetSummaryCard
-          debugInfo={leoPerformance?.debugInfo ?? null}
+          debugInfo={isS2S ? s2sLinkBudgetDebugInfo : (leoPerformance?.debugInfo ?? null)}
           highlighted={isLinkBudgetDrawerOpen}
           onToggle={() => setIsLinkBudgetDrawerOpen((open) => !open)}
         />
@@ -858,17 +1122,107 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
           open={isLinkBudgetDrawerOpen}
           onClose={() => setIsLinkBudgetDrawerOpen(false)}
           debugInfo={leoPerformance?.debugInfo ?? null}
+          siteToSiteResult={s2sActive ? siteToSiteResult : undefined}
+          snpAName={s2sSnpAName !== '—' ? s2sSnpAName : undefined}
+          snpBName={s2sSnpBName !== '—' ? s2sSnpBName : undefined}
+          popName={s2sPopName}
         />
 
-        {/* LEO Radio Path */}
+        {/* Radio Path */}
         <CollapsibleSection
           storageKey="leo-radio-path"
-          title={<>{isRegulatoryBlocked ? 'Radio Path (Diagnostic only)' : 'Radio Path'}<SectionTooltip content="Active one-way LEO signal route: User → LEO Satellite → SNP gateway. RTT details are shown in the latency breakdown below. No SNP means no service is available." /></>}
-          subtitle={isRegulatoryBlocked ? blockedDiagnosticMessage : undefined}
+          title={<>{isRegulatoryBlocked && !isS2S ? 'Radio Path (Diagnostic only)' : 'Radio Path'}<SectionTooltip content={isS2S ? "Full OneWeb site-to-site logical path: Site A → Satellite A → SNP A → Backbone → SNP B → Satellite B → Site B. Backbone routing is estimated." : "Active one-way LEO signal route: User → LEO Satellite → SNP gateway. RTT details are shown in the latency breakdown below."} /></>}
+          subtitle={isRegulatoryBlocked && !isS2S ? blockedDiagnosticMessage : undefined}
           accentColor="#db2777"
           defaultOpen={true}
         >
-          {resolvedLEOConnectivity ? (
+          {isS2S ? (
+            s2sActive ? (
+              <div className="space-y-3 text-xs">
+                {/* Compact 7-hop route badge */}
+                <div className="flex items-center gap-1 overflow-x-auto pb-1 min-w-0 rounded-lg border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-950 px-3 py-2">
+                  <Route className="h-4 w-4 shrink-0 text-pink-500 mr-1" />
+                  <span className="text-cyan-600 dark:text-cyan-400 font-medium shrink-0">Site A</span>
+                  <span className="text-slate-400 shrink-0">→</span>
+                  <button onClick={() => onSatelliteClick?.(siteToSiteResult!.servingSatelliteA!)} className="underline hover:no-underline text-pink-600 dark:text-pink-400 font-medium shrink-0 truncate max-w-[5rem]" title={s2sSatAName}>{s2sSatAName}</button>
+                  <span className="text-slate-400 shrink-0">→</span>
+                  <span className="text-orange-600 dark:text-orange-400 shrink-0 truncate max-w-[4rem]" title={`SNP ${s2sSnpAName}`}>SNP {s2sSnpAName}</span>
+                  {!s2sSameSNP && (
+                    <>
+                      <span className="text-slate-400 shrink-0">→</span>
+                      <span className="text-violet-600 dark:text-violet-400 font-medium shrink-0">PoP</span>
+                      <span className="text-slate-400 shrink-0">→</span>
+                      <span className="text-orange-600 dark:text-orange-400 shrink-0 truncate max-w-[4rem]" title={`SNP ${s2sSnpBName}`}>SNP {s2sSnpBName}</span>
+                    </>
+                  )}
+                  <span className="text-slate-400 shrink-0">→</span>
+                  <button onClick={() => onSatelliteClick?.(siteToSiteResult!.servingSatelliteB!)} className="underline hover:no-underline text-pink-600 dark:text-pink-400 font-medium shrink-0 truncate max-w-[5rem]" title={s2sSatBName}>{s2sSatBName}</button>
+                  <span className="text-slate-400 shrink-0">→</span>
+                  <span className="text-cyan-600 dark:text-cyan-400 font-medium shrink-0">Site B</span>
+                </div>
+                {/* Hop details */}
+                <div className="space-y-1.5 text-slate-500 dark:text-slate-400">
+                  <div>
+                    <div className="font-semibold text-slate-700 dark:text-slate-200 text-[11px] mb-0.5">Access A</div>
+                    <div className="pl-3 space-y-0.5">
+                      <div className="flex justify-between">
+                        <span>Site A → {s2sSatAName}{resolvedLEOConnectivity?.connectedBeamIndex != null ? ` · Beam ${resolvedLEOConnectivity.connectedBeamIndex}` : ''}</span>
+                        <span className="tabular-nums">{fmtMs(siteToSiteResult!.userLinkLatencyAms)}</span>
+                      </div>
+                      <div className="text-[10px]">Elevation: {fmtDeg(siteToSiteResult!.elevationADeg)} | Slant: {resolvedLEOConnectivity ? `${resolvedLEOConnectivity.userLEODistance.toFixed(0)} km` : '—'}</div>
+                    </div>
+                  </div>
+                  <div>
+                    <div className="font-semibold text-slate-700 dark:text-slate-200 text-[11px] mb-0.5">Feeder A</div>
+                    <div className="pl-3 flex justify-between">
+                      <span>{s2sSatAName} → SNP {s2sSnpAName}</span>
+                      <span className="tabular-nums">{fmtMs(siteToSiteResult!.feederLatencyAms)}</span>
+                    </div>
+                  </div>
+                  {!s2sSameSNP && (
+                    <div>
+                      <div className="font-semibold text-slate-700 dark:text-slate-200 text-[11px] mb-0.5">Backbone</div>
+                      <div className="pl-3 space-y-0.5">
+                        <div className="flex justify-between">
+                          <span>SNP {s2sSnpAName} → {s2sPopName} → SNP {s2sSnpBName}</span>
+                          <span className="tabular-nums">{fmtMs(siteToSiteResult!.backboneOneWayLatencyMs)}</span>
+                        </div>
+                        <div className="text-[10px]">{Math.round(siteToSiteResult!.backboneDistanceKm).toLocaleString()} km · ×1.20 route factor · fiber 200 km/ms</div>
+                      </div>
+                    </div>
+                  )}
+                  {s2sSameSNP && (
+                    <div className="pl-3 text-[10px] italic">Same SNP — internal OneWeb routing, no backbone hop.</div>
+                  )}
+                  <div>
+                    <div className="font-semibold text-slate-700 dark:text-slate-200 text-[11px] mb-0.5">Feeder B</div>
+                    <div className="pl-3 flex justify-between">
+                      <span>SNP {s2sSnpBName} → {s2sSatBName}</span>
+                      <span className="tabular-nums">{fmtMs(siteToSiteResult!.feederLatencyBms)}</span>
+                    </div>
+                  </div>
+                  <div>
+                    <div className="font-semibold text-slate-700 dark:text-slate-200 text-[11px] mb-0.5">Access B</div>
+                    <div className="pl-3 space-y-0.5">
+                      <div className="flex justify-between">
+                        <span>{s2sSatBName} → Site B</span>
+                        <span className="tabular-nums">{fmtMs(siteToSiteResult!.userLinkLatencyBms)}</span>
+                      </div>
+                      <div className="text-[10px]">Elevation: {fmtDeg(siteToSiteResult!.elevationBDeg)}</div>
+                    </div>
+                  </div>
+                  <div className="rounded border border-violet-200/70 bg-violet-50/60 dark:border-violet-800/50 dark:bg-violet-950/30 px-2.5 py-1.5 text-[10px] text-violet-700 dark:text-violet-300">
+                    <span className="font-semibold">Logical PoP: {s2sPopName}.</span>{' '}
+                    Logical Point of Presence representing OneWeb core interconnect. Actual routing is proprietary.
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="text-sm text-gray-700 dark:text-gray-300 text-center">
+                Place Site B on the globe to see the full routed path.
+              </div>
+            )
+          ) : resolvedLEOConnectivity ? (
             <div className="text-sm text-gray-700 dark:text-gray-300 text-center space-y-3 min-w-0">
               {isRegulatoryBlocked && diagnosticOnlyNotice}
               {resolvedLEOConnectivity.snp ? (
@@ -942,18 +1296,49 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
           )}
         </CollapsibleSection>
 
-        {/* LEO Latency Breakdown */}
+        {/* Latency Breakdown */}
         <LatencyBreakdownCard
           accentColor="#db2777"
-          tooltip="Breakdown of the full round-trip propagation delay over the LEO link: User → Satellite → SNP → Satellite → User, plus network overhead (gateway processing, modem, routing)."
-          title={isRegulatoryBlocked ? 'Latency breakdown (Diagnostic only)' : 'Latency breakdown'}
-          summary={isRegulatoryBlocked
-            ? `Diagnostic only — estimated RTT total: ${leoGeometry ? leoGeometry.rttTotalMs.toFixed(1) : 'N/A'} ms`
-            : leoGeometry
-              ? `Estimated RTT total: ${leoGeometry.rttTotalMs.toFixed(1)} ms`
-              : 'No LEO latency breakdown available without SNP connectivity.'}
+          tooltip={isS2S
+            ? "Full one-way propagation: Access A + Feeder A + Backbone + Feeder B + Access B + Processing margin."
+            : "Breakdown of the full round-trip propagation delay over the LEO link: User → Satellite → SNP → Satellite → User, plus network overhead."}
+          title={isRegulatoryBlocked && !isS2S ? 'Latency breakdown (Diagnostic only)' : 'Latency breakdown'}
+          summary={isS2S
+            ? (s2sActive
+                ? `One-way (${s2sPrimaryLabel}): ${fmtMs(s2sPrimaryLatency)} · RTT: ${fmtMs(siteToSiteResult!.rttMs)}`
+                : 'Place Site B to see end-to-end latency.')
+            : (isRegulatoryBlocked
+                ? `Diagnostic only — estimated RTT total: ${leoGeometry ? leoGeometry.rttTotalMs.toFixed(1) : 'N/A'} ms`
+                : leoGeometry
+                  ? `Estimated RTT total: ${leoGeometry.rttTotalMs.toFixed(1)} ms`
+                  : 'No LEO latency breakdown available without SNP connectivity.')}
         >
-          {leoGeometry ? (
+          {isS2S ? (
+            s2sActive ? (
+              <div className="space-y-0.5">
+                <div className="rounded border border-slate-200 bg-slate-50 px-2 py-1 text-[10px] text-slate-500 dark:border-slate-700 dark:bg-slate-800/40 dark:text-slate-400 mb-2">
+                  Propagation delays derived from slant range (speed of light). Backbone uses geodesic × 1.20 ÷ 200 km/ms.
+                </div>
+                <div className="font-semibold text-gray-700 dark:text-gray-200 text-xs mb-1">One-way hops (A → B)</div>
+                <S2SMetricRow label="Access A (Site A → Satellite A)" value={fmtMs(siteToSiteResult!.userLinkLatencyAms)} />
+                <S2SMetricRow label="Feeder A (Satellite A → SNP A)" value={fmtMs(siteToSiteResult!.feederLatencyAms)} />
+                {!s2sSameSNP && <S2SMetricRow label={`Backbone (SNP ${s2sSnpAName} → PoP → SNP ${s2sSnpBName})`} value={fmtMs(siteToSiteResult!.backboneOneWayLatencyMs)} />}
+                <S2SMetricRow label="Feeder B (SNP B → Satellite B)" value={fmtMs(siteToSiteResult!.feederLatencyBms)} />
+                <S2SMetricRow label="Access B (Satellite B → Site B)" value={fmtMs(siteToSiteResult!.userLinkLatencyBms)} />
+                <div className="font-semibold text-gray-700 dark:text-gray-200 text-xs mt-2 mb-1">Overhead</div>
+                <S2SMetricRow label="Processing margin" value={fmtMs(siteToSiteResult!.processingMarginMs, 0)} />
+                {siteToSiteResult!.handoverRiskMarginMs > 0 && <S2SMetricRow label="Handover risk margin" value={fmtMs(siteToSiteResult!.handoverRiskMarginMs, 0)} />}
+                <div className="border-t border-slate-200 dark:border-slate-700 pt-1.5 mt-1.5 space-y-0.5">
+                  <S2SMetricRow label={`One-way latency (${s2sPrimaryLabel})`} value={fmtMs(s2sPrimaryLatency)} accent />
+                  <S2SMetricRow label="RTT" value={fmtMs(siteToSiteResult!.rttMs)} accent />
+                </div>
+              </div>
+            ) : (
+              <div className="text-sm text-gray-700 dark:text-gray-300 text-center">
+                Place Site B to see end-to-end latency breakdown.
+              </div>
+            )
+          ) : leoGeometry ? (
             <div className="text-xs text-gray-600 dark:text-gray-400 space-y-2">
               {isRegulatoryBlocked && diagnosticOnlyNotice}
               <div className="rounded border border-slate-200 bg-slate-50 px-2 py-1 text-[10px] text-slate-500 dark:border-slate-700 dark:bg-slate-800/40 dark:text-slate-400">
@@ -999,8 +1384,52 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
           )}
         </LatencyBreakdownCard>
 
-        {/* Pass Beam Timeline */}
-        {resolvedLEOConnectivity?.satellite && activePoint && (
+        {/* Estimated Performance — Site-to-Site (after latency breakdown to match spec order) */}
+        {isS2S && (
+          <CollapsibleSection
+            storageKey="leo-performance"
+            title={<>Estimated Performance (Site-to-Site)<SectionTooltip content="Throughput is the access-link bottleneck (min of uplink at source, downlink at destination). Backbone capacity is assumed non-limiting. Symmetric terminal assumption." /></>}
+            accentColor="#db2777"
+            defaultOpen={true}
+            collapsible={false}
+          >
+            {s2sActive ? (
+              <>
+                <PerformancePanel
+                  rtt={siteToSiteResult!.rttMs}
+                  downlinkGbps={siteToSiteResult!.finalThroughputAtoBMbps / 1000}
+                  uplinkGbps={siteToSiteResult!.finalThroughputBtoAMbps / 1000}
+                  maxDlGbps={TERMINAL_PROFILES[terminalType].maxDlGbps}
+                  maxUlGbps={TERMINAL_PROFILES[terminalType].maxUlGbps}
+                  performanceFactor={leoPerformance?.performanceFactor ?? 1}
+                  accentColor="#db2777"
+                  rttMaxMs={RTT_VISUAL_SCALE_MAX_MS}
+                  rttLabel="End-to-End RTT"
+                  downlinkLabel="A → B throughput"
+                  uplinkLabel="B → A throughput"
+                />
+                <div className="mt-2 flex items-center justify-between text-xs">
+                  <span className="text-slate-500 dark:text-slate-400">Path stability</span>
+                  <StabilityBadge stability={siteToSiteResult!.pathStability} />
+                </div>
+                <div className="mt-2">{simulatedNotice}</div>
+              </>
+            ) : (
+              <PerformancePanel
+                rtt={null}
+                downlinkGbps={null}
+                uplinkGbps={null}
+                maxDlGbps={TERMINAL_PROFILES[terminalType].maxDlGbps}
+                maxUlGbps={TERMINAL_PROFILES[terminalType].maxUlGbps}
+                accentColor="#db2777"
+                noDataMessage="Place Site B on the globe to compute end-to-end performance."
+              />
+            )}
+          </CollapsibleSection>
+        )}
+
+        {/* Pass Beam Timeline — Site A only (hide in S2S to keep sidebar compact) */}
+        {!isS2S && resolvedLEOConnectivity?.satellite && activePoint && (
           <div className="space-y-2">
             {isRegulatoryBlocked && diagnosticOnlyNotice}
             <PassBeamTimeline
@@ -1014,7 +1443,7 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
             />
           </div>
         )}
-        {showEstimatedPerformance && !showPerformanceBeforeRadioPath && estimatedPerformanceSection}
+        {!isS2S && showEstimatedPerformance && !showPerformanceBeforeRadioPath && estimatedPerformanceSection}
 
       </div>
     </>

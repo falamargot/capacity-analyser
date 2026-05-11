@@ -224,6 +224,10 @@ interface CesiumGlobeProps {
     linkMode?: string;
     /** Active direction tab in MESH/P2P — drives directional link rendering on the globe. */
     activeMeshTab?: 'forward' | 'reverse';
+    /** LEO site-to-site result — when present, draws the full routed path on the globe. */
+    leoSiteToSiteResult?: import('../utils/leoSiteToSiteModel').LeoSiteToSiteResult | null;
+    /** Point B for LEO site-to-site mode (rendered as a cyan marker). */
+    pointBLeo?: { lat: number; lng: number } | null;
     issLiveEnabled?: boolean;
     issPositionRef?: React.RefObject<IssPosition | null>;
     issOrbitPath?: IssOrbitPath | null;
@@ -309,6 +313,8 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
     pointB = null,
     linkMode,
     activeMeshTab,
+    leoSiteToSiteResult = null,
+    pointBLeo = null,
     issLiveEnabled = false,
     issPositionRef,
     issOrbitPath = null,
@@ -1495,6 +1501,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                         satellites={satellites}
                         selectedPosition={selectedPosition}
                         pointB={pointB}
+                        leoSiteToSiteResult={leoSiteToSiteResult}
                         linkMode={linkMode}
                         activeMeshTab={activeMeshTab}
                         selectedAircraft={selectedAircraft}
@@ -1530,6 +1537,17 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                             pixelSize={pointBMarkerPixelSize}
                             satelliteScope="GEO"
                             geoPointStatus={geoPointStatus}
+                        />
+                    )}
+
+                    {/* Point B (LEO) marker — site-to-site mode */}
+                    {pointBLeo && leoSiteToSiteResult?.serviceAvailable && (
+                        <SelectedPointStatusMarker
+                            selectedPosition={pointBLeo}
+                            pixelSize={pointBMarkerPixelSize}
+                            satelliteScope="LEO"
+                            leoServiceViewModel={null}
+                            geoPointStatus={null}
                         />
                     )}
                     {pulsedSatellites.map((satellite) => (
