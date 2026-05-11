@@ -9,7 +9,6 @@ import { ChevronUp, Keyboard, MapPin, Plane, Radio, Search, Satellite, Ship, Way
 import { ThemeSelector } from './components/ThemeSelector';
 import MobileAnalysisSummary from './components/layout/MobileAnalysisSummary';
 import SidebarHeroCard from './components/layout/SidebarHeroCard';
-import SatelliteStatusLegend from './components/cesium-globe/SatelliteStatusLegend';
 import { MemoryMonitorHud } from './components/MemoryMonitorHud';
 import { setMemoryMonitorViewerGetter } from './utils/memoryMonitor';
 import ExportButton, { type ExportButtonPayload } from './components/ExportButton';
@@ -324,36 +323,29 @@ const App: React.FC = () => {
   } = useSelectionState();
   // ── Link mode & dual-point selection ─────────────────────────────────────
   const [linkMode, setLinkMode] = useState<LinkMode>('STAR_FORWARD');
-  const [pointB, setPointB] = useState<{ lat: number; lng: number } | null>(null);
-  const [isPointBPlacementArmed, setIsPointBPlacementArmed] = useState(false);
   const [activeMeshTab, setActiveMeshTab] = useState<'forward' | 'reverse'>('forward');
   useEffect(() => { setActiveMeshTab('forward'); }, [linkMode]);
-
-  // Clear Point B whenever the user switches to a single-point mode
-  useEffect(() => {
-    if (!LINK_MODE_REQUIRES_POINT_B.has(linkMode)) {
-      setPointB(null);
-      setIsPointBPlacementArmed(false);
-    }
-  }, [linkMode]);
 
   const [autoSelectedLEOId, setAutoSelectedLEOId] = useState<string | null>(null);
   const [selectedSNP, setSelectedSNP] = useState<SelectedSNP>(null);
 
+  // ── Unified Site B state (GEO Mesh/P2P and LEO Site-to-Site share one coordinate) ──
+  const [siteB, setSiteB] = useState<{ lat: number; lng: number } | null>(null);
+  const [isSiteBArmed, setIsSiteBArmed] = useState(false);
+
   // ── LEO site-to-site state ────────────────────────────────────────────────
   const [leoTopologyMode, setLeoTopologyMode] = useState<'SINGLE_SITE' | 'SITE_TO_SITE'>('SINGLE_SITE');
-  const [pointBLeo, setPointBLeo] = useState<{ lat: number; lng: number } | null>(null);
-  const [isPointBLeoArmed, setIsPointBLeoArmed] = useState(false);
   const [autoSelectedLEOIdB, setAutoSelectedLEOIdB] = useState<string | null>(null);
   const [selectedSNPB, setSelectedSNPB] = useState<SNPData | null>(null);
+  /** Full S2S result with accurate throughput/latency — reported back by CapacityDetails. */
+  const [leoS2SFullResult, setLeoS2SFullResult] = useState<LeoSiteToSiteResult | null>(null);
 
-  // Clear site-to-site state when switching back to single-site mode
+  // Clear LEO S2S-only state when switching back to single-site mode
   useEffect(() => {
     if (leoTopologyMode === 'SINGLE_SITE') {
-      setPointBLeo(null);
-      setIsPointBLeoArmed(false);
       setAutoSelectedLEOIdB(null);
       setSelectedSNPB(null);
+      setLeoS2SFullResult(null);
     }
   }, [leoTopologyMode]);
   const [inspectedSNP, setInspectedSNP] = useState<SNPData | null>(null);
@@ -366,6 +358,22 @@ const App: React.FC = () => {
   const [isFullscreen, setIsFullscreen] = useState(initialDisplayDefaults.isFullscreen);
   const [fullscreenExportButtonProps, setFullscreenExportButtonProps] = useState<ExportButtonPayload | null>(null);
   const [satelliteScope, setSatelliteScope] = useState<SatelliteScope>('ALL');
+
+  // Derived backward-compat variables — downstream components still receive pointB / pointBLeo
+  const geoNeedsPointB = LINK_MODE_REQUIRES_POINT_B.has(linkMode) && satelliteScope !== 'LEO';
+  const leoNeedsPointB = leoTopologyMode === 'SITE_TO_SITE';
+  const isTwoPointMode = geoNeedsPointB || leoNeedsPointB;
+  const pointB = siteB && geoNeedsPointB ? siteB : null;
+  const pointBLeo = siteB && leoNeedsPointB ? siteB : null;
+
+  // Clear siteB when neither GEO Mesh/P2P nor LEO S2S is active
+  useEffect(() => {
+    if (!isTwoPointMode) {
+      setSiteB(null);
+      setIsSiteBArmed(false);
+    }
+  }, [isTwoPointMode]);
+
   const [airTrafficEnabled, setAirTrafficEnabled] = useState(false);
   const [maritimeTrafficEnabled, setMaritimeTrafficEnabled] = useState(false);
   const [issLiveEnabled, setIssLiveEnabled] = useState(false);
@@ -432,7 +440,7 @@ const App: React.FC = () => {
     selectedSelection.type === 'target' ? selectedSelection.position : null
   ), [selectedSelection]);
   const pointAIsUserDefined = selectedSelection.type === 'target' && selectedSelection.targetType === 'point';
-  const pointBIsUserDefined = pointB !== null;
+  const pointBIsUserDefined = siteB !== null;
   const [selectedUplinkKey, setSelectedUplinkKey] = useState<string | null>(null);
   const [selectedDownlinkKey, setSelectedDownlinkKey] = useState<string | null>(null);
   const [selectedUplinkKeyB, setSelectedUplinkKeyB] = useState<string | null>(null);
@@ -1430,15 +1438,18 @@ const App: React.FC = () => {
 
   // ── LEO site-to-site globe result (for TransmissionLinks rendering) ──────────
   // Lightweight version — throughput values are null, computed in CapacityDetails.
+  // Returns a partial result as soon as both endpoints and at least one satellite exist
+  // so the globe overlay appears immediately. SNPs / PoP become available once resolved.
   const leoSiteToSiteGlobeResult = useMemo((): LeoSiteToSiteResult | null => {
     if (leoTopologyMode !== 'SITE_TO_SITE' || !activeAnalysisPoint || !pointBLeo) return null;
+    if (!resolvedAutoLEO || !resolvedAutoLEOB) return null;
 
     const snpAFull = selectedSNP ? SNPS_DATA.find(s => s.name === selectedSNP.name) ?? null : null;
     const snpBFull = selectedSNPB ?? null;
 
-    if (!resolvedAutoLEO || !resolvedAutoLEOB || !snpAFull || !snpBFull) return null;
-
-    const logicalPop = selectLogicalPop(snpAFull, snpBFull);
+    const logicalPop = snpAFull && snpBFull ? selectLogicalPop(snpAFull, snpBFull) : null;
+    // Service is available only when all four nodes are established.
+    const serviceAvailable = !!(snpAFull && snpBFull);
 
     return {
       endpointA: { lat: activeAnalysisPoint.lat, lng: activeAnalysisPoint.lng },
@@ -1448,7 +1459,7 @@ const App: React.FC = () => {
       selectedSnpA: snpAFull,
       selectedSnpB: snpBFull,
       logicalPop,
-      serviceAvailable: true,
+      serviceAvailable,
       userLinkLatencyAms: 0, userLinkLatencyBms: 0,
       feederLatencyAms: 0, feederLatencyBms: 0,
       backboneDistanceKm: 0, backboneOneWayLatencyMs: 0,
@@ -1456,6 +1467,8 @@ const App: React.FC = () => {
       oneWayLatencyAtoBMs: 0, oneWayLatencyBtoAMs: 0, rttMs: 0,
       accessThroughputAtoBMbps: null, accessThroughputBtoAMbps: null,
       finalThroughputAtoBMbps: null, finalThroughputBtoAMbps: null,
+      userLinkDistanceAKm: 0, feederDistanceAKm: 0,
+      userLinkDistanceBKm: 0, feederDistanceBKm: 0,
       elevationADeg: null, elevationBDeg: null,
       expectedHandoversA: 0, expectedHandoversB: 0,
       pathStability: 'Medium',
@@ -1639,8 +1652,8 @@ const App: React.FC = () => {
     } else {
       clearSelection();
       setManualGeoCoverageVisibility({ satelliteId: null, keys: [] });
-      setPointB(null);
-      setIsPointBPlacementArmed(false);
+      setSiteB(null);
+      setIsSiteBArmed(false);
     }
     setSelectedMoon(false);
     setSelectedAircraft(null);
@@ -1937,55 +1950,29 @@ const App: React.FC = () => {
   // Shift+click (or armed state on mobile) sets Site B in dual-point modes.
   // Plain clicks set Site A without disturbing Site B in any dual-point mode.
   const handlePointClick = useCallback((lat: number, lng: number, shiftKey: boolean) => {
-    // LEO site-to-site: Shift+click (desktop) or armed state (mobile) places Site B.
+    // In any two-point mode, Shift+click (desktop) or armed state (mobile) places Site B.
     // Plain click moves Site A — Site B is preserved.
-    if (leoTopologyMode === 'SITE_TO_SITE' && satelliteScope === 'LEO') {
-      if ((shiftKey || isPointBLeoArmed) && selectedPosition) {
-        setPointBLeo({ lat, lng });
-        setIsPointBLeoArmed(false);
-        return;
-      }
-      // Plain click: move Site A, leave Site B untouched.
-      setIsPointBLeoArmed(false);
-      setSelectedMoon(false);
-      setSelectedAircraft(null);
-      setSelectedVessel(null);
-      setSelectedGateway(null);
-      setInspectedSNP(null);
-      setSelectedIss(false);
-      setSelectedUplinkKey(null);
-      setSelectedDownlinkKey(null);
-      selectTarget('point', { lat, lng });
+    if (isTwoPointMode && (shiftKey || isSiteBArmed) && selectedPosition) {
+      setSiteB({ lat, lng });
+      setIsSiteBArmed(false);
       return;
     }
 
-    const supportsSecondaryPoint =
-      satelliteScope !== 'LEO' &&
-      LINK_MODE_REQUIRES_POINT_B.has(linkMode);
-
-    if (supportsSecondaryPoint && (shiftKey || isPointBPlacementArmed) && selectedPosition) {
-      // Shift+click on desktop, or the mobile "place B" mode, sets Point B
-      // without disturbing Point A.
-      setPointB({ lat, lng });
-      setIsPointBPlacementArmed(false);
-      return;
-    }
-
-    // Plain click → set Point A and clear other entity selections.
-    setIsPointBPlacementArmed(false);
+    // Plain click → set Site A and clear other entity selections.
+    setIsSiteBArmed(false);
     setSelectedMoon(false);
     setSelectedAircraft(null);
     setSelectedVessel(null);
     setSelectedGateway(null);
     setInspectedSNP(null);
     setSelectedIss(false);
-    if (!supportsSecondaryPoint) {
-      setPointB(null);
+    if (!isTwoPointMode) {
+      setSiteB(null);
     }
     setSelectedUplinkKey(null);
     setSelectedDownlinkKey(null);
     selectTarget('point', { lat, lng });
-  }, [isPointBPlacementArmed, isPointBLeoArmed, leoTopologyMode, linkMode, satelliteScope, selectedPosition, selectTarget]);
+  }, [isSiteBArmed, isTwoPointMode, selectedPosition, selectTarget]);
 
   // Handle aircraft selection (aircraft-based analyzis)
   const handleAircraftSelect = useCallback((aircraft: Aircraft | null, fromComboBox: boolean = false) => {
@@ -2123,16 +2110,9 @@ const App: React.FC = () => {
   }, [handleSelectTargetCoverageById]);
 
   const handleTogglePointBPlacement = useCallback(() => {
-    if (satelliteScope === 'LEO' && leoTopologyMode === 'SITE_TO_SITE') {
-      setIsPointBLeoArmed((current) => !current);
-      return;
-    }
-    if (!LINK_MODE_REQUIRES_POINT_B.has(linkMode) || satelliteScope === 'LEO') {
-      setIsPointBPlacementArmed(false);
-      return;
-    }
-    setIsPointBPlacementArmed((current) => !current);
-  }, [linkMode, satelliteScope, leoTopologyMode]);
+    if (!isTwoPointMode) return;
+    setIsSiteBArmed((current) => !current);
+  }, [isTwoPointMode]);
 
   const handleOpenCommandPalette = useCallback(() => {
     setIsSatelliteModalOpen(false);
@@ -2210,8 +2190,8 @@ const App: React.FC = () => {
     setSelectedAircraft(null);
     setSelectedVessel(null);
     setSelectedIss(false);
-    setPointB(null);
-    setIsPointBPlacementArmed(false);
+    setSiteB(null);
+    setIsSiteBArmed(false);
     iss.setFollowing(false);
     setHoveredSatelliteId(null);
     setIsFullscreen(false);
@@ -2411,6 +2391,7 @@ const App: React.FC = () => {
     selectedSatellite,
     selectedMoon,
     autoSelectedLEOSatellite: resolvedAutoLEO,
+    autoSelectedLEOSatelliteB: resolvedAutoLEOB,
     autoSelectedGEOSatellite: activeGeoSatellite,
     selectedGEOBeam,
     selectedCoverage,
@@ -2471,20 +2452,21 @@ const App: React.FC = () => {
     issIsFollowing: iss.isFollowing,
     onIssClick: handleIssClick,
     leoSiteToSiteResult: leoSiteToSiteGlobeResult,
+    leoSiteToSiteFullResult: leoS2SFullResult,
     pointBLeo,
   }), [
     filteredSatellites, satelliteTypeByName, coverageFeaturesMemo, visibleManualGeoCoverageKeys, handlePointClick, handleCoverageClick, selectedPosition,
     handleSatelliteClick, handleSatelliteHover, handleSnpClick, handleGatewaySelectByName, handleSnpHover,
-    handleMoonSelectionChange, selectedSatellite, selectedMoon, resolvedAutoLEO, activeGeoSatellite, selectedGEOBeam, selectedSelection, selectedCoverage, globeUplinkCoverage, globeDownlinkCoverage, selectedSNP, selectedGateway, dedicatedSNPForSelectedLEO, leoServiceViewModel, geoPointStatus, mobileMetrics, leoRegulatoryResult,
+    handleMoonSelectionChange, selectedSatellite, selectedMoon, resolvedAutoLEO, resolvedAutoLEOB, activeGeoSatellite, selectedGEOBeam, selectedSelection, selectedCoverage, globeUplinkCoverage, globeDownlinkCoverage, selectedSNP, selectedGateway, dedicatedSNPForSelectedLEO, leoServiceViewModel, geoPointStatus, mobileMetrics, leoRegulatoryResult,
     isFullscreen, satelliteScope, airTrafficEnabled, airTraffic.aircraft,
     selectedAircraft, handleAircraftSelect, handleAircraftHover,
     maritimeTrafficEnabled, maritimeTraffic.vessels, selectedVessel, handleVesselSelect, cameraTarget,
     handleCameraReady, handleGlobeContainerReady, handleGlobeBootPhaseChange, handleInitialGlobeReady, enableLighting, handleToggleLighting, handleSizeScaleChange, handleToggleAggregatedConnectivity, handleToggleFootprintProjection, handleToggleFullscreen, handleToggleSatelliteTrajectory, interpolatedAircraftMapRef, interpolatedVesselMapRef, showSatelliteTrajectory, showAggregatedConnectivity, showFootprintProjection, sizeScale,
     inspectedSNP, snpConnectedSatellites, countryOverlayMode, handleCountryOverlayModeChange, handleSizeScaleReset,
     isPhone, isMobileAnalysisPanelOpen, coverageSwitcherCoverages, selectedCoverageId, handleSelectTargetCoverageById,
-    pointB, linkMode, activeMeshTab,
+    pointB, pointBLeo, linkMode, activeMeshTab,
     issLiveEnabled, iss.orbitPath, issHasPosition, selectedIss, iss.isFollowing, handleIssClick,
-    leoSiteToSiteGlobeResult, pointBLeo,
+    leoSiteToSiteGlobeResult, leoS2SFullResult,
   ]);
   const desktopCompactProgress = isMobile ? 0 : getCompactDesktopProgress(viewportSnapshot);
   const useCompactDesktopSidebar = desktopCompactProgress >= 0.35;
@@ -2764,22 +2746,17 @@ const App: React.FC = () => {
     && !selectedMoon
     && !selectedSatellite
     && !selectedIss;
-  const isLeoS2S = satelliteScope === 'LEO' && leoTopologyMode === 'SITE_TO_SITE';
+  const isLeoS2S = leoTopologyMode === 'SITE_TO_SITE';
   const showMobilePointBMapControl = isMobile
     && !isFullscreen
     && hasMobileSelection
-    && (
-      (!isLeoS2S && satelliteScope !== 'LEO' && LINK_MODE_REQUIRES_POINT_B.has(linkMode))
-      || isLeoS2S
-    )
+    && isTwoPointMode
     && !!activeAnalysisPoint;
-  const mobilePointBMapControlLabel = isLeoS2S
-    ? (isPointBLeoArmed ? 'Tap map for Site B' : pointBLeo ? 'Move Site B' : 'Set Site B')
-    : isPointBPlacementArmed
-      ? 'Tap map for B'
-      : pointB
-        ? 'Move Terminal B'
-        : 'Set Terminal B';
+  const mobilePointBMapControlLabel = isSiteBArmed
+    ? 'Tap map for Site B'
+    : siteB
+      ? 'Move Site B'
+      : 'Set Site B';
   const splashReady = !loading && hasSplashMinimumElapsed && isInitialGlobeReady;
   const splashMessage = loading
     ? 'Loading satellite data and coverage...'
@@ -3339,7 +3316,6 @@ const App: React.FC = () => {
               className={`absolute inset-0 bg-white overflow-hidden transition-all duration-300 ${isFullscreen ? 'fixed inset-0 z-50' : ''}`}
             >
               <MapViewSwitcher {...sharedMapProps} isPhone={isPhone} isMobileViewport={isMobile} />
-              <SatelliteStatusLegend />
             </div>
 
             {isPhone && !isFullscreen && (
@@ -3444,8 +3420,9 @@ const App: React.FC = () => {
                     pointBLeo={pointBLeo}
                     autoSelectedLEOSatelliteB={resolvedAutoLEOB}
                     selectedSNPB={selectedSNPB}
-                    isPointBLeoArmed={isPointBLeoArmed}
-                    onArmPointBLeo={() => setIsPointBLeoArmed(true)}
+                    isPointBLeoArmed={isSiteBArmed}
+                    onArmPointBLeo={() => setIsSiteBArmed(true)}
+                    onLeoSiteToSiteResultChange={setLeoS2SFullResult}
                   />
                 </Suspense>
               </div>
@@ -3462,15 +3439,11 @@ const App: React.FC = () => {
                       <button
                         type="button"
                         onClick={handleTogglePointBPlacement}
-                        aria-pressed={isLeoS2S ? isPointBLeoArmed : isPointBPlacementArmed}
-                        aria-label={
-                          isLeoS2S
-                            ? (pointBLeo ? 'Move Site B on the map' : 'Set Site B on the map')
-                            : (pointB ? 'Move Terminal B on the map' : 'Set Terminal B on the map')
-                        }
+                        aria-pressed={isSiteBArmed}
+                        aria-label={siteB ? 'Move Site B on the map' : 'Set Site B on the map'}
                         className={[
                           'pointer-events-auto inline-flex h-10 items-center gap-2 rounded-full border px-4 text-sm font-semibold shadow-[0_18px_42px_-24px_rgba(15,23,42,0.85)] backdrop-blur-xl transition-colors',
-                          (isLeoS2S ? isPointBLeoArmed : isPointBPlacementArmed)
+                          isSiteBArmed
                             ? 'border-amber-300/80 bg-amber-400 text-slate-950 hover:bg-amber-300 dark:border-amber-300/80 dark:bg-amber-400 dark:text-slate-950'
                             : 'border-white/70 bg-slate-950/90 text-white hover:bg-slate-800 dark:border-slate-700/80 dark:bg-white/90 dark:text-slate-950 dark:hover:bg-slate-200',
                         ].join(' ')}
@@ -3646,8 +3619,9 @@ const App: React.FC = () => {
                                 pointBLeo={pointBLeo}
                                 autoSelectedLEOSatelliteB={resolvedAutoLEOB}
                                 selectedSNPB={selectedSNPB}
-                                isPointBLeoArmed={isPointBLeoArmed}
-                                onArmPointBLeo={() => setIsPointBLeoArmed(true)}
+                                isPointBLeoArmed={isSiteBArmed}
+                                onArmPointBLeo={() => setIsSiteBArmed(true)}
+                                onLeoSiteToSiteResultChange={setLeoS2SFullResult}
                               />
                             )}
                           </Suspense>
@@ -3681,7 +3655,6 @@ const App: React.FC = () => {
                   </div>
                 </div>
               )}
-              <SatelliteStatusLegend />
             </div>
 
             <div
@@ -3814,8 +3787,9 @@ const App: React.FC = () => {
                         pointBLeo={pointBLeo}
                         autoSelectedLEOSatelliteB={resolvedAutoLEOB}
                         selectedSNPB={selectedSNPB}
-                        isPointBLeoArmed={isPointBLeoArmed}
-                        onArmPointBLeo={() => setIsPointBLeoArmed(true)}
+                        isPointBLeoArmed={isSiteBArmed}
+                        onArmPointBLeo={() => setIsSiteBArmed(true)}
+                        onLeoSiteToSiteResultChange={setLeoS2SFullResult}
                       />
                     )}
                   </Suspense>

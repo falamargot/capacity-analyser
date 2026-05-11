@@ -13,6 +13,7 @@ interface SatelliteScreenLabelsProps {
   highlightedSatellites: Array<{
     satellite: SatelliteData;
     isManuallySelected: boolean;
+    serviceRoles?: Array<'A' | 'B'>;
   }>;
   viewerReady?: boolean;
 }
@@ -25,8 +26,8 @@ const getLabelBackgroundColor = (satellite: SatelliteData): string => (
 
 const LABEL_OFFSET_Y_PX = 10;
 const LABEL_POSITION_EASING = 0.22;
-const LABEL_BASE_Z_INDEX = 11;
-const LABEL_MAX_Z_INDEX = 18;
+const LABEL_BASE_Z_INDEX = 60;
+const LABEL_MAX_Z_INDEX = 68;
 
 interface SmoothedScreenPosition {
   x: number;
@@ -152,37 +153,50 @@ const SatelliteScreenLabels: React.FC<SatelliteScreenLabelsProps> = ({
 
   return (
     <>
-      {sortedSatellites.map(({ satellite, isManuallySelected }, index) => (
-        <div
-          key={satellite.id}
-          ref={(node) => {
-            if (node) {
-              labelRefs.current.set(satellite.id, node);
-            } else {
-              labelRefs.current.delete(satellite.id);
-            }
-          }}
-          className="absolute pointer-events-none -translate-x-1/2 opacity-0"
-          style={{
-            left: 0,
-            top: 0,
-            zIndex: Math.min(LABEL_BASE_Z_INDEX + index, LABEL_MAX_Z_INDEX),
-          }}
-        >
+      {sortedSatellites.map(({ satellite, isManuallySelected, serviceRoles }, index) => {
+        const roleText = serviceRoles?.length === 2
+          ? 'Sites A+B'
+          : serviceRoles?.length === 1
+            ? `Site ${serviceRoles[0]}`
+            : null;
+
+        return (
           <div
-            className="rounded px-2 py-1 text-[13px] font-semibold leading-none text-white shadow-lg ring-1 ring-white/25 -translate-y-full"
+            key={satellite.id}
+            ref={(node) => {
+              if (node) {
+                labelRefs.current.set(satellite.id, node);
+              } else {
+                labelRefs.current.delete(satellite.id);
+              }
+            }}
+            className="absolute pointer-events-none -translate-x-1/2 opacity-0"
             style={{
-              backgroundColor: getLabelBackgroundColor(satellite),
-              marginTop: -2,
-              boxShadow: isManuallySelected
-                ? '0 0 0 1px rgba(255,255,255,0.35), 0 10px 25px rgba(0,0,0,0.22)'
-                : undefined,
+              left: 0,
+              top: 0,
+              zIndex: Math.min(LABEL_BASE_Z_INDEX + index, LABEL_MAX_Z_INDEX),
             }}
           >
-            {satellite.name}
+            <div
+              className="rounded px-2 py-1 text-[13px] font-semibold leading-tight text-white shadow-lg ring-1 ring-white/25 -translate-y-full"
+              style={{
+                backgroundColor: getLabelBackgroundColor(satellite),
+                marginTop: -2,
+                boxShadow: isManuallySelected
+                  ? '0 0 0 1px rgba(255,255,255,0.35), 0 10px 25px rgba(0,0,0,0.22)'
+                  : undefined,
+              }}
+            >
+              <div>{satellite.name}</div>
+              {roleText && (
+                <div className="mt-0.5 text-[10px] font-bold uppercase tracking-wide text-white/85">
+                  {roleText}
+                </div>
+              )}
+            </div>
           </div>
-        </div>
-      ))}
+        );
+      })}
     </>
   );
 };

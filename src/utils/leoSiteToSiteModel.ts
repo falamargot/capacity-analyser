@@ -81,6 +81,15 @@ export interface LeoSiteToSiteResult {
   finalThroughputAtoBMbps: number | null;
   finalThroughputBtoAMbps: number | null;
 
+  /** Slant range endpoint A → satellite A (km). */
+  userLinkDistanceAKm: number;
+  /** Slant range satellite A → SNP A (km). */
+  feederDistanceAKm: number;
+  /** Slant range endpoint B → satellite B (km). */
+  userLinkDistanceBKm: number;
+  /** Slant range SNP B → satellite B (km). */
+  feederDistanceBKm: number;
+
   /** Elevation angle at endpoint A (degrees). */
   elevationADeg: number | null;
   /** Elevation angle at endpoint B (degrees). */
@@ -315,6 +324,10 @@ export function computeLeoSiteToSiteResult(args: ComputeLeoSiteToSiteArgs): LeoS
     accessThroughputBtoAMbps,
     finalThroughputAtoBMbps,
     finalThroughputBtoAMbps,
+    userLinkDistanceAKm: userToSatDistanceAKm ?? 0,
+    feederDistanceAKm: satToSnpDistanceAKm ?? 0,
+    userLinkDistanceBKm: userToSatDistanceBKm ?? 0,
+    feederDistanceBKm: satToSnpDistanceBKm ?? 0,
     elevationADeg,
     elevationBDeg,
     expectedHandoversA,

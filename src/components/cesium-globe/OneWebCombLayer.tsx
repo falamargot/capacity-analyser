@@ -80,6 +80,11 @@ interface OneWebCombLayerProps {
     viewerRef: React.RefObject<CesiumViewerType | null>;
     selectedPosition?: { lat: number; lng: number; altitude?: number } | null;
     selectedAircraft?: Aircraft | null;
+    servingPoints?: Array<{
+        id: string;
+        position: { lat: number; lng: number };
+        label?: string;
+    }>;
     highlightServingFootprint?: boolean;
     regulatoryOverlayActive?: boolean;
     leoServiceViewModel?: LeoConnectivityViewModel | null;
@@ -363,6 +368,7 @@ const OneWebCombLayer: React.FC<OneWebCombLayerProps> = ({
     viewerRef,
     selectedPosition,
     selectedAircraft,
+    servingPoints,
     highlightServingFootprint = false,
     regulatoryOverlayActive = false,
     leoServiceViewModel = null,
@@ -411,27 +417,28 @@ const OneWebCombLayer: React.FC<OneWebCombLayerProps> = ({
         }, false);
     }, [targetSat?.id]);
 
-    const highlight = useMemo(() => {
+    const highlights = useMemo(() => {
         if (!highlightServingFootprint) {
-            return {
-                show: new CallbackProperty(() => false, false),
-                hierarchy: new CallbackProperty(() => _dummyHierarchy, false),
-                contourPositions: new CallbackProperty(() => DUMMY_POLYGON, false),
-                material: new ColorMaterialProperty(new CallbackProperty(() => _HIGHLIGHT_FILL_COLOR, false)),
-                outlineColor: new CallbackProperty(() => _HIGHLIGHT_OUTLINE_COLOR, false),
-                contourMaterial: new ColorMaterialProperty(new CallbackProperty(() => _HIGHLIGHT_OUTLINE_COLOR, false)),
-            };
+            return [];
         }
 
-        const resolveServingBeam = (time?: JulianDate) => {
+        const explicitServingPoints = servingPoints?.length ? servingPoints : null;
+        const highlightTargets = explicitServingPoints ?? [{ id: 'selected-site', position: null, label: 'Serving' }];
+
+        const resolveServingBeam = (
+            time?: JulianDate,
+            explicitPoint?: { lat: number; lng: number } | null
+        ) => {
             if (!time || !viewerRef.current || !targetSat) return null;
-            if (!selectedPosition && !selectedAircraft) return null;
+            if (!explicitPoint && !selectedPosition && !selectedAircraft) return null;
 
             const geometries = getCombGeometriesRef.current(targetSat, time);
             if (!geometries) return null;
 
             let point: { lat: number; lng: number } | null = null;
-            if (selectedAircraft) {
+            if (explicitPoint) {
+                point = explicitPoint;
+            } else if (selectedAircraft) {
                 const p = calculateDeadReckoning(selectedAircraft, time);
                 const c = Cartographic.fromCartesian(p);
                 point = { lat: CesiumMath.toDegrees(c.latitude), lng: CesiumMath.toDegrees(c.longitude) };
@@ -457,64 +464,67 @@ const OneWebCombLayer: React.FC<OneWebCombLayerProps> = ({
             return null;
         };
 
-        const show = new CallbackProperty((time?: JulianDate) => {
-            return resolveServingBeam(time) !== null;
-        }, false);
+        return highlightTargets.map((target) => {
+            const targetPosition = target.position;
+            const show = new CallbackProperty((time?: JulianDate) => {
+                return resolveServingBeam(time, targetPosition) !== null;
+            }, false);
 
-        const hierarchy = new CallbackProperty((time?: JulianDate) => {
-            const servingBeam = resolveServingBeam(time);
-            if (!servingBeam) return _dummyHierarchy;
-            const polygon = sanitizeCartesianRing(servingBeam.polygon);
-            if (polygon.length < 3) return _dummyHierarchy;
-            return new PolygonHierarchy(polygon);
-        }, false);
+            const hierarchy = new CallbackProperty((time?: JulianDate) => {
+                const servingBeam = resolveServingBeam(time, targetPosition);
+                if (!servingBeam) return _dummyHierarchy;
+                const polygon = sanitizeCartesianRing(servingBeam.polygon);
+                if (polygon.length < 3) return _dummyHierarchy;
+                return new PolygonHierarchy(polygon);
+            }, false);
 
-        const contourPositions = new CallbackProperty((time?: JulianDate) => {
-            const servingBeam = resolveServingBeam(time);
-            if (!servingBeam) return DUMMY_POLYGON;
+            const contourPositions = new CallbackProperty((time?: JulianDate) => {
+                const servingBeam = resolveServingBeam(time, targetPosition);
+                if (!servingBeam) return DUMMY_POLYGON;
 
-            const polygon = servingBeam.polygon;
-            const sanitized = sanitizeCartesianRing(polygon);
-            if (sanitized.length < 3) return DUMMY_POLYGON;
+                const polygon = servingBeam.polygon;
+                const sanitized = sanitizeCartesianRing(polygon);
+                if (sanitized.length < 3) return DUMMY_POLYGON;
 
-            const degreesWithHeights: number[] = [];
-            const closed = [...sanitized, sanitized[0]];
-            for (const point of closed) {
-                const cartographic = Cartographic.fromCartesian(point);
-                degreesWithHeights.push(
-                    CesiumMath.toDegrees(cartographic.longitude),
-                    CesiumMath.toDegrees(cartographic.latitude),
-                    FOOTPRINT_HIGHLIGHT_LAYER_HEIGHT_M
+                const degreesWithHeights: number[] = [];
+                const closed = [...sanitized, sanitized[0]];
+                for (const point of closed) {
+                    const cartographic = Cartographic.fromCartesian(point);
+                    degreesWithHeights.push(
+                        CesiumMath.toDegrees(cartographic.longitude),
+                        CesiumMath.toDegrees(cartographic.latitude),
+                        FOOTPRINT_HIGHLIGHT_LAYER_HEIGHT_M
+                    );
+                }
+
+                return Cartesian3.fromDegreesArrayHeights(degreesWithHeights);
+            }, false);
+
+            const material = new ColorMaterialProperty(new CallbackProperty((time?: JulianDate) => {
+                const servingBeam = resolveServingBeam(time, targetPosition);
+                if (!servingBeam) return _HIGHLIGHT_FILL_COLOR;
+                return getServingBeamColor(
+                    getBeamBaseColor(servingBeam.beamIndex),
+                    beamVisualStateRef.current,
+                    0.28
                 );
-            }
+            }, false));
 
-            return Cartesian3.fromDegreesArrayHeights(degreesWithHeights);
-        }, false);
+            const outlineColor = new CallbackProperty((time?: JulianDate) => {
+                const servingBeam = resolveServingBeam(time, targetPosition);
+                if (!servingBeam) return _HIGHLIGHT_OUTLINE_COLOR;
+                return getServingBeamColor(
+                    getBeamBaseColor(servingBeam.beamIndex),
+                    beamVisualStateRef.current,
+                    0.95
+                );
+            }, false);
 
-        const material = new ColorMaterialProperty(new CallbackProperty((time?: JulianDate) => {
-            const servingBeam = resolveServingBeam(time);
-            if (!servingBeam) return _HIGHLIGHT_FILL_COLOR;
-            return getServingBeamColor(
-                getBeamBaseColor(servingBeam.beamIndex),
-                beamVisualStateRef.current,
-                0.28
-            );
-        }, false));
+            const contourMaterial = new ColorMaterialProperty(outlineColor);
 
-        const outlineColor = new CallbackProperty((time?: JulianDate) => {
-            const servingBeam = resolveServingBeam(time);
-            if (!servingBeam) return _HIGHLIGHT_OUTLINE_COLOR;
-            return getServingBeamColor(
-                getBeamBaseColor(servingBeam.beamIndex),
-                beamVisualStateRef.current,
-                0.95
-            );
-        }, false);
-
-        const contourMaterial = new ColorMaterialProperty(outlineColor);
-
-        return { show, hierarchy, contourPositions, material, outlineColor, contourMaterial };
-    }, [highlightServingFootprint, viewerRef, targetSat?.id, selectedPosition?.lat, selectedPosition?.lng, selectedAircraft?.icao24]);
+            return { id: target.id, label: target.label, show, hierarchy, contourPositions, material, outlineColor, contourMaterial };
+        });
+    }, [highlightServingFootprint, viewerRef, targetSat?.id, selectedPosition?.lat, selectedPosition?.lng, selectedAircraft?.icao24, servingPoints]);
 
     // These useMemo hooks MUST be before the early return to satisfy the Rules of Hooks.
     // They guard against null targetSat internally and produce no-op values in that case.
@@ -618,27 +628,31 @@ const OneWebCombLayer: React.FC<OneWebCombLayerProps> = ({
             ))}
 
 
-            <Entity name="Serving Footprint Highlight">
-                <PolygonGraphics
-                    show={highlight.show}
-                    hierarchy={highlight.hierarchy}
-                    material={highlight.material}
-                    outline={true}
-                    outlineColor={highlight.outlineColor}
-                    outlineWidth={3}
-                    height={FOOTPRINT_HIGHLIGHT_LAYER_HEIGHT_M}
-                />
-            </Entity>
-            <Entity
-                name="Serving Footprint Contour"
-                polyline={{
-                    show: highlight.show,
-                    positions: highlight.contourPositions,
-                    width: 2,
-                    material: highlight.contourMaterial,
-                    clampToGround: false,
-                }}
-            />
+            {highlights.map((highlight) => (
+                <React.Fragment key={`serving-highlight-${targetSat.id}-${highlight.id}`}>
+                    <Entity name={`Serving Footprint Highlight${highlight.label ? ` (${highlight.label})` : ''}`}>
+                        <PolygonGraphics
+                            show={highlight.show}
+                            hierarchy={highlight.hierarchy}
+                            material={highlight.material}
+                            outline={true}
+                            outlineColor={highlight.outlineColor}
+                            outlineWidth={3}
+                            height={FOOTPRINT_HIGHLIGHT_LAYER_HEIGHT_M}
+                        />
+                    </Entity>
+                    <Entity
+                        name={`Serving Footprint Contour${highlight.label ? ` (${highlight.label})` : ''}`}
+                        polyline={{
+                            show: highlight.show,
+                            positions: highlight.contourPositions,
+                            width: 2,
+                            material: highlight.contourMaterial,
+                            clampToGround: false,
+                        }}
+                    />
+                </React.Fragment>
+            ))}
         </>
     );
 };

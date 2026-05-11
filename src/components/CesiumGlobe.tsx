@@ -71,8 +71,16 @@ import PositionDisplay from './cesium-globe/PositionDisplay';
 import SatelliteIndicator from './cesium-globe/SatelliteIndicator';
 import InspectionCard, { type HoveredEntity } from './cesium-globe/InspectionCard';
 import CountryOverlayLegend from './cesium-globe/CountryOverlayLegend';
-import SelectedPointScreenLabel from './cesium-globe/SelectedPointScreenLabel';
+import SiteScreenLabel from './cesium-globe/SiteScreenLabel';
 import SatelliteScreenLabels from './cesium-globe/SatelliteScreenLabels';
+import LeoS2SPathStrip from './cesium-globe/LeoS2SPathStrip';
+import {
+  buildGeoStarSection,
+  buildGeoMeshSection,
+  buildLeoSingleSection,
+  buildLeoS2SSectionA,
+  buildLeoS2SSectionB,
+} from './cesium-globe/siteTooltipHelpers';
 import MoonLayer from './cesium-globe/MoonLayer';
 import { GEO_GATEWAYS, SNPS_DATA, type GeoGatewayData, type SNPData } from './globe/GlobeConfig';
 import { resolveConnectivityPathForSatellite } from '../utils/geoConnectivityModel';
@@ -160,6 +168,7 @@ interface CesiumGlobeProps {
     selectedSatellite: SatelliteData | null;
     selectedMoon?: boolean;
     autoSelectedLEOSatellite?: SatelliteData | null;
+    autoSelectedLEOSatelliteB?: SatelliteData | null;
     autoSelectedGEOSatellite?: SatelliteData | null;
     selectedSNP?: string | { lat: number; lng: number; name: string } | null;
     selectedGateway?: GeoGatewayData | null;
@@ -226,6 +235,8 @@ interface CesiumGlobeProps {
     activeMeshTab?: 'forward' | 'reverse';
     /** LEO site-to-site result — when present, draws the full routed path on the globe. */
     leoSiteToSiteResult?: import('../utils/leoSiteToSiteModel').LeoSiteToSiteResult | null;
+    /** Full S2S result with computed throughput/latency — used for floating tooltips and path strip. */
+    leoSiteToSiteFullResult?: import('../utils/leoSiteToSiteModel').LeoSiteToSiteResult | null;
     /** Point B for LEO site-to-site mode (rendered as a cyan marker). */
     pointBLeo?: { lat: number; lng: number } | null;
     issLiveEnabled?: boolean;
@@ -252,6 +263,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
     selectedSatellite,
     selectedMoon = false,
     autoSelectedLEOSatellite,
+    autoSelectedLEOSatelliteB,
     autoSelectedGEOSatellite,
     selectedSNP,
     selectedGateway,
@@ -314,6 +326,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
     linkMode,
     activeMeshTab,
     leoSiteToSiteResult = null,
+    leoSiteToSiteFullResult = null,
     pointBLeo = null,
     issLiveEnabled = false,
     issPositionRef,
@@ -857,23 +870,72 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         onPointClick(lat, lng, pointerShiftPressedRef.current || shiftPressedRef.current);
     }, [onAircraftClick, onCoverageClick, onIssClick, onMoonSelectionChange, onPointClick, onSatelliteClick, onSnpClick, onVesselClick, selection.type]);
 
-    // Determine target satellite for OneWeb comb layer
-    const oneWebTargetSat = useMemo(() => {
-        if (selectedSatellite?.type === 'ONEWEB' && isOperationalSatellite(selectedSatellite)) {
-            return selectedSatellite;
-        }
-        if (autoSelectedLEOSatellite?.type === 'ONEWEB' && isOperationalSatellite(autoSelectedLEOSatellite)) {
-            return autoSelectedLEOSatellite;
-        }
-        return null;
-    }, [selectedSatellite, autoSelectedLEOSatellite]);
+    const leoS2SVisualResult = leoSiteToSiteFullResult ?? leoSiteToSiteResult;
 
-    const highlightServingFootprint = useMemo(() => {
-        // Only highlight in auto-selection context (no manual satellite selected)
-        if (selectedSatellite) return false;
-        if (!autoSelectedLEOSatellite) return false;
-        return true;
-    }, [selectedSatellite, autoSelectedLEOSatellite]);
+    const oneWebVisualTargets = useMemo(() => {
+        type ServingPoint = {
+            id: string;
+            position: { lat: number; lng: number };
+            label: string;
+        };
+        type VisualTarget = {
+            satellite: SatelliteData;
+            servingPoints: ServingPoint[] | null;
+        };
+
+        const targets: VisualTarget[] = [];
+        const findLiveSatellite = (satellite: SatelliteData): SatelliteData => (
+            satellites.find((item) => item.id === satellite.id) ?? satellite
+        );
+        const addTarget = (
+            satellite: SatelliteData | null | undefined,
+            servingPoint: ServingPoint | null = null,
+        ) => {
+            if (!satellite || satellite.type !== 'ONEWEB' || !isOperationalSatellite(satellite)) return;
+            const liveSatellite = findLiveSatellite(satellite);
+            const existing = targets.find((entry) => entry.satellite.id === liveSatellite.id);
+            if (existing) {
+                if (servingPoint && existing.servingPoints && !existing.servingPoints.some((point) => point.id === servingPoint.id)) {
+                    existing.servingPoints.push(servingPoint);
+                }
+                return;
+            }
+            targets.push({
+                satellite: liveSatellite,
+                servingPoints: servingPoint ? [servingPoint] : null,
+            });
+        };
+
+        if (selectedSatellite) {
+            addTarget(selectedSatellite);
+            return targets;
+        }
+
+        if (satelliteScope !== 'GEO' && leoS2SVisualResult && pointBLeo) {
+            addTarget(leoS2SVisualResult.servingSatelliteA ?? autoSelectedLEOSatellite, {
+                id: 'site-a',
+                position: leoS2SVisualResult.endpointA,
+                label: 'Site A',
+            });
+            addTarget(leoS2SVisualResult.servingSatelliteB ?? autoSelectedLEOSatelliteB, {
+                id: 'site-b',
+                position: leoS2SVisualResult.endpointB,
+                label: 'Site B',
+            });
+            return targets;
+        }
+
+        addTarget(autoSelectedLEOSatellite);
+        return targets;
+    }, [
+        autoSelectedLEOSatellite,
+        autoSelectedLEOSatelliteB,
+        leoS2SVisualResult,
+        pointBLeo,
+        satelliteScope,
+        satellites,
+        selectedSatellite,
+    ]);
 
     const geoBeamCone = useMemo(() => {
         // Only render the beam cone in auto-selection context (no manual satellite selected)
@@ -987,8 +1049,9 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         const add = (satellite: SatelliteData | null | undefined) => {
             if (!satellite) return;
             if (!isOperationalSatellite(satellite)) return;
-            if (targets.some((item) => item.id === satellite.id)) return;
-            targets.push(satellite);
+            const liveSatellite = satellites.find((item) => item.id === satellite.id) ?? satellite;
+            if (targets.some((item) => item.id === liveSatellite.id)) return;
+            targets.push(liveSatellite);
         };
 
         if (selectedSatellite) {
@@ -997,17 +1060,50 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         }
 
         add(autoSelectedLEOSatellite);
+        if (satelliteScope !== 'GEO' && leoS2SVisualResult && pointBLeo) {
+            add(leoS2SVisualResult.servingSatelliteA);
+            add(leoS2SVisualResult.servingSatelliteB ?? autoSelectedLEOSatelliteB);
+        }
         add(autoSelectedGEOSatellite);
         return targets;
-    }, [selectedSatellite, autoSelectedLEOSatellite, autoSelectedGEOSatellite]);
+    }, [
+        selectedSatellite,
+        autoSelectedLEOSatellite,
+        autoSelectedLEOSatelliteB,
+        autoSelectedGEOSatellite,
+        leoS2SVisualResult,
+        pointBLeo,
+        satelliteScope,
+        satellites,
+    ]);
 
     const highlightedSatelliteLabels = useMemo(() => {
-        const labels: Array<{ satellite: SatelliteData; isManuallySelected: boolean }> = [];
-        const add = (satellite: SatelliteData | null | undefined, isManuallySelected: boolean) => {
+        const labels: Array<{
+            satellite: SatelliteData;
+            isManuallySelected: boolean;
+            serviceRoles?: Array<'A' | 'B'>;
+        }> = [];
+        const add = (
+            satellite: SatelliteData | null | undefined,
+            isManuallySelected: boolean,
+            serviceRole?: 'A' | 'B',
+        ) => {
             if (!satellite) return;
             if (!isOperationalSatellite(satellite)) return;
-            if (labels.some((entry) => entry.satellite.id === satellite.id)) return;
-            labels.push({ satellite, isManuallySelected });
+            const liveSatellite = satellites.find((item) => item.id === satellite.id) ?? satellite;
+            const existing = labels.find((entry) => entry.satellite.id === liveSatellite.id);
+            if (existing) {
+                existing.isManuallySelected = existing.isManuallySelected || isManuallySelected;
+                if (serviceRole && !existing.serviceRoles?.includes(serviceRole)) {
+                    existing.serviceRoles = [...(existing.serviceRoles ?? []), serviceRole].sort();
+                }
+                return;
+            }
+            labels.push({
+                satellite: liveSatellite,
+                isManuallySelected,
+                serviceRoles: serviceRole ? [serviceRole] : undefined,
+            });
         };
 
         if (selectedSatellite) {
@@ -1015,10 +1111,24 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
             return labels;
         }
 
-        add(autoSelectedLEOSatellite, false);
+        if (satelliteScope !== 'GEO' && leoS2SVisualResult && pointBLeo) {
+            add(leoS2SVisualResult.servingSatelliteA ?? autoSelectedLEOSatellite, false, 'A');
+            add(leoS2SVisualResult.servingSatelliteB ?? autoSelectedLEOSatelliteB, false, 'B');
+        } else {
+            add(autoSelectedLEOSatellite, false);
+        }
         add(autoSelectedGEOSatellite, false);
         return labels;
-    }, [selectedSatellite, autoSelectedLEOSatellite, autoSelectedGEOSatellite]);
+    }, [
+        selectedSatellite,
+        autoSelectedLEOSatellite,
+        autoSelectedLEOSatelliteB,
+        autoSelectedGEOSatellite,
+        leoS2SVisualResult,
+        pointBLeo,
+        satelliteScope,
+        satellites,
+    ]);
 
     const pulsedSnp = useMemo(() => {
         if (inspectedSNP) return inspectedSNP;
@@ -1270,16 +1380,18 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         }, false);
     }, [selectedPosition, sizeScale]);
 
+    const siteBMarkerPosition = pointB ?? pointBLeo;
+
     const pointBMarkerPixelSize = useMemo(() => {
         return new CallbackProperty(() => {
-            if (!pointB) return 4;
-            const position = getPosition(pointB.lat, pointB.lng, 0.01);
+            if (!siteBMarkerPosition) return 4;
+            const position = getPosition(siteBMarkerPosition.lat, siteBMarkerPosition.lng, 0.01);
             const distance = Cartesian3.distance(cameraMetricsRef.current.position, position);
             const dynamicScale = calculateDynamicScale(cameraMetricsRef.current.height, DPR_FACTOR);
             const baseScale = dynamicScale * 3000000 / Math.max(distance, 10000000);
             return baseScale * 16 * (sizeScale || 1);
         }, false);
-    }, [pointB, sizeScale]);
+    }, [siteBMarkerPosition, sizeScale]);
 
     const leoDisplayOptionsAvailable = satelliteScope !== 'GEO';
     const showGroundSelectedPoint = !!selectedPosition && !selectedAircraft && !selectedVessel;
@@ -1469,15 +1581,21 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                     {/* OneWeb Comb Layer - Only shown for operational ONEWEB targets */}
                     {/* In ONEWEB_PREMIUM mode: shows coverage circles only (no individual beams) */}
                     {/* In DB_THRESHOLD mode: shows coverage circles + individual beams */}
-                    <OneWebCombLayer
-                        targetSat={oneWebTargetSat}
-                        viewerRef={viewerRef}
-                        selectedPosition={selectedPosition}
-                        selectedAircraft={selectedAircraft}
-                        highlightServingFootprint={highlightServingFootprint}
-                        regulatoryOverlayActive={effectiveCountryOverlayMode === 'regulatory'}
-                        leoServiceViewModel={leoServiceViewModel}
-                    />
+                    {oneWebVisualTargets.map((target) => (
+                        <OneWebCombLayer
+                            key={`oneweb-comb-${target.satellite.id}`}
+                            targetSat={target.satellite}
+                            viewerRef={viewerRef}
+                            selectedPosition={target.servingPoints ? null : selectedPosition}
+                            selectedAircraft={target.servingPoints ? null : selectedAircraft}
+                            servingPoints={target.servingPoints ?? undefined}
+                            highlightServingFootprint={!selectedSatellite && (
+                                target.servingPoints ? target.servingPoints.length > 0 : !!autoSelectedLEOSatellite
+                            )}
+                            regulatoryOverlayActive={effectiveCountryOverlayMode === 'regulatory'}
+                            leoServiceViewModel={leoServiceViewModel}
+                        />
+                    ))}
 
                     {/* Aggregated coverage volume (manual satellite selection only) */}
                     {showFootprintProjection && (
@@ -1530,24 +1648,18 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                         />
                     )}
 
-                    {/* Point B marker — explicit visible endpoint for Mesh / Point-to-Point */}
-                    {pointB && linkMode && (linkMode === 'MESH' || linkMode === 'POINT_TO_POINT') && (
+                    {/* Site B marker — rendered once regardless of how many active topologies use it */}
+                    {siteBMarkerPosition && (
                         <SelectedPointStatusMarker
-                            selectedPosition={pointB}
+                            selectedPosition={siteBMarkerPosition}
                             pixelSize={pointBMarkerPixelSize}
-                            satelliteScope="GEO"
-                            geoPointStatus={geoPointStatus}
-                        />
-                    )}
-
-                    {/* Point B (LEO) marker — site-to-site mode */}
-                    {pointBLeo && leoSiteToSiteResult?.serviceAvailable && (
-                        <SelectedPointStatusMarker
-                            selectedPosition={pointBLeo}
-                            pixelSize={pointBMarkerPixelSize}
-                            satelliteScope="LEO"
+                            satelliteScope={
+                                pointB && pointBLeo ? 'ALL' :
+                                pointB ? 'GEO' : 'LEO'
+                            }
                             leoServiceViewModel={null}
-                            geoPointStatus={null}
+                            geoPointStatus={pointB ? geoPointStatus : null}
+                            markerVariant="site-b"
                         />
                     )}
                     {pulsedSatellites.map((satellite) => (
@@ -1672,33 +1784,77 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                     cursorPositionRef={inspectionCursorPositionRef}
                 />
             )}
-            <SelectedPointScreenLabel
-                viewerRef={viewerRef}
-                containerRef={globeContainerRef}
-                selectedPosition={showGroundSelectedPoint ? selectedPosition : null}
-                satelliteScope={satelliteScope}
-                leoServiceViewModel={leoServiceViewModel}
-                geoPointStatus={geoPointStatus}
-                performanceMetrics={performanceMetrics}
-                viewerReady={viewerReady}
-                compact={!!isPhone}
-                meshRole="A"
-                linkMode={linkMode}
-            />
-            {pointB && linkMode && (linkMode === 'MESH' || linkMode === 'POINT_TO_POINT') && (
-                <SelectedPointScreenLabel
-                    viewerRef={viewerRef}
-                    containerRef={globeContainerRef}
-                    selectedPosition={pointB}
-                    satelliteScope="GEO"
-                    geoPointStatus={geoPointStatus}
-                    performanceMetrics={performanceMetrics}
-                    viewerReady={viewerReady}
-                    compact={!!isPhone}
-                    meshRole="B"
-                    linkMode={linkMode}
-                />
-            )}
+            {/* Unified Site A tooltip — aggregates GEO and LEO data in one bubble */}
+            {(() => {
+                if (!showGroundSelectedPoint || !selectedPosition) return null;
+                const s2sResult = leoSiteToSiteFullResult ?? leoSiteToSiteResult;
+                const isMeshP2P = linkMode === 'MESH' || linkMode === 'POINT_TO_POINT';
+                const hasLeoS2S = !!(s2sResult?.servingSatelliteA && s2sResult?.servingSatelliteB);
+                const sections = [];
+
+                if (satelliteScope !== 'LEO') {
+                    sections.push(
+                        isMeshP2P
+                            ? buildGeoMeshSection(performanceMetrics?.mesh, 'A', linkMode!)
+                            : buildGeoStarSection(geoPointStatus, performanceMetrics?.geo, linkMode)
+                    );
+                }
+                if (satelliteScope !== 'GEO') {
+                    sections.push(
+                        hasLeoS2S
+                            ? buildLeoS2SSectionA(s2sResult!)
+                            : buildLeoSingleSection(leoServiceViewModel, performanceMetrics?.leo, linkMode)
+                    );
+                }
+
+                return (
+                    <SiteScreenLabel
+                        siteId="A"
+                        position={selectedPosition}
+                        viewerRef={viewerRef}
+                        containerRef={globeContainerRef}
+                        viewerReady={viewerReady}
+                        compact={!!isPhone}
+                        sections={sections}
+                    />
+                );
+            })()}
+            {/* Unified Site B tooltip — aggregates GEO Mesh/P2P and/or LEO S2S in one bubble */}
+            {(() => {
+                const siteBPos = pointB ?? pointBLeo;
+                if (!siteBPos) return null;
+                const s2sResult = leoSiteToSiteFullResult ?? leoSiteToSiteResult;
+                const isMeshP2P = linkMode === 'MESH' || linkMode === 'POINT_TO_POINT';
+                const hasLeoS2S = !!(s2sResult?.servingSatelliteA && s2sResult?.servingSatelliteB);
+                const sections = [];
+
+                if (satelliteScope !== 'LEO' && pointB && isMeshP2P) {
+                    sections.push(buildGeoMeshSection(performanceMetrics?.mesh, 'B', linkMode!));
+                }
+                if (satelliteScope !== 'GEO' && pointBLeo && hasLeoS2S) {
+                    sections.push(buildLeoS2SSectionB(s2sResult!));
+                }
+
+                if (sections.length === 0) return null;
+
+                return (
+                    <SiteScreenLabel
+                        siteId="B"
+                        position={siteBPos}
+                        viewerRef={viewerRef}
+                        containerRef={globeContainerRef}
+                        viewerReady={viewerReady}
+                        compact={!!isPhone}
+                        sections={sections}
+                    />
+                );
+            })()}
+            {/* LEO Site-to-Site path strip — visible once both endpoints + SNPs are known */}
+            {(() => {
+                const s2sResult = leoSiteToSiteFullResult ?? leoSiteToSiteResult;
+                if (!s2sResult?.serviceAvailable) return null;
+                return <LeoS2SPathStrip result={s2sResult} />;
+            })()}
             {!hideSatelliteScreenLabels && (
                 <SatelliteScreenLabels
                     viewerRef={viewerRef}
@@ -1713,12 +1869,12 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                     {!pointB ? (
                         <div className="flex items-center gap-2 rounded-full bg-black/60 backdrop-blur-sm px-4 py-1.5 text-white text-xs shadow-lg">
                             <span className="inline-block h-2 w-2 rounded-full bg-amber-400 shrink-0 animate-pulse" />
-                            Hold <kbd className="mx-0.5 rounded bg-white/20 px-1 font-mono text-[10px]">Shift</kbd> + click to place <strong>Terminal B</strong>
+                            Hold <kbd className="mx-0.5 rounded bg-white/20 px-1 font-mono text-[10px]">Shift</kbd> + click to place <strong>Site B</strong>
                         </div>
                     ) : (
                         <div className="flex items-center gap-2 rounded-full bg-black/60 backdrop-blur-sm px-4 py-1.5 text-white text-xs shadow-lg">
                             <span className="inline-block h-2 w-2 rounded-full bg-green-400 shrink-0" />
-                            Click the globe (no Shift) to move <strong>Terminal A</strong>
+                            Click the globe (no Shift) to move <strong>Site A</strong>
                         </div>
                     )}
                 </div>

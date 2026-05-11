@@ -122,7 +122,7 @@ const SelectedPointScreenLabel: React.FC<SelectedPointScreenLabelProps> = ({
       const revArrow = meshRole === 'B' ? '↑' : '↓';
 
       return {
-        coordinates: `Terminal ${meshRole} · ${formatCoordinates({ lat: selectedPosition.lat, lng: selectedPosition.lng })}`,
+        coordinates: `Site ${meshRole} · ${formatCoordinates({ lat: selectedPosition.lat, lng: selectedPosition.lng })}`,
         statusLines: [
           { text: `A→B ${fwdArrow} ${fmtMbps(meshData.forwardMbps)}`, tone: 'success' as SelectedPointStatusTone },
           { text: `B→A ${revArrow} ${fmtMbps(meshData.reverseMbps)}`, tone: 'success' as SelectedPointStatusTone },

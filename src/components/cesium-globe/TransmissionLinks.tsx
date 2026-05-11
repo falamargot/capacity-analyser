@@ -2,16 +2,21 @@
  * TransmissionLinks - Renders satellite/aircraft communication links
  */
 import React, { useMemo, useRef } from 'react';
-import { Entity, PolylineGraphics } from 'resium';
+import { Entity, PolylineGraphics, PointGraphics, LabelGraphics } from 'resium';
 import {
     Color,
     CallbackProperty,
     JulianDate,
+    Cartesian3,
     PolylineDashMaterialProperty,
     PolylineGlowMaterialProperty,
     ArcType,
     Cartographic,
     Math as CesiumMath,
+    Cartesian2,
+    VerticalOrigin,
+    HorizontalOrigin,
+    LabelStyle,
 } from 'cesium';
 import type { SatelliteData } from '../../types/satellites';
 import type { Aircraft } from '../../modules/airTraffic/airTrafficService';
@@ -131,10 +136,26 @@ const s2sFeederLinkMaterial = new PolylineGlowMaterialProperty({
 });
 // Violet dashed: terrestrial backbone (SNP ↔ PoP)
 const s2sBackboneMaterial = new PolylineDashMaterialProperty({
-    color: Color.fromCssColorString('#8b5cf6').withAlpha(0.85),
-    gapColor: Color.fromCssColorString('#8b5cf6').withAlpha(0.05),
+    color: Color.fromCssColorString('#a78bfa').withAlpha(0.96),
+    gapColor: Color.fromCssColorString('#2e1065').withAlpha(0.16),
     dashPattern: 3855,
 });
+const s2sBackboneHaloMaterial = new PolylineGlowMaterialProperty({
+    color: Color.fromCssColorString('#020617').withAlpha(0.72),
+    glowPower: 0.16,
+    taperPower: 0.35,
+});
+const s2sBackboneGlowMaterial = new PolylineGlowMaterialProperty({
+    color: Color.fromCssColorString('#8b5cf6').withAlpha(0.48),
+    glowPower: 0.24,
+    taperPower: 0.45,
+});
+
+const S2S_BACKBONE_HALO_WIDTH = 8;
+const S2S_BACKBONE_GLOW_WIDTH = 6;
+const S2S_BACKBONE_MAIN_WIDTH = 3.8;
+const S2S_BACKBONE_FLOW_DOTS = [0, 0.33, 0.66] as const;
+const S2S_BACKBONE_FLOW_EPOCH = JulianDate.fromDate(new Date(0));
 
 function logGatewayDesync(
     sourceComponent: string,
@@ -152,6 +173,86 @@ function logGatewayDesync(
         sourceComponent,
     });
 }
+
+interface S2SBackboneSegmentProps {
+    id: string;
+    name: string;
+    positions: CallbackProperty;
+    start: Cartesian3;
+    end: Cartesian3;
+    reverseFlow: boolean;
+}
+
+const S2SBackboneSegment = React.memo<S2SBackboneSegmentProps>(({
+    id,
+    name,
+    positions,
+    start,
+    end,
+    reverseFlow,
+}) => {
+    const flowCallbacks = useMemo(() => (
+        S2S_BACKBONE_FLOW_DOTS.map((phase) => new CallbackProperty((time?: JulianDate) => {
+            if (!time) return reverseFlow ? end : start;
+            const seconds = JulianDate.secondsDifference(time, S2S_BACKBONE_FLOW_EPOCH);
+            const t = ((seconds * 0.18 + phase) % 1 + 1) % 1;
+            return Cartesian3.lerp(
+                reverseFlow ? end : start,
+                reverseFlow ? start : end,
+                t,
+                new Cartesian3(),
+            );
+        }, false))
+    ), [end, reverseFlow, start]);
+
+    return (
+        <>
+            <Entity name={`${name} halo`}>
+                <PolylineGraphics
+                    positions={positions}
+                    width={S2S_BACKBONE_HALO_WIDTH}
+                    material={s2sBackboneHaloMaterial}
+                    clampToGround={false}
+                    arcType={ArcType.GEODESIC}
+                />
+            </Entity>
+            <Entity name={`${name} glow`}>
+                <PolylineGraphics
+                    positions={positions}
+                    width={S2S_BACKBONE_GLOW_WIDTH}
+                    material={s2sBackboneGlowMaterial}
+                    clampToGround={false}
+                    arcType={ArcType.GEODESIC}
+                />
+            </Entity>
+            <Entity name={name}>
+                <PolylineGraphics
+                    positions={positions}
+                    width={S2S_BACKBONE_MAIN_WIDTH}
+                    material={s2sBackboneMaterial}
+                    clampToGround={false}
+                    arcType={ArcType.GEODESIC}
+                />
+            </Entity>
+            {flowCallbacks.map((position, index) => (
+                <Entity
+                    key={`${id}-flow-${index}`}
+                    name={`${name} packet flow ${index + 1}`}
+                    position={position}
+                >
+                    <PointGraphics
+                        pixelSize={6}
+                        color={Color.fromCssColorString('#f5f3ff').withAlpha(0.96)}
+                        outlineColor={Color.fromCssColorString('#7c3aed').withAlpha(0.96)}
+                        outlineWidth={2}
+                        disableDepthTestDistance={Number.POSITIVE_INFINITY}
+                    />
+                </Entity>
+            ))}
+        </>
+    );
+});
+S2SBackboneSegment.displayName = 'S2SBackboneSegment';
 
 const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
     satellites,
@@ -449,15 +550,15 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
     // Rebuilt whenever the s2s result changes (satellite IDs / SNP / PoP change).
     const leoS2SLinks = useMemo(() => {
         const r = leoSiteToSiteResult;
-        if (!r || !r.serviceAvailable) return null;
+        if (!r) return null;
 
         const { endpointA, endpointB, servingSatelliteA, servingSatelliteB, selectedSnpA, selectedSnpB, logicalPop } = r;
-        if (!servingSatelliteA || !servingSatelliteB || !selectedSnpA || !selectedSnpB) return null;
+        if (!servingSatelliteA || !servingSatelliteB) return null;
 
         const posA = getPosition(endpointA.lat, endpointA.lng, 0.01);
         const posB = getPosition(endpointB.lat, endpointB.lng, 0.01);
-        const snpAPos = getPosition(selectedSnpA.lat, selectedSnpA.lng, 0.01);
-        const snpBPos = getPosition(selectedSnpB.lat, selectedSnpB.lng, 0.01);
+        const snpAPos = selectedSnpA ? getPosition(selectedSnpA.lat, selectedSnpA.lng, 0.01) : null;
+        const snpBPos = selectedSnpB ? getPosition(selectedSnpB.lat, selectedSnpB.lng, 0.01) : null;
         const popPos = logicalPop ? getPosition(logicalPop.lat, logicalPop.lng, 0.01) : null;
 
         // Satellite positions: propagated against current Cesium time so they stay
@@ -473,13 +574,13 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
             return [posA, satPos];
         }, false);
 
-        const satAToSnpACallback = new CallbackProperty((time?: JulianDate) => {
+        const satAToSnpACallback = snpAPos ? new CallbackProperty((time?: JulianDate) => {
             if (!time) return [];
             const sat = satellites.find(s => s.id === satAId);
             if (!sat) return [];
             const satPos = propagateSatellite(sat, time);
             return [satPos, snpAPos];
-        }, false);
+        }, false) : null;
 
         const satBCallback = new CallbackProperty((time?: JulianDate) => {
             if (!time) return [];
@@ -489,20 +590,26 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
             return [satPos, posB];
         }, false);
 
-        const satBToSnpBCallback = new CallbackProperty((time?: JulianDate) => {
+        const satBToSnpBCallback = snpBPos ? new CallbackProperty((time?: JulianDate) => {
             if (!time) return [];
             const sat = satellites.find(s => s.id === satBId);
             if (!sat) return [];
             const satPos = propagateSatellite(sat, time);
             return [snpBPos, satPos];
-        }, false);
+        }, false) : null;
 
-        const sameSNP = selectedSnpA.name === selectedSnpB.name;
+        const sameSNP = !!(selectedSnpA && selectedSnpB && selectedSnpA.name === selectedSnpB.name);
 
-        return { satACallback, satAToSnpACallback, satBCallback, satBToSnpBCallback, snpAPos, snpBPos, popPos, sameSNP };
+        return {
+            satACallback, satAToSnpACallback, satBCallback, satBToSnpBCallback,
+            snpAPos, snpBPos, popPos, sameSNP,
+            snpAName: selectedSnpA?.name ?? null, snpBName: selectedSnpB?.name ?? null,
+            popName: logicalPop?.name ?? 'Core PoP',
+        };
     }, [leoSiteToSiteResult, satellites]);
 
-    const isSiteToSiteActive = !!(leoSiteToSiteResult?.serviceAvailable);
+    const isSiteToSiteActive = !!(leoS2SLinks);
+    const isBackboneReverse = activeMeshTab === 'reverse';
 
     if (!hasUserSelection && !dedicatedSnpCallback && !dedicatedGeoFeederCallback && !inspectedSNP && !selectedGatewayLinks?.length && !isSiteToSiteActive) {
         return null;
@@ -511,7 +618,7 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
     return (
         <>
             {/* LEO Uplink/Downlink - User to Satellite */}
-            {leoUplinkCallback && satelliteScope !== 'GEO' && (
+            {leoUplinkCallback && satelliteScope !== 'GEO' && !isSiteToSiteActive && (
                 <Entity name="LEO Uplink/Downlink">
                     <PolylineGraphics
                         positions={leoUplinkCallback}
@@ -523,7 +630,7 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
             )}
 
             {/* LEO Backhaul to SNP - Satellite to Gateway */}
-            {leoBackhaulCallback && satelliteScope !== 'GEO' && selectedSNP && (
+            {leoBackhaulCallback && satelliteScope !== 'GEO' && selectedSNP && !isSiteToSiteActive && (
                 <Entity name="LEO Backhaul">
                     <PolylineGraphics
                         positions={leoBackhaulCallback}
@@ -672,65 +779,66 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
                     </Entity>
 
                     {/* Satellite A → SNP A (feeder) */}
-                    <Entity name="S2S: Satellite A → SNP A">
-                        <PolylineGraphics
-                            positions={leoS2SLinks.satAToSnpACallback}
-                            width={3}
-                            material={s2sFeederLinkMaterial}
-                            clampToGround={false}
-                            arcType={ArcType.NONE}
-                        />
-                    </Entity>
-
-                    {/* SNP A → PoP (backbone) */}
-                    {!leoS2SLinks.sameSNP && leoS2SLinks.popPos && (
-                        <Entity name="S2S: SNP A → PoP (backbone)">
+                    {leoS2SLinks.satAToSnpACallback && (
+                        <Entity name="S2S: Satellite A → SNP A">
                             <PolylineGraphics
-                                positions={new CallbackProperty(() => [leoS2SLinks.snpAPos, leoS2SLinks.popPos!], true)}
-                                width={2.5}
-                                material={s2sBackboneMaterial}
+                                positions={leoS2SLinks.satAToSnpACallback}
+                                width={3}
+                                material={s2sFeederLinkMaterial}
                                 clampToGround={false}
-                                arcType={ArcType.GEODESIC}
+                                arcType={ArcType.NONE}
                             />
                         </Entity>
+                    )}
+
+                    {/* SNP A → PoP (backbone) */}
+                    {!leoS2SLinks.sameSNP && leoS2SLinks.snpAPos && leoS2SLinks.popPos && (
+                        <S2SBackboneSegment
+                            id="snp-a-pop"
+                            name="S2S: SNP A → PoP (backbone)"
+                            positions={new CallbackProperty(() => [leoS2SLinks.snpAPos!, leoS2SLinks.popPos!], true)}
+                            start={leoS2SLinks.snpAPos}
+                            end={leoS2SLinks.popPos}
+                            reverseFlow={isBackboneReverse}
+                        />
                     )}
 
                     {/* PoP → SNP B (backbone) */}
-                    {!leoS2SLinks.sameSNP && leoS2SLinks.popPos && (
-                        <Entity name="S2S: PoP → SNP B (backbone)">
-                            <PolylineGraphics
-                                positions={new CallbackProperty(() => [leoS2SLinks.popPos!, leoS2SLinks.snpBPos], true)}
-                                width={2.5}
-                                material={s2sBackboneMaterial}
-                                clampToGround={false}
-                                arcType={ArcType.GEODESIC}
-                            />
-                        </Entity>
+                    {!leoS2SLinks.sameSNP && leoS2SLinks.snpBPos && leoS2SLinks.popPos && (
+                        <S2SBackboneSegment
+                            id="pop-snp-b"
+                            name="S2S: PoP → SNP B (backbone)"
+                            positions={new CallbackProperty(() => [leoS2SLinks.popPos!, leoS2SLinks.snpBPos!], true)}
+                            start={leoS2SLinks.popPos}
+                            end={leoS2SLinks.snpBPos}
+                            reverseFlow={isBackboneReverse}
+                        />
                     )}
 
                     {/* SNP A → SNP B direct (when same SNP or no PoP) */}
-                    {leoS2SLinks.sameSNP && (
-                        <Entity name="S2S: Same SNP (backbone collapsed)">
-                            <PolylineGraphics
-                                positions={new CallbackProperty(() => [leoS2SLinks.snpAPos, leoS2SLinks.snpBPos], true)}
-                                width={2}
-                                material={s2sBackboneMaterial}
-                                clampToGround={false}
-                                arcType={ArcType.GEODESIC}
-                            />
-                        </Entity>
+                    {leoS2SLinks.sameSNP && leoS2SLinks.snpAPos && leoS2SLinks.snpBPos && (
+                        <S2SBackboneSegment
+                            id="same-snp"
+                            name="S2S: Same SNP (backbone collapsed)"
+                            positions={new CallbackProperty(() => [leoS2SLinks.snpAPos!, leoS2SLinks.snpBPos!], true)}
+                            start={leoS2SLinks.snpAPos}
+                            end={leoS2SLinks.snpBPos}
+                            reverseFlow={isBackboneReverse}
+                        />
                     )}
 
                     {/* SNP B → Satellite B (feeder) */}
-                    <Entity name="S2S: SNP B → Satellite B">
-                        <PolylineGraphics
-                            positions={leoS2SLinks.satBToSnpBCallback}
-                            width={3}
-                            material={s2sFeederLinkMaterial}
-                            clampToGround={false}
-                            arcType={ArcType.NONE}
-                        />
-                    </Entity>
+                    {leoS2SLinks.satBToSnpBCallback && (
+                        <Entity name="S2S: SNP B → Satellite B">
+                            <PolylineGraphics
+                                positions={leoS2SLinks.satBToSnpBCallback}
+                                width={3}
+                                material={s2sFeederLinkMaterial}
+                                clampToGround={false}
+                                arcType={ArcType.NONE}
+                            />
+                        </Entity>
+                    )}
 
                     {/* Satellite B → UT B (user link) */}
                     <Entity name="S2S: Satellite B → UT B">
@@ -741,6 +849,95 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
                             arcType={ArcType.NONE}
                         />
                     </Entity>
+
+                    {/* ── Ground-node markers ─────────────────────────────────────── */}
+
+                    {/* SNP A marker */}
+                    {leoS2SLinks.snpAPos && leoS2SLinks.snpAName && (
+                        <Entity
+                            name={`S2S: SNP ${leoS2SLinks.snpAName}`}
+                            position={leoS2SLinks.snpAPos}
+                            description={`SNP A — ${leoS2SLinks.snpAName}`}
+                        >
+                            <PointGraphics
+                                pixelSize={10}
+                                color={Color.fromCssColorString('#f97316')}
+                                outlineColor={Color.fromCssColorString('#fff7ed')}
+                                outlineWidth={1.5}
+                            />
+                            <LabelGraphics
+                                text={`SNP A\n${leoS2SLinks.snpAName}`}
+                                font="bold 11px sans-serif"
+                                fillColor={Color.fromCssColorString('#f97316')}
+                                outlineColor={Color.BLACK}
+                                outlineWidth={2}
+                                style={LabelStyle.FILL_AND_OUTLINE}
+                                verticalOrigin={VerticalOrigin.BOTTOM}
+                                horizontalOrigin={HorizontalOrigin.CENTER}
+                                pixelOffset={new Cartesian2(0, -14)}
+                                disableDepthTestDistance={Number.POSITIVE_INFINITY}
+                                scale={0.9}
+                            />
+                        </Entity>
+                    )}
+
+                    {/* SNP B marker (skip if same SNP) */}
+                    {!leoS2SLinks.sameSNP && leoS2SLinks.snpBPos && leoS2SLinks.snpBName && (
+                        <Entity
+                            name={`S2S: SNP ${leoS2SLinks.snpBName}`}
+                            position={leoS2SLinks.snpBPos}
+                            description={`SNP B — ${leoS2SLinks.snpBName}`}
+                        >
+                            <PointGraphics
+                                pixelSize={10}
+                                color={Color.fromCssColorString('#f97316')}
+                                outlineColor={Color.fromCssColorString('#fff7ed')}
+                                outlineWidth={1.5}
+                            />
+                            <LabelGraphics
+                                text={`SNP B\n${leoS2SLinks.snpBName}`}
+                                font="bold 11px sans-serif"
+                                fillColor={Color.fromCssColorString('#f97316')}
+                                outlineColor={Color.BLACK}
+                                outlineWidth={2}
+                                style={LabelStyle.FILL_AND_OUTLINE}
+                                verticalOrigin={VerticalOrigin.BOTTOM}
+                                horizontalOrigin={HorizontalOrigin.CENTER}
+                                pixelOffset={new Cartesian2(0, -14)}
+                                disableDepthTestDistance={Number.POSITIVE_INFINITY}
+                                scale={0.9}
+                            />
+                        </Entity>
+                    )}
+
+                    {/* Logical PoP marker */}
+                    {!leoS2SLinks.sameSNP && leoS2SLinks.popPos && (
+                        <Entity
+                            name={`S2S: PoP ${leoS2SLinks.popName}`}
+                            position={leoS2SLinks.popPos}
+                            description={`Logical Point of Presence: ${leoS2SLinks.popName}. Represents OneWeb core interconnect. Actual routing is proprietary.`}
+                        >
+                            <PointGraphics
+                                pixelSize={13}
+                                color={Color.fromCssColorString('#8b5cf6')}
+                                outlineColor={Color.fromCssColorString('#ede9fe')}
+                                outlineWidth={2}
+                            />
+                            <LabelGraphics
+                                text={`PoP\n${leoS2SLinks.popName}`}
+                                font="bold 11px sans-serif"
+                                fillColor={Color.fromCssColorString('#a78bfa')}
+                                outlineColor={Color.BLACK}
+                                outlineWidth={2}
+                                style={LabelStyle.FILL_AND_OUTLINE}
+                                verticalOrigin={VerticalOrigin.BOTTOM}
+                                horizontalOrigin={HorizontalOrigin.CENTER}
+                                pixelOffset={new Cartesian2(0, -16)}
+                                disableDepthTestDistance={Number.POSITIVE_INFINITY}
+                                scale={0.9}
+                            />
+                        </Entity>
+                    )}
                 </>
             )}
         </>

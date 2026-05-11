@@ -175,6 +175,8 @@ interface CapacityDetailsProps {
   onArmPointBLeo?: () => void;
   /** Called to toggle the LEO topology mode. */
   onLeoTopologyModeChange?: (mode: 'SINGLE_SITE' | 'SITE_TO_SITE') => void;
+  /** Called whenever the full LEO site-to-site result changes — used to update the globe overlay. */
+  onLeoSiteToSiteResultChange?: (result: import('../utils/leoSiteToSiteModel').LeoSiteToSiteResult | null) => void;
 }
 
 function detectThroughputBottleneck(leg: LeoThroughputLeg): LeoBottleneckFactor {
@@ -296,6 +298,7 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
   isPointBLeoArmed = false,
   onArmPointBLeo,
   onLeoTopologyModeChange,
+  onLeoSiteToSiteResultChange,
 }) => {
   // Feature 1+3: read simulation context for failedSnps, hsBeamsSet
   const {
@@ -1006,6 +1009,11 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
     propSelectedSNP,
     leoPerformance,
   ]);
+
+  // Propagate the full S2S result upward so the globe can display accurate tooltip values.
+  useEffect(() => {
+    onLeoSiteToSiteResultChange?.(leoSiteToSiteResult);
+  }, [leoSiteToSiteResult, onLeoSiteToSiteResultChange]);
 
   // ── Service layer (aggregated status) ────────────────────────────────────
   const computedServiceLayerResult = useMemo(() => {
@@ -2109,6 +2117,8 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
                   pointBLeo={pointBLeo}
                   onArmPointBLeo={onArmPointBLeo}
                   isPointBLeoArmed={isPointBLeoArmed}
+                  activeMeshTab={activeMeshTab}
+                  onActiveMeshTabChange={onActiveMeshTabChange}
                 />
                   )}
 

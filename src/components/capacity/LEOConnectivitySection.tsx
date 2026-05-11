@@ -1,5 +1,5 @@
 import { memo, useEffect, useState, type ReactNode } from 'react';
-import { ArrowLeftRight, ChevronDown, Gauge, Maximize2, Minimize2, Route, X } from 'lucide-react';
+import { ArrowLeft, ArrowLeftRight, ArrowRight, ChevronDown, Gauge, Maximize2, Minimize2, Route, X } from 'lucide-react';
 import type { LeoSiteToSiteResult } from '../../utils/leoSiteToSiteModel';
 import { PerformancePanel } from '../MetricWidgets';
 import { SectionTooltip } from '../SectionTooltip';
@@ -795,6 +795,8 @@ interface LEOConnectivitySectionProps {
   pointBLeo?: { lat: number; lng: number } | null;
   onArmPointBLeo?: () => void;
   isPointBLeoArmed?: boolean;
+  activeMeshTab?: 'forward' | 'reverse';
+  onActiveMeshTabChange?: (tab: 'forward' | 'reverse') => void;
 }
 
 // ─── Site-to-Site sub-components ─────────────────────────────────────────────
@@ -868,11 +870,15 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
   pointBLeo = null,
   onArmPointBLeo,
   isPointBLeoArmed = false,
+  activeMeshTab,
+  onActiveMeshTabChange,
 }) => {
   const userLabel = analysisSource === 'aircraft' && aircraftCallsign ? aircraftCallsign : 'User';
   const showPerformanceBeforeRadioPath = analysisSource !== 'aircraft';
   const [isLinkBudgetDrawerOpen, setIsLinkBudgetDrawerOpen] = useState(false);
-  const [s2sDirection, setS2SDirection] = useState<'A_TO_B' | 'B_TO_A'>('A_TO_B');
+  const [s2sDirection, setS2SDirection] = useState<'A_TO_B' | 'B_TO_A'>(
+    activeMeshTab === 'reverse' ? 'B_TO_A' : 'A_TO_B'
+  );
 
   // ── Site-to-site derived values ───────────────────────────────────────────
   const isS2S = siteToSiteResult !== undefined;
@@ -882,6 +888,16 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
   const s2sPrimaryLatency = s2sActive
     ? (isAtoB ? siteToSiteResult!.oneWayLatencyAtoBMs : siteToSiteResult!.oneWayLatencyBtoAMs)
     : null;
+
+  useEffect(() => {
+    if (!isS2S || !activeMeshTab) return;
+    setS2SDirection(activeMeshTab === 'reverse' ? 'B_TO_A' : 'A_TO_B');
+  }, [activeMeshTab, isS2S]);
+
+  const handleS2SDirectionChange = (dir: 'A_TO_B' | 'B_TO_A') => {
+    setS2SDirection(dir);
+    onActiveMeshTabChange?.(dir === 'A_TO_B' ? 'forward' : 'reverse');
+  };
 
   // S2S-adapted debug info: override final DL/UL with end-to-end throughput so the
   // summary card and drawer header show A→B / B→A values instead of Site A raw values.
@@ -1009,7 +1025,21 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
                 {activePoint ? `${activePoint.lat.toFixed(3)}°, ${activePoint.lng.toFixed(3)}°` : '—'}
               </div>
             </div>
-            <ArrowLeftRight className="h-4 w-4 shrink-0 text-slate-400" />
+            <button
+              type="button"
+              onClick={() => handleS2SDirectionChange(isAtoB ? 'B_TO_A' : 'A_TO_B')}
+              disabled={!pointBLeo}
+              aria-label={isAtoB ? 'Switch direction to Site B to Site A' : 'Switch direction to Site A to Site B'}
+              title={isAtoB ? 'A → B' : 'B → A'}
+              className={[
+                'inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border text-white shadow-sm transition-all duration-150',
+                pointBLeo
+                  ? 'border-blue-300/70 bg-blue-500 hover:bg-blue-400 active:scale-95 dark:border-blue-400/60 dark:bg-blue-600 dark:hover:bg-blue-500'
+                  : 'cursor-not-allowed border-slate-300 bg-slate-300 text-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-500',
+              ].join(' ')}
+            >
+              {isAtoB ? <ArrowRight className="h-5 w-5" /> : <ArrowLeft className="h-5 w-5" />}
+            </button>
             {/* Site B chip */}
             {pointBLeo ? (
               <div className="flex-1 min-w-0 rounded-lg border-2 border-pink-400 bg-pink-50 dark:border-pink-600 dark:bg-pink-950/30 px-2.5 py-2">
@@ -1036,25 +1066,6 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
               </div>
             )}
           </div>
-          {/* Direction tabs */}
-          {pointBLeo && (
-            <div className="flex rounded-md bg-gray-100 p-0.5 dark:bg-slate-800 gap-0.5">
-              {(['A_TO_B', 'B_TO_A'] as const).map((dir) => (
-                <button
-                  key={dir}
-                  type="button"
-                  onClick={() => setS2SDirection(dir)}
-                  className={`flex-1 rounded px-2 py-1 text-[11px] font-semibold transition-all duration-150 ${
-                    s2sDirection === dir
-                      ? 'bg-pink-500 text-white shadow-sm'
-                      : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
-                  }`}
-                >
-                  {dir === 'A_TO_B' ? 'A → B' : 'B → A'}
-                </button>
-              ))}
-            </div>
-          )}
         </div>
       )}
 

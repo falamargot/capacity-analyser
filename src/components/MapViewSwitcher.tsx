@@ -16,6 +16,7 @@ import type { CoverageSwitcherCoverage } from './CoverageSwitcherVertical';
 import type { CountryOverlayMode } from '../types/countryOverlays';
 import type { LinkMode } from '../types/linkMode';
 import type { IssPosition, IssOrbitPath } from '../modules/iss/issService';
+import type { LeoSiteToSiteResult } from '../utils/leoSiteToSiteModel';
 
 interface MapViewSwitcherProps {
   satellites: SatelliteData[];
@@ -32,6 +33,7 @@ interface MapViewSwitcherProps {
   selectedSatellite: SatelliteData | null;
   selectedMoon?: boolean;
   autoSelectedLEOSatellite?: SatelliteData | null;
+  autoSelectedLEOSatelliteB?: SatelliteData | null;
   autoSelectedGEOSatellite?: SatelliteData | null;
   selectedSNP?: string | { lat: number; lng: number; name: string } | null;
   selectedGateway?: GeoGatewayData | null;
@@ -89,6 +91,12 @@ interface MapViewSwitcherProps {
   pointB?: { lat: number; lng: number } | null;
   linkMode?: LinkMode;
   activeMeshTab?: 'forward' | 'reverse';
+  /** Structural LEO site-to-site result — drives link rendering on the globe. */
+  leoSiteToSiteResult?: LeoSiteToSiteResult | null;
+  /** Full LEO site-to-site result with accurate throughput/latency — drives tooltips and path strip. */
+  leoSiteToSiteFullResult?: LeoSiteToSiteResult | null;
+  /** Point B in LEO site-to-site mode. */
+  pointBLeo?: { lat: number; lng: number } | null;
   issLiveEnabled?: boolean;
   issPositionRef?: React.RefObject<IssPosition | null>;
   issOrbitPath?: IssOrbitPath | null;
@@ -107,6 +115,7 @@ const MapViewSwitcher: React.FC<MapViewSwitcherProps> = ({
   selectedSatellite,
   selectedMoon,
   autoSelectedLEOSatellite,
+  autoSelectedLEOSatelliteB,
   autoSelectedGEOSatellite,
   onSatelliteClick,
   onMoonSelectionChange,
@@ -170,6 +179,9 @@ const MapViewSwitcher: React.FC<MapViewSwitcherProps> = ({
   pointB = null,
   linkMode,
   activeMeshTab,
+  leoSiteToSiteResult = null,
+  leoSiteToSiteFullResult = null,
+  pointBLeo = null,
   issLiveEnabled = false,
   issPositionRef,
   issOrbitPath = null,
@@ -198,6 +210,7 @@ const MapViewSwitcher: React.FC<MapViewSwitcherProps> = ({
         selectedSatellite={selectedSatellite}
         selectedMoon={selectedMoon}
         autoSelectedLEOSatellite={autoSelectedLEOSatellite}
+        autoSelectedLEOSatelliteB={autoSelectedLEOSatelliteB}
         autoSelectedGEOSatellite={autoSelectedGEOSatellite}
         selectedSNP={typeof selectedSNP === 'string' ? { lat: 0, lng: 0, name: selectedSNP } : selectedSNP}
         selectedGateway={selectedGateway}
@@ -257,6 +270,9 @@ const MapViewSwitcher: React.FC<MapViewSwitcherProps> = ({
         pointB={pointB}
         linkMode={linkMode}
         activeMeshTab={activeMeshTab}
+        leoSiteToSiteResult={leoSiteToSiteResult}
+        leoSiteToSiteFullResult={leoSiteToSiteFullResult}
+        pointBLeo={pointBLeo}
         issLiveEnabled={issLiveEnabled}
         issPositionRef={issPositionRef}
         issOrbitPath={issOrbitPath}

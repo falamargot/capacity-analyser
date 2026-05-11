@@ -39,6 +39,7 @@ interface SelectedPointStatusMarkerProps {
   satelliteScope: SelectedPointScope;
   leoServiceViewModel?: LeoConnectivityViewModel | null;
   geoPointStatus?: GeoPointStatus | null;
+  markerVariant?: 'status' | 'site-b';
 }
 
 const statusColor = (tone: ReturnType<typeof deriveSelectedPointStatusPresentation>['tone']): Color => {
@@ -47,6 +48,8 @@ const statusColor = (tone: ReturnType<typeof deriveSelectedPointStatusPresentati
   if (tone === 'success') return Color.fromCssColorString('#10b981');
   return Color.fromCssColorString('#94a3b8');
 };
+
+const SITE_B_MARKER_COLOR = Color.fromCssColorString('#ec4899');
 
 export const SelectionPulseMarker: React.FC<SelectionPulseMarkerProps> = ({
   position,
@@ -163,6 +166,7 @@ const SelectedPointStatusMarker: React.FC<SelectedPointStatusMarkerProps> = ({
   satelliteScope,
   leoServiceViewModel,
   geoPointStatus = null,
+  markerVariant = 'status',
 }) => {
   const presentation = useMemo(
     () => deriveSelectedPointStatusPresentation({
@@ -172,13 +176,16 @@ const SelectedPointStatusMarker: React.FC<SelectedPointStatusMarkerProps> = ({
     }),
     [geoPointStatus, leoServiceViewModel, satelliteScope]
   );
-  const baseColor = useMemo(() => statusColor(presentation.tone), [presentation.tone]);
-  const pulseSpeed = presentation.tone === 'danger'
+  const baseColor = useMemo(
+    () => markerVariant === 'site-b' ? SITE_B_MARKER_COLOR : statusColor(presentation.tone),
+    [markerVariant, presentation.tone]
+  );
+  const pulseSpeed = markerVariant === 'site-b' ? 0.8 : presentation.tone === 'danger'
     ? 1.3
     : presentation.tone === 'warning'
       ? 0.95
       : 0.8;
-  const ringBaseRadius = presentation.tone === 'danger'
+  const ringBaseRadius = markerVariant === 'site-b' ? 32000 : presentation.tone === 'danger'
     ? 42000
     : presentation.tone === 'warning'
       ? 36000
