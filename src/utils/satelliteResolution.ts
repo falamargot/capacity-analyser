@@ -270,7 +270,9 @@ export const resolveAutoSelectedSatellites = (
             autoSelectedLEOSat = scoredLEO[0].satellite;
             selectedSNP = scoredLEO[0].gateway.bestSNP;
         } else {
-            // Fallback: Check if there are LEO satellites with RF connectivity but without SNP connectivity
+            // Diagnostic fallback only: keep an RF-visible satellite reference for
+            // status/debug display. This is not a valid OneWeb service path because
+            // Gen 1 bent-pipe service requires simultaneous satellite-SNP visibility.
             const rfConnectedLEO = leoSatellites.filter(sat => {
                 if (!time) return false; // Need time for RF connectivity check
 
@@ -291,7 +293,7 @@ export const resolveAutoSelectedSatellites = (
 
                 satellitesWithElevation.sort((a, b) => b.elevation - a.elevation);
                 autoSelectedLEOSat = satellitesWithElevation[0].satellite;
-                // No SNP selected - this indicates LEO-only connectivity without ground station
+                // No SNP selected: downstream service logic must treat this as BLOCKED.
                 selectedSNP = null;
             } else {
                 // Preserve the selected satellite reference independently from RF availability.

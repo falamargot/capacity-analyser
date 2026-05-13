@@ -8,7 +8,7 @@
  *   1. Regulatory BLOCKED     → BLOCKED
  *   2. Regulatory RESTRICTED  → DEGRADED
  *   3. No RF connectivity     → BLOCKED
- *   4. No network (no SNP)    → DEGRADED
+ *   4. No network (no SNP)    → BLOCKED
  *   5. Capacity SATURATED     → DEGRADED
  *   6. Capacity DEGRADED      → DEGRADED
  *   7. Otherwise              → ALLOWED
@@ -105,12 +105,12 @@ export function computeServiceStatus(input: ServiceLayerInput): ServiceLayerResu
 
   // ── Priority 4: No network backhaul ─────────────────────────────────────
   if (!hasSNP) {
-    details.push('No Satellite Network Portal (SNP) is currently in backhaul range of the serving satellite.');
-    details.push('RF link is available but end-to-end service requires a connected gateway.');
+    details.push('No Satellite Network Portal (SNP) is currently visible from the serving satellite.');
+    details.push('OneWeb Gen 1 is bent-pipe: user-satellite and satellite-SNP visibility must be simultaneous.');
     return {
-      status: 'DEGRADED',
+      status: 'BLOCKED',
       primaryReasonLayer: 'network',
-      reason: 'No gateway reachable — satellite has RF coverage but no SNP backhaul',
+      reason: 'No gateway reachable — OneWeb bent-pipe service requires simultaneous SNP visibility.',
       details,
     };
   }

@@ -221,11 +221,11 @@ export function deriveLeoConnectivityViewModel(
     network: {
       label: 'SNP',
       value: hasSNP ? 'Reachable' : hasRF ? 'Unreachable' : 'Not applicable',
-      tone: hasSNP ? 'success' : hasRF ? 'warning' : 'neutral',
+      tone: hasSNP ? 'success' : hasRF ? 'danger' : 'neutral',
       detail: hasSNP
         ? 'SNP backhaul is available for end-to-end service.'
         : hasRF
-          ? 'RF is available but no reachable SNP path is currently available'
+          ? 'No gateway reachable — OneWeb bent-pipe service requires simultaneous SNP visibility.'
           : 'SNP path depends on an RF link first',
     },
     capacity: {
@@ -278,7 +278,7 @@ export function deriveLeoConnectivityViewModel(
     {
       label: 'SNP Path',
       value: physicalState.gatewayReachable ? 'Reachable' : 'Unavailable',
-      tone: physicalState.gatewayReachable ? 'success' : hasRF ? 'warning' : 'neutral',
+      tone: physicalState.gatewayReachable ? 'success' : hasRF ? 'danger' : 'neutral',
     },
   ];
 

@@ -75,6 +75,8 @@ describe('computeLeoSiteToSiteResult failure reasons', () => {
     });
 
     expect(result.failureReason).toBe('NO_SNP_B');
+    expect(result.serviceStatus).toBe('BLOCKED');
+    expect(result.serviceAvailable).toBe(false);
   });
 
   it('prioritizes regulatory B before RF and SNP failures', () => {

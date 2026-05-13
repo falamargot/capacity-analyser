@@ -66,8 +66,8 @@ export function formatLeoSiteToSiteFailureReason(reason: LeoSiteToSiteFailureRea
     case 'NO_SATELLITE_B': return 'No satellite at B';
     case 'RF_UNAVAILABLE_A': return 'RF unavailable at A';
     case 'RF_UNAVAILABLE_B': return 'RF unavailable at B';
-    case 'NO_SNP_A': return 'No gateway at A';
-    case 'NO_SNP_B': return 'No gateway at B';
+    case 'NO_SNP_A': return 'No gateway reachable at A — OneWeb bent-pipe service requires simultaneous SNP visibility.';
+    case 'NO_SNP_B': return 'No gateway reachable at B — OneWeb bent-pipe service requires simultaneous SNP visibility.';
     default: return 'Connected';
   }
 }
@@ -254,9 +254,7 @@ function deriveServiceStatus(failureReason: LeoSiteToSiteFailureReason | null): 
   if (!failureReason) return 'ALLOWED';
   if (
     failureReason === 'REGULATORY_RESTRICTED_A' ||
-    failureReason === 'REGULATORY_RESTRICTED_B' ||
-    failureReason === 'NO_SNP_A' ||
-    failureReason === 'NO_SNP_B'
+    failureReason === 'REGULATORY_RESTRICTED_B'
   ) {
     return 'DEGRADED';
   }
