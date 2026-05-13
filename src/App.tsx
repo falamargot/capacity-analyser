@@ -1400,6 +1400,16 @@ const App: React.FC = () => {
     );
   }, [activeAnalysisPoint, resolvedAutoLEO, simulationState]);
 
+  const leoSiteBHasCurrentRF = useMemo(() => {
+    if (!pointBLeo || !resolvedAutoLEOB) return false;
+    return hasRFConnectivity(
+      pointBLeo,
+      resolvedAutoLEOB,
+      JulianDate.fromDate(new Date()),
+      simulationState
+    );
+  }, [pointBLeo, resolvedAutoLEOB, simulationState]);
+
   const leoHasGatewayPath = useMemo(
     () => !!selectedSNP,
     [selectedSNP]
@@ -1442,11 +1452,11 @@ const App: React.FC = () => {
 
   // ── LEO site-to-site globe result (for TransmissionLinks rendering) ──────────
   // Lightweight version — throughput values are null, computed in CapacityDetails.
-  // Returns a partial result as soon as both endpoints and at least one satellite exist
-  // so the globe overlay appears immediately. SNPs / PoP become available once resolved.
+  // Only exposes S2S visuals when both endpoints are currently covered by their
+  // serving LEO satellites, so stale selections do not keep drawing a path.
   const leoSiteToSiteGlobeResult = useMemo((): LeoSiteToSiteResult | null => {
     if (leoTopologyMode !== 'SITE_TO_SITE' || !activeAnalysisPoint || !pointBLeo) return null;
-    if (!resolvedAutoLEO || !resolvedAutoLEOB) return null;
+    if (!resolvedAutoLEO || !leoHasCurrentRF || !resolvedAutoLEOB || !leoSiteBHasCurrentRF) return null;
 
     const snpAFull = selectedSNP ? SNPS_DATA.find(s => s.name === selectedSNP.name) ?? null : null;
     const snpBFull = selectedSNPB ?? null;
@@ -1478,7 +1488,7 @@ const App: React.FC = () => {
       pathStability: 'Medium',
       confidenceLevel: 'Medium',
     };
-  }, [leoTopologyMode, activeAnalysisPoint, pointBLeo, selectedSNP, selectedSNPB, resolvedAutoLEO, resolvedAutoLEOB]);
+  }, [leoTopologyMode, activeAnalysisPoint, pointBLeo, selectedSNP, selectedSNPB, resolvedAutoLEO, resolvedAutoLEOB, leoHasCurrentRF, leoSiteBHasCurrentRF]);
 
   const geoPointStatus = useMemo<GeoPointStatus | null>(() => {
     if (!activeAnalysisPoint || (satelliteScope !== 'ALL' && satelliteScope !== 'GEO')) {
@@ -1914,20 +1924,29 @@ const App: React.FC = () => {
       setSelectedSNPB(null);
       return;
     }
-    const now = JulianDate.fromDate(new Date());
-    const { autoSelectedLEOSat, selectedSNP: snpB } = resolveAutoSelectedSatellites(
-      { lat: pointBLeo.lat, lng: pointBLeo.lng },
-      satellitesForResolutionRef.current,
-      'LEO',
-      simulationState,
-      now,
-      failedSnps,
-      autoSelectedLEOIdB,
-      null
-    );
-    setAutoSelectedLEOIdB(autoSelectedLEOSat?.id ?? null);
-    setSelectedSNPB(snpB);
-  }, [pointBLeo, leoTopologyMode, failedSnps, simulationState, satellitesForResolutionRef]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    const RESOLUTION_INTERVAL_MS = 15_000; // 15 s — same cadence as Site A LEO re-resolution
+
+    const reResolve = () => {
+      const now = JulianDate.fromDate(new Date());
+      const { autoSelectedLEOSat, selectedSNP: snpB } = resolveAutoSelectedSatellites(
+        { lat: pointBLeo.lat, lng: pointBLeo.lng },
+        satellitesForResolutionRef.current,
+        'LEO',
+        simulationState,
+        now,
+        failedSnps,
+        autoSelectedLEOIdB,
+        null
+      );
+      setAutoSelectedLEOIdB(autoSelectedLEOSat?.id ?? null);
+      setSelectedSNPB(snpB);
+    };
+
+    reResolve();
+    const interval = setInterval(reResolve, RESOLUTION_INTERVAL_MS);
+    return () => clearInterval(interval);
+  }, [pointBLeo, leoTopologyMode, failedSnps, simulationState, satellitesForResolutionRef, autoSelectedLEOIdB]);
 
   // Handle coverage polygon click on the globe
   const handleCoverageClick = useCallback((coverageKey: string) => {

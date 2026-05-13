@@ -265,7 +265,6 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
     selectedSatellite,
     selectedMoon = false,
     autoSelectedLEOSatellite,
-    autoSelectedLEOSatelliteB,
     autoSelectedGEOSatellite,
     selectedSNP,
     selectedGateway,
@@ -916,12 +915,12 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         }
 
         if (satelliteScope !== 'GEO' && leoS2SVisualResult && pointBLeo) {
-            addTarget(leoS2SVisualResult.servingSatelliteA ?? autoSelectedLEOSatellite, {
+            addTarget(leoS2SVisualResult.servingSatelliteA, {
                 id: 'site-a',
                 position: leoS2SVisualResult.endpointA,
                 label: 'Site A',
             });
-            addTarget(leoS2SVisualResult.servingSatelliteB ?? autoSelectedLEOSatelliteB, {
+            addTarget(leoS2SVisualResult.servingSatelliteB, {
                 id: 'site-b',
                 position: leoS2SVisualResult.endpointB,
                 label: 'Site B',
@@ -933,7 +932,6 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         return targets;
     }, [
         autoSelectedLEOSatellite,
-        autoSelectedLEOSatelliteB,
         leoS2SVisualResult,
         pointBLeo,
         satelliteScope,
@@ -1066,14 +1064,13 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         add(autoSelectedLEOSatellite);
         if (satelliteScope !== 'GEO' && leoS2SVisualResult && pointBLeo) {
             add(leoS2SVisualResult.servingSatelliteA);
-            add(leoS2SVisualResult.servingSatelliteB ?? autoSelectedLEOSatelliteB);
+            add(leoS2SVisualResult.servingSatelliteB);
         }
         add(autoSelectedGEOSatellite);
         return targets;
     }, [
         selectedSatellite,
         autoSelectedLEOSatellite,
-        autoSelectedLEOSatelliteB,
         autoSelectedGEOSatellite,
         leoS2SVisualResult,
         pointBLeo,
@@ -1116,8 +1113,8 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         }
 
         if (satelliteScope !== 'GEO' && leoS2SVisualResult && pointBLeo) {
-            add(leoS2SVisualResult.servingSatelliteA ?? autoSelectedLEOSatellite, false, 'A');
-            add(leoS2SVisualResult.servingSatelliteB ?? autoSelectedLEOSatelliteB, false, 'B');
+            add(leoS2SVisualResult.servingSatelliteA, false, 'A');
+            add(leoS2SVisualResult.servingSatelliteB, false, 'B');
         } else {
             add(autoSelectedLEOSatellite, false);
         }
@@ -1126,7 +1123,6 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
     }, [
         selectedSatellite,
         autoSelectedLEOSatellite,
-        autoSelectedLEOSatelliteB,
         autoSelectedGEOSatellite,
         leoS2SVisualResult,
         pointBLeo,
@@ -1797,7 +1793,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                 if (!showGroundSelectedPoint || !selectedPosition) return null;
                 const s2sResult = leoSiteToSiteFullResult ?? leoSiteToSiteResult;
                 const isMeshP2P = linkMode === 'MESH' || linkMode === 'POINT_TO_POINT';
-                const hasLeoS2S = !!(s2sResult?.servingSatelliteA && s2sResult?.servingSatelliteB);
+                const hasLeoS2S = !!s2sResult?.serviceAvailable;
                 const sections = [];
 
                 if (satelliteScope !== 'LEO') {
@@ -1836,7 +1832,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                 if (!siteBPos) return null;
                 const s2sResult = leoSiteToSiteFullResult ?? leoSiteToSiteResult;
                 const isMeshP2P = linkMode === 'MESH' || linkMode === 'POINT_TO_POINT';
-                const hasLeoS2S = !!(s2sResult?.servingSatelliteA && s2sResult?.servingSatelliteB);
+                const hasLeoS2S = !!s2sResult?.serviceAvailable;
                 const sections = [];
 
                 if (satelliteScope !== 'LEO' && pointB && isMeshP2P) {

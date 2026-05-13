@@ -24,6 +24,21 @@ function line(text: string, tone?: SiteLabelTone): SiteLabelLine {
   return { text, tone };
 }
 
+function latencySuffix(ms: number | null | undefined): string {
+  return ms != null && Number.isFinite(ms) && ms > 0 ? ` · ${fmtMs(ms)}` : '';
+}
+
+function siteThroughputLine(
+  site: 'A' | 'B',
+  forwardMbps: number | null | undefined,
+  reverseMbps: number | null | undefined,
+  latencyMs?: number | null,
+): SiteLabelLine {
+  const ul = site === 'A' ? forwardMbps : reverseMbps;
+  const dl = site === 'A' ? reverseMbps : forwardMbps;
+  return line(`↑ ${fmtMbps(ul)} · ↓ ${fmtMbps(dl)}${latencySuffix(latencyMs)}`, 'success');
+}
+
 /** GEO STAR Forward / Return section for Site A. */
 export function buildGeoStarSection(
   status: GeoPointStatus | null | undefined,
@@ -45,14 +60,12 @@ export function buildGeoStarSection(
     const dl = fmtMbpsFromGbps(metrics.downlinkGbps);
     const ul = fmtMbpsFromGbps(metrics.uplinkGbps);
     if (linkMode === 'STAR_FORWARD') {
-      lines.push(line(`A→B ↑ ${dl}`, 'success'));
+      lines.push(line(`↓ ${dl}${latencySuffix(metrics.rtt)}`, 'success'));
     } else if (linkMode === 'STAR_RETURN') {
-      lines.push(line(`B→A ↑ ${ul}`, 'success'));
+      lines.push(line(`↑ ${ul}${latencySuffix(metrics.rtt)}`, 'success'));
     } else {
-      lines.push(line(`A→B ↑ ${dl}`, 'success'));
-      lines.push(line(`B→A ↑ ${ul}`, 'success'));
+      lines.push(line(`↑ ${ul} · ↓ ${dl}${latencySuffix(metrics.rtt)}`, 'success'));
     }
-    lines.push(line(`RTT ${fmtMs(metrics.rtt)}`, 'neutral'));
   } else {
     lines.push(line('--', 'neutral'));
   }
@@ -65,7 +78,7 @@ export function buildGeoStarSection(
   return { title, accent: 'blue', lines };
 }
 
-/** GEO Mesh / P2P section — role determines arrow direction. */
+/** GEO Mesh / P2P section — throughput is mapped from the current site's perspective. */
 export function buildGeoMeshSection(
   mesh: MeshLinkMetrics | null | undefined,
   role: 'A' | 'B',
@@ -74,15 +87,9 @@ export function buildGeoMeshSection(
   const title = linkMode === 'POINT_TO_POINT' ? 'GEO P2P' : 'GEO Mesh';
   if (!mesh) return { title, accent: 'blue', lines: [line('--', 'neutral')] };
 
-  const fwdArrow = role === 'A' ? '↑' : '↓';
-  const revArrow = role === 'B' ? '↑' : '↓';
   const lines: SiteLabelLine[] = [
-    line(`A→B ${fwdArrow} ${fmtMbps(mesh.forwardMbps)}`, 'success'),
-    line(`B→A ${revArrow} ${fmtMbps(mesh.reverseMbps)}`, 'success'),
+    siteThroughputLine(role, mesh.forwardMbps, mesh.reverseMbps, mesh.rttMs),
   ];
-  if (mesh.rttMs != null && Number.isFinite(mesh.rttMs)) {
-    lines.push(line(`RTT ${fmtMs(mesh.rttMs)}`, 'neutral'));
-  }
   return { title, accent: 'blue', lines };
 }
 
@@ -115,8 +122,7 @@ export function buildLeoSingleSection(
     const dl = fmtMbpsFromGbps(metrics.downlinkGbps);
     const ul = fmtMbpsFromGbps(metrics.uplinkGbps);
     const tone: SiteLabelTone = viewModel.finalServiceStatus === 'DEGRADED' ? 'warning' : 'success';
-    lines.push(line(`↓ DL ${dl} · ↑ UL ${ul}`, tone));
-    lines.push(line(`RTT ${fmtMs(metrics.rtt)}`, 'neutral'));
+    lines.push(line(`↓ ${dl} · ↑ ${ul}${latencySuffix(metrics.rtt)}`, tone));
   } else {
     lines.push(line(viewModel.finalServiceStatus === 'ALLOWED' ? '--' : 'Checking...', 'neutral'));
   }
@@ -124,28 +130,22 @@ export function buildLeoSingleSection(
   return { title: 'LEO', accent: 'pink', lines };
 }
 
-/** LEO S2S section as seen from Site A (transmits in A→B). */
-export function buildLeoS2SSectionA(result: LeoSiteToSiteResult): SiteLabelSection {
+function buildLeoS2SSection(result: LeoSiteToSiteResult, site: 'A' | 'B'): SiteLabelSection {
   return {
     title: 'LEO S2S',
     accent: 'pink',
     lines: [
-      line(`A→B ↑ ${fmtMbps(result.finalThroughputAtoBMbps)}`, 'success'),
-      line(`B→A ↓ ${fmtMbps(result.finalThroughputBtoAMbps)}`, 'success'),
-      line(`RTT ${fmtMs(result.rttMs)}`, 'neutral'),
+      siteThroughputLine(site, result.finalThroughputAtoBMbps, result.finalThroughputBtoAMbps, result.rttMs),
     ],
   };
 }
 
-/** LEO S2S section as seen from Site B (receives in A→B, transmits in B→A). */
+/** LEO S2S section as seen from Site A. */
+export function buildLeoS2SSectionA(result: LeoSiteToSiteResult): SiteLabelSection {
+  return buildLeoS2SSection(result, 'A');
+}
+
+/** LEO S2S section as seen from Site B. */
 export function buildLeoS2SSectionB(result: LeoSiteToSiteResult): SiteLabelSection {
-  return {
-    title: 'LEO S2S',
-    accent: 'pink',
-    lines: [
-      line(`A→B ↓ ${fmtMbps(result.finalThroughputAtoBMbps)}`, 'success'),
-      line(`B→A ↑ ${fmtMbps(result.finalThroughputBtoAMbps)}`, 'success'),
-      line(`RTT ${fmtMs(result.rttMs)}`, 'neutral'),
-    ],
-  };
+  return buildLeoS2SSection(result, 'B');
 }

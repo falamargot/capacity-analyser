@@ -941,6 +941,17 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
     );
   }, [activePoint, autoSelectedLEOSatellite, simulationState, nowTime]);
 
+  const hasCurrentLEORFB = useMemo(() => {
+    if (!pointBLeo || !autoSelectedLEOSatelliteB) return false;
+
+    return hasRFConnectivity(
+      pointBLeo,
+      autoSelectedLEOSatelliteB,
+      nowTime,
+      simulationState
+    );
+  }, [pointBLeo, autoSelectedLEOSatelliteB, simulationState, nowTime]);
+
   // ── LEO site-to-site result ───────────────────────────────────────────────
   const leoSiteToSiteResult = useMemo((): LeoSiteToSiteResult | null => {
     if (leoTopologyMode !== 'SITE_TO_SITE' || !activePoint || !pointBLeo) return null;
@@ -953,39 +964,42 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
     let satToSnpBKm: number | null = null;
     let elevationBDeg: number | null = null;
 
-    if (autoSelectedLEOSatelliteB && pointBLeo) {
-      const satB = autoSelectedLEOSatelliteB;
+    const servingSatelliteA = hasCurrentLEORF ? (resolvedLEOConnectivity?.satellite ?? null) : null;
+    const servingSatelliteB = hasCurrentLEORFB ? (autoSelectedLEOSatelliteB ?? null) : null;
+
+    if (servingSatelliteB && pointBLeo) {
+      const satB = servingSatelliteB;
       userToSatBKm = compute3DDistanceKm(
         pointBLeo,
         { lat: satB.position.lat, lng: satB.position.lng, alt: satB.position.alt }
       );
       elevationBDeg = calculateElevationAngle(pointBLeo, satB);
     }
-    if (autoSelectedLEOSatelliteB && selectedSNPB) {
-      const satB = autoSelectedLEOSatelliteB;
+    if (servingSatelliteB && selectedSNPB) {
+      const satB = servingSatelliteB;
       satToSnpBKm = compute3DDistanceKm(
         { lat: selectedSNPB.lat, lng: selectedSNPB.lng },
         { lat: satB.position.lat, lng: satB.position.lng, alt: satB.position.alt }
       );
     }
 
-    const dlThroughputAMbps = leoPerformance?.downlinkGbps != null ? leoPerformance.downlinkGbps * 1000 : null;
-    const ulThroughputAMbps = leoPerformance?.uplinkGbps != null ? leoPerformance.uplinkGbps * 1000 : null;
-    const dlThroughputBMbps = dlThroughputAMbps;
-    const ulThroughputBMbps = ulThroughputAMbps;
+    const dlThroughputAMbps = servingSatelliteA && leoPerformance?.downlinkGbps != null ? leoPerformance.downlinkGbps * 1000 : null;
+    const ulThroughputAMbps = servingSatelliteA && leoPerformance?.uplinkGbps != null ? leoPerformance.uplinkGbps * 1000 : null;
+    const dlThroughputBMbps = servingSatelliteB ? dlThroughputAMbps : null;
+    const ulThroughputBMbps = servingSatelliteB ? ulThroughputAMbps : null;
 
-    const snpAFull = propSelectedSNP
+    const snpAFull = servingSatelliteA && propSelectedSNP
       ? SNPS_DATA.find(s => s.name === propSelectedSNP.name) ?? null
       : null;
-    const snpBFull = selectedSNPB
+    const snpBFull = servingSatelliteB && selectedSNPB
       ? SNPS_DATA.find(s => s.name === selectedSNPB.name) ?? null
       : null;
 
     return computeLeoSiteToSiteResult({
       endpointA: { lat: activePoint.lat, lng: activePoint.lng },
       endpointB: pointBLeo,
-      servingSatelliteA: resolvedLEOConnectivity?.satellite ?? null,
-      servingSatelliteB: autoSelectedLEOSatelliteB ?? null,
+      servingSatelliteA,
+      servingSatelliteB,
       selectedSnpA: snpAFull,
       selectedSnpB: snpBFull,
       userToSatDistanceAKm: userToSatAKm,
@@ -1008,6 +1022,8 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
     selectedSNPB,
     propSelectedSNP,
     leoPerformance,
+    hasCurrentLEORF,
+    hasCurrentLEORFB,
   ]);
 
   // Propagate the full S2S result upward so the globe can display accurate tooltip values.

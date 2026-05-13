@@ -998,9 +998,10 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
   // ── Site-to-site derived values ───────────────────────────────────────────
   const isS2S = siteToSiteResult !== undefined;
   const s2sActive = isS2S && siteToSiteResult != null;
+  const s2sServiceActive = s2sActive && siteToSiteResult!.serviceAvailable;
   const isAtoB = s2sDirection === 'A_TO_B';
   const s2sPrimaryLabel = isAtoB ? 'A → B' : 'B → A';
-  const s2sPrimaryLatency = s2sActive
+  const s2sPrimaryLatency = s2sServiceActive
     ? (isAtoB ? siteToSiteResult!.oneWayLatencyAtoBMs : siteToSiteResult!.oneWayLatencyBtoAMs)
     : null;
 
@@ -1017,7 +1018,7 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
   // S2S-adapted debug info: override final DL/UL with end-to-end throughput so the
   // summary card and drawer header show A→B / B→A values instead of Site A raw values.
   const s2sLinkBudgetDebugInfo: LeoRFDebugInfo | null =
-    isS2S && s2sActive && leoPerformance?.debugInfo
+    isS2S && s2sServiceActive && leoPerformance?.debugInfo
       ? {
           ...leoPerformance.debugInfo,
           downlink: {
@@ -1248,7 +1249,7 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
           open={isLinkBudgetDrawerOpen}
           onClose={() => setIsLinkBudgetDrawerOpen(false)}
           debugInfo={leoPerformance?.debugInfo ?? null}
-          siteToSiteResult={s2sActive ? siteToSiteResult : undefined}
+          siteToSiteResult={s2sServiceActive ? siteToSiteResult : undefined}
           snpAName={s2sSnpAName !== '—' ? s2sSnpAName : undefined}
           snpBName={s2sSnpBName !== '—' ? s2sSnpBName : undefined}
           popName={s2sPopName}
@@ -1264,7 +1265,7 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
           defaultOpen={true}
         >
           {isS2S ? (
-            s2sActive ? (
+            s2sServiceActive ? (
               <div className="space-y-3 text-xs">
                 {/* Compact 7-hop route badge */}
                 <div className="flex items-center gap-1 overflow-x-auto pb-1 min-w-0 rounded-lg border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-950 px-3 py-2">
@@ -1346,7 +1347,7 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
               </div>
             ) : (
               <div className="text-sm text-gray-700 dark:text-gray-300 text-center">
-                Place Site B on the globe to see the full routed path.
+                {s2sActive ? 'No complete LEO Site-to-Site path for the current beam coverage.' : 'Place Site B on the globe to see the full routed path.'}
               </div>
             )
           ) : resolvedLEOConnectivity ? (
@@ -1431,9 +1432,9 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
             : "Breakdown of the full round-trip propagation delay over the LEO link: Site A → Satellite → SNP/Gateway → Satellite → Site A, plus network overhead."}
           title={isRegulatoryBlocked && !isS2S ? 'Latency breakdown (Diagnostic only)' : 'Latency breakdown'}
           summary={isS2S
-            ? (s2sActive
+            ? (s2sServiceActive
                 ? `One-way (${s2sPrimaryLabel}): ${fmtMs(s2sPrimaryLatency)} · RTT: ${fmtMs(siteToSiteResult!.rttMs)}`
-                : 'Place Site B to see end-to-end latency.')
+                : (s2sActive ? 'No complete LEO Site-to-Site path for the current beam coverage.' : 'Place Site B to see end-to-end latency.'))
             : (isRegulatoryBlocked
                 ? `Diagnostic only — estimated RTT total: ${leoGeometry ? leoGeometry.rttTotalMs.toFixed(1) : 'N/A'} ms`
                 : leoGeometry
@@ -1441,7 +1442,7 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
                   : 'No LEO latency breakdown available without SNP connectivity.')}
         >
           {isS2S ? (
-            s2sActive ? (
+            s2sServiceActive ? (
               <div className="space-y-0.5">
                 <div className="rounded border border-slate-200 bg-slate-50 px-2 py-1 text-[10px] text-slate-500 dark:border-slate-700 dark:bg-slate-800/40 dark:text-slate-400 mb-2">
                   Propagation delays derived from slant range (speed of light). Backbone uses geodesic × 1.20 ÷ 200 km/ms.
@@ -1462,7 +1463,7 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
               </div>
             ) : (
               <div className="text-sm text-gray-700 dark:text-gray-300 text-center">
-                Place Site B to see end-to-end latency breakdown.
+                {s2sActive ? 'No complete LEO Site-to-Site path for the current beam coverage.' : 'Place Site B to see end-to-end latency breakdown.'}
               </div>
             )
           ) : leoGeometry ? (
@@ -1520,7 +1521,7 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
             defaultOpen={true}
             collapsible={false}
           >
-            {s2sActive ? (
+            {s2sServiceActive ? (
               <>
                 <PerformancePanel
                   rtt={siteToSiteResult!.rttMs}
@@ -1549,7 +1550,7 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
                 maxDlGbps={TERMINAL_PROFILES[terminalType].maxDlGbps}
                 maxUlGbps={TERMINAL_PROFILES[terminalType].maxUlGbps}
                 accentColor="#db2777"
-                noDataMessage="Place Site B on the globe to compute end-to-end performance."
+                noDataMessage={s2sActive ? 'No complete LEO Site-to-Site path for the current beam coverage.' : 'Place Site B on the globe to compute end-to-end performance.'}
               />
             )}
           </CollapsibleSection>

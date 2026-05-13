@@ -610,6 +610,9 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
   const gatewayName = resolvedGateway?.gatewayName ?? geoGeometry?.satelliteToGateway.gateway?.name ?? 'Gateway';
   const gatewayRole = resolvedGateway?.role ?? null;
   const gatewayDisplayName = gatewayRole ? `${gatewayName} (${gatewayRole})` : gatewayName;
+  const geoStarOneWayTotalMs = !isMeshOrP2P && geoGeometry?.oneWayRadioMs != null
+    ? geoGeometry.oneWayRadioMs + geoGeometry.overheadMs.total
+    : null;
 
   // ── MESH/P2P geometry — derived entirely from dualSegmentResult ──────────────
   // For MESH/P2P the gateway is NOT in the RF path. All propagation figures
@@ -1291,34 +1294,32 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
             )}
           </LatencyBreakdownCard>
         ) : (
-          // ── STAR: 4-hop via gateway ───────────────────────────────────────
+          // ── STAR: one-way via gateway ─────────────────────────────────────
           <LatencyBreakdownCard
             accentColor="#2563eb"
-            title={<>Latency breakdown<DirectionPill dir={starDirectionLabel} /></>}
-            tooltip="Breakdown of the full STAR round-trip delay. Forward mode sends Gateway → Satellite → User, then accounts for the return path. Return mode reverses that order. Network overhead is added after RF propagation."
-            summary={geoGeometry ? `Estimated RTT total: ${geoGeometry.rttTotalMs?.toFixed(1) ?? '--'} ms` : 'No GEO latency breakdown available'}
+            title={`Latency breakdown (${isStarReturn ? 'RETURN' : 'FORWARD'})`}
+            tooltip="Breakdown of the active one-way STAR delay. Forward mode sends Gateway → Satellite → User; Return mode sends User → Satellite → Gateway. Network overhead is added after RF propagation."
+            summary={geoGeometry ? `Estimated one-way total: ${geoStarOneWayTotalMs != null ? geoStarOneWayTotalMs.toFixed(1) : '--'} ms` : 'No GEO latency breakdown available'}
           >
             {geoGeometry ? (() => {
               const userSatMs = geoGeometry.propagationBreakdownMs.userToSatellite ?? geoGeometry.propagationBreakdownMs.satelliteToUser ?? null;
               const satGatewayMs = geoGeometry.propagationBreakdownMs.satelliteToGateway ?? geoGeometry.propagationBreakdownMs.gatewayToSatellite ?? null;
               const primaryRows = isStarReturn
                 ? [
-                    { label: `${userLabel} -> Satellite`, value: userSatMs },
-                    { label: 'Satellite -> Gateway', value: satGatewayMs },
+                    { label: `${userLabel} → Satellite`, value: userSatMs },
+                    { label: 'Satellite → Gateway', value: satGatewayMs },
                   ]
                 : [
-                    { label: 'Gateway -> Satellite', value: satGatewayMs },
-                    { label: `Satellite -> ${userLabel}`, value: userSatMs },
+                    { label: 'Gateway → Satellite', value: satGatewayMs },
+                    { label: `Satellite → ${userLabel}`, value: userSatMs },
                   ];
-              const returnRows = isStarReturn
-                ? [
-                    { label: 'Gateway -> Satellite', value: satGatewayMs },
-                    { label: `Satellite -> ${userLabel}`, value: userSatMs },
-                  ]
-                : [
-                    { label: `${userLabel} -> Satellite`, value: userSatMs },
-                    { label: 'Satellite -> Gateway', value: satGatewayMs },
-                  ];
+              const oneWayPropagationMs = geoGeometry.oneWayRadioMs
+                ?? (primaryRows.every((row) => row.value != null)
+                  ? primaryRows.reduce((total, row) => total + (row.value ?? 0), 0)
+                  : null);
+              const oneWayTotalMs = oneWayPropagationMs != null
+                ? oneWayPropagationMs + geoGeometry.overheadMs.total
+                : null;
 
               return (
                 <div className="text-xs text-gray-600 dark:text-gray-400 space-y-2">
@@ -1331,19 +1332,10 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
                       <span>{row.value != null ? `${row.value.toFixed(1)} ms` : '--'}</span>
                     </div>
                   ))}
-                  <div className="pt-1 font-semibold text-gray-700 dark:text-gray-200">
-                    {isStarReturn ? 'Forward acknowledgement path' : 'Return acknowledgement path'}
-                  </div>
-                  {returnRows.map((row) => (
-                    <div key={row.label} className="flex justify-between gap-3">
-                      <span>{row.label}</span>
-                      <span>{row.value != null ? `${row.value.toFixed(1)} ms` : '--'}</span>
-                    </div>
-                  ))}
                   <div className="border-t border-gray-200 dark:border-slate-700 pt-2 flex justify-between font-semibold text-gray-700 dark:text-gray-200">
-                    <span>RTT propagation</span><span>{geoGeometry.rttPropagationMs?.toFixed(1) ?? '--'} ms</span>
+                    <span>Propagation total</span><span>{oneWayPropagationMs != null ? oneWayPropagationMs.toFixed(1) : '--'} ms</span>
                   </div>
-                  <div className="pt-1 font-semibold text-gray-700 dark:text-gray-200">Network overhead components</div>
+                  <div className="pt-1 font-semibold text-gray-700 dark:text-gray-200">Network overhead</div>
                   <div className="ml-2 flex justify-between"><span>Gateway processing delay</span><span>{geoGeometry.overheadMs.gatewayProcessing.toFixed(0)} ms</span></div>
                   <div className="ml-2 flex justify-between"><span>Modem processing delay</span><span>{geoGeometry.overheadMs.modemProcessing.toFixed(0)} ms</span></div>
                   <div className="ml-2 flex justify-between"><span>Routing delay</span><span>{geoGeometry.overheadMs.routing.toFixed(0)} ms</span></div>
@@ -1351,7 +1343,7 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
                     <span>Network overhead total</span><span>{geoGeometry.overheadMs.total.toFixed(1)} ms</span>
                   </div>
                   <div className="border-t border-gray-200 dark:border-slate-700 pt-2 flex justify-between font-semibold text-gray-800 dark:text-gray-100">
-                    <span>Estimated RTT total</span><span>{geoGeometry.rttTotalMs?.toFixed(1) ?? '--'} ms</span>
+                    <span>Estimated one-way total</span><span>{oneWayTotalMs != null ? oneWayTotalMs.toFixed(1) : '--'} ms</span>
                   </div>
                   {geoGeometry.warnings.length > 0 && (
                     <div className="mt-2 rounded border border-amber-300 bg-amber-50 dark:bg-amber-900/20 p-2 text-amber-800 dark:text-amber-300">
