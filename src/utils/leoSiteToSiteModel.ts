@@ -4,6 +4,7 @@ import type { SatelliteData } from '../types/satellites';
 import type { SNPData } from '../components/globe/GlobeConfig';
 import type { RegulatoryResult } from '../services/regulatoryService';
 import type { ServiceStatus } from './serviceLayer';
+import type { BeamLoadResult } from './capacityLayer';
 
 // ── OneWeb site-to-site backbone constants ────────────────────────────────────
 
@@ -50,6 +51,8 @@ export const LOGICAL_POPS: LogicalPoP[] = [
 // ── Result type ───────────────────────────────────────────────────────────────
 
 export type LeoSiteToSiteFailureReason =
+  | 'REGULATORY_PENDING_A'
+  | 'REGULATORY_PENDING_B'
   | 'REGULATORY_BLOCKED_A'
   | 'REGULATORY_BLOCKED_B'
   | 'REGULATORY_RESTRICTED_A'
@@ -59,10 +62,16 @@ export type LeoSiteToSiteFailureReason =
   | 'RF_UNAVAILABLE_A'
   | 'RF_UNAVAILABLE_B'
   | 'NO_SNP_A'
-  | 'NO_SNP_B';
+  | 'NO_SNP_B'
+  | 'CAPACITY_SATURATED_A'
+  | 'CAPACITY_SATURATED_B'
+  | 'CAPACITY_DEGRADED_A'
+  | 'CAPACITY_DEGRADED_B';
 
 export function formatLeoSiteToSiteFailureReason(reason: LeoSiteToSiteFailureReason | null): string {
   switch (reason) {
+    case 'REGULATORY_PENDING_A': return 'Regulatory status pending at A';
+    case 'REGULATORY_PENDING_B': return 'Regulatory status pending at B';
     case 'REGULATORY_BLOCKED_A': return 'Regulatory blocked at A';
     case 'REGULATORY_BLOCKED_B': return 'Regulatory blocked at B';
     case 'REGULATORY_RESTRICTED_A': return 'Regulatory restricted at A';
@@ -73,6 +82,10 @@ export function formatLeoSiteToSiteFailureReason(reason: LeoSiteToSiteFailureRea
     case 'RF_UNAVAILABLE_B': return 'RF unavailable at B';
     case 'NO_SNP_A': return 'No gateway reachable at A — OneWeb bent-pipe service requires simultaneous SNP visibility.';
     case 'NO_SNP_B': return 'No gateway reachable at B — OneWeb bent-pipe service requires simultaneous SNP visibility.';
+    case 'CAPACITY_SATURATED_A': return 'Capacity saturated at A';
+    case 'CAPACITY_SATURATED_B': return 'Capacity saturated at B';
+    case 'CAPACITY_DEGRADED_A': return 'Capacity degraded at A';
+    case 'CAPACITY_DEGRADED_B': return 'Capacity degraded at B';
     default: return 'Connected';
   }
 }
@@ -230,6 +243,8 @@ function deriveFailureReason(args: {
   selectedSnpB: SNPData | null;
   regulatoryResultA: RegulatoryResult | null;
   regulatoryResultB: RegulatoryResult | null;
+  beamLoadA?: BeamLoadResult | null;
+  beamLoadB?: BeamLoadResult | null;
 }): LeoSiteToSiteFailureReason | null {
   const {
     servingSatelliteA,
@@ -240,30 +255,49 @@ function deriveFailureReason(args: {
     selectedSnpB,
     regulatoryResultA,
     regulatoryResultB,
+    beamLoadA,
+    beamLoadB,
   } = args;
 
-  if (regulatoryResultA?.status === 'BLOCKED') return 'REGULATORY_BLOCKED_A';
-  if (regulatoryResultB?.status === 'BLOCKED') return 'REGULATORY_BLOCKED_B';
-  if (regulatoryResultA?.status === 'RESTRICTED') return 'REGULATORY_RESTRICTED_A';
-  if (regulatoryResultB?.status === 'RESTRICTED') return 'REGULATORY_RESTRICTED_B';
+  // Regulatory checks must happen before RF/SNP/capacity.
+  // A null result means the async lookup is still pending — treat as blocking
+  // to prevent a window where a BLOCKED site appears ALLOWED while the fetch resolves.
+  if (regulatoryResultA === null) return 'REGULATORY_PENDING_A';
+  if (regulatoryResultB === null) return 'REGULATORY_PENDING_B';
+  if (regulatoryResultA.status === 'BLOCKED') return 'REGULATORY_BLOCKED_A';
+  if (regulatoryResultB.status === 'BLOCKED') return 'REGULATORY_BLOCKED_B';
+  if (regulatoryResultA.status === 'RESTRICTED') return 'REGULATORY_RESTRICTED_A';
+  if (regulatoryResultB.status === 'RESTRICTED') return 'REGULATORY_RESTRICTED_B';
+
   if (!servingSatelliteA) return 'NO_SATELLITE_A';
   if (!servingSatelliteB) return 'NO_SATELLITE_B';
   if (!rfAvailableA) return 'RF_UNAVAILABLE_A';
   if (!rfAvailableB) return 'RF_UNAVAILABLE_B';
   if (!selectedSnpA) return 'NO_SNP_A';
   if (!selectedSnpB) return 'NO_SNP_B';
+
+  // Capacity checks — consistent with single-site service layer priority chain.
+  if (beamLoadA?.capacityStatus === 'SATURATED') return 'CAPACITY_SATURATED_A';
+  if (beamLoadB?.capacityStatus === 'SATURATED') return 'CAPACITY_SATURATED_B';
+  if (beamLoadA?.capacityStatus === 'DEGRADED') return 'CAPACITY_DEGRADED_A';
+  if (beamLoadB?.capacityStatus === 'DEGRADED') return 'CAPACITY_DEGRADED_B';
+
   return null;
 }
 
 function deriveServiceStatus(failureReason: LeoSiteToSiteFailureReason | null): ServiceStatus {
   if (!failureReason) return 'ALLOWED';
-  if (
-    failureReason === 'REGULATORY_RESTRICTED_A' ||
-    failureReason === 'REGULATORY_RESTRICTED_B'
-  ) {
-    return 'DEGRADED';
+  switch (failureReason) {
+    case 'REGULATORY_RESTRICTED_A':
+    case 'REGULATORY_RESTRICTED_B':
+    case 'CAPACITY_SATURATED_A':
+    case 'CAPACITY_SATURATED_B':
+    case 'CAPACITY_DEGRADED_A':
+    case 'CAPACITY_DEGRADED_B':
+      return 'DEGRADED';
+    default:
+      return 'BLOCKED';
   }
-  return 'BLOCKED';
 }
 
 // ── Main computation ──────────────────────────────────────────────────────────
@@ -283,6 +317,11 @@ export interface ComputeLeoSiteToSiteArgs {
 
   regulatoryResultA?: RegulatoryResult | null;
   regulatoryResultB?: RegulatoryResult | null;
+
+  /** Capacity layer result for endpoint A — drives the capacity gate check. */
+  beamLoadA?: BeamLoadResult | null;
+  /** Capacity layer result for endpoint B — drives the capacity gate check. */
+  beamLoadB?: BeamLoadResult | null;
 
   /** Slant range from endpoint A to satellite A (km). */
   userToSatDistanceAKm: number | null;
@@ -318,6 +357,8 @@ export function computeLeoSiteToSiteResult(args: ComputeLeoSiteToSiteArgs): LeoS
     selectedSnpB,
     regulatoryResultA = null,
     regulatoryResultB = null,
+    beamLoadA = null,
+    beamLoadB = null,
     userToSatDistanceAKm,
     satToSnpDistanceAKm,
     userToSatDistanceBKm,
@@ -339,9 +380,11 @@ export function computeLeoSiteToSiteResult(args: ComputeLeoSiteToSiteArgs): LeoS
     selectedSnpB,
     regulatoryResultA,
     regulatoryResultB,
+    beamLoadA,
+    beamLoadB,
   });
   const serviceStatus = deriveServiceStatus(failureReason);
-  const serviceAvailable = serviceStatus === 'ALLOWED';
+  const serviceAvailable = serviceStatus !== 'BLOCKED';
 
   // ── Radio propagation latencies ───────────────────────────────────────────
   const userLinkLatencyAms = userToSatDistanceAKm != null

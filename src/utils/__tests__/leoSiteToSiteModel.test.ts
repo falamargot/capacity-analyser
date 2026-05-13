@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { RegulatoryResult } from '../../services/regulatoryService';
 import type { SNPData } from '../../components/globe/GlobeConfig';
 import type { SatelliteData } from '../../types/satellites';
+import type { BeamLoadResult } from '../capacityLayer';
 import { computeLeoSiteToSiteResult } from '../leoSiteToSiteModel';
 
 const satA = { id: 'sat-a', name: 'Sat A' } as SatelliteData;
@@ -21,6 +22,19 @@ const regulatory = (status: RegulatoryResult['status']): RegulatoryResult => ({
   styleFill: '#000',
   styleOpacity: 1,
   isOcean: false,
+});
+
+const beamLoad = (capacityStatus: BeamLoadResult['capacityStatus']): BeamLoadResult => ({
+  densityZone: 'suburban',
+  densityZoneLabel: 'Suburban / Semi-urban',
+  estimatedActiveUsers: capacityStatus === 'SATURATED' ? 48 : capacityStatus === 'DEGRADED' ? 38 : 10,
+  maxConcurrentUsers: 50,
+  beamLoadFraction: capacityStatus === 'SATURATED' ? 0.96 : capacityStatus === 'DEGRADED' ? 0.76 : 0.20,
+  beamLoadPercent: capacityStatus === 'SATURATED' ? 96 : capacityStatus === 'DEGRADED' ? 76 : 20,
+  beamCapacityMbps: 200,
+  estimatedUserThroughputMbps: 20,
+  capacityStatus,
+  isSimulated: true,
 });
 
 const baseArgs = {
@@ -45,6 +59,8 @@ const baseArgs = {
   dlThroughputBMbps: null,
   ulThroughputBMbps: null,
 };
+
+// ── Existing RF / SNP tests ───────────────────────────────────────────────────
 
 describe('computeLeoSiteToSiteResult failure reasons', () => {
   it('reports no satellite at B only when B has no selected satellite', () => {
@@ -88,5 +104,178 @@ describe('computeLeoSiteToSiteResult failure reasons', () => {
     });
 
     expect(result.failureReason).toBe('REGULATORY_RESTRICTED_B');
+  });
+});
+
+// ── C-01: Regulatory null-bypass fix ─────────────────────────────────────────
+
+describe('C-01 — regulatory null does not bypass the gate', () => {
+  it('returns REGULATORY_PENDING_A when regulatoryResultA is null', () => {
+    const result = computeLeoSiteToSiteResult({
+      ...baseArgs,
+      regulatoryResultA: null,
+    });
+
+    expect(result.failureReason).toBe('REGULATORY_PENDING_A');
+    expect(result.serviceStatus).toBe('BLOCKED');
+    expect(result.serviceAvailable).toBe(false);
+  });
+
+  it('returns REGULATORY_PENDING_B when regulatoryResultB is null', () => {
+    const result = computeLeoSiteToSiteResult({
+      ...baseArgs,
+      regulatoryResultB: null,
+    });
+
+    expect(result.failureReason).toBe('REGULATORY_PENDING_B');
+    expect(result.serviceStatus).toBe('BLOCKED');
+    expect(result.serviceAvailable).toBe(false);
+  });
+
+  it('REGULATORY_PENDING_A takes priority over missing RF and SNP at B', () => {
+    const result = computeLeoSiteToSiteResult({
+      ...baseArgs,
+      regulatoryResultA: null,
+      rfAvailableB: false,
+      selectedSnpB: null,
+    });
+
+    expect(result.failureReason).toBe('REGULATORY_PENDING_A');
+    expect(result.serviceStatus).toBe('BLOCKED');
+  });
+
+  it('reports REGULATORY_BLOCKED_A when A is explicitly BLOCKED', () => {
+    const result = computeLeoSiteToSiteResult({
+      ...baseArgs,
+      regulatoryResultA: regulatory('BLOCKED'),
+    });
+
+    expect(result.failureReason).toBe('REGULATORY_BLOCKED_A');
+    expect(result.serviceStatus).toBe('BLOCKED');
+    expect(result.serviceAvailable).toBe(false);
+  });
+
+  it('reports REGULATORY_BLOCKED_B when B is explicitly BLOCKED', () => {
+    const result = computeLeoSiteToSiteResult({
+      ...baseArgs,
+      regulatoryResultB: regulatory('BLOCKED'),
+      rfAvailableB: false,
+      selectedSnpB: null,
+    });
+
+    expect(result.failureReason).toBe('REGULATORY_BLOCKED_B');
+    expect(result.serviceStatus).toBe('BLOCKED');
+  });
+
+  it('REGULATORY_RESTRICTED is not silently treated as ALLOWED', () => {
+    const result = computeLeoSiteToSiteResult({
+      ...baseArgs,
+      regulatoryResultA: regulatory('RESTRICTED'),
+    });
+
+    expect(result.failureReason).toBe('REGULATORY_RESTRICTED_A');
+    expect(result.serviceStatus).toBe('DEGRADED');
+    expect(result.serviceAvailable).toBe(true);
+  });
+});
+
+// ── C-02: Capacity gate in site-to-site ──────────────────────────────────────
+
+describe('C-02 — capacity gate is evaluated in site-to-site mode', () => {
+  it('returns CAPACITY_SATURATED_A when beam at A is saturated', () => {
+    const result = computeLeoSiteToSiteResult({
+      ...baseArgs,
+      beamLoadA: beamLoad('SATURATED'),
+      beamLoadB: beamLoad('NOMINAL'),
+    });
+
+    expect(result.failureReason).toBe('CAPACITY_SATURATED_A');
+    expect(result.serviceStatus).toBe('DEGRADED');
+    expect(result.serviceAvailable).toBe(true);
+  });
+
+  it('returns CAPACITY_SATURATED_B when beam at B is saturated and A is nominal', () => {
+    const result = computeLeoSiteToSiteResult({
+      ...baseArgs,
+      beamLoadA: beamLoad('NOMINAL'),
+      beamLoadB: beamLoad('SATURATED'),
+    });
+
+    expect(result.failureReason).toBe('CAPACITY_SATURATED_B');
+    expect(result.serviceStatus).toBe('DEGRADED');
+  });
+
+  it('A saturated takes priority over B saturated', () => {
+    const result = computeLeoSiteToSiteResult({
+      ...baseArgs,
+      beamLoadA: beamLoad('SATURATED'),
+      beamLoadB: beamLoad('SATURATED'),
+    });
+
+    expect(result.failureReason).toBe('CAPACITY_SATURATED_A');
+  });
+
+  it('returns CAPACITY_DEGRADED_A when beam at A is degraded', () => {
+    const result = computeLeoSiteToSiteResult({
+      ...baseArgs,
+      beamLoadA: beamLoad('DEGRADED'),
+      beamLoadB: beamLoad('NOMINAL'),
+    });
+
+    expect(result.failureReason).toBe('CAPACITY_DEGRADED_A');
+    expect(result.serviceStatus).toBe('DEGRADED');
+    expect(result.serviceAvailable).toBe(true);
+  });
+
+  it('returns CAPACITY_DEGRADED_B when beam at B is degraded and A is nominal', () => {
+    const result = computeLeoSiteToSiteResult({
+      ...baseArgs,
+      beamLoadA: beamLoad('NOMINAL'),
+      beamLoadB: beamLoad('DEGRADED'),
+    });
+
+    expect(result.failureReason).toBe('CAPACITY_DEGRADED_B');
+    expect(result.serviceStatus).toBe('DEGRADED');
+  });
+
+  it('saturation takes priority over degradation', () => {
+    const result = computeLeoSiteToSiteResult({
+      ...baseArgs,
+      beamLoadA: beamLoad('DEGRADED'),
+      beamLoadB: beamLoad('SATURATED'),
+    });
+
+    // A is checked first for saturation, B saturation follows
+    expect(result.failureReason).toBe('CAPACITY_SATURATED_B');
+  });
+
+  it('regulatory blocked takes priority over capacity saturated', () => {
+    const result = computeLeoSiteToSiteResult({
+      ...baseArgs,
+      regulatoryResultA: regulatory('BLOCKED'),
+      beamLoadA: beamLoad('SATURATED'),
+      beamLoadB: beamLoad('SATURATED'),
+    });
+
+    expect(result.failureReason).toBe('REGULATORY_BLOCKED_A');
+  });
+
+  it('no failure when both beams are nominal and all checks pass', () => {
+    const result = computeLeoSiteToSiteResult({
+      ...baseArgs,
+      beamLoadA: beamLoad('NOMINAL'),
+      beamLoadB: beamLoad('NOMINAL'),
+    });
+
+    expect(result.failureReason).toBe(null);
+    expect(result.serviceStatus).toBe('ALLOWED');
+    expect(result.serviceAvailable).toBe(true);
+  });
+
+  it('omitting beamLoad params does not cause capacity gate to fire', () => {
+    const result = computeLeoSiteToSiteResult({ ...baseArgs });
+
+    expect(result.failureReason).toBe(null);
+    expect(result.serviceStatus).toBe('ALLOWED');
   });
 });

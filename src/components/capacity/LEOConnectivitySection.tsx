@@ -1286,7 +1286,7 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
         {/* Radio Path */}
         <CollapsibleSection
           storageKey="leo-radio-path"
-          title={<>{isRegulatoryBlocked && !isS2S ? 'Radio Path (Diagnostic only)' : 'Radio Path'}<SectionTooltip content={isS2S ? "Full OneWeb site-to-site logical path: Site A → Satellite A → SNP A → Backbone → SNP B → Satellite B → Site B. Backbone routing is estimated." : "Active one-way LEO signal route: Site A → LEO Satellite → SNP/Gateway. RTT details are shown in the latency breakdown below."} /></>}
+          title={<>{isRegulatoryBlocked && !isS2S ? 'Radio Path (Diagnostic only)' : isS2S ? <>Radio Path <span className="text-slate-400 dark:text-slate-500 font-normal text-[11px]">({s2sPrimaryLabel})</span></> : 'Radio Path'}<SectionTooltip content={isS2S ? "Full OneWeb site-to-site logical path. Backbone routing is estimated." : "Active one-way LEO signal route: Site A → LEO Satellite → SNP/Gateway. RTT details are shown in the latency breakdown below."} /></>}
           subtitle={isRegulatoryBlocked && !isS2S ? blockedDiagnosticMessage : undefined}
           accentColor="#db2777"
           defaultOpen={true}
@@ -1294,78 +1294,154 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
           {isS2S ? (
             s2sServiceActive ? (
               <div className="space-y-3 text-xs">
-                {/* Compact 7-hop route badge */}
+                {/* Compact route badge — order follows selected direction */}
                 <div className="flex items-center gap-1 overflow-x-auto pb-1 min-w-0 rounded-lg border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-950 px-3 py-2">
                   <Route className="h-4 w-4 shrink-0 text-pink-500 mr-1" />
-                  <span className="text-cyan-600 dark:text-cyan-400 font-medium shrink-0">Site A</span>
-                  <span className="text-slate-400 shrink-0">→</span>
-                  <button onClick={() => onSatelliteClick?.(siteToSiteResult!.servingSatelliteA!)} className="underline hover:no-underline text-pink-600 dark:text-pink-400 font-medium shrink-0 truncate max-w-[5rem]" title={s2sSatAName}>{s2sSatAName}</button>
-                  <span className="text-slate-400 shrink-0">→</span>
-                  <span className="text-orange-600 dark:text-orange-400 shrink-0 truncate max-w-[4rem]" title={`SNP ${s2sSnpAName}`}>SNP {s2sSnpAName}</span>
-                  {!s2sSameSNP && (
+                  {isAtoB ? (
                     <>
+                      <span className="text-cyan-600 dark:text-cyan-400 font-medium shrink-0">Site A</span>
                       <span className="text-slate-400 shrink-0">→</span>
-                      <span className="text-violet-600 dark:text-violet-400 font-medium shrink-0">PoP</span>
+                      <button onClick={() => onSatelliteClick?.(siteToSiteResult!.servingSatelliteA!)} className="underline hover:no-underline text-pink-600 dark:text-pink-400 font-medium shrink-0 truncate max-w-[5rem]" title={s2sSatAName}>{s2sSatAName}</button>
+                      <span className="text-slate-400 shrink-0">→</span>
+                      <span className="text-orange-600 dark:text-orange-400 shrink-0 truncate max-w-[4rem]" title={`SNP ${s2sSnpAName}`}>SNP {s2sSnpAName}</span>
+                      {!s2sSameSNP && (
+                        <>
+                          <span className="text-slate-400 shrink-0">→</span>
+                          <span className="text-violet-600 dark:text-violet-400 font-medium shrink-0">PoP</span>
+                          <span className="text-slate-400 shrink-0">→</span>
+                          <span className="text-orange-600 dark:text-orange-400 shrink-0 truncate max-w-[4rem]" title={`SNP ${s2sSnpBName}`}>SNP {s2sSnpBName}</span>
+                        </>
+                      )}
+                      <span className="text-slate-400 shrink-0">→</span>
+                      <button onClick={() => onSatelliteClick?.(siteToSiteResult!.servingSatelliteB!)} className="underline hover:no-underline text-pink-600 dark:text-pink-400 font-medium shrink-0 truncate max-w-[5rem]" title={s2sSatBName}>{s2sSatBName}</button>
+                      <span className="text-slate-400 shrink-0">→</span>
+                      <span className="text-cyan-600 dark:text-cyan-400 font-medium shrink-0">Site B</span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="text-cyan-600 dark:text-cyan-400 font-medium shrink-0">Site B</span>
+                      <span className="text-slate-400 shrink-0">→</span>
+                      <button onClick={() => onSatelliteClick?.(siteToSiteResult!.servingSatelliteB!)} className="underline hover:no-underline text-pink-600 dark:text-pink-400 font-medium shrink-0 truncate max-w-[5rem]" title={s2sSatBName}>{s2sSatBName}</button>
                       <span className="text-slate-400 shrink-0">→</span>
                       <span className="text-orange-600 dark:text-orange-400 shrink-0 truncate max-w-[4rem]" title={`SNP ${s2sSnpBName}`}>SNP {s2sSnpBName}</span>
+                      {!s2sSameSNP && (
+                        <>
+                          <span className="text-slate-400 shrink-0">→</span>
+                          <span className="text-violet-600 dark:text-violet-400 font-medium shrink-0">PoP</span>
+                          <span className="text-slate-400 shrink-0">→</span>
+                          <span className="text-orange-600 dark:text-orange-400 shrink-0 truncate max-w-[4rem]" title={`SNP ${s2sSnpAName}`}>SNP {s2sSnpAName}</span>
+                        </>
+                      )}
+                      <span className="text-slate-400 shrink-0">→</span>
+                      <button onClick={() => onSatelliteClick?.(siteToSiteResult!.servingSatelliteA!)} className="underline hover:no-underline text-pink-600 dark:text-pink-400 font-medium shrink-0 truncate max-w-[5rem]" title={s2sSatAName}>{s2sSatAName}</button>
+                      <span className="text-slate-400 shrink-0">→</span>
+                      <span className="text-cyan-600 dark:text-cyan-400 font-medium shrink-0">Site A</span>
                     </>
                   )}
-                  <span className="text-slate-400 shrink-0">→</span>
-                  <button onClick={() => onSatelliteClick?.(siteToSiteResult!.servingSatelliteB!)} className="underline hover:no-underline text-pink-600 dark:text-pink-400 font-medium shrink-0 truncate max-w-[5rem]" title={s2sSatBName}>{s2sSatBName}</button>
-                  <span className="text-slate-400 shrink-0">→</span>
-                  <span className="text-cyan-600 dark:text-cyan-400 font-medium shrink-0">Site B</span>
                 </div>
-                {/* Hop details */}
+                {/* Hop details — ordered by direction */}
                 <div className="space-y-1.5 text-slate-500 dark:text-slate-400">
-                  <div>
-                    <div className="font-semibold text-slate-700 dark:text-slate-200 text-[11px] mb-0.5">Access A</div>
-                    <div className="pl-3 space-y-0.5">
-                      <div className="flex justify-between">
-                        <span>Site A → {s2sSatAName}{resolvedLEOConnectivity?.connectedBeamIndex != null ? ` · Beam ${resolvedLEOConnectivity.connectedBeamIndex}` : ''}</span>
-                        <span className="tabular-nums">{fmtMs(siteToSiteResult!.userLinkLatencyAms)}</span>
-                      </div>
-                      <div className="text-[10px]">Elevation: {fmtDeg(siteToSiteResult!.elevationADeg)} · {formatLeoServiceZoneLabel(siteToSiteResult!.elevationADeg)} | Slant: {resolvedLEOConnectivity ? `${resolvedLEOConnectivity.userLEODistance.toFixed(0)} km` : '—'}</div>
-                    </div>
-                  </div>
-                  <div>
-                    <div className="font-semibold text-slate-700 dark:text-slate-200 text-[11px] mb-0.5">Feeder A</div>
-                    <div className="pl-3 flex justify-between">
-                      <span>{s2sSatAName} → SNP {s2sSnpAName}</span>
-                      <span className="tabular-nums">{fmtMs(siteToSiteResult!.feederLatencyAms)}</span>
-                    </div>
-                  </div>
-                  {!s2sSameSNP && (
-                    <div>
-                      <div className="font-semibold text-slate-700 dark:text-slate-200 text-[11px] mb-0.5">Backbone</div>
-                      <div className="pl-3 space-y-0.5">
-                        <div className="flex justify-between">
-                          <span>SNP {s2sSnpAName} → {s2sPopName} → SNP {s2sSnpBName}</span>
-                          <span className="tabular-nums">{fmtMs(siteToSiteResult!.backboneOneWayLatencyMs)}</span>
+                  {isAtoB ? (
+                    <>
+                      <div>
+                        <div className="font-semibold text-slate-700 dark:text-slate-200 text-[11px] mb-0.5">Access A</div>
+                        <div className="pl-3 space-y-0.5">
+                          <div className="flex justify-between">
+                            <span>Site A → {s2sSatAName}{resolvedLEOConnectivity?.connectedBeamIndex != null ? ` · Beam ${resolvedLEOConnectivity.connectedBeamIndex}` : ''}</span>
+                            <span className="tabular-nums">{fmtMs(siteToSiteResult!.userLinkLatencyAms)}</span>
+                          </div>
+                          <div className="text-[10px]">Elevation: {fmtDeg(siteToSiteResult!.elevationADeg)} · {formatLeoServiceZoneLabel(siteToSiteResult!.elevationADeg)} | Slant: {resolvedLEOConnectivity ? `${resolvedLEOConnectivity.userLEODistance.toFixed(0)} km` : '—'}</div>
                         </div>
-                        <div className="text-[10px]">{Math.round(siteToSiteResult!.backboneDistanceKm).toLocaleString()} km · ×1.20 route factor · fiber 200 km/ms</div>
                       </div>
-                    </div>
-                  )}
-                  {s2sSameSNP && (
-                    <div className="pl-3 text-[10px] italic">Same SNP — internal OneWeb routing, no backbone hop.</div>
-                  )}
-                  <div>
-                    <div className="font-semibold text-slate-700 dark:text-slate-200 text-[11px] mb-0.5">Feeder B</div>
-                    <div className="pl-3 flex justify-between">
-                      <span>SNP {s2sSnpBName} → {s2sSatBName}</span>
-                      <span className="tabular-nums">{fmtMs(siteToSiteResult!.feederLatencyBms)}</span>
-                    </div>
-                  </div>
-                  <div>
-                    <div className="font-semibold text-slate-700 dark:text-slate-200 text-[11px] mb-0.5">Access B</div>
-                    <div className="pl-3 space-y-0.5">
-                      <div className="flex justify-between">
-                        <span>{s2sSatBName} → Site B</span>
-                        <span className="tabular-nums">{fmtMs(siteToSiteResult!.userLinkLatencyBms)}</span>
+                      <div>
+                        <div className="font-semibold text-slate-700 dark:text-slate-200 text-[11px] mb-0.5">Feeder A</div>
+                        <div className="pl-3 flex justify-between">
+                          <span>{s2sSatAName} → SNP {s2sSnpAName}</span>
+                          <span className="tabular-nums">{fmtMs(siteToSiteResult!.feederLatencyAms)}</span>
+                        </div>
                       </div>
-                      <div className="text-[10px]">Elevation: {fmtDeg(siteToSiteResult!.elevationBDeg)} · {formatLeoServiceZoneLabel(siteToSiteResult!.elevationBDeg)}</div>
-                    </div>
-                  </div>
+                      {!s2sSameSNP && (
+                        <div>
+                          <div className="font-semibold text-slate-700 dark:text-slate-200 text-[11px] mb-0.5">Backbone</div>
+                          <div className="pl-3 space-y-0.5">
+                            <div className="flex justify-between">
+                              <span>SNP {s2sSnpAName} → {s2sPopName} → SNP {s2sSnpBName}</span>
+                              <span className="tabular-nums">{fmtMs(siteToSiteResult!.backboneOneWayLatencyMs)}</span>
+                            </div>
+                            <div className="text-[10px]">{Math.round(siteToSiteResult!.backboneDistanceKm).toLocaleString()} km · ×1.20 route factor · fiber 200 km/ms</div>
+                          </div>
+                        </div>
+                      )}
+                      {s2sSameSNP && <div className="pl-3 text-[10px] italic">Same SNP — internal OneWeb routing, no backbone hop.</div>}
+                      <div>
+                        <div className="font-semibold text-slate-700 dark:text-slate-200 text-[11px] mb-0.5">Feeder B</div>
+                        <div className="pl-3 flex justify-between">
+                          <span>SNP {s2sSnpBName} → {s2sSatBName}</span>
+                          <span className="tabular-nums">{fmtMs(siteToSiteResult!.feederLatencyBms)}</span>
+                        </div>
+                      </div>
+                      <div>
+                        <div className="font-semibold text-slate-700 dark:text-slate-200 text-[11px] mb-0.5">Access B</div>
+                        <div className="pl-3 space-y-0.5">
+                          <div className="flex justify-between">
+                            <span>{s2sSatBName} → Site B</span>
+                            <span className="tabular-nums">{fmtMs(siteToSiteResult!.userLinkLatencyBms)}</span>
+                          </div>
+                          <div className="text-[10px]">Elevation: {fmtDeg(siteToSiteResult!.elevationBDeg)} · {formatLeoServiceZoneLabel(siteToSiteResult!.elevationBDeg)}</div>
+                        </div>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div>
+                        <div className="font-semibold text-slate-700 dark:text-slate-200 text-[11px] mb-0.5">Access B</div>
+                        <div className="pl-3 space-y-0.5">
+                          <div className="flex justify-between">
+                            <span>Site B → {s2sSatBName}</span>
+                            <span className="tabular-nums">{fmtMs(siteToSiteResult!.userLinkLatencyBms)}</span>
+                          </div>
+                          <div className="text-[10px]">Elevation: {fmtDeg(siteToSiteResult!.elevationBDeg)} · {formatLeoServiceZoneLabel(siteToSiteResult!.elevationBDeg)}</div>
+                        </div>
+                      </div>
+                      <div>
+                        <div className="font-semibold text-slate-700 dark:text-slate-200 text-[11px] mb-0.5">Feeder B</div>
+                        <div className="pl-3 flex justify-between">
+                          <span>{s2sSatBName} → SNP {s2sSnpBName}</span>
+                          <span className="tabular-nums">{fmtMs(siteToSiteResult!.feederLatencyBms)}</span>
+                        </div>
+                      </div>
+                      {!s2sSameSNP && (
+                        <div>
+                          <div className="font-semibold text-slate-700 dark:text-slate-200 text-[11px] mb-0.5">Backbone</div>
+                          <div className="pl-3 space-y-0.5">
+                            <div className="flex justify-between">
+                              <span>SNP {s2sSnpBName} → {s2sPopName} → SNP {s2sSnpAName}</span>
+                              <span className="tabular-nums">{fmtMs(siteToSiteResult!.backboneOneWayLatencyMs)}</span>
+                            </div>
+                            <div className="text-[10px]">{Math.round(siteToSiteResult!.backboneDistanceKm).toLocaleString()} km · ×1.20 route factor · fiber 200 km/ms</div>
+                          </div>
+                        </div>
+                      )}
+                      {s2sSameSNP && <div className="pl-3 text-[10px] italic">Same SNP — internal OneWeb routing, no backbone hop.</div>}
+                      <div>
+                        <div className="font-semibold text-slate-700 dark:text-slate-200 text-[11px] mb-0.5">Feeder A</div>
+                        <div className="pl-3 flex justify-between">
+                          <span>SNP {s2sSnpAName} → {s2sSatAName}</span>
+                          <span className="tabular-nums">{fmtMs(siteToSiteResult!.feederLatencyAms)}</span>
+                        </div>
+                      </div>
+                      <div>
+                        <div className="font-semibold text-slate-700 dark:text-slate-200 text-[11px] mb-0.5">Access A</div>
+                        <div className="pl-3 space-y-0.5">
+                          <div className="flex justify-between">
+                            <span>{s2sSatAName} → Site A{resolvedLEOConnectivity?.connectedBeamIndex != null ? ` · Beam ${resolvedLEOConnectivity.connectedBeamIndex}` : ''}</span>
+                            <span className="tabular-nums">{fmtMs(siteToSiteResult!.userLinkLatencyAms)}</span>
+                          </div>
+                          <div className="text-[10px]">Elevation: {fmtDeg(siteToSiteResult!.elevationADeg)} · {formatLeoServiceZoneLabel(siteToSiteResult!.elevationADeg)} | Slant: {resolvedLEOConnectivity ? `${resolvedLEOConnectivity.userLEODistance.toFixed(0)} km` : '—'}</div>
+                        </div>
+                      </div>
+                    </>
+                  )}
                   <div className="rounded border border-violet-200/70 bg-violet-50/60 dark:border-violet-800/50 dark:bg-violet-950/30 px-2.5 py-1.5 text-[10px] text-violet-700 dark:text-violet-300">
                     <span className="font-semibold">Logical PoP: {s2sPopName}.</span>{' '}
                     Logical Point of Presence representing OneWeb core interconnect. Actual routing is proprietary.
@@ -1474,7 +1550,7 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
                 <div className="rounded border border-slate-200 bg-slate-50 px-2 py-1 text-[10px] text-slate-500 dark:border-slate-700 dark:bg-slate-800/40 dark:text-slate-400 mb-2">
                   Propagation delays derived from slant range (speed of light). Backbone uses geodesic × 1.20 ÷ 200 km/ms.
                 </div>
-                <div className="font-semibold text-gray-700 dark:text-gray-200 text-xs mb-1">One-way hops (A → B)</div>
+                <div className="font-semibold text-gray-700 dark:text-gray-200 text-xs mb-1">One-way hops ({s2sPrimaryLabel})</div>
                 <S2SMetricRow label="Access A (Site A → Satellite A)" value={fmtMs(siteToSiteResult!.userLinkLatencyAms)} />
                 <S2SMetricRow label="Feeder A (Satellite A → SNP A)" value={fmtMs(siteToSiteResult!.feederLatencyAms)} />
                 {!s2sSameSNP && <S2SMetricRow label={`Backbone (SNP ${s2sSnpAName} → PoP → SNP ${s2sSnpBName})`} value={fmtMs(siteToSiteResult!.backboneOneWayLatencyMs)} />}

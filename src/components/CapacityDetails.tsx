@@ -692,6 +692,17 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
   }, [activePoint, computedRegulatoryResult]);
   const beamLoadResult = beamLoadResultOverride ?? computedBeamLoadResult;
 
+  const computedBeamLoadResultB = useMemo(() => {
+    if (!pointBLeo || leoTopologyMode !== 'SITE_TO_SITE') return null;
+    const isOcean = computedRegulatoryResultB?.isOcean ?? true;
+    return estimateBeamLoad(
+      pointBLeo.lat,
+      pointBLeo.lng,
+      isOcean,
+      computedRegulatoryResultB?.isoA2 ?? null,
+    );
+  }, [leoTopologyMode, pointBLeo, computedRegulatoryResultB]);
+
   const leoPerformance = useMemo(() => {
     if (!resolvedLEOConnectivity || !resolvedLEOConnectivity.snp || !activePoint) return null;
 
@@ -1015,10 +1026,13 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
     const dlThroughputBMbps = servingSatelliteB && hasCurrentLEORFB ? dlThroughputAMbps : null;
     const ulThroughputBMbps = servingSatelliteB && hasCurrentLEORFB ? ulThroughputAMbps : null;
 
-    const snpAFull = propSelectedSNP
+    // Filter out any SNP that has been toggled to failed — this makes the
+    // site-to-site result reactive to failedSnps in the same render cycle
+    // instead of waiting for App.tsx's useEffect to update propSelectedSNP/selectedSNPB.
+    const snpAFull = propSelectedSNP && !failedSnps.has(propSelectedSNP.name)
       ? SNPS_DATA.find(s => s.name === propSelectedSNP.name) ?? null
       : null;
-    const snpBFull = selectedSNPB
+    const snpBFull = selectedSNPB && !failedSnps.has(selectedSNPB.name)
       ? SNPS_DATA.find(s => s.name === selectedSNPB.name) ?? null
       : null;
 
@@ -1033,6 +1047,8 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
       selectedSnpB: snpBFull,
       regulatoryResultA: regulatoryResult,
       regulatoryResultB,
+      beamLoadA: beamLoadResult,
+      beamLoadB: computedBeamLoadResultB,
       userToSatDistanceAKm: userToSatAKm,
       satToSnpDistanceAKm: satToSnpAKm,
       userToSatDistanceBKm: userToSatBKm,
@@ -1058,6 +1074,9 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
     leoPerformance,
     hasCurrentLEORF,
     hasCurrentLEORFB,
+    failedSnps,
+    beamLoadResult,
+    computedBeamLoadResultB,
   ]);
 
   // Propagate the full S2S result upward so the globe can display accurate tooltip values.
@@ -1068,13 +1087,17 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
   // ── Service layer (aggregated status) ────────────────────────────────────
   const computedServiceLayerResult = useMemo(() => {
     if (!activePoint || !computedRegulatoryResult || !computedBeamLoadResult) return null;
+    const snp = resolvedLEOConnectivity?.snp ?? null;
     return computeServiceStatus({
       hasRF: hasCurrentLEORF,
-      hasSNP: resolvedLEOConnectivity?.snp != null,
+      // Filter out failed SNPs immediately so the service status updates in the
+      // same render cycle as the failedSnps change, without waiting for App.tsx's
+      // useEffect to clear the selected SNP prop.
+      hasSNP: snp != null && !failedSnps.has(snp.name),
       regulatoryResult: computedRegulatoryResult,
       beamLoadResult: computedBeamLoadResult,
     });
-  }, [activePoint, computedRegulatoryResult, computedBeamLoadResult, resolvedLEOConnectivity, hasCurrentLEORF]);
+  }, [activePoint, computedRegulatoryResult, computedBeamLoadResult, resolvedLEOConnectivity, hasCurrentLEORF, failedSnps]);
   const serviceLayerResult = serviceLayerResultOverride ?? computedServiceLayerResult;
   const leoServiceViewModel = leoServiceViewModelOverride ?? null;
 
