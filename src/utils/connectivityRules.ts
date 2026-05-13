@@ -1,6 +1,7 @@
 import { SatelliteData } from '../types/satellites';
 import { SNPData, SNPS_DATA } from '../components/globe/GlobeConfig';
 import { calculateElevationAngle } from './capacityCalculator';
+import { MIN_SNP_GATEWAY_ELEVATION_DEG } from './leoFootprint';
 
 /**
  * Checks if a satellite has a valid connection to at least one Gateway (SNP).
@@ -12,7 +13,7 @@ import { calculateElevationAngle } from './capacityCalculator';
  */
 export function isSatelliteConnectedToGateway(
     satellite: SatelliteData,
-    minElevation: number = 15,
+    minElevation: number = MIN_SNP_GATEWAY_ELEVATION_DEG,
     failedSnps: ReadonlySet<string> = new Set()
 ): boolean {
     for (const snp of SNPS_DATA) {
@@ -35,7 +36,7 @@ export function isSatelliteConnectedToGateway(
  */
 export function getBestConnectedGateway(
     satellite: SatelliteData,
-    minElevation: number = 15,
+    minElevation: number = MIN_SNP_GATEWAY_ELEVATION_DEG,
     failedSnps: ReadonlySet<string> = new Set()
 ): { snp: SNPData, elevation: number } | null {
     let bestSNP = null;

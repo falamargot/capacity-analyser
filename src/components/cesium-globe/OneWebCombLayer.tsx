@@ -21,7 +21,7 @@ import {
 import type { SatelliteData } from '../../types/satellites';
 import type { Aircraft } from '../../modules/airTraffic/airTrafficService';
 import { getBeamColor, TOTAL_BEAMS, calculateGSOAvoidanceAngle } from '../../utils/oneWebComb';
-import { footprintRadiusKm, BACKHAUL_ELEVATION_DEG, STANDARD_ELEVATION_DEG } from '../../utils/leoFootprint';
+import { footprintRadiusKm, MIN_SNP_GATEWAY_ELEVATION_DEG, STANDARD_SERVICE_ELEVATION_DEG } from '../../utils/leoFootprint';
 import { getCoverageColor, hasSNPInCoverage } from '../../services/coverageService';
 import { useSimulation } from '../../contexts/SimulationContext';
 import { useCombGeometry } from './hooks';
@@ -529,12 +529,12 @@ const OneWebCombLayer: React.FC<OneWebCombLayerProps> = ({
     // These useMemo hooks MUST be before the early return to satisfy the Rules of Hooks.
     // They guard against null targetSat internally and produce no-op values in that case.
     const horizonRadius = useMemo(
-        () => targetSat ? footprintRadiusKm(targetSat.position.alt || 1200, BACKHAUL_ELEVATION_DEG) * 1000 : 0,
+        () => targetSat ? footprintRadiusKm(targetSat.position.alt || 1200, MIN_SNP_GATEWAY_ELEVATION_DEG) * 1000 : 0,
         [targetSat?.position.alt]
     );
 
     const serviceZoneRadius = useMemo(
-        () => targetSat ? footprintRadiusKm(targetSat.position.alt || 1200, STANDARD_ELEVATION_DEG) * 1000 : 0,
+        () => targetSat ? footprintRadiusKm(targetSat.position.alt || 1200, STANDARD_SERVICE_ELEVATION_DEG) * 1000 : 0,
         [targetSat?.position.alt]
     );
 
@@ -600,7 +600,7 @@ const OneWebCombLayer: React.FC<OneWebCombLayerProps> = ({
             </Entity>
 
             {coveragePolicy.type === 'SERVICE_ZONE' && (
-                <Entity position={positionCallback!} name="Standard Service Zone">
+                <Entity position={positionCallback!} name="Guaranteed service zone">
                     <EllipseGraphics
                         semiMajorAxis={serviceZoneRadius}
                         semiMinorAxis={serviceZoneRadius}

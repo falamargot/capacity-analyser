@@ -3,7 +3,13 @@ import type { SatelliteData } from '../types/satellites';
 import { calculateElevationAngle } from './capacityCalculator';
 import { calculateGSOAvoidanceAngle, calculateCombBeamCenters, calculateCombGeometry } from './oneWebComb';
 import { isBeamActive } from './beamActivation';
-import { getRadiusAtPowerLevel, isRfCoverageSatisfied, getPhysicsAwareBeamRadius, haversineDistanceKm } from './leoFootprint';
+import {
+    MIN_USER_TERMINAL_ELEVATION_DEG,
+    getRadiusAtPowerLevel,
+    isRfCoverageSatisfied,
+    getPhysicsAwareBeamRadius,
+    haversineDistanceKm,
+} from './leoFootprint';
 import {
     getBeamPerformance,
     getPowerBoostLinear,
@@ -43,11 +49,11 @@ export function hasRFConnectivity(
 
     try {
         // FAST PATH & SANITY CHECK:
-        // A user cannot possibly have RF connectivity if the satellite is below the horizon.
-        // This shields the 2D polygon engine from antimeridian wrapping bugs that might
-        // mistakenly validate satellites on the opposite side of the Earth.
+        // OneWeb user RF is not eligible below the terminal elevation threshold.
+        // This also shields the 2D polygon engine from antimeridian wrapping bugs
+        // that might mistakenly validate satellites on the opposite side of Earth.
         const elevation = calculateElevationAngle(userPosition, satellite);
-        if (elevation < 0) {
+        if (elevation < MIN_USER_TERMINAL_ELEVATION_DEG) {
             return false;
         }
 
@@ -207,7 +213,7 @@ export function getConnectivityStatus(
     try {
         // Geometric visibility
         const elevation = calculateElevationAngle(userPosition, satellite);
-        const hasGeometricVisibility = elevation >= 15;
+        const hasGeometricVisibility = elevation >= MIN_USER_TERMINAL_ELEVATION_DEG;
 
         // C-02: Single propagation for all RF state — gsoState reused for both
         // active beam count derivation and isUserInActiveBeam call below.

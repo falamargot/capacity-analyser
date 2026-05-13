@@ -1,4 +1,5 @@
 import { SPEED_OF_LIGHT_RADIO_KM_S } from './capacityCalculator';
+import { MIN_SNP_GATEWAY_ELEVATION_DEG, MIN_USER_TERMINAL_ELEVATION_DEG } from './leoFootprint';
 
 export const DEFAULT_LEO_OVERHEAD_MS = {
   gatewayProcessingDelayMs: 3,
@@ -15,7 +16,8 @@ export const DEFAULT_LEO_OVERHEAD_MS = {
 export const DEFAULT_SNP_TO_POP_FIBER_DELAY_MS = 15;
 
 const DEFAULT_RANGES = {
-  minStableElevationDeg: 15,
+  minUserTerminalElevationDeg: MIN_USER_TERMINAL_ELEVATION_DEG,
+  minSnpGatewayElevationDeg: MIN_SNP_GATEWAY_ELEVATION_DEG,
   /**
    * Minimum RTT with fiber: 4-hop radio (~16 ms) + fiber RTT (~30 ms) + overhead (~20 ms) ≈ 66 ms.
    * OneWeb publicly targets <70 ms; World Teleport Association measured 70–80 ms.
@@ -94,14 +96,14 @@ export function analyzeLeoConnectivity({
   const rttTotalMs = rttPropagationMs + networkOverheadTotalMs + snpToPopFiberRttMs;
 
   const warnings: string[] = [];
-  const isUserLinkUnstable = userToSatelliteElevationDeg < DEFAULT_RANGES.minStableElevationDeg;
-  const isGatewayLinkUnstable = gatewayToSatelliteElevationDeg < DEFAULT_RANGES.minStableElevationDeg;
+  const isUserLinkUnstable = userToSatelliteElevationDeg < DEFAULT_RANGES.minUserTerminalElevationDeg;
+  const isGatewayLinkUnstable = gatewayToSatelliteElevationDeg < DEFAULT_RANGES.minSnpGatewayElevationDeg;
 
   if (isUserLinkUnstable) {
-    warnings.push(`User-satellite elevation below ${DEFAULT_RANGES.minStableElevationDeg} deg: unstable link.`);
+    warnings.push(`User-satellite elevation below ${DEFAULT_RANGES.minUserTerminalElevationDeg} deg: RF ineligible link.`);
   }
   if (isGatewayLinkUnstable) {
-    warnings.push(`SNP-satellite elevation below ${DEFAULT_RANGES.minStableElevationDeg} deg: unstable feeder link.`);
+    warnings.push(`SNP-satellite elevation below ${DEFAULT_RANGES.minSnpGatewayElevationDeg} deg: unstable feeder link.`);
   }
   if (rttTotalMs < DEFAULT_RANGES.suspiciousLowRttMs) {
     warnings.push(`End-to-end LEO RTT is unusually low (< ${DEFAULT_RANGES.suspiciousLowRttMs} ms).`);

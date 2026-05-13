@@ -16,31 +16,28 @@ import {
  *   scan-loss shrinkage on peripheral beams. Use this when individual beam
  *   geometry detail is needed (default mode).
  *
- * **SERVICE_ZONE** (Contractual Service Boundary mode):
- *   Uses the OneWeb contractual 55° minimum elevation-angle guarantee
- *   (STANDARD_ELEVATION_DEG) to define a single circular service area
- *   (~688 km radius at 1200 km altitude). No per-beam distinction.
- *   Use this for a simplified "is the terminal in-service-area?" check.
+ * **SERVICE_ZONE** (Service eligibility mode):
+ *   Uses the OneWeb terminal RF eligibility threshold (40°) as the hard
+ *   availability cutoff. The 55° standard service elevation is tracked
+ *   separately as the guaranteed/contractual service zone.
  */
 export type CoveragePolicy =
   | { type: "DB_THRESHOLD"; thresholdDb: number }
   | { type: "SERVICE_ZONE" };
 
-// Double-Zone footprint constants for 1200km altitude
-// OneWeb Gen 1 guaranteed minimum service elevation angle (user terminal).
-// Source: EOPortal OneWeb mission profile — "Users always within line-of-sight
-// of at least one satellite at ≥55° elevation angle."
-// This is a contractual operational guarantee, not an approximation.
-// Replaces the previous 37° estimate which overstated the service zone by ~2.5×.
-// footprintRadiusKm(1200, 55) ≈ 688 km.
-export const STANDARD_ELEVATION_DEG = 55; // Standard service zone (OneWeb guarantee)
-// ONEWEB_GEN1_OPERATIONAL_APPROXIMATION — 15° is the geometric visibility limit
-// used for gateway reachability checks, not a guaranteed service elevation.
-export const BACKHAUL_ELEVATION_DEG = 15; // Backhaul/visibility zone
+export const MIN_USER_TERMINAL_ELEVATION_DEG = 40;
+export const MIN_SNP_GATEWAY_ELEVATION_DEG = 15;
+export const STANDARD_SERVICE_ELEVATION_DEG = 55;
+
+// Backward-compatible aliases for older callers/tests. Prefer the explicit
+// user/SNP/standard constants above in new logic.
+export const STANDARD_ELEVATION_DEG = STANDARD_SERVICE_ELEVATION_DEG;
+export const BACKHAUL_ELEVATION_DEG = MIN_SNP_GATEWAY_ELEVATION_DEG;
 
 // Pre-calculated radii for 1200km altitude
-export const STANDARD_RADIUS_KM = 688;  // 55° elevation — footprintRadiusKm(1200, 55)
-export const BACKHAUL_RADIUS_KM = 2500; // 15° elevation
+export const TERMINAL_RF_RADIUS_KM = 1097; // 40° elevation — footprintRadiusKm(1200, 40)
+export const STANDARD_RADIUS_KM = 688;  // 55° elevation — guaranteed service zone
+export const BACKHAUL_RADIUS_KM = 2500; // 15° elevation — SNP/gateway visibility
 
 /**
  * Returns the ground-distance radius (km) at which the beam power
@@ -126,8 +123,9 @@ export function isRfCoverageSatisfied(
   let radiusKm: number;
 
   if (policy.type === "SERVICE_ZONE") {
-    // SERVICE_ZONE: Based on STANDARD_ELEVATION_DEG (55°) — OneWeb contractual minimum
-    radiusKm = footprintRadiusKm(altKm, STANDARD_ELEVATION_DEG);
+    // SERVICE_ZONE RF eligibility uses 40°. 55° is a guaranteed-zone marker,
+    // not the hard cutoff for possible OneWeb service.
+    radiusKm = footprintRadiusKm(altKm, MIN_USER_TERMINAL_ELEVATION_DEG);
   } else if (policy.type === "DB_THRESHOLD") {
     // DB_THRESHOLD: Use existing threshold-based logic
     radiusKm = getRadiusAtPowerLevel(policy.thresholdDb);

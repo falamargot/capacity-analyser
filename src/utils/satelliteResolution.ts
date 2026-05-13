@@ -12,6 +12,7 @@ import {
     rankCandidateCoverages,
     resolveCandidateCoverage,
 } from './geoCoverageSelection';
+import { MIN_SNP_GATEWAY_ELEVATION_DEG, MIN_USER_TERMINAL_ELEVATION_DEG } from './leoFootprint';
 import { estimateCurrentLeoBeamLink, findConnectedBeamIndex, hasRFConnectivity } from './rfConnectivity';
 import type { SimulationStateSnapshot } from '../types/simulation';
 import {
@@ -49,7 +50,7 @@ interface ScoredLeoCandidate extends EligibleLeoCandidate {
 
 const RVT_HORIZON_S = 900;
 const RVT_STEP_S = 15;
-const RVT_MIN_ELEVATION_DEG = 15;
+const RVT_MIN_ELEVATION_DEG = MIN_USER_TERMINAL_ELEVATION_DEG;
 const MAX_RVT_S = 720;
 
 const W_THROUGHPUT = 0.45;
@@ -74,7 +75,7 @@ function assessGatewayLinks(
         if (failedSnps.has(snp.name)) continue;
 
         const elevation = calculateElevationAngle({ lat: snp.lat, lng: snp.lng }, sat);
-        if (elevation < 15) continue;
+        if (elevation < MIN_SNP_GATEWAY_ELEVATION_DEG) continue;
 
         if (elevation > bestElevation) {
             bestElevation = elevation;
@@ -87,8 +88,8 @@ function assessGatewayLinks(
         bestElevation,
         // Match the backhaul-factor curve used by the beam estimator:
         // 15 deg = just reachable, 50 deg = excellent gateway margin.
-        marginScore: bestElevation >= 15
-            ? clamp01((bestElevation - 15) / (50 - 15))
+        marginScore: bestElevation >= MIN_SNP_GATEWAY_ELEVATION_DEG
+            ? clamp01((bestElevation - MIN_SNP_GATEWAY_ELEVATION_DEG) / (50 - MIN_SNP_GATEWAY_ELEVATION_DEG))
             : 0,
     };
 }
@@ -160,7 +161,7 @@ function getFallbackThroughputScore(
     gateway: GatewayAssessment
 ): number {
     const userElevation = calculateElevationAngle(userLocation, sat);
-    const limitingElevation = gateway.bestElevation >= 15
+    const limitingElevation = gateway.bestElevation >= MIN_SNP_GATEWAY_ELEVATION_DEG
         ? Math.min(userElevation, gateway.bestElevation)
         : userElevation;
 
@@ -305,7 +306,7 @@ export const resolveAutoSelectedSatellites = (
                         satellite: sat,
                         elevation: calculateElevationAngle(userLocation, sat)
                     }))
-                    .filter(({ elevation }) => elevation >= 15);
+                    .filter(({ elevation }) => elevation >= MIN_USER_TERMINAL_ELEVATION_DEG);
 
                 if (geometricallyVisibleLEO.length > 0) {
                     geometricallyVisibleLEO.sort((a, b) => b.elevation - a.elevation);

@@ -25,7 +25,12 @@ import type { WeatherCondition } from '../utils/realisticSimulation';
 import { calculateGSOAvoidanceAngle } from '../utils/oneWebComb';
 import { estimateCurrentLeoBeamLink, findConnectedBeamIndex } from '../utils/rfConnectivity';
 import { calculateElevationAngle } from '../utils/capacityCalculator';
-import { haversineDistanceKm, BACKHAUL_RADIUS_KM } from '../utils/leoFootprint';
+import {
+  haversineDistanceKm,
+  BACKHAUL_RADIUS_KM,
+  MIN_USER_TERMINAL_ELEVATION_DEG,
+  STANDARD_SERVICE_ELEVATION_DEG,
+} from '../utils/leoFootprint';
 import { SNPS_DATA } from './globe/GlobeConfig';
 import { getBeamBaseColor } from '../config/beamVisualization';
 import type { BeamHealthData } from '../utils/realisticSimulation';
@@ -356,7 +361,13 @@ const PassBeamTimeline: React.FC<PassBeamTimelineProps> = ({
                   {timeline.map((p, i) => {
                     const h = Math.max(0, Math.min(1, p.elevation / 90));
                     const barH = Math.round(h * 24);
-                    const barColor = p.elevation > 40 ? '#22c55e' : p.elevation > 15 ? '#f59e0b' : p.elevation > 0 ? '#ef4444' : '#374151';
+                    const barColor = p.elevation >= STANDARD_SERVICE_ELEVATION_DEG
+                      ? '#22c55e'
+                      : p.elevation >= MIN_USER_TERMINAL_ELEVATION_DEG
+                        ? '#f59e0b'
+                        : p.elevation > 0
+                          ? '#ef4444'
+                          : '#374151';
                     return (
                       <div
                         key={i}

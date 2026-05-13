@@ -8,6 +8,7 @@ import PassBeamTimeline from '../PassBeamTimeline';
 import CollapsibleSection from '../layout/CollapsibleSection';
 import TerminalConfig, { TERMINAL_PROFILES, type WeatherType } from './TerminalConfig';
 import { SPEED_OF_LIGHT_RADIO_KM_S } from '../../utils/capacityCalculator';
+import { MIN_USER_TERMINAL_ELEVATION_DEG, STANDARD_SERVICE_ELEVATION_DEG } from '../../utils/leoFootprint';
 import type { SatelliteData } from '../../types/satellites';
 import type { BeamHealthData, WeatherCondition } from '../../utils/realisticSimulation';
 import type { RegulatoryResult } from '../../services/regulatoryService';
@@ -930,6 +931,13 @@ const fmtMbpsSafe = (v: number | null | undefined) => {
 const fmtDeg = (v: number | null | undefined) =>
   typeof v === 'number' && isFinite(v) ? `${v.toFixed(1)}°` : '--';
 
+const formatLeoServiceZoneLabel = (elevationDeg: number | null | undefined): string => {
+  if (typeof elevationDeg !== 'number' || !Number.isFinite(elevationDeg)) return 'Below terminal elevation threshold';
+  if (elevationDeg < MIN_USER_TERMINAL_ELEVATION_DEG) return 'Below terminal elevation threshold';
+  if (elevationDeg < STANDARD_SERVICE_ELEVATION_DEG) return 'Service possible, below guaranteed elevation';
+  return 'Guaranteed service zone';
+};
+
 const S2SMetricRow = ({ label, value, accent = false }: { label: string; value: string; accent?: boolean }) => (
   <div className="flex items-baseline justify-between gap-3 py-0.5">
     <span className="text-xs text-slate-500 dark:text-slate-400 shrink-0">{label}</span>
@@ -1316,7 +1324,7 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
                         <span>Site A → {s2sSatAName}{resolvedLEOConnectivity?.connectedBeamIndex != null ? ` · Beam ${resolvedLEOConnectivity.connectedBeamIndex}` : ''}</span>
                         <span className="tabular-nums">{fmtMs(siteToSiteResult!.userLinkLatencyAms)}</span>
                       </div>
-                      <div className="text-[10px]">Elevation: {fmtDeg(siteToSiteResult!.elevationADeg)} | Slant: {resolvedLEOConnectivity ? `${resolvedLEOConnectivity.userLEODistance.toFixed(0)} km` : '—'}</div>
+                      <div className="text-[10px]">Elevation: {fmtDeg(siteToSiteResult!.elevationADeg)} · {formatLeoServiceZoneLabel(siteToSiteResult!.elevationADeg)} | Slant: {resolvedLEOConnectivity ? `${resolvedLEOConnectivity.userLEODistance.toFixed(0)} km` : '—'}</div>
                     </div>
                   </div>
                   <div>
@@ -1355,7 +1363,7 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
                         <span>{s2sSatBName} → Site B</span>
                         <span className="tabular-nums">{fmtMs(siteToSiteResult!.userLinkLatencyBms)}</span>
                       </div>
-                      <div className="text-[10px]">Elevation: {fmtDeg(siteToSiteResult!.elevationBDeg)}</div>
+                      <div className="text-[10px]">Elevation: {fmtDeg(siteToSiteResult!.elevationBDeg)} · {formatLeoServiceZoneLabel(siteToSiteResult!.elevationBDeg)}</div>
                     </div>
                   </div>
                   <div className="rounded border border-violet-200/70 bg-violet-50/60 dark:border-violet-800/50 dark:bg-violet-950/30 px-2.5 py-1.5 text-[10px] text-violet-700 dark:text-violet-300">
@@ -1402,7 +1410,7 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
                       → Slant Range: {formatHopDistance(
                         resolvedLEOConnectivity.userLEODistance,
                         leoGeometry?.propagationBreakdownMs.userToSatellite ?? (resolvedLEOConnectivity.userLEODistance / SPEED_OF_LIGHT_RADIO_KM_S * 1000)
-                      )} | Elevation: {resolvedLEOConnectivity.userLEOElevation?.toFixed(1)}°
+                      )} | Elevation: {resolvedLEOConnectivity.userLEOElevation?.toFixed(1)}° · {formatLeoServiceZoneLabel(resolvedLEOConnectivity.userLEOElevation)}
                     </div>
                   </div>
                   <div>
@@ -1431,7 +1439,7 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
                     → Slant Range: {formatHopDistance(
                       resolvedLEOConnectivity.userLEODistance,
                       resolvedLEOConnectivity.userLEODistance / SPEED_OF_LIGHT_RADIO_KM_S * 1000
-                    )} | Elevation: {resolvedLEOConnectivity.userLEOElevation?.toFixed(1)}°
+                    )} | Elevation: {resolvedLEOConnectivity.userLEOElevation?.toFixed(1)}° · {formatLeoServiceZoneLabel(resolvedLEOConnectivity.userLEOElevation)}
                   </div>
                 </div>
               )}

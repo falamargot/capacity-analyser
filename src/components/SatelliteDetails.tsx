@@ -17,6 +17,7 @@ import {
 import { hasRFConnectivity } from '../utils/rfConnectivity';
 import { getBestConnectedGateway } from '../utils/connectivityRules';
 import { computeServiceStatus, type ServiceLayerResult } from '../utils/serviceLayer';
+import { MIN_SNP_GATEWAY_ELEVATION_DEG, MIN_USER_TERMINAL_ELEVATION_DEG, STANDARD_SERVICE_ELEVATION_DEG } from '../utils/leoFootprint';
 
 // NEW IMPORTS - BeamStatusComponents integration
 import { BeamStatusGrid, CoveragePolicyDisplay } from './BeamStatusComponents';
@@ -26,6 +27,13 @@ import { SectionTooltip } from './SectionTooltip';
 import type { RegulatoryResult } from '../services/regulatoryService';
 import type { BeamLoadResult } from '../utils/capacityLayer';
 import { PublicTranspondersSection } from './PublicTranspondersSection';
+
+const formatLeoServiceZoneLabel = (elevationDeg: number | null): string => {
+  if (elevationDeg === null || !Number.isFinite(elevationDeg)) return 'Below terminal elevation threshold';
+  if (elevationDeg < MIN_USER_TERMINAL_ELEVATION_DEG) return 'Below terminal elevation threshold';
+  if (elevationDeg < STANDARD_SERVICE_ELEVATION_DEG) return 'Service possible, below guaranteed elevation';
+  return 'Guaranteed service zone';
+};
 
 
 // ─── Pitch Monitoring Chart ───────────────────────────────────────────────────
@@ -246,7 +254,7 @@ const SatelliteDetails: React.FC<SatelliteDetailsProps> = ({
     if (!activePoint || !isOperational || effectiveSatellite.type !== 'ONEWEB' || !currentTargetHasRF) {
       return null;
     }
-    return getBestConnectedGateway(effectiveSatellite, 15, failedSnps);
+    return getBestConnectedGateway(effectiveSatellite, MIN_SNP_GATEWAY_ELEVATION_DEG, failedSnps);
   }, [activePoint, currentTargetHasRF, effectiveSatellite, failedSnps, isOperational]);
 
   const currentTargetServiceStatus = useMemo<ServiceLayerResult | null>(() => {
@@ -286,7 +294,7 @@ const SatelliteDetails: React.FC<SatelliteDetailsProps> = ({
     if (!currentSatellite) return [];
     return SNPS_DATA
       .map(snp => ({ snp, elevation: calculateElevationAngle({ lat: snp.lat, lng: snp.lng }, currentSatellite) }))
-      .filter(({ elevation }) => elevation >= 15)
+      .filter(({ elevation }) => elevation >= MIN_SNP_GATEWAY_ELEVATION_DEG)
       .sort((a, b) => b.elevation - a.elevation);
   }, [currentSatellite]);
 
@@ -606,7 +614,7 @@ const SatelliteDetails: React.FC<SatelliteDetailsProps> = ({
                           </p>
                           {currentTargetUserElevation !== null && (
                             <p className="text-gray-500 dark:text-gray-400">
-                              User elevation from target: {currentTargetUserElevation.toFixed(1)}°
+                              User elevation from target: {currentTargetUserElevation.toFixed(1)}° · {formatLeoServiceZoneLabel(currentTargetUserElevation)}
                             </p>
                           )}
                         </>
@@ -761,7 +769,7 @@ const SatelliteDetails: React.FC<SatelliteDetailsProps> = ({
                     <div className="mt-4">
                       <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center">
                         Visible SNPs from Satellite
-                        <SectionTooltip content="SNPs currently visible from this selected satellite (elevation ≥ 15°). This list is satellite-centric and does not by itself mean that a given SNP is serving the active ground target." />
+                        <SectionTooltip content={`SNPs currently visible from this selected satellite (elevation ≥ ${MIN_SNP_GATEWAY_ELEVATION_DEG}°). This list is satellite-centric and does not by itself mean that a given SNP is serving the active ground target.`} />
                         {visibleSNPs.some(({ snp }) => failedSnps.has(snp.name)) && (
                           <span className="ml-2 px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300">
                             {visibleSNPs.filter(({ snp }) => failedSnps.has(snp.name)).length} FAILED

@@ -22,6 +22,7 @@ import {
   RF_UPLINK_NOISE_BW_HZ,
   RF_UPLINK_THROUGHPUT_BW_HZ,
 } from './leoLinkBudget';
+import { MIN_USER_TERMINAL_ELEVATION_DEG } from './leoFootprint';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 1. Best satellite/beam selection
@@ -38,8 +39,9 @@ export interface SatelliteServingCandidate {
   slantRangeKm: number;
 }
 
-/** Minimum elevation to be considered as a viable serving satellite (degrees) */
-export const MIN_SERVING_ELEVATION_DEG = 15;
+/** Minimum user-terminal elevation to be considered as a viable serving satellite (degrees). */
+export const MIN_SERVING_ELEVATION_DEG = MIN_USER_TERMINAL_ELEVATION_DEG;
+export const MIN_USER_SERVING_ELEVATION_DEG = MIN_USER_TERMINAL_ELEVATION_DEG;
 
 /** Elevation margin below which a candidate is not considered better (degrees).
  *  Prevents small measurement noise from triggering unnecessary switches. */
@@ -56,7 +58,7 @@ export const CN_SWITCH_MARGIN_DB = 0.5;
  *   2. Highest C/N              (best instantaneous link quality)
  *   3. Lowest slant range       (minimum FSPL)
  *
- * Candidates below MIN_SERVING_ELEVATION_DEG are excluded.
+ * Candidates below MIN_USER_SERVING_ELEVATION_DEG are excluded.
  * Returns null when no viable candidate exists.
  *
  * The function is generic so callers can attach arbitrary extra fields (e.g.

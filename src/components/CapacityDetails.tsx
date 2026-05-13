@@ -26,6 +26,7 @@ import type { BeamLoadResult } from '../utils/capacityLayer';
 import type { ServiceLayerResult } from '../utils/serviceLayer';
 import type { LeoConnectivityViewModel } from '../utils/leoServiceViewModel';
 import { formatCoordinates } from '../utils/formatters';
+import { MIN_SNP_GATEWAY_ELEVATION_DEG, MIN_USER_TERMINAL_ELEVATION_DEG, STANDARD_SERVICE_ELEVATION_DEG } from '../utils/leoFootprint';
 import { PerformancePanel } from './MetricWidgets';
 import { SectionTooltip } from './SectionTooltip';
 import CollapsibleSection from './layout/CollapsibleSection';
@@ -360,15 +361,25 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
     // Aviation terminals are above clouds, so weather factor is always 1.0
     const weatherFactor = getWeatherFactor(weatherType, leoTerminalType === 'aviation');
 
+    if (userLEOElevation < MIN_USER_TERMINAL_ELEVATION_DEG || snpLEOElevation < MIN_SNP_GATEWAY_ELEVATION_DEG) {
+      return {
+        downlinkGbps: 0,
+        uplinkGbps: 0,
+        stability: 'Unstable',
+        performanceFactor: 0,
+        weatherFactor,
+        weatherLabel: WEATHER_PROFILES[weatherType].label
+      };
+    }
+
     // Limiting link = the weaker geometry between user<->sat and snp<->sat
     const limitingElevation = Math.min(userLEOElevation, snpLEOElevation);
     const limitingDistanceKm = Math.max(userLEODistance, snpLEODistance);
 
     // Elevation factor
     const elevationFactor = (() => {
-      if (limitingElevation < 15) return 0;
-      if (limitingElevation >= 50) return 1;
-      return (limitingElevation - 15) / (50 - 15);
+      if (limitingElevation >= STANDARD_SERVICE_ELEVATION_DEG) return 1;
+      return (limitingElevation - MIN_SNP_GATEWAY_ELEVATION_DEG) / (STANDARD_SERVICE_ELEVATION_DEG - MIN_SNP_GATEWAY_ELEVATION_DEG);
     })();
 
     // Distance factor
@@ -407,11 +418,11 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
     let stability: string;
     if (performanceFactor <= 0) {
       stability = 'Unstable';
-    } else if (limitingElevation >= 40 && handoverFactor >= 0.9) {
+    } else if (userLEOElevation >= STANDARD_SERVICE_ELEVATION_DEG && snpLEOElevation >= MIN_SNP_GATEWAY_ELEVATION_DEG && handoverFactor >= 0.9) {
       stability = 'High';
-    } else if (limitingElevation >= 25 && handoverFactor >= 0.7) {
+    } else if (userLEOElevation >= MIN_USER_TERMINAL_ELEVATION_DEG && snpLEOElevation >= MIN_SNP_GATEWAY_ELEVATION_DEG && handoverFactor >= 0.7) {
       stability = 'Medium';
-    } else if (limitingElevation >= 15) {
+    } else if (userLEOElevation >= MIN_USER_TERMINAL_ELEVATION_DEG || snpLEOElevation >= MIN_SNP_GATEWAY_ELEVATION_DEG) {
       stability = 'Low';
     } else {
       stability = 'Unstable';
@@ -1778,7 +1789,7 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
 
       if (satellite.orbitType === 'LEO') {
         return hasRFConnectivity(point, satellite, currentTime, currentSimulationState)
-          && getBestConnectedGateway(satellite, 15, currentFailedSnps) !== null;
+          && getBestConnectedGateway(satellite, MIN_SNP_GATEWAY_ELEVATION_DEG, currentFailedSnps) !== null;
       }
 
       return isPointInCoverage(point, satellite, null).includes('user');

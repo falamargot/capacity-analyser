@@ -1,5 +1,5 @@
 import { Coverage, SatelliteData } from '../types/satellites';
-import { isPointInFootprint, STANDARD_RADIUS_KM, BACKHAUL_RADIUS_KM } from './leoFootprint';
+import { isPointInFootprint, TERMINAL_RF_RADIUS_KM, BACKHAUL_RADIUS_KM } from './leoFootprint';
 import { EARTH_RADIUS_KM } from './capacityCalculator';
 import { calculateGSOAvoidanceAngle } from './oneWebComb';
 import { JulianDate } from 'cesium';
@@ -93,14 +93,14 @@ export function calculateCoverages(satellite: SatelliteData): Coverage[] {
   // ONEWEB: build metadata-only features for "The Comb" visualization
   // The actual geometry is dynamic and rendered via CesiumGlobe using CallbackProperty
   if (satellite.type === 'ONEWEB') {
-    // 1. Service Zone (37° elevation)
+    // 1. Guaranteed service zone (55° elevation marker)
     newcoverages.push({
-      name: `Service Zone`,
+      name: `Guaranteed service zone`,
       feature: {
         type: 'Feature',
         properties: {
           satelliteId: satellite.name,
-          name: 'Service Zone',
+          name: 'Guaranteed service zone',
           type: 'ONEWEB_SERVICE_ZONE',
           coverageType: 'service'
         } as any,
@@ -219,8 +219,8 @@ export function isPointInCoverage(
   if (satellite.type === 'ONEWEB') {
     const coverageClasses: CoverageClass[] = [];
 
-    // Check standard coverage (inner circle) - 55° elevation (OneWeb contractual minimum)
-    if (isPointInFootprint(point, { lat: satellite.position.lat, lng: satellite.position.lng }, STANDARD_RADIUS_KM)) {
+    // Check user RF eligibility (40° elevation). 55° remains the guaranteed-zone marker.
+    if (isPointInFootprint(point, { lat: satellite.position.lat, lng: satellite.position.lng }, TERMINAL_RF_RADIUS_KM)) {
       coverageClasses.push('user', 'backhaul');
     }
     // Check backhaul coverage (outer circle) - 15° elevation

@@ -40,7 +40,12 @@ export const LOGICAL_POPS: LogicalPoP[] = [
   { name: 'Singapore', lat: 1.35, lng: 103.82, region: 'Asia Pacific' },
   { name: 'Tokyo', lat: 35.69, lng: 139.69, region: 'Asia Pacific' },
   { name: 'Sydney', lat: -33.87, lng: 151.21, region: 'Asia Pacific' },
-];
+  // PoPs supplémentaires pour affiner la précision mondiale
+  { name: 'Mumbai', lat: 19.07, lng: 72.88, region: 'Asia Pacific' },
+  { name: 'Johannesburg', lat: -26.20, lng: 28.05, region: 'Africa' },
+  { name: 'Auckland', lat: -36.85, lng: 174.76, region: 'Asia Pacific' },
+  { name: 'Almaty', lat: 43.22, lng: 76.85, region: 'Middle East' }, // Souvent classé CIS/ME
+  { name: 'Santiago', lat: -33.45, lng: -70.66, region: 'Americas' }];
 
 // ── Result type ───────────────────────────────────────────────────────────────
 

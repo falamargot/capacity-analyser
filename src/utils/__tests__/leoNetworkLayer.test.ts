@@ -56,9 +56,9 @@ describe('selectBestServingCandidate — Area 1: best satellite selection', () =
 
   it('highest elevation wins when margin is clearly larger', () => {
     const candidates = [
-      makeCandidate('LOW',  20, 25, 1800),
+      makeCandidate('LOW',  42, 25, 1800),
       makeCandidate('HIGH', 60, 22, 1300),
-      makeCandidate('MID',  35, 24, 1500),
+      makeCandidate('MID',  45, 24, 1500),
     ];
     const best = selectBestServingCandidate(candidates);
     expect(best?.satelliteId).toBe('HIGH');
@@ -92,14 +92,14 @@ describe('selectBestServingCandidate — Area 1: best satellite selection', () =
   });
 
   it('single viable candidate is returned directly', () => {
-    const candidates = [makeCandidate('ONLY', 30, 20, 1500)];
+    const candidates = [makeCandidate('ONLY', MIN_SERVING_ELEVATION_DEG + 1, 20, 1500)];
     expect(selectBestServingCandidate(candidates)?.satelliteId).toBe('ONLY');
   });
 
   it('generic type parameter preserves extra fields on the result', () => {
     const candidates: Array<SatelliteServingCandidate & { custom: string }> = [
       { satelliteId: 'A', elevationDeg: 50, cnDb: 22, slantRangeKm: 1300, custom: 'alpha' },
-      { satelliteId: 'B', elevationDeg: 30, cnDb: 25, slantRangeKm: 1200, custom: 'beta' },
+      { satelliteId: 'B', elevationDeg: 42, cnDb: 25, slantRangeKm: 1200, custom: 'beta' },
     ];
     const best = selectBestServingCandidate(candidates);
     expect(best?.custom).toBe('alpha'); // highest elevation

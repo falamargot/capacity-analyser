@@ -4,7 +4,11 @@
  */
 
 import React from 'react';
-import { type CoveragePolicy } from '../utils/leoFootprint';
+import {
+  MIN_USER_TERMINAL_ELEVATION_DEG,
+  STANDARD_SERVICE_ELEVATION_DEG,
+  type CoveragePolicy,
+} from '../utils/leoFootprint';
 import {
   getCoverageModeDescription,
   getCoverageModeFromPolicy,
@@ -479,23 +483,23 @@ export const CoveragePolicyDisplay: React.FC<CoveragePolicyDisplayProps> = ({ po
             <div className="flex items-center justify-between">
               <span className="text-sm text-gray-600 dark:text-gray-400">Mode:</span>
               <span className="px-2 py-1 rounded-full text-xs font-medium bg-cyan-100 dark:bg-cyan-900/40 text-cyan-800 dark:text-cyan-200 border border-cyan-200 dark:border-cyan-800">
-                Service Zone
+                Service eligibility
               </span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-600 dark:text-gray-400">Elevation:</span>
-              <span className="font-medium text-gray-900 dark:text-gray-100">37°</span>
+                <span className="text-sm text-gray-600 dark:text-gray-400">RF threshold:</span>
+              <span className="font-medium text-gray-900 dark:text-gray-100">{MIN_USER_TERMINAL_ELEVATION_DEG}°</span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-600 dark:text-gray-400">Coverage radius:</span>
-              <span className="font-medium text-gray-900 dark:text-gray-100">~1100 km</span>
+              <span className="text-sm text-gray-600 dark:text-gray-400">Guaranteed zone:</span>
+              <span className="font-medium text-gray-900 dark:text-gray-100">{STANDARD_SERVICE_ELEVATION_DEG}°+</span>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-sm text-gray-600 dark:text-gray-400">Coverage model:</span>
               <span className="font-medium text-gray-900 dark:text-gray-100">Circular</span>
             </div>
             <div className="text-xs text-gray-500 dark:text-gray-400 mt-3 p-2 bg-white dark:bg-slate-900 rounded border border-gray-200 dark:border-slate-700">
-              <strong>Service-zone eligibility.</strong> This legacy mode uses a circular service boundary and does not change physical LEO beam geometry.
+              <strong>Service-zone eligibility.</strong> A terminal at 40°–55° is service possible, below guaranteed elevation; 55°+ is the guaranteed service zone.
             </div>
           </div>
         ) : (

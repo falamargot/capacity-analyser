@@ -4,7 +4,7 @@ import { getBestConnectedGateway } from '../../../utils/connectivityRules';
 import type { SNPData } from '../../globe/GlobeConfig';
 import { isLEOSatelliteActive, calculateCombGeometry, calculateGSOAvoidanceAngle, TOTAL_BEAMS } from '../../../utils/oneWebComb';
 import { isBeamActive } from '../../../utils/beamActivation';
-import { isRfCoverageSatisfied, footprintRadiusKm, STANDARD_ELEVATION_DEG, type CoveragePolicy } from '../../../utils/leoFootprint';
+import { isRfCoverageSatisfied, footprintRadiusKm, MIN_SNP_GATEWAY_ELEVATION_DEG, MIN_USER_TERMINAL_ELEVATION_DEG, type CoveragePolicy } from '../../../utils/leoFootprint';
 import { isPointInPolygon } from '../../../utils/geoUtils';
 import { warn } from '../../../utils/logger';
 import type { SimulationStateSnapshot } from '../../../types/simulation';
@@ -111,7 +111,7 @@ function _computeCoverageGrid(
                 return false;
             }
             // Gateway Connectivity check — also collect best SNP for backhaul link display
-            const bestGateway = getBestConnectedGateway(sat, 15, failedSnps);
+            const bestGateway = getBestConnectedGateway(sat, MIN_SNP_GATEWAY_ELEVATION_DEG, failedSnps);
             if (!bestGateway) return false;
             backhaulLinks.push({ satellite: sat, snp: bestGateway.snp });
         }
@@ -140,10 +140,10 @@ function _computeCoverageGrid(
             if (!sat.satrec) return;
 
             if (policy.type === "SERVICE_ZONE") {
-                // SERVICE_ZONE Mode: Simple circular footprint based on 37° elevation (Service Zone)
+                // SERVICE_ZONE mode: RF eligibility footprint based on 40° terminal elevation.
                 // More efficient than beam-by-beam calculations
 
-                const radius = footprintRadiusKm(sat.position.alt, STANDARD_ELEVATION_DEG);
+                const radius = footprintRadiusKm(sat.position.alt, MIN_USER_TERMINAL_ELEVATION_DEG);
                 const centerLat = sat.position.lat;
                 const centerLng = sat.position.lng;
 
@@ -300,7 +300,7 @@ function _computeCoverageGrid(
                             // - isBeamActive gating (GSO / avoidance)
                             // Full RF checks (power / additional policies) are too expensive at grid scale.
                             if (isPointInBeamPolygon(userPosition, beamPoints)) {
-                                const gw = getBestConnectedGateway(sat, 15, failedSnps);
+                                const gw = getBestConnectedGateway(sat, MIN_SNP_GATEWAY_ELEVATION_DEG, failedSnps);
                                 if (gw) {
                                     activeCells.add(cellId);
                                 }

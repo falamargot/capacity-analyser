@@ -11,7 +11,7 @@ import type { Aircraft } from '../../modules/airTraffic/airTrafficService';
 import { getCoverageColor } from '../../services/coverageService';
 import { EARTH_RADIUS_KM } from '../../utils/capacityCalculator';
 import { getOutermostCoverageFeatures } from '../../utils/coverageGeometry';
-import { STANDARD_RADIUS_KM } from '../../utils/leoFootprint';
+import { TERMINAL_RF_RADIUS_KM } from '../../utils/leoFootprint';
 import { isOperationalSatellite } from '../../utils/satelliteStatus';
 import { useCombGeometry } from './hooks';
 import { useSimulation } from '../../contexts/SimulationContext';
@@ -219,10 +219,10 @@ function pickServingOneWebBeamRing(
     return [];
 }
 
-function buildStandardFootprintRing(subSat: { lat: number; lng: number }, segments = 64): Cartesian3[] {
+function buildTerminalRfFootprintRing(subSat: { lat: number; lng: number }, segments = 64): Cartesian3[] {
     const lat1 = CesiumMath.toRadians(subSat.lat);
     const lon1 = CesiumMath.toRadians(subSat.lng);
-    const d = STANDARD_RADIUS_KM / EARTH_RADIUS_KM;
+    const d = TERMINAL_RF_RADIUS_KM / EARTH_RADIUS_KM;
 
     const ring: Cartesian3[] = [];
     for (let i = 0; i < segments; i++) {
@@ -485,7 +485,7 @@ const AggregatedCoverageVolumeLayer: React.FC<Props> = ({
                 const oneWebBaseRing = useOneWebServingBeamMode
                     ? (servingRing.length >= 3
                         ? servingRing
-                        : buildStandardFootprintRing({ lat: sat!.position.lat, lng: sat!.position.lng }))
+                        : buildTerminalRfFootprintRing({ lat: sat!.position.lat, lng: sat!.position.lng }))
                     : [];
 
                 const baseGroups = useBeamMode
