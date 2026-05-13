@@ -182,25 +182,64 @@ export const calculateDynamicScale = (
  */
 export const DPR_FACTOR = Math.max(window.devicePixelRatio || 1, 1.0);
 
-/**
- * Satellite glyph SVG as data URI
- */
-export const SATELLITE_GLYPH = `data:image/svg+xml;utf8,
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
-  <rect x="0" y="12" width="10" height="10" rx="1" fill="white"/>
-  <rect x="22" y="12" width="10" height="10" rx="1" fill="white"/>
-  <rect x="12" y="13" width="8" height="8" rx="1" fill="white"/>
-</svg>`;
+// SVG data URIs have inconsistent behaviour on Windows (ANGLE/D3D WebGL path):
+// images without explicit width/height can be rasterised at 0×0 and Cesium
+// falls back to a black square. Rendering via Canvas 2D and exporting as PNG
+// guarantees a correctly-sized, properly-alpha-composited texture on all platforms.
+
+function drawSatelliteGlyph(): string {
+    const canvas = document.createElement('canvas');
+    canvas.width = 32;
+    canvas.height = 32;
+    const ctx = canvas.getContext('2d')!;
+    ctx.fillStyle = 'white';
+    ctx.fillRect(0, 12, 10, 10);
+    ctx.fillRect(22, 12, 10, 10);
+    ctx.fillRect(12, 13, 8, 8);
+    return canvas.toDataURL('image/png');
+}
+
+function drawLeoSmokedGlyph(): string {
+    const canvas = document.createElement('canvas');
+    canvas.width = 32;
+    canvas.height = 32;
+    const ctx = canvas.getContext('2d')!;
+    const grad = ctx.createRadialGradient(16, 16, 0, 16, 16, 6);
+    grad.addColorStop(0, 'rgba(255,255,255,0.9)');
+    grad.addColorStop(0.5, 'rgba(255,255,255,0.6)');
+    grad.addColorStop(1, 'rgba(255,255,255,0.2)');
+    ctx.globalAlpha = 0.8;
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.arc(16, 16, 6, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = 'rgba(255,255,255,0.4)';
+    ctx.beginPath();
+    ctx.arc(16, 16, 3, 0, Math.PI * 2);
+    ctx.fill();
+    return canvas.toDataURL('image/png');
+}
+
+function drawPlaneIcon(): string {
+    const size = 24;
+    const canvas = document.createElement('canvas');
+    canvas.width = size;
+    canvas.height = size;
+    const ctx = canvas.getContext('2d')!;
+    ctx.fillStyle = 'white';
+    const path = new Path2D('M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z');
+    ctx.fill(path);
+    return canvas.toDataURL('image/png');
+}
+
+export const SATELLITE_GLYPH = drawSatelliteGlyph();
+export const LEO_SMOKED_GLYPH = drawLeoSmokedGlyph();
 
 /**
- * LEO smoked glyph SVG as data URI - smoky/estompé appearance
+ * Plane icon as PNG data URI (canvas-drawn for cross-platform WebGL compatibility)
  */
-export const LEO_SMOKED_GLYPH = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMiAzMiI+CiAgPGRlZnM+CiAgICA8cmFkaWFsR3JhZGllbnQgaWQ9InNtb2tlZCI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0b3AtY29sb3I9InJnYmEoMjU1LDI1NSwyNTUsMC45KSIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjUwJSIgc3RvcC1jb2xvcj0icmdiYSgyNTUsMjU1LDI1NSwwLjYpIi8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3RvcC1jb2xvcj0icmdiYSgyNTUsMjU1LDI1NSwwLjIpIi8+CiAgICA8L3JhZGlhbEdyYWRpZW50PgogICAgPGZpbHRlciBpZD0iYmx1ciI+CiAgICAgIDxmZUdhdXNzaWFuQmx1ciBpbj0iU291cmNlR3JhcGhpYyIgc3RkRGV2aWF0aW9uPSIwLjUiLz4KICAgIDwvZmlsdGVyPgogIDwvZGVmcz4KICA8Y2lyY2xlIGN4PSIxNiIgY3k9IjE2IiByPSI2IiBmaWxsPSJ1cmwoI3Ntb2tlZCkiIGZpbHRlcj0idXJsKCNibHVyKSIgb3BhY2l0eT0iMC44Ii8+CiAgPGNpcmNsZSBjeD0iMTYiIGN5PSIxNiIgcj0iMyIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjQpIi8+Cjwvc3ZnPgo=";
-
-/**
- * Plane icon SVG as data URI
- */
-export const PLANE_ICON = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0id2hpdGUiPjxwYXRoIGQ9Ik0yMSAxNnYtMmwtOC01VjMuNWMwLS44My0uNjctMS41LTEuNS0xLjVTMTAgMi42NyAxMCAzLjVWOWwtOCA1djJsOC0yLjVWMTlsLTIgMS41VjIybDMuNS0xIDMuNSAxdi0xLjVMMTMgMTl2LTUuNWw4IDIuNXoiLz48L3N2Zz4=";
+export const PLANE_ICON = drawPlaneIcon();
 
 /**
  * Dummy polygon for fallback hierarchy

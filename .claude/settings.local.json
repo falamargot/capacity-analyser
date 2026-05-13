@@ -19,7 +19,8 @@
       "WebSearch",
       "Bash(node -e ' *)",
       "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\('\\\\n'.join\\(f'{k}: {v}' for k,v in d['dependencies'].items\\(\\)\\)\\)\")",
-      "Bash(curl -s -L \"https://celestrak.org/gp.php?CATNR=25544&FORMAT=JSON\")"
+      "Bash(curl -s -L \"https://celestrak.org/gp.php?CATNR=25544&FORMAT=JSON\")",
+      "Bash(python3 -c ' *)"
     ]
   }
 }
