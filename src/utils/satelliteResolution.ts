@@ -293,6 +293,23 @@ export const resolveAutoSelectedSatellites = (
                 autoSelectedLEOSat = satellitesWithElevation[0].satellite;
                 // No SNP selected - this indicates LEO-only connectivity without ground station
                 selectedSNP = null;
+            } else {
+                // Preserve the selected satellite reference independently from RF availability.
+                // This lets downstream status logic report "RF unavailable" instead of
+                // collapsing the state into "no satellite" whenever a visible satellite
+                // exists but the active beam/RF check fails.
+                const geometricallyVisibleLEO = leoSatellites
+                    .map(sat => ({
+                        satellite: sat,
+                        elevation: calculateElevationAngle(userLocation, sat)
+                    }))
+                    .filter(({ elevation }) => elevation >= 15);
+
+                if (geometricallyVisibleLEO.length > 0) {
+                    geometricallyVisibleLEO.sort((a, b) => b.elevation - a.elevation);
+                    autoSelectedLEOSat = geometricallyVisibleLEO[0].satellite;
+                    selectedSNP = null;
+                }
             }
         }
     }

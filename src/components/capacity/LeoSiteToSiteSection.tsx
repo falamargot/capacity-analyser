@@ -3,6 +3,7 @@ import { ArrowLeftRight, MapPin, Route, Signal, Zap } from 'lucide-react';
 import CollapsibleSection from '../layout/CollapsibleSection';
 import { SectionTooltip } from '../SectionTooltip';
 import type { LeoSiteToSiteResult } from '../../utils/leoSiteToSiteModel';
+import { formatLeoSiteToSiteFailureReason } from '../../utils/leoSiteToSiteModel';
 
 // ── Formatting helpers ────────────────────────────────────────────────────────
 
@@ -184,6 +185,8 @@ const LeoSiteToSiteSection = memo<LeoSiteToSiteSectionProps>(({ result, directio
     pathStability,
     confidenceLevel,
     serviceAvailable,
+    serviceStatus,
+    failureReason,
   } = result;
 
   const isAtoB = direction === 'A_TO_B';
@@ -213,22 +216,25 @@ const LeoSiteToSiteSection = memo<LeoSiteToSiteSectionProps>(({ result, directio
 
         {/* ── Connectivity status ─────────────────────────────────────────── */}
         <div className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-semibold ${
-          serviceAvailable
+          serviceStatus === 'ALLOWED'
             ? 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800/60 dark:bg-emerald-950/30 dark:text-emerald-400'
+            : serviceStatus === 'DEGRADED'
+              ? 'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-800/60 dark:bg-amber-950/30 dark:text-amber-400'
             : 'border-red-200 bg-red-50 text-red-700 dark:border-red-800/60 dark:bg-red-950/30 dark:text-red-400'
         }`}>
-          <span className={`h-2 w-2 rounded-full shrink-0 ${serviceAvailable ? 'bg-emerald-500' : 'bg-red-500'}`} />
-          {serviceAvailable ? 'Service Available' : 'Service Unavailable'}
+          <span className={`h-2 w-2 rounded-full shrink-0 ${
+            serviceStatus === 'ALLOWED'
+              ? 'bg-emerald-500'
+              : serviceStatus === 'DEGRADED'
+                ? 'bg-amber-500'
+                : 'bg-red-500'
+          }`} />
+          {serviceStatus === 'ALLOWED' ? 'Service Available' : serviceStatus === 'DEGRADED' ? 'Service Degraded' : 'Service Unavailable'}
         </div>
 
         {!serviceAvailable && (
           <UnavailableState
-            reason={
-              !servingSatelliteA ? 'No serving satellite at Site A.' :
-              !selectedSnpA ? 'No SNP reachable from Satellite A.' :
-              !servingSatelliteB ? 'No serving satellite at Site B.' :
-              'No SNP reachable from Satellite B.'
-            }
+            reason={formatLeoSiteToSiteFailureReason(failureReason)}
           />
         )}
 

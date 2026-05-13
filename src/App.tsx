@@ -67,7 +67,7 @@ import {
   type TerminalRFCustomParams,
 } from './utils/geoTerminalRFModel';
 import { getLeoTerminalProfile } from './config/leoTerminals';
-import { selectLogicalPop, type LeoSiteToSiteResult } from './utils/leoSiteToSiteModel';
+import { computeLeoSiteToSiteResult, type LeoSiteToSiteFailureReason, type LeoSiteToSiteResult } from './utils/leoSiteToSiteModel';
 
 const CapacityDetails = lazy(() => import('./components/CapacityDetails'));
 const CommandPalette = lazy(() => import('./components/CommandPalette'));
@@ -1356,6 +1356,7 @@ const App: React.FC = () => {
   }, [inspectedSNP, satellites, failedSnps]);
 
   const [leoRegulatoryResult, setLeoRegulatoryResult] = useState<RegulatoryResult | null>(null);
+  const [leoRegulatoryResultB, setLeoRegulatoryResultB] = useState<RegulatoryResult | null>(null);
 
   useEffect(() => {
     if (!activeAnalysisPoint) {
@@ -1368,6 +1369,18 @@ const App: React.FC = () => {
     });
     return () => { cancelled = true; };
   }, [activeAnalysisPoint]);
+
+  useEffect(() => {
+    if (!pointBLeo || leoTopologyMode !== 'SITE_TO_SITE') {
+      setLeoRegulatoryResultB(null);
+      return;
+    }
+    let cancelled = false;
+    regulatoryLookup(pointBLeo.lat, pointBLeo.lng).then((result) => {
+      if (!cancelled) setLeoRegulatoryResultB(result);
+    });
+    return () => { cancelled = true; };
+  }, [leoTopologyMode, pointBLeo]);
 
   const leoBeamLoadResult = useMemo(() => {
     if (!activeAnalysisPoint || !leoRegulatoryResult) return null;
@@ -1452,43 +1465,76 @@ const App: React.FC = () => {
 
   // ── LEO site-to-site globe result (for TransmissionLinks rendering) ──────────
   // Lightweight version — throughput values are null, computed in CapacityDetails.
-  // Only exposes S2S visuals when both endpoints are currently covered by their
-  // serving LEO satellites, so stale selections do not keep drawing a path.
+  // The result preserves selected satellites even when RF/SNP/regulatory checks fail;
+  // TransmissionLinks only draws the path when the result is fully available.
   const leoSiteToSiteGlobeResult = useMemo((): LeoSiteToSiteResult | null => {
     if (leoTopologyMode !== 'SITE_TO_SITE' || !activeAnalysisPoint || !pointBLeo) return null;
-    if (!resolvedAutoLEO || !leoHasCurrentRF || !resolvedAutoLEOB || !leoSiteBHasCurrentRF) return null;
 
     const snpAFull = selectedSNP ? SNPS_DATA.find(s => s.name === selectedSNP.name) ?? null : null;
     const snpBFull = selectedSNPB ?? null;
 
-    const logicalPop = snpAFull && snpBFull ? selectLogicalPop(snpAFull, snpBFull) : null;
-    // Service is available only when all four nodes are established.
-    const serviceAvailable = !!(snpAFull && snpBFull);
-
-    return {
+    return computeLeoSiteToSiteResult({
       endpointA: { lat: activeAnalysisPoint.lat, lng: activeAnalysisPoint.lng },
       endpointB: pointBLeo,
       servingSatelliteA: resolvedAutoLEO,
       servingSatelliteB: resolvedAutoLEOB,
+      rfAvailableA: leoHasCurrentRF,
+      rfAvailableB: leoSiteBHasCurrentRF,
       selectedSnpA: snpAFull,
       selectedSnpB: snpBFull,
-      logicalPop,
-      serviceAvailable,
-      userLinkLatencyAms: 0, userLinkLatencyBms: 0,
-      feederLatencyAms: 0, feederLatencyBms: 0,
-      backboneDistanceKm: 0, backboneOneWayLatencyMs: 0,
-      processingMarginMs: 0, handoverRiskMarginMs: 0,
-      oneWayLatencyAtoBMs: 0, oneWayLatencyBtoAMs: 0, rttMs: 0,
-      accessThroughputAtoBMbps: null, accessThroughputBtoAMbps: null,
-      finalThroughputAtoBMbps: null, finalThroughputBtoAMbps: null,
-      userLinkDistanceAKm: 0, feederDistanceAKm: 0,
-      userLinkDistanceBKm: 0, feederDistanceBKm: 0,
+      regulatoryResultA: leoRegulatoryResult,
+      regulatoryResultB: leoRegulatoryResultB,
+      userToSatDistanceAKm: null,
+      satToSnpDistanceAKm: null,
+      userToSatDistanceBKm: null,
+      satToSnpDistanceBKm: null,
       elevationADeg: null, elevationBDeg: null,
-      expectedHandoversA: 0, expectedHandoversB: 0,
-      pathStability: 'Medium',
-      confidenceLevel: 'Medium',
+      dlThroughputAMbps: null,
+      ulThroughputAMbps: null,
+      dlThroughputBMbps: null,
+      ulThroughputBMbps: null,
+    });
+  }, [leoTopologyMode, activeAnalysisPoint, pointBLeo, selectedSNP, selectedSNPB, resolvedAutoLEO, resolvedAutoLEOB, leoHasCurrentRF, leoSiteBHasCurrentRF, leoRegulatoryResult, leoRegulatoryResultB]);
+
+  useEffect(() => {
+    if (!import.meta.env.DEV) return;
+
+    const result = leoS2SFullResult ?? leoSiteToSiteGlobeResult;
+    const singleSiteFailureReason = (() : LeoSiteToSiteFailureReason | null => {
+      if (leoRegulatoryResult?.status === 'BLOCKED') return 'REGULATORY_BLOCKED_A';
+      if (leoRegulatoryResult?.status === 'RESTRICTED') return 'REGULATORY_RESTRICTED_A';
+      if (!resolvedAutoLEO) return 'NO_SATELLITE_A';
+      if (!leoHasCurrentRF) return 'RF_UNAVAILABLE_A';
+      if (!selectedSNP) return 'NO_SNP_A';
+      return null;
+    })();
+
+    window.__leoLastTrace = {
+      mode: leoTopologyMode,
+      selectedSatelliteA: result?.servingSatelliteA?.name ?? resolvedAutoLEO?.name ?? null,
+      selectedSatelliteB: result?.servingSatelliteB?.name ?? resolvedAutoLEOB?.name ?? null,
+      rfAvailableA: result?.rfAvailableA ?? leoHasCurrentRF,
+      rfAvailableB: result?.rfAvailableB ?? (pointBLeo ? leoSiteBHasCurrentRF : null),
+      selectedSnpA: result?.selectedSnpA?.name ?? selectedSNP?.name ?? null,
+      selectedSnpB: result?.selectedSnpB?.name ?? selectedSNPB?.name ?? null,
+      regulatoryStatusA: result?.regulatoryResultA?.status ?? leoRegulatoryResult?.status ?? null,
+      regulatoryStatusB: result?.regulatoryResultB?.status ?? leoRegulatoryResultB?.status ?? null,
+      failureReason: result?.failureReason ?? singleSiteFailureReason,
     };
-  }, [leoTopologyMode, activeAnalysisPoint, pointBLeo, selectedSNP, selectedSNPB, resolvedAutoLEO, resolvedAutoLEOB, leoHasCurrentRF, leoSiteBHasCurrentRF]);
+  }, [
+    leoTopologyMode,
+    leoS2SFullResult,
+    leoSiteToSiteGlobeResult,
+    resolvedAutoLEO,
+    resolvedAutoLEOB,
+    leoHasCurrentRF,
+    leoSiteBHasCurrentRF,
+    pointBLeo,
+    selectedSNP,
+    selectedSNPB,
+    leoRegulatoryResult,
+    leoRegulatoryResultB,
+  ]);
 
   const geoPointStatus = useMemo<GeoPointStatus | null>(() => {
     if (!activeAnalysisPoint || (satelliteScope !== 'ALL' && satelliteScope !== 'GEO')) {
@@ -3430,6 +3476,7 @@ const App: React.FC = () => {
                     globeRef={globeContainerRef}
                     cesiumViewerRef={viewerRef}
                     regulatoryResultOverride={leoRegulatoryResult}
+                    regulatoryResultBOverride={leoRegulatoryResultB}
                     beamLoadResultOverride={leoBeamLoadResult}
                     serviceLayerResultOverride={leoServiceLayerResult}
                     leoServiceViewModelOverride={leoServiceViewModel}
@@ -3632,6 +3679,7 @@ const App: React.FC = () => {
                                 globeRef={globeContainerRef}
                                 cesiumViewerRef={viewerRef}
                                 regulatoryResultOverride={leoRegulatoryResult}
+                                regulatoryResultBOverride={leoRegulatoryResultB}
                                 beamLoadResultOverride={leoBeamLoadResult}
                                 serviceLayerResultOverride={leoServiceLayerResult}
                                 leoServiceViewModelOverride={leoServiceViewModel}
@@ -3800,6 +3848,7 @@ const App: React.FC = () => {
                         cesiumViewerRef={viewerRef}
                         onExportStateChange={setFullscreenExportButtonProps}
                         regulatoryResultOverride={leoRegulatoryResult}
+                        regulatoryResultBOverride={leoRegulatoryResultB}
                         beamLoadResultOverride={leoBeamLoadResult}
                         serviceLayerResultOverride={leoServiceLayerResult}
                         leoServiceViewModelOverride={leoServiceViewModel}

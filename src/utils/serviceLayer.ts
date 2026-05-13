@@ -6,10 +6,10 @@
  *
  * Priority (highest → lowest):
  *   1. Regulatory BLOCKED     → BLOCKED
- *   2. No RF connectivity     → BLOCKED
- *   3. No network (no SNP)    → DEGRADED
- *   4. Capacity SATURATED     → DEGRADED
- *   5. Regulatory RESTRICTED  → DEGRADED
+ *   2. Regulatory RESTRICTED  → DEGRADED
+ *   3. No RF connectivity     → BLOCKED
+ *   4. No network (no SNP)    → DEGRADED
+ *   5. Capacity SATURATED     → DEGRADED
  *   6. Capacity DEGRADED      → DEGRADED
  *   7. Otherwise              → ALLOWED
  *
@@ -76,7 +76,21 @@ export function computeServiceStatus(input: ServiceLayerInput): ServiceLayerResu
     };
   }
 
-  // ── Priority 2: No RF connectivity ──────────────────────────────────────
+  // ── Priority 2: Regulatory RESTRICTED ───────────────────────────────────
+  if (regulatoryResult.status === 'RESTRICTED') {
+    details.push(
+      `Regulatory: ${regulatoryResult.countryName ?? 'Territory'} is a restricted market — conditional or licensed service only.`,
+    );
+    if (regulatoryResult.reason) details.push(regulatoryResult.reason);
+    return {
+      status: 'DEGRADED',
+      primaryReasonLayer: 'regulatory',
+      reason: `Regulatory restriction — ${regulatoryResult.countryName ?? 'territory'} is a conditional market`,
+      details,
+    };
+  }
+
+  // ── Priority 3: No RF connectivity ──────────────────────────────────────
   if (!hasRF) {
     return {
       status: 'BLOCKED',
@@ -89,13 +103,10 @@ export function computeServiceStatus(input: ServiceLayerInput): ServiceLayerResu
     };
   }
 
-  // ── Priority 3: No network backhaul ─────────────────────────────────────
+  // ── Priority 4: No network backhaul ─────────────────────────────────────
   if (!hasSNP) {
     details.push('No Satellite Network Portal (SNP) is currently in backhaul range of the serving satellite.');
     details.push('RF link is available but end-to-end service requires a connected gateway.');
-    if (regulatoryResult.status === 'RESTRICTED') {
-      details.push(`Regulatory: ${regulatoryResult.countryName ?? 'Territory'} — restricted market, additional licensing may be required.`);
-    }
     return {
       status: 'DEGRADED',
       primaryReasonLayer: 'network',
@@ -117,14 +128,6 @@ export function computeServiceStatus(input: ServiceLayerInput): ServiceLayerResu
     );
   }
 
-  // Priority 5: Regulatory RESTRICTED
-  if (regulatoryResult.status === 'RESTRICTED') {
-    details.push(
-      `Regulatory: ${regulatoryResult.countryName ?? 'Territory'} is a restricted market — conditional or licensed service only.`,
-    );
-    if (regulatoryResult.reason) details.push(regulatoryResult.reason);
-  }
-
   // ── Determine final status ──────────────────────────────────────────────
 
   if (beamLoadResult.capacityStatus === 'SATURATED') {
@@ -132,15 +135,6 @@ export function computeServiceStatus(input: ServiceLayerInput): ServiceLayerResu
       status: 'DEGRADED',
       primaryReasonLayer: 'capacity',
       reason: `Beam saturated — estimated ${beamLoadResult.estimatedActiveUsers} concurrent users`,
-      details,
-    };
-  }
-
-  if (regulatoryResult.status === 'RESTRICTED') {
-    return {
-      status: 'DEGRADED',
-      primaryReasonLayer: 'regulatory',
-      reason: `Regulatory restriction — ${regulatoryResult.countryName ?? 'territory'} is a conditional market`,
       details,
     };
   }

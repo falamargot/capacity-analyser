@@ -7,6 +7,7 @@ import type { MobileAnalysisMetrics, MobileLinkMetrics } from '../../types/analy
 import type { LinkMode } from '../../types/linkMode';
 import { LINK_MODE_LABELS } from '../../types/linkMode';
 import type { LeoSiteToSiteResult } from '../../utils/leoSiteToSiteModel';
+import { formatLeoSiteToSiteFailureReason } from '../../utils/leoSiteToSiteModel';
 import type { LeoConnectivityViewModel } from '../../utils/leoServiceViewModel';
 import { formatCoordinates } from '../../utils/formatters';
 import { useSimulation } from '../../contexts/SimulationContext';
@@ -419,10 +420,22 @@ const MobileAnalysisSummary: React.FC<MobileAnalysisSummaryProps> = ({
                     ? `Altitude ${selectedPoint.altitude.toFixed(1)} km`
                     : null,
                 status: siteToSiteServiceReady
-                    ? (leoSiteToSiteResult?.serviceAvailable ? 'End-to-end available' : 'End-to-end unavailable')
+                    ? (!leoSiteToSiteResult
+                        ? 'Resolving end-to-end path'
+                        : leoSiteToSiteResult.serviceStatus === 'ALLOWED'
+                        ? 'End-to-end available'
+                        : leoSiteToSiteResult.serviceStatus === 'DEGRADED'
+                            ? `End-to-end degraded · ${formatLeoSiteToSiteFailureReason(leoSiteToSiteResult.failureReason)}`
+                            : `End-to-end unavailable · ${formatLeoSiteToSiteFailureReason(leoSiteToSiteResult.failureReason)}`)
                     : selectedPointStatus.lines.map((line) => line.text).join(' · '),
                 statusTone: siteToSiteServiceReady
-                    ? (leoSiteToSiteResult?.serviceAvailable ? 'success' as const : 'danger' as const)
+                    ? (!leoSiteToSiteResult
+                        ? 'neutral' as const
+                        : leoSiteToSiteResult.serviceStatus === 'ALLOWED'
+                        ? 'success' as const
+                        : leoSiteToSiteResult.serviceStatus === 'DEGRADED'
+                            ? 'warning' as const
+                            : 'danger' as const)
                     : selectedPointStatus.tone,
             };
         }

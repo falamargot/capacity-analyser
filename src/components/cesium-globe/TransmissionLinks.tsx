@@ -538,6 +538,7 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
     const leoS2SLinks = useMemo(() => {
         const r = leoSiteToSiteResult;
         if (!r) return null;
+        if (!r.serviceAvailable) return null;
 
         const { endpointA, endpointB, servingSatelliteA, servingSatelliteB, selectedSnpA, selectedSnpB, logicalPop } = r;
         if (!servingSatelliteA || !servingSatelliteB) return null;

@@ -1,6 +1,7 @@
 import { memo, useEffect, useState, type ReactNode } from 'react';
 import { ArrowLeft, ArrowLeftRight, ArrowRight, ChevronDown, Gauge, Maximize2, Minimize2, Route, X } from 'lucide-react';
 import type { LeoSiteToSiteResult } from '../../utils/leoSiteToSiteModel';
+import { formatLeoSiteToSiteFailureReason } from '../../utils/leoSiteToSiteModel';
 import { PerformancePanel } from '../MetricWidgets';
 import { SectionTooltip } from '../SectionTooltip';
 import PassBeamTimeline from '../PassBeamTimeline';
@@ -1111,6 +1112,16 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
   const s2sSatAName = s2sActive ? (siteToSiteResult!.servingSatelliteA?.name ?? '—') : '—';
   const s2sSatBName = s2sActive ? (siteToSiteResult!.servingSatelliteB?.name ?? '—') : '—';
   const s2sPopName  = s2sActive ? (siteToSiteResult!.logicalPop?.name ?? 'Core PoP') : 'Core PoP';
+  const s2sStatusLabel = s2sActive
+    ? siteToSiteResult!.serviceStatus === 'ALLOWED'
+      ? 'End-to-end available'
+      : siteToSiteResult!.serviceStatus === 'DEGRADED'
+        ? 'End-to-end degraded'
+        : 'Service unavailable'
+    : null;
+  const s2sFailureLabel = s2sActive
+    ? formatLeoSiteToSiteFailureReason(siteToSiteResult!.failureReason)
+    : null;
 
   return (
     <>
@@ -1222,15 +1233,23 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
         {/* S2S service status */}
         {isS2S && s2sActive && (
           <div className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-semibold ${
-            siteToSiteResult!.serviceAvailable
+            siteToSiteResult!.serviceStatus === 'ALLOWED'
               ? 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800/60 dark:bg-emerald-950/30 dark:text-emerald-400'
+              : siteToSiteResult!.serviceStatus === 'DEGRADED'
+                ? 'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-800/60 dark:bg-amber-950/30 dark:text-amber-400'
               : 'border-red-200 bg-red-50 text-red-700 dark:border-red-800/60 dark:bg-red-950/30 dark:text-red-400'
           }`}>
-            <span className={`h-2 w-2 rounded-full shrink-0 ${siteToSiteResult!.serviceAvailable ? 'bg-emerald-500' : 'bg-red-500'}`} />
+            <span className={`h-2 w-2 rounded-full shrink-0 ${
+              siteToSiteResult!.serviceStatus === 'ALLOWED'
+                ? 'bg-emerald-500'
+                : siteToSiteResult!.serviceStatus === 'DEGRADED'
+                  ? 'bg-amber-500'
+                  : 'bg-red-500'
+            }`} />
             <span>
-              {siteToSiteResult!.serviceAvailable
-                ? `End-to-end available · ${s2sSatAName} ↔ ${s2sSatBName}`
-                : `Service unavailable — ${!siteToSiteResult!.servingSatelliteA ? 'No satellite at A' : !siteToSiteResult!.selectedSnpA ? 'No SNP at A' : !siteToSiteResult!.servingSatelliteB ? 'No satellite at B' : 'No SNP at B'}`
+              {siteToSiteResult!.serviceStatus === 'ALLOWED'
+                ? `${s2sStatusLabel} · ${s2sSatAName} ↔ ${s2sSatBName}`
+                : `${s2sStatusLabel} — ${s2sFailureLabel}`
               }
             </span>
           </div>

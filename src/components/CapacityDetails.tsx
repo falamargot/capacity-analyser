@@ -124,6 +124,7 @@ interface CapacityDetailsProps {
   cesiumViewerRef?: RefObject<any>;
   onExportStateChange?: (payload: ExportButtonPayload | null) => void;
   regulatoryResultOverride?: RegulatoryResult | null;
+  regulatoryResultBOverride?: RegulatoryResult | null;
   beamLoadResultOverride?: BeamLoadResult | null;
   serviceLayerResultOverride?: ServiceLayerResult | null;
   leoServiceViewModelOverride?: LeoConnectivityViewModel | null;
@@ -290,7 +291,7 @@ ${currentRule}`;
 };
 
 // Performance optimization: Memoize component to prevent unnecessary re-renders
-const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint, selectedSatellite, autoSelectedLEOSatellite, satelliteScope, onMetricsChange, onSatelliteClick, analysisSource, aircraftCallsign, selectedSNP: propSelectedSNP, candidateCoverages = [], selectedCoverage = null, onSelectCoverage, selectedUplinkCoverage = null, selectedDownlinkCoverage = null, onSelectUplinkCoverage, onSelectDownlinkCoverage, selectedUplinkCoverageB = null, selectedDownlinkCoverageB = null, onSelectUplinkCoverageB, onSelectDownlinkCoverageB, selectedGeoMission, selectedGeoCoverageName, selectedGeoBeamId, visibleGeoCoverageKeys, onSelectGeoMission, onSelectGeoCoverage, onSelectGeoBeam, onVisibleGeoCoverageKeysChange, onSnpClick, compactDesktop = false, externalHeader = false, globeRef, cesiumViewerRef, onExportStateChange, regulatoryResultOverride = null, beamLoadResultOverride = null, serviceLayerResultOverride = null, leoServiceViewModelOverride = null, leoTerminalType, onLeoTerminalTypeChange, leoTerminalModelId, onLeoTerminalModelIdChange, geoTerminalType, onGeoTerminalTypeChange, geoTerminalTypeB, onGeoTerminalTypeBChange, geoRFClassIdA, onGeoRFClassIdAChange, geoRFClassIdB, onGeoRFClassIdBChange, geoRFCustomParamsA, onGeoRFCustomParamsAChange, geoRFCustomParamsB, onGeoRFCustomParamsBChange, weatherType, onWeatherTypeChange, autoWeatherEnabled, onAutoWeatherChange, linkMode = 'STAR_FORWARD', onLinkModeChange, pointB = null, candidateCoveragesB = [], pointAIsUserDefined = false, pointBIsUserDefined = false, activeMeshTab, onActiveMeshTabChange,
+const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint, selectedSatellite, autoSelectedLEOSatellite, satelliteScope, onMetricsChange, onSatelliteClick, analysisSource, aircraftCallsign, selectedSNP: propSelectedSNP, candidateCoverages = [], selectedCoverage = null, onSelectCoverage, selectedUplinkCoverage = null, selectedDownlinkCoverage = null, onSelectUplinkCoverage, onSelectDownlinkCoverage, selectedUplinkCoverageB = null, selectedDownlinkCoverageB = null, onSelectUplinkCoverageB, onSelectDownlinkCoverageB, selectedGeoMission, selectedGeoCoverageName, selectedGeoBeamId, visibleGeoCoverageKeys, onSelectGeoMission, onSelectGeoCoverage, onSelectGeoBeam, onVisibleGeoCoverageKeysChange, onSnpClick, compactDesktop = false, externalHeader = false, globeRef, cesiumViewerRef, onExportStateChange, regulatoryResultOverride = null, regulatoryResultBOverride = null, beamLoadResultOverride = null, serviceLayerResultOverride = null, leoServiceViewModelOverride = null, leoTerminalType, onLeoTerminalTypeChange, leoTerminalModelId, onLeoTerminalModelIdChange, geoTerminalType, onGeoTerminalTypeChange, geoTerminalTypeB, onGeoTerminalTypeBChange, geoRFClassIdA, onGeoRFClassIdAChange, geoRFClassIdB, onGeoRFClassIdBChange, geoRFCustomParamsA, onGeoRFCustomParamsAChange, geoRFCustomParamsB, onGeoRFCustomParamsBChange, weatherType, onWeatherTypeChange, autoWeatherEnabled, onAutoWeatherChange, linkMode = 'STAR_FORWARD', onLinkModeChange, pointB = null, candidateCoveragesB = [], pointAIsUserDefined = false, pointBIsUserDefined = false, activeMeshTab, onActiveMeshTabChange,
   leoTopologyMode = 'SINGLE_SITE',
   pointBLeo = null,
   autoSelectedLEOSatelliteB = null,
@@ -652,6 +653,21 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
   }, [activePoint]);
   const regulatoryResult = regulatoryResultOverride ?? computedRegulatoryResult;
 
+  const [computedRegulatoryResultB, setComputedRegulatoryResultB] = useState<RegulatoryResult | null>(null);
+  useEffect(() => {
+    if (!pointBLeo || leoTopologyMode !== 'SITE_TO_SITE') {
+      setComputedRegulatoryResultB(null);
+      return;
+    }
+
+    let cancelled = false;
+    regulatoryLookup(pointBLeo.lat, pointBLeo.lng).then((result) => {
+      if (!cancelled) setComputedRegulatoryResultB(result);
+    });
+    return () => { cancelled = true; };
+  }, [leoTopologyMode, pointBLeo]);
+  const regulatoryResultB = regulatoryResultBOverride ?? computedRegulatoryResultB;
+
   // ── Capacity layer (beam load estimation) ────────────────────────────────
   const computedBeamLoadResult = useMemo(() => {
     if (!activePoint || !computedRegulatoryResult) return null;
@@ -964,8 +980,8 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
     let satToSnpBKm: number | null = null;
     let elevationBDeg: number | null = null;
 
-    const servingSatelliteA = hasCurrentLEORF ? (resolvedLEOConnectivity?.satellite ?? null) : null;
-    const servingSatelliteB = hasCurrentLEORFB ? (autoSelectedLEOSatelliteB ?? null) : null;
+    const servingSatelliteA = resolvedLEOConnectivity?.satellite ?? autoSelectedLEOSatellite ?? null;
+    const servingSatelliteB = autoSelectedLEOSatelliteB ?? null;
 
     if (servingSatelliteB && pointBLeo) {
       const satB = servingSatelliteB;
@@ -983,15 +999,15 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
       );
     }
 
-    const dlThroughputAMbps = servingSatelliteA && leoPerformance?.downlinkGbps != null ? leoPerformance.downlinkGbps * 1000 : null;
-    const ulThroughputAMbps = servingSatelliteA && leoPerformance?.uplinkGbps != null ? leoPerformance.uplinkGbps * 1000 : null;
-    const dlThroughputBMbps = servingSatelliteB ? dlThroughputAMbps : null;
-    const ulThroughputBMbps = servingSatelliteB ? ulThroughputAMbps : null;
+    const dlThroughputAMbps = servingSatelliteA && hasCurrentLEORF && leoPerformance?.downlinkGbps != null ? leoPerformance.downlinkGbps * 1000 : null;
+    const ulThroughputAMbps = servingSatelliteA && hasCurrentLEORF && leoPerformance?.uplinkGbps != null ? leoPerformance.uplinkGbps * 1000 : null;
+    const dlThroughputBMbps = servingSatelliteB && hasCurrentLEORFB ? dlThroughputAMbps : null;
+    const ulThroughputBMbps = servingSatelliteB && hasCurrentLEORFB ? ulThroughputAMbps : null;
 
-    const snpAFull = servingSatelliteA && propSelectedSNP
+    const snpAFull = propSelectedSNP
       ? SNPS_DATA.find(s => s.name === propSelectedSNP.name) ?? null
       : null;
-    const snpBFull = servingSatelliteB && selectedSNPB
+    const snpBFull = selectedSNPB
       ? SNPS_DATA.find(s => s.name === selectedSNPB.name) ?? null
       : null;
 
@@ -1000,8 +1016,12 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
       endpointB: pointBLeo,
       servingSatelliteA,
       servingSatelliteB,
+      rfAvailableA: hasCurrentLEORF,
+      rfAvailableB: hasCurrentLEORFB,
       selectedSnpA: snpAFull,
       selectedSnpB: snpBFull,
+      regulatoryResultA: regulatoryResult,
+      regulatoryResultB,
       userToSatDistanceAKm: userToSatAKm,
       satToSnpDistanceAKm: satToSnpAKm,
       userToSatDistanceBKm: userToSatBKm,
@@ -1018,9 +1038,12 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
     activePoint,
     pointBLeo,
     resolvedLEOConnectivity,
+    autoSelectedLEOSatellite,
     autoSelectedLEOSatelliteB,
     selectedSNPB,
     propSelectedSNP,
+    regulatoryResult,
+    regulatoryResultB,
     leoPerformance,
     hasCurrentLEORF,
     hasCurrentLEORFB,

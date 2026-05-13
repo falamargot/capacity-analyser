@@ -2,6 +2,8 @@ import { haversineDistanceKm } from './leoFootprint';
 import { SPEED_OF_LIGHT_RADIO_KM_S } from './capacityCalculator';
 import type { SatelliteData } from '../types/satellites';
 import type { SNPData } from '../components/globe/GlobeConfig';
+import type { RegulatoryResult } from '../services/regulatoryService';
+import type { ServiceStatus } from './serviceLayer';
 
 // ── OneWeb site-to-site backbone constants ────────────────────────────────────
 
@@ -42,6 +44,34 @@ export const LOGICAL_POPS: LogicalPoP[] = [
 
 // ── Result type ───────────────────────────────────────────────────────────────
 
+export type LeoSiteToSiteFailureReason =
+  | 'REGULATORY_BLOCKED_A'
+  | 'REGULATORY_BLOCKED_B'
+  | 'REGULATORY_RESTRICTED_A'
+  | 'REGULATORY_RESTRICTED_B'
+  | 'NO_SATELLITE_A'
+  | 'NO_SATELLITE_B'
+  | 'RF_UNAVAILABLE_A'
+  | 'RF_UNAVAILABLE_B'
+  | 'NO_SNP_A'
+  | 'NO_SNP_B';
+
+export function formatLeoSiteToSiteFailureReason(reason: LeoSiteToSiteFailureReason | null): string {
+  switch (reason) {
+    case 'REGULATORY_BLOCKED_A': return 'Regulatory blocked at A';
+    case 'REGULATORY_BLOCKED_B': return 'Regulatory blocked at B';
+    case 'REGULATORY_RESTRICTED_A': return 'Regulatory restricted at A';
+    case 'REGULATORY_RESTRICTED_B': return 'Regulatory restricted at B';
+    case 'NO_SATELLITE_A': return 'No satellite at A';
+    case 'NO_SATELLITE_B': return 'No satellite at B';
+    case 'RF_UNAVAILABLE_A': return 'RF unavailable at A';
+    case 'RF_UNAVAILABLE_B': return 'RF unavailable at B';
+    case 'NO_SNP_A': return 'No gateway at A';
+    case 'NO_SNP_B': return 'No gateway at B';
+    default: return 'Connected';
+  }
+}
+
 export interface LeoSiteToSiteResult {
   endpointA: { lat: number; lng: number };
   endpointB: { lat: number; lng: number };
@@ -49,8 +79,17 @@ export interface LeoSiteToSiteResult {
   servingSatelliteA: SatelliteData | null;
   servingSatelliteB: SatelliteData | null;
 
+  rfAvailableA: boolean;
+  rfAvailableB: boolean;
+
   selectedSnpA: SNPData | null;
   selectedSnpB: SNPData | null;
+
+  regulatoryResultA: RegulatoryResult | null;
+  regulatoryResultB: RegulatoryResult | null;
+
+  failureReason: LeoSiteToSiteFailureReason | null;
+  serviceStatus: ServiceStatus;
 
   logicalPop: LogicalPoP | null;
 
@@ -177,6 +216,53 @@ function estimateExpectedHandovers(elevationDeg: number | null): number {
   return 2;
 }
 
+function deriveFailureReason(args: {
+  servingSatelliteA: SatelliteData | null;
+  servingSatelliteB: SatelliteData | null;
+  rfAvailableA: boolean;
+  rfAvailableB: boolean;
+  selectedSnpA: SNPData | null;
+  selectedSnpB: SNPData | null;
+  regulatoryResultA: RegulatoryResult | null;
+  regulatoryResultB: RegulatoryResult | null;
+}): LeoSiteToSiteFailureReason | null {
+  const {
+    servingSatelliteA,
+    servingSatelliteB,
+    rfAvailableA,
+    rfAvailableB,
+    selectedSnpA,
+    selectedSnpB,
+    regulatoryResultA,
+    regulatoryResultB,
+  } = args;
+
+  if (regulatoryResultA?.status === 'BLOCKED') return 'REGULATORY_BLOCKED_A';
+  if (regulatoryResultB?.status === 'BLOCKED') return 'REGULATORY_BLOCKED_B';
+  if (regulatoryResultA?.status === 'RESTRICTED') return 'REGULATORY_RESTRICTED_A';
+  if (regulatoryResultB?.status === 'RESTRICTED') return 'REGULATORY_RESTRICTED_B';
+  if (!servingSatelliteA) return 'NO_SATELLITE_A';
+  if (!servingSatelliteB) return 'NO_SATELLITE_B';
+  if (!rfAvailableA) return 'RF_UNAVAILABLE_A';
+  if (!rfAvailableB) return 'RF_UNAVAILABLE_B';
+  if (!selectedSnpA) return 'NO_SNP_A';
+  if (!selectedSnpB) return 'NO_SNP_B';
+  return null;
+}
+
+function deriveServiceStatus(failureReason: LeoSiteToSiteFailureReason | null): ServiceStatus {
+  if (!failureReason) return 'ALLOWED';
+  if (
+    failureReason === 'REGULATORY_RESTRICTED_A' ||
+    failureReason === 'REGULATORY_RESTRICTED_B' ||
+    failureReason === 'NO_SNP_A' ||
+    failureReason === 'NO_SNP_B'
+  ) {
+    return 'DEGRADED';
+  }
+  return 'BLOCKED';
+}
+
 // ── Main computation ──────────────────────────────────────────────────────────
 
 export interface ComputeLeoSiteToSiteArgs {
@@ -186,8 +272,14 @@ export interface ComputeLeoSiteToSiteArgs {
   servingSatelliteA: SatelliteData | null;
   servingSatelliteB: SatelliteData | null;
 
+  rfAvailableA: boolean;
+  rfAvailableB: boolean;
+
   selectedSnpA: SNPData | null;
   selectedSnpB: SNPData | null;
+
+  regulatoryResultA?: RegulatoryResult | null;
+  regulatoryResultB?: RegulatoryResult | null;
 
   /** Slant range from endpoint A to satellite A (km). */
   userToSatDistanceAKm: number | null;
@@ -217,8 +309,12 @@ export function computeLeoSiteToSiteResult(args: ComputeLeoSiteToSiteArgs): LeoS
     endpointB,
     servingSatelliteA,
     servingSatelliteB,
+    rfAvailableA,
+    rfAvailableB,
     selectedSnpA,
     selectedSnpB,
+    regulatoryResultA = null,
+    regulatoryResultB = null,
     userToSatDistanceAKm,
     satToSnpDistanceAKm,
     userToSatDistanceBKm,
@@ -231,7 +327,18 @@ export function computeLeoSiteToSiteResult(args: ComputeLeoSiteToSiteArgs): LeoS
     ulThroughputBMbps,
   } = args;
 
-  const serviceAvailable = !!(servingSatelliteA && servingSatelliteB && selectedSnpA && selectedSnpB);
+  const failureReason = deriveFailureReason({
+    servingSatelliteA,
+    servingSatelliteB,
+    rfAvailableA,
+    rfAvailableB,
+    selectedSnpA,
+    selectedSnpB,
+    regulatoryResultA,
+    regulatoryResultB,
+  });
+  const serviceStatus = deriveServiceStatus(failureReason);
+  const serviceAvailable = serviceStatus === 'ALLOWED';
 
   // ── Radio propagation latencies ───────────────────────────────────────────
   const userLinkLatencyAms = userToSatDistanceAKm != null
@@ -306,8 +413,14 @@ export function computeLeoSiteToSiteResult(args: ComputeLeoSiteToSiteArgs): LeoS
     endpointB,
     servingSatelliteA,
     servingSatelliteB,
+    rfAvailableA,
+    rfAvailableB,
     selectedSnpA,
     selectedSnpB,
+    regulatoryResultA,
+    regulatoryResultB,
+    failureReason,
+    serviceStatus,
     logicalPop,
     userLinkLatencyAms,
     userLinkLatencyBms,
