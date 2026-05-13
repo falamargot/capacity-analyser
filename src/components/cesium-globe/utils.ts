@@ -180,7 +180,7 @@ export const calculateDynamicScale = (
  * DPR factor - computed once at module load
  * Now returns the actual DPR for proper scaling on high-DPI displays
  */
-export const DPR_FACTOR = Math.max(window.devicePixelRatio || 1, 1.0);
+export const DPR_FACTOR = Math.max(window.devicePixelRatio || 1, 2.0);
 
 // SVG data URIs have inconsistent behaviour on Windows (ANGLE/D3D WebGL path):
 // images without explicit width/height can be rasterised at 0×0 and Cesium
