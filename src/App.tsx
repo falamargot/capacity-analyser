@@ -356,6 +356,8 @@ const App: React.FC = () => {
   // Clear LEO S2S-only state when switching back to single-site mode
   useEffect(() => {
     if (leoTopologyMode === 'SINGLE_SITE') {
+      setSiteB(null);
+      setIsSiteBArmed(false);
       setAutoSelectedLEOIdB(null);
       setSelectedSNPB(null);
       setLeoS2SFullResult(null);
