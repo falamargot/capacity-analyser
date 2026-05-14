@@ -690,6 +690,15 @@ const NoBudgetPlaceholder = () => (
 );
 
 const LeoLinkBudgetDrawer = ({ open, onClose, debugInfo, siteToSiteResult, siteToSiteDirection = 'A_TO_B', snpAName, snpBName, popName }: LeoLinkBudgetDrawerProps) => {
+  // Entrance animation: slide in from right on mount
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+    const raf = requestAnimationFrame(() => setMounted(true));
+    return () => { cancelAnimationFrame(raf); setMounted(false); };
+  }, [open]);
+
   useEffect(() => {
     if (!open) return;
     const onKeyDown = (event: KeyboardEvent) => {
@@ -775,13 +784,27 @@ const LeoLinkBudgetDrawer = ({ open, onClose, debugInfo, siteToSiteResult, siteT
 
   return (
     <div
-      className="leo-link-budget-drawer fixed z-[80] max-[1099px]:inset-0 max-[1099px]:bg-slate-950/35 max-[1099px]:backdrop-blur-sm min-[1100px]:pointer-events-none"
+      className="leo-link-budget-drawer fixed inset-y-0 right-0 z-[80] max-[1099px]:inset-0 max-[1099px]:bg-slate-950/30 max-[1099px]:backdrop-blur-sm min-[1100px]:pointer-events-none"
       role="dialog"
       aria-modal="true"
       aria-label="Detailed LEO link budget"
+      style={{ ['--sw' as string]: 'var(--desktop-sidebar-width, 420px)' }}
     >
-      <div className="absolute inset-y-0 right-0 flex w-full justify-end max-[1099px]:sm:pl-10 min-[1100px]:pointer-events-none">
-        <div className="flex h-full w-full max-w-[38rem] flex-col border-l border-slate-200 bg-white shadow-2xl dark:border-slate-800 dark:bg-slate-950 min-[1100px]:pointer-events-auto min-[1100px]:overflow-hidden min-[1100px]:rounded-[24px] min-[1100px]:border">
+      {/* Mobile: click backdrop to close */}
+      <div
+        className="absolute inset-0 max-[1099px]:block min-[1100px]:hidden"
+        onClick={onClose}
+        aria-hidden="true"
+      />
+      <div className="absolute inset-y-0 right-0 flex w-full justify-end max-[1099px]:sm:pl-10 min-[1100px]:pointer-events-none min-[1100px]:w-[var(--desktop-sidebar-width,420px)]">
+        <div
+          className={[
+            'flex h-full w-full flex-col border-l border-slate-200 bg-white shadow-2xl dark:border-slate-800 dark:bg-slate-950',
+            'transition-[transform,opacity] duration-200 ease-out will-change-transform',
+            'min-[1100px]:pointer-events-auto min-[1100px]:overflow-hidden min-[1100px]:rounded-[24px] min-[1100px]:border',
+            mounted ? 'translate-x-0 opacity-100' : 'translate-x-6 opacity-0',
+          ].join(' ')}
+        >
           <div className="flex items-start justify-between gap-4 border-b border-slate-200 px-5 py-4 dark:border-slate-800">
             <div className="min-w-0">
               <p className="text-[11px] font-bold uppercase tracking-wide text-pink-500 dark:text-pink-300">
@@ -879,6 +902,7 @@ const LeoLinkBudgetDrawer = ({ open, onClose, debugInfo, siteToSiteResult, siteT
 };
 
 // ─── Main component ───────────────────────────────────────────────────────────
+
 
 interface LEOConnectivitySectionProps {
   resolvedLEOConnectivity: ResolvedLEOConnectivity | null;

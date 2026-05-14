@@ -9,6 +9,7 @@ import { ChevronUp, Keyboard, MapPin, Plane, Radio, Search, Satellite, Ship, Way
 import { ThemeSelector } from './components/ThemeSelector';
 import MobileAnalysisSummary from './components/layout/MobileAnalysisSummary';
 import SidebarHeroCard from './components/layout/SidebarHeroCard';
+import MissionKpiBar from './components/layout/MissionKpiBar';
 import { MemoryMonitorHud } from './components/MemoryMonitorHud';
 import { setMemoryMonitorViewerGetter } from './utils/memoryMonitor';
 import ExportButton, { type ExportButtonPayload } from './components/ExportButton';
@@ -2545,6 +2546,9 @@ const App: React.FC = () => {
   const useCompactDesktopHeader = desktopCompactProgress >= 0.2;
   const desktopSidebarWidth = Math.round(lerp(500, 405, desktopCompactProgress));
   const desktopLayoutGap = Math.round(lerp(24, 16, desktopCompactProgress));
+  useEffect(() => {
+    document.documentElement.style.setProperty('--desktop-sidebar-width', `${desktopSidebarWidth}px`);
+  }, [desktopSidebarWidth]);
 
   const selectedGatewayHeroData = useMemo(() => {
     if (!selectedGateway) return null;
@@ -3751,6 +3755,16 @@ const App: React.FC = () => {
                   compact={useCompactDesktopSidebar}
                   onReset={handleResetView}
                 />
+
+                {!selectedIss && !selectedGateway && !inspectedSNP && !selectedMoon && !selectedSatellite && activeAnalysisPoint && (
+                  <MissionKpiBar
+                    metrics={mobileMetrics}
+                    leoViewModel={leoServiceViewModel}
+                    geoStatus={geoPointStatus}
+                    satelliteScope={satelliteScope}
+                    compact={useCompactDesktopSidebar}
+                  />
+                )}
 
                 <div className={`flex-1 min-h-0 overflow-y-auto ${useCompactDesktopSidebar ? 'px-2.5 pb-2.5' : 'px-3 pb-3'}`}>
                   <Suspense fallback={panelFallback}>
