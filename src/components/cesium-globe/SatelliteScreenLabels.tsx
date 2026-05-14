@@ -26,8 +26,8 @@ const getLabelBackgroundColor = (satellite: SatelliteData): string => (
 
 const LABEL_OFFSET_Y_PX = 10;
 const LABEL_POSITION_EASING = 0.22;
-const LABEL_BASE_Z_INDEX = 60;
-const LABEL_MAX_Z_INDEX = 68;
+const LABEL_BASE_Z_INDEX = 12;
+const LABEL_MAX_Z_INDEX = 18;
 
 interface SmoothedScreenPosition {
   x: number;

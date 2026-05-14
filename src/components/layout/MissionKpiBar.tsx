@@ -1,5 +1,7 @@
 import { memo } from 'react';
 import type { MobileAnalysisMetrics } from '../../types/analysis';
+import type { LinkMode } from '../../types/linkMode';
+import type { LeoSiteToSiteResult } from '../../utils/leoSiteToSiteModel';
 import type { LeoConnectivityViewModel } from '../../utils/leoServiceViewModel';
 import type { GeoPointStatus } from '../../utils/selectedPointStatus';
 import type { SatelliteScope } from '../SatelliteScopeFilter';
@@ -72,9 +74,7 @@ interface ConstellationRowProps {
   accentColor: string;
   accentBorder: string;
   label: string;
-  dl: string;
-  ul: string;
-  rtt: string;
+  tiles: Array<{ key: string; label: string; value: string; accentClass?: string }>;
   status: StatusLevel;
   statusLabel: string;
   bottleneck: string | null;
@@ -85,9 +85,7 @@ const ConstellationRow = memo<ConstellationRowProps>(({
   accentColor,
   accentBorder,
   label,
-  dl,
-  ul,
-  rtt,
+  tiles,
   status,
   statusLabel,
   bottleneck,
@@ -98,9 +96,15 @@ const ConstellationRow = memo<ConstellationRowProps>(({
       <span className={`shrink-0 text-[10px] font-bold uppercase tracking-[0.14em] ${accentColor}`}>
         {label}
       </span>
-      <KpiTile label="DL" value={dl} accentClass="text-slate-900 dark:text-slate-50" compact={compact} />
-      <KpiTile label="UL" value={ul} accentClass="text-slate-900 dark:text-slate-50" compact={compact} />
-      <KpiTile label="RTT" value={rtt} accentClass="text-slate-900 dark:text-slate-50" compact={compact} />
+      {tiles.map((tile) => (
+        <KpiTile
+          key={tile.key}
+          label={tile.label}
+          value={tile.value}
+          accentClass={tile.accentClass ?? 'text-slate-900 dark:text-slate-50'}
+          compact={compact}
+        />
+      ))}
       <div className="flex items-center gap-1.5">
         <StatusChip status={status} label={statusLabel} compact pulse={status === 'blocked'} />
       </div>
@@ -123,6 +127,11 @@ interface MissionKpiBarProps {
   geoStatus: GeoPointStatus | null;
   satelliteScope: SatelliteScope;
   compact?: boolean;
+  linkMode?: LinkMode;
+  activeConnectivityTab?: 'LEO' | 'GEO';
+  activeMeshTab?: 'forward' | 'reverse';
+  leoTopologyMode?: 'SINGLE_SITE' | 'SITE_TO_SITE';
+  leoSiteToSiteResult?: LeoSiteToSiteResult | null;
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -133,12 +142,20 @@ const MissionKpiBar = memo<MissionKpiBarProps>(({
   geoStatus,
   satelliteScope,
   compact = false,
+  linkMode = 'STAR_FORWARD',
+  activeConnectivityTab = 'LEO',
+  activeMeshTab = 'forward',
+  leoTopologyMode = 'SINGLE_SITE',
+  leoSiteToSiteResult = null,
 }) => {
   const showLeo = satelliteScope === 'LEO' || satelliteScope === 'ALL';
   const showGeo = satelliteScope === 'GEO' || satelliteScope === 'ALL';
+  const selectedRouteLabel = activeMeshTab === 'reverse' ? 'B→A' : 'A→B';
+  const selectedRouteValue = activeMeshTab === 'reverse' ? 'Site B→A' : 'Site A→B';
 
   const leoMetrics = metrics?.leo ?? null;
   const geoMetrics = metrics?.geo ?? null;
+  const isGeoMeshMode = linkMode === 'MESH' || linkMode === 'POINT_TO_POINT';
 
   const leoStatus = leoStatusLevel(leoViewModel);
   const geoSt = geoStatusLevel(geoStatus);
@@ -156,36 +173,86 @@ const MissionKpiBar = memo<MissionKpiBarProps>(({
     : '—';
 
   const hasAnyData =
-    (showLeo && (leoMetrics?.downlinkGbps || leoMetrics?.uplinkGbps || leoMetrics?.rtt || leoViewModel)) ||
-    (showGeo && (geoMetrics?.downlinkGbps || geoMetrics?.uplinkGbps || geoMetrics?.rtt || geoStatus));
+    (showLeo && (leoMetrics?.downlinkGbps || leoMetrics?.uplinkGbps || leoMetrics?.rtt || leoViewModel || leoSiteToSiteResult)) ||
+    (showGeo && (geoMetrics?.downlinkGbps || geoMetrics?.uplinkGbps || geoMetrics?.rtt || geoStatus || metrics?.mesh));
 
   if (!hasAnyData) return null;
+
+  const leoTiles = (() => {
+    if (leoTopologyMode === 'SITE_TO_SITE' && leoSiteToSiteResult) {
+      const selectedMbps = activeMeshTab === 'reverse'
+        ? leoSiteToSiteResult.finalThroughputBtoAMbps
+        : leoSiteToSiteResult.finalThroughputAtoBMbps;
+      return [
+        { key: 'route', label: 'Route', value: selectedRouteValue, accentClass: 'text-pink-600 dark:text-pink-300' },
+        { key: 'throughput', label: selectedRouteLabel, value: selectedMbps == null ? '—' : `${Math.round(selectedMbps)} Mbps` },
+        { key: 'rtt', label: 'RTT', value: fmtRtt(leoSiteToSiteResult.rttMs) },
+      ];
+    }
+
+    return [
+      { key: 'dl', label: 'DL', value: fmtMbps(leoMetrics?.downlinkGbps) },
+      { key: 'ul', label: 'UL', value: fmtMbps(leoMetrics?.uplinkGbps) },
+      { key: 'rtt', label: 'RTT', value: fmtRtt(leoMetrics?.rtt) },
+    ];
+  })();
+
+  const geoTiles = (() => {
+    if (isGeoMeshMode && metrics?.mesh) {
+      const selectedMbps = activeMeshTab === 'reverse'
+        ? metrics.mesh.reverseMbps
+        : metrics.mesh.forwardMbps;
+      return [
+        { key: 'route', label: 'Route', value: selectedRouteValue, accentClass: 'text-blue-600 dark:text-blue-300' },
+        { key: 'throughput', label: selectedRouteLabel, value: selectedMbps == null ? '—' : `${Math.round(selectedMbps)} Mbps` },
+        { key: 'rtt', label: 'RTT', value: fmtRtt(metrics.mesh.rttMs) },
+      ];
+    }
+
+    if (linkMode === 'STAR_RETURN') {
+      return [
+        { key: 'route', label: 'Route', value: 'Site B→Sat', accentClass: 'text-blue-600 dark:text-blue-300' },
+        { key: 'throughput', label: 'Return', value: fmtMbps(geoMetrics?.uplinkGbps) },
+        { key: 'latency', label: 'Latency', value: fmtRtt(geoMetrics?.rtt) },
+      ];
+    }
+
+    if (linkMode === 'STAR_FORWARD') {
+      return [
+        { key: 'route', label: 'Route', value: 'Sat→Site B', accentClass: 'text-blue-600 dark:text-blue-300' },
+        { key: 'throughput', label: 'Forward', value: fmtMbps(geoMetrics?.downlinkGbps) },
+        { key: 'latency', label: 'Latency', value: fmtRtt(geoMetrics?.rtt) },
+      ];
+    }
+
+    return [
+      { key: 'dl', label: 'DL', value: fmtMbps(geoMetrics?.downlinkGbps) },
+      { key: 'ul', label: 'UL', value: fmtMbps(geoMetrics?.uplinkGbps) },
+      { key: 'rtt', label: 'RTT', value: fmtRtt(geoMetrics?.rtt) },
+    ];
+  })();
 
   return (
     <div className={`border-b border-slate-200/80 dark:border-slate-800 ${compact ? 'px-3 py-2.5' : 'px-4 py-3'}`}>
       <div className="flex flex-col gap-3">
-        {showLeo && (
+        {showLeo && (satelliteScope !== 'ALL' || activeConnectivityTab === 'LEO' || leoMetrics || leoSiteToSiteResult) && (
           <ConstellationRow
             accentColor="text-pink-500 dark:text-pink-400"
             accentBorder="border-pink-400 dark:border-pink-500"
             label="LEO"
-            dl={fmtMbps(leoMetrics?.downlinkGbps)}
-            ul={fmtMbps(leoMetrics?.uplinkGbps)}
-            rtt={fmtRtt(leoMetrics?.rtt)}
+            tiles={leoTiles}
             status={leoStatus}
             statusLabel={leoStatusLabel}
             bottleneck={leoBottleneck(leoViewModel)}
             compact={compact}
           />
         )}
-        {showGeo && (
+        {showGeo && (satelliteScope !== 'ALL' || activeConnectivityTab === 'GEO' || geoMetrics || metrics?.mesh) && (
           <ConstellationRow
             accentColor="text-blue-500 dark:text-blue-400"
             accentBorder="border-blue-500 dark:border-blue-400"
             label="GEO"
-            dl={fmtMbps(geoMetrics?.downlinkGbps)}
-            ul={fmtMbps(geoMetrics?.uplinkGbps)}
-            rtt={fmtRtt(geoMetrics?.rtt)}
+            tiles={geoTiles}
             status={geoSt}
             statusLabel={geoStatusLabel}
             bottleneck={null}

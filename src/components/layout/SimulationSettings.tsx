@@ -51,7 +51,7 @@ const SimulationSettings: React.FC<SimulationSettingsProps> = ({ satelliteScope 
       </button>
 
       {isOpen && (
-        <div className="absolute top-full left-0 mt-1 w-[22rem] max-w-[calc(100vw-1rem)] bg-white dark:bg-slate-900 rounded-lg shadow-lg border border-gray-200 dark:border-slate-700 z-50">
+        <div className="absolute top-full right-0 mt-1 w-[22rem] max-w-[calc(100vw-1rem)] bg-white dark:bg-slate-900 rounded-lg shadow-lg border border-gray-200 dark:border-slate-700 z-50">
           <div className="p-4">
             <div className="mb-4 rounded-md border border-gray-200 bg-gray-50 p-3 dark:border-slate-700 dark:bg-slate-800/70">
               <label className="flex items-start gap-3">

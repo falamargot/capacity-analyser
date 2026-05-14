@@ -3604,7 +3604,7 @@ const App: React.FC = () => {
 
             {isPhone && !isFullscreen && (
               <div
-                className="pointer-events-none absolute inset-x-0 top-0 z-[25] px-3"
+                className="pointer-events-none absolute inset-x-0 top-0 z-[1320] px-3"
                 style={{ paddingTop: 'calc(env(safe-area-inset-top) + 0.75rem)' }}
               >
                 <div className="pointer-events-auto rounded-[28px] border border-white/65 bg-[linear-gradient(180deg,rgba(255,255,255,0.94),rgba(241,245,249,0.88))] p-2.5 shadow-[0_24px_60px_-36px_rgba(15,23,42,0.78)] backdrop-blur-xl dark:border-slate-700/80 dark:bg-[linear-gradient(180deg,rgba(15,23,42,0.95),rgba(30,41,59,0.86))]">
@@ -3997,6 +3997,11 @@ const App: React.FC = () => {
                     geoStatus={geoPointStatus}
                     satelliteScope={satelliteScope}
                     compact={useCompactDesktopSidebar}
+                    linkMode={linkMode}
+                    activeConnectivityTab={activeConnectivityTab}
+                    activeMeshTab={activeMeshTab}
+                    leoTopologyMode={leoTopologyMode}
+                    leoSiteToSiteResult={leoS2SFullResult}
                   />
                 )}
 

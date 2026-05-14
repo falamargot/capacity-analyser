@@ -645,15 +645,18 @@ const MobileAnalysisSummary: React.FC<MobileAnalysisSummaryProps> = ({
         const s2sLeoMetrics: MobileLinkMetrics | null = leoTopologyMode === 'SITE_TO_SITE' && leoSiteToSiteResult
             ? {
                 rtt: leoSiteToSiteResult.rttMs,
-                downlinkGbps: leoSiteToSiteResult.finalThroughputAtoBMbps != null
-                    ? leoSiteToSiteResult.finalThroughputAtoBMbps / 1000
-                    : null,
-                uplinkGbps: leoSiteToSiteResult.finalThroughputBtoAMbps != null
-                    ? leoSiteToSiteResult.finalThroughputBtoAMbps / 1000
-                    : null,
+                downlinkGbps: activeMeshTab === 'reverse'
+                    ? (leoSiteToSiteResult.finalThroughputBtoAMbps != null
+                        ? leoSiteToSiteResult.finalThroughputBtoAMbps / 1000
+                        : null)
+                    : (leoSiteToSiteResult.finalThroughputAtoBMbps != null
+                        ? leoSiteToSiteResult.finalThroughputAtoBMbps / 1000
+                        : null),
+                uplinkGbps: null,
             }
             : null;
         const displayedLeoMetrics = leoTopologyMode === 'SITE_TO_SITE' ? s2sLeoMetrics : metrics?.leo;
+        const selectedRouteLabel = activeMeshTab === 'reverse' ? 'B→A' : 'A→B';
 
         if (displayedLeoMetrics) {
             cards.push({
@@ -663,8 +666,8 @@ const MobileAnalysisSummary: React.FC<MobileAnalysisSummaryProps> = ({
                 accentClassName: 'text-fuchsia-600 dark:text-fuchsia-300',
                 borderClassName: 'border-fuchsia-200/80 dark:border-fuchsia-400/20',
                 latencyLabel: leoTopologyMode === 'SITE_TO_SITE' ? 'Site-to-Site RTT' : 'LEO RTT',
-                downlinkLabel: leoTopologyMode === 'SITE_TO_SITE' ? 'A→B' : 'DL throughput',
-                uplinkLabel: leoTopologyMode === 'SITE_TO_SITE' ? 'B→A' : 'UL throughput',
+                downlinkLabel: leoTopologyMode === 'SITE_TO_SITE' ? selectedRouteLabel : 'DL throughput',
+                uplinkLabel: 'UL throughput',
                 extraMetrics: leoTopologyMode === 'SITE_TO_SITE' && leoSiteToSiteResult
                     ? [{ key: 'stability', label: 'Stability', value: leoSiteToSiteResult.pathStability }]
                     : undefined,
@@ -682,8 +685,10 @@ const MobileAnalysisSummary: React.FC<MobileAnalysisSummaryProps> = ({
             const meshDisplayMetrics: MobileLinkMetrics | null = isMeshMode && pointB && metrics?.mesh
                 ? {
                     rtt: metrics.mesh.rttMs,
-                    downlinkGbps: metrics.mesh.forwardMbps != null ? metrics.mesh.forwardMbps / 1000 : null,
-                    uplinkGbps: metrics.mesh.reverseMbps != null ? metrics.mesh.reverseMbps / 1000 : null,
+                    downlinkGbps: activeMeshTab === 'reverse'
+                        ? (metrics.mesh.reverseMbps != null ? metrics.mesh.reverseMbps / 1000 : null)
+                        : (metrics.mesh.forwardMbps != null ? metrics.mesh.forwardMbps / 1000 : null),
+                    uplinkGbps: null,
                 }
                 : null;
             cards.push({
@@ -694,8 +699,8 @@ const MobileAnalysisSummary: React.FC<MobileAnalysisSummaryProps> = ({
                 borderClassName: 'border-blue-200/80 dark:border-blue-400/20',
                 topologyLabel: onLinkModeChange ? undefined : `Topology · ${LINK_MODE_LABELS[linkMode]}`,
                 latencyLabel: isMeshMode ? 'RTT' : 'Latency',
-                downlinkLabel: isMeshMode ? 'A→B' : isStarForward ? 'Forward link' : 'Downlink',
-                uplinkLabel: isMeshMode ? 'B→A' : isStarReturn ? 'Return link' : 'Uplink',
+                downlinkLabel: isMeshMode ? selectedRouteLabel : isStarForward ? 'Forward link' : 'Downlink',
+                uplinkLabel: isMeshMode ? 'Return' : isStarReturn ? 'Return link' : 'Uplink',
                 linkModeControls: onLinkModeChange ? {
                     activeMode: linkMode,
                     onChange: onLinkModeChange,
@@ -704,7 +709,7 @@ const MobileAnalysisSummary: React.FC<MobileAnalysisSummaryProps> = ({
         }
 
         return cards;
-    }, [leoSiteToSiteResult, leoTopologyMode, linkMode, metrics?.geo, metrics?.leo, metrics?.mesh, onLinkModeChange, pointB, satelliteScope, selectedAircraft, selectedPoint]);
+    }, [activeMeshTab, leoSiteToSiteResult, leoTopologyMode, linkMode, metrics?.geo, metrics?.leo, metrics?.mesh, onLinkModeChange, pointB, satelliteScope, selectedAircraft, selectedPoint]);
 
     const hasMetrics = metricCards.length > 0;
     const mobileRouteSummary = useMemo(() => {
