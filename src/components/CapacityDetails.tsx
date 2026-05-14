@@ -330,6 +330,7 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
   const [activeConnTab, setActiveConnTab] = useState<'LEO' | 'GEO'>(
     satelliteScope === 'GEO' ? 'GEO' : 'LEO'
   );
+  const [isLinkBudgetDrawerOpen, setIsLinkBudgetDrawerOpen] = useState(false);
   const selectedLeoTerminalProfile = useMemo(
     () => getLeoTerminalProfile(leoTerminalType, leoTerminalModelId),
     [leoTerminalType, leoTerminalModelId],
@@ -2193,6 +2194,8 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
                   isPointBLeoArmed={isPointBLeoArmed}
                   activeMeshTab={activeMeshTab}
                   onActiveMeshTabChange={onActiveMeshTabChange}
+                  isLinkBudgetDrawerOpen={isLinkBudgetDrawerOpen}
+                  onLinkBudgetDrawerOpenChange={setIsLinkBudgetDrawerOpen}
                 />
                   )}
 
@@ -2224,6 +2227,8 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
                   serviceLayerResult={serviceLayerResult}
                   leoServiceViewModel={leoServiceViewModel}
                   showEstimatedPerformance={false}
+                  isLinkBudgetDrawerOpen={isLinkBudgetDrawerOpen}
+                  onLinkBudgetDrawerOpenChange={setIsLinkBudgetDrawerOpen}
                 />
                   )}
                 </>
@@ -2278,6 +2283,8 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
                     activeMeshTab={activeMeshTab}
                     onActiveMeshTabChange={onActiveMeshTabChange}
                     validSatelliteIds={validSatelliteIds}
+                    isLinkBudgetDrawerOpen={isLinkBudgetDrawerOpen}
+                    onLinkBudgetDrawerOpenChange={setIsLinkBudgetDrawerOpen}
                   />
                 </>
               )}

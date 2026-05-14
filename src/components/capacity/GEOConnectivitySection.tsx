@@ -550,6 +550,9 @@ interface GEOConnectivitySectionProps {
   onSelectDownlinkCoverageB?: (coverage: CandidateCoverage) => void;
   /** When provided, only satellites whose ID is in this set appear in the satellite dropdown. */
   validSatelliteIds?: ReadonlySet<string>;
+  /** Controlled drawer open state — lift to parent so GEO/LEO share the same open/closed status. */
+  isLinkBudgetDrawerOpen?: boolean;
+  onLinkBudgetDrawerOpenChange?: (open: boolean) => void;
 }
 
 const RTT_VISUAL_SCALE_MAX_MS = 600;
@@ -603,6 +606,8 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
   activeMeshTab: controlledMeshTab,
   onActiveMeshTabChange,
   validSatelliteIds,
+  isLinkBudgetDrawerOpen: controlledDrawerOpen = false,
+  onLinkBudgetDrawerOpenChange,
 }) => {
   const isMeshOrP2P = linkMode === 'MESH' || linkMode === 'POINT_TO_POINT';
   const isStarForward = linkMode === 'STAR_FORWARD';
@@ -611,7 +616,11 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
   // Active MESH direction tab. Uses local state for immediate UI feedback;
   // syncs to the controlled prop from App so the globe stays in sync.
   const [internalMeshTab, setInternalMeshTab] = useState<'forward' | 'reverse'>(controlledMeshTab ?? 'forward');
-  const [isLinkBudgetDrawerOpen, setIsLinkBudgetDrawerOpen] = useState(false);
+  const isLinkBudgetDrawerOpen = controlledDrawerOpen;
+  const setIsLinkBudgetDrawerOpen = (value: boolean | ((prev: boolean) => boolean)) => {
+    const next = typeof value === 'function' ? value(controlledDrawerOpen) : value;
+    onLinkBudgetDrawerOpenChange?.(next);
+  };
   useEffect(() => { setInternalMeshTab('forward'); }, [linkMode]);
   // Keep local state in sync when App propagates an external change (e.g. globe click).
   useEffect(() => {

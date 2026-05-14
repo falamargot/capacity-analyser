@@ -939,6 +939,9 @@ interface LEOConnectivitySectionProps {
   isPointBLeoArmed?: boolean;
   activeMeshTab?: 'forward' | 'reverse';
   onActiveMeshTabChange?: (tab: 'forward' | 'reverse') => void;
+  /** Controlled drawer open state — shared with GEO so mode switches preserve open/closed status. */
+  isLinkBudgetDrawerOpen?: boolean;
+  onLinkBudgetDrawerOpenChange?: (open: boolean) => void;
 }
 
 // ─── Site-to-Site sub-components ─────────────────────────────────────────────
@@ -1020,10 +1023,16 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
   isPointBLeoArmed = false,
   activeMeshTab,
   onActiveMeshTabChange,
+  isLinkBudgetDrawerOpen: controlledDrawerOpen = false,
+  onLinkBudgetDrawerOpenChange,
 }) => {
   const siteALabel = 'Site A';
   const showPerformanceBeforeRadioPath = analysisSource !== 'aircraft';
-  const [isLinkBudgetDrawerOpen, setIsLinkBudgetDrawerOpen] = useState(false);
+  const isLinkBudgetDrawerOpen = controlledDrawerOpen;
+  const setIsLinkBudgetDrawerOpen = (value: boolean | ((prev: boolean) => boolean)) => {
+    const next = typeof value === 'function' ? value(controlledDrawerOpen) : value;
+    onLinkBudgetDrawerOpenChange?.(next);
+  };
   const [s2sDirection, setS2SDirection] = useState<'A_TO_B' | 'B_TO_A'>(
     activeMeshTab === 'reverse' ? 'B_TO_A' : 'A_TO_B'
   );
