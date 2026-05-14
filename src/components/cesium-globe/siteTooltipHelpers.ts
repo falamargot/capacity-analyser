@@ -1,7 +1,7 @@
 import type { MobileLinkMetrics, MeshLinkMetrics } from '../../types/analysis';
 import type { GeoPointStatus } from '../../utils/selectedPointStatus';
 import type { LeoConnectivityViewModel } from '../../utils/leoServiceViewModel';
-import type { LeoSiteToSiteResult } from '../../utils/leoSiteToSiteModel';
+import type { LeoSiteToSiteFailureReason, LeoSiteToSiteResult } from '../../utils/leoSiteToSiteModel';
 import type { LinkMode } from '../../types/linkMode';
 import type { SiteLabelSection, SiteLabelLine, SiteLabelTone } from './SiteScreenLabel';
 
@@ -97,17 +97,8 @@ export function buildGeoMeshSection(
 export function buildLeoSingleSection(
   viewModel: LeoConnectivityViewModel | null | undefined,
   metrics: MobileLinkMetrics | null | undefined,
-  route?: { satelliteName?: string | null; snpName?: string | null },
 ): SiteLabelSection {
   const lines: SiteLabelLine[] = [];
-  const satelliteName = route?.satelliteName ?? 'OneWeb satellite';
-  const snpName = route?.snpName;
-
-  if (snpName) {
-    lines.push(line(`Site A ↔ ${satelliteName} ↔ SNP ${snpName}`, 'neutral'));
-  } else if (route?.satelliteName) {
-    lines.push(line(`Site A ↔ ${satelliteName} ↔ SNP unavailable`, 'warning'));
-  }
 
   if (!viewModel) {
     lines.push(line('Checking...', 'neutral'));
@@ -130,22 +121,79 @@ export function buildLeoSingleSection(
   return { title: 'LEO', accent: 'pink', lines };
 }
 
-function buildLeoS2SSection(result: LeoSiteToSiteResult, site: 'A' | 'B'): SiteLabelSection {
+function getLeoS2SEndpointReason(
+  reason: LeoSiteToSiteFailureReason | null | undefined,
+  site: 'A' | 'B',
+): string | null {
+  if (!reason?.endsWith(`_${site}`)) return null;
+
+  switch (reason) {
+    case 'REGULATORY_PENDING_A':
+    case 'REGULATORY_PENDING_B':
+      return 'Regulatory pending';
+    case 'REGULATORY_BLOCKED_A':
+    case 'REGULATORY_BLOCKED_B':
+      return 'Regulatory block';
+    case 'REGULATORY_RESTRICTED_A':
+    case 'REGULATORY_RESTRICTED_B':
+      return 'Regulatory restricted';
+    case 'NO_SATELLITE_A':
+    case 'NO_SATELLITE_B':
+      return 'No satellite';
+    case 'RF_UNAVAILABLE_A':
+    case 'RF_UNAVAILABLE_B':
+      return 'RF unavailable';
+    case 'NO_SNP_A':
+    case 'NO_SNP_B':
+      return 'Gateway unavailable';
+    case 'CAPACITY_SATURATED_A':
+    case 'CAPACITY_SATURATED_B':
+      return 'Capacity saturated';
+    case 'CAPACITY_DEGRADED_A':
+    case 'CAPACITY_DEGRADED_B':
+      return 'Capacity degraded';
+    default:
+      return null;
+  }
+}
+
+function buildLeoS2SSection(
+  result: LeoSiteToSiteResult | null | undefined,
+  site: 'A' | 'B',
+): SiteLabelSection {
+  if (!result) {
+    return { title: 'LEO', accent: 'pink', lines: [line('Not available', 'neutral')] };
+  }
+
+  if (result.serviceStatus === 'ALLOWED') {
+    return {
+      title: 'LEO',
+      accent: 'pink',
+      lines: [
+        siteThroughputLine(site, result.finalThroughputAtoBMbps, result.finalThroughputBtoAMbps, result.rttMs),
+      ],
+    };
+  }
+
+  const endpointReason = getLeoS2SEndpointReason(result.failureReason, site);
+  if (endpointReason) {
+    const tone: SiteLabelTone = result.serviceStatus === 'DEGRADED' ? 'warning' : 'danger';
+    return { title: 'LEO', accent: 'pink', lines: [line(endpointReason, tone)] };
+  }
+
   return {
-    title: 'LEO S2S',
+    title: 'LEO',
     accent: 'pink',
-    lines: [
-      siteThroughputLine(site, result.finalThroughputAtoBMbps, result.finalThroughputBtoAMbps, result.rttMs),
-    ],
+    lines: [line('Not available', 'neutral')],
   };
 }
 
 /** LEO S2S section as seen from Site A. */
-export function buildLeoS2SSectionA(result: LeoSiteToSiteResult): SiteLabelSection {
+export function buildLeoS2SSectionA(result: LeoSiteToSiteResult | null | undefined): SiteLabelSection {
   return buildLeoS2SSection(result, 'A');
 }
 
 /** LEO S2S section as seen from Site B. */
-export function buildLeoS2SSectionB(result: LeoSiteToSiteResult): SiteLabelSection {
+export function buildLeoS2SSectionB(result: LeoSiteToSiteResult | null | undefined): SiteLabelSection {
   return buildLeoS2SSection(result, 'B');
 }

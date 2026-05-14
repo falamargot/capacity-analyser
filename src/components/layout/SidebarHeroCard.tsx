@@ -9,10 +9,23 @@ interface SidebarHeroBadge {
   tone: BadgeTone;
 }
 
+interface SiteHeroData {
+  label: string;
+  coordinates: string;
+  location?: string;
+  weatherRow?: ReactNode;
+  onClear: () => void;
+}
+
+interface SiteToSiteCardData {
+  siteA: SiteHeroData;
+  siteB: SiteHeroData;
+}
+
 interface SidebarHeroCardProps {
-  eyebrow: string;
-  title: string;
-  subtitle: string;
+  eyebrow?: string;
+  title?: string;
+  subtitle?: string;
   footer?: ReactNode;
   backgroundImageUrl?: string;
   backgroundImageLabel?: string;
@@ -20,6 +33,7 @@ interface SidebarHeroCardProps {
   badges?: SidebarHeroBadge[];
   compact?: boolean;
   onReset: () => void;
+  siteToSite?: SiteToSiteCardData;
 }
 
 const toneStyles: Record<HeroTone, string> = {
@@ -47,6 +61,45 @@ const badgeStyles: Record<BadgeTone, string> = {
   red: 'bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-200',
 };
 
+const SiteCardInner = ({ site }: { site: SiteHeroData }) => {
+  return (
+    <div className="flex min-w-0 flex-col overflow-hidden rounded-xl border border-slate-200/80 bg-white/70 shadow-sm dark:border-slate-700/60 dark:bg-slate-800/60">
+      <div className="flex items-center justify-between gap-1 border-b border-slate-100 px-2.5 py-1.5 dark:border-slate-700/50">
+        <span className="text-[9px] font-semibold uppercase tracking-[0.14em] text-slate-400 dark:text-slate-500">
+          {site.label}
+        </span>
+        <button
+          type="button"
+          onClick={site.onClear}
+          className="flex h-5 w-5 shrink-0 items-center justify-center rounded text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-700 dark:hover:text-slate-300"
+          aria-label={`Clear ${site.label}`}
+          title={`Clear ${site.label}`}
+        >
+          <RotateCcw className="h-3 w-3" />
+        </button>
+      </div>
+      <div className="flex flex-1 flex-col gap-px px-2.5 py-2">
+        <div
+          className="truncate font-mono text-[16px] foÒnt-semibold leading-snug text-slate-800 dark:text-slate-100"
+          title={site.coordinates}
+        >
+          {site.coordinates}
+        </div>
+        {site.location && (
+          <div className="mt-0.5 truncate text-[12px] text-slate-500 dark:text-slate-400" title={site.location}>
+            {site.location}
+          </div>
+        )}
+        {site.weatherRow && (
+          <div className="mt-2 border-t border-slate-100 pt-2 dark:border-slate-700/50">
+            {site.weatherRow}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
 const SidebarHeroCard = memo<SidebarHeroCardProps>(({
   eyebrow,
   title,
@@ -58,18 +111,36 @@ const SidebarHeroCard = memo<SidebarHeroCardProps>(({
   badges = [],
   compact = false,
   onReset,
+  siteToSite,
 }) => {
+  const outerPad = compact ? 'px-2.5 pt-2.5 pb-2' : 'px-3 pt-3 pb-2';
+  const innerPad = compact ? 'px-3.5 py-3.5' : 'px-4 py-4';
+  const toneClass = toneStyles[tone];
+
+  // Site-to-Site mode: two standalone cards, no enclosing container card
+  if (siteToSite) {
+    return (
+      <div className={outerPad}>
+        <div className="grid grid-cols-2 gap-2">
+          <SiteCardInner site={siteToSite.siteA} />
+          <SiteCardInner site={siteToSite.siteB} />
+        </div>
+      </div>
+    );
+  }
+
+  // Standard single-site card
   return (
-    <div className={compact ? 'px-2.5 pt-2.5 pb-2' : 'px-3 pt-3 pb-2'}>
+    <div className={outerPad}>
       <div
-        className={`overflow-hidden rounded-2xl border bg-gradient-to-br ${toneStyles[tone]} bg-white dark:bg-slate-900 shadow-[0_20px_45px_-28px_rgba(15,23,42,0.55)]`}
+        className={`overflow-hidden rounded-2xl border bg-gradient-to-br ${toneClass} bg-white dark:bg-slate-900 shadow-[0_20px_45px_-28px_rgba(15,23,42,0.55)]`}
         style={backgroundImageUrl ? {
           backgroundImage: `linear-gradient(135deg, rgba(8, 15, 30, 0.78), rgba(8, 47, 73, 0.60)), url(${backgroundImageUrl})`,
           backgroundSize: 'cover',
           backgroundPosition: 'center',
         } : undefined}
       >
-        <div className={`relative ${compact ? 'px-3.5 py-3.5' : 'px-4 py-4'}`}>
+        <div className={`relative ${innerPad}`}>
           <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.85),transparent_42%)] dark:bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.06),transparent_42%)]" />
           <div className={`relative flex items-start justify-between ${compact ? 'gap-3' : 'gap-4'}`}>
             <div className="min-w-0">

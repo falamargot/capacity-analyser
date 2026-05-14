@@ -1484,16 +1484,18 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                 />
             )}
 
-            <GeoCoverageLegendPanel
-                items={geoCoverageLegendItems}
-                hoveredItemKey={focusedGeoCoverageLegendKey}
-                onHoverItemChange={handleGeoCoverageLegendHoverChange}
-                isPhone={!!isPhone}
-                isFullscreen={isFullscreen}
-                hasSatelliteIndicator={hasSatelliteIndicator}
-                hasCoverageSwitcher={hasCoverageSwitcher}
-                hideHeader={selection.type === 'satellite'}
-            />
+            {!isPhone && !isMobileViewport && (
+                <GeoCoverageLegendPanel
+                    items={geoCoverageLegendItems}
+                    hoveredItemKey={focusedGeoCoverageLegendKey}
+                    onHoverItemChange={handleGeoCoverageLegendHoverChange}
+                    isPhone={false}
+                    isFullscreen={isFullscreen}
+                    hasSatelliteIndicator={hasSatelliteIndicator}
+                    hasCoverageSwitcher={hasCoverageSwitcher}
+                    hideHeader={selection.type === 'satellite'}
+                />
+            )}
 
             {/* Cesium Viewer */}
             <div ref={globeContainerRef} className="w-full h-full">
@@ -1796,7 +1798,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                 if (!showGroundSelectedPoint || !selectedPosition) return null;
                 const s2sResult = leoSiteToSiteFullResult ?? leoSiteToSiteResult;
                 const isMeshP2P = linkMode === 'MESH' || linkMode === 'POINT_TO_POINT';
-                const hasLeoS2S = !!s2sResult?.serviceAvailable;
+                const isLeoS2S = !!pointBLeo;
                 const sections = [];
 
                 if (satelliteScope !== 'LEO') {
@@ -1808,12 +1810,9 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                 }
                 if (satelliteScope !== 'GEO') {
                     sections.push(
-                        hasLeoS2S
-                            ? buildLeoS2SSectionA(s2sResult!)
-                            : buildLeoSingleSection(leoServiceViewModel, performanceMetrics?.leo, {
-                                satelliteName: autoSelectedLEOSatellite?.name ?? null,
-                                snpName: typeof selectedSNP === 'string' ? selectedSNP : (selectedSNP?.name ?? null),
-                            })
+                        isLeoS2S
+                            ? buildLeoS2SSectionA(s2sResult)
+                            : buildLeoSingleSection(leoServiceViewModel, performanceMetrics?.leo)
                     );
                 }
 
@@ -1835,14 +1834,14 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                 if (!siteBPos) return null;
                 const s2sResult = leoSiteToSiteFullResult ?? leoSiteToSiteResult;
                 const isMeshP2P = linkMode === 'MESH' || linkMode === 'POINT_TO_POINT';
-                const hasLeoS2S = !!s2sResult?.serviceAvailable;
+                const isLeoS2S = !!pointBLeo;
                 const sections = [];
 
                 if (satelliteScope !== 'LEO' && pointB && isMeshP2P) {
                     sections.push(buildGeoMeshSection(performanceMetrics?.mesh, 'B', linkMode!));
                 }
-                if (satelliteScope !== 'GEO' && pointBLeo && hasLeoS2S) {
-                    sections.push(buildLeoS2SSectionB(s2sResult!));
+                if (satelliteScope !== 'GEO' && isLeoS2S) {
+                    sections.push(buildLeoS2SSectionB(s2sResult));
                 }
 
                 if (sections.length === 0) return null;

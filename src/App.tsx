@@ -14,7 +14,8 @@ import { MemoryMonitorHud } from './components/MemoryMonitorHud';
 import { setMemoryMonitorViewerGetter } from './utils/memoryMonitor';
 import ExportButton, { type ExportButtonPayload } from './components/ExportButton';
 import SimulationSettings from './components/layout/SimulationSettings';
-import { WeatherControl, type TerminalType, type WeatherType, toWeatherCondition } from './components/capacity';
+import { WeatherControl, WEATHER_PROFILES, type TerminalType, type WeatherType, toWeatherCondition } from './components/capacity';
+import { WEATHER_ATTENUATION_DB } from './utils/realisticSimulation';
 import { SatelliteData } from './types/satellites';
 import type { CandidateCoverage, GEOBeam, MobileAnalysisMetrics, SelectedSNP } from './types/analysis';
 import type { Selection } from './types/analysis';
@@ -318,6 +319,8 @@ const App: React.FC = () => {
   };
   const [weatherType, setWeatherType] = useState<WeatherType>(() => weatherTypeFromCondition(weatherCondition));
   const [autoWeatherEnabled, setAutoWeatherEnabled] = useState<boolean>(true);
+  const [weatherTypeB, setWeatherTypeB] = useState<WeatherType>('clear');
+  const [autoWeatherEnabledB, setAutoWeatherEnabledB] = useState<boolean>(true);
   const [previousAnalysisSource, setPreviousAnalysisSource] = useState<'earth' | 'aircraft' | undefined>(undefined);
   const [viewportSnapshot, setViewportSnapshot] = useState<ViewportSnapshot>(initialViewportSnapshot);
   const [isMobile, setIsMobile] = useState(() => initialViewportSnapshot.innerWidth < 1100);
@@ -364,6 +367,7 @@ const App: React.FC = () => {
   const [selectedAircraft, setSelectedAircraft] = useState<Aircraft | null>(null);
   const [selectedVessel, setSelectedVessel] = useState<Vessel | null>(null);
   const [nearestLocation, setNearestLocation] = useState<{ city: string; country: string } | null>(null);
+  const [nearestLocationB, setNearestLocationB] = useState<{ city: string; country: string } | null>(null);
   const [hoveredSatelliteId, setHoveredSatelliteId] = useState<string | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(initialDisplayDefaults.isFullscreen);
   const [fullscreenExportButtonProps, setFullscreenExportButtonProps] = useState<ExportButtonPayload | null>(null);
@@ -572,6 +576,42 @@ const App: React.FC = () => {
     setWeatherCondition(toWeatherCondition(nextType));
     setAutoWeatherEnabled(false);
   }, [setWeatherCondition]);
+
+  // Auto-weather detection for Site B — same logic as Site A but independent state.
+  // weatherTypeB is display-only; it does not yet feed into the link-budget calculation.
+  useEffect(() => {
+    if (!autoWeatherEnabledB || !siteB) return;
+
+    let cancelled = false;
+
+    const mapPrecipToWeatherType = (precipMmPerHour: number): WeatherType => {
+      if (!isFinite(precipMmPerHour) || precipMmPerHour <= 0) return 'clear';
+      if (precipMmPerHour <= 1.0) return 'light_rain';
+      if (precipMmPerHour <= 5.0) return 'heavy_rain';
+      return 'storm';
+    };
+
+    const fetchWeather = async () => {
+      try {
+        const url = `https://api.open-meteo.com/v1/forecast?latitude=${siteB.lat}&longitude=${siteB.lng}&current=precipitation,rain,showers&timezone=UTC`;
+        const res = await fetch(url);
+        const data = await res.json();
+        const precipitation = Number(data?.current?.precipitation ?? 0);
+        if (!cancelled) setWeatherTypeB(mapPrecipToWeatherType(precipitation));
+      } catch {
+        // Keep current weather selection on API failure.
+      }
+    };
+
+    fetchWeather();
+
+    return () => { cancelled = true; };
+  }, [siteB, autoWeatherEnabledB]);
+
+  const handleWeatherTypeBChange = useCallback((nextType: WeatherType) => {
+    setWeatherTypeB(nextType);
+    setAutoWeatherEnabledB(false);
+  }, []);
 
   useEffect(() => {
     const timeout = setTimeout(() => {
@@ -784,6 +824,35 @@ const App: React.FC = () => {
       cancelled = true;
     };
   }, [analyzisPosition, selectedPosition]);
+
+  // Reverse-geocode Site B location label whenever siteB changes
+  useEffect(() => {
+    if (!siteB) {
+      setNearestLocationB(null);
+      return;
+    }
+    let cancelled = false;
+    const fetchLocation = async () => {
+      try {
+        const response = await fetch(
+          `https://nominatim.openstreetmap.org/reverse?format=json&lat=${siteB.lat}&lon=${siteB.lng}&zoom=10`
+        );
+        const data = await response.json();
+        if (cancelled) return;
+        if (data?.address) {
+          const city = data.address.city || data.address.town || data.address.village;
+          const country = data.address.country;
+          setNearestLocationB(city || country ? { city: city ?? '', country } : null);
+        } else {
+          setNearestLocationB(null);
+        }
+      } catch {
+        if (!cancelled) setNearestLocationB(null);
+      }
+    };
+    fetchLocation();
+    return () => { cancelled = true; };
+  }, [siteB]);
 
   // resolveAutoSelectedSatellites is imported from utils/satelliteResolution.ts
   // It implements the Service Availability model with:
@@ -2071,6 +2140,24 @@ const App: React.FC = () => {
     setLinkMode(m => LINK_MODE_REQUIRES_POINT_B.has(m) ? 'STAR_FORWARD' : m);
   }, [clearSelection, selectTarget]);
 
+  // Per-site clear buttons in the S2S hero card.
+  // Clearing Site A removes both sites (no safe "promote B to A" convention exists).
+  // Clearing Site B removes only Site B and downgrades to single-site mode.
+  const handleClearSiteA = useCallback(() => {
+    clearSelection();
+    setSiteB(null);
+    setIsSiteBArmed(false);
+    setLeoTopologyMode('SINGLE_SITE');
+    setLinkMode(m => LINK_MODE_REQUIRES_POINT_B.has(m) ? 'STAR_FORWARD' : m);
+  }, [clearSelection]);
+
+  const handleClearSiteB = useCallback(() => {
+    setSiteB(null);
+    setIsSiteBArmed(false);
+    setLeoTopologyMode(m => m === 'SITE_TO_SITE' ? 'SINGLE_SITE' : m);
+    setLinkMode(m => LINK_MODE_REQUIRES_POINT_B.has(m) ? 'STAR_FORWARD' : m);
+  }, []);
+
   // Handle aircraft selection (aircraft-based analyzis)
   const handleAircraftSelect = useCallback((aircraft: Aircraft | null, fromComboBox: boolean = false) => {
     setSelectedMoon(false);
@@ -2781,7 +2868,7 @@ const App: React.FC = () => {
 
     if (activeAnalysisPoint) {
       const nearestLocationLabel = [nearestLocation?.city, nearestLocation?.country].filter(Boolean).join(', ');
-      const footer = activeAnalysisSource !== 'aircraft' ? (
+      const weatherFooter = (
         <WeatherControl
           terminalType="fixed"
           weatherType={weatherType}
@@ -2792,15 +2879,72 @@ const App: React.FC = () => {
           showLabel
           inline
         />
-      ) : null;
+      );
+
+      // Site-to-Site mode: two standalone endpoint cards
+      if (leoTopologyMode === 'SITE_TO_SITE' && siteB && activeAnalysisSource !== 'aircraft') {
+        const nearestLocationLabelB = [nearestLocationB?.city, nearestLocationB?.country].filter(Boolean).join(', ');
+        const selectBg = `url("data:image/svg+xml;charset=US-ASCII,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 4 5'%3E%3Cpath fill='%236B7280' d='M2 0L0 2h4zm0 5L0 3h4z'/%3E%3C/svg>")`;
+        const selectClass = 'w-full appearance-none rounded-md border border-gray-200 bg-white py-1 pl-2 pr-5 text-[11px] text-gray-900 focus:border-transparent focus:ring-1 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-700 dark:text-gray-100';
+        const selectStyle = { backgroundImage: selectBg, backgroundRepeat: 'no-repeat', backgroundPosition: 'right .35rem center', backgroundSize: '.7em .7em' };
+
+        const buildWeatherRow = (
+          wType: WeatherType,
+          onTypeChange: (t: WeatherType) => void,
+          autoEnabled: boolean,
+          onAutoChange: (v: boolean) => void,
+        ) => {
+          const attenDb = WEATHER_ATTENUATION_DB[toWeatherCondition(wType)].toFixed(1);
+          const emoji: Record<WeatherType, string> = { clear: '☀️', light_rain: '☁️', heavy_rain: '🌧️', storm: '⛈️' };
+          return (
+            <div className="flex flex-col gap-1">
+              <select value={wType} onChange={(e) => onTypeChange(e.target.value as WeatherType)} className={selectClass} style={selectStyle}>
+                {Object.entries(WEATHER_PROFILES).map(([key, profile]) => (
+                  <option key={key} value={key}>{emoji[key as WeatherType]} {profile.label}</option>
+                ))}
+              </select>
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] text-gray-500 dark:text-gray-400">{attenDb} dB</span>
+                <label className="flex cursor-pointer items-center gap-1 text-[10px] text-gray-500 dark:text-gray-400">
+                  <input type="checkbox" checked={autoEnabled} onChange={(e) => onAutoChange(e.target.checked)}
+                    className="rounded border-gray-300 bg-white text-blue-600 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-700" />
+                  <span>Real</span>
+                </label>
+              </div>
+            </div>
+          );
+        };
+
+        const siteAWeatherRow = buildWeatherRow(weatherType, handleWeatherTypeChange, autoWeatherEnabled, setAutoWeatherEnabled);
+        const siteBWeatherRow = buildWeatherRow(weatherTypeB, handleWeatherTypeBChange, autoWeatherEnabledB, setAutoWeatherEnabledB);
+        return {
+          siteToSite: {
+            siteA: {
+              label: 'Site A',
+              coordinates: formatCoordinates({ lat: activeAnalysisPoint.lat, lng: activeAnalysisPoint.lng }),
+              location: nearestLocationLabel || 'Ground position',
+              weatherRow: siteAWeatherRow,
+              onClear: handleClearSiteA,
+            },
+            siteB: {
+              label: 'Site B',
+              coordinates: formatCoordinates({ lat: siteB.lat, lng: siteB.lng }),
+              location: nearestLocationLabelB || 'Ground position',
+              weatherRow: siteBWeatherRow,
+              onClear: handleClearSiteB,
+            },
+          },
+          tone: 'position' as const,
+        };
+      }
 
       return {
-        eyebrow: activeAnalysisSource === 'aircraft' ? 'Airborne Analysis' : 'Surface Analysis',
+        eyebrow: activeAnalysisSource === 'aircraft' ? 'Airborne Analysis' : 'Site Analysis',
         title: formatCoordinates({ lat: activeAnalysisPoint.lat, lng: activeAnalysisPoint.lng }),
         subtitle: activeAnalysisSource === 'aircraft'
           ? `${selectedAircraft?.callsign || 'Aircraft'} corridor`
           : (nearestLocationLabel || (activeAnalysisPoint.altitude ? `Altitude ${activeAnalysisPoint.altitude.toFixed(1)} km` : 'Ground position')),
-        footer,
+        footer: activeAnalysisSource !== 'aircraft' ? weatherFooter : null,
         tone: 'position' as const,
         badges: activeAnalysisSource === 'aircraft'
           ? [{ label: 'Aircraft', tone: 'slate' as const }]
@@ -2822,9 +2966,16 @@ const App: React.FC = () => {
     activeAnalysisPoint,
     activeAnalysisSource,
     autoWeatherEnabled,
+    autoWeatherEnabledB,
     failedSnps,
+    handleClearSiteA,
+    handleClearSiteB,
+    handleWeatherTypeChange,
+    handleWeatherTypeBChange,
     inspectedSNP,
+    leoTopologyMode,
     nearestLocation,
+    nearestLocationB,
     analyzisPosition,
     selectedGateway,
     selectedGatewayHeroData,
@@ -2835,11 +2986,12 @@ const App: React.FC = () => {
     selectedSelection,
     selectedVessel,
     selectedIss,
+    siteB,
     iss.freshness,
     iss.position,
-    handleWeatherTypeChange,
     useCompactDesktopSidebar,
     weatherType,
+    weatherTypeB,
   ]);
 
   const mobileBackgroundMetricsCollectorVisible = isMobile
@@ -3788,6 +3940,7 @@ const App: React.FC = () => {
                   backgroundImageLabel={desktopSidebarHero.backgroundImageLabel}
                   tone={desktopSidebarHero.tone}
                   badges={desktopSidebarHero.badges}
+                  siteToSite={desktopSidebarHero.siteToSite}
                   compact={useCompactDesktopSidebar}
                   onReset={handleResetView}
                 />

@@ -153,13 +153,7 @@ const SatelliteScreenLabels: React.FC<SatelliteScreenLabelsProps> = ({
 
   return (
     <>
-      {sortedSatellites.map(({ satellite, isManuallySelected, serviceRoles }, index) => {
-        const roleText = serviceRoles?.length === 2
-          ? 'Sites A+B'
-          : serviceRoles?.length === 1
-            ? `Site ${serviceRoles[0]}`
-            : null;
-
+      {sortedSatellites.map(({ satellite, isManuallySelected }, index) => {
         return (
           <div
             key={satellite.id}
@@ -188,11 +182,6 @@ const SatelliteScreenLabels: React.FC<SatelliteScreenLabelsProps> = ({
               }}
             >
               <div>{satellite.name}</div>
-              {roleText && (
-                <div className="mt-0.5 text-[10px] font-bold uppercase tracking-wide text-white/85">
-                  {roleText}
-                </div>
-              )}
             </div>
           </div>
         );
