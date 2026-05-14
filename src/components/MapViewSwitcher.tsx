@@ -24,6 +24,7 @@ interface MapViewSwitcherProps {
   coverageFeatures: Feature<Geometry, GeoJsonProperties>[];
   selectedPosition?: { lat: number; lng: number; altitude?: number } | null;
   onPointClick: (lat: number, lng: number, shiftKey: boolean) => void;
+  onEmptyClick?: (shiftKey: boolean) => void;
   onSatelliteClick: (satellite: SatelliteData | null) => void;
   onMoonSelectionChange?: (selected: boolean) => void;
   onSatelliteHover: (satelliteId: string | null) => void;
@@ -114,6 +115,7 @@ const MapViewSwitcher: React.FC<MapViewSwitcherProps> = ({
   coverageFeatures,
   selectedPosition,
   onPointClick,
+  onEmptyClick,
   selectedSatellite,
   selectedMoon,
   autoSelectedLEOSatellite,
@@ -205,6 +207,7 @@ const MapViewSwitcher: React.FC<MapViewSwitcherProps> = ({
         coverageFeatures={coverageFeatures}
         selectedPosition={selectedPosition}
         onPointClick={onPointClick}
+        onEmptyClick={onEmptyClick}
         onSatelliteClick={onSatelliteClick}
         onMoonSelectionChange={onMoonSelectionChange}
         onSatelliteHover={onSatelliteHover}

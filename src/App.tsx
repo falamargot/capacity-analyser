@@ -450,6 +450,9 @@ const App: React.FC = () => {
   const selectedPosition = useMemo(() => (
     selectedSelection.type === 'target' ? selectedSelection.position : null
   ), [selectedSelection]);
+  // Ref so event callbacks can always read the live position without being in dep arrays.
+  const selectedPositionRef = useRef(selectedPosition);
+  selectedPositionRef.current = selectedPosition;
   const pointAIsUserDefined = selectedSelection.type === 'target' && selectedSelection.targetType === 'point';
   const pointBIsUserDefined = siteB !== null;
   const [selectedUplinkKey, setSelectedUplinkKey] = useState<string | null>(null);
@@ -2023,18 +2026,20 @@ const App: React.FC = () => {
   }, [selectCoverage, selectedSatellite]);
 
   // Handle geographic point click (earth-based analysis)
-  // Shift+click (or armed state on mobile) sets Site B in dual-point modes.
-  // Plain clicks set Site A without disturbing Site B in any dual-point mode.
+  // Shift+click places or moves Site B and auto-upgrades to two-point mode.
+  // Plain click moves Site A without disturbing an existing Site B.
   const handlePointClick = useCallback((lat: number, lng: number, shiftKey: boolean) => {
-    // In any two-point mode, Shift+click (desktop) or armed state (mobile) places Site B.
-    // Plain click moves Site A — Site B is preserved.
-    if (isTwoPointMode && (shiftKey || isSiteBArmed) && selectedPosition) {
-      setSiteB({ lat, lng });
-      setIsSiteBArmed(false);
-      return;
+    if (shiftKey || isSiteBArmed) {
+      if (selectedPosition) {
+        setSiteB({ lat, lng });
+        setIsSiteBArmed(false);
+        setLeoTopologyMode('SITE_TO_SITE');
+        setLinkMode(m => LINK_MODE_REQUIRES_POINT_B.has(m) ? m : 'MESH');
+        return;
+      }
     }
 
-    // Plain click → set Site A and clear other entity selections.
+    // Plain click → set Site A; preserve existing Site B.
     setIsSiteBArmed(false);
     setSelectedMoon(false);
     setSelectedAircraft(null);
@@ -2042,13 +2047,29 @@ const App: React.FC = () => {
     setSelectedGateway(null);
     setInspectedSNP(null);
     setSelectedIss(false);
-    if (!isTwoPointMode) {
-      setSiteB(null);
-    }
     setSelectedUplinkKey(null);
     setSelectedDownlinkKey(null);
     selectTarget('point', { lat, lng });
-  }, [isSiteBArmed, isTwoPointMode, selectedPosition, selectTarget]);
+  }, [isSiteBArmed, selectedPosition, selectTarget]);
+
+  // Handle click outside the globe — clears Site B and auto-downgrades mode.
+  // Shift+click outside: clear Site B only, keep Site A.
+  // Plain click: clear both sites.
+  // Uses selectedPositionRef so the callback is stable and always reads the live position,
+  // guarding against stale closures in Cesium event listeners.
+  const handleEmptyClick = useCallback((shiftKey: boolean) => {
+    setSiteB(null);
+    setIsSiteBArmed(false);
+    if (shiftKey) {
+      // Re-assert Site A via selectTarget so it survives any upstream clearSelection call.
+      const pos = selectedPositionRef.current;
+      if (pos) selectTarget('point', pos);
+    } else {
+      clearSelection();
+    }
+    setLeoTopologyMode(m => m === 'SITE_TO_SITE' ? 'SINGLE_SITE' : m);
+    setLinkMode(m => LINK_MODE_REQUIRES_POINT_B.has(m) ? 'STAR_FORWARD' : m);
+  }, [clearSelection, selectTarget]);
 
   // Handle aircraft selection (aircraft-based analyzis)
   const handleAircraftSelect = useCallback((aircraft: Aircraft | null, fromComboBox: boolean = false) => {
@@ -2454,6 +2475,7 @@ const App: React.FC = () => {
     coverageFeatures: coverageFeaturesMemo,
     visibleGeoCoverageKeys: selectedSelection.type === 'target' ? undefined : visibleManualGeoCoverageKeys,
     onPointClick: handlePointClick,
+    onEmptyClick: handleEmptyClick,
     onCoverageClick: handleCoverageClick,
     selectedPosition,
     pointB,
@@ -2534,7 +2556,7 @@ const App: React.FC = () => {
     leoSiteToSiteFullResult: leoS2SFullResult,
     pointBLeo,
   }), [
-    filteredSatellites, satelliteTypeByName, coverageFeaturesMemo, visibleManualGeoCoverageKeys, handlePointClick, handleCoverageClick, selectedPosition,
+    filteredSatellites, satelliteTypeByName, coverageFeaturesMemo, visibleManualGeoCoverageKeys, handlePointClick, handleEmptyClick, handleCoverageClick, selectedPosition,
     handleSatelliteClick, handleSatelliteHover, handleSnpClick, handleGatewaySelectByName, handleSnpHover,
     handleMoonSelectionChange, selectedSatellite, selectedMoon, resolvedAutoLEO, resolvedAutoLEOB, activeGeoSatellite, selectedGEOBeam, selectedSelection, selectedCoverage, globeUplinkCoverage, globeDownlinkCoverage, selectedSNP, selectedGateway, dedicatedSNPForSelectedLEO, leoServiceViewModel, geoPointStatus, mobileMetrics, leoRegulatoryResult,
     isFullscreen, satelliteScope, airTrafficEnabled, airTraffic.aircraft,

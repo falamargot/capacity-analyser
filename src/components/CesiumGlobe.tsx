@@ -159,6 +159,7 @@ interface CesiumGlobeProps {
     coverageFeatures: Feature<Geometry, GeoJsonProperties>[];
     selectedPosition?: { lat: number; lng: number; altitude?: number } | null;
     onPointClick: (lat: number, lng: number, shiftKey: boolean) => void;
+    onEmptyClick?: (shiftKey: boolean) => void;
     onSatelliteClick: (satellite: SatelliteData | null) => void;
     onMoonSelectionChange?: (selected: boolean) => void;
     onSatelliteHover: (satelliteId: string | null) => void;
@@ -256,6 +257,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
     coverageFeatures,
     selectedPosition,
     onPointClick,
+    onEmptyClick,
     onSatelliteClick,
     onMoonSelectionChange,
     onSatelliteHover,
@@ -864,6 +866,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
             onSnpClick(null);
             onAircraftClick?.(null);
             onVesselClick?.(null);
+            onEmptyClick?.(pointerShiftPressedRef.current || shiftPressedRef.current);
             return;
         }
 
@@ -871,7 +874,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         const lat = CesiumMath.toDegrees(cartographic.latitude);
         const lng = CesiumMath.toDegrees(cartographic.longitude);
         onPointClick(lat, lng, pointerShiftPressedRef.current || shiftPressedRef.current);
-    }, [onAircraftClick, onCoverageClick, onIssClick, onMoonSelectionChange, onPointClick, onSatelliteClick, onSnpClick, onVesselClick, selection.type]);
+    }, [onAircraftClick, onCoverageClick, onEmptyClick, onIssClick, onMoonSelectionChange, onPointClick, onSatelliteClick, onSnpClick, onVesselClick, selection.type]);
 
     const leoS2SVisualResult = leoSiteToSiteFullResult ?? leoSiteToSiteResult;
 
