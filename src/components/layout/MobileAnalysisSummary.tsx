@@ -1,4 +1,5 @@
 import React, { useMemo } from 'react';
+import { ArrowLeft, ArrowRight } from 'lucide-react';
 import type { Aircraft } from '../../modules/airTraffic/airTrafficService';
 import type { Vessel } from '../../modules/maritimeTraffic/maritimeTrafficService';
 import type { GeoGatewayData, SNPData } from '../globe/GlobeConfig';
@@ -6,11 +7,13 @@ import type { SatelliteData } from '../../types/satellites';
 import type { MobileAnalysisMetrics, MobileLinkMetrics } from '../../types/analysis';
 import type { LinkMode } from '../../types/linkMode';
 import { LINK_MODE_LABELS } from '../../types/linkMode';
+import { WEATHER_PROFILES, toWeatherCondition, type WeatherType } from '../capacity';
 import type { LeoSiteToSiteResult } from '../../utils/leoSiteToSiteModel';
 import { formatLeoSiteToSiteFailureReason } from '../../utils/leoSiteToSiteModel';
 import type { LeoConnectivityViewModel } from '../../utils/leoServiceViewModel';
 import { formatCoordinates } from '../../utils/formatters';
 import { useSimulation } from '../../contexts/SimulationContext';
+import { WEATHER_ATTENUATION_DB } from '../../utils/realisticSimulation';
 import {
     deriveSelectedPointStatusPresentation,
     type GeoPointStatus,
@@ -53,8 +56,27 @@ interface MobileAnalysisSummaryProps {
     onLinkModeChange?: (mode: LinkMode) => void;
     pointB?: { lat: number; lng: number } | null;
     pointBLeo?: { lat: number; lng: number } | null;
+    nearestLocation?: { city: string; country: string } | null;
+    nearestLocationB?: { city: string; country: string } | null;
+    weatherType?: WeatherType;
+    weatherTypeB?: WeatherType;
+    autoWeatherEnabled?: boolean;
+    autoWeatherEnabledB?: boolean;
+    activeConnectivityTab?: 'LEO' | 'GEO';
+    activeMeshTab?: 'forward' | 'reverse';
+    onActiveMeshTabChange?: (tab: 'forward' | 'reverse') => void;
     leoTopologyMode?: 'SINGLE_SITE' | 'SITE_TO_SITE';
     leoSiteToSiteResult?: LeoSiteToSiteResult | null;
+}
+
+type SummaryTone = SelectedPointStatusTone | 'danger' | 'warning' | 'success' | 'neutral';
+
+interface SummaryHeader {
+    eyebrow: string;
+    title: string;
+    subtitle: string | null;
+    status: string | null;
+    statusTone: SummaryTone;
 }
 
 const MOBILE_LINK_MODE_OPTIONS: Array<{ mode: LinkMode; label: string }> = [
@@ -79,6 +101,111 @@ function statusToneClass(tone: SelectedPointStatusTone | 'danger' | 'warning' | 
     if (tone === 'warning') return 'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-400/30 dark:bg-amber-500/15 dark:text-amber-200';
     if (tone === 'danger') return 'border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-400/30 dark:bg-rose-500/15 dark:text-rose-200';
     return 'border-slate-200 bg-slate-100 text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200';
+}
+
+const weatherGlyph: Record<WeatherType, string> = {
+    clear: '☀️',
+    light_rain: '☁️',
+    heavy_rain: '🌧️',
+    storm: '⛈️',
+};
+
+function formatNearestLocation(location: { city: string; country: string } | null | undefined) {
+    return [location?.city, location?.country].filter(Boolean).join(', ') || 'Ground position';
+}
+
+function formatWeatherSummary(weatherType: WeatherType, autoWeatherEnabled: boolean) {
+    const profile = WEATHER_PROFILES[weatherType];
+    const attenuation = WEATHER_ATTENUATION_DB[toWeatherCondition(weatherType)].toFixed(1);
+    return `${weatherGlyph[weatherType]} ${profile.label} · ${attenuation} dB · ${autoWeatherEnabled ? 'Real' : 'Manual'}`;
+}
+
+function MobileSiteRouteSummary({
+    siteA,
+    siteB,
+    accent,
+    relation,
+    detailDirection,
+    onToggleDirection,
+}: {
+    siteA: {
+        coordinates: string;
+        location: string;
+        weather: string;
+    };
+    siteB: {
+        coordinates: string;
+        location: string;
+        weather: string;
+    };
+    accent: 'LEO' | 'GEO';
+    relation: 'forward' | 'reverse' | 'bidirectional';
+    detailDirection: 'forward' | 'reverse';
+    onToggleDirection?: () => void;
+}) {
+    const isLeo = accent === 'LEO';
+    const Icon = relation === 'forward'
+        ? ArrowRight
+        : relation === 'reverse'
+            ? ArrowLeft
+            : detailDirection === 'reverse'
+                ? ArrowLeft
+                : ArrowRight;
+    const indicatorLabel = relation === 'forward'
+        ? 'Site A to Site B'
+        : relation === 'reverse'
+            ? 'Site B to Site A'
+            : detailDirection === 'reverse'
+                ? 'Site A and Site B bidirectional. Current detail direction is Site B to Site A.'
+                : 'Site A and Site B bidirectional. Current detail direction is Site A to Site B.';
+    const indicatorClassName = isLeo
+        ? 'border-fuchsia-300/60 bg-fuchsia-500 text-white shadow-[0_10px_24px_-16px_rgba(192,38,211,0.85)]'
+        : 'border-blue-300/70 bg-blue-600 text-white shadow-[0_10px_24px_-16px_rgba(37,99,235,0.85)]';
+    const indicatorBaseClassName = `absolute left-1/2 top-1/2 z-10 flex h-8 w-8 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border ${indicatorClassName}`;
+
+    const renderSite = (label: 'SITE A' | 'SITE B', site: typeof siteA) => (
+        <div className="min-w-0 rounded-[18px] border border-slate-200/80 bg-white/82 px-2.5 py-2 shadow-sm dark:border-slate-700 dark:bg-slate-900/72">
+            <div className="text-[9px] font-semibold uppercase tracking-[0.16em] text-slate-400 dark:text-slate-500">
+                {label}
+            </div>
+            <div className="mt-1 truncate whitespace-nowrap font-mono text-[13px] font-semibold leading-4 text-slate-950 dark:text-slate-50" title={site.coordinates}>
+                {site.coordinates}
+            </div>
+            <div className="mt-0.5 truncate text-[10px] leading-3 text-slate-500 dark:text-slate-400" title={site.location}>
+                {site.location}
+            </div>
+            <div className="mt-1.5 truncate rounded-[10px] bg-slate-100/75 px-2 py-1 text-[10px] font-medium leading-3 text-slate-600 dark:bg-slate-800/70 dark:text-slate-300" title={site.weather}>
+                {site.weather}
+            </div>
+        </div>
+    );
+
+    return (
+        <div className="relative grid grid-cols-2 gap-2">
+            {renderSite('SITE A', siteA)}
+            {onToggleDirection ? (
+                <button
+                    type="button"
+                    onClick={onToggleDirection}
+                    className={`${indicatorBaseClassName} transition-transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-white/75`}
+                    aria-label={`${indicatorLabel} Click to switch detail direction.`}
+                    title={`${indicatorLabel} Click to switch detail direction.`}
+                >
+                    <Icon className="h-3.5 w-3.5" />
+                </button>
+            ) : (
+                <div
+                    className={`pointer-events-none ${indicatorBaseClassName}`}
+                    role="img"
+                    aria-label={indicatorLabel}
+                    title={indicatorLabel}
+                >
+                    <Icon className="h-3.5 w-3.5" />
+                </div>
+            )}
+            {renderSite('SITE B', siteB)}
+        </div>
+    );
 }
 
 function CompactInfoPill({
@@ -322,6 +449,15 @@ const MobileAnalysisSummary: React.FC<MobileAnalysisSummaryProps> = ({
     onLinkModeChange,
     pointB = null,
     pointBLeo = null,
+    nearestLocation = null,
+    nearestLocationB = null,
+    weatherType = 'clear',
+    weatherTypeB = 'clear',
+    autoWeatherEnabled = false,
+    autoWeatherEnabledB = false,
+    activeConnectivityTab = 'LEO',
+    activeMeshTab = 'forward',
+    onActiveMeshTabChange,
     leoTopologyMode = 'SINGLE_SITE',
     leoSiteToSiteResult = null,
 }) => {
@@ -344,7 +480,7 @@ const MobileAnalysisSummary: React.FC<MobileAnalysisSummaryProps> = ({
         [selectedMoon]
     );
 
-    const summary = useMemo(() => {
+    const summary = useMemo<SummaryHeader>(() => {
         if (selectedMoon) {
             return {
                 eyebrow: 'Celestial Body',
@@ -412,11 +548,29 @@ const MobileAnalysisSummary: React.FC<MobileAnalysisSummaryProps> = ({
         }
 
         if (selectedPoint) {
+            const siteBPoint = pointB ?? pointBLeo;
+            const isTwoPointGroundAnalysis = selectedPoint.source !== 'aircraft' && Boolean(siteBPoint);
             const siteToSiteServiceReady = leoTopologyMode === 'SITE_TO_SITE' && pointBLeo;
+            const routeAccent: 'LEO' | 'GEO' = satelliteScope === 'GEO' || satelliteScope === 'LEO'
+                ? satelliteScope
+                : activeConnectivityTab;
+            const routeTitle = routeAccent === 'GEO' && linkMode === 'STAR_FORWARD'
+                ? 'Site A → Site B'
+                : routeAccent === 'GEO' && linkMode === 'STAR_RETURN'
+                    ? 'Site B → Site A'
+                    : 'Site A ⇄ Site B';
             return {
-                eyebrow: selectedPoint.source === 'aircraft' ? 'Air Corridor' : 'Ground Point',
-                title: formatCoordinates({ lat: selectedPoint.lat, lng: selectedPoint.lng }),
-                subtitle: selectedPoint.altitude
+                eyebrow: selectedPoint.source === 'aircraft'
+                    ? 'Air Corridor'
+                    : isTwoPointGroundAnalysis
+                        ? 'Site-to-Site'
+                        : 'Ground Point',
+                title: isTwoPointGroundAnalysis
+                    ? routeTitle
+                    : formatCoordinates({ lat: selectedPoint.lat, lng: selectedPoint.lng }),
+                subtitle: isTwoPointGroundAnalysis
+                    ? (routeAccent === 'GEO' ? LINK_MODE_LABELS[linkMode] : 'LEO site-to-site')
+                    : selectedPoint.altitude
                     ? `Altitude ${selectedPoint.altitude.toFixed(1)} km`
                     : null,
                 status: siteToSiteServiceReady
@@ -448,14 +602,18 @@ const MobileAnalysisSummary: React.FC<MobileAnalysisSummaryProps> = ({
             statusTone: 'neutral' as const,
         };
     }, [
+        activeConnectivityTab,
         autoSelectedGEOSatellite?.name,
         autoSelectedLEOSatellite?.name,
         inspectedSNP,
         leoServiceViewModel?.finalServiceStatus,
         leoServiceViewModel?.primaryReasonLabel,
-        leoSiteToSiteResult?.serviceAvailable,
+        leoSiteToSiteResult,
         leoTopologyMode,
+        linkMode,
+        pointB,
         pointBLeo,
+        satelliteScope,
         selectedMoon,
         selectedAircraft,
         selectedGateway,
@@ -549,6 +707,75 @@ const MobileAnalysisSummary: React.FC<MobileAnalysisSummaryProps> = ({
     }, [leoSiteToSiteResult, leoTopologyMode, linkMode, metrics?.geo, metrics?.leo, metrics?.mesh, onLinkModeChange, pointB, satelliteScope, selectedAircraft, selectedPoint]);
 
     const hasMetrics = metricCards.length > 0;
+    const mobileRouteSummary = useMemo(() => {
+        const siteBPoint = pointB ?? pointBLeo;
+        if (
+            !compact
+            || !selectedPoint
+            || selectedPoint.source === 'aircraft'
+            || !siteBPoint
+            || selectedMoon
+            || selectedGateway
+            || inspectedSNP
+            || selectedVessel
+            || selectedAircraft
+            || selectedSatellite
+        ) {
+            return null;
+        }
+
+        const accent: 'LEO' | 'GEO' = satelliteScope === 'GEO' || satelliteScope === 'LEO'
+            ? satelliteScope
+            : activeConnectivityTab;
+        const relation = accent === 'GEO'
+            ? linkMode === 'STAR_RETURN'
+                ? 'reverse' as const
+                : linkMode === 'STAR_FORWARD'
+                    ? 'forward' as const
+                    : 'bidirectional' as const
+            : 'bidirectional' as const;
+
+        return {
+            siteA: {
+                coordinates: formatCoordinates({ lat: selectedPoint.lat, lng: selectedPoint.lng }),
+                location: formatNearestLocation(nearestLocation),
+                weather: formatWeatherSummary(weatherType, autoWeatherEnabled),
+            },
+            siteB: {
+                coordinates: formatCoordinates({ lat: siteBPoint.lat, lng: siteBPoint.lng }),
+                location: formatNearestLocation(nearestLocationB),
+                weather: formatWeatherSummary(weatherTypeB, autoWeatherEnabledB),
+            },
+            accent,
+            relation,
+            detailDirection: activeMeshTab,
+            onToggleDirection: relation === 'bidirectional' && onActiveMeshTabChange
+                ? () => onActiveMeshTabChange(activeMeshTab === 'forward' ? 'reverse' : 'forward')
+                : undefined,
+        };
+    }, [
+        activeConnectivityTab,
+        activeMeshTab,
+        autoWeatherEnabled,
+        autoWeatherEnabledB,
+        compact,
+        inspectedSNP,
+        linkMode,
+        nearestLocation,
+        nearestLocationB,
+        onActiveMeshTabChange,
+        pointB,
+        pointBLeo,
+        satelliteScope,
+        selectedAircraft,
+        selectedGateway,
+        selectedMoon,
+        selectedPoint,
+        selectedSatellite,
+        selectedVessel,
+        weatherType,
+        weatherTypeB,
+    ]);
     const isCompactCoordinateSummary = compact && !!selectedPoint;
     const isCompactSatelliteSummary = compact && !!selectedSatellite;
     const compactSatellitePosition = useMemo(() => {
@@ -727,44 +954,60 @@ const MobileAnalysisSummary: React.FC<MobileAnalysisSummaryProps> = ({
         : compactHeaderHasAside
             ? 'col-span-2'
             : 'col-span-1';
+    const shouldHideCompactRouteHeader = compact && !!mobileRouteSummary;
 
     return (
         <div className={compact ? 'rounded-[24px] border border-slate-200/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,250,252,0.94))] px-3 py-2.5 shadow-[0_18px_40px_-32px_rgba(15,23,42,0.55)] dark:border-slate-700 dark:bg-[linear-gradient(180deg,rgba(15,23,42,0.94),rgba(15,23,42,0.84))]' : 'rounded-3xl border border-slate-200/80 bg-white px-4 py-4 shadow-sm dark:border-slate-700 dark:bg-slate-900'}>
-            <div className={compact ? (compactHeaderHasAside ? 'grid grid-cols-[minmax(0,1fr)_auto] items-start gap-x-3 gap-y-1.5' : 'grid grid-cols-1 gap-y-1') : 'flex items-start justify-between gap-3'}>
-                <div className={`min-w-0 ${compact ? 'contents' : 'flex-1'}`}>
-                    <div className={`text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400 ${compact ? 'col-start-1 row-start-1' : ''}`}>
-                        {summary.eyebrow}
+            {!shouldHideCompactRouteHeader ? (
+                <div className={compact ? (compactHeaderHasAside ? 'grid grid-cols-[minmax(0,1fr)_auto] items-start gap-x-3 gap-y-1.5' : 'grid grid-cols-1 gap-y-1') : 'flex items-start justify-between gap-3'}>
+                    <div className={`min-w-0 ${compact ? 'contents' : 'flex-1'}`}>
+                        <div className={`text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400 ${compact ? 'col-start-1 row-start-1' : ''}`}>
+                            {summary.eyebrow}
+                        </div>
+                        <div className={`${compact ? `${compactHeaderTextSpanClass} row-start-2 mt-0 ${isCompactSatelliteSummary ? 'text-[16px] leading-[1.05]' : 'text-[18px] leading-[1.05]'}` : 'mt-1 truncate text-[22px] leading-7'} font-semibold text-slate-950 dark:text-slate-50`}>
+                            <span className={isCompactCoordinateSummary || isCompactSatelliteSummary ? 'block truncate whitespace-nowrap' : compact ? 'block' : undefined}>
+                                {summary.title}
+                            </span>
+                        </div>
+                        {summary.subtitle ? (
+                            <div className={`${compact ? `${compactHeaderTextSpanClass} row-start-3 mt-0 text-[13px] leading-[1.3]` : 'mt-1 text-sm leading-5'} text-slate-500 dark:text-slate-400`}>
+                                {summary.subtitle}
+                            </div>
+                        ) : null}
                     </div>
-                    <div className={`${compact ? `${compactHeaderTextSpanClass} row-start-2 mt-0 ${isCompactSatelliteSummary ? 'text-[16px] leading-[1.05]' : 'text-[18px] leading-[1.05]'}` : 'mt-1 truncate text-[22px] leading-7'} font-semibold text-slate-950 dark:text-slate-50`}>
-                        <span className={isCompactCoordinateSummary || isCompactSatelliteSummary ? 'block truncate whitespace-nowrap' : compact ? 'block' : undefined}>
-                            {summary.title}
-                        </span>
-                    </div>
-                    {summary.subtitle ? (
-                        <div className={`${compact ? `${compactHeaderTextSpanClass} row-start-3 mt-0 text-[13px] leading-[1.3]` : 'mt-1 text-sm leading-5'} text-slate-500 dark:text-slate-400`}>
-                            {summary.subtitle}
+
+                    {compactSatellitePosition ? (
+                        <div className="col-start-2 row-span-2 row-start-1 self-start justify-self-end">
+                            <CompactInfoPill
+                                label={compactSatellitePosition.label}
+                                value={compactSatellitePosition.value}
+                                hint={compactSatellitePosition.hint}
+                                accentClassName={compactSatellitePosition.accentClassName}
+                                surfaceClassName={compactSatellitePosition.surfaceClassName}
+                            />
+                        </div>
+                    ) : null}
+
+                    {hasStatusBadge ? (
+                        <div className={`w-fit max-w-full shrink-0 rounded-full border ${compact ? 'col-start-2 row-start-1 self-start justify-self-end px-2.5 py-1 text-[10px] leading-4' : 'px-2.5 py-1 text-[11px]'} font-semibold ${statusClassName}`}>
+                            {summary.status}
                         </div>
                     ) : null}
                 </div>
+            ) : null}
 
-                {compactSatellitePosition ? (
-                    <div className="col-start-2 row-span-2 row-start-1 self-start justify-self-end">
-                        <CompactInfoPill
-                            label={compactSatellitePosition.label}
-                            value={compactSatellitePosition.value}
-                            hint={compactSatellitePosition.hint}
-                            accentClassName={compactSatellitePosition.accentClassName}
-                            surfaceClassName={compactSatellitePosition.surfaceClassName}
-                        />
-                    </div>
-                ) : null}
-
-                {hasStatusBadge ? (
-                    <div className={`w-fit max-w-full shrink-0 rounded-full border ${compact ? 'col-start-2 row-start-1 self-start justify-self-end px-2.5 py-1 text-[10px] leading-4' : 'px-2.5 py-1 text-[11px]'} font-semibold ${statusClassName}`}>
-                        {summary.status}
-                    </div>
-                ) : null}
-            </div>
+            {mobileRouteSummary ? (
+                <div className={shouldHideCompactRouteHeader ? 'mt-0' : 'mt-2'}>
+                    <MobileSiteRouteSummary
+                        siteA={mobileRouteSummary.siteA}
+                        siteB={mobileRouteSummary.siteB}
+                        accent={mobileRouteSummary.accent}
+                        relation={mobileRouteSummary.relation}
+                        detailDirection={mobileRouteSummary.detailDirection}
+                        onToggleDirection={mobileRouteSummary.onToggleDirection}
+                    />
+                </div>
+            ) : null}
 
             {hasEntitySummary ? (
                 <div className={compact ? 'mt-2' : 'mt-3'}>

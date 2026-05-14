@@ -7,6 +7,10 @@ interface AnalysisHeaderProps {
   analysisSource?: 'earth' | 'aircraft';
   aircraftCallsign?: string;
   nearestLocation: { city: string; country: string } | null;
+  routeSummary?: {
+    title: string;
+    subtitle?: string;
+  } | null;
   compact?: boolean;
 }
 
@@ -16,6 +20,7 @@ const AnalysisHeader = memo<AnalysisHeaderProps>(({
   analysisSource,
   aircraftCallsign,
   nearestLocation,
+  routeSummary = null,
   compact = false,
 }) => (
   <div className="flex-none">
@@ -27,6 +32,8 @@ const AnalysisHeader = memo<AnalysisHeaderProps>(({
             <span className={`mt-1 block font-semibold text-gray-500 dark:text-gray-400 sm:ml-2 sm:mt-0 sm:inline ${compact ? 'text-sm sm:text-base' : 'text-base sm:text-lg'}`}>
               {selectedSNP
                 ? `at ${selectedSNP.name}`
+                : routeSummary
+                  ? routeSummary.title
                 : `at (${formatCoordinates({ lat: activePoint.lat, lng: activePoint.lng })})`}
             </span>
           )}
@@ -44,6 +51,10 @@ const AnalysisHeader = memo<AnalysisHeaderProps>(({
             <span className="text-xs text-gray-400 dark:text-gray-500 sm:ml-2">
               Altitude: {activePoint?.altitude ? `${activePoint.altitude.toFixed(1)} km` : 'Unknown'}
             </span>
+          </div>
+        ) : routeSummary ? (
+          <div className="text-sm text-gray-500 dark:text-gray-400 mt-0.1 break-words">
+            {routeSummary.subtitle}
           </div>
         ) : nearestLocation ? (
           <div className="text-sm text-gray-500 dark:text-gray-400 mt-0.1 break-words">

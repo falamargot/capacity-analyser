@@ -1108,7 +1108,7 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
 <div className="mb-4">
         {isMeshOrP2P && terminalTypeB != null && onTerminalTypeBChange ? (
           <>
-            <div className="grid grid-cols-1 items-stretch gap-2 xl:grid-cols-2">
+            <div className="grid grid-cols-2 items-stretch gap-2">
               <TerminalConfig
                 terminalType={terminalType}
                 onTerminalTypeChange={onTerminalTypeChange}
@@ -1155,7 +1155,7 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
             </div>
           </>
         ) : (
-          <div className="grid grid-cols-1 items-stretch gap-2 xl:grid-cols-2">
+          <div className="grid grid-cols-2 items-stretch gap-2">
             {isStarForward ? (
               <>
                 <TerminalConfig

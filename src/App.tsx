@@ -2998,7 +2998,6 @@ const App: React.FC = () => {
     handleWeatherTypeChange,
     handleWeatherTypeBChange,
     inspectedSNP,
-    leoTopologyMode,
     linkMode,
     nearestLocation,
     nearestLocationB,
@@ -3768,6 +3767,15 @@ const App: React.FC = () => {
                           onLinkModeChange={setLinkMode}
                           pointB={pointB}
                           pointBLeo={pointBLeo}
+                          nearestLocation={nearestLocation}
+                          nearestLocationB={nearestLocationB}
+                          weatherType={weatherType}
+                          weatherTypeB={weatherTypeB}
+                          autoWeatherEnabled={autoWeatherEnabled}
+                          autoWeatherEnabledB={autoWeatherEnabledB}
+                          activeConnectivityTab={activeConnectivityTab}
+                          activeMeshTab={activeMeshTab}
+                          onActiveMeshTabChange={setActiveMeshTab}
                           leoTopologyMode={leoTopologyMode}
                           leoSiteToSiteResult={leoS2SFullResult}
                         />

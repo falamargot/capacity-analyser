@@ -347,10 +347,10 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
     satelliteScope === 'GEO' ? 'GEO' : 'LEO'
   );
   const activeConnTab = activeConnectionTab ?? internalActiveConnTab;
-  const setActiveConnTab = (tab: 'LEO' | 'GEO') => {
+  const setActiveConnTab = useCallback((tab: 'LEO' | 'GEO') => {
     setInternalActiveConnTab(tab);
     onActiveConnectionTabChange?.(tab);
-  };
+  }, [onActiveConnectionTabChange]);
   const [isLinkBudgetDrawerOpen, setIsLinkBudgetDrawerOpen] = useState(false);
   const selectedLeoTerminalProfile = useMemo(
     () => getLeoTerminalProfile(leoTerminalType, leoTerminalModelId),
@@ -365,7 +365,7 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
   useEffect(() => {
     if (satelliteScope === 'LEO') setActiveConnTab('LEO');
     else if (satelliteScope === 'GEO') setActiveConnTab('GEO');
-  }, [satelliteScope]);
+  }, [satelliteScope, setActiveConnTab]);
 
   // Fallback approximation kept for SERVICE_ZONE mode, where individual beam
   // geometry is intentionally abstracted away.
@@ -1449,6 +1449,39 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
       : formatCoordinates(pointB);
   }, [pointB, pointBNearestLocation]);
 
+  const detailHeaderRouteSummary = useMemo(() => {
+    const routePointB = pointB ?? pointBLeo;
+    if (!activePoint || !routePointB || analysisSource === 'aircraft') return null;
+
+    const routeScope = satelliteScope === 'ALL' ? activeConnTab : satelliteScope;
+    const title = routeScope === 'GEO'
+      ? linkMode === 'STAR_FORWARD'
+        ? 'Site A → Site B'
+        : linkMode === 'STAR_RETURN'
+          ? 'Site B → Site A'
+          : 'Site A ⇄ Site B'
+      : 'Site A ⇄ Site B';
+    const siteALabel = [nearestLocation?.city, nearestLocation?.country].filter(Boolean).join(', ')
+      || formatCoordinates(activePoint);
+    const siteBLabel = [pointBNearestLocation?.city, pointBNearestLocation?.country].filter(Boolean).join(', ')
+      || formatCoordinates(routePointB);
+
+    return {
+      title,
+      subtitle: `Site A: ${siteALabel} · Site B: ${siteBLabel}`,
+    };
+  }, [
+    activeConnTab,
+    activePoint,
+    analysisSource,
+    linkMode,
+    nearestLocation,
+    pointB,
+    pointBLeo,
+    pointBNearestLocation,
+    satelliteScope,
+  ]);
+
   // Build the dual-segment result depending on mode.
   // User terminals must be covered by real attached beams. Only the gateway side
   // may fall back to nominal synthesized contours when feeder data is missing.
@@ -2317,6 +2350,7 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
             analysisSource={analysisSource}
             aircraftCallsign={aircraftCallsign}
             nearestLocation={nearestLocation}
+            routeSummary={detailHeaderRouteSummary}
             compact={compactDesktop}
           />
         )}
