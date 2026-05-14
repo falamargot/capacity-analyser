@@ -1,5 +1,5 @@
 import { memo, useState, useMemo, useEffect, type ReactNode } from 'react';
-import { ArrowLeft, ArrowRight, ChevronDown, Gauge, Maximize2, Minimize2, Route, X } from 'lucide-react';
+import { ArrowLeft, ArrowRight, ChevronDown, Gauge, Maximize2, Minimize2, Route, ShieldAlert, ShieldCheck, ShieldX, X } from 'lucide-react';
 import { PerformancePanel } from '../MetricWidgets';
 import { SectionTooltip } from '../SectionTooltip';
 import CoverageSelector from '../CoverageSelector';
@@ -483,6 +483,198 @@ Current elevation: ${elevationDeg.toFixed(1)} deg.
 ${currentRule}`;
 };
 
+
+// ─── GEO Service Status Card ─────────────────────────────────────────────────
+
+const geoToneClasses = {
+  success: {
+    border: 'border-emerald-300/90 dark:border-emerald-400/30',
+    panel: 'bg-[linear-gradient(165deg,rgba(236,253,245,0.96),rgba(255,255,255,0.94),rgba(240,253,250,0.9))] dark:bg-[linear-gradient(160deg,rgba(6,78,59,0.26),rgba(15,23,42,0.95))]',
+    halo: 'bg-[radial-gradient(circle_at_top_right,rgba(52,211,153,0.2),transparent_34%),radial-gradient(circle_at_bottom_left,rgba(45,212,191,0.12),transparent_28%)] dark:bg-[radial-gradient(circle_at_top_right,rgba(16,185,129,0.24),transparent_34%),radial-gradient(circle_at_bottom_left,rgba(45,212,191,0.14),transparent_28%)]',
+    iconShell: 'bg-emerald-100 text-emerald-700 ring-1 ring-emerald-200 dark:bg-emerald-500/14 dark:text-emerald-200 dark:ring-emerald-400/20',
+    badge: 'text-[10px] font-bold uppercase tracking-[0.18em] text-emerald-700 dark:text-emerald-300',
+    dot: 'bg-emerald-400',
+    tile: 'border-emerald-200/90 bg-white/74 dark:border-emerald-400/20 dark:bg-emerald-500/8',
+    tileText: 'text-emerald-700 dark:text-emerald-300',
+  },
+  warning: {
+    border: 'border-amber-300/90 dark:border-amber-400/30',
+    panel: 'bg-[linear-gradient(165deg,rgba(255,251,235,0.98),rgba(255,255,255,0.94),rgba(255,247,237,0.9))] dark:bg-[linear-gradient(160deg,rgba(120,53,15,0.20),rgba(15,23,42,0.95))]',
+    halo: 'bg-[radial-gradient(circle_at_top_right,rgba(251,191,36,0.2),transparent_34%),radial-gradient(circle_at_bottom_left,rgba(249,115,22,0.1),transparent_28%)] dark:bg-[radial-gradient(circle_at_top_right,rgba(251,191,36,0.24),transparent_34%),radial-gradient(circle_at_bottom_left,rgba(249,115,22,0.14),transparent_28%)]',
+    iconShell: 'bg-amber-100 text-amber-700 ring-1 ring-amber-200 dark:bg-amber-500/14 dark:text-amber-100 dark:ring-amber-400/20',
+    badge: 'text-[10px] font-bold uppercase tracking-[0.18em] text-amber-700 dark:text-amber-200',
+    dot: 'bg-amber-400',
+    tile: 'border-amber-200/90 bg-white/74 dark:border-amber-400/18 dark:bg-amber-500/8',
+    tileText: 'text-amber-700 dark:text-amber-200',
+  },
+  danger: {
+    border: 'border-rose-300/90 dark:border-rose-400/30',
+    panel: 'bg-[linear-gradient(165deg,rgba(255,241,242,0.98),rgba(255,255,255,0.94),rgba(254,242,242,0.9))] dark:bg-[linear-gradient(160deg,rgba(127,29,29,0.20),rgba(15,23,42,0.95))]',
+    halo: 'bg-[radial-gradient(circle_at_top_right,rgba(251,113,133,0.18),transparent_34%),radial-gradient(circle_at_bottom_left,rgba(244,63,94,0.1),transparent_28%)] dark:bg-[radial-gradient(circle_at_top_right,rgba(251,113,133,0.22),transparent_34%),radial-gradient(circle_at_bottom_left,rgba(244,63,94,0.14),transparent_28%)]',
+    iconShell: 'bg-rose-100 text-rose-700 ring-1 ring-rose-200 dark:bg-rose-500/14 dark:text-rose-100 dark:ring-rose-400/20',
+    badge: 'text-[10px] font-bold uppercase tracking-[0.18em] text-rose-700 dark:text-rose-200',
+    dot: 'bg-rose-400',
+    tile: 'border-rose-200/90 bg-white/74 dark:border-rose-400/18 dark:bg-rose-500/8',
+    tileText: 'text-rose-700 dark:text-rose-200',
+  },
+  neutral: {
+    border: 'border-slate-300/90 dark:border-slate-400/25',
+    panel: 'bg-[linear-gradient(165deg,rgba(248,250,252,0.98),rgba(255,255,255,0.95),rgba(241,245,249,0.92))] dark:bg-[linear-gradient(160deg,rgba(30,41,59,0.88),rgba(15,23,42,0.96))]',
+    halo: 'bg-[radial-gradient(circle_at_top_right,rgba(148,163,184,0.14),transparent_34%)] dark:bg-[radial-gradient(circle_at_top_right,rgba(148,163,184,0.16),transparent_34%)]',
+    iconShell: 'bg-slate-100 text-slate-700 ring-1 ring-slate-200 dark:bg-slate-500/14 dark:text-slate-100 dark:ring-slate-400/20',
+    badge: 'text-[10px] font-bold uppercase tracking-[0.18em] text-slate-700 dark:text-slate-200',
+    dot: 'bg-slate-400',
+    tile: 'border-slate-200/90 bg-white/78 dark:border-slate-400/18 dark:bg-slate-500/8',
+    tileText: 'text-slate-700 dark:text-slate-200',
+  },
+} as const;
+
+type GeoTone = keyof typeof geoToneClasses;
+
+interface GeoStatusTileProps {
+  label: string;
+  value: string;
+  detail?: string;
+  tone: GeoTone;
+}
+
+const GeoStatusTile = ({ label, value, detail, tone }: GeoStatusTileProps) => {
+  const c = geoToneClasses[tone];
+  return (
+    <div className={`rounded-xl border px-3 py-2 shadow-[0_18px_38px_-32px_rgba(15,23,42,0.9)] ${c.tile}`}>
+      <div className="flex w-full flex-col items-start gap-1">
+        <span className="shrink-0 text-[9px] font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
+          {label}
+        </span>
+        <span className={`max-w-full text-[12px] font-semibold leading-4 ${c.tileText} whitespace-normal break-words`}>
+          {value}
+        </span>
+      </div>
+      {detail && (
+        <p className="mt-0.5 text-[10px] leading-3.5 text-slate-600 dark:text-slate-300/80">
+          {detail}
+        </p>
+      )}
+    </div>
+  );
+};
+
+interface GeoStatusCardProps {
+  dualSegmentResult: DualSegmentResult | null;
+  resolvedGEOConnectivity: ResolvedGEOConnectivity | null;
+  geoGeometry: GEOGeometry | null;
+  linkMode: LinkMode;
+  activeMeshTab: 'forward' | 'reverse';
+  isMeshOrP2P: boolean;
+  gatewayName: string;
+}
+
+const GeoStatusCard = memo(({
+  dualSegmentResult,
+  resolvedGEOConnectivity,
+  geoGeometry,
+  linkMode,
+  activeMeshTab,
+  isMeshOrP2P,
+  gatewayName,
+}: GeoStatusCardProps) => {
+  const activeDir = dualSegmentResult
+    ? (activeMeshTab === 'reverse' && dualSegmentResult.reverse
+        ? dualSegmentResult.reverse
+        : dualSegmentResult.forward)
+    : null;
+  const e2e = activeDir?.endToEnd ?? null;
+  const margin = e2e?.endToEndLinkMarginDb ?? null;
+
+  const tone: GeoTone =
+    typeof margin !== 'number' || !isFinite(margin)
+      ? 'neutral'
+      : margin < 0 ? 'danger'
+      : margin < 2 ? 'warning'
+      : 'success';
+  const c = geoToneClasses[tone];
+
+  const StatusIcon = tone === 'success' ? ShieldCheck : tone === 'warning' ? ShieldAlert : tone === 'danger' ? ShieldX : ShieldX;
+
+  const primaryStatusLabel =
+    tone === 'success' ? 'Healthy'
+    : tone === 'warning' ? 'Marginal'
+    : tone === 'danger' ? 'Blocked'
+    : 'No coverage';
+
+  const primaryReasonLabel =
+    tone === 'success' ? 'Link margin within spec'
+    : tone === 'warning' ? 'Low margin — service degraded'
+    : tone === 'danger' ? 'Negative margin — link cannot close'
+    : resolvedGEOConnectivity ? 'No RF budget available'
+    : 'No satellite path found';
+
+  const statusSummary =
+    tone === 'success' ? 'GEO RF chain is healthy end-to-end. Service is available.'
+    : tone === 'warning' ? 'Link is feasible but margin is thin. Quality may be affected.'
+    : tone === 'danger' ? 'RF chain cannot close. Service is not available at this time.'
+    : 'No GEO beam covers this location, or no link budget has been computed.';
+
+  // RF tile
+  const rfValue = margin != null ? `${margin >= 0 ? '+' : ''}${margin.toFixed(1)} dB` : '--';
+  const rfTileTone: GeoTone = tone === 'neutral' ? 'neutral' : tone;
+
+  // Capacity tile — mode description + throughput
+  const throughputMbps = activeDir
+    ? (isMeshOrP2P && dualSegmentResult
+        ? getDisplayedThroughput(dualSegmentResult, activeMeshTab === 'reverse' ? 'reverse' : 'forward')
+        : e2e?.endToEndThroughputMbps ?? null)
+    : null;
+  const capacityModeLabel =
+    linkMode === 'POINT_TO_POINT' ? 'Dedicated (P2P)'
+    : linkMode === 'MESH' ? 'Shared (MESH)'
+    : linkMode === 'STAR_RETURN' ? 'Star Return'
+    : 'Star Forward';
+  const capacityDetail = throughputMbps != null ? fmtMbps(throughputMbps) : '--';
+
+  // Gateway tile
+  const gatewayResolved = gatewayName !== 'Gateway' && gatewayName !== '';
+  const gatewayValue = isMeshOrP2P ? 'Not in path' : (gatewayResolved ? gatewayName : 'Not resolved');
+  const gatewayDetail = isMeshOrP2P
+    ? 'Direct terminal-to-terminal (no gateway)'
+    : gatewayResolved ? 'Auto-resolved' : 'No eligible gateway found';
+  const gatewayTone: GeoTone = isMeshOrP2P ? 'neutral' : gatewayResolved ? 'success' : 'warning';
+
+  return (
+    <div className={`relative overflow-hidden rounded-2xl border p-3 shadow-[0_22px_54px_-38px_rgba(15,23,42,0.24)] dark:shadow-[0_22px_54px_-38px_rgba(15,23,42,0.9)] ${c.border} ${c.panel}`}>
+      <div className={`pointer-events-none absolute inset-0 ${c.halo}`} />
+      <div className="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-slate-300/80 to-transparent dark:via-white/30" />
+
+      <div className="relative">
+        <div className="flex items-center justify-between gap-2.5">
+          <div className="inline-flex items-center gap-2 rounded-full border border-slate-200/90 bg-white/76 px-2.5 py-1 shadow-[0_12px_26px_-22px_rgba(15,23,42,0.34)] dark:border-white/10 dark:bg-white/6">
+            <span className={`inline-flex h-6 w-6 items-center justify-center rounded-full ${c.iconShell}`}>
+              <StatusIcon className="h-3.5 w-3.5" />
+            </span>
+            <span className={c.badge}>{primaryStatusLabel}</span>
+          </div>
+        </div>
+
+        <div className="mt-2.5">
+          <h4 className="text-[15px] font-semibold tracking-tight text-slate-950 dark:text-white">
+            {primaryReasonLabel}
+          </h4>
+          <p className="mt-0.5 text-[12px] leading-4 text-slate-600 dark:text-slate-300/88">
+            {statusSummary}
+          </p>
+        </div>
+
+        <div className="mt-3 grid grid-cols-1 items-start gap-2 sm:grid-cols-2">
+          <GeoStatusTile label="RF" value={rfValue} detail={primaryStatusLabel} tone={rfTileTone} />
+          <GeoStatusTile label="Capacity" value={capacityModeLabel} detail={capacityDetail} tone="neutral" />
+          <GeoStatusTile label="Gateway" value={gatewayValue} detail={gatewayDetail} tone={gatewayTone} />
+        </div>
+      </div>
+    </div>
+  );
+});
+
+GeoStatusCard.displayName = 'GeoStatusCard';
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
@@ -1121,6 +1313,16 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
         );
       })()}
 
+      <GeoStatusCard
+        dualSegmentResult={dualSegmentResult ?? null}
+        resolvedGEOConnectivity={resolvedGEOConnectivity}
+        geoGeometry={geoGeometry}
+        linkMode={linkMode}
+        activeMeshTab={activeMeshTab}
+        isMeshOrP2P={isMeshOrP2P}
+        gatewayName={gatewayName}
+      />
+
       <div className="space-y-4">
         <LinkBudgetSummaryCard
           linkMode={linkMode}
@@ -1241,9 +1443,6 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
                   : null;
                 return (
                   <div className="text-sm text-gray-700 dark:text-gray-300 text-center space-y-3 min-w-0">
-                    <div className="rounded-lg border border-blue-100 bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-700 dark:border-blue-900/60 dark:bg-blue-950/30 dark:text-blue-300">
-                      Gateway: {gwDisplayName}
-                    </div>
                     <div className="flex items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs text-slate-700 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200">
                       <Route className="h-4 w-4 shrink-0 text-blue-500" />
                       <div className="min-w-0 break-words leading-relaxed">

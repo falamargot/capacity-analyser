@@ -2134,32 +2134,6 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
               {/* LEO Connectivity */}
               {(satelliteScope === 'LEO' || activeConnTab === 'LEO') && (
                 <>
-                  {/* ── LEO topology mode toggle ───────────────────────────── */}
-                  <div className="mb-3 flex rounded-lg bg-gray-100 p-0.5 dark:bg-slate-800 gap-0.5">
-                    <button
-                      type="button"
-                      onClick={() => onLeoTopologyModeChange?.('SINGLE_SITE')}
-                      className={`flex-1 rounded-md px-2.5 py-1.5 text-[12px] font-semibold transition-all duration-200 ${
-                        leoTopologyMode === 'SINGLE_SITE'
-                          ? 'bg-pink-500 text-white shadow-sm'
-                          : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
-                      }`}
-                    >
-                      Single Site
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => onLeoTopologyModeChange?.('SITE_TO_SITE')}
-                      className={`flex-1 rounded-md px-2.5 py-1.5 text-[12px] font-semibold transition-all duration-200 ${
-                        leoTopologyMode === 'SITE_TO_SITE'
-                          ? 'bg-pink-500 text-white shadow-sm'
-                          : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
-                      }`}
-                    >
-                      Site-to-Site
-                    </button>
-                  </div>
-
                   {/* ── Site-to-Site mode ──────────────────────────────────── */}
                   {leoTopologyMode === 'SITE_TO_SITE' && (
                 <LEOConnectivitySection
@@ -2188,6 +2162,8 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
                   serviceLayerResult={serviceLayerResult}
                   leoServiceViewModel={leoServiceViewModel}
                   showEstimatedPerformance={false}
+                  leoTopologyMode={leoTopologyMode}
+                  onLeoTopologyModeChange={onLeoTopologyModeChange}
                   siteToSiteResult={leoSiteToSiteResult}
                   pointBLeo={pointBLeo}
                   onArmPointBLeo={onArmPointBLeo}
@@ -2227,6 +2203,8 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
                   serviceLayerResult={serviceLayerResult}
                   leoServiceViewModel={leoServiceViewModel}
                   showEstimatedPerformance={false}
+                  leoTopologyMode={leoTopologyMode}
+                  onLeoTopologyModeChange={onLeoTopologyModeChange}
                   isLinkBudgetDrawerOpen={isLinkBudgetDrawerOpen}
                   onLinkBudgetDrawerOpenChange={setIsLinkBudgetDrawerOpen}
                 />

@@ -1,5 +1,5 @@
 import { memo, useEffect, useState, type ReactNode } from 'react';
-import { ArrowLeft, ArrowLeftRight, ArrowRight, ChevronDown, Gauge, Maximize2, Minimize2, Route, X } from 'lucide-react';
+import { ArrowLeft, ArrowRight, ChevronDown, Gauge, Maximize2, Minimize2, Route, X } from 'lucide-react';
 import type { LeoSiteToSiteResult } from '../../utils/leoSiteToSiteModel';
 import { formatLeoSiteToSiteFailureReason } from '../../utils/leoSiteToSiteModel';
 import { PerformancePanel } from '../MetricWidgets';
@@ -932,6 +932,8 @@ interface LEOConnectivitySectionProps {
   serviceLayerResult?: ServiceLayerResult | null;
   leoServiceViewModel?: LeoConnectivityViewModel | null;
   showEstimatedPerformance?: boolean;
+  leoTopologyMode?: 'SINGLE_SITE' | 'SITE_TO_SITE';
+  onLeoTopologyModeChange?: (mode: 'SINGLE_SITE' | 'SITE_TO_SITE') => void;
   // ── Site-to-site extension ──
   siteToSiteResult?: LeoSiteToSiteResult | null;
   pointBLeo?: { lat: number; lng: number } | null;
@@ -1017,6 +1019,8 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
   beamHealthFactors,
   leoServiceViewModel,
   showEstimatedPerformance = true,
+  leoTopologyMode,
+  onLeoTopologyModeChange,
   siteToSiteResult = undefined,
   pointBLeo = null,
   onArmPointBLeo,
@@ -1167,17 +1171,52 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
   return (
     <>
       <h3 className="text-lg font-semibold mb-1 flex items-center" style={{ color: '#db2777' }}>
-        {isS2S ? (
-          <>
-            <ArrowLeftRight className="h-5 w-5 mr-1.5 shrink-0" />
-            LEO Site-to-Site
-          </>
-        ) : 'LEO Connectivity'}
+        LEO Connectivity
         <SectionTooltip content={isS2S
           ? "OneWeb site-to-site logical path: UT A → Satellite A → SNP A → Private backbone → SNP B → Satellite B → UT B. Routing is estimated — actual backbone topology is proprietary."
           : "Low Earth Orbit connectivity block. Shows how the user terminal connects through the nearest OneWeb LEO satellite and its associated SNP (Satellite Network Point) backhaul gateway."
         } />
       </h3>
+
+      {leoTopologyMode && onLeoTopologyModeChange && (
+        <div className="mb-4">
+          <p className="mb-1 text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500">
+            LEO Topology
+          </p>
+          <div className="grid grid-cols-2 gap-1">
+            <button
+              type="button"
+              onClick={() => onLeoTopologyModeChange('SINGLE_SITE')}
+              className={[
+                'rounded px-2 py-2 text-left leading-tight transition-colors',
+                leoTopologyMode === 'SINGLE_SITE'
+                  ? 'bg-pink-500 text-white shadow-sm'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-slate-700 dark:text-gray-300 dark:hover:bg-slate-600',
+              ].join(' ')}
+            >
+              <p className="text-xs font-semibold leading-none">Single Site</p>
+              <p className={`mt-0.5 font-mono text-[10px] leading-none ${leoTopologyMode === 'SINGLE_SITE' ? 'text-pink-100' : 'text-gray-400 dark:text-gray-500'}`}>
+                Site ↔ LEO ↔ SNP
+              </p>
+            </button>
+            <button
+              type="button"
+              onClick={() => onLeoTopologyModeChange('SITE_TO_SITE')}
+              className={[
+                'rounded px-2 py-2 text-left leading-tight transition-colors',
+                leoTopologyMode === 'SITE_TO_SITE'
+                  ? 'bg-pink-500 text-white shadow-sm'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-slate-700 dark:text-gray-300 dark:hover:bg-slate-600',
+              ].join(' ')}
+            >
+              <p className="text-xs font-semibold leading-none">Site-to-Site</p>
+              <p className={`mt-0.5 font-mono text-[10px] leading-none ${leoTopologyMode === 'SITE_TO_SITE' ? 'text-pink-100' : 'text-gray-400 dark:text-gray-500'}`}>
+                Site A ↔ Site B
+              </p>
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* ── Site-to-site endpoint selector ──────────────────────────────────── */}
       {isS2S && (
