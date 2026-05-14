@@ -231,35 +231,25 @@ const LeoTerminalRFSettingsPanel = memo<LeoTerminalRFSettingsPanelProps>(({ term
   );
 
   return (
-    <div className="mt-1">
+    <div className="mt-0.5">
       <button
         type="button"
         onClick={() => setIsOpen((open) => !open)}
-        className="flex w-full items-center gap-1 rounded px-1 py-0.5 text-left text-[11px] text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-slate-700/60"
+        className="flex w-full items-center gap-1 rounded px-1 py-0.5 text-left text-[10px] text-gray-400 hover:bg-gray-100 dark:text-slate-500 dark:hover:bg-slate-700/60"
       >
         <ChevronDown className={`h-3 w-3 shrink-0 transition-transform duration-150 ${isOpen ? 'rotate-180' : ''}`} />
-        <span className="font-medium uppercase tracking-wide">RF Settings</span>
+        <span className="uppercase tracking-wide">RF details</span>
       </button>
 
       {isOpen && (
         <div className="mt-1 rounded-lg border border-pink-200 bg-pink-50/50 px-2.5 py-2 dark:border-pink-900/50 dark:bg-pink-950/20">
           <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-2 gap-y-1.5 text-[11px]">
-            <span className="col-span-2 -mx-0.5 mb-0.5 text-[10px] font-bold uppercase tracking-wide text-pink-500/70 dark:text-pink-300/70">Terminal</span>
-            {row('Model', `${terminal.vendor} ${terminal.model}`)}
-            {row('Antenna', terminal.antennaType)}
-            {row('Source', terminal.sourceType.replace(/_/g, ' '))}
-
-            <span className="col-span-2 -mx-0.5 mb-0.5 mt-1 text-[10px] font-bold uppercase tracking-wide text-pink-500/70 dark:text-pink-300/70">RF</span>
-            {row('DL G/T', `${terminal.rxGtDbK.toFixed(1)} dB/K`)}
-            {row('UL EIRP', `${terminal.txEirpDbw.toFixed(1)} dBW`)}
-            {row('Rx scan', terminal.rxScanLossModel.label)}
-            {row('Tx scan', terminal.txScanLossModel.label)}
-
-            <span className="col-span-2 -mx-0.5 mb-0.5 mt-1 text-[10px] font-bold uppercase tracking-wide text-pink-500/70 dark:text-pink-300/70">Throughput</span>
-            {row('DL cap', `${terminal.maxDlMbps.toFixed(0)} Mbps`)}
-            {row('UL cap', `${terminal.maxUlMbps.toFixed(0)} Mbps`)}
+            {terminal.gainRxDbi != null && row('Rx gain', `${terminal.gainRxDbi.toFixed(1)} dBi`)}
+            {terminal.gainTxDbi != null && row('Tx gain', `${terminal.gainTxDbi.toFixed(1)} dBi`)}
             {row('DL ref BW', formatHzAsMhz(terminal.dlReferenceBandwidthHz))}
             {row('UL ref BW', formatHzAsMhz(terminal.ulReferenceBandwidthHz))}
+            {row('DL beam BW', formatHzAsMhz(terminal.dlUsableBeamBandwidthHz))}
+            {row('UL beam BW', formatHzAsMhz(terminal.ulUsableBeamBandwidthHz))}
           </div>
         </div>
       )}
@@ -284,19 +274,19 @@ const LeoTerminalModelControl = memo<LeoTerminalModelControlProps>(({
   const selectedTerminal = terminalOptions.find((entry) => entry.id === selectedTerminalId)
     ?? getLeoTerminalProfile(terminalType);
 
+  const sizeClass = compact ? 'text-[10px]' : 'text-[11px]';
   return (
-    <div className="flex min-w-0 flex-col">
-      <div className="min-w-0">
-        <span
-          className={`block truncate font-mono leading-none text-pink-600 dark:text-pink-300 ${compact ? 'text-[10px]' : 'text-[11px]'}`}
-          title={`${selectedTerminal.vendor} ${selectedTerminal.model}: DL ${selectedTerminal.maxDlMbps.toFixed(0)} Mbps · UL ${selectedTerminal.maxUlMbps.toFixed(0)} Mbps · RX ${selectedTerminal.rxGtDbK.toFixed(1)} dB/K · TX ${selectedTerminal.txEirpDbw.toFixed(1)} dBW`}
-        >
-          DL {selectedTerminal.maxDlMbps.toFixed(0)} · UL {selectedTerminal.maxUlMbps.toFixed(0)} Mbps · RX {selectedTerminal.rxGtDbK.toFixed(1)} · TX {selectedTerminal.txEirpDbw.toFixed(1)}
-        </span>
-      </div>
-      <div className="min-w-0">
-        <LeoTerminalRFSettingsPanel terminal={selectedTerminal} />
-      </div>
+    <div className="flex min-w-0 flex-col gap-0.5">
+      <span
+        className={`block truncate font-mono leading-none text-pink-600 dark:text-pink-300 ${sizeClass}`}
+        title={`${selectedTerminal.antennaType} · G/T ${selectedTerminal.rxGtDbK.toFixed(1)} dB/K · EIRP ${selectedTerminal.txEirpDbw.toFixed(1)} dBW · DL ${selectedTerminal.maxDlMbps.toFixed(0)} / UL ${selectedTerminal.maxUlMbps.toFixed(0)} Mbps`}
+      >
+        {selectedTerminal.antennaType} · G/T {selectedTerminal.rxGtDbK.toFixed(1)} dB/K · EIRP {selectedTerminal.txEirpDbw.toFixed(1)} dBW
+      </span>
+      <span className={`block font-mono leading-none text-slate-500 dark:text-slate-400 ${sizeClass}`}>
+        DL {selectedTerminal.maxDlMbps.toFixed(0)} / UL {selectedTerminal.maxUlMbps.toFixed(0)} Mbps
+      </span>
+      <LeoTerminalRFSettingsPanel terminal={selectedTerminal} />
     </div>
   );
 });
@@ -681,6 +671,8 @@ interface TerminalConfigProps {
   analysisSource?: 'earth' | 'aircraft';
   compact?: boolean;
   title?: ReactNode;
+  subtitle?: ReactNode;
+  headerAction?: ReactNode;
   showWeather?: boolean;
   showRFClass?: boolean;
   className?: string;
@@ -717,6 +709,8 @@ const TerminalConfig = memo<TerminalConfigProps>(({
   analysisSource,
   compact = false,
   title = 'Terminal',
+  subtitle,
+  headerAction,
   showWeather = true,
   showRFClass = false,
   className = 'mb-4',
@@ -787,30 +781,42 @@ const TerminalConfig = memo<TerminalConfigProps>(({
       dense ? 'p-2' : compact ? 'p-1.5' : 'p-3',
     ].join(' ')}>
       <div className={`${dense ? 'mb-2 min-h-0' : 'mb-1 min-h-[24px]'} flex items-start justify-between gap-1.5`}>
-        <h3 className={`flex min-w-0 items-center font-semibold leading-tight text-gray-800 dark:text-gray-200 ${compact ? 'text-[13px]' : 'text-sm'}`}>
-          <span className="line-clamp-2">{title}</span>
-          <SectionTooltip content="The ground equipment (antenna + modem) used to connect to the satellite network. Use-case sets the service type; RF class sets the physical antenna and BUC specifications that determine computed EIRP and G/T." />
-        </h3>
-        {statusLabel ? (() => {
-          const labelText = typeof statusLabel === 'string' ? statusLabel.toUpperCase() : null;
-          const StatusIcon = labelText ? (STATUS_ICON_BY_LABEL[labelText] ?? Sparkles) : Sparkles;
-          return (
-            <span
-              className={[
-                'inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full border',
-                tone === 'user-defined'
-                  ? 'border-emerald-300 bg-emerald-100 text-emerald-700 dark:border-emerald-700 dark:bg-emerald-900/60 dark:text-emerald-200'
-                  : tone === 'not-user-defined'
-                    ? 'border-rose-300 bg-rose-100 text-rose-700 dark:border-rose-800 dark:bg-rose-900/60 dark:text-rose-200'
-                    : 'border-slate-300 bg-slate-200 text-slate-600 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200',
-              ].join(' ')}
-              title={statusTitle ?? labelText ?? undefined}
-              aria-label={statusTitle ?? labelText ?? undefined}
-            >
-              <StatusIcon className="h-2.5 w-2.5" />
-            </span>
-          );
-        })() : null}
+        <div className="min-w-0">
+          <h3 className={`flex min-w-0 items-center font-semibold leading-tight text-gray-800 dark:text-gray-200 ${compact ? 'text-[13px]' : 'text-sm'}`}>
+            <span className="line-clamp-2">{title}</span>
+            <SectionTooltip content="The ground equipment (antenna + modem) used to connect to the satellite network. Use-case sets the service type; RF class sets the physical antenna and BUC specifications that determine computed EIRP and G/T." />
+          </h3>
+          {subtitle && (
+            <div className={`mt-0.5 truncate text-gray-500 dark:text-gray-400 ${compact ? 'text-[10px]' : 'text-[11px]'}`}>
+              {subtitle}
+            </div>
+          )}
+        </div>
+        {(headerAction || statusLabel) && (
+          <div className="flex shrink-0 items-center gap-1">
+            {headerAction}
+            {statusLabel ? (() => {
+              const labelText = typeof statusLabel === 'string' ? statusLabel.toUpperCase() : null;
+              const StatusIcon = labelText ? (STATUS_ICON_BY_LABEL[labelText] ?? Sparkles) : Sparkles;
+              return (
+                <span
+                  className={[
+                    'inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full border',
+                    tone === 'user-defined'
+                      ? 'border-emerald-300 bg-emerald-100 text-emerald-700 dark:border-emerald-700 dark:bg-emerald-900/60 dark:text-emerald-200'
+                      : tone === 'not-user-defined'
+                        ? 'border-rose-300 bg-rose-100 text-rose-700 dark:border-rose-800 dark:bg-rose-900/60 dark:text-rose-200'
+                        : 'border-slate-300 bg-slate-200 text-slate-600 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200',
+                  ].join(' ')}
+                  title={statusTitle ?? labelText ?? undefined}
+                  aria-label={statusTitle ?? labelText ?? undefined}
+                >
+                  <StatusIcon className="h-2.5 w-2.5" />
+                </span>
+              );
+            })() : null}
+          </div>
+        )}
       </div>
       <div className={`flex flex-col space-y-1 ${dense ? '' : 'flex-1 justify-end'}`}>
         {showLeoTerminalModelSelector && onLeoTerminalModelIdChange ? (

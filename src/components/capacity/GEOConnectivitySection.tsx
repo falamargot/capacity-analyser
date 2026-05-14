@@ -13,6 +13,7 @@ import DualSegmentPanel from './DualSegmentPanel';
 import { getDisplayedThroughput, type DualSegmentResult } from '../../utils/geoDualSegmentBudget';
 import LinkModeSelector from './LinkModeSelector';
 import type { ResolvedGeoGateway } from '../../utils/geoConnectivityModel';
+import { formatCoordinates } from '../../utils/formatters';
 
 // ─── Sub-component: LatencyBreakdownCard ──────────────────────────────────────
 
@@ -703,6 +704,7 @@ interface GEOConnectivitySectionProps {
   selectedDownlinkCoverage?: CandidateCoverage | null;
   onSelectUplinkCoverage?: (coverage: CandidateCoverage) => void;
   onSelectDownlinkCoverage?: (coverage: CandidateCoverage) => void;
+  activePoint?: { lat: number; lng: number; altitude?: number } | null;
   analysisSource?: 'earth' | 'aircraft';
   aircraftCallsign?: string;
   onSatelliteClick?: (satellite: SatelliteData | null) => void;
@@ -771,6 +773,7 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
   selectedDownlinkCoverage = null,
   onSelectUplinkCoverage,
   onSelectDownlinkCoverage,
+  activePoint = null,
   analysisSource,
   aircraftCallsign,
   onSatelliteClick,
@@ -778,6 +781,7 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
   linkMode = 'STAR_FORWARD',
   onLinkModeChange,
   dualSegmentResult = null,
+  pointB = null,
   pointAIsUserDefined = false,
   pointBIsUserDefined = false,
   terminalTypeB,
@@ -835,6 +839,11 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
   const gatewayName = resolvedGateway?.gatewayName ?? geoGeometry?.satelliteToGateway.gateway?.name ?? 'Gateway';
   const gatewayRole = resolvedGateway?.role ?? null;
   const gatewayDisplayName = gatewayRole ? `${gatewayName} (${gatewayRole})` : gatewayName;
+  const pointACoordinatesLabel = activePoint ? formatCoordinates(activePoint) : '--';
+  const pointBCoordinatesLabel = pointB ? formatCoordinates(pointB) : 'Shift+click to place';
+  const gatewayCoordinatesLabel = resolvedGateway
+    ? formatCoordinates({ lat: resolvedGateway.latitude, lng: resolvedGateway.longitude })
+    : null;
   const geoStarOneWayTotalMs = !isMeshOrP2P && geoGeometry?.oneWayRadioMs != null
     ? geoGeometry.oneWayRadioMs + geoGeometry.overheadMs.total
     : null;
@@ -1155,6 +1164,7 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
                 showRFClass={!!onRFClassIdAChange}
                 className="mb-0"
                 title="Terminal A"
+                subtitle={<span className="font-mono">{pointACoordinatesLabel}</span>}
                 stacked
                 tone={pointAIsUserDefined ? 'user-defined' : 'not-user-defined'}
                 statusLabel={pointAIsUserDefined ? 'Manual' : 'Auto'}
@@ -1180,6 +1190,7 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
                 showRFClass={!!onRFClassIdBChange}
                 className="mb-0"
                 title="Terminal B"
+                subtitle={<span className="font-mono">{pointBCoordinatesLabel}</span>}
                 stacked
                 tone={pointBIsUserDefined ? 'user-defined' : 'not-user-defined'}
                 statusLabel={pointBIsUserDefined ? 'Manual' : 'Unset'}
@@ -1201,6 +1212,7 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
                   showWeather={false}
                   className="mb-0"
                   title={gatewayName}
+                  subtitle={gatewayCoordinatesLabel ? <span className="font-mono">{gatewayCoordinatesLabel}</span> : undefined}
                   stacked
                   tone="user-defined"
                   statusLabel="Auto"
@@ -1227,6 +1239,7 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
                   showRFClass={!!onRFClassIdAChange}
                   className="mb-0"
                   title={userLabel === 'User' ? 'Terminal' : userLabel}
+                  subtitle={<span className="font-mono">{pointACoordinatesLabel}</span>}
                   stacked
                   tone={pointAIsUserDefined ? 'user-defined' : 'not-user-defined'}
                   statusLabel={pointAIsUserDefined ? 'Manual' : 'Auto'}
@@ -1251,6 +1264,7 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
                   showRFClass={!!onRFClassIdAChange}
                   className="mb-0"
                   title={userLabel === 'User' ? 'Terminal' : userLabel}
+                  subtitle={<span className="font-mono">{pointACoordinatesLabel}</span>}
                   stacked
                   tone={pointAIsUserDefined ? 'user-defined' : 'not-user-defined'}
                   statusLabel={pointAIsUserDefined ? 'Manual' : 'Auto'}
@@ -1267,6 +1281,7 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
                   showWeather={false}
                   className="mb-0"
                   title={gatewayName}
+                  subtitle={gatewayCoordinatesLabel ? <span className="font-mono">{gatewayCoordinatesLabel}</span> : undefined}
                   stacked
                   tone="user-defined"
                   statusLabel="Auto"

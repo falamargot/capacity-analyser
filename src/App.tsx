@@ -284,6 +284,8 @@ const App: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [leoTerminalType, setLeoTerminalType] = useState<TerminalType>('fixed');
   const [leoTerminalModelId, setLeoTerminalModelId] = useState<string>(() => getLeoTerminalProfile('fixed').id);
+  const [leoTerminalTypeB, setLeoTerminalTypeB] = useState<TerminalType>('fixed');
+  const [leoTerminalModelIdB, setLeoTerminalModelIdB] = useState<string>(() => getLeoTerminalProfile('fixed').id);
   const [geoTerminalType, setGeoTerminalType] = useState<TerminalType>('fixed');
   const [geoTerminalTypeB, setGeoTerminalTypeB] = useState<TerminalType>('fixed');
   const [geoRFClassIdA, setGeoRFClassIdA] = useState<TerminalRFClassId>(() => USE_CASE_DEFAULT_RF_CLASS.fixed.Ku);
@@ -293,6 +295,10 @@ const App: React.FC = () => {
   const handleLeoTerminalTypeChange = useCallback((type: TerminalType) => {
     setLeoTerminalType(type);
     setLeoTerminalModelId(getLeoTerminalProfile(type).id);
+  }, []);
+  const handleLeoTerminalTypeBChange = useCallback((type: TerminalType) => {
+    setLeoTerminalTypeB(type);
+    setLeoTerminalModelIdB(getLeoTerminalProfile(type).id);
   }, []);
   const handleGeoTerminalTypeChange = (type: TerminalType) => {
     setGeoTerminalType(type);
@@ -3441,6 +3447,10 @@ const App: React.FC = () => {
                     onLeoTerminalTypeChange={handleLeoTerminalTypeChange}
                     leoTerminalModelId={leoTerminalModelId}
                     onLeoTerminalModelIdChange={setLeoTerminalModelId}
+                    leoTerminalTypeB={leoTerminalTypeB}
+                    onLeoTerminalTypeBChange={handleLeoTerminalTypeBChange}
+                    leoTerminalModelIdB={leoTerminalModelIdB}
+                    onLeoTerminalModelIdBChange={setLeoTerminalModelIdB}
                     geoTerminalType={geoTerminalType}
                     onGeoTerminalTypeChange={handleGeoTerminalTypeChange}
                     geoTerminalTypeB={geoTerminalTypeB}
@@ -3650,6 +3660,10 @@ const App: React.FC = () => {
                                 onLeoTerminalTypeChange={handleLeoTerminalTypeChange}
                                 leoTerminalModelId={leoTerminalModelId}
                                 onLeoTerminalModelIdChange={setLeoTerminalModelId}
+                                leoTerminalTypeB={leoTerminalTypeB}
+                                onLeoTerminalTypeBChange={handleLeoTerminalTypeBChange}
+                                leoTerminalModelIdB={leoTerminalModelIdB}
+                                onLeoTerminalModelIdBChange={setLeoTerminalModelIdB}
                                 geoTerminalType={geoTerminalType}
                                 onGeoTerminalTypeChange={setGeoTerminalType}
                     geoTerminalTypeB={geoTerminalTypeB}
@@ -3818,6 +3832,10 @@ const App: React.FC = () => {
                         onLeoTerminalTypeChange={handleLeoTerminalTypeChange}
                         leoTerminalModelId={leoTerminalModelId}
                         onLeoTerminalModelIdChange={setLeoTerminalModelId}
+                        leoTerminalTypeB={leoTerminalTypeB}
+                        onLeoTerminalTypeBChange={handleLeoTerminalTypeBChange}
+                        leoTerminalModelIdB={leoTerminalModelIdB}
+                        onLeoTerminalModelIdBChange={setLeoTerminalModelIdB}
                         geoTerminalType={geoTerminalType}
                         onGeoTerminalTypeChange={setGeoTerminalType}
                     geoTerminalTypeB={geoTerminalTypeB}

@@ -9,6 +9,7 @@ import CollapsibleSection from '../layout/CollapsibleSection';
 import TerminalConfig, { TERMINAL_PROFILES, type WeatherType } from './TerminalConfig';
 import { SPEED_OF_LIGHT_RADIO_KM_S } from '../../utils/capacityCalculator';
 import { MIN_USER_TERMINAL_ELEVATION_DEG, STANDARD_SERVICE_ELEVATION_DEG } from '../../utils/leoFootprint';
+import { formatCoordinates } from '../../utils/formatters';
 import type { SatelliteData } from '../../types/satellites';
 import type { BeamHealthData, WeatherCondition } from '../../utils/realisticSimulation';
 import type { RegulatoryResult } from '../../services/regulatoryService';
@@ -768,11 +769,6 @@ const LeoLinkBudgetDrawer = ({ open, onClose, debugInfo, siteToSiteResult, siteT
           {role}
         </span>
       </h4>
-      {siteId === 'B' && (
-        <p className="mb-3 text-[10px] italic text-slate-400 dark:text-slate-500">
-          Symmetric terminal assumption — Site B uses the same RF profile as Site A.
-        </p>
-      )}
       <LeoRFLinkBudgetPanel
         d={debugInfo!}
         directionUsage={directionUsage}
@@ -944,6 +940,11 @@ interface LEOConnectivitySectionProps {
   /** Controlled drawer open state — shared with GEO so mode switches preserve open/closed status. */
   isLinkBudgetDrawerOpen?: boolean;
   onLinkBudgetDrawerOpenChange?: (open: boolean) => void;
+  // ── Site B terminal (S2S only) ──
+  terminalTypeB?: TerminalType;
+  onTerminalTypeBChange?: (type: TerminalType) => void;
+  terminalModelIdB?: string | null;
+  onTerminalModelIdBChange?: (id: string) => void;
 }
 
 // ─── Site-to-Site sub-components ─────────────────────────────────────────────
@@ -1023,12 +1024,15 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
   onLeoTopologyModeChange,
   siteToSiteResult = undefined,
   pointBLeo = null,
-  onArmPointBLeo,
   isPointBLeoArmed = false,
   activeMeshTab,
   onActiveMeshTabChange,
   isLinkBudgetDrawerOpen: controlledDrawerOpen = false,
   onLinkBudgetDrawerOpenChange,
+  terminalTypeB,
+  onTerminalTypeBChange,
+  terminalModelIdB,
+  onTerminalModelIdBChange,
 }) => {
   const siteALabel = 'Site A';
   const showPerformanceBeforeRadioPath = analysisSource !== 'aircraft';
@@ -1167,6 +1171,12 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
   const s2sFailureLabel = s2sActive
     ? formatLeoSiteToSiteFailureReason(siteToSiteResult!.failureReason)
     : null;
+  const siteACoordinatesLabel = activePoint
+    ? formatCoordinates(activePoint)
+    : '--';
+  const siteBCoordinatesLabel = pointBLeo
+    ? formatCoordinates(pointBLeo)
+    : 'Shift+click to place';
 
   return (
     <>
@@ -1218,92 +1228,95 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
         </div>
       )}
 
-      {/* ── Site-to-site endpoint selector ──────────────────────────────────── */}
-      {isS2S && (
-        <div className="space-y-2 mb-2">
-          <p className="text-[11px] text-slate-400 dark:text-slate-500 select-none">
-            Click to move Site A · Shift+click to move Site B
-          </p>
-          <div className="flex items-center gap-2">
-            {/* Site A chip */}
-            <div className="flex-1 min-w-0 rounded-lg border-2 border-emerald-400 bg-emerald-50 dark:border-emerald-600 dark:bg-emerald-950/30 px-2.5 py-2">
-              <div className="text-[9px] font-bold uppercase tracking-wide text-emerald-600 dark:text-emerald-400 mb-0.5">Site A</div>
-              <div className="font-mono text-[10px] text-emerald-800 dark:text-emerald-200 truncate">
-                {activePoint ? `${activePoint.lat.toFixed(3)}°, ${activePoint.lng.toFixed(3)}°` : '—'}
-              </div>
-            </div>
-            <button
-              type="button"
-              onClick={() => handleS2SDirectionChange(isAtoB ? 'B_TO_A' : 'A_TO_B')}
-              disabled={!pointBLeo}
-              aria-label={isAtoB ? 'Switch direction to Site B to Site A' : 'Switch direction to Site A to Site B'}
-              title={isAtoB ? 'A → B' : 'B → A'}
-              className={[
-                'inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border text-white shadow-sm transition-all duration-150',
-                pointBLeo
-                  ? 'border-blue-300/70 bg-blue-500 hover:bg-blue-400 active:scale-95 dark:border-blue-400/60 dark:bg-blue-600 dark:hover:bg-blue-500'
-                  : 'cursor-not-allowed border-slate-300 bg-slate-300 text-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-500',
-              ].join(' ')}
-            >
-              {isAtoB ? <ArrowRight className="h-5 w-5" /> : <ArrowLeft className="h-5 w-5" />}
-            </button>
-            {/* Site B chip */}
-            {pointBLeo ? (
-              <div className="flex-1 min-w-0 rounded-lg border-2 border-pink-400 bg-pink-50 dark:border-pink-600 dark:bg-pink-950/30 px-2.5 py-2">
-                <div className="flex items-center justify-between">
-                  <div className="text-[9px] font-bold uppercase tracking-wide text-pink-600 dark:text-pink-400 mb-0.5">Site B</div>
-                  <button
-                    type="button"
-                    onClick={onArmPointBLeo}
-                    className="text-[9px] text-pink-500 hover:text-pink-700 dark:text-pink-400 dark:hover:text-pink-200 underline shrink-0"
-                  >
-                    Move
-                  </button>
-                </div>
-                <div className="font-mono text-[10px] text-pink-800 dark:text-pink-200 truncate">
-                  {pointBLeo.lat.toFixed(3)}°, {pointBLeo.lng.toFixed(3)}°
-                </div>
-              </div>
-            ) : (
-              <div className={`flex-1 min-w-0 rounded-lg border-2 border-dashed px-2.5 py-2 ${isPointBLeoArmed ? 'border-pink-400 bg-pink-50/70 dark:border-pink-500 dark:bg-pink-950/20' : 'border-slate-300 bg-slate-50 dark:border-slate-600 dark:bg-slate-900/40'}`}>
-                <div className={`text-[9px] font-bold uppercase tracking-wide mb-0.5 ${isPointBLeoArmed ? 'text-pink-600 dark:text-pink-400' : 'text-slate-400'}`}>Site B</div>
-                <div className={`text-[10px] ${isPointBLeoArmed ? 'text-pink-600 dark:text-pink-300' : 'text-slate-400 dark:text-slate-500'}`}>
-                  {isPointBLeoArmed ? '⊕ Click globe…' : 'Shift+click to place'}
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
       <div className="space-y-4">
-        {/* Terminal config — labeled "Terminal A" in S2S mode */}
-        <TerminalConfig
-          terminalType={terminalType}
-          onTerminalTypeChange={onTerminalTypeChange}
-          leoTerminalModelId={terminalModelId}
-          onLeoTerminalModelIdChange={onTerminalModelIdChange}
-          showLeoTerminalModelSelector
-          weatherType={weatherType}
-          onWeatherTypeChange={onWeatherTypeChange}
-          autoWeatherEnabled={autoWeatherEnabled}
-          onAutoWeatherChange={onAutoWeatherChange}
-          analysisSource={analysisSource}
-          compact
-          showWeather={false}
-          className="mb-0"
-        />
-        {/* Terminal B indicator in S2S mode */}
-        {isS2S && (
-          <div className="rounded-lg border border-pink-200 bg-pink-50/50 dark:border-pink-800/50 dark:bg-pink-950/20 px-3 py-2">
-            <div className="flex items-center justify-between mb-0.5">
-              <span className="text-[11px] font-semibold text-pink-700 dark:text-pink-300">Terminal B</span>
-              <span className="text-[10px] text-pink-500 dark:text-pink-400 italic">Same profile as A</span>
-            </div>
-            <p className="text-[10px] text-slate-500 dark:text-slate-400">
-              Site-to-Site uses a symmetric terminal. Independent Terminal B configuration is planned.
+        {/* ── S2S mode: two independent terminal cards ── */}
+        {isS2S && terminalTypeB != null && onTerminalTypeBChange != null ? (
+          <div className="space-y-1.5">
+            <p className="text-[11px] text-slate-400 dark:text-slate-500 select-none">
+              Click to move Site A · Shift+click to move Site B
             </p>
+            <div className="grid grid-cols-[minmax(0,1fr)_30px_minmax(0,1fr)] items-stretch gap-1.5">
+            <TerminalConfig
+              terminalType={terminalType}
+              onTerminalTypeChange={onTerminalTypeChange}
+              leoTerminalModelId={terminalModelId}
+              onLeoTerminalModelIdChange={onTerminalModelIdChange}
+              showLeoTerminalModelSelector
+              weatherType={weatherType}
+              onWeatherTypeChange={onWeatherTypeChange}
+              autoWeatherEnabled={autoWeatherEnabled}
+              onAutoWeatherChange={onAutoWeatherChange}
+              analysisSource={analysisSource}
+              compact
+              showWeather={false}
+              className="mb-0"
+              title="Terminal A"
+              subtitle={<span className="font-mono">{siteACoordinatesLabel}</span>}
+              tone={activePoint ? 'user-defined' : 'not-user-defined'}
+              statusLabel={activePoint ? 'Manual' : 'Unset'}
+              statusTitle={activePoint ? 'Terminal A position is defined' : 'Terminal A position is not defined'}
+              stacked
+            />
+            {/* Direction arrow — mirrors S2S direction toggle */}
+            <div className="flex items-center justify-center">
+              <button
+                type="button"
+                onClick={() => handleS2SDirectionChange(isAtoB ? 'B_TO_A' : 'A_TO_B')}
+                disabled={!pointBLeo}
+                aria-label={isAtoB ? 'Direction A→B (click to reverse)' : 'Direction B→A (click to reverse)'}
+                className={[
+                  'inline-flex h-8 w-8 items-center justify-center rounded-full border shadow-sm transition-colors',
+                  pointBLeo
+                    ? 'border-pink-300 bg-pink-500 text-white hover:bg-pink-600 dark:border-pink-400/60 dark:bg-pink-600 dark:hover:bg-pink-500'
+                    : 'cursor-default border-slate-200 bg-slate-100 text-slate-400 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-500',
+                ].join(' ')}
+              >
+                {isAtoB ? <ArrowRight className="h-4 w-4" /> : <ArrowLeft className="h-4 w-4" />}
+              </button>
+            </div>
+            <TerminalConfig
+              terminalType={terminalTypeB}
+              onTerminalTypeChange={onTerminalTypeBChange}
+              leoTerminalModelId={terminalModelIdB}
+              onLeoTerminalModelIdChange={onTerminalModelIdBChange}
+              showLeoTerminalModelSelector
+              weatherType={weatherType}
+              onWeatherTypeChange={onWeatherTypeChange}
+              autoWeatherEnabled={autoWeatherEnabled}
+              onAutoWeatherChange={onAutoWeatherChange}
+              compact
+              showWeather={false}
+              className="mb-0"
+              title="Terminal B"
+              subtitle={<span className="font-mono">{siteBCoordinatesLabel}</span>}
+              tone={pointBLeo ? 'user-defined' : 'not-user-defined'}
+              statusLabel={pointBLeo ? 'Manual' : 'Unset'}
+              statusTitle={pointBLeo ? 'Terminal B position is defined' : 'Terminal B position is not defined'}
+              stacked
+            />
+            </div>
           </div>
+        ) : (
+          /* ── Single-site mode: one terminal selector ── */
+          <TerminalConfig
+            terminalType={terminalType}
+            onTerminalTypeChange={onTerminalTypeChange}
+            leoTerminalModelId={terminalModelId}
+            onLeoTerminalModelIdChange={onTerminalModelIdChange}
+            showLeoTerminalModelSelector
+            weatherType={weatherType}
+            onWeatherTypeChange={onWeatherTypeChange}
+            autoWeatherEnabled={autoWeatherEnabled}
+            onAutoWeatherChange={onAutoWeatherChange}
+            analysisSource={analysisSource}
+            compact
+            showWeather={false}
+            className="mb-0"
+            subtitle={<span className="font-mono">{siteACoordinatesLabel}</span>}
+            tone={activePoint ? 'user-defined' : 'not-user-defined'}
+            statusLabel={activePoint ? 'Manual' : 'Unset'}
+            statusTitle={activePoint ? 'Terminal position is defined' : 'Terminal position is not defined'}
+          />
         )}
 
         <div className="pt-1">
