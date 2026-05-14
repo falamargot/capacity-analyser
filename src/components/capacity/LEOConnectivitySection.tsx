@@ -1,5 +1,5 @@
 import { memo, useEffect, useState, type ReactNode } from 'react';
-import { ArrowLeft, ArrowRight, ChevronDown, Gauge, Maximize2, Minimize2, Route, X } from 'lucide-react';
+import { ChevronDown, Gauge, Maximize2, Minimize2, Route, X } from 'lucide-react';
 import type { LeoSiteToSiteResult } from '../../utils/leoSiteToSiteModel';
 import { formatLeoSiteToSiteFailureReason } from '../../utils/leoSiteToSiteModel';
 import { PerformancePanel } from '../MetricWidgets';
@@ -1026,7 +1026,6 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
   pointBLeo = null,
   isPointBLeoArmed = false,
   activeMeshTab,
-  onActiveMeshTabChange,
   isLinkBudgetDrawerOpen: controlledDrawerOpen = false,
   onLinkBudgetDrawerOpenChange,
   terminalTypeB,
@@ -1059,11 +1058,6 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
     if (!isS2S || !activeMeshTab) return;
     setS2SDirection(activeMeshTab === 'reverse' ? 'B_TO_A' : 'A_TO_B');
   }, [activeMeshTab, isS2S]);
-
-  const handleS2SDirectionChange = (dir: 'A_TO_B' | 'B_TO_A') => {
-    setS2SDirection(dir);
-    onActiveMeshTabChange?.(dir === 'A_TO_B' ? 'forward' : 'reverse');
-  };
 
   // S2S-adapted debug info: override final DL/UL with end-to-end throughput so the
   // summary card and drawer header show A→B / B→A values instead of Site A raw values.
@@ -1177,6 +1171,37 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
   const siteBCoordinatesLabel = pointBLeo
     ? formatCoordinates(pointBLeo)
     : 'Shift+click to place';
+  const s2sServiceStatusBanner = isS2S && s2sActive ? (
+    <div className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-semibold ${
+      siteToSiteResult!.serviceStatus === 'ALLOWED'
+        ? 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800/60 dark:bg-emerald-950/30 dark:text-emerald-400'
+        : siteToSiteResult!.serviceStatus === 'DEGRADED'
+          ? 'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-800/60 dark:bg-amber-950/30 dark:text-amber-400'
+        : 'border-red-200 bg-red-50 text-red-700 dark:border-red-800/60 dark:bg-red-950/30 dark:text-red-400'
+    }`}>
+      <span className={`h-2 w-2 rounded-full shrink-0 ${
+        siteToSiteResult!.serviceStatus === 'ALLOWED'
+          ? 'bg-emerald-500'
+          : siteToSiteResult!.serviceStatus === 'DEGRADED'
+            ? 'bg-amber-500'
+            : 'bg-red-500'
+      }`} />
+      <span>
+        {siteToSiteResult!.serviceStatus === 'ALLOWED'
+          ? `${s2sStatusLabel} · ${s2sSatAName} ↔ ${s2sSatBName}`
+          : `${s2sStatusLabel} — ${s2sFailureLabel}`
+        }
+      </span>
+    </div>
+  ) : null;
+  const singleSiteLeoSatelliteBanner = !isS2S && resolvedLEOConnectivity?.satellite ? (
+    <div className="flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-700 dark:border-emerald-800/60 dark:bg-emerald-950/30 dark:text-emerald-400">
+      <span className="h-2 w-2 shrink-0 rounded-full bg-emerald-500" />
+      <span>
+        Connected · {resolvedLEOConnectivity.satellite.name}
+      </span>
+    </div>
+  ) : null;
 
   return (
     <>
@@ -1235,7 +1260,7 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
             <p className="text-[11px] text-slate-400 dark:text-slate-500 select-none">
               Click to move Site A · Shift+click to move Site B
             </p>
-            <div className="grid grid-cols-[minmax(0,1fr)_30px_minmax(0,1fr)] items-stretch gap-1.5">
+            <div className="grid grid-cols-2 items-stretch gap-2">
             <TerminalConfig
               terminalType={terminalType}
               onTerminalTypeChange={onTerminalTypeChange}
@@ -1257,23 +1282,6 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
               statusTitle={activePoint ? 'Terminal A position is defined' : 'Terminal A position is not defined'}
               stacked
             />
-            {/* Direction arrow — mirrors S2S direction toggle */}
-            <div className="flex items-center justify-center">
-              <button
-                type="button"
-                onClick={() => handleS2SDirectionChange(isAtoB ? 'B_TO_A' : 'A_TO_B')}
-                disabled={!pointBLeo}
-                aria-label={isAtoB ? 'Direction A→B (click to reverse)' : 'Direction B→A (click to reverse)'}
-                className={[
-                  'inline-flex h-8 w-8 items-center justify-center rounded-full border shadow-sm transition-colors',
-                  pointBLeo
-                    ? 'border-pink-300 bg-pink-500 text-white hover:bg-pink-600 dark:border-pink-400/60 dark:bg-pink-600 dark:hover:bg-pink-500'
-                    : 'cursor-default border-slate-200 bg-slate-100 text-slate-400 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-500',
-                ].join(' ')}
-              >
-                {isAtoB ? <ArrowRight className="h-4 w-4" /> : <ArrowLeft className="h-4 w-4" />}
-              </button>
-            </div>
             <TerminalConfig
               terminalType={terminalTypeB}
               onTerminalTypeChange={onTerminalTypeBChange}
@@ -1319,34 +1327,16 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
           />
         )}
 
-        <div className="pt-1">
+        <div className="space-y-2">
+          {s2sServiceStatusBanner ?? (
+            singleSiteLeoSatelliteBanner ? (
+              <div className="pt-2">
+                {singleSiteLeoSatelliteBanner}
+              </div>
+            ) : null
+          )}
           <LeoStatusCards viewModel={leoServiceViewModel ?? null} />
         </div>
-
-        {/* S2S service status */}
-        {isS2S && s2sActive && (
-          <div className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-semibold ${
-            siteToSiteResult!.serviceStatus === 'ALLOWED'
-              ? 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800/60 dark:bg-emerald-950/30 dark:text-emerald-400'
-              : siteToSiteResult!.serviceStatus === 'DEGRADED'
-                ? 'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-800/60 dark:bg-amber-950/30 dark:text-amber-400'
-              : 'border-red-200 bg-red-50 text-red-700 dark:border-red-800/60 dark:bg-red-950/30 dark:text-red-400'
-          }`}>
-            <span className={`h-2 w-2 rounded-full shrink-0 ${
-              siteToSiteResult!.serviceStatus === 'ALLOWED'
-                ? 'bg-emerald-500'
-                : siteToSiteResult!.serviceStatus === 'DEGRADED'
-                  ? 'bg-amber-500'
-                  : 'bg-red-500'
-            }`} />
-            <span>
-              {siteToSiteResult!.serviceStatus === 'ALLOWED'
-                ? `${s2sStatusLabel} · ${s2sSatAName} ↔ ${s2sSatBName}`
-                : `${s2sStatusLabel} — ${s2sFailureLabel}`
-              }
-            </span>
-          </div>
-        )}
 
         {/* Estimated Performance — single-site only; S2S version rendered after Latency Breakdown */}
         {!isS2S && showEstimatedPerformance && showPerformanceBeforeRadioPath && estimatedPerformanceSection}

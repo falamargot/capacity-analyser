@@ -1,5 +1,5 @@
 import { memo, useState, useMemo, useEffect, type ReactNode } from 'react';
-import { ArrowLeft, ArrowRight, ChevronDown, Gauge, Maximize2, Minimize2, Route, ShieldAlert, ShieldCheck, ShieldX, X } from 'lucide-react';
+import { ChevronDown, Gauge, Maximize2, Minimize2, Route, ShieldAlert, ShieldCheck, ShieldX, X } from 'lucide-react';
 import { PerformancePanel } from '../MetricWidgets';
 import { SectionTooltip } from '../SectionTooltip';
 import CoverageSelector from '../CoverageSelector';
@@ -380,44 +380,6 @@ const LinkBudgetDrawer = ({
     </div>
   );
 };
-
-interface DirectionArrowControlProps {
-  direction: 'forward' | 'reverse';
-  interactive?: boolean;
-  onToggle?: () => void;
-}
-
-const DirectionArrowControl = ({ direction, interactive = false, onToggle }: DirectionArrowControlProps) => (
-  <div className="flex items-center justify-center">
-    <button
-      type="button"
-      onClick={interactive ? onToggle : undefined}
-      disabled={!interactive}
-      className={[
-        'inline-flex h-8 w-8 items-center justify-center rounded-full shadow-sm ring-1 transition-colors',
-        interactive
-          ? 'bg-blue-600 text-white ring-blue-500/20 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-400'
-          : 'cursor-default bg-slate-100 text-slate-400 ring-slate-200 dark:bg-slate-800 dark:text-slate-500 dark:ring-slate-700',
-      ].join(' ')}
-      aria-label={interactive
-        ? direction === 'forward'
-          ? 'Switch direction to Terminal B to Terminal A'
-          : 'Switch direction to Terminal A to Terminal B'
-        : direction === 'forward'
-          ? 'Forward direction'
-          : 'Reverse direction'}
-      title={interactive
-        ? direction === 'forward'
-          ? 'A -> B. Click to reverse.'
-          : 'B -> A. Click to reverse.'
-        : direction === 'forward'
-          ? 'Forward direction'
-          : 'Reverse direction'}
-    >
-      {direction === 'forward' ? <ArrowRight className="h-4 w-4" /> : <ArrowLeft className="h-4 w-4" />}
-    </button>
-  </div>
-);
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -1146,7 +1108,7 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
 <div className="mb-4">
         {isMeshOrP2P && terminalTypeB != null && onTerminalTypeBChange ? (
           <>
-            <div className="grid grid-cols-1 items-stretch gap-1.5 xl:grid-cols-[minmax(0,1fr)_34px_minmax(0,1fr)]">
+            <div className="grid grid-cols-1 items-stretch gap-2 xl:grid-cols-2">
               <TerminalConfig
                 terminalType={terminalType}
                 onTerminalTypeChange={onTerminalTypeChange}
@@ -1168,11 +1130,6 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
                 stacked
                 tone={pointAIsUserDefined ? 'user-defined' : 'not-user-defined'}
                 statusLabel={pointAIsUserDefined ? 'Manual' : 'Auto'}
-              />
-              <DirectionArrowControl
-                direction={candidateCoveragesB.length > 0 ? activeMeshTab : 'forward'}
-                interactive={candidateCoveragesB.length > 0}
-                onToggle={() => setActiveMeshTab(activeMeshTab === 'forward' ? 'reverse' : 'forward')}
               />
               <TerminalConfig
                 terminalType={terminalTypeB}
@@ -1198,7 +1155,7 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
             </div>
           </>
         ) : (
-          <div className="grid grid-cols-1 items-stretch gap-1.5 xl:grid-cols-[minmax(0,1fr)_34px_minmax(0,1fr)]">
+          <div className="grid grid-cols-1 items-stretch gap-2 xl:grid-cols-2">
             {isStarForward ? (
               <>
                 <TerminalConfig
@@ -1221,7 +1178,6 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
                   terminalDisplayLabel="Gateway"
                   terminalDisplayIcon="📡"
                 />
-                <DirectionArrowControl direction="forward" />
                 <TerminalConfig
                   terminalType={terminalType}
                   onTerminalTypeChange={onTerminalTypeChange}
@@ -1269,7 +1225,6 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
                   tone={pointAIsUserDefined ? 'user-defined' : 'not-user-defined'}
                   statusLabel={pointAIsUserDefined ? 'Manual' : 'Auto'}
                 />
-                <DirectionArrowControl direction="forward" />
                 <TerminalConfig
                   terminalType="fixed"
                   onTerminalTypeChange={() => {}}
@@ -1305,11 +1260,6 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
         const bDownlinks = candidateCoveragesB.filter(c => !c.isUplink);
         return (
           <div className="mb-4">
-            {isMeshOrP2P && (
-              <div className="mb-1.5 flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">
-                Coverage<DirectionPill dir={meshDirectionLabel} />
-              </div>
-            )}
             <CoverageSelector
               candidateCoverages={candidateCoverages}
               bestCoverage={bestCoverage}
@@ -1338,7 +1288,7 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
         gatewayName={gatewayName}
       />
 
-      <div className="space-y-4">
+      <div className="mt-4 space-y-4">
         <LinkBudgetSummaryCard
           linkMode={linkMode}
           result={dualSegmentResult}

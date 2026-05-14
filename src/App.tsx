@@ -372,6 +372,13 @@ const App: React.FC = () => {
   const [isFullscreen, setIsFullscreen] = useState(initialDisplayDefaults.isFullscreen);
   const [fullscreenExportButtonProps, setFullscreenExportButtonProps] = useState<ExportButtonPayload | null>(null);
   const [satelliteScope, setSatelliteScope] = useState<SatelliteScope>('ALL');
+  const [activeConnectivityTab, setActiveConnectivityTab] = useState<'LEO' | 'GEO'>('LEO');
+
+  useEffect(() => {
+    if (satelliteScope === 'LEO' || satelliteScope === 'GEO') {
+      setActiveConnectivityTab(satelliteScope);
+    }
+  }, [satelliteScope]);
 
   // Derived backward-compat variables — downstream components still receive pointB / pointBLeo
   const geoNeedsPointB = LINK_MODE_REQUIRES_POINT_B.has(linkMode) && satelliteScope !== 'LEO';
@@ -2881,8 +2888,8 @@ const App: React.FC = () => {
         />
       );
 
-      // Site-to-Site mode: two standalone endpoint cards
-      if (leoTopologyMode === 'SITE_TO_SITE' && siteB && activeAnalysisSource !== 'aircraft') {
+      // Two-point mode: two standalone endpoint cards shared by LEO and GEO
+      if (isTwoPointMode && siteB && activeAnalysisSource !== 'aircraft') {
         const nearestLocationLabelB = [nearestLocationB?.city, nearestLocationB?.country].filter(Boolean).join(', ');
         const selectBg = `url("data:image/svg+xml;charset=US-ASCII,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 4 5'%3E%3Cpath fill='%236B7280' d='M2 0L0 2h4zm0 5L0 3h4z'/%3E%3C/svg>")`;
         const selectClass = 'w-full appearance-none rounded-md border border-gray-200 bg-white py-1 pl-2 pr-5 text-[11px] text-gray-900 focus:border-transparent focus:ring-1 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-700 dark:text-gray-100';
@@ -2917,6 +2924,14 @@ const App: React.FC = () => {
 
         const siteAWeatherRow = buildWeatherRow(weatherType, handleWeatherTypeChange, autoWeatherEnabled, setAutoWeatherEnabled);
         const siteBWeatherRow = buildWeatherRow(weatherTypeB, handleWeatherTypeBChange, autoWeatherEnabledB, setAutoWeatherEnabledB);
+        const siteDirectionAccent = satelliteScope === 'ALL' ? activeConnectivityTab : satelliteScope;
+        const siteDirectionRelation = siteDirectionAccent === 'GEO'
+          ? linkMode === 'STAR_RETURN'
+            ? 'reverse'
+            : linkMode === 'STAR_FORWARD'
+              ? 'forward'
+              : 'bidirectional'
+          : 'bidirectional';
         return {
           siteToSite: {
             siteA: {
@@ -2932,6 +2947,14 @@ const App: React.FC = () => {
               location: nearestLocationLabelB || 'Ground position',
               weatherRow: siteBWeatherRow,
               onClear: handleClearSiteB,
+            },
+            directionIndicator: {
+              accent: siteDirectionAccent,
+              relation: siteDirectionRelation,
+              detailDirection: activeMeshTab,
+              onToggle: siteDirectionRelation === 'bidirectional'
+                ? () => setActiveMeshTab(activeMeshTab === 'forward' ? 'reverse' : 'forward')
+                : undefined,
             },
           },
           tone: 'position' as const,
@@ -2965,6 +2988,8 @@ const App: React.FC = () => {
   }, [
     activeAnalysisPoint,
     activeAnalysisSource,
+    activeConnectivityTab,
+    activeMeshTab,
     autoWeatherEnabled,
     autoWeatherEnabledB,
     failedSnps,
@@ -2974,6 +2999,7 @@ const App: React.FC = () => {
     handleWeatherTypeBChange,
     inspectedSNP,
     leoTopologyMode,
+    linkMode,
     nearestLocation,
     nearestLocationB,
     analyzisPosition,
@@ -2981,6 +3007,7 @@ const App: React.FC = () => {
     selectedGatewayHeroData,
     selectedMoon,
     satelliteScope,
+    isTwoPointMode,
     selectedAircraft,
     selectedSatellite,
     selectedSelection,
@@ -3614,6 +3641,8 @@ const App: React.FC = () => {
                     autoSelectedLEOSatellite={resolvedAutoLEO}
                     autoSelectedGEOSatellite={activeGeoSatellite}
                     satelliteScope={satelliteScope}
+                    activeConnectionTab={activeConnectivityTab}
+                    onActiveConnectionTabChange={setActiveConnectivityTab}
                     onSatelliteClick={handleSatelliteClick}
                     analysisSource={activeAnalysisSource}
                     aircraftCallsign={selectedAircraft?.callsign}
@@ -3827,6 +3856,8 @@ const App: React.FC = () => {
                                 autoSelectedLEOSatellite={resolvedAutoLEO}
                                 autoSelectedGEOSatellite={activeGeoSatellite}
                                 satelliteScope={satelliteScope}
+                                activeConnectionTab={activeConnectivityTab}
+                                onActiveConnectionTabChange={setActiveConnectivityTab}
                                 onSatelliteClick={handleSatelliteClick}
                                 analysisSource={activeAnalysisSource}
                                 aircraftCallsign={selectedAircraft?.callsign}
@@ -4000,6 +4031,8 @@ const App: React.FC = () => {
                         autoSelectedLEOSatellite={resolvedAutoLEO}
                         autoSelectedGEOSatellite={activeGeoSatellite}
                         satelliteScope={satelliteScope}
+                        activeConnectionTab={activeConnectivityTab}
+                        onActiveConnectionTabChange={setActiveConnectivityTab}
                         onSatelliteClick={handleSatelliteClick}
                         analysisSource={activeAnalysisSource}
                         aircraftCallsign={selectedAircraft?.callsign}

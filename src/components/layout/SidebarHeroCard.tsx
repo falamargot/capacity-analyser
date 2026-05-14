@@ -1,5 +1,5 @@
 import { memo, type ReactNode } from 'react';
-import { RotateCcw } from 'lucide-react';
+import { ArrowLeft, ArrowLeftRight, ArrowRight, RotateCcw } from 'lucide-react';
 
 type HeroTone = 'satelliteLeo' | 'satelliteGeo' | 'satelliteInactive' | 'gateway' | 'snp' | 'aircraft' | 'vessel' | 'moon' | 'position' | 'spectrum' | 'iss' | 'idle';
 type BadgeTone = 'pink' | 'blue' | 'emerald' | 'teal' | 'amber' | 'slate' | 'red';
@@ -20,6 +20,12 @@ interface SiteHeroData {
 interface SiteToSiteCardData {
   siteA: SiteHeroData;
   siteB: SiteHeroData;
+  directionIndicator?: {
+    accent: 'LEO' | 'GEO';
+    relation: 'forward' | 'reverse' | 'bidirectional' | 'neutral';
+    detailDirection?: 'forward' | 'reverse';
+    onToggle?: () => void;
+  };
 }
 
 interface SidebarHeroCardProps {
@@ -80,7 +86,7 @@ const SiteCardInner = ({ site }: { site: SiteHeroData }) => {
       </div>
       <div className="flex flex-1 flex-col gap-px px-2.5 py-2">
         <div
-          className="truncate font-mono text-[16px] foÒnt-semibold leading-snug text-slate-800 dark:text-slate-100"
+          className="truncate font-mono text-[16px] font-semibold leading-snug text-slate-800 dark:text-slate-100"
           title={site.coordinates}
         >
           {site.coordinates}
@@ -96,6 +102,61 @@ const SiteCardInner = ({ site }: { site: SiteHeroData }) => {
           </div>
         )}
       </div>
+    </div>
+  );
+};
+
+const SiteDirectionIndicator = ({ indicator }: { indicator: NonNullable<SiteToSiteCardData['directionIndicator']> }) => {
+  const isLeo = indicator.accent === 'LEO';
+  const accentClass = isLeo
+    ? 'border-pink-300/75 bg-pink-500 text-white shadow-[0_0_18px_rgba(236,72,153,0.42),0_10px_22px_-14px_rgba(15,23,42,0.75)] dark:border-pink-300/60 dark:bg-pink-500'
+    : 'border-blue-300/75 bg-blue-600 text-white shadow-[0_0_18px_rgba(37,99,235,0.40),0_10px_22px_-14px_rgba(15,23,42,0.75)] dark:border-blue-300/60 dark:bg-blue-500';
+  const label = indicator.relation === 'forward'
+    ? 'Site A to Site B'
+    : indicator.relation === 'reverse'
+      ? 'Site B to Site A'
+      : indicator.relation === 'neutral'
+        ? 'Site A and Site B relationship'
+        : indicator.detailDirection === 'reverse'
+          ? 'Site A and Site B bidirectional. Current detail direction is Site B to Site A.'
+          : 'Site A and Site B bidirectional. Current detail direction is Site A to Site B.';
+  const Icon = indicator.relation === 'forward'
+    ? ArrowRight
+    : indicator.relation === 'reverse'
+      ? ArrowLeft
+      : indicator.relation === 'bidirectional' && indicator.detailDirection === 'forward'
+        ? ArrowRight
+        : indicator.relation === 'bidirectional' && indicator.detailDirection === 'reverse'
+          ? ArrowLeft
+          : ArrowLeftRight;
+  const className = [
+    'absolute left-1/2 top-[56%] z-10 flex h-9 w-9 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border backdrop-blur',
+    indicator.onToggle ? 'pointer-events-auto transition-transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-white/75' : 'pointer-events-none',
+    accentClass,
+  ].join(' ');
+
+  if (indicator.onToggle) {
+    return (
+      <button
+        type="button"
+        onClick={indicator.onToggle}
+        className={className}
+        aria-label={`${label} Click to switch detail direction.`}
+        title={`${label} Click to switch detail direction.`}
+      >
+        <Icon className="h-4 w-4" />
+      </button>
+    );
+  }
+
+  return (
+    <div
+      className={className}
+      aria-label={label}
+      role="img"
+      title={label}
+    >
+      <Icon className="h-4 w-4" />
     </div>
   );
 };
@@ -117,12 +178,15 @@ const SidebarHeroCard = memo<SidebarHeroCardProps>(({
   const innerPad = compact ? 'px-3.5 py-3.5' : 'px-4 py-4';
   const toneClass = toneStyles[tone];
 
-  // Site-to-Site mode: two standalone cards, no enclosing container card
+  // Two-point mode: two standalone site cards, no enclosing container card
   if (siteToSite) {
     return (
       <div className={outerPad}>
-        <div className="grid grid-cols-2 gap-2">
+        <div className="relative grid grid-cols-2 gap-2">
           <SiteCardInner site={siteToSite.siteA} />
+          {siteToSite.directionIndicator && (
+            <SiteDirectionIndicator indicator={siteToSite.directionIndicator} />
+          )}
           <SiteCardInner site={siteToSite.siteB} />
         </div>
       </div>

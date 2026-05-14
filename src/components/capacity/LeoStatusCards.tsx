@@ -171,6 +171,10 @@ export const ConnectivityStatusCard = memo(({ viewModel }: { viewModel: LeoConne
   const tone = getStatusTone(viewModel);
   const classes = toneClasses[tone];
   const Icon = getStatusIcon(viewModel);
+  const whyRows = [...viewModel.whyRows].sort((left, right) => {
+    const order = ['RF', 'Capacity', 'SNP', 'Regulatory'];
+    return order.indexOf(left.label) - order.indexOf(right.label);
+  });
 
   return (
     <div className={`relative overflow-hidden rounded-2xl border p-3 shadow-[0_22px_54px_-38px_rgba(15,23,42,0.24)] dark:shadow-[0_22px_54px_-38px_rgba(15,23,42,0.9)] ${classes.border} ${classes.panel}`}>
@@ -202,7 +206,7 @@ export const ConnectivityStatusCard = memo(({ viewModel }: { viewModel: LeoConne
           </p>
         </div>
         <div className="mt-3 grid grid-cols-1 items-start gap-2 sm:grid-cols-2">
-          {viewModel.whyRows.map((row) => (
+          {whyRows.map((row) => (
             <ReasonTile
               key={`${row.label}:${row.value}`}
               row={row}
