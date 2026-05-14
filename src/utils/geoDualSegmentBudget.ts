@@ -580,7 +580,8 @@ export function buildMeshResult(
   endpointLabels?: MeshEndpointLabels,
   terminalTypeA?: string,
   terminalTypeB?: string,
-  weatherAdjDb?: number,
+  weatherAdjDbA?: number,
+  weatherAdjDbB?: number,
   customParamsA?: TerminalRFCustomParams | null,
   customParamsB?: TerminalRFCustomParams | null,
   linkMode?: LinkMode,
@@ -615,14 +616,14 @@ export function buildMeshResult(
     { label: pointALabel, eirpDbw: paramsA.eirpTerminalDbw },
     { label: uplinkAtA.satelliteName },
     paramsA.eirpTerminalDbw,
-    weatherAdjDb,
+    weatherAdjDbA,
   );
   const fwDownlinkSeg = buildDownlinkSegment(
     downlinkAtB,
     { label: downlinkAtB.satelliteName },
     { label: pointBLabel, gtDbk: paramsB.gtTerminalDbk },
     paramsB.gtTerminalDbk,
-    weatherAdjDb,
+    weatherAdjDbB,
     candidateBaseGt,
   );
   const fwE2E = computeEndToEndBudget(
@@ -636,14 +637,14 @@ export function buildMeshResult(
     { label: pointBLabel, eirpDbw: paramsB.eirpTerminalDbw },
     { label: uplinkAtB.satelliteName },
     paramsB.eirpTerminalDbw,
-    weatherAdjDb,
+    weatherAdjDbB,
   );
   const rvDownlinkSeg = buildDownlinkSegment(
     downlinkAtA,
     { label: downlinkAtA.satelliteName },
     { label: pointALabel, gtDbk: paramsA.gtTerminalDbk },
     paramsA.gtTerminalDbk,
-    weatherAdjDb,
+    weatherAdjDbA,
     candidateBaseGt,
   );
   const rvE2E = computeEndToEndBudget(

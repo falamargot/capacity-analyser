@@ -13,6 +13,7 @@ export interface SiteLabelLine {
 
 export interface SiteLabelSection {
   title: string;
+  connectedSatelliteName?: string;
   accent: 'blue' | 'pink';
   lines: SiteLabelLine[];
 }
@@ -91,7 +92,12 @@ const SiteScreenLabel: React.FC<SiteScreenLabelProps> = ({
         {sections.map((section, si) => (
           <div key={si} className={si > 0 ? 'mt-1.5 pt-1.5 border-t border-white/10' : ''}>
             <div className={`text-[10px] font-bold uppercase tracking-wide mb-0.5 ${section.accent === 'blue' ? 'text-sky-400' : 'text-pink-400'}`}>
-              {section.title}
+              <span>{section.title}</span>
+              {section.connectedSatelliteName && (
+                <span className="ml-1.5 text-slate-300 normal-case tracking-normal">
+                  · {section.connectedSatelliteName}
+                </span>
+              )}
             </div>
             {section.lines.map((line, li) => (
               <div

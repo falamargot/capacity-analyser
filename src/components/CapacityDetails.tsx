@@ -79,6 +79,7 @@ import {
   TERMINAL_PROFILES,
   WEATHER_PROFILES,
   getWeatherFactor,
+  toWeatherCondition,
 } from './capacity';
 import type { TerminalType, WeatherType } from './capacity';
 import {
@@ -155,6 +156,8 @@ interface CapacityDetailsProps {
   onGeoRFCustomParamsBChange?: (params: import('../utils/geoTerminalRFModel').TerminalRFCustomParams | null) => void;
   weatherType: WeatherType;
   onWeatherTypeChange: (type: WeatherType) => void;
+  weatherTypeB?: WeatherType;
+  onWeatherTypeBChange?: (type: WeatherType) => void;
   autoWeatherEnabled: boolean;
   onAutoWeatherChange: (enabled: boolean) => void;
   /** Current link connectivity mode. */
@@ -298,7 +301,7 @@ ${currentRule}`;
 };
 
 // Performance optimization: Memoize component to prevent unnecessary re-renders
-const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint, selectedSatellite, autoSelectedLEOSatellite, satelliteScope, activeConnectionTab, onActiveConnectionTabChange, onMetricsChange, onSatelliteClick, analysisSource, aircraftCallsign, selectedSNP: propSelectedSNP, candidateCoverages = [], selectedCoverage = null, onSelectCoverage, selectedUplinkCoverage = null, selectedDownlinkCoverage = null, onSelectUplinkCoverage, onSelectDownlinkCoverage, selectedUplinkCoverageB = null, selectedDownlinkCoverageB = null, onSelectUplinkCoverageB, onSelectDownlinkCoverageB, selectedGeoMission, selectedGeoCoverageName, selectedGeoBeamId, visibleGeoCoverageKeys, onSelectGeoMission, onSelectGeoCoverage, onSelectGeoBeam, onVisibleGeoCoverageKeysChange, onSnpClick, compactDesktop = false, externalHeader = false, globeRef, cesiumViewerRef, onExportStateChange, regulatoryResultOverride = null, regulatoryResultBOverride = null, beamLoadResultOverride = null, serviceLayerResultOverride = null, leoServiceViewModelOverride = null, leoTerminalType, onLeoTerminalTypeChange, leoTerminalModelId, onLeoTerminalModelIdChange, leoTerminalTypeB, onLeoTerminalTypeBChange, leoTerminalModelIdB, onLeoTerminalModelIdBChange, geoTerminalType, onGeoTerminalTypeChange, geoTerminalTypeB, onGeoTerminalTypeBChange, geoRFClassIdA, onGeoRFClassIdAChange, geoRFClassIdB, onGeoRFClassIdBChange, geoRFCustomParamsA, onGeoRFCustomParamsAChange, geoRFCustomParamsB, onGeoRFCustomParamsBChange, weatherType, onWeatherTypeChange, autoWeatherEnabled, onAutoWeatherChange, linkMode = 'STAR_FORWARD', onLinkModeChange, pointB = null, candidateCoveragesB = [], pointAIsUserDefined = false, pointBIsUserDefined = false, activeMeshTab, onActiveMeshTabChange,
+const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint, selectedSatellite, autoSelectedLEOSatellite, satelliteScope, activeConnectionTab, onActiveConnectionTabChange, onMetricsChange, onSatelliteClick, analysisSource, aircraftCallsign, selectedSNP: propSelectedSNP, candidateCoverages = [], selectedCoverage = null, onSelectCoverage, selectedUplinkCoverage = null, selectedDownlinkCoverage = null, onSelectUplinkCoverage, onSelectDownlinkCoverage, selectedUplinkCoverageB = null, selectedDownlinkCoverageB = null, onSelectUplinkCoverageB, onSelectDownlinkCoverageB, selectedGeoMission, selectedGeoCoverageName, selectedGeoBeamId, visibleGeoCoverageKeys, onSelectGeoMission, onSelectGeoCoverage, onSelectGeoBeam, onVisibleGeoCoverageKeysChange, onSnpClick, compactDesktop = false, externalHeader = false, globeRef, cesiumViewerRef, onExportStateChange, regulatoryResultOverride = null, regulatoryResultBOverride = null, beamLoadResultOverride = null, serviceLayerResultOverride = null, leoServiceViewModelOverride = null, leoTerminalType, onLeoTerminalTypeChange, leoTerminalModelId, onLeoTerminalModelIdChange, leoTerminalTypeB, onLeoTerminalTypeBChange, leoTerminalModelIdB, onLeoTerminalModelIdBChange, geoTerminalType, onGeoTerminalTypeChange, geoTerminalTypeB, onGeoTerminalTypeBChange, geoRFClassIdA, onGeoRFClassIdAChange, geoRFClassIdB, onGeoRFClassIdBChange, geoRFCustomParamsA, onGeoRFCustomParamsAChange, geoRFCustomParamsB, onGeoRFCustomParamsBChange, weatherType, onWeatherTypeChange, weatherTypeB, onWeatherTypeBChange, autoWeatherEnabled, onAutoWeatherChange, linkMode = 'STAR_FORWARD', onLinkModeChange, pointB = null, candidateCoveragesB = [], pointAIsUserDefined = false, pointBIsUserDefined = false, activeMeshTab, onActiveMeshTabChange,
   leoTopologyMode = 'SINGLE_SITE',
   pointBLeo = null,
   autoSelectedLEOSatelliteB = null,
@@ -322,6 +325,13 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
     beamHealthFactors,
     hsBeams: hsBeamsSet,
   }), [beamHealthFactors, coveragePolicy, ctxWeather, hsBeamsSet]);
+
+  // Site B uses its own weather condition when provided (S2S mode).
+  const simulationStateB = useMemo(() => {
+    const weatherB = weatherTypeB ? toWeatherCondition(weatherTypeB) : ctxWeather;
+    if (weatherB === ctxWeather) return simulationState;
+    return buildSimulationStateSnapshot({ coveragePolicy, weatherCondition: weatherB, beamHealthFactors, hsBeams: hsBeamsSet });
+  }, [beamHealthFactors, coveragePolicy, ctxWeather, hsBeamsSet, simulationState, weatherTypeB]);
 
   // ── Regulatory + Capacity + Service layers ────────────────────────────────
 
@@ -1002,9 +1012,9 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
       pointBLeo,
       autoSelectedLEOSatelliteB,
       nowTime,
-      simulationState
+      simulationStateB
     );
-  }, [pointBLeo, autoSelectedLEOSatelliteB, simulationState, nowTime]);
+  }, [pointBLeo, autoSelectedLEOSatelliteB, simulationStateB, nowTime]);
 
   // ── LEO site-to-site result ───────────────────────────────────────────────
   const leoSiteToSiteResult = useMemo((): LeoSiteToSiteResult | null => {
@@ -1061,6 +1071,184 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
       ? SNPS_DATA.find(s => s.name === selectedSNPB.name) ?? null
       : null;
 
+    // ── Site B independent RF debug chain ──────────────────────────────────────
+    // Computed when Site B has a satellite, SNP, and beam-model coverage (DB_THRESHOLD).
+    // Provides an accurate per-site RF snapshot for the Detailed Link Budget drawer so
+    // Site B no longer reuses Site A geometry rows. This is a static snapshot — no EMA
+    // smoothing refs are maintained for Site B. finalUserMbps is pinned to the already-
+    // derived dlThroughputBMbps / ulThroughputBMbps so it stays consistent with the S2S
+    // throughput values computed above and does not change those values.
+    let debugInfoB: LeoRFDebugInfo | null = null;
+    if (
+      servingSatelliteB &&
+      pointBLeo &&
+      snpBFull &&
+      simulationStateB.coveragePolicy.type === 'DB_THRESHOLD'
+    ) {
+      const beamInfoB = findBestConnectedBeamInfo(pointBLeo, servingSatelliteB, nowTime, simulationStateB);
+      const beamIndexB = beamInfoB?.beamIndex ?? null;
+      if (beamIndexB != null) {
+        const beamEstimateB = estimateCurrentLeoBeamLink({
+          userPosition: pointBLeo,
+          satellite: servingSatelliteB,
+          beamIndex: beamIndexB,
+          snpPosition: snpBFull,
+          time: nowTime,
+          simulationState: simulationStateB,
+        });
+        if (beamEstimateB) {
+          const pB = selectedLeoTerminalProfileB;
+          const rxScanLossB = computeLeoTerminalScanLossDb(pB.rxScanLossModel, beamEstimateB.userElevationDeg);
+          const txScanLossB = computeLeoTerminalScanLossDb(pB.txScanLossModel, beamEstimateB.userElevationDeg);
+          const rxGtB = pB.rxGtDbK + rxScanLossB;
+          const txEirpB = pB.txEirpDbw + txScanLossB;
+          const activeUsersB = computedBeamLoadResultB?.estimatedActiveUsers ?? 1;
+          const backhaulB = beamEstimateB.backhaulFactor;
+
+          const dlRfB = computeDirectionalRfChainThroughput({
+            eirpDbw: beamEstimateB.beamLink.effectiveEirpDb,
+            receiverGtDbK: rxGtB,
+            slantRangeKm: beamEstimateB.debugInfo.slantRangeKm,
+            pathAdjustmentDb: beamEstimateB.beamLink.powerAtUserDb,
+            frequencyGHz: RF_KU_FREQ_GHZ,
+            noiseBwHz: pB.dlReferenceBandwidthHz,
+            throughputBwHz: pB.dlReferenceBandwidthHz,
+          });
+          const ulRfB = computeUplinkRfChainThroughput({
+            terminalEirpDbw: txEirpB,
+            slantRangeKm: beamEstimateB.debugInfo.slantRangeKm,
+            pathAdjustmentDb: beamEstimateB.beamLink.powerAtUserDb,
+            noiseBwHz: pB.ulReferenceBandwidthHz,
+            throughputBwHz: pB.ulReferenceBandwidthHz,
+          });
+
+          const sharingDlB = applyBeamCapacitySharing(
+            dlRfB.rfThroughputMbps, activeUsersB, pB.maxDlMbps,
+            pB.dlUsableBeamBandwidthHz / pB.dlReferenceBandwidthHz,
+          );
+          const sharingUlB = applyBeamCapacitySharing(
+            ulRfB.rfThroughputMbps, activeUsersB, pB.maxUlMbps,
+            pB.ulUsableBeamBandwidthHz / pB.ulReferenceBandwidthHz,
+          );
+
+          const dlLegB: LeoThroughputLeg = {
+            direction: 'downlink',
+            label: 'Downlink',
+            rf: {
+              effectiveEirpDb: beamEstimateB.beamLink.effectiveEirpDb,
+              receiverGtDbK: rxGtB,
+              rawTerminalRfDb: pB.rxGtDbK,
+              terminalScanLossDb: rxScanLossB,
+              scanLossDb: beamEstimateB.beamLink.scanLossDb,
+              weatherLossDb: beamEstimateB.beamLink.weatherAttenuationDb,
+              fsplDb: dlRfB.fsplDb,
+              cnDb: dlRfB.cnDb,
+              modcod: dlRfB.modcod?.name ?? null,
+              modcodTableId: dlRfB.modcodTable.id,
+              modcodTableLabel: dlRfB.modcodTable.label,
+              modcodTableSourceNote: dlRfB.modcodTable.sourceNote,
+              slantRangeKm: beamEstimateB.debugInfo.slantRangeKm,
+              referenceBandwidthHz: pB.dlReferenceBandwidthHz,
+              usableBandwidthHz: pB.dlUsableBeamBandwidthHz,
+              rfChainThroughputMbps: dlRfB.rfThroughputMbps,
+            },
+            network: {
+              peakRfMbps: Math.min(sharingDlB.beamTotalThroughputMbps, pB.maxDlMbps),
+              terminalCapMbps: pB.maxDlMbps,
+              activeUsers: sharingDlB.activeUsers,
+              beamSharingMbps: sharingDlB.sharedThroughputMbps,
+              backhaulFactor: backhaulB,
+              backhaulMbps: sharingDlB.sharedThroughputMbps * backhaulB,
+              handoverFactor: 1,
+              handoverMbps: sharingDlB.sharedThroughputMbps * backhaulB,
+              smoothingAlpha: 0,
+              finalUserMbps: dlThroughputBMbps ?? sharingDlB.sharedThroughputMbps * backhaulB,
+              bottleneck: null,
+            },
+          };
+          dlLegB.network.bottleneck = detectThroughputBottleneck(dlLegB);
+
+          const ulLegB: LeoThroughputLeg = {
+            direction: 'uplink',
+            label: 'Uplink',
+            rf: {
+              effectiveEirpDb: txEirpB,
+              receiverGtDbK: RF_SATELLITE_GOT_DB_PER_K,
+              rawTerminalRfDb: pB.txEirpDbw,
+              terminalScanLossDb: txScanLossB,
+              scanLossDb: beamEstimateB.beamLink.scanLossDb,
+              weatherLossDb: beamEstimateB.beamLink.weatherAttenuationDb,
+              fsplDb: ulRfB.fsplDb,
+              cnDb: ulRfB.cnDb,
+              modcod: ulRfB.modcod?.name ?? null,
+              modcodTableId: ulRfB.modcodTable.id,
+              modcodTableLabel: ulRfB.modcodTable.label,
+              modcodTableSourceNote: ulRfB.modcodTable.sourceNote,
+              slantRangeKm: beamEstimateB.debugInfo.slantRangeKm,
+              referenceBandwidthHz: pB.ulReferenceBandwidthHz,
+              usableBandwidthHz: pB.ulUsableBeamBandwidthHz,
+              rfChainThroughputMbps: ulRfB.rfThroughputMbps,
+            },
+            network: {
+              peakRfMbps: Math.min(sharingUlB.beamTotalThroughputMbps, pB.maxUlMbps),
+              terminalCapMbps: pB.maxUlMbps,
+              activeUsers: sharingUlB.activeUsers,
+              beamSharingMbps: sharingUlB.sharedThroughputMbps,
+              backhaulFactor: backhaulB,
+              backhaulMbps: sharingUlB.sharedThroughputMbps * backhaulB,
+              handoverFactor: 1,
+              handoverMbps: sharingUlB.sharedThroughputMbps * backhaulB,
+              smoothingAlpha: 0,
+              finalUserMbps: ulThroughputBMbps ?? sharingUlB.sharedThroughputMbps * backhaulB,
+              bottleneck: null,
+            },
+          };
+          ulLegB.network.bottleneck = detectThroughputBottleneck(ulLegB);
+
+          debugInfoB = {
+            satelliteId: servingSatelliteB.name || servingSatelliteB.id,
+            selectedBeamIndex: beamIndexB,
+            candidateBeamCount: beamInfoB?.candidateCount ?? 1,
+            normalizedDistance: beamEstimateB.beamLink.normalizedDistance,
+            userElevationDeg: beamEstimateB.userElevationDeg,
+            snpElevationDeg: beamEstimateB.snpElevationDeg,
+            limitingElevationDeg: beamEstimateB.limitingElevationDeg,
+            terminal: {
+              id: pB.id,
+              label: pB.label,
+              terminalFamily: pB.terminalFamily,
+              vendor: pB.vendor,
+              model: pB.model,
+              description: pB.description,
+              category: pB.category,
+              antennaType: pB.antennaType,
+              mobilityClass: pB.mobilityClass,
+              maxDlMbps: pB.maxDlMbps,
+              maxUlMbps: pB.maxUlMbps,
+              rxGtDbK: pB.rxGtDbK,
+              txEirpDbw: pB.txEirpDbw,
+              rxScanLossModelLabel: pB.rxScanLossModel.label,
+              txScanLossModelLabel: pB.txScanLossModel.label,
+              dlReferenceBandwidthHz: pB.dlReferenceBandwidthHz,
+              ulReferenceBandwidthHz: pB.ulReferenceBandwidthHz,
+              dlUsableBeamBandwidthHz: pB.dlUsableBeamBandwidthHz,
+              ulUsableBeamBandwidthHz: pB.ulUsableBeamBandwidthHz,
+              sourceType: pB.sourceType,
+              sourceLabel: pB.sourceLabel,
+              sourceUrl: pB.sourceUrl,
+              notes: pB.notes,
+              assumptions: pB.assumptions,
+              certificationStatus: pB.certificationStatus,
+              supportedBands: pB.supportedBands,
+            },
+            downlink: dlLegB,
+            uplink: ulLegB,
+            mainBottleneck: chooseMainBottleneck(dlLegB, ulLegB),
+          };
+        }
+      }
+    }
+
     return computeLeoSiteToSiteResult({
       endpointA: { lat: activePoint.lat, lng: activePoint.lng },
       endpointB: pointBLeo,
@@ -1084,6 +1272,8 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
       ulThroughputAMbps,
       dlThroughputBMbps,
       ulThroughputBMbps,
+      debugSiteA: leoDebugInfo ?? undefined,
+      debugSiteB: debugInfoB ?? undefined,
     });
   }, [
     leoTopologyMode,
@@ -1103,6 +1293,8 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
     beamLoadResult,
     computedBeamLoadResultB,
     selectedLeoTerminalProfileB,
+    simulationStateB,
+    nowTime,
   ]);
 
   // Propagate the full S2S result upward so the globe can display accurate tooltip values.
@@ -1272,14 +1464,15 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
       'Ku'
     ) as GeoBand;
     const fadeTable = RAIN_FADE_DB[activeBand] ?? RAIN_FADE_DB.Ku;
-    const weatherAdjDb: number = fadeTable[weatherType as keyof typeof fadeTable] ?? 0;
+    const weatherAdjDbA: number = fadeTable[weatherType as keyof typeof fadeTable] ?? 0;
+    const weatherAdjDbB: number = fadeTable[(weatherTypeB ?? weatherType) as keyof typeof fadeTable] ?? 0;
 
     if (linkMode === 'STAR_FORWARD') {
       if (!resolvedGatewayData) return null;
       const dl = downlinkAtUser;
       const ul = uplinkAtGateway;
       if (!dl || !ul) return null;
-      return buildStarForwardResult(dl, ul, resolvedGatewayData, pointALabel, weatherAdjDb, geoRFClassIdA, geoRFCustomParamsA);
+      return buildStarForwardResult(dl, ul, resolvedGatewayData, pointALabel, weatherAdjDbA, geoRFClassIdA, geoRFCustomParamsA);
     }
 
     if (linkMode === 'STAR_RETURN') {
@@ -1290,7 +1483,7 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
       if (!ul || !dl) return null;
       // Resolve terminal key: RF class ID takes priority over legacy use-case string.
       const terminalKeyA = geoRFClassIdA ?? geoTerminalType;
-      return buildStarReturnResult(ul, dl, resolvedGatewayData, pointALabel, weatherAdjDb, terminalKeyA, geoRFCustomParamsA);
+      return buildStarReturnResult(ul, dl, resolvedGatewayData, pointALabel, weatherAdjDbA, terminalKeyA, geoRFCustomParamsA);
     }
 
     if (linkMode === 'MESH' || linkMode === 'POINT_TO_POINT') {
@@ -1304,7 +1497,7 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
       return buildMeshResult(ulA, dlB, ulB, dlA, {
         pointA: pointALabel,
         pointB: pointBLabel,
-      }, terminalKeyA, terminalKeyB, weatherAdjDb, geoRFCustomParamsA, geoRFCustomParamsB, linkMode);
+      }, terminalKeyA, terminalKeyB, weatherAdjDbA, weatherAdjDbB, geoRFCustomParamsA, geoRFCustomParamsB, linkMode);
     }
 
     return null;
@@ -1318,7 +1511,7 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
     geoTerminalType, geoTerminalTypeB,
     geoRFClassIdA, geoRFClassIdB,
     geoRFCustomParamsA, geoRFCustomParamsB,
-    weatherType,
+    weatherType, weatherTypeB,
   ]);
 
   // Performance optimization: Memoize SNP detection to prevent recalculation

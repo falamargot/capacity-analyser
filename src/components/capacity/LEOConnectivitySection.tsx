@@ -1,4 +1,4 @@
-import { memo, useEffect, useState, type ReactNode } from 'react';
+import { memo, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { ChevronDown, Gauge, Maximize2, Minimize2, Route, X } from 'lucide-react';
 import type { LeoSiteToSiteResult } from '../../utils/leoSiteToSiteModel';
 import { formatLeoSiteToSiteFailureReason } from '../../utils/leoSiteToSiteModel';
@@ -673,9 +673,17 @@ const LeoRFLinkBudgetPanel = ({
 interface LeoLinkBudgetDrawerProps {
   open: boolean;
   onClose: () => void;
+  /** Single-site mode: full RF debug chain for the active terminal. Also used as
+   *  fallback in S2S mode when per-site debug chains are unavailable. */
   debugInfo: LeoRFDebugInfo | null;
   siteToSiteResult?: LeoSiteToSiteResult | null;
   siteToSiteDirection?: 'A_TO_B' | 'B_TO_A';
+  /** S2S mode: independent RF debug chain for Site A's terminal. When present,
+   *  the Site A Access Budget panel uses this instead of the fallback debugInfo. */
+  debugInfoSiteA?: LeoRFDebugInfo | null;
+  /** S2S mode: independent RF debug chain for Site B's terminal. When present,
+   *  the Site B Access Budget panel uses this instead of the fallback debugInfo. */
+  debugInfoSiteB?: LeoRFDebugInfo | null;
   snpAName?: string;
   snpBName?: string;
   popName?: string;
@@ -690,7 +698,7 @@ const NoBudgetPlaceholder = () => (
   </div>
 );
 
-const LeoLinkBudgetDrawer = ({ open, onClose, debugInfo, siteToSiteResult, siteToSiteDirection = 'A_TO_B', snpAName, snpBName, popName }: LeoLinkBudgetDrawerProps) => {
+const LeoLinkBudgetDrawer = ({ open, onClose, debugInfo, siteToSiteResult, siteToSiteDirection = 'A_TO_B', debugInfoSiteA, debugInfoSiteB, snpAName, snpBName, popName }: LeoLinkBudgetDrawerProps) => {
   // Entrance animation: slide in from right on mount
   const [mounted, setMounted] = useState(false);
 
@@ -735,13 +743,21 @@ const LeoLinkBudgetDrawer = ({ open, onClose, debugInfo, siteToSiteResult, siteT
   const primaryLatencyMs = siteToSiteResult
     ? (s2sIsAtoB ? siteToSiteResult.oneWayLatencyAtoBMs : siteToSiteResult.oneWayLatencyBtoAMs)
     : null;
-  const sourceUplinkMbps = debugInfo?.uplink.network.finalUserMbps ?? null;
-  const destinationDownlinkMbps = debugInfo?.downlink.network.finalUserMbps ?? null;
+  // In S2S mode, use the per-site debug chains for bottleneck identification so that
+  // the source uplink always comes from the transmitting site and the destination
+  // downlink from the receiving site. Falls back to the combined debugInfo when per-site
+  // chains are not yet available (e.g. non-beam-model coverage mode).
+  const sourceDebugInfo  = isS2S ? (s2sIsAtoB ? (debugInfoSiteA ?? debugInfo) : (debugInfoSiteB ?? debugInfo)) : debugInfo;
+  const destDebugInfo    = isS2S ? (s2sIsAtoB ? (debugInfoSiteB ?? debugInfo) : (debugInfoSiteA ?? debugInfo)) : debugInfo;
+  const sourceUplinkMbps = sourceDebugInfo?.uplink.network.finalUserMbps ?? null;
+  const destinationDownlinkMbps = destDebugInfo?.downlink.network.finalUserMbps ?? null;
   const sourceIsBottleneck =
     sourceUplinkMbps != null && destinationDownlinkMbps != null
       ? sourceUplinkMbps <= destinationDownlinkMbps
       : sourceUplinkMbps != null;
-  const bottleneckLeg = debugInfo ? (sourceIsBottleneck ? debugInfo.uplink : debugInfo.downlink) : null;
+  const bottleneckLeg = sourceIsBottleneck
+    ? (sourceDebugInfo?.uplink ?? null)
+    : (destDebugInfo?.downlink ?? null);
   const bottleneckFactor = bottleneckLeg
     ? (detectLegLimitingFactor(bottleneckLeg) ?? deriveLegLimitingFactor(bottleneckLeg))
     : null;
@@ -760,6 +776,13 @@ const LeoLinkBudgetDrawer = ({ open, onClose, debugInfo, siteToSiteResult, siteT
       ? { uplink: 'primary' as const, downlink: 'reference' as const }
       : { downlink: 'primary' as const, uplink: 'reference' as const };
 
+    // Use the independent per-site debug chain when available so each panel shows
+    // that site's own RF geometry (slant range, elevation, C/N, MODCOD, terminal).
+    // Falls back to the combined debugInfo for backward compatibility.
+    const siteDebugInfo = siteId === 'A'
+      ? (debugInfoSiteA ?? debugInfo)
+      : (debugInfoSiteB ?? debugInfo);
+
     return (
     <div>
       <h4 className={`mb-1 flex items-center gap-2 text-sm font-bold ${accentClass}`}>
@@ -770,7 +793,7 @@ const LeoLinkBudgetDrawer = ({ open, onClose, debugInfo, siteToSiteResult, siteT
         </span>
       </h4>
       <LeoRFLinkBudgetPanel
-        d={debugInfo!}
+        d={siteDebugInfo!}
         directionUsage={directionUsage}
         primaryDirectionLabel={s2sDirectionLabel}
       />
@@ -846,6 +869,16 @@ const LeoLinkBudgetDrawer = ({ open, onClose, debugInfo, siteToSiteResult, siteT
                   </div>
 
                   {renderS2SAccessBudget(sourceSiteId, 'source', sourceAccentClass, sourceBadgeClass)}
+
+                  {/* Capacity model disclosure — shown only when per-site RF chains are available,
+                      so the user knows the RF geometry rows are site-specific while the final
+                      throughput still uses the shared-beam capacity model. */}
+                  {debugInfoSiteB != null && (
+                    <p className="text-[10px] italic text-slate-400 dark:text-slate-500 -mt-4">
+                      RF parameters (elevation, C/N, MODCOD) are computed independently for each site.
+                      Final throughput uses a shared-beam capacity model — per-beam contention at Site B is approximated from Site A's constellation geometry.
+                    </p>
+                  )}
 
                   <div>
                     <h4 className="mb-3 text-sm font-bold text-violet-600 dark:text-violet-400">Backbone Network Layer</h4>
@@ -1049,32 +1082,66 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
   const s2sActive = isS2S && siteToSiteResult != null;
   const s2sServiceActive = s2sActive && siteToSiteResult!.serviceAvailable;
   const isAtoB = s2sDirection === 'A_TO_B';
-  const s2sPrimaryLabel = isAtoB ? 'A → B' : 'B → A';
-  const s2sPrimaryLatency = s2sServiceActive
-    ? (isAtoB ? siteToSiteResult!.oneWayLatencyAtoBMs : siteToSiteResult!.oneWayLatencyBtoAMs)
-    : null;
 
   useEffect(() => {
     if (!isS2S || !activeMeshTab) return;
     setS2SDirection(activeMeshTab === 'reverse' ? 'B_TO_A' : 'A_TO_B');
   }, [activeMeshTab, isS2S]);
 
-  // S2S-adapted debug info: override final DL/UL with end-to-end throughput so the
-  // summary card and drawer header show A→B / B→A values instead of Site A raw values.
-  const s2sLinkBudgetDebugInfo: LeoRFDebugInfo | null =
-    isS2S && s2sServiceActive && leoPerformance?.debugInfo
-      ? {
-          ...leoPerformance.debugInfo,
-          downlink: {
-            ...leoPerformance.debugInfo.downlink,
-            network: { ...leoPerformance.debugInfo.downlink.network, finalUserMbps: siteToSiteResult!.finalThroughputAtoBMbps },
-          },
-          uplink: {
-            ...leoPerformance.debugInfo.uplink,
-            network: { ...leoPerformance.debugInfo.uplink.network, finalUserMbps: siteToSiteResult!.finalThroughputBtoAMbps },
-          },
-        }
-      : (leoPerformance?.debugInfo ?? null);
+  // Single directional view derived from s2sDirection.
+  // Final throughput values (primaryMbps / secondaryMbps) are direction-aware:
+  //   A→B picks finalThroughputAtoBMbps as the primary end-to-end value, B→A as secondary.
+  //   B→A reverses the assignment.
+  // NOTE: the underlying debugInfo RF chain rows (per-hop UL/DL RF parameters) still
+  // reflect Site A's terminal geometry — the engine does not yet expose per-site S2S
+  // debug chains. Only the top-level finalUserMbps override is direction-corrected here.
+  // Extending the full RF chain to be direction-aware is a follow-up engine improvement.
+  const s2sView = useMemo(() => {
+    if (!s2sServiceActive || !siteToSiteResult) return null;
+    const primaryMbps = isAtoB
+      ? siteToSiteResult.finalThroughputAtoBMbps
+      : siteToSiteResult.finalThroughputBtoAMbps;
+    const secondaryMbps = isAtoB
+      ? siteToSiteResult.finalThroughputBtoAMbps
+      : siteToSiteResult.finalThroughputAtoBMbps;
+    return {
+      primaryLabel:   isAtoB ? 'A → B' : 'B → A',
+      secondaryLabel: isAtoB ? 'B → A' : 'A → B',
+      primaryMbps,
+      secondaryMbps,
+      oneWayLatencyMs: isAtoB
+        ? siteToSiteResult.oneWayLatencyAtoBMs
+        : siteToSiteResult.oneWayLatencyBtoAMs,
+      // Per-site RF debug chains for the Detailed Link Budget drawer.
+      // Populated by CapacityDetails when beam-model RF is available for each site.
+      debugSiteA: siteToSiteResult.debugSiteA ?? null,
+      debugSiteB: siteToSiteResult.debugSiteB ?? null,
+    };
+  }, [s2sServiceActive, siteToSiteResult, isAtoB]);
+
+  // Convenience aliases kept for existing consumers that predate s2sView.
+  const s2sPrimaryLabel   = s2sView?.primaryLabel   ?? (isAtoB ? 'A → B' : 'B → A');
+  const s2sPrimaryLatency = s2sView?.oneWayLatencyMs ?? null;
+
+  // S2S-adapted debug info used exclusively by the Link Budget Summary card (collapsed view).
+  // Overrides finalUserMbps in the direction-selected leg so the card shows the correct
+  // end-to-end throughput. The detailed drawer uses per-site chains (debugInfoSiteA/B) instead.
+  const s2sLinkBudgetDebugInfo: LeoRFDebugInfo | null = useMemo(() => {
+    if (!isS2S || !s2sView || !leoPerformance?.debugInfo) {
+      return leoPerformance?.debugInfo ?? null;
+    }
+    return {
+      ...leoPerformance.debugInfo,
+      downlink: {
+        ...leoPerformance.debugInfo.downlink,
+        network: { ...leoPerformance.debugInfo.downlink.network, finalUserMbps: s2sView.primaryMbps ?? 0 },
+      },
+      uplink: {
+        ...leoPerformance.debugInfo.uplink,
+        network: { ...leoPerformance.debugInfo.uplink.network, finalUserMbps: s2sView.secondaryMbps ?? 0 },
+      },
+    };
+  }, [isS2S, s2sView, leoPerformance]);
 
   const isRegulatoryBlocked = leoServiceViewModel?.decisionDriver === 'REGULATORY'
     && leoServiceViewModel.serviceStatus === 'BLOCKED';
@@ -1352,10 +1419,12 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
           onClose={() => setIsLinkBudgetDrawerOpen(false)}
           debugInfo={leoPerformance?.debugInfo ?? null}
           siteToSiteResult={s2sServiceActive ? siteToSiteResult : undefined}
+          siteToSiteDirection={s2sDirection}
+          debugInfoSiteA={s2sView?.debugSiteA}
+          debugInfoSiteB={s2sView?.debugSiteB}
           snpAName={s2sSnpAName !== '—' ? s2sSnpAName : undefined}
           snpBName={s2sSnpBName !== '—' ? s2sSnpBName : undefined}
           popName={s2sPopName}
-          siteToSiteDirection={s2sDirection}
         />
 
         {/* Radio Path */}
@@ -1703,16 +1772,16 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
               <>
                 <PerformancePanel
                   rtt={siteToSiteResult!.rttMs}
-                  downlinkGbps={siteToSiteResult!.finalThroughputAtoBMbps / 1000}
-                  uplinkGbps={siteToSiteResult!.finalThroughputBtoAMbps / 1000}
+                  downlinkGbps={(s2sView?.primaryMbps ?? 0) / 1000}
+                  uplinkGbps={(s2sView?.secondaryMbps ?? 0) / 1000}
                   maxDlGbps={TERMINAL_PROFILES[terminalType].maxDlGbps}
                   maxUlGbps={TERMINAL_PROFILES[terminalType].maxUlGbps}
                   performanceFactor={leoPerformance?.performanceFactor ?? 1}
                   accentColor="#db2777"
                   rttMaxMs={RTT_VISUAL_SCALE_MAX_MS}
                   rttLabel="End-to-End RTT"
-                  downlinkLabel="A → B throughput"
-                  uplinkLabel="B → A throughput"
+                  downlinkLabel={`${s2sView?.primaryLabel ?? 'A → B'} throughput`}
+                  uplinkLabel={`${s2sView?.secondaryLabel ?? 'B → A'} throughput`}
                 />
                 <div className="mt-2 flex items-center justify-between text-xs">
                   <span className="text-slate-500 dark:text-slate-400">Path stability</span>

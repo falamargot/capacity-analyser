@@ -1804,15 +1804,15 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                 if (satelliteScope !== 'LEO') {
                     sections.push(
                         isMeshP2P
-                            ? buildGeoMeshSection(performanceMetrics?.mesh, 'A', linkMode!)
-                            : buildGeoStarSection(geoPointStatus, performanceMetrics?.geo, linkMode)
+                            ? buildGeoMeshSection(performanceMetrics?.mesh, 'A', linkMode!, autoSelectedGEOSatellite?.name)
+                            : buildGeoStarSection(geoPointStatus, performanceMetrics?.geo, linkMode, autoSelectedGEOSatellite?.name)
                     );
                 }
                 if (satelliteScope !== 'GEO') {
                     sections.push(
                         isLeoS2S
                             ? buildLeoS2SSectionA(s2sResult)
-                            : buildLeoSingleSection(leoServiceViewModel, performanceMetrics?.leo)
+                            : buildLeoSingleSection(leoServiceViewModel, performanceMetrics?.leo, autoSelectedLEOSatellite?.name)
                     );
                 }
 
@@ -1838,7 +1838,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                 const sections = [];
 
                 if (satelliteScope !== 'LEO' && pointB && isMeshP2P) {
-                    sections.push(buildGeoMeshSection(performanceMetrics?.mesh, 'B', linkMode!));
+                    sections.push(buildGeoMeshSection(performanceMetrics?.mesh, 'B', linkMode!, autoSelectedGEOSatellite?.name));
                 }
                 if (satelliteScope !== 'GEO' && isLeoS2S) {
                     sections.push(buildLeoS2SSectionB(s2sResult));

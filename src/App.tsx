@@ -585,7 +585,7 @@ const App: React.FC = () => {
   }, [setWeatherCondition]);
 
   // Auto-weather detection for Site B — same logic as Site A but independent state.
-  // weatherTypeB is display-only; it does not yet feed into the link-budget calculation.
+  // weatherTypeB is passed to CapacityDetails and used for Site B RF chain (GEO and LEO S2S).
   useEffect(() => {
     if (!autoWeatherEnabledB || !siteB) return;
 
@@ -3668,6 +3668,8 @@ const App: React.FC = () => {
                     onGeoRFCustomParamsBChange={setGeoRFCustomParamsB}
                     weatherType={weatherType}
                     onWeatherTypeChange={handleWeatherTypeChange}
+                    weatherTypeB={weatherTypeB}
+                    onWeatherTypeBChange={handleWeatherTypeBChange}
                     autoWeatherEnabled={autoWeatherEnabled}
                     onAutoWeatherChange={setAutoWeatherEnabled}
                     selectedSNP={selectedSNP}
@@ -3883,6 +3885,8 @@ const App: React.FC = () => {
                                 onGeoRFCustomParamsBChange={setGeoRFCustomParamsB}
                                 weatherType={weatherType}
                                 onWeatherTypeChange={handleWeatherTypeChange}
+                                weatherTypeB={weatherTypeB}
+                                onWeatherTypeBChange={handleWeatherTypeBChange}
                                 autoWeatherEnabled={autoWeatherEnabled}
                                 onAutoWeatherChange={setAutoWeatherEnabled}
                                 selectedSNP={selectedSNP}
@@ -4058,6 +4062,8 @@ const App: React.FC = () => {
                         onGeoRFCustomParamsBChange={setGeoRFCustomParamsB}
                         weatherType={weatherType}
                         onWeatherTypeChange={handleWeatherTypeChange}
+                        weatherTypeB={weatherTypeB}
+                        onWeatherTypeBChange={handleWeatherTypeBChange}
                         autoWeatherEnabled={autoWeatherEnabled}
                         onAutoWeatherChange={setAutoWeatherEnabled}
                         selectedSNP={selectedSNP}

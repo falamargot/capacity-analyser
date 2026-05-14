@@ -3,6 +3,7 @@ import type { MeshLinkMetrics, MobileLinkMetrics } from '../../../types/analysis
 import type { LeoConnectivityViewModel } from '../../../utils/leoServiceViewModel';
 import type { LeoSiteToSiteResult } from '../../../utils/leoSiteToSiteModel';
 import {
+  buildGeoStarSection,
   buildGeoMeshSection,
   buildLeoSingleSection,
   buildLeoS2SSectionA,
@@ -23,6 +24,8 @@ const leoS2S = {
   rttMs: 87,
   failureReason: null,
   serviceStatus: 'ALLOWED',
+  servingSatelliteA: { name: 'ONEWEB-0001' },
+  servingSatelliteB: { name: 'ONEWEB-0002' },
 } as LeoSiteToSiteResult;
 
 const leoAllowed = {
@@ -126,5 +129,17 @@ describe('site tooltip throughput layout', () => {
     expect(section.lines.map((item) => item.text)).toEqual([
       '↓ 100 Mbps · ↑ 20 Mbps · 250 ms',
     ]);
+  });
+
+  it('adds only the directly connected satellite name to GEO tooltip headings', () => {
+    const section = buildGeoStarSection('available', { downlinkGbps: 0.03, uplinkGbps: 0.01, rtt: 545 }, 'STAR_FORWARD', 'EUTELSAT 21B');
+
+    expect(section.connectedSatelliteName).toBe('EUTELSAT 21B');
+    expect(section.title).toBe('GEO FORWARD');
+  });
+
+  it('adds the endpoint serving satellite name to LEO S2S tooltip headings', () => {
+    expect(buildLeoS2SSectionA(leoS2S).connectedSatelliteName).toBe('ONEWEB-0001');
+    expect(buildLeoS2SSectionB(leoS2S).connectedSatelliteName).toBe('ONEWEB-0002');
   });
 });

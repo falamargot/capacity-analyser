@@ -5,6 +5,7 @@ import type { SNPData } from '../components/globe/GlobeConfig';
 import type { RegulatoryResult } from '../services/regulatoryService';
 import type { ServiceStatus } from './serviceLayer';
 import type { BeamLoadResult } from './capacityLayer';
+import type { LeoThroughputResult } from '../types/leoThroughput';
 
 // ── OneWeb site-to-site backbone constants ────────────────────────────────────
 
@@ -159,6 +160,12 @@ export interface LeoSiteToSiteResult {
   pathStability: 'High' | 'Medium' | 'Low';
   confidenceLevel: 'High' | 'Medium' | 'Low';
   serviceAvailable: boolean;
+
+  /** Per-site RF debug chains for the Detailed Link Budget drawer.
+   *  Present only when beam-model RF was available for that site.
+   *  Does not affect any throughput or latency values. */
+  debugSiteA?: LeoThroughputResult | null;
+  debugSiteB?: LeoThroughputResult | null;
 }
 
 // ── Helper functions ──────────────────────────────────────────────────────────
@@ -343,6 +350,13 @@ export interface ComputeLeoSiteToSiteArgs {
   dlThroughputBMbps: number | null;
   /** Final per-user uplink throughput at endpoint B (Mbps). */
   ulThroughputBMbps: number | null;
+
+  /** Full RF debug chain for Site A's terminal (UL + DL legs). Passed through for the
+   *  Detailed Link Budget drawer; does not affect throughput computation. */
+  debugSiteA?: LeoThroughputResult | null;
+  /** Full RF debug chain for Site B's terminal (UL + DL legs). Passed through for the
+   *  Detailed Link Budget drawer; does not affect throughput computation. */
+  debugSiteB?: LeoThroughputResult | null;
 }
 
 export function computeLeoSiteToSiteResult(args: ComputeLeoSiteToSiteArgs): LeoSiteToSiteResult {
@@ -369,6 +383,8 @@ export function computeLeoSiteToSiteResult(args: ComputeLeoSiteToSiteArgs): LeoS
     ulThroughputAMbps,
     dlThroughputBMbps,
     ulThroughputBMbps,
+    debugSiteA,
+    debugSiteB,
   } = args;
 
   const failureReason = deriveFailureReason({
@@ -494,5 +510,7 @@ export function computeLeoSiteToSiteResult(args: ComputeLeoSiteToSiteArgs): LeoS
     pathStability,
     confidenceLevel,
     serviceAvailable,
+    debugSiteA,
+    debugSiteB,
   };
 }

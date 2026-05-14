@@ -599,7 +599,7 @@ const GeoStatusCard = memo(({
   const gatewayResolved = gatewayName !== 'Gateway' && gatewayName !== '';
   const gatewayValue = isMeshOrP2P ? 'Not in path' : (gatewayResolved ? gatewayName : 'Not resolved');
   const gatewayDetail = isMeshOrP2P
-    ? 'Direct terminal-to-terminal (no gateway)'
+    ? 'Direct terminal-to-terminal'
     : gatewayResolved ? 'Auto-resolved' : 'No eligible gateway found';
   const gatewayTone: GeoTone = isMeshOrP2P ? 'neutral' : gatewayResolved ? 'success' : 'warning';
 

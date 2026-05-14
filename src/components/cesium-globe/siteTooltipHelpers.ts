@@ -28,15 +28,21 @@ function latencySuffix(ms: number | null | undefined): string {
   return ms != null && Number.isFinite(ms) && ms > 0 ? ` · ${fmtMs(ms)}` : '';
 }
 
+function withConnectedSatellite(section: SiteLabelSection, satelliteName?: string | null): SiteLabelSection {
+  if (!satelliteName) return section;
+  return { ...section, connectedSatelliteName: satelliteName };
+}
+
 function siteThroughputLine(
   site: 'A' | 'B',
   forwardMbps: number | null | undefined,
   reverseMbps: number | null | undefined,
   latencyMs?: number | null,
+  tone: SiteLabelTone = 'success',
 ): SiteLabelLine {
   const ul = site === 'A' ? forwardMbps : reverseMbps;
   const dl = site === 'A' ? reverseMbps : forwardMbps;
-  return line(`↑ ${fmtMbps(ul)} · ↓ ${fmtMbps(dl)}${latencySuffix(latencyMs)}`, 'success');
+  return line(`↑ ${fmtMbps(ul)} · ↓ ${fmtMbps(dl)}${latencySuffix(latencyMs)}`, tone);
 }
 
 /** GEO STAR Forward / Return section for Site A. */
@@ -44,6 +50,7 @@ export function buildGeoStarSection(
   status: GeoPointStatus | null | undefined,
   metrics: MobileLinkMetrics | null | undefined,
   linkMode?: LinkMode,
+  connectedSatelliteName?: string | null,
 ): SiteLabelSection {
   const lines: SiteLabelLine[] = [];
 
@@ -75,7 +82,7 @@ export function buildGeoStarSection(
     linkMode === 'STAR_RETURN' ? 'GEO RETURN' :
     'GEO';
 
-  return { title, accent: 'blue', lines };
+  return withConnectedSatellite({ title, accent: 'blue', lines }, connectedSatelliteName);
 }
 
 /** GEO Mesh / P2P section — throughput is mapped from the current site's perspective. */
@@ -83,20 +90,22 @@ export function buildGeoMeshSection(
   mesh: MeshLinkMetrics | null | undefined,
   role: 'A' | 'B',
   linkMode: LinkMode,
+  connectedSatelliteName?: string | null,
 ): SiteLabelSection {
   const title = linkMode === 'POINT_TO_POINT' ? 'GEO P2P' : 'GEO Mesh';
-  if (!mesh) return { title, accent: 'blue', lines: [line('--', 'neutral')] };
+  if (!mesh) return withConnectedSatellite({ title, accent: 'blue', lines: [line('--', 'neutral')] }, connectedSatelliteName);
 
   const lines: SiteLabelLine[] = [
     siteThroughputLine(role, mesh.forwardMbps, mesh.reverseMbps, mesh.rttMs),
   ];
-  return { title, accent: 'blue', lines };
+  return withConnectedSatellite({ title, accent: 'blue', lines }, connectedSatelliteName);
 }
 
 /** LEO single-site section for Site A. */
 export function buildLeoSingleSection(
   viewModel: LeoConnectivityViewModel | null | undefined,
   metrics: MobileLinkMetrics | null | undefined,
+  connectedSatelliteName?: string | null,
 ): SiteLabelSection {
   const lines: SiteLabelLine[] = [];
 
@@ -118,7 +127,7 @@ export function buildLeoSingleSection(
     lines.push(line(viewModel.finalServiceStatus === 'ALLOWED' ? '--' : 'Checking...', 'neutral'));
   }
 
-  return { title: 'LEO', accent: 'pink', lines };
+  return withConnectedSatellite({ title: 'LEO', accent: 'pink', lines }, connectedSatelliteName);
 }
 
 function getLeoS2SEndpointReason(
@@ -161,31 +170,50 @@ function buildLeoS2SSection(
   result: LeoSiteToSiteResult | null | undefined,
   site: 'A' | 'B',
 ): SiteLabelSection {
+  const connectedSatelliteName = site === 'A'
+    ? result?.servingSatelliteA?.name
+    : result?.servingSatelliteB?.name;
+
   if (!result) {
     return { title: 'LEO', accent: 'pink', lines: [line('Not available', 'neutral')] };
   }
 
+  const ul = site === 'A' ? result.finalThroughputAtoBMbps : result.finalThroughputBtoAMbps;
+  const dl = site === 'A' ? result.finalThroughputBtoAMbps : result.finalThroughputAtoBMbps;
+  const hasThroughput = (ul != null && ul > 0) || (dl != null && dl > 0);
+
   if (result.serviceStatus === 'ALLOWED') {
-    return {
+    return withConnectedSatellite({
       title: 'LEO',
       accent: 'pink',
       lines: [
         siteThroughputLine(site, result.finalThroughputAtoBMbps, result.finalThroughputBtoAMbps, result.rttMs),
       ],
-    };
+    }, connectedSatelliteName);
+  }
+
+  // DEGRADED (capacity saturated/degraded) — show throughput if available, otherwise reason
+  if (result.serviceStatus === 'DEGRADED' && hasThroughput) {
+    return withConnectedSatellite({
+      title: 'LEO',
+      accent: 'pink',
+      lines: [
+        siteThroughputLine(site, result.finalThroughputAtoBMbps, result.finalThroughputBtoAMbps, result.rttMs, 'warning'),
+      ],
+    }, connectedSatelliteName);
   }
 
   const endpointReason = getLeoS2SEndpointReason(result.failureReason, site);
   if (endpointReason) {
     const tone: SiteLabelTone = result.serviceStatus === 'DEGRADED' ? 'warning' : 'danger';
-    return { title: 'LEO', accent: 'pink', lines: [line(endpointReason, tone)] };
+    return withConnectedSatellite({ title: 'LEO', accent: 'pink', lines: [line(endpointReason, tone)] }, connectedSatelliteName);
   }
 
-  return {
+  return withConnectedSatellite({
     title: 'LEO',
     accent: 'pink',
     lines: [line('Not available', 'neutral')],
-  };
+  }, connectedSatelliteName);
 }
 
 /** LEO S2S section as seen from Site A. */

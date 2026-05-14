@@ -269,7 +269,8 @@ export function selectBestTopologyPath({
           },
           terminalTypeA,
           terminalTypeB,
-          undefined,
+          undefined, // weatherAdjDbA — not applied during topology scoring
+          undefined, // weatherAdjDbB
           customParamsA,
           customParamsB,
           linkMode,
