@@ -3030,6 +3030,10 @@ const App: React.FC = () => {
     && !selectedMoon
     && !selectedSatellite
     && !selectedIss;
+  const showPhoneFloatingHeader = isPhone
+    && !isFullscreen
+    && !isMobileAnalysisPanelOpen
+    && !isSatelliteModalOpen;
   const isLeoS2S = leoTopologyMode === 'SITE_TO_SITE';
   const showMobilePointBMapControl = isMobile
     && !isFullscreen
@@ -3602,7 +3606,7 @@ const App: React.FC = () => {
               <MapViewSwitcher {...sharedMapProps} isPhone={isPhone} isMobileViewport={isMobile} />
             </div>
 
-            {isPhone && !isFullscreen && (
+            {showPhoneFloatingHeader && (
               <div
                 className="pointer-events-none absolute inset-x-0 top-0 z-[1320] px-3"
                 style={{ paddingTop: 'calc(env(safe-area-inset-top) + 0.75rem)' }}
