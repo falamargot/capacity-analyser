@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useMemo, useCallback, memo, type RefObject } from 'react';
+import { useEffect, useRef, useState, useMemo, useCallback, memo, type KeyboardEvent, type RefObject } from 'react';
 import { regulatoryLookup } from '../services/regulatoryService';
 import { estimateBeamLoad } from '../utils/capacityLayer';
 import { computeServiceStatus } from '../utils/serviceLayer';
@@ -351,6 +351,18 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
     setInternalActiveConnTab(tab);
     onActiveConnectionTabChange?.(tab);
   }, [onActiveConnectionTabChange]);
+  const handleTechnologyTabKeyDown = useCallback((event: KeyboardEvent<HTMLButtonElement>) => {
+    if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+      event.preventDefault();
+      setActiveConnTab(activeConnTab === 'LEO' ? 'GEO' : 'LEO');
+    } else if (event.key === 'Home') {
+      event.preventDefault();
+      setActiveConnTab('LEO');
+    } else if (event.key === 'End') {
+      event.preventDefault();
+      setActiveConnTab('GEO');
+    }
+  }, [activeConnTab, setActiveConnTab]);
   const [isLinkBudgetDrawerOpen, setIsLinkBudgetDrawerOpen] = useState(false);
   const selectedLeoTerminalProfile = useMemo(
     () => getLeoTerminalProfile(leoTerminalType, leoTerminalModelId),
@@ -2341,7 +2353,7 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
 
   return (
     <div className="h-full bg-white dark:bg-slate-900 rounded-lg shadow-lg overflow-hidden flex flex-col transition-colors duration-300">
-      <div className={`flex h-full flex-col ${compactDesktop ? 'p-3.5' : 'p-4'}`}>
+      <div className={`flex h-full flex-col ${satelliteScope === 'ALL' ? (compactDesktop ? 'px-1 py-3.5' : 'px-1.5 py-4') : (compactDesktop ? 'p-3.5' : 'p-4')}`}>
         {/* Section 1: Header */}
         {!externalHeader && (
           <AnalysisHeader
@@ -2359,29 +2371,56 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
           {/* Section 2: Constellation-based Connectivity */}
           {(satelliteScope === 'LEO' || satelliteScope === 'GEO' || satelliteScope === 'ALL') && (
             <div className="mb-6">
-              {/* Tab buttons (only when scope is ALL) */}
-              {satelliteScope === 'ALL' && (
-                <div className={`mb-4 flex rounded-xl bg-gray-100 p-1 dark:bg-slate-800 ${compactDesktop ? 'gap-1' : ''}`}>
-                  <button
-                    type="button"
-                    onClick={() => setActiveConnTab('LEO')}
-                    className={`flex flex-1 items-center justify-center gap-2 rounded-lg font-semibold transition-all duration-200 ${compactDesktop ? 'px-2.5 py-1.5 text-[13px]' : 'px-3 py-2 text-sm'} ${activeConnTab === 'LEO' ? 'bg-pink-500 text-white shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}
+              <div className={satelliteScope === 'ALL'
+                ? `overflow-hidden rounded-xl border bg-white shadow-sm transition-colors duration-300 dark:bg-slate-900/80 ${activeConnTab === 'LEO' ? 'border-pink-500/70 dark:border-pink-500/60' : 'border-blue-500/70 dark:border-blue-500/60'}`
+                : undefined}
+              >
+                {/* Technology tabs (only when scope is ALL) */}
+                {satelliteScope === 'ALL' && (
+                  <div
+                    role="tablist"
+                    aria-label="Detailed analysis technology"
+                    className="flex items-end gap-px border-b border-slate-200 bg-slate-100 px-0 pt-1 dark:border-slate-700 dark:bg-slate-950"
                   >
-                    <span className={`w-2 h-2 rounded-full flex-shrink-0 ${resolvedLEOConnectivity?.snp ? 'bg-green-400' : resolvedLEOConnectivity ? 'bg-yellow-400' : 'bg-gray-300 dark:bg-slate-600'}`} />
-                    LEO
-                    <span className={`${compactDesktop ? 'text-[9px]' : 'text-[10px]'} font-normal ${activeConnTab === 'LEO' ? 'text-pink-100' : 'text-gray-400 dark:text-gray-500'}`}>OneWeb</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setActiveConnTab('GEO')}
-                    className={`flex flex-1 items-center justify-center gap-2 rounded-lg font-semibold transition-all duration-200 ${compactDesktop ? 'px-2.5 py-1.5 text-[13px]' : 'px-3 py-2 text-sm'} ${activeConnTab === 'GEO' ? 'bg-blue-600 text-white shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}
-                  >
-                    <span className={`w-2 h-2 rounded-full flex-shrink-0 ${resolvedGEOConnectivity ? 'bg-green-400' : 'bg-gray-300 dark:bg-slate-600'}`} />
-                    GEO
-                    <span className={`${compactDesktop ? 'text-[9px]' : 'text-[10px]'} font-normal ${activeConnTab === 'GEO' ? 'text-blue-100' : 'text-gray-400 dark:text-gray-500'}`}>Eutelsat</span>
-                  </button>
-                </div>
-              )}
+                    <button
+                      id="technology-tab-leo"
+                      type="button"
+                      role="tab"
+                      aria-selected={activeConnTab === 'LEO'}
+                      aria-controls="technology-panel"
+                      tabIndex={activeConnTab === 'LEO' ? 0 : -1}
+                      onClick={() => setActiveConnTab('LEO')}
+                      onKeyDown={handleTechnologyTabKeyDown}
+                      className={`flex flex-1 items-center justify-center gap-2 rounded-t-lg border border-b-0 font-semibold transition-all duration-200 focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pink-300 ${compactDesktop ? 'px-2.5 py-1.5 text-[13px]' : 'px-3 py-2 text-sm'} ${activeConnTab === 'LEO' ? 'relative -mb-px border-pink-500 bg-pink-500 text-white' : 'border-slate-200 bg-slate-50 text-slate-500 hover:bg-white hover:text-slate-800 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-white'}`}
+                    >
+                      <span className={`h-2 w-2 flex-shrink-0 rounded-full ${resolvedLEOConnectivity?.snp ? 'bg-green-400' : resolvedLEOConnectivity ? 'bg-yellow-400' : 'bg-gray-300 dark:bg-slate-600'}`} />
+                      <span>LEO</span>
+                      <span className={`${compactDesktop ? 'text-[9px]' : 'text-[10px]'} font-normal ${activeConnTab === 'LEO' ? 'text-pink-100' : 'text-slate-400 dark:text-slate-500'}`}>OneWeb</span>
+                    </button>
+                    <button
+                      id="technology-tab-geo"
+                      type="button"
+                      role="tab"
+                      aria-selected={activeConnTab === 'GEO'}
+                      aria-controls="technology-panel"
+                      tabIndex={activeConnTab === 'GEO' ? 0 : -1}
+                      onClick={() => setActiveConnTab('GEO')}
+                      onKeyDown={handleTechnologyTabKeyDown}
+                      className={`flex flex-1 items-center justify-center gap-2 rounded-t-lg border border-b-0 font-semibold transition-all duration-200 focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300 ${compactDesktop ? 'px-2.5 py-1.5 text-[13px]' : 'px-3 py-2 text-sm'} ${activeConnTab === 'GEO' ? 'relative -mb-px border-blue-600 bg-blue-600 text-white' : 'border-slate-200 bg-slate-50 text-slate-500 hover:bg-white hover:text-slate-800 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-white'}`}
+                    >
+                      <span className={`h-2 w-2 flex-shrink-0 rounded-full ${resolvedGEOConnectivity ? 'bg-green-400' : 'bg-gray-300 dark:bg-slate-600'}`} />
+                      <span>GEO</span>
+                      <span className={`${compactDesktop ? 'text-[9px]' : 'text-[10px]'} font-normal ${activeConnTab === 'GEO' ? 'text-blue-100' : 'text-slate-400 dark:text-slate-500'}`}>Eutelsat</span>
+                    </button>
+                  </div>
+                )}
+
+                <div
+                  id={satelliteScope === 'ALL' ? 'technology-panel' : undefined}
+                  role={satelliteScope === 'ALL' ? 'tabpanel' : undefined}
+                  aria-labelledby={satelliteScope === 'ALL' ? `technology-tab-${activeConnTab.toLowerCase()}` : undefined}
+                  className={satelliteScope === 'ALL' ? `${compactDesktop ? 'p-1.5' : 'p-2'} bg-white transition-colors duration-300 dark:bg-slate-900` : undefined}
+                >
 
               {/* LEO Connectivity */}
               {(satelliteScope === 'LEO' || activeConnTab === 'LEO') && (
@@ -2523,6 +2562,8 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
                   />
                 </>
               )}
+                </div>
+              </div>
             </div>
           )}
 
