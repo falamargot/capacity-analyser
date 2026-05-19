@@ -3967,8 +3967,14 @@ const App: React.FC = () => {
             >
               <MapViewSwitcher {...sharedMapProps} isPhone={false} isMobileViewport={false} />
               {isFullscreen && fullscreenExportButtonProps && (
-                <div className="pointer-events-none absolute bottom-28 right-4 z-[20]">
-                  <div className="pointer-events-auto w-[148px] sm:w-40">
+                <div
+                  className="pointer-events-none absolute z-[40]"
+                  style={{
+                    right: 'max(1rem, env(safe-area-inset-right))',
+                    bottom: 'max(1rem, env(safe-area-inset-bottom))',
+                  }}
+                >
+                  <div className="pointer-events-auto min-w-[10rem] w-max">
                     <ExportButton {...fullscreenExportButtonProps} />
                   </div>
                 </div>
@@ -4002,7 +4008,6 @@ const App: React.FC = () => {
                     satelliteScope={satelliteScope}
                     compact={useCompactDesktopSidebar}
                     linkMode={linkMode}
-                    activeConnectivityTab={activeConnectivityTab}
                     activeMeshTab={activeMeshTab}
                     leoTopologyMode={leoTopologyMode}
                     leoSiteToSiteResult={leoS2SFullResult}

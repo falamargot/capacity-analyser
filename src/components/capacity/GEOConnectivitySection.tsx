@@ -1091,11 +1091,6 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
 
   return (
     <>
-      <h3 className="text-lg font-semibold mb-1 flex items-center" style={{ color: '#2563eb' }}>
-        GEO Connectivity
-        <SectionTooltip content="Geostationary orbit connectivity block. Shows how the user terminal connects through a Eutelsat GEO satellite and its nearest eligible ground gateway." />
-      </h3>
-
       {onLinkModeChange && (
         <div className="mb-4">
           <LinkModeSelector

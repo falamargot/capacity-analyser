@@ -128,7 +128,6 @@ interface MissionKpiBarProps {
   satelliteScope: SatelliteScope;
   compact?: boolean;
   linkMode?: LinkMode;
-  activeConnectivityTab?: 'LEO' | 'GEO';
   activeMeshTab?: 'forward' | 'reverse';
   leoTopologyMode?: 'SINGLE_SITE' | 'SITE_TO_SITE';
   leoSiteToSiteResult?: LeoSiteToSiteResult | null;
@@ -143,7 +142,6 @@ const MissionKpiBar = memo<MissionKpiBarProps>(({
   satelliteScope,
   compact = false,
   linkMode = 'STAR_FORWARD',
-  activeConnectivityTab = 'LEO',
   activeMeshTab = 'forward',
   leoTopologyMode = 'SINGLE_SITE',
   leoSiteToSiteResult = null,
@@ -171,12 +169,6 @@ const MissionKpiBar = memo<MissionKpiBarProps>(({
     : geoStatus === 'gateway_unavailable' ? 'No gateway'
     : geoStatus === 'out_of_coverage' ? 'No signal'
     : '—';
-
-  const hasAnyData =
-    (showLeo && (leoMetrics?.downlinkGbps || leoMetrics?.uplinkGbps || leoMetrics?.rtt || leoViewModel || leoSiteToSiteResult)) ||
-    (showGeo && (geoMetrics?.downlinkGbps || geoMetrics?.uplinkGbps || geoMetrics?.rtt || geoStatus || metrics?.mesh));
-
-  if (!hasAnyData) return null;
 
   const leoTiles = (() => {
     if (leoTopologyMode === 'SITE_TO_SITE' && leoSiteToSiteResult) {
@@ -235,7 +227,7 @@ const MissionKpiBar = memo<MissionKpiBarProps>(({
   return (
     <div className={`border-b border-slate-200/80 dark:border-slate-800 ${compact ? 'px-3 py-2.5' : 'px-4 py-3'}`}>
       <div className="flex flex-col gap-3">
-        {showLeo && (satelliteScope !== 'ALL' || activeConnectivityTab === 'LEO' || leoMetrics || leoSiteToSiteResult) && (
+        {showLeo && (
           <ConstellationRow
             accentColor="text-pink-500 dark:text-pink-400"
             accentBorder="border-pink-400 dark:border-pink-500"
@@ -247,7 +239,7 @@ const MissionKpiBar = memo<MissionKpiBarProps>(({
             compact={compact}
           />
         )}
-        {showGeo && (satelliteScope !== 'ALL' || activeConnectivityTab === 'GEO' || geoMetrics || metrics?.mesh) && (
+        {showGeo && (
           <ConstellationRow
             accentColor="text-blue-500 dark:text-blue-400"
             accentBorder="border-blue-500 dark:border-blue-400"

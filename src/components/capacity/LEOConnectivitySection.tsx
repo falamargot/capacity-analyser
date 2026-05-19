@@ -1272,14 +1272,6 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
 
   return (
     <>
-      <h3 className="text-lg font-semibold mb-1 flex items-center" style={{ color: '#db2777' }}>
-        LEO Connectivity
-        <SectionTooltip content={isS2S
-          ? "OneWeb site-to-site logical path: UT A → Satellite A → SNP A → Private backbone → SNP B → Satellite B → UT B. Routing is estimated — actual backbone topology is proprietary."
-          : "Low Earth Orbit connectivity block. Shows how the user terminal connects through the nearest OneWeb LEO satellite and its associated SNP (Satellite Network Point) backhaul gateway."
-        } />
-      </h3>
-
       {leoTopologyMode && onLeoTopologyModeChange && (
         <div className="mb-4">
           <p className="mb-1 text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500">

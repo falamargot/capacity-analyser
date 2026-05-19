@@ -351,6 +351,8 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
     setInternalActiveConnTab(tab);
     onActiveConnectionTabChange?.(tab);
   }, [onActiveConnectionTabChange]);
+  const showLeoConnectivity = satelliteScope === 'LEO' || (satelliteScope === 'ALL' && activeConnTab === 'LEO');
+  const showGeoConnectivity = satelliteScope === 'GEO' || (satelliteScope === 'ALL' && activeConnTab === 'GEO');
   const handleTechnologyTabKeyDown = useCallback((event: KeyboardEvent<HTMLButtonElement>) => {
     if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
       event.preventDefault();
@@ -363,7 +365,8 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
       setActiveConnTab('GEO');
     }
   }, [activeConnTab, setActiveConnTab]);
-  const [isLinkBudgetDrawerOpen, setIsLinkBudgetDrawerOpen] = useState(false);
+  const [isLeoLinkBudgetDrawerOpen, setIsLeoLinkBudgetDrawerOpen] = useState(false);
+  const [isGeoLinkBudgetDrawerOpen, setIsGeoLinkBudgetDrawerOpen] = useState(false);
   const selectedLeoTerminalProfile = useMemo(
     () => getLeoTerminalProfile(leoTerminalType, leoTerminalModelId),
     [leoTerminalType, leoTerminalModelId],
@@ -2375,56 +2378,45 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
                 ? `overflow-hidden rounded-xl border bg-white shadow-sm transition-colors duration-300 dark:bg-slate-900/80 ${activeConnTab === 'LEO' ? 'border-pink-500/70 dark:border-pink-500/60' : 'border-blue-500/70 dark:border-blue-500/60'}`
                 : undefined}
               >
-                {/* Technology tabs (only when scope is ALL) */}
+                {/* Technology focus selector (only when scope is ALL) */}
                 {satelliteScope === 'ALL' && (
                   <div
-                    role="tablist"
-                    aria-label="Detailed analysis technology"
+                    role="group"
+                    aria-label="Focused analysis technology"
                     className="flex items-end gap-px border-b border-slate-200 bg-slate-100 px-0 pt-1 dark:border-slate-700 dark:bg-slate-950"
                   >
                     <button
                       id="technology-tab-leo"
                       type="button"
-                      role="tab"
-                      aria-selected={activeConnTab === 'LEO'}
-                      aria-controls="technology-panel"
-                      tabIndex={activeConnTab === 'LEO' ? 0 : -1}
+                      aria-pressed={activeConnTab === 'LEO'}
                       onClick={() => setActiveConnTab('LEO')}
                       onKeyDown={handleTechnologyTabKeyDown}
                       className={`flex flex-1 items-center justify-center gap-2 rounded-t-lg border border-b-0 font-semibold transition-all duration-200 focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pink-300 ${compactDesktop ? 'px-2.5 py-1.5 text-[13px]' : 'px-3 py-2 text-sm'} ${activeConnTab === 'LEO' ? 'relative -mb-px border-pink-500 bg-pink-500 text-white' : 'border-slate-200 bg-slate-50 text-slate-500 hover:bg-white hover:text-slate-800 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-white'}`}
                     >
                       <span className={`h-2 w-2 flex-shrink-0 rounded-full ${resolvedLEOConnectivity?.snp ? 'bg-green-400' : resolvedLEOConnectivity ? 'bg-yellow-400' : 'bg-gray-300 dark:bg-slate-600'}`} />
                       <span>LEO</span>
-                      <span className={`${compactDesktop ? 'text-[9px]' : 'text-[10px]'} font-normal ${activeConnTab === 'LEO' ? 'text-pink-100' : 'text-slate-400 dark:text-slate-500'}`}>OneWeb</span>
                     </button>
                     <button
                       id="technology-tab-geo"
                       type="button"
-                      role="tab"
-                      aria-selected={activeConnTab === 'GEO'}
-                      aria-controls="technology-panel"
-                      tabIndex={activeConnTab === 'GEO' ? 0 : -1}
+                      aria-pressed={activeConnTab === 'GEO'}
                       onClick={() => setActiveConnTab('GEO')}
                       onKeyDown={handleTechnologyTabKeyDown}
                       className={`flex flex-1 items-center justify-center gap-2 rounded-t-lg border border-b-0 font-semibold transition-all duration-200 focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300 ${compactDesktop ? 'px-2.5 py-1.5 text-[13px]' : 'px-3 py-2 text-sm'} ${activeConnTab === 'GEO' ? 'relative -mb-px border-blue-600 bg-blue-600 text-white' : 'border-slate-200 bg-slate-50 text-slate-500 hover:bg-white hover:text-slate-800 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-white'}`}
                     >
                       <span className={`h-2 w-2 flex-shrink-0 rounded-full ${resolvedGEOConnectivity ? 'bg-green-400' : 'bg-gray-300 dark:bg-slate-600'}`} />
                       <span>GEO</span>
-                      <span className={`${compactDesktop ? 'text-[9px]' : 'text-[10px]'} font-normal ${activeConnTab === 'GEO' ? 'text-blue-100' : 'text-slate-400 dark:text-slate-500'}`}>Eutelsat</span>
                     </button>
                   </div>
                 )}
 
                 <div
-                  id={satelliteScope === 'ALL' ? 'technology-panel' : undefined}
-                  role={satelliteScope === 'ALL' ? 'tabpanel' : undefined}
-                  aria-labelledby={satelliteScope === 'ALL' ? `technology-tab-${activeConnTab.toLowerCase()}` : undefined}
-                  className={satelliteScope === 'ALL' ? `${compactDesktop ? 'p-1.5' : 'p-2'} bg-white transition-colors duration-300 dark:bg-slate-900` : undefined}
+                  className={satelliteScope === 'ALL' ? `${compactDesktop ? 'gap-2 p-1.5' : 'gap-3 p-2'} flex flex-col bg-white transition-colors duration-300 dark:bg-slate-900` : undefined}
                 >
 
               {/* LEO Connectivity */}
-              {(satelliteScope === 'LEO' || activeConnTab === 'LEO') && (
-                <>
+              {showLeoConnectivity && (
+                <div className={satelliteScope === 'ALL' ? (activeConnTab === 'LEO' ? 'order-1' : 'order-2') : undefined}>
                   {/* ── Site-to-Site mode ──────────────────────────────────── */}
                   {leoTopologyMode === 'SITE_TO_SITE' && (
                 <LEOConnectivitySection
@@ -2461,8 +2453,8 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
                   isPointBLeoArmed={isPointBLeoArmed}
                   activeMeshTab={activeMeshTab}
                   onActiveMeshTabChange={onActiveMeshTabChange}
-                  isLinkBudgetDrawerOpen={isLinkBudgetDrawerOpen}
-                  onLinkBudgetDrawerOpenChange={setIsLinkBudgetDrawerOpen}
+                  isLinkBudgetDrawerOpen={isLeoLinkBudgetDrawerOpen}
+                  onLinkBudgetDrawerOpenChange={setIsLeoLinkBudgetDrawerOpen}
                   terminalTypeB={leoTerminalTypeB ?? leoTerminalType}
                   onTerminalTypeBChange={onLeoTerminalTypeBChange}
                   terminalModelIdB={selectedLeoTerminalProfileB.id}
@@ -2500,16 +2492,16 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
                   showEstimatedPerformance={false}
                   leoTopologyMode={leoTopologyMode}
                   onLeoTopologyModeChange={onLeoTopologyModeChange}
-                  isLinkBudgetDrawerOpen={isLinkBudgetDrawerOpen}
-                  onLinkBudgetDrawerOpenChange={setIsLinkBudgetDrawerOpen}
+                  isLinkBudgetDrawerOpen={isLeoLinkBudgetDrawerOpen}
+                  onLinkBudgetDrawerOpenChange={setIsLeoLinkBudgetDrawerOpen}
                 />
                   )}
-                </>
+                </div>
               )}
 
               {/* GEO Connectivity */}
-              {(satelliteScope === 'GEO' || activeConnTab === 'GEO') && (
-                <>
+              {showGeoConnectivity && (
+                <div className={satelliteScope === 'ALL' ? (activeConnTab === 'GEO' ? 'order-1' : 'order-2') : undefined}>
                   <GEOConnectivitySection
                     resolvedGEOConnectivity={resolvedGEOConnectivity}
                     geoGeometry={geoGeometry}
@@ -2557,10 +2549,15 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
                     activeMeshTab={activeMeshTab}
                     onActiveMeshTabChange={onActiveMeshTabChange}
                     validSatelliteIds={validSatelliteIds}
-                    isLinkBudgetDrawerOpen={isLinkBudgetDrawerOpen}
-                    onLinkBudgetDrawerOpenChange={setIsLinkBudgetDrawerOpen}
+                    isLinkBudgetDrawerOpen={isGeoLinkBudgetDrawerOpen}
+                    onLinkBudgetDrawerOpenChange={setIsGeoLinkBudgetDrawerOpen}
                   />
-                </>
+                </div>
+              )}
+              {satelliteScope === 'ALL' && bottomEstimatedPerformanceSection && (
+                <div className="order-3">
+                  {bottomEstimatedPerformanceSection}
+                </div>
               )}
                 </div>
               </div>
@@ -2568,7 +2565,7 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
           )}
 
           {/* Section 3: Estimated Performance */}
-          {bottomEstimatedPerformanceSection && (
+          {satelliteScope !== 'ALL' && bottomEstimatedPerformanceSection && (
             <div className="mb-4">
               {bottomEstimatedPerformanceSection}
             </div>
