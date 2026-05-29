@@ -108,6 +108,9 @@ interface MapViewSwitcherProps {
   issIsSelected?: boolean;
   issIsFollowing?: boolean;
   onIssClick?: () => void;
+  onToggleAirTraffic?: () => void;
+  onToggleMaritimeTraffic?: () => void;
+  onToggleIssLive?: () => void;
 }
 
 const MapViewSwitcher: React.FC<MapViewSwitcherProps> = ({
@@ -197,6 +200,9 @@ const MapViewSwitcher: React.FC<MapViewSwitcherProps> = ({
   issIsSelected = false,
   issIsFollowing = false,
   onIssClick,
+  onToggleAirTraffic,
+  onToggleMaritimeTraffic,
+  onToggleIssLive,
 }) => {
   const [sceneMode, setSceneMode] = useState<'2D' | '3D'>('3D');
 
@@ -292,6 +298,9 @@ const MapViewSwitcher: React.FC<MapViewSwitcherProps> = ({
         issIsSelected={issIsSelected}
         issIsFollowing={issIsFollowing}
         onIssClick={onIssClick}
+        onToggleAirTraffic={onToggleAirTraffic}
+        onToggleMaritimeTraffic={onToggleMaritimeTraffic}
+        onToggleIssLive={onToggleIssLive}
       />
     </div>
   );

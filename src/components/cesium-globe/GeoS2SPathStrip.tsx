@@ -87,8 +87,8 @@ const GeoS2SPathStrip: React.FC<GeoS2SPathStripProps> = ({
   const satName = path?.satelliteName ? truncate(path.satelliteName) : 'GEO satellite';
   const label = directionLabel(activeDirection);
   const throughput = fmtMbps(selectedThroughput);
-  const rtt = fmtMs(mesh.rttMs);
-  const summary = [throughput ? `${label} ${throughput}` : null, rtt ? `latency ${rtt}` : null]
+  const latency = fmtMs(activeDirection === 'B_TO_A' ? mesh.reverseLatencyMs : mesh.forwardLatencyMs);
+  const summary = [throughput ? `${label} ${throughput}` : null, latency ? `latency ${latency}` : null]
     .filter((part): part is string => Boolean(part))
     .join(' · ');
 
@@ -123,7 +123,7 @@ const GeoS2SPathStrip: React.FC<GeoS2SPathStripProps> = ({
       pathDensity="spacious"
       legendItems={[
         { color: BLUE, label: routeLabel(linkMode) },
-        { color: VIOLET, label: 'Latency value is 4-hop reference', dashed: true },
+        { color: VIOLET, label: 'Latency value is selected one-way route', dashed: true },
       ]}
       trailingNote={route?.uplink.beamName || route?.downlink.beamName
         ? [beamLabel(route?.uplink.beamName, 'UL'), beamLabel(route?.downlink.beamName, 'DL')].filter(Boolean).join(' · ')

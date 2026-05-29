@@ -65,7 +65,7 @@ import SelectedPointStatusMarker, { SelectionPulseMarker } from './cesium-globe/
 import { usePositionCallbacks } from './cesium-globe/hooks';
 
 // UI components
-import GlobeControls from './cesium-globe/GlobeControls';
+import GlobeIntelligenceRail from './cesium-globe/GlobeIntelligenceRail';
 import GeoCoverageLegendPanel from './cesium-globe/GeoCoverageLegendPanel';
 import PositionDisplay from './cesium-globe/PositionDisplay';
 import SatelliteIndicator from './cesium-globe/SatelliteIndicator';
@@ -251,6 +251,9 @@ interface CesiumGlobeProps {
     issIsSelected?: boolean;
     issIsFollowing?: boolean;
     onIssClick?: () => void;
+    onToggleAirTraffic?: () => void;
+    onToggleMaritimeTraffic?: () => void;
+    onToggleIssLive?: () => void;
 }
 
 const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
@@ -343,6 +346,9 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
     issIsSelected = false,
     issIsFollowing = false,
     onIssClick,
+    onToggleAirTraffic,
+    onToggleMaritimeTraffic,
+    onToggleIssLive,
 }) => {
     // Stable refs for click-handler lookups — avoids recreating handleMapClick
     // (and re-registering the Cesium ScreenSpaceEvent) when aircraft/vessels/satellites
@@ -1447,33 +1453,38 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                 isPhone={isPhone}
             />
 
-            <GlobeControls
+            <GlobeIntelligenceRail
                 viewerRef={viewerRef}
                 isFullscreen={isFullscreen}
                 onToggleFullscreen={onToggleFullscreen}
-                isPhone={isPhone}
-                isMobileViewport={isMobileViewport}
+                countryOverlayMode={effectiveCountryOverlayMode}
+                onCountryOverlayModeChange={onCountryOverlayModeChange ?? (() => {})}
+                showAggregatedConnectivity={showAggregatedConnectivity}
+                onToggleAggregatedConnectivity={onToggleAggregatedConnectivity ?? (() => {})}
+                airTrafficEnabled={airTrafficEnabled}
+                onToggleAirTraffic={onToggleAirTraffic ?? (() => {})}
+                maritimeTrafficEnabled={maritimeTrafficEnabled}
+                onToggleMaritimeTraffic={onToggleMaritimeTraffic ?? (() => {})}
+                issLiveEnabled={issLiveEnabled}
+                onToggleIssLive={onToggleIssLive ?? (() => {})}
                 enableLighting={enableLighting}
                 onToggleLighting={onToggleLighting}
                 showSatelliteTrajectory={showSatelliteTrajectory}
                 onToggleSatelliteTrajectory={onToggleSatelliteTrajectory}
+                showFootprintProjection={showFootprintProjection}
+                onToggleFootprintProjection={onToggleFootprintProjection}
+                showFlowAnimation={showFlowAnimation}
+                onToggleFlowAnimation={onToggleFlowAnimation}
                 sizeScale={sizeScale}
                 onSizeScaleChange={onSizeScaleChange}
                 onSizeScaleReset={onSizeScaleReset}
                 sceneMode={sceneMode}
                 onSceneModeChange={onSceneModeChange}
-                showAggregatedConnectivity={showAggregatedConnectivity}
-                onToggleAggregatedConnectivity={onToggleAggregatedConnectivity}
-                showFootprintProjection={showFootprintProjection}
-                onToggleFootprintProjection={onToggleFootprintProjection}
-                showFlowAnimation={showFlowAnimation}
-                onToggleFlowAnimation={onToggleFlowAnimation}
-                countryOverlayMode={effectiveCountryOverlayMode}
-                onCountryOverlayModeChange={onCountryOverlayModeChange}
-                satelliteScope={satelliteScope}
                 basemapOptions={basemapOptions.map(({ id, label }) => ({ id, label }))}
                 selectedBasemapId={selectedBasemapId}
                 onBasemapChange={setSelectedBasemapId}
+                isPhone={isPhone}
+                isMobileViewport={isMobileViewport}
             />
 
             {selection.type === 'target' && selection.targetType === 'point' && coverageSwitcherCoverages.length >= 2 && onCoverageSwitcherSelect && (

@@ -13,8 +13,8 @@ import {
 const mesh: MeshLinkMetrics = {
   forwardMbps: 21,
   reverseMbps: 9,
-  forwardLatencyMs: null,
-  reverseLatencyMs: null,
+  forwardLatencyMs: 294,
+  reverseLatencyMs: 293,
   rttMs: 541,
 };
 
@@ -43,7 +43,7 @@ describe('site tooltip throughput layout', () => {
     const section = buildGeoMeshSection(mesh, 'A', 'POINT_TO_POINT');
 
     expect(section.lines.map((item) => item.text)).toEqual([
-      '↑ 21 Mbps · ↓ 9 Mbps · 541 ms',
+      '↑ 21 Mbps · ↓ 9 Mbps',
     ]);
   });
 
@@ -51,7 +51,7 @@ describe('site tooltip throughput layout', () => {
     const section = buildGeoMeshSection(mesh, 'B', 'POINT_TO_POINT');
 
     expect(section.lines.map((item) => item.text)).toEqual([
-      '↑ 9 Mbps · ↓ 21 Mbps · 541 ms',
+      '↑ 9 Mbps · ↓ 21 Mbps',
     ]);
   });
 

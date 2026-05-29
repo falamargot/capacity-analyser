@@ -96,7 +96,7 @@ export function buildGeoMeshSection(
   if (!mesh) return withConnectedSatellite({ title, accent: 'blue', lines: [line('--', 'neutral')] }, connectedSatelliteName);
 
   const lines: SiteLabelLine[] = [
-    siteThroughputLine(role, mesh.forwardMbps, mesh.reverseMbps, mesh.rttMs),
+    siteThroughputLine(role, mesh.forwardMbps, mesh.reverseMbps),
   ];
   return withConnectedSatellite({ title, accent: 'blue', lines }, connectedSatelliteName);
 }

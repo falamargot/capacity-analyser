@@ -37,8 +37,8 @@ const geoPath: GeoSiteToSitePathSummary = {
 const geoMesh: MeshLinkMetrics = {
   forwardMbps: 18.2,
   reverseMbps: 25.7,
-  forwardLatencyMs: null,
-  reverseLatencyMs: null,
+  forwardLatencyMs: 294,
+  reverseLatencyMs: 293,
   rttMs: 544.2,
 };
 
@@ -72,7 +72,7 @@ describe('bottom path ribbons', () => {
     expect(html).toContain('GEO SITE-TO-SITE PATH');
     expect(html).toContain('A→B 18 Mbps');
     expect(html).not.toContain('B→A 26 Mbps');
-    expect(html).toContain('latency 544 ms');
+    expect(html).toContain('latency 294 ms');
     expect(html.indexOf('Site A')).toBeLessThan(html.indexOf('Site B'));
     expect(html).toContain('38,123 km');
     expect(html).toContain('A UL');
@@ -88,13 +88,13 @@ describe('bottom path ribbons', () => {
 
     expect(html).toContain('B→A 26 Mbps');
     expect(html).not.toContain('A→B 18 Mbps');
-    expect(html).toContain('latency 544 ms');
+    expect(html).toContain('latency 293 ms');
     expect(html.indexOf('Site B')).toBeLessThan(html.indexOf('Site A'));
     expect(html).toContain('38,200 km');
     expect(html).toContain('B UL');
     expect(html).toContain('A DL');
     expect(html).toContain('126 ms');
-    expect(html).toContain('Latency value is 4-hop reference');
+    expect(html).toContain('Latency value is selected one-way route');
   });
 
   it('hides the GEO ribbon when the selected reverse direction has no throughput', () => {

@@ -50,8 +50,8 @@ export function getDirectionalLatencyLabel(
   direction: ActiveRouteDirection,
 ): string {
   const route = directionLabel(direction);
-  if (topology === 'GEO_POINT_TO_POINT') return `P2P ${route} latency (4-hop)`;
-  if (topology === 'GEO_MESH') return `Mesh ${route} latency (4-hop)`;
+  if (topology === 'GEO_POINT_TO_POINT') return `P2P ${route} latency`;
+  if (topology === 'GEO_MESH') return `Mesh ${route} latency`;
   return `${route} latency`;
 }
 
@@ -194,6 +194,9 @@ export function buildGeoRouteViewModel({
   if (linkMode === 'MESH' || linkMode === 'POINT_TO_POINT') {
     const mesh = metrics?.mesh ?? null;
     const throughputMbps = direction === 'B_TO_A' ? mesh?.reverseMbps : mesh?.forwardMbps;
+    const latencyMs = direction === 'B_TO_A'
+      ? (mesh?.reverseLatencyMs ?? mesh?.rttMs)
+      : (mesh?.forwardLatencyMs ?? mesh?.rttMs);
     if (!mesh || throughputMbps == null || !Number.isFinite(throughputMbps) || throughputMbps <= 0) {
       return noRoute('GEO', selectedTopology, 'Route', selectedRouteValue(direction), `No ${directionLabel(direction)} GEO path available.`, direction);
     }
@@ -208,10 +211,10 @@ export function buildGeoRouteViewModel({
       routeValue: selectedRouteValue(direction),
       throughputMbps,
       throughputLabel: directionLabel(direction),
-      latencyMs: mesh.rttMs,
+      latencyMs,
       latencyLabel: getDirectionalLatencyLabel(selectedTopology, direction),
-      latencyIsRtt: true,
-      summary: `${directionLabel(direction)} ${formatRouteMbps(throughputMbps)} · latency ${formatRouteMs(mesh.rttMs)}`,
+      latencyIsRtt: false,
+      summary: `${directionLabel(direction)} ${formatRouteMbps(throughputMbps)} · latency ${formatRouteMs(latencyMs)}`,
       sourceLabel: direction === 'B_TO_A' ? 'Site B' : 'Site A',
       destinationLabel: direction === 'B_TO_A' ? 'Site A' : 'Site B',
       reverseThroughputMbps: direction === 'B_TO_A' ? mesh.forwardMbps : mesh.reverseMbps,

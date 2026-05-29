@@ -17,8 +17,8 @@ const metrics: MobileAnalysisMetrics = {
   mesh: {
     forwardMbps: 18.2,
     reverseMbps: 25.7,
-    forwardLatencyMs: null,
-    reverseLatencyMs: null,
+    forwardLatencyMs: 292.6,
+    reverseLatencyMs: 291.6,
     rttMs: 544.2,
   },
 };
@@ -87,23 +87,24 @@ describe('activeRouteViewModel', () => {
     const view = buildGeoRouteViewModel({ linkMode: 'MESH', direction: 'A_TO_B', metrics, geoStatus: 'available' });
     expect(view.selectedTopology).toBe('GEO_MESH');
     expect(view.throughputMbps).toBe(18.2);
-    expect(view.latencyLabel).toBe('Mesh A→B latency (4-hop)');
-    expect(view.summary).toBe('A→B 18 Mbps · latency 544 ms');
+    expect(view.latencyLabel).toBe('Mesh A→B latency');
+    expect(view.latencyIsRtt).toBe(false);
+    expect(view.summary).toBe('A→B 18 Mbps · latency 293 ms');
   });
 
   it('builds GEO Mesh B-to-A selected values', () => {
     const view = buildGeoRouteViewModel({ linkMode: 'MESH', direction: 'B_TO_A', metrics, geoStatus: 'available' });
     expect(view.routeValue).toBe('Site B→A');
     expect(view.throughputMbps).toBe(25.7);
-    expect(view.latencyLabel).toBe('Mesh B→A latency (4-hop)');
-    expect(view.summary).toBe('B→A 26 Mbps · latency 544 ms');
+    expect(view.latencyLabel).toBe('Mesh B→A latency');
+    expect(view.summary).toBe('B→A 26 Mbps · latency 292 ms');
   });
 
   it('builds GEO P2P B-to-A selected values', () => {
     const view = buildGeoRouteViewModel({ linkMode: 'POINT_TO_POINT', direction: 'B_TO_A', metrics, geoStatus: 'available' });
     expect(view.selectedTopology).toBe('GEO_POINT_TO_POINT');
-    expect(view.latencyLabel).toBe('P2P B→A latency (4-hop)');
-    expect(view.summary).toBe('B→A 26 Mbps · latency 544 ms');
+    expect(view.latencyLabel).toBe('P2P B→A latency');
+    expect(view.summary).toBe('B→A 26 Mbps · latency 292 ms');
   });
 
   it('does not silently fall back when selected direction is unavailable', () => {

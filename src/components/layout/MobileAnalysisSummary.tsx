@@ -684,7 +684,9 @@ const MobileAnalysisSummary: React.FC<MobileAnalysisSummaryProps> = ({
             const isStarReturn = linkMode === 'STAR_RETURN';
             const meshDisplayMetrics: MobileLinkMetrics | null = isMeshMode && pointB && metrics?.mesh
                 ? {
-                    rtt: metrics.mesh.rttMs,
+                    rtt: activeMeshTab === 'reverse'
+                        ? metrics.mesh.reverseLatencyMs
+                        : metrics.mesh.forwardLatencyMs,
                     downlinkGbps: activeMeshTab === 'reverse'
                         ? (metrics.mesh.reverseMbps != null ? metrics.mesh.reverseMbps / 1000 : null)
                         : (metrics.mesh.forwardMbps != null ? metrics.mesh.forwardMbps / 1000 : null),

@@ -1592,8 +1592,9 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
     const satToBKm = fwDl.slantRangeKm ?? 37500;
     const bToSatKm = rvUl?.slantRangeKm ?? satToBKm;
     const satToAKm = rvDl?.slantRangeKm ?? aToSatKm;
-    const forwardLatencyMs = (aToSatKm + satToBKm) / C_KM_PER_MS;
-    const reverseLatencyMs = (bToSatKm + satToAKm) / C_KM_PER_MS;
+    const modemOverheadMs = 40;
+    const forwardLatencyMs = (aToSatKm + satToBKm) / C_KM_PER_MS + modemOverheadMs;
+    const reverseLatencyMs = (bToSatKm + satToAKm) / C_KM_PER_MS + modemOverheadMs;
     const rttMs = (aToSatKm + satToBKm + bToSatKm + satToAKm) / C_KM_PER_MS + 40;
     return {
       forwardMbps: getDisplayedThroughput(dualSegmentResult, 'forward'),
@@ -1731,12 +1732,14 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
 
     return {
       rtt: isMeshMode
-        ? (meshMetrics?.rttMs ?? null)
+        ? (activeMeshTab === 'reverse'
+          ? (meshMetrics?.reverseLatencyMs ?? null)
+          : (meshMetrics?.forwardLatencyMs ?? null))
         : (geoGeometry.oneWayRadioMs ?? null),
       downlinkGbps: isStarReturn ? null : geoEffectivePerformance.downlinkGbps,
       uplinkGbps: isStarForward ? null : geoEffectivePerformance.uplinkGbps,
     };
-  }, [resolvedGEOConnectivity, geoGeometry, geoEffectivePerformance, linkMode, meshMetrics]);
+  }, [resolvedGEOConnectivity, geoGeometry, geoEffectivePerformance, linkMode, meshMetrics, activeMeshTab]);
 
   const activeEstimatedPerformanceScope = satelliteScope === 'ALL' ? activeConnTab : satelliteScope;
   const isLeoPerformanceDiagnosticOnly = leoServiceViewModel?.decisionDriver === 'REGULATORY'
@@ -1814,19 +1817,21 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
         )
         : undefined;
 
-      // MESH/P2P: use the 4-hop latency reference from meshMetrics.
+      // MESH/P2P: use the selected one-way terminal-to-terminal latency.
       // STAR: show one-way latency (active direction only).
       const effectiveLatencyMs = isMeshMode
-        ? (meshMetrics?.rttMs ?? null)
+        ? (activeMeshTab === 'reverse'
+          ? (meshMetrics?.reverseLatencyMs ?? null)
+          : (meshMetrics?.forwardLatencyMs ?? null))
         : (geoGeometry?.oneWayRadioMs ?? null);
 
       const latencyLabel = isMeshMode
-        ? `${linkMode === 'POINT_TO_POINT' ? 'P2P' : 'Mesh'} ${meshDirectionLabel} latency (4-hop)`
+        ? `${linkMode === 'POINT_TO_POINT' ? 'P2P' : 'Mesh'} ${meshDirectionLabel} latency`
         : isStarForward
           ? `One-way latency (${gwLabel} → ${userLabel})`
           : `One-way latency (${userLabel} → ${gwLabel})`;
 
-      const latencyScaleMs = isMeshMode ? RTT_VISUAL_SCALE_MAX_MS : ONE_WAY_VISUAL_SCALE_MAX_MS;
+      const latencyScaleMs = ONE_WAY_VISUAL_SCALE_MAX_MS;
       const selectedMeshPerformanceAvailable = !isMeshMode
         || (activeMeshTab === 'reverse'
           ? geoEffectivePerformance?.uplinkGbps != null
@@ -1835,7 +1840,7 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
       return (
         <CollapsibleSection
           storageKey="geo-performance"
-          title={<>Estimated Performance<EstimatedPerformanceDirectionPill dir={estimatedPerformanceDirectionLabel} aggregate={false} /><SectionTooltip content="Predicted GEO link throughput derived from the RF link budget. STAR modes show the active direction only and one-way latency. MESH/P2P shows the active direction only and the 4-hop latency reference." /></>}
+          title={<>Estimated Performance<EstimatedPerformanceDirectionPill dir={estimatedPerformanceDirectionLabel} aggregate={false} /><SectionTooltip content="Predicted GEO link throughput derived from the RF link budget. STAR modes show the active direction only and one-way latency. MESH/P2P shows the selected terminal-to-terminal direction only." /></>}
           accentColor="#2563eb"
           defaultOpen={true}
           collapsible={false}

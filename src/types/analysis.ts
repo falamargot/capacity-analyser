@@ -118,8 +118,11 @@ export interface MobileLinkMetrics {
 export interface MeshLinkMetrics {
     forwardMbps: number | null;
     reverseMbps: number | null;
+    /** Selected A→B one-way terminal-to-terminal latency, including modem overhead. */
     forwardLatencyMs: number | null;
+    /** Selected B→A one-way terminal-to-terminal latency, including modem overhead. */
     reverseLatencyMs: number | null;
+    /** Legacy 4-hop diagnostic reference; not used as selected route latency. */
     rttMs: number | null;
 }
 

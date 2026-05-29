@@ -113,9 +113,6 @@ const SelectedPointScreenLabel: React.FC<SelectedPointScreenLabelProps> = ({
     if (isMesh && meshRole && meshData) {
       const fmtMbps = (mbps: number | null | undefined) =>
         mbps != null && Number.isFinite(mbps) && mbps > 0 ? `${Math.round(mbps)} Mbps` : '--';
-      const rttStr = meshData.rttMs != null && Number.isFinite(meshData.rttMs)
-        ? `${Math.round(meshData.rttMs)} ms latency ref.`
-        : null;
       // A→B: outgoing from A (↑), incoming to B (↓)
       const fwdArrow = meshRole === 'A' ? '↑' : '↓';
       // B→A: outgoing from B (↑), incoming to A (↓)
@@ -126,7 +123,6 @@ const SelectedPointScreenLabel: React.FC<SelectedPointScreenLabelProps> = ({
         statusLines: [
           { text: `A→B ${fwdArrow} ${fmtMbps(meshData.forwardMbps)}`, tone: 'success' as SelectedPointStatusTone },
           { text: `B→A ${revArrow} ${fmtMbps(meshData.reverseMbps)}`, tone: 'success' as SelectedPointStatusTone },
-          ...(rttStr ? [{ text: rttStr, tone: 'neutral' as SelectedPointStatusTone }] : []),
         ],
       };
     }
