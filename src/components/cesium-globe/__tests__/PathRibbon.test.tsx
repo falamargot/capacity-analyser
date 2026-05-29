@@ -63,6 +63,11 @@ const leoResult = {
   rttMs: 88.8,
 } as LeoSiteToSiteResult;
 
+const outerRibbonStyle = (html: string): string => {
+  const match = html.match(/<div class="absolute bottom-4[^"]*" style="([^"]+)"/);
+  return match?.[1] ?? '';
+};
+
 describe('bottom path ribbons', () => {
   it('renders the GEO A-to-B route from selected mesh direction data', () => {
     const html = renderToStaticMarkup(
@@ -131,5 +136,15 @@ describe('bottom path ribbons', () => {
     expect(html.indexOf('Site B')).toBeLessThan(html.indexOf('Site A'));
     expect(html.indexOf('ONEWEB-0002')).toBeLessThan(html.indexOf('ONEWEB-0001'));
     expect(html.indexOf('MAD')).toBeLessThan(html.indexOf('PAR'));
+  });
+
+  it('uses the same outer ribbon width for GEO and LEO strips', () => {
+    const geoHtml = renderToStaticMarkup(
+      <GeoS2SPathStrip mesh={geoMesh} path={geoPath} activeDirection="A_TO_B" linkMode="MESH" />
+    );
+    const leoHtml = renderToStaticMarkup(<LeoS2SPathStrip result={leoResult} activeDirection="A_TO_B" />);
+
+    expect(outerRibbonStyle(geoHtml)).toContain('width:min(96vw, 860px)');
+    expect(outerRibbonStyle(leoHtml)).toBe(outerRibbonStyle(geoHtml));
   });
 });

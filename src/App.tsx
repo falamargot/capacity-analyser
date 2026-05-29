@@ -83,6 +83,11 @@ const COMPACT_DESKTOP_DIAG_MIN = Math.hypot(1920, 1080);
 const COMPACT_DESKTOP_DIAG_MAX = Math.hypot(2560, 1440);
 const LEGACY_AUTO_MARKER_REF_DIAG = Math.hypot(1024, 768);
 const REPRESENTATIVE_TELEPORT_IMAGE_URL = 'https://upload.wikimedia.org/wikipedia/commons/thumb/f/fe/Teleport_of_satellite_communications_provider.jpg/960px-Teleport_of_satellite_communications_provider.jpg';
+const AUTHORSHIP_SIGNATURE = 'F.Alamargot - 2026';
+const AUTHORSHIP_LONG_PRESS_MS = 1200;
+const AUTHORSHIP_TOAST_MS = 3600;
+const AUTHORSHIP_CLICK_COUNT = 5;
+const AUTHORSHIP_CLICK_WINDOW_MS = 1400;
 
 type ViewportSnapshot = {
   innerWidth: number;
@@ -427,6 +432,11 @@ const App: React.FC = () => {
   const [isTargetSourcesMenuOpen, setIsTargetSourcesMenuOpen] = useState(false);
   const [commandPaletteQuery, setCommandPaletteQuery] = useState('');
   const [isHelpMenuOpen, setIsHelpMenuOpen] = useState(false);
+  const [authorshipToastVisible, setAuthorshipToastVisible] = useState(false);
+  const authorshipLongPressTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const authorshipToastTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const authorshipClickCountRef = useRef(0);
+  const authorshipClickResetTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [mobileMetrics, setMobileMetrics] = useState<MobileAnalysisMetrics>({
     leo: null,
     geo: null,
@@ -438,6 +448,72 @@ const App: React.FC = () => {
   // Stable ref — populated by useAirTrafficInterpolation (phase 2: map ref, no setState).
   // The selectedAircraft position interval reads from this without being in its deps.
   const panelFallback = <div className="p-4 text-sm text-slate-500 dark:text-slate-400">Loading analysis...</div>;
+
+  const clearAuthorshipLongPress = useCallback(() => {
+    if (authorshipLongPressTimeoutRef.current) {
+      clearTimeout(authorshipLongPressTimeoutRef.current);
+      authorshipLongPressTimeoutRef.current = null;
+    }
+  }, []);
+
+  const showAuthorshipSignature = useCallback(() => {
+    setAuthorshipToastVisible(true);
+    if (authorshipToastTimeoutRef.current) {
+      clearTimeout(authorshipToastTimeoutRef.current);
+    }
+    authorshipToastTimeoutRef.current = setTimeout(() => {
+      setAuthorshipToastVisible(false);
+      authorshipToastTimeoutRef.current = null;
+    }, AUTHORSHIP_TOAST_MS);
+  }, []);
+
+  const handleLogoPressStart = useCallback(() => {
+    clearAuthorshipLongPress();
+    authorshipLongPressTimeoutRef.current = setTimeout(() => {
+      authorshipLongPressTimeoutRef.current = null;
+      showAuthorshipSignature();
+    }, AUTHORSHIP_LONG_PRESS_MS);
+  }, [clearAuthorshipLongPress, showAuthorshipSignature]);
+
+  const handleLogoClick = useCallback(() => {
+    authorshipClickCountRef.current += 1;
+    if (authorshipClickResetTimeoutRef.current) {
+      clearTimeout(authorshipClickResetTimeoutRef.current);
+    }
+
+    if (authorshipClickCountRef.current >= AUTHORSHIP_CLICK_COUNT) {
+      authorshipClickCountRef.current = 0;
+      showAuthorshipSignature();
+      return;
+    }
+
+    authorshipClickResetTimeoutRef.current = setTimeout(() => {
+      authorshipClickCountRef.current = 0;
+      authorshipClickResetTimeoutRef.current = null;
+    }, AUTHORSHIP_CLICK_WINDOW_MS);
+  }, [showAuthorshipSignature]);
+
+  useEffect(() => () => {
+    clearAuthorshipLongPress();
+    if (authorshipToastTimeoutRef.current) clearTimeout(authorshipToastTimeoutRef.current);
+    if (authorshipClickResetTimeoutRef.current) clearTimeout(authorshipClickResetTimeoutRef.current);
+  }, [clearAuthorshipLongPress]);
+
+  const renderAuthorshipLogo = (className: string) => (
+    <button
+      type="button"
+      aria-label="Application logo"
+      onPointerDown={handleLogoPressStart}
+      onPointerUp={clearAuthorshipLongPress}
+      onPointerLeave={clearAuthorshipLongPress}
+      onPointerCancel={clearAuthorshipLongPress}
+      onClick={handleLogoClick}
+      onContextMenu={(event) => event.preventDefault()}
+      className="flex shrink-0 rounded-md text-blue-600 outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-900"
+    >
+      <Satellite className={className} />
+    </button>
+  );
 
   // Store viewer reference when ready
   const handleCameraReady = useCallback((viewer: CesiumViewerType) => {
@@ -3102,7 +3178,7 @@ const App: React.FC = () => {
             {isMobile ? (
               <div className="flex items-center justify-between">
                 <div className="flex items-center min-w-0">
-                  <Satellite className="h-7 w-7 text-blue-600 flex-shrink-0" />
+                  {renderAuthorshipLogo('h-7 w-7')}
                   <h1 className="ml-2 text-lg font-bold text-gray-900 dark:text-white truncate">Capacity Analyzer</h1>
                 </div>
                 <div className="flex items-center gap-1">
@@ -3127,7 +3203,7 @@ const App: React.FC = () => {
             ) : (
               <div className={`flex items-center justify-between ${useCompactDesktopHeader ? 'gap-4' : 'gap-6'}`}>
               <div className="flex shrink-0 items-center">
-                <Satellite className={`${useCompactDesktopHeader ? 'h-7 w-7' : 'h-8 w-8'} text-blue-600`} />
+                {renderAuthorshipLogo(useCompactDesktopHeader ? 'h-7 w-7' : 'h-8 w-8')}
                 <h1 className={`ml-2 font-bold text-gray-900 dark:text-gray-100 ${useCompactDesktopHeader ? 'text-xl' : 'text-2xl'}`}>ETL Capacity Analyzer</h1>
               </div>
 
@@ -3571,6 +3647,7 @@ const App: React.FC = () => {
               >
                 <div className="pointer-events-auto rounded-[28px] border border-white/65 bg-[linear-gradient(180deg,rgba(255,255,255,0.94),rgba(241,245,249,0.88))] p-2.5 shadow-[0_24px_60px_-36px_rgba(15,23,42,0.78)] backdrop-blur-xl dark:border-slate-700/80 dark:bg-[linear-gradient(180deg,rgba(15,23,42,0.95),rgba(30,41,59,0.86))]">
                   <div className="flex items-center gap-2">
+                    {renderAuthorshipLogo('h-5 w-5')}
                     <div className="min-w-0 flex-1">
                       <SatelliteScopeFilter
                         currentScope={satelliteScope}
@@ -4158,6 +4235,14 @@ const App: React.FC = () => {
           ready={splashReady}
           onComplete={() => setIsSplashDismissed(true)}
         />
+      )}
+      {authorshipToastVisible && (
+        <div
+          aria-live="polite"
+          className="pointer-events-none fixed bottom-5 left-1/2 z-[2200] -translate-x-1/2 rounded-full border border-slate-200/75 bg-white/92 px-3 py-1.5 text-[11px] font-medium text-slate-600 shadow-lg backdrop-blur-md dark:border-white/10 dark:bg-slate-950/88 dark:text-slate-300 sm:left-auto sm:right-5 sm:translate-x-0"
+        >
+          {AUTHORSHIP_SIGNATURE}
+        </div>
       )}
       <MemoryMonitorHud />
     </div>

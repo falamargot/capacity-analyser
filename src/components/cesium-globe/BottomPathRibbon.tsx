@@ -105,14 +105,13 @@ const BottomPathRibbon: React.FC<BottomPathRibbonProps> = ({
 }) => {
   const [dismissed, setDismissed] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
-  const isSpacious = pathDensity === 'spacious';
 
   if (dismissed) return null;
 
   return (
     <div
       className="absolute bottom-4 left-1/2 -translate-x-1/2 z-30 pointer-events-auto"
-      style={{ maxWidth: 'min(96vw, 860px)', width: isSpacious ? 'min(96vw, 860px)' : 'max-content' }}
+      style={{ maxWidth: 'min(96vw, 860px)', width: 'min(96vw, 860px)' }}
     >
       <div className="overflow-hidden rounded-xl border border-white/70 bg-white/88 shadow-2xl ring-1 ring-slate-200/70 backdrop-blur-md dark:border-transparent dark:bg-slate-950/88 dark:ring-white/12">
         <div className="flex items-center justify-between gap-3 border-b border-slate-200/80 px-3 py-1.5 dark:border-white/8">
