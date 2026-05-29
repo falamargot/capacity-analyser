@@ -321,7 +321,7 @@ const LeoSiteToSiteSection = memo<LeoSiteToSiteSectionProps>(({ result, directio
 
                 <div className="border-t border-slate-100 dark:border-slate-800 pt-2 mt-1 space-y-0.5">
                   <MetricRow label={`One-way latency (${primaryLabel})`} value={fmtMs(primaryLatency)} accent />
-                  <MetricRow label="RTT" value={fmtMs(rttMs)} accent />
+                  <MetricRow label="Round-trip reference" value={fmtMs(rttMs)} accent />
                 </div>
               </div>
             </CollapsibleSection>
@@ -360,7 +360,7 @@ const LeoSiteToSiteSection = memo<LeoSiteToSiteSectionProps>(({ result, directio
                 <MetricRow label="Processing margin" value={fmtMs(processingMarginMs, 0)} />
                 <div className="border-t border-slate-200 dark:border-slate-700 pt-1 mt-1">
                   <MetricRow label={`One-way latency (${primaryLabel})`} value={fmtMs(primaryLatency)} accent />
-                  <MetricRow label="RTT" value={fmtMs(rttMs)} accent />
+                  <MetricRow label="Round-trip reference" value={fmtMs(rttMs)} accent />
                 </div>
               </div>
             </CollapsibleSection>

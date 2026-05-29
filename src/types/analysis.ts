@@ -123,10 +123,52 @@ export interface MeshLinkMetrics {
     rttMs: number | null;
 }
 
+export interface GeoSiteToSitePathSummary {
+    satelliteName: string | null;
+    aToB: {
+        uplink: {
+            beamName: string | null;
+            slantRangeKm: number | null;
+            latencyMs?: number | null;
+        };
+        downlink: {
+            beamName: string | null;
+            slantRangeKm: number | null;
+            latencyMs?: number | null;
+        };
+    };
+    bToA?: {
+        uplink: {
+            beamName: string | null;
+            slantRangeKm: number | null;
+            latencyMs?: number | null;
+        };
+        downlink: {
+            beamName: string | null;
+            slantRangeKm: number | null;
+            latencyMs?: number | null;
+        };
+    } | null;
+}
+
+export interface GeoSiteToSiteSegmentSummary {
+    uplink: {
+        beamName: string | null;
+        slantRangeKm: number | null;
+        latencyMs?: number | null;
+    };
+    downlink: {
+        beamName: string | null;
+        slantRangeKm: number | null;
+        latencyMs?: number | null;
+    };
+}
+
 export interface MobileAnalysisMetrics {
     leo: MobileLinkMetrics | null;
     geo: MobileLinkMetrics | null;
     totalGbps: number;
     coveredCount: number;
     mesh?: MeshLinkMetrics | null;
+    geoSiteToSitePath?: GeoSiteToSitePathSummary | null;
 }

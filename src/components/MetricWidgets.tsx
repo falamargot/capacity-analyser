@@ -14,7 +14,7 @@ export const RttIndicator: React.FC<RttIndicatorProps> = ({ value, maxMs = 600, 
     if (value == null) {
         return (
             <div className="flex justify-between items-center">
-                <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Round-trip latency (RTT):</span>
+                <span className="text-sm font-medium text-gray-600 dark:text-gray-400">{label}:</span>
                 <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">—</span>
             </div>
         );

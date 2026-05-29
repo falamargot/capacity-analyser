@@ -1222,6 +1222,23 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
   const s2sSatAName = s2sActive ? (siteToSiteResult!.servingSatelliteA?.name ?? '—') : '—';
   const s2sSatBName = s2sActive ? (siteToSiteResult!.servingSatelliteB?.name ?? '—') : '—';
   const s2sPopName  = s2sActive ? (siteToSiteResult!.logicalPop?.name ?? 'Core PoP') : 'Core PoP';
+  const s2sLatencyHopRows = s2sServiceActive && siteToSiteResult
+    ? (isAtoB
+        ? [
+            { key: 'access-a', label: 'Access A (Site A → Satellite A)', value: siteToSiteResult.userLinkLatencyAms },
+            { key: 'feeder-a', label: 'Feeder A (Satellite A → SNP A)', value: siteToSiteResult.feederLatencyAms },
+            ...(!s2sSameSNP ? [{ key: 'backbone', label: `Backbone (SNP ${s2sSnpAName} → PoP → SNP ${s2sSnpBName})`, value: siteToSiteResult.backboneOneWayLatencyMs }] : []),
+            { key: 'feeder-b', label: 'Feeder B (SNP B → Satellite B)', value: siteToSiteResult.feederLatencyBms },
+            { key: 'access-b', label: 'Access B (Satellite B → Site B)', value: siteToSiteResult.userLinkLatencyBms },
+          ]
+        : [
+            { key: 'access-b', label: 'Access B (Site B → Satellite B)', value: siteToSiteResult.userLinkLatencyBms },
+            { key: 'feeder-b', label: 'Feeder B (Satellite B → SNP B)', value: siteToSiteResult.feederLatencyBms },
+            ...(!s2sSameSNP ? [{ key: 'backbone', label: `Backbone (SNP ${s2sSnpBName} → PoP → SNP ${s2sSnpAName})`, value: siteToSiteResult.backboneOneWayLatencyMs }] : []),
+            { key: 'feeder-a', label: 'Feeder A (SNP A → Satellite A)', value: siteToSiteResult.feederLatencyAms },
+            { key: 'access-a', label: 'Access A (Satellite A → Site A)', value: siteToSiteResult.userLinkLatencyAms },
+          ])
+    : [];
   const s2sStatusLabel = s2sActive
     ? siteToSiteResult!.serviceStatus === 'ALLOWED'
       ? 'End-to-end available'
@@ -1672,7 +1689,7 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
           title={isRegulatoryBlocked && !isS2S ? 'Latency breakdown (Diagnostic only)' : 'Latency breakdown'}
           summary={isS2S
             ? (s2sServiceActive
-                ? `One-way (${s2sPrimaryLabel}): ${fmtMs(s2sPrimaryLatency)} · RTT: ${fmtMs(siteToSiteResult!.rttMs)}`
+                ? `${s2sPrimaryLabel} latency: ${fmtMs(s2sPrimaryLatency)} · round-trip reference: ${fmtMs(siteToSiteResult!.rttMs)}`
                 : (s2sActive ? 'No complete LEO Site-to-Site path for the current beam coverage.' : 'Place Site B to see end-to-end latency.'))
             : (isRegulatoryBlocked
                 ? `Diagnostic only — estimated RTT total: ${leoGeometry ? leoGeometry.rttTotalMs.toFixed(1) : 'N/A'} ms`
@@ -1687,17 +1704,15 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
                   Propagation delays derived from slant range (speed of light). Backbone uses geodesic × 1.20 ÷ 200 km/ms.
                 </div>
                 <div className="font-semibold text-gray-700 dark:text-gray-200 text-xs mb-1">One-way hops ({s2sPrimaryLabel})</div>
-                <S2SMetricRow label="Access A (Site A → Satellite A)" value={fmtMs(siteToSiteResult!.userLinkLatencyAms)} />
-                <S2SMetricRow label="Feeder A (Satellite A → SNP A)" value={fmtMs(siteToSiteResult!.feederLatencyAms)} />
-                {!s2sSameSNP && <S2SMetricRow label={`Backbone (SNP ${s2sSnpAName} → PoP → SNP ${s2sSnpBName})`} value={fmtMs(siteToSiteResult!.backboneOneWayLatencyMs)} />}
-                <S2SMetricRow label="Feeder B (SNP B → Satellite B)" value={fmtMs(siteToSiteResult!.feederLatencyBms)} />
-                <S2SMetricRow label="Access B (Satellite B → Site B)" value={fmtMs(siteToSiteResult!.userLinkLatencyBms)} />
+                {s2sLatencyHopRows.map((row) => (
+                  <S2SMetricRow key={row.key} label={row.label} value={fmtMs(row.value)} />
+                ))}
                 <div className="font-semibold text-gray-700 dark:text-gray-200 text-xs mt-2 mb-1">Overhead</div>
                 <S2SMetricRow label="Processing margin" value={fmtMs(siteToSiteResult!.processingMarginMs, 0)} />
                 {siteToSiteResult!.handoverRiskMarginMs > 0 && <S2SMetricRow label="Handover risk margin" value={fmtMs(siteToSiteResult!.handoverRiskMarginMs, 0)} />}
                 <div className="border-t border-slate-200 dark:border-slate-700 pt-1.5 mt-1.5 space-y-0.5">
                   <S2SMetricRow label={`One-way latency (${s2sPrimaryLabel})`} value={fmtMs(s2sPrimaryLatency)} accent />
-                  <S2SMetricRow label="RTT" value={fmtMs(siteToSiteResult!.rttMs)} accent />
+                  <S2SMetricRow label="Round-trip reference" value={fmtMs(siteToSiteResult!.rttMs)} accent />
                 </div>
               </div>
             ) : (
@@ -1771,7 +1786,7 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
                   performanceFactor={leoPerformance?.performanceFactor ?? 1}
                   accentColor="#db2777"
                   rttMaxMs={RTT_VISUAL_SCALE_MAX_MS}
-                  rttLabel="End-to-End RTT"
+                  rttLabel={`${s2sView?.primaryLabel ?? 'A → B'} latency`}
                   downlinkLabel={`${s2sView?.primaryLabel ?? 'A → B'} throughput`}
                   uplinkLabel={`${s2sView?.secondaryLabel ?? 'B → A'} throughput`}
                 />

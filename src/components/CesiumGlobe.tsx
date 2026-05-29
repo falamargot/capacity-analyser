@@ -74,6 +74,7 @@ import CountryOverlayLegend from './cesium-globe/CountryOverlayLegend';
 import SiteScreenLabel from './cesium-globe/SiteScreenLabel';
 import SatelliteScreenLabels from './cesium-globe/SatelliteScreenLabels';
 import LeoS2SPathStrip from './cesium-globe/LeoS2SPathStrip';
+import GeoS2SPathStrip from './cesium-globe/GeoS2SPathStrip';
 import {
   buildGeoStarSection,
   buildGeoMeshSection,
@@ -223,6 +224,7 @@ interface CesiumGlobeProps {
     leoServiceViewModel?: LeoConnectivityViewModel | null;
     geoPointStatus?: GeoPointStatus | null;
     performanceMetrics?: MobileAnalysisMetrics | null;
+    activeConnectivityTab?: 'LEO' | 'GEO';
     selectedRegulatoryResult?: RegulatoryResult | null;
     onGlobeBootPhaseChange?: (phase: 'mounting' | 'viewer-ready' | 'imagery-ready') => void;
     onInitialGlobeReady?: () => void;
@@ -320,6 +322,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
     leoServiceViewModel = null,
     geoPointStatus = null,
     performanceMetrics = null,
+    activeConnectivityTab = 'LEO',
     selectedRegulatoryResult = null,
     onGlobeBootPhaseChange,
     onInitialGlobeReady,
@@ -1858,11 +1861,31 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                     />
                 );
             })()}
-            {/* LEO Site-to-Site path strip — visible once both endpoints + SNPs are known */}
+            {/* Bottom path strip follows the selected sidebar topology tab. */}
             {(() => {
+                if (activeConnectivityTab === 'GEO') {
+                    const mesh = performanceMetrics?.mesh ?? null;
+                    const activeDirection = activeMeshTab === 'reverse' ? 'B_TO_A' : 'A_TO_B';
+                    if (!mesh || (linkMode !== 'MESH' && linkMode !== 'POINT_TO_POINT')) return null;
+                    return (
+                        <GeoS2SPathStrip
+                            mesh={mesh}
+                            activeDirection={activeDirection}
+                            path={performanceMetrics?.geoSiteToSitePath ?? null}
+                            linkMode={linkMode}
+                        />
+                    );
+                }
+
                 const s2sResult = leoSiteToSiteFullResult ?? leoSiteToSiteResult;
+                if (activeConnectivityTab !== 'LEO') return null;
                 if (!s2sResult?.serviceAvailable) return null;
-                return <LeoS2SPathStrip result={s2sResult} />;
+                return (
+                    <LeoS2SPathStrip
+                        result={s2sResult}
+                        activeDirection={activeMeshTab === 'reverse' ? 'B_TO_A' : 'A_TO_B'}
+                    />
+                );
             })()}
             {!hideSatelliteScreenLabels && (
                 <SatelliteScreenLabels

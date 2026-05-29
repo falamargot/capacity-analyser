@@ -4,23 +4,18 @@ import type { LinkMode } from '../../types/linkMode';
 import type { LeoSiteToSiteResult } from '../../utils/leoSiteToSiteModel';
 import type { LeoConnectivityViewModel } from '../../utils/leoServiceViewModel';
 import type { GeoPointStatus } from '../../utils/selectedPointStatus';
+import {
+  buildGeoRouteViewModel,
+  buildLeoRouteViewModel,
+  formatRouteGbps,
+  formatRouteMs,
+  formatRouteMbps,
+  routeDirectionFromMeshTab,
+} from '../../utils/activeRouteViewModel';
 import type { SatelliteScope } from '../SatelliteScopeFilter';
 import StatusChip, { type StatusLevel } from '../StatusChip';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function fmtMbps(gbps: number | null | undefined): string {
-  if (gbps == null || !isFinite(gbps) || gbps <= 0) return '—';
-  const mbps = gbps * 1000;
-  if (mbps >= 1000) return `${(mbps / 1000).toFixed(1)} Gbps`;
-  return `${Math.round(mbps)} Mbps`;
-}
-
-function fmtRtt(ms: number | null | undefined): string {
-  if (ms == null || !isFinite(ms) || ms <= 0) return '—';
-  if (ms >= 1000) return `${(ms / 1000).toFixed(1)} s`;
-  return `${Math.round(ms)} ms`;
-}
 
 function leoStatusLevel(vm: LeoConnectivityViewModel | null): StatusLevel {
   if (!vm) return 'info';
@@ -148,12 +143,21 @@ const MissionKpiBar = memo<MissionKpiBarProps>(({
 }) => {
   const showLeo = satelliteScope === 'LEO' || satelliteScope === 'ALL';
   const showGeo = satelliteScope === 'GEO' || satelliteScope === 'ALL';
-  const selectedRouteLabel = activeMeshTab === 'reverse' ? 'B→A' : 'A→B';
-  const selectedRouteValue = activeMeshTab === 'reverse' ? 'Site B→A' : 'Site A→B';
-
+  const activeDirection = routeDirectionFromMeshTab(activeMeshTab);
   const leoMetrics = metrics?.leo ?? null;
   const geoMetrics = metrics?.geo ?? null;
-  const isGeoMeshMode = linkMode === 'MESH' || linkMode === 'POINT_TO_POINT';
+  const leoRoute = buildLeoRouteViewModel({
+    topologyMode: leoTopologyMode,
+    direction: activeDirection,
+    siteToSiteResult: leoSiteToSiteResult,
+    metrics: leoMetrics,
+  });
+  const geoRoute = buildGeoRouteViewModel({
+    linkMode,
+    direction: activeDirection,
+    metrics,
+    geoStatus,
+  });
 
   const leoStatus = leoStatusLevel(leoViewModel);
   const geoSt = geoStatusLevel(geoStatus);
@@ -171,56 +175,50 @@ const MissionKpiBar = memo<MissionKpiBarProps>(({
     : '—';
 
   const leoTiles = (() => {
-    if (leoTopologyMode === 'SITE_TO_SITE' && leoSiteToSiteResult) {
-      const selectedMbps = activeMeshTab === 'reverse'
-        ? leoSiteToSiteResult.finalThroughputBtoAMbps
-        : leoSiteToSiteResult.finalThroughputAtoBMbps;
+    if (leoTopologyMode === 'SITE_TO_SITE') {
       return [
-        { key: 'route', label: 'Route', value: selectedRouteValue, accentClass: 'text-pink-600 dark:text-pink-300' },
-        { key: 'throughput', label: selectedRouteLabel, value: selectedMbps == null ? '—' : `${Math.round(selectedMbps)} Mbps` },
-        { key: 'rtt', label: 'RTT', value: fmtRtt(leoSiteToSiteResult.rttMs) },
+        { key: 'route', label: leoRoute.routeLabel, value: leoRoute.routeValue, accentClass: 'text-pink-600 dark:text-pink-300' },
+        { key: 'throughput', label: leoRoute.throughputLabel ?? 'Throughput', value: formatRouteMbps(leoRoute.throughputMbps) },
+        { key: 'rtt', label: leoRoute.latencyLabel ?? 'RTT', value: formatRouteMs(leoRoute.latencyMs) },
       ];
     }
 
     return [
-      { key: 'dl', label: 'DL', value: fmtMbps(leoMetrics?.downlinkGbps) },
-      { key: 'ul', label: 'UL', value: fmtMbps(leoMetrics?.uplinkGbps) },
-      { key: 'rtt', label: 'RTT', value: fmtRtt(leoMetrics?.rtt) },
+      { key: 'dl', label: 'DL', value: formatRouteGbps(leoMetrics?.downlinkGbps) },
+      { key: 'ul', label: 'UL', value: formatRouteGbps(leoMetrics?.uplinkGbps) },
+      { key: 'rtt', label: 'RTT', value: formatRouteMs(leoMetrics?.rtt) },
     ];
   })();
 
   const geoTiles = (() => {
-    if (isGeoMeshMode && metrics?.mesh) {
-      const selectedMbps = activeMeshTab === 'reverse'
-        ? metrics.mesh.reverseMbps
-        : metrics.mesh.forwardMbps;
+    if (linkMode === 'MESH' || linkMode === 'POINT_TO_POINT') {
       return [
-        { key: 'route', label: 'Route', value: selectedRouteValue, accentClass: 'text-blue-600 dark:text-blue-300' },
-        { key: 'throughput', label: selectedRouteLabel, value: selectedMbps == null ? '—' : `${Math.round(selectedMbps)} Mbps` },
-        { key: 'rtt', label: 'RTT', value: fmtRtt(metrics.mesh.rttMs) },
+        { key: 'route', label: geoRoute.routeLabel, value: geoRoute.routeValue, accentClass: 'text-blue-600 dark:text-blue-300' },
+        { key: 'throughput', label: geoRoute.throughputLabel ?? 'Throughput', value: formatRouteMbps(geoRoute.throughputMbps) },
+        { key: 'latency', label: geoRoute.latencyLabel ?? 'latency', value: formatRouteMs(geoRoute.latencyMs) },
       ];
     }
 
     if (linkMode === 'STAR_RETURN') {
       return [
-        { key: 'route', label: 'Route', value: 'Site B→Sat', accentClass: 'text-blue-600 dark:text-blue-300' },
-        { key: 'throughput', label: 'Return', value: fmtMbps(geoMetrics?.uplinkGbps) },
-        { key: 'latency', label: 'Latency', value: fmtRtt(geoMetrics?.rtt) },
+        { key: 'route', label: geoRoute.routeLabel, value: geoRoute.routeValue, accentClass: 'text-blue-600 dark:text-blue-300' },
+        { key: 'throughput', label: geoRoute.throughputLabel ?? 'Return', value: formatRouteMbps(geoRoute.throughputMbps) },
+        { key: 'latency', label: geoRoute.latencyLabel ?? 'One-way', value: formatRouteMs(geoRoute.latencyMs) },
       ];
     }
 
     if (linkMode === 'STAR_FORWARD') {
       return [
-        { key: 'route', label: 'Route', value: 'Sat→Site B', accentClass: 'text-blue-600 dark:text-blue-300' },
-        { key: 'throughput', label: 'Forward', value: fmtMbps(geoMetrics?.downlinkGbps) },
-        { key: 'latency', label: 'Latency', value: fmtRtt(geoMetrics?.rtt) },
+        { key: 'route', label: geoRoute.routeLabel, value: geoRoute.routeValue, accentClass: 'text-blue-600 dark:text-blue-300' },
+        { key: 'throughput', label: geoRoute.throughputLabel ?? 'Forward', value: formatRouteMbps(geoRoute.throughputMbps) },
+        { key: 'latency', label: geoRoute.latencyLabel ?? 'One-way', value: formatRouteMs(geoRoute.latencyMs) },
       ];
     }
 
     return [
-      { key: 'dl', label: 'DL', value: fmtMbps(geoMetrics?.downlinkGbps) },
-      { key: 'ul', label: 'UL', value: fmtMbps(geoMetrics?.uplinkGbps) },
-      { key: 'rtt', label: 'RTT', value: fmtRtt(geoMetrics?.rtt) },
+      { key: 'dl', label: 'DL', value: formatRouteGbps(geoMetrics?.downlinkGbps) },
+      { key: 'ul', label: 'UL', value: formatRouteGbps(geoMetrics?.uplinkGbps) },
+      { key: 'rtt', label: 'RTT', value: formatRouteMs(geoMetrics?.rtt) },
     ];
   })();
 

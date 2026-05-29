@@ -788,7 +788,7 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
   // Only sync on external prop change, not on internal change.
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [controlledMeshTab]);
-  const activeMeshTab = internalMeshTab;
+  const activeMeshTab = controlledMeshTab ?? internalMeshTab;
   const meshDirectionLabel = activeMeshTab === 'reverse' ? 'B→A' : 'A→B';
   const starDirectionLabel = isStarReturn ? 'Return' : 'Forward';
   const setActiveMeshTab = (tab: 'forward' | 'reverse') => {
@@ -815,24 +815,25 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
   // come from the A→Sat→B (forward) and B→Sat→A (reverse) segment candidates.
   const meshGeometry = useMemo(() => {
     if (!isMeshOrP2P || !dualSegmentResult) return null;
+    if (!dualSegmentResult.reverse) return null;
     const fwUl = dualSegmentResult.forward.uplink.candidate;    // A → Sat
     const fwDl = dualSegmentResult.forward.downlink.candidate;  // Sat → B
-    const rvUl = dualSegmentResult.reverse?.uplink.candidate;   // B → Sat
-    const rvDl = dualSegmentResult.reverse?.downlink.candidate; // Sat → A
+    const rvUl = dualSegmentResult.reverse.uplink.candidate;    // B → Sat
+    const rvDl = dualSegmentResult.reverse.downlink.candidate;  // Sat → A
 
     const toMs = (km: number) => km / SPEED_OF_LIGHT_KM_PER_MS;
 
     const aToSatKm = fwUl.slantRangeKm ?? 37500;
     const satToBKm = fwDl.slantRangeKm ?? 37500;
-    const bToSatKm = rvUl?.slantRangeKm ?? satToBKm;
-    const satToAKm = rvDl?.slantRangeKm ?? aToSatKm;
+    const bToSatKm = rvUl.slantRangeKm ?? 37500;
+    const satToAKm = rvDl.slantRangeKm ?? 37500;
 
     const aToSatMs = toMs(aToSatKm);
     const satToBMs = toMs(satToBKm);
     const bToSatMs = toMs(bToSatKm);
     const satToAMs = toMs(satToAKm);
 
-    // RTT is always the full round-trip regardless of active direction tab
+    // This is the 4-hop latency reference used by the active directional view.
     const rttPropagationMs = aToSatMs + satToBMs + bToSatMs + satToAMs;
     const modemOverheadMs = 40; // 2 × 20 ms modem processing — no gateway
     const rttTotalMs = rttPropagationMs + modemOverheadMs;
@@ -868,7 +869,7 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
       fwOneWayMs: aToSatMs + satToBMs,
       rvOneWayKm: bToSatKm + satToAKm,
       rvOneWayMs: bToSatMs + satToAMs,
-      // RTT (symmetric — same regardless of active tab)
+      // 4-hop latency reference (symmetric — same regardless of active tab)
       rttPropagationMs,
       modemOverheadMs,
       rttTotalMs,
@@ -879,37 +880,60 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
       reverseThroughputMbps: dualSegmentResult.reverse ? getDisplayedThroughput(dualSegmentResult, 'reverse') : null,
     };
   }, [isMeshOrP2P, dualSegmentResult]);
+  const meshUnavailableMessage = pointB
+    ? `No ${meshDirectionLabel} GEO path available for the active topology.`
+    : 'Place Point B to compute MESH link performance';
 
   const estimatedPerformanceDirectionLabel = isMeshOrP2P
-    ? 'A↔B'
+    ? meshDirectionLabel
     : starDirectionLabel;
 
   const estimatedPerformanceSection = (
     <CollapsibleSection
       storageKey="geo-performance"
-      title={<>Estimated Performance<DirectionPill dir={estimatedPerformanceDirectionLabel} aggregate={isMeshOrP2P} /><SectionTooltip content="Predicted GEO link throughput derived from the RF link budget. STAR modes show one active direction only. MESH/P2P shows RTT for the full round-trip (4 hops, no gateway)." /></>}
+      title={<>Estimated Performance<DirectionPill dir={estimatedPerformanceDirectionLabel} aggregate={isMeshOrP2P} /><SectionTooltip content="Predicted GEO link throughput derived from the RF link budget. STAR modes show one active direction only. MESH/P2P shows the active direction with the 4-hop latency reference (no gateway)." /></>}
       accentColor="#2563eb"
       defaultOpen={true}
       collapsible={false}
     >
       {isMeshOrP2P ? (
-        // MESH/P2P: both directions are budgeted separately — show full RTT
-        // and the forward/return bottleneck throughput side by side.
         meshGeometry ? (() => {
+          const selectedThroughputMbps = activeMeshTab === 'reverse'
+            ? meshGeometry.reverseThroughputMbps
+            : meshGeometry.forwardThroughputMbps;
+          const selectedThroughputGbps = selectedThroughputMbps != null
+            ? selectedThroughputMbps / 1000
+            : null;
+          const isReverse = activeMeshTab === 'reverse';
+          if (selectedThroughputGbps == null) {
+            return (
+              <PerformancePanel
+                rtt={null}
+                downlinkGbps={null}
+                uplinkGbps={null}
+                maxDlGbps={TERMINAL_PROFILES[terminalType].maxDlGbps}
+                maxUlGbps={TERMINAL_PROFILES[terminalType].maxUlGbps}
+                accentColor="#2563eb"
+                noDataMessage={meshUnavailableMessage}
+              />
+            );
+          }
           return (
             <PerformancePanel
               rtt={meshGeometry.rttTotalMs}
-              downlinkGbps={meshGeometry.forwardThroughputMbps / 1000}
-              uplinkGbps={meshGeometry.reverseThroughputMbps != null ? meshGeometry.reverseThroughputMbps / 1000 : null}
+              downlinkGbps={isReverse ? null : selectedThroughputGbps}
+              uplinkGbps={isReverse ? selectedThroughputGbps : null}
+              hideUplink={!isReverse}
+              hideDownlink={isReverse}
               maxDlGbps={TERMINAL_PROFILES[terminalType].maxDlGbps}
               maxUlGbps={TERMINAL_PROFILES[terminalType].maxUlGbps}
               stability={meshGeometry.isUnstable ? 'Unstable' : meshGeometry.stability}
               performanceFactor={1}
               accentColor="#2563eb"
               rttMaxMs={RTT_VISUAL_SCALE_MAX_MS}
-              rttLabel="Mesh/P2P RTT (4-hop)"
-              downlinkLabel="Forward A→B throughput"
-              uplinkLabel="Return B→A throughput"
+              rttLabel={`${linkMode === 'POINT_TO_POINT' ? 'P2P' : 'Mesh'} ${meshDirectionLabel} latency (4-hop)`}
+              downlinkLabel={`${meshDirectionLabel} throughput`}
+              uplinkLabel={`${meshDirectionLabel} throughput`}
               stabilityTooltip={`MESH/P2P stability = weakest link.\nPoint A elevation: ${meshGeometry.elevA.toFixed(1)}°\nPoint B elevation: ${meshGeometry.elevB.toFixed(1)}°`}
             />
           );
@@ -919,13 +943,13 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
             maxDlGbps={TERMINAL_PROFILES[terminalType].maxDlGbps}
             maxUlGbps={TERMINAL_PROFILES[terminalType].maxUlGbps}
             accentColor="#2563eb"
-            noDataMessage="Place Point B to compute MESH link performance"
+            noDataMessage={meshUnavailableMessage}
           />
         )
       ) : resolvedGEOConnectivity && geoGeometry ? (
         // STAR FORWARD / RETURN: only one direction is budgeted by the RF model.
         // Show that direction's throughput (from the real link budget) + one-way latency.
-        // RTT is not shown here — it belongs in the Latency Breakdown section.
+        // Round-trip details are not shown here; they belong in the Latency Breakdown section.
         (() => {
           const elevDeg = geoGeometry.userToSatellite.elevationDeg;
           const stability = geoGeometry.isUserLinkUnstable ? 'Unstable'
@@ -1009,7 +1033,7 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
 
   const radioPathSummary = (() => {
     if (isMeshOrP2P) {
-      if (!meshGeometry) return 'Place Point B to compute the MESH radio path.';
+      if (!meshGeometry) return meshUnavailableMessage;
       const isForward = activeMeshTab === 'forward';
       const oneWayKm = isForward ? meshGeometry.fwOneWayKm : meshGeometry.rvOneWayKm;
       const oneWayMs = isForward ? meshGeometry.fwOneWayMs : meshGeometry.rvOneWayMs;
@@ -1311,8 +1335,8 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
           storageKey="geo-radio-path"
           title={
             isMeshOrP2P
-              ? <> Radio Path <DirectionPill dir={meshDirectionLabel} /><SectionTooltip content="Terminal-to-terminal signal route: Point A → GEO Satellite → Point B. No gateway in the RF path. Shows elevation, slant range and propagation delay for each hop." /></>
-              : <> Radio Path <DirectionPill dir={starDirectionLabel} /><SectionTooltip content="Active one-way STAR signal route. Forward mode is Gateway → GEO Satellite → User; Return mode is User → GEO Satellite → Gateway. RTT details are shown in the latency breakdown below." /></>
+              ? <> Radio Path <DirectionPill dir={meshDirectionLabel} /><SectionTooltip content="Terminal-to-terminal signal route follows the active MESH/P2P direction through the GEO satellite. No gateway is in the RF path. Shows elevation, slant range and propagation delay for each hop." /></>
+              : <> Radio Path <DirectionPill dir={starDirectionLabel} /><SectionTooltip content="Active one-way STAR signal route. Forward mode is Gateway → GEO Satellite → User; Return mode is User → GEO Satellite → Gateway. Round-trip reference details are shown in the latency breakdown below." /></>
           }
           subtitle={radioPathSummary}
           accentColor="#2563eb"
@@ -1368,7 +1392,7 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
               );
             })() : (
               <div className="text-sm text-gray-500 dark:text-gray-400 text-center italic">
-                Place Point B to compute the MESH radio path.
+                {meshUnavailableMessage}
               </div>
             )
           ) : (
@@ -1449,9 +1473,9 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
           // ── MESH/P2P: 4-hop propagation, no gateway overhead ─────────────
           <LatencyBreakdownCard
             accentColor="#2563eb"
-            title={<>Latency breakdown<DirectionPill dir="A↔B" aggregate /></>}
-            tooltip="Round-trip propagation for a MESH/P2P link: Point A → Satellite → Point B → Satellite → Point A (4 hops). No gateway in the path — overhead is modem processing only (2 × 20 ms)."
-            summary={meshGeometry ? `Estimated RTT: ${meshGeometry.rttTotalMs.toFixed(1)} ms` : 'Place Point B to compute MESH latency'}
+            title={<>Latency breakdown<DirectionPill dir={meshDirectionLabel} /></>}
+            tooltip="Round-trip propagation for the active MESH/P2P direction: source terminal → satellite → destination terminal → satellite → source terminal (4 hops). No gateway is in the path; overhead is modem processing only (2 × 20 ms)."
+            summary={meshGeometry ? `Estimated ${meshDirectionLabel} latency: ${meshGeometry.rttTotalMs.toFixed(1)} ms` : meshUnavailableMessage}
           >
             {meshGeometry ? (() => {
               const isForward = activeMeshTab === 'forward';
@@ -1463,25 +1487,25 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
               const hop4Ms = isForward ? meshGeometry.satToAMs : meshGeometry.satToBMs;
               return (
               <div className="text-xs text-gray-600 dark:text-gray-400 space-y-2">
-                <div className="font-semibold text-gray-700 dark:text-gray-200">RTT propagation (4 hops)</div>
+                <div className="font-semibold text-gray-700 dark:text-gray-200">4-hop propagation reference</div>
                 <div className="flex justify-between"><span>Point {src} → Satellite</span><span>{hop1Ms.toFixed(1)} ms</span></div>
                 <div className="flex justify-between"><span>Satellite → Point {dst}</span><span>{hop2Ms.toFixed(1)} ms</span></div>
                 <div className="flex justify-between"><span>Point {dst} → Satellite</span><span>{hop3Ms.toFixed(1)} ms</span></div>
                 <div className="flex justify-between"><span>Satellite → Point {src}</span><span>{hop4Ms.toFixed(1)} ms</span></div>
                 <div className="border-t border-gray-200 dark:border-slate-700 pt-2 flex justify-between font-semibold text-gray-700 dark:text-gray-200">
-                  <span>RTT propagation</span><span>{meshGeometry.rttPropagationMs.toFixed(1)} ms</span>
+                  <span>4-hop propagation</span><span>{meshGeometry.rttPropagationMs.toFixed(1)} ms</span>
                 </div>
                 <div className="pt-1 font-semibold text-gray-700 dark:text-gray-200">Network overhead</div>
                 <div className="ml-2 flex justify-between"><span>Modem processing (A + B)</span><span>{meshGeometry.modemOverheadMs.toFixed(0)} ms</span></div>
                 <div className="ml-2 text-[10px] text-gray-400 dark:text-gray-500 italic">No gateway — gateway processing and routing delays do not apply.</div>
                 <div className="border-t border-gray-200 dark:border-slate-700 pt-2 flex justify-between font-semibold text-gray-800 dark:text-gray-100">
-                  <span>Estimated RTT total</span><span>{meshGeometry.rttTotalMs.toFixed(1)} ms</span>
+                  <span>Estimated latency total</span><span>{meshGeometry.rttTotalMs.toFixed(1)} ms</span>
                 </div>
               </div>
             );
           })() : (
               <div className="text-sm text-gray-500 dark:text-gray-400 italic">
-                Place Point B to compute MESH latency.
+                {meshUnavailableMessage}
               </div>
             )}
           </LatencyBreakdownCard>

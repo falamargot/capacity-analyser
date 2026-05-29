@@ -665,7 +665,7 @@ const MobileAnalysisSummary: React.FC<MobileAnalysisSummaryProps> = ({
                 metrics: displayedLeoMetrics,
                 accentClassName: 'text-fuchsia-600 dark:text-fuchsia-300',
                 borderClassName: 'border-fuchsia-200/80 dark:border-fuchsia-400/20',
-                latencyLabel: leoTopologyMode === 'SITE_TO_SITE' ? 'Site-to-Site RTT' : 'LEO RTT',
+                latencyLabel: leoTopologyMode === 'SITE_TO_SITE' ? `${selectedRouteLabel} latency` : 'LEO RTT',
                 downlinkLabel: leoTopologyMode === 'SITE_TO_SITE' ? selectedRouteLabel : 'DL throughput',
                 uplinkLabel: 'UL throughput',
                 extraMetrics: leoTopologyMode === 'SITE_TO_SITE' && leoSiteToSiteResult
@@ -698,7 +698,7 @@ const MobileAnalysisSummary: React.FC<MobileAnalysisSummaryProps> = ({
                 accentClassName: 'text-blue-600 dark:text-blue-300',
                 borderClassName: 'border-blue-200/80 dark:border-blue-400/20',
                 topologyLabel: onLinkModeChange ? undefined : `Topology · ${LINK_MODE_LABELS[linkMode]}`,
-                latencyLabel: isMeshMode ? 'RTT' : 'Latency',
+                latencyLabel: isMeshMode ? `${selectedRouteLabel} latency` : 'Latency',
                 downlinkLabel: isMeshMode ? selectedRouteLabel : isStarForward ? 'Forward link' : 'Downlink',
                 uplinkLabel: isMeshMode ? 'Return' : isStarReturn ? 'Return link' : 'Uplink',
                 linkModeControls: onLinkModeChange ? {

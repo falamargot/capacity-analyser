@@ -2598,6 +2598,7 @@ const App: React.FC = () => {
     leoServiceViewModel,
     geoPointStatus,
     performanceMetrics: mobileMetrics,
+    activeConnectivityTab,
     selectedRegulatoryResult: leoRegulatoryResult,
     isFullscreen,
     onToggleFullscreen: handleToggleFullscreen,
@@ -2654,7 +2655,7 @@ const App: React.FC = () => {
   }), [
     filteredSatellites, satelliteTypeByName, coverageFeaturesMemo, visibleManualGeoCoverageKeys, handlePointClick, handleEmptyClick, handleCoverageClick, selectedPosition,
     handleSatelliteClick, handleSatelliteHover, handleSnpClick, handleGatewaySelectByName, handleSnpHover,
-    handleMoonSelectionChange, selectedSatellite, selectedMoon, resolvedAutoLEO, resolvedAutoLEOB, activeGeoSatellite, selectedGEOBeam, selectedSelection, selectedCoverage, globeUplinkCoverage, globeDownlinkCoverage, selectedSNP, selectedGateway, dedicatedSNPForSelectedLEO, leoServiceViewModel, geoPointStatus, mobileMetrics, leoRegulatoryResult,
+    handleMoonSelectionChange, selectedSatellite, selectedMoon, resolvedAutoLEO, resolvedAutoLEOB, activeGeoSatellite, selectedGEOBeam, selectedSelection, selectedCoverage, globeUplinkCoverage, globeDownlinkCoverage, selectedSNP, selectedGateway, dedicatedSNPForSelectedLEO, leoServiceViewModel, geoPointStatus, mobileMetrics, activeConnectivityTab, leoRegulatoryResult,
     isFullscreen, satelliteScope, airTrafficEnabled, airTraffic.aircraft,
     selectedAircraft, handleAircraftSelect, handleAircraftHover,
     maritimeTrafficEnabled, maritimeTraffic.vessels, selectedVessel, handleVesselSelect, cameraTarget,

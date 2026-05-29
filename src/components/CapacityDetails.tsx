@@ -5,7 +5,7 @@ import { computeServiceStatus } from '../utils/serviceLayer';
 import { SatelliteData } from '../types/satellites';
 import { SatelliteScope } from './SatelliteScopeFilter';
 import SatelliteDetails from './SatelliteDetails';
-import { SPEED_OF_LIGHT_RADIO_KM_S, RealTimeCapacityData, calculateElevationAngle, compute3DDistanceKm } from '../utils/capacityCalculator';
+import { SPEED_OF_LIGHT_RADIO_KM_S, RealTimeCapacityData, calculateElevationAngle, compute3DDistanceKm, computeOneWayLatencyMs } from '../utils/capacityCalculator';
 import { NOMINAL_TERMINAL_PEAK_MBPS } from '../config/oneweb';
 import { GEO_GATEWAYS, SNPS_DATA } from './globe/GlobeConfig';
 import { findBestConnectedBeamInfo, hasRFConnectivity, estimateCurrentLeoBeamLink } from '../utils/rfConnectivity';
@@ -15,7 +15,7 @@ import { isPointInCoverage } from '../utils/coverageCalculator';
 import { getBestConnectedGateway } from '../utils/connectivityRules';
 import { JulianDate } from 'cesium';
 import ExportButton, { type ExportButtonPayload } from './ExportButton';
-import type { CandidateCoverage, MeshLinkMetrics, MobileAnalysisMetrics } from '../types/analysis';
+import type { CandidateCoverage, GeoSiteToSitePathSummary, MeshLinkMetrics, MobileAnalysisMetrics } from '../types/analysis';
 import { analyzeLeoConnectivity } from '../utils/leoConnectivityModel';
 import { computeGeoConnectivity, findCandidateCoverages } from '../utils/geoCoverageSelection';
 import { useSimulation } from '../contexts/SimulationContext';
@@ -1604,6 +1604,47 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
     };
   }, [linkMode, dualSegmentResult]);
 
+  const geoSiteToSitePath = useMemo((): GeoSiteToSitePathSummary | null => {
+    if ((linkMode !== 'MESH' && linkMode !== 'POINT_TO_POINT') || !dualSegmentResult) return null;
+
+    const forwardUplink = dualSegmentResult.forward.uplink.candidate;
+    const forwardDownlink = dualSegmentResult.forward.downlink.candidate;
+    const reverseUplink = dualSegmentResult.reverse?.uplink.candidate ?? null;
+    const reverseDownlink = dualSegmentResult.reverse?.downlink.candidate ?? null;
+    const segmentLatencyMs = (slantRangeKm: number | null | undefined): number | null =>
+      slantRangeKm != null && Number.isFinite(slantRangeKm) && slantRangeKm > 0
+        ? computeOneWayLatencyMs(slantRangeKm)
+        : null;
+
+    return {
+      satelliteName: forwardUplink.satelliteName ?? forwardDownlink.satelliteName ?? null,
+      aToB: {
+        uplink: {
+          beamName: forwardUplink.beamName || forwardUplink.coverageName || null,
+          slantRangeKm: forwardUplink.slantRangeKm ?? null,
+          latencyMs: segmentLatencyMs(forwardUplink.slantRangeKm),
+        },
+        downlink: {
+          beamName: forwardDownlink.beamName || forwardDownlink.coverageName || null,
+          slantRangeKm: forwardDownlink.slantRangeKm ?? null,
+          latencyMs: segmentLatencyMs(forwardDownlink.slantRangeKm),
+        },
+      },
+      bToA: reverseUplink && reverseDownlink ? {
+        uplink: {
+          beamName: reverseUplink.beamName || reverseUplink.coverageName || null,
+          slantRangeKm: reverseUplink.slantRangeKm ?? null,
+          latencyMs: segmentLatencyMs(reverseUplink.slantRangeKm),
+        },
+        downlink: {
+          beamName: reverseDownlink.beamName || reverseDownlink.coverageName || null,
+          slantRangeKm: reverseDownlink.slantRangeKm ?? null,
+          latencyMs: segmentLatencyMs(reverseDownlink.slantRangeKm),
+        },
+      } : null,
+    };
+  }, [dualSegmentResult, linkMode]);
+
   const geoPerformance = useMemo(() => {
     if (!resolvedGEOConnectivity || !geoGeometry) return null;
     return calculateGEOPerformance(geoGeometry.userToSatellite.elevationDeg);
@@ -1759,8 +1800,9 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
       const isStarReturn = linkMode === 'STAR_RETURN';
       const userLabel = analysisSource === 'aircraft' && aircraftCallsign ? aircraftCallsign : 'User';
       const gwLabel = geoGeometry?.satelliteToGateway.gateway?.name ?? 'GW';
+      const meshDirectionLabel = activeMeshTab === 'reverse' ? 'B→A' : 'A→B';
       const estimatedPerformanceDirectionLabel = isMeshMode
-        ? 'A↔B'
+        ? meshDirectionLabel
         : isStarReturn
           ? 'Return'
           : 'Forward';
@@ -1772,35 +1814,39 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
         )
         : undefined;
 
-      // MESH/P2P: use 4-hop RTT from meshMetrics.
-      // STAR: show one-way latency (active direction only — RTT is in Latency Breakdown).
+      // MESH/P2P: use the 4-hop latency reference from meshMetrics.
+      // STAR: show one-way latency (active direction only).
       const effectiveLatencyMs = isMeshMode
         ? (meshMetrics?.rttMs ?? null)
         : (geoGeometry?.oneWayRadioMs ?? null);
 
       const latencyLabel = isMeshMode
-        ? 'Mesh A↔B RTT (4-hop)'
+        ? `${linkMode === 'POINT_TO_POINT' ? 'P2P' : 'Mesh'} ${meshDirectionLabel} latency (4-hop)`
         : isStarForward
           ? `One-way latency (${gwLabel} → ${userLabel})`
           : `One-way latency (${userLabel} → ${gwLabel})`;
 
       const latencyScaleMs = isMeshMode ? RTT_VISUAL_SCALE_MAX_MS : ONE_WAY_VISUAL_SCALE_MAX_MS;
+      const selectedMeshPerformanceAvailable = !isMeshMode
+        || (activeMeshTab === 'reverse'
+          ? geoEffectivePerformance?.uplinkGbps != null
+          : geoEffectivePerformance?.downlinkGbps != null);
 
       return (
         <CollapsibleSection
           storageKey="geo-performance"
-          title={<>Estimated Performance<EstimatedPerformanceDirectionPill dir={estimatedPerformanceDirectionLabel} aggregate={isMeshMode} /><SectionTooltip content="Predicted GEO link throughput derived from the RF link budget. STAR modes show the active direction only and one-way latency. MESH/P2P shows both directions and full RTT." /></>}
+          title={<>Estimated Performance<EstimatedPerformanceDirectionPill dir={estimatedPerformanceDirectionLabel} aggregate={false} /><SectionTooltip content="Predicted GEO link throughput derived from the RF link budget. STAR modes show the active direction only and one-way latency. MESH/P2P shows the active direction only and the 4-hop latency reference." /></>}
           accentColor="#2563eb"
           defaultOpen={true}
           collapsible={false}
         >
-          {resolvedGEOConnectivity && geoGeometry && geoEffectivePerformance ? (
+          {resolvedGEOConnectivity && geoGeometry && geoEffectivePerformance && selectedMeshPerformanceAvailable ? (
             <PerformancePanel
               rtt={effectiveLatencyMs}
-              downlinkGbps={isStarReturn ? null : geoEffectivePerformance.downlinkGbps}
-              uplinkGbps={isStarForward ? null : geoEffectivePerformance.uplinkGbps}
-              hideUplink={isStarForward}
-              hideDownlink={isStarReturn}
+              downlinkGbps={isStarReturn || (isMeshMode && activeMeshTab === 'reverse') ? null : geoEffectivePerformance.downlinkGbps}
+              uplinkGbps={isStarForward || (isMeshMode && activeMeshTab !== 'reverse') ? null : geoEffectivePerformance.uplinkGbps}
+              hideUplink={isStarForward || (isMeshMode && activeMeshTab !== 'reverse')}
+              hideDownlink={isStarReturn || (isMeshMode && activeMeshTab === 'reverse')}
               maxDlGbps={TERMINAL_PROFILES[geoTerminalType].maxDlGbps}
               maxUlGbps={TERMINAL_PROFILES[geoTerminalType].maxUlGbps}
               stability={geoGeometry.isUserLinkUnstable ? 'Unstable' : geoEffectivePerformance.stability}
@@ -1809,8 +1855,8 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
               rttMaxMs={latencyScaleMs}
               rttLabel={latencyLabel}
               stabilityTooltip={geoStabilityTooltip}
-              downlinkLabel={isMeshMode ? 'A→B throughput' : isStarForward ? 'Forward link throughput' : 'Downlink throughput'}
-              uplinkLabel={isMeshMode ? 'B→A throughput' : isStarReturn ? 'Return link throughput' : 'Uplink throughput'}
+              downlinkLabel={isMeshMode ? `${meshDirectionLabel} throughput` : isStarForward ? 'Forward link throughput' : 'Downlink throughput'}
+              uplinkLabel={isMeshMode ? `${meshDirectionLabel} throughput` : isStarReturn ? 'Return link throughput' : 'Uplink throughput'}
             />
           ) : (
             <PerformancePanel
@@ -1820,7 +1866,7 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
               maxDlGbps={TERMINAL_PROFILES[geoTerminalType].maxDlGbps}
               maxUlGbps={TERMINAL_PROFILES[geoTerminalType].maxUlGbps}
               accentColor="#2563eb"
-              noDataMessage="No GEO coverage available for the active target"
+              noDataMessage={isMeshMode ? `No ${meshDirectionLabel} GEO path available for the active topology` : 'No GEO coverage available for the active target'}
             />
           )}
         </CollapsibleSection>
@@ -1830,6 +1876,7 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
     return null;
   }, [
     activeEstimatedPerformanceScope,
+    activeMeshTab,
     geoGeometry,
     geoEffectivePerformance,
     isLeoPerformanceDiagnosticOnly,
@@ -2053,8 +2100,10 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
       totalGbps: realTimeData.totalCapacity,
       coveredCount: realTimeData.coveredSatellites.length,
       mesh: meshMetrics,
+      geoSiteToSitePath,
     });
   }, [
+    geoSiteToSitePath,
     mobileGeoMetrics,
     mobileLeoMetrics,
     meshMetrics,
