@@ -14,6 +14,8 @@ import { MemoryMonitorHud } from './components/MemoryMonitorHud';
 import { setMemoryMonitorViewerGetter } from './utils/memoryMonitor';
 import ExportButton, { type ExportButtonPayload } from './components/ExportButton';
 import SimulationSettings from './components/layout/SimulationSettings';
+import CommercialModeShell from './components/commercial/CommercialModeShell';
+import { buildCommercialScenarioViewModel } from './components/commercial/commercialViewModel';
 import { WeatherControl, WEATHER_PROFILES, type TerminalType, type WeatherType, toWeatherCondition } from './components/capacity';
 import { WEATHER_ATTENUATION_DB } from './utils/realisticSimulation';
 import { SatelliteData } from './types/satellites';
@@ -202,6 +204,8 @@ type InitialDisplayDefaults = {
   sizeScaleOverride: number | null;
 };
 
+type UiMode = 'engineering' | 'commercial';
+
 const parseBooleanQueryValue = (value: string | null): boolean | undefined => {
   if (!value) return undefined;
 
@@ -380,6 +384,8 @@ const App: React.FC = () => {
   const [fullscreenExportButtonProps, setFullscreenExportButtonProps] = useState<ExportButtonPayload | null>(null);
   const [satelliteScope, setSatelliteScope] = useState<SatelliteScope>('ALL');
   const [activeConnectivityTab, setActiveConnectivityTab] = useState<'LEO' | 'GEO'>('LEO');
+  const [uiMode, setUiMode] = useState<UiMode>('engineering');
+  const [commercialSelectedSegment, setCommercialSelectedSegment] = useState<string>('summary');
 
   useEffect(() => {
     if (satelliteScope === 'LEO' || satelliteScope === 'GEO') {
@@ -3169,6 +3175,59 @@ const App: React.FC = () => {
 
   const entryPointCardClassName = 'group relative overflow-hidden rounded-[20px] border border-slate-200/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.94),rgba(248,250,252,0.84))] p-3.5 shadow-[0_16px_34px_-30px_rgba(15,23,42,0.7)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_22px_46px_-30px_rgba(37,99,235,0.28)] dark:border-slate-700 dark:bg-[linear-gradient(180deg,rgba(15,23,42,0.78),rgba(15,23,42,0.62))]';
   const entryPointDescriptionClassName = 'mt-0.5 truncate text-[11px] leading-4 text-slate-500 dark:text-slate-400';
+  const activeCommercialTechnology = satelliteScope === 'GEO'
+    ? 'GEO'
+    : satelliteScope === 'LEO'
+      ? 'LEO'
+      : activeConnectivityTab;
+  const commercialScenarioViewModel = buildCommercialScenarioViewModel({
+    activeTechnology: activeCommercialTechnology,
+    activeMeshTab,
+    activeAnalysisPoint,
+    activeAnalysisSource,
+    siteB,
+    nearestLocation,
+    nearestLocationB,
+    selectedSnpName: selectedSNP?.name ?? null,
+    selectedSatellite,
+    activeGeoSatellite,
+    resolvedAutoLEO,
+    metrics: mobileMetrics,
+    leoTopologyMode,
+    leoSiteToSiteResult: leoS2SFullResult,
+    leoServiceViewModel,
+    geoPointStatus,
+    linkMode,
+    selectedCoverage,
+    weatherType,
+    weatherTypeB,
+    leoTerminalType,
+    selectedSegmentId: commercialSelectedSegment,
+  });
+
+  const renderUiModeSwitch = (compact = false) => (
+    <div className={`inline-flex shrink-0 rounded-lg border border-slate-200 bg-slate-50 p-0.5 dark:border-slate-700 dark:bg-slate-800 ${compact ? 'text-[11px]' : 'text-xs'}`}>
+      {([
+        ['engineering', compact ? 'Eng' : 'Engineering'],
+        ['commercial', compact ? 'Comm' : 'Commercial'],
+      ] as const).map(([mode, label]) => (
+        <button
+          key={mode}
+          type="button"
+          onClick={() => setUiMode(mode)}
+          className={[
+            'rounded-md px-2.5 py-1.5 font-semibold transition-colors',
+            uiMode === mode
+              ? 'bg-slate-950 text-white shadow-sm dark:bg-white dark:text-slate-950'
+              : 'text-slate-600 hover:bg-white dark:text-slate-300 dark:hover:bg-slate-700',
+          ].join(' ')}
+          aria-pressed={uiMode === mode}
+        >
+          {label}
+        </button>
+      ))}
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-white dark:bg-slate-950 transition-colors duration-300">
@@ -3189,6 +3248,7 @@ const App: React.FC = () => {
                     />
                     <SimulationSettings satelliteScope={satelliteScope} />
                   </div>
+                  {renderUiModeSwitch(true)}
                   <button
                     type="button"
                     onClick={() => setIsSatelliteModalOpen(true)}
@@ -3472,6 +3532,7 @@ const App: React.FC = () => {
               </div>
 
               <div className={`flex shrink-0 items-center ${useCompactDesktopHeader ? 'gap-2' : 'gap-3'}`}>
+                {renderUiModeSwitch(useCompactDesktopHeader)}
                 <div className={`flex items-center rounded-lg border border-gray-200 bg-gray-50 dark:border-slate-700 dark:bg-slate-800 ${useCompactDesktopHeader ? 'gap-1 p-0.5' : 'gap-2 p-1'}`}>
                   <SatelliteScopeFilter
                     currentScope={satelliteScope}
@@ -3631,7 +3692,24 @@ const App: React.FC = () => {
         </div>
       )}
 
-      {isMobile ? (
+      {uiMode === 'commercial' ? (
+        <CommercialModeShell
+          viewModel={commercialScenarioViewModel}
+          onSelectedSegmentChange={setCommercialSelectedSegment}
+          onViewFullAnalysis={() => setUiMode('engineering')}
+          isMobile={isMobile}
+          isFullscreen={isFullscreen}
+          globe={(
+            <MapViewSwitcher
+              {...sharedMapProps}
+              isPhone={isPhone}
+              isMobileViewport={isMobile}
+              commercialMode
+              commercialViewModel={commercialScenarioViewModel}
+            />
+          )}
+        />
+      ) : isMobile ? (
         <main className="px-0 py-0 sm:px-0 sm:py-0 lg:px-0 lg:py-0">
           <div className={`relative ${isPhone ? 'h-[100dvh]' : 'h-[calc(100vh-7rem)]'}`}>
             <div
@@ -3655,6 +3733,7 @@ const App: React.FC = () => {
                         compact
                       />
                     </div>
+                    {renderUiModeSwitch(true)}
                     <SimulationSettings satelliteScope={satelliteScope} />
                     <button
                       type="button"

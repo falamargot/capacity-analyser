@@ -93,6 +93,7 @@ import type { GeoPointStatus } from '../utils/selectedPointStatus';
 import { GROUND_POINT_ALTITUDE_KM } from './cesium-globe/layerHeights';
 import CoverageSwitcherVertical, { type CoverageSwitcherCoverage } from './CoverageSwitcherVertical';
 import type { CountryOverlayMode } from '../types/countryOverlays';
+import type { CommercialRouteSegmentType, CommercialScenarioViewModel } from './commercial/commercialViewModel';
 
 const BASEMAP_STORAGE_KEY = 'cesium:basemap';
 const FALLBACK_BASEMAP_ID = 'natural-earth-ii';
@@ -254,6 +255,8 @@ interface CesiumGlobeProps {
     onToggleAirTraffic?: () => void;
     onToggleMaritimeTraffic?: () => void;
     onToggleIssLive?: () => void;
+    commercialMode?: boolean;
+    commercialViewModel?: CommercialScenarioViewModel | null;
 }
 
 const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
@@ -349,6 +352,8 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
     onToggleAirTraffic,
     onToggleMaritimeTraffic,
     onToggleIssLive,
+    commercialMode = false,
+    commercialViewModel = null,
 }) => {
     // Stable refs for click-handler lookups — avoids recreating handleMapClick
     // (and re-registering the Cesium ScreenSpaceEvent) when aircraft/vessels/satellites
@@ -1405,12 +1410,42 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         }, false);
     }, [siteBMarkerPosition, sizeScale]);
 
+    const commercialFocusPointPixelSize = useMemo(() => {
+        return new CallbackProperty(() => {
+            if (!selectedPosition) return 4;
+            const position = getPosition(selectedPosition.lat, selectedPosition.lng, 0.01);
+            const distance = Cartesian3.distance(cameraMetricsRef.current.position, position);
+            const dynamicScale = calculateDynamicScale(cameraMetricsRef.current.height, DPR_FACTOR);
+            const baseScale = dynamicScale * 3000000 / Math.max(distance, 10000000);
+            return baseScale * 22 * (sizeScale || 1);
+        }, false);
+    }, [selectedPosition, sizeScale]);
+
+    const commercialFocusPointBPixelSize = useMemo(() => {
+        return new CallbackProperty(() => {
+            if (!siteBMarkerPosition) return 4;
+            const position = getPosition(siteBMarkerPosition.lat, siteBMarkerPosition.lng, 0.01);
+            const distance = Cartesian3.distance(cameraMetricsRef.current.position, position);
+            const dynamicScale = calculateDynamicScale(cameraMetricsRef.current.height, DPR_FACTOR);
+            const baseScale = dynamicScale * 3000000 / Math.max(distance, 10000000);
+            return baseScale * 22 * (sizeScale || 1);
+        }, false);
+    }, [siteBMarkerPosition, sizeScale]);
+
     const leoDisplayOptionsAvailable = satelliteScope !== 'GEO';
     const showGroundSelectedPoint = !!selectedPosition && !selectedAircraft && !selectedVessel;
     const effectiveCountryOverlayMode: CountryOverlayMode =
-        countryOverlayMode === 'regulatory'
+        commercialMode
+            ? 'none'
+            : countryOverlayMode === 'regulatory'
             ? (leoDisplayOptionsAvailable ? 'regulatory' : 'none')
             : countryOverlayMode;
+    const commercialFocusedSegment: CommercialRouteSegmentType = commercialViewModel?.routeSegments.find((segment) => (
+        segment.id === commercialViewModel.selectedSegmentId
+    ))?.type ?? 'summary';
+    const commercialAccessFocused = commercialMode && commercialFocusedSegment === 'access';
+    const commercialDestinationFocused = commercialMode && commercialFocusedSegment === 'destination';
+    const commercialSummaryFocused = commercialMode && commercialFocusedSegment === 'summary';
     const selectedRegulatoryCountryOutlineVisible =
         effectiveCountryOverlayMode === 'regulatory'
         && !!selectedPosition
@@ -1424,6 +1459,21 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         && selection.targetType === 'point'
         && coverageSwitcherCoverages.length >= 2
         && !!onCoverageSwitcherSelect;
+    const commercialGeoCoverageVisible =
+        commercialMode
+        && satelliteScope !== 'LEO'
+        && (
+            (
+                selection.type === 'target'
+                && !!(selectedCoverage || selectedUplinkCoverage || selectedDownlinkCoverage)
+            )
+            || selection.type === 'coverage'
+            || selection.type === 'contour'
+        );
+    const commercialGeoCoverageLabel =
+        satelliteScope === 'ALL'
+            ? (commercialViewModel?.technology === 'leo' ? 'GEO backup coverage' : 'GEO alternative path')
+            : 'GEO service area';
     const selectedCountryOutlineStatus =
         satelliteScope === 'GEO'
             ? 'UNKNOWN'
@@ -1432,62 +1482,70 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
     return (
         <div className="relative w-full h-full">
             {/* UI Overlays */}
-            <PositionDisplay
-                selectedPosition={selectedPosition}
-                selectedAircraft={selectedAircraft}
-                isPhone={isPhone}
-            />
+            {!commercialMode && (
+                <PositionDisplay
+                    selectedPosition={selectedPosition}
+                    selectedAircraft={selectedAircraft}
+                    isPhone={isPhone}
+                />
+            )}
 
-            <SatelliteIndicator
-                selectedSatellite={selectedSatellite}
-                autoSelectedLEOSatellite={autoSelectedLEOSatellite}
-                autoSelectedGEOSatellite={autoSelectedGEOSatellite}
-                onSatelliteClick={onSatelliteClick}
-                viewerRef={viewerRef}
-                isPhone={isPhone}
-                isFullscreen={isFullscreen}
-            />
+            {!commercialMode && (
+                <SatelliteIndicator
+                    selectedSatellite={selectedSatellite}
+                    autoSelectedLEOSatellite={autoSelectedLEOSatellite}
+                    autoSelectedGEOSatellite={autoSelectedGEOSatellite}
+                    onSatelliteClick={onSatelliteClick}
+                    viewerRef={viewerRef}
+                    isPhone={isPhone}
+                    isFullscreen={isFullscreen}
+                />
+            )}
 
-            <CountryOverlayLegend
-                mode={effectiveCountryOverlayMode}
-                isPhone={isPhone}
-            />
+            {!commercialMode && (
+                <CountryOverlayLegend
+                    mode={effectiveCountryOverlayMode}
+                    isPhone={isPhone}
+                />
+            )}
 
-            <GlobeIntelligenceRail
-                viewerRef={viewerRef}
-                isFullscreen={isFullscreen}
-                onToggleFullscreen={onToggleFullscreen}
-                countryOverlayMode={effectiveCountryOverlayMode}
-                onCountryOverlayModeChange={onCountryOverlayModeChange ?? (() => {})}
-                showAggregatedConnectivity={showAggregatedConnectivity}
-                onToggleAggregatedConnectivity={onToggleAggregatedConnectivity ?? (() => {})}
-                airTrafficEnabled={airTrafficEnabled}
-                onToggleAirTraffic={onToggleAirTraffic ?? (() => {})}
-                maritimeTrafficEnabled={maritimeTrafficEnabled}
-                onToggleMaritimeTraffic={onToggleMaritimeTraffic ?? (() => {})}
-                issLiveEnabled={issLiveEnabled}
-                onToggleIssLive={onToggleIssLive ?? (() => {})}
-                enableLighting={enableLighting}
-                onToggleLighting={onToggleLighting}
-                showSatelliteTrajectory={showSatelliteTrajectory}
-                onToggleSatelliteTrajectory={onToggleSatelliteTrajectory}
-                showFootprintProjection={showFootprintProjection}
-                onToggleFootprintProjection={onToggleFootprintProjection}
-                showFlowAnimation={showFlowAnimation}
-                onToggleFlowAnimation={onToggleFlowAnimation}
-                sizeScale={sizeScale}
-                onSizeScaleChange={onSizeScaleChange}
-                onSizeScaleReset={onSizeScaleReset}
-                sceneMode={sceneMode}
-                onSceneModeChange={onSceneModeChange}
-                basemapOptions={basemapOptions.map(({ id, label }) => ({ id, label }))}
-                selectedBasemapId={selectedBasemapId}
-                onBasemapChange={setSelectedBasemapId}
-                isPhone={isPhone}
-                isMobileViewport={isMobileViewport}
-            />
+            {!commercialMode && (
+                <GlobeIntelligenceRail
+                    viewerRef={viewerRef}
+                    isFullscreen={isFullscreen}
+                    onToggleFullscreen={onToggleFullscreen}
+                    countryOverlayMode={effectiveCountryOverlayMode}
+                    onCountryOverlayModeChange={onCountryOverlayModeChange ?? (() => {})}
+                    showAggregatedConnectivity={showAggregatedConnectivity}
+                    onToggleAggregatedConnectivity={onToggleAggregatedConnectivity ?? (() => {})}
+                    airTrafficEnabled={airTrafficEnabled}
+                    onToggleAirTraffic={onToggleAirTraffic ?? (() => {})}
+                    maritimeTrafficEnabled={maritimeTrafficEnabled}
+                    onToggleMaritimeTraffic={onToggleMaritimeTraffic ?? (() => {})}
+                    issLiveEnabled={issLiveEnabled}
+                    onToggleIssLive={onToggleIssLive ?? (() => {})}
+                    enableLighting={enableLighting}
+                    onToggleLighting={onToggleLighting}
+                    showSatelliteTrajectory={showSatelliteTrajectory}
+                    onToggleSatelliteTrajectory={onToggleSatelliteTrajectory}
+                    showFootprintProjection={showFootprintProjection}
+                    onToggleFootprintProjection={onToggleFootprintProjection}
+                    showFlowAnimation={showFlowAnimation}
+                    onToggleFlowAnimation={onToggleFlowAnimation}
+                    sizeScale={sizeScale}
+                    onSizeScaleChange={onSizeScaleChange}
+                    onSizeScaleReset={onSizeScaleReset}
+                    sceneMode={sceneMode}
+                    onSceneModeChange={onSceneModeChange}
+                    basemapOptions={basemapOptions.map(({ id, label }) => ({ id, label }))}
+                    selectedBasemapId={selectedBasemapId}
+                    onBasemapChange={setSelectedBasemapId}
+                    isPhone={isPhone}
+                    isMobileViewport={isMobileViewport}
+                />
+            )}
 
-            {selection.type === 'target' && selection.targetType === 'point' && coverageSwitcherCoverages.length >= 2 && onCoverageSwitcherSelect && (
+            {!commercialMode && selection.type === 'target' && selection.targetType === 'point' && coverageSwitcherCoverages.length >= 2 && onCoverageSwitcherSelect && (
                 <CoverageSwitcherVertical
                     coverages={coverageSwitcherCoverages}
                     selectedId={selectedCoverageId}
@@ -1498,7 +1556,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                 />
             )}
 
-            {!isPhone && !isMobileViewport && (
+            {!commercialMode && !isPhone && !isMobileViewport && (
                 <GeoCoverageLegendPanel
                     items={geoCoverageLegendItems}
                     hoveredItemKey={focusedGeoCoverageLegendKey}
@@ -1538,14 +1596,14 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                     </ScreenSpaceEventHandler>
 
                     {/* Regulatory overlay — country polygons coloured by simulated regulatory status */}
-                    <RegulatoryLayer visible={effectiveCountryOverlayMode === 'regulatory'} />
-                    <FiveGSpectrumLayer visible={effectiveCountryOverlayMode === '5g-spectrum'} />
+                    <RegulatoryLayer visible={!commercialMode && effectiveCountryOverlayMode === 'regulatory'} />
+                    <FiveGSpectrumLayer visible={!commercialMode && effectiveCountryOverlayMode === '5g-spectrum'} />
 
                     {/* Aggregated Connectivity Layer (Bottom most coverage layer) */}
                     <AggregatedConnectivityLayer
                         satelliteScope={satelliteScope}
                         satellites={satellites}
-                        show={showAggregatedConnectivity}
+                        show={!commercialMode && showAggregatedConnectivity}
                     />
 
                     <SelectedCountryOutline
@@ -1586,18 +1644,22 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                         IMPORTANT: the key is NEVER 'empty' — that string was used
                         previously and caused a silent no-remount bug when candidates
                         arrived after clearing. */}
-                    <CoverageLayer
-                        satellites={satellites}
-                        selection={selection}
-                        selectedCoverage={selectedCoverage}
-                        selectedUplinkCoverage={selectedUplinkCoverage}
-                        selectedDownlinkCoverage={selectedDownlinkCoverage}
-                        visibleCoverageKeys={visibleGeoCoverageKeys}
-                        onLegendItemsChange={handleGeoCoverageLegendItemsChange}
-                        highlightedLegendItemKey={focusedGeoCoverageLegendKey}
-                    />
+                    {(!commercialMode || commercialGeoCoverageVisible) && (
+                        <CoverageLayer
+                            satellites={satellites}
+                            selection={selection}
+                            selectedCoverage={selectedCoverage}
+                            selectedUplinkCoverage={selectedUplinkCoverage}
+                            selectedDownlinkCoverage={selectedDownlinkCoverage}
+                            visibleCoverageKeys={commercialMode ? null : visibleGeoCoverageKeys}
+                            onLegendItemsChange={commercialMode ? undefined : handleGeoCoverageLegendItemsChange}
+                            highlightedLegendItemKey={commercialMode ? null : focusedGeoCoverageLegendKey}
+                            presentation={commercialMode ? 'commercial' : 'engineering'}
+                            commercialLabel={commercialGeoCoverageLabel}
+                        />
+                    )}
 
-                    <MoonLayer enableLighting={enableLighting} selected={selectedMoon} />
+                    {!commercialMode && <MoonLayer enableLighting={enableLighting} selected={selectedMoon} />}
 
                     {/* OneWeb Comb Layer - Only shown for operational ONEWEB targets */}
                     {/* In ONEWEB_PREMIUM mode: shows coverage circles only (no individual beams) */}
@@ -1619,7 +1681,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                     ))}
 
                     {/* Aggregated coverage volume (manual satellite selection only) */}
-                    {showFootprintProjection && (
+                    {!commercialMode && showFootprintProjection && (
                         <AggregatedCoverageVolumeLayer
                             selectedSatellite={selectedSatellite}
                             selectedBeamFeature={geoBeamCone.beamFeature}
@@ -1656,15 +1718,17 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                         leoServiceViewModel={leoServiceViewModel}
                         resolvedAutoGeoGateway={resolvedAutoGeoGateway}
                         resolvedSelectedGeoGateway={resolvedSelectedGeoGateway}
-                        showFlowAnimation={showFlowAnimation}
+                        showFlowAnimation={!commercialMode && showFlowAnimation}
                         cameraMetricsRef={cameraMetricsRef}
+                        commercialMode={commercialMode}
+                        commercialFocusedSegment={commercialFocusedSegment}
                     />
 
                     {/* Selected Position Marker — Point A */}
                     {showGroundSelectedPoint && selectedPosition && (
                         <SelectedPointStatusMarker
                             selectedPosition={selectedPosition}
-                            pixelSize={positionMarkerPixelSize}
+                            pixelSize={commercialAccessFocused || commercialSummaryFocused ? commercialFocusPointPixelSize : positionMarkerPixelSize}
                             satelliteScope={satelliteScope}
                             leoServiceViewModel={leoServiceViewModel}
                             geoPointStatus={geoPointStatus}
@@ -1675,7 +1739,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                     {siteBMarkerPosition && (
                         <SelectedPointStatusMarker
                             selectedPosition={siteBMarkerPosition}
-                            pixelSize={pointBMarkerPixelSize}
+                            pixelSize={commercialDestinationFocused || commercialSummaryFocused ? commercialFocusPointBPixelSize : pointBMarkerPixelSize}
                             satelliteScope={
                                 pointB && pointBLeo ? 'ALL' :
                                 pointB ? 'GEO' : 'LEO'
@@ -1754,11 +1818,11 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                     {/* Trajectory Layer */}
                     <TrajectoryLayer
                         satellite={selectedSatellite}
-                        show={showSatelliteTrajectory}
+                        show={!commercialMode && showSatelliteTrajectory}
                     />
 
                     {/* Aircraft Layer */}
-                    {airTrafficEnabled && (
+                    {!commercialMode && airTrafficEnabled && (
                         <AircraftLayer
                             aircraft={aircraft}
                             selectedAircraft={selectedAircraft}
@@ -1772,7 +1836,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                     )}
 
                     {/* Vessel Layer */}
-                    {maritimeTrafficEnabled && (
+                    {!commercialMode && maritimeTrafficEnabled && (
                         <VesselLayer
                             vessels={vessels}
                             selectedVessel={selectedVessel}
@@ -1792,7 +1856,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                         hasPosition={issHasPosition}
                         isSelected={issIsSelected}
                         isFollowing={issIsFollowing}
-                        enabled={issLiveEnabled}
+                        enabled={!commercialMode && issLiveEnabled}
                         onIssClick={onIssClick ?? (() => {})}
                         viewerRef={viewerRef}
                         cameraMetricsRef={cameraMetricsRef}
@@ -1800,7 +1864,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                 </Viewer>
             </div>
 
-            {!isPhone && (
+            {!commercialMode && !isPhone && (
                 <InspectionCard
                     entity={hoveredEntity}
                     containerRef={globeContainerRef}
@@ -1808,7 +1872,40 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                 />
             )}
             {/* Unified Site A tooltip — aggregates GEO and LEO data in one bubble */}
-            {(() => {
+            {commercialMode ? (() => {
+                if (!showGroundSelectedPoint || !selectedPosition || !commercialViewModel) return null;
+                const statusTone = commercialViewModel.serviceStatus === 'active'
+                    ? 'success'
+                    : commercialViewModel.serviceStatus === 'degraded'
+                        ? 'warning'
+                        : commercialViewModel.serviceStatus === 'blocked'
+                            ? 'danger'
+                            : 'neutral';
+                const performanceLine = [
+                    commercialViewModel.downloadMbps ? `${Math.round(commercialViewModel.downloadMbps)} Mbps` : null,
+                    commercialViewModel.rttMs ? `${Math.round(commercialViewModel.rttMs)} ms RTT` : null,
+                ].filter(Boolean).join(' · ');
+                return (
+                    <SiteScreenLabel
+                        siteId="A"
+                        position={selectedPosition}
+                        viewerRef={viewerRef}
+                        containerRef={globeContainerRef}
+                        viewerReady={viewerReady}
+                        compact={!!isPhone}
+                        titleOverride={`Site A${commercialViewModel.siteA?.name ? ` · ${commercialViewModel.siteA.name}` : ''}`}
+                        presentation="commercial"
+                        sections={[{
+                            title: commercialViewModel.display.serviceStatusLabel,
+                            accent: 'pink',
+                            lines: [
+                                { text: commercialViewModel.serviceMessage ?? commercialViewModel.display.serviceStatusLabel, tone: statusTone },
+                                ...(performanceLine ? [{ text: performanceLine, tone: 'success' as const }] : []),
+                            ],
+                        }]}
+                    />
+                );
+            })() : (() => {
                 if (!showGroundSelectedPoint || !selectedPosition) return null;
                 const s2sResult = leoSiteToSiteFullResult ?? leoSiteToSiteResult;
                 const isMeshP2P = linkMode === 'MESH' || linkMode === 'POINT_TO_POINT';
@@ -1843,7 +1940,41 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                 );
             })()}
             {/* Unified Site B tooltip — aggregates GEO Mesh/P2P and/or LEO S2S in one bubble */}
-            {(() => {
+            {commercialMode ? (() => {
+                const siteBPos = pointB ?? pointBLeo;
+                if (!siteBPos || !commercialViewModel) return null;
+                const statusTone = commercialViewModel.serviceStatus === 'active'
+                    ? 'success'
+                    : commercialViewModel.serviceStatus === 'degraded'
+                        ? 'warning'
+                        : commercialViewModel.serviceStatus === 'blocked'
+                            ? 'danger'
+                            : 'neutral';
+                const performanceLine = [
+                    commercialViewModel.uploadMbps ? `${Math.round(commercialViewModel.uploadMbps)} Mbps` : null,
+                    commercialViewModel.rttMs ? `${Math.round(commercialViewModel.rttMs)} ms RTT` : null,
+                ].filter(Boolean).join(' · ');
+                return (
+                    <SiteScreenLabel
+                        siteId="B"
+                        position={siteBPos}
+                        viewerRef={viewerRef}
+                        containerRef={globeContainerRef}
+                        viewerReady={viewerReady}
+                        compact={!!isPhone}
+                        titleOverride={`Site B${commercialViewModel.siteB?.name ? ` · ${commercialViewModel.siteB.name}` : ''}`}
+                        presentation="commercial"
+                        sections={[{
+                            title: commercialViewModel.display.serviceStatusLabel,
+                            accent: 'blue',
+                            lines: [
+                                { text: commercialViewModel.serviceMessage ?? commercialViewModel.display.serviceStatusLabel, tone: statusTone },
+                                ...(performanceLine ? [{ text: performanceLine, tone: 'success' as const }] : []),
+                            ],
+                        }]}
+                    />
+                );
+            })() : (() => {
                 const siteBPos = pointB ?? pointBLeo;
                 if (!siteBPos) return null;
                 const s2sResult = leoSiteToSiteFullResult ?? leoSiteToSiteResult;
@@ -1873,7 +2004,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                 );
             })()}
             {/* Bottom path strip follows the selected sidebar topology tab. */}
-            {(() => {
+            {!commercialMode && (() => {
                 if (activeConnectivityTab === 'GEO') {
                     const mesh = performanceMetrics?.mesh ?? null;
                     const activeDirection = activeMeshTab === 'reverse' ? 'B_TO_A' : 'A_TO_B';
@@ -1904,10 +2035,11 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                     containerRef={globeContainerRef}
                     highlightedSatellites={highlightedSatelliteLabels}
                     viewerReady={viewerReady}
+                    presentation={commercialMode ? 'commercial' : 'engineering'}
                 />
             )}
             {/* Interaction hint — shown only when MESH/P2P mode is active */}
-            {(linkMode === 'MESH' || linkMode === 'POINT_TO_POINT') && (
+            {!commercialMode && (linkMode === 'MESH' || linkMode === 'POINT_TO_POINT') && (
                 <div className="absolute bottom-4 left-1/2 -translate-x-1/2 pointer-events-none z-10">
                     {!pointB ? (
                         <div className="flex items-center gap-2 rounded-full bg-black/60 backdrop-blur-sm px-4 py-1.5 text-white text-xs shadow-lg">

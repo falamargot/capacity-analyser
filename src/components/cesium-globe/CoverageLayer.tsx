@@ -48,6 +48,8 @@ export const GEO_COVERAGE_ENTITY_PREFIX = 'geo-coverage::';
 
 const OVERVIEW_CONTOUR_COLOR = Color.fromCssColorString('#60a5fa').withAlpha(0.55);
 const OVERVIEW_FILL_COLOR = Color.fromCssColorString('#93c5fd').withAlpha(0.04);
+const COMMERCIAL_GEO_LABEL_COLOR = Color.fromCssColorString('#e0f2fe');
+const COMMERCIAL_GEO_LABEL_BACKGROUND = Color.fromCssColorString('#0f172a').withAlpha(0.82);
 // Downlink palette — blue (🔵)
 const DOWNLINK_CONTOUR_COLOR = Color.fromCssColorString('#2563eb');
 const DOWNLINK_FILL_OUTER_COLOR = Color.fromCssColorString('#f0f9ff');
@@ -76,6 +78,8 @@ interface CoverageLayerProps {
   visibleCoverageKeys?: string[] | null;
   onLegendItemsChange?: (items: GeoCoverageLegendItem[]) => void;
   highlightedLegendItemKey?: string | null;
+  presentation?: 'engineering' | 'commercial';
+  commercialLabel?: string;
 }
 
 interface SanitizedPolygonGeometry {
@@ -472,12 +476,24 @@ const getCoverageBandStyle = (
   };
 };
 
-const getCoverageLabelStyle = (mode: RenderContour['mode']): {
+const getCoverageLabelStyle = (
+  mode: RenderContour['mode'],
+  presentation: CoverageLayerProps['presentation'] = 'engineering',
+): {
   fillColor: Color;
   outlineColor: Color;
   backgroundColor: Color;
   scale: number;
 } => {
+  if (presentation === 'commercial') {
+    return {
+      fillColor: COMMERCIAL_GEO_LABEL_COLOR,
+      outlineColor: Color.fromCssColorString('#020617').withAlpha(0.95),
+      backgroundColor: COMMERCIAL_GEO_LABEL_BACKGROUND,
+      scale: 0.68,
+    };
+  }
+
   if (mode === 'overview') {
     return {
       fillColor: Color.fromCssColorString('#eff6ff'),
@@ -865,7 +881,40 @@ const sortRenderContoursForDisplay = (contours: RenderContour[]): RenderContour[
   })
 );
 
-const buildRenderContourLabels = (contours: RenderContour[]): RenderContourLabel[] => {
+const buildRenderContourLabels = (
+  contours: RenderContour[],
+  presentation: CoverageLayerProps['presentation'] = 'engineering',
+  commercialLabel = 'GEO service area',
+): RenderContourLabel[] => {
+  if (presentation === 'commercial') {
+    let selectedContour: RenderContour | null = null;
+    let largestArea = -Infinity;
+
+    for (const contour of contours) {
+      const area = approximateRingArea(contour.geometry.outerRing);
+      if (area > largestArea) {
+        largestArea = area;
+        selectedContour = contour;
+      }
+    }
+
+    if (!selectedContour) return [];
+
+    const anchor = getRingLabelAnchor(selectedContour.geometry.outerRing);
+    if (!anchor) return [];
+
+    return [{
+      id: `${GEO_COVERAGE_ENTITY_PREFIX}${selectedContour.satelliteName}::commercial-label::${selectedContour.coverageKey}`,
+      text: commercialLabel,
+      position: Cartesian3.fromDegrees(anchor.lng, anchor.lat, GEO_FOOTPRINT_LABEL_LAYER_HEIGHT_M),
+      coverageKey: selectedContour.coverageKey,
+      contourKey: selectedContour.contourKey,
+      coverageLabel: selectedContour.coverageLabel,
+      contourLabel: selectedContour.contourLabel,
+      mode: selectedContour.mode,
+    }];
+  }
+
   const bestContourByLabelKey = new Map<string, { contour: RenderContour; area: number }>();
 
   for (const contour of contours) {
@@ -960,6 +1009,8 @@ const CoverageLayer: React.FC<CoverageLayerProps> = ({
   visibleCoverageKeys = null,
   onLegendItemsChange,
   highlightedLegendItemKey = null,
+  presentation = 'engineering',
+  commercialLabel = 'GEO service area',
 }) => {
   const { viewer } = useCesium();
   const dataSourceRef = useRef<CustomDataSource | null>(null);
@@ -1017,8 +1068,8 @@ const CoverageLayer: React.FC<CoverageLayerProps> = ({
     [activeMeshIndex, relevantSatellite, selection, selectedCoverage, selectedUplinkCoverage, selectedDownlinkCoverage, visibleCoverageKeySet]
   );
   const renderLabels = useMemo(
-    () => buildRenderContourLabels(renderContours),
-    [renderContours]
+    () => buildRenderContourLabels(renderContours, presentation, commercialLabel),
+    [commercialLabel, presentation, renderContours]
   );
   const legendItems = useMemo(
     () => buildGeoCoverageLegendItems(renderContours),
@@ -1039,8 +1090,8 @@ const CoverageLayer: React.FC<CoverageLayerProps> = ({
       .join('|')
   ), [renderContours]);
   const renderSignature = useMemo(
-    () => `${selectionRenderSignature}::${renderContentSignature}::${highlightedLegendItemKey ?? 'none'}`,
-    [highlightedLegendItemKey, renderContentSignature, selectionRenderSignature]
+    () => `${selectionRenderSignature}::${renderContentSignature}::${highlightedLegendItemKey ?? 'none'}::${presentation}::${commercialLabel}`,
+    [commercialLabel, highlightedLegendItemKey, presentation, renderContentSignature, selectionRenderSignature]
   );
   useEffect(() => {
     if (!relevantSatellite || relevantSatellite.type !== 'EUTELSAT' || !relevantSatellite.coverageFileId) {
@@ -1230,7 +1281,7 @@ const CoverageLayer: React.FC<CoverageLayerProps> = ({
     });
 
     renderLabels.forEach((labelSpec) => {
-      const labelStyle = getCoverageLabelStyle(labelSpec.mode);
+      const labelStyle = getCoverageLabelStyle(labelSpec.mode, presentation);
 
       dataSource.entities.add({
         id: labelSpec.id,
@@ -1263,7 +1314,7 @@ const CoverageLayer: React.FC<CoverageLayerProps> = ({
     });
 
     viewer?.scene.requestRender();
-  }, [geometryLod, renderContours, renderLabels, renderSignature, selectedCoverage, selectedUplinkCoverage, selectedDownlinkCoverage, selection, viewer]);
+  }, [geometryLod, presentation, renderContours, renderLabels, renderSignature, selectedCoverage, selectedUplinkCoverage, selectedDownlinkCoverage, selection, viewer]);
 
   return null;
 };

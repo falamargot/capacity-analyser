@@ -16,6 +16,7 @@ interface SatelliteScreenLabelsProps {
     serviceRoles?: Array<'A' | 'B'>;
   }>;
   viewerReady?: boolean;
+  presentation?: 'engineering' | 'commercial';
 }
 
 const getLabelBackgroundColor = (satellite: SatelliteData): string => (
@@ -39,6 +40,7 @@ const SatelliteScreenLabels: React.FC<SatelliteScreenLabelsProps> = ({
   containerRef,
   highlightedSatellites,
   viewerReady = false,
+  presentation = 'engineering',
 }) => {
   const labelRefs = useRef(new Map<string, HTMLDivElement>());
   const smoothedPositionsRef = useRef(new Map<string, SmoothedScreenPosition>());
@@ -172,16 +174,22 @@ const SatelliteScreenLabels: React.FC<SatelliteScreenLabelsProps> = ({
             }}
           >
             <div
-              className="rounded px-2 py-1 text-[13px] font-semibold leading-tight text-white shadow-lg ring-1 ring-white/25 -translate-y-full"
+              className={`${presentation === 'commercial' ? 'rounded-lg px-3 py-2 text-[12px]' : 'rounded px-2 py-1 text-[13px]'} font-semibold leading-tight text-white shadow-lg ring-1 ring-white/25 -translate-y-full`}
               style={{
-                backgroundColor: getLabelBackgroundColor(satellite),
+                backgroundColor: presentation === 'commercial' ? 'rgba(15, 23, 42, 0.86)' : getLabelBackgroundColor(satellite),
                 marginTop: -2,
                 boxShadow: isManuallySelected
                   ? '0 0 0 1px rgba(255,255,255,0.35), 0 10px 25px rgba(0,0,0,0.22)'
                   : undefined,
               }}
             >
+              {presentation === 'commercial' && (
+                <div className="text-[9px] font-bold uppercase tracking-[0.14em] text-sky-300">Serving Satellite</div>
+              )}
               <div>{satellite.name}</div>
+              {presentation === 'commercial' && (
+                <div className="mt-0.5 text-[10px] font-semibold text-emerald-300">Coverage Active</div>
+              )}
             </div>
           </div>
         );

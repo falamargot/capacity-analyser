@@ -17,6 +17,7 @@ import type { CountryOverlayMode } from '../types/countryOverlays';
 import type { LinkMode } from '../types/linkMode';
 import type { IssPosition, IssOrbitPath } from '../modules/iss/issService';
 import type { LeoSiteToSiteResult } from '../utils/leoSiteToSiteModel';
+import type { CommercialScenarioViewModel } from './commercial/commercialViewModel';
 
 interface MapViewSwitcherProps {
   satellites: SatelliteData[];
@@ -111,6 +112,8 @@ interface MapViewSwitcherProps {
   onToggleAirTraffic?: () => void;
   onToggleMaritimeTraffic?: () => void;
   onToggleIssLive?: () => void;
+  commercialMode?: boolean;
+  commercialViewModel?: CommercialScenarioViewModel | null;
 }
 
 const MapViewSwitcher: React.FC<MapViewSwitcherProps> = ({
@@ -203,6 +206,8 @@ const MapViewSwitcher: React.FC<MapViewSwitcherProps> = ({
   onToggleAirTraffic,
   onToggleMaritimeTraffic,
   onToggleIssLive,
+  commercialMode = false,
+  commercialViewModel = null,
 }) => {
   const [sceneMode, setSceneMode] = useState<'2D' | '3D'>('3D');
 
@@ -301,6 +306,8 @@ const MapViewSwitcher: React.FC<MapViewSwitcherProps> = ({
         onToggleAirTraffic={onToggleAirTraffic}
         onToggleMaritimeTraffic={onToggleMaritimeTraffic}
         onToggleIssLive={onToggleIssLive}
+        commercialMode={commercialMode}
+        commercialViewModel={commercialViewModel}
       />
     </div>
   );

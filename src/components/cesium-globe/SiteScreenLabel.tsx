@@ -26,6 +26,8 @@ interface SiteScreenLabelProps {
   viewerReady?: boolean;
   compact?: boolean;
   sections: SiteLabelSection[];
+  titleOverride?: string;
+  presentation?: 'engineering' | 'commercial';
 }
 
 const toneClass = (tone?: SiteLabelTone): string => {
@@ -43,6 +45,8 @@ const SiteScreenLabel: React.FC<SiteScreenLabelProps> = ({
   viewerReady = false,
   compact = false,
   sections,
+  titleOverride,
+  presentation = 'engineering',
 }) => {
   const labelRef = useRef<HTMLDivElement | null>(null);
 
@@ -86,8 +90,8 @@ const SiteScreenLabel: React.FC<SiteScreenLabelProps> = ({
       style={{ left: 0, top: 0 }}
     >
       <div className={`${compact ? 'rounded-[10px] px-2.5 py-1.5' : 'rounded px-3 py-1.5'} bg-slate-900/85 text-white shadow-lg ring-1 ring-white/20 backdrop-blur-sm`}>
-        <div className={`${compact ? 'text-[11px]' : 'text-[12px] sm:text-sm'} font-semibold leading-tight text-cyan-300 mb-0.5`}>
-          {`Site ${siteId} · ${formatCoordinates(position)}`}
+        <div className={`${compact ? 'text-[11px]' : 'text-[12px] sm:text-sm'} font-semibold leading-tight ${presentation === 'commercial' ? 'text-white' : 'text-cyan-300'} mb-0.5`}>
+          {titleOverride ?? `Site ${siteId} · ${formatCoordinates(position)}`}
         </div>
         {sections.map((section, si) => (
           <div key={si} className={si > 0 ? 'mt-1.5 pt-1.5 border-t border-white/10' : ''}>
