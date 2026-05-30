@@ -70,8 +70,14 @@ import {
   type TerminalRFClassId,
   type TerminalRFCustomParams,
 } from './utils/geoTerminalRFModel';
+import { buildGeoRouteAnalysisViewModel } from './utils/geoRouteAnalysisViewModel';
 import { getLeoTerminalProfile } from './config/leoTerminals';
-import { computeLeoSiteToSiteResult, type LeoSiteToSiteFailureReason, type LeoSiteToSiteResult } from './utils/leoSiteToSiteModel';
+import type { LeoSiteToSiteFailureReason } from './utils/leoSiteToSiteModel';
+import {
+  buildActiveLeoRouteEvidence,
+  createActiveLeoRouteEvidenceState,
+  resetActiveLeoRouteEvidenceState,
+} from './utils/activeLeoRouteEvidence';
 
 const CapacityDetails = lazy(() => import('./components/CapacityDetails'));
 const CommandPalette = lazy(() => import('./components/CommandPalette'));
@@ -359,8 +365,17 @@ const App: React.FC = () => {
   const [leoTopologyMode, setLeoTopologyMode] = useState<'SINGLE_SITE' | 'SITE_TO_SITE'>('SINGLE_SITE');
   const [autoSelectedLEOIdB, setAutoSelectedLEOIdB] = useState<string | null>(null);
   const [selectedSNPB, setSelectedSNPB] = useState<SNPData | null>(null);
-  /** Full S2S result with accurate throughput/latency — reported back by CapacityDetails. */
-  const [leoS2SFullResult, setLeoS2SFullResult] = useState<LeoSiteToSiteResult | null>(null);
+  const activeLeoRouteEvidenceStateRef = useRef(createActiveLeoRouteEvidenceState());
+  const [leoEvidenceTick, setLeoEvidenceTick] = useState(0);
+
+  useEffect(() => {
+    const id = setInterval(() => setLeoEvidenceTick((tick) => tick + 1), 1_000);
+    return () => clearInterval(id);
+  }, []);
+
+  useEffect(() => {
+    resetActiveLeoRouteEvidenceState(activeLeoRouteEvidenceStateRef.current);
+  }, [leoTerminalModelId, leoTerminalModelIdB, leoTerminalType, leoTerminalTypeB]);
 
   // Clear LEO S2S-only state when switching back to single-site mode
   useEffect(() => {
@@ -369,7 +384,7 @@ const App: React.FC = () => {
       setIsSiteBArmed(false);
       setAutoSelectedLEOIdB(null);
       setSelectedSNPB(null);
-      setLeoS2SFullResult(null);
+      resetActiveLeoRouteEvidenceState(activeLeoRouteEvidenceStateRef.current);
     }
   }, [leoTopologyMode]);
   const [inspectedSNP, setInspectedSNP] = useState<SNPData | null>(null);
@@ -866,6 +881,12 @@ const App: React.FC = () => {
     beamHealthFactors,
     hsBeams: hsBeamsSet,
   }), [coveragePolicy, weatherCondition, beamHealthFactors, hsBeamsSet]);
+  const simulationStateB = useMemo(() => buildSimulationStateSnapshot({
+    coveragePolicy,
+    weatherCondition: toWeatherCondition(weatherTypeB),
+    beamHealthFactors,
+    hsBeams: hsBeamsSet,
+  }), [coveragePolicy, weatherTypeB, beamHealthFactors, hsBeamsSet]);
 
   useEffect(() => {
     const groundPoint = analyzisPosition?.source === 'earth'
@@ -1562,6 +1583,16 @@ const App: React.FC = () => {
       leoRegulatoryResult.isoA2 ?? null
     );
   }, [activeAnalysisPoint, leoRegulatoryResult]);
+  const leoBeamLoadResultB = useMemo(() => {
+    if (!pointBLeo || leoTopologyMode !== 'SITE_TO_SITE' || !leoRegulatoryResultB) return null;
+
+    return estimateBeamLoad(
+      pointBLeo.lat,
+      pointBLeo.lng,
+      leoRegulatoryResultB.isOcean ?? true,
+      leoRegulatoryResultB.isoA2 ?? null
+    );
+  }, [leoTopologyMode, pointBLeo, leoRegulatoryResultB]);
 
   const leoConnectivityStatus = useMemo(() => {
     if (!activeAnalysisPoint || !resolvedAutoLEO) return null;
@@ -1571,7 +1602,7 @@ const App: React.FC = () => {
       JulianDate.fromDate(new Date()),
       simulationState
     );
-  }, [activeAnalysisPoint, resolvedAutoLEO, simulationState]);
+  }, [activeAnalysisPoint, leoEvidenceTick, resolvedAutoLEO, simulationState]);
 
   const leoHasCurrentRF = useMemo(() => {
     if (!activeAnalysisPoint || !resolvedAutoLEO) return false;
@@ -1581,7 +1612,7 @@ const App: React.FC = () => {
       JulianDate.fromDate(new Date()),
       simulationState
     );
-  }, [activeAnalysisPoint, resolvedAutoLEO, simulationState]);
+  }, [activeAnalysisPoint, leoEvidenceTick, resolvedAutoLEO, simulationState]);
 
   const leoSiteBHasCurrentRF = useMemo(() => {
     if (!pointBLeo || !resolvedAutoLEOB) return false;
@@ -1591,7 +1622,7 @@ const App: React.FC = () => {
       JulianDate.fromDate(new Date()),
       simulationState
     );
-  }, [pointBLeo, resolvedAutoLEOB, simulationState]);
+  }, [leoEvidenceTick, pointBLeo, resolvedAutoLEOB, simulationState]);
 
   const leoHasGatewayPath = useMemo(
     () => !!selectedSNP,
@@ -1633,43 +1664,60 @@ const App: React.FC = () => {
     resolvedAutoLEO,
   ]);
 
-  // ── LEO site-to-site globe result (for TransmissionLinks rendering) ──────────
-  // Lightweight version — throughput values are null, computed in CapacityDetails.
-  // The result preserves selected satellites even when RF/SNP/regulatory checks fail;
-  // TransmissionLinks only draws the path when the result is fully available.
-  const leoSiteToSiteGlobeResult = useMemo((): LeoSiteToSiteResult | null => {
-    if (leoTopologyMode !== 'SITE_TO_SITE' || !activeAnalysisPoint || !pointBLeo) return null;
+  const activeLeoRouteEvidence = useMemo(() => buildActiveLeoRouteEvidence({
+    topology: leoTopologyMode,
+    direction: activeMeshTab === 'reverse' ? 'B_TO_A' : 'A_TO_B',
+    activePoint: activeAnalysisPoint,
+    pointB: pointBLeo,
+    servingSatelliteA: resolvedAutoLEO,
+    servingSatelliteB: resolvedAutoLEOB,
+    selectedSnpA: selectedSNP,
+    selectedSnpB: selectedSNPB,
+    regulatoryResultA: leoRegulatoryResult,
+    regulatoryResultB: leoRegulatoryResultB,
+    beamLoadA: leoBeamLoadResult,
+    beamLoadB: leoBeamLoadResultB,
+    terminalTypeA: leoTerminalType,
+    terminalTypeB: leoTerminalTypeB,
+    terminalModelIdA: leoTerminalModelId,
+    terminalModelIdB: leoTerminalModelIdB,
+    weatherTypeA: weatherType,
+    weatherTypeB,
+    simulationStateA: simulationState,
+    simulationStateB,
+    failedSnps,
+    now: JulianDate.fromDate(new Date()),
+  }, activeLeoRouteEvidenceStateRef.current), [
+    activeAnalysisPoint,
+    activeMeshTab,
+    failedSnps,
+    leoBeamLoadResult,
+    leoBeamLoadResultB,
+    leoEvidenceTick,
+    leoRegulatoryResult,
+    leoRegulatoryResultB,
+    leoTerminalModelId,
+    leoTerminalModelIdB,
+    leoTerminalType,
+    leoTerminalTypeB,
+    leoTopologyMode,
+    pointBLeo,
+    resolvedAutoLEO,
+    resolvedAutoLEOB,
+    selectedSNP,
+    selectedSNPB,
+    simulationState,
+    simulationStateB,
+    weatherType,
+    weatherTypeB,
+  ]);
 
-    const snpAFull = selectedSNP ? SNPS_DATA.find(s => s.name === selectedSNP.name) ?? null : null;
-    const snpBFull = selectedSNPB ?? null;
-
-    return computeLeoSiteToSiteResult({
-      endpointA: { lat: activeAnalysisPoint.lat, lng: activeAnalysisPoint.lng },
-      endpointB: pointBLeo,
-      servingSatelliteA: resolvedAutoLEO,
-      servingSatelliteB: resolvedAutoLEOB,
-      rfAvailableA: leoHasCurrentRF,
-      rfAvailableB: leoSiteBHasCurrentRF,
-      selectedSnpA: snpAFull,
-      selectedSnpB: snpBFull,
-      regulatoryResultA: leoRegulatoryResult,
-      regulatoryResultB: leoRegulatoryResultB,
-      userToSatDistanceAKm: null,
-      satToSnpDistanceAKm: null,
-      userToSatDistanceBKm: null,
-      satToSnpDistanceBKm: null,
-      elevationADeg: null, elevationBDeg: null,
-      dlThroughputAMbps: null,
-      ulThroughputAMbps: null,
-      dlThroughputBMbps: null,
-      ulThroughputBMbps: null,
-    });
-  }, [leoTopologyMode, activeAnalysisPoint, pointBLeo, selectedSNP, selectedSNPB, resolvedAutoLEO, resolvedAutoLEOB, leoHasCurrentRF, leoSiteBHasCurrentRF, leoRegulatoryResult, leoRegulatoryResultB]);
+  const activeLeoSiteToSiteResult = activeLeoRouteEvidence.routeResult;
 
   useEffect(() => {
     if (!import.meta.env.DEV) return;
 
-    const result = leoS2SFullResult ?? leoSiteToSiteGlobeResult;
+    const result = activeLeoSiteToSiteResult;
     const singleSiteFailureReason = (() : LeoSiteToSiteFailureReason | null => {
       if (leoRegulatoryResult?.status === 'BLOCKED') return 'REGULATORY_BLOCKED_A';
       if (leoRegulatoryResult?.status === 'RESTRICTED') return 'REGULATORY_RESTRICTED_A';
@@ -1692,9 +1740,8 @@ const App: React.FC = () => {
       failureReason: result?.failureReason ?? singleSiteFailureReason,
     };
   }, [
+    activeLeoSiteToSiteResult,
     leoTopologyMode,
-    leoS2SFullResult,
-    leoSiteToSiteGlobeResult,
     resolvedAutoLEO,
     resolvedAutoLEOB,
     leoHasCurrentRF,
@@ -1735,6 +1782,68 @@ const App: React.FC = () => {
 
     return 'available';
   }, [activeAnalysisPoint, activeGeoSatellite, satelliteScope, satellites, selectedCoverage]);
+
+  const geoRouteAnalysis = useMemo(() => {
+    if (uiMode !== 'commercial') return null;
+
+    // Keep GEO commercial analysis off the per-second satellite state tick.
+    // The live ref is fresh when the scenario changes, without forcing a
+    // constellation-wide route recomputation for every visual propagation sample.
+    const routeSatellites = satellitesForResolutionRef.current.length > 0
+      ? satellitesForResolutionRef.current
+      : satellites;
+
+    return buildGeoRouteAnalysisViewModel({
+      activePoint: activeAnalysisPoint,
+      pointB,
+      satellites: routeSatellites,
+      satelliteScope,
+      linkMode,
+      activeMeshTab,
+      candidateCoverages: eligibleCandidateCoverages,
+      candidateCoveragesB,
+      selectedCoverage,
+      selectedUplinkCoverage,
+      selectedDownlinkCoverage,
+      selectedUplinkCoverageB,
+      selectedDownlinkCoverageB,
+      geoRFClassIdA,
+      geoRFClassIdB,
+      geoRFCustomParamsA,
+      geoRFCustomParamsB,
+      geoTerminalType,
+      geoTerminalTypeB,
+      weatherType,
+      weatherTypeB,
+      nearestLocation,
+      nearestLocationB,
+    });
+  }, [
+    activeAnalysisPoint,
+    activeMeshTab,
+    candidateCoveragesB,
+    eligibleCandidateCoverages,
+    geoRFClassIdA,
+    geoRFClassIdB,
+    geoRFCustomParamsA,
+    geoRFCustomParamsB,
+    geoTerminalType,
+    geoTerminalTypeB,
+    linkMode,
+    nearestLocation,
+    nearestLocationB,
+    pointB,
+    satelliteScope,
+    satellites.length,
+    selectedCoverage,
+    selectedDownlinkCoverage,
+    selectedDownlinkCoverageB,
+    selectedUplinkCoverage,
+    selectedUplinkCoverageB,
+    uiMode,
+    weatherType,
+    weatherTypeB,
+  ]);
 
   // Update coverage features based on analyzis position or manual satellite selection
   const coverageFeaturesMemo = useMemo(() => {
@@ -2746,8 +2855,8 @@ const App: React.FC = () => {
     onToggleAirTraffic: handleToggleAirTraffic,
     onToggleMaritimeTraffic: handleToggleMaritimeTraffic,
     onToggleIssLive: handleToggleIssLive,
-    leoSiteToSiteResult: leoSiteToSiteGlobeResult,
-    leoSiteToSiteFullResult: leoS2SFullResult,
+    leoSiteToSiteResult: activeLeoSiteToSiteResult,
+    leoSiteToSiteFullResult: activeLeoSiteToSiteResult,
     pointBLeo,
   }), [
     filteredSatellites, satelliteTypeByName, coverageFeaturesMemo, visibleManualGeoCoverageKeys, handlePointClick, handleEmptyClick, handleCoverageClick, selectedPosition,
@@ -2761,7 +2870,7 @@ const App: React.FC = () => {
     isPhone, isMobileAnalysisPanelOpen, coverageSwitcherCoverages, selectedCoverageId, handleSelectTargetCoverageById,
     pointB, pointBLeo, linkMode, activeMeshTab,
     issLiveEnabled, iss.orbitPath, issHasPosition, selectedIss, iss.isFollowing, handleIssClick,
-    leoSiteToSiteGlobeResult, leoS2SFullResult,
+    activeLeoSiteToSiteResult,
   ]);
   const desktopCompactProgress = isMobile ? 0 : getCompactDesktopProgress(viewportSnapshot);
   const useCompactDesktopSidebar = desktopCompactProgress >= 0.35;
@@ -3194,11 +3303,11 @@ const App: React.FC = () => {
     resolvedAutoLEO,
     metrics: mobileMetrics,
     leoTopologyMode,
-    leoSiteToSiteResult: leoS2SFullResult,
-    leoServiceViewModel,
+    activeLeoRouteEvidence,
     geoPointStatus,
     linkMode,
     selectedCoverage,
+    geoRouteAnalysis,
     weatherType,
     weatherTypeB,
     leoTerminalType,
@@ -3706,6 +3815,7 @@ const App: React.FC = () => {
               isMobileViewport={isMobile}
               commercialMode
               commercialViewModel={commercialScenarioViewModel}
+              onCommercialSelectedSegmentChange={setCommercialSelectedSegment}
             />
           )}
         />
@@ -3833,7 +3943,7 @@ const App: React.FC = () => {
                     selectedSNPB={selectedSNPB}
                     isPointBLeoArmed={isSiteBArmed}
                     onArmPointBLeo={() => setIsSiteBArmed(true)}
-                    onLeoSiteToSiteResultChange={setLeoS2SFullResult}
+                    activeLeoRouteEvidence={activeLeoRouteEvidence}
                   />
                 </Suspense>
               </div>
@@ -3897,7 +4007,7 @@ const App: React.FC = () => {
                           activeMeshTab={activeMeshTab}
                           onActiveMeshTabChange={setActiveMeshTab}
                           leoTopologyMode={leoTopologyMode}
-                          leoSiteToSiteResult={leoS2SFullResult}
+                          leoSiteToSiteResult={activeLeoSiteToSiteResult}
                         />
                       </div>
                       <div className="border-t border-slate-200/80 px-2.5 pb-2 pt-1.5 dark:border-slate-700/80">
@@ -4053,7 +4163,7 @@ const App: React.FC = () => {
                                 selectedSNPB={selectedSNPB}
                                 isPointBLeoArmed={isSiteBArmed}
                                 onArmPointBLeo={() => setIsSiteBArmed(true)}
-                                onLeoSiteToSiteResultChange={setLeoS2SFullResult}
+                                activeLeoRouteEvidence={activeLeoRouteEvidence}
                               />
                             )}
                           </Suspense>
@@ -4124,7 +4234,7 @@ const App: React.FC = () => {
                     linkMode={linkMode}
                     activeMeshTab={activeMeshTab}
                     leoTopologyMode={leoTopologyMode}
-                    leoSiteToSiteResult={leoS2SFullResult}
+                    leoSiteToSiteResult={activeLeoSiteToSiteResult}
                   />
                 )}
 
@@ -4251,7 +4361,7 @@ const App: React.FC = () => {
                         selectedSNPB={selectedSNPB}
                         isPointBLeoArmed={isSiteBArmed}
                         onArmPointBLeo={() => setIsSiteBArmed(true)}
-                        onLeoSiteToSiteResultChange={setLeoS2SFullResult}
+                        activeLeoRouteEvidence={activeLeoRouteEvidence}
                       />
                     )}
                   </Suspense>

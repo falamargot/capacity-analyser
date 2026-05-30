@@ -1,13 +1,13 @@
 import type { ReactNode } from 'react';
 import { ExternalLink } from 'lucide-react';
-import type { CommercialRouteSegment, CommercialScenarioViewModel } from './commercialViewModel';
+import type { CommercialCustomerServiceState, CommercialRouteSegment, CommercialScenarioViewModel } from './commercialViewModel';
 
 const segmentOrder: CommercialRouteSegment['type'][] = ['access', 'satellite', 'backhaul', 'destination', 'summary'];
 
 const tabLabel: Record<CommercialRouteSegment['type'], string> = {
   access: 'Access',
   satellite: 'Satellite',
-  backhaul: 'Backhaul',
+  backhaul: 'Backbone',
   destination: 'Site B',
   summary: 'Summary',
 };
@@ -19,11 +19,12 @@ const statusClassName: Record<CommercialRouteSegment['status'], string> = {
   unknown: 'border-slate-300 bg-slate-100 text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300',
 };
 
-const statusLabel: Record<CommercialRouteSegment['status'], string> = {
-  healthy: 'OK',
-  warning: 'Check',
-  blocked: 'Blocked',
-  unknown: 'Pending',
+const statusLabel: Record<CommercialCustomerServiceState, string> = {
+  available: 'Available',
+  limited: 'Limited',
+  degraded: 'Degraded',
+  alternative_available: 'Alternative Available',
+  unavailable: 'Unavailable',
 };
 
 interface CommercialInspectorPanelProps {
@@ -73,6 +74,33 @@ function StorySection({
   );
 }
 
+function DetailSection({
+  title,
+  children,
+}: {
+  title: string;
+  children: ReactNode;
+}) {
+  return (
+    <details className="rounded-lg border border-slate-800 bg-slate-900/45">
+      <summary className="cursor-pointer px-3 py-2 text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">
+        {title}
+      </summary>
+      <div className="border-t border-slate-800">{children}</div>
+    </details>
+  );
+}
+
+function alternativeLabel(viewModel: CommercialScenarioViewModel): string {
+  const recommended = viewModel.recommendation.technology;
+  if (recommended === 'hybrid') return 'Both GEO and LEO are suitable';
+  if (recommended === 'not_available') return 'No active alternative';
+  if (recommended === 'insufficient_data') return 'Waiting for comparable options';
+  const alternative = viewModel.comparison.options.find((option) => option.technology !== recommended);
+  if (!alternative) return 'Alternative pending';
+  return `${alternative.label} ${alternative.available ? 'available' : alternative.statusLabel.toLowerCase()}`;
+}
+
 export default function CommercialInspectorPanel({
   viewModel,
   selectedSegmentId,
@@ -83,11 +111,18 @@ export default function CommercialInspectorPanel({
     ?? viewModel.routeSegments.find((item) => item.type === 'summary')
     ?? viewModel.routeSegments[0];
   const selectedSegment = segment?.id ?? 'summary';
-  const selectedTechnology = viewModel.comparison.options.find((option) => option.technology === viewModel.technology);
-  const serviceRows = [
-    { label: 'What this is', value: segment?.story ?? 'Customer service scenario' },
-    { label: 'Service state', value: viewModel.display.serviceStatusLabel },
-    { label: 'Recommendation', value: viewModel.comparison.recommendation?.message ?? 'Waiting for comparable metrics' },
+  const summaryRows = [
+    { label: 'Status', value: viewModel.executiveSummary.statusLabel },
+    { label: 'Recommendation', value: viewModel.executiveSummary.recommendedTechnology },
+    { label: 'Why', value: viewModel.executiveSummary.reason },
+    { label: 'Expected customer experience', value: viewModel.executiveSummary.expectedExperience },
+    { label: 'Alternative technology', value: alternativeLabel(viewModel) },
+  ];
+  const segmentRows = [
+    { label: 'Service step', value: segment?.story ?? 'Customer service scenario' },
+    { label: 'Status', value: segment ? statusLabel[segment.customerStatus] : viewModel.executiveSummary.statusLabel },
+    { label: 'Current constraint', value: segment?.limitation ?? 'None detected' },
+    { label: 'Expected experience', value: viewModel.executiveSummary.expectedExperience },
   ];
   const performanceRows = [
     { label: 'Expected downlink', value: formatMbps(segment?.throughputMbps ?? viewModel.downloadMbps) },
@@ -96,22 +131,26 @@ export default function CommercialInspectorPanel({
     { label: 'Selected technology', value: viewModel.technology.toUpperCase() },
   ];
   const availabilityRows = [
-    { label: 'Availability', value: viewModel.availabilityPct != null ? `${viewModel.availabilityPct.toFixed(2)}%` : viewModel.display.serviceStatusLabel },
+    { label: 'Service availability', value: viewModel.availabilityPct != null ? `${viewModel.availabilityPct.toFixed(2)}%` : viewModel.display.serviceStatusLabel },
     { label: 'Access weather', value: viewModel.display.weatherA ?? '--' },
     { label: 'Destination weather', value: viewModel.display.weatherB ?? '--' },
-    { label: 'Selected service', value: selectedTechnology?.statusLabel ?? viewModel.display.serviceStatusLabel },
+    { label: 'Recommendation category', value: viewModel.recommendation.reasonCategory.replaceAll('_', ' ') },
   ];
   const limitingRows = [
-    { label: 'Segment limitation', value: segment?.limitation ?? 'None detected' },
-    { label: 'Main limitation', value: viewModel.primaryWarning ?? 'None detected' },
-    { label: 'Bottleneck', value: viewModel.bottleneck ?? 'None detected' },
+    { label: 'Segment constraint', value: segment?.limitation ?? 'None detected' },
+    { label: 'Main constraint', value: viewModel.primaryWarning ?? 'None detected' },
   ];
   const proofRows = [
-    { label: 'Route', value: viewModel.display.routeValue ?? '--' },
+    { label: 'Raw service status', value: viewModel.display.rawServiceStatus ?? '--' },
+    { label: 'Service path', value: viewModel.display.routeValue ?? '--' },
     { label: 'Satellite', value: viewModel.display.satelliteName ?? '--' },
+    { label: 'Beam', value: viewModel.display.beamName ?? '--' },
     { label: 'Orbit', value: viewModel.display.satelliteOrbit ?? viewModel.technology.toUpperCase() },
     { label: 'Elevation', value: viewModel.display.elevation ?? '--' },
     { label: 'Link margin', value: viewModel.display.linkMargin ?? '--' },
+    { label: 'RF status', value: viewModel.display.rfStatus ?? '--' },
+    { label: 'Bottleneck', value: viewModel.display.rawBottleneck ?? '--' },
+    { label: 'Regulatory state', value: viewModel.display.regulatoryState ?? '--' },
     { label: 'SNP A', value: viewModel.display.snpA ?? '--' },
     { label: 'SNP B', value: viewModel.display.snpB ?? '--' },
     { label: 'Route summary', value: viewModel.display.routeSummary ?? '--' },
@@ -123,13 +162,13 @@ export default function CommercialInspectorPanel({
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-500 dark:text-slate-400">
-              Commercial Inspector
+              Service Summary
             </div>
-            <h2 className="mt-1 truncate text-lg font-semibold text-white">{segment?.title ?? 'Summary'}</h2>
-            <p className="mt-1 text-sm text-slate-400">{segment?.summary ?? viewModel.display.routeSummary}</p>
+            <h2 className="mt-1 truncate text-lg font-semibold text-white">{viewModel.executiveSummary.recommendedTechnology}</h2>
+            <p className="mt-1 text-sm text-slate-400">{viewModel.executiveSummary.expectedExperience}</p>
           </div>
           <span className={`shrink-0 rounded-full border px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.08em] ${statusClassName[segment?.status ?? 'unknown']}`}>
-            {statusLabel[segment?.status ?? 'unknown']}
+            {segment ? statusLabel[segment.customerStatus] : viewModel.executiveSummary.statusLabel}
           </span>
         </div>
       </div>
@@ -164,11 +203,19 @@ export default function CommercialInspectorPanel({
         )}
 
         <div className="space-y-3">
-          <StorySection title="Service Overview">
-            {serviceRows.map((row) => (
+          <StorySection title="Service Summary">
+            {summaryRows.map((row) => (
               <FieldRow key={`${row.label}-${row.value}`} label={row.label} value={row.value} />
             ))}
           </StorySection>
+
+          {segment?.type !== 'summary' && (
+            <StorySection title="Selected Step">
+              {segmentRows.map((row) => (
+                <FieldRow key={`${row.label}-${row.value}`} label={row.label} value={row.value} />
+              ))}
+            </StorySection>
+          )}
 
           <StorySection title="Performance">
             {performanceRows.map((row) => (
@@ -176,23 +223,20 @@ export default function CommercialInspectorPanel({
             ))}
           </StorySection>
 
-          <StorySection title="Availability">
+          <DetailSection title="Detailed Reasoning">
             {availabilityRows.map((row) => (
               <FieldRow key={`${row.label}-${row.value}`} label={row.label} value={row.value} />
             ))}
-          </StorySection>
-
-          <StorySection title="Limiting Factor">
             {limitingRows.map((row) => (
               <FieldRow key={`${row.label}-${row.value}`} label={row.label} value={row.value} />
             ))}
-          </StorySection>
+          </DetailSection>
 
-          <StorySection title="Technical Proof">
+          <DetailSection title="Technical Proof">
             {proofRows.map((row) => (
               <FieldRow key={`${row.label}-${row.value}`} label={row.label} value={row.value} />
             ))}
-          </StorySection>
+          </DetailSection>
         </div>
       </div>
 

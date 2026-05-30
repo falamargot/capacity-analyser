@@ -257,6 +257,7 @@ interface CesiumGlobeProps {
     onToggleIssLive?: () => void;
     commercialMode?: boolean;
     commercialViewModel?: CommercialScenarioViewModel | null;
+    onCommercialSelectedSegmentChange?: (segmentId: string) => void;
 }
 
 const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
@@ -354,6 +355,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
     onToggleIssLive,
     commercialMode = false,
     commercialViewModel = null,
+    onCommercialSelectedSegmentChange,
 }) => {
     // Stable refs for click-handler lookups — avoids recreating handleMapClick
     // (and re-registering the Cesium ScreenSpaceEvent) when aircraft/vessels/satellites
@@ -802,6 +804,15 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                 ? pickedObject.id
                 : (pickedObject.id && typeof pickedObject.id.id === 'string' ? pickedObject.id.id : '');
 
+            if (commercialMode && pickedId.startsWith('commercial-route-')) {
+                const routeSegment = pickedId.slice('commercial-route-'.length).split('-')[0];
+                const commercialSegmentId = routeSegment === 'destination' ? 'siteB' : routeSegment;
+                if (['access', 'satellite', 'backhaul', 'siteB', 'summary'].includes(commercialSegmentId)) {
+                    onCommercialSelectedSegmentChange?.(commercialSegmentId);
+                    return;
+                }
+            }
+
             if (typeof pickedObject.id === 'string' && pickedObject.id.startsWith(GEO_COVERAGE_ENTITY_PREFIX)) {
                 if (selection.type === 'satellite') {
                     onCoverageClick?.(pickedObject.id.slice(GEO_COVERAGE_ENTITY_PREFIX.length));
@@ -888,7 +899,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         const lat = CesiumMath.toDegrees(cartographic.latitude);
         const lng = CesiumMath.toDegrees(cartographic.longitude);
         onPointClick(lat, lng, pointerShiftPressedRef.current || shiftPressedRef.current);
-    }, [onAircraftClick, onCoverageClick, onEmptyClick, onIssClick, onMoonSelectionChange, onPointClick, onSatelliteClick, onSnpClick, onVesselClick, selection.type]);
+    }, [commercialMode, onAircraftClick, onCommercialSelectedSegmentChange, onCoverageClick, onEmptyClick, onIssClick, onMoonSelectionChange, onPointClick, onSatelliteClick, onSnpClick, onVesselClick, selection.type]);
 
     const leoS2SVisualResult = leoSiteToSiteFullResult ?? leoSiteToSiteResult;
 
@@ -926,12 +937,14 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
             });
         };
 
-        if (selectedSatellite) {
+        if (selectedSatellite && !commercialMode) {
             addTarget(selectedSatellite);
             return targets;
         }
 
-        if (satelliteScope !== 'GEO' && leoS2SVisualResult && pointBLeo) {
+        const commercialLeoRouteAvailable = !commercialMode || commercialViewModel?.comparison.options.find((option) => option.technology === 'leo')?.available === true;
+
+        if (satelliteScope !== 'GEO' && leoS2SVisualResult && pointBLeo && commercialLeoRouteAvailable) {
             addTarget(leoS2SVisualResult.servingSatelliteA, {
                 id: 'site-a',
                 position: leoS2SVisualResult.endpointA,
@@ -945,10 +958,14 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
             return targets;
         }
 
-        addTarget(autoSelectedLEOSatellite);
+        if (commercialLeoRouteAvailable) {
+            addTarget(autoSelectedLEOSatellite);
+        }
         return targets;
     }, [
         autoSelectedLEOSatellite,
+        commercialMode,
+        commercialViewModel,
         leoS2SVisualResult,
         pointBLeo,
         satelliteScope,
@@ -1099,12 +1116,14 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         const labels: Array<{
             satellite: SatelliteData;
             isManuallySelected: boolean;
+            isRouteParticipant?: boolean;
             serviceRoles?: Array<'A' | 'B'>;
         }> = [];
         const add = (
             satellite: SatelliteData | null | undefined,
             isManuallySelected: boolean,
             serviceRole?: 'A' | 'B',
+            isRouteParticipant = !isManuallySelected,
         ) => {
             if (!satellite) return;
             if (!isOperationalSatellite(satellite)) return;
@@ -1112,6 +1131,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
             const existing = labels.find((entry) => entry.satellite.id === liveSatellite.id);
             if (existing) {
                 existing.isManuallySelected = existing.isManuallySelected || isManuallySelected;
+                existing.isRouteParticipant = existing.isRouteParticipant || isRouteParticipant;
                 if (serviceRole && !existing.serviceRoles?.includes(serviceRole)) {
                     existing.serviceRoles = [...(existing.serviceRoles ?? []), serviceRole].sort();
                 }
@@ -1120,22 +1140,26 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
             labels.push({
                 satellite: liveSatellite,
                 isManuallySelected,
+                isRouteParticipant,
                 serviceRoles: serviceRole ? [serviceRole] : undefined,
             });
         };
 
-        if (selectedSatellite) {
-            add(selectedSatellite, true);
+        if (selectedSatellite && !commercialMode) {
+            add(selectedSatellite, true, undefined, false);
             return labels;
         }
 
+        const commercialLeoRouteAvailable = !commercialMode || commercialViewModel?.comparison.options.find((option) => option.technology === 'leo')?.available === true;
+        const commercialGeoRouteAvailable = !commercialMode || commercialViewModel?.comparison.options.find((option) => option.technology === 'geo')?.available === true;
+
         if (satelliteScope !== 'GEO' && leoS2SVisualResult && pointBLeo) {
-            add(leoS2SVisualResult.servingSatelliteA, false, 'A');
-            add(leoS2SVisualResult.servingSatelliteB, false, 'B');
+            add(leoS2SVisualResult.servingSatelliteA, false, 'A', commercialLeoRouteAvailable);
+            add(leoS2SVisualResult.servingSatelliteB, false, 'B', commercialLeoRouteAvailable);
         } else {
-            add(autoSelectedLEOSatellite, false);
+            add(autoSelectedLEOSatellite, false, undefined, commercialLeoRouteAvailable);
         }
-        add(autoSelectedGEOSatellite, false);
+        add(autoSelectedGEOSatellite, false, undefined, commercialGeoRouteAvailable);
         return labels;
     }, [
         selectedSatellite,
@@ -1145,6 +1169,8 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         pointBLeo,
         satelliteScope,
         satellites,
+        commercialMode,
+        commercialViewModel,
     ]);
 
     const pulsedSnp = useMemo(() => {
@@ -1443,6 +1469,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
     const commercialFocusedSegment: CommercialRouteSegmentType = commercialViewModel?.routeSegments.find((segment) => (
         segment.id === commercialViewModel.selectedSegmentId
     ))?.type ?? 'summary';
+    const commercialActiveRouteAvailable = !commercialMode || commercialViewModel?.activeRouteAvailable === true;
     const commercialAccessFocused = commercialMode && commercialFocusedSegment === 'access';
     const commercialDestinationFocused = commercialMode && commercialFocusedSegment === 'destination';
     const commercialSummaryFocused = commercialMode && commercialFocusedSegment === 'summary';
@@ -1722,6 +1749,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                         cameraMetricsRef={cameraMetricsRef}
                         commercialMode={commercialMode}
                         commercialFocusedSegment={commercialFocusedSegment}
+                        commercialRouteAvailable={commercialActiveRouteAvailable}
                     />
 
                     {/* Selected Position Marker — Point A */}

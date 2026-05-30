@@ -13,6 +13,7 @@ interface SatelliteScreenLabelsProps {
   highlightedSatellites: Array<{
     satellite: SatelliteData;
     isManuallySelected: boolean;
+    isRouteParticipant?: boolean;
     serviceRoles?: Array<'A' | 'B'>;
   }>;
   viewerReady?: boolean;
@@ -155,7 +156,8 @@ const SatelliteScreenLabels: React.FC<SatelliteScreenLabelsProps> = ({
 
   return (
     <>
-      {sortedSatellites.map(({ satellite, isManuallySelected }, index) => {
+      {sortedSatellites.map(({ satellite, isManuallySelected, isRouteParticipant }, index) => {
+        const commercialRoleLabel = isRouteParticipant ? 'Serving Satellite' : 'Selected Satellite';
         return (
           <div
             key={satellite.id}
@@ -184,7 +186,7 @@ const SatelliteScreenLabels: React.FC<SatelliteScreenLabelsProps> = ({
               }}
             >
               {presentation === 'commercial' && (
-                <div className="text-[9px] font-bold uppercase tracking-[0.14em] text-sky-300">Serving Satellite</div>
+                <div className="text-[9px] font-bold uppercase tracking-[0.14em] text-sky-300">{commercialRoleLabel}</div>
               )}
               <div>{satellite.name}</div>
               {presentation === 'commercial' && (

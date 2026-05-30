@@ -114,6 +114,7 @@ interface MapViewSwitcherProps {
   onToggleIssLive?: () => void;
   commercialMode?: boolean;
   commercialViewModel?: CommercialScenarioViewModel | null;
+  onCommercialSelectedSegmentChange?: (segmentId: string) => void;
 }
 
 const MapViewSwitcher: React.FC<MapViewSwitcherProps> = ({
@@ -208,6 +209,7 @@ const MapViewSwitcher: React.FC<MapViewSwitcherProps> = ({
   onToggleIssLive,
   commercialMode = false,
   commercialViewModel = null,
+  onCommercialSelectedSegmentChange,
 }) => {
   const [sceneMode, setSceneMode] = useState<'2D' | '3D'>('3D');
 
@@ -308,6 +310,7 @@ const MapViewSwitcher: React.FC<MapViewSwitcherProps> = ({
         onToggleIssLive={onToggleIssLive}
         commercialMode={commercialMode}
         commercialViewModel={commercialViewModel}
+        onCommercialSelectedSegmentChange={onCommercialSelectedSegmentChange}
       />
     </div>
   );

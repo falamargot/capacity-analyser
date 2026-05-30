@@ -65,6 +65,7 @@ interface TransmissionLinksProps {
     cameraMetricsRef?: React.RefObject<CameraMetricsSnapshot>;
     commercialMode?: boolean;
     commercialFocusedSegment?: CommercialRouteSegmentType;
+    commercialRouteAvailable?: boolean;
 }
 
 // Dashed material cache
@@ -190,16 +191,18 @@ interface S2SBackboneSegmentProps {
     name: string;
     positions: CallbackProperty;
     widthBoost?: number;
+    commercialEntityId?: string;
 }
 
 const S2SBackboneSegment = React.memo<S2SBackboneSegmentProps>(({
     name,
     positions,
     widthBoost = 0,
+    commercialEntityId,
 }) => {
     return (
         <>
-            <Entity name={`${name} halo`}>
+            <Entity id={commercialEntityId ? `${commercialEntityId}-halo` : undefined} name={`${name} halo`}>
                 <PolylineGraphics
                     positions={positions}
                     width={S2S_BACKBONE_HALO_WIDTH + widthBoost}
@@ -208,7 +211,7 @@ const S2SBackboneSegment = React.memo<S2SBackboneSegmentProps>(({
                     arcType={ArcType.GEODESIC}
                 />
             </Entity>
-            <Entity name={`${name} glow`}>
+            <Entity id={commercialEntityId ? `${commercialEntityId}-glow` : undefined} name={`${name} glow`}>
                 <PolylineGraphics
                     positions={positions}
                     width={S2S_BACKBONE_GLOW_WIDTH + widthBoost}
@@ -217,7 +220,7 @@ const S2SBackboneSegment = React.memo<S2SBackboneSegmentProps>(({
                     arcType={ArcType.GEODESIC}
                 />
             </Entity>
-            <Entity name={name}>
+            <Entity id={commercialEntityId ? `${commercialEntityId}-main` : undefined} name={name}>
                 <PolylineGraphics
                     positions={positions}
                     width={S2S_BACKBONE_MAIN_WIDTH + widthBoost}
@@ -268,6 +271,7 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
     cameraMetricsRef,
     commercialMode = false,
     commercialFocusedSegment = 'summary',
+    commercialRouteAvailable = true,
 }) => {
     const { coveragePolicy, weatherCondition, beamHealthFactors, hsBeamsSet } = useSimulation();
 
@@ -309,6 +313,11 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
                 ? 3
                 : 0
         : 0;
+    const routeEntityId = (segment: CommercialRouteSegmentType, suffix: string) => (
+        commercialMode ? `commercial-route-${segment}-${suffix}` : undefined
+    );
+    const showCommercialRoute = !commercialMode || commercialRouteAvailable;
+    const showCommercialInspectionLinks = !commercialMode;
 
     const resolveCurrentUser = useMemo(() => {
         return (time: JulianDate) => {
@@ -732,8 +741,8 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
     return (
         <>
             {/* LEO Uplink/Downlink - User to Satellite */}
-            {leoUplinkCallback && satelliteScope !== 'GEO' && !isSiteToSiteActive && (
-                <Entity name="LEO Uplink/Downlink">
+            {showCommercialRoute && leoUplinkCallback && satelliteScope !== 'GEO' && !isSiteToSiteActive && (
+                <Entity id={routeEntityId('access', 'leo-uplink')} name="LEO Uplink/Downlink">
                     <PolylineGraphics
                         positions={leoUplinkCallback}
                         width={commercialWidth('access', leoLinkWidth)}
@@ -744,8 +753,8 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
             )}
 
             {/* LEO Backhaul to SNP - Satellite to Gateway */}
-            {leoBackhaulCallback && satelliteScope !== 'GEO' && selectedSNP && !isSiteToSiteActive && (
-                <Entity name="LEO Backhaul">
+            {showCommercialRoute && leoBackhaulCallback && satelliteScope !== 'GEO' && selectedSNP && !isSiteToSiteActive && (
+                <Entity id={routeEntityId('backhaul', 'leo-backhaul')} name="LEO Backhaul">
                     <PolylineGraphics
                         positions={leoBackhaulCallback}
                         width={commercialWidth('backhaul', leoLinkWidth)}
@@ -757,8 +766,8 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
             )}
 
             {/* GEO User → Satellite (STAR modes only; MESH uses directional callbacks below) */}
-            {geoUserLinkCallback && satelliteScope !== 'LEO' && !isMeshOrP2P && (
-                <Entity name="GEO User Link">
+            {showCommercialRoute && geoUserLinkCallback && satelliteScope !== 'LEO' && !isMeshOrP2P && (
+                <Entity id={routeEntityId('access', 'geo-user')} name="GEO User Link">
                     <PolylineGraphics
                         positions={geoUserLinkCallback}
                         width={commercialWidth('access', 2.5)}
@@ -769,8 +778,8 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
             )}
 
             {/* GEO Satellite -> Gateway — hidden in MESH/P2P (gateway not in the path) */}
-            {geoFeederLinkCallback && satelliteScope !== 'LEO' && !isMeshOrP2P && (
-                <Entity name="GEO Feeder Link">
+            {showCommercialRoute && geoFeederLinkCallback && satelliteScope !== 'LEO' && !isMeshOrP2P && (
+                <Entity id={routeEntityId('backhaul', 'geo-feeder')} name="GEO Feeder Link">
                     <PolylineGraphics
                         positions={geoFeederLinkCallback}
                         width={commercialWidth('backhaul', 2.5)}
@@ -781,8 +790,8 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
             )}
 
             {/* GEO Gateway -> Internet — hidden in MESH/P2P */}
-            {geoBackhaulCallback && satelliteScope !== 'LEO' && !isMeshOrP2P && (
-                <Entity name="GEO Backhaul Link">
+            {showCommercialRoute && geoBackhaulCallback && satelliteScope !== 'LEO' && !isMeshOrP2P && (
+                <Entity id={routeEntityId('backhaul', 'geo-backhaul')} name="GEO Backhaul Link">
                     <PolylineGraphics
                         positions={geoBackhaulCallback}
                         width={commercialWidth('backhaul', 2.5)}
@@ -796,29 +805,29 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
                 Orange glow = transmit leg (terminal that emits in the active direction).
                 Cyan glow   = receive leg (terminal that receives in the active direction).
                 Colours swap when switching the A→B / B→A direction tab.            */}
-            {isMeshOrP2P && satelliteScope !== 'LEO' && activeMeshTab === 'forward' && (
+            {showCommercialRoute && isMeshOrP2P && satelliteScope !== 'LEO' && activeMeshTab === 'forward' && (
                 <>
                     {geoUserLinkCallback && (
-                        <Entity name="A → Satellite (transmit)">
+                        <Entity id={routeEntityId('access', 'geo-mesh-a-sat')} name="A → Satellite (transmit)">
                             <PolylineGraphics positions={geoUserLinkCallback} width={commercialWidth('access', 5)} material={meshTransmitMaterial} arcType={ArcType.NONE} />
                         </Entity>
                     )}
                     {meshSatToBCallback && (
-                        <Entity name="Satellite → B (receive)">
+                        <Entity id={routeEntityId('destination', 'geo-mesh-sat-b')} name="Satellite → B (receive)">
                             <PolylineGraphics positions={meshSatToBCallback} width={commercialWidth('destination', 5)} material={meshReceiveMaterial} clampToGround={false} arcType={ArcType.NONE} />
                         </Entity>
                     )}
                 </>
             )}
-            {isMeshOrP2P && satelliteScope !== 'LEO' && activeMeshTab === 'reverse' && (
+            {showCommercialRoute && isMeshOrP2P && satelliteScope !== 'LEO' && activeMeshTab === 'reverse' && (
                 <>
                     {meshBtoSatCallback && (
-                        <Entity name="B → Satellite (transmit)">
+                        <Entity id={routeEntityId('destination', 'geo-mesh-b-sat')} name="B → Satellite (transmit)">
                             <PolylineGraphics positions={meshBtoSatCallback} width={commercialWidth('destination', 5)} material={meshTransmitMaterial} clampToGround={false} arcType={ArcType.NONE} />
                         </Entity>
                     )}
                     {meshSatToACallback && (
-                        <Entity name="Satellite → A (receive)">
+                        <Entity id={routeEntityId('access', 'geo-mesh-sat-a')} name="Satellite → A (receive)">
                             <PolylineGraphics positions={meshSatToACallback} width={commercialWidth('access', 5)} material={meshReceiveMaterial} arcType={ArcType.NONE} />
                         </Entity>
                     )}
@@ -826,7 +835,7 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
             )}
 
             {/* Dedicated SNP Link for manually selected satellite */}
-            {dedicatedSnpCallback && (
+            {showCommercialInspectionLinks && dedicatedSnpCallback && (
                 <Entity name="LEO Satellite → Dedicated SNP">
                     <PolylineGraphics
                         positions={dedicatedSnpCallback}
@@ -839,7 +848,7 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
             )}
 
             {/* Dedicated Gateway Link for manually selected GEO satellite */}
-            {dedicatedGeoFeederCallback && satelliteScope !== 'LEO' && (
+            {showCommercialInspectionLinks && dedicatedGeoFeederCallback && satelliteScope !== 'LEO' && (
                 <Entity name="GEO Satellite → Dedicated Gateway">
                     <PolylineGraphics
                         positions={dedicatedGeoFeederCallback}
@@ -851,7 +860,7 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
             )}
 
             {/* SNP Inspection: links from each connected satellite to the SNP */}
-            {snpInspectionLinks && snpInspectionLinks.map(({ id, callback }) => (
+            {showCommercialInspectionLinks && snpInspectionLinks && snpInspectionLinks.map(({ id, callback }) => (
                 <Entity key={`snp-link-${id}`} name={`SNP link ${id}`}>
                     <PolylineGraphics
                         positions={callback}
@@ -864,7 +873,7 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
             ))}
 
             {/* Gateway inspection: links from the selected gateway to each monitored GEO satellite */}
-            {selectedGatewayLinks && selectedGatewayLinks.map(({ id, name, callback }) => (
+            {showCommercialInspectionLinks && selectedGatewayLinks && selectedGatewayLinks.map(({ id, name, callback }) => (
                 <Entity key={`gateway-link-${id}`} name={`${selectedGateway?.name} → ${name}`}>
                     <PolylineGraphics
                         positions={callback}
@@ -880,10 +889,10 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
                 Cyan: user access links  (UT A ↔ Sat A, UT B ↔ Sat B)
                 Orange: feeder links     (Sat A ↔ SNP A, Sat B ↔ SNP B)
                 Violet dashed: backbone  (SNP A → PoP → SNP B)            */}
-            {leoS2SLinks && (
+            {showCommercialRoute && leoS2SLinks && (
                 <>
                     {/* UT A → Satellite A (user link) */}
-                    <Entity name="S2S: UT A → Satellite A">
+                    <Entity id={routeEntityId('access', 'leo-s2s-a-sat')} name="S2S: UT A → Satellite A">
                         <PolylineGraphics
                             positions={leoS2SLinks.satACallback}
                             width={commercialWidth('access', 3.5)}
@@ -894,7 +903,7 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
 
                     {/* Satellite A → SNP A (feeder) */}
                     {leoS2SLinks.satAToSnpACallback && (
-                        <Entity name="S2S: Satellite A → SNP A">
+                        <Entity id={routeEntityId('backhaul', 'leo-s2s-sata-snpa')} name="S2S: Satellite A → SNP A">
                             <PolylineGraphics
                                 positions={leoS2SLinks.satAToSnpACallback}
                                 width={commercialWidth('backhaul', 3)}
@@ -911,6 +920,7 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
                             name="S2S: SNP A → PoP (backbone)"
                             positions={leoS2SLinks.snpAToPopCallback}
                             widthBoost={commercialBackboneBoost}
+                            commercialEntityId={routeEntityId('backhaul', 'leo-s2s-snpa-pop')}
                         />
                     )}
 
@@ -920,6 +930,7 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
                             name="S2S: PoP → SNP B (backbone)"
                             positions={leoS2SLinks.popToSnpBCallback}
                             widthBoost={commercialBackboneBoost}
+                            commercialEntityId={routeEntityId('backhaul', 'leo-s2s-pop-snpb')}
                         />
                     )}
 
@@ -929,12 +940,13 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
                             name="S2S: Same SNP (backbone collapsed)"
                             positions={leoS2SLinks.sameSnpCallback}
                             widthBoost={commercialBackboneBoost}
+                            commercialEntityId={routeEntityId('backhaul', 'leo-s2s-backbone-same')}
                         />
                     )}
 
                     {/* SNP B → Satellite B (feeder) */}
                     {leoS2SLinks.satBToSnpBCallback && (
-                        <Entity name="S2S: SNP B → Satellite B">
+                        <Entity id={routeEntityId('backhaul', 'leo-s2s-snpb-satb')} name="S2S: SNP B → Satellite B">
                             <PolylineGraphics
                                 positions={leoS2SLinks.satBToSnpBCallback}
                                 width={commercialWidth('backhaul', 3)}
@@ -946,7 +958,7 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
                     )}
 
                     {/* Satellite B → UT B (user link) */}
-                    <Entity name="S2S: Satellite B → UT B">
+                    <Entity id={routeEntityId('destination', 'leo-s2s-satb-b')} name="S2S: Satellite B → UT B">
                         <PolylineGraphics
                             positions={leoS2SLinks.satBCallback}
                             width={commercialWidth('destination', 3.5)}

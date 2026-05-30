@@ -86,6 +86,7 @@ import {
   computeLeoSiteToSiteResult,
   type LeoSiteToSiteResult,
 } from '../utils/leoSiteToSiteModel';
+import type { ActiveLeoRouteEvidence } from '../utils/activeLeoRouteEvidence';
 
 interface CapacityDetailsProps {
   satellites: SatelliteData[];
@@ -186,8 +187,8 @@ interface CapacityDetailsProps {
   onArmPointBLeo?: () => void;
   /** Called to toggle the LEO topology mode. */
   onLeoTopologyModeChange?: (mode: 'SINGLE_SITE' | 'SITE_TO_SITE') => void;
-  /** Called whenever the full LEO site-to-site result changes — used to update the globe overlay. */
-  onLeoSiteToSiteResultChange?: (result: import('../utils/leoSiteToSiteModel').LeoSiteToSiteResult | null) => void;
+  /** Shared LEO route evidence produced outside the Engineering UI. */
+  activeLeoRouteEvidence?: ActiveLeoRouteEvidence | null;
 }
 
 function detectThroughputBottleneck(leg: LeoThroughputLeg): LeoBottleneckFactor {
@@ -309,7 +310,7 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
   isPointBLeoArmed = false,
   onArmPointBLeo,
   onLeoTopologyModeChange,
-  onLeoSiteToSiteResultChange,
+  activeLeoRouteEvidence = null,
 }) => {
   // Feature 1+3: read simulation context for failedSnps, hsBeamsSet
   const {
@@ -744,7 +745,7 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
     );
   }, [leoTopologyMode, pointBLeo, computedRegulatoryResultB]);
 
-  const leoPerformance = useMemo(() => {
+  const computedLeoPerformance = useMemo(() => {
     if (!resolvedLEOConnectivity || !resolvedLEOConnectivity.snp || !activePoint) return null;
 
     const oneWayDistanceKm = resolvedLEOConnectivity.userLEODistance + (resolvedLEOConnectivity.snpLEODistance || 0);
@@ -1008,6 +1009,7 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
     calculateApproximateLEOPerformance,
     calculateBeamAwareLEOPerformance,
   ]);
+  const leoPerformance = activeLeoRouteEvidence?.leoPerformance ?? computedLeoPerformance;
 
   const hasCurrentLEORF = useMemo(() => {
     if (!activePoint || !autoSelectedLEOSatellite) return false;
@@ -1032,7 +1034,7 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
   }, [pointBLeo, autoSelectedLEOSatelliteB, simulationStateB, nowTime]);
 
   // ── LEO site-to-site result ───────────────────────────────────────────────
-  const leoSiteToSiteResult = useMemo((): LeoSiteToSiteResult | null => {
+  const computedLeoSiteToSiteResult = useMemo((): LeoSiteToSiteResult | null => {
     if (leoTopologyMode !== 'SITE_TO_SITE' || !activePoint || !pointBLeo) return null;
 
     const userToSatAKm = resolvedLEOConnectivity?.userLEODistance ?? null;
@@ -1312,10 +1314,9 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
     nowTime,
   ]);
 
-  // Propagate the full S2S result upward so the globe can display accurate tooltip values.
-  useEffect(() => {
-    onLeoSiteToSiteResultChange?.(leoSiteToSiteResult);
-  }, [leoSiteToSiteResult, onLeoSiteToSiteResultChange]);
+  const leoSiteToSiteResult = activeLeoRouteEvidence?.topology === 'SITE_TO_SITE'
+    ? activeLeoRouteEvidence.routeResult
+    : computedLeoSiteToSiteResult;
 
   // ── Service layer (aggregated status) ────────────────────────────────────
   const computedServiceLayerResult = useMemo(() => {
