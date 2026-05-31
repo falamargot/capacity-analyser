@@ -96,7 +96,7 @@ export default function CommercialKpiBar({ viewModel }: CommercialKpiBarProps) {
 
         <div className="flex min-w-0 flex-col justify-center gap-3">
           <div className="flex min-w-0 items-center overflow-x-auto rounded-xl border border-slate-800 bg-slate-900/70 py-2">
-            <KpiItem label="Technology" value={viewModel.technology.toUpperCase()} />
+            <KpiItem label="Active" value={viewModel.technology.toUpperCase()} />
             <KpiItem label="Download" value={formatMbps(viewModel.downloadMbps)} />
             <KpiItem label="Upload" value={formatMbps(viewModel.uploadMbps)} />
             <KpiItem label="Latency" value={formatMs(viewModel.rttMs)} />

@@ -157,7 +157,7 @@ const SatelliteScreenLabels: React.FC<SatelliteScreenLabelsProps> = ({
   return (
     <>
       {sortedSatellites.map(({ satellite, isManuallySelected, isRouteParticipant }, index) => {
-        const commercialRoleLabel = isRouteParticipant ? 'Serving Satellite' : 'Selected Satellite';
+        const commercialRoleLabel = isRouteParticipant ? 'Serving Satellite' : 'Candidate Satellite';
         return (
           <div
             key={satellite.id}
@@ -190,7 +190,9 @@ const SatelliteScreenLabels: React.FC<SatelliteScreenLabelsProps> = ({
               )}
               <div>{satellite.name}</div>
               {presentation === 'commercial' && (
-                <div className="mt-0.5 text-[10px] font-semibold text-emerald-300">Coverage Active</div>
+                <div className={`mt-0.5 text-[10px] font-semibold ${isRouteParticipant ? 'text-emerald-300' : 'text-sky-300'}`}>
+                  {isRouteParticipant ? 'Service Active' : 'Coverage Available'}
+                </div>
               )}
             </div>
           </div>

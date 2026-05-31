@@ -118,6 +118,17 @@ function commercialEmptyState(input: BuildCommercialScenarioViewModelInput, acti
   return 'No active connectivity path was found.';
 }
 
+function deriveDisplayTechnology(
+  recommendation: import('./commercialTypes').CommercialRecommendation,
+  leoOptionAvailable: boolean,
+  geoOptionAvailable: boolean,
+  activeTechnology: 'LEO' | 'GEO',
+): 'LEO' | 'GEO' {
+  if (recommendation.technology === 'geo' && geoOptionAvailable) return 'GEO';
+  if (recommendation.technology === 'leo' && leoOptionAvailable) return 'LEO';
+  return activeTechnology;
+}
+
 export function buildCommercialScenarioViewModel(input: BuildCommercialScenarioViewModelInput): CommercialScenarioViewModel {
   const activeDirection = routeDirectionFromMeshTab(input.activeMeshTab);
   const geoMetricsSource = input.geoRouteAnalysis
@@ -287,6 +298,9 @@ export function buildCommercialScenarioViewModel(input: BuildCommercialScenarioV
     ),
   }));
   const recommendation = buildRecommendation(comparisonOptions);
+  const leoOptionAvailable = comparisonOptions.find((o) => o.technology === 'leo')?.available === true;
+  const geoOptionAvailable = comparisonOptions.find((o) => o.technology === 'geo')?.available === true;
+  const commercialDisplayTechnology = deriveDisplayTechnology(recommendation, leoOptionAvailable, geoOptionAvailable, input.activeTechnology);
   const executiveSummary = buildExecutiveSummary(serviceStatus, recommendation, customerPrimaryWarning);
 
   const computedAccessStatus: CommercialRouteSegmentStatus = isLeo
@@ -344,11 +358,15 @@ export function buildCommercialScenarioViewModel(input: BuildCommercialScenarioV
       role: activeRouteAvailable && satellite ? 'Serving satellite' : satellite ? 'Candidate satellite' : 'Satellite service',
       isRouteParticipant: activeRouteAvailable && !!satellite,
       isPrimaryIssue: primaryFailingSegment === 'satellite',
-      story: activeRouteAvailable && satellite ? 'The serving satellite carries the customer service.' : 'A serving satellite is required for this service.',
-      summary: satellite ? (activeRouteAvailable ? satellite.name : `Candidate: ${satellite.name}`) : 'No serving satellite',
-      limitation: satelliteStatus === 'healthy' ? undefined : customerPrimaryWarning ?? 'No serving satellite is available for this service',
-      technicalSummary: satellite ? (activeRouteAvailable ? satellite.name : `Candidate: ${satellite.name}`) : 'No serving satellite',
-      technicalLimitation: satelliteStatus === 'healthy' ? undefined : primaryWarning ?? 'No serving satellite is available for this route',
+      story: activeRouteAvailable && satellite
+        ? 'The serving satellite is carrying the customer service.'
+        : satellite
+          ? 'A candidate satellite is available but service is not yet confirmed.'
+          : 'No satellite coverage is available for this location.',
+      summary: satellite ? (activeRouteAvailable ? satellite.name : `Candidate: ${satellite.name}`) : 'No coverage available',
+      limitation: satelliteStatus === 'healthy' ? undefined : customerPrimaryWarning ?? 'No satellite coverage is available for this service',
+      technicalSummary: satellite ? (activeRouteAvailable ? satellite.name : `Candidate: ${satellite.name}`) : 'No coverage available',
+      technicalLimitation: satelliteStatus === 'healthy' ? undefined : primaryWarning ?? 'No satellite coverage is available for this route',
       throughputMbps: downloadMbps,
       latencyMs: rttMs,
     },
@@ -425,6 +443,7 @@ export function buildCommercialScenarioViewModel(input: BuildCommercialScenarioV
     serviceStatus,
     serviceMessage: serviceLabel,
     technology,
+    commercialDisplayTechnology,
     siteA: { name: siteAName },
     siteB: input.siteB || destinationIsSnp ? { name: siteBName } : undefined,
     downloadMbps,

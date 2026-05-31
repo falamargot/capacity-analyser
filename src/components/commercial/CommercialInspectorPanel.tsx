@@ -85,6 +85,11 @@ export default function CommercialInspectorPanel({
     ?? viewModel.routeSegments.find((item) => item.type === 'summary')
     ?? viewModel.routeSegments[0];
   const selectedSegment = segment?.id ?? 'summary';
+  const overallStatusChipClass = segmentStatusChipClassName[
+    viewModel.serviceStatus === 'active' ? 'healthy' :
+    viewModel.serviceStatus === 'degraded' ? 'warning' :
+    viewModel.serviceStatus === 'blocked' ? 'blocked' : 'unknown'
+  ];
   const summaryRows = [
     { label: 'Status', value: viewModel.executiveSummary.statusLabel },
     { label: 'Recommendation', value: viewModel.executiveSummary.recommendedTechnology },
@@ -102,7 +107,7 @@ export default function CommercialInspectorPanel({
     { label: 'Expected downlink', value: formatMbps(segment?.throughputMbps ?? viewModel.downloadMbps) },
     { label: 'Expected uplink', value: formatMbps(viewModel.uploadMbps) },
     { label: 'Customer RTT', value: formatMs(segment?.latencyMs ?? viewModel.rttMs) },
-    { label: 'Selected technology', value: viewModel.technology.toUpperCase() },
+    { label: 'Service technology', value: viewModel.technology.toUpperCase() },
   ];
   const availabilityRows = [
     { label: 'Service availability', value: viewModel.availabilityPct != null ? `${viewModel.availabilityPct.toFixed(2)}%` : viewModel.display.serviceStatusLabel },
@@ -141,8 +146,8 @@ export default function CommercialInspectorPanel({
             <h2 className="mt-1 truncate text-lg font-semibold text-white">{viewModel.executiveSummary.recommendedTechnology}</h2>
             <p className="mt-1 text-sm text-slate-400">{viewModel.executiveSummary.expectedExperience}</p>
           </div>
-          <span className={`shrink-0 rounded-full border px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.08em] ${segmentStatusChipClassName[segment?.status ?? 'unknown']}`}>
-            {segment ? customerServiceStateLabel[segment.customerStatus] : viewModel.executiveSummary.statusLabel}
+          <span className={`shrink-0 rounded-full border px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.08em] ${overallStatusChipClass}`}>
+            {viewModel.executiveSummary.statusLabel}
           </span>
         </div>
       </div>
@@ -184,7 +189,7 @@ export default function CommercialInspectorPanel({
           </StorySection>
 
           {segment?.type !== 'summary' && (
-            <StorySection title="Selected Step">
+            <StorySection title="Service Step">
               {segmentRows.map((row) => (
                 <FieldRow key={`${row.label}-${row.value}`} label={row.label} value={row.value} />
               ))}

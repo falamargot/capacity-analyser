@@ -90,6 +90,11 @@ export interface CommercialScenarioViewModel {
   serviceStatus: CommercialStatus;
   serviceMessage?: string;
   technology: CommercialTechnology;
+  /** Presentation-only display technology — derived from the recommendation.
+   *  The single narrative source for all commercial panels and the globe. */
+  commercialDisplayTechnology: 'LEO' | 'GEO';
+  /** The user's active connectivity tab — shown only as context, never drives narrative. */
+  contextTechnology: 'LEO' | 'GEO';
   siteA?: {
     name: string;
   };

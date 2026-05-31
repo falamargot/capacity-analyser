@@ -1120,6 +1120,11 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         return satellites.filter((s) => relevantIds.has(s.id));
     }, [commercialMode, satellites, pulsedSatellites]);
 
+    // Per-technology route availability used both for satellite label role assignment and
+    // for transmission link visibility. Computed here so both consumers share the same value.
+    const commercialLeoOptionAvailable = !commercialMode || commercialViewModel?.comparison.options.find((option) => option.technology === 'leo')?.available === true;
+    const commercialGeoOptionAvailable = !commercialMode || commercialViewModel?.comparison.options.find((option) => option.technology === 'geo')?.available === true;
+
     const highlightedSatelliteLabels = useMemo(() => {
         const labels: Array<{
             satellite: SatelliteData;
@@ -1158,16 +1163,13 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
             return labels;
         }
 
-        const commercialLeoRouteAvailable = !commercialMode || commercialViewModel?.comparison.options.find((option) => option.technology === 'leo')?.available === true;
-        const commercialGeoRouteAvailable = !commercialMode || commercialViewModel?.comparison.options.find((option) => option.technology === 'geo')?.available === true;
-
         if (satelliteScope !== 'GEO' && leoS2SVisualResult && pointBLeo) {
-            add(leoS2SVisualResult.servingSatelliteA, false, 'A', commercialLeoRouteAvailable);
-            add(leoS2SVisualResult.servingSatelliteB, false, 'B', commercialLeoRouteAvailable);
+            add(leoS2SVisualResult.servingSatelliteA, false, 'A', commercialLeoOptionAvailable);
+            add(leoS2SVisualResult.servingSatelliteB, false, 'B', commercialLeoOptionAvailable);
         } else {
-            add(autoSelectedLEOSatellite, false, undefined, commercialLeoRouteAvailable);
+            add(autoSelectedLEOSatellite, false, undefined, commercialLeoOptionAvailable);
         }
-        add(autoSelectedGEOSatellite, false, undefined, commercialGeoRouteAvailable);
+        add(autoSelectedGEOSatellite, false, undefined, commercialGeoOptionAvailable);
         return labels;
     }, [
         selectedSatellite,
@@ -1178,7 +1180,8 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         satelliteScope,
         satellites,
         commercialMode,
-        commercialViewModel,
+        commercialLeoOptionAvailable,
+        commercialGeoOptionAvailable,
     ]);
 
     const pulsedSnp = useMemo(() => {
@@ -1533,7 +1536,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         );
     const commercialGeoCoverageLabel =
         satelliteScope === 'ALL'
-            ? (commercialViewModel?.technology === 'leo' ? 'GEO backup coverage' : 'GEO alternative path')
+            ? (commercialViewModel?.commercialDisplayTechnology === 'LEO' ? 'GEO backup coverage' : 'GEO service area')
             : 'GEO service area';
     const selectedCountryOutlineStatus =
         satelliteScope === 'GEO'
@@ -1784,6 +1787,9 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                         commercialMode={commercialMode}
                         commercialFocusedSegment={commercialFocusedSegment}
                         commercialRouteAvailable={commercialActiveRouteAvailable}
+                        commercialDisplayTechnology={commercialMode ? (commercialViewModel?.commercialDisplayTechnology ?? null) : null}
+                        commercialLeoRouteAvailable={commercialLeoOptionAvailable}
+                        commercialGeoRouteAvailable={commercialGeoOptionAvailable}
                     />
 
                     {/* Selected Position Marker — Point A */}
@@ -1811,7 +1817,15 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                             markerVariant="site-b"
                         />
                     )}
-                    {pulsedSatellites.map((satellite) => (
+                    {pulsedSatellites.map((satellite) => {
+                        const isLeoSatellite = satellite.type === 'ONEWEB';
+                        const baseRadius = isLeoSatellite ? 20000 : 32000;
+                        const displayTech = commercialMode ? (commercialViewModel?.commercialDisplayTechnology ?? null) : null;
+                        const isSecondaryTech = displayTech !== null && (
+                            (isLeoSatellite && displayTech === 'GEO') ||
+                            (!isLeoSatellite && displayTech === 'LEO')
+                        );
+                        return (
                         <SelectionPulseMarker
                             key={`selection-pulse-satellite-${satellite.id}`}
                             position={getSatellitePositionCallback(satellite)}
@@ -1819,13 +1833,14 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                             baseColor={
                                 selectedSatellite?.id === satellite.id
                                     ? Color.RED
-                                    : satellite.type === 'ONEWEB'
+                                    : isLeoSatellite
                                         ? Color.DEEPPINK
                                         : Color.ROYALBLUE
                             }
-                            ringBaseRadius={satellite.type === 'ONEWEB' ? 20000 : 32000}
+                            ringBaseRadius={isSecondaryTech ? Math.round(baseRadius * 0.55) : baseRadius}
                         />
-                    ))}
+                        );
+                    })}
                     {pulsedSnp && (
                         <SelectionPulseMarker
                             key={`selection-pulse-snp-${pulsedSnp.name}`}

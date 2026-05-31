@@ -66,6 +66,12 @@ interface TransmissionLinksProps {
     commercialMode?: boolean;
     commercialFocusedSegment?: CommercialRouteSegmentType;
     commercialRouteAvailable?: boolean;
+    /** Presentation-only: which technology is the primary commercial story. */
+    commercialDisplayTechnology?: 'LEO' | 'GEO' | null;
+    /** Per-technology route availability — when provided, overrides commercialRouteAvailable for LEO links. */
+    commercialLeoRouteAvailable?: boolean;
+    /** Per-technology route availability — when provided, overrides commercialRouteAvailable for GEO links. */
+    commercialGeoRouteAvailable?: boolean;
 }
 
 // Dashed material cache
@@ -272,6 +278,9 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
     commercialMode = false,
     commercialFocusedSegment = 'summary',
     commercialRouteAvailable = true,
+    commercialDisplayTechnology = null,
+    commercialLeoRouteAvailable,
+    commercialGeoRouteAvailable,
 }) => {
     const { coveragePolicy, weatherCondition, beamHealthFactors, hsBeamsSet } = useSimulation();
 
@@ -301,16 +310,22 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
         return leoAllowedMaterial;
     }, [leoPathVisualState]);
     const leoLinkWidth = leoPathVisualState === 'blocked' ? 3.2 : 2.5;
-    const commercialWidth = (segment: CommercialRouteSegmentType, baseWidth: number) => {
+    // When a display technology is set, secondary-technology links get narrower width
+    // so the recommended technology's route reads as visually dominant.
+    const commercialWidth = (segment: CommercialRouteSegmentType, baseWidth: number, tech?: 'LEO' | 'GEO') => {
         if (!commercialMode) return baseWidth;
-        if (commercialFocusedSegment === 'summary') return baseWidth + 1.2;
-        return commercialFocusedSegment === segment ? baseWidth + 3 : Math.max(baseWidth - 0.4, 1.8);
+        const isSecondary = !!commercialDisplayTechnology && !!tech && tech !== commercialDisplayTechnology;
+        const effectiveBase = isSecondary ? Math.max(baseWidth * 0.55, 1.5) : baseWidth;
+        if (commercialFocusedSegment === 'summary') return effectiveBase + (isSecondary ? 0.4 : 1.2);
+        return commercialFocusedSegment === segment ? effectiveBase + (isSecondary ? 1.0 : 3) : Math.max(effectiveBase - 0.4, 1.5);
     };
+    // S2S backbone (always LEO) — reduce boost when LEO is the secondary display technology.
+    const s2sIsSecondary = commercialMode && !!commercialDisplayTechnology && commercialDisplayTechnology === 'GEO';
     const commercialBackboneBoost = commercialMode
         ? commercialFocusedSegment === 'summary'
-            ? 1.2
+            ? s2sIsSecondary ? 0.4 : 1.2
             : commercialFocusedSegment === 'backhaul'
-                ? 3
+                ? s2sIsSecondary ? 1.0 : 3
                 : 0
         : 0;
     // Always assign a stable Cesium entity ID so the id prop never changes between
@@ -321,7 +336,11 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
     // so having the commercial-route prefix in ENG mode has no behavioural side-effect.
     const routeEntityId = (segment: CommercialRouteSegmentType, suffix: string) =>
         `commercial-route-${segment}-${suffix}`;
-    const showCommercialRoute = !commercialMode || commercialRouteAvailable;
+    // Per-technology route gates — each technology's links are only shown when that
+    // technology has an available route, regardless of which is "active". This prevents
+    // hiding the GEO route when LEO is active-but-unavailable, and vice-versa.
+    const showLeoCommercialRoute = !commercialMode || (commercialLeoRouteAvailable ?? commercialRouteAvailable);
+    const showGeoCommercialRoute = !commercialMode || (commercialGeoRouteAvailable ?? commercialRouteAvailable);
     const showCommercialInspectionLinks = !commercialMode;
 
     const resolveCurrentUser = useMemo(() => {
@@ -746,11 +765,11 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
     return (
         <>
             {/* LEO Uplink/Downlink - User to Satellite */}
-            {showCommercialRoute && leoUplinkCallback && satelliteScope !== 'GEO' && !isSiteToSiteActive && (
+            {showLeoCommercialRoute && leoUplinkCallback && satelliteScope !== 'GEO' && !isSiteToSiteActive && (
                 <Entity id={routeEntityId('access', 'leo-uplink')} name="LEO Uplink/Downlink">
                     <PolylineGraphics
                         positions={leoUplinkCallback}
-                        width={commercialWidth('access', leoLinkWidth)}
+                        width={commercialWidth('access', leoLinkWidth, 'LEO')}
                         material={leoLinkMaterial}
                         arcType={ArcType.NONE}
                     />
@@ -758,11 +777,11 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
             )}
 
             {/* LEO Backhaul to SNP - Satellite to Gateway */}
-            {showCommercialRoute && leoBackhaulCallback && satelliteScope !== 'GEO' && selectedSNP && !isSiteToSiteActive && (
+            {showLeoCommercialRoute && leoBackhaulCallback && satelliteScope !== 'GEO' && selectedSNP && !isSiteToSiteActive && (
                 <Entity id={routeEntityId('backhaul', 'leo-backhaul')} name="LEO Backhaul">
                     <PolylineGraphics
                         positions={leoBackhaulCallback}
-                        width={commercialWidth('backhaul', leoLinkWidth)}
+                        width={commercialWidth('backhaul', leoLinkWidth, 'LEO')}
                         material={leoLinkMaterial}
                         clampToGround={false}
                         arcType={ArcType.NONE}
@@ -771,11 +790,11 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
             )}
 
             {/* GEO User → Satellite (STAR modes only; MESH uses directional callbacks below) */}
-            {showCommercialRoute && geoUserLinkCallback && satelliteScope !== 'LEO' && !isMeshOrP2P && (
+            {showGeoCommercialRoute && geoUserLinkCallback && satelliteScope !== 'LEO' && !isMeshOrP2P && (
                 <Entity id={routeEntityId('access', 'geo-user')} name="GEO User Link">
                     <PolylineGraphics
                         positions={geoUserLinkCallback}
-                        width={commercialWidth('access', 2.5)}
+                        width={commercialWidth('access', 2.5, 'GEO')}
                         material={linkMode === 'STAR_RETURN' ? geoUplinkMaterial : geoUserMaterial}
                         arcType={ArcType.NONE}
                     />
@@ -783,11 +802,11 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
             )}
 
             {/* GEO Satellite -> Gateway — hidden in MESH/P2P (gateway not in the path) */}
-            {showCommercialRoute && geoFeederLinkCallback && satelliteScope !== 'LEO' && !isMeshOrP2P && (
+            {showGeoCommercialRoute && geoFeederLinkCallback && satelliteScope !== 'LEO' && !isMeshOrP2P && (
                 <Entity id={routeEntityId('backhaul', 'geo-feeder')} name="GEO Feeder Link">
                     <PolylineGraphics
                         positions={geoFeederLinkCallback}
-                        width={commercialWidth('backhaul', 2.5)}
+                        width={commercialWidth('backhaul', 2.5, 'GEO')}
                         material={geoFeederMaterial}
                         arcType={ArcType.NONE}
                     />
@@ -795,11 +814,11 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
             )}
 
             {/* GEO Gateway -> Internet — hidden in MESH/P2P */}
-            {showCommercialRoute && geoBackhaulCallback && satelliteScope !== 'LEO' && !isMeshOrP2P && (
+            {showGeoCommercialRoute && geoBackhaulCallback && satelliteScope !== 'LEO' && !isMeshOrP2P && (
                 <Entity id={routeEntityId('backhaul', 'geo-backhaul')} name="GEO Backhaul Link">
                     <PolylineGraphics
                         positions={geoBackhaulCallback}
-                        width={commercialWidth('backhaul', 2.5)}
+                        width={commercialWidth('backhaul', 2.5, 'GEO')}
                         material={geoBackhaulMaterial}
                         arcType={ArcType.NONE}
                     />
@@ -810,30 +829,30 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
                 Orange glow = transmit leg (terminal that emits in the active direction).
                 Cyan glow   = receive leg (terminal that receives in the active direction).
                 Colours swap when switching the A→B / B→A direction tab.            */}
-            {showCommercialRoute && isMeshOrP2P && satelliteScope !== 'LEO' && activeMeshTab === 'forward' && (
+            {showGeoCommercialRoute && isMeshOrP2P && satelliteScope !== 'LEO' && activeMeshTab === 'forward' && (
                 <>
                     {geoUserLinkCallback && (
                         <Entity id={routeEntityId('access', 'geo-mesh-a-sat')} name="A → Satellite (transmit)">
-                            <PolylineGraphics positions={geoUserLinkCallback} width={commercialWidth('access', 5)} material={meshTransmitMaterial} arcType={ArcType.NONE} />
+                            <PolylineGraphics positions={geoUserLinkCallback} width={commercialWidth('access', 5, 'GEO')} material={meshTransmitMaterial} arcType={ArcType.NONE} />
                         </Entity>
                     )}
                     {meshSatToBCallback && (
                         <Entity id={routeEntityId('destination', 'geo-mesh-sat-b')} name="Satellite → B (receive)">
-                            <PolylineGraphics positions={meshSatToBCallback} width={commercialWidth('destination', 5)} material={meshReceiveMaterial} clampToGround={false} arcType={ArcType.NONE} />
+                            <PolylineGraphics positions={meshSatToBCallback} width={commercialWidth('destination', 5, 'GEO')} material={meshReceiveMaterial} clampToGround={false} arcType={ArcType.NONE} />
                         </Entity>
                     )}
                 </>
             )}
-            {showCommercialRoute && isMeshOrP2P && satelliteScope !== 'LEO' && activeMeshTab === 'reverse' && (
+            {showGeoCommercialRoute && isMeshOrP2P && satelliteScope !== 'LEO' && activeMeshTab === 'reverse' && (
                 <>
                     {meshBtoSatCallback && (
                         <Entity id={routeEntityId('destination', 'geo-mesh-b-sat')} name="B → Satellite (transmit)">
-                            <PolylineGraphics positions={meshBtoSatCallback} width={commercialWidth('destination', 5)} material={meshTransmitMaterial} clampToGround={false} arcType={ArcType.NONE} />
+                            <PolylineGraphics positions={meshBtoSatCallback} width={commercialWidth('destination', 5, 'GEO')} material={meshTransmitMaterial} clampToGround={false} arcType={ArcType.NONE} />
                         </Entity>
                     )}
                     {meshSatToACallback && (
                         <Entity id={routeEntityId('access', 'geo-mesh-sat-a')} name="Satellite → A (receive)">
-                            <PolylineGraphics positions={meshSatToACallback} width={commercialWidth('access', 5)} material={meshReceiveMaterial} arcType={ArcType.NONE} />
+                            <PolylineGraphics positions={meshSatToACallback} width={commercialWidth('access', 5, 'GEO')} material={meshReceiveMaterial} arcType={ArcType.NONE} />
                         </Entity>
                     )}
                 </>
@@ -894,13 +913,13 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
                 Cyan: user access links  (UT A ↔ Sat A, UT B ↔ Sat B)
                 Orange: feeder links     (Sat A ↔ SNP A, Sat B ↔ SNP B)
                 Violet dashed: backbone  (SNP A → PoP → SNP B)            */}
-            {showCommercialRoute && leoS2SLinks && (
+            {showLeoCommercialRoute && leoS2SLinks && (
                 <>
                     {/* UT A → Satellite A (user link) */}
                     <Entity id={routeEntityId('access', 'leo-s2s-a-sat')} name="S2S: UT A → Satellite A">
                         <PolylineGraphics
                             positions={leoS2SLinks.satACallback}
-                            width={commercialWidth('access', 3.5)}
+                            width={commercialWidth('access', 3.5, 'LEO')}
                             material={s2sUserLinkMaterial}
                             arcType={ArcType.NONE}
                         />
@@ -911,7 +930,7 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
                         <Entity id={routeEntityId('backhaul', 'leo-s2s-sata-snpa')} name="S2S: Satellite A → SNP A">
                             <PolylineGraphics
                                 positions={leoS2SLinks.satAToSnpACallback}
-                                width={commercialWidth('backhaul', 3)}
+                                width={commercialWidth('backhaul', 3, 'LEO')}
                                 material={s2sFeederLinkMaterial}
                                 clampToGround={false}
                                 arcType={ArcType.NONE}
@@ -954,7 +973,7 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
                         <Entity id={routeEntityId('backhaul', 'leo-s2s-snpb-satb')} name="S2S: SNP B → Satellite B">
                             <PolylineGraphics
                                 positions={leoS2SLinks.satBToSnpBCallback}
-                                width={commercialWidth('backhaul', 3)}
+                                width={commercialWidth('backhaul', 3, 'LEO')}
                                 material={s2sFeederLinkMaterial}
                                 clampToGround={false}
                                 arcType={ArcType.NONE}
@@ -966,7 +985,7 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
                     <Entity id={routeEntityId('destination', 'leo-s2s-satb-b')} name="S2S: Satellite B → UT B">
                         <PolylineGraphics
                             positions={leoS2SLinks.satBCallback}
-                            width={commercialWidth('destination', 3.5)}
+                            width={commercialWidth('destination', 3.5, 'LEO')}
                             material={s2sUserLinkMaterial}
                             arcType={ArcType.NONE}
                         />
