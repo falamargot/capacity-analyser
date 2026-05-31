@@ -30,6 +30,9 @@ interface GeoGatewayLayerProps {
     cameraMetricsRef: React.MutableRefObject<CameraMetricsSnapshot>;
     selectedGatewayName?: string | null;
     sizeScale?: number;
+    /** When non-null, only gateways whose name is in this set are rendered.
+     *  Null (default) renders all gateways — engineering mode. */
+    allowedGatewayNames?: Set<string> | null;
 }
 
 const GeoGatewayEntity = React.memo<{
@@ -117,11 +120,15 @@ const GeoGatewayLayer: React.FC<GeoGatewayLayerProps> = ({
     viewerRef,
     cameraMetricsRef,
     selectedGatewayName = null,
-    sizeScale = 1
+    sizeScale = 1,
+    allowedGatewayNames = null,
 }) => {
     // Memoize Gateway entities (hooks must run unconditionally)
     const gatewayEntities = useMemo(() => {
-        return GEO_GATEWAYS.map((gateway) => (
+        const gatewaysToRender = allowedGatewayNames != null
+            ? GEO_GATEWAYS.filter((gw) => allowedGatewayNames.has(gw.name))
+            : GEO_GATEWAYS;
+        return gatewaysToRender.map((gateway) => (
             <GeoGatewayEntity
                 key={gateway.name}
                 gateway={gateway}
@@ -133,7 +140,7 @@ const GeoGatewayLayer: React.FC<GeoGatewayLayerProps> = ({
                 sizeScale={sizeScale}
             />
         ));
-    }, [viewerRef, cameraMetricsRef, onGatewayClick, onGatewayHover, selectedGatewayName, sizeScale]);
+    }, [viewerRef, cameraMetricsRef, onGatewayClick, onGatewayHover, selectedGatewayName, sizeScale, allowedGatewayNames]);
 
     // Only render Gateways for GEO scope or ALL scope
     if (satelliteScope !== 'GEO' && satelliteScope !== 'ALL') {

@@ -30,6 +30,9 @@ interface SnpLayerProps {
     sizeScale?: number;
     autoSelectedSnpName?: string | null;
     inspectedSnpName?: string | null;
+    /** When non-null, only SNPs whose name is in this set are rendered.
+     *  Null (default) renders all SNPs — engineering mode. */
+    allowedSnpNames?: Set<string> | null;
 }
 
 const SnpEntity = React.memo<{
@@ -152,13 +155,17 @@ const SnpLayer: React.FC<SnpLayerProps> = ({
     cameraMetricsRef,
     sizeScale = 1,
     autoSelectedSnpName = null,
-    inspectedSnpName = null
+    inspectedSnpName = null,
+    allowedSnpNames = null,
 }) => {
     const { failedSnps } = useSimulation();
 
     // Memoize SNP entities (hooks must run unconditionally)
     const snpEntities = useMemo(() => {
-        return SNPS_DATA.map((snp) => (
+        const snpsToRender = allowedSnpNames != null
+            ? SNPS_DATA.filter((snp) => allowedSnpNames.has(snp.name))
+            : SNPS_DATA;
+        return snpsToRender.map((snp) => (
             <SnpEntity
                 key={snp.name}
                 snp={snp}
@@ -172,7 +179,7 @@ const SnpLayer: React.FC<SnpLayerProps> = ({
                 isInspected={!!inspectedSnpName && snp.name === inspectedSnpName}
             />
         ));
-    }, [viewerRef, cameraMetricsRef, onSnpClick, onSnpHover, sizeScale, autoSelectedSnpName, inspectedSnpName, failedSnps]);
+    }, [viewerRef, cameraMetricsRef, onSnpClick, onSnpHover, sizeScale, autoSelectedSnpName, inspectedSnpName, failedSnps, allowedSnpNames]);
 
     // Don't render SNPs for GEO-only scope
     if (satelliteScope === 'GEO') {

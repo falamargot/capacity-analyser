@@ -2819,6 +2819,17 @@ const App: React.FC = () => {
 
   // §4.1 — Shared props for both mobile and desktop MapViewSwitcher instances.
   // Avoids duplicating the full prop list in two places.
+  //
+  // IMPORTANT — commercial props (commercialMode, commercialViewModel,
+  // onCommercialSelectedSegmentChange) are intentionally excluded from this
+  // memo. They are passed separately at each call site for two reasons:
+  //   1. Their values differ between sites (mobile always passes commercialMode=true
+  //      because that branch only renders during commercial mode; desktop passes the
+  //      conditional uiMode === 'commercial').
+  //   2. Keeping them out means a commercialSelectedSegment change does NOT
+  //      invalidate sharedMapProps and therefore does NOT trigger a full
+  //      CesiumGlobe re-render for a UI-only selection change.
+  // Do not move commercial props into this memo.
   const sharedMapProps = useMemo(() => ({
     satellites: filteredSatellites,
     satelliteTypeByName,
@@ -3872,6 +3883,8 @@ const App: React.FC = () => {
           isMobile={isMobile}
           isFullscreen={isFullscreen}
           globe={(
+            // Commercial props passed separately — see §4.1 comment on sharedMapProps.
+            // commercialMode is always true here: this branch only renders when uiMode === 'commercial'.
             <MapViewSwitcher
               {...sharedMapProps}
               isPhone={isPhone}
@@ -4289,6 +4302,7 @@ const App: React.FC = () => {
                   : 'absolute inset-0'
                 }
               >
+                {/* Commercial props passed separately — see §4.1 comment on sharedMapProps. */}
                 <MapViewSwitcher
                   {...sharedMapProps}
                   isPhone={false}

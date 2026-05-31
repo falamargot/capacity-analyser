@@ -1,20 +1,6 @@
 import { ChevronRight } from 'lucide-react';
-import type { CommercialCustomerServiceState, CommercialRouteSegment } from './commercialViewModel';
-
-const statusClassName: Record<CommercialRouteSegment['status'], string> = {
-  healthy: 'bg-emerald-500 text-white',
-  warning: 'bg-amber-400 text-slate-950',
-  blocked: 'bg-rose-500 text-white',
-  unknown: 'bg-slate-300 text-slate-700 dark:bg-slate-700 dark:text-slate-200',
-};
-
-const statusLabel: Record<CommercialCustomerServiceState, string> = {
-  available: 'Available',
-  limited: 'Limited',
-  degraded: 'Degraded',
-  alternative_available: 'Alternative',
-  unavailable: 'Unavailable',
-};
+import type { CommercialRouteSegment } from './commercialViewModel';
+import { customerServiceStateLabelShort, segmentStatusBadgeClassName } from './commercialDisplayUtils';
 
 const journeyLabel: Record<CommercialRouteSegment['type'], string> = {
   access: 'Customer Site',
@@ -60,8 +46,8 @@ export default function CommercialRouteStrip({
             >
               <div className="flex min-w-0 items-center justify-between gap-2">
                 <span className="truncate text-sm font-semibold">{journeyLabel[segment.type]}</span>
-                <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.08em] ${statusClassName[segment.status]}`}>
-                  {statusLabel[segment.customerStatus]}
+                <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.08em] ${segmentStatusBadgeClassName[segment.status]}`}>
+                  {customerServiceStateLabelShort[segment.customerStatus]}
                 </span>
               </div>
               <div className="mt-1 truncate text-xs font-semibold text-sky-100" title={segment.title}>

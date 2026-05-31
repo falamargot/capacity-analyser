@@ -1,3 +1,20 @@
+// Re-export all public types so existing consumers can continue to import from
+// this module without change.
+export type {
+  CommercialCustomerServiceState,
+  CommercialExecutiveSummary,
+  CommercialRecommendation,
+  CommercialRecommendationReasonCategory,
+  CommercialRecommendedTechnology,
+  CommercialRouteSegment,
+  CommercialRouteSegmentStatus,
+  CommercialRouteSegmentType,
+  CommercialScenarioViewModel,
+  CommercialStatus,
+  CommercialTechnology,
+  CommercialTechnologyOption,
+} from './commercialTypes';
+
 import type { CandidateCoverage, MobileAnalysisMetrics } from '../../types/analysis';
 import type { LinkMode } from '../../types/linkMode';
 import type { SatelliteData } from '../../types/satellites';
@@ -7,163 +24,40 @@ import type { ActiveLeoRouteEvidence } from '../../utils/activeLeoRouteEvidence'
 import {
   buildGeoRouteViewModel,
   buildLeoRouteViewModel,
-  formatRouteMbps,
   routeDirectionFromMeshTab,
 } from '../../utils/activeRouteViewModel';
-import { formatCoordinates } from '../../utils/formatters';
-import { WEATHER_ATTENUATION_DB } from '../../utils/realisticSimulation';
-import { WEATHER_PROFILES, toWeatherCondition, type TerminalType, type WeatherType } from '../capacity';
-
-export type CommercialStatus = 'active' | 'degraded' | 'blocked' | 'unknown';
-
-export type CommercialTechnology = 'leo' | 'geo' | 'hybrid';
-
-export type CommercialRouteSegmentType =
-  | 'access'
-  | 'satellite'
-  | 'backhaul'
-  | 'destination'
-  | 'summary';
-
-export type CommercialRouteSegmentStatus = 'healthy' | 'warning' | 'blocked' | 'unknown';
-
-export type CommercialCustomerServiceState =
-  | 'available'
-  | 'limited'
-  | 'degraded'
-  | 'alternative_available'
-  | 'unavailable';
-
-export type CommercialRecommendedTechnology =
-  | 'leo'
-  | 'geo'
-  | 'hybrid'
-  | 'not_available'
-  | 'insufficient_data';
-
-export type CommercialRecommendationReasonCategory =
-  | 'LOWEST_LATENCY'
-  | 'HIGHEST_THROUGHPUT'
-  | 'BEST_AVAILABILITY'
-  | 'BEST_RESILIENCE'
-  | 'SIMILAR_PERFORMANCE'
-  | 'INSUFFICIENT_DATA';
-
-export interface CommercialRouteSegment {
-  id: string;
-  type: CommercialRouteSegmentType;
-  title: string;
-  status: CommercialRouteSegmentStatus;
-  customerStatus: CommercialCustomerServiceState;
-  role: string;
-  isRouteParticipant?: boolean;
-  isPrimaryIssue?: boolean;
-  story?: string;
-  summary?: string;
-  limitation?: string;
-  technicalSummary?: string;
-  technicalLimitation?: string;
-  throughputMbps?: number;
-  latencyMs?: number;
-}
-
-export interface CommercialTechnologyOption {
-  technology: Exclude<CommercialTechnology, 'hybrid'>;
-  label: string;
-  status: CommercialStatus;
-  customerStatus: CommercialCustomerServiceState;
-  statusLabel: string;
-  available: boolean;
-  downloadMbps?: number;
-  uploadMbps?: number;
-  rttMs?: number;
-  routeSummary?: string;
-  limitingFactor?: string;
-  technicalLimitingFactor?: string;
-  strengths: string[];
-}
-
-export interface CommercialRecommendation {
-  technology: CommercialRecommendedTechnology;
-  reasonCategory: CommercialRecommendationReasonCategory;
-  label: string;
-  chipLabel: string;
-  reason: string;
-  message: string;
-  expectedExperience: string;
-}
-
-export interface CommercialExecutiveSummary {
-  status: CommercialCustomerServiceState;
-  statusLabel: string;
-  recommendedTechnology: string;
-  expectedExperience: string;
-  reason: string;
-}
-
-export interface CommercialScenarioViewModel {
-  scenarioName: string;
-  serviceStatus: CommercialStatus;
-  serviceMessage?: string;
-  technology: CommercialTechnology;
-  siteA?: {
-    name: string;
-  };
-  siteB?: {
-    name: string;
-  };
-  downloadMbps?: number;
-  uploadMbps?: number;
-  rttMs?: number;
-  availabilityPct?: number;
-  primaryWarning?: string;
-  bottleneck?: string;
-  routeSegments: CommercialRouteSegment[];
-  selectedSegmentId?: string;
-  activeRouteAvailable: boolean;
-  primaryFailingSegmentId?: string;
-  emptyState?: string;
-  recommendation: CommercialRecommendation;
-  executiveSummary: CommercialExecutiveSummary;
-  comparison: {
-    options: CommercialTechnologyOption[];
-    recommendation: CommercialRecommendation;
-  };
-  display: {
-    serviceStatusLabel: string;
-    weatherA?: string;
-    weatherB?: string;
-    linkMargin?: string;
-    satelliteName?: string;
-    satelliteOrbit?: string;
-    satelliteStatus?: string;
-    elevation?: string;
-    beamName?: string;
-    rfStatus?: string;
-    regulatoryState?: string;
-    routeValue?: string;
-    routeSummary?: string;
-    terminalLabel?: string;
-    pathStability?: string;
-    confidence?: string;
-    backboneDistance?: string;
-    logicalPop?: string;
-    snpA?: string;
-    snpB?: string;
-    destinationType?: string;
-    rawServiceStatus?: string;
-    rawPrimaryWarning?: string;
-    rawBottleneck?: string;
-    rawGeoStatus?: string;
-    rawLeoStatus?: string;
-  };
-}
-
-interface CommercialPoint {
-  lat: number;
-  lng: number;
-  altitude?: number;
-}
+import { type TerminalType, type WeatherType } from '../capacity';
+import type {
+  CommercialPoint,
+  CommercialRouteSegment,
+  CommercialRouteSegmentStatus,
+  CommercialScenarioViewModel,
+  CommercialTechnology,
+  CommercialTechnologyOption,
+} from './commercialTypes';
+import {
+  buildOptionStrengths,
+  commercialStatusFromRoute,
+  customerStateFromCommercial,
+  customerStateFromSegment,
+  finitePositive,
+  formatMaybeGbps,
+  formatMaybeMbps,
+  gbpsToMbps,
+  geoStatusLabel,
+  hasCompleteGeoRouteMetrics,
+  linkMarginLabel,
+  locationName,
+  routeLimitingFactor,
+  satelliteSegmentStatus,
+  segmentStatusFromCommercial,
+  serviceStatusLabel,
+  statusFromGeoStatus,
+  statusFromServiceStatus,
+  toCustomerLimitation,
+  weatherLabel,
+} from './commercialHelpers';
+import { buildExecutiveSummary, buildRecommendation } from './commercialEngine';
 
 interface BuildCommercialScenarioViewModelInput {
   activeTechnology: 'LEO' | 'GEO';
@@ -190,107 +84,6 @@ interface BuildCommercialScenarioViewModelInput {
   selectedSegmentId?: string;
 }
 
-function finitePositive(value: number | null | undefined): number | undefined {
-  return value != null && Number.isFinite(value) && value > 0 ? value : undefined;
-}
-
-function gbpsToMbps(value: number | null | undefined): number | undefined {
-  const finite = finitePositive(value);
-  return finite == null ? undefined : finite * 1000;
-}
-
-function formatMaybeMbps(value: number | null | undefined): string {
-  const finite = finitePositive(value);
-  return finite == null ? '--' : formatRouteMbps(finite);
-}
-
-function formatMaybeGbps(value: number | null | undefined): string {
-  return formatMaybeMbps(gbpsToMbps(value));
-}
-
-function statusFromServiceStatus(status: string | null | undefined): CommercialStatus {
-  if (status === 'ALLOWED') return 'active';
-  if (status === 'DEGRADED') return 'degraded';
-  if (status === 'BLOCKED') return 'blocked';
-  return 'unknown';
-}
-
-function statusFromGeoStatus(status: GeoPointStatus | null): CommercialStatus {
-  if (status === 'available') return 'active';
-  if (status === 'unstable' || status === 'gateway_unavailable') return 'degraded';
-  if (status === 'out_of_coverage') return 'blocked';
-  return 'unknown';
-}
-
-function segmentStatusFromCommercial(status: CommercialStatus): CommercialRouteSegmentStatus {
-  if (status === 'active') return 'healthy';
-  if (status === 'degraded') return 'warning';
-  if (status === 'blocked') return 'blocked';
-  return 'unknown';
-}
-
-function commercialStatusFromRoute(
-  sourceStatus: CommercialStatus,
-  routeAvailable: boolean,
-  metricsComplete: boolean,
-): CommercialStatus {
-  if (sourceStatus === 'blocked') return 'blocked';
-  if (!routeAvailable) return 'blocked';
-  if (!metricsComplete) return 'unknown';
-  return sourceStatus;
-}
-
-function serviceStatusLabel(status: CommercialStatus): string {
-  if (status === 'active') return 'Available';
-  if (status === 'degraded') return 'Degraded';
-  if (status === 'blocked') return 'Unavailable';
-  return 'Limited';
-}
-
-function geoStatusLabel(status: GeoPointStatus | null): string {
-  if (status === 'available') return 'Available';
-  if (status === 'unstable') return 'Degraded';
-  if (status === 'gateway_unavailable') return 'Limited';
-  if (status === 'out_of_coverage') return 'Unavailable';
-  return 'Limited';
-}
-
-function locationName(location: { city: string; country: string } | null | undefined, point: CommercialPoint | null, fallback: string): string {
-  const label = [location?.city, location?.country].filter(Boolean).join(', ');
-  if (label) return label;
-  if (point) return formatCoordinates(point);
-  return fallback;
-}
-
-function weatherLabel(weatherType: WeatherType): string {
-  return `${WEATHER_PROFILES[weatherType].label} (${WEATHER_ATTENUATION_DB[toWeatherCondition(weatherType)].toFixed(1)} dB)`;
-}
-
-function linkMarginLabel(coverage: CandidateCoverage | null): string {
-  return coverage?.linkMarginDb != null && Number.isFinite(coverage.linkMarginDb)
-    ? `${coverage.linkMarginDb.toFixed(1)} dB`
-    : '--';
-}
-
-function satelliteSegmentStatus(satellite: SatelliteData | null): CommercialRouteSegmentStatus {
-  if (!satellite) return 'unknown';
-  return satellite.opsStatus === 'operational' ? 'healthy' : 'warning';
-}
-
-function customerStateFromCommercial(status: CommercialStatus): CommercialCustomerServiceState {
-  if (status === 'active') return 'available';
-  if (status === 'degraded') return 'degraded';
-  if (status === 'blocked') return 'unavailable';
-  return 'limited';
-}
-
-function customerStateFromSegment(status: CommercialRouteSegmentStatus): CommercialCustomerServiceState {
-  if (status === 'healthy') return 'available';
-  if (status === 'warning') return 'limited';
-  if (status === 'blocked') return 'unavailable';
-  return 'limited';
-}
-
 function primaryFailingSegmentId(
   input: BuildCommercialScenarioViewModelInput,
   activeRouteAvailable: boolean,
@@ -313,273 +106,6 @@ function primaryFailingSegmentId(
   return 'summary';
 }
 
-function customerStatusLabel(status: CommercialCustomerServiceState): string {
-  if (status === 'available') return 'Available';
-  if (status === 'limited') return 'Limited';
-  if (status === 'degraded') return 'Degraded';
-  if (status === 'alternative_available') return 'Alternative Available';
-  return 'Unavailable';
-}
-
-function recommendedTechnologyLabel(technology: CommercialRecommendedTechnology): string {
-  if (technology === 'leo') return 'LEO';
-  if (technology === 'geo') return 'GEO';
-  if (technology === 'hybrid') return 'Hybrid';
-  if (technology === 'insufficient_data') return 'Insufficient Data';
-  return 'Not Available';
-}
-
-function toCustomerLimitation(reason: string | null | undefined): string | undefined {
-  if (!reason) return undefined;
-  const normalized = reason.toLowerCase().replaceAll('_', ' ');
-
-  if (normalized.includes('rf unavailable a') || normalized.includes('rf unavailable at a')) {
-    return 'Coverage unavailable at source site';
-  }
-  if (normalized.includes('rf unavailable b') || normalized.includes('rf unavailable at b')) {
-    return 'Coverage unavailable at destination site';
-  }
-  if (normalized.includes('rf') || normalized.includes('coverage') || normalized.includes('no signal') || normalized.includes('out of coverage')) {
-    return 'Coverage unavailable at selected location';
-  }
-  if (normalized.includes('capacity') || normalized.includes('saturated') || normalized.includes('congestion')) {
-    return 'Network congestion reducing performance';
-  }
-  if (normalized.includes('regulatory') || normalized.includes('restricted') || normalized.includes('blocked')) {
-    return 'Regulatory restriction in selected area';
-  }
-  if (normalized.includes('snp') || normalized.includes('gateway') || normalized.includes('backhaul')) {
-    return 'Backhaul path unavailable';
-  }
-  if (normalized.includes('throughput')) {
-    return 'Throughput is not currently available';
-  }
-  if (normalized.includes('route') || normalized.includes('path')) {
-    return 'No active connectivity path was found';
-  }
-
-  return reason.charAt(0).toUpperCase() + reason.slice(1);
-}
-
-function routeLimitingFactor(routeReason: string | null | undefined, fallback: string | undefined): string | undefined {
-  return routeReason ?? fallback;
-}
-
-function hasCompleteDisplayedMetrics(
-  downloadMbps: number | undefined,
-  uploadMbps: number | undefined,
-  rttMs: number | undefined,
-): boolean {
-  return downloadMbps != null && uploadMbps != null && rttMs != null;
-}
-
-function hasCompleteGeoRouteMetrics(
-  linkMode: LinkMode,
-  route: ReturnType<typeof buildGeoRouteViewModel>,
-  downloadMbps: number | undefined,
-  uploadMbps: number | undefined,
-  latencyMs: number | undefined,
-): boolean {
-  if (linkMode === 'STAR_FORWARD') return downloadMbps != null && latencyMs != null;
-  if (linkMode === 'STAR_RETURN') return uploadMbps != null && latencyMs != null;
-  if (linkMode === 'MESH' || linkMode === 'POINT_TO_POINT') {
-    return route.throughputMbps != null
-      && Number.isFinite(route.throughputMbps)
-      && route.throughputMbps > 0
-      && route.latencyMs != null
-      && Number.isFinite(route.latencyMs)
-      && route.latencyMs > 0;
-  }
-  return hasCompleteDisplayedMetrics(downloadMbps, uploadMbps, latencyMs);
-}
-
-function optionHasRecommendationEvidence(option: CommercialTechnologyOption): boolean {
-  return option.available && option.downloadMbps != null && option.rttMs != null;
-}
-
-function serviceQualityRank(option: CommercialTechnologyOption): number {
-  if (option.status === 'active' && option.available) return 3;
-  if (option.status === 'degraded' && option.available) return 2;
-  if (option.status === 'unknown') return 1;
-  return 0;
-}
-
-function isMeaningfullyHigher(left: number | undefined, right: number | undefined, toleranceRatio: number): boolean {
-  if (left == null || right == null || left <= 0 || right <= 0) return false;
-  return left > right * (1 + toleranceRatio);
-}
-
-function isMeaningfullyLower(left: number | undefined, right: number | undefined, toleranceRatio: number): boolean {
-  if (left == null || right == null || left <= 0 || right <= 0) return false;
-  return left < right * (1 - toleranceRatio);
-}
-
-function hasLimitation(option: CommercialTechnologyOption): boolean {
-  return Boolean(option.limitingFactor || option.technicalLimitingFactor || option.status === 'degraded');
-}
-
-function buildOptionStrengths(
-  option: CommercialTechnologyOption,
-  peer: CommercialTechnologyOption | undefined,
-): string[] {
-  if (option.status === 'blocked') return ['Unavailable'];
-  if (option.status === 'unknown') return ['Pending calculation'];
-
-  const strengths: string[] = [];
-  if (option.status === 'active') strengths.push('Service available');
-  if (option.status === 'degraded') strengths.push('Service degraded');
-  if (peer && isMeaningfullyLower(option.rttMs, peer.rttMs, 0.2)) strengths.push('Lowest latency');
-  if (peer && isMeaningfullyHigher(option.downloadMbps, peer.downloadMbps, 0.15)) strengths.push('Highest throughput');
-  if (option.status === 'active' && peer?.status === 'degraded') strengths.push('Better service quality');
-  if (!hasLimitation(option) && option.available) strengths.push('No major limitation');
-
-  return strengths.slice(0, 3);
-}
-
-function insufficientDataRecommendation(reason = 'Not enough comparable route metrics are available'): CommercialRecommendation {
-  return {
-    technology: 'insufficient_data',
-    reasonCategory: 'INSUFFICIENT_DATA',
-    label: 'Insufficient Data',
-    chipLabel: 'Insufficient data',
-    reason,
-    message: 'Recommendation requires more route data',
-    expectedExperience: 'Waiting for route calculation.',
-  };
-}
-
-function buildRecommendation(options: CommercialTechnologyOption[]): CommercialRecommendation {
-  const leo = options.find((option) => option.technology === 'leo');
-  const geo = options.find((option) => option.technology === 'geo');
-  if (!leo || !geo) {
-    return insufficientDataRecommendation('Waiting for comparable service options');
-  }
-
-  const leoHasEvidence = optionHasRecommendationEvidence(leo);
-  const geoHasEvidence = optionHasRecommendationEvidence(geo);
-
-  if (leoHasEvidence && !geoHasEvidence && geo.status === 'blocked') {
-    return {
-      technology: 'leo',
-      reasonCategory: 'BEST_AVAILABILITY',
-      label: 'LEO',
-      chipLabel: 'Recommended: LEO for availability',
-      reason: 'GEO service is unavailable',
-      message: 'LEO recommended because GEO service is unavailable',
-      expectedExperience: 'Low latency connectivity available.',
-    };
-  }
-  if (geoHasEvidence && !leoHasEvidence && leo.status === 'blocked') {
-    return {
-      technology: 'geo',
-      reasonCategory: 'BEST_AVAILABILITY',
-      label: 'GEO',
-      chipLabel: 'Recommended: GEO for availability',
-      reason: 'LEO coverage is unavailable',
-      message: 'GEO recommended because LEO coverage is unavailable',
-      expectedExperience: 'Alternative GEO service available.',
-    };
-  }
-  if (!leo.available && !geo.available) {
-    return {
-      technology: 'not_available',
-      reasonCategory: 'INSUFFICIENT_DATA',
-      label: 'Not Available',
-      chipLabel: 'No viable recommendation',
-      reason: 'No active connectivity path was found',
-      message: 'No service currently available',
-      expectedExperience: 'No active service path available.',
-    };
-  }
-  if (!leoHasEvidence || !geoHasEvidence) {
-    return insufficientDataRecommendation();
-  }
-
-  const leoQuality = serviceQualityRank(leo);
-  const geoQuality = serviceQualityRank(geo);
-  if (leoQuality !== geoQuality) {
-    const winner = leoQuality > geoQuality ? leo : geo;
-    const loser = leoQuality > geoQuality ? geo : leo;
-    return {
-      technology: winner.technology,
-      reasonCategory: 'BEST_AVAILABILITY',
-      label: winner.label,
-      chipLabel: `Recommended: ${winner.label} for service quality`,
-      reason: `${winner.label} has the stronger service state`,
-      message: `${winner.label} recommended because ${loser.label} is ${loser.statusLabel.toLowerCase()}`,
-      expectedExperience: winner.status === 'degraded'
-        ? `${winner.label} service is available with reduced quality.`
-        : `${winner.label} service is available with stronger quality.`,
-    };
-  }
-
-  if (isMeaningfullyHigher(leo.downloadMbps, geo.downloadMbps, 0.15) || isMeaningfullyHigher(geo.downloadMbps, leo.downloadMbps, 0.15)) {
-    return (leo.downloadMbps ?? 0) > (geo.downloadMbps ?? 0)
-      ? {
-          technology: 'leo',
-          reasonCategory: 'HIGHEST_THROUGHPUT',
-          label: 'LEO',
-          chipLabel: 'Recommended: LEO for throughput',
-          reason: 'LEO has higher throughput',
-          message: 'LEO recommended for bandwidth-intensive services',
-          expectedExperience: hasLimitation(leo) ? 'LEO available but currently capacity constrained.' : 'Higher throughput available through LEO.',
-        }
-      : {
-          technology: 'geo',
-          reasonCategory: 'HIGHEST_THROUGHPUT',
-          label: 'GEO',
-          chipLabel: 'Recommended: GEO for throughput',
-          reason: 'GEO has higher throughput',
-          message: 'GEO recommended for bandwidth-intensive services',
-          expectedExperience: hasLimitation(geo) ? 'GEO service available with reduced throughput.' : 'Higher throughput available through GEO.',
-        };
-  }
-
-  if (isMeaningfullyLower(leo.rttMs, geo.rttMs, 0.2) || isMeaningfullyLower(geo.rttMs, leo.rttMs, 0.2)) {
-    return (leo.rttMs ?? Infinity) < (geo.rttMs ?? Infinity)
-      ? {
-          technology: 'leo',
-          reasonCategory: 'LOWEST_LATENCY',
-          label: 'LEO',
-          chipLabel: 'Recommended: LEO for latency',
-          reason: 'LEO has lower latency',
-          message: 'LEO recommended for latency-sensitive services',
-          expectedExperience: hasLimitation(leo) ? 'Low latency service available with current limitations.' : 'Low latency service available.',
-        }
-      : {
-          technology: 'geo',
-          reasonCategory: 'LOWEST_LATENCY',
-          label: 'GEO',
-          chipLabel: 'Recommended: GEO for latency',
-          reason: 'GEO has lower latency in this scenario',
-          message: 'GEO recommended for latency-sensitive services',
-          expectedExperience: hasLimitation(geo) ? 'GEO service available with current limitations.' : 'Stable GEO connectivity available.',
-        };
-  }
-
-  if (leo.status === 'active' && geo.status === 'active' && !hasLimitation(leo) && !hasLimitation(geo)) {
-    return {
-      technology: 'hybrid',
-      reasonCategory: 'BEST_RESILIENCE',
-      label: 'Hybrid',
-      chipLabel: 'Both suitable',
-      reason: 'Both service options are available',
-      message: 'Both suitable; hybrid service improves resilience',
-      expectedExperience: 'Resilient connectivity available across GEO and LEO.',
-    };
-  }
-
-  return {
-    technology: 'hybrid',
-    reasonCategory: 'SIMILAR_PERFORMANCE',
-    label: 'Hybrid',
-    chipLabel: 'Both suitable',
-    reason: 'GEO and LEO perform similarly',
-    message: 'GEO and LEO perform similarly for this scenario',
-    expectedExperience: 'Both service options can support the customer scenario.',
-  };
-}
-
 function commercialEmptyState(input: BuildCommercialScenarioViewModelInput, activeRouteAvailable: boolean, activeRouteReason: string | null | undefined): string | undefined {
   const requiresTwoSites = input.leoTopologyMode === 'SITE_TO_SITE' || input.linkMode === 'MESH' || input.linkMode === 'POINT_TO_POINT';
   if (!input.activeAnalysisPoint || (requiresTwoSites && !input.siteB)) {
@@ -590,25 +116,6 @@ function commercialEmptyState(input: BuildCommercialScenarioViewModelInput, acti
   if (activeRouteReason?.includes('LEO')) return 'LEO service unavailable. Alternative GEO service may remain available.';
   if (!input.metrics.geo && !input.activeLeoRouteEvidence?.metrics) return 'Waiting for route calculation';
   return 'No active connectivity path was found.';
-}
-
-function buildExecutiveSummary(
-  activeStatus: CommercialStatus,
-  recommendation: CommercialRecommendation,
-  customerLimitation: string | undefined,
-): CommercialExecutiveSummary {
-  let status = customerStateFromCommercial(activeStatus);
-  if (status === 'unavailable' && recommendation.technology !== 'not_available' && recommendation.technology !== 'insufficient_data') {
-    status = 'alternative_available';
-  }
-
-  return {
-    status,
-    statusLabel: customerStatusLabel(status),
-    recommendedTechnology: recommendation.label,
-    expectedExperience: recommendation.expectedExperience,
-    reason: customerLimitation ? `${recommendation.reason}. Limitation: ${customerLimitation}` : recommendation.reason,
-  };
 }
 
 export function buildCommercialScenarioViewModel(input: BuildCommercialScenarioViewModelInput): CommercialScenarioViewModel {

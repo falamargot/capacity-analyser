@@ -658,7 +658,11 @@ function buildSingleSitePerformance(args: {
   const fallbackPropagationRttMs = (2 * oneWayDistanceKm / SPEED_OF_LIGHT_RADIO_KM_S) * 1000;
 
   if (args.simulationState.coveragePolicy.type === 'DB_THRESHOLD' && args.connectivity.connectedBeamIndex != null) {
-    const preDebug = buildEndpointDebug({
+    // Single geometry + RF-chain computation. The second call in the original code
+    // (R3 profiling, hot-path 1) was identical to this one — only the three network
+    // layer fields that depend on smoothed throughput differed. Those are patched
+    // in-place below instead of re-running the full comb-geometry + RF chain.
+    const endpointDebug = buildEndpointDebug({
       point: args.point,
       connectivity: args.connectivity,
       terminalType: args.terminalType,
@@ -670,38 +674,39 @@ function buildSingleSitePerformance(args: {
       handoverFactor: 1,
     });
 
-    if (preDebug.debugInfo && preDebug.rawDownlinkMbps != null && preDebug.rawUplinkMbps != null) {
+    if (endpointDebug.debugInfo && endpointDebug.rawDownlinkMbps != null && endpointDebug.rawUplinkMbps != null) {
       const { state: nextHandoverState, degradationFactor } = updateHandoverState(
         args.state.handoverState,
         args.connectivity.satellite.id,
       );
       args.state.handoverState = nextHandoverState;
-      const downlinkHandoverMbps = applyHandoverDegradation(preDebug.rawDownlinkMbps, degradationFactor);
-      const uplinkHandoverMbps = applyHandoverDegradation(preDebug.rawUplinkMbps, degradationFactor);
+      const downlinkHandoverMbps = applyHandoverDegradation(endpointDebug.rawDownlinkMbps, degradationFactor);
+      const uplinkHandoverMbps = applyHandoverDegradation(endpointDebug.rawUplinkMbps, degradationFactor);
       const finalDlMbps = smoothThroughputMbps(downlinkHandoverMbps, args.state.smoothedDownlinkThroughputMbps);
       const finalUlMbps = smoothThroughputMbps(uplinkHandoverMbps, args.state.smoothedUplinkThroughputMbps);
       args.state.smoothedDownlinkThroughputMbps = finalDlMbps;
       args.state.smoothedUplinkThroughputMbps = finalUlMbps;
 
-      const debug = buildEndpointDebug({
-        point: args.point,
-        connectivity: args.connectivity,
-        terminalType: args.terminalType,
-        terminalModelId: args.terminalModelId,
-        beamLoad: args.beamLoad,
-        simulationState: args.simulationState,
-        now: args.now,
-        finalDownlinkMbps: finalDlMbps,
-        finalUplinkMbps: finalUlMbps,
-        smoothingAlpha: SMOOTHING_ALPHA,
-        handoverFactor: degradationFactor,
-      });
+      // Patch the three network-layer fields that differ from the initial computation.
+      // All RF chain values (beamEstimate, RF link budgets, sharing ratios) are
+      // geometry-derived and unchanged; only the post-smoothing delivery fields differ.
+      const dl = endpointDebug.debugInfo.downlink;
+      dl.network.handoverFactor = degradationFactor;
+      dl.network.handoverMbps = dl.network.backhaulMbps * degradationFactor;
+      dl.network.finalUserMbps = finalDlMbps;
+      dl.network.bottleneck = detectThroughputBottleneck(dl);
+      const ul = endpointDebug.debugInfo.uplink;
+      ul.network.handoverFactor = degradationFactor;
+      ul.network.handoverMbps = ul.network.backhaulMbps * degradationFactor;
+      ul.network.finalUserMbps = finalUlMbps;
+      ul.network.bottleneck = detectThroughputBottleneck(ul);
+      endpointDebug.debugInfo.mainBottleneck = chooseMainBottleneck(dl, ul);
 
       return {
         ...calculateBeamAwareSummary({
           deliveredDownlinkMbps: finalDlMbps,
-          limitingElevation: debug.debugInfo?.limitingElevationDeg ?? args.connectivity.userLEOElevation,
-          normalizedDistance: debug.debugInfo?.normalizedDistance ?? 1,
+          limitingElevation: endpointDebug.debugInfo.limitingElevationDeg ?? args.connectivity.userLEOElevation,
+          normalizedDistance: endpointDebug.debugInfo.normalizedDistance ?? 1,
           estimatedRttMs: geometry.rttTotalMs,
           fallbackPropagationRttMs,
           terminalType: args.terminalType,
@@ -710,9 +715,9 @@ function buildSingleSitePerformance(args: {
         }),
         downlinkGbps: finalDlMbps / 1000,
         uplinkGbps: finalUlMbps / 1000,
-        throughput: debug.debugInfo ?? undefined,
-        debugInfo: debug.debugInfo ?? undefined,
-        wasTerminalLimited: preDebug.terminalLimited,
+        throughput: endpointDebug.debugInfo,
+        debugInfo: endpointDebug.debugInfo,
+        wasTerminalLimited: endpointDebug.terminalLimited,
       };
     }
   }
@@ -755,18 +760,76 @@ function buildEmptyEvidence(input: BuildActiveLeoRouteEvidenceInput, inputSignat
   };
 }
 
+// ---------------------------------------------------------------------------
+// DEV-ONLY profiling accumulator
+// Entirely tree-shaken by Vite in production builds (import.meta.env.DEV = false).
+// Access from DevTools: window.__leoEvidenceProfile
+// ---------------------------------------------------------------------------
+interface LeoEvidenceProfile {
+  calls: number;
+  lastMs: Record<string, number>;
+  minMs: Record<string, number>;
+  maxMs: Record<string, number>;
+  sumMs: Record<string, number>;
+  lastLoggedAt: number;
+}
+const _devProfile: LeoEvidenceProfile = import.meta.env.DEV
+  ? { calls: 0, lastMs: {}, minMs: {}, maxMs: {}, sumMs: {}, lastLoggedAt: 0 }
+  : (null as unknown as LeoEvidenceProfile);
+if (import.meta.env.DEV && typeof window !== 'undefined') {
+  (window as Record<string, unknown>).__leoEvidenceProfile = _devProfile;
+}
+function _devMark(label: string, tStart: number): number {
+  const now = performance.now();
+  const dt = now - tStart;
+  const p = _devProfile;
+  p.lastMs[label] = dt;
+  p.sumMs[label] = (p.sumMs[label] ?? 0) + dt;
+  if (p.minMs[label] == null || dt < p.minMs[label]) p.minMs[label] = dt;
+  if (p.maxMs[label] == null || dt > p.maxMs[label]) p.maxMs[label] = dt;
+  return now;
+}
+function _devLogSummary(): void {
+  const p = _devProfile;
+  const keys = Object.keys(p.sumMs);
+  const lines = keys.map((k) => {
+    const avg = (p.sumMs[k] / p.calls).toFixed(3);
+    const min = p.minMs[k].toFixed(3);
+    const max = p.maxMs[k].toFixed(3);
+    const last = p.lastMs[k].toFixed(3);
+    return `  ${k.padEnd(22)} last=${last}ms  avg=${avg}ms  min=${min}ms  max=${max}ms`;
+  });
+  console.debug(
+    `[leoEvidence] profile after ${p.calls} calls:\n${lines.join('\n')}\n` +
+    `  (total avg = ${(p.sumMs['⑦ total'] / p.calls).toFixed(3)}ms)`,
+  );
+}
+
 export function buildActiveLeoRouteEvidence(
   input: BuildActiveLeoRouteEvidenceInput,
   state: ActiveLeoRouteEvidenceState,
 ): ActiveLeoRouteEvidence {
+  const _t0 = import.meta.env.DEV ? performance.now() : 0;
+
   const inputSignature = buildInputSignature(input);
+
+  const _tSig = import.meta.env.DEV ? _devMark('① signature', _t0) : 0;
   if (!input.activePoint) {
+    if (import.meta.env.DEV) {
+      _devProfile.calls += 1;
+      _devMark('⑦ total', _t0);
+      if (performance.now() - _devProfile.lastLoggedAt > 30_000) {
+        _devProfile.lastLoggedAt = performance.now();
+        _devLogSummary();
+      }
+    }
     resetActiveLeoRouteEvidenceState(state);
     return buildEmptyEvidence(input, inputSignature, 'Select a location to calculate LEO service.');
   }
 
   const selectedSnpA = input.selectedSnpA && !input.failedSnps.has(input.selectedSnpA.name) ? input.selectedSnpA : null;
   const selectedSnpB = input.selectedSnpB && !input.failedSnps.has(input.selectedSnpB.name) ? input.selectedSnpB : null;
+  const _tPreConn = import.meta.env.DEV ? performance.now() : 0;
   const connectivityA = buildResolvedConnectivity({
     point: input.activePoint,
     satellite: input.servingSatelliteA,
@@ -774,6 +837,7 @@ export function buildActiveLeoRouteEvidence(
     simulationState: input.simulationStateA,
     now: input.now,
   });
+  const _tPrePerf = import.meta.env.DEV ? _devMark('② connA (beam find)', _tPreConn) : 0;
   const leoPerformance = buildSingleSitePerformance({
     point: input.activePoint,
     connectivity: connectivityA,
@@ -785,9 +849,11 @@ export function buildActiveLeoRouteEvidence(
     now: input.now,
     state,
   });
+  const _tPreRfA = import.meta.env.DEV ? _devMark('③ perfA (RF chain)', _tPrePerf) : 0;
   const rfAvailableA = input.servingSatelliteA
     ? hasRFConnectivity(input.activePoint, input.servingSatelliteA, input.now, input.simulationStateA)
     : false;
+  const _tPostRfA = import.meta.env.DEV ? _devMark('④ rfConnA', _tPreRfA) : 0;
 
   if (input.topology === 'SINGLE_SITE') {
     const downloadMbps = finitePositive(leoPerformance?.downlinkGbps != null ? leoPerformance.downlinkGbps * 1000 : null);
@@ -822,6 +888,14 @@ export function buildActiveLeoRouteEvidence(
             : 'LEO service degraded.'
         : 'LEO route available.';
 
+    if (import.meta.env.DEV) {
+      _devMark('⑦ total', _t0);
+      _devProfile.calls += 1;
+      if (performance.now() - _devProfile.lastLoggedAt > 30_000) {
+        _devProfile.lastLoggedAt = performance.now();
+        _devLogSummary();
+      }
+    }
     return {
       topology: input.topology,
       inputSignature,
@@ -873,6 +947,7 @@ export function buildActiveLeoRouteEvidence(
     };
   }
 
+  const _tPreConnB = import.meta.env.DEV ? performance.now() : 0;
   const connectivityB = buildResolvedConnectivity({
     point: input.pointB,
     satellite: input.servingSatelliteB,
@@ -880,9 +955,11 @@ export function buildActiveLeoRouteEvidence(
     simulationState: input.simulationStateB,
     now: input.now,
   });
+  const _tPreRfB = import.meta.env.DEV ? _devMark('⑤ connB (beam find)', _tPreConnB) : 0;
   const rfAvailableB = input.servingSatelliteB
     ? hasRFConnectivity(input.pointB, input.servingSatelliteB, input.now, input.simulationStateB)
     : false;
+  const _tPreRoute = import.meta.env.DEV ? _devMark('⑥ rfConnB', _tPreRfB) : 0;
 
   const siteADlMbps = input.servingSatelliteA && rfAvailableA && leoPerformance?.downlinkGbps != null
     ? leoPerformance.downlinkGbps * 1000
@@ -915,6 +992,7 @@ export function buildActiveLeoRouteEvidence(
       }).debugInfo
     : null;
 
+  const _tPreS2S = import.meta.env.DEV ? performance.now() : 0;
   const routeResult = computeLeoSiteToSiteResult({
     endpointA: { lat: input.activePoint.lat, lng: input.activePoint.lng },
     endpointB: { lat: input.pointB.lat, lng: input.pointB.lng },
@@ -942,6 +1020,8 @@ export function buildActiveLeoRouteEvidence(
     debugSiteB: debugB ?? undefined,
   });
 
+  if (import.meta.env.DEV) _devMark('⑥b s2s route', _tPreS2S);
+
   const throughputAtoB = finitePositive(routeResult.finalThroughputAtoBMbps);
   const throughputBtoA = finitePositive(routeResult.finalThroughputBtoAMbps);
   const rttMs = finitePositive(routeResult.rttMs);
@@ -955,7 +1035,7 @@ export function buildActiveLeoRouteEvidence(
     ? formatLeoSiteToSiteFailureReason(routeResult.failureReason)
     : 'LEO site-to-site route available.';
 
-  return {
+  const s2sResult: ActiveLeoRouteEvidence = {
     topology: input.topology,
     inputSignature,
     available: metricsComplete,
@@ -996,4 +1076,13 @@ export function buildActiveLeoRouteEvidence(
       siteB: routeResult.debugSiteB ?? null,
     },
   };
+  if (import.meta.env.DEV) {
+    _devMark('⑦ total', _t0);
+    _devProfile.calls += 1;
+    if (performance.now() - _devProfile.lastLoggedAt > 30_000) {
+      _devProfile.lastLoggedAt = performance.now();
+      _devLogSummary();
+    }
+  }
+  return s2sResult;
 }

@@ -1,24 +1,6 @@
 import { AlertTriangle, CheckCircle2, Sparkles } from 'lucide-react';
-import type { CommercialScenarioViewModel, CommercialStatus } from './commercialViewModel';
-
-const statusClassName: Record<CommercialStatus, string> = {
-  active: 'border-emerald-400/40 bg-emerald-500/12 text-emerald-700 dark:text-emerald-200',
-  degraded: 'border-amber-400/45 bg-amber-500/12 text-amber-700 dark:text-amber-200',
-  blocked: 'border-rose-400/45 bg-rose-500/12 text-rose-700 dark:text-rose-200',
-  unknown: 'border-slate-300 bg-slate-100 text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300',
-};
-
-function formatMbps(value: number | undefined): string {
-  if (value == null || !Number.isFinite(value) || value <= 0) return '--';
-  if (value >= 1000) return `${(value / 1000).toFixed(1)} Gbps`;
-  return `${Math.round(value)} Mbps`;
-}
-
-function formatMs(value: number | undefined): string {
-  if (value == null || !Number.isFinite(value) || value <= 0) return '--';
-  if (value >= 1000) return `${(value / 1000).toFixed(1)} s`;
-  return `${Math.round(value)} ms`;
-}
+import type { CommercialScenarioViewModel } from './commercialViewModel';
+import { formatMbps, formatMs, serviceStatusChipClassName } from './commercialDisplayUtils';
 
 function KpiItem({ label, value }: { label: string; value: string }) {
   return (
@@ -80,7 +62,7 @@ export default function CommercialKpiBar({ viewModel }: CommercialKpiBarProps) {
           <div className="mt-1 truncate text-xl font-semibold text-white" title={viewModel.scenarioName}>
             {viewModel.scenarioName}
           </div>
-          <div className={`mt-3 inline-flex w-fit max-w-full items-center rounded-full border px-3 py-1 text-sm font-semibold ${statusClassName[viewModel.serviceStatus]}`}>
+          <div className={`mt-3 inline-flex w-fit max-w-full items-center rounded-full border px-3 py-1 text-sm font-semibold ${serviceStatusChipClassName[viewModel.serviceStatus]}`}>
             <span className="truncate">{summary.statusLabel}</span>
           </div>
         </div>

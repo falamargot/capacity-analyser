@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { ExternalLink } from 'lucide-react';
-import type { CommercialCustomerServiceState, CommercialRouteSegment, CommercialScenarioViewModel } from './commercialViewModel';
+import type { CommercialRouteSegment, CommercialScenarioViewModel } from './commercialViewModel';
+import { customerServiceStateLabel, formatMbps, formatMs, segmentStatusChipClassName } from './commercialDisplayUtils';
 
 const segmentOrder: CommercialRouteSegment['type'][] = ['access', 'satellite', 'backhaul', 'destination', 'summary'];
 
@@ -12,38 +13,11 @@ const tabLabel: Record<CommercialRouteSegment['type'], string> = {
   summary: 'Summary',
 };
 
-const statusClassName: Record<CommercialRouteSegment['status'], string> = {
-  healthy: 'border-emerald-400/40 bg-emerald-500/12 text-emerald-700 dark:text-emerald-200',
-  warning: 'border-amber-400/45 bg-amber-500/12 text-amber-700 dark:text-amber-200',
-  blocked: 'border-rose-400/45 bg-rose-500/12 text-rose-700 dark:text-rose-200',
-  unknown: 'border-slate-300 bg-slate-100 text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300',
-};
-
-const statusLabel: Record<CommercialCustomerServiceState, string> = {
-  available: 'Available',
-  limited: 'Limited',
-  degraded: 'Degraded',
-  alternative_available: 'Alternative Available',
-  unavailable: 'Unavailable',
-};
-
 interface CommercialInspectorPanelProps {
   viewModel: CommercialScenarioViewModel;
   selectedSegmentId: string;
   onSelectedSegmentChange: (segment: string) => void;
   onViewFullAnalysis: () => void;
-}
-
-function formatMbps(value: number | undefined): string {
-  if (value == null || !Number.isFinite(value) || value <= 0) return '--';
-  if (value >= 1000) return `${(value / 1000).toFixed(1)} Gbps`;
-  return `${Math.round(value)} Mbps`;
-}
-
-function formatMs(value: number | undefined): string {
-  if (value == null || !Number.isFinite(value) || value <= 0) return '--';
-  if (value >= 1000) return `${(value / 1000).toFixed(1)} s`;
-  return `${Math.round(value)} ms`;
 }
 
 function FieldRow({ label, value }: { label: string; value: string }) {
@@ -120,7 +94,7 @@ export default function CommercialInspectorPanel({
   ];
   const segmentRows = [
     { label: 'Service step', value: segment?.story ?? 'Customer service scenario' },
-    { label: 'Status', value: segment ? statusLabel[segment.customerStatus] : viewModel.executiveSummary.statusLabel },
+    { label: 'Status', value: segment ? customerServiceStateLabel[segment.customerStatus] : viewModel.executiveSummary.statusLabel },
     { label: 'Current constraint', value: segment?.limitation ?? 'None detected' },
     { label: 'Expected experience', value: viewModel.executiveSummary.expectedExperience },
   ];
@@ -167,8 +141,8 @@ export default function CommercialInspectorPanel({
             <h2 className="mt-1 truncate text-lg font-semibold text-white">{viewModel.executiveSummary.recommendedTechnology}</h2>
             <p className="mt-1 text-sm text-slate-400">{viewModel.executiveSummary.expectedExperience}</p>
           </div>
-          <span className={`shrink-0 rounded-full border px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.08em] ${statusClassName[segment?.status ?? 'unknown']}`}>
-            {segment ? statusLabel[segment.customerStatus] : viewModel.executiveSummary.statusLabel}
+          <span className={`shrink-0 rounded-full border px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.08em] ${segmentStatusChipClassName[segment?.status ?? 'unknown']}`}>
+            {segment ? customerServiceStateLabel[segment.customerStatus] : viewModel.executiveSummary.statusLabel}
           </span>
         </div>
       </div>

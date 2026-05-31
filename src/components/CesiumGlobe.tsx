@@ -1112,6 +1112,14 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         satellites,
     ]);
 
+    // In Commercial Mode, restrict the satellite layer to route-relevant satellites only.
+    // Engineering Mode always receives the full fleet.
+    const satellitesForLayer = useMemo(() => {
+        if (!commercialMode) return satellites;
+        const relevantIds = new Set(pulsedSatellites.map((s) => s.id));
+        return satellites.filter((s) => relevantIds.has(s.id));
+    }, [commercialMode, satellites, pulsedSatellites]);
+
     const highlightedSatelliteLabels = useMemo(() => {
         const labels: Array<{
             satellite: SatelliteData;
@@ -1185,6 +1193,32 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
     const pulsedGateway = useMemo(() => {
         return activeResolvedGeoGateway?.gateway ?? null;
     }, [activeResolvedGeoGateway]);
+
+    // Commercial mode SNP allowlist.  null = no filtering (engineering mode).
+    // In commercial mode only route-participant and selected/candidate SNPs are
+    // visible; the full global SNPS_DATA list is hidden.
+    const commercialSnpAllowlist = useMemo((): Set<string> | null => {
+        if (!commercialMode) return null;
+        const names = new Set<string>();
+        // Site-to-site route SNPs
+        if (leoS2SVisualResult?.selectedSnpA) names.add(leoS2SVisualResult.selectedSnpA.name);
+        if (leoS2SVisualResult?.selectedSnpB) names.add(leoS2SVisualResult.selectedSnpB.name);
+        // Single-site selected / candidate SNP
+        const snpName = typeof selectedSNP === 'string' ? selectedSNP : (selectedSNP?.name ?? null);
+        if (snpName) names.add(snpName);
+        if (inspectedSNP?.name) names.add(inspectedSNP.name);
+        return names;
+    }, [commercialMode, leoS2SVisualResult, selectedSNP, inspectedSNP]);
+
+    // Commercial mode gateway allowlist.  null = no filtering (engineering mode).
+    // In commercial mode only the gateway that is active for the current GEO route
+    // is visible; the full GEO_GATEWAYS list is hidden.
+    const commercialGatewayAllowlist = useMemo((): Set<string> | null => {
+        if (!commercialMode) return null;
+        const names = new Set<string>();
+        if (pulsedGateway) names.add(pulsedGateway.name);
+        return names;
+    }, [commercialMode, pulsedGateway]);
 
     useEffect(() => {
         if (!import.meta.env.DEV || !activeResolvedGeoGateway || !pulsedGateway) return;
@@ -1811,7 +1845,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
 
                     {/* Satellite Layer */}
                     <SatelliteLayer
-                        satellites={satellites}
+                        satellites={satellitesForLayer}
                         selectedSatellite={selectedSatellite}
                         onSatelliteClick={onSatelliteClick}
                         onSatelliteHover={handleSatelliteHover}
@@ -1830,6 +1864,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                         sizeScale={sizeScale}
                         autoSelectedSnpName={typeof selectedSNP === 'string' ? selectedSNP : (selectedSNP?.name ?? null)}
                         inspectedSnpName={inspectedSNP?.name ?? null}
+                        allowedSnpNames={commercialSnpAllowlist}
                     />
 
                     {/* GEO Gateway Layer */}
@@ -1841,6 +1876,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                         cameraMetricsRef={cameraMetricsRef}
                         selectedGatewayName={selectedGeoGatewayName}
                         sizeScale={sizeScale}
+                        allowedGatewayNames={commercialGatewayAllowlist}
                     />
 
                     {/* Trajectory Layer */}
