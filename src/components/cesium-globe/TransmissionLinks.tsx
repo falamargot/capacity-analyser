@@ -313,9 +313,14 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
                 ? 3
                 : 0
         : 0;
-    const routeEntityId = (segment: CommercialRouteSegmentType, suffix: string) => (
-        commercialMode ? `commercial-route-${segment}-${suffix}` : undefined
-    );
+    // Always assign a stable Cesium entity ID so the id prop never changes between
+    // engineering and commercial mode. If id flips string→undefined on the same
+    // React component instance, Resium cannot cleanly remove/re-add the Cesium entity
+    // and the link line disappears permanently after a mode switch.
+    // The click handler in CesiumGlobe already guards with `if (commercialMode && ...)`
+    // so having the commercial-route prefix in ENG mode has no behavioural side-effect.
+    const routeEntityId = (segment: CommercialRouteSegmentType, suffix: string) =>
+        `commercial-route-${segment}-${suffix}`;
     const showCommercialRoute = !commercialMode || commercialRouteAvailable;
     const showCommercialInspectionLinks = !commercialMode;
 

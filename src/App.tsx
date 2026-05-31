@@ -1,4 +1,4 @@
-import React, { Suspense, lazy, useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import React, { Suspense, lazy, useState, useEffect, useMemo, useCallback, useRef, useTransition } from 'react';
 import MapViewSwitcher from './components/MapViewSwitcher';
 import SatelliteSelector from './components/SatelliteSelector';
 import SplashScreen from './components/SplashScreen';
@@ -15,6 +15,9 @@ import { setMemoryMonitorViewerGetter } from './utils/memoryMonitor';
 import ExportButton, { type ExportButtonPayload } from './components/ExportButton';
 import SimulationSettings from './components/layout/SimulationSettings';
 import CommercialModeShell from './components/commercial/CommercialModeShell';
+import CommercialKpiBar from './components/commercial/CommercialKpiBar';
+import CommercialRouteStrip from './components/commercial/CommercialRouteStrip';
+import CommercialInspectorPanel from './components/commercial/CommercialInspectorPanel';
 import { buildCommercialScenarioViewModel } from './components/commercial/commercialViewModel';
 import { WeatherControl, WEATHER_PROFILES, type TerminalType, type WeatherType, toWeatherCondition } from './components/capacity';
 import { WEATHER_ATTENUATION_DB } from './utils/realisticSimulation';
@@ -400,6 +403,10 @@ const App: React.FC = () => {
   const [satelliteScope, setSatelliteScope] = useState<SatelliteScope>('ALL');
   const [activeConnectivityTab, setActiveConnectivityTab] = useState<'LEO' | 'GEO'>('LEO');
   const [uiMode, setUiMode] = useState<UiMode>('engineering');
+  // isPending is true for exactly the transition render where uiMode just changed.
+  // Used to skip buildGeoRouteAnalysisViewModel during mode switches so Cesium's
+  // rAF loop is not blocked by the expensive computation during the switch frame.
+  const [isUiModeTransitionPending, startUiModeTransition] = useTransition();
   const [commercialSelectedSegment, setCommercialSelectedSegment] = useState<string>('summary');
 
   useEffect(() => {
@@ -1595,34 +1602,48 @@ const App: React.FC = () => {
   }, [leoTopologyMode, pointBLeo, leoRegulatoryResultB]);
 
   const leoConnectivityStatus = useMemo(() => {
-    if (!activeAnalysisPoint || !resolvedAutoLEO) return null;
+    const sat = autoSelectedLEOId
+      ? (satellitesForResolutionRef.current.find((s) => s.id === autoSelectedLEOId) ?? null)
+      : null;
+    if (!activeAnalysisPoint || !sat) return null;
     return getConnectivityStatus(
       activeAnalysisPoint,
-      resolvedAutoLEO,
+      sat,
       JulianDate.fromDate(new Date()),
       simulationState
     );
-  }, [activeAnalysisPoint, leoEvidenceTick, resolvedAutoLEO, simulationState]);
+  // resolvedAutoLEO intentionally omitted: read from always-fresh satellitesForResolutionRef
+  // instead to avoid double-firing with leoEvidenceTick (which already triggers every second).
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeAnalysisPoint, autoSelectedLEOId, leoEvidenceTick, simulationState]);
 
   const leoHasCurrentRF = useMemo(() => {
-    if (!activeAnalysisPoint || !resolvedAutoLEO) return false;
+    const sat = autoSelectedLEOId
+      ? (satellitesForResolutionRef.current.find((s) => s.id === autoSelectedLEOId) ?? null)
+      : null;
+    if (!activeAnalysisPoint || !sat) return false;
     return hasRFConnectivity(
       activeAnalysisPoint,
-      resolvedAutoLEO,
+      sat,
       JulianDate.fromDate(new Date()),
       simulationState
     );
-  }, [activeAnalysisPoint, leoEvidenceTick, resolvedAutoLEO, simulationState]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeAnalysisPoint, autoSelectedLEOId, leoEvidenceTick, simulationState]);
 
   const leoSiteBHasCurrentRF = useMemo(() => {
-    if (!pointBLeo || !resolvedAutoLEOB) return false;
+    const satB = autoSelectedLEOIdB
+      ? (satellitesForResolutionRef.current.find((s) => s.id === autoSelectedLEOIdB) ?? null)
+      : null;
+    if (!pointBLeo || !satB) return false;
     return hasRFConnectivity(
       pointBLeo,
-      resolvedAutoLEOB,
+      satB,
       JulianDate.fromDate(new Date()),
       simulationState
     );
-  }, [leoEvidenceTick, pointBLeo, resolvedAutoLEOB, simulationState]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoSelectedLEOIdB, leoEvidenceTick, pointBLeo, simulationState]);
 
   const leoHasGatewayPath = useMemo(
     () => !!selectedSNP,
@@ -1664,32 +1685,55 @@ const App: React.FC = () => {
     resolvedAutoLEO,
   ]);
 
-  const activeLeoRouteEvidence = useMemo(() => buildActiveLeoRouteEvidence({
-    topology: leoTopologyMode,
-    direction: activeMeshTab === 'reverse' ? 'B_TO_A' : 'A_TO_B',
-    activePoint: activeAnalysisPoint,
-    pointB: pointBLeo,
-    servingSatelliteA: resolvedAutoLEO,
-    servingSatelliteB: resolvedAutoLEOB,
-    selectedSnpA: selectedSNP,
-    selectedSnpB: selectedSNPB,
-    regulatoryResultA: leoRegulatoryResult,
-    regulatoryResultB: leoRegulatoryResultB,
-    beamLoadA: leoBeamLoadResult,
-    beamLoadB: leoBeamLoadResultB,
-    terminalTypeA: leoTerminalType,
-    terminalTypeB: leoTerminalTypeB,
-    terminalModelIdA: leoTerminalModelId,
-    terminalModelIdB: leoTerminalModelIdB,
-    weatherTypeA: weatherType,
-    weatherTypeB,
-    simulationStateA: simulationState,
-    simulationStateB,
-    failedSnps,
-    now: JulianDate.fromDate(new Date()),
-  }, activeLeoRouteEvidenceStateRef.current), [
+  const activeLeoRouteEvidence = useMemo(() => {
+    // Read satellite positions from the always-fresh ref rather than from resolvedAutoLEO /
+    // resolvedAutoLEOB React state. Those state values depend on satelliteById which rebuilds
+    // on every 1-second propagation tick, causing buildActiveLeoRouteEvidence (which runs
+    // calculateCombGeometry — 16-beam polygon generation) to fire *twice* per second:
+    // once from the satellite tick and once from leoEvidenceTick. That double execution
+    // on the main thread starves Cesium's rAF loop and freezes satellite animation.
+    // Using the ref gives identical, always-current data without adding a reactive dep.
+    const satA = autoSelectedLEOId
+      ? (satellitesForResolutionRef.current.find((s) => s.id === autoSelectedLEOId) ?? null)
+      : null;
+    const satB = autoSelectedLEOIdB
+      ? (satellitesForResolutionRef.current.find((s) => s.id === autoSelectedLEOIdB) ?? null)
+      : null;
+    return buildActiveLeoRouteEvidence({
+      topology: leoTopologyMode,
+      direction: activeMeshTab === 'reverse' ? 'B_TO_A' : 'A_TO_B',
+      activePoint: activeAnalysisPoint,
+      pointB: pointBLeo,
+      servingSatelliteA: satA,
+      servingSatelliteB: satB,
+      selectedSnpA: selectedSNP,
+      selectedSnpB: selectedSNPB,
+      regulatoryResultA: leoRegulatoryResult,
+      regulatoryResultB: leoRegulatoryResultB,
+      beamLoadA: leoBeamLoadResult,
+      beamLoadB: leoBeamLoadResultB,
+      terminalTypeA: leoTerminalType,
+      terminalTypeB: leoTerminalTypeB,
+      terminalModelIdA: leoTerminalModelId,
+      terminalModelIdB: leoTerminalModelIdB,
+      weatherTypeA: weatherType,
+      weatherTypeB,
+      simulationStateA: simulationState,
+      simulationStateB,
+      failedSnps,
+      now: JulianDate.fromDate(new Date()),
+    }, activeLeoRouteEvidenceStateRef.current);
+  // resolvedAutoLEO / resolvedAutoLEOB intentionally omitted — satellite data is read
+  // from satellitesForResolutionRef at execution time so leoEvidenceTick alone drives
+  // the 1-second cadence without a second trigger from the satellite-state tick.
+  // autoSelectedLEOId / autoSelectedLEOIdB retained so a satellite-selection change
+  // triggers an immediate re-evaluation rather than waiting for the next tick.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
     activeAnalysisPoint,
     activeMeshTab,
+    autoSelectedLEOId,
+    autoSelectedLEOIdB,
     failedSnps,
     leoBeamLoadResult,
     leoBeamLoadResultB,
@@ -1702,8 +1746,6 @@ const App: React.FC = () => {
     leoTerminalTypeB,
     leoTopologyMode,
     pointBLeo,
-    resolvedAutoLEO,
-    resolvedAutoLEOB,
     selectedSNP,
     selectedSNPB,
     simulationState,
@@ -1784,7 +1826,12 @@ const App: React.FC = () => {
   }, [activeAnalysisPoint, activeGeoSatellite, satelliteScope, satellites, selectedCoverage]);
 
   const geoRouteAnalysis = useMemo(() => {
-    if (uiMode !== 'commercial') return null;
+    // Skip during the mode-switch transition render (isPending=true) so the
+    // expensive buildGeoRouteAnalysisViewModel doesn't block the Cesium rAF loop
+    // at the moment the user clicks. After the transition settles, isPending=false
+    // and the computation runs normally.
+    // COMM→ENG: uiMode check handles it immediately — no transition cost in that direction.
+    if (uiMode !== 'commercial' || isUiModeTransitionPending) return null;
 
     // Keep GEO commercial analysis off the per-second satellite state tick.
     // The live ref is fresh when the scenario changes, without forcing a
@@ -1818,6 +1865,9 @@ const App: React.FC = () => {
       nearestLocation,
       nearestLocationB,
     });
+  // satellites / satellitesForResolutionRef intentionally omitted so this stays off
+  // the visual propagation tick; routeSatellites is read at execution time above.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     activeAnalysisPoint,
     activeMeshTab,
@@ -1841,6 +1891,7 @@ const App: React.FC = () => {
     selectedUplinkCoverage,
     selectedUplinkCoverageB,
     uiMode,
+    isUiModeTransitionPending,
     weatherType,
     weatherTypeB,
   ]);
@@ -3272,24 +3323,14 @@ const App: React.FC = () => {
           ? 100
           : 94;
 
-  if (loading) {
-    return (
-      <SplashScreen
-        message={splashMessage}
-        progress={splashProgress}
-        onComplete={() => undefined}
-      />
-    );
-  }
-
-  const entryPointCardClassName = 'group relative overflow-hidden rounded-[20px] border border-slate-200/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.94),rgba(248,250,252,0.84))] p-3.5 shadow-[0_16px_34px_-30px_rgba(15,23,42,0.7)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_22px_46px_-30px_rgba(37,99,235,0.28)] dark:border-slate-700 dark:bg-[linear-gradient(180deg,rgba(15,23,42,0.78),rgba(15,23,42,0.62))]';
-  const entryPointDescriptionClassName = 'mt-0.5 truncate text-[11px] leading-4 text-slate-500 dark:text-slate-400';
   const activeCommercialTechnology = satelliteScope === 'GEO'
     ? 'GEO'
     : satelliteScope === 'LEO'
       ? 'LEO'
       : activeConnectivityTab;
-  const commercialScenarioViewModel = buildCommercialScenarioViewModel({
+  // Memoized so buildCommercialScenarioViewModel only runs when its inputs actually change,
+  // not on every satellite-tick render that leaves these values untouched.
+  const commercialScenarioViewModel = useMemo(() => buildCommercialScenarioViewModel({
     activeTechnology: activeCommercialTechnology,
     activeMeshTab,
     activeAnalysisPoint,
@@ -3312,7 +3353,26 @@ const App: React.FC = () => {
     weatherTypeB,
     leoTerminalType,
     selectedSegmentId: commercialSelectedSegment,
-  });
+  }), [
+    activeCommercialTechnology, activeMeshTab, activeAnalysisPoint, activeAnalysisSource,
+    siteB, nearestLocation, nearestLocationB, selectedSNP?.name, selectedSatellite,
+    activeGeoSatellite, resolvedAutoLEO, mobileMetrics, leoTopologyMode,
+    activeLeoRouteEvidence, geoPointStatus, linkMode, selectedCoverage, geoRouteAnalysis,
+    weatherType, weatherTypeB, leoTerminalType, commercialSelectedSegment,
+  ]);
+
+  if (loading) {
+    return (
+      <SplashScreen
+        message={splashMessage}
+        progress={splashProgress}
+        onComplete={() => undefined}
+      />
+    );
+  }
+
+  const entryPointCardClassName = 'group relative overflow-hidden rounded-[20px] border border-slate-200/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.94),rgba(248,250,252,0.84))] p-3.5 shadow-[0_16px_34px_-30px_rgba(15,23,42,0.7)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_22px_46px_-30px_rgba(37,99,235,0.28)] dark:border-slate-700 dark:bg-[linear-gradient(180deg,rgba(15,23,42,0.78),rgba(15,23,42,0.62))]';
+  const entryPointDescriptionClassName = 'mt-0.5 truncate text-[11px] leading-4 text-slate-500 dark:text-slate-400';
 
   const renderUiModeSwitch = (compact = false) => (
     <div className={`inline-flex shrink-0 rounded-lg border border-slate-200 bg-slate-50 p-0.5 dark:border-slate-700 dark:bg-slate-800 ${compact ? 'text-[11px]' : 'text-xs'}`}>
@@ -3323,7 +3383,7 @@ const App: React.FC = () => {
         <button
           key={mode}
           type="button"
-          onClick={() => setUiMode(mode)}
+          onClick={() => startUiModeTransition(() => setUiMode(mode))}
           className={[
             'rounded-md px-2.5 py-1.5 font-semibold transition-colors',
             uiMode === mode
@@ -3801,11 +3861,14 @@ const App: React.FC = () => {
         </div>
       )}
 
-      {uiMode === 'commercial' ? (
+      {/* Mobile commercial: use CommercialModeShell (handles its own layout).
+          Desktop commercial AND desktop engineering share the unified desktop block below
+          so CesiumGlobe stays mounted across mode switches — no Cesium reinit, no freeze. */}
+      {uiMode === 'commercial' && isMobile ? (
         <CommercialModeShell
           viewModel={commercialScenarioViewModel}
           onSelectedSegmentChange={setCommercialSelectedSegment}
-          onViewFullAnalysis={() => setUiMode('engineering')}
+          onViewFullAnalysis={() => startUiModeTransition(() => setUiMode('engineering'))}
           isMobile={isMobile}
           isFullscreen={isFullscreen}
           globe={(
@@ -4177,197 +4240,270 @@ const App: React.FC = () => {
           </div>
         </main>
       ) : (
-        <main className="px-2 py-4 sm:px-3 lg:px-4">
+        /* ── Unified desktop layout (Engineering + Commercial) ──────────────────────
+         * MapViewSwitcher is always rendered at slot-1 in the left column regardless
+         * of uiMode. React reconciles the same div type at the same tree position →
+         * CesiumGlobe stays mounted, Cesium viewer is never destroyed, satellite
+         * animation never freezes on mode switch.
+         * Only the surrounding panels (slot-0 KPI bar, slot-2 route strip, right
+         * panel inspector/sidebar) change between modes; those don't contain the globe. */
+        <main
+          className={uiMode === 'commercial'
+            ? (isFullscreen ? 'fixed inset-0 z-50 bg-slate-950 p-0' : 'bg-slate-950 px-2 py-4 sm:px-3 lg:px-4')
+            : 'px-2 py-4 sm:px-3 lg:px-4'
+          }
+        >
           <div
-            className="flex h-[calc(100vh-7rem)] flex-row"
-            style={{
+            className={uiMode === 'commercial'
+              ? `flex min-h-0 overflow-hidden border border-slate-700 bg-slate-950 shadow-[0_32px_90px_-50px_rgba(15,23,42,0.95)] ${isFullscreen ? 'h-full rounded-none' : 'h-[calc(100vh-7rem)] rounded-xl'}`
+              : 'flex h-[calc(100vh-7rem)] flex-row'
+            }
+            style={uiMode !== 'commercial' ? {
               gap: desktopLayoutGap,
               ['--desktop-sidebar-width' as string]: `${desktopSidebarWidth}px`,
               ['--desktop-layout-gap' as string]: `${desktopLayoutGap}px`,
-            } as React.CSSProperties}
+            } as React.CSSProperties : undefined}
           >
+            {/* Left column: globe container. Type=div at position-0 of the flex row
+                in both modes — React reuses the fiber, globe never remounts. */}
             <div
-              className={`flex-1 relative bg-white rounded-lg shadow-lg overflow-hidden transition-all duration-300 ${isFullscreen ? 'fixed inset-0 z-50' : ''}`}
+              className={uiMode === 'commercial'
+                ? 'flex min-w-0 flex-1 flex-col'
+                : `flex-1 relative bg-white rounded-lg shadow-lg overflow-hidden transition-all duration-300 ${isFullscreen ? 'fixed inset-0 z-50' : ''}`
+              }
             >
-              <MapViewSwitcher {...sharedMapProps} isPhone={false} isMobileViewport={false} />
-              {isFullscreen && fullscreenExportButtonProps && (
-                <div
-                  className="pointer-events-none absolute z-[40]"
-                  style={{
-                    right: 'max(1rem, env(safe-area-inset-right))',
-                    bottom: 'max(1rem, env(safe-area-inset-bottom))',
-                  }}
-                >
-                  <div className="pointer-events-auto min-w-[10rem] w-max">
-                    <ExportButton {...fullscreenExportButtonProps} />
-                  </div>
-                </div>
-              )}
-            </div>
+              {/* Slot 0: KPI bar (commercial) — placeholder div (engineering).
+                  Different element type so React remounts it on switch; that is fine
+                  because it does not contain the globe. */}
+              {uiMode === 'commercial'
+                ? <CommercialKpiBar viewModel={commercialScenarioViewModel} />
+                : <div className="h-0 overflow-hidden" aria-hidden="true" />
+              }
 
-            <div
-              className={`flex-shrink-0 overflow-hidden rounded-[24px] border border-slate-200/80 bg-[linear-gradient(180deg,rgba(248,250,252,0.98),rgba(255,255,255,0.96))] shadow-[0_30px_70px_-35px_rgba(15,23,42,0.45)] dark:border-slate-800 dark:bg-[linear-gradient(180deg,rgba(15,23,42,0.98),rgba(2,6,23,0.98))] flex flex-col ${isFullscreen ? 'hidden' : ''}`}
-              style={{ width: desktopSidebarWidth }}
-            >
-              <>
-                <SidebarHeroCard
-                  eyebrow={desktopSidebarHero.eyebrow}
-                  title={desktopSidebarHero.title}
-                  subtitle={desktopSidebarHero.subtitle}
-                  footer={desktopSidebarHero.footer}
-                  backgroundImageUrl={desktopSidebarHero.backgroundImageUrl}
-                  backgroundImageLabel={desktopSidebarHero.backgroundImageLabel}
-                  tone={desktopSidebarHero.tone}
-                  badges={desktopSidebarHero.badges}
-                  siteToSite={desktopSidebarHero.siteToSite}
-                  compact={useCompactDesktopSidebar}
-                  onReset={handleResetView}
+              {/* Slot 1: Globe — ALWAYS a div at this position in BOTH modes.
+                  React sees same type → preserves the fiber → MapViewSwitcher never
+                  unmounts → Cesium viewer stays alive → satellites keep moving. */}
+              <div
+                className={uiMode === 'commercial'
+                  ? 'relative min-h-0 flex-1 overflow-hidden bg-slate-950'
+                  : 'absolute inset-0'
+                }
+              >
+                <MapViewSwitcher
+                  {...sharedMapProps}
+                  isPhone={false}
+                  isMobileViewport={false}
+                  commercialMode={uiMode === 'commercial'}
+                  commercialViewModel={uiMode === 'commercial' ? commercialScenarioViewModel : undefined}
+                  onCommercialSelectedSegmentChange={uiMode === 'commercial' ? setCommercialSelectedSegment : undefined}
                 />
-
-                {!selectedIss && !selectedGateway && !inspectedSNP && !selectedMoon && !selectedSatellite && activeAnalysisPoint && (
-                  <MissionKpiBar
-                    metrics={mobileMetrics}
-                    leoViewModel={leoServiceViewModel}
-                    geoStatus={geoPointStatus}
-                    satelliteScope={satelliteScope}
-                    compact={useCompactDesktopSidebar}
-                    linkMode={linkMode}
-                    activeMeshTab={activeMeshTab}
-                    leoTopologyMode={leoTopologyMode}
-                    leoSiteToSiteResult={activeLeoSiteToSiteResult}
-                  />
+                {uiMode !== 'commercial' && isFullscreen && fullscreenExportButtonProps && (
+                  <div
+                    className="pointer-events-none absolute z-[40]"
+                    style={{
+                      right: 'max(1rem, env(safe-area-inset-right))',
+                      bottom: 'max(1rem, env(safe-area-inset-bottom))',
+                    }}
+                  >
+                    <div className="pointer-events-auto min-w-[10rem] w-max">
+                      <ExportButton {...fullscreenExportButtonProps} />
+                    </div>
+                  </div>
                 )}
+              </div>
 
-                <div className={`flex-1 min-h-0 overflow-y-auto ${useCompactDesktopSidebar ? 'px-2.5 pb-2.5' : 'px-3 pb-3'}`}>
-                  <Suspense fallback={panelFallback}>
-                    {selectedIss ? (
-                      <IssDetails
-                        position={iss.position}
-                        orbitPath={iss.orbitPath}
-                        freshness={iss.freshness}
-                        isFollowing={iss.isFollowing}
-                        error={iss.error}
-                        isLoading={iss.isLoading}
-                        selectedLocation={selectedPosition}
-                        onCenterOnIss={handleIssCenterOnIss}
-                        onToggleFollow={handleIssToggleFollow}
-                        onRefresh={iss.refresh}
-                        compactDesktop={useCompactDesktopSidebar}
-                        externalHeader
-                      />
-                    ) : selectedGateway ? (
-                      <GatewayDetails
-                        gateway={selectedGateway}
-                        satellites={satellites}
-                        compactDesktop={useCompactDesktopSidebar}
-                        externalHeader
-                      />
-                    ) : inspectedSNP ? (
-                      <SNPDetails
-                        snp={inspectedSNP}
-                        connectedSatellites={snpConnectedSatellites}
-                        onSatelliteClick={handleSatelliteClick}
-                        compactDesktop={useCompactDesktopSidebar}
-                        externalHeader
-                      />
-                    ) : selectedMoon ? (
-                      <MoonDetails
-                        compactDesktop={useCompactDesktopSidebar}
-                        externalHeader
-                      />
-                    ) : (
-                      <CapacityDetails
-                        satellites={filteredSatellites}
-                        selectedPoint={activeAnalysisPoint}
-                        selectedSatellite={selectedSatellite}
-                        autoSelectedLEOSatellite={resolvedAutoLEO}
-                        autoSelectedGEOSatellite={activeGeoSatellite}
-                        satelliteScope={satelliteScope}
-                        activeConnectionTab={activeConnectivityTab}
-                        onActiveConnectionTabChange={setActiveConnectivityTab}
-                        onSatelliteClick={handleSatelliteClick}
-                        analysisSource={activeAnalysisSource}
-                        aircraftCallsign={selectedAircraft?.callsign}
-                        leoTerminalType={leoTerminalType}
-                        onLeoTerminalTypeChange={handleLeoTerminalTypeChange}
-                        leoTerminalModelId={leoTerminalModelId}
-                        onLeoTerminalModelIdChange={setLeoTerminalModelId}
-                        leoTerminalTypeB={leoTerminalTypeB}
-                        onLeoTerminalTypeBChange={handleLeoTerminalTypeBChange}
-                        leoTerminalModelIdB={leoTerminalModelIdB}
-                        onLeoTerminalModelIdBChange={setLeoTerminalModelIdB}
-                        geoTerminalType={geoTerminalType}
-                        onGeoTerminalTypeChange={setGeoTerminalType}
-                    geoTerminalTypeB={geoTerminalTypeB}
-                    onGeoTerminalTypeBChange={setGeoTerminalTypeB}
-                        geoRFClassIdA={geoRFClassIdA}
-                        onGeoRFClassIdAChange={setGeoRFClassIdA}
-                        geoRFClassIdB={geoRFClassIdB}
-                        onGeoRFClassIdBChange={setGeoRFClassIdB}
-                        geoRFCustomParamsA={geoRFCustomParamsA}
-                        onGeoRFCustomParamsAChange={setGeoRFCustomParamsA}
-                        geoRFCustomParamsB={geoRFCustomParamsB}
-                        onGeoRFCustomParamsBChange={setGeoRFCustomParamsB}
-                        weatherType={weatherType}
-                        onWeatherTypeChange={handleWeatherTypeChange}
-                        weatherTypeB={weatherTypeB}
-                        onWeatherTypeBChange={handleWeatherTypeBChange}
-                        autoWeatherEnabled={autoWeatherEnabled}
-                        onAutoWeatherChange={setAutoWeatherEnabled}
-                        selectedSNP={selectedSNP}
-                        candidateCoverages={eligibleCandidateCoverages}
-                        selectedCoverage={selectedCoverage}
-                        onSelectCoverage={handleSelectTargetCoverage}
-                        selectedUplinkCoverage={selectedUplinkCoverage}
-                        selectedDownlinkCoverage={selectedDownlinkCoverage}
-                        onSelectUplinkCoverage={handleSelectUplinkCoverage}
-                        onSelectDownlinkCoverage={handleSelectDownlinkCoverage}
-                        selectedUplinkCoverageB={selectedUplinkCoverageB}
-                        selectedDownlinkCoverageB={selectedDownlinkCoverageB}
-                        onSelectUplinkCoverageB={handleSelectUplinkCoverageB}
-                        onSelectDownlinkCoverageB={handleSelectDownlinkCoverageB}
-                        selectedGeoMission={selectedGeoMission}
-                        selectedGeoCoverageName={selectedGeoCoverageName}
-                        selectedGeoBeamId={selectedGeoBeamId}
-                        visibleGeoCoverageKeys={visibleManualGeoCoverageKeys}
-                        onSelectGeoMission={handleSelectGeoMission}
-                        onSelectGeoCoverage={handleSelectGeoCoverage}
-                        onSelectGeoBeam={handleSelectGeoBeam}
-                        onVisibleGeoCoverageKeysChange={handleVisibleManualGeoCoverageKeysChange}
-                        onSnpClick={handleSnpClick}
-                        onMetricsChange={setMobileMetrics}
-                        compactDesktop={useCompactDesktopSidebar}
-                        externalHeader
-                        globeRef={globeContainerRef}
-                        cesiumViewerRef={viewerRef}
-                        onExportStateChange={setFullscreenExportButtonProps}
-                        regulatoryResultOverride={leoRegulatoryResult}
-                        regulatoryResultBOverride={leoRegulatoryResultB}
-                        beamLoadResultOverride={leoBeamLoadResult}
-                        serviceLayerResultOverride={leoServiceLayerResult}
-                        leoServiceViewModelOverride={leoServiceViewModel}
-                        linkMode={linkMode}
-                        onLinkModeChange={setLinkMode}
-                        pointB={pointB}
-                        candidateCoveragesB={candidateCoveragesB}
-                        pointAIsUserDefined={pointAIsUserDefined}
-                        pointBIsUserDefined={pointBIsUserDefined}
-                        activeMeshTab={activeMeshTab}
-                        onActiveMeshTabChange={setActiveMeshTab}
-                        leoTopologyMode={leoTopologyMode}
-                        onLeoTopologyModeChange={setLeoTopologyMode}
-                        pointBLeo={pointBLeo}
-                        autoSelectedLEOSatelliteB={resolvedAutoLEOB}
-                        selectedSNPB={selectedSNPB}
-                        isPointBLeoArmed={isSiteBArmed}
-                        onArmPointBLeo={() => setIsSiteBArmed(true)}
-                        activeLeoRouteEvidence={activeLeoRouteEvidence}
-                      />
-                    )}
-                  </Suspense>
-                </div>
-              </>
+              {/* Slot 2: Route strip (commercial non-fullscreen) — placeholder div otherwise.
+                  Same logic as slot 0: type changes are fine here. */}
+              {uiMode === 'commercial' && !isFullscreen
+                ? (
+                  <CommercialRouteStrip
+                    segments={commercialScenarioViewModel.routeSegments}
+                    selectedSegmentId={commercialScenarioViewModel.selectedSegmentId ?? 'summary'}
+                    onSelectedSegmentChange={setCommercialSelectedSegment}
+                  />
+                )
+                : <div className="h-0 overflow-hidden" aria-hidden="true" />
+              }
             </div>
+
+            {/* Right panel: commercial inspector or engineering sidebar.
+                Remounts on switch — intentional; neither contains the globe. */}
+            {uiMode === 'commercial' ? (
+              !isFullscreen && (
+                <div className="w-[360px] shrink-0">
+                  <CommercialInspectorPanel
+                    viewModel={commercialScenarioViewModel}
+                    selectedSegmentId={commercialScenarioViewModel.selectedSegmentId ?? 'summary'}
+                    onSelectedSegmentChange={setCommercialSelectedSegment}
+                    onViewFullAnalysis={() => startUiModeTransition(() => setUiMode('engineering'))}
+                  />
+                </div>
+              )
+            ) : (
+              <div
+                className={`flex-shrink-0 overflow-hidden rounded-[24px] border border-slate-200/80 bg-[linear-gradient(180deg,rgba(248,250,252,0.98),rgba(255,255,255,0.96))] shadow-[0_30px_70px_-35px_rgba(15,23,42,0.45)] dark:border-slate-800 dark:bg-[linear-gradient(180deg,rgba(15,23,42,0.98),rgba(2,6,23,0.98))] flex flex-col ${isFullscreen ? 'hidden' : ''}`}
+                style={{ width: desktopSidebarWidth }}
+              >
+                <>
+                  <SidebarHeroCard
+                    eyebrow={desktopSidebarHero.eyebrow}
+                    title={desktopSidebarHero.title}
+                    subtitle={desktopSidebarHero.subtitle}
+                    footer={desktopSidebarHero.footer}
+                    backgroundImageUrl={desktopSidebarHero.backgroundImageUrl}
+                    backgroundImageLabel={desktopSidebarHero.backgroundImageLabel}
+                    tone={desktopSidebarHero.tone}
+                    badges={desktopSidebarHero.badges}
+                    siteToSite={desktopSidebarHero.siteToSite}
+                    compact={useCompactDesktopSidebar}
+                    onReset={handleResetView}
+                  />
+
+                  {!selectedIss && !selectedGateway && !inspectedSNP && !selectedMoon && !selectedSatellite && activeAnalysisPoint && (
+                    <MissionKpiBar
+                      metrics={mobileMetrics}
+                      leoViewModel={leoServiceViewModel}
+                      geoStatus={geoPointStatus}
+                      satelliteScope={satelliteScope}
+                      compact={useCompactDesktopSidebar}
+                      linkMode={linkMode}
+                      activeMeshTab={activeMeshTab}
+                      leoTopologyMode={leoTopologyMode}
+                      leoSiteToSiteResult={activeLeoSiteToSiteResult}
+                    />
+                  )}
+
+                  <div className={`flex-1 min-h-0 overflow-y-auto ${useCompactDesktopSidebar ? 'px-2.5 pb-2.5' : 'px-3 pb-3'}`}>
+                    <Suspense fallback={panelFallback}>
+                      {selectedIss ? (
+                        <IssDetails
+                          position={iss.position}
+                          orbitPath={iss.orbitPath}
+                          freshness={iss.freshness}
+                          isFollowing={iss.isFollowing}
+                          error={iss.error}
+                          isLoading={iss.isLoading}
+                          selectedLocation={selectedPosition}
+                          onCenterOnIss={handleIssCenterOnIss}
+                          onToggleFollow={handleIssToggleFollow}
+                          onRefresh={iss.refresh}
+                          compactDesktop={useCompactDesktopSidebar}
+                          externalHeader
+                        />
+                      ) : selectedGateway ? (
+                        <GatewayDetails
+                          gateway={selectedGateway}
+                          satellites={satellites}
+                          compactDesktop={useCompactDesktopSidebar}
+                          externalHeader
+                        />
+                      ) : inspectedSNP ? (
+                        <SNPDetails
+                          snp={inspectedSNP}
+                          connectedSatellites={snpConnectedSatellites}
+                          onSatelliteClick={handleSatelliteClick}
+                          compactDesktop={useCompactDesktopSidebar}
+                          externalHeader
+                        />
+                      ) : selectedMoon ? (
+                        <MoonDetails
+                          compactDesktop={useCompactDesktopSidebar}
+                          externalHeader
+                        />
+                      ) : (
+                        <CapacityDetails
+                          satellites={filteredSatellites}
+                          selectedPoint={activeAnalysisPoint}
+                          selectedSatellite={selectedSatellite}
+                          autoSelectedLEOSatellite={resolvedAutoLEO}
+                          autoSelectedGEOSatellite={activeGeoSatellite}
+                          satelliteScope={satelliteScope}
+                          activeConnectionTab={activeConnectivityTab}
+                          onActiveConnectionTabChange={setActiveConnectivityTab}
+                          onSatelliteClick={handleSatelliteClick}
+                          analysisSource={activeAnalysisSource}
+                          aircraftCallsign={selectedAircraft?.callsign}
+                          leoTerminalType={leoTerminalType}
+                          onLeoTerminalTypeChange={handleLeoTerminalTypeChange}
+                          leoTerminalModelId={leoTerminalModelId}
+                          onLeoTerminalModelIdChange={setLeoTerminalModelId}
+                          leoTerminalTypeB={leoTerminalTypeB}
+                          onLeoTerminalTypeBChange={handleLeoTerminalTypeBChange}
+                          leoTerminalModelIdB={leoTerminalModelIdB}
+                          onLeoTerminalModelIdBChange={setLeoTerminalModelIdB}
+                          geoTerminalType={geoTerminalType}
+                          onGeoTerminalTypeChange={setGeoTerminalType}
+                          geoTerminalTypeB={geoTerminalTypeB}
+                          onGeoTerminalTypeBChange={setGeoTerminalTypeB}
+                          geoRFClassIdA={geoRFClassIdA}
+                          onGeoRFClassIdAChange={setGeoRFClassIdA}
+                          geoRFClassIdB={geoRFClassIdB}
+                          onGeoRFClassIdBChange={setGeoRFClassIdB}
+                          geoRFCustomParamsA={geoRFCustomParamsA}
+                          onGeoRFCustomParamsAChange={setGeoRFCustomParamsA}
+                          geoRFCustomParamsB={geoRFCustomParamsB}
+                          onGeoRFCustomParamsBChange={setGeoRFCustomParamsB}
+                          weatherType={weatherType}
+                          onWeatherTypeChange={handleWeatherTypeChange}
+                          weatherTypeB={weatherTypeB}
+                          onWeatherTypeBChange={handleWeatherTypeBChange}
+                          autoWeatherEnabled={autoWeatherEnabled}
+                          onAutoWeatherChange={setAutoWeatherEnabled}
+                          selectedSNP={selectedSNP}
+                          candidateCoverages={eligibleCandidateCoverages}
+                          selectedCoverage={selectedCoverage}
+                          onSelectCoverage={handleSelectTargetCoverage}
+                          selectedUplinkCoverage={selectedUplinkCoverage}
+                          selectedDownlinkCoverage={selectedDownlinkCoverage}
+                          onSelectUplinkCoverage={handleSelectUplinkCoverage}
+                          onSelectDownlinkCoverage={handleSelectDownlinkCoverage}
+                          selectedUplinkCoverageB={selectedUplinkCoverageB}
+                          selectedDownlinkCoverageB={selectedDownlinkCoverageB}
+                          onSelectUplinkCoverageB={handleSelectUplinkCoverageB}
+                          onSelectDownlinkCoverageB={handleSelectDownlinkCoverageB}
+                          selectedGeoMission={selectedGeoMission}
+                          selectedGeoCoverageName={selectedGeoCoverageName}
+                          selectedGeoBeamId={selectedGeoBeamId}
+                          visibleGeoCoverageKeys={visibleManualGeoCoverageKeys}
+                          onSelectGeoMission={handleSelectGeoMission}
+                          onSelectGeoCoverage={handleSelectGeoCoverage}
+                          onSelectGeoBeam={handleSelectGeoBeam}
+                          onVisibleGeoCoverageKeysChange={handleVisibleManualGeoCoverageKeysChange}
+                          onSnpClick={handleSnpClick}
+                          onMetricsChange={setMobileMetrics}
+                          compactDesktop={useCompactDesktopSidebar}
+                          externalHeader
+                          globeRef={globeContainerRef}
+                          cesiumViewerRef={viewerRef}
+                          onExportStateChange={setFullscreenExportButtonProps}
+                          regulatoryResultOverride={leoRegulatoryResult}
+                          regulatoryResultBOverride={leoRegulatoryResultB}
+                          beamLoadResultOverride={leoBeamLoadResult}
+                          serviceLayerResultOverride={leoServiceLayerResult}
+                          leoServiceViewModelOverride={leoServiceViewModel}
+                          linkMode={linkMode}
+                          onLinkModeChange={setLinkMode}
+                          pointB={pointB}
+                          candidateCoveragesB={candidateCoveragesB}
+                          pointAIsUserDefined={pointAIsUserDefined}
+                          pointBIsUserDefined={pointBIsUserDefined}
+                          activeMeshTab={activeMeshTab}
+                          onActiveMeshTabChange={setActiveMeshTab}
+                          leoTopologyMode={leoTopologyMode}
+                          onLeoTopologyModeChange={setLeoTopologyMode}
+                          pointBLeo={pointBLeo}
+                          autoSelectedLEOSatelliteB={resolvedAutoLEOB}
+                          selectedSNPB={selectedSNPB}
+                          isPointBLeoArmed={isSiteBArmed}
+                          onArmPointBLeo={() => setIsSiteBArmed(true)}
+                          activeLeoRouteEvidence={activeLeoRouteEvidence}
+                        />
+                      )}
+                    </Suspense>
+                  </div>
+                </>
+              </div>
+            )}
           </div>
         </main>
       )}

@@ -4,12 +4,12 @@ import { collectMemoryStats, type MemoryStats } from '../utils/memoryMonitor';
 const HUD_TOGGLE_KEY = 'm';
 
 export const MemoryMonitorHud: React.FC = () => {
-    if (!import.meta.env.DEV) return null;
-
     const [visible, setVisible] = useState(false);
     const [stats, setStats] = useState<MemoryStats | null>(null);
 
     useEffect(() => {
+        if (!import.meta.env.DEV) return;
+
         const onKey = (e: KeyboardEvent) => {
             if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === HUD_TOGGLE_KEY) {
                 setVisible(v => !v);
@@ -20,13 +20,16 @@ export const MemoryMonitorHud: React.FC = () => {
     }, []);
 
     useEffect(() => {
+        if (!import.meta.env.DEV) return;
         if (!visible) return;
+
         const tick = () => setStats(collectMemoryStats());
         tick();
         const id = window.setInterval(tick, 1000);
         return () => window.clearInterval(id);
     }, [visible]);
 
+    if (!import.meta.env.DEV) return null;
     if (!visible || !stats) return null;
 
     const heapPct = stats.heap ? Math.round((stats.heap.usedMB / stats.heap.limitMB) * 100) : null;
