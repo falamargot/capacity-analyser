@@ -156,16 +156,9 @@ export function buildCommercialScenarioViewModel(input: BuildCommercialScenarioV
     geoStatus: geoStatusSource,
   });
 
-  const isLeo = input.activeTechnology === 'LEO';
-  const activeRoute = isLeo ? leoRoute : geoRoute;
-  const technology: CommercialTechnology = isLeo ? 'leo' : 'geo';
+  // ── Per-tech metrics — independent of which technology drives the narrative ──
+
   const siteAName = locationName(input.nearestLocation, input.activeAnalysisPoint, 'Site A');
-  const destinationIsSnp = activeRoute.destinationLabel === 'SNP';
-  const siteBName = input.siteB
-    ? locationName(input.nearestLocationB, input.siteB, 'Site B')
-    : destinationIsSnp
-      ? (input.selectedSnpName ?? 'SNP')
-      : 'Site B';
   const leoServiceStatus = input.leoTopologyMode === 'SITE_TO_SITE'
     ? (leoEvidence?.serviceStatus ?? leoRoutePath?.serviceStatus ?? null)
     : (leoEvidence?.serviceStatus ?? null);
@@ -194,55 +187,12 @@ export function buildCommercialScenarioViewModel(input: BuildCommercialScenarioV
     : (input.geoRouteAnalysis?.uploadMbps ?? gbpsToMbps(geoMetricsSource.geo?.uplinkGbps));
   const geoRttMs = finitePositive(input.geoRouteAnalysis?.latencyMs ?? geoRoute.latencyMs ?? geoMetricsSource.geo?.rtt);
 
-  const downloadMbps = isLeo ? leoDownloadMbps : geoDownloadMbps;
-  const uploadMbps = isLeo ? leoUploadMbps : geoUploadMbps;
-  const rttMs = isLeo ? leoRttMs : geoRttMs;
   const leoMetricsComplete = leoEvidence?.available === true;
   const geoMetricsComplete = input.geoRouteAnalysis
     ? input.geoRouteAnalysis.available
     : hasCompleteGeoRouteMetrics(input.linkMode, geoRoute, geoDownloadMbps, geoUploadMbps, geoRttMs);
-  const activeMetricsComplete = isLeo ? leoMetricsComplete : geoMetricsComplete;
   const leoCommercialStatus = leoRoutePending ? 'unknown' : commercialStatusFromRoute(rawLeoCommercialStatus, leoRoute.available, leoMetricsComplete);
   const geoCommercialStatus = geoRoutePending ? 'unknown' : commercialStatusFromRoute(rawGeoCommercialStatus, geoRoute.available, geoMetricsComplete);
-  const serviceStatus = isLeo && leoRoutePending
-    ? 'unknown'
-    : !isLeo && geoRoutePending
-    ? 'unknown'
-    : commercialStatusFromRoute(isLeo ? rawLeoCommercialStatus : rawGeoCommercialStatus, activeRoute.available, activeMetricsComplete);
-  const serviceLabel = serviceStatusLabel(serviceStatus);
-  const satellite = isLeo
-    ? (input.leoTopologyMode === 'SITE_TO_SITE'
-        ? leoEvidence?.servingSatelliteA ?? leoRoutePath?.servingSatelliteA ?? null
-        : leoEvidence?.servingSatelliteA ?? null)
-    : (input.geoRouteAnalysis?.selectedSatellite ?? input.activeGeoSatellite);
-
-  const routeMetricsWarning = activeRoute.available && !activeMetricsComplete
-    ? (isLeo && leoRoutePending
-        ? leoEvidence?.degradationReason ?? 'Waiting for LEO route calculation'
-        : geoRoutePending && !isLeo ? input.geoRouteAnalysis?.reason ?? 'Waiting for GEO route calculation' : 'Waiting for complete route metrics')
-    : undefined;
-  const primaryWarning = routeMetricsWarning ?? (isLeo
-    ? (leoRoutePending
-        ? leoEvidence?.degradationReason ?? 'Waiting for LEO route calculation'
-        : input.leoTopologyMode === 'SITE_TO_SITE' && leoRoutePath?.failureReason
-        ? leoRoutePath.failureReason.replaceAll('_', ' ').toLowerCase()
-        : leoEvidence?.degradationReason && leoEvidence.degradationReason !== 'LEO route available.'
-          ? leoEvidence.degradationReason
-          : activeRoute.statusReason ?? undefined)
-    : (geoRoutePending
-        ? input.geoRouteAnalysis?.reason ?? 'Waiting for GEO route calculation'
-        : geoStatusSource && geoStatusSource !== 'available'
-          ? geoStatusLabel(geoStatusSource)
-          : activeRoute.statusReason ?? undefined));
-  const customerPrimaryWarning = toCustomerLimitation(primaryWarning);
-  const activeRouteAvailable = activeRoute.available;
-  const primaryFailingSegment = primaryFailingSegmentId(
-    input,
-    activeRouteAvailable,
-    activeMetricsComplete,
-    satellite,
-    primaryWarning,
-  );
 
   const leoLimitingFactor = leoEvidence?.degradationReason && leoEvidence.degradationReason !== 'LEO route available.' && leoEvidence.degradationReason !== 'LEO site-to-site route available.'
     ? leoEvidence.degradationReason
@@ -258,6 +208,10 @@ export function buildCommercialScenarioViewModel(input: BuildCommercialScenarioV
     : geoStatusSource && geoStatusSource !== 'available'
     ? geoStatusLabel(geoStatusSource)
     : geoRoute.statusReason ?? undefined;
+
+  // ── Comparison options + recommendation + display technology ─────────────
+  // These are derived from per-tech data only — no activeTechnology fork.
+
   const comparisonOptionBase: CommercialTechnologyOption[] = [
     {
       technology: 'leo',
@@ -301,15 +255,73 @@ export function buildCommercialScenarioViewModel(input: BuildCommercialScenarioV
   const leoOptionAvailable = comparisonOptions.find((o) => o.technology === 'leo')?.available === true;
   const geoOptionAvailable = comparisonOptions.find((o) => o.technology === 'geo')?.available === true;
   const commercialDisplayTechnology = deriveDisplayTechnology(recommendation, leoOptionAvailable, geoOptionAvailable, input.activeTechnology);
+
+  // ── Narrative layer: follow commercialDisplayTechnology, not activeTechnology ──
+  // isDisplayLeo is the single fork for all customer-facing data selection.
+
+  const isDisplayLeo = commercialDisplayTechnology === 'LEO';
+  const activeRoute = isDisplayLeo ? leoRoute : geoRoute;
+  const technology: CommercialTechnology = isDisplayLeo ? 'leo' : 'geo';
+  const destinationIsSnp = activeRoute.destinationLabel === 'SNP';
+  const siteBName = input.siteB
+    ? locationName(input.nearestLocationB, input.siteB, 'Site B')
+    : destinationIsSnp
+      ? (input.selectedSnpName ?? 'SNP')
+      : 'Site B';
+
+  const downloadMbps = isDisplayLeo ? leoDownloadMbps : geoDownloadMbps;
+  const uploadMbps = isDisplayLeo ? leoUploadMbps : geoUploadMbps;
+  const rttMs = isDisplayLeo ? leoRttMs : geoRttMs;
+  const activeMetricsComplete = isDisplayLeo ? leoMetricsComplete : geoMetricsComplete;
+  const serviceStatus = isDisplayLeo && leoRoutePending
+    ? 'unknown'
+    : !isDisplayLeo && geoRoutePending
+    ? 'unknown'
+    : commercialStatusFromRoute(isDisplayLeo ? rawLeoCommercialStatus : rawGeoCommercialStatus, activeRoute.available, activeMetricsComplete);
+  const serviceLabel = serviceStatusLabel(serviceStatus);
+  const satellite = isDisplayLeo
+    ? (input.leoTopologyMode === 'SITE_TO_SITE'
+        ? leoEvidence?.servingSatelliteA ?? leoRoutePath?.servingSatelliteA ?? null
+        : leoEvidence?.servingSatelliteA ?? null)
+    : (input.geoRouteAnalysis?.selectedSatellite ?? input.activeGeoSatellite);
+
+  const routeMetricsWarning = activeRoute.available && !activeMetricsComplete
+    ? (isDisplayLeo && leoRoutePending
+        ? leoEvidence?.degradationReason ?? 'Waiting for LEO route calculation'
+        : geoRoutePending && !isDisplayLeo ? input.geoRouteAnalysis?.reason ?? 'Waiting for GEO route calculation' : 'Waiting for complete route metrics')
+    : undefined;
+  const primaryWarning = routeMetricsWarning ?? (isDisplayLeo
+    ? (leoRoutePending
+        ? leoEvidence?.degradationReason ?? 'Waiting for LEO route calculation'
+        : input.leoTopologyMode === 'SITE_TO_SITE' && leoRoutePath?.failureReason
+        ? leoRoutePath.failureReason.replaceAll('_', ' ').toLowerCase()
+        : leoEvidence?.degradationReason && leoEvidence.degradationReason !== 'LEO route available.'
+          ? leoEvidence.degradationReason
+          : activeRoute.statusReason ?? undefined)
+    : (geoRoutePending
+        ? input.geoRouteAnalysis?.reason ?? 'Waiting for GEO route calculation'
+        : geoStatusSource && geoStatusSource !== 'available'
+          ? geoStatusLabel(geoStatusSource)
+          : activeRoute.statusReason ?? undefined));
+  const customerPrimaryWarning = toCustomerLimitation(primaryWarning);
+  const activeRouteAvailable = activeRoute.available;
+  const primaryFailingSegment = primaryFailingSegmentId(
+    input,
+    activeRouteAvailable,
+    activeMetricsComplete,
+    satellite,
+    primaryWarning,
+  );
+
   const executiveSummary = buildExecutiveSummary(serviceStatus, recommendation, customerPrimaryWarning);
 
-  const computedAccessStatus: CommercialRouteSegmentStatus = isLeo
+  const computedAccessStatus: CommercialRouteSegmentStatus = isDisplayLeo
     ? (input.leoTopologyMode === 'SITE_TO_SITE'
         ? segmentStatusFromCommercial(statusFromServiceStatus(leoRoutePath?.rfAvailableA ? 'ALLOWED' : 'BLOCKED'))
         : segmentStatusFromCommercial(statusFromServiceStatus(leoEvidence?.servingSatelliteA && leoEvidence?.selectedSnpA ? 'ALLOWED' : 'BLOCKED')))
     : segmentStatusFromCommercial(geoRoutePending ? 'unknown' : statusFromGeoStatus(geoStatusSource));
   const computedSatelliteStatus = satelliteSegmentStatus(satellite);
-  const computedBackhaulStatus: CommercialRouteSegmentStatus = isLeo
+  const computedBackhaulStatus: CommercialRouteSegmentStatus = isDisplayLeo
     ? (input.leoTopologyMode === 'SITE_TO_SITE'
         ? (leoRoutePath?.selectedSnpA && leoRoutePath?.selectedSnpB ? 'healthy' : 'blocked')
         : (input.selectedSnpName ? 'healthy' : 'blocked'))
@@ -324,10 +336,10 @@ export function buildCommercialScenarioViewModel(input: BuildCommercialScenarioV
   const backhaulStatus = segmentStatus('backhaul', computedBackhaulStatus);
   const destinationStatus = segmentStatus('siteB', computedDestinationStatus);
 
-  const downloadLabel = isLeo && input.leoTopologyMode !== 'SITE_TO_SITE'
+  const downloadLabel = isDisplayLeo && input.leoTopologyMode !== 'SITE_TO_SITE'
     ? formatMaybeGbps(leoMetricsSource?.downlinkGbps)
     : formatMaybeMbps(downloadMbps);
-  const uploadLabel = isLeo && input.leoTopologyMode !== 'SITE_TO_SITE'
+  const uploadLabel = isDisplayLeo && input.leoTopologyMode !== 'SITE_TO_SITE'
     ? formatMaybeGbps(leoMetricsSource?.uplinkGbps)
     : formatMaybeMbps(uploadMbps);
 
@@ -341,10 +353,10 @@ export function buildCommercialScenarioViewModel(input: BuildCommercialScenarioV
       role: siteAName,
       isRouteParticipant: activeRouteAvailable,
       isPrimaryIssue: primaryFailingSegment === 'access',
-      story: activeRouteAvailable ? `The customer site connects into the ${input.activeTechnology} service.` : 'The customer site is waiting for a confirmed service path.',
-      summary: activeRouteAvailable && isLeo ? `Connected via ${satellite?.name ?? 'serving satellite'}` : 'Customer access terminal',
+      story: activeRouteAvailable ? `The customer site connects into the ${commercialDisplayTechnology} service.` : 'The customer site is waiting for a confirmed service path.',
+      summary: activeRouteAvailable && isDisplayLeo ? `Connected via ${satellite?.name ?? 'serving satellite'}` : 'Customer access terminal',
       limitation: accessStatus === 'healthy' ? undefined : customerPrimaryWarning ?? 'Coverage is not currently available at this location',
-      technicalSummary: activeRouteAvailable && isLeo ? `Access leg via ${satellite?.name ?? 'serving satellite'}` : 'Customer access terminal',
+      technicalSummary: activeRouteAvailable && isDisplayLeo ? `Access leg via ${satellite?.name ?? 'serving satellite'}` : 'Customer access terminal',
       technicalLimitation: accessStatus === 'healthy' ? undefined : primaryWarning,
       throughputMbps: downloadMbps,
       latencyMs: rttMs,
@@ -380,13 +392,13 @@ export function buildCommercialScenarioViewModel(input: BuildCommercialScenarioV
       isRouteParticipant: activeRouteAvailable && backhaulStatus !== 'blocked' && backhaulStatus !== 'unknown',
       isPrimaryIssue: primaryFailingSegment === 'backhaul',
       story: activeRouteAvailable ? 'The network backbone carries traffic between the satellite service and destination.' : 'The network backbone is not confirmed until service is available.',
-      summary: activeRouteAvailable && isLeo
+      summary: activeRouteAvailable && isDisplayLeo
         ? (input.leoTopologyMode === 'SITE_TO_SITE'
             ? [leoRoutePath?.selectedSnpA?.name, leoRoutePath?.selectedSnpB?.name].filter(Boolean).join(' / ') || 'SNP path pending'
             : input.selectedSnpName ?? 'SNP path pending')
         : 'Gateway path',
       limitation: backhaulStatus === 'healthy' ? undefined : customerPrimaryWarning ?? 'Network backbone unavailable',
-      technicalSummary: isLeo
+      technicalSummary: isDisplayLeo
         ? (input.leoTopologyMode === 'SITE_TO_SITE'
             ? [leoRoutePath?.selectedSnpA?.name, leoRoutePath?.selectedSnpB?.name].filter(Boolean).join(' / ') || 'SNP path pending'
             : input.selectedSnpName ?? 'SNP path pending')
@@ -435,15 +447,16 @@ export function buildCommercialScenarioViewModel(input: BuildCommercialScenarioV
   const scenarioName = [
     siteAName,
     input.siteB || destinationIsSnp ? siteBName : null,
-    input.activeTechnology,
+    commercialDisplayTechnology,
   ].filter(Boolean).join(' to ');
 
   return {
-    scenarioName: scenarioName || `${input.activeTechnology} service scenario`,
+    scenarioName: scenarioName || `${commercialDisplayTechnology} service scenario`,
     serviceStatus,
     serviceMessage: serviceLabel,
     technology,
     commercialDisplayTechnology,
+    contextTechnology: input.activeTechnology,
     siteA: { name: siteAName },
     siteB: input.siteB || destinationIsSnp ? { name: siteBName } : undefined,
     downloadMbps,
@@ -455,9 +468,9 @@ export function buildCommercialScenarioViewModel(input: BuildCommercialScenarioV
     selectedSegmentId: input.selectedSegmentId,
     activeRouteAvailable,
     primaryFailingSegmentId: primaryFailingSegment,
-    emptyState: isLeo && leoRoutePending
+    emptyState: isDisplayLeo && leoRoutePending
       ? leoEvidence?.degradationReason ?? 'Waiting for LEO route calculation'
-      : !isLeo && geoRoutePending
+      : !isDisplayLeo && geoRoutePending
       ? input.geoRouteAnalysis?.reason ?? 'Waiting for GEO route calculation'
       : commercialEmptyState(input, activeRoute.available && activeMetricsComplete, routeMetricsWarning ?? activeRoute.statusReason),
     recommendation,
@@ -470,31 +483,31 @@ export function buildCommercialScenarioViewModel(input: BuildCommercialScenarioV
       serviceStatusLabel: serviceLabel,
       weatherA: weatherLabel(input.weatherType),
       weatherB: input.siteB ? weatherLabel(input.weatherTypeB) : '--',
-      linkMargin: linkMarginLabel(input.geoRouteAnalysis?.selectedCoverage ?? input.selectedCoverage),
+      linkMargin: isDisplayLeo ? '--' : linkMarginLabel(input.geoRouteAnalysis?.selectedCoverage ?? input.selectedCoverage),
       satelliteName: satellite?.name ?? '--',
-      satelliteOrbit: satellite?.orbitType ?? input.activeTechnology,
+      satelliteOrbit: satellite?.orbitType ?? commercialDisplayTechnology,
       satelliteStatus: satellite?.opsStatus ?? '--',
-      elevation: isLeo
+      elevation: isDisplayLeo
         ? (leoRoutePath?.elevationADeg != null ? `${leoRoutePath.elevationADeg.toFixed(1)} deg` : '--')
         : ((input.geoRouteAnalysis?.selectedCoverage ?? input.selectedCoverage)?.elevation != null ? `${(input.geoRouteAnalysis?.selectedCoverage ?? input.selectedCoverage)!.elevation.toFixed(1)} deg` : '--'),
-      beamName: (input.geoRouteAnalysis?.selectedCoverage ?? input.selectedCoverage)?.beamName ?? '--',
-      rfStatus: isLeo
+      beamName: isDisplayLeo ? '--' : ((input.geoRouteAnalysis?.selectedCoverage ?? input.selectedCoverage)?.beamName ?? '--'),
+      rfStatus: isDisplayLeo
         ? (leoEvidence?.rfLimitation ? leoEvidence.rfLimitation : (leoRoutePath?.rfAvailableA || leoEvidence?.available ? 'AVAILABLE' : '--'))
         : (geoStatusSource === 'available' ? 'AVAILABLE' : geoStatusSource ?? '--'),
-      regulatoryState: isLeo ? (leoEvidence?.failureReason?.startsWith('REGULATORY') ? leoEvidence.failureReason : '--') : '--',
+      regulatoryState: isDisplayLeo ? (leoEvidence?.failureReason?.startsWith('REGULATORY') ? leoEvidence.failureReason : '--') : '--',
       routeValue: activeRoute.routeValue,
       routeSummary: activeRoute.summary ?? '--',
       terminalLabel: input.activeAnalysisSource === 'aircraft' ? 'Aircraft' : input.leoTerminalType,
-      pathStability: leoRoutePath?.pathStability ?? '--',
-      confidence: leoRoutePath?.confidenceLevel ?? '--',
-      backboneDistance: leoRoutePath?.backboneDistanceKm
+      pathStability: isDisplayLeo ? (leoRoutePath?.pathStability ?? '--') : '--',
+      confidence: isDisplayLeo ? (leoRoutePath?.confidenceLevel ?? '--') : '--',
+      backboneDistance: isDisplayLeo && leoRoutePath?.backboneDistanceKm
         ? `${Math.round(leoRoutePath.backboneDistanceKm).toLocaleString()} km`
         : '--',
-      logicalPop: leoRoutePath?.logicalPop?.name ?? '--',
-      snpA: leoRoutePath?.selectedSnpA?.name ?? leoEvidence?.selectedSnpA?.name ?? input.selectedSnpName ?? '--',
-      snpB: leoRoutePath?.selectedSnpB?.name ?? leoEvidence?.selectedSnpB?.name ?? '--',
+      logicalPop: isDisplayLeo ? (leoRoutePath?.logicalPop?.name ?? '--') : '--',
+      snpA: isDisplayLeo ? (leoRoutePath?.selectedSnpA?.name ?? leoEvidence?.selectedSnpA?.name ?? input.selectedSnpName ?? '--') : '--',
+      snpB: isDisplayLeo ? (leoRoutePath?.selectedSnpB?.name ?? leoEvidence?.selectedSnpB?.name ?? '--') : '--',
       destinationType: activeRoute.destinationLabel ?? 'Site B',
-      rawServiceStatus: isLeo ? (leoServiceStatus ?? '--') : (geoStatusSource ?? '--'),
+      rawServiceStatus: isDisplayLeo ? (leoServiceStatus ?? '--') : (geoStatusSource ?? '--'),
       rawPrimaryWarning: primaryWarning ?? '--',
       rawBottleneck: primaryWarning ?? '--',
       rawGeoStatus: geoStatusSource ?? '--',
