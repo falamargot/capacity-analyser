@@ -33,6 +33,7 @@ interface SnpLayerProps {
     /** When non-null, only SNPs whose name is in this set are rendered.
      *  Null (default) renders all SNPs — engineering mode. */
     allowedSnpNames?: Set<string> | null;
+    commercialTone?: 'primary' | 'secondary';
 }
 
 const SnpEntity = React.memo<{
@@ -45,6 +46,7 @@ const SnpEntity = React.memo<{
     isAutoSelected: boolean;
     isFailed: boolean;
     isInspected: boolean;
+    commercialTone: 'primary' | 'secondary';
 }>(({ 
     snp,
     viewerRef,
@@ -54,7 +56,8 @@ const SnpEntity = React.memo<{
     sizeScale,
     isAutoSelected,
     isFailed,
-    isInspected
+    isInspected,
+    commercialTone,
 }) => {
     const position = useMemo(
         () => getPosition(snp.lat, snp.lng, GROUND_POINT_ALTITUDE_KM),
@@ -71,20 +74,23 @@ const SnpEntity = React.memo<{
             const dynamicScale = calculateDynamicScale(cameraMetricsRef.current.height, DPR_FACTOR);
 
             const baseScale = dynamicScale * 3000000 / Math.max(distance, 10000000);
-            return baseScale * SNP_MARKER_PIXEL_MULTIPLIER * sizeScale;
+            const toneScale = commercialTone === 'secondary' ? 0.58 : 1;
+            return baseScale * SNP_MARKER_PIXEL_MULTIPLIER * sizeScale * toneScale;
         }, false);
-    }, [snp.lat, snp.lng, cameraMetricsRef, sizeScale, viewerRef]);
+    }, [snp.lat, snp.lng, cameraMetricsRef, commercialTone, sizeScale, viewerRef]);
 
     const handleClick = useCallback(() => onSnpClick(snp.name), [snp.name, onSnpClick]);
     const handleMouseEnter = useCallback(() => onSnpHover(snp.name), [snp.name, onSnpHover]);
     const handleMouseLeave = useCallback(() => onSnpHover(null), [onSnpHover]);
 
-    const pointColor = isFailed ? Color.RED : isInspected ? Color.WHITE : Color.ORANGE;
+    const pointColor = commercialTone === 'secondary'
+        ? Color.fromCssColorString('#64748b').withAlpha(0.55)
+        : isFailed ? Color.RED : isInspected ? Color.WHITE : Color.ORANGE;
     const labelBgColor = isFailed
-        ? Color.RED.withAlpha(0.8)
+        ? (commercialTone === 'secondary' ? Color.fromCssColorString('#475569').withAlpha(0.55) : Color.RED.withAlpha(0.8))
         : isInspected
-            ? Color.ORANGE.withAlpha(0.9)
-            : Color.ORANGE.withAlpha(0.7);
+            ? (commercialTone === 'secondary' ? Color.fromCssColorString('#475569').withAlpha(0.6) : Color.ORANGE.withAlpha(0.9))
+            : (commercialTone === 'secondary' ? Color.fromCssColorString('#475569').withAlpha(0.5) : Color.ORANGE.withAlpha(0.7));
     const showLabel = isAutoSelected || isFailed || isInspected;
     const labelText = isFailed ? `SNP ${snp.name} ✕` : `SNP ${snp.name}`;
 
@@ -99,10 +105,10 @@ const SnpEntity = React.memo<{
                     <EllipseGraphics
                         semiMajorAxis={BACKHAUL_RADIUS_KM * 1000}
                         semiMinorAxis={BACKHAUL_RADIUS_KM * 1000}
-                        material={Color.ORANGE.withAlpha(0.18)}
+                        material={Color.ORANGE.withAlpha(commercialTone === 'secondary' ? 0.05 : 0.18)}
                         outline={true}
-                        outlineColor={Color.ORANGE.withAlpha(0.9)}
-                        outlineWidth={3}
+                        outlineColor={Color.ORANGE.withAlpha(commercialTone === 'secondary' ? 0.24 : 0.9)}
+                        outlineWidth={commercialTone === 'secondary' ? 1 : 3}
                         height={FOOTPRINT_LAYER_HEIGHT_M}
                         fill={true}
                     />
@@ -114,8 +120,8 @@ const SnpEntity = React.memo<{
                 point={{
                     pixelSize: pixelSizeCallback,
                     color: pointColor,
-                    outlineColor: isInspected ? Color.ORANGE : (isFailed ? Color.WHITE : undefined),
-                    outlineWidth: isInspected || isFailed ? 2 : 0,
+                    outlineColor: commercialTone === 'secondary' ? Color.fromCssColorString('#94a3b8').withAlpha(0.5) : isInspected ? Color.ORANGE : (isFailed ? Color.WHITE : undefined),
+                    outlineWidth: isInspected || isFailed ? (commercialTone === 'secondary' ? 1 : 2) : 0,
                     disableDepthTestDistance: 0
                 }}
                 name={`SNP ${snp.name}`}
@@ -157,6 +163,7 @@ const SnpLayer: React.FC<SnpLayerProps> = ({
     autoSelectedSnpName = null,
     inspectedSnpName = null,
     allowedSnpNames = null,
+    commercialTone = 'primary',
 }) => {
     const { failedSnps } = useSimulation();
 
@@ -177,9 +184,10 @@ const SnpLayer: React.FC<SnpLayerProps> = ({
                 isAutoSelected={!!autoSelectedSnpName && snp.name === autoSelectedSnpName}
                 isFailed={failedSnps.has(snp.name)}
                 isInspected={!!inspectedSnpName && snp.name === inspectedSnpName}
+                commercialTone={commercialTone}
             />
         ));
-    }, [viewerRef, cameraMetricsRef, onSnpClick, onSnpHover, sizeScale, autoSelectedSnpName, inspectedSnpName, failedSnps, allowedSnpNames]);
+    }, [viewerRef, cameraMetricsRef, onSnpClick, onSnpHover, sizeScale, autoSelectedSnpName, inspectedSnpName, failedSnps, allowedSnpNames, commercialTone]);
 
     // Don't render SNPs for GEO-only scope
     if (satelliteScope === 'GEO') {

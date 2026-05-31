@@ -52,6 +52,7 @@ interface SatelliteLayerProps {
     viewerRef: React.RefObject<CesiumViewerType | null>;
     cameraMetricsRef: React.RefObject<CameraMetricsSnapshot>;
     satelliteSizeScale?: number;
+    commercialTechnologyFocus?: 'LEO' | 'GEO' | null;
 }
 
 const SatelliteEntity = React.memo<{
@@ -61,6 +62,7 @@ const SatelliteEntity = React.memo<{
     viewerRef: React.RefObject<CesiumViewerType | null>;
     cameraMetricsRef: React.RefObject<CameraMetricsSnapshot>;
     satelliteSizeScale: number;
+    commercialTechnologyFocus?: 'LEO' | 'GEO' | null;
     onSatelliteClick: (satellite: SatelliteData | null) => void;
     onSatelliteHover: (satelliteId: string | null) => void;
 }>(({
@@ -70,6 +72,7 @@ const SatelliteEntity = React.memo<{
     viewerRef,
     cameraMetricsRef,
     satelliteSizeScale,
+    commercialTechnologyFocus,
     onSatelliteClick,
     onSatelliteHover
 }) => {
@@ -80,6 +83,8 @@ const SatelliteEntity = React.memo<{
 
     const satelliteSizeScaleRef = useRef(satelliteSizeScale);
     satelliteSizeScaleRef.current = satelliteSizeScale;
+    const commercialTechnologyFocusRef = useRef(commercialTechnologyFocus);
+    commercialTechnologyFocusRef.current = commercialTechnologyFocus;
 
     // Pre-allocated scratch Cartesian3 — written in-place each frame, never GC'd.
     const scratchPositionRef = useRef(new Cartesian3());
@@ -103,7 +108,17 @@ const SatelliteEntity = React.memo<{
             const baseScale =
                 dynamicScale * (isGEO ? 10000000 : 3000000) / Math.max(distance, 5000000);
 
-            return baseScale * satelliteSizeScaleRef.current;
+            const focus = commercialTechnologyFocusRef.current;
+            const satelliteTech: 'LEO' | 'GEO' = isGEO ? 'GEO' : 'LEO';
+            const commercialScale = focus === undefined
+                ? 1
+                : focus === null
+                    ? 0.72
+                    : focus === satelliteTech
+                        ? 1.08
+                        : 0.58;
+
+            return baseScale * satelliteSizeScaleRef.current * commercialScale;
         }, false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [sat.type, viewerRef, cameraMetricsRef]); // position & sizeScale read via refs
@@ -112,7 +127,13 @@ const SatelliteEntity = React.memo<{
     const handleMouseEnter = useCallback(() => onSatelliteHover(sat.id), [sat.id, onSatelliteHover]);
     const handleMouseLeave = useCallback(() => onSatelliteHover(null), [onSatelliteHover]);
 
-    const billboardColor = getBillboardColor(sat.type, sat.opsStatus, isManuallySelected);
+    const satelliteTech: 'LEO' | 'GEO' = sat.type === 'EUTELSAT' ? 'GEO' : 'LEO';
+    const isCommercialSecondary = commercialTechnologyFocus !== undefined && (
+        commercialTechnologyFocus === null || commercialTechnologyFocus !== satelliteTech
+    );
+    const billboardColor = isCommercialSecondary && !isManuallySelected
+        ? Color.fromCssColorString('#64748b').withAlpha(0.56)
+        : getBillboardColor(sat.type, sat.opsStatus, isManuallySelected);
 
     return (
         <>
@@ -143,7 +164,8 @@ const SatelliteLayer: React.FC<SatelliteLayerProps> = ({
     onSatelliteHover,
     viewerRef,
     cameraMetricsRef,
-    satelliteSizeScale = 1
+    satelliteSizeScale = 1,
+    commercialTechnologyFocus,
 }) => {
     const { getSatellitePositionCallback } = usePositionCallbacks(satellites, []);
 
@@ -162,6 +184,7 @@ const SatelliteLayer: React.FC<SatelliteLayerProps> = ({
                     viewerRef={viewerRef}
                     cameraMetricsRef={cameraMetricsRef}
                     satelliteSizeScale={satelliteSizeScale}
+                    commercialTechnologyFocus={commercialTechnologyFocus}
                     onSatelliteClick={onSatelliteClick}
                     onSatelliteHover={onSatelliteHover}
                 />
@@ -174,6 +197,7 @@ const SatelliteLayer: React.FC<SatelliteLayerProps> = ({
         viewerRef,
         cameraMetricsRef,
         satelliteSizeScale,
+        commercialTechnologyFocus,
         onSatelliteClick,
         onSatelliteHover
     ]);

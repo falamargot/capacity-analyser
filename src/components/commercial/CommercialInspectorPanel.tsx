@@ -22,25 +22,19 @@ interface CommercialInspectorPanelProps {
 
 function FieldRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex items-start justify-between gap-4 border-t border-slate-800 px-3 py-2 first:border-t-0">
+    <div className="grid gap-1 border-t border-slate-800 px-3 py-2 first:border-t-0">
       <div className="min-w-0">
-        <div className="text-sm font-medium text-slate-300">{label}</div>
+        <div className="text-xs font-medium text-slate-400">{label}</div>
       </div>
-      <div className="shrink-0 text-right text-sm font-semibold text-white">{value}</div>
+      <div className="text-sm font-semibold leading-5 text-white">{value}</div>
     </div>
   );
 }
 
-function StorySection({
-  title,
-  children,
-}: {
-  title: string;
-  children: ReactNode;
-}) {
+function StorySection({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <section className="rounded-lg border border-slate-800 bg-slate-900/70">
-      <div className="border-b border-slate-800 px-3 py-2 text-[10px] font-bold uppercase tracking-[0.14em] text-sky-300">
+    <section className="rounded-lg border border-slate-800 bg-slate-900/60">
+      <div className="border-b border-slate-800 px-3 py-2 text-[9px] font-bold uppercase tracking-[0.14em] text-sky-300">
         {title}
       </div>
       {children}
@@ -57,7 +51,7 @@ function DetailSection({
 }) {
   return (
     <details className="rounded-lg border border-slate-800 bg-slate-900/45">
-      <summary className="cursor-pointer px-3 py-2 text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">
+      <summary className="cursor-pointer px-3 py-2 text-[9px] font-bold uppercase tracking-[0.14em] text-slate-400">
         {title}
       </summary>
       <div className="border-t border-slate-800">{children}</div>
@@ -73,6 +67,16 @@ function alternativeLabel(viewModel: CommercialScenarioViewModel): string {
   const alternative = viewModel.comparison.options.find((option) => option.technology !== recommended);
   if (!alternative) return 'Alternative pending';
   return `${alternative.label} ${alternative.available ? 'available' : alternative.statusLabel.toLowerCase()}`;
+}
+
+function primaryWhy(viewModel: CommercialScenarioViewModel): string {
+  return viewModel.executiveSummary.reason || viewModel.recommendation.reason;
+}
+
+function selectedConstraint(segment: CommercialRouteSegment | undefined, viewModel: CommercialScenarioViewModel): string {
+  if (segment?.limitation) return segment.limitation;
+  if (viewModel.serviceStatus !== 'active' && viewModel.primaryWarning) return viewModel.primaryWarning;
+  return 'None detected';
 }
 
 export default function CommercialInspectorPanel({
@@ -91,11 +95,9 @@ export default function CommercialInspectorPanel({
     viewModel.serviceStatus === 'blocked' ? 'blocked' : 'unknown'
   ];
   const summaryRows = [
-    { label: 'Status', value: viewModel.executiveSummary.statusLabel },
     { label: 'Recommendation', value: viewModel.executiveSummary.recommendedTechnology },
-    { label: 'Why', value: viewModel.executiveSummary.reason },
-    { label: 'Expected customer experience', value: viewModel.executiveSummary.expectedExperience },
-    { label: 'Alternative technology', value: alternativeLabel(viewModel) },
+    { label: 'Why', value: primaryWhy(viewModel) },
+    { label: 'Alternative', value: alternativeLabel(viewModel) },
   ];
   const segmentRows = [
     { label: 'Service step', value: segment?.story ?? 'Customer service scenario' },
@@ -137,14 +139,14 @@ export default function CommercialInspectorPanel({
 
   return (
     <aside className="flex h-full w-full flex-col overflow-hidden border-l border-slate-700 bg-slate-950">
-      <div className="border-b border-slate-800 px-4 py-4">
+      <div className="border-b border-slate-800 px-4 py-3">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-500 dark:text-slate-400">
-              Service Summary
+            <div className="text-[9px] font-semibold uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400">
+              Commercial Inspector
             </div>
             <h2 className="mt-1 truncate text-lg font-semibold text-white">{viewModel.executiveSummary.recommendedTechnology}</h2>
-            <p className="mt-1 text-sm text-slate-400">{viewModel.executiveSummary.expectedExperience}</p>
+            <p className="mt-1 line-clamp-2 text-sm leading-5 text-slate-400">{viewModel.executiveSummary.expectedExperience}</p>
           </div>
           <span className={`shrink-0 rounded-full border px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.08em] ${overallStatusChipClass}`}>
             {viewModel.executiveSummary.statusLabel}
@@ -188,18 +190,22 @@ export default function CommercialInspectorPanel({
             ))}
           </StorySection>
 
-          {segment?.type !== 'summary' && (
-            <StorySection title="Service Step">
-              {segmentRows.map((row) => (
-                <FieldRow key={`${row.label}-${row.value}`} label={row.label} value={row.value} />
-              ))}
-            </StorySection>
-          )}
-
           <StorySection title="Performance">
-            {performanceRows.map((row) => (
-              <FieldRow key={`${row.label}-${row.value}`} label={row.label} value={row.value} />
-            ))}
+            <div className="grid grid-cols-3 divide-x divide-slate-800">
+              {performanceRows.slice(0, 3).map((row) => (
+                <div key={`${row.label}-${row.value}`} className="min-w-0 px-3 py-2">
+                  <div className="truncate text-sm font-semibold text-white" title={row.value}>{row.value}</div>
+                  <div className="mt-0.5 truncate text-[9px] font-semibold uppercase tracking-[0.1em] text-slate-500" title={row.label}>{row.label.replace('Expected ', '')}</div>
+                </div>
+              ))}
+            </div>
+            <FieldRow label="Service technology" value={viewModel.technology.toUpperCase()} />
+          </StorySection>
+
+          <StorySection title={segment?.type === 'summary' ? 'Service Outcome' : 'Selected Journey Step'}>
+            <FieldRow label="Status" value={segment ? customerServiceStateLabel[segment.customerStatus] : viewModel.executiveSummary.statusLabel} />
+            <FieldRow label="What this means" value={segment?.story ?? viewModel.executiveSummary.expectedExperience} />
+            <FieldRow label="Current constraint" value={selectedConstraint(segment, viewModel)} />
           </StorySection>
 
           <DetailSection title="Detailed Reasoning">
@@ -207,6 +213,12 @@ export default function CommercialInspectorPanel({
               <FieldRow key={`${row.label}-${row.value}`} label={row.label} value={row.value} />
             ))}
             {limitingRows.map((row) => (
+              <FieldRow key={`${row.label}-${row.value}`} label={row.label} value={row.value} />
+            ))}
+          </DetailSection>
+
+          <DetailSection title="Journey Details">
+            {segmentRows.map((row) => (
               <FieldRow key={`${row.label}-${row.value}`} label={row.label} value={row.value} />
             ))}
           </DetailSection>

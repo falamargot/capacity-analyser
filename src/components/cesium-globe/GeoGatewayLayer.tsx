@@ -33,6 +33,7 @@ interface GeoGatewayLayerProps {
     /** When non-null, only gateways whose name is in this set are rendered.
      *  Null (default) renders all gateways — engineering mode. */
     allowedGatewayNames?: Set<string> | null;
+    commercialTone?: 'primary' | 'secondary';
 }
 
 const GeoGatewayEntity = React.memo<{
@@ -43,6 +44,7 @@ const GeoGatewayEntity = React.memo<{
     onGatewayHover: (gatewayName: string | null) => void;
     isSelected: boolean;
     sizeScale: number;
+    commercialTone: 'primary' | 'secondary';
 }>(({ 
     gateway,
     viewerRef,
@@ -50,7 +52,8 @@ const GeoGatewayEntity = React.memo<{
     onGatewayClick,
     onGatewayHover,
     isSelected,
-    sizeScale
+    sizeScale,
+    commercialTone,
 }) => {
     const position = useMemo(
         () => getPosition(gateway.lat, gateway.lng, GROUND_POINT_ALTITUDE_KM),
@@ -68,9 +71,10 @@ const GeoGatewayEntity = React.memo<{
 
             const baseScale = dynamicScale * 3000000 / Math.max(distance, 10000000);
             const selectedBoost = isSelected ? SELECTED_GATEWAY_SIZE_BOOST : 1.0;
-            return baseScale * GATEWAY_MARKER_PIXEL_MULTIPLIER * selectedBoost * (sizeScale || 1);
+            const toneScale = commercialTone === 'secondary' ? 0.58 : 1;
+            return baseScale * GATEWAY_MARKER_PIXEL_MULTIPLIER * selectedBoost * (sizeScale || 1) * toneScale;
         }, false);
-    }, [gateway.lat, gateway.lng, cameraMetricsRef, isSelected, sizeScale, viewerRef]);
+    }, [gateway.lat, gateway.lng, cameraMetricsRef, commercialTone, isSelected, sizeScale, viewerRef]);
 
     const handleClick = useCallback(() => onGatewayClick(gateway.name), [gateway.name, onGatewayClick]);
     const handleMouseEnter = useCallback(() => onGatewayHover(gateway.name), [gateway.name, onGatewayHover]);
@@ -82,7 +86,7 @@ const GeoGatewayEntity = React.memo<{
             position={position}
             point={{
                 pixelSize: pixelSizeCallback,
-                color: Color.CYAN,
+                color: commercialTone === 'secondary' ? Color.fromCssColorString('#64748b').withAlpha(0.55) : Color.CYAN,
                 disableDepthTestDistance: 0
             }}
             name={`${gateway.name} (Teleport)`}
@@ -98,7 +102,7 @@ const GeoGatewayEntity = React.memo<{
                     outlineWidth={3}
                     style={2}
                     showBackground={true}
-                    backgroundColor={Color.CYAN.withAlpha(0.7)}
+                    backgroundColor={commercialTone === 'secondary' ? Color.fromCssColorString('#475569').withAlpha(0.5) : Color.CYAN.withAlpha(0.7)}
                     backgroundPadding={LABEL_BACKGROUND_PADDING}
                     pixelOffset={LABEL_PIXEL_OFFSET}
                     verticalOrigin={VerticalOrigin.BOTTOM}
@@ -122,6 +126,7 @@ const GeoGatewayLayer: React.FC<GeoGatewayLayerProps> = ({
     selectedGatewayName = null,
     sizeScale = 1,
     allowedGatewayNames = null,
+    commercialTone = 'primary',
 }) => {
     // Memoize Gateway entities (hooks must run unconditionally)
     const gatewayEntities = useMemo(() => {
@@ -138,9 +143,10 @@ const GeoGatewayLayer: React.FC<GeoGatewayLayerProps> = ({
                 onGatewayHover={onGatewayHover}
                 isSelected={selectedGatewayName === gateway.name}
                 sizeScale={sizeScale}
+                commercialTone={commercialTone}
             />
         ));
-    }, [viewerRef, cameraMetricsRef, onGatewayClick, onGatewayHover, selectedGatewayName, sizeScale, allowedGatewayNames]);
+    }, [viewerRef, cameraMetricsRef, onGatewayClick, onGatewayHover, selectedGatewayName, sizeScale, allowedGatewayNames, commercialTone]);
 
     // Only render Gateways for GEO scope or ALL scope
     if (satelliteScope !== 'GEO' && satelliteScope !== 'ALL') {

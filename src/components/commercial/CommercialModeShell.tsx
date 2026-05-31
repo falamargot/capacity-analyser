@@ -70,7 +70,7 @@ export default function CommercialModeShell({
           )}
         </div>
         {!isFullscreen && (
-          <div className="w-[360px] shrink-0">
+          <div className="w-[340px] shrink-0">
             <CommercialInspectorPanel
               viewModel={viewModel}
               selectedSegmentId={selectedSegmentId}

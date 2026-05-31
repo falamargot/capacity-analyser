@@ -85,14 +85,29 @@ const geoUserMaterial = new PolylineDashMaterialProperty({
     color: Color.ROYALBLUE,
     dashPattern: 3855
 });
+const geoUserSecondaryMaterial = new PolylineDashMaterialProperty({
+    color: Color.ROYALBLUE.withAlpha(0.34),
+    gapColor: Color.ROYALBLUE.withAlpha(0.04),
+    dashPattern: 3855
+});
 
 const geoFeederMaterial = new PolylineDashMaterialProperty({
     color: Color.ROYALBLUE,
     dashPattern: 3855
 });
+const geoFeederSecondaryMaterial = new PolylineDashMaterialProperty({
+    color: Color.ROYALBLUE.withAlpha(0.32),
+    gapColor: Color.ROYALBLUE.withAlpha(0.04),
+    dashPattern: 3855
+});
 
 const geoBackhaulMaterial = new PolylineDashMaterialProperty({
     color: Color.GRAY,
+    dashPattern: 3855
+});
+const geoBackhaulSecondaryMaterial = new PolylineDashMaterialProperty({
+    color: Color.GRAY.withAlpha(0.3),
+    gapColor: Color.GRAY.withAlpha(0.04),
     dashPattern: 3855
 });
 
@@ -109,10 +124,20 @@ const meshTransmitMaterial = new PolylineGlowMaterialProperty({
     glowPower: 0.28,
     taperPower: 0.5,
 });
+const meshTransmitSecondaryMaterial = new PolylineGlowMaterialProperty({
+    color: Color.fromCssColorString('#f97316').withAlpha(0.34),
+    glowPower: 0.08,
+    taperPower: 0.5,
+});
 // Receive leg: cyan glow
 const meshReceiveMaterial = new PolylineGlowMaterialProperty({
     color: Color.fromCssColorString('#06b6d4').withAlpha(0.98),
     glowPower: 0.28,
+    taperPower: 0.5,
+});
+const meshReceiveSecondaryMaterial = new PolylineGlowMaterialProperty({
+    color: Color.fromCssColorString('#06b6d4').withAlpha(0.34),
+    glowPower: 0.08,
     taperPower: 0.5,
 });
 
@@ -120,6 +145,11 @@ const meshReceiveMaterial = new PolylineGlowMaterialProperty({
 // STAR_RETURN: user transmits → amber dashed (vs STAR_FORWARD blue)
 const geoUplinkMaterial = new PolylineDashMaterialProperty({
     color: Color.fromCssColorString('#f59e0b').withAlpha(0.9),
+    dashPattern: 3855,
+});
+const geoUplinkSecondaryMaterial = new PolylineDashMaterialProperty({
+    color: Color.fromCssColorString('#f59e0b').withAlpha(0.32),
+    gapColor: Color.fromCssColorString('#78350f').withAlpha(0.05),
     dashPattern: 3855,
 });
 
@@ -142,10 +172,20 @@ const s2sUserLinkMaterial = new PolylineGlowMaterialProperty({
     glowPower: 0.22,
     taperPower: 0.5,
 });
+const s2sUserLinkSecondaryMaterial = new PolylineGlowMaterialProperty({
+    color: Color.fromCssColorString('#06b6d4').withAlpha(0.34),
+    glowPower: 0.07,
+    taperPower: 0.5,
+});
 // Orange glow: feeder links (Satellite ↔ SNP)
 const s2sFeederLinkMaterial = new PolylineGlowMaterialProperty({
     color: Color.fromCssColorString('#f97316').withAlpha(0.92),
     glowPower: 0.18,
+    taperPower: 0.5,
+});
+const s2sFeederLinkSecondaryMaterial = new PolylineGlowMaterialProperty({
+    color: Color.fromCssColorString('#f97316').withAlpha(0.32),
+    glowPower: 0.06,
     taperPower: 0.5,
 });
 // Violet dashed: terrestrial backbone (SNP ↔ PoP)
@@ -154,14 +194,29 @@ const s2sBackboneMaterial = new PolylineDashMaterialProperty({
     gapColor: Color.fromCssColorString('#2e1065').withAlpha(0.16),
     dashPattern: 3855,
 });
+const s2sBackboneSecondaryMaterial = new PolylineDashMaterialProperty({
+    color: Color.fromCssColorString('#a78bfa').withAlpha(0.34),
+    gapColor: Color.fromCssColorString('#2e1065').withAlpha(0.04),
+    dashPattern: 3855,
+});
 const s2sBackboneHaloMaterial = new PolylineGlowMaterialProperty({
     color: Color.fromCssColorString('#020617').withAlpha(0.72),
     glowPower: 0.16,
     taperPower: 0.35,
 });
+const s2sBackboneHaloSecondaryMaterial = new PolylineGlowMaterialProperty({
+    color: Color.fromCssColorString('#020617').withAlpha(0.38),
+    glowPower: 0.08,
+    taperPower: 0.35,
+});
 const s2sBackboneGlowMaterial = new PolylineGlowMaterialProperty({
     color: Color.fromCssColorString('#8b5cf6').withAlpha(0.48),
     glowPower: 0.24,
+    taperPower: 0.45,
+});
+const s2sBackboneGlowSecondaryMaterial = new PolylineGlowMaterialProperty({
+    color: Color.fromCssColorString('#8b5cf6').withAlpha(0.16),
+    glowPower: 0.08,
     taperPower: 0.45,
 });
 
@@ -198,6 +253,7 @@ interface S2SBackboneSegmentProps {
     positions: CallbackProperty;
     widthBoost?: number;
     commercialEntityId?: string;
+    subdued?: boolean;
 }
 
 const S2SBackboneSegment = React.memo<S2SBackboneSegmentProps>(({
@@ -205,6 +261,7 @@ const S2SBackboneSegment = React.memo<S2SBackboneSegmentProps>(({
     positions,
     widthBoost = 0,
     commercialEntityId,
+    subdued = false,
 }) => {
     return (
         <>
@@ -212,7 +269,7 @@ const S2SBackboneSegment = React.memo<S2SBackboneSegmentProps>(({
                 <PolylineGraphics
                     positions={positions}
                     width={S2S_BACKBONE_HALO_WIDTH + widthBoost}
-                    material={s2sBackboneHaloMaterial}
+                    material={subdued ? s2sBackboneHaloSecondaryMaterial : s2sBackboneHaloMaterial}
                     clampToGround={false}
                     arcType={ArcType.GEODESIC}
                 />
@@ -221,7 +278,7 @@ const S2SBackboneSegment = React.memo<S2SBackboneSegmentProps>(({
                 <PolylineGraphics
                     positions={positions}
                     width={S2S_BACKBONE_GLOW_WIDTH + widthBoost}
-                    material={s2sBackboneGlowMaterial}
+                    material={subdued ? s2sBackboneGlowSecondaryMaterial : s2sBackboneGlowMaterial}
                     clampToGround={false}
                     arcType={ArcType.GEODESIC}
                 />
@@ -230,7 +287,7 @@ const S2SBackboneSegment = React.memo<S2SBackboneSegmentProps>(({
                 <PolylineGraphics
                     positions={positions}
                     width={S2S_BACKBONE_MAIN_WIDTH + widthBoost}
-                    material={s2sBackboneMaterial}
+                    material={subdued ? s2sBackboneSecondaryMaterial : s2sBackboneMaterial}
                     clampToGround={false}
                     arcType={ArcType.GEODESIC}
                 />
@@ -321,6 +378,18 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
     };
     // S2S backbone (always LEO) — reduce boost when LEO is the secondary display technology.
     const s2sIsSecondary = commercialMode && !!commercialDisplayTechnology && commercialDisplayTechnology === 'GEO';
+    const geoIsSecondary = commercialMode && !!commercialDisplayTechnology && commercialDisplayTechnology === 'LEO';
+    const commercialGeoUserMaterial = geoIsSecondary
+        ? (linkMode === 'STAR_RETURN' ? geoUplinkSecondaryMaterial : geoUserSecondaryMaterial)
+        : (linkMode === 'STAR_RETURN' ? geoUplinkMaterial : geoUserMaterial);
+    const commercialGeoFeederMaterial = geoIsSecondary ? geoFeederSecondaryMaterial : geoFeederMaterial;
+    const commercialGeoBackhaulMaterial = geoIsSecondary ? geoBackhaulSecondaryMaterial : geoBackhaulMaterial;
+    const commercialMeshTransmitMaterial = geoIsSecondary ? meshTransmitSecondaryMaterial : meshTransmitMaterial;
+    const commercialMeshReceiveMaterial = geoIsSecondary ? meshReceiveSecondaryMaterial : meshReceiveMaterial;
+    const commercialLeoUserMaterial = s2sIsSecondary ? s2sUserLinkSecondaryMaterial : leoLinkMaterial;
+    const commercialLeoFeederMaterial = s2sIsSecondary ? s2sFeederLinkSecondaryMaterial : leoLinkMaterial;
+    const commercialS2SUserMaterial = s2sIsSecondary ? s2sUserLinkSecondaryMaterial : s2sUserLinkMaterial;
+    const commercialS2SFeederMaterial = s2sIsSecondary ? s2sFeederLinkSecondaryMaterial : s2sFeederLinkMaterial;
     const commercialBackboneBoost = commercialMode
         ? commercialFocusedSegment === 'summary'
             ? s2sIsSecondary ? 0.4 : 1.2
@@ -770,7 +839,7 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
                     <PolylineGraphics
                         positions={leoUplinkCallback}
                         width={commercialWidth('access', leoLinkWidth, 'LEO')}
-                        material={leoLinkMaterial}
+                        material={commercialLeoUserMaterial}
                         arcType={ArcType.NONE}
                     />
                 </Entity>
@@ -782,7 +851,7 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
                     <PolylineGraphics
                         positions={leoBackhaulCallback}
                         width={commercialWidth('backhaul', leoLinkWidth, 'LEO')}
-                        material={leoLinkMaterial}
+                        material={commercialLeoFeederMaterial}
                         clampToGround={false}
                         arcType={ArcType.NONE}
                     />
@@ -795,7 +864,7 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
                     <PolylineGraphics
                         positions={geoUserLinkCallback}
                         width={commercialWidth('access', 2.5, 'GEO')}
-                        material={linkMode === 'STAR_RETURN' ? geoUplinkMaterial : geoUserMaterial}
+                        material={commercialGeoUserMaterial}
                         arcType={ArcType.NONE}
                     />
                 </Entity>
@@ -807,7 +876,7 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
                     <PolylineGraphics
                         positions={geoFeederLinkCallback}
                         width={commercialWidth('backhaul', 2.5, 'GEO')}
-                        material={geoFeederMaterial}
+                        material={commercialGeoFeederMaterial}
                         arcType={ArcType.NONE}
                     />
                 </Entity>
@@ -819,7 +888,7 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
                     <PolylineGraphics
                         positions={geoBackhaulCallback}
                         width={commercialWidth('backhaul', 2.5, 'GEO')}
-                        material={geoBackhaulMaterial}
+                        material={commercialGeoBackhaulMaterial}
                         arcType={ArcType.NONE}
                     />
                 </Entity>
@@ -833,12 +902,12 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
                 <>
                     {geoUserLinkCallback && (
                         <Entity id={routeEntityId('access', 'geo-mesh-a-sat')} name="A → Satellite (transmit)">
-                            <PolylineGraphics positions={geoUserLinkCallback} width={commercialWidth('access', 5, 'GEO')} material={meshTransmitMaterial} arcType={ArcType.NONE} />
+                            <PolylineGraphics positions={geoUserLinkCallback} width={commercialWidth('access', 5, 'GEO')} material={commercialMeshTransmitMaterial} arcType={ArcType.NONE} />
                         </Entity>
                     )}
                     {meshSatToBCallback && (
                         <Entity id={routeEntityId('destination', 'geo-mesh-sat-b')} name="Satellite → B (receive)">
-                            <PolylineGraphics positions={meshSatToBCallback} width={commercialWidth('destination', 5, 'GEO')} material={meshReceiveMaterial} clampToGround={false} arcType={ArcType.NONE} />
+                            <PolylineGraphics positions={meshSatToBCallback} width={commercialWidth('destination', 5, 'GEO')} material={commercialMeshReceiveMaterial} clampToGround={false} arcType={ArcType.NONE} />
                         </Entity>
                     )}
                 </>
@@ -847,12 +916,12 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
                 <>
                     {meshBtoSatCallback && (
                         <Entity id={routeEntityId('destination', 'geo-mesh-b-sat')} name="B → Satellite (transmit)">
-                            <PolylineGraphics positions={meshBtoSatCallback} width={commercialWidth('destination', 5, 'GEO')} material={meshTransmitMaterial} clampToGround={false} arcType={ArcType.NONE} />
+                            <PolylineGraphics positions={meshBtoSatCallback} width={commercialWidth('destination', 5, 'GEO')} material={commercialMeshTransmitMaterial} clampToGround={false} arcType={ArcType.NONE} />
                         </Entity>
                     )}
                     {meshSatToACallback && (
                         <Entity id={routeEntityId('access', 'geo-mesh-sat-a')} name="Satellite → A (receive)">
-                            <PolylineGraphics positions={meshSatToACallback} width={commercialWidth('access', 5, 'GEO')} material={meshReceiveMaterial} arcType={ArcType.NONE} />
+                            <PolylineGraphics positions={meshSatToACallback} width={commercialWidth('access', 5, 'GEO')} material={commercialMeshReceiveMaterial} arcType={ArcType.NONE} />
                         </Entity>
                     )}
                 </>
@@ -920,7 +989,7 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
                         <PolylineGraphics
                             positions={leoS2SLinks.satACallback}
                             width={commercialWidth('access', 3.5, 'LEO')}
-                            material={s2sUserLinkMaterial}
+                            material={commercialS2SUserMaterial}
                             arcType={ArcType.NONE}
                         />
                     </Entity>
@@ -931,7 +1000,7 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
                             <PolylineGraphics
                                 positions={leoS2SLinks.satAToSnpACallback}
                                 width={commercialWidth('backhaul', 3, 'LEO')}
-                                material={s2sFeederLinkMaterial}
+                                material={commercialS2SFeederMaterial}
                                 clampToGround={false}
                                 arcType={ArcType.NONE}
                             />
@@ -945,6 +1014,7 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
                             positions={leoS2SLinks.snpAToPopCallback}
                             widthBoost={commercialBackboneBoost}
                             commercialEntityId={routeEntityId('backhaul', 'leo-s2s-snpa-pop')}
+                            subdued={s2sIsSecondary}
                         />
                     )}
 
@@ -955,6 +1025,7 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
                             positions={leoS2SLinks.popToSnpBCallback}
                             widthBoost={commercialBackboneBoost}
                             commercialEntityId={routeEntityId('backhaul', 'leo-s2s-pop-snpb')}
+                            subdued={s2sIsSecondary}
                         />
                     )}
 
@@ -965,6 +1036,7 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
                             positions={leoS2SLinks.sameSnpCallback}
                             widthBoost={commercialBackboneBoost}
                             commercialEntityId={routeEntityId('backhaul', 'leo-s2s-backbone-same')}
+                            subdued={s2sIsSecondary}
                         />
                     )}
 
@@ -974,7 +1046,7 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
                             <PolylineGraphics
                                 positions={leoS2SLinks.satBToSnpBCallback}
                                 width={commercialWidth('backhaul', 3, 'LEO')}
-                                material={s2sFeederLinkMaterial}
+                                material={commercialS2SFeederMaterial}
                                 clampToGround={false}
                                 arcType={ArcType.NONE}
                             />
@@ -986,7 +1058,7 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
                         <PolylineGraphics
                             positions={leoS2SLinks.satBCallback}
                             width={commercialWidth('destination', 3.5, 'LEO')}
-                            material={s2sUserLinkMaterial}
+                            material={commercialS2SUserMaterial}
                             arcType={ArcType.NONE}
                         />
                     </Entity>

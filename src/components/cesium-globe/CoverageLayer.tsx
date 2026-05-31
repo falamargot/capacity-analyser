@@ -80,6 +80,7 @@ interface CoverageLayerProps {
   highlightedLegendItemKey?: string | null;
   presentation?: 'engineering' | 'commercial';
   commercialLabel?: string;
+  commercialTone?: 'primary' | 'secondary';
 }
 
 interface SanitizedPolygonGeometry {
@@ -430,7 +431,9 @@ const getCoverageBandStyle = (
   mode: RenderContour['mode'],
   isHighlighted: boolean,
   direction?: RenderContour['direction'],
+  commercialTone: CoverageLayerProps['commercialTone'] = 'primary',
 ): { fillColor: Color; contourColor: Color; contourWidth: number } => {
+  const subdued = commercialTone === 'secondary';
   if (mode === 'overview') {
     const isUplink = direction === 'uplink';
     const fillBase = direction
@@ -441,9 +444,9 @@ const getCoverageBandStyle = (
       : OVERVIEW_CONTOUR_COLOR;
 
     return {
-      fillColor: fillBase.withAlpha(isHighlighted ? 0.28 : 0.20),
-      contourColor: contourBase.withAlpha(isHighlighted ? 0.95 : 0.68),
-      contourWidth: isHighlighted ? 2.4 : 1.2,
+      fillColor: fillBase.withAlpha(subdued ? (isHighlighted ? 0.14 : 0.08) : (isHighlighted ? 0.28 : 0.20)),
+      contourColor: contourBase.withAlpha(subdued ? (isHighlighted ? 0.5 : 0.28) : (isHighlighted ? 0.95 : 0.68)),
+      contourWidth: subdued ? (isHighlighted ? 1.6 : 0.8) : (isHighlighted ? 2.4 : 1.2),
     };
   }
 
@@ -451,9 +454,9 @@ const getCoverageBandStyle = (
 
   if (mode === 'dimmed') {
     return {
-      fillColor: Color.fromCssColorString('#bfdbfe').withAlpha(0.038 + (easedBand * 0.06)),
-      contourColor: DIMMED_CONTOUR_COLOR.withAlpha(isHighlighted ? 0.88 : 0.2 + (easedBand * 0.14)),
-      contourWidth: isHighlighted ? 2.2 : 0.95,
+      fillColor: Color.fromCssColorString('#bfdbfe').withAlpha(subdued ? 0.018 + (easedBand * 0.025) : 0.038 + (easedBand * 0.06)),
+      contourColor: DIMMED_CONTOUR_COLOR.withAlpha(subdued ? (isHighlighted ? 0.42 : 0.12 + (easedBand * 0.08)) : (isHighlighted ? 0.88 : 0.2 + (easedBand * 0.14))),
+      contourWidth: subdued ? (isHighlighted ? 1.4 : 0.7) : (isHighlighted ? 2.2 : 0.95),
     };
   }
 
@@ -467,12 +470,14 @@ const getCoverageBandStyle = (
   const fillColor = easedBand < 0.52
     ? Color.lerp(outerFill, midFill, easedBand / 0.52, new Color())
     : Color.lerp(midFill, innerFill, (easedBand - 0.52) / 0.48, new Color());
-  fillColor.alpha = 0.09 + (easedBand * easedBand * 0.34);
+  fillColor.alpha = subdued
+    ? 0.035 + (easedBand * easedBand * 0.12)
+    : 0.09 + (easedBand * easedBand * 0.34);
 
   return {
     fillColor,
-    contourColor: contourBase.withAlpha(isHighlighted ? 0.98 : 0.72),
-    contourWidth: isHighlighted ? 2.8 : 1.2,
+    contourColor: contourBase.withAlpha(subdued ? (isHighlighted ? 0.5 : 0.3) : (isHighlighted ? 0.98 : 0.72)),
+    contourWidth: subdued ? (isHighlighted ? 1.6 : 0.75) : (isHighlighted ? 2.8 : 1.2),
   };
 };
 
@@ -1011,6 +1016,7 @@ const CoverageLayer: React.FC<CoverageLayerProps> = ({
   highlightedLegendItemKey = null,
   presentation = 'engineering',
   commercialLabel = 'GEO service area',
+  commercialTone = 'primary',
 }) => {
   const { viewer } = useCesium();
   const dataSourceRef = useRef<CustomDataSource | null>(null);
@@ -1090,8 +1096,8 @@ const CoverageLayer: React.FC<CoverageLayerProps> = ({
       .join('|')
   ), [renderContours]);
   const renderSignature = useMemo(
-    () => `${selectionRenderSignature}::${renderContentSignature}::${highlightedLegendItemKey ?? 'none'}::${presentation}::${commercialLabel}`,
-    [commercialLabel, highlightedLegendItemKey, presentation, renderContentSignature, selectionRenderSignature]
+    () => `${selectionRenderSignature}::${renderContentSignature}::${highlightedLegendItemKey ?? 'none'}::${presentation}::${commercialLabel}::${commercialTone}`,
+    [commercialLabel, commercialTone, highlightedLegendItemKey, presentation, renderContentSignature, selectionRenderSignature]
   );
   useEffect(() => {
     if (!relevantSatellite || relevantSatellite.type !== 'EUTELSAT' || !relevantSatellite.coverageFileId) {
@@ -1200,6 +1206,7 @@ const CoverageLayer: React.FC<CoverageLayerProps> = ({
         contour.mode,
         highlightedLegendItemKey === contourLegendKey,
         contour.direction,
+        commercialTone,
       );
       const fillId = `${coverageEntityId}::fill::${contour.contourKey}::${contour.geometryPartKey}`;
       const outlineId = `${coverageEntityId}::outline::${contour.contourKey}::${contour.geometryPartKey}`;
@@ -1314,7 +1321,7 @@ const CoverageLayer: React.FC<CoverageLayerProps> = ({
     });
 
     viewer?.scene.requestRender();
-  }, [geometryLod, presentation, renderContours, renderLabels, renderSignature, selectedCoverage, selectedUplinkCoverage, selectedDownlinkCoverage, selection, viewer]);
+  }, [commercialTone, geometryLod, highlightedLegendItemKey, presentation, renderContours, renderLabels, renderSignature, selectedCoverage, selectedUplinkCoverage, selectedDownlinkCoverage, selection, viewer]);
 
   return null;
 };

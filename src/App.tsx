@@ -4344,7 +4344,7 @@ const App: React.FC = () => {
                 Remounts on switch — intentional; neither contains the globe. */}
             {uiMode === 'commercial' ? (
               !isFullscreen && (
-                <div className="w-[360px] shrink-0">
+                <div className="w-[340px] shrink-0">
                   <CommercialInspectorPanel
                     viewModel={commercialScenarioViewModel}
                     selectedSegmentId={commercialScenarioViewModel.selectedSegmentId ?? 'summary'}

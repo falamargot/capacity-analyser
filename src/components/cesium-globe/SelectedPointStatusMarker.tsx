@@ -31,6 +31,7 @@ interface SelectionPulseMarkerProps {
   labelText?: string;
   name?: string;
   showPoint?: boolean;
+  opacityMultiplier?: number;
 }
 
 interface SelectedPointStatusMarkerProps {
@@ -61,6 +62,7 @@ export const SelectionPulseMarker: React.FC<SelectionPulseMarkerProps> = ({
   labelText,
   name = 'Selected Position',
   showPoint = false,
+  opacityMultiplier = 1,
 }) => {
   const ringRadius = useMemo(() => new CallbackProperty((time?: JulianDate) => {
     const now = time ? JulianDate.toDate(time).getTime() / 1000 : Date.now() / 1000;
@@ -77,10 +79,10 @@ export const SelectionPulseMarker: React.FC<SelectionPulseMarkerProps> = ({
       const now = time ? JulianDate.toDate(time).getTime() / 1000 : Date.now() / 1000;
       const pulse = 0.5 + 0.5 * Math.sin(now * pulseSpeed * Math.PI);
       Color.clone(baseColor, scratchColor);
-      scratchColor.alpha = 0.12 + pulse * 0.18;
+      scratchColor.alpha = (0.12 + pulse * 0.18) * opacityMultiplier;
       return scratchColor;
     }, false);
-  }, [baseColor, pulseSpeed]);
+  }, [baseColor, opacityMultiplier, pulseSpeed]);
 
   const ringMaterial = useMemo(() => new ColorMaterialProperty(ringColor), [ringColor]);
   const orbitalRadii = useMemo(() => {
@@ -106,7 +108,7 @@ export const SelectionPulseMarker: React.FC<SelectionPulseMarkerProps> = ({
                 radii: orbitalRadii,
                 material: ringMaterial,
                 outline: new ConstantProperty(true),
-                outlineColor: new ConstantProperty(baseColor.withAlpha(0.9)),
+                outlineColor: new ConstantProperty(baseColor.withAlpha(0.9 * opacityMultiplier)),
                 outlineWidth: new ConstantProperty(2),
                 subdivisions: new ConstantProperty(64),
                 stackPartitions: new ConstantProperty(32),
@@ -119,7 +121,7 @@ export const SelectionPulseMarker: React.FC<SelectionPulseMarkerProps> = ({
                 semiMinorAxis: ringRadius,
                 material: ringMaterial,
                 outline: new ConstantProperty(true),
-                outlineColor: new ConstantProperty(baseColor.withAlpha(0.85)),
+                outlineColor: new ConstantProperty(baseColor.withAlpha(0.85 * opacityMultiplier)),
                 outlineWidth: new ConstantProperty(2),
                 height: new ConstantProperty(GROUND_POINT_LAYER_HEIGHT_M),
               },

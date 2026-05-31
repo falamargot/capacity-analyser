@@ -88,6 +88,7 @@ interface OneWebCombLayerProps {
     highlightServingFootprint?: boolean;
     regulatoryOverlayActive?: boolean;
     leoServiceViewModel?: LeoConnectivityViewModel | null;
+    commercialTone?: 'primary' | 'secondary';
 }
 
 const BLOCKED_BEAM_TINT = Color.fromCssColorString('#ef4444');
@@ -181,7 +182,10 @@ const BeamRing = React.memo<{
     viewerRef: React.RefObject<CesiumViewerType | null>;
     hsBeamsRef: React.MutableRefObject<ReadonlySet<number>>;
     regulatoryBlockedRef: React.MutableRefObject<boolean>;
-}>(({ beamIndex, ringIndex, scaleFactor, ringOpacity, targetSat, getCombGeometriesRef, viewerRef, hsBeamsRef, regulatoryBlockedRef }) => {
+    commercialTone: 'primary' | 'secondary';
+}>(({ beamIndex, ringIndex, scaleFactor, ringOpacity, targetSat, getCombGeometriesRef, viewerRef, hsBeamsRef, regulatoryBlockedRef, commercialTone }) => {
+    const opacityMultiplier = commercialTone === 'secondary' ? 0.28 : 1;
+    const effectiveRingOpacity = ringOpacity * opacityMultiplier;
 
     // Cached PolygonHierarchy — recomputed only when the worker posts new geometry
     // (i.e. when getCombGeometries returns a new array reference). Between worker
@@ -255,12 +259,14 @@ const BeamRing = React.memo<{
             // HS beam → solid red (out of service)
             if (hsBeamsRef.current.has(beamIndex)) {
                 Color.clone(Color.RED, _scratchBeamColor);
-                _scratchBeamColor.alpha = ringOpacity * 0.85;
+                _scratchBeamColor.alpha = effectiveRingOpacity * 0.85;
                 return _scratchBeamColor;
             }
 
             if (!time || !targetSat.satrec) {
-                return getBeamColor(beamIndex, false);
+                Color.clone(getBeamColor(beamIndex, false), _scratchBeamColor);
+                _scratchBeamColor.alpha *= opacityMultiplier;
+                return _scratchBeamColor;
             }
 
             const { isBlankingZone, isGSOAvoidance, satLatDeg } =
@@ -269,7 +275,7 @@ const BeamRing = React.memo<{
             // Inactive beam → gray, no gradient
             if (isBlankingZone) {
                 Color.clone(Color.GRAY, _scratchBeamColor);
-                _scratchBeamColor.alpha = 0.3 * (ringOpacity / 0.75);
+                _scratchBeamColor.alpha = 0.3 * (effectiveRingOpacity / 0.75);
                 return _scratchBeamColor;
             }
 
@@ -282,7 +288,7 @@ const BeamRing = React.memo<{
                     : beamIndex >= 8 && beamIndex <= 15;
                 if (!isActiveBeam) {
                     Color.clone(Color.GRAY, _scratchBeamColor);
-                    _scratchBeamColor.alpha = 0.15 * (ringOpacity / 0.75);
+                    _scratchBeamColor.alpha = 0.15 * (effectiveRingOpacity / 0.75);
                     return _scratchBeamColor;
                 }
             }
@@ -290,13 +296,13 @@ const BeamRing = React.memo<{
             // Active beam → frequency-reuse color with gradient opacity
             const baseColor = getBeamBaseColor(beamIndex);
             if (regulatoryBlockedRef.current) {
-                return getDiagnosticBeamColor(baseColor, ringOpacity);
+                return getDiagnosticBeamColor(baseColor, effectiveRingOpacity);
             }
             Color.clone(baseColor, _scratchBeamColor);
-            _scratchBeamColor.alpha = ringOpacity;
+            _scratchBeamColor.alpha = effectiveRingOpacity;
             return _scratchBeamColor;
         }, false));
-    }, [beamIndex, ringOpacity, targetSat.id, targetSat.satrec, hsBeamsRef, regulatoryBlockedRef]);
+    }, [beamIndex, effectiveRingOpacity, opacityMultiplier, targetSat.id, targetSat.satrec, hsBeamsRef, regulatoryBlockedRef]);
 
     return (
         <Entity name={`Beam ${beamIndex} ring ${ringIndex}`}>
@@ -305,7 +311,7 @@ const BeamRing = React.memo<{
                 hierarchy={hierarchyCallback}
                 material={colorCallback}
                 outline={ringIndex === 0} // outline only on outermost ring
-                outlineColor={_BEAM_OUTLINE_COLOR}
+                outlineColor={commercialTone === 'secondary' ? Color.WHITE.withAlpha(0.05) : _BEAM_OUTLINE_COLOR}
                 outlineWidth={1}
                 height={FOOTPRINT_LAYER_HEIGHT_M}
             />
@@ -323,7 +329,8 @@ const GradientBeamPolygon = React.memo<{
     hasBackhaul: boolean;
     hsBeamsRef: React.MutableRefObject<ReadonlySet<number>>;
     regulatoryBlockedRef: React.MutableRefObject<boolean>;
-}>(({ beamIndex, targetSat, getCombGeometriesRef, viewerRef, hsBeamsRef, regulatoryBlockedRef }) => {
+    commercialTone: 'primary' | 'secondary';
+}>(({ beamIndex, targetSat, getCombGeometriesRef, viewerRef, hsBeamsRef, regulatoryBlockedRef, commercialTone }) => {
 
     if (!GRADIENT_RENDERING.ENABLE_GRADIENT) {
         // Fallback: single flat polygon (original behaviour)
@@ -338,6 +345,7 @@ const GradientBeamPolygon = React.memo<{
                 viewerRef={viewerRef}
                 hsBeamsRef={hsBeamsRef}
                 regulatoryBlockedRef={regulatoryBlockedRef}
+                commercialTone={commercialTone}
             />
         );
     }
@@ -356,6 +364,7 @@ const GradientBeamPolygon = React.memo<{
                     viewerRef={viewerRef}
                     hsBeamsRef={hsBeamsRef}
                     regulatoryBlockedRef={regulatoryBlockedRef}
+                    commercialTone={commercialTone}
                 />
             ))}
         </>
@@ -372,6 +381,7 @@ const OneWebCombLayer: React.FC<OneWebCombLayerProps> = ({
     highlightServingFootprint = false,
     regulatoryOverlayActive = false,
     leoServiceViewModel = null,
+    commercialTone = 'primary',
 }) => {
     const { getCombGeometries } = useCombGeometry();
     // Stable ref so BeamRing/highlight callbacks always call the latest getCombGeometries
@@ -397,6 +407,7 @@ const OneWebCombLayer: React.FC<OneWebCombLayerProps> = ({
         leoServiceViewModel?.renderingHints.beamVisualState ?? 'LOW'
     );
     beamVisualStateRef.current = leoServiceViewModel?.renderingHints.beamVisualState ?? 'LOW';
+    const commercialOpacityMultiplier = commercialTone === 'secondary' ? 0.28 : 1;
 
     // Generate beam indices array once - MUST be before any early return
     const beamIndices = useMemo(() => Array.from({ length: TOTAL_BEAMS }, (_, i) => i), []);
@@ -542,33 +553,33 @@ const OneWebCombLayer: React.FC<OneWebCombLayerProps> = ({
         () => targetSat
             ? (
                 regulatoryBlockedRef.current
-                    ? Color.fromCssColorString('#ef4444').withAlpha(0.18)
+                    ? Color.fromCssColorString('#ef4444').withAlpha(0.18 * commercialOpacityMultiplier)
                     : Color.fromCssColorString(getCoverageColor('ONEWEB_BACKHAUL', 0.2, targetSat, failedSnps))
             )
             : Color.TRANSPARENT,
-        [targetSat?.id, failedSnps, regulatoryOverlayActive, leoServiceViewModel?.serviceStatus, leoServiceViewModel?.decisionDriver]
+        [targetSat?.id, failedSnps, regulatoryOverlayActive, leoServiceViewModel?.serviceStatus, leoServiceViewModel?.decisionDriver, commercialOpacityMultiplier]
     );
 
     const standardColorFill = useMemo(
         () => targetSat
             ? (
                 regulatoryBlockedRef.current
-                    ? Color.fromCssColorString('#fca5a5').withAlpha(0.16)
-                    : Color.fromCssColorString(getCoverageColor('ONEWEB_STANDARD', 0.2, targetSat, failedSnps))
+                    ? Color.fromCssColorString('#fca5a5').withAlpha(0.16 * commercialOpacityMultiplier)
+                    : Color.fromCssColorString(getCoverageColor('ONEWEB_STANDARD', 0.2 * commercialOpacityMultiplier, targetSat, failedSnps))
             )
             : Color.TRANSPARENT,
-        [targetSat?.id, failedSnps, regulatoryOverlayActive, leoServiceViewModel?.serviceStatus, leoServiceViewModel?.decisionDriver]
+        [targetSat?.id, failedSnps, regulatoryOverlayActive, leoServiceViewModel?.serviceStatus, leoServiceViewModel?.decisionDriver, commercialOpacityMultiplier]
     );
 
     const standardColorOutline = useMemo(
         () => targetSat
             ? (
                 regulatoryBlockedRef.current
-                    ? Color.fromCssColorString('#f87171').withAlpha(0.88)
-                    : Color.fromCssColorString(getCoverageColor('ONEWEB_STANDARD', 0.95, targetSat, failedSnps))
+                    ? Color.fromCssColorString('#f87171').withAlpha(0.88 * commercialOpacityMultiplier)
+                    : Color.fromCssColorString(getCoverageColor('ONEWEB_STANDARD', 0.95 * commercialOpacityMultiplier, targetSat, failedSnps))
             )
             : Color.TRANSPARENT,
-        [targetSat?.id, failedSnps, regulatoryOverlayActive, leoServiceViewModel?.serviceStatus, leoServiceViewModel?.decisionDriver]
+        [targetSat?.id, failedSnps, regulatoryOverlayActive, leoServiceViewModel?.serviceStatus, leoServiceViewModel?.decisionDriver, commercialOpacityMultiplier]
     );
 
     // hasSNPInCoverage performs polygon-point intersection tests across all SNPs;
@@ -593,8 +604,8 @@ const OneWebCombLayer: React.FC<OneWebCombLayerProps> = ({
                     semiMinorAxis={horizonRadius}
                     material={backhaulColor.withAlpha(0)}
                     outline={true}
-                    outlineColor={backhaulColor.withAlpha(1)}
-                    outlineWidth={2}
+                    outlineColor={backhaulColor.withAlpha(commercialTone === 'secondary' ? 0.28 : 1)}
+                    outlineWidth={commercialTone === 'secondary' ? 1 : 2}
                     height={FOOTPRINT_OUTLINE_LAYER_HEIGHT_M}
                 />
             </Entity>
@@ -606,8 +617,8 @@ const OneWebCombLayer: React.FC<OneWebCombLayerProps> = ({
                         semiMinorAxis={serviceZoneRadius}
                         material={standardColorFill}
                         outline={true}
-                        outlineColor={standardColorOutline.withAlpha(1)}
-                        outlineWidth={3}
+                        outlineColor={standardColorOutline.withAlpha(commercialTone === 'secondary' ? 0.28 : 1)}
+                        outlineWidth={commercialTone === 'secondary' ? 1 : 3}
                         height={FOOTPRINT_LAYER_HEIGHT_M}
                     />
                 </Entity>
@@ -624,6 +635,7 @@ const OneWebCombLayer: React.FC<OneWebCombLayerProps> = ({
                     hasBackhaul={hasBackhaul}
                     hsBeamsRef={hsBeamsRef}
                     regulatoryBlockedRef={regulatoryBlockedRef}
+                    commercialTone={commercialTone}
                 />
             ))}
 

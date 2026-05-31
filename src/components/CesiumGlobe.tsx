@@ -975,7 +975,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
 
     const geoBeamCone = useMemo(() => {
         // Only render the beam cone in auto-selection context (no manual satellite selected)
-        if (selectedSatellite) return { beamFeature: null, coverageFeatures: [], sat: null };
+        if (selectedSatellite && !commercialMode) return { beamFeature: null, coverageFeatures: [], sat: null };
         if (!autoSelectedGEOSatellite) return { beamFeature: null, coverageFeatures: [], sat: null };
         const beamFeature = selectedGEOBeam?.feature ?? null;
         const coverageFeatures = selectedGEOBeam?.coverageFeatures ?? [];
@@ -983,7 +983,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
             return { beamFeature: null, coverageFeatures: [], sat: null };
         }
         return { beamFeature, coverageFeatures, sat: autoSelectedGEOSatellite };
-    }, [selectedSatellite, autoSelectedGEOSatellite, selectedGEOBeam]);
+    }, [commercialMode, selectedSatellite, autoSelectedGEOSatellite, selectedGEOBeam]);
 
     const projectionCoverageGroups = useMemo<ProjectionCoverageGroup[]>(() => {
         if (selectedSatellite) return [];
@@ -1090,7 +1090,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
             targets.push(liveSatellite);
         };
 
-        if (selectedSatellite) {
+        if (selectedSatellite && !commercialMode) {
             add(selectedSatellite);
             return targets;
         }
@@ -1110,6 +1110,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         pointBLeo,
         satelliteScope,
         satellites,
+        commercialMode,
     ]);
 
     // In Commercial Mode, restrict the satellite layer to route-relevant satellites only.
@@ -1124,6 +1125,13 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
     // for transmission link visibility. Computed here so both consumers share the same value.
     const commercialLeoOptionAvailable = !commercialMode || commercialViewModel?.comparison.options.find((option) => option.technology === 'leo')?.available === true;
     const commercialGeoOptionAvailable = !commercialMode || commercialViewModel?.comparison.options.find((option) => option.technology === 'geo')?.available === true;
+    const commercialDominantTechnology: 'LEO' | 'GEO' | null =
+        commercialMode
+        && commercialViewModel
+        && commercialViewModel.recommendation.technology !== 'not_available'
+        && commercialViewModel.recommendation.technology !== 'insufficient_data'
+            ? commercialViewModel.commercialDisplayTechnology
+            : null;
 
     const highlightedSatelliteLabels = useMemo(() => {
         const labels: Array<{
@@ -1131,12 +1139,21 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
             isManuallySelected: boolean;
             isRouteParticipant?: boolean;
             serviceRoles?: Array<'A' | 'B'>;
+            commercialRole?: 'serving' | 'alternative' | 'candidate';
         }> = [];
+        const commercialRoleForTechnology = (technology: 'LEO' | 'GEO', available: boolean): 'serving' | 'alternative' | 'candidate' => {
+            if (!commercialMode) return available ? 'serving' : 'candidate';
+            if (!commercialDominantTechnology) return 'candidate';
+            if (technology === commercialDominantTechnology && available) return 'serving';
+            if (available) return 'alternative';
+            return 'candidate';
+        };
         const add = (
             satellite: SatelliteData | null | undefined,
             isManuallySelected: boolean,
             serviceRole?: 'A' | 'B',
             isRouteParticipant = !isManuallySelected,
+            commercialRole?: 'serving' | 'alternative' | 'candidate',
         ) => {
             if (!satellite) return;
             if (!isOperationalSatellite(satellite)) return;
@@ -1145,6 +1162,13 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
             if (existing) {
                 existing.isManuallySelected = existing.isManuallySelected || isManuallySelected;
                 existing.isRouteParticipant = existing.isRouteParticipant || isRouteParticipant;
+                if (commercialRole) {
+                    existing.commercialRole = existing.commercialRole === 'serving' || commercialRole === 'serving'
+                        ? 'serving'
+                        : existing.commercialRole === 'alternative' || commercialRole === 'alternative'
+                            ? 'alternative'
+                            : 'candidate';
+                }
                 if (serviceRole && !existing.serviceRoles?.includes(serviceRole)) {
                     existing.serviceRoles = [...(existing.serviceRoles ?? []), serviceRole].sort();
                 }
@@ -1154,6 +1178,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                 satellite: liveSatellite,
                 isManuallySelected,
                 isRouteParticipant,
+                commercialRole,
                 serviceRoles: serviceRole ? [serviceRole] : undefined,
             });
         };
@@ -1164,12 +1189,15 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         }
 
         if (satelliteScope !== 'GEO' && leoS2SVisualResult && pointBLeo) {
-            add(leoS2SVisualResult.servingSatelliteA, false, 'A', commercialLeoOptionAvailable);
-            add(leoS2SVisualResult.servingSatelliteB, false, 'B', commercialLeoOptionAvailable);
+            const leoIsServing = commercialRoleForTechnology('LEO', commercialLeoOptionAvailable) === 'serving';
+            add(leoS2SVisualResult.servingSatelliteA, false, 'A', leoIsServing, commercialRoleForTechnology('LEO', commercialLeoOptionAvailable));
+            add(leoS2SVisualResult.servingSatelliteB, false, 'B', leoIsServing, commercialRoleForTechnology('LEO', commercialLeoOptionAvailable));
         } else {
-            add(autoSelectedLEOSatellite, false, undefined, commercialLeoOptionAvailable);
+            const leoRole = commercialRoleForTechnology('LEO', commercialLeoOptionAvailable);
+            add(autoSelectedLEOSatellite, false, undefined, leoRole === 'serving', leoRole);
         }
-        add(autoSelectedGEOSatellite, false, undefined, commercialGeoOptionAvailable);
+        const geoRole = commercialRoleForTechnology('GEO', commercialGeoOptionAvailable);
+        add(autoSelectedGEOSatellite, false, undefined, geoRole === 'serving', geoRole);
         return labels;
     }, [
         selectedSatellite,
@@ -1180,6 +1208,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         satelliteScope,
         satellites,
         commercialMode,
+        commercialDominantTechnology,
         commercialLeoOptionAvailable,
         commercialGeoOptionAvailable,
     ]);
@@ -1720,6 +1749,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                             highlightedLegendItemKey={commercialMode ? null : focusedGeoCoverageLegendKey}
                             presentation={commercialMode ? 'commercial' : 'engineering'}
                             commercialLabel={commercialGeoCoverageLabel}
+                            commercialTone={commercialMode && commercialDominantTechnology !== 'GEO' ? 'secondary' : 'primary'}
                         />
                     )}
 
@@ -1736,11 +1766,12 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                             selectedPosition={target.servingPoints ? null : selectedPosition}
                             selectedAircraft={target.servingPoints ? null : selectedAircraft}
                             servingPoints={target.servingPoints ?? undefined}
-                            highlightServingFootprint={!selectedSatellite && (
+                            highlightServingFootprint={(!selectedSatellite || commercialMode) && (!commercialMode || commercialDominantTechnology === 'LEO') && (
                                 target.servingPoints ? target.servingPoints.length > 0 : !!autoSelectedLEOSatellite
                             )}
                             regulatoryOverlayActive={effectiveCountryOverlayMode === 'regulatory'}
                             leoServiceViewModel={leoServiceViewModel}
+                            commercialTone={commercialMode && commercialDominantTechnology !== 'LEO' ? 'secondary' : 'primary'}
                         />
                     ))}
 
@@ -1787,7 +1818,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                         commercialMode={commercialMode}
                         commercialFocusedSegment={commercialFocusedSegment}
                         commercialRouteAvailable={commercialActiveRouteAvailable}
-                        commercialDisplayTechnology={commercialMode ? (commercialViewModel?.commercialDisplayTechnology ?? null) : null}
+                        commercialDisplayTechnology={commercialMode ? commercialDominantTechnology : null}
                         commercialLeoRouteAvailable={commercialLeoOptionAvailable}
                         commercialGeoRouteAvailable={commercialGeoOptionAvailable}
                     />
@@ -1820,24 +1851,27 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                     {pulsedSatellites.map((satellite) => {
                         const isLeoSatellite = satellite.type === 'ONEWEB';
                         const baseRadius = isLeoSatellite ? 20000 : 32000;
-                        const displayTech = commercialMode ? (commercialViewModel?.commercialDisplayTechnology ?? null) : null;
+                        const displayTech = commercialMode ? commercialDominantTechnology : null;
                         const isSecondaryTech = displayTech !== null && (
                             (isLeoSatellite && displayTech === 'GEO') ||
                             (!isLeoSatellite && displayTech === 'LEO')
                         );
+                        const isNoDominantCommercialTech = commercialMode && displayTech === null;
+                        const pulseColor = !commercialMode && selectedSatellite?.id === satellite.id
+                            ? Color.RED
+                            : isSecondaryTech || isNoDominantCommercialTech
+                                ? Color.fromCssColorString('#64748b')
+                                : isLeoSatellite
+                                    ? Color.DEEPPINK
+                                    : Color.ROYALBLUE;
                         return (
                         <SelectionPulseMarker
                             key={`selection-pulse-satellite-${satellite.id}`}
                             position={getSatellitePositionCallback(satellite)}
                             anchorType="orbital"
-                            baseColor={
-                                selectedSatellite?.id === satellite.id
-                                    ? Color.RED
-                                    : isLeoSatellite
-                                        ? Color.DEEPPINK
-                                        : Color.ROYALBLUE
-                            }
-                            ringBaseRadius={isSecondaryTech ? Math.round(baseRadius * 0.55) : baseRadius}
+                            baseColor={pulseColor}
+                            ringBaseRadius={isSecondaryTech || isNoDominantCommercialTech ? Math.round(baseRadius * 0.45) : baseRadius}
+                            opacityMultiplier={isSecondaryTech || isNoDominantCommercialTech ? 0.4 : 1}
                         />
                         );
                     })}
@@ -1845,28 +1879,31 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                         <SelectionPulseMarker
                             key={`selection-pulse-snp-${pulsedSnp.name}`}
                             position={getPosition(pulsedSnp.lat, pulsedSnp.lng, GROUND_POINT_ALTITUDE_KM)}
-                            baseColor={Color.ORANGE}
-                            ringBaseRadius={36000}
+                            baseColor={commercialMode && commercialDominantTechnology !== 'LEO' ? Color.fromCssColorString('#64748b') : Color.ORANGE}
+                            ringBaseRadius={commercialMode && commercialDominantTechnology !== 'LEO' ? 18000 : 36000}
+                            opacityMultiplier={commercialMode && commercialDominantTechnology !== 'LEO' ? 0.35 : 1}
                         />
                     )}
                     {pulsedGateway && linkMode !== 'MESH' && linkMode !== 'POINT_TO_POINT' && (
                         <SelectionPulseMarker
                             key={`selection-pulse-gateway-${pulsedGateway.name}`}
                             position={getPosition(pulsedGateway.lat, pulsedGateway.lng, GROUND_POINT_ALTITUDE_KM)}
-                            baseColor={Color.CYAN}
-                            ringBaseRadius={36000}
+                            baseColor={commercialMode && commercialDominantTechnology !== 'GEO' ? Color.fromCssColorString('#64748b') : Color.CYAN}
+                            ringBaseRadius={commercialMode && commercialDominantTechnology !== 'GEO' ? 18000 : 36000}
+                            opacityMultiplier={commercialMode && commercialDominantTechnology !== 'GEO' ? 0.35 : 1}
                         />
                     )}
 
                     {/* Satellite Layer */}
                     <SatelliteLayer
                         satellites={satellitesForLayer}
-                        selectedSatellite={selectedSatellite}
+                        selectedSatellite={commercialMode ? null : selectedSatellite}
                         onSatelliteClick={onSatelliteClick}
                         onSatelliteHover={handleSatelliteHover}
                         viewerRef={viewerRef}
                         cameraMetricsRef={cameraMetricsRef}
                         satelliteSizeScale={sizeScale}
+                        commercialTechnologyFocus={commercialMode ? commercialDominantTechnology : undefined}
                     />
 
                     {/* SNP Layer */}
@@ -1880,6 +1917,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                         autoSelectedSnpName={typeof selectedSNP === 'string' ? selectedSNP : (selectedSNP?.name ?? null)}
                         inspectedSnpName={inspectedSNP?.name ?? null}
                         allowedSnpNames={commercialSnpAllowlist}
+                        commercialTone={commercialMode && commercialDominantTechnology !== 'LEO' ? 'secondary' : 'primary'}
                     />
 
                     {/* GEO Gateway Layer */}
@@ -1892,6 +1930,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                         selectedGatewayName={selectedGeoGatewayName}
                         sizeScale={sizeScale}
                         allowedGatewayNames={commercialGatewayAllowlist}
+                        commercialTone={commercialMode && commercialDominantTechnology !== 'GEO' ? 'secondary' : 'primary'}
                     />
 
                     {/* Trajectory Layer */}

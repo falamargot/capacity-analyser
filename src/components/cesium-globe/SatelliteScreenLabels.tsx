@@ -15,6 +15,7 @@ interface SatelliteScreenLabelsProps {
     isManuallySelected: boolean;
     isRouteParticipant?: boolean;
     serviceRoles?: Array<'A' | 'B'>;
+    commercialRole?: 'serving' | 'alternative' | 'candidate';
   }>;
   viewerReady?: boolean;
   presentation?: 'engineering' | 'commercial';
@@ -156,8 +157,19 @@ const SatelliteScreenLabels: React.FC<SatelliteScreenLabelsProps> = ({
 
   return (
     <>
-      {sortedSatellites.map(({ satellite, isManuallySelected, isRouteParticipant }, index) => {
-        const commercialRoleLabel = isRouteParticipant ? 'Serving Satellite' : 'Candidate Satellite';
+      {sortedSatellites.map(({ satellite, isManuallySelected, isRouteParticipant, commercialRole }, index) => {
+        const effectiveCommercialRole = commercialRole ?? (isRouteParticipant ? 'serving' : 'candidate');
+        const commercialRoleLabel = effectiveCommercialRole === 'serving'
+          ? 'Serving Satellite'
+          : effectiveCommercialRole === 'alternative'
+            ? 'Alternative Satellite'
+            : 'Candidate Satellite';
+        const commercialStateLabel = effectiveCommercialRole === 'serving'
+          ? 'Service Active'
+          : effectiveCommercialRole === 'alternative'
+            ? 'Alternative Option'
+            : 'Coverage Candidate';
+        const isCommercialSecondary = presentation === 'commercial' && effectiveCommercialRole !== 'serving';
         return (
           <div
             key={satellite.id}
@@ -176,9 +188,11 @@ const SatelliteScreenLabels: React.FC<SatelliteScreenLabelsProps> = ({
             }}
           >
             <div
-              className={`${presentation === 'commercial' ? 'rounded-lg px-3 py-2 text-[12px]' : 'rounded px-2 py-1 text-[13px]'} font-semibold leading-tight text-white shadow-lg ring-1 ring-white/25 -translate-y-full`}
+              className={`${presentation === 'commercial' ? effectiveCommercialRole === 'serving' ? 'rounded-lg px-3 py-2 text-[12px]' : 'rounded-md px-2.5 py-1.5 text-[11px]' : 'rounded px-2 py-1 text-[13px]'} font-semibold leading-tight text-white shadow-lg ring-1 ring-white/25 -translate-y-full ${isCommercialSecondary ? 'opacity-60' : ''}`}
               style={{
-                backgroundColor: presentation === 'commercial' ? 'rgba(15, 23, 42, 0.86)' : getLabelBackgroundColor(satellite),
+                backgroundColor: presentation === 'commercial'
+                  ? isCommercialSecondary ? 'rgba(15, 23, 42, 0.58)' : 'rgba(15, 23, 42, 0.9)'
+                  : getLabelBackgroundColor(satellite),
                 marginTop: -2,
                 boxShadow: isManuallySelected
                   ? '0 0 0 1px rgba(255,255,255,0.35), 0 10px 25px rgba(0,0,0,0.22)'
@@ -190,8 +204,8 @@ const SatelliteScreenLabels: React.FC<SatelliteScreenLabelsProps> = ({
               )}
               <div>{satellite.name}</div>
               {presentation === 'commercial' && (
-                <div className={`mt-0.5 text-[10px] font-semibold ${isRouteParticipant ? 'text-emerald-300' : 'text-sky-300'}`}>
-                  {isRouteParticipant ? 'Service Active' : 'Coverage Available'}
+                <div className={`mt-0.5 text-[10px] font-semibold ${effectiveCommercialRole === 'serving' ? 'text-emerald-300' : 'text-slate-400'}`}>
+                  {commercialStateLabel}
                 </div>
               )}
             </div>
