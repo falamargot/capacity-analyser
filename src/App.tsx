@@ -1,5 +1,6 @@
-import React, { Suspense, lazy, useState, useEffect, useMemo, useCallback, useRef, useTransition } from 'react';
+import React, { Suspense, lazy, useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import MapViewSwitcher from './components/MapViewSwitcher';
+import type { AirTrafficStateProps, CallbackProps, CameraProps, CommercialStateProps, DisplayLayerProps, DisplayPrefsProps, IssStateProps, MaritimeTrafficStateProps, TopologyProps, TrafficProps } from './components/CesiumGlobe';
 import SatelliteSelector from './components/SatelliteSelector';
 import SplashScreen from './components/SplashScreen';
 import AircraftSelector from './components/AircraftSelector';
@@ -51,6 +52,10 @@ import { useSimulation } from './contexts/SimulationContext';
 import { getNearestSNPInBackhaul, getSatellitesConnectedToSNP, type SNPConnectedSatellite } from './services/coverageService';
 import useKeyboardShortcuts from './hooks/useKeyboardShortcuts';
 import { useSelectionState } from './hooks/useSelectionState';
+import { useAuthorshipEasterEgg } from './hooks/useAuthorshipEasterEgg';
+import { useViewport, type ViewportSnapshot } from './hooks/useViewport';
+import { useGlobeBootState } from './hooks/useGlobeBootState';
+import { useUiModeState } from './hooks/useUiModeState';
 import { formatCoordinates } from './utils/formatters';
 import { buildSimulationStateSnapshot } from './types/simulation';
 import { regulatoryLookup, type RegulatoryResult } from './services/regulatoryService';
@@ -92,21 +97,8 @@ const SNPDetails = lazy(() => import('./components/SNPDetails'));
 // ─── Module-level constants ───────────────────────────────────────────────────
 const COMPACT_DESKTOP_DIAG_MIN = Math.hypot(1920, 1080);
 const COMPACT_DESKTOP_DIAG_MAX = Math.hypot(2560, 1440);
-const LEGACY_AUTO_MARKER_REF_DIAG = Math.hypot(1024, 768);
 const REPRESENTATIVE_TELEPORT_IMAGE_URL = 'https://upload.wikimedia.org/wikipedia/commons/thumb/f/fe/Teleport_of_satellite_communications_provider.jpg/960px-Teleport_of_satellite_communications_provider.jpg';
 const AUTHORSHIP_SIGNATURE = 'F.Alamargot - 2026';
-const AUTHORSHIP_LONG_PRESS_MS = 1200;
-const AUTHORSHIP_TOAST_MS = 3600;
-const AUTHORSHIP_CLICK_COUNT = 5;
-const AUTHORSHIP_CLICK_WINDOW_MS = 1400;
-
-type ViewportSnapshot = {
-  innerWidth: number;
-  innerHeight: number;
-  screenWidth: number;
-  screenHeight: number;
-  effectiveDiag: number;
-};
 
 const clampNumber = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
 
@@ -129,63 +121,10 @@ const pickBestGeoLinkMargin = (candidates: CandidateCoverage[]): CandidateCovera
   )
 );
 
-const getViewportSnapshot = (): ViewportSnapshot => {
-  if (typeof window === 'undefined') {
-    const fallbackWidth = 1440;
-    const fallbackHeight = 900;
-    return {
-      innerWidth: fallbackWidth,
-      innerHeight: fallbackHeight,
-      screenWidth: fallbackWidth,
-      screenHeight: fallbackHeight,
-      effectiveDiag: Math.hypot(fallbackWidth, fallbackHeight),
-    };
-  }
-
-  const innerWidth = Math.max(window.innerWidth, 1);
-  const innerHeight = Math.max(window.innerHeight, 1);
-
-  return {
-    innerWidth,
-    innerHeight,
-    screenWidth: Math.max(window.screen.width, 1),
-    screenHeight: Math.max(window.screen.height, 1),
-    effectiveDiag: Math.hypot(innerWidth, innerHeight),
-  };
-};
-
-const getLegacyAutoMarkerScale = (viewportSnapshot: ViewportSnapshot) => {
-  const screenDiag = Math.hypot(viewportSnapshot.screenWidth, viewportSnapshot.screenHeight);
-  const raw = Math.max(screenDiag, 1) / LEGACY_AUTO_MARKER_REF_DIAG;
-  return clampNumber(raw, 0.5, 8);
-};
-
 const getCompactDesktopProgress = (viewportSnapshot: ViewportSnapshot) => {
   const normalizedDiag = clampNumber(viewportSnapshot.effectiveDiag, COMPACT_DESKTOP_DIAG_MIN, COMPACT_DESKTOP_DIAG_MAX);
   return 1 - (normalizedDiag - COMPACT_DESKTOP_DIAG_MIN) / (COMPACT_DESKTOP_DIAG_MAX - COMPACT_DESKTOP_DIAG_MIN);
 };
-
-const getResponsiveAutoMarkerScale = (viewportSnapshot: ViewportSnapshot) => {
-  const legacyScale = getLegacyAutoMarkerScale(viewportSnapshot);
-
-  if (viewportSnapshot.innerWidth < 1100) {
-    return legacyScale;
-  }
-
-  return clampNumber(lerp(legacyScale, 0.75, getCompactDesktopProgress(viewportSnapshot)), 0.5, 8);
-};
-
-
-const snapMarkerScaleToStep = (value: number, step = 0.25) => {
-  const snappedValue = Math.round(value / step) * step;
-  return clampNumber(Number(snappedValue.toFixed(2)), 0.25, 8);
-};
-
-const GLOBE_BOOT_PHASE_ORDER = {
-  mounting: 0,
-  'viewer-ready': 1,
-  'imagery-ready': 2,
-} as const;
 
 // Analyzis position for earth-click or aircraft selection
 interface AnalyzisPosition {
@@ -210,10 +149,7 @@ type InitialDisplayDefaults = {
   showFootprintProjection: boolean;
   showFlowAnimation: boolean;
   countryOverlayMode: CountryOverlayMode;
-  sizeScaleOverride: number | null;
 };
-
-type UiMode = 'engineering' | 'commercial';
 
 const parseBooleanQueryValue = (value: string | null): boolean | undefined => {
   if (!value) return undefined;
@@ -245,16 +181,7 @@ const parseOverlayQueryValue = (value: string | null): CountryOverlayMode | unde
   }
 };
 
-const parseMarkerScaleQueryValue = (value: string | null): number | null => {
-  if (!value) return null;
-
-  const parsed = Number.parseFloat(value);
-  if (!Number.isFinite(parsed) || parsed <= 0) return null;
-
-  return snapMarkerScaleToStep(parsed);
-};
-
-const getInitialDisplayDefaults = (savedSizeScale: number): InitialDisplayDefaults => {
+const getInitialDisplayDefaults = (): InitialDisplayDefaults => {
   if (typeof window === 'undefined') {
     return {
       isFullscreen: false,
@@ -264,13 +191,10 @@ const getInitialDisplayDefaults = (savedSizeScale: number): InitialDisplayDefaul
       showFootprintProjection: false,
       showFlowAnimation: true,
       countryOverlayMode: 'none',
-      sizeScaleOverride: Number.isFinite(savedSizeScale) && savedSizeScale > 0 ? savedSizeScale : null,
     };
   }
 
   const params = new URLSearchParams(window.location.search);
-  const querySizeScale = parseMarkerScaleQueryValue(params.get('markerScale'));
-  const savedScaleOverride = Number.isFinite(savedSizeScale) && savedSizeScale > 0 ? savedSizeScale : null;
 
   return {
     isFullscreen: parseBooleanQueryValue(params.get('fullscreen')) ?? false,
@@ -280,7 +204,6 @@ const getInitialDisplayDefaults = (savedSizeScale: number): InitialDisplayDefaul
     showFootprintProjection: parseBooleanQueryValue(params.get('footprint')) ?? false,
     showFlowAnimation: parseBooleanQueryValue(params.get('flowAnimation')) ?? parseBooleanQueryValue(params.get('flow')) ?? true,
     countryOverlayMode: parseOverlayQueryValue(params.get('overlay')) ?? 'none',
-    sizeScaleOverride: querySizeScale ?? savedScaleOverride,
   };
 };
 
@@ -294,12 +217,15 @@ const App: React.FC = () => {
     setWeatherCondition,
     showInactiveSatellites,
   } = useSimulation();
-  const initialViewportSnapshot = getViewportSnapshot();
-  const initialSavedSizeScale = typeof window !== 'undefined'
-    ? parseFloat(localStorage.getItem('globeSizeScale') ?? '')
-    : Number.NaN;
-  const initialDisplayDefaults = getInitialDisplayDefaults(initialSavedSizeScale);
-  const hasInitialSizeScaleOverride = initialDisplayDefaults.sizeScaleOverride !== null;
+  const initialDisplayDefaults = getInitialDisplayDefaults();
+  const {
+    viewportSnapshot,
+    isMobile,
+    isPhone,
+    sizeScale,
+    handleSizeScaleChange,
+    handleSizeScaleReset,
+  } = useViewport();
   const [searchQuery, setSearchQuery] = useState('');
   const [leoTerminalType, setLeoTerminalType] = useState<TerminalType>('fixed');
   const [leoTerminalModelId, setLeoTerminalModelId] = useState<string>(() => getLeoTerminalProfile('fixed').id);
@@ -340,9 +266,6 @@ const App: React.FC = () => {
   const [weatherTypeB, setWeatherTypeB] = useState<WeatherType>('clear');
   const [autoWeatherEnabledB, setAutoWeatherEnabledB] = useState<boolean>(true);
   const [previousAnalysisSource, setPreviousAnalysisSource] = useState<'earth' | 'aircraft' | undefined>(undefined);
-  const [viewportSnapshot, setViewportSnapshot] = useState<ViewportSnapshot>(initialViewportSnapshot);
-  const [isMobile, setIsMobile] = useState(() => initialViewportSnapshot.innerWidth < 1100);
-  const [isPhone, setIsPhone] = useState(() => initialViewportSnapshot.innerWidth < 920);
   const [cameraTarget, setCameraTarget] = useState<{ lat: number; lng: number; alt: number } | null>(null);
   const {
     selectedSelection,
@@ -400,20 +323,17 @@ const App: React.FC = () => {
   const [hoveredSatelliteId, setHoveredSatelliteId] = useState<string | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(initialDisplayDefaults.isFullscreen);
   const [fullscreenExportButtonProps, setFullscreenExportButtonProps] = useState<ExportButtonPayload | null>(null);
-  const [satelliteScope, setSatelliteScope] = useState<SatelliteScope>('ALL');
-  const [activeConnectivityTab, setActiveConnectivityTab] = useState<'LEO' | 'GEO'>('LEO');
-  const [uiMode, setUiMode] = useState<UiMode>('engineering');
-  // isPending is true for exactly the transition render where uiMode just changed.
-  // Used to skip buildGeoRouteAnalysisViewModel during mode switches so Cesium's
-  // rAF loop is not blocked by the expensive computation during the switch frame.
-  const [isUiModeTransitionPending, startUiModeTransition] = useTransition();
+  const {
+    uiMode,
+    commercialMode,
+    satelliteScope,
+    activeConnectivityTab,
+    isUiModeTransitionPending,
+    handleUiModeChange,
+    handleTechnologyChange,
+    handleTechnologyScopeChange,
+  } = useUiModeState();
   const [commercialSelectedSegment, setCommercialSelectedSegment] = useState<string>('summary');
-
-  useEffect(() => {
-    if (satelliteScope === 'LEO' || satelliteScope === 'GEO') {
-      setActiveConnectivityTab(satelliteScope);
-    }
-  }, [satelliteScope]);
 
   // Derived backward-compat variables — downstream components still receive pointB / pointBLeo
   const geoNeedsPointB = LINK_MODE_REQUIRES_POINT_B.has(linkMode) && satelliteScope !== 'LEO';
@@ -444,27 +364,18 @@ const App: React.FC = () => {
   const commandPaletteSearchRef = useRef<HTMLInputElement>(null);
   const helpMenuRef = useRef<HTMLDivElement>(null);
   const targetSourcesMenuRef = useRef<HTMLDivElement>(null);
-  const [sizeScale, setSizeScale] = useState<number>(() => (
-    hasInitialSizeScaleOverride
-      ? initialDisplayDefaults.sizeScaleOverride!
-      : snapMarkerScaleToStep(getResponsiveAutoMarkerScale(initialViewportSnapshot))
-  ));
-  const [isSizeScaleUserOverridden, setIsSizeScaleUserOverridden] = useState(hasInitialSizeScaleOverride);
-  const [hasSplashMinimumElapsed, setHasSplashMinimumElapsed] = useState(false);
-  const [isSplashDismissed, setIsSplashDismissed] = useState(false);
-  const [initialGlobeBootPhase, setInitialGlobeBootPhase] = useState<keyof typeof GLOBE_BOOT_PHASE_ORDER>('mounting');
-  const [isInitialGlobeReady, setIsInitialGlobeReady] = useState(false);
   const [isMobileAnalysisPanelOpen, setIsMobileAnalysisPanelOpen] = useState(false);
   const [isSatelliteModalOpen, setIsSatelliteModalOpen] = useState(false);
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
   const [isTargetSourcesMenuOpen, setIsTargetSourcesMenuOpen] = useState(false);
   const [commandPaletteQuery, setCommandPaletteQuery] = useState('');
   const [isHelpMenuOpen, setIsHelpMenuOpen] = useState(false);
-  const [authorshipToastVisible, setAuthorshipToastVisible] = useState(false);
-  const authorshipLongPressTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const authorshipToastTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const authorshipClickCountRef = useRef(0);
-  const authorshipClickResetTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const {
+    authorshipToastVisible,
+    handleLogoPressStart,
+    handleLogoClick,
+    clearAuthorshipLongPress,
+  } = useAuthorshipEasterEgg();
   const [mobileMetrics, setMobileMetrics] = useState<MobileAnalysisMetrics>({
     leo: null,
     geo: null,
@@ -476,56 +387,6 @@ const App: React.FC = () => {
   // Stable ref — populated by useAirTrafficInterpolation (phase 2: map ref, no setState).
   // The selectedAircraft position interval reads from this without being in its deps.
   const panelFallback = <div className="p-4 text-sm text-slate-500 dark:text-slate-400">Loading analysis...</div>;
-
-  const clearAuthorshipLongPress = useCallback(() => {
-    if (authorshipLongPressTimeoutRef.current) {
-      clearTimeout(authorshipLongPressTimeoutRef.current);
-      authorshipLongPressTimeoutRef.current = null;
-    }
-  }, []);
-
-  const showAuthorshipSignature = useCallback(() => {
-    setAuthorshipToastVisible(true);
-    if (authorshipToastTimeoutRef.current) {
-      clearTimeout(authorshipToastTimeoutRef.current);
-    }
-    authorshipToastTimeoutRef.current = setTimeout(() => {
-      setAuthorshipToastVisible(false);
-      authorshipToastTimeoutRef.current = null;
-    }, AUTHORSHIP_TOAST_MS);
-  }, []);
-
-  const handleLogoPressStart = useCallback(() => {
-    clearAuthorshipLongPress();
-    authorshipLongPressTimeoutRef.current = setTimeout(() => {
-      authorshipLongPressTimeoutRef.current = null;
-      showAuthorshipSignature();
-    }, AUTHORSHIP_LONG_PRESS_MS);
-  }, [clearAuthorshipLongPress, showAuthorshipSignature]);
-
-  const handleLogoClick = useCallback(() => {
-    authorshipClickCountRef.current += 1;
-    if (authorshipClickResetTimeoutRef.current) {
-      clearTimeout(authorshipClickResetTimeoutRef.current);
-    }
-
-    if (authorshipClickCountRef.current >= AUTHORSHIP_CLICK_COUNT) {
-      authorshipClickCountRef.current = 0;
-      showAuthorshipSignature();
-      return;
-    }
-
-    authorshipClickResetTimeoutRef.current = setTimeout(() => {
-      authorshipClickCountRef.current = 0;
-      authorshipClickResetTimeoutRef.current = null;
-    }, AUTHORSHIP_CLICK_WINDOW_MS);
-  }, [showAuthorshipSignature]);
-
-  useEffect(() => () => {
-    clearAuthorshipLongPress();
-    if (authorshipToastTimeoutRef.current) clearTimeout(authorshipToastTimeoutRef.current);
-    if (authorshipClickResetTimeoutRef.current) clearTimeout(authorshipClickResetTimeoutRef.current);
-  }, [clearAuthorshipLongPress]);
 
   const renderAuthorshipLogo = (className: string) => (
     <button
@@ -552,16 +413,6 @@ const App: React.FC = () => {
   // Store globe container reference when ready
   const handleGlobeContainerReady = useCallback((ref: React.RefObject<HTMLDivElement | null>) => {
     globeContainerRef.current = ref.current;
-  }, []);
-
-  const handleGlobeBootPhaseChange = useCallback((phase: keyof typeof GLOBE_BOOT_PHASE_ORDER) => {
-    setInitialGlobeBootPhase((current) => (
-      GLOBE_BOOT_PHASE_ORDER[phase] > GLOBE_BOOT_PHASE_ORDER[current] ? phase : current
-    ));
-  }, []);
-
-  const handleInitialGlobeReady = useCallback(() => {
-    setIsInitialGlobeReady(true);
   }, []);
 
   const selectedPosition = useMemo(() => (
@@ -726,34 +577,8 @@ const App: React.FC = () => {
     setAutoWeatherEnabledB(false);
   }, []);
 
-  useEffect(() => {
-    const timeout = setTimeout(() => {
-      setHasSplashMinimumElapsed(true);
-    }, 1400);
-
-    return () => clearTimeout(timeout);
-  }, []);
-
   // Helper functions (isPointInGEOCoverage, isPointInPolygon) are now centralized in utils/geoUtils.ts
   // resolveAutoSelectedSatellites is centralized in utils/satelliteResolution.ts
-
-  useEffect(() => {
-    const handleResize = () => {
-      const nextViewportSnapshot = getViewportSnapshot();
-      setViewportSnapshot(nextViewportSnapshot);
-      setIsMobile(nextViewportSnapshot.innerWidth < 1100);
-      setIsPhone(nextViewportSnapshot.innerWidth < 920);
-    };
-
-    handleResize();
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
-
-  useEffect(() => {
-    if (isSizeScaleUserOverridden) return;
-    setSizeScale(snapMarkerScaleToStep(getResponsiveAutoMarkerScale(viewportSnapshot)));
-  }, [isSizeScaleUserOverridden, viewportSnapshot]);
 
   useEffect(() => {
     if (selectedGateway || inspectedSNP || selectedSatelliteId || !(analyzisPosition || selectedPosition)) {
@@ -822,6 +647,15 @@ const App: React.FC = () => {
     selectedSatelliteId,
     hoveredSatelliteId,
   });
+  const {
+    isSplashDismissed,
+    splashReady,
+    splashMessage,
+    splashProgress,
+    setIsSplashDismissed,
+    handleGlobeBootPhaseChange,
+    handleInitialGlobeReady,
+  } = useGlobeBootState({ loading });
 
   // Filter satellites based on satellite scope
   const filteredSatellites = useMemo(() => {
@@ -1047,8 +881,6 @@ const App: React.FC = () => {
   const selectedGeoBeamId = useMemo(() => (
     selectedSelection.type === 'contour' ? selectedSelection.contourId : null
   ), [selectedSelection]);
-  const selectedGeoMission: string | null = null;
-
   const candidateCoverages = useMemo(() => {
     if (selectedSelection.type !== 'target') {
       return [];
@@ -2009,7 +1841,7 @@ const App: React.FC = () => {
 
   // Handle satellite scope change with state reset
   const handleSatelliteScopeChange = useCallback((newScope: SatelliteScope) => {
-    setSatelliteScope(newScope);
+    handleTechnologyScopeChange(newScope);
 
     if (newScope === 'GEO' && countryOverlayMode === 'regulatory') {
       setCountryOverlayMode('none');
@@ -2027,7 +1859,7 @@ const App: React.FC = () => {
       setSelectedAircraft(null);
       setSelectedVessel(null);
     }
-  }, [clearSelection, countryOverlayMode, selectedSatellite]);
+  }, [clearSelection, countryOverlayMode, handleTechnologyScopeChange, selectedSatellite]);
 
   // Performance optimization: Memoize event handlers to prevent unnecessary re-renders
   const handleSatelliteClick = useCallback((satellite: SatelliteData | null) => {
@@ -2190,11 +2022,6 @@ const App: React.FC = () => {
 
   // SNP hover disabled — no visual feedback on hover
   const handleSnpHover = useCallback((_snpName: string | null) => {}, []);
-
-  const handleSelectGeoMission = useCallback((_mission: string | null) => {
-    // Mission-level GEO filtering has been removed in favour of a single
-    // deterministic selection model.
-  }, []);
 
   const handleSelectGeoCoverage = useCallback((coverageName: string | null) => {
     if (!selectedSatellite || selectedSatellite.type !== 'EUTELSAT') {
@@ -2670,8 +2497,6 @@ const App: React.FC = () => {
   const shortcutModifier = useMemo(() => (
     typeof navigator !== 'undefined' && navigator.platform.includes('Mac') ? '⌘' : 'Ctrl'
   ), []);
-  // entryPointShortcutModifier was identical to shortcutModifier — unified.
-  const entryPointShortcutModifier = shortcutModifier;
 
   // Real-time updates for selected aircraft position and altitude.
   // Phase-2: interpolated position read from map ref (O(1) lookup, no array scan).
@@ -2805,23 +2630,186 @@ const App: React.FC = () => {
     setSelectedDownlinkKey(null);
     setIsTargetSourcesMenuOpen(false);
   }, [clearSelection]);
-  const handleSizeScaleChange = useCallback((v: number) => {
-    setSizeScale(v);
-    setIsSizeScaleUserOverridden(true);
-    localStorage.setItem('globeSizeScale', String(v));
-  }, []);
-  const handleSizeScaleReset = useCallback(() => {
-    const responsiveScale = snapMarkerScaleToStep(getResponsiveAutoMarkerScale(viewportSnapshot));
-    setSizeScale(responsiveScale);
-    setIsSizeScaleUserOverridden(false);
-    localStorage.removeItem('globeSizeScale');
-  }, [viewportSnapshot]);
+
+  const displayPrefs = useMemo<DisplayPrefsProps>(() => ({
+    enableLighting,
+    showSatelliteTrajectory,
+    showAggregatedConnectivity,
+    showFootprintProjection,
+    showFlowAnimation,
+    sizeScale,
+    hideSatelliteScreenLabels: isPhone && isMobileAnalysisPanelOpen,
+    isPhone,
+    isMobileViewport: isMobile,
+    isFullscreen,
+    countryOverlayMode,
+  }), [
+    countryOverlayMode,
+    enableLighting,
+    isFullscreen,
+    isMobile,
+    isMobileAnalysisPanelOpen,
+    isPhone,
+    showAggregatedConnectivity,
+    showFlowAnimation,
+    showFootprintProjection,
+    showSatelliteTrajectory,
+    sizeScale,
+  ]);
+
+  const desktopDisplayPrefs = useMemo<DisplayPrefsProps>(() => ({
+    ...displayPrefs,
+    isPhone: false,
+    isMobileViewport: false,
+  }), [displayPrefs]);
+
+  const displayLayerProps = useMemo<DisplayLayerProps>(() => ({
+    displayPrefs,
+    satelliteScope,
+  }), [displayPrefs, satelliteScope]);
+
+  const desktopDisplayLayerProps = useMemo<DisplayLayerProps>(() => ({
+    displayPrefs: desktopDisplayPrefs,
+    satelliteScope,
+  }), [desktopDisplayPrefs, satelliteScope]);
+
+  const issState = useMemo<IssStateProps>(() => ({
+    issLiveEnabled,
+    issPositionRef,
+    issOrbitPath: iss.orbitPath,
+    issHasPosition,
+    issIsSelected: selectedIss,
+    issIsFollowing: iss.isFollowing,
+  }), [
+    iss.isFollowing,
+    iss.orbitPath,
+    issHasPosition,
+    issLiveEnabled,
+    selectedIss,
+  ]);
+
+  const airTrafficState = useMemo<AirTrafficStateProps>(() => ({
+    airTrafficEnabled,
+    aircraft: airTraffic.aircraft,
+    interpolatedAircraftMapRef,
+  }), [
+    airTraffic.aircraft,
+    airTrafficEnabled,
+    interpolatedAircraftMapRef,
+  ]);
+
+  const maritimeTrafficState = useMemo<MaritimeTrafficStateProps>(() => ({
+    maritimeTrafficEnabled,
+    vessels: maritimeTraffic.vessels,
+    interpolatedVesselMapRef,
+  }), [
+    interpolatedVesselMapRef,
+    maritimeTraffic.vessels,
+    maritimeTrafficEnabled,
+  ]);
+
+  const trafficProps = useMemo<TrafficProps>(() => ({
+    airTrafficState,
+    selectedAircraft,
+    maritimeTrafficState,
+    selectedVessel,
+    issState,
+  }), [
+    airTrafficState,
+    issState,
+    maritimeTrafficState,
+    selectedAircraft,
+    selectedVessel,
+  ]);
+
+  const callbackProps = useMemo<CallbackProps>(() => ({
+    onPointClick: handlePointClick,
+    onEmptyClick: handleEmptyClick,
+    onCoverageClick: handleCoverageClick,
+    onSatelliteClick: handleSatelliteClick,
+    onMoonSelectionChange: handleMoonSelectionChange,
+    onSatelliteHover: handleSatelliteHover,
+    onSnpClick: handleSnpClick,
+    onGatewayClick: handleGatewaySelectByName,
+    onSnpHover: handleSnpHover,
+    onAircraftClick: handleAircraftSelect,
+    onAircraftHover: handleAircraftHover,
+    onVesselClick: handleVesselSelect,
+    onVesselHover: undefined,
+    onIssClick: handleIssClick,
+    onToggleFullscreen: handleToggleFullscreen,
+    onToggleLighting: handleToggleLighting,
+    onToggleAggregatedConnectivity: handleToggleAggregatedConnectivity,
+    onToggleFootprintProjection: handleToggleFootprintProjection,
+    onToggleFlowAnimation: handleToggleFlowAnimation,
+    onToggleSatelliteTrajectory: handleToggleSatelliteTrajectory,
+    onToggleAirTraffic: handleToggleAirTraffic,
+    onToggleMaritimeTraffic: handleToggleMaritimeTraffic,
+    onToggleIssLive: handleToggleIssLive,
+    onCountryOverlayModeChange: handleCountryOverlayModeChange,
+    onSizeScaleChange: handleSizeScaleChange,
+    onSizeScaleReset: handleSizeScaleReset,
+    onCoverageSwitcherSelect: handleSelectTargetCoverageById,
+  }), [
+    handleAircraftHover,
+    handleAircraftSelect,
+    handleCountryOverlayModeChange,
+    handleCoverageClick,
+    handleEmptyClick,
+    handleGatewaySelectByName,
+    handleIssClick,
+    handleMoonSelectionChange,
+    handlePointClick,
+    handleSatelliteClick,
+    handleSatelliteHover,
+    handleSelectTargetCoverageById,
+    handleSizeScaleChange,
+    handleSizeScaleReset,
+    handleSnpClick,
+    handleSnpHover,
+    handleToggleAggregatedConnectivity,
+    handleToggleAirTraffic,
+    handleToggleFlowAnimation,
+    handleToggleFootprintProjection,
+    handleToggleFullscreen,
+    handleToggleIssLive,
+    handleToggleLighting,
+    handleToggleMaritimeTraffic,
+    handleToggleSatelliteTrajectory,
+    handleVesselSelect,
+  ]);
+
+  const topologyProps = useMemo<TopologyProps>(() => ({
+    pointB,
+    pointBLeo,
+    linkMode,
+    activeMeshTab,
+  }), [
+    activeMeshTab,
+    linkMode,
+    pointB,
+    pointBLeo,
+  ]);
+
+  const cameraProps = useMemo<CameraProps>(() => ({
+    cameraTarget,
+    onCameraReady: handleCameraReady,
+    onGlobeContainerReady: handleGlobeContainerReady,
+    onGlobeBootPhaseChange: handleGlobeBootPhaseChange,
+    onInitialGlobeReady: handleInitialGlobeReady,
+  }), [
+    cameraTarget,
+    handleCameraReady,
+    handleGlobeBootPhaseChange,
+    handleGlobeContainerReady,
+    handleInitialGlobeReady,
+  ]);
 
   // §4.1 — Shared props for both mobile and desktop MapViewSwitcher instances.
   // Avoids duplicating the full prop list in two places.
   //
-  // IMPORTANT — commercial props (commercialMode, commercialViewModel,
-  // onCommercialSelectedSegmentChange) are intentionally excluded from this
+  // IMPORTANT — commercialState and commercial callbacks
+  // (onCommercialSelectedSegmentChange) are intentionally excluded from this
   // memo. They are passed separately at each call site for two reasons:
   //   1. Their values differ between sites (mobile always passes commercialMode=true
   //      because that branch only renders during commercial mode; desktop passes the
@@ -2829,25 +2817,15 @@ const App: React.FC = () => {
   //   2. Keeping them out means a commercialSelectedSegment change does NOT
   //      invalidate sharedMapProps and therefore does NOT trigger a full
   //      CesiumGlobe re-render for a UI-only selection change.
-  // Do not move commercial props into this memo.
+  // Do not move commercial state or callbacks into this memo.
   const sharedMapProps = useMemo(() => ({
     satellites: filteredSatellites,
     satelliteTypeByName,
     coverageFeatures: coverageFeaturesMemo,
     visibleGeoCoverageKeys: selectedSelection.type === 'target' ? undefined : visibleManualGeoCoverageKeys,
-    onPointClick: handlePointClick,
-    onEmptyClick: handleEmptyClick,
-    onCoverageClick: handleCoverageClick,
+    callbackProps,
     selectedPosition,
-    pointB,
-    linkMode,
-    activeMeshTab,
-    onSatelliteClick: handleSatelliteClick,
-    onMoonSelectionChange: handleMoonSelectionChange,
-    onSatelliteHover: handleSatelliteHover,
-    onSnpClick: handleSnpClick,
-    onGatewayClick: handleGatewaySelectByName,
-    onSnpHover: handleSnpHover,
+    topologyProps,
     selectedSatellite,
     selectedMoon,
     autoSelectedLEOSatellite: resolvedAutoLEO,
@@ -2865,73 +2843,23 @@ const App: React.FC = () => {
     performanceMetrics: mobileMetrics,
     activeConnectivityTab,
     selectedRegulatoryResult: leoRegulatoryResult,
-    isFullscreen,
-    onToggleFullscreen: handleToggleFullscreen,
-    satelliteScope,
-    airTrafficEnabled,
-    aircraft: airTraffic.aircraft,
-    selectedAircraft,
-    onAircraftClick: handleAircraftSelect,
-    onAircraftHover: handleAircraftHover,
-    interpolatedAircraftMapRef,
-    maritimeTrafficEnabled,
-    vessels: maritimeTraffic.vessels,
-    selectedVessel,
-    onVesselClick: handleVesselSelect,
-    onVesselHover: undefined,
-    interpolatedVesselMapRef,
-    cameraTarget,
+    displayLayerProps,
+    trafficProps,
+    cameraProps,
     selection: selectedSelection,
-    onCameraReady: handleCameraReady,
-    onGlobeContainerReady: handleGlobeContainerReady,
-    onGlobeBootPhaseChange: handleGlobeBootPhaseChange,
-    onInitialGlobeReady: handleInitialGlobeReady,
-    enableLighting,
-    onToggleLighting: handleToggleLighting,
-    showSatelliteTrajectory,
-    showAggregatedConnectivity,
-    onToggleAggregatedConnectivity: handleToggleAggregatedConnectivity,
-    showFootprintProjection,
-    onToggleFootprintProjection: handleToggleFootprintProjection,
-    showFlowAnimation,
-    onToggleFlowAnimation: handleToggleFlowAnimation,
-    sizeScale,
-    onToggleSatelliteTrajectory: handleToggleSatelliteTrajectory,
-    countryOverlayMode,
-    onCountryOverlayModeChange: handleCountryOverlayModeChange,
-    onSizeScaleChange: handleSizeScaleChange,
-    onSizeScaleReset: handleSizeScaleReset,
-    hideSatelliteScreenLabels: isPhone && isMobileAnalysisPanelOpen,
     inspectedSNP,
     snpConnectedSatellites,
     coverageSwitcherCoverages,
     selectedCoverageId,
-    onCoverageSwitcherSelect: handleSelectTargetCoverageById,
-    issLiveEnabled,
-    issPositionRef,
-    issOrbitPath: iss.orbitPath,
-    issHasPosition,
-    issIsSelected: selectedIss,
-    issIsFollowing: iss.isFollowing,
-    onIssClick: handleIssClick,
-    onToggleAirTraffic: handleToggleAirTraffic,
-    onToggleMaritimeTraffic: handleToggleMaritimeTraffic,
-    onToggleIssLive: handleToggleIssLive,
     leoSiteToSiteResult: activeLeoSiteToSiteResult,
     leoSiteToSiteFullResult: activeLeoSiteToSiteResult,
-    pointBLeo,
   }), [
-    filteredSatellites, satelliteTypeByName, coverageFeaturesMemo, visibleManualGeoCoverageKeys, handlePointClick, handleEmptyClick, handleCoverageClick, selectedPosition,
-    handleSatelliteClick, handleSatelliteHover, handleSnpClick, handleGatewaySelectByName, handleSnpHover,
-    handleMoonSelectionChange, selectedSatellite, selectedMoon, resolvedAutoLEO, resolvedAutoLEOB, activeGeoSatellite, selectedGEOBeam, selectedSelection, selectedCoverage, globeUplinkCoverage, globeDownlinkCoverage, selectedSNP, selectedGateway, dedicatedSNPForSelectedLEO, leoServiceViewModel, geoPointStatus, mobileMetrics, activeConnectivityTab, leoRegulatoryResult,
-    isFullscreen, satelliteScope, airTrafficEnabled, airTraffic.aircraft,
-    selectedAircraft, handleAircraftSelect, handleAircraftHover,
-    maritimeTrafficEnabled, maritimeTraffic.vessels, selectedVessel, handleVesselSelect, cameraTarget,
-    handleCameraReady, handleGlobeContainerReady, handleGlobeBootPhaseChange, handleInitialGlobeReady, enableLighting, handleToggleLighting, handleSizeScaleChange, handleToggleAggregatedConnectivity, handleToggleFootprintProjection, handleToggleFlowAnimation, handleToggleFullscreen, handleToggleSatelliteTrajectory, handleToggleAirTraffic, handleToggleMaritimeTraffic, handleToggleIssLive, interpolatedAircraftMapRef, interpolatedVesselMapRef, showSatelliteTrajectory, showAggregatedConnectivity, showFootprintProjection, showFlowAnimation, sizeScale,
-    inspectedSNP, snpConnectedSatellites, countryOverlayMode, handleCountryOverlayModeChange, handleSizeScaleReset,
-    isPhone, isMobileAnalysisPanelOpen, coverageSwitcherCoverages, selectedCoverageId, handleSelectTargetCoverageById,
-    pointB, pointBLeo, linkMode, activeMeshTab,
-    issLiveEnabled, iss.orbitPath, issHasPosition, selectedIss, iss.isFollowing, handleIssClick,
+    filteredSatellites, satelliteTypeByName, coverageFeaturesMemo, visibleManualGeoCoverageKeys, callbackProps, selectedPosition,
+    selectedSatellite, selectedMoon, resolvedAutoLEO, resolvedAutoLEOB, activeGeoSatellite, selectedGEOBeam, selectedSelection, selectedCoverage, globeUplinkCoverage, globeDownlinkCoverage, selectedSNP, selectedGateway, dedicatedSNPForSelectedLEO, leoServiceViewModel, geoPointStatus, mobileMetrics, activeConnectivityTab, leoRegulatoryResult,
+    displayLayerProps, trafficProps, cameraProps,
+    inspectedSNP, snpConnectedSatellites,
+    coverageSwitcherCoverages, selectedCoverageId,
+    topologyProps,
     activeLeoSiteToSiteResult,
   ]);
   const desktopCompactProgress = isMobile ? 0 : getCompactDesktopProgress(viewportSnapshot);
@@ -3314,26 +3242,6 @@ const App: React.FC = () => {
     : siteB
       ? 'Move Site B'
       : 'Set Site B';
-  const splashReady = !loading && hasSplashMinimumElapsed && isInitialGlobeReady;
-  const splashMessage = loading
-    ? 'Loading satellite data and coverage...'
-    : initialGlobeBootPhase === 'mounting'
-      ? 'Preparing application workspace...'
-      : initialGlobeBootPhase === 'viewer-ready'
-        ? 'Initializing 3D globe...'
-        : splashReady
-          ? 'Startup complete.'
-          : 'Applying globe imagery...';
-  const splashProgress = loading
-    ? 52
-    : initialGlobeBootPhase === 'mounting'
-      ? 72
-      : initialGlobeBootPhase === 'viewer-ready'
-        ? 86
-        : splashReady
-          ? 100
-          : 94;
-
   const activeCommercialTechnology = satelliteScope === 'GEO'
     ? 'GEO'
     : satelliteScope === 'LEO'
@@ -3372,6 +3280,21 @@ const App: React.FC = () => {
     weatherType, weatherTypeB, leoTerminalType, commercialSelectedSegment,
   ]);
 
+  const engineeringCommercialState = useMemo<CommercialStateProps>(() => ({
+    commercialMode: false,
+    commercialViewModel: null,
+  }), []);
+
+  const mobileCommercialState = useMemo<CommercialStateProps>(() => ({
+    commercialMode: true,
+    commercialViewModel: commercialScenarioViewModel,
+  }), [commercialScenarioViewModel]);
+
+  const desktopCommercialState = useMemo<CommercialStateProps>(() => ({
+    commercialMode,
+    commercialViewModel: uiMode === 'commercial' ? commercialScenarioViewModel : null,
+  }), [commercialMode, commercialScenarioViewModel, uiMode]);
+
   if (loading) {
     return (
       <SplashScreen
@@ -3394,7 +3317,7 @@ const App: React.FC = () => {
         <button
           key={mode}
           type="button"
-          onClick={() => startUiModeTransition(() => setUiMode(mode))}
+          onClick={() => handleUiModeChange(mode)}
           className={[
             'rounded-md px-2.5 py-1.5 font-semibold transition-colors',
             uiMode === mode
@@ -3785,7 +3708,7 @@ const App: React.FC = () => {
                         <div className="flex items-center justify-between gap-4">
                           <span>Open entry point panel</span>
                           <span className="flex items-center gap-1">
-                            <kbd className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-mono text-slate-700 dark:bg-slate-800 dark:text-slate-200">{entryPointShortcutModifier}</kbd>
+                            <kbd className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-mono text-slate-700 dark:bg-slate-800 dark:text-slate-200">{shortcutModifier}</kbd>
                             <span className="text-slate-400">+</span>
                             <kbd className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-mono text-slate-700 dark:bg-slate-800 dark:text-slate-200">S</kbd>
                           </span>
@@ -3875,11 +3798,11 @@ const App: React.FC = () => {
       {/* Mobile commercial: use CommercialModeShell (handles its own layout).
           Desktop commercial AND desktop engineering share the unified desktop block below
           so CesiumGlobe stays mounted across mode switches — no Cesium reinit, no freeze. */}
-      {uiMode === 'commercial' && isMobile ? (
+      {commercialMode && isMobile ? (
         <CommercialModeShell
           viewModel={commercialScenarioViewModel}
           onSelectedSegmentChange={setCommercialSelectedSegment}
-          onViewFullAnalysis={() => startUiModeTransition(() => setUiMode('engineering'))}
+          onViewFullAnalysis={() => handleUiModeChange('engineering')}
           isMobile={isMobile}
           isFullscreen={isFullscreen}
           globe={(
@@ -3887,10 +3810,7 @@ const App: React.FC = () => {
             // commercialMode is always true here: this branch only renders when uiMode === 'commercial'.
             <MapViewSwitcher
               {...sharedMapProps}
-              isPhone={isPhone}
-              isMobileViewport={isMobile}
-              commercialMode
-              commercialViewModel={commercialScenarioViewModel}
+              commercialState={mobileCommercialState}
               onCommercialSelectedSegmentChange={setCommercialSelectedSegment}
             />
           )}
@@ -3901,7 +3821,10 @@ const App: React.FC = () => {
             <div
               className={`absolute inset-0 bg-white overflow-hidden transition-all duration-300 ${isFullscreen ? 'fixed inset-0 z-50' : ''}`}
             >
-              <MapViewSwitcher {...sharedMapProps} isPhone={isPhone} isMobileViewport={isMobile} />
+              <MapViewSwitcher
+                {...sharedMapProps}
+                commercialState={engineeringCommercialState}
+              />
             </div>
 
             {showPhoneFloatingHeader && (
@@ -3947,7 +3870,7 @@ const App: React.FC = () => {
                     autoSelectedGEOSatellite={activeGeoSatellite}
                     satelliteScope={satelliteScope}
                     activeConnectionTab={activeConnectivityTab}
-                    onActiveConnectionTabChange={setActiveConnectivityTab}
+                    onActiveConnectionTabChange={handleTechnologyChange}
                     onSatelliteClick={handleSatelliteClick}
                     analysisSource={activeAnalysisSource}
                     aircraftCallsign={selectedAircraft?.callsign}
@@ -3987,11 +3910,9 @@ const App: React.FC = () => {
                     selectedDownlinkCoverageB={selectedDownlinkCoverageB}
                     onSelectUplinkCoverageB={handleSelectUplinkCoverageB}
                     onSelectDownlinkCoverageB={handleSelectDownlinkCoverageB}
-                    selectedGeoMission={selectedGeoMission}
                     selectedGeoCoverageName={selectedGeoCoverageName}
                     selectedGeoBeamId={selectedGeoBeamId}
                     visibleGeoCoverageKeys={visibleManualGeoCoverageKeys}
-                    onSelectGeoMission={handleSelectGeoMission}
                     onSelectGeoCoverage={handleSelectGeoCoverage}
                     onSelectGeoBeam={handleSelectGeoBeam}
                     onVisibleGeoCoverageKeysChange={handleVisibleManualGeoCoverageKeysChange}
@@ -4173,7 +4094,7 @@ const App: React.FC = () => {
                                 autoSelectedGEOSatellite={activeGeoSatellite}
                                 satelliteScope={satelliteScope}
                                 activeConnectionTab={activeConnectivityTab}
-                                onActiveConnectionTabChange={setActiveConnectivityTab}
+                                onActiveConnectionTabChange={handleTechnologyChange}
                                 onSatelliteClick={handleSatelliteClick}
                                 analysisSource={activeAnalysisSource}
                                 aircraftCallsign={selectedAircraft?.callsign}
@@ -4207,11 +4128,9 @@ const App: React.FC = () => {
                                 candidateCoverages={eligibleCandidateCoverages}
                                 selectedCoverage={selectedCoverage}
                                 onSelectCoverage={handleSelectTargetCoverage}
-                                selectedGeoMission={selectedGeoMission}
                                 selectedGeoCoverageName={selectedGeoCoverageName}
                                 selectedGeoBeamId={selectedGeoBeamId}
                                 visibleGeoCoverageKeys={visibleManualGeoCoverageKeys}
-                                onSelectGeoMission={handleSelectGeoMission}
                                 onSelectGeoCoverage={handleSelectGeoCoverage}
                                 onSelectGeoBeam={handleSelectGeoBeam}
                                 onVisibleGeoCoverageKeysChange={handleVisibleManualGeoCoverageKeysChange}
@@ -4305,10 +4224,8 @@ const App: React.FC = () => {
                 {/* Commercial props passed separately — see §4.1 comment on sharedMapProps. */}
                 <MapViewSwitcher
                   {...sharedMapProps}
-                  isPhone={false}
-                  isMobileViewport={false}
-                  commercialMode={uiMode === 'commercial'}
-                  commercialViewModel={uiMode === 'commercial' ? commercialScenarioViewModel : undefined}
+                  displayLayerProps={desktopDisplayLayerProps}
+                  commercialState={desktopCommercialState}
                   onCommercialSelectedSegmentChange={uiMode === 'commercial' ? setCommercialSelectedSegment : undefined}
                 />
                 {uiMode !== 'commercial' && isFullscreen && fullscreenExportButtonProps && (
@@ -4349,7 +4266,7 @@ const App: React.FC = () => {
                     viewModel={commercialScenarioViewModel}
                     selectedSegmentId={commercialScenarioViewModel.selectedSegmentId ?? 'summary'}
                     onSelectedSegmentChange={setCommercialSelectedSegment}
-                    onViewFullAnalysis={() => startUiModeTransition(() => setUiMode('engineering'))}
+                    onViewFullAnalysis={() => handleUiModeChange('engineering')}
                   />
                 </div>
               )
@@ -4433,7 +4350,7 @@ const App: React.FC = () => {
                           autoSelectedGEOSatellite={activeGeoSatellite}
                           satelliteScope={satelliteScope}
                           activeConnectionTab={activeConnectivityTab}
-                          onActiveConnectionTabChange={setActiveConnectivityTab}
+                          onActiveConnectionTabChange={handleTechnologyChange}
                           onSatelliteClick={handleSatelliteClick}
                           analysisSource={activeAnalysisSource}
                           aircraftCallsign={selectedAircraft?.callsign}
@@ -4475,11 +4392,9 @@ const App: React.FC = () => {
                           selectedDownlinkCoverageB={selectedDownlinkCoverageB}
                           onSelectUplinkCoverageB={handleSelectUplinkCoverageB}
                           onSelectDownlinkCoverageB={handleSelectDownlinkCoverageB}
-                          selectedGeoMission={selectedGeoMission}
                           selectedGeoCoverageName={selectedGeoCoverageName}
                           selectedGeoBeamId={selectedGeoBeamId}
                           visibleGeoCoverageKeys={visibleManualGeoCoverageKeys}
-                          onSelectGeoMission={handleSelectGeoMission}
                           onSelectGeoCoverage={handleSelectGeoCoverage}
                           onSelectGeoBeam={handleSelectGeoBeam}
                           onVisibleGeoCoverageKeysChange={handleVisibleManualGeoCoverageKeysChange}

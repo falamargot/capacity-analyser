@@ -90,9 +90,12 @@ import { isOperationalSatellite } from '../utils/satelliteStatus';
 import type { LeoConnectivityViewModel } from '../utils/leoServiceViewModel';
 import type { RegulatoryResult } from '../services/regulatoryService';
 import type { GeoPointStatus } from '../utils/selectedPointStatus';
+import type { SNPConnectedSatellite } from '../services/coverageService';
 import { GROUND_POINT_ALTITUDE_KM } from './cesium-globe/layerHeights';
 import CoverageSwitcherVertical, { type CoverageSwitcherCoverage } from './CoverageSwitcherVertical';
 import type { CountryOverlayMode } from '../types/countryOverlays';
+import type { LinkMode } from '../types/linkMode';
+import type { LeoSiteToSiteResult } from '../utils/leoSiteToSiteModel';
 import type { CommercialRouteSegmentType, CommercialScenarioViewModel } from './commercial/commercialViewModel';
 
 const BASEMAP_STORAGE_KEY = 'cesium:basemap';
@@ -155,19 +158,145 @@ const getHoverKeyFromPickedObject = (pickedObject: unknown): string | null => {
     return null;
 };
 
+export interface DisplayPrefsProps {
+    enableLighting?: boolean;
+    showSatelliteTrajectory?: boolean;
+    showAggregatedConnectivity?: boolean;
+    showFootprintProjection?: boolean;
+    showFlowAnimation?: boolean;
+    sizeScale?: number;
+    hideSatelliteScreenLabels?: boolean;
+    isPhone?: boolean;
+    isMobileViewport?: boolean;
+    isFullscreen: boolean;
+    countryOverlayMode?: CountryOverlayMode;
+}
+
+export interface IssStateProps {
+    issLiveEnabled?: boolean;
+    issPositionRef?: React.RefObject<IssPosition | null>;
+    issOrbitPath?: IssOrbitPath | null;
+    issHasPosition?: boolean;
+    issIsSelected?: boolean;
+    issIsFollowing?: boolean;
+}
+
+export interface CommercialStateProps {
+    commercialMode?: boolean;
+    commercialViewModel?: CommercialScenarioViewModel | null;
+}
+
+export interface AirTrafficStateProps {
+    airTrafficEnabled?: boolean;
+    aircraft?: Aircraft[];
+    interpolatedAircraftMapRef?: React.MutableRefObject<Map<string, AircraftInterpolation>>;
+}
+
+export interface MaritimeTrafficStateProps {
+    maritimeTrafficEnabled?: boolean;
+    vessels?: Vessel[];
+    interpolatedVesselMapRef?: React.MutableRefObject<Map<string, VesselInterpolation>>;
+}
+
+export interface SatelliteRuntimeProps {
+    satellites: SatelliteData[];
+    satelliteTypeByName: Map<string, SatelliteData['type']>;
+    coverageFeatures: Feature<Geometry, GeoJsonProperties>[];
+    autoSelectedLEOSatellite: SatelliteData | null;
+    autoSelectedLEOSatelliteB: SatelliteData | null;
+    snpConnectedSatellites: SNPConnectedSatellite[];
+    leoSiteToSiteResult: LeoSiteToSiteResult | null;
+    leoSiteToSiteFullResult: LeoSiteToSiteResult | null;
+    leoServiceViewModel: LeoConnectivityViewModel | null;
+}
+
+export interface SelectionAnalysisProps {
+    selectedPosition: { lat: number; lng: number; altitude?: number } | null;
+    selectedSatellite: SatelliteData | null;
+    selectedMoon: boolean;
+    autoSelectedGEOSatellite: SatelliteData | null;
+    selectedGEOBeam: GEOBeam | null;
+    selectedCoverage: CandidateCoverage | null;
+    selectedUplinkCoverage: CandidateCoverage | null;
+    selectedDownlinkCoverage: CandidateCoverage | null;
+    selectedSNP: { lat: number; lng: number; name: string } | null;
+    selectedGateway: GeoGatewayData | null;
+    inspectedSNP: SNPData | null;
+    dedicatedSNPForSelectedLEO: SNPData | null;
+    geoPointStatus: GeoPointStatus | null;
+    selectedRegulatoryResult: RegulatoryResult | null;
+    performanceMetrics: MobileAnalysisMetrics | null;
+    activeConnectivityTab: 'LEO' | 'GEO';
+    coverageSwitcherCoverages: CoverageSwitcherCoverage[];
+    selectedCoverageId: string;
+    visibleGeoCoverageKeys: string[] | undefined;
+    selection: Selection;
+}
+
+export interface DisplayLayerProps {
+    displayPrefs: DisplayPrefsProps;
+    satelliteScope: SatelliteScope;
+}
+
+export interface TrafficProps {
+    airTrafficState: AirTrafficStateProps;
+    selectedAircraft: Aircraft | null;
+    maritimeTrafficState: MaritimeTrafficStateProps;
+    selectedVessel: Vessel | null;
+    issState: IssStateProps;
+}
+
+export interface TopologyProps {
+    pointB: { lat: number; lng: number } | null;
+    pointBLeo: { lat: number; lng: number } | null;
+    linkMode: LinkMode;
+    activeMeshTab: 'forward' | 'reverse';
+}
+
+export interface CameraProps {
+    cameraTarget: { lat: number; lng: number; alt: number } | null;
+    onCameraReady: (viewer: CesiumViewerType) => void;
+    onGlobeContainerReady: (ref: React.RefObject<HTMLDivElement | null>) => void;
+    onGlobeBootPhaseChange: (phase: 'mounting' | 'viewer-ready' | 'imagery-ready') => void;
+    onInitialGlobeReady: () => void;
+}
+
+export interface CallbackProps {
+    onPointClick: (lat: number, lng: number, shiftKey: boolean) => void;
+    onEmptyClick: (shiftKey: boolean) => void;
+    onCoverageClick: (coverageKey: string) => void;
+    onSatelliteClick: (satellite: SatelliteData | null) => void;
+    onMoonSelectionChange: (selected: boolean) => void;
+    onSatelliteHover: (satelliteId: string | null) => void;
+    onSnpClick: (snpName: string | { lat: number; lng: number; name: string } | null) => void;
+    onGatewayClick: (gatewayName: string | null) => void;
+    onSnpHover: (snpName: string | null) => void;
+    onAircraftClick: (aircraft: Aircraft | null) => void;
+    onAircraftHover: (aircraft: Aircraft | null) => void;
+    onVesselClick: (vessel: Vessel | null) => void;
+    onVesselHover: undefined;
+    onIssClick: () => void;
+    onToggleFullscreen: () => void;
+    onToggleLighting: () => void;
+    onToggleAggregatedConnectivity: () => void;
+    onToggleFootprintProjection: () => void;
+    onToggleFlowAnimation: () => void;
+    onToggleSatelliteTrajectory: () => void;
+    onToggleAirTraffic: () => void;
+    onToggleMaritimeTraffic: () => void;
+    onToggleIssLive: () => void;
+    onCountryOverlayModeChange: (mode: CountryOverlayMode) => void;
+    onSizeScaleChange: (scale: number) => void;
+    onSizeScaleReset: () => void;
+    onCoverageSwitcherSelect: (id: string) => void;
+}
+
 interface CesiumGlobeProps {
     satellites: SatelliteData[];
     satelliteTypeByName: Map<string, SatelliteData['type']>;
     coverageFeatures: Feature<Geometry, GeoJsonProperties>[];
     selectedPosition?: { lat: number; lng: number; altitude?: number } | null;
-    onPointClick: (lat: number, lng: number, shiftKey: boolean) => void;
-    onEmptyClick?: (shiftKey: boolean) => void;
-    onSatelliteClick: (satellite: SatelliteData | null) => void;
-    onMoonSelectionChange?: (selected: boolean) => void;
-    onSatelliteHover: (satelliteId: string | null) => void;
-    onSnpClick: (snpName: string | { lat: number; lng: number; name: string } | null) => void;
-    onGatewayClick?: (gatewayName: string | null) => void;
-    onSnpHover: (snpName: string | null) => void;
+    callbackProps: CallbackProps;
     selectedSatellite: SatelliteData | null;
     selectedMoon?: boolean;
     autoSelectedLEOSatellite?: SatelliteData | null;
@@ -176,87 +305,32 @@ interface CesiumGlobeProps {
     selectedSNP?: string | { lat: number; lng: number; name: string } | null;
     selectedGateway?: GeoGatewayData | null;
     dedicatedSNPForSelectedLEO?: SNPData | null;
-    isFullscreen: boolean;
-    onToggleFullscreen: () => void;
-    satelliteScope: SatelliteScope;
-    airTrafficEnabled?: boolean;
-    aircraft?: Aircraft[];
-    selectedAircraft?: Aircraft | null;
-    onAircraftClick?: (aircraft: Aircraft | null) => void;
-    onAircraftHover?: (aircraft: Aircraft | null) => void;
-    interpolatedAircraftMapRef?: React.MutableRefObject<Map<string, AircraftInterpolation>>;
-    maritimeTrafficEnabled?: boolean;
-    vessels?: Vessel[];
-    selectedVessel?: Vessel | null;
-    onVesselClick?: (vessel: Vessel | null) => void;
-    onVesselHover?: (vessel: Vessel | null) => void;
-    interpolatedVesselMapRef?: React.MutableRefObject<Map<string, VesselInterpolation>>;
+    displayLayerProps: DisplayLayerProps;
+    trafficProps: TrafficProps;
     selectedGEOBeam?: GEOBeam | null;
     selection: Selection;
     selectedCoverage?: CandidateCoverage | null;
     selectedUplinkCoverage?: CandidateCoverage | null;
     selectedDownlinkCoverage?: CandidateCoverage | null;
     visibleGeoCoverageKeys?: string[];
-    cameraTarget?: { lat: number; lng: number; alt: number } | null;
-    onCameraReady?: (viewer: CesiumViewerType) => void;
-    onGlobeContainerReady?: (ref: React.RefObject<HTMLDivElement | null>) => void;
-    enableLighting?: boolean;
-    onToggleLighting?: () => void;
-    showSatelliteTrajectory?: boolean;
-    showAggregatedConnectivity?: boolean;
-    onToggleAggregatedConnectivity?: () => void;
-    showFootprintProjection?: boolean;
-    onToggleFootprintProjection?: () => void;
-    showFlowAnimation?: boolean;
-    onToggleFlowAnimation?: () => void;
-    sizeScale?: number;
-    onToggleSatelliteTrajectory?: () => void;
-    onSizeScaleChange?: (scale: number) => void;
-    onSizeScaleReset?: () => void;
-    hideSatelliteScreenLabels?: boolean;
-    isPhone?: boolean;
-    isMobileViewport?: boolean;
+    cameraProps: CameraProps;
     sceneMode?: '2D' | '3D';
     onSceneModeChange?: (mode: '2D' | '3D') => void;
     inspectedSNP?: SNPData | null;
     snpConnectedSatellites?: import('../services/coverageService').SNPConnectedSatellite[];
-    countryOverlayMode?: CountryOverlayMode;
-    onCountryOverlayModeChange?: (mode: CountryOverlayMode) => void;
     leoServiceViewModel?: LeoConnectivityViewModel | null;
     geoPointStatus?: GeoPointStatus | null;
     performanceMetrics?: MobileAnalysisMetrics | null;
     activeConnectivityTab?: 'LEO' | 'GEO';
     selectedRegulatoryResult?: RegulatoryResult | null;
-    onGlobeBootPhaseChange?: (phase: 'mounting' | 'viewer-ready' | 'imagery-ready') => void;
-    onInitialGlobeReady?: () => void;
-    onCoverageClick?: (coverageKey: string) => void;
     coverageSwitcherCoverages?: CoverageSwitcherCoverage[];
     selectedCoverageId?: string;
-    onCoverageSwitcherSelect?: (id: string) => void;
-    /** Second geographic point for MESH / Point-to-Point modes (rendered as a green marker). */
-    pointB?: { lat: number; lng: number } | null;
-    /** Active link mode — used to label markers correctly. */
-    linkMode?: string;
-    /** Active direction tab in MESH/P2P — drives directional link rendering on the globe. */
-    activeMeshTab?: 'forward' | 'reverse';
+    topologyProps: TopologyProps;
     /** LEO site-to-site result — when present, draws the full routed path on the globe. */
     leoSiteToSiteResult?: import('../utils/leoSiteToSiteModel').LeoSiteToSiteResult | null;
     /** Full S2S result with computed throughput/latency — used for floating tooltips and path strip. */
     leoSiteToSiteFullResult?: import('../utils/leoSiteToSiteModel').LeoSiteToSiteResult | null;
-    /** Point B for LEO site-to-site mode (rendered as a cyan marker). */
-    pointBLeo?: { lat: number; lng: number } | null;
-    issLiveEnabled?: boolean;
-    issPositionRef?: React.RefObject<IssPosition | null>;
-    issOrbitPath?: IssOrbitPath | null;
-    issHasPosition?: boolean;
-    issIsSelected?: boolean;
-    issIsFollowing?: boolean;
-    onIssClick?: () => void;
-    onToggleAirTraffic?: () => void;
-    onToggleMaritimeTraffic?: () => void;
-    onToggleIssLive?: () => void;
-    commercialMode?: boolean;
-    commercialViewModel?: CommercialScenarioViewModel | null;
+    commercialState: CommercialStateProps;
     onCommercialSelectedSegmentChange?: (segmentId: string) => void;
 }
 
@@ -265,14 +339,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
     satelliteTypeByName,
     coverageFeatures,
     selectedPosition,
-    onPointClick,
-    onEmptyClick,
-    onSatelliteClick,
-    onMoonSelectionChange,
-    onSatelliteHover,
-    onSnpClick,
-    onGatewayClick,
-    onSnpHover,
+    callbackProps,
     selectedSatellite,
     selectedMoon = false,
     autoSelectedLEOSatellite,
@@ -280,83 +347,121 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
     selectedSNP,
     selectedGateway,
     dedicatedSNPForSelectedLEO,
-    isFullscreen,
-    onToggleFullscreen,
-    satelliteScope,
-    airTrafficEnabled = false,
-    aircraft = [],
-    selectedAircraft,
-    onAircraftClick,
-    onAircraftHover,
-    interpolatedAircraftMapRef,
-    maritimeTrafficEnabled = false,
-    vessels = [],
-    selectedVessel,
-    onVesselClick,
-    onVesselHover,
-    interpolatedVesselMapRef,
+    displayLayerProps,
+    trafficProps,
     selectedGEOBeam,
     selection,
     selectedCoverage = null,
     selectedUplinkCoverage = null,
     selectedDownlinkCoverage = null,
     visibleGeoCoverageKeys,
-    cameraTarget,
-    onCameraReady,
-    onGlobeContainerReady,
-    enableLighting = false,
-    onToggleLighting,
-    showSatelliteTrajectory = false,
-    showAggregatedConnectivity = false,
-    onToggleAggregatedConnectivity,
-    showFootprintProjection = false,
-    onToggleFootprintProjection,
-    showFlowAnimation = true,
-    onToggleFlowAnimation,
-    sizeScale,
-    onToggleSatelliteTrajectory,
-    onSizeScaleChange,
-    onSizeScaleReset,
-    hideSatelliteScreenLabels = false,
-    isPhone,
-    isMobileViewport = false,
+    cameraProps,
     sceneMode = '3D',
     onSceneModeChange,
     inspectedSNP,
     snpConnectedSatellites = [],
-    countryOverlayMode = 'none',
-    onCountryOverlayModeChange,
     leoServiceViewModel = null,
     geoPointStatus = null,
     performanceMetrics = null,
     activeConnectivityTab = 'LEO',
     selectedRegulatoryResult = null,
-    onGlobeBootPhaseChange,
-    onInitialGlobeReady,
-    onCoverageClick,
     coverageSwitcherCoverages = [],
     selectedCoverageId = '',
-    onCoverageSwitcherSelect,
-    pointB = null,
-    linkMode,
-    activeMeshTab,
+    topologyProps,
     leoSiteToSiteResult = null,
     leoSiteToSiteFullResult = null,
-    pointBLeo = null,
-    issLiveEnabled = false,
-    issPositionRef,
-    issOrbitPath = null,
-    issHasPosition = false,
-    issIsSelected = false,
-    issIsFollowing = false,
-    onIssClick,
-    onToggleAirTraffic,
-    onToggleMaritimeTraffic,
-    onToggleIssLive,
-    commercialMode = false,
-    commercialViewModel = null,
+    commercialState,
     onCommercialSelectedSegmentChange,
 }) => {
+    const {
+        onPointClick,
+        onEmptyClick,
+        onCoverageClick,
+        onSatelliteClick,
+        onMoonSelectionChange,
+        onSatelliteHover,
+        onSnpClick,
+        onGatewayClick,
+        onSnpHover,
+        onAircraftClick,
+        onAircraftHover,
+        onVesselClick,
+        onVesselHover,
+        onIssClick,
+        onToggleFullscreen,
+        onToggleLighting,
+        onToggleAggregatedConnectivity,
+        onToggleFootprintProjection,
+        onToggleFlowAnimation,
+        onToggleSatelliteTrajectory,
+        onToggleAirTraffic,
+        onToggleMaritimeTraffic,
+        onToggleIssLive,
+        onCountryOverlayModeChange,
+        onSizeScaleChange,
+        onSizeScaleReset,
+        onCoverageSwitcherSelect,
+    } = callbackProps;
+    const {
+        displayPrefs,
+        satelliteScope,
+    } = displayLayerProps;
+    const {
+        pointB,
+        pointBLeo,
+        linkMode,
+        activeMeshTab,
+    } = topologyProps;
+    const {
+        airTrafficState,
+        selectedAircraft,
+        maritimeTrafficState,
+        selectedVessel,
+        issState,
+    } = trafficProps;
+    const {
+        cameraTarget,
+        onCameraReady,
+        onGlobeContainerReady,
+        onGlobeBootPhaseChange,
+        onInitialGlobeReady,
+    } = cameraProps;
+    const {
+        enableLighting = false,
+        showSatelliteTrajectory = false,
+        showAggregatedConnectivity = false,
+        showFootprintProjection = false,
+        showFlowAnimation = true,
+        sizeScale,
+        hideSatelliteScreenLabels = false,
+        isPhone,
+        isMobileViewport = false,
+        isFullscreen,
+        countryOverlayMode = 'none',
+    } = displayPrefs;
+    const {
+        issLiveEnabled = false,
+        issPositionRef,
+        issOrbitPath = null,
+        issHasPosition = false,
+        issIsSelected = false,
+        issIsFollowing = false,
+    } = issState;
+    const {
+        commercialMode = false,
+        commercialViewModel = null,
+    } = commercialState;
+    const {
+        airTrafficEnabled = false,
+        aircraft = [],
+        interpolatedAircraftMapRef,
+    } = airTrafficState;
+    const {
+        maritimeTrafficEnabled = false,
+        vessels = [],
+        interpolatedVesselMapRef,
+    } = maritimeTrafficState;
+
     // Stable refs for click-handler lookups — avoids recreating handleMapClick
     // (and re-registering the Cesium ScreenSpaceEvent) when aircraft/vessels/satellites
     // change identity (aircraft at 60fps when air traffic + interpolation is active).
