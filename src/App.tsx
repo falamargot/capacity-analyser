@@ -1,6 +1,6 @@
 import React, { Suspense, lazy, useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import MapViewSwitcher from './components/MapViewSwitcher';
-import type { AirTrafficStateProps, CallbackProps, CameraProps, CommercialStateProps, DisplayLayerProps, DisplayPrefsProps, IssStateProps, MaritimeTrafficStateProps, TopologyProps, TrafficProps } from './components/CesiumGlobe';
+import type { AirTrafficStateProps, CallbackProps, CameraProps, CommercialStateProps, DisplayLayerProps, DisplayPrefsProps, IssStateProps, MaritimeTrafficStateProps, SelectionAnalysisProps, TopologyProps, TrafficProps } from './components/CesiumGlobe';
 import SatelliteSelector from './components/SatelliteSelector';
 import SplashScreen from './components/SplashScreen';
 import AircraftSelector from './components/AircraftSelector';
@@ -99,6 +99,7 @@ const COMPACT_DESKTOP_DIAG_MIN = Math.hypot(1920, 1080);
 const COMPACT_DESKTOP_DIAG_MAX = Math.hypot(2560, 1440);
 const REPRESENTATIVE_TELEPORT_IMAGE_URL = 'https://upload.wikimedia.org/wikipedia/commons/thumb/f/fe/Teleport_of_satellite_communications_provider.jpg/960px-Teleport_of_satellite_communications_provider.jpg';
 const AUTHORSHIP_SIGNATURE = 'F.Alamargot - 2026';
+const EMPTY_SNP_CONNECTED_SATELLITES: SNPConnectedSatellite[] = [];
 
 const clampNumber = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
 
@@ -1381,7 +1382,7 @@ const App: React.FC = () => {
   }, [liveSelectedSatellite, failedSnps]);
 
   const snpConnectedSatellites = useMemo((): SNPConnectedSatellite[] => {
-    if (!inspectedSNP) return [];
+    if (!inspectedSNP) return EMPTY_SNP_CONNECTED_SATELLITES;
     return getSatellitesConnectedToSNP(inspectedSNP, satellites, failedSnps);
   }, [inspectedSNP, satellites, failedSnps]);
 
@@ -2805,6 +2806,50 @@ const App: React.FC = () => {
     handleInitialGlobeReady,
   ]);
 
+  const selectionAnalysisProps = useMemo<SelectionAnalysisProps>(() => ({
+    selectedPosition,
+    selectedSatellite,
+    selectedMoon,
+    autoSelectedGEOSatellite: activeGeoSatellite,
+    selectedGEOBeam,
+    selectedCoverage,
+    selectedUplinkCoverage: globeUplinkCoverage,
+    selectedDownlinkCoverage: globeDownlinkCoverage,
+    selectedSNP,
+    selectedGateway,
+    inspectedSNP,
+    dedicatedSNPForSelectedLEO,
+    geoPointStatus,
+    selectedRegulatoryResult: leoRegulatoryResult,
+    performanceMetrics: mobileMetrics,
+    activeConnectivityTab,
+    coverageSwitcherCoverages,
+    selectedCoverageId,
+    visibleGeoCoverageKeys: selectedSelection.type === 'target' ? undefined : visibleManualGeoCoverageKeys,
+    selection: selectedSelection,
+  }), [
+    activeConnectivityTab,
+    activeGeoSatellite,
+    coverageSwitcherCoverages,
+    dedicatedSNPForSelectedLEO,
+    geoPointStatus,
+    globeDownlinkCoverage,
+    globeUplinkCoverage,
+    inspectedSNP,
+    leoRegulatoryResult,
+    mobileMetrics,
+    selectedCoverage,
+    selectedCoverageId,
+    selectedGEOBeam,
+    selectedGateway,
+    selectedMoon,
+    selectedSNP,
+    selectedSatellite,
+    selectedSelection,
+    selectedPosition,
+    visibleManualGeoCoverageKeys,
+  ]);
+
   // §4.1 — Shared props for both mobile and desktop MapViewSwitcher instances.
   // Avoids duplicating the full prop list in two places.
   //
@@ -2822,43 +2867,23 @@ const App: React.FC = () => {
     satellites: filteredSatellites,
     satelliteTypeByName,
     coverageFeatures: coverageFeaturesMemo,
-    visibleGeoCoverageKeys: selectedSelection.type === 'target' ? undefined : visibleManualGeoCoverageKeys,
+    selectionAnalysisProps,
     callbackProps,
-    selectedPosition,
     topologyProps,
-    selectedSatellite,
-    selectedMoon,
     autoSelectedLEOSatellite: resolvedAutoLEO,
     autoSelectedLEOSatelliteB: resolvedAutoLEOB,
-    autoSelectedGEOSatellite: activeGeoSatellite,
-    selectedGEOBeam,
-    selectedCoverage,
-    selectedUplinkCoverage: globeUplinkCoverage,
-    selectedDownlinkCoverage: globeDownlinkCoverage,
-    selectedSNP,
-    selectedGateway,
-    dedicatedSNPForSelectedLEO,
     leoServiceViewModel,
-    geoPointStatus,
-    performanceMetrics: mobileMetrics,
-    activeConnectivityTab,
-    selectedRegulatoryResult: leoRegulatoryResult,
     displayLayerProps,
     trafficProps,
     cameraProps,
-    selection: selectedSelection,
-    inspectedSNP,
     snpConnectedSatellites,
-    coverageSwitcherCoverages,
-    selectedCoverageId,
     leoSiteToSiteResult: activeLeoSiteToSiteResult,
     leoSiteToSiteFullResult: activeLeoSiteToSiteResult,
   }), [
-    filteredSatellites, satelliteTypeByName, coverageFeaturesMemo, visibleManualGeoCoverageKeys, callbackProps, selectedPosition,
-    selectedSatellite, selectedMoon, resolvedAutoLEO, resolvedAutoLEOB, activeGeoSatellite, selectedGEOBeam, selectedSelection, selectedCoverage, globeUplinkCoverage, globeDownlinkCoverage, selectedSNP, selectedGateway, dedicatedSNPForSelectedLEO, leoServiceViewModel, geoPointStatus, mobileMetrics, activeConnectivityTab, leoRegulatoryResult,
+    filteredSatellites, satelliteTypeByName, coverageFeaturesMemo, selectionAnalysisProps, callbackProps,
+    resolvedAutoLEO, resolvedAutoLEOB, leoServiceViewModel,
     displayLayerProps, trafficProps, cameraProps,
-    inspectedSNP, snpConnectedSatellites,
-    coverageSwitcherCoverages, selectedCoverageId,
+    snpConnectedSatellites,
     topologyProps,
     activeLeoSiteToSiteResult,
   ]);

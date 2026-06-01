@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { memo, type ReactNode } from 'react';
 import { ExternalLink } from 'lucide-react';
 import type { CommercialRouteSegment, CommercialScenarioViewModel } from './commercialViewModel';
 import { customerServiceStateLabel, formatMbps, formatMs, segmentStatusChipClassName } from './commercialDisplayUtils';
@@ -79,7 +79,7 @@ function selectedConstraint(segment: CommercialRouteSegment | undefined, viewMod
   return 'None detected';
 }
 
-export default function CommercialInspectorPanel({
+function CommercialInspectorPanel({
   viewModel,
   selectedSegmentId,
   onSelectedSegmentChange,
@@ -244,3 +244,5 @@ export default function CommercialInspectorPanel({
     </aside>
   );
 }
+
+export default memo(CommercialInspectorPanel);

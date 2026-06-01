@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { ChevronRight } from 'lucide-react';
 import type { CommercialRouteSegment } from './commercialViewModel';
 import { customerServiceStateLabelShort, segmentStatusBadgeClassName } from './commercialDisplayUtils';
@@ -39,7 +40,7 @@ interface CommercialRouteStripProps {
   onSelectedSegmentChange: (segment: string) => void;
 }
 
-export default function CommercialRouteStrip({
+function CommercialRouteStrip({
   segments,
   selectedSegmentId,
   onSelectedSegmentChange,
@@ -96,3 +97,5 @@ export default function CommercialRouteStrip({
     </div>
   );
 }
+
+export default memo(CommercialRouteStrip);

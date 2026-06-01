@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { AlertTriangle, CheckCircle2, Sparkles } from 'lucide-react';
 import type { CommercialScenarioViewModel, CommercialTechnologyOption } from './commercialViewModel';
 import { formatMbps, formatMs, serviceStatusChipClassName } from './commercialDisplayUtils';
@@ -106,7 +107,7 @@ interface CommercialKpiBarProps {
   viewModel: CommercialScenarioViewModel;
 }
 
-export default function CommercialKpiBar({ viewModel }: CommercialKpiBarProps) {
+function CommercialKpiBar({ viewModel }: CommercialKpiBarProps) {
   const comparisonOptions = viewModel.comparison.options;
   const showComparison = comparisonOptions.length >= 2;
   const summary = viewModel.executiveSummary;
@@ -228,3 +229,5 @@ export default function CommercialKpiBar({ viewModel }: CommercialKpiBarProps) {
     </div>
   );
 }
+
+export default memo(CommercialKpiBar);

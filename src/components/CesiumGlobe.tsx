@@ -295,36 +295,17 @@ interface CesiumGlobeProps {
     satellites: SatelliteData[];
     satelliteTypeByName: Map<string, SatelliteData['type']>;
     coverageFeatures: Feature<Geometry, GeoJsonProperties>[];
-    selectedPosition?: { lat: number; lng: number; altitude?: number } | null;
+    selectionAnalysisProps: SelectionAnalysisProps;
     callbackProps: CallbackProps;
-    selectedSatellite: SatelliteData | null;
-    selectedMoon?: boolean;
     autoSelectedLEOSatellite?: SatelliteData | null;
     autoSelectedLEOSatelliteB?: SatelliteData | null;
-    autoSelectedGEOSatellite?: SatelliteData | null;
-    selectedSNP?: string | { lat: number; lng: number; name: string } | null;
-    selectedGateway?: GeoGatewayData | null;
-    dedicatedSNPForSelectedLEO?: SNPData | null;
     displayLayerProps: DisplayLayerProps;
     trafficProps: TrafficProps;
-    selectedGEOBeam?: GEOBeam | null;
-    selection: Selection;
-    selectedCoverage?: CandidateCoverage | null;
-    selectedUplinkCoverage?: CandidateCoverage | null;
-    selectedDownlinkCoverage?: CandidateCoverage | null;
-    visibleGeoCoverageKeys?: string[];
     cameraProps: CameraProps;
     sceneMode?: '2D' | '3D';
     onSceneModeChange?: (mode: '2D' | '3D') => void;
-    inspectedSNP?: SNPData | null;
     snpConnectedSatellites?: import('../services/coverageService').SNPConnectedSatellite[];
     leoServiceViewModel?: LeoConnectivityViewModel | null;
-    geoPointStatus?: GeoPointStatus | null;
-    performanceMetrics?: MobileAnalysisMetrics | null;
-    activeConnectivityTab?: 'LEO' | 'GEO';
-    selectedRegulatoryResult?: RegulatoryResult | null;
-    coverageSwitcherCoverages?: CoverageSwitcherCoverage[];
-    selectedCoverageId?: string;
     topologyProps: TopologyProps;
     /** LEO site-to-site result — when present, draws the full routed path on the globe. */
     leoSiteToSiteResult?: import('../utils/leoSiteToSiteModel').LeoSiteToSiteResult | null;
@@ -338,35 +319,16 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
     satellites,
     satelliteTypeByName,
     coverageFeatures,
-    selectedPosition,
+    selectionAnalysisProps,
     callbackProps,
-    selectedSatellite,
-    selectedMoon = false,
     autoSelectedLEOSatellite,
-    autoSelectedGEOSatellite,
-    selectedSNP,
-    selectedGateway,
-    dedicatedSNPForSelectedLEO,
     displayLayerProps,
     trafficProps,
-    selectedGEOBeam,
-    selection,
-    selectedCoverage = null,
-    selectedUplinkCoverage = null,
-    selectedDownlinkCoverage = null,
-    visibleGeoCoverageKeys,
     cameraProps,
     sceneMode = '3D',
     onSceneModeChange,
-    inspectedSNP,
     snpConnectedSatellites = [],
     leoServiceViewModel = null,
-    geoPointStatus = null,
-    performanceMetrics = null,
-    activeConnectivityTab = 'LEO',
-    selectedRegulatoryResult = null,
-    coverageSwitcherCoverages = [],
-    selectedCoverageId = '',
     topologyProps,
     leoSiteToSiteResult = null,
     leoSiteToSiteFullResult = null,
@@ -402,6 +364,28 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         onSizeScaleReset,
         onCoverageSwitcherSelect,
     } = callbackProps;
+    const {
+        selectedPosition,
+        selectedSatellite,
+        selectedMoon,
+        autoSelectedGEOSatellite,
+        selectedGEOBeam,
+        selectedCoverage,
+        selectedUplinkCoverage,
+        selectedDownlinkCoverage,
+        selectedSNP,
+        selectedGateway,
+        inspectedSNP,
+        dedicatedSNPForSelectedLEO,
+        geoPointStatus,
+        selectedRegulatoryResult,
+        performanceMetrics,
+        activeConnectivityTab,
+        coverageSwitcherCoverages,
+        selectedCoverageId,
+        visibleGeoCoverageKeys,
+        selection,
+    } = selectionAnalysisProps;
     const {
         displayPrefs,
         satelliteScope,
