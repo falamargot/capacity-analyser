@@ -22,19 +22,19 @@ interface CommercialInspectorPanelProps {
 
 function FieldRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="grid gap-1 border-t border-slate-800 px-3 py-2 first:border-t-0">
+    <div className="grid gap-1 border-t border-slate-800/60 px-3 py-2 first:border-t-0">
       <div className="min-w-0">
         <div className="text-xs font-medium text-slate-400">{label}</div>
       </div>
-      <div className="text-sm font-semibold leading-5 text-white">{value}</div>
+      <div className="break-words text-sm font-semibold leading-5 text-white">{value}</div>
     </div>
   );
 }
 
 function StorySection({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <section className="rounded-lg border border-slate-800 bg-slate-900/60">
-      <div className="border-b border-slate-800 px-3 py-2 text-[9px] font-bold uppercase tracking-[0.14em] text-sky-300">
+    <section className="rounded-lg border border-slate-800/70 bg-slate-900/55">
+      <div className="border-b border-slate-800/60 px-3 py-2 text-[9px] font-bold uppercase tracking-[0.14em] text-sky-300">
         {title}
       </div>
       {children}
@@ -50,11 +50,11 @@ function DetailSection({
   children: ReactNode;
 }) {
   return (
-    <details className="rounded-lg border border-slate-800 bg-slate-900/45">
+    <details className="rounded-lg border border-slate-800/55 bg-slate-900/35">
       <summary className="cursor-pointer px-3 py-2 text-[9px] font-bold uppercase tracking-[0.14em] text-slate-400">
         {title}
       </summary>
-      <div className="border-t border-slate-800">{children}</div>
+      <div className="border-t border-slate-800/60">{children}</div>
     </details>
   );
 }
@@ -138,15 +138,15 @@ function CommercialInspectorPanel({
   ];
 
   return (
-    <aside className="flex h-full w-full flex-col overflow-hidden border-l border-slate-700 bg-slate-950">
-      <div className="border-b border-slate-800 px-4 py-3">
+    <aside className="flex h-full w-full flex-col overflow-hidden border-l border-slate-700/80 bg-slate-950">
+      <div className="border-b border-slate-800/70 px-4 py-3">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <div className="text-[9px] font-semibold uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400">
               Commercial Inspector
             </div>
-            <h2 className="mt-1 truncate text-lg font-semibold text-white">{viewModel.executiveSummary.recommendedTechnology}</h2>
-            <p className="mt-1 line-clamp-2 text-sm leading-5 text-slate-400">{viewModel.executiveSummary.expectedExperience}</p>
+            <h2 className="mt-1 text-lg font-semibold leading-6 text-white">{viewModel.executiveSummary.recommendedTechnology}</h2>
+            <p className="mt-1 text-sm leading-5 text-slate-400">{viewModel.recommendation.reason}</p>
           </div>
           <span className={`shrink-0 rounded-full border px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.08em] ${overallStatusChipClass}`}>
             {viewModel.executiveSummary.statusLabel}
@@ -154,7 +154,7 @@ function CommercialInspectorPanel({
         </div>
       </div>
 
-      <div className="flex gap-1 overflow-x-auto border-b border-slate-800 px-3 py-2">
+      <div className="flex flex-wrap gap-1 border-b border-slate-800/70 px-3 py-2">
         {segmentOrder.map((type) => {
           const tabSegment = viewModel.routeSegments.find((item) => item.type === type);
           return (
@@ -164,7 +164,7 @@ function CommercialInspectorPanel({
             onClick={() => tabSegment && onSelectedSegmentChange(tabSegment.id)}
             disabled={!tabSegment}
             className={[
-              'shrink-0 rounded-md px-2.5 py-1.5 text-xs font-semibold transition-colors',
+              'min-w-[4.25rem] rounded-md px-2.5 py-1.5 text-xs font-semibold transition-colors',
               selectedSegment === tabSegment?.id
                 ? 'bg-white text-slate-950'
                 : 'text-slate-300 hover:bg-slate-800',
@@ -191,11 +191,11 @@ function CommercialInspectorPanel({
           </StorySection>
 
           <StorySection title="Performance">
-            <div className="grid grid-cols-3 divide-x divide-slate-800">
+            <div className="grid grid-cols-3 divide-x divide-slate-800/60">
               {performanceRows.slice(0, 3).map((row) => (
                 <div key={`${row.label}-${row.value}`} className="min-w-0 px-3 py-2">
-                  <div className="truncate text-sm font-semibold text-white" title={row.value}>{row.value}</div>
-                  <div className="mt-0.5 truncate text-[9px] font-semibold uppercase tracking-[0.1em] text-slate-500" title={row.label}>{row.label.replace('Expected ', '')}</div>
+                  <div className="text-sm font-semibold leading-5 text-white" title={row.value}>{row.value}</div>
+                  <div className="mt-0.5 text-[9px] font-semibold uppercase tracking-[0.08em] text-slate-500" title={row.label}>{row.label.replace('Expected ', '').replace('Customer ', '')}</div>
                 </div>
               ))}
             </div>
@@ -231,7 +231,7 @@ function CommercialInspectorPanel({
         </div>
       </div>
 
-      <div className="border-t border-slate-800 p-4">
+      <div className="border-t border-slate-800/70 p-4">
         <button
           type="button"
           onClick={onViewFullAnalysis}

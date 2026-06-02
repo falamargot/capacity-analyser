@@ -46,36 +46,36 @@ function CommercialRouteStrip({
   onSelectedSegmentChange,
 }: CommercialRouteStripProps) {
   return (
-    <div className="border-t border-slate-800 bg-slate-950/94 px-4 py-2 backdrop-blur">
-      <div className="mb-1 flex items-center justify-between gap-3">
+    <div className="border-t border-slate-800/70 bg-slate-950/94 px-4 py-1.5 backdrop-blur">
+      <div className="mb-0.5 flex items-center justify-between gap-3">
         <div>
           <div className="text-[9px] font-semibold uppercase tracking-[0.14em] text-sky-300">Service Journey</div>
         </div>
       </div>
-      <div className="flex items-stretch gap-1.5 overflow-x-auto">
+      <div className="flex items-stretch gap-1.5">
         {segments.map((segment, index) => {
           const isSelected = selectedSegmentId === segment.id;
           const isOutcome = segment.type === 'summary';
           const subtitle = cardSubtitle(segment);
           return (
-          <div key={segment.id} className={`flex items-center gap-1.5 ${isOutcome ? 'min-w-[13rem] flex-[1.2]' : 'min-w-[10rem] flex-1'}`}>
+          <div key={segment.id} className={`flex min-w-0 items-center gap-1.5 ${isOutcome ? 'flex-[1.18]' : 'flex-1'}`}>
             <button
               type="button"
               onClick={() => onSelectedSegmentChange(segment.id)}
               className={[
-                'flex w-full min-w-0 flex-col justify-center rounded-lg border px-2.5 py-2 text-left transition-colors',
+                'flex w-full min-w-0 flex-col justify-center rounded-lg border px-2.5 py-1.5 text-left transition-colors',
                 isSelected
-                  ? 'min-h-[3.6rem] border-sky-300 bg-sky-500/20 text-white shadow-[0_0_0_1px_rgba(125,211,252,0.3)]'
+                  ? 'min-h-[3.15rem] border-sky-300 bg-sky-500/20 text-white shadow-[0_0_0_1px_rgba(125,211,252,0.3)]'
                   : segment.isPrimaryIssue
-                    ? 'min-h-[3.3rem] border-amber-300 bg-amber-500/15 text-white shadow-[0_0_0_1px_rgba(251,191,36,0.28)]'
+                    ? 'min-h-[2.95rem] border-amber-300 bg-amber-500/15 text-white shadow-[0_0_0_1px_rgba(251,191,36,0.28)]'
                     : isOutcome
-                      ? 'min-h-[3.3rem] border-sky-500/35 bg-slate-900 text-white hover:bg-slate-800'
-                      : 'min-h-[3.3rem] border-slate-800 bg-slate-900/65 text-slate-300 hover:bg-slate-800',
+                      ? 'min-h-[2.95rem] border-sky-500/35 bg-slate-900 text-white hover:bg-slate-800'
+                      : 'min-h-[2.95rem] border-slate-800/70 bg-slate-900/65 text-slate-300 hover:bg-slate-800',
               ].join(' ')}
               aria-pressed={isSelected}
             >
               <div className="flex min-w-0 items-center justify-between gap-2">
-                <span className={`${isOutcome ? 'text-sm' : 'text-xs'} truncate font-semibold`}>{journeyLabel[segment.type]}</span>
+                <span className={`${isOutcome ? 'text-sm' : 'text-xs'} min-w-0 font-semibold leading-4`}>{journeyLabel[segment.type]}</span>
                 <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.08em] ${segmentStatusBadgeClassName[segment.status]}`}>
                   {customerServiceStateLabelShort[segment.customerStatus]}
                 </span>

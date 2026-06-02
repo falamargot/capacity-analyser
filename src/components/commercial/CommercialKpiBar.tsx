@@ -5,9 +5,9 @@ import { formatMbps, formatMs, serviceStatusChipClassName } from './commercialDi
 
 function KpiItem({ label, value }: { label: string; value: string }) {
   return (
-    <div className="min-w-[5.6rem] border-l border-slate-800 px-3 first:border-l-0">
-      <div className="text-base font-semibold tabular-nums text-white">{value}</div>
-      <div className="mt-0.5 text-[9px] font-semibold uppercase tracking-[0.12em] text-slate-400">{label}</div>
+    <div className="min-w-[5rem] border-l border-slate-700/60 px-3 first:border-l-0">
+      <div className="text-[17px] font-semibold tabular-nums text-white">{value}</div>
+      <div className="mt-0.5 text-[9px] font-semibold uppercase tracking-[0.1em] text-slate-400">{label}</div>
     </div>
   );
 }
@@ -123,76 +123,73 @@ function CommercialKpiBar({ viewModel }: CommercialKpiBarProps) {
       : 'border-slate-700 bg-slate-900/70 text-slate-300';
 
   return (
-    <div className="border-b border-slate-800 bg-slate-950/96 px-4 py-3 shadow-sm backdrop-blur">
-      <div className="grid gap-3 xl:grid-cols-[minmax(25rem,1.35fr)_minmax(20rem,0.95fr)_minmax(16rem,0.75fr)] xl:items-stretch">
-        <section className="rounded-lg border border-sky-300/30 bg-sky-500/10 px-4 py-3 shadow-[0_18px_50px_-38px_rgba(56,189,248,0.9)]">
-          <div className="flex min-w-0 items-start justify-between gap-3">
+    <div className="border-b border-slate-800/70 bg-slate-950/96 px-4 py-3 shadow-sm backdrop-blur">
+      <div className="grid gap-3 xl:grid-cols-[minmax(28rem,1.65fr)_minmax(19rem,0.9fr)_minmax(12rem,0.45fr)] xl:items-stretch">
+        <section className="rounded-lg border border-sky-300/45 bg-sky-500/15 px-5 py-4 shadow-[0_20px_60px_-34px_rgba(56,189,248,1)]">
+          <div className="flex min-w-0 items-start justify-between gap-4">
             <div className="min-w-0">
-              <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.14em] text-sky-200">
-                <Sparkles className="h-3.5 w-3.5" />
+              <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.14em] text-sky-200">
+                <Sparkles className="h-4 w-4" />
                 Recommendation
               </div>
-              <div className="mt-1 text-xl font-semibold leading-tight text-white" title={viewModel.recommendation.message}>
+              <div className="mt-1.5 text-2xl font-semibold leading-tight text-white" title={viewModel.recommendation.message}>
                 {recommendationTitle(viewModel)}
               </div>
-              <p className="mt-1 line-clamp-2 text-sm leading-5 text-slate-300" title={summary.expectedExperience}>
+              <p className="mt-1.5 line-clamp-2 text-[15px] leading-6 text-slate-200" title={summary.expectedExperience}>
                 {summary.expectedExperience}
               </p>
             </div>
-            <span className={`shrink-0 rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.08em] ${serviceStatusChipClassName[viewModel.serviceStatus]}`}>
+            <span className={`mt-1 shrink-0 rounded-full border px-3 py-1 text-[10px] font-bold uppercase tracking-[0.08em] ${serviceStatusChipClassName[viewModel.serviceStatus]}`}>
               {summary.statusLabel}
             </span>
           </div>
-          <div className="mt-2 grid gap-2 text-sm text-sky-50 sm:grid-cols-2">
+          <div className="mt-3 grid gap-3 text-sm text-sky-50 sm:grid-cols-2">
             <div className="min-w-0">
               <span className="block text-[9px] font-semibold uppercase tracking-[0.12em] text-sky-300">Best for</span>
-              <span className="block truncate font-semibold" title={bestForLabel(viewModel)}>{bestForLabel(viewModel)}</span>
+              <span className="block font-semibold leading-5" title={bestForLabel(viewModel)}>{bestForLabel(viewModel)}</span>
             </div>
             <div className="min-w-0">
               <span className="block text-[9px] font-semibold uppercase tracking-[0.12em] text-sky-300">Alternative</span>
-              <span className="block truncate font-semibold" title={alternativeLabel(viewModel)}>{alternativeLabel(viewModel)}</span>
+              <span className="block font-semibold leading-5" title={alternativeLabel(viewModel)}>{alternativeLabel(viewModel)}</span>
             </div>
           </div>
         </section>
 
         <div className="flex min-w-0 flex-col justify-center gap-2">
-          <div className="flex min-w-0 items-center overflow-x-auto rounded-lg border border-slate-800 bg-slate-900/70 py-2">
-            <div className="min-w-[5.6rem] px-3">
-              <div className="text-base font-semibold tabular-nums text-white">{viewModel.technology.toUpperCase()}</div>
-              <div className="mt-0.5 text-[9px] font-semibold uppercase tracking-[0.12em] text-slate-400">Technology</div>
+          <div className="flex min-w-0 flex-wrap items-center rounded-lg border border-slate-800/60 bg-slate-900/55 py-2">
+            <div className="min-w-[5rem] px-3">
+              <div className="text-[17px] font-semibold tabular-nums text-white">{viewModel.technology.toUpperCase()}</div>
+              <div className="mt-0.5 text-[9px] font-semibold uppercase tracking-[0.1em] text-slate-400">Active path</div>
               {viewModel.contextTechnology.toLowerCase() !== viewModel.technology && (
                 <div className="mt-0.5 text-[9px] font-medium uppercase tracking-[0.1em] text-slate-600">
                   Active: {viewModel.contextTechnology}
                 </div>
               )}
             </div>
-            <KpiItem label="Download" value={formatMbps(viewModel.downloadMbps)} />
-            <KpiItem label="Upload" value={formatMbps(viewModel.uploadMbps)} />
+            <KpiItem label="Downlink" value={formatMbps(viewModel.downloadMbps)} />
+            <KpiItem label="Uplink" value={formatMbps(viewModel.uploadMbps)} />
             <KpiItem label="Latency" value={formatMs(viewModel.rttMs)} />
           </div>
           <div className={`inline-flex min-w-0 items-center gap-2 rounded-lg border px-3 py-1.5 text-xs font-medium ${constraintClassName}`}>
             {constraint.tone !== 'neutral' && <AlertTriangle className="h-3.5 w-3.5 shrink-0" />}
-            <span className="truncate" title={constraint.label}>{constraint.label}</span>
+            <span className="min-w-0 break-words leading-4" title={constraint.label}>{constraint.label}</span>
           </div>
         </div>
 
-        <div className="flex min-w-0 flex-col justify-center rounded-lg border border-slate-800 bg-slate-900/55 px-3 py-2">
-          <div className="text-[9px] font-semibold uppercase tracking-[0.14em] text-sky-300">Scenario</div>
-          <div className="mt-0.5 truncate text-base font-semibold text-white" title={viewModel.scenarioName}>
+        <div className="flex min-w-0 flex-col justify-center rounded-lg border border-slate-800/45 bg-slate-900/35 px-3 py-2">
+          <div className="text-[9px] font-semibold uppercase tracking-[0.14em] text-slate-500">Scenario</div>
+          <div className="mt-1 break-words text-sm font-semibold leading-5 text-slate-200" title={viewModel.scenarioName}>
             {viewModel.scenarioName}
-          </div>
-          <div className="mt-1 text-xs leading-4 text-slate-400" title={viewModel.recommendation.reason}>
-            {viewModel.recommendation.reason}
           </div>
         </div>
       </div>
 
       {showComparison && (
-        <div className="mt-3 grid overflow-hidden rounded-lg border border-slate-800 bg-slate-900/65 md:grid-cols-[1fr_1fr_minmax(13rem,0.75fr)]">
+        <div className="mt-3 grid overflow-hidden rounded-lg border border-slate-800/70 bg-slate-900/65 md:grid-cols-[1fr_1fr_minmax(11rem,0.62fr)]">
           {compactComparisonOptions.map((option) => {
             const isRecommended = recommended?.technology === option.technology;
             return (
-            <div key={option.technology} className={['min-w-0 border-t border-slate-800 px-3 py-2 first:border-t-0 md:border-l md:border-t-0 md:first:border-l-0', isRecommended ? 'bg-sky-500/10' : 'opacity-70'].join(' ')}>
+            <div key={option.technology} className={['min-w-0 border-t border-slate-800/60 px-3 py-2 first:border-t-0 md:border-l md:border-t-0 md:first:border-l-0', isRecommended ? 'bg-sky-500/10' : 'opacity-70'].join(' ')}>
               <div className="flex items-center justify-between gap-2">
                 <span className="text-[11px] font-bold uppercase tracking-[0.12em] text-slate-300">{option.label}</span>
                 <span className={option.available ? 'text-[10px] font-semibold text-emerald-300' : 'text-[10px] font-semibold text-slate-500'}>
@@ -209,20 +206,22 @@ function CommercialKpiBar({ viewModel }: CommercialKpiBarProps) {
                   <div className="text-[9px] font-semibold uppercase tracking-[0.1em] text-slate-500">Latency</div>
                 </div>
                 <div className="min-w-0">
-                  <div className="truncate text-sm font-semibold text-white" title={comparisonStrength(option)}>{comparisonStrength(option)}</div>
+                  <div className="text-sm font-semibold leading-5 text-white" title={comparisonStrength(option)}>{comparisonStrength(option)}</div>
                   <div className="text-[9px] font-semibold uppercase tracking-[0.1em] text-slate-500">Strength</div>
                 </div>
               </div>
             </div>
             );
           })}
-          <div className="flex min-w-0 flex-col justify-center border-t border-slate-800 px-3 py-2 md:border-l md:border-t-0">
-            <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.12em] text-sky-300">
+          <div className="flex min-w-0 flex-col justify-center border-t border-slate-800/60 px-3 py-2 md:border-l md:border-t-0">
+            <div className="flex items-center gap-1.5 text-[9px] font-bold uppercase tracking-[0.12em] text-slate-400">
               <CheckCircle2 className="h-3 w-3 text-emerald-300" />
-              Recommended
+              Decision
             </div>
-            <div className="mt-0.5 text-base font-semibold text-white">{viewModel.recommendation.label}</div>
-            <div className="truncate text-xs text-slate-400" title={viewModel.recommendation.reason}>{viewModel.recommendation.reason}</div>
+            <div className="mt-0.5 text-sm font-semibold text-white">{viewModel.recommendation.label}</div>
+            <div className="text-xs leading-4 text-slate-400" title={recommended?.statusLabel ?? viewModel.display.serviceStatusLabel}>
+              {recommended?.statusLabel ?? viewModel.display.serviceStatusLabel}
+            </div>
           </div>
         </div>
       )}
