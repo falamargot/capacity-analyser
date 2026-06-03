@@ -5,6 +5,7 @@ import { Feature, Geometry, GeoJsonProperties } from 'geojson';
 import { SatelliteData } from '../types/satellites';
 import type { LeoConnectivityViewModel } from '../utils/leoServiceViewModel';
 import type { LeoSiteToSiteResult } from '../utils/leoSiteToSiteModel';
+import type { ResolvedGeoGateway } from '../utils/geoConnectivityModel';
 
 interface MapViewSwitcherProps {
   satellites: SatelliteData[];
@@ -26,6 +27,8 @@ interface MapViewSwitcherProps {
   leoSiteToSiteFullResult?: LeoSiteToSiteResult | null;
   commercialState: CommercialStateProps;
   onCommercialSelectedSegmentChange?: (segmentId: string) => void;
+  resolvedAutoGeoGateway?: ResolvedGeoGateway | null;
+  resolvedSelectedGeoGateway?: ResolvedGeoGateway | null;
 }
 
 const MapViewSwitcher: React.FC<MapViewSwitcherProps> = ({
@@ -46,6 +49,8 @@ const MapViewSwitcher: React.FC<MapViewSwitcherProps> = ({
   leoSiteToSiteFullResult = null,
   commercialState,
   onCommercialSelectedSegmentChange,
+  resolvedAutoGeoGateway = null,
+  resolvedSelectedGeoGateway = null,
 }) => {
   const [sceneMode, setSceneMode] = useState<'2D' | '3D'>('3D');
 
@@ -72,6 +77,8 @@ const MapViewSwitcher: React.FC<MapViewSwitcherProps> = ({
         leoSiteToSiteFullResult={leoSiteToSiteFullResult}
         commercialState={commercialState}
         onCommercialSelectedSegmentChange={onCommercialSelectedSegmentChange}
+        resolvedAutoGeoGateway={resolvedAutoGeoGateway}
+        resolvedSelectedGeoGateway={resolvedSelectedGeoGateway}
       />
     </div>
   );

@@ -17,9 +17,11 @@ import ExportButton, { type ExportButtonPayload } from './components/ExportButto
 import SimulationSettings from './components/layout/SimulationSettings';
 import CommercialModeShell from './components/commercial/CommercialModeShell';
 import CommercialKpiBar from './components/commercial/CommercialKpiBar';
+import CommercialRouteHeader, { type CommercialRouteHeaderProps } from './components/commercial/CommercialRouteHeader';
 import CommercialRouteStrip from './components/commercial/CommercialRouteStrip';
 import CommercialInspectorPanel from './components/commercial/CommercialInspectorPanel';
 import { buildCommercialScenarioViewModel } from './components/commercial/commercialViewModel';
+import { buildCommercialRouteModel } from './utils/commercialRouteModel';
 import { WeatherControl, WEATHER_PROFILES, type TerminalType, type WeatherType, toWeatherCondition } from './components/capacity';
 import { WEATHER_ATTENUATION_DB } from './utils/realisticSimulation';
 import { SatelliteData } from './types/satellites';
@@ -63,7 +65,7 @@ import { estimateBeamLoad } from './utils/capacityLayer';
 import { computeServiceStatus } from './utils/serviceLayer';
 import { getConnectivityStatus, hasRFConnectivity } from './utils/rfConnectivity';
 import { deriveLeoConnectivityViewModel } from './utils/leoServiceViewModel';
-import { getGroundSegmentRoutingForSatellite, selectTrafficGeoGateway } from './utils/geoConnectivityModel';
+import { getGroundSegmentRoutingForSatellite, resolveConnectivityPathForSatellite, selectTrafficGeoGateway, type ResolvedGeoGateway } from './utils/geoConnectivityModel';
 import type { GeoPointStatus } from './utils/selectedPointStatus';
 import type { CountryOverlayMode } from './types/countryOverlays';
 import type { LinkMode } from './types/linkMode';
@@ -1361,6 +1363,26 @@ const App: React.FC = () => {
 
     return selectedSatellite?.type === 'EUTELSAT' ? selectedSatellite : null;
   }, [satelliteById, selectedCoverage, selectedSatellite, selectedSelection]);
+
+  // GEO gateway resolution — lifted from CesiumGlobe so App.tsx can provide
+  // resolved gateway coordinates to CommercialRouteModel (Phase C3).
+  const resolvedAutoGeoGateway = useMemo((): ResolvedGeoGateway | null => {
+    if (!activeGeoSatellite) return null;
+    return resolveConnectivityPathForSatellite({
+      satellite: activeGeoSatellite,
+      userLocation: selectedPosition,
+      gateways: GEO_GATEWAYS,
+    })?.resolvedGateway ?? null;
+  }, [activeGeoSatellite, selectedPosition]);
+
+  const resolvedSelectedGeoGateway = useMemo((): ResolvedGeoGateway | null => {
+    if (!selectedSatellite || selectedSatellite.type !== 'EUTELSAT') return null;
+    return resolveConnectivityPathForSatellite({
+      satellite: selectedSatellite,
+      userLocation: selectedPosition,
+      gateways: GEO_GATEWAYS,
+    })?.resolvedGateway ?? null;
+  }, [selectedPosition, selectedSatellite]);
 
   // Resolve live satellite instance for selected satellite (real-time positions)
   const liveSelectedSatellite = useMemo(
@@ -2879,6 +2901,8 @@ const App: React.FC = () => {
     snpConnectedSatellites,
     leoSiteToSiteResult: activeLeoSiteToSiteResult,
     leoSiteToSiteFullResult: activeLeoSiteToSiteResult,
+    resolvedAutoGeoGateway,
+    resolvedSelectedGeoGateway,
   }), [
     filteredSatellites, satelliteTypeByName, coverageFeaturesMemo, selectionAnalysisProps, callbackProps,
     resolvedAutoLEO, resolvedAutoLEOB, leoServiceViewModel,
@@ -2886,6 +2910,8 @@ const App: React.FC = () => {
     snpConnectedSatellites,
     topologyProps,
     activeLeoSiteToSiteResult,
+    resolvedAutoGeoGateway,
+    resolvedSelectedGeoGateway,
   ]);
   const desktopCompactProgress = isMobile ? 0 : getCompactDesktopProgress(viewportSnapshot);
   const useCompactDesktopSidebar = desktopCompactProgress >= 0.35;
@@ -3305,6 +3331,40 @@ const App: React.FC = () => {
     weatherType, weatherTypeB, leoTerminalType, commercialSelectedSegment,
   ]);
 
+  // CommercialRouteModel — canonical route geometry model (COMM-6C3B).
+  // Built immediately after the scenario viewModel so both share the same
+  // memoization cadence.
+  const commercialRouteModel = useMemo(() => buildCommercialRouteModel(
+    commercialScenarioViewModel,
+    {
+      activeAnalysisPoint,
+      siteB,
+      resolvedAutoGeoGateway,
+      resolvedSelectedGeoGateway,
+      activeLeoRouteEvidence,
+      geoRouteAnalysis,
+      activeGeoSatellite,
+    },
+  ), [
+    commercialScenarioViewModel,
+    activeAnalysisPoint,
+    siteB,
+    resolvedAutoGeoGateway,
+    resolvedSelectedGeoGateway,
+    activeLeoRouteEvidence,
+    geoRouteAnalysis,
+    activeGeoSatellite,
+  ]);
+
+  const commercialRouteHeaderRoute = useMemo<CommercialRouteHeaderProps>(() => ({
+    origin: activeAnalysisPoint && commercialScenarioViewModel.siteA
+      ? { label: commercialScenarioViewModel.siteA.name }
+      : undefined,
+    destination: siteB && commercialScenarioViewModel.siteB
+      ? { label: commercialScenarioViewModel.siteB.name }
+      : undefined,
+  }), [activeAnalysisPoint, commercialScenarioViewModel.siteA, commercialScenarioViewModel.siteB, siteB]);
+
   const engineeringCommercialState = useMemo<CommercialStateProps>(() => ({
     commercialMode: false,
     commercialViewModel: null,
@@ -3313,12 +3373,14 @@ const App: React.FC = () => {
   const mobileCommercialState = useMemo<CommercialStateProps>(() => ({
     commercialMode: true,
     commercialViewModel: commercialScenarioViewModel,
-  }), [commercialScenarioViewModel]);
+    commercialRouteModel,
+  }), [commercialScenarioViewModel, commercialRouteModel]);
 
   const desktopCommercialState = useMemo<CommercialStateProps>(() => ({
     commercialMode,
     commercialViewModel: uiMode === 'commercial' ? commercialScenarioViewModel : null,
-  }), [commercialMode, commercialScenarioViewModel, uiMode]);
+    commercialRouteModel: uiMode === 'commercial' ? commercialRouteModel : null,
+  }), [commercialMode, commercialScenarioViewModel, commercialRouteModel, uiMode]);
 
   if (loading) {
     return (
@@ -3826,8 +3888,10 @@ const App: React.FC = () => {
       {commercialMode && isMobile ? (
         <CommercialModeShell
           viewModel={commercialScenarioViewModel}
+          commercialRouteModel={commercialRouteModel}
           onSelectedSegmentChange={setCommercialSelectedSegment}
           onViewFullAnalysis={() => handleUiModeChange('engineering')}
+          currentRoute={commercialRouteHeaderRoute}
           isMobile={isMobile}
           isFullscreen={isFullscreen}
           globe={(
@@ -4233,7 +4297,15 @@ const App: React.FC = () => {
                   Different element type so React remounts it on switch; that is fine
                   because it does not contain the globe. */}
               {uiMode === 'commercial'
-                ? <CommercialKpiBar viewModel={commercialScenarioViewModel} />
+                ? (
+                  <>
+                    <CommercialRouteHeader
+                      origin={commercialRouteHeaderRoute.origin}
+                      destination={commercialRouteHeaderRoute.destination}
+                    />
+                    <CommercialKpiBar viewModel={commercialScenarioViewModel} />
+                  </>
+                )
                 : <div className="h-0 overflow-hidden" aria-hidden="true" />
               }
 
@@ -4275,6 +4347,7 @@ const App: React.FC = () => {
                   <CommercialRouteStrip
                     segments={commercialScenarioViewModel.routeSegments}
                     selectedSegmentId={commercialScenarioViewModel.selectedSegmentId ?? 'summary'}
+                    commercialRouteModel={commercialRouteModel}
                     onSelectedSegmentChange={setCommercialSelectedSegment}
                   />
                 )
@@ -4290,6 +4363,7 @@ const App: React.FC = () => {
                   <CommercialInspectorPanel
                     viewModel={commercialScenarioViewModel}
                     selectedSegmentId={commercialScenarioViewModel.selectedSegmentId ?? 'summary'}
+                    commercialRouteModel={commercialRouteModel}
                     onSelectedSegmentChange={setCommercialSelectedSegment}
                     onViewFullAnalysis={() => handleUiModeChange('engineering')}
                   />

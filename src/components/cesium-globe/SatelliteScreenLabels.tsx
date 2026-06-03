@@ -50,10 +50,14 @@ const SatelliteScreenLabels: React.FC<SatelliteScreenLabelsProps> = ({
   highlightedSatellitesRef.current = highlightedSatellites;
 
   const sortedSatellites = useMemo(
-    () => [...highlightedSatellites].sort(
+    () => [...highlightedSatellites]
+      // In commercial mode only show serving satellites — alternatives are represented
+      // by the CommercialRouteModel layer (sky bridge rings + arcs).
+      .filter((entry) => presentation !== 'commercial' || entry.commercialRole === 'serving')
+      .sort(
       (a, b) => (a.satellite.position.alt ?? 0) - (b.satellite.position.alt ?? 0)
     ),
-    [highlightedSatellites]
+    [highlightedSatellites, presentation]
   );
 
   useEffect(() => {
@@ -159,17 +163,23 @@ const SatelliteScreenLabels: React.FC<SatelliteScreenLabelsProps> = ({
     <>
       {sortedSatellites.map(({ satellite, isManuallySelected, isRouteParticipant, commercialRole }, index) => {
         const effectiveCommercialRole = commercialRole ?? (isRouteParticipant ? 'serving' : 'candidate');
+        const isGeo = satellite.type === 'EUTELSAT';
+        const isCommercialSecondary = presentation === 'commercial' && effectiveCommercialRole !== 'serving';
+
+        // Commercial role labels — technology-aware.
+        // GEO: use satellite name as primary identity (commercially contractual).
+        // LEO: abstract as service relay; satellite ID is secondary operational detail.
         const commercialRoleLabel = effectiveCommercialRole === 'serving'
-          ? 'Serving Satellite'
+          ? (isGeo ? 'GEO Service' : 'LEO Relay')
           : effectiveCommercialRole === 'alternative'
-            ? 'Alternative Satellite'
-            : 'Candidate Satellite';
+            ? (isGeo ? 'GEO Option' : 'LEO Option')
+            : 'Coverage';
         const commercialStateLabel = effectiveCommercialRole === 'serving'
           ? 'Service Active'
           : effectiveCommercialRole === 'alternative'
-            ? 'Alternative Option'
-            : 'Coverage Candidate';
-        const isCommercialSecondary = presentation === 'commercial' && effectiveCommercialRole !== 'serving';
+            ? 'Alternative'
+            : 'Candidate';
+
         return (
           <div
             key={satellite.id}
@@ -188,7 +198,7 @@ const SatelliteScreenLabels: React.FC<SatelliteScreenLabelsProps> = ({
             }}
           >
             <div
-              className={`${presentation === 'commercial' ? effectiveCommercialRole === 'serving' ? 'rounded-lg px-3 py-2 text-[12px]' : 'rounded-md px-2.5 py-1.5 text-[11px]' : 'rounded px-2 py-1 text-[13px]'} font-semibold leading-tight text-white shadow-lg ring-1 ring-white/25 -translate-y-full ${isCommercialSecondary ? 'opacity-60' : ''}`}
+              className={`${presentation === 'commercial' ? 'rounded-md px-2.5 py-1.5 text-[11px]' : 'rounded px-2 py-1 text-[13px]'} font-semibold leading-tight text-white shadow-lg ring-1 ring-white/20 -translate-y-full ${presentation === 'commercial' ? 'opacity-75' : isCommercialSecondary ? 'opacity-60' : ''}`}
               style={{
                 backgroundColor: presentation === 'commercial'
                   ? isCommercialSecondary ? 'rgba(15, 23, 42, 0.58)' : 'rgba(15, 23, 42, 0.9)'
@@ -199,14 +209,31 @@ const SatelliteScreenLabels: React.FC<SatelliteScreenLabelsProps> = ({
                   : undefined,
               }}
             >
+              {presentation !== 'commercial' && <div>{satellite.name}</div>}
+
               {presentation === 'commercial' && (
-                <div className="text-[9px] font-bold uppercase tracking-[0.14em] text-sky-300">{commercialRoleLabel}</div>
-              )}
-              <div>{satellite.name}</div>
-              {presentation === 'commercial' && (
-                <div className={`mt-0.5 text-[10px] font-semibold ${effectiveCommercialRole === 'serving' ? 'text-emerald-300' : 'text-slate-400'}`}>
-                  {commercialStateLabel}
-                </div>
+                <>
+                  {/* GEO: satellite name is the primary commercial identity */}
+                  {isGeo && (
+                    <>
+                      <div className="text-[9px] font-bold uppercase tracking-[0.14em] text-sky-300">{commercialRoleLabel}</div>
+                      <div className="mt-0.5">{satellite.name}</div>
+                      <div className={`mt-0.5 text-[10px] font-semibold ${effectiveCommercialRole === 'serving' ? 'text-emerald-300' : 'text-slate-400'}`}>
+                        {commercialStateLabel}
+                      </div>
+                    </>
+                  )}
+                  {/* LEO: service label is primary; satellite ID is secondary detail */}
+                  {!isGeo && (
+                    <>
+                      <div className="text-[9px] font-bold uppercase tracking-[0.14em] text-sky-300">{commercialRoleLabel}</div>
+                      <div className={`mt-0.5 text-[10px] font-semibold ${effectiveCommercialRole === 'serving' ? 'text-emerald-300' : 'text-slate-400'}`}>
+                        {commercialStateLabel}
+                      </div>
+                      <div className="mt-0.5 text-[9px] font-medium text-slate-500">{satellite.name}</div>
+                    </>
+                  )}
+                </>
               )}
             </div>
           </div>

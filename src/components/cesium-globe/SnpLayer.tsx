@@ -34,6 +34,7 @@ interface SnpLayerProps {
      *  Null (default) renders all SNPs — engineering mode. */
     allowedSnpNames?: Set<string> | null;
     commercialTone?: 'primary' | 'secondary';
+    showLabels?: boolean;
 }
 
 const SnpEntity = React.memo<{
@@ -47,6 +48,7 @@ const SnpEntity = React.memo<{
     isFailed: boolean;
     isInspected: boolean;
     commercialTone: 'primary' | 'secondary';
+    showLabels: boolean;
 }>(({ 
     snp,
     viewerRef,
@@ -58,6 +60,7 @@ const SnpEntity = React.memo<{
     isFailed,
     isInspected,
     commercialTone,
+    showLabels,
 }) => {
     const position = useMemo(
         () => getPosition(snp.lat, snp.lng, GROUND_POINT_ALTITUDE_KM),
@@ -91,7 +94,7 @@ const SnpEntity = React.memo<{
         : isInspected
             ? (commercialTone === 'secondary' ? Color.fromCssColorString('#475569').withAlpha(0.6) : Color.ORANGE.withAlpha(0.9))
             : (commercialTone === 'secondary' ? Color.fromCssColorString('#475569').withAlpha(0.5) : Color.ORANGE.withAlpha(0.7));
-    const showLabel = isAutoSelected || isFailed || isInspected;
+    const showLabel = isFailed || isInspected || (showLabels && isAutoSelected);
     const labelText = isFailed ? `SNP ${snp.name} ✕` : `SNP ${snp.name}`;
 
     return (
@@ -164,6 +167,7 @@ const SnpLayer: React.FC<SnpLayerProps> = ({
     inspectedSnpName = null,
     allowedSnpNames = null,
     commercialTone = 'primary',
+    showLabels = true,
 }) => {
     const { failedSnps } = useSimulation();
 
@@ -185,9 +189,10 @@ const SnpLayer: React.FC<SnpLayerProps> = ({
                 isFailed={failedSnps.has(snp.name)}
                 isInspected={!!inspectedSnpName && snp.name === inspectedSnpName}
                 commercialTone={commercialTone}
+                showLabels={showLabels}
             />
         ));
-    }, [viewerRef, cameraMetricsRef, onSnpClick, onSnpHover, sizeScale, autoSelectedSnpName, inspectedSnpName, failedSnps, allowedSnpNames, commercialTone]);
+    }, [viewerRef, cameraMetricsRef, onSnpClick, onSnpHover, sizeScale, autoSelectedSnpName, inspectedSnpName, failedSnps, allowedSnpNames, commercialTone, showLabels]);
 
     // Don't render SNPs for GEO-only scope
     if (satelliteScope === 'GEO') {

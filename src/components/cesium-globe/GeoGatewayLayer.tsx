@@ -34,6 +34,7 @@ interface GeoGatewayLayerProps {
      *  Null (default) renders all gateways — engineering mode. */
     allowedGatewayNames?: Set<string> | null;
     commercialTone?: 'primary' | 'secondary';
+    showLabels?: boolean;
 }
 
 const GeoGatewayEntity = React.memo<{
@@ -45,6 +46,7 @@ const GeoGatewayEntity = React.memo<{
     isSelected: boolean;
     sizeScale: number;
     commercialTone: 'primary' | 'secondary';
+    showLabels: boolean;
 }>(({ 
     gateway,
     viewerRef,
@@ -54,6 +56,7 @@ const GeoGatewayEntity = React.memo<{
     isSelected,
     sizeScale,
     commercialTone,
+    showLabels,
 }) => {
     const position = useMemo(
         () => getPosition(gateway.lat, gateway.lng, GROUND_POINT_ALTITUDE_KM),
@@ -94,7 +97,7 @@ const GeoGatewayEntity = React.memo<{
             onMouseEnter={handleMouseEnter}
             onMouseLeave={handleMouseLeave}
         >
-            {isSelected && (
+            {isSelected && showLabels && (
                 <LabelGraphics
                     text={gateway.name}
                     font="600 13px Inter, sans-serif"
@@ -127,6 +130,7 @@ const GeoGatewayLayer: React.FC<GeoGatewayLayerProps> = ({
     sizeScale = 1,
     allowedGatewayNames = null,
     commercialTone = 'primary',
+    showLabels = true,
 }) => {
     // Memoize Gateway entities (hooks must run unconditionally)
     const gatewayEntities = useMemo(() => {
@@ -144,9 +148,10 @@ const GeoGatewayLayer: React.FC<GeoGatewayLayerProps> = ({
                 isSelected={selectedGatewayName === gateway.name}
                 sizeScale={sizeScale}
                 commercialTone={commercialTone}
+                showLabels={showLabels}
             />
         ));
-    }, [viewerRef, cameraMetricsRef, onGatewayClick, onGatewayHover, selectedGatewayName, sizeScale, allowedGatewayNames, commercialTone]);
+    }, [viewerRef, cameraMetricsRef, onGatewayClick, onGatewayHover, selectedGatewayName, sizeScale, allowedGatewayNames, commercialTone, showLabels]);
 
     // Only render Gateways for GEO scope or ALL scope
     if (satelliteScope !== 'GEO' && satelliteScope !== 'ALL') {

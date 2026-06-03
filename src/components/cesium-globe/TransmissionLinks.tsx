@@ -72,6 +72,9 @@ interface TransmissionLinksProps {
     commercialLeoRouteAvailable?: boolean;
     /** Per-technology route availability — when provided, overrides commercialRouteAvailable for GEO links. */
     commercialGeoRouteAvailable?: boolean;
+    /** When true, CommercialRouteLayer is the primary visual — reduce all link
+     *  widths to 30 % so legacy links recede into the background. */
+    narrativeLayerActive?: boolean;
 }
 
 // Dashed material cache
@@ -350,6 +353,7 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
     commercialDisplayTechnology = null,
     commercialLeoRouteAvailable,
     commercialGeoRouteAvailable,
+    narrativeLayerActive = false,
 }) => {
     const { coveragePolicy, weatherCondition, beamHealthFactors, hsBeamsSet } = useSimulation();
 
@@ -383,6 +387,9 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
     // so the recommended technology's route reads as visually dominant.
     const commercialWidth = (segment: CommercialRouteSegmentType, baseWidth: number, tech?: 'LEO' | 'GEO') => {
         if (!commercialMode) return baseWidth;
+        // CommercialRouteLayer is the primary visual — reduce legacy links to 30%
+        // so they recede into the background without disappearing entirely.
+        if (narrativeLayerActive) return Math.max(baseWidth * 0.3, 0.8);
         const isSecondary = !!commercialDisplayTechnology && !!tech && tech !== commercialDisplayTechnology;
         const effectiveBase = isSecondary ? Math.max(baseWidth * 0.55, 1.5) : baseWidth;
         if (commercialFocusedSegment === 'summary') return effectiveBase + (isSecondary ? 0.4 : 1.2);
@@ -439,6 +446,7 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
     const showLeoCommercialRoute = !commercialMode || (commercialLeoRouteAvailable ?? commercialRouteAvailable);
     const showGeoCommercialRoute = !commercialMode || (commercialGeoRouteAvailable ?? commercialRouteAvailable);
     const showCommercialInspectionLinks = !commercialMode;
+    const commercialBackboneFocused = commercialMode && commercialFocusedSegment === 'backhaul';
 
     const resolveCurrentUser = useMemo(() => {
         return (time: JulianDate) => {
@@ -1120,24 +1128,26 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
                             description={`SNP A — ${leoS2SLinks.snpAName}`}
                         >
                             <PointGraphics
-                                pixelSize={10}
-                                color={Color.fromCssColorString('#f97316')}
-                                outlineColor={Color.fromCssColorString('#fff7ed')}
-                                outlineWidth={1.5}
+                                pixelSize={commercialMode ? (commercialBackboneFocused ? 9 : 6) : 10}
+                                color={Color.fromCssColorString('#f97316').withAlpha(commercialMode && !commercialBackboneFocused ? 0.52 : 1)}
+                                outlineColor={Color.fromCssColorString('#fff7ed').withAlpha(commercialMode && !commercialBackboneFocused ? 0.42 : 1)}
+                                outlineWidth={commercialMode && !commercialBackboneFocused ? 1 : 1.5}
                             />
-                            <LabelGraphics
-                                text={`SNP A\n${leoS2SLinks.snpAName}`}
-                                font="bold 11px sans-serif"
-                                fillColor={Color.fromCssColorString('#f97316')}
-                                outlineColor={Color.BLACK}
-                                outlineWidth={2}
-                                style={LabelStyle.FILL_AND_OUTLINE}
-                                verticalOrigin={VerticalOrigin.BOTTOM}
-                                horizontalOrigin={HorizontalOrigin.CENTER}
-                                pixelOffset={new Cartesian2(0, -14)}
-                                disableDepthTestDistance={Number.POSITIVE_INFINITY}
-                                scale={0.9}
-                            />
+                            {(!commercialMode || commercialBackboneFocused) && (
+                                <LabelGraphics
+                                    text={`SNP A\n${leoS2SLinks.snpAName}`}
+                                    font="bold 11px sans-serif"
+                                    fillColor={Color.fromCssColorString('#f97316')}
+                                    outlineColor={Color.BLACK}
+                                    outlineWidth={2}
+                                    style={LabelStyle.FILL_AND_OUTLINE}
+                                    verticalOrigin={VerticalOrigin.BOTTOM}
+                                    horizontalOrigin={HorizontalOrigin.CENTER}
+                                    pixelOffset={new Cartesian2(0, -14)}
+                                    disableDepthTestDistance={Number.POSITIVE_INFINITY}
+                                    scale={commercialMode ? 0.78 : 0.9}
+                                />
+                            )}
                         </Entity>
                     )}
 
@@ -1151,24 +1161,26 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
                             description={`SNP B — ${leoS2SLinks.snpBName}`}
                         >
                             <PointGraphics
-                                pixelSize={10}
-                                color={Color.fromCssColorString('#f97316')}
-                                outlineColor={Color.fromCssColorString('#fff7ed')}
-                                outlineWidth={1.5}
+                                pixelSize={commercialMode ? (commercialBackboneFocused ? 9 : 6) : 10}
+                                color={Color.fromCssColorString('#f97316').withAlpha(commercialMode && !commercialBackboneFocused ? 0.52 : 1)}
+                                outlineColor={Color.fromCssColorString('#fff7ed').withAlpha(commercialMode && !commercialBackboneFocused ? 0.42 : 1)}
+                                outlineWidth={commercialMode && !commercialBackboneFocused ? 1 : 1.5}
                             />
-                            <LabelGraphics
-                                text={`SNP B\n${leoS2SLinks.snpBName}`}
-                                font="bold 11px sans-serif"
-                                fillColor={Color.fromCssColorString('#f97316')}
-                                outlineColor={Color.BLACK}
-                                outlineWidth={2}
-                                style={LabelStyle.FILL_AND_OUTLINE}
-                                verticalOrigin={VerticalOrigin.BOTTOM}
-                                horizontalOrigin={HorizontalOrigin.CENTER}
-                                pixelOffset={new Cartesian2(0, -14)}
-                                disableDepthTestDistance={Number.POSITIVE_INFINITY}
-                                scale={0.9}
-                            />
+                            {(!commercialMode || commercialBackboneFocused) && (
+                                <LabelGraphics
+                                    text={`SNP B\n${leoS2SLinks.snpBName}`}
+                                    font="bold 11px sans-serif"
+                                    fillColor={Color.fromCssColorString('#f97316')}
+                                    outlineColor={Color.BLACK}
+                                    outlineWidth={2}
+                                    style={LabelStyle.FILL_AND_OUTLINE}
+                                    verticalOrigin={VerticalOrigin.BOTTOM}
+                                    horizontalOrigin={HorizontalOrigin.CENTER}
+                                    pixelOffset={new Cartesian2(0, -14)}
+                                    disableDepthTestDistance={Number.POSITIVE_INFINITY}
+                                    scale={commercialMode ? 0.78 : 0.9}
+                                />
+                            )}
                         </Entity>
                     )}
 
@@ -1182,24 +1194,26 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
                             description={`Logical Point of Presence: ${leoS2SLinks.popName}. Represents OneWeb core interconnect. Actual routing is proprietary.`}
                         >
                             <PointGraphics
-                                pixelSize={13}
-                                color={Color.fromCssColorString('#8b5cf6')}
-                                outlineColor={Color.fromCssColorString('#ede9fe')}
-                                outlineWidth={2}
+                                pixelSize={commercialMode ? (commercialBackboneFocused ? 10 : 6) : 13}
+                                color={Color.fromCssColorString('#8b5cf6').withAlpha(commercialMode && !commercialBackboneFocused ? 0.48 : 1)}
+                                outlineColor={Color.fromCssColorString('#ede9fe').withAlpha(commercialMode && !commercialBackboneFocused ? 0.36 : 1)}
+                                outlineWidth={commercialMode && !commercialBackboneFocused ? 1 : 2}
                             />
-                            <LabelGraphics
-                                text={`PoP\n${leoS2SLinks.popName}`}
-                                font="bold 11px sans-serif"
-                                fillColor={Color.fromCssColorString('#a78bfa')}
-                                outlineColor={Color.BLACK}
-                                outlineWidth={2}
-                                style={LabelStyle.FILL_AND_OUTLINE}
-                                verticalOrigin={VerticalOrigin.BOTTOM}
-                                horizontalOrigin={HorizontalOrigin.CENTER}
-                                pixelOffset={new Cartesian2(0, -16)}
-                                disableDepthTestDistance={Number.POSITIVE_INFINITY}
-                                scale={0.9}
-                            />
+                            {(!commercialMode || commercialBackboneFocused) && (
+                                <LabelGraphics
+                                    text={`PoP\n${leoS2SLinks.popName}`}
+                                    font="bold 11px sans-serif"
+                                    fillColor={Color.fromCssColorString('#a78bfa')}
+                                    outlineColor={Color.BLACK}
+                                    outlineWidth={2}
+                                    style={LabelStyle.FILL_AND_OUTLINE}
+                                    verticalOrigin={VerticalOrigin.BOTTOM}
+                                    horizontalOrigin={HorizontalOrigin.CENTER}
+                                    pixelOffset={new Cartesian2(0, -16)}
+                                    disableDepthTestDistance={Number.POSITIVE_INFINITY}
+                                    scale={commercialMode ? 0.78 : 0.9}
+                                />
+                            )}
                         </Entity>
                     )}
                 </>

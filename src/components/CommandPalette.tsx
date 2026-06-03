@@ -1,4 +1,5 @@
 import { memo, useState, useEffect, useRef, useMemo, useCallback, type CSSProperties, type RefObject } from 'react';
+import { useLocationSearch, type LocationResult } from '../hooks/useLocationSearch';
 import { Search, Satellite, Plane, Ship, Radio, MapPin, Waypoints, Moon as MoonIcon } from 'lucide-react';
 import type { SatelliteData } from '../types/satellites';
 import type { Aircraft } from '../modules/airTraffic/airTrafficService';
@@ -12,7 +13,7 @@ type ResultItem =
   | { type: 'snp'; data: SNPData }
   | { type: 'gateway'; data: GeoGatewayData }
   | { type: 'moon'; data: { name: string } }
-  | { type: 'location'; data: { name: string; lat: number; lng: number } };
+  | { type: 'location'; data: LocationResult };
 
 interface CommandPaletteProps {
   isOpen: boolean;
@@ -57,17 +58,17 @@ const CommandPalette = memo<CommandPaletteProps>(({
   onSelectLocation,
 }) => {
   const [activeIndex, setActiveIndex] = useState(0);
-  const [locationResults, setLocationResults] = useState<Array<{ name: string; lat: number; lng: number }>>([]);
-  const [isSearchingLocation, setIsSearchingLocation] = useState(false);
   const [menuStyle, setMenuStyle] = useState<CSSProperties | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
-  const locationSearchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const paletteRef = useRef<HTMLDivElement>(null);
   const shouldShowInlineSearch = !hideInlineSearchWhenAnchored || !anchorRef?.current;
   const allowedTypes = useMemo(
     () => new Set<ResultItem['type']>(resultTypes ?? ['satellite', 'aircraft', 'vessel', 'snp', 'gateway', 'moon', 'location']),
     [resultTypes],
+  );
+  const { results: locationResults, isLoading: isSearchingLocation, clear: clearLocationResults } = useLocationSearch(
+    allowedTypes.has('location') ? query : ''
   );
   const searchPlaceholder = useMemo(() => {
     if (allowedTypes.size === 1 && allowedTypes.has('satellite')) return 'Search satellites...';
@@ -86,13 +87,13 @@ const CommandPalette = memo<CommandPaletteProps>(({
   useEffect(() => {
     if (isOpen) {
       setActiveIndex(0);
-      setLocationResults([]);
+      clearLocationResults();
       if (shouldShowInlineSearch) {
         // Focus input after a brief delay (modal animation)
         requestAnimationFrame(() => inputRef.current?.focus());
       }
     }
-  }, [isOpen, shouldShowInlineSearch]);
+  }, [isOpen, shouldShowInlineSearch, clearLocationResults]);
 
   const updateAnchorPosition = useCallback(() => {
     const anchor = anchorRef?.current;
@@ -151,43 +152,6 @@ const CommandPalette = memo<CommandPaletteProps>(({
       document.removeEventListener('mousedown', handlePointerDown);
     };
   }, [isOpen, onClose, anchorRef]);
-
-  // Debounced location search via Nominatim
-  useEffect(() => {
-    if (locationSearchTimeout.current) clearTimeout(locationSearchTimeout.current);
-
-    if (!allowedTypes.has('location') || query.length < 3) {
-      setLocationResults([]);
-      setIsSearchingLocation(false);
-      return;
-    }
-
-    // Only search locations if no entity results match well
-    setIsSearchingLocation(true);
-    locationSearchTimeout.current = setTimeout(async () => {
-      try {
-        const response = await fetch(
-          `https://nominatim.openstreetmap.org/search?format=json&limit=3&q=${encodeURIComponent(query)}`
-        );
-        const data = await response.json();
-        setLocationResults(
-          data.map((item: any) => ({
-            name: item.display_name.split(',').slice(0, 2).join(','),
-            lat: parseFloat(item.lat),
-            lng: parseFloat(item.lon),
-          }))
-        );
-      } catch {
-        setLocationResults([]);
-      } finally {
-        setIsSearchingLocation(false);
-      }
-    }, 400);
-
-    return () => {
-      if (locationSearchTimeout.current) clearTimeout(locationSearchTimeout.current);
-    };
-  }, [allowedTypes, query]);
 
   // Build filtered results
   const results = useMemo<ResultItem[]>(() => {

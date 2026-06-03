@@ -1,5 +1,6 @@
 import { memo } from 'react';
 import { ChevronRight } from 'lucide-react';
+import type { CommercialRouteModel, CommercialRouteSegmentId } from '../../types/commercialRouteModel';
 import type { CommercialRouteSegment } from './commercialViewModel';
 import { customerServiceStateLabelShort, segmentStatusBadgeClassName } from './commercialDisplayUtils';
 
@@ -34,17 +35,53 @@ function cardSubtitle(segment: CommercialRouteSegment): string {
   }) ?? '--';
 }
 
+function canonicalSegmentId(segment: CommercialRouteSegment): CommercialRouteSegmentId {
+  switch (segment.type) {
+    case 'access':
+      return 'access';
+    case 'satellite':
+      return 'satellite';
+    case 'backhaul':
+      return 'backhaul';
+    case 'destination':
+      return 'destination';
+    case 'summary':
+      return 'summary';
+  }
+}
+
+function orderedSegments(
+  segments: CommercialRouteSegment[],
+  commercialRouteModel: CommercialRouteModel | undefined,
+): CommercialRouteSegment[] {
+  if (!commercialRouteModel) return segments;
+
+  const fromFocusTargets = commercialRouteModel.focusTargets
+    .map((target) => segments.find((segment) => canonicalSegmentId(segment) === target.segmentId))
+    .filter((segment): segment is CommercialRouteSegment => segment !== undefined);
+
+  return fromFocusTargets.length === segments.length ? fromFocusTargets : segments;
+}
+
 interface CommercialRouteStripProps {
   segments: CommercialRouteSegment[];
   selectedSegmentId: string;
+  commercialRouteModel?: CommercialRouteModel;
   onSelectedSegmentChange: (segment: string) => void;
 }
 
 function CommercialRouteStrip({
   segments,
   selectedSegmentId,
+  commercialRouteModel,
   onSelectedSegmentChange,
 }: CommercialRouteStripProps) {
+  const displayedSegments = orderedSegments(segments, commercialRouteModel);
+  const focusedSegmentId = commercialRouteModel?.focusedSegmentId ?? selectedSegmentId;
+  const primaryFailingSegmentId = commercialRouteModel
+    ? commercialRouteModel.primaryFailingSegmentId
+    : undefined;
+
   return (
     <div className="border-t border-slate-800/70 bg-slate-950/94 px-4 py-1.5 backdrop-blur">
       <div className="mb-0.5 flex items-center justify-between gap-3">
@@ -53,8 +90,12 @@ function CommercialRouteStrip({
         </div>
       </div>
       <div className="flex items-stretch gap-1.5">
-        {segments.map((segment, index) => {
-          const isSelected = selectedSegmentId === segment.id;
+        {displayedSegments.map((segment, index) => {
+          const segmentId = canonicalSegmentId(segment);
+          const isSelected = focusedSegmentId === segmentId || focusedSegmentId === segment.id;
+          const isPrimaryIssue = primaryFailingSegmentId === undefined
+            ? segment.isPrimaryIssue
+            : primaryFailingSegmentId === segmentId;
           const isOutcome = segment.type === 'summary';
           const subtitle = cardSubtitle(segment);
           return (
@@ -66,7 +107,7 @@ function CommercialRouteStrip({
                 'flex w-full min-w-0 flex-col justify-center rounded-lg border px-2.5 py-1.5 text-left transition-colors',
                 isSelected
                   ? 'min-h-[3.15rem] border-sky-300 bg-sky-500/20 text-white shadow-[0_0_0_1px_rgba(125,211,252,0.3)]'
-                  : segment.isPrimaryIssue
+                  : isPrimaryIssue
                     ? 'min-h-[2.95rem] border-amber-300 bg-amber-500/15 text-white shadow-[0_0_0_1px_rgba(251,191,36,0.28)]'
                     : isOutcome
                       ? 'min-h-[2.95rem] border-sky-500/35 bg-slate-900 text-white hover:bg-slate-800'
@@ -87,7 +128,7 @@ function CommercialRouteStrip({
                 {subtitle}
               </div>
             </button>
-            {index < segments.length - 1 && (
+            {index < displayedSegments.length - 1 && (
               <ChevronRight className="h-4 w-4 shrink-0 text-slate-300 dark:text-slate-700" />
             )}
           </div>

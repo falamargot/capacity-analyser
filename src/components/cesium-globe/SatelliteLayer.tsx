@@ -113,10 +113,10 @@ const SatelliteEntity = React.memo<{
             const commercialScale = focus === undefined
                 ? 1
                 : focus === null
-                    ? 0.72
+                    ? 0.42
                     : focus === satelliteTech
-                        ? 1.08
-                        : 0.58;
+                        ? 0.64
+                        : 0.34;
 
             return baseScale * satelliteSizeScaleRef.current * commercialScale;
         }, false);
@@ -128,11 +128,16 @@ const SatelliteEntity = React.memo<{
     const handleMouseLeave = useCallback(() => onSatelliteHover(null), [onSatelliteHover]);
 
     const satelliteTech: 'LEO' | 'GEO' = sat.type === 'EUTELSAT' ? 'GEO' : 'LEO';
-    const isCommercialSecondary = commercialTechnologyFocus !== undefined && (
+    const isCommercial = commercialTechnologyFocus !== undefined;
+    const isCommercialSecondary = isCommercial && (
         commercialTechnologyFocus === null || commercialTechnologyFocus !== satelliteTech
     );
-    const billboardColor = isCommercialSecondary && !isManuallySelected
-        ? Color.fromCssColorString('#64748b').withAlpha(0.56)
+    const billboardColor = isCommercial && !isManuallySelected
+        ? isCommercialSecondary
+            ? Color.fromCssColorString('#64748b').withAlpha(0.24)
+            : (sat.type === 'ONEWEB'
+                ? Color.fromCssColorString('#f472b6').withAlpha(0.58)
+                : Color.fromCssColorString('#60a5fa').withAlpha(0.62))
         : getBillboardColor(sat.type, sat.opsStatus, isManuallySelected);
 
     return (

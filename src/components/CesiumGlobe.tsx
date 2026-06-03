@@ -31,6 +31,8 @@ import {
     ImageryLayer,
     Simon1994PlanetaryPositions,
     createDefaultImageryProviderViewModels,
+    BoundingSphere,
+    HeadingPitchRange,
     type ProviderViewModel
 } from 'cesium';
 import { Feature, Geometry, GeoJsonProperties } from 'geojson';
@@ -84,7 +86,7 @@ import {
 } from './cesium-globe/siteTooltipHelpers';
 import MoonLayer from './cesium-globe/MoonLayer';
 import { GEO_GATEWAYS, SNPS_DATA, type GeoGatewayData, type SNPData } from './globe/GlobeConfig';
-import { resolveConnectivityPathForSatellite } from '../utils/geoConnectivityModel';
+import type { ResolvedGeoGateway } from '../utils/geoConnectivityModel';
 import { getCoverageGroupId } from '../utils/geoCoverageSelection';
 import { isOperationalSatellite } from '../utils/satelliteStatus';
 import type { LeoConnectivityViewModel } from '../utils/leoServiceViewModel';
@@ -97,6 +99,217 @@ import type { CountryOverlayMode } from '../types/countryOverlays';
 import type { LinkMode } from '../types/linkMode';
 import type { LeoSiteToSiteResult } from '../utils/leoSiteToSiteModel';
 import type { CommercialRouteSegmentType, CommercialScenarioViewModel } from './commercial/commercialViewModel';
+import type { CommercialRouteModel, CommercialRouteNodeType, CommercialRouteFocusTarget, CommercialRouteSegmentId } from '../types/commercialRouteModel';
+import CommercialSkyBridgeLayer from './cesium-globe/CommercialSkyBridgeLayer';
+import CommercialRouteLayer from './cesium-globe/CommercialRouteLayer';
+import { useCommercialAnimationDriver } from './cesium-globe/commercialAnimationDriver';
+
+// ─── Commercial vocabulary helpers ───────────────────────────────────────────
+
+type CommercialSegmentStatus = 'healthy' | 'warning' | 'blocked' | 'unknown';
+
+/**
+ * Map a CommercialRouteSegmentStatus to a commercial-facing label and
+ * a SiteScreenLabel tone.  Used by site tooltips in Commercial Mode so the
+ * globe never surfaces raw engineering vocabulary like "DEGRADED" or "RTT".
+ */
+function commercialSegmentDisplay(status: CommercialSegmentStatus | undefined): {
+    tone: 'success' | 'warning' | 'danger' | 'neutral';
+    label: string;
+} {
+    switch (status) {
+        case 'healthy': return { tone: 'success', label: 'Available' };
+        case 'warning': return { tone: 'warning', label: 'Limited Service' };
+        case 'blocked': return { tone: 'danger',  label: 'Unavailable' };
+        default:        return { tone: 'neutral', label: 'Checking Coverage' };
+    }
+}
+
+// ─── Commercial route camera helpers ─────────────────────────────────────────
+// Narrative altitudes mirror CommercialRouteLayer constants.
+const COMM_GEO_ALT_KM = 20_000;
+const COMM_LEO_ALT_KM = 2_000;
+
+/**
+ * Compute a Cartesian3 position for a route node, handling both ground nodes
+ * (use stored position at ground altitude) and SKY_BRIDGE nodes (compute
+ * narrative midpoint at technology-appropriate altitude).
+ */
+function commercialNarrativePos(nodeId: string, model: CommercialRouteModel): Cartesian3 | null {
+    const node = model.nodes.find(n => n.id === nodeId);
+    if (!node) return null;
+
+    if (node.position) {
+        return getPosition(node.position.lat, node.position.lng, GROUND_POINT_ALTITUDE_KM);
+    }
+
+    if (node.nodeType === 'SKY_BRIDGE') {
+        const connected = model.edges.filter(
+            e => e.edgeType === 'SPACE_LINK' && (e.fromNodeId === nodeId || e.toNodeId === nodeId),
+        );
+        const groundCoords: { lat: number; lng: number }[] = [];
+        for (const edge of connected) {
+            const otherId = edge.fromNodeId === nodeId ? edge.toNodeId : edge.fromNodeId;
+            const other = model.nodes.find(n => n.id === otherId);
+            if (other?.position) groundCoords.push(other.position);
+        }
+        if (groundCoords.length === 0) return null;
+        const lat = groundCoords.reduce((s, p) => s + p.lat, 0) / groundCoords.length;
+        const lng = groundCoords.reduce((s, p) => s + p.lng, 0) / groundCoords.length;
+        const altKm = model.technology === 'GEO' ? COMM_GEO_ALT_KM : COMM_LEO_ALT_KM;
+        return getPosition(lat, lng, altKm);
+    }
+
+    return null;
+}
+
+/**
+ * Execute a camera fly to match the given CommercialRouteFocusTarget behaviour.
+ *
+ * FRAME_NODE      — tight view centred on a single ground node (~600 km sphere)
+ * FRAME_ARC       — frame from ground to sky bridge so the full arc is visible
+ * FRAME_BACKBONE  — frame all HUB nodes (ground infrastructure view)
+ * FRAME_ROUTE     — overview of all primary surface nodes (ORIGIN + DESTINATION)
+ */
+function executeCommercialFocusCamera(
+    viewer: CesiumViewerType,
+    focusTarget: CommercialRouteFocusTarget,
+    model: CommercialRouteModel,
+): void {
+    const { behaviour, primaryNodeId, secondaryNodeId } = focusTarget;
+
+    if (behaviour === 'FRAME_NODE' && primaryNodeId) {
+        const pos = commercialNarrativePos(primaryNodeId, model);
+        if (!pos) return;
+        viewer.camera.flyToBoundingSphere(
+            new BoundingSphere(pos, 600_000),
+            { duration: 1.5, offset: new HeadingPitchRange(0, -CesiumMath.PI_OVER_FOUR, 0) },
+        );
+        return;
+    }
+
+    if (behaviour === 'FRAME_ARC') {
+        if (model.technology === 'GEO') {
+            // GEO FRAME_ARC — hero satellite view.
+            // Including ground nodes (20,000 km below) in the bounding sphere would
+            // create a ~20,000 km sphere, making everything tiny. Instead, centre on
+            // the sky bridge node and let Earth appear as context below the frame.
+            // The ring billboard and its arc become the visual hero of the satellite tab.
+            if (!primaryNodeId) return;
+            const skyPos = commercialNarrativePos(primaryNodeId, model);
+            if (!skyPos) return;
+            const geoArcSphere = new BoundingSphere(skyPos, 8_000_000); // 8,000 km → shows Earth arc below
+            viewer.camera.flyToBoundingSphere(
+                geoArcSphere,
+                { duration: 1.8, offset: new HeadingPitchRange(0, -CesiumMath.toRadians(12), 0) },
+            );
+            return;
+        }
+
+        // LEO FRAME_ARC — sky bridge at 2,000 km is manageable.
+        // Include sky bridge(s) + ground nodes; the sphere stays within reason.
+        const positions: Cartesian3[] = [];
+        if (primaryNodeId) {
+            const p = commercialNarrativePos(primaryNodeId, model);
+            if (p) positions.push(p);
+        }
+        if (secondaryNodeId) {
+            const p = commercialNarrativePos(secondaryNodeId, model);
+            if (p) positions.push(p);
+        }
+        const groundTypes: CommercialRouteNodeType[] = ['ORIGIN', 'DESTINATION', 'NETWORK_PORTAL'];
+        for (const n of model.nodes) {
+            if (groundTypes.includes(n.nodeType) && n.position) {
+                positions.push(getPosition(n.position.lat, n.position.lng, GROUND_POINT_ALTITUDE_KM));
+            }
+        }
+        if (positions.length === 0) return;
+        const leoArcSphere = BoundingSphere.fromPoints(positions);
+        leoArcSphere.radius = leoArcSphere.radius * 1.2; // breathing room
+        viewer.camera.flyToBoundingSphere(
+            leoArcSphere,
+            { duration: 1.8, offset: new HeadingPitchRange(0, -CesiumMath.toRadians(25), 0) },
+        );
+        return;
+    }
+
+    if (behaviour === 'FRAME_BACKBONE') {
+        const positions: Cartesian3[] = [];
+        for (const n of model.nodes) {
+            if (n.nodeType === 'HUB' && n.position) {
+                positions.push(getPosition(n.position.lat, n.position.lng, GROUND_POINT_ALTITUDE_KM));
+            }
+        }
+        if (primaryNodeId) {
+            const p = commercialNarrativePos(primaryNodeId, model);
+            if (p) positions.push(p);
+        }
+        if (secondaryNodeId) {
+            const p = commercialNarrativePos(secondaryNodeId, model);
+            if (p) positions.push(p);
+        }
+        if (positions.length === 0) return;
+        viewer.camera.flyToBoundingSphere(
+            BoundingSphere.fromPoints(positions),
+            { duration: 1.5, offset: new HeadingPitchRange(0, -CesiumMath.PI_OVER_FOUR, 0) },
+        );
+        return;
+    }
+
+    // FRAME_ROUTE — Summary hero view with technology-aware framing.
+    //
+    // GEO: Frame ground nodes only (ORIGIN, DESTINATION, NETWORK_PORTAL).
+    //   Including the sky bridge at 20,000 km creates a ~12,000 km bounding sphere
+    //   that zooms the camera far out and makes ground nodes tiny. A 1.5× padding
+    //   factor and a shallow pitch (−22°) keep the ground route readable while
+    //   the sky above is naturally in the upper frame, where the GEO ring will
+    //   be visible as a high-altitude element.
+    //
+    // LEO: Include sky bridge(s) alongside ground nodes.
+    //   At 2,000 km the bounding sphere remains manageable. A 1.25× padding and
+    //   28° pitch show both ground endpoints and the relay overhead clearly.
+    const isGeoRoute = model.technology === 'GEO';
+    const primarySurfaceTypes: CommercialRouteNodeType[] = ['ORIGIN', 'DESTINATION', 'NETWORK_PORTAL'];
+    const groundPositions: Cartesian3[] = [];
+
+    for (const n of model.nodes) {
+        if (primarySurfaceTypes.includes(n.nodeType) && n.position) {
+            groundPositions.push(getPosition(n.position.lat, n.position.lng, GROUND_POINT_ALTITUDE_KM));
+        }
+    }
+    if (groundPositions.length === 0) return;
+
+    let routeFramingPositions: Cartesian3[];
+    let routePitch: number;
+    let routeRadiusScale: number;
+
+    if (isGeoRoute) {
+        routeFramingPositions = groundPositions;
+        routePitch = -CesiumMath.toRadians(22); // shallow: ground in lower frame, sky visible above
+        routeRadiusScale = 1.5;
+    } else {
+        // LEO: add sky bridge positions to bounding sphere
+        const skyBridgePositions: Cartesian3[] = [];
+        for (const n of model.nodes) {
+            if (n.nodeType === 'SKY_BRIDGE') {
+                const skyPos = commercialNarrativePos(n.id, model);
+                if (skyPos) skyBridgePositions.push(skyPos);
+            }
+        }
+        routeFramingPositions = [...groundPositions, ...skyBridgePositions];
+        routePitch = -CesiumMath.toRadians(28); // moderate: shows both ground and relay
+        routeRadiusScale = 1.25;
+    }
+
+    const routeSphere = BoundingSphere.fromPoints(routeFramingPositions);
+    routeSphere.radius = routeSphere.radius * routeRadiusScale;
+    viewer.camera.flyToBoundingSphere(
+        routeSphere,
+        { duration: 1.5, offset: new HeadingPitchRange(0, routePitch, 0) },
+    );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 
 const BASEMAP_STORAGE_KEY = 'cesium:basemap';
 const FALLBACK_BASEMAP_ID = 'natural-earth-ii';
@@ -184,6 +397,9 @@ export interface IssStateProps {
 export interface CommercialStateProps {
     commercialMode?: boolean;
     commercialViewModel?: CommercialScenarioViewModel | null;
+    /** Canonical route model (COMM-6C3B+). When present, drives SKY_BRIDGE
+     *  rendering, focus synchronisation, and node-click routing. */
+    commercialRouteModel?: CommercialRouteModel | null;
 }
 
 export interface AirTrafficStateProps {
@@ -313,6 +529,10 @@ interface CesiumGlobeProps {
     leoSiteToSiteFullResult?: import('../utils/leoSiteToSiteModel').LeoSiteToSiteResult | null;
     commercialState: CommercialStateProps;
     onCommercialSelectedSegmentChange?: (segmentId: string) => void;
+    /** GEO gateway resolved for the auto-selected GEO satellite. Computed in App.tsx. */
+    resolvedAutoGeoGateway?: ResolvedGeoGateway | null;
+    /** GEO gateway resolved for the manually selected GEO satellite. Computed in App.tsx. */
+    resolvedSelectedGeoGateway?: ResolvedGeoGateway | null;
 }
 
 const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
@@ -334,6 +554,8 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
     leoSiteToSiteFullResult = null,
     commercialState,
     onCommercialSelectedSegmentChange,
+    resolvedAutoGeoGateway = null,
+    resolvedSelectedGeoGateway = null,
 }) => {
     const {
         onPointClick,
@@ -434,7 +656,17 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
     const {
         commercialMode = false,
         commercialViewModel = null,
+        commercialRouteModel = null,
     } = commercialState;
+
+    // Commercial animation driver — runs a requestAnimationFrame loop that updates
+    // the animation state ref read by CallbackProperty instances in CommercialRouteLayer
+    // and CommercialSkyBridgeLayer.  No React re-renders during animation.
+    // The hook is always called (React rules) but only drives meaningful state
+    // when commercialMode is active.
+    const commercialAnimRef = useCommercialAnimationDriver(
+        commercialMode ? commercialRouteModel : null,
+    );
     const {
         airTrafficEnabled = false,
         aircraft = [],
@@ -472,6 +704,8 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
     const [viewerReady, setViewerReady] = useState(false);
     const shiftPressedRef = useRef(false);
     const pointerShiftPressedRef = useRef(false);
+    // Tracks the last segment we flew to so we don't re-fly on unrelated model updates.
+    const prevCommercialSegmentFocusRef = useRef<CommercialRouteSegmentId | null | undefined>(undefined);
 
     useEffect(() => {
         const onKeyDown = (event: KeyboardEvent) => {
@@ -834,6 +1068,24 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         }
     }, [cameraTarget]);
 
+    // Commercial route segment focus — fly camera to match the active focus target.
+    // Only fires when the focused segment actually changes, not on every model update.
+    useEffect(() => {
+        if (!commercialMode || !commercialRouteModel || !viewerRef.current) {
+            prevCommercialSegmentFocusRef.current = undefined;
+            return;
+        }
+        const segmentId = commercialRouteModel.focusedSegmentId ?? 'summary';
+        if (segmentId === prevCommercialSegmentFocusRef.current) return;
+        prevCommercialSegmentFocusRef.current = segmentId;
+
+        const focusTarget = commercialRouteModel.focusTargets.find(t => t.segmentId === segmentId);
+        if (!focusTarget) return;
+
+        executeCommercialFocusCamera(viewerRef.current, focusTarget, commercialRouteModel);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [commercialMode, commercialRouteModel?.focusedSegmentId, commercialRouteModel]);
+
     useEffect(() => {
         if (!selectedMoon || !viewerRef.current || sceneMode !== '3D') return;
 
@@ -1105,34 +1357,8 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         selectedUplinkCoverage,
     ]);
 
-    // Gateway resolution is centralized in the traffic allocation registry.
-    // The globe consumes the same normalized object as analysis/link-budget code.
-    const resolvedAutoGeoPath = useMemo(() => {
-        if (!autoSelectedGEOSatellite) return null;
-        return resolveConnectivityPathForSatellite({
-            satellite: autoSelectedGEOSatellite,
-            userLocation: selectedPosition,
-            gateways: GEO_GATEWAYS,
-        });
-    }, [autoSelectedGEOSatellite, selectedPosition]);
-
-    const resolvedAutoGeoGateway = useMemo(() => {
-        return resolvedAutoGeoPath?.resolvedGateway ?? null;
-    }, [resolvedAutoGeoPath]);
-
-    const resolvedSelectedGeoPath = useMemo(() => {
-        if (!selectedSatellite || selectedSatellite.type !== 'EUTELSAT') return null;
-        return resolveConnectivityPathForSatellite({
-            satellite: selectedSatellite,
-            userLocation: selectedPosition,
-            gateways: GEO_GATEWAYS,
-        });
-    }, [selectedPosition, selectedSatellite]);
-
-    const resolvedSelectedGeoGateway = useMemo(() => {
-        return resolvedSelectedGeoPath?.resolvedGateway ?? null;
-    }, [resolvedSelectedGeoPath]);
-
+    // Gateway resolution is owned by App.tsx (lifted in COMM-6C3A).
+    // resolvedAutoGeoGateway and resolvedSelectedGeoGateway arrive as props.
     const activeResolvedGeoGateway = resolvedSelectedGeoGateway ?? resolvedAutoGeoGateway;
     const selectedGeoGatewayName = activeResolvedGeoGateway?.gatewayName ?? null;
 
@@ -1621,13 +1847,20 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
             : countryOverlayMode === 'regulatory'
             ? (leoDisplayOptionsAvailable ? 'regulatory' : 'none')
             : countryOverlayMode;
-    const commercialFocusedSegment: CommercialRouteSegmentType = commercialViewModel?.routeSegments.find((segment) => (
-        segment.id === commercialViewModel.selectedSegmentId
-    ))?.type ?? 'summary';
+    // Prefer the route model's focusedSegmentId (already canonical, 'siteB'→'destination'
+    // translated). Fall back to the legacy derivation from the viewModel segment type.
+    const commercialFocusedSegment: CommercialRouteSegmentId = (
+        commercialRouteModel?.focusedSegmentId
+        ?? (commercialViewModel?.routeSegments.find(s => s.id === commercialViewModel.selectedSegmentId)?.type as CommercialRouteSegmentId | undefined)
+        ?? 'summary'
+    );
     const commercialActiveRouteAvailable = !commercialMode || commercialViewModel?.activeRouteAvailable === true;
     const commercialAccessFocused = commercialMode && commercialFocusedSegment === 'access';
     const commercialDestinationFocused = commercialMode && commercialFocusedSegment === 'destination';
     const commercialSummaryFocused = commercialMode && commercialFocusedSegment === 'summary';
+
+    // skyBridgeOpacity removed — COMM-6E.  Ring opacity is now driven by
+    // CommercialAnimationState (via animationRef) inside CommercialSkyBridgeLayer.
     const selectedRegulatoryCountryOutlineVisible =
         effectiveCountryOverlayMode === 'regulatory'
         && !!selectedPosition
@@ -1652,8 +1885,13 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
             || selection.type === 'coverage'
             || selection.type === 'contour'
         );
-    const commercialGeoCoverageLabel =
-        satelliteScope === 'ALL'
+    const commercialGeoCoverageIdentity = selectedDownlinkCoverage ?? selectedUplinkCoverage ?? selectedCoverage;
+    const commercialGeoCoverageLabel = commercialGeoCoverageIdentity
+        ? [
+            commercialGeoCoverageIdentity.satelliteName,
+            commercialGeoCoverageIdentity.beamName,
+        ].filter(Boolean).join(' · ')
+        : satelliteScope === 'ALL'
             ? (commercialViewModel?.commercialDisplayTechnology === 'LEO' ? 'GEO backup coverage' : 'GEO service area')
             : 'GEO service area';
     const selectedCountryOutlineStatus =
@@ -1847,7 +2085,12 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                     {/* OneWeb Comb Layer - Only shown for operational ONEWEB targets */}
                     {/* In ONEWEB_PREMIUM mode: shows coverage circles only (no individual beams) */}
                     {/* In DB_THRESHOLD mode: shows coverage circles + individual beams */}
-                    {oneWebVisualTargets.map((target) => (
+                    {/* Commercial mode + CommercialRouteModel + GEO dominant: LEO coverage
+                        circles are suppressed because (a) the CommercialRouteLayer/SkyBridgeLayer
+                        already tells the route narrative and (b) dense LEO beam rings in a GEO
+                        scenario create visual noise that overwhelms the commercial story.
+                        The active LEO service area is shown when LEO is the recommended tech. */}
+                    {(!commercialMode || !commercialRouteModel || commercialDominantTechnology !== 'GEO') && oneWebVisualTargets.map((target) => (
                         <OneWebCombLayer
                             key={`oneweb-comb-${target.satellite.id}`}
                             targetSat={target.satellite}
@@ -1910,6 +2153,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                         commercialDisplayTechnology={commercialMode ? commercialDominantTechnology : null}
                         commercialLeoRouteAvailable={commercialLeoOptionAvailable}
                         commercialGeoRouteAvailable={commercialGeoOptionAvailable}
+                        narrativeLayerActive={commercialMode && !!commercialRouteModel}
                     />
 
                     {/* Selected Position Marker — Point A */}
@@ -1959,8 +2203,8 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                             position={getSatellitePositionCallback(satellite)}
                             anchorType="orbital"
                             baseColor={pulseColor}
-                            ringBaseRadius={isSecondaryTech || isNoDominantCommercialTech ? Math.round(baseRadius * 0.45) : baseRadius}
-                            opacityMultiplier={isSecondaryTech || isNoDominantCommercialTech ? 0.4 : 1}
+                            ringBaseRadius={commercialMode ? Math.round(baseRadius * (isSecondaryTech || isNoDominantCommercialTech ? 0.24 : 0.36)) : baseRadius}
+                            opacityMultiplier={commercialMode ? (isSecondaryTech || isNoDominantCommercialTech ? 0.16 : 0.28) : 1}
                         />
                         );
                     })}
@@ -1968,18 +2212,18 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                         <SelectionPulseMarker
                             key={`selection-pulse-snp-${pulsedSnp.name}`}
                             position={getPosition(pulsedSnp.lat, pulsedSnp.lng, GROUND_POINT_ALTITUDE_KM)}
-                            baseColor={commercialMode && commercialDominantTechnology !== 'LEO' ? Color.fromCssColorString('#64748b') : Color.ORANGE}
-                            ringBaseRadius={commercialMode && commercialDominantTechnology !== 'LEO' ? 18000 : 36000}
-                            opacityMultiplier={commercialMode && commercialDominantTechnology !== 'LEO' ? 0.35 : 1}
+                            baseColor={commercialMode && (commercialFocusedSegment !== 'backhaul' || commercialDominantTechnology !== 'LEO') ? Color.fromCssColorString('#64748b') : Color.ORANGE}
+                            ringBaseRadius={commercialMode ? (commercialFocusedSegment === 'backhaul' && commercialDominantTechnology === 'LEO' ? 28000 : 12000) : 36000}
+                            opacityMultiplier={commercialMode ? (commercialFocusedSegment === 'backhaul' && commercialDominantTechnology === 'LEO' ? 0.65 : 0.18) : 1}
                         />
                     )}
                     {pulsedGateway && linkMode !== 'MESH' && linkMode !== 'POINT_TO_POINT' && (
                         <SelectionPulseMarker
                             key={`selection-pulse-gateway-${pulsedGateway.name}`}
                             position={getPosition(pulsedGateway.lat, pulsedGateway.lng, GROUND_POINT_ALTITUDE_KM)}
-                            baseColor={commercialMode && commercialDominantTechnology !== 'GEO' ? Color.fromCssColorString('#64748b') : Color.CYAN}
-                            ringBaseRadius={commercialMode && commercialDominantTechnology !== 'GEO' ? 18000 : 36000}
-                            opacityMultiplier={commercialMode && commercialDominantTechnology !== 'GEO' ? 0.35 : 1}
+                            baseColor={commercialMode && (commercialFocusedSegment !== 'backhaul' || commercialDominantTechnology !== 'GEO') ? Color.fromCssColorString('#64748b') : Color.CYAN}
+                            ringBaseRadius={commercialMode ? (commercialFocusedSegment === 'backhaul' && commercialDominantTechnology === 'GEO' ? 28000 : 12000) : 36000}
+                            opacityMultiplier={commercialMode ? (commercialFocusedSegment === 'backhaul' && commercialDominantTechnology === 'GEO' ? 0.65 : 0.18) : 1}
                         />
                     )}
 
@@ -1995,6 +2239,33 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                         commercialTechnologyFocus={commercialMode ? commercialDominantTechnology : undefined}
                     />
 
+                    {/* Commercial Sky Bridge Layer — renders SKY_BRIDGE nodes as
+                        open-ring billboards at narrative altitude (COMM-6D3).
+                        Only active in commercial mode when a route model is present. */}
+                    {/* Commercial Sky Bridge Layer — open-ring billboards at narrative altitude.
+                        COMM-6E: ring opacity animated via commercialAnimRef. */}
+                    {commercialMode && commercialRouteModel && (
+                        <CommercialSkyBridgeLayer
+                            routeModel={commercialRouteModel}
+                            viewerRef={viewerRef}
+                            cameraMetricsRef={cameraMetricsRef}
+                            sizeScale={sizeScale}
+                            animationRef={commercialAnimRef}
+                        />
+                    )}
+
+                    {/* Commercial Route Layer — narrative ground nodes and arcs.
+                        COMM-6E: all entity colors animated via commercialAnimRef. */}
+                    {commercialMode && commercialRouteModel && (
+                        <CommercialRouteLayer
+                            routeModel={commercialRouteModel}
+                            viewerRef={viewerRef}
+                            cameraMetricsRef={cameraMetricsRef}
+                            sizeScale={sizeScale}
+                            animationRef={commercialAnimRef}
+                        />
+                    )}
+
                     {/* SNP Layer */}
                     <SnpLayer
                         satelliteScope={satelliteScope}
@@ -2006,7 +2277,8 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                         autoSelectedSnpName={typeof selectedSNP === 'string' ? selectedSNP : (selectedSNP?.name ?? null)}
                         inspectedSnpName={inspectedSNP?.name ?? null}
                         allowedSnpNames={commercialSnpAllowlist}
-                        commercialTone={commercialMode && commercialDominantTechnology !== 'LEO' ? 'secondary' : 'primary'}
+                        commercialTone={commercialMode && commercialFocusedSegment !== 'backhaul' ? 'secondary' : 'primary'}
+                        showLabels={!commercialMode || commercialFocusedSegment === 'backhaul'}
                     />
 
                     {/* GEO Gateway Layer */}
@@ -2019,7 +2291,8 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                         selectedGatewayName={selectedGeoGatewayName}
                         sizeScale={sizeScale}
                         allowedGatewayNames={commercialGatewayAllowlist}
-                        commercialTone={commercialMode && commercialDominantTechnology !== 'GEO' ? 'secondary' : 'primary'}
+                        commercialTone={commercialMode && commercialFocusedSegment !== 'backhaul' ? 'secondary' : 'primary'}
+                        showLabels={!commercialMode || commercialFocusedSegment === 'backhaul'}
                     />
 
                     {/* Trajectory Layer */}
@@ -2081,17 +2354,21 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
             {/* Unified Site A tooltip — aggregates GEO and LEO data in one bubble */}
             {commercialMode ? (() => {
                 if (!showGroundSelectedPoint || !selectedPosition || !commercialViewModel) return null;
-                const statusTone = commercialViewModel.serviceStatus === 'active'
-                    ? 'success'
-                    : commercialViewModel.serviceStatus === 'degraded'
-                        ? 'warning'
-                        : commercialViewModel.serviceStatus === 'blocked'
-                            ? 'danger'
-                            : 'neutral';
+                // Use access-segment status so the tooltip matches the Journey Strip card.
+                // Fall back to overall service status only when no segment data is available.
+                const accessSegment = commercialViewModel.routeSegments.find(s => s.type === 'access');
+                const accessStatus = accessSegment?.status as CommercialSegmentStatus | undefined
+                    ?? (commercialViewModel.serviceStatus === 'active' ? 'healthy'
+                       : commercialViewModel.serviceStatus === 'degraded' ? 'warning'
+                       : commercialViewModel.serviceStatus === 'blocked' ? 'blocked'
+                       : undefined);
+                const { tone: siteATone, label: siteALabel } = commercialSegmentDisplay(accessStatus);
+                // Use site-level throughput; show as "ms Latency" (not RTT).
                 const performanceLine = [
                     commercialViewModel.downloadMbps ? `${Math.round(commercialViewModel.downloadMbps)} Mbps` : null,
-                    commercialViewModel.rttMs ? `${Math.round(commercialViewModel.rttMs)} ms RTT` : null,
+                    commercialViewModel.rttMs ? `${Math.round(commercialViewModel.rttMs)} ms Latency` : null,
                 ].filter(Boolean).join(' · ');
+                const narrativeText = accessSegment?.story ?? commercialViewModel.serviceMessage ?? siteALabel;
                 return (
                     <SiteScreenLabel
                         siteId="A"
@@ -2103,10 +2380,10 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                         titleOverride={`Site A${commercialViewModel.siteA?.name ? ` · ${commercialViewModel.siteA.name}` : ''}`}
                         presentation="commercial"
                         sections={[{
-                            title: commercialViewModel.display.serviceStatusLabel,
+                            title: siteALabel,
                             accent: 'pink',
                             lines: [
-                                { text: commercialViewModel.serviceMessage ?? commercialViewModel.display.serviceStatusLabel, tone: statusTone },
+                                { text: narrativeText, tone: siteATone },
                                 ...(performanceLine ? [{ text: performanceLine, tone: 'success' as const }] : []),
                             ],
                         }]}
@@ -2150,17 +2427,28 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
             {commercialMode ? (() => {
                 const siteBPos = pointB ?? pointBLeo;
                 if (!siteBPos || !commercialViewModel) return null;
-                const statusTone = commercialViewModel.serviceStatus === 'active'
-                    ? 'success'
-                    : commercialViewModel.serviceStatus === 'degraded'
-                        ? 'warning'
-                        : commercialViewModel.serviceStatus === 'blocked'
-                            ? 'danger'
-                            : 'neutral';
+                // Use destination-segment status so the tooltip matches the Journey Strip card.
+                const destinationSegment = commercialViewModel.routeSegments.find(s => s.type === 'destination');
+                const destinationStatus = destinationSegment?.status as CommercialSegmentStatus | undefined
+                    ?? (commercialViewModel.serviceStatus === 'active' ? 'healthy'
+                       : commercialViewModel.serviceStatus === 'degraded' ? 'warning'
+                       : commercialViewModel.serviceStatus === 'blocked' ? 'blocked'
+                       : undefined);
+                const { tone: siteBTone, label: siteBLabel } = commercialSegmentDisplay(destinationStatus);
+                // Show as "ms Latency" (not RTT).
                 const performanceLine = [
                     commercialViewModel.uploadMbps ? `${Math.round(commercialViewModel.uploadMbps)} Mbps` : null,
-                    commercialViewModel.rttMs ? `${Math.round(commercialViewModel.rttMs)} ms RTT` : null,
+                    commercialViewModel.rttMs ? `${Math.round(commercialViewModel.rttMs)} ms Latency` : null,
                 ].filter(Boolean).join(' · ');
+                const narrativeText = destinationSegment?.story ?? commercialViewModel.serviceMessage ?? siteBLabel;
+                // Outcome highlight (Part F): brief glow on Site B after the
+                // route reveal completes.  Status maps to emerald/amber/red.
+                const outcomeHighlight: 'active' | 'limited' | 'blocked' | undefined =
+                    commercialViewModel.serviceStatus === 'active'  ? 'active'  :
+                    commercialViewModel.serviceStatus === 'degraded' ? 'limited' :
+                    commercialViewModel.serviceStatus === 'blocked'  ? 'blocked' :
+                    undefined;
+
                 return (
                     <SiteScreenLabel
                         siteId="B"
@@ -2171,11 +2459,12 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                         compact={!!isPhone}
                         titleOverride={`Site B${commercialViewModel.siteB?.name ? ` · ${commercialViewModel.siteB.name}` : ''}`}
                         presentation="commercial"
+                        outcomeHighlight={outcomeHighlight}
                         sections={[{
-                            title: commercialViewModel.display.serviceStatusLabel,
+                            title: siteBLabel,
                             accent: 'blue',
                             lines: [
-                                { text: commercialViewModel.serviceMessage ?? commercialViewModel.display.serviceStatusLabel, tone: statusTone },
+                                { text: narrativeText, tone: siteBTone },
                                 ...(performanceLine ? [{ text: performanceLine, tone: 'success' as const }] : []),
                             ],
                         }]}

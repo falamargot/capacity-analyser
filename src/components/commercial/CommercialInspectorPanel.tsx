@@ -1,5 +1,6 @@
 import { memo, type ReactNode } from 'react';
 import { ExternalLink } from 'lucide-react';
+import type { CommercialRouteModel, CommercialRouteSegmentId } from '../../types/commercialRouteModel';
 import type { CommercialRouteSegment, CommercialScenarioViewModel } from './commercialViewModel';
 import { customerServiceStateLabel, formatMbps, formatMs, segmentStatusChipClassName } from './commercialDisplayUtils';
 
@@ -9,13 +10,14 @@ const tabLabel: Record<CommercialRouteSegment['type'], string> = {
   access: 'Access',
   satellite: 'Satellite',
   backhaul: 'Backbone',
-  destination: 'Site B',
+  destination: 'Destination',
   summary: 'Summary',
 };
 
 interface CommercialInspectorPanelProps {
   viewModel: CommercialScenarioViewModel;
   selectedSegmentId: string;
+  commercialRouteModel?: CommercialRouteModel;
   onSelectedSegmentChange: (segment: string) => void;
   onViewFullAnalysis: () => void;
 }
@@ -79,16 +81,71 @@ function selectedConstraint(segment: CommercialRouteSegment | undefined, viewMod
   return 'None detected';
 }
 
+function canonicalSegmentId(type: CommercialRouteSegment['type']): CommercialRouteSegmentId {
+  switch (type) {
+    case 'access':
+      return 'access';
+    case 'satellite':
+      return 'satellite';
+    case 'backhaul':
+      return 'backhaul';
+    case 'destination':
+      return 'destination';
+    case 'summary':
+      return 'summary';
+  }
+}
+
+function canonicalSegmentIdFromRaw(value: string | undefined | null): CommercialRouteSegmentId | undefined {
+  switch (value) {
+    case 'access':
+      return 'access';
+    case 'satellite':
+      return 'satellite';
+    case 'backhaul':
+      return 'backhaul';
+    case 'destination':
+    case 'siteB':
+      return 'destination';
+    case 'summary':
+      return 'summary';
+    default:
+      return undefined;
+  }
+}
+
+function segmentForCanonicalId(
+  segments: CommercialRouteSegment[],
+  segmentId: CommercialRouteSegmentId | undefined,
+): CommercialRouteSegment | undefined {
+  if (!segmentId) return undefined;
+  return segments.find((item) => canonicalSegmentId(item.type) === segmentId);
+}
+
+function destinationTabLabel(commercialRouteModel: CommercialRouteModel | undefined): string {
+  return commercialRouteModel?.destinationIsPortal ? 'Portal' : tabLabel.destination;
+}
+
 function CommercialInspectorPanel({
   viewModel,
   selectedSegmentId,
+  commercialRouteModel,
   onSelectedSegmentChange,
   onViewFullAnalysis,
 }: CommercialInspectorPanelProps) {
-  const segment = viewModel.routeSegments.find((item) => item.id === selectedSegmentId)
+  const focusedSegmentId = commercialRouteModel?.focusedSegmentId
+    ?? canonicalSegmentIdFromRaw(selectedSegmentId);
+  const primaryFailingSegmentId = commercialRouteModel?.primaryFailingSegmentId
+    ?? canonicalSegmentIdFromRaw(viewModel.primaryFailingSegmentId);
+  const primaryIssueSegment = segmentForCanonicalId(viewModel.routeSegments, primaryFailingSegmentId)
+    ?? viewModel.routeSegments.find((item) => item.isPrimaryIssue);
+  const destinationWeatherLabel = commercialRouteModel?.destinationIsPortal ? 'Portal weather' : 'Destination weather';
+
+  const segment = segmentForCanonicalId(viewModel.routeSegments, focusedSegmentId)
+    ?? viewModel.routeSegments.find((item) => item.id === selectedSegmentId)
     ?? viewModel.routeSegments.find((item) => item.type === 'summary')
     ?? viewModel.routeSegments[0];
-  const selectedSegment = segment?.id ?? 'summary';
+  const selectedSegment = segment ? canonicalSegmentId(segment.type) : 'summary';
   const overallStatusChipClass = segmentStatusChipClassName[
     viewModel.serviceStatus === 'active' ? 'healthy' :
     viewModel.serviceStatus === 'degraded' ? 'warning' :
@@ -114,12 +171,12 @@ function CommercialInspectorPanel({
   const availabilityRows = [
     { label: 'Service availability', value: viewModel.availabilityPct != null ? `${viewModel.availabilityPct.toFixed(2)}%` : viewModel.display.serviceStatusLabel },
     { label: 'Access weather', value: viewModel.display.weatherA ?? '--' },
-    { label: 'Destination weather', value: viewModel.display.weatherB ?? '--' },
+    { label: destinationWeatherLabel, value: viewModel.display.weatherB ?? '--' },
     { label: 'Recommendation category', value: viewModel.recommendation.reasonCategory.replaceAll('_', ' ') },
   ];
   const limitingRows = [
     { label: 'Segment constraint', value: segment?.limitation ?? 'None detected' },
-    { label: 'Main constraint', value: viewModel.primaryWarning ?? 'None detected' },
+    { label: 'Main constraint', value: primaryIssueSegment?.limitation ?? viewModel.primaryWarning ?? 'None detected' },
   ];
   const proofRows = [
     { label: 'Raw service status', value: viewModel.display.rawServiceStatus ?? '--' },
@@ -165,12 +222,12 @@ function CommercialInspectorPanel({
             disabled={!tabSegment}
             className={[
               'min-w-[4.25rem] rounded-md px-2.5 py-1.5 text-xs font-semibold transition-colors',
-              selectedSegment === tabSegment?.id
+              selectedSegment === type
                 ? 'bg-white text-slate-950'
                 : 'text-slate-300 hover:bg-slate-800',
             ].join(' ')}
           >
-            {tabLabel[type]}
+            {type === 'destination' ? destinationTabLabel(commercialRouteModel) : tabLabel[type]}
           </button>
           );
         })}

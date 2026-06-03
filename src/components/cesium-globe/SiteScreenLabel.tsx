@@ -3,6 +3,7 @@ import { SceneTransforms, Viewer as CesiumViewerType, defined } from 'cesium';
 import { getPosition } from './utils';
 import { GROUND_POINT_ALTITUDE_KM } from './layerHeights';
 import { formatCoordinates } from '../../utils/formatters';
+import { ROUTE_REVEAL_TOTAL_MS } from './commercialAnimationDriver';
 
 export type SiteLabelTone = 'success' | 'warning' | 'danger' | 'neutral';
 
@@ -28,14 +29,50 @@ interface SiteScreenLabelProps {
   sections: SiteLabelSection[];
   titleOverride?: string;
   presentation?: 'engineering' | 'commercial';
+  /**
+   * When provided in commercial presentation, triggers a brief outcome glow
+   * animation that plays once after the route reveal completes (Part F).
+   * The glow colour matches the route status:
+   *   active  → emerald
+   *   limited → amber
+   *   blocked → red
+   */
+  outcomeHighlight?: 'active' | 'limited' | 'blocked';
 }
 
 const toneClass = (tone?: SiteLabelTone): string => {
   if (tone === 'success') return 'text-emerald-300';
   if (tone === 'warning') return 'text-amber-300';
-  if (tone === 'danger') return 'text-red-400';
+  if (tone === 'danger')  return 'text-red-400';
   return 'text-slate-300';
 };
+
+/** Returns the CSS glow color for the outcome highlight border animation. */
+function outcomeGlowColor(status: 'active' | 'limited' | 'blocked'): string {
+  switch (status) {
+    case 'active':  return 'rgba(52, 211, 153, 0.55)'; // emerald-400
+    case 'limited': return 'rgba(251, 191, 36, 0.55)'; // amber-400
+    case 'blocked': return 'rgba(248,  113, 113, 0.55)'; // red-400
+  }
+}
+
+/**
+ * Inject the outcome-reveal keyframe once into the document head.
+ * We use a data attribute to avoid duplicate <style> tags across re-renders.
+ */
+let outcomeStyleInjected = false;
+function ensureOutcomeStyle(): void {
+  if (outcomeStyleInjected) return;
+  outcomeStyleInjected = true;
+  const style = document.createElement('style');
+  style.textContent = `
+@keyframes commercial-outcome-reveal {
+  0%   { box-shadow: 0 0 0 2px var(--outcome-glow), 0 0 12px 2px var(--outcome-glow); }
+  100% { box-shadow: none; }
+}
+`;
+  document.head.appendChild(style);
+}
 
 const SiteScreenLabel: React.FC<SiteScreenLabelProps> = ({
   siteId,
@@ -47,11 +84,12 @@ const SiteScreenLabel: React.FC<SiteScreenLabelProps> = ({
   sections,
   titleOverride,
   presentation = 'engineering',
+  outcomeHighlight,
 }) => {
   const labelRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
-    const viewer = viewerRef.current;
+    const viewer    = viewerRef.current;
     const container = containerRef.current;
     if (!viewer || !container || !position) return;
 
@@ -59,8 +97,8 @@ const SiteScreenLabel: React.FC<SiteScreenLabelProps> = ({
 
     const update = () => {
       const el = labelRef.current;
-      const v = viewerRef.current;
-      const c = containerRef.current;
+      const v  = viewerRef.current;
+      const c  = containerRef.current;
       if (!el || !v || !c) return;
       const wp = SceneTransforms.worldToWindowCoordinates(v.scene, worldPosition);
       if (!defined(wp)) { el.style.opacity = '0'; return; }
@@ -68,8 +106,8 @@ const SiteScreenLabel: React.FC<SiteScreenLabelProps> = ({
       const inBounds = x >= -120 && y >= -80 && x <= c.clientWidth + 120 && y <= c.clientHeight + 80;
       if (!inBounds) { el.style.opacity = '0'; return; }
       el.style.opacity = '1';
-      el.style.left = `${x}px`;
-      el.style.top = `${y - (compact ? 22 : 28)}px`;
+      el.style.left    = `${x}px`;
+      el.style.top     = `${y - (compact ? 22 : 28)}px`;
     };
 
     update();
@@ -81,7 +119,25 @@ const SiteScreenLabel: React.FC<SiteScreenLabelProps> = ({
     };
   }, [compact, containerRef, position, viewerReady, viewerRef]);
 
+  // Inject outcome keyframe once.
+  if (presentation === 'commercial' && outcomeHighlight) {
+    ensureOutcomeStyle();
+  }
+
   if (!position || sections.length === 0) return null;
+
+  // Outcome highlight animation (Part F):
+  //   - Plays once on mount after a delay matching the route reveal sequence.
+  //   - Duration 600 ms, ease-out, forwards fill (disappears cleanly).
+  //   - Only on Site B in commercial mode when outcomeHighlight is provided.
+  const highlightStyle: React.CSSProperties =
+    presentation === 'commercial' && outcomeHighlight
+      ? {
+          '--outcome-glow': outcomeGlowColor(outcomeHighlight),
+          animation: `commercial-outcome-reveal 600ms ease-out ${ROUTE_REVEAL_TOTAL_MS + 80}ms both`,
+          borderRadius: compact ? '10px' : '4px',
+        } as React.CSSProperties
+      : {};
 
   return (
     <div
@@ -89,7 +145,10 @@ const SiteScreenLabel: React.FC<SiteScreenLabelProps> = ({
       className="absolute z-50 pointer-events-none -translate-x-1/2 -translate-y-full opacity-0"
       style={{ left: 0, top: 0 }}
     >
-      <div className={`${compact ? 'rounded-[10px] px-2.5 py-1.5' : 'rounded px-3 py-1.5'} bg-slate-900/85 text-white shadow-lg ring-1 ring-white/20 backdrop-blur-sm`}>
+      <div
+        className={`${compact ? 'rounded-[10px] px-2.5 py-1.5' : 'rounded px-3 py-1.5'} bg-slate-900/85 text-white shadow-lg ring-1 ring-white/20 backdrop-blur-sm`}
+        style={highlightStyle}
+      >
         <div className={`${compact ? 'text-[11px]' : 'text-[12px] sm:text-sm'} font-semibold leading-tight ${presentation === 'commercial' ? 'text-white' : 'text-cyan-300'} mb-0.5`}>
           {titleOverride ?? `Site ${siteId} · ${formatCoordinates(position)}`}
         </div>
