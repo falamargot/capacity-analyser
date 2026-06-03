@@ -42,7 +42,6 @@ import { LABEL_EYE_OFFSET } from './layerHeights';
 import {
   type CommercialAnimationState,
   ANIM_SEGMENT_INDEX,
-  UNFOCUSED_OPACITY,
   getSegmentAlpha,
 } from './commercialAnimationDriver';
 
@@ -112,8 +111,7 @@ function ringGlyphFor(status: CommercialRouteStatus, technology: CommercialRoute
 // ─── Static fallback state ────────────────────────────────────────────────────
 
 function makeStaticSkyBridgeState(focused: CommercialRouteModel['focusedSegmentId']): CommercialAnimationState {
-  const isSatelliteOrSummary = !focused || focused === 'summary' || focused === 'satellite';
-  const alpha = isSatelliteOrSummary ? 1.0 : UNFOCUSED_OPACITY;
+  const alpha = focused === 'satellite' ? 1.0 : focused === 'summary' || !focused ? 0.35 : 0;
   const opacity = new Float32Array([alpha, alpha, alpha, alpha]);
   return {
     opacity,
@@ -192,8 +190,8 @@ const SkyBridgeEntity = React.memo<SkyBridgeEntityProps>(({
     const base = Color.fromCssColorString(baseHex);
     return new CallbackProperty(() => {
       const alpha = getSegmentAlpha(animRef.current, SAT_IDX, isPulsed && animRef.current.focusedIdx === SAT_IDX);
-      // Ensure minimum alpha so ring never fully disappears (ring at 0.08 alpha is still perceptible)
-      return base.withAlpha(Math.max(0.08, alpha));
+      const summaryMultiplier = animRef.current.focusedIdx < 0 ? 0.35 : 1;
+      return base.withAlpha(alpha * summaryMultiplier);
     }, false);
   }, [node.status, isGeo, animRef, SAT_IDX]);
 
@@ -334,13 +332,16 @@ const CommercialSkyBridgeLayer: React.FC<CommercialSkyBridgeLayerProps> = ({
   }, [routeModel]);
 
   if (skyBridges.length === 0) return null;
+  if (
+    routeModel.focusedSegmentId
+    && routeModel.focusedSegmentId !== 'satellite'
+    && routeModel.focusedSegmentId !== 'summary'
+  ) {
+    return null;
+  }
 
-  // Primary label: satellite/summary focus.
-  // Secondary label: only when satellite tab is explicitly active.
-  const showPrimaryLabel   = !routeModel.focusedSegmentId
-    || routeModel.focusedSegmentId === 'summary'
-    || routeModel.focusedSegmentId === 'satellite';
-  const showSecondaryLabel = routeModel.focusedSegmentId === 'satellite';
+  const showPrimaryLabel = false;
+  const showSecondaryLabel = false;
 
   return (
     <>

@@ -125,10 +125,152 @@ function commercialSegmentDisplay(status: CommercialSegmentStatus | undefined): 
     }
 }
 
+const formatCommercialFrequencyBand = (band: CandidateCoverage['band'] | undefined): string | null => (
+    band ? `${band} Band` : null
+);
+
 // ─── Commercial route camera helpers ─────────────────────────────────────────
 // Narrative altitudes mirror CommercialRouteLayer constants.
 const COMM_GEO_ALT_KM = 20_000;
 const COMM_LEO_ALT_KM = 2_000;
+
+interface CommercialGeoCoverageFocusFrame {
+    sphere: BoundingSphere;
+    pitchRadians: number;
+}
+
+const normalizeLngNear = (lng: number, referenceLng: number): number => {
+    let normalized = lng;
+    while (normalized - referenceLng > 180) normalized -= 360;
+    while (normalized - referenceLng < -180) normalized += 360;
+    return normalized;
+};
+
+const denormalizeLng = (lng: number): number => {
+    let normalized = lng;
+    while (normalized > 180) normalized -= 360;
+    while (normalized < -180) normalized += 360;
+    return normalized;
+};
+
+const isFiniteLngLatPair = (value: unknown): value is [number, number] => (
+    Array.isArray(value)
+    && value.length >= 2
+    && Number.isFinite(value[0])
+    && Number.isFinite(value[1])
+);
+
+const collectFeatureLngLatPairs = (feature: Feature<Geometry, GeoJsonProperties> | null | undefined): Array<[number, number]> => {
+    const geometry = feature?.geometry;
+    if (!geometry) return [];
+
+    if (geometry.type === 'Polygon') {
+        return (geometry.coordinates ?? [])
+            .flatMap((ring) => ring.filter(isFiniteLngLatPair).map(([lng, lat]) => [lng, lat] as [number, number]));
+    }
+
+    if (geometry.type === 'MultiPolygon') {
+        return (geometry.coordinates ?? [])
+            .flatMap((polygon) => polygon)
+            .flatMap((ring) => ring.filter(isFiniteLngLatPair).map(([lng, lat]) => [lng, lat] as [number, number]));
+    }
+
+    return [];
+};
+
+const getCoverageSourceKey = (coverageKey: string): string => coverageKey.replace(/::synth-(ul|dl)$/, '');
+
+function buildCommercialGeoCoverageFocusFrame(
+    satellites: SatelliteData[],
+    selectedPosition: { lat: number; lng: number; altitude?: number } | null,
+    candidates: Array<CandidateCoverage | null | undefined>,
+): CommercialGeoCoverageFocusFrame | null {
+    const coordinatePairs: Array<[number, number]> = [];
+    const seenCoverageKeys = new Set<string>();
+
+    for (const candidate of candidates) {
+        if (!candidate) continue;
+        const sourceKey = getCoverageSourceKey(candidate.coverageKey);
+        const candidateKey = `${candidate.satelliteId}::${sourceKey}`;
+        if (seenCoverageKeys.has(candidateKey)) continue;
+        seenCoverageKeys.add(candidateKey);
+
+        const satellite = satellites.find((item) => item.id === candidate.satelliteId && item.type === 'EUTELSAT');
+        if (!satellite) continue;
+
+        for (const coverage of satellite.coverages) {
+            if (getCoverageGroupId(coverage) !== sourceKey) continue;
+            coordinatePairs.push(...collectFeatureLngLatPairs(coverage.feature as Feature<Geometry, GeoJsonProperties>));
+        }
+    }
+
+    if (coordinatePairs.length === 0) return null;
+
+    const referenceLng = selectedPosition?.lng ?? coordinatePairs[0][0];
+    let minLng = Infinity;
+    let maxLng = -Infinity;
+    let minLat = Infinity;
+    let maxLat = -Infinity;
+
+    for (const [lng, lat] of coordinatePairs) {
+        const normalizedLng = normalizeLngNear(lng, referenceLng);
+        minLng = Math.min(minLng, normalizedLng);
+        maxLng = Math.max(maxLng, normalizedLng);
+        minLat = Math.min(minLat, lat);
+        maxLat = Math.max(maxLat, lat);
+    }
+
+    if (!Number.isFinite(minLng) || !Number.isFinite(maxLng) || !Number.isFinite(minLat) || !Number.isFinite(maxLat)) {
+        return null;
+    }
+
+    const centerLng = (minLng + maxLng) / 2;
+    const centerLat = (minLat + maxLat) / 2;
+    const framePoints: Array<[number, number]> = [
+        [minLng, minLat],
+        [minLng, maxLat],
+        [maxLng, minLat],
+        [maxLng, maxLat],
+        [centerLng, centerLat],
+    ];
+
+    if (selectedPosition) {
+        framePoints.push([normalizeLngNear(selectedPosition.lng, referenceLng), selectedPosition.lat]);
+    }
+
+    const positions = framePoints.map(([lng, lat]) => (
+        getPosition(lat, denormalizeLng(lng), GROUND_POINT_ALTITUDE_KM)
+    ));
+    const sphere = BoundingSphere.fromPoints(positions);
+    sphere.radius = Math.max(sphere.radius * 1.16, 900_000);
+
+    return {
+        sphere,
+        pitchRadians: -CesiumMath.toRadians(34),
+    };
+}
+
+function executeGeoSurfaceFallbackCamera(
+    viewer: CesiumViewerType,
+    model: CommercialRouteModel,
+): void {
+    const positions: Cartesian3[] = [];
+    const groundTypes: CommercialRouteNodeType[] = ['ORIGIN', 'DESTINATION', 'NETWORK_PORTAL'];
+
+    for (const n of model.nodes) {
+        if (groundTypes.includes(n.nodeType) && n.position) {
+            positions.push(getPosition(n.position.lat, n.position.lng, GROUND_POINT_ALTITUDE_KM));
+        }
+    }
+
+    if (positions.length === 0) return;
+    const sphere = BoundingSphere.fromPoints(positions);
+    sphere.radius = Math.max(sphere.radius * 1.45, 900_000);
+    viewer.camera.flyToBoundingSphere(
+        sphere,
+        { duration: 1.8, offset: new HeadingPitchRange(0, -CesiumMath.toRadians(32), 0) },
+    );
+}
 
 /**
  * Compute a Cartesian3 position for a route node, handling both ground nodes
@@ -175,6 +317,7 @@ function executeCommercialFocusCamera(
     viewer: CesiumViewerType,
     focusTarget: CommercialRouteFocusTarget,
     model: CommercialRouteModel,
+    geoCoverageFocusFrame: CommercialGeoCoverageFocusFrame | null = null,
 ): void {
     const { behaviour, primaryNodeId, secondaryNodeId } = focusTarget;
 
@@ -190,19 +333,7 @@ function executeCommercialFocusCamera(
 
     if (behaviour === 'FRAME_ARC') {
         if (model.technology === 'GEO') {
-            // GEO FRAME_ARC — hero satellite view.
-            // Including ground nodes (20,000 km below) in the bounding sphere would
-            // create a ~20,000 km sphere, making everything tiny. Instead, centre on
-            // the sky bridge node and let Earth appear as context below the frame.
-            // The ring billboard and its arc become the visual hero of the satellite tab.
-            if (!primaryNodeId) return;
-            const skyPos = commercialNarrativePos(primaryNodeId, model);
-            if (!skyPos) return;
-            const geoArcSphere = new BoundingSphere(skyPos, 8_000_000); // 8,000 km → shows Earth arc below
-            viewer.camera.flyToBoundingSphere(
-                geoArcSphere,
-                { duration: 1.8, offset: new HeadingPitchRange(0, -CesiumMath.toRadians(12), 0) },
-            );
+            executeGeoSurfaceFallbackCamera(viewer, model);
             return;
         }
 
@@ -230,6 +361,19 @@ function executeCommercialFocusCamera(
             leoArcSphere,
             { duration: 1.8, offset: new HeadingPitchRange(0, -CesiumMath.toRadians(25), 0) },
         );
+        return;
+    }
+
+    if (behaviour === 'FRAME_GEO_COVERAGE') {
+        if (geoCoverageFocusFrame) {
+            viewer.camera.flyToBoundingSphere(
+                geoCoverageFocusFrame.sphere,
+                { duration: 1.8, offset: new HeadingPitchRange(0, geoCoverageFocusFrame.pitchRadians, 0) },
+            );
+            return;
+        }
+
+        executeGeoSurfaceFallbackCamera(viewer, model);
         return;
     }
 
@@ -704,8 +848,8 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
     const [viewerReady, setViewerReady] = useState(false);
     const shiftPressedRef = useRef(false);
     const pointerShiftPressedRef = useRef(false);
-    // Tracks the last segment we flew to so we don't re-fly on unrelated model updates.
-    const prevCommercialSegmentFocusRef = useRef<CommercialRouteSegmentId | null | undefined>(undefined);
+    // Tracks the last commercial camera focus so we don't re-fly on unrelated model updates.
+    const prevCommercialSegmentFocusRef = useRef<string | undefined>(undefined);
 
     useEffect(() => {
         const onKeyDown = (event: KeyboardEvent) => {
@@ -1068,23 +1212,48 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         }
     }, [cameraTarget]);
 
+    const commercialGeoCoverageFocusFrame = useMemo(() => (
+        buildCommercialGeoCoverageFocusFrame(
+            satellites,
+            selectedPosition,
+            [selectedDownlinkCoverage, selectedUplinkCoverage, selectedCoverage],
+        )
+    ), [satellites, selectedPosition, selectedCoverage, selectedUplinkCoverage, selectedDownlinkCoverage]);
+
+    const commercialGeoCoverageFocusSignature = commercialGeoCoverageFocusFrame
+        ? [
+            commercialGeoCoverageFocusFrame.sphere.center.x.toFixed(0),
+            commercialGeoCoverageFocusFrame.sphere.center.y.toFixed(0),
+            commercialGeoCoverageFocusFrame.sphere.center.z.toFixed(0),
+            commercialGeoCoverageFocusFrame.sphere.radius.toFixed(0),
+        ].join(':')
+        : 'no-coverage-frame';
+
     // Commercial route segment focus — fly camera to match the active focus target.
-    // Only fires when the focused segment actually changes, not on every model update.
+    // GEO satellite focus also re-frames when the selected coverage footprint changes.
     useEffect(() => {
         if (!commercialMode || !commercialRouteModel || !viewerRef.current) {
             prevCommercialSegmentFocusRef.current = undefined;
             return;
         }
         const segmentId = commercialRouteModel.focusedSegmentId ?? 'summary';
-        if (segmentId === prevCommercialSegmentFocusRef.current) return;
-        prevCommercialSegmentFocusRef.current = segmentId;
+        const focusKey = commercialRouteModel.technology === 'GEO' && segmentId === 'satellite'
+            ? `${segmentId}:${commercialGeoCoverageFocusSignature}`
+            : segmentId;
+        if (focusKey === prevCommercialSegmentFocusRef.current) return;
+        prevCommercialSegmentFocusRef.current = focusKey;
 
         const focusTarget = commercialRouteModel.focusTargets.find(t => t.segmentId === segmentId);
         if (!focusTarget) return;
 
-        executeCommercialFocusCamera(viewerRef.current, focusTarget, commercialRouteModel);
+        executeCommercialFocusCamera(
+            viewerRef.current,
+            focusTarget,
+            commercialRouteModel,
+            commercialGeoCoverageFocusFrame,
+        );
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [commercialMode, commercialRouteModel?.focusedSegmentId, commercialRouteModel]);
+    }, [commercialMode, commercialGeoCoverageFocusFrame, commercialGeoCoverageFocusSignature, commercialRouteModel?.focusedSegmentId, commercialRouteModel]);
 
     useEffect(() => {
         if (!selectedMoon || !viewerRef.current || sceneMode !== '3D') return;
@@ -1447,6 +1616,14 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         && commercialViewModel.recommendation.technology !== 'insufficient_data'
             ? commercialViewModel.commercialDisplayTechnology
             : null;
+    const commercialRouteTechnology: 'LEO' | 'GEO' | null = commercialRouteModel?.technology ?? commercialViewModel?.commercialDisplayTechnology ?? null;
+    const commercialGeoCoverageIdentityForLabel = selectedDownlinkCoverage ?? selectedUplinkCoverage ?? selectedCoverage;
+    const commercialGeoSatelliteLabelLines = useMemo(() => (
+        [
+            commercialGeoCoverageIdentityForLabel?.beamName,
+            formatCommercialFrequencyBand(commercialGeoCoverageIdentityForLabel?.band),
+        ].filter((line): line is string => !!line && line.trim().length > 0)
+    ), [commercialGeoCoverageIdentityForLabel]);
 
     const highlightedSatelliteLabels = useMemo(() => {
         const labels: Array<{
@@ -1455,11 +1632,12 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
             isRouteParticipant?: boolean;
             serviceRoles?: Array<'A' | 'B'>;
             commercialRole?: 'serving' | 'alternative' | 'candidate';
+            commercialLabelLines?: string[];
         }> = [];
         const commercialRoleForTechnology = (technology: 'LEO' | 'GEO', available: boolean): 'serving' | 'alternative' | 'candidate' => {
             if (!commercialMode) return available ? 'serving' : 'candidate';
-            if (!commercialDominantTechnology) return 'candidate';
-            if (technology === commercialDominantTechnology && available) return 'serving';
+            if (!commercialRouteTechnology) return 'candidate';
+            if (technology === commercialRouteTechnology && available) return 'serving';
             if (available) return 'alternative';
             return 'candidate';
         };
@@ -1469,6 +1647,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
             serviceRole?: 'A' | 'B',
             isRouteParticipant = !isManuallySelected,
             commercialRole?: 'serving' | 'alternative' | 'candidate',
+            commercialLabelLines?: string[],
         ) => {
             if (!satellite) return;
             if (!isOperationalSatellite(satellite)) return;
@@ -1487,6 +1666,9 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                 if (serviceRole && !existing.serviceRoles?.includes(serviceRole)) {
                     existing.serviceRoles = [...(existing.serviceRoles ?? []), serviceRole].sort();
                 }
+                if (commercialLabelLines && commercialLabelLines.length > 0) {
+                    existing.commercialLabelLines = commercialLabelLines;
+                }
                 return;
             }
             labels.push({
@@ -1494,6 +1676,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                 isManuallySelected,
                 isRouteParticipant,
                 commercialRole,
+                commercialLabelLines,
                 serviceRoles: serviceRole ? [serviceRole] : undefined,
             });
         };
@@ -1512,7 +1695,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
             add(autoSelectedLEOSatellite, false, undefined, leoRole === 'serving', leoRole);
         }
         const geoRole = commercialRoleForTechnology('GEO', commercialGeoOptionAvailable);
-        add(autoSelectedGEOSatellite, false, undefined, geoRole === 'serving', geoRole);
+        add(autoSelectedGEOSatellite, false, undefined, geoRole === 'serving', geoRole, commercialGeoSatelliteLabelLines);
         return labels;
     }, [
         selectedSatellite,
@@ -1523,9 +1706,10 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         satelliteScope,
         satellites,
         commercialMode,
-        commercialDominantTechnology,
+        commercialRouteTechnology,
         commercialLeoOptionAvailable,
         commercialGeoOptionAvailable,
+        commercialGeoSatelliteLabelLines,
     ]);
 
     const pulsedSnp = useMemo(() => {
@@ -1858,6 +2042,11 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
     const commercialAccessFocused = commercialMode && commercialFocusedSegment === 'access';
     const commercialDestinationFocused = commercialMode && commercialFocusedSegment === 'destination';
     const commercialSummaryFocused = commercialMode && commercialFocusedSegment === 'summary';
+    const commercialSatelliteFocused = commercialMode && commercialFocusedSegment === 'satellite';
+    const commercialBackhaulFocused = commercialMode && commercialFocusedSegment === 'backhaul';
+    const commercialGeoSatelliteFocused = commercialMode && commercialFocusedSegment === 'satellite' && commercialRouteTechnology === 'GEO';
+    const showCommercialSiteALabel = !commercialMode || commercialAccessFocused || commercialSatelliteFocused || commercialBackhaulFocused || commercialSummaryFocused;
+    const showCommercialSiteBLabel = !commercialMode || commercialDestinationFocused || commercialSummaryFocused;
 
     // skyBridgeOpacity removed — COMM-6E.  Ring opacity is now driven by
     // CommercialAnimationState (via animationRef) inside CommercialSkyBridgeLayer.
@@ -1876,6 +2065,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         && !!onCoverageSwitcherSelect;
     const commercialGeoCoverageVisible =
         commercialMode
+        && commercialSatelliteFocused
         && satelliteScope !== 'LEO'
         && (
             (
@@ -2077,6 +2267,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                             presentation={commercialMode ? 'commercial' : 'engineering'}
                             commercialLabel={commercialGeoCoverageLabel}
                             commercialTone={commercialMode && commercialDominantTechnology !== 'GEO' ? 'secondary' : 'primary'}
+                            commercialHero={commercialGeoSatelliteFocused}
                         />
                     )}
 
@@ -2090,7 +2281,10 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                         already tells the route narrative and (b) dense LEO beam rings in a GEO
                         scenario create visual noise that overwhelms the commercial story.
                         The active LEO service area is shown when LEO is the recommended tech. */}
-                    {(!commercialMode || !commercialRouteModel || commercialDominantTechnology !== 'GEO') && oneWebVisualTargets.map((target) => (
+                    {(
+                        !commercialMode
+                        || (commercialSatelliteFocused && commercialRouteTechnology === 'LEO')
+                    ) && oneWebVisualTargets.map((target) => (
                         <OneWebCombLayer
                             key={`oneweb-comb-${target.satellite.id}`}
                             targetSat={target.satellite}
@@ -2125,6 +2319,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                     )}
 
                     {/* Transmission Links */}
+                    {(!commercialMode || !commercialRouteModel) && (
                     <TransmissionLinks
                         satellites={satellites}
                         selectedPosition={selectedPosition}
@@ -2155,12 +2350,13 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                         commercialGeoRouteAvailable={commercialGeoOptionAvailable}
                         narrativeLayerActive={commercialMode && !!commercialRouteModel}
                     />
+                    )}
 
                     {/* Selected Position Marker — Point A */}
-                    {showGroundSelectedPoint && selectedPosition && (
+                    {showGroundSelectedPoint && selectedPosition && (!commercialMode || !commercialDestinationFocused) && (
                         <SelectedPointStatusMarker
                             selectedPosition={selectedPosition}
-                            pixelSize={commercialAccessFocused || commercialSummaryFocused ? commercialFocusPointPixelSize : positionMarkerPixelSize}
+                            pixelSize={commercialAccessFocused || commercialSummaryFocused || commercialGeoSatelliteFocused ? commercialFocusPointPixelSize : positionMarkerPixelSize}
                             satelliteScope={satelliteScope}
                             leoServiceViewModel={leoServiceViewModel}
                             geoPointStatus={geoPointStatus}
@@ -2168,7 +2364,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                     )}
 
                     {/* Site B marker — rendered once regardless of how many active topologies use it */}
-                    {siteBMarkerPosition && (
+                    {siteBMarkerPosition && (!commercialMode || commercialDestinationFocused || commercialSummaryFocused) && (
                         <SelectedPointStatusMarker
                             selectedPosition={siteBMarkerPosition}
                             pixelSize={commercialDestinationFocused || commercialSummaryFocused ? commercialFocusPointBPixelSize : pointBMarkerPixelSize}
@@ -2181,7 +2377,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                             markerVariant="site-b"
                         />
                     )}
-                    {pulsedSatellites.map((satellite) => {
+                    {(!commercialMode || commercialSatelliteFocused) && pulsedSatellites.map((satellite) => {
                         const isLeoSatellite = satellite.type === 'ONEWEB';
                         const baseRadius = isLeoSatellite ? 20000 : 32000;
                         const displayTech = commercialMode ? commercialDominantTechnology : null;
@@ -2208,7 +2404,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                         />
                         );
                     })}
-                    {pulsedSnp && (
+                    {pulsedSnp && (!commercialMode || commercialBackhaulFocused) && (
                         <SelectionPulseMarker
                             key={`selection-pulse-snp-${pulsedSnp.name}`}
                             position={getPosition(pulsedSnp.lat, pulsedSnp.lng, GROUND_POINT_ALTITUDE_KM)}
@@ -2217,7 +2413,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                             opacityMultiplier={commercialMode ? (commercialFocusedSegment === 'backhaul' && commercialDominantTechnology === 'LEO' ? 0.65 : 0.18) : 1}
                         />
                     )}
-                    {pulsedGateway && linkMode !== 'MESH' && linkMode !== 'POINT_TO_POINT' && (
+                    {pulsedGateway && (!commercialMode || commercialBackhaulFocused) && linkMode !== 'MESH' && linkMode !== 'POINT_TO_POINT' && (
                         <SelectionPulseMarker
                             key={`selection-pulse-gateway-${pulsedGateway.name}`}
                             position={getPosition(pulsedGateway.lat, pulsedGateway.lng, GROUND_POINT_ALTITUDE_KM)}
@@ -2278,7 +2474,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                         inspectedSnpName={inspectedSNP?.name ?? null}
                         allowedSnpNames={commercialSnpAllowlist}
                         commercialTone={commercialMode && commercialFocusedSegment !== 'backhaul' ? 'secondary' : 'primary'}
-                        showLabels={!commercialMode || commercialFocusedSegment === 'backhaul'}
+                        showLabels={!commercialMode}
                     />
 
                     {/* GEO Gateway Layer */}
@@ -2292,7 +2488,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                         sizeScale={sizeScale}
                         allowedGatewayNames={commercialGatewayAllowlist}
                         commercialTone={commercialMode && commercialFocusedSegment !== 'backhaul' ? 'secondary' : 'primary'}
-                        showLabels={!commercialMode || commercialFocusedSegment === 'backhaul'}
+                        showLabels={!commercialMode}
                     />
 
                     {/* Trajectory Layer */}
@@ -2353,6 +2549,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
             )}
             {/* Unified Site A tooltip — aggregates GEO and LEO data in one bubble */}
             {commercialMode ? (() => {
+                if (!showCommercialSiteALabel) return null;
                 if (!showGroundSelectedPoint || !selectedPosition || !commercialViewModel) return null;
                 // Use access-segment status so the tooltip matches the Journey Strip card.
                 // Fall back to overall service status only when no segment data is available.
@@ -2425,6 +2622,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
             })()}
             {/* Unified Site B tooltip — aggregates GEO Mesh/P2P and/or LEO S2S in one bubble */}
             {commercialMode ? (() => {
+                if (!showCommercialSiteBLabel) return null;
                 const siteBPos = pointB ?? pointBLeo;
                 if (!siteBPos || !commercialViewModel) return null;
                 // Use destination-segment status so the tooltip matches the Journey Strip card.
@@ -2525,7 +2723,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                     />
                 );
             })()}
-            {!hideSatelliteScreenLabels && (
+            {!hideSatelliteScreenLabels && (!commercialMode || commercialSatelliteFocused) && (
                 <SatelliteScreenLabels
                     viewerRef={viewerRef}
                     containerRef={globeContainerRef}

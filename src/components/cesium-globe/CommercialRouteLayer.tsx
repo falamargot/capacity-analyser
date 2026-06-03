@@ -157,6 +157,37 @@ function isTerrestrialVisible(
   return focusedSegmentId === 'backhaul' || focusedSegmentId === owningSegmentId;
 }
 
+function isNodeVisibleForFocus(
+  node: CommercialRouteNode,
+  focusedSegmentId: CommercialRouteSegmentId | null,
+): boolean {
+  if (!focusedSegmentId || focusedSegmentId === 'summary') {
+    return node.nodeType !== 'OUTCOME';
+  }
+  if (focusedSegmentId === 'access') return node.nodeType === 'ORIGIN';
+  if (focusedSegmentId === 'satellite') return node.nodeType === 'ORIGIN';
+  if (focusedSegmentId === 'backhaul') return node.nodeType === 'HUB';
+  if (focusedSegmentId === 'destination') {
+    return node.nodeType === 'DESTINATION' || node.nodeType === 'NETWORK_PORTAL';
+  }
+  return false;
+}
+
+function isEdgeVisibleForFocus(
+  edge: CommercialRouteEdge,
+  focusedSegmentId: CommercialRouteSegmentId | null,
+): boolean {
+  const owningSegmentId = edge.meta?.owningSegmentId;
+  if (!focusedSegmentId || focusedSegmentId === 'summary') {
+    return edge.edgeType !== 'TERRESTRIAL_TAIL';
+  }
+  if (focusedSegmentId === 'access') return owningSegmentId === 'access';
+  if (focusedSegmentId === 'satellite') return owningSegmentId === 'satellite';
+  if (focusedSegmentId === 'backhaul') return owningSegmentId === 'backhaul';
+  if (focusedSegmentId === 'destination') return owningSegmentId === 'destination';
+  return false;
+}
+
 // ─── Static fallback animation state ─────────────────────────────────────────
 
 /**
@@ -520,6 +551,10 @@ const CommercialRouteLayer: React.FC<CommercialRouteLayerProps> = ({
   const focusedSegmentId  = routeModel.focusedSegmentId;
   const isBackhaulFocused = focusedSegmentId === 'backhaul';
   const technology        = routeModel.technology;
+  const firstBackboneNodeId = useMemo(
+    () => routeModel.nodes.find(node => node.nodeType === 'HUB')?.id ?? null,
+    [routeModel.nodes],
+  );
 
   // Fallback: a static CommercialAnimationState ref that mirrors current focus.
   // Recomputed only when the focused segment changes (no 60-fps updates).
@@ -543,6 +578,7 @@ const CommercialRouteLayer: React.FC<CommercialRouteLayerProps> = ({
     return routeModel.nodes.flatMap(node => {
       if (node.nodeType === 'SKY_BRIDGE') return [];
       if (node.nodeType === 'OUTCOME')    return [];
+      if (!isNodeVisibleForFocus(node, focusedSegmentId)) return [];
 
       const coord = posMap.get(node.id);
       if (!coord) return [];
@@ -561,15 +597,15 @@ const CommercialRouteLayer: React.FC<CommercialRouteLayerProps> = ({
       };
 
       if (node.nodeType === 'NETWORK_PORTAL') {
-        return [<PortalNode {...commonProps} showLabel={true} />];
+        return [<PortalNode {...commonProps} showLabel={false} />];
       }
       if (node.nodeType === 'HUB') {
-        return [<HubNode {...commonProps} showLabel={isBackhaulFocused} />];
+        return [<HubNode {...commonProps} showLabel={isBackhaulFocused && node.id === firstBackboneNodeId} />];
       }
-      return [<GroundNode {...commonProps} showLabel={true} />];
+      return [<GroundNode {...commonProps} showLabel={false} />];
     });
   }, [
-    routeModel.nodes, posMap, isBackhaulFocused,
+    routeModel.nodes, posMap, focusedSegmentId, isBackhaulFocused, firstBackboneNodeId,
     effectiveAnimRef, viewerRef, cameraMetricsRef, sizeScale,
   ]);
 
@@ -583,6 +619,9 @@ const CommercialRouteLayer: React.FC<CommercialRouteLayerProps> = ({
       if (!fromCoord || !toCoord) return [];
 
       const owningSegmentId = edge.meta?.owningSegmentId;
+      if (!isEdgeVisibleForFocus(edge, focusedSegmentId)) {
+        return [];
+      }
 
       // Terrestrial tails are shown only in backhaul focus — remove them entirely
       // (not just faded) to avoid cluttering the globe in other states.

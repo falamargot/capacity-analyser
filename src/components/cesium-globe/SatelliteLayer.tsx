@@ -134,10 +134,10 @@ const SatelliteEntity = React.memo<{
     );
     const billboardColor = isCommercial && !isManuallySelected
         ? isCommercialSecondary
-            ? Color.fromCssColorString('#64748b').withAlpha(0.24)
+            ? Color.fromCssColorString('#64748b').withAlpha(0.2)
             : (sat.type === 'ONEWEB'
-                ? Color.fromCssColorString('#f472b6').withAlpha(0.58)
-                : Color.fromCssColorString('#60a5fa').withAlpha(0.62))
+                ? Color.fromCssColorString('#f472b6').withAlpha(0.2)
+                : Color.fromCssColorString('#60a5fa').withAlpha(0.2))
         : getBillboardColor(sat.type, sat.opsStatus, isManuallySelected);
 
     return (

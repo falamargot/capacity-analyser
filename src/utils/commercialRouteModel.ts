@@ -291,10 +291,13 @@ function buildFocusTargets(
     },
 
     // ── satellite ─────────────────────────────────────────────────────────────
-    // Back out to show the full arc. For LEO S2S, both satellites are anchors.
+    // LEO backs out to show the full arc. GEO frames the selected coverage
+    // footprint instead of making the synthetic sky bridge the camera target.
     {
       segmentId: 'satellite',
-      behaviour: 'FRAME_ARC',
+      behaviour: topology === 'GEO_STAR' || topology === 'GEO_P2P'
+        ? 'FRAME_GEO_COVERAGE'
+        : 'FRAME_ARC',
       primaryNodeId: ids.skyBridgeA,
       secondaryNodeId: hasTwoSatellites ? (ids.skyBridgeB ?? null) : null,
       highlightNodeTypes: hasTwoSatellites

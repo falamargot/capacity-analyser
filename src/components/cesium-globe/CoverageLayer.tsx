@@ -81,6 +81,7 @@ interface CoverageLayerProps {
   presentation?: 'engineering' | 'commercial';
   commercialLabel?: string;
   commercialTone?: 'primary' | 'secondary';
+  commercialHero?: boolean;
 }
 
 interface SanitizedPolygonGeometry {
@@ -432,6 +433,7 @@ const getCoverageBandStyle = (
   isHighlighted: boolean,
   direction?: RenderContour['direction'],
   commercialTone: CoverageLayerProps['commercialTone'] = 'primary',
+  commercialHero = false,
 ): { fillColor: Color; contourColor: Color; contourWidth: number } => {
   const subdued = commercialTone === 'secondary';
   if (mode === 'overview') {
@@ -444,9 +446,21 @@ const getCoverageBandStyle = (
       : OVERVIEW_CONTOUR_COLOR;
 
     return {
-      fillColor: fillBase.withAlpha(subdued ? (isHighlighted ? 0.14 : 0.08) : (isHighlighted ? 0.28 : 0.20)),
-      contourColor: contourBase.withAlpha(subdued ? (isHighlighted ? 0.5 : 0.28) : (isHighlighted ? 0.95 : 0.68)),
-      contourWidth: subdued ? (isHighlighted ? 1.6 : 0.8) : (isHighlighted ? 2.4 : 1.2),
+      fillColor: fillBase.withAlpha(
+        subdued
+          ? (isHighlighted ? 0.14 : 0.08)
+          : commercialHero
+            ? (isHighlighted ? 0.42 : 0.34)
+            : (isHighlighted ? 0.28 : 0.20)
+      ),
+      contourColor: contourBase.withAlpha(
+        subdued
+          ? (isHighlighted ? 0.5 : 0.28)
+          : commercialHero
+            ? (isHighlighted ? 1.0 : 0.92)
+            : (isHighlighted ? 0.95 : 0.68)
+      ),
+      contourWidth: subdued ? (isHighlighted ? 1.6 : 0.8) : commercialHero ? (isHighlighted ? 4.4 : 3.4) : (isHighlighted ? 2.4 : 1.2),
     };
   }
 
@@ -472,12 +486,20 @@ const getCoverageBandStyle = (
     : Color.lerp(midFill, innerFill, (easedBand - 0.52) / 0.48, new Color());
   fillColor.alpha = subdued
     ? 0.035 + (easedBand * easedBand * 0.12)
-    : 0.09 + (easedBand * easedBand * 0.34);
+    : commercialHero
+      ? 0.16 + (easedBand * easedBand * 0.46)
+      : 0.09 + (easedBand * easedBand * 0.34);
 
   return {
     fillColor,
-    contourColor: contourBase.withAlpha(subdued ? (isHighlighted ? 0.5 : 0.3) : (isHighlighted ? 0.98 : 0.72)),
-    contourWidth: subdued ? (isHighlighted ? 1.6 : 0.75) : (isHighlighted ? 2.8 : 1.2),
+    contourColor: contourBase.withAlpha(
+      subdued
+        ? (isHighlighted ? 0.5 : 0.3)
+        : commercialHero
+          ? (isHighlighted ? 1.0 : 0.94)
+          : (isHighlighted ? 0.98 : 0.72)
+    ),
+    contourWidth: subdued ? (isHighlighted ? 1.6 : 0.75) : commercialHero ? (isHighlighted ? 5.0 : 3.8) : (isHighlighted ? 2.8 : 1.2),
   };
 };
 
@@ -1017,6 +1039,7 @@ const CoverageLayer: React.FC<CoverageLayerProps> = ({
   presentation = 'engineering',
   commercialLabel = 'GEO service area',
   commercialTone = 'primary',
+  commercialHero = false,
 }) => {
   const { viewer } = useCesium();
   const dataSourceRef = useRef<CustomDataSource | null>(null);
@@ -1096,8 +1119,8 @@ const CoverageLayer: React.FC<CoverageLayerProps> = ({
       .join('|')
   ), [renderContours]);
   const renderSignature = useMemo(
-    () => `${selectionRenderSignature}::${renderContentSignature}::${highlightedLegendItemKey ?? 'none'}::${presentation}::${commercialLabel}::${commercialTone}`,
-    [commercialLabel, commercialTone, highlightedLegendItemKey, presentation, renderContentSignature, selectionRenderSignature]
+    () => `${selectionRenderSignature}::${renderContentSignature}::${highlightedLegendItemKey ?? 'none'}::${presentation}::${commercialLabel}::${commercialTone}::${commercialHero ? 'hero' : 'standard'}`,
+    [commercialHero, commercialLabel, commercialTone, highlightedLegendItemKey, presentation, renderContentSignature, selectionRenderSignature]
   );
   useEffect(() => {
     if (!relevantSatellite || relevantSatellite.type !== 'EUTELSAT' || !relevantSatellite.coverageFileId) {
@@ -1207,6 +1230,7 @@ const CoverageLayer: React.FC<CoverageLayerProps> = ({
         highlightedLegendItemKey === contourLegendKey,
         contour.direction,
         commercialTone,
+        commercialHero,
       );
       const fillId = `${coverageEntityId}::fill::${contour.contourKey}::${contour.geometryPartKey}`;
       const outlineId = `${coverageEntityId}::outline::${contour.contourKey}::${contour.geometryPartKey}`;

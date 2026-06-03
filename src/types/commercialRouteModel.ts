@@ -136,6 +136,11 @@ export type CommercialRouteEdgeType =
  * FRAME_ARC       Back out to show the full SPACE_LINK arc including the
  *                 SKY_BRIDGE node at its apex (satellite segment focus).
  *
+ * FRAME_GEO_COVERAGE
+ *                 GEO satellite segment focus. Frame the selected coverage
+ *                 footprint and customer site instead of the synthetic
+ *                 SKY_BRIDGE node.
+ *
  * FRAME_BACKBONE  Re-orient the camera to the geographic midpoint of the
  *                 BACKBONE_LINK, revealing HUB nodes and their labels.
  *
@@ -145,6 +150,7 @@ export type CommercialRouteEdgeType =
 export type CommercialRouteFocusBehaviour =
   | 'FRAME_NODE'
   | 'FRAME_ARC'
+  | 'FRAME_GEO_COVERAGE'
   | 'FRAME_BACKBONE'
   | 'FRAME_ROUTE';
 

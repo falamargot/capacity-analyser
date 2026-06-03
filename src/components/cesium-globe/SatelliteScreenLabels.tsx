@@ -16,6 +16,7 @@ interface SatelliteScreenLabelsProps {
     isRouteParticipant?: boolean;
     serviceRoles?: Array<'A' | 'B'>;
     commercialRole?: 'serving' | 'alternative' | 'candidate';
+    commercialLabelLines?: string[];
   }>;
   viewerReady?: boolean;
   presentation?: 'engineering' | 'commercial';
@@ -161,7 +162,7 @@ const SatelliteScreenLabels: React.FC<SatelliteScreenLabelsProps> = ({
 
   return (
     <>
-      {sortedSatellites.map(({ satellite, isManuallySelected, isRouteParticipant, commercialRole }, index) => {
+      {sortedSatellites.map(({ satellite, isManuallySelected, isRouteParticipant, commercialRole, commercialLabelLines }, index) => {
         const effectiveCommercialRole = commercialRole ?? (isRouteParticipant ? 'serving' : 'candidate');
         const isGeo = satellite.type === 'EUTELSAT';
         const isCommercialSecondary = presentation === 'commercial' && effectiveCommercialRole !== 'serving';
@@ -216,11 +217,12 @@ const SatelliteScreenLabels: React.FC<SatelliteScreenLabelsProps> = ({
                   {/* GEO: satellite name is the primary commercial identity */}
                   {isGeo && (
                     <>
-                      <div className="text-[9px] font-bold uppercase tracking-[0.14em] text-sky-300">{commercialRoleLabel}</div>
-                      <div className="mt-0.5">{satellite.name}</div>
-                      <div className={`mt-0.5 text-[10px] font-semibold ${effectiveCommercialRole === 'serving' ? 'text-emerald-300' : 'text-slate-400'}`}>
-                        {commercialStateLabel}
-                      </div>
+                      <div>{satellite.name}</div>
+                      {commercialLabelLines?.map((line) => (
+                        <div key={line} className="mt-0.5 text-[10px] font-semibold text-sky-200">
+                          {line}
+                        </div>
+                      ))}
                     </>
                   )}
                   {/* LEO: service label is primary; satellite ID is secondary detail */}
