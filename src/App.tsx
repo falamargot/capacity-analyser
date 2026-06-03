@@ -11,13 +11,13 @@ import { ThemeSelector } from './components/ThemeSelector';
 import MobileAnalysisSummary from './components/layout/MobileAnalysisSummary';
 import SidebarHeroCard from './components/layout/SidebarHeroCard';
 import MissionKpiBar from './components/layout/MissionKpiBar';
+import type { RouteSelectorEndpoint } from './components/layout/RouteSelectorStatement';
 import { MemoryMonitorHud } from './components/MemoryMonitorHud';
 import { setMemoryMonitorViewerGetter } from './utils/memoryMonitor';
 import ExportButton, { type ExportButtonPayload } from './components/ExportButton';
 import SimulationSettings from './components/layout/SimulationSettings';
 import CommercialModeShell from './components/commercial/CommercialModeShell';
-import CommercialKpiBar from './components/commercial/CommercialKpiBar';
-import CommercialRouteHeader, { type CommercialRouteHeaderProps } from './components/commercial/CommercialRouteHeader';
+import CommercialMissionBar from './components/commercial/CommercialMissionBar';
 import CommercialRouteStrip from './components/commercial/CommercialRouteStrip';
 import CommercialInspectorPanel from './components/commercial/CommercialInspectorPanel';
 import { buildCommercialScenarioViewModel } from './components/commercial/commercialViewModel';
@@ -372,6 +372,7 @@ const App: React.FC = () => {
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
   const [isTargetSourcesMenuOpen, setIsTargetSourcesMenuOpen] = useState(false);
   const [commandPaletteQuery, setCommandPaletteQuery] = useState('');
+  const [routeSelectionTarget, setRouteSelectionTarget] = useState<'origin' | 'destination' | null>(null);
   const [isHelpMenuOpen, setIsHelpMenuOpen] = useState(false);
   const {
     authorshipToastVisible,
@@ -2328,6 +2329,15 @@ const App: React.FC = () => {
     setSearchQuery('');
   }, [selectTarget]);
 
+  const handleDestinationLocationSelect = useCallback((lat: number, lng: number) => {
+    setCameraTarget({ lat, lng, alt: 10000 });
+    setSiteB({ lat, lng });
+    setIsSiteBArmed(false);
+    setLeoTopologyMode('SITE_TO_SITE');
+    setLinkMode((mode) => LINK_MODE_REQUIRES_POINT_B.has(mode) ? mode : 'MESH');
+    setSearchQuery('');
+  }, []);
+
   // Routes a coverage selection to the uplink or downlink key.
   // Enforces the same-satellite constraint: when one direction changes satellite,
   // the other is auto-updated to the best candidate of that satellite.
@@ -2411,7 +2421,29 @@ const App: React.FC = () => {
   const handleCloseCommandPalette = useCallback(() => {
     setIsCommandPaletteOpen(false);
     setCommandPaletteQuery('');
+    setRouteSelectionTarget(null);
   }, []);
+
+  const handleOpenRouteEndpointSearch = useCallback((target: 'origin' | 'destination') => {
+    setRouteSelectionTarget(target);
+    setIsSatelliteModalOpen(false);
+    setIsTargetSourcesMenuOpen(false);
+    setIsHelpMenuOpen(false);
+    setCommandPaletteQuery('');
+    setIsCommandPaletteOpen(true);
+    requestAnimationFrame(() => commandPaletteSearchRef.current?.focus());
+  }, []);
+
+  const handleSwapRouteEndpoints = useCallback(() => {
+    if (!activeAnalysisPoint || !siteB) return;
+
+    const nextDestination = { lat: activeAnalysisPoint.lat, lng: activeAnalysisPoint.lng };
+    handleLocationSelect(siteB.lat, siteB.lng);
+    setSiteB(nextDestination);
+    setIsSiteBArmed(false);
+    setLeoTopologyMode('SITE_TO_SITE');
+    setLinkMode((mode) => LINK_MODE_REQUIRES_POINT_B.has(mode) ? mode : 'MESH');
+  }, [activeAnalysisPoint, handleLocationSelect, siteB]);
 
   const handleDesktopTargetSearchFocus = useCallback(() => {
     setIsSatelliteModalOpen(false);
@@ -3356,7 +3388,7 @@ const App: React.FC = () => {
     activeGeoSatellite,
   ]);
 
-  const commercialRouteHeaderRoute = useMemo<CommercialRouteHeaderProps>(() => ({
+  const routeSelectorRoute = useMemo<{ origin?: RouteSelectorEndpoint; destination?: RouteSelectorEndpoint }>(() => ({
     origin: activeAnalysisPoint && commercialScenarioViewModel.siteA
       ? { label: commercialScenarioViewModel.siteA.name }
       : undefined,
@@ -3891,7 +3923,7 @@ const App: React.FC = () => {
           commercialRouteModel={commercialRouteModel}
           onSelectedSegmentChange={setCommercialSelectedSegment}
           onViewFullAnalysis={() => handleUiModeChange('engineering')}
-          currentRoute={commercialRouteHeaderRoute}
+          currentRoute={routeSelectorRoute}
           isMobile={isMobile}
           isFullscreen={isFullscreen}
           globe={(
@@ -4298,13 +4330,14 @@ const App: React.FC = () => {
                   because it does not contain the globe. */}
               {uiMode === 'commercial'
                 ? (
-                  <>
-                    <CommercialRouteHeader
-                      origin={commercialRouteHeaderRoute.origin}
-                      destination={commercialRouteHeaderRoute.destination}
-                    />
-                    <CommercialKpiBar viewModel={commercialScenarioViewModel} />
-                  </>
+                  <CommercialMissionBar
+                    viewModel={commercialScenarioViewModel}
+                    origin={routeSelectorRoute.origin}
+                    destination={routeSelectorRoute.destination}
+                    onOriginClick={() => handleOpenRouteEndpointSearch('origin')}
+                    onDestinationClick={() => handleOpenRouteEndpointSearch('destination')}
+                    onSwapClick={handleSwapRouteEndpoints}
+                  />
                 )
                 : <div className="h-0 overflow-hidden" aria-hidden="true" />
               }
@@ -4546,7 +4579,7 @@ const App: React.FC = () => {
             vessels={maritimeTraffic.vessels}
             anchorRef={commandPaletteSearchRef}
             hideInlineSearchWhenAnchored
-            resultTypes={satelliteScope === 'GEO' ? ['satellite', 'moon', 'location', 'gateway'] : satelliteScope === 'LEO' ? ['satellite', 'moon', 'location', 'snp'] : ['satellite', 'moon', 'location', 'snp', 'gateway']}
+            resultTypes={routeSelectionTarget ? ['location'] : satelliteScope === 'GEO' ? ['satellite', 'moon', 'location', 'gateway'] : satelliteScope === 'LEO' ? ['satellite', 'moon', 'location', 'snp'] : ['satellite', 'moon', 'location', 'snp', 'gateway']}
             query={commandPaletteQuery}
             onQueryChange={setCommandPaletteQuery}
             onSelectSatellite={(satellite) => {
@@ -4574,7 +4607,12 @@ const App: React.FC = () => {
               if (isMobile) setIsSatelliteModalOpen(false);
             }}
             onSelectLocation={(lat, lng) => {
-              handleLocationSelect(lat, lng);
+              if (routeSelectionTarget === 'destination') {
+                handleDestinationLocationSelect(lat, lng);
+              } else {
+                handleLocationSelect(lat, lng);
+              }
+              setRouteSelectionTarget(null);
               if (isMobile) setIsSatelliteModalOpen(false);
             }}
           />

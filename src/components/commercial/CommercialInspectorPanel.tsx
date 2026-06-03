@@ -1,7 +1,7 @@
 import { memo, type ReactNode } from 'react';
 import { ExternalLink } from 'lucide-react';
 import type { CommercialRouteModel, CommercialRouteSegmentId } from '../../types/commercialRouteModel';
-import type { CommercialRouteSegment, CommercialScenarioViewModel } from './commercialViewModel';
+import type { CommercialRouteSegment, CommercialScenarioViewModel, CommercialTechnologyOption } from './commercialViewModel';
 import { customerServiceStateLabel, formatMbps, formatMs, segmentStatusChipClassName } from './commercialDisplayUtils';
 
 const segmentOrder: CommercialRouteSegment['type'][] = ['access', 'satellite', 'backhaul', 'destination', 'summary'];
@@ -73,6 +73,11 @@ function alternativeLabel(viewModel: CommercialScenarioViewModel): string {
 
 function primaryWhy(viewModel: CommercialScenarioViewModel): string {
   return viewModel.executiveSummary.reason || viewModel.recommendation.reason;
+}
+
+function comparisonRowValue(option: CommercialTechnologyOption): string {
+  const strength = option.strengths[0] ?? option.limitingFactor ?? option.statusLabel;
+  return `${option.statusLabel} - ${formatMs(option.rttMs)} RTT, ${formatMbps(option.downloadMbps)} down, ${formatMbps(option.uploadMbps)} up - ${strength}`;
 }
 
 function selectedConstraint(segment: CommercialRouteSegment | undefined, viewModel: CommercialScenarioViewModel): string {
@@ -168,6 +173,10 @@ function CommercialInspectorPanel({
     { label: 'Customer RTT', value: formatMs(segment?.latencyMs ?? viewModel.rttMs) },
     { label: 'Service technology', value: viewModel.technology.toUpperCase() },
   ];
+  const comparisonRows = viewModel.comparison.options.map((option) => ({
+    label: `${option.label} option`,
+    value: comparisonRowValue(option),
+  }));
   const availabilityRows = [
     { label: 'Service availability', value: viewModel.availabilityPct != null ? `${viewModel.availabilityPct.toFixed(2)}%` : viewModel.display.serviceStatusLabel },
     { label: 'Access weather', value: viewModel.display.weatherA ?? '--' },
@@ -270,6 +279,12 @@ function CommercialInspectorPanel({
               <FieldRow key={`${row.label}-${row.value}`} label={row.label} value={row.value} />
             ))}
             {limitingRows.map((row) => (
+              <FieldRow key={`${row.label}-${row.value}`} label={row.label} value={row.value} />
+            ))}
+          </DetailSection>
+
+          <DetailSection title="LEO vs GEO Comparison">
+            {comparisonRows.map((row) => (
               <FieldRow key={`${row.label}-${row.value}`} label={row.label} value={row.value} />
             ))}
           </DetailSection>
