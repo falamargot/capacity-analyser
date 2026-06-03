@@ -1,13 +1,14 @@
 import { memo, type ReactNode } from 'react';
 import { ArrowDown, ArrowUp, RadioTower, Star, Timer } from 'lucide-react';
-import RouteSelectorStatement, { type RouteSelectorEndpoint } from '../layout/RouteSelectorStatement';
 import type { CommercialScenarioViewModel, CommercialTechnologyOption } from './commercialViewModel';
+import ConnectivityScenarioCard from './ConnectivityScenarioCard';
 import { formatMbps, formatMs, serviceStatusChipClassName } from './commercialDisplayUtils';
+import type { ConnectivityEndpoint, ConnectivityScenarioType } from './commercialTypes';
 
 interface CommercialMissionBarProps {
   viewModel: CommercialScenarioViewModel;
-  origin?: RouteSelectorEndpoint;
-  destination?: RouteSelectorEndpoint;
+  origin?: ConnectivityEndpoint;
+  destination?: ConnectivityEndpoint;
   onOriginClick: () => void;
   onDestinationClick: () => void;
   onSwapClick: () => void;
@@ -19,6 +20,22 @@ function optionFor(viewModel: CommercialScenarioViewModel, technology: 'leo' | '
 
 function isRecommended(viewModel: CommercialScenarioViewModel, technology: 'leo' | 'geo'): boolean {
   return viewModel.recommendation.technology === technology;
+}
+
+function scenarioTypeFor(viewModel: CommercialScenarioViewModel): ConnectivityScenarioType {
+  const destinationType = viewModel.display.destinationType?.toLowerCase() ?? '';
+  if (
+    destinationType.includes('snp')
+    || destinationType.includes('portal')
+    || destinationType.includes('gateway')
+    || destinationType.includes('network')
+  ) {
+    return 'network_access';
+  }
+
+  // UI-only fallback: until terminal/profile selection stores endpoint kinds,
+  // uncertain destinations default to site-to-site.
+  return 'site_to_site';
 }
 
 function missionReason(viewModel: CommercialScenarioViewModel): string {
@@ -93,6 +110,7 @@ function CommercialMissionBar({
 }: CommercialMissionBarProps) {
   const leo = optionFor(viewModel, 'leo');
   const geo = optionFor(viewModel, 'geo');
+  const scenarioType = scenarioTypeFor(viewModel);
   const recommendationLabel = viewModel.recommendation.technology === 'hybrid'
     ? 'Hybrid suitable'
     : viewModel.recommendation.technology === 'not_available'
@@ -103,15 +121,15 @@ function CommercialMissionBar({
 
   return (
     <section className="border-b border-slate-800/70 bg-slate-950/96 px-3 py-2 shadow-sm backdrop-blur" aria-label="Commercial mission briefing">
-      <div className="grid min-h-[76px] min-w-0 grid-cols-[minmax(11rem,0.9fr)_minmax(18rem,1.25fr)_minmax(7.2rem,0.48fr)_minmax(7.2rem,0.48fr)] gap-2">
+      <div className="grid min-h-[76px] min-w-0 grid-cols-[minmax(14rem,0.95fr)_minmax(18rem,1.2fr)_minmax(7.2rem,0.48fr)_minmax(7.2rem,0.48fr)] gap-2">
         <div className="min-w-0 rounded-lg border border-slate-800/75 bg-slate-900/45 p-2">
-          <RouteSelectorStatement
+          <ConnectivityScenarioCard
             origin={origin}
             destination={destination}
+            scenarioType={scenarioType}
             onOriginClick={onOriginClick}
             onDestinationClick={onDestinationClick}
             onSwapClick={onSwapClick}
-            compact
           />
         </div>
 

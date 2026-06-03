@@ -11,7 +11,6 @@ import { ThemeSelector } from './components/ThemeSelector';
 import MobileAnalysisSummary from './components/layout/MobileAnalysisSummary';
 import SidebarHeroCard from './components/layout/SidebarHeroCard';
 import MissionKpiBar from './components/layout/MissionKpiBar';
-import type { RouteSelectorEndpoint } from './components/layout/RouteSelectorStatement';
 import { MemoryMonitorHud } from './components/MemoryMonitorHud';
 import { setMemoryMonitorViewerGetter } from './utils/memoryMonitor';
 import ExportButton, { type ExportButtonPayload } from './components/ExportButton';
@@ -21,6 +20,7 @@ import CommercialMissionBar from './components/commercial/CommercialMissionBar';
 import CommercialRouteStrip from './components/commercial/CommercialRouteStrip';
 import CommercialInspectorPanel from './components/commercial/CommercialInspectorPanel';
 import { buildCommercialScenarioViewModel } from './components/commercial/commercialViewModel';
+import type { ConnectivityEndpoint, TerminalCapability } from './components/commercial/commercialTypes';
 import { buildCommercialRouteModel } from './utils/commercialRouteModel';
 import { WeatherControl, WEATHER_PROFILES, type TerminalType, type WeatherType, toWeatherCondition } from './components/capacity';
 import { WEATHER_ATTENUATION_DB } from './utils/realisticSimulation';
@@ -102,6 +102,13 @@ const COMPACT_DESKTOP_DIAG_MAX = Math.hypot(2560, 1440);
 const REPRESENTATIVE_TELEPORT_IMAGE_URL = 'https://upload.wikimedia.org/wikipedia/commons/thumb/f/fe/Teleport_of_satellite_communications_provider.jpg/960px-Teleport_of_satellite_communications_provider.jpg';
 const AUTHORSHIP_SIGNATURE = 'F.Alamargot - 2026';
 const EMPTY_SNP_CONNECTED_SATELLITES: SNPConnectedSatellite[] = [];
+const COMM_9B_ORIGIN_TERMINALS: TerminalCapability[] = [
+  { id: 'comm-9b-origin-geo-vsat', technology: 'geo', band: 'Ku', label: 'VSAT' },
+  { id: 'comm-9b-origin-leo-ow70l', technology: 'leo', model: 'OW70L' },
+];
+const COMM_9B_DESTINATION_TERMINALS: TerminalCapability[] = [
+  { id: 'comm-9b-destination-geo-vsat', technology: 'geo', band: 'Ku', label: 'VSAT' },
+];
 
 const clampNumber = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
 
@@ -3388,12 +3395,12 @@ const App: React.FC = () => {
     activeGeoSatellite,
   ]);
 
-  const routeSelectorRoute = useMemo<{ origin?: RouteSelectorEndpoint; destination?: RouteSelectorEndpoint }>(() => ({
+  const routeSelectorRoute = useMemo<{ origin?: ConnectivityEndpoint; destination?: ConnectivityEndpoint }>(() => ({
     origin: activeAnalysisPoint && commercialScenarioViewModel.siteA
-      ? { label: commercialScenarioViewModel.siteA.name }
+      ? { label: commercialScenarioViewModel.siteA.name, terminals: COMM_9B_ORIGIN_TERMINALS }
       : undefined,
     destination: siteB && commercialScenarioViewModel.siteB
-      ? { label: commercialScenarioViewModel.siteB.name }
+      ? { label: commercialScenarioViewModel.siteB.name, terminals: COMM_9B_DESTINATION_TERMINALS }
       : undefined,
   }), [activeAnalysisPoint, commercialScenarioViewModel.siteA, commercialScenarioViewModel.siteB, siteB]);
 

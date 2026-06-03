@@ -2,6 +2,23 @@ export type CommercialStatus = 'active' | 'degraded' | 'blocked' | 'unknown';
 
 export type CommercialTechnology = 'leo' | 'geo' | 'hybrid';
 
+export type ConnectivityScenarioType = 'site_to_site' | 'network_access';
+
+export type TerminalCapabilityTechnology = 'geo' | 'leo';
+
+export interface TerminalCapability {
+  id: string;
+  technology: TerminalCapabilityTechnology;
+  band?: string;
+  label?: string;
+  model?: string;
+}
+
+export interface ConnectivityEndpoint {
+  label?: string;
+  terminals?: TerminalCapability[];
+}
+
 export type CommercialRouteSegmentType =
   | 'access'
   | 'satellite'
