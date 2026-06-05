@@ -465,10 +465,11 @@ interface TerminalRFSettingsPanelProps {
   rfClassId: TerminalRFClassId;
   customParams: TerminalRFCustomParams | null;
   onCustomParamsChange: (params: TerminalRFCustomParams | null) => void;
+  presetDisplayLabel?: string;
 }
 
 const TerminalRFSettingsPanel = memo<TerminalRFSettingsPanelProps>(({
-  rfClassId, customParams, onCustomParamsChange,
+  rfClassId, customParams, onCustomParamsChange, presetDisplayLabel,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
 
@@ -511,7 +512,7 @@ const TerminalRFSettingsPanel = memo<TerminalRFSettingsPanelProps>(({
     />
   );
 
-  const basedOnLabel = presetSpec?.label ?? rfClassId;
+  const basedOnLabel = presetDisplayLabel ?? presetSpec?.label ?? rfClassId;
 
   return (
     <div className="mt-1">
@@ -688,6 +689,7 @@ interface TerminalConfigProps {
   leoTerminalModelId?: string | null;
   onLeoTerminalModelIdChange?: (id: string) => void;
   showLeoTerminalModelSelector?: boolean;
+  rfPresetDisplayLabel?: string;
 }
 
 const STATUS_ICON_BY_LABEL: Record<string, LucideIcon> = {
@@ -726,6 +728,7 @@ const TerminalConfig = memo<TerminalConfigProps>(({
   leoTerminalModelId,
   onLeoTerminalModelIdChange,
   showLeoTerminalModelSelector = false,
+  rfPresetDisplayLabel,
 }) => {
   const dense = compact && !showWeather;
   const effectiveRFClassId = rfClassId ?? getDefaultRFClassForUseCase(terminalType, band);
@@ -746,7 +749,7 @@ const TerminalConfig = memo<TerminalConfigProps>(({
       const liveGt = computeTerminalGtDbk(rxGain, rfCustomParams.systemNoiseTempK);
       return {
         label: 'Custom RF Profile',
-        basedOnLabel: presetSpec?.label ?? effectiveRFClassId,
+        basedOnLabel: rfPresetDisplayLabel ?? presetSpec?.label ?? effectiveRFClassId,
         antennaDiameterM: rfCustomParams.antennaDiameterM,
         bucPowerW: rfCustomParams.bucPowerW,
         eirp: liveEirp,
@@ -766,7 +769,7 @@ const TerminalConfig = memo<TerminalConfigProps>(({
         isCustom: false,
       };
     } catch { return null; }
-  }, [showRFClass, onRFClassChange, effectiveRFBand, rfCustomParams, effectiveRFClassId]);
+  }, [showRFClass, onRFClassChange, effectiveRFBand, rfCustomParams, effectiveRFClassId, rfPresetDisplayLabel]);
 
   return (
   <div className={className}>
@@ -894,6 +897,7 @@ const TerminalConfig = memo<TerminalConfigProps>(({
                 rfClassId={effectiveRFClassId}
                 customParams={rfCustomParams ?? null}
                 onCustomParamsChange={onRFCustomParamsChange}
+                presetDisplayLabel={rfPresetDisplayLabel}
               />
             )}
           </>

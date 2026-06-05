@@ -687,9 +687,11 @@ interface GEOConnectivitySectionProps {
   /** RF capability class for Terminal A (drives computed EIRP/G/T). */
   rfClassIdA?: TerminalRFClassId;
   onRFClassIdAChange?: (id: TerminalRFClassId) => void;
+  rfPresetDisplayLabelA?: string;
   /** RF capability class for Terminal B (drives computed EIRP/G/T). */
   rfClassIdB?: TerminalRFClassId;
   onRFClassIdBChange?: (id: TerminalRFClassId) => void;
+  rfPresetDisplayLabelB?: string;
   rfCustomParamsA?: TerminalRFCustomParams | null;
   onRFCustomParamsAChange?: (params: TerminalRFCustomParams | null) => void;
   rfCustomParamsB?: TerminalRFCustomParams | null;
@@ -749,8 +751,10 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
   onTerminalTypeBChange,
   rfClassIdA,
   onRFClassIdAChange,
+  rfPresetDisplayLabelA,
   rfClassIdB,
   onRFClassIdBChange,
+  rfPresetDisplayLabelB,
   rfCustomParamsA,
   onRFCustomParamsAChange,
   rfCustomParamsB,
@@ -1142,6 +1146,7 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
                 onTerminalTypeChange={onTerminalTypeChange}
                 rfClassId={rfClassIdA}
                 onRFClassChange={onRFClassIdAChange}
+                rfPresetDisplayLabel={rfPresetDisplayLabelA}
                 rfCustomParams={rfCustomParamsA}
                 onRFCustomParamsChange={onRFCustomParamsAChange}
                 weatherType={weatherType}
@@ -1164,6 +1169,7 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
                 onTerminalTypeChange={onTerminalTypeBChange}
                 rfClassId={rfClassIdB}
                 onRFClassChange={onRFClassIdBChange}
+                rfPresetDisplayLabel={rfPresetDisplayLabelB}
                 rfCustomParams={rfCustomParamsB}
                 onRFCustomParamsChange={onRFCustomParamsBChange}
                 weatherType={weatherType}
@@ -1211,6 +1217,7 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
                   onTerminalTypeChange={onTerminalTypeChange}
                   rfClassId={rfClassIdA}
                   onRFClassChange={onRFClassIdAChange}
+                  rfPresetDisplayLabel={rfPresetDisplayLabelA}
                   rfCustomParams={rfCustomParamsA}
                   onRFCustomParamsChange={onRFCustomParamsAChange}
                   weatherType={weatherType}
@@ -1236,6 +1243,7 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
                   onTerminalTypeChange={onTerminalTypeChange}
                   rfClassId={rfClassIdA}
                   onRFClassChange={onRFClassIdAChange}
+                  rfPresetDisplayLabel={rfPresetDisplayLabelA}
                   rfCustomParams={rfCustomParamsA}
                   onRFCustomParamsChange={onRFCustomParamsAChange}
                   weatherType={weatherType}

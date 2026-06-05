@@ -75,6 +75,7 @@ import {
 import {
   USE_CASE_DEFAULT_RF_CLASS,
   getRFClassBand,
+  getRFClassSpec,
   isRFClassCompatibleWithUseCase,
   type TerminalRFClassId,
   type TerminalRFCustomParams,
@@ -93,6 +94,11 @@ import {
   areTerminalCapabilitiesEqual,
   buildEngineeringEndpointTerminalCapabilities,
 } from './state/connectivityScenario/connectivityScenarioEngineeringSync';
+import {
+  buildEngineeringTerminalReadModelFromScenario,
+  diagnoseEngineeringReadModelParity,
+  resolveEngineeringTerminalDisplayLabel,
+} from './state/connectivityScenario/connectivityScenarioEngineeringReadModel';
 import { createScenarioEndpointFromLocation } from './state/connectivityScenario/connectivityScenarioSync';
 import { geoServiceTopologyFromLegacyLinkMode } from './utils/connectivityScenarioAdapters';
 import {
@@ -301,6 +307,40 @@ const App: React.FC = () => {
     () => engineeringDestinationTerminalCapabilities.map(terminalCapabilityToCommercialChip),
     [engineeringDestinationTerminalCapabilities],
   );
+  const engineeringScenarioReadModel = useMemo(
+    () => buildEngineeringTerminalReadModelFromScenario(connectivityScenario),
+    [connectivityScenario],
+  );
+  const engineeringOriginGeoReadModelParity = useMemo(
+    () => diagnoseEngineeringReadModelParity({
+      endpoint: 'origin',
+      geoRFClassId: geoRFClassIdA,
+      geoTerminalType,
+    }, connectivityScenario),
+    [connectivityScenario, geoRFClassIdA, geoTerminalType],
+  );
+  const geoRFPresetDisplayLabelA = useMemo(() => (
+    resolveEngineeringTerminalDisplayLabel({
+      legacyLabel: getRFClassSpec(geoRFClassIdA)?.label ?? geoRFClassIdA,
+      scenarioReadModelLabel: engineeringScenarioReadModel.origin?.geoTerminal?.label,
+      parityOk: engineeringOriginGeoReadModelParity.ok,
+    })
+  ), [engineeringOriginGeoReadModelParity.ok, engineeringScenarioReadModel.origin?.geoTerminal?.label, geoRFClassIdA]);
+  const engineeringDestinationGeoReadModelParity = useMemo(
+    () => diagnoseEngineeringReadModelParity({
+      endpoint: 'destination',
+      geoRFClassId: geoRFClassIdB,
+      geoTerminalType: geoTerminalTypeB,
+    }, connectivityScenario),
+    [connectivityScenario, geoRFClassIdB, geoTerminalTypeB],
+  );
+  const geoRFPresetDisplayLabelB = useMemo(() => (
+    resolveEngineeringTerminalDisplayLabel({
+      legacyLabel: getRFClassSpec(geoRFClassIdB)?.label ?? geoRFClassIdB,
+      scenarioReadModelLabel: engineeringScenarioReadModel.destination?.geoTerminal?.label,
+      parityOk: engineeringDestinationGeoReadModelParity.ok,
+    })
+  ), [engineeringDestinationGeoReadModelParity.ok, engineeringScenarioReadModel.destination?.geoTerminal?.label, geoRFClassIdB]);
   const [weatherType, setWeatherType] = useState<WeatherType>(() => weatherTypeFromCondition(weatherCondition));
   const [autoWeatherEnabled, setAutoWeatherEnabled] = useState<boolean>(true);
   const [weatherTypeB, setWeatherTypeB] = useState<WeatherType>('clear');
@@ -4149,8 +4189,10 @@ const App: React.FC = () => {
                     onGeoTerminalTypeBChange={handleGeoTerminalTypeBChange}
                     geoRFClassIdA={geoRFClassIdA}
                     onGeoRFClassIdAChange={setGeoRFClassIdA}
+                    geoRFPresetDisplayLabelA={geoRFPresetDisplayLabelA}
                     geoRFClassIdB={geoRFClassIdB}
                     onGeoRFClassIdBChange={setGeoRFClassIdB}
+                    geoRFPresetDisplayLabelB={geoRFPresetDisplayLabelB}
                     geoRFCustomParamsA={geoRFCustomParamsA}
                     onGeoRFCustomParamsAChange={setGeoRFCustomParamsA}
                     geoRFCustomParamsB={geoRFCustomParamsB}
@@ -4369,12 +4411,14 @@ const App: React.FC = () => {
                                 onLeoTerminalModelIdBChange={setLeoTerminalModelIdB}
                                 geoTerminalType={geoTerminalType}
                                 onGeoTerminalTypeChange={setGeoTerminalType}
-                    geoTerminalTypeB={geoTerminalTypeB}
-                    onGeoTerminalTypeBChange={setGeoTerminalTypeB}
+                                geoTerminalTypeB={geoTerminalTypeB}
+                                onGeoTerminalTypeBChange={setGeoTerminalTypeB}
                                 geoRFClassIdA={geoRFClassIdA}
                                 onGeoRFClassIdAChange={setGeoRFClassIdA}
+                                geoRFPresetDisplayLabelA={geoRFPresetDisplayLabelA}
                                 geoRFClassIdB={geoRFClassIdB}
                                 onGeoRFClassIdBChange={setGeoRFClassIdB}
+                                geoRFPresetDisplayLabelB={geoRFPresetDisplayLabelB}
                                 geoRFCustomParamsA={geoRFCustomParamsA}
                                 onGeoRFCustomParamsAChange={setGeoRFCustomParamsA}
                                 geoRFCustomParamsB={geoRFCustomParamsB}
@@ -4640,8 +4684,10 @@ const App: React.FC = () => {
                           onGeoTerminalTypeBChange={setGeoTerminalTypeB}
                           geoRFClassIdA={geoRFClassIdA}
                           onGeoRFClassIdAChange={setGeoRFClassIdA}
+                          geoRFPresetDisplayLabelA={geoRFPresetDisplayLabelA}
                           geoRFClassIdB={geoRFClassIdB}
                           onGeoRFClassIdBChange={setGeoRFClassIdB}
+                          geoRFPresetDisplayLabelB={geoRFPresetDisplayLabelB}
                           geoRFCustomParamsA={geoRFCustomParamsA}
                           onGeoRFCustomParamsAChange={setGeoRFCustomParamsA}
                           geoRFCustomParamsB={geoRFCustomParamsB}

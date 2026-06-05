@@ -148,9 +148,11 @@ interface CapacityDetailsProps {
   /** RF capability class for terminal A — drives computed EIRP/G/T in the link budget. */
   geoRFClassIdA?: TerminalRFClassId;
   onGeoRFClassIdAChange?: (id: TerminalRFClassId) => void;
+  geoRFPresetDisplayLabelA?: string;
   /** RF capability class for terminal B — drives computed EIRP/G/T in the link budget. */
   geoRFClassIdB?: TerminalRFClassId;
   onGeoRFClassIdBChange?: (id: TerminalRFClassId) => void;
+  geoRFPresetDisplayLabelB?: string;
   geoRFCustomParamsA?: import('../utils/geoTerminalRFModel').TerminalRFCustomParams | null;
   onGeoRFCustomParamsAChange?: (params: import('../utils/geoTerminalRFModel').TerminalRFCustomParams | null) => void;
   geoRFCustomParamsB?: import('../utils/geoTerminalRFModel').TerminalRFCustomParams | null;
@@ -302,7 +304,7 @@ ${currentRule}`;
 };
 
 // Performance optimization: Memoize component to prevent unnecessary re-renders
-const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint, selectedSatellite, autoSelectedLEOSatellite, satelliteScope, activeConnectionTab, onActiveConnectionTabChange, onMetricsChange, onSatelliteClick, analysisSource, aircraftCallsign, selectedSNP: propSelectedSNP, candidateCoverages = [], selectedCoverage = null, onSelectCoverage, selectedUplinkCoverage = null, selectedDownlinkCoverage = null, onSelectUplinkCoverage, onSelectDownlinkCoverage, selectedUplinkCoverageB = null, selectedDownlinkCoverageB = null, onSelectUplinkCoverageB, onSelectDownlinkCoverageB, selectedGeoMission, selectedGeoCoverageName, selectedGeoBeamId, visibleGeoCoverageKeys, onSelectGeoMission, onSelectGeoCoverage, onSelectGeoBeam, onVisibleGeoCoverageKeysChange, onSnpClick, compactDesktop = false, externalHeader = false, globeRef, cesiumViewerRef, onExportStateChange, regulatoryResultOverride = null, regulatoryResultBOverride = null, beamLoadResultOverride = null, serviceLayerResultOverride = null, leoServiceViewModelOverride = null, leoTerminalType, onLeoTerminalTypeChange, leoTerminalModelId, onLeoTerminalModelIdChange, leoTerminalTypeB, onLeoTerminalTypeBChange, leoTerminalModelIdB, onLeoTerminalModelIdBChange, geoTerminalType, onGeoTerminalTypeChange, geoTerminalTypeB, onGeoTerminalTypeBChange, geoRFClassIdA, onGeoRFClassIdAChange, geoRFClassIdB, onGeoRFClassIdBChange, geoRFCustomParamsA, onGeoRFCustomParamsAChange, geoRFCustomParamsB, onGeoRFCustomParamsBChange, weatherType, onWeatherTypeChange, weatherTypeB, onWeatherTypeBChange, autoWeatherEnabled, onAutoWeatherChange, linkMode = 'STAR_FORWARD', onLinkModeChange, pointB = null, candidateCoveragesB = [], pointAIsUserDefined = false, pointBIsUserDefined = false, activeMeshTab, onActiveMeshTabChange,
+const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint, selectedSatellite, autoSelectedLEOSatellite, satelliteScope, activeConnectionTab, onActiveConnectionTabChange, onMetricsChange, onSatelliteClick, analysisSource, aircraftCallsign, selectedSNP: propSelectedSNP, candidateCoverages = [], selectedCoverage = null, onSelectCoverage, selectedUplinkCoverage = null, selectedDownlinkCoverage = null, onSelectUplinkCoverage, onSelectDownlinkCoverage, selectedUplinkCoverageB = null, selectedDownlinkCoverageB = null, onSelectUplinkCoverageB, onSelectDownlinkCoverageB, selectedGeoMission, selectedGeoCoverageName, selectedGeoBeamId, visibleGeoCoverageKeys, onSelectGeoMission, onSelectGeoCoverage, onSelectGeoBeam, onVisibleGeoCoverageKeysChange, onSnpClick, compactDesktop = false, externalHeader = false, globeRef, cesiumViewerRef, onExportStateChange, regulatoryResultOverride = null, regulatoryResultBOverride = null, beamLoadResultOverride = null, serviceLayerResultOverride = null, leoServiceViewModelOverride = null, leoTerminalType, onLeoTerminalTypeChange, leoTerminalModelId, onLeoTerminalModelIdChange, leoTerminalTypeB, onLeoTerminalTypeBChange, leoTerminalModelIdB, onLeoTerminalModelIdBChange, geoTerminalType, onGeoTerminalTypeChange, geoTerminalTypeB, onGeoTerminalTypeBChange, geoRFClassIdA, onGeoRFClassIdAChange, geoRFPresetDisplayLabelA, geoRFClassIdB, onGeoRFClassIdBChange, geoRFPresetDisplayLabelB, geoRFCustomParamsA, onGeoRFCustomParamsAChange, geoRFCustomParamsB, onGeoRFCustomParamsBChange, weatherType, onWeatherTypeChange, weatherTypeB, onWeatherTypeBChange, autoWeatherEnabled, onAutoWeatherChange, linkMode = 'STAR_FORWARD', onLinkModeChange, pointB = null, candidateCoveragesB = [], pointAIsUserDefined = false, pointBIsUserDefined = false, activeMeshTab, onActiveMeshTabChange,
   leoTopologyMode = 'SINGLE_SITE',
   pointBLeo = null,
   autoSelectedLEOSatelliteB = null,
@@ -2565,8 +2567,10 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
                     onTerminalTypeChange={onGeoTerminalTypeChange}
                     rfClassIdA={geoRFClassIdA}
                     onRFClassIdAChange={onGeoRFClassIdAChange}
+                    rfPresetDisplayLabelA={geoRFPresetDisplayLabelA}
                     rfClassIdB={geoRFClassIdB}
                     onRFClassIdBChange={onGeoRFClassIdBChange}
+                    rfPresetDisplayLabelB={geoRFPresetDisplayLabelB}
                     rfCustomParamsA={geoRFCustomParamsA}
                     onRFCustomParamsAChange={onGeoRFCustomParamsAChange}
                     rfCustomParamsB={geoRFCustomParamsB}
