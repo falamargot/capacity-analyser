@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
-import CommercialInspectorPanel from './CommercialInspectorPanel';
 import CommercialKpiBar from './CommercialKpiBar';
+import CommercialNarrativeCard from './CommercialNarrativeCard';
 import CommercialRouteHeader, { type CommercialRouteHeaderProps } from './CommercialRouteHeader';
 import CommercialRouteStrip from './CommercialRouteStrip';
 import type { CommercialScenarioViewModel } from './commercialViewModel';
@@ -49,13 +49,13 @@ export default function CommercialModeShell({
                 commercialRouteModel={commercialRouteModel}
                 onSelectedSegmentChange={onSelectedSegmentChange}
               />
-              <div className="max-h-[45vh] min-h-[18rem] overflow-hidden">
-                <CommercialInspectorPanel
+              <div className="max-h-[45vh] min-h-[16rem] overflow-hidden">
+                <CommercialNarrativeCard
                   viewModel={viewModel}
                   selectedSegmentId={selectedSegmentId}
                   commercialRouteModel={commercialRouteModel}
-                  onSelectedSegmentChange={onSelectedSegmentChange}
                   onViewFullAnalysis={onViewFullAnalysis}
+                  compact
                 />
               </div>
             </>
@@ -88,11 +88,10 @@ export default function CommercialModeShell({
         </div>
         {!isFullscreen && (
           <div className="w-[340px] shrink-0">
-            <CommercialInspectorPanel
+            <CommercialNarrativeCard
               viewModel={viewModel}
               selectedSegmentId={selectedSegmentId}
               commercialRouteModel={commercialRouteModel}
-              onSelectedSegmentChange={onSelectedSegmentChange}
               onViewFullAnalysis={onViewFullAnalysis}
             />
           </div>

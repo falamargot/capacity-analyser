@@ -1,0 +1,355 @@
+import type { CommercialRouteModel, CommercialRouteSegmentId } from '../../types/commercialRouteModel';
+import type {
+  CommercialCustomerServiceState,
+  CommercialRouteSegment,
+  CommercialScenarioViewModel,
+  CommercialTechnologyOption,
+} from './commercialViewModel';
+
+export interface CommercialNarrativeFact {
+  label: string;
+  value: string;
+}
+
+export interface CommercialNarrativeCardModel {
+  segmentId: CommercialRouteSegmentId;
+  stepNumber: number;
+  stepTotal: number;
+  eyebrow: string;
+  title: string;
+  statusLabel: string;
+  statusTone: 'good' | 'warning' | 'danger' | 'neutral';
+  narrativeStatement: string;
+  facts: CommercialNarrativeFact[];
+  businessNote: string;
+}
+
+const segmentOrder: CommercialRouteSegmentId[] = ['access', 'satellite', 'backhaul', 'destination', 'summary'];
+
+const segmentTitles: Record<CommercialRouteSegmentId, string> = {
+  access: 'Customer Site',
+  satellite: 'Satellite Service',
+  backhaul: 'Network Backbone',
+  destination: 'Destination',
+  summary: 'Service Outcome',
+};
+
+const customerStateLabel: Record<CommercialCustomerServiceState, string> = {
+  available: 'Available',
+  limited: 'Limited',
+  degraded: 'Degraded',
+  alternative_available: 'Alternative Available',
+  unavailable: 'Unavailable',
+};
+
+function canonicalSegmentId(type: CommercialRouteSegment['type']): CommercialRouteSegmentId {
+  switch (type) {
+    case 'access':
+      return 'access';
+    case 'satellite':
+      return 'satellite';
+    case 'backhaul':
+      return 'backhaul';
+    case 'destination':
+      return 'destination';
+    case 'summary':
+      return 'summary';
+  }
+}
+
+function canonicalSegmentIdFromRaw(value: string | undefined | null): CommercialRouteSegmentId | undefined {
+  switch (value) {
+    case 'access':
+      return 'access';
+    case 'satellite':
+      return 'satellite';
+    case 'backhaul':
+      return 'backhaul';
+    case 'destination':
+    case 'siteB':
+      return 'destination';
+    case 'summary':
+      return 'summary';
+    default:
+      return undefined;
+  }
+}
+
+function segmentForId(
+  viewModel: CommercialScenarioViewModel,
+  segmentId: CommercialRouteSegmentId,
+): CommercialRouteSegment | undefined {
+  return viewModel.routeSegments.find((segment) => canonicalSegmentId(segment.type) === segmentId);
+}
+
+function clean(value: string | undefined | null): string | undefined {
+  const trimmed = value?.trim();
+  if (!trimmed || trimmed === '--') return undefined;
+  return trimmed;
+}
+
+function compactFacts(facts: Array<{ label: string; value?: string | null }>, max = 3): CommercialNarrativeFact[] {
+  const seen = new Set<string>();
+  const result: CommercialNarrativeFact[] = [];
+
+  facts.forEach((fact) => {
+    const value = clean(fact.value);
+    if (!value) return;
+    const key = `${fact.label}:${value}`.toLowerCase();
+    if (seen.has(key)) return;
+    seen.add(key);
+    result.push({ label: fact.label, value });
+  });
+
+  return result.slice(0, max);
+}
+
+function statusTone(segment: CommercialRouteSegment | undefined): CommercialNarrativeCardModel['statusTone'] {
+  if (!segment) return 'neutral';
+  if (segment.customerStatus === 'available') return 'good';
+  if (segment.customerStatus === 'unavailable') return 'danger';
+  if (segment.customerStatus === 'limited' || segment.customerStatus === 'degraded') return 'warning';
+  return 'neutral';
+}
+
+function selectedConstraint(
+  segment: CommercialRouteSegment | undefined,
+  viewModel: CommercialScenarioViewModel,
+): string | undefined {
+  return clean(segment?.limitation) ?? clean(viewModel.primaryWarning);
+}
+
+function routeParticipantLabel(segment: CommercialRouteSegment | undefined): string {
+  if (!segment) return 'Pending';
+  if (segment.isRouteParticipant) return 'Confirmed';
+  if (segment.status === 'blocked') return 'Not available';
+  if (segment.status === 'unknown') return 'Pending confirmation';
+  return customerStateLabel[segment.customerStatus];
+}
+
+function nodeLabelsForSegment(
+  routeModel: CommercialRouteModel | undefined,
+  segmentId: CommercialRouteSegmentId,
+): string[] {
+  if (!routeModel) return [];
+  return routeModel.nodes
+    .filter((node) => node.segmentId === segmentId)
+    .map((node) => clean(node.label))
+    .filter((value): value is string => value !== undefined);
+}
+
+function alternateOption(viewModel: CommercialScenarioViewModel): CommercialTechnologyOption | undefined {
+  const recommended = viewModel.recommendation.technology;
+  if (recommended !== 'leo' && recommended !== 'geo') return undefined;
+  return viewModel.comparison.options.find((option) => option.technology !== recommended);
+}
+
+function gatewayLabel(routeModel: CommercialRouteModel | undefined): string | undefined {
+  const hubs = nodeLabelsForSegment(routeModel, 'backhaul');
+  return hubs[0];
+}
+
+function backbonePathLabel(viewModel: CommercialScenarioViewModel, routeModel: CommercialRouteModel | undefined): string | undefined {
+  const hubs = nodeLabelsForSegment(routeModel, 'backhaul');
+  const routedHubs = hubs.length > 0 ? hubs.join(' -> ') : undefined;
+  return clean(routedHubs)
+    ?? clean([viewModel.display.snpA, viewModel.display.snpB].filter((value) => clean(value)).join(' -> '))
+    ?? clean(viewModel.display.logicalPop)
+    ?? clean(viewModel.display.routeValue);
+}
+
+function recommendedTechnologyLabel(viewModel: CommercialScenarioViewModel): string {
+  if (viewModel.recommendation.technology === 'leo') return 'LEO';
+  if (viewModel.recommendation.technology === 'geo') return 'GEO';
+  if (viewModel.recommendation.technology === 'hybrid') return 'Hybrid';
+  if (viewModel.recommendation.technology === 'not_available') return 'No viable path';
+  return 'Pending';
+}
+
+function businessNote(
+  constraint: string | undefined,
+  healthyMessage = 'No issue currently affects this part of the route.',
+): string {
+  if (!constraint) return healthyMessage;
+  const normalized = constraint.toLowerCase();
+  if (normalized.includes('regulatory') || normalized.includes('restricted')) {
+    return 'Regulatory restrictions reduce availability in this area.';
+  }
+  if (normalized.includes('capacity') || normalized.includes('throughput') || normalized.includes('congest')) {
+    return 'Available capacity is limited and may reduce service quality.';
+  }
+  if (normalized.includes('coverage') || normalized.includes('visibility') || normalized.includes('satellite')) {
+    return 'Satellite visibility is currently the main limiting factor.';
+  }
+  if (normalized.includes('select') || normalized.includes('location') || normalized.includes('destination')) {
+    return 'The route needs a complete customer endpoint before it can be presented commercially.';
+  }
+  if (normalized.includes('no active service') || normalized.includes('no active connectivity') || normalized.includes('no viable')) {
+    return 'No commercial service path is currently available for this scenario.';
+  }
+  if (normalized.includes('weather')) {
+    return 'Weather conditions may reduce service quality for this part of the path.';
+  }
+  if (normalized.includes('gateway') || normalized.includes('snp') || normalized.includes('backhaul') || normalized.includes('portal')) {
+    return 'The terrestrial network path is the dependency to confirm for service continuity.';
+  }
+  return constraint;
+}
+
+function serviceOutcomeStatement(viewModel: CommercialScenarioViewModel): string {
+  if (viewModel.recommendation.technology === 'leo' || viewModel.recommendation.technology === 'geo') {
+    return `${recommendedTechnologyLabel(viewModel)} is currently the preferred connectivity option.`;
+  }
+  if (viewModel.recommendation.technology === 'hybrid') {
+    return 'Both connectivity options can support the customer outcome.';
+  }
+  if (viewModel.recommendation.technology === 'not_available') {
+    return 'No commercial service path is currently available.';
+  }
+  return 'The commercial recommendation is waiting for route data.';
+}
+
+export function buildCommercialNarrativeCardModel({
+  viewModel,
+  commercialRouteModel,
+  selectedSegmentId,
+}: {
+  viewModel: CommercialScenarioViewModel;
+  commercialRouteModel?: CommercialRouteModel;
+  selectedSegmentId?: string;
+}): CommercialNarrativeCardModel {
+  const focusedSegmentId = commercialRouteModel?.focusedSegmentId
+    ?? canonicalSegmentIdFromRaw(selectedSegmentId)
+    ?? canonicalSegmentIdFromRaw(viewModel.selectedSegmentId)
+    ?? 'summary';
+  const segment = segmentForId(viewModel, focusedSegmentId)
+    ?? segmentForId(viewModel, 'summary')
+    ?? viewModel.routeSegments[0];
+  const title = segmentTitles[focusedSegmentId];
+  const statusLabel = segment ? customerStateLabel[segment.customerStatus] : viewModel.executiveSummary.statusLabel;
+  const constraint = selectedConstraint(segment, viewModel);
+
+  switch (focusedSegmentId) {
+    case 'access':
+      return {
+        segmentId: focusedSegmentId,
+        stepNumber: 1,
+        stepTotal: segmentOrder.length,
+        eyebrow: 'Customer Site',
+        title,
+        statusLabel,
+        statusTone: statusTone(segment),
+        narrativeStatement: segment?.isRouteParticipant
+          ? 'Customer access reaches the selected service.'
+          : 'Customer access is not yet confirmed.',
+        facts: compactFacts([
+          { label: 'Site', value: viewModel.siteA?.name ?? segment?.role },
+          { label: 'Terminal', value: viewModel.display.terminalLabel },
+          { label: 'Access', value: routeParticipantLabel(segment) },
+        ]),
+        businessNote: businessNote(constraint),
+      };
+
+    case 'satellite': {
+      const satelliteName = clean(viewModel.display.satelliteName);
+      const contextFacts = viewModel.commercialDisplayTechnology === 'GEO'
+        ? [
+            { label: 'Relay', value: satelliteName ?? segment?.summary },
+            { label: 'Coverage', value: clean(viewModel.display.beamName) ?? clean(viewModel.display.elevation) },
+            { label: 'Service layer', value: segment?.role },
+          ]
+        : [
+            { label: 'Relay', value: satelliteName ?? segment?.summary },
+            { label: 'Coverage', value: clean(viewModel.display.elevation) ?? clean(viewModel.display.rfStatus) },
+            { label: 'Service layer', value: segment?.role },
+          ];
+
+      return {
+        segmentId: focusedSegmentId,
+        stepNumber: 2,
+        stepTotal: segmentOrder.length,
+        eyebrow: `${viewModel.commercialDisplayTechnology} relay`,
+        title,
+        statusLabel,
+        statusTone: statusTone(segment),
+        narrativeStatement: viewModel.commercialDisplayTechnology === 'GEO'
+          ? segment?.isRouteParticipant
+            ? 'Satellite coverage supports this route.'
+            : 'Satellite coverage is not yet confirmed.'
+          : segment?.isRouteParticipant
+            ? 'This relay is serving the route.'
+            : 'This relay is not yet confirmed.',
+        facts: compactFacts(contextFacts),
+        businessNote: businessNote(constraint),
+      };
+    }
+
+    case 'backhaul': {
+      const isGeoGatewayRelevant = viewModel.commercialDisplayTechnology === 'GEO'
+        && commercialRouteModel?.destinationIsPortal === true;
+      const infrastructure = isGeoGatewayRelevant
+        ? gatewayLabel(commercialRouteModel)
+        : backbonePathLabel(viewModel, commercialRouteModel);
+
+      return {
+        segmentId: focusedSegmentId,
+        stepNumber: 3,
+        stepTotal: segmentOrder.length,
+        eyebrow: 'Network Transit',
+        title,
+        statusLabel,
+        statusTone: statusTone(segment),
+        narrativeStatement: segment?.isRouteParticipant
+          ? 'Traffic uses the selected network path.'
+          : 'Network transit is not yet confirmed.',
+        facts: compactFacts([
+          { label: isGeoGatewayRelevant ? 'Gateway' : 'Infrastructure', value: infrastructure },
+          { label: 'Transit', value: routeParticipantLabel(segment) },
+          { label: 'Network', value: clean(viewModel.display.logicalPop) ?? segment?.role },
+        ]),
+        businessNote: businessNote(constraint),
+      };
+    }
+
+    case 'destination':
+      return {
+        segmentId: focusedSegmentId,
+        stepNumber: 4,
+        stepTotal: segmentOrder.length,
+        eyebrow: commercialRouteModel?.destinationIsPortal ? 'Network Exit' : 'Destination',
+        title,
+        statusLabel,
+        statusTone: statusTone(segment),
+        narrativeStatement: segment?.isRouteParticipant
+          ? 'The destination can receive service.'
+          : 'The destination is not yet confirmed.',
+        facts: compactFacts([
+          { label: 'Endpoint', value: viewModel.siteB?.name ?? segment?.summary },
+          { label: 'Receiving side', value: viewModel.display.destinationType },
+          { label: 'Reachability', value: routeParticipantLabel(segment) },
+        ]),
+        businessNote: businessNote(constraint),
+      };
+
+    case 'summary':
+    default: {
+      const alternative = alternateOption(viewModel);
+      return {
+        segmentId: 'summary',
+        stepNumber: 5,
+        stepTotal: segmentOrder.length,
+        eyebrow: 'Service Outcome',
+        title,
+        statusLabel: viewModel.executiveSummary.statusLabel,
+        statusTone: statusTone(segment),
+        narrativeStatement: serviceOutcomeStatement(viewModel),
+        facts: compactFacts([
+          { label: 'Preferred option', value: recommendedTechnologyLabel(viewModel) },
+          { label: 'Why it matters', value: viewModel.recommendation.reason },
+          { label: 'Alternative', value: alternative ? `${alternative.label} ${alternative.available ? 'available' : alternative.statusLabel.toLowerCase()}` : undefined },
+        ]),
+        businessNote: businessNote(constraint, viewModel.executiveSummary.expectedExperience),
+      };
+    }
+  }
+}

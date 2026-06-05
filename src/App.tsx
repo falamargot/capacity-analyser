@@ -18,7 +18,7 @@ import SimulationSettings from './components/layout/SimulationSettings';
 import CommercialModeShell from './components/commercial/CommercialModeShell';
 import CommercialMissionBar from './components/commercial/CommercialMissionBar';
 import CommercialRouteStrip from './components/commercial/CommercialRouteStrip';
-import CommercialInspectorPanel from './components/commercial/CommercialInspectorPanel';
+import CommercialNarrativeCard from './components/commercial/CommercialNarrativeCard';
 import { buildCommercialScenarioViewModel } from './components/commercial/commercialViewModel';
 import type { ConnectivityEndpoint, TerminalCapability } from './components/commercial/commercialTypes';
 import { buildCommercialRouteModel } from './utils/commercialRouteModel';
@@ -4400,11 +4400,10 @@ const App: React.FC = () => {
             {uiMode === 'commercial' ? (
               !isFullscreen && (
                 <div className="w-[380px] shrink-0">
-                  <CommercialInspectorPanel
+                  <CommercialNarrativeCard
                     viewModel={commercialScenarioViewModel}
                     selectedSegmentId={commercialScenarioViewModel.selectedSegmentId ?? 'summary'}
                     commercialRouteModel={commercialRouteModel}
-                    onSelectedSegmentChange={setCommercialSelectedSegment}
                     onViewFullAnalysis={() => handleUiModeChange('engineering')}
                   />
                 </div>
