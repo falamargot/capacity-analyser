@@ -1,19 +1,16 @@
 import { memo } from 'react';
-import { ArrowRight, CircleDot, MapPinned, Repeat2 } from 'lucide-react';
+import { ArrowRight, Repeat2 } from 'lucide-react';
+import type { LocationResult } from '../../hooks/useLocationSearch';
 import type { ConnectivityEndpoint, ConnectivityScenarioType, TerminalCapability } from './commercialTypes';
+import ScenarioEndpointEditor from './ScenarioEndpointEditor';
 
 interface ConnectivityScenarioCardProps {
   origin?: ConnectivityEndpoint;
   destination?: ConnectivityEndpoint;
   scenarioType: ConnectivityScenarioType;
-  onOriginClick: () => void;
-  onDestinationClick: () => void;
+  onOriginSelect: (location: LocationResult) => void;
+  onDestinationSelect: (location: LocationResult) => void;
   onSwapClick: () => void;
-}
-
-function endpointLabel(endpoint: ConnectivityEndpoint | undefined, fallback: string): string {
-  const label = endpoint?.label?.trim();
-  return label ? label : fallback;
 }
 
 function terminalLabel(terminal: TerminalCapability): string {
@@ -71,38 +68,27 @@ function TerminalList({ terminals, showPlaceholder }: { terminals?: TerminalCapa
 function EndpointSlot({
   endpoint,
   fallback,
-  role,
+  roleLabel,
   variant,
-  onClick,
+  onSelectLocation,
 }: {
   endpoint?: ConnectivityEndpoint;
   fallback: string;
-  role: string;
+  roleLabel: 'Origin' | 'Destination';
   variant: 'origin' | 'destination';
-  onClick: () => void;
+  onSelectLocation: (location: LocationResult) => void;
 }) {
-  const label = endpointLabel(endpoint, fallback);
   const isSet = Boolean(endpoint?.label?.trim());
-  const Icon = variant === 'origin' ? CircleDot : MapPinned;
 
   return (
     <div className="flex min-w-0 flex-1 flex-col gap-1">
-      <button
-        type="button"
-        onClick={onClick}
-        className={[
-          'group inline-flex h-6 min-w-0 items-center gap-1.5 rounded-md border px-2 text-left transition-colors',
-          isSet
-            ? 'border-slate-700/70 bg-slate-950/60 text-slate-100 hover:border-sky-400/60 hover:bg-slate-900'
-            : 'border-dashed border-slate-700 bg-slate-900/40 text-slate-500 hover:border-sky-400/50 hover:text-slate-300',
-        ].join(' ')}
-        aria-label={`Set ${variant}`}
-        title={label}
-      >
-        <Icon className={isSet ? 'h-3.5 w-3.5 shrink-0 text-sky-300' : 'h-3.5 w-3.5 shrink-0 text-slate-500 group-hover:text-sky-300'} aria-hidden="true" />
-        <span className="shrink-0 text-[11px] font-semibold leading-none text-slate-400">{role}:</span>
-        <span className="min-w-0 truncate text-[13px] font-semibold leading-none">{label}</span>
-      </button>
+      <ScenarioEndpointEditor
+        endpoint={endpoint}
+        fallback={fallback}
+        roleLabel={roleLabel}
+        variant={variant}
+        onSelectLocation={onSelectLocation}
+      />
       <div className="flex min-h-5 min-w-0 flex-wrap items-center gap-1 overflow-hidden">
         <TerminalList terminals={endpoint?.terminals} showPlaceholder={isSet} />
       </div>
@@ -114,8 +100,8 @@ function ConnectivityScenarioCard({
   origin,
   destination,
   scenarioType,
-  onOriginClick,
-  onDestinationClick,
+  onOriginSelect,
+  onDestinationSelect,
   onSwapClick,
 }: ConnectivityScenarioCardProps) {
   const canSwap = Boolean(origin?.label?.trim() && destination?.label?.trim());
@@ -149,9 +135,9 @@ function ConnectivityScenarioCard({
       </div>
 
       <div className="flex min-w-0 items-start gap-1.5">
-        <EndpointSlot endpoint={origin} fallback="Set origin" role="Origin" variant="origin" onClick={onOriginClick} />
+        <EndpointSlot endpoint={origin} fallback="Set origin" roleLabel="Origin" variant="origin" onSelectLocation={onOriginSelect} />
         <ArrowRight className="mt-5 h-4 w-4 shrink-0 text-slate-500" aria-hidden="true" />
-        <EndpointSlot endpoint={destination} fallback="Set destination" role="Destination" variant="destination" onClick={onDestinationClick} />
+        <EndpointSlot endpoint={destination} fallback="Set destination" roleLabel="Destination" variant="destination" onSelectLocation={onDestinationSelect} />
       </div>
     </div>
   );

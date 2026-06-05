@@ -4,13 +4,15 @@ import type { CommercialScenarioViewModel, CommercialTechnologyOption } from './
 import ConnectivityScenarioCard from './ConnectivityScenarioCard';
 import { formatMbps, formatMs, serviceStatusChipClassName } from './commercialDisplayUtils';
 import type { ConnectivityEndpoint, ConnectivityScenarioType } from './commercialTypes';
+import type { LocationResult } from '../../hooks/useLocationSearch';
 
 interface CommercialMissionBarProps {
   viewModel: CommercialScenarioViewModel;
   origin?: ConnectivityEndpoint;
   destination?: ConnectivityEndpoint;
-  onOriginClick: () => void;
-  onDestinationClick: () => void;
+  scenarioType?: ConnectivityScenarioType;
+  onOriginSelect: (location: LocationResult) => void;
+  onDestinationSelect: (location: LocationResult) => void;
   onSwapClick: () => void;
 }
 
@@ -104,13 +106,14 @@ function CommercialMissionBar({
   viewModel,
   origin,
   destination,
-  onOriginClick,
-  onDestinationClick,
+  scenarioType: scenarioTypeOverride,
+  onOriginSelect,
+  onDestinationSelect,
   onSwapClick,
 }: CommercialMissionBarProps) {
   const leo = optionFor(viewModel, 'leo');
   const geo = optionFor(viewModel, 'geo');
-  const scenarioType = scenarioTypeFor(viewModel);
+  const scenarioType = scenarioTypeOverride ?? scenarioTypeFor(viewModel);
   const recommendationLabel = viewModel.recommendation.technology === 'hybrid'
     ? 'Hybrid suitable'
     : viewModel.recommendation.technology === 'not_available'
@@ -127,8 +130,8 @@ function CommercialMissionBar({
             origin={origin}
             destination={destination}
             scenarioType={scenarioType}
-            onOriginClick={onOriginClick}
-            onDestinationClick={onDestinationClick}
+            onOriginSelect={onOriginSelect}
+            onDestinationSelect={onDestinationSelect}
             onSwapClick={onSwapClick}
           />
         </div>

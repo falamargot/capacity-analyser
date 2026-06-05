@@ -1,4 +1,4 @@
-import React, { Suspense, lazy, useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import React, { Suspense, lazy, useState, useEffect, useMemo, useCallback, useRef, useReducer } from 'react';
 import MapViewSwitcher from './components/MapViewSwitcher';
 import type { AirTrafficStateProps, CallbackProps, CameraProps, CommercialStateProps, DisplayLayerProps, DisplayPrefsProps, IssStateProps, MaritimeTrafficStateProps, SelectionAnalysisProps, TopologyProps, TrafficProps } from './components/CesiumGlobe';
 import SatelliteSelector from './components/SatelliteSelector';
@@ -20,7 +20,6 @@ import CommercialMissionBar from './components/commercial/CommercialMissionBar';
 import CommercialRouteStrip from './components/commercial/CommercialRouteStrip';
 import CommercialNarrativeCard from './components/commercial/CommercialNarrativeCard';
 import { buildCommercialScenarioViewModel } from './components/commercial/commercialViewModel';
-import type { ConnectivityEndpoint, TerminalCapability } from './components/commercial/commercialTypes';
 import { buildCommercialRouteModel } from './utils/commercialRouteModel';
 import { WeatherControl, WEATHER_PROFILES, type TerminalType, type WeatherType, toWeatherCondition } from './components/capacity';
 import { WEATHER_ATTENUATION_DB } from './utils/realisticSimulation';
@@ -88,6 +87,21 @@ import {
   createActiveLeoRouteEvidenceState,
   resetActiveLeoRouteEvidenceState,
 } from './utils/activeLeoRouteEvidence';
+import { connectivityScenarioActions } from './state/connectivityScenario/connectivityScenarioActions';
+import { connectivityScenarioReducer, initialConnectivityScenario } from './state/connectivityScenario/connectivityScenarioReducer';
+import {
+  areTerminalCapabilitiesEqual,
+  buildEngineeringEndpointTerminalCapabilities,
+} from './state/connectivityScenario/connectivityScenarioEngineeringSync';
+import { createScenarioEndpointFromLocation } from './state/connectivityScenario/connectivityScenarioSync';
+import { geoServiceTopologyFromLegacyLinkMode } from './utils/connectivityScenarioAdapters';
+import {
+  connectivityScenarioTypeFromDestinationType,
+  scenarioToConnectivityScenarioCard,
+} from './utils/connectivityScenarioCardProjection';
+import {
+  terminalCapabilityToCommercialChip,
+} from './utils/terminalCapabilityMapping';
 
 const CapacityDetails = lazy(() => import('./components/CapacityDetails'));
 const CommandPalette = lazy(() => import('./components/CommandPalette'));
@@ -102,14 +116,6 @@ const COMPACT_DESKTOP_DIAG_MAX = Math.hypot(2560, 1440);
 const REPRESENTATIVE_TELEPORT_IMAGE_URL = 'https://upload.wikimedia.org/wikipedia/commons/thumb/f/fe/Teleport_of_satellite_communications_provider.jpg/960px-Teleport_of_satellite_communications_provider.jpg';
 const AUTHORSHIP_SIGNATURE = 'F.Alamargot - 2026';
 const EMPTY_SNP_CONNECTED_SATELLITES: SNPConnectedSatellite[] = [];
-const COMM_9B_ORIGIN_TERMINALS: TerminalCapability[] = [
-  { id: 'comm-9b-origin-geo-vsat', technology: 'geo', band: 'Ku', label: 'VSAT' },
-  { id: 'comm-9b-origin-leo-ow70l', technology: 'leo', model: 'OW70L' },
-];
-const COMM_9B_DESTINATION_TERMINALS: TerminalCapability[] = [
-  { id: 'comm-9b-destination-geo-vsat', technology: 'geo', band: 'Ku', label: 'VSAT' },
-];
-
 const clampNumber = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
 
 const lerp = (start: number, end: number, progress: number) => start + (end - start) * progress;
@@ -218,6 +224,10 @@ const getInitialDisplayDefaults = (): InitialDisplayDefaults => {
 };
 
 const App: React.FC = () => {
+  const [connectivityScenario, dispatchConnectivityScenario] = useReducer(
+    connectivityScenarioReducer,
+    initialConnectivityScenario,
+  );
   const {
     coveragePolicy,
     failedSnps,
@@ -271,6 +281,26 @@ const App: React.FC = () => {
       setGeoRFCustomParamsB(null);
     }
   };
+  const engineeringOriginTerminalCapabilities = useMemo(() => buildEngineeringEndpointTerminalCapabilities({
+    geoRFClassId: geoRFClassIdA,
+    geoTerminalType,
+    leoTerminalModelId,
+    leoTerminalType,
+  }), [geoRFClassIdA, geoTerminalType, leoTerminalModelId, leoTerminalType]);
+  const engineeringDestinationTerminalCapabilities = useMemo(() => buildEngineeringEndpointTerminalCapabilities({
+    geoRFClassId: geoRFClassIdB,
+    geoTerminalType: geoTerminalTypeB,
+    leoTerminalModelId: leoTerminalModelIdB,
+    leoTerminalType: leoTerminalTypeB,
+  }), [geoRFClassIdB, geoTerminalTypeB, leoTerminalModelIdB, leoTerminalTypeB]);
+  const engineeringOriginCommercialTerminals = useMemo(
+    () => engineeringOriginTerminalCapabilities.map(terminalCapabilityToCommercialChip),
+    [engineeringOriginTerminalCapabilities],
+  );
+  const engineeringDestinationCommercialTerminals = useMemo(
+    () => engineeringDestinationTerminalCapabilities.map(terminalCapabilityToCommercialChip),
+    [engineeringDestinationTerminalCapabilities],
+  );
   const [weatherType, setWeatherType] = useState<WeatherType>(() => weatherTypeFromCondition(weatherCondition));
   const [autoWeatherEnabled, setAutoWeatherEnabled] = useState<boolean>(true);
   const [weatherTypeB, setWeatherTypeB] = useState<WeatherType>('clear');
@@ -323,6 +353,79 @@ const App: React.FC = () => {
       resetActiveLeoRouteEvidenceState(activeLeoRouteEvidenceStateRef.current);
     }
   }, [leoTopologyMode]);
+
+  const syncScenarioOrigin = useCallback((lat: number, lng: number, source: 'location-search' | 'globe-click' = 'location-search') => {
+    dispatchConnectivityScenario(connectivityScenarioActions.setOrigin(createScenarioEndpointFromLocation({
+      endpoint: 'origin',
+      point: { lat, lng },
+      terminals: engineeringOriginCommercialTerminals,
+      source,
+    })));
+  }, [engineeringOriginCommercialTerminals]);
+
+  const syncScenarioDestination = useCallback((lat: number, lng: number, source: 'location-search' | 'globe-click' = 'location-search') => {
+    const nextGeoTopology = LINK_MODE_REQUIRES_POINT_B.has(linkMode)
+      ? geoServiceTopologyFromLegacyLinkMode(linkMode)
+      : 'mesh';
+
+    dispatchConnectivityScenario(connectivityScenarioActions.setDestination(createScenarioEndpointFromLocation({
+      endpoint: 'destination',
+      point: { lat, lng },
+      terminals: engineeringDestinationCommercialTerminals,
+      source,
+    })));
+    dispatchConnectivityScenario(connectivityScenarioActions.setServicePattern('site-to-site'));
+    dispatchConnectivityScenario(connectivityScenarioActions.setTrafficIntent(activeMeshTab === 'reverse' ? 'b-to-a' : 'a-to-b'));
+    dispatchConnectivityScenario(connectivityScenarioActions.setGeoServiceTopology(nextGeoTopology));
+  }, [activeMeshTab, engineeringDestinationCommercialTerminals, linkMode]);
+
+  const handleLinkModeChange = useCallback((mode: LinkMode) => {
+    dispatchConnectivityScenario(connectivityScenarioActions.setGeoServiceTopology(geoServiceTopologyFromLegacyLinkMode(mode)));
+    if (LINK_MODE_REQUIRES_POINT_B.has(mode)) {
+      dispatchConnectivityScenario(connectivityScenarioActions.setServicePattern('site-to-site'));
+    } else if (!siteB) {
+      dispatchConnectivityScenario(connectivityScenarioActions.setServicePattern('single-endpoint'));
+      dispatchConnectivityScenario(connectivityScenarioActions.setTrafficIntent(undefined));
+    }
+    setLinkMode(mode);
+  }, [siteB]);
+
+  const handleLeoTopologyModeChange = useCallback((mode: 'SINGLE_SITE' | 'SITE_TO_SITE') => {
+    dispatchConnectivityScenario(connectivityScenarioActions.setServicePattern(mode === 'SITE_TO_SITE' ? 'site-to-site' : 'single-endpoint'));
+    dispatchConnectivityScenario(connectivityScenarioActions.setTrafficIntent(mode === 'SITE_TO_SITE' ? 'bidirectional' : undefined));
+    setLeoTopologyMode(mode);
+  }, []);
+
+  const handleActiveMeshTabChange = useCallback((tab: 'forward' | 'reverse') => {
+    dispatchConnectivityScenario(connectivityScenarioActions.setTrafficIntent(tab === 'reverse' ? 'b-to-a' : 'a-to-b'));
+    setActiveMeshTab(tab);
+  }, []);
+
+  useEffect(() => {
+    if (LINK_MODE_REQUIRES_POINT_B.has(linkMode) || siteB) {
+      dispatchConnectivityScenario(connectivityScenarioActions.setTrafficIntent('a-to-b'));
+    }
+  }, [linkMode, siteB]);
+
+  useEffect(() => {
+    const currentTerminals = connectivityScenario.origin?.terminalCapabilities;
+    if (!currentTerminals || areTerminalCapabilitiesEqual(currentTerminals, engineeringOriginTerminalCapabilities)) return;
+
+    dispatchConnectivityScenario(connectivityScenarioActions.setTerminalCapabilities(
+      'origin',
+      engineeringOriginTerminalCapabilities,
+    ));
+  }, [connectivityScenario.origin?.terminalCapabilities, engineeringOriginTerminalCapabilities]);
+
+  useEffect(() => {
+    const currentTerminals = connectivityScenario.destination?.terminalCapabilities;
+    if (!currentTerminals || areTerminalCapabilitiesEqual(currentTerminals, engineeringDestinationTerminalCapabilities)) return;
+
+    dispatchConnectivityScenario(connectivityScenarioActions.setTerminalCapabilities(
+      'destination',
+      engineeringDestinationTerminalCapabilities,
+    ));
+  }, [connectivityScenario.destination?.terminalCapabilities, engineeringDestinationTerminalCapabilities]);
   const [inspectedSNP, setInspectedSNP] = useState<SNPData | null>(null);
   const [selectedGateway, setSelectedGateway] = useState<GeoGatewayData | null>(null);
   const [selectedMoon, setSelectedMoon] = useState(false);
@@ -379,7 +482,6 @@ const App: React.FC = () => {
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
   const [isTargetSourcesMenuOpen, setIsTargetSourcesMenuOpen] = useState(false);
   const [commandPaletteQuery, setCommandPaletteQuery] = useState('');
-  const [routeSelectionTarget, setRouteSelectionTarget] = useState<'origin' | 'destination' | null>(null);
   const [isHelpMenuOpen, setIsHelpMenuOpen] = useState(false);
   const {
     authorshipToastVisible,
@@ -2209,15 +2311,17 @@ const App: React.FC = () => {
   const handlePointClick = useCallback((lat: number, lng: number, shiftKey: boolean) => {
     if (shiftKey || isSiteBArmed) {
       if (selectedPosition) {
+        syncScenarioDestination(lat, lng, 'globe-click');
         setSiteB({ lat, lng });
         setIsSiteBArmed(false);
-        setLeoTopologyMode('SITE_TO_SITE');
-        setLinkMode(m => LINK_MODE_REQUIRES_POINT_B.has(m) ? m : 'MESH');
+        handleLeoTopologyModeChange('SITE_TO_SITE');
+        handleLinkModeChange(LINK_MODE_REQUIRES_POINT_B.has(linkMode) ? linkMode : 'MESH');
         return;
       }
     }
 
     // Plain click → set Site A; preserve existing Site B.
+    syncScenarioOrigin(lat, lng, 'globe-click');
     setIsSiteBArmed(false);
     setSelectedMoon(false);
     setSelectedAircraft(null);
@@ -2228,7 +2332,7 @@ const App: React.FC = () => {
     setSelectedUplinkKey(null);
     setSelectedDownlinkKey(null);
     selectTarget('point', { lat, lng });
-  }, [isSiteBArmed, selectedPosition, selectTarget]);
+  }, [handleLeoTopologyModeChange, handleLinkModeChange, isSiteBArmed, linkMode, selectedPosition, selectTarget, syncScenarioDestination, syncScenarioOrigin]);
 
   // Handle click outside the globe — clears Site B and auto-downgrades mode.
   // Shift+click outside: clear Site B only, keep Site A.
@@ -2236,6 +2340,7 @@ const App: React.FC = () => {
   // Uses selectedPositionRef so the callback is stable and always reads the live position,
   // guarding against stale closures in Cesium event listeners.
   const handleEmptyClick = useCallback((shiftKey: boolean) => {
+    dispatchConnectivityScenario(connectivityScenarioActions.clearDestination());
     setSiteB(null);
     setIsSiteBArmed(false);
     if (shiftKey) {
@@ -2243,29 +2348,33 @@ const App: React.FC = () => {
       const pos = selectedPositionRef.current;
       if (pos) selectTarget('point', pos);
     } else {
+      dispatchConnectivityScenario(connectivityScenarioActions.clearOrigin());
       clearSelection();
     }
     setLeoTopologyMode(m => m === 'SITE_TO_SITE' ? 'SINGLE_SITE' : m);
-    setLinkMode(m => LINK_MODE_REQUIRES_POINT_B.has(m) ? 'STAR_FORWARD' : m);
-  }, [clearSelection, selectTarget]);
+    handleLinkModeChange(LINK_MODE_REQUIRES_POINT_B.has(linkMode) ? 'STAR_FORWARD' : linkMode);
+  }, [clearSelection, handleLinkModeChange, linkMode, selectTarget]);
 
   // Per-site clear buttons in the S2S hero card.
   // Clearing Site A removes both sites (no safe "promote B to A" convention exists).
   // Clearing Site B removes only Site B and downgrades to single-site mode.
   const handleClearSiteA = useCallback(() => {
+    dispatchConnectivityScenario(connectivityScenarioActions.clearOrigin());
+    dispatchConnectivityScenario(connectivityScenarioActions.clearDestination());
     clearSelection();
     setSiteB(null);
     setIsSiteBArmed(false);
-    setLeoTopologyMode('SINGLE_SITE');
-    setLinkMode(m => LINK_MODE_REQUIRES_POINT_B.has(m) ? 'STAR_FORWARD' : m);
-  }, [clearSelection]);
+    handleLeoTopologyModeChange('SINGLE_SITE');
+    handleLinkModeChange(LINK_MODE_REQUIRES_POINT_B.has(linkMode) ? 'STAR_FORWARD' : linkMode);
+  }, [clearSelection, handleLeoTopologyModeChange, handleLinkModeChange, linkMode]);
 
   const handleClearSiteB = useCallback(() => {
+    dispatchConnectivityScenario(connectivityScenarioActions.clearDestination());
     setSiteB(null);
     setIsSiteBArmed(false);
     setLeoTopologyMode(m => m === 'SITE_TO_SITE' ? 'SINGLE_SITE' : m);
-    setLinkMode(m => LINK_MODE_REQUIRES_POINT_B.has(m) ? 'STAR_FORWARD' : m);
-  }, []);
+    handleLinkModeChange(LINK_MODE_REQUIRES_POINT_B.has(linkMode) ? 'STAR_FORWARD' : linkMode);
+  }, [handleLinkModeChange, linkMode]);
 
   // Handle aircraft selection (aircraft-based analyzis)
   const handleAircraftSelect = useCallback((aircraft: Aircraft | null, fromComboBox: boolean = false) => {
@@ -2322,6 +2431,7 @@ const App: React.FC = () => {
   }, [clearSelection, selectTarget]);
 
   const handleLocationSelect = useCallback((lat: number, lng: number) => {
+    syncScenarioOrigin(lat, lng);
     setCameraTarget({ lat, lng, alt: 10000 });
     setSelectedMoon(false);
     setSelectedAircraft(null);
@@ -2334,16 +2444,17 @@ const App: React.FC = () => {
     selectTarget('point', { lat, lng });
 
     setSearchQuery('');
-  }, [selectTarget]);
+  }, [selectTarget, syncScenarioOrigin]);
 
   const handleDestinationLocationSelect = useCallback((lat: number, lng: number) => {
+    syncScenarioDestination(lat, lng);
     setCameraTarget({ lat, lng, alt: 10000 });
     setSiteB({ lat, lng });
     setIsSiteBArmed(false);
-    setLeoTopologyMode('SITE_TO_SITE');
-    setLinkMode((mode) => LINK_MODE_REQUIRES_POINT_B.has(mode) ? mode : 'MESH');
+    handleLeoTopologyModeChange('SITE_TO_SITE');
+    handleLinkModeChange(LINK_MODE_REQUIRES_POINT_B.has(linkMode) ? linkMode : 'MESH');
     setSearchQuery('');
-  }, []);
+  }, [handleLeoTopologyModeChange, handleLinkModeChange, linkMode, syncScenarioDestination]);
 
   // Routes a coverage selection to the uplink or downlink key.
   // Enforces the same-satellite constraint: when one direction changes satellite,
@@ -2428,29 +2539,41 @@ const App: React.FC = () => {
   const handleCloseCommandPalette = useCallback(() => {
     setIsCommandPaletteOpen(false);
     setCommandPaletteQuery('');
-    setRouteSelectionTarget(null);
-  }, []);
-
-  const handleOpenRouteEndpointSearch = useCallback((target: 'origin' | 'destination') => {
-    setRouteSelectionTarget(target);
-    setIsSatelliteModalOpen(false);
-    setIsTargetSourcesMenuOpen(false);
-    setIsHelpMenuOpen(false);
-    setCommandPaletteQuery('');
-    setIsCommandPaletteOpen(true);
-    requestAnimationFrame(() => commandPaletteSearchRef.current?.focus());
   }, []);
 
   const handleSwapRouteEndpoints = useCallback(() => {
     if (!activeAnalysisPoint || !siteB) return;
 
     const nextDestination = { lat: activeAnalysisPoint.lat, lng: activeAnalysisPoint.lng };
+    dispatchConnectivityScenario(connectivityScenarioActions.setOrigin(createScenarioEndpointFromLocation({
+      endpoint: 'origin',
+      point: { lat: siteB.lat, lng: siteB.lng },
+      terminals: engineeringOriginCommercialTerminals,
+    })));
+    dispatchConnectivityScenario(connectivityScenarioActions.setDestination(createScenarioEndpointFromLocation({
+      endpoint: 'destination',
+      point: nextDestination,
+      terminals: engineeringDestinationCommercialTerminals,
+    })));
+    dispatchConnectivityScenario(connectivityScenarioActions.setServicePattern('site-to-site'));
+    dispatchConnectivityScenario(connectivityScenarioActions.setTrafficIntent(activeMeshTab === 'reverse' ? 'b-to-a' : 'a-to-b'));
+    dispatchConnectivityScenario(connectivityScenarioActions.setGeoServiceTopology(LINK_MODE_REQUIRES_POINT_B.has(linkMode) ? geoServiceTopologyFromLegacyLinkMode(linkMode) : 'mesh'));
     handleLocationSelect(siteB.lat, siteB.lng);
     setSiteB(nextDestination);
     setIsSiteBArmed(false);
-    setLeoTopologyMode('SITE_TO_SITE');
-    setLinkMode((mode) => LINK_MODE_REQUIRES_POINT_B.has(mode) ? mode : 'MESH');
-  }, [activeAnalysisPoint, handleLocationSelect, siteB]);
+    handleLeoTopologyModeChange('SITE_TO_SITE');
+    handleLinkModeChange(LINK_MODE_REQUIRES_POINT_B.has(linkMode) ? linkMode : 'MESH');
+  }, [
+    activeAnalysisPoint,
+    activeMeshTab,
+    engineeringDestinationCommercialTerminals,
+    engineeringOriginCommercialTerminals,
+    handleLeoTopologyModeChange,
+    handleLinkModeChange,
+    handleLocationSelect,
+    linkMode,
+    siteB,
+  ]);
 
   const handleDesktopTargetSearchFocus = useCallback(() => {
     setIsSatelliteModalOpen(false);
@@ -3242,7 +3365,7 @@ const App: React.FC = () => {
               relation: siteDirectionRelation,
               detailDirection: activeMeshTab,
               onToggle: siteDirectionRelation === 'bidirectional'
-                ? () => setActiveMeshTab(activeMeshTab === 'forward' ? 'reverse' : 'forward')
+                ? () => handleActiveMeshTabChange(activeMeshTab === 'forward' ? 'reverse' : 'forward')
                 : undefined,
             },
           },
@@ -3282,6 +3405,7 @@ const App: React.FC = () => {
     autoWeatherEnabled,
     autoWeatherEnabledB,
     failedSnps,
+    handleActiveMeshTabChange,
     handleClearSiteA,
     handleClearSiteB,
     handleWeatherTypeChange,
@@ -3395,14 +3519,23 @@ const App: React.FC = () => {
     activeGeoSatellite,
   ]);
 
-  const routeSelectorRoute = useMemo<{ origin?: ConnectivityEndpoint; destination?: ConnectivityEndpoint }>(() => ({
-    origin: activeAnalysisPoint && commercialScenarioViewModel.siteA
-      ? { label: commercialScenarioViewModel.siteA.name, terminals: COMM_9B_ORIGIN_TERMINALS }
-      : undefined,
-    destination: siteB && commercialScenarioViewModel.siteB
-      ? { label: commercialScenarioViewModel.siteB.name, terminals: COMM_9B_DESTINATION_TERMINALS }
-      : undefined,
-  }), [activeAnalysisPoint, commercialScenarioViewModel.siteA, commercialScenarioViewModel.siteB, siteB]);
+  const legacyScenarioType = useMemo(
+    () => connectivityScenarioTypeFromDestinationType(commercialScenarioViewModel.display.destinationType),
+    [commercialScenarioViewModel.display.destinationType],
+  );
+
+  const routeSelectorRoute = useMemo(() => scenarioToConnectivityScenarioCard(connectivityScenario, {
+    originLabelOverride: activeAnalysisPoint ? commercialScenarioViewModel.siteA?.name : undefined,
+    destinationLabelOverride: siteB ? commercialScenarioViewModel.siteB?.name : undefined,
+    fallbackScenarioType: legacyScenarioType,
+  }), [
+    activeAnalysisPoint,
+    commercialScenarioViewModel.siteA,
+    commercialScenarioViewModel.siteB,
+    connectivityScenario,
+    legacyScenarioType,
+    siteB,
+  ]);
 
   const engineeringCommercialState = useMemo<CommercialStateProps>(() => ({
     commercialMode: false,
@@ -4054,15 +4187,15 @@ const App: React.FC = () => {
                     serviceLayerResultOverride={leoServiceLayerResult}
                     leoServiceViewModelOverride={leoServiceViewModel}
                     linkMode={linkMode}
-                    onLinkModeChange={setLinkMode}
+                    onLinkModeChange={handleLinkModeChange}
                     pointB={pointB}
                     candidateCoveragesB={candidateCoveragesB}
                     pointAIsUserDefined={pointAIsUserDefined}
                     pointBIsUserDefined={pointBIsUserDefined}
                     activeMeshTab={activeMeshTab}
-                    onActiveMeshTabChange={setActiveMeshTab}
+                    onActiveMeshTabChange={handleActiveMeshTabChange}
                     leoTopologyMode={leoTopologyMode}
-                    onLeoTopologyModeChange={setLeoTopologyMode}
+                    onLeoTopologyModeChange={handleLeoTopologyModeChange}
                     pointBLeo={pointBLeo}
                     autoSelectedLEOSatelliteB={resolvedAutoLEOB}
                     selectedSNPB={selectedSNPB}
@@ -4119,7 +4252,7 @@ const App: React.FC = () => {
                           satellites={satellites}
                           snpConnectedSatellites={snpConnectedSatellites}
                           linkMode={linkMode}
-                          onLinkModeChange={setLinkMode}
+                          onLinkModeChange={handleLinkModeChange}
                           pointB={pointB}
                           pointBLeo={pointBLeo}
                           nearestLocation={nearestLocation}
@@ -4130,7 +4263,7 @@ const App: React.FC = () => {
                           autoWeatherEnabledB={autoWeatherEnabledB}
                           activeConnectivityTab={activeConnectivityTab}
                           activeMeshTab={activeMeshTab}
-                          onActiveMeshTabChange={setActiveMeshTab}
+                          onActiveMeshTabChange={handleActiveMeshTabChange}
                           leoTopologyMode={leoTopologyMode}
                           leoSiteToSiteResult={activeLeoSiteToSiteResult}
                         />
@@ -4272,15 +4405,15 @@ const App: React.FC = () => {
                                 serviceLayerResultOverride={leoServiceLayerResult}
                                 leoServiceViewModelOverride={leoServiceViewModel}
                                 linkMode={linkMode}
-                                onLinkModeChange={setLinkMode}
+                                onLinkModeChange={handleLinkModeChange}
                                 pointB={pointB}
                                 candidateCoveragesB={candidateCoveragesB}
                                 pointAIsUserDefined={pointAIsUserDefined}
                                 pointBIsUserDefined={pointBIsUserDefined}
                                 activeMeshTab={activeMeshTab}
-                                onActiveMeshTabChange={setActiveMeshTab}
+                                onActiveMeshTabChange={handleActiveMeshTabChange}
                                 leoTopologyMode={leoTopologyMode}
-                                onLeoTopologyModeChange={setLeoTopologyMode}
+                                onLeoTopologyModeChange={handleLeoTopologyModeChange}
                                 pointBLeo={pointBLeo}
                                 autoSelectedLEOSatelliteB={resolvedAutoLEOB}
                                 selectedSNPB={selectedSNPB}
@@ -4341,8 +4474,9 @@ const App: React.FC = () => {
                     viewModel={commercialScenarioViewModel}
                     origin={routeSelectorRoute.origin}
                     destination={routeSelectorRoute.destination}
-                    onOriginClick={() => handleOpenRouteEndpointSearch('origin')}
-                    onDestinationClick={() => handleOpenRouteEndpointSearch('destination')}
+                    scenarioType={routeSelectorRoute.scenarioType}
+                    onOriginSelect={(location) => handleLocationSelect(location.lat, location.lng)}
+                    onDestinationSelect={(location) => handleDestinationLocationSelect(location.lat, location.lng)}
                     onSwapClick={handleSwapRouteEndpoints}
                   />
                 )
@@ -4549,15 +4683,15 @@ const App: React.FC = () => {
                           serviceLayerResultOverride={leoServiceLayerResult}
                           leoServiceViewModelOverride={leoServiceViewModel}
                           linkMode={linkMode}
-                          onLinkModeChange={setLinkMode}
+                          onLinkModeChange={handleLinkModeChange}
                           pointB={pointB}
                           candidateCoveragesB={candidateCoveragesB}
                           pointAIsUserDefined={pointAIsUserDefined}
                           pointBIsUserDefined={pointBIsUserDefined}
                           activeMeshTab={activeMeshTab}
-                          onActiveMeshTabChange={setActiveMeshTab}
+                          onActiveMeshTabChange={handleActiveMeshTabChange}
                           leoTopologyMode={leoTopologyMode}
-                          onLeoTopologyModeChange={setLeoTopologyMode}
+                          onLeoTopologyModeChange={handleLeoTopologyModeChange}
                           pointBLeo={pointBLeo}
                           autoSelectedLEOSatelliteB={resolvedAutoLEOB}
                           selectedSNPB={selectedSNPB}
@@ -4585,7 +4719,7 @@ const App: React.FC = () => {
             vessels={maritimeTraffic.vessels}
             anchorRef={commandPaletteSearchRef}
             hideInlineSearchWhenAnchored
-            resultTypes={routeSelectionTarget ? ['location'] : satelliteScope === 'GEO' ? ['satellite', 'moon', 'location', 'gateway'] : satelliteScope === 'LEO' ? ['satellite', 'moon', 'location', 'snp'] : ['satellite', 'moon', 'location', 'snp', 'gateway']}
+            resultTypes={satelliteScope === 'GEO' ? ['satellite', 'moon', 'location', 'gateway'] : satelliteScope === 'LEO' ? ['satellite', 'moon', 'location', 'snp'] : ['satellite', 'moon', 'location', 'snp', 'gateway']}
             query={commandPaletteQuery}
             onQueryChange={setCommandPaletteQuery}
             onSelectSatellite={(satellite) => {
@@ -4613,12 +4747,7 @@ const App: React.FC = () => {
               if (isMobile) setIsSatelliteModalOpen(false);
             }}
             onSelectLocation={(lat, lng) => {
-              if (routeSelectionTarget === 'destination') {
-                handleDestinationLocationSelect(lat, lng);
-              } else {
-                handleLocationSelect(lat, lng);
-              }
-              setRouteSelectionTarget(null);
+              handleLocationSelect(lat, lng);
               if (isMobile) setIsSatelliteModalOpen(false);
             }}
           />
