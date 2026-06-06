@@ -75,6 +75,7 @@ export function createScenarioEndpointFromLocation({
   role = 'customer',
   kind = 'site',
   terminals,
+  terminalCapabilities,
   source = 'location-search',
 }: {
   endpoint: ScenarioEndpointKey;
@@ -83,6 +84,7 @@ export function createScenarioEndpointFromLocation({
   role?: ScenarioEndpointRole;
   kind?: ScenarioEndpointKind;
   terminals?: LegacyCommercialTerminal[];
+  terminalCapabilities?: import('../../types/connectivityScenario').TerminalCapability[];
   source?: LocationReference['source'];
 }): ScenarioEndpoint {
   return {
@@ -96,6 +98,6 @@ export function createScenarioEndpointFromLocation({
     },
     endpointRole: role,
     endpointKind: kind,
-    terminalCapabilities: legacyCommercialTerminalsToScenarioTerminals(terminals),
+    terminalCapabilities: terminalCapabilities ?? legacyCommercialTerminalsToScenarioTerminals(terminals),
   };
 }

@@ -1,7 +1,7 @@
 import { memo, type ReactNode } from 'react';
 import { ArrowDown, ArrowUp, RadioTower, Star, Timer } from 'lucide-react';
 import type { CommercialScenarioViewModel, CommercialTechnologyOption } from './commercialViewModel';
-import ConnectivityScenarioCard from './ConnectivityScenarioCard';
+import SharedScenarioBuilder from '../shared/SharedScenarioBuilder';
 import { formatMbps, formatMs, serviceStatusChipClassName } from './commercialDisplayUtils';
 import type { ConnectivityEndpoint, ConnectivityScenarioType } from './commercialTypes';
 import type { LocationResult } from '../../hooks/useLocationSearch';
@@ -126,7 +126,7 @@ function CommercialMissionBar({
     <section className="border-b border-slate-800/70 bg-slate-950/96 px-3 py-2 shadow-sm backdrop-blur" aria-label="Commercial mission briefing">
       <div className="grid min-h-[76px] min-w-0 grid-cols-[minmax(14rem,0.95fr)_minmax(18rem,1.2fr)_minmax(7.2rem,0.48fr)_minmax(7.2rem,0.48fr)] gap-2">
         <div className="min-w-0 rounded-lg border border-slate-800/75 bg-slate-900/45 p-2">
-          <ConnectivityScenarioCard
+          <SharedScenarioBuilder
             origin={origin}
             destination={destination}
             scenarioType={scenarioType}

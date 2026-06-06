@@ -17,6 +17,7 @@ import ExportButton, { type ExportButtonPayload } from './components/ExportButto
 import SimulationSettings from './components/layout/SimulationSettings';
 import CommercialModeShell from './components/commercial/CommercialModeShell';
 import CommercialMissionBar from './components/commercial/CommercialMissionBar';
+import SharedScenarioBuilder from './components/shared/SharedScenarioBuilder';
 import CommercialRouteStrip from './components/commercial/CommercialRouteStrip';
 import CommercialNarrativeCard from './components/commercial/CommercialNarrativeCard';
 import { buildCommercialScenarioViewModel } from './components/commercial/commercialViewModel';
@@ -105,9 +106,6 @@ import {
   connectivityScenarioTypeFromDestinationType,
   scenarioToConnectivityScenarioCard,
 } from './utils/connectivityScenarioCardProjection';
-import {
-  terminalCapabilityToCommercialChip,
-} from './utils/terminalCapabilityMapping';
 
 const CapacityDetails = lazy(() => import('./components/CapacityDetails'));
 const CommandPalette = lazy(() => import('./components/CommandPalette'));
@@ -299,14 +297,6 @@ const App: React.FC = () => {
     leoTerminalModelId: leoTerminalModelIdB,
     leoTerminalType: leoTerminalTypeB,
   }), [geoRFClassIdB, geoTerminalTypeB, leoTerminalModelIdB, leoTerminalTypeB]);
-  const engineeringOriginCommercialTerminals = useMemo(
-    () => engineeringOriginTerminalCapabilities.map(terminalCapabilityToCommercialChip),
-    [engineeringOriginTerminalCapabilities],
-  );
-  const engineeringDestinationCommercialTerminals = useMemo(
-    () => engineeringDestinationTerminalCapabilities.map(terminalCapabilityToCommercialChip),
-    [engineeringDestinationTerminalCapabilities],
-  );
   const engineeringScenarioReadModel = useMemo(
     () => buildEngineeringTerminalReadModelFromScenario(connectivityScenario),
     [connectivityScenario],
@@ -398,10 +388,10 @@ const App: React.FC = () => {
     dispatchConnectivityScenario(connectivityScenarioActions.setOrigin(createScenarioEndpointFromLocation({
       endpoint: 'origin',
       point: { lat, lng },
-      terminals: engineeringOriginCommercialTerminals,
+      terminalCapabilities: engineeringOriginTerminalCapabilities,
       source,
     })));
-  }, [engineeringOriginCommercialTerminals]);
+  }, [engineeringOriginTerminalCapabilities]);
 
   const syncScenarioDestination = useCallback((lat: number, lng: number, source: 'location-search' | 'globe-click' = 'location-search') => {
     const nextGeoTopology = LINK_MODE_REQUIRES_POINT_B.has(linkMode)
@@ -411,13 +401,13 @@ const App: React.FC = () => {
     dispatchConnectivityScenario(connectivityScenarioActions.setDestination(createScenarioEndpointFromLocation({
       endpoint: 'destination',
       point: { lat, lng },
-      terminals: engineeringDestinationCommercialTerminals,
+      terminalCapabilities: engineeringDestinationTerminalCapabilities,
       source,
     })));
     dispatchConnectivityScenario(connectivityScenarioActions.setServicePattern('site-to-site'));
     dispatchConnectivityScenario(connectivityScenarioActions.setTrafficIntent(activeMeshTab === 'reverse' ? 'b-to-a' : 'a-to-b'));
     dispatchConnectivityScenario(connectivityScenarioActions.setGeoServiceTopology(nextGeoTopology));
-  }, [activeMeshTab, engineeringDestinationCommercialTerminals, linkMode]);
+  }, [activeMeshTab, engineeringDestinationTerminalCapabilities, linkMode]);
 
   const handleLinkModeChange = useCallback((mode: LinkMode) => {
     dispatchConnectivityScenario(connectivityScenarioActions.setGeoServiceTopology(geoServiceTopologyFromLegacyLinkMode(mode)));
@@ -2588,12 +2578,12 @@ const App: React.FC = () => {
     dispatchConnectivityScenario(connectivityScenarioActions.setOrigin(createScenarioEndpointFromLocation({
       endpoint: 'origin',
       point: { lat: siteB.lat, lng: siteB.lng },
-      terminals: engineeringOriginCommercialTerminals,
+      terminalCapabilities: engineeringOriginTerminalCapabilities,
     })));
     dispatchConnectivityScenario(connectivityScenarioActions.setDestination(createScenarioEndpointFromLocation({
       endpoint: 'destination',
       point: nextDestination,
-      terminals: engineeringDestinationCommercialTerminals,
+      terminalCapabilities: engineeringDestinationTerminalCapabilities,
     })));
     dispatchConnectivityScenario(connectivityScenarioActions.setServicePattern('site-to-site'));
     dispatchConnectivityScenario(connectivityScenarioActions.setTrafficIntent(activeMeshTab === 'reverse' ? 'b-to-a' : 'a-to-b'));
@@ -2606,8 +2596,8 @@ const App: React.FC = () => {
   }, [
     activeAnalysisPoint,
     activeMeshTab,
-    engineeringDestinationCommercialTerminals,
-    engineeringOriginCommercialTerminals,
+    engineeringDestinationTerminalCapabilities,
+    engineeringOriginTerminalCapabilities,
     handleLeoTopologyModeChange,
     handleLinkModeChange,
     handleLocationSelect,
@@ -4605,6 +4595,19 @@ const App: React.FC = () => {
                     compact={useCompactDesktopSidebar}
                     onReset={handleResetView}
                   />
+
+                  {!selectedIss && !selectedGateway && !inspectedSNP && !selectedMoon && !selectedSatellite && activeAnalysisPoint && !isTwoPointMode && (
+                    <div className={`border-b border-slate-200/60 dark:border-slate-800/60 ${useCompactDesktopSidebar ? 'px-2.5 py-2' : 'px-3 py-2.5'}`}>
+                      <SharedScenarioBuilder
+                        origin={routeSelectorRoute.origin}
+                        destination={routeSelectorRoute.destination}
+                        scenarioType={routeSelectorRoute.scenarioType}
+                        onOriginSelect={(location) => handleLocationSelect(location.lat, location.lng)}
+                        onDestinationSelect={(location) => handleDestinationLocationSelect(location.lat, location.lng)}
+                        onSwapClick={handleSwapRouteEndpoints}
+                      />
+                    </div>
+                  )}
 
                   {!selectedIss && !selectedGateway && !inspectedSNP && !selectedMoon && !selectedSatellite && activeAnalysisPoint && (
                     <MissionKpiBar
