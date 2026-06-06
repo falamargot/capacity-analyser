@@ -24,7 +24,7 @@ export interface CommercialNarrativeCardModel {
   businessNote: string;
 }
 
-const segmentOrder: CommercialRouteSegmentId[] = ['access', 'satellite', 'backhaul', 'destination', 'summary'];
+const segmentOrder: CommercialRouteSegmentId[] = ['access', 'satellite', 'destination', 'summary'];
 
 const segmentTitles: Record<CommercialRouteSegmentId, string> = {
   access: 'Customer Site',
@@ -64,7 +64,7 @@ function canonicalSegmentIdFromRaw(value: string | undefined | null): Commercial
     case 'satellite':
       return 'satellite';
     case 'backhaul':
-      return 'backhaul';
+      return 'summary';
     case 'destination':
     case 'siteB':
       return 'destination';
@@ -73,6 +73,10 @@ function canonicalSegmentIdFromRaw(value: string | undefined | null): Commercial
     default:
       return undefined;
   }
+}
+
+function visibleSegmentId(segmentId: CommercialRouteSegmentId): CommercialRouteSegmentId {
+  return segmentId === 'backhaul' ? 'summary' : segmentId;
 }
 
 function segmentForId(
@@ -218,10 +222,10 @@ export function buildCommercialNarrativeCardModel({
   commercialRouteModel?: CommercialRouteModel;
   selectedSegmentId?: string;
 }): CommercialNarrativeCardModel {
-  const focusedSegmentId = commercialRouteModel?.focusedSegmentId
+  const focusedSegmentId = visibleSegmentId(commercialRouteModel?.focusedSegmentId
     ?? canonicalSegmentIdFromRaw(selectedSegmentId)
     ?? canonicalSegmentIdFromRaw(viewModel.selectedSegmentId)
-    ?? 'summary';
+    ?? 'summary');
   const segment = segmentForId(viewModel, focusedSegmentId)
     ?? segmentForId(viewModel, 'summary')
     ?? viewModel.routeSegments[0];
@@ -314,7 +318,7 @@ export function buildCommercialNarrativeCardModel({
     case 'destination':
       return {
         segmentId: focusedSegmentId,
-        stepNumber: 4,
+        stepNumber: 3,
         stepTotal: segmentOrder.length,
         eyebrow: commercialRouteModel?.destinationIsPortal ? 'Network Exit' : 'Destination',
         title,
@@ -334,9 +338,17 @@ export function buildCommercialNarrativeCardModel({
     case 'summary':
     default: {
       const alternative = alternateOption(viewModel);
+      const backhaulSegment = segmentForId(viewModel, 'backhaul');
+      const isGeoGatewayRelevant = viewModel.commercialDisplayTechnology === 'GEO'
+        && commercialRouteModel?.destinationIsPortal === true;
+      const infrastructure = isGeoGatewayRelevant
+        ? gatewayLabel(commercialRouteModel)
+        : backbonePathLabel(viewModel, commercialRouteModel);
+      const backhaulConstraint = selectedConstraint(backhaulSegment, viewModel);
+      const summaryConstraint = constraint ?? backhaulConstraint;
       return {
         segmentId: 'summary',
-        stepNumber: 5,
+        stepNumber: 4,
         stepTotal: segmentOrder.length,
         eyebrow: 'Service Outcome',
         title,
@@ -345,10 +357,12 @@ export function buildCommercialNarrativeCardModel({
         narrativeStatement: serviceOutcomeStatement(viewModel),
         facts: compactFacts([
           { label: 'Preferred option', value: recommendedTechnologyLabel(viewModel) },
+          { label: isGeoGatewayRelevant ? 'Gateway' : 'Network path', value: infrastructure },
+          { label: 'Transit', value: routeParticipantLabel(backhaulSegment) },
           { label: 'Why it matters', value: viewModel.recommendation.reason },
           { label: 'Alternative', value: alternative ? `${alternative.label} ${alternative.available ? 'available' : alternative.statusLabel.toLowerCase()}` : undefined },
-        ]),
-        businessNote: businessNote(constraint, viewModel.executiveSummary.expectedExperience),
+        ], 5),
+        businessNote: businessNote(summaryConstraint, viewModel.executiveSummary.expectedExperience),
       };
     }
   }

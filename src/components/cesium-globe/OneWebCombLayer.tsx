@@ -89,6 +89,7 @@ interface OneWebCombLayerProps {
     regulatoryOverlayActive?: boolean;
     leoServiceViewModel?: LeoConnectivityViewModel | null;
     commercialTone?: 'primary' | 'secondary';
+    commercialEnvelopeOnly?: boolean;
 }
 
 const BLOCKED_BEAM_TINT = Color.fromCssColorString('#ef4444');
@@ -110,6 +111,10 @@ const _HIGHLIGHT_OUTLINE_COLOR = Color.PALEVIOLETRED.withAlpha(0.95);
 
 // Outline color for beam polygon graphics — never changes.
 const _BEAM_OUTLINE_COLOR = Color.WHITE.withAlpha(0.15);
+const _COMMERCIAL_LEO_ENVELOPE_FILL = Color.fromCssColorString('#ec4899').withAlpha(0.24);
+const _COMMERCIAL_LEO_ENVELOPE_FILL_SECONDARY = Color.fromCssColorString('#ec4899').withAlpha(0.10);
+const _COMMERCIAL_LEO_ENVELOPE_OUTLINE = Color.fromCssColorString('#f9a8d4').withAlpha(0.92);
+const _COMMERCIAL_LEO_ENVELOPE_OUTLINE_SECONDARY = Color.fromCssColorString('#f9a8d4').withAlpha(0.36);
 
 // Dummy PolygonHierarchy returned from hierarchy callbacks when geometry is not
 // yet available — allocated once instead of new PolygonHierarchy() every frame.
@@ -170,6 +175,210 @@ function getRenderablePolygon(
 ): Cartesian3[] {
     return sanitizeCartesianRing(geometries?.[beamIndex] ?? null);
 }
+
+function isBeamActiveAtTime(targetSat: SatelliteData, beamIndex: number, time: JulianDate): boolean {
+    if (!targetSat.satrec) return false;
+    const { isBlankingZone, isGSOAvoidance, satLatDeg } = calculateGSOAvoidanceAngle(targetSat.satrec, time);
+    if (isBlankingZone) return false;
+    if (!isGSOAvoidance) return true;
+
+    const shouldActivateNorthernBeams = satLatDeg > 0;
+    return shouldActivateNorthernBeams
+        ? beamIndex >= 0 && beamIndex <= 7
+        : beamIndex >= 8 && beamIndex <= 15;
+}
+
+function cartesianToLngLat(point: Cartesian3): { lng: number; lat: number } {
+    const cartographic = Cartographic.fromCartesian(point);
+    return {
+        lng: CesiumMath.toDegrees(cartographic.longitude),
+        lat: CesiumMath.toDegrees(cartographic.latitude),
+    };
+}
+
+function normalizeLngNear(lng: number, referenceLng: number): number {
+    let value = lng;
+    while (value - referenceLng > 180) value -= 360;
+    while (value - referenceLng < -180) value += 360;
+    return value;
+}
+
+function denormalizeLng(lng: number): number {
+    let value = lng;
+    while (value > 180) value -= 360;
+    while (value < -180) value += 360;
+    return value;
+}
+
+function buildEnvelopePositions(polygons: Cartesian3[][]): Cartesian3[] {
+    const lngLatPoints = polygons
+        .flatMap((polygon) => polygon.map(cartesianToLngLat))
+        .filter((point) => Number.isFinite(point.lat) && Number.isFinite(point.lng));
+    if (lngLatPoints.length < 3) return DUMMY_POLYGON;
+
+    const referenceLng = lngLatPoints[0].lng;
+    let minLat = Infinity;
+    let maxLat = -Infinity;
+    let minLng = Infinity;
+    let maxLng = -Infinity;
+
+    for (const point of lngLatPoints) {
+        const normalizedLng = normalizeLngNear(point.lng, referenceLng);
+        minLat = Math.min(minLat, point.lat);
+        maxLat = Math.max(maxLat, point.lat);
+        minLng = Math.min(minLng, normalizedLng);
+        maxLng = Math.max(maxLng, normalizedLng);
+    }
+
+    if (![minLat, maxLat, minLng, maxLng].every(Number.isFinite) || minLat === maxLat || minLng === maxLng) {
+        return DUMMY_POLYGON;
+    }
+
+    const latPadding = Math.max((maxLat - minLat) * 0.04, 0.02);
+    const lngPadding = Math.max((maxLng - minLng) * 0.04, 0.02);
+    minLat = Math.max(-89.8, minLat - latPadding);
+    maxLat = Math.min(89.8, maxLat + latPadding);
+    minLng -= lngPadding;
+    maxLng += lngPadding;
+
+    return Cartesian3.fromDegreesArrayHeights([
+        denormalizeLng(minLng), minLat, FOOTPRINT_HIGHLIGHT_LAYER_HEIGHT_M,
+        denormalizeLng(maxLng), minLat, FOOTPRINT_HIGHLIGHT_LAYER_HEIGHT_M,
+        denormalizeLng(maxLng), maxLat, FOOTPRINT_HIGHLIGHT_LAYER_HEIGHT_M,
+        denormalizeLng(minLng), maxLat, FOOTPRINT_HIGHLIGHT_LAYER_HEIGHT_M,
+    ]);
+}
+
+const CommercialServingBeamEnvelope = React.memo<{
+    targetSat: SatelliteData;
+    getCombGeometriesRef: React.MutableRefObject<(sat: SatelliteData, time: JulianDate) => Cartesian3[][] | null>;
+    viewerRef: React.RefObject<CesiumViewerType | null>;
+    selectedPosition?: { lat: number; lng: number; altitude?: number } | null;
+    selectedAircraft?: Aircraft | null;
+    servingPoints?: Array<{
+        id: string;
+        position: { lat: number; lng: number };
+        label?: string;
+    }>;
+    commercialTone: 'primary' | 'secondary';
+}>(({ targetSat, getCombGeometriesRef, viewerRef, selectedPosition, selectedAircraft, servingPoints, commercialTone }) => {
+    const cacheRef = useRef<{
+        sourceGeometries: Cartesian3[][] | null;
+        positions: Cartesian3[];
+        hierarchy: PolygonHierarchy;
+        show: boolean;
+    }>({ sourceGeometries: null, positions: DUMMY_POLYGON, hierarchy: _dummyHierarchy, show: false });
+
+    const getEnvelope = useMemo(() => {
+        const resolveTargetPoints = (time: JulianDate): Array<{ lat: number; lng: number }> => {
+            if (servingPoints?.length) {
+                return servingPoints.map((point) => point.position);
+            }
+            if (selectedAircraft) {
+                const p = calculateDeadReckoning(selectedAircraft, time);
+                const c = Cartographic.fromCartesian(p);
+                return [{ lat: CesiumMath.toDegrees(c.latitude), lng: CesiumMath.toDegrees(c.longitude) }];
+            }
+            if (selectedPosition) {
+                return [{ lat: selectedPosition.lat, lng: selectedPosition.lng }];
+            }
+            return [];
+        };
+
+        return (time?: JulianDate) => {
+            if (!time || !viewerRef.current) return cacheRef.current;
+            const geometries = getCombGeometriesRef.current(targetSat, time);
+            if (geometries === cacheRef.current.sourceGeometries) {
+                return cacheRef.current;
+            }
+
+            const targets = resolveTargetPoints(time);
+            const activePolygons: Cartesian3[][] = [];
+            let coversAnyTarget = false;
+
+            for (let beamIndex = 0; beamIndex < TOTAL_BEAMS; beamIndex += 1) {
+                if (!isBeamActiveAtTime(targetSat, beamIndex, time)) continue;
+                const polygon = getRenderablePolygon(geometries, beamIndex);
+                if (polygon.length < 3) continue;
+
+                activePolygons.push(polygon);
+
+                if (!coversAnyTarget) {
+                    const ring: Array<[number, number]> = polygon.map((point) => {
+                        const { lng, lat } = cartesianToLngLat(point);
+                        return [lng, lat];
+                    });
+                    coversAnyTarget = targets.some((target) => isPointInPolygon(target, ring));
+                }
+            }
+
+            const positions = coversAnyTarget && activePolygons.length > 0
+                ? buildEnvelopePositions(activePolygons)
+                : DUMMY_POLYGON;
+            const sanitized = sanitizeCartesianRing(positions);
+            cacheRef.current = {
+                sourceGeometries: geometries,
+                positions: sanitized.length >= 3 ? [...sanitized, sanitized[0]] : DUMMY_POLYGON,
+                hierarchy: sanitized.length >= 3 ? new PolygonHierarchy(sanitized) : _dummyHierarchy,
+                show: sanitized.length >= 3,
+            };
+            return cacheRef.current;
+        };
+    }, [
+        getCombGeometriesRef,
+        selectedAircraft,
+        selectedPosition?.lat,
+        selectedPosition?.lng,
+        servingPoints,
+        targetSat,
+        viewerRef,
+    ]);
+
+    const fillMaterial = useMemo(() => (
+        new ColorMaterialProperty(
+            commercialTone === 'primary' ? _COMMERCIAL_LEO_ENVELOPE_FILL : _COMMERCIAL_LEO_ENVELOPE_FILL_SECONDARY
+        )
+    ), [commercialTone]);
+    const contourMaterial = useMemo(() => (
+        new ColorMaterialProperty(
+            commercialTone === 'primary' ? _COMMERCIAL_LEO_ENVELOPE_OUTLINE : _COMMERCIAL_LEO_ENVELOPE_OUTLINE_SECONDARY
+        )
+    ), [commercialTone]);
+    const outlineColor = commercialTone === 'primary'
+        ? _COMMERCIAL_LEO_ENVELOPE_OUTLINE
+        : _COMMERCIAL_LEO_ENVELOPE_OUTLINE_SECONDARY;
+
+    const show = useMemo(() => new CallbackProperty((time?: JulianDate) => getEnvelope(time).show, false), [getEnvelope]);
+    const hierarchy = useMemo(() => new CallbackProperty((time?: JulianDate) => getEnvelope(time).hierarchy, false), [getEnvelope]);
+    const contourPositions = useMemo(() => new CallbackProperty((time?: JulianDate) => getEnvelope(time).positions, false), [getEnvelope]);
+
+    return (
+        <>
+            <Entity name="Commercial LEO serving beam envelope">
+                <PolygonGraphics
+                    show={show}
+                    hierarchy={hierarchy}
+                    material={fillMaterial}
+                    outline={true}
+                    outlineColor={outlineColor}
+                    outlineWidth={commercialTone === 'primary' ? 4 : 2}
+                    height={FOOTPRINT_HIGHLIGHT_LAYER_HEIGHT_M}
+                />
+            </Entity>
+            <Entity
+                name="Commercial LEO serving beam envelope contour"
+                polyline={{
+                    show,
+                    positions: contourPositions,
+                    width: commercialTone === 'primary' ? 3 : 1.5,
+                    material: contourMaterial,
+                    clampToGround: false,
+                }}
+            />
+        </>
+    );
+});
+CommercialServingBeamEnvelope.displayName = 'CommercialServingBeamEnvelope';
 
 // ─── Single ring of a gradient beam ────────────────────────────────
 const BeamRing = React.memo<{
@@ -382,6 +591,7 @@ const OneWebCombLayer: React.FC<OneWebCombLayerProps> = ({
     regulatoryOverlayActive = false,
     leoServiceViewModel = null,
     commercialTone = 'primary',
+    commercialEnvelopeOnly = false,
 }) => {
     const { getCombGeometries } = useCombGeometry();
     // Stable ref so BeamRing/highlight callbacks always call the latest getCombGeometries
@@ -592,6 +802,20 @@ const OneWebCombLayer: React.FC<OneWebCombLayerProps> = ({
     // Early return AFTER all hooks have been called
     if (!targetSat || !targetSat.satrec) {
         return null;
+    }
+
+    if (commercialEnvelopeOnly) {
+        return (
+            <CommercialServingBeamEnvelope
+                targetSat={targetSat}
+                getCombGeometriesRef={getCombGeometriesRef}
+                viewerRef={viewerRef}
+                selectedPosition={selectedPosition}
+                selectedAircraft={selectedAircraft}
+                servingPoints={servingPoints}
+                commercialTone={commercialTone}
+            />
+        );
     }
 
     return (

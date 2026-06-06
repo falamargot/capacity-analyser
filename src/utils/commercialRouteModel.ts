@@ -244,7 +244,7 @@ function classifyTopology(
   }
   // LEO
   const leoTopology = geometry.activeLeoRouteEvidence?.topology ?? 'SINGLE_SITE';
-  if (!destinationIsPortal && leoTopology === 'SITE_TO_SITE') return 'LEO_S2S';
+  if (!destinationIsPortal && (leoTopology === 'SITE_TO_SITE' || geometry.siteB)) return 'LEO_S2S';
   return 'LEO_SINGLE';
 }
 

@@ -51,8 +51,24 @@ export const ROUTE_REVEAL_TOTAL_MS = REVEAL_DELAY_MS[3] + REVEAL_DURATION_MS; //
  */
 const FOCUS_LERP_K = 0.11;
 
-/** Opacity for non-focused segments (matches CommercialRouteLayer). */
+/** Opacity for non-focused segments — kept for backward compatibility. */
 export const UNFOCUSED_OPACITY = 0.15;
+
+/**
+ * Storytelling opacity targets for each animated segment index
+ * [access(0), satellite(1), backhaul(2), destination(3)]
+ * when a given segment is focused.
+ *
+ * Hero segment → 1.0 · peer endpoints → 0.25 · background → 0.05–0.15
+ */
+export const FOCUS_OPACITY_PROFILES: Record<CommercialRouteSegmentId, readonly [number, number, number, number]> = {
+  //                          acc    sat    bck    dst
+  access:      [1.00, 0.15, 0.05, 0.25],
+  satellite:   [0.25, 1.00, 0.05, 0.25],
+  backhaul:    [0.25, 0.10, 1.00, 0.25],
+  destination: [0.25, 0.15, 0.05, 1.00],
+  summary:     [1.00, 1.00, 1.00, 1.00],
+};
 
 /**
  * Pulse frequency in radians per frame (very slow).
@@ -116,6 +132,22 @@ export function getSegmentAlpha(
   return Math.min(1, reveal * focus * pulse);
 }
 
+/**
+ * Alpha for the pulse halo rendered behind a focused endpoint (Site A / Site B).
+ * Returns 0 when the segment is not focused.
+ * Breathes between 0.12 and 0.38 at a slower cadence than the main node pulse
+ * to avoid competing with it visually.
+ */
+export function getHaloAlpha(
+  state: CommercialAnimationState,
+  segIdx: number,
+): number {
+  if (segIdx < 0 || state.focusedIdx !== segIdx) return 0;
+  const reveal = state.reveal[segIdx] ?? 1.0;
+  const phase  = state.pulsePhase * 0.55 + Math.PI * 0.5;
+  return reveal * (0.25 + 0.13 * Math.sin(phase));
+}
+
 // ─── Hook ─────────────────────────────────────────────────────────────────────
 
 /**
@@ -175,9 +207,11 @@ export function useCommercialAnimationDriver(
     stateRef.current.routeStatus =
       (routeModel?.routeStatus ?? 'pending') as CommercialAnimationState['routeStatus'];
 
-    const isSummary = focusedIdx < 0;
+    const profile = focused && focused in FOCUS_OPACITY_PROFILES
+      ? FOCUS_OPACITY_PROFILES[focused]
+      : FOCUS_OPACITY_PROFILES.summary;
     for (let i = 0; i < 4; i++) {
-      targetOpacity.current[i] = (isSummary || focusedIdx === i) ? 1.0 : UNFOCUSED_OPACITY;
+      targetOpacity.current[i] = profile[i];
     }
 
     if (reducedMotion.current) {

@@ -54,13 +54,14 @@ function orderedSegments(
   segments: CommercialRouteSegment[],
   commercialRouteModel: CommercialRouteModel | undefined,
 ): CommercialRouteSegment[] {
-  if (!commercialRouteModel) return segments;
+  const visibleSegments = segments.filter((segment) => segment.type !== 'backhaul');
+  if (!commercialRouteModel) return visibleSegments;
 
   const fromFocusTargets = commercialRouteModel.focusTargets
     .map((target) => segments.find((segment) => canonicalSegmentId(segment) === target.segmentId))
-    .filter((segment): segment is CommercialRouteSegment => segment !== undefined);
+    .filter((segment): segment is CommercialRouteSegment => segment !== undefined && segment.type !== 'backhaul');
 
-  return fromFocusTargets.length === segments.length ? fromFocusTargets : segments;
+  return fromFocusTargets.length === visibleSegments.length ? fromFocusTargets : visibleSegments;
 }
 
 interface CommercialRouteStripProps {
@@ -77,13 +78,17 @@ function CommercialRouteStrip({
   onSelectedSegmentChange,
 }: CommercialRouteStripProps) {
   const displayedSegments = orderedSegments(segments, commercialRouteModel);
-  const focusedSegmentId = commercialRouteModel?.focusedSegmentId ?? selectedSegmentId;
-  const primaryFailingSegmentId = commercialRouteModel
+  const rawFocusedSegmentId = commercialRouteModel?.focusedSegmentId ?? selectedSegmentId;
+  const focusedSegmentId = rawFocusedSegmentId === 'backhaul' ? 'summary' : rawFocusedSegmentId;
+  const rawPrimaryFailingSegmentId = commercialRouteModel
     ? commercialRouteModel.primaryFailingSegmentId
     : undefined;
+  const primaryFailingSegmentId = rawPrimaryFailingSegmentId === 'backhaul'
+    ? 'summary'
+    : rawPrimaryFailingSegmentId;
 
   return (
-    <div className="border-t border-slate-800/70 bg-slate-950/94 px-4 py-1.5 backdrop-blur">
+    <div className="border-t border-[rgba(148,163,184,0.08)] bg-[rgba(6,10,22,0.94)] px-4 py-1.5 backdrop-blur-xl">
       <div className="mb-0.5 flex items-center justify-between gap-3">
         <div>
           <div className="text-[9px] font-semibold uppercase tracking-[0.14em] text-sky-300">Service Journey</div>
@@ -106,12 +111,12 @@ function CommercialRouteStrip({
               className={[
                 'flex w-full min-w-0 flex-col justify-center rounded-lg border px-2.5 py-1.5 text-left transition-colors',
                 isSelected
-                  ? 'min-h-[3.15rem] border-sky-300 bg-sky-500/20 text-white shadow-[0_0_0_1px_rgba(125,211,252,0.3)]'
+                  ? 'min-h-[3.15rem] border-sky-300/80 bg-sky-500/20 text-white shadow-[0_0_0_1px_rgba(125,211,252,0.28),0_0_18px_rgba(56,189,248,0.22)]'
                   : isPrimaryIssue
-                    ? 'min-h-[2.95rem] border-amber-300 bg-amber-500/15 text-white shadow-[0_0_0_1px_rgba(251,191,36,0.28)]'
+                    ? 'min-h-[2.95rem] border-amber-400/60 bg-amber-500/12 text-white shadow-[0_0_0_1px_rgba(251,191,36,0.22),0_0_14px_rgba(251,191,36,0.16)]'
                     : isOutcome
-                      ? 'min-h-[2.95rem] border-sky-500/35 bg-slate-900 text-white hover:bg-slate-800'
-                      : 'min-h-[2.95rem] border-slate-800/70 bg-slate-900/65 text-slate-300 hover:bg-slate-800',
+                      ? 'min-h-[2.95rem] border-sky-500/30 bg-[rgba(15,23,42,0.70)] text-white hover:bg-[rgba(15,23,42,0.90)]'
+                      : 'min-h-[2.95rem] border-[rgba(51,65,85,0.55)] bg-[rgba(15,23,42,0.55)] text-slate-300 hover:bg-[rgba(15,23,42,0.80)]',
               ].join(' ')}
               aria-pressed={isSelected}
             >

@@ -19,10 +19,13 @@ import CommercialModeShell from './components/commercial/CommercialModeShell';
 import CommercialMissionBar from './components/commercial/CommercialMissionBar';
 import SharedScenarioBuilder from './components/shared/SharedScenarioBuilder';
 import CommercialRouteStrip from './components/commercial/CommercialRouteStrip';
-import CommercialOutcomeCard from './components/commercial/CommercialOutcomeCard';
 import CommercialNarrativePanel from './components/commercial/CommercialNarrativePanel';
 import type { CommercialRouteSegmentId } from './types/commercialRouteModel';
-import { buildCommercialScenarioViewModel } from './components/commercial/commercialViewModel';
+import {
+  buildCommercialScenarioViewModel,
+  type CommercialScenarioViewModel,
+  type CommercialTechnologyOption,
+} from './components/commercial/commercialViewModel';
 import { buildCommercialRouteModel } from './utils/commercialRouteModel';
 import { WeatherControl, WEATHER_PROFILES, type TerminalType, type WeatherType, toWeatherCondition } from './components/capacity';
 import { WEATHER_ATTENUATION_DB } from './utils/realisticSimulation';
@@ -129,6 +132,63 @@ const lerp = (start: number, end: number, progress: number) => start + (end - st
 const getCandidateLinkMargin = (candidate: CandidateCoverage): number => (
   Number.isFinite(candidate.linkMarginDb) ? candidate.linkMarginDb! : -Infinity
 );
+
+type SelectableCommercialTechnology = 'GEO' | 'LEO';
+
+function commercialTechnologyOption(
+  viewModel: CommercialScenarioViewModel,
+  technology: 'geo' | 'leo',
+): CommercialTechnologyOption | undefined {
+  return viewModel.comparison.options.find((option) => option.technology === technology);
+}
+
+function commercialOptionsAreEvaluated(viewModel: CommercialScenarioViewModel): boolean {
+  const geo = commercialTechnologyOption(viewModel, 'geo');
+  const leo = commercialTechnologyOption(viewModel, 'leo');
+  return Boolean(geo && leo && geo.status !== 'unknown' && leo.status !== 'unknown');
+}
+
+function commercialStatusRank(option: CommercialTechnologyOption | undefined): number {
+  if (!option) return -1;
+  if (option.status === 'active') return 3;
+  if (option.status === 'degraded') return 2;
+  if (option.status === 'blocked') return 0;
+  return -1;
+}
+
+function finiteMetric(value: number | undefined, fallback: number): number {
+  return Number.isFinite(value) ? value! : fallback;
+}
+
+function selectBestHybridCommercialTechnology(viewModel: CommercialScenarioViewModel): SelectableCommercialTechnology | null {
+  const geo = commercialTechnologyOption(viewModel, 'geo');
+  const leo = commercialTechnologyOption(viewModel, 'leo');
+  if (!geo || !leo || geo.status === 'unknown' || leo.status === 'unknown') return null;
+
+  if (geo.available !== leo.available) return geo.available ? 'GEO' : 'LEO';
+
+  const geoStatusRank = commercialStatusRank(geo);
+  const leoStatusRank = commercialStatusRank(leo);
+  if (geoStatusRank !== leoStatusRank) return geoStatusRank > leoStatusRank ? 'GEO' : 'LEO';
+
+  const geoLatency = finiteMetric(geo.rttMs, Infinity);
+  const leoLatency = finiteMetric(leo.rttMs, Infinity);
+  if (geoLatency !== leoLatency) return geoLatency < leoLatency ? 'GEO' : 'LEO';
+
+  const geoDownload = finiteMetric(geo.downloadMbps, -Infinity);
+  const leoDownload = finiteMetric(leo.downloadMbps, -Infinity);
+  if (geoDownload !== leoDownload) return geoDownload > leoDownload ? 'GEO' : 'LEO';
+
+  return 'LEO';
+}
+
+function autoSelectableCommercialTechnology(viewModel: CommercialScenarioViewModel): SelectableCommercialTechnology | null {
+  const recommended = viewModel.recommendation.technology;
+  if (recommended === 'geo') return 'GEO';
+  if (recommended === 'leo') return 'LEO';
+  if (recommended === 'hybrid') return selectBestHybridCommercialTechnology(viewModel);
+  return null;
+}
 
 const compareCandidateLinkMargin = (left: CandidateCoverage, right: CandidateCoverage): number => {
   const marginDelta = getCandidateLinkMargin(right) - getCandidateLinkMargin(left);
@@ -481,11 +541,19 @@ const App: React.FC = () => {
   const [commercialSelectedSegment, setCommercialSelectedSegment] = useState<string>('summary');
   const [isCommercialPanelOpen, setIsCommercialPanelOpen] = useState(false);
 
+  const normalizeCommercialSegmentId = useCallback((segmentId: string) => (
+    segmentId === 'backhaul' ? 'summary' : segmentId
+  ), []);
+
+  const handleCommercialSegmentChange = useCallback((segmentId: string) => {
+    setCommercialSelectedSegment(normalizeCommercialSegmentId(segmentId));
+  }, [normalizeCommercialSegmentId]);
+
   /** Opens the Narrative Panel and selects the given segment. */
   const handleCommercialSegmentSelect = useCallback((segmentId: string) => {
-    setCommercialSelectedSegment(segmentId);
+    setCommercialSelectedSegment(normalizeCommercialSegmentId(segmentId));
     setIsCommercialPanelOpen(true);
-  }, []);
+  }, [normalizeCommercialSegmentId]);
 
   // Derived backward-compat variables — downstream components still receive pointB / pointBLeo
   const geoNeedsPointB = LINK_MODE_REQUIRES_POINT_B.has(linkMode) && satelliteScope !== 'LEO';
@@ -3495,11 +3563,22 @@ const App: React.FC = () => {
     : siteB
       ? 'Move Site B'
       : 'Set Site B';
-  const activeCommercialTechnology = satelliteScope === 'GEO'
-    ? 'GEO'
-    : satelliteScope === 'LEO'
-      ? 'LEO'
-      : activeConnectivityTab;
+
+  useEffect(() => {
+    if (uiMode === 'commercial' && satelliteScope !== 'ALL') {
+      handleTechnologyScopeChange('ALL');
+    }
+  }, [handleTechnologyScopeChange, satelliteScope, uiMode]);
+
+  const activeCommercialTechnology = activeConnectivityTab;
+
+  const handleCommercialTechnologySelect = useCallback((technology: 'GEO' | 'LEO') => {
+    handleTechnologyChange(technology);
+    if (satelliteScope !== 'ALL') {
+      handleTechnologyScopeChange('ALL');
+    }
+  }, [handleTechnologyChange, handleTechnologyScopeChange, satelliteScope]);
+
   // Memoized so buildCommercialScenarioViewModel only runs when its inputs actually change,
   // not on every satellite-tick render that leaves these values untouched.
   const commercialScenarioViewModel = useMemo(() => buildCommercialScenarioViewModel({
@@ -3531,6 +3610,44 @@ const App: React.FC = () => {
     activeGeoSatellite, resolvedAutoLEO, mobileMetrics, leoTopologyMode,
     activeLeoRouteEvidence, geoPointStatus, linkMode, selectedCoverage, geoRouteAnalysis,
     weatherType, weatherTypeB, leoTerminalType, commercialSelectedSegment,
+  ]);
+
+  const commercialSiteAutoSelectionSignature = (() => {
+    if (!commercialMode || activeAnalysisSource === 'aircraft' || !activeAnalysisPoint) return null;
+    const siteASignature = `A:${activeAnalysisPoint.lat.toFixed(5)},${activeAnalysisPoint.lng.toFixed(5)}`;
+    const siteBSignature = siteB ? `B:${siteB.lat.toFixed(5)},${siteB.lng.toFixed(5)}` : 'B:none';
+    return `${siteASignature}|${siteBSignature}`;
+  })();
+
+  const commercialAutoSelectedSiteSignatureRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!commercialMode || !commercialSiteAutoSelectionSignature) {
+      commercialAutoSelectedSiteSignatureRef.current = null;
+      return;
+    }
+
+    if (commercialAutoSelectedSiteSignatureRef.current === commercialSiteAutoSelectionSignature) return;
+    if (!commercialOptionsAreEvaluated(commercialScenarioViewModel)) return;
+
+    const nextTechnology = autoSelectableCommercialTechnology(commercialScenarioViewModel);
+    if (!nextTechnology) return;
+
+    commercialAutoSelectedSiteSignatureRef.current = commercialSiteAutoSelectionSignature;
+    if (activeConnectivityTab !== nextTechnology) {
+      handleTechnologyChange(nextTechnology);
+    }
+    if (satelliteScope !== 'ALL') {
+      handleTechnologyScopeChange('ALL');
+    }
+  }, [
+    activeConnectivityTab,
+    commercialMode,
+    commercialScenarioViewModel,
+    commercialSiteAutoSelectionSignature,
+    handleTechnologyChange,
+    handleTechnologyScopeChange,
+    satelliteScope,
   ]);
 
   // CommercialRouteModel — canonical route geometry model (COMM-6C3B).
@@ -4100,7 +4217,7 @@ const App: React.FC = () => {
         <CommercialModeShell
           viewModel={commercialScenarioViewModel}
           commercialRouteModel={commercialRouteModel}
-          onSelectedSegmentChange={setCommercialSelectedSegment}
+          onSelectedSegmentChange={handleCommercialSegmentChange}
           onViewFullAnalysis={() => handleUiModeChange('engineering')}
           isMobile={isMobile}
           isFullscreen={isFullscreen}
@@ -4110,7 +4227,7 @@ const App: React.FC = () => {
             <MapViewSwitcher
               {...sharedMapProps}
               commercialState={mobileCommercialState}
-              onCommercialSelectedSegmentChange={setCommercialSelectedSegment}
+              onCommercialSelectedSegmentChange={handleCommercialSegmentChange}
             />
           )}
         />
@@ -4517,6 +4634,8 @@ const App: React.FC = () => {
                     origin={routeSelectorRoute.origin}
                     destination={routeSelectorRoute.destination}
                     scenarioType={routeSelectorRoute.scenarioType}
+                    selectedTechnology={activeCommercialTechnology}
+                    onTechnologySelect={handleCommercialTechnologySelect}
                     onOriginSelect={(location) => handleLocationSelect(location.lat, location.lng)}
                     onDestinationSelect={(location) => handleDestinationLocationSelect(location.lat, location.lng)}
                     onSwapClick={handleSwapRouteEndpoints}
@@ -4560,12 +4679,6 @@ const App: React.FC = () => {
                     loses width to a sidebar. Globe canvas stays full-size. */}
                 {uiMode === 'commercial' && !isFullscreen && (
                   <>
-                    {/* Floating outcome card — bottom-left */}
-                    <CommercialOutcomeCard
-                      viewModel={commercialScenarioViewModel}
-                      onOpenOutcome={() => handleCommercialSegmentSelect('summary')}
-                    />
-
                     {/* Journey strip — bottom overlay */}
                     <div className="absolute bottom-0 left-0 right-0 z-20">
                       <CommercialRouteStrip

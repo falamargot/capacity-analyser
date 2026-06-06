@@ -118,14 +118,7 @@ function commercialEmptyState(input: BuildCommercialScenarioViewModelInput, acti
   return 'No active connectivity path was found.';
 }
 
-function deriveDisplayTechnology(
-  recommendation: import('./commercialTypes').CommercialRecommendation,
-  leoOptionAvailable: boolean,
-  geoOptionAvailable: boolean,
-  activeTechnology: 'LEO' | 'GEO',
-): 'LEO' | 'GEO' {
-  if (recommendation.technology === 'geo' && geoOptionAvailable) return 'GEO';
-  if (recommendation.technology === 'leo' && leoOptionAvailable) return 'LEO';
+function deriveDisplayTechnology(activeTechnology: 'LEO' | 'GEO'): 'LEO' | 'GEO' {
   return activeTechnology;
 }
 
@@ -252,11 +245,9 @@ export function buildCommercialScenarioViewModel(input: BuildCommercialScenarioV
     ),
   }));
   const recommendation = buildRecommendation(comparisonOptions);
-  const leoOptionAvailable = comparisonOptions.find((o) => o.technology === 'leo')?.available === true;
-  const geoOptionAvailable = comparisonOptions.find((o) => o.technology === 'geo')?.available === true;
-  const commercialDisplayTechnology = deriveDisplayTechnology(recommendation, leoOptionAvailable, geoOptionAvailable, input.activeTechnology);
+  const commercialDisplayTechnology = deriveDisplayTechnology(input.activeTechnology);
 
-  // ── Narrative layer: follow commercialDisplayTechnology, not activeTechnology ──
+  // ── Narrative layer: follow the selected commercial display technology ──
   // isDisplayLeo is the single fork for all customer-facing data selection.
 
   const isDisplayLeo = commercialDisplayTechnology === 'LEO';

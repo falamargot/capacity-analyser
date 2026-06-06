@@ -774,6 +774,34 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
         };
     }, [leoSiteToSiteResult, satellites]);
 
+    // Backbone topology visible even when full S2S route is unavailable (e.g. regulatory
+    // pending, no satellite coverage). Computed only when leoS2SLinks would be null.
+    const leoS2SBackbone = useMemo(() => {
+        const r = leoSiteToSiteResult;
+        if (!r) return null;
+        // leoS2SLinks already handles the full render when route is available
+        if (r.serviceAvailable && r.servingSatelliteA && r.servingSatelliteB) return null;
+
+        const { selectedSnpA, selectedSnpB, logicalPop } = r;
+        if (!selectedSnpA || !selectedSnpB) return null;
+
+        const snpAPos = getPosition(selectedSnpA.lat, selectedSnpA.lng, 0.01);
+        const snpBPos = getPosition(selectedSnpB.lat, selectedSnpB.lng, 0.01);
+        const popPos = logicalPop ? getPosition(logicalPop.lat, logicalPop.lng, 0.01) : null;
+        const sameSNP = selectedSnpA.name === selectedSnpB.name;
+        const snpAToPopCallback = snpAPos && popPos ? createStaticPathCallback([snpAPos, popPos]) : null;
+        const popToSnpBCallback = snpBPos && popPos ? createStaticPathCallback([popPos, snpBPos]) : null;
+        const sameSnpCallback = sameSNP ? createStaticPathCallback([snpAPos, snpBPos]) : null;
+
+        return {
+            snpAPos, snpBPos, popPos, sameSNP,
+            snpAToPopCallback, popToSnpBCallback, sameSnpCallback,
+            snpAName: selectedSnpA.name,
+            snpBName: selectedSnpB.name,
+            popName: logicalPop?.name ?? 'Core PoP',
+        };
+    }, [leoSiteToSiteResult]);
+
     const isSiteToSiteActive = !!(leoS2SLinks);
 
     const reverseGeoUserLinkCallback = useMemo(() => createReversedPathCallback(geoUserLinkCallback), [geoUserLinkCallback]);
@@ -1214,6 +1242,122 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
                                     scale={commercialMode ? 0.78 : 0.9}
                                 />
                             )}
+                        </Entity>
+                    )}
+                </>
+            )}
+
+            {/* LEO S2S backbone — shown when the full route is unavailable but SNP topology
+                is known (e.g. regulatory pending, no satellite coverage). Subdued style
+                communicates that the infrastructure exists but the service is not active. */}
+            {showLeoCommercialRoute && !leoS2SLinks && leoS2SBackbone && (
+                <>
+                    {!leoS2SBackbone.sameSNP && leoS2SBackbone.snpAToPopCallback && (
+                        <S2SBackboneSegment
+                            name="S2S: SNP A → PoP (backbone, service unavailable)"
+                            positions={leoS2SBackbone.snpAToPopCallback}
+                            entityIdBase={routeEntityIds.leoS2SSnpAPop}
+                            subdued
+                        />
+                    )}
+                    {!leoS2SBackbone.sameSNP && leoS2SBackbone.popToSnpBCallback && (
+                        <S2SBackboneSegment
+                            name="S2S: PoP → SNP B (backbone, service unavailable)"
+                            positions={leoS2SBackbone.popToSnpBCallback}
+                            entityIdBase={routeEntityIds.leoS2SPopSnpB}
+                            subdued
+                        />
+                    )}
+                    {leoS2SBackbone.sameSNP && leoS2SBackbone.sameSnpCallback && (
+                        <S2SBackboneSegment
+                            name="S2S: Same SNP (backbone collapsed, service unavailable)"
+                            positions={leoS2SBackbone.sameSnpCallback}
+                            entityIdBase={routeEntityIds.leoS2SBackboneSame}
+                            subdued
+                        />
+                    )}
+                    {leoS2SBackbone.snpAPos && leoS2SBackbone.snpAName && (
+                        <Entity
+                            key={routeEntityIds.leoS2SSnpAMarker}
+                            id={routeEntityIds.leoS2SSnpAMarker}
+                            name={`S2S: SNP ${leoS2SBackbone.snpAName}`}
+                            position={leoS2SBackbone.snpAPos}
+                        >
+                            <PointGraphics
+                                pixelSize={10}
+                                color={Color.fromCssColorString('#f97316').withAlpha(0.55)}
+                                outlineColor={Color.fromCssColorString('#fff7ed').withAlpha(0.45)}
+                                outlineWidth={1.5}
+                            />
+                            <LabelGraphics
+                                text={`SNP A\n${leoS2SBackbone.snpAName}`}
+                                font="bold 11px sans-serif"
+                                fillColor={Color.fromCssColorString('#f97316').withAlpha(0.72)}
+                                outlineColor={Color.BLACK}
+                                outlineWidth={2}
+                                style={LabelStyle.FILL_AND_OUTLINE}
+                                verticalOrigin={VerticalOrigin.BOTTOM}
+                                horizontalOrigin={HorizontalOrigin.CENTER}
+                                pixelOffset={new Cartesian2(0, -14)}
+                                disableDepthTestDistance={Number.POSITIVE_INFINITY}
+                                scale={0.9}
+                            />
+                        </Entity>
+                    )}
+                    {!leoS2SBackbone.sameSNP && leoS2SBackbone.snpBPos && leoS2SBackbone.snpBName && (
+                        <Entity
+                            key={routeEntityIds.leoS2SSnpBMarker}
+                            id={routeEntityIds.leoS2SSnpBMarker}
+                            name={`S2S: SNP ${leoS2SBackbone.snpBName}`}
+                            position={leoS2SBackbone.snpBPos}
+                        >
+                            <PointGraphics
+                                pixelSize={10}
+                                color={Color.fromCssColorString('#f97316').withAlpha(0.55)}
+                                outlineColor={Color.fromCssColorString('#fff7ed').withAlpha(0.45)}
+                                outlineWidth={1.5}
+                            />
+                            <LabelGraphics
+                                text={`SNP B\n${leoS2SBackbone.snpBName}`}
+                                font="bold 11px sans-serif"
+                                fillColor={Color.fromCssColorString('#f97316').withAlpha(0.72)}
+                                outlineColor={Color.BLACK}
+                                outlineWidth={2}
+                                style={LabelStyle.FILL_AND_OUTLINE}
+                                verticalOrigin={VerticalOrigin.BOTTOM}
+                                horizontalOrigin={HorizontalOrigin.CENTER}
+                                pixelOffset={new Cartesian2(0, -14)}
+                                disableDepthTestDistance={Number.POSITIVE_INFINITY}
+                                scale={0.9}
+                            />
+                        </Entity>
+                    )}
+                    {!leoS2SBackbone.sameSNP && leoS2SBackbone.popPos && (
+                        <Entity
+                            key={routeEntityIds.leoS2SPopMarker}
+                            id={routeEntityIds.leoS2SPopMarker}
+                            name={`S2S: PoP ${leoS2SBackbone.popName}`}
+                            position={leoS2SBackbone.popPos}
+                        >
+                            <PointGraphics
+                                pixelSize={13}
+                                color={Color.fromCssColorString('#8b5cf6').withAlpha(0.50)}
+                                outlineColor={Color.fromCssColorString('#ede9fe').withAlpha(0.38)}
+                                outlineWidth={2}
+                            />
+                            <LabelGraphics
+                                text={`PoP\n${leoS2SBackbone.popName}`}
+                                font="bold 11px sans-serif"
+                                fillColor={Color.fromCssColorString('#a78bfa').withAlpha(0.72)}
+                                outlineColor={Color.BLACK}
+                                outlineWidth={2}
+                                style={LabelStyle.FILL_AND_OUTLINE}
+                                verticalOrigin={VerticalOrigin.BOTTOM}
+                                horizontalOrigin={HorizontalOrigin.CENTER}
+                                pixelOffset={new Cartesian2(0, -16)}
+                                disableDepthTestDistance={Number.POSITIVE_INFINITY}
+                                scale={0.9}
+                            />
                         </Entity>
                     )}
                 </>

@@ -6,25 +6,25 @@ import { formatMbps, formatMs } from './commercialDisplayUtils';
 import type { ConnectivityEndpoint, ConnectivityScenarioType } from './commercialTypes';
 import type { LocationResult } from '../../hooks/useLocationSearch';
 
+type SelectableCommercialTechnology = 'GEO' | 'LEO';
+
 interface CommercialMissionBarProps {
   viewModel: CommercialScenarioViewModel;
   origin?: ConnectivityEndpoint;
   destination?: ConnectivityEndpoint;
   scenarioType?: ConnectivityScenarioType;
+  selectedTechnology: SelectableCommercialTechnology;
+  onTechnologySelect: (technology: SelectableCommercialTechnology) => void;
   onOriginSelect: (location: LocationResult) => void;
   onDestinationSelect: (location: LocationResult) => void;
   onSwapClick: () => void;
 }
 
-function optionFor(
+function optionForTechnology(
   viewModel: CommercialScenarioViewModel,
-  technology: 'leo' | 'geo',
+  technology: SelectableCommercialTechnology,
 ): CommercialTechnologyOption | undefined {
-  return viewModel.comparison.options.find((o) => o.technology === technology);
-}
-
-function isRecommended(viewModel: CommercialScenarioViewModel, technology: 'leo' | 'geo'): boolean {
-  return viewModel.recommendation.technology === technology;
+  return viewModel.comparison.options.find((option) => option.technology === technology.toLowerCase());
 }
 
 function scenarioTypeFor(viewModel: CommercialScenarioViewModel): ConnectivityScenarioType {
@@ -38,118 +38,185 @@ function scenarioTypeFor(viewModel: CommercialScenarioViewModel): ConnectivitySc
   return 'site_to_site';
 }
 
-function recommendationLabel(viewModel: CommercialScenarioViewModel): string {
-  const { technology, label } = viewModel.recommendation;
-  if (technology === 'hybrid') return 'Hybrid suitable';
-  if (technology === 'not_available') return 'No viable path';
-  if (technology === 'insufficient_data') return 'Pending';
-  return `${label} recommended`;
+function isRecommendedTechnology(
+  viewModel: CommercialScenarioViewModel,
+  technology: SelectableCommercialTechnology,
+): boolean {
+  return viewModel.recommendation.technology === technology.toLowerCase();
 }
 
-function recommendationReason(viewModel: CommercialScenarioViewModel): string {
-  return (
-    viewModel.executiveSummary.reason
-    || viewModel.recommendation.reason
-    || viewModel.executiveSummary.expectedExperience
-  );
+function optionSummary(
+  viewModel: CommercialScenarioViewModel,
+  option: CommercialTechnologyOption | undefined,
+  isRecommended: boolean,
+): string {
+  if (!option) return 'No performance data is available yet.';
+  if (isRecommended) {
+    return viewModel.recommendation.reason || option.routeSummary || option.statusLabel;
+  }
+  return option.strengths[0]
+    || option.limitingFactor
+    || option.routeSummary
+    || option.statusLabel;
 }
 
-/* ── Shared metric chip ─────────────────────────────────────────────────── */
+function statusBadgeClass(option: CommercialTechnologyOption | undefined): string {
+  if (!option) return 'border-slate-700/50 bg-slate-800/45 text-slate-500';
+  if (option.status === 'active') return 'border-emerald-400/40 bg-emerald-500/12 text-emerald-200';
+  if (option.status === 'degraded') return 'border-amber-400/45 bg-amber-500/12 text-amber-200';
+  if (option.status === 'blocked') return 'border-rose-400/45 bg-rose-500/12 text-rose-200';
+  return 'border-slate-700 bg-slate-800 text-slate-300';
+}
+
+function technologyCardClass(isSelected: boolean, isRecommended: boolean): string {
+  const base = [
+    'group flex h-full min-w-0 flex-col justify-between rounded-lg border px-3 py-2 text-left',
+    'transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-300/70',
+  ];
+
+  if (isRecommended) {
+    base.push(
+      'border-sky-300/45 bg-sky-500/12 text-white',
+      'shadow-[0_0_38px_-18px_rgba(56,189,248,0.70),0_16px_48px_-36px_rgba(56,189,248,0.90)]',
+    );
+  } else if (isSelected) {
+    base.push('border-white/35 bg-slate-700/45 text-white shadow-[0_0_0_1px_rgba(255,255,255,0.08)]');
+  } else {
+    base.push('border-[rgba(51,65,85,0.55)] bg-[rgba(15,23,42,0.50)] text-slate-300 hover:border-sky-400/35 hover:bg-slate-800/65');
+  }
+
+  if (isSelected) {
+    base.push('ring-1 ring-sky-300/55');
+  }
+
+  return base.join(' ');
+}
+
 function MetricChip({
   icon,
   value,
   label,
-  hero = false,
+  muted = false,
 }: {
   icon: ReactNode;
   value: string;
   label: string;
-  hero?: boolean;
+  muted?: boolean;
 }) {
   return (
-    <div className="flex items-center gap-1" title={label}>
-      <span className={hero ? 'text-sky-200' : 'text-slate-400'}>{icon}</span>
-      <span
-        className={
-          hero
-            ? 'text-[15px] font-bold tabular-nums text-white'
-            : 'text-[13px] font-semibold tabular-nums text-slate-100'
-        }
-      >
+    <div className="flex min-w-0 items-center gap-1" title={label}>
+      <span className={muted ? 'text-slate-600' : 'text-sky-200'}>{icon}</span>
+      <span className={muted ? 'truncate text-[11px] font-semibold tabular-nums text-slate-500' : 'truncate text-[12px] font-bold tabular-nums text-white'}>
         {value}
       </span>
     </div>
   );
 }
 
-/* ── Technology snapshot column ─────────────────────────────────────────── */
-function TechColumn({
+function TechnologyPerformanceCard({
+  technology,
   option,
-  tag,
-  highlighted,
+  isSelected,
+  isRecommended,
+  summary,
+  onSelect,
 }: {
+  technology: SelectableCommercialTechnology;
   option?: CommercialTechnologyOption;
-  tag: string;
-  highlighted: boolean;
+  isSelected: boolean;
+  isRecommended: boolean;
+  summary: string;
+  onSelect: (technology: SelectableCommercialTechnology) => void;
 }) {
-  const statusColor = option?.available
-    ? 'text-emerald-300'
-    : option?.status === 'blocked'
-      ? 'text-rose-300'
-      : 'text-amber-300';
+  const muted = !option || option.status === 'unknown' || option.status === 'blocked';
 
   return (
-    <section
-      className={[
-        'flex min-w-0 flex-col justify-center rounded-lg border px-3 py-2',
-        highlighted
-          ? 'border-sky-300/50 bg-sky-500/12 shadow-[0_12px_40px_-28px_rgba(56,189,248,0.85)]'
-          : 'border-[rgba(51,65,85,0.60)] bg-[rgba(15,23,42,0.55)]',
-      ].join(' ')}
-      aria-label={`${option?.label ?? 'Technology'} snapshot`}
+    <button
+      type="button"
+      className={technologyCardClass(isSelected, isRecommended)}
+      onClick={() => onSelect(technology)}
+      aria-pressed={isSelected}
+      aria-label={`Select ${technology} performance view`}
     >
-      <div className="flex min-w-0 items-center justify-between gap-1.5">
-        <span className="min-w-0 truncate text-[12px] font-bold uppercase tracking-[0.08em] text-white">
-          {option?.label ?? '--'}
-        </span>
-        {highlighted && (
-          <Star className="h-3 w-3 shrink-0 fill-sky-300 text-sky-300" aria-hidden="true" />
-        )}
+      <div className="min-w-0">
+        <div className="flex min-w-0 items-start justify-between gap-2">
+          <div className="min-w-0">
+            <div className="flex min-w-0 items-center gap-1.5">
+              {isRecommended && <Star className="h-3 w-3 shrink-0 fill-sky-300 text-sky-300" aria-hidden="true" />}
+              <span className="truncate text-[13px] font-bold uppercase tracking-[0.04em] text-white">
+                {technology}
+              </span>
+            </div>
+            <div className="mt-0.5 flex min-w-0 flex-wrap items-center gap-1.5">
+              {isRecommended && (
+                <span className="rounded-full border border-sky-300/35 bg-sky-400/15 px-1.5 py-px text-[8px] font-bold uppercase tracking-[0.12em] text-sky-200">
+                  Recommended
+                </span>
+              )}
+              {isSelected && (
+                <span className="rounded-full border border-white/20 bg-white/10 px-1.5 py-px text-[8px] font-bold uppercase tracking-[0.12em] text-white">
+                  Selected
+                </span>
+              )}
+            </div>
+          </div>
+          <span className={`shrink-0 rounded-full border px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-[0.08em] ${statusBadgeClass(option)}`}>
+            {option?.statusLabel ?? 'Pending'}
+          </span>
+        </div>
+
+        <p className="mt-1 line-clamp-1 text-[11px] font-medium leading-4 text-slate-400" title={summary}>
+          {summary}
+        </p>
       </div>
-      <div className="mt-0.5 text-[9px] font-bold uppercase tracking-[0.14em] text-slate-500">{tag}</div>
-      <div className={`mt-1 text-[11px] font-semibold ${statusColor}`}>
-        {option?.statusLabel ?? 'Pending'}
+
+      <div className="mt-1.5 grid min-w-0 grid-cols-3 gap-1.5">
+        <MetricChip
+          icon={<Timer className="h-3 w-3" aria-hidden="true" />}
+          value={formatMs(option?.rttMs)}
+          label={`${technology} latency`}
+          muted={muted}
+        />
+        <MetricChip
+          icon={<ArrowDown className="h-3 w-3" aria-hidden="true" />}
+          value={formatMbps(option?.downloadMbps)}
+          label={`${technology} downlink`}
+          muted={muted}
+        />
+        <MetricChip
+          icon={<ArrowUp className="h-3 w-3" aria-hidden="true" />}
+          value={formatMbps(option?.uploadMbps)}
+          label={`${technology} uplink`}
+          muted={muted}
+        />
       </div>
-      <div className="mt-1.5 flex min-w-0 items-center gap-2.5">
-        <MetricChip icon={<Timer className="h-3 w-3" />} value={formatMs(option?.rttMs)} label="Latency" />
-        <MetricChip icon={<ArrowDown className="h-3 w-3" />} value={formatMbps(option?.downloadMbps)} label="Downlink" />
-      </div>
-    </section>
+    </button>
   );
 }
 
-/* ── Main component ─────────────────────────────────────────────────────── */
 function CommercialMissionBar({
   viewModel,
   origin,
   destination,
   scenarioType: scenarioTypeOverride,
+  selectedTechnology,
+  onTechnologySelect,
   onOriginSelect,
   onDestinationSelect,
   onSwapClick,
 }: CommercialMissionBarProps) {
-  const leo = optionFor(viewModel, 'leo');
-  const geo = optionFor(viewModel, 'geo');
   const scenarioType = scenarioTypeOverride ?? scenarioTypeFor(viewModel);
+  const geoOption = optionForTechnology(viewModel, 'GEO');
+  const leoOption = optionForTechnology(viewModel, 'LEO');
+  const geoRecommended = isRecommendedTechnology(viewModel, 'GEO');
+  const leoRecommended = isRecommendedTechnology(viewModel, 'LEO');
 
   return (
     <section
       className="relative z-30 flex-shrink-0 border-b border-[rgba(148,163,184,0.07)] bg-[rgba(6,10,22,0.90)] px-3 py-2 backdrop-blur-xl"
       aria-label="Commercial mission briefing"
     >
-      <div className="grid min-h-[64px] min-w-0 grid-cols-[minmax(13rem,0.95fr)_minmax(16rem,1.15fr)_minmax(6.8rem,0.46fr)_minmax(6.8rem,0.46fr)] gap-2">
-
-        {/* Left — scenario definition */}
+      <div className="grid min-h-[64px] min-w-0 grid-cols-[minmax(24rem,2fr)_minmax(12rem,1fr)_minmax(12rem,1fr)] gap-2.5">
         <div className="min-w-0 rounded-lg border border-[rgba(51,65,85,0.55)] bg-[rgba(15,23,42,0.50)] p-2">
           <SharedScenarioBuilder
             origin={origin}
@@ -161,67 +228,23 @@ function CommercialMissionBar({
           />
         </div>
 
-        {/* Center — recommendation */}
-        <section
-          className="flex min-w-0 flex-col justify-center rounded-lg border border-sky-300/40 bg-sky-500/10 px-3 py-2 shadow-[0_14px_48px_-32px_rgba(56,189,248,0.90)]"
-          aria-label="Recommended path"
-        >
-          <div className="flex min-w-0 items-center justify-between gap-2">
-            <div className="flex min-w-0 items-center gap-1.5">
-              <Star className="h-3.5 w-3.5 shrink-0 fill-sky-300 text-sky-300" aria-hidden="true" />
-              <span
-                className="min-w-0 truncate text-[14px] font-bold uppercase tracking-[0.04em] text-white"
-                title={recommendationLabel(viewModel)}
-              >
-                {recommendationLabel(viewModel)}
-              </span>
-            </div>
-            <span
-              className={[
-                'shrink-0 rounded-full border px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.08em]',
-                viewModel.serviceStatus === 'active'
-                  ? 'border-emerald-400/40 bg-emerald-500/12 text-emerald-200'
-                  : viewModel.serviceStatus === 'degraded'
-                    ? 'border-amber-400/45 bg-amber-500/12 text-amber-200'
-                    : viewModel.serviceStatus === 'blocked'
-                      ? 'border-rose-400/45 bg-rose-500/12 text-rose-200'
-                      : 'border-slate-700 bg-slate-800 text-slate-300',
-              ].join(' ')}
-            >
-              {viewModel.executiveSummary.statusLabel}
-            </span>
-          </div>
+        <TechnologyPerformanceCard
+          technology="GEO"
+          option={geoOption}
+          isSelected={selectedTechnology === 'GEO'}
+          isRecommended={geoRecommended}
+          summary={optionSummary(viewModel, geoOption, geoRecommended)}
+          onSelect={onTechnologySelect}
+        />
 
-          <p
-            className="mt-1 min-w-0 truncate text-[12px] font-medium text-slate-300"
-            title={recommendationReason(viewModel)}
-          >
-            {recommendationReason(viewModel)}
-          </p>
-
-          <div className="mt-1.5 flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
-            <MetricChip
-              icon={<Timer className="h-3.5 w-3.5" />}
-              value={formatMs(viewModel.rttMs)}
-              label="Latency"
-              hero
-            />
-            <MetricChip
-              icon={<ArrowDown className="h-3 w-3" />}
-              value={formatMbps(viewModel.downloadMbps)}
-              label="Downlink"
-            />
-            <MetricChip
-              icon={<ArrowUp className="h-3 w-3" />}
-              value={formatMbps(viewModel.uploadMbps)}
-              label="Uplink"
-            />
-          </div>
-        </section>
-
-        {/* Right — technology snapshots */}
-        <TechColumn option={leo} tag="Real-time" highlighted={isRecommended(viewModel, 'leo')} />
-        <TechColumn option={geo} tag="Wide area" highlighted={isRecommended(viewModel, 'geo')} />
+        <TechnologyPerformanceCard
+          technology="LEO"
+          option={leoOption}
+          isSelected={selectedTechnology === 'LEO'}
+          isRecommended={leoRecommended}
+          summary={optionSummary(viewModel, leoOption, leoRecommended)}
+          onSelect={onTechnologySelect}
+        />
       </div>
     </section>
   );

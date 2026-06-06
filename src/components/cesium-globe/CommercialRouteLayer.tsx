@@ -10,10 +10,16 @@
  *   - Ground nodes: ORIGIN, DESTINATION, NETWORK_PORTAL, HUB
  *   - Edges: SPACE_LINK arcs, BACKBONE_LINK dashed ground lines, TERRESTRIAL_TAIL
  *   - Animated opacity via CommercialAnimationState (COMM-6E)
+ *   - Pulse halo rings on focused endpoint nodes (access / destination)
  *   - Click routing via entity ID convention ('commercial-route-{segmentId}-...')
  *
  * Sky Bridge (SKY_BRIDGE nodes) are handled by CommercialSkyBridgeLayer.
- * OUTCOME nodes are not yet rendered.
+ * OUTCOME nodes are not rendered.
+ *
+ * Opacity storytelling:
+ *   All nodes and edges remain in the Cesium scene at all times.
+ *   FOCUS_OPACITY_PROFILES drives per-segment target opacity based on the
+ *   focused Journey segment — no hard-cut show/hide except TERRESTRIAL_TAIL.
  *
  * COMM-6D4 — Commercial Route Narrative Rendering.
  * COMM-6E   — Route reveal and focus transition animations.
@@ -37,8 +43,8 @@ import type {
   CommercialRouteModel,
   CommercialRouteNode,
   CommercialRouteEdge,
-  CommercialRouteNodeType,
   CommercialRouteEdgeType,
+  CommercialRouteNodeType,
   CommercialRouteStatus,
   CommercialRouteTechnology,
   CommercialRouteSegmentId,
@@ -48,8 +54,9 @@ import { GROUND_POINT_ALTITUDE_KM, LABEL_EYE_OFFSET } from './layerHeights';
 import {
   type CommercialAnimationState,
   ANIM_SEGMENT_INDEX,
-  UNFOCUSED_OPACITY,
+  FOCUS_OPACITY_PROFILES,
   getSegmentAlpha,
+  getHaloAlpha,
 } from './commercialAnimationDriver';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -157,54 +164,18 @@ function isTerrestrialVisible(
   return focusedSegmentId === 'backhaul' || focusedSegmentId === owningSegmentId;
 }
 
-function isNodeVisibleForFocus(
-  node: CommercialRouteNode,
-  focusedSegmentId: CommercialRouteSegmentId | null,
-): boolean {
-  if (!focusedSegmentId || focusedSegmentId === 'summary') {
-    return node.nodeType !== 'OUTCOME';
-  }
-  if (focusedSegmentId === 'access') return node.nodeType === 'ORIGIN';
-  if (focusedSegmentId === 'satellite') return node.nodeType === 'ORIGIN';
-  if (focusedSegmentId === 'backhaul') return node.nodeType === 'HUB';
-  if (focusedSegmentId === 'destination') {
-    return node.nodeType === 'DESTINATION' || node.nodeType === 'NETWORK_PORTAL';
-  }
-  return false;
-}
-
-function isEdgeVisibleForFocus(
-  edge: CommercialRouteEdge,
-  focusedSegmentId: CommercialRouteSegmentId | null,
-): boolean {
-  const owningSegmentId = edge.meta?.owningSegmentId;
-  if (!focusedSegmentId || focusedSegmentId === 'summary') {
-    return edge.edgeType !== 'TERRESTRIAL_TAIL';
-  }
-  if (focusedSegmentId === 'access') return owningSegmentId === 'access';
-  if (focusedSegmentId === 'satellite') return owningSegmentId === 'satellite';
-  if (focusedSegmentId === 'backhaul') return owningSegmentId === 'backhaul';
-  if (focusedSegmentId === 'destination') return owningSegmentId === 'destination';
-  return false;
-}
-
 // ─── Static fallback animation state ─────────────────────────────────────────
 
-/**
- * When no animationRef is provided, build a static CommercialAnimationState
- * from the route model's focusedSegmentId so entities render at the correct
- * opacity without any animation.
- */
 function makeStaticAnimState(
   focusedSegmentId: CommercialRouteSegmentId | null,
   routeStatus: CommercialRouteModel['routeStatus'],
 ): CommercialAnimationState {
   const focusedIdx = focusedSegmentId ? (ANIM_SEGMENT_INDEX[focusedSegmentId] ?? -1) : -1;
-  const isSummary  = focusedIdx < 0;
   const opacity = new Float32Array(4);
-  for (let i = 0; i < 4; i++) {
-    opacity[i] = (isSummary || focusedIdx === i) ? 1.0 : UNFOCUSED_OPACITY;
-  }
+  const profile = focusedSegmentId && focusedSegmentId in FOCUS_OPACITY_PROFILES
+    ? FOCUS_OPACITY_PROFILES[focusedSegmentId]
+    : FOCUS_OPACITY_PROFILES.summary;
+  for (let i = 0; i < 4; i++) opacity[i] = profile[i];
   return {
     opacity,
     reveal:      new Float32Array([1, 1, 1, 1]),
@@ -213,6 +184,46 @@ function makeStaticAnimState(
     routeStatus: (routeStatus ?? 'pending') as CommercialAnimationState['routeStatus'],
   };
 }
+
+// ─── Halo entity ──────────────────────────────────────────────────────────────
+
+/**
+ * Pulse halo ring behind a focused endpoint (Site A when access, Site B when destination).
+ * Uses getHaloAlpha — returns 0 when not focused, breathes 0.12–0.38 when focused.
+ * The entity is always in the scene; opacity gates its visibility.
+ */
+interface HaloEntityProps {
+  position: Cartesian3;
+  segIdx: number;
+  baseColor: Color;
+  animRef: React.MutableRefObject<CommercialAnimationState>;
+}
+
+const HaloEntity = React.memo<HaloEntityProps>(({ position, segIdx, baseColor, animRef }) => {
+  const colorCallback = useMemo(() => new CallbackProperty(() => {
+    const alpha = getHaloAlpha(animRef.current, segIdx);
+    return baseColor.withAlpha(alpha);
+  }, false), [baseColor, segIdx, animRef]);
+
+  const sizeCallback = useMemo(() => new CallbackProperty(() => {
+    if (animRef.current.focusedIdx !== segIdx) return 2;
+    const phase = animRef.current.pulsePhase * 0.55 + Math.PI * 0.5;
+    return 42 + 16 * ((1 + Math.sin(phase)) * 0.5); // breathes 42 → 58 px
+  }, false), [segIdx, animRef]);
+
+  return (
+    <Entity
+      position={position}
+      point={{
+        pixelSize:                sizeCallback,
+        color:                    colorCallback,
+        outlineWidth:             0,
+        disableDepthTestDistance: Infinity,
+      }}
+    />
+  );
+});
+HaloEntity.displayName = 'HaloEntity';
 
 // ─── Node rendering components ────────────────────────────────────────────────
 
@@ -229,16 +240,18 @@ interface GroundNodeProps {
 
 /**
  * ORIGIN / DESTINATION node: filled circle, status colour, animated alpha.
+ * When focused, node grows 35 % to assert visual primacy.
  */
 const GroundNode = React.memo<GroundNodeProps>(({
   node, position, segIdx, showLabel, animRef, viewerRef, cameraMetricsRef, sizeScale,
 }) => {
   const pixelSizeCallback = useMemo(() => new CallbackProperty(() => {
     if (!viewerRef.current) return 8;
-    const dist = Cartesian3.distance(cameraMetricsRef.current.position, position);
-    const dyn  = calculateDynamicScale(cameraMetricsRef.current.height, DPR_FACTOR);
-    return dyn * 3_000_000 / Math.max(dist, 8_000_000) * 18 * sizeScale;
-  }, false), [position, cameraMetricsRef, sizeScale]);
+    const dist      = Cartesian3.distance(cameraMetricsRef.current.position, position);
+    const dyn       = calculateDynamicScale(cameraMetricsRef.current.height, DPR_FACTOR);
+    const focusMult = animRef.current.focusedIdx === segIdx ? 1.35 : 1.0;
+    return dyn * 3_000_000 / Math.max(dist, 8_000_000) * 18 * sizeScale * focusMult;
+  }, false), [position, cameraMetricsRef, sizeScale, segIdx, animRef]);
 
   const isPulsed   = node.segmentId !== 'summary';
   const baseColor  = useMemo(() => statusColor(node.status), [node.status]);
@@ -301,16 +314,18 @@ GroundNode.displayName = 'GroundNode';
 
 /**
  * NETWORK_PORTAL node: diamond billboard, cyan family, animated alpha.
+ * When focused (destination segment), grows 35 %.
  */
 const PortalNode = React.memo<GroundNodeProps>(({
   node, position, segIdx, showLabel, animRef, viewerRef, cameraMetricsRef, sizeScale,
 }) => {
   const scaleCallback = useMemo(() => new CallbackProperty(() => {
     if (!viewerRef.current) return 0.5;
-    const dist = Cartesian3.distance(cameraMetricsRef.current.position, position);
-    const dyn  = calculateDynamicScale(cameraMetricsRef.current.height, DPR_FACTOR);
-    return dyn * 3_000_000 / Math.max(dist, 8_000_000) * 0.9 * sizeScale;
-  }, false), [position, cameraMetricsRef, sizeScale]);
+    const dist      = Cartesian3.distance(cameraMetricsRef.current.position, position);
+    const dyn       = calculateDynamicScale(cameraMetricsRef.current.height, DPR_FACTOR);
+    const focusMult = animRef.current.focusedIdx === segIdx ? 1.35 : 1.0;
+    return dyn * 3_000_000 / Math.max(dist, 8_000_000) * 0.9 * sizeScale * focusMult;
+  }, false), [position, cameraMetricsRef, sizeScale, segIdx, animRef]);
 
   const billboardColorCallback = useMemo(() => new CallbackProperty(() => {
     const alpha = getSegmentAlpha(animRef.current, segIdx, animRef.current.focusedIdx === segIdx);
@@ -364,17 +379,19 @@ PortalNode.displayName = 'PortalNode';
 
 /**
  * HUB node: small filled circle, violet family, animated alpha.
- * Label hidden unless backhaul segment is focused.
+ * When focused (backhaul segment), grows 35 %.
+ * Label shown only when backhaul segment is focused.
  */
 const HubNode = React.memo<GroundNodeProps>(({
   node, position, segIdx, showLabel, animRef, viewerRef, cameraMetricsRef, sizeScale,
 }) => {
   const pixelSizeCallback = useMemo(() => new CallbackProperty(() => {
     if (!viewerRef.current) return 5;
-    const dist = Cartesian3.distance(cameraMetricsRef.current.position, position);
-    const dyn  = calculateDynamicScale(cameraMetricsRef.current.height, DPR_FACTOR);
-    return dyn * 3_000_000 / Math.max(dist, 8_000_000) * 12 * sizeScale;
-  }, false), [position, cameraMetricsRef, sizeScale]);
+    const dist      = Cartesian3.distance(cameraMetricsRef.current.position, position);
+    const dyn       = calculateDynamicScale(cameraMetricsRef.current.height, DPR_FACTOR);
+    const focusMult = animRef.current.focusedIdx === segIdx ? 1.35 : 1.0;
+    return dyn * 3_000_000 / Math.max(dist, 8_000_000) * 12 * sizeScale * focusMult;
+  }, false), [position, cameraMetricsRef, sizeScale, segIdx, animRef]);
 
   const colorCallback = useMemo(() => new CallbackProperty(() => {
     const alpha = getSegmentAlpha(animRef.current, segIdx, animRef.current.focusedIdx === segIdx);
@@ -444,11 +461,8 @@ interface EdgeEntityProps {
 
 /**
  * Animated polyline edge.
- *
- * Each edge owns its own material instance so that its color `CallbackProperty`
- * can read from the shared animRef and update alpha every frame without a React
- * re-render.  The small number of edges in a commercial route makes per-entity
- * materials negligible in memory cost.
+ * Each edge owns its own material instance so its color CallbackProperty can
+ * read from the shared animRef and update alpha every frame without a React re-render.
  */
 const EdgeEntity = React.memo<EdgeEntityProps>(({
   edge, positions, technology, width, owningSegmentId, animRef,
@@ -456,7 +470,6 @@ const EdgeEntity = React.memo<EdgeEntityProps>(({
   const segIdx = owningSegmentId ? (ANIM_SEGMENT_INDEX[owningSegmentId] ?? -1) : -1;
 
   const material = useMemo(() => {
-    // Build a CallbackProperty that returns the animated alpha for this edge's segment.
     const getAlpha = () => getSegmentAlpha(animRef.current, segIdx);
 
     if (edge.edgeType === 'BACKBONE_LINK') {
@@ -505,7 +518,6 @@ const EdgeEntity = React.memo<EdgeEntityProps>(({
       glowPower,
       taperPower: 0.55,
     });
-  // edge identity, technology, segIdx and animRef are all stable for an entity's lifetime.
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [edge.id, edge.edgeType, edge.status, technology, segIdx, animRef]);
 
@@ -533,11 +545,6 @@ export interface CommercialRouteLayerProps {
   viewerRef:         React.RefObject<CesiumViewerType | null>;
   cameraMetricsRef:  React.MutableRefObject<CameraMetricsSnapshot>;
   sizeScale?:        number;
-  /**
-   * Animation state ref from useCommercialAnimationDriver.
-   * When provided: entity colors animate smoothly (reveal + focus transition + pulse).
-   * When absent:   entities render at correct static opacity instantly (fallback).
-   */
   animationRef?:     React.MutableRefObject<CommercialAnimationState>;
 }
 
@@ -556,8 +563,6 @@ const CommercialRouteLayer: React.FC<CommercialRouteLayerProps> = ({
     [routeModel.nodes],
   );
 
-  // Fallback: a static CommercialAnimationState ref that mirrors current focus.
-  // Recomputed only when the focused segment changes (no 60-fps updates).
   const staticState = useMemo(
     () => makeStaticAnimState(focusedSegmentId, routeModel.routeStatus),
     [focusedSegmentId, routeModel.routeStatus],
@@ -567,26 +572,41 @@ const CommercialRouteLayer: React.FC<CommercialRouteLayerProps> = ({
 
   const effectiveAnimRef = animationRef ?? fallbackRef;
 
-  // ── Build position map ─────────────────────────────────────────────────────
   const posMap = useMemo(() => buildNodePositionMap(routeModel), [routeModel]);
 
   // ── Nodes ──────────────────────────────────────────────────────────────────
-  // NOTE: This memo no longer depends on `focusedSegmentId` for opacity.
-  // Node colors are driven by the CallbackProperty reading animRef every frame.
-  // The memo only re-runs when structural data changes (positions, node set, etc.).
+  //
+  // All non-OUTCOME, non-SKY_BRIDGE nodes are always in the Cesium scene.
+  // FOCUS_OPACITY_PROFILES drives their visual weight — no hard-cut show/hide.
+  // A HaloEntity is added for ORIGIN and DESTINATION/PORTAL nodes; it is
+  // invisible (alpha = 0) unless its segment is the active focus.
   const nodeElements = useMemo(() => {
-    return routeModel.nodes.flatMap(node => {
-      if (node.nodeType === 'SKY_BRIDGE') return [];
-      if (node.nodeType === 'OUTCOME')    return [];
-      if (!isNodeVisibleForFocus(node, focusedSegmentId)) return [];
+    const elements: React.ReactElement[] = [];
+
+    for (const node of routeModel.nodes) {
+      if (node.nodeType === 'SKY_BRIDGE') continue;
+      if (node.nodeType === 'OUTCOME')    continue;
 
       const coord = posMap.get(node.id);
-      if (!coord) return [];
+      if (!coord) continue;
       const position = getPosition(coord.lat, coord.lng, coord.altKm);
       const segIdx   = ANIM_SEGMENT_INDEX[node.segmentId] ?? -1;
+      const base     = statusColor(node.status);
+
+      // Pulse halo behind focused endpoints (ORIGIN for access, DESTINATION for destination)
+      if (node.nodeType === 'ORIGIN' || node.nodeType === 'DESTINATION' || node.nodeType === 'NETWORK_PORTAL') {
+        elements.push(
+          <HaloEntity
+            key={`${node.id}-halo`}
+            position={position}
+            segIdx={segIdx}
+            baseColor={base}
+            animRef={effectiveAnimRef}
+          />,
+        );
+      }
 
       const commonProps = {
-        key:             node.id,
         node,
         position,
         segIdx,
@@ -596,38 +616,42 @@ const CommercialRouteLayer: React.FC<CommercialRouteLayerProps> = ({
         sizeScale,
       };
 
+      // Label: show on the focused endpoint node (Cesium label supplements SiteScreenLabel)
+      const showLabel =
+        (node.nodeType === 'ORIGIN' && focusedSegmentId === 'access')
+        || ((node.nodeType === 'DESTINATION' || node.nodeType === 'NETWORK_PORTAL') && focusedSegmentId === 'destination');
+
       if (node.nodeType === 'NETWORK_PORTAL') {
-        return [<PortalNode {...commonProps} showLabel={false} />];
+        elements.push(<PortalNode key={node.id} {...commonProps} showLabel={showLabel} />);
+      } else if (node.nodeType === 'HUB') {
+        elements.push(<HubNode key={node.id} {...commonProps} showLabel={isBackhaulFocused && node.id === firstBackboneNodeId} />);
+      } else {
+        elements.push(<GroundNode key={node.id} {...commonProps} showLabel={showLabel} />);
       }
-      if (node.nodeType === 'HUB') {
-        return [<HubNode {...commonProps} showLabel={isBackhaulFocused && node.id === firstBackboneNodeId} />];
-      }
-      return [<GroundNode {...commonProps} showLabel={false} />];
-    });
+    }
+
+    return elements;
   }, [
     routeModel.nodes, posMap, focusedSegmentId, isBackhaulFocused, firstBackboneNodeId,
     effectiveAnimRef, viewerRef, cameraMetricsRef, sizeScale,
   ]);
 
   // ── Edges ──────────────────────────────────────────────────────────────────
-  // focusedSegmentId is still a dep here for terrestrial tail visibility —
-  // those edges are fully hidden/shown (not just faded) based on focus.
+  //
+  // All edges are always in the scene; FOCUS_OPACITY_PROFILES handles their weight.
+  // TERRESTRIAL_TAIL edges are the exception: only visible in backhaul focus to
+  // avoid clutter in other states.
   const edgeElements = useMemo(() => {
-    return routeModel.edges.flatMap(edge => {
+    const elements: React.ReactElement[] = [];
+
+    for (const edge of routeModel.edges) {
       const fromCoord = posMap.get(edge.fromNodeId);
       const toCoord   = posMap.get(edge.toNodeId);
-      if (!fromCoord || !toCoord) return [];
+      if (!fromCoord || !toCoord) continue;
 
       const owningSegmentId = edge.meta?.owningSegmentId;
-      if (!isEdgeVisibleForFocus(edge, focusedSegmentId)) {
-        return [];
-      }
 
-      // Terrestrial tails are shown only in backhaul focus — remove them entirely
-      // (not just faded) to avoid cluttering the globe in other states.
-      if (!isTerrestrialVisible(edge.edgeType, owningSegmentId, focusedSegmentId)) {
-        return [];
-      }
+      if (!isTerrestrialVisible(edge.edgeType, owningSegmentId, focusedSegmentId)) continue;
 
       let positions: Cartesian3[];
       let width: number;
@@ -650,7 +674,7 @@ const CommercialRouteLayer: React.FC<CommercialRouteLayerProps> = ({
         width = 1.0 * sizeScale;
       }
 
-      return [(
+      elements.push(
         <EdgeEntity
           key={edge.id}
           edge={edge}
@@ -659,9 +683,11 @@ const CommercialRouteLayer: React.FC<CommercialRouteLayerProps> = ({
           width={width}
           owningSegmentId={owningSegmentId}
           animRef={effectiveAnimRef}
-        />
-      )];
-    });
+        />,
+      );
+    }
+
+    return elements;
   }, [
     routeModel.edges, posMap, focusedSegmentId, technology, sizeScale,
     effectiveAnimRef,

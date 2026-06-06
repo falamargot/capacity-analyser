@@ -98,11 +98,9 @@ import CoverageSwitcherVertical, { type CoverageSwitcherCoverage } from './Cover
 import type { CountryOverlayMode } from '../types/countryOverlays';
 import type { LinkMode } from '../types/linkMode';
 import type { LeoSiteToSiteResult } from '../utils/leoSiteToSiteModel';
-import type { CommercialRouteSegmentType, CommercialScenarioViewModel } from './commercial/commercialViewModel';
+import type { CommercialScenarioViewModel } from './commercial/commercialViewModel';
 import type { CommercialRouteModel, CommercialRouteNodeType, CommercialRouteFocusTarget, CommercialRouteSegmentId } from '../types/commercialRouteModel';
-import CommercialSkyBridgeLayer from './cesium-globe/CommercialSkyBridgeLayer';
-import CommercialRouteLayer from './cesium-globe/CommercialRouteLayer';
-import { useCommercialAnimationDriver } from './cesium-globe/commercialAnimationDriver';
+import CommercialSymbolicConnectivityLayer from './cesium-globe/CommercialSymbolicConnectivityLayer';
 
 // ─── Commercial vocabulary helpers ───────────────────────────────────────────
 
@@ -130,7 +128,7 @@ const formatCommercialFrequencyBand = (band: CandidateCoverage['band'] | undefin
 );
 
 // ─── Commercial route camera helpers ─────────────────────────────────────────
-// Narrative altitudes mirror CommercialRouteLayer constants.
+// Narrative altitudes used by commercial camera framing.
 const COMM_GEO_ALT_KM = 20_000;
 const COMM_LEO_ALT_KM = 2_000;
 
@@ -262,10 +260,12 @@ function executeGeoSurfaceFallbackCamera(
             positions.push(getPosition(n.position.lat, n.position.lng, GROUND_POINT_ALTITUDE_KM));
         }
     }
+    const arcApex = commercialSymbolicArcApex(model);
+    if (arcApex) positions.push(arcApex);
 
     if (positions.length === 0) return;
     const sphere = BoundingSphere.fromPoints(positions);
-    sphere.radius = Math.max(sphere.radius * 1.45, 900_000);
+    sphere.radius = Math.max(sphere.radius * 1.25, 1_200_000);
     viewer.camera.flyToBoundingSphere(
         sphere,
         { duration: 1.8, offset: new HeadingPitchRange(0, -CesiumMath.toRadians(32), 0) },
@@ -305,13 +305,134 @@ function commercialNarrativePos(nodeId: string, model: CommercialRouteModel): Ca
     return null;
 }
 
+function commercialSurfaceRouteNodes(model: CommercialRouteModel): Array<{ lat: number; lng: number }> {
+    return model.nodes
+        .filter((node) => (
+            node.nodeType === 'ORIGIN'
+            || node.nodeType === 'DESTINATION'
+            || node.nodeType === 'NETWORK_PORTAL'
+        ) && node.position)
+        .map((node) => node.position!);
+}
+
+function commercialApproxDistanceKm(a: { lat: number; lng: number }, b: { lat: number; lng: number }): number {
+    const earthRadiusKm = 6371;
+    const lat1 = CesiumMath.toRadians(a.lat);
+    const lat2 = CesiumMath.toRadians(b.lat);
+    const dLat = CesiumMath.toRadians(b.lat - a.lat);
+    const dLng = CesiumMath.toRadians(normalizeLngNear(b.lng, a.lng) - a.lng);
+    const h = Math.sin(dLat / 2) ** 2
+        + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) ** 2;
+    return earthRadiusKm * 2 * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h));
+}
+
+function commercialSymbolicArcApex(model: CommercialRouteModel): Cartesian3 | null {
+    const surface = commercialSurfaceRouteNodes(model);
+    if (surface.length < 2) return null;
+    const origin = surface[0];
+    const destination = surface[surface.length - 1];
+    const normalizedDestinationLng = normalizeLngNear(destination.lng, origin.lng);
+    const lat = (origin.lat + destination.lat) / 2;
+    const lng = denormalizeLng((origin.lng + normalizedDestinationLng) / 2);
+    const distanceKm = commercialApproxDistanceKm(origin, destination);
+    const peakKm = Math.min(
+        model.technology === 'GEO' ? 5200 : 3600,
+        Math.max(model.technology === 'GEO' ? 1900 : 1300, distanceKm * 0.42),
+    );
+    return getPosition(lat, lng, peakKm);
+}
+
+function commercialRouteBearingRadians(model: CommercialRouteModel): number {
+    const surface = commercialSurfaceRouteNodes(model);
+    if (surface.length < 2) return 0;
+
+    const origin = surface[0];
+    const destination = surface[surface.length - 1];
+    const lat1 = CesiumMath.toRadians(origin.lat);
+    const lat2 = CesiumMath.toRadians(destination.lat);
+    const dLng = CesiumMath.toRadians(normalizeLngNear(destination.lng, origin.lng) - origin.lng);
+    const y = Math.sin(dLng) * Math.cos(lat2);
+    const x = Math.cos(lat1) * Math.sin(lat2)
+        - Math.sin(lat1) * Math.cos(lat2) * Math.cos(dLng);
+    return Math.atan2(y, x);
+}
+
+function commercialRouteGeometrySignature(model: CommercialRouteModel): string {
+    return model.nodes
+        .filter((node) => node.position)
+        .map((node) => {
+            const { lat, lng, altitudeKm } = node.position!;
+            return [
+                node.id,
+                lat.toFixed(5),
+                lng.toFixed(5),
+                (altitudeKm ?? 0).toFixed(2),
+                node.status,
+            ].join('@');
+        })
+        .join('|');
+}
+
+function removeCommercialSymbolicConnectivityEntities(viewer: CesiumViewerType): void {
+    const entities = [...viewer.entities.values];
+    for (const entity of entities) {
+        const id = entity.id;
+        if (typeof id === 'string' && id.startsWith('commercial-route-') && id.includes('-symbolic-')) {
+            viewer.entities.remove(entity);
+        }
+    }
+}
+
+function executeGeoCoverageServiceCamera(
+    viewer: CesiumViewerType,
+    model: CommercialRouteModel,
+    geoCoverageFocusFrame: CommercialGeoCoverageFocusFrame,
+): void {
+    const positions: Cartesian3[] = [];
+    const groundTypes: CommercialRouteNodeType[] = ['ORIGIN', 'DESTINATION', 'NETWORK_PORTAL'];
+
+    for (const n of model.nodes) {
+        if (groundTypes.includes(n.nodeType) && n.position) {
+            positions.push(getPosition(n.position.lat, n.position.lng, GROUND_POINT_ALTITUDE_KM));
+        }
+    }
+
+    const arcApex = commercialSymbolicArcApex(model);
+    if (arcApex) positions.push(arcApex);
+    positions.push(geoCoverageFocusFrame.sphere.center);
+
+    if (positions.length < 2) {
+        viewer.camera.flyToBoundingSphere(
+            geoCoverageFocusFrame.sphere,
+            { duration: 1.8, offset: new HeadingPitchRange(0, geoCoverageFocusFrame.pitchRadians, 0) },
+        );
+        return;
+    }
+
+    const sphere = BoundingSphere.fromPoints(positions);
+    sphere.radius = Math.min(Math.max(sphere.radius * 1.05, 850_000), 2_600_000);
+    const range = Math.min(Math.max(sphere.radius * 2.05, 1_450_000), 5_400_000);
+
+    viewer.camera.flyToBoundingSphere(
+        sphere,
+        {
+            duration: 1.8,
+            offset: new HeadingPitchRange(
+                commercialRouteBearingRadians(model),
+                -CesiumMath.toRadians(46),
+                range,
+            ),
+        },
+    );
+}
+
 /**
  * Execute a camera fly to match the given CommercialRouteFocusTarget behaviour.
  *
- * FRAME_NODE      — tight view centred on a single ground node (~600 km sphere)
- * FRAME_ARC       — frame from ground to sky bridge so the full arc is visible
- * FRAME_BACKBONE  — frame all HUB nodes (ground infrastructure view)
- * FRAME_ROUTE     — overview of all primary surface nodes (ORIGIN + DESTINATION)
+ * FRAME_NODE      — close endpoint emphasis for the selected customer/destination site
+ * FRAME_ARC       — frame the symbolic service arc and footprint context
+ * FRAME_BACKBONE  — medium route framing with simplified transit context
+ * FRAME_ROUTE     — overview of endpoints and symbolic service arc
  */
 function executeCommercialFocusCamera(
     viewer: CesiumViewerType,
@@ -322,11 +443,16 @@ function executeCommercialFocusCamera(
     const { behaviour, primaryNodeId, secondaryNodeId } = focusTarget;
 
     if (behaviour === 'FRAME_NODE' && primaryNodeId) {
-        const pos = commercialNarrativePos(primaryNodeId, model);
+        const primaryNode = model.nodes.find((node) => node.id === primaryNodeId);
+        const primaryPosition = primaryNode?.position;
+        const pos = primaryPosition
+            ? getPosition(primaryPosition.lat, primaryPosition.lng, GROUND_POINT_ALTITUDE_KM)
+            : commercialNarrativePos(primaryNodeId, model);
         if (!pos) return;
+        const sphere = new BoundingSphere(pos, 160_000);
         viewer.camera.flyToBoundingSphere(
-            new BoundingSphere(pos, 600_000),
-            { duration: 1.5, offset: new HeadingPitchRange(0, -CesiumMath.PI_OVER_FOUR, 0) },
+            sphere,
+            { duration: 1.35, offset: new HeadingPitchRange(0, -CesiumMath.toRadians(58), 650_000) },
         );
         return;
     }
@@ -366,10 +492,7 @@ function executeCommercialFocusCamera(
 
     if (behaviour === 'FRAME_GEO_COVERAGE') {
         if (geoCoverageFocusFrame) {
-            viewer.camera.flyToBoundingSphere(
-                geoCoverageFocusFrame.sphere,
-                { duration: 1.8, offset: new HeadingPitchRange(0, geoCoverageFocusFrame.pitchRadians, 0) },
-            );
+            executeGeoCoverageServiceCamera(viewer, model, geoCoverageFocusFrame);
             return;
         }
 
@@ -379,6 +502,13 @@ function executeCommercialFocusCamera(
 
     if (behaviour === 'FRAME_BACKBONE') {
         const positions: Cartesian3[] = [];
+        for (const n of model.nodes) {
+            if ((n.nodeType === 'ORIGIN' || n.nodeType === 'DESTINATION' || n.nodeType === 'NETWORK_PORTAL') && n.position) {
+                positions.push(getPosition(n.position.lat, n.position.lng, GROUND_POINT_ALTITUDE_KM));
+            }
+        }
+        const arcApex = commercialSymbolicArcApex(model);
+        if (arcApex) positions.push(arcApex);
         for (const n of model.nodes) {
             if (n.nodeType === 'HUB' && n.position) {
                 positions.push(getPosition(n.position.lat, n.position.lng, GROUND_POINT_ALTITUDE_KM));
@@ -393,26 +523,16 @@ function executeCommercialFocusCamera(
             if (p) positions.push(p);
         }
         if (positions.length === 0) return;
+        const sphere = BoundingSphere.fromPoints(positions);
+        sphere.radius = Math.max(sphere.radius * 1.12, 1_800_000);
         viewer.camera.flyToBoundingSphere(
-            BoundingSphere.fromPoints(positions),
-            { duration: 1.5, offset: new HeadingPitchRange(0, -CesiumMath.PI_OVER_FOUR, 0) },
+            sphere,
+            { duration: 1.5, offset: new HeadingPitchRange(0, -CesiumMath.toRadians(34), 0) },
         );
         return;
     }
 
-    // FRAME_ROUTE — Summary hero view with technology-aware framing.
-    //
-    // GEO: Frame ground nodes only (ORIGIN, DESTINATION, NETWORK_PORTAL).
-    //   Including the sky bridge at 20,000 km creates a ~12,000 km bounding sphere
-    //   that zooms the camera far out and makes ground nodes tiny. A 1.5× padding
-    //   factor and a shallow pitch (−22°) keep the ground route readable while
-    //   the sky above is naturally in the upper frame, where the GEO ring will
-    //   be visible as a high-altitude element.
-    //
-    // LEO: Include sky bridge(s) alongside ground nodes.
-    //   At 2,000 km the bounding sphere remains manageable. A 1.25× padding and
-    //   28° pitch show both ground endpoints and the relay overhead clearly.
-    const isGeoRoute = model.technology === 'GEO';
+    // FRAME_ROUTE — summary view centred on the business route, not empty sky.
     const primarySurfaceTypes: CommercialRouteNodeType[] = ['ORIGIN', 'DESTINATION', 'NETWORK_PORTAL'];
     const groundPositions: Cartesian3[] = [];
 
@@ -423,33 +543,14 @@ function executeCommercialFocusCamera(
     }
     if (groundPositions.length === 0) return;
 
-    let routeFramingPositions: Cartesian3[];
-    let routePitch: number;
-    let routeRadiusScale: number;
-
-    if (isGeoRoute) {
-        routeFramingPositions = groundPositions;
-        routePitch = -CesiumMath.toRadians(22); // shallow: ground in lower frame, sky visible above
-        routeRadiusScale = 1.5;
-    } else {
-        // LEO: add sky bridge positions to bounding sphere
-        const skyBridgePositions: Cartesian3[] = [];
-        for (const n of model.nodes) {
-            if (n.nodeType === 'SKY_BRIDGE') {
-                const skyPos = commercialNarrativePos(n.id, model);
-                if (skyPos) skyBridgePositions.push(skyPos);
-            }
-        }
-        routeFramingPositions = [...groundPositions, ...skyBridgePositions];
-        routePitch = -CesiumMath.toRadians(28); // moderate: shows both ground and relay
-        routeRadiusScale = 1.25;
-    }
+    const arcApex = commercialSymbolicArcApex(model);
+    const routeFramingPositions = arcApex ? [...groundPositions, arcApex] : groundPositions;
 
     const routeSphere = BoundingSphere.fromPoints(routeFramingPositions);
-    routeSphere.radius = routeSphere.radius * routeRadiusScale;
+    routeSphere.radius = Math.max(routeSphere.radius * 1.06, 850_000);
     viewer.camera.flyToBoundingSphere(
         routeSphere,
-        { duration: 1.5, offset: new HeadingPitchRange(0, routePitch, 0) },
+        { duration: 1.5, offset: new HeadingPitchRange(0, -CesiumMath.toRadians(40), 0) },
     );
 }
 
@@ -803,14 +904,6 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         commercialRouteModel = null,
     } = commercialState;
 
-    // Commercial animation driver — runs a requestAnimationFrame loop that updates
-    // the animation state ref read by CallbackProperty instances in CommercialRouteLayer
-    // and CommercialSkyBridgeLayer.  No React re-renders during animation.
-    // The hook is always called (React rules) but only drives meaningful state
-    // when commercialMode is active.
-    const commercialAnimRef = useCommercialAnimationDriver(
-        commercialMode ? commercialRouteModel : null,
-    );
     const {
         airTrafficEnabled = false,
         aircraft = [],
@@ -1237,9 +1330,10 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
             return;
         }
         const segmentId = commercialRouteModel.focusedSegmentId ?? 'summary';
+        const routeGeometrySignature = commercialRouteGeometrySignature(commercialRouteModel);
         const focusKey = commercialRouteModel.technology === 'GEO' && segmentId === 'satellite'
-            ? `${segmentId}:${commercialGeoCoverageFocusSignature}`
-            : segmentId;
+            ? `${segmentId}:${routeGeometrySignature}:${commercialGeoCoverageFocusSignature}`
+            : `${segmentId}:${routeGeometrySignature}`;
         if (focusKey === prevCommercialSegmentFocusRef.current) return;
         prevCommercialSegmentFocusRef.current = focusKey;
 
@@ -1252,8 +1346,12 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
             commercialRouteModel,
             commercialGeoCoverageFocusFrame,
         );
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [commercialMode, commercialGeoCoverageFocusFrame, commercialGeoCoverageFocusSignature, commercialRouteModel?.focusedSegmentId, commercialRouteModel]);
+
+    useEffect(() => {
+        if (commercialMode || !viewerRef.current) return;
+        removeCommercialSymbolicConnectivityEntities(viewerRef.current);
+    }, [commercialMode]);
 
     useEffect(() => {
         if (!selectedMoon || !viewerRef.current || sceneMode !== '3D') return;
@@ -1316,8 +1414,12 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
 
             if (commercialMode && pickedId.startsWith('commercial-route-')) {
                 const routeSegment = pickedId.slice('commercial-route-'.length).split('-')[0];
-                const commercialSegmentId = routeSegment === 'destination' ? 'siteB' : routeSegment;
-                if (['access', 'satellite', 'backhaul', 'siteB', 'summary'].includes(commercialSegmentId)) {
+                const commercialSegmentId = routeSegment === 'backhaul'
+                    ? 'summary'
+                    : routeSegment === 'destination'
+                        ? 'siteB'
+                        : routeSegment;
+                if (['access', 'satellite', 'siteB', 'summary'].includes(commercialSegmentId)) {
                     onCommercialSelectedSegmentChange?.(commercialSegmentId);
                     return;
                 }
@@ -1452,9 +1554,10 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
             return targets;
         }
 
-        const commercialLeoRouteAvailable = !commercialMode || commercialViewModel?.comparison.options.find((option) => option.technology === 'leo')?.available === true;
+        const commercialLeoRouteEvaluated = !commercialMode
+            || commercialViewModel?.comparison.options.find((option) => option.technology === 'leo')?.status !== 'unknown';
 
-        if (satelliteScope !== 'GEO' && leoS2SVisualResult && pointBLeo && commercialLeoRouteAvailable) {
+        if (satelliteScope !== 'GEO' && leoS2SVisualResult && pointBLeo && commercialLeoRouteEvaluated) {
             addTarget(leoS2SVisualResult.servingSatelliteA, {
                 id: 'site-a',
                 position: leoS2SVisualResult.endpointA,
@@ -1468,7 +1571,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
             return targets;
         }
 
-        if (commercialLeoRouteAvailable) {
+        if (commercialLeoRouteEvaluated) {
             addTarget(autoSelectedLEOSatellite);
         }
         return targets;
@@ -1597,18 +1700,21 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         commercialMode,
     ]);
 
-    // In Commercial Mode, restrict the satellite layer to route-relevant satellites only.
-    // Engineering Mode always receives the full fleet.
+    // Engineering Mode owns real satellite inspection. Commercial Mode uses the
+    // symbolic service layer and coverage footprints instead of satellite icons.
     const satellitesForLayer = useMemo(() => {
         if (!commercialMode) return satellites;
-        const relevantIds = new Set(pulsedSatellites.map((s) => s.id));
-        return satellites.filter((s) => relevantIds.has(s.id));
-    }, [commercialMode, satellites, pulsedSatellites]);
+        return [];
+    }, [commercialMode, satellites]);
 
     // Per-technology route availability used both for satellite label role assignment and
     // for transmission link visibility. Computed here so both consumers share the same value.
-    const commercialLeoOptionAvailable = !commercialMode || commercialViewModel?.comparison.options.find((option) => option.technology === 'leo')?.available === true;
-    const commercialGeoOptionAvailable = !commercialMode || commercialViewModel?.comparison.options.find((option) => option.technology === 'geo')?.available === true;
+    const commercialLeoOption = commercialViewModel?.comparison.options.find((option) => option.technology === 'leo');
+    const commercialGeoOption = commercialViewModel?.comparison.options.find((option) => option.technology === 'geo');
+    const commercialLeoOptionAvailable = !commercialMode || commercialLeoOption?.available === true;
+    const commercialGeoOptionAvailable = !commercialMode || commercialGeoOption?.available === true;
+    const commercialLeoOptionEvaluated = !commercialMode || Boolean(commercialLeoOption && commercialLeoOption.status !== 'unknown');
+    const commercialGeoOptionEvaluated = !commercialMode || Boolean(commercialGeoOption && commercialGeoOption.status !== 'unknown');
     const commercialDominantTechnology: 'LEO' | 'GEO' | null =
         commercialMode
         && commercialViewModel
@@ -2048,8 +2154,6 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
     const showCommercialSiteALabel = !commercialMode || commercialAccessFocused || commercialSatelliteFocused || commercialBackhaulFocused || commercialSummaryFocused;
     const showCommercialSiteBLabel = !commercialMode || commercialDestinationFocused || commercialSummaryFocused;
 
-    // skyBridgeOpacity removed — COMM-6E.  Ring opacity is now driven by
-    // CommercialAnimationState (via animationRef) inside CommercialSkyBridgeLayer.
     const selectedRegulatoryCountryOutlineVisible =
         effectiveCountryOverlayMode === 'regulatory'
         && !!selectedPosition
@@ -2065,8 +2169,8 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         && !!onCoverageSwitcherSelect;
     const commercialGeoCoverageVisible =
         commercialMode
-        && commercialSatelliteFocused
         && satelliteScope !== 'LEO'
+        && commercialGeoOptionEvaluated
         && (
             (
                 selection.type === 'target'
@@ -2266,24 +2370,19 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                             highlightedLegendItemKey={commercialMode ? null : focusedGeoCoverageLegendKey}
                             presentation={commercialMode ? 'commercial' : 'engineering'}
                             commercialLabel={commercialGeoCoverageLabel}
-                            commercialTone={commercialMode && commercialDominantTechnology !== 'GEO' ? 'secondary' : 'primary'}
+                            commercialTone={commercialMode && (!commercialSatelliteFocused || commercialDominantTechnology !== 'GEO') ? 'secondary' : 'primary'}
                             commercialHero={commercialGeoSatelliteFocused}
                         />
                     )}
 
                     {!commercialMode && <MoonLayer enableLighting={enableLighting} selected={selectedMoon} />}
 
-                    {/* OneWeb Comb Layer - Only shown for operational ONEWEB targets */}
-                    {/* In ONEWEB_PREMIUM mode: shows coverage circles only (no individual beams) */}
-                    {/* In DB_THRESHOLD mode: shows coverage circles + individual beams */}
-                    {/* Commercial mode + CommercialRouteModel + GEO dominant: LEO coverage
-                        circles are suppressed because (a) the CommercialRouteLayer/SkyBridgeLayer
-                        already tells the route narrative and (b) dense LEO beam rings in a GEO
-                        scenario create visual noise that overwhelms the commercial story.
-                        The active LEO service area is shown when LEO is the recommended tech. */}
+                    {/* OneWeb Comb Layer - Engineering shows operational beam context.
+                        Commercial keeps the LEO service footprint visible across
+                        the journey when LEO has been evaluated, without satellite icons. */}
                     {(
                         !commercialMode
-                        || (commercialSatelliteFocused && commercialRouteTechnology === 'LEO')
+                        || (commercialLeoOptionEvaluated && satelliteScope !== 'GEO')
                     ) && oneWebVisualTargets.map((target) => (
                         <OneWebCombLayer
                             key={`oneweb-comb-${target.satellite.id}`}
@@ -2292,12 +2391,13 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                             selectedPosition={target.servingPoints ? null : selectedPosition}
                             selectedAircraft={target.servingPoints ? null : selectedAircraft}
                             servingPoints={target.servingPoints ?? undefined}
-                            highlightServingFootprint={(!selectedSatellite || commercialMode) && (!commercialMode || commercialDominantTechnology === 'LEO') && (
+                            highlightServingFootprint={(!selectedSatellite || commercialMode) && (!commercialMode || (commercialSatelliteFocused && commercialDominantTechnology === 'LEO')) && (
                                 target.servingPoints ? target.servingPoints.length > 0 : !!autoSelectedLEOSatellite
                             )}
                             regulatoryOverlayActive={effectiveCountryOverlayMode === 'regulatory'}
                             leoServiceViewModel={leoServiceViewModel}
-                            commercialTone={commercialMode && commercialDominantTechnology !== 'LEO' ? 'secondary' : 'primary'}
+                            commercialTone={commercialMode && (!commercialSatelliteFocused || commercialDominantTechnology !== 'LEO') ? 'secondary' : 'primary'}
+                            commercialEnvelopeOnly={commercialMode}
                         />
                     ))}
 
@@ -2319,7 +2419,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                     )}
 
                     {/* Transmission Links */}
-                    {(!commercialMode || !commercialRouteModel) && (
+                    {!commercialMode && (
                     <TransmissionLinks
                         satellites={satellites}
                         selectedPosition={selectedPosition}
@@ -2353,7 +2453,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                     )}
 
                     {/* Selected Position Marker — Point A */}
-                    {showGroundSelectedPoint && selectedPosition && (!commercialMode || !commercialDestinationFocused) && (
+                    {showGroundSelectedPoint && selectedPosition && !commercialMode && (
                         <SelectedPointStatusMarker
                             selectedPosition={selectedPosition}
                             pixelSize={commercialAccessFocused || commercialSummaryFocused || commercialGeoSatelliteFocused ? commercialFocusPointPixelSize : positionMarkerPixelSize}
@@ -2364,7 +2464,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                     )}
 
                     {/* Site B marker — rendered once regardless of how many active topologies use it */}
-                    {siteBMarkerPosition && (!commercialMode || commercialDestinationFocused || commercialSummaryFocused) && (
+                    {siteBMarkerPosition && !commercialMode && (
                         <SelectedPointStatusMarker
                             selectedPosition={siteBMarkerPosition}
                             pixelSize={commercialDestinationFocused || commercialSummaryFocused ? commercialFocusPointBPixelSize : pointBMarkerPixelSize}
@@ -2377,7 +2477,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                             markerVariant="site-b"
                         />
                     )}
-                    {(!commercialMode || commercialSatelliteFocused) && pulsedSatellites.map((satellite) => {
+                    {!commercialMode && pulsedSatellites.map((satellite) => {
                         const isLeoSatellite = satellite.type === 'ONEWEB';
                         const baseRadius = isLeoSatellite ? 20000 : 32000;
                         const displayTech = commercialMode ? commercialDominantTechnology : null;
@@ -2424,72 +2524,60 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                     )}
 
                     {/* Satellite Layer */}
-                    <SatelliteLayer
-                        satellites={satellitesForLayer}
-                        selectedSatellite={commercialMode ? null : selectedSatellite}
-                        onSatelliteClick={onSatelliteClick}
-                        onSatelliteHover={handleSatelliteHover}
-                        viewerRef={viewerRef}
-                        cameraMetricsRef={cameraMetricsRef}
-                        satelliteSizeScale={sizeScale}
-                        commercialTechnologyFocus={commercialMode ? commercialDominantTechnology : undefined}
-                    />
+                    {!commercialMode && (
+                        <SatelliteLayer
+                            satellites={satellitesForLayer}
+                            selectedSatellite={selectedSatellite}
+                            onSatelliteClick={onSatelliteClick}
+                            onSatelliteHover={handleSatelliteHover}
+                            viewerRef={viewerRef}
+                            cameraMetricsRef={cameraMetricsRef}
+                            satelliteSizeScale={sizeScale}
+                        />
+                    )}
 
-                    {/* Commercial Sky Bridge Layer — renders SKY_BRIDGE nodes as
-                        open-ring billboards at narrative altitude (COMM-6D3).
-                        Only active in commercial mode when a route model is present. */}
-                    {/* Commercial Sky Bridge Layer — open-ring billboards at narrative altitude.
-                        COMM-6E: ring opacity animated via commercialAnimRef. */}
+                    {/* Commercial Symbolic Connectivity Layer — business route story. */}
                     {commercialMode && commercialRouteModel && (
-                        <CommercialSkyBridgeLayer
+                        <CommercialSymbolicConnectivityLayer
                             routeModel={commercialRouteModel}
                             viewerRef={viewerRef}
                             cameraMetricsRef={cameraMetricsRef}
                             sizeScale={sizeScale}
-                            animationRef={commercialAnimRef}
                         />
                     )}
 
-                    {/* Commercial Route Layer — narrative ground nodes and arcs.
-                        COMM-6E: all entity colors animated via commercialAnimRef. */}
-                    {commercialMode && commercialRouteModel && (
-                        <CommercialRouteLayer
-                            routeModel={commercialRouteModel}
-                            viewerRef={viewerRef}
-                            cameraMetricsRef={cameraMetricsRef}
-                            sizeScale={sizeScale}
-                            animationRef={commercialAnimRef}
-                        />
+                    {(!commercialMode || commercialBackhaulFocused) && (
+                        <>
+                            {/* SNP Layer */}
+                            <SnpLayer
+                                satelliteScope={satelliteScope}
+                                onSnpClick={onSnpClick}
+                                onSnpHover={handleSnpHover}
+                                viewerRef={viewerRef}
+                                cameraMetricsRef={cameraMetricsRef}
+                                sizeScale={sizeScale}
+                                autoSelectedSnpName={typeof selectedSNP === 'string' ? selectedSNP : (selectedSNP?.name ?? null)}
+                                inspectedSnpName={inspectedSNP?.name ?? null}
+                                allowedSnpNames={commercialSnpAllowlist}
+                                commercialTone={commercialMode ? 'secondary' : 'primary'}
+                                showLabels={!commercialMode}
+                            />
+
+                            {/* GEO Gateway Layer */}
+                            <GeoGatewayLayer
+                                satelliteScope={satelliteScope}
+                                onGatewayClick={onGatewayClick ?? (() => {})}
+                                onGatewayHover={handleGatewayHover}
+                                viewerRef={viewerRef}
+                                cameraMetricsRef={cameraMetricsRef}
+                                selectedGatewayName={selectedGeoGatewayName}
+                                sizeScale={sizeScale}
+                                allowedGatewayNames={commercialGatewayAllowlist}
+                                commercialTone={commercialMode ? 'secondary' : 'primary'}
+                                showLabels={!commercialMode}
+                            />
+                        </>
                     )}
-
-                    {/* SNP Layer */}
-                    <SnpLayer
-                        satelliteScope={satelliteScope}
-                        onSnpClick={onSnpClick}
-                        onSnpHover={handleSnpHover}
-                        viewerRef={viewerRef}
-                        cameraMetricsRef={cameraMetricsRef}
-                        sizeScale={sizeScale}
-                        autoSelectedSnpName={typeof selectedSNP === 'string' ? selectedSNP : (selectedSNP?.name ?? null)}
-                        inspectedSnpName={inspectedSNP?.name ?? null}
-                        allowedSnpNames={commercialSnpAllowlist}
-                        commercialTone={commercialMode && commercialFocusedSegment !== 'backhaul' ? 'secondary' : 'primary'}
-                        showLabels={!commercialMode}
-                    />
-
-                    {/* GEO Gateway Layer */}
-                    <GeoGatewayLayer
-                        satelliteScope={satelliteScope}
-                        onGatewayClick={onGatewayClick ?? (() => {})}
-                        onGatewayHover={handleGatewayHover}
-                        viewerRef={viewerRef}
-                        cameraMetricsRef={cameraMetricsRef}
-                        selectedGatewayName={selectedGeoGatewayName}
-                        sizeScale={sizeScale}
-                        allowedGatewayNames={commercialGatewayAllowlist}
-                        commercialTone={commercialMode && commercialFocusedSegment !== 'backhaul' ? 'secondary' : 'primary'}
-                        showLabels={!commercialMode}
-                    />
 
                     {/* Trajectory Layer */}
                     <TrajectoryLayer
@@ -2723,7 +2811,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                     />
                 );
             })()}
-            {!hideSatelliteScreenLabels && (!commercialMode || commercialSatelliteFocused) && (
+            {!hideSatelliteScreenLabels && !commercialMode && (
                 <SatelliteScreenLabels
                     viewerRef={viewerRef}
                     containerRef={globeContainerRef}

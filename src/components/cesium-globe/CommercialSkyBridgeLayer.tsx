@@ -42,6 +42,7 @@ import { LABEL_EYE_OFFSET } from './layerHeights';
 import {
   type CommercialAnimationState,
   ANIM_SEGMENT_INDEX,
+  FOCUS_OPACITY_PROFILES,
   getSegmentAlpha,
 } from './commercialAnimationDriver';
 
@@ -111,13 +112,17 @@ function ringGlyphFor(status: CommercialRouteStatus, technology: CommercialRoute
 // ─── Static fallback state ────────────────────────────────────────────────────
 
 function makeStaticSkyBridgeState(focused: CommercialRouteModel['focusedSegmentId']): CommercialAnimationState {
-  const alpha = focused === 'satellite' ? 1.0 : focused === 'summary' || !focused ? 0.35 : 0;
-  const opacity = new Float32Array([alpha, alpha, alpha, alpha]);
+  const focusedIdx = focused ? (ANIM_SEGMENT_INDEX[focused] ?? -1) : -1;
+  const profile = focused && focused in FOCUS_OPACITY_PROFILES
+    ? FOCUS_OPACITY_PROFILES[focused]
+    : FOCUS_OPACITY_PROFILES.summary;
+  const opacity = new Float32Array(4);
+  for (let i = 0; i < 4; i++) opacity[i] = profile[i];
   return {
     opacity,
     reveal:      new Float32Array([1, 1, 1, 1]),
     pulsePhase:  0,
-    focusedIdx:  focused ? (ANIM_SEGMENT_INDEX[focused] ?? -1) : -1,
+    focusedIdx,
     routeStatus: 'active',
   };
 }
@@ -190,8 +195,7 @@ const SkyBridgeEntity = React.memo<SkyBridgeEntityProps>(({
     const base = Color.fromCssColorString(baseHex);
     return new CallbackProperty(() => {
       const alpha = getSegmentAlpha(animRef.current, SAT_IDX, isPulsed && animRef.current.focusedIdx === SAT_IDX);
-      const summaryMultiplier = animRef.current.focusedIdx < 0 ? 0.35 : 1;
-      return base.withAlpha(alpha * summaryMultiplier);
+      return base.withAlpha(alpha);
     }, false);
   }, [node.status, isGeo, animRef, SAT_IDX]);
 
@@ -332,16 +336,13 @@ const CommercialSkyBridgeLayer: React.FC<CommercialSkyBridgeLayerProps> = ({
   }, [routeModel]);
 
   if (skyBridges.length === 0) return null;
-  if (
-    routeModel.focusedSegmentId
-    && routeModel.focusedSegmentId !== 'satellite'
-    && routeModel.focusedSegmentId !== 'summary'
-  ) {
-    return null;
-  }
+  // Sky bridge is always rendered — FOCUS_OPACITY_PROFILES controls its visual weight.
+  // At satellite focus it's the hero (1.0); other segments fade it to 0.10–0.15.
 
-  const showPrimaryLabel = false;
-  const showSecondaryLabel = false;
+  const isSatelliteFocused = routeModel.focusedSegmentId === 'satellite';
+  const isSummaryView      = !routeModel.focusedSegmentId || routeModel.focusedSegmentId === 'summary';
+  const showPrimaryLabel   = isSatelliteFocused || isSummaryView;
+  const showSecondaryLabel = isSatelliteFocused;
 
   return (
     <>
