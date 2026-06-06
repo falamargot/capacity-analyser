@@ -19,7 +19,9 @@ import CommercialModeShell from './components/commercial/CommercialModeShell';
 import CommercialMissionBar from './components/commercial/CommercialMissionBar';
 import SharedScenarioBuilder from './components/shared/SharedScenarioBuilder';
 import CommercialRouteStrip from './components/commercial/CommercialRouteStrip';
-import CommercialNarrativeCard from './components/commercial/CommercialNarrativeCard';
+import CommercialOutcomeCard from './components/commercial/CommercialOutcomeCard';
+import CommercialNarrativePanel from './components/commercial/CommercialNarrativePanel';
+import type { CommercialRouteSegmentId } from './types/commercialRouteModel';
 import { buildCommercialScenarioViewModel } from './components/commercial/commercialViewModel';
 import { buildCommercialRouteModel } from './utils/commercialRouteModel';
 import { WeatherControl, WEATHER_PROFILES, type TerminalType, type WeatherType, toWeatherCondition } from './components/capacity';
@@ -477,6 +479,13 @@ const App: React.FC = () => {
     handleTechnologyScopeChange,
   } = useUiModeState();
   const [commercialSelectedSegment, setCommercialSelectedSegment] = useState<string>('summary');
+  const [isCommercialPanelOpen, setIsCommercialPanelOpen] = useState(false);
+
+  /** Opens the Narrative Panel and selects the given segment. */
+  const handleCommercialSegmentSelect = useCallback((segmentId: string) => {
+    setCommercialSelectedSegment(segmentId);
+    setIsCommercialPanelOpen(true);
+  }, []);
 
   // Derived backward-compat variables — downstream components still receive pointB / pointBLeo
   const geoNeedsPointB = LINK_MODE_REQUIRES_POINT_B.has(linkMode) && satelliteScope !== 'LEO';
@@ -4093,7 +4102,6 @@ const App: React.FC = () => {
           commercialRouteModel={commercialRouteModel}
           onSelectedSegmentChange={setCommercialSelectedSegment}
           onViewFullAnalysis={() => handleUiModeChange('engineering')}
-          currentRoute={routeSelectorRoute}
           isMobile={isMobile}
           isFullscreen={isFullscreen}
           globe={(
@@ -4531,7 +4539,7 @@ const App: React.FC = () => {
                   {...sharedMapProps}
                   displayLayerProps={desktopDisplayLayerProps}
                   commercialState={desktopCommercialState}
-                  onCommercialSelectedSegmentChange={uiMode === 'commercial' ? setCommercialSelectedSegment : undefined}
+                  onCommercialSelectedSegmentChange={uiMode === 'commercial' ? handleCommercialSegmentSelect : undefined}
                 />
                 {uiMode !== 'commercial' && isFullscreen && fullscreenExportButtonProps && (
                   <div
@@ -4546,37 +4554,52 @@ const App: React.FC = () => {
                     </div>
                   </div>
                 )}
+
+                {/* ── Commercial overlays (desktop non-fullscreen only) ──────
+                    All absolutely positioned over the globe so the globe never
+                    loses width to a sidebar. Globe canvas stays full-size. */}
+                {uiMode === 'commercial' && !isFullscreen && (
+                  <>
+                    {/* Floating outcome card — bottom-left */}
+                    <CommercialOutcomeCard
+                      viewModel={commercialScenarioViewModel}
+                      onOpenOutcome={() => handleCommercialSegmentSelect('summary')}
+                    />
+
+                    {/* Journey strip — bottom overlay */}
+                    <div className="absolute bottom-0 left-0 right-0 z-20">
+                      <CommercialRouteStrip
+                        segments={commercialScenarioViewModel.routeSegments}
+                        selectedSegmentId={commercialSelectedSegment}
+                        commercialRouteModel={commercialRouteModel}
+                        onSelectedSegmentChange={handleCommercialSegmentSelect}
+                      />
+                    </div>
+
+                    {/* Narrative panel — slides in from right */}
+                    <CommercialNarrativePanel
+                      viewModel={commercialScenarioViewModel}
+                      selectedSegmentId={commercialSelectedSegment}
+                      commercialRouteModel={commercialRouteModel}
+                      isOpen={isCommercialPanelOpen}
+                      onClose={() => setIsCommercialPanelOpen(false)}
+                      onSegmentChange={(id: CommercialRouteSegmentId) => handleCommercialSegmentSelect(id)}
+                      onViewFullAnalysis={() => handleUiModeChange('engineering')}
+                    />
+                  </>
+                )}
               </div>
 
-              {/* Slot 2: Route strip (commercial non-fullscreen) — placeholder div otherwise.
-                  Same logic as slot 0: type changes are fine here. */}
-              {uiMode === 'commercial' && !isFullscreen
-                ? (
-                  <CommercialRouteStrip
-                    segments={commercialScenarioViewModel.routeSegments}
-                    selectedSegmentId={commercialScenarioViewModel.selectedSegmentId ?? 'summary'}
-                    commercialRouteModel={commercialRouteModel}
-                    onSelectedSegmentChange={setCommercialSelectedSegment}
-                  />
-                )
-                : <div className="h-0 overflow-hidden" aria-hidden="true" />
-              }
+              {/* Slot 2: always empty — commercial route strip moved to globe overlay above.
+                  Keeping a stable div here preserves the Cesium fiber position. */}
+              <div className="h-0 overflow-hidden" aria-hidden="true" />
             </div>
 
-            {/* Right panel: commercial inspector or engineering sidebar.
-                Remounts on switch — intentional; neither contains the globe. */}
-            {uiMode === 'commercial' ? (
-              !isFullscreen && (
-                <div className="w-[380px] shrink-0">
-                  <CommercialNarrativeCard
-                    viewModel={commercialScenarioViewModel}
-                    selectedSegmentId={commercialScenarioViewModel.selectedSegmentId ?? 'summary'}
-                    commercialRouteModel={commercialRouteModel}
-                    onViewFullAnalysis={() => handleUiModeChange('engineering')}
-                  />
-                </div>
-              )
-            ) : (
+            {/* Right panel: engineering sidebar only.
+                Commercial mode has no right panel — the Narrative Panel is an overlay
+                inside the globe wrapper (Slot 1) and never permanently shrinks the globe.
+                Remounts on switch — intentional; it does not contain the globe. */}
+            {uiMode !== 'commercial' && (
               <div
                 className={`flex-shrink-0 overflow-hidden rounded-[24px] border border-slate-200/80 bg-[linear-gradient(180deg,rgba(248,250,252,0.98),rgba(255,255,255,0.96))] shadow-[0_30px_70px_-35px_rgba(15,23,42,0.45)] dark:border-slate-800 dark:bg-[linear-gradient(180deg,rgba(15,23,42,0.98),rgba(2,6,23,0.98))] flex flex-col ${isFullscreen ? 'hidden' : ''}`}
                 style={{ width: desktopSidebarWidth }}

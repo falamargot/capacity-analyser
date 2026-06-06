@@ -1,8 +1,8 @@
 import { memo, type ReactNode } from 'react';
-import { ArrowDown, ArrowUp, RadioTower, Star, Timer } from 'lucide-react';
+import { ArrowDown, ArrowUp, Star, Timer } from 'lucide-react';
 import type { CommercialScenarioViewModel, CommercialTechnologyOption } from './commercialViewModel';
 import SharedScenarioBuilder from '../shared/SharedScenarioBuilder';
-import { formatMbps, formatMs, serviceStatusChipClassName } from './commercialDisplayUtils';
+import { formatMbps, formatMs } from './commercialDisplayUtils';
 import type { ConnectivityEndpoint, ConnectivityScenarioType } from './commercialTypes';
 import type { LocationResult } from '../../hooks/useLocationSearch';
 
@@ -16,8 +16,11 @@ interface CommercialMissionBarProps {
   onSwapClick: () => void;
 }
 
-function optionFor(viewModel: CommercialScenarioViewModel, technology: 'leo' | 'geo'): CommercialTechnologyOption | undefined {
-  return viewModel.comparison.options.find((option) => option.technology === technology);
+function optionFor(
+  viewModel: CommercialScenarioViewModel,
+  technology: 'leo' | 'geo',
+): CommercialTechnologyOption | undefined {
+  return viewModel.comparison.options.find((o) => o.technology === technology);
 }
 
 function isRecommended(viewModel: CommercialScenarioViewModel, technology: 'leo' | 'geo'): boolean {
@@ -25,28 +28,34 @@ function isRecommended(viewModel: CommercialScenarioViewModel, technology: 'leo'
 }
 
 function scenarioTypeFor(viewModel: CommercialScenarioViewModel): ConnectivityScenarioType {
-  const destinationType = viewModel.display.destinationType?.toLowerCase() ?? '';
+  const dest = viewModel.display.destinationType?.toLowerCase() ?? '';
   if (
-    destinationType.includes('snp')
-    || destinationType.includes('portal')
-    || destinationType.includes('gateway')
-    || destinationType.includes('network')
-  ) {
-    return 'network_access';
-  }
-
-  // UI-only fallback: until terminal/profile selection stores endpoint kinds,
-  // uncertain destinations default to site-to-site.
+    dest.includes('snp')
+    || dest.includes('portal')
+    || dest.includes('gateway')
+    || dest.includes('network')
+  ) return 'network_access';
   return 'site_to_site';
 }
 
-function missionReason(viewModel: CommercialScenarioViewModel): string {
-  return viewModel.executiveSummary.reason
-    || viewModel.recommendation.reason
-    || viewModel.executiveSummary.expectedExperience;
+function recommendationLabel(viewModel: CommercialScenarioViewModel): string {
+  const { technology, label } = viewModel.recommendation;
+  if (technology === 'hybrid') return 'Hybrid suitable';
+  if (technology === 'not_available') return 'No viable path';
+  if (technology === 'insufficient_data') return 'Pending';
+  return `${label} recommended`;
 }
 
-function MissionMetric({
+function recommendationReason(viewModel: CommercialScenarioViewModel): string {
+  return (
+    viewModel.executiveSummary.reason
+    || viewModel.recommendation.reason
+    || viewModel.executiveSummary.expectedExperience
+  );
+}
+
+/* ── Shared metric chip ─────────────────────────────────────────────────── */
+function MetricChip({
   icon,
   value,
   label,
@@ -58,16 +67,23 @@ function MissionMetric({
   hero?: boolean;
 }) {
   return (
-    <div className="flex min-w-0 items-center gap-1.5" title={label}>
+    <div className="flex items-center gap-1" title={label}>
       <span className={hero ? 'text-sky-200' : 'text-slate-400'}>{icon}</span>
-      <span className={hero ? 'text-[17px] font-bold tabular-nums text-white' : 'text-sm font-semibold tabular-nums text-slate-100'}>
+      <span
+        className={
+          hero
+            ? 'text-[15px] font-bold tabular-nums text-white'
+            : 'text-[13px] font-semibold tabular-nums text-slate-100'
+        }
+      >
         {value}
       </span>
     </div>
   );
 }
 
-function TechnologyColumn({
+/* ── Technology snapshot column ─────────────────────────────────────────── */
+function TechColumn({
   option,
   tag,
   highlighted,
@@ -76,32 +92,43 @@ function TechnologyColumn({
   tag: string;
   highlighted: boolean;
 }) {
-  const statusClassName = option?.available ? 'text-emerald-300' : option?.status === 'blocked' ? 'text-rose-300' : 'text-amber-300';
+  const statusColor = option?.available
+    ? 'text-emerald-300'
+    : option?.status === 'blocked'
+      ? 'text-rose-300'
+      : 'text-amber-300';
 
   return (
     <section
       className={[
         'flex min-w-0 flex-col justify-center rounded-lg border px-3 py-2',
         highlighted
-          ? 'border-sky-300/60 bg-sky-500/15 shadow-[0_16px_48px_-34px_rgba(56,189,248,0.9)]'
-          : 'border-slate-800/75 bg-slate-900/45',
+          ? 'border-sky-300/50 bg-sky-500/12 shadow-[0_12px_40px_-28px_rgba(56,189,248,0.85)]'
+          : 'border-[rgba(51,65,85,0.60)] bg-[rgba(15,23,42,0.55)]',
       ].join(' ')}
-      aria-label={`${option?.label ?? 'Technology'} comparison`}
+      aria-label={`${option?.label ?? 'Technology'} snapshot`}
     >
-      <div className="flex min-w-0 items-center justify-between gap-2">
-        <div className="min-w-0 text-sm font-bold uppercase tracking-[0.08em] text-white">{option?.label ?? '--'}</div>
-        {highlighted && <Star className="h-3.5 w-3.5 shrink-0 fill-sky-300 text-sky-300" aria-hidden="true" />}
+      <div className="flex min-w-0 items-center justify-between gap-1.5">
+        <span className="min-w-0 truncate text-[12px] font-bold uppercase tracking-[0.08em] text-white">
+          {option?.label ?? '--'}
+        </span>
+        {highlighted && (
+          <Star className="h-3 w-3 shrink-0 fill-sky-300 text-sky-300" aria-hidden="true" />
+        )}
       </div>
       <div className="mt-0.5 text-[9px] font-bold uppercase tracking-[0.14em] text-slate-500">{tag}</div>
-      <div className={`mt-1 text-xs font-semibold ${statusClassName}`}>{option?.statusLabel ?? 'Pending'}</div>
-      <div className="mt-1.5 flex min-w-0 items-center gap-3">
-        <MissionMetric icon={<Timer className="h-3.5 w-3.5" />} value={formatMs(option?.rttMs)} label="Latency" />
-        <MissionMetric icon={<ArrowDown className="h-3.5 w-3.5" />} value={formatMbps(option?.downloadMbps)} label="Downlink" />
+      <div className={`mt-1 text-[11px] font-semibold ${statusColor}`}>
+        {option?.statusLabel ?? 'Pending'}
+      </div>
+      <div className="mt-1.5 flex min-w-0 items-center gap-2.5">
+        <MetricChip icon={<Timer className="h-3 w-3" />} value={formatMs(option?.rttMs)} label="Latency" />
+        <MetricChip icon={<ArrowDown className="h-3 w-3" />} value={formatMbps(option?.downloadMbps)} label="Downlink" />
       </div>
     </section>
   );
 }
 
+/* ── Main component ─────────────────────────────────────────────────────── */
 function CommercialMissionBar({
   viewModel,
   origin,
@@ -114,18 +141,16 @@ function CommercialMissionBar({
   const leo = optionFor(viewModel, 'leo');
   const geo = optionFor(viewModel, 'geo');
   const scenarioType = scenarioTypeOverride ?? scenarioTypeFor(viewModel);
-  const recommendationLabel = viewModel.recommendation.technology === 'hybrid'
-    ? 'Hybrid suitable'
-    : viewModel.recommendation.technology === 'not_available'
-      ? 'No viable path'
-      : viewModel.recommendation.technology === 'insufficient_data'
-        ? 'Recommendation pending'
-        : `${viewModel.recommendation.label} recommended`;
 
   return (
-    <section className="border-b border-slate-800/70 bg-slate-950/96 px-3 py-2 shadow-sm backdrop-blur" aria-label="Commercial mission briefing">
-      <div className="grid min-h-[76px] min-w-0 grid-cols-[minmax(14rem,0.95fr)_minmax(18rem,1.2fr)_minmax(7.2rem,0.48fr)_minmax(7.2rem,0.48fr)] gap-2">
-        <div className="min-w-0 rounded-lg border border-slate-800/75 bg-slate-900/45 p-2">
+    <section
+      className="relative z-30 flex-shrink-0 border-b border-[rgba(148,163,184,0.07)] bg-[rgba(6,10,22,0.90)] px-3 py-2 backdrop-blur-xl"
+      aria-label="Commercial mission briefing"
+    >
+      <div className="grid min-h-[64px] min-w-0 grid-cols-[minmax(13rem,0.95fr)_minmax(16rem,1.15fr)_minmax(6.8rem,0.46fr)_minmax(6.8rem,0.46fr)] gap-2">
+
+        {/* Left — scenario definition */}
+        <div className="min-w-0 rounded-lg border border-[rgba(51,65,85,0.55)] bg-[rgba(15,23,42,0.50)] p-2">
           <SharedScenarioBuilder
             origin={origin}
             destination={destination}
@@ -136,33 +161,67 @@ function CommercialMissionBar({
           />
         </div>
 
-        <section className="flex min-w-0 flex-col justify-center rounded-lg border border-sky-300/45 bg-sky-500/12 px-3 py-2 shadow-[0_18px_56px_-38px_rgba(56,189,248,1)]" aria-label="Recommended mission path">
-          <div className="flex min-w-0 items-center justify-between gap-3">
-            <div className="flex min-w-0 items-center gap-2">
-              <Star className="h-4 w-4 shrink-0 fill-sky-300 text-sky-300" aria-hidden="true" />
-              <div className="min-w-0 truncate text-[15px] font-bold uppercase tracking-[0.04em] text-white" title={recommendationLabel}>
-                {recommendationLabel}
-              </div>
+        {/* Center — recommendation */}
+        <section
+          className="flex min-w-0 flex-col justify-center rounded-lg border border-sky-300/40 bg-sky-500/10 px-3 py-2 shadow-[0_14px_48px_-32px_rgba(56,189,248,0.90)]"
+          aria-label="Recommended path"
+        >
+          <div className="flex min-w-0 items-center justify-between gap-2">
+            <div className="flex min-w-0 items-center gap-1.5">
+              <Star className="h-3.5 w-3.5 shrink-0 fill-sky-300 text-sky-300" aria-hidden="true" />
+              <span
+                className="min-w-0 truncate text-[14px] font-bold uppercase tracking-[0.04em] text-white"
+                title={recommendationLabel(viewModel)}
+              >
+                {recommendationLabel(viewModel)}
+              </span>
             </div>
-            <span className={`shrink-0 rounded-full border px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.08em] ${serviceStatusChipClassName[viewModel.serviceStatus]}`}>
+            <span
+              className={[
+                'shrink-0 rounded-full border px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.08em]',
+                viewModel.serviceStatus === 'active'
+                  ? 'border-emerald-400/40 bg-emerald-500/12 text-emerald-200'
+                  : viewModel.serviceStatus === 'degraded'
+                    ? 'border-amber-400/45 bg-amber-500/12 text-amber-200'
+                    : viewModel.serviceStatus === 'blocked'
+                      ? 'border-rose-400/45 bg-rose-500/12 text-rose-200'
+                      : 'border-slate-700 bg-slate-800 text-slate-300',
+              ].join(' ')}
+            >
               {viewModel.executiveSummary.statusLabel}
             </span>
           </div>
 
-          <div className="mt-1 flex min-w-0 items-center gap-1.5 text-sm font-medium text-slate-200" title={missionReason(viewModel)}>
-            <RadioTower className="h-3.5 w-3.5 shrink-0 text-sky-200" aria-hidden="true" />
-            <span className="min-w-0 truncate">{missionReason(viewModel)}</span>
-          </div>
+          <p
+            className="mt-1 min-w-0 truncate text-[12px] font-medium text-slate-300"
+            title={recommendationReason(viewModel)}
+          >
+            {recommendationReason(viewModel)}
+          </p>
 
-          <div className="mt-1.5 flex min-w-0 flex-wrap items-center gap-x-4 gap-y-1">
-            <MissionMetric icon={<Timer className="h-4 w-4" />} value={formatMs(viewModel.rttMs)} label="Latency" hero />
-            <MissionMetric icon={<ArrowDown className="h-3.5 w-3.5" />} value={formatMbps(viewModel.downloadMbps)} label="Downlink" />
-            <MissionMetric icon={<ArrowUp className="h-3.5 w-3.5" />} value={formatMbps(viewModel.uploadMbps)} label="Uplink" />
+          <div className="mt-1.5 flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
+            <MetricChip
+              icon={<Timer className="h-3.5 w-3.5" />}
+              value={formatMs(viewModel.rttMs)}
+              label="Latency"
+              hero
+            />
+            <MetricChip
+              icon={<ArrowDown className="h-3 w-3" />}
+              value={formatMbps(viewModel.downloadMbps)}
+              label="Downlink"
+            />
+            <MetricChip
+              icon={<ArrowUp className="h-3 w-3" />}
+              value={formatMbps(viewModel.uploadMbps)}
+              label="Uplink"
+            />
           </div>
         </section>
 
-        <TechnologyColumn option={leo} tag="Real-time" highlighted={isRecommended(viewModel, 'leo')} />
-        <TechnologyColumn option={geo} tag="Wide area" highlighted={isRecommended(viewModel, 'geo')} />
+        {/* Right — technology snapshots */}
+        <TechColumn option={leo} tag="Real-time" highlighted={isRecommended(viewModel, 'leo')} />
+        <TechColumn option={geo} tag="Wide area" highlighted={isRecommended(viewModel, 'geo')} />
       </div>
     </section>
   );
