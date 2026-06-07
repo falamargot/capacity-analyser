@@ -66,9 +66,28 @@ function createRingCanvas(hexColor: string, size = 32): HTMLCanvasElement {
   return canvas;
 }
 
+function createBeaconGlowCanvas(size = 96): HTMLCanvasElement {
+  const canvas = document.createElement('canvas');
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return canvas;
+  const cx = size / 2;
+  const gradient = ctx.createRadialGradient(cx, cx, 0, cx, cx, cx);
+  gradient.addColorStop(0, 'rgba(255,255,255,0.95)');
+  gradient.addColorStop(0.12, 'rgba(191,219,254,0.72)');
+  gradient.addColorStop(0.36, 'rgba(96,165,250,0.34)');
+  gradient.addColorStop(0.68, 'rgba(99,102,241,0.13)');
+  gradient.addColorStop(1, 'rgba(99,102,241,0)');
+  ctx.fillStyle = gradient;
+  ctx.fillRect(0, 0, size, size);
+  return canvas;
+}
+
 const GEO_RING_GLYPH     = createRingCanvas('#60a5fa');
 const LEO_RING_GLYPH     = createRingCanvas('#f472b6');
 const BLOCKED_RING_GLYPH = createRingCanvas('#ef4444');
+const SATELLITE_BEACON_GLOW = createBeaconGlowCanvas();
 
 // ─── Narrative altitude constants ─────────────────────────────────────────────
 
@@ -169,6 +188,8 @@ const SkyBridgeEntity = React.memo<SkyBridgeEntityProps>(({
 }) => {
   const SAT_IDX = ANIM_SEGMENT_INDEX.satellite; // 1
 
+  const isGeo = technology === 'GEO';
+
   const scaleCallback = useMemo(() => {
     const refDist = technology === 'GEO' ? 25_000_000 : 6_000_000;
     return new CallbackProperty(() => {
@@ -179,7 +200,44 @@ const SkyBridgeEntity = React.memo<SkyBridgeEntityProps>(({
     }, false);
   }, [narrativePos, technology, cameraMetricsRef, sizeScale]);
 
-  const isGeo = technology === 'GEO';
+  const beaconGlowScaleCallback = useMemo(() => {
+    const refDist = technology === 'GEO' ? 25_000_000 : 6_000_000;
+    return new CallbackProperty(() => {
+      const distance = Cartesian3.distance(cameraMetricsRef.current.position, narrativePos);
+      const dynamicScale = calculateDynamicScale(cameraMetricsRef.current.height, DPR_FACTOR);
+      const base = dynamicScale * refDist / Math.max(distance, refDist * 0.2);
+      const breath = 0.5 + 0.5 * Math.sin(animRef.current.pulsePhase * 0.46);
+      return base * (1.65 + breath * 0.28) * sizeScale;
+    }, false);
+  }, [animRef, cameraMetricsRef, narrativePos, sizeScale, technology]);
+
+  const beaconGlowColorCallback = useMemo(() => new CallbackProperty(() => {
+    const satelliteFocused = animRef.current.focusedIdx === SAT_IDX;
+    if (!satelliteFocused) return Color.WHITE.withAlpha(0);
+    const segmentAlpha = getSegmentAlpha(animRef.current, SAT_IDX);
+    const breath = 0.5 + 0.5 * Math.sin(animRef.current.pulsePhase * 0.46);
+    return Color.WHITE.withAlpha(segmentAlpha * (0.68 + breath * 0.28));
+  }, false), [animRef, SAT_IDX]);
+
+  const beaconCoreSizeCallback = useMemo(() => new CallbackProperty(() => {
+    const breath = 0.5 + 0.5 * Math.sin(animRef.current.pulsePhase * 0.46);
+    return (8 + breath * 3.5) * sizeScale;
+  }, false), [animRef, sizeScale]);
+
+  const beaconCoreColorCallback = useMemo(() => new CallbackProperty(() => {
+    const satelliteFocused = animRef.current.focusedIdx === SAT_IDX;
+    if (!satelliteFocused) return Color.WHITE.withAlpha(0);
+    const segmentAlpha = getSegmentAlpha(animRef.current, SAT_IDX);
+    const breath = 0.5 + 0.5 * Math.sin(animRef.current.pulsePhase * 0.46);
+    return Color.fromCssColorString('#ffffff').withAlpha(segmentAlpha * (0.82 + breath * 0.18));
+  }, false), [animRef, SAT_IDX]);
+
+  const beaconCoreOutlineCallback = useMemo(() => new CallbackProperty(() => {
+    const satelliteFocused = animRef.current.focusedIdx === SAT_IDX;
+    if (!satelliteFocused) return Color.fromCssColorString('#60a5fa').withAlpha(0);
+    const segmentAlpha = getSegmentAlpha(animRef.current, SAT_IDX);
+    return Color.fromCssColorString(isGeo ? '#60a5fa' : '#a78bfa').withAlpha(segmentAlpha * 0.86);
+  }, false), [animRef, isGeo, SAT_IDX]);
 
   // Ring billboard color — animated alpha, optional pulse.
   const ringColorCallback = useMemo(() => {
@@ -235,6 +293,29 @@ const SkyBridgeEntity = React.memo<SkyBridgeEntityProps>(({
 
   return (
     <>
+      {/* Step 2 satellite beacon — symbolic light source, visible only in satellite focus. */}
+      <Entity
+        id={`commercial-route-satellite-beacon-glow-${node.id}`}
+        position={narrativePos}
+        billboard={{
+          image: SATELLITE_BEACON_GLOW,
+          scale: beaconGlowScaleCallback,
+          color: beaconGlowColorCallback,
+          verticalOrigin: VerticalOrigin.CENTER,
+          disableDepthTestDistance: Infinity,
+        }}
+      />
+      <Entity
+        id={`commercial-route-satellite-beacon-core-${node.id}`}
+        position={narrativePos}
+        point={{
+          pixelSize: beaconCoreSizeCallback,
+          color: beaconCoreColorCallback,
+          outlineColor: beaconCoreOutlineCallback,
+          outlineWidth: 2,
+          disableDepthTestDistance: Infinity,
+        }}
+      />
       {/* Ring billboard — animated opacity, no label here */}
       <Entity
         id={`commercial-route-satellite-skybridge-${node.id}`}

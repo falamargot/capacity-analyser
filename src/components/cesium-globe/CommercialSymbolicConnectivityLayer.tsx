@@ -49,6 +49,8 @@ const ARC_SEGMENTS = 48;
 const LABEL_OFFSET = new Cartesian2(0, -18);
 const FLOW_EPOCH = JulianDate.fromDate(new Date(0));
 const FLOW_PHASES = [0, 0.34, 0.68] as const;
+const ACCESS_RADIO_WAVE_PHASES = [0, 0.24, 0.48, 0.72] as const;
+const ACCESS_RING_SEGMENTS = 96;
 const SYMBOLIC_ROUTE_ALTITUDE_KM = GROUND_POINT_ALTITUDE_KM + 18;
 const SYMBOLIC_ENDPOINT_MARKER_ALTITUDE_KM = SYMBOLIC_ROUTE_ALTITUDE_KM + 8;
 const SYMBOLIC_ENDPOINT_HALO_HEIGHT_M = GROUND_POINT_LAYER_HEIGHT_M + 2400;
@@ -82,6 +84,13 @@ function endpointStatusColor(status: CommercialRouteStatus): Color {
   if (status === 'limited') return Color.fromCssColorString('#f59e0b');
   if (status === 'pending') return Color.fromCssColorString('#38bdf8');
   return Color.fromCssColorString('#34d399');
+}
+
+function endpointAccentColor(endpoint: SymbolicEndpoint, focused: CommercialRouteSegmentId | null): Color {
+  if (endpoint.segmentId === 'access' && focused === 'access') {
+    return Color.fromCssColorString('#22d3ee');
+  }
+  return endpointStatusColor(endpoint.status);
 }
 
 function endpointFromNode(node: CommercialRouteNode | undefined): SymbolicEndpoint | null {
@@ -140,6 +149,24 @@ function buildSymbolicArcPositions(
   });
 }
 
+function buildAccessRadioRingPositions(
+  origin: RouteCoordinate,
+  radiusMeters: number,
+  altitudeMeters: number,
+): Cartesian3[] {
+  const radiusKm = radiusMeters / 1000;
+  const altitudeKm = altitudeMeters / 1000;
+  const latRadiusDeg = radiusKm / 111.32;
+  const lngRadiusDeg = radiusKm / Math.max(18, 111.32 * Math.cos(origin.lat * Math.PI / 180));
+
+  return Array.from({ length: ACCESS_RING_SEGMENTS + 1 }, (_, index) => {
+    const theta = (index / ACCESS_RING_SEGMENTS) * Math.PI * 2;
+    const lat = origin.lat + Math.sin(theta) * latRadiusDeg;
+    const lng = denormalizeLng(origin.lng + Math.cos(theta) * lngRadiusDeg);
+    return getPosition(lat, lng, altitudeKm);
+  });
+}
+
 function interpolatePolylinePosition(
   positions: Cartesian3[],
   progress: number,
@@ -187,6 +214,11 @@ function arcAlpha(focused: CommercialRouteSegmentId | null): number {
   if (!focused || focused === 'summary' || focused === 'satellite') return base;
   if (focused === 'access' || focused === 'destination') return 0.78;
   return 0.66;
+}
+
+function arcAccentColor(status: CommercialRouteStatus, focused: CommercialRouteSegmentId | null): Color {
+  if (focused === 'access') return Color.fromCssColorString('#22d3ee');
+  return routeStatusColor(status);
 }
 
 function buildArcSpecs(routeModel: CommercialRouteModel): SymbolicArcSpec[] {
@@ -271,7 +303,10 @@ const SymbolicEndpointMarker = React.memo<{
     () => `${endpoint.coord.lat.toFixed(4)},${endpoint.coord.lng.toFixed(4)}`,
     [endpoint.coord.lat, endpoint.coord.lng],
   );
-  const baseColor = useMemo(() => endpointStatusColor(endpoint.status), [endpoint.status]);
+  const baseColor = useMemo(
+    () => endpointAccentColor(endpoint, focusedSegmentId),
+    [endpoint, focusedSegmentId],
+  );
   const weight = endpointWeight(endpoint, focusedSegmentId);
 
   // Use primitive segmentId (string) so these CallbackProperty instances are not
@@ -289,16 +324,18 @@ const SymbolicEndpointMarker = React.memo<{
       const seconds = time ? JulianDate.toDate(time).getTime() / 1000 : Date.now() / 1000;
       const pulse = 0.5 + 0.5 * Math.sin(seconds * Math.PI * 0.75);
       Color.clone(baseColor, scratch);
-      scratch.alpha = (0.38 + pulse * 0.24) * weight;
+      const accessBoost = endpoint.segmentId === 'access' && focusedSegmentId === 'access' ? 1.35 : 1;
+      scratch.alpha = (0.38 + pulse * 0.24) * weight * accessBoost;
       return scratch;
     }, false);
-  }, [baseColor, weight]);
+  }, [baseColor, endpoint.segmentId, focusedSegmentId, weight]);
 
   const haloRadius = useMemo(() => new CallbackProperty((time?: JulianDate) => {
     const seconds = time ? JulianDate.toDate(time).getTime() / 1000 : Date.now() / 1000;
     const pulse = 0.5 + 0.5 * Math.sin(seconds * Math.PI * 0.75);
     const isFocused = !focusedSegmentId || focusedSegmentId === 'summary' || endpoint.segmentId === focusedSegmentId;
-    return (68_000 + pulse * 34_000) * (isFocused ? 1.2 : 0.85);
+    const accessBoost = endpoint.segmentId === 'access' && focusedSegmentId === 'access' ? 1.38 : 1;
+    return (68_000 + pulse * 34_000) * (isFocused ? 1.2 : 0.85) * accessBoost;
   }, false), [endpoint.segmentId, focusedSegmentId]);
 
   const haloMaterial = useMemo(() => new ColorMaterialProperty(haloColor), [haloColor]);
@@ -361,6 +398,82 @@ const SymbolicEndpointMarker = React.memo<{
 );
 SymbolicEndpointMarker.displayName = 'SymbolicEndpointMarker';
 
+const RadioWaveBeacon = React.memo<{
+  endpoint: SymbolicEndpoint;
+  direction: 'transmit' | 'receive';
+  sizeScale: number;
+}>(({ endpoint, direction, sizeScale }) => {
+  const endpointLat = endpoint.coord.lat;
+  const endpointLng = endpoint.coord.lng;
+  const posKey = useMemo(
+    () => `${endpointLat.toFixed(4)},${endpointLng.toFixed(4)}`,
+    [endpointLat, endpointLng],
+  );
+
+  const rings = useMemo(() => ACCESS_RADIO_WAVE_PHASES.map((phase, index) => {
+    const progressAt = (time?: JulianDate): number => {
+      const seconds = time ? JulianDate.secondsDifference(time, FLOW_EPOCH) : Date.now() / 1000;
+      const cycle = ((seconds / 3.6 + phase) % 1 + 1) % 1;
+      return direction === 'receive' ? 1 - cycle : cycle;
+    };
+    const ease = (progress: number): number => 1 - (1 - progress) ** 2.7;
+
+    const positions = new CallbackProperty((time?: JulianDate) => {
+      const progress = progressAt(time);
+      const eased = ease(progress);
+      const radiusMeters = (24_000 + eased * 100_000) * Math.max(0.9, sizeScale);
+      const altitudeMeters = GROUND_POINT_LAYER_HEIGHT_M + 8_000 + eased * 120_000;
+      return buildAccessRadioRingPositions({ lat: endpointLat, lng: endpointLng }, radiusMeters, altitudeMeters);
+    }, false);
+
+    const outlineColor = new CallbackProperty((time?: JulianDate) => {
+      const progress = progressAt(time);
+      const eased = ease(progress);
+      const fade = (1 - progress) ** 1.35;
+      const alpha = Math.max(0, 0.58 * fade + 0.055 * (1 - eased));
+      return Color.fromCssColorString('#22d3ee').withAlpha(alpha);
+    }, false);
+
+    const material = new PolylineGlowMaterialProperty({
+      color: outlineColor,
+      glowPower: 0.36,
+      taperPower: 0.72,
+    });
+
+    return {
+      id: `commercial-route-${direction}-radio-wave-${endpoint.id}-${entitySafeSignature(posKey)}-${index}`,
+      positions,
+      material,
+    };
+  }), [direction, endpoint.id, endpointLat, endpointLng, posKey, sizeScale]);
+
+  return (
+    <>
+      {rings.map((ring) => (
+        <Entity
+          key={ring.id}
+          id={ring.id}
+          polyline={{
+            positions: ring.positions,
+            width: 4 * Math.max(0.9, sizeScale),
+            material: ring.material,
+            depthFailMaterial: ring.material,
+            arcType: ArcType.NONE,
+            clampToGround: false,
+          }}
+        />
+      ))}
+    </>
+  );
+}, (prev, next) =>
+  prev.endpoint.id === next.endpoint.id &&
+  prev.endpoint.coord.lat === next.endpoint.coord.lat &&
+  prev.endpoint.coord.lng === next.endpoint.coord.lng &&
+  prev.direction === next.direction &&
+  prev.sizeScale === next.sizeScale
+);
+RadioWaveBeacon.displayName = 'RadioWaveBeacon';
+
 const SymbolicServiceArc = React.memo<{
   spec: SymbolicArcSpec;
   origin: SymbolicEndpoint;
@@ -368,9 +481,18 @@ const SymbolicServiceArc = React.memo<{
   focusedSegmentId: CommercialRouteSegmentId | null;
   sizeScale: number;
 }>(({ spec, origin, destination, focusedSegmentId, sizeScale }) => {
+  const originLat = origin.coord.lat;
+  const originLng = origin.coord.lng;
+  const destinationLat = destination.coord.lat;
+  const destinationLng = destination.coord.lng;
   const positions = useMemo(() => (
-    buildSymbolicArcPositions(origin.coord, destination.coord, spec.technology, 0)
-  ), [destination.coord.lat, destination.coord.lng, origin.coord.lat, origin.coord.lng, spec.technology]);
+    buildSymbolicArcPositions(
+      { lat: originLat, lng: originLng },
+      { lat: destinationLat, lng: destinationLng },
+      spec.technology,
+      0,
+    )
+  ), [destinationLat, destinationLng, originLat, originLng, spec.technology]);
 
   // Position key — changes whenever either endpoint coordinate changes.
   // Used in entity keys so Resium is forced to remount (remove + create)
@@ -378,12 +500,12 @@ const SymbolicServiceArc = React.memo<{
   // a Cesium ConstantProperty caching issue where polyline geometry is not
   // rebuilt when the positions array reference changes.
   const posKey = useMemo(
-    () => `${origin.coord.lat.toFixed(4)},${origin.coord.lng.toFixed(4)}-${destination.coord.lat.toFixed(4)},${destination.coord.lng.toFixed(4)}`,
-    [destination.coord.lat, destination.coord.lng, origin.coord.lat, origin.coord.lng],
+    () => `${originLat.toFixed(4)},${originLng.toFixed(4)}-${destinationLat.toFixed(4)},${destinationLng.toFixed(4)}`,
+    [destinationLat, destinationLng, originLat, originLng],
   );
   const entityPosKey = useMemo(() => entitySafeSignature(posKey), [posKey]);
 
-  const color = useMemo(() => routeStatusColor(spec.status), [spec.status]);
+  const color = useMemo(() => arcAccentColor(spec.status, focusedSegmentId), [focusedSegmentId, spec.status]);
   const hasTransmission = spec.status === 'active' || spec.status === 'limited';
 
   const material = useMemo(() => {
@@ -542,6 +664,22 @@ const CommercialSymbolicConnectivityLayer: React.FC<CommercialSymbolicConnectivi
           sizeScale={sizeScale}
         />
       ))}
+      {routeModel.focusedSegmentId === 'access' && (
+        <RadioWaveBeacon
+          key={`access-signal-${originSignature}`}
+          endpoint={origin}
+          direction="transmit"
+          sizeScale={sizeScale}
+        />
+      )}
+      {routeModel.focusedSegmentId === 'destination' && destination && destinationSignature && (
+        <RadioWaveBeacon
+          key={`destination-signal-${destinationSignature}`}
+          endpoint={destination}
+          direction="receive"
+          sizeScale={sizeScale}
+        />
+      )}
       {/* Origin marker — always shown when origin is known */}
       <SymbolicEndpointMarker
         key={`origin-${originSignature}`}

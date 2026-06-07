@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ArcType,
   BoundingSphere,
+  CallbackProperty,
   Cartesian2,
   Cartesian3,
   Color,
@@ -13,6 +14,7 @@ import {
   GeometryAttribute,
   GeometryInstance,
   HorizontalOrigin,
+  JulianDate,
   LabelStyle,
   NearFarScalar,
   PerInstanceColorAppearance,
@@ -1210,6 +1212,18 @@ const CoverageLayer: React.FC<CoverageLayerProps> = ({
     dataSource.entities.removeAll();
     fillPrimitives.removeAll();
 
+    const heroRevealStartMs = Date.now();
+    const heroColorProperty = (baseColor: Color): Color | CallbackProperty => {
+      if (!commercialHero) return baseColor;
+      return new CallbackProperty((time?: JulianDate) => {
+        const nowMs = time ? JulianDate.toDate(time).getTime() : Date.now();
+        const reveal = smoothstep((nowMs - heroRevealStartMs) / 1000);
+        const color = Color.clone(baseColor, new Color());
+        color.alpha = baseColor.alpha * (0.16 + reveal * 0.84);
+        return color;
+      }, false);
+    };
+
     renderContours.forEach((contour) => {
       const polylinePositions = buildContourPositions(
         contour.geometry.outerRing,
@@ -1236,7 +1250,7 @@ const CoverageLayer: React.FC<CoverageLayerProps> = ({
       const outlineId = `${coverageEntityId}::outline::${contour.contourKey}::${contour.geometryPartKey}`;
 
       if (contour.showFill) {
-        if (shouldUsePrebuiltFillForContour(contour) && contour.prebuiltMesh) {
+        if (!commercialHero && shouldUsePrebuiltFillForContour(contour) && contour.prebuiltMesh) {
           const meshBuffers = getPrebuiltMeshBuffers(contour.prebuiltMesh);
           fillPrimitives.add(new Primitive({
             geometryInstances: new GeometryInstance({
@@ -1281,7 +1295,7 @@ const CoverageLayer: React.FC<CoverageLayerProps> = ({
             },
             polygon: {
               hierarchy,
-              material: new ColorMaterialProperty(style.fillColor),
+              material: new ColorMaterialProperty(heroColorProperty(style.fillColor)),
               arcType: ArcType.RHUMB,
               outline: false,
               height: GEO_FOOTPRINT_LAYER_HEIGHT_M,
@@ -1304,7 +1318,7 @@ const CoverageLayer: React.FC<CoverageLayerProps> = ({
         polyline: {
           positions: polylinePositions,
           width: style.contourWidth,
-          material: style.contourColor,
+          material: new ColorMaterialProperty(heroColorProperty(style.contourColor)),
           arcType: ArcType.RHUMB,
           clampToGround: false,
         },
@@ -1345,7 +1359,7 @@ const CoverageLayer: React.FC<CoverageLayerProps> = ({
     });
 
     viewer?.scene.requestRender();
-  }, [commercialTone, geometryLod, highlightedLegendItemKey, presentation, renderContours, renderLabels, renderSignature, selectedCoverage, selectedUplinkCoverage, selectedDownlinkCoverage, selection, viewer]);
+  }, [commercialHero, commercialTone, geometryLod, highlightedLegendItemKey, presentation, renderContours, renderLabels, renderSignature, selectedCoverage, selectedUplinkCoverage, selectedDownlinkCoverage, selection, viewer]);
 
   return null;
 };

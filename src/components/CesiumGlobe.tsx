@@ -418,7 +418,7 @@ function executeGeoCoverageServiceCamera(
         {
             duration: 1.8,
             offset: new HeadingPitchRange(
-                commercialRouteBearingRadians(model),
+                commercialRouteBearingRadians(model) + (Math.PI / 2),
                 -CesiumMath.toRadians(46),
                 range,
             ),

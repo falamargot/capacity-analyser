@@ -27,7 +27,7 @@ export interface CommercialNarrativeCardModel {
 const segmentOrder: CommercialRouteSegmentId[] = ['access', 'satellite', 'destination', 'summary'];
 
 const segmentTitles: Record<CommercialRouteSegmentId, string> = {
-  access: 'Customer Site',
+  access: 'Customer Access',
   satellite: 'Satellite Service',
   backhaul: 'Network Backbone',
   destination: 'Destination',
@@ -40,6 +40,22 @@ const customerStateLabel: Record<CommercialCustomerServiceState, string> = {
   degraded: 'Degraded',
   alternative_available: 'Alternative Available',
   unavailable: 'Unavailable',
+};
+
+const accessStateLabel: Record<CommercialCustomerServiceState, string> = {
+  available: 'Access Confirmed',
+  limited: 'Access Limited',
+  degraded: 'Access Degraded',
+  alternative_available: 'Alternate Access',
+  unavailable: 'Access Unavailable',
+};
+
+const satelliteCoverageStateLabel: Record<CommercialCustomerServiceState, string> = {
+  available: 'Coverage Confirmed',
+  limited: 'Coverage Limited',
+  degraded: 'Coverage Degraded',
+  alternative_available: 'Alternate Coverage',
+  unavailable: 'Coverage Unavailable',
 };
 
 function canonicalSegmentId(type: CommercialRouteSegment['type']): CommercialRouteSegmentId {
@@ -239,52 +255,64 @@ export function buildCommercialNarrativeCardModel({
         segmentId: focusedSegmentId,
         stepNumber: 1,
         stepTotal: segmentOrder.length,
-        eyebrow: 'Customer Site',
+        eyebrow: 'Customer Access',
         title,
-        statusLabel,
+        statusLabel: segment ? accessStateLabel[segment.customerStatus] : statusLabel,
         statusTone: statusTone(segment),
         narrativeStatement: segment?.isRouteParticipant
-          ? 'Customer access reaches the selected service.'
-          : 'Customer access is not yet confirmed.',
+          ? 'The origin site is ready to connect to the satellite network.'
+          : 'The origin site is waiting for access confirmation.',
         facts: compactFacts([
-          { label: 'Site', value: viewModel.siteA?.name ?? segment?.role },
-          { label: 'Terminal', value: viewModel.display.terminalLabel },
-          { label: 'Access', value: routeParticipantLabel(segment) },
+          { label: 'Origin site identified', value: viewModel.siteA?.name ?? segment?.role ?? 'Confirmed' },
+          { label: 'Access path available', value: routeParticipantLabel(segment) },
+          { label: 'Signal can reach the network', value: segment?.isRouteParticipant ? 'Confirmed' : undefined },
         ]),
-        businessNote: businessNote(constraint),
+        businessNote: businessNote(
+          constraint,
+          segment?.isRouteParticipant
+            ? 'Access is confirmed from the customer terminal.'
+            : 'Access will confirm once the origin path is available.',
+        ),
       };
 
     case 'satellite': {
       const satelliteName = clean(viewModel.display.satelliteName);
       const contextFacts = viewModel.commercialDisplayTechnology === 'GEO'
         ? [
-            { label: 'Relay', value: satelliteName ?? segment?.summary },
-            { label: 'Coverage', value: clean(viewModel.display.beamName) ?? clean(viewModel.display.elevation) },
-            { label: 'Service layer', value: segment?.role },
+            { label: 'Selected satellite', value: satelliteName ?? segment?.summary },
+            { label: 'Coverage footprint', value: clean(viewModel.display.beamName) ?? 'Confirmed' },
+            { label: 'Customer locations', value: segment?.isRouteParticipant ? 'Both covered' : undefined },
           ]
         : [
-            { label: 'Relay', value: satelliteName ?? segment?.summary },
-            { label: 'Coverage', value: clean(viewModel.display.elevation) ?? clean(viewModel.display.rfStatus) },
-            { label: 'Service layer', value: segment?.role },
+            { label: 'Site A relay', value: satelliteName ?? segment?.summary },
+            { label: 'Site B relay', value: clean(viewModel.display.routeSummary) ?? 'LEO relay' },
+            { label: 'SNP/PoP backbone', value: segment?.isRouteParticipant ? 'Available' : undefined },
           ];
 
       return {
         segmentId: focusedSegmentId,
         stepNumber: 2,
         stepTotal: segmentOrder.length,
-        eyebrow: `${viewModel.commercialDisplayTechnology} relay`,
-        title,
-        statusLabel,
+        eyebrow: viewModel.commercialDisplayTechnology === 'GEO' ? 'Satellite Coverage' : 'Space Relay',
+        title: viewModel.commercialDisplayTechnology === 'GEO' ? 'Satellite Coverage' : 'LEO Relay Chain',
+        statusLabel: segment ? satelliteCoverageStateLabel[segment.customerStatus] : statusLabel,
         statusTone: statusTone(segment),
         narrativeStatement: viewModel.commercialDisplayTechnology === 'GEO'
           ? segment?.isRouteParticipant
-            ? 'Satellite coverage supports this route.'
+            ? 'The selected GEO satellite simultaneously covers both customer locations.'
             : 'Satellite coverage is not yet confirmed.'
           : segment?.isRouteParticipant
-            ? 'This relay is serving the route.'
+            ? 'The selected LEO relay chain connects both customer sites through the space and ground network.'
             : 'This relay is not yet confirmed.',
         facts: compactFacts(contextFacts),
-        businessNote: businessNote(constraint),
+        businessNote: businessNote(
+          constraint,
+          segment?.isRouteParticipant
+            ? viewModel.commercialDisplayTechnology === 'GEO'
+              ? 'Coverage is confirmed across the space segment.'
+              : 'The relay chain is confirmed across access links and backbone.'
+            : 'Coverage will confirm once the satellite footprint reaches the route.',
+        ),
       };
     }
 

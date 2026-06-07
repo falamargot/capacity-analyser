@@ -11,9 +11,11 @@ import {
   RadioTower,
   Route,
   Satellite,
+  SatelliteDish,
   Star,
   Target,
   Timer,
+  Wifi,
   X,
 } from 'lucide-react';
 import type { CommercialRouteModel, CommercialRouteSegmentId } from '../../types/commercialRouteModel';
@@ -60,6 +62,13 @@ const statusBadgeClass: Record<CommercialNarrativeCardModel['statusTone'], strin
   warning: 'border-amber-300/50 bg-amber-400/15 text-amber-100',
   danger: 'border-rose-300/50 bg-rose-400/15 text-rose-100',
   neutral: 'border-slate-500/55 bg-slate-700/40 text-slate-200',
+};
+
+const accessStatusBadgeClass: Record<CommercialNarrativeCardModel['statusTone'], string> = {
+  good: 'border-cyan-200/70 bg-cyan-400/16 text-cyan-50 shadow-[0_0_18px_rgba(34,211,238,0.18)]',
+  warning: 'border-cyan-200/55 bg-cyan-400/12 text-cyan-50',
+  danger: 'border-rose-300/50 bg-rose-400/15 text-rose-100',
+  neutral: 'border-cyan-300/40 bg-cyan-400/10 text-cyan-100',
 };
 
 const noteClass: Record<CommercialNarrativeCardModel['statusTone'], string> = {
@@ -270,6 +279,143 @@ function SummaryHeroBlock({
   );
 }
 
+function AccessSignalDiagram() {
+  return (
+    <div
+      className="relative h-[9.5rem] overflow-hidden rounded-lg border border-cyan-300/24 bg-[radial-gradient(circle_at_50%_63%,rgba(34,211,238,0.24),transparent_28%),linear-gradient(180deg,rgba(8,47,73,0.26),rgba(2,6,23,0.22))]"
+      aria-hidden="true"
+    >
+      <div className="absolute inset-x-3 top-3 h-px bg-gradient-to-r from-transparent via-cyan-200/25 to-transparent" />
+      <div className="absolute inset-x-3 bottom-3 h-px bg-gradient-to-r from-transparent via-cyan-200/25 to-transparent" />
+
+      <div className="absolute bottom-7 left-6 flex h-12 w-12 items-center justify-center text-cyan-50 drop-shadow-[0_0_14px_rgba(34,211,238,0.45)]">
+        <SatelliteDish className="h-10 w-10" strokeWidth={1.6} />
+      </div>
+
+      <div className="absolute left-1/2 top-[4.65rem] h-8 w-px -translate-x-1/2 bg-gradient-to-t from-cyan-200/80 via-cyan-200/35 to-transparent access-signal-rise" />
+      <div className="absolute left-1/2 top-[3.05rem] h-12 w-12 -translate-x-1/2 rounded-full border border-cyan-200/45 access-signal-ring" />
+      <div className="absolute left-1/2 top-[2.63rem] h-16 w-16 -translate-x-1/2 rounded-full border border-cyan-200/28 access-signal-ring access-signal-ring-delay" />
+
+      <div className="absolute left-1/2 top-[4.58rem] flex h-6 w-6 -translate-x-1/2 items-center justify-center rounded-full border border-cyan-200/55 bg-cyan-200/18 text-cyan-50 shadow-[0_0_22px_rgba(34,211,238,0.62)]">
+        <Wifi className="h-3.5 w-3.5" strokeWidth={2} />
+      </div>
+      <div className="absolute bottom-[2.5rem] left-1/2 h-5 w-5 -translate-x-1/2 rounded-full bg-cyan-200/50 blur-md" />
+
+      <div className="absolute left-[5.2rem] right-[5rem] top-[4.98rem] h-px opacity-80 access-dashed-link" />
+      <div className="absolute left-[calc(50%-0.25rem)] top-[4.84rem] h-2 w-2 rounded-full bg-cyan-100 shadow-[0_0_12px_rgba(165,243,252,0.88)] access-signal-dot" />
+
+      <div className="absolute bottom-8 right-7 flex h-11 w-11 items-center justify-center text-cyan-100 drop-shadow-[0_0_12px_rgba(34,211,238,0.35)]">
+        <Satellite className="h-8 w-8" strokeWidth={1.6} />
+      </div>
+
+      <div className="absolute bottom-5 left-6 right-7 h-px bg-cyan-200/14" />
+    </div>
+  );
+}
+
+function AccessBriefingBlock({ card }: { card: CommercialNarrativeCardModel }) {
+  return (
+    <div className="space-y-4">
+      <div className="rounded-lg border border-cyan-300/30 bg-[linear-gradient(180deg,rgba(8,47,73,0.34),rgba(15,23,42,0.44))] p-3.5 shadow-[0_0_48px_rgba(34,211,238,0.11),inset_0_1px_0_rgba(255,255,255,0.05)]">
+        <AccessSignalDiagram />
+        <div className="mt-4 h-px bg-gradient-to-r from-transparent via-cyan-100/20 to-transparent" />
+        <p className="mt-3 text-[16px] font-semibold leading-[1.55] text-white">
+          {card.narrativeStatement}
+        </p>
+      </div>
+
+      {card.facts.length > 0 && (
+        <div>
+          <div className="mb-2 text-[9px] font-bold uppercase tracking-[0.16em] text-cyan-200/65">
+            Key points
+          </div>
+          <div className="space-y-2">
+            {card.facts.slice(0, 3).map((fact) => (
+              <div
+                key={`${fact.label}:${fact.value}`}
+                className="flex items-center gap-2.5 rounded-lg border border-cyan-200/18 bg-[linear-gradient(90deg,rgba(34,211,238,0.13),rgba(14,165,233,0.08))] px-3 py-2.5 text-[13px] font-semibold text-slate-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]"
+              >
+                <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-cyan-200 drop-shadow-[0_0_8px_rgba(34,211,238,0.5)]" aria-hidden="true" />
+                <span className="min-w-0">{fact.label}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div className="rounded-lg border border-cyan-300/28 bg-[linear-gradient(135deg,rgba(14,165,233,0.22),rgba(8,47,73,0.18))] p-3 text-cyan-50 shadow-[0_0_28px_rgba(34,211,238,0.10),inset_0_1px_0_rgba(255,255,255,0.05)]">
+        <div className="flex items-start gap-2">
+          <div className="mt-0.5 shrink-0">
+            <CheckCircle2 className="h-3.5 w-3.5 text-cyan-200" aria-hidden="true" />
+          </div>
+          <div className="min-w-0">
+            <div className="text-[9px] font-bold uppercase tracking-[0.16em] text-cyan-100/70">
+              Briefing
+            </div>
+            <p className="mt-1 text-[13px] font-semibold leading-[1.5]">
+              {card.businessNote}
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SatelliteCoverageBlock({ card }: { card: CommercialNarrativeCardModel }) {
+  return (
+    <div className="space-y-4">
+      <div className="rounded-lg border border-indigo-300/28 bg-[radial-gradient(circle_at_50%_18%,rgba(147,197,253,0.22),transparent_32%),linear-gradient(180deg,rgba(30,41,91,0.36),rgba(15,23,42,0.48))] p-4 shadow-[0_0_46px_rgba(99,102,241,0.12),inset_0_1px_0_rgba(255,255,255,0.05)]">
+        <div className="relative mx-auto flex h-24 max-w-[15rem] items-center justify-center" aria-hidden="true">
+          <div className="absolute h-16 w-16 rounded-full bg-blue-300/12 blur-xl satellite-service-breathe" />
+          <div className="absolute h-11 w-11 rounded-full border border-blue-200/25 bg-indigo-400/10 satellite-service-breathe" />
+          <div className="absolute h-4 w-4 rounded-full bg-white shadow-[0_0_18px_rgba(255,255,255,0.85),0_0_38px_rgba(96,165,250,0.70)]" />
+          <div className="absolute top-[4.6rem] h-10 w-px bg-gradient-to-b from-blue-100/65 via-indigo-300/24 to-transparent" />
+          <div className="absolute bottom-0 h-9 w-36 rounded-[50%] border border-indigo-300/18 bg-indigo-500/8" />
+        </div>
+        <p className="mt-3 text-[16px] font-semibold leading-[1.55] text-white">
+          {card.narrativeStatement}
+        </p>
+      </div>
+
+      {card.facts.length > 0 && (
+        <div>
+          <div className="mb-2 text-[9px] font-bold uppercase tracking-[0.16em] text-indigo-200/65">
+            Coverage notes
+          </div>
+          <div className="space-y-2">
+            {card.facts.slice(0, 3).map((fact) => (
+              <div
+                key={`${fact.label}:${fact.value}`}
+                className="flex items-center justify-between gap-3 rounded-lg border border-indigo-200/16 bg-[linear-gradient(90deg,rgba(99,102,241,0.13),rgba(59,130,246,0.08))] px-3 py-2.5 text-[12px] text-slate-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]"
+              >
+                <span className="min-w-0 font-semibold">{fact.label}</span>
+                <span className="max-w-[9rem] truncate text-right font-medium text-indigo-100/80">{fact.value}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div className="rounded-lg border border-indigo-300/24 bg-[linear-gradient(135deg,rgba(79,70,229,0.20),rgba(30,64,175,0.14))] p-3 text-indigo-50 shadow-[0_0_28px_rgba(99,102,241,0.10),inset_0_1px_0_rgba(255,255,255,0.05)]">
+        <div className="flex items-start gap-2">
+          <div className="mt-0.5 shrink-0">
+            <CheckCircle2 className="h-3.5 w-3.5 text-blue-200" aria-hidden="true" />
+          </div>
+          <div className="min-w-0">
+            <div className="text-[9px] font-bold uppercase tracking-[0.16em] text-indigo-100/70">
+              Coverage confirmed
+            </div>
+            <p className="mt-1 text-[13px] font-semibold leading-[1.5]">
+              {card.businessNote}
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function CommercialNarrativePanel({
   viewModel,
   selectedSegmentId,
@@ -289,6 +435,8 @@ function CommercialNarrativePanel({
   const prevId = currentIndex > 0 ? SEGMENT_ORDER[currentIndex - 1] : null;
   const nextId = currentIndex < SEGMENT_ORDER.length - 1 ? SEGMENT_ORDER[currentIndex + 1] : null;
   const isSummary = card.segmentId === 'summary';
+  const isAccess = card.segmentId === 'access';
+  const isSatellite = card.segmentId === 'satellite';
 
   return (
     <div
@@ -312,7 +460,16 @@ function CommercialNarrativePanel({
       />
 
       {/* Panel body */}
-      <div className="flex h-full flex-col border-l border-[rgba(148,163,184,0.10)] bg-[rgba(6,10,22,0.96)] backdrop-blur-2xl">
+      <div
+        className={[
+          'flex h-full flex-col border-l backdrop-blur-2xl',
+          isAccess
+            ? 'border-cyan-300/18 bg-[linear-gradient(180deg,rgba(4,15,28,0.97),rgba(6,10,22,0.96)_42%,rgba(8,47,73,0.82))]'
+            : isSatellite
+              ? 'border-indigo-300/18 bg-[linear-gradient(180deg,rgba(7,11,31,0.98),rgba(15,23,42,0.96)_44%,rgba(30,27,75,0.82))]'
+            : 'border-[rgba(148,163,184,0.10)] bg-[rgba(6,10,22,0.96)]',
+        ].join(' ')}
+      >
 
         {/* ── Header ─────────────────────────────────────────────────── */}
         <div className="flex-shrink-0 px-5 pb-0 pt-5">
@@ -320,10 +477,19 @@ function CommercialNarrativePanel({
           {/* Eyebrow + close */}
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-2">
-              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-sky-300/25 bg-sky-300/10 text-sky-300">
+              <span
+                className={[
+                  'flex h-6 w-6 shrink-0 items-center justify-center rounded-full border',
+                  isAccess
+                    ? 'border-cyan-200/45 bg-cyan-300/12 text-cyan-100 shadow-[0_0_18px_rgba(34,211,238,0.18)]'
+                    : isSatellite
+                      ? 'border-blue-200/45 bg-indigo-300/12 text-blue-100 shadow-[0_0_18px_rgba(96,165,250,0.18)]'
+                    : 'border-sky-300/25 bg-sky-300/10 text-sky-300',
+                ].join(' ')}
+              >
                 {segmentIcon[card.segmentId]}
               </span>
-              <span className="text-[9px] font-bold uppercase tracking-[0.16em] text-slate-500">
+              <span className={`text-[9px] font-bold uppercase tracking-[0.16em] ${isAccess ? 'text-cyan-100/70' : isSatellite ? 'text-indigo-100/70' : 'text-slate-500'}`}>
                 {card.eyebrow}
               </span>
             </div>
@@ -348,8 +514,8 @@ function CommercialNarrativePanel({
             >
               <ChevronLeft className="h-4 w-4" />
             </button>
-            <span className="text-[11px] font-semibold text-slate-400">
-              Step {card.stepNumber} of {card.stepTotal}
+            <span className={`text-[11px] font-semibold ${isAccess ? 'uppercase tracking-[0.12em] text-cyan-100/85' : isSatellite ? 'uppercase tracking-[0.12em] text-indigo-100/85' : 'text-slate-400'}`}>
+              {isAccess ? `Step ${card.stepNumber} of ${card.stepTotal}` : `Step ${card.stepNumber} of ${card.stepTotal}`}
             </span>
             <button
               type="button"
@@ -368,7 +534,7 @@ function CommercialNarrativePanel({
           </h2>
 
           {/* Status badge */}
-          <span className={`mt-2 inline-flex rounded-full border px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.08em] ${statusBadgeClass[card.statusTone]}`}>
+          <span className={`mt-2 inline-flex rounded-full border px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.08em] ${isAccess ? accessStatusBadgeClass[card.statusTone] : isSatellite ? 'border-blue-200/60 bg-indigo-400/16 text-blue-50 shadow-[0_0_18px_rgba(96,165,250,0.16)]' : statusBadgeClass[card.statusTone]}`}>
             {card.statusLabel}
           </span>
         </div>
@@ -379,7 +545,11 @@ function CommercialNarrativePanel({
         {/* ── Scrollable content ─────────────────────────────────────── */}
         <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
 
-          {isSummary ? (
+          {isAccess ? (
+            <AccessBriefingBlock card={card} />
+          ) : isSatellite ? (
+            <SatelliteCoverageBlock card={card} />
+          ) : isSummary ? (
             /* Summary: recommendation hero + executive note */
             <>
               <SummaryHeroBlock viewModel={viewModel} card={card} />
