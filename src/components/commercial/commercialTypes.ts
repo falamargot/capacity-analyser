@@ -141,9 +141,17 @@ export interface CommercialScenarioViewModel {
     weatherB?: string;
     linkMargin?: string;
     satelliteName?: string;
+    satelliteNameA?: string;
+    satelliteNameB?: string;
     satelliteOrbit?: string;
     satelliteStatus?: string;
     elevation?: string;
+    elevationA?: string;
+    elevationB?: string;
+    linkQualityA?: string;
+    linkQualityB?: string;
+    capacityContributionA?: string;
+    capacityContributionB?: string;
     beamName?: string;
     rfStatus?: string;
     regulatoryState?: string;

@@ -540,6 +540,12 @@ const App: React.FC = () => {
   } = useUiModeState();
   const [commercialSelectedSegment, setCommercialSelectedSegment] = useState<string>('summary');
   const [isCommercialPanelOpen, setIsCommercialPanelOpen] = useState(false);
+  const [isGlobeModePeekPressed, setIsGlobeModePeekPressed] = useState(false);
+  const globeCommercialMode = isGlobeModePeekPressed ? !commercialMode : commercialMode;
+
+  const handleGlobeModePeekChange = useCallback((pressed: boolean) => {
+    setIsGlobeModePeekPressed(pressed);
+  }, []);
 
   const normalizeCommercialSegmentId = useCallback((segmentId: string) => (
     segmentId === 'backhaul' ? 'summary' : segmentId
@@ -2869,12 +2875,17 @@ const App: React.FC = () => {
     setIsCommandPaletteOpen(false);
   }, [isSatelliteModalOpen]);
 
+  useEffect(() => {
+    if (isCommandPaletteOpen) setIsGlobeModePeekPressed(false);
+  }, [isCommandPaletteOpen]);
+
   useKeyboardShortcuts({
     onScopeChange: handleSatelliteScopeChange,
     onToggleFullscreen: () => setIsFullscreen((current) => !current),
     onToggleHelpPanel: handleToggleHelpMenu,
     onToggleEntryPointPanel: handleToggleTargetSourcesMenu,
     onResetView: handleResetView,
+    onModePeekChange: handleGlobeModePeekChange,
     enabled: !isCommandPaletteOpen,
   });
 
@@ -3147,9 +3158,8 @@ const App: React.FC = () => {
   // IMPORTANT — commercialState and commercial callbacks
   // (onCommercialSelectedSegmentChange) are intentionally excluded from this
   // memo. They are passed separately at each call site for two reasons:
-  //   1. Their values differ between sites (mobile always passes commercialMode=true
-  //      because that branch only renders during commercial mode; desktop passes the
-  //      conditional uiMode === 'commercial').
+  //   1. Their values may temporarily differ from uiMode while the map-only
+  //      COMM/ENG preview shortcut is held.
   //   2. Keeping them out means a commercialSelectedSegment change does NOT
   //      invalidate sharedMapProps and therefore does NOT trigger a full
   //      CesiumGlobe re-render for a UI-only selection change.
@@ -3693,22 +3703,12 @@ const App: React.FC = () => {
     siteB,
   ]);
 
-  const engineeringCommercialState = useMemo<CommercialStateProps>(() => ({
-    commercialMode: false,
-    commercialViewModel: null,
-  }), []);
-
-  const mobileCommercialState = useMemo<CommercialStateProps>(() => ({
-    commercialMode: true,
-    commercialViewModel: commercialScenarioViewModel,
-    commercialRouteModel,
-  }), [commercialScenarioViewModel, commercialRouteModel]);
-
-  const desktopCommercialState = useMemo<CommercialStateProps>(() => ({
-    commercialMode,
-    commercialViewModel: uiMode === 'commercial' ? commercialScenarioViewModel : null,
-    commercialRouteModel: uiMode === 'commercial' ? commercialRouteModel : null,
-  }), [commercialMode, commercialScenarioViewModel, commercialRouteModel, uiMode]);
+  const mapCommercialState = useMemo<CommercialStateProps>(() => ({
+    commercialMode: globeCommercialMode,
+    commercialViewModel: globeCommercialMode ? commercialScenarioViewModel : null,
+    commercialRouteModel: globeCommercialMode ? commercialRouteModel : null,
+    suppressCommercialCameraFocus: isGlobeModePeekPressed,
+  }), [commercialScenarioViewModel, commercialRouteModel, globeCommercialMode, isGlobeModePeekPressed]);
 
   if (loading) {
     return (
@@ -4223,10 +4223,9 @@ const App: React.FC = () => {
           isFullscreen={isFullscreen}
           globe={(
             // Commercial props passed separately — see §4.1 comment on sharedMapProps.
-            // commercialMode is always true here: this branch only renders when uiMode === 'commercial'.
             <MapViewSwitcher
               {...sharedMapProps}
-              commercialState={mobileCommercialState}
+              commercialState={mapCommercialState}
               onCommercialSelectedSegmentChange={handleCommercialSegmentChange}
             />
           )}
@@ -4239,7 +4238,7 @@ const App: React.FC = () => {
             >
               <MapViewSwitcher
                 {...sharedMapProps}
-                commercialState={engineeringCommercialState}
+                commercialState={mapCommercialState}
               />
             </div>
 
@@ -4657,7 +4656,7 @@ const App: React.FC = () => {
                 <MapViewSwitcher
                   {...sharedMapProps}
                   displayLayerProps={desktopDisplayLayerProps}
-                  commercialState={desktopCommercialState}
+                  commercialState={mapCommercialState}
                   onCommercialSelectedSegmentChange={uiMode === 'commercial' ? handleCommercialSegmentSelect : undefined}
                 />
                 {uiMode !== 'commercial' && isFullscreen && fullscreenExportButtonProps && (

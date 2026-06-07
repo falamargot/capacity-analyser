@@ -58,6 +58,14 @@ const satelliteCoverageStateLabel: Record<CommercialCustomerServiceState, string
   unavailable: 'Coverage Unavailable',
 };
 
+const satelliteServingStateLabel: Record<CommercialCustomerServiceState, string> = {
+  available: 'Service Confirmed',
+  limited: 'Service Limited',
+  degraded: 'Service Degraded',
+  alternative_available: 'Alternate Service',
+  unavailable: 'Service Unavailable',
+};
+
 function canonicalSegmentId(type: CommercialRouteSegment['type']): CommercialRouteSegmentId {
   switch (type) {
     case 'access':
@@ -277,41 +285,46 @@ export function buildCommercialNarrativeCardModel({
 
     case 'satellite': {
       const satelliteName = clean(viewModel.display.satelliteName);
-      const contextFacts = viewModel.commercialDisplayTechnology === 'GEO'
+      const isGeoService = viewModel.commercialDisplayTechnology === 'GEO';
+      const contextFacts = isGeoService
         ? [
-            { label: 'Selected satellite', value: satelliteName ?? segment?.summary },
-            { label: 'Coverage footprint', value: clean(viewModel.display.beamName) ?? 'Confirmed' },
-            { label: 'Customer locations', value: segment?.isRouteParticipant ? 'Both covered' : undefined },
+            { label: 'Serving satellite', value: satelliteName ?? segment?.summary },
+            { label: 'Uplink coverage', value: segment?.isRouteParticipant ? 'Site A covered' : undefined },
+            { label: 'Downlink coverage', value: segment?.isRouteParticipant ? 'Site B covered' : undefined },
           ]
         : [
-            { label: 'Site A relay', value: satelliteName ?? segment?.summary },
-            { label: 'Site B relay', value: clean(viewModel.display.routeSummary) ?? 'LEO relay' },
-            { label: 'SNP/PoP backbone', value: segment?.isRouteParticipant ? 'Available' : undefined },
+            { label: 'Site A satellite', value: clean(viewModel.display.satelliteNameA) ?? satelliteName ?? segment?.summary },
+            { label: 'Site B satellite', value: clean(viewModel.display.satelliteNameB) ?? 'Serving LEO satellite' },
+            { label: 'Endpoint access', value: segment?.isRouteParticipant ? 'Both sites served' : undefined },
           ];
 
       return {
         segmentId: focusedSegmentId,
         stepNumber: 2,
         stepTotal: segmentOrder.length,
-        eyebrow: viewModel.commercialDisplayTechnology === 'GEO' ? 'Satellite Coverage' : 'Space Relay',
-        title: viewModel.commercialDisplayTechnology === 'GEO' ? 'Satellite Coverage' : 'LEO Relay Chain',
-        statusLabel: segment ? satelliteCoverageStateLabel[segment.customerStatus] : statusLabel,
+        eyebrow: isGeoService ? 'Serving Satellite' : 'Serving Satellites',
+        title: isGeoService ? 'Serving Satellite' : 'Serving Satellites',
+        statusLabel: segment
+          ? isGeoService
+            ? satelliteCoverageStateLabel[segment.customerStatus]
+            : satelliteServingStateLabel[segment.customerStatus]
+          : statusLabel,
         statusTone: statusTone(segment),
-        narrativeStatement: viewModel.commercialDisplayTechnology === 'GEO'
+        narrativeStatement: isGeoService
           ? segment?.isRouteParticipant
-            ? 'The selected GEO satellite simultaneously covers both customer locations.'
+            ? 'This GEO satellite receives traffic from the origin site through its uplink coverage and delivers traffic to the destination site through its downlink coverage.'
             : 'Satellite coverage is not yet confirmed.'
           : segment?.isRouteParticipant
-            ? 'The selected LEO relay chain connects both customer sites through the space and ground network.'
-            : 'This relay is not yet confirmed.',
+            ? 'Each endpoint is currently served by its own access satellite.'
+            : 'The serving satellites are not yet confirmed.',
         facts: compactFacts(contextFacts),
         businessNote: businessNote(
           constraint,
           segment?.isRouteParticipant
-            ? viewModel.commercialDisplayTechnology === 'GEO'
-              ? 'Coverage is confirmed across the space segment.'
-              : 'The relay chain is confirmed across access links and backbone.'
-            : 'Coverage will confirm once the satellite footprint reaches the route.',
+            ? isGeoService
+              ? 'One GEO satellite serves both customer locations.'
+              : 'Two LEO satellites provide access service to the customer endpoints.'
+            : 'Service will confirm once the serving satellite view is available.',
         ),
       };
     }

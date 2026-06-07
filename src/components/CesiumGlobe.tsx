@@ -645,6 +645,8 @@ export interface CommercialStateProps {
     /** Canonical route model (COMM-6C3B+). When present, drives SKY_BRIDGE
      *  rendering, focus synchronisation, and node-click routing. */
     commercialRouteModel?: CommercialRouteModel | null;
+    /** Temporary display preview: swap overlays without moving the camera. */
+    suppressCommercialCameraFocus?: boolean;
 }
 
 export interface AirTrafficStateProps {
@@ -902,6 +904,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         commercialMode = false,
         commercialViewModel = null,
         commercialRouteModel = null,
+        suppressCommercialCameraFocus = false,
     } = commercialState;
 
     const {
@@ -1326,7 +1329,9 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
     // GEO satellite focus also re-frames when the selected coverage footprint changes.
     useEffect(() => {
         if (!commercialMode || !commercialRouteModel || !viewerRef.current) {
-            prevCommercialSegmentFocusRef.current = undefined;
+            if (!suppressCommercialCameraFocus) {
+                prevCommercialSegmentFocusRef.current = undefined;
+            }
             return;
         }
         const segmentId = commercialRouteModel.focusedSegmentId ?? 'summary';
@@ -1334,6 +1339,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         const focusKey = commercialRouteModel.technology === 'GEO' && segmentId === 'satellite'
             ? `${segmentId}:${routeGeometrySignature}:${commercialGeoCoverageFocusSignature}`
             : `${segmentId}:${routeGeometrySignature}`;
+        if (suppressCommercialCameraFocus) return;
         if (focusKey === prevCommercialSegmentFocusRef.current) return;
         prevCommercialSegmentFocusRef.current = focusKey;
 
@@ -1346,7 +1352,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
             commercialRouteModel,
             commercialGeoCoverageFocusFrame,
         );
-    }, [commercialMode, commercialGeoCoverageFocusFrame, commercialGeoCoverageFocusSignature, commercialRouteModel?.focusedSegmentId, commercialRouteModel]);
+    }, [commercialMode, commercialGeoCoverageFocusFrame, commercialGeoCoverageFocusSignature, commercialRouteModel?.focusedSegmentId, commercialRouteModel, suppressCommercialCameraFocus]);
 
     useEffect(() => {
         if (commercialMode || !viewerRef.current) return;

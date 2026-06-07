@@ -275,6 +275,22 @@ export function buildCommercialScenarioViewModel(input: BuildCommercialScenarioV
         ? leoEvidence?.servingSatelliteA ?? leoRoutePath?.servingSatelliteA ?? null
         : leoEvidence?.servingSatelliteA ?? null)
     : (input.geoRouteAnalysis?.selectedSatellite ?? input.activeGeoSatellite);
+  const servingSatelliteA = isDisplayLeo
+    ? (leoEvidence?.servingSatelliteA ?? leoRoutePath?.servingSatelliteA ?? null)
+    : satellite;
+  const servingSatelliteB = isDisplayLeo
+    ? (leoEvidence?.servingSatelliteB ?? leoRoutePath?.servingSatelliteB ?? null)
+    : null;
+  const leoElevationADeg = leoRoutePath?.elevationADeg ?? leoEvidence?.resolvedConnectivityA?.userLEOElevation ?? null;
+  const leoElevationBDeg = leoRoutePath?.elevationBDeg ?? leoEvidence?.resolvedConnectivityB?.userLEOElevation ?? null;
+  const leoRfAvailableA = leoRoutePath?.rfAvailableA ?? (leoEvidence?.servingSatelliteA ? leoEvidence.available : false);
+  const leoRfAvailableB = leoRoutePath?.rfAvailableB ?? (leoEvidence?.servingSatelliteB ? leoEvidence.available : false);
+  const formatElevation = (value: number | null | undefined): string => (
+    value != null && Number.isFinite(value) ? `${value.toFixed(1)} deg` : '--'
+  );
+  const activeLeoEndpointCapacity = leoRoutePath?.accessThroughputAtoBMbps
+    ?? leoRoutePath?.finalThroughputAtoBMbps
+    ?? leoEvidence?.downloadMbps;
 
   const routeMetricsWarning = activeRoute.available && !activeMetricsComplete
     ? (isDisplayLeo && leoRoutePending
@@ -476,11 +492,21 @@ export function buildCommercialScenarioViewModel(input: BuildCommercialScenarioV
       weatherB: input.siteB ? weatherLabel(input.weatherTypeB) : '--',
       linkMargin: isDisplayLeo ? '--' : linkMarginLabel(input.geoRouteAnalysis?.selectedCoverage ?? input.selectedCoverage),
       satelliteName: satellite?.name ?? '--',
+      satelliteNameA: servingSatelliteA?.name ?? '--',
+      satelliteNameB: servingSatelliteB?.name ?? '--',
       satelliteOrbit: satellite?.orbitType ?? commercialDisplayTechnology,
       satelliteStatus: satellite?.opsStatus ?? '--',
       elevation: isDisplayLeo
-        ? (leoRoutePath?.elevationADeg != null ? `${leoRoutePath.elevationADeg.toFixed(1)} deg` : '--')
+        ? formatElevation(leoElevationADeg)
         : ((input.geoRouteAnalysis?.selectedCoverage ?? input.selectedCoverage)?.elevation != null ? `${(input.geoRouteAnalysis?.selectedCoverage ?? input.selectedCoverage)!.elevation.toFixed(1)} deg` : '--'),
+      elevationA: isDisplayLeo
+        ? formatElevation(leoElevationADeg)
+        : ((input.geoRouteAnalysis?.selectedCoverage ?? input.selectedCoverage)?.elevation != null ? `${(input.geoRouteAnalysis?.selectedCoverage ?? input.selectedCoverage)!.elevation.toFixed(1)} deg` : '--'),
+      elevationB: isDisplayLeo ? formatElevation(leoElevationBDeg) : '--',
+      linkQualityA: isDisplayLeo ? (leoRfAvailableA ? 'Available' : '--') : (geoStatusSource === 'available' ? 'Available' : '--'),
+      linkQualityB: isDisplayLeo ? (leoRfAvailableB ? 'Available' : '--') : (geoStatusSource === 'available' ? 'Available' : '--'),
+      capacityContributionA: isDisplayLeo ? formatMaybeMbps(activeLeoEndpointCapacity) : formatMaybeMbps(downloadMbps),
+      capacityContributionB: isDisplayLeo ? formatMaybeMbps(activeLeoEndpointCapacity) : formatMaybeMbps(downloadMbps),
       beamName: isDisplayLeo ? '--' : ((input.geoRouteAnalysis?.selectedCoverage ?? input.selectedCoverage)?.beamName ?? '--'),
       rfStatus: isDisplayLeo
         ? (leoEvidence?.rfLimitation ? leoEvidence.rfLimitation : (leoRoutePath?.rfAvailableA || leoEvidence?.available ? 'AVAILABLE' : '--'))

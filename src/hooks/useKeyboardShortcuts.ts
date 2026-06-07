@@ -7,6 +7,7 @@ interface KeyboardShortcutsConfig {
   onToggleHelpPanel: () => void;
   onToggleEntryPointPanel: () => void;
   onResetView: () => void;
+  onModePeekChange?: (pressed: boolean) => void;
   /** Disable shortcuts when an input/textarea/select is focused */
   enabled?: boolean;
 }
@@ -17,12 +18,19 @@ const useKeyboardShortcuts = ({
   onToggleHelpPanel,
   onToggleEntryPointPanel,
   onResetView,
+  onModePeekChange,
   enabled = true,
 }: KeyboardShortcutsConfig) => {
   useEffect(() => {
     if (!enabled) return;
 
-    const handler = (e: KeyboardEvent) => {
+    const isEditableTarget = (target: EventTarget | null): boolean => {
+      const element = target as HTMLElement | null;
+      const tag = element?.tagName;
+      return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || !!element?.isContentEditable;
+    };
+
+    const handleKeyDown = (e: KeyboardEvent) => {
       const key = e.key.toLowerCase();
       const isMac = typeof navigator !== 'undefined' && navigator.platform.includes('Mac');
 
@@ -41,11 +49,15 @@ const useKeyboardShortcuts = ({
       }
 
       // Skip remaining shortcuts when an input/textarea/select is focused
-      const target = e.target as HTMLElement | null;
-      const tag = target?.tagName;
-      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || target?.isContentEditable) return;
+      if (isEditableTarget(e.target)) return;
 
       switch (key) {
+        case 's':
+          if (!e.metaKey && !e.ctrlKey && !e.altKey) {
+            e.preventDefault();
+            if (!e.repeat) onModePeekChange?.(true);
+          }
+          break;
         case '1':
           e.preventDefault();
           onScopeChange('ALL');
@@ -71,9 +83,25 @@ const useKeyboardShortcuts = ({
       }
     };
 
-    window.addEventListener('keydown', handler, true);
-    return () => window.removeEventListener('keydown', handler, true);
-  }, [enabled, onScopeChange, onToggleFullscreen, onToggleHelpPanel, onToggleEntryPointPanel, onResetView]);
+    const handleKeyUp = (e: KeyboardEvent) => {
+      if (e.key.toLowerCase() === 's') {
+        onModePeekChange?.(false);
+      }
+    };
+
+    const handleBlur = () => {
+      onModePeekChange?.(false);
+    };
+
+    window.addEventListener('keydown', handleKeyDown, true);
+    window.addEventListener('keyup', handleKeyUp, true);
+    window.addEventListener('blur', handleBlur);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown, true);
+      window.removeEventListener('keyup', handleKeyUp, true);
+      window.removeEventListener('blur', handleBlur);
+    };
+  }, [enabled, onScopeChange, onToggleFullscreen, onToggleHelpPanel, onToggleEntryPointPanel, onResetView, onModePeekChange]);
 };
 
 export default useKeyboardShortcuts;

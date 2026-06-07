@@ -362,40 +362,255 @@ function AccessBriefingBlock({ card }: { card: CommercialNarrativeCardModel }) {
   );
 }
 
-function SatelliteCoverageBlock({ card }: { card: CommercialNarrativeCardModel }) {
+interface SatelliteServiceFact {
+  label: string;
+  value?: string;
+}
+
+function cleanPanelValue(value: string | undefined | null): string | undefined {
+  const trimmed = value?.trim();
+  if (!trimmed || trimmed === '--') return undefined;
+  return trimmed;
+}
+
+function SatelliteServiceFacts({ facts }: { facts: SatelliteServiceFact[] }) {
+  const visibleFacts = facts.filter((fact) => cleanPanelValue(fact.value));
+
+  if (visibleFacts.length === 0) return null;
+
+  return (
+    <div className="space-y-2">
+      {visibleFacts.slice(0, 4).map((fact) => (
+        <div
+          key={`${fact.label}:${fact.value}`}
+          className="flex items-center justify-between gap-3 rounded-lg border border-indigo-200/16 bg-[linear-gradient(90deg,rgba(99,102,241,0.13),rgba(59,130,246,0.08))] px-3 py-2.5 text-[12px] text-slate-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]"
+        >
+          <span className="min-w-0 font-semibold">{fact.label}</span>
+          <span className="max-w-[9rem] truncate text-right font-medium text-indigo-100/80">{fact.value}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function GeoServingDiagram() {
+  return (
+    <div className="relative mx-auto h-32 max-w-[16rem] overflow-hidden" aria-hidden="true">
+      <div className="absolute left-1/2 top-4 h-16 w-16 -translate-x-1/2 rounded-full bg-blue-300/12 blur-xl satellite-service-breathe" />
+      <div className="absolute left-1/2 top-7 h-11 w-11 -translate-x-1/2 rounded-full border border-blue-200/25 bg-indigo-400/10 satellite-service-breathe" />
+      <div className="absolute left-1/2 top-[2.35rem] h-4 w-4 -translate-x-1/2 rounded-full bg-white shadow-[0_0_18px_rgba(255,255,255,0.85),0_0_38px_rgba(96,165,250,0.70)]" />
+      <div className="absolute left-1/2 top-[3.75rem] -translate-x-1/2 text-[9px] font-bold uppercase tracking-[0.18em] text-blue-100/70">
+        GEO
+      </div>
+
+      <div className="absolute left-[4.25rem] top-[4.35rem] h-16 w-px -rotate-[31deg] bg-gradient-to-t from-cyan-200/70 via-blue-200/32 to-transparent shadow-[0_0_14px_rgba(96,165,250,0.18)]" />
+      <div className="absolute right-[4.25rem] top-[4.35rem] h-16 w-px rotate-[31deg] bg-gradient-to-b from-blue-200/60 via-violet-200/30 to-transparent shadow-[0_0_14px_rgba(96,165,250,0.18)]" />
+
+      <div className="absolute bottom-4 left-4 flex h-10 w-10 items-center justify-center rounded-full border border-cyan-200/22 bg-cyan-300/9 text-cyan-100 shadow-[0_0_18px_rgba(34,211,238,0.14)]">
+        <SatelliteDish className="h-5 w-5" aria-hidden="true" />
+      </div>
+      <div className="absolute bottom-4 right-4 flex h-10 w-10 items-center justify-center rounded-full border border-violet-200/22 bg-indigo-300/10 text-violet-100 shadow-[0_0_18px_rgba(129,140,248,0.14)]">
+        <Target className="h-4 w-4" aria-hidden="true" />
+      </div>
+
+      <div className="absolute bottom-7 left-[4.25rem] text-[9px] font-bold uppercase tracking-[0.12em] text-cyan-100/70">
+        Uplink
+      </div>
+      <div className="absolute bottom-7 right-[4rem] text-[9px] font-bold uppercase tracking-[0.12em] text-violet-100/70">
+        Downlink
+      </div>
+    </div>
+  );
+}
+
+function LeoEndpointDiagram({ side }: { side: 'A' | 'B' }) {
+  const satelliteLeft = side === 'B';
+
+  return (
+    <div className="relative h-20 overflow-hidden rounded-lg border border-indigo-200/14 bg-[radial-gradient(circle_at_50%_30%,rgba(147,197,253,0.16),transparent_34%),linear-gradient(180deg,rgba(30,41,91,0.20),rgba(15,23,42,0.22))]" aria-hidden="true">
+      <div className="absolute left-8 right-8 top-1/2 h-px -translate-y-1/2 bg-gradient-to-r from-transparent via-blue-100/48 to-transparent" />
+      <div
+        className={[
+          'absolute top-4 flex h-11 w-11 items-center justify-center rounded-full border border-blue-200/24 bg-indigo-400/10 text-blue-100 shadow-[0_0_26px_rgba(96,165,250,0.18)] satellite-service-breathe',
+          satelliteLeft ? 'left-7' : 'right-7',
+        ].join(' ')}
+      >
+        <div className="absolute h-14 w-14 rounded-full bg-blue-300/10 blur-xl" />
+        <Satellite className="relative h-5 w-5 drop-shadow-[0_0_10px_rgba(147,197,253,0.65)]" aria-hidden="true" />
+      </div>
+      <div
+        className={[
+          'absolute top-5 flex h-9 w-9 items-center justify-center rounded-full border border-cyan-200/20 bg-cyan-300/8 text-cyan-100 shadow-[0_0_16px_rgba(34,211,238,0.12)]',
+          satelliteLeft ? 'right-8' : 'left-8',
+        ].join(' ')}
+      >
+        {side === 'A' ? <SatelliteDish className="h-5 w-5" aria-hidden="true" /> : <Target className="h-4 w-4" aria-hidden="true" />}
+      </div>
+      <div className="absolute left-1/2 top-[2.2rem] h-2 w-2 -translate-x-1/2 rounded-full bg-blue-100 shadow-[0_0_12px_rgba(147,197,253,0.8)]" />
+    </div>
+  );
+}
+
+function CoverageColumn({
+  title,
+  icon,
+  facts,
+}: {
+  title: string;
+  icon: ReactNode;
+  facts: SatelliteServiceFact[];
+}) {
+  return (
+    <div className="rounded-lg border border-indigo-200/16 bg-indigo-400/8 p-3">
+      <div className="mb-2 flex items-center gap-2 text-[9px] font-bold uppercase tracking-[0.16em] text-indigo-100/70">
+        <span className="text-blue-100">{icon}</span>
+        <span>{title}</span>
+      </div>
+      <SatelliteServiceFacts facts={facts} />
+    </div>
+  );
+}
+
+function GeoServingSatelliteBlock({
+  card,
+  viewModel,
+}: {
+  card: CommercialNarrativeCardModel;
+  viewModel: CommercialScenarioViewModel;
+}) {
+  const satelliteName = cleanPanelValue(viewModel.display.satelliteName) ?? 'Selected GEO satellite';
+  const beamName = cleanPanelValue(viewModel.display.beamName);
+  const capacity = cleanPanelValue(formatMbps(viewModel.downloadMbps));
+  const latency = cleanPanelValue(formatMs(viewModel.rttMs));
+
   return (
     <div className="space-y-4">
-      <div className="rounded-lg border border-indigo-300/28 bg-[radial-gradient(circle_at_50%_18%,rgba(147,197,253,0.22),transparent_32%),linear-gradient(180deg,rgba(30,41,91,0.36),rgba(15,23,42,0.48))] p-4 shadow-[0_0_46px_rgba(99,102,241,0.12),inset_0_1px_0_rgba(255,255,255,0.05)]">
-        <div className="relative mx-auto flex h-24 max-w-[15rem] items-center justify-center" aria-hidden="true">
-          <div className="absolute h-16 w-16 rounded-full bg-blue-300/12 blur-xl satellite-service-breathe" />
-          <div className="absolute h-11 w-11 rounded-full border border-blue-200/25 bg-indigo-400/10 satellite-service-breathe" />
-          <div className="absolute h-4 w-4 rounded-full bg-white shadow-[0_0_18px_rgba(255,255,255,0.85),0_0_38px_rgba(96,165,250,0.70)]" />
-          <div className="absolute top-[4.6rem] h-10 w-px bg-gradient-to-b from-blue-100/65 via-indigo-300/24 to-transparent" />
-          <div className="absolute bottom-0 h-9 w-36 rounded-[50%] border border-indigo-300/18 bg-indigo-500/8" />
-        </div>
-        <p className="mt-3 text-[16px] font-semibold leading-[1.55] text-white">
+      <div className="rounded-lg border border-indigo-300/28 bg-[radial-gradient(circle_at_50%_18%,rgba(147,197,253,0.22),transparent_34%),linear-gradient(180deg,rgba(30,41,91,0.36),rgba(15,23,42,0.48))] p-4 shadow-[0_0_46px_rgba(99,102,241,0.12),inset_0_1px_0_rgba(255,255,255,0.05)]">
+        <GeoServingDiagram />
+        <div className="mt-2 text-[10px] font-bold uppercase tracking-[0.16em] text-indigo-100/60">Serving satellite</div>
+        <div className="mt-1 truncate text-[18px] font-bold text-white">{satelliteName}</div>
+        <p className="mt-3 text-[15px] font-semibold leading-[1.55] text-white">
           {card.narrativeStatement}
         </p>
       </div>
 
-      {card.facts.length > 0 && (
-        <div>
-          <div className="mb-2 text-[9px] font-bold uppercase tracking-[0.16em] text-indigo-200/65">
-            Coverage notes
+      <div className="grid grid-cols-2 gap-2">
+        <CoverageColumn
+          title="Uplink coverage"
+          icon={<ArrowUp className="h-3.5 w-3.5" aria-hidden="true" />}
+          facts={[
+            { label: 'Beam', value: beamName },
+            { label: 'Site A', value: 'Covered' },
+          ]}
+        />
+        <CoverageColumn
+          title="Downlink coverage"
+          icon={<ArrowDown className="h-3.5 w-3.5" aria-hidden="true" />}
+          facts={[
+            { label: 'Beam', value: beamName },
+            { label: 'Site B', value: 'Covered' },
+          ]}
+        />
+      </div>
+
+      <div>
+        <div className="mb-2 text-[9px] font-bold uppercase tracking-[0.16em] text-indigo-200/65">
+          Service
+        </div>
+        <SatelliteServiceFacts
+          facts={[
+            { label: 'Coverage', value: 'Confirmed' },
+            { label: 'Capacity contribution', value: capacity },
+            { label: 'Latency contribution', value: latency },
+          ]}
+        />
+      </div>
+    </div>
+  );
+}
+
+function LeoAccessSatelliteCard({
+  title,
+  satelliteName,
+  narrative,
+  side,
+  elevation,
+  linkQuality,
+  capacity,
+}: {
+  title: string;
+  satelliteName: string;
+  narrative: string;
+  side: 'A' | 'B';
+  elevation?: string;
+  linkQuality?: string;
+  capacity?: string;
+}) {
+  return (
+    <div className="rounded-lg border border-indigo-300/24 bg-[radial-gradient(circle_at_50%_18%,rgba(147,197,253,0.16),transparent_32%),linear-gradient(180deg,rgba(30,41,91,0.30),rgba(15,23,42,0.42))] p-3.5 shadow-[0_0_34px_rgba(99,102,241,0.10),inset_0_1px_0_rgba(255,255,255,0.05)]">
+      <div className="mb-3 flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <div className="text-[9px] font-bold uppercase tracking-[0.16em] text-indigo-100/60">
+            {title}
           </div>
-          <div className="space-y-2">
-            {card.facts.slice(0, 3).map((fact) => (
-              <div
-                key={`${fact.label}:${fact.value}`}
-                className="flex items-center justify-between gap-3 rounded-lg border border-indigo-200/16 bg-[linear-gradient(90deg,rgba(99,102,241,0.13),rgba(59,130,246,0.08))] px-3 py-2.5 text-[12px] text-slate-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]"
-              >
-                <span className="min-w-0 font-semibold">{fact.label}</span>
-                <span className="max-w-[9rem] truncate text-right font-medium text-indigo-100/80">{fact.value}</span>
-              </div>
-            ))}
+          <div className="mt-1 truncate text-[15px] font-bold text-white">
+            {satelliteName}
           </div>
         </div>
-      )}
+        <Satellite className="h-4 w-4 shrink-0 text-blue-100 drop-shadow-[0_0_10px_rgba(147,197,253,0.55)]" aria-hidden="true" />
+      </div>
+
+      <LeoEndpointDiagram side={side} />
+      <p className="mt-3 text-[13px] font-semibold leading-[1.5] text-slate-50">
+        {narrative}
+      </p>
+
+      <div className="mt-3">
+        <SatelliteServiceFacts
+          facts={[
+            { label: 'Visibility', value: 'Available' },
+            { label: 'Elevation angle', value: cleanPanelValue(elevation) },
+            { label: 'Link quality', value: cleanPanelValue(linkQuality) },
+            { label: 'Capacity contribution', value: cleanPanelValue(capacity) },
+          ]}
+        />
+      </div>
+    </div>
+  );
+}
+
+function LeoServingSatellitesBlock({
+  card,
+  viewModel,
+}: {
+  card: CommercialNarrativeCardModel;
+  viewModel: CommercialScenarioViewModel;
+}) {
+  const siteASatellite = cleanPanelValue(viewModel.display.satelliteNameA)
+    ?? cleanPanelValue(viewModel.display.satelliteName)
+    ?? 'Site A serving satellite';
+  const siteBSatellite = cleanPanelValue(viewModel.display.satelliteNameB) ?? 'Site B serving satellite';
+
+  return (
+    <div className="space-y-4">
+      <LeoAccessSatelliteCard
+        title="Site A access satellite"
+        satelliteName={siteASatellite}
+        narrative="This satellite provides access service for the origin site."
+        side="A"
+        elevation={viewModel.display.elevationA}
+        linkQuality={viewModel.display.linkQualityA}
+        capacity={viewModel.display.capacityContributionA}
+      />
+      <LeoAccessSatelliteCard
+        title="Site B access satellite"
+        satelliteName={siteBSatellite}
+        narrative="This satellite delivers service to the destination site."
+        side="B"
+        elevation={viewModel.display.elevationB}
+        linkQuality={viewModel.display.linkQualityB}
+        capacity={viewModel.display.capacityContributionB}
+      />
 
       <div className="rounded-lg border border-indigo-300/24 bg-[linear-gradient(135deg,rgba(79,70,229,0.20),rgba(30,64,175,0.14))] p-3 text-indigo-50 shadow-[0_0_28px_rgba(99,102,241,0.10),inset_0_1px_0_rgba(255,255,255,0.05)]">
         <div className="flex items-start gap-2">
@@ -404,7 +619,7 @@ function SatelliteCoverageBlock({ card }: { card: CommercialNarrativeCardModel }
           </div>
           <div className="min-w-0">
             <div className="text-[9px] font-bold uppercase tracking-[0.16em] text-indigo-100/70">
-              Coverage confirmed
+              Serving satellites
             </div>
             <p className="mt-1 text-[13px] font-semibold leading-[1.5]">
               {card.businessNote}
@@ -414,6 +629,20 @@ function SatelliteCoverageBlock({ card }: { card: CommercialNarrativeCardModel }
       </div>
     </div>
   );
+}
+
+function SatelliteCoverageBlock({
+  card,
+  viewModel,
+}: {
+  card: CommercialNarrativeCardModel;
+  viewModel: CommercialScenarioViewModel;
+}) {
+  if (viewModel.commercialDisplayTechnology === 'LEO') {
+    return <LeoServingSatellitesBlock card={card} viewModel={viewModel} />;
+  }
+
+  return <GeoServingSatelliteBlock card={card} viewModel={viewModel} />;
 }
 
 function CommercialNarrativePanel({
@@ -548,7 +777,7 @@ function CommercialNarrativePanel({
           {isAccess ? (
             <AccessBriefingBlock card={card} />
           ) : isSatellite ? (
-            <SatelliteCoverageBlock card={card} />
+            <SatelliteCoverageBlock card={card} viewModel={viewModel} />
           ) : isSummary ? (
             /* Summary: recommendation hero + executive note */
             <>
