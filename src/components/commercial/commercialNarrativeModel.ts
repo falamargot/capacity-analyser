@@ -66,6 +66,14 @@ const satelliteServingStateLabel: Record<CommercialCustomerServiceState, string>
   unavailable: 'Service Unavailable',
 };
 
+const destinationStateLabel: Record<CommercialCustomerServiceState, string> = {
+  available: 'Available',
+  limited: 'Limited',
+  degraded: 'Limited',
+  alternative_available: 'Limited',
+  unavailable: 'Unavailable',
+};
+
 function canonicalSegmentId(type: CommercialRouteSegment['type']): CommercialRouteSegmentId {
   switch (type) {
     case 'access':
@@ -237,6 +245,50 @@ function serviceOutcomeStatement(viewModel: CommercialScenarioViewModel): string
   return 'The commercial recommendation is waiting for route data.';
 }
 
+function destinationTitle(viewModel: CommercialScenarioViewModel): string {
+  if (viewModel.display.destinationEndpointKind === 'geo_gateway') return 'Gateway Destination';
+  if (viewModel.siteB) return 'Customer Destination';
+  return 'Receiving Site';
+}
+
+function destinationNarrativeStatement(
+  viewModel: CommercialScenarioViewModel,
+  segment: CommercialRouteSegment | undefined,
+): string {
+  const isGateway = viewModel.display.destinationEndpointKind === 'geo_gateway';
+  if (segment?.customerStatus === 'available') {
+    return isGateway
+      ? 'Gateway reception is confirmed for this direction.'
+      : 'Service reception is confirmed at the destination terminal.';
+  }
+  if (segment?.customerStatus === 'unavailable') {
+    return isGateway
+      ? 'The GEO gateway cannot currently receive or forward this service.'
+      : 'The destination terminal cannot currently receive the selected service.';
+  }
+  return isGateway
+    ? 'Gateway reception conditions are still being evaluated.'
+    : 'Reception conditions are still being evaluated at the destination terminal.';
+}
+
+function destinationBottomLine(
+  viewModel: CommercialScenarioViewModel,
+  segment: CommercialRouteSegment | undefined,
+  constraint: string | undefined,
+): string {
+  const isGateway = viewModel.display.destinationEndpointKind === 'geo_gateway';
+  if (constraint && segment?.customerStatus === 'unavailable') return businessNote(constraint);
+  if (segment?.customerStatus === 'available') {
+    return isGateway
+      ? 'The GEO gateway is ready to receive or forward the selected service.'
+      : 'The destination terminal is receiving the selected service.';
+  }
+  if (segment?.customerStatus === 'unavailable') {
+    return 'The destination terminal cannot currently receive the selected service.';
+  }
+  return 'Reception conditions are still being evaluated before the service can be presented commercially.';
+}
+
 export function buildCommercialNarrativeCardModel({
   viewModel,
   commercialRouteModel,
@@ -356,25 +408,25 @@ export function buildCommercialNarrativeCardModel({
       };
     }
 
-    case 'destination':
+    case 'destination': {
+      const title = destinationTitle(viewModel);
       return {
         segmentId: focusedSegmentId,
         stepNumber: 3,
         stepTotal: segmentOrder.length,
-        eyebrow: commercialRouteModel?.destinationIsPortal ? 'Network Exit' : 'Destination',
+        eyebrow: title,
         title,
-        statusLabel,
+        statusLabel: segment ? destinationStateLabel[segment.customerStatus] : statusLabel,
         statusTone: statusTone(segment),
-        narrativeStatement: segment?.isRouteParticipant
-          ? 'The destination can receive service.'
-          : 'The destination is not yet confirmed.',
+        narrativeStatement: destinationNarrativeStatement(viewModel, segment),
         facts: compactFacts([
-          { label: 'Endpoint', value: viewModel.siteB?.name ?? segment?.summary },
-          { label: 'Receiving side', value: viewModel.display.destinationType },
           { label: 'Reachability', value: routeParticipantLabel(segment) },
+          { label: 'Receiving side', value: viewModel.display.destinationReceivingSide },
+          { label: 'Service state', value: segment ? destinationStateLabel[segment.customerStatus] : statusLabel },
         ]),
-        businessNote: businessNote(constraint),
+        businessNote: destinationBottomLine(viewModel, segment, constraint),
       };
+    }
 
     case 'summary':
     default: {

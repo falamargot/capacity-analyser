@@ -336,10 +336,10 @@ function commercialSymbolicArcApex(model: CommercialRouteModel): Cartesian3 | nu
     const lng = denormalizeLng((origin.lng + normalizedDestinationLng) / 2);
     const distanceKm = commercialApproxDistanceKm(origin, destination);
     const peakKm = Math.min(
-        model.technology === 'GEO' ? 5200 : 3600,
-        Math.max(model.technology === 'GEO' ? 1900 : 1300, distanceKm * 0.42),
+        model.technology === 'GEO' ? 2100 : 1400,
+        Math.max(model.technology === 'GEO' ? 750 : 500, distanceKm * 0.17),
     );
-    return getPosition(lat, lng, peakKm);
+    return getPosition(lat, lng, GROUND_POINT_ALTITUDE_KM + 18 + peakKm);
 }
 
 function commercialRouteBearingRadians(model: CommercialRouteModel): number {

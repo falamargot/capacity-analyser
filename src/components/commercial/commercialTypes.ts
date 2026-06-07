@@ -165,6 +165,15 @@ export interface CommercialScenarioViewModel {
     snpA?: string;
     snpB?: string;
     destinationType?: string;
+    destinationEndpointRole?: string;
+    destinationEndpointKind?: 'customer' | 'geo_gateway';
+    destinationTechnology?: string;
+    destinationStationModel?: string;
+    destinationLocation?: string;
+    destinationGatewayName?: string;
+    destinationGatewayCoverage?: string;
+    destinationReceivingSide?: string;
+    destinationDirection?: 'satellite_to_gateway' | 'satellite_to_site';
     rawServiceStatus?: string;
     rawPrimaryWarning?: string;
     rawBottleneck?: string;

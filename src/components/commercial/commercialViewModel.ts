@@ -81,6 +81,12 @@ interface BuildCommercialScenarioViewModelInput {
   weatherType: WeatherType;
   weatherTypeB: WeatherType;
   leoTerminalType: TerminalType;
+  originGeoTerminalLabel?: string;
+  destinationGeoTerminalLabel?: string;
+  originLeoTerminalLabel?: string;
+  destinationLeoTerminalLabel?: string;
+  geoGatewayName?: string | null;
+  geoGatewayCoverage?: string | null;
   selectedSegmentId?: string;
 }
 
@@ -259,6 +265,36 @@ export function buildCommercialScenarioViewModel(input: BuildCommercialScenarioV
     : destinationIsSnp
       ? (input.selectedSnpName ?? 'SNP')
       : 'Site B';
+  const destinationEndpointKind = !isDisplayLeo && activeRoute.destinationLabel === 'Gateway'
+    ? 'geo_gateway'
+    : 'customer';
+  const destinationCustomerSide: 'A' | 'B' = activeRoute.destinationLabel === 'Site B'
+    ? 'B'
+    : activeRoute.destinationLabel === 'Site A'
+    ? 'A'
+    : activeRoute.activeDirection === 'B_TO_A'
+    ? 'A'
+    : input.siteB
+    ? 'B'
+    : 'A';
+  const destinationTechnology = isDisplayLeo ? 'LEO' : 'GEO';
+  const destinationStationModel = destinationEndpointKind === 'geo_gateway'
+    ? undefined
+    : isDisplayLeo
+    ? (destinationCustomerSide === 'B' ? input.destinationLeoTerminalLabel : input.originLeoTerminalLabel)
+    : (destinationCustomerSide === 'B' ? input.destinationGeoTerminalLabel : input.originGeoTerminalLabel);
+  const destinationLocation = destinationEndpointKind === 'geo_gateway'
+    ? input.geoGatewayName ?? 'GEO Gateway'
+    : destinationCustomerSide === 'B'
+    ? siteBName
+    : siteAName;
+  const destinationReceivingSide = destinationEndpointKind === 'geo_gateway'
+    ? 'Gateway'
+    : destinationCustomerSide === 'B'
+    ? 'Site B'
+    : input.siteB
+    ? 'Site A'
+    : 'Customer endpoint';
 
   const downloadMbps = isDisplayLeo ? leoDownloadMbps : geoDownloadMbps;
   const uploadMbps = isDisplayLeo ? leoUploadMbps : geoUploadMbps;
@@ -524,6 +560,15 @@ export function buildCommercialScenarioViewModel(input: BuildCommercialScenarioV
       snpA: isDisplayLeo ? (leoRoutePath?.selectedSnpA?.name ?? leoEvidence?.selectedSnpA?.name ?? input.selectedSnpName ?? '--') : '--',
       snpB: isDisplayLeo ? (leoRoutePath?.selectedSnpB?.name ?? leoEvidence?.selectedSnpB?.name ?? '--') : '--',
       destinationType: activeRoute.destinationLabel ?? 'Site B',
+      destinationEndpointRole: destinationEndpointKind === 'geo_gateway' ? 'GEO Gateway' : 'Customer station',
+      destinationEndpointKind,
+      destinationTechnology,
+      destinationStationModel: destinationStationModel ?? '--',
+      destinationLocation,
+      destinationGatewayName: destinationEndpointKind === 'geo_gateway' ? input.geoGatewayName ?? '--' : '--',
+      destinationGatewayCoverage: destinationEndpointKind === 'geo_gateway' ? input.geoGatewayCoverage ?? '--' : '--',
+      destinationReceivingSide,
+      destinationDirection: destinationEndpointKind === 'geo_gateway' ? 'satellite_to_gateway' : 'satellite_to_site',
       rawServiceStatus: isDisplayLeo ? (leoServiceStatus ?? '--') : (geoStatusSource ?? '--'),
       rawPrimaryWarning: primaryWarning ?? '--',
       rawBottleneck: primaryWarning ?? '--',

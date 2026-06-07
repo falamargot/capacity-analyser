@@ -291,13 +291,11 @@ function buildFocusTargets(
     },
 
     // ── satellite ─────────────────────────────────────────────────────────────
-    // LEO backs out to show the full arc. GEO frames the selected coverage
-    // footprint instead of making the synthetic sky bridge the camera target.
+    // Back out to show the service relay arc. GEO keeps the selected coverage
+    // visible as context, but the camera composition is led by the satellite path.
     {
       segmentId: 'satellite',
-      behaviour: topology === 'GEO_STAR' || topology === 'GEO_P2P'
-        ? 'FRAME_GEO_COVERAGE'
-        : 'FRAME_ARC',
+      behaviour: 'FRAME_ARC',
       primaryNodeId: ids.skyBridgeA,
       secondaryNodeId: hasTwoSatellites ? (ids.skyBridgeB ?? null) : null,
       highlightNodeTypes: hasTwoSatellites

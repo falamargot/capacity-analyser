@@ -3573,6 +3573,18 @@ const App: React.FC = () => {
     : siteB
       ? 'Move Site B'
       : 'Set Site B';
+  const leoTerminalDisplayLabelA = useMemo(
+    () => getLeoTerminalProfile(leoTerminalType, leoTerminalModelId).model,
+    [leoTerminalModelId, leoTerminalType],
+  );
+  const leoTerminalDisplayLabelB = useMemo(
+    () => getLeoTerminalProfile(leoTerminalTypeB, leoTerminalModelIdB).model,
+    [leoTerminalModelIdB, leoTerminalTypeB],
+  );
+  const activeCommercialGeoGateway = resolvedSelectedGeoGateway ?? resolvedAutoGeoGateway;
+  const activeCommercialGeoGatewayCoverage = activeCommercialGeoGateway
+    ? [activeCommercialGeoGateway.teleportCode, activeCommercialGeoGateway.region].filter(Boolean).join(' / ')
+    : null;
 
   useEffect(() => {
     if (uiMode === 'commercial' && satelliteScope !== 'ALL') {
@@ -3613,13 +3625,22 @@ const App: React.FC = () => {
     weatherType,
     weatherTypeB,
     leoTerminalType,
+    originGeoTerminalLabel: geoRFPresetDisplayLabelA,
+    destinationGeoTerminalLabel: geoRFPresetDisplayLabelB,
+    originLeoTerminalLabel: leoTerminalDisplayLabelA,
+    destinationLeoTerminalLabel: leoTerminalDisplayLabelB,
+    geoGatewayName: activeCommercialGeoGateway?.gatewayName ?? null,
+    geoGatewayCoverage: activeCommercialGeoGatewayCoverage,
     selectedSegmentId: commercialSelectedSegment,
   }), [
     activeCommercialTechnology, activeMeshTab, activeAnalysisPoint, activeAnalysisSource,
     siteB, nearestLocation, nearestLocationB, selectedSNP?.name, selectedSatellite,
     activeGeoSatellite, resolvedAutoLEO, mobileMetrics, leoTopologyMode,
     activeLeoRouteEvidence, geoPointStatus, linkMode, selectedCoverage, geoRouteAnalysis,
-    weatherType, weatherTypeB, leoTerminalType, commercialSelectedSegment,
+    weatherType, weatherTypeB, leoTerminalType, geoRFPresetDisplayLabelA,
+    geoRFPresetDisplayLabelB, leoTerminalDisplayLabelA, leoTerminalDisplayLabelB,
+    activeCommercialGeoGateway?.gatewayName, activeCommercialGeoGatewayCoverage,
+    commercialSelectedSegment,
   ]);
 
   const commercialSiteAutoSelectionSignature = (() => {

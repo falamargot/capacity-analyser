@@ -236,12 +236,51 @@ h1, h2, h3, h4 {
   animation: satellite-service-breathe 2.8s ease-in-out infinite;
 }
 
+@keyframes destination-receive-pulse {
+  0%,
+  100% {
+    opacity: 0.76;
+    transform: scale(0.96);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.06);
+  }
+}
+
+.destination-receive-pulse {
+  animation: destination-receive-pulse 2.4s ease-in-out infinite;
+}
+
+@keyframes destination-receive-dot {
+  0% {
+    opacity: 0;
+    transform: translateX(-42px) scale(0.85);
+  }
+  25% {
+    opacity: 1;
+  }
+  78% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(132px) scale(0.85);
+  }
+}
+
+.destination-receive-dot {
+  animation: destination-receive-dot 2.1s ease-in-out infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .commercial-access-title,
   .access-signal-rise,
   .access-signal-ring,
   .access-signal-dot,
-  .satellite-service-breathe {
+  .satellite-service-breathe,
+  .destination-receive-pulse,
+  .destination-receive-dot {
     animation: none;
   }
 }
