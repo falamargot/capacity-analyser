@@ -19,6 +19,7 @@ import {
   X,
 } from 'lucide-react';
 import type { CommercialRouteModel, CommercialRouteSegmentId } from '../../types/commercialRouteModel';
+import type { CommercialTechnologyOption } from './commercialTypes';
 import type { CommercialScenarioViewModel } from './commercialViewModel';
 import {
   buildCommercialNarrativeCardModel,
@@ -92,39 +93,109 @@ function NoteIcon({ tone }: { tone: CommercialNarrativeCardModel['statusTone'] }
   return <Route className="h-3.5 w-3.5 shrink-0 text-sky-300" aria-hidden="true" />;
 }
 
-function evidenceTone(customerStatus: string): CommercialNarrativeCardModel['statusTone'] {
-  if (customerStatus === 'available') return 'good';
-  if (customerStatus === 'unavailable') return 'danger';
-  if (customerStatus === 'limited' || customerStatus === 'degraded') return 'warning';
-  return 'neutral';
+type DefinitiveRecommendationTechnology = 'geo' | 'leo';
+
+interface RecommendationBenefit {
+  label: string;
+  value: string;
 }
 
-const evidencePillClass: Record<CommercialNarrativeCardModel['statusTone'], string> = {
-  good: 'border-emerald-300/35 bg-emerald-500/10 text-emerald-200',
-  warning: 'border-amber-300/40 bg-amber-500/10 text-amber-200',
-  danger: 'border-rose-300/40 bg-rose-500/10 text-rose-200',
-  neutral: 'border-slate-600/50 bg-slate-800/40 text-slate-400',
+const recommendationHeroClass: Record<DefinitiveRecommendationTechnology, string> = {
+  geo: 'border-blue-200/36 bg-[radial-gradient(circle_at_78%_18%,rgba(147,197,253,0.30),transparent_32%),linear-gradient(135deg,rgba(15,23,42,0.98),rgba(30,64,175,0.92)_48%,rgba(14,116,144,0.78))] shadow-[0_0_70px_rgba(59,130,246,0.24),inset_0_1px_0_rgba(255,255,255,0.10)]',
+  leo: 'border-fuchsia-200/36 bg-[radial-gradient(circle_at_78%_18%,rgba(244,114,182,0.32),transparent_32%),linear-gradient(135deg,rgba(24,12,46,0.98),rgba(88,28,135,0.94)_48%,rgba(190,24,93,0.72))] shadow-[0_0_74px_rgba(217,70,239,0.26),inset_0_1px_0_rgba(255,255,255,0.10)]',
 };
 
-function EvidencePill({ label, customerStatus }: { label: string; customerStatus: string }) {
-  const tone = evidenceTone(customerStatus);
-  const cls = evidencePillClass[tone];
-  return (
-    <div className={`flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[10px] font-semibold ${cls}`}>
-      {tone === 'good'
-        ? <CheckCircle2 className="h-2.5 w-2.5 shrink-0" aria-hidden="true" />
-        : <AlertTriangle className="h-2.5 w-2.5 shrink-0" aria-hidden="true" />}
-      <span>{label}</span>
-    </div>
+const recommendationAccentClass: Record<DefinitiveRecommendationTechnology, string> = {
+  geo: 'border-blue-100/36 bg-blue-300/14 text-blue-50 shadow-[0_0_26px_rgba(96,165,250,0.24)]',
+  leo: 'border-fuchsia-100/36 bg-fuchsia-300/14 text-fuchsia-50 shadow-[0_0_26px_rgba(217,70,239,0.24)]',
+};
+
+const recommendationMetricClass: Record<DefinitiveRecommendationTechnology, string> = {
+  geo: 'border-blue-100/24 bg-blue-950/20 text-blue-50',
+  leo: 'border-fuchsia-100/24 bg-fuchsia-950/20 text-fuchsia-50',
+};
+
+function isDefinitiveTechnology(value: string): value is DefinitiveRecommendationTechnology {
+  return value === 'geo' || value === 'leo';
+}
+
+function displayedOption(
+  viewModel: CommercialScenarioViewModel,
+  technology: DefinitiveRecommendationTechnology,
+): CommercialTechnologyOption | undefined {
+  return viewModel.comparison.options.find((option) => option.technology === technology);
+}
+
+function primaryRecommendationTechnology(viewModel: CommercialScenarioViewModel): DefinitiveRecommendationTechnology | null {
+  if (isDefinitiveTechnology(viewModel.recommendation.technology)) return viewModel.recommendation.technology;
+  if (viewModel.recommendation.technology !== 'hybrid') return null;
+  const displayTechnology = viewModel.commercialDisplayTechnology.toLowerCase();
+  return isDefinitiveTechnology(displayTechnology) ? displayTechnology : null;
+}
+
+function selectedRecommendationOption(viewModel: CommercialScenarioViewModel): CommercialTechnologyOption | undefined {
+  const technology = primaryRecommendationTechnology(viewModel);
+  return technology ? displayedOption(viewModel, technology) : undefined;
+}
+
+function alternativeRecommendationOption(
+  viewModel: CommercialScenarioViewModel,
+  selectedTechnology: DefinitiveRecommendationTechnology | null,
+): CommercialTechnologyOption | undefined {
+  if (!selectedTechnology) return undefined;
+  return viewModel.comparison.options.find(
+    (option) => option.technology !== selectedTechnology && isDefinitiveTechnology(option.technology),
   );
 }
 
-const segmentEvidenceLabel: Record<string, string> = {
-  access: 'Customer Site',
-  satellite: 'Satellite',
-  backhaul: 'Network transit',
-  destination: 'Destination',
-};
+function routeReachabilityLabel(viewModel: CommercialScenarioViewModel): string {
+  if (viewModel.siteB) return 'Both sites reachable';
+  if (viewModel.display.destinationEndpointKind === 'geo_gateway') return 'Gateway reachable';
+  return 'Customer site reachable';
+}
+
+function buildRecommendationBenefits(
+  viewModel: CommercialScenarioViewModel,
+  selected: CommercialTechnologyOption | undefined,
+): RecommendationBenefit[] {
+  const benefits: RecommendationBenefit[] = [];
+  const add = (label: string, value: string | undefined) => {
+    if (!value || benefits.some((benefit) => benefit.label === label)) return;
+    benefits.push({ label, value });
+  };
+
+  if (viewModel.recommendation.reasonCategory === 'LOWEST_LATENCY') {
+    add('Latency', formatMs(selected?.rttMs));
+    add('Coverage', routeReachabilityLabel(viewModel));
+    add('Stability', selected?.available ? 'Service confirmed' : selected?.statusLabel);
+  } else {
+    add('Throughput', formatMbps(selected?.downloadMbps));
+    add('Coverage', routeReachabilityLabel(viewModel));
+    add('Stability', selected?.available ? 'Service confirmed' : selected?.statusLabel);
+  }
+
+  add('Latency', formatMs(selected?.rttMs));
+  add('Throughput', formatMbps(selected?.downloadMbps));
+  add('Status', selected?.statusLabel);
+
+  return benefits.slice(0, 3);
+}
+
+function OptionMetrics({ option }: { option: CommercialTechnologyOption | undefined }) {
+  return (
+    <div className="flex items-center gap-3 text-[12px] font-semibold text-white/78">
+      <span className="flex items-center gap-1.5">
+        <ArrowDown className="h-3.5 w-3.5" aria-hidden="true" />
+        <span className="tabular-nums">{formatMbps(option?.downloadMbps)}</span>
+      </span>
+      <span className="h-3 w-px bg-white/20" />
+      <span className="flex items-center gap-1.5">
+        <Timer className="h-3.5 w-3.5" aria-hidden="true" />
+        <span className="tabular-nums">{formatMs(option?.rttMs)}</span>
+      </span>
+    </div>
+  );
+}
 
 function SummaryHeroBlock({
   viewModel,
@@ -133,105 +204,112 @@ function SummaryHeroBlock({
   viewModel: CommercialScenarioViewModel;
   card: CommercialNarrativeCardModel;
 }) {
-  const { recommendation, comparison } = viewModel;
-  const isDefinitive = recommendation.technology === 'leo' || recommendation.technology === 'geo';
-  const techLabel = recommendation.label
-    || (recommendation.technology === 'leo'
-      ? 'LEO Satellite'
-      : recommendation.technology === 'geo'
-        ? 'GEO Satellite'
-        : 'Connectivity');
-
-  const evidenceSegments = viewModel.routeSegments.filter((s) => s.type !== 'summary');
-  const serviceFacts = card.facts.filter((fact) => fact.label !== 'Preferred option');
-
-  const altOption = isDefinitive
-    ? comparison.options.find(
-        (o) => o.technology !== recommendation.technology
-          && (o.technology === 'leo' || o.technology === 'geo'),
-      )
-    : undefined;
+  const selectedTechnology = primaryRecommendationTechnology(viewModel);
+  const selectedOption = selectedRecommendationOption(viewModel);
+  const isUnavailable = viewModel.recommendation.technology === 'not_available' || !selectedTechnology;
+  const altOption = isUnavailable ? undefined : alternativeRecommendationOption(viewModel, selectedTechnology);
+  const technologyLabel = selectedTechnology?.toUpperCase() ?? viewModel.recommendation.label ?? 'Pending';
+  const heroClass = selectedTechnology
+    ? recommendationHeroClass[selectedTechnology]
+    : 'border-slate-500/30 bg-[linear-gradient(135deg,rgba(15,23,42,0.98),rgba(51,65,85,0.88))] shadow-[0_0_54px_rgba(148,163,184,0.14),inset_0_1px_0_rgba(255,255,255,0.08)]';
+  const accentClass = selectedTechnology
+    ? recommendationAccentClass[selectedTechnology]
+    : 'border-slate-300/28 bg-slate-300/12 text-slate-50';
+  const metricClass = selectedTechnology
+    ? recommendationMetricClass[selectedTechnology]
+    : 'border-slate-300/20 bg-slate-900/25 text-slate-50';
+  const benefits = isUnavailable ? [] : buildRecommendationBenefits(viewModel, selectedOption);
 
   return (
     <div className="space-y-4">
-      {/* Recommendation hero card */}
-      <div className="rounded-xl border border-sky-300/22 bg-sky-500/8 p-4">
-        <div className="flex items-start gap-3">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-sky-300/30 bg-sky-400/15">
-            <Star className="h-4 w-4 fill-sky-300 text-sky-300" aria-hidden="true" />
-          </div>
-          <div className="min-w-0 flex-1">
-            <div className="text-[10px] font-bold uppercase tracking-[0.16em] text-sky-400/80">
-              Recommended
+      <div className={`relative min-h-[12.5rem] overflow-hidden rounded-xl border p-5 commercial-recommendation-hero ${heroClass}`}>
+        <div className="pointer-events-none absolute -right-10 -top-10 h-32 w-32 rounded-full bg-white/16 blur-3xl" />
+        <div className="pointer-events-none absolute inset-x-6 bottom-0 h-px bg-gradient-to-r from-transparent via-white/40 to-transparent" />
+
+        <div className="relative flex h-full min-h-[10.5rem] flex-col justify-between">
+          <div className="flex items-start justify-between gap-3">
+            <div className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] ${accentClass}`}>
+              <Star className="h-3.5 w-3.5 fill-current" aria-hidden="true" />
+              <span>{isUnavailable ? 'Verdict' : 'Recommended'}</span>
             </div>
-            <div className="mt-0.5 text-[22px] font-bold leading-none tracking-tight text-white">
-              {techLabel}
+            <span className="rounded-full border border-white/15 bg-white/10 px-2.5 py-1 text-[9px] font-bold uppercase tracking-[0.14em] text-white/70">
+              Step {card.stepNumber}
+            </span>
+          </div>
+
+          <div className="relative py-4">
+            <div className="text-[50px] font-black leading-none tracking-normal text-white drop-shadow-[0_0_24px_rgba(255,255,255,0.18)]">
+              {isUnavailable ? 'No route' : technologyLabel}
+            </div>
+            <div className="mt-2 max-w-[17rem] text-[13px] font-semibold leading-[1.4] text-white/76">
+              {isUnavailable
+                ? 'No service can be recommended for this scenario yet.'
+                : viewModel.recommendation.message || card.narrativeStatement}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2.5">
+            <div className={`rounded-lg border px-3 py-2.5 ${metricClass}`}>
+              <div className="flex items-center gap-1.5 text-[9px] font-bold uppercase tracking-[0.14em] text-white/55">
+                <ArrowDown className="h-3 w-3" aria-hidden="true" />
+                <span>Throughput</span>
+              </div>
+              <div className="mt-1 text-[19px] font-black leading-none tabular-nums">
+                {formatMbps(selectedOption?.downloadMbps)}
+              </div>
+            </div>
+            <div className={`rounded-lg border px-3 py-2.5 ${metricClass}`}>
+              <div className="flex items-center gap-1.5 text-[9px] font-bold uppercase tracking-[0.14em] text-white/55">
+                <Timer className="h-3 w-3" aria-hidden="true" />
+                <span>Latency</span>
+              </div>
+              <div className="mt-1 text-[19px] font-black leading-none tabular-nums">
+                {formatMs(selectedOption?.rttMs)}
+              </div>
             </div>
           </div>
         </div>
-
-        {recommendation.reason && (
-          <div className="mt-3.5">
-            <div className="text-[9px] font-bold uppercase tracking-[0.16em] text-slate-500">
-              Why
-            </div>
-            <p className="mt-1 text-[13px] leading-[1.55] text-slate-200">
-              {recommendation.reason}
-            </p>
-          </div>
-        )}
       </div>
 
-      {/* Route evidence */}
-      {evidenceSegments.length > 0 && (
-        <div>
-          <div className="mb-2 text-[9px] font-bold uppercase tracking-[0.16em] text-slate-500">
-            Route evidence
+      {benefits.length > 0 && (
+        <section>
+          <div className="mb-2 text-[9px] font-bold uppercase tracking-[0.18em] text-slate-500">
+            Why this route wins
           </div>
-          <div className="flex flex-wrap gap-1.5">
-            {evidenceSegments.map((seg) => (
-              <EvidencePill
-                key={seg.id}
-                label={segmentEvidenceLabel[seg.type] ?? seg.type}
-                customerStatus={seg.customerStatus}
-              />
-            ))}
-          </div>
-        </div>
-      )}
-
-      {serviceFacts.length > 0 && (
-        <div>
-          <div className="mb-2 text-[9px] font-bold uppercase tracking-[0.16em] text-slate-500">
-            Service evidence
-          </div>
-          <div className="grid grid-cols-2 gap-x-4 gap-y-3 rounded-lg border border-slate-700/45 bg-[rgba(15,23,42,0.42)] px-3 py-3">
-            {serviceFacts.map((fact) => (
-              <div key={`${fact.label}:${fact.value}`} className="min-w-0">
-                <div className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-600">
-                  {fact.label}
+          <div className="grid grid-cols-3 gap-2">
+            {benefits.map((benefit) => (
+              <div
+                key={`${benefit.label}:${benefit.value}`}
+                className="min-h-[5.7rem] rounded-lg border border-white/10 bg-white/[0.045] p-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]"
+              >
+                <div className="flex items-center gap-1.5 text-[10px] font-bold text-emerald-100">
+                  <CheckCircle2 className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                  <span className="truncate">{benefit.label}</span>
                 </div>
-                <div className="mt-0.5 line-clamp-2 text-[13px] font-semibold leading-snug text-slate-200">
-                  {fact.value}
+                <div className="mt-2 line-clamp-2 text-[13px] font-black leading-tight text-white">
+                  {benefit.value}
                 </div>
               </div>
             ))}
           </div>
-        </div>
+        </section>
       )}
 
-      {/* Alternative comparison */}
       {altOption && (
-        <div>
-          <div className="mb-1.5 text-[9px] font-bold uppercase tracking-[0.16em] text-slate-500">
+        <section>
+          <div className="mb-1.5 text-[9px] font-bold uppercase tracking-[0.18em] text-slate-500">
             Alternative
           </div>
-          <div className="rounded-lg border border-slate-700/55 bg-[rgba(15,23,42,0.60)] px-3 py-2.5">
-            {/* Header: tech name + colour-coded status badge */}
+          <div className="rounded-lg border border-slate-700/65 bg-[rgba(15,23,42,0.55)] px-3.5 py-3 opacity-82">
             <div className="flex items-center justify-between gap-2">
-              <span className="text-[14px] font-semibold text-slate-200">
-                {altOption.label}
-              </span>
+              <div className="min-w-0">
+                <div className="text-[9px] font-bold uppercase tracking-[0.14em] text-slate-600">
+                  Alternative
+                </div>
+                <div className="mt-0.5 text-[18px] font-black leading-none text-slate-200">
+                  {altOption.label}
+                </div>
+              </div>
               <span
                 className={[
                   'shrink-0 rounded-full border px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.07em]',
@@ -245,35 +323,11 @@ function SummaryHeroBlock({
                 {altOption.statusLabel}
               </span>
             </div>
-
-            {/* Why not — use limitingFactor when available; fall back to a concise sentence */}
-            {(altOption.limitingFactor || !altOption.available) && (
-              <p className="mt-1.5 text-[12px] leading-[1.5] text-slate-500">
-                {altOption.limitingFactor
-                  ?? `${altOption.label} is not available for this scenario.`}
-              </p>
-            )}
-
-            {/* Metrics — only when available so the user can compare objectively */}
-            {altOption.available && (
-              <div className="mt-2 flex items-center gap-3 text-[12px] text-slate-400">
-                <span className="flex items-center gap-1">
-                  <Timer className="h-3 w-3" aria-hidden="true" />
-                  <span className="tabular-nums">{formatMs(altOption.rttMs)}</span>
-                </span>
-                <span className="h-3 w-px bg-slate-700" />
-                <span className="flex items-center gap-1">
-                  <ArrowDown className="h-3 w-3" aria-hidden="true" />
-                  <span className="tabular-nums">{formatMbps(altOption.downloadMbps)}</span>
-                </span>
-                <span className="flex items-center gap-1">
-                  <ArrowUp className="h-3 w-3" aria-hidden="true" />
-                  <span className="tabular-nums">{formatMbps(altOption.uploadMbps)}</span>
-                </span>
-              </div>
-            )}
+            <div className="mt-2">
+              <OptionMetrics option={altOption} />
+            </div>
           </div>
-        </div>
+        </section>
       )}
     </div>
   );
@@ -828,11 +882,19 @@ function CommercialNarrativePanel({
   const isAccess = card.segmentId === 'access';
   const isSatellite = card.segmentId === 'satellite';
   const isDestination = card.segmentId === 'destination';
+  const panelStatusBadgeClass = isAccess
+    ? accessStatusBadgeClass[card.statusTone]
+    : isSatellite
+      ? 'border-blue-200/60 bg-indigo-400/16 text-blue-50 shadow-[0_0_18px_rgba(96,165,250,0.16)]'
+      : isDestination
+        ? 'border-emerald-200/60 bg-emerald-400/16 text-emerald-50 shadow-[0_0_18px_rgba(16,185,129,0.14)]'
+        : statusBadgeClass[card.statusTone];
 
   return (
     <div
       className={[
-        'absolute right-0 top-0 bottom-[5.75rem] z-40 w-[380px]',
+        'absolute right-0 top-0 z-40 w-[380px]',
+        isSummary ? 'bottom-0' : 'bottom-[5.75rem]',
         'transition-transform',
         'duration-200',
         isOpen ? 'translate-x-0 pointer-events-auto' : 'translate-x-full pointer-events-none',
@@ -923,19 +985,23 @@ function CommercialNarrativePanel({
             </button>
           </div>
 
-          {/* Title */}
-          <h2 className="mt-3 text-[20px] font-bold leading-tight tracking-tight text-white">
-            {card.title}
-          </h2>
+          {!isSummary && (
+            <>
+              {/* Title */}
+              <h2 className="mt-3 text-[20px] font-bold leading-tight tracking-tight text-white">
+                {card.title}
+              </h2>
 
-          {/* Status badge */}
-          <span className={`mt-2 inline-flex rounded-full border px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.08em] ${isAccess ? accessStatusBadgeClass[card.statusTone] : isSatellite ? 'border-blue-200/60 bg-indigo-400/16 text-blue-50 shadow-[0_0_18px_rgba(96,165,250,0.16)]' : isDestination ? 'border-emerald-200/60 bg-emerald-400/16 text-emerald-50 shadow-[0_0_18px_rgba(16,185,129,0.14)]' : statusBadgeClass[card.statusTone]}`}>
-            {card.statusLabel}
-          </span>
+              {/* Status badge */}
+              <span className={`mt-2 inline-flex rounded-full border px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.08em] ${panelStatusBadgeClass}`}>
+                {card.statusLabel}
+              </span>
+            </>
+          )}
         </div>
 
         {/* Divider */}
-        <div className="mx-5 mt-4 flex-shrink-0 border-t border-[rgba(30,41,59,0.80)]" />
+        <div className={`${isSummary ? 'mt-3' : 'mt-4'} mx-5 flex-shrink-0 border-t border-[rgba(30,41,59,0.80)]`} />
 
         {/* ── Scrollable content ─────────────────────────────────────── */}
         <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
@@ -947,28 +1013,7 @@ function CommercialNarrativePanel({
           ) : isDestination ? (
             <DestinationEndpointBlock card={card} viewModel={viewModel} />
           ) : isSummary ? (
-            /* Summary: recommendation hero + executive note */
-            <>
-              <SummaryHeroBlock viewModel={viewModel} card={card} />
-
-              {card.businessNote && (
-                <div className={`mt-4 rounded-lg border p-3 ${noteClass[card.statusTone]}`}>
-                  <div className="flex items-start gap-2">
-                    <div className="mt-0.5 shrink-0">
-                      <NoteIcon tone={card.statusTone} />
-                    </div>
-                    <div className="min-w-0">
-                      <div className="text-[9px] font-bold uppercase tracking-[0.16em] opacity-75">
-                        Executive summary
-                      </div>
-                      <p className="mt-1 text-[13px] font-semibold leading-[1.5]">
-                        {card.businessNote}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </>
+            <SummaryHeroBlock viewModel={viewModel} card={card} />
           ) : (
             /* Non-summary: storytelling structure */
             <>
@@ -1022,16 +1067,18 @@ function CommercialNarrativePanel({
         </div>
 
         {/* ── Footer ─────────────────────────────────────────────────── */}
-        <div className="flex-shrink-0 border-t border-[rgba(30,41,59,0.80)] px-5 py-4">
-          <button
-            type="button"
-            onClick={onViewFullAnalysis}
-            className="inline-flex h-9 w-full items-center justify-center gap-2 rounded-lg border border-white/10 bg-white px-4 text-sm font-semibold text-slate-950 transition-colors hover:bg-slate-100"
-          >
-            <span>View full analysis</span>
-            <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
-          </button>
-        </div>
+        {!isSummary && (
+          <div className="flex-shrink-0 border-t border-[rgba(30,41,59,0.80)] px-5 py-4">
+            <button
+              type="button"
+              onClick={onViewFullAnalysis}
+              className="inline-flex h-9 w-full items-center justify-center gap-2 rounded-lg border border-white/10 bg-white px-4 text-sm font-semibold text-slate-950 transition-colors hover:bg-slate-100"
+            >
+              <span>View full analysis</span>
+              <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -67,7 +67,7 @@ export const FOCUS_OPACITY_PROFILES: Record<CommercialRouteSegmentId, readonly [
   satellite:   [0.25, 1.00, 0.05, 0.25],
   backhaul:    [0.25, 0.10, 1.00, 0.25],
   destination: [0.25, 0.15, 0.05, 1.00],
-  summary:     [1.00, 1.00, 1.00, 1.00],
+  summary:     [0.86, 1.00, 0.28, 0.86],
 };
 
 /**

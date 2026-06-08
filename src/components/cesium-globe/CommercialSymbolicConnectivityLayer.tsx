@@ -185,6 +185,10 @@ function routeStatusColor(status: CommercialRouteStatus): Color {
   return Color.fromCssColorString(SERVICE_OUTCOME_ARC_COLORS[status]);
 }
 
+function technologyRouteColor(technology: CommercialRouteTechnology): Color {
+  return Color.fromCssColorString(technology === 'GEO' ? '#60a5fa' : '#f472b6');
+}
+
 function endpointStatusColor(status: CommercialRouteStatus): Color {
   if (status === 'blocked') return Color.fromCssColorString('#ef4444');
   if (status === 'limited') return Color.fromCssColorString('#f59e0b');
@@ -341,19 +345,24 @@ function shouldFocusEndpoint(endpoint: SymbolicEndpoint, focused: CommercialRout
 }
 
 function endpointWeight(endpoint: SymbolicEndpoint, focused: CommercialRouteSegmentId | null): number {
-  if (!focused || focused === 'summary' || focused === 'satellite' || focused === 'backhaul') return 1;
+  if (!focused || focused === 'satellite' || focused === 'backhaul') return 1;
+  if (focused === 'summary') return 0.86;
   return shouldFocusEndpoint(endpoint, focused) ? 1 : 0.42;
 }
 
 function arcAlpha(focused: CommercialRouteSegmentId | null): number {
   const base = 0.9;
-  if (!focused || focused === 'summary' || focused === 'satellite') return base;
+  if (!focused || focused === 'satellite') return base;
+  if (focused === 'summary') return 0.98;
   if (focused === 'access' || focused === 'destination') return 0.78;
   return 0.66;
 }
 
-function arcAccentColor(status: CommercialRouteStatus, focused: CommercialRouteSegmentId | null): Color {
+function arcAccentColor(spec: SymbolicArcSpec, focused: CommercialRouteSegmentId | null): Color {
+  const { status, technology } = spec;
+  if (status === 'blocked' || status === 'pending') return routeStatusColor(status);
   if (focused === 'access') return Color.fromCssColorString('#22d3ee');
+  if (!focused || focused === 'summary' || focused === 'satellite') return technologyRouteColor(technology);
   return routeStatusColor(status);
 }
 
@@ -936,26 +945,33 @@ const SymbolicServiceArc = React.memo<{
   );
   const entityPosKey = useMemo(() => entitySafeSignature(posKey), [posKey]);
 
-  const color = useMemo(() => arcAccentColor(spec.status, focusedSegmentId), [focusedSegmentId, spec.status]);
+  const color = useMemo(() => arcAccentColor(spec, focusedSegmentId), [focusedSegmentId, spec]);
   const hasTransmission = spec.status === 'active' || spec.status === 'limited';
+  const isConclusionFocus = !focusedSegmentId || focusedSegmentId === 'summary';
 
   const material = useMemo(() => {
     const alpha = arcAlpha(focusedSegmentId);
     return new PolylineGlowMaterialProperty({
-      color: color.withAlpha(alpha),
-      glowPower: 0.26,
+      color: new CallbackProperty((time?: JulianDate) => {
+        if (!isConclusionFocus || !hasTransmission) return color.withAlpha(alpha);
+        const seconds = time ? JulianDate.secondsDifference(time, FLOW_EPOCH) : Date.now() / 1000;
+        const pulse = 0.84 + 0.16 * Math.sin(seconds * Math.PI * 1.35);
+        return color.withAlpha(alpha * pulse);
+      }, false),
+      glowPower: isConclusionFocus ? 0.34 : 0.26,
       taperPower: 0.55,
     });
-  }, [color, focusedSegmentId]);
+  }, [color, focusedSegmentId, hasTransmission, isConclusionFocus]);
   const haloMaterial = useMemo(() => (
     new PolylineGlowMaterialProperty({
-      color: Color.WHITE.withAlpha(hasTransmission ? 0.28 : 0.16),
-      glowPower: 0.28,
+      color: Color.WHITE.withAlpha(hasTransmission ? (isConclusionFocus ? 0.34 : 0.28) : 0.16),
+      glowPower: isConclusionFocus ? 0.34 : 0.28,
       taperPower: 0.5,
     })
-  ), [hasTransmission]);
+  ), [hasTransmission, isConclusionFocus]);
   const flowAlpha = useMemo(() => {
-    if (!focusedSegmentId || focusedSegmentId === 'summary' || focusedSegmentId === 'satellite') return 0.95;
+    if (!focusedSegmentId || focusedSegmentId === 'summary') return 1;
+    if (focusedSegmentId === 'satellite') return 0.95;
     if (focusedSegmentId === 'access' || focusedSegmentId === 'destination') return 0.82;
     return 0.72;
   }, [focusedSegmentId]);

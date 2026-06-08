@@ -416,8 +416,9 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
                 ? s2sIsSecondary ? 1.0 : 3
                 : 0
         : 0;
+    const entityScopeId = React.useId();
     const routeEntityId = (segment: CommercialRouteSegmentType, technology: 'leo' | 'geo', suffix: string) => (
-        buildEntityId(commercialMode ? 'commercial' : 'engineering', 'route', segment, technology, suffix)
+        buildEntityId(commercialMode ? 'commercial' : 'engineering', entityScopeId, 'route', segment, technology, suffix)
     );
     const routeEntityIds = useMemo(() => ({
         leoUplink: routeEntityId('access', 'leo', 'uplink'),
@@ -436,10 +437,10 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
         leoS2SBackboneSame: routeEntityId('backhaul', 'leo', 's2s-backbone-same'),
         leoS2SSnpBSatB: routeEntityId('backhaul', 'leo', 's2s-snpb-satb'),
         leoS2SSatBB: routeEntityId('destination', 'leo', 's2s-satb-b'),
-        leoS2SSnpAMarker: buildEntityId(commercialMode ? 'commercial' : 'engineering', 'route-node', 'leo', 's2s', 'snp-a'),
-        leoS2SSnpBMarker: buildEntityId(commercialMode ? 'commercial' : 'engineering', 'route-node', 'leo', 's2s', 'snp-b'),
-        leoS2SPopMarker: buildEntityId(commercialMode ? 'commercial' : 'engineering', 'route-node', 'leo', 's2s', 'pop'),
-    }), [commercialMode]);
+        leoS2SSnpAMarker: buildEntityId(commercialMode ? 'commercial' : 'engineering', entityScopeId, 'route-node', 'leo', 's2s', 'snp-a'),
+        leoS2SSnpBMarker: buildEntityId(commercialMode ? 'commercial' : 'engineering', entityScopeId, 'route-node', 'leo', 's2s', 'snp-b'),
+        leoS2SPopMarker: buildEntityId(commercialMode ? 'commercial' : 'engineering', entityScopeId, 'route-node', 'leo', 's2s', 'pop'),
+    }), [commercialMode, entityScopeId]);
     // Per-technology route gates — each technology's links are only shown when that
     // technology has an available route, regardless of which is "active". This prevents
     // hiding the GEO route when LEO is active-but-unavailable, and vice-versa.
