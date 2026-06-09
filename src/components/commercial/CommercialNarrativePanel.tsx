@@ -12,14 +12,12 @@ import {
   Route,
   Satellite,
   SatelliteDish,
-  Star,
   Target,
   Timer,
   Wifi,
   X,
 } from 'lucide-react';
 import type { CommercialRouteModel, CommercialRouteSegmentId } from '../../types/commercialRouteModel';
-import type { CommercialTechnologyOption } from './commercialTypes';
 import type { CommercialScenarioViewModel } from './commercialViewModel';
 import {
   buildCommercialNarrativeCardModel,
@@ -95,104 +93,145 @@ function NoteIcon({ tone }: { tone: CommercialNarrativeCardModel['statusTone'] }
 
 type DefinitiveRecommendationTechnology = 'geo' | 'leo';
 
-interface RecommendationBenefit {
-  label: string;
-  value: string;
-}
-
-const recommendationHeroClass: Record<DefinitiveRecommendationTechnology, string> = {
-  geo: 'border-blue-200/36 bg-[radial-gradient(circle_at_78%_18%,rgba(147,197,253,0.30),transparent_32%),linear-gradient(135deg,rgba(15,23,42,0.98),rgba(30,64,175,0.92)_48%,rgba(14,116,144,0.78))] shadow-[0_0_70px_rgba(59,130,246,0.24),inset_0_1px_0_rgba(255,255,255,0.10)]',
-  leo: 'border-fuchsia-200/36 bg-[radial-gradient(circle_at_78%_18%,rgba(244,114,182,0.32),transparent_32%),linear-gradient(135deg,rgba(24,12,46,0.98),rgba(88,28,135,0.94)_48%,rgba(190,24,93,0.72))] shadow-[0_0_74px_rgba(217,70,239,0.26),inset_0_1px_0_rgba(255,255,255,0.10)]',
-};
-
-const recommendationAccentClass: Record<DefinitiveRecommendationTechnology, string> = {
-  geo: 'border-blue-100/36 bg-blue-300/14 text-blue-50 shadow-[0_0_26px_rgba(96,165,250,0.24)]',
-  leo: 'border-fuchsia-100/36 bg-fuchsia-300/14 text-fuchsia-50 shadow-[0_0_26px_rgba(217,70,239,0.24)]',
-};
-
-const recommendationMetricClass: Record<DefinitiveRecommendationTechnology, string> = {
-  geo: 'border-blue-100/24 bg-blue-950/20 text-blue-50',
-  leo: 'border-fuchsia-100/24 bg-fuchsia-950/20 text-fuchsia-50',
-};
-
 function isDefinitiveTechnology(value: string): value is DefinitiveRecommendationTechnology {
   return value === 'geo' || value === 'leo';
 }
 
-function displayedOption(
-  viewModel: CommercialScenarioViewModel,
-  technology: DefinitiveRecommendationTechnology,
-): CommercialTechnologyOption | undefined {
-  return viewModel.comparison.options.find((option) => option.technology === technology);
-}
+function GeoArchitectureDiagram() {
+  return (
+    <div
+      className="relative overflow-hidden rounded-xl border border-blue-200/20 bg-[radial-gradient(circle_at_50%_32%,rgba(96,165,250,0.22),transparent_48%),linear-gradient(180deg,rgba(14,20,52,0.72),rgba(15,23,42,0.80))]"
+      aria-hidden="true"
+    >
+      <svg viewBox="0 0 340 180" className="w-full" style={{ display: 'block' }}>
+        <ellipse cx="170" cy="48" rx="28" ry="18" fill="rgba(96,165,250,0.20)" />
 
-function primaryRecommendationTechnology(viewModel: CommercialScenarioViewModel): DefinitiveRecommendationTechnology | null {
-  if (isDefinitiveTechnology(viewModel.recommendation.technology)) return viewModel.recommendation.technology;
-  if (viewModel.recommendation.technology !== 'hybrid') return null;
-  const displayTechnology = viewModel.commercialDisplayTechnology.toLowerCase();
-  return isDefinitiveTechnology(displayTechnology) ? displayTechnology : null;
-}
+        {/* Uplink and downlink dashed lines */}
+        <line x1="44" y1="128" x2="170" y2="48" stroke="rgba(96,165,250,0.52)" strokeWidth="1.5" strokeDasharray="5,4" />
+        <line x1="170" y1="48" x2="296" y2="128" stroke="rgba(139,92,246,0.48)" strokeWidth="1.5" strokeDasharray="5,4" />
 
-function selectedRecommendationOption(viewModel: CommercialScenarioViewModel): CommercialTechnologyOption | undefined {
-  const technology = primaryRecommendationTechnology(viewModel);
-  return technology ? displayedOption(viewModel, technology) : undefined;
-}
+        {/* Flow dots at mid-points */}
+        <circle cx="107" cy="88" r="2.8" fill="rgba(147,197,253,0.90)" />
+        <circle cx="107" cy="88" r="5" fill="none" stroke="rgba(147,197,253,0.28)" strokeWidth="1" />
+        <circle cx="233" cy="88" r="2.8" fill="rgba(167,139,250,0.85)" />
+        <circle cx="233" cy="88" r="5" fill="none" stroke="rgba(167,139,250,0.26)" strokeWidth="1" />
 
-function alternativeRecommendationOption(
-  viewModel: CommercialScenarioViewModel,
-  selectedTechnology: DefinitiveRecommendationTechnology | null,
-): CommercialTechnologyOption | undefined {
-  if (!selectedTechnology) return undefined;
-  return viewModel.comparison.options.find(
-    (option) => option.technology !== selectedTechnology && isDefinitiveTechnology(option.technology),
+        {/* GEO Satellite */}
+        <circle cx="170" cy="48" r="24" fill="rgba(22,46,120,0.52)" stroke="rgba(96,165,250,0.48)" strokeWidth="1.2" />
+        <rect x="162" y="42" width="16" height="10" rx="2" fill="none" stroke="rgba(147,197,253,0.92)" strokeWidth="1.3" />
+        <line x1="157" y1="47" x2="162" y2="47" stroke="rgba(147,197,253,0.85)" strokeWidth="1.8" />
+        <line x1="178" y1="47" x2="183" y2="47" stroke="rgba(147,197,253,0.85)" strokeWidth="1.8" />
+        <text x="170" y="82" textAnchor="middle" fill="rgba(147,197,253,0.80)" fontSize="7.5" fontWeight="700" letterSpacing="2">GEO SAT</text>
+
+        {/* Site A */}
+        <circle cx="44" cy="128" r="22" fill="rgba(8,47,73,0.52)" stroke="rgba(34,211,238,0.38)" strokeWidth="1.2" />
+        <path d="M37 133 Q44 124 51 133" fill="none" stroke="rgba(34,211,238,0.88)" strokeWidth="1.5" strokeLinecap="round" />
+        <line x1="44" y1="133" x2="44" y2="138" stroke="rgba(34,211,238,0.65)" strokeWidth="1.3" />
+        <line x1="40" y1="138" x2="48" y2="138" stroke="rgba(34,211,238,0.48)" strokeWidth="1.1" />
+        <text x="44" y="160" textAnchor="middle" fill="rgba(34,211,238,0.82)" fontSize="7.5" fontWeight="700" letterSpacing="2">SITE A</text>
+        <text x="44" y="171" textAnchor="middle" fill="rgba(34,211,238,0.46)" fontSize="6.5" fontWeight="600" letterSpacing="1">Uplink</text>
+
+        {/* Site B */}
+        <circle cx="296" cy="128" r="22" fill="rgba(46,16,101,0.48)" stroke="rgba(139,92,246,0.38)" strokeWidth="1.2" />
+        <circle cx="296" cy="128" r="9" fill="none" stroke="rgba(167,139,250,0.82)" strokeWidth="1.3" />
+        <circle cx="296" cy="128" r="4" fill="none" stroke="rgba(167,139,250,0.78)" strokeWidth="1.3" />
+        <circle cx="296" cy="128" r="1.5" fill="rgba(167,139,250,0.95)" />
+        <text x="296" y="160" textAnchor="middle" fill="rgba(167,139,250,0.82)" fontSize="7.5" fontWeight="700" letterSpacing="2">SITE B</text>
+        <text x="296" y="171" textAnchor="middle" fill="rgba(167,139,250,0.46)" fontSize="6.5" fontWeight="600" letterSpacing="1">Downlink</text>
+
+        <text x="170" y="178" textAnchor="middle" fill="rgba(96,165,250,0.30)" fontSize="6.5" fontWeight="700" letterSpacing="3">DIRECT SATELLITE RELAY</text>
+      </svg>
+    </div>
   );
 }
 
-function routeReachabilityLabel(viewModel: CommercialScenarioViewModel): string {
-  if (viewModel.siteB) return 'Both sites reachable';
-  if (viewModel.display.destinationEndpointKind === 'geo_gateway') return 'Gateway reachable';
-  return 'Customer site reachable';
-}
-
-function buildRecommendationBenefits(
-  viewModel: CommercialScenarioViewModel,
-  selected: CommercialTechnologyOption | undefined,
-): RecommendationBenefit[] {
-  const benefits: RecommendationBenefit[] = [];
-  const add = (label: string, value: string | undefined) => {
-    if (!value || benefits.some((benefit) => benefit.label === label)) return;
-    benefits.push({ label, value });
-  };
-
-  if (viewModel.recommendation.reasonCategory === 'LOWEST_LATENCY') {
-    add('Latency', formatMs(selected?.rttMs));
-    add('Coverage', routeReachabilityLabel(viewModel));
-    add('Stability', selected?.available ? 'Service confirmed' : selected?.statusLabel);
-  } else {
-    add('Throughput', formatMbps(selected?.downloadMbps));
-    add('Coverage', routeReachabilityLabel(viewModel));
-    add('Stability', selected?.available ? 'Service confirmed' : selected?.statusLabel);
-  }
-
-  add('Latency', formatMs(selected?.rttMs));
-  add('Throughput', formatMbps(selected?.downloadMbps));
-  add('Status', selected?.statusLabel);
-
-  return benefits.slice(0, 3);
-}
-
-function OptionMetrics({ option }: { option: CommercialTechnologyOption | undefined }) {
+function LeoArchitectureDiagram() {
   return (
-    <div className="flex items-center gap-3 text-[12px] font-semibold text-white/78">
-      <span className="flex items-center gap-1.5">
-        <ArrowDown className="h-3.5 w-3.5" aria-hidden="true" />
-        <span className="tabular-nums">{formatMbps(option?.downloadMbps)}</span>
-      </span>
-      <span className="h-3 w-px bg-white/20" />
-      <span className="flex items-center gap-1.5">
-        <Timer className="h-3.5 w-3.5" aria-hidden="true" />
-        <span className="tabular-nums">{formatMs(option?.rttMs)}</span>
-      </span>
+    <div
+      className="relative overflow-hidden rounded-xl border border-fuchsia-200/18 bg-[radial-gradient(ellipse_at_50%_28%,rgba(217,70,239,0.15),transparent_48%),linear-gradient(180deg,rgba(18,10,40,0.78),rgba(15,23,42,0.82))]"
+      aria-hidden="true"
+    >
+      <svg viewBox="0 0 340 196" className="w-full" style={{ display: 'block' }}>
+        {/* Satellite glows */}
+        <ellipse cx="110" cy="44" rx="20" ry="14" fill="rgba(217,70,239,0.16)" />
+        <ellipse cx="230" cy="44" rx="20" ry="14" fill="rgba(217,70,239,0.16)" />
+
+        {/* Site A → LEO Sat A */}
+        <line x1="24" y1="55" x2="110" y2="44" stroke="rgba(34,211,238,0.52)" strokeWidth="1.5" strokeDasharray="4,3" />
+        {/* LEO Sat A → Gateway A (straight down) */}
+        <line x1="110" y1="64" x2="110" y2="128" stroke="rgba(217,70,239,0.48)" strokeWidth="1.2" strokeDasharray="3,3" />
+        {/* Backbone */}
+        <line x1="136" y1="139" x2="204" y2="139" stroke="rgba(99,102,241,0.65)" strokeWidth="2" strokeDasharray="5,3" />
+        {/* Gateway B → LEO Sat B (straight up) */}
+        <line x1="230" y1="128" x2="230" y2="64" stroke="rgba(217,70,239,0.48)" strokeWidth="1.2" strokeDasharray="3,3" />
+        {/* LEO Sat B → Site B */}
+        <line x1="230" y1="44" x2="316" y2="55" stroke="rgba(139,92,246,0.52)" strokeWidth="1.5" strokeDasharray="4,3" />
+
+        {/* LEO Sat A */}
+        <circle cx="110" cy="44" r="20" fill="rgba(88,28,135,0.48)" stroke="rgba(217,70,239,0.45)" strokeWidth="1.2" />
+        <rect x="103" y="38" width="14" height="9" rx="1.5" fill="none" stroke="rgba(240,171,252,0.88)" strokeWidth="1.2" />
+        <line x1="99" y1="42.5" x2="103" y2="42.5" stroke="rgba(240,171,252,0.80)" strokeWidth="1.6" />
+        <line x1="117" y1="42.5" x2="121" y2="42.5" stroke="rgba(240,171,252,0.80)" strokeWidth="1.6" />
+        <text x="110" y="74" textAnchor="middle" fill="rgba(240,171,252,0.75)" fontSize="6.5" fontWeight="700" letterSpacing="1">LEO SAT A</text>
+
+        {/* LEO Sat B */}
+        <circle cx="230" cy="44" r="20" fill="rgba(88,28,135,0.48)" stroke="rgba(217,70,239,0.45)" strokeWidth="1.2" />
+        <rect x="223" y="38" width="14" height="9" rx="1.5" fill="none" stroke="rgba(240,171,252,0.88)" strokeWidth="1.2" />
+        <line x1="219" y1="42.5" x2="223" y2="42.5" stroke="rgba(240,171,252,0.80)" strokeWidth="1.6" />
+        <line x1="237" y1="42.5" x2="241" y2="42.5" stroke="rgba(240,171,252,0.80)" strokeWidth="1.6" />
+        <text x="230" y="74" textAnchor="middle" fill="rgba(240,171,252,0.75)" fontSize="6.5" fontWeight="700" letterSpacing="1">LEO SAT B</text>
+
+        {/* Gateway A */}
+        <rect x="97" y="128" width="26" height="22" rx="4" fill="rgba(49,46,129,0.52)" stroke="rgba(99,102,241,0.50)" strokeWidth="1" />
+        <circle cx="110" cy="135" r="2" fill="rgba(129,140,248,0.88)" />
+        <circle cx="104" cy="144" r="1.6" fill="rgba(129,140,248,0.70)" />
+        <circle cx="116" cy="144" r="1.6" fill="rgba(129,140,248,0.70)" />
+        <line x1="110" y1="137" x2="104" y2="142" stroke="rgba(129,140,248,0.52)" strokeWidth="1" />
+        <line x1="110" y1="137" x2="116" y2="142" stroke="rgba(129,140,248,0.52)" strokeWidth="1" />
+        <text x="110" y="162" textAnchor="middle" fill="rgba(129,140,248,0.62)" fontSize="6" fontWeight="700" letterSpacing="1">GW/SNP</text>
+
+        {/* Gateway B */}
+        <rect x="217" y="128" width="26" height="22" rx="4" fill="rgba(49,46,129,0.52)" stroke="rgba(99,102,241,0.50)" strokeWidth="1" />
+        <circle cx="230" cy="135" r="2" fill="rgba(129,140,248,0.88)" />
+        <circle cx="224" cy="144" r="1.6" fill="rgba(129,140,248,0.70)" />
+        <circle cx="236" cy="144" r="1.6" fill="rgba(129,140,248,0.70)" />
+        <line x1="230" y1="137" x2="224" y2="142" stroke="rgba(129,140,248,0.52)" strokeWidth="1" />
+        <line x1="230" y1="137" x2="236" y2="142" stroke="rgba(129,140,248,0.52)" strokeWidth="1" />
+        <text x="230" y="162" textAnchor="middle" fill="rgba(129,140,248,0.62)" fontSize="6" fontWeight="700" letterSpacing="1">GW/SNP</text>
+
+        {/* Backbone label */}
+        <text x="170" y="132" textAnchor="middle" fill="rgba(129,140,248,0.52)" fontSize="6.5" fontWeight="700" letterSpacing="2">BACKBONE</text>
+
+        {/* Site A */}
+        <circle cx="24" cy="55" r="19" fill="rgba(8,47,73,0.52)" stroke="rgba(34,211,238,0.38)" strokeWidth="1.1" />
+        <path d="M17 60 Q24 51 31 60" fill="none" stroke="rgba(34,211,238,0.88)" strokeWidth="1.4" strokeLinecap="round" />
+        <line x1="24" y1="60" x2="24" y2="65" stroke="rgba(34,211,238,0.62)" strokeWidth="1.2" />
+        <line x1="20" y1="65" x2="28" y2="65" stroke="rgba(34,211,238,0.46)" strokeWidth="1.0" />
+        <text x="24" y="84" textAnchor="middle" fill="rgba(34,211,238,0.80)" fontSize="7" fontWeight="700" letterSpacing="2">SITE A</text>
+
+        {/* Site B */}
+        <circle cx="316" cy="55" r="19" fill="rgba(46,16,101,0.48)" stroke="rgba(139,92,246,0.38)" strokeWidth="1.1" />
+        <circle cx="316" cy="55" r="8" fill="none" stroke="rgba(167,139,250,0.82)" strokeWidth="1.2" />
+        <circle cx="316" cy="55" r="3.5" fill="none" stroke="rgba(167,139,250,0.78)" strokeWidth="1.2" />
+        <circle cx="316" cy="55" r="1.2" fill="rgba(167,139,250,0.96)" />
+        <text x="316" y="84" textAnchor="middle" fill="rgba(167,139,250,0.80)" fontSize="7" fontWeight="700" letterSpacing="2">SITE B</text>
+
+        <text x="170" y="192" textAnchor="middle" fill="rgba(217,70,239,0.28)" fontSize="6.5" fontWeight="700" letterSpacing="3">LEO RELAY CHAIN</text>
+      </svg>
+    </div>
+  );
+}
+
+interface ArchitectureDriver {
+  label: string;
+  icon: ReactNode;
+}
+
+function ArchitectureDriverChip({ label, icon }: ArchitectureDriver) {
+  return (
+    <div className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.045] px-3 py-2 text-[12px] font-semibold text-slate-200 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
+      <span className="shrink-0 text-white/52">{icon}</span>
+      <span>{label}</span>
     </div>
   );
 }
@@ -204,128 +243,122 @@ function SummaryHeroBlock({
   viewModel: CommercialScenarioViewModel;
   card: CommercialNarrativeCardModel;
 }) {
-  const selectedTechnology = primaryRecommendationTechnology(viewModel);
-  const selectedOption = selectedRecommendationOption(viewModel);
-  const isUnavailable = viewModel.recommendation.technology === 'not_available' || !selectedTechnology;
-  const altOption = isUnavailable ? undefined : alternativeRecommendationOption(viewModel, selectedTechnology);
-  const technologyLabel = selectedTechnology?.toUpperCase() ?? viewModel.recommendation.label ?? 'Pending';
-  const heroClass = selectedTechnology
-    ? recommendationHeroClass[selectedTechnology]
-    : 'border-slate-500/30 bg-[linear-gradient(135deg,rgba(15,23,42,0.98),rgba(51,65,85,0.88))] shadow-[0_0_54px_rgba(148,163,184,0.14),inset_0_1px_0_rgba(255,255,255,0.08)]';
-  const accentClass = selectedTechnology
-    ? recommendationAccentClass[selectedTechnology]
-    : 'border-slate-300/28 bg-slate-300/12 text-slate-50';
-  const metricClass = selectedTechnology
-    ? recommendationMetricClass[selectedTechnology]
-    : 'border-slate-300/20 bg-slate-900/25 text-slate-50';
-  const benefits = isUnavailable ? [] : buildRecommendationBenefits(viewModel, selectedOption);
+  const isGeo = viewModel.commercialDisplayTechnology === 'GEO';
+  const isLeo = viewModel.commercialDisplayTechnology === 'LEO';
+  const selectedOption = viewModel.comparison.options.find(
+    (opt) => isDefinitiveTechnology(opt.technology)
+      && opt.technology === viewModel.commercialDisplayTechnology.toLowerCase(),
+  );
+
+  const heroBorder = isGeo
+    ? 'border-blue-200/20 bg-[radial-gradient(circle_at_82%_14%,rgba(96,165,250,0.18),transparent_34%),linear-gradient(180deg,rgba(12,18,46,0.98),rgba(15,23,42,0.96)_66%,rgba(14,30,88,0.90))]'
+    : isLeo
+    ? 'border-fuchsia-200/18 bg-[radial-gradient(circle_at_82%_14%,rgba(217,70,239,0.18),transparent_34%),linear-gradient(180deg,rgba(18,10,40,0.98),rgba(15,23,42,0.96)_66%,rgba(50,15,90,0.90))]'
+    : 'border-slate-500/22 bg-[linear-gradient(180deg,rgba(12,16,30,0.98),rgba(15,23,42,0.96))]';
+
+  const accentTextClass = isGeo ? 'text-blue-300/68' : isLeo ? 'text-fuchsia-300/68' : 'text-slate-400/68';
+
+  const metricCardClass = isGeo
+    ? 'border-blue-200/18 bg-blue-950/25 text-blue-50'
+    : isLeo
+    ? 'border-fuchsia-200/16 bg-fuchsia-950/25 text-fuchsia-50'
+    : 'border-slate-500/18 bg-slate-900/25 text-slate-50';
+
+  const statusToneClass = card.statusTone === 'good'
+    ? 'border-emerald-400/38 bg-emerald-500/12 text-emerald-200'
+    : card.statusTone === 'warning'
+    ? 'border-amber-400/38 bg-amber-500/12 text-amber-200'
+    : card.statusTone === 'danger'
+    ? 'border-rose-400/38 bg-rose-500/12 text-rose-200'
+    : 'border-slate-500/38 bg-slate-700/22 text-slate-300';
+
+  const narrativeText = isGeo
+    ? 'The selected GEO satellite directly relays traffic between both customer locations through uplink and downlink coverage.'
+    : isLeo
+    ? 'The selected LEO service connects both customer locations through two access satellites and the ground backbone.'
+    : card.narrativeStatement;
+
+  const geoDrivers: ArchitectureDriver[] = [
+    { label: 'Direct satellite relay', icon: <Satellite className="h-3.5 w-3.5" /> },
+    { label: 'Stable GEO coverage', icon: <CheckCircle2 className="h-3.5 w-3.5" /> },
+    { label: 'Longer orbital distance', icon: <Timer className="h-3.5 w-3.5" /> },
+  ];
+
+  const leoDrivers: ArchitectureDriver[] = [
+    { label: 'Low-orbit access', icon: <Satellite className="h-3.5 w-3.5" /> },
+    { label: 'Ground backbone segment', icon: <Network className="h-3.5 w-3.5" /> },
+    { label: 'Two serving satellites', icon: <Route className="h-3.5 w-3.5" /> },
+  ];
+
+  const drivers = isGeo ? geoDrivers : isLeo ? leoDrivers : [];
 
   return (
     <div className="space-y-4">
-      <div className={`relative min-h-[12.5rem] overflow-hidden rounded-xl border p-5 commercial-recommendation-hero ${heroClass}`}>
-        <div className="pointer-events-none absolute -right-10 -top-10 h-32 w-32 rounded-full bg-white/16 blur-3xl" />
-        <div className="pointer-events-none absolute inset-x-6 bottom-0 h-px bg-gradient-to-r from-transparent via-white/40 to-transparent" />
-
-        <div className="relative flex h-full min-h-[10.5rem] flex-col justify-between">
-          <div className="flex items-start justify-between gap-3">
-            <div className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] ${accentClass}`}>
-              <Star className="h-3.5 w-3.5 fill-current" aria-hidden="true" />
-              <span>{isUnavailable ? 'Verdict' : 'Recommended'}</span>
-            </div>
-            <span className="rounded-full border border-white/15 bg-white/10 px-2.5 py-1 text-[9px] font-bold uppercase tracking-[0.14em] text-white/70">
-              Step {card.stepNumber}
-            </span>
+      {/* Hero diagram card */}
+      <div className={`rounded-xl border p-4 shadow-[0_0_60px_rgba(0,0,0,0.40),inset_0_1px_0_rgba(255,255,255,0.08)] ${heroBorder}`}>
+        <div className="mb-3">
+          <div className={`text-[9px] font-bold uppercase tracking-[0.24em] ${accentTextClass}`}>
+            {isGeo ? 'GEO Selected' : isLeo ? 'LEO Selected' : 'Service Outcome'}
           </div>
+          <div className="mt-0.5 text-[14px] font-bold text-white/90">
+            {isGeo ? 'Direct GEO Relay' : isLeo ? 'LEO Relay Chain' : 'Connectivity Path'}
+          </div>
+        </div>
 
-          <div className="relative py-4">
-            <div className="text-[50px] font-black leading-none tracking-normal text-white drop-shadow-[0_0_24px_rgba(255,255,255,0.18)]">
-              {isUnavailable ? 'No route' : technologyLabel}
+        {isGeo && <GeoArchitectureDiagram />}
+        {isLeo && <LeoArchitectureDiagram />}
+
+        <p className="mt-3 text-[13px] font-semibold leading-[1.55] text-white/76">
+          {narrativeText}
+        </p>
+      </div>
+
+      {/* Performance outcome */}
+      <section>
+        <div className="mb-2 text-[9px] font-bold uppercase tracking-[0.18em] text-slate-500">
+          Performance Outcome
+        </div>
+        <div className="grid grid-cols-3 gap-2">
+          <div className={`rounded-lg border px-2.5 py-2.5 ${metricCardClass}`}>
+            <div className="flex items-center gap-1 text-[8px] font-bold uppercase tracking-[0.12em] text-white/46">
+              <ArrowDown className="h-2.5 w-2.5" aria-hidden="true" />
+              <span>Throughput</span>
             </div>
-            <div className="mt-2 max-w-[17rem] text-[13px] font-semibold leading-[1.4] text-white/76">
-              {isUnavailable
-                ? 'No service can be recommended for this scenario yet.'
-                : viewModel.recommendation.message || card.narrativeStatement}
+            <div className="mt-1.5 text-[15px] font-black leading-none tabular-nums text-white">
+              {formatMbps(selectedOption?.downloadMbps)}
             </div>
           </div>
-
-          <div className="grid grid-cols-2 gap-2.5">
-            <div className={`rounded-lg border px-3 py-2.5 ${metricClass}`}>
-              <div className="flex items-center gap-1.5 text-[9px] font-bold uppercase tracking-[0.14em] text-white/55">
-                <ArrowDown className="h-3 w-3" aria-hidden="true" />
-                <span>Throughput</span>
-              </div>
-              <div className="mt-1 text-[19px] font-black leading-none tabular-nums">
-                {formatMbps(selectedOption?.downloadMbps)}
-              </div>
+          <div className={`rounded-lg border px-2.5 py-2.5 ${metricCardClass}`}>
+            <div className="flex items-center gap-1 text-[8px] font-bold uppercase tracking-[0.12em] text-white/46">
+              <Timer className="h-2.5 w-2.5" aria-hidden="true" />
+              <span>Latency</span>
             </div>
-            <div className={`rounded-lg border px-3 py-2.5 ${metricClass}`}>
-              <div className="flex items-center gap-1.5 text-[9px] font-bold uppercase tracking-[0.14em] text-white/55">
-                <Timer className="h-3 w-3" aria-hidden="true" />
-                <span>Latency</span>
-              </div>
-              <div className="mt-1 text-[19px] font-black leading-none tabular-nums">
-                {formatMs(selectedOption?.rttMs)}
-              </div>
+            <div className="mt-1.5 text-[15px] font-black leading-none tabular-nums text-white">
+              {formatMs(selectedOption?.rttMs)}
+            </div>
+          </div>
+          <div className={`rounded-lg border px-2.5 py-2.5 ${metricCardClass}`}>
+            <div className="flex items-center gap-1 text-[8px] font-bold uppercase tracking-[0.12em] text-white/46">
+              <Wifi className="h-2.5 w-2.5" aria-hidden="true" />
+              <span>Service</span>
+            </div>
+            <div className={`mt-1.5 inline-flex items-center rounded-full border px-1.5 py-0.5 text-[8.5px] font-bold uppercase tracking-[0.06em] leading-none ${statusToneClass}`}>
+              {viewModel.executiveSummary.statusLabel}
             </div>
           </div>
         </div>
-      </div>
+      </section>
 
-      {benefits.length > 0 && (
+      {/* Why it performs this way */}
+      {drivers.length > 0 && (
         <section>
           <div className="mb-2 text-[9px] font-bold uppercase tracking-[0.18em] text-slate-500">
-            Why this route wins
+            Why it performs this way
           </div>
-          <div className="grid grid-cols-3 gap-2">
-            {benefits.map((benefit) => (
-              <div
-                key={`${benefit.label}:${benefit.value}`}
-                className="min-h-[5.7rem] rounded-lg border border-white/10 bg-white/[0.045] p-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]"
-              >
-                <div className="flex items-center gap-1.5 text-[10px] font-bold text-emerald-100">
-                  <CheckCircle2 className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-                  <span className="truncate">{benefit.label}</span>
-                </div>
-                <div className="mt-2 line-clamp-2 text-[13px] font-black leading-tight text-white">
-                  {benefit.value}
-                </div>
-              </div>
+          <div className="space-y-1.5">
+            {drivers.map((driver) => (
+              <ArchitectureDriverChip key={driver.label} label={driver.label} icon={driver.icon} />
             ))}
-          </div>
-        </section>
-      )}
-
-      {altOption && (
-        <section>
-          <div className="mb-1.5 text-[9px] font-bold uppercase tracking-[0.18em] text-slate-500">
-            Alternative
-          </div>
-          <div className="rounded-lg border border-slate-700/65 bg-[rgba(15,23,42,0.55)] px-3.5 py-3 opacity-82">
-            <div className="flex items-center justify-between gap-2">
-              <div className="min-w-0">
-                <div className="text-[9px] font-bold uppercase tracking-[0.14em] text-slate-600">
-                  Alternative
-                </div>
-                <div className="mt-0.5 text-[18px] font-black leading-none text-slate-200">
-                  {altOption.label}
-                </div>
-              </div>
-              <span
-                className={[
-                  'shrink-0 rounded-full border px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.07em]',
-                  !altOption.available || altOption.status === 'blocked'
-                    ? 'border-rose-400/35 bg-rose-500/10 text-rose-200'
-                    : altOption.status === 'limited'
-                      ? 'border-amber-400/35 bg-amber-500/10 text-amber-200'
-                      : 'border-emerald-400/35 bg-emerald-500/10 text-emerald-200',
-                ].join(' ')}
-              >
-                {altOption.statusLabel}
-              </span>
-            </div>
-            <div className="mt-2">
-              <OptionMetrics option={altOption} />
-            </div>
           </div>
         </section>
       )}
