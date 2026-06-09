@@ -927,7 +927,7 @@ function CommercialNarrativePanel({
     <div
       className={[
         'absolute right-0 top-0 z-40 w-[380px]',
-        isSummary ? 'bottom-0' : 'bottom-[5.75rem]',
+        'bottom-[5.75rem]',
         'transition-transform',
         'duration-200',
         isOpen ? 'translate-x-0 pointer-events-auto' : 'translate-x-full pointer-events-none',
@@ -964,10 +964,10 @@ function CommercialNarrativePanel({
 
           {/* Eyebrow + close */}
           <div className="flex items-center justify-between gap-3">
-            <div className="flex items-center gap-2">
+            <div className="inline-flex items-center gap-3 rounded-2xl border border-white/10 bg-slate-950/70 px-3 py-2 shadow-[0_18px_60px_-45px_rgba(15,23,42,0.85)]">
               <span
                 className={[
-                  'flex h-6 w-6 shrink-0 items-center justify-center rounded-full border',
+                  'flex h-9 w-9 shrink-0 items-center justify-center rounded-full border',
                   isAccess
                     ? 'border-cyan-200/45 bg-cyan-300/12 text-cyan-100 shadow-[0_0_18px_rgba(34,211,238,0.18)]'
                     : isSatellite
@@ -979,7 +979,7 @@ function CommercialNarrativePanel({
               >
                 {segmentIcon[card.segmentId]}
               </span>
-              <span className={`text-[9px] font-bold uppercase tracking-[0.16em] ${isAccess ? 'text-cyan-100/70' : isSatellite ? 'text-indigo-100/70' : isDestination ? 'text-emerald-100/70' : 'text-slate-500'}`}>
+              <span className={`text-sm font-semibold uppercase tracking-[0.12em] ${isAccess ? 'text-cyan-100' : isSatellite ? 'text-indigo-100' : isDestination ? 'text-emerald-100' : 'text-slate-100'}`}>
                 {card.eyebrow}
               </span>
             </div>
@@ -993,37 +993,15 @@ function CommercialNarrativePanel({
             </button>
           </div>
 
-          {/* Step navigation */}
-          <div className="mt-3 flex items-center justify-between">
-            <button
-              type="button"
-              onClick={() => prevId && onSegmentChange(prevId)}
-              disabled={!prevId}
-              className="flex h-7 w-7 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-slate-800 hover:text-slate-200 disabled:cursor-not-allowed disabled:opacity-30"
-              aria-label="Previous segment"
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </button>
-            <span className={`text-[11px] font-semibold ${isAccess ? 'uppercase tracking-[0.12em] text-cyan-100/85' : isSatellite ? 'uppercase tracking-[0.12em] text-indigo-100/85' : isDestination ? 'uppercase tracking-[0.12em] text-emerald-100/85' : 'text-slate-400'}`}>
-              {isAccess ? `Step ${card.stepNumber} of ${card.stepTotal}` : `Step ${card.stepNumber} of ${card.stepTotal}`}
-            </span>
-            <button
-              type="button"
-              onClick={() => nextId && onSegmentChange(nextId)}
-              disabled={!nextId}
-              className="flex h-7 w-7 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-slate-800 hover:text-slate-200 disabled:cursor-not-allowed disabled:opacity-30"
-              aria-label="Next segment"
-            >
-              <ChevronRight className="h-4 w-4" />
-            </button>
-          </div>
 
           {!isSummary && (
             <>
               {/* Title */}
-              <h2 className="mt-3 text-[20px] font-bold leading-tight tracking-tight text-white">
-                {card.title}
-              </h2>
+              {card.title !== card.eyebrow && (
+                <h2 className="mt-3 text-[20px] font-bold leading-tight tracking-tight text-white">
+                  {card.title}
+                </h2>
+              )}
 
               {/* Status badge */}
               <span className={`mt-2 inline-flex rounded-full border px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.08em] ${panelStatusBadgeClass}`}>
@@ -1099,19 +1077,6 @@ function CommercialNarrativePanel({
           )}
         </div>
 
-        {/* ── Footer ─────────────────────────────────────────────────── */}
-        {!isSummary && (
-          <div className="flex-shrink-0 border-t border-[rgba(30,41,59,0.80)] px-5 py-4">
-            <button
-              type="button"
-              onClick={onViewFullAnalysis}
-              className="inline-flex h-9 w-full items-center justify-center gap-2 rounded-lg border border-white/10 bg-white px-4 text-sm font-semibold text-slate-950 transition-colors hover:bg-slate-100"
-            >
-              <span>View full analysis</span>
-              <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
-            </button>
-          </div>
-        )}
       </div>
     </div>
   );

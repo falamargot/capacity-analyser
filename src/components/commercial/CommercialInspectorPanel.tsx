@@ -362,16 +362,6 @@ function CommercialInspectorPanel({
         </div>
       </div>
 
-      <div className="border-t border-slate-800/70 p-4">
-        <button
-          type="button"
-          onClick={onViewFullAnalysis}
-          className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-slate-950 px-4 text-sm font-semibold text-white transition-colors hover:bg-slate-800 dark:bg-white dark:text-slate-950 dark:hover:bg-slate-200"
-        >
-          <span>View full analysis</span>
-          <ExternalLink className="h-4 w-4" />
-        </button>
-      </div>
     </aside>
   );
 }

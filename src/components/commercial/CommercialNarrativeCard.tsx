@@ -76,22 +76,23 @@ function CommercialNarrativeCard({
 
         <div className="flex min-w-0 items-start justify-between gap-3">
           <div className="min-w-0">
-            <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.16em] text-sky-300">
-              <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-sky-300/25 bg-sky-300/10 text-sky-100">
+            <div className="inline-flex items-center gap-3 rounded-2xl border border-sky-300/25 bg-slate-900/75 px-3 py-2 shadow-[0_18px_60px_-45px_rgba(15,23,42,0.85)]">
+              <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-sky-300/25 bg-sky-300/10 text-sky-100">
                 {iconBySegment[card.segmentId]}
               </span>
-              <span className="min-w-0 truncate">{card.eyebrow}</span>
+              <span className="min-w-0 truncate text-sm font-semibold uppercase tracking-[0.12em] text-sky-100">
+                {card.eyebrow}
+              </span>
             </div>
-            <h2 className={`${compact ? 'mt-2 text-xl' : 'mt-3 text-2xl'} break-words font-semibold leading-tight text-white`}>
-              {card.title}
-            </h2>
+            {card.title !== card.eyebrow && (
+              <h2 className={`${compact ? 'mt-2 text-xl' : 'mt-3 text-2xl'} break-words font-semibold leading-tight text-white`}>
+                {card.title}
+              </h2>
+            )}
           </div>
 
           <div className="shrink-0 text-right">
-            <div className="rounded-full border border-slate-700/80 bg-slate-900/80 px-2.5 py-1 text-[9px] font-bold uppercase tracking-[0.16em] text-sky-200">
-              Step {card.stepNumber} of {card.stepTotal}
-            </div>
-            <span className={`mt-2 inline-flex rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.08em] ${statusClassName[card.statusTone]}`}>
+            <span className={`inline-flex rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.08em] ${statusClassName[card.statusTone]}`}>
               {card.statusLabel}
             </span>
           </div>
@@ -132,16 +133,6 @@ function CommercialNarrativeCard({
           </div>
         </div>
 
-        <div className="mt-auto pt-4">
-          <button
-            type="button"
-            onClick={onViewFullAnalysis}
-            className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-lg border border-white/10 bg-white px-4 text-sm font-semibold text-slate-950 transition-colors hover:bg-slate-200"
-          >
-            <span>View full analysis</span>
-            <ExternalLink className="h-4 w-4" aria-hidden="true" />
-          </button>
-        </div>
       </section>
     </aside>
   );
