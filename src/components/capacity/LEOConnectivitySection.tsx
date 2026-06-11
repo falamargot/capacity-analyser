@@ -223,6 +223,19 @@ const NO_LEO_BUDGET_TONE = {
   accent: '#64748b',
 };
 
+const LayerHeading = ({ title, detail }: { title: string; detail?: string }) => (
+  <div className="border-t border-slate-200 pt-3 first:border-t-0 first:pt-0 dark:border-slate-800">
+    <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
+      {title}
+    </div>
+    {detail && (
+      <div className="mt-0.5 text-[11px] leading-4 text-slate-400 dark:text-slate-500">
+        {detail}
+      </div>
+    )}
+  </div>
+);
+
 const linkBudgetTone = (d: LeoRFDebugInfo | null) => {
   if (!d) return NO_LEO_BUDGET_TONE;
 
@@ -1330,6 +1343,7 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
       )}
 
       <div className="space-y-4">
+        <LayerHeading title="Access Layer" detail="RF details, terminal characteristics, weather loss, elevation and visibility." />
         {/* ── S2S mode: two independent terminal cards ── */}
         {isS2S && terminalTypeB != null && onTerminalTypeBChange != null ? (
           <div className="space-y-1.5">
@@ -1407,6 +1421,7 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
           />
         )}
 
+        <LayerHeading title="Space Segment" detail="Serving satellites, beam state, RF budget and capacity constraints." />
         <div className="space-y-2">
           {s2sServiceStatusBanner ?? (
             singleSiteLeoSatelliteBanner ? (
@@ -1440,6 +1455,7 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
           popName={s2sPopName}
         />
 
+        <LayerHeading title="Ground Segment" detail="SNP, PoP/backbone and feeder path details." />
         {/* Radio Path */}
         <CollapsibleSection
           storageKey="leo-radio-path"
@@ -1684,6 +1700,7 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
           )}
         </CollapsibleSection>
 
+        <LayerHeading title="End-to-End Analysis" detail="Final latency, throughput, availability and bottleneck reasoning." />
         {/* Latency Breakdown */}
         <LatencyBreakdownCard
           accentColor="#db2777"

@@ -3574,6 +3574,15 @@ const App: React.FC = () => {
     return `${siteASignature}|${siteBSignature}`;
   })();
 
+  const showEngineeringRouteStatus = Boolean(
+    !selectedIss
+    && !selectedGateway
+    && !inspectedSNP
+    && !selectedMoon
+    && !selectedSatellite
+    && activeAnalysisPoint
+  );
+
   const commercialAutoSelectedSiteSignatureRef = useRef<string | null>(null);
 
   useEffect(() => {
@@ -3752,8 +3761,10 @@ const App: React.FC = () => {
                         terminals: {
                           geoRFClassId: geoRFClassIdA,
                           geoTerminalType,
+                          onGeoTerminalTypeChange: handleGeoTerminalTypeChange,
                           onGeoRFClassChange: (id) => { setGeoRFClassIdA(id); setGeoRFCustomParamsA(null); },
                           leoTerminalType,
+                          onLeoTerminalTypeChange: handleLeoTerminalTypeChange,
                           leoTerminalModelId,
                           onLeoTerminalModelIdChange: setLeoTerminalModelId,
                         },
@@ -3773,8 +3784,10 @@ const App: React.FC = () => {
                         terminals: {
                           geoRFClassId: geoRFClassIdB,
                           geoTerminalType: geoTerminalTypeB,
+                          onGeoTerminalTypeChange: handleGeoTerminalTypeBChange,
                           onGeoRFClassChange: (id) => { setGeoRFClassIdB(id); setGeoRFCustomParamsB(null); },
                           leoTerminalType: leoTerminalTypeB,
+                          onLeoTerminalTypeChange: handleLeoTerminalTypeBChange,
                           leoTerminalModelId: leoTerminalModelIdB,
                           onLeoTerminalModelIdChange: setLeoTerminalModelIdB,
                         },
@@ -4707,18 +4720,20 @@ const App: React.FC = () => {
                 style={{ width: desktopSidebarWidth }}
               >
                 <>
-                  <SidebarHeroCard
-                    eyebrow={desktopSidebarHero.eyebrow}
-                    title={desktopSidebarHero.title}
-                    subtitle={desktopSidebarHero.subtitle}
-                    footer={desktopSidebarHero.footer}
-                    backgroundImageUrl={desktopSidebarHero.backgroundImageUrl}
-                    backgroundImageLabel={desktopSidebarHero.backgroundImageLabel}
-                    tone={desktopSidebarHero.tone}
-                    badges={desktopSidebarHero.badges}
-                    compact={useCompactDesktopSidebar}
-                    onReset={handleResetView}
-                  />
+                  {!showEngineeringRouteStatus && (
+                    <SidebarHeroCard
+                      eyebrow={desktopSidebarHero.eyebrow}
+                      title={desktopSidebarHero.title}
+                      subtitle={desktopSidebarHero.subtitle}
+                      footer={desktopSidebarHero.footer}
+                      backgroundImageUrl={desktopSidebarHero.backgroundImageUrl}
+                      backgroundImageLabel={desktopSidebarHero.backgroundImageLabel}
+                      tone={desktopSidebarHero.tone}
+                      badges={desktopSidebarHero.badges}
+                      compact={useCompactDesktopSidebar}
+                      onReset={handleResetView}
+                    />
+                  )}
 
                   {!selectedIss && !selectedGateway && !inspectedSNP && !selectedMoon && !selectedSatellite && activeAnalysisPoint && (
                     <MissionKpiBar

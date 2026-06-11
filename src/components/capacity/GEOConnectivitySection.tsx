@@ -112,6 +112,19 @@ const DirectionPill = ({ dir, aggregate = false }: { dir: string; aggregate?: bo
   }`}>{dir}</span>
 );
 
+const LayerHeading = ({ title, detail }: { title: string; detail?: string }) => (
+  <div className="border-t border-slate-200 pt-3 first:border-t-0 first:pt-0 dark:border-slate-800">
+    <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
+      {title}
+    </div>
+    {detail && (
+      <div className="mt-0.5 text-[11px] leading-4 text-slate-400 dark:text-slate-500">
+        {detail}
+      </div>
+    )}
+  </div>
+);
+
 interface LinkBudgetSummaryCardProps {
   linkMode: LinkMode;
   result: DualSegmentResult | null;
@@ -1137,7 +1150,9 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
         </div>
       )}
 
-<div className="mb-4">
+      <LayerHeading title="Access Layer" detail="RF details, terminal characteristics, weather loss, elevation and visibility." />
+
+      <div className="mb-4 mt-2">
         {isMeshOrP2P && terminalTypeB != null && onTerminalTypeBChange ? (
           <>
             <div className="grid grid-cols-2 items-stretch gap-2">
@@ -1291,6 +1306,8 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
         )}
       </div>
 
+      <LayerHeading title="Space Segment" detail="Serving satellite, coverage, beam, footprint and link-budget metrics." />
+
       {candidateCoverages.length > 0 && (!isMeshOrP2P || candidateCoveragesB.length > 0) && (() => {
         // In MESH/P2P the uplink and downlink candidates swap with the active direction:
         //   A→B: uplink = A-side (selectable), downlink = B-side (display only)
@@ -1299,7 +1316,7 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
         const bUplinks   = candidateCoveragesB.filter(c =>  c.isUplink);
         const bDownlinks = candidateCoveragesB.filter(c => !c.isUplink);
         return (
-          <div className="mb-4">
+          <div className="mb-4 mt-2">
             <CoverageSelector
               candidateCoverages={candidateCoverages}
               bestCoverage={bestCoverage}
@@ -1327,6 +1344,8 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
         isMeshOrP2P={isMeshOrP2P}
         gatewayName={gatewayName}
       />
+
+      <LayerHeading title="End-to-End Analysis" detail="Final throughput, latency, availability, bottleneck and limiting factor." />
 
       <div className="mt-4 space-y-4">
         <LinkBudgetSummaryCard
