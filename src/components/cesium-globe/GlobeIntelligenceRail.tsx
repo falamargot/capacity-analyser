@@ -28,6 +28,9 @@ interface GlobeIntelligenceRailProps {
     viewerRef: React.RefObject<CesiumViewerType | null>;
     isFullscreen: boolean;
     onToggleFullscreen: () => void;
+    variant?: 'full' | 'camera-only';
+    placement?: 'left' | 'right';
+    rightOffset?: string;
     // Category A state + toggles
     countryOverlayMode: CountryOverlayMode;
     onCountryOverlayModeChange: (mode: CountryOverlayMode) => void;
@@ -160,6 +163,9 @@ const GlobeIntelligenceRail: React.FC<GlobeIntelligenceRailProps> = ({
     viewerRef,
     isFullscreen,
     onToggleFullscreen,
+    variant = 'full',
+    placement = 'right',
+    rightOffset,
     countryOverlayMode,
     onCountryOverlayModeChange,
     showAggregatedConnectivity,
@@ -230,19 +236,48 @@ const GlobeIntelligenceRail: React.FC<GlobeIntelligenceRailProps> = ({
                 case '+': case '=': e.preventDefault(); handleZoomIn(); break;
                 case '-': e.preventDefault(); handleZoomOut(); break;
                 case '0': e.preventDefault(); handleReset(); break;
-                case 'l': case 'L': e.preventDefault(); onToggleLighting?.(); break;
-                case 'p': case 'P': e.preventDefault(); onToggleFootprintProjection?.(); break;
-                case 't': case 'T': e.preventDefault(); onToggleSatelliteTrajectory?.(); break;
+                case 'l': case 'L':
+                    if (variant === 'full') {
+                        e.preventDefault();
+                        onToggleLighting?.();
+                    }
+                    break;
+                case 'p': case 'P':
+                    if (variant === 'full') {
+                        e.preventDefault();
+                        onToggleFootprintProjection?.();
+                    }
+                    break;
+                case 't': case 'T':
+                    if (variant === 'full') {
+                        e.preventDefault();
+                        onToggleSatelliteTrajectory?.();
+                    }
+                    break;
             }
         };
         document.addEventListener('keydown', handler);
         return () => document.removeEventListener('keydown', handler);
-    }, [handleZoomIn, handleZoomOut, handleReset, onToggleLighting, onToggleFootprintProjection, onToggleSatelliteTrajectory]);
+    }, [handleZoomIn, handleZoomOut, handleReset, onToggleLighting, onToggleFootprintProjection, onToggleSatelliteTrajectory, variant]);
 
     const railSurface = 'rounded-2xl border border-white/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.97),rgba(248,250,252,0.94))] shadow-[0_8px_30px_-16px_rgba(15,23,42,0.45)] dark:border-slate-700/80 dark:bg-[linear-gradient(180deg,rgba(15,23,42,0.96),rgba(30,41,59,0.88))]';
     const isMobile = isPhone || isMobileViewport;
     const showCompactFullscreenControls = isMobile && isFullscreen;
+    const showExtendedControls = variant === 'full' && !showCompactFullscreenControls;
     const railTopClass = showCompactFullscreenControls ? 'top-3' : isMobile ? 'top-32' : 'top-3';
+    const usesCustomRightOffset = placement === 'right' && Boolean(rightOffset);
+    const railSideClass = placement === 'left'
+        ? 'left-3 items-start'
+        : usesCustomRightOffset
+            ? 'items-end'
+            : 'right-3 items-end';
+    const railStyle: React.CSSProperties | undefined = usesCustomRightOffset
+        ? { right: rightOffset }
+        : undefined;
+    const railZClass = variant === 'camera-only' ? 'z-50' : 'z-30';
+    const popoverSideClass = placement === 'left'
+        ? 'left-full ml-2'
+        : 'right-full mr-2';
     const cameraControls = (
         <div className={`${railSurface} flex w-12 flex-col items-center gap-0.5 p-1.5`}>
             <CameraButton icon={<Plus className="h-4 w-4" />} onClick={handleZoomIn} title="Zoom in (+)" />
@@ -258,12 +293,15 @@ const GlobeIntelligenceRail: React.FC<GlobeIntelligenceRailProps> = ({
     );
 
     return (
-        <div className={`absolute right-3 ${railTopClass} z-30 flex flex-col items-end gap-2`}>
+        <div
+            className={`absolute ${railSideClass} ${railTopClass} ${railZClass} flex flex-col gap-2`}
+            style={railStyle}
+        >
             {/* Camera controls */}
             {cameraControls}
 
             {/* Category A — analytical toggles (always visible) */}
-            {!showCompactFullscreenControls && (
+            {showExtendedControls && (
                 <div className={`${railSurface} flex w-12 flex-col items-center gap-0.5 p-1.5`}>
                     <RailButton
                         icon={<Globe className="h-4 w-4" />}
@@ -311,7 +349,7 @@ const GlobeIntelligenceRail: React.FC<GlobeIntelligenceRailProps> = ({
             )}
 
             {/* Category B — display preferences behind ⋯ */}
-            {!showCompactFullscreenControls && (
+            {showExtendedControls && (
                 <div className="relative" ref={overflowRef}>
                     <div className={`${railSurface} flex w-12 flex-col items-center p-1.5`}>
                         <CameraButton
@@ -324,7 +362,7 @@ const GlobeIntelligenceRail: React.FC<GlobeIntelligenceRailProps> = ({
 
                     {isOverflowOpen && (
                         <div
-                            className="absolute right-full top-0 z-[1310] mr-2 w-[272px] max-w-[calc(100vw-5rem)] overflow-hidden rounded-[20px] border border-white/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,250,252,0.96))] p-2.5 shadow-[0_24px_56px_-28px_rgba(15,23,42,0.65)] ring-1 ring-slate-200/70 backdrop-blur-xl dark:border-slate-700/80 dark:bg-[linear-gradient(180deg,rgba(15,23,42,0.98),rgba(2,6,23,0.96))] dark:ring-slate-700/80"
+                            className={`absolute ${popoverSideClass} top-0 z-[1310] w-[272px] max-w-[calc(100vw-5rem)] overflow-hidden rounded-[20px] border border-white/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,250,252,0.96))] p-2.5 shadow-[0_24px_56px_-28px_rgba(15,23,42,0.65)] ring-1 ring-slate-200/70 backdrop-blur-xl dark:border-slate-700/80 dark:bg-[linear-gradient(180deg,rgba(15,23,42,0.98),rgba(2,6,23,0.96))] dark:ring-slate-700/80`}
                             role="dialog"
                             aria-label="Display preferences"
                         >

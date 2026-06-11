@@ -2229,41 +2229,42 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                 />
             )}
 
-            {!commercialMode && (
-                <GlobeIntelligenceRail
-                    viewerRef={viewerRef}
-                    isFullscreen={isFullscreen}
-                    onToggleFullscreen={onToggleFullscreen}
-                    countryOverlayMode={effectiveCountryOverlayMode}
-                    onCountryOverlayModeChange={onCountryOverlayModeChange ?? (() => {})}
-                    showAggregatedConnectivity={showAggregatedConnectivity}
-                    onToggleAggregatedConnectivity={onToggleAggregatedConnectivity ?? (() => {})}
-                    airTrafficEnabled={airTrafficEnabled}
-                    onToggleAirTraffic={onToggleAirTraffic ?? (() => {})}
-                    maritimeTrafficEnabled={maritimeTrafficEnabled}
-                    onToggleMaritimeTraffic={onToggleMaritimeTraffic ?? (() => {})}
-                    issLiveEnabled={issLiveEnabled}
-                    onToggleIssLive={onToggleIssLive ?? (() => {})}
-                    enableLighting={enableLighting}
-                    onToggleLighting={onToggleLighting}
-                    showSatelliteTrajectory={showSatelliteTrajectory}
-                    onToggleSatelliteTrajectory={onToggleSatelliteTrajectory}
-                    showFootprintProjection={showFootprintProjection}
-                    onToggleFootprintProjection={onToggleFootprintProjection}
-                    showFlowAnimation={showFlowAnimation}
-                    onToggleFlowAnimation={onToggleFlowAnimation}
-                    sizeScale={sizeScale}
-                    onSizeScaleChange={onSizeScaleChange}
-                    onSizeScaleReset={onSizeScaleReset}
-                    sceneMode={sceneMode}
-                    onSceneModeChange={onSceneModeChange}
-                    basemapOptions={basemapOptions.map(({ id, label }) => ({ id, label }))}
-                    selectedBasemapId={selectedBasemapId}
-                    onBasemapChange={setSelectedBasemapId}
-                    isPhone={isPhone}
-                    isMobileViewport={isMobileViewport}
-                />
-            )}
+            <GlobeIntelligenceRail
+                viewerRef={viewerRef}
+                isFullscreen={isFullscreen}
+                onToggleFullscreen={onToggleFullscreen}
+                variant={commercialMode ? 'camera-only' : 'full'}
+                placement="right"
+                rightOffset={commercialMode && !isFullscreen ? 'calc(380px + 1rem)' : undefined}
+                countryOverlayMode={effectiveCountryOverlayMode}
+                onCountryOverlayModeChange={onCountryOverlayModeChange ?? (() => {})}
+                showAggregatedConnectivity={showAggregatedConnectivity}
+                onToggleAggregatedConnectivity={onToggleAggregatedConnectivity ?? (() => {})}
+                airTrafficEnabled={airTrafficEnabled}
+                onToggleAirTraffic={onToggleAirTraffic ?? (() => {})}
+                maritimeTrafficEnabled={maritimeTrafficEnabled}
+                onToggleMaritimeTraffic={onToggleMaritimeTraffic ?? (() => {})}
+                issLiveEnabled={issLiveEnabled}
+                onToggleIssLive={onToggleIssLive ?? (() => {})}
+                enableLighting={enableLighting}
+                onToggleLighting={onToggleLighting}
+                showSatelliteTrajectory={showSatelliteTrajectory}
+                onToggleSatelliteTrajectory={onToggleSatelliteTrajectory}
+                showFootprintProjection={showFootprintProjection}
+                onToggleFootprintProjection={onToggleFootprintProjection}
+                showFlowAnimation={showFlowAnimation}
+                onToggleFlowAnimation={onToggleFlowAnimation}
+                sizeScale={sizeScale}
+                onSizeScaleChange={onSizeScaleChange}
+                onSizeScaleReset={onSizeScaleReset}
+                sceneMode={sceneMode}
+                onSceneModeChange={onSceneModeChange}
+                basemapOptions={basemapOptions.map(({ id, label }) => ({ id, label }))}
+                selectedBasemapId={selectedBasemapId}
+                onBasemapChange={setSelectedBasemapId}
+                isPhone={isPhone}
+                isMobileViewport={isMobileViewport}
+            />
 
             {!commercialMode && selection.type === 'target' && selection.targetType === 'point' && coverageSwitcherCoverages.length >= 2 && onCoverageSwitcherSelect && (
                 <CoverageSwitcherVertical

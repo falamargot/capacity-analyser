@@ -6,7 +6,7 @@ import SplashScreen from './components/SplashScreen';
 import AircraftSelector from './components/AircraftSelector';
 import VesselSelector from './components/VesselSelector';
 import SatelliteScopeFilter, { SatelliteScope } from './components/SatelliteScopeFilter';
-import { ChevronUp, Keyboard, MapPin, Plane, Radio, Search, Satellite, Ship, Waypoints, X } from 'lucide-react';
+import { ChevronDown, ChevronUp, Keyboard, MapPin, Plane, Radio, Search, Satellite, Ship, Waypoints, X } from 'lucide-react';
 import { ThemeSelector } from './components/ThemeSelector';
 import MobileAnalysisSummary from './components/layout/MobileAnalysisSummary';
 import SidebarHeroCard from './components/layout/SidebarHeroCard';
@@ -634,6 +634,7 @@ const App: React.FC = () => {
   const [isSatelliteModalOpen, setIsSatelliteModalOpen] = useState(false);
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
   const [isTargetSourcesMenuOpen, setIsTargetSourcesMenuOpen] = useState(false);
+  const [isDesktopHeaderCollapsed, setIsDesktopHeaderCollapsed] = useState(false);
   const [commandPaletteQuery, setCommandPaletteQuery] = useState('');
   const [isHelpMenuOpen, setIsHelpMenuOpen] = useState(false);
   const {
@@ -2922,6 +2923,12 @@ const App: React.FC = () => {
     if (isCommandPaletteOpen) setIsGlobeModePeekPressed(false);
   }, [isCommandPaletteOpen]);
 
+  useEffect(() => {
+    if (!isDesktopHeaderCollapsed) return;
+    setIsTargetSourcesMenuOpen(false);
+    setIsHelpMenuOpen(false);
+  }, [isDesktopHeaderCollapsed]);
+
   useKeyboardShortcuts({
     onScopeChange: handleSatelliteScopeChange,
     onToggleFullscreen: () => setIsFullscreen((current) => !current),
@@ -3865,6 +3872,56 @@ const App: React.FC = () => {
     </div>
   );
 
+  const headerSiteAConfig = {
+    endpoint: routeSelectorRoute.origin,
+    coordinates: activeAnalysisPoint
+      ? { lat: activeAnalysisPoint.lat, lng: activeAnalysisPoint.lng }
+      : undefined,
+    roleLabel: 'Site A',
+    fallback: 'Set origin',
+    onSelect: (location: { lat: number; lng: number }) => handleLocationSelect(location.lat, location.lng),
+    terminals: {
+      geoRFClassId: geoRFClassIdA,
+      geoTerminalType,
+      onGeoTerminalTypeChange: handleGeoTerminalTypeChange,
+      onGeoRFClassChange: (id: TerminalRFClassId) => { setGeoRFClassIdA(id); setGeoRFCustomParamsA(null); },
+      leoTerminalType,
+      onLeoTerminalTypeChange: handleLeoTerminalTypeChange,
+      leoTerminalModelId,
+      onLeoTerminalModelIdChange: setLeoTerminalModelId,
+    },
+    weather: {
+      weatherType,
+      onWeatherTypeChange: handleWeatherTypeChange,
+      autoWeatherEnabled,
+      onAutoWeatherChange: setAutoWeatherEnabled,
+    },
+  };
+
+  const headerSiteBConfig = {
+    endpoint: routeSelectorRoute.destination,
+    coordinates: siteB ?? undefined,
+    roleLabel: 'Site B',
+    fallback: 'Set destination',
+    onSelect: (location: { lat: number; lng: number }) => handleDestinationLocationSelect(location.lat, location.lng),
+    terminals: {
+      geoRFClassId: geoRFClassIdB,
+      geoTerminalType: geoTerminalTypeB,
+      onGeoTerminalTypeChange: handleGeoTerminalTypeBChange,
+      onGeoRFClassChange: (id: TerminalRFClassId) => { setGeoRFClassIdB(id); setGeoRFCustomParamsB(null); },
+      leoTerminalType: leoTerminalTypeB,
+      onLeoTerminalTypeChange: handleLeoTerminalTypeBChange,
+      leoTerminalModelId: leoTerminalModelIdB,
+      onLeoTerminalModelIdChange: setLeoTerminalModelIdB,
+    },
+    weather: {
+      weatherType: weatherTypeB,
+      onWeatherTypeChange: handleWeatherTypeBChange,
+      autoWeatherEnabled: autoWeatherEnabledB,
+      onAutoWeatherChange: setAutoWeatherEnabledB,
+    },
+  };
+
   return (
     <div
       className={[
@@ -3876,7 +3933,7 @@ const App: React.FC = () => {
     >
       {!isPhone && (
         <header className="shrink-0 bg-white shadow-sm transition-colors duration-300 dark:bg-slate-900">
-          <div className={`max-w-[1920px] mx-auto px-2 py-0 sm:px-4 lg:px-8 ${useCompactDesktopHeader ? 'md:py-2' : 'md:py-3'}`}>
+          <div className={`max-w-[1920px] mx-auto px-2 py-0 sm:px-4 lg:px-8 ${isDesktopHeaderCollapsed ? 'md:py-1' : useCompactDesktopHeader ? 'md:py-2' : 'md:py-3'}`}>
             {isMobile ? (
               <div className="flex items-center justify-between">
                 <div className="flex items-center min-w-0">
@@ -3902,6 +3959,28 @@ const App: React.FC = () => {
                   </button>
                   <ThemeSelector isMobile />
                 </div>
+              </div>
+            ) : isDesktopHeaderCollapsed ? (
+              <div className="flex items-center gap-2">
+                <div className="mx-auto min-w-0 flex-1 max-w-[1060px]">
+                  <HeaderScenarioBuilder
+                    siteA={headerSiteAConfig}
+                    siteB={headerSiteBConfig}
+                    onSwap={handleSwapRouteEndpoints}
+                    analysisSource={activeAnalysisSource}
+                    compact
+                    collapsed
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsDesktopHeaderCollapsed(false)}
+                  className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 text-slate-600 shadow-sm transition-colors hover:bg-white hover:text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700 dark:hover:text-slate-100"
+                  aria-label="Expand header"
+                  title="Expand header"
+                >
+                  <ChevronDown className="h-[18px] w-[18px]" />
+                </button>
               </div>
             ) : (
               <div className={`flex items-center justify-between ${useCompactDesktopHeader ? 'gap-4' : 'gap-6'}`}>
@@ -4214,6 +4293,15 @@ const App: React.FC = () => {
 
               <div className={`flex shrink-0 flex-col items-stretch ${useCompactDesktopHeader ? 'gap-2' : 'gap-2.5'}`}>
                 <div className={`flex items-center justify-end ${useCompactDesktopHeader ? 'gap-2' : 'gap-3'}`}>
+                  <button
+                    type="button"
+                    onClick={() => setIsDesktopHeaderCollapsed(true)}
+                    className={`inline-flex shrink-0 items-center justify-center rounded-xl border border-gray-200 bg-gray-50 text-slate-600 shadow-sm transition-colors hover:bg-white hover:text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700 dark:hover:text-slate-100 ${useCompactDesktopHeader ? 'h-10 w-10' : 'h-11 w-11'}`}
+                    aria-label="Collapse header"
+                    title="Collapse header"
+                  >
+                    <ChevronUp className={useCompactDesktopHeader ? 'h-5 w-5' : 'h-[22px] w-[22px]'} />
+                  </button>
                   {renderUiModeSwitch(useCompactDesktopHeader)}
                   <button
                     ref={targetSourcesButtonRef}
@@ -4783,7 +4871,7 @@ const App: React.FC = () => {
          * panel inspector/sidebar) change between modes; those don't contain the globe. */
         <main
           className={uiMode === 'commercial'
-            ? (isFullscreen ? 'fixed inset-0 z-50 bg-slate-950 p-0' : 'min-h-0 flex-1 overflow-hidden bg-slate-950 px-2 py-2 sm:px-3 lg:px-4')
+            ? 'min-h-0 flex-1 overflow-hidden bg-slate-950 px-2 py-2 sm:px-3 lg:px-4'
             : 'min-h-0 flex-1 overflow-hidden px-2 py-3 sm:px-3 lg:px-4'
           }
         >
@@ -4838,10 +4926,10 @@ const App: React.FC = () => {
                   </div>
                 )}
 
-                {/* ── Commercial overlays (desktop non-fullscreen only) ──────
+                {/* ── Commercial overlays ──────
                     All absolutely positioned over the globe so the globe never
                     loses width to a sidebar. Globe canvas stays full-size. */}
-                {uiMode === 'commercial' && !isFullscreen && (
+                {uiMode === 'commercial' && (
                   <>
                     {/* Journey strip — bottom overlay */}
                     <div className="absolute bottom-0 left-0 right-0 z-20">
@@ -4854,13 +4942,15 @@ const App: React.FC = () => {
                     </div>
 
                     {/* Narrative panel — slides in from right */}
-                    <CommercialNarrativePanel
-                      viewModel={commercialScenarioViewModel}
-                      selectedSegmentId={commercialSelectedSegment}
-                      commercialRouteModel={commercialRouteModel}
-                      isOpen
-                      onViewFullAnalysis={() => handleUiModeChange('engineering')}
-                    />
+                    {!isFullscreen && (
+                      <CommercialNarrativePanel
+                        viewModel={commercialScenarioViewModel}
+                        selectedSegmentId={commercialSelectedSegment}
+                        commercialRouteModel={commercialRouteModel}
+                        isOpen
+                        onViewFullAnalysis={() => handleUiModeChange('engineering')}
+                      />
+                    )}
 
                     {commercialRouteModel.focusedSegmentId === 'access' && (
                       <div
