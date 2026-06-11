@@ -3245,6 +3245,7 @@ const App: React.FC = () => {
   const desktopCompactProgress = isMobile ? 0 : getCompactDesktopProgress(viewportSnapshot);
   const useCompactDesktopSidebar = desktopCompactProgress >= 0.35;
   const useCompactDesktopHeader = desktopCompactProgress >= 0.2;
+  const useCondensedHeaderSites = !isMobile && viewportSnapshot.innerWidth < 1420;
   const desktopSidebarWidth = Math.round(lerp(500, 405, desktopCompactProgress));
   const desktopLayoutGap = Math.round(lerp(24, 16, desktopCompactProgress));
   useEffect(() => {
@@ -3983,14 +3984,22 @@ const App: React.FC = () => {
                 </button>
               </div>
             ) : (
-              <div className={`flex items-center justify-between ${useCompactDesktopHeader ? 'gap-4' : 'gap-6'}`}>
-              <div className="flex shrink-0 items-center">
-                {renderAuthorshipLogo(useCompactDesktopHeader ? 'h-7 w-7' : 'h-8 w-8')}
-                <h1 className={`ml-2 font-bold text-gray-900 dark:text-gray-100 ${useCompactDesktopHeader ? 'text-xl' : 'text-2xl'}`}>ETL Capacity Analyzer</h1>
-              </div>
+              <div className={`flex items-start justify-between ${useCompactDesktopHeader ? 'gap-4' : 'gap-6'}`}>
+                <div
+                  className={[
+                    'min-w-0 flex flex-1 items-start',
+                    useCondensedHeaderSites
+                      ? 'flex-col gap-2'
+                      : useCompactDesktopHeader ? 'gap-3' : 'gap-4',
+                  ].join(' ')}
+                >
+                  <div className="flex shrink-0 items-center pt-1">
+                    {renderAuthorshipLogo(useCompactDesktopHeader ? 'h-7 w-7' : 'h-8 w-8')}
+                    <h1 className={`ml-2 font-bold text-gray-900 dark:text-gray-100 ${useCompactDesktopHeader ? 'text-xl' : 'text-2xl'}`}>ETL Capacity Analyzer</h1>
+                  </div>
 
-              <div className="min-w-0 flex-1">
-                <div className={`mx-auto flex w-full items-start gap-2 ${useCompactDesktopHeader ? 'max-w-[920px]' : 'max-w-[1060px]'}`}>
+                  <div className={useCondensedHeaderSites ? 'min-w-0 w-full max-w-[34rem]' : 'min-w-0 flex-1'}>
+                    <div className={`flex w-full items-start gap-2 ${useCondensedHeaderSites ? '' : useCompactDesktopHeader ? 'max-w-[920px]' : 'max-w-[1060px]'}`}>
                   <div className="min-w-0 flex-1">
                     <HeaderScenarioBuilder
                       siteA={{
@@ -4044,6 +4053,7 @@ const App: React.FC = () => {
                       onSwap={handleSwapRouteEndpoints}
                       analysisSource={activeAnalysisSource}
                       compact={useCompactDesktopHeader}
+                      collapsed={useCondensedHeaderSites}
                     />
                   </div>
                   <div className="contents" ref={targetSourcesMenuRef}>
@@ -4288,20 +4298,12 @@ const App: React.FC = () => {
                         </div>
                       )}
                   </div>
+                    </div>
+                  </div>
                 </div>
-              </div>
 
               <div className={`flex shrink-0 flex-col items-stretch ${useCompactDesktopHeader ? 'gap-2' : 'gap-2.5'}`}>
                 <div className={`flex items-center justify-end ${useCompactDesktopHeader ? 'gap-2' : 'gap-3'}`}>
-                  <button
-                    type="button"
-                    onClick={() => setIsDesktopHeaderCollapsed(true)}
-                    className={`inline-flex shrink-0 items-center justify-center rounded-xl border border-gray-200 bg-gray-50 text-slate-600 shadow-sm transition-colors hover:bg-white hover:text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700 dark:hover:text-slate-100 ${useCompactDesktopHeader ? 'h-10 w-10' : 'h-11 w-11'}`}
-                    aria-label="Collapse header"
-                    title="Collapse header"
-                  >
-                    <ChevronUp className={useCompactDesktopHeader ? 'h-5 w-5' : 'h-[22px] w-[22px]'} />
-                  </button>
                   {renderUiModeSwitch(useCompactDesktopHeader)}
                   <button
                     ref={targetSourcesButtonRef}
@@ -4399,6 +4401,15 @@ const App: React.FC = () => {
                     </div>
                   )}
                 </div>
+                <button
+                  type="button"
+                  onClick={() => setIsDesktopHeaderCollapsed(true)}
+                  className={`inline-flex shrink-0 items-center justify-center rounded-xl border border-gray-200 bg-gray-50 text-slate-600 shadow-sm transition-colors hover:bg-white hover:text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700 dark:hover:text-slate-100 ${useCompactDesktopHeader ? 'h-10 w-10' : 'h-11 w-11'}`}
+                  aria-label="Collapse header"
+                  title="Collapse header"
+                >
+                  <ChevronUp className={useCompactDesktopHeader ? 'h-5 w-5' : 'h-[22px] w-[22px]'} />
+                </button>
               </div>
                 <div className="min-w-[37rem] max-w-[40rem]">
                   <HeaderRouteStatusPanel routeStatus={headerRouteStatus} />
