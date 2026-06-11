@@ -1,6 +1,6 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { CSSProperties, KeyboardEvent, ReactNode } from 'react';
-import { ArrowLeftRight, MapPin } from 'lucide-react';
+import { ArrowDown, ArrowLeftRight, ArrowUp, MapPin, Star, Timer } from 'lucide-react';
 import { useLocationSearch, type LocationResult } from '../../hooks/useLocationSearch';
 import type { ConnectivityEndpoint } from '../commercial/commercialTypes';
 import { TERMINAL_PROFILES, WEATHER_PROFILES, type TerminalType, type WeatherType } from '../capacity/TerminalConfig';
@@ -46,6 +46,27 @@ export interface HeaderScenarioBuilderProps {
   onSwap: () => void;
   analysisSource?: 'earth' | 'aircraft';
   compact?: boolean;
+  routeStatus?: HeaderRouteStatus;
+}
+
+export type HeaderRouteTechnology = 'GEO' | 'LEO';
+export type HeaderRouteStatusTone = 'ok' | 'degraded' | 'blocked' | 'unknown' | 'marginal';
+
+export interface HeaderRouteStatusItem {
+  technology: HeaderRouteTechnology;
+  statusLabel: string;
+  statusTone: HeaderRouteStatusTone;
+  throughput: string;
+  latency: string;
+  upload?: string;
+  limiting?: string;
+  selected?: boolean;
+  recommended?: boolean;
+  onSelect?: () => void;
+}
+
+export interface HeaderRouteStatus {
+  items: HeaderRouteStatusItem[];
 }
 
 // ─── Select styling ───────────────────────────────────────────────────────────
@@ -73,6 +94,19 @@ const darkSelectStyle: CSSProperties = {
 const disabledSelectStyle: CSSProperties = { opacity: 0.4, cursor: 'not-allowed' };
 
 const terminalTypeEntries = Object.entries(TERMINAL_PROFILES) as Array<[TerminalType, { label: string }]>;
+
+const routeStatusToneClass: Record<HeaderRouteStatusTone, string> = {
+  ok: 'bg-emerald-500/16 text-emerald-700 dark:text-emerald-200',
+  degraded: 'bg-amber-500/16 text-amber-700 dark:text-amber-200',
+  blocked: 'bg-rose-500/16 text-rose-700 dark:text-rose-200',
+  unknown: 'bg-slate-100/80 text-slate-600 dark:bg-white/10 dark:text-slate-300',
+  marginal: 'bg-yellow-500/16 text-yellow-700 dark:text-yellow-200',
+};
+
+const routeTechnologyAccentClass: Record<HeaderRouteTechnology, string> = {
+  GEO: 'text-blue-500 dark:text-sky-300',
+  LEO: 'text-pink-500 dark:text-pink-300',
+};
 
 const weatherIcon = (key: WeatherType): string => {
   if (key === 'clear') return '☀️';
@@ -191,7 +225,7 @@ const WeatherAssumptionRow = memo(function WeatherAssumptionRow({
   return (
     <div className="flex w-full min-w-0 items-center gap-2 rounded-lg bg-sky-50/70 px-2 py-1 dark:bg-sky-950/20">
       <span className="shrink-0 text-[10px] font-black uppercase tracking-[0.16em] text-sky-700 dark:text-cyan-300">
-        WX
+        Weather
       </span>
       <div className="min-w-0 flex-1">
         <select
@@ -467,63 +501,190 @@ function SiteColumn({
   );
 }
 
+// ─── Route Status Strip ───────────────────────────────────────────────────────
+
+function RouteMetric({
+  icon,
+  value,
+  label,
+  caption,
+}: {
+  icon: ReactNode;
+  value: string;
+  label: string;
+  caption: string;
+}) {
+  return (
+    <div className="min-w-0 px-1.5 py-1" title={label}>
+      <div className="mb-1 flex min-w-0 items-center gap-1.5 text-[9px] font-black uppercase tracking-[0.12em] text-slate-500 dark:text-slate-300">
+        <span className="shrink-0 text-sky-600 dark:text-sky-200">{icon}</span>
+        <span className="truncate">{caption}</span>
+      </div>
+      <div className="min-w-0 truncate text-[17px] font-black leading-tight tabular-nums text-slate-950 dark:text-white">
+        {value}
+      </div>
+    </div>
+  );
+}
+
+function RouteStatusCard({ item }: { item: HeaderRouteStatusItem }) {
+  const technologyGradientClass = item.technology === 'GEO'
+    ? item.selected
+      ? 'border-sky-300/80 bg-[linear-gradient(135deg,rgba(14,165,233,0.26),rgba(8,47,73,0.20)_52%,rgba(15,23,42,0.78))] dark:border-sky-300/55 dark:bg-[linear-gradient(135deg,rgba(14,165,233,0.34),rgba(8,47,73,0.26)_52%,rgba(15,23,42,0.82))]'
+      : 'border-sky-400/35 bg-[linear-gradient(135deg,rgba(14,165,233,0.14),rgba(8,47,73,0.10)_55%,rgba(15,23,42,0.62))] dark:border-sky-400/28 dark:bg-[linear-gradient(135deg,rgba(14,165,233,0.20),rgba(8,47,73,0.16)_55%,rgba(15,23,42,0.74))]'
+    : item.selected
+      ? 'border-pink-300/80 bg-[linear-gradient(135deg,rgba(236,72,153,0.28),rgba(88,28,135,0.20)_52%,rgba(15,23,42,0.78))] dark:border-pink-300/55 dark:bg-[linear-gradient(135deg,rgba(236,72,153,0.36),rgba(88,28,135,0.26)_52%,rgba(15,23,42,0.82))]'
+      : 'border-pink-400/35 bg-[linear-gradient(135deg,rgba(236,72,153,0.14),rgba(88,28,135,0.11)_55%,rgba(15,23,42,0.62))] dark:border-pink-400/28 dark:bg-[linear-gradient(135deg,rgba(236,72,153,0.20),rgba(88,28,135,0.16)_55%,rgba(15,23,42,0.74))]';
+
+  const content = (
+    <>
+      <div className="flex min-w-0 items-center gap-2">
+        <div className={`shrink-0 text-[16px] font-black uppercase tracking-[0.14em] ${routeTechnologyAccentClass[item.technology]}`}>
+          {item.technology}
+        </div>
+        <span className={`shrink-0 rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.1em] ${routeStatusToneClass[item.statusTone]}`}>
+          {item.statusLabel}
+        </span>
+        {item.recommended && (
+          <span className="inline-flex min-w-0 items-center gap-1 rounded-full bg-sky-500/15 px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.1em] text-sky-700 dark:text-sky-200">
+            <Star className="h-3 w-3 shrink-0 fill-current" aria-hidden="true" />
+            <span className="truncate">Recommended</span>
+          </span>
+        )}
+        {item.selected && (
+          <span className="shrink-0 rounded-full bg-white/80 px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.1em] text-slate-600 dark:bg-sky-300/15 dark:text-sky-100">
+            Selected
+          </span>
+        )}
+      </div>
+
+      <div className="mt-2.5 grid min-w-0 grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)] gap-2">
+        <RouteMetric icon={<Timer className="h-4 w-4" aria-hidden="true" />} value={item.latency} label={`${item.technology} latency`} caption="LAT" />
+        <RouteMetric icon={<ArrowDown className="h-4 w-4" aria-hidden="true" />} value={item.throughput} label={`${item.technology} downlink throughput`} caption="DL" />
+        <RouteMetric icon={<ArrowUp className="h-4 w-4" aria-hidden="true" />} value={item.upload ?? '—'} label={`${item.technology} uplink throughput`} caption="UL" />
+      </div>
+
+      {item.limiting && (
+        <div className="mt-2 min-w-0 truncate text-[11px] font-semibold text-slate-600 dark:text-slate-300" title={item.limiting}>
+          {item.limiting}
+        </div>
+      )}
+    </>
+  );
+
+  const className = [
+    'relative min-w-0 overflow-hidden rounded-xl border px-4 py-3.5 text-left',
+    'shadow-[0_18px_38px_-32px_rgba(15,23,42,0.75)]',
+    technologyGradientClass,
+    item.onSelect ? 'transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-300/70' : '',
+  ].join(' ');
+
+  if (item.onSelect) {
+    return (
+      <button
+        type="button"
+        className={className}
+        onClick={item.onSelect}
+        aria-pressed={item.selected}
+        aria-label={`Select ${item.technology} route view`}
+      >
+        {content}
+      </button>
+    );
+  }
+
+  return <div className={className}>{content}</div>;
+}
+
+export function HeaderRouteStatusPanel({
+  routeStatus,
+  layout = 'below',
+}: {
+  routeStatus?: HeaderRouteStatus;
+  layout?: 'below' | 'side';
+}) {
+  const items = routeStatus?.items.filter(Boolean) ?? [];
+  if (items.length === 0) return null;
+
+  const className = layout === 'side'
+    ? 'grid min-w-0 content-start gap-3 pl-2'
+    : `${items.length === 1 ? 'grid-cols-1' : 'grid-cols-2'} grid min-w-0 gap-3`;
+
+  return (
+    <div className={className}>
+      {items.map(item => (
+        <RouteStatusCard key={item.technology} item={item} />
+      ))}
+    </div>
+  );
+}
+
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 function HeaderScenarioBuilder({
-  siteA, siteB, onSwap, analysisSource, compact = false,
+  siteA, siteB, onSwap, analysisSource, compact = false, routeStatus,
 }: HeaderScenarioBuilderProps) {
   const canSwap = Boolean(
     siteA.endpoint?.label?.trim() && siteB.endpoint?.label?.trim(),
   );
+  const hasRouteStatus = Boolean(routeStatus?.items?.length);
 
   return (
     <div
       className={[
-        'relative flex items-stretch',
+        'relative flex min-w-0 flex-col',
         'rounded-2xl border border-slate-200/80 bg-white',
         'shadow-[0_18px_44px_-32px_rgba(15,23,42,0.45)]',
         'dark:border-slate-700/80 dark:bg-[linear-gradient(135deg,rgba(10,14,26,0.97),rgba(15,23,42,0.95))]',
         'dark:shadow-[0_18px_44px_-32px_rgba(15,23,42,0.8)]',
-        compact ? 'gap-2.5 px-2.5 py-2' : 'gap-3.5 px-3 py-2.5',
+        compact ? 'gap-2 px-2.5 py-2' : 'gap-2.5 px-3 py-2.5',
       ].join(' ')}
     >
-      {/* Site A */}
-      <SiteColumn
-        eyebrow="SITE A"
-        config={siteA}
-        analysisSource={analysisSource}
-      />
+      <div className={hasRouteStatus ? 'grid min-w-0 grid-cols-[minmax(0,1fr)_minmax(14rem,0.48fr)] gap-2' : ''}>
+        <div className={['relative flex min-w-0 items-stretch', compact ? 'gap-2.5' : 'gap-3.5'].join(' ')}>
+          {/* Site A */}
+          <SiteColumn
+            eyebrow="SITE A"
+            config={siteA}
+            analysisSource={analysisSource}
+          />
 
-      {/* Center: vertical rule + swap button */}
-      <div className="flex shrink-0 flex-col items-center self-stretch justify-center gap-1.5 px-0.5">
-        <div className="w-px flex-1 bg-gradient-to-b from-transparent via-slate-300 to-transparent dark:via-slate-600/80" />
-        <button
-          type="button"
-          onClick={onSwap}
-          disabled={!canSwap}
-          className={[
-            'inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition-colors',
-            canSwap
-              ? 'bg-sky-50 text-sky-600 hover:bg-sky-100 hover:text-sky-700 dark:bg-slate-800/70 dark:text-sky-200 dark:hover:bg-slate-800'
-              : 'cursor-not-allowed bg-slate-50 text-slate-300 dark:bg-slate-900/50 dark:text-slate-700',
-          ].join(' ')}
-          aria-label="Swap Site A and Site B"
-          title={canSwap ? 'Swap sites' : 'Set both sites to swap'}
-        >
-          <ArrowLeftRight className="h-3.5 w-3.5" aria-hidden="true" />
-        </button>
-        <span className="text-[8px] font-black uppercase tracking-[0.18em] text-slate-400 dark:text-slate-500">
-          Link
-        </span>
-        <div className="w-px flex-1 bg-gradient-to-b from-transparent via-slate-300 to-transparent dark:via-slate-600/80" />
+          {/* Center: vertical rule + swap button */}
+          <div className="flex shrink-0 flex-col items-center self-stretch justify-center gap-1.5 px-0.5">
+            <div className="w-px flex-1 bg-gradient-to-b from-transparent via-slate-300 to-transparent dark:via-slate-600/80" />
+            <button
+              type="button"
+              onClick={onSwap}
+              disabled={!canSwap}
+              className={[
+                'inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition-colors',
+                canSwap
+                  ? 'bg-sky-50 text-sky-600 hover:bg-sky-100 hover:text-sky-700 dark:bg-slate-800/70 dark:text-sky-200 dark:hover:bg-slate-800'
+                  : 'cursor-not-allowed bg-slate-50 text-slate-300 dark:bg-slate-900/50 dark:text-slate-700',
+              ].join(' ')}
+              aria-label="Swap Site A and Site B"
+              title={canSwap ? 'Swap sites' : 'Set both sites to swap'}
+            >
+              <ArrowLeftRight className="h-3.5 w-3.5" aria-hidden="true" />
+            </button>
+            <span className="text-[8px] font-black uppercase tracking-[0.18em] text-slate-400 dark:text-slate-500">
+              Link
+            </span>
+            <div className="w-px flex-1 bg-gradient-to-b from-transparent via-slate-300 to-transparent dark:via-slate-600/80" />
+          </div>
+
+          {/* Site B */}
+          <SiteColumn
+            eyebrow="SITE B"
+            config={siteB}
+            analysisSource={analysisSource}
+          />
+        </div>
+
+        {hasRouteStatus && <HeaderRouteStatusPanel routeStatus={routeStatus} layout="side" />}
       </div>
 
-      {/* Site B */}
-      <SiteColumn
-        eyebrow="SITE B"
-        config={siteB}
-        analysisSource={analysisSource}
-      />
+      {!hasRouteStatus && <HeaderRouteStatusPanel routeStatus={routeStatus} />}
     </div>
   );
 }

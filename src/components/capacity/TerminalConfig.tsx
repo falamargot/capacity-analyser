@@ -676,6 +676,7 @@ interface TerminalConfigProps {
   headerAction?: ReactNode;
   showWeather?: boolean;
   showRFClass?: boolean;
+  showMaxLabel?: boolean;
   className?: string;
   stacked?: boolean;
   tone?: 'neutral' | 'user-defined' | 'not-user-defined';
@@ -716,6 +717,7 @@ const TerminalConfig = memo<TerminalConfigProps>(({
   headerAction,
   showWeather = true,
   showRFClass = false,
+  showMaxLabel,
   className = 'mb-4',
   stacked = false,
   tone = 'neutral',
@@ -960,7 +962,7 @@ const TerminalConfig = memo<TerminalConfigProps>(({
             readOnly={readOnly}
             displayLabel={terminalDisplayLabel}
             displayIcon={terminalDisplayIcon}
-            showMaxLabel={!showRFClass}
+            showMaxLabel={showMaxLabel ?? !showRFClass}
           />
         )}
         {showRFClass && onRFClassChange && (

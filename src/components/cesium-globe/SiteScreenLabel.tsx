@@ -146,7 +146,7 @@ const SiteScreenLabel: React.FC<SiteScreenLabelProps> = ({
       style={{ left: 0, top: 0 }}
     >
       <div
-        className={`${compact ? 'rounded-[10px] px-2.5 py-1.5' : 'rounded px-3 py-1.5'} bg-slate-900/85 text-white shadow-lg ring-1 ring-white/20 backdrop-blur-sm`}
+        className={`${compact ? 'rounded-[10px] px-2.5 py-1.5' : 'rounded px-3 py-1.5'} bg-slate-900/30 text-white shadow-lg ring-1 ring-white/20 backdrop-blur-sm`}
         style={highlightStyle}
       >
         <div className={`${compact ? 'text-[11px]' : 'text-[12px] sm:text-sm'} font-semibold leading-tight ${presentation === 'commercial' ? 'text-white' : 'text-cyan-300'} mb-0.5`}>

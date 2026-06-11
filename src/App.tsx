@@ -10,14 +10,12 @@ import { ChevronUp, Keyboard, MapPin, Plane, Radio, Search, Satellite, Ship, Way
 import { ThemeSelector } from './components/ThemeSelector';
 import MobileAnalysisSummary from './components/layout/MobileAnalysisSummary';
 import SidebarHeroCard from './components/layout/SidebarHeroCard';
-import MissionKpiBar from './components/layout/MissionKpiBar';
 import { MemoryMonitorHud } from './components/MemoryMonitorHud';
 import { setMemoryMonitorViewerGetter } from './utils/memoryMonitor';
 import ExportButton, { type ExportButtonPayload } from './components/ExportButton';
 import SimulationSettings from './components/layout/SimulationSettings';
 import CommercialModeShell from './components/commercial/CommercialModeShell';
-import CommercialMissionBar from './components/commercial/CommercialMissionBar';
-import HeaderScenarioBuilder from './components/header/HeaderScenarioBuilder';
+import HeaderScenarioBuilder, { HeaderRouteStatusPanel, type HeaderRouteStatus, type HeaderRouteStatusTone } from './components/header/HeaderScenarioBuilder';
 import CommercialRouteStrip from './components/commercial/CommercialRouteStrip';
 import CommercialNarrativePanel from './components/commercial/CommercialNarrativePanel';
 import {
@@ -67,12 +65,19 @@ import { regulatoryLookup, type RegulatoryResult } from './services/regulatorySe
 import { estimateBeamLoad } from './utils/capacityLayer';
 import { computeServiceStatus } from './utils/serviceLayer';
 import { getConnectivityStatus, hasRFConnectivity } from './utils/rfConnectivity';
-import { deriveLeoConnectivityViewModel } from './utils/leoServiceViewModel';
+import { deriveLeoConnectivityViewModel, type LeoConnectivityViewModel } from './utils/leoServiceViewModel';
 import { getGroundSegmentRoutingForSatellite, resolveConnectivityPathForSatellite, selectTrafficGeoGateway, type ResolvedGeoGateway } from './utils/geoConnectivityModel';
 import type { GeoPointStatus } from './utils/selectedPointStatus';
 import type { CountryOverlayMode } from './types/countryOverlays';
 import type { LinkMode } from './types/linkMode';
 import { LINK_MODE_REQUIRES_POINT_B } from './types/linkMode';
+import {
+  buildGeoRouteViewModel,
+  buildLeoRouteViewModel,
+  formatRouteMbps,
+  formatRouteMs,
+  routeDirectionFromMeshTab,
+} from './utils/activeRouteViewModel';
 import {
   selectBestTopologyPath,
 } from './utils/geoTopologySelection';
@@ -86,7 +91,7 @@ import {
 } from './utils/geoTerminalRFModel';
 import { buildGeoRouteAnalysisViewModel } from './utils/geoRouteAnalysisViewModel';
 import { getLeoTerminalProfile } from './config/leoTerminals';
-import type { LeoSiteToSiteFailureReason } from './utils/leoSiteToSiteModel';
+import { formatLeoSiteToSiteFailureReason, type LeoSiteToSiteFailureReason } from './utils/leoSiteToSiteModel';
 import {
   buildActiveLeoRouteEvidence,
   createActiveLeoRouteEvidenceState,
@@ -186,6 +191,44 @@ function autoSelectableCommercialTechnology(viewModel: CommercialScenarioViewMod
   if (recommended === 'leo') return 'LEO';
   if (recommended === 'hybrid') return selectBestHybridCommercialTechnology(viewModel);
   return null;
+}
+
+function routeToneFromCommercialStatus(status: CommercialTechnologyOption['status']): HeaderRouteStatusTone {
+  if (status === 'active') return 'ok';
+  if (status === 'degraded') return 'degraded';
+  if (status === 'blocked') return 'blocked';
+  return 'unknown';
+}
+
+function routeToneFromGeoStatus(status: GeoPointStatus | null): HeaderRouteStatusTone {
+  if (status === 'available') return 'ok';
+  if (status === 'unstable') return 'marginal';
+  if (status === 'gateway_unavailable') return 'degraded';
+  if (status === 'out_of_coverage') return 'blocked';
+  return 'unknown';
+}
+
+function routeToneFromLeoStatus(vm: LeoConnectivityViewModel | null): HeaderRouteStatusTone {
+  if (!vm) return 'unknown';
+  if (vm.serviceStatus === 'ALLOWED') return 'ok';
+  if (vm.serviceStatus === 'DEGRADED') return 'degraded';
+  if (vm.serviceStatus === 'BLOCKED') return 'blocked';
+  return 'unknown';
+}
+
+function geoRouteStatusLabel(status: GeoPointStatus | null): string {
+  if (status === 'available') return 'Available';
+  if (status === 'unstable') return 'Unstable';
+  if (status === 'gateway_unavailable') return 'No Gateway';
+  if (status === 'out_of_coverage') return 'No Signal';
+  return 'Pending';
+}
+
+function leoRouteStatusLabel(vm: LeoConnectivityViewModel | null): string {
+  if (!vm) return 'Pending';
+  if (vm.serviceStatus === 'ALLOWED') return 'Available';
+  if (vm.serviceStatus === 'DEGRADED') return 'Degraded';
+  return 'Blocked';
 }
 
 const compareCandidateLinkMargin = (left: CandidateCoverage, right: CandidateCoverage): number => {
@@ -585,6 +628,7 @@ const App: React.FC = () => {
   const [countryOverlayMode, setCountryOverlayMode] = useState<CountryOverlayMode>(initialDisplayDefaults.countryOverlayMode);
   const commandPaletteSearchRef = useRef<HTMLInputElement>(null);
   const helpMenuRef = useRef<HTMLDivElement>(null);
+  const targetSourcesButtonRef = useRef<HTMLButtonElement>(null);
   const targetSourcesMenuRef = useRef<HTMLDivElement>(null);
   const [isMobileAnalysisPanelOpen, setIsMobileAnalysisPanelOpen] = useState(false);
   const [isSatelliteModalOpen, setIsSatelliteModalOpen] = useState(false);
@@ -2777,7 +2821,10 @@ const App: React.FC = () => {
     if (!isTargetSourcesMenuOpen) return;
 
     const handlePointerDown = (event: MouseEvent) => {
-      if (!targetSourcesMenuRef.current?.contains(event.target as Node)) {
+      if (
+        !targetSourcesMenuRef.current?.contains(event.target as Node)
+        && !targetSourcesButtonRef.current?.contains(event.target as Node)
+      ) {
         setIsTargetSourcesMenuOpen(false);
       }
     };
@@ -3510,18 +3557,12 @@ const App: React.FC = () => {
     ? [activeCommercialGeoGateway.teleportCode, activeCommercialGeoGateway.region].filter(Boolean).join(' / ')
     : null;
 
-  useEffect(() => {
-    if (uiMode === 'commercial' && satelliteScope !== 'ALL') {
-      handleTechnologyScopeChange('ALL');
-    }
-  }, [handleTechnologyScopeChange, satelliteScope, uiMode]);
-
   const activeCommercialTechnology = activeConnectivityTab;
 
   const handleCommercialTechnologySelect = useCallback((technology: 'GEO' | 'LEO') => {
     handleTechnologyChange(technology);
-    if (satelliteScope !== 'ALL') {
-      handleTechnologyScopeChange('ALL');
+    if (satelliteScope !== 'ALL' && satelliteScope !== technology) {
+      handleTechnologyScopeChange(technology);
     }
   }, [handleTechnologyChange, handleTechnologyScopeChange, satelliteScope]);
 
@@ -3583,10 +3624,135 @@ const App: React.FC = () => {
     && activeAnalysisPoint
   );
 
+  const headerRouteStatus = useMemo<HeaderRouteStatus | undefined>(() => {
+    if (uiMode === 'commercial') {
+      const geoOption = commercialTechnologyOption(commercialScenarioViewModel, 'geo');
+      const leoOption = commercialTechnologyOption(commercialScenarioViewModel, 'leo');
+      const recommended = commercialScenarioViewModel.recommendation.technology;
+
+      return {
+        items: [
+          ...(satelliteScope === 'GEO' || satelliteScope === 'ALL' ? [{
+            technology: 'GEO',
+            statusLabel: geoOption?.statusLabel ?? 'Pending',
+            statusTone: routeToneFromCommercialStatus(geoOption?.status ?? 'unknown'),
+            throughput: formatRouteMbps(geoOption?.downloadMbps),
+            upload: formatRouteMbps(geoOption?.uploadMbps),
+            latency: formatRouteMs(geoOption?.rttMs),
+            limiting: geoOption?.limitingFactor || geoOption?.routeSummary || geoOption?.strengths[0],
+            selected: activeCommercialTechnology === 'GEO',
+            recommended: recommended === 'geo' || recommended === 'hybrid',
+            onSelect: () => handleCommercialTechnologySelect('GEO'),
+          }] : []),
+          ...(satelliteScope === 'LEO' || satelliteScope === 'ALL' ? [{
+            technology: 'LEO',
+            statusLabel: leoOption?.statusLabel ?? 'Pending',
+            statusTone: routeToneFromCommercialStatus(leoOption?.status ?? 'unknown'),
+            throughput: formatRouteMbps(leoOption?.downloadMbps),
+            upload: formatRouteMbps(leoOption?.uploadMbps),
+            latency: formatRouteMs(leoOption?.rttMs),
+            limiting: leoOption?.limitingFactor || leoOption?.routeSummary || leoOption?.strengths[0],
+            selected: activeCommercialTechnology === 'LEO',
+            recommended: recommended === 'leo' || recommended === 'hybrid',
+            onSelect: () => handleCommercialTechnologySelect('LEO'),
+          }] : []),
+        ],
+      };
+    }
+
+    if (!showEngineeringRouteStatus) return undefined;
+
+    const activeDirection = routeDirectionFromMeshTab(activeMeshTab);
+    const leoRoute = buildLeoRouteViewModel({
+      topologyMode: leoTopologyMode,
+      direction: activeDirection,
+      siteToSiteResult: activeLeoSiteToSiteResult,
+      metrics: mobileMetrics?.leo ?? null,
+    });
+    const geoRoute = buildGeoRouteViewModel({
+      linkMode,
+      direction: activeDirection,
+      metrics: mobileMetrics,
+      geoStatus: geoPointStatus,
+    });
+
+    const showGeo = satelliteScope === 'GEO' || satelliteScope === 'ALL';
+    const showLeo = satelliteScope === 'LEO' || satelliteScope === 'ALL';
+    const geoLimiting = geoPointStatus === 'available'
+      ? 'None'
+      : geoPointStatus === 'unstable'
+        ? 'Low elevation'
+        : geoPointStatus === 'gateway_unavailable'
+          ? 'Gateway unavailable'
+          : geoPointStatus === 'out_of_coverage'
+            ? 'Coverage unavailable'
+            : (geoRoute.statusReason ?? 'No active GEO route');
+    const leoLimiting = leoTopologyMode === 'SITE_TO_SITE'
+      ? (activeLeoSiteToSiteResult?.failureReason
+          ? formatLeoSiteToSiteFailureReason(activeLeoSiteToSiteResult.failureReason)
+          : leoRoute.statusReason ?? 'None')
+      : (leoServiceViewModel && leoServiceViewModel.serviceStatus !== 'ALLOWED'
+          ? leoServiceViewModel.decisionDriverLabel
+          : leoRoute.statusReason ?? 'None');
+
+    return {
+      items: [
+        ...(showGeo ? [{
+          technology: 'GEO' as const,
+          statusLabel: geoRouteStatusLabel(geoPointStatus),
+          statusTone: routeToneFromGeoStatus(geoPointStatus),
+          throughput: formatRouteMbps(geoRoute.throughputMbps),
+          upload: formatRouteMbps(geoRoute.reverseThroughputMbps),
+          latency: formatRouteMs(geoRoute.latencyMs),
+          limiting: geoLimiting,
+          selected: activeConnectivityTab === 'GEO',
+          onSelect: () => handleTechnologyChange('GEO'),
+        }] : []),
+        ...(showLeo ? [{
+          technology: 'LEO' as const,
+          statusLabel: leoTopologyMode === 'SITE_TO_SITE' && activeLeoSiteToSiteResult
+            ? (activeLeoSiteToSiteResult.serviceStatus === 'ALLOWED' ? 'Available'
+              : activeLeoSiteToSiteResult.serviceStatus === 'DEGRADED' ? 'Degraded'
+              : 'Blocked')
+            : leoRouteStatusLabel(leoServiceViewModel),
+          statusTone: leoTopologyMode === 'SITE_TO_SITE' && activeLeoSiteToSiteResult
+            ? (activeLeoSiteToSiteResult.serviceStatus === 'ALLOWED'
+                ? 'ok'
+                : activeLeoSiteToSiteResult.serviceStatus === 'DEGRADED'
+                  ? 'degraded'
+                  : 'blocked')
+            : routeToneFromLeoStatus(leoServiceViewModel),
+          throughput: formatRouteMbps(leoRoute.throughputMbps),
+          upload: formatRouteMbps(leoRoute.reverseThroughputMbps),
+          latency: formatRouteMs(leoRoute.latencyMs),
+          limiting: leoLimiting,
+          selected: activeConnectivityTab === 'LEO',
+          onSelect: () => handleTechnologyChange('LEO'),
+        }] : []),
+      ],
+    };
+  }, [
+    activeCommercialTechnology,
+    activeConnectivityTab,
+    activeLeoSiteToSiteResult,
+    activeMeshTab,
+    commercialScenarioViewModel,
+    geoPointStatus,
+    handleTechnologyChange,
+    handleCommercialTechnologySelect,
+    leoServiceViewModel,
+    leoTopologyMode,
+    linkMode,
+    mobileMetrics,
+    satelliteScope,
+    showEngineeringRouteStatus,
+    uiMode,
+  ]);
+
   const commercialAutoSelectedSiteSignatureRef = useRef<string | null>(null);
 
   useEffect(() => {
-    if (!commercialMode || !commercialSiteAutoSelectionSignature) {
+    if (!commercialMode || !commercialSiteAutoSelectionSignature || satelliteScope !== 'ALL') {
       commercialAutoSelectedSiteSignatureRef.current = null;
       return;
     }
@@ -3601,16 +3767,12 @@ const App: React.FC = () => {
     if (activeConnectivityTab !== nextTechnology) {
       handleTechnologyChange(nextTechnology);
     }
-    if (satelliteScope !== 'ALL') {
-      handleTechnologyScopeChange('ALL');
-    }
   }, [
     activeConnectivityTab,
     commercialMode,
     commercialScenarioViewModel,
     commercialSiteAutoSelectionSignature,
     handleTechnologyChange,
-    handleTechnologyScopeChange,
     satelliteScope,
   ]);
 
@@ -3678,7 +3840,7 @@ const App: React.FC = () => {
   const entryPointDescriptionClassName = 'mt-0.5 truncate text-[11px] leading-4 text-slate-500 dark:text-slate-400';
 
   const renderUiModeSwitch = (compact = false) => (
-    <div className={`inline-flex shrink-0 rounded-lg border border-slate-200 bg-slate-50 p-0.5 dark:border-slate-700 dark:bg-slate-800 ${compact ? 'text-[11px]' : 'text-xs'}`}>
+    <div className={`inline-flex shrink-0 border border-slate-200 bg-slate-50 p-1 dark:border-slate-700 dark:bg-slate-800 ${compact ? 'rounded-[22px] text-[13px] shadow-sm' : 'rounded-xl text-sm'}`}>
       {([
         ['engineering', compact ? 'Eng' : 'Engineering'],
         ['commercial', compact ? 'Comm' : 'Commercial'],
@@ -3688,7 +3850,9 @@ const App: React.FC = () => {
           type="button"
           onClick={() => handleUiModeChange(mode)}
           className={[
-            'rounded-md px-2.5 py-1.5 font-semibold transition-colors',
+            compact
+              ? 'rounded-[16px] px-4 py-2.5 font-semibold transition-colors'
+              : 'rounded-lg px-4 py-2.5 font-semibold transition-colors',
             uiMode === mode
               ? 'bg-slate-950 text-white shadow-sm dark:bg-white dark:text-slate-950'
               : 'text-slate-600 hover:bg-white dark:text-slate-300 dark:hover:bg-slate-700',
@@ -3803,11 +3967,11 @@ const App: React.FC = () => {
                       compact={useCompactDesktopHeader}
                     />
                   </div>
-                  <div className="relative shrink-0 pt-1" ref={targetSourcesMenuRef}>
+                  <div className="contents" ref={targetSourcesMenuRef}>
                     <button
                       type="button"
                       onClick={handleToggleTargetSourcesMenu}
-                      className={`inline-flex items-center justify-center rounded-xl border text-sm font-semibold shadow-sm transition-colors ${
+                      className={`hidden items-center justify-center rounded-xl border text-sm font-semibold shadow-sm transition-colors ${
                         isTargetSourcesMenuOpen
                           ? 'border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-500/30 dark:bg-blue-500/15 dark:text-blue-200'
                           : 'border-gray-200 bg-gray-50 text-slate-600 hover:bg-white hover:text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700 dark:hover:text-slate-100'
@@ -3820,7 +3984,7 @@ const App: React.FC = () => {
                     </button>
 
                       {isTargetSourcesMenuOpen && (
-                        <div className="absolute right-0 top-[calc(100%+1rem)] z-[90] w-[760px] max-w-[calc(100vw-6rem)] overflow-hidden rounded-[28px] border border-slate-200/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,250,252,0.95))] shadow-[0_36px_90px_-42px_rgba(15,23,42,0.55)] backdrop-blur-xl dark:border-slate-700 dark:bg-[linear-gradient(180deg,rgba(15,23,42,0.98),rgba(2,6,23,0.96))]">
+                        <div className="fixed right-6 top-[5.25rem] z-[90] w-[760px] max-w-[calc(100vw-6rem)] overflow-hidden rounded-[28px] border border-slate-200/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,250,252,0.95))] shadow-[0_36px_90px_-42px_rgba(15,23,42,0.55)] backdrop-blur-xl dark:border-slate-700 dark:bg-[linear-gradient(180deg,rgba(15,23,42,0.98),rgba(2,6,23,0.96))]">
                           <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(56,189,248,0.12),transparent_24%),radial-gradient(circle_at_top_right,rgba(16,185,129,0.10),transparent_24%)]" />
                           <div className="relative border-b border-slate-200/80 px-5 py-3.5 dark:border-slate-700">
                             <div className="text-[17px] font-semibold text-slate-950 dark:text-slate-50">
@@ -4048,41 +4212,57 @@ const App: React.FC = () => {
                 </div>
               </div>
 
-              <div className={`flex shrink-0 items-center ${useCompactDesktopHeader ? 'gap-2' : 'gap-3'}`}>
-                {renderUiModeSwitch(useCompactDesktopHeader)}
-                <div className={`flex items-center rounded-lg border border-gray-200 bg-gray-50 dark:border-slate-700 dark:bg-slate-800 ${useCompactDesktopHeader ? 'gap-1 p-0.5' : 'gap-2 p-1'}`}>
-                  <SatelliteScopeFilter
-                    currentScope={satelliteScope}
-                    onScopeChange={handleSatelliteScopeChange}
-                  />
-                  <SimulationSettings satelliteScope={satelliteScope} />
-                </div>
-                <div className="flex-shrink-0">
-                  <ThemeSelector />
-                </div>
-                <div className="relative flex-shrink-0" ref={helpMenuRef}>
+              <div className={`flex shrink-0 flex-col items-stretch ${useCompactDesktopHeader ? 'gap-2' : 'gap-2.5'}`}>
+                <div className={`flex items-center justify-end ${useCompactDesktopHeader ? 'gap-2' : 'gap-3'}`}>
+                  {renderUiModeSwitch(useCompactDesktopHeader)}
                   <button
+                    ref={targetSourcesButtonRef}
                     type="button"
-                    onClick={handleToggleHelpMenu}
-                    className={`inline-flex items-center justify-center rounded-xl border border-gray-200 bg-gray-50 text-slate-600 transition-colors hover:bg-white hover:text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700 dark:hover:text-slate-100 ${useCompactDesktopHeader ? 'h-9 w-9' : 'h-10 w-10'}`}
-                    aria-label="Open keyboard shortcuts help"
-                    aria-expanded={isHelpMenuOpen}
-                    title="Keyboard shortcuts"
+                    onClick={handleToggleTargetSourcesMenu}
+                    className={`inline-flex shrink-0 items-center justify-center rounded-xl border text-sm font-semibold shadow-sm transition-colors ${
+                      isTargetSourcesMenuOpen
+                        ? 'border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-500/30 dark:bg-blue-500/15 dark:text-blue-200'
+                        : 'border-gray-200 bg-gray-50 text-slate-600 hover:bg-white hover:text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700 dark:hover:text-slate-100'
+                    } ${useCompactDesktopHeader ? 'h-10 w-10' : 'h-11 w-11'}`}
+                    aria-expanded={isTargetSourcesMenuOpen}
+                    aria-label="Locate asset or location"
+                    title="Locate asset or location"
                   >
-                    <Keyboard className={useCompactDesktopHeader ? 'h-[18px] w-[18px]' : 'h-5 w-5'} />
+                    <Waypoints className={useCompactDesktopHeader ? 'h-5 w-5' : 'h-[22px] w-[22px]'} />
                   </button>
+                  <div className={`flex items-center rounded-lg border border-gray-200 bg-gray-50 dark:border-slate-700 dark:bg-slate-800 ${useCompactDesktopHeader ? 'gap-1 p-0.5' : 'gap-2 p-1'}`}>
+                    <SatelliteScopeFilter
+                      currentScope={satelliteScope}
+                      onScopeChange={handleSatelliteScopeChange}
+                    />
+                    <SimulationSettings satelliteScope={satelliteScope} />
+                  </div>
+                  <div className="flex-shrink-0">
+                    <ThemeSelector />
+                  </div>
+                  <div className="relative flex-shrink-0" ref={helpMenuRef}>
+                    <button
+                      type="button"
+                      onClick={handleToggleHelpMenu}
+                      className={`inline-flex items-center justify-center rounded-xl border border-gray-200 bg-gray-50 text-slate-600 transition-colors hover:bg-white hover:text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700 dark:hover:text-slate-100 ${useCompactDesktopHeader ? 'h-9 w-9' : 'h-10 w-10'}`}
+                      aria-label="Open keyboard shortcuts help"
+                      aria-expanded={isHelpMenuOpen}
+                      title="Keyboard shortcuts"
+                    >
+                      <Keyboard className={useCompactDesktopHeader ? 'h-[18px] w-[18px]' : 'h-5 w-5'} />
+                    </button>
 
-                  {isHelpMenuOpen && (
-                    <div className="absolute right-0 top-[calc(100%+0.75rem)] z-[90] w-80 overflow-hidden rounded-2xl border border-slate-200 bg-white/95 shadow-[0_30px_70px_-34px_rgba(15,23,42,0.45)] backdrop-blur-xl dark:border-slate-700 dark:bg-slate-900/95">
-                      <div className="border-b border-slate-200 px-4 py-3 dark:border-slate-700">
-                        <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">
-                          Keyboard Shortcuts
+                    {isHelpMenuOpen && (
+                      <div className="absolute right-0 top-[calc(100%+0.75rem)] z-[90] w-80 overflow-hidden rounded-2xl border border-slate-200 bg-white/95 shadow-[0_30px_70px_-34px_rgba(15,23,42,0.45)] backdrop-blur-xl dark:border-slate-700 dark:bg-slate-900/95">
+                        <div className="border-b border-slate-200 px-4 py-3 dark:border-slate-700">
+                          <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+                            Keyboard Shortcuts
+                          </div>
+                          <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                            Fast controls for navigation and search.
+                          </div>
                         </div>
-                        <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                          Fast controls for navigation and search.
-                        </div>
-                      </div>
-                      <div className="space-y-3 px-4 py-4 text-sm text-slate-600 dark:text-slate-300">
+                        <div className="space-y-3 px-4 py-4 text-sm text-slate-600 dark:text-slate-300">
                         <div className="flex items-center justify-between gap-4">
                           <span>Toggle scope ALL / LEO / GEO</span>
                           <span className="flex items-center gap-1">
@@ -4130,6 +4310,10 @@ const App: React.FC = () => {
                       </div>
                     </div>
                   )}
+                </div>
+              </div>
+                <div className="min-w-[37rem] max-w-[40rem]">
+                  <HeaderRouteStatusPanel routeStatus={headerRouteStatus} />
                 </div>
               </div>
               </div>
@@ -4622,19 +4806,7 @@ const App: React.FC = () => {
                 : `flex-1 relative bg-white rounded-lg shadow-lg overflow-hidden transition-all duration-300 ${isFullscreen ? 'fixed inset-0 z-50' : ''}`
               }
             >
-              {/* Slot 0: KPI bar (commercial) — placeholder div (engineering).
-                  Different element type so React remounts it on switch; that is fine
-                  because it does not contain the globe. */}
-              {uiMode === 'commercial'
-                ? (
-                  <CommercialMissionBar
-                    viewModel={commercialScenarioViewModel}
-                    selectedTechnology={activeCommercialTechnology}
-                    onTechnologySelect={handleCommercialTechnologySelect}
-                  />
-                )
-                : <div className="h-0 overflow-hidden" aria-hidden="true" />
-              }
+              <div className="h-0 overflow-hidden" aria-hidden="true" />
 
               {/* Slot 1: Globe — ALWAYS a div at this position in BOTH modes.
                   React sees same type → preserves the fiber → MapViewSwitcher never
@@ -4732,20 +4904,6 @@ const App: React.FC = () => {
                       badges={desktopSidebarHero.badges}
                       compact={useCompactDesktopSidebar}
                       onReset={handleResetView}
-                    />
-                  )}
-
-                  {!selectedIss && !selectedGateway && !inspectedSNP && !selectedMoon && !selectedSatellite && activeAnalysisPoint && (
-                    <MissionKpiBar
-                      metrics={mobileMetrics}
-                      leoViewModel={leoServiceViewModel}
-                      geoStatus={geoPointStatus}
-                      satelliteScope={satelliteScope}
-                      compact={useCompactDesktopSidebar}
-                      linkMode={linkMode}
-                      activeMeshTab={activeMeshTab}
-                      leoTopologyMode={leoTopologyMode}
-                      leoSiteToSiteResult={activeLeoSiteToSiteResult}
                     />
                   )}
 

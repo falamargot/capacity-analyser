@@ -1225,10 +1225,11 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
                   tone="user-defined"
                   statusLabel="Auto"
                   statusTitle="Resolved automatically"
-                  readOnly
-                  terminalDisplayLabel="Gateway"
-                  terminalDisplayIcon="📡"
-                />
+	                  readOnly
+	                  terminalDisplayLabel="Gateway"
+	                  terminalDisplayIcon="📡"
+	                  showMaxLabel={false}
+	                />
                 <TerminalConfig
                   terminalType={terminalType}
                   onTerminalTypeChange={onTerminalTypeChange}
@@ -1296,10 +1297,11 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
                   tone="user-defined"
                   statusLabel="Auto"
                   statusTitle="Resolved automatically"
-                  readOnly
-                  terminalDisplayLabel="Gateway"
-                  terminalDisplayIcon="📡"
-                />
+	                  readOnly
+	                  terminalDisplayLabel="Gateway"
+	                  terminalDisplayIcon="📡"
+	                  showMaxLabel={false}
+	                />
               </>
             )}
           </div>

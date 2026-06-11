@@ -2436,7 +2436,7 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
                 : undefined}
               >
                 {/* Technology focus selector (only when scope is ALL) */}
-                {satelliteScope === 'ALL' && (
+                {satelliteScope === 'ALL' && !externalHeader && (
                   <div
                     role="group"
                     aria-label="Focused analysis technology"
