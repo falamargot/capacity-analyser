@@ -51,12 +51,12 @@ export interface HeaderScenarioBuilderProps {
 // ─── Select styling ───────────────────────────────────────────────────────────
 
 const darkSelectClass = [
-  'w-full appearance-none rounded-md border border-slate-200 bg-white/95',
-  'py-1 pl-2 pr-6 text-[11px] font-semibold text-slate-900 leading-tight shadow-sm',
+  'w-full appearance-none rounded-md border border-transparent bg-white/80',
+  'py-1 pl-2 pr-6 text-[11px] font-semibold text-slate-900 leading-tight',
   'focus:border-sky-400/60 focus:ring-1 focus:ring-sky-400/40 focus:outline-none',
   'disabled:opacity-40 disabled:cursor-not-allowed',
-  'hover:border-slate-300 transition-colors',
-  'dark:border-slate-600/80 dark:bg-slate-800/90 dark:text-slate-200 dark:hover:border-slate-500',
+  'hover:border-slate-300/80 transition-colors',
+  'dark:bg-slate-800/70 dark:text-slate-200 dark:hover:border-slate-500/80',
 ].join(' ');
 
 const chevronSvg = encodeURIComponent(
@@ -185,9 +185,11 @@ const WeatherAssumptionRow = memo(function WeatherAssumptionRow({
   disabled?: boolean;
 }) {
   const selectDisabled = disabled;
+  const autoWeatherEnabled = weather.autoWeatherEnabled ?? true;
+  const autoWeatherDisabled = disabled || !weather.onAutoWeatherChange;
 
   return (
-    <div className="flex w-full min-w-0 items-center gap-2 rounded-lg border border-sky-100 bg-sky-50/70 px-2 py-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.72)] dark:border-sky-400/15 dark:bg-sky-950/20">
+    <div className="flex w-full min-w-0 items-center gap-2 rounded-lg bg-sky-50/70 px-2 py-1 dark:bg-sky-950/20">
       <span className="shrink-0 text-[10px] font-black uppercase tracking-[0.16em] text-sky-700 dark:text-cyan-300">
         WX
       </span>
@@ -205,6 +207,25 @@ const WeatherAssumptionRow = memo(function WeatherAssumptionRow({
           ))}
         </select>
       </div>
+      <label
+        className={[
+          'flex shrink-0 items-center gap-1 whitespace-nowrap text-[10px] font-bold uppercase tracking-[0.08em]',
+          autoWeatherDisabled
+            ? 'cursor-not-allowed text-slate-400 dark:text-slate-600'
+            : 'cursor-pointer text-slate-500 hover:text-sky-700 dark:text-slate-400 dark:hover:text-cyan-200',
+        ].join(' ')}
+        title="Use current weather"
+      >
+        <input
+          type="checkbox"
+          checked={autoWeatherEnabled}
+          onChange={e => weather.onAutoWeatherChange?.(e.target.checked)}
+          disabled={autoWeatherDisabled}
+          className="h-3 w-3 rounded border-slate-300 bg-white text-sky-600 focus:ring-1 focus:ring-sky-400 dark:border-slate-600 dark:bg-slate-800"
+          aria-label="Use current weather"
+        />
+        <span>Real</span>
+      </label>
     </div>
   );
 });
@@ -312,8 +333,8 @@ function SiteLocationEditor({
           className={[
             'group inline-flex h-8 w-full min-w-0 items-center gap-2 rounded-lg border px-2.5 text-left transition-colors',
             isSet
-              ? 'border-slate-200 bg-white text-slate-900 shadow-sm hover:border-sky-300 hover:bg-sky-50/40 dark:border-slate-600/70 dark:bg-slate-800/60 dark:text-slate-100 dark:hover:border-sky-400/60 dark:hover:bg-slate-800'
-              : 'border-dashed border-slate-300 bg-slate-50/80 text-slate-500 hover:border-sky-300 hover:bg-sky-50/40 hover:text-slate-700 dark:border-slate-600/70 dark:bg-slate-800/30 dark:text-slate-500 dark:hover:border-sky-400/50 dark:hover:text-slate-300',
+              ? 'border-slate-200/90 bg-white text-slate-900 shadow-sm hover:border-sky-300 hover:bg-sky-50/40 dark:border-slate-600/60 dark:bg-slate-800/70 dark:text-slate-100 dark:hover:border-sky-400/60 dark:hover:bg-slate-800'
+              : 'border-dashed border-slate-300 bg-slate-50/80 text-slate-500 hover:border-sky-300 hover:bg-sky-50/40 hover:text-slate-700 dark:border-slate-600/60 dark:bg-slate-800/30 dark:text-slate-500 dark:hover:border-sky-400/50 dark:hover:text-slate-300',
           ].join(' ')}
           title={isSet ? label : undefined}
           aria-label={isSet ? `Edit ${roleLabel} location` : `Set ${roleLabel} location`}
@@ -343,11 +364,11 @@ const TerminalControlRow = memo(function TerminalControlRow({
   modelSelect: ReactNode;
 }) {
   const toneClass = tone === 'geo'
-    ? 'border-emerald-200/75 bg-emerald-50/70 text-emerald-700 shadow-[0_0_20px_-16px_rgba(16,185,129,0.9)] dark:border-emerald-400/20 dark:bg-emerald-950/20 dark:text-emerald-300'
-    : 'border-sky-200/80 bg-sky-50/70 text-sky-700 shadow-[0_0_20px_-16px_rgba(14,165,233,0.9)] dark:border-sky-400/20 dark:bg-sky-950/20 dark:text-sky-300';
+    ? 'bg-emerald-50/70 text-emerald-700 dark:bg-emerald-950/20 dark:text-emerald-300'
+    : 'bg-sky-50/70 text-sky-700 dark:bg-sky-950/20 dark:text-sky-300';
 
   return (
-    <div className={`flex min-w-0 items-center gap-2 rounded-lg border px-2 py-1.5 ${toneClass}`}>
+    <div className={`flex min-w-0 items-center gap-2 rounded-lg px-2 py-1.5 ${toneClass}`}>
       <div className="flex w-[3.8rem] shrink-0 items-center gap-1.5">
         <span className="text-[13px]" aria-hidden="true">🛰</span>
         <span className="text-[10px] font-black uppercase tracking-[0.14em]">
@@ -376,10 +397,9 @@ function SiteColumn({
   return (
     <div
       className={[
-        'relative flex min-w-0 flex-1 flex-col gap-2 overflow-hidden rounded-2xl border px-3 py-2.5',
-        'border-slate-200/90 bg-white shadow-[0_12px_32px_-28px_rgba(15,23,42,0.55)]',
-        'before:absolute before:inset-x-4 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-sky-300/70 before:to-transparent',
-        'dark:border-slate-700/75 dark:bg-slate-900/65 dark:shadow-[0_16px_36px_-30px_rgba(56,189,248,0.55)]',
+        'relative flex min-w-0 flex-1 flex-col gap-2.5 overflow-visible rounded-xl px-3 py-2',
+        'bg-slate-50/80',
+        'dark:bg-slate-900/45',
       ].join(' ')}
     >
       <div className="relative flex w-full min-w-0 items-center gap-2.5">
@@ -399,7 +419,7 @@ function SiteColumn({
         </div>
       </div>
 
-      <div className="relative flex min-w-0 flex-col gap-1.5">
+      <div className="relative flex min-w-0 flex-col gap-1.5 border-t border-slate-200/70 pt-2 dark:border-slate-700/60">
         <WeatherAssumptionRow
           weather={config.weather}
           disabled={isAircraft}
@@ -460,11 +480,10 @@ function HeaderScenarioBuilder({
     <div
       className={[
         'relative flex items-stretch',
-        'rounded-[24px] border border-slate-200/90 bg-white',
-        'shadow-[0_22px_54px_-34px_rgba(15,23,42,0.38)]',
-        'ring-1 ring-slate-900/5',
+        'rounded-2xl border border-slate-200/80 bg-white',
+        'shadow-[0_18px_44px_-32px_rgba(15,23,42,0.45)]',
         'dark:border-slate-700/80 dark:bg-[linear-gradient(135deg,rgba(10,14,26,0.97),rgba(15,23,42,0.95))]',
-        'dark:shadow-[0_20px_50px_-30px_rgba(15,23,42,0.75)] dark:ring-white/5',
+        'dark:shadow-[0_18px_44px_-32px_rgba(15,23,42,0.8)]',
         compact ? 'gap-2.5 px-2.5 py-2' : 'gap-3.5 px-3 py-2.5',
       ].join(' ')}
     >
@@ -483,10 +502,10 @@ function HeaderScenarioBuilder({
           onClick={onSwap}
           disabled={!canSwap}
           className={[
-            'inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border transition-colors',
+            'inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition-colors',
             canSwap
-              ? 'border-sky-200 bg-white text-sky-600 shadow-[0_0_24px_-12px_rgba(14,165,233,0.9)] hover:border-sky-300 hover:text-sky-700 dark:border-sky-400/30 dark:bg-slate-800 dark:text-sky-200 dark:hover:border-sky-400/60'
-              : 'cursor-not-allowed border-slate-200 bg-slate-50 text-slate-300 dark:border-slate-700/50 dark:bg-slate-900/60 dark:text-slate-700',
+              ? 'bg-sky-50 text-sky-600 hover:bg-sky-100 hover:text-sky-700 dark:bg-slate-800/70 dark:text-sky-200 dark:hover:bg-slate-800'
+              : 'cursor-not-allowed bg-slate-50 text-slate-300 dark:bg-slate-900/50 dark:text-slate-700',
           ].join(' ')}
           aria-label="Swap Site A and Site B"
           title={canSwap ? 'Swap sites' : 'Set both sites to swap'}
