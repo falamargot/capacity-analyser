@@ -6,10 +6,10 @@ import { customerServiceStateLabelShort, segmentStatusBadgeClassName } from './c
 
 const journeyLabel: Record<CommercialRouteSegment['type'], string> = {
   access: 'Customer Access',
-  satellite: 'Satellite Service',
+  satellite: 'Serving Satellite',
   backhaul: 'Network Backbone',
   destination: 'Destination',
-  summary: 'Service Outcome',
+  summary: 'Connectivity Architecture',
 };
 
 function normalizeLabel(value: string | undefined): string {

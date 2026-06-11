@@ -30,8 +30,7 @@ export interface CommercialNarrativePanelProps {
   selectedSegmentId: string;
   commercialRouteModel?: CommercialRouteModel;
   isOpen: boolean;
-  onClose: () => void;
-  onSegmentChange: (segmentId: CommercialRouteSegmentId) => void;
+  onClose?: () => void;
   onViewFullAnalysis?: () => void;
 }
 
@@ -273,21 +272,21 @@ function SummaryHeroBlock({
     : 'border-slate-500/38 bg-slate-700/22 text-slate-300';
 
   const narrativeText = isGeo
-    ? 'The selected GEO satellite directly relays traffic between both customer locations through uplink and downlink coverage.'
+    ? 'This route uses a single GEO satellite to relay traffic directly between both sites through coordinated uplink and downlink coverage.'
     : isLeo
-    ? 'The selected LEO service connects both customer locations through two access satellites and the ground backbone.'
+    ? 'This route connects both sites through two dedicated LEO access satellites and a terrestrial ground backbone.'
     : card.narrativeStatement;
 
   const geoDrivers: ArchitectureDriver[] = [
     { label: 'Direct satellite relay', icon: <Satellite className="h-3.5 w-3.5" /> },
-    { label: 'Stable GEO coverage', icon: <CheckCircle2 className="h-3.5 w-3.5" /> },
-    { label: 'Longer orbital distance', icon: <Timer className="h-3.5 w-3.5" /> },
+    { label: 'Continuous coverage', icon: <CheckCircle2 className="h-3.5 w-3.5" /> },
+    { label: 'Long orbital distance', icon: <Timer className="h-3.5 w-3.5" /> },
   ];
 
   const leoDrivers: ArchitectureDriver[] = [
-    { label: 'Low-orbit access', icon: <Satellite className="h-3.5 w-3.5" /> },
-    { label: 'Ground backbone segment', icon: <Network className="h-3.5 w-3.5" /> },
-    { label: 'Two serving satellites', icon: <Route className="h-3.5 w-3.5" /> },
+    { label: 'Low orbit access', icon: <Satellite className="h-3.5 w-3.5" /> },
+    { label: 'Terrestrial backbone', icon: <Network className="h-3.5 w-3.5" /> },
+    { label: 'Dual satellite chain', icon: <Route className="h-3.5 w-3.5" /> },
   ];
 
   const drivers = isGeo ? geoDrivers : isLeo ? leoDrivers : [];
@@ -298,7 +297,7 @@ function SummaryHeroBlock({
       <div className={`rounded-xl border p-4 shadow-[0_0_60px_rgba(0,0,0,0.40),inset_0_1px_0_rgba(255,255,255,0.08)] ${heroBorder}`}>
         <div className="mb-3">
           <div className={`text-[9px] font-bold uppercase tracking-[0.24em] ${accentTextClass}`}>
-            {isGeo ? 'GEO Selected' : isLeo ? 'LEO Selected' : 'Service Outcome'}
+            Connectivity Architecture
           </div>
           <div className="mt-0.5 text-[14px] font-bold text-white/90">
             {isGeo ? 'Direct GEO Relay' : isLeo ? 'LEO Relay Chain' : 'Connectivity Path'}
@@ -313,12 +312,12 @@ function SummaryHeroBlock({
         </p>
       </div>
 
-      {/* Performance outcome */}
+      {/* Performance */}
       <section>
         <div className="mb-2 text-[9px] font-bold uppercase tracking-[0.18em] text-slate-500">
-          Performance Outcome
+          Performance
         </div>
-        <div className="grid grid-cols-3 gap-2">
+        <div className={`grid gap-2 ${isGeo ? 'grid-cols-2' : 'grid-cols-3'}`}>
           <div className={`rounded-lg border px-2.5 py-2.5 ${metricCardClass}`}>
             <div className="flex items-center gap-1 text-[8px] font-bold uppercase tracking-[0.12em] text-white/46">
               <ArrowDown className="h-2.5 w-2.5" aria-hidden="true" />
@@ -337,6 +336,17 @@ function SummaryHeroBlock({
               {formatMs(selectedOption?.rttMs)}
             </div>
           </div>
+          {isGeo && (
+            <div className={`rounded-lg border px-2.5 py-2.5 ${metricCardClass}`}>
+              <div className="flex items-center gap-1 text-[8px] font-bold uppercase tracking-[0.12em] text-white/46">
+                <CheckCircle2 className="h-2.5 w-2.5" aria-hidden="true" />
+                <span>Coverage</span>
+              </div>
+              <div className="mt-1.5 inline-flex items-center rounded-full border border-emerald-400/38 bg-emerald-500/12 px-1.5 py-0.5 text-[8.5px] font-bold uppercase tracking-[0.06em] leading-none text-emerald-200">
+                Confirmed
+              </div>
+            </div>
+          )}
           <div className={`rounded-lg border px-2.5 py-2.5 ${metricCardClass}`}>
             <div className="flex items-center gap-1 text-[8px] font-bold uppercase tracking-[0.12em] text-white/46">
               <Wifi className="h-2.5 w-2.5" aria-hidden="true" />
@@ -349,11 +359,11 @@ function SummaryHeroBlock({
         </div>
       </section>
 
-      {/* Why it performs this way */}
+      {/* Architecture drivers */}
       {drivers.length > 0 && (
         <section>
           <div className="mb-2 text-[9px] font-bold uppercase tracking-[0.18em] text-slate-500">
-            Why it performs this way
+            Architecture drivers
           </div>
           <div className="space-y-1.5">
             {drivers.map((driver) => (
@@ -393,51 +403,57 @@ function AccessSignalDiagram() {
   );
 }
 
-function AccessBriefingBlock({ card }: { card: CommercialNarrativeCardModel }) {
+function AccessBriefingBlock({
+  card,
+  viewModel,
+}: {
+  card: CommercialNarrativeCardModel;
+  viewModel: CommercialScenarioViewModel;
+}) {
+  const isGeo = viewModel.commercialDisplayTechnology === 'GEO';
+  const terminalModel = cleanPanelValue(viewModel.display.terminalLabel) ?? (isGeo ? 'GEO Terminal' : 'LEO Terminal');
+  const isReady = card.statusTone === 'good';
+
+  const profileRows = [
+    { label: 'Terminal', value: terminalModel },
+    { label: 'Role', value: 'Customer Terminal' },
+    { label: 'Technology', value: isGeo ? 'GEO Satellite' : 'LEO Satellite' },
+    { label: isGeo ? 'Uplink' : 'Visibility', value: isReady ? 'Ready' : 'Pending' },
+  ];
+
   return (
     <div className="space-y-4">
+      {/* Hero diagram + access status */}
       <div className="rounded-lg border border-cyan-300/30 bg-[linear-gradient(180deg,rgba(8,47,73,0.34),rgba(15,23,42,0.44))] p-3.5 shadow-[0_0_48px_rgba(34,211,238,0.11),inset_0_1px_0_rgba(255,255,255,0.05)]">
         <AccessSignalDiagram />
         <div className="mt-4 h-px bg-gradient-to-r from-transparent via-cyan-100/20 to-transparent" />
-        <p className="mt-3 text-[16px] font-semibold leading-[1.55] text-white">
-          {card.narrativeStatement}
-        </p>
+        <div className="mt-3 flex items-center justify-between gap-2">
+          <div className="text-[10px] font-bold uppercase tracking-[0.16em] text-cyan-100/60">
+            {isGeo ? 'GEO Access' : 'LEO Access'}
+          </div>
+          <span className={`inline-flex rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.08em] leading-none ${accessStatusBadgeClass[card.statusTone]}`}>
+            {card.statusLabel}
+          </span>
+        </div>
       </div>
 
-      {card.facts.length > 0 && (
-        <div>
-          <div className="mb-2 text-[9px] font-bold uppercase tracking-[0.16em] text-cyan-200/65">
-            Key points
-          </div>
-          <div className="space-y-2">
-            {card.facts.slice(0, 3).map((fact) => (
-              <div
-                key={`${fact.label}:${fact.value}`}
-                className="flex items-center gap-2.5 rounded-lg border border-cyan-200/18 bg-[linear-gradient(90deg,rgba(34,211,238,0.13),rgba(14,165,233,0.08))] px-3 py-2.5 text-[13px] font-semibold text-slate-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]"
-              >
-                <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-cyan-200 drop-shadow-[0_0_8px_rgba(34,211,238,0.5)]" aria-hidden="true" />
-                <span className="min-w-0">{fact.label}</span>
-              </div>
-            ))}
-          </div>
+      {/* Access Profile */}
+      <section>
+        <div className="mb-2 text-[9px] font-bold uppercase tracking-[0.18em] text-cyan-200/65">
+          Access Profile
         </div>
-      )}
-
-      <div className="rounded-lg border border-cyan-300/28 bg-[linear-gradient(135deg,rgba(14,165,233,0.22),rgba(8,47,73,0.18))] p-3 text-cyan-50 shadow-[0_0_28px_rgba(34,211,238,0.10),inset_0_1px_0_rgba(255,255,255,0.05)]">
-        <div className="flex items-start gap-2">
-          <div className="mt-0.5 shrink-0">
-            <CheckCircle2 className="h-3.5 w-3.5 text-cyan-200" aria-hidden="true" />
-          </div>
-          <div className="min-w-0">
-            <div className="text-[9px] font-bold uppercase tracking-[0.16em] text-cyan-100/70">
-              Briefing
+        <div className="space-y-2">
+          {profileRows.map(({ label, value }) => (
+            <div
+              key={label}
+              className="flex items-center justify-between gap-3 rounded-lg border border-cyan-200/18 bg-[linear-gradient(90deg,rgba(34,211,238,0.10),rgba(14,165,233,0.07))] px-3 py-2.5 text-[12px] text-slate-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]"
+            >
+              <span className="font-semibold">{label}</span>
+              <span className="font-medium text-cyan-100/80">{value}</span>
             </div>
-            <p className="mt-1 text-[13px] font-semibold leading-[1.5]">
-              {card.businessNote}
-            </p>
-          </div>
+          ))}
         </div>
-      </div>
+      </section>
     </div>
   );
 }
@@ -567,6 +583,9 @@ function GeoServingSatelliteBlock({
     <div className="space-y-4">
       <div className="rounded-lg border border-indigo-300/28 bg-[radial-gradient(circle_at_50%_18%,rgba(147,197,253,0.22),transparent_34%),linear-gradient(180deg,rgba(30,41,91,0.36),rgba(15,23,42,0.48))] p-4 shadow-[0_0_46px_rgba(99,102,241,0.12),inset_0_1px_0_rgba(255,255,255,0.05)]">
         <GeoServingDiagram />
+        <div className="mt-1.5 text-center text-[9px] font-bold uppercase tracking-[0.22em] text-blue-300/45">
+          Direct GEO Relay
+        </div>
         <div className="mt-2 text-[10px] font-bold uppercase tracking-[0.16em] text-indigo-100/60">Serving satellite</div>
         <div className="mt-1 truncate text-[18px] font-bold text-white">{satelliteName}</div>
         <p className="mt-3 text-[15px] font-semibold leading-[1.55] text-white">
@@ -676,7 +695,7 @@ function LeoServingSatellitesBlock({
       <LeoAccessSatelliteCard
         title="Site A access satellite"
         satelliteName={siteASatellite}
-        narrative="This satellite provides access service for the origin site."
+        narrative="This satellite provides low-orbit access coverage for Site A."
         side="A"
         elevation={viewModel.display.elevationA}
         linkQuality={viewModel.display.linkQualityA}
@@ -685,7 +704,7 @@ function LeoServingSatellitesBlock({
       <LeoAccessSatelliteCard
         title="Site B access satellite"
         satelliteName={siteBSatellite}
-        narrative="This satellite delivers service to the destination site."
+        narrative="This satellite provides low-orbit access coverage for Site B."
         side="B"
         elevation={viewModel.display.elevationB}
         linkQuality={viewModel.display.linkQualityB}
@@ -821,74 +840,49 @@ function DestinationEndpointBlock({
   card: CommercialNarrativeCardModel;
   viewModel: CommercialScenarioViewModel;
 }) {
+  const isGeo = viewModel.commercialDisplayTechnology === 'GEO';
   const isGateway = viewModel.display.destinationEndpointKind === 'geo_gateway';
-  const stationModel = cleanPanelValue(viewModel.display.destinationStationModel) ?? 'Station model unavailable';
+  const stationModel = cleanPanelValue(viewModel.display.destinationStationModel)
+    ?? (isGeo ? 'GEO Terminal' : 'LEO Terminal');
   const location = cleanPanelValue(viewModel.display.destinationLocation);
+  const role = cleanPanelValue(viewModel.display.destinationEndpointRole)
+    ?? (isGateway ? 'Gateway' : 'Customer Terminal');
   const receivingSide = cleanPanelValue(viewModel.display.destinationReceivingSide) ?? 'Destination';
-  const gatewayName = cleanPanelValue(viewModel.display.destinationGatewayName);
-  const gatewayCoverage = cleanPanelValue(viewModel.display.destinationGatewayCoverage);
+  const isAvailable = card.statusTone === 'good';
+
+  const profileRows: Array<{ label: string; value?: string }> = [
+    { label: 'Role', value: role },
+    { label: isGeo ? 'GEO terminal' : 'LEO terminal', value: stationModel },
+    { label: 'Location', value: location ?? 'Site B' },
+    {
+      label: isGeo ? 'Receive coverage' : 'Satellite visibility',
+      value: isAvailable ? 'Available' : 'Pending',
+    },
+  ];
 
   return (
     <div className="space-y-4">
+      {/* Hero diagram + status */}
       <div className="rounded-lg border border-emerald-300/30 bg-[linear-gradient(180deg,rgba(6,78,59,0.34),rgba(15,23,42,0.44))] p-3.5 shadow-[0_0_46px_rgba(16,185,129,0.11),inset_0_1px_0_rgba(255,255,255,0.05)]">
         <DestinationReceiveDiagram isGateway={isGateway} endpointLabel={receivingSide} />
-        <div className="mt-4 text-[10px] font-bold uppercase tracking-[0.16em] text-emerald-100/60">
-          {isGateway ? 'Satellite to Gateway' : `Satellite to ${receivingSide}`}
+        <div className="mt-4 h-px bg-gradient-to-r from-transparent via-emerald-100/18 to-transparent" />
+        <div className="mt-3 flex items-center justify-between gap-2">
+          <div className="text-[10px] font-bold uppercase tracking-[0.16em] text-emerald-100/60">
+            {isGateway ? 'Satellite to Gateway' : `Satellite to ${receivingSide}`}
+          </div>
+          <span className={`inline-flex rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.08em] leading-none ${statusBadgeClass[card.statusTone]}`}>
+            {card.statusLabel}
+          </span>
         </div>
-        <p className="mt-2 text-[16px] font-semibold leading-[1.55] text-white">
-          {card.narrativeStatement}
-        </p>
       </div>
 
-      <div>
-        <div className="mb-2 text-[9px] font-bold uppercase tracking-[0.16em] text-emerald-200/65">
-          {isGateway ? 'Gateway' : 'Station'}
+      {/* Destination capability summary */}
+      <section>
+        <div className="mb-2 text-[9px] font-bold uppercase tracking-[0.18em] text-emerald-200/65">
+          Destination capability summary
         </div>
-        {!isGateway && (
-          <DestinationTerminalCard
-            model={stationModel}
-            technology={viewModel.display.destinationTechnology}
-          />
-        )}
-        <DestinationFactRows
-          facts={isGateway
-            ? [
-                { label: 'Role', value: viewModel.display.destinationEndpointRole },
-                { label: 'Gateway name', value: gatewayName },
-                { label: 'Coverage', value: gatewayCoverage },
-              ]
-            : [
-                { label: 'Role', value: viewModel.display.destinationEndpointRole },
-                { label: 'Technology', value: viewModel.display.destinationTechnology },
-                { label: 'Location', value: location },
-              ]}
-        />
-      </div>
-
-      {card.facts.length > 0 && (
-        <div>
-          <div className="mb-2 text-[9px] font-bold uppercase tracking-[0.16em] text-emerald-200/65">
-            Service facts
-          </div>
-          <DestinationFactRows facts={card.facts} />
-        </div>
-      )}
-
-      <div className={`rounded-lg border p-3 ${noteClass[card.statusTone]}`}>
-        <div className="flex items-start gap-2">
-          <div className="mt-0.5 shrink-0">
-            <NoteIcon tone={card.statusTone} />
-          </div>
-          <div className="min-w-0">
-            <div className="text-[9px] font-bold uppercase tracking-[0.16em] opacity-75">
-              Bottom line
-            </div>
-            <p className="mt-1 text-[13px] font-semibold leading-[1.5]">
-              {card.businessNote}
-            </p>
-          </div>
-        </div>
-      </div>
+        <DestinationFactRows facts={profileRows} />
+      </section>
     </div>
   );
 }
@@ -899,7 +893,6 @@ function CommercialNarrativePanel({
   commercialRouteModel,
   isOpen,
   onClose,
-  onSegmentChange,
   onViewFullAnalysis,
 }: CommercialNarrativePanelProps) {
   const card = buildCommercialNarrativeCardModel({
@@ -983,14 +976,16 @@ function CommercialNarrativePanel({
                 {card.eyebrow}
               </span>
             </div>
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex h-7 w-7 items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-slate-800 hover:text-slate-200"
-              aria-label="Close"
-            >
-              <X className="h-4 w-4" />
-            </button>
+            {onClose && (
+              <button
+                type="button"
+                onClick={onClose}
+                className="flex h-7 w-7 items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-slate-800 hover:text-slate-200"
+                aria-label="Close"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
           </div>
 
 
@@ -1018,7 +1013,7 @@ function CommercialNarrativePanel({
         <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
 
           {isAccess ? (
-            <AccessBriefingBlock card={card} />
+            <AccessBriefingBlock card={card} viewModel={viewModel} />
           ) : isSatellite ? (
             <SatelliteCoverageBlock card={card} viewModel={viewModel} />
           ) : isDestination ? (

@@ -28,10 +28,10 @@ const segmentOrder: CommercialRouteSegmentId[] = ['access', 'satellite', 'destin
 
 const segmentTitles: Record<CommercialRouteSegmentId, string> = {
   access: 'Customer Access',
-  satellite: 'Satellite Service',
+  satellite: 'Serving Satellite',
   backhaul: 'Network Backbone',
   destination: 'Destination',
-  summary: 'Service Outcome',
+  summary: 'Connectivity Architecture',
 };
 
 const customerStateLabel: Record<CommercialCustomerServiceState, string> = {
@@ -364,10 +364,10 @@ export function buildCommercialNarrativeCardModel({
         statusTone: statusTone(segment),
         narrativeStatement: isGeoService
           ? segment?.isRouteParticipant
-            ? 'This GEO satellite receives traffic from the origin site through its uplink coverage and delivers traffic to the destination site through its downlink coverage.'
+            ? 'The serving GEO satellite provides simultaneous uplink and downlink coverage over both customer sites.'
             : 'Satellite coverage is not yet confirmed.'
           : segment?.isRouteParticipant
-            ? 'Each endpoint is currently served by its own access satellite.'
+            ? 'Two dedicated LEO access satellites provide low-orbit coverage — one for each customer site.'
             : 'The serving satellites are not yet confirmed.',
         facts: compactFacts(contextFacts),
         businessNote: businessNote(
@@ -443,7 +443,7 @@ export function buildCommercialNarrativeCardModel({
         segmentId: 'summary',
         stepNumber: 4,
         stepTotal: segmentOrder.length,
-        eyebrow: 'Service Outcome',
+        eyebrow: 'Connectivity Architecture',
         title,
         statusLabel: viewModel.executiveSummary.statusLabel,
         statusTone: statusTone(segment),

@@ -1,23 +1,14 @@
 import { memo, type ReactNode } from 'react';
 import { ArrowDown, ArrowUp, Star, Timer } from 'lucide-react';
 import type { CommercialScenarioViewModel, CommercialTechnologyOption } from './commercialViewModel';
-import SharedScenarioBuilder from '../shared/SharedScenarioBuilder';
 import { formatMbps, formatMs } from './commercialDisplayUtils';
-import type { ConnectivityEndpoint, ConnectivityScenarioType } from './commercialTypes';
-import type { LocationResult } from '../../hooks/useLocationSearch';
 
 type SelectableCommercialTechnology = 'GEO' | 'LEO';
 
 interface CommercialMissionBarProps {
   viewModel: CommercialScenarioViewModel;
-  origin?: ConnectivityEndpoint;
-  destination?: ConnectivityEndpoint;
-  scenarioType?: ConnectivityScenarioType;
   selectedTechnology: SelectableCommercialTechnology;
   onTechnologySelect: (technology: SelectableCommercialTechnology) => void;
-  onOriginSelect: (location: LocationResult) => void;
-  onDestinationSelect: (location: LocationResult) => void;
-  onSwapClick: () => void;
 }
 
 function optionForTechnology(
@@ -25,17 +16,6 @@ function optionForTechnology(
   technology: SelectableCommercialTechnology,
 ): CommercialTechnologyOption | undefined {
   return viewModel.comparison.options.find((option) => option.technology === technology.toLowerCase());
-}
-
-function scenarioTypeFor(viewModel: CommercialScenarioViewModel): ConnectivityScenarioType {
-  const dest = viewModel.display.destinationType?.toLowerCase() ?? '';
-  if (
-    dest.includes('snp')
-    || dest.includes('portal')
-    || dest.includes('gateway')
-    || dest.includes('network')
-  ) return 'network_access';
-  return 'site_to_site';
 }
 
 function isRecommendedTechnology(
@@ -196,16 +176,9 @@ function TechnologyPerformanceCard({
 
 function CommercialMissionBar({
   viewModel,
-  origin,
-  destination,
-  scenarioType: scenarioTypeOverride,
   selectedTechnology,
   onTechnologySelect,
-  onOriginSelect,
-  onDestinationSelect,
-  onSwapClick,
 }: CommercialMissionBarProps) {
-  const scenarioType = scenarioTypeOverride ?? scenarioTypeFor(viewModel);
   const geoOption = optionForTechnology(viewModel, 'GEO');
   const leoOption = optionForTechnology(viewModel, 'LEO');
   const geoRecommended = isRecommendedTechnology(viewModel, 'GEO');
@@ -214,20 +187,9 @@ function CommercialMissionBar({
   return (
     <section
       className="relative z-30 flex-shrink-0 border-b border-[rgba(148,163,184,0.07)] bg-[rgba(6,10,22,0.90)] px-3 py-2 backdrop-blur-xl"
-      aria-label="Commercial mission briefing"
+      aria-label="GEO and LEO service comparison"
     >
-      <div className="grid min-h-[64px] min-w-0 grid-cols-[minmax(24rem,2fr)_minmax(12rem,1fr)_minmax(12rem,1fr)] gap-2.5">
-        <div className="min-w-0 rounded-lg border border-[rgba(51,65,85,0.55)] bg-[rgba(15,23,42,0.50)] p-2">
-          <SharedScenarioBuilder
-            origin={origin}
-            destination={destination}
-            scenarioType={scenarioType}
-            onOriginSelect={onOriginSelect}
-            onDestinationSelect={onDestinationSelect}
-            onSwapClick={onSwapClick}
-          />
-        </div>
-
+      <div className="mx-auto grid min-h-[70px] w-full max-w-[960px] min-w-0 grid-cols-2 gap-2.5">
         <TechnologyPerformanceCard
           technology="GEO"
           option={geoOption}

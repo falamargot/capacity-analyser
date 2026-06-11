@@ -20,7 +20,15 @@
       "Bash(node -e ' *)",
       "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\('\\\\n'.join\\(f'{k}: {v}' for k,v in d['dependencies'].items\\(\\)\\)\\)\")",
       "Bash(curl -s -L \"https://celestrak.org/gp.php?CATNR=25544&FORMAT=JSON\")",
-      "Bash(python3 -c ' *)"
+      "Bash(python3 -c ' *)",
+      "Bash(Get-ChildItem -Path \"c:\\\\Developpement\\\\capacity-analyser\" -Recurse -Directory -Name)",
+      "PowerShell(Get-ChildItem -Path \"c:\\\\Developpement\\\\capacity-analyser\\\\src\" -Recurse | Select-Object -ExpandProperty FullName | Where-Object {$_ -match '\\\\.\\(tsx?|jsx\\)$'} | Select-Object -First 50)",
+      "Bash(xargs grep -l \"ScenarioBuilder\\\\|SearchBar\")",
+      "Bash(Get-ChildItem c:\\\\Developpement\\\\capacity-analyser -Name -Filter \"tailwind*\")",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:5173)",
+      "PowerShell(Start-Process -NoNewWindow -FilePath \"npm\" -ArgumentList \"run\",\"dev\",\"--\",\"--port\",\"5173\" -PassThru)",
+      "PowerShell(Start-Sleep -Seconds 5; try { $r = Invoke-WebRequest -Uri \"http://localhost:5173\" -TimeoutSec 3 -UseBasicParsing; \"HTTP $\\($r.StatusCode\\)\" } catch { \"not ready: $_\" })",
+      "PowerShell(npm run dev 2>&1)"
     ]
   }
 }

@@ -17,18 +17,16 @@ import ExportButton, { type ExportButtonPayload } from './components/ExportButto
 import SimulationSettings from './components/layout/SimulationSettings';
 import CommercialModeShell from './components/commercial/CommercialModeShell';
 import CommercialMissionBar from './components/commercial/CommercialMissionBar';
-import SharedScenarioBuilder from './components/shared/SharedScenarioBuilder';
+import HeaderScenarioBuilder from './components/header/HeaderScenarioBuilder';
 import CommercialRouteStrip from './components/commercial/CommercialRouteStrip';
 import CommercialNarrativePanel from './components/commercial/CommercialNarrativePanel';
-import type { CommercialRouteSegmentId } from './types/commercialRouteModel';
 import {
   buildCommercialScenarioViewModel,
   type CommercialScenarioViewModel,
   type CommercialTechnologyOption,
 } from './components/commercial/commercialViewModel';
 import { buildCommercialRouteModel } from './utils/commercialRouteModel';
-import { WeatherControl, WEATHER_PROFILES, type TerminalType, type WeatherType, toWeatherCondition } from './components/capacity';
-import { WEATHER_ATTENUATION_DB } from './utils/realisticSimulation';
+import { type TerminalType, type WeatherType, toWeatherCondition } from './components/capacity';
 import { SatelliteData } from './types/satellites';
 import type { CandidateCoverage, GEOBeam, MobileAnalysisMetrics, SelectedSNP } from './types/analysis';
 import type { Selection } from './types/analysis';
@@ -539,7 +537,6 @@ const App: React.FC = () => {
     handleTechnologyScopeChange,
   } = useUiModeState();
   const [commercialSelectedSegment, setCommercialSelectedSegment] = useState<string>('summary');
-  const [isCommercialPanelOpen, setIsCommercialPanelOpen] = useState(false);
   const [isGlobeModePeekPressed, setIsGlobeModePeekPressed] = useState(false);
   const globeCommercialMode = isGlobeModePeekPressed ? !commercialMode : commercialMode;
 
@@ -555,10 +552,9 @@ const App: React.FC = () => {
     setCommercialSelectedSegment(normalizeCommercialSegmentId(segmentId));
   }, [normalizeCommercialSegmentId]);
 
-  /** Opens the Narrative Panel and selects the given segment. */
+  /** Selects the narrative segment shown in the always-visible COMM sidebar. */
   const handleCommercialSegmentSelect = useCallback((segmentId: string) => {
     setCommercialSelectedSegment(normalizeCommercialSegmentId(segmentId));
-    setIsCommercialPanelOpen(true);
   }, [normalizeCommercialSegmentId]);
 
   // Derived backward-compat variables — downstream components still receive pointB / pointBLeo
@@ -3404,89 +3400,27 @@ const App: React.FC = () => {
 
     if (activeAnalysisPoint) {
       const nearestLocationLabel = [nearestLocation?.city, nearestLocation?.country].filter(Boolean).join(', ');
-      const weatherFooter = (
-        <WeatherControl
-          terminalType="fixed"
-          weatherType={weatherType}
-          onWeatherTypeChange={handleWeatherTypeChange}
-          autoWeatherEnabled={autoWeatherEnabled}
-          onAutoWeatherChange={setAutoWeatherEnabled}
-          compact={useCompactDesktopSidebar}
-          showLabel
-          inline
-        />
-      );
 
-      // Two-point mode: two standalone endpoint cards shared by LEO and GEO
+      // Two-point mode: keep the hero analytical; scenario assumptions live in the header.
       if (isTwoPointMode && siteB && activeAnalysisSource !== 'aircraft') {
         const nearestLocationLabelB = [nearestLocationB?.city, nearestLocationB?.country].filter(Boolean).join(', ');
-        const selectBg = `url("data:image/svg+xml;charset=US-ASCII,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 4 5'%3E%3Cpath fill='%236B7280' d='M2 0L0 2h4zm0 5L0 3h4z'/%3E%3C/svg>")`;
-        const selectClass = 'w-full appearance-none rounded-md border border-gray-200 bg-white py-1 pl-2 pr-5 text-[11px] text-gray-900 focus:border-transparent focus:ring-1 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-700 dark:text-gray-100';
-        const selectStyle = { backgroundImage: selectBg, backgroundRepeat: 'no-repeat', backgroundPosition: 'right .35rem center', backgroundSize: '.7em .7em' };
-
-        const buildWeatherRow = (
-          wType: WeatherType,
-          onTypeChange: (t: WeatherType) => void,
-          autoEnabled: boolean,
-          onAutoChange: (v: boolean) => void,
-        ) => {
-          const attenDb = WEATHER_ATTENUATION_DB[toWeatherCondition(wType)].toFixed(1);
-          const emoji: Record<WeatherType, string> = { clear: '☀️', light_rain: '☁️', heavy_rain: '🌧️', storm: '⛈️' };
-          return (
-            <div className="flex flex-col gap-1">
-              <select value={wType} onChange={(e) => onTypeChange(e.target.value as WeatherType)} className={selectClass} style={selectStyle}>
-                {Object.entries(WEATHER_PROFILES).map(([key, profile]) => (
-                  <option key={key} value={key}>{emoji[key as WeatherType]} {profile.label}</option>
-                ))}
-              </select>
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] text-gray-500 dark:text-gray-400">{attenDb} dB</span>
-                <label className="flex cursor-pointer items-center gap-1 text-[10px] text-gray-500 dark:text-gray-400">
-                  <input type="checkbox" checked={autoEnabled} onChange={(e) => onAutoChange(e.target.checked)}
-                    className="rounded border-gray-300 bg-white text-blue-600 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-700" />
-                  <span>Real</span>
-                </label>
-              </div>
-            </div>
-          );
-        };
-
-        const siteAWeatherRow = buildWeatherRow(weatherType, handleWeatherTypeChange, autoWeatherEnabled, setAutoWeatherEnabled);
-        const siteBWeatherRow = buildWeatherRow(weatherTypeB, handleWeatherTypeBChange, autoWeatherEnabledB, setAutoWeatherEnabledB);
         const siteDirectionAccent = satelliteScope === 'ALL' ? activeConnectivityTab : satelliteScope;
-        const siteDirectionRelation = siteDirectionAccent === 'GEO'
-          ? linkMode === 'STAR_RETURN'
-            ? 'reverse'
-            : linkMode === 'STAR_FORWARD'
-              ? 'forward'
-              : 'bidirectional'
-          : 'bidirectional';
+        const linkDirection = siteDirectionAccent === 'GEO' && linkMode === 'STAR_RETURN'
+          ? 'B to A'
+          : activeMeshTab === 'reverse'
+            ? 'B to A'
+            : 'A to B';
+
         return {
-          siteToSite: {
-            siteA: {
-              label: 'Site A',
-              coordinates: formatCoordinates({ lat: activeAnalysisPoint.lat, lng: activeAnalysisPoint.lng }),
-              location: nearestLocationLabel || 'Ground position',
-              weatherRow: siteAWeatherRow,
-              onClear: handleClearSiteA,
-            },
-            siteB: {
-              label: 'Site B',
-              coordinates: formatCoordinates({ lat: siteB.lat, lng: siteB.lng }),
-              location: nearestLocationLabelB || 'Ground position',
-              weatherRow: siteBWeatherRow,
-              onClear: handleClearSiteB,
-            },
-            directionIndicator: {
-              accent: siteDirectionAccent,
-              relation: siteDirectionRelation,
-              detailDirection: activeMeshTab,
-              onToggle: siteDirectionRelation === 'bidirectional'
-                ? () => handleActiveMeshTabChange(activeMeshTab === 'forward' ? 'reverse' : 'forward')
-                : undefined,
-            },
-          },
+          eyebrow: 'Site-to-site analysis',
+          title: `${nearestLocationLabel || 'Site A'} to ${nearestLocationLabelB || 'Site B'}`,
+          subtitle: `${siteDirectionAccent} technical path analysis`,
+          footer: null,
           tone: 'position' as const,
+          badges: [
+            { label: siteDirectionAccent, tone: siteDirectionAccent === 'LEO' ? 'pink' as const : 'blue' as const },
+            { label: linkDirection, tone: 'slate' as const },
+          ],
         };
       }
 
@@ -3496,7 +3430,7 @@ const App: React.FC = () => {
         subtitle: activeAnalysisSource === 'aircraft'
           ? `${selectedAircraft?.callsign || 'Aircraft'} corridor`
           : (nearestLocationLabel || (activeAnalysisPoint.altitude ? `Altitude ${activeAnalysisPoint.altitude.toFixed(1)} km` : 'Ground position')),
-        footer: activeAnalysisSource !== 'aircraft' ? weatherFooter : null,
+        footer: null,
         tone: 'position' as const,
         badges: activeAnalysisSource === 'aircraft'
           ? [{ label: 'Aircraft', tone: 'slate' as const }]
@@ -3519,14 +3453,7 @@ const App: React.FC = () => {
     activeAnalysisSource,
     activeConnectivityTab,
     activeMeshTab,
-    autoWeatherEnabled,
-    autoWeatherEnabledB,
     failedSnps,
-    handleActiveMeshTabChange,
-    handleClearSiteA,
-    handleClearSiteB,
-    handleWeatherTypeChange,
-    handleWeatherTypeBChange,
     inspectedSNP,
     linkMode,
     nearestLocation,
@@ -3545,9 +3472,6 @@ const App: React.FC = () => {
     siteB,
     iss.freshness,
     iss.position,
-    useCompactDesktopSidebar,
-    weatherType,
-    weatherTypeB,
   ]);
 
   const mobileBackgroundMetricsCollectorVisible = isMobile
@@ -3769,9 +3693,16 @@ const App: React.FC = () => {
   );
 
   return (
-    <div className="min-h-screen bg-white dark:bg-slate-950 transition-colors duration-300">
+    <div
+      className={[
+        'bg-white transition-colors duration-300 dark:bg-slate-950',
+        !isMobile
+          ? 'flex h-screen flex-col overflow-hidden'
+          : 'min-h-screen',
+      ].join(' ')}
+    >
       {!isPhone && (
-        <header className="bg-white dark:bg-slate-900 shadow-sm transition-colors duration-300">
+        <header className="shrink-0 bg-white shadow-sm transition-colors duration-300 dark:bg-slate-900">
           <div className={`max-w-[1920px] mx-auto px-2 py-0 sm:px-4 lg:px-8 ${useCompactDesktopHeader ? 'md:py-2' : 'md:py-3'}`}>
             {isMobile ? (
               <div className="flex items-center justify-between">
@@ -3807,38 +3738,73 @@ const App: React.FC = () => {
               </div>
 
               <div className="min-w-0 flex-1">
-                <div className={`mx-auto w-full ${useCompactDesktopHeader ? 'max-w-[760px]' : 'max-w-[860px]'}`}>
-                  <div className={`relative flex items-center rounded-[22px] border border-slate-200/80 bg-[linear-gradient(135deg,rgba(255,255,255,0.98),rgba(248,250,252,0.92))] shadow-[0_24px_55px_-34px_rgba(15,23,42,0.42)] ring-1 ring-white/60 dark:border-slate-700 dark:bg-[linear-gradient(135deg,rgba(15,23,42,0.98),rgba(30,41,59,0.92))] dark:ring-slate-700/60 ${useCompactDesktopHeader ? 'p-0.5' : 'p-1'}`}>
-                    <div className="relative min-w-0 flex-1">
-                      <Search className={`pointer-events-none absolute top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 ${useCompactDesktopHeader ? 'left-4 h-4 w-4' : 'left-5 h-5 w-5'}`} />
-                      <input
-                        ref={commandPaletteSearchRef}
-                        type="text"
-                        value={commandPaletteQuery}
-                        onFocus={handleDesktopTargetSearchFocus}
-                        onChange={(event) => handleDesktopTargetSearchChange(event.target.value)}
-                        placeholder="Search target or location"
-                        className={`w-full rounded-[18px] bg-transparent pr-5 font-medium text-slate-900 outline-none placeholder:text-slate-400 dark:text-slate-50 dark:placeholder:text-slate-500 ${useCompactDesktopHeader ? 'h-8 pl-12 text-[14px]' : 'h-10 pl-14 text-[15px]'}`}
-                      />
-                    </div>
-
-                    <div className={`mx-1 w-px shrink-0 bg-slate-200 dark:bg-slate-700 ${useCompactDesktopHeader ? 'h-6' : 'h-7'}`} />
-
-                    <div className="relative shrink-0" ref={targetSourcesMenuRef}>
-                      <button
-                        type="button"
-                        onClick={handleToggleTargetSourcesMenu}
-                        className={`inline-flex items-center justify-center rounded-[18px] border text-sm font-semibold shadow-sm transition-colors ${
-                          isTargetSourcesMenuOpen
-                            ? 'border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-500/30 dark:bg-blue-500/15 dark:text-blue-200'
-                            : 'border-white/70 bg-white/88 text-slate-700 hover:bg-white dark:border-slate-700 dark:bg-slate-800/88 dark:text-slate-200 dark:hover:bg-slate-800'
-                        } ${useCompactDesktopHeader ? 'h-8 w-8 rounded-2xl' : 'h-10 w-10'}`}
-                        aria-expanded={isTargetSourcesMenuOpen}
-                        aria-label="Open target selection"
-                        title="Open target selection"
-                      >
-                        <Waypoints className={useCompactDesktopHeader ? 'h-3.5 w-3.5' : 'h-4 w-4'} />
-                      </button>
+                <div className={`mx-auto flex w-full items-start gap-2 ${useCompactDesktopHeader ? 'max-w-[920px]' : 'max-w-[1060px]'}`}>
+                  <div className="min-w-0 flex-1">
+                    <HeaderScenarioBuilder
+                      siteA={{
+                        endpoint: routeSelectorRoute.origin,
+                        coordinates: activeAnalysisPoint
+                          ? { lat: activeAnalysisPoint.lat, lng: activeAnalysisPoint.lng }
+                          : undefined,
+                        roleLabel: 'Site A',
+                        fallback: 'Set origin',
+                        onSelect: (location) => handleLocationSelect(location.lat, location.lng),
+                        terminals: {
+                          geoRFClassId: geoRFClassIdA,
+                          geoTerminalType,
+                          onGeoRFClassChange: (id) => { setGeoRFClassIdA(id); setGeoRFCustomParamsA(null); },
+                          leoTerminalType,
+                          leoTerminalModelId,
+                          onLeoTerminalModelIdChange: setLeoTerminalModelId,
+                        },
+                        weather: {
+                          weatherType,
+                          onWeatherTypeChange: handleWeatherTypeChange,
+                          autoWeatherEnabled,
+                          onAutoWeatherChange: setAutoWeatherEnabled,
+                        },
+                      }}
+                      siteB={{
+                        endpoint: routeSelectorRoute.destination,
+                        coordinates: siteB ?? undefined,
+                        roleLabel: 'Site B',
+                        fallback: 'Set destination',
+                        onSelect: (location) => handleDestinationLocationSelect(location.lat, location.lng),
+                        terminals: {
+                          geoRFClassId: geoRFClassIdB,
+                          geoTerminalType: geoTerminalTypeB,
+                          onGeoRFClassChange: (id) => { setGeoRFClassIdB(id); setGeoRFCustomParamsB(null); },
+                          leoTerminalType: leoTerminalTypeB,
+                          leoTerminalModelId: leoTerminalModelIdB,
+                          onLeoTerminalModelIdChange: setLeoTerminalModelIdB,
+                        },
+                        weather: {
+                          weatherType: weatherTypeB,
+                          onWeatherTypeChange: handleWeatherTypeBChange,
+                          autoWeatherEnabled: autoWeatherEnabledB,
+                          onAutoWeatherChange: setAutoWeatherEnabledB,
+                        },
+                      }}
+                      onSwap={handleSwapRouteEndpoints}
+                      analysisSource={activeAnalysisSource}
+                      compact={useCompactDesktopHeader}
+                    />
+                  </div>
+                  <div className="relative shrink-0 pt-1" ref={targetSourcesMenuRef}>
+                    <button
+                      type="button"
+                      onClick={handleToggleTargetSourcesMenu}
+                      className={`inline-flex items-center justify-center rounded-xl border text-sm font-semibold shadow-sm transition-colors ${
+                        isTargetSourcesMenuOpen
+                          ? 'border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-500/30 dark:bg-blue-500/15 dark:text-blue-200'
+                          : 'border-gray-200 bg-gray-50 text-slate-600 hover:bg-white hover:text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700 dark:hover:text-slate-100'
+                      } ${useCompactDesktopHeader ? 'h-9 w-9' : 'h-10 w-10'}`}
+                      aria-expanded={isTargetSourcesMenuOpen}
+                      aria-label="Locate asset or location"
+                      title="Locate asset or location"
+                    >
+                      <Waypoints className={useCompactDesktopHeader ? 'h-[18px] w-[18px]' : 'h-5 w-5'} />
+                    </button>
 
                       {isTargetSourcesMenuOpen && (
                         <div className="absolute right-0 top-[calc(100%+1rem)] z-[90] w-[760px] max-w-[calc(100vw-6rem)] overflow-hidden rounded-[28px] border border-slate-200/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,250,252,0.95))] shadow-[0_36px_90px_-42px_rgba(15,23,42,0.55)] backdrop-blur-xl dark:border-slate-700 dark:bg-[linear-gradient(180deg,rgba(15,23,42,0.98),rgba(2,6,23,0.96))]">
@@ -4065,7 +4031,6 @@ const App: React.FC = () => {
                           </div>
                         </div>
                       )}
-                    </div>
                   </div>
                 </div>
               </div>
@@ -4621,14 +4586,14 @@ const App: React.FC = () => {
          * panel inspector/sidebar) change between modes; those don't contain the globe. */
         <main
           className={uiMode === 'commercial'
-            ? (isFullscreen ? 'fixed inset-0 z-50 bg-slate-950 p-0' : 'bg-slate-950 px-2 py-4 sm:px-3 lg:px-4')
-            : 'px-2 py-4 sm:px-3 lg:px-4'
+            ? (isFullscreen ? 'fixed inset-0 z-50 bg-slate-950 p-0' : 'min-h-0 flex-1 overflow-hidden bg-slate-950 px-2 py-2 sm:px-3 lg:px-4')
+            : 'min-h-0 flex-1 overflow-hidden px-2 py-3 sm:px-3 lg:px-4'
           }
         >
           <div
             className={uiMode === 'commercial'
-              ? `flex min-h-0 overflow-hidden border border-slate-700 bg-slate-950 shadow-[0_32px_90px_-50px_rgba(15,23,42,0.95)] ${isFullscreen ? 'h-full rounded-none' : 'h-[calc(100vh-7rem)] rounded-xl'}`
-              : 'flex h-[calc(100vh-7rem)] flex-row'
+              ? `flex min-h-0 overflow-hidden border border-slate-700 bg-slate-950 shadow-[0_32px_90px_-50px_rgba(15,23,42,0.95)] ${isFullscreen ? 'h-full rounded-none' : 'h-full rounded-xl'}`
+              : 'flex h-full flex-row'
             }
             style={uiMode !== 'commercial' ? {
               gap: desktopLayoutGap,
@@ -4651,14 +4616,8 @@ const App: React.FC = () => {
                 ? (
                   <CommercialMissionBar
                     viewModel={commercialScenarioViewModel}
-                    origin={routeSelectorRoute.origin}
-                    destination={routeSelectorRoute.destination}
-                    scenarioType={routeSelectorRoute.scenarioType}
                     selectedTechnology={activeCommercialTechnology}
                     onTechnologySelect={handleCommercialTechnologySelect}
-                    onOriginSelect={(location) => handleLocationSelect(location.lat, location.lng)}
-                    onDestinationSelect={(location) => handleDestinationLocationSelect(location.lat, location.lng)}
-                    onSwapClick={handleSwapRouteEndpoints}
                   />
                 )
                 : <div className="h-0 overflow-hidden" aria-hidden="true" />
@@ -4714,9 +4673,7 @@ const App: React.FC = () => {
                       viewModel={commercialScenarioViewModel}
                       selectedSegmentId={commercialSelectedSegment}
                       commercialRouteModel={commercialRouteModel}
-                      isOpen={isCommercialPanelOpen}
-                      onClose={() => setIsCommercialPanelOpen(false)}
-                      onSegmentChange={(id: CommercialRouteSegmentId) => handleCommercialSegmentSelect(id)}
+                      isOpen
                       onViewFullAnalysis={() => handleUiModeChange('engineering')}
                     />
 
@@ -4759,23 +4716,9 @@ const App: React.FC = () => {
                     backgroundImageLabel={desktopSidebarHero.backgroundImageLabel}
                     tone={desktopSidebarHero.tone}
                     badges={desktopSidebarHero.badges}
-                    siteToSite={desktopSidebarHero.siteToSite}
                     compact={useCompactDesktopSidebar}
                     onReset={handleResetView}
                   />
-
-                  {!selectedIss && !selectedGateway && !inspectedSNP && !selectedMoon && !selectedSatellite && activeAnalysisPoint && !isTwoPointMode && (
-                    <div className={`border-b border-slate-200/60 dark:border-slate-800/60 ${useCompactDesktopSidebar ? 'px-2.5 py-2' : 'px-3 py-2.5'}`}>
-                      <SharedScenarioBuilder
-                        origin={routeSelectorRoute.origin}
-                        destination={routeSelectorRoute.destination}
-                        scenarioType={routeSelectorRoute.scenarioType}
-                        onOriginSelect={(location) => handleLocationSelect(location.lat, location.lng)}
-                        onDestinationSelect={(location) => handleDestinationLocationSelect(location.lat, location.lng)}
-                        onSwapClick={handleSwapRouteEndpoints}
-                      />
-                    </div>
-                  )}
 
                   {!selectedIss && !selectedGateway && !inspectedSNP && !selectedMoon && !selectedSatellite && activeAnalysisPoint && (
                     <MissionKpiBar

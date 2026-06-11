@@ -690,6 +690,7 @@ interface TerminalConfigProps {
   onLeoTerminalModelIdChange?: (id: string) => void;
   showLeoTerminalModelSelector?: boolean;
   rfPresetDisplayLabel?: string;
+  advancedDetailsOnly?: boolean;
 }
 
 const STATUS_ICON_BY_LABEL: Record<string, LucideIcon> = {
@@ -729,8 +730,10 @@ const TerminalConfig = memo<TerminalConfigProps>(({
   onLeoTerminalModelIdChange,
   showLeoTerminalModelSelector = false,
   rfPresetDisplayLabel,
+  advancedDetailsOnly = false,
 }) => {
   const dense = compact && !showWeather;
+  const [isAdvancedOpen, setIsAdvancedOpen] = useState(false);
   const effectiveRFClassId = rfClassId ?? getDefaultRFClassForUseCase(terminalType, band);
   const effectiveRFBand = getRFClassBand(effectiveRFClassId) ?? band;
   const selectedLeoTerminal = useMemo(
@@ -770,6 +773,105 @@ const TerminalConfig = memo<TerminalConfigProps>(({
       };
     } catch { return null; }
   }, [showRFClass, onRFClassChange, effectiveRFBand, rfCustomParams, effectiveRFClassId, rfPresetDisplayLabel]);
+
+  if (advancedDetailsOnly) {
+    const terminalLabel = terminalDisplayLabel ?? selectedLeoTerminal.model ?? TERMINAL_PROFILES[terminalType].label;
+    const advancedSummary = showRFClass && rfIdentityLine
+      ? `${rfIdentityLine.label} · EIRP ${rfIdentityLine.eirp.toFixed(1)} dBW · G/T ${rfIdentityLine.gt.toFixed(1)} dB/K`
+      : `${selectedLeoTerminal.vendor} ${selectedLeoTerminal.model} · G/T ${selectedLeoTerminal.rxGtDbK.toFixed(1)} dB/K · EIRP ${selectedLeoTerminal.txEirpDbw.toFixed(1)} dBW`;
+
+    return (
+      <div className={className}>
+        <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition-colors dark:border-slate-700 dark:bg-slate-900">
+          <button
+            type="button"
+            onClick={() => setIsAdvancedOpen((open) => !open)}
+            className="flex w-full items-start justify-between gap-3 px-3 py-2 text-left transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/70"
+            aria-expanded={isAdvancedOpen}
+          >
+            <div className="min-w-0">
+              <div className={`font-semibold leading-tight text-slate-900 dark:text-slate-100 ${compact ? 'text-[13px]' : 'text-sm'}`}>
+                {title}
+                <SectionTooltip content="Advanced terminal characteristics used by the RF and link-budget models. Scenario selection remains in the header Scenario Builder." />
+              </div>
+              <div className={`mt-1 truncate font-mono text-slate-500 dark:text-slate-400 ${compact ? 'text-[10px]' : 'text-[11px]'}`} title={advancedSummary}>
+                {advancedSummary}
+              </div>
+            </div>
+            <ChevronDown className={`mt-0.5 h-4 w-4 shrink-0 text-slate-400 transition-transform ${isAdvancedOpen ? 'rotate-180' : ''}`} />
+          </button>
+
+          {isAdvancedOpen && (
+            <div className="space-y-2 border-t border-slate-200 px-3 py-2.5 dark:border-slate-800">
+              <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-x-3 gap-y-1.5 text-[11px]">
+                <span className="text-slate-500 dark:text-slate-400">Terminal class</span>
+                <span className="max-w-[11rem] truncate text-right font-medium text-slate-700 dark:text-slate-200" title={terminalLabel}>
+                  {terminalLabel}
+                </span>
+                {showLeoTerminalModelSelector && (
+                  <>
+                    <span className="text-slate-500 dark:text-slate-400">Antenna</span>
+                    <span className="text-right font-mono text-slate-700 dark:text-slate-200">{selectedLeoTerminal.antennaType}</span>
+                    <span className="text-slate-500 dark:text-slate-400">G/T</span>
+                    <span className="text-right font-mono text-slate-700 dark:text-slate-200">{selectedLeoTerminal.rxGtDbK.toFixed(1)} dB/K</span>
+                    <span className="text-slate-500 dark:text-slate-400">EIRP</span>
+                    <span className="text-right font-mono text-slate-700 dark:text-slate-200">{selectedLeoTerminal.txEirpDbw.toFixed(1)} dBW</span>
+                    <span className="text-slate-500 dark:text-slate-400">DL / UL cap</span>
+                    <span className="text-right font-mono text-slate-700 dark:text-slate-200">
+                      {selectedLeoTerminal.maxDlMbps.toFixed(0)} / {selectedLeoTerminal.maxUlMbps.toFixed(0)} Mbps
+                    </span>
+                  </>
+                )}
+                {showRFClass && rfIdentityLine && (
+                  <>
+                    <span className="text-slate-500 dark:text-slate-400">RF profile</span>
+                    <span className="max-w-[11rem] truncate text-right font-medium text-slate-700 dark:text-slate-200" title={rfIdentityLine.label}>
+                      {rfIdentityLine.label}
+                    </span>
+                    <span className="text-slate-500 dark:text-slate-400">Antenna / BUC</span>
+                    <span className="text-right font-mono text-slate-700 dark:text-slate-200">
+                      {formatCompactNumber(rfIdentityLine.antennaDiameterM)} m / {formatCompactNumber(rfIdentityLine.bucPowerW)} W
+                    </span>
+                    <span className="text-slate-500 dark:text-slate-400">EIRP</span>
+                    <span className="text-right font-mono text-slate-700 dark:text-slate-200">{rfIdentityLine.eirp.toFixed(1)} dBW</span>
+                    <span className="text-slate-500 dark:text-slate-400">G/T</span>
+                    <span className="text-right font-mono text-slate-700 dark:text-slate-200">{rfIdentityLine.gt.toFixed(1)} dB/K</span>
+                  </>
+                )}
+                <span className="text-slate-500 dark:text-slate-400">Weather attenuation</span>
+                <span className="text-right font-mono text-slate-700 dark:text-slate-200">
+                  {terminalType === 'aviation' ? '0.0 dB' : `${WEATHER_ATTENUATION_DB[toWeatherCondition(weatherType)].toFixed(1)} dB`}
+                </span>
+              </div>
+
+              {showLeoTerminalModelSelector && (
+                <LeoTerminalRFSettingsPanel terminal={selectedLeoTerminal} />
+              )}
+              {showRFClass && onRFCustomParamsChange && (
+                <TerminalRFSettingsPanel
+                  rfClassId={effectiveRFClassId}
+                  customParams={rfCustomParams ?? null}
+                  onCustomParamsChange={onRFCustomParamsChange}
+                  presetDisplayLabel={rfPresetDisplayLabel}
+                />
+              )}
+              {showWeather && (
+                <WeatherControl
+                  terminalType={terminalType}
+                  weatherType={weatherType}
+                  onWeatherTypeChange={onWeatherTypeChange}
+                  autoWeatherEnabled={autoWeatherEnabled}
+                  onAutoWeatherChange={onAutoWeatherChange}
+                  compact={compact}
+                  inline
+                />
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   return (
   <div className={className}>

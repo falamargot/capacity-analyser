@@ -1158,11 +1158,12 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
                 showWeather={false}
                 showRFClass={!!onRFClassIdAChange}
                 className="mb-0"
-                title="Terminal A"
+                title="Site A Advanced RF Details"
                 subtitle={<span className="font-mono">{pointACoordinatesLabel}</span>}
                 stacked
                 tone={pointAIsUserDefined ? 'user-defined' : 'not-user-defined'}
                 statusLabel={pointAIsUserDefined ? 'Manual' : 'Auto'}
+                advancedDetailsOnly
               />
               <TerminalConfig
                 terminalType={terminalTypeB}
@@ -1180,11 +1181,12 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
                 showWeather={false}
                 showRFClass={!!onRFClassIdBChange}
                 className="mb-0"
-                title="Terminal B"
+                title="Site B Advanced RF Details"
                 subtitle={<span className="font-mono">{pointBCoordinatesLabel}</span>}
                 stacked
                 tone={pointBIsUserDefined ? 'user-defined' : 'not-user-defined'}
                 statusLabel={pointBIsUserDefined ? 'Manual' : 'Unset'}
+                advancedDetailsOnly
               />
             </div>
           </>
@@ -1229,11 +1231,12 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
                   showWeather={false}
                   showRFClass={!!onRFClassIdAChange}
                   className="mb-0"
-                  title={userLabel === 'User' ? 'Terminal' : userLabel}
+                  title="Customer Advanced RF Details"
                   subtitle={<span className="font-mono">{pointACoordinatesLabel}</span>}
                   stacked
                   tone={pointAIsUserDefined ? 'user-defined' : 'not-user-defined'}
                   statusLabel={pointAIsUserDefined ? 'Manual' : 'Auto'}
+                  advancedDetailsOnly
                 />
               </>
             ) : (
@@ -1255,11 +1258,12 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
                   showWeather={false}
                   showRFClass={!!onRFClassIdAChange}
                   className="mb-0"
-                  title={userLabel === 'User' ? 'Terminal' : userLabel}
+                  title="Customer Advanced RF Details"
                   subtitle={<span className="font-mono">{pointACoordinatesLabel}</span>}
                   stacked
                   tone={pointAIsUserDefined ? 'user-defined' : 'not-user-defined'}
                   statusLabel={pointAIsUserDefined ? 'Manual' : 'Auto'}
+                  advancedDetailsOnly
                 />
                 <TerminalConfig
                   terminalType="fixed"

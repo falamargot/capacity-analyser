@@ -1351,12 +1351,13 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
               compact
               showWeather={false}
               className="mb-0"
-              title="Terminal A"
+              title="Site A Advanced RF Details"
               subtitle={<span className="font-mono">{siteACoordinatesLabel}</span>}
               tone={activePoint ? 'user-defined' : 'not-user-defined'}
               statusLabel={activePoint ? 'Manual' : 'Unset'}
               statusTitle={activePoint ? 'Terminal A position is defined' : 'Terminal A position is not defined'}
               stacked
+              advancedDetailsOnly
             />
             <TerminalConfig
               terminalType={terminalTypeB}
@@ -1371,12 +1372,13 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
               compact
               showWeather={false}
               className="mb-0"
-              title="Terminal B"
+              title="Site B Advanced RF Details"
               subtitle={<span className="font-mono">{siteBCoordinatesLabel}</span>}
               tone={pointBLeo ? 'user-defined' : 'not-user-defined'}
               statusLabel={pointBLeo ? 'Manual' : 'Unset'}
               statusTitle={pointBLeo ? 'Terminal B position is defined' : 'Terminal B position is not defined'}
               stacked
+              advancedDetailsOnly
             />
             </div>
           </div>
@@ -1396,10 +1398,12 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
             compact
             showWeather={false}
             className="mb-0"
+            title="Advanced RF Details"
             subtitle={<span className="font-mono">{siteACoordinatesLabel}</span>}
             tone={activePoint ? 'user-defined' : 'not-user-defined'}
             statusLabel={activePoint ? 'Manual' : 'Unset'}
             statusTitle={activePoint ? 'Terminal position is defined' : 'Terminal position is not defined'}
+            advancedDetailsOnly
           />
         )}
 
