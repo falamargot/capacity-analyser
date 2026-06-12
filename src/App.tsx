@@ -623,6 +623,7 @@ const App: React.FC = () => {
   const [enableLighting, setEnableLighting] = useState(initialDisplayDefaults.enableLighting);
   const [showSatelliteTrajectory, setShowSatelliteTrajectory] = useState(initialDisplayDefaults.showSatelliteTrajectory);
   const [showAggregatedConnectivity, setShowAggregatedConnectivity] = useState(initialDisplayDefaults.showAggregatedConnectivity);
+  const [showCapacityHeatmap, setShowCapacityHeatmap] = useState(false);
   const [showFootprintProjection, setShowFootprintProjection] = useState(initialDisplayDefaults.showFootprintProjection);
   const [showFlowAnimation, setShowFlowAnimation] = useState(initialDisplayDefaults.showFlowAnimation);
   const [countryOverlayMode, setCountryOverlayMode] = useState<CountryOverlayMode>(initialDisplayDefaults.countryOverlayMode);
@@ -2947,6 +2948,7 @@ const App: React.FC = () => {
   const handleToggleLighting = useCallback(() => setEnableLighting(v => !v), []);
   const handleToggleSatelliteTrajectory = useCallback(() => setShowSatelliteTrajectory(v => !v), []);
   const handleToggleAggregatedConnectivity = useCallback(() => setShowAggregatedConnectivity(v => !v), []);
+  const handleToggleCapacityHeatmap = useCallback(() => setShowCapacityHeatmap(v => !v), []);
   const handleToggleFootprintProjection = useCallback(() => setShowFootprintProjection(v => !v), []);
   const handleToggleFlowAnimation = useCallback(() => setShowFlowAnimation(v => !v), []);
   const handleToggleAirTraffic = useCallback(() => setAirTrafficEnabled(v => !v), []);
@@ -2988,6 +2990,7 @@ const App: React.FC = () => {
     enableLighting,
     showSatelliteTrajectory,
     showAggregatedConnectivity,
+    showCapacityHeatmap,
     showFootprintProjection,
     showFlowAnimation,
     sizeScale,
@@ -3004,6 +3007,7 @@ const App: React.FC = () => {
     isMobileAnalysisPanelOpen,
     isPhone,
     showAggregatedConnectivity,
+    showCapacityHeatmap,
     showFlowAnimation,
     showFootprintProjection,
     showSatelliteTrajectory,
@@ -3093,6 +3097,7 @@ const App: React.FC = () => {
     onToggleFullscreen: handleToggleFullscreen,
     onToggleLighting: handleToggleLighting,
     onToggleAggregatedConnectivity: handleToggleAggregatedConnectivity,
+    onToggleCapacityHeatmap: handleToggleCapacityHeatmap,
     onToggleFootprintProjection: handleToggleFootprintProjection,
     onToggleFlowAnimation: handleToggleFlowAnimation,
     onToggleSatelliteTrajectory: handleToggleSatelliteTrajectory,

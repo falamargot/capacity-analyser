@@ -7,6 +7,7 @@ import {
 } from 'cesium';
 import {
     Activity,
+    BarChart2,
     Globe,
     Map,
     Maximize2,
@@ -36,6 +37,8 @@ interface GlobeIntelligenceRailProps {
     onCountryOverlayModeChange: (mode: CountryOverlayMode) => void;
     showAggregatedConnectivity: boolean;
     onToggleAggregatedConnectivity: () => void;
+    showCapacityHeatmap: boolean;
+    onToggleCapacityHeatmap: () => void;
     airTrafficEnabled: boolean;
     onToggleAirTraffic: () => void;
     maritimeTrafficEnabled: boolean;
@@ -170,6 +173,8 @@ const GlobeIntelligenceRail: React.FC<GlobeIntelligenceRailProps> = ({
     onCountryOverlayModeChange,
     showAggregatedConnectivity,
     onToggleAggregatedConnectivity,
+    showCapacityHeatmap,
+    onToggleCapacityHeatmap,
     airTrafficEnabled,
     onToggleAirTraffic,
     maritimeTrafficEnabled,
@@ -323,6 +328,14 @@ const GlobeIntelligenceRail: React.FC<GlobeIntelligenceRailProps> = ({
                         active={showAggregatedConnectivity}
                         onClick={onToggleAggregatedConnectivity}
                         title="Aggregated connectivity layer"
+                    />
+                    <RailButton
+                        icon={<BarChart2 className="h-4 w-4" />}
+                        label="LOAD"
+                        active={showCapacityHeatmap}
+                        onClick={onToggleCapacityHeatmap}
+                        title="Beam load heatmap"
+                        accentColor="bg-amber-50 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300"
                     />
                     <RailButton
                         icon={<Plane className="h-4 w-4" />}

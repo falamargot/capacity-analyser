@@ -60,6 +60,7 @@ import TransmissionLinks from './cesium-globe/TransmissionLinks';
 import TrajectoryLayer from './cesium-globe/TrajectoryLayer';
 import GeoGatewayLayer from './cesium-globe/GeoGatewayLayer';
 import AggregatedConnectivityLayer from './cesium-globe/AggregatedConnectivityLayer';
+import CapacityHeatmapLayer, { CapacityHeatmapLegend } from './cesium-globe/CapacityHeatmapLayer';
 import RegulatoryLayer from './cesium-globe/RegulatoryLayer';
 import FiveGSpectrumLayer from './cesium-globe/FiveGSpectrumLayer';
 import SelectedCountryOutline from './cesium-globe/SelectedCountryOutline';
@@ -620,6 +621,7 @@ export interface DisplayPrefsProps {
     enableLighting?: boolean;
     showSatelliteTrajectory?: boolean;
     showAggregatedConnectivity?: boolean;
+    showCapacityHeatmap?: boolean;
     showFootprintProjection?: boolean;
     showFlowAnimation?: boolean;
     sizeScale?: number;
@@ -742,6 +744,7 @@ export interface CallbackProps {
     onToggleFullscreen: () => void;
     onToggleLighting: () => void;
     onToggleAggregatedConnectivity: () => void;
+    onToggleCapacityHeatmap: () => void;
     onToggleFootprintProjection: () => void;
     onToggleFlowAnimation: () => void;
     onToggleSatelliteTrajectory: () => void;
@@ -822,6 +825,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         onToggleFullscreen,
         onToggleLighting,
         onToggleAggregatedConnectivity,
+        onToggleCapacityHeatmap,
         onToggleFootprintProjection,
         onToggleFlowAnimation,
         onToggleSatelliteTrajectory,
@@ -883,6 +887,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         enableLighting = false,
         showSatelliteTrajectory = false,
         showAggregatedConnectivity = false,
+        showCapacityHeatmap = false,
         showFootprintProjection = false,
         showFlowAnimation = true,
         sizeScale,
@@ -2229,6 +2234,13 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                 />
             )}
 
+            {!commercialMode && (
+                <CapacityHeatmapLegend
+                    show={showCapacityHeatmap && effectiveCountryOverlayMode === 'none'}
+                    isPhone={isPhone}
+                />
+            )}
+
             <GlobeIntelligenceRail
                 viewerRef={viewerRef}
                 isFullscreen={isFullscreen}
@@ -2240,6 +2252,8 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                 onCountryOverlayModeChange={onCountryOverlayModeChange ?? (() => {})}
                 showAggregatedConnectivity={showAggregatedConnectivity}
                 onToggleAggregatedConnectivity={onToggleAggregatedConnectivity ?? (() => {})}
+                showCapacityHeatmap={showCapacityHeatmap}
+                onToggleCapacityHeatmap={onToggleCapacityHeatmap ?? (() => {})}
                 airTrafficEnabled={airTrafficEnabled}
                 onToggleAirTraffic={onToggleAirTraffic ?? (() => {})}
                 maritimeTrafficEnabled={maritimeTrafficEnabled}
@@ -2319,6 +2333,11 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                     {/* Regulatory overlay — country polygons coloured by simulated regulatory status */}
                     <RegulatoryLayer visible={!commercialMode && effectiveCountryOverlayMode === 'regulatory'} />
                     <FiveGSpectrumLayer visible={!commercialMode && effectiveCountryOverlayMode === '5g-spectrum'} />
+
+                    {/* Capacity Heatmap Layer */}
+                    <CapacityHeatmapLayer
+                        visible={!commercialMode && showCapacityHeatmap}
+                    />
 
                     {/* Aggregated Connectivity Layer (Bottom most coverage layer) */}
                     <AggregatedConnectivityLayer
