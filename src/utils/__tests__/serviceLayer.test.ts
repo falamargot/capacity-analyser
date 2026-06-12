@@ -22,6 +22,8 @@ const beamLoadResult = {
   beamLoadPercent: 25,
   estimatedActiveUsers: 10,
   beamLoadFraction: 0.25,
+  loadSource: 'heuristic',
+  loadDataMode: 'heuristic_estimate',
 } as BeamLoadResult;
 
 describe('computeServiceStatus OneWeb bent-pipe requirements', () => {

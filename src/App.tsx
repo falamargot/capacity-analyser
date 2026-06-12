@@ -62,13 +62,20 @@ import { useUiModeState } from './hooks/useUiModeState';
 import { formatCoordinates } from './utils/formatters';
 import { buildSimulationStateSnapshot } from './types/simulation';
 import { regulatoryLookup, type RegulatoryResult } from './services/regulatoryService';
-import { estimateBeamLoad } from './utils/capacityLayer';
+import { estimateBeamLoadWithFillRate } from './utils/capacityLayer';
 import { computeServiceStatus } from './utils/serviceLayer';
+import { lookupFillRate } from './services/fillRateService';
+import {
+  getNextFillRateLayerToggleState,
+  reconcileFillRateLayerWithCountryOverlay,
+  shouldDisableFillRateLayerForScope,
+} from './utils/fillRateUx';
 import { getConnectivityStatus, hasRFConnectivity } from './utils/rfConnectivity';
 import { deriveLeoConnectivityViewModel, type LeoConnectivityViewModel } from './utils/leoServiceViewModel';
 import { getGroundSegmentRoutingForSatellite, resolveConnectivityPathForSatellite, selectTrafficGeoGateway, type ResolvedGeoGateway } from './utils/geoConnectivityModel';
 import type { GeoPointStatus } from './utils/selectedPointStatus';
 import type { CountryOverlayMode } from './types/countryOverlays';
+import type { FillRateLookupResult } from './types/fillRate';
 import type { LinkMode } from './types/linkMode';
 import { LINK_MODE_REQUIRES_POINT_B } from './types/linkMode';
 import {
@@ -623,7 +630,7 @@ const App: React.FC = () => {
   const [enableLighting, setEnableLighting] = useState(initialDisplayDefaults.enableLighting);
   const [showSatelliteTrajectory, setShowSatelliteTrajectory] = useState(initialDisplayDefaults.showSatelliteTrajectory);
   const [showAggregatedConnectivity, setShowAggregatedConnectivity] = useState(initialDisplayDefaults.showAggregatedConnectivity);
-  const [showCapacityHeatmap, setShowCapacityHeatmap] = useState(false);
+  const [showFillRateLayer, setShowFillRateLayer] = useState(false);
   const [showFootprintProjection, setShowFootprintProjection] = useState(initialDisplayDefaults.showFootprintProjection);
   const [showFlowAnimation, setShowFlowAnimation] = useState(initialDisplayDefaults.showFlowAnimation);
   const [countryOverlayMode, setCountryOverlayMode] = useState<CountryOverlayMode>(initialDisplayDefaults.countryOverlayMode);
@@ -1675,6 +1682,8 @@ const App: React.FC = () => {
 
   const [leoRegulatoryResult, setLeoRegulatoryResult] = useState<RegulatoryResult | null>(null);
   const [leoRegulatoryResultB, setLeoRegulatoryResultB] = useState<RegulatoryResult | null>(null);
+  const [leoFillRateResult, setLeoFillRateResult] = useState<FillRateLookupResult | null>(null);
+  const [leoFillRateResultB, setLeoFillRateResultB] = useState<FillRateLookupResult | null>(null);
 
   useEffect(() => {
     if (!activeAnalysisPoint) {
@@ -1685,6 +1694,23 @@ const App: React.FC = () => {
     regulatoryLookup(activeAnalysisPoint.lat, activeAnalysisPoint.lng).then((result) => {
       if (!cancelled) setLeoRegulatoryResult(result);
     });
+    return () => { cancelled = true; };
+  }, [activeAnalysisPoint]);
+
+  useEffect(() => {
+    if (!activeAnalysisPoint) {
+      setLeoFillRateResult(null);
+      return;
+    }
+    let cancelled = false;
+    setLeoFillRateResult(null);
+    lookupFillRate(activeAnalysisPoint.lat, activeAnalysisPoint.lng, { boundsMode: 'visual' })
+      .then((result) => {
+        if (!cancelled) setLeoFillRateResult(result);
+      })
+      .catch(() => {
+        if (!cancelled) setLeoFillRateResult(null);
+      });
     return () => { cancelled = true; };
   }, [activeAnalysisPoint]);
 
@@ -1700,26 +1726,45 @@ const App: React.FC = () => {
     return () => { cancelled = true; };
   }, [leoTopologyMode, pointBLeo]);
 
+  useEffect(() => {
+    if (!pointBLeo || leoTopologyMode !== 'SITE_TO_SITE') {
+      setLeoFillRateResultB(null);
+      return;
+    }
+    let cancelled = false;
+    setLeoFillRateResultB(null);
+    lookupFillRate(pointBLeo.lat, pointBLeo.lng, { boundsMode: 'visual' })
+      .then((result) => {
+        if (!cancelled) setLeoFillRateResultB(result);
+      })
+      .catch(() => {
+        if (!cancelled) setLeoFillRateResultB(null);
+      });
+    return () => { cancelled = true; };
+  }, [leoTopologyMode, pointBLeo]);
+
   const leoBeamLoadResult = useMemo(() => {
     if (!activeAnalysisPoint || !leoRegulatoryResult) return null;
 
-    return estimateBeamLoad(
-      activeAnalysisPoint.lat,
-      activeAnalysisPoint.lng,
-      leoRegulatoryResult.isOcean ?? true,
-      leoRegulatoryResult.isoA2 ?? null
-    );
-  }, [activeAnalysisPoint, leoRegulatoryResult]);
+    return estimateBeamLoadWithFillRate({
+      lat: activeAnalysisPoint.lat,
+      lng: activeAnalysisPoint.lng,
+      isOcean: leoRegulatoryResult.isOcean ?? true,
+      countryCode: leoRegulatoryResult.isoA2 ?? null,
+      fillRateResult: leoFillRateResult,
+    });
+  }, [activeAnalysisPoint, leoFillRateResult, leoRegulatoryResult]);
   const leoBeamLoadResultB = useMemo(() => {
     if (!pointBLeo || leoTopologyMode !== 'SITE_TO_SITE' || !leoRegulatoryResultB) return null;
 
-    return estimateBeamLoad(
-      pointBLeo.lat,
-      pointBLeo.lng,
-      leoRegulatoryResultB.isOcean ?? true,
-      leoRegulatoryResultB.isoA2 ?? null
-    );
-  }, [leoTopologyMode, pointBLeo, leoRegulatoryResultB]);
+    return estimateBeamLoadWithFillRate({
+      lat: pointBLeo.lat,
+      lng: pointBLeo.lng,
+      isOcean: leoRegulatoryResultB.isOcean ?? true,
+      countryCode: leoRegulatoryResultB.isoA2 ?? null,
+      fillRateResult: leoFillRateResultB,
+    });
+  }, [leoFillRateResultB, leoTopologyMode, pointBLeo, leoRegulatoryResultB]);
 
   const leoConnectivityStatus = useMemo(() => {
     const sat = autoSelectedLEOId
@@ -2948,7 +2993,15 @@ const App: React.FC = () => {
   const handleToggleLighting = useCallback(() => setEnableLighting(v => !v), []);
   const handleToggleSatelliteTrajectory = useCallback(() => setShowSatelliteTrajectory(v => !v), []);
   const handleToggleAggregatedConnectivity = useCallback(() => setShowAggregatedConnectivity(v => !v), []);
-  const handleToggleCapacityHeatmap = useCallback(() => setShowCapacityHeatmap(v => !v), []);
+  const handleToggleFillRateLayer = useCallback(() => {
+    const next = getNextFillRateLayerToggleState({
+      current: showFillRateLayer,
+      satelliteScope,
+      countryOverlayMode,
+    });
+    if (next.countryOverlayMode !== countryOverlayMode) setCountryOverlayMode(next.countryOverlayMode);
+    setShowFillRateLayer(next.showFillRateLayer);
+  }, [countryOverlayMode, satelliteScope, showFillRateLayer]);
   const handleToggleFootprintProjection = useCallback(() => setShowFootprintProjection(v => !v), []);
   const handleToggleFlowAnimation = useCallback(() => setShowFlowAnimation(v => !v), []);
   const handleToggleAirTraffic = useCallback(() => setAirTrafficEnabled(v => !v), []);
@@ -2964,8 +3017,13 @@ const App: React.FC = () => {
     });
   }, [iss]);
   const handleCountryOverlayModeChange = useCallback((mode: CountryOverlayMode) => {
+    setShowFillRateLayer((current) => reconcileFillRateLayerWithCountryOverlay(current, mode));
     setCountryOverlayMode(mode);
   }, []);
+
+  useEffect(() => {
+    if (shouldDisableFillRateLayerForScope(satelliteScope)) setShowFillRateLayer(false);
+  }, [satelliteScope]);
   const handleMoonSelectionChange = useCallback((selected: boolean) => {
     if (!selected) {
       setSelectedMoon(false);
@@ -2990,7 +3048,7 @@ const App: React.FC = () => {
     enableLighting,
     showSatelliteTrajectory,
     showAggregatedConnectivity,
-    showCapacityHeatmap,
+    showFillRateLayer,
     showFootprintProjection,
     showFlowAnimation,
     sizeScale,
@@ -3007,7 +3065,7 @@ const App: React.FC = () => {
     isMobileAnalysisPanelOpen,
     isPhone,
     showAggregatedConnectivity,
-    showCapacityHeatmap,
+    showFillRateLayer,
     showFlowAnimation,
     showFootprintProjection,
     showSatelliteTrajectory,
@@ -3097,7 +3155,7 @@ const App: React.FC = () => {
     onToggleFullscreen: handleToggleFullscreen,
     onToggleLighting: handleToggleLighting,
     onToggleAggregatedConnectivity: handleToggleAggregatedConnectivity,
-    onToggleCapacityHeatmap: handleToggleCapacityHeatmap,
+    onToggleFillRateLayer: handleToggleFillRateLayer,
     onToggleFootprintProjection: handleToggleFootprintProjection,
     onToggleFlowAnimation: handleToggleFlowAnimation,
     onToggleSatelliteTrajectory: handleToggleSatelliteTrajectory,

@@ -26,6 +26,7 @@ import {
 
 import {
   estimateBeamLoad,
+  estimateBeamLoadWithFillRate,
 } from '../capacityLayer';
 
 import {
@@ -33,6 +34,7 @@ import {
 } from '../../services/satelliteService';
 
 import type { SatelliteData } from '../../types/satellites';
+import type { FillRateLookupResult } from '../../types/fillRate';
 
 // ─── 1. Terminology constants ────────────────────────────────────────────────
 
@@ -213,5 +215,64 @@ describe('estimateBeamLoad — all outputs are explicitly simulated', () => {
     // Explicitly NOT the beam aggregate (450 Mbps) or satellite aggregate (7200 Mbps)
     expect(result.beamCapacityMbps).not.toBe(SHARED_BEAM_AGGREGATE_CAPACITY_MBPS);
     expect(result.beamCapacityMbps).not.toBe(SATELLITE_AGGREGATE_CAPACITY_GBPS * 1000);
+  });
+});
+
+describe('estimateBeamLoadWithFillRate — statistical fill-rate priority', () => {
+  const fillRateResult: FillRateLookupResult = {
+    fillRatePct: 76,
+    source: 'calibrated',
+    dataMode: 'recent_operational_calibration',
+    statistic: 'P95_5MIN_AVG',
+    windowMinutes: 5,
+    sourceDate: '2026-06',
+    cell: {
+      lat: 48,
+      lng: 2,
+      sizeDeg: 1,
+      fillRatePct: 76,
+      statistic: 'P95_5MIN_AVG',
+      windowMinutes: 5,
+      sampleCount: 240,
+      source: 'calibrated',
+      dataMode: 'recent_operational_calibration',
+      sourceDate: '2026-06',
+    },
+  };
+
+  it('falls back to the legacy heuristic when no fill-rate cell is available', () => {
+    const legacy = estimateBeamLoad(48.8, 2.3, false, 'FR');
+    const result = estimateBeamLoadWithFillRate({
+      lat: 48.8,
+      lng: 2.3,
+      isOcean: false,
+      countryCode: 'FR',
+      fillRateResult: null,
+    });
+
+    expect(result).toEqual(legacy);
+    expect(result.loadSource).toBe('heuristic');
+    expect(result.loadDataMode).toBe('heuristic_estimate');
+  });
+
+  it('uses fill-rate percentage as the authoritative beam load when present', () => {
+    const result = estimateBeamLoadWithFillRate({
+      lat: 48.8,
+      lng: 2.3,
+      isOcean: false,
+      countryCode: 'FR',
+      fillRateResult,
+    });
+
+    expect(result.beamLoadPercent).toBe(76);
+    expect(result.beamLoadFraction).toBeCloseTo(0.76, 4);
+    expect(result.estimatedActiveUsers).toBe(38);
+    expect(result.capacityStatus).toBe('DEGRADED');
+    expect(result.loadSource).toBe('calibrated');
+    expect(result.loadDataMode).toBe('recent_operational_calibration');
+    expect(result.fillRatePct).toBe(76);
+    expect(result.fillRateStatistic).toBe('P95_5MIN_AVG');
+    expect(result.fillRateWindowMinutes).toBe(5);
+    expect(result.fillRateSourceDate).toBe('2026-06');
   });
 });

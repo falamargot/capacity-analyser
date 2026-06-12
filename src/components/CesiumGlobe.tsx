@@ -46,6 +46,10 @@ import type { SatelliteScope } from './SatelliteScopeFilter';
 import type { CandidateCoverage, GEOBeam, MobileAnalysisMetrics, Selection } from '../types/analysis';
 import { getPosition, DPR_FACTOR, calculateDynamicScale, type CameraMetricsSnapshot } from './cesium-globe/utils';
 import { useCesiumTheme } from '../hooks/useCesiumTheme';
+import {
+    getEffectiveFillRateLayerVisible,
+    isFillRateLayerAvailableForScope,
+} from '../utils/fillRateUx';
 
 // Layer components
 import SatelliteLayer from './cesium-globe/SatelliteLayer';
@@ -60,7 +64,7 @@ import TransmissionLinks from './cesium-globe/TransmissionLinks';
 import TrajectoryLayer from './cesium-globe/TrajectoryLayer';
 import GeoGatewayLayer from './cesium-globe/GeoGatewayLayer';
 import AggregatedConnectivityLayer from './cesium-globe/AggregatedConnectivityLayer';
-import CapacityHeatmapLayer, { CapacityHeatmapLegend } from './cesium-globe/CapacityHeatmapLayer';
+import FillRateLayer, { FillRateLegend } from './cesium-globe/FillRateLayer';
 import RegulatoryLayer from './cesium-globe/RegulatoryLayer';
 import FiveGSpectrumLayer from './cesium-globe/FiveGSpectrumLayer';
 import SelectedCountryOutline from './cesium-globe/SelectedCountryOutline';
@@ -621,7 +625,7 @@ export interface DisplayPrefsProps {
     enableLighting?: boolean;
     showSatelliteTrajectory?: boolean;
     showAggregatedConnectivity?: boolean;
-    showCapacityHeatmap?: boolean;
+    showFillRateLayer?: boolean;
     showFootprintProjection?: boolean;
     showFlowAnimation?: boolean;
     sizeScale?: number;
@@ -744,7 +748,7 @@ export interface CallbackProps {
     onToggleFullscreen: () => void;
     onToggleLighting: () => void;
     onToggleAggregatedConnectivity: () => void;
-    onToggleCapacityHeatmap: () => void;
+    onToggleFillRateLayer: () => void;
     onToggleFootprintProjection: () => void;
     onToggleFlowAnimation: () => void;
     onToggleSatelliteTrajectory: () => void;
@@ -825,7 +829,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         onToggleFullscreen,
         onToggleLighting,
         onToggleAggregatedConnectivity,
-        onToggleCapacityHeatmap,
+        onToggleFillRateLayer,
         onToggleFootprintProjection,
         onToggleFlowAnimation,
         onToggleSatelliteTrajectory,
@@ -887,7 +891,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         enableLighting = false,
         showSatelliteTrajectory = false,
         showAggregatedConnectivity = false,
-        showCapacityHeatmap = false,
+        showFillRateLayer = false,
         showFootprintProjection = false,
         showFlowAnimation = true,
         sizeScale,
@@ -2203,6 +2207,13 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         satelliteScope === 'GEO'
             ? 'UNKNOWN'
             : (selectedRegulatoryResult?.status ?? 'UNKNOWN');
+    const fillRateLayerAvailable = isFillRateLayerAvailableForScope(satelliteScope);
+    const effectiveShowFillRateLayer = getEffectiveFillRateLayerVisible({
+        requested: showFillRateLayer,
+        satelliteScope,
+        countryOverlayMode: effectiveCountryOverlayMode,
+        commercialMode,
+    });
 
     return (
         <div className="relative w-full h-full">
@@ -2235,8 +2246,8 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
             )}
 
             {!commercialMode && (
-                <CapacityHeatmapLegend
-                    show={showCapacityHeatmap && effectiveCountryOverlayMode === 'none'}
+                <FillRateLegend
+                    show={effectiveShowFillRateLayer}
                     isPhone={isPhone}
                 />
             )}
@@ -2252,8 +2263,9 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                 onCountryOverlayModeChange={onCountryOverlayModeChange ?? (() => {})}
                 showAggregatedConnectivity={showAggregatedConnectivity}
                 onToggleAggregatedConnectivity={onToggleAggregatedConnectivity ?? (() => {})}
-                showCapacityHeatmap={showCapacityHeatmap}
-                onToggleCapacityHeatmap={onToggleCapacityHeatmap ?? (() => {})}
+                showFillRateLayer={showFillRateLayer}
+                onToggleFillRateLayer={onToggleFillRateLayer ?? (() => {})}
+                fillRateLayerAvailable={fillRateLayerAvailable}
                 airTrafficEnabled={airTrafficEnabled}
                 onToggleAirTraffic={onToggleAirTraffic ?? (() => {})}
                 maritimeTrafficEnabled={maritimeTrafficEnabled}
@@ -2334,9 +2346,9 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                     <RegulatoryLayer visible={!commercialMode && effectiveCountryOverlayMode === 'regulatory'} />
                     <FiveGSpectrumLayer visible={!commercialMode && effectiveCountryOverlayMode === '5g-spectrum'} />
 
-                    {/* Capacity Heatmap Layer */}
-                    <CapacityHeatmapLayer
-                        visible={!commercialMode && showCapacityHeatmap}
+                    {/* Fill Rate Layer */}
+                    <FillRateLayer
+                        visible={effectiveShowFillRateLayer}
                     />
 
                     {/* Aggregated Connectivity Layer (Bottom most coverage layer) */}

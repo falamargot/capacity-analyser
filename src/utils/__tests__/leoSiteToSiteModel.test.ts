@@ -34,6 +34,8 @@ const beamLoad = (capacityStatus: BeamLoadResult['capacityStatus']): BeamLoadRes
   beamCapacityMbps: 200,
   estimatedUserThroughputMbps: 20,
   capacityStatus,
+  loadSource: 'heuristic',
+  loadDataMode: 'heuristic_estimate',
   isSimulated: true,
 });
 

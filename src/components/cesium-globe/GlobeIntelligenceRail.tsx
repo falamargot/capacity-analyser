@@ -37,8 +37,9 @@ interface GlobeIntelligenceRailProps {
     onCountryOverlayModeChange: (mode: CountryOverlayMode) => void;
     showAggregatedConnectivity: boolean;
     onToggleAggregatedConnectivity: () => void;
-    showCapacityHeatmap: boolean;
-    onToggleCapacityHeatmap: () => void;
+    showFillRateLayer: boolean;
+    onToggleFillRateLayer: () => void;
+    fillRateLayerAvailable?: boolean;
     airTrafficEnabled: boolean;
     onToggleAirTraffic: () => void;
     maritimeTrafficEnabled: boolean;
@@ -113,21 +114,25 @@ interface RailButtonProps {
     icon: React.ReactNode;
     label: string;
     active?: boolean;
+    disabled?: boolean;
     onClick: () => void;
     title: string;
     accentColor?: string;
 }
 
-const RailButton: React.FC<RailButtonProps> = ({ icon, label, active, onClick, title, accentColor }) => (
+const RailButton: React.FC<RailButtonProps> = ({ icon, label, active, disabled, onClick, title, accentColor }) => (
     <button
         type="button"
         onClick={onClick}
         title={title}
         aria-label={title}
         aria-pressed={active}
+        disabled={disabled}
         className={[
             'flex min-h-11 w-9 flex-col items-center justify-center gap-0.5 rounded-lg px-0 py-1.5 text-center transition-all duration-150',
-            active
+            disabled
+                ? 'cursor-not-allowed text-slate-300 opacity-45 dark:text-slate-600'
+                : active
                 ? `${accentColor ?? 'bg-blue-50 text-blue-700 dark:bg-blue-500/15 dark:text-blue-300'} ring-1 ring-blue-300/40 dark:ring-blue-400/20`
                 : 'text-slate-500 hover:bg-slate-100/80 hover:text-slate-700 dark:text-slate-400 dark:hover:bg-slate-800/60 dark:hover:text-slate-200',
         ].join(' ')}
@@ -173,8 +178,9 @@ const GlobeIntelligenceRail: React.FC<GlobeIntelligenceRailProps> = ({
     onCountryOverlayModeChange,
     showAggregatedConnectivity,
     onToggleAggregatedConnectivity,
-    showCapacityHeatmap,
-    onToggleCapacityHeatmap,
+    showFillRateLayer,
+    onToggleFillRateLayer,
+    fillRateLayerAvailable = true,
     airTrafficEnabled,
     onToggleAirTraffic,
     maritimeTrafficEnabled,
@@ -331,10 +337,11 @@ const GlobeIntelligenceRail: React.FC<GlobeIntelligenceRailProps> = ({
                     />
                     <RailButton
                         icon={<BarChart2 className="h-4 w-4" />}
-                        label="LOAD"
-                        active={showCapacityHeatmap}
-                        onClick={onToggleCapacityHeatmap}
-                        title="Beam load heatmap"
+                        label="FILL"
+                        active={showFillRateLayer && fillRateLayerAvailable}
+                        disabled={!fillRateLayerAvailable}
+                        onClick={onToggleFillRateLayer}
+                        title={fillRateLayerAvailable ? 'Fill rate statistics' : 'Fill rate statistics are available in LEO or ALL scope only'}
                         accentColor="bg-amber-50 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300"
                     />
                     <RailButton

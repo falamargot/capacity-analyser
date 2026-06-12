@@ -15,6 +15,13 @@
  *  - Load thresholds: <70 % = NOMINAL, 70–95 % = DEGRADED, >95 % = SATURATED
  */
 
+import type {
+  FillRateDataMode,
+  FillRateLookupResult,
+  FillRateSource,
+  FillRateStatistic,
+} from '../types/fillRate';
+
 // ─── Types ─────────────────────────────────────────────────────────────────
 
 export type DensityZone = 'ocean' | 'polar' | 'arid' | 'rural' | 'suburban' | 'urban';
@@ -49,6 +56,20 @@ export interface BeamLoadResult {
 
   /** Capacity status derived from load fraction */
   capacityStatus: 'NOMINAL' | 'DEGRADED' | 'SATURATED';
+
+  /**
+   * Provenance of the load value.
+   * - heuristic: legacy geographic density model
+   * - calibrated/operational: statistical fill-rate grid used as the primary input
+   */
+  loadSource: FillRateSource;
+  loadDataMode: FillRateDataMode;
+
+  /** Fill-rate percentage when the load came from the statistical grid. */
+  fillRatePct?: number;
+  fillRateStatistic?: FillRateStatistic;
+  fillRateWindowMinutes?: number;
+  fillRateSourceDate?: string;
 
   /** Always true — all values in this struct are simulated estimates. */
   isSimulated: true;
@@ -157,7 +178,54 @@ function locationNoise(lat: number, lng: number): number {
   return ((s % 1) + 1) % 1; // normalize to [0, 1)
 }
 
-// ─── Main estimation function ──────────────────────────────────────────────
+// ─── Result builders ───────────────────────────────────────────────────────
+
+function getCapacityStatus(beamLoadFraction: number): BeamLoadResult['capacityStatus'] {
+  if (beamLoadFraction >= LOAD_SATURATED_THRESHOLD) return 'SATURATED';
+  if (beamLoadFraction >= LOAD_DEGRADED_THRESHOLD) return 'DEGRADED';
+  return 'NOMINAL';
+}
+
+function estimateUserThroughputMbps(estimatedActiveUsers: number): number {
+  const throughput = estimatedActiveUsers > 0
+    ? Math.min(TERMINAL_PEAK_MBPS / estimatedActiveUsers, TERMINAL_PEAK_MBPS)
+    : TERMINAL_PEAK_MBPS;
+
+  return Math.round(throughput * 10) / 10;
+}
+
+function buildBeamLoadResult(args: {
+  densityZone: DensityZone;
+  estimatedActiveUsers: number;
+  beamLoadFraction: number;
+  loadSource: FillRateSource;
+  fillRate?: FillRateLookupResult;
+}): BeamLoadResult {
+  const beamLoadPercent = Math.round(args.beamLoadFraction * 100);
+
+  return {
+    densityZone: args.densityZone,
+    densityZoneLabel: ZONE_LABELS[args.densityZone],
+    estimatedActiveUsers: args.estimatedActiveUsers,
+    maxConcurrentUsers: MAX_CONCURRENT_USERS,
+    beamLoadFraction: args.beamLoadFraction,
+    beamLoadPercent,
+    beamCapacityMbps: TERMINAL_PEAK_MBPS,
+    estimatedUserThroughputMbps: estimateUserThroughputMbps(args.estimatedActiveUsers),
+    capacityStatus: getCapacityStatus(args.beamLoadFraction),
+    loadSource: args.loadSource,
+    loadDataMode: args.fillRate?.dataMode ?? (args.loadSource === 'heuristic'
+      ? 'heuristic_estimate'
+      : 'recent_operational_calibration'),
+    fillRatePct: args.fillRate?.fillRatePct,
+    fillRateStatistic: args.fillRate?.statistic,
+    fillRateWindowMinutes: args.fillRate?.windowMinutes,
+    fillRateSourceDate: args.fillRate?.sourceDate,
+    isSimulated: true as const,
+  };
+}
+
+// ─── Main estimation functions ─────────────────────────────────────────────
 
 /**
  * Estimate simulated beam load for the given position.
@@ -181,32 +249,50 @@ export function estimateBeamLoad(
   const estimatedActiveUsers = Math.round(minUsers + noise * (maxUsers - minUsers));
 
   const beamLoadFraction = estimatedActiveUsers / MAX_CONCURRENT_USERS;
-  const beamLoadPercent = Math.round(beamLoadFraction * 100);
 
-  let capacityStatus: BeamLoadResult['capacityStatus'];
-  if (beamLoadFraction >= LOAD_SATURATED_THRESHOLD) {
-    capacityStatus = 'SATURATED';
-  } else if (beamLoadFraction >= LOAD_DEGRADED_THRESHOLD) {
-    capacityStatus = 'DEGRADED';
-  } else {
-    capacityStatus = 'NOMINAL';
+  return buildBeamLoadResult({
+    densityZone: zone,
+    estimatedActiveUsers,
+    beamLoadFraction,
+    loadSource: 'heuristic',
+  });
+}
+
+/**
+ * Estimate beam load using statistical fill-rate data when available.
+ *
+ * The returned shape remains BeamLoadResult for compatibility with the current
+ * service-layer and throughput code. When a fill-rate cell exists, that
+ * percentage becomes the authoritative load percentage; active users are then
+ * derived only to keep the existing beam-sharing math working.
+ */
+export function estimateBeamLoadWithFillRate({
+  lat,
+  lng,
+  isOcean,
+  countryCode,
+  fillRateResult,
+}: {
+  lat: number;
+  lng: number;
+  isOcean: boolean;
+  countryCode?: string | null;
+  fillRateResult?: FillRateLookupResult | null;
+}): BeamLoadResult {
+  const zone = isOcean ? 'ocean' : classifyZone(lat, lng, countryCode ?? null);
+
+  if (!fillRateResult) {
+    return estimateBeamLoad(lat, lng, isOcean, countryCode);
   }
 
-  const estimatedUserThroughputMbps =
-    estimatedActiveUsers > 0
-      ? Math.min(TERMINAL_PEAK_MBPS / estimatedActiveUsers, TERMINAL_PEAK_MBPS)
-      : TERMINAL_PEAK_MBPS;
+  const fillRateFraction = Math.max(0, Math.min(1, fillRateResult.fillRatePct / 100));
+  const estimatedActiveUsers = Math.round(fillRateFraction * MAX_CONCURRENT_USERS);
 
-  return {
+  return buildBeamLoadResult({
     densityZone: zone,
-    densityZoneLabel: ZONE_LABELS[zone],
     estimatedActiveUsers,
-    maxConcurrentUsers: MAX_CONCURRENT_USERS,
-    beamLoadFraction,
-    beamLoadPercent,
-    beamCapacityMbps: TERMINAL_PEAK_MBPS,
-    estimatedUserThroughputMbps: Math.round(estimatedUserThroughputMbps * 10) / 10,
-    capacityStatus,
-    isSimulated: true as const,
-  };
+    beamLoadFraction: fillRateFraction,
+    loadSource: fillRateResult.source,
+    fillRate: fillRateResult,
+  });
 }
