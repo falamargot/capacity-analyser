@@ -634,13 +634,13 @@ function HeaderScenarioBuilder({
     return (
       <div
         className={[
-          'relative grid min-w-0 grid-cols-[minmax(0,1fr)_2.25rem_minmax(0,1fr)] items-center gap-2',
-          'rounded-2xl border border-slate-200/80 bg-white px-2.5 py-1.5',
+          'relative grid min-w-0 grid-cols-[minmax(9rem,1fr)_2rem_minmax(9rem,1fr)] items-center gap-1.5',
+          'rounded-xl border border-slate-200/80 bg-white px-2 py-1.5',
           'shadow-[0_14px_34px_-28px_rgba(15,23,42,0.42)]',
           'dark:border-slate-700/80 dark:bg-[linear-gradient(135deg,rgba(10,14,26,0.97),rgba(15,23,42,0.95))]',
         ].join(' ')}
       >
-        <div className="grid min-w-0 grid-cols-[3.8rem_minmax(0,1fr)] items-center gap-2">
+        <div className="grid min-w-0 grid-cols-[3.25rem_minmax(0,1fr)] items-center gap-1.5">
           <span className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
             Site A
           </span>
@@ -657,7 +657,7 @@ function HeaderScenarioBuilder({
           onClick={onSwap}
           disabled={!canSwap}
           className={[
-            'inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition-colors',
+            'inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-colors',
             canSwap
               ? 'bg-sky-50 text-sky-600 hover:bg-sky-100 hover:text-sky-700 dark:bg-slate-800/70 dark:text-sky-200 dark:hover:bg-slate-800'
               : 'cursor-not-allowed bg-slate-50 text-slate-300 dark:bg-slate-900/50 dark:text-slate-700',
@@ -668,7 +668,7 @@ function HeaderScenarioBuilder({
           <ArrowLeftRight className="h-3.5 w-3.5" aria-hidden="true" />
         </button>
 
-        <div className="grid min-w-0 grid-cols-[3.8rem_minmax(0,1fr)] items-center gap-2">
+        <div className="grid min-w-0 grid-cols-[3.25rem_minmax(0,1fr)] items-center gap-1.5">
           <span className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
             Site B
           </span>

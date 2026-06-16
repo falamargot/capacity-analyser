@@ -695,6 +695,66 @@ const App: React.FC = () => {
     </button>
   );
 
+  const renderAppTitle = (
+    variant: 'desktop' | 'compact' | 'mobile' | 'floating' = 'desktop',
+  ) => {
+    if (variant === 'mobile' || variant === 'floating') {
+      return renderAuthorshipLogo(variant === 'mobile' ? 'h-7 w-7' : 'h-5 w-5');
+    }
+
+    if (variant === 'desktop') {
+      const wordClass = 'flex flex-col items-center gap-0.5 text-[9px] font-black leading-none text-slate-700 dark:text-slate-200';
+
+      return (
+        <div
+          className={[
+            'relative flex shrink-0 flex-col items-center overflow-hidden rounded-2xl',
+            'border border-slate-200/70 bg-white/75 px-1.5 py-2',
+            'shadow-[0_18px_38px_-34px_rgba(15,23,42,0.75)]',
+            'dark:border-slate-700/75 dark:bg-slate-900/45',
+            useCompactDesktopHeader ? 'min-h-[10.5rem] w-12' : 'min-h-[12.75rem] w-[3.25rem]',
+          ].join(' ')}
+          aria-label="ETL Capacity Analyzer"
+          title="ETL Capacity Analyzer"
+        >
+          <div className="absolute inset-y-3 left-1 w-px bg-gradient-to-b from-blue-500/70 via-cyan-300/35 to-transparent" aria-hidden="true" />
+          {renderAuthorshipLogo(useCompactDesktopHeader ? 'h-5 w-5' : 'h-6 w-6')}
+          <span className="mt-1 rounded-full bg-blue-500/10 px-1.5 py-0.5 text-[8px] font-black uppercase leading-none text-blue-600 dark:bg-sky-400/10 dark:text-sky-300">
+            ETL
+          </span>
+          <div className="mt-2 flex flex-1 items-center justify-center gap-1.5" aria-hidden="true">
+            <div className={wordClass}>
+              {'CAPACITY'.split('').map((letter, index) => (
+                <span key={`capacity-${letter}-${index}`}>{letter}</span>
+              ))}
+            </div>
+            <div className="h-full min-h-[5.5rem] w-px bg-slate-200/70 dark:bg-slate-700/80" />
+            <div className={wordClass}>
+              {'ANALYZER'.split('').map((letter, index) => (
+                <span key={`analyzer-${letter}-${index}`}>{letter}</span>
+              ))}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    const logoClass = 'h-6 w-6';
+
+    return (
+      <div className="flex min-w-0 items-center gap-2">
+        {renderAuthorshipLogo(logoClass)}
+        <div className="hidden min-w-0 xl:block">
+          <div className="flex min-w-0 items-baseline gap-1.5">
+            <span className="text-[8px] font-black uppercase leading-none text-blue-600 dark:text-sky-300">ETL</span>
+            <h1 className="truncate text-[15px] font-black leading-none text-slate-950 dark:text-slate-50">Capacity Analyzer</h1>
+          </div>
+          <div className="mt-1 h-px w-full max-w-[8rem] bg-gradient-to-r from-blue-500/65 via-cyan-400/45 to-transparent" aria-hidden="true" />
+        </div>
+      </div>
+    );
+  };
+
   // Store viewer reference when ready
   const handleCameraReady = useCallback((viewer: CesiumViewerType) => {
     viewerRef.current = viewer;
@@ -3986,9 +4046,8 @@ const App: React.FC = () => {
           <div className={`max-w-[1920px] mx-auto px-2 py-0 sm:px-4 lg:px-8 ${isDesktopHeaderCollapsed ? 'md:py-1' : useCompactDesktopHeader ? 'md:py-2' : 'md:py-3'}`}>
             {isMobile ? (
               <div className="flex items-center justify-between">
-                <div className="flex items-center min-w-0">
-                  {renderAuthorshipLogo('h-7 w-7')}
-                  <h1 className="ml-2 text-lg font-bold text-gray-900 dark:text-white truncate">Capacity Analyzer</h1>
+                <div className="min-w-0">
+                  {renderAppTitle('mobile')}
                 </div>
                 <div className="flex items-center gap-1">
                   <div className="flex-shrink-0 p-1 bg-gray-50 dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 flex items-center gap-1">
@@ -4012,7 +4071,10 @@ const App: React.FC = () => {
               </div>
             ) : isDesktopHeaderCollapsed ? (
               <div className="flex items-center gap-2">
-                <div className="mx-auto min-w-0 flex-1 max-w-[1060px]">
+                <div className="w-[clamp(2rem,12vw,13rem)] shrink-0">
+                  {renderAppTitle('compact')}
+                </div>
+                <div className="min-w-0 flex-[1_1_38rem] max-w-[42rem]">
                   <HeaderScenarioBuilder
                     siteA={headerSiteAConfig}
                     siteB={headerSiteBConfig}
@@ -4021,6 +4083,16 @@ const App: React.FC = () => {
                     compact
                     collapsed
                   />
+                </div>
+                <div className="flex shrink-0 items-center gap-2">
+                  {renderUiModeSwitch(true)}
+                  <div className="flex items-center rounded-lg border border-gray-200 bg-gray-50 p-0.5 dark:border-slate-700 dark:bg-slate-800">
+                    <SatelliteScopeFilter
+                      currentScope={satelliteScope}
+                      onScopeChange={handleSatelliteScopeChange}
+                    />
+                    <SimulationSettings satelliteScope={satelliteScope} />
+                  </div>
                 </div>
                 <button
                   type="button"
@@ -4043,8 +4115,7 @@ const App: React.FC = () => {
                   ].join(' ')}
                 >
                   <div className="flex shrink-0 items-center pt-1">
-                    {renderAuthorshipLogo(useCompactDesktopHeader ? 'h-7 w-7' : 'h-8 w-8')}
-                    <h1 className={`ml-2 font-bold text-gray-900 dark:text-gray-100 ${useCompactDesktopHeader ? 'text-xl' : 'text-2xl'}`}>ETL Capacity Analyzer</h1>
+                    {renderAppTitle('desktop')}
                   </div>
 
                   <div className={useCondensedHeaderSites ? 'min-w-0 w-full max-w-[34rem]' : 'min-w-0 flex-1'}>
@@ -4580,7 +4651,7 @@ const App: React.FC = () => {
               >
                 <div className="pointer-events-auto rounded-[28px] border border-white/65 bg-[linear-gradient(180deg,rgba(255,255,255,0.94),rgba(241,245,249,0.88))] p-2.5 shadow-[0_24px_60px_-36px_rgba(15,23,42,0.78)] backdrop-blur-xl dark:border-slate-700/80 dark:bg-[linear-gradient(180deg,rgba(15,23,42,0.95),rgba(30,41,59,0.86))]">
                   <div className="flex items-center gap-2">
-                    {renderAuthorshipLogo('h-5 w-5')}
+                    {renderAppTitle('floating')}
                     <div className="min-w-0 flex-1">
                       <SatelliteScopeFilter
                         currentScope={satelliteScope}
