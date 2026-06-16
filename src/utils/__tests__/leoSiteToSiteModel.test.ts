@@ -25,12 +25,14 @@ const regulatory = (status: RegulatoryResult['status']): RegulatoryResult => ({
 });
 
 const beamLoad = (capacityStatus: BeamLoadResult['capacityStatus']): BeamLoadResult => ({
-  densityZone: 'suburban',
-  densityZoneLabel: 'Suburban / Semi-urban',
   estimatedActiveUsers: capacityStatus === 'SATURATED' ? 48 : capacityStatus === 'DEGRADED' ? 38 : 10,
   maxConcurrentUsers: 50,
   beamLoadFraction: capacityStatus === 'SATURATED' ? 0.96 : capacityStatus === 'DEGRADED' ? 0.76 : 0.20,
   beamLoadPercent: capacityStatus === 'SATURATED' ? 96 : capacityStatus === 'DEGRADED' ? 76 : 20,
+  estimatedLoadPct: capacityStatus === 'SATURATED' ? 96 : capacityStatus === 'DEGRADED' ? 76 : 20,
+  baseEstimatedLoadPct: capacityStatus === 'SATURATED' ? 96 : capacityStatus === 'DEGRADED' ? 76 : 20,
+  confidence: 0,
+  method: 'heuristicOnly',
   beamCapacityMbps: 200,
   estimatedUserThroughputMbps: 20,
   capacityStatus,

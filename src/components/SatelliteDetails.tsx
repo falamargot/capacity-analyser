@@ -657,7 +657,7 @@ const SatelliteDetails: React.FC<SatelliteDetailsProps> = ({
                           />
                         </div>
                         <div className="flex flex-wrap items-center justify-between gap-2 text-gray-500 dark:text-gray-400">
-                          <span>Zone: {targetBeamLoadResult.densityZoneLabel}</span>
+                          <span>Fill rate: ~{targetBeamLoadResult.beamLoadPercent}%</span>
                           <span>Estimated user share: ~{targetBeamLoadResult.estimatedUserThroughputMbps} Mbps</span>
                         </div>
                       </div>

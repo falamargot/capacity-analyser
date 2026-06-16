@@ -8,7 +8,7 @@ import {
 } from '../fillRateUx';
 
 describe('fill-rate UX scope and overlay rules', () => {
-  it('makes FILL available in LEO and ALL scopes only', () => {
+  it('makes FILL available in LEO and ALL scopes only, so it does not affect GEO', () => {
     expect(isFillRateLayerAvailableForScope('LEO')).toBe(true);
     expect(isFillRateLayerAvailableForScope('ALL')).toBe(true);
     expect(isFillRateLayerAvailableForScope('GEO')).toBe(false);

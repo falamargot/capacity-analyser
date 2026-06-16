@@ -121,6 +121,7 @@ interface TintMaterialOptions {
 }
 
 export class RegulatoryTintMaterialProperty {
+  readonly isConstant = false;
   readonly definitionChanged = new Event();
 
   constructor(private readonly options: TintMaterialOptions) {
@@ -155,6 +156,7 @@ interface BlockedMaterialOptions {
 }
 
 export class RegulatoryBlockedMaterialProperty {
+  readonly isConstant = false;
   readonly definitionChanged = new Event();
 
   constructor(private readonly options: BlockedMaterialOptions) {
@@ -189,6 +191,7 @@ interface BlockedPathMaterialOptions {
 }
 
 export class RegulatoryBlockedPathMaterialProperty {
+  readonly isConstant = false;
   readonly definitionChanged = new Event();
 
   constructor(private readonly options: BlockedPathMaterialOptions) {
@@ -236,4 +239,3 @@ export const getRegulatoryOverlayState = (status?: string | null) => {
   if (status === 'BLOCKED') return 'BLOCKED' as const;
   return 'UNKNOWN' as const;
 };
-

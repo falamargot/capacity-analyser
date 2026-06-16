@@ -1,21 +1,24 @@
 /**
- * Capacity Layer — Simulated beam load estimation
+ * Capacity Layer — Network fill-rate estimation
  *
- * Estimates how many users are active in a beam footprint using geographic
- * density heuristics. No real subscriber data is used — all values are
- * SIMULATED and labelled as such.
+ * Estimates beam load using Network Fill Rate as the primary signal.
+ * No real subscriber data is used — all values are SIMULATED and labelled as such.
  *
- * Model assumptions (OneWeb Gen-1 operational context):
- *  - Beam footprint radius: ~450 km → area ≈ 636 000 km²
- *  - Terminal peak throughput ceiling: 200 Mbps (NOMINAL_TERMINAL_PEAK_MBPS)
- *    NOTE: this is NOT the shared beam capacity (~450 Mbps) or satellite aggregate (7.2 Gbps).
- *    The model counts concurrent users relative to the terminal peak, not the beam aggregate,
- *    which intentionally understates user count to simulate a quality-of-service scenario.
+ * Model (OneWeb Gen-1 operational context):
+ *  - Fill Rate represents estimated or observed network resource utilization.
+ *  - OneWeb reference map is used as a proxy for local network occupancy where available.
+ *  - Where no reference cell exists, a global baseline fill rate is applied.
+ *  - Performance = Theoretical Throughput × Capacity Availability (Fill Rate)
+ *
+ * Constants:
+ *  - Terminal peak throughput: 200 Mbps (NOMINAL_TERMINAL_PEAK_MBPS) — theoretical throughput ceiling
  *  - Average session throughput: 4 Mbps → max 50 simultaneous users at full terminal QoS
  *  - Load thresholds: <70 % = NOMINAL, 70–95 % = DEGRADED, >95 % = SATURATED
  */
 
 import type {
+  EstimatedLoadResult,
+  EstimatedLoadSource,
   FillRateDataMode,
   FillRateLookupResult,
   FillRateSource,
@@ -24,13 +27,7 @@ import type {
 
 // ─── Types ─────────────────────────────────────────────────────────────────
 
-export type DensityZone = 'ocean' | 'polar' | 'arid' | 'rural' | 'suburban' | 'urban';
-
-export interface BeamLoadResult {
-  /** Geographic density classification used for estimation */
-  densityZone: DensityZone;
-  densityZoneLabel: string;
-
+export interface BeamLoadResult extends EstimatedLoadResult {
   /** Estimated number of concurrently active user sessions in beam area (simulated) */
   estimatedActiveUsers: number;
 
@@ -49,8 +46,8 @@ export interface BeamLoadResult {
   beamCapacityMbps: number;
 
   /**
-   * Estimated throughput available to a single user given the simulated load (Mbps).
-   * SIMULATED — based on geographic density heuristics, not real subscriber data.
+   * Estimated throughput available to a single user given the simulated fill rate (Mbps).
+   * SIMULATED — derived from fill-rate-based load estimate, not real subscriber data.
    */
   estimatedUserThroughputMbps: number;
 
@@ -59,10 +56,10 @@ export interface BeamLoadResult {
 
   /**
    * Provenance of the load value.
-   * - heuristic: legacy geographic density model
-   * - calibrated/operational: statistical fill-rate grid used as the primary input
+   * - heuristic: global network baseline (no reference cell available)
+   * - operational/reference/calibratedDemo: estimated load calibrated by a fill-rate cell
    */
-  loadSource: FillRateSource;
+  loadSource: EstimatedLoadSource;
   loadDataMode: FillRateDataMode;
 
   /** Fill-rate percentage when the load came from the statistical grid. */
@@ -87,85 +84,10 @@ const MAX_CONCURRENT_USERS = Math.round(TERMINAL_PEAK_MBPS / AVG_SESSION_THROUGH
 const LOAD_DEGRADED_THRESHOLD = 0.70;
 const LOAD_SATURATED_THRESHOLD = 0.95;
 
-/** Estimated concurrent active sessions per density zone [min, max] */
-const ZONE_USER_RANGE: Record<DensityZone, [number, number]> = {
-  ocean:    [0,  5],
-  polar:    [0,  3],
-  arid:     [2,  8],
-  rural:    [5, 20],
-  suburban: [15, 45],
-  urban:    [30, 80],
-};
-
-const ZONE_LABELS: Record<DensityZone, string> = {
-  ocean:    'Ocean / Maritime',
-  polar:    'Polar / Remote',
-  arid:     'Arid / Desert',
-  rural:    'Rural',
-  suburban: 'Suburban / Semi-urban',
-  urban:    'Urban / Dense',
-};
-
-// ─── High-density country codes (ISO A2) ───────────────────────────────────
-
-/** City-states / micro-states — very high population density */
-const URBAN_COUNTRY_CODES = new Set([
-  'SG', 'BH', 'MC', 'SM', 'AD', 'LI', 'VA', 'HK', 'MO', 'MT', 'LU',
-  'NL', 'BE', 'DE', 'GB', 'IT', 'FR', 'JP', 'KR', 'CH', 'AT',
-]);
-
-/** Countries with significant suburban/semi-urban average density */
-const SUBURBAN_COUNTRY_CODES = new Set([
-  'CZ', 'SK', 'HU', 'PL', 'RO', 'HR', 'SI', 'DK', 'SE', 'FI', 'NO',
-  'PT', 'ES', 'GR', 'LT', 'LV', 'EE', 'IN', 'CN', 'ID', 'PH', 'VN',
-  'TH', 'BD', 'LK', 'EG', 'NG', 'SA', 'TR', 'MA', 'ZA', 'BR', 'MX',
-  'CO', 'PE', 'US', 'CA', 'AU', 'IR', 'IQ', 'SY',
-]);
-
-/** Large, predominantly sparse countries */
-const SPARSE_COUNTRY_CODES = new Set([
-  'RU', 'MN', 'KZ', 'LY', 'DZ', 'MR', 'SD', 'TD', 'NE', 'ML', 'NA',
-  'BO', 'GL', 'IS', 'NZ', 'AU',  // AU is both suburban+sparse, handled by lat
-]);
-
-// ─── Zone classification ───────────────────────────────────────────────────
-
-/**
- * Classify a geographic point into a density zone using heuristics.
- * The countryCode from the regulatory lookup determines the base zone;
- * lat/lon are used for additional overrides (polar, desert).
- */
-function classifyZone(lat: number, lng: number, countryCode: string | null): DensityZone {
-  // Ocean / international waters
-  if (!countryCode || countryCode === '-99') return 'ocean';
-
-  // Polar regions (covers Arctic, Antarctic, and high-latitude areas)
-  if (Math.abs(lat) > 65) return 'polar';
-
-  // Major desert regions — lat band override within arid-country groups
-  if (
-    lat > 10 && lat < 35 &&
-    lng > -20 && lng < 70 &&
-    ['DZ', 'LY', 'EG', 'SD', 'NE', 'ML', 'MR', 'TD', 'SA', 'YE', 'OM', 'AE', 'KW', 'QA'].includes(countryCode)
-  ) return 'arid';
-
-  // Gobi / Central Asian steppe
-  if (lat > 38 && lat < 52 && lng > 75 && lng < 125 && ['CN', 'MN', 'KZ'].includes(countryCode)) return 'arid';
-
-  // Australian outback (rough approximation)
-  if (lat < -20 && lat > -40 && lng > 115 && lng < 140 && countryCode === 'AU') return 'arid';
-
-  // Siberia / Northern Canada — sparse despite non-polar latitude
-  if (lat > 55 && ['RU', 'CA'].includes(countryCode)) return 'polar';
-
-  // High-density classification
-  if (URBAN_COUNTRY_CODES.has(countryCode)) return 'urban';
-  if (SUBURBAN_COUNTRY_CODES.has(countryCode)) return 'suburban';
-  if (SPARSE_COUNTRY_CODES.has(countryCode)) return 'rural';
-
-  // Default
-  return 'rural';
-}
+// Global fill-rate baselines (network utilization, not population demand)
+const BASELINE_FILL_RATE_LAND = 0.30;   // 30 % — global land occupancy baseline
+const BASELINE_FILL_RATE_OCEAN = 0.08;  // 8 % — sparse maritime terminal deployment
+const FILL_RATE_NOISE_AMPLITUDE = 0.10; // ± 10 % smooth per-location variation
 
 // ─── Deterministic noise ───────────────────────────────────────────────────
 
@@ -195,21 +117,29 @@ function estimateUserThroughputMbps(estimatedActiveUsers: number): number {
 }
 
 function buildBeamLoadResult(args: {
-  densityZone: DensityZone;
   estimatedActiveUsers: number;
   beamLoadFraction: number;
-  loadSource: FillRateSource;
+  baseEstimatedLoadPct?: number;
+  loadSource: EstimatedLoadSource;
   fillRate?: FillRateLookupResult;
+  confidence?: number;
+  method?: EstimatedLoadResult['method'];
 }): BeamLoadResult {
   const beamLoadPercent = Math.round(args.beamLoadFraction * 100);
+  const method = args.method ?? 'heuristicOnly';
+  const baseEstimatedLoadPct = args.baseEstimatedLoadPct ?? beamLoadPercent;
 
   return {
-    densityZone: args.densityZone,
-    densityZoneLabel: ZONE_LABELS[args.densityZone],
     estimatedActiveUsers: args.estimatedActiveUsers,
     maxConcurrentUsers: MAX_CONCURRENT_USERS,
     beamLoadFraction: args.beamLoadFraction,
     beamLoadPercent,
+    estimatedLoadPct: beamLoadPercent,
+    baseEstimatedLoadPct,
+    fillRateInfluencePct: args.fillRate?.fillRatePct,
+    fillRateSource: args.fillRate?.source,
+    confidence: args.confidence ?? 0,
+    method,
     beamCapacityMbps: TERMINAL_PEAK_MBPS,
     estimatedUserThroughputMbps: estimateUserThroughputMbps(args.estimatedActiveUsers),
     capacityStatus: getCapacityStatus(args.beamLoadFraction),
@@ -225,46 +155,48 @@ function buildBeamLoadResult(args: {
   };
 }
 
+function confidenceForFillRateSource(source: FillRateSource): number {
+  if (source === 'operational') return 0.8;
+  return 0.5;
+}
+
 // ─── Main estimation functions ─────────────────────────────────────────────
 
 /**
- * Estimate simulated beam load for the given position.
+ * Estimate fill-rate-based beam load for the given position.
  *
- * @param lat       WGS-84 latitude (degrees)
- * @param lng       WGS-84 longitude (degrees)
- * @param isOcean   true when no country polygon was found at this position
- * @param countryCode ISO A2 code from regulatory lookup (null = ocean)
+ * Uses a global baseline fill rate — not population density — as the fallback
+ * when no OneWeb reference cell covers the location.
+ *
+ * @param lat         WGS-84 latitude (degrees)
+ * @param lng         WGS-84 longitude (degrees)
+ * @param isOcean     true when no country polygon was found at this position
+ * @param _countryCode unused — kept for API compatibility
  */
 export function estimateBeamLoad(
   lat: number,
   lng: number,
   isOcean: boolean,
-  countryCode?: string | null,
+  _countryCode?: string | null,
 ): BeamLoadResult {
-  const zone = isOcean ? 'ocean' : classifyZone(lat, lng, countryCode ?? null);
-  const [minUsers, maxUsers] = ZONE_USER_RANGE[zone];
-
-  // Deterministic variation so the value is stable for a given point
+  const baseRate = isOcean ? BASELINE_FILL_RATE_OCEAN : BASELINE_FILL_RATE_LAND;
   const noise = locationNoise(lat, lng);
-  const estimatedActiveUsers = Math.round(minUsers + noise * (maxUsers - minUsers));
-
-  const beamLoadFraction = estimatedActiveUsers / MAX_CONCURRENT_USERS;
+  const fillRateFraction = Math.max(0, Math.min(1, baseRate + (noise - 0.5) * 2 * FILL_RATE_NOISE_AMPLITUDE));
+  const estimatedActiveUsers = Math.round(fillRateFraction * MAX_CONCURRENT_USERS);
 
   return buildBeamLoadResult({
-    densityZone: zone,
     estimatedActiveUsers,
-    beamLoadFraction,
+    beamLoadFraction: fillRateFraction,
     loadSource: 'heuristic',
   });
 }
 
 /**
- * Estimate beam load using statistical fill-rate data when available.
+ * Estimate load using statistical fill-rate data as calibration when available.
  *
  * The returned shape remains BeamLoadResult for compatibility with the current
- * service-layer and throughput code. When a fill-rate cell exists, that
- * percentage becomes the authoritative load percentage; active users are then
- * derived only to keep the existing beam-sharing math working.
+ * service-layer and throughput code. Fill-rate cells never replace the global
+ * estimated-load model; they only blend with the heuristic baseline.
  */
 export function estimateBeamLoadWithFillRate({
   lat,
@@ -279,20 +211,26 @@ export function estimateBeamLoadWithFillRate({
   countryCode?: string | null;
   fillRateResult?: FillRateLookupResult | null;
 }): BeamLoadResult {
-  const zone = isOcean ? 'ocean' : classifyZone(lat, lng, countryCode ?? null);
+  const baseLoad = estimateBeamLoad(lat, lng, isOcean, countryCode);
 
   if (!fillRateResult) {
-    return estimateBeamLoad(lat, lng, isOcean, countryCode);
+    return baseLoad;
   }
 
-  const fillRateFraction = Math.max(0, Math.min(1, fillRateResult.fillRatePct / 100));
-  const estimatedActiveUsers = Math.round(fillRateFraction * MAX_CONCURRENT_USERS);
+  const confidence = confidenceForFillRateSource(fillRateResult.source);
+  const baseEstimatedLoadPct = baseLoad.beamLoadPercent;
+  const estimatedLoadPct =
+    baseEstimatedLoadPct * (1 - confidence) + fillRateResult.fillRatePct * confidence;
+  const estimatedLoadFraction = Math.max(0, Math.min(1, estimatedLoadPct / 100));
+  const estimatedActiveUsers = Math.round(estimatedLoadFraction * MAX_CONCURRENT_USERS);
 
   return buildBeamLoadResult({
-    densityZone: zone,
     estimatedActiveUsers,
-    beamLoadFraction: fillRateFraction,
+    beamLoadFraction: estimatedLoadFraction,
+    baseEstimatedLoadPct,
     loadSource: fillRateResult.source,
     fillRate: fillRateResult,
+    confidence,
+    method: 'fillRateCalibrated',
   });
 }

@@ -31,7 +31,8 @@ const serviceResult = (
 
 const fillRateResult: FillRateLookupResult = {
   fillRatePct: 76,
-  source: 'calibrated',
+  percentile: 'P95',
+  source: 'calibratedDemo',
   dataMode: 'recent_operational_calibration',
   statistic: 'P95_5MIN_AVG',
   windowMinutes: 5,
@@ -41,17 +42,18 @@ const fillRateResult: FillRateLookupResult = {
     lng: 2,
     sizeDeg: 1,
     fillRatePct: 76,
+    percentile: 'P95',
     statistic: 'P95_5MIN_AVG',
     windowMinutes: 5,
     sampleCount: 240,
-    source: 'calibrated',
+    source: 'calibratedDemo',
     dataMode: 'recent_operational_calibration',
     sourceDate: '2026-06',
   },
 };
 
-describe('deriveLeoConnectivityViewModel — fill-rate source clarity', () => {
-  it('shows calibrated fill-rate as Fill Rate when a statistical cell is available', () => {
+describe('deriveLeoConnectivityViewModel — estimated-load source clarity', () => {
+  it('shows Estimated Load calibrated by OneWeb reference when a statistical cell is available', () => {
     const beamLoadResult = estimateBeamLoadWithFillRate({
       lat: 48.8,
       lng: 2.3,
@@ -71,11 +73,12 @@ describe('deriveLeoConnectivityViewModel — fill-rate source clarity', () => {
 
     expect(vm.capacity.hasFillRate).toBe(true);
     expect(vm.capacity.fillRatePercent).toBe(76);
-    expect(vm.whyRows.find((row) => row.label === 'Fill Rate')).toMatchObject({
-      value: 'Constrained · 76%',
-      detail: 'P95 5-min avg · Recent ops calibration · 2026-06 · equiv. users: ~38',
-    });
-    expect(vm.whyRows.some((row) => row.label === 'Estimated Load')).toBe(false);
+    expect(vm.whyRows.some((row) => row.label === 'Fill Rate')).toBe(false);
+    const estimatedLoadRow = vm.whyRows.find((row) => row.label === 'Estimated Load');
+    expect(estimatedLoadRow?.value).toContain(`${beamLoadResult.beamLoadPercent}%`);
+    expect(estimatedLoadRow?.detail).toBe(
+      `Calibrated by OneWeb usage reference · base heuristic: ${beamLoadResult.baseEstimatedLoadPct}% · reference cell: 76% · confidence: 50% · equiv. users: ~${beamLoadResult.estimatedActiveUsers}`,
+    );
   });
 
   it('separates unavailable Fill Rate from heuristic Estimated Load outside calibrated cells', () => {
@@ -93,15 +96,11 @@ describe('deriveLeoConnectivityViewModel — fill-rate source clarity', () => {
     expect(vm.capacity.hasFillRate).toBe(false);
     expect(vm.capacity.fillRatePercent).toBeNull();
     expect(vm.capacity.loadEstimatePercent).toBe(beamLoadResult.beamLoadPercent);
-    expect(vm.whyRows.find((row) => row.label === 'Fill Rate')).toMatchObject({
-      value: 'Unavailable',
-      tone: 'neutral',
-      detail: 'No calibrated fill-rate cell at this position',
-    });
+    expect(vm.whyRows.some((row) => row.label === 'Fill Rate')).toBe(false);
     const estimatedLoadRow = vm.whyRows.find((row) => row.label === 'Estimated Load');
     expect(estimatedLoadRow?.value).toContain(`${beamLoadResult.beamLoadPercent}%`);
     expect(estimatedLoadRow?.detail).toBe(
-      `Heuristic fallback · geographic density model · ${beamLoadResult.densityZoneLabel} · equiv. users: ~${beamLoadResult.estimatedActiveUsers}`,
+      `Heuristic estimate · equiv. users: ~${beamLoadResult.estimatedActiveUsers}`,
     );
   });
 

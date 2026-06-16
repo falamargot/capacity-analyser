@@ -218,10 +218,11 @@ describe('estimateBeamLoad — all outputs are explicitly simulated', () => {
   });
 });
 
-describe('estimateBeamLoadWithFillRate — statistical fill-rate priority', () => {
+describe('estimateBeamLoadWithFillRate — fill-rate calibration', () => {
   const fillRateResult: FillRateLookupResult = {
     fillRatePct: 76,
-    source: 'calibrated',
+    percentile: 'P95',
+    source: 'calibratedDemo',
     dataMode: 'recent_operational_calibration',
     statistic: 'P95_5MIN_AVG',
     windowMinutes: 5,
@@ -231,10 +232,11 @@ describe('estimateBeamLoadWithFillRate — statistical fill-rate priority', () =
       lng: 2,
       sizeDeg: 1,
       fillRatePct: 76,
+      percentile: 'P95',
       statistic: 'P95_5MIN_AVG',
       windowMinutes: 5,
       sampleCount: 240,
-      source: 'calibrated',
+      source: 'calibratedDemo',
       dataMode: 'recent_operational_calibration',
       sourceDate: '2026-06',
     },
@@ -253,9 +255,15 @@ describe('estimateBeamLoadWithFillRate — statistical fill-rate priority', () =
     expect(result).toEqual(legacy);
     expect(result.loadSource).toBe('heuristic');
     expect(result.loadDataMode).toBe('heuristic_estimate');
+    expect(result.method).toBe('heuristicOnly');
+    expect(result.confidence).toBe(0);
+    expect(result.estimatedLoadPct).toBe(result.beamLoadPercent);
+    expect(result.baseEstimatedLoadPct).toBe(result.beamLoadPercent);
+    expect(result.fillRateInfluencePct).toBeUndefined();
   });
 
-  it('uses fill-rate percentage as the authoritative beam load when present', () => {
+  it('calibrates the heuristic estimated load when a fill-rate cell is present', () => {
+    const base = estimateBeamLoad(48.8, 2.3, false, 'FR');
     const result = estimateBeamLoadWithFillRate({
       lat: 48.8,
       lng: 2.3,
@@ -264,11 +272,14 @@ describe('estimateBeamLoadWithFillRate — statistical fill-rate priority', () =
       fillRateResult,
     });
 
-    expect(result.beamLoadPercent).toBe(76);
-    expect(result.beamLoadFraction).toBeCloseTo(0.76, 4);
-    expect(result.estimatedActiveUsers).toBe(38);
-    expect(result.capacityStatus).toBe('DEGRADED');
-    expect(result.loadSource).toBe('calibrated');
+    const expectedPct = Math.min(100, Math.round(base.beamLoadPercent * 0.5 + 76 * 0.5));
+    expect(result.beamLoadPercent).toBe(expectedPct);
+    expect(result.estimatedLoadPct).toBe(expectedPct);
+    expect(result.baseEstimatedLoadPct).toBe(base.beamLoadPercent);
+    expect(result.fillRateInfluencePct).toBe(76);
+    expect(result.confidence).toBe(0.5);
+    expect(result.method).toBe('fillRateCalibrated');
+    expect(result.loadSource).toBe('calibratedDemo');
     expect(result.loadDataMode).toBe('recent_operational_calibration');
     expect(result.fillRatePct).toBe(76);
     expect(result.fillRateStatistic).toBe('P95_5MIN_AVG');

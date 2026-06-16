@@ -12,10 +12,11 @@ const cell = (overrides: Partial<FillRateCell>): FillRateCell => ({
   lng: 20,
   sizeDeg: 1,
   fillRatePct: 50,
+  percentile: 'P95',
   statistic: 'P95_5MIN_AVG',
   windowMinutes: 5,
   sampleCount: 100,
-  source: 'calibrated',
+  source: 'calibratedDemo',
   dataMode: 'recent_operational_calibration',
   sourceDate: '2026-06',
   ...overrides,
@@ -36,7 +37,7 @@ describe('normalizeFillRateDataset', () => {
       cells: [
         { lat: 48, lng: 2, sizeDeg: 1, fillRatePct: 110 },
         { lat: 91, lng: 2, sizeDeg: 1, fillRatePct: 20 },
-        { lat: 40, lng: 190, sizeDeg: 1, fillRatePct: -4, source: 'calibrated' },
+        { lat: 40, lng: 190, sizeDeg: 1, fillRatePct: -4, source: 'calibratedDemo' },
       ],
     });
 
@@ -49,7 +50,7 @@ describe('normalizeFillRateDataset', () => {
     expect(dataset.cells[1]).toMatchObject({
       lng: -170,
       fillRatePct: 0,
-      source: 'calibrated',
+      source: 'calibratedDemo',
       dataMode: 'historical_statistical_average',
     });
   });
@@ -125,6 +126,15 @@ describe('lookupFillRateFromCells', () => {
     expect(lookupFillRateFromCells([
       cell({ lat: 25, lng: 55, fillRatePct: 88 }),
     ], -20, 55)).toBeNull();
+  });
+
+  it('treats an empty area as no fill-rate data, not 0% load', () => {
+    const result = lookupFillRateFromCells([
+      cell({ lat: 25, lng: 55, fillRatePct: 88 }),
+    ], -20, 55);
+
+    expect(result).toBeNull();
+    expect(result?.fillRatePct).not.toBe(0);
   });
 
   it('can resolve the same visual bounds used by the map layer', () => {

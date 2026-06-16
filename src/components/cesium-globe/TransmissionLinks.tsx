@@ -38,6 +38,7 @@ import type { LeoSiteToSiteResult } from '../../utils/leoSiteToSiteModel';
 import PathFlowAnimation, { type PathSegment } from './PathFlowAnimation';
 import type { CameraMetricsSnapshot } from './utils';
 import type { CommercialRouteSegmentType } from '../commercial/commercialViewModel';
+import { GROUND_POINT_ALTITUDE_KM } from './layerHeights';
 
 interface TransmissionLinksProps {
     satellites: SatelliteData[];
@@ -222,6 +223,16 @@ const s2sBackboneGlowSecondaryMaterial = new PolylineGlowMaterialProperty({
     glowPower: 0.08,
     taperPower: 0.45,
 });
+const leoRouteHaloMaterial = new PolylineGlowMaterialProperty({
+    color: Color.fromCssColorString('#020617').withAlpha(0.76),
+    glowPower: 0.18,
+    taperPower: 0.38,
+});
+const leoRouteHaloSecondaryMaterial = new PolylineGlowMaterialProperty({
+    color: Color.fromCssColorString('#020617').withAlpha(0.44),
+    glowPower: 0.1,
+    taperPower: 0.38,
+});
 
 const S2S_BACKBONE_HALO_WIDTH = 8;
 const S2S_BACKBONE_GLOW_WIDTH = 6;
@@ -233,6 +244,10 @@ const flowMeshReceiveColor = Color.fromCssColorString('#06b6d4');
 const flowLeoUserColor = Color.fromCssColorString('#06b6d4');
 const flowLeoFeederColor = Color.fromCssColorString('#f97316');
 const flowBackboneColor = Color.fromCssColorString('#a78bfa');
+
+const getRouteSurfacePosition = (lat: number, lng: number, altitudeKm = 0) => (
+    getPosition(lat, lng, Math.max(altitudeKm, GROUND_POINT_ALTITUDE_KM))
+);
 
 function logGatewayDesync(
     sourceComponent: string,
@@ -263,6 +278,60 @@ const buildEntityId = (...parts: Array<string | number | null | undefined>) => (
     parts.map(entityIdPart).join('-')
 );
 
+type RouteLineMaterial = PolylineGlowMaterialProperty | PolylineDashMaterialProperty | RegulatoryBlockedPathMaterialProperty;
+
+interface HighlightedRouteSegmentProps {
+    name: string;
+    positions: CallbackProperty;
+    width: number;
+    material: RouteLineMaterial;
+    entityIdBase: string;
+    clampToGround?: boolean;
+    arcType?: ArcType;
+    subdued?: boolean;
+}
+
+const getRouteHaloWidth = (width: number) => Math.max(width + 4.8, width * 2.25);
+
+const HighlightedRouteSegment = React.memo<HighlightedRouteSegmentProps>(({
+    name,
+    positions,
+    width,
+    material,
+    entityIdBase,
+    clampToGround = false,
+    arcType = ArcType.NONE,
+    subdued = false,
+}) => {
+    const haloMaterial = subdued ? leoRouteHaloSecondaryMaterial : leoRouteHaloMaterial;
+
+    return (
+        <>
+            <Entity key={`${entityIdBase}-halo`} id={`${entityIdBase}-halo`} name={`${name} halo`}>
+                <PolylineGraphics
+                    positions={positions}
+                    width={getRouteHaloWidth(width)}
+                    material={haloMaterial}
+                    depthFailMaterial={haloMaterial}
+                    clampToGround={clampToGround}
+                    arcType={arcType}
+                />
+            </Entity>
+            <Entity key={`${entityIdBase}-main`} id={`${entityIdBase}-main`} name={name}>
+                <PolylineGraphics
+                    positions={positions}
+                    width={width}
+                    material={material}
+                    depthFailMaterial={material}
+                    clampToGround={clampToGround}
+                    arcType={arcType}
+                />
+            </Entity>
+        </>
+    );
+});
+HighlightedRouteSegment.displayName = 'HighlightedRouteSegment';
+
 interface S2SBackboneSegmentProps {
     name: string;
     positions: CallbackProperty;
@@ -285,6 +354,7 @@ const S2SBackboneSegment = React.memo<S2SBackboneSegmentProps>(({
                     positions={positions}
                     width={S2S_BACKBONE_HALO_WIDTH + widthBoost}
                     material={subdued ? s2sBackboneHaloSecondaryMaterial : s2sBackboneHaloMaterial}
+                    depthFailMaterial={subdued ? s2sBackboneHaloSecondaryMaterial : s2sBackboneHaloMaterial}
                     clampToGround={false}
                     arcType={ArcType.GEODESIC}
                 />
@@ -294,6 +364,7 @@ const S2SBackboneSegment = React.memo<S2SBackboneSegmentProps>(({
                     positions={positions}
                     width={S2S_BACKBONE_GLOW_WIDTH + widthBoost}
                     material={subdued ? s2sBackboneGlowSecondaryMaterial : s2sBackboneGlowMaterial}
+                    depthFailMaterial={subdued ? s2sBackboneGlowSecondaryMaterial : s2sBackboneGlowMaterial}
                     clampToGround={false}
                     arcType={ArcType.GEODESIC}
                 />
@@ -303,6 +374,7 @@ const S2SBackboneSegment = React.memo<S2SBackboneSegmentProps>(({
                     positions={positions}
                     width={S2S_BACKBONE_MAIN_WIDTH + widthBoost}
                     material={subdued ? s2sBackboneSecondaryMaterial : s2sBackboneMaterial}
+                    depthFailMaterial={subdued ? s2sBackboneSecondaryMaterial : s2sBackboneMaterial}
                     clampToGround={false}
                     arcType={ArcType.GEODESIC}
                 />
@@ -417,9 +489,9 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
                 : 0
         : 0;
     const entityScopeId = React.useId();
-    const routeEntityId = (segment: CommercialRouteSegmentType, technology: 'leo' | 'geo', suffix: string) => (
+    const routeEntityId = React.useCallback((segment: CommercialRouteSegmentType, technology: 'leo' | 'geo', suffix: string) => (
         buildEntityId(commercialMode ? 'commercial' : 'engineering', entityScopeId, 'route', segment, technology, suffix)
-    );
+    ), [commercialMode, entityScopeId]);
     const routeEntityIds = useMemo(() => ({
         leoUplink: routeEntityId('access', 'leo', 'uplink'),
         leoBackhaul: routeEntityId('backhaul', 'leo', 'backhaul'),
@@ -440,7 +512,7 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
         leoS2SSnpAMarker: buildEntityId(commercialMode ? 'commercial' : 'engineering', entityScopeId, 'route-node', 'leo', 's2s', 'snp-a'),
         leoS2SSnpBMarker: buildEntityId(commercialMode ? 'commercial' : 'engineering', entityScopeId, 'route-node', 'leo', 's2s', 'snp-b'),
         leoS2SPopMarker: buildEntityId(commercialMode ? 'commercial' : 'engineering', entityScopeId, 'route-node', 'leo', 's2s', 'pop'),
-    }), [commercialMode, entityScopeId]);
+    }), [commercialMode, entityScopeId, routeEntityId]);
     // Per-technology route gates — each technology's links are only shown when that
     // technology has an available route, regardless of which is "active". This prevents
     // hiding the GEO route when LEO is active-but-unavailable, and vice-versa.
@@ -453,7 +525,7 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
         return (time: JulianDate) => {
             const userPosition = selectedAircraft
                 ? calculateDeadReckoning(selectedAircraft, time)
-                : getPosition(selectedPosition!.lat, selectedPosition!.lng, selectedPosition!.altitude || 0);
+                : getRouteSurfacePosition(selectedPosition!.lat, selectedPosition!.lng, selectedPosition!.altitude || 0);
 
             const userLocation = selectedAircraft
                 ? (() => {
@@ -506,7 +578,7 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
 
             const s = autoSelectedLEORef.current!;
             const satPos = propagateSatellite(s, time);
-            const snpPos = getPosition(selectedSNP.lat, selectedSNP.lng, 0.01);
+            const snpPos = getRouteSurfacePosition(selectedSNP.lat, selectedSNP.lng);
 
             return [satPos, snpPos];
         }, false);
@@ -549,7 +621,7 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
         // Pre-compute the static gateway position once (avoids allocation every frame)
         const gwLat = bestGeoGateway.latitude;
         const gwLng = bestGeoGateway.longitude;
-        const gatewayPos = getPosition(gwLat, gwLng, 0.01);
+        const gatewayPos = getRouteSurfacePosition(gwLat, gwLng);
 
         return new CallbackProperty((time?: JulianDate) => {
             if (!time) return [];
@@ -566,8 +638,8 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
         // Both positions are fully static — no per-frame computation needed
         const gwLat = bestGeoGateway.latitude;
         const gwLng = bestGeoGateway.longitude;
-        const gatewayPos = getPosition(gwLat, gwLng, 0.01);
-        const internetPos = getPosition(gwLat + 0.3, gwLng + 0.3, 0.01);
+        const gatewayPos = getRouteSurfacePosition(gwLat, gwLng);
+        const internetPos = getRouteSurfacePosition(gwLat + 0.3, gwLng + 0.3);
         const staticPositions = [gatewayPos, internetPos];
 
         return new CallbackProperty((_time?: JulianDate) => staticPositions, false);
@@ -594,7 +666,7 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
 
             const s = selectedSatelliteRef.current!;
             const satPos = propagateSatellite(s, time);
-            const snpPos = getPosition(dedicatedSNPForSelectedLEO.lat, dedicatedSNPForSelectedLEO.lng, 0);
+            const snpPos = getRouteSurfacePosition(dedicatedSNPForSelectedLEO.lat, dedicatedSNPForSelectedLEO.lng);
 
             return [satPos, snpPos];
         }, false);
@@ -605,7 +677,7 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
 
         const gwLat = dedicatedGeoGateway.latitude;
         const gwLng = dedicatedGeoGateway.longitude;
-        const gatewayPos = getPosition(gwLat, gwLng, 0.01);
+        const gatewayPos = getRouteSurfacePosition(gwLat, gwLng);
 
         return new CallbackProperty((time?: JulianDate) => {
             if (!time) return [];
@@ -619,7 +691,7 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
     // SNP inspection links (one per connected satellite)
     const snpInspectionLinks = useMemo(() => {
         if (!inspectedSNP) return null;
-        const snpPos = getPosition(inspectedSNP.lat, inspectedSNP.lng, 0.01);
+        const snpPos = getRouteSurfacePosition(inspectedSNP.lat, inspectedSNP.lng);
 
         return snpConnectedSatellites.filter(({ satellite }) => satellite.opsStatus === 'operational').map(({ satellite }) => {
             const callback = new CallbackProperty((time?: JulianDate) => {
@@ -635,7 +707,7 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
     const selectedGatewayLinks = useMemo(() => {
         if (!selectedGateway || satelliteScope === 'LEO') return null;
 
-        const gatewayPos = getPosition(selectedGateway.lat, selectedGateway.lng, 0.01);
+        const gatewayPos = getRouteSurfacePosition(selectedGateway.lat, selectedGateway.lng);
         const monitoredSatellites = getMonitoredGeoSatellitesForGateway(selectedGateway, satellites, GEO_GATEWAYS);
 
         return monitoredSatellites.map((satellite) => ({
@@ -672,7 +744,7 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
     const meshSatToBCallback = useMemo(() => {
         if (!isDualPointActive || !autoSelectedGEOSatellite || !pointB) return null;
 
-        const pointBPos = getPosition(pointB.lat, pointB.lng, 0.01);
+        const pointBPos = getRouteSurfacePosition(pointB.lat, pointB.lng);
 
         return new CallbackProperty((_time?: JulianDate) => {
             const g = autoSelectedGEORef.current;
@@ -687,7 +759,7 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
     // heads point in the correct RF flow direction.
     const meshBtoSatCallback = useMemo(() => {
         if (!isDualPointActive || !autoSelectedGEOSatellite || !pointB) return null;
-        const pointBPos = getPosition(pointB.lat, pointB.lng, 0.01);
+        const pointBPos = getRouteSurfacePosition(pointB.lat, pointB.lng);
         return new CallbackProperty((_time?: JulianDate) => {
             const g = autoSelectedGEORef.current;
             if (!g) return [];
@@ -718,11 +790,11 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
         const { endpointA, endpointB, servingSatelliteA, servingSatelliteB, selectedSnpA, selectedSnpB, logicalPop } = r;
         if (!servingSatelliteA || !servingSatelliteB) return null;
 
-        const posA = getPosition(endpointA.lat, endpointA.lng, 0.01);
-        const posB = getPosition(endpointB.lat, endpointB.lng, 0.01);
-        const snpAPos = selectedSnpA ? getPosition(selectedSnpA.lat, selectedSnpA.lng, 0.01) : null;
-        const snpBPos = selectedSnpB ? getPosition(selectedSnpB.lat, selectedSnpB.lng, 0.01) : null;
-        const popPos = logicalPop ? getPosition(logicalPop.lat, logicalPop.lng, 0.01) : null;
+        const posA = getRouteSurfacePosition(endpointA.lat, endpointA.lng);
+        const posB = getRouteSurfacePosition(endpointB.lat, endpointB.lng);
+        const snpAPos = selectedSnpA ? getRouteSurfacePosition(selectedSnpA.lat, selectedSnpA.lng) : null;
+        const snpBPos = selectedSnpB ? getRouteSurfacePosition(selectedSnpB.lat, selectedSnpB.lng) : null;
+        const popPos = logicalPop ? getRouteSurfacePosition(logicalPop.lat, logicalPop.lng) : null;
 
         // Satellite positions: propagated against current Cesium time so they stay
         // visually aligned with the moving constellation.
@@ -786,9 +858,9 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
         const { selectedSnpA, selectedSnpB, logicalPop } = r;
         if (!selectedSnpA || !selectedSnpB) return null;
 
-        const snpAPos = getPosition(selectedSnpA.lat, selectedSnpA.lng, 0.01);
-        const snpBPos = getPosition(selectedSnpB.lat, selectedSnpB.lng, 0.01);
-        const popPos = logicalPop ? getPosition(logicalPop.lat, logicalPop.lng, 0.01) : null;
+        const snpAPos = getRouteSurfacePosition(selectedSnpA.lat, selectedSnpA.lng);
+        const snpBPos = getRouteSurfacePosition(selectedSnpB.lat, selectedSnpB.lng);
+        const popPos = logicalPop ? getRouteSurfacePosition(logicalPop.lat, logicalPop.lng) : null;
         const sameSNP = selectedSnpA.name === selectedSnpB.name;
         const snpAToPopCallback = snpAPos && popPos ? createStaticPathCallback([snpAPos, popPos]) : null;
         const popToSnpBCallback = snpBPos && popPos ? createStaticPathCallback([popPos, snpBPos]) : null;
@@ -917,27 +989,27 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
         <>
             {/* LEO Uplink/Downlink - User to Satellite */}
             {showLeoCommercialRoute && leoUplinkCallback && satelliteScope !== 'GEO' && !isSiteToSiteActive && (
-                <Entity key={routeEntityIds.leoUplink} id={routeEntityIds.leoUplink} name="LEO Uplink/Downlink">
-                    <PolylineGraphics
-                        positions={leoUplinkCallback}
-                        width={commercialWidth('access', leoLinkWidth, 'LEO')}
-                        material={commercialLeoUserMaterial}
-                        arcType={ArcType.NONE}
-                    />
-                </Entity>
+                <HighlightedRouteSegment
+                    name="LEO Uplink/Downlink"
+                    positions={leoUplinkCallback}
+                    width={commercialWidth('access', leoLinkWidth, 'LEO')}
+                    material={commercialLeoUserMaterial}
+                    entityIdBase={routeEntityIds.leoUplink}
+                    subdued={s2sIsSecondary}
+                />
             )}
 
             {/* LEO Backhaul to SNP - Satellite to Gateway */}
             {showLeoCommercialRoute && leoBackhaulCallback && satelliteScope !== 'GEO' && selectedSNP && !isSiteToSiteActive && (
-                <Entity key={routeEntityIds.leoBackhaul} id={routeEntityIds.leoBackhaul} name="LEO Backhaul">
-                    <PolylineGraphics
-                        positions={leoBackhaulCallback}
-                        width={commercialWidth('backhaul', leoLinkWidth, 'LEO')}
-                        material={commercialLeoFeederMaterial}
-                        clampToGround={false}
-                        arcType={ArcType.NONE}
-                    />
-                </Entity>
+                <HighlightedRouteSegment
+                    name="LEO Backhaul"
+                    positions={leoBackhaulCallback}
+                    width={commercialWidth('backhaul', leoLinkWidth, 'LEO')}
+                    material={commercialLeoFeederMaterial}
+                    entityIdBase={routeEntityIds.leoBackhaul}
+                    clampToGround={false}
+                    subdued={s2sIsSecondary}
+                />
             )}
 
             {/* GEO User → Satellite (STAR modes only; MESH uses directional callbacks below) */}
@@ -947,6 +1019,7 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
                         positions={geoUserLinkCallback}
                         width={commercialWidth('access', 2.5, 'GEO')}
                         material={commercialGeoUserMaterial}
+                        depthFailMaterial={commercialGeoUserMaterial}
                         arcType={ArcType.NONE}
                     />
                 </Entity>
@@ -959,6 +1032,7 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
                         positions={geoFeederLinkCallback}
                         width={commercialWidth('backhaul', 2.5, 'GEO')}
                         material={commercialGeoFeederMaterial}
+                        depthFailMaterial={commercialGeoFeederMaterial}
                         arcType={ArcType.NONE}
                     />
                 </Entity>
@@ -971,6 +1045,7 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
                         positions={geoBackhaulCallback}
                         width={commercialWidth('backhaul', 2.5, 'GEO')}
                         material={commercialGeoBackhaulMaterial}
+                        depthFailMaterial={commercialGeoBackhaulMaterial}
                         arcType={ArcType.NONE}
                     />
                 </Entity>
@@ -984,12 +1059,12 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
                 <>
                     {geoUserLinkCallback && (
                         <Entity key={routeEntityIds.geoMeshASat} id={routeEntityIds.geoMeshASat} name="A → Satellite (transmit)">
-                            <PolylineGraphics positions={geoUserLinkCallback} width={commercialWidth('access', 5, 'GEO')} material={commercialMeshTransmitMaterial} arcType={ArcType.NONE} />
+                            <PolylineGraphics positions={geoUserLinkCallback} width={commercialWidth('access', 5, 'GEO')} material={commercialMeshTransmitMaterial} depthFailMaterial={commercialMeshTransmitMaterial} arcType={ArcType.NONE} />
                         </Entity>
                     )}
                     {meshSatToBCallback && (
                         <Entity key={routeEntityIds.geoMeshSatB} id={routeEntityIds.geoMeshSatB} name="Satellite → B (receive)">
-                            <PolylineGraphics positions={meshSatToBCallback} width={commercialWidth('destination', 5, 'GEO')} material={commercialMeshReceiveMaterial} clampToGround={false} arcType={ArcType.NONE} />
+                            <PolylineGraphics positions={meshSatToBCallback} width={commercialWidth('destination', 5, 'GEO')} material={commercialMeshReceiveMaterial} depthFailMaterial={commercialMeshReceiveMaterial} clampToGround={false} arcType={ArcType.NONE} />
                         </Entity>
                     )}
                 </>
@@ -998,12 +1073,12 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
                 <>
                     {meshBtoSatCallback && (
                         <Entity key={routeEntityIds.geoMeshBSat} id={routeEntityIds.geoMeshBSat} name="B → Satellite (transmit)">
-                            <PolylineGraphics positions={meshBtoSatCallback} width={commercialWidth('destination', 5, 'GEO')} material={commercialMeshTransmitMaterial} clampToGround={false} arcType={ArcType.NONE} />
+                            <PolylineGraphics positions={meshBtoSatCallback} width={commercialWidth('destination', 5, 'GEO')} material={commercialMeshTransmitMaterial} depthFailMaterial={commercialMeshTransmitMaterial} clampToGround={false} arcType={ArcType.NONE} />
                         </Entity>
                     )}
                     {meshSatToACallback && (
                         <Entity key={routeEntityIds.geoMeshSatA} id={routeEntityIds.geoMeshSatA} name="Satellite → A (receive)">
-                            <PolylineGraphics positions={meshSatToACallback} width={commercialWidth('access', 5, 'GEO')} material={commercialMeshReceiveMaterial} arcType={ArcType.NONE} />
+                            <PolylineGraphics positions={meshSatToACallback} width={commercialWidth('access', 5, 'GEO')} material={commercialMeshReceiveMaterial} depthFailMaterial={commercialMeshReceiveMaterial} arcType={ArcType.NONE} />
                         </Entity>
                     )}
                 </>
@@ -1011,15 +1086,14 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
 
             {/* Dedicated SNP Link for manually selected satellite */}
             {showCommercialInspectionLinks && dedicatedSnpCallback && (
-                <Entity key={dedicatedSnpEntityId} id={dedicatedSnpEntityId} name="LEO Satellite → Dedicated SNP">
-                    <PolylineGraphics
-                        positions={dedicatedSnpCallback}
-                        width={commercialWidth('backhaul', leoPathVisualState === 'blocked' ? 2.4 : 2)}
-                        clampToGround={false}
-                        material={leoLinkMaterial}
-                        arcType={ArcType.NONE}
-                    />
-                </Entity>
+                <HighlightedRouteSegment
+                    name="LEO Satellite → Dedicated SNP"
+                    positions={dedicatedSnpCallback}
+                    width={commercialWidth('backhaul', leoPathVisualState === 'blocked' ? 2.4 : 2)}
+                    material={leoLinkMaterial}
+                    entityIdBase={dedicatedSnpEntityId}
+                    clampToGround={false}
+                />
             )}
 
             {/* Dedicated Gateway Link for manually selected GEO satellite */}
@@ -1029,23 +1103,27 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
                         positions={dedicatedGeoFeederCallback}
                         width={commercialWidth('backhaul', 2.5)}
                         material={geoFeederMaterial}
+                        depthFailMaterial={geoFeederMaterial}
                         arcType={ArcType.NONE}
                     />
                 </Entity>
             )}
 
             {/* SNP Inspection: links from each connected satellite to the SNP */}
-            {showCommercialInspectionLinks && snpInspectionLinks && snpInspectionLinks.map(({ id, callback }) => (
-                <Entity key={buildEntityId('engineering', 'inspection', 'snp-link', inspectedSNP?.name, id)} id={buildEntityId('engineering', 'inspection', 'snp-link', inspectedSNP?.name, id)} name={`SNP link ${id}`}>
-                    <PolylineGraphics
+            {showCommercialInspectionLinks && snpInspectionLinks && snpInspectionLinks.map(({ id, callback }) => {
+                const entityId = buildEntityId('engineering', 'inspection', 'snp-link', inspectedSNP?.name, id);
+                return (
+                    <HighlightedRouteSegment
+                        key={entityId}
+                        name={`SNP link ${id}`}
                         positions={callback}
                         width={commercialWidth('backhaul', 2)}
                         material={leoAllowedMaterial}
+                        entityIdBase={entityId}
                         clampToGround={false}
-                        arcType={ArcType.NONE}
                     />
-                </Entity>
-            ))}
+                );
+            })}
 
             {/* Gateway inspection: links from the selected gateway to each monitored GEO satellite */}
             {showCommercialInspectionLinks && selectedGatewayLinks && selectedGatewayLinks.map(({ id, name, callback }) => (
@@ -1054,6 +1132,7 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
                         positions={callback}
                         width={commercialWidth('backhaul', 2.5)}
                         material={geoFeederMaterial}
+                        depthFailMaterial={geoFeederMaterial}
                         clampToGround={false}
                         arcType={ArcType.NONE}
                     />
@@ -1067,26 +1146,26 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
             {showLeoCommercialRoute && leoS2SLinks && (
                 <>
                     {/* UT A → Satellite A (user link) */}
-                    <Entity key={routeEntityIds.leoS2SASat} id={routeEntityIds.leoS2SASat} name="S2S: UT A → Satellite A">
-                        <PolylineGraphics
-                            positions={leoS2SLinks.satACallback}
-                            width={commercialWidth('access', 3.5, 'LEO')}
-                            material={commercialS2SUserMaterial}
-                            arcType={ArcType.NONE}
-                        />
-                    </Entity>
+                    <HighlightedRouteSegment
+                        name="S2S: UT A → Satellite A"
+                        positions={leoS2SLinks.satACallback}
+                        width={commercialWidth('access', 3.5, 'LEO')}
+                        material={commercialS2SUserMaterial}
+                        entityIdBase={routeEntityIds.leoS2SASat}
+                        subdued={s2sIsSecondary}
+                    />
 
                     {/* Satellite A → SNP A (feeder) */}
                     {leoS2SLinks.satAToSnpACallback && (
-                        <Entity key={routeEntityIds.leoS2SSatASnpA} id={routeEntityIds.leoS2SSatASnpA} name="S2S: Satellite A → SNP A">
-                            <PolylineGraphics
-                                positions={leoS2SLinks.satAToSnpACallback}
-                                width={commercialWidth('backhaul', 3, 'LEO')}
-                                material={commercialS2SFeederMaterial}
-                                clampToGround={false}
-                                arcType={ArcType.NONE}
-                            />
-                        </Entity>
+                        <HighlightedRouteSegment
+                            name="S2S: Satellite A → SNP A"
+                            positions={leoS2SLinks.satAToSnpACallback}
+                            width={commercialWidth('backhaul', 3, 'LEO')}
+                            material={commercialS2SFeederMaterial}
+                            entityIdBase={routeEntityIds.leoS2SSatASnpA}
+                            clampToGround={false}
+                            subdued={s2sIsSecondary}
+                        />
                     )}
 
                     {/* SNP A → PoP (backbone) */}
@@ -1124,26 +1203,26 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
 
                     {/* SNP B → Satellite B (feeder) */}
                     {leoS2SLinks.satBToSnpBCallback && (
-                        <Entity key={routeEntityIds.leoS2SSnpBSatB} id={routeEntityIds.leoS2SSnpBSatB} name="S2S: SNP B → Satellite B">
-                            <PolylineGraphics
-                                positions={leoS2SLinks.satBToSnpBCallback}
-                                width={commercialWidth('backhaul', 3, 'LEO')}
-                                material={commercialS2SFeederMaterial}
-                                clampToGround={false}
-                                arcType={ArcType.NONE}
-                            />
-                        </Entity>
+                        <HighlightedRouteSegment
+                            name="S2S: SNP B → Satellite B"
+                            positions={leoS2SLinks.satBToSnpBCallback}
+                            width={commercialWidth('backhaul', 3, 'LEO')}
+                            material={commercialS2SFeederMaterial}
+                            entityIdBase={routeEntityIds.leoS2SSnpBSatB}
+                            clampToGround={false}
+                            subdued={s2sIsSecondary}
+                        />
                     )}
 
                     {/* Satellite B → UT B (user link) */}
-                    <Entity key={routeEntityIds.leoS2SSatBB} id={routeEntityIds.leoS2SSatBB} name="S2S: Satellite B → UT B">
-                        <PolylineGraphics
-                            positions={leoS2SLinks.satBCallback}
-                            width={commercialWidth('destination', 3.5, 'LEO')}
-                            material={commercialS2SUserMaterial}
-                            arcType={ArcType.NONE}
-                        />
-                    </Entity>
+                    <HighlightedRouteSegment
+                        name="S2S: Satellite B → UT B"
+                        positions={leoS2SLinks.satBCallback}
+                        width={commercialWidth('destination', 3.5, 'LEO')}
+                        material={commercialS2SUserMaterial}
+                        entityIdBase={routeEntityIds.leoS2SSatBB}
+                        subdued={s2sIsSecondary}
+                    />
 
                     {/* ── Ground-node markers ─────────────────────────────────────── */}
 

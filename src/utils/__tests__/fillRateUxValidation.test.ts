@@ -40,14 +40,14 @@ async function loadDataset() {
 describe('fill-rate UX validation scenarios', () => {
   it('separates site A calibrated Fill Rate from site B heuristic fallback', async () => {
     const dataset = await loadDataset();
-    const siteA = { lat: 50, lng: 8 };
+    const siteA = { lat: 54.4, lng: 0.8 };
     const siteB = { lat: 0, lng: -30 };
 
     const siteAFillRate = lookupFillRateFromCells(dataset.cells, siteA.lat, siteA.lng, { boundsMode: 'visual' });
     const siteBFillRate = lookupFillRateFromCells(dataset.cells, siteB.lat, siteB.lng, { boundsMode: 'visual' });
 
     expect(siteAFillRate).not.toBeNull();
-    expect(siteAFillRate?.dataMode).toBe('recent_operational_calibration');
+    expect(siteAFillRate?.dataMode).toBe('synthetic_reference_calibration');
     expect(siteBFillRate).toBeNull();
 
     const siteABeamLoad = estimateBeamLoadWithFillRate({
@@ -83,15 +83,13 @@ describe('fill-rate UX validation scenarios', () => {
     });
 
     expect(siteAVm.capacity.hasFillRate).toBe(true);
-    expect(siteAVm.whyRows.find((row) => row.label === 'Fill Rate')?.value).not.toBe('Unavailable');
-    expect(siteAVm.whyRows.some((row) => row.label === 'Estimated Load')).toBe(false);
+    expect(siteAVm.whyRows.some((row) => row.label === 'Fill Rate')).toBe(false);
+    expect(siteAVm.whyRows.find((row) => row.label === 'Estimated Load')?.detail)
+      .toContain('Calibrated by OneWeb usage reference');
 
     expect(siteBVm.capacity.hasFillRate).toBe(false);
-    expect(siteBVm.whyRows.find((row) => row.label === 'Fill Rate')).toMatchObject({
-      value: 'Unavailable',
-      tone: 'neutral',
-    });
+    expect(siteBVm.whyRows.some((row) => row.label === 'Fill Rate')).toBe(false);
     expect(siteBVm.whyRows.find((row) => row.label === 'Estimated Load')?.detail)
-      .toContain('Heuristic fallback');
+      .toContain('Heuristic estimate');
   });
 });

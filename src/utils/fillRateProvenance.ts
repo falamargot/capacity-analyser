@@ -1,11 +1,11 @@
 import type {
+  EstimatedLoadSource,
   FillRateDataMode,
-  FillRateSource,
   FillRateStatistic,
 } from '../types/fillRate';
 
 export interface FillRateProvenanceInput {
-  source?: FillRateSource | null;
+  source?: EstimatedLoadSource | null;
   dataMode?: FillRateDataMode | null;
   statistic?: FillRateStatistic | null;
   windowMinutes?: number | null;
@@ -54,11 +54,20 @@ export function getFillRateProvenanceDescriptor({
     };
   }
 
+  if (dataMode === 'synthetic_reference_calibration') {
+    return {
+      badgeLabel: 'Calibrated demo',
+      shortLabel: 'Visual reference calibration',
+      detailLabel: `${statisticLabel ?? 'Fill-rate statistic'} · Synthetic reference calibration${period}`,
+      statisticLabel,
+    };
+  }
+
   if (dataMode === 'heuristic_estimate' || source === 'heuristic') {
     return {
       badgeLabel: 'Estimated',
       shortLabel: 'Heuristic fallback',
-      detailLabel: 'Heuristic fallback · geographic density model',
+      detailLabel: 'Heuristic fallback · global network baseline',
       statisticLabel: null,
     };
   }
@@ -72,10 +81,19 @@ export function getFillRateProvenanceDescriptor({
     };
   }
 
+  if (source === 'reference') {
+    return {
+      badgeLabel: 'Reference',
+      shortLabel: 'Usage reference layer',
+      detailLabel: `${statisticLabel ?? 'Reference statistic'} · Usage reference layer${period}`,
+      statisticLabel,
+    };
+  }
+
   return {
-    badgeLabel: 'Calibrated',
-    shortLabel: 'Recent operational calibration',
-    detailLabel: `${statisticLabel ?? 'Operational statistic'} · Recent ops calibration${period}`,
+    badgeLabel: 'Calibrated demo',
+    shortLabel: 'Visual reference calibration',
+    detailLabel: `${statisticLabel ?? 'Fill-rate statistic'} · Synthetic reference calibration${period}`,
     statisticLabel,
   };
 }

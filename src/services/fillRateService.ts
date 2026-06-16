@@ -4,6 +4,7 @@ import type {
   FillRateDataMode,
   FillRateDataset,
   FillRateLookupResult,
+  FillRatePercentile,
   FillRateSource,
   FillRateStatistic,
 } from '../types/fillRate';
@@ -12,9 +13,11 @@ export const ONEWEB_LEO_FILL_RATE_GRID_URL = '/data/fill-rate/oneweb-leo-fillrat
 export const FILL_RATE_CELL_VISUAL_SCALE = 1.35;
 export const FILL_RATE_CELL_MIN_VISUAL_SIZE_DEG = 1.15;
 
-const VALID_SOURCES = new Set<FillRateSource>(['operational', 'calibrated', 'heuristic']);
+const VALID_SOURCES = new Set<FillRateSource>(['operational', 'reference', 'calibratedDemo']);
 const VALID_STATISTICS = new Set<FillRateStatistic>(['P50_5MIN_AVG', 'P95_5MIN_AVG']);
+const VALID_PERCENTILES = new Set<FillRatePercentile>(['P50', 'P95']);
 const VALID_DATA_MODES = new Set<FillRateDataMode>([
+  'synthetic_reference_calibration',
   'recent_operational_calibration',
   'historical_statistical_average',
   'heuristic_estimate',
@@ -67,6 +70,8 @@ function getString(value: unknown): string | undefined {
 
 function normalizeSource(value: unknown, fallback: FillRateSource): FillRateSource {
   const source = getString(value);
+  if (source === 'calibrated') return 'calibratedDemo';
+  if (source === 'heuristic') return 'reference';
   return source && VALID_SOURCES.has(source as FillRateSource)
     ? source as FillRateSource
     : fallback;
@@ -79,9 +84,20 @@ function normalizeStatistic(value: unknown, fallback: FillRateStatistic): FillRa
     : fallback;
 }
 
+function percentileFromStatistic(statistic: FillRateStatistic): FillRatePercentile {
+  return statistic === 'P50_5MIN_AVG' ? 'P50' : 'P95';
+}
+
+function normalizePercentile(value: unknown, statistic: FillRateStatistic): FillRatePercentile {
+  const percentile = getString(value);
+  return percentile && VALID_PERCENTILES.has(percentile as FillRatePercentile)
+    ? percentile as FillRatePercentile
+    : percentileFromStatistic(statistic);
+}
+
 function defaultDataModeForSource(source: FillRateSource): FillRateDataMode {
-  if (source === 'heuristic') return 'heuristic_estimate';
-  if (source === 'operational' || source === 'calibrated') return 'recent_operational_calibration';
+  if (source === 'operational') return 'recent_operational_calibration';
+  if (source === 'calibratedDemo') return 'synthetic_reference_calibration';
   return 'historical_statistical_average';
 }
 
@@ -108,13 +124,15 @@ function normalizeCell(
 
   const sampleCount = asFiniteNumber(value['sampleCount']);
   const source = normalizeSource(value['source'], datasetDefaults.source);
+  const statistic = normalizeStatistic(value['statistic'], datasetDefaults.statistic);
 
   return {
     lat,
     lng: normalizeLng(lng),
     sizeDeg,
     fillRatePct: clampPercent(fillRatePct),
-    statistic: normalizeStatistic(value['statistic'], datasetDefaults.statistic),
+    percentile: normalizePercentile(value['percentile'], statistic),
+    statistic,
     windowMinutes: asFiniteNumber(value['windowMinutes']) ?? datasetDefaults.windowMinutes,
     sampleCount: sampleCount != null && sampleCount >= 0 ? Math.round(sampleCount) : undefined,
     source,
@@ -126,7 +144,7 @@ function normalizeCell(
 export function normalizeFillRateDataset(raw: unknown): FillRateDataset {
   const root = isRecord(raw) ? raw : {};
   const metadataRaw = isRecord(root['metadata']) ? root['metadata'] : {};
-  const source = normalizeSource(metadataRaw['source'], 'calibrated');
+  const source = normalizeSource(metadataRaw['source'], 'calibratedDemo');
   const dataMode = normalizeDataMode(metadataRaw['dataMode'], defaultDataModeForSource(source));
   const statistic = normalizeStatistic(metadataRaw['statistic'], 'P95_5MIN_AVG');
   const windowMinutes = asFiniteNumber(metadataRaw['windowMinutes']) ?? 5;
@@ -220,6 +238,7 @@ export function lookupFillRateFromCells(
 
   return {
     fillRatePct: cell.fillRatePct,
+    percentile: cell.percentile,
     source: cell.source,
     dataMode: cell.dataMode,
     statistic: cell.statistic,

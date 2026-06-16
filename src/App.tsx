@@ -63,8 +63,9 @@ import { formatCoordinates } from './utils/formatters';
 import { buildSimulationStateSnapshot } from './types/simulation';
 import { regulatoryLookup, type RegulatoryResult } from './services/regulatoryService';
 import { estimateBeamLoadWithFillRate } from './utils/capacityLayer';
+import { loadFillRateCells, lookupFillRateFromCells } from './services/fillRateService';
+import type { FillRateCell } from './types/fillRate';
 import { computeServiceStatus } from './utils/serviceLayer';
-import { lookupFillRate } from './services/fillRateService';
 import {
   getNextFillRateLayerToggleState,
   reconcileFillRateLayerWithCountryOverlay,
@@ -75,7 +76,6 @@ import { deriveLeoConnectivityViewModel, type LeoConnectivityViewModel } from '.
 import { getGroundSegmentRoutingForSatellite, resolveConnectivityPathForSatellite, selectTrafficGeoGateway, type ResolvedGeoGateway } from './utils/geoConnectivityModel';
 import type { GeoPointStatus } from './utils/selectedPointStatus';
 import type { CountryOverlayMode } from './types/countryOverlays';
-import type { FillRateLookupResult } from './types/fillRate';
 import type { LinkMode } from './types/linkMode';
 import { LINK_MODE_REQUIRES_POINT_B } from './types/linkMode';
 import {
@@ -631,6 +631,7 @@ const App: React.FC = () => {
   const [showSatelliteTrajectory, setShowSatelliteTrajectory] = useState(initialDisplayDefaults.showSatelliteTrajectory);
   const [showAggregatedConnectivity, setShowAggregatedConnectivity] = useState(initialDisplayDefaults.showAggregatedConnectivity);
   const [showFillRateLayer, setShowFillRateLayer] = useState(false);
+  const [leoFillRateCells, setLeoFillRateCells] = useState<FillRateCell[] | null>(null);
   const [showFootprintProjection, setShowFootprintProjection] = useState(initialDisplayDefaults.showFootprintProjection);
   const [showFlowAnimation, setShowFlowAnimation] = useState(initialDisplayDefaults.showFlowAnimation);
   const [countryOverlayMode, setCountryOverlayMode] = useState<CountryOverlayMode>(initialDisplayDefaults.countryOverlayMode);
@@ -651,6 +652,21 @@ const App: React.FC = () => {
     handleLogoClick,
     clearAuthorshipLongPress,
   } = useAuthorshipEasterEgg();
+
+  useEffect(() => {
+    let cancelled = false;
+    loadFillRateCells()
+      .then((cells) => {
+        if (!cancelled) setLeoFillRateCells(cells);
+      })
+      .catch((error) => {
+        console.warn('[App] Failed to load OneWeb fill-rate reference cells:', error);
+        if (!cancelled) setLeoFillRateCells([]);
+      });
+
+    return () => { cancelled = true; };
+  }, []);
+
   const [mobileMetrics, setMobileMetrics] = useState<MobileAnalysisMetrics>({
     leo: null,
     geo: null,
@@ -1682,8 +1698,6 @@ const App: React.FC = () => {
 
   const [leoRegulatoryResult, setLeoRegulatoryResult] = useState<RegulatoryResult | null>(null);
   const [leoRegulatoryResultB, setLeoRegulatoryResultB] = useState<RegulatoryResult | null>(null);
-  const [leoFillRateResult, setLeoFillRateResult] = useState<FillRateLookupResult | null>(null);
-  const [leoFillRateResultB, setLeoFillRateResultB] = useState<FillRateLookupResult | null>(null);
 
   useEffect(() => {
     if (!activeAnalysisPoint) {
@@ -1694,23 +1708,6 @@ const App: React.FC = () => {
     regulatoryLookup(activeAnalysisPoint.lat, activeAnalysisPoint.lng).then((result) => {
       if (!cancelled) setLeoRegulatoryResult(result);
     });
-    return () => { cancelled = true; };
-  }, [activeAnalysisPoint]);
-
-  useEffect(() => {
-    if (!activeAnalysisPoint) {
-      setLeoFillRateResult(null);
-      return;
-    }
-    let cancelled = false;
-    setLeoFillRateResult(null);
-    lookupFillRate(activeAnalysisPoint.lat, activeAnalysisPoint.lng, { boundsMode: 'visual' })
-      .then((result) => {
-        if (!cancelled) setLeoFillRateResult(result);
-      })
-      .catch(() => {
-        if (!cancelled) setLeoFillRateResult(null);
-      });
     return () => { cancelled = true; };
   }, [activeAnalysisPoint]);
 
@@ -1726,45 +1723,34 @@ const App: React.FC = () => {
     return () => { cancelled = true; };
   }, [leoTopologyMode, pointBLeo]);
 
-  useEffect(() => {
-    if (!pointBLeo || leoTopologyMode !== 'SITE_TO_SITE') {
-      setLeoFillRateResultB(null);
-      return;
-    }
-    let cancelled = false;
-    setLeoFillRateResultB(null);
-    lookupFillRate(pointBLeo.lat, pointBLeo.lng, { boundsMode: 'visual' })
-      .then((result) => {
-        if (!cancelled) setLeoFillRateResultB(result);
-      })
-      .catch(() => {
-        if (!cancelled) setLeoFillRateResultB(null);
-      });
-    return () => { cancelled = true; };
-  }, [leoTopologyMode, pointBLeo]);
-
   const leoBeamLoadResult = useMemo(() => {
     if (!activeAnalysisPoint || !leoRegulatoryResult) return null;
+    const fillRateResult = leoFillRateCells
+      ? lookupFillRateFromCells(leoFillRateCells, activeAnalysisPoint.lat, activeAnalysisPoint.lng)
+      : null;
 
     return estimateBeamLoadWithFillRate({
       lat: activeAnalysisPoint.lat,
       lng: activeAnalysisPoint.lng,
       isOcean: leoRegulatoryResult.isOcean ?? true,
       countryCode: leoRegulatoryResult.isoA2 ?? null,
-      fillRateResult: leoFillRateResult,
+      fillRateResult,
     });
-  }, [activeAnalysisPoint, leoFillRateResult, leoRegulatoryResult]);
+  }, [activeAnalysisPoint, leoFillRateCells, leoRegulatoryResult]);
   const leoBeamLoadResultB = useMemo(() => {
     if (!pointBLeo || leoTopologyMode !== 'SITE_TO_SITE' || !leoRegulatoryResultB) return null;
+    const fillRateResult = leoFillRateCells
+      ? lookupFillRateFromCells(leoFillRateCells, pointBLeo.lat, pointBLeo.lng)
+      : null;
 
     return estimateBeamLoadWithFillRate({
       lat: pointBLeo.lat,
       lng: pointBLeo.lng,
       isOcean: leoRegulatoryResultB.isOcean ?? true,
       countryCode: leoRegulatoryResultB.isoA2 ?? null,
-      fillRateResult: leoFillRateResultB,
+      fillRateResult,
     });
-  }, [leoFillRateResultB, leoTopologyMode, pointBLeo, leoRegulatoryResultB]);
+  }, [leoFillRateCells, leoTopologyMode, pointBLeo, leoRegulatoryResultB]);
 
   const leoConnectivityStatus = useMemo(() => {
     const sat = autoSelectedLEOId

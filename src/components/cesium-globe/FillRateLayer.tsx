@@ -1,134 +1,143 @@
 /**
- * FillRateLayer — densified statistical LEO fill-rate cells.
+ * FillRateLayer — OneWeb reference LEO fill-rate heatmap.
  *
- * Renders only cells present in the fill-rate dataset. No country bounding-box
- * approximation, no dense global raster, and no synthetic ocean/land fill.
+ * Renders a gaussian-blended canvas as a single full-globe rectangle entity
+ * with transparent: true so Cesium composites it in the translucent pass,
+ * allowing the terrain/satellite imagery to show through empty areas.
  */
 
 import React, { useEffect, useRef, useState } from 'react';
 import { useCesium } from 'resium';
-import { Color, CustomDataSource, Rectangle } from 'cesium';
-import { getFillRateCellBounds, loadFillRateDataset } from '../../services/fillRateService';
+import { Color, CustomDataSource, ImageMaterialProperty, Rectangle } from 'cesium';
+import { loadFillRateDataset } from '../../services/fillRateService';
 import type { FillRateCell, FillRateDatasetMetadata } from '../../types/fillRate';
 import { getFillRateProvenanceDescriptor } from '../../utils/fillRateProvenance';
 import { BASE_OVERLAY_LAYER_HEIGHT_M } from './layerHeights';
 
-const DS_NAME = 'oneweb-fill-rate-layer';
+const DS_NAME = 'oneweb-fill-rate-heatmap';
 
-type FillRateCellSpec = [
-  west: number,
-  south: number,
-  east: number,
-  north: number,
-  r: number,
-  g: number,
-  b: number,
-  a: number,
-];
+// Equirectangular canvas — W/360 == H/180 → uniform deg/px in both axes.
+const CANVAS_W = 2048;
+const CANVAS_H = 1024;
+const DEG_TO_PX = CANVAS_W / 360;
 
-type ColorStop = {
-  pct: number;
-  color: { r: number; g: number; b: number };
-};
+// 2.5° gaussian radius → overlaps ~3 grid steps (1.75°) for smooth blending.
+const BLOB_RADIUS_PX = 2.5 * DEG_TO_PX;
 
-interface ViewerLike {
-  dataSources: {
-    add: (ds: CustomDataSource) => Promise<CustomDataSource>;
-  };
-  isDestroyed: () => boolean;
-}
+// ─── Color scale ───────────────────────────────────────────────────────────
+
+type ColorStop = { pct: number; color: { r: number; g: number; b: number } };
 
 export const FILL_RATE_COLOR_STOPS: ColorStop[] = [
-  { pct: 0, color: { r: 59, g: 130, b: 246 } },
-  { pct: 45, color: { r: 125, g: 181, b: 133 } },
-  { pct: 70, color: { r: 234, g: 179, b: 8 } },
-  { pct: 95, color: { r: 249, g: 115, b: 22 } },
-  { pct: 100, color: { r: 239, g: 68, b: 68 } },
+  { pct: 0,   color: { r: 59,  g: 130, b: 246 } },
+  { pct: 45,  color: { r: 125, g: 181, b: 133 } },
+  { pct: 70,  color: { r: 234, g: 179, b: 8   } },
+  { pct: 95,  color: { r: 249, g: 115, b: 22  } },
+  { pct: 100, color: { r: 239, g: 68,  b: 68  } },
 ];
 
-function clamp01(value: number): number {
-  return Math.max(0, Math.min(1, value));
-}
+function lerp(a: number, b: number, t: number): number { return a + (b - a) * t; }
 
-function lerp(left: number, right: number, t: number): number {
-  return left + (right - left) * t;
-}
-
-function getColorStopPair(fillRatePct: number): [ColorStop, ColorStop] {
-  const pct = Math.max(0, Math.min(100, fillRatePct));
-
-  for (let i = 1; i < FILL_RATE_COLOR_STOPS.length; i += 1) {
-    const previous = FILL_RATE_COLOR_STOPS[i - 1];
-    const next = FILL_RATE_COLOR_STOPS[i];
-    if (pct <= next.pct) return [previous, next];
+function getColorStopPair(pct: number): [ColorStop, ColorStop] {
+  const p = Math.max(0, Math.min(100, pct));
+  for (let i = 1; i < FILL_RATE_COLOR_STOPS.length; i++) {
+    if (p <= FILL_RATE_COLOR_STOPS[i].pct) return [FILL_RATE_COLOR_STOPS[i - 1], FILL_RATE_COLOR_STOPS[i]];
   }
-
   const last = FILL_RATE_COLOR_STOPS[FILL_RATE_COLOR_STOPS.length - 1];
   return [last, last];
 }
 
 export function fillRateToColor(fillRatePct: number): Color {
   const pct = Math.max(0, Math.min(100, fillRatePct));
-  const t = clamp01(pct / 100);
+  const t = pct / 100;
   const [from, to] = getColorStopPair(pct);
   const span = Math.max(1, to.pct - from.pct);
-  const u = clamp01((pct - from.pct) / span);
-  const alpha = lerp(0.62, 0.84, t);
-
+  const u = Math.max(0, Math.min(1, (pct - from.pct) / span));
   return new Color(
     lerp(from.color.r, to.color.r, u) / 255,
     lerp(from.color.g, to.color.g, u) / 255,
     lerp(from.color.b, to.color.b, u) / 255,
-    alpha,
+    lerp(0.62, 0.84, t),
   );
 }
 
 export function fillRateGradientCss(): string {
-  const stops = FILL_RATE_COLOR_STOPS
-    .map(({ pct, color }) => `rgb(${color.r},${color.g},${color.b}) ${pct}%`)
-    .join(', ');
-  return `linear-gradient(to right, ${stops})`;
+  return 'linear-gradient(to right, ' +
+    FILL_RATE_COLOR_STOPS.map(({ pct, color }) =>
+      `rgb(${color.r},${color.g},${color.b}) ${pct}%`
+    ).join(', ') + ')';
 }
 
-function cellToSpec(cell: FillRateCell): FillRateCellSpec {
-  const { west, south, east, north } = getFillRateCellBounds(cell, 'visual');
-  const color = fillRateToColor(cell.fillRatePct);
+// ─── Canvas heatmap ────────────────────────────────────────────────────────
 
-  return [west, south, east, north, color.red, color.green, color.blue, color.alpha];
+function buildFillRateCanvas(cells: readonly FillRateCell[]): HTMLCanvasElement {
+  const canvas = document.createElement('canvas');
+  canvas.width  = CANVAS_W;
+  canvas.height = CANVAS_H;
+  const ctx = canvas.getContext('2d')!;
+
+  for (const cell of cells) {
+    const cx = (cell.lng + 180) * DEG_TO_PX;
+    const cy = (90 - cell.lat) * DEG_TO_PX; // Y=0 → north (Cesium flips via UNPACK_FLIP_Y)
+
+    const color = fillRateToColor(cell.fillRatePct);
+    const r = Math.round(color.red   * 255);
+    const g = Math.round(color.green * 255);
+    const b = Math.round(color.blue  * 255);
+
+    const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, BLOB_RADIUS_PX);
+    grad.addColorStop(0,    `rgba(${r},${g},${b},0.28)`);
+    grad.addColorStop(0.40, `rgba(${r},${g},${b},0.20)`);
+    grad.addColorStop(0.70, `rgba(${r},${g},${b},0.09)`);
+    grad.addColorStop(1,    `rgba(${r},${g},${b},0)`);
+
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.arc(cx, cy, BLOB_RADIUS_PX, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  return canvas;
 }
 
-function buildCellSpecs(cells: readonly FillRateCell[]): FillRateCellSpec[] {
-  return cells.map(cellToSpec);
+// ─── DataSource cache ──────────────────────────────────────────────────────
+
+interface ViewerLike {
+  dataSources: { add: (ds: CustomDataSource) => Promise<CustomDataSource> };
+  isDestroyed: () => boolean;
 }
 
 const viewerDsMap = new WeakMap<object, Promise<CustomDataSource>>();
 
 async function getOrCreateDataSource(viewer: ViewerLike): Promise<CustomDataSource> {
-  const cached = viewerDsMap.get(viewer);
+  const cached = viewerDsMap.get(viewer as object);
   if (cached) return cached;
 
   const promise = (async () => {
     const dataset = await loadFillRateDataset();
-    const ds = new CustomDataSource(DS_NAME);
+    const canvas  = buildFillRateCanvas(dataset.cells);
 
-    for (const [west, south, east, north, r, g, b, a] of buildCellSpecs(dataset.cells)) {
-      ds.entities.add({
-        rectangle: {
-          coordinates: Rectangle.fromDegrees(west, south, east, north),
-          material: new Color(r, g, b, a),
-          outline: false,
-          height: BASE_OVERLAY_LAYER_HEIGHT_M,
-        },
-      });
-    }
+    const ds = new CustomDataSource(DS_NAME);
+    ds.entities.add({
+      rectangle: {
+        coordinates: Rectangle.fromDegrees(-180, -90, 180, 90),
+        // transparent: true → Cesium renders this in the translucent pass so
+        // alpha=0 canvas pixels composite over the terrain instead of showing black.
+        material: new ImageMaterialProperty({ image: canvas, transparent: true }),
+        outline: false,
+        height: BASE_OVERLAY_LAYER_HEIGHT_M,
+      },
+    });
 
     ds.show = false;
     return viewer.dataSources.add(ds);
   })();
 
-  viewerDsMap.set(viewer, promise);
+  viewerDsMap.set(viewer as object, promise);
   return promise;
 }
+
+// ─── React component ───────────────────────────────────────────────────────
 
 interface FillRateLayerProps {
   visible: boolean;
@@ -137,12 +146,11 @@ interface FillRateLayerProps {
 const FillRateLayer: React.FC<FillRateLayerProps> = ({ visible }) => {
   const { viewer } = useCesium();
   const dataSourceRef = useRef<CustomDataSource | null>(null);
-  const visibleRef = useRef(visible);
-  visibleRef.current = visible;
+  const visibleRef    = useRef(visible);
+  visibleRef.current  = visible;
 
   useEffect(() => {
     if (!viewer) return;
-
     let cancelled = false;
 
     const attach = async () => {
@@ -172,6 +180,8 @@ const FillRateLayer: React.FC<FillRateLayerProps> = ({ visible }) => {
   return null;
 };
 
+// ─── Legend ───────────────────────────────────────────────────────────────
+
 interface FillRateLegendProps {
   show: boolean;
   isPhone?: boolean;
@@ -182,27 +192,21 @@ export const FillRateLegend: React.FC<FillRateLegendProps> = ({ show, isPhone })
 
   useEffect(() => {
     if (!show) return;
-
     let cancelled = false;
     loadFillRateDataset()
-      .then((dataset) => {
-        if (!cancelled) setMetadata(dataset.metadata);
-      })
-      .catch(() => {
-        if (!cancelled) setMetadata(null);
-      });
-
+      .then((d) => { if (!cancelled) setMetadata(d.metadata); })
+      .catch(() => { if (!cancelled) setMetadata(null); });
     return () => { cancelled = true; };
   }, [show]);
 
   if (!show || isPhone) return null;
 
   const provenance = getFillRateProvenanceDescriptor({
-    source: metadata?.source ?? 'calibrated',
-    dataMode: metadata?.dataMode ?? 'recent_operational_calibration',
-    statistic: metadata?.statistic ?? 'P95_5MIN_AVG',
+    source:        metadata?.source        ?? 'calibratedDemo',
+    dataMode:      metadata?.dataMode      ?? 'synthetic_reference_calibration',
+    statistic:     metadata?.statistic     ?? 'P95_5MIN_AVG',
     windowMinutes: metadata?.windowMinutes ?? 5,
-    sourceDate: metadata?.sourceDate,
+    sourceDate:    metadata?.sourceDate,
   });
 
   return (
@@ -214,10 +218,10 @@ export const FillRateLegend: React.FC<FillRateLegendProps> = ({ show, isPhone })
         <div className="flex items-center justify-between gap-3">
           <div>
             <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">
-              Fill Rate (%)
+              OneWeb Fill Rate (%)
             </div>
             <div className="mt-0.5 text-[11px] text-slate-500 dark:text-slate-400">
-              {provenance.detailLabel}
+              P95 · 5-min average · reference usage layer
             </div>
           </div>
           <div className="rounded-full border border-sky-200/80 bg-sky-50/80 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-sky-700 dark:border-sky-500/20 dark:bg-sky-500/10 dark:text-sky-200">
@@ -228,10 +232,7 @@ export const FillRateLegend: React.FC<FillRateLegendProps> = ({ show, isPhone })
         <div className="mt-4">
           <div
             className="h-3 w-full rounded-full shadow-[inset_0_0_0_1px_rgba(15,23,42,0.16)] dark:shadow-[inset_0_0_0_1px_rgba(255,255,255,0.18)]"
-            style={{
-              background: fillRateGradientCss(),
-              opacity: 0.94,
-            }}
+            style={{ background: fillRateGradientCss(), opacity: 0.94 }}
           />
           <div className="relative mt-1 h-3 text-[10px] font-semibold text-slate-500 dark:text-slate-400">
             <span className="absolute left-0 top-0">0%</span>
@@ -241,25 +242,21 @@ export const FillRateLegend: React.FC<FillRateLegendProps> = ({ show, isPhone })
         </div>
 
         <div className="mt-3 space-y-1.5">
-          <div className="flex items-center gap-2.5 text-xs text-slate-600 dark:text-slate-300">
-            <span className="h-2.5 w-2.5 shrink-0 rounded-sm bg-blue-600" />
-            <span className="font-medium text-slate-700 dark:text-slate-200">Nominal</span>
-            <span className="ml-auto text-slate-400 dark:text-slate-500">&lt; 70%</span>
-          </div>
-          <div className="flex items-center gap-2.5 text-xs text-slate-600 dark:text-slate-300">
-            <span className="h-2.5 w-2.5 shrink-0 rounded-sm bg-yellow-500" />
-            <span className="font-medium text-slate-700 dark:text-slate-200">Degraded</span>
-            <span className="ml-auto text-slate-400 dark:text-slate-500">70 - 95%</span>
-          </div>
-          <div className="flex items-center gap-2.5 text-xs text-slate-600 dark:text-slate-300">
-            <span className="h-2.5 w-2.5 shrink-0 rounded-sm bg-red-500" />
-            <span className="font-medium text-slate-700 dark:text-slate-200">Saturated</span>
-            <span className="ml-auto text-slate-400 dark:text-slate-500">&gt; 95%</span>
-          </div>
+          {[
+            { label: 'Nominal',   color: 'bg-blue-600',   range: '< 70%' },
+            { label: 'Degraded',  color: 'bg-yellow-500', range: '70 – 95%' },
+            { label: 'Saturated', color: 'bg-red-500',    range: '> 95%' },
+          ].map(({ label, color, range }) => (
+            <div key={label} className="flex items-center gap-2.5 text-xs text-slate-600 dark:text-slate-300">
+              <span className={`h-2.5 w-2.5 shrink-0 rounded-sm ${color}`} />
+              <span className="font-medium text-slate-700 dark:text-slate-200">{label}</span>
+              <span className="ml-auto text-slate-400 dark:text-slate-500">{range}</span>
+            </div>
+          ))}
         </div>
 
         <div className="mt-3 rounded-2xl border border-white/55 bg-white/60 px-3 py-2 text-[11px] leading-relaxed text-slate-500 shadow-[inset_0_1px_0_rgba(255,255,255,0.7)] dark:border-slate-700/80 dark:bg-slate-950/30 dark:text-slate-400">
-          Densified statistical cells. Empty areas mean no calibrated fill-rate cell in the current dataset.
+          Smooth usage reference. Empty areas mean no fill-rate data.
         </div>
       </div>
     </div>

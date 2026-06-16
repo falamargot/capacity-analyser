@@ -90,21 +90,11 @@ const getReasonDetail = (vm: LeoConnectivityViewModel, row: LeoInfoRow): string 
     return 'Requires an RF link first';
   }
 
-  if (row.label === 'Fill Rate') {
-    if (!vm.capacity.hasFillRate || vm.capacity.fillRatePercent == null) {
-      return 'No calibrated cell';
-    }
-    const load = vm.capacity.loadCategory.toLowerCase();
-    const source = vm.capacity.statisticLabel
-      ? `${vm.capacity.statisticLabel} · ${vm.capacity.sourceLabel}`
-      : vm.capacity.sourceLabel;
-    return `${load} · ${source}`;
-  }
-
   if (row.label === 'Estimated Load') {
     if (vm.capacity.loadEstimatePercent == null) return 'No load estimate';
-    const load = vm.capacity.loadCategory.toLowerCase();
-    return `${load} · ${vm.capacity.sourceLabel}`;
+    return vm.capacity.hasFillRate
+      ? 'Calibrated by OneWeb usage reference'
+      : 'Heuristic estimate';
   }
 
   if (row.label === 'Regulatory') {
@@ -182,7 +172,7 @@ export const ConnectivityStatusCard = memo(({ viewModel }: { viewModel: LeoConne
   const classes = toneClasses[tone];
   const Icon = getStatusIcon(viewModel);
   const whyRows = [...viewModel.whyRows].sort((left, right) => {
-    const order = ['RF', 'Fill Rate', 'Estimated Load', 'SNP', 'Regulatory'];
+    const order = ['RF', 'Estimated Load', 'SNP', 'Regulatory'];
     return order.indexOf(left.label) - order.indexOf(right.label);
   });
 

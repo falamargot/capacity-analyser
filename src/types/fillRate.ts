@@ -1,10 +1,15 @@
-export type FillRateSource = 'operational' | 'calibrated' | 'heuristic';
+export type FillRateSource = 'operational' | 'reference' | 'calibratedDemo';
+
+export type EstimatedLoadSource = FillRateSource | 'heuristic';
 
 export type FillRateStatistic = 'P50_5MIN_AVG' | 'P95_5MIN_AVG';
+
+export type FillRatePercentile = 'P50' | 'P95';
 
 export type FillRateCellBoundsMode = 'statistical' | 'visual';
 
 export type FillRateDataMode =
+  | 'synthetic_reference_calibration'
   | 'recent_operational_calibration'
   | 'historical_statistical_average'
   | 'heuristic_estimate';
@@ -18,6 +23,8 @@ export interface FillRateCell {
   sizeDeg: number;
   /** Fill rate percentage in [0, 100]. */
   fillRatePct: number;
+  /** Percentile represented by this observed/reference cell. */
+  percentile: FillRatePercentile;
   /** Statistic represented by this cell. */
   statistic: FillRateStatistic;
   /** Aggregation window in minutes. */
@@ -52,10 +59,20 @@ export interface FillRateDataset {
 
 export interface FillRateLookupResult {
   fillRatePct: number;
+  percentile: FillRatePercentile;
   source: FillRateSource;
   dataMode: FillRateDataMode;
   statistic: FillRateStatistic;
   windowMinutes: number;
   sourceDate?: string;
   cell: FillRateCell;
+}
+
+export interface EstimatedLoadResult {
+  estimatedLoadPct: number;
+  baseEstimatedLoadPct: number;
+  fillRateInfluencePct?: number;
+  fillRateSource?: FillRateSource;
+  confidence: number;
+  method: 'heuristicOnly' | 'fillRateCalibrated';
 }

@@ -133,17 +133,17 @@ const getDecisionDriver = (reason: ServiceLayerReason): LeoDecisionDriver => {
   return 'ALL_OK';
 };
 
-const getDecisionDriverLabel = (driver: LeoDecisionDriver, hasFillRate: boolean): string => {
+const getDecisionDriverLabel = (driver: LeoDecisionDriver): string => {
   if (driver === 'REGULATORY') return 'REGULATORY RESTRICTION';
-  if (driver === 'CAPACITY') return hasFillRate ? 'FILL RATE LIMIT' : 'ESTIMATED LOAD LIMIT';
+  if (driver === 'CAPACITY') return 'ESTIMATED LOAD LIMIT';
   if (driver === 'NETWORK') return 'SNP PATH UNAVAILABLE';
   if (driver === 'RF') return 'RF COVERAGE UNAVAILABLE';
   return 'CONNECTED';
 };
 
-const formatReasonLabel = (driver: LeoDecisionDriver, hasFillRate: boolean): string => {
+const formatReasonLabel = (driver: LeoDecisionDriver): string => {
   if (driver === 'REGULATORY') return 'Regulatory restriction';
-  if (driver === 'CAPACITY') return hasFillRate ? 'Fill rate constraint' : 'Estimated load constraint';
+  if (driver === 'CAPACITY') return 'Estimated load constraint';
   if (driver === 'NETWORK') return 'SNP path unavailable';
   if (driver === 'RF') return 'RF coverage unavailable';
   return 'Connected';
@@ -204,7 +204,7 @@ export function deriveLeoConnectivityViewModel(
   const regulatoryStatus = regulatoryResult?.status ?? 'UNKNOWN';
   const loadCategory = getLoadCategory(beamLoadResult);
   const hasFillRate = hasStatisticalFillRate(beamLoadResult);
-  const decisionDriverLabel = getDecisionDriverLabel(decisionDriver, hasFillRate);
+  const decisionDriverLabel = getDecisionDriverLabel(decisionDriver);
   const provenance = getFillRateProvenanceDescriptor({
     source: beamLoadResult?.loadSource,
     dataMode: beamLoadResult?.loadDataMode,
@@ -235,29 +235,19 @@ export function deriveLeoConnectivityViewModel(
     isEstimated: true,
   };
 
-  const fillRateDetail = hasFillRate && beamLoadResult
-    ? [
-        provenance.detailLabel,
-        `equiv. users: ${capacity.estimatedUsersLabel}`,
-      ].filter(Boolean).join(' · ')
-    : 'No calibrated fill-rate cell at this position';
-
   const loadEstimateDetail = beamLoadResult
-    ? [
-        provenance.detailLabel,
-        beamLoadResult.densityZoneLabel,
-        `equiv. users: ${capacity.estimatedUsersLabel}`,
-      ].filter(Boolean).join(' · ')
+    ? hasFillRate
+      ? [
+          'Calibrated by OneWeb usage reference',
+          `base heuristic: ${beamLoadResult.baseEstimatedLoadPct}%`,
+          beamLoadResult.fillRateInfluencePct != null ? `reference cell: ${beamLoadResult.fillRateInfluencePct}%` : null,
+          `confidence: ${Math.round(beamLoadResult.confidence * 100)}%`,
+          `equiv. users: ${capacity.estimatedUsersLabel}`,
+        ].filter(Boolean).join(' · ')
+      : ['Heuristic estimate', `equiv. users: ${capacity.estimatedUsersLabel}`].join(' · ')
     : 'No load estimate available';
 
-  const fillRateRow: LeoInfoRow = {
-    label: 'Fill Rate',
-    value: hasFillRate ? buildCapacityValue(beamLoadResult, loadCategory) : 'Unavailable',
-    tone: hasFillRate ? toneFromCapacityLoad(loadCategory) : 'neutral',
-    detail: fillRateDetail,
-  };
-
-  const estimatedLoadRow: LeoInfoRow | null = !hasFillRate && beamLoadResult
+  const estimatedLoadRow: LeoInfoRow | null = beamLoadResult
     ? {
         label: 'Estimated Load',
         value: buildCapacityValue(beamLoadResult, loadCategory),
@@ -286,7 +276,12 @@ export function deriveLeoConnectivityViewModel(
           : 'SNP path depends on an RF link first',
     },
     capacity: {
-      ...(estimatedLoadRow ?? fillRateRow),
+      ...(estimatedLoadRow ?? {
+        label: 'Estimated Load',
+        value: 'Unknown',
+        tone: 'neutral' as const,
+        detail: 'No load estimate available',
+      }),
     },
     regulatory: {
       label: 'Regulatory',
@@ -299,7 +294,6 @@ export function deriveLeoConnectivityViewModel(
 
   const whyRows: LeoInfoRow[] = [
     reasons.rf,
-    fillRateRow,
     ...(estimatedLoadRow ? [estimatedLoadRow] : []),
     reasons.network,
     reasons.regulatory,
@@ -342,18 +336,10 @@ export function deriveLeoConnectivityViewModel(
       tone: toneFromStatus(serviceStatus),
     },
     {
-      label: 'Fill Rate',
-      value: capacity.fillRatePercent != null ? `${capacity.fillRatePercent}%` : 'Unavailable',
-      tone: capacity.fillRatePercent != null ? toneFromCapacityLoad(capacity.loadCategory) : 'neutral',
-      detail: capacity.fillRatePercent != null
-        ? capacity.statisticLabel ?? capacity.sourceLabel
-        : 'No calibrated statistical cell',
-    },
-    {
       label: 'Estimated Load',
       value: capacity.loadEstimatePercent != null ? `${capacity.loadEstimatePercent}%` : 'Unknown',
       tone: toneFromCapacityLoad(capacity.loadCategory),
-      detail: capacity.sourceLabel,
+      detail: hasFillRate ? 'Calibrated by OneWeb usage reference' : 'Heuristic estimate',
     },
     {
       label: 'Equivalent Users',
@@ -369,7 +355,11 @@ export function deriveLeoConnectivityViewModel(
   ];
 
   const renderingHints: LeoConnectivityViewModel['renderingHints'] = {
-    beamVisualState: serviceStatus === 'BLOCKED' ? 'BLOCKED' : loadCategory,
+    beamVisualState: serviceStatus === 'BLOCKED'
+      ? 'BLOCKED'
+      : loadCategory === 'UNKNOWN'
+        ? 'LOW'
+        : loadCategory,
     pathVisualState: serviceStatus === 'BLOCKED'
       ? 'blocked'
       : serviceStatus === 'DEGRADED'
@@ -398,7 +388,7 @@ export function deriveLeoConnectivityViewModel(
       : serviceStatus === 'DEGRADED'
         ? 'SERVICE DEGRADED'
         : 'SERVICE BLOCKED',
-    primaryReasonLabel: formatReasonLabel(decisionDriver, hasFillRate),
+    primaryReasonLabel: formatReasonLabel(decisionDriver),
     reasonSummary: serviceLayerResult?.reason ?? 'No valid LEO service for this location.',
     locationLabel,
     whyItems: whyRows.map((row) => `${row.label}: ${row.value}`),
