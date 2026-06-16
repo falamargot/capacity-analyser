@@ -1,7 +1,7 @@
 /**
  * FillRateLayer — OneWeb reference LEO fill-rate heatmap.
  *
- * Renders a gaussian-blended canvas as a single full-globe rectangle entity
+ * Renders the statistical cells into a canvas as a single full-globe rectangle entity
  * with transparent: true so Cesium composites it in the translucent pass,
  * allowing the terrain/satellite imagery to show through empty areas.
  */
@@ -9,7 +9,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useCesium } from 'resium';
 import { Color, CustomDataSource, ImageMaterialProperty, Rectangle } from 'cesium';
-import { loadFillRateDataset } from '../../services/fillRateService';
+import { getFillRateCellBounds, loadFillRateDataset } from '../../services/fillRateService';
 import type { FillRateCell, FillRateDatasetMetadata } from '../../types/fillRate';
 import { getFillRateProvenanceDescriptor } from '../../utils/fillRateProvenance';
 import { BASE_OVERLAY_LAYER_HEIGHT_M } from './layerHeights';
@@ -21,8 +21,7 @@ const CANVAS_W = 2048;
 const CANVAS_H = 1024;
 const DEG_TO_PX = CANVAS_W / 360;
 
-// 2.5° gaussian radius → overlaps ~3 grid steps (1.75°) for smooth blending.
-const BLOB_RADIUS_PX = 2.5 * DEG_TO_PX;
+const CELL_ALPHA_SCALE = 0.78;
 
 // ─── Color scale ───────────────────────────────────────────────────────────
 
@@ -68,7 +67,32 @@ export function fillRateGradientCss(): string {
     ).join(', ') + ')';
 }
 
-// ─── Canvas heatmap ────────────────────────────────────────────────────────
+// ─── Canvas cell raster ────────────────────────────────────────────────────
+
+function lngToCanvasX(lng: number): number {
+  return (lng + 180) * DEG_TO_PX;
+}
+
+function latToCanvasY(lat: number): number {
+  return (90 - lat) * DEG_TO_PX;
+}
+
+function drawCellRect(
+  ctx: CanvasRenderingContext2D,
+  west: number,
+  south: number,
+  east: number,
+  north: number,
+  fillStyle: string,
+): void {
+  const x = lngToCanvasX(west);
+  const y = latToCanvasY(north);
+  const width = Math.max(1, (east - west) * DEG_TO_PX);
+  const height = Math.max(1, (north - south) * DEG_TO_PX);
+
+  ctx.fillStyle = fillStyle;
+  ctx.fillRect(x, y, width, height);
+}
 
 function buildFillRateCanvas(cells: readonly FillRateCell[]): HTMLCanvasElement {
   const canvas = document.createElement('canvas');
@@ -77,24 +101,20 @@ function buildFillRateCanvas(cells: readonly FillRateCell[]): HTMLCanvasElement 
   const ctx = canvas.getContext('2d')!;
 
   for (const cell of cells) {
-    const cx = (cell.lng + 180) * DEG_TO_PX;
-    const cy = (90 - cell.lat) * DEG_TO_PX; // Y=0 → north (Cesium flips via UNPACK_FLIP_Y)
-
     const color = fillRateToColor(cell.fillRatePct);
     const r = Math.round(color.red   * 255);
     const g = Math.round(color.green * 255);
     const b = Math.round(color.blue  * 255);
+    const a = Math.max(0.46, Math.min(0.72, color.alpha * CELL_ALPHA_SCALE));
+    const fillStyle = `rgba(${r},${g},${b},${a})`;
+    const { west, south, east, north } = getFillRateCellBounds(cell, 'visual');
 
-    const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, BLOB_RADIUS_PX);
-    grad.addColorStop(0,    `rgba(${r},${g},${b},0.28)`);
-    grad.addColorStop(0.40, `rgba(${r},${g},${b},0.20)`);
-    grad.addColorStop(0.70, `rgba(${r},${g},${b},0.09)`);
-    grad.addColorStop(1,    `rgba(${r},${g},${b},0)`);
-
-    ctx.fillStyle = grad;
-    ctx.beginPath();
-    ctx.arc(cx, cy, BLOB_RADIUS_PX, 0, Math.PI * 2);
-    ctx.fill();
+    if (west <= east) {
+      drawCellRect(ctx, west, south, east, north, fillStyle);
+    } else {
+      drawCellRect(ctx, west, south, 180, north, fillStyle);
+      drawCellRect(ctx, -180, south, east, north, fillStyle);
+    }
   }
 
   return canvas;

@@ -8,8 +8,8 @@ const OUT_PATH = resolve(ROOT, 'public/data/fill-rate/oneweb-leo-fillrate-grid.j
 
 const SOURCE_DATE = '2026-06';
 const GENERATED_AT = '2026-06-12';
-const STEP_DEG = 1.75;
-const CELL_SIZE_DEG = 0.85;
+const STEP_DEG = 1.25;
+const CELL_SIZE_DEG = 1.05;
 const DATA_MODE = 'synthetic_reference_calibration';
 
 const ellipses = [
@@ -406,6 +406,19 @@ function generateCells() {
     }
   }
 
+  for (let lat = -43.75; lat <= 64.5; lat += STEP_DEG) {
+    for (let lng = -169.5; lng <= 179.5; lng += STEP_DEG) {
+      const statisticalCell = evaluateCell(lat, lng);
+      if (!statisticalCell) continue;
+      mergeCell({
+        ...statisticalCell,
+        _score: 1,
+        _corridorScore: 1,
+        _patchGate: 1,
+      });
+    }
+  }
+
   for (let lat = -53.6; lat <= 72; lat += STEP_DEG) {
     for (let lng = -179.2; lng <= 179.2; lng += STEP_DEG) {
       const referenceCell = evaluateVisualReferenceCell(lat, lng);
@@ -454,7 +467,7 @@ function generateCells() {
 
 const dataset = {
   metadata: {
-    id: 'oneweb-leo-fillrate-grid-synthetic-reference-v4',
+    id: 'oneweb-leo-fillrate-grid-densified-reference-v5',
     label: 'OneWeb LEO fill rate grid',
     constellation: 'ONEWEB_LEO',
     statistic: 'P95_5MIN_AVG',
@@ -463,7 +476,7 @@ const dataset = {
     dataMode: DATA_MODE,
     sourceDate: SOURCE_DATE,
     generatedAt: GENERATED_AT,
-    description: 'Sparse calibrated demo grid derived from the provided visual reference only. Not operational telemetry; empty areas intentionally mean no demo fill-rate cell.',
+    description: 'Densified calibrated demo grid derived from the visual reference and regional statistical corridors. Not operational telemetry; empty areas intentionally mean no demo fill-rate cell.',
   },
   cells: generateCells(),
 };
