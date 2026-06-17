@@ -2,6 +2,20 @@ import { describe, expect, it } from 'vitest';
 import { getFillRateProvenanceDescriptor } from '../fillRateProvenance';
 
 describe('getFillRateProvenanceDescriptor', () => {
+  it('describes the calibrated Network Load model as the product metric', () => {
+    const networkLoad = getFillRateProvenanceDescriptor({
+      source: 'calibratedDemo',
+      dataMode: 'calibrated_network_load_model',
+      statistic: 'P95_5MIN_AVG',
+      windowMinutes: 5,
+      sourceDate: '2026-06',
+    });
+
+    expect(networkLoad.badgeLabel).toBe('Calibrated model');
+    expect(networkLoad.shortLabel).toBe('Network Load model');
+    expect(networkLoad.detailLabel).toBe('P95 5-min avg · OneWeb-calibrated model · 2026-06');
+  });
+
   it('describes synthetic visual-reference calibration without implying raw operational data', () => {
     const calibrated = getFillRateProvenanceDescriptor({
       source: 'calibratedDemo',

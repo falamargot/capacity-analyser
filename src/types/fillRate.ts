@@ -9,6 +9,7 @@ export type FillRatePercentile = 'P50' | 'P95';
 export type FillRateCellBoundsMode = 'statistical' | 'visual';
 
 export type FillRateDataMode =
+  | 'calibrated_network_load_model'
   | 'synthetic_reference_calibration'
   | 'recent_operational_calibration'
   | 'historical_statistical_average'
@@ -74,5 +75,5 @@ export interface EstimatedLoadResult {
   fillRateInfluencePct?: number;
   fillRateSource?: FillRateSource;
   confidence: number;
-  method: 'heuristicOnly' | 'fillRateCalibrated';
+  method: 'heuristicOnly' | 'fillRateCalibrated' | 'networkLoadModel';
 }

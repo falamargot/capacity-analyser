@@ -238,10 +238,8 @@ export function deriveLeoConnectivityViewModel(
   const loadEstimateDetail = beamLoadResult
     ? hasFillRate
       ? [
-          'Calibrated by OneWeb usage reference',
-          `base heuristic: ${beamLoadResult.baseEstimatedLoadPct}%`,
-          beamLoadResult.fillRateInfluencePct != null ? `reference cell: ${beamLoadResult.fillRateInfluencePct}%` : null,
-          `confidence: ${Math.round(beamLoadResult.confidence * 100)}%`,
+          'OneWeb-calibrated Network Load model',
+          beamLoadResult.fillRateInfluencePct != null ? `network load: ${beamLoadResult.fillRateInfluencePct}%` : null,
           `equiv. users: ${capacity.estimatedUsersLabel}`,
         ].filter(Boolean).join(' · ')
       : ['Heuristic estimate', `equiv. users: ${capacity.estimatedUsersLabel}`].join(' · ')
@@ -339,7 +337,7 @@ export function deriveLeoConnectivityViewModel(
       label: 'Estimated Load',
       value: capacity.loadEstimatePercent != null ? `${capacity.loadEstimatePercent}%` : 'Unknown',
       tone: toneFromCapacityLoad(capacity.loadCategory),
-      detail: hasFillRate ? 'Calibrated by OneWeb usage reference' : 'Heuristic estimate',
+      detail: hasFillRate ? 'OneWeb-calibrated Network Load model' : 'Heuristic estimate',
     },
     {
       label: 'Equivalent Users',

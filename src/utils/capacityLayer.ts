@@ -1,14 +1,14 @@
 /**
- * Capacity Layer — Network fill-rate estimation
+ * Capacity Layer — Network Load estimation
  *
- * Estimates beam load using Network Fill Rate as the primary signal.
+ * Estimates beam load using Network Load as the primary signal.
  * No real subscriber data is used — all values are SIMULATED and labelled as such.
  *
  * Model (OneWeb Gen-1 operational context):
- *  - Fill Rate represents estimated or observed network resource utilization.
- *  - OneWeb reference map is used as a proxy for local network occupancy where available.
- *  - Where no reference cell exists, a global baseline fill rate is applied.
- *  - Performance = Theoretical Throughput × Capacity Availability (Fill Rate)
+ *  - Network Load represents estimated network resource utilization.
+ *  - OneWeb fill-rate reference cells calibrate the global Network Load surface.
+ *  - Where no model cell is available, a global baseline is applied as a fallback only.
+ *  - Performance = theoretical throughput × capacity availability implied by Network Load.
  *
  * Constants:
  *  - Terminal peak throughput: 200 Mbps (NOMINAL_TERMINAL_PEAK_MBPS) — theoretical throughput ceiling
@@ -46,8 +46,8 @@ export interface BeamLoadResult extends EstimatedLoadResult {
   beamCapacityMbps: number;
 
   /**
-   * Estimated throughput available to a single user given the simulated fill rate (Mbps).
-   * SIMULATED — derived from fill-rate-based load estimate, not real subscriber data.
+   * Estimated throughput available to a single user given the simulated Network Load (Mbps).
+   * SIMULATED — derived from network-load estimate, not real subscriber data.
    */
   estimatedUserThroughputMbps: number;
 
@@ -56,13 +56,13 @@ export interface BeamLoadResult extends EstimatedLoadResult {
 
   /**
    * Provenance of the load value.
-   * - heuristic: global network baseline (no reference cell available)
-   * - operational/reference/calibratedDemo: estimated load calibrated by a fill-rate cell
+   * - heuristic: global network baseline fallback
+   * - operational/reference/calibratedDemo: estimated load from the calibrated Network Load grid
    */
   loadSource: EstimatedLoadSource;
   loadDataMode: FillRateDataMode;
 
-  /** Fill-rate percentage when the load came from the statistical grid. */
+  /** Network Load percentage from the calibrated grid. */
   fillRatePct?: number;
   fillRateStatistic?: FillRateStatistic;
   fillRateWindowMinutes?: number;
@@ -84,7 +84,7 @@ const MAX_CONCURRENT_USERS = Math.round(TERMINAL_PEAK_MBPS / AVG_SESSION_THROUGH
 const LOAD_DEGRADED_THRESHOLD = 0.70;
 const LOAD_SATURATED_THRESHOLD = 0.95;
 
-// Global fill-rate baselines (network utilization, not population demand)
+// Global Network Load baselines (network utilization, not population demand)
 const BASELINE_FILL_RATE_LAND = 0.30;   // 30 % — global land occupancy baseline
 const BASELINE_FILL_RATE_OCEAN = 0.08;  // 8 % — sparse maritime terminal deployment
 const FILL_RATE_NOISE_AMPLITUDE = 0.10; // ± 10 % smooth per-location variation
@@ -155,7 +155,8 @@ function buildBeamLoadResult(args: {
   };
 }
 
-function confidenceForFillRateSource(source: FillRateSource): number {
+function confidenceForFillRateSource(source: FillRateSource, dataMode?: FillRateDataMode): number {
+  if (dataMode === 'calibrated_network_load_model') return 1;
   if (source === 'operational') return 0.8;
   return 0.5;
 }
@@ -163,10 +164,10 @@ function confidenceForFillRateSource(source: FillRateSource): number {
 // ─── Main estimation functions ─────────────────────────────────────────────
 
 /**
- * Estimate fill-rate-based beam load for the given position.
+ * Estimate fallback beam load for the given position.
  *
- * Uses a global baseline fill rate — not population density — as the fallback
- * when no OneWeb reference cell covers the location.
+ * Uses a global Network Load baseline — not population density — only when
+ * the calibrated Network Load grid is unavailable for the location.
  *
  * @param lat         WGS-84 latitude (degrees)
  * @param lng         WGS-84 longitude (degrees)
@@ -192,11 +193,11 @@ export function estimateBeamLoad(
 }
 
 /**
- * Estimate load using statistical fill-rate data as calibration when available.
+ * Estimate load from the calibrated Network Load grid when available.
  *
  * The returned shape remains BeamLoadResult for compatibility with the current
- * service-layer and throughput code. Fill-rate cells never replace the global
- * estimated-load model; they only blend with the heuristic baseline.
+ * service-layer and throughput code. The grid value is the primary occupancy
+ * metric; the heuristic baseline is retained only as a missing-data fallback.
  */
 export function estimateBeamLoadWithFillRate({
   lat,
@@ -217,10 +218,9 @@ export function estimateBeamLoadWithFillRate({
     return baseLoad;
   }
 
-  const confidence = confidenceForFillRateSource(fillRateResult.source);
+  const confidence = confidenceForFillRateSource(fillRateResult.source, fillRateResult.dataMode);
   const baseEstimatedLoadPct = baseLoad.beamLoadPercent;
-  const estimatedLoadPct =
-    baseEstimatedLoadPct * (1 - confidence) + fillRateResult.fillRatePct * confidence;
+  const estimatedLoadPct = fillRateResult.fillRatePct;
   const estimatedLoadFraction = Math.max(0, Math.min(1, estimatedLoadPct / 100));
   const estimatedActiveUsers = Math.round(estimatedLoadFraction * MAX_CONCURRENT_USERS);
 
@@ -231,6 +231,8 @@ export function estimateBeamLoadWithFillRate({
     loadSource: fillRateResult.source,
     fillRate: fillRateResult,
     confidence,
-    method: 'fillRateCalibrated',
+    method: fillRateResult.dataMode === 'calibrated_network_load_model'
+      ? 'networkLoadModel'
+      : 'fillRateCalibrated',
   });
 }

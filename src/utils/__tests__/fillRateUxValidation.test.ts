@@ -37,8 +37,8 @@ async function loadDataset() {
   return normalizeFillRateDataset(raw);
 }
 
-describe('fill-rate UX validation scenarios', () => {
-  it('separates site A calibrated Fill Rate from site B heuristic fallback', async () => {
+describe('Network Load UX validation scenarios', () => {
+  it('uses the global Network Load model for calibrated and inferred regions', async () => {
     const dataset = await loadDataset();
     const siteA = { lat: 54.4, lng: 0.8 };
     const siteB = { lat: 0, lng: -30 };
@@ -47,8 +47,9 @@ describe('fill-rate UX validation scenarios', () => {
     const siteBFillRate = lookupFillRateFromCells(dataset.cells, siteB.lat, siteB.lng, { boundsMode: 'visual' });
 
     expect(siteAFillRate).not.toBeNull();
-    expect(siteAFillRate?.dataMode).toBe('synthetic_reference_calibration');
-    expect(siteBFillRate).toBeNull();
+    expect(siteAFillRate?.dataMode).toBe('calibrated_network_load_model');
+    expect(siteBFillRate).not.toBeNull();
+    expect(siteBFillRate?.dataMode).toBe('calibrated_network_load_model');
 
     const siteABeamLoad = estimateBeamLoadWithFillRate({
       lat: siteA.lat,
@@ -85,11 +86,11 @@ describe('fill-rate UX validation scenarios', () => {
     expect(siteAVm.capacity.hasFillRate).toBe(true);
     expect(siteAVm.whyRows.some((row) => row.label === 'Fill Rate')).toBe(false);
     expect(siteAVm.whyRows.find((row) => row.label === 'Estimated Load')?.detail)
-      .toContain('Calibrated by OneWeb usage reference');
+      .toContain('OneWeb-calibrated Network Load model');
 
-    expect(siteBVm.capacity.hasFillRate).toBe(false);
+    expect(siteBVm.capacity.hasFillRate).toBe(true);
     expect(siteBVm.whyRows.some((row) => row.label === 'Fill Rate')).toBe(false);
     expect(siteBVm.whyRows.find((row) => row.label === 'Estimated Load')?.detail)
-      .toContain('Heuristic estimate');
+      .toContain('OneWeb-calibrated Network Load model');
   });
 });

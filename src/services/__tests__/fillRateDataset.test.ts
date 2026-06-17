@@ -78,34 +78,34 @@ function nearbyIndexedCells(
   return matches;
 }
 
-describe('OneWeb LEO fill-rate public dataset', () => {
-  it('ships the densified v5 synthetic reference grid', async () => {
+describe('OneWeb LEO Network Load public dataset', () => {
+  it('ships the global v6 calibrated Network Load grid', async () => {
     const dataset = await loadPublicDataset();
     const values = dataset.cells.map((cell) => cell.fillRatePct);
 
-    expect(dataset.metadata.id).toBe('oneweb-leo-fillrate-grid-densified-reference-v5');
+    expect(dataset.metadata.id).toBe('oneweb-leo-network-load-calibrated-v6');
+    expect(dataset.metadata.label).toBe('OneWeb LEO network load grid');
     expect(dataset.metadata.source).toBe('calibratedDemo');
-    expect(dataset.metadata.dataMode).toBe('synthetic_reference_calibration');
+    expect(dataset.metadata.dataMode).toBe('calibrated_network_load_model');
     expect(dataset.cells.every((cell) => cell.percentile === 'P95')).toBe(true);
-    expect(dataset.cells.length).toBeGreaterThanOrEqual(5000);
-    expect(dataset.cells.length).toBeLessThanOrEqual(6200);
+    expect(dataset.cells.length).toBeGreaterThanOrEqual(21000);
+    expect(dataset.cells.length).toBeLessThanOrEqual(23000);
     expect(Math.min(...values)).toBeGreaterThanOrEqual(0);
     expect(Math.max(...values)).toBeLessThanOrEqual(100);
-    expect(values.filter((value) => value >= 70).length / values.length).toBeLessThan(0.18);
+    expect(values.filter((value) => value >= 70).length / values.length).toBeLessThan(0.04);
   });
 
-  it('keeps sparse regional clusters in the main visual-reference areas', async () => {
+  it('keeps calibrated regional distribution while covering the globe', async () => {
     const dataset = await loadPublicDataset();
 
     const referenceRegions = [
       { name: 'North America', bounds: { south: 18, north: 55, west: -130, east: -65 }, minCells: 900 },
-      { name: 'Transatlantic', bounds: { south: 39, north: 50, west: -70, east: -8 }, minCells: 120 },
-      { name: 'Europe Mediterranean', bounds: { south: 32, north: 61, west: -10, east: 35 }, minCells: 850 },
-      { name: 'Middle East Gulf', bounds: { south: 16, north: 34, west: 35, east: 65 }, minCells: 150 },
-      { name: 'South America', bounds: { south: -45, north: 12, west: -82, east: -35 }, minCells: 420 },
-      { name: 'Africa', bounds: { south: -35, north: 16, west: -20, east: 50 }, minCells: 250 },
-      { name: 'South Asia SEA', bounds: { south: -10, north: 25, west: 72, east: 118 }, minCells: 500 },
-      { name: 'Australia NZ', bounds: { south: -43, north: -20, west: 112, east: 178 }, minCells: 240 },
+      { name: 'Europe Mediterranean', bounds: { south: 32, north: 61, west: -10, east: 35 }, minCells: 550 },
+      { name: 'Middle East Gulf', bounds: { south: 16, north: 34, west: 35, east: 65 }, minCells: 180 },
+      { name: 'South America', bounds: { south: -45, north: 12, west: -82, east: -35 }, minCells: 900 },
+      { name: 'Africa', bounds: { south: -35, north: 16, west: -20, east: 50 }, minCells: 1100 },
+      { name: 'South Asia SEA', bounds: { south: -10, north: 25, west: 72, east: 118 }, minCells: 550 },
+      { name: 'Australia NZ', bounds: { south: -43, north: -20, west: 112, east: 178 }, minCells: 450 },
     ];
 
     for (const region of referenceRegions) {
@@ -113,7 +113,13 @@ describe('OneWeb LEO fill-rate public dataset', () => {
     }
 
     const gulfCells = cellsInBox(dataset.cells, { south: 16, north: 34, west: 35, east: 65 });
+    const europeCells = cellsInBox(dataset.cells, { south: 32, north: 61, west: -10, east: 35 });
+    const remotePacific = cellsInBox(dataset.cells, { south: -25, north: 18, west: -170, east: -125 });
+
+    expect(averageFillRate(gulfCells)).toBeGreaterThan(65);
     expect(gulfCells.filter((cell) => cell.fillRatePct >= 70).length / gulfCells.length).toBeGreaterThan(0.45);
+    expect(averageFillRate(europeCells)).toBeGreaterThan(30);
+    expect(averageFillRate(remotePacific)).toBeLessThan(12);
   });
 
   it('forms contiguous statistical patches with rare isolated cells', async () => {
@@ -134,7 +140,7 @@ describe('OneWeb LEO fill-rate public dataset', () => {
     ));
     const averageDelta = neighborDeltas.reduce((sum, delta) => sum + delta, 0) / Math.max(1, neighborDeltas.length);
 
-    expect(averageDelta).toBeLessThan(14);
+    expect(averageDelta).toBeLessThan(12);
   });
 
   it('does not synthesize saturated Madagascar and Reunion hotspots', async () => {
@@ -145,21 +151,21 @@ describe('OneWeb LEO fill-rate public dataset', () => {
     expect([madagascar, reunion].every((cell) => !cell || cell.fillRatePct < 70)).toBe(true);
   });
 
-  it('keeps central Africa and remote oceans selective rather than globally completed', async () => {
+  it('keeps central Africa and remote oceans low unless calibrated continuity lifts them', async () => {
     const dataset = await loadPublicDataset();
     const centralAfrica = cellsInBox(dataset.cells, { south: -10, north: 15, west: 10, east: 32 });
     const openAtlantic = cellsInBox(dataset.cells, { south: -35, north: 20, west: -55, east: -20 });
     const indianOcean = cellsInBox(dataset.cells, { south: -35, north: 5, west: 55, east: 95 });
     const europe = cellsInBox(dataset.cells, { south: 32, north: 61, west: -10, east: 35 });
 
-    expect(centralAfrica.length).toBeLessThanOrEqual(30);
-    expect(openAtlantic.length).toBeLessThanOrEqual(140);
-    expect(indianOcean.length).toBeLessThanOrEqual(35);
-    expect(averageFillRate(europe)).toBeLessThan(58);
-    expect(europe.filter((cell) => cell.fillRatePct >= 70).length / europe.length).toBeLessThan(0.26);
+    expect(averageFillRate(centralAfrica)).toBeLessThan(26);
+    expect(averageFillRate(openAtlantic)).toBeLessThan(32);
+    expect(averageFillRate(indianOcean)).toBeLessThan(26);
+    expect(averageFillRate(europe)).toBeLessThan(42);
+    expect(europe.filter((cell) => cell.fillRatePct >= 70).length / europe.length).toBeLessThan(0.06);
   });
 
-  it('does not force unsupported Indian Ocean trunk cells', async () => {
+  it('estimates unsupported Indian Ocean trunk points as low-load model cells', async () => {
     const dataset = await loadPublicDataset();
     const unsupportedOpenOceanPoints = [
       [2, 55],
@@ -170,7 +176,9 @@ describe('OneWeb LEO fill-rate public dataset', () => {
     ];
 
     for (const [lat, lng] of unsupportedOpenOceanPoints) {
-      expect(findFillRateCell(dataset.cells, lat, lng, { boundsMode: 'statistical' })).toBeNull();
+      const cell = findFillRateCell(dataset.cells, lat, lng, { boundsMode: 'statistical' });
+      expect(cell).not.toBeNull();
+      expect(cell?.fillRatePct).toBeLessThanOrEqual(40);
     }
   });
 

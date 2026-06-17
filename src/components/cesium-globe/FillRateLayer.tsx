@@ -1,7 +1,9 @@
 /**
- * FillRateLayer — OneWeb reference LEO fill-rate heatmap.
+ * FillRateLayer — OneWeb-calibrated LEO Network Load heatmap.
  *
- * Renders the statistical cells into a canvas as a single full-globe rectangle entity
+ * Renders the statistical cells into hemisphere canvases rather than one
+ * antimeridian-spanning texture. This avoids a visible Cesium texture seam at
+ * ±180° while preserving a single logical Network Load layer.
  * with transparent: true so Cesium composites it in the translucent pass,
  * allowing the terrain/satellite imagery to show through empty areas.
  */
@@ -14,14 +16,15 @@ import type { FillRateCell, FillRateDatasetMetadata } from '../../types/fillRate
 import { getFillRateProvenanceDescriptor } from '../../utils/fillRateProvenance';
 import { BASE_OVERLAY_LAYER_HEIGHT_M } from './layerHeights';
 
-const DS_NAME = 'oneweb-fill-rate-heatmap';
+const DS_NAME = 'oneweb-network-load-heatmap';
 
-// Equirectangular canvas — W/360 == H/180 → uniform deg/px in both axes.
+// Equirectangular canvas — uniform deg/px in both axes.
 const CANVAS_W = 2048;
 const CANVAS_H = 1024;
 const DEG_TO_PX = CANVAS_W / 360;
 
-const CELL_ALPHA_SCALE = 0.78;
+const MIN_CELL_ALPHA = 0.12;
+const MAX_CELL_ALPHA = 0.66;
 
 // ─── Color scale ───────────────────────────────────────────────────────────
 
@@ -69,8 +72,13 @@ export function fillRateGradientCss(): string {
 
 // ─── Canvas cell raster ────────────────────────────────────────────────────
 
-function lngToCanvasX(lng: number): number {
-  return (lng + 180) * DEG_TO_PX;
+interface CanvasSection {
+  west: number;
+  east: number;
+}
+
+function lngToCanvasX(lng: number, sectionWest: number): number {
+  return (lng - sectionWest) * DEG_TO_PX;
 }
 
 function latToCanvasY(lat: number): number {
@@ -84,8 +92,9 @@ function drawCellRect(
   east: number,
   north: number,
   fillStyle: string,
+  sectionWest: number,
 ): void {
-  const x = lngToCanvasX(west);
+  const x = lngToCanvasX(west, sectionWest);
   const y = latToCanvasY(north);
   const width = Math.max(1, (east - west) * DEG_TO_PX);
   const height = Math.max(1, (north - south) * DEG_TO_PX);
@@ -94,9 +103,27 @@ function drawCellRect(
   ctx.fillRect(x, y, width, height);
 }
 
-function buildFillRateCanvas(cells: readonly FillRateCell[]): HTMLCanvasElement {
+function drawCellInterval(
+  ctx: CanvasRenderingContext2D,
+  intervalWest: number,
+  intervalEast: number,
+  south: number,
+  north: number,
+  fillStyle: string,
+  section: CanvasSection,
+): void {
+  const west = Math.max(intervalWest, section.west);
+  const east = Math.min(intervalEast, section.east);
+  if (east <= west) return;
+  drawCellRect(ctx, west, south, east, north, fillStyle, section.west);
+}
+
+function buildFillRateCanvas(
+  cells: readonly FillRateCell[],
+  section: CanvasSection,
+): HTMLCanvasElement {
   const canvas = document.createElement('canvas');
-  canvas.width  = CANVAS_W;
+  canvas.width  = Math.round((section.east - section.west) * DEG_TO_PX);
   canvas.height = CANVAS_H;
   const ctx = canvas.getContext('2d')!;
 
@@ -105,15 +132,16 @@ function buildFillRateCanvas(cells: readonly FillRateCell[]): HTMLCanvasElement 
     const r = Math.round(color.red   * 255);
     const g = Math.round(color.green * 255);
     const b = Math.round(color.blue  * 255);
-    const a = Math.max(0.46, Math.min(0.72, color.alpha * CELL_ALPHA_SCALE));
+    const loadT = Math.max(0, Math.min(1, cell.fillRatePct / 100));
+    const a = lerp(MIN_CELL_ALPHA, MAX_CELL_ALPHA, loadT);
     const fillStyle = `rgba(${r},${g},${b},${a})`;
     const { west, south, east, north } = getFillRateCellBounds(cell, 'visual');
 
     if (west <= east) {
-      drawCellRect(ctx, west, south, east, north, fillStyle);
+      drawCellInterval(ctx, west, east, south, north, fillStyle, section);
     } else {
-      drawCellRect(ctx, west, south, 180, north, fillStyle);
-      drawCellRect(ctx, -180, south, east, north, fillStyle);
+      drawCellInterval(ctx, west, 180, south, north, fillStyle, section);
+      drawCellInterval(ctx, -180, east, south, north, fillStyle, section);
     }
   }
 
@@ -135,19 +163,21 @@ async function getOrCreateDataSource(viewer: ViewerLike): Promise<CustomDataSour
 
   const promise = (async () => {
     const dataset = await loadFillRateDataset();
-    const canvas  = buildFillRateCanvas(dataset.cells);
-
     const ds = new CustomDataSource(DS_NAME);
-    ds.entities.add({
-      rectangle: {
-        coordinates: Rectangle.fromDegrees(-180, -90, 180, 90),
-        // transparent: true → Cesium renders this in the translucent pass so
-        // alpha=0 canvas pixels composite over the terrain instead of showing black.
-        material: new ImageMaterialProperty({ image: canvas, transparent: true }),
-        outline: false,
-        height: BASE_OVERLAY_LAYER_HEIGHT_M,
-      },
-    });
+
+    for (const section of [{ west: -180, east: 0 }, { west: 0, east: 180 }]) {
+      const canvas = buildFillRateCanvas(dataset.cells, section);
+      ds.entities.add({
+        rectangle: {
+          coordinates: Rectangle.fromDegrees(section.west, -90, section.east, 90),
+          // transparent: true → Cesium renders this in the translucent pass so
+          // alpha=0 canvas pixels composite over the terrain instead of showing black.
+          material: new ImageMaterialProperty({ image: canvas, transparent: true }),
+          outline: false,
+          height: BASE_OVERLAY_LAYER_HEIGHT_M,
+        },
+      });
+    }
 
     ds.show = false;
     return viewer.dataSources.add(ds);
@@ -238,10 +268,10 @@ export const FillRateLegend: React.FC<FillRateLegendProps> = ({ show, isPhone })
         <div className="flex items-center justify-between gap-3">
           <div>
             <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">
-              OneWeb Fill Rate (%)
+              Network Load (%)
             </div>
             <div className="mt-0.5 text-[11px] text-slate-500 dark:text-slate-400">
-              P95 · 5-min average · reference usage layer
+              OneWeb-calibrated occupancy model
             </div>
           </div>
           <div className="rounded-full border border-sky-200/80 bg-sky-50/80 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-sky-700 dark:border-sky-500/20 dark:bg-sky-500/10 dark:text-sky-200">
@@ -276,7 +306,7 @@ export const FillRateLegend: React.FC<FillRateLegendProps> = ({ show, isPhone })
         </div>
 
         <div className="mt-3 rounded-2xl border border-white/55 bg-white/60 px-3 py-2 text-[11px] leading-relaxed text-slate-500 shadow-[inset_0_1px_0_rgba(255,255,255,0.7)] dark:border-slate-700/80 dark:bg-slate-950/30 dark:text-slate-400">
-          Smooth usage reference. Empty areas mean no fill-rate data.
+          Global network occupancy estimate calibrated from OneWeb reference cells.
         </div>
       </div>
     </div>

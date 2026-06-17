@@ -223,7 +223,7 @@ describe('estimateBeamLoadWithFillRate — fill-rate calibration', () => {
     fillRatePct: 76,
     percentile: 'P95',
     source: 'calibratedDemo',
-    dataMode: 'recent_operational_calibration',
+    dataMode: 'calibrated_network_load_model',
     statistic: 'P95_5MIN_AVG',
     windowMinutes: 5,
     sourceDate: '2026-06',
@@ -237,7 +237,7 @@ describe('estimateBeamLoadWithFillRate — fill-rate calibration', () => {
       windowMinutes: 5,
       sampleCount: 240,
       source: 'calibratedDemo',
-      dataMode: 'recent_operational_calibration',
+      dataMode: 'calibrated_network_load_model',
       sourceDate: '2026-06',
     },
   };
@@ -262,7 +262,7 @@ describe('estimateBeamLoadWithFillRate — fill-rate calibration', () => {
     expect(result.fillRateInfluencePct).toBeUndefined();
   });
 
-  it('calibrates the heuristic estimated load when a fill-rate cell is present', () => {
+  it('uses the Network Load model directly when a model cell is present', () => {
     const base = estimateBeamLoad(48.8, 2.3, false, 'FR');
     const result = estimateBeamLoadWithFillRate({
       lat: 48.8,
@@ -272,15 +272,14 @@ describe('estimateBeamLoadWithFillRate — fill-rate calibration', () => {
       fillRateResult,
     });
 
-    const expectedPct = Math.min(100, Math.round(base.beamLoadPercent * 0.5 + 76 * 0.5));
-    expect(result.beamLoadPercent).toBe(expectedPct);
-    expect(result.estimatedLoadPct).toBe(expectedPct);
+    expect(result.beamLoadPercent).toBe(76);
+    expect(result.estimatedLoadPct).toBe(76);
     expect(result.baseEstimatedLoadPct).toBe(base.beamLoadPercent);
     expect(result.fillRateInfluencePct).toBe(76);
-    expect(result.confidence).toBe(0.5);
-    expect(result.method).toBe('fillRateCalibrated');
+    expect(result.confidence).toBe(1);
+    expect(result.method).toBe('networkLoadModel');
     expect(result.loadSource).toBe('calibratedDemo');
-    expect(result.loadDataMode).toBe('recent_operational_calibration');
+    expect(result.loadDataMode).toBe('calibrated_network_load_model');
     expect(result.fillRatePct).toBe(76);
     expect(result.fillRateStatistic).toBe('P95_5MIN_AVG');
     expect(result.fillRateWindowMinutes).toBe(5);

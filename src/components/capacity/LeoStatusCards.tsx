@@ -93,7 +93,7 @@ const getReasonDetail = (vm: LeoConnectivityViewModel, row: LeoInfoRow): string 
   if (row.label === 'Estimated Load') {
     if (vm.capacity.loadEstimatePercent == null) return 'No load estimate';
     return vm.capacity.hasFillRate
-      ? 'Calibrated by OneWeb usage reference'
+      ? 'OneWeb-calibrated Network Load model'
       : 'Heuristic estimate';
   }
 

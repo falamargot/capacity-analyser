@@ -2346,7 +2346,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                     <RegulatoryLayer visible={!commercialMode && effectiveCountryOverlayMode === 'regulatory'} />
                     <FiveGSpectrumLayer visible={!commercialMode && effectiveCountryOverlayMode === '5g-spectrum'} />
 
-                    {/* Fill Rate Layer */}
+                    {/* Network Load Layer */}
                     <FillRateLayer
                         visible={effectiveShowFillRateLayer}
                     />

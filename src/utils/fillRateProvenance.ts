@@ -54,6 +54,15 @@ export function getFillRateProvenanceDescriptor({
     };
   }
 
+  if (dataMode === 'calibrated_network_load_model') {
+    return {
+      badgeLabel: 'Calibrated model',
+      shortLabel: 'Network Load model',
+      detailLabel: `${statisticLabel ?? 'Network Load'} · OneWeb-calibrated model${period}`,
+      statisticLabel,
+    };
+  }
+
   if (dataMode === 'synthetic_reference_calibration') {
     return {
       badgeLabel: 'Calibrated demo',

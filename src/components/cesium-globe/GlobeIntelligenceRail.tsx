@@ -337,11 +337,11 @@ const GlobeIntelligenceRail: React.FC<GlobeIntelligenceRailProps> = ({
                     />
                     <RailButton
                         icon={<BarChart2 className="h-4 w-4" />}
-                        label="FILL"
+                        label="LOAD"
                         active={showFillRateLayer && fillRateLayerAvailable}
                         disabled={!fillRateLayerAvailable}
                         onClick={onToggleFillRateLayer}
-                        title={fillRateLayerAvailable ? 'Fill rate statistics' : 'Fill rate statistics are available in LEO or ALL scope only'}
+                        title={fillRateLayerAvailable ? 'Network Load model' : 'Network Load is available in LEO or ALL scope only'}
                         accentColor="bg-amber-50 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300"
                     />
                     <RailButton

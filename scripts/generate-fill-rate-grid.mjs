@@ -8,9 +8,11 @@ const OUT_PATH = resolve(ROOT, 'public/data/fill-rate/oneweb-leo-fillrate-grid.j
 
 const SOURCE_DATE = '2026-06';
 const GENERATED_AT = '2026-06-12';
-const STEP_DEG = 1.25;
-const CELL_SIZE_DEG = 1.05;
-const DATA_MODE = 'synthetic_reference_calibration';
+const MODEL_STEP_DEG = 1.75;
+const MODEL_CELL_SIZE_DEG = 1.85;
+const CALIBRATION_STEP_DEG = 1.75;
+const CALIBRATION_CELL_SIZE_DEG = 0.85;
+const DATA_MODE = 'calibrated_network_load_model';
 
 const ellipses = [
   { name: 'north-america-west', lat: 42, lng: -121, latRadius: 15, lngRadius: 8, load: 54, weight: 1.0 },
@@ -259,6 +261,12 @@ function cellKey(cell) {
   return `${cell.lat.toFixed(2)}:${cell.lng.toFixed(2)}`;
 }
 
+function distanceDeg(left, right) {
+  const dLat = right.lat - left.lat;
+  const dLng = normalizeLng(right.lng - left.lng) * Math.cos((left.lat * Math.PI) / 180);
+  return Math.hypot(dLat, dLng);
+}
+
 function isCentralAfrica(lat, lng) {
   return lat >= -10 && lat <= 16 && lng >= 8 && lng <= 32;
 }
@@ -299,7 +307,7 @@ function evaluateCell(lat, lng) {
   return {
     lat: round(lat),
     lng: round(normalizeLng(lng)),
-    sizeDeg: CELL_SIZE_DEG,
+    sizeDeg: MODEL_CELL_SIZE_DEG,
     fillRatePct,
     percentile: 'P95',
     statistic: 'P95_5MIN_AVG',
@@ -356,7 +364,7 @@ function evaluateVisualReferenceCell(lat, lng) {
   return {
     lat: round(lat),
     lng: round(normalizeLng(lng)),
-    sizeDeg: CELL_SIZE_DEG,
+    sizeDeg: CALIBRATION_CELL_SIZE_DEG,
     fillRatePct,
     percentile: 'P95',
     statistic: 'P95_5MIN_AVG',
@@ -372,7 +380,7 @@ function evaluateVisualReferenceCell(lat, lng) {
 }
 
 function stripInternalCellFields(cell) {
-  const { _score, _corridorScore, _patchGate, _anchor, ...publicCell } = cell;
+  const { _score, _corridorScore, _patchGate, _anchor, _calibrationAnchor, ...publicCell } = cell;
   return publicCell;
 }
 
@@ -385,7 +393,175 @@ function countNearbyCompanions(cell, cells, radiusDeg) {
   }).length;
 }
 
-function generateCells() {
+function referencePriorAt(lat, lng) {
+  const influences = [];
+  let corridorScore = 0;
+  let fieldScore = 0;
+
+  for (const field of visualReferenceFields) {
+    const influence = ellipseInfluence(field, lat, lng);
+    if (influence > 0.012) {
+      fieldScore += influence;
+      influences.push({ influence, load: field.load });
+    }
+  }
+
+  for (const corridor of visualReferenceCorridors) {
+    const influence = corridorInfluence(corridor, lat, lng);
+    if (influence > 0.012) {
+      corridorScore += influence;
+      influences.push({ influence, load: corridor.load });
+    }
+  }
+
+  const score = influences.reduce((sum, item) => sum + item.influence, 0);
+  if (score <= 0) return null;
+
+  const weightedLoad = influences.reduce((sum, item) => sum + item.influence * item.load, 0) / score;
+  const regionAdjustment = isCentralAfrica(lat, lng)
+    ? -8
+    : lat >= 35 && lat <= 62 && lng >= -12 && lng <= 35
+      ? -5
+      : 0;
+  const load = clamp(
+    weightedLoad + visualReferenceHotspotDelta(lat, lng) + regionAdjustment,
+    5,
+    98,
+  );
+
+  return {
+    load,
+    support: clamp(0.18 + fieldScore * 0.24 + corridorScore * 0.62, 0, 0.88),
+    corridorScore,
+    fieldScore,
+  };
+}
+
+function regionalPriorAt(lat, lng) {
+  const influences = [];
+
+  for (const field of ellipses) {
+    const influence = ellipseInfluence(field, lat, lng);
+    if (influence > 0.018) influences.push({ influence, load: field.load });
+  }
+
+  for (const corridor of corridors) {
+    const influence = corridorInfluence(corridor, lat, lng);
+    if (influence > 0.018) influences.push({ influence, load: corridor.load });
+  }
+
+  const score = influences.reduce((sum, item) => sum + item.influence, 0);
+  if (score <= 0) return null;
+
+  const weightedLoad = influences.reduce((sum, item) => sum + item.influence * item.load, 0) / score;
+  return {
+    load: clamp(weightedLoad + hotspotDelta(lat, lng), 5, 98),
+    support: clamp(score * 0.24, 0, 0.44),
+  };
+}
+
+function fallbackNetworkLoadPct(lat, lng) {
+  const remoteOcean = isRemoteOpenOcean(lat, lng);
+  const centralAfrica = isCentralAfrica(lat, lng);
+  const polar = Math.abs(lat) > 68;
+  const baseline = remoteOcean
+    ? 7
+    : centralAfrica
+      ? 16
+      : polar
+        ? 14
+        : 22;
+  const variation = (smoothValueNoise(lat, lng, 18, 83) - 0.5) * 8;
+  return clamp(baseline + variation, 3, 34);
+}
+
+function interpolateFromCalibration(lat, lng, calibrationCells, priorSupport) {
+  let weightedLoad = 0;
+  let weightSum = 0;
+  let nearestDistance = Infinity;
+  let nearestLoad = null;
+
+  const continuityRadius = 9 + priorSupport * 16;
+  const maxDistance = 18 + priorSupport * 24;
+
+  for (const cell of calibrationCells) {
+    const distance = distanceDeg({ lat, lng }, cell);
+    if (distance < nearestDistance) {
+      nearestDistance = distance;
+      nearestLoad = cell.fillRatePct;
+    }
+
+    if (distance <= 0.65) {
+      return {
+        load: cell.fillRatePct,
+        confidence: 1,
+        nearestDistance: distance,
+      };
+    }
+
+    if (distance > maxDistance) continue;
+
+    const anchorStrength = 0.9 + (cell._corridorScore ?? 0) * 0.45 + (cell._score ?? 0) * 0.10;
+    const weight = Math.exp(-((distance / continuityRadius) ** 2))
+      * anchorStrength
+      / (Math.max(0.85, distance) ** 1.18);
+
+    weightedLoad += cell.fillRatePct * weight;
+    weightSum += weight;
+  }
+
+  if (weightSum <= 0 || nearestLoad == null) {
+    return {
+      load: null,
+      confidence: 0,
+      nearestDistance,
+    };
+  }
+
+  const confidence = clamp(weightSum * (2.4 + priorSupport * 1.8), 0, 0.96);
+  return {
+    load: weightedLoad / weightSum,
+    confidence,
+    nearestDistance,
+  };
+}
+
+function estimateNetworkLoadAt(lat, lng, calibrationCells) {
+  const referencePrior = referencePriorAt(lat, lng);
+  const regionalPrior = regionalPriorAt(lat, lng);
+  const priorSupport = Math.max(referencePrior?.support ?? 0, regionalPrior?.support ?? 0);
+  const calibration = interpolateFromCalibration(lat, lng, calibrationCells, priorSupport);
+  const fallback = fallbackNetworkLoadPct(lat, lng);
+
+  const referenceBlend = referencePrior
+    ? clamp(referencePrior.support, 0, 0.72)
+    : 0;
+  const regionalBlend = !referencePrior && regionalPrior
+    ? clamp(regionalPrior.support, 0, 0.38)
+    : 0;
+
+  let inferred = fallback;
+  if (regionalPrior) {
+    inferred = inferred * (1 - regionalBlend) + regionalPrior.load * regionalBlend;
+  }
+  if (referencePrior) {
+    inferred = inferred * (1 - referenceBlend) + referencePrior.load * referenceBlend;
+  }
+
+  const calibrationConfidence = calibration.confidence;
+  const localVariation = (smoothValueNoise(lat, lng, 8.5, 89) - 0.5) * 7 * (1 - calibrationConfidence);
+  const load = calibration.load == null
+    ? inferred + localVariation
+    : calibration.load * calibrationConfidence + inferred * (1 - calibrationConfidence) + localVariation;
+
+  return {
+    fillRatePct: Math.round(clamp(load, 3, 98)),
+    confidence: calibrationConfidence,
+    sampleCount: Math.round(clamp(70 + calibrationConfidence * 430 + priorSupport * 130, 50, 650)),
+  };
+}
+
+function buildCalibrationCells() {
   const cellsByKey = new Map();
 
   function mergeCell(cell) {
@@ -406,24 +582,14 @@ function generateCells() {
     }
   }
 
-  for (let lat = -43.75; lat <= 64.5; lat += STEP_DEG) {
-    for (let lng = -169.5; lng <= 179.5; lng += STEP_DEG) {
-      const statisticalCell = evaluateCell(lat, lng);
-      if (!statisticalCell) continue;
-      mergeCell({
-        ...statisticalCell,
-        _score: 1,
-        _corridorScore: 1,
-        _patchGate: 1,
-      });
-    }
-  }
-
-  for (let lat = -53.6; lat <= 72; lat += STEP_DEG) {
-    for (let lng = -179.2; lng <= 179.2; lng += STEP_DEG) {
+  for (let lat = -53.6; lat <= 72; lat += CALIBRATION_STEP_DEG) {
+    for (let lng = -179.2; lng <= 179.2; lng += CALIBRATION_STEP_DEG) {
       const referenceCell = evaluateVisualReferenceCell(lat, lng);
       if (!referenceCell) continue;
-      mergeCell(referenceCell);
+      mergeCell({
+        ...referenceCell,
+        _calibrationAnchor: true,
+      });
     }
   }
 
@@ -431,7 +597,7 @@ function generateCells() {
     mergeCell({
       lat: round(anchor.lat),
       lng: round(normalizeLng(anchor.lng)),
-      sizeDeg: CELL_SIZE_DEG,
+      sizeDeg: CALIBRATION_CELL_SIZE_DEG,
       fillRatePct: anchor.fillRatePct,
       percentile: 'P95',
       statistic: 'P95_5MIN_AVG',
@@ -444,6 +610,7 @@ function generateCells() {
       _corridorScore: 1,
       _patchGate: 1,
       _anchor: true,
+      _calibrationAnchor: true,
     });
   }
 
@@ -459,16 +626,48 @@ function generateCells() {
     return immediateNeighbors >= 1 || patchNeighbors >= 3 || corridorSupported || strongPatch;
   });
 
-  return pruned.map(stripInternalCellFields).sort((a, b) => {
+  return pruned.sort((a, b) => {
     if (a.lng !== b.lng) return a.lng - b.lng;
     return b.lat - a.lat;
   });
 }
 
+function generateCells() {
+  const calibrationCells = buildCalibrationCells();
+  const modelCells = [];
+
+  for (let lat = -89.125; lat <= 89.125; lat += MODEL_STEP_DEG) {
+    for (let lng = -179.125; lng <= 179.125; lng += MODEL_STEP_DEG) {
+      const estimate = estimateNetworkLoadAt(lat, lng, calibrationCells);
+      modelCells.push({
+        lat: round(lat),
+        lng: round(normalizeLng(lng)),
+        sizeDeg: MODEL_CELL_SIZE_DEG,
+        fillRatePct: estimate.fillRatePct,
+        percentile: 'P95',
+        statistic: 'P95_5MIN_AVG',
+        windowMinutes: 5,
+        sampleCount: estimate.sampleCount,
+        source: 'calibratedDemo',
+        dataMode: DATA_MODE,
+        sourceDate: SOURCE_DATE,
+      });
+    }
+  }
+
+  return [
+    ...modelCells,
+    ...calibrationCells.map((cell) => ({
+      ...stripInternalCellFields(cell),
+      dataMode: DATA_MODE,
+    })),
+  ];
+}
+
 const dataset = {
   metadata: {
-    id: 'oneweb-leo-fillrate-grid-densified-reference-v5',
-    label: 'OneWeb LEO fill rate grid',
+    id: 'oneweb-leo-network-load-calibrated-v6',
+    label: 'OneWeb LEO network load grid',
     constellation: 'ONEWEB_LEO',
     statistic: 'P95_5MIN_AVG',
     windowMinutes: 5,
@@ -476,11 +675,11 @@ const dataset = {
     dataMode: DATA_MODE,
     sourceDate: SOURCE_DATE,
     generatedAt: GENERATED_AT,
-    description: 'Densified calibrated demo grid derived from the visual reference and regional statistical corridors. Not operational telemetry; empty areas intentionally mean no demo fill-rate cell.',
+    description: 'Global Network Load model calibrated to converge toward the OneWeb fill-rate reference wherever calibration cells exist. Not operational telemetry.',
   },
   cells: generateCells(),
 };
 
 await mkdir(dirname(OUT_PATH), { recursive: true });
 await writeFile(OUT_PATH, `${JSON.stringify(dataset, null, 2)}\n`);
-console.log(`[fill-rate] wrote ${dataset.cells.length} cells to ${OUT_PATH}`);
+console.log(`[network-load] wrote ${dataset.cells.length} cells to ${OUT_PATH}`);

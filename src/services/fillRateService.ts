@@ -17,6 +17,7 @@ const VALID_SOURCES = new Set<FillRateSource>(['operational', 'reference', 'cali
 const VALID_STATISTICS = new Set<FillRateStatistic>(['P50_5MIN_AVG', 'P95_5MIN_AVG']);
 const VALID_PERCENTILES = new Set<FillRatePercentile>(['P50', 'P95']);
 const VALID_DATA_MODES = new Set<FillRateDataMode>([
+  'calibrated_network_load_model',
   'synthetic_reference_calibration',
   'recent_operational_calibration',
   'historical_statistical_average',
@@ -97,7 +98,7 @@ function normalizePercentile(value: unknown, statistic: FillRateStatistic): Fill
 
 function defaultDataModeForSource(source: FillRateSource): FillRateDataMode {
   if (source === 'operational') return 'recent_operational_calibration';
-  if (source === 'calibratedDemo') return 'synthetic_reference_calibration';
+  if (source === 'calibratedDemo') return 'calibrated_network_load_model';
   return 'historical_statistical_average';
 }
 
@@ -152,7 +153,7 @@ export function normalizeFillRateDataset(raw: unknown): FillRateDataset {
 
   const metadata: FillRateDataset['metadata'] = {
     id: getString(metadataRaw['id']) ?? 'oneweb-leo-fillrate-grid',
-    label: getString(metadataRaw['label']) ?? 'OneWeb LEO fill rate grid',
+    label: getString(metadataRaw['label']) ?? 'OneWeb LEO network load grid',
     constellation: 'ONEWEB_LEO',
     statistic,
     windowMinutes,
@@ -257,7 +258,7 @@ export async function loadFillRateDataset(
   const promise = fetch(url)
     .then((response) => {
       if (!response.ok) {
-        throw new Error(`Failed to load fill-rate dataset (${response.status})`);
+        throw new Error(`Failed to load Network Load dataset (${response.status})`);
       }
       return response.json();
     })

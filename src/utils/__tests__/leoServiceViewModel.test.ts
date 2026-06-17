@@ -33,7 +33,7 @@ const fillRateResult: FillRateLookupResult = {
   fillRatePct: 76,
   percentile: 'P95',
   source: 'calibratedDemo',
-  dataMode: 'recent_operational_calibration',
+  dataMode: 'calibrated_network_load_model',
   statistic: 'P95_5MIN_AVG',
   windowMinutes: 5,
   sourceDate: '2026-06',
@@ -47,13 +47,13 @@ const fillRateResult: FillRateLookupResult = {
     windowMinutes: 5,
     sampleCount: 240,
     source: 'calibratedDemo',
-    dataMode: 'recent_operational_calibration',
+    dataMode: 'calibrated_network_load_model',
     sourceDate: '2026-06',
   },
 };
 
 describe('deriveLeoConnectivityViewModel — estimated-load source clarity', () => {
-  it('shows Estimated Load calibrated by OneWeb reference when a statistical cell is available', () => {
+  it('shows Estimated Load from the OneWeb-calibrated Network Load model', () => {
     const beamLoadResult = estimateBeamLoadWithFillRate({
       lat: 48.8,
       lng: 2.3,
@@ -77,7 +77,7 @@ describe('deriveLeoConnectivityViewModel — estimated-load source clarity', () 
     const estimatedLoadRow = vm.whyRows.find((row) => row.label === 'Estimated Load');
     expect(estimatedLoadRow?.value).toContain(`${beamLoadResult.beamLoadPercent}%`);
     expect(estimatedLoadRow?.detail).toBe(
-      `Calibrated by OneWeb usage reference · base heuristic: ${beamLoadResult.baseEstimatedLoadPct}% · reference cell: 76% · confidence: 50% · equiv. users: ~${beamLoadResult.estimatedActiveUsers}`,
+      `OneWeb-calibrated Network Load model · network load: 76% · equiv. users: ~${beamLoadResult.estimatedActiveUsers}`,
     );
   });
 
