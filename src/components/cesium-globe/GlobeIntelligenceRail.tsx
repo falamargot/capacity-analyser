@@ -303,6 +303,67 @@ const GlobeIntelligenceRail: React.FC<GlobeIntelligenceRailProps> = ({
         </div>
     );
 
+    const layerControls = (
+        <div className={`${railSurface} flex w-12 flex-col items-center gap-0.5 p-1.5`} aria-label="Layer controls">
+            <RailButton
+                icon={<Globe className="h-4 w-4" />}
+                label="REG"
+                active={countryOverlayMode === 'regulatory'}
+                onClick={handleToggleReg}
+                title="Regulatory zones overlay"
+            />
+            <RailButton
+                icon={<Globe className="h-4 w-4" />}
+                label="5G"
+                active={countryOverlayMode === '5g-spectrum'}
+                onClick={handleToggle5G}
+                title="5G spectrum overlay"
+            />
+            <RailButton
+                icon={<Waves className="h-4 w-4" />}
+                label="CONN"
+                active={showAggregatedConnectivity}
+                onClick={onToggleAggregatedConnectivity}
+                title="Aggregated connectivity layer"
+            />
+            <RailButton
+                icon={<BarChart2 className="h-4 w-4" />}
+                label="LOAD"
+                active={showFillRateLayer && fillRateLayerAvailable}
+                disabled={!fillRateLayerAvailable}
+                onClick={onToggleFillRateLayer}
+                title={fillRateLayerAvailable ? 'Network Load model' : 'Network Load is available in LEO or ALL scope only'}
+                accentColor="bg-amber-50 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300"
+            />
+        </div>
+    );
+
+    const objectControls = (
+        <div className={`${railSurface} flex w-12 flex-col items-center gap-0.5 p-1.5`} aria-label="Object controls">
+            <RailButton
+                icon={<Plane className="h-4 w-4" />}
+                label="AIR"
+                active={airTrafficEnabled}
+                onClick={onToggleAirTraffic}
+                title="Aircraft traffic layer"
+            />
+            <RailButton
+                icon={<Ship className="h-4 w-4" />}
+                label="SEA"
+                active={maritimeTrafficEnabled}
+                onClick={onToggleMaritimeTraffic}
+                title="Maritime traffic layer"
+            />
+            <RailButton
+                icon={<Satellite className="h-4 w-4" />}
+                label="ISS"
+                active={issLiveEnabled}
+                onClick={onToggleIssLive}
+                title="ISS live layer"
+            />
+        </div>
+    );
+
     return (
         <div
             className={`absolute ${railSideClass} ${railTopClass} ${railZClass} flex flex-col gap-2`}
@@ -311,62 +372,11 @@ const GlobeIntelligenceRail: React.FC<GlobeIntelligenceRailProps> = ({
             {/* Camera controls */}
             {cameraControls}
 
-            {/* Category A — analytical toggles (always visible) */}
-            {showExtendedControls && (
-                <div className={`${railSurface} flex w-12 flex-col items-center gap-0.5 p-1.5`}>
-                    <RailButton
-                        icon={<Globe className="h-4 w-4" />}
-                        label="REG"
-                        active={countryOverlayMode === 'regulatory'}
-                        onClick={handleToggleReg}
-                        title="Regulatory zones overlay"
-                    />
-                    <RailButton
-                        icon={<Globe className="h-4 w-4" />}
-                        label="5G"
-                        active={countryOverlayMode === '5g-spectrum'}
-                        onClick={handleToggle5G}
-                        title="5G spectrum overlay"
-                    />
-                    <RailButton
-                        icon={<Waves className="h-4 w-4" />}
-                        label="CONN"
-                        active={showAggregatedConnectivity}
-                        onClick={onToggleAggregatedConnectivity}
-                        title="Aggregated connectivity layer"
-                    />
-                    <RailButton
-                        icon={<BarChart2 className="h-4 w-4" />}
-                        label="LOAD"
-                        active={showFillRateLayer && fillRateLayerAvailable}
-                        disabled={!fillRateLayerAvailable}
-                        onClick={onToggleFillRateLayer}
-                        title={fillRateLayerAvailable ? 'Network Load model' : 'Network Load is available in LEO or ALL scope only'}
-                        accentColor="bg-amber-50 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300"
-                    />
-                    <RailButton
-                        icon={<Plane className="h-4 w-4" />}
-                        label="✈"
-                        active={airTrafficEnabled}
-                        onClick={onToggleAirTraffic}
-                        title="Aircraft traffic layer"
-                    />
-                    <RailButton
-                        icon={<Ship className="h-4 w-4" />}
-                        label="⚓"
-                        active={maritimeTrafficEnabled}
-                        onClick={onToggleMaritimeTraffic}
-                        title="Maritime traffic layer"
-                    />
-                    <RailButton
-                        icon={<Satellite className="h-4 w-4" />}
-                        label="ISS"
-                        active={issLiveEnabled}
-                        onClick={onToggleIssLive}
-                        title="ISS live layer"
-                    />
-                </div>
-            )}
+            {/* Layer toggles */}
+            {showExtendedControls && layerControls}
+
+            {/* Object toggles */}
+            {showExtendedControls && objectControls}
 
             {/* Category B — display preferences behind ⋯ */}
             {showExtendedControls && (
