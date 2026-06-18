@@ -1,8 +1,9 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useMemo } from 'react';
 import { Calendar, CircleDashed, MapPin, Orbit } from 'lucide-react';
 import { JulianDate } from 'cesium';
 import { formatCoordinates } from '../utils/formatters';
 import { getMoonSnapshot, MOON_MEAN_RADIUS_KM } from '../utils/moonInfo';
+import { useSecondTick } from '../hooks/useSecondTick';
 
 interface MoonDetailsProps {
   compactDesktop?: boolean;
@@ -17,14 +18,10 @@ const MoonDetails: React.FC<MoonDetailsProps> = ({
   compactDesktop = false,
   externalHeader = false,
 }) => {
-  const [nowMs, setNowMs] = useState(() => Date.now());
+  const tick = useSecondTick();
 
-  useEffect(() => {
-    const interval = setInterval(() => setNowMs(Date.now()), 1000);
-    return () => clearInterval(interval);
-  }, []);
-
-  const snapshot = useMemo(() => getMoonSnapshot(JulianDate.fromDate(new Date(nowMs))), [nowMs]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const snapshot = useMemo(() => getMoonSnapshot(JulianDate.fromDate(new Date())), [tick]);
   const illuminatedPercent = Math.round(snapshot.illuminatedFraction * 100);
   const containerClassName = externalHeader
     ? 'space-y-4'

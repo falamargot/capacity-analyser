@@ -1084,6 +1084,13 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
             // the same physical size on every device.
             viewer.resolutionScale = window.devicePixelRatio ?? 1;
 
+            // Cap the render loop instead of redrawing at the display's native
+            // refresh rate (60-120Hz) on every frame, even when nothing changes.
+            // Satellite positions only update every 1-2s from the propagation
+            // worker, so 30fps is visually indistinguishable while roughly
+            // halving sustained CPU/GPU load and battery drain.
+            viewer.targetFrameRate = 30;
+
             setViewerReady(true);
             onGlobeBootPhaseChange?.('viewer-ready');
         }

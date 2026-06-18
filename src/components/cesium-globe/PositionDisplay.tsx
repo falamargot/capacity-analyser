@@ -1,10 +1,11 @@
 /**
  * PositionDisplay - Shows current time and selected position
  */
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import { format } from 'date-fns';
 import type { Aircraft } from '../../modules/airTraffic/airTrafficService';
 import { formatCoordinates } from '../../utils/formatters';
+import { useSecondTick } from '../../hooks/useSecondTick';
 
 interface PositionDisplayProps {
     selectedPosition?: { lat: number; lng: number; altitude?: number } | null;
@@ -18,14 +19,9 @@ const PositionDisplay: React.FC<PositionDisplayProps> = ({
     isPhone = false
 }) => {
     // Update time every second
-    const [currentTime, setCurrentTime] = useState(() => new Date());
-
-    useEffect(() => {
-        const interval = setInterval(() => {
-            setCurrentTime(new Date());
-        }, 1000);
-        return () => clearInterval(interval);
-    }, []);
+    const tick = useSecondTick();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    const currentTime = useMemo(() => new Date(), [tick]);
 
     const formattedTime = useMemo(
         () => isPhone ? format(currentTime, "HH:mm:ss") : format(currentTime, "yyyy-MM-dd HH:mm:ss 'UTC'"),

@@ -9,6 +9,7 @@ import { JulianDate, Math as CesiumMath } from 'cesium';
 import * as satellite from 'satellite.js';
 import { calculateGSOAvoidanceAngle, getActiveBeamCount } from '../utils/oneWebComb';
 import type { SatelliteData } from '../types/satellites';
+import { useSecondTick } from './useSecondTick';
 
 export interface GSOAvoidanceData {
   pitchAngleDeg: number;
@@ -25,6 +26,7 @@ export interface GSOAvoidanceData {
  */
 export function useGSOAvoidance(sat: SatelliteData | null): GSOAvoidanceData | null {
   const [data, setData] = useState<GSOAvoidanceData | null>(null);
+  const tick = useSecondTick();
 
   useEffect(() => {
     if (!sat || sat.type !== 'ONEWEB' || !sat.satrec) {
@@ -34,46 +36,41 @@ export function useGSOAvoidance(sat: SatelliteData | null): GSOAvoidanceData | n
 
     const satrec = sat.satrec;
 
-    const compute = () => {
-      try {
-        const now = new Date();
-        const julianDate = JulianDate.fromDate(now);
+    try {
+      const now = new Date();
+      const julianDate = JulianDate.fromDate(now);
 
-        const positionAndVelocity = satellite.propagate(satrec, now);
-        if (
-          !positionAndVelocity ||
-          !positionAndVelocity.position ||
-          typeof positionAndVelocity.position === 'boolean'
-        ) {
-          return;
-        }
-
-        const gmst = satellite.gstime(now);
-        const positionGd = satellite.eciToGeodetic(positionAndVelocity.position, gmst);
-        const latitude = satellite.degreesLat(positionGd.latitude);
-
-        const { pitchAngleRad, isGSOAvoidance, isBlankingZone, isMovingNorth } =
-          calculateGSOAvoidanceAngle(satrec, julianDate);
-
-        const activeBeamCount = getActiveBeamCount(satrec, julianDate);
-
-        setData({
-          pitchAngleDeg: CesiumMath.toDegrees(pitchAngleRad),
-          isGSOAvoidance,
-          latitude,
-          isBlankingZone,
-          activeBeamCount,
-          isMovingNorth,
-        });
-      } catch {
-        // Propagation error — keep previous value
+      const positionAndVelocity = satellite.propagate(satrec, now);
+      if (
+        !positionAndVelocity ||
+        !positionAndVelocity.position ||
+        typeof positionAndVelocity.position === 'boolean'
+      ) {
+        return;
       }
-    };
 
-    compute();
-    const interval = setInterval(compute, 1000);
-    return () => clearInterval(interval);
-  }, [sat?.id, sat?.satrec]); // eslint-disable-line react-hooks/exhaustive-deps
+      const gmst = satellite.gstime(now);
+      const positionGd = satellite.eciToGeodetic(positionAndVelocity.position, gmst);
+      const latitude = satellite.degreesLat(positionGd.latitude);
+
+      const { pitchAngleRad, isGSOAvoidance, isBlankingZone, isMovingNorth } =
+        calculateGSOAvoidanceAngle(satrec, julianDate);
+
+      const activeBeamCount = getActiveBeamCount(satrec, julianDate);
+
+      setData({
+        pitchAngleDeg: CesiumMath.toDegrees(pitchAngleRad),
+        isGSOAvoidance,
+        latitude,
+        isBlankingZone,
+        activeBeamCount,
+        isMovingNorth,
+      });
+    } catch {
+      // Propagation error — keep previous value
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sat?.id, sat?.satrec, tick]);
 
   return data;
 }

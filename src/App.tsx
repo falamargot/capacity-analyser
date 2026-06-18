@@ -59,6 +59,7 @@ import { useAuthorshipEasterEgg } from './hooks/useAuthorshipEasterEgg';
 import { useViewport, type ViewportSnapshot } from './hooks/useViewport';
 import { useGlobeBootState } from './hooks/useGlobeBootState';
 import { useUiModeState } from './hooks/useUiModeState';
+import { useSecondTick } from './hooks/useSecondTick';
 import { formatCoordinates } from './utils/formatters';
 import { buildSimulationStateSnapshot } from './types/simulation';
 import { regulatoryLookup, type RegulatoryResult } from './services/regulatoryService';
@@ -128,6 +129,105 @@ const IssDetails = lazy(() => import('./components/IssDetails'));
 const GatewayDetails = lazy(() => import('./components/GatewayDetails'));
 const MoonDetails = lazy(() => import('./components/MoonDetails'));
 const SNPDetails = lazy(() => import('./components/SNPDetails'));
+
+type CapacityAnalyzerSignatureProps = React.SVGProps<SVGSVGElement> & {
+  variant?: 'full' | 'icon';
+};
+
+const CapacityAnalyzerSignature = ({
+  variant = 'full',
+  className,
+  ...props
+}: CapacityAnalyzerSignatureProps) => {
+  const isIcon = variant === 'icon';
+
+  return (
+    <svg
+      width={isIcon ? 60 : 96}
+      height={isIcon ? 86 : 132}
+      viewBox={isIcon ? '18 0 60 86' : '0 0 96 132'}
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      className={className}
+      aria-hidden="true"
+      focusable="false"
+      {...props}
+    >
+      <g opacity="0.96" strokeLinecap="round" strokeLinejoin="round">
+        <g className="stroke-cyan-500 dark:stroke-cyan-300">
+          <path d="M34 20C26.5 27.5 25 39 31.5 48" stroke="currentColor" strokeWidth="2.2" />
+          <path d="M30 25C25.5 31.5 25 39.5 29 46" stroke="currentColor" strokeWidth="1.45" />
+          <path d="M62.5 15C68.5 19.5 71.5 25.5 72 32.5" stroke="currentColor" strokeWidth="1.45" opacity="0.76" />
+        </g>
+
+        <g>
+          <g transform="translate(49 20) rotate(45)" className="stroke-blue-600 dark:stroke-sky-200">
+            <rect x="-7" y="-7" width="14" height="14" rx="1.6" stroke="currentColor" strokeWidth="1.75" />
+            <path d="M-3.5 0H3.5M0 -3.5V3.5" stroke="currentColor" strokeWidth="1.25" opacity="0.8" />
+          </g>
+          <g transform="translate(61 34) rotate(45)" className="stroke-cyan-600 dark:stroke-cyan-300">
+            <rect x="-6.2" y="-6.2" width="12.4" height="12.4" rx="1.5" stroke="currentColor" strokeWidth="1.65" />
+            <path d="M-3 0H3M0 -3V3" stroke="currentColor" strokeWidth="1.15" opacity="0.78" />
+          </g>
+          <g transform="translate(48 45) rotate(45)" className="stroke-indigo-500 dark:stroke-indigo-300">
+            <rect x="-5.5" y="-5.5" width="11" height="11" rx="1.35" stroke="currentColor" strokeWidth="1.55" />
+            <path d="M-2.6 0H2.6M0 -2.6V2.6" stroke="currentColor" strokeWidth="1.05" opacity="0.72" />
+          </g>
+          <g transform="translate(68 52) rotate(45)" className="stroke-teal-600 dark:stroke-teal-300">
+            <rect x="-8" y="-8" width="16" height="16" rx="1.8" stroke="currentColor" strokeWidth="1.75" />
+            <path d="M-4 0H4M0 -4V4" stroke="currentColor" strokeWidth="1.2" opacity="0.78" />
+          </g>
+          <path
+            d="M42 29L55 27M54 39L50 41M55 48L61 50"
+            className="stroke-sky-500 dark:stroke-sky-300"
+            stroke="currentColor"
+            strokeWidth="1.35"
+            opacity="0.68"
+          />
+        </g>
+
+        <g className="stroke-blue-600 dark:stroke-sky-200" opacity="0.88">
+          <path d="M20 78C26 61 70 61 76 78" stroke="currentColor" strokeWidth="2" />
+          <path d="M24 78H72" stroke="currentColor" strokeWidth="2" />
+          <path d="M48 62V78" stroke="currentColor" strokeWidth="1.45" />
+          <path d="M34 64C30 68 28 73 28 78" stroke="currentColor" strokeWidth="1.45" />
+          <path d="M62 64C66 68 68 73 68 78" stroke="currentColor" strokeWidth="1.45" />
+          <path d="M27.5 70.5H68.5" stroke="currentColor" strokeWidth="1.35" opacity="0.72" />
+        </g>
+      </g>
+
+      {!isIcon && (
+        <>
+          <text
+            x="48"
+            y="108"
+            textAnchor="middle"
+            className="fill-slate-900 dark:fill-slate-50"
+            fontFamily="Inter, Segoe UI, sans-serif"
+            fontSize="12"
+            fontWeight="600"
+            letterSpacing="0.12em"
+          >
+            CAPACITY
+          </text>
+
+          <text
+            x="48"
+            y="126"
+            textAnchor="middle"
+            className="fill-slate-600 dark:fill-slate-300"
+            fontFamily="Inter, Segoe UI, sans-serif"
+            fontSize="12"
+            fontWeight="600"
+            letterSpacing="0.12em"
+          >
+            ANALYZER
+          </text>
+        </>
+      )}
+    </svg>
+  );
+};
 
 // ─── Module-level constants ───────────────────────────────────────────────────
 const COMPACT_DESKTOP_DIAG_MIN = Math.hypot(1920, 1080);
@@ -472,12 +572,7 @@ const App: React.FC = () => {
   const [autoSelectedLEOIdB, setAutoSelectedLEOIdB] = useState<string | null>(null);
   const [selectedSNPB, setSelectedSNPB] = useState<SNPData | null>(null);
   const activeLeoRouteEvidenceStateRef = useRef(createActiveLeoRouteEvidenceState());
-  const [leoEvidenceTick, setLeoEvidenceTick] = useState(0);
-
-  useEffect(() => {
-    const id = setInterval(() => setLeoEvidenceTick((tick) => tick + 1), 1_000);
-    return () => clearInterval(id);
-  }, []);
+  const leoEvidenceTick = useSecondTick();
 
   useEffect(() => {
     resetActiveLeoRouteEvidenceState(activeLeoRouteEvidenceStateRef.current);
@@ -679,7 +774,10 @@ const App: React.FC = () => {
   // The selectedAircraft position interval reads from this without being in its deps.
   const panelFallback = <div className="p-4 text-sm text-slate-500 dark:text-slate-400">Loading analysis...</div>;
 
-  const renderAuthorshipLogo = (className: string) => (
+  const renderAuthorshipLogo = (
+    variant: 'full' | 'icon',
+    className: string,
+  ) => (
     <button
       type="button"
       aria-label="Application logo"
@@ -689,9 +787,9 @@ const App: React.FC = () => {
       onPointerCancel={clearAuthorshipLongPress}
       onClick={handleLogoClick}
       onContextMenu={(event) => event.preventDefault()}
-      className="flex shrink-0 rounded-md text-blue-600 outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-900"
+      className="flex shrink-0 items-center opacity-[0.88] outline-none transition-opacity hover:opacity-100 focus-visible:rounded-md focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-900"
     >
-      <Satellite className={className} />
+      <CapacityAnalyzerSignature variant={variant} className={className} />
     </button>
   );
 
@@ -699,60 +797,17 @@ const App: React.FC = () => {
     variant: 'desktop' | 'compact' | 'mobile' | 'floating' = 'desktop',
   ) => {
     if (variant === 'mobile' || variant === 'floating') {
-      return renderAuthorshipLogo(variant === 'mobile' ? 'h-7 w-7' : 'h-5 w-5');
+      return renderAuthorshipLogo('icon', variant === 'mobile' ? 'h-7 w-7' : 'h-5 w-5');
     }
 
     if (variant === 'desktop') {
-      const wordClass = 'flex flex-col items-center gap-0.5 text-[9px] font-black leading-none text-slate-700 dark:text-slate-200';
-
-      return (
-        <div
-          className={[
-            'relative flex shrink-0 flex-col items-center overflow-hidden rounded-2xl',
-            'border border-slate-200/70 bg-white/75 px-1.5 py-2',
-            'shadow-[0_18px_38px_-34px_rgba(15,23,42,0.75)]',
-            'dark:border-slate-700/75 dark:bg-slate-900/45',
-            useCompactDesktopHeader ? 'min-h-[10.5rem] w-12' : 'min-h-[12.75rem] w-[3.25rem]',
-          ].join(' ')}
-          aria-label="ETL Capacity Analyzer"
-          title="ETL Capacity Analyzer"
-        >
-          <div className="absolute inset-y-3 left-1 w-px bg-gradient-to-b from-blue-500/70 via-cyan-300/35 to-transparent" aria-hidden="true" />
-          {renderAuthorshipLogo(useCompactDesktopHeader ? 'h-5 w-5' : 'h-6 w-6')}
-          <span className="mt-1 rounded-full bg-blue-500/10 px-1.5 py-0.5 text-[8px] font-black uppercase leading-none text-blue-600 dark:bg-sky-400/10 dark:text-sky-300">
-            ETL
-          </span>
-          <div className="mt-2 flex flex-1 items-center justify-center gap-1.5" aria-hidden="true">
-            <div className={wordClass}>
-              {'CAPACITY'.split('').map((letter, index) => (
-                <span key={`capacity-${letter}-${index}`}>{letter}</span>
-              ))}
-            </div>
-            <div className="h-full min-h-[5.5rem] w-px bg-slate-200/70 dark:bg-slate-700/80" />
-            <div className={wordClass}>
-              {'ANALYZER'.split('').map((letter, index) => (
-                <span key={`analyzer-${letter}-${index}`}>{letter}</span>
-              ))}
-            </div>
-          </div>
-        </div>
+      return renderAuthorshipLogo(
+        'full',
+        useCompactDesktopHeader ? 'h-24 w-[4.5rem]' : 'h-[8.25rem] w-24',
       );
     }
 
-    const logoClass = 'h-6 w-6';
-
-    return (
-      <div className="flex min-w-0 items-center gap-2">
-        {renderAuthorshipLogo(logoClass)}
-        <div className="hidden min-w-0 xl:block">
-          <div className="flex min-w-0 items-baseline gap-1.5">
-            <span className="text-[8px] font-black uppercase leading-none text-blue-600 dark:text-sky-300">ETL</span>
-            <h1 className="truncate text-[15px] font-black leading-none text-slate-950 dark:text-slate-50">Capacity Analyzer</h1>
-          </div>
-          <div className="mt-1 h-px w-full max-w-[8rem] bg-gradient-to-r from-blue-500/65 via-cyan-400/45 to-transparent" aria-hidden="true" />
-        </div>
-      </div>
-    );
+    return renderAuthorshipLogo('icon', 'h-6 w-6');
   };
 
   // Store viewer reference when ready
@@ -4043,7 +4098,7 @@ const App: React.FC = () => {
     >
       {!isPhone && (
         <header className="shrink-0 bg-white shadow-sm transition-colors duration-300 dark:bg-slate-900">
-          <div className={`max-w-[1920px] mx-auto px-2 py-0 sm:px-4 lg:px-8 ${isDesktopHeaderCollapsed ? 'md:py-1' : useCompactDesktopHeader ? 'md:py-2' : 'md:py-3'}`}>
+          <div className={`w-full px-2 py-0 sm:px-4 lg:px-5 ${isDesktopHeaderCollapsed ? 'md:py-1' : useCompactDesktopHeader ? 'md:py-2' : 'md:py-3'}`}>
             {isMobile ? (
               <div className="flex items-center justify-between">
                 <div className="min-w-0">
@@ -4071,7 +4126,7 @@ const App: React.FC = () => {
               </div>
             ) : isDesktopHeaderCollapsed ? (
               <div className="flex items-center gap-2">
-                <div className="w-[clamp(2rem,12vw,13rem)] shrink-0">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center">
                   {renderAppTitle('compact')}
                 </div>
                 <div className="min-w-0 flex-[1_1_38rem] max-w-[42rem]">
@@ -4108,13 +4163,13 @@ const App: React.FC = () => {
               <div className={`flex items-start justify-between ${useCompactDesktopHeader ? 'gap-4' : 'gap-6'}`}>
                 <div
                   className={[
-                    'min-w-0 flex flex-1 items-start',
+                    'min-w-0 flex flex-1',
                     useCondensedHeaderSites
-                      ? 'flex-col gap-2'
-                      : useCompactDesktopHeader ? 'gap-3' : 'gap-4',
+                      ? 'flex-col items-start gap-2'
+                      : useCompactDesktopHeader ? 'items-center gap-3' : 'items-center gap-4',
                   ].join(' ')}
                 >
-                  <div className="flex shrink-0 items-center pt-1">
+                  <div className="flex shrink-0 items-center">
                     {renderAppTitle('desktop')}
                   </div>
 

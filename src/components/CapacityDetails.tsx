@@ -13,6 +13,7 @@ import type { LeoRFDebugInfo } from './capacity/LEOConnectivitySection';
 import { selectTrafficGeoGateway } from '../utils/geoConnectivityModel';
 import { isPointInCoverage } from '../utils/coverageCalculator';
 import { getBestConnectedGateway } from '../utils/connectivityRules';
+import { useSecondTick } from '../hooks/useSecondTick';
 import { JulianDate } from 'cesium';
 import ExportButton, { type ExportButtonPayload } from './ExportButton';
 import type { CandidateCoverage, GeoSiteToSitePathSummary, MeshLinkMetrics, MobileAnalysisMetrics } from '../types/analysis';
@@ -618,11 +619,7 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
   // Tick counter incremented every second so every LEO detail panel field
   // (beam geometry, elevation, RF chain and network pipeline) refreshes with
   // the same cadence as the satellite propagation loop.
-  const [leoClockTick, setLeoClockTick] = useState(0);
-  useEffect(() => {
-    const id = setInterval(() => setLeoClockTick((t) => t + 1), 1_000);
-    return () => clearInterval(id);
-  }, []);
+  const leoClockTick = useSecondTick();
 
   // Shared time snapshot for all RF-layer computations in this render cycle.
   // Ensures resolvedLEOConnectivity, leoPerformance, and hasCurrentLEORF all see
