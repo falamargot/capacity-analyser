@@ -23,8 +23,14 @@ const CANVAS_W = 2048;
 const CANVAS_H = 1024;
 const DEG_TO_PX = CANVAS_W / 360;
 
-const MIN_CELL_ALPHA = 0.12;
-const MAX_CELL_ALPHA = 0.66;
+const MIN_CELL_ALPHA = 0.22;
+const MAX_CELL_ALPHA = 0.82;
+
+// Cells below this are unsupported-area baseline noise, not corridor/region
+// signal. Hiding them keeps the heatmap reading as discrete patches and
+// corridors (matching the OneWeb reference visualization) instead of a
+// continuous low-level wash covering the whole globe.
+const RENDER_CUTOFF_PCT = 28;
 
 // ─── Color scale ───────────────────────────────────────────────────────────
 
@@ -128,11 +134,13 @@ function buildFillRateCanvas(
   const ctx = canvas.getContext('2d')!;
 
   for (const cell of cells) {
+    if (cell.fillRatePct < RENDER_CUTOFF_PCT) continue;
+
     const color = fillRateToColor(cell.fillRatePct);
     const r = Math.round(color.red   * 255);
     const g = Math.round(color.green * 255);
     const b = Math.round(color.blue  * 255);
-    const loadT = Math.max(0, Math.min(1, cell.fillRatePct / 100));
+    const loadT = Math.max(0, Math.min(1, (cell.fillRatePct - RENDER_CUTOFF_PCT) / (100 - RENDER_CUTOFF_PCT)));
     const a = lerp(MIN_CELL_ALPHA, MAX_CELL_ALPHA, loadT);
     const fillStyle = `rgba(${r},${g},${b},${a})`;
     const { west, south, east, north } = getFillRateCellBounds(cell, 'visual');

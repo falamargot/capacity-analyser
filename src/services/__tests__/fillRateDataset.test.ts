@@ -122,6 +122,52 @@ describe('OneWeb LEO Network Load public dataset', () => {
     expect(averageFillRate(remotePacific)).toBeLessThan(12);
   });
 
+  it('gently lifts known maritime and aviation mobility corridors', async () => {
+    const dataset = await loadPublicDataset();
+
+    const northAtlantic = cellsInBox(dataset.cells, { south: 40, north: 58, west: -75, east: -5 });
+    const mediterranean = cellsInBox(dataset.cells, { south: 30, north: 42, west: -6, east: 36 });
+    const redSeaGulfAden = cellsInBox(dataset.cells, { south: 10, north: 31, west: 32, east: 52 });
+    const indianOceanRoutes = cellsInBox(dataset.cells, { south: -25, north: 15, west: 45, east: 105 });
+    const malacca = cellsInBox(dataset.cells, { south: -2, north: 8, west: 95, east: 110 });
+    const eastAsiaCoastal = cellsInBox(dataset.cells, { south: 20, north: 42, west: 110, east: 145 });
+    const australiaSea = cellsInBox(dataset.cells, { south: -38, north: 5, west: 104, east: 154 });
+    const northPacificAir = [
+      ...cellsInBox(dataset.cells, { south: 35, north: 55, west: 135, east: 180 }),
+      ...cellsInBox(dataset.cells, { south: 35, north: 55, west: -180, east: -120 }),
+    ];
+    const remotePacific = cellsInBox(dataset.cells, { south: -25, north: 18, west: -170, east: -125 });
+
+    expect(averageFillRate(northAtlantic)).toBeGreaterThan(34);
+    expect(averageFillRate(mediterranean)).toBeGreaterThan(40);
+    expect(averageFillRate(redSeaGulfAden)).toBeGreaterThan(60);
+    expect(averageFillRate(indianOceanRoutes)).toBeGreaterThan(28);
+    expect(averageFillRate(malacca)).toBeGreaterThan(35);
+    expect(averageFillRate(eastAsiaCoastal)).toBeGreaterThan(25);
+    expect(averageFillRate(australiaSea)).toBeGreaterThan(36);
+    expect(averageFillRate(northPacificAir)).toBeGreaterThan(28);
+    expect(averageFillRate(remotePacific)).toBeLessThan(12);
+  });
+
+  it('highlights the Taiwan-South Africa maritime trunk route', async () => {
+    const dataset = await loadPublicDataset();
+    const trunkRoutePoints = [
+      [22, 121],
+      [10, 108],
+      [2, 96],
+      [-6, 76],
+      [-15, 55],
+      [-25, 35],
+      [-34, 18],
+    ];
+
+    for (const [lat, lng] of trunkRoutePoints) {
+      const cell = findFillRateCell(dataset.cells, lat, lng, { boundsMode: 'statistical' });
+      expect(cell).not.toBeNull();
+      expect(cell?.fillRatePct).toBeGreaterThan(40);
+    }
+  });
+
   it('forms contiguous statistical patches with rare isolated cells', async () => {
     const dataset = await loadPublicDataset();
     const index = buildSpatialIndex(dataset.cells);
@@ -160,7 +206,9 @@ describe('OneWeb LEO Network Load public dataset', () => {
 
     expect(averageFillRate(centralAfrica)).toBeLessThan(26);
     expect(averageFillRate(openAtlantic)).toBeLessThan(32);
-    expect(averageFillRate(indianOcean)).toBeLessThan(26);
+    // The Taiwan-South Africa maritime trunk route crosses this box, so it
+    // runs warmer than a generic remote ocean box would.
+    expect(averageFillRate(indianOcean)).toBeLessThan(55);
     expect(averageFillRate(europe)).toBeLessThan(42);
     expect(europe.filter((cell) => cell.fillRatePct >= 70).length / europe.length).toBeLessThan(0.06);
   });
@@ -169,7 +217,7 @@ describe('OneWeb LEO Network Load public dataset', () => {
     const dataset = await loadPublicDataset();
     const unsupportedOpenOceanPoints = [
       [2, 55],
-      [-10, 60],
+      [-30, 65],
       [-20, 75],
       [-28, 90],
       [-31, 82],

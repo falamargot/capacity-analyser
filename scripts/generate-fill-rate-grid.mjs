@@ -28,8 +28,8 @@ const ellipses = [
   { name: 'nordics-baltic', lat: 59, lng: 15, latRadius: 8, lngRadius: 15, load: 42, weight: 0.62 },
   { name: 'iberia-maghreb', lat: 38, lng: -4, latRadius: 8, lngRadius: 11, load: 58, weight: 0.78 },
   { name: 'italy-balkans', lat: 42, lng: 16, latRadius: 8, lngRadius: 12, load: 60, weight: 0.86 },
-  { name: 'east-med', lat: 34, lng: 31, latRadius: 6, lngRadius: 11, load: 70, weight: 0.94 },
-  { name: 'gulf', lat: 25, lng: 53, latRadius: 6, lngRadius: 10, load: 88, weight: 1.05 },
+  { name: 'east-med', lat: 34, lng: 31, latRadius: 5, lngRadius: 7, load: 68, weight: 0.65 },
+  { name: 'gulf', lat: 25, lng: 53, latRadius: 5, lngRadius: 7, load: 88, weight: 0.95 },
 
   { name: 'west-africa-coast', lat: 9, lng: -7, latRadius: 10, lngRadius: 14, load: 53, weight: 0.7 },
   { name: 'east-africa', lat: -9, lng: 37, latRadius: 12, lngRadius: 11, load: 44, weight: 0.56 },
@@ -48,8 +48,8 @@ const corridors = [
   { name: 'pacific-americas', points: [[58, -136], [48, -124], [35, -116], [23, -103], [14, -88], [3, -78], [-12, -76], [-31, -58]], width: 2.8, load: 58, weight: 0.9 },
   { name: 'us-transit', points: [[44, -109], [42, -96], [39, -87], [33, -81]], width: 3.1, load: 74, weight: 1.0 },
   { name: 'caribbean-arc', points: [[22, -81], [19, -73], [18, -66], [13, -61]], width: 2.2, load: 70, weight: 0.86 },
-  { name: 'europe-gulf', points: [[60, -5], [53, 6], [48, 12], [42, 19], [34, 32], [29, 48], [24, 56]], width: 3.0, load: 74, weight: 1.0 },
-  { name: 'north-africa-med', points: [[36, -7], [37, 7], [35, 21], [31, 34]], width: 2.6, load: 60, weight: 0.72 },
+  { name: 'europe-gulf', points: [[60, -5], [53, 6], [48, 12], [42, 19], [34, 32], [29, 48], [24, 56]], width: 2.2, load: 70, weight: 0.65 },
+  { name: 'north-africa-med', points: [[36, -7], [37, 7], [35, 21], [31, 34]], width: 1.8, load: 48, weight: 0.4 },
   { name: 'west-africa-littoral', points: [[16, -18], [10, -14], [5, -5], [5, 4], [0, 10]], width: 2.6, load: 56, weight: 0.72 },
   { name: 'east-africa-madagascar', points: [[-2, 37], [-11, 40], [-19, 45], [-25, 47], [-30, 34]], width: 2.7, load: 44, weight: 0.72 },
   { name: 'central-asia-ribbon', points: [[53, 72], [47, 84], [40, 75], [34, 78], [26, 82]], width: 3.2, load: 42, weight: 0.68 },
@@ -89,10 +89,10 @@ const visualReferenceFields = [
   { name: 'central-europe-reference', lat: 48, lng: 16, latRadius: 8, lngRadius: 15, load: 34, weight: 1.08 },
   { name: 'iberia-reference', lat: 40, lng: -4, latRadius: 7, lngRadius: 10, load: 37, weight: 0.74 },
   { name: 'italy-balkans-reference', lat: 42, lng: 18, latRadius: 7, lngRadius: 13, load: 41, weight: 0.82 },
-  { name: 'north-africa-reference', lat: 30, lng: 14, latRadius: 6, lngRadius: 20, load: 40, weight: 0.68 },
-  { name: 'sahel-chad-sudan-reference', lat: 14, lng: 25, latRadius: 5, lngRadius: 22, load: 37, weight: 0.72 },
-  { name: 'turkey-east-med-reference', lat: 37, lng: 33, latRadius: 5, lngRadius: 15, load: 62, weight: 0.82 },
-  { name: 'gulf-reference', lat: 24, lng: 53, latRadius: 6, lngRadius: 12, load: 78, weight: 0.9 },
+  { name: 'north-africa-reference', lat: 30, lng: 14, latRadius: 5, lngRadius: 10, load: 26, weight: 0.32 },
+  { name: 'sahel-chad-sudan-reference', lat: 14, lng: 25, latRadius: 4, lngRadius: 11, load: 22, weight: 0.24 },
+  { name: 'turkey-east-med-reference', lat: 37, lng: 33, latRadius: 4, lngRadius: 8, load: 58, weight: 0.55 },
+  { name: 'gulf-reference', lat: 24, lng: 53, latRadius: 4, lngRadius: 7, load: 78, weight: 0.85 },
 
   { name: 'west-africa-reference', lat: 8, lng: -9, latRadius: 9, lngRadius: 12, load: 38, weight: 0.48 },
   { name: 'gulf-guinea-reference', lat: 5, lng: 2, latRadius: 5, lngRadius: 12, load: 40, weight: 0.42 },
@@ -119,9 +119,9 @@ const visualReferenceCorridors = [
   { name: 'transatlantic-reference', points: [[45, -70], [43, -56], [42, -42], [43, -28], [45, -14], [48, -5]], width: 2.55, load: 46, weight: 1.28 },
   { name: 'north-atlantic-reference', points: [[61, -51], [55, -35], [52, -20], [51, -6], [53, 8]], width: 2.15, load: 29, weight: 1.12 },
   { name: 'europe-reference', points: [[59, -4], [55, 4], [51, 10], [47, 16], [44, 24], [39, 31]], width: 3.5, load: 34, weight: 1.12 },
-  { name: 'mediterranean-reference', points: [[36, -7], [38, 7], [37, 20], [37, 32], [33, 45]], width: 2.7, load: 52, weight: 0.76 },
-  { name: 'gulf-reference', points: [[31, 36], [27, 45], [24, 54], [21, 63], [17, 72]], width: 3.0, load: 70, weight: 0.82 },
-  { name: 'sahel-chad-sudan-reference', points: [[12, 5], [13, 16], [14, 28], [12, 39]], width: 2.4, load: 32, weight: 0.36 },
+  { name: 'mediterranean-reference', points: [[36, -7], [38, 7], [37, 20], [37, 32], [33, 45]], width: 2.4, load: 52, weight: 0.66 },
+  { name: 'gulf-reference', points: [[31, 36], [27, 45], [24, 54], [21, 63], [17, 72]], width: 2.2, load: 68, weight: 0.65 },
+  { name: 'sahel-chad-sudan-reference', points: [[12, 5], [13, 16], [14, 28], [12, 39]], width: 1.6, load: 20, weight: 0.16 },
   { name: 'west-africa-reference', points: [[15, -18], [9, -14], [5, -5], [4, 5], [0, 13]], width: 2.7, load: 40, weight: 0.55 },
   { name: 'africa-east-south-reference', points: [[7, 32], [-5, 37], [-18, 31], [-29, 25], [-34, 18]], width: 2.55, load: 34, weight: 0.5 },
   { name: 'madagascar-mozambique-reference', points: [[-12, 40], [-20, 45], [-27, 47], [-34, 33]], width: 2.4, load: 34, weight: 0.46 },
@@ -129,6 +129,27 @@ const visualReferenceCorridors = [
   { name: 'india-sea-reference', points: [[23, 72], [18, 84], [13, 94], [7, 101], [1, 107], [-7, 115]], width: 3.0, load: 39, weight: 0.74 },
   { name: 'south-east-asia-reference', points: [[18, 99], [10, 104], [2, 109], [-5, 116], [-12, 125]], width: 3.2, load: 42, weight: 0.82 },
   { name: 'australia-nz-reference', points: [[-38, 116], [-33, 133], [-29, 153], [-38, 166], [-41, 174]], width: 3.6, load: 44, weight: 0.86 },
+  { name: 'taiwan-south-africa-reference', points: [[22, 121], [10, 108], [2, 96], [-6, 76], [-15, 55], [-25, 35], [-34, 18]], width: 3.0, load: 66, weight: 1.15 },
+];
+
+const mobilityCorridors = [
+  // Maritime corridors: broad, low-to-medium uplift for shipping demand.
+  { name: 'maritime-north-atlantic', points: [[50, -74], [47, -52], [49, -30], [52, -8]], width: 5.2, load: 42, weight: 0.62 },
+  { name: 'maritime-mediterranean', points: [[36, -6], [37, 5], [36, 15], [35, 25], [32, 33]], width: 4.2, load: 50, weight: 0.78 },
+  { name: 'maritime-suez-red-sea-gulf-aden', points: [[31, 32], [27, 34], [21, 38], [15, 42], [12, 45], [13, 50]], width: 3.8, load: 58, weight: 0.86 },
+  { name: 'maritime-arabian-gulf', points: [[25, 48], [26, 52], [25, 56]], width: 3.2, load: 70, weight: 0.72 },
+  { name: 'maritime-indian-ocean-east-west', points: [[12, 45], [10, 60], [7, 74], [5, 90], [3, 103]], width: 5.4, load: 42, weight: 0.58 },
+  { name: 'maritime-taiwan-south-africa', points: [[22, 121], [10, 108], [2, 96], [-6, 76], [-15, 55], [-25, 35], [-34, 18]], width: 4.6, load: 80, weight: 1.3 },
+  { name: 'maritime-malacca', points: [[6, 95], [3, 101], [1, 104], [1, 109]], width: 3.2, load: 60, weight: 0.90 },
+  { name: 'maritime-east-asia-coastal', points: [[20, 111], [25, 120], [31, 124], [35, 129], [38, 139]], width: 4.8, load: 52, weight: 0.90 },
+
+  // Aviation corridors: wider and smoother than maritime paths to avoid line artifacts.
+  { name: 'aviation-north-atlantic', points: [[40, -74], [47, -55], [52, -30], [53, -8]], width: 7.0, load: 44, weight: 0.50 },
+  { name: 'aviation-europe-middle-east', points: [[51, 0], [46, 12], [40, 26], [32, 44], [25, 55]], width: 6.2, load: 52, weight: 0.56 },
+  { name: 'aviation-middle-east-india', points: [[25, 55], [23, 64], [22, 73], [20, 78]], width: 5.4, load: 48, weight: 0.54 },
+  { name: 'aviation-middle-east-southeast-asia', points: [[25, 55], [20, 68], [14, 82], [8, 96], [3, 104]], width: 5.8, load: 46, weight: 0.52 },
+  { name: 'aviation-japan-korea-north-america', points: [[36, 140], [45, 165], [51, -165], [51, -140], [48, -122]], width: 7.8, load: 46, weight: 0.64 },
+  { name: 'aviation-australia-southeast-asia', points: [[-34, 151], [-25, 138], [-15, 125], [-5, 116], [3, 104]], width: 6.0, load: 44, weight: 0.52 },
 ];
 
 const visualReferenceHotspots = [
@@ -460,6 +481,24 @@ function regionalPriorAt(lat, lng) {
   };
 }
 
+function mobilityPriorAt(lat, lng) {
+  const influences = [];
+
+  for (const corridor of mobilityCorridors) {
+    const influence = corridorInfluence(corridor, lat, lng);
+    if (influence > 0.018) influences.push({ influence, load: corridor.load });
+  }
+
+  const score = influences.reduce((sum, item) => sum + item.influence, 0);
+  if (score <= 0) return null;
+
+  const weightedLoad = influences.reduce((sum, item) => sum + item.influence * item.load, 0) / score;
+  return {
+    load: clamp(weightedLoad, 5, 86),
+    support: clamp(score * 0.28, 0, 0.62),
+  };
+}
+
 function fallbackNetworkLoadPct(lat, lng) {
   const remoteOcean = isRemoteOpenOcean(lat, lng);
   const centralAfrica = isCentralAfrica(lat, lng);
@@ -529,7 +568,12 @@ function interpolateFromCalibration(lat, lng, calibrationCells, priorSupport) {
 function estimateNetworkLoadAt(lat, lng, calibrationCells) {
   const referencePrior = referencePriorAt(lat, lng);
   const regionalPrior = regionalPriorAt(lat, lng);
-  const priorSupport = Math.max(referencePrior?.support ?? 0, regionalPrior?.support ?? 0);
+  const mobilityPrior = mobilityPriorAt(lat, lng);
+  const priorSupport = Math.max(
+    referencePrior?.support ?? 0,
+    regionalPrior?.support ?? 0,
+    mobilityPrior?.support ?? 0,
+  );
   const calibration = interpolateFromCalibration(lat, lng, calibrationCells, priorSupport);
   const fallback = fallbackNetworkLoadPct(lat, lng);
 
@@ -539,10 +583,16 @@ function estimateNetworkLoadAt(lat, lng, calibrationCells) {
   const regionalBlend = !referencePrior && regionalPrior
     ? clamp(regionalPrior.support, 0, 0.38)
     : 0;
+  const mobilityBlend = mobilityPrior
+    ? clamp(mobilityPrior.support, 0, referencePrior ? 0.3 : 0.62)
+    : 0;
 
   let inferred = fallback;
   if (regionalPrior) {
     inferred = inferred * (1 - regionalBlend) + regionalPrior.load * regionalBlend;
+  }
+  if (mobilityPrior) {
+    inferred = inferred * (1 - mobilityBlend) + mobilityPrior.load * mobilityBlend;
   }
   if (referencePrior) {
     inferred = inferred * (1 - referenceBlend) + referencePrior.load * referenceBlend;
