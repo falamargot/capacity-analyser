@@ -88,10 +88,10 @@ function CommercialRouteStrip({
     : rawPrimaryFailingSegmentId;
 
   return (
-    <div className="border-t border-[rgba(148,163,184,0.08)] bg-[rgba(6,10,22,0.94)] px-4 py-1.5 backdrop-blur-xl">
+    <div className="commercial-route-strip border-t border-[rgba(148,163,184,0.08)] bg-[rgba(6,10,22,0.94)] px-4 py-1.5 backdrop-blur-xl">
       <div className="mb-0.5 flex items-center justify-between gap-3">
         <div>
-          <div className="text-[9px] font-semibold uppercase tracking-[0.14em] text-sky-300">Service Journey</div>
+          <div className="commercial-route-strip__title text-[9px] font-semibold uppercase tracking-[0.14em] text-sky-300">Service Journey</div>
         </div>
       </div>
       <div className="flex items-stretch gap-1.5">
@@ -109,8 +109,12 @@ function CommercialRouteStrip({
             <button
               type="button"
               onClick={() => onSelectedSegmentChange(segment.id)}
+              data-access={isAccess ? 'true' : 'false'}
+              data-outcome={isOutcome ? 'true' : 'false'}
+              data-primary-issue={isPrimaryIssue ? 'true' : 'false'}
+              data-selected={isSelected ? 'true' : 'false'}
               className={[
-                'flex w-full min-w-0 flex-col justify-center rounded-lg border px-2.5 py-1.5 text-left transition-colors',
+                'commercial-route-strip__card flex w-full min-w-0 flex-col justify-center rounded-lg border px-2.5 py-1.5 text-left transition-colors',
                 isSelected
                   ? isAccess
                     ? 'min-h-[3.25rem] border-cyan-200/90 bg-cyan-400/20 text-white shadow-[0_0_0_1px_rgba(103,232,249,0.34),0_0_22px_rgba(34,211,238,0.28)]'
@@ -132,14 +136,14 @@ function CommercialRouteStrip({
                 </span>
               </div>
               <div
-                className={`mt-0.5 truncate text-[11px] ${isSelected && isAccess ? 'font-semibold text-cyan-100/85' : isOutcome ? 'font-semibold text-sky-100' : 'text-slate-400'}`}
+                className={`commercial-route-strip__subtitle mt-0.5 truncate text-[11px] ${isSelected && isAccess ? 'font-semibold text-cyan-100/85' : isOutcome ? 'font-semibold text-sky-100' : 'text-slate-400'}`}
                 title={subtitle}
               >
                 {subtitle}
               </div>
             </button>
             {index < displayedSegments.length - 1 && (
-              <ChevronRight className="h-4 w-4 shrink-0 text-slate-300 dark:text-slate-700" />
+              <ChevronRight className="commercial-route-strip__chevron h-4 w-4 shrink-0 text-slate-300 dark:text-slate-700" />
             )}
           </div>
           );

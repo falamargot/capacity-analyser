@@ -228,7 +228,7 @@ interface ArchitectureDriver {
 
 function ArchitectureDriverChip({ label, icon }: ArchitectureDriver) {
   return (
-    <div className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.045] px-3 py-2 text-[12px] font-semibold text-slate-200 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
+    <div className="commercial-driver-chip flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.045] px-3 py-2 text-[12px] font-semibold text-slate-200 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
       <span className="shrink-0 text-white/52">{icon}</span>
       <span>{label}</span>
     </div>
@@ -294,7 +294,7 @@ function SummaryHeroBlock({
   return (
     <div className="space-y-4">
       {/* Hero diagram card */}
-      <div className={`rounded-xl border p-4 shadow-[0_0_60px_rgba(0,0,0,0.40),inset_0_1px_0_rgba(255,255,255,0.08)] ${heroBorder}`}>
+      <div className={`commercial-summary-hero-card rounded-xl border p-4 shadow-[0_0_60px_rgba(0,0,0,0.40),inset_0_1px_0_rgba(255,255,255,0.08)] ${heroBorder}`}>
         <div className="mb-3">
           <div className={`text-[9px] font-bold uppercase tracking-[0.24em] ${accentTextClass}`}>
             Connectivity Architecture
@@ -318,7 +318,7 @@ function SummaryHeroBlock({
           Performance
         </div>
         <div className={`grid gap-2 ${isGeo ? 'grid-cols-2' : 'grid-cols-3'}`}>
-          <div className={`rounded-lg border px-2.5 py-2.5 ${metricCardClass}`}>
+          <div className={`commercial-summary-metric-card rounded-lg border px-2.5 py-2.5 ${metricCardClass}`}>
             <div className="flex items-center gap-1 text-[8px] font-bold uppercase tracking-[0.12em] text-white/46">
               <ArrowDown className="h-2.5 w-2.5" aria-hidden="true" />
               <span>Throughput</span>
@@ -327,7 +327,7 @@ function SummaryHeroBlock({
               {formatMbps(selectedOption?.downloadMbps)}
             </div>
           </div>
-          <div className={`rounded-lg border px-2.5 py-2.5 ${metricCardClass}`}>
+          <div className={`commercial-summary-metric-card rounded-lg border px-2.5 py-2.5 ${metricCardClass}`}>
             <div className="flex items-center gap-1 text-[8px] font-bold uppercase tracking-[0.12em] text-white/46">
               <Timer className="h-2.5 w-2.5" aria-hidden="true" />
               <span>Latency</span>
@@ -337,7 +337,7 @@ function SummaryHeroBlock({
             </div>
           </div>
           {isGeo && (
-            <div className={`rounded-lg border px-2.5 py-2.5 ${metricCardClass}`}>
+            <div className={`commercial-summary-metric-card rounded-lg border px-2.5 py-2.5 ${metricCardClass}`}>
               <div className="flex items-center gap-1 text-[8px] font-bold uppercase tracking-[0.12em] text-white/46">
                 <CheckCircle2 className="h-2.5 w-2.5" aria-hidden="true" />
                 <span>Coverage</span>
@@ -347,7 +347,7 @@ function SummaryHeroBlock({
               </div>
             </div>
           )}
-          <div className={`rounded-lg border px-2.5 py-2.5 ${metricCardClass}`}>
+          <div className={`commercial-summary-metric-card rounded-lg border px-2.5 py-2.5 ${metricCardClass}`}>
             <div className="flex items-center gap-1 text-[8px] font-bold uppercase tracking-[0.12em] text-white/46">
               <Wifi className="h-2.5 w-2.5" aria-hidden="true" />
               <span>Service</span>
@@ -919,6 +919,7 @@ function CommercialNarrativePanel({
   return (
     <div
       className={[
+        'commercial-narrative-panel',
         'absolute right-0 top-0 z-40 w-[380px]',
         'bottom-[5.75rem]',
         'transition-transform',
@@ -934,13 +935,14 @@ function CommercialNarrativePanel({
     >
       {/* Gradient shadow cast onto globe behind the panel */}
       <div
-        className="pointer-events-none absolute inset-y-0 left-0 w-10 -translate-x-full"
+        className="commercial-narrative-panel__globe-shadow pointer-events-none absolute inset-y-0 left-0 w-10 -translate-x-full"
         style={{ background: 'linear-gradient(to right, transparent, rgba(6,10,22,0.35))' }}
       />
 
       {/* Panel body */}
       <div
         className={[
+          'commercial-narrative-panel__body',
           'flex h-full flex-col border-l backdrop-blur-2xl',
           isAccess
             ? 'border-cyan-300/18 bg-[linear-gradient(180deg,rgba(4,15,28,0.97),rgba(6,10,22,0.96)_42%,rgba(8,47,73,0.82))]'
@@ -957,7 +959,7 @@ function CommercialNarrativePanel({
 
           {/* Eyebrow + close */}
           <div className="flex items-center justify-between gap-3">
-            <div className="inline-flex items-center gap-3 rounded-2xl border border-white/10 bg-slate-950/70 px-3 py-2 shadow-[0_18px_60px_-45px_rgba(15,23,42,0.85)]">
+            <div className="commercial-narrative-panel__eyebrow inline-flex items-center gap-3 rounded-2xl border border-white/10 bg-slate-950/70 px-3 py-2 shadow-[0_18px_60px_-45px_rgba(15,23,42,0.85)]">
               <span
                 className={[
                   'flex h-9 w-9 shrink-0 items-center justify-center rounded-full border',
@@ -993,7 +995,7 @@ function CommercialNarrativePanel({
             <>
               {/* Title */}
               {card.title !== card.eyebrow && (
-                <h2 className="mt-3 text-[20px] font-bold leading-tight tracking-tight text-white">
+                <h2 className="commercial-narrative-panel__title mt-3 text-[20px] font-bold leading-tight tracking-tight text-white">
                   {card.title}
                 </h2>
               )}
@@ -1007,7 +1009,7 @@ function CommercialNarrativePanel({
         </div>
 
         {/* Divider */}
-        <div className={`${isSummary ? 'mt-3' : 'mt-4'} mx-5 flex-shrink-0 border-t border-[rgba(30,41,59,0.80)]`} />
+        <div className={`commercial-narrative-panel__divider ${isSummary ? 'mt-3' : 'mt-4'} mx-5 flex-shrink-0 border-t border-[rgba(30,41,59,0.80)]`} />
 
         {/* ── Scrollable content ─────────────────────────────────────── */}
         <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">

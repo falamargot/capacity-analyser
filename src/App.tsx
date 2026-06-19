@@ -4125,22 +4125,39 @@ const App: React.FC = () => {
                 </div>
               </div>
             ) : isDesktopHeaderCollapsed ? (
-              <div className="flex items-center gap-2">
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center">
-                  {renderAppTitle('compact')}
+              <div className="flex w-full items-center gap-2">
+                <div className="flex min-w-0 shrink-0 items-center gap-2">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center">
+                    {renderAppTitle('compact')}
+                  </div>
+                  <div className="min-w-0 flex-[1_1_38rem] max-w-[42rem]">
+                    <HeaderScenarioBuilder
+                      siteA={headerSiteAConfig}
+                      siteB={headerSiteBConfig}
+                      onSwap={handleSwapRouteEndpoints}
+                      analysisSource={activeAnalysisSource}
+                      compact
+                      collapsed
+                    />
+                  </div>
                 </div>
-                <div className="min-w-0 flex-[1_1_38rem] max-w-[42rem]">
-                  <HeaderScenarioBuilder
-                    siteA={headerSiteAConfig}
-                    siteB={headerSiteBConfig}
-                    onSwap={handleSwapRouteEndpoints}
-                    analysisSource={activeAnalysisSource}
-                    compact
-                    collapsed
-                  />
-                </div>
-                <div className="flex shrink-0 items-center gap-2">
+                <div className="ml-auto flex shrink-0 items-center justify-end gap-2">
                   {renderUiModeSwitch(true)}
+                  <button
+                    ref={targetSourcesButtonRef}
+                    type="button"
+                    onClick={handleToggleTargetSourcesMenu}
+                    className={`inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border text-sm font-semibold shadow-sm transition-colors ${
+                      isTargetSourcesMenuOpen
+                        ? 'border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-500/30 dark:bg-blue-500/15 dark:text-blue-200'
+                        : 'border-gray-200 bg-gray-50 text-slate-600 hover:bg-white hover:text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700 dark:hover:text-slate-100'
+                    }`}
+                    aria-expanded={isTargetSourcesMenuOpen}
+                    aria-label="Locate asset or location"
+                    title="Locate asset or location"
+                  >
+                    <Waypoints className="h-5 w-5" />
+                  </button>
                   <div className="flex items-center rounded-lg border border-gray-200 bg-gray-50 p-0.5 dark:border-slate-700 dark:bg-slate-800">
                     <SatelliteScopeFilter
                       currentScope={satelliteScope}
@@ -4148,16 +4165,38 @@ const App: React.FC = () => {
                     />
                     <SimulationSettings satelliteScope={satelliteScope} />
                   </div>
+                  <div className="flex-shrink-0">
+                    <ThemeSelector />
+                  </div>
+                  <div className="relative flex-shrink-0" ref={helpMenuRef}>
+                    <button
+                      type="button"
+                      onClick={handleToggleHelpMenu}
+                      className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-gray-200 bg-gray-50 text-slate-600 transition-colors hover:bg-white hover:text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700 dark:hover:text-slate-100"
+                      aria-label="Open keyboard shortcuts help"
+                      aria-expanded={isHelpMenuOpen}
+                      title="Keyboard shortcuts"
+                    >
+                      <Keyboard className="h-[18px] w-[18px]" />
+                    </button>
+
+                    {isHelpMenuOpen && (
+                      <div className="absolute right-0 mt-2 w-64 rounded-md bg-white p-3 text-sm shadow-lg dark:bg-slate-800">
+                        <div className="font-semibold text-slate-900 dark:text-slate-100">Keyboard shortcuts</div>
+                        <div className="mt-2 text-xs text-slate-600 dark:text-slate-400">Press {shortcutModifier}+K to open the command palette.</div>
+                      </div>
+                    )}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setIsDesktopHeaderCollapsed(false)}
+                    className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 text-slate-600 shadow-sm transition-colors hover:bg-white hover:text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700 dark:hover:text-slate-100"
+                    aria-label="Expand header"
+                    title="Expand header"
+                  >
+                    <ChevronDown className="h-5 w-5" />
+                  </button>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setIsDesktopHeaderCollapsed(false)}
-                  className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 text-slate-600 shadow-sm transition-colors hover:bg-white hover:text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700 dark:hover:text-slate-100"
-                  aria-label="Expand header"
-                  title="Expand header"
-                >
-                  <ChevronDown className="h-[18px] w-[18px]" />
-                </button>
               </div>
             ) : (
               <div className={`flex items-start justify-between ${useCompactDesktopHeader ? 'gap-4' : 'gap-6'}`}>
@@ -4518,76 +4557,27 @@ const App: React.FC = () => {
                     </button>
 
                     {isHelpMenuOpen && (
-                      <div className="absolute right-0 top-[calc(100%+0.75rem)] z-[90] w-80 overflow-hidden rounded-2xl border border-slate-200 bg-white/95 shadow-[0_30px_70px_-34px_rgba(15,23,42,0.45)] backdrop-blur-xl dark:border-slate-700 dark:bg-slate-900/95">
-                        <div className="border-b border-slate-200 px-4 py-3 dark:border-slate-700">
-                          <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">
-                            Keyboard Shortcuts
-                          </div>
-                          <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                            Fast controls for navigation and search.
-                          </div>
-                        </div>
-                        <div className="space-y-3 px-4 py-4 text-sm text-slate-600 dark:text-slate-300">
-                        <div className="flex items-center justify-between gap-4">
-                          <span>Toggle scope ALL / LEO / GEO</span>
-                          <span className="flex items-center gap-1">
-                            <kbd className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-mono text-slate-700 dark:bg-slate-800 dark:text-slate-200">1</kbd>
-                            <kbd className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-mono text-slate-700 dark:bg-slate-800 dark:text-slate-200">2</kbd>
-                            <kbd className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-mono text-slate-700 dark:bg-slate-800 dark:text-slate-200">3</kbd>
-                          </span>
-                        </div>
-                        <div className="flex items-center justify-between gap-4">
-                          <span>Toggle fullscreen</span>
-                          <kbd className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-mono text-slate-700 dark:bg-slate-800 dark:text-slate-200">F</kbd>
-                        </div>
-                        <div className="flex items-center justify-between gap-4">
-                          <span>Reset view</span>
-                          <kbd className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-mono text-slate-700 dark:bg-slate-800 dark:text-slate-200">Esc</kbd>
-                        </div>
-                        <div className="flex items-center justify-between gap-4">
-                          <span>Toggle sun light</span>
-                          <kbd className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-mono text-slate-700 dark:bg-slate-800 dark:text-slate-200">L</kbd>
-                        </div>
-                        <div className="flex items-center justify-between gap-4">
-                          <span>Toggle trajectory</span>
-                          <kbd className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-mono text-slate-700 dark:bg-slate-800 dark:text-slate-200">T</kbd>
-                        </div>
-                        <div className="flex items-center justify-between gap-4">
-                          <span>Toggle footprint projection</span>
-                          <kbd className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-mono text-slate-700 dark:bg-slate-800 dark:text-slate-200">P</kbd>
-                        </div>
-                        <div className="flex items-center justify-between gap-4">
-                          <span>Open keyboard shortcuts</span>
-                          <span className="flex items-center gap-1">
-                            <kbd className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-mono text-slate-700 dark:bg-slate-800 dark:text-slate-200">{shortcutModifier}</kbd>
-                            <span className="text-slate-400">+</span>
-                            <kbd className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-mono text-slate-700 dark:bg-slate-800 dark:text-slate-200">K</kbd>
-                          </span>
-                        </div>
-                        <div className="flex items-center justify-between gap-4">
-                          <span>Open entry point panel</span>
-                          <span className="flex items-center gap-1">
-                            <kbd className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-mono text-slate-700 dark:bg-slate-800 dark:text-slate-200">{shortcutModifier}</kbd>
-                            <span className="text-slate-400">+</span>
-                            <kbd className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-mono text-slate-700 dark:bg-slate-800 dark:text-slate-200">S</kbd>
-                          </span>
-                        </div>
+                      <div className="absolute right-0 mt-2 w-64 rounded-md bg-white shadow-lg p-3 text-sm dark:bg-slate-800">
+                        <div className="font-semibold text-slate-900 dark:text-slate-100">Keyboard shortcuts</div>
+                        <div className="mt-2 text-xs text-slate-600 dark:text-slate-400">Press {shortcutModifier}+K to open the command palette.</div>
                       </div>
-                    </div>
-                  )}
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setIsDesktopHeaderCollapsed(true)}
-                  className={`inline-flex shrink-0 items-center justify-center rounded-xl border border-gray-200 bg-gray-50 text-slate-600 shadow-sm transition-colors hover:bg-white hover:text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700 dark:hover:text-slate-100 ${useCompactDesktopHeader ? 'h-10 w-10' : 'h-11 w-11'}`}
-                  aria-label="Collapse header"
-                  title="Collapse header"
-                >
-                  <ChevronUp className={useCompactDesktopHeader ? 'h-5 w-5' : 'h-[22px] w-[22px]'} />
-                </button>
-              </div>
-                <div className="min-w-[37rem] max-w-[40rem]">
-                  <HeaderRouteStatusPanel routeStatus={headerRouteStatus} />
+	                    )}
+	                  </div>
+	                  <button
+	                    type="button"
+	                    onClick={() => setIsDesktopHeaderCollapsed(true)}
+	                    className={`inline-flex shrink-0 items-center justify-center rounded-xl border border-gray-200 bg-gray-50 text-slate-600 shadow-sm transition-colors hover:bg-white hover:text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700 dark:hover:text-slate-100 ${useCompactDesktopHeader ? 'h-9 w-9' : 'h-10 w-10'}`}
+	                    aria-label="Collapse header"
+	                    title="Collapse header"
+	                  >
+	                    <ChevronUp className={useCompactDesktopHeader ? 'h-[18px] w-[18px]' : 'h-5 w-5'} />
+	                  </button>
+	                </div>
+
+	                <div className="flex items-center justify-end gap-2 mt-2">
+	                  <div className="min-w-[37rem] max-w-[40rem]">
+	                    <HeaderRouteStatusPanel routeStatus={headerRouteStatus} />
+	                  </div>
                 </div>
               </div>
               </div>
@@ -5057,13 +5047,13 @@ const App: React.FC = () => {
          * panel inspector/sidebar) change between modes; those don't contain the globe. */
         <main
           className={uiMode === 'commercial'
-            ? 'min-h-0 flex-1 overflow-hidden bg-slate-950 px-2 py-2 sm:px-3 lg:px-4'
+            ? 'min-h-0 flex-1 overflow-hidden bg-slate-100 px-2 py-2 dark:bg-slate-950 sm:px-3 lg:px-4'
             : 'min-h-0 flex-1 overflow-hidden px-2 py-3 sm:px-3 lg:px-4'
           }
         >
           <div
             className={uiMode === 'commercial'
-              ? `flex min-h-0 overflow-hidden border border-slate-700 bg-slate-950 shadow-[0_32px_90px_-50px_rgba(15,23,42,0.95)] ${isFullscreen ? 'h-full rounded-none' : 'h-full rounded-xl'}`
+              ? `flex min-h-0 overflow-hidden border border-slate-200 bg-white shadow-[0_32px_90px_-50px_rgba(15,23,42,0.35)] dark:border-slate-700 dark:bg-slate-950 dark:shadow-[0_32px_90px_-50px_rgba(15,23,42,0.95)] ${isFullscreen ? 'h-full rounded-none' : 'h-full rounded-xl'}`
               : 'flex h-full flex-row'
             }
             style={uiMode !== 'commercial' ? {
@@ -5087,7 +5077,7 @@ const App: React.FC = () => {
                   unmounts → Cesium viewer stays alive → satellites keep moving. */}
               <div
                 className={uiMode === 'commercial'
-                  ? 'relative min-h-0 flex-1 overflow-hidden bg-slate-950'
+                  ? 'relative min-h-0 flex-1 overflow-hidden bg-slate-100 dark:bg-slate-950'
                   : 'absolute inset-0'
                 }
               >
