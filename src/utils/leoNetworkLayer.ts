@@ -23,6 +23,7 @@ import {
   RF_UPLINK_THROUGHPUT_BW_HZ,
 } from './leoLinkBudget';
 import { MIN_USER_TERMINAL_ELEVATION_DEG } from './leoFootprint';
+import { SHARED_BEAM_AGGREGATE_CAPACITY_MBPS } from '../config/oneweb';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 1. Best satellite/beam selection
@@ -90,21 +91,44 @@ export function selectBestServingCandidate<T extends SatelliteServingCandidate>(
 // 2. Beam capacity sharing
 // ─────────────────────────────────────────────────────────────────────────────
 
+/** Public OneWeb Gen-1 aggregate-per-beam approximation used as the shared DL capacity pool. */
+export const DEFAULT_LEO_SHARED_DOWNLINK_BEAM_CAPACITY_MBPS = SHARED_BEAM_AGGREGATE_CAPACITY_MBPS;
+
 /**
- * Ratio of full beam bandwidth to per-terminal allocation bandwidth.
- * = RF_NOISE_BW_HZ (250 MHz) / RF_THROUGHPUT_BW_HZ (50 MHz) = 5
- *
- * The RF chain computes throughput using RF_THROUGHPUT_BW_HZ as a single-user
- * allocation. Multiplying by this factor recovers the beam-total achievable rate.
+ * Indicative uplink shared pool derived from the configured uplink/downlink RF bandwidth ratio.
+ * Public OneWeb disclosures do not provide a clean per-beam uplink capacity value, so this remains
+ * a feasibility-grade engineering approximation and is normally bounded further by terminal UL caps.
  */
-export const BEAM_BW_SCALE = RF_NOISE_BW_HZ / RF_THROUGHPUT_BW_HZ; // 5
-export const UPLINK_BEAM_BW_SCALE = RF_UPLINK_NOISE_BW_HZ / RF_UPLINK_THROUGHPUT_BW_HZ; // 5
+export const DEFAULT_LEO_SHARED_UPLINK_BEAM_CAPACITY_MBPS = Math.round(
+  SHARED_BEAM_AGGREGATE_CAPACITY_MBPS * (RF_UPLINK_NOISE_BW_HZ / RF_NOISE_BW_HZ),
+);
+
+/**
+ * Bandwidth expansion from a terminal reference carrier to configured usable beam bandwidth.
+ * Kept as a transparent derived diagnostic; production sharing calls pass explicit bandwidths.
+ */
+export const BEAM_BW_SCALE = RF_NOISE_BW_HZ / RF_THROUGHPUT_BW_HZ;
+export const UPLINK_BEAM_BW_SCALE = RF_UPLINK_NOISE_BW_HZ / RF_UPLINK_THROUGHPUT_BW_HZ;
+
+export interface BeamCapacitySharingOptions {
+  direction?: 'downlink' | 'uplink';
+  /** Terminal reference carrier/allocation bandwidth used by the RF chain. */
+  referenceBandwidthHz?: number;
+  /** Usable beam bandwidth for this direction/profile. */
+  usableBeamBandwidthHz?: number;
+  /** Public/assumed aggregate shared beam capacity for this direction. */
+  sharedBeamCapacityMbps?: number;
+}
 
 export interface BeamCapacitySharingResult {
   /** Per-user throughput after dividing beam capacity by active users (Mbps) */
   sharedThroughputMbps: number;
   /** Beam-total available throughput before per-user division (Mbps) */
   beamTotalThroughputMbps: number;
+  /** Public/assumed shared beam capacity before RF-quality limiting (Mbps) */
+  sharedBeamCapacityMbps: number;
+  /** Beam capacity implied by RF spectral efficiency across usable beam bandwidth (Mbps) */
+  rfLimitedBeamCapacityMbps: number;
   /** Active user count used in the calculation */
   activeUsers: number;
   /** True when terminal hardware cap — not beam load — was the binding constraint */
@@ -116,11 +140,12 @@ export interface BeamCapacitySharingResult {
 /**
  * Compute per-user throughput from the RF chain result and the beam load estimate.
  *
- * The RF chain result was computed assuming RF_THROUGHPUT_BW_HZ (50 MHz = 1 user share).
+ * The RF chain result is computed for the selected terminal reference bandwidth.
  * This function:
- *   1. Recovers beam-total throughput: rfThroughput × BEAM_BW_SCALE
- *   2. Divides by estimated active users
- *   3. Clamps to terminal hardware max
+ *   1. Projects RF spectral efficiency onto configured usable beam bandwidth.
+ *   2. Bounds that RF-implied beam pool by the public/assumed shared beam capacity.
+ *   3. Divides by estimated active users.
+ *   4. Clamps to terminal hardware max.
  *
  * Label: "Estimated shared beam capacity — Simulation model — no SLA guarantee"
  *
@@ -132,9 +157,23 @@ export function applyBeamCapacitySharing(
   rfChainThroughputMbps: number,
   estimatedActiveUsers: number,
   terminalMaxMbps: number,
-  beamBandwidthScale: number = BEAM_BW_SCALE,
+  options: BeamCapacitySharingOptions | number = {},
 ): BeamCapacitySharingResult {
-  const beamTotalThroughputMbps = rfChainThroughputMbps * beamBandwidthScale;
+  const normalizedOptions: BeamCapacitySharingOptions = typeof options === 'number'
+    ? { usableBeamBandwidthHz: options, referenceBandwidthHz: 1 }
+    : options;
+  const direction = normalizedOptions.direction ?? 'downlink';
+  const defaultSharedCapacity = direction === 'uplink'
+    ? DEFAULT_LEO_SHARED_UPLINK_BEAM_CAPACITY_MBPS
+    : DEFAULT_LEO_SHARED_DOWNLINK_BEAM_CAPACITY_MBPS;
+  const sharedBeamCapacityMbps = normalizedOptions.sharedBeamCapacityMbps ?? defaultSharedCapacity;
+  const referenceBandwidthHz = Math.max(1, normalizedOptions.referenceBandwidthHz ?? RF_THROUGHPUT_BW_HZ);
+  const usableBeamBandwidthHz = Math.max(referenceBandwidthHz, normalizedOptions.usableBeamBandwidthHz ?? RF_NOISE_BW_HZ);
+  const bandwidthScale = usableBeamBandwidthHz / referenceBandwidthHz;
+  const rfLimitedBeamCapacityMbps = Math.max(0, rfChainThroughputMbps * bandwidthScale);
+  const beamTotalThroughputMbps = rfChainThroughputMbps <= 0
+    ? 0
+    : Math.min(sharedBeamCapacityMbps, rfLimitedBeamCapacityMbps);
   const users = Math.max(1, Math.round(estimatedActiveUsers));
   const rawPerUserMbps = beamTotalThroughputMbps / users;
   const sharedThroughputMbps = Math.max(0, Math.min(rawPerUserMbps, terminalMaxMbps));
@@ -142,6 +181,8 @@ export function applyBeamCapacitySharing(
   return {
     sharedThroughputMbps,
     beamTotalThroughputMbps,
+    sharedBeamCapacityMbps,
+    rfLimitedBeamCapacityMbps,
     activeUsers: users,
     wasTerminalLimited: rawPerUserMbps > terminalMaxMbps,
     wasBeamLoadLimited: rawPerUserMbps < rfChainThroughputMbps,

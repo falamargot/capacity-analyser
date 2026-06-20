@@ -18,6 +18,7 @@ import {
   applyHandoverDegradation,
   createHandoverState,
   BEAM_BW_SCALE,
+  DEFAULT_LEO_SHARED_DOWNLINK_BEAM_CAPACITY_MBPS,
   UPLINK_BEAM_BW_SCALE,
   SMOOTHING_ALPHA,
   HANDOVER_DEGRADATION_FACTOR,
@@ -125,11 +126,12 @@ describe('applyBeamCapacitySharing — Area 2: capacity sharing', () => {
     expect(result.sharedThroughputMbps).toBe(50);
   });
 
-  it('with 1 user: per-user throughput equals beam total (no sharing)', () => {
+  it('with 1 user: shared beam pool is capped by public aggregate-per-beam capacity', () => {
     const rfThroughput = 150; // Mbps (16APSK 3/4 at 50 MHz)
     const result = applyBeamCapacitySharing(rfThroughput, 1, 200);
-    // beamTotal = 150 × 5 = 750 Mbps; per user = 750 / 1 = 750 → capped at 200
-    expect(result.beamTotalThroughputMbps).toBe(750);
+    // RF-implied beam total = 150 × 5 = 750 Mbps; public shared beam cap = 450 Mbps.
+    expect(result.rfLimitedBeamCapacityMbps).toBe(750);
+    expect(result.beamTotalThroughputMbps).toBe(DEFAULT_LEO_SHARED_DOWNLINK_BEAM_CAPACITY_MBPS);
     expect(result.wasTerminalLimited).toBe(true);
   });
 
@@ -167,10 +169,11 @@ describe('applyBeamCapacitySharing — Area 2: capacity sharing', () => {
     expect(r.wasBeamLoadLimited).toBe(false);
   });
 
-  it('beamTotalThroughputMbps = rfChainThroughputMbps × BEAM_BW_SCALE', () => {
+  it('beamTotalThroughputMbps is the lower of public shared capacity and RF-limited beam capacity', () => {
     const rf = 187.5;
     const r = applyBeamCapacitySharing(rf, 5, 200);
-    expect(r.beamTotalThroughputMbps).toBeCloseTo(rf * BEAM_BW_SCALE, 6);
+    expect(r.rfLimitedBeamCapacityMbps).toBeCloseTo(rf * BEAM_BW_SCALE, 6);
+    expect(r.beamTotalThroughputMbps).toBe(DEFAULT_LEO_SHARED_DOWNLINK_BEAM_CAPACITY_MBPS);
   });
 
   it('activeUsers is always at least 1 (guard against zero/negative input)', () => {

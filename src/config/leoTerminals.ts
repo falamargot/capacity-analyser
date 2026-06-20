@@ -68,6 +68,8 @@ export const ESA_COSINE_N_1_4: LeoScanLossModel = {
 };
 
 const KU_LEO_BANDS: LeoSupportedBand[] = ['Ku'];
+// Feasibility reference carrier/allocation bandwidths. These are terminal-profile
+// assumptions used by the RF chain, then bounded by the shared beam capacity model.
 const ONEWEB_REF_BW = {
   dlReferenceBandwidthHz: 50 * MHZ,
   ulReferenceBandwidthHz: 20 * MHZ,

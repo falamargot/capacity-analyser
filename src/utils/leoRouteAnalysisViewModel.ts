@@ -302,13 +302,21 @@ function estimateEndpointPerformance(args: {
         downlinkRf.rfThroughputMbps,
         activeUsers,
         profile.maxDlMbps,
-        profile.dlUsableBeamBandwidthHz / profile.dlReferenceBandwidthHz,
+        {
+          direction: 'downlink',
+          referenceBandwidthHz: profile.dlReferenceBandwidthHz,
+          usableBeamBandwidthHz: profile.dlUsableBeamBandwidthHz,
+        },
       );
       const uplinkSharing = applyBeamCapacitySharing(
         uplinkRf.rfThroughputMbps,
         activeUsers,
         profile.maxUlMbps,
-        profile.ulUsableBeamBandwidthHz / profile.ulReferenceBandwidthHz,
+        {
+          direction: 'uplink',
+          referenceBandwidthHz: profile.ulReferenceBandwidthHz,
+          usableBeamBandwidthHz: profile.ulUsableBeamBandwidthHz,
+        },
       );
 
       return {

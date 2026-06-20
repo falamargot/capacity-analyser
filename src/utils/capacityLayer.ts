@@ -8,14 +8,17 @@
  *  - Network Load represents estimated network resource utilization.
  *  - OneWeb fill-rate reference cells calibrate the global Network Load surface.
  *  - Where no model cell is available, a global baseline is applied as a fallback only.
- *  - Performance = theoretical throughput × capacity availability implied by Network Load.
+ *  - Performance = shared beam capacity divided by simulated active sessions, capped by terminal peak.
  *
  * Constants:
  *  - Terminal peak throughput: 200 Mbps (NOMINAL_TERMINAL_PEAK_MBPS) — theoretical throughput ceiling
- *  - Average session throughput: 4 Mbps → max 50 simultaneous users at full terminal QoS
+ *  - Shared beam aggregate: OneWeb aggregate satellite capacity / 16 beams (public class approximation)
+ *  - Planning minimum user share: 4 Mbps → used only to size a saturated reference load
  *  - Load thresholds: <70 % = NOMINAL, 70–95 % = DEGRADED, >95 % = SATURATED
  */
 
+import { NOMINAL_TERMINAL_PEAK_MBPS, SHARED_BEAM_AGGREGATE_CAPACITY_MBPS } from '../config/oneweb';
+import { applyBeamCapacitySharing } from './leoNetworkLayer';
 import type {
   EstimatedLoadResult,
   EstimatedLoadSource,
@@ -39,9 +42,8 @@ export interface BeamLoadResult extends EstimatedLoadResult {
   beamLoadPercent: number;
 
   /**
-   * Terminal peak throughput ceiling used for load modelling (Mbps).
-   * This is NOMINAL_TERMINAL_PEAK_MBPS (200 Mbps), NOT the shared beam aggregate (~450 Mbps).
-   * Field name kept for backward compatibility; semantically it is the terminal peak, not beam capacity.
+   * Shared beam aggregate used for load modelling (Mbps).
+   * This is the public OneWeb aggregate-per-beam approximation, NOT terminal peak throughput.
    */
   beamCapacityMbps: number;
 
@@ -74,12 +76,11 @@ export interface BeamLoadResult extends EstimatedLoadResult {
 
 // ─── Constants ─────────────────────────────────────────────────────────────
 
-// Terminal peak throughput ceiling for load modelling (Mbps).
-// This is the single-terminal maximum, NOT the shared beam aggregate (~450 Mbps).
-// Used here to derive max concurrent users at full per-terminal QoS.
-const TERMINAL_PEAK_MBPS = 200;
-const AVG_SESSION_THROUGHPUT_MBPS = 4;   // Assumed average per session
-const MAX_CONCURRENT_USERS = Math.round(TERMINAL_PEAK_MBPS / AVG_SESSION_THROUGHPUT_MBPS); // 50
+const TERMINAL_PEAK_MBPS = NOMINAL_TERMINAL_PEAK_MBPS;
+const PLANNING_MIN_USER_SHARE_MBPS = 4;
+const MAX_CONCURRENT_USERS = Math.round(
+  SHARED_BEAM_AGGREGATE_CAPACITY_MBPS / PLANNING_MIN_USER_SHARE_MBPS,
+);
 
 const LOAD_DEGRADED_THRESHOLD = 0.70;
 const LOAD_SATURATED_THRESHOLD = 0.95;
@@ -109,9 +110,17 @@ function getCapacityStatus(beamLoadFraction: number): BeamLoadResult['capacitySt
 }
 
 function estimateUserThroughputMbps(estimatedActiveUsers: number): number {
-  const throughput = estimatedActiveUsers > 0
-    ? Math.min(TERMINAL_PEAK_MBPS / estimatedActiveUsers, TERMINAL_PEAK_MBPS)
-    : TERMINAL_PEAK_MBPS;
+  const sharing = applyBeamCapacitySharing(
+    TERMINAL_PEAK_MBPS,
+    estimatedActiveUsers,
+    TERMINAL_PEAK_MBPS,
+    {
+      sharedBeamCapacityMbps: SHARED_BEAM_AGGREGATE_CAPACITY_MBPS,
+      referenceBandwidthHz: 1,
+      usableBeamBandwidthHz: 1,
+    },
+  );
+  const throughput = sharing.sharedThroughputMbps;
 
   return Math.round(throughput * 10) / 10;
 }
@@ -140,7 +149,7 @@ function buildBeamLoadResult(args: {
     fillRateSource: args.fillRate?.source,
     confidence: args.confidence ?? 0,
     method,
-    beamCapacityMbps: TERMINAL_PEAK_MBPS,
+    beamCapacityMbps: SHARED_BEAM_AGGREGATE_CAPACITY_MBPS,
     estimatedUserThroughputMbps: estimateUserThroughputMbps(args.estimatedActiveUsers),
     capacityStatus: getCapacityStatus(args.beamLoadFraction),
     loadSource: args.loadSource,

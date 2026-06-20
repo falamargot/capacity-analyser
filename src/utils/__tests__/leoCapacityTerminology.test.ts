@@ -209,11 +209,10 @@ describe('estimateBeamLoad — all outputs are explicitly simulated', () => {
     expect(urban.estimatedUserThroughputMbps).toBeLessThanOrEqual(NOMINAL_TERMINAL_PEAK_MBPS);
   });
 
-  it('beamCapacityMbps equals NOMINAL_TERMINAL_PEAK_MBPS — not beam aggregate', () => {
+  it('beamCapacityMbps equals the shared beam aggregate — not terminal peak', () => {
     const result = estimateBeamLoad(0, 0, true, null);
-    expect(result.beamCapacityMbps).toBe(NOMINAL_TERMINAL_PEAK_MBPS);
-    // Explicitly NOT the beam aggregate (450 Mbps) or satellite aggregate (7200 Mbps)
-    expect(result.beamCapacityMbps).not.toBe(SHARED_BEAM_AGGREGATE_CAPACITY_MBPS);
+    expect(result.beamCapacityMbps).toBe(SHARED_BEAM_AGGREGATE_CAPACITY_MBPS);
+    expect(result.beamCapacityMbps).not.toBe(NOMINAL_TERMINAL_PEAK_MBPS);
     expect(result.beamCapacityMbps).not.toBe(SATELLITE_AGGREGATE_CAPACITY_GBPS * 1000);
   });
 });

@@ -794,14 +794,17 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
           referenceBandwidthHz: number;
           usableBandwidthHz: number;
           terminalCapMbps: number;
-          bandwidthScale: number;
           previousSmoothedMbps: number | null;
         }): { leg: LeoThroughputLeg; sharingWasTerminalLimited: boolean } => {
           const sharing = applyBeamCapacitySharing(
             args.rfChainThroughputMbps,
             activeUsers,
             args.terminalCapMbps,
-            args.bandwidthScale,
+            {
+              direction: args.direction,
+              referenceBandwidthHz: args.referenceBandwidthHz,
+              usableBeamBandwidthHz: args.usableBandwidthHz,
+            },
           );
           const backhaulMbps = sharing.sharedThroughputMbps * beamEstimate.backhaulFactor;
           const handoverMbps = applyHandoverDegradation(backhaulMbps, degradationFactor);
@@ -886,7 +889,6 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
           referenceBandwidthHz: profile.dlReferenceBandwidthHz,
           usableBandwidthHz: profile.dlUsableBeamBandwidthHz,
           terminalCapMbps: maxDlMbps,
-          bandwidthScale: profile.dlUsableBeamBandwidthHz / profile.dlReferenceBandwidthHz,
           previousSmoothedMbps: smoothedDownlinkThroughputRef.current,
         });
         smoothedDownlinkThroughputRef.current = downlink.leg.network.finalUserMbps;
@@ -915,7 +917,6 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
           referenceBandwidthHz: profile.ulReferenceBandwidthHz,
           usableBandwidthHz: profile.ulUsableBeamBandwidthHz,
           terminalCapMbps: maxUlMbps,
-          bandwidthScale: profile.ulUsableBeamBandwidthHz / profile.ulReferenceBandwidthHz,
           previousSmoothedMbps: smoothedUplinkThroughputRef.current,
         });
         smoothedUplinkThroughputRef.current = uplink.leg.network.finalUserMbps;
@@ -1140,11 +1141,19 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
 
           const sharingDlB = applyBeamCapacitySharing(
             dlRfB.rfThroughputMbps, activeUsersB, pB.maxDlMbps,
-            pB.dlUsableBeamBandwidthHz / pB.dlReferenceBandwidthHz,
+            {
+              direction: 'downlink',
+              referenceBandwidthHz: pB.dlReferenceBandwidthHz,
+              usableBeamBandwidthHz: pB.dlUsableBeamBandwidthHz,
+            },
           );
           const sharingUlB = applyBeamCapacitySharing(
             ulRfB.rfThroughputMbps, activeUsersB, pB.maxUlMbps,
-            pB.ulUsableBeamBandwidthHz / pB.ulReferenceBandwidthHz,
+            {
+              direction: 'uplink',
+              referenceBandwidthHz: pB.ulReferenceBandwidthHz,
+              usableBeamBandwidthHz: pB.ulUsableBeamBandwidthHz,
+            },
           );
 
           const dlLegB: LeoThroughputLeg = {

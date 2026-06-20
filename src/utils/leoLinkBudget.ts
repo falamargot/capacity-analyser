@@ -61,14 +61,14 @@ export const RF_UPLINK_NOISE_BW_HZ = 100e6;
 
 /**
  * Per-terminal throughput bandwidth (Hz) — ESTIMATED DEFAULT.
- * Represents a typical MF-TDMA single-user allocation (≈ 1/5 of beam BW,
- * assuming ~5 concurrent users sharing the beam in the model).
- * Chosen so that the best MODCOD (32APSK 3/4) produces ~187.5 Mbps,
- * just below the 200 Mbps terminal hardware ceiling.
+ * Represents a feasibility reference carrier/allocation used to convert selected
+ * MODCOD spectral efficiency into a single-user RF ceiling. Beam sharing is not
+ * inferred from this value; the network layer bounds sharing by public aggregate
+ * OneWeb capacity per beam and terminal limits.
  */
 export const RF_THROUGHPUT_BW_HZ = 50e6;
 
-/** Uplink per-terminal reference allocation (Hz) — ESTIMATED DEFAULT. */
+/** Uplink per-terminal reference allocation (Hz) — ESTIMATED DEFAULT; bounded again in the network layer. */
 export const RF_UPLINK_THROUGHPUT_BW_HZ = 20e6;
 
 /**
