@@ -27,6 +27,7 @@ import {
   type PredictionConfidence,
 } from '../../utils/predictionConfidence';
 import { estimateGeoSatelliteCapacity } from '../../utils/geoCapacityModel';
+import { buildLinkAvailabilityContext, formatLinkAvailabilityContext } from '../../utils/linkAvailabilityContext';
 import {
   buildGeoRouteViewModel,
   buildLeoRouteViewModel,
@@ -35,6 +36,7 @@ import {
 import { type TerminalType, type WeatherType } from '../capacity';
 import type {
   CommercialPoint,
+  CommercialRegulatoryConfidence,
   CommercialRouteSegment,
   CommercialRouteSegmentStatus,
   CommercialScenarioViewModel,
@@ -212,6 +214,22 @@ export function buildCommercialScenarioViewModel(input: BuildCommercialScenarioV
     : geoStatusSource && geoStatusSource !== 'available'
     ? geoStatusLabel(geoStatusSource)
     : geoRoute.statusReason ?? undefined;
+  const leoRegulatoryConfidence: CommercialRegulatoryConfidence = leoRoutePending
+    ? 'pending'
+    : leoEvidence?.failureReason?.startsWith('REGULATORY')
+      ? 'blocked'
+      : leoServiceStatus === 'DEGRADED'
+        ? 'restricted'
+        : leoServiceStatus === 'ALLOWED'
+          ? 'confirmed'
+          : 'pending';
+  const geoRegulatoryConfidence: CommercialRegulatoryConfidence = geoRoutePending
+    ? 'pending'
+    : geoStatusSource === 'available'
+      ? 'confirmed'
+      : geoStatusSource
+        ? 'blocked'
+        : 'pending';
 
   // ── Comparison options + recommendation + display technology ─────────────
   // These are derived from per-tech data only — no activeTechnology fork.
@@ -230,6 +248,7 @@ export function buildCommercialScenarioViewModel(input: BuildCommercialScenarioV
       routeSummary: leoRoute.summary ?? undefined,
       limitingFactor: toCustomerLimitation(routeLimitingFactor(leoRoute.statusReason, leoLimitingFactor)),
       technicalLimitingFactor: routeLimitingFactor(leoRoute.statusReason, leoLimitingFactor),
+      regulatoryConfidence: leoRegulatoryConfidence,
       strengths: [],
     },
     {
@@ -245,6 +264,7 @@ export function buildCommercialScenarioViewModel(input: BuildCommercialScenarioV
       routeSummary: input.geoRouteAnalysis?.routeSummary ?? geoRoute.summary ?? undefined,
       limitingFactor: toCustomerLimitation(routeLimitingFactor(geoRoute.statusReason, geoLimitingFactor)),
       technicalLimitingFactor: routeLimitingFactor(geoRoute.statusReason, geoLimitingFactor),
+      regulatoryConfidence: geoRegulatoryConfidence,
       strengths: [],
     },
   ];
@@ -412,6 +432,11 @@ export function buildCommercialScenarioViewModel(input: BuildCommercialScenarioV
     predictionConfidence.summary,
     predictionConfidence.reasons[0] ?? predictionConfidence.limitation,
   ].filter(Boolean).join(' - ');
+  const availabilityContext = buildLinkAvailabilityContext({
+    architecture: isDisplayLeo ? 'LEO' : 'GEO',
+    weatherType: isDisplayLeo ? input.weatherType : input.weatherType,
+    lat: input.activeAnalysisPoint?.lat,
+  });
   const assumptionsSummary = isDisplayLeo
     ? 'Assumes simulated network load, beam sharing, selected LEO SNP path, public terminal profile, weather profile, and indicative backbone routing.'
     : 'Assumes selected weather profile, public frequency data, terminal RF class, and reference GEO teleport allocation.';
@@ -585,6 +610,7 @@ export function buildCommercialScenarioViewModel(input: BuildCommercialScenarioV
       confidence: predictionConfidence.level,
       confidenceNote,
       predictionConfidence,
+      availabilityContext: formatLinkAvailabilityContext(availabilityContext),
       assumptionsSummary,
       backboneDistance: isDisplayLeo && leoRoutePath?.backboneDistanceKm
         ? `${Math.round(leoRoutePath.backboneDistanceKm).toLocaleString()} km`

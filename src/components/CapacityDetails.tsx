@@ -21,7 +21,7 @@ import { analyzeLeoConnectivity } from '../utils/leoConnectivityModel';
 import { computeGeoConnectivity, findCandidateCoverages } from '../utils/geoCoverageSelection';
 import { useSimulation } from '../contexts/SimulationContext';
 import { buildSimulationStateSnapshot } from '../types/simulation';
-import type { PDFConnectionDetails } from '../utils/pdfExport';
+import type { PDFConnectionDetails, PDFEvidenceSummary } from '../utils/pdfExport';
 import type { RegulatoryResult } from '../services/regulatoryService';
 import type { BeamLoadResult } from '../utils/capacityLayer';
 import type { ServiceLayerResult } from '../utils/serviceLayer';
@@ -71,6 +71,9 @@ import type {
   LeoRfChainBreakdown,
   LeoThroughputLeg,
 } from '../types/leoThroughput';
+import { buildGeoConfidence, buildLeoSingleSiteConfidence } from '../utils/predictionConfidence';
+import { estimateGeoSatelliteCapacity } from '../utils/geoCapacityModel';
+import { buildLinkAvailabilityContext, formatLinkAvailabilityContext } from '../utils/linkAvailabilityContext';
 
 // ─── Extracted sub-components ─────────────────────────────────────────────────
 import {
@@ -2308,6 +2311,51 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
     }
 
     const userLabel = analysisSource === 'aircraft' && aircraftCallsign ? aircraftCallsign : 'User';
+    const leoConfidence = leoSiteToSiteResult?.predictionConfidence ?? buildLeoSingleSiteConfidence({
+      mode: 'ENG',
+      satelliteResolved: !!resolvedLEOConnectivity?.satellite,
+      snpResolved: !!resolvedLEOConnectivity?.snp,
+      rfAvailable: !!leoPerformance,
+      debugAvailable: !!leoPerformance?.debugInfo,
+      regulatoryStatus: regulatoryResult?.status ?? null,
+      loadSource: beamLoadResult?.loadSource ?? null,
+      elevationDeg: resolvedLEOConnectivity?.userLEOElevation ?? null,
+    });
+    const geoCapacityEstimate = resolvedGEOConnectivity?.satellite
+      ? estimateGeoSatelliteCapacity(resolvedGEOConnectivity.satellite)
+      : null;
+    const geoConfidence = buildGeoConfidence({
+      mode: 'ENG',
+      topology: linkMode === 'MESH' || linkMode === 'POINT_TO_POINT' ? 'Site-to-Site' : 'Single Site',
+      coverageAvailable: !!activeCoverageForGeo,
+      rfAvailable: !!geoPerformance,
+      publicFrequencyEvidence: !!(activeCoverageForGeo?.band ?? activeCoverageForGeo?.frequencyGhz ?? activeCoverageForGeo?.level),
+      gatewayResolved: linkMode === 'MESH' || linkMode === 'POINT_TO_POINT' || !!geoGeometry?.satelliteToGateway.resolvedGateway,
+      capacityClassKnown: !!geoCapacityEstimate,
+      regulatoryKnown: true,
+      routePending: false,
+    });
+    const preferLeo = satelliteScope === 'LEO'
+      || (satelliteScope === 'ALL' && !!resolvedLEOConnectivity?.snp && !resolvedGEOConnectivity);
+    const chosenConfidence = preferLeo ? leoConfidence : geoConfidence;
+    const chosenPerformance = preferLeo
+      ? `${Math.round((leoPerformance?.downlinkGbps ?? 0) * 1000)} Mbps down / ${Math.round((leoPerformance?.uplinkGbps ?? 0) * 1000)} Mbps up`
+      : `${Math.round((geoPerformance?.downlinkGbps ?? 0) * 1000)} Mbps down / ${Math.round((geoPerformance?.uplinkGbps ?? 0) * 1000)} Mbps up`;
+    const availabilityContext = buildLinkAvailabilityContext({
+      architecture: preferLeo ? 'LEO' : 'GEO',
+      weatherType,
+      lat: activePoint.lat,
+    });
+    const evidenceSummary: PDFEvidenceSummary = {
+      architectureChoice: preferLeo ? 'LEO feasibility path' : 'GEO feasibility path',
+      limitingFactor: preferLeo
+        ? (activeLeoRouteEvidence?.bottleneck ?? activeLeoRouteEvidence?.degradationReason ?? 'No primary LEO limiter detected')
+        : (geoGeometry?.warnings?.[0] ?? (geoGeometry?.isUserLinkUnstable ? 'Low GEO elevation margin' : 'No primary GEO limiter detected')),
+      expectedPerformance: chosenPerformance,
+      confidence: chosenConfidence.summary,
+      confidenceReasons: chosenConfidence.reasons,
+      availabilityContext: formatLinkAvailabilityContext(availabilityContext),
+    };
 
     return {
       location: {
@@ -2354,13 +2402,17 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
       } : null,
       leoDetails: satelliteScope !== 'GEO' ? leoPdfDetails : null,
       geoDetails: satelliteScope !== 'LEO' ? geoPdfDetails : null,
+      evidenceSummary,
       globeRef,
       cesiumViewerRef,
     };
   }, [
+    activeCoverageForGeo,
+    activeLeoRouteEvidence,
     activePoint,
     aircraftCallsign,
     analysisSource,
+    beamLoadResult,
     cesiumViewerRef,
     geoGeometry,
     geoPerformance,
@@ -2369,10 +2421,14 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
     leoGeometry,
     leoPdfDetails,
     leoPerformance,
+    leoSiteToSiteResult,
+    linkMode,
     nearestLocation,
+    regulatoryResult,
     resolvedGEOConnectivity,
     resolvedLEOConnectivity,
     satelliteScope,
+    weatherType,
   ]);
 
   useEffect(() => {

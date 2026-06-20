@@ -60,6 +60,15 @@ export interface PDFConnectionDetails {
   emptyState?: string;
 }
 
+export interface PDFEvidenceSummary {
+  architectureChoice: string;
+  limitingFactor: string;
+  expectedPerformance: string;
+  confidence: string;
+  confidenceReasons: string[];
+  availabilityContext?: string;
+}
+
 interface CesiumViewerLike {
   render?: () => void;
   scene?: {
@@ -80,6 +89,7 @@ export interface PDFExportData {
   geoData: PerformanceData | null;
   leoDetails?: PDFConnectionDetails | null;
   geoDetails?: PDFConnectionDetails | null;
+  evidenceSummary?: PDFEvidenceSummary | null;
   globeElement: HTMLElement | null;
   cesiumViewer?: CesiumViewerLike | null;
 }
@@ -331,6 +341,33 @@ function createComparisonPage(pdf: jsPDF, data: PDFExportData, snapshot: Snapsho
     pdf.text(line, 20, currentY);
     currentY += 5;
   });
+
+  if (data.evidenceSummary) {
+    currentY += 5;
+    pdf.setFontSize(12);
+    pdf.setFont('helvetica', 'bold');
+    pdf.text('EVIDENCE SUMMARY', 20, currentY);
+    currentY += 6;
+    const evidenceRows = [
+      ['Architecture choice', data.evidenceSummary.architectureChoice],
+      ['Main limiting factor', data.evidenceSummary.limitingFactor],
+      ['Expected performance', data.evidenceSummary.expectedPerformance],
+      ['Prediction confidence', data.evidenceSummary.confidence],
+      ['Weather availability', data.evidenceSummary.availabilityContext ?? 'N/A'],
+    ];
+    currentY = drawTable(pdf, ['Evidence', 'Value'], evidenceRows, currentY);
+    if (data.evidenceSummary.confidenceReasons.length) {
+      currentY += 5;
+      pdf.setFontSize(10);
+      pdf.setFont('helvetica', 'normal');
+      const reasonText = data.evidenceSummary.confidenceReasons.join(' | ');
+      const reasonLines = pdf.splitTextToSize(toPdfSafeText(reasonText), 150);
+      reasonLines.forEach((line: string) => {
+        pdf.text(line, 20, currentY);
+        currentY += 5;
+      });
+    }
+  }
 
   addFooter(pdf);
 }

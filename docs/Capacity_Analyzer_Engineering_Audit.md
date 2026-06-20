@@ -423,7 +423,7 @@ The new confidence score is a deterministic evidence score from 0 to 100. It is 
 
 The implementation was regression-tested with targeted model and UI-adjacent tests covering the touched surfaces. The touched-path suite passed, including tests for load terminology, fill-rate provenance, GEO reference allocation, LEO service-view-model wording, GEO RF context labels, active-route behavior and the new LEO site-to-site confidence caps. Static scans confirmed that the old high-risk labels no longer appear in `src`.
 
-The full Vitest suite still has one unrelated environment issue: a Cesium test imports code that creates a canvas while running in a Node test environment, producing `ReferenceError: document is not defined`. This is a test harness problem, not a regression in the Quick Wins implementation. Build and lint completed successfully, with existing lint warnings remaining.
+The full Vitest suite now passes after the localized Cesium canvas test-environment fix. Build and lint complete successfully, with existing lint warnings remaining.
 
 ---
 
@@ -487,7 +487,85 @@ The product is now stronger in the areas that previously dragged credibility dow
 
 ### Remaining recommendations from the audit
 
-High-value next improvements are: constellation-aware handover and path stability, rain-rate/availability context, pass-duration and next-window evidence, regulatory confidence/pending-state handling in recommendations, evidence-aware export/report summaries, GEO transponder/payload planning from public frequency plans, LEO feeder-link/SNP budget approximation and EPFD/GSO protection margin.
+The remaining Medium-Term roadmap items have now been implemented as a second medium-term pass. High-value next improvements move into the Long-Term roadmap: GEO transponder/payload planning from public frequency plans, LEO feeder-link/SNP budget approximation, EPFD/GSO protection margin, continuous rain-rate and ITU climate-zone modeling, interference/frequency-reuse context, scenario sensitivity ranges and optional private operator data ingestion.
+
+### 4. Constellation-aware handover and path stability
+
+**What changed.** LEO site-to-site stability now uses sampled pass-window evidence rather than elevation bins alone. The new pass-window model samples propagated SGP4 positions over a planning horizon and exposes current pass remaining time, next pass timing, estimated pass duration and pass apex elevation for each endpoint. Expected handovers now derive from pass-window duration.
+
+**Assumptions used.** The model samples a short planning horizon and uses the existing terminal minimum elevation threshold. It is deterministic and uses the same SGP4/elevation path as the rest of the app.
+
+**Engineering rationale.** Remaining visible time and pass apex are stronger service-continuity evidence than a single elevation snapshot. This improves the credibility of stability and handover indicators while staying feasibility-grade.
+
+**Business rationale.** Users can understand whether a LEO path is stable enough for a decision-support conversation or likely near a transition window.
+
+**Remaining limitations.** It is not real handover telemetry, does not model make-before-break timing, scheduler state, beam-to-beam reassociation or operator-specific handover policy.
+
+### 5. Weather and link availability context
+
+**What changed.** GEO and LEO now expose weather availability context using selected weather severity, architecture and broad rain-region class. COMM inspector rows and ENG assumptions panels show an indicative availability class, availability percentage and fade-risk note.
+
+**Assumptions used.** Weather classes remain coarse UI inputs: clear, light rain, heavy rain and storm. Rain region is a broad latitude-derived class: tropical, temperate or polar/arid. GEO is treated as more sensitive to persistent rain-cell exposure; LEO is treated as indicative because elevation and beam geometry change over a pass.
+
+**Engineering rationale.** Weather is now represented as a limiting-factor context rather than only a scalar throughput factor. This improves explainability without claiming rain-rate statistics or SLA availability.
+
+**Business rationale.** Customers and presales users get clearer language about path robustness in adverse weather.
+
+**Remaining limitations.** This is not ITU-R P.618 availability modeling. It does not use local rain-rate, rain height, climate-zone maps, fade-margin distribution or outage statistics.
+
+### 6. Regulatory confidence and pending-state handling in recommendations
+
+**What changed.** Commercial recommendation options now carry `regulatoryConfidence` and the recommendation engine treats confirmed, estimated, restricted, pending and blocked states differently. If both available paths have uncertain sellability, the engine returns insufficient data instead of over-recommending. If one available architecture has materially stronger regulatory evidence, it can be preferred for regulatory certainty.
+
+**Assumptions used.** Regulatory confidence is derived from existing service status, route pending state and regulatory failure reasons. GEO uses route/coverage status as a proxy until a dedicated GEO regulatory service exists.
+
+**Engineering rationale.** Recommendation logic is now aligned with the service-layer priority chain and avoids treating technical connectivity as automatically sellable connectivity.
+
+**Business rationale.** Prevents "recommended" language when regulatory evidence is pending or restricted, which is important for decision support and customer-facing conversations.
+
+**Remaining limitations.** GEO regulatory confidence is still proxy-based. Future work should use explicit regulatory datasets for GEO and richer country/service authorization states.
+
+### 7. Pass-duration and next-window evidence for LEO
+
+**What changed.** LEO site-to-site results now include `passWindowA` and `passWindowB`, and the LEO site-to-site panel displays pass-window labels for both sites.
+
+**Assumptions used.** Pass duration and next-window values are sampled planning estimates over the configured horizon. They are not an operations forecast.
+
+**Engineering rationale.** LEO feasibility is time-sensitive. Adding pass-window evidence makes the availability/stability story more realistic without adding a live monitoring layer.
+
+**Business rationale.** Users can distinguish "not feasible now" from "likely feasible in a nearby pass window" and understand why stability confidence changes.
+
+**Remaining limitations.** The model does not yet search across all constellation satellites for the next best future pass; it evaluates the currently selected/serving satellite path.
+
+### 8. Evidence-aware export/report summary
+
+**What changed.** PDF export data now includes an evidence summary with architecture choice, primary limiting factor, expected performance, prediction confidence, confidence reasons and weather availability context. The PDF comparison page renders this summary.
+
+**Assumptions used.** The export summary uses the current simulated analysis state and the same confidence/availability helpers used by COMM and ENG surfaces.
+
+**Engineering rationale.** Export/report output now carries the reasoning context, not just raw throughput and latency numbers.
+
+**Business rationale.** The report becomes more useful as a feasibility handoff artifact for presales, engineering review and customer discussion.
+
+**Remaining limitations.** The PDF summary is compact. It does not yet include the full factor-by-factor confidence table, sensitivity ranges or all active assumptions.
+
+### Updated credibility assessment after remaining Medium-Term implementation
+
+| Dimension | Previous medium-term estimate | Updated estimate |
+|---|---:|---:|
+| GEO link budget & geometry | 88 | 88 |
+| LEO RF physics & architecture | 82 | 84 |
+| Capacity / network-load / handover realism | 72 | 78 |
+| Visualization fidelity | 81 | 82 |
+| COMM/ENG separation | 83 | 86 |
+| Honesty / provenance labeling | 94 | 95 |
+| Operator-grade completeness (missing metrics) | 66 | 70 |
+
+### Estimated credibility score after remaining Medium-Term implementation
+
+**Overall credibility: 86 / 100.**
+
+The app now addresses every Medium-Term roadmap item at feasibility depth. The remaining credibility gap is mostly Long-Term: transponder planning, feeder-link budgets, EPFD margin, continuous rain-rate availability, interference/frequency reuse, uncertainty envelopes and optional validated operator data.
 
 ---
 

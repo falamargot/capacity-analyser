@@ -210,6 +210,7 @@ function CommercialInspectorPanel({
           { label: 'Availability', value: viewModel.availabilityPct != null ? `${Math.round(viewModel.availabilityPct)}%` : viewModel.display.serviceStatusLabel },
           { label: 'Path stability', value: viewModel.display.pathStability },
           { label: 'Prediction confidence', value: viewModel.display.confidenceNote ?? viewModel.display.confidence },
+          { label: 'Weather availability', value: viewModel.display.availabilityContext },
           { label: 'Assumptions', value: viewModel.display.assumptionsSummary },
           { label: 'Raw service status', value: viewModel.display.rawServiceStatus },
         ]);
@@ -225,6 +226,7 @@ function CommercialInspectorPanel({
     { label: destinationWeatherLabel, value: viewModel.display.weatherB ?? '--' },
     { label: 'Recommendation category', value: viewModel.recommendation.reasonCategory.replaceAll('_', ' ') },
     { label: 'Prediction confidence', value: viewModel.display.confidenceNote ?? viewModel.display.confidence ?? '--' },
+    { label: 'Weather availability', value: viewModel.display.availabilityContext ?? '--' },
     { label: 'Assumptions', value: viewModel.display.assumptionsSummary ?? '--' },
   ];
   const limitingRows = [

@@ -3,6 +3,7 @@ import { Download, Loader2 } from 'lucide-react';
 import type {
   PDFConnectionDetails,
   PDFExportData,
+  PDFEvidenceSummary,
   PDFScope,
   PerformanceData,
   LocationData,
@@ -15,6 +16,7 @@ interface ExportButtonProps {
   geoData: PerformanceData | null;
   leoDetails?: PDFConnectionDetails | null;
   geoDetails?: PDFConnectionDetails | null;
+  evidenceSummary?: PDFEvidenceSummary | null;
   globeRef?: React.RefObject<HTMLElement | null>;
   cesiumViewerRef?: React.RefObject<any>;
   disabled?: boolean;
@@ -29,6 +31,7 @@ const ExportButton: React.FC<ExportButtonProps> = ({
   geoData,
   leoDetails,
   geoDetails,
+  evidenceSummary,
   globeRef,
   cesiumViewerRef,
   disabled = false
@@ -50,6 +53,7 @@ const ExportButton: React.FC<ExportButtonProps> = ({
         geoData,
         leoDetails,
         geoDetails,
+        evidenceSummary,
         globeElement: globeRef?.current || null,
         cesiumViewer: cesiumViewerRef?.current
       };

@@ -14,6 +14,12 @@ import {
   riskFactor,
   type PredictionConfidence,
 } from './predictionConfidence';
+import {
+  buildLeoPassWindowEvidence,
+  expectedHandoversFromPassWindow,
+  stabilityFromPassWindows,
+  type LeoPassWindowEvidence,
+} from './leoPassWindow';
 
 // ── OneWeb site-to-site backbone constants ────────────────────────────────────
 
@@ -164,6 +170,8 @@ export interface LeoSiteToSiteResult {
   /** Number of expected handovers in the next ~15 minutes (estimated). */
   expectedHandoversA: number;
   expectedHandoversB: number;
+  passWindowA: LeoPassWindowEvidence | null;
+  passWindowB: LeoPassWindowEvidence | null;
 
   pathStability: 'High' | 'Medium' | 'Low';
   confidenceLevel: 'High' | 'Medium' | 'Low';
@@ -210,24 +218,6 @@ export function selectLogicalPop(
   }
 
   return nearest;
-}
-
-/**
- * Estimate path stability from elevation angles and approximate RVT.
- * Higher elevation → satellite is near pass apex → more stable.
- */
-function derivePathStability(
-  elevationADeg: number | null,
-  elevationBDeg: number | null
-): 'High' | 'Medium' | 'Low' {
-  const minElevation = Math.min(
-    elevationADeg ?? 0,
-    elevationBDeg ?? 0
-  );
-
-  if (minElevation >= 40) return 'High';
-  if (minElevation >= 20) return 'Medium';
-  return 'Low';
 }
 
 function deriveConfidence(args: {
@@ -302,18 +292,6 @@ function deriveConfidence(args: {
       },
     ],
   });
-}
-
-/**
- * Estimate expected handovers based on current elevation.
- * Very rough: a satellite passing directly overhead at 60°+ will be
- * visible for ~15 min; one at 20° might only be visible ~5 more minutes.
- */
-function estimateExpectedHandovers(elevationDeg: number | null): number {
-  if (elevationDeg === null) return 1;
-  if (elevationDeg >= 50) return 0;
-  if (elevationDeg >= 30) return 1;
-  return 2;
 }
 
 function deriveFailureReason(args: {
@@ -539,7 +517,15 @@ export function computeLeoSiteToSiteResult(args: ComputeLeoSiteToSiteArgs): LeoS
   const finalThroughputBtoAMbps = accessThroughputBtoAMbps;
 
   // ── Stability & confidence ────────────────────────────────────────────────
-  const pathStability = derivePathStability(elevationADeg, elevationBDeg);
+  const passWindowA = buildLeoPassWindowEvidence({
+    satellite: servingSatelliteA,
+    point: endpointA,
+  });
+  const passWindowB = buildLeoPassWindowEvidence({
+    satellite: servingSatelliteB,
+    point: endpointB,
+  });
+  const pathStability = stabilityFromPassWindows(passWindowA, passWindowB, elevationADeg, elevationBDeg);
   const confidence = deriveConfidence({
     snpA: selectedSnpA,
     snpB: selectedSnpB,
@@ -557,8 +543,8 @@ export function computeLeoSiteToSiteResult(args: ComputeLeoSiteToSiteArgs): LeoS
     elevationBDeg,
   });
 
-  const expectedHandoversA = estimateExpectedHandovers(elevationADeg);
-  const expectedHandoversB = estimateExpectedHandovers(elevationBDeg);
+  const expectedHandoversA = expectedHandoversFromPassWindow(passWindowA);
+  const expectedHandoversB = expectedHandoversFromPassWindow(passWindowB);
 
   return {
     endpointA,
@@ -597,6 +583,8 @@ export function computeLeoSiteToSiteResult(args: ComputeLeoSiteToSiteArgs): LeoS
     elevationBDeg,
     expectedHandoversA,
     expectedHandoversB,
+    passWindowA,
+    passWindowB,
     pathStability,
     confidenceLevel: confidence.level,
     confidenceScore: confidence.score,

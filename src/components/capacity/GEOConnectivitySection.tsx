@@ -16,6 +16,7 @@ import type { ResolvedGeoGateway } from '../../utils/geoConnectivityModel';
 import { formatCoordinates } from '../../utils/formatters';
 import { buildGeoConfidence } from '../../utils/predictionConfidence';
 import { estimateGeoSatelliteCapacity } from '../../utils/geoCapacityModel';
+import { buildLinkAvailabilityContext, formatLinkAvailabilityContext } from '../../utils/linkAvailabilityContext';
 
 // ─── Sub-component: LatencyBreakdownCard ──────────────────────────────────────
 
@@ -798,6 +799,11 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
     capacityClassKnown: !!geoCapacityEstimate,
     regulatoryKnown: true,
     routePending: false,
+  });
+  const availabilityContext = buildLinkAvailabilityContext({
+    architecture: 'GEO',
+    weatherType,
+    lat: activePoint?.lat,
   });
   const isMeshOrP2P = linkMode === 'MESH' || linkMode === 'POINT_TO_POINT';
   const isStarForward = linkMode === 'STAR_FORWARD';
@@ -1647,6 +1653,9 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
             </div>
             <div className="rounded border border-slate-200 bg-white px-2.5 py-1.5 text-slate-700 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200">
               <span className="font-semibold">Prediction confidence:</span> {geoPredictionConfidence.summary}. {geoPredictionConfidence.reasons[0] ?? geoPredictionConfidence.limitation}
+            </div>
+            <div className="rounded border border-slate-200 bg-white px-2.5 py-1.5 text-slate-700 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200">
+              <span className="font-semibold">Weather availability:</span> {formatLinkAvailabilityContext(availabilityContext)}. {availabilityContext.rationale}
             </div>
             <div className="grid gap-1.5">
               <div><span className="font-semibold text-slate-700 dark:text-slate-200">Physical:</span> WGS84 slant range, elevation, radio propagation delay and GEO RF link-budget calculations.</div>

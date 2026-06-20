@@ -20,6 +20,7 @@ import type { LeoConnectivityViewModel } from '../../utils/leoServiceViewModel';
 import LeoStatusCards from './LeoStatusCards';
 import type { LeoBottleneckFactor, LeoThroughputLeg, LeoThroughputResult } from '../../types/leoThroughput';
 import { buildLeoSingleSiteConfidence } from '../../utils/predictionConfidence';
+import { buildLinkAvailabilityContext, formatLinkAvailabilityContext } from '../../utils/linkAvailabilityContext';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // TODO: DC Level / Throughput / Power synchronisation (Q2-Q3-Q4)
@@ -1111,6 +1112,11 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
         loadSource: beamLoadResult?.loadSource ?? null,
         elevationDeg: resolvedLEOConnectivity?.userLEOElevation ?? null,
       });
+  const availabilityContext = buildLinkAvailabilityContext({
+    architecture: 'LEO',
+    weatherType,
+    lat: activePoint?.lat,
+  });
 
   useEffect(() => {
     if (!isS2S || !activeMeshTab) return;
@@ -1876,6 +1882,9 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
             </div>
             <div className="rounded border border-slate-200 bg-white px-2.5 py-1.5 text-slate-700 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200">
               <span className="font-semibold">Prediction confidence:</span> {predictionConfidence.summary}. {predictionConfidence.reasons[0] ?? predictionConfidence.limitation}
+            </div>
+            <div className="rounded border border-slate-200 bg-white px-2.5 py-1.5 text-slate-700 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200">
+              <span className="font-semibold">Weather availability:</span> {formatLinkAvailabilityContext(availabilityContext)}. {availabilityContext.rationale}
             </div>
             <div className="grid gap-1.5">
               <div><span className="font-semibold text-slate-700 dark:text-slate-200">Physical:</span> slant range, elevation, radio propagation delay and RF link-budget chains.</div>

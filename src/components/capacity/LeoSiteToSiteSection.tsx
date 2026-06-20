@@ -182,6 +182,8 @@ const LeoSiteToSiteSection = memo<LeoSiteToSiteSectionProps>(({ result, directio
     elevationBDeg,
     expectedHandoversA,
     expectedHandoversB,
+    passWindowA,
+    passWindowB,
     pathStability,
     confidenceLevel,
     confidenceScore,
@@ -373,7 +375,7 @@ const LeoSiteToSiteSection = memo<LeoSiteToSiteSectionProps>(({ result, directio
               title={
                 <>
                   Stability
-                  <SectionTooltip content="Qualitative estimate based on satellite elevation and motion. Higher elevation → satellite near pass apex → more stable. Expected handovers are estimated for the next 15 minutes." />
+                  <SectionTooltip content="Qualitative estimate based on sampled pass-window evidence, current/next visibility and pass apex elevation. It is planning context, not live handover telemetry." />
                 </>
               }
               accentColor={ACCENT}
@@ -410,9 +412,17 @@ const LeoSiteToSiteSection = memo<LeoSiteToSiteSectionProps>(({ result, directio
                     label="Expected handovers B (~15 min)"
                     value={String(expectedHandoversB)}
                   />
+                  <MetricRow
+                    label="Site A pass window"
+                    value={passWindowA?.label ?? '--'}
+                  />
+                  <MetricRow
+                    label="Site B pass window"
+                    value={passWindowB?.label ?? '--'}
+                  />
                 </div>
                 <div className="rounded border border-amber-200 bg-amber-50 px-2.5 py-1.5 text-[10px] text-amber-700 dark:border-amber-800/50 dark:bg-amber-950/30 dark:text-amber-300 mt-1">
-                  Stability is a qualitative estimate. Actual handover timing depends on constellation geometry at the time of use.
+                  Stability is a sampled feasibility estimate. Actual handover timing depends on operator scheduling and constellation state at the time of use.
                 </div>
               </div>
             </CollapsibleSection>

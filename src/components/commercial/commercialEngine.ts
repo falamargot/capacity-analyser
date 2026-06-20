@@ -2,6 +2,7 @@ import type {
   CommercialCustomerServiceState,
   CommercialExecutiveSummary,
   CommercialRecommendation,
+  CommercialRegulatoryConfidence,
   CommercialStatus,
   CommercialTechnologyOption,
 } from './commercialTypes';
@@ -27,6 +28,30 @@ function insufficientDataRecommendation(reason = 'Not enough comparable route me
   };
 }
 
+function regulatoryRank(value: CommercialRegulatoryConfidence | undefined): number {
+  if (value === 'confirmed') return 4;
+  if (value === 'estimated') return 3;
+  if (value === 'restricted') return 2;
+  if (value === 'pending') return 1;
+  if (value === 'blocked') return 0;
+  return 2;
+}
+
+function hasRegulatoryUncertainty(option: CommercialTechnologyOption | undefined): boolean {
+  return option?.regulatoryConfidence === 'pending'
+    || option?.regulatoryConfidence === 'restricted'
+    || option?.regulatoryConfidence === 'blocked';
+}
+
+function regulatoryLabel(value: CommercialRegulatoryConfidence | undefined): string {
+  if (value === 'confirmed') return 'confirmed';
+  if (value === 'estimated') return 'estimated';
+  if (value === 'restricted') return 'restricted';
+  if (value === 'pending') return 'pending';
+  if (value === 'blocked') return 'blocked';
+  return 'partially known';
+}
+
 export function buildRecommendation(options: CommercialTechnologyOption[]): CommercialRecommendation {
   const leo = options.find((option) => option.technology === 'leo');
   const geo = options.find((option) => option.technology === 'geo');
@@ -36,6 +61,26 @@ export function buildRecommendation(options: CommercialTechnologyOption[]): Comm
 
   const leoHasEvidence = optionHasRecommendationEvidence(leo);
   const geoHasEvidence = optionHasRecommendationEvidence(geo);
+  const leoRegRank = regulatoryRank(leo.regulatoryConfidence);
+  const geoRegRank = regulatoryRank(geo.regulatoryConfidence);
+
+  if (leo.available && geo.available && Math.abs(leoRegRank - geoRegRank) >= 2) {
+    const winner = leoRegRank > geoRegRank ? leo : geo;
+    const loser = leoRegRank > geoRegRank ? geo : leo;
+    return {
+      technology: winner.technology,
+      reasonCategory: 'BEST_AVAILABILITY',
+      label: winner.label,
+      chipLabel: `Recommended: ${winner.label} for regulatory certainty`,
+      reason: `${winner.label} has stronger regulatory evidence (${regulatoryLabel(winner.regulatoryConfidence)})`,
+      message: `${winner.label} recommended because ${loser.label} regulatory state is ${regulatoryLabel(loser.regulatoryConfidence)}`,
+      expectedExperience: `${winner.label} service has stronger sellability evidence for this scenario.`,
+    };
+  }
+
+  if ((leo.available || geo.available) && hasRegulatoryUncertainty(leo) && hasRegulatoryUncertainty(geo)) {
+    return insufficientDataRecommendation('Connectivity appears technically possible, but regulatory sellability evidence is pending or restricted');
+  }
 
   if (leoHasEvidence && !geoHasEvidence && geo.status === 'blocked') {
     return {

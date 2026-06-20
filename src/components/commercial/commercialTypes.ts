@@ -52,6 +52,13 @@ export type CommercialRecommendationReasonCategory =
   | 'SIMILAR_PERFORMANCE'
   | 'INSUFFICIENT_DATA';
 
+export type CommercialRegulatoryConfidence =
+  | 'confirmed'
+  | 'estimated'
+  | 'restricted'
+  | 'pending'
+  | 'blocked';
+
 export interface CommercialRouteSegment {
   id: string;
   type: CommercialRouteSegmentType;
@@ -83,6 +90,7 @@ export interface CommercialTechnologyOption {
   routeSummary?: string;
   limitingFactor?: string;
   technicalLimitingFactor?: string;
+  regulatoryConfidence?: CommercialRegulatoryConfidence;
   strengths: string[];
 }
 
@@ -164,6 +172,7 @@ export interface CommercialScenarioViewModel {
     confidence?: string;
     confidenceNote?: string;
     predictionConfidence?: PredictionConfidence;
+    availabilityContext?: string;
     assumptionsSummary?: string;
     backboneDistance?: string;
     logicalPop?: string;
