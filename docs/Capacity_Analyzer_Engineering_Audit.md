@@ -427,4 +427,68 @@ The full Vitest suite still has one unrelated environment issue: a Cesium test i
 
 ---
 
+## Medium-Term Improvements Implementation Status
+
+The first three P0 Medium-Term improvements have been implemented in line with Capacity Analyzer's intended positioning as a Connectivity Intelligence Platform, Network Feasibility Platform and Decision Support Tool. The implementation improves feasibility realism, consistency and explainability without claiming live network state, operational capacity planning or NOC-grade certainty.
+
+### 1. GEO Capacity Model
+
+**What changed.** The flat `GEO_NOMINAL_CAPACITY_GBPS = 6` model has been replaced with a satellite-specific payload-class estimator in `geoCapacityModel.ts`. GEO capacity is now derived from transparent classes: Legacy Widebeam GEO, Regional Ku-band GEO, HTS GEO and VHTS GEO. `capacityCalculator.ts` uses the class estimate for selected-satellite capacity, covered-GEO totals and time-series capacity.
+
+**Assumptions used.** Capacity values are public payload-class approximations, not transponder assignments or usable customer capacity. The current nominal bands are 4 Gbps for legacy widebeam, 12 Gbps for regional Ku, 90 Gbps for HTS and 500 Gbps for VHTS. KONNECT VHTS is treated as a public 500 Gbps-class system; generic Eutelsat Ku payloads fall back to the regional class when no stronger payload signal is encoded.
+
+**Engineering rationale.** A single 6 Gbps number was the weakest GEO credibility point because it made old widebeam payloads and VHTS payloads equivalent. The new class model preserves feasibility-level granularity while exposing range, confidence, provenance and classification reason.
+
+**Business rationale.** GEO/LEO architecture comparisons become more defensible. Users can understand that a VHTS architecture has a different payload class than a legacy/regional GEO architecture without interpreting the result as a lease plan or live capacity availability.
+
+**Remaining limitations.** The model still does not ingest per-transponder plans, beam bandwidth, polarization reuse, active carrier loading or commercial allocation. GEO capacities may still be additive in broad coverage contexts; this remains a feasibility summary rather than operational capacity planning.
+
+### 2. LEO Bandwidth and Sharing Model
+
+**What changed.** LEO throughput sharing now follows one coherent model path. RF throughput, terminal caps, beam sharing and simulated load share the same `applyBeamCapacitySharing` function. The network layer now bounds the RF-implied beam capacity by the public OneWeb aggregate-per-beam approximation instead of treating `BEAM_BW_SCALE = 5` as the beam-total source. The older load-layer estimate now uses the same shared-beam helper rather than `terminal peak / users`.
+
+**Assumptions used.** OneWeb Gen-1 aggregate capacity remains 7.2 Gbps across 16 beams, giving an indicative 450 Mbps shared downlink beam pool. Uplink shared capacity is an indicative engineering approximation derived from the configured uplink/downlink RF bandwidth ratio and remains bounded by terminal uplink caps. Terminal reference bandwidths remain feasibility RF assumptions used to compute MODCOD throughput; they no longer directly define beam aggregate capacity.
+
+**Engineering rationale.** The implementation removes the most visible inconsistency: two different per-user sharing formulas for the same beam state. RF closure now answers "what spectral efficiency can this path support?", the shared beam pool answers "what aggregate resource is available?", and terminal limits answer "what can this terminal receive/transmit?".
+
+**Business rationale.** COMM and ENG users get a more consistent performance story: one throughput source, one sharing model and clearer limiting factors. The model remains suitable for expected-performance feasibility conversations without implying private OneWeb scheduling knowledge.
+
+**Remaining limitations.** The LEO model still does not know real carrier plans, instantaneous scheduler state, feeder-link loading, frequency reuse, live contention or pass-specific operator policy. Simulated load is still a planning input, not telemetry.
+
+### 3. Unified Confidence Framework
+
+**What changed.** A first-class `PredictionConfidence` framework now represents architecture, topology, mode, score, level, reasons, contributing factors, caps and limitations. LEO site-to-site confidence now uses the shared builder while preserving existing score behavior. LEO single-site, GEO, COMM and ENG surfaces now derive confidence through the same object shape and expose it in COMM display data and ENG assumptions panels.
+
+**Assumptions used.** Confidence is an evidence-quality score from 0 to 100. It is based on structural path evidence, RF availability, detailed debug-chain availability, regulatory context, simulated load provenance, elevation margin, public frequency evidence, reference gateway allocation and payload capacity-class evidence. Caps prevent high confidence when structural evidence is missing, route calculation is pending or regulatory evidence is pending/blocked.
+
+**Engineering rationale.** Confidence is no longer a bespoke or decorative label. The framework makes confidence auditable through factors and caps, while keeping the same High/Medium/Low levels already understood by the UI. It also separates confidence in the prediction from service availability, which avoids overstating operational certainty.
+
+**Business rationale.** Decision support improves because users can see not only whether connectivity appears feasible, but how well supported that prediction is. This is especially important for commercial conversations where the product must explain main limiting factors and confidence without becoming a NOC or capacity-planning platform.
+
+**Remaining limitations.** The score is heuristic and not statistically calibrated against field outcomes. It does not yet include pass duration, handover timing, feeder-link loading, rain-rate availability, real regulatory workflow state or private operator data. Confidence factors are visible in code and compact UI summaries; a future export/report could expose the full breakdown.
+
+### Updated credibility assessment
+
+| Dimension | Previous score | Updated estimate |
+|---|---:|---:|
+| GEO link budget & geometry | 86 | 88 |
+| LEO RF physics & architecture | 80 | 82 |
+| Capacity / network-load / handover realism | 58 | 72 |
+| Visualization fidelity | 80 | 81 |
+| COMM/ENG separation | 78 | 83 |
+| Honesty / provenance labeling | 92 | 94 |
+| Operator-grade completeness (missing metrics) | 62 | 66 |
+
+### Estimated credibility score after implementation
+
+**Overall credibility: 83 / 100.**
+
+The product is now stronger in the areas that previously dragged credibility down fastest: GEO payload capacity, LEO sharing consistency and confidence transparency. It is still not operator-grade completeness because pass timing, feeder links, EPFD margin, rain-rate availability, carrier planning and private operational data remain out of scope or future work.
+
+### Remaining recommendations from the audit
+
+High-value next improvements are: constellation-aware handover and path stability, rain-rate/availability context, pass-duration and next-window evidence, regulatory confidence/pending-state handling in recommendations, evidence-aware export/report summaries, GEO transponder/payload planning from public frequency plans, LEO feeder-link/SNP budget approximation and EPFD/GSO protection margin.
+
+---
+
 *Generated by an engineering-review pass over the Capacity Analyzer simulation engine. All findings cite live source paths; verify against current code before acting, as constants evolve.*
