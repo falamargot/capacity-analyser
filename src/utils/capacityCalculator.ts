@@ -2,14 +2,11 @@ import { calculatePosition } from '../services/satelliteService';
 import { SatelliteData } from '../types/satellites';
 import { isPointInCoverage } from './coverageCalculator';
 import { NOMINAL_TERMINAL_PEAK_MBPS } from '../config/oneweb';
+import { estimateGeoSatelliteCapacity, estimateGeoSatelliteCapacityGbps, type GeoCapacityEstimate } from './geoCapacityModel';
 
 // Per-point capacity for LEO (terminal peak, not satellite aggregate).
 // 200 Mbps = NOMINAL_TERMINAL_PEAK_MBPS converted to Gbps for the shared interface.
 const LEO_TERMINAL_PEAK_GBPS = NOMINAL_TERMINAL_PEAK_MBPS / 1000; // 0.2 Gbps
-
-// Placeholder GEO capacity per satellite (not changed in this phase — GEO is out of scope).
-// This is a rough nominal figure; real GEO capacity varies per transponder plan.
-const GEO_NOMINAL_CAPACITY_GBPS = 6;
 
 // Earth radius constant
 export const EARTH_RADIUS_KM = 6371;
@@ -86,11 +83,12 @@ export interface RealTimeCapacityData {
   /**
    * Gbps visible from this point.
    * For LEO: terminal peak throughput (≤ 0.2 Gbps), not satellite aggregate (7.2 Gbps).
-   * For GEO: nominal per-satellite beam capacity (placeholder — not a link budget value).
+   * For GEO: feasibility-level payload class capacity, not a transponder loading plan.
    * Do NOT display this as "network capacity" — it is a per-terminal estimate for LEO.
    */
   totalCapacity: number;
   coveredSatellites: SatelliteData[];
+  geoCapacityEstimates?: GeoCapacityEstimate[];
   elevationAngle?: number;
   /**
    * True when the LEO contribution to totalCapacity is a terminal peak estimate
@@ -184,17 +182,19 @@ export const calculateRealTimeCapacity = (
       const isLeo = selectedSatellite.orbitType === 'LEO';
 
       // For LEO: terminal peak (0.2 Gbps), not satellite aggregate (7.2 Gbps).
-      // For GEO: placeholder nominal capacity.
+      // For GEO: public payload-class feasibility estimate, not operational capacity planning.
       const capacity = inCoverage
-        ? (isLeo ? LEO_TERMINAL_PEAK_GBPS : GEO_NOMINAL_CAPACITY_GBPS)
+        ? (isLeo ? LEO_TERMINAL_PEAK_GBPS : estimateGeoSatelliteCapacityGbps(selectedSatellite))
         : 0;
-
       return {
         totalCapacity: capacity,
         coveredSatellites: inCoverage ? [selectedSatellite] : [],
         elevationAngle,
         leoCapacityIsTerminalPeak: isLeo,
         hasLeoCoverage: isLeo && inCoverage,
+        geoCapacityEstimates: !isLeo && inCoverage
+          ? [estimateGeoSatelliteCapacity(selectedSatellite)]
+          : undefined,
       };
     } else {
       // No point selected — show satellite aggregate for context (clearly not terminal throughput).
@@ -233,10 +233,11 @@ export const calculateRealTimeCapacity = (
 
   // LEO capacity: terminal peak only — satellite aggregate (7.2 Gbps) would be misleading here.
   const onewebCapacity = onewebCovered.length > 0 ? LEO_TERMINAL_PEAK_GBPS : 0;
-  const geoCapacity = geoCovered.reduce((sum, satellite) => {
-    return isPointInCoverage(selectedPoint, satellite, null).includes('user')
-      ? sum + GEO_NOMINAL_CAPACITY_GBPS
-      : sum;
+  const geoCapacityEstimates = geoCovered
+    .filter((satellite) => isPointInCoverage(selectedPoint, satellite, null).includes('user'))
+    .map((satellite) => estimateGeoSatelliteCapacity(satellite));
+  const geoCapacity = geoCapacityEstimates.reduce((sum, estimate) => {
+    return sum + estimate.nominalGbps;
   }, 0);
 
   return {
@@ -244,6 +245,7 @@ export const calculateRealTimeCapacity = (
     coveredSatellites,
     leoCapacityIsTerminalPeak: true,
     hasLeoCoverage: onewebCovered.length > 0,
+    geoCapacityEstimates,
   };
 };
 
@@ -281,7 +283,7 @@ export const calculateCapacityOverTime = (
         const pos = calculatePosition(satellite, timestamp);
         if (pos.isPositionValid === false) return sum;
         const coverageClasses = isPointInCoverage(selectedPoint, satellite, pos);
-        return coverageClasses.includes('user') ? sum + GEO_NOMINAL_CAPACITY_GBPS : sum;
+        return coverageClasses.includes('user') ? sum + estimateGeoSatelliteCapacityGbps(satellite) : sum;
       }, 0);
 
     const totalCapacity = (onewebVisible ? LEO_TERMINAL_PEAK_GBPS : 0) + geoCapacity;
