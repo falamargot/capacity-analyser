@@ -41,6 +41,13 @@ const beamLoad = (capacityStatus: BeamLoadResult['capacityStatus']): BeamLoadRes
   isSimulated: true,
 });
 
+const plannedBeamLoad = (capacityStatus: BeamLoadResult['capacityStatus'] = 'NOMINAL'): BeamLoadResult => ({
+  ...beamLoad(capacityStatus),
+  loadSource: 'fillRate',
+  loadDataMode: 'calibrated_network_load_model',
+  method: 'fillRateAdjusted',
+});
+
 const baseArgs = {
   endpointA: { lat: 0, lng: 0 },
   endpointB: { lat: 1, lng: 1 },
@@ -281,5 +288,59 @@ describe('C-02 — capacity gate is evaluated in site-to-site mode', () => {
 
     expect(result.failureReason).toBe(null);
     expect(result.serviceStatus).toBe('ALLOWED');
+  });
+});
+
+describe('site-to-site confidence scoring', () => {
+  it('returns high confidence when structural, RF, regulatory, load, and geometry evidence are complete', () => {
+    const result = computeLeoSiteToSiteResult({
+      ...baseArgs,
+      beamLoadA: plannedBeamLoad(),
+      beamLoadB: plannedBeamLoad(),
+      debugSiteA: {} as any,
+      debugSiteB: {} as any,
+      elevationADeg: 45,
+      elevationBDeg: 42,
+    });
+
+    expect(result.confidenceLevel).toBe('High');
+    expect(result.confidenceScore).toBeGreaterThanOrEqual(75);
+    expect(result.confidenceReasons).toContain('Both LEO SNP paths resolved');
+    expect(result.confidenceReasons).toContain('Detailed RF debug chains available');
+  });
+
+  it('caps confidence to low when a structural route component is missing', () => {
+    const result = computeLeoSiteToSiteResult({
+      ...baseArgs,
+      selectedSnpB: null,
+      beamLoadA: plannedBeamLoad(),
+      beamLoadB: plannedBeamLoad(),
+      debugSiteA: {} as any,
+      debugSiteB: {} as any,
+      elevationADeg: 45,
+      elevationBDeg: 42,
+    });
+
+    expect(result.failureReason).toBe('NO_SNP_B');
+    expect(result.confidenceLevel).toBe('Low');
+    expect(result.confidenceScore).toBeLessThan(45);
+    expect(result.confidenceReasons).toContain('LEO SNP path missing at one endpoint');
+  });
+
+  it('caps confidence to low while regulatory evidence is pending', () => {
+    const result = computeLeoSiteToSiteResult({
+      ...baseArgs,
+      regulatoryResultA: null,
+      beamLoadA: plannedBeamLoad(),
+      beamLoadB: plannedBeamLoad(),
+      debugSiteA: {} as any,
+      debugSiteB: {} as any,
+      elevationADeg: 45,
+      elevationBDeg: 42,
+    });
+
+    expect(result.failureReason).toBe('REGULATORY_PENDING_A');
+    expect(result.confidenceLevel).toBe('Low');
+    expect(result.confidenceScore).toBeLessThan(45);
   });
 });

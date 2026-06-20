@@ -50,7 +50,7 @@ export interface GeoGatewaySelection {
 export type GatewayAssignmentRole = 'primary' | 'backup';
 export type ResolvedGatewayRole = 'nominal' | 'backup';
 export type GatewayResolutionPolicy = 'STATIC_NOMINAL' | 'STATIC_BACKUP';
-export type GatewayAssignmentSource = 'traffic-gateway-allocation' | 'fallback-visible-gateway';
+export type GatewayAssignmentSource = 'reference-gateway-allocation' | 'fallback-visible-gateway';
 
 export type GroundSegmentTeleportCode =
   | 'RAM'
@@ -478,8 +478,8 @@ export function resolveGatewayForSatellite(
       satellite,
       gateway,
       role,
-      'traffic-gateway-allocation',
-      `${gatewayPolicy}: ${role} gateway ${code} from traffic allocation registry.`,
+      'reference-gateway-allocation',
+      `${gatewayPolicy}: ${role} GEO teleport ${code} from reference allocation registry.`,
     );
   }
 
@@ -490,7 +490,7 @@ export function resolveGatewayForSatellite(
     fallback.gateway,
     'nominal',
     'fallback-visible-gateway',
-    'No traffic allocation registry entry matched; selected nearest visible fallback gateway.',
+    'No reference allocation entry matched; selected nearest visible fallback GEO teleport.',
   );
 }
 

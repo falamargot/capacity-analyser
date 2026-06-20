@@ -297,4 +297,134 @@ Recommended sequencing: ship P0 Quick Wins first to remove avoidable credibility
 
 ---
 
+## Quick Wins Implementation Status
+
+The Quick Wins listed in the roadmap have been implemented as a credibility and provenance pass. The implementation did not attempt to make Capacity Analyzer a NOC, capacity-planning platform or live monitoring system. It instead improved the product's stated positioning as a Connectivity Intelligence Platform, Network Feasibility Platform and Decision Support Tool.
+
+The changes primarily affect user-facing terminology, provenance disclosure, confidence scoring and presentation precision. They do not claim to replace the underlying feasibility assumptions with private operator telemetry.
+
+### 1. LEO load relabeled as Simulated Network Load
+
+**What changed.** LEO load surfaces were renamed to **Simulated Network Load** across provenance helpers, LEO engineering status cards, the commercial view model and the globe load legend. Telemetry-flavored labels such as `P95_5MIN_AVG`, "recent operational stats" and "operational export" are no longer exposed as user-facing language. The heatmap legend now states that the layer is a planning model and not live telemetry.
+
+**Why it improves engineering credibility.** The old labels could be read as measured OneWeb utilization or recent network telemetry. The new language matches the actual implementation: a planning/load model with simulated and reference inputs. This preserves the useful concept of load while avoiding a false operational claim.
+
+**Feasibility assessment quality.** Improved. The load signal remains available as a feasibility constraint, but the confidence attached to it is clearer. Users can still understand congestion/saturation risk without mistaking the value for live network state.
+
+**Remaining limitations.** The underlying load model still depends on synthetic/reference layers and heuristic fallbacks. It does not model real subscriber demand, feeder-link loading, scheduler state or operator traffic engineering.
+
+### 2. ENG assumptions and sources, COMM confidence note
+
+**What changed.** Engineering mode now includes **Assumptions and Sources** panels for LEO and GEO. These panels distinguish physical calculations from approximations and heuristics. Commercial mode now carries compact confidence and assumptions summaries through the commercial view model, outcome card and inspector.
+
+**Why it improves engineering credibility.** Capacity Analyzer already had strong internal honesty in comments and metadata. Surfacing that honesty in the product makes it easier for engineers, presales teams and customers to understand which parts are physics-derived and which parts are planning assumptions.
+
+**Feasibility assessment quality.** Improved. A feasibility answer is more useful when paired with the assumptions behind it. The panels directly support the intended questions: "what performance can reasonably be expected?", "what are the limiting factors?" and "how confident is the prediction?"
+
+**Remaining limitations.** The assumption panels are compact and static. They do not yet enumerate every active parameter value for the current scenario, such as exact carrier bandwidth assumptions, terminal-source tier, weather profile strength, GEO frequency-plan provenance or regulatory confidence.
+
+### 3. LEO site-to-site confidence score replaces hardcoded Medium
+
+**What changed.** The LEO site-to-site result now includes a numeric `confidenceScore`, a `confidenceLevel` and explanatory `confidenceReasons`. The old behavior, where site-to-site confidence effectively resolved to "Medium" whenever core path objects existed, has been replaced by an evidence-based model.
+
+**Why it improves engineering credibility.** A non-varying confidence chip is not an engineering signal. The new score is tied to route evidence: satellites, SNP paths, RF availability, RF debug chains, regulatory certainty, load provenance and elevation margin. This makes confidence auditable and prevents it from looking like decorative UI.
+
+**Feasibility assessment quality.** Improved. The model now separates "the path calculation produced a number" from "the prediction is well-supported." This is especially important for site-to-site LEO, where a route can be structurally incomplete, regulatory-pending or dependent on heuristic load assumptions.
+
+**Remaining limitations.** The confidence model is still a transparent scoring heuristic, not a statistically calibrated probability. It is currently implemented for LEO site-to-site confidence and is not yet a normalized confidence object shared by all GEO, LEO, COMM and export surfaces.
+
+### 4. GEO gateway routing relabeled as reference GEO teleport allocation
+
+**What changed.** GEO static gateway wording was changed to **GEO teleport** and **reference allocation** language. The static assignment source now reads as `reference-gateway-allocation`, while fallback wording describes a visible GEO teleport fallback rather than traffic-allocation doctrine.
+
+**Why it improves engineering credibility.** The previous wording risked implying knowledge of live Eutelsat operational routing or CSC procedures. The new wording keeps the useful ground-segment model but correctly positions it as a reference feasibility assumption.
+
+**Feasibility assessment quality.** Improved. Users can still reason about GEO teleport geometry and path feasibility, but they are less likely to confuse a planning allocation with real operational routing.
+
+**Remaining limitations.** The allocation table is still static. It is not selected from live teleport availability, real NMS state, traffic-engineering policy, outage status or private operator ground-segment configuration.
+
+### 5. False precision reduced in commercial and high-level summaries
+
+**What changed.** Commercial availability display now rounds to a coarser percentage. Commercial route and inspector labels emphasize confidence and assumptions rather than over-precise technical proof. Detailed decimals remain in engineering link-budget contexts where they are useful for debugging calculations.
+
+**Why it improves engineering credibility.** High precision on heuristic outputs implies a level of evidence the model does not have. Matching display precision to evidence quality makes the product feel more like a feasibility tool and less like a fabricated operations dashboard.
+
+**Feasibility assessment quality.** Improved. The user gets a cleaner, more decision-oriented answer while the detailed engineering drawer remains available for deeper RF inspection.
+
+**Remaining limitations.** Precision handling is still mostly presentation-level. A stronger future implementation would attach precision/range metadata to each metric so display rounding follows model confidence automatically.
+
+### 6. Visual and route labels disambiguated
+
+**What changed.** User-facing labels now distinguish **LEO SNP**, **GEO teleport** and **Indicative Backbone** more consistently. GEO STAR route descriptions use "GEO teleport"; commercial backhaul surfaces use "Indicative Backbone"; LEO route text avoids the overloaded `SNP/Gateway` phrasing.
+
+**Why it improves engineering credibility.** Operators and RF engineers use different mental models for LEO bent-pipe SNP routing and GEO teleport routing. Disambiguating these roles reduces the risk that users infer a single generic "gateway" concept across both architectures.
+
+**Feasibility assessment quality.** Improved. The route explanation is clearer, especially when comparing GEO and LEO architectures or explaining why LEO requires simultaneous user-satellite and satellite-SNP visibility.
+
+**Remaining limitations.** Some internal comments and developer log labels still use "gateway" for historical code concepts. That is acceptable where not user-facing, but a future terminology constants layer would reduce drift.
+
+### 7. COMM LEO throughput source of truth cleaned up
+
+**What changed.** Commercial LEO throughput labels now use the active route evidence values rather than the older single-site Gbps performance source. This prevents the commercial view from displaying a different throughput source than the route feasibility model.
+
+**Why it improves engineering credibility.** Conflicting performance numbers are one of the fastest ways to lose trust. Selecting a single displayed source of truth makes the limiting-factor story easier to defend.
+
+**Feasibility assessment quality.** Improved. Commercial mode now better reflects the same route evidence used to evaluate connectivity, expected performance and bottlenecks.
+
+**Remaining limitations.** The underlying LEO throughput model still needs medium-term consolidation between RF throughput, terminal caps, beam sharing and load assumptions. The Quick Win removed a display inconsistency; it did not fully redesign the capacity model.
+
+### LEO site-to-site confidence-score model
+
+The new confidence score is a deterministic evidence score from 0 to 100. It is intended to communicate prediction support, not service availability, SLA probability or live network health.
+
+**Inputs used.**
+
+| Input | Contribution | Rationale |
+|---|---:|---|
+| Both serving satellites resolved | +18 | The route cannot be structurally credible without endpoint satellite assignments. |
+| Both LEO SNP paths resolved | +18 | OneWeb Gen-1 feasibility depends on simultaneous satellite-to-SNP visibility. |
+| RF availability at both sites | +14 | Confirms that both access links are considered feasible by the RF/connectivity model. |
+| Detailed RF debug chains for both sites | +14 | Indicates that the detailed RF chain exists for both endpoints; one site only contributes +7. |
+| Regulatory status confirmed allowed at both sites | +12 | Confirmed regulatory evidence is stronger than estimated/restricted status. |
+| Regulatory status present but estimated or restricted | +7 | Partial regulatory evidence supports the prediction but with lower certainty. |
+| Simulated load uses configured non-heuristic planning layer at both sites | +10 | Load evidence is stronger when it is not pure heuristic fallback. |
+| Simulated load available for only part of the route or partly heuristic | +5 | Better than no load evidence, but weaker than configured planning-layer support. |
+| Both sites meet standard elevation margin | +14 | Higher elevation increases geometry confidence and reduces edge-of-footprint uncertainty. |
+| Both sites meet only minimum elevation | +7 | The path is possible but closer to geometric edge conditions. |
+
+**Scoring rationale.** The highest weights go to structural path evidence: serving satellites and LEO SNP paths. RF availability and detailed RF debug chains come next because they indicate the path is not just topologically possible but supported by the RF model. Regulatory, load and elevation provide confidence modifiers because they affect sellability, congestion-risk interpretation and geometric robustness.
+
+**Caps and penalties.**
+
+* If structural evidence is incomplete — missing satellite, missing SNP or failed RF availability at either endpoint — the score is capped below Medium at 44.
+* If regulatory evidence is pending at either endpoint, the score is also capped at 44.
+* Missing detailed RF debug chains do not block feasibility, but they reduce confidence because the prediction has less inspectable engineering evidence.
+* Heuristic load evidence receives only partial credit and cannot provide the same support as configured planning-layer load evidence.
+* Weak or unknown elevation margin receives no elevation credit.
+
+**Confidence levels.**
+
+| Score range | Level | Interpretation |
+|---|---|---|
+| 75-100 | High | Core route evidence is complete and supported by RF, regulatory, load and geometry signals. |
+| 45-74 | Medium | Route evidence is mostly present, but one or more important supporting inputs are estimated, heuristic or incomplete. |
+| 0-44 | Low | Structural route evidence is incomplete, regulatory evidence is pending, or too many supporting signals are weak. |
+
+**Known limitations.**
+
+* The score is heuristic, not statistically calibrated against field outcomes.
+* It currently applies to LEO site-to-site confidence, not every GEO/LEO/COMM prediction.
+* Terminal-source tier is not yet explicitly scored, even though terminal provenance is important to feasibility credibility.
+* Weather severity is indirectly represented through RF/debug outputs, not as an explicit confidence input.
+* It does not model pass duration, next handover time, SNP feeder loading, backbone congestion or real operator scheduler state.
+* The explanatory reasons are intentionally short and capped for UI readability; detailed audit/export output could expose the full scoring breakdown.
+
+### Verification status
+
+The implementation was regression-tested with targeted model and UI-adjacent tests covering the touched surfaces. The touched-path suite passed, including tests for load terminology, fill-rate provenance, GEO reference allocation, LEO service-view-model wording, GEO RF context labels, active-route behavior and the new LEO site-to-site confidence caps. Static scans confirmed that the old high-risk labels no longer appear in `src`.
+
+The full Vitest suite still has one unrelated environment issue: a Cesium test imports code that creates a canvas while running in a Node test environment, producing `ReferenceError: document is not defined`. This is a test harness problem, not a regression in the Quick Wins implementation. Build and lint completed successfully, with existing lint warnings remaining.
+
+---
+
 *Generated by an engineering-review pass over the Capacity Analyzer simulation engine. All findings cite live source paths; verify against current code before acting, as constants evolve.*

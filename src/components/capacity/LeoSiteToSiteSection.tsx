@@ -66,7 +66,7 @@ const StabilityBadge = ({ stability }: { stability: 'High' | 'Medium' | 'Low' })
   );
 };
 
-const ConfidenceBadge = ({ level }: { level: 'High' | 'Medium' | 'Low' }) => {
+const ConfidenceBadge = ({ level, score }: { level: 'High' | 'Medium' | 'Low'; score?: number }) => {
   const cfg = {
     High: 'bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-700',
     Medium: 'bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700',
@@ -74,7 +74,7 @@ const ConfidenceBadge = ({ level }: { level: 'High' | 'Medium' | 'Low' }) => {
   }[level];
   return (
     <span className={`inline-flex items-center rounded border px-1.5 py-0.5 text-[10px] font-semibold ${cfg}`}>
-      {level} confidence
+      {level} confidence{score != null ? ` · ${score}/100` : ''}
     </span>
   );
 };
@@ -184,6 +184,8 @@ const LeoSiteToSiteSection = memo<LeoSiteToSiteSectionProps>(({ result, directio
     expectedHandoversB,
     pathStability,
     confidenceLevel,
+    confidenceScore,
+    confidenceReasons,
     serviceAvailable,
     serviceStatus,
     failureReason,
@@ -384,8 +386,13 @@ const LeoSiteToSiteSection = memo<LeoSiteToSiteSectionProps>(({ result, directio
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-xs text-slate-500 dark:text-slate-400">Model confidence</span>
-                  <ConfidenceBadge level={confidenceLevel} />
+                  <ConfidenceBadge level={confidenceLevel} score={confidenceScore} />
                 </div>
+                {confidenceReasons.length > 0 && (
+                  <div className="rounded border border-slate-200 bg-white px-2.5 py-1.5 text-[10px] leading-relaxed text-slate-500 dark:border-slate-700 dark:bg-slate-950/40 dark:text-slate-400">
+                    {confidenceReasons.join(' · ')}
+                  </div>
+                )}
                 <div className="border-t border-slate-100 dark:border-slate-800 pt-2 space-y-0.5">
                   <MetricRow
                     label="Site A elevation"

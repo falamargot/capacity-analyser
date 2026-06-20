@@ -29,7 +29,7 @@ const segmentOrder: CommercialRouteSegmentId[] = ['access', 'satellite', 'destin
 const segmentTitles: Record<CommercialRouteSegmentId, string> = {
   access: 'Customer Access',
   satellite: 'Serving Satellite',
-  backhaul: 'Network Backbone',
+  backhaul: 'Indicative Backbone',
   destination: 'Destination',
   summary: 'Connectivity Architecture',
 };

@@ -1459,7 +1459,7 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
         {/* Radio Path */}
         <CollapsibleSection
           storageKey="leo-radio-path"
-          title={<>{isRegulatoryBlocked && !isS2S ? 'Radio Path (Diagnostic only)' : isS2S ? <>Radio Path <span className="text-slate-400 dark:text-slate-500 font-normal text-[11px]">({s2sPrimaryLabel})</span></> : 'Radio Path'}<SectionTooltip content={isS2S ? "Full OneWeb site-to-site logical path. Backbone routing is estimated." : "Active one-way LEO signal route: Site A → LEO Satellite → SNP/Gateway. RTT details are shown in the latency breakdown below."} /></>}
+          title={<>{isRegulatoryBlocked && !isS2S ? 'Radio Path (Diagnostic only)' : isS2S ? <>Radio Path <span className="text-slate-400 dark:text-slate-500 font-normal text-[11px]">({s2sPrimaryLabel})</span></> : 'Radio Path'}<SectionTooltip content={isS2S ? "Full OneWeb site-to-site logical path. Backbone routing is estimated." : "Active one-way LEO signal route: Site A → LEO Satellite → LEO SNP. RTT details are shown in the latency breakdown below."} /></>}
           subtitle={isRegulatoryBlocked && !isS2S ? blockedDiagnosticMessage : undefined}
           accentColor="#db2777"
           defaultOpen={true}
@@ -1706,7 +1706,7 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
           accentColor="#db2777"
           tooltip={isS2S
             ? "Full one-way propagation: Access A + Feeder A + Backbone + Feeder B + Access B + Processing margin."
-            : "Breakdown of the full round-trip propagation delay over the LEO link: Site A → Satellite → SNP/Gateway → Satellite → Site A, plus network overhead."}
+            : "Breakdown of the full round-trip propagation delay over the LEO link: Site A → Satellite → LEO SNP → Satellite → Site A, plus network overhead."}
           title={isRegulatoryBlocked && !isS2S ? 'Latency breakdown (Diagnostic only)' : 'Latency breakdown'}
           summary={isS2S
             ? (s2sServiceActive
@@ -1847,6 +1847,25 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
           </div>
         )}
         {!isS2S && showEstimatedPerformance && !showPerformanceBeforeRadioPath && estimatedPerformanceSection}
+
+        <CollapsibleSection
+          storageKey="leo-assumptions-sources"
+          title="Assumptions and Sources"
+          accentColor="#db2777"
+          defaultOpen={false}
+        >
+          <div className="space-y-2 text-xs leading-relaxed text-slate-600 dark:text-slate-400">
+            <div className="rounded border border-pink-200 bg-pink-50 px-2.5 py-1.5 text-pink-700 dark:border-pink-800/50 dark:bg-pink-950/30 dark:text-pink-300">
+              Simulated Network Load is a planning input, not live operational telemetry.
+            </div>
+            <div className="grid gap-1.5">
+              <div><span className="font-semibold text-slate-700 dark:text-slate-200">Physical:</span> slant range, elevation, radio propagation delay and RF link-budget chains.</div>
+              <div><span className="font-semibold text-slate-700 dark:text-slate-200">Approximations:</span> terminal profile, bandwidth allocation, beam sharing, weather attenuation and handover margin.</div>
+              <div><span className="font-semibold text-slate-700 dark:text-slate-200">Heuristics:</span> simulated load fallback, LEO SNP selection, indicative backbone route factor and logical PoP routing.</div>
+              <div><span className="font-semibold text-slate-700 dark:text-slate-200">Sources:</span> public constellation/frequency inputs, bundled LEO terminal profiles, simulated regulatory layer and configured weather profile.</div>
+            </div>
+          </div>
+        </CollapsibleSection>
 
       </div>
     </>

@@ -438,7 +438,7 @@ const GatewayNote = ({ direction }: { direction: 'uplink' | 'downlink' }) => {
       <span className="text-sm leading-none shrink-0">{icon}</span>
       <span className="text-[10px] font-bold uppercase tracking-wider shrink-0" style={{ color }}>{dirLabel}</span>
       <span className="text-[10px] text-gray-400 dark:text-gray-500 italic leading-snug">
-        Gateway side — resolved automatically
+        GEO teleport side - reference allocation
       </span>
     </div>
   );

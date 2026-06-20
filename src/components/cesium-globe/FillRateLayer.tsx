@@ -1,9 +1,9 @@
 /**
- * FillRateLayer — OneWeb-calibrated LEO Network Load heatmap.
+ * FillRateLayer — simulated LEO Network Load heatmap.
  *
  * Renders the statistical cells into hemisphere canvases rather than one
  * antimeridian-spanning texture. This avoids a visible Cesium texture seam at
- * ±180° while preserving a single logical Network Load layer.
+ * ±180° while preserving a single logical simulated load layer.
  * with transparent: true so Cesium composites it in the translucent pass,
  * allowing the terrain/satellite imagery to show through empty areas.
  */
@@ -276,10 +276,10 @@ export const FillRateLegend: React.FC<FillRateLegendProps> = ({ show, isPhone })
         <div className="flex items-center justify-between gap-3">
           <div>
             <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">
-              Network Load (%)
+              Simulated Network Load (%)
             </div>
             <div className="mt-0.5 text-[11px] text-slate-500 dark:text-slate-400">
-              OneWeb-calibrated occupancy model
+              Planning model - no telemetry
             </div>
           </div>
           <div className="rounded-full border border-sky-200/80 bg-sky-50/80 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-sky-700 dark:border-sky-500/20 dark:bg-sky-500/10 dark:text-sky-200">
@@ -314,7 +314,7 @@ export const FillRateLegend: React.FC<FillRateLegendProps> = ({ show, isPhone })
         </div>
 
         <div className="mt-3 rounded-2xl border border-white/55 bg-white/60 px-3 py-2 text-[11px] leading-relaxed text-slate-500 shadow-[inset_0_1px_0_rgba(255,255,255,0.7)] dark:border-slate-700/80 dark:bg-slate-950/30 dark:text-slate-400">
-          Global network occupancy estimate calibrated from OneWeb reference cells.
+          Simulated load layer for feasibility analysis. Values are planning estimates, not live operational telemetry.
         </div>
       </div>
     </div>

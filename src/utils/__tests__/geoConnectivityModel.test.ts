@@ -35,7 +35,7 @@ const createGeoSatellite = (name: string, lng: number, id = name): SatelliteData
 const gatewayNameByTeleportCode = new Map(GEO_GATEWAYS.map((gateway) => [gateway.teleportCode, gateway.name]));
 
 describe('geoConnectivityModel gateway selection', () => {
-  it('resolves every traffic allocation entry to its nominal gateway by default', () => {
+  it('resolves every reference allocation entry to its nominal GEO teleport by default', () => {
     for (const assignment of GEO_GATEWAY_ASSIGNMENTS) {
       const satellite = createGeoSatellite(assignment.satelliteName, 0, assignment.satelliteId);
       const resolved = resolveGatewayForSatellite(satellite, GEO_GATEWAYS);
@@ -43,7 +43,7 @@ describe('geoConnectivityModel gateway selection', () => {
       expect(resolved, assignment.satelliteName).not.toBeNull();
       expect(resolved?.gatewayName).toBe(gatewayNameByTeleportCode.get(assignment.nominalSccCode));
       expect(resolved?.role).toBe('nominal');
-      expect(resolved?.assignmentSource).toBe('traffic-gateway-allocation');
+      expect(resolved?.assignmentSource).toBe('reference-gateway-allocation');
     }
   });
 

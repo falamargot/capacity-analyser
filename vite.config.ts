@@ -235,6 +235,7 @@ function issTleProxyPlugin(): Plugin {
 // https://vitejs.dev/config/
 export default defineConfig({
   resolve: {
+    dedupe: ['react', 'react-dom'],
     alias: {
       resium: fileURLToPath(new URL('./node_modules/resium/src/index.ts', import.meta.url)),
       'satellite.js': fileURLToPath(new URL('./src/vendor/satellite-compat.ts', import.meta.url))

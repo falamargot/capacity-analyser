@@ -41,7 +41,6 @@ import {
   customerStateFromCommercial,
   customerStateFromSegment,
   finitePositive,
-  formatMaybeGbps,
   formatMaybeMbps,
   gbpsToMbps,
   geoStatusLabel,
@@ -284,12 +283,12 @@ export function buildCommercialScenarioViewModel(input: BuildCommercialScenarioV
     ? (destinationCustomerSide === 'B' ? input.destinationLeoTerminalLabel : input.originLeoTerminalLabel)
     : (destinationCustomerSide === 'B' ? input.destinationGeoTerminalLabel : input.originGeoTerminalLabel);
   const destinationLocation = destinationEndpointKind === 'geo_gateway'
-    ? input.geoGatewayName ?? 'GEO Gateway'
+    ? input.geoGatewayName ?? 'GEO teleport'
     : destinationCustomerSide === 'B'
     ? siteBName
     : siteAName;
   const destinationReceivingSide = destinationEndpointKind === 'geo_gateway'
-    ? 'Gateway'
+    ? 'GEO teleport'
     : destinationCustomerSide === 'B'
     ? 'Site B'
     : input.siteB
@@ -379,12 +378,16 @@ export function buildCommercialScenarioViewModel(input: BuildCommercialScenarioV
   const backhaulStatus = segmentStatus('backhaul', computedBackhaulStatus);
   const destinationStatus = segmentStatus('siteB', computedDestinationStatus);
 
-  const downloadLabel = isDisplayLeo && input.leoTopologyMode !== 'SITE_TO_SITE'
-    ? formatMaybeGbps(leoMetricsSource?.downlinkGbps)
-    : formatMaybeMbps(downloadMbps);
-  const uploadLabel = isDisplayLeo && input.leoTopologyMode !== 'SITE_TO_SITE'
-    ? formatMaybeGbps(leoMetricsSource?.uplinkGbps)
-    : formatMaybeMbps(uploadMbps);
+  const confidenceNote = isDisplayLeo
+    ? [
+        leoRoutePath?.confidenceLevel ? `${leoRoutePath.confidenceLevel} confidence` : 'Confidence pending',
+        leoRoutePath?.confidenceScore != null ? `${leoRoutePath.confidenceScore}/100` : null,
+        leoRoutePath?.confidenceReasons?.[0] ?? 'LEO route uses simulated load and estimated backbone routing',
+      ].filter(Boolean).join(' - ')
+    : 'GEO confidence uses RF link budget plus reference GEO teleport allocation.';
+  const assumptionsSummary = isDisplayLeo
+    ? 'Assumes simulated network load, beam sharing, selected LEO SNP path, public terminal profile, weather profile, and indicative backbone routing.'
+    : 'Assumes selected weather profile, public frequency data, terminal RF class, and reference GEO teleport allocation.';
 
   const routeSegments: CommercialRouteSegment[] = [
     {
@@ -428,10 +431,10 @@ export function buildCommercialScenarioViewModel(input: BuildCommercialScenarioV
     {
       id: 'backhaul',
       type: 'backhaul',
-      title: 'Network Backbone',
+      title: 'Indicative Backbone',
       status: backhaulStatus,
       customerStatus: customerStateFromSegment(backhaulStatus),
-      role: 'Core network',
+      role: isDisplayLeo ? 'LEO SNP and backbone path' : 'GEO teleport path',
       isRouteParticipant: activeRouteAvailable && backhaulStatus !== 'blocked' && backhaulStatus !== 'unknown',
       isPrimaryIssue: primaryFailingSegment === 'backhaul',
       story: activeRouteAvailable ? 'The network backbone carries traffic between the satellite service and destination.' : 'The network backbone is not confirmed until service is available.',
@@ -439,13 +442,13 @@ export function buildCommercialScenarioViewModel(input: BuildCommercialScenarioV
         ? (input.leoTopologyMode === 'SITE_TO_SITE'
             ? [leoRoutePath?.selectedSnpA?.name, leoRoutePath?.selectedSnpB?.name].filter(Boolean).join(' / ') || 'SNP path pending'
             : input.selectedSnpName ?? 'SNP path pending')
-        : 'Gateway path',
+        : 'Reference GEO teleport path',
       limitation: backhaulStatus === 'healthy' ? undefined : customerPrimaryWarning ?? 'Network backbone unavailable',
       technicalSummary: isDisplayLeo
         ? (input.leoTopologyMode === 'SITE_TO_SITE'
             ? [leoRoutePath?.selectedSnpA?.name, leoRoutePath?.selectedSnpB?.name].filter(Boolean).join(' / ') || 'SNP path pending'
             : input.selectedSnpName ?? 'SNP path pending')
-        : 'Gateway path',
+        : 'Reference GEO teleport path',
       technicalLimitation: backhaulStatus === 'healthy' ? undefined : primaryWarning,
       latencyMs: rttMs,
     },
@@ -553,6 +556,8 @@ export function buildCommercialScenarioViewModel(input: BuildCommercialScenarioV
       terminalLabel: input.activeAnalysisSource === 'aircraft' ? 'Aircraft' : input.leoTerminalType,
       pathStability: isDisplayLeo ? (leoRoutePath?.pathStability ?? '--') : '--',
       confidence: isDisplayLeo ? (leoRoutePath?.confidenceLevel ?? '--') : '--',
+      confidenceNote,
+      assumptionsSummary,
       backboneDistance: isDisplayLeo && leoRoutePath?.backboneDistanceKm
         ? `${Math.round(leoRoutePath.backboneDistanceKm).toLocaleString()} km`
         : '--',
@@ -560,7 +565,7 @@ export function buildCommercialScenarioViewModel(input: BuildCommercialScenarioV
       snpA: isDisplayLeo ? (leoRoutePath?.selectedSnpA?.name ?? leoEvidence?.selectedSnpA?.name ?? input.selectedSnpName ?? '--') : '--',
       snpB: isDisplayLeo ? (leoRoutePath?.selectedSnpB?.name ?? leoEvidence?.selectedSnpB?.name ?? '--') : '--',
       destinationType: activeRoute.destinationLabel ?? 'Site B',
-      destinationEndpointRole: destinationEndpointKind === 'geo_gateway' ? 'GEO Gateway' : 'Customer station',
+      destinationEndpointRole: destinationEndpointKind === 'geo_gateway' ? 'GEO teleport' : 'Customer station',
       destinationEndpointKind,
       destinationTechnology,
       destinationStationModel: destinationStationModel ?? '--',

@@ -135,7 +135,7 @@ const getDecisionDriver = (reason: ServiceLayerReason): LeoDecisionDriver => {
 
 const getDecisionDriverLabel = (driver: LeoDecisionDriver): string => {
   if (driver === 'REGULATORY') return 'REGULATORY RESTRICTION';
-  if (driver === 'CAPACITY') return 'ESTIMATED LOAD LIMIT';
+  if (driver === 'CAPACITY') return 'SIMULATED LOAD LIMIT';
   if (driver === 'NETWORK') return 'SNP PATH UNAVAILABLE';
   if (driver === 'RF') return 'RF COVERAGE UNAVAILABLE';
   return 'CONNECTED';
@@ -143,7 +143,7 @@ const getDecisionDriverLabel = (driver: LeoDecisionDriver): string => {
 
 const formatReasonLabel = (driver: LeoDecisionDriver): string => {
   if (driver === 'REGULATORY') return 'Regulatory restriction';
-  if (driver === 'CAPACITY') return 'Estimated load constraint';
+  if (driver === 'CAPACITY') return 'Simulated load constraint';
   if (driver === 'NETWORK') return 'SNP path unavailable';
   if (driver === 'RF') return 'RF coverage unavailable';
   return 'Connected';
@@ -169,7 +169,7 @@ const buildCapacityValue = (
 
 const formatEstimatedUsersLabel = (beamLoadResult: BeamLoadResult | null): string => {
   if (!beamLoadResult) return 'Unknown';
-  return `~${beamLoadResult.estimatedActiveUsers}`;
+  return `~${beamLoadResult.estimatedActiveUsers} model sessions`;
 };
 
 const hasStatisticalFillRate = (beamLoadResult: BeamLoadResult | null): boolean =>
@@ -238,16 +238,16 @@ export function deriveLeoConnectivityViewModel(
   const loadEstimateDetail = beamLoadResult
     ? hasFillRate
       ? [
-          'OneWeb-calibrated Network Load model',
-          beamLoadResult.fillRateInfluencePct != null ? `network load: ${beamLoadResult.fillRateInfluencePct}%` : null,
-          `equiv. users: ${capacity.estimatedUsersLabel}`,
+          'Simulated Network Load planning model',
+          beamLoadResult.fillRateInfluencePct != null ? `load input: ${beamLoadResult.fillRateInfluencePct}%` : null,
+          `load proxy: ${capacity.estimatedUsersLabel}`,
         ].filter(Boolean).join(' · ')
-      : ['Heuristic estimate', `equiv. users: ${capacity.estimatedUsersLabel}`].join(' · ')
+      : ['Heuristic planning estimate', `load proxy: ${capacity.estimatedUsersLabel}`].join(' · ')
     : 'No load estimate available';
 
   const estimatedLoadRow: LeoInfoRow | null = beamLoadResult
     ? {
-        label: 'Estimated Load',
+        label: 'Simulated Network Load',
         value: buildCapacityValue(beamLoadResult, loadCategory),
         tone: toneFromCapacityLoad(loadCategory),
         detail: loadEstimateDetail,
@@ -275,7 +275,7 @@ export function deriveLeoConnectivityViewModel(
     },
     capacity: {
       ...(estimatedLoadRow ?? {
-        label: 'Estimated Load',
+        label: 'Simulated Network Load',
         value: 'Unknown',
         tone: 'neutral' as const,
         detail: 'No load estimate available',
@@ -334,16 +334,16 @@ export function deriveLeoConnectivityViewModel(
       tone: toneFromStatus(serviceStatus),
     },
     {
-      label: 'Estimated Load',
+      label: 'Simulated Network Load',
       value: capacity.loadEstimatePercent != null ? `${capacity.loadEstimatePercent}%` : 'Unknown',
       tone: toneFromCapacityLoad(capacity.loadCategory),
-      detail: hasFillRate ? 'OneWeb-calibrated Network Load model' : 'Heuristic estimate',
+      detail: hasFillRate ? 'Planning model, not telemetry' : 'Heuristic planning estimate',
     },
     {
-      label: 'Equivalent Users',
+      label: 'Load proxy',
       value: capacity.estimatedUsersLabel,
       tone: 'neutral',
-      detail: capacity.sourceLabel,
+      detail: `${capacity.sourceLabel} · planning proxy`,
     },
     {
       label: 'Country',

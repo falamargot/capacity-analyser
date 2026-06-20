@@ -160,6 +160,8 @@ export interface CommercialScenarioViewModel {
     terminalLabel?: string;
     pathStability?: string;
     confidence?: string;
+    confidenceNote?: string;
+    assumptionsSummary?: string;
     backboneDistance?: string;
     logicalPop?: string;
     snpA?: string;

@@ -11,9 +11,9 @@ describe('getFillRateProvenanceDescriptor', () => {
       sourceDate: '2026-06',
     });
 
-    expect(networkLoad.badgeLabel).toBe('Calibrated model');
-    expect(networkLoad.shortLabel).toBe('Network Load model');
-    expect(networkLoad.detailLabel).toBe('P95 5-min avg · OneWeb-calibrated model · 2026-06');
+    expect(networkLoad.badgeLabel).toBe('Simulated');
+    expect(networkLoad.shortLabel).toBe('Simulated Network Load');
+    expect(networkLoad.detailLabel).toBe('High-load planning percentile · Calibrated planning model, not live telemetry · 2026-06');
   });
 
   it('describes synthetic visual-reference calibration without implying raw operational data', () => {
@@ -25,12 +25,12 @@ describe('getFillRateProvenanceDescriptor', () => {
       sourceDate: '2026-06',
     });
 
-    expect(calibrated.badgeLabel).toBe('Calibrated demo');
-    expect(calibrated.shortLabel).toBe('Visual reference calibration');
-    expect(calibrated.detailLabel).toBe('P95 5-min avg · Synthetic reference calibration · 2026-06');
+    expect(calibrated.badgeLabel).toBe('Simulated');
+    expect(calibrated.shortLabel).toBe('Simulated Network Load');
+    expect(calibrated.detailLabel).toBe('High-load planning percentile · Synthetic planning calibration · 2026-06');
   });
 
-  it('describes recent operational calibration separately from raw operational data', () => {
+  it('describes reference calibration without implying raw operational data', () => {
     const calibrated = getFillRateProvenanceDescriptor({
       source: 'reference',
       dataMode: 'recent_operational_calibration',
@@ -40,8 +40,8 @@ describe('getFillRateProvenanceDescriptor', () => {
     });
 
     expect(calibrated.badgeLabel).toBe('Reference');
-    expect(calibrated.shortLabel).toBe('Usage reference layer');
-    expect(calibrated.detailLabel).toBe('P95 5-min avg · Usage reference layer · 2026-06');
+    expect(calibrated.shortLabel).toBe('Simulated Network Load');
+    expect(calibrated.detailLabel).toBe('High-load planning percentile · Planning reference layer · 2026-06');
   });
 
   it('describes historical statistical averages distinctly', () => {
@@ -53,9 +53,9 @@ describe('getFillRateProvenanceDescriptor', () => {
       sourceDate: '2025-Q4',
     });
 
-    expect(historical.badgeLabel).toBe('Historical');
-    expect(historical.shortLabel).toBe('Historical statistical average');
-    expect(historical.detailLabel).toBe('P50 5-min avg · Historical baseline · 2025-Q4');
+    expect(historical.badgeLabel).toBe('Simulated');
+    expect(historical.shortLabel).toBe('Simulated Network Load');
+    expect(historical.detailLabel).toBe('Typical planning percentile · Historical planning baseline, not live telemetry · 2025-Q4');
   });
 
   it('describes heuristic fallback as an estimate, not fill-rate statistics', () => {
@@ -64,8 +64,8 @@ describe('getFillRateProvenanceDescriptor', () => {
       dataMode: 'heuristic_estimate',
     });
 
-    expect(heuristic.badgeLabel).toBe('Estimated');
-    expect(heuristic.shortLabel).toBe('Heuristic fallback');
+    expect(heuristic.badgeLabel).toBe('Heuristic');
+    expect(heuristic.shortLabel).toBe('Simulated Network Load');
     expect(heuristic.statisticLabel).toBeNull();
   });
 });

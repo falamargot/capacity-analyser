@@ -72,9 +72,9 @@ const getStatusSummary = (vm: LeoConnectivityViewModel): string => {
     return 'All service gates are currently aligned for end-to-end access.';
   }
   if (vm.finalServiceStatus === 'DEGRADED') {
-    return 'Service is reachable, but a live constraint is reducing quality.';
+    return 'Service is reachable, but a modeled constraint is reducing quality.';
   }
-  return 'A blocking condition is stopping end-to-end service right now.';
+  return 'A blocking condition is preventing end-to-end service in the current model.';
 };
 
 const getReasonDetail = (vm: LeoConnectivityViewModel, row: LeoInfoRow): string | undefined => {
@@ -90,11 +90,11 @@ const getReasonDetail = (vm: LeoConnectivityViewModel, row: LeoInfoRow): string 
     return 'Requires an RF link first';
   }
 
-  if (row.label === 'Estimated Load') {
+  if (row.label === 'Simulated Network Load') {
     if (vm.capacity.loadEstimatePercent == null) return 'No load estimate';
     return vm.capacity.hasFillRate
-      ? 'OneWeb-calibrated Network Load model'
-      : 'Heuristic estimate';
+      ? 'Planning model, not telemetry'
+      : 'Heuristic planning estimate';
   }
 
   if (row.label === 'Regulatory') {
@@ -172,7 +172,7 @@ export const ConnectivityStatusCard = memo(({ viewModel }: { viewModel: LeoConne
   const classes = toneClasses[tone];
   const Icon = getStatusIcon(viewModel);
   const whyRows = [...viewModel.whyRows].sort((left, right) => {
-    const order = ['RF', 'Estimated Load', 'SNP', 'Regulatory'];
+    const order = ['RF', 'Simulated Network Load', 'SNP', 'Regulatory'];
     return order.indexOf(left.label) - order.indexOf(right.label);
   });
 

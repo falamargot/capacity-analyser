@@ -25,14 +25,10 @@ export function formatFillRateStatisticLabel(
 ): string | null {
   if (!statistic) return null;
 
-  const statisticLabel = statistic === 'P95_5MIN_AVG'
-    ? 'P95'
-    : statistic === 'P50_5MIN_AVG'
-      ? 'P50'
-      : statistic;
+  if (statistic === 'P95_5MIN_AVG') return 'High-load planning percentile';
+  if (statistic === 'P50_5MIN_AVG') return 'Typical planning percentile';
 
-  const window = windowMinutes != null ? `${windowMinutes}-min avg` : 'avg';
-  return `${statisticLabel} ${window}`;
+  return windowMinutes != null ? `Planning statistic (${windowMinutes} min)` : 'Planning statistic';
 }
 
 export function getFillRateProvenanceDescriptor({
@@ -47,45 +43,45 @@ export function getFillRateProvenanceDescriptor({
 
   if (dataMode === 'historical_statistical_average') {
     return {
-      badgeLabel: 'Historical',
-      shortLabel: 'Historical statistical average',
-      detailLabel: `${statisticLabel ?? 'Statistical average'} · Historical baseline${period}`,
+      badgeLabel: 'Simulated',
+      shortLabel: 'Simulated Network Load',
+      detailLabel: `${statisticLabel ?? 'Planning baseline'} · Historical planning baseline, not live telemetry${period}`,
       statisticLabel,
     };
   }
 
   if (dataMode === 'calibrated_network_load_model') {
     return {
-      badgeLabel: 'Calibrated model',
-      shortLabel: 'Network Load model',
-      detailLabel: `${statisticLabel ?? 'Network Load'} · OneWeb-calibrated model${period}`,
+      badgeLabel: 'Simulated',
+      shortLabel: 'Simulated Network Load',
+      detailLabel: `${statisticLabel ?? 'Network load'} · Calibrated planning model, not live telemetry${period}`,
       statisticLabel,
     };
   }
 
   if (dataMode === 'synthetic_reference_calibration') {
     return {
-      badgeLabel: 'Calibrated demo',
-      shortLabel: 'Visual reference calibration',
-      detailLabel: `${statisticLabel ?? 'Fill-rate statistic'} · Synthetic reference calibration${period}`,
+      badgeLabel: 'Simulated',
+      shortLabel: 'Simulated Network Load',
+      detailLabel: `${statisticLabel ?? 'Reference load'} · Synthetic planning calibration${period}`,
       statisticLabel,
     };
   }
 
   if (dataMode === 'heuristic_estimate' || source === 'heuristic') {
     return {
-      badgeLabel: 'Estimated',
-      shortLabel: 'Heuristic fallback',
-      detailLabel: 'Heuristic fallback · global network baseline',
+      badgeLabel: 'Heuristic',
+      shortLabel: 'Simulated Network Load',
+      detailLabel: 'Heuristic planning fallback · global network baseline, not telemetry',
       statisticLabel: null,
     };
   }
 
   if (source === 'operational') {
     return {
-      badgeLabel: 'Operational',
-      shortLabel: 'Recent operational stats',
-      detailLabel: `${statisticLabel ?? 'Operational statistic'} · Recent operational export${period}`,
+      badgeLabel: 'Simulated',
+      shortLabel: 'Simulated Network Load',
+      detailLabel: `${statisticLabel ?? 'Imported planning layer'} · Imported load reference, not live telemetry${period}`,
       statisticLabel,
     };
   }
@@ -93,16 +89,16 @@ export function getFillRateProvenanceDescriptor({
   if (source === 'reference') {
     return {
       badgeLabel: 'Reference',
-      shortLabel: 'Usage reference layer',
-      detailLabel: `${statisticLabel ?? 'Reference statistic'} · Usage reference layer${period}`,
+      shortLabel: 'Simulated Network Load',
+      detailLabel: `${statisticLabel ?? 'Reference load'} · Planning reference layer${period}`,
       statisticLabel,
     };
   }
 
   return {
-    badgeLabel: 'Calibrated demo',
-    shortLabel: 'Visual reference calibration',
-    detailLabel: `${statisticLabel ?? 'Fill-rate statistic'} · Synthetic reference calibration${period}`,
+    badgeLabel: 'Simulated',
+    shortLabel: 'Simulated Network Load',
+    detailLabel: `${statisticLabel ?? 'Reference load'} · Synthetic planning calibration${period}`,
     statisticLabel,
   };
 }

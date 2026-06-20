@@ -85,12 +85,12 @@ describe('Network Load UX validation scenarios', () => {
 
     expect(siteAVm.capacity.hasFillRate).toBe(true);
     expect(siteAVm.whyRows.some((row) => row.label === 'Fill Rate')).toBe(false);
-    expect(siteAVm.whyRows.find((row) => row.label === 'Estimated Load')?.detail)
-      .toContain('OneWeb-calibrated Network Load model');
+    expect(siteAVm.whyRows.find((row) => row.label === 'Simulated Network Load')?.detail)
+      .toContain('Simulated Network Load planning model');
 
     expect(siteBVm.capacity.hasFillRate).toBe(true);
     expect(siteBVm.whyRows.some((row) => row.label === 'Fill Rate')).toBe(false);
-    expect(siteBVm.whyRows.find((row) => row.label === 'Estimated Load')?.detail)
-      .toContain('OneWeb-calibrated Network Load model');
+    expect(siteBVm.whyRows.find((row) => row.label === 'Simulated Network Load')?.detail)
+      .toContain('Simulated Network Load planning model');
   });
 });

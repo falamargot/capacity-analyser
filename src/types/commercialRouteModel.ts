@@ -33,7 +33,7 @@
 export type CommercialRouteSegmentId =
   | 'access'       // Customer Site — first-mile to the space segment
   | 'satellite'    // Satellite Service — the space relay layer
-  | 'backhaul'     // Network Backbone — ground infrastructure between space nodes
+  | 'backhaul'     // Indicative backbone/ground infrastructure between space nodes
   | 'destination'  // Destination — far-end customer site or network portal
   | 'summary';     // Service Outcome — aggregate service result
 

@@ -9,7 +9,7 @@ const segmentOrder: CommercialRouteSegment['type'][] = ['access', 'satellite', '
 const tabLabel: Record<CommercialRouteSegment['type'], string> = {
   access: 'Access',
   satellite: 'Satellite',
-  backhaul: 'Backbone',
+  backhaul: 'Indicative Path',
   destination: 'Destination',
   summary: 'Summary',
 };
@@ -175,7 +175,7 @@ function CommercialInspectorPanel({
           { label: 'Site', value: viewModel.siteA?.name },
           { label: 'Terminal', value: viewModel.display.terminalLabel },
           { label: 'Access weather', value: viewModel.display.weatherA },
-          { label: 'SNP A', value: viewModel.display.snpA },
+          { label: 'LEO SNP A', value: viewModel.display.snpA },
           { label: 'Link margin', value: viewModel.display.linkMargin },
           { label: 'Regulatory state', value: viewModel.display.regulatoryState },
         ]);
@@ -191,25 +191,26 @@ function CommercialInspectorPanel({
       case 'backhaul':
         return compactRows([
           { label: 'Service path', value: viewModel.display.routeValue },
-          { label: 'Backbone distance', value: viewModel.display.backboneDistance },
-          { label: 'Logical POP', value: viewModel.display.logicalPop },
-          { label: 'SNP A', value: viewModel.display.snpA },
-          { label: 'SNP B', value: viewModel.display.snpB },
+          { label: 'Indicative backbone distance', value: viewModel.display.backboneDistance },
+          { label: 'Logical PoP', value: viewModel.display.logicalPop },
+          { label: 'LEO SNP A', value: viewModel.display.snpA },
+          { label: 'LEO SNP B', value: viewModel.display.snpB },
         ]);
       case 'destination':
         return compactRows([
           { label: 'Destination', value: viewModel.siteB?.name },
           { label: 'Destination type', value: viewModel.display.destinationType },
           { label: destinationWeatherLabel, value: viewModel.display.weatherB },
-          { label: 'SNP B', value: viewModel.display.snpB },
+          { label: 'LEO SNP B', value: viewModel.display.snpB },
         ]);
       case 'summary':
       default:
         return compactRows([
           { label: 'Service path', value: viewModel.display.routeValue },
-          { label: 'Availability', value: viewModel.availabilityPct != null ? `${viewModel.availabilityPct.toFixed(2)}%` : viewModel.display.serviceStatusLabel },
+          { label: 'Availability', value: viewModel.availabilityPct != null ? `${Math.round(viewModel.availabilityPct)}%` : viewModel.display.serviceStatusLabel },
           { label: 'Path stability', value: viewModel.display.pathStability },
-          { label: 'Confidence', value: viewModel.display.confidence },
+          { label: 'Prediction confidence', value: viewModel.display.confidenceNote ?? viewModel.display.confidence },
+          { label: 'Assumptions', value: viewModel.display.assumptionsSummary },
           { label: 'Raw service status', value: viewModel.display.rawServiceStatus },
         ]);
     }
@@ -219,10 +220,12 @@ function CommercialInspectorPanel({
     value: comparisonRowValue(option),
   }));
   const availabilityRows = [
-    { label: 'Service availability', value: viewModel.availabilityPct != null ? `${viewModel.availabilityPct.toFixed(2)}%` : viewModel.display.serviceStatusLabel },
+    { label: 'Service availability', value: viewModel.availabilityPct != null ? `${Math.round(viewModel.availabilityPct)}%` : viewModel.display.serviceStatusLabel },
     { label: 'Access weather', value: viewModel.display.weatherA ?? '--' },
     { label: destinationWeatherLabel, value: viewModel.display.weatherB ?? '--' },
     { label: 'Recommendation category', value: viewModel.recommendation.reasonCategory.replaceAll('_', ' ') },
+    { label: 'Prediction confidence', value: viewModel.display.confidenceNote ?? viewModel.display.confidence ?? '--' },
+    { label: 'Assumptions', value: viewModel.display.assumptionsSummary ?? '--' },
   ];
   const limitingRows = [
     { label: 'Segment constraint', value: segment?.limitation ?? 'None detected' },
@@ -239,8 +242,8 @@ function CommercialInspectorPanel({
     { label: 'RF status', value: viewModel.display.rfStatus ?? '--' },
     { label: 'Bottleneck', value: viewModel.display.rawBottleneck ?? '--' },
     { label: 'Regulatory state', value: viewModel.display.regulatoryState ?? '--' },
-    { label: 'SNP A', value: viewModel.display.snpA ?? '--' },
-    { label: 'SNP B', value: viewModel.display.snpB ?? '--' },
+    { label: 'LEO SNP A', value: viewModel.display.snpA ?? '--' },
+    { label: 'LEO SNP B', value: viewModel.display.snpB ?? '--' },
     { label: 'Route summary', value: viewModel.display.routeSummary ?? '--' },
   ];
 

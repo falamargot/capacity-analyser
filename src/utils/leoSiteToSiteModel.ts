@@ -1,4 +1,4 @@
-import { haversineDistanceKm } from './leoFootprint';
+import { haversineDistanceKm, MIN_USER_TERMINAL_ELEVATION_DEG, STANDARD_SERVICE_ELEVATION_DEG } from './leoFootprint';
 import { SPEED_OF_LIGHT_RADIO_KM_S } from './capacityCalculator';
 import type { SatelliteData } from '../types/satellites';
 import type { SNPData } from '../components/globe/GlobeConfig';
@@ -159,6 +159,8 @@ export interface LeoSiteToSiteResult {
 
   pathStability: 'High' | 'Medium' | 'Low';
   confidenceLevel: 'High' | 'Medium' | 'Low';
+  confidenceScore: number;
+  confidenceReasons: string[];
   serviceAvailable: boolean;
 
   /** Per-site RF debug chains for the Detailed Link Budget drawer.
@@ -219,14 +221,96 @@ function derivePathStability(
   return 'Low';
 }
 
-function deriveConfidenceLevel(
-  snpA: SNPData | null,
-  snpB: SNPData | null,
-  satA: SatelliteData | null,
-  satB: SatelliteData | null
-): 'High' | 'Medium' | 'Low' {
-  if (!snpA || !snpB || !satA || !satB) return 'Low';
-  return 'Medium'; // always medium: backbone topology is estimated
+function deriveConfidence(args: {
+  snpA: SNPData | null;
+  snpB: SNPData | null;
+  satA: SatelliteData | null;
+  satB: SatelliteData | null;
+  rfAvailableA: boolean;
+  rfAvailableB: boolean;
+  regulatoryA: RegulatoryResult | null;
+  regulatoryB: RegulatoryResult | null;
+  beamLoadA: BeamLoadResult | null;
+  beamLoadB: BeamLoadResult | null;
+  debugSiteA?: LeoThroughputResult | null;
+  debugSiteB?: LeoThroughputResult | null;
+  elevationADeg: number | null;
+  elevationBDeg: number | null;
+}): { level: 'High' | 'Medium' | 'Low'; score: number; reasons: string[] } {
+  let score = 0;
+  const reasons: string[] = [];
+
+  if (args.satA && args.satB) {
+    score += 18;
+    reasons.push('Both serving satellites resolved');
+  } else {
+    reasons.push('Serving satellite missing at one endpoint');
+  }
+
+  if (args.snpA && args.snpB) {
+    score += 18;
+    reasons.push('Both LEO SNP paths resolved');
+  } else {
+    reasons.push('LEO SNP path missing at one endpoint');
+  }
+
+  if (args.rfAvailableA && args.rfAvailableB) {
+    score += 14;
+    reasons.push('RF availability confirmed at both sites');
+  } else {
+    reasons.push('RF availability incomplete');
+  }
+
+  if (args.debugSiteA && args.debugSiteB) {
+    score += 14;
+    reasons.push('Detailed RF debug chains available');
+  } else if (args.debugSiteA || args.debugSiteB) {
+    score += 7;
+    reasons.push('Detailed RF debug chain available for one site');
+  } else {
+    reasons.push('Detailed RF debug chains unavailable');
+  }
+
+  const regulatory = [args.regulatoryA, args.regulatoryB];
+  if (regulatory.every((item) => item?.status === 'ALLOWED_CONFIRMED')) {
+    score += 12;
+    reasons.push('Regulatory status confirmed');
+  } else if (regulatory.every((item) => item && item.status !== 'BLOCKED')) {
+    score += 7;
+    reasons.push('Regulatory status estimated or restricted');
+  } else {
+    reasons.push('Regulatory status pending or blocked');
+  }
+
+  const loads = [args.beamLoadA, args.beamLoadB];
+  if (loads.every((item) => item && item.loadSource !== 'heuristic')) {
+    score += 10;
+    reasons.push('Simulated load uses configured planning layer');
+  } else if (loads.some((item) => item)) {
+    score += 5;
+    reasons.push('Simulated load partly heuristic');
+  } else {
+    reasons.push('Simulated load unavailable');
+  }
+
+  const minElevation = Math.min(args.elevationADeg ?? 0, args.elevationBDeg ?? 0);
+  if (minElevation >= STANDARD_SERVICE_ELEVATION_DEG) {
+    score += 14;
+    reasons.push('Both sites meet standard elevation margin');
+  } else if (minElevation >= MIN_USER_TERMINAL_ELEVATION_DEG) {
+    score += 7;
+    reasons.push('Both sites meet minimum elevation only');
+  } else {
+    reasons.push('Elevation margin is weak or unknown');
+  }
+
+  const structuralEvidenceComplete = !!args.satA && !!args.satB && !!args.snpA && !!args.snpB && args.rfAvailableA && args.rfAvailableB;
+  const regulatoryPending = !args.regulatoryA || !args.regulatoryB;
+  const cappedScore = !structuralEvidenceComplete || regulatoryPending
+    ? Math.min(score, 44)
+    : score;
+  const level = cappedScore >= 75 ? 'High' : cappedScore >= 45 ? 'Medium' : 'Low';
+  return { level, score: cappedScore, reasons: reasons.slice(0, 4) };
 }
 
 /**
@@ -465,7 +549,22 @@ export function computeLeoSiteToSiteResult(args: ComputeLeoSiteToSiteArgs): LeoS
 
   // ── Stability & confidence ────────────────────────────────────────────────
   const pathStability = derivePathStability(elevationADeg, elevationBDeg);
-  const confidenceLevel = deriveConfidenceLevel(selectedSnpA, selectedSnpB, servingSatelliteA, servingSatelliteB);
+  const confidence = deriveConfidence({
+    snpA: selectedSnpA,
+    snpB: selectedSnpB,
+    satA: servingSatelliteA,
+    satB: servingSatelliteB,
+    rfAvailableA,
+    rfAvailableB,
+    regulatoryA: regulatoryResultA,
+    regulatoryB: regulatoryResultB,
+    beamLoadA,
+    beamLoadB,
+    debugSiteA,
+    debugSiteB,
+    elevationADeg,
+    elevationBDeg,
+  });
 
   const expectedHandoversA = estimateExpectedHandovers(elevationADeg);
   const expectedHandoversB = estimateExpectedHandovers(elevationBDeg);
@@ -508,7 +607,9 @@ export function computeLeoSiteToSiteResult(args: ComputeLeoSiteToSiteArgs): LeoS
     expectedHandoversA,
     expectedHandoversB,
     pathStability,
-    confidenceLevel,
+    confidenceLevel: confidence.level,
+    confidenceScore: confidence.score,
+    confidenceReasons: confidence.reasons,
     serviceAvailable,
     debugSiteA,
     debugSiteB,

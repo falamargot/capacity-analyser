@@ -2013,7 +2013,7 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
     const resolvedGateway = geoGeometry.satelliteToGateway.resolvedGateway;
     const gatewayName = resolvedGateway
       ? `${resolvedGateway.gatewayName} (${resolvedGateway.role})`
-      : geoGeometry.satelliteToGateway.gateway?.name ?? 'No eligible gateway';
+      : geoGeometry.satelliteToGateway.gateway?.name ?? 'No eligible GEO teleport';
     const userToSatelliteLabel = resolvedGEOConnectivity.candidate.coverageName || resolvedGEOConnectivity.satellite.name;
     const oneWayDistanceKm = geoGeometry.satelliteToGateway.slantRangeKm != null
       ? geoGeometry.userToSatellite.slantRangeKm + geoGeometry.satelliteToGateway.slantRangeKm

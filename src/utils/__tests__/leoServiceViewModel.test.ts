@@ -52,8 +52,8 @@ const fillRateResult: FillRateLookupResult = {
   },
 };
 
-describe('deriveLeoConnectivityViewModel — estimated-load source clarity', () => {
-  it('shows Estimated Load from the OneWeb-calibrated Network Load model', () => {
+describe('deriveLeoConnectivityViewModel — simulated-load source clarity', () => {
+  it('shows Simulated Network Load from the planning model', () => {
     const beamLoadResult = estimateBeamLoadWithFillRate({
       lat: 48.8,
       lng: 2.3,
@@ -74,14 +74,14 @@ describe('deriveLeoConnectivityViewModel — estimated-load source clarity', () 
     expect(vm.capacity.hasFillRate).toBe(true);
     expect(vm.capacity.fillRatePercent).toBe(76);
     expect(vm.whyRows.some((row) => row.label === 'Fill Rate')).toBe(false);
-    const estimatedLoadRow = vm.whyRows.find((row) => row.label === 'Estimated Load');
+    const estimatedLoadRow = vm.whyRows.find((row) => row.label === 'Simulated Network Load');
     expect(estimatedLoadRow?.value).toContain(`${beamLoadResult.beamLoadPercent}%`);
     expect(estimatedLoadRow?.detail).toBe(
-      `OneWeb-calibrated Network Load model · network load: 76% · equiv. users: ~${beamLoadResult.estimatedActiveUsers}`,
+      `Simulated Network Load planning model · load input: 76% · load proxy: ~${beamLoadResult.estimatedActiveUsers} model sessions`,
     );
   });
 
-  it('separates unavailable Fill Rate from heuristic Estimated Load outside calibrated cells', () => {
+  it('separates unavailable Fill Rate from heuristic Simulated Network Load outside calibrated cells', () => {
     const beamLoadResult = estimateBeamLoad(48.8, 2.3, false, 'FR');
 
     const vm = deriveLeoConnectivityViewModel({
@@ -97,14 +97,14 @@ describe('deriveLeoConnectivityViewModel — estimated-load source clarity', () 
     expect(vm.capacity.fillRatePercent).toBeNull();
     expect(vm.capacity.loadEstimatePercent).toBe(beamLoadResult.beamLoadPercent);
     expect(vm.whyRows.some((row) => row.label === 'Fill Rate')).toBe(false);
-    const estimatedLoadRow = vm.whyRows.find((row) => row.label === 'Estimated Load');
+    const estimatedLoadRow = vm.whyRows.find((row) => row.label === 'Simulated Network Load');
     expect(estimatedLoadRow?.value).toContain(`${beamLoadResult.beamLoadPercent}%`);
     expect(estimatedLoadRow?.detail).toBe(
-      `Heuristic estimate · equiv. users: ~${beamLoadResult.estimatedActiveUsers}`,
+      `Heuristic planning estimate · load proxy: ~${beamLoadResult.estimatedActiveUsers} model sessions`,
     );
   });
 
-  it('uses estimated-load wording when heuristic load is the capacity decision driver', () => {
+  it('uses simulated-load wording when heuristic load is the capacity decision driver', () => {
     const beamLoadResult = estimateBeamLoad(48.8, 2.3, false, 'FR');
 
     const vm = deriveLeoConnectivityViewModel({
@@ -120,7 +120,7 @@ describe('deriveLeoConnectivityViewModel — estimated-load source clarity', () 
       hasSNP: true,
     });
 
-    expect(vm.decisionDriverLabel).toBe('ESTIMATED LOAD LIMIT');
-    expect(vm.primaryReasonLabel).toBe('Estimated load constraint');
+    expect(vm.decisionDriverLabel).toBe('SIMULATED LOAD LIMIT');
+    expect(vm.primaryReasonLabel).toBe('Simulated load constraint');
   });
 });

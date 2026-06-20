@@ -7,7 +7,7 @@ import { customerServiceStateLabelShort, segmentStatusBadgeClassName } from './c
 const journeyLabel: Record<CommercialRouteSegment['type'], string> = {
   access: 'Customer Access',
   satellite: 'Serving Satellite',
-  backhaul: 'Network Backbone',
+  backhaul: 'Indicative Backbone',
   destination: 'Destination',
   summary: 'Connectivity Architecture',
 };

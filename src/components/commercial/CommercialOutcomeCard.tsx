@@ -84,6 +84,14 @@ function CommercialOutcomeCard({ viewModel, onOpenOutcome }: CommercialOutcomeCa
       >
         {experienceText(viewModel)}
       </p>
+      {viewModel.display.confidenceNote && (
+        <p
+          className="mt-1 truncate px-3.5 text-[10px] leading-none text-slate-500"
+          title={viewModel.display.confidenceNote}
+        >
+          {viewModel.display.confidenceNote}
+        </p>
+      )}
 
       {/* Divider */}
       <div className="mx-3.5 mt-2.5 border-t border-[rgba(148,163,184,0.07)]" />
