@@ -22,6 +22,12 @@ import type { GeoPointStatus } from '../../utils/selectedPointStatus';
 import type { GeoRouteAnalysisViewModel } from '../../utils/geoRouteAnalysisViewModel';
 import type { ActiveLeoRouteEvidence } from '../../utils/activeLeoRouteEvidence';
 import {
+  buildGeoConfidence,
+  buildLeoSingleSiteConfidence,
+  type PredictionConfidence,
+} from '../../utils/predictionConfidence';
+import { estimateGeoSatelliteCapacity } from '../../utils/geoCapacityModel';
+import {
   buildGeoRouteViewModel,
   buildLeoRouteViewModel,
   routeDirectionFromMeshTab,
@@ -326,6 +332,30 @@ export function buildCommercialScenarioViewModel(input: BuildCommercialScenarioV
   const activeLeoEndpointCapacity = leoRoutePath?.accessThroughputAtoBMbps
     ?? leoRoutePath?.finalThroughputAtoBMbps
     ?? leoEvidence?.downloadMbps;
+  const geoCoverageEvidence = input.geoRouteAnalysis?.selectedCoverage ?? input.selectedCoverage;
+  const geoCapacityEstimate = !isDisplayLeo && satellite ? estimateGeoSatelliteCapacity(satellite) : null;
+  const predictionConfidence: PredictionConfidence = isDisplayLeo
+    ? (leoRoutePath?.predictionConfidence ?? buildLeoSingleSiteConfidence({
+        mode: 'COMM',
+        satelliteResolved: !!(leoEvidence?.servingSatelliteA ?? servingSatelliteA),
+        snpResolved: !!(leoEvidence?.selectedSnpA ?? input.selectedSnpName),
+        rfAvailable: !!leoRfAvailableA,
+        debugAvailable: !!leoEvidence?.debugEvidence.siteA || !!leoEvidence?.leoPerformance?.debugInfo,
+        regulatoryStatus: leoEvidence?.failureReason?.startsWith('REGULATORY') ? 'BLOCKED' : leoEvidence?.serviceStatus,
+        loadSource: null,
+        elevationDeg: leoElevationADeg,
+      }))
+    : buildGeoConfidence({
+        mode: 'COMM',
+        topology: input.linkMode === 'MESH' || input.linkMode === 'POINT_TO_POINT' ? 'Site-to-Site' : 'Single Site',
+        coverageAvailable: !!geoCoverageEvidence && geoStatusSource !== 'unstable',
+        rfAvailable: geoStatusSource === 'available' || !!geoMetricsSource.geo,
+        publicFrequencyEvidence: !!geoCoverageEvidence?.band || !!geoCoverageEvidence?.frequencyGhz || !!geoCoverageEvidence?.level,
+        gatewayResolved: !!input.geoGatewayName || !!input.geoRouteAnalysis?.geoSiteToSitePath || geoStatusSource === 'available',
+        capacityClassKnown: !!geoCapacityEstimate,
+        regulatoryKnown: geoStatusSource !== null,
+        routePending: geoRoutePending,
+      });
 
   const routeMetricsWarning = activeRoute.available && !activeMetricsComplete
     ? (isDisplayLeo && leoRoutePending
@@ -378,13 +408,10 @@ export function buildCommercialScenarioViewModel(input: BuildCommercialScenarioV
   const backhaulStatus = segmentStatus('backhaul', computedBackhaulStatus);
   const destinationStatus = segmentStatus('siteB', computedDestinationStatus);
 
-  const confidenceNote = isDisplayLeo
-    ? [
-        leoRoutePath?.confidenceLevel ? `${leoRoutePath.confidenceLevel} confidence` : 'Confidence pending',
-        leoRoutePath?.confidenceScore != null ? `${leoRoutePath.confidenceScore}/100` : null,
-        leoRoutePath?.confidenceReasons?.[0] ?? 'LEO route uses simulated load and estimated backbone routing',
-      ].filter(Boolean).join(' - ')
-    : 'GEO confidence uses RF link budget plus reference GEO teleport allocation.';
+  const confidenceNote = [
+    predictionConfidence.summary,
+    predictionConfidence.reasons[0] ?? predictionConfidence.limitation,
+  ].filter(Boolean).join(' - ');
   const assumptionsSummary = isDisplayLeo
     ? 'Assumes simulated network load, beam sharing, selected LEO SNP path, public terminal profile, weather profile, and indicative backbone routing.'
     : 'Assumes selected weather profile, public frequency data, terminal RF class, and reference GEO teleport allocation.';
@@ -555,8 +582,9 @@ export function buildCommercialScenarioViewModel(input: BuildCommercialScenarioV
       routeSummary: activeRoute.summary ?? '--',
       terminalLabel: input.activeAnalysisSource === 'aircraft' ? 'Aircraft' : input.leoTerminalType,
       pathStability: isDisplayLeo ? (leoRoutePath?.pathStability ?? '--') : '--',
-      confidence: isDisplayLeo ? (leoRoutePath?.confidenceLevel ?? '--') : '--',
+      confidence: predictionConfidence.level,
       confidenceNote,
+      predictionConfidence,
       assumptionsSummary,
       backboneDistance: isDisplayLeo && leoRoutePath?.backboneDistanceKm
         ? `${Math.round(leoRoutePath.backboneDistanceKm).toLocaleString()} km`

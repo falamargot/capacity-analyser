@@ -14,6 +14,8 @@ import { getDisplayedThroughput, type DualSegmentResult } from '../../utils/geoD
 import LinkModeSelector from './LinkModeSelector';
 import type { ResolvedGeoGateway } from '../../utils/geoConnectivityModel';
 import { formatCoordinates } from '../../utils/formatters';
+import { buildGeoConfidence } from '../../utils/predictionConfidence';
+import { estimateGeoSatelliteCapacity } from '../../utils/geoCapacityModel';
 
 // ─── Sub-component: LatencyBreakdownCard ──────────────────────────────────────
 
@@ -783,6 +785,20 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
   isLinkBudgetDrawerOpen: controlledDrawerOpen = false,
   onLinkBudgetDrawerOpenChange,
 }) => {
+  const geoCapacityEstimate = resolvedGEOConnectivity?.satellite
+    ? estimateGeoSatelliteCapacity(resolvedGEOConnectivity.satellite)
+    : null;
+  const geoPredictionConfidence = buildGeoConfidence({
+    mode: 'ENG',
+    topology: linkMode === 'MESH' || linkMode === 'POINT_TO_POINT' ? 'Site-to-Site' : 'Single Site',
+    coverageAvailable: !!(selectedCoverage ?? bestCoverage),
+    rfAvailable: !!dualSegmentResult,
+    publicFrequencyEvidence: !!(selectedCoverage?.band ?? bestCoverage?.band ?? selectedCoverage?.frequencyGhz ?? bestCoverage?.frequencyGhz ?? selectedCoverage?.level ?? bestCoverage?.level),
+    gatewayResolved: linkMode === 'MESH' || linkMode === 'POINT_TO_POINT' || !!geoGeometry?.satelliteToGateway.resolvedGateway,
+    capacityClassKnown: !!geoCapacityEstimate,
+    regulatoryKnown: true,
+    routePending: false,
+  });
   const isMeshOrP2P = linkMode === 'MESH' || linkMode === 'POINT_TO_POINT';
   const isStarForward = linkMode === 'STAR_FORWARD';
   const isStarReturn = linkMode === 'STAR_RETURN';
@@ -1628,6 +1644,9 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
           <div className="space-y-2 text-xs leading-relaxed text-slate-600 dark:text-slate-400">
             <div className="rounded border border-blue-200 bg-blue-50 px-2.5 py-1.5 text-blue-700 dark:border-blue-800/50 dark:bg-blue-950/30 dark:text-blue-300">
               STAR-mode GEO teleport selection is a reference allocation unless the model falls back to a visible teleport.
+            </div>
+            <div className="rounded border border-slate-200 bg-white px-2.5 py-1.5 text-slate-700 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200">
+              <span className="font-semibold">Prediction confidence:</span> {geoPredictionConfidence.summary}. {geoPredictionConfidence.reasons[0] ?? geoPredictionConfidence.limitation}
             </div>
             <div className="grid gap-1.5">
               <div><span className="font-semibold text-slate-700 dark:text-slate-200">Physical:</span> WGS84 slant range, elevation, radio propagation delay and GEO RF link-budget calculations.</div>

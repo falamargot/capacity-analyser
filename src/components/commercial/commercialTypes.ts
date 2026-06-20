@@ -1,3 +1,5 @@
+import type { PredictionConfidence } from '../../utils/predictionConfidence';
+
 export type CommercialStatus = 'active' | 'degraded' | 'blocked' | 'unknown';
 
 export type CommercialTechnology = 'leo' | 'geo' | 'hybrid';
@@ -161,6 +163,7 @@ export interface CommercialScenarioViewModel {
     pathStability?: string;
     confidence?: string;
     confidenceNote?: string;
+    predictionConfidence?: PredictionConfidence;
     assumptionsSummary?: string;
     backboneDistance?: string;
     logicalPop?: string;

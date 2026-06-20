@@ -6,6 +6,14 @@ import type { RegulatoryResult } from '../services/regulatoryService';
 import type { ServiceStatus } from './serviceLayer';
 import type { BeamLoadResult } from './capacityLayer';
 import type { LeoThroughputResult } from '../types/leoThroughput';
+import {
+  buildPredictionConfidence,
+  missingFactor,
+  partialFactor,
+  positiveFactor,
+  riskFactor,
+  type PredictionConfidence,
+} from './predictionConfidence';
 
 // ── OneWeb site-to-site backbone constants ────────────────────────────────────
 
@@ -161,6 +169,7 @@ export interface LeoSiteToSiteResult {
   confidenceLevel: 'High' | 'Medium' | 'Low';
   confidenceScore: number;
   confidenceReasons: string[];
+  predictionConfidence: PredictionConfidence;
   serviceAvailable: boolean;
 
   /** Per-site RF debug chains for the Detailed Link Budget drawer.
@@ -236,81 +245,63 @@ function deriveConfidence(args: {
   debugSiteB?: LeoThroughputResult | null;
   elevationADeg: number | null;
   elevationBDeg: number | null;
-}): { level: 'High' | 'Medium' | 'Low'; score: number; reasons: string[] } {
-  let score = 0;
-  const reasons: string[] = [];
-
-  if (args.satA && args.satB) {
-    score += 18;
-    reasons.push('Both serving satellites resolved');
-  } else {
-    reasons.push('Serving satellite missing at one endpoint');
-  }
-
-  if (args.snpA && args.snpB) {
-    score += 18;
-    reasons.push('Both LEO SNP paths resolved');
-  } else {
-    reasons.push('LEO SNP path missing at one endpoint');
-  }
-
-  if (args.rfAvailableA && args.rfAvailableB) {
-    score += 14;
-    reasons.push('RF availability confirmed at both sites');
-  } else {
-    reasons.push('RF availability incomplete');
-  }
-
-  if (args.debugSiteA && args.debugSiteB) {
-    score += 14;
-    reasons.push('Detailed RF debug chains available');
-  } else if (args.debugSiteA || args.debugSiteB) {
-    score += 7;
-    reasons.push('Detailed RF debug chain available for one site');
-  } else {
-    reasons.push('Detailed RF debug chains unavailable');
-  }
-
+}): PredictionConfidence {
   const regulatory = [args.regulatoryA, args.regulatoryB];
-  if (regulatory.every((item) => item?.status === 'ALLOWED_CONFIRMED')) {
-    score += 12;
-    reasons.push('Regulatory status confirmed');
-  } else if (regulatory.every((item) => item && item.status !== 'BLOCKED')) {
-    score += 7;
-    reasons.push('Regulatory status estimated or restricted');
-  } else {
-    reasons.push('Regulatory status pending or blocked');
-  }
-
   const loads = [args.beamLoadA, args.beamLoadB];
-  if (loads.every((item) => item && item.loadSource !== 'heuristic')) {
-    score += 10;
-    reasons.push('Simulated load uses configured planning layer');
-  } else if (loads.some((item) => item)) {
-    score += 5;
-    reasons.push('Simulated load partly heuristic');
-  } else {
-    reasons.push('Simulated load unavailable');
-  }
-
   const minElevation = Math.min(args.elevationADeg ?? 0, args.elevationBDeg ?? 0);
-  if (minElevation >= STANDARD_SERVICE_ELEVATION_DEG) {
-    score += 14;
-    reasons.push('Both sites meet standard elevation margin');
-  } else if (minElevation >= MIN_USER_TERMINAL_ELEVATION_DEG) {
-    score += 7;
-    reasons.push('Both sites meet minimum elevation only');
-  } else {
-    reasons.push('Elevation margin is weak or unknown');
-  }
-
   const structuralEvidenceComplete = !!args.satA && !!args.satB && !!args.snpA && !!args.snpB && args.rfAvailableA && args.rfAvailableB;
   const regulatoryPending = !args.regulatoryA || !args.regulatoryB;
-  const cappedScore = !structuralEvidenceComplete || regulatoryPending
-    ? Math.min(score, 44)
-    : score;
-  const level = cappedScore >= 75 ? 'High' : cappedScore >= 45 ? 'Medium' : 'Low';
-  return { level, score: cappedScore, reasons: reasons.slice(0, 4) };
+
+  return buildPredictionConfidence({
+    architecture: 'LEO',
+    topology: 'Site-to-Site',
+    mode: 'ENG',
+    factors: [
+      args.satA && args.satB
+        ? positiveFactor('serving-satellites', 'Serving satellites', 18, 'Both serving satellites resolved')
+        : missingFactor('serving-satellites', 'Serving satellites', 'Serving satellite missing at one endpoint'),
+      args.snpA && args.snpB
+        ? positiveFactor('snp-paths', 'LEO SNP paths', 18, 'Both LEO SNP paths resolved')
+        : missingFactor('snp-paths', 'LEO SNP paths', 'LEO SNP path missing at one endpoint'),
+      args.rfAvailableA && args.rfAvailableB
+        ? positiveFactor('rf-availability', 'RF availability', 14, 'RF availability confirmed at both sites')
+        : riskFactor('rf-availability', 'RF availability', 'RF availability incomplete'),
+      args.debugSiteA && args.debugSiteB
+        ? positiveFactor('rf-debug', 'Detailed RF chains', 14, 'Detailed RF debug chains available')
+        : (args.debugSiteA || args.debugSiteB)
+          ? partialFactor('rf-debug', 'Detailed RF chains', 7, 'Detailed RF debug chain available for one site')
+          : missingFactor('rf-debug', 'Detailed RF chains', 'Detailed RF debug chains unavailable'),
+      regulatory.every((item) => item?.status === 'ALLOWED_CONFIRMED')
+        ? positiveFactor('regulatory', 'Regulatory evidence', 12, 'Regulatory status confirmed')
+        : regulatory.every((item) => item && item.status !== 'BLOCKED')
+          ? partialFactor('regulatory', 'Regulatory evidence', 7, 'Regulatory status estimated or restricted')
+          : riskFactor('regulatory', 'Regulatory evidence', 'Regulatory status pending or blocked'),
+      loads.every((item) => item && item.loadSource !== 'heuristic')
+        ? positiveFactor('network-load', 'Simulated network load', 10, 'Simulated load uses configured planning layer')
+        : loads.some((item) => item)
+          ? partialFactor('network-load', 'Simulated network load', 5, 'Simulated load partly heuristic')
+          : missingFactor('network-load', 'Simulated network load', 'Simulated load unavailable'),
+      minElevation >= STANDARD_SERVICE_ELEVATION_DEG
+        ? positiveFactor('elevation-margin', 'Elevation margin', 14, 'Both sites meet standard elevation margin')
+        : minElevation >= MIN_USER_TERMINAL_ELEVATION_DEG
+          ? partialFactor('elevation-margin', 'Elevation margin', 7, 'Both sites meet minimum elevation only')
+          : riskFactor('elevation-margin', 'Elevation margin', 'Elevation margin is weak or unknown'),
+    ],
+    caps: [
+      {
+        id: 'missing-structural-evidence',
+        maxScore: 44,
+        reason: 'Structural route evidence is incomplete',
+        applies: !structuralEvidenceComplete,
+      },
+      {
+        id: 'regulatory-pending',
+        maxScore: 44,
+        reason: 'Regulatory evidence is pending at one or both endpoints',
+        applies: regulatoryPending,
+      },
+    ],
+  });
 }
 
 /**
@@ -610,6 +601,7 @@ export function computeLeoSiteToSiteResult(args: ComputeLeoSiteToSiteArgs): LeoS
     confidenceLevel: confidence.level,
     confidenceScore: confidence.score,
     confidenceReasons: confidence.reasons,
+    predictionConfidence: confidence,
     serviceAvailable,
     debugSiteA,
     debugSiteB,

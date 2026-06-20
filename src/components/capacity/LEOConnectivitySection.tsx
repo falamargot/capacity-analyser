@@ -19,6 +19,7 @@ import type { TerminalType } from './TerminalConfig';
 import type { LeoConnectivityViewModel } from '../../utils/leoServiceViewModel';
 import LeoStatusCards from './LeoStatusCards';
 import type { LeoBottleneckFactor, LeoThroughputLeg, LeoThroughputResult } from '../../types/leoThroughput';
+import { buildLeoSingleSiteConfidence } from '../../utils/predictionConfidence';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // TODO: DC Level / Throughput / Power synchronisation (Q2-Q3-Q4)
@@ -1064,6 +1065,9 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
   hsBeamsSet,
   weatherCondition,
   beamHealthFactors,
+  regulatoryResult = null,
+  beamLoadResult = null,
+  serviceLayerResult: _serviceLayerResult = null,
   leoServiceViewModel,
   showEstimatedPerformance = true,
   leoTopologyMode,
@@ -1095,6 +1099,18 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
   const s2sActive = isS2S && siteToSiteResult != null;
   const s2sServiceActive = s2sActive && siteToSiteResult!.serviceAvailable;
   const isAtoB = s2sDirection === 'A_TO_B';
+  const predictionConfidence = isS2S && siteToSiteResult
+    ? siteToSiteResult.predictionConfidence
+    : buildLeoSingleSiteConfidence({
+        mode: 'ENG',
+        satelliteResolved: !!resolvedLEOConnectivity?.satellite,
+        snpResolved: !!resolvedLEOConnectivity?.snp,
+        rfAvailable: !!leoPerformance,
+        debugAvailable: !!leoPerformance?.debugInfo,
+        regulatoryStatus: regulatoryResult?.status ?? null,
+        loadSource: beamLoadResult?.loadSource ?? null,
+        elevationDeg: resolvedLEOConnectivity?.userLEOElevation ?? null,
+      });
 
   useEffect(() => {
     if (!isS2S || !activeMeshTab) return;
@@ -1857,6 +1873,9 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
           <div className="space-y-2 text-xs leading-relaxed text-slate-600 dark:text-slate-400">
             <div className="rounded border border-pink-200 bg-pink-50 px-2.5 py-1.5 text-pink-700 dark:border-pink-800/50 dark:bg-pink-950/30 dark:text-pink-300">
               Simulated Network Load is a planning input, not live operational telemetry.
+            </div>
+            <div className="rounded border border-slate-200 bg-white px-2.5 py-1.5 text-slate-700 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200">
+              <span className="font-semibold">Prediction confidence:</span> {predictionConfidence.summary}. {predictionConfidence.reasons[0] ?? predictionConfidence.limitation}
             </div>
             <div className="grid gap-1.5">
               <div><span className="font-semibold text-slate-700 dark:text-slate-200">Physical:</span> slant range, elevation, radio propagation delay and RF link-budget chains.</div>
