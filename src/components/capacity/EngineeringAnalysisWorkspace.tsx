@@ -52,6 +52,8 @@ const toClosureStep = (step: EngineeringAnalysisViewModel['closure']['steps'][nu
   output: step.output,
   loss: step.loss,
   tone: step.tone,
+  inputMbps: step.inputMbps,
+  outputMbps: step.outputMbps,
 });
 
 const EngineeringAnalysisWorkspace = ({
@@ -76,6 +78,7 @@ const EngineeringAnalysisWorkspace = ({
         ? fmtDb(viewModel.resultSummary.marginDb)
         : undefined),
     supportingMetrics: viewModel.resultSummary.supportingMetrics?.map(toMetric),
+    confidenceBreakdown: viewModel.resultSummary.confidenceBreakdown,
   };
   const why: LinkBudgetWorkspaceWhy = {
     headline: viewModel.why.headline,

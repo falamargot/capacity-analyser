@@ -169,6 +169,10 @@ describe('engineering analysis view model', () => {
     expect(viewModel.status).toBe('available');
     expect(viewModel.closure.type).toBe('geo-closure');
     expectRenderableWorkspace(viewModel);
+
+    const deliveredStep = viewModel.closure.steps.find((step) => step.label === 'Delivered');
+    expect(deliveredStep?.inputMbps).toBe(172);
+    expect(deliveredStep?.outputMbps).toBe(18);
   });
 
   it('renders a GEO blocked workspace contract', () => {
@@ -197,6 +201,11 @@ describe('engineering analysis view model', () => {
     expect(viewModel.status).toBe('available');
     expect(viewModel.closure.type).toBe('leo-closure');
     expectRenderableWorkspace(viewModel);
+
+    const numericSteps = viewModel.closure.steps.filter(
+      (step) => typeof step.inputMbps === 'number' && typeof step.outputMbps === 'number'
+    );
+    expect(numericSteps.length).toBeGreaterThanOrEqual(2);
   });
 
   it('renders a LEO no-budget workspace contract', () => {

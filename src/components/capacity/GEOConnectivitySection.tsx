@@ -15,7 +15,7 @@ import { getDisplayedThroughput, type DualSegmentResult } from '../../utils/geoD
 import LinkModeSelector from './LinkModeSelector';
 import type { ResolvedGeoGateway } from '../../utils/geoConnectivityModel';
 import { formatCoordinates } from '../../utils/formatters';
-import { buildGeoConfidence } from '../../utils/predictionConfidence';
+import { buildGeoConfidence, type PredictionConfidence } from '../../utils/predictionConfidence';
 import { estimateGeoSatelliteCapacity } from '../../utils/geoCapacityModel';
 import { buildLinkAvailabilityContext, formatLinkAvailabilityContext } from '../../utils/linkAvailabilityContext';
 import { buildGeoEngineeringAnalysisViewModel } from '../../utils/engineeringAnalysisViewModel';
@@ -297,6 +297,7 @@ interface LinkBudgetDrawerProps {
   availabilityLabel?: string;
   confidenceLabel?: string;
   confidenceDetail?: string;
+  confidence?: PredictionConfidence;
   coverageLabels?: {
     forward?: {
       uplink?: string;
@@ -322,6 +323,7 @@ const LinkBudgetDrawer = ({
   availabilityLabel,
   confidenceLabel,
   confidenceDetail,
+  confidence,
   coverageLabels,
   satellite,
 }: LinkBudgetDrawerProps) => {
@@ -337,6 +339,7 @@ const LinkBudgetDrawer = ({
     availabilityLabel,
     confidenceLabel,
     confidenceDetail,
+    confidence,
   });
 
   return (
@@ -1358,6 +1361,7 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
           availabilityLabel={`${availabilityContext.indicativeAvailabilityPct.toFixed(1)}% indicative`}
           confidenceLabel={`${geoPredictionConfidence.level} ${geoPredictionConfidence.score}/100`}
           confidenceDetail={[geoPredictionConfidence.summary, geoPredictionConfidence.reasons[0] ?? geoPredictionConfidence.limitation].filter(Boolean).join('. ')}
+          confidence={geoPredictionConfidence}
           coverageLabels={linkBudgetCoverageLabels}
         />
 

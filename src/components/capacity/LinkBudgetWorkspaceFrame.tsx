@@ -1,5 +1,8 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { X } from 'lucide-react';
+import ThroughputWaterfall from './ThroughputWaterfall';
+import ConfidenceBreakdown from './ConfidenceBreakdown';
+import type { PredictionConfidence } from '../../utils/predictionConfidence';
 
 export interface LinkBudgetWorkspaceMetric {
   label: string;
@@ -21,6 +24,7 @@ export interface LinkBudgetWorkspaceResult {
   bottleneck: string;
   margin?: string;
   supportingMetrics?: LinkBudgetWorkspaceMetric[];
+  confidenceBreakdown?: PredictionConfidence;
 }
 
 export interface LinkBudgetWorkspaceWhy {
@@ -38,6 +42,8 @@ export interface LinkBudgetWorkspaceClosureStep {
   output?: string;
   loss?: string;
   tone?: 'default' | 'good' | 'warn' | 'danger' | 'accent';
+  inputMbps?: number | null;
+  outputMbps?: number | null;
 }
 
 interface LinkBudgetWorkspaceFrameProps {
@@ -265,15 +271,21 @@ const LinkBudgetWorkspaceFrame = ({
                       <div className="rounded-lg border border-white/10 bg-slate-950/25 px-2.5 py-2">
                         <div className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Confidence</div>
                         <div className="mt-0.5 text-base font-semibold text-slate-100">{result.confidence ?? '--'}</div>
-                        {result.confidenceDetail && (
+                        {(result.confidenceDetail || result.confidenceBreakdown) && (
                           <details className="group mt-0.5">
                             <summary className="cursor-pointer list-none text-[10px] font-semibold uppercase tracking-wide text-slate-400 transition-colors hover:text-slate-200">
                               <span className="group-open:hidden">Reasoning</span>
                               <span className="hidden group-open:inline">Hide reasoning</span>
                             </summary>
-                            <p className="mt-1 text-[10px] leading-snug text-slate-400">
-                              {result.confidenceDetail}
-                            </p>
+                            {result.confidenceBreakdown ? (
+                              <ConfidenceBreakdown confidence={result.confidenceBreakdown} />
+                            ) : (
+                              result.confidenceDetail && (
+                                <p className="mt-1 text-[10px] leading-snug text-slate-400">
+                                  {result.confidenceDetail}
+                                </p>
+                              )
+                            )}
                           </details>
                         )}
                       </div>
@@ -305,6 +317,9 @@ const LinkBudgetWorkspaceFrame = ({
                       <h4 className="text-base font-semibold text-slate-100">{closureTitle}</h4>
                     </div>
                     <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Explains how the result was produced</div>
+                  </div>
+                  <div className="mt-2">
+                    <ThroughputWaterfall steps={closureSteps} accent={accent} />
                   </div>
                   <div className="mt-2 grid gap-1.5 min-[1200px]:grid-cols-[repeat(auto-fit,minmax(118px,1fr))]">
                     {closureSteps.map((step, index) => (

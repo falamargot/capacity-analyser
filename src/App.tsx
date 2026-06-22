@@ -83,7 +83,7 @@ import {
 } from './utils/fillRateUx';
 import { getConnectivityStatus, hasRFConnectivity } from './utils/rfConnectivity';
 import { deriveLeoConnectivityViewModel, type LeoConnectivityViewModel } from './utils/leoServiceViewModel';
-import { getGroundSegmentRoutingForSatellite, resolveConnectivityPathForSatellite, selectTrafficGeoGateway, type ResolvedGeoGateway } from './utils/geoConnectivityModel';
+import { getGroundSegmentRoutingForSatellite, resolveConnectivityPathForSatellite, selectTrafficGeoGateway, distanceKm, type ResolvedGeoGateway, type PointLLA } from './utils/geoConnectivityModel';
 import type { GeoPointStatus } from './utils/selectedPointStatus';
 import type { CountryOverlayMode } from './types/countryOverlays';
 import type { LinkMode } from './types/linkMode';
@@ -3230,6 +3230,7 @@ const App: React.FC = () => {
     showFlowAnimation: isDetailedEngineeringWorkspaceOpen ? false : displayPrefs.showFlowAnimation,
     showSatelliteTrajectory: isDetailedEngineeringWorkspaceOpen ? false : displayPrefs.showSatelliteTrajectory,
     hideBottomPathStrip: isDetailedEngineeringWorkspaceOpen,
+    simplifySatellitesForEngineeringAnalysis: isDetailedEngineeringWorkspaceOpen,
   }), [displayPrefs, isDetailedEngineeringWorkspaceOpen]);
 
   const displayLayerProps = useMemo<DisplayLayerProps>(() => ({
@@ -4299,6 +4300,41 @@ const App: React.FC = () => {
     activeMeshTab,
     activeLeoSiteToSiteResult,
   ]);
+
+  const engineeringMultiSiteSignature = (() => {
+    if (!isDetailedEngineeringWorkspaceOpen || !activeAnalysisPoint) return null;
+    const isMultiSite = activeConnectivityTab === 'GEO'
+      ? (linkMode === 'MESH' || linkMode === 'POINT_TO_POINT')
+      : leoTopologyMode === 'SITE_TO_SITE';
+    if (!isMultiSite) return null;
+    const siteBPoint = activeConnectivityTab === 'GEO' ? pointB : pointBLeo;
+    if (!siteBPoint) return null;
+    const siteASignature = `${activeAnalysisPoint.lat.toFixed(4)},${activeAnalysisPoint.lng.toFixed(4)}`;
+    const siteBSignature = `${siteBPoint.lat.toFixed(4)},${siteBPoint.lng.toFixed(4)}`;
+    return `${activeConnectivityTab}|${siteASignature}|${siteBSignature}`;
+  })();
+
+  // When Engineering Analysis opens on a Mesh/P2P GEO or LEO Site-to-Site
+  // route, the single-point camera used everywhere else in the app would
+  // frame only one endpoint. Reframe on the midpoint between both sites,
+  // with altitude scaled to their separation so both stay visible — but
+  // only when the route identity actually changes, not on every render of
+  // the workspace (e.g. collapsing a detail section must not move the camera).
+  useEffect(() => {
+    if (!engineeringMultiSiteSignature || !activeAnalysisPoint) return;
+    const siteBPoint = activeConnectivityTab === 'GEO' ? pointB : pointBLeo;
+    if (!siteBPoint) return;
+
+    const siteA: PointLLA = { lat: activeAnalysisPoint.lat, lng: activeAnalysisPoint.lng, altKm: 0 };
+    const siteB: PointLLA = { lat: siteBPoint.lat, lng: siteBPoint.lng, altKm: 0 };
+    const separationKm = distanceKm(siteA, siteB);
+    const midLat = (siteA.lat + siteB.lat) / 2;
+    const midLng = (siteA.lng + siteB.lng) / 2;
+    const altitude = Math.min(Math.max(separationKm * 1.8, 1500), 15000);
+
+    setCameraTarget({ lat: midLat, lng: midLng, alt: altitude });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [engineeringMultiSiteSignature]);
 
   if (loading) {
     return (

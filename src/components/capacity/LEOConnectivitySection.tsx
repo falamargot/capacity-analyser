@@ -20,7 +20,7 @@ import type { LeoConnectivityViewModel } from '../../utils/leoServiceViewModel';
 import LeoStatusCards from './LeoStatusCards';
 import EngineeringAnalysisWorkspace from './EngineeringAnalysisWorkspace';
 import type { LeoBottleneckFactor, LeoThroughputLeg, LeoThroughputResult } from '../../types/leoThroughput';
-import { buildLeoSingleSiteConfidence } from '../../utils/predictionConfidence';
+import { buildLeoSingleSiteConfidence, type PredictionConfidence } from '../../utils/predictionConfidence';
 import { buildLinkAvailabilityContext, formatLinkAvailabilityContext } from '../../utils/linkAvailabilityContext';
 import { buildLeoEngineeringAnalysisViewModel } from '../../utils/engineeringAnalysisViewModel';
 import { fmtMbps, fmtMs } from '../../utils/engineeringFormat';
@@ -889,6 +889,7 @@ interface LeoLinkBudgetDrawerProps {
   availabilityLabel?: string;
   confidenceLabel?: string;
   confidenceDetail?: string;
+  confidence?: PredictionConfidence;
 }
 
 const NoBudgetPlaceholder = () => (
@@ -916,6 +917,7 @@ const LeoLinkBudgetDrawer = ({
   availabilityLabel,
   confidenceLabel,
   confidenceDetail,
+  confidence,
 }: LeoLinkBudgetDrawerProps) => {
   if (!open) return null;
 
@@ -939,6 +941,7 @@ const LeoLinkBudgetDrawer = ({
     availabilityLabel,
     confidenceLabel,
     confidenceDetail,
+    confidence,
   });
 
   const renderS2SAccessBudget = (
@@ -1571,6 +1574,7 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
           availabilityLabel={`${availabilityContext.indicativeAvailabilityPct.toFixed(1)}% indicative`}
           confidenceLabel={`${predictionConfidence.level} ${predictionConfidence.score}/100`}
           confidenceDetail={[predictionConfidence.summary, predictionConfidence.reasons[0] ?? predictionConfidence.limitation].filter(Boolean).join('. ')}
+          confidence={predictionConfidence}
         />
 
         <LayerHeading title="Ground Segment" detail="SNP, PoP/backbone and feeder path details." />

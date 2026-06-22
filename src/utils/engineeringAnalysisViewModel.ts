@@ -3,6 +3,7 @@ import type { LeoThroughputLeg, LeoThroughputResult } from '../types/leoThroughp
 import type { LeoSiteToSiteResult } from './leoSiteToSiteModel';
 import { getDisplayedThroughput, type DualSegmentResult } from './geoDualSegmentBudget';
 import { fmtDb, fmtMbps, fmtMs, fmtThroughputLoss, parsePct, parseConfidence, type PredictionConfidenceSummary } from './engineeringFormat';
+import type { PredictionConfidence } from './predictionConfidence';
 
 export type EngineeringAnalysisMode = 'GEO' | 'LEO';
 export type EngineeringAnalysisStatus = 'available' | 'marginal' | 'blocked' | 'no-budget';
@@ -26,6 +27,15 @@ export interface EngineeringClosureStep {
   output?: string;
   loss?: string;
   tone?: EngineeringAnalysisTone;
+  /**
+   * Raw Mbps values backing `input`/`output`, populated only when both sides
+   * of the step are genuinely throughput in the same unit (not every step is
+   * — e.g. a margin-in-dB-to-bitrate-out MODCOD selection isn't). Powers the
+   * throughput waterfall visualization; steps without both values are
+   * skipped by it rather than shown as a zero-height bar.
+   */
+  inputMbps?: number | null;
+  outputMbps?: number | null;
 }
 
 export interface EngineeringDetailPanel {
@@ -51,6 +61,8 @@ export interface EngineeringAnalysisViewModel {
     marginDb?: number | null;
     marginLabel?: string;
     supportingMetrics?: EngineeringMetric[];
+    /** Full factor/cap breakdown backing `confidence`, when the caller has it. */
+    confidenceBreakdown?: PredictionConfidence;
   };
   why: {
     headline: string;
@@ -76,6 +88,7 @@ export interface BuildGeoEngineeringAnalysisInput {
   availabilityLabel?: string;
   confidenceLabel?: string;
   confidenceDetail?: string;
+  confidence?: PredictionConfidence;
 }
 
 export interface BuildLeoEngineeringAnalysisInput {
@@ -92,6 +105,7 @@ export interface BuildLeoEngineeringAnalysisInput {
   availabilityLabel?: string;
   confidenceLabel?: string;
   confidenceDetail?: string;
+  confidence?: PredictionConfidence;
 }
 
 const networkLimitLabel = (factor?: string | null) =>
@@ -184,6 +198,7 @@ export function buildGeoEngineeringAnalysisViewModel(input: BuildGeoEngineeringA
       input: fmtDb(e2e.endToEndLinkMarginDb),
       transformation: `Select ${e2e.endToEndModcod} and apply spectral efficiency.`,
       output: fmtMbps(e2e.endToEndThroughputMbps),
+      outputMbps: e2e.endToEndThroughputMbps,
       tone: 'accent',
     },
     ...(activeNetworkLayer ? [
@@ -194,6 +209,8 @@ export function buildGeoEngineeringAnalysisViewModel(input: BuildGeoEngineeringA
         input: fmtMbps(e2e.endToEndThroughputMbps),
         transformation: `${Math.round(activeNetworkLayer.protocolEfficiency * 100)}% usable payload efficiency.`,
         output: fmtMbps(activeNetworkLayer.protocolAdjustedMbps),
+        inputMbps: e2e.endToEndThroughputMbps,
+        outputMbps: activeNetworkLayer.protocolAdjustedMbps,
         loss: fmtThroughputLoss(e2e.endToEndThroughputMbps, activeNetworkLayer.protocolAdjustedMbps),
         tone: activeNetworkLayer.protocolEfficiency >= 0.9 ? 'good' : 'warn',
       },
@@ -204,6 +221,8 @@ export function buildGeoEngineeringAnalysisViewModel(input: BuildGeoEngineeringA
         input: fmtMbps(activeNetworkLayer.protocolAdjustedMbps),
         transformation: limitLabel && limitLabel !== 'none' ? `Apply ${limitLabel} constraint.` : 'No additional terminal cap applies.',
         output: fmtMbps(activeNetworkLayer.finalThroughputMbps),
+        inputMbps: activeNetworkLayer.protocolAdjustedMbps,
+        outputMbps: activeNetworkLayer.finalThroughputMbps,
         loss: fmtThroughputLoss(activeNetworkLayer.protocolAdjustedMbps, activeNetworkLayer.finalThroughputMbps),
         tone: activeNetworkLayer.finalThroughputMbps > 0 ? 'good' : 'danger',
       },
@@ -231,6 +250,7 @@ export function buildGeoEngineeringAnalysisViewModel(input: BuildGeoEngineeringA
       availabilityPct: parsePct(input.availabilityLabel),
       availabilityLabel: input.availabilityLabel,
       confidence: parseConfidence(input.confidenceLabel, input.confidenceDetail),
+      confidenceBreakdown: input.confidence,
       bottleneck: activeNetworkLayer && limitLabel && limitLabel !== 'none' ? limitLabel : limitingSegment,
       marginDb,
       supportingMetrics: [
@@ -349,6 +369,8 @@ export function buildLeoEngineeringAnalysisViewModel(input: BuildLeoEngineeringA
         input: sourceDebugInfo ? fmtMbps(sourceDebugInfo.uplink.rf.rfChainThroughputMbps) : '--',
         transformation: `Apply Site ${sourceSiteId} uplink sharing, feeder and terminal constraints.`,
         output: fmtMbps(sourceUplinkMbps),
+        inputMbps: sourceDebugInfo?.uplink.rf.rfChainThroughputMbps,
+        outputMbps: sourceUplinkMbps,
         loss: sourceDebugInfo ? fmtThroughputLoss(sourceDebugInfo.uplink.rf.rfChainThroughputMbps, sourceUplinkMbps) : undefined,
         tone: sourceIsBottleneck ? 'warn' : 'accent',
       },
@@ -364,6 +386,8 @@ export function buildLeoEngineeringAnalysisViewModel(input: BuildLeoEngineeringA
         input: destDebugInfo ? fmtMbps(destDebugInfo.downlink.rf.rfChainThroughputMbps) : '--',
         transformation: `Apply Site ${destinationSiteId} downlink sharing, feeder and terminal constraints.`,
         output: fmtMbps(destinationDownlinkMbps),
+        inputMbps: destDebugInfo?.downlink.rf.rfChainThroughputMbps,
+        outputMbps: destinationDownlinkMbps,
         loss: destDebugInfo ? fmtThroughputLoss(destDebugInfo.downlink.rf.rfChainThroughputMbps, destinationDownlinkMbps) : undefined,
         tone: !sourceIsBottleneck ? 'warn' : 'good',
       },
@@ -372,6 +396,8 @@ export function buildLeoEngineeringAnalysisViewModel(input: BuildLeoEngineeringA
         input: `${fmtMbps(sourceUplinkMbps)} / ${fmtMbps(destinationDownlinkMbps)}`,
         transformation: 'Use the lower access throughput for the selected direction.',
         output: fmtMbps(primaryThroughputMbps),
+        inputMbps: Math.max(sourceUplinkMbps ?? 0, destinationDownlinkMbps ?? 0),
+        outputMbps: primaryThroughputMbps,
         loss: fmtThroughputLoss(Math.max(sourceUplinkMbps ?? 0, destinationDownlinkMbps ?? 0), primaryThroughputMbps),
         tone: primaryThroughputMbps != null && primaryThroughputMbps > 0 ? 'good' : 'danger',
       },
@@ -382,6 +408,7 @@ export function buildLeoEngineeringAnalysisViewModel(input: BuildLeoEngineeringA
         input: fmtDb(input.debugInfo.downlink.rf.cnDb),
         transformation: `${input.debugInfo.downlink.rf.modcod ?? 'MODCOD --'} converts RF margin into bearer rate.`,
         output: fmtMbps(input.debugInfo.downlink.rf.rfChainThroughputMbps),
+        outputMbps: input.debugInfo.downlink.rf.rfChainThroughputMbps,
         tone: 'accent',
       },
       {
@@ -389,6 +416,8 @@ export function buildLeoEngineeringAnalysisViewModel(input: BuildLeoEngineeringA
         input: fmtMbps(input.debugInfo.downlink.rf.rfChainThroughputMbps),
         transformation: `Share beam with ${input.debugInfo.downlink.network.activeUsers} simulated users.`,
         output: fmtMbps(input.debugInfo.downlink.network.beamSharingMbps),
+        inputMbps: input.debugInfo.downlink.rf.rfChainThroughputMbps,
+        outputMbps: input.debugInfo.downlink.network.beamSharingMbps,
         loss: fmtThroughputLoss(input.debugInfo.downlink.rf.rfChainThroughputMbps, input.debugInfo.downlink.network.beamSharingMbps),
         tone: input.debugInfo.downlink.network.beamSharingMbps < input.debugInfo.downlink.network.peakRfMbps * 0.8 ? 'warn' : 'good',
       },
@@ -397,6 +426,8 @@ export function buildLeoEngineeringAnalysisViewModel(input: BuildLeoEngineeringA
         input: fmtMbps(input.debugInfo.downlink.network.beamSharingMbps),
         transformation: `Apply ${input.debugInfo.downlink.network.backhaulFactor.toFixed(2)} backhaul/load factor.`,
         output: fmtMbps(input.debugInfo.downlink.network.backhaulMbps),
+        inputMbps: input.debugInfo.downlink.network.beamSharingMbps,
+        outputMbps: input.debugInfo.downlink.network.backhaulMbps,
         loss: fmtThroughputLoss(input.debugInfo.downlink.network.beamSharingMbps, input.debugInfo.downlink.network.backhaulMbps),
         tone: input.debugInfo.downlink.network.backhaulFactor < 0.85 ? 'warn' : 'good',
       },
@@ -405,6 +436,8 @@ export function buildLeoEngineeringAnalysisViewModel(input: BuildLeoEngineeringA
         input: fmtMbps(input.debugInfo.downlink.network.backhaulMbps),
         transformation: `Clamp to ${input.debugInfo.terminal.label} receive capability.`,
         output: fmtMbps(singleAfterTerminal),
+        inputMbps: input.debugInfo.downlink.network.backhaulMbps,
+        outputMbps: singleAfterTerminal,
         loss: fmtThroughputLoss(input.debugInfo.downlink.network.backhaulMbps, singleAfterTerminal),
       },
       {
@@ -412,6 +445,8 @@ export function buildLeoEngineeringAnalysisViewModel(input: BuildLeoEngineeringA
         input: fmtMbps(singleAfterTerminal),
         transformation: `Apply ${input.debugInfo.downlink.network.handoverFactor.toFixed(2)} handover/protocol factor.`,
         output: fmtMbps(input.debugInfo.downlink.network.handoverMbps),
+        inputMbps: singleAfterTerminal,
+        outputMbps: input.debugInfo.downlink.network.handoverMbps,
         loss: fmtThroughputLoss(singleAfterTerminal, input.debugInfo.downlink.network.handoverMbps),
         tone: input.debugInfo.downlink.network.handoverFactor < 0.95 ? 'warn' : 'good',
       },
@@ -420,6 +455,8 @@ export function buildLeoEngineeringAnalysisViewModel(input: BuildLeoEngineeringA
         input: fmtMbps(input.debugInfo.downlink.network.handoverMbps),
         transformation: 'Apply final smoothing and delivery guardrails.',
         output: fmtMbps(input.debugInfo.downlink.network.finalUserMbps),
+        inputMbps: input.debugInfo.downlink.network.handoverMbps,
+        outputMbps: input.debugInfo.downlink.network.finalUserMbps,
         loss: fmtThroughputLoss(input.debugInfo.downlink.network.handoverMbps, input.debugInfo.downlink.network.finalUserMbps),
         tone: input.debugInfo.downlink.network.finalUserMbps > 0 ? 'good' : 'danger',
       },
@@ -448,6 +485,7 @@ export function buildLeoEngineeringAnalysisViewModel(input: BuildLeoEngineeringA
       availabilityPct: parsePct(input.availabilityLabel),
       availabilityLabel: input.availabilityLabel,
       confidence: parseConfidence(input.confidenceLabel, input.confidenceDetail),
+      confidenceBreakdown: input.confidence,
       bottleneck: isS2S ? bottleneckLabel : (input.debugInfo?.mainBottleneck.label ?? '--'),
       marginLabel: isS2S
         ? (bottleneckLeg ? `Access margin ${fmtDb(bottleneckLeg.rf.cnDb - 10)}` : undefined)

@@ -631,6 +631,7 @@ export interface DisplayPrefsProps {
     sizeScale?: number;
     hideSatelliteScreenLabels?: boolean;
     hideBottomPathStrip?: boolean;
+    simplifySatellitesForEngineeringAnalysis?: boolean;
     isPhone?: boolean;
     isMobileViewport?: boolean;
     isFullscreen: boolean;
@@ -1725,10 +1726,17 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
 
     // Engineering Mode owns real satellite inspection. Commercial Mode uses the
     // symbolic service layer and coverage footprints instead of satellite icons.
+    // While the Engineering Analysis workspace is open, the globe is reduced to a
+    // context strip — only the satellite(s) on the active route stay rendered
+    // instead of the full visible constellation, falling back to the full list
+    // if no route satellite has resolved yet so the globe isn't left empty.
     const satellitesForLayer = useMemo(() => {
-        if (!commercialMode) return satellites;
-        return [];
-    }, [commercialMode, satellites]);
+        if (commercialMode) return [];
+        if (displayPrefs.simplifySatellitesForEngineeringAnalysis && pulsedSatellites.length > 0) {
+            return pulsedSatellites;
+        }
+        return satellites;
+    }, [commercialMode, satellites, displayPrefs.simplifySatellitesForEngineeringAnalysis, pulsedSatellites]);
 
     // Per-technology route availability used both for satellite label role assignment and
     // for transmission link visibility. Computed here so both consumers share the same value.

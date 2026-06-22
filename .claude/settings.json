@@ -20,7 +20,10 @@
       "Bash(node .tmp-verify-eng-analysis4.mjs)",
       "Bash(node .tmp-verify-eng-analysis5.mjs)",
       "Bash(python3 -c ' *)",
-      "Bash(node .tmp-verify-geo.mjs)"
+      "Bash(node .tmp-verify-geo.mjs)",
+      "Bash(node .tmp-verify-waterfall.mjs)",
+      "Bash(node .tmp-verify-waterfall2.mjs)",
+      "Bash(grep -v \"DeveloperError: DeveloperError$\")"
     ]
   }
 }
