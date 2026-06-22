@@ -186,6 +186,89 @@ const SmallBadge = ({ children, className }: { children: React.ReactNode; classN
   </span>
 );
 
+type GeoCockpitTone = 'default' | 'blue' | 'emerald' | 'amber' | 'violet' | 'red';
+
+const cockpitToneClass: Record<GeoCockpitTone, string> = {
+  default: 'text-slate-100',
+  blue: 'text-sky-300',
+  emerald: 'text-teal-300',
+  amber: 'text-amber-300',
+  violet: 'text-indigo-300',
+  red: 'text-rose-300',
+};
+
+const GeoCockpitTile = ({
+  label,
+  value,
+  tone = 'default',
+  mono = true,
+}: {
+  label: string;
+  value: React.ReactNode;
+  tone?: GeoCockpitTone;
+  mono?: boolean;
+}) => (
+  <div
+    className="min-w-0 rounded-md border border-slate-800 bg-slate-900/65 px-2 py-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.035)]"
+    title={typeof value === 'string' || typeof value === 'number' ? String(value) : undefined}
+  >
+    <div className="truncate text-[8px] font-semibold uppercase tracking-wide text-slate-500">{label}</div>
+    <div className={`mt-0.5 truncate text-[11px] font-medium ${cockpitToneClass[tone]} ${mono ? 'font-mono tabular-nums' : ''}`}>
+      {value}
+    </div>
+  </div>
+);
+
+const GeoCockpitPanel = ({
+  title,
+  eyebrow,
+  accent,
+  children,
+  className = '',
+}: {
+  title: string;
+  eyebrow?: string;
+  accent: 'blue' | 'emerald' | 'amber' | 'violet' | 'red';
+  children: React.ReactNode;
+  className?: string;
+}) => {
+  const accentClassName = {
+    blue: 'border-slate-700/80 text-sky-300',
+    emerald: 'border-slate-700/80 text-teal-300',
+    amber: 'border-slate-700/80 text-amber-300',
+    violet: 'border-slate-700/80 text-indigo-300',
+    red: 'border-slate-700/80 text-rose-300',
+  }[accent];
+
+  return (
+    <section className={`min-h-0 overflow-hidden rounded-xl border bg-slate-950/75 ${accentClassName} ${className}`}>
+      <div className="flex items-baseline justify-between gap-3 border-b border-slate-800 bg-slate-900/75 px-3 py-2">
+        <h4 className="truncate text-[11px] font-semibold uppercase tracking-wide">{title}</h4>
+        {eyebrow && <span className="shrink-0 text-[8px] font-semibold uppercase tracking-wide text-slate-500">{eyebrow}</span>}
+      </div>
+      {children}
+    </section>
+  );
+};
+
+const GeoMarginPill = ({ value }: { value: number | undefined | null }) => {
+  const tone = typeof value === 'number' && isFinite(value)
+    ? value < 0 ? 'red' : value < 2 ? 'amber' : 'emerald'
+    : 'default';
+  const className = {
+    default: 'border-slate-700 bg-slate-900 text-slate-300',
+    red: 'border-rose-500/45 bg-rose-950/20 text-rose-200',
+    amber: 'border-amber-500/45 bg-amber-950/20 text-amber-200',
+    emerald: 'border-teal-500/45 bg-teal-950/20 text-teal-200',
+  }[tone];
+
+  return (
+    <span className={`inline-flex w-fit items-center rounded-md border px-1.5 py-0.5 font-mono text-[10px] font-semibold tabular-nums ${className}`}>
+      {fmtDb(value)}
+    </span>
+  );
+};
+
 const RFContextCard = ({ context }: { context: GeoRfContext }) => {
   const [showAlternatives, setShowAlternatives] = useState(false);
   const publicMatch = context.publicFrequencyMatch;
@@ -885,6 +968,424 @@ const MeshDirectionTabs = ({
   </div>
 );
 
+// ─── Cockpit mode ─────────────────────────────────────────────────────────────
+
+const GeoTopologyCockpitPanel = ({ linkMode, mode, satelliteName }: { linkMode: LinkMode; mode?: TransponderMode; satelliteName?: string }) => {
+  const description = LINK_MODE_DESCRIPTIONS[linkMode];
+  const isP2P = linkMode === 'POINT_TO_POINT';
+  const isMesh = linkMode === 'MESH';
+  const transponderDetail = mode === 'loopback'
+    ? 'Loopback · same beam'
+    : mode === 'cross-connect'
+      ? CROSS_CONNECT_DETAILS[classifyTransponderCapability(satelliteName)].label
+      : mode === 'unknown'
+        ? 'Beam routing unknown'
+        : 'Not applicable';
+
+  return (
+    <GeoCockpitPanel title="Topology" eyebrow="routing model" accent="violet">
+      <div className="space-y-2 p-2.5">
+        <div className="grid grid-cols-2 gap-1.5">
+          <GeoCockpitTile label="Mode" value={linkMode.replace(/_/g, ' ')} tone="violet" mono={false} />
+          <GeoCockpitTile label="Transponder" value={transponderDetail} tone={mode === 'loopback' ? 'emerald' : mode === 'cross-connect' ? 'amber' : 'violet'} mono={false} />
+          <GeoCockpitTile label="Service class" value={isP2P ? 'Dedicated carrier' : isMesh ? 'Shared service' : 'Hub-and-spoke'} tone="violet" mono={false} />
+          <GeoCockpitTile label="Protocol" value={isP2P ? 'SCPC 100%' : isMesh ? 'TDMA 85%' : 'RF budget'} tone={isP2P ? 'emerald' : isMesh ? 'amber' : 'blue'} mono={false} />
+        </div>
+        <p className="rounded-lg border border-slate-800 bg-slate-900/55 px-3 py-2 text-[9px] leading-snug text-slate-400">
+          {description}
+        </p>
+      </div>
+    </GeoCockpitPanel>
+  );
+};
+
+const GeoRfContextCockpitPanel = ({ context }: { context: GeoRfContext }) => {
+  const publicMatch = context.publicFrequencyMatch;
+  const warnings = Array.from(new Set([
+    ...context.uplink.warnings,
+    ...context.downlink.warnings,
+    ...(publicMatch?.warnings ?? []),
+  ]));
+  const selectedCoverage = context.payload.selectedCoverageName ?? context.downlink.coverageName ?? context.uplink.coverageName ?? '--';
+  const band = context.band && context.band !== 'UNKNOWN' ? `${context.band === 'KU' ? 'Ku' : context.band === 'KA' ? 'Ka' : 'C'}-band` : 'Unknown band';
+  const candidates = publicMatch?.candidates ?? [];
+  const selected = publicMatch?.selectedCandidateId
+    ? candidates.find((c) => c.transponder.id === publicMatch.selectedCandidateId)
+    : undefined;
+  const primary = selected ?? candidates.find((c) => c.status !== 'NO_MATCH');
+  const alternatives = candidates
+    .filter((c) => c.transponder.id !== primary?.transponder.id && c.status !== 'NO_MATCH')
+    .slice(0, 3);
+
+  return (
+    <GeoCockpitPanel title="RF Context" eyebrow={matchLabel(publicMatch?.status)} accent="blue">
+      <div className="flex h-full min-h-0 flex-col gap-2 p-2.5">
+        <div className="grid grid-cols-2 gap-1.5">
+          <GeoCockpitTile label="Satellite" value={context.satelliteName} tone="blue" mono={false} />
+          <GeoCockpitTile label="Topology" value={context.topology.replace(/_/g, ' ')} tone="blue" mono={false} />
+          <GeoCockpitTile label="Band" value={band} tone="blue" mono={false} />
+          <GeoCockpitTile label="Selected coverage" value={selectedCoverage} tone="blue" mono={false} />
+          <GeoCockpitTile label="Uplink" value={fmtGhz(context.uplink.frequencyGHz)} tone={context.uplink.source === 'INFERRED' ? 'amber' : 'blue'} />
+          <GeoCockpitTile label="Downlink" value={fmtGhz(context.downlink.frequencyGHz)} tone="blue" />
+          <GeoCockpitTile label="Bandwidth" value={fmtMhz(context.downlink.bandwidthMHz ?? context.uplink.bandwidthMHz)} tone="blue" />
+          <GeoCockpitTile label="UL/DL pol" value={`${fmtPol(context.uplink.polarization)} / ${fmtPol(context.downlink.polarization)}`} tone="blue" mono={false} />
+        </div>
+        <div className="grid grid-cols-2 gap-1.5">
+          <div className="min-w-0 rounded-lg border border-slate-800 bg-slate-900/60 px-2.5 py-2">
+            <div className="text-[8px] font-bold uppercase tracking-wide text-slate-500">Uplink beam/coverage</div>
+            <div className="mt-0.5 truncate text-[10px] font-semibold text-slate-100">{context.uplink.coverageName ?? context.uplink.beamName ?? 'Unknown uplink beam'}</div>
+            <div className="mt-1 text-[8px] text-slate-500">{context.uplink.source === 'INFERRED' ? 'Inferred UL' : 'Selected coverage'}</div>
+          </div>
+          <div className="min-w-0 rounded-lg border border-slate-800 bg-slate-900/60 px-2.5 py-2">
+            <div className="text-[8px] font-bold uppercase tracking-wide text-slate-500">Downlink beam/coverage</div>
+            <div className="mt-0.5 truncate text-[10px] font-semibold text-slate-100">{context.downlink.coverageName ?? context.downlink.beamName ?? 'Unknown downlink beam'}</div>
+            <div className="mt-1 text-[8px] text-slate-500">Selected coverage</div>
+          </div>
+        </div>
+        <div className="min-h-0 rounded-lg border border-slate-700/80 bg-slate-900/55 px-3 py-2">
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span className="text-[9px] font-semibold uppercase tracking-wide text-slate-300">Indicative transponder</span>
+            <span className={`rounded-full px-2 py-0.5 text-[8px] font-bold uppercase ${matchBadgeClass(publicMatch?.status, publicMatch?.confidence)}`}>
+              {matchLabel(publicMatch?.status)}
+            </span>
+            <span className={`rounded-full px-2 py-0.5 text-[8px] font-bold uppercase ${confidenceBadgeClass(publicMatch?.confidence)}`}>
+              {publicMatch?.confidence ?? 'UNKNOWN'}
+            </span>
+          </div>
+          {primary ? (
+            <div className="mt-1 grid grid-cols-[5.2rem_minmax(0,1fr)] gap-x-2 gap-y-0.5 text-[9px]">
+              <span className="text-slate-500">Candidate</span>
+              <span className="truncate font-semibold text-slate-100">{candidateTitle(primary)}</span>
+              <span className="text-slate-500">Public plan</span>
+              <span className="truncate text-slate-300">{candidateSubtitle(primary) || '--'}</span>
+              {primary.reasons.length > 0 && (
+                <>
+                  <span className="text-slate-500">Why</span>
+                  <span className="truncate text-slate-300">{primary.reasons.slice(0, 2).join(', ')}</span>
+                </>
+              )}
+              {alternatives.length > 0 && (
+                <>
+                  <span className="text-slate-500">Alternatives</span>
+                  <span className="truncate text-slate-300">{alternatives.map(candidateTitle).join(' · ')}</span>
+                </>
+              )}
+            </div>
+          ) : (
+            <p className="mt-1 text-[9px] italic text-slate-400">
+              No indicative transponder can be inferred from the loaded public frequency plan.
+            </p>
+          )}
+          <p className="mt-1 truncate text-[8px] italic text-slate-500">Indicative only — does not prove payload routing or operational use.</p>
+        </div>
+        {warnings.length > 0 && (
+          <div className="truncate rounded-lg border border-amber-500/40 bg-amber-950/25 px-3 py-1.5 text-[8px] text-amber-200">
+            Warnings: {warnings.join(' · ')}
+          </div>
+        )}
+      </div>
+    </GeoCockpitPanel>
+  );
+};
+
+const GeoSegmentCockpitPanel = ({ type, seg, coverageName }: { type: 'uplink' | 'downlink'; seg: LinkSegment; coverageName?: string }) => {
+  const isUplink = type === 'uplink';
+  const c = seg.candidate;
+  const accent = isUplink ? 'blue' : 'emerald';
+  const title = isUplink ? 'Uplink Segment' : 'Downlink Segment';
+
+  return (
+    <GeoCockpitPanel title={title} eyebrow="physical layer" accent={accent} className="h-full">
+      <div className="grid h-full min-h-0 grid-rows-[auto_auto_minmax(0,1fr)] gap-2 p-2.5">
+        <div className="grid grid-cols-2 gap-1.5">
+          <GeoCockpitTile label={isUplink ? 'Source' : 'Destination'} value={isUplink ? seg.source.label : seg.destination.label} tone={accent} mono={false} />
+          <GeoCockpitTile label="Coverage" value={coverageName ?? coverageLabel(seg)} tone={accent} mono={false} />
+          <GeoCockpitTile label={isUplink ? 'Transmitter EIRP' : `Sat EIRP (${c.band ?? 'Ku'})`} value={isUplink ? fmtDbw(seg.source.eirpDbw) : fmtDbw(c.eirpDbw)} tone={accent} />
+          <GeoCockpitTile label={isUplink ? `Sat G/T (${c.band ?? 'Ku'})` : 'Terminal G/T'} value={isUplink ? fmtDbk(c.gtDbk) : fmtDbk(seg.destination.gtDbk)} tone={accent} />
+        </div>
+        <div className="grid grid-cols-5 gap-1.5">
+          <GeoCockpitTile label="Frequency" value={fmtGhz(c.frequencyGhz)} tone={accent} />
+          <GeoCockpitTile label="Bandwidth" value={fmtMhz(c.bandwidthMhz)} tone={accent} />
+          <GeoCockpitTile label="Slant range" value={fmtKm(c.slantRangeKm)} tone={accent} />
+          <GeoCockpitTile label="FSPL" value={fmtDb(c.fsplDb)} tone={accent} />
+          <GeoCockpitTile label="Atm. loss" value={fmtDb(c.atmosphericLossDb)} tone={accent} />
+        </div>
+        <div className="grid min-h-0 grid-cols-[minmax(0,1fr)_minmax(140px,0.5fr)] gap-2">
+          <div className="rounded-lg border border-slate-800 bg-slate-950/55 px-3 py-2">
+            <div className="grid grid-cols-2 gap-1.5">
+              <GeoCockpitTile label={isUplink ? 'C/N uplink' : 'C/N downlink'} value={fmtDb(seg.effectiveCNDb)} tone={accent} />
+              <div className="min-w-0 rounded-md border border-slate-800 bg-slate-900/70 px-2 py-1">
+                <div className="truncate text-[7px] font-bold uppercase tracking-wide text-slate-500">Margin</div>
+                <div className="mt-0.5"><GeoMarginPill value={seg.effectiveLinkMarginDb} /></div>
+              </div>
+              <GeoCockpitTile label="Endpoint correction" value={`${seg.adjustmentDb > 0 ? '+' : ''}${seg.adjustmentDb.toFixed(1)} dB`} tone={seg.adjustmentDb === 0 ? 'default' : 'amber'} />
+              <GeoCockpitTile label="Provenance" value={c.isSynthesized ? 'Estimated contour' : 'Measured contour'} tone={c.isSynthesized ? 'amber' : 'emerald'} mono={false} />
+            </div>
+            {seg.adjustmentDb !== 0 && (
+              <p className="mt-1 truncate text-[8px] italic text-slate-500">
+                Endpoint correction applied to candidate C/N.
+              </p>
+            )}
+          </div>
+          {isUplink && seg.effectiveLinkMarginDb < 0 && seg.uplinkRequirement ? (
+            <div className="rounded-lg border border-rose-500/40 bg-rose-950/20 px-2.5 py-2">
+              <div className="text-[9px] font-semibold uppercase tracking-wide text-rose-300">Uplink blocked</div>
+              <div className="mt-1 grid grid-cols-1 gap-1">
+                <GeoCockpitTile label="Current EIRP" value={fmtDbw(seg.uplinkRequirement.currentEirpDbw)} tone="red" />
+                <GeoCockpitTile label="Required min" value={fmtDbw(seg.uplinkRequirement.minimumEirpDbw)} tone="amber" />
+                <GeoCockpitTile label="Recommended" value={fmtDbw(seg.uplinkRequirement.recommendedEirpDbw)} tone="amber" />
+                <GeoCockpitTile label="Shortfall" value={`${Math.abs(seg.uplinkRequirement.marginGapDb).toFixed(1)} dB`} tone="red" />
+              </div>
+              {seg.uplinkRequirement.suggestedRFClassLabel && (
+                <p className="mt-1 truncate text-[8px] text-rose-200/75">{seg.uplinkRequirement.suggestedRFClassLabel}</p>
+              )}
+            </div>
+          ) : (
+            <div className="flex min-h-0 flex-col gap-1 rounded-lg border border-slate-700/80 bg-slate-900/55 px-3 py-2">
+              <span className="text-[9px] font-semibold text-slate-300">Segment C/N</span>
+              <span className={`font-mono text-lg font-semibold tabular-nums ${isUplink ? 'text-sky-300' : 'text-teal-300'}`}>{fmtDb(seg.effectiveCNDb)}</span>
+              <GeoMarginPill value={seg.effectiveLinkMarginDb} />
+            </div>
+          )}
+        </div>
+      </div>
+    </GeoCockpitPanel>
+  );
+};
+
+const GeoPayloadCockpitPanel = ({
+  satelliteName,
+  beamName,
+  band,
+  uplinkCoverageName,
+  downlinkCoverageName,
+}: {
+  satelliteName: string;
+  beamName?: string;
+  band?: string;
+  uplinkCoverageName?: string;
+  downlinkCoverageName?: string;
+}) => (
+  <GeoCockpitPanel title="Satellite / Payload" eyebrow="transponder" accent="violet">
+    <div className="grid grid-cols-5 gap-1.5 p-2.5">
+      <GeoCockpitTile label="Satellite" value={satelliteName} tone="violet" mono={false} />
+      <GeoCockpitTile label="Beam" value={isDisplayableBeamName(beamName) && beamName !== satelliteName ? beamName : '--'} tone="violet" mono={false} />
+      <GeoCockpitTile label="Band" value={band ?? '--'} tone="violet" mono={false} />
+      <GeoCockpitTile label="Uplink coverage" value={uplinkCoverageName ?? '--'} tone="violet" mono={false} />
+      <GeoCockpitTile label="Downlink coverage" value={downlinkCoverageName ?? '--'} tone="violet" mono={false} />
+      <div className="col-span-5 rounded-lg border border-slate-800 bg-slate-900/55 px-3 py-1.5 text-[8px] italic text-slate-500">
+        OBO / SFD: not yet modelled
+      </div>
+    </div>
+  </GeoCockpitPanel>
+);
+
+const GeoE2ECockpitPanel = ({ e2e, linkMode, networkLayer }: { e2e: EndToEndBudget; linkMode?: LinkMode; networkLayer?: NetworkLayerResult }) => {
+  const limitingTone = e2e.limitingSegment === 'uplink' ? 'blue' : 'emerald';
+  const note = bottleneckNote(linkMode, e2e.limitingSegment);
+  const finalThroughput = networkLayer?.finalThroughputMbps ?? e2e.endToEndThroughputMbps;
+
+  return (
+    <GeoCockpitPanel title="End-to-End Result" eyebrow="combined C/N" accent="amber" className="h-full">
+      <div className="grid h-full min-h-0 grid-rows-[auto_minmax(0,1fr)] gap-2 p-2.5">
+        <div className="grid grid-cols-4 gap-1.5">
+          <GeoCockpitTile label="Total C/N" value={fmtDb(e2e.endToEndCNDb)} tone="amber" />
+          <GeoCockpitTile label="MODCOD" value={e2e.endToEndModcod} tone="amber" mono={false} />
+          <GeoCockpitTile label="Spectral efficiency" value={`${e2e.endToEndSpectralEfficiency.toFixed(2)} b/s/Hz`} tone="amber" />
+          <GeoCockpitTile label="RF throughput" value={fmtMbps(e2e.endToEndThroughputMbps)} tone="amber" />
+        </div>
+        <div className="grid min-h-0 grid-cols-[minmax(0,1fr)_minmax(155px,0.45fr)] gap-2">
+          <div className="rounded-lg border border-slate-700/80 bg-slate-900/55 px-3 py-2">
+            <div className="grid grid-cols-3 gap-1.5">
+              <div className="min-w-0 rounded-md border border-slate-800 bg-slate-900/70 px-2 py-1">
+                <div className="truncate text-[7px] font-bold uppercase tracking-wide text-slate-500">Link margin</div>
+                <div className="mt-0.5"><GeoMarginPill value={e2e.endToEndLinkMarginDb} /></div>
+              </div>
+              <GeoCockpitTile label="Uplink C/N" value={fmtDb(e2e.uplinkCNDb)} tone="blue" />
+              <GeoCockpitTile label="Downlink C/N" value={fmtDb(e2e.downlinkCNDb)} tone="emerald" />
+            </div>
+            <div className="mt-2 rounded-lg border border-slate-800 bg-slate-950/55 px-3 py-2">
+              <div className="text-[8px] font-bold uppercase tracking-wide text-slate-500">Limiting segment</div>
+              <div className={`mt-0.5 text-[12px] font-bold uppercase ${cockpitToneClass[limitingTone]}`}>
+                {e2e.limitingSegment}
+                <span className="ml-2 font-mono text-[10px] font-semibold normal-case text-slate-400">
+                  C/N {fmtDb(e2e.limitingSegment === 'uplink' ? e2e.uplinkCNDb : e2e.downlinkCNDb)}
+                </span>
+              </div>
+              {note && (
+                <p className={`mt-1 line-clamp-2 text-[8px] leading-snug ${note.expected ? 'text-slate-500' : 'text-amber-300/85'}`}>
+                  {note.text}
+                </p>
+              )}
+            </div>
+          </div>
+          <div className="flex min-h-0 flex-col justify-between rounded-lg border border-slate-700/80 bg-slate-900/65 px-3 py-2">
+            <span className="text-[9px] font-semibold text-slate-300">Final throughput</span>
+            <span className="font-mono text-xl font-semibold tabular-nums text-amber-200">{fmtMbps(finalThroughput)}</span>
+            <span className="text-[8px] text-slate-500">{networkLayer ? 'network-adjusted' : 'RF budget'}</span>
+          </div>
+        </div>
+      </div>
+    </GeoCockpitPanel>
+  );
+};
+
+const GeoNetworkCockpitPanel = ({ nl, linkMode }: { nl?: NetworkLayerResult; linkMode?: LinkMode }) => {
+  const isMesh = linkMode === 'MESH';
+  const isP2P = linkMode === 'POINT_TO_POINT';
+  if (!nl || (!isMesh && !isP2P)) return null;
+
+  return (
+    <GeoCockpitPanel title="Network Layer" eyebrow={isP2P ? 'dedicated SCPC' : 'shared service'} accent="violet">
+      <div className="grid grid-cols-[minmax(0,1fr)_minmax(150px,0.35fr)] gap-2 p-2.5">
+        <div className="grid grid-cols-5 gap-1.5">
+          <GeoCockpitTile label="Peak RF" value={fmtMbps(nl.peakRfMbps)} tone="violet" />
+          <GeoCockpitTile label="Protocol efficiency" value={fmtPct(nl.protocolEfficiency)} tone={isP2P ? 'emerald' : 'amber'} />
+          <GeoCockpitTile label="Protocol-adjusted" value={fmtMbps(nl.protocolAdjustedMbps)} tone="violet" />
+          <GeoCockpitTile label="Contention ratio" value={fmtRatio(nl.contentionRatio)} tone={nl.contentionRatio > 1 ? 'amber' : 'emerald'} />
+          <GeoCockpitTile label="Effective" value={fmtMbps(nl.effectiveThroughputMbps)} tone="violet" />
+        </div>
+        <div className="rounded-lg border border-slate-700/80 bg-slate-900/55 px-3 py-2">
+          <div className="text-[8px] font-semibold uppercase tracking-wide text-slate-500">Limit</div>
+          <div className="mt-0.5 truncate text-[10px] font-semibold text-slate-100">
+            {LIMITING_FACTOR_LABEL[nl.limitingFactor] ?? nl.limitingFactor}
+          </div>
+          <div className="mt-1 font-mono text-base font-semibold tabular-nums text-indigo-200">{fmtMbps(nl.finalThroughputMbps)}</div>
+        </div>
+      </div>
+    </GeoCockpitPanel>
+  );
+};
+
+const GeoBarRow = ({
+  label,
+  value,
+  valueLabel,
+  tone,
+  scale = 'cn',
+}: {
+  label: string;
+  value: number;
+  valueLabel: string;
+  tone: 'blue' | 'emerald' | 'amber' | 'red';
+  scale?: 'cn' | 'margin';
+}) => {
+  const pct = scale === 'margin'
+    ? Math.max(8, Math.min(100, ((value + 3) / 10) * 100))
+    : Math.max(8, Math.min(100, (value / 30) * 100));
+  const barClassName = {
+    blue: 'bg-sky-400',
+    emerald: 'bg-teal-400',
+    amber: 'bg-amber-300',
+    red: 'bg-rose-400',
+  }[tone];
+
+  return (
+    <div className="grid grid-cols-[5.8rem_minmax(0,1fr)_4.8rem] items-center gap-2">
+      <span className="truncate text-[9px] font-semibold uppercase tracking-wide text-slate-500">{label}</span>
+      <div className="h-2 overflow-hidden rounded-full bg-slate-800">
+        <div className={`h-full rounded-full ${barClassName}`} style={{ width: `${pct}%` }} />
+      </div>
+      <span className="text-right font-mono text-[10px] font-semibold tabular-nums text-slate-200">{valueLabel}</span>
+    </div>
+  );
+};
+
+const GeoDiagnosticFlowPanel = ({
+  uplink,
+  downlink,
+  e2e,
+  networkLayer,
+}: {
+  uplink: LinkSegment;
+  downlink: LinkSegment;
+  e2e: EndToEndBudget;
+  networkLayer?: NetworkLayerResult;
+}) => {
+  const finalThroughput = networkLayer?.finalThroughputMbps ?? e2e.endToEndThroughputMbps;
+  const marginTone = e2e.endToEndLinkMarginDb < 0 ? 'red' : e2e.endToEndLinkMarginDb < 2 ? 'amber' : 'emerald';
+  const limitingTone = e2e.limitingSegment === 'uplink' ? 'blue' : 'emerald';
+  const networkLimit = networkLayer ? (LIMITING_FACTOR_LABEL[networkLayer.limitingFactor] ?? networkLayer.limitingFactor) : 'RF budget';
+
+  return (
+    <GeoCockpitPanel title="Engineering Diagnostic Flow" eyebrow="RF closure path" accent="blue">
+      <div className="grid h-full min-h-0 gap-2 p-2.5 min-[1500px]:grid-cols-[minmax(0,1.15fr)_minmax(320px,0.85fr)]">
+        <div className="grid min-h-0 grid-cols-6 gap-1.5">
+          <GeoCockpitTile label="Tx EIRP" value={fmtDbw(uplink.source.eirpDbw)} tone="blue" />
+          <GeoCockpitTile label="UL C/N" value={fmtDb(uplink.effectiveCNDb)} tone="blue" />
+          <GeoCockpitTile label="Payload" value={uplink.candidate.satelliteName} tone="violet" mono={false} />
+          <GeoCockpitTile label="DL C/N" value={fmtDb(downlink.effectiveCNDb)} tone="emerald" />
+          <GeoCockpitTile label="E2E C/N" value={fmtDb(e2e.endToEndCNDb)} tone="amber" />
+          <GeoCockpitTile label="Final" value={fmtMbps(finalThroughput)} tone="amber" />
+          <div className="col-span-6 grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)_auto_minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-1.5 rounded-lg border border-slate-800 bg-slate-950/45 px-3 py-2">
+            <span className="truncate text-[10px] font-semibold text-sky-300">{uplink.source.label}</span>
+            <span className="text-slate-600">→</span>
+            <span className={`truncate text-[10px] font-semibold ${cockpitToneClass[limitingTone]}`}>
+              {e2e.limitingSegment.toUpperCase()} limiting
+            </span>
+            <span className="text-slate-600">→</span>
+            <span className="truncate text-[10px] font-semibold text-teal-300">{downlink.destination.label}</span>
+            <span className="text-slate-600">→</span>
+            <span className="truncate text-[10px] font-semibold text-amber-200">{networkLimit}</span>
+          </div>
+        </div>
+        <div className="grid min-h-0 grid-rows-[auto_minmax(0,1fr)] gap-2 rounded-lg border border-slate-800 bg-slate-950/45 p-2">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <div className="text-[9px] font-semibold uppercase tracking-wide text-slate-500">C/N and margin stack</div>
+              <div className="text-[9px] text-slate-500">Prioritized for link closure diagnosis</div>
+            </div>
+            <GeoMarginPill value={e2e.endToEndLinkMarginDb} />
+          </div>
+          <div className="grid content-center gap-1.5">
+            <GeoBarRow label="Uplink" value={e2e.uplinkCNDb} valueLabel={fmtDb(e2e.uplinkCNDb)} tone="blue" />
+            <GeoBarRow label="Downlink" value={e2e.downlinkCNDb} valueLabel={fmtDb(e2e.downlinkCNDb)} tone="emerald" />
+            <GeoBarRow label="Combined" value={e2e.endToEndCNDb} valueLabel={fmtDb(e2e.endToEndCNDb)} tone="amber" />
+            <GeoBarRow label="Margin" value={e2e.endToEndLinkMarginDb} valueLabel={fmtDb(e2e.endToEndLinkMarginDb)} tone={marginTone} scale="margin" />
+          </div>
+        </div>
+      </div>
+    </GeoCockpitPanel>
+  );
+};
+
+const GeoDirectionCockpit = ({
+  uplink,
+  downlink,
+  endToEnd,
+  linkMode,
+  networkLayer,
+  coverageLabels,
+}: DirectionBlockProps) => {
+  const satelliteName = uplink.candidate.satelliteName;
+  const beamName = uplink.candidate.beamName;
+  const band = uplink.candidate.band ?? downlink.candidate.band;
+  const uplinkCoverageName = coverageLabels?.uplink ?? coverageLabel(uplink);
+  const downlinkCoverageName = coverageLabels?.downlink ?? coverageLabel(downlink);
+  const hasNetworkPanel = !!networkLayer && (linkMode === 'MESH' || linkMode === 'POINT_TO_POINT');
+
+  return (
+    <div className="grid h-full min-h-0 grid-rows-[minmax(210px,0.62fr)_auto_minmax(170px,0.45fr)_minmax(165px,0.45fr)] gap-2 min-[1500px]:gap-3">
+      <div className="grid min-h-0 grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-3">
+        <GeoSegmentCockpitPanel type="uplink" seg={uplink} coverageName={uplinkCoverageName} />
+        <GeoSegmentCockpitPanel type="downlink" seg={downlink} coverageName={downlinkCoverageName} />
+      </div>
+      <GeoPayloadCockpitPanel
+        satelliteName={satelliteName}
+        beamName={beamName}
+        band={band}
+        uplinkCoverageName={uplinkCoverageName}
+        downlinkCoverageName={downlinkCoverageName}
+      />
+      <div className={`grid min-h-0 gap-3 ${hasNetworkPanel ? 'xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]' : 'xl:grid-cols-1'}`}>
+        <GeoE2ECockpitPanel e2e={endToEnd} linkMode={linkMode} networkLayer={networkLayer} />
+        <GeoNetworkCockpitPanel nl={networkLayer} linkMode={linkMode} />
+      </div>
+      <GeoDiagnosticFlowPanel uplink={uplink} downlink={downlink} e2e={endToEnd} networkLayer={networkLayer} />
+    </div>
+  );
+};
+
 // ─── Main: DualSegmentPanel ───────────────────────────────────────────────────
 
 export interface DualSegmentPanelProps {
@@ -911,11 +1412,12 @@ export interface DualSegmentPanelProps {
       downlink?: string;
     };
   };
+  variant?: 'classic' | 'cockpit';
 }
 
 const DualSegmentPanel = memo<DualSegmentPanelProps>(({
   linkMode, result, incompatible,
-  activeMeshTab: controlledTab, onMeshTabChange, satelliteName, satellite, coverageLabels,
+  activeMeshTab: controlledTab, onMeshTabChange, satelliteName, satellite, coverageLabels, variant = 'classic',
 }) => {
   const description = LINK_MODE_DESCRIPTIONS[linkMode];
   const [internalTab, setInternalTab] = useState<'forward' | 'reverse'>('forward');
@@ -986,6 +1488,16 @@ const DualSegmentPanel = memo<DualSegmentPanelProps>(({
   }, [linkMode, directionControlled]);
 
   if (incompatible) {
+    if (variant === 'cockpit') {
+      return (
+        <div className="h-full rounded-xl border border-red-500/40 bg-red-950/25 p-4 text-sm text-red-100">
+          <div className="font-semibold">No valid connectivity</div>
+          <p className="mt-1 text-xs leading-relaxed text-red-200/75">
+            The selected uplink and downlink beams belong to different satellites or incompatible bands. Move the point(s) until both beams share the same satellite and band.
+          </p>
+        </div>
+      );
+    }
     return (
       <div className="space-y-3">
         <p className="text-xs text-gray-500 dark:text-gray-400 italic">{description}</p>
@@ -995,10 +1507,59 @@ const DualSegmentPanel = memo<DualSegmentPanelProps>(({
   }
 
   if (!result) {
+    if (variant === 'cockpit') {
+      return (
+        <div className="h-full rounded-xl border border-red-500/40 bg-red-950/25 p-4 text-sm text-red-100">
+          <div className="font-semibold">No valid RF path found</div>
+          <p className="mt-1 text-xs leading-relaxed text-red-200/75">
+            Ensure both selected points lie within compatible coverage beams of the same GEO satellite.
+          </p>
+        </div>
+      );
+    }
     return (
       <div className="space-y-3">
         <p className="text-xs text-gray-500 dark:text-gray-400 italic">{description}</p>
         <IncompatibilityWarning message="No valid RF path found. Ensure both selected points lie within compatible coverage beams of the same GEO satellite." />
+      </div>
+    );
+  }
+
+  if (variant === 'cockpit') {
+    const activePath = isMesh && activeMeshTab === 'reverse' && resultWithRfContext?.reverse
+      ? resultWithRfContext.reverse
+      : resultWithRfContext!.forward;
+    const activeCoverageLabels = isMesh && activeMeshTab === 'reverse'
+      ? coverageLabels?.reverse
+      : coverageLabels?.forward;
+    const activeNetworkLayer = isMesh && activeMeshTab === 'reverse'
+      ? resultWithRfContext!.networkLayer?.reverse
+      : resultWithRfContext!.networkLayer?.forward;
+
+    return (
+      <div className="grid h-full min-h-0 grid-cols-[minmax(260px,0.72fr)_minmax(0,1.9fr)] gap-3 text-xs">
+        <div className="grid min-h-0 grid-rows-[auto_minmax(0,1fr)] gap-3">
+          <GeoTopologyCockpitPanel linkMode={linkMode} mode={result.transponderMode} satelliteName={satelliteName} />
+          {rfContext && <GeoRfContextCockpitPanel context={rfContext} />}
+        </div>
+        <div className={isMesh && !directionControlled ? 'grid min-h-0 grid-rows-[auto_minmax(0,1fr)] gap-3' : 'h-full min-h-0'}>
+          {isMesh && !directionControlled && (
+            <MeshDirectionTabs
+              forwardLabel={forwardLabel}
+              reverseLabel={reverseLabel}
+              activeTab={activeMeshTab}
+              onChange={setActiveMeshTab}
+            />
+          )}
+          <GeoDirectionCockpit
+            uplink={activePath.uplink}
+            downlink={activePath.downlink}
+            endToEnd={activePath.endToEnd}
+            linkMode={linkMode}
+            networkLayer={activeNetworkLayer}
+            coverageLabels={activeCoverageLabels}
+          />
+        </div>
       </div>
     );
   }

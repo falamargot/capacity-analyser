@@ -1,5 +1,5 @@
 import { memo, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { ChevronDown, Gauge, Maximize2, Minimize2, Route, X } from 'lucide-react';
+import { ChevronDown, Gauge, Maximize2, Minimize2, Route } from 'lucide-react';
 import type { LeoSiteToSiteResult } from '../../utils/leoSiteToSiteModel';
 import { formatLeoSiteToSiteFailureReason } from '../../utils/leoSiteToSiteModel';
 import { PerformancePanel } from '../MetricWidgets';
@@ -18,9 +18,11 @@ import type { ServiceLayerResult } from '../../utils/serviceLayer';
 import type { TerminalType } from './TerminalConfig';
 import type { LeoConnectivityViewModel } from '../../utils/leoServiceViewModel';
 import LeoStatusCards from './LeoStatusCards';
+import EngineeringAnalysisWorkspace from './EngineeringAnalysisWorkspace';
 import type { LeoBottleneckFactor, LeoThroughputLeg, LeoThroughputResult } from '../../types/leoThroughput';
 import { buildLeoSingleSiteConfidence } from '../../utils/predictionConfidence';
 import { buildLinkAvailabilityContext, formatLinkAvailabilityContext } from '../../utils/linkAvailabilityContext';
+import { buildLeoEngineeringAnalysisViewModel } from '../../utils/engineeringAnalysisViewModel';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // TODO: DC Level / Throughput / Power synchronisation (Q2-Q3-Q4)
@@ -208,9 +210,6 @@ const LIMITING_FACTOR_BADGE: Record<NonNullable<LimitingFactor>, { label: string
   },
 };
 
-const fmtDb = (v: number | undefined | null, d = 1) =>
-  typeof v === 'number' && isFinite(v) ? `${v.toFixed(d)} dB` : '--';
-
 const fmtMbps = (v: number | undefined | null) => {
   if (typeof v !== 'number' || !isFinite(v)) return '--';
   if (v >= 1000) return `${(v / 1000).toFixed(2)} Gbps`;
@@ -363,25 +362,86 @@ const LeoLinkBudgetSummaryCard = ({ debugInfo, highlighted = false, onToggle }: 
 // Atom: one label + value row used in the geometry and RF sections
 const MetricRow = ({ label, value, mono = true }: { label: string; value: string | number; mono?: boolean }) => (
   <div>
-    <span className="block text-[10px] text-slate-400 dark:text-slate-500">{label}</span>
-    <span className={`text-xs text-slate-700 dark:text-slate-200 font-medium ${mono ? 'tabular-nums font-mono' : ''}`}>{value}</span>
+    <span className="block text-[9px] text-slate-500">{label}</span>
+    <span className={`text-[11px] text-slate-200 font-medium ${mono ? 'tabular-nums font-mono' : ''}`}>{value}</span>
   </div>
 );
 
+const CockpitTile = ({
+  label,
+  value,
+  tone = 'default',
+  mono = true,
+}: {
+  label: string;
+  value: string | number;
+  tone?: 'default' | 'blue' | 'emerald' | 'pink' | 'amber' | 'violet';
+  mono?: boolean;
+}) => {
+  const toneClassName = {
+    default: 'text-slate-100',
+    blue: 'text-sky-300',
+    emerald: 'text-teal-300',
+    pink: 'text-rose-300',
+    amber: 'text-amber-300',
+    violet: 'text-indigo-300',
+  }[tone];
+
+  return (
+    <div className="min-w-0 rounded-md border border-slate-800 bg-slate-900/65 px-2 py-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.035)]">
+      <div className="truncate text-[8px] font-semibold uppercase tracking-wide text-slate-500">{label}</div>
+      <div className={`mt-0.5 truncate text-[11px] font-medium ${toneClassName} ${mono ? 'font-mono tabular-nums' : ''}`}>
+        {value}
+      </div>
+    </div>
+  );
+};
+
+const CockpitPanel = ({
+  title,
+  eyebrow,
+  accent,
+  children,
+  className = '',
+}: {
+  title: string;
+  eyebrow?: string;
+  accent: 'blue' | 'emerald' | 'pink' | 'violet';
+  children: ReactNode;
+  className?: string;
+}) => {
+  const accentClassName = {
+    blue: 'border-slate-700/80 text-sky-300',
+    emerald: 'border-slate-700/80 text-teal-300',
+    pink: 'border-slate-700/80 text-rose-300',
+    violet: 'border-slate-700/80 text-indigo-300',
+  }[accent];
+
+  return (
+    <section className={`min-h-0 overflow-hidden rounded-xl border bg-slate-950/75 ${accentClassName} ${className}`}>
+      <div className="flex items-baseline justify-between gap-3 border-b border-slate-800 bg-slate-900/75 px-3 py-2">
+        <h4 className="truncate text-[11px] font-semibold uppercase tracking-wide">{title}</h4>
+        {eyebrow && <span className="shrink-0 text-[8px] font-semibold uppercase tracking-wide text-slate-500">{eyebrow}</span>}
+      </div>
+      {children}
+    </section>
+  );
+};
+
 // Pipeline step: a single throughput value row
 const PipelineStep = ({ value, dimmed = false }: { value: number; dimmed?: boolean }) => (
-  <div className={`flex justify-end py-0.5 ${dimmed ? 'text-slate-400 dark:text-slate-500' : 'text-slate-600 dark:text-slate-300'}`}>
-    <span className="tabular-nums font-mono text-xs">{value.toFixed(1)} Mbps</span>
+  <div className={`flex justify-end py-px ${dimmed ? 'text-slate-500' : 'text-slate-300'}`}>
+    <span className="tabular-nums font-mono text-[10px]">{value.toFixed(1)} Mbps</span>
   </div>
 );
 
 // Pipeline arrow + step label; when isLimiting=false the step does not reduce throughput
 const PipelineArrow = ({ label, isLimiting = true }: { label: string; isLimiting?: boolean }) => (
-  <div className="flex items-center gap-1.5 py-px pl-1">
-    <span className={`text-[11px] leading-none ${isLimiting ? 'text-emerald-500 dark:text-emerald-400' : 'text-slate-300 dark:text-slate-600'}`}>↓</span>
-    <span className={`text-[10px] italic ${isLimiting ? 'text-slate-400 dark:text-slate-500' : 'text-slate-300 dark:text-slate-600'}`}>{label}</span>
+  <div className="flex min-w-0 items-center gap-1 py-px pl-1">
+    <span className={`text-[10px] leading-none ${isLimiting ? 'text-teal-400' : 'text-slate-600'}`}>↓</span>
+    <span className={`truncate text-[9px] italic ${isLimiting ? 'text-slate-400' : 'text-slate-600'}`}>{label}</span>
     {!isLimiting && (
-      <span className="text-[9px] text-slate-300 dark:text-slate-600 ml-0.5">no effect</span>
+      <span className="ml-0.5 text-[8px] text-slate-600">no effect</span>
     )}
   </div>
 );
@@ -392,10 +452,12 @@ const DirectionBudgetSection = ({
   leg,
   usage = null,
   primaryDirectionLabel,
+  compact = false,
 }: {
   leg: LeoThroughputLeg;
   usage?: DirectionBudgetUsage | null;
   primaryDirectionLabel?: string;
+  compact?: boolean;
 }) => {
   const limitingFactor = detectLegLimitingFactor(leg) ?? deriveLegLimitingFactor(leg);
   const badge = limitingFactor ? LIMITING_FACTOR_BADGE[limitingFactor] : null;
@@ -408,19 +470,46 @@ const DirectionBudgetSection = ({
       ? 'Reference only'
       : null;
   const usageClassName = usage === 'primary'
-    ? 'border-pink-200 bg-pink-100 text-pink-700 dark:border-pink-800/70 dark:bg-pink-900/30 dark:text-pink-200'
-    : 'border-slate-200 bg-white/70 text-slate-500 dark:border-slate-700 dark:bg-slate-950/40 dark:text-slate-400';
+    ? 'border-slate-600 bg-slate-800 text-slate-100 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100'
+    : 'border-slate-700 bg-slate-950/80 text-slate-400';
+  const rfMetrics = leg.direction === 'downlink'
+    ? [
+      ['Satellite EIRP', `${leg.rf.effectiveEirpDb.toFixed(1)} dBW`],
+      ['DL G/T used', `${leg.rf.receiverGtDbK.toFixed(1)} dB/K`],
+      ['Raw terminal G/T', `${leg.rf.rawTerminalRfDb.toFixed(1)} dB/K`],
+      ['Rx scan loss', `${leg.rf.terminalScanLossDb.toFixed(2)} dB`],
+    ]
+    : [
+      ['UL EIRP used', `${leg.rf.effectiveEirpDb.toFixed(1)} dBW`],
+      ['Satellite Rx G/T', `${leg.rf.receiverGtDbK.toFixed(1)} dB/K`],
+      ['Raw terminal EIRP', `${leg.rf.rawTerminalRfDb.toFixed(1)} dBW`],
+      ['Tx scan loss', `${leg.rf.terminalScanLossDb.toFixed(2)} dB`],
+    ];
+  const sharedRfMetrics = [
+    ['FSPL', `${leg.rf.fsplDb.toFixed(1)} dB`],
+    ['C/N', `${leg.rf.cnDb.toFixed(1)} dB`],
+    ['Beam scan', `${leg.rf.scanLossDb.toFixed(2)} dB`],
+    ['Weather', `${leg.rf.weatherLossDb.toFixed(1)} dB`],
+    ['Ref BW', fmtMhz(leg.rf.referenceBandwidthHz)],
+    ['Usable BW', fmtMhz(leg.rf.usableBandwidthHz)],
+  ];
+  const networkRows = [
+    ['Peak RF', leg.network.peakRfMbps],
+    ['Beam share', leg.network.beamSharingMbps],
+    [leg.direction === 'downlink' ? 'Backhaul' : 'Feeder', leg.network.backhaulMbps],
+    ['Handover', leg.network.handoverMbps],
+  ];
 
   return (
     <div className={[
-      'rounded-lg border overflow-hidden',
+      'flex h-full min-h-0 flex-col overflow-hidden rounded-xl border bg-slate-950/70',
       usage === 'primary'
-        ? 'border-pink-300 shadow-[0_0_0_1px_rgba(219,39,119,0.10)] dark:border-pink-800'
-        : 'border-blue-200 dark:border-blue-900/60',
+        ? 'border-slate-600 shadow-[0_0_0_1px_rgba(148,163,184,0.12)]'
+        : 'border-slate-700/80',
     ].join(' ')}>
-      <div className="px-3 py-1.5 bg-blue-100/70 dark:bg-blue-900/30 border-b border-blue-200 dark:border-blue-900/60">
+      <div className="border-b border-slate-800 bg-slate-900/80 px-3 py-2">
         <div className="flex items-center justify-between gap-3">
-          <span className="text-[10px] font-semibold uppercase tracking-wide text-blue-600 dark:text-blue-400">
+          <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-200">
             {leg.label} Budget
           </span>
           <div className="flex shrink-0 items-center gap-1.5">
@@ -429,191 +518,283 @@ const DirectionBudgetSection = ({
                 {usageLabel}
               </span>
             )}
-            <span className="text-[9px] text-blue-400/70 dark:text-blue-500/60 italic">physical + network</span>
+            <span className="text-[8px] text-slate-500 italic">physical + network</span>
           </div>
         </div>
       </div>
-      <div className="px-3 py-2.5 bg-blue-50/40 dark:bg-blue-950/20 space-y-2.5">
-        <div className="grid grid-cols-2 gap-x-6 gap-y-2">
-          {leg.direction === 'downlink' ? (
-            <>
-              <MetricRow label="Satellite EIRP" value={`${leg.rf.effectiveEirpDb.toFixed(1)} dBW`} />
-              <MetricRow label="DL G/T used" value={`${leg.rf.receiverGtDbK.toFixed(1)} dB/K`} />
-              <MetricRow label="Raw terminal G/T" value={`${leg.rf.rawTerminalRfDb.toFixed(1)} dB/K`} />
-              <MetricRow label="Rx terminal scan loss" value={`${leg.rf.terminalScanLossDb.toFixed(2)} dB`} />
-            </>
-          ) : (
-            <>
-              <MetricRow label="UL EIRP used" value={`${leg.rf.effectiveEirpDb.toFixed(1)} dBW`} />
-              <MetricRow label="Satellite Rx G/T" value={`${leg.rf.receiverGtDbK.toFixed(1)} dB/K`} />
-              <MetricRow label="Raw terminal EIRP" value={`${leg.rf.rawTerminalRfDb.toFixed(1)} dBW`} />
-              <MetricRow label="Tx terminal scan loss" value={`${leg.rf.terminalScanLossDb.toFixed(2)} dB`} />
-            </>
-          )}
-          <MetricRow label="FSPL" value={`${leg.rf.fsplDb.toFixed(1)} dB`} />
-          <MetricRow label="C/N" value={`${leg.rf.cnDb.toFixed(1)} dB`} />
-          <MetricRow label="Satellite beam scan" value={`${leg.rf.scanLossDb.toFixed(2)} dB`} />
-          <MetricRow label="Weather loss" value={`${leg.rf.weatherLossDb.toFixed(1)} dB`} />
-          <div className="col-span-2">
-            <MetricRow label="MODCOD" value={leg.rf.modcod ?? '—'} mono={false} />
+      <div className={[
+        'grid min-h-0 flex-1 gap-2 p-2.5',
+        compact ? 'grid-rows-[auto_auto_auto]' : 'grid-rows-[auto_auto_minmax(0,1fr)]',
+      ].join(' ')}>
+        <div className="grid grid-cols-5 gap-1.5">
+          {[...rfMetrics, ...sharedRfMetrics].map(([label, value], index) => (
+            <CockpitTile key={`${label}-${index}`} label={label} value={value} tone={label === 'C/N' ? 'blue' : 'default'} />
+          ))}
+        </div>
+
+        <div className="grid grid-cols-[minmax(0,1fr)_minmax(150px,0.58fr)] gap-2">
+          <div className="rounded-lg border border-slate-700/80 bg-slate-900/55 px-3 py-2">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-[10px] font-semibold text-slate-300 flex items-center gap-0.5">
+                RF chain throughput
+                <SectionTooltip content="Physical-layer throughput on the reference carrier/allocation. It comes from FSPL, C/N and MODCOD before beam sharing, backhaul, handover or smoothing." />
+              </span>
+              <span className="shrink-0 font-mono text-base font-semibold tabular-nums text-slate-100">
+                {leg.rf.rfChainThroughputMbps.toFixed(1)}
+                <span className="ml-1 text-[9px] font-normal text-slate-400">Mbps</span>
+              </span>
+            </div>
+            <div className="mt-1 truncate text-[9px] text-slate-400">
+              MODCOD-driven · {leg.rf.modcod ?? '—'} · {leg.rf.modcodTableLabel}
+            </div>
+            <div className="mt-0.5 truncate text-[9px] text-slate-500">{leg.rf.modcodTableSourceNote}</div>
           </div>
-          <div className="col-span-2">
-            <MetricRow label="MODCOD table" value={leg.rf.modcodTableLabel} mono={false} />
+          <div className="grid grid-cols-2 gap-1.5">
+            <CockpitTile label="Active users" value={leg.network.activeUsers} tone="violet" />
+            <CockpitTile label="Terminal cap" value={`${leg.network.terminalCapMbps.toFixed(0)} Mbps`} tone="violet" />
+            <CockpitTile label={leg.direction === 'downlink' ? 'Backhaul factor' : 'Feeder factor'} value={leg.network.backhaulFactor.toFixed(2)} tone="violet" />
+            <CockpitTile label="Handover factor" value={leg.network.handoverFactor.toFixed(2)} tone="violet" />
           </div>
         </div>
 
-        <div className="rounded-md bg-blue-100 dark:bg-blue-900/40 px-3 py-2 border border-blue-200/60 dark:border-blue-800/40">
-          <div className="flex items-center justify-between gap-2">
-            <span className="text-blue-700 dark:text-blue-300 text-[11px] font-semibold flex items-center gap-0.5">
-              RF chain throughput
-              <SectionTooltip content="Physical-layer throughput on the reference carrier/allocation. It comes from FSPL, C/N and MODCOD before beam sharing, backhaul, handover or smoothing." />
-            </span>
-            <span className="text-blue-800 dark:text-blue-200 font-bold text-sm tabular-nums shrink-0">
-              {leg.rf.rfChainThroughputMbps.toFixed(1)}{' '}
-              <span className="text-[10px] font-normal text-blue-600 dark:text-blue-400">Mbps</span>
-            </span>
-          </div>
-          <span className="block text-[9px] text-blue-500/70 dark:text-blue-400/50 mt-0.5">
-            MODCOD-driven · {(leg.rf.referenceBandwidthHz / 1e6).toFixed(0)} MHz reference allocation
-          </span>
-          <span className="block text-[9px] text-blue-500/70 dark:text-blue-400/50 mt-0.5">
-            {leg.rf.modcodTableSourceNote}
-          </span>
-        </div>
-
-        <div className="rounded-lg border border-emerald-200 dark:border-emerald-900/60 overflow-hidden">
-          <div className="px-3 py-1.5 bg-emerald-100/70 dark:bg-emerald-900/30 border-b border-emerald-200 dark:border-emerald-900/60">
-            <div className="flex items-baseline justify-between">
-              <span className="text-[10px] font-semibold uppercase tracking-wide text-emerald-600 dark:text-emerald-400">
-                Network Layer Effects
-              </span>
-              <span className="text-[9px] text-emerald-500/60 dark:text-emerald-400/50 italic">network layer</span>
+        {compact ? (
+          <div className="overflow-hidden rounded-lg border border-slate-700/80 bg-slate-950/50">
+            <div className="flex items-center justify-between border-b border-slate-800 bg-slate-900/60 px-3 py-1.5">
+              <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-300">Network closure</span>
+              <span className="text-[8px] italic text-slate-500">beam share · gateway · handover · smoothing</span>
             </div>
-          </div>
-          <div className="px-3 py-2.5 bg-emerald-50/40 dark:bg-emerald-950/20 space-y-0">
-            <p className="text-[9px] text-slate-400 dark:text-slate-500 italic pb-1.5 mb-1.5 border-b border-emerald-100 dark:border-emerald-900/40">
-              Derived from RF capacity after beam sharing, gateway constraints and smoothing.
-            </p>
-            <div className="flex items-baseline justify-between py-0.5">
-              <span className="text-[10px] text-slate-500 dark:text-slate-400 flex items-center gap-0.5">
-                Peak RF throughput
-                <SectionTooltip content="RF ceiling after scaling the reference allocation to usable beam bandwidth, then applying the direction-specific terminal cap." />
-              </span>
-              <span className="tabular-nums font-mono text-xs text-slate-600 dark:text-slate-300">
-                {leg.network.peakRfMbps.toFixed(1)} Mbps
-              </span>
-            </div>
-            <PipelineArrow label="÷ beam sharing" isLimiting={sharingLimiting} />
-            <PipelineStep value={leg.network.beamSharingMbps} dimmed />
-            <PipelineArrow label={leg.direction === 'downlink' ? '× backhaul factor' : '× feeder/gateway factor'} isLimiting={backhaulLimiting} />
-            <PipelineStep value={leg.network.backhaulMbps} dimmed />
-            <PipelineArrow label="× handover" isLimiting={handoverLimiting} />
-            <PipelineStep value={leg.network.handoverMbps} dimmed />
-            <PipelineArrow label="EMA smoothing" />
-
-            <div className="mt-1.5 rounded-md bg-emerald-100 dark:bg-emerald-900/40 border border-emerald-200/70 dark:border-emerald-800/40 px-3 py-2">
-              <div className="flex items-center justify-between gap-2">
-                <div className="flex items-center gap-1.5 min-w-0 flex-wrap">
-                  <span className="text-emerald-700 dark:text-emerald-300 font-semibold text-[11px] flex items-center gap-0.5">
-                    Final user throughput
-                    <SectionTooltip content="Effective user throughput after all network constraints: beam sharing, gateway/backhaul factor, handover transient and EMA temporal smoothing." />
-                  </span>
+            <div className="grid grid-cols-6 gap-1.5 p-2">
+              {networkRows.map(([label, value]) => (
+                <CockpitTile key={label as string} label={label as string} value={`${(value as number).toFixed(1)} Mbps`} tone="emerald" />
+              ))}
+              <CockpitTile label="EMA α" value={leg.network.smoothingAlpha.toFixed(2)} tone="violet" />
+              <div className="min-w-0 rounded-md border border-slate-700 bg-slate-900/80 px-2 py-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.035)]">
+                <div className="flex min-w-0 items-center justify-between gap-2">
+                  <span className="truncate text-[8px] font-semibold uppercase tracking-wide text-slate-500">Final user</span>
                   {badge && (
-                    <span className={`inline-flex items-center rounded border px-1.5 py-0.5 text-[9px] font-semibold ${badge.className}`}>
+                    <span className={`shrink-0 truncate rounded border px-1 py-0.5 text-[7px] font-semibold ${badge.className}`}>
                       {leg.direction === 'downlink' ? 'DL' : 'UL'} {badge.label}
                     </span>
                   )}
                 </div>
-                <span className="text-emerald-800 dark:text-emerald-200 font-bold text-base tabular-nums shrink-0">
-                  {leg.network.finalUserMbps.toFixed(1)}{' '}
-                  <span className="text-[10px] font-normal text-emerald-600 dark:text-emerald-400">Mbps</span>
+                <div className="mt-0.5 truncate font-mono text-[13px] font-semibold tabular-nums text-teal-200">
+                  {leg.network.finalUserMbps.toFixed(1)} <span className="text-[9px] font-normal text-slate-400">Mbps</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="min-h-0 overflow-hidden rounded-lg border border-slate-700/80 bg-slate-950/50">
+            <div className="flex items-center justify-between border-b border-slate-800 bg-slate-900/60 px-3 py-1.5">
+              <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-300">
+                Network Layer Effects
+              </span>
+              <span className="text-[8px] italic text-slate-500">beam share · gateway · smoothing</span>
+            </div>
+            <div className="grid min-h-0 grid-cols-[minmax(0,1fr)_minmax(145px,0.42fr)] gap-2 p-2">
+              <div className="grid min-h-0 grid-rows-[auto_minmax(0,1fr)] gap-1.5">
+                <div className="grid grid-cols-4 gap-1.5">
+                  {networkRows.map(([label, value]) => (
+                    <CockpitTile key={label as string} label={label as string} value={`${(value as number).toFixed(1)} Mbps`} tone="emerald" />
+                  ))}
+                </div>
+                <div className="min-h-0 rounded-lg border border-slate-800 bg-slate-950/55 px-2.5 py-1.5">
+                  <p className="truncate text-[8px] italic text-slate-500">
+                    Derived from RF capacity after beam sharing, gateway constraints and smoothing.
+                  </p>
+                  <div className="mt-1 grid grid-cols-[minmax(0,1fr)_auto] gap-x-2">
+                    <span className="text-[9px] text-slate-400 flex items-center gap-0.5">
+                      Peak RF throughput
+                      <SectionTooltip content="RF ceiling after scaling the reference allocation to usable beam bandwidth, then applying the direction-specific terminal cap." />
+                    </span>
+                    <span className="font-mono text-[9px] tabular-nums text-slate-300">{leg.network.peakRfMbps.toFixed(1)} Mbps</span>
+                    <PipelineArrow label="÷ beam sharing" isLimiting={sharingLimiting} />
+                    <PipelineStep value={leg.network.beamSharingMbps} dimmed />
+                    <PipelineArrow label={leg.direction === 'downlink' ? '× backhaul factor' : '× feeder/gateway factor'} isLimiting={backhaulLimiting} />
+                    <PipelineStep value={leg.network.backhaulMbps} dimmed />
+                    <PipelineArrow label="× handover" isLimiting={handoverLimiting} />
+                    <PipelineStep value={leg.network.handoverMbps} dimmed />
+                    <PipelineArrow label="EMA smoothing" />
+                    <div className="flex justify-end py-0.5 text-slate-500">
+                      <span className="font-mono text-[10px] tabular-nums">α {leg.network.smoothingAlpha.toFixed(2)}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div className="flex min-h-0 flex-col justify-between overflow-hidden rounded-lg border border-slate-700/80 bg-slate-900/65 px-3 py-2">
+                <div className="min-w-0">
+                  <span className="flex items-center gap-0.5 text-[9px] font-semibold text-slate-300">
+                    Final user
+                    <SectionTooltip content="Effective user throughput after all network constraints: beam sharing, gateway/backhaul factor, handover transient and EMA temporal smoothing." />
+                  </span>
+                  {badge && (
+                    <span className={`mt-1 inline-flex max-w-full items-center truncate rounded border px-1.5 py-0.5 text-[8px] font-semibold ${badge.className}`}>
+                      {leg.direction === 'downlink' ? 'DL' : 'UL'} {badge.label}
+                    </span>
+                  )}
+                </div>
+                <span className="shrink-0 font-mono text-lg font-semibold tabular-nums text-teal-200">
+                  {leg.network.finalUserMbps.toFixed(1)}
+                  <span className="ml-1 text-[10px] font-normal text-slate-400">Mbps</span>
                 </span>
               </div>
             </div>
-
-            <div className="mt-1.5 flex items-center justify-between text-[10px] text-slate-400 dark:text-slate-500 px-0.5">
-              <span>Terminal cap</span>
-              <span className="tabular-nums font-mono">{leg.network.terminalCapMbps.toFixed(0)} Mbps</span>
-            </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );
 };
 
 const TerminalSummaryMetric = ({ label, value }: { label: string; value: string }) => (
-  <span className="inline-flex items-baseline gap-1 rounded-md border border-violet-200/70 bg-white/70 px-2 py-1 text-[10px] text-violet-700 dark:border-violet-800/60 dark:bg-violet-950/40 dark:text-violet-200">
-    <span className="font-semibold uppercase tracking-wide text-violet-500 dark:text-violet-400">{label}</span>
-    <span className="font-mono tabular-nums text-violet-900 dark:text-violet-100">{value}</span>
+  <span className="inline-flex items-baseline gap-1 rounded-md border border-slate-700 bg-slate-900/70 px-2 py-1 text-[10px] text-slate-300">
+    <span className="font-semibold uppercase tracking-wide text-slate-500">{label}</span>
+    <span className="font-mono tabular-nums text-slate-100">{value}</span>
   </span>
 );
 
-const TerminalAssumptionsSection = ({ d }: { d: LeoRFDebugInfo }) => {
-  const terminal = d.terminal;
-  const terminalSummary = [
+const terminalSummaryText = (terminal: LeoRFDebugInfo['terminal']) => [
     terminal.vendor,
     terminal.model,
     terminal.terminalFamily,
     terminal.supportedBands.join('/'),
   ].filter(Boolean).join(' · ');
 
+const terminalProfileKey = (terminal: LeoRFDebugInfo['terminal']) => [
+  terminal.vendor,
+  terminal.model,
+  terminal.terminalFamily,
+  terminal.rxGtDbK.toFixed(2),
+  terminal.txEirpDbw.toFixed(2),
+  terminal.maxDlMbps.toFixed(0),
+  terminal.maxUlMbps.toFixed(0),
+  terminal.dlReferenceBandwidthHz,
+  terminal.ulReferenceBandwidthHz,
+].join('|');
+
+const buildTerminalRows = (terminal: LeoRFDebugInfo['terminal']): Array<[string, string]> => [
+    ['Family', terminal.terminalFamily],
+    ['Vendor', terminal.vendor],
+    ['Model', terminal.model],
+    ['Source type', terminal.sourceType.replace(/_/g, ' ')],
+    ['Certification', terminal.certificationStatus.replace(/_/g, ' ')],
+    ['Antenna', terminal.antennaType],
+    ['Mobility', terminal.mobilityClass],
+    ['Bands', terminal.supportedBands.join(', ')],
+    ['DL raw G/T', `${terminal.rxGtDbK.toFixed(1)} dB/K`],
+    ['UL raw EIRP', `${terminal.txEirpDbw.toFixed(1)} dBW`],
+    ['Rx scan model', terminal.rxScanLossModelLabel],
+    ['Tx scan model', terminal.txScanLossModelLabel],
+    ['DL cap', `${terminal.maxDlMbps.toFixed(0)} Mbps`],
+    ['UL cap', `${terminal.maxUlMbps.toFixed(0)} Mbps`],
+    ['DL ref BW', fmtMhz(terminal.dlReferenceBandwidthHz)],
+    ['UL ref BW', fmtMhz(terminal.ulReferenceBandwidthHz)],
+    ['DL usable BW', fmtMhz(terminal.dlUsableBeamBandwidthHz)],
+    ['UL usable BW', fmtMhz(terminal.ulUsableBeamBandwidthHz)],
+  ];
+
+const terminalNotesText = (terminal: LeoRFDebugInfo['terminal']) => [
+  terminal.description,
+  terminal.notes.length > 0 ? `Notes: ${terminal.notes.join(' · ')}` : '',
+  terminal.assumptions.length > 0 ? `Assumptions: ${terminal.assumptions.join(' · ')}` : '',
+].filter(Boolean).join(' · ');
+
+const TerminalAssumptionsSection = ({ d }: { d: LeoRFDebugInfo }) => {
+  const terminal = d.terminal;
+  const terminalSummary = terminalSummaryText(terminal);
+  const terminalRows = buildTerminalRows(terminal);
+  const terminalNotes = [
+    terminal.description,
+    terminal.notes.length > 0 ? `Notes: ${terminal.notes.join(' · ')}` : '',
+    terminal.assumptions.length > 0 ? `Assumptions: ${terminal.assumptions.join(' · ')}` : '',
+  ].filter(Boolean).join(' · ');
+
   return (
-    <details className="group overflow-hidden rounded-lg border border-violet-200 dark:border-violet-900/60">
-      <summary className="cursor-pointer list-none bg-violet-100/70 px-3 py-2.5 transition-colors hover:bg-violet-100 dark:bg-violet-900/30 dark:hover:bg-violet-900/45 group-open:border-b group-open:border-violet-200 group-open:dark:border-violet-900/60">
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0 flex-1">
-            <div className="flex items-baseline justify-between gap-3">
-              <span className="text-[10px] font-semibold uppercase tracking-wide text-violet-600 dark:text-violet-400">
-                Terminal Assumptions
-              </span>
-              <span className="shrink-0 text-[9px] italic text-violet-500/60 dark:text-violet-400/50">selected terminal</span>
-            </div>
-            <p className="mt-1 truncate text-[11px] text-violet-700/80 dark:text-violet-300/80">
-              {terminalSummary}
-            </p>
-            <div className="mt-2 flex flex-wrap gap-1.5">
-              <TerminalSummaryMetric label="DL cap" value={`${terminal.maxDlMbps.toFixed(0)} Mbps`} />
-              <TerminalSummaryMetric label="UL cap" value={`${terminal.maxUlMbps.toFixed(0)} Mbps`} />
-              <TerminalSummaryMetric label="G/T" value={`${terminal.rxGtDbK.toFixed(1)} dB/K`} />
-              <TerminalSummaryMetric label="EIRP" value={`${terminal.txEirpDbw.toFixed(1)} dBW`} />
-            </div>
+    <CockpitPanel title="Terminal Assumptions" eyebrow="selected terminal" accent="violet" className="h-full">
+      <div className="flex h-full min-h-0 flex-col gap-2 p-2.5">
+        <div className="min-w-0 rounded-lg border border-slate-700/80 bg-slate-900/55 px-3 py-2">
+          <p className="truncate text-[11px] font-semibold text-slate-100">{terminalSummary}</p>
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            <TerminalSummaryMetric label="DL cap" value={`${terminal.maxDlMbps.toFixed(0)} Mbps`} />
+            <TerminalSummaryMetric label="UL cap" value={`${terminal.maxUlMbps.toFixed(0)} Mbps`} />
+            <TerminalSummaryMetric label="G/T" value={`${terminal.rxGtDbK.toFixed(1)} dB/K`} />
+            <TerminalSummaryMetric label="EIRP" value={`${terminal.txEirpDbw.toFixed(1)} dBW`} />
           </div>
-          <ChevronDown className="mt-0.5 h-4 w-4 shrink-0 text-violet-500/70 transition-transform duration-200 group-open:rotate-180 dark:text-violet-400/70" />
         </div>
-      </summary>
-      <div className="space-y-2.5 bg-violet-50/40 px-3 py-2.5 dark:bg-violet-950/20">
-        <div className="grid grid-cols-2 gap-x-6 gap-y-2">
-          <MetricRow label="Terminal family" value={terminal.terminalFamily} mono={false} />
-          <MetricRow label="Vendor" value={terminal.vendor} mono={false} />
-          <MetricRow label="Model" value={terminal.model} mono={false} />
-          <MetricRow label="Source type" value={terminal.sourceType.replace(/_/g, ' ')} mono={false} />
-          <MetricRow label="Certification" value={terminal.certificationStatus.replace(/_/g, ' ')} mono={false} />
-          <MetricRow label="Antenna type" value={terminal.antennaType} mono={false} />
-          <MetricRow label="Mobility class" value={terminal.mobilityClass} mono={false} />
-          <MetricRow label="Bands" value={terminal.supportedBands.join(', ')} mono={false} />
-          <MetricRow label="DL raw G/T" value={`${terminal.rxGtDbK.toFixed(1)} dB/K`} />
-          <MetricRow label="UL raw EIRP" value={`${terminal.txEirpDbw.toFixed(1)} dBW`} />
-          <MetricRow label="Rx scan model" value={terminal.rxScanLossModelLabel} mono={false} />
-          <MetricRow label="Tx scan model" value={terminal.txScanLossModelLabel} mono={false} />
-          <MetricRow label="DL terminal cap" value={`${terminal.maxDlMbps.toFixed(0)} Mbps`} />
-          <MetricRow label="UL terminal cap" value={`${terminal.maxUlMbps.toFixed(0)} Mbps`} />
-          <MetricRow label="DL reference BW" value={fmtMhz(terminal.dlReferenceBandwidthHz)} />
-          <MetricRow label="UL reference BW" value={fmtMhz(terminal.ulReferenceBandwidthHz)} />
-          <MetricRow label="DL usable beam BW" value={fmtMhz(terminal.dlUsableBeamBandwidthHz)} />
-          <MetricRow label="UL usable beam BW" value={fmtMhz(terminal.ulUsableBeamBandwidthHz)} />
+        <div className="grid min-h-0 grid-cols-3 gap-1.5">
+          {terminalRows.map(([label, value]) => (
+            <CockpitTile key={label} label={label} value={value} tone="violet" mono={false} />
+          ))}
         </div>
-        <div className="rounded-md border border-violet-200/70 bg-white/70 px-3 py-1.5 text-[10px] leading-snug text-violet-800 dark:border-violet-800/50 dark:bg-violet-950/30 dark:text-violet-200">
+        <div className="rounded-lg border border-slate-800 bg-slate-950/55 px-3 py-1.5 text-[8px] leading-snug text-slate-400">
           <div>
             <span className="font-semibold">Representative terminal model.</span>{' '}
             RF values are assumptions unless backed by a datasheet; throughput is estimated, not an SLA.
           </div>
-          <div className="mt-0.5 text-violet-700/80 dark:text-violet-300/80">
+          <div className="mt-0.5">
             Source: {terminal.sourceLabel}{terminal.sourceUrl ? ` · ${terminal.sourceUrl}` : ''}
           </div>
+          {terminalNotes && <div className="mt-0.5 truncate">{terminalNotes}</div>}
         </div>
       </div>
-    </details>
+    </CockpitPanel>
+  );
+};
+
+const TerminalProfileCockpitPanel = ({
+  siteA,
+  siteB,
+}: {
+  siteA: LeoRFDebugInfo | null;
+  siteB: LeoRFDebugInfo | null;
+}) => {
+  const terminals = [
+    siteA ? { label: 'Site A terminal', terminal: siteA.terminal } : null,
+    siteB ? { label: 'Site B terminal', terminal: siteB.terminal } : null,
+  ].filter(Boolean) as Array<{ label: string; terminal: LeoRFDebugInfo['terminal'] }>;
+  if (terminals.length === 0) return null;
+
+  const sameTerminal = terminals.length === 1 || terminals.every(({ terminal }) => (
+    terminalProfileKey(terminal) === terminalProfileKey(terminals[0].terminal)
+  ));
+  const displayedTerminals = sameTerminal
+    ? [{ label: 'Shared terminal profile', terminal: terminals[0].terminal }]
+    : terminals;
+
+  return (
+    <CockpitPanel title="Terminal RF Profile" eyebrow={sameTerminal ? 'shared by both sites' : 'site comparison'} accent="violet">
+      <div className={`grid gap-2 p-2.5 ${displayedTerminals.length > 1 ? 'xl:grid-cols-2' : 'xl:grid-cols-1'}`}>
+        {displayedTerminals.map(({ label, terminal }) => {
+          const terminalRows = buildTerminalRows(terminal);
+          const terminalNotes = terminalNotesText(terminal);
+          return (
+            <div key={label} className="min-w-0 rounded-lg border border-slate-800 bg-slate-950/45 p-2">
+              <div className="flex min-w-0 flex-wrap items-center justify-between gap-2">
+                <div className="min-w-0">
+                  <div className="text-[9px] font-semibold uppercase tracking-wide text-slate-500">{label}</div>
+                  <div className="truncate text-[11px] font-semibold text-slate-100">{terminalSummaryText(terminal)}</div>
+                </div>
+                <div className="flex shrink-0 flex-wrap justify-end gap-1.5">
+                  <TerminalSummaryMetric label="DL cap" value={`${terminal.maxDlMbps.toFixed(0)} Mbps`} />
+                  <TerminalSummaryMetric label="UL cap" value={`${terminal.maxUlMbps.toFixed(0)} Mbps`} />
+                  <TerminalSummaryMetric label="G/T" value={`${terminal.rxGtDbK.toFixed(1)} dB/K`} />
+                  <TerminalSummaryMetric label="EIRP" value={`${terminal.txEirpDbw.toFixed(1)} dBW`} />
+                </div>
+              </div>
+              <div className="mt-2 grid grid-cols-3 gap-1.5 min-[1500px]:grid-cols-9">
+                {terminalRows.map(([rowLabel, value]) => (
+                  <CockpitTile key={`${label}-${rowLabel}`} label={rowLabel} value={value} tone="violet" mono={false} />
+                ))}
+              </div>
+              <div className="mt-1.5 truncate text-[8px] leading-snug text-slate-500">
+                Source: {terminal.sourceLabel}{terminal.sourceUrl ? ` · ${terminal.sourceUrl}` : ''}
+                {terminalNotes ? ` · ${terminalNotes}` : ''}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </CockpitPanel>
   );
 };
 
@@ -622,64 +803,70 @@ const LeoRFLinkBudgetPanel = ({
   d,
   directionUsage,
   primaryDirectionLabel,
+  showTerminal = true,
 }: {
   d: LeoRFDebugInfo;
   directionUsage?: Partial<Record<'downlink' | 'uplink', DirectionBudgetUsage>>;
   primaryDirectionLabel?: string;
+  showTerminal?: boolean;
 }) => {
   const beamPosPercent = Math.round(Math.min(d.normalizedDistance, 1) * 100);
 
   return (
-    <div className="space-y-3 text-xs">
-
-      {/* ── Section 1: Beam Geometry ─────────────────────────────────────── */}
-      <div className="rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden">
-        <div className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700">
-          <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-            Beam Geometry
-          </span>
-        </div>
-        <div className="px-3 py-2.5 bg-slate-50 dark:bg-slate-800/40">
-          <div className="grid grid-cols-2 gap-x-6 gap-y-2">
-            <MetricRow label="Satellite" value={d.satelliteId} mono={false} />
-            <MetricRow label="User elevation" value={`${d.userElevationDeg.toFixed(1)} °`} />
-            <MetricRow label="Beam index" value={d.selectedBeamIndex} />
-            <MetricRow label="Slant range" value={`${d.downlink.rf.slantRangeKm.toFixed(0)} km`} />
-            <MetricRow label="Candidate beams" value={d.candidateBeamCount} />
-            {/* Beam position progress bar */}
-            <div>
-              <span className="block text-[10px] text-slate-400 dark:text-slate-500 mb-1">
-                Beam position
-              </span>
-              <div className="flex items-center gap-1.5">
-                <div className="flex-1 h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+    <div className={[
+      'grid h-full min-h-0 grid-cols-1 gap-3 text-xs',
+      showTerminal
+        ? 'xl:grid-cols-[minmax(300px,0.82fr)_minmax(0,1fr)_minmax(0,1fr)]'
+        : 'xl:grid-cols-[minmax(260px,0.62fr)_minmax(0,1fr)_minmax(0,1fr)]',
+    ].join(' ')}>
+      <div className={showTerminal ? 'grid min-h-0 grid-rows-[minmax(0,0.84fr)_minmax(0,1.16fr)] gap-3' : 'min-h-0'}>
+        <CockpitPanel title="Beam Geometry" eyebrow="access layer" accent="emerald" className="h-full">
+          <div className="flex h-full min-h-0 flex-col gap-2 p-2.5">
+            <div className="rounded-lg border border-slate-700/80 bg-slate-900/55 px-3 py-2">
+              <div className="flex items-baseline justify-between gap-3">
+                <span className="truncate text-sm font-semibold text-slate-100">{d.satelliteId}</span>
+                <span className="rounded-full border border-slate-700 bg-slate-950/70 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-slate-300">
+                  Beam {d.selectedBeamIndex}
+                </span>
+              </div>
+              <div className="mt-2 flex items-center gap-2">
+                <div className="h-2 flex-1 overflow-hidden rounded-full bg-slate-800">
                   <div
-                    className="h-full rounded-full bg-slate-400 dark:bg-slate-500 transition-all"
+                    className="h-full rounded-full bg-sky-400 transition-all"
                     style={{ width: `${beamPosPercent}%` }}
                   />
                 </div>
-                <span className="text-[10px] font-mono tabular-nums text-slate-600 dark:text-slate-300 w-7 text-right">
+                <span className="w-9 text-right font-mono text-[10px] tabular-nums text-slate-300">
                   {d.normalizedDistance.toFixed(2)}
                 </span>
               </div>
-              <div className="flex justify-between mt-0.5 text-[9px] text-slate-300 dark:text-slate-600">
+              <div className="mt-0.5 flex justify-between text-[8px] text-slate-500">
                 <span>center</span><span>edge</span>
               </div>
             </div>
+            <div className="grid grid-cols-2 gap-1.5">
+              <CockpitTile label="User elevation" value={`${d.userElevationDeg.toFixed(1)}°`} tone="emerald" />
+              <CockpitTile label="Slant range" value={`${d.downlink.rf.slantRangeKm.toFixed(0)} km`} tone="emerald" />
+              <CockpitTile label="Candidate beams" value={d.candidateBeamCount} tone="emerald" />
+              <CockpitTile label="SNP elevation" value={fmtDeg(d.snpElevationDeg)} tone="emerald" />
+              <CockpitTile label="Limiting elevation" value={`${d.limitingElevationDeg.toFixed(1)}°`} tone="emerald" />
+              <CockpitTile label="Main bottleneck" value={d.mainBottleneck.label} tone="amber" mono={false} />
+            </div>
           </div>
-        </div>
+        </CockpitPanel>
+        {showTerminal && <TerminalAssumptionsSection d={d} />}
       </div>
-
-      <TerminalAssumptionsSection d={d} />
       <DirectionBudgetSection
         leg={d.downlink}
         usage={directionUsage?.downlink}
         primaryDirectionLabel={primaryDirectionLabel}
+        compact={!showTerminal}
       />
       <DirectionBudgetSection
         leg={d.uplink}
         usage={directionUsage?.uplink}
         primaryDirectionLabel={primaryDirectionLabel}
+        compact={!showTerminal}
       />
     </div>
   );
@@ -702,6 +889,11 @@ interface LeoLinkBudgetDrawerProps {
   snpAName?: string;
   snpBName?: string;
   popName?: string;
+  latencyMs?: number | null;
+  latencyLabel?: string;
+  availabilityLabel?: string;
+  confidenceLabel?: string;
+  confidenceDetail?: string;
 }
 
 const NoBudgetPlaceholder = () => (
@@ -713,25 +905,23 @@ const NoBudgetPlaceholder = () => (
   </div>
 );
 
-const LeoLinkBudgetDrawer = ({ open, onClose, debugInfo, siteToSiteResult, siteToSiteDirection = 'A_TO_B', debugInfoSiteA, debugInfoSiteB, snpAName, snpBName, popName }: LeoLinkBudgetDrawerProps) => {
-  // Entrance animation: slide in from right on mount
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    if (!open) return;
-    const raf = requestAnimationFrame(() => setMounted(true));
-    return () => { cancelAnimationFrame(raf); setMounted(false); };
-  }, [open]);
-
-  useEffect(() => {
-    if (!open) return;
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onClose();
-    };
-    document.addEventListener('keydown', onKeyDown);
-    return () => document.removeEventListener('keydown', onKeyDown);
-  }, [onClose, open]);
-
+const LeoLinkBudgetDrawer = ({
+  open,
+  onClose,
+  debugInfo,
+  siteToSiteResult,
+  siteToSiteDirection = 'A_TO_B',
+  debugInfoSiteA,
+  debugInfoSiteB,
+  snpAName,
+  snpBName,
+  popName,
+  latencyMs,
+  latencyLabel,
+  availabilityLabel,
+  confidenceLabel,
+  confidenceDetail,
+}: LeoLinkBudgetDrawerProps) => {
   if (!open) return null;
 
   const isS2S = siteToSiteResult != null;
@@ -739,52 +929,26 @@ const LeoLinkBudgetDrawer = ({ open, onClose, debugInfo, siteToSiteResult, siteT
   const s2sDirectionLabel = s2sIsAtoB ? 'A → B' : 'B → A';
   const sourceSiteId = s2sIsAtoB ? 'A' : 'B';
   const destinationSiteId = s2sIsAtoB ? 'B' : 'A';
-  const sourceAccentClass = sourceSiteId === 'A'
-    ? 'text-emerald-600 dark:text-emerald-400'
-    : 'text-pink-600 dark:text-pink-400';
-  const sourceBadgeClass = sourceSiteId === 'A'
-    ? 'bg-emerald-100 dark:bg-emerald-900/60'
-    : 'bg-pink-100 dark:bg-pink-900/60';
-  const destinationAccentClass = destinationSiteId === 'A'
-    ? 'text-emerald-600 dark:text-emerald-400'
-    : 'text-pink-600 dark:text-pink-400';
-  const destinationBadgeClass = destinationSiteId === 'A'
-    ? 'bg-emerald-100 dark:bg-emerald-900/60'
-    : 'bg-pink-100 dark:bg-pink-900/60';
-
-  const primaryThroughputMbps = siteToSiteResult
-    ? (s2sIsAtoB ? siteToSiteResult.finalThroughputAtoBMbps : siteToSiteResult.finalThroughputBtoAMbps)
-    : null;
-  const primaryLatencyMs = siteToSiteResult
-    ? (s2sIsAtoB ? siteToSiteResult.oneWayLatencyAtoBMs : siteToSiteResult.oneWayLatencyBtoAMs)
-    : null;
-  // In S2S mode, use the per-site debug chains for bottleneck identification so that
-  // the source uplink always comes from the transmitting site and the destination
-  // downlink from the receiving site. Falls back to the combined debugInfo when per-site
-  // chains are not yet available (e.g. non-beam-model coverage mode).
-  const sourceDebugInfo  = isS2S ? (s2sIsAtoB ? (debugInfoSiteA ?? debugInfo) : (debugInfoSiteB ?? debugInfo)) : debugInfo;
-  const destDebugInfo    = isS2S ? (s2sIsAtoB ? (debugInfoSiteB ?? debugInfo) : (debugInfoSiteA ?? debugInfo)) : debugInfo;
-  const sourceUplinkMbps = sourceDebugInfo?.uplink.network.finalUserMbps ?? null;
-  const destinationDownlinkMbps = destDebugInfo?.downlink.network.finalUserMbps ?? null;
-  const sourceIsBottleneck =
-    sourceUplinkMbps != null && destinationDownlinkMbps != null
-      ? sourceUplinkMbps <= destinationDownlinkMbps
-      : sourceUplinkMbps != null;
-  const bottleneckLeg = sourceIsBottleneck
-    ? (sourceDebugInfo?.uplink ?? null)
-    : (destDebugInfo?.downlink ?? null);
-  const bottleneckFactor = bottleneckLeg
-    ? (detectLegLimitingFactor(bottleneckLeg) ?? deriveLegLimitingFactor(bottleneckLeg))
-    : null;
-  const bottleneckBadge = bottleneckFactor ? LIMITING_FACTOR_BADGE[bottleneckFactor] : null;
-  const bottleneckLabel = bottleneckLeg
-    ? `${sourceIsBottleneck ? `Site ${sourceSiteId} uplink` : `Site ${destinationSiteId} downlink`}${bottleneckBadge ? ` · ${bottleneckBadge.label}` : ''}`
-    : '—';
+  const siteBadgeClass = 'border border-slate-600 bg-slate-800 text-slate-100';
+  const viewModel = buildLeoEngineeringAnalysisViewModel({
+    debugInfo,
+    siteToSiteResult,
+    siteToSiteDirection,
+    debugInfoSiteA,
+    debugInfoSiteB,
+    snpAName,
+    snpBName,
+    popName,
+    latencyMs,
+    latencyLabel,
+    availabilityLabel,
+    confidenceLabel,
+    confidenceDetail,
+  });
 
   const renderS2SAccessBudget = (
     siteId: 'A' | 'B',
     role: 'source' | 'destination',
-    accentClass: string,
     badgeClass: string,
   ) => {
     const directionUsage = role === 'source'
@@ -799,149 +963,84 @@ const LeoLinkBudgetDrawer = ({ open, onClose, debugInfo, siteToSiteResult, siteT
       : (debugInfoSiteB ?? debugInfo);
 
     return (
-    <div>
-      <h4 className={`mb-1 flex items-center gap-2 text-sm font-bold ${accentClass}`}>
-        <span className={`inline-flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-extrabold ${badgeClass}`}>{siteId}</span>
+    <div className="grid h-full min-h-0 grid-rows-[auto_minmax(0,1fr)] gap-1.5">
+      <h4 className="flex items-center gap-2 text-sm font-semibold text-slate-200">
+        <span className={`inline-flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold ${badgeClass}`}>{siteId}</span>
         Site {siteId} Access Budget
-        <span className="rounded-full border border-slate-200 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-slate-500 dark:border-slate-700 dark:text-slate-400">
+        <span className="rounded-full border border-slate-700 bg-slate-950/80 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-slate-400">
           {role}
         </span>
       </h4>
-      <LeoRFLinkBudgetPanel
-        d={siteDebugInfo!}
-        directionUsage={directionUsage}
-        primaryDirectionLabel={s2sDirectionLabel}
-      />
+      <div className="min-h-0">
+        <LeoRFLinkBudgetPanel
+          d={siteDebugInfo!}
+          directionUsage={directionUsage}
+          primaryDirectionLabel={s2sDirectionLabel}
+          showTerminal={false}
+        />
+      </div>
     </div>
     );
   };
 
   return (
-    <div
-      className="leo-link-budget-drawer fixed inset-y-0 right-0 z-[80] max-[1099px]:inset-0 max-[1099px]:bg-slate-950/30 max-[1099px]:backdrop-blur-sm min-[1100px]:pointer-events-none"
-      role="dialog"
-      aria-modal="true"
-      aria-label="Detailed LEO link budget"
-      style={{ ['--sw' as string]: 'var(--desktop-sidebar-width, 420px)' }}
+    <EngineeringAnalysisWorkspace
+      open={open}
+      onClose={onClose}
+      viewModel={viewModel}
     >
-      {/* Mobile: click backdrop to close */}
-      <div
-        className="absolute inset-0 max-[1099px]:block min-[1100px]:hidden"
-        onClick={onClose}
-        aria-hidden="true"
-      />
-      <div className="absolute inset-y-0 right-0 flex w-full justify-end max-[1099px]:sm:pl-10 min-[1100px]:pointer-events-none min-[1100px]:w-[var(--desktop-sidebar-width,420px)]">
-        <div
-          className={[
-            'flex h-full w-full flex-col border-l border-slate-200 bg-white shadow-2xl dark:border-slate-800 dark:bg-slate-950',
-            'transition-[transform,opacity] duration-200 ease-out will-change-transform',
-            'min-[1100px]:pointer-events-auto min-[1100px]:overflow-hidden min-[1100px]:rounded-[24px] min-[1100px]:border',
-            mounted ? 'translate-x-0 opacity-100' : 'translate-x-6 opacity-0',
-          ].join(' ')}
-        >
-          <div className="flex items-start justify-between gap-4 border-b border-slate-200 px-5 py-4 dark:border-slate-800">
-            <div className="min-w-0">
-              <p className="text-[11px] font-bold uppercase tracking-wide text-pink-500 dark:text-pink-300">
-                {isS2S ? 'LEO Link Budget — Site-to-Site' : 'LEO Link Budget'}
-              </p>
-              <h3 className="mt-1 truncate text-lg font-semibold text-slate-950 dark:text-slate-50">
-                {isS2S ? `End-to-End Budget (${s2sDirectionLabel})` : (debugInfo?.satelliteId ?? 'No LEO path')}
-              </h3>
-              {isS2S && (
-                <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
-                  Site {sourceSiteId} source · backbone · Site {destinationSiteId} destination
-                </p>
-              )}
+      {isS2S ? (
+        debugInfo ? (
+          <div className="grid h-full min-h-0 grid-rows-[minmax(0,1fr)_auto] gap-2 min-[1500px]:gap-3">
+            <div className="grid min-h-0 gap-2 min-[2400px]:grid-cols-2 min-[1500px]:gap-3">
+              {renderS2SAccessBudget(sourceSiteId, 'source', siteBadgeClass)}
+              {renderS2SAccessBudget(destinationSiteId, 'destination', siteBadgeClass)}
             </div>
-            <button
-              type="button"
-              onClick={onClose}
-              className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 shadow-sm transition-colors hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
-              aria-label="Close link budget detail"
-            >
-              <X className="h-5 w-5" />
-            </button>
-          </div>
-          <div className="flex-1 overflow-y-auto px-5 py-4">
-            {isS2S ? (
-              debugInfo ? (
-                <div className="space-y-8">
-                  <div className="grid grid-cols-3 gap-px overflow-hidden rounded-lg border border-pink-200 bg-pink-100 dark:border-pink-900/60 dark:bg-pink-950/40">
-                    {[
-                      { label: `${s2sDirectionLabel} throughput`, value: fmtMbpsSafe(primaryThroughputMbps), tone: 'text-pink-700 dark:text-pink-200' },
-                      { label: 'Primary bottleneck', value: bottleneckLabel, tone: 'text-slate-900 dark:text-slate-100' },
-                      { label: 'One-way latency', value: fmtMs(primaryLatencyMs), tone: 'text-slate-900 dark:text-slate-100' },
-                    ].map((item) => (
-                      <div key={item.label} className="min-w-0 bg-white px-3 py-3 dark:bg-slate-950">
-                        <div className="text-[10px] font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">
-                          {item.label}
-                        </div>
-                        <div className={`mt-1 truncate text-sm font-bold tabular-nums ${item.tone}`}>
-                          {item.value}
-                        </div>
-                      </div>
-                    ))}
+
+            {/* Capacity model disclosure — shown only when per-site RF chains are available,
+                so the user knows the RF geometry rows are site-specific while the final
+                throughput still uses the shared-beam capacity model. */}
+            <div className="grid min-h-0 gap-2 min-[1500px]:grid-cols-[minmax(0,1.45fr)_minmax(300px,0.75fr)] min-[1500px]:gap-3">
+              <TerminalProfileCockpitPanel siteA={debugInfoSiteA ?? debugInfo} siteB={debugInfoSiteB ?? debugInfo} />
+              <CockpitPanel title="Backbone Network Layer" eyebrow="fiber / IP core" accent="violet">
+                <div className="grid items-stretch gap-2 p-2.5">
+                  <div className="grid grid-cols-3 gap-1.5">
+                    <CockpitTile label="SNP A" value={snpAName ?? '—'} tone="violet" mono={false} />
+                    <CockpitTile label="SNP B" value={snpBName ?? '—'} tone="violet" mono={false} />
+                    <CockpitTile label="Logical PoP" value={popName ?? 'Core PoP'} tone="violet" mono={false} />
+                    <CockpitTile label="Ground distance" value={`${Math.round(siteToSiteResult.backboneDistanceKm).toLocaleString()} km`} tone="violet" />
+                    <CockpitTile label="Route factor" value="×1.20" tone="violet" mono={false} />
+                    <CockpitTile label="Fiber speed" value="200 km/ms" tone="violet" mono={false} />
                   </div>
-
-                  {renderS2SAccessBudget(sourceSiteId, 'source', sourceAccentClass, sourceBadgeClass)}
-
-                  {/* Capacity model disclosure — shown only when per-site RF chains are available,
-                      so the user knows the RF geometry rows are site-specific while the final
-                      throughput still uses the shared-beam capacity model. */}
-                  {debugInfoSiteB != null && (
-                    <p className="text-[10px] italic text-slate-400 dark:text-slate-500 -mt-4">
-                      RF parameters (elevation, C/N, MODCOD) are computed independently for each site.
-                      Final throughput uses a shared-beam capacity model — per-beam contention at Site B is approximated from Site A's constellation geometry.
-                    </p>
-                  )}
-
-                  <div>
-                    <h4 className="mb-3 text-sm font-bold text-violet-600 dark:text-violet-400">Backbone Network Layer</h4>
-                    <div className="rounded-lg border border-violet-200 dark:border-violet-800/60 overflow-hidden text-xs">
-                      <div className="px-3 py-1.5 bg-violet-100/70 dark:bg-violet-900/30 border-b border-violet-200 dark:border-violet-800/60">
-                        <div className="flex items-baseline justify-between">
-                          <span className="text-[10px] font-semibold uppercase tracking-wide text-violet-600 dark:text-violet-400">Ground Segment</span>
-                          <span className="text-[9px] text-violet-400/70 dark:text-violet-500/60 italic">fiber / IP core</span>
-                        </div>
-                      </div>
-                      <div className="px-3 py-2.5 bg-violet-50/40 dark:bg-violet-950/20 space-y-2.5">
-                        <div className="grid grid-cols-2 gap-x-6 gap-y-2">
-                          <MetricRow label="SNP A" value={snpAName ?? '—'} mono={false} />
-                          <MetricRow label="SNP B" value={snpBName ?? '—'} mono={false} />
-                          <MetricRow label="Logical PoP" value={popName ?? 'Core PoP'} mono={false} />
-                          <MetricRow label="Ground distance" value={`${Math.round(siteToSiteResult.backboneDistanceKm).toLocaleString()} km`} />
-                          <MetricRow label="Route factor" value="×1.20 (fiber)" mono={false} />
-                          <MetricRow label="Fiber speed" value="200 km/ms" mono={false} />
-                        </div>
-                        <div className="rounded-md bg-violet-100 dark:bg-violet-900/40 border border-violet-200/60 dark:border-violet-800/40 px-3 py-2">
-                          <div className="flex items-center justify-between gap-2">
-                            <span className="text-violet-700 dark:text-violet-300 font-semibold text-[11px]">One-way latency</span>
-                            <span className="text-violet-800 dark:text-violet-200 font-bold text-sm tabular-nums">
-                              {typeof siteToSiteResult.backboneOneWayLatencyMs === 'number'
-                                ? `${siteToSiteResult.backboneOneWayLatencyMs.toFixed(1)} ms`
-                                : '--'}
-                            </span>
-                          </div>
-                        </div>
-                        {snpAName && snpBName && snpAName === snpBName ? (
-                          <p className="text-[10px] italic text-violet-600/70 dark:text-violet-400/60">Same SNP for both sites — no terrestrial backbone hop required.</p>
-                        ) : (
-                          <p className="text-[10px] italic text-violet-600/70 dark:text-violet-400/60">Routing estimated via logical PoP. Actual OneWeb backbone topology is proprietary.</p>
-                        )}
-                      </div>
+                  <div className="rounded-lg border border-slate-700/80 bg-slate-900/55 px-3 py-2">
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="text-[10px] font-semibold text-slate-300">One-way backbone latency</span>
+                      <span className="font-mono text-lg font-semibold tabular-nums text-slate-100">
+                        {typeof siteToSiteResult.backboneOneWayLatencyMs === 'number'
+                          ? `${siteToSiteResult.backboneOneWayLatencyMs.toFixed(1)} ms`
+                          : '--'}
+                      </span>
                     </div>
+                    <div className="mt-1 text-[9px] italic text-slate-500">
+                      {snpAName && snpBName && snpAName === snpBName
+                        ? 'Same SNP for both sites — no terrestrial backbone hop required.'
+                        : 'Routing estimated via logical PoP. Actual OneWeb backbone topology is proprietary.'}
+                    </div>
+                    {debugInfoSiteB != null && (
+                      <div className="mt-0.5 text-[9px] italic text-slate-500">
+                        RF parameters are computed independently for each site; final throughput uses a shared-beam capacity model.
+                      </div>
+                    )}
                   </div>
-
-                  {renderS2SAccessBudget(destinationSiteId, 'destination', destinationAccentClass, destinationBadgeClass)}
                 </div>
-              ) : <NoBudgetPlaceholder />
-            ) : (
-              debugInfo ? <LeoRFLinkBudgetPanel d={debugInfo} /> : <NoBudgetPlaceholder />
-            )}
+              </CockpitPanel>
+            </div>
           </div>
-        </div>
-      </div>
-    </div>
+        ) : <NoBudgetPlaceholder />
+      ) : (
+        debugInfo ? <LeoRFLinkBudgetPanel d={debugInfo} /> : <NoBudgetPlaceholder />
+      )}
+    </EngineeringAnalysisWorkspace>
   );
 };
 
@@ -1475,6 +1574,11 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
           snpAName={s2sSnpAName !== '—' ? s2sSnpAName : undefined}
           snpBName={s2sSnpBName !== '—' ? s2sSnpBName : undefined}
           popName={s2sPopName}
+          latencyMs={isS2S ? s2sPrimaryLatency : (mobileLeoMetrics?.rtt ?? leoGeometry?.rttTotalMs ?? null)}
+          latencyLabel={isS2S ? `${s2sPrimaryLabel} latency` : 'End-to-end RTT'}
+          availabilityLabel={`${availabilityContext.indicativeAvailabilityPct.toFixed(1)}% indicative`}
+          confidenceLabel={`${predictionConfidence.level} ${predictionConfidence.score}/100`}
+          confidenceDetail={[predictionConfidence.summary, predictionConfidence.reasons[0] ?? predictionConfidence.limitation].filter(Boolean).join('. ')}
         />
 
         <LayerHeading title="Ground Segment" detail="SNP, PoP/backbone and feeder path details." />

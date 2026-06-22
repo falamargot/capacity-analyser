@@ -45,12 +45,14 @@ export function buildPredictionConfidence(args: {
   factors: PredictionConfidenceFactor[];
   caps?: PredictionConfidenceCap[];
   reasonLimit?: number;
+  allowPerfectScore?: boolean;
 }): PredictionConfidence {
   const rawScore = args.factors.reduce((sum, factor) => sum + Math.max(0, factor.contribution), 0);
   const appliedCaps = (args.caps ?? []).filter((cap) => cap.applies);
+  const routineMaxScore = args.allowPerfectScore ? 100 : 94;
   const cappedScore = appliedCaps.reduce(
     (score, cap) => Math.min(score, cap.maxScore),
-    Math.min(100, rawScore),
+    Math.min(routineMaxScore, rawScore),
   );
   const score = Math.max(0, Math.min(100, Math.round(cappedScore)));
   const level = confidenceLevelFromScore(score);

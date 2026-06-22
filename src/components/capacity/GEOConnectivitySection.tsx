@@ -1,5 +1,5 @@
 import { memo, useState, useMemo, useEffect, type ReactNode } from 'react';
-import { ChevronDown, Gauge, Maximize2, Minimize2, Route, ShieldAlert, ShieldCheck, ShieldX, X } from 'lucide-react';
+import { ChevronDown, Gauge, Maximize2, Minimize2, Route, ShieldAlert, ShieldCheck, ShieldX } from 'lucide-react';
 import { PerformancePanel } from '../MetricWidgets';
 import { SectionTooltip } from '../SectionTooltip';
 import CoverageSelector from '../CoverageSelector';
@@ -10,6 +10,7 @@ import type { CandidateCoverage } from '../../types/analysis';
 import type { TerminalType, TerminalRFClassId, TerminalRFCustomParams } from './TerminalConfig';
 import type { LinkMode } from '../../types/linkMode';
 import DualSegmentPanel from './DualSegmentPanel';
+import EngineeringAnalysisWorkspace from './EngineeringAnalysisWorkspace';
 import { getDisplayedThroughput, type DualSegmentResult } from '../../utils/geoDualSegmentBudget';
 import LinkModeSelector from './LinkModeSelector';
 import type { ResolvedGeoGateway } from '../../utils/geoConnectivityModel';
@@ -17,6 +18,7 @@ import { formatCoordinates } from '../../utils/formatters';
 import { buildGeoConfidence } from '../../utils/predictionConfidence';
 import { estimateGeoSatelliteCapacity } from '../../utils/geoCapacityModel';
 import { buildLinkAvailabilityContext, formatLinkAvailabilityContext } from '../../utils/linkAvailabilityContext';
+import { buildGeoEngineeringAnalysisViewModel } from '../../utils/engineeringAnalysisViewModel';
 
 // ─── Sub-component: LatencyBreakdownCard ──────────────────────────────────────
 
@@ -297,6 +299,11 @@ interface LinkBudgetDrawerProps {
   onMeshTabChange?: (tab: 'forward' | 'reverse') => void;
   satelliteName?: string;
   satellite?: SatelliteData | null;
+  latencyMs?: number | null;
+  latencyLabel?: string;
+  availabilityLabel?: string;
+  confidenceLabel?: string;
+  confidenceDetail?: string;
   coverageLabels?: {
     forward?: {
       uplink?: string;
@@ -317,83 +324,45 @@ const LinkBudgetDrawer = ({
   activeMeshTab,
   onMeshTabChange,
   satelliteName,
+  latencyMs,
+  latencyLabel,
+  availabilityLabel,
+  confidenceLabel,
+  confidenceDetail,
   coverageLabels,
   satellite,
 }: LinkBudgetDrawerProps) => {
-  // Entrance animation: translate from right edge on mount
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    if (!open) return;
-    const raf = requestAnimationFrame(() => setMounted(true));
-    return () => { cancelAnimationFrame(raf); setMounted(false); };
-  }, [open]);
-
-  useEffect(() => {
-    if (!open) return;
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onClose();
-    };
-    document.addEventListener('keydown', onKeyDown);
-    return () => document.removeEventListener('keydown', onKeyDown);
-  }, [onClose, open]);
-
   if (!open) return null;
 
+  const viewModel = buildGeoEngineeringAnalysisViewModel({
+    linkMode,
+    result,
+    activeMeshTab,
+    satelliteName,
+    latencyMs,
+    latencyLabel,
+    availabilityLabel,
+    confidenceLabel,
+    confidenceDetail,
+  });
+
   return (
-    <div
-      className="geo-link-budget-drawer fixed inset-y-0 right-0 z-[80] max-[1099px]:inset-0 max-[1099px]:bg-slate-950/30 max-[1099px]:backdrop-blur-sm min-[1100px]:pointer-events-none"
-      role="dialog"
-      aria-modal="true"
-      aria-label="Detailed GEO link budget"
-      // On ≥1100px: constrain to sidebar width so the drawer never covers the globe
-      style={{ ['--sw' as string]: 'var(--desktop-sidebar-width, 420px)' }}
+    <EngineeringAnalysisWorkspace
+      open={open}
+      onClose={onClose}
+      viewModel={viewModel}
     >
-      {/* Mobile: click backdrop to close */}
-      <div
-        className="absolute inset-0 max-[1099px]:block min-[1100px]:hidden"
-        onClick={onClose}
-        aria-hidden="true"
+      <DualSegmentPanel
+        linkMode={linkMode}
+        result={result}
+        activeMeshTab={activeMeshTab}
+        onMeshTabChange={onMeshTabChange}
+        satelliteName={satelliteName}
+        satellite={satellite}
+        coverageLabels={coverageLabels}
+        variant="cockpit"
       />
-      <div className="absolute inset-y-0 right-0 flex w-full justify-end max-[1099px]:sm:pl-10 min-[1100px]:pointer-events-none min-[1100px]:w-[var(--desktop-sidebar-width,420px)]">
-        <div
-          className={[
-            'flex h-full w-full flex-col border-l border-slate-200 bg-white shadow-2xl dark:border-slate-800 dark:bg-slate-950',
-            'transition-[transform,opacity] duration-200 ease-out will-change-transform',
-            'min-[1100px]:pointer-events-auto min-[1100px]:overflow-hidden min-[1100px]:rounded-[24px] min-[1100px]:border',
-            mounted ? 'translate-x-0 opacity-100' : 'translate-x-6 opacity-0',
-          ].join(' ')}
-        >
-          <div className="flex items-start justify-between gap-4 border-b border-slate-200 px-5 py-4 dark:border-slate-800">
-            <div className="min-w-0">
-              <p className="text-[11px] font-bold uppercase tracking-wide text-blue-500 dark:text-blue-300">GEO Link Budget</p>
-              <h3 className="mt-1 truncate text-lg font-semibold text-slate-950 dark:text-slate-50">
-                {satelliteName ?? result?.forward.uplink.candidate.satelliteName ?? 'Detailed RF path'}
-              </h3>
-            </div>
-            <button
-              type="button"
-              onClick={onClose}
-              className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 shadow-sm transition-colors hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
-              aria-label="Close link budget detail"
-            >
-              <X className="h-5 w-5" />
-            </button>
-          </div>
-          <div className="flex-1 overflow-y-auto px-5 py-4">
-            <DualSegmentPanel
-              linkMode={linkMode}
-              result={result}
-              activeMeshTab={activeMeshTab}
-              onMeshTabChange={onMeshTabChange}
-              satelliteName={satelliteName}
-              satellite={satellite}
-              coverageLabels={coverageLabels}
-            />
-          </div>
-        </div>
-      </div>
-    </div>
+    </EngineeringAnalysisWorkspace>
   );
 };
 
@@ -1389,6 +1358,13 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
           onMeshTabChange={isMeshOrP2P ? setActiveMeshTab : undefined}
           satelliteName={drawerSatelliteName}
           satellite={resolvedGEOConnectivity?.satellite ?? null}
+          latencyMs={isMeshOrP2P
+            ? (meshGeometry ? (activeMeshTab === 'reverse' ? meshGeometry.rvTotalMs : meshGeometry.fwTotalMs) : null)
+            : geoStarOneWayTotalMs}
+          latencyLabel={isMeshOrP2P ? `${meshDirectionLabel} latency` : `${starDirectionLabel} latency`}
+          availabilityLabel={`${availabilityContext.indicativeAvailabilityPct.toFixed(1)}% indicative`}
+          confidenceLabel={`${geoPredictionConfidence.level} ${geoPredictionConfidence.score}/100`}
+          confidenceDetail={[geoPredictionConfidence.summary, geoPredictionConfidence.reasons[0] ?? geoPredictionConfidence.limitation].filter(Boolean).join('. ')}
           coverageLabels={linkBudgetCoverageLabels}
         />
 

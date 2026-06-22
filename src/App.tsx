@@ -45,7 +45,14 @@ import {
   rankCandidateCoverages,
   resolveCoverageSelection,
 } from './utils/geoCoverageSelection';
-import { JulianDate, Viewer as CesiumViewerType } from 'cesium';
+import {
+  BoundingSphere,
+  Cartesian3,
+  HeadingPitchRange,
+  JulianDate,
+  Math as CesiumMath,
+  Viewer as CesiumViewerType,
+} from 'cesium';
 import { useAirTraffic, useAirTrafficInterpolation } from './modules/airTraffic';
 import { Aircraft } from './modules/airTraffic/airTrafficService';
 import { useIssLiveTracking } from './modules/iss';
@@ -236,8 +243,43 @@ const REPRESENTATIVE_TELEPORT_IMAGE_URL = 'https://upload.wikimedia.org/wikipedi
 const AUTHORSHIP_SIGNATURE = 'F.Alamargot - 2026';
 const EMPTY_SNP_CONNECTED_SATELLITES: SNPConnectedSatellite[] = [];
 const clampNumber = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
+type EngineeringDisplayMode = 'connectivity' | 'analysis';
 
 const lerp = (start: number, end: number, progress: number) => start + (end - start) * progress;
+
+const ENGINEERING_CONTEXT_GROUND_ALTITUDE_KM = 0.08;
+const ENGINEERING_CONTEXT_LEO_MIN_RADIUS_M = 1_100_000;
+const ENGINEERING_CONTEXT_GEO_MIN_RADIUS_M = 2_200_000;
+
+const groundPointToCartesian = (point: { lat: number; lng: number; altitude?: number } | null | undefined) => {
+  if (!point || !Number.isFinite(point.lat) || !Number.isFinite(point.lng)) return null;
+  return Cartesian3.fromDegrees(
+    point.lng,
+    point.lat,
+    (point.altitude ?? ENGINEERING_CONTEXT_GROUND_ALTITUDE_KM) * 1000,
+  );
+};
+
+const satelliteToCartesian = (satellite: SatelliteData | null | undefined) => {
+  const position = satellite?.position;
+  if (!position || position.isPositionValid === false || !Number.isFinite(position.lat) || !Number.isFinite(position.lng)) return null;
+  return Cartesian3.fromDegrees(position.lng, position.lat, Math.max(position.alt ?? 0, 0) * 1000);
+};
+
+const snpToCartesian = (snp: SNPData | SelectedSNP | null | undefined) => {
+  if (!snp || !Number.isFinite(snp.lat) || !Number.isFinite(snp.lng)) return null;
+  return Cartesian3.fromDegrees(snp.lng, snp.lat, ENGINEERING_CONTEXT_GROUND_ALTITUDE_KM * 1000);
+};
+
+const geoGatewayToCartesian = (
+  gateway: ResolvedGeoGateway | GeoGatewayData | null | undefined,
+) => {
+  if (!gateway) return null;
+  const lat = 'latitude' in gateway ? gateway.latitude : gateway.lat;
+  const lng = 'longitude' in gateway ? gateway.longitude : gateway.lng;
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+  return Cartesian3.fromDegrees(lng, lat, ENGINEERING_CONTEXT_GROUND_ALTITUDE_KM * 1000);
+};
 
 const getCandidateLinkMargin = (candidate: CandidateCoverage): number => (
   Number.isFinite(candidate.linkMarginDb) ? candidate.linkMarginDb! : -Infinity
@@ -681,6 +723,9 @@ const App: React.FC = () => {
     handleTechnologyChange,
     handleTechnologyScopeChange,
   } = useUiModeState();
+  const [engineeringDisplayMode, setEngineeringDisplayMode] = useState<EngineeringDisplayMode>('connectivity');
+  const [isDetailedEngineeringWorkspaceOpen, setIsDetailedEngineeringWorkspaceOpen] = useState(false);
+  const [detailedEngineeringCloseSignal, setDetailedEngineeringCloseSignal] = useState(0);
   const [commercialSelectedSegment, setCommercialSelectedSegment] = useState<string>('summary');
   const [isGlobeModePeekPressed, setIsGlobeModePeekPressed] = useState(false);
   const globeCommercialMode = isGlobeModePeekPressed ? !commercialMode : commercialMode;
@@ -3177,7 +3222,12 @@ const App: React.FC = () => {
     ...displayPrefs,
     isPhone: false,
     isMobileViewport: false,
-  }), [displayPrefs]);
+    showAggregatedConnectivity: isDetailedEngineeringWorkspaceOpen ? false : displayPrefs.showAggregatedConnectivity,
+    showFillRateLayer: isDetailedEngineeringWorkspaceOpen ? false : displayPrefs.showFillRateLayer,
+    showFootprintProjection: isDetailedEngineeringWorkspaceOpen ? false : displayPrefs.showFootprintProjection,
+    showFlowAnimation: isDetailedEngineeringWorkspaceOpen ? false : displayPrefs.showFlowAnimation,
+    showSatelliteTrajectory: isDetailedEngineeringWorkspaceOpen ? false : displayPrefs.showSatelliteTrajectory,
+  }), [displayPrefs, isDetailedEngineeringWorkspaceOpen]);
 
   const displayLayerProps = useMemo<DisplayLayerProps>(() => ({
     displayPrefs,
@@ -3412,9 +3462,44 @@ const App: React.FC = () => {
   const useCondensedHeaderSites = !isMobile && viewportSnapshot.innerWidth < 1420;
   const desktopSidebarWidth = Math.round(lerp(500, 405, desktopCompactProgress));
   const desktopLayoutGap = Math.round(lerp(24, 16, desktopCompactProgress));
+  const isEngineeringSplitLayoutActive = uiMode !== 'commercial'
+    && isDetailedEngineeringWorkspaceOpen
+    && !isFullscreen;
   useEffect(() => {
     document.documentElement.style.setProperty('--desktop-sidebar-width', `${desktopSidebarWidth}px`);
   }, [desktopSidebarWidth]);
+
+  useEffect(() => {
+    const root = document.documentElement;
+
+    if (!isEngineeringSplitLayoutActive) {
+      root.style.removeProperty('--engineering-workspace-top');
+      return;
+    }
+
+    const updateWorkspaceTop = () => {
+      const rect = globeContainerRef.current?.getBoundingClientRect();
+      if (!rect) return;
+      root.style.setProperty('--engineering-workspace-top', `${Math.max(0, rect.bottom)}px`);
+    };
+
+    updateWorkspaceTop();
+    const frameId = requestAnimationFrame(updateWorkspaceTop);
+    window.addEventListener('resize', updateWorkspaceTop);
+
+    return () => {
+      cancelAnimationFrame(frameId);
+      window.removeEventListener('resize', updateWorkspaceTop);
+      root.style.removeProperty('--engineering-workspace-top');
+    };
+  }, [
+    desktopLayoutGap,
+    desktopSidebarWidth,
+    isDesktopHeaderCollapsed,
+    isEngineeringSplitLayoutActive,
+    viewportSnapshot.innerHeight,
+    viewportSnapshot.innerWidth,
+  ]);
 
   const selectedGatewayHeroData = useMemo(() => {
     if (!selectedGateway) return null;
@@ -3729,6 +3814,99 @@ const App: React.FC = () => {
     ? [activeCommercialGeoGateway.teleportCode, activeCommercialGeoGateway.region].filter(Boolean).join(' / ')
     : null;
 
+  const engineeringContextRoutePositions = useMemo(() => {
+    const positions: Cartesian3[] = [];
+    const add = (position: Cartesian3 | null) => {
+      if (position) positions.push(position);
+    };
+
+    add(groundPointToCartesian(activeAnalysisPoint));
+
+    if (activeConnectivityTab === 'LEO') {
+      add(satelliteToCartesian(activeLeoSiteToSiteResult?.servingSatelliteA ?? resolvedAutoLEO));
+      add(snpToCartesian(activeLeoSiteToSiteResult?.selectedSnpA ?? selectedSNP));
+
+      if (leoTopologyMode === 'SITE_TO_SITE') {
+        add(snpToCartesian(activeLeoSiteToSiteResult?.selectedSnpB ?? selectedSNPB));
+        add(satelliteToCartesian(activeLeoSiteToSiteResult?.servingSatelliteB ?? resolvedAutoLEOB));
+        add(groundPointToCartesian(pointBLeo ?? siteB));
+      }
+    } else {
+      add(satelliteToCartesian(activeGeoSatellite));
+
+      if (siteB && (linkMode === 'MESH' || linkMode === 'POINT_TO_POINT')) {
+        add(groundPointToCartesian(siteB));
+      } else {
+        add(geoGatewayToCartesian(activeCommercialGeoGateway));
+      }
+    }
+
+    return positions;
+  }, [
+    activeAnalysisPoint,
+    activeCommercialGeoGateway,
+    activeConnectivityTab,
+    activeGeoSatellite,
+    activeLeoSiteToSiteResult,
+    leoTopologyMode,
+    linkMode,
+    pointBLeo,
+    resolvedAutoLEO,
+    resolvedAutoLEOB,
+    selectedSNP,
+    selectedSNPB,
+    siteB,
+  ]);
+
+  useEffect(() => {
+    if (!isDetailedEngineeringWorkspaceOpen || uiMode === 'commercial' || isFullscreen) return;
+
+    let cancelled = false;
+    let timeoutId: number | null = null;
+    const isLeoContext = activeConnectivityTab === 'LEO';
+
+    const fitEngineeringContext = () => {
+      if (cancelled) return;
+      const viewer = viewerRef.current;
+      if (!viewer || viewer.isDestroyed?.()) return;
+      viewer.resize?.();
+      if (engineeringContextRoutePositions.length === 0) return;
+
+      const rawSphere = BoundingSphere.fromPoints(engineeringContextRoutePositions);
+      const minRadius = isLeoContext
+        ? ENGINEERING_CONTEXT_LEO_MIN_RADIUS_M
+        : ENGINEERING_CONTEXT_GEO_MIN_RADIUS_M;
+      const radius = Math.max(rawSphere.radius * 1.18, minRadius);
+      const range = radius * (isLeoContext ? 2.8 : 2.5);
+      const pitch = CesiumMath.toRadians(isLeoContext ? -46 : -40);
+
+      viewer.camera.flyToBoundingSphere(
+        new BoundingSphere(rawSphere.center, radius),
+        {
+          duration: 0.7,
+          offset: new HeadingPitchRange(0, pitch, range),
+        },
+      );
+    };
+
+    const frameId = requestAnimationFrame(() => {
+      fitEngineeringContext();
+      timeoutId = window.setTimeout(fitEngineeringContext, 240);
+    });
+
+    return () => {
+      cancelled = true;
+      cancelAnimationFrame(frameId);
+      if (timeoutId !== null) window.clearTimeout(timeoutId);
+    };
+  }, [
+    activeConnectivityTab,
+    engineeringContextRoutePositions,
+    isDetailedEngineeringWorkspaceOpen,
+    isFullscreen,
+    uiMode,
+  ]);
+
   const activeCommercialTechnology = activeConnectivityTab;
 
   const handleCommercialTechnologySelect = useCallback((technology: 'GEO' | 'LEO') => {
@@ -3921,6 +4099,94 @@ const App: React.FC = () => {
     uiMode,
   ]);
 
+  const canUseEngineeringAnalysisView = showEngineeringRouteStatus;
+  const isEngineeringAnalysisView = uiMode !== 'commercial'
+    && engineeringDisplayMode === 'analysis'
+    && canUseEngineeringAnalysisView
+    && !isFullscreen;
+  const activeEngineeringRouteItem = headerRouteStatus?.items.find((item) => item.selected) ?? headerRouteStatus?.items[0] ?? null;
+  const engineeringRouteContext = useMemo(() => {
+    const siteAName = activeAnalysisPoint
+      ? (commercialScenarioViewModel.siteA?.name ?? formatCoordinates(activeAnalysisPoint))
+      : 'No selected site';
+    const siteBName = siteB
+      ? (commercialScenarioViewModel.siteB?.name ?? formatCoordinates(siteB))
+      : null;
+    const activeTech = activeConnectivityTab;
+    const topology = activeTech === 'LEO'
+      ? (leoTopologyMode === 'SITE_TO_SITE' ? 'LEO site-to-site' : 'LEO access')
+      : linkMode === 'STAR_FORWARD'
+        ? 'GEO star forward'
+        : linkMode === 'STAR_RETURN'
+          ? 'GEO star return'
+          : linkMode === 'MESH'
+            ? 'GEO mesh'
+            : 'GEO point-to-point';
+    const satelliteName = activeTech === 'LEO'
+      ? (leoTopologyMode === 'SITE_TO_SITE'
+          ? activeLeoSiteToSiteResult?.servingSatelliteA?.name ?? resolvedAutoLEO?.name ?? 'LEO satellite'
+          : resolvedAutoLEO?.name ?? 'LEO satellite')
+      : activeGeoSatellite?.name ?? 'GEO satellite';
+    const groundNode = activeTech === 'LEO'
+      ? (leoTopologyMode === 'SITE_TO_SITE'
+          ? activeLeoSiteToSiteResult?.selectedSnpA?.name ?? selectedSNP?.name ?? 'SNP'
+          : selectedSNP?.name ?? 'SNP')
+      : activeCommercialGeoGateway?.gatewayName ?? resolvedAutoGeoGateway?.gatewayName ?? 'GEO teleport';
+    const routeNodes = activeTech === 'LEO'
+      ? (leoTopologyMode === 'SITE_TO_SITE'
+          ? [
+              siteAName,
+              activeLeoSiteToSiteResult?.servingSatelliteA?.name ?? 'Satellite A',
+              activeLeoSiteToSiteResult?.selectedSnpA?.name ?? 'SNP A',
+              activeLeoSiteToSiteResult?.selectedSnpB?.name ?? 'SNP B',
+              activeLeoSiteToSiteResult?.servingSatelliteB?.name ?? 'Satellite B',
+              siteBName ?? 'Site B',
+            ]
+          : [siteAName, satelliteName, groundNode])
+      : (siteBName && (linkMode === 'MESH' || linkMode === 'POINT_TO_POINT')
+          ? [siteAName, satelliteName, siteBName]
+          : [siteAName, satelliteName, groundNode]);
+    const statusTone = activeEngineeringRouteItem?.statusTone ?? 'unknown';
+    const confidence = statusTone === 'ok'
+      ? 'High'
+      : statusTone === 'degraded'
+        ? 'Medium'
+        : statusTone === 'blocked'
+          ? 'Low'
+          : 'Pending';
+
+    return {
+      activeTech,
+      topology,
+      siteAName,
+      siteBName,
+      satelliteName,
+      groundNode,
+      routeNodes,
+      confidence,
+      availability: activeEngineeringRouteItem?.statusLabel ?? 'Pending',
+      bottleneck: activeEngineeringRouteItem?.limiting ?? 'Pending route model',
+      throughput: activeEngineeringRouteItem?.throughput ?? '--',
+      upload: activeEngineeringRouteItem?.upload ?? '--',
+      latency: activeEngineeringRouteItem?.latency ?? '--',
+    };
+  }, [
+    activeCommercialGeoGateway?.gatewayName,
+    activeConnectivityTab,
+    activeEngineeringRouteItem,
+    activeAnalysisPoint,
+    activeGeoSatellite?.name,
+    activeLeoSiteToSiteResult,
+    commercialScenarioViewModel.siteA?.name,
+    commercialScenarioViewModel.siteB?.name,
+    leoTopologyMode,
+    linkMode,
+    resolvedAutoGeoGateway?.gatewayName,
+    resolvedAutoLEO?.name,
+    selectedSNP?.name,
+    siteB,
+  ]);
+
   const commercialAutoSelectedSiteSignatureRef = useRef<string | null>(null);
 
   useEffect(() => {
@@ -4035,6 +4301,235 @@ const App: React.FC = () => {
         </button>
       ))}
     </div>
+  );
+
+  const renderEngineeringDisplaySwitch = (compact = false) => (
+    <div className={`inline-flex shrink-0 border border-slate-200/80 bg-white/90 p-1 shadow-sm backdrop-blur-xl dark:border-slate-700/80 dark:bg-slate-900/86 ${compact ? 'rounded-[18px] text-[12px]' : 'rounded-xl text-[13px]'}`}>
+      {([
+        ['connectivity', 'Connectivity View'],
+        ['analysis', 'Engineering Analysis'],
+      ] as const).map(([mode, label]) => {
+        const disabled = mode === 'analysis' && !canUseEngineeringAnalysisView;
+        return (
+          <button
+            key={mode}
+            type="button"
+            onClick={() => {
+              if (!disabled) {
+                setEngineeringDisplayMode(mode);
+                if (mode === 'connectivity') {
+                  setDetailedEngineeringCloseSignal((signal) => signal + 1);
+                }
+              }
+            }}
+            disabled={disabled}
+            className={[
+              compact ? 'rounded-[14px] px-3 py-2' : 'rounded-lg px-3.5 py-2',
+              'font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-45',
+              engineeringDisplayMode === mode && !disabled
+                ? 'bg-slate-950 text-white shadow-sm dark:bg-white dark:text-slate-950'
+                : 'text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800',
+            ].join(' ')}
+            aria-pressed={engineeringDisplayMode === mode}
+          >
+            {label}
+          </button>
+        );
+      })}
+    </div>
+  );
+
+  const engineeringSidebarSummary = (
+    <div className="flex h-full min-h-0 flex-col bg-[linear-gradient(180deg,rgba(248,250,252,0.98),rgba(255,255,255,0.96))] dark:bg-[linear-gradient(180deg,rgba(15,23,42,0.98),rgba(2,6,23,0.98))]">
+      <div className="border-b border-slate-200/80 px-4 py-4 dark:border-slate-800">
+        <div className="flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <div className="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">Engineering Analysis</div>
+            <div className="mt-1 truncate text-lg font-semibold text-slate-950 dark:text-slate-50">{engineeringRouteContext.topology}</div>
+            {engineeringRouteContext.siteBName && (
+              <div className="mt-0.5 truncate text-sm text-slate-500 dark:text-slate-400">{engineeringRouteContext.siteAName} to {engineeringRouteContext.siteBName}</div>
+            )}
+          </div>
+          <span className={`shrink-0 rounded-full border px-2.5 py-1 text-[11px] font-bold ${engineeringRouteContext.activeTech === 'LEO' ? 'border-pink-300 bg-pink-50 text-pink-700 dark:border-pink-700/70 dark:bg-pink-950/30 dark:text-pink-300' : 'border-sky-300 bg-sky-50 text-sky-700 dark:border-sky-700/70 dark:bg-sky-950/30 dark:text-sky-300'}`}>
+            {engineeringRouteContext.activeTech}
+          </span>
+        </div>
+      </div>
+
+      <div className="min-h-0 flex-1 overflow-y-auto px-3 py-3">
+        <div className="rounded-xl border border-slate-200 bg-white p-3 dark:border-slate-800 dark:bg-slate-950/70">
+          <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.14em] text-slate-500 dark:text-slate-500">
+            <Waypoints className="h-3.5 w-3.5" />
+            Route Summary
+          </div>
+          <div className="mt-2 text-sm font-semibold text-slate-900 dark:text-slate-100">{engineeringRouteContext.siteAName}</div>
+          {engineeringRouteContext.siteBName && (
+            <div className="mt-0.5 text-sm text-slate-500 dark:text-slate-400">to {engineeringRouteContext.siteBName}</div>
+          )}
+          <div className="mt-2 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-2 text-xs leading-relaxed text-slate-600 dark:border-slate-800 dark:bg-slate-900/80 dark:text-slate-400">
+            Main workspace contains the live result, WHY, closure chain and detailed investigation.
+          </div>
+        </div>
+
+        <div className="mt-3 rounded-xl border border-slate-200 bg-white p-3 dark:border-slate-800 dark:bg-slate-950/70">
+          <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.14em] text-slate-500 dark:text-slate-500">
+            <Radio className="h-3.5 w-3.5" />
+            Radio Path
+          </div>
+          <div className="mt-3 space-y-2">
+            {engineeringRouteContext.routeNodes.map((node, index) => (
+              <div key={`${node}-${index}`} className="flex items-start gap-2 text-sm">
+                <span className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${index === 0 || index === engineeringRouteContext.routeNodes.length - 1 ? 'bg-cyan-400' : engineeringRouteContext.activeTech === 'LEO' ? 'bg-pink-400' : 'bg-sky-400'}`} />
+                <span className="min-w-0 break-words text-slate-700 dark:text-slate-300">{node}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="mt-3 rounded-xl border border-slate-200 bg-white p-3 dark:border-slate-800 dark:bg-slate-950/70">
+          <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.14em] text-slate-500 dark:text-slate-500">
+            <Satellite className="h-3.5 w-3.5" />
+            Assumptions & Sources
+          </div>
+          <div className="mt-2 space-y-1.5 text-sm text-slate-600 dark:text-slate-400">
+            <div>Weather: {weatherType}{weatherTypeB ? ` / ${weatherTypeB}` : ''}</div>
+            <div>Terminal A: {engineeringRouteContext.activeTech === 'LEO' ? leoTerminalDisplayLabelA : geoRFPresetDisplayLabelA}</div>
+            {engineeringRouteContext.siteBName && (
+              <div>Terminal B: {engineeringRouteContext.activeTech === 'LEO' ? leoTerminalDisplayLabelB : geoRFPresetDisplayLabelB}</div>
+            )}
+            <div>Sources: public coverage inputs, configured terminals and simulation assumptions.</div>
+          </div>
+        </div>
+
+        <div className="mt-3 rounded-xl border border-slate-200 bg-white p-3 dark:border-slate-800 dark:bg-slate-950/70">
+          <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.14em] text-slate-500 dark:text-slate-500">
+            <MapPin className="h-3.5 w-3.5" />
+            Quick Actions
+          </div>
+          <div className="mt-3 grid gap-2">
+            <button
+              type="button"
+              onClick={() => setDetailedEngineeringCloseSignal((signal) => signal + 1)}
+              className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+            >
+              <X className="h-4 w-4" />
+              Close Analysis
+            </button>
+            <button
+              type="button"
+              onClick={handleResetView}
+              className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-slate-50 text-sm font-semibold text-slate-600 transition-colors hover:bg-white dark:border-slate-700 dark:bg-slate-900/80 dark:text-slate-300 dark:hover:bg-slate-800"
+            >
+              <MapPin className="h-4 w-4" />
+              Reset Route
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderDesktopCapacityDetails = ({
+    compactDesktop,
+    externalHeader,
+    presentationMode = 'sidebar',
+    onExportStateChange,
+  }: {
+    compactDesktop: boolean;
+    externalHeader: boolean;
+    presentationMode?: 'sidebar' | 'workspace';
+    onExportStateChange?: (payload: ExportButtonPayload | null) => void;
+  }) => (
+    <CapacityDetails
+      satellites={filteredSatellites}
+      selectedPoint={activeAnalysisPoint}
+      selectedSatellite={selectedSatellite}
+      autoSelectedLEOSatellite={resolvedAutoLEO}
+      autoSelectedGEOSatellite={activeGeoSatellite}
+      satelliteScope={satelliteScope}
+      activeConnectionTab={activeConnectivityTab}
+      onActiveConnectionTabChange={handleTechnologyChange}
+      onSatelliteClick={handleSatelliteClick}
+      analysisSource={activeAnalysisSource}
+      aircraftCallsign={selectedAircraft?.callsign}
+      leoTerminalType={leoTerminalType}
+      onLeoTerminalTypeChange={handleLeoTerminalTypeChange}
+      leoTerminalModelId={leoTerminalModelId}
+      onLeoTerminalModelIdChange={setLeoTerminalModelId}
+      leoTerminalTypeB={leoTerminalTypeB}
+      onLeoTerminalTypeBChange={handleLeoTerminalTypeBChange}
+      leoTerminalModelIdB={leoTerminalModelIdB}
+      onLeoTerminalModelIdBChange={setLeoTerminalModelIdB}
+      geoTerminalType={geoTerminalType}
+      onGeoTerminalTypeChange={setGeoTerminalType}
+      geoTerminalTypeB={geoTerminalTypeB}
+      onGeoTerminalTypeBChange={setGeoTerminalTypeB}
+      geoRFClassIdA={geoRFClassIdA}
+      onGeoRFClassIdAChange={setGeoRFClassIdA}
+      geoRFPresetDisplayLabelA={geoRFPresetDisplayLabelA}
+      geoRFClassIdB={geoRFClassIdB}
+      onGeoRFClassIdBChange={setGeoRFClassIdB}
+      geoRFPresetDisplayLabelB={geoRFPresetDisplayLabelB}
+      geoRFCustomParamsA={geoRFCustomParamsA}
+      onGeoRFCustomParamsAChange={setGeoRFCustomParamsA}
+      geoRFCustomParamsB={geoRFCustomParamsB}
+      onGeoRFCustomParamsBChange={setGeoRFCustomParamsB}
+      weatherType={weatherType}
+      onWeatherTypeChange={handleWeatherTypeChange}
+      weatherTypeB={weatherTypeB}
+      onWeatherTypeBChange={handleWeatherTypeBChange}
+      autoWeatherEnabled={autoWeatherEnabled}
+      onAutoWeatherChange={setAutoWeatherEnabled}
+      selectedSNP={selectedSNP}
+      candidateCoverages={eligibleCandidateCoverages}
+      selectedCoverage={selectedCoverage}
+      onSelectCoverage={handleSelectTargetCoverage}
+      selectedUplinkCoverage={selectedUplinkCoverage}
+      selectedDownlinkCoverage={selectedDownlinkCoverage}
+      onSelectUplinkCoverage={handleSelectUplinkCoverage}
+      onSelectDownlinkCoverage={handleSelectDownlinkCoverage}
+      selectedUplinkCoverageB={selectedUplinkCoverageB}
+      selectedDownlinkCoverageB={selectedDownlinkCoverageB}
+      onSelectUplinkCoverageB={handleSelectUplinkCoverageB}
+      onSelectDownlinkCoverageB={handleSelectDownlinkCoverageB}
+      selectedGeoCoverageName={selectedGeoCoverageName}
+      selectedGeoBeamId={selectedGeoBeamId}
+      visibleGeoCoverageKeys={visibleManualGeoCoverageKeys}
+      onSelectGeoCoverage={handleSelectGeoCoverage}
+      onSelectGeoBeam={handleSelectGeoBeam}
+      onVisibleGeoCoverageKeysChange={handleVisibleManualGeoCoverageKeysChange}
+      onSnpClick={handleSnpClick}
+      onMetricsChange={setMobileMetrics}
+      compactDesktop={compactDesktop}
+      externalHeader={externalHeader}
+      presentationMode={presentationMode}
+      globeRef={globeContainerRef}
+      cesiumViewerRef={viewerRef}
+      onDetailedEngineeringOpenChange={setIsDetailedEngineeringWorkspaceOpen}
+      detailedEngineeringCloseSignal={detailedEngineeringCloseSignal}
+      onExportStateChange={onExportStateChange}
+      regulatoryResultOverride={leoRegulatoryResult}
+      regulatoryResultBOverride={leoRegulatoryResultB}
+      beamLoadResultOverride={leoBeamLoadResult}
+      serviceLayerResultOverride={leoServiceLayerResult}
+      leoServiceViewModelOverride={leoServiceViewModel}
+      linkMode={linkMode}
+      onLinkModeChange={handleLinkModeChange}
+      pointB={pointB}
+      candidateCoveragesB={candidateCoveragesB}
+      pointAIsUserDefined={pointAIsUserDefined}
+      pointBIsUserDefined={pointBIsUserDefined}
+      activeMeshTab={activeMeshTab}
+      onActiveMeshTabChange={handleActiveMeshTabChange}
+      leoTopologyMode={leoTopologyMode}
+      onLeoTopologyModeChange={handleLeoTopologyModeChange}
+      pointBLeo={pointBLeo}
+      autoSelectedLEOSatelliteB={resolvedAutoLEOB}
+      selectedSNPB={selectedSNPB}
+      isPointBLeoArmed={isSiteBArmed}
+      onArmPointBLeo={() => setIsSiteBArmed(true)}
+      activeLeoRouteEvidence={activeLeoRouteEvidence}
+    />
   );
 
   const headerSiteAConfig = {
@@ -5067,7 +5562,11 @@ const App: React.FC = () => {
             <div
               className={uiMode === 'commercial'
                 ? 'flex min-w-0 flex-1 flex-col'
-                : `flex-1 relative bg-white rounded-lg shadow-lg overflow-hidden transition-all duration-300 ${isFullscreen ? 'fixed inset-0 z-50' : ''}`
+                : [
+                    'flex-1 relative bg-white rounded-lg shadow-lg overflow-hidden transition-all duration-300',
+                    isEngineeringSplitLayoutActive ? 'flex flex-col' : '',
+                    isFullscreen ? 'fixed inset-0 z-50' : '',
+                  ].filter(Boolean).join(' ')
               }
             >
               <div className="h-0 overflow-hidden" aria-hidden="true" />
@@ -5078,7 +5577,9 @@ const App: React.FC = () => {
               <div
                 className={uiMode === 'commercial'
                   ? 'relative min-h-0 flex-1 overflow-hidden bg-slate-100 dark:bg-slate-950'
-                  : 'absolute inset-0'
+                  : isEngineeringSplitLayoutActive
+                    ? 'relative h-[24%] min-h-[8.5rem] shrink-0 overflow-hidden bg-slate-950 min-[1500px]:h-[22%]'
+                    : 'absolute inset-0'
                 }
               >
                 {/* Commercial props passed separately — see §4.1 comment on sharedMapProps. */}
@@ -5145,7 +5646,10 @@ const App: React.FC = () => {
 
               {/* Slot 2: always empty — commercial route strip moved to globe overlay above.
                   Keeping a stable div here preserves the Cesium fiber position. */}
-              <div className="h-0 overflow-hidden" aria-hidden="true" />
+              <div
+                className={isEngineeringSplitLayoutActive ? 'min-h-0 flex-1 overflow-hidden bg-slate-950' : 'h-0 overflow-hidden'}
+                aria-hidden="true"
+              />
             </div>
 
             {/* Right panel: engineering sidebar only.
@@ -5154,7 +5658,7 @@ const App: React.FC = () => {
                 Remounts on switch — intentional; it does not contain the globe. */}
             {uiMode !== 'commercial' && (
               <div
-                className={`flex-shrink-0 overflow-hidden rounded-[24px] border border-slate-200/80 bg-[linear-gradient(180deg,rgba(248,250,252,0.98),rgba(255,255,255,0.96))] shadow-[0_30px_70px_-35px_rgba(15,23,42,0.45)] dark:border-slate-800 dark:bg-[linear-gradient(180deg,rgba(15,23,42,0.98),rgba(2,6,23,0.98))] flex flex-col ${isFullscreen ? 'hidden' : ''}`}
+                className={`relative flex-shrink-0 overflow-hidden rounded-[24px] border border-slate-200/80 bg-[linear-gradient(180deg,rgba(248,250,252,0.98),rgba(255,255,255,0.96))] shadow-[0_30px_70px_-35px_rgba(15,23,42,0.45)] dark:border-slate-800 dark:bg-[linear-gradient(180deg,rgba(15,23,42,0.98),rgba(2,6,23,0.98))] flex flex-col ${isFullscreen ? 'hidden' : ''}`}
                 style={{ width: desktopSidebarWidth }}
               >
                 <>
@@ -5273,8 +5777,11 @@ const App: React.FC = () => {
                           onMetricsChange={setMobileMetrics}
                           compactDesktop={useCompactDesktopSidebar}
                           externalHeader
+                          presentationMode={isEngineeringAnalysisView ? 'workspace' : 'sidebar'}
                           globeRef={globeContainerRef}
                           cesiumViewerRef={viewerRef}
+                          onDetailedEngineeringOpenChange={setIsDetailedEngineeringWorkspaceOpen}
+                          detailedEngineeringCloseSignal={detailedEngineeringCloseSignal}
                           onExportStateChange={setFullscreenExportButtonProps}
                           regulatoryResultOverride={leoRegulatoryResult}
                           regulatoryResultBOverride={leoRegulatoryResultB}
@@ -5301,6 +5808,11 @@ const App: React.FC = () => {
                       )}
                     </Suspense>
                   </div>
+                  {isDetailedEngineeringWorkspaceOpen && (
+                    <div className="absolute inset-0 z-10 overflow-hidden">
+                      {engineeringSidebarSummary}
+                    </div>
+                  )}
                 </>
               </div>
             )}
