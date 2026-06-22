@@ -7,6 +7,7 @@ type RouteDirection = 'A_TO_B' | 'B_TO_A';
 interface LeoS2SPathStripProps {
   result: LeoSiteToSiteResult;
   activeDirection?: RouteDirection;
+  variant?: 'overlay' | 'inline';
 }
 
 const fmtKm = (km: number): string =>
@@ -37,6 +38,7 @@ const directionLabel = (direction: RouteDirection): string =>
 const LeoS2SPathStrip: React.FC<LeoS2SPathStripProps> = ({
   result,
   activeDirection = 'A_TO_B',
+  variant = 'overlay',
 }) => {
   const {
     servingSatelliteA,
@@ -131,6 +133,7 @@ const LeoS2SPathStrip: React.FC<LeoS2SPathStripProps> = ({
       accentColor={CYAN}
       summary={`${directionLabel(activeDirection)} ${fmtMbps(selectedThroughput)} · latency ${fmtMs(rttMs)}`}
       items={items}
+      variant={variant}
       legendItems={[
         { color: CYAN, label: 'User link' },
         { color: ORANGE, label: 'Feeder link' },

@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import type { EngineeringAnalysisViewModel } from '../../utils/engineeringAnalysisViewModel';
+import { fmtDb, fmtMbps, fmtMs, fmtPct } from '../../utils/engineeringFormat';
 import LinkBudgetWorkspaceFrame, {
   type LinkBudgetWorkspaceClosureStep,
   type LinkBudgetWorkspaceMetric,
@@ -13,21 +14,6 @@ interface EngineeringAnalysisWorkspaceProps {
   viewModel: EngineeringAnalysisViewModel;
   children: ReactNode;
 }
-
-const fmtMbps = (value: number | undefined | null) => {
-  if (typeof value !== 'number' || !Number.isFinite(value)) return '--';
-  if (value >= 1000) return `${(value / 1000).toFixed(2)} Gbps`;
-  return `${value.toFixed(0)} Mbps`;
-};
-
-const fmtMs = (value: number | undefined | null) =>
-  typeof value === 'number' && Number.isFinite(value) ? `${value.toFixed(1)} ms` : '--';
-
-const fmtPct = (value: number | undefined | null) =>
-  typeof value === 'number' && Number.isFinite(value) ? `${value.toFixed(1)}%` : undefined;
-
-const fmtDb = (value: number | undefined | null) =>
-  typeof value === 'number' && Number.isFinite(value) ? `${value.toFixed(1)} dB` : undefined;
 
 const statusLabel = (status: EngineeringAnalysisViewModel['status']) => {
   if (status === 'available') return 'Available';
@@ -85,7 +71,10 @@ const EngineeringAnalysisWorkspace = ({
     confidence: confidenceLabel(viewModel.resultSummary.confidence),
     confidenceDetail: viewModel.resultSummary.confidence?.detail,
     bottleneck: viewModel.resultSummary.bottleneck ?? '--',
-    margin: viewModel.resultSummary.marginLabel ?? fmtDb(viewModel.resultSummary.marginDb),
+    margin: viewModel.resultSummary.marginLabel ??
+      (typeof viewModel.resultSummary.marginDb === 'number' && Number.isFinite(viewModel.resultSummary.marginDb)
+        ? fmtDb(viewModel.resultSummary.marginDb)
+        : undefined),
     supportingMetrics: viewModel.resultSummary.supportingMetrics?.map(toMetric),
   };
   const why: LinkBudgetWorkspaceWhy = {

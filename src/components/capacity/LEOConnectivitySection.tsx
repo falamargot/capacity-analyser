@@ -23,6 +23,7 @@ import type { LeoBottleneckFactor, LeoThroughputLeg, LeoThroughputResult } from 
 import { buildLeoSingleSiteConfidence } from '../../utils/predictionConfidence';
 import { buildLinkAvailabilityContext, formatLinkAvailabilityContext } from '../../utils/linkAvailabilityContext';
 import { buildLeoEngineeringAnalysisViewModel } from '../../utils/engineeringAnalysisViewModel';
+import { fmtMbps, fmtMs } from '../../utils/engineeringFormat';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // TODO: DC Level / Throughput / Power synchronisation (Q2-Q3-Q4)
@@ -208,12 +209,6 @@ const LIMITING_FACTOR_BADGE: Record<NonNullable<LimitingFactor>, { label: string
     label: 'Terminal limited',
     className: 'bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-700',
   },
-};
-
-const fmtMbps = (v: number | undefined | null) => {
-  if (typeof v !== 'number' || !isFinite(v)) return '--';
-  if (v >= 1000) return `${(v / 1000).toFixed(2)} Gbps`;
-  return `${v.toFixed(0)} Mbps`;
 };
 
 const fmtMhz = (hz: number) => `${(hz / 1e6).toFixed(0)} MHz`;
@@ -1095,9 +1090,6 @@ interface LEOConnectivitySectionProps {
 }
 
 // ─── Site-to-Site sub-components ─────────────────────────────────────────────
-
-const fmtMs = (v: number | null | undefined, d = 1) =>
-  typeof v === 'number' && isFinite(v) ? `${v.toFixed(d)} ms` : '--';
 
 const fmtMbpsSafe = (v: number | null | undefined) => {
   if (typeof v !== 'number' || !isFinite(v) || v <= 0) return '--';

@@ -13,6 +13,7 @@ interface GeoS2SPathStripProps {
   activeDirection: RouteDirection;
   path?: GeoSiteToSitePathSummary | null;
   linkMode?: string;
+  variant?: 'overlay' | 'inline';
 }
 
 const fmtKm = (km: number | null | undefined): string | undefined =>
@@ -75,6 +76,7 @@ const GeoS2SPathStrip: React.FC<GeoS2SPathStripProps> = ({
   activeDirection,
   path = null,
   linkMode,
+  variant = 'overlay',
 }) => {
   const selectedThroughput = activeDirection === 'B_TO_A' ? mesh.reverseMbps : mesh.forwardMbps;
   if (selectedThroughput == null || !Number.isFinite(selectedThroughput) || selectedThroughput <= 0) {
@@ -121,6 +123,7 @@ const GeoS2SPathStrip: React.FC<GeoS2SPathStripProps> = ({
       summary={summary || undefined}
       items={items}
       pathDensity="spacious"
+      variant={variant}
       legendItems={[
         { color: BLUE, label: routeLabel(linkMode) },
         { color: VIOLET, label: 'Latency value is selected one-way route', dashed: true },

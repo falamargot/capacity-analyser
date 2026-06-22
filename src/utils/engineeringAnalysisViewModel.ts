@@ -2,17 +2,13 @@ import type { LinkMode } from '../types/linkMode';
 import type { LeoThroughputLeg, LeoThroughputResult } from '../types/leoThroughput';
 import type { LeoSiteToSiteResult } from './leoSiteToSiteModel';
 import { getDisplayedThroughput, type DualSegmentResult } from './geoDualSegmentBudget';
+import { fmtDb, fmtMbps, fmtMs, fmtThroughputLoss, parsePct, parseConfidence, type PredictionConfidenceSummary } from './engineeringFormat';
 
 export type EngineeringAnalysisMode = 'GEO' | 'LEO';
 export type EngineeringAnalysisStatus = 'available' | 'marginal' | 'blocked' | 'no-budget';
 export type EngineeringAnalysisTone = 'default' | 'good' | 'warn' | 'danger' | 'accent';
 
-export interface PredictionConfidenceSummary {
-  label?: string;
-  score?: number;
-  detail?: string;
-  display?: string;
-}
+export type { PredictionConfidenceSummary };
 
 export interface EngineeringMetric {
   label: string;
@@ -97,42 +93,6 @@ export interface BuildLeoEngineeringAnalysisInput {
   confidenceLabel?: string;
   confidenceDetail?: string;
 }
-
-const fmtDb = (v: number | undefined | null, d = 1) =>
-  typeof v === 'number' && Number.isFinite(v) ? `${v.toFixed(d)} dB` : '--';
-
-const fmtMbps = (v: number | undefined | null) => {
-  if (typeof v !== 'number' || !Number.isFinite(v)) return '--';
-  if (v >= 1000) return `${(v / 1000).toFixed(2)} Gbps`;
-  return `${v.toFixed(0)} Mbps`;
-};
-
-const fmtMs = (v: number | undefined | null, d = 1) =>
-  typeof v === 'number' && Number.isFinite(v) ? `${v.toFixed(d)} ms` : '--';
-
-const fmtThroughputLoss = (input: number | undefined | null, output: number | undefined | null) => {
-  if (typeof input !== 'number' || typeof output !== 'number' || !Number.isFinite(input) || !Number.isFinite(output)) return undefined;
-  const loss = input - output;
-  if (loss <= 0.5) return 'no loss';
-  return `-${fmtMbps(loss)}`;
-};
-
-const parsePct = (label?: string) => {
-  const match = label?.match(/([0-9]+(?:\.[0-9]+)?)\s*%/);
-  return match ? Number(match[1]) : null;
-};
-
-const parseConfidence = (label?: string, detail?: string): PredictionConfidenceSummary | undefined => {
-  if (!label && !detail) return undefined;
-  const score = label?.match(/([0-9]+)\s*\/\s*100/);
-  const text = label?.replace(/\s*[0-9]+\s*\/\s*100\s*$/, '').trim();
-  return {
-    label: text || label,
-    score: score ? Number(score[1]) : undefined,
-    detail,
-    display: label,
-  };
-};
 
 const networkLimitLabel = (factor?: string | null) =>
   factor ? factor.replace(/_/g, ' ') : null;

@@ -34,6 +34,13 @@ interface BottomPathRibbonProps {
   legendItems?: PathRibbonLegendItem[];
   trailingNote?: string | null;
   pathDensity?: 'compact' | 'spacious';
+  /**
+   * 'overlay' (default) floats the strip over the globe canvas, as used in
+   * Connectivity View. 'inline' renders as a static block for embedding in
+   * a flow layout (e.g. the Engineering Analysis sidebar), with no absolute
+   * positioning, dismiss button, or width clamp.
+   */
+  variant?: 'overlay' | 'inline';
 }
 
 const PathNode: React.FC<PathRibbonNode> = ({ label, sub, color, dot }) => (
@@ -102,18 +109,24 @@ const BottomPathRibbon: React.FC<BottomPathRibbonProps> = ({
   legendItems = [],
   trailingNote,
   pathDensity = 'compact',
+  variant = 'overlay',
 }) => {
   const [dismissed, setDismissed] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
 
   if (dismissed) return null;
 
+  const isInline = variant === 'inline';
+
   return (
     <div
-      className="absolute bottom-4 left-1/2 -translate-x-1/2 z-30 pointer-events-auto"
-      style={{ maxWidth: 'min(96vw, 860px)', width: 'min(96vw, 860px)' }}
+      className={isInline ? 'w-full' : 'absolute bottom-4 left-1/2 -translate-x-1/2 z-30 pointer-events-auto'}
+      style={isInline ? undefined : { maxWidth: 'min(96vw, 860px)', width: 'min(96vw, 860px)' }}
     >
-      <div className="overflow-hidden rounded-xl border border-white/70 bg-white/88 shadow-2xl ring-1 ring-slate-200/70 backdrop-blur-md dark:border-transparent dark:bg-slate-950/88 dark:ring-white/12">
+      <div className={isInline
+        ? 'overflow-hidden rounded-xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-950/70'
+        : 'overflow-hidden rounded-xl border border-white/70 bg-white/88 shadow-2xl ring-1 ring-slate-200/70 backdrop-blur-md dark:border-transparent dark:bg-slate-950/88 dark:ring-white/12'}
+      >
         <div className="flex items-center justify-between gap-3 border-b border-slate-200/80 px-3 py-1.5 dark:border-white/8">
           <div className="flex items-center gap-2">
             <span className="h-1.5 w-1.5 rounded-full shrink-0" style={{ backgroundColor: accentColor }} />
@@ -135,14 +148,16 @@ const BottomPathRibbon: React.FC<BottomPathRibbonProps> = ({
             >
               {collapsed ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
             </button>
-            <button
-              type="button"
-              aria-label="Dismiss path strip"
-              onClick={() => setDismissed(true)}
-              className="rounded p-0.5 text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-white/10 dark:hover:text-white"
-            >
-              <X className="h-3.5 w-3.5" />
-            </button>
+            {!isInline && (
+              <button
+                type="button"
+                aria-label="Dismiss path strip"
+                onClick={() => setDismissed(true)}
+                className="rounded p-0.5 text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-white/10 dark:hover:text-white"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            )}
           </div>
         </div>
 

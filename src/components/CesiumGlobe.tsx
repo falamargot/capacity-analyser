@@ -630,6 +630,7 @@ export interface DisplayPrefsProps {
     showFlowAnimation?: boolean;
     sizeScale?: number;
     hideSatelliteScreenLabels?: boolean;
+    hideBottomPathStrip?: boolean;
     isPhone?: boolean;
     isMobileViewport?: boolean;
     isFullscreen: boolean;
@@ -2830,8 +2831,11 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                     />
                 );
             })()}
-            {/* Bottom path strip follows the selected sidebar topology tab. */}
-            {!commercialMode && (() => {
+            {/* Bottom path strip follows the selected sidebar topology tab.
+                Suppressed while the Engineering Analysis workspace is open — the same
+                strip is rendered inside the workspace sidebar there instead, where it
+                has room to breathe instead of competing with the reduced globe height. */}
+            {!commercialMode && !displayPrefs.hideBottomPathStrip && (() => {
                 if (activeConnectivityTab === 'GEO') {
                     const mesh = performanceMetrics?.mesh ?? null;
                     const activeDirection = activeMeshTab === 'reverse' ? 'B_TO_A' : 'A_TO_B';

@@ -19,6 +19,8 @@ import { buildGeoConfidence } from '../../utils/predictionConfidence';
 import { estimateGeoSatelliteCapacity } from '../../utils/geoCapacityModel';
 import { buildLinkAvailabilityContext, formatLinkAvailabilityContext } from '../../utils/linkAvailabilityContext';
 import { buildGeoEngineeringAnalysisViewModel } from '../../utils/engineeringAnalysisViewModel';
+import { fmtDb, fmtMbps } from '../../utils/engineeringFormat';
+import { ENGINEERING_TERMS } from '../../constants/engineeringTerminology';
 
 // ─── Sub-component: LatencyBreakdownCard ──────────────────────────────────────
 
@@ -59,15 +61,6 @@ const LatencyBreakdownCard = ({ accentColor, summary, title = 'Latency breakdown
 };
 
 // ─── Sub-component: Link budget cockpit + detail drawer ──────────────────────
-
-const fmtDb = (v: number | undefined | null, d = 1) =>
-  typeof v === 'number' && isFinite(v) ? `${v.toFixed(d)} dB` : '--';
-
-const fmtMbps = (v: number | undefined | null) => {
-  if (typeof v !== 'number' || !isFinite(v)) return '--';
-  if (v >= 1000) return `${(v / 1000).toFixed(2)} Gbps`;
-  return `${v.toFixed(0)} Mbps`;
-};
 
 const linkMarginTone = (margin: number | undefined | null) => {
   if (typeof margin !== 'number' || !isFinite(margin)) {
@@ -585,7 +578,7 @@ const GeoStatusCard = memo(({
   const gatewayValue = isMeshOrP2P ? 'Not in path' : (gatewayResolved ? gatewayName : 'Not resolved');
   const gatewayDetail = isMeshOrP2P
     ? 'Direct terminal-to-terminal'
-    : gatewayResolved ? 'Reference allocation' : 'No eligible GEO teleport found';
+    : gatewayResolved ? 'Reference allocation' : `No eligible ${ENGINEERING_TERMS.GEO.gateway} found`;
   const gatewayTone: GeoTone = isMeshOrP2P ? 'neutral' : gatewayResolved ? 'success' : 'warning';
 
   return (
@@ -615,7 +608,7 @@ const GeoStatusCard = memo(({
         <div className="mt-3 grid grid-cols-1 items-start gap-2 sm:grid-cols-2">
           <GeoStatusTile label="RF" value={rfValue} detail={primaryStatusLabel} tone={rfTileTone} />
           <GeoStatusTile label="Capacity" value={capacityModeLabel} detail={capacityDetail} tone="neutral" />
-          <GeoStatusTile label="GEO teleport" value={gatewayValue} detail={gatewayDetail} tone={gatewayTone} />
+          <GeoStatusTile label={ENGINEERING_TERMS.GEO.gateway} value={gatewayValue} detail={gatewayDetail} tone={gatewayTone} />
         </div>
       </div>
     </div>
@@ -1087,7 +1080,7 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
       return {
         forward: {
           // GEO teleport side: mirror the sidebar row exactly.
-          uplink: 'GEO teleport side - reference allocation',
+          uplink: `${ENGINEERING_TERMS.GEO.gateway} side - reference allocation`,
           // User side: align with the downlink row visible in the sidebar.
           downlink: formatCoverageName(selectedDownlinkCoverage ?? selectedCoverage) ?? segmentFallback.forward.downlink,
         },
@@ -1100,7 +1093,7 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
           // User side: align with the uplink row visible in the sidebar.
           uplink: formatCoverageName(selectedUplinkCoverage) ?? segmentFallback.forward.uplink,
           // GEO teleport side: mirror the sidebar row exactly.
-          downlink: 'GEO teleport side - reference allocation',
+          downlink: `${ENGINEERING_TERMS.GEO.gateway} side - reference allocation`,
         },
       };
     }
@@ -1217,7 +1210,7 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
                   statusLabel="Auto"
                   statusTitle="Resolved automatically"
 	                  readOnly
-	                  terminalDisplayLabel="GEO teleport"
+	                  terminalDisplayLabel={ENGINEERING_TERMS.GEO.gateway}
 	                  terminalDisplayIcon="📡"
 	                  showMaxLabel={false}
 	                />
@@ -1289,7 +1282,7 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
                   statusLabel="Auto"
                   statusTitle="Resolved automatically"
 	                  readOnly
-	                  terminalDisplayLabel="GEO teleport"
+	                  terminalDisplayLabel={ENGINEERING_TERMS.GEO.gateway}
 	                  terminalDisplayIcon="📡"
 	                  showMaxLabel={false}
 	                />
@@ -1439,7 +1432,7 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
             // ── STAR Forward/Return: active one-way traffic route ────────────
             resolvedGEOConnectivity && geoGeometry ? (
               (() => {
-                const gwName = gatewayName === 'Gateway' ? 'No eligible GEO teleport' : gatewayName;
+                const gwName = gatewayName === 'Gateway' ? `No eligible ${ENGINEERING_TERMS.GEO.gateway}` : gatewayName;
                 const gwDisplayName = gatewayName === 'Gateway' ? gwName : gatewayDisplayName;
                 const satelliteName = resolvedGEOConnectivity.satellite.name;
                 const primarySource = isStarReturn ? userLabel : gwDisplayName;
@@ -1561,10 +1554,10 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
               const primaryRows = isStarReturn
                 ? [
                     { label: `${userLabel} → Satellite`, value: userSatMs },
-                    { label: 'Satellite → GEO teleport', value: satGatewayMs },
+                    { label: `Satellite → ${ENGINEERING_TERMS.GEO.gateway}`, value: satGatewayMs },
                   ]
                 : [
-                    { label: 'GEO teleport → Satellite', value: satGatewayMs },
+                    { label: `${ENGINEERING_TERMS.GEO.gateway} → Satellite`, value: satGatewayMs },
                     { label: `Satellite → ${userLabel}`, value: userSatMs },
                   ];
               const oneWayPropagationMs = geoGeometry.oneWayRadioMs

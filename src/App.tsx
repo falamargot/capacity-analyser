@@ -1,5 +1,7 @@
 import React, { Suspense, lazy, useState, useEffect, useMemo, useCallback, useRef, useReducer } from 'react';
 import MapViewSwitcher from './components/MapViewSwitcher';
+import GeoS2SPathStrip from './components/cesium-globe/GeoS2SPathStrip';
+import LeoS2SPathStrip from './components/cesium-globe/LeoS2SPathStrip';
 import type { AirTrafficStateProps, CallbackProps, CameraProps, CommercialStateProps, DisplayLayerProps, DisplayPrefsProps, IssStateProps, MaritimeTrafficStateProps, SelectionAnalysisProps, TopologyProps, TrafficProps } from './components/CesiumGlobe';
 import SatelliteSelector from './components/SatelliteSelector';
 import SplashScreen from './components/SplashScreen';
@@ -3227,6 +3229,7 @@ const App: React.FC = () => {
     showFootprintProjection: isDetailedEngineeringWorkspaceOpen ? false : displayPrefs.showFootprintProjection,
     showFlowAnimation: isDetailedEngineeringWorkspaceOpen ? false : displayPrefs.showFlowAnimation,
     showSatelliteTrajectory: isDetailedEngineeringWorkspaceOpen ? false : displayPrefs.showSatelliteTrajectory,
+    hideBottomPathStrip: isDetailedEngineeringWorkspaceOpen,
   }), [displayPrefs, isDetailedEngineeringWorkspaceOpen]);
 
   const displayLayerProps = useMemo<DisplayLayerProps>(() => ({
@@ -4264,6 +4267,39 @@ const App: React.FC = () => {
     suppressCommercialCameraFocus: isGlobeModePeekPressed,
   }), [commercialScenarioViewModel, commercialRouteModel, globeCommercialMode, isGlobeModePeekPressed]);
 
+  const engineeringPathStrip = useMemo(() => {
+    if (!isDetailedEngineeringWorkspaceOpen) return null;
+    if (activeConnectivityTab === 'GEO') {
+      const mesh = mobileMetrics?.mesh ?? null;
+      if (!mesh || (linkMode !== 'MESH' && linkMode !== 'POINT_TO_POINT')) return null;
+      return (
+        <GeoS2SPathStrip
+          mesh={mesh}
+          activeDirection={activeMeshTab === 'reverse' ? 'B_TO_A' : 'A_TO_B'}
+          path={mobileMetrics?.geoSiteToSitePath ?? null}
+          linkMode={linkMode}
+          variant="inline"
+        />
+      );
+    }
+    if (activeConnectivityTab !== 'LEO') return null;
+    if (!activeLeoSiteToSiteResult?.serviceAvailable) return null;
+    return (
+      <LeoS2SPathStrip
+        result={activeLeoSiteToSiteResult}
+        activeDirection={activeMeshTab === 'reverse' ? 'B_TO_A' : 'A_TO_B'}
+        variant="inline"
+      />
+    );
+  }, [
+    isDetailedEngineeringWorkspaceOpen,
+    activeConnectivityTab,
+    mobileMetrics,
+    linkMode,
+    activeMeshTab,
+    activeLeoSiteToSiteResult,
+  ]);
+
   if (loading) {
     return (
       <SplashScreen
@@ -4357,19 +4393,26 @@ const App: React.FC = () => {
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto px-3 py-3">
-        <div className="rounded-xl border border-slate-200 bg-white p-3 dark:border-slate-800 dark:bg-slate-950/70">
-          <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.14em] text-slate-500 dark:text-slate-500">
-            <Waypoints className="h-3.5 w-3.5" />
-            Route Summary
+        {engineeringPathStrip ? (
+          <div className="rounded-xl border border-slate-200 bg-white p-3 dark:border-slate-800 dark:bg-slate-950/70">
+            <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.14em] text-slate-500 dark:text-slate-500">
+              <Waypoints className="h-3.5 w-3.5" />
+              Route Path
+            </div>
+            <div className="mt-2">{engineeringPathStrip}</div>
           </div>
-          <div className="mt-2 text-sm font-semibold text-slate-900 dark:text-slate-100">{engineeringRouteContext.siteAName}</div>
-          {engineeringRouteContext.siteBName && (
-            <div className="mt-0.5 text-sm text-slate-500 dark:text-slate-400">to {engineeringRouteContext.siteBName}</div>
-          )}
-          <div className="mt-2 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-2 text-xs leading-relaxed text-slate-600 dark:border-slate-800 dark:bg-slate-900/80 dark:text-slate-400">
-            Main workspace contains the live result, WHY, closure chain and detailed investigation.
+        ) : (
+          <div className="rounded-xl border border-slate-200 bg-white p-3 dark:border-slate-800 dark:bg-slate-950/70">
+            <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.14em] text-slate-500 dark:text-slate-500">
+              <Waypoints className="h-3.5 w-3.5" />
+              Route Summary
+            </div>
+            <div className="mt-2 text-sm font-semibold text-slate-900 dark:text-slate-100">{engineeringRouteContext.siteAName}</div>
+            {engineeringRouteContext.siteBName && (
+              <div className="mt-0.5 text-sm text-slate-500 dark:text-slate-400">to {engineeringRouteContext.siteBName}</div>
+            )}
           </div>
-        </div>
+        )}
 
         <div className="mt-3 rounded-xl border border-slate-200 bg-white p-3 dark:border-slate-800 dark:bg-slate-950/70">
           <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.14em] text-slate-500 dark:text-slate-500">

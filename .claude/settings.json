@@ -2,7 +2,25 @@
   "permissions": {
     "allow": [
       "Bash(grep -rn \"corridorDc\\\\|CorridorDc\\\\|PolarCorridor\\\\|supplyPlan\\\\|SupplyPlan\" /Users/falamargot/Developpement/capacity-analyser/src --include=*.tsx --include=*.ts)",
-      "Bash(wc -l /Users/falamargot/Developpement/capacity-analyser/src/**/*.tsx /Users/falamargot/Developpement/capacity-analyser/src/**/*.ts)"
+      "Bash(wc -l /Users/falamargot/Developpement/capacity-analyser/src/**/*.tsx /Users/falamargot/Developpement/capacity-analyser/src/**/*.ts)",
+      "Bash(grep -E \"^[^/]*src/\\(App|index\\).tsx$\")",
+      "Bash(awk -F: '$1 < 4345')",
+      "Bash(awk 'NR>=4150 && NR<=4346 && \\(/^const [A-Z]/ || /=> {$/ || /^function /\\)' src/App.tsx)",
+      "Bash(awk 'NR>=484 && NR<=4345 && /^  if \\\\\\(/ {print NR\": \"$0}' src/App.tsx)",
+      "Bash(git diff *)",
+      "Bash(curl -sf http://localhost:3002 -o /dev/null -w \"3002: %{http_code}\\\\n\")",
+      "Bash(curl -s http://localhost:3000)",
+      "Bash(chromium-cli --help)",
+      "Bash(npx --yes playwright --version)",
+      "Bash(npx --yes -p playwright node -e \"console.log\\(require\\('playwright'\\).chromium ? 'playwright OK' : 'missing'\\)\")",
+      "Bash(node /tmp/verify-eng-analysis.mjs)",
+      "Bash(node .tmp-verify-eng-analysis.mjs)",
+      "Bash(node .tmp-verify-eng-analysis2.mjs)",
+      "Bash(node .tmp-verify-eng-analysis3.mjs)",
+      "Bash(node .tmp-verify-eng-analysis4.mjs)",
+      "Bash(node .tmp-verify-eng-analysis5.mjs)",
+      "Bash(python3 -c ' *)",
+      "Bash(node .tmp-verify-geo.mjs)"
     ]
   }
 }
