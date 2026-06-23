@@ -19,11 +19,12 @@ import { buildGeoConfidence, type PredictionConfidence } from '../../utils/predi
 import { estimateGeoSatelliteCapacity } from '../../utils/geoCapacityModel';
 import { buildLinkAvailabilityContext, formatLinkAvailabilityContext } from '../../utils/linkAvailabilityContext';
 import { buildGeoEngineeringAnalysisViewModel } from '../../utils/engineeringAnalysisViewModel';
-import { fmtDb, fmtMbps } from '../../utils/engineeringFormat';
+import { fmtDb, fmtMbps, fmtMs } from '../../utils/engineeringFormat';
 import { ENGINEERING_TERMS } from '../../constants/engineeringTerminology';
 import LatencyBreakdownCard from './shared/LatencyBreakdownCard';
 import LayerHeading from './shared/LayerHeading';
 import { geoMarginToTone } from './shared/linkBudgetTone';
+import AnswerBlock from './shared/AnswerBlock';
 
 // ─── Sub-component: Link budget cockpit + detail drawer ──────────────────────
 
@@ -1052,6 +1053,35 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
     uplinkCoverageAtB,
   ]);
 
+  // ── Answer Block (above-the-fold summary) ─────────────────────────────────
+  // Reuses the same derivation already used by LinkBudgetSummaryCard (margin,
+  // displayed throughput, limiting segment) and the same headline-latency
+  // expression passed to LinkBudgetDrawer below, so the compact summary never
+  // disagrees with the detailed cards further down the sidebar.
+  const answerDirection = dualSegmentResult
+    ? (activeMeshTab === 'reverse' && dualSegmentResult.reverse ? dualSegmentResult.reverse : dualSegmentResult.forward)
+    : null;
+  const answerE2E = answerDirection?.endToEnd ?? null;
+  const answerNetworkLayer = dualSegmentResult
+    ? (activeMeshTab === 'reverse' && dualSegmentResult.networkLayer?.reverse
+        ? dualSegmentResult.networkLayer.reverse
+        : dualSegmentResult.networkLayer?.forward)
+    : null;
+  const answerTone = geoMarginToTone(answerE2E?.endToEndLinkMarginDb);
+  const answerThroughputMbps = (isMeshOrP2P && answerNetworkLayer)
+    ? answerNetworkLayer.finalThroughputMbps
+    : answerE2E?.endToEndThroughputMbps;
+  const answerThroughputLabel = (isMeshOrP2P && answerNetworkLayer) ? 'Final Thru.' : 'Throughput';
+  const answerLimitingSegment = answerE2E?.limitingSegment === 'uplink'
+    ? 'Uplink'
+    : answerE2E?.limitingSegment === 'downlink'
+      ? 'Downlink'
+      : '--';
+  const headlineLatencyMs = isMeshOrP2P
+    ? (meshGeometry ? (activeMeshTab === 'reverse' ? meshGeometry.rvTotalMs : meshGeometry.fwTotalMs) : null)
+    : geoStarOneWayTotalMs;
+  const headlineLatencyLabel = isMeshOrP2P ? `${meshDirectionLabel} latency` : `${starDirectionLabel} latency`;
+
   return (
     <>
       {onLinkModeChange && (
@@ -1062,6 +1092,19 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
           />
         </div>
       )}
+
+      <AnswerBlock
+        accentColor="#2563eb"
+        statusLabel={answerTone.label}
+        statusClassName={answerTone.className}
+        throughputLabel={answerThroughputLabel}
+        throughputValue={fmtMbps(answerThroughputMbps)}
+        latencyLabel={headlineLatencyLabel}
+        latencyValue={fmtMs(headlineLatencyMs, 0)}
+        bottleneckLabel="Bottleneck"
+        bottleneckValue={answerLimitingSegment}
+        confidenceValue={`${geoPredictionConfidence.level} · ${geoPredictionConfidence.score}/100`}
+      />
 
       <LayerHeading title="Access Layer" detail="RF details, terminal characteristics, weather loss, elevation and visibility." />
 
@@ -1280,10 +1323,8 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
           onMeshTabChange={isMeshOrP2P ? setActiveMeshTab : undefined}
           satelliteName={drawerSatelliteName}
           satellite={resolvedGEOConnectivity?.satellite ?? null}
-          latencyMs={isMeshOrP2P
-            ? (meshGeometry ? (activeMeshTab === 'reverse' ? meshGeometry.rvTotalMs : meshGeometry.fwTotalMs) : null)
-            : geoStarOneWayTotalMs}
-          latencyLabel={isMeshOrP2P ? `${meshDirectionLabel} latency` : `${starDirectionLabel} latency`}
+          latencyMs={headlineLatencyMs}
+          latencyLabel={headlineLatencyLabel}
           availabilityLabel={`${availabilityContext.indicativeAvailabilityPct.toFixed(1)}% indicative`}
           confidenceLabel={`${geoPredictionConfidence.level} ${geoPredictionConfidence.score}/100`}
           confidenceDetail={[geoPredictionConfidence.summary, geoPredictionConfidence.reasons[0] ?? geoPredictionConfidence.limitation].filter(Boolean).join('. ')}

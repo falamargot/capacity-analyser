@@ -27,6 +27,7 @@ import { fmtMbps, fmtMs } from '../../utils/engineeringFormat';
 import LatencyBreakdownCard from './shared/LatencyBreakdownCard';
 import LayerHeading from './shared/LayerHeading';
 import { leoBottleneckToTone } from './shared/linkBudgetTone';
+import AnswerBlock from './shared/AnswerBlock';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // TODO: DC Level / Throughput / Power synchronisation (Q2-Q3-Q4)
@@ -1390,6 +1391,23 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
     </div>
   ) : null;
 
+  // ── Answer Block (above-the-fold summary) ─────────────────────────────────
+  // Reuses the exact same debugInfo/latency expressions already used by
+  // LeoLinkBudgetSummaryCard and LeoLinkBudgetDrawer below, so the compact
+  // summary never disagrees with the detailed cards further down the
+  // sidebar. For site-to-site, throughput and latency are the direction-aware
+  // s2sView values — the same ones the path strip and workspace already use —
+  // so latency is visible here rather than only after Ground Segment.
+  const answerDebugInfo = isS2S ? s2sLinkBudgetDebugInfo : (leoPerformance?.debugInfo ?? null);
+  const answerTone = leoBottleneckToTone(answerDebugInfo);
+  const answerThroughputMbps = isS2S
+    ? (s2sView?.primaryMbps ?? null)
+    : (answerDebugInfo?.downlink.network.finalUserMbps ?? null);
+  const answerThroughputLabel = isS2S ? `${s2sPrimaryLabel} throughput` : 'Final DL';
+  const answerLatencyMs = isS2S ? s2sPrimaryLatency : (mobileLeoMetrics?.rtt ?? leoGeometry?.rttTotalMs ?? null);
+  const answerLatencyLabel = isS2S ? `${s2sPrimaryLabel} latency` : 'End-to-end RTT';
+  const answerBottleneck = answerDebugInfo?.mainBottleneck.label ?? '--';
+
   return (
     <>
       {leoTopologyMode && onLeoTopologyModeChange && (
@@ -1433,6 +1451,19 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
       )}
 
       <div className="space-y-4">
+        <AnswerBlock
+          accentColor="#db2777"
+          statusLabel={answerTone.label}
+          statusClassName={answerTone.className}
+          throughputLabel={answerThroughputLabel}
+          throughputValue={fmtMbps(answerThroughputMbps)}
+          latencyLabel={answerLatencyLabel}
+          latencyValue={fmtMs(answerLatencyMs, 0)}
+          bottleneckLabel="Bottleneck"
+          bottleneckValue={answerBottleneck}
+          confidenceValue={`${predictionConfidence.level} · ${predictionConfidence.score}/100`}
+        />
+
         <LayerHeading title="Access Layer" detail="RF details, terminal characteristics, weather loss, elevation and visibility." />
         {/* ── S2S mode: two independent terminal cards ── */}
         {isS2S && terminalTypeB != null && onTerminalTypeBChange != null ? (
@@ -1528,7 +1559,7 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
 
         {/* Link Budget */}
         <LeoLinkBudgetSummaryCard
-          debugInfo={isS2S ? s2sLinkBudgetDebugInfo : (leoPerformance?.debugInfo ?? null)}
+          debugInfo={answerDebugInfo}
           highlighted={isLinkBudgetDrawerOpen}
           onToggle={() => setIsLinkBudgetDrawerOpen((open) => !open)}
         />
@@ -1543,8 +1574,8 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
           snpAName={s2sSnpAName !== '—' ? s2sSnpAName : undefined}
           snpBName={s2sSnpBName !== '—' ? s2sSnpBName : undefined}
           popName={s2sPopName}
-          latencyMs={isS2S ? s2sPrimaryLatency : (mobileLeoMetrics?.rtt ?? leoGeometry?.rttTotalMs ?? null)}
-          latencyLabel={isS2S ? `${s2sPrimaryLabel} latency` : 'End-to-end RTT'}
+          latencyMs={answerLatencyMs}
+          latencyLabel={answerLatencyLabel}
           availabilityLabel={`${availabilityContext.indicativeAvailabilityPct.toFixed(1)}% indicative`}
           confidenceLabel={`${predictionConfidence.level} ${predictionConfidence.score}/100`}
           confidenceDetail={[predictionConfidence.summary, predictionConfidence.reasons[0] ?? predictionConfidence.limitation].filter(Boolean).join('. ')}
@@ -1558,7 +1589,7 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
           title={<>{isRegulatoryBlocked && !isS2S ? 'Radio Path (Diagnostic only)' : isS2S ? <>Radio Path <span className="text-slate-400 dark:text-slate-500 font-normal text-[11px]">({s2sPrimaryLabel})</span></> : 'Radio Path'}<SectionTooltip content={isS2S ? "Full OneWeb site-to-site logical path. Backbone routing is estimated." : "Active one-way LEO signal route: Site A → LEO Satellite → LEO SNP. RTT details are shown in the latency breakdown below."} /></>}
           subtitle={isRegulatoryBlocked && !isS2S ? blockedDiagnosticMessage : undefined}
           accentColor="#db2777"
-          defaultOpen={true}
+          defaultOpen={false}
         >
           {isS2S ? (
             s2sServiceActive ? (

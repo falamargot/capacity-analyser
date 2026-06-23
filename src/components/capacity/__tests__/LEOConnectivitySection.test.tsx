@@ -378,4 +378,70 @@ describe('LEOConnectivitySection topology render smoke tests', () => {
       expect(detailsOpenStateBeforeText(html, 'Terminal Investigation')).toBe(false);
     });
   });
+
+  describe('Answer Block (above-the-fold summary)', () => {
+    it('SINGLE_SITE: renders before Access Layer with throughput, bottleneck and a confidence score', () => {
+      const html = renderToStaticMarkup(
+        <LEOConnectivitySection
+          {...baseProps}
+          leoTopologyMode="SINGLE_SITE"
+          leoPerformance={{
+            rtt: 72,
+            downlinkGbps: 0.018,
+            uplinkGbps: 0.012,
+            stability: 'High',
+            performanceFactor: 1,
+            footprintFactor: 1,
+            weatherFactor: 1,
+            weatherLabel: 'Clear',
+            debugInfo: makeLeoResult(18, 12),
+          }}
+        />
+      );
+
+      expect(html).toContain('Engineering summary');
+      expect(html.indexOf('Engineering summary')).toBeLessThan(html.indexOf('Access Layer'));
+      expect(html).toContain('Healthy');
+      expect(html).toContain('Bottleneck');
+      expect(html).toMatch(/\d+\/100/);
+
+      const answerBlockHtml = html.slice(html.indexOf('Engineering summary'), html.indexOf('Access Layer'));
+      expect(answerBlockHtml).toContain('18 Mbps');
+    });
+
+    it('SITE_TO_SITE: shows direction-aware latency in the Answer Block, not only in End-to-End Analysis', () => {
+      const html = renderToStaticMarkup(
+        <LEOConnectivitySection
+          {...baseProps}
+          leoTopologyMode="SITE_TO_SITE"
+          pointBLeo={{ lat: 15, lng: 25 }}
+          activeMeshTab="forward"
+          siteToSiteResult={makeSiteToSiteResult()}
+          leoPerformance={{
+            rtt: 120,
+            downlinkGbps: 0.075,
+            uplinkGbps: 0.055,
+            stability: 'High',
+            performanceFactor: 1,
+            footprintFactor: 1,
+            weatherFactor: 1,
+            weatherLabel: 'Clear',
+            debugInfo: makeLeoResult(75, 55),
+          }}
+        />
+      );
+
+      const answerBlockHtml = html.slice(html.indexOf('Engineering summary'), html.indexOf('Access Layer'));
+      expect(answerBlockHtml).toContain('75 Mbps');
+      expect(answerBlockHtml).toContain('60 ms');
+    });
+
+    it('Radio Path defaults to collapsed, matching GEO', () => {
+      const html = renderToStaticMarkup(
+        <LEOConnectivitySection {...baseProps} leoTopologyMode="SINGLE_SITE" />
+      );
+
+      expect(html).not.toContain('No valid LEO/SNP connectivity for this location.');
+    });
+  });
 });

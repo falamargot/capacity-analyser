@@ -175,4 +175,25 @@ describe('GEOConnectivitySection topology render smoke tests', () => {
       expect(() => renderGeo(mode, null)).not.toThrow();
     }
   });
+
+  describe('Answer Block (above-the-fold summary)', () => {
+    it('renders before Access Layer and surfaces throughput, bottleneck and a confidence score', () => {
+      const html = renderGeo('STAR_FORWARD', makeStarResult(4.5));
+
+      expect(html).toContain('Engineering summary');
+      expect(html.indexOf('Engineering summary')).toBeLessThan(html.indexOf('Access Layer'));
+      expect(html).toContain('Healthy');
+      expect(html).toContain('Bottleneck');
+      expect(html).toContain('Downlink');
+      expect(html).toMatch(/\d+\/100/);
+    });
+
+    it('shows a non-zero latency for MESH, derived the same way as the link budget drawer', () => {
+      const html = renderGeo('MESH', makeMeshResult(3.2, 2.1));
+      const answerBlockHtml = html.slice(html.indexOf('Engineering summary'), html.indexOf('Access Layer'));
+
+      expect(answerBlockHtml).toContain('latency');
+      expect(answerBlockHtml).toMatch(/\d+(\.\d+)? ms/);
+    });
+  });
 });
