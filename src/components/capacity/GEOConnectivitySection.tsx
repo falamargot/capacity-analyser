@@ -1,5 +1,5 @@
 import { memo, useState, useMemo, useEffect, type ReactNode } from 'react';
-import { ChevronDown, Gauge, Maximize2, Minimize2, Route, ShieldAlert, ShieldCheck, ShieldX } from 'lucide-react';
+import { Gauge, Maximize2, Minimize2, Route, ShieldAlert, ShieldCheck, ShieldX } from 'lucide-react';
 import { PerformancePanel } from '../MetricWidgets';
 import { SectionTooltip } from '../SectionTooltip';
 import CoverageSelector from '../CoverageSelector';
@@ -21,75 +21,11 @@ import { buildLinkAvailabilityContext, formatLinkAvailabilityContext } from '../
 import { buildGeoEngineeringAnalysisViewModel } from '../../utils/engineeringAnalysisViewModel';
 import { fmtDb, fmtMbps } from '../../utils/engineeringFormat';
 import { ENGINEERING_TERMS } from '../../constants/engineeringTerminology';
-
-// ─── Sub-component: LatencyBreakdownCard ──────────────────────────────────────
-
-interface LatencyBreakdownCardProps {
-  accentColor: string;
-  summary: string;
-  title?: ReactNode;
-  tooltip?: string;
-  children: ReactNode;
-}
-
-const LatencyBreakdownCard = ({ accentColor, summary, title = 'Latency breakdown', tooltip, children }: LatencyBreakdownCardProps) => {
-  const [isOpen, setIsOpen] = useState(false);
-
-  return (
-    <div className="bg-gray-50 dark:bg-slate-800/50 rounded-lg border border-gray-100 dark:border-slate-700">
-      <button
-        type="button"
-        onClick={() => setIsOpen((open) => !open)}
-        className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left"
-        aria-expanded={isOpen}
-      >
-        <div className="min-w-0">
-          <h4 className="text-sm font-semibold flex items-center" style={{ color: accentColor }}>{title}{tooltip && <SectionTooltip content={tooltip} />}</h4>
-          <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">{summary}</p>
-        </div>
-        <ChevronDown
-          className={`h-4 w-4 shrink-0 text-gray-400 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
-        />
-      </button>
-      {isOpen && (
-        <div className="border-t border-gray-200 px-4 py-4 dark:border-slate-700">
-          {children}
-        </div>
-      )}
-    </div>
-  );
-};
+import LatencyBreakdownCard from './shared/LatencyBreakdownCard';
+import LayerHeading from './shared/LayerHeading';
+import { geoMarginToTone } from './shared/linkBudgetTone';
 
 // ─── Sub-component: Link budget cockpit + detail drawer ──────────────────────
-
-const linkMarginTone = (margin: number | undefined | null) => {
-  if (typeof margin !== 'number' || !isFinite(margin)) {
-    return {
-      label: 'No budget',
-      className: 'border-slate-200 bg-slate-50 text-slate-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300',
-      accent: '#64748b',
-    };
-  }
-  if (margin < 0) {
-    return {
-      label: 'Blocked',
-      className: 'border-red-200 bg-red-50 text-red-700 dark:border-red-800 dark:bg-red-950/30 dark:text-red-300',
-      accent: '#dc2626',
-    };
-  }
-  if (margin < 2) {
-    return {
-      label: 'Marginal',
-      className: 'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-300',
-      accent: '#d97706',
-    };
-  }
-  return {
-    label: 'Healthy',
-    className: 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-300',
-    accent: '#059669',
-  };
-};
 
 const displayableBeamOrCoverageName = (
   beamName: string | undefined,
@@ -108,19 +44,6 @@ const DirectionPill = ({ dir, aggregate = false }: { dir: string; aggregate?: bo
       ? 'border-slate-200 bg-slate-50 text-slate-400 dark:border-slate-700 dark:bg-slate-800/50 dark:text-slate-500'
       : 'border-blue-200 bg-blue-50 text-blue-500 dark:border-blue-800/60 dark:bg-blue-950/40 dark:text-blue-400'
   }`}>{dir}</span>
-);
-
-const LayerHeading = ({ title, detail }: { title: string; detail?: string }) => (
-  <div className="border-t border-slate-200 pt-3 first:border-t-0 first:pt-0 dark:border-slate-800">
-    <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
-      {title}
-    </div>
-    {detail && (
-      <div className="mt-0.5 text-[11px] leading-4 text-slate-400 dark:text-slate-500">
-        {detail}
-      </div>
-    )}
-  </div>
 );
 
 interface LinkBudgetSummaryCardProps {
@@ -151,7 +74,7 @@ const LinkBudgetSummaryCard = ({
       : (uplink ?? downlink);
   const limiting = e2e?.limitingSegment === 'uplink' ? 'Uplink' : e2e?.limitingSegment === 'downlink' ? 'Downlink' : '--';
   const margin = e2e?.endToEndLinkMarginDb;
-  const tone = linkMarginTone(margin);
+  const tone = geoMarginToTone(margin);
   const satelliteName = displaySegment?.candidate.satelliteName ?? 'No GEO path';
   const band = displaySegment?.candidate.band ?? 'Band --';
   const beamName = displayableBeamOrCoverageName(
@@ -261,9 +184,9 @@ const LinkBudgetSummaryCard = ({
 
       <div className="grid grid-cols-3 gap-px bg-slate-100 dark:bg-slate-800">
         {[
-          { label: throughputLabel, value: fmtMbps(displayThroughput), icon: Gauge },
-          { label: 'Margin', value: fmtDb(margin), icon: Gauge },
-          { label: 'Limit', value: limiting, icon: Route },
+          { label: throughputLabel, value: fmtMbps(displayThroughput), icon: Gauge, primary: true },
+          { label: 'Margin', value: fmtDb(margin), icon: Gauge, primary: false },
+          { label: 'Limit', value: limiting, icon: Route, primary: false },
         ].map((item) => {
           const Icon = item.icon;
           return (
@@ -272,7 +195,10 @@ const LinkBudgetSummaryCard = ({
                 <Icon className="h-3.5 w-3.5" />
                 <span>{item.label}</span>
               </div>
-              <div className="mt-1 truncate text-sm font-bold tabular-nums text-slate-950 dark:text-slate-50" style={item.label === 'Margin' ? { color: tone.accent } : undefined}>
+              <div
+                className={`mt-1 truncate font-bold tabular-nums text-slate-950 dark:text-slate-50 ${item.primary ? 'text-lg' : 'text-sm'}`}
+                style={item.label === 'Margin' ? { color: tone.accent } : undefined}
+              >
                 {item.value}
               </div>
             </div>
@@ -1509,6 +1435,7 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
         {isMeshOrP2P ? (
           // ── MESH/P2P: selected one-way terminal path, no GEO teleport overhead ─
           <LatencyBreakdownCard
+            storageKey="geo-latency-breakdown"
             accentColor="#2563eb"
             title={<>Latency breakdown<DirectionPill dir={meshDirectionLabel} /></>}
             tooltip="One-way propagation for the selected MESH/P2P direction: source terminal → satellite → destination terminal. No GEO teleport is in the RF path; overhead is source + destination modem processing."
@@ -1547,6 +1474,7 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
         ) : (
           // ── STAR: one-way via GEO teleport ────────────────────────────────
           <LatencyBreakdownCard
+            storageKey="geo-latency-breakdown"
             accentColor="#2563eb"
             title={`Latency breakdown (${isStarReturn ? 'RETURN' : 'FORWARD'})`}
             tooltip="Breakdown of the active one-way STAR delay. Forward mode sends GEO teleport → Satellite → User; Return mode sends User → Satellite → GEO teleport. Network overhead is added after RF propagation."

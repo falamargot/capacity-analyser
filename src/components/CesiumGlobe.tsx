@@ -631,6 +631,8 @@ export interface DisplayPrefsProps {
     sizeScale?: number;
     hideSatelliteScreenLabels?: boolean;
     hideBottomPathStrip?: boolean;
+    /** True while the map is shrunk to the Engineering Analysis split-layout strip (~22-24% height). Compacts chrome that assumes a full-height map. */
+    isCompactMap?: boolean;
     simplifySatellitesForEngineeringAnalysis?: boolean;
     isPhone?: boolean;
     isMobileViewport?: boolean;
@@ -2272,7 +2274,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                 viewerRef={viewerRef}
                 isFullscreen={isFullscreen}
                 onToggleFullscreen={onToggleFullscreen}
-                variant={commercialMode ? 'camera-only' : 'full'}
+                variant={commercialMode || displayPrefs.isCompactMap ? 'camera-only' : 'full'}
                 placement="right"
                 rightOffset={commercialMode && !isFullscreen ? 'calc(380px + 1rem)' : undefined}
                 countryOverlayMode={effectiveCountryOverlayMode}
@@ -2308,7 +2310,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                 isMobileViewport={isMobileViewport}
             />
 
-            {!commercialMode && selection.type === 'target' && selection.targetType === 'point' && coverageSwitcherCoverages.length >= 2 && onCoverageSwitcherSelect && (
+            {!commercialMode && !displayPrefs.isCompactMap && selection.type === 'target' && selection.targetType === 'point' && coverageSwitcherCoverages.length >= 2 && onCoverageSwitcherSelect && (
                 <CoverageSwitcherVertical
                     coverages={coverageSwitcherCoverages}
                     selectedId={selectedCoverageId}
@@ -2319,7 +2321,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                 />
             )}
 
-            {!commercialMode && !isPhone && !isMobileViewport && (
+            {!commercialMode && !displayPrefs.isCompactMap && !isPhone && !isMobileViewport && (
                 <GeoCoverageLegendPanel
                     items={geoCoverageLegendItems}
                     hoveredItemKey={focusedGeoCoverageLegendKey}

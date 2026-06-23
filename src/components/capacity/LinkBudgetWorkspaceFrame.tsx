@@ -369,7 +369,7 @@ const LinkBudgetWorkspaceFrame = ({
               )}
 
               {closureSteps.length > 0 && (
-                <section className={`min-w-0 overflow-hidden rounded-xl border px-3 py-2.5 ${colors.closure}`}>
+                <section className={`min-w-0 overflow-hidden rounded-xl border px-3 py-3 ${colors.closure}`}>
                   <div className="flex flex-wrap items-end justify-between gap-2">
                     <div>
                       <div className="text-[10px] font-bold uppercase tracking-wide text-slate-500">Level 3</div>
@@ -377,10 +377,10 @@ const LinkBudgetWorkspaceFrame = ({
                     </div>
                     <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Explains how the result was produced</div>
                   </div>
-                  <div className="mt-2">
+                  <div className="mt-3">
                     <ThroughputWaterfall steps={closureSteps} accent={accent} />
                   </div>
-                  <div className="mt-2 grid min-w-0 gap-1.5 [grid-template-columns:repeat(auto-fit,minmax(min(100%,12rem),1fr))]">
+                  <div className="mt-4 grid min-w-0 gap-1.5 [grid-template-columns:repeat(auto-fit,minmax(min(100%,12rem),1fr))]">
                     {closureSteps.map((step, index) => (
                       <div key={`${step.label}-${index}`} className="relative min-w-0 rounded-lg border border-slate-800 bg-slate-950/55 px-2.5 py-2">
                         {index > 0 && (

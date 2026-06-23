@@ -3230,8 +3230,9 @@ const App: React.FC = () => {
     showFlowAnimation: isDetailedEngineeringWorkspaceOpen ? false : displayPrefs.showFlowAnimation,
     showSatelliteTrajectory: isDetailedEngineeringWorkspaceOpen ? false : displayPrefs.showSatelliteTrajectory,
     hideBottomPathStrip: isDetailedEngineeringWorkspaceOpen,
+    isCompactMap: isDetailedEngineeringWorkspaceOpen && uiMode !== 'commercial' && !isFullscreen,
     simplifySatellitesForEngineeringAnalysis: isDetailedEngineeringWorkspaceOpen,
-  }), [displayPrefs, isDetailedEngineeringWorkspaceOpen]);
+  }), [displayPrefs, isDetailedEngineeringWorkspaceOpen, uiMode, isFullscreen]);
 
   const displayLayerProps = useMemo<DisplayLayerProps>(() => ({
     displayPrefs,
@@ -3489,11 +3490,18 @@ const App: React.FC = () => {
 
     updateWorkspaceTop();
     const frameId = requestAnimationFrame(updateWorkspaceTop);
-    window.addEventListener('resize', updateWorkspaceTop);
+
+    // ResizeObserver tracks the map container's actual box, so the workspace
+    // top edge stays glued to the map bottom edge regardless of *why* it
+    // resized (header collapse, sidebar width change, content reflow) rather
+    // than only on the specific state changes listed in the dependency array.
+    const target = globeContainerRef.current;
+    const observer = target ? new ResizeObserver(updateWorkspaceTop) : null;
+    if (target && observer) observer.observe(target);
 
     return () => {
       cancelAnimationFrame(frameId);
-      window.removeEventListener('resize', updateWorkspaceTop);
+      observer?.disconnect();
       root.style.removeProperty('--engineering-workspace-top');
     };
   }, [

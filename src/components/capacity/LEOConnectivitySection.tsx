@@ -1,5 +1,5 @@
 import { memo, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { ChevronDown, Gauge, Maximize2, Minimize2, Route } from 'lucide-react';
+import { Gauge, Maximize2, Minimize2, Route } from 'lucide-react';
 import type { LeoSiteToSiteResult } from '../../utils/leoSiteToSiteModel';
 import { formatLeoSiteToSiteFailureReason } from '../../utils/leoSiteToSiteModel';
 import { PerformancePanel } from '../MetricWidgets';
@@ -24,6 +24,9 @@ import { buildLeoSingleSiteConfidence, type PredictionConfidence } from '../../u
 import { buildLinkAvailabilityContext, formatLinkAvailabilityContext } from '../../utils/linkAvailabilityContext';
 import { buildLeoEngineeringAnalysisViewModel } from '../../utils/engineeringAnalysisViewModel';
 import { fmtMbps, fmtMs } from '../../utils/engineeringFormat';
+import LatencyBreakdownCard from './shared/LatencyBreakdownCard';
+import LayerHeading from './shared/LayerHeading';
+import { leoBottleneckToTone } from './shared/linkBudgetTone';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // TODO: DC Level / Throughput / Power synchronisation (Q2-Q3-Q4)
@@ -45,44 +48,6 @@ import { fmtMbps, fmtMs } from '../../utils/engineeringFormat';
 // Do NOT implement without a precise specification — an incorrect model would
 // silently degrade simulation fidelity.
 // ─────────────────────────────────────────────────────────────────────────────
-
-// ─── Sub-component: LatencyBreakdownCard ──────────────────────────────────────
-
-interface LatencyBreakdownCardProps {
-  accentColor: string;
-  summary: string;
-  title?: string;
-  tooltip?: string;
-  children: ReactNode;
-}
-
-const LatencyBreakdownCard = ({ accentColor, summary, title = 'Latency breakdown', tooltip, children }: LatencyBreakdownCardProps) => {
-  const [isOpen, setIsOpen] = useState(false);
-
-  return (
-    <div className="bg-gray-50 dark:bg-slate-800/50 rounded-lg border border-gray-200 dark:border-slate-700">
-      <button
-        type="button"
-        onClick={() => setIsOpen((open) => !open)}
-        className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left"
-        aria-expanded={isOpen}
-      >
-        <div className="min-w-0">
-          <h4 className="text-sm font-semibold flex items-center" style={{ color: accentColor }}>{title}{tooltip && <SectionTooltip content={tooltip} />}</h4>
-          <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">{summary}</p>
-        </div>
-        <ChevronDown
-          className={`h-4 w-4 shrink-0 text-gray-500 dark:text-gray-400 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
-        />
-      </button>
-      {isOpen && (
-        <div className="border-t border-gray-200 px-4 py-4 dark:border-slate-700">
-          {children}
-        </div>
-      )}
-    </div>
-  );
-};
 
 // ─── Types for resolved connectivity data ─────────────────────────────────────
 
@@ -153,12 +118,6 @@ function detectLegLimitingFactor(leg: LeoThroughputLeg): LimitingFactor {
     : leg.network.bottleneck;
 }
 
-function detectLimitingFactor(d: LeoRFDebugInfo): LimitingFactor {
-  return d.mainBottleneck.factor === 'regulatory' || d.mainBottleneck.factor === 'service gate'
-    ? null
-    : d.mainBottleneck.factor;
-}
-
 function deriveLegLimitingFactor(leg: LeoThroughputLeg): LimitingFactor {
   // Backhaul: SNP elevation reduces throughput by >25% after sharing
   const backhaulRatio = leg.network.beamSharingMbps > 0
@@ -213,55 +172,6 @@ const LIMITING_FACTOR_BADGE: Record<NonNullable<LimitingFactor>, { label: string
 
 const fmtMhz = (hz: number) => `${(hz / 1e6).toFixed(0)} MHz`;
 
-const NO_LEO_BUDGET_TONE = {
-  label: 'No budget',
-  className: 'border-slate-200 bg-slate-50 text-slate-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300',
-  accent: '#64748b',
-};
-
-const LayerHeading = ({ title, detail }: { title: string; detail?: string }) => (
-  <div className="border-t border-slate-200 pt-3 first:border-t-0 first:pt-0 dark:border-slate-800">
-    <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
-      {title}
-    </div>
-    {detail && (
-      <div className="mt-0.5 text-[11px] leading-4 text-slate-400 dark:text-slate-500">
-        {detail}
-      </div>
-    )}
-  </div>
-);
-
-const linkBudgetTone = (d: LeoRFDebugInfo | null) => {
-  if (!d) return NO_LEO_BUDGET_TONE;
-
-  if (
-    d.downlink.network.finalUserMbps <= 0 ||
-    d.uplink.network.finalUserMbps <= 0 ||
-    Math.min(d.downlink.rf.cnDb, d.uplink.rf.cnDb) < 10
-  ) {
-    return {
-      label: 'Blocked',
-      className: 'border-red-200 bg-red-50 text-red-700 dark:border-red-800 dark:bg-red-950/30 dark:text-red-300',
-      accent: '#dc2626',
-    };
-  }
-
-  if (detectLimitingFactor(d)) {
-    return {
-      label: 'Limited',
-      className: 'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-300',
-      accent: '#d97706',
-    };
-  }
-
-  return {
-    label: 'Healthy',
-    className: 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-300',
-    accent: '#059669',
-  };
-};
-
 interface LeoLinkBudgetSummaryCardProps {
   debugInfo: LeoRFDebugInfo | null;
   highlighted?: boolean;
@@ -270,7 +180,7 @@ interface LeoLinkBudgetSummaryCardProps {
 
 const LeoLinkBudgetSummaryCard = ({ debugInfo, highlighted = false, onToggle }: LeoLinkBudgetSummaryCardProps) => {
   const limitingLabel = debugInfo?.mainBottleneck.label ?? '--';
-  const tone = linkBudgetTone(debugInfo);
+  const tone = leoBottleneckToTone(debugInfo);
   const satelliteName = debugInfo?.satelliteId ?? 'No LEO path';
   const budgetSubtitle = debugInfo
     ? `Beam ${debugInfo.selectedBeamIndex} · DL ${debugInfo.downlink.rf.modcod ?? 'MODCOD --'} · UL ${debugInfo.uplink.rf.modcod ?? 'MODCOD --'}`
@@ -332,9 +242,9 @@ const LeoLinkBudgetSummaryCard = ({ debugInfo, highlighted = false, onToggle }: 
 
       <div className="grid grid-cols-3 gap-px bg-slate-100 dark:bg-slate-800">
         {[
-          { label: 'Final DL', value: fmtMbps(debugInfo?.downlink.network.finalUserMbps), icon: Gauge, color: undefined },
-          { label: 'Final UL', value: fmtMbps(debugInfo?.uplink.network.finalUserMbps), icon: Gauge, color: undefined },
-          { label: 'Main bottleneck', value: limitingLabel, icon: Route, color: undefined },
+          { label: 'Final DL', value: fmtMbps(debugInfo?.downlink.network.finalUserMbps), icon: Gauge, color: undefined, primary: true },
+          { label: 'Final UL', value: fmtMbps(debugInfo?.uplink.network.finalUserMbps), icon: Gauge, color: undefined, primary: false },
+          { label: 'Main bottleneck', value: limitingLabel, icon: Route, color: undefined, primary: false },
         ].map((item) => {
           const Icon = item.icon;
           return (
@@ -343,7 +253,10 @@ const LeoLinkBudgetSummaryCard = ({ debugInfo, highlighted = false, onToggle }: 
                 <Icon className="h-3.5 w-3.5" />
                 <span>{item.label}</span>
               </div>
-              <div className="mt-1 truncate text-sm font-bold tabular-nums text-slate-950 dark:text-slate-50" style={item.color ? { color: item.color } : undefined}>
+              <div
+                className={`mt-1 truncate font-bold tabular-nums text-slate-950 dark:text-slate-50 ${item.primary ? 'text-lg' : 'text-sm'}`}
+                style={item.color ? { color: item.color } : undefined}
+              >
                 {item.value}
               </div>
             </div>
@@ -901,6 +814,39 @@ const NoBudgetPlaceholder = () => (
   </div>
 );
 
+// ─── Level 4: investigation-oriented sections ────────────────────────────────
+// One collapsible block per investigation topic (Site A / Site B / Backbone /
+// Terminal) instead of every technical card rendered at once. Only the first
+// section is open by default — the rest stay collapsed until the engineer
+// chooses where to drill in, matching how a link engineer actually
+// troubleshoots (start at one access leg, expand the backbone or the other
+// site only if that leg turns out healthy).
+const InvestigationSection = ({
+  title,
+  subtitle,
+  defaultOpen = false,
+  children,
+}: {
+  title: ReactNode;
+  subtitle?: string;
+  defaultOpen?: boolean;
+  children: ReactNode;
+}) => (
+  <details className="group rounded-xl border border-slate-800 bg-slate-950/60" open={defaultOpen}>
+    <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-3 py-2.5">
+      <div className="min-w-0">
+        <h4 className="flex items-center gap-2 text-sm font-semibold text-slate-100">{title}</h4>
+        {subtitle && <p className="mt-0.5 text-xs leading-snug text-slate-500">{subtitle}</p>}
+      </div>
+      <span className="shrink-0 rounded-lg border border-slate-700 bg-slate-900 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-slate-300 group-open:hidden">Open</span>
+      <span className="hidden shrink-0 rounded-lg border border-slate-700 bg-slate-900 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-slate-300 group-open:inline-flex">Collapse</span>
+    </summary>
+    <div className="border-t border-slate-800 p-2.5">
+      {children}
+    </div>
+  </details>
+);
+
 const LeoLinkBudgetDrawer = ({
   open,
   onClose,
@@ -951,11 +897,15 @@ const LeoLinkBudgetDrawer = ({
     confidence,
   });
 
-  const renderS2SAccessBudget = (
-    siteId: 'A' | 'B',
-    role: 'source' | 'destination',
-    badgeClass: string,
-  ) => {
+  const siteInvestigationTitle = (siteId: 'A' | 'B') => (
+    <>
+      <span className={`inline-flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold ${siteBadgeClass}`}>{siteId}</span>
+      Site {siteId} Investigation
+    </>
+  );
+
+  const renderS2SAccessBudget = (siteId: 'A' | 'B') => {
+    const role: 'source' | 'destination' = siteId === sourceSiteId ? 'source' : 'destination';
     const directionUsage = role === 'source'
       ? { uplink: 'primary' as const, downlink: 'reference' as const }
       : { downlink: 'primary' as const, uplink: 'reference' as const };
@@ -966,23 +916,19 @@ const LeoLinkBudgetDrawer = ({
     const siteDebugInfo = siteId === sourceSiteId ? sourceDebugInfo : destinationDebugInfo;
 
     return (
-    <div className="grid h-full min-h-0 grid-rows-[auto_minmax(0,1fr)] gap-1.5">
-      <h4 className="flex items-center gap-2 text-sm font-semibold text-slate-200">
-        <span className={`inline-flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold ${badgeClass}`}>{siteId}</span>
-        Site {siteId} Access Budget
-        <span className="rounded-full border border-slate-700 bg-slate-950/80 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-slate-400">
-          {role}
-        </span>
-      </h4>
-      <div className="min-h-0">
+      <InvestigationSection
+        key={siteId}
+        title={siteInvestigationTitle(siteId)}
+        subtitle={`Beam geometry, uplink and downlink RF budget · ${role} for ${s2sDirectionLabel}.`}
+        defaultOpen={siteId === 'A'}
+      >
         <LeoRFLinkBudgetPanel
           d={siteDebugInfo!}
           directionUsage={directionUsage}
           primaryDirectionLabel={s2sDirectionLabel}
           showTerminal={false}
         />
-      </div>
-    </div>
+      </InvestigationSection>
     );
   };
 
@@ -994,17 +940,14 @@ const LeoLinkBudgetDrawer = ({
     >
       {isS2S ? (
         hasS2SAccessBudgets ? (
-          <div className="grid h-full min-h-0 grid-rows-[minmax(0,1fr)_auto] gap-2 min-[1500px]:gap-3">
-            <div className="grid min-h-0 gap-2 min-[2400px]:grid-cols-2 min-[1500px]:gap-3">
-              {renderS2SAccessBudget(sourceSiteId, 'source', siteBadgeClass)}
-              {renderS2SAccessBudget(destinationSiteId, 'destination', siteBadgeClass)}
-            </div>
+          <div className="flex flex-col gap-2">
+            {renderS2SAccessBudget('A')}
+            {renderS2SAccessBudget('B')}
 
-            {/* Capacity model disclosure — shown only when per-site RF chains are available,
-                so the user knows the RF geometry rows are site-specific while the final
-                throughput still uses the shared-beam capacity model. */}
-            <div className="grid min-h-0 gap-2 min-[1500px]:grid-cols-[minmax(0,1.45fr)_minmax(300px,0.75fr)] min-[1500px]:gap-3">
-              <TerminalProfileCockpitPanel siteA={debugInfoSiteA ?? sourceDebugInfo!} siteB={debugInfoSiteB ?? destinationDebugInfo!} />
+            <InvestigationSection
+              title="Backbone Investigation"
+              subtitle="SNPs, logical PoP and terrestrial backbone latency."
+            >
               <CockpitPanel title="Backbone Network Layer" eyebrow="fiber / IP core" accent="violet">
                 <div className="grid items-stretch gap-2 p-2.5">
                   <div className="grid grid-cols-3 gap-1.5">
@@ -1037,11 +980,37 @@ const LeoLinkBudgetDrawer = ({
                   </div>
                 </div>
               </CockpitPanel>
-            </div>
+            </InvestigationSection>
+
+            {/* Capacity model disclosure — shown only when per-site RF chains are available,
+                so the user knows the RF geometry rows are site-specific while the final
+                throughput still uses the shared-beam capacity model. */}
+            <InvestigationSection
+              title="Terminal Investigation"
+              subtitle="Selected terminal RF profile for each site."
+            >
+              <TerminalProfileCockpitPanel siteA={debugInfoSiteA ?? sourceDebugInfo!} siteB={debugInfoSiteB ?? destinationDebugInfo!} />
+            </InvestigationSection>
           </div>
         ) : <NoBudgetPlaceholder />
       ) : (
-        debugInfo ? <LeoRFLinkBudgetPanel d={debugInfo} /> : <NoBudgetPlaceholder />
+        debugInfo ? (
+          <div className="flex flex-col gap-2">
+            <InvestigationSection
+              title={siteInvestigationTitle('A')}
+              subtitle="Beam geometry, uplink and downlink RF budget for the active terminal."
+              defaultOpen
+            >
+              <LeoRFLinkBudgetPanel d={debugInfo} showTerminal={false} />
+            </InvestigationSection>
+            <InvestigationSection
+              title="Terminal Investigation"
+              subtitle="Selected terminal RF profile and capability assumptions."
+            >
+              <TerminalAssumptionsSection d={debugInfo} />
+            </InvestigationSection>
+          </div>
+        ) : <NoBudgetPlaceholder />
       )}
     </EngineeringAnalysisWorkspace>
   );
@@ -1830,6 +1799,7 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
         <LayerHeading title="End-to-End Analysis" detail="Final latency, throughput, availability and bottleneck reasoning." />
         {/* Latency Breakdown */}
         <LatencyBreakdownCard
+          storageKey="leo-latency-breakdown"
           accentColor="#db2777"
           tooltip={isS2S
             ? "Full one-way propagation: Access A + Feeder A + Backbone + Feeder B + Access B + Processing margin."

@@ -15,7 +15,7 @@ export const RttIndicator: React.FC<RttIndicatorProps> = ({ value, maxMs = 600, 
         return (
             <div className="flex justify-between items-center">
                 <span className="text-sm font-medium text-gray-600 dark:text-gray-400">{label}:</span>
-                <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">—</span>
+                <span className="text-base font-bold text-gray-900 dark:text-gray-100">—</span>
             </div>
         );
     }
@@ -30,7 +30,7 @@ export const RttIndicator: React.FC<RttIndicatorProps> = ({ value, maxMs = 600, 
                     <span className="inline-block w-2.5 h-2.5 rounded-full shadow-sm" style={{ backgroundColor: dotColor }} />
                     {label}
                 </span>
-                <span className="text-sm font-bold tabular-nums text-gray-900 dark:text-gray-100">
+                <span className="text-base font-bold tabular-nums text-gray-900 dark:text-gray-100">
                     {Math.round(value)} ms
                 </span>
             </div>
@@ -90,7 +90,7 @@ export const ThroughputBar: React.FC<ThroughputBarProps> = ({
         <div className="space-y-1">
             <div className="flex justify-between items-center gap-2">
                 <span className="min-w-0 flex-1 text-sm font-medium text-gray-600 dark:text-gray-400 truncate">{label}</span>
-                <span className="shrink-0 whitespace-nowrap text-sm font-bold tabular-nums text-gray-900 dark:text-gray-100">
+                <span className="shrink-0 whitespace-nowrap text-base font-bold tabular-nums text-gray-900 dark:text-gray-100">
                     {displayValue != null ? formatThroughput(displayValue) : (gbps != null ? 'Insufficient margin' : '—')}
                 </span>
             </div>
