@@ -413,6 +413,15 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
   }, [automaticEngineeringAnalysisMode, automaticEngineeringAnalysisSignature, isGeoLinkBudgetDrawerOpen]);
 
   useEffect(() => {
+    if (automaticEngineeringAnalysisMode || !manualEngineeringAnalysisMode) return;
+    const visibleMode = satelliteScope === 'ALL' ? activeConnTab : satelliteScope;
+    if (visibleMode !== 'LEO' && visibleMode !== 'GEO') return;
+    if (manualEngineeringAnalysisMode !== visibleMode) {
+      setManualEngineeringAnalysisMode(visibleMode);
+    }
+  }, [activeConnTab, automaticEngineeringAnalysisMode, manualEngineeringAnalysisMode, satelliteScope]);
+
+  useEffect(() => {
     onDetailedEngineeringOpenChange?.(isDetailedEngineeringOpen);
     return () => onDetailedEngineeringOpenChange?.(false);
   }, [isDetailedEngineeringOpen, onDetailedEngineeringOpenChange]);

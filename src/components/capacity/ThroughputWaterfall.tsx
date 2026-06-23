@@ -53,8 +53,9 @@ const ThroughputWaterfall = ({ steps, accent }: ThroughputWaterfallProps) => {
   const accentRail = accent === 'pink' ? '#f472b6' : '#38bdf8';
 
   return (
-    <div className="overflow-x-auto">
+    <div className="max-w-full min-w-0 overflow-x-auto rounded-lg border border-slate-800/70 bg-slate-950/25 px-2 py-1">
       <svg
+        className="block max-w-none"
         role="img"
         aria-label="Throughput waterfall: input versus output Mbps at each closure step"
         width={chartWidth}

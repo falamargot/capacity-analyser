@@ -168,6 +168,23 @@ describe('EngineeringAnalysisWorkspace render smoke tests', () => {
     expect(html).toContain('Available');
     expect(html).toContain('187 Mbps');
     expect(html).toContain('Downlink');
+    expect(html).toContain('Expand link budget detail');
+  });
+
+  it('renders the why explanation inline instead of only as clipped tooltip text', () => {
+    const viewModel = buildGeoEngineeringAnalysisViewModel({
+      linkMode: 'STAR_FORWARD',
+      result: makeGeoResult(4.5),
+    });
+    const html = renderToStaticMarkup(
+      <EngineeringAnalysisWorkspace open onClose={() => undefined} viewModel={viewModel}>
+        <div />
+      </EngineeringAnalysisWorkspace>
+    );
+    const explanation = 'Downlink remains the dominant RF segment; protocol efficiency, contention and terminal caps explain the delivered user rate.';
+
+    expect(html).toContain(explanation);
+    expect(html).not.toContain(`title="${explanation}"`);
   });
 
   it('renders a LEO available workspace with status, throughput and bottleneck', () => {

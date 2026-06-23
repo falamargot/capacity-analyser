@@ -89,6 +89,7 @@ const EngineeringAnalysisWorkspace = ({
 
   return (
     <LinkBudgetWorkspaceFrame
+      key={viewModel.mode}
       open={open}
       onClose={onClose}
       ariaLabel={`${viewModel.mode} engineering analysis`}

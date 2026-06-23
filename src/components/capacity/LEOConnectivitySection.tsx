@@ -926,6 +926,13 @@ const LeoLinkBudgetDrawer = ({
   const s2sDirectionLabel = s2sIsAtoB ? 'A → B' : 'B → A';
   const sourceSiteId = s2sIsAtoB ? 'A' : 'B';
   const destinationSiteId = s2sIsAtoB ? 'B' : 'A';
+  const sourceDebugInfo = sourceSiteId === 'A'
+    ? (debugInfoSiteA ?? debugInfo)
+    : (debugInfoSiteB ?? debugInfo);
+  const destinationDebugInfo = destinationSiteId === 'A'
+    ? (debugInfoSiteA ?? debugInfo)
+    : (debugInfoSiteB ?? debugInfo);
+  const hasS2SAccessBudgets = sourceDebugInfo != null && destinationDebugInfo != null;
   const siteBadgeClass = 'border border-slate-600 bg-slate-800 text-slate-100';
   const viewModel = buildLeoEngineeringAnalysisViewModel({
     debugInfo,
@@ -956,9 +963,7 @@ const LeoLinkBudgetDrawer = ({
     // Use the independent per-site debug chain when available so each panel shows
     // that site's own RF geometry (slant range, elevation, C/N, MODCOD, terminal).
     // Falls back to the combined debugInfo for backward compatibility.
-    const siteDebugInfo = siteId === 'A'
-      ? (debugInfoSiteA ?? debugInfo)
-      : (debugInfoSiteB ?? debugInfo);
+    const siteDebugInfo = siteId === sourceSiteId ? sourceDebugInfo : destinationDebugInfo;
 
     return (
     <div className="grid h-full min-h-0 grid-rows-[auto_minmax(0,1fr)] gap-1.5">
@@ -988,7 +993,7 @@ const LeoLinkBudgetDrawer = ({
       viewModel={viewModel}
     >
       {isS2S ? (
-        debugInfo ? (
+        hasS2SAccessBudgets ? (
           <div className="grid h-full min-h-0 grid-rows-[minmax(0,1fr)_auto] gap-2 min-[1500px]:gap-3">
             <div className="grid min-h-0 gap-2 min-[2400px]:grid-cols-2 min-[1500px]:gap-3">
               {renderS2SAccessBudget(sourceSiteId, 'source', siteBadgeClass)}
@@ -999,7 +1004,7 @@ const LeoLinkBudgetDrawer = ({
                 so the user knows the RF geometry rows are site-specific while the final
                 throughput still uses the shared-beam capacity model. */}
             <div className="grid min-h-0 gap-2 min-[1500px]:grid-cols-[minmax(0,1.45fr)_minmax(300px,0.75fr)] min-[1500px]:gap-3">
-              <TerminalProfileCockpitPanel siteA={debugInfoSiteA ?? debugInfo} siteB={debugInfoSiteB ?? debugInfo} />
+              <TerminalProfileCockpitPanel siteA={debugInfoSiteA ?? sourceDebugInfo!} siteB={debugInfoSiteB ?? destinationDebugInfo!} />
               <CockpitPanel title="Backbone Network Layer" eyebrow="fiber / IP core" accent="violet">
                 <div className="grid items-stretch gap-2 p-2.5">
                   <div className="grid grid-cols-3 gap-1.5">

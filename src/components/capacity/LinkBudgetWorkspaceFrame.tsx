@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react';
-import { X } from 'lucide-react';
+import { FoldVertical, UnfoldVertical, X } from 'lucide-react';
 import ThroughputWaterfall from './ThroughputWaterfall';
 import ConfidenceBreakdown from './ConfidenceBreakdown';
 import type { PredictionConfidence } from '../../utils/predictionConfidence';
@@ -74,9 +74,16 @@ const toneClass: Record<NonNullable<LinkBudgetWorkspaceMetric['tone']>, string> 
 };
 
 const resultStatusClass: Record<NonNullable<LinkBudgetWorkspaceResult['statusTone']>, string> = {
-  good: 'border-teal-400/70 bg-teal-400/10 text-teal-100 shadow-[0_0_32px_rgba(45,212,191,0.16)]',
-  warn: 'border-amber-400/70 bg-amber-400/10 text-amber-100 shadow-[0_0_32px_rgba(251,191,36,0.14)]',
-  danger: 'border-rose-400/70 bg-rose-500/10 text-rose-100 shadow-[0_0_32px_rgba(244,63,94,0.16)]',
+  good: 'border-teal-400/70 bg-teal-400/10 text-teal-100 shadow-[0_0_32px_rgba(45,212,191,0.12)]',
+  warn: 'border-amber-400/70 bg-amber-400/10 text-amber-100 shadow-[0_0_32px_rgba(251,191,36,0.10)]',
+  danger: 'border-rose-400/70 bg-rose-500/10 text-rose-100 shadow-[0_0_32px_rgba(244,63,94,0.12)]',
+  neutral: 'border-slate-600 bg-slate-900 text-slate-100',
+};
+
+const resultBadgeClass: Record<NonNullable<LinkBudgetWorkspaceResult['statusTone']>, string> = {
+  good: 'border-teal-300/45 bg-teal-400/15 text-teal-100',
+  warn: 'border-amber-300/45 bg-amber-400/15 text-amber-100',
+  danger: 'border-rose-300/45 bg-rose-400/15 text-rose-100',
   neutral: 'border-slate-600 bg-slate-900 text-slate-100',
 };
 
@@ -110,6 +117,39 @@ const accentClass = {
   },
 };
 
+interface ResultMetricCardProps {
+  label: string;
+  value: string;
+  detail?: string;
+  tone?: LinkBudgetWorkspaceMetric['tone'];
+  emphasis?: boolean;
+  children?: ReactNode;
+}
+
+const ResultMetricCard = ({
+  label,
+  value,
+  detail,
+  tone = 'default',
+  emphasis = false,
+  children,
+}: ResultMetricCardProps) => (
+  <div className="min-w-0 rounded-lg border border-white/10 bg-slate-950/35 px-2.5 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.025)]">
+    <div className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">{label}</div>
+    <div
+      className={[
+        'mt-0.5 break-words font-semibold leading-tight tabular-nums',
+        emphasis ? 'text-2xl lg:text-[1.7rem]' : 'text-base',
+        toneClass[tone],
+      ].join(' ')}
+    >
+      {value}
+    </div>
+    {detail && <div className="mt-1 text-[10px] leading-snug text-slate-500">{detail}</div>}
+    {children}
+  </div>
+);
+
 const LinkBudgetWorkspaceFrame = ({
   open,
   onClose,
@@ -129,6 +169,7 @@ const LinkBudgetWorkspaceFrame = ({
   children,
 }: LinkBudgetWorkspaceFrameProps) => {
   const [mounted, setMounted] = useState(false);
+  const [expanded, setExpanded] = useState(false);
   const colors = accentClass[accent];
 
   useEffect(() => {
@@ -154,7 +195,7 @@ const LinkBudgetWorkspaceFrame = ({
   return (
     <div
       className="link-budget-workspace pointer-events-none fixed bottom-0 left-0 right-0 z-[1300] overflow-hidden min-[1100px]:right-[var(--desktop-sidebar-width,420px)]"
-      style={{ top: 'var(--engineering-workspace-top, 30%)' }}
+      style={{ top: expanded ? 0 : 'var(--engineering-workspace-top, 30%)' }}
       role="dialog"
       aria-modal="false"
       aria-label={ariaLabel}
@@ -182,6 +223,16 @@ const LinkBudgetWorkspaceFrame = ({
             )}
           </div>
           <div className="flex shrink-0 items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setExpanded((value) => !value)}
+              className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-700 bg-slate-900 text-slate-200 shadow-sm transition-colors hover:bg-slate-800"
+              aria-label={expanded ? 'Collapse link budget detail' : 'Expand link budget detail'}
+              title={expanded ? 'Collapse link budget detail' : 'Expand link budget detail'}
+              aria-pressed={expanded}
+            >
+              {expanded ? <FoldVertical className="h-4 w-4" /> : <UnfoldVertical className="h-4 w-4" />}
+            </button>
             <button
               type="button"
               onClick={onClose}
@@ -233,84 +284,92 @@ const LinkBudgetWorkspaceFrame = ({
           </aside>
 
           <main
-            className="min-h-0 overflow-y-auto bg-[linear-gradient(rgba(148,163,184,0.035)_1px,transparent_1px),linear-gradient(90deg,rgba(148,163,184,0.03)_1px,transparent_1px)] bg-[size:32px_32px] px-3 py-2.5 font-sans sm:px-4 lg:px-4 lg:py-3"
-            style={{ maxHeight: 'calc(100vh - var(--engineering-workspace-top, 30%) - 4.75rem)' }}
+            className="min-h-0 min-w-0 overflow-y-auto overflow-x-hidden bg-[linear-gradient(rgba(148,163,184,0.035)_1px,transparent_1px),linear-gradient(90deg,rgba(148,163,184,0.03)_1px,transparent_1px)] bg-[size:32px_32px] px-3 py-2.5 font-sans sm:px-4 lg:px-4 lg:py-3"
+            style={{
+              maxHeight: expanded
+                ? 'calc(100vh - 4.75rem)'
+                : 'calc(100vh - var(--engineering-workspace-top, 30%) - 4.75rem)',
+            }}
           >
-            <div className="mx-auto grid w-full max-w-none gap-2.5">
+            <div className="mx-auto grid w-full min-w-0 max-w-none gap-2.5">
               {result && (
-                <section className={`rounded-xl border px-3 py-3 ${resultStatusClass[result.statusTone ?? 'neutral']} lg:px-4`}>
-                  <div className="grid gap-3 xl:grid-cols-[minmax(170px,0.32fr)_minmax(0,1fr)]">
-                    <div className="min-w-0">
-                      <div className="text-[10px] font-bold uppercase tracking-wide text-slate-400">Link status</div>
-                      <div className="mt-0.5 break-words text-4xl font-black uppercase leading-none tracking-normal text-slate-50 lg:text-[2.75rem]">
-                        {result.status}
+                <section className={`min-w-0 overflow-hidden rounded-xl border px-3 py-3 ${resultStatusClass[result.statusTone ?? 'neutral']} lg:px-4`}>
+                  <div className="flex min-w-0 flex-wrap items-center gap-2">
+                    <div className="text-[10px] font-bold uppercase tracking-wide text-slate-400">Link status</div>
+                    <div className={`max-w-full break-words rounded-full border px-3 py-1 text-sm font-black uppercase tracking-wide ${resultBadgeClass[result.statusTone ?? 'neutral']}`}>
+                      {result.status}
+                    </div>
+                    {result.margin && (
+                      <div className="max-w-full rounded-full border border-white/10 bg-slate-950/35 px-3 py-1 text-sm font-semibold tabular-nums text-slate-100">
+                        {result.margin}
                       </div>
-                      {result.margin && (
-                        <div className="mt-2 text-base font-semibold tabular-nums text-slate-200">
-                          {result.margin}
-                        </div>
+                    )}
+                  </div>
+
+                  <div className="mt-3 grid min-w-0 gap-2 [grid-template-columns:repeat(auto-fit,minmax(min(100%,10rem),1fr))]">
+                    <ResultMetricCard
+                      label={result.throughputLabel ?? 'Final throughput'}
+                      value={result.throughput}
+                      emphasis
+                    />
+                    <ResultMetricCard
+                      label={result.latencyLabel ?? 'Latency'}
+                      value={result.latency ?? '--'}
+                    />
+                    <ResultMetricCard
+                      label="Availability"
+                      value={result.availability ?? '--'}
+                    />
+                    <ResultMetricCard
+                      label="Confidence"
+                      value={result.confidence ?? '--'}
+                    >
+                      {(result.confidenceDetail || result.confidenceBreakdown) && (
+                        <details className="group mt-0.5">
+                          <summary className="cursor-pointer list-none text-[10px] font-semibold uppercase tracking-wide text-slate-400 transition-colors hover:text-slate-200">
+                            <span className="group-open:hidden">Reasoning</span>
+                            <span className="hidden group-open:inline">Hide reasoning</span>
+                          </summary>
+                          {result.confidenceBreakdown ? (
+                            <ConfidenceBreakdown confidence={result.confidenceBreakdown} />
+                          ) : (
+                            result.confidenceDetail && (
+                              <p className="mt-1 text-[10px] leading-snug text-slate-400">
+                                {result.confidenceDetail}
+                              </p>
+                            )
+                          )}
+                        </details>
                       )}
-                    </div>
-                    <div className="grid gap-1.5 sm:grid-cols-2 xl:grid-cols-6">
-                      <div className="rounded-lg border border-white/10 bg-slate-950/35 px-2.5 py-2 xl:col-span-2">
-                        <div className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">{result.throughputLabel ?? 'Final throughput'}</div>
-                        <div className="mt-0.5 break-words text-3xl font-black leading-none tabular-nums text-slate-50">{result.throughput}</div>
-                      </div>
-                      <div className="rounded-lg border border-white/10 bg-slate-950/30 px-2.5 py-2">
-                        <div className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">{result.latencyLabel ?? 'Latency'}</div>
-                        <div className="mt-0.5 text-xl font-bold tabular-nums text-slate-100">{result.latency ?? '--'}</div>
-                      </div>
-                      <div className="rounded-lg border border-white/10 bg-slate-950/30 px-2.5 py-2 xl:col-span-2">
-                        <div className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Main bottleneck</div>
-                        <div className="mt-0.5 text-base font-bold leading-tight text-slate-100">{result.bottleneck}</div>
-                      </div>
-                      <div className="rounded-lg border border-white/10 bg-slate-950/25 px-2.5 py-2">
-                        <div className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Availability</div>
-                        <div className="mt-0.5 text-base font-semibold tabular-nums text-slate-100">{result.availability ?? '--'}</div>
-                      </div>
-                      <div className="rounded-lg border border-white/10 bg-slate-950/25 px-2.5 py-2">
-                        <div className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Confidence</div>
-                        <div className="mt-0.5 text-base font-semibold text-slate-100">{result.confidence ?? '--'}</div>
-                        {(result.confidenceDetail || result.confidenceBreakdown) && (
-                          <details className="group mt-0.5">
-                            <summary className="cursor-pointer list-none text-[10px] font-semibold uppercase tracking-wide text-slate-400 transition-colors hover:text-slate-200">
-                              <span className="group-open:hidden">Reasoning</span>
-                              <span className="hidden group-open:inline">Hide reasoning</span>
-                            </summary>
-                            {result.confidenceBreakdown ? (
-                              <ConfidenceBreakdown confidence={result.confidenceBreakdown} />
-                            ) : (
-                              result.confidenceDetail && (
-                                <p className="mt-1 text-[10px] leading-snug text-slate-400">
-                                  {result.confidenceDetail}
-                                </p>
-                              )
-                            )}
-                          </details>
-                        )}
-                      </div>
-                      {(result.supportingMetrics ?? []).slice(0, 1).map((item) => (
-                        <div key={item.label} className="rounded-lg border border-white/10 bg-slate-950/25 px-2.5 py-2">
-                          <div className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">{item.label}</div>
-                          <div className={`mt-0.5 text-base font-semibold ${toneClass[item.tone ?? 'default']}`}>{item.value}</div>
-                          {item.detail && <div className="mt-1 text-[10px] leading-snug text-slate-500">{item.detail}</div>}
-                        </div>
-                      ))}
-                    </div>
+                    </ResultMetricCard>
+                    {(result.supportingMetrics ?? []).map((item) => (
+                      <ResultMetricCard
+                        key={item.label}
+                        label={item.label}
+                        value={item.value}
+                        detail={item.detail}
+                        tone={item.tone}
+                      />
+                    ))}
+                  </div>
+
+                  <div className="mt-2 min-w-0 rounded-lg border border-white/10 bg-slate-950/40 px-3 py-2">
+                    <div className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Main bottleneck</div>
+                    <div className="mt-0.5 break-words text-base font-bold leading-tight text-slate-50">{result.bottleneck}</div>
                   </div>
                 </section>
               )}
 
               {why && (
-                <section className={`rounded-xl border px-3 py-2.5 ${whyClass[why.tone ?? 'default']}`}>
+                <section className={`min-w-0 rounded-xl border px-3 py-2.5 ${whyClass[why.tone ?? 'default']}`}>
                   <div className="text-[10px] font-bold uppercase tracking-wide text-slate-500">Why?</div>
-                  <p className="mt-0.5 text-lg font-bold leading-tight text-slate-50 lg:text-xl">{why.headline}</p>
-                  {why.detail && <p className="mt-0.5 max-w-5xl truncate text-sm leading-snug text-slate-300" title={why.detail}>{why.detail}</p>}
+                  <p className="mt-0.5 break-words text-base font-bold leading-tight text-slate-50 lg:text-lg">{why.headline}</p>
+                  {why.detail && <p className="mt-1 max-w-6xl break-words text-sm leading-snug text-slate-300">{why.detail}</p>}
                 </section>
               )}
 
               {closureSteps.length > 0 && (
-                <section className={`rounded-xl border px-3 py-2.5 ${colors.closure}`}>
+                <section className={`min-w-0 overflow-hidden rounded-xl border px-3 py-2.5 ${colors.closure}`}>
                   <div className="flex flex-wrap items-end justify-between gap-2">
                     <div>
                       <div className="text-[10px] font-bold uppercase tracking-wide text-slate-500">Level 3</div>
@@ -321,11 +380,11 @@ const LinkBudgetWorkspaceFrame = ({
                   <div className="mt-2">
                     <ThroughputWaterfall steps={closureSteps} accent={accent} />
                   </div>
-                  <div className="mt-2 grid gap-1.5 min-[1200px]:grid-cols-[repeat(auto-fit,minmax(118px,1fr))]">
+                  <div className="mt-2 grid min-w-0 gap-1.5 [grid-template-columns:repeat(auto-fit,minmax(min(100%,12rem),1fr))]">
                     {closureSteps.map((step, index) => (
                       <div key={`${step.label}-${index}`} className="relative min-w-0 rounded-lg border border-slate-800 bg-slate-950/55 px-2.5 py-2">
                         {index > 0 && (
-                          <div className="absolute -left-2 top-1/2 hidden w-4 -translate-y-1/2 min-[1200px]:block" aria-hidden="true">
+                          <div className="absolute -left-2 top-1/2 hidden w-4 -translate-y-1/2 min-[1500px]:block" aria-hidden="true">
                             <div className={`h-px w-full ${colors.closureLine}`} />
                             <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-[calc(100%+0.45rem)] whitespace-nowrap rounded-full border border-slate-700 bg-slate-950 px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wide text-slate-500">
                               ↓ {transitionLabel(step.label)}
