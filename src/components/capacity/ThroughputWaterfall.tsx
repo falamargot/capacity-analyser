@@ -24,14 +24,14 @@ const toneColor: Record<NonNullable<LinkBudgetWorkspaceClosureStep['tone']>, str
 
 const fmtBarMbps = (v: number) => (v >= 1000 ? `${(v / 1000).toFixed(2)} Gbps` : `${Math.round(v)} Mbps`);
 
-// 2.7x the original 88px chart area so the waterfall reads as the primary
-// explanatory visual for the closure path, not a small reference sparkline.
-const CHART_HEIGHT = 240;
-const TOP_PADDING = 30;
-const BOTTOM_LABEL_HEIGHT = 46;
-const BAR_WIDTH = 32;
-const BAR_GAP = 14;
-const GROUP_GAP = 44;
+// Compact sizing: ~176px total SVG height so the waterfall sits alongside
+// the closure step cards rather than dominating the vertical layout.
+const CHART_HEIGHT = 120;
+const TOP_PADDING = 18;
+const BOTTOM_LABEL_HEIGHT = 38;
+const BAR_WIDTH = 22;
+const BAR_GAP = 10;
+const GROUP_GAP = 28;
 
 /**
  * Per-step "before vs after" throughput comparison, not a cumulative offset
@@ -72,7 +72,7 @@ const ThroughputWaterfall = ({ steps, accent }: ThroughputWaterfallProps) => {
   const bottleneckIndex = maxLossMbps > 0 ? bars.findIndex((bar) => bar.lossMbps === maxLossMbps) : -1;
 
   return (
-    <div className="max-w-full min-w-0 overflow-x-auto rounded-lg border border-slate-800/70 bg-slate-950/25 px-3 py-2.5">
+    <div className="max-w-full min-w-0 overflow-x-auto rounded-lg border border-slate-800/70 bg-slate-950/25 px-2 py-2">
       <svg
         className="block max-w-none"
         role="img"
@@ -111,9 +111,9 @@ const ThroughputWaterfall = ({ steps, accent }: ThroughputWaterfallProps) => {
               {isBottleneck && (
                 <text
                   x={groupX + groupWidth / 2}
-                  y={TOP_PADDING - 10}
+                  y={TOP_PADDING - 8}
                   textAnchor="middle"
-                  fontSize={10}
+                  fontSize={9}
                   fontWeight={800}
                   letterSpacing={0.5}
                   fill="#fb7185"
@@ -144,9 +144,9 @@ const ThroughputWaterfall = ({ steps, accent }: ThroughputWaterfallProps) => {
               </rect>
               <text
                 x={groupX + BAR_WIDTH + BAR_GAP + BAR_WIDTH / 2}
-                y={Math.max(baseline - outputHeight - 8, TOP_PADDING + 12)}
+                y={Math.max(baseline - outputHeight - 6, TOP_PADDING + 10)}
                 textAnchor="middle"
-                fontSize={13}
+                fontSize={11}
                 fontWeight={800}
                 fill="#f1f5f9"
               >
@@ -154,9 +154,9 @@ const ThroughputWaterfall = ({ steps, accent }: ThroughputWaterfallProps) => {
               </text>
               <text
                 x={groupX + BAR_WIDTH + BAR_GAP / 2}
-                y={baseline + 20}
+                y={baseline + 15}
                 textAnchor="middle"
-                fontSize={14}
+                fontSize={11}
                 fontWeight={700}
                 fill="#cbd5e1"
               >
@@ -164,9 +164,9 @@ const ThroughputWaterfall = ({ steps, accent }: ThroughputWaterfallProps) => {
               </text>
               <text
                 x={groupX + BAR_WIDTH + BAR_GAP / 2}
-                y={baseline + 38}
+                y={baseline + 28}
                 textAnchor="middle"
-                fontSize={12}
+                fontSize={10}
                 fontWeight={700}
                 fill={isBottleneck ? '#fb7185' : hasLoss ? '#fbbf24' : '#475569'}
               >

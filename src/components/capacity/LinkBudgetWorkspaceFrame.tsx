@@ -377,56 +377,58 @@ const LinkBudgetWorkspaceFrame = ({
                     </div>
                     <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Explains how the result was produced</div>
                   </div>
-                  <div className="mt-3">
-                    <ThroughputWaterfall steps={closureSteps} accent={accent} />
-                  </div>
-                  <div className="mt-4 grid min-w-0 gap-1.5 [grid-template-columns:repeat(auto-fit,minmax(min(100%,12rem),1fr))]">
-                    {closureSteps.map((step, index) => (
-                      <div key={`${step.label}-${index}`} className="relative min-w-0 rounded-lg border border-slate-800 bg-slate-950/55 px-2.5 py-2">
-                        {index > 0 && (
-                          <div className="absolute -left-2 top-1/2 hidden w-4 -translate-y-1/2 min-[1500px]:block" aria-hidden="true">
-                            <div className={`h-px w-full ${colors.closureLine}`} />
-                            <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-[calc(100%+0.45rem)] whitespace-nowrap rounded-full border border-slate-700 bg-slate-950 px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wide text-slate-500">
-                              ↓ {transitionLabel(step.label)}
-                            </div>
-                          </div>
-                        )}
-                        <div className="text-[10px] font-bold uppercase tracking-wide text-slate-500">{step.label}</div>
-                        {step.input || step.transformation || step.output ? (
-                          <div className="mt-1.5 grid gap-1">
-                            <div>
-                              <div className="text-[8px] font-bold uppercase tracking-wide text-slate-600">Input</div>
-                              <div className="mt-0.5 break-words text-[12px] font-semibold tabular-nums text-slate-300">{step.input ?? step.value ?? '--'}</div>
-                            </div>
-                            <div>
-                              <div className="text-[8px] font-bold uppercase tracking-wide text-slate-600">Transformation</div>
-                              <div
-                                className="mt-0.5 overflow-hidden text-[9px] leading-snug text-slate-500 [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2]"
-                                title={step.transformation ?? step.detail ?? undefined}
-                              >
-                                {step.transformation ?? step.detail ?? '--'}
+                  <div className="mt-3 flex min-w-0 flex-col gap-3 xl:flex-row xl:items-start">
+                    <div className="shrink-0 overflow-x-auto">
+                      <ThroughputWaterfall steps={closureSteps} accent={accent} />
+                    </div>
+                    <div className="min-w-0 flex-1 grid gap-1.5 [grid-template-columns:repeat(auto-fit,minmax(min(100%,11rem),1fr))]">
+                      {closureSteps.map((step, index) => (
+                        <div key={`${step.label}-${index}`} className="relative min-w-0 rounded-lg border border-slate-800 bg-slate-950/55 px-2.5 py-2">
+                          {index > 0 && (
+                            <div className="absolute -left-2 top-1/2 hidden w-4 -translate-y-1/2 min-[1500px]:block" aria-hidden="true">
+                              <div className={`h-px w-full ${colors.closureLine}`} />
+                              <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-[calc(100%+0.45rem)] whitespace-nowrap rounded-full border border-slate-700 bg-slate-950 px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wide text-slate-500">
+                                ↓ {transitionLabel(step.label)}
                               </div>
                             </div>
-                            <div className="flex items-end justify-between gap-2">
-                              <div className="min-w-0">
-                                <div className="text-[8px] font-bold uppercase tracking-wide text-slate-600">Output</div>
-                                <div className={`mt-0.5 break-words text-[13px] font-bold tabular-nums ${toneClass[step.tone ?? 'default']}`}>{step.output ?? step.value ?? '--'}</div>
+                          )}
+                          <div className="text-[10px] font-bold uppercase tracking-wide text-slate-500">{step.label}</div>
+                          {step.input || step.transformation || step.output ? (
+                            <div className="mt-1.5 grid gap-1">
+                              <div>
+                                <div className="text-[8px] font-bold uppercase tracking-wide text-slate-600">Input</div>
+                                <div className="mt-0.5 break-words text-[12px] font-semibold tabular-nums text-slate-300">{step.input ?? step.value ?? '--'}</div>
                               </div>
-                              {step.loss && (
-                                <div className="shrink-0 rounded-md border border-slate-700 bg-slate-900 px-1.5 py-0.5 text-[9px] font-semibold tabular-nums text-amber-300">
-                                  {step.loss}
+                              <div>
+                                <div className="text-[8px] font-bold uppercase tracking-wide text-slate-600">Transformation</div>
+                                <div
+                                  className="mt-0.5 overflow-hidden text-[9px] leading-snug text-slate-500 [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2]"
+                                  title={step.transformation ?? step.detail ?? undefined}
+                                >
+                                  {step.transformation ?? step.detail ?? '--'}
                                 </div>
-                              )}
+                              </div>
+                              <div className="flex items-end justify-between gap-2">
+                                <div className="min-w-0">
+                                  <div className="text-[8px] font-bold uppercase tracking-wide text-slate-600">Output</div>
+                                  <div className={`mt-0.5 break-words text-[13px] font-bold tabular-nums ${toneClass[step.tone ?? 'default']}`}>{step.output ?? step.value ?? '--'}</div>
+                                </div>
+                                {step.loss && (
+                                  <div className="shrink-0 rounded-md border border-slate-700 bg-slate-900 px-1.5 py-0.5 text-[9px] font-semibold tabular-nums text-amber-300">
+                                    {step.loss}
+                                  </div>
+                                )}
+                              </div>
                             </div>
-                          </div>
-                        ) : (
-                          <>
-                            {step.value && <div className={`mt-1 break-words text-base font-semibold tabular-nums ${toneClass[step.tone ?? 'default']}`}>{step.value}</div>}
-                            {step.detail && <div className="mt-1 text-[10px] leading-snug text-slate-500">{step.detail}</div>}
-                          </>
-                        )}
-                      </div>
-                    ))}
+                          ) : (
+                            <>
+                              {step.value && <div className={`mt-1 break-words text-base font-semibold tabular-nums ${toneClass[step.tone ?? 'default']}`}>{step.value}</div>}
+                              {step.detail && <div className="mt-1 text-[10px] leading-snug text-slate-500">{step.detail}</div>}
+                            </>
+                          )}
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 </section>
               )}
