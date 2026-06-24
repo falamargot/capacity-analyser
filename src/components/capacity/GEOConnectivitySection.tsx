@@ -269,6 +269,12 @@ const LinkBudgetDrawer = ({
     confidence,
   });
 
+  const activePath = activeMeshTab === 'reverse' && result?.reverse ? result.reverse : result?.forward;
+  const limitingSegment = activePath?.endToEnd.limitingSegment;
+  const investigationFocus = limitingSegment === 'uplink' ? 'uplink'
+    : limitingSegment === 'downlink' ? 'downlink'
+    : 'diagnostic' as const;
+
   return (
     <EngineeringAnalysisWorkspace
       open={open}
@@ -283,6 +289,7 @@ const LinkBudgetDrawer = ({
         satelliteName={satelliteName}
         satellite={satellite}
         coverageLabels={coverageLabels}
+        investigationFocus={investigationFocus}
         variant="cockpit"
       />
     </EngineeringAnalysisWorkspace>

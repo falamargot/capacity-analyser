@@ -848,6 +848,36 @@ const InvestigationSection = ({
   </details>
 );
 
+type LeoInvestigationFocus = 'siteA' | 'siteB' | 'backbone' | 'terminal';
+
+const detectLeoInvestigationFocus = (
+  isS2S: boolean,
+  debugInfo: LeoRFDebugInfo | null,
+  debugInfoSiteA: LeoRFDebugInfo | null | undefined,
+  debugInfoSiteB: LeoRFDebugInfo | null | undefined,
+  siteToSiteResult: LeoSiteToSiteResult | null | undefined,
+): LeoInvestigationFocus => {
+  if (!isS2S) {
+    return debugInfo?.mainBottleneck.factor === 'terminal' ? 'terminal' : 'siteA';
+  }
+  if (siteToSiteResult?.failureReason) {
+    const reason = siteToSiteResult.failureReason;
+    if (reason.endsWith('_A')) return 'siteA';
+    if (reason.endsWith('_B')) return 'siteB';
+  }
+  const factorA = debugInfoSiteA?.mainBottleneck.factor ?? null;
+  const factorB = debugInfoSiteB?.mainBottleneck.factor ?? null;
+  if (factorA === 'backhaul' || factorB === 'backhaul') return 'backbone';
+  if (factorA != null && factorB == null) return 'siteA';
+  if (factorB != null && factorA == null) return 'siteB';
+  if (factorA != null && factorB != null) {
+    const tpA = debugInfoSiteA!.downlink.network.finalUserMbps;
+    const tpB = debugInfoSiteB!.downlink.network.finalUserMbps;
+    return tpA <= tpB ? 'siteA' : 'siteB';
+  }
+  return 'siteA';
+};
+
 const LeoLinkBudgetDrawer = ({
   open,
   onClose,
@@ -881,6 +911,7 @@ const LeoLinkBudgetDrawer = ({
     : (debugInfoSiteB ?? debugInfo);
   const hasS2SAccessBudgets = sourceDebugInfo != null && destinationDebugInfo != null;
   const siteBadgeClass = 'border border-slate-600 bg-slate-800 text-slate-100';
+  const focus = detectLeoInvestigationFocus(isS2S, debugInfo, debugInfoSiteA, debugInfoSiteB, siteToSiteResult);
   const viewModel = buildLeoEngineeringAnalysisViewModel({
     debugInfo,
     siteToSiteResult,
@@ -921,7 +952,7 @@ const LeoLinkBudgetDrawer = ({
         key={siteId}
         title={siteInvestigationTitle(siteId)}
         subtitle={`Beam geometry, uplink and downlink RF budget · ${role} for ${s2sDirectionLabel}.`}
-        defaultOpen={siteId === 'A'}
+        defaultOpen={siteId === 'A' ? focus === 'siteA' : focus === 'siteB'}
       >
         <LeoRFLinkBudgetPanel
           d={siteDebugInfo!}
@@ -948,6 +979,7 @@ const LeoLinkBudgetDrawer = ({
             <InvestigationSection
               title="Backbone Investigation"
               subtitle="SNPs, logical PoP and terrestrial backbone latency."
+              defaultOpen={focus === 'backbone'}
             >
               <CockpitPanel title="Backbone Network Layer" eyebrow="fiber / IP core" accent="violet">
                 <div className="grid items-stretch gap-2 p-2.5">
@@ -989,6 +1021,7 @@ const LeoLinkBudgetDrawer = ({
             <InvestigationSection
               title="Terminal Investigation"
               subtitle="Selected terminal RF profile for each site."
+              defaultOpen={focus === 'terminal'}
             >
               <TerminalProfileCockpitPanel siteA={debugInfoSiteA ?? sourceDebugInfo!} siteB={debugInfoSiteB ?? destinationDebugInfo!} />
             </InvestigationSection>
@@ -1000,13 +1033,14 @@ const LeoLinkBudgetDrawer = ({
             <InvestigationSection
               title={siteInvestigationTitle('A')}
               subtitle="Beam geometry, uplink and downlink RF budget for the active terminal."
-              defaultOpen
+              defaultOpen={focus === 'siteA'}
             >
               <LeoRFLinkBudgetPanel d={debugInfo} showTerminal={false} />
             </InvestigationSection>
             <InvestigationSection
               title="Terminal Investigation"
               subtitle="Selected terminal RF profile and capability assumptions."
+              defaultOpen={focus === 'terminal'}
             >
               <TerminalAssumptionsSection d={debugInfo} />
             </InvestigationSection>

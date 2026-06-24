@@ -377,6 +377,99 @@ describe('LEOConnectivitySection topology render smoke tests', () => {
       expect(detailsOpenStateBeforeText(html, 'Backbone Investigation')).toBe(false);
       expect(detailsOpenStateBeforeText(html, 'Terminal Investigation')).toBe(false);
     });
+
+    it('SINGLE_SITE: Terminal Investigation open when terminal is the detected bottleneck', () => {
+      const html = renderToStaticMarkup(
+        <LEOConnectivitySection
+          {...baseProps}
+          leoTopologyMode="SINGLE_SITE"
+          isLinkBudgetDrawerOpen
+          onLinkBudgetDrawerOpenChange={noop}
+          leoPerformance={{
+            rtt: 72,
+            downlinkGbps: 0.018,
+            uplinkGbps: 0.012,
+            stability: 'High',
+            performanceFactor: 1,
+            footprintFactor: 1,
+            weatherFactor: 1,
+            weatherLabel: 'Clear',
+            debugInfo: {
+              ...makeLeoResult(18, 12),
+              mainBottleneck: { factor: 'terminal', scope: 'DL', label: 'Terminal cap' },
+            } as LeoThroughputResult,
+          }}
+        />
+      );
+
+      expect(detailsOpenStateBeforeText(html, 'Site A Investigation')).toBe(false);
+      expect(detailsOpenStateBeforeText(html, 'Terminal Investigation')).toBe(true);
+    });
+
+    it('SITE_TO_SITE: Site B Investigation open when failureReason ends with _B', () => {
+      const html = renderToStaticMarkup(
+        <LEOConnectivitySection
+          {...baseProps}
+          leoTopologyMode="SITE_TO_SITE"
+          pointBLeo={{ lat: 15, lng: 25 }}
+          activeMeshTab="forward"
+          isLinkBudgetDrawerOpen
+          onLinkBudgetDrawerOpenChange={noop}
+          siteToSiteResult={makeSiteToSiteResult({
+            // serviceAvailable must stay true so the drawer receives siteToSiteResult
+            // (LEOConnectivitySection passes undefined when !s2sServiceActive)
+            failureReason: 'CAPACITY_DEGRADED_B',
+          })}
+          leoPerformance={{
+            rtt: 120,
+            downlinkGbps: 0.075,
+            uplinkGbps: 0.055,
+            stability: 'High',
+            performanceFactor: 1,
+            footprintFactor: 1,
+            weatherFactor: 1,
+            weatherLabel: 'Clear',
+            debugInfo: makeLeoResult(75, 55),
+          }}
+        />
+      );
+
+      expect(detailsOpenStateBeforeText(html, 'Site A Investigation')).toBe(false);
+      expect(detailsOpenStateBeforeText(html, 'Site B Investigation')).toBe(true);
+      expect(detailsOpenStateBeforeText(html, 'Backbone Investigation')).toBe(false);
+    });
+
+    it('SITE_TO_SITE: Backbone Investigation open when backhaul is the detected bottleneck', () => {
+      const backhaulDebug = {
+        ...makeLeoResult(10, 8),
+        mainBottleneck: { factor: 'backhaul' as const, scope: 'DL' as const, label: 'Backhaul' },
+      } as LeoThroughputResult;
+      const html = renderToStaticMarkup(
+        <LEOConnectivitySection
+          {...baseProps}
+          leoTopologyMode="SITE_TO_SITE"
+          pointBLeo={{ lat: 15, lng: 25 }}
+          activeMeshTab="forward"
+          isLinkBudgetDrawerOpen
+          onLinkBudgetDrawerOpenChange={noop}
+          siteToSiteResult={makeSiteToSiteResult({ debugSiteA: backhaulDebug })}
+          leoPerformance={{
+            rtt: 120,
+            downlinkGbps: 0.010,
+            uplinkGbps: 0.008,
+            stability: 'Medium',
+            performanceFactor: 0.5,
+            footprintFactor: 1,
+            weatherFactor: 1,
+            weatherLabel: 'Clear',
+            debugInfo: makeLeoResult(10, 8),
+          }}
+        />
+      );
+
+      expect(detailsOpenStateBeforeText(html, 'Site A Investigation')).toBe(false);
+      expect(detailsOpenStateBeforeText(html, 'Backbone Investigation')).toBe(true);
+    });
   });
 
   describe('Answer Block (above-the-fold summary)', () => {

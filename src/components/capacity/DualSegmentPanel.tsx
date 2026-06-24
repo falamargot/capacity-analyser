@@ -12,7 +12,7 @@
  */
 
 import { ChevronDown } from 'lucide-react';
-import { memo, useEffect, useMemo, useState } from 'react';
+import { memo, useEffect, useMemo, useState, type ReactNode } from 'react';
 import type { LinkMode } from '../../types/linkMode';
 import { LINK_MODE_DESCRIPTIONS } from '../../types/linkMode';
 import type { DualSegmentResult, LinkSegment, TransponderMode, NetworkLayerResult } from '../../utils/geoDualSegmentBudget';
@@ -1095,8 +1095,8 @@ const GeoSegmentCockpitPanel = ({ type, seg, coverageName }: { type: 'uplink' | 
   const title = isUplink ? 'Uplink Segment' : 'Downlink Segment';
 
   return (
-    <GeoCockpitPanel title={title} eyebrow="physical layer" accent={accent} className="h-full">
-      <div className="grid h-full min-h-0 grid-rows-[auto_auto_minmax(0,1fr)] gap-2 p-2.5">
+    <GeoCockpitPanel title={title} eyebrow="physical layer" accent={accent}>
+      <div className="grid gap-2 p-2.5">
         <div className="grid grid-cols-2 gap-1.5">
           <GeoCockpitTile label={isUplink ? 'Source' : 'Destination'} value={isUplink ? seg.source.label : seg.destination.label} tone={accent} mono={false} />
           <GeoCockpitTile label="Coverage" value={coverageName ?? coverageLabel(seg)} tone={accent} mono={false} />
@@ -1186,8 +1186,8 @@ const GeoE2ECockpitPanel = ({ e2e, linkMode, networkLayer }: { e2e: EndToEndBudg
   const finalThroughput = networkLayer?.finalThroughputMbps ?? e2e.endToEndThroughputMbps;
 
   return (
-    <GeoCockpitPanel title="End-to-End Result" eyebrow="combined C/N" accent="amber" className="h-full">
-      <div className="grid h-full min-h-0 grid-rows-[auto_minmax(0,1fr)] gap-2 p-2.5">
+    <GeoCockpitPanel title="End-to-End Result" eyebrow="combined C/N" accent="amber">
+      <div className="grid gap-2 p-2.5">
         <div className="grid grid-cols-4 gap-1.5">
           <GeoCockpitTile label="Total C/N" value={fmtDb(e2e.endToEndCNDb)} tone="amber" />
           <GeoCockpitTile label="MODCOD" value={e2e.endToEndModcod} tone="amber" mono={false} />
@@ -1349,6 +1349,34 @@ const GeoDiagnosticFlowPanel = ({
   );
 };
 
+type GeoInvestigationFocus = 'uplink' | 'downlink' | 'payload' | 'diagnostic';
+
+const GeoInvestigationSection = ({
+  title,
+  subtitle,
+  defaultOpen = false,
+  children,
+}: {
+  title: string;
+  subtitle?: string;
+  defaultOpen?: boolean;
+  children: ReactNode;
+}) => (
+  <details className="group rounded-xl border border-slate-800 bg-slate-950/60" open={defaultOpen}>
+    <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-3 py-2.5">
+      <div className="min-w-0">
+        <h4 className="text-sm font-semibold text-slate-100">{title}</h4>
+        {subtitle && <p className="mt-0.5 text-xs leading-snug text-slate-500">{subtitle}</p>}
+      </div>
+      <span className="shrink-0 rounded-lg border border-slate-700 bg-slate-900 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-slate-300 group-open:hidden">Open</span>
+      <span className="hidden shrink-0 rounded-lg border border-slate-700 bg-slate-900 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-slate-300 group-open:inline-flex">Collapse</span>
+    </summary>
+    <div className="border-t border-slate-800 p-2.5">
+      {children}
+    </div>
+  </details>
+);
+
 const GeoDirectionCockpit = ({
   uplink,
   downlink,
@@ -1356,32 +1384,54 @@ const GeoDirectionCockpit = ({
   linkMode,
   networkLayer,
   coverageLabels,
-}: DirectionBlockProps) => {
+  investigationFocus = 'diagnostic',
+}: DirectionBlockProps & { investigationFocus?: GeoInvestigationFocus }) => {
   const satelliteName = uplink.candidate.satelliteName;
   const beamName = uplink.candidate.beamName;
   const band = uplink.candidate.band ?? downlink.candidate.band;
   const uplinkCoverageName = coverageLabels?.uplink ?? coverageLabel(uplink);
   const downlinkCoverageName = coverageLabels?.downlink ?? coverageLabel(downlink);
-  const hasNetworkPanel = !!networkLayer && (linkMode === 'MESH' || linkMode === 'POINT_TO_POINT');
 
   return (
-    <div className="grid h-full min-h-0 grid-rows-[minmax(210px,0.62fr)_auto_minmax(170px,0.45fr)_minmax(165px,0.45fr)] gap-2 min-[1500px]:gap-3">
-      <div className="grid min-h-0 grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-3">
+    <div className="flex flex-col gap-2">
+      <GeoInvestigationSection
+        title="Uplink Segment"
+        subtitle="Source to satellite RF chain — frequency, EIRP, G/T, C/N and margin."
+        defaultOpen={investigationFocus === 'uplink'}
+      >
         <GeoSegmentCockpitPanel type="uplink" seg={uplink} coverageName={uplinkCoverageName} />
+      </GeoInvestigationSection>
+      <GeoInvestigationSection
+        title="Downlink Segment"
+        subtitle="Satellite to destination RF chain — EIRP, G/T, C/N and margin."
+        defaultOpen={investigationFocus === 'downlink'}
+      >
         <GeoSegmentCockpitPanel type="downlink" seg={downlink} coverageName={downlinkCoverageName} />
-      </div>
-      <GeoPayloadCockpitPanel
-        satelliteName={satelliteName}
-        beamName={beamName}
-        band={band}
-        uplinkCoverageName={uplinkCoverageName}
-        downlinkCoverageName={downlinkCoverageName}
-      />
-      <div className={`grid min-h-0 gap-3 ${hasNetworkPanel ? 'xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]' : 'xl:grid-cols-1'}`}>
-        <GeoE2ECockpitPanel e2e={endToEnd} linkMode={linkMode} networkLayer={networkLayer} />
-        <GeoNetworkCockpitPanel nl={networkLayer} linkMode={linkMode} />
-      </div>
-      <GeoDiagnosticFlowPanel uplink={uplink} downlink={downlink} e2e={endToEnd} networkLayer={networkLayer} />
+      </GeoInvestigationSection>
+      <GeoInvestigationSection
+        title="Satellite / Payload"
+        subtitle="Transponder parameters — satellite, beam, band and coverage regions."
+        defaultOpen={investigationFocus === 'payload'}
+      >
+        <GeoPayloadCockpitPanel
+          satelliteName={satelliteName}
+          beamName={beamName}
+          band={band}
+          uplinkCoverageName={uplinkCoverageName}
+          downlinkCoverageName={downlinkCoverageName}
+        />
+      </GeoInvestigationSection>
+      <GeoInvestigationSection
+        title="End-to-End Diagnostic"
+        subtitle="Combined C/N, link margin, limiting segment and network-adjusted throughput."
+        defaultOpen={investigationFocus === 'diagnostic'}
+      >
+        <div className="flex flex-col gap-2">
+          <GeoE2ECockpitPanel e2e={endToEnd} linkMode={linkMode} networkLayer={networkLayer} />
+          <GeoNetworkCockpitPanel nl={networkLayer} linkMode={linkMode} />
+          <GeoDiagnosticFlowPanel uplink={uplink} downlink={downlink} e2e={endToEnd} networkLayer={networkLayer} />
+        </div>
+      </GeoInvestigationSection>
     </div>
   );
 };
@@ -1412,12 +1462,14 @@ export interface DualSegmentPanelProps {
       downlink?: string;
     };
   };
+  investigationFocus?: GeoInvestigationFocus;
   variant?: 'classic' | 'cockpit';
 }
 
 const DualSegmentPanel = memo<DualSegmentPanelProps>(({
   linkMode, result, incompatible,
-  activeMeshTab: controlledTab, onMeshTabChange, satelliteName, satellite, coverageLabels, variant = 'classic',
+  activeMeshTab: controlledTab, onMeshTabChange, satelliteName, satellite, coverageLabels,
+  investigationFocus = 'diagnostic', variant = 'classic',
 }) => {
   const description = LINK_MODE_DESCRIPTIONS[linkMode];
   const [internalTab, setInternalTab] = useState<'forward' | 'reverse'>('forward');
@@ -1558,6 +1610,7 @@ const DualSegmentPanel = memo<DualSegmentPanelProps>(({
             linkMode={linkMode}
             networkLayer={activeNetworkLayer}
             coverageLabels={activeCoverageLabels}
+            investigationFocus={investigationFocus}
           />
         </div>
       </div>

@@ -176,6 +176,45 @@ describe('GEOConnectivitySection topology render smoke tests', () => {
     }
   });
 
+  describe('Level 4 investigation focus', () => {
+    /** True when the nearest <details> tag preceding `text` carries the `open` attribute. */
+    const detailsOpenStateBeforeText = (html: string, text: string): boolean => {
+      const textIndex = html.indexOf(text);
+      const detailsIndex = html.lastIndexOf('<details', textIndex);
+      const tagEnd = html.indexOf('>', detailsIndex);
+      const tag = html.slice(detailsIndex, tagEnd);
+      return /\sopen(=|\s|>|$)/.test(tag);
+    };
+
+    const renderGeoWithDrawer = (linkMode: LinkMode, dualSegmentResult: DualSegmentResult | null) =>
+      renderToStaticMarkup(
+        <GEOConnectivitySection
+          {...baseProps}
+          linkMode={linkMode}
+          dualSegmentResult={dualSegmentResult}
+          pointB={linkMode === 'MESH' || linkMode === 'POINT_TO_POINT' ? { lat: 10, lng: 20 } : null}
+          isLinkBudgetDrawerOpen
+        />
+      );
+
+    it('opens Uplink Segment when uplink is the limiting segment', () => {
+      const html = renderGeoWithDrawer('STAR_FORWARD', makeStarResult(-2));
+
+      expect(detailsOpenStateBeforeText(html, 'Uplink Segment')).toBe(true);
+      expect(detailsOpenStateBeforeText(html, 'Downlink Segment')).toBe(false);
+      expect(detailsOpenStateBeforeText(html, 'End-to-End Diagnostic')).toBe(false);
+    });
+
+    it('opens Downlink Segment when downlink is the limiting segment', () => {
+      const html = renderGeoWithDrawer('STAR_FORWARD', makeStarResult(4.5));
+
+      expect(detailsOpenStateBeforeText(html, 'Uplink Segment')).toBe(false);
+      expect(detailsOpenStateBeforeText(html, 'Downlink Segment')).toBe(true);
+      expect(detailsOpenStateBeforeText(html, 'End-to-End Diagnostic')).toBe(false);
+    });
+
+  });
+
   describe('Answer Block (above-the-fold summary)', () => {
     it('renders before Access Layer and surfaces throughput, bottleneck and a confidence score', () => {
       const html = renderGeo('STAR_FORWARD', makeStarResult(4.5));
