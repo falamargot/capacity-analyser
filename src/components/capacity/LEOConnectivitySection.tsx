@@ -28,6 +28,7 @@ import LatencyBreakdownCard from './shared/LatencyBreakdownCard';
 import LayerHeading from './shared/LayerHeading';
 import { leoBottleneckToTone } from './shared/linkBudgetTone';
 import AnswerBlock from './shared/AnswerBlock';
+import DetailsTogglePill from './shared/DetailsTogglePill';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // TODO: DC Level / Throughput / Power synchronisation (Q2-Q3-Q4)
@@ -833,14 +834,13 @@ const InvestigationSection = ({
   defaultOpen?: boolean;
   children: ReactNode;
 }) => (
-  <details className="group rounded-xl border border-slate-800 bg-slate-950/60" open={defaultOpen}>
+  <details className="group group/investigation rounded-xl border border-slate-800 bg-slate-950/60" open={defaultOpen}>
     <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-3 py-2.5">
       <div className="min-w-0">
         <h4 className="flex items-center gap-2 text-sm font-semibold text-slate-100">{title}</h4>
         {subtitle && <p className="mt-0.5 text-xs leading-snug text-slate-500">{subtitle}</p>}
       </div>
-      <span className="shrink-0 rounded-lg border border-slate-700 bg-slate-900 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-slate-300 group-open:hidden">Open</span>
-      <span className="hidden shrink-0 rounded-lg border border-slate-700 bg-slate-900 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-slate-300 group-open:inline-flex">Collapse</span>
+      <DetailsTogglePill scope="investigation" />
     </summary>
     <div className="border-t border-slate-800 p-2.5">
       {children}

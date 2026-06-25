@@ -203,6 +203,10 @@ describe('GEOConnectivitySection topology render smoke tests', () => {
       expect(detailsOpenStateBeforeText(html, 'Uplink Segment')).toBe(true);
       expect(detailsOpenStateBeforeText(html, 'Downlink Segment')).toBe(false);
       expect(detailsOpenStateBeforeText(html, 'End-to-End Diagnostic')).toBe(false);
+      expect(html).toContain('Show details');
+      expect(html).toContain('Hide details');
+      expect(html).not.toContain('>Open</span>');
+      expect(html).not.toContain('>Collapse</span>');
     });
 
     it('opens Downlink Segment when downlink is the limiting segment', () => {

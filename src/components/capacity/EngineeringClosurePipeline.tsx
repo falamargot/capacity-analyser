@@ -1,0 +1,289 @@
+import type { LinkBudgetWorkspaceClosureStep } from './LinkBudgetWorkspaceFrame';
+
+export type EngineeringClosurePipelineLayout = 'geo' | 'leo-single' | 'leo-s2s';
+
+interface EngineeringClosurePipelineProps {
+  layout: EngineeringClosurePipelineLayout;
+  steps: LinkBudgetWorkspaceClosureStep[];
+  blocked?: boolean;
+}
+
+interface PipelineNodeModel {
+  label: string;
+  value: string;
+  detail?: string;
+  tone?: LinkBudgetWorkspaceClosureStep['tone'];
+}
+
+interface PipelineTransitionModel {
+  label: string;
+  loss?: string;
+  tone?: LinkBudgetWorkspaceClosureStep['tone'];
+}
+
+interface PipelineSegmentModel {
+  node: PipelineNodeModel;
+  transition?: PipelineTransitionModel;
+}
+
+const toneClass: Record<NonNullable<LinkBudgetWorkspaceClosureStep['tone']>, string> = {
+  default: 'text-slate-100',
+  good: 'text-teal-300',
+  warn: 'text-amber-300',
+  danger: 'text-rose-300',
+  accent: 'text-sky-300',
+};
+
+const borderClass: Record<NonNullable<LinkBudgetWorkspaceClosureStep['tone']>, string> = {
+  default: 'border-slate-700 bg-slate-950/55',
+  good: 'border-teal-500/35 bg-teal-950/15',
+  warn: 'border-amber-500/35 bg-amber-950/15',
+  danger: 'border-rose-500/40 bg-rose-950/20',
+  accent: 'border-sky-500/35 bg-sky-950/15',
+};
+
+const findStep = (steps: LinkBudgetWorkspaceClosureStep[], label: string) =>
+  steps.find((step) => step.label.toLowerCase() === label.toLowerCase());
+
+const firstStepStartingWith = (steps: LinkBudgetWorkspaceClosureStep[], label: string) =>
+  steps.find((step) => step.label.toLowerCase().startsWith(label.toLowerCase()));
+
+const outputValue = (step: LinkBudgetWorkspaceClosureStep | undefined) =>
+  step?.output ?? step?.value ?? '--';
+
+const stepTone = (step: LinkBudgetWorkspaceClosureStep | undefined): NonNullable<LinkBudgetWorkspaceClosureStep['tone']> =>
+  step?.tone ?? 'default';
+
+const compactTransformation = (step: LinkBudgetWorkspaceClosureStep | undefined, fallback = 'then') => {
+  const text = step?.transformation ?? step?.detail ?? fallback;
+  return text.replace(/\.$/, '');
+};
+
+const connectorLabelForStep = (step: LinkBudgetWorkspaceClosureStep | undefined) => {
+  if (!step) return 'then';
+  if (step.label === 'Delivered') {
+    const limit = step.detail?.replace(/^Limit:\s*/i, '').trim();
+    if (limit?.toLowerCase() === 'shared capacity') return 'Contention / shared capacity';
+    if (limit && limit !== 'Final user throughput') return `Apply ${limit}`;
+  }
+  if (step.label === 'Shared capacity') return 'Share beam capacity';
+  if (step.label === 'Network load') return 'Apply simulated network load';
+  if (step.label === 'Terminal cap') return 'Clamp to terminal capability';
+  if (step.label === 'Protocol/handover') return 'Apply protocol / handover';
+  return compactTransformation(step);
+};
+
+const nodeLabelForStep = (step: LinkBudgetWorkspaceClosureStep | undefined) => {
+  if (!step) return 'Step';
+  if (step.label === 'Uplink') return 'Uplink C/N';
+  if (step.label === 'Downlink') return 'Downlink C/N';
+  if (step.label === 'Margin') return 'Combined margin';
+  if (step.label === 'RF throughput') return 'MODCOD / RF throughput';
+  if (step.label === 'Protocol efficiency') return 'Protocol efficiency';
+  if (step.label === 'Shared capacity') return 'Shared beam capacity';
+  if (step.label === 'Network load') return 'Simulated network load';
+  if (step.label === 'Protocol/handover') return 'Protocol / handover';
+  if (step.label === 'Delivered') return 'Delivered throughput';
+  return step.label;
+};
+
+const nodeFromStep = (step: LinkBudgetWorkspaceClosureStep | undefined): PipelineNodeModel => ({
+  label: nodeLabelForStep(step),
+  value: outputValue(step),
+  detail: step?.detail,
+  tone: stepTone(step),
+});
+
+const transitionFromStep = (step: LinkBudgetWorkspaceClosureStep | undefined): PipelineTransitionModel => ({
+  label: connectorLabelForStep(step),
+  loss: step?.loss,
+  tone: stepTone(step),
+});
+
+const phaseFromSteps = (
+  start: PipelineNodeModel,
+  steps: Array<LinkBudgetWorkspaceClosureStep | undefined>,
+): PipelineSegmentModel[] => {
+  const segments: PipelineSegmentModel[] = [{ node: start }];
+  steps.filter(Boolean).forEach((step) => {
+    segments[segments.length - 1].transition = transitionFromStep(step);
+    segments.push({ node: nodeFromStep(step) });
+  });
+  return segments;
+};
+
+const screenReaderText = (title: string, segments: PipelineSegmentModel[]) =>
+  `${title}: ${segments.map((segment) => {
+    const transition = segment.transition ? `, then ${segment.transition.label}${segment.transition.loss ? `, loss ${segment.transition.loss}` : ''}` : '';
+    return `${segment.node.label} ${segment.node.value}${transition}`;
+  }).join('; ')}`;
+
+const PipelineNode = ({ node }: { node: PipelineNodeModel }) => (
+  <div className={`min-w-[8.5rem] max-w-[10rem] rounded-lg border px-2.5 py-2 ${borderClass[node.tone ?? 'default']}`}>
+    <div className="text-[9px] font-bold uppercase tracking-wide text-slate-500">{node.label}</div>
+    <div className={`mt-1 break-words text-sm font-bold leading-tight tabular-nums ${toneClass[node.tone ?? 'default']}`}>{node.value}</div>
+    {node.detail && <div className="mt-1 text-[9px] leading-snug text-slate-500">{node.detail}</div>}
+  </div>
+);
+
+const PipelineConnector = ({ transition }: { transition: PipelineTransitionModel }) => (
+  <div className="flex w-[8.25rem] shrink-0 flex-col items-center justify-center gap-1 px-1 text-center" aria-hidden="true">
+    <div className="w-full text-[9px] font-semibold leading-snug text-slate-400">{transition.label}</div>
+    <div className="flex w-full items-center gap-1">
+      <div className="h-px flex-1 bg-slate-700" />
+      <div className="text-slate-500">-&gt;</div>
+      <div className="h-px flex-1 bg-slate-700" />
+    </div>
+    {transition.loss && transition.loss !== '0 Mbps' && transition.loss !== 'no loss' && (
+      <div className={`rounded-full border border-slate-700 bg-slate-950 px-2 py-0.5 text-[9px] font-bold tabular-nums ${toneClass[transition.tone === 'danger' ? 'danger' : 'warn']}`}>
+        {transition.loss}
+      </div>
+    )}
+  </div>
+);
+
+const LinearPhase = ({ title, segments }: { title: string; segments: PipelineSegmentModel[] }) => (
+  <div className="min-w-0">
+    <div className="mb-1.5 text-[10px] font-bold uppercase tracking-wide text-slate-500">{title}</div>
+    <div className="overflow-x-auto">
+      <div className="flex min-w-max items-stretch">
+        {segments.map((segment, index) => (
+          <div key={`${segment.node.label}-${index}`} className="flex items-stretch">
+            <PipelineNode node={segment.node} />
+            {segment.transition && <PipelineConnector transition={segment.transition} />}
+          </div>
+        ))}
+      </div>
+    </div>
+    <p className="sr-only">{screenReaderText(title, segments)}</p>
+  </div>
+);
+
+const GeoPipeline = ({ steps, blocked }: { steps: LinkBudgetWorkspaceClosureStep[]; blocked?: boolean }) => {
+  const uplink = findStep(steps, 'Uplink');
+  const payload = findStep(steps, 'Payload');
+  const downlink = findStep(steps, 'Downlink');
+  const margin = findStep(steps, 'Margin');
+  const rfThroughput = findStep(steps, 'RF throughput');
+  const protocol = findStep(steps, 'Protocol efficiency');
+  const delivered = findStep(steps, 'Delivered');
+
+  if (blocked) {
+    const blockedSegments = phaseFromSteps(
+      { label: 'Start', value: uplink?.input ?? 'Selected GEO route' },
+      [
+        uplink,
+        payload,
+        downlink,
+        margin,
+        {
+          label: 'Below threshold',
+          transformation: 'Compare combined margin with the closing threshold.',
+          output: 'Below threshold',
+          tone: 'danger',
+        },
+        {
+          label: 'Delivered',
+          transformation: 'No MODCOD throughput can be delivered.',
+          output: delivered?.output ?? rfThroughput?.output ?? '0 Mbps',
+          tone: 'danger',
+        },
+      ]
+    );
+    return <LinearPhase title="RF closure" segments={blockedSegments} />;
+  }
+
+  const rfSegments = phaseFromSteps(
+    { label: 'Start', value: uplink?.input ?? 'Selected GEO route' },
+    [uplink, payload, downlink, margin, rfThroughput]
+  );
+  const networkSegments = phaseFromSteps(
+    nodeFromStep(rfThroughput),
+    [protocol, delivered]
+  );
+
+  return (
+    <div className="grid gap-3">
+      <LinearPhase title="RF closure" segments={rfSegments} />
+      {(protocol || delivered) && <LinearPhase title="Network shaping" segments={networkSegments} />}
+    </div>
+  );
+};
+
+const LeoSinglePipeline = ({ steps }: { steps: LinkBudgetWorkspaceClosureStep[] }) => {
+  const rf = findStep(steps, 'RF throughput') ?? steps[0];
+  const remaining = [
+    findStep(steps, 'Shared capacity'),
+    findStep(steps, 'Network load'),
+    findStep(steps, 'Terminal cap'),
+    findStep(steps, 'Protocol/handover'),
+    findStep(steps, 'Delivered'),
+  ];
+
+  return (
+    <LinearPhase
+      title="LEO single-site closure"
+      segments={phaseFromSteps({ label: 'Start', value: rf?.input ?? 'RF path' }, [rf, ...remaining])}
+    />
+  );
+};
+
+const BranchNode = ({ title, step }: { title: string; step: LinkBudgetWorkspaceClosureStep | undefined }) => (
+  <div className={`min-w-0 rounded-lg border px-3 py-2 ${borderClass[stepTone(step)]}`}>
+    <div className="text-[10px] font-bold uppercase tracking-wide text-slate-500">{title}</div>
+    <div className={`mt-1 text-base font-black tabular-nums ${toneClass[stepTone(step)]}`}>{outputValue(step)}</div>
+    <div className="mt-1 text-[10px] leading-snug text-slate-400">{compactTransformation(step, 'Access constraint')}</div>
+    {step?.loss && <div className="mt-1 text-[10px] font-bold tabular-nums text-amber-300">{step.loss}</div>}
+  </div>
+);
+
+const LeoSiteToSitePipeline = ({ steps }: { steps: LinkBudgetWorkspaceClosureStep[] }) => {
+  const source = firstStepStartingWith(steps, 'Access');
+  const destination = steps.filter((step) => step.label.startsWith('Access'))[1];
+  const backbone = findStep(steps, 'Backbone');
+  const delivered = findStep(steps, 'Delivered');
+  const selectedLimit = `min(${outputValue(source)}, ${outputValue(destination)}) = ${outputValue(delivered)}`;
+
+  return (
+    <div>
+      <div className="mb-1.5 text-[10px] font-bold uppercase tracking-wide text-slate-500">Branch / merge access closure</div>
+      <div className="grid min-w-0 items-stretch gap-2 lg:grid-cols-[minmax(0,1fr)_10rem_minmax(0,1fr)_10rem_minmax(0,1fr)]">
+        <BranchNode title="Source access" step={source} />
+        <div className="flex flex-col items-center justify-center gap-1 text-center text-[10px] font-semibold text-slate-400" aria-hidden="true">
+          <span>compare access legs</span>
+          <span className="text-slate-500">-&gt;</span>
+        </div>
+        <BranchNode title="Destination access" step={destination} />
+        <div className="flex flex-col items-center justify-center gap-1 text-center text-[10px] font-semibold text-slate-400" aria-hidden="true">
+          <span>select lower rate</span>
+          <span className="text-slate-500">-&gt;</span>
+        </div>
+        <div className={`rounded-lg border px-3 py-2 ${borderClass[stepTone(delivered)]}`}>
+          <div className="text-[10px] font-bold uppercase tracking-wide text-slate-500">Delivered throughput</div>
+          <div className={`mt-1 text-base font-black tabular-nums ${toneClass[stepTone(delivered)]}`}>{outputValue(delivered)}</div>
+          <div className="mt-1 text-[10px] leading-snug text-slate-400">Selected limit: {selectedLimit}</div>
+          {delivered?.loss && <div className="mt-1 text-[10px] font-bold tabular-nums text-amber-300">{delivered.loss}</div>}
+        </div>
+      </div>
+      {backbone && (
+        <div className="mt-2 rounded-lg border border-slate-800 bg-slate-950/35 px-3 py-2 text-xs text-slate-300">
+          <span className="font-bold uppercase tracking-wide text-slate-500">Backbone context: </span>
+          {backbone.output ?? backbone.value ?? '--'}
+          {backbone.input && <span className="text-slate-500"> via {backbone.input}</span>}
+        </div>
+      )}
+      <p className="sr-only">
+        Site-to-site closure compares source access {outputValue(source)} and destination access {outputValue(destination)}.
+        The selected limit is {selectedLimit}. Backbone latency is {backbone?.output ?? '--'}.
+      </p>
+    </div>
+  );
+};
+
+const EngineeringClosurePipeline = ({ layout, steps, blocked = false }: EngineeringClosurePipelineProps) => {
+  if (layout === 'geo') return <GeoPipeline steps={steps} blocked={blocked} />;
+  if (layout === 'leo-s2s') return <LeoSiteToSitePipeline steps={steps} />;
+  return <LeoSinglePipeline steps={steps} />;
+};
+
+export default EngineeringClosurePipeline;

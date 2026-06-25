@@ -8,6 +8,7 @@ import {
 } from '../../../utils/engineeringAnalysisViewModel';
 import type { DualSegmentResult } from '../../../utils/geoDualSegmentBudget';
 import type { LeoThroughputLeg, LeoThroughputResult } from '../../../types/leoThroughput';
+import type { LeoSiteToSiteResult } from '../../../utils/leoSiteToSiteModel';
 import { buildPredictionConfidence, positiveFactor, missingFactor } from '../../../utils/predictionConfidence';
 
 const geoSegment = (marginDb: number, cnDb = 18) => ({
@@ -217,6 +218,8 @@ describe('EngineeringAnalysisWorkspace render smoke tests', () => {
 
     expect(html).toContain('Blocked');
     expect(html).toContain('border-rose-400/70');
+    expect(html).toContain('Below threshold');
+    expect(html).toContain('No MODCOD throughput can be delivered');
   });
 
   it('keeps the Detailed Investigation section collapsed by default', () => {
@@ -230,10 +233,27 @@ describe('EngineeringAnalysisWorkspace render smoke tests', () => {
       </EngineeringAnalysisWorkspace>
     );
 
-    expect(html).toMatch(/<details class="group rounded-xl[^"]*"(?!\s+open)/);
+    expect(html).toMatch(/<details class="group(?:\s+group\/workspace)?\s+rounded-xl[^"]*"(?!\s+open)/);
   });
 
-  it('renders a throughput waterfall for a GEO chain with protocol/delivered steps', () => {
+  it('uses a two-state details control for the Level 4 investigation section', () => {
+    const viewModel = buildGeoEngineeringAnalysisViewModel({
+      linkMode: 'STAR_FORWARD',
+      result: makeGeoResult(4.5),
+    });
+    const html = renderToStaticMarkup(
+      <EngineeringAnalysisWorkspace open onClose={() => undefined} viewModel={viewModel}>
+        <div>Level 4 body</div>
+      </EngineeringAnalysisWorkspace>
+    );
+
+    expect(html).toContain('Show details');
+    expect(html).toContain('Hide details');
+    expect(html).not.toContain('>Open</span>');
+    expect(html).not.toContain('>Collapse</span>');
+  });
+
+  it('renders a phased GEO engineering closure pipeline', () => {
     const viewModel = buildGeoEngineeringAnalysisViewModel({
       linkMode: 'STAR_FORWARD',
       result: makeGeoResult(4.5),
@@ -244,10 +264,18 @@ describe('EngineeringAnalysisWorkspace render smoke tests', () => {
       </EngineeringAnalysisWorkspace>
     );
 
-    expect(html).toContain('Throughput waterfall');
+    expect(html).toContain('RF closure');
+    expect(html).toContain('Network shaping');
+    expect(html).toContain('Uplink C/N');
+    expect(html).toContain('Combined margin');
+    expect(html).toContain('MODCOD / RF throughput');
+    expect(html).toContain('Protocol efficiency');
+    expect(html).toContain('Contention / shared capacity');
+    expect(html).toContain('Delivered throughput');
+    expect(html).not.toContain('Throughput waterfall');
   });
 
-  it('renders a throughput waterfall for the LEO single-site closure chain', () => {
+  it('renders a LEO single-site engineering closure pipeline', () => {
     const viewModel = buildLeoEngineeringAnalysisViewModel({
       debugInfo: makeLeoResult(18, 12),
     });
@@ -257,7 +285,46 @@ describe('EngineeringAnalysisWorkspace render smoke tests', () => {
       </EngineeringAnalysisWorkspace>
     );
 
-    expect(html).toContain('Throughput waterfall');
+    expect(html).toContain('LEO single-site closure');
+    expect(html).toContain('MODCOD / RF throughput');
+    expect(html).toContain('Shared beam capacity');
+    expect(html).toContain('Simulated network load');
+    expect(html).toContain('Terminal cap');
+    expect(html).toContain('Protocol / handover');
+    expect(html).toContain('Delivered throughput');
+    expect(html).not.toContain('no loss</div>');
+    expect(html).not.toContain('Throughput waterfall');
+  });
+
+  it('renders a LEO site-to-site branch and merge closure pipeline', () => {
+    const siteToSiteResult = {
+      serviceAvailable: true,
+      finalThroughputAtoBMbps: 5,
+      finalThroughputBtoAMbps: 9,
+      oneWayLatencyAtoBMs: 34,
+      oneWayLatencyBtoAMs: 38,
+    } as LeoSiteToSiteResult;
+    const viewModel = buildLeoEngineeringAnalysisViewModel({
+      debugInfo: makeLeoResult(18, 12),
+      siteToSiteResult,
+      siteToSiteDirection: 'A_TO_B',
+      debugInfoSiteA: makeLeoResult(18, 5),
+      debugInfoSiteB: makeLeoResult(13, 12),
+      snpAName: 'SNP-A',
+      snpBName: 'SNP-B',
+    });
+    const html = renderToStaticMarkup(
+      <EngineeringAnalysisWorkspace open onClose={() => undefined} viewModel={viewModel}>
+        <div />
+      </EngineeringAnalysisWorkspace>
+    );
+
+    expect(html).toContain('Branch / merge access closure');
+    expect(html).toContain('Source access');
+    expect(html).toContain('Destination access');
+    expect(html).toContain('Selected limit: min(5 Mbps, 13 Mbps) = 5 Mbps');
+    expect(html).toContain('Backbone context:');
+    expect(html).toContain('34.0 ms');
   });
 
   it('renders the confidence factor breakdown when a structured PredictionConfidence is supplied', () => {

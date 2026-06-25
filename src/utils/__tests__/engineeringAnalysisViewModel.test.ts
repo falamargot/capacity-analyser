@@ -200,6 +200,7 @@ describe('engineering analysis view model', () => {
     expect(viewModel.mode).toBe('LEO');
     expect(viewModel.status).toBe('available');
     expect(viewModel.closure.type).toBe('leo-closure');
+    expect(viewModel.closure.layout).toBe('leo-single');
     expectRenderableWorkspace(viewModel);
 
     const numericSteps = viewModel.closure.steps.filter(
@@ -266,6 +267,7 @@ describe('engineering analysis view model', () => {
       expect(viewModel.resultSummary).toBeDefined();
       expect(viewModel.why).toBeDefined();
       expect(viewModel.closure).toBeDefined();
+      expect(viewModel.closure.layout).toMatch(/^(geo|leo-s2s)$/);
       expect(viewModel.details[0].sections.length).toBeGreaterThan(0);
       expectRenderableWorkspace(viewModel);
     });

@@ -71,6 +71,7 @@ export interface EngineeringAnalysisViewModel {
   };
   closure: {
     type: 'geo-closure' | 'leo-closure';
+    layout: 'geo' | 'leo-single' | 'leo-s2s';
     title: string;
     steps: EngineeringClosureStep[];
   };
@@ -268,6 +269,7 @@ export function buildGeoEngineeringAnalysisViewModel(input: BuildGeoEngineeringA
     },
     closure: {
       type: 'geo-closure',
+      layout: 'geo',
       title: 'GEO closure path',
       steps: closureSteps,
     },
@@ -517,6 +519,7 @@ export function buildLeoEngineeringAnalysisViewModel(input: BuildLeoEngineeringA
     },
     closure: {
       type: 'leo-closure',
+      layout: isS2S ? 'leo-s2s' : 'leo-single',
       title: isS2S ? 'LEO site-to-site closure path' : 'LEO throughput closure',
       steps: closureSteps,
     },

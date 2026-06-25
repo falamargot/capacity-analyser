@@ -1,7 +1,8 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { FoldVertical, UnfoldVertical, X } from 'lucide-react';
-import ThroughputWaterfall from './ThroughputWaterfall';
 import ConfidenceBreakdown from './ConfidenceBreakdown';
+import DetailsTogglePill from './shared/DetailsTogglePill';
+import EngineeringClosurePipeline, { type EngineeringClosurePipelineLayout } from './EngineeringClosurePipeline';
 import type { PredictionConfidence } from '../../utils/predictionConfidence';
 
 export interface LinkBudgetWorkspaceMetric {
@@ -58,6 +59,7 @@ interface LinkBudgetWorkspaceFrameProps {
   result?: LinkBudgetWorkspaceResult;
   why?: LinkBudgetWorkspaceWhy;
   closureTitle?: string;
+  closureLayout?: EngineeringClosurePipelineLayout;
   closureSteps?: LinkBudgetWorkspaceClosureStep[];
   investigationTitle?: string;
   investigationSummary?: string;
@@ -94,26 +96,18 @@ const whyClass: Record<NonNullable<LinkBudgetWorkspaceWhy['tone']>, string> = {
   danger: 'border-rose-500/45 bg-rose-950/25 text-rose-100',
 };
 
-const transitionLabel = (detail?: string) => {
-  if (!detail) return 'then';
-  const normalized = detail.replace(/\.$/, '');
-  return normalized.length > 44 ? `${normalized.slice(0, 41)}...` : normalized;
-};
-
 const accentClass = {
   blue: {
     eyebrow: 'text-sky-700 dark:text-sky-300',
     rail: 'from-slate-600 via-sky-500 to-slate-600',
     badge: 'border-slate-300 bg-slate-100 text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300',
     closure: 'border-sky-500/35 bg-sky-500/10',
-    closureLine: 'bg-sky-500/45',
   },
   pink: {
     eyebrow: 'text-slate-700 dark:text-slate-300',
     rail: 'from-slate-600 via-slate-400 to-slate-600',
     badge: 'border-slate-300 bg-slate-100 text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300',
     closure: 'border-rose-500/35 bg-rose-500/10',
-    closureLine: 'bg-rose-500/45',
   },
 };
 
@@ -162,6 +156,7 @@ const LinkBudgetWorkspaceFrame = ({
   result,
   why,
   closureTitle = 'Engineering closure',
+  closureLayout = 'geo',
   closureSteps = [],
   investigationTitle = 'Detailed investigation',
   investigationSummary = 'Topology, RF context, per-segment budgets, network effects and diagnostic flow remain available here.',
@@ -377,63 +372,17 @@ const LinkBudgetWorkspaceFrame = ({
                     </div>
                     <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Explains how the result was produced</div>
                   </div>
-                  <div className="mt-3 flex min-w-0 flex-col gap-3 xl:flex-row xl:items-start">
-                    <div className="shrink-0 overflow-x-auto">
-                      <ThroughputWaterfall steps={closureSteps} accent={accent} />
-                    </div>
-                    <div className="min-w-0 flex-1 grid gap-1.5 [grid-template-columns:repeat(auto-fit,minmax(min(100%,11rem),1fr))]">
-                      {closureSteps.map((step, index) => (
-                        <div key={`${step.label}-${index}`} className="relative min-w-0 rounded-lg border border-slate-800 bg-slate-950/55 px-2.5 py-2">
-                          {index > 0 && (
-                            <div className="absolute -left-2 top-1/2 hidden w-4 -translate-y-1/2 min-[1500px]:block" aria-hidden="true">
-                              <div className={`h-px w-full ${colors.closureLine}`} />
-                              <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-[calc(100%+0.45rem)] whitespace-nowrap rounded-full border border-slate-700 bg-slate-950 px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wide text-slate-500">
-                                ↓ {transitionLabel(step.label)}
-                              </div>
-                            </div>
-                          )}
-                          <div className="text-[10px] font-bold uppercase tracking-wide text-slate-500">{step.label}</div>
-                          {step.input || step.transformation || step.output ? (
-                            <div className="mt-1.5 grid gap-1">
-                              <div>
-                                <div className="text-[8px] font-bold uppercase tracking-wide text-slate-600">Input</div>
-                                <div className="mt-0.5 break-words text-[12px] font-semibold tabular-nums text-slate-300">{step.input ?? step.value ?? '--'}</div>
-                              </div>
-                              <div>
-                                <div className="text-[8px] font-bold uppercase tracking-wide text-slate-600">Transformation</div>
-                                <div
-                                  className="mt-0.5 overflow-hidden text-[9px] leading-snug text-slate-500 [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2]"
-                                  title={step.transformation ?? step.detail ?? undefined}
-                                >
-                                  {step.transformation ?? step.detail ?? '--'}
-                                </div>
-                              </div>
-                              <div className="flex items-end justify-between gap-2">
-                                <div className="min-w-0">
-                                  <div className="text-[8px] font-bold uppercase tracking-wide text-slate-600">Output</div>
-                                  <div className={`mt-0.5 break-words text-[13px] font-bold tabular-nums ${toneClass[step.tone ?? 'default']}`}>{step.output ?? step.value ?? '--'}</div>
-                                </div>
-                                {step.loss && (
-                                  <div className="shrink-0 rounded-md border border-slate-700 bg-slate-900 px-1.5 py-0.5 text-[9px] font-semibold tabular-nums text-amber-300">
-                                    {step.loss}
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                          ) : (
-                            <>
-                              {step.value && <div className={`mt-1 break-words text-base font-semibold tabular-nums ${toneClass[step.tone ?? 'default']}`}>{step.value}</div>}
-                              {step.detail && <div className="mt-1 text-[10px] leading-snug text-slate-500">{step.detail}</div>}
-                            </>
-                          )}
-                        </div>
-                      ))}
-                    </div>
+                  <div className="mt-3 min-w-0">
+                    <EngineeringClosurePipeline
+                      layout={closureLayout}
+                      steps={closureSteps}
+                      blocked={result?.statusTone === 'danger'}
+                    />
                   </div>
                 </section>
               )}
 
-              <details className="group rounded-xl border border-slate-800 bg-slate-950/75 shadow-[inset_0_1px_0_rgba(255,255,255,0.025)]" open={defaultInvestigationOpen}>
+              <details className="group group/workspace rounded-xl border border-slate-800 bg-slate-950/75 shadow-[inset_0_1px_0_rgba(255,255,255,0.025)]" open={defaultInvestigationOpen}>
                 <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-3 py-2.5">
                   <div className="min-w-0">
                     <div className="text-[10px] font-bold uppercase tracking-wide text-slate-500">Level 4</div>
@@ -447,11 +396,10 @@ const LinkBudgetWorkspaceFrame = ({
                       ))}
                     </div>
                   </div>
-                  <span className="shrink-0 rounded-lg border border-slate-700 bg-slate-900 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-slate-300 group-open:hidden">Open</span>
-                  <span className="hidden shrink-0 rounded-lg border border-slate-700 bg-slate-900 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-slate-300 group-open:inline-flex">Collapse</span>
+                  <DetailsTogglePill scope="workspace" />
                 </summary>
                 <div className="border-t border-slate-800 p-3">
-                  <div className="h-[min(920px,calc(100vh-18rem))] min-h-[560px]">
+                  <div className="min-h-[240px]">
                     {children}
                   </div>
                 </div>

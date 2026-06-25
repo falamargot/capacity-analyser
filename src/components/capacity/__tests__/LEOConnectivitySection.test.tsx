@@ -342,6 +342,10 @@ describe('LEOConnectivitySection topology render smoke tests', () => {
       expect(html).not.toContain('Backbone Investigation');
       expect(detailsOpenStateBeforeText(html, 'Site A Investigation')).toBe(true);
       expect(detailsOpenStateBeforeText(html, 'Terminal Investigation')).toBe(false);
+      expect(html).toContain('Show details');
+      expect(html).toContain('Hide details');
+      expect(html).not.toContain('>Open</span>');
+      expect(html).not.toContain('>Collapse</span>');
     });
 
     it('SITE_TO_SITE: shows Site A, Site B, Backbone and Terminal investigation sections, only Site A expanded by default', () => {

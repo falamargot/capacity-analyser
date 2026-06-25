@@ -23,6 +23,7 @@ import { loadNormalizedPublicTranspondersBySatelliteId } from '../../services/fr
 import { matchPublicTransponders } from '../../services/frequencyPlan/publicTransponderMatcher';
 import { applyPublicFrequencyMatchToContext, buildGeoRfContext } from '../../services/geo/rfContextService';
 import type { UplinkRequirement } from '../../utils/geoTerminalRFModel';
+import DetailsTogglePill from './shared/DetailsTogglePill';
 
 // ─── Formatters ───────────────────────────────────────────────────────────────
 
@@ -1362,14 +1363,13 @@ const GeoInvestigationSection = ({
   defaultOpen?: boolean;
   children: ReactNode;
 }) => (
-  <details className="group rounded-xl border border-slate-800 bg-slate-950/60" open={defaultOpen}>
+  <details className="group group/investigation rounded-xl border border-slate-800 bg-slate-950/60" open={defaultOpen}>
     <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-3 py-2.5">
       <div className="min-w-0">
         <h4 className="text-sm font-semibold text-slate-100">{title}</h4>
         {subtitle && <p className="mt-0.5 text-xs leading-snug text-slate-500">{subtitle}</p>}
       </div>
-      <span className="shrink-0 rounded-lg border border-slate-700 bg-slate-900 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-slate-300 group-open:hidden">Open</span>
-      <span className="hidden shrink-0 rounded-lg border border-slate-700 bg-slate-900 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-slate-300 group-open:inline-flex">Collapse</span>
+      <DetailsTogglePill scope="investigation" />
     </summary>
     <div className="border-t border-slate-800 p-2.5">
       {children}
@@ -1589,12 +1589,12 @@ const DualSegmentPanel = memo<DualSegmentPanelProps>(({
       : resultWithRfContext!.networkLayer?.forward;
 
     return (
-      <div className="grid h-full min-h-0 grid-cols-[minmax(260px,0.72fr)_minmax(0,1.9fr)] gap-3 text-xs">
-        <div className="grid min-h-0 grid-rows-[auto_minmax(0,1fr)] gap-3">
+      <div className="grid grid-cols-[minmax(260px,0.72fr)_minmax(0,1.9fr)] gap-3 text-xs">
+        <div className="flex flex-col gap-3">
           <GeoTopologyCockpitPanel linkMode={linkMode} mode={result.transponderMode} satelliteName={satelliteName} />
           {rfContext && <GeoRfContextCockpitPanel context={rfContext} />}
         </div>
-        <div className={isMesh && !directionControlled ? 'grid min-h-0 grid-rows-[auto_minmax(0,1fr)] gap-3' : 'h-full min-h-0'}>
+        <div className={isMesh && !directionControlled ? 'flex flex-col gap-3' : undefined}>
           {isMesh && !directionControlled && (
             <MeshDirectionTabs
               forwardLabel={forwardLabel}

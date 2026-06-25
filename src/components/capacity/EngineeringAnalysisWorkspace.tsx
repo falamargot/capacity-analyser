@@ -101,6 +101,7 @@ const EngineeringAnalysisWorkspace = ({
       result={result}
       why={why}
       closureTitle={viewModel.closure.title}
+      closureLayout={viewModel.closure.layout}
       closureSteps={viewModel.closure.steps.map(toClosureStep)}
       investigationTitle={details?.title ?? 'Detailed investigation'}
       investigationSummary={details?.summary ?? 'Detailed engineering investigation remains available here.'}
