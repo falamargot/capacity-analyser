@@ -2506,10 +2506,61 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
 
   if (!selectedPoint && !selectedSatellite) {
     return (
-      <div className="h-full bg-white dark:bg-slate-900 rounded-lg shadow-lg p-6 flex items-center justify-center text-gray-500 dark:text-gray-400 border border-gray-100 dark:border-slate-800 transition-colors duration-300">
-        <div className="space-y-2 text-center">
-          <p className="text-lg font-semibold text-gray-700 dark:text-gray-200">No active target</p>
-          <p className="text-sm">Click on the globe to analyze satellite capacity</p>
+      <div className="flex h-full flex-col rounded-lg border border-gray-100 bg-white p-5 shadow-lg transition-colors duration-300 dark:border-slate-800 dark:bg-slate-900">
+        <div className="max-w-sm">
+          <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400 dark:text-slate-500">
+            Analysis standby
+          </div>
+          <h2 className="mt-2 text-xl font-semibold tracking-tight text-slate-950 dark:text-slate-50">
+            Build a satellite connection profile
+          </h2>
+          <p className="mt-2 text-sm leading-5 text-slate-600 dark:text-slate-300">
+            Choose a position on the globe to resolve coverage, capacity, RF conditions and service constraints.
+          </p>
+        </div>
+
+        <div className="mt-6 space-y-4">
+          <div className="grid grid-cols-[4.5rem_minmax(0,1fr)] gap-4">
+            <div className="text-[11px] font-bold uppercase tracking-[0.14em] text-slate-400 dark:text-slate-500">
+              Origin
+            </div>
+            <div>
+              <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+                Click the globe
+              </div>
+              <p className="mt-1 text-xs leading-5 text-slate-500 dark:text-slate-400">
+                Location, weather, regulatory and link-budget context appear here.
+              </p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-[4.5rem_minmax(0,1fr)] gap-4">
+            <div className="text-[11px] font-bold uppercase tracking-[0.14em] text-slate-400 dark:text-slate-500">
+              Path
+            </div>
+            <div>
+              <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+                Add a destination when needed
+              </div>
+              <p className="mt-1 text-xs leading-5 text-slate-500 dark:text-slate-400">
+                Shift-click to evaluate site-to-site connectivity and direction-dependent budgets.
+              </p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-[4.5rem_minmax(0,1fr)] gap-4">
+            <div className="text-[11px] font-bold uppercase tracking-[0.14em] text-slate-400 dark:text-slate-500">
+              Output
+            </div>
+            <div>
+              <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+                Compare GEO and LEO service paths
+              </div>
+              <p className="mt-1 text-xs leading-5 text-slate-500 dark:text-slate-400">
+                Review throughput, latency, bottlenecks, RF availability and satellite evidence.
+              </p>
+            </div>
+          </div>
         </div>
       </div>
     );

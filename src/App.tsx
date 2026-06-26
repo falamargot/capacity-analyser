@@ -3821,8 +3821,8 @@ const App: React.FC = () => {
 
     return {
       eyebrow: 'Ready',
-      title: 'No active target',
-      subtitle: 'Click on the globe to analyze satellite capacity',
+      title: 'Select an origin',
+      subtitle: 'Click the globe to begin a GEO / LEO link analysis',
       footer: null,
       tone: 'idle' as const,
       badges: [
