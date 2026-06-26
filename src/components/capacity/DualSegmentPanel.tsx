@@ -1350,8 +1350,6 @@ const GeoDiagnosticFlowPanel = ({
   );
 };
 
-type GeoInvestigationFocus = 'uplink' | 'downlink' | 'payload' | 'diagnostic';
-
 const GeoInvestigationSection = ({
   title,
   subtitle,
@@ -1384,8 +1382,7 @@ const GeoDirectionCockpit = ({
   linkMode,
   networkLayer,
   coverageLabels,
-  investigationFocus = 'diagnostic',
-}: DirectionBlockProps & { investigationFocus?: GeoInvestigationFocus }) => {
+}: DirectionBlockProps) => {
   const satelliteName = uplink.candidate.satelliteName;
   const beamName = uplink.candidate.beamName;
   const band = uplink.candidate.band ?? downlink.candidate.band;
@@ -1397,21 +1394,18 @@ const GeoDirectionCockpit = ({
       <GeoInvestigationSection
         title="Uplink Segment"
         subtitle="Source to satellite RF chain — frequency, EIRP, G/T, C/N and margin."
-        defaultOpen={investigationFocus === 'uplink'}
       >
         <GeoSegmentCockpitPanel type="uplink" seg={uplink} coverageName={uplinkCoverageName} />
       </GeoInvestigationSection>
       <GeoInvestigationSection
         title="Downlink Segment"
         subtitle="Satellite to destination RF chain — EIRP, G/T, C/N and margin."
-        defaultOpen={investigationFocus === 'downlink'}
       >
         <GeoSegmentCockpitPanel type="downlink" seg={downlink} coverageName={downlinkCoverageName} />
       </GeoInvestigationSection>
       <GeoInvestigationSection
         title="Satellite / Payload"
         subtitle="Transponder parameters — satellite, beam, band and coverage regions."
-        defaultOpen={investigationFocus === 'payload'}
       >
         <GeoPayloadCockpitPanel
           satelliteName={satelliteName}
@@ -1424,7 +1418,6 @@ const GeoDirectionCockpit = ({
       <GeoInvestigationSection
         title="End-to-End Diagnostic"
         subtitle="Combined C/N, link margin, limiting segment and network-adjusted throughput."
-        defaultOpen={investigationFocus === 'diagnostic'}
       >
         <div className="flex flex-col gap-2">
           <GeoE2ECockpitPanel e2e={endToEnd} linkMode={linkMode} networkLayer={networkLayer} />
@@ -1462,14 +1455,13 @@ export interface DualSegmentPanelProps {
       downlink?: string;
     };
   };
-  investigationFocus?: GeoInvestigationFocus;
   variant?: 'classic' | 'cockpit';
 }
 
 const DualSegmentPanel = memo<DualSegmentPanelProps>(({
   linkMode, result, incompatible,
   activeMeshTab: controlledTab, onMeshTabChange, satelliteName, satellite, coverageLabels,
-  investigationFocus = 'diagnostic', variant = 'classic',
+  variant = 'classic',
 }) => {
   const description = LINK_MODE_DESCRIPTIONS[linkMode];
   const [internalTab, setInternalTab] = useState<'forward' | 'reverse'>('forward');
@@ -1610,7 +1602,6 @@ const DualSegmentPanel = memo<DualSegmentPanelProps>(({
             linkMode={linkMode}
             networkLayer={activeNetworkLayer}
             coverageLabels={activeCoverageLabels}
-            investigationFocus={investigationFocus}
           />
         </div>
       </div>

@@ -376,7 +376,7 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
     }
   }, [activeConnTab, setActiveConnTab]);
   type ActiveEngineeringAnalysisMode = 'LEO' | 'GEO';
-  const automaticEngineeringAnalysisMode: ActiveEngineeringAnalysisMode | null = presentationMode === 'workspace'
+  const automaticEngineeringAnalysisMode: ActiveEngineeringAnalysisMode | null = presentationMode === 'workspace' && selectedPoint
     ? showGeoConnectivity
       ? 'GEO'
       : showLeoConnectivity
@@ -386,13 +386,15 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
   const automaticEngineeringAnalysisSignature = `${presentationMode}:${activeConnTab}:${satelliteScope}`;
   const [manualEngineeringAnalysisMode, setManualEngineeringAnalysisMode] = useState<ActiveEngineeringAnalysisMode | null>(null);
   const [dismissedAutomaticEngineeringAnalysisSignature, setDismissedAutomaticEngineeringAnalysisSignature] = useState<string | null>(null);
-  const activeEngineeringAnalysisMode =
-    automaticEngineeringAnalysisMode && dismissedAutomaticEngineeringAnalysisSignature !== automaticEngineeringAnalysisSignature
+  const activeEngineeringAnalysisMode = selectedPoint == null
+    ? null
+    : automaticEngineeringAnalysisMode && dismissedAutomaticEngineeringAnalysisSignature !== automaticEngineeringAnalysisSignature
       ? automaticEngineeringAnalysisMode
       : manualEngineeringAnalysisMode;
   const isLeoLinkBudgetDrawerOpen = activeEngineeringAnalysisMode === 'LEO';
   const isGeoLinkBudgetDrawerOpen = activeEngineeringAnalysisMode === 'GEO';
   const isDetailedEngineeringOpen = activeEngineeringAnalysisMode != null;
+  const [isLinkBudgetDetailExpanded, setIsLinkBudgetDetailExpanded] = useState(false);
 
   const setLeoLinkBudgetDrawerOpen = useCallback((value: boolean | ((prev: boolean) => boolean)) => {
     const next = typeof value === 'function' ? value(isLeoLinkBudgetDrawerOpen) : value;
@@ -420,6 +422,11 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
       setManualEngineeringAnalysisMode(visibleMode);
     }
   }, [activeConnTab, automaticEngineeringAnalysisMode, manualEngineeringAnalysisMode, satelliteScope]);
+
+  useEffect(() => {
+    if (selectedPoint) return;
+    setManualEngineeringAnalysisMode(null);
+  }, [selectedPoint]);
 
   useEffect(() => {
     onDetailedEngineeringOpenChange?.(isDetailedEngineeringOpen);
@@ -2634,6 +2641,8 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
                   onActiveMeshTabChange={onActiveMeshTabChange}
                   isLinkBudgetDrawerOpen={isLeoLinkBudgetDrawerOpen}
                   onLinkBudgetDrawerOpenChange={setLeoLinkBudgetDrawerOpen}
+                  isLinkBudgetDetailExpanded={isLinkBudgetDetailExpanded}
+                  onLinkBudgetDetailExpandedChange={setIsLinkBudgetDetailExpanded}
                   terminalTypeB={leoTerminalTypeB ?? leoTerminalType}
                   onTerminalTypeBChange={onLeoTerminalTypeBChange}
                   terminalModelIdB={selectedLeoTerminalProfileB.id}
@@ -2673,6 +2682,8 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
                   onLeoTopologyModeChange={onLeoTopologyModeChange}
                   isLinkBudgetDrawerOpen={isLeoLinkBudgetDrawerOpen}
                   onLinkBudgetDrawerOpenChange={setLeoLinkBudgetDrawerOpen}
+                  isLinkBudgetDetailExpanded={isLinkBudgetDetailExpanded}
+                  onLinkBudgetDetailExpandedChange={setIsLinkBudgetDetailExpanded}
                 />
                   )}
                 </div>
@@ -2732,6 +2743,8 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
                     validSatelliteIds={validSatelliteIds}
                     isLinkBudgetDrawerOpen={isGeoLinkBudgetDrawerOpen}
                     onLinkBudgetDrawerOpenChange={setGeoLinkBudgetDrawerOpen}
+                    isLinkBudgetDetailExpanded={isLinkBudgetDetailExpanded}
+                    onLinkBudgetDetailExpandedChange={setIsLinkBudgetDetailExpanded}
                   />
                 </div>
               )}

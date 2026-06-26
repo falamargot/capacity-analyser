@@ -50,6 +50,7 @@ import {
 import {
   BoundingSphere,
   Cartesian3,
+  EasingFunction,
   HeadingPitchRange,
   JulianDate,
   Math as CesiumMath,
@@ -131,6 +132,7 @@ import {
   connectivityScenarioTypeFromDestinationType,
   scenarioToConnectivityScenarioCard,
 } from './utils/connectivityScenarioCardProjection';
+import { computeEngineeringCameraCompensation } from './utils/engineeringCameraCompensation';
 
 const CapacityDetails = lazy(() => import('./components/CapacityDetails'));
 const CommandPalette = lazy(() => import('./components/CommandPalette'));
@@ -252,6 +254,14 @@ const lerp = (start: number, end: number, progress: number) => start + (end - st
 const ENGINEERING_CONTEXT_GROUND_ALTITUDE_KM = 0.08;
 const ENGINEERING_CONTEXT_LEO_MIN_RADIUS_M = 1_100_000;
 const ENGINEERING_CONTEXT_GEO_MIN_RADIUS_M = 2_200_000;
+const ENGINEERING_CAMERA_ANIMATION_SECONDS = 0.34;
+
+interface EngineeringCameraSnapshot {
+  position: Cartesian3;
+  direction: Cartesian3;
+  up: Cartesian3;
+  viewportHeight: number;
+}
 
 const groundPointToCartesian = (point: { lat: number; lng: number; altitude?: number } | null | undefined) => {
   if (!point || !Number.isFinite(point.lat) || !Number.isFinite(point.lng)) return null;
@@ -281,6 +291,54 @@ const geoGatewayToCartesian = (
   const lng = 'longitude' in gateway ? gateway.longitude : gateway.lng;
   if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
   return Cartesian3.fromDegrees(lng, lat, ENGINEERING_CONTEXT_GROUND_ALTITUDE_KM * 1000);
+};
+
+const captureEngineeringCameraSnapshot = (
+  viewer: CesiumViewerType,
+  viewportHeight: number,
+): EngineeringCameraSnapshot => ({
+  position: Cartesian3.clone(viewer.camera.positionWC),
+  direction: Cartesian3.clone(viewer.camera.directionWC),
+  up: Cartesian3.clone(viewer.camera.upWC),
+  viewportHeight,
+});
+
+const flyToEngineeringCameraSnapshot = (
+  viewer: CesiumViewerType,
+  snapshot: EngineeringCameraSnapshot,
+) => {
+  viewer.camera.cancelFlight();
+  viewer.camera.flyTo({
+    destination: snapshot.position,
+    orientation: {
+      direction: snapshot.direction,
+      up: snapshot.up,
+    },
+    duration: ENGINEERING_CAMERA_ANIMATION_SECONDS,
+    easingFunction: EasingFunction.CUBIC_OUT,
+  });
+};
+
+const computeEngineeringCameraRange = (
+  snapshot: EngineeringCameraSnapshot,
+  routePositions: Cartesian3[],
+) => {
+  if (routePositions.length === 0) {
+    return Math.max(1, Cartesian3.magnitude(snapshot.position));
+  }
+
+  const sphere = BoundingSphere.fromPoints(routePositions);
+  return Math.max(1, Cartesian3.distance(snapshot.position, sphere.center));
+};
+
+const computeCompensatedEngineeringCameraPosition = (
+  snapshot: EngineeringCameraSnapshot,
+  extraRangeMeters: number,
+) => {
+  const backwards = Cartesian3.negate(snapshot.direction, new Cartesian3());
+  Cartesian3.normalize(backwards, backwards);
+  Cartesian3.multiplyByScalar(backwards, extraRangeMeters, backwards);
+  return Cartesian3.add(snapshot.position, backwards, new Cartesian3());
 };
 
 const getCandidateLinkMargin = (candidate: CandidateCoverage): number => (
@@ -817,6 +875,8 @@ const App: React.FC = () => {
   });
   const viewerRef = useRef<CesiumViewerType | null>(null);
   const globeContainerRef = useRef<HTMLDivElement>(null);
+  const unobstructedGlobeHeightRef = useRef<number | null>(null);
+  const engineeringCameraSnapshotRef = useRef<EngineeringCameraSnapshot | null>(null);
   // Stable ref — populated by useAirTrafficInterpolation (phase 2: map ref, no setState).
   // The selectedAircraft position interval reads from this without being in its deps.
   const panelFallback = <div className="p-4 text-sm text-slate-500 dark:text-slate-400">Loading analysis...</div>;
@@ -3475,6 +3535,28 @@ const App: React.FC = () => {
   }, [desktopSidebarWidth]);
 
   useEffect(() => {
+    if (isEngineeringSplitLayoutActive) return;
+
+    const updateUnobstructedHeight = () => {
+      const height = globeContainerRef.current?.getBoundingClientRect().height;
+      if (height && Number.isFinite(height) && height > 0) {
+        unobstructedGlobeHeightRef.current = height;
+      }
+    };
+
+    updateUnobstructedHeight();
+    const target = globeContainerRef.current;
+    const observer = target ? new ResizeObserver(updateUnobstructedHeight) : null;
+    if (target && observer) observer.observe(target);
+
+    return () => observer?.disconnect();
+  }, [
+    isEngineeringSplitLayoutActive,
+    viewportSnapshot.innerHeight,
+    viewportSnapshot.innerWidth,
+  ]);
+
+  useEffect(() => {
     const root = document.documentElement;
 
     if (!isEngineeringSplitLayoutActive) {
@@ -3870,6 +3952,89 @@ const App: React.FC = () => {
     siteB,
   ]);
 
+  const engineeringContextRoutePositionsRef = useRef<Cartesian3[]>([]);
+  useEffect(() => {
+    engineeringContextRoutePositionsRef.current = engineeringContextRoutePositions;
+  }, [engineeringContextRoutePositions]);
+
+  useEffect(() => {
+    const viewer = viewerRef.current;
+    if (!viewer || viewer.isDestroyed?.()) return;
+
+    let cancelled = false;
+    let firstFrameId: number | null = null;
+    let secondFrameId: number | null = null;
+
+    const restoreOriginalCamera = () => {
+      const snapshot = engineeringCameraSnapshotRef.current;
+      if (!snapshot) return;
+      flyToEngineeringCameraSnapshot(viewer, snapshot);
+      engineeringCameraSnapshotRef.current = null;
+    };
+
+    if (!isDetailedEngineeringWorkspaceOpen || uiMode === 'commercial' || isFullscreen) {
+      restoreOriginalCamera();
+      return;
+    }
+
+    if (engineeringCameraSnapshotRef.current) return;
+
+    const previousViewportHeight =
+      unobstructedGlobeHeightRef.current ??
+      globeContainerRef.current?.getBoundingClientRect().height ??
+      viewportSnapshot.innerHeight;
+    const snapshot = captureEngineeringCameraSnapshot(viewer, previousViewportHeight);
+    engineeringCameraSnapshotRef.current = snapshot;
+
+    firstFrameId = requestAnimationFrame(() => {
+      secondFrameId = requestAnimationFrame(() => {
+        if (cancelled || viewer.isDestroyed?.()) return;
+        viewer.resize?.();
+        const visibleViewportHeight = globeContainerRef.current?.getBoundingClientRect().height ?? snapshot.viewportHeight;
+        const currentRangeMeters = computeEngineeringCameraRange(snapshot, engineeringContextRoutePositionsRef.current);
+        const compensation = computeEngineeringCameraCompensation({
+          previousViewportHeight: snapshot.viewportHeight,
+          visibleViewportHeight,
+          currentRangeMeters,
+        });
+
+        if (compensation.extraRangeMeters <= 0) return;
+        const destination = computeCompensatedEngineeringCameraPosition(snapshot, compensation.extraRangeMeters);
+        viewer.camera.cancelFlight();
+        viewer.camera.flyTo({
+          destination,
+          orientation: {
+            direction: snapshot.direction,
+            up: snapshot.up,
+          },
+          duration: ENGINEERING_CAMERA_ANIMATION_SECONDS,
+          easingFunction: EasingFunction.CUBIC_OUT,
+        });
+      });
+    });
+
+    return () => {
+      cancelled = true;
+      if (firstFrameId !== null) cancelAnimationFrame(firstFrameId);
+      if (secondFrameId !== null) cancelAnimationFrame(secondFrameId);
+    };
+  }, [
+    isDetailedEngineeringWorkspaceOpen,
+    isFullscreen,
+    uiMode,
+    viewportSnapshot.innerHeight,
+  ]);
+
+  useEffect(() => {
+    return () => {
+      const viewer = viewerRef.current;
+      const snapshot = engineeringCameraSnapshotRef.current;
+      if (!viewer || !snapshot || viewer.isDestroyed?.()) return;
+      flyToEngineeringCameraSnapshot(viewer, snapshot);
+      engineeringCameraSnapshotRef.current = null;
+    };
+  }, []);
+
   useEffect(() => {
     if (!isDetailedEngineeringWorkspaceOpen || uiMode === 'commercial' || isFullscreen) return;
 
@@ -3881,6 +4046,7 @@ const App: React.FC = () => {
       if (cancelled) return;
       const viewer = viewerRef.current;
       if (!viewer || viewer.isDestroyed?.()) return;
+      if (engineeringCameraSnapshotRef.current) return;
       viewer.resize?.();
       if (engineeringContextRoutePositions.length === 0) return;
 
@@ -4330,6 +4496,7 @@ const App: React.FC = () => {
   // the workspace (e.g. collapsing a detail section must not move the camera).
   useEffect(() => {
     if (!engineeringMultiSiteSignature || !activeAnalysisPoint) return;
+    if (engineeringCameraSnapshotRef.current) return;
     const siteBPoint = activeConnectivityTab === 'GEO' ? pointB : pointBLeo;
     if (!siteBPoint) return;
 

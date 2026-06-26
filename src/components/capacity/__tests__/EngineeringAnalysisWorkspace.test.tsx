@@ -172,6 +172,28 @@ describe('EngineeringAnalysisWorkspace render smoke tests', () => {
     expect(html).toContain('Expand link budget detail');
   });
 
+  it('honors a controlled full-height expansion state', () => {
+    const viewModel = buildGeoEngineeringAnalysisViewModel({
+      linkMode: 'STAR_FORWARD',
+      result: makeGeoResult(4.5),
+    });
+    const html = renderToStaticMarkup(
+      <EngineeringAnalysisWorkspace
+        open
+        expanded
+        onExpandedChange={() => undefined}
+        onClose={() => undefined}
+        viewModel={viewModel}
+      >
+        <div>detail content</div>
+      </EngineeringAnalysisWorkspace>
+    );
+
+    expect(html).toContain('Collapse link budget detail');
+    expect(html).toContain('aria-pressed="true"');
+    expect(html).toContain('top:0');
+  });
+
   it('renders the why explanation inline instead of only as clipped tooltip text', () => {
     const viewModel = buildGeoEngineeringAnalysisViewModel({
       linkMode: 'STAR_FORWARD',
@@ -219,10 +241,11 @@ describe('EngineeringAnalysisWorkspace render smoke tests', () => {
     expect(html).toContain('Blocked');
     expect(html).toContain('border-rose-400/70');
     expect(html).toContain('Below threshold');
-    expect(html).toContain('No MODCOD throughput can be delivered');
+    expect(html).toContain('Threshold check');
+    expect(html).toContain('Blocked');
   });
 
-  it('keeps the Detailed Investigation section collapsed by default', () => {
+  it('keeps the Detailed Investigation section always expanded', () => {
     const viewModel = buildGeoEngineeringAnalysisViewModel({
       linkMode: 'STAR_FORWARD',
       result: makeGeoResult(4.5),
@@ -233,10 +256,12 @@ describe('EngineeringAnalysisWorkspace render smoke tests', () => {
       </EngineeringAnalysisWorkspace>
     );
 
-    expect(html).toMatch(/<details class="group(?:\s+group\/workspace)?\s+rounded-xl[^"]*"(?!\s+open)/);
+    expect(html).toContain('Topology, RF context and segment investigation');
+    expect(html).toContain('hidden by default');
+    expect(html).not.toContain('group/workspace');
   });
 
-  it('uses a two-state details control for the Level 4 investigation section', () => {
+  it('does not render an expand/collapse control for the Level 4 investigation section', () => {
     const viewModel = buildGeoEngineeringAnalysisViewModel({
       linkMode: 'STAR_FORWARD',
       result: makeGeoResult(4.5),
@@ -247,8 +272,9 @@ describe('EngineeringAnalysisWorkspace render smoke tests', () => {
       </EngineeringAnalysisWorkspace>
     );
 
-    expect(html).toContain('Show details');
-    expect(html).toContain('Hide details');
+    expect(html).toContain('Level 4 body');
+    expect(html).not.toContain('Show details');
+    expect(html).not.toContain('Hide details');
     expect(html).not.toContain('>Open</span>');
     expect(html).not.toContain('>Collapse</span>');
   });
@@ -270,8 +296,10 @@ describe('EngineeringAnalysisWorkspace render smoke tests', () => {
     expect(html).toContain('Combined margin');
     expect(html).toContain('MODCOD / RF throughput');
     expect(html).toContain('Protocol efficiency');
-    expect(html).toContain('Contention / shared capacity');
+    expect(html).toContain('Contention');
     expect(html).toContain('Delivered throughput');
+    expect(html).not.toContain('Start</div>');
+    expect(html).not.toContain('Apply uplink EIRP');
     expect(html).not.toContain('Throughput waterfall');
   });
 
@@ -320,9 +348,12 @@ describe('EngineeringAnalysisWorkspace render smoke tests', () => {
     );
 
     expect(html).toContain('Branch / merge access closure');
+    expect(html).toContain('Parallel access comparison');
     expect(html).toContain('Source access');
     expect(html).toContain('Destination access');
-    expect(html).toContain('Selected limit: min(5 Mbps, 13 Mbps) = 5 Mbps');
+    expect(html).toContain('Select lower rate');
+    expect(html).toContain('min(5 Mbps, 13 Mbps) = 5 Mbps');
+    expect(html).toContain('Delivered = selected lower access rate after final constraints.');
     expect(html).toContain('Backbone context:');
     expect(html).toContain('34.0 ms');
   });

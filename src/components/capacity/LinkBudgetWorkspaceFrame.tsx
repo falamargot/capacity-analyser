@@ -1,7 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { FoldVertical, UnfoldVertical, X } from 'lucide-react';
 import ConfidenceBreakdown from './ConfidenceBreakdown';
-import DetailsTogglePill from './shared/DetailsTogglePill';
 import EngineeringClosurePipeline, { type EngineeringClosurePipelineLayout } from './EngineeringClosurePipeline';
 import type { PredictionConfidence } from '../../utils/predictionConfidence';
 
@@ -50,6 +49,8 @@ export interface LinkBudgetWorkspaceClosureStep {
 interface LinkBudgetWorkspaceFrameProps {
   open: boolean;
   onClose: () => void;
+  expanded?: boolean;
+  onExpandedChange?: (expanded: boolean) => void;
   ariaLabel: string;
   eyebrow: string;
   title: string;
@@ -63,7 +64,6 @@ interface LinkBudgetWorkspaceFrameProps {
   closureSteps?: LinkBudgetWorkspaceClosureStep[];
   investigationTitle?: string;
   investigationSummary?: string;
-  defaultInvestigationOpen?: boolean;
   children: ReactNode;
 }
 
@@ -147,6 +147,8 @@ const ResultMetricCard = ({
 const LinkBudgetWorkspaceFrame = ({
   open,
   onClose,
+  expanded: controlledExpanded,
+  onExpandedChange,
   ariaLabel,
   eyebrow,
   title,
@@ -160,12 +162,18 @@ const LinkBudgetWorkspaceFrame = ({
   closureSteps = [],
   investigationTitle = 'Detailed investigation',
   investigationSummary = 'Topology, RF context, per-segment budgets, network effects and diagnostic flow remain available here.',
-  defaultInvestigationOpen = false,
   children,
 }: LinkBudgetWorkspaceFrameProps) => {
   const [mounted, setMounted] = useState(false);
-  const [expanded, setExpanded] = useState(false);
+  const [internalExpanded, setInternalExpanded] = useState(false);
+  const expanded = controlledExpanded ?? internalExpanded;
   const colors = accentClass[accent];
+  const setExpanded = (next: boolean) => {
+    if (controlledExpanded == null) {
+      setInternalExpanded(next);
+    }
+    onExpandedChange?.(next);
+  };
 
   useEffect(() => {
     if (!open) return;
@@ -220,7 +228,7 @@ const LinkBudgetWorkspaceFrame = ({
           <div className="flex shrink-0 items-center gap-2">
             <button
               type="button"
-              onClick={() => setExpanded((value) => !value)}
+              onClick={() => setExpanded(!expanded)}
               className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-700 bg-slate-900 text-slate-200 shadow-sm transition-colors hover:bg-slate-800"
               aria-label={expanded ? 'Collapse link budget detail' : 'Expand link budget detail'}
               title={expanded ? 'Collapse link budget detail' : 'Expand link budget detail'}
@@ -382,28 +390,25 @@ const LinkBudgetWorkspaceFrame = ({
                 </section>
               )}
 
-              <details className="group group/workspace rounded-xl border border-slate-800 bg-slate-950/75 shadow-[inset_0_1px_0_rgba(255,255,255,0.025)]" open={defaultInvestigationOpen}>
-                <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-3 py-2.5">
-                  <div className="min-w-0">
-                    <div className="text-[10px] font-bold uppercase tracking-wide text-slate-500">Level 4</div>
-                    <h4 className="text-sm font-semibold text-slate-100">{investigationTitle}</h4>
-                    <p className="mt-0.5 text-xs leading-snug text-slate-500">{investigationSummary}</p>
-                    <div className="mt-1.5 flex flex-wrap gap-1.5">
-                      {['Ready for drill-down', 'Trace segment', 'Inspect margins'].map((label) => (
-                        <span key={label} className="rounded-full border border-slate-800 bg-slate-900 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-slate-500">
-                          {label}
-                        </span>
-                      ))}
-                    </div>
+              <section className="rounded-xl border border-slate-800 bg-slate-950/75 shadow-[inset_0_1px_0_rgba(255,255,255,0.025)]">
+                <div className="px-3 py-2.5">
+                  <div className="text-[10px] font-bold uppercase tracking-wide text-slate-500">Level 4</div>
+                  <h4 className="text-sm font-semibold text-slate-100">{investigationTitle}</h4>
+                  <p className="mt-0.5 text-xs leading-snug text-slate-500">{investigationSummary}</p>
+                  <div className="mt-1.5 flex flex-wrap gap-1.5">
+                    {['Ready for drill-down', 'Trace segment', 'Inspect margins'].map((label) => (
+                      <span key={label} className="rounded-full border border-slate-800 bg-slate-900 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-slate-500">
+                        {label}
+                      </span>
+                    ))}
                   </div>
-                  <DetailsTogglePill scope="workspace" />
-                </summary>
+                </div>
                 <div className="border-t border-slate-800 p-3">
                   <div className="min-h-[240px]">
                     {children}
                   </div>
                 </div>
-              </details>
+              </section>
             </div>
           </main>
         </div>

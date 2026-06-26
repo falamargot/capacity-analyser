@@ -785,6 +785,8 @@ const LeoRFLinkBudgetPanel = ({
 interface LeoLinkBudgetDrawerProps {
   open: boolean;
   onClose: () => void;
+  expanded?: boolean;
+  onExpandedChange?: (expanded: boolean) => void;
   /** Single-site mode: full RF debug chain for the active terminal. Also used as
    *  fallback in S2S mode when per-site debug chains are unavailable. */
   debugInfo: LeoRFDebugInfo | null;
@@ -818,11 +820,8 @@ const NoBudgetPlaceholder = () => (
 
 // ─── Level 4: investigation-oriented sections ────────────────────────────────
 // One collapsible block per investigation topic (Site A / Site B / Backbone /
-// Terminal) instead of every technical card rendered at once. Only the first
-// section is open by default — the rest stay collapsed until the engineer
-// chooses where to drill in, matching how a link engineer actually
-// troubleshoots (start at one access leg, expand the backbone or the other
-// site only if that leg turns out healthy).
+// Terminal) instead of every technical card rendered at once. Subsections start
+// collapsed so the engineer chooses where to drill in.
 const InvestigationSection = ({
   title,
   subtitle,
@@ -848,39 +847,11 @@ const InvestigationSection = ({
   </details>
 );
 
-type LeoInvestigationFocus = 'siteA' | 'siteB' | 'backbone' | 'terminal';
-
-const detectLeoInvestigationFocus = (
-  isS2S: boolean,
-  debugInfo: LeoRFDebugInfo | null,
-  debugInfoSiteA: LeoRFDebugInfo | null | undefined,
-  debugInfoSiteB: LeoRFDebugInfo | null | undefined,
-  siteToSiteResult: LeoSiteToSiteResult | null | undefined,
-): LeoInvestigationFocus => {
-  if (!isS2S) {
-    return debugInfo?.mainBottleneck.factor === 'terminal' ? 'terminal' : 'siteA';
-  }
-  if (siteToSiteResult?.failureReason) {
-    const reason = siteToSiteResult.failureReason;
-    if (reason.endsWith('_A')) return 'siteA';
-    if (reason.endsWith('_B')) return 'siteB';
-  }
-  const factorA = debugInfoSiteA?.mainBottleneck.factor ?? null;
-  const factorB = debugInfoSiteB?.mainBottleneck.factor ?? null;
-  if (factorA === 'backhaul' || factorB === 'backhaul') return 'backbone';
-  if (factorA != null && factorB == null) return 'siteA';
-  if (factorB != null && factorA == null) return 'siteB';
-  if (factorA != null && factorB != null) {
-    const tpA = debugInfoSiteA!.downlink.network.finalUserMbps;
-    const tpB = debugInfoSiteB!.downlink.network.finalUserMbps;
-    return tpA <= tpB ? 'siteA' : 'siteB';
-  }
-  return 'siteA';
-};
-
 const LeoLinkBudgetDrawer = ({
   open,
   onClose,
+  expanded,
+  onExpandedChange,
   debugInfo,
   siteToSiteResult,
   siteToSiteDirection = 'A_TO_B',
@@ -911,7 +882,6 @@ const LeoLinkBudgetDrawer = ({
     : (debugInfoSiteB ?? debugInfo);
   const hasS2SAccessBudgets = sourceDebugInfo != null && destinationDebugInfo != null;
   const siteBadgeClass = 'border border-slate-600 bg-slate-800 text-slate-100';
-  const focus = detectLeoInvestigationFocus(isS2S, debugInfo, debugInfoSiteA, debugInfoSiteB, siteToSiteResult);
   const viewModel = buildLeoEngineeringAnalysisViewModel({
     debugInfo,
     siteToSiteResult,
@@ -952,7 +922,6 @@ const LeoLinkBudgetDrawer = ({
         key={siteId}
         title={siteInvestigationTitle(siteId)}
         subtitle={`Beam geometry, uplink and downlink RF budget · ${role} for ${s2sDirectionLabel}.`}
-        defaultOpen={siteId === 'A' ? focus === 'siteA' : focus === 'siteB'}
       >
         <LeoRFLinkBudgetPanel
           d={siteDebugInfo!}
@@ -968,6 +937,8 @@ const LeoLinkBudgetDrawer = ({
     <EngineeringAnalysisWorkspace
       open={open}
       onClose={onClose}
+      expanded={expanded}
+      onExpandedChange={onExpandedChange}
       viewModel={viewModel}
     >
       {isS2S ? (
@@ -979,7 +950,6 @@ const LeoLinkBudgetDrawer = ({
             <InvestigationSection
               title="Backbone Investigation"
               subtitle="SNPs, logical PoP and terrestrial backbone latency."
-              defaultOpen={focus === 'backbone'}
             >
               <CockpitPanel title="Backbone Network Layer" eyebrow="fiber / IP core" accent="violet">
                 <div className="grid items-stretch gap-2 p-2.5">
@@ -1021,7 +991,6 @@ const LeoLinkBudgetDrawer = ({
             <InvestigationSection
               title="Terminal Investigation"
               subtitle="Selected terminal RF profile for each site."
-              defaultOpen={focus === 'terminal'}
             >
               <TerminalProfileCockpitPanel siteA={debugInfoSiteA ?? sourceDebugInfo!} siteB={debugInfoSiteB ?? destinationDebugInfo!} />
             </InvestigationSection>
@@ -1033,14 +1002,12 @@ const LeoLinkBudgetDrawer = ({
             <InvestigationSection
               title={siteInvestigationTitle('A')}
               subtitle="Beam geometry, uplink and downlink RF budget for the active terminal."
-              defaultOpen={focus === 'siteA'}
             >
               <LeoRFLinkBudgetPanel d={debugInfo} showTerminal={false} />
             </InvestigationSection>
             <InvestigationSection
               title="Terminal Investigation"
               subtitle="Selected terminal RF profile and capability assumptions."
-              defaultOpen={focus === 'terminal'}
             >
               <TerminalAssumptionsSection d={debugInfo} />
             </InvestigationSection>
@@ -1094,6 +1061,9 @@ interface LEOConnectivitySectionProps {
   /** Controlled drawer open state — shared with GEO so mode switches preserve open/closed status. */
   isLinkBudgetDrawerOpen?: boolean;
   onLinkBudgetDrawerOpenChange?: (open: boolean) => void;
+  /** Shared workspace expansion state so GEO/LEO tab switches preserve full-height presentation. */
+  isLinkBudgetDetailExpanded?: boolean;
+  onLinkBudgetDetailExpandedChange?: (expanded: boolean) => void;
   // ── Site B terminal (S2S only) ──
   terminalTypeB?: TerminalType;
   onTerminalTypeBChange?: (type: TerminalType) => void;
@@ -1182,6 +1152,8 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
   activeMeshTab,
   isLinkBudgetDrawerOpen: controlledDrawerOpen = false,
   onLinkBudgetDrawerOpenChange,
+  isLinkBudgetDetailExpanded,
+  onLinkBudgetDetailExpandedChange,
   terminalTypeB,
   onTerminalTypeBChange,
   terminalModelIdB,
@@ -1600,6 +1572,8 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
         <LeoLinkBudgetDrawer
           open={isLinkBudgetDrawerOpen}
           onClose={() => setIsLinkBudgetDrawerOpen(false)}
+          expanded={isLinkBudgetDetailExpanded}
+          onExpandedChange={onLinkBudgetDetailExpandedChange}
           debugInfo={leoPerformance?.debugInfo ?? null}
           siteToSiteResult={s2sServiceActive ? siteToSiteResult : undefined}
           siteToSiteDirection={s2sDirection}
@@ -2009,31 +1983,6 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
           </div>
         )}
         {!isS2S && showEstimatedPerformance && !showPerformanceBeforeRadioPath && estimatedPerformanceSection}
-
-        <CollapsibleSection
-          storageKey="leo-assumptions-sources"
-          title="Assumptions and Sources"
-          accentColor="#db2777"
-          defaultOpen={false}
-        >
-          <div className="space-y-2 text-xs leading-relaxed text-slate-600 dark:text-slate-400">
-            <div className="rounded border border-pink-200 bg-pink-50 px-2.5 py-1.5 text-pink-700 dark:border-pink-800/50 dark:bg-pink-950/30 dark:text-pink-300">
-              Simulated Network Load is a planning input, not live operational telemetry.
-            </div>
-            <div className="rounded border border-slate-200 bg-white px-2.5 py-1.5 text-slate-700 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200">
-              <span className="font-semibold">Prediction confidence:</span> {predictionConfidence.summary}. {predictionConfidence.reasons[0] ?? predictionConfidence.limitation}
-            </div>
-            <div className="rounded border border-slate-200 bg-white px-2.5 py-1.5 text-slate-700 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200">
-              <span className="font-semibold">Weather availability:</span> {formatLinkAvailabilityContext(availabilityContext)}. {availabilityContext.rationale}
-            </div>
-            <div className="grid gap-1.5">
-              <div><span className="font-semibold text-slate-700 dark:text-slate-200">Physical:</span> slant range, elevation, radio propagation delay and RF link-budget chains.</div>
-              <div><span className="font-semibold text-slate-700 dark:text-slate-200">Approximations:</span> terminal profile, bandwidth allocation, beam sharing, weather attenuation and handover margin.</div>
-              <div><span className="font-semibold text-slate-700 dark:text-slate-200">Heuristics:</span> simulated load fallback, LEO SNP selection, indicative backbone route factor and logical PoP routing.</div>
-              <div><span className="font-semibold text-slate-700 dark:text-slate-200">Sources:</span> public constellation/frequency inputs, bundled LEO terminal profiles, simulated regulatory layer and configured weather profile.</div>
-            </div>
-          </div>
-        </CollapsibleSection>
 
       </div>
     </>

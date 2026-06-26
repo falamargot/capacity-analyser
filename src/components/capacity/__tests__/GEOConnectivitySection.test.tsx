@@ -176,7 +176,7 @@ describe('GEOConnectivitySection topology render smoke tests', () => {
     }
   });
 
-  describe('Level 4 investigation focus', () => {
+  describe('Level 4 investigation subsections', () => {
     /** True when the nearest <details> tag preceding `text` carries the `open` attribute. */
     const detailsOpenStateBeforeText = (html: string, text: string): boolean => {
       const textIndex = html.indexOf(text);
@@ -197,11 +197,12 @@ describe('GEOConnectivitySection topology render smoke tests', () => {
         />
       );
 
-    it('opens Uplink Segment when uplink is the limiting segment', () => {
+    it('keeps every subsection collapsed by default when uplink is the limiting segment', () => {
       const html = renderGeoWithDrawer('STAR_FORWARD', makeStarResult(-2));
 
-      expect(detailsOpenStateBeforeText(html, 'Uplink Segment')).toBe(true);
+      expect(detailsOpenStateBeforeText(html, 'Uplink Segment')).toBe(false);
       expect(detailsOpenStateBeforeText(html, 'Downlink Segment')).toBe(false);
+      expect(detailsOpenStateBeforeText(html, 'Satellite / Payload')).toBe(false);
       expect(detailsOpenStateBeforeText(html, 'End-to-End Diagnostic')).toBe(false);
       expect(html).toContain('Show details');
       expect(html).toContain('Hide details');
@@ -209,11 +210,12 @@ describe('GEOConnectivitySection topology render smoke tests', () => {
       expect(html).not.toContain('>Collapse</span>');
     });
 
-    it('opens Downlink Segment when downlink is the limiting segment', () => {
+    it('keeps every subsection collapsed by default when downlink is the limiting segment', () => {
       const html = renderGeoWithDrawer('STAR_FORWARD', makeStarResult(4.5));
 
       expect(detailsOpenStateBeforeText(html, 'Uplink Segment')).toBe(false);
-      expect(detailsOpenStateBeforeText(html, 'Downlink Segment')).toBe(true);
+      expect(detailsOpenStateBeforeText(html, 'Downlink Segment')).toBe(false);
+      expect(detailsOpenStateBeforeText(html, 'Satellite / Payload')).toBe(false);
       expect(detailsOpenStateBeforeText(html, 'End-to-End Diagnostic')).toBe(false);
     });
 

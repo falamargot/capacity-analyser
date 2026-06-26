@@ -213,6 +213,8 @@ const LinkBudgetSummaryCard = ({
 interface LinkBudgetDrawerProps {
   open: boolean;
   onClose: () => void;
+  expanded?: boolean;
+  onExpandedChange?: (expanded: boolean) => void;
   linkMode: LinkMode;
   result: DualSegmentResult | null;
   activeMeshTab?: 'forward' | 'reverse';
@@ -240,6 +242,8 @@ interface LinkBudgetDrawerProps {
 const LinkBudgetDrawer = ({
   open,
   onClose,
+  expanded,
+  onExpandedChange,
   linkMode,
   result,
   activeMeshTab,
@@ -269,16 +273,12 @@ const LinkBudgetDrawer = ({
     confidence,
   });
 
-  const activePath = activeMeshTab === 'reverse' && result?.reverse ? result.reverse : result?.forward;
-  const limitingSegment = activePath?.endToEnd.limitingSegment;
-  const investigationFocus = limitingSegment === 'uplink' ? 'uplink'
-    : limitingSegment === 'downlink' ? 'downlink'
-    : 'diagnostic' as const;
-
   return (
     <EngineeringAnalysisWorkspace
       open={open}
       onClose={onClose}
+      expanded={expanded}
+      onExpandedChange={onExpandedChange}
       viewModel={viewModel}
     >
       <DualSegmentPanel
@@ -289,7 +289,6 @@ const LinkBudgetDrawer = ({
         satelliteName={satelliteName}
         satellite={satellite}
         coverageLabels={coverageLabels}
-        investigationFocus={investigationFocus}
         variant="cockpit"
       />
     </EngineeringAnalysisWorkspace>
@@ -626,6 +625,9 @@ interface GEOConnectivitySectionProps {
   /** Controlled drawer open state — lift to parent so GEO/LEO share the same open/closed status. */
   isLinkBudgetDrawerOpen?: boolean;
   onLinkBudgetDrawerOpenChange?: (open: boolean) => void;
+  /** Shared workspace expansion state so GEO/LEO tab switches preserve full-height presentation. */
+  isLinkBudgetDetailExpanded?: boolean;
+  onLinkBudgetDetailExpandedChange?: (expanded: boolean) => void;
 }
 
 const ONE_WAY_VISUAL_SCALE_MAX_MS = 350;
@@ -684,6 +686,8 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
   validSatelliteIds,
   isLinkBudgetDrawerOpen: controlledDrawerOpen = false,
   onLinkBudgetDrawerOpenChange,
+  isLinkBudgetDetailExpanded,
+  onLinkBudgetDetailExpandedChange,
 }) => {
   const geoCapacityEstimate = resolvedGEOConnectivity?.satellite
     ? estimateGeoSatelliteCapacity(resolvedGEOConnectivity.satellite)
@@ -1324,6 +1328,8 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
         <LinkBudgetDrawer
           open={isLinkBudgetDrawerOpen}
           onClose={() => setIsLinkBudgetDrawerOpen(false)}
+          expanded={isLinkBudgetDetailExpanded}
+          onExpandedChange={onLinkBudgetDetailExpandedChange}
           linkMode={linkMode}
           result={dualSegmentResult}
           activeMeshTab={isMeshOrP2P ? activeMeshTab : undefined}
@@ -1590,30 +1596,6 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
         )}
         {showEstimatedPerformance && !showPerformanceBeforeRadioPath && estimatedPerformanceSection}
 
-        <CollapsibleSection
-          storageKey="geo-assumptions-sources"
-          title="Assumptions and Sources"
-          accentColor="#2563eb"
-          defaultOpen={false}
-        >
-          <div className="space-y-2 text-xs leading-relaxed text-slate-600 dark:text-slate-400">
-            <div className="rounded border border-blue-200 bg-blue-50 px-2.5 py-1.5 text-blue-700 dark:border-blue-800/50 dark:bg-blue-950/30 dark:text-blue-300">
-              STAR-mode GEO teleport selection is a reference allocation unless the model falls back to a visible teleport.
-            </div>
-            <div className="rounded border border-slate-200 bg-white px-2.5 py-1.5 text-slate-700 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200">
-              <span className="font-semibold">Prediction confidence:</span> {geoPredictionConfidence.summary}. {geoPredictionConfidence.reasons[0] ?? geoPredictionConfidence.limitation}
-            </div>
-            <div className="rounded border border-slate-200 bg-white px-2.5 py-1.5 text-slate-700 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200">
-              <span className="font-semibold">Weather availability:</span> {formatLinkAvailabilityContext(availabilityContext)}. {availabilityContext.rationale}
-            </div>
-            <div className="grid gap-1.5">
-              <div><span className="font-semibold text-slate-700 dark:text-slate-200">Physical:</span> WGS84 slant range, elevation, radio propagation delay and GEO RF link-budget calculations.</div>
-              <div><span className="font-semibold text-slate-700 dark:text-slate-200">Approximations:</span> terminal RF class, weather attenuation, capacity sharing mode and fixed processing/routing overhead.</div>
-              <div><span className="font-semibold text-slate-700 dark:text-slate-200">Heuristics:</span> reference GEO teleport allocation, visible teleport fallback and beam eligibility matching.</div>
-              <div><span className="font-semibold text-slate-700 dark:text-slate-200">Sources:</span> public coverage/frequency inputs, bundled teleport registry, selected weather profile and user terminal assumptions.</div>
-            </div>
-          </div>
-        </CollapsibleSection>
       </div>
     </>
   );

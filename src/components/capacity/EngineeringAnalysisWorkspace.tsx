@@ -11,6 +11,8 @@ import LinkBudgetWorkspaceFrame, {
 interface EngineeringAnalysisWorkspaceProps {
   open: boolean;
   onClose: () => void;
+  expanded?: boolean;
+  onExpandedChange?: (expanded: boolean) => void;
   viewModel: EngineeringAnalysisViewModel;
   children: ReactNode;
 }
@@ -59,6 +61,8 @@ const toClosureStep = (step: EngineeringAnalysisViewModel['closure']['steps'][nu
 const EngineeringAnalysisWorkspace = ({
   open,
   onClose,
+  expanded,
+  onExpandedChange,
   viewModel,
   children,
 }: EngineeringAnalysisWorkspaceProps) => {
@@ -92,6 +96,8 @@ const EngineeringAnalysisWorkspace = ({
       key={viewModel.mode}
       open={open}
       onClose={onClose}
+      expanded={expanded}
+      onExpandedChange={onExpandedChange}
       ariaLabel={`${viewModel.mode} engineering analysis`}
       eyebrow={`${viewModel.mode} Link Budget`}
       title={viewModel.title}
