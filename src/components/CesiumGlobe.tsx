@@ -2128,6 +2128,10 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
     }, [selectedPosition, sizeScale]);
 
     const siteBMarkerPosition = pointB ?? pointBLeo;
+    const siteLabelsAreClose = useMemo(() => {
+        if (!selectedPosition || !siteBMarkerPosition) return false;
+        return commercialApproxDistanceKm(selectedPosition, siteBMarkerPosition) < 700;
+    }, [selectedPosition, siteBMarkerPosition]);
 
     const pointBMarkerPixelSize = useMemo(() => {
         return new CallbackProperty(() => {
@@ -2718,6 +2722,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                         containerRef={globeContainerRef}
                         viewerReady={viewerReady}
                         compact={!!isPhone}
+                        collisionSide={siteLabelsAreClose ? 'left' : 'center'}
                         titleOverride={`Site A${commercialViewModel.siteA?.name ? ` · ${commercialViewModel.siteA.name}` : ''}`}
                         presentation="commercial"
                         sections={[{
@@ -2760,6 +2765,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                         containerRef={globeContainerRef}
                         viewerReady={viewerReady}
                         compact={!!isPhone}
+                        collisionSide={siteLabelsAreClose ? 'left' : 'center'}
                         sections={sections}
                     />
                 );
@@ -2799,6 +2805,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                         containerRef={globeContainerRef}
                         viewerReady={viewerReady}
                         compact={!!isPhone}
+                        collisionSide={siteLabelsAreClose ? 'right' : 'center'}
                         titleOverride={`Site B${commercialViewModel.siteB?.name ? ` · ${commercialViewModel.siteB.name}` : ''}`}
                         presentation="commercial"
                         outcomeHighlight={outcomeHighlight}
@@ -2837,6 +2844,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                         containerRef={globeContainerRef}
                         viewerReady={viewerReady}
                         compact={!!isPhone}
+                        collisionSide={siteLabelsAreClose ? 'right' : 'center'}
                         sections={sections}
                     />
                 );

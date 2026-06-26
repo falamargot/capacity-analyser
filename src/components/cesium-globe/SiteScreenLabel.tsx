@@ -29,6 +29,7 @@ interface SiteScreenLabelProps {
   sections: SiteLabelSection[];
   titleOverride?: string;
   presentation?: 'engineering' | 'commercial';
+  collisionSide?: 'left' | 'right' | 'center';
   /**
    * When provided in commercial presentation, triggers a brief outcome glow
    * animation that plays once after the route reveal completes (Part F).
@@ -84,6 +85,7 @@ const SiteScreenLabel: React.FC<SiteScreenLabelProps> = ({
   sections,
   titleOverride,
   presentation = 'engineering',
+  collisionSide = 'center',
   outcomeHighlight,
 }) => {
   const labelRef = useRef<HTMLDivElement | null>(null);
@@ -105,9 +107,12 @@ const SiteScreenLabel: React.FC<SiteScreenLabelProps> = ({
       const { x, y } = wp;
       const inBounds = x >= -120 && y >= -80 && x <= c.clientWidth + 120 && y <= c.clientHeight + 80;
       if (!inBounds) { el.style.opacity = '0'; return; }
+      const horizontalOffset = collisionSide === 'left' ? -30 : collisionSide === 'right' ? 30 : 0;
+      const translateX = collisionSide === 'left' ? '-100%' : collisionSide === 'right' ? '0' : '-50%';
       el.style.opacity = '1';
-      el.style.left    = `${x}px`;
+      el.style.left    = `${x + horizontalOffset}px`;
       el.style.top     = `${y - (compact ? 22 : 28)}px`;
+      el.style.transform = `translate(${translateX}, -100%)`;
     };
 
     update();
@@ -117,7 +122,7 @@ const SiteScreenLabel: React.FC<SiteScreenLabelProps> = ({
       viewer.scene.postRender.removeEventListener(update);
       window.removeEventListener('resize', update);
     };
-  }, [compact, containerRef, position, viewerReady, viewerRef]);
+  }, [collisionSide, compact, containerRef, position, viewerReady, viewerRef]);
 
   // Inject outcome keyframe once.
   if (presentation === 'commercial' && outcomeHighlight) {
@@ -142,11 +147,11 @@ const SiteScreenLabel: React.FC<SiteScreenLabelProps> = ({
   return (
     <div
       ref={labelRef}
-      className="absolute z-50 pointer-events-none -translate-x-1/2 -translate-y-full opacity-0"
-      style={{ left: 0, top: 0 }}
+      className="absolute z-50 pointer-events-none max-w-[18rem] opacity-0 transition-[opacity,transform] duration-150"
+      style={{ left: 0, top: 0, transform: 'translate(-50%, -100%)' }}
     >
       <div
-        className={`${compact ? 'rounded-[10px] px-2.5 py-1.5' : 'rounded px-3 py-1.5'} bg-slate-900/30 text-white shadow-lg ring-1 ring-white/20 backdrop-blur-sm`}
+        className={`${compact ? 'rounded-[10px] px-2.5 py-1.5' : 'rounded px-3 py-1.5'} bg-slate-950/72 text-white shadow-[0_16px_40px_-24px_rgba(0,0,0,0.86)] ring-1 ring-white/15 backdrop-blur-md`}
         style={highlightStyle}
       >
         <div className={`${compact ? 'text-[11px]' : 'text-[12px] sm:text-sm'} font-semibold leading-tight ${presentation === 'commercial' ? 'text-white' : 'text-cyan-300'} mb-0.5`}>

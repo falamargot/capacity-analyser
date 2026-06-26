@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Satellite } from 'lucide-react';
+import { CapacityAnalyzerSignature } from './brand/CapacityAnalyzerSignature';
 
 interface SplashScreenProps {
     message: string;
@@ -44,10 +44,10 @@ const SplashScreen: React.FC<SplashScreenProps> = ({
                         className="absolute inset-0 animate-ping rounded-full bg-blue-500/20"
                         style={{ animationDuration: '2s' }}
                     />
-                    <div className="relative flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 shadow-lg shadow-blue-500/30">
-                        <Satellite
-                            className="h-10 w-10 text-white"
-                            style={{ animation: 'spin 3s linear infinite' }}
+                    <div className="relative flex h-24 w-20 items-center justify-center">
+                        <CapacityAnalyzerSignature
+                            variant="icon"
+                            className="h-20 w-16 drop-shadow-[0_18px_34px_rgba(56,189,248,0.28)]"
                         />
                     </div>
                 </div>

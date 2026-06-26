@@ -13,6 +13,7 @@ import { ThemeSelector } from './components/ThemeSelector';
 import MobileAnalysisSummary from './components/layout/MobileAnalysisSummary';
 import SidebarHeroCard from './components/layout/SidebarHeroCard';
 import { MemoryMonitorHud } from './components/MemoryMonitorHud';
+import { CapacityAnalyzerSignature } from './components/brand/CapacityAnalyzerSignature';
 import { setMemoryMonitorViewerGetter } from './utils/memoryMonitor';
 import ExportButton, { type ExportButtonPayload } from './components/ExportButton';
 import SimulationSettings from './components/layout/SimulationSettings';
@@ -140,105 +141,6 @@ const IssDetails = lazy(() => import('./components/IssDetails'));
 const GatewayDetails = lazy(() => import('./components/GatewayDetails'));
 const MoonDetails = lazy(() => import('./components/MoonDetails'));
 const SNPDetails = lazy(() => import('./components/SNPDetails'));
-
-type CapacityAnalyzerSignatureProps = React.SVGProps<SVGSVGElement> & {
-  variant?: 'full' | 'icon';
-};
-
-const CapacityAnalyzerSignature = ({
-  variant = 'full',
-  className,
-  ...props
-}: CapacityAnalyzerSignatureProps) => {
-  const isIcon = variant === 'icon';
-
-  return (
-    <svg
-      width={isIcon ? 60 : 96}
-      height={isIcon ? 86 : 132}
-      viewBox={isIcon ? '18 0 60 86' : '0 0 96 132'}
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      className={className}
-      aria-hidden="true"
-      focusable="false"
-      {...props}
-    >
-      <g opacity="0.96" strokeLinecap="round" strokeLinejoin="round">
-        <g className="stroke-cyan-500 dark:stroke-cyan-300">
-          <path d="M34 20C26.5 27.5 25 39 31.5 48" stroke="currentColor" strokeWidth="2.2" />
-          <path d="M30 25C25.5 31.5 25 39.5 29 46" stroke="currentColor" strokeWidth="1.45" />
-          <path d="M62.5 15C68.5 19.5 71.5 25.5 72 32.5" stroke="currentColor" strokeWidth="1.45" opacity="0.76" />
-        </g>
-
-        <g>
-          <g transform="translate(49 20) rotate(45)" className="stroke-blue-600 dark:stroke-sky-200">
-            <rect x="-7" y="-7" width="14" height="14" rx="1.6" stroke="currentColor" strokeWidth="1.75" />
-            <path d="M-3.5 0H3.5M0 -3.5V3.5" stroke="currentColor" strokeWidth="1.25" opacity="0.8" />
-          </g>
-          <g transform="translate(61 34) rotate(45)" className="stroke-cyan-600 dark:stroke-cyan-300">
-            <rect x="-6.2" y="-6.2" width="12.4" height="12.4" rx="1.5" stroke="currentColor" strokeWidth="1.65" />
-            <path d="M-3 0H3M0 -3V3" stroke="currentColor" strokeWidth="1.15" opacity="0.78" />
-          </g>
-          <g transform="translate(48 45) rotate(45)" className="stroke-indigo-500 dark:stroke-indigo-300">
-            <rect x="-5.5" y="-5.5" width="11" height="11" rx="1.35" stroke="currentColor" strokeWidth="1.55" />
-            <path d="M-2.6 0H2.6M0 -2.6V2.6" stroke="currentColor" strokeWidth="1.05" opacity="0.72" />
-          </g>
-          <g transform="translate(68 52) rotate(45)" className="stroke-teal-600 dark:stroke-teal-300">
-            <rect x="-8" y="-8" width="16" height="16" rx="1.8" stroke="currentColor" strokeWidth="1.75" />
-            <path d="M-4 0H4M0 -4V4" stroke="currentColor" strokeWidth="1.2" opacity="0.78" />
-          </g>
-          <path
-            d="M42 29L55 27M54 39L50 41M55 48L61 50"
-            className="stroke-sky-500 dark:stroke-sky-300"
-            stroke="currentColor"
-            strokeWidth="1.35"
-            opacity="0.68"
-          />
-        </g>
-
-        <g className="stroke-blue-600 dark:stroke-sky-200" opacity="0.88">
-          <path d="M20 78C26 61 70 61 76 78" stroke="currentColor" strokeWidth="2" />
-          <path d="M24 78H72" stroke="currentColor" strokeWidth="2" />
-          <path d="M48 62V78" stroke="currentColor" strokeWidth="1.45" />
-          <path d="M34 64C30 68 28 73 28 78" stroke="currentColor" strokeWidth="1.45" />
-          <path d="M62 64C66 68 68 73 68 78" stroke="currentColor" strokeWidth="1.45" />
-          <path d="M27.5 70.5H68.5" stroke="currentColor" strokeWidth="1.35" opacity="0.72" />
-        </g>
-      </g>
-
-      {!isIcon && (
-        <>
-          <text
-            x="48"
-            y="108"
-            textAnchor="middle"
-            className="fill-slate-900 dark:fill-slate-50"
-            fontFamily="Inter, Segoe UI, sans-serif"
-            fontSize="12"
-            fontWeight="600"
-            letterSpacing="0.12em"
-          >
-            CAPACITY
-          </text>
-
-          <text
-            x="48"
-            y="126"
-            textAnchor="middle"
-            className="fill-slate-600 dark:fill-slate-300"
-            fontFamily="Inter, Segoe UI, sans-serif"
-            fontSize="12"
-            fontWeight="600"
-            letterSpacing="0.12em"
-          >
-            ANALYZER
-          </text>
-        </>
-      )}
-    </svg>
-  );
-};
 
 // ─── Module-level constants ───────────────────────────────────────────────────
 const COMPACT_DESKTOP_DIAG_MIN = Math.hypot(1920, 1080);
@@ -660,7 +562,14 @@ const App: React.FC = () => {
   // ── Link mode & dual-point selection ─────────────────────────────────────
   const [linkMode, setLinkMode] = useState<LinkMode>('STAR_FORWARD');
   const [activeMeshTab, setActiveMeshTab] = useState<'forward' | 'reverse'>('forward');
-  useEffect(() => { setActiveMeshTab('forward'); }, [linkMode]);
+  const preserveMeshTabOnNextLinkModeRef = useRef(false);
+  useEffect(() => {
+    if (preserveMeshTabOnNextLinkModeRef.current) {
+      preserveMeshTabOnNextLinkModeRef.current = false;
+      return;
+    }
+    setActiveMeshTab('forward');
+  }, [linkMode]);
 
   const [autoSelectedLEOId, setAutoSelectedLEOId] = useState<string | null>(null);
   const [selectedSNP, setSelectedSNP] = useState<SelectedSNP>(null);
@@ -740,9 +649,9 @@ const App: React.FC = () => {
 
   useEffect(() => {
     if (LINK_MODE_REQUIRES_POINT_B.has(linkMode) || siteB) {
-      dispatchConnectivityScenario(connectivityScenarioActions.setTrafficIntent('a-to-b'));
+      dispatchConnectivityScenario(connectivityScenarioActions.setTrafficIntent(activeMeshTab === 'reverse' ? 'b-to-a' : 'a-to-b'));
     }
-  }, [linkMode, siteB]);
+  }, [activeMeshTab, linkMode, siteB]);
 
   useEffect(() => {
     const currentTerminals = connectivityScenario.origin?.terminalCapabilities;
@@ -910,7 +819,7 @@ const App: React.FC = () => {
     if (variant === 'desktop') {
       return renderAuthorshipLogo(
         'full',
-        useCompactDesktopHeader ? 'h-24 w-[4.5rem]' : 'h-[8.25rem] w-24',
+        useCompactDesktopHeader ? 'h-[4.75rem] w-14' : 'h-[5.75rem] w-[4.25rem]',
       );
     }
 
@@ -940,6 +849,8 @@ const App: React.FC = () => {
   const [selectedDownlinkKey, setSelectedDownlinkKey] = useState<string | null>(null);
   const [selectedUplinkKeyB, setSelectedUplinkKeyB] = useState<string | null>(null);
   const [selectedDownlinkKeyB, setSelectedDownlinkKeyB] = useState<string | null>(null);
+  const preserveCoverageKeysOnNextTargetResetRef = useRef(false);
+  const preserveSiteBCoverageKeysOnNextPointBResetRef = useRef(false);
   const [manualGeoCoverageVisibility, setManualGeoCoverageVisibility] = useState<{
     satelliteId: string | null;
     keys: string[];
@@ -1533,6 +1444,10 @@ const App: React.FC = () => {
 
   // Reset both keys whenever the target point changes
   useEffect(() => {
+    if (preserveCoverageKeysOnNextTargetResetRef.current) {
+      preserveCoverageKeysOnNextTargetResetRef.current = false;
+      return;
+    }
     setSelectedUplinkKey(null);
     setSelectedDownlinkKey(null);
     setSelectedUplinkKeyB(null);
@@ -1540,6 +1455,10 @@ const App: React.FC = () => {
   }, [targetSelectionResetKey, geoRFClassIdA, geoRFClassIdB]);
 
   useEffect(() => {
+    if (preserveSiteBCoverageKeysOnNextPointBResetRef.current) {
+      preserveSiteBCoverageKeysOnNextPointBResetRef.current = false;
+      return;
+    }
     setSelectedUplinkKeyB(null);
     setSelectedDownlinkKeyB(null);
   }, [linkMode, pointB]);
@@ -2952,35 +2871,99 @@ const App: React.FC = () => {
   const handleSwapRouteEndpoints = useCallback(() => {
     if (!activeAnalysisPoint || !siteB) return;
 
-    const nextDestination = { lat: activeAnalysisPoint.lat, lng: activeAnalysisPoint.lng };
+    const nextOrigin = { lat: siteB.lat, lng: siteB.lng };
+    const nextDestination = {
+      lat: activeAnalysisPoint.lat,
+      lng: activeAnalysisPoint.lng,
+      altitude: activeAnalysisPoint.altitude,
+    };
+    const nextMeshTab = activeMeshTab === 'reverse' ? 'forward' : 'reverse';
+    const nextTrafficIntent = nextMeshTab === 'reverse' ? 'b-to-a' : 'a-to-b';
+    const nextLinkMode = LINK_MODE_REQUIRES_POINT_B.has(linkMode) ? linkMode : 'MESH';
+    const nextGeoTopology = LINK_MODE_REQUIRES_POINT_B.has(nextLinkMode)
+      ? geoServiceTopologyFromLegacyLinkMode(nextLinkMode)
+      : 'mesh';
+
+    preserveCoverageKeysOnNextTargetResetRef.current = true;
+    preserveSiteBCoverageKeysOnNextPointBResetRef.current = true;
+    if (nextLinkMode !== linkMode) {
+      preserveMeshTabOnNextLinkModeRef.current = true;
+    }
+
     dispatchConnectivityScenario(connectivityScenarioActions.setOrigin(createScenarioEndpointFromLocation({
       endpoint: 'origin',
-      point: { lat: siteB.lat, lng: siteB.lng },
-      terminalCapabilities: engineeringOriginTerminalCapabilities,
+      point: nextOrigin,
+      terminalCapabilities: engineeringDestinationTerminalCapabilities,
     })));
     dispatchConnectivityScenario(connectivityScenarioActions.setDestination(createScenarioEndpointFromLocation({
       endpoint: 'destination',
       point: nextDestination,
-      terminalCapabilities: engineeringDestinationTerminalCapabilities,
+      terminalCapabilities: engineeringOriginTerminalCapabilities,
     })));
     dispatchConnectivityScenario(connectivityScenarioActions.setServicePattern('site-to-site'));
-    dispatchConnectivityScenario(connectivityScenarioActions.setTrafficIntent(activeMeshTab === 'reverse' ? 'b-to-a' : 'a-to-b'));
-    dispatchConnectivityScenario(connectivityScenarioActions.setGeoServiceTopology(LINK_MODE_REQUIRES_POINT_B.has(linkMode) ? geoServiceTopologyFromLegacyLinkMode(linkMode) : 'mesh'));
-    handleLocationSelect(siteB.lat, siteB.lng);
-    setSiteB(nextDestination);
+    dispatchConnectivityScenario(connectivityScenarioActions.setTrafficIntent(nextTrafficIntent));
+    dispatchConnectivityScenario(connectivityScenarioActions.setGeoServiceTopology(nextGeoTopology));
+
+    setLeoTerminalType(leoTerminalTypeB);
+    setLeoTerminalModelId(leoTerminalModelIdB);
+    setLeoTerminalTypeB(leoTerminalType);
+    setLeoTerminalModelIdB(leoTerminalModelId);
+    setGeoTerminalType(geoTerminalTypeB);
+    setGeoTerminalTypeB(geoTerminalType);
+    setGeoRFClassIdA(geoRFClassIdB);
+    setGeoRFClassIdB(geoRFClassIdA);
+    setGeoRFCustomParamsA(geoRFCustomParamsB);
+    setGeoRFCustomParamsB(geoRFCustomParamsA);
+    setWeatherType(weatherTypeB);
+    setWeatherTypeB(weatherType);
+    setAutoWeatherEnabled(autoWeatherEnabledB);
+    setAutoWeatherEnabledB(autoWeatherEnabled);
+    setSelectedUplinkKey(selectedUplinkKeyB);
+    setSelectedDownlinkKey(selectedDownlinkKeyB);
+    setSelectedUplinkKeyB(selectedUplinkKey);
+    setSelectedDownlinkKeyB(selectedDownlinkKey);
+
+    selectTarget('point', nextOrigin);
+    setCameraTarget({ lat: nextOrigin.lat, lng: nextOrigin.lng, alt: 10000 });
+    setSelectedMoon(false);
+    setSelectedAircraft(null);
+    setSelectedVessel(null);
+    setSelectedGateway(null);
+    setInspectedSNP(null);
+    setSelectedIss(false);
+    setSiteB({ lat: nextDestination.lat, lng: nextDestination.lng });
     setIsSiteBArmed(false);
-    handleLeoTopologyModeChange('SITE_TO_SITE');
-    handleLinkModeChange(LINK_MODE_REQUIRES_POINT_B.has(linkMode) ? linkMode : 'MESH');
+    setLeoTopologyMode('SITE_TO_SITE');
+    setLinkMode(nextLinkMode);
+    setActiveMeshTab(nextMeshTab);
+    setSearchQuery('');
+    resetActiveLeoRouteEvidenceState(activeLeoRouteEvidenceStateRef.current);
   }, [
     activeAnalysisPoint,
     activeMeshTab,
+    autoWeatherEnabled,
+    autoWeatherEnabledB,
     engineeringDestinationTerminalCapabilities,
     engineeringOriginTerminalCapabilities,
-    handleLeoTopologyModeChange,
-    handleLinkModeChange,
-    handleLocationSelect,
+    geoRFClassIdA,
+    geoRFClassIdB,
+    geoRFCustomParamsA,
+    geoRFCustomParamsB,
+    geoTerminalType,
+    geoTerminalTypeB,
+    leoTerminalModelId,
+    leoTerminalModelIdB,
+    leoTerminalType,
+    leoTerminalTypeB,
     linkMode,
+    selectTarget,
+    selectedDownlinkKey,
+    selectedDownlinkKeyB,
+    selectedUplinkKey,
+    selectedUplinkKeyB,
     siteB,
+    weatherType,
+    weatherTypeB,
   ]);
 
   const handleDesktopTargetSearchFocus = useCallback(() => {
@@ -4846,8 +4829,8 @@ const App: React.FC = () => {
       ].join(' ')}
     >
       {!isPhone && (
-        <header className="shrink-0 bg-white shadow-sm transition-colors duration-300 dark:bg-slate-900">
-          <div className={`w-full px-2 py-0 sm:px-4 lg:px-5 ${isDesktopHeaderCollapsed ? 'md:py-1' : useCompactDesktopHeader ? 'md:py-2' : 'md:py-3'}`}>
+        <header className="shrink-0 border-b border-slate-200/70 bg-white shadow-[0_8px_24px_-22px_rgba(15,23,42,0.38)] transition-colors duration-300 dark:border-slate-800 dark:bg-slate-900">
+          <div className={`w-full px-2 py-0 sm:px-3 lg:px-4 ${isDesktopHeaderCollapsed ? 'md:py-1' : useCompactDesktopHeader ? 'md:py-1.5' : 'md:py-2'}`}>
             {isMobile ? (
               <div className="flex items-center justify-between">
                 <div className="min-w-0">
@@ -4948,13 +4931,13 @@ const App: React.FC = () => {
                 </div>
               </div>
             ) : (
-              <div className={`flex items-start justify-between ${useCompactDesktopHeader ? 'gap-4' : 'gap-6'}`}>
+              <div className={`flex items-start justify-between ${useCompactDesktopHeader ? 'gap-3' : 'gap-4'}`}>
                 <div
                   className={[
                     'min-w-0 flex flex-1',
                     useCondensedHeaderSites
                       ? 'flex-col items-start gap-2'
-                      : useCompactDesktopHeader ? 'items-center gap-3' : 'items-center gap-4',
+                      : useCompactDesktopHeader ? 'items-center gap-2.5' : 'items-center gap-3',
                   ].join(' ')}
                 >
                   <div className="flex shrink-0 items-center">
@@ -4962,7 +4945,7 @@ const App: React.FC = () => {
                   </div>
 
                   <div className={useCondensedHeaderSites ? 'min-w-0 w-full max-w-[34rem]' : 'min-w-0 flex-1'}>
-                    <div className={`flex w-full items-start gap-2 ${useCondensedHeaderSites ? '' : useCompactDesktopHeader ? 'max-w-[920px]' : 'max-w-[1060px]'}`}>
+                    <div className={`flex w-full items-start gap-2 ${useCondensedHeaderSites ? '' : useCompactDesktopHeader ? 'max-w-[940px]' : 'max-w-[1080px]'}`}>
                   <div className="min-w-0 flex-1">
                     <HeaderScenarioBuilder
                       siteA={{
@@ -5265,8 +5248,8 @@ const App: React.FC = () => {
                   </div>
                 </div>
 
-              <div className={`flex shrink-0 flex-col items-stretch ${useCompactDesktopHeader ? 'gap-2' : 'gap-2.5'}`}>
-                <div className={`flex items-center justify-end ${useCompactDesktopHeader ? 'gap-2' : 'gap-3'}`}>
+              <div className={`flex shrink-0 flex-col items-stretch ${useCompactDesktopHeader ? 'gap-1.5' : 'gap-2'}`}>
+                <div className={`flex items-center justify-end ${useCompactDesktopHeader ? 'gap-1.5' : 'gap-2'}`}>
                   {renderUiModeSwitch(useCompactDesktopHeader)}
                   <button
                     ref={targetSourcesButtonRef}
@@ -5276,14 +5259,14 @@ const App: React.FC = () => {
                       isTargetSourcesMenuOpen
                         ? 'border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-500/30 dark:bg-blue-500/15 dark:text-blue-200'
                         : 'border-gray-200 bg-gray-50 text-slate-600 hover:bg-white hover:text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700 dark:hover:text-slate-100'
-                    } ${useCompactDesktopHeader ? 'h-10 w-10' : 'h-11 w-11'}`}
+                    } ${useCompactDesktopHeader ? 'h-9 w-9' : 'h-10 w-10'}`}
                     aria-expanded={isTargetSourcesMenuOpen}
                     aria-label="Locate asset or location"
                     title="Locate asset or location"
                   >
-                    <Waypoints className={useCompactDesktopHeader ? 'h-5 w-5' : 'h-[22px] w-[22px]'} />
+                    <Waypoints className={useCompactDesktopHeader ? 'h-[18px] w-[18px]' : 'h-5 w-5'} />
                   </button>
-                  <div className={`flex items-center rounded-lg border border-gray-200 bg-gray-50 dark:border-slate-700 dark:bg-slate-800 ${useCompactDesktopHeader ? 'gap-1 p-0.5' : 'gap-2 p-1'}`}>
+                  <div className={`flex items-center rounded-lg border border-gray-200 bg-gray-50 dark:border-slate-700 dark:bg-slate-800 ${useCompactDesktopHeader ? 'gap-1 p-0.5' : 'gap-1.5 p-0.5'}`}>
                     <SatelliteScopeFilter
                       currentScope={satelliteScope}
                       onScopeChange={handleSatelliteScopeChange}
@@ -5323,8 +5306,8 @@ const App: React.FC = () => {
 	                  </button>
 	                </div>
 
-	                <div className="flex items-center justify-end gap-2 mt-2">
-	                  <div className="min-w-[37rem] max-w-[40rem]">
+	                <div className="flex items-center justify-end gap-2">
+	                  <div className="min-w-[36rem] max-w-[39rem]">
 	                    <HeaderRouteStatusPanel routeStatus={headerRouteStatus} />
 	                  </div>
                 </div>

@@ -1,6 +1,6 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { CSSProperties, KeyboardEvent, ReactNode } from 'react';
-import { ArrowDown, ArrowLeftRight, ArrowUp, MapPin, Star, Timer } from 'lucide-react';
+import { ArrowDown, ArrowLeftRight, ArrowUp, CloudSun, MapPin, Radio, Satellite, Star, Timer } from 'lucide-react';
 import { useLocationSearch, type LocationResult } from '../../hooks/useLocationSearch';
 import type { ConnectivityEndpoint } from '../commercial/commercialTypes';
 import { TERMINAL_PROFILES, WEATHER_PROFILES, type TerminalType, type WeatherType } from '../capacity/TerminalConfig';
@@ -73,12 +73,12 @@ export interface HeaderRouteStatus {
 // ─── Select styling ───────────────────────────────────────────────────────────
 
 const darkSelectClass = [
-  'w-full appearance-none rounded-md border border-transparent bg-white/80',
-  'py-1 pl-2 pr-6 text-[11px] font-semibold text-slate-900 leading-tight',
+  'w-full appearance-none rounded-md border border-transparent bg-white/65',
+  'py-0.5 pl-2 pr-6 text-[10.5px] font-medium text-slate-800 leading-tight',
   'focus:border-sky-400/60 focus:ring-1 focus:ring-sky-400/40 focus:outline-none',
   'disabled:opacity-40 disabled:cursor-not-allowed',
   'hover:border-slate-300/80 transition-colors',
-  'dark:bg-slate-800/70 dark:text-slate-200 dark:hover:border-slate-500/80',
+  'dark:bg-slate-800/42 dark:text-slate-200 dark:hover:border-slate-500/70',
 ].join(' ');
 
 const chevronSvg = encodeURIComponent(
@@ -224,10 +224,10 @@ const WeatherAssumptionRow = memo(function WeatherAssumptionRow({
   const autoWeatherDisabled = disabled || !weather.onAutoWeatherChange;
 
   return (
-    <div className="flex w-full min-w-0 items-center gap-2 rounded-lg bg-sky-50/70 px-2 py-1 dark:bg-sky-950/20">
-      <span className="shrink-0 text-[10px] font-black uppercase tracking-[0.16em] text-sky-700 dark:text-cyan-300">
-        Weather
-      </span>
+    <div className="flex w-full min-w-0 items-center gap-1.5 px-0.5 py-0.5">
+      <div className="flex shrink-0 items-center text-slate-500 dark:text-slate-400" title="Environment">
+        <CloudSun className="h-3 w-3" aria-hidden="true" />
+      </div>
       <div className="min-w-0 flex-1">
         <select
           value={weather.weatherType}
@@ -244,10 +244,10 @@ const WeatherAssumptionRow = memo(function WeatherAssumptionRow({
       </div>
       <label
         className={[
-          'flex shrink-0 items-center gap-1 whitespace-nowrap text-[10px] font-bold uppercase tracking-[0.08em]',
+          'flex shrink-0 items-center gap-1 whitespace-nowrap text-[9px] font-bold uppercase tracking-[0.08em]',
           autoWeatherDisabled
             ? 'cursor-not-allowed text-slate-400 dark:text-slate-600'
-            : 'cursor-pointer text-slate-500 hover:text-sky-700 dark:text-slate-400 dark:hover:text-cyan-200',
+            : 'cursor-pointer text-slate-500 hover:text-sky-700 dark:text-slate-400 dark:hover:text-sky-200',
         ].join(' ')}
         title="Use current weather"
       >
@@ -256,7 +256,7 @@ const WeatherAssumptionRow = memo(function WeatherAssumptionRow({
           checked={autoWeatherEnabled}
           onChange={e => weather.onAutoWeatherChange?.(e.target.checked)}
           disabled={autoWeatherDisabled}
-          className="h-3 w-3 rounded border-slate-300 bg-white text-sky-600 focus:ring-1 focus:ring-sky-400 dark:border-slate-600 dark:bg-slate-800"
+          className="h-2.5 w-2.5 rounded border-slate-300 bg-white text-sky-600 focus:ring-1 focus:ring-sky-400 dark:border-slate-600 dark:bg-slate-800"
           aria-label="Use current weather"
         />
         <span>Real</span>
@@ -366,19 +366,19 @@ function SiteLocationEditor({
           type="button"
           onClick={open}
           className={[
-            'group inline-flex h-8 w-full min-w-0 items-center gap-2 rounded-lg border px-2.5 text-left transition-colors',
+            'group inline-flex h-7 w-full min-w-0 items-center gap-1.5 rounded-md border px-2 text-left transition-colors',
             isSet
-              ? 'border-slate-200/90 bg-white text-slate-900 shadow-sm hover:border-sky-300 hover:bg-sky-50/40 dark:border-slate-600/60 dark:bg-slate-800/70 dark:text-slate-100 dark:hover:border-sky-400/60 dark:hover:bg-slate-800'
-              : 'border-dashed border-slate-300 bg-slate-50/80 text-slate-500 hover:border-sky-300 hover:bg-sky-50/40 hover:text-slate-700 dark:border-slate-600/60 dark:bg-slate-800/30 dark:text-slate-500 dark:hover:border-sky-400/50 dark:hover:text-slate-300',
+              ? 'border-slate-200/80 bg-white/82 text-slate-900 shadow-sm hover:border-sky-300 hover:bg-white dark:border-slate-600/50 dark:bg-slate-800/48 dark:text-slate-100 dark:hover:border-sky-400/55 dark:hover:bg-slate-800/70'
+              : 'border-dashed border-slate-300/80 bg-white/35 text-slate-500 hover:border-sky-300 hover:bg-white/55 hover:text-slate-700 dark:border-slate-600/50 dark:bg-slate-950/10 dark:text-slate-500 dark:hover:border-sky-400/45 dark:hover:bg-slate-800/36 dark:hover:text-slate-300',
           ].join(' ')}
           title={isSet ? label : undefined}
           aria-label={isSet ? `Edit ${roleLabel} location` : `Set ${roleLabel} location`}
         >
           <MapPin
-            className={`h-3.5 w-3.5 shrink-0 ${isSet ? 'text-sky-500 dark:text-sky-300' : 'text-slate-400 group-hover:text-sky-500 dark:text-slate-600 dark:group-hover:text-sky-300'}`}
+            className={`h-3.5 w-3.5 shrink-0 ${isSet ? 'text-sky-500/85 dark:text-sky-300/85' : 'text-slate-400 group-hover:text-sky-500 dark:text-slate-600 dark:group-hover:text-sky-300'}`}
             aria-hidden="true"
           />
-          <span className="min-w-0 truncate text-[13px] font-semibold leading-none">
+          <span className="min-w-0 truncate text-[12px] font-semibold leading-none">
             {isSet ? label : <span className="font-normal text-slate-500 group-hover:text-slate-700 dark:group-hover:text-slate-400">{fallback}</span>}
           </span>
         </button>
@@ -399,18 +399,19 @@ const TerminalControlRow = memo(function TerminalControlRow({
   modelSelect: ReactNode;
 }) {
   const toneClass = tone === 'geo'
-    ? 'bg-emerald-50/70 text-emerald-700 dark:bg-emerald-950/20 dark:text-emerald-300'
-    : 'bg-sky-50/70 text-sky-700 dark:bg-sky-950/20 dark:text-sky-300';
+    ? 'text-emerald-700 dark:text-emerald-300'
+    : 'text-sky-700 dark:text-sky-300';
+  const Icon = tone === 'geo' ? Satellite : Radio;
 
   return (
-    <div className={`flex min-w-0 items-center gap-2 rounded-lg px-2 py-1.5 ${toneClass}`}>
-      <div className="flex w-[3.8rem] shrink-0 items-center gap-1.5">
-        <span className="text-[13px]" aria-hidden="true">🛰</span>
-        <span className="text-[10px] font-black uppercase tracking-[0.14em]">
+    <div className={`grid min-w-0 grid-cols-[3.25rem_minmax(0,1fr)] items-center gap-1.5 px-0.5 py-0.5 ${toneClass}`}>
+      <div className="flex min-w-0 items-center gap-1.5">
+        <Icon className="h-3.5 w-3.5 shrink-0 opacity-85" aria-hidden="true" />
+        <span className="truncate text-[9px] font-black uppercase tracking-[0.1em]">
           {label}
         </span>
       </div>
-      <div className="grid min-w-0 flex-1 grid-cols-[5.4rem_minmax(0,1fr)] gap-1.5">
+      <div className="grid min-w-0 flex-1 grid-cols-[5rem_minmax(0,1fr)] gap-1">
         {typeSelect}
         {modelSelect}
       </div>
@@ -421,82 +422,93 @@ const TerminalControlRow = memo(function TerminalControlRow({
 // ─── Site Column ──────────────────────────────────────────────────────────────
 
 function SiteColumn({
-  eyebrow, config, analysisSource,
+  eyebrow, config, analysisSource, role,
 }: {
   eyebrow: string;
   config: SiteConfig;
   analysisSource?: 'earth' | 'aircraft';
+  role: 'origin' | 'destination';
 }) {
   const isAircraft = analysisSource === 'aircraft';
+  const isOrigin = role === 'origin';
+  const stepLabel = isOrigin ? '01' : '02';
+  const accentClass = isOrigin
+    ? 'from-sky-400 via-cyan-400 to-blue-500'
+    : 'from-blue-500 via-indigo-400 to-cyan-400';
 
   return (
     <div
       className={[
-        'relative flex min-w-0 flex-1 flex-col gap-2.5 overflow-visible rounded-xl px-3 py-2',
-        'bg-slate-50/80',
-        'dark:bg-slate-900/45',
+        'relative flex min-w-0 flex-1 flex-col gap-1.5 overflow-visible rounded-lg px-2.5 py-1.5',
+        'bg-slate-50/46 dark:bg-slate-900/20',
       ].join(' ')}
     >
-      <div className="relative flex w-full min-w-0 items-center gap-2.5">
-        <div className="flex w-[4.7rem] shrink-0 flex-col">
-          <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">
-            {eyebrow}
-          </span>
-          <span className="mt-0.5 h-px w-9 bg-sky-400/70 dark:bg-cyan-300/60" aria-hidden="true" />
-        </div>
-        <div className="min-w-[9rem] flex-1">
-          <SiteLocationEditor
-            endpoint={config.endpoint}
-            fallback={config.fallback}
-            roleLabel={config.roleLabel}
-            onSelect={config.onSelect}
+      <div className="flex min-w-0 flex-col gap-1.5">
+        <div className="grid min-w-0 grid-cols-[minmax(9.5rem,1fr)_minmax(10.5rem,0.68fr)] items-end gap-2">
+          <div className="flex min-w-0 flex-col gap-1">
+            <div className="flex min-w-0 items-center gap-1.5">
+              <span className={`inline-flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-full bg-gradient-to-br ${accentClass} text-[7.5px] font-black tabular-nums text-white shadow-[0_8px_18px_-14px_rgba(14,165,233,0.82)]`}>
+                {stepLabel}
+              </span>
+              <div className="min-w-0 truncate text-[9px] font-black uppercase tracking-[0.18em] text-slate-700 dark:text-slate-200">
+                {eyebrow}
+              </div>
+            </div>
+            <div className="min-w-0">
+              <SiteLocationEditor
+                endpoint={config.endpoint}
+                fallback={config.fallback}
+                roleLabel={config.roleLabel}
+                onSelect={config.onSelect}
+              />
+            </div>
+          </div>
+          <WeatherAssumptionRow
+            weather={config.weather}
+            disabled={isAircraft}
           />
         </div>
-      </div>
 
-      <div className="relative flex min-w-0 flex-col gap-1.5 border-t border-slate-200/70 pt-2 dark:border-slate-700/60">
-        <WeatherAssumptionRow
-          weather={config.weather}
-          disabled={isAircraft}
-        />
-        <TerminalControlRow
-          label="GEO"
-          tone="geo"
-          typeSelect={(
-            <TerminalTypeSelect
-              terminalType={config.terminals.geoTerminalType}
-              onTerminalTypeChange={config.terminals.onGeoTerminalTypeChange}
-              disabled={isAircraft}
-            />
-          )}
-          modelSelect={(
-            <GeoTerminalSelect
-              rfClassId={config.terminals.geoRFClassId}
-              geoTerminalType={config.terminals.geoTerminalType}
-              onGeoRFClassChange={config.terminals.onGeoRFClassChange}
-              disabled={isAircraft}
-            />
-          )}
-        />
-        <TerminalControlRow
-          label="LEO"
-          tone="leo"
-          typeSelect={(
-            <TerminalTypeSelect
-              terminalType={config.terminals.leoTerminalType}
-              onTerminalTypeChange={config.terminals.onLeoTerminalTypeChange}
-              disabled={isAircraft}
-            />
-          )}
-          modelSelect={(
-            <LeoTerminalSelect
-              leoTerminalType={config.terminals.leoTerminalType}
-              leoTerminalModelId={config.terminals.leoTerminalModelId}
-              onLeoTerminalModelIdChange={config.terminals.onLeoTerminalModelIdChange}
-              disabled={isAircraft}
-            />
-          )}
-        />
+        <div className="relative flex min-w-0 flex-col gap-0.5 pt-0.5">
+          <TerminalControlRow
+            label="GEO"
+            tone="geo"
+            typeSelect={(
+              <TerminalTypeSelect
+                terminalType={config.terminals.geoTerminalType}
+                onTerminalTypeChange={config.terminals.onGeoTerminalTypeChange}
+                disabled={isAircraft}
+              />
+            )}
+            modelSelect={(
+              <GeoTerminalSelect
+                rfClassId={config.terminals.geoRFClassId}
+                geoTerminalType={config.terminals.geoTerminalType}
+                onGeoRFClassChange={config.terminals.onGeoRFClassChange}
+                disabled={isAircraft}
+              />
+            )}
+          />
+          <TerminalControlRow
+            label="LEO"
+            tone="leo"
+            typeSelect={(
+              <TerminalTypeSelect
+                terminalType={config.terminals.leoTerminalType}
+                onTerminalTypeChange={config.terminals.onLeoTerminalTypeChange}
+                disabled={isAircraft}
+              />
+            )}
+            modelSelect={(
+              <LeoTerminalSelect
+                leoTerminalType={config.terminals.leoTerminalType}
+                leoTerminalModelId={config.terminals.leoTerminalModelId}
+                onLeoTerminalModelIdChange={config.terminals.onLeoTerminalModelIdChange}
+                disabled={isAircraft}
+              />
+            )}
+          />
+        </div>
       </div>
     </div>
   );
@@ -516,12 +528,12 @@ function RouteMetric({
   caption: string;
 }) {
   return (
-    <div className="min-w-0 px-1.5 py-1" title={label}>
-      <div className="mb-1 flex min-w-0 items-center gap-1.5 text-[9px] font-black uppercase tracking-[0.12em] text-slate-500 dark:text-slate-300">
+    <div className="min-w-0 px-1 py-0.5" title={label}>
+      <div className="mb-0.5 flex min-w-0 items-center gap-1 text-[8px] font-black uppercase tracking-[0.1em] text-slate-500 dark:text-slate-300">
         <span className="shrink-0 text-sky-600 dark:text-sky-200">{icon}</span>
         <span className="truncate">{caption}</span>
       </div>
-      <div className="min-w-0 truncate text-[17px] font-black leading-tight tabular-nums text-slate-950 dark:text-white">
+      <div className="min-w-0 truncate text-[14px] font-black leading-tight tabular-nums text-slate-950 dark:text-white">
         {value}
       </div>
     </div>
@@ -540,33 +552,33 @@ function RouteStatusCard({ item }: { item: HeaderRouteStatusItem }) {
   const content = (
     <>
       <div className="flex min-w-0 items-center gap-2">
-        <div className={`shrink-0 text-[16px] font-black uppercase tracking-[0.14em] ${routeTechnologyAccentClass[item.technology]}`}>
+        <div className={`shrink-0 text-[14px] font-black uppercase tracking-[0.12em] ${routeTechnologyAccentClass[item.technology]}`}>
           {item.technology}
         </div>
-        <span className={`shrink-0 rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.1em] ${routeStatusToneClass[item.statusTone]}`}>
+        <span className={`shrink-0 rounded-full px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.08em] ${routeStatusToneClass[item.statusTone]}`}>
           {item.statusLabel}
         </span>
         {item.recommended && (
-          <span className="inline-flex min-w-0 items-center gap-1 rounded-full bg-sky-500/15 px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.1em] text-sky-700 dark:text-sky-200">
-            <Star className="h-3 w-3 shrink-0 fill-current" aria-hidden="true" />
+          <span className="inline-flex min-w-0 items-center gap-1 rounded-full bg-sky-500/15 px-2 py-0.5 text-[8px] font-black uppercase tracking-[0.08em] text-sky-700 dark:text-sky-200">
+            <Star className="h-2.5 w-2.5 shrink-0 fill-current" aria-hidden="true" />
             <span className="truncate">Recommended</span>
           </span>
         )}
         {item.selected && (
-          <span className="shrink-0 rounded-full bg-white/80 px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.1em] text-slate-600 dark:bg-sky-300/15 dark:text-sky-100">
+          <span className="shrink-0 rounded-full bg-white/80 px-2 py-0.5 text-[8px] font-black uppercase tracking-[0.08em] text-slate-600 dark:bg-sky-300/15 dark:text-sky-100">
             Selected
           </span>
         )}
       </div>
 
-      <div className="mt-2.5 grid min-w-0 grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)] gap-2">
-        <RouteMetric icon={<Timer className="h-4 w-4" aria-hidden="true" />} value={item.latency} label={`${item.technology} latency`} caption="LAT" />
-        <RouteMetric icon={<ArrowDown className="h-4 w-4" aria-hidden="true" />} value={item.throughput} label={`${item.technology} downlink throughput`} caption="DL" />
-        <RouteMetric icon={<ArrowUp className="h-4 w-4" aria-hidden="true" />} value={item.upload ?? '—'} label={`${item.technology} uplink throughput`} caption="UL" />
+      <div className="mt-1.5 grid min-w-0 grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)] gap-1.5">
+        <RouteMetric icon={<Timer className="h-3.5 w-3.5" aria-hidden="true" />} value={item.latency} label={`${item.technology} latency`} caption="LAT" />
+        <RouteMetric icon={<ArrowDown className="h-3.5 w-3.5" aria-hidden="true" />} value={item.throughput} label={`${item.technology} downlink throughput`} caption="DL" />
+        <RouteMetric icon={<ArrowUp className="h-3.5 w-3.5" aria-hidden="true" />} value={item.upload ?? '—'} label={`${item.technology} uplink throughput`} caption="UL" />
       </div>
 
       {item.limiting && (
-        <div className="mt-2 min-w-0 truncate text-[11px] font-semibold text-slate-600 dark:text-slate-300" title={item.limiting}>
+        <div className="mt-1.5 min-w-0 truncate text-[10px] font-semibold text-slate-600 dark:text-slate-300" title={item.limiting}>
           {item.limiting}
         </div>
       )}
@@ -574,8 +586,8 @@ function RouteStatusCard({ item }: { item: HeaderRouteStatusItem }) {
   );
 
   const className = [
-    'relative min-w-0 overflow-hidden rounded-xl border px-4 py-3.5 text-left',
-    'shadow-[0_18px_38px_-32px_rgba(15,23,42,0.75)]',
+    'relative min-w-0 overflow-hidden rounded-lg border px-3 py-2.5 text-left',
+    'shadow-[0_14px_30px_-28px_rgba(15,23,42,0.68)]',
     technologyGradientClass,
     item.onSelect ? 'transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-300/70' : '',
   ].join(' ');
@@ -608,8 +620,8 @@ export function HeaderRouteStatusPanel({
   if (items.length === 0) return null;
 
   const className = layout === 'side'
-    ? 'grid min-w-0 content-start gap-3 pl-2'
-    : `${items.length === 1 ? 'grid-cols-1' : 'grid-cols-2'} grid min-w-0 gap-3`;
+    ? 'grid min-w-0 content-start gap-2 pl-1.5'
+    : `${items.length === 1 ? 'grid-cols-1' : 'grid-cols-2'} grid min-w-0 gap-2`;
 
   return (
     <div className={className}>
@@ -625,10 +637,31 @@ export function HeaderRouteStatusPanel({
 function HeaderScenarioBuilder({
   siteA, siteB, onSwap, analysisSource, compact = false, collapsed = false, routeStatus,
 }: HeaderScenarioBuilderProps) {
+  const [swapAnimating, setSwapAnimating] = useState(false);
+  const swapAnimationTimeoutRef = useRef<number | null>(null);
   const canSwap = Boolean(
     siteA.endpoint?.label?.trim() && siteB.endpoint?.label?.trim(),
   );
   const hasRouteStatus = Boolean(routeStatus?.items?.length);
+
+  useEffect(() => () => {
+    if (swapAnimationTimeoutRef.current != null) {
+      window.clearTimeout(swapAnimationTimeoutRef.current);
+    }
+  }, []);
+
+  const handleSwapClick = useCallback(() => {
+    if (!canSwap) return;
+    if (swapAnimationTimeoutRef.current != null) {
+      window.clearTimeout(swapAnimationTimeoutRef.current);
+    }
+    setSwapAnimating(true);
+    onSwap();
+    swapAnimationTimeoutRef.current = window.setTimeout(() => {
+      setSwapAnimating(false);
+      swapAnimationTimeoutRef.current = null;
+    }, 320);
+  }, [canSwap, onSwap]);
 
   if (collapsed) {
     return (
@@ -640,9 +673,9 @@ function HeaderScenarioBuilder({
           'dark:border-slate-700/80 dark:bg-[linear-gradient(135deg,rgba(10,14,26,0.97),rgba(15,23,42,0.95))]',
         ].join(' ')}
       >
-        <div className="grid min-w-0 grid-cols-[3.25rem_minmax(0,1fr)] items-center gap-1.5">
-          <span className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
-            Site A
+        <div className="grid min-w-0 grid-cols-[3rem_minmax(0,1fr)] items-center gap-1.5">
+          <span className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-500 dark:text-slate-400">
+            From
           </span>
           <SiteLocationEditor
             endpoint={siteA.endpoint}
@@ -654,23 +687,27 @@ function HeaderScenarioBuilder({
 
         <button
           type="button"
-          onClick={onSwap}
+          onClick={handleSwapClick}
           disabled={!canSwap}
           className={[
-            'inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-colors',
+            'inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border transition-[background-color,border-color,color,box-shadow,transform] duration-200 active:scale-95',
             canSwap
-              ? 'bg-sky-50 text-sky-600 hover:bg-sky-100 hover:text-sky-700 dark:bg-slate-800/70 dark:text-sky-200 dark:hover:bg-slate-800'
-              : 'cursor-not-allowed bg-slate-50 text-slate-300 dark:bg-slate-900/50 dark:text-slate-700',
+              ? 'border-sky-200/80 bg-sky-50 text-sky-600 shadow-[0_10px_24px_-18px_rgba(14,165,233,0.72)] hover:border-sky-300 hover:bg-sky-100 hover:text-sky-700 dark:border-sky-300/20 dark:bg-slate-800/70 dark:text-sky-200 dark:hover:bg-slate-800'
+              : 'cursor-not-allowed border-slate-200/70 bg-slate-50 text-slate-300 dark:border-slate-800 dark:bg-slate-900/50 dark:text-slate-700',
+            swapAnimating ? 'rotate-180' : 'rotate-0',
           ].join(' ')}
-          aria-label="Swap Site A and Site B"
-          title={canSwap ? 'Swap sites' : 'Set both sites to swap'}
+          aria-label="Swap origin and destination"
+          title={canSwap ? 'Swap origin and destination' : 'Set origin and destination to swap'}
         >
-          <ArrowLeftRight className="h-3.5 w-3.5" aria-hidden="true" />
+          <ArrowLeftRight
+            className={['h-3.5 w-3.5 transition-transform duration-300 ease-out', swapAnimating ? 'scale-110' : 'scale-100'].join(' ')}
+            aria-hidden="true"
+          />
         </button>
 
-        <div className="grid min-w-0 grid-cols-[3.25rem_minmax(0,1fr)] items-center gap-1.5">
-          <span className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
-            Site B
+        <div className="grid min-w-0 grid-cols-[2rem_minmax(0,1fr)] items-center gap-1.5">
+          <span className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-500 dark:text-slate-400">
+            To
           </span>
           <SiteLocationEditor
             endpoint={siteB.endpoint}
@@ -687,51 +724,51 @@ function HeaderScenarioBuilder({
     <div
       className={[
         'relative flex min-w-0 flex-col',
-        'rounded-2xl border border-slate-200/80 bg-white',
-        'shadow-[0_18px_44px_-32px_rgba(15,23,42,0.45)]',
+        'rounded-xl border border-slate-200/70 bg-white',
+        'shadow-[0_14px_36px_-30px_rgba(15,23,42,0.42)]',
         'dark:border-slate-700/80 dark:bg-[linear-gradient(135deg,rgba(10,14,26,0.97),rgba(15,23,42,0.95))]',
-        'dark:shadow-[0_18px_44px_-32px_rgba(15,23,42,0.8)]',
-        compact ? 'gap-2 px-2.5 py-2' : 'gap-2.5 px-3 py-2.5',
+        'dark:shadow-[0_14px_36px_-30px_rgba(15,23,42,0.76)]',
+        compact ? 'gap-1.5 px-2 py-1.5' : 'gap-2 px-2.5 py-2',
       ].join(' ')}
     >
-      <div className={hasRouteStatus ? 'grid min-w-0 grid-cols-[minmax(0,1fr)_minmax(14rem,0.48fr)] gap-2' : ''}>
-        <div className={['relative flex min-w-0 items-stretch', compact ? 'gap-2.5' : 'gap-3.5'].join(' ')}>
-          {/* Site A */}
+      <div className={hasRouteStatus ? 'grid min-w-0 grid-cols-[minmax(0,1fr)_minmax(14rem,0.48fr)] gap-1.5' : ''}>
+        <div className={['relative flex min-w-0 items-stretch', compact ? 'gap-2' : 'gap-2.5'].join(' ')}>
           <SiteColumn
-            eyebrow="SITE A"
+            eyebrow="Origin"
             config={siteA}
             analysisSource={analysisSource}
+            role="origin"
           />
 
-          {/* Center: vertical rule + swap button */}
-          <div className="flex shrink-0 flex-col items-center self-stretch justify-center gap-1.5 px-0.5">
+          <div className="flex shrink-0 flex-col items-center self-stretch justify-center gap-1 px-0.5">
             <div className="w-px flex-1 bg-gradient-to-b from-transparent via-slate-300 to-transparent dark:via-slate-600/80" />
             <button
               type="button"
-              onClick={onSwap}
+              onClick={handleSwapClick}
               disabled={!canSwap}
               className={[
-                'inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition-colors',
+                'inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border transition-[background-color,border-color,color,box-shadow,transform] duration-200 active:scale-95',
                 canSwap
-                  ? 'bg-sky-50 text-sky-600 hover:bg-sky-100 hover:text-sky-700 dark:bg-slate-800/70 dark:text-sky-200 dark:hover:bg-slate-800'
-                  : 'cursor-not-allowed bg-slate-50 text-slate-300 dark:bg-slate-900/50 dark:text-slate-700',
+                  ? 'border-sky-300/80 bg-white text-sky-600 shadow-[0_12px_28px_-20px_rgba(14,165,233,0.85)] hover:border-sky-400 hover:bg-sky-50 hover:text-sky-700 hover:shadow-[0_14px_30px_-18px_rgba(14,165,233,0.92)] dark:border-sky-300/26 dark:bg-slate-800/76 dark:text-sky-200 dark:hover:bg-slate-800'
+                  : 'cursor-not-allowed border-slate-200/90 bg-white/65 text-slate-300 dark:border-slate-800 dark:bg-slate-900/50 dark:text-slate-700',
+                swapAnimating ? 'rotate-180' : 'rotate-0',
               ].join(' ')}
-              aria-label="Swap Site A and Site B"
-              title={canSwap ? 'Swap sites' : 'Set both sites to swap'}
+              aria-label="Swap origin and destination"
+              title={canSwap ? 'Swap origin and destination' : 'Set origin and destination to swap'}
             >
-              <ArrowLeftRight className="h-3.5 w-3.5" aria-hidden="true" />
+              <ArrowLeftRight
+                className={['h-3.5 w-3.5 transition-transform duration-300 ease-out', swapAnimating ? 'scale-110' : 'scale-100'].join(' ')}
+                aria-hidden="true"
+              />
             </button>
-            <span className="text-[8px] font-black uppercase tracking-[0.18em] text-slate-400 dark:text-slate-500">
-              Link
-            </span>
             <div className="w-px flex-1 bg-gradient-to-b from-transparent via-slate-300 to-transparent dark:via-slate-600/80" />
           </div>
 
-          {/* Site B */}
           <SiteColumn
-            eyebrow="SITE B"
+            eyebrow="Destination"
             config={siteB}
             analysisSource={analysisSource}
+            role="destination"
           />
         </div>
 
