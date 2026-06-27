@@ -75,7 +75,7 @@ export interface HeaderRouteStatus {
 
 const darkSelectClass = [
   'w-full appearance-none rounded-md border border-transparent bg-white/65',
-  'py-0.5 pl-2 pr-6 text-[10.5px] font-medium text-slate-800 leading-tight',
+  'h-6 py-0 pl-2 pr-6 text-[10.5px] font-medium text-slate-800 leading-tight',
   'focus:border-sky-400/60 focus:ring-1 focus:ring-sky-400/40 focus:outline-none',
   'disabled:opacity-40 disabled:cursor-not-allowed',
   'hover:border-slate-300/80 transition-colors',
@@ -225,7 +225,7 @@ const WeatherAssumptionRow = memo(function WeatherAssumptionRow({
   const autoWeatherDisabled = disabled || !weather.onAutoWeatherChange;
 
   return (
-    <div className="flex w-full min-w-0 items-center gap-1.5 px-0.5 py-0.5">
+    <div className="flex w-full min-w-0 items-center gap-1.5 px-0.5">
       <div className="flex shrink-0 items-center text-slate-500 dark:text-slate-400" title="Environment">
         <CloudSun className="h-3 w-3" aria-hidden="true" />
       </div>
@@ -367,7 +367,7 @@ function SiteLocationEditor({
           type="button"
           onClick={open}
           className={[
-            'group inline-flex h-7 w-full min-w-0 items-center gap-1.5 rounded-md border px-2 text-left transition-colors',
+            'group inline-flex h-6 w-full min-w-0 items-center gap-1.5 rounded-md border px-2 text-left transition-colors',
             isSet
               ? 'border-slate-200/80 bg-white/82 text-slate-900 shadow-sm hover:border-sky-300 hover:bg-white dark:border-slate-600/50 dark:bg-slate-800/48 dark:text-slate-100 dark:hover:border-sky-400/55 dark:hover:bg-slate-800/70'
               : 'border-dashed border-slate-300/80 bg-white/35 text-slate-500 hover:border-sky-300 hover:bg-white/55 hover:text-slate-700 dark:border-slate-600/50 dark:bg-slate-950/10 dark:text-slate-500 dark:hover:border-sky-400/45 dark:hover:bg-slate-800/36 dark:hover:text-slate-300',
@@ -405,7 +405,7 @@ const TerminalControlRow = memo(function TerminalControlRow({
   const Icon = tone === 'geo' ? Satellite : Radio;
 
   return (
-    <div className={`grid min-w-0 grid-cols-[3.25rem_minmax(0,1fr)] items-center gap-1.5 px-0.5 py-0.5 ${toneClass}`}>
+    <div className={`grid min-w-0 grid-cols-[3.25rem_minmax(0,1fr)] items-center gap-1.5 px-0.5 ${toneClass}`}>
       <div className="flex min-w-0 items-center gap-1.5">
         <Icon className="h-3.5 w-3.5 shrink-0 opacity-85" aria-hidden="true" />
         <span className="truncate text-[9px] font-black uppercase tracking-[0.1em]">
@@ -448,13 +448,13 @@ function SiteColumn({
   return (
     <div
       className={[
-        'relative flex min-w-0 flex-1 flex-col gap-1.5 overflow-visible rounded-lg px-2.5 py-1.5',
-        'bg-slate-50/46 dark:bg-slate-900/20',
+        'relative flex min-w-0 flex-1 flex-col justify-center gap-0.5 overflow-visible rounded-md px-2 py-1',
+        'bg-slate-50/34 dark:bg-slate-900/14',
         selectionSettling ? 'endpoint-selection-header-settle' : '',
       ].join(' ')}
     >
-      <div className="flex min-w-0 flex-col gap-1.5">
-        <div className="grid min-w-0 grid-cols-[minmax(9.5rem,1fr)_minmax(10.5rem,0.68fr)] items-end gap-2">
+      <div className="flex min-w-0 flex-col gap-0.5">
+        <div className="grid min-w-0 grid-cols-[minmax(9.5rem,1fr)_minmax(10.5rem,0.68fr)] items-center gap-1.5">
           <div className="flex min-w-0 flex-col gap-1">
             <div className="flex min-w-0 items-center gap-1.5">
               <span className={`inline-flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-full bg-gradient-to-br ${accentClass} text-[7.5px] font-black tabular-nums text-white shadow-[0_8px_18px_-14px_rgba(14,165,233,0.82)]`}>
@@ -479,7 +479,7 @@ function SiteColumn({
           />
         </div>
 
-        <div className="relative flex min-w-0 flex-col gap-0.5 pt-0.5">
+        <div className="relative flex min-w-0 flex-col gap-0.5">
           <TerminalControlRow
             label="GEO"
             tone="geo"
@@ -693,8 +693,8 @@ function HeaderScenarioBuilder({
     return (
       <div
         className={[
-          'relative grid min-w-0 grid-cols-[minmax(9rem,1fr)_2rem_minmax(9rem,1fr)] items-center gap-1.5',
-          'rounded-xl border border-slate-200/80 bg-white px-2 py-1.5',
+          'relative grid h-full min-w-0 grid-cols-[minmax(9rem,1fr)_2rem_minmax(9rem,1fr)] items-center gap-1.5',
+          'rounded-xl border border-slate-200/80 bg-white px-2 py-1',
           'shadow-[0_14px_34px_-28px_rgba(15,23,42,0.42)]',
           'dark:border-slate-700/80 dark:bg-[linear-gradient(135deg,rgba(10,14,26,0.97),rgba(15,23,42,0.95))]',
         ].join(' ')}
@@ -749,16 +749,16 @@ function HeaderScenarioBuilder({
   return (
     <div
       className={[
-        'relative flex min-w-0 flex-col',
+        'relative flex h-full min-w-0 flex-1 flex-col justify-center',
         'rounded-xl border border-slate-200/70 bg-white',
         'shadow-[0_14px_36px_-30px_rgba(15,23,42,0.42)]',
         'dark:border-slate-700/80 dark:bg-[linear-gradient(135deg,rgba(10,14,26,0.97),rgba(15,23,42,0.95))]',
         'dark:shadow-[0_14px_36px_-30px_rgba(15,23,42,0.76)]',
-        compact ? 'gap-1.5 px-2 py-1.5' : 'gap-2 px-2.5 py-2',
+        compact ? 'gap-1 px-2 py-1' : 'gap-1.5 px-2.5 py-1.5',
       ].join(' ')}
     >
-      <div className={hasRouteStatus ? 'grid min-w-0 grid-cols-[minmax(0,1fr)_minmax(14rem,0.48fr)] gap-1.5' : ''}>
-        <div className={['relative flex min-w-0 items-stretch', compact ? 'gap-2' : 'gap-2.5'].join(' ')}>
+      <div className={hasRouteStatus ? 'grid min-w-0 grid-cols-[minmax(0,1fr)_minmax(14rem,0.48fr)] items-stretch gap-1.5' : ''}>
+        <div className={['relative flex min-w-0 items-stretch', compact ? 'gap-1.5' : 'gap-2'].join(' ')}>
           <SiteColumn
             eyebrow="Origin"
             config={siteA}

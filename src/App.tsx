@@ -4664,6 +4664,39 @@ const App: React.FC = () => {
 
   const entryPointCardClassName = 'group relative overflow-hidden rounded-[20px] border border-slate-200/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.94),rgba(248,250,252,0.84))] p-3.5 shadow-[0_16px_34px_-30px_rgba(15,23,42,0.7)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_22px_46px_-30px_rgba(37,99,235,0.28)] dark:border-slate-700 dark:bg-[linear-gradient(180deg,rgba(15,23,42,0.78),rgba(15,23,42,0.62))]';
   const entryPointDescriptionClassName = 'mt-0.5 truncate text-[11px] leading-4 text-slate-500 dark:text-slate-400';
+  const explorePanelTop = (headerRouteStatus?.items.length ?? 0) > 0
+    ? '11.75rem'
+    : useCompactDesktopHeader ? '8.75rem' : '9.75rem';
+
+  const renderExploreLauncher = (compact = false, expandHeaderOnOpen = false) => (
+    <button
+      ref={targetSourcesButtonRef}
+      type="button"
+      onClick={() => {
+        if (expandHeaderOnOpen) {
+          setIsDesktopHeaderCollapsed(false);
+          setIsTargetSourcesMenuOpen(true);
+          return;
+        }
+        handleToggleTargetSourcesMenu();
+      }}
+      className={[
+        'group inline-flex shrink-0 items-center justify-center gap-1.5 border font-black uppercase tracking-[0.14em] shadow-sm transition-colors',
+        compact
+          ? 'h-7 rounded-lg px-2 text-[9px]'
+          : 'h-8 rounded-xl px-2.5 text-[10px]',
+        isTargetSourcesMenuOpen
+          ? 'border-sky-300/70 bg-sky-50 text-sky-700 dark:border-sky-300/30 dark:bg-sky-400/15 dark:text-sky-100'
+          : 'border-slate-200 bg-white/86 text-slate-600 hover:border-sky-300 hover:bg-sky-50 hover:text-sky-700 dark:border-slate-700/80 dark:bg-slate-800/76 dark:text-slate-300 dark:hover:border-sky-300/30 dark:hover:bg-slate-800 dark:hover:text-sky-100',
+      ].join(' ')}
+      aria-expanded={isTargetSourcesMenuOpen}
+      aria-label="Explore"
+      title="Explore"
+    >
+      <Waypoints className={compact ? 'h-3.5 w-3.5' : 'h-4 w-4'} aria-hidden="true" />
+      <span>Explore</span>
+    </button>
+  );
 
   const renderUiModeSwitch = (compact = false) => (
     <div className={`inline-flex shrink-0 border border-slate-200 bg-slate-50 p-1 dark:border-slate-700 dark:bg-slate-800 ${compact ? 'rounded-[22px] text-[13px] shadow-sm' : 'rounded-xl text-sm'}`}>
@@ -5020,8 +5053,9 @@ const App: React.FC = () => {
             ) : isDesktopHeaderCollapsed ? (
               <div className="flex w-full items-center gap-2">
                 <div className="flex min-w-0 shrink-0 items-center gap-2">
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center">
+                  <div className="flex shrink-0 flex-col items-center justify-center gap-1">
                     {renderAppTitle('compact')}
+                    {renderExploreLauncher(true, true)}
                   </div>
                   <div className="min-w-0 flex-[1_1_38rem] max-w-[42rem]">
                     <HeaderScenarioBuilder
@@ -5036,21 +5070,6 @@ const App: React.FC = () => {
                 </div>
                 <div className="ml-auto flex shrink-0 items-center justify-end gap-2">
                   {renderUiModeSwitch(true)}
-                  <button
-                    ref={targetSourcesButtonRef}
-                    type="button"
-                    onClick={handleToggleTargetSourcesMenu}
-                    className={`inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border text-sm font-semibold shadow-sm transition-colors ${
-                      isTargetSourcesMenuOpen
-                        ? 'border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-500/30 dark:bg-blue-500/15 dark:text-blue-200'
-                        : 'border-gray-200 bg-gray-50 text-slate-600 hover:bg-white hover:text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700 dark:hover:text-slate-100'
-                    }`}
-                    aria-expanded={isTargetSourcesMenuOpen}
-                    aria-label="Locate asset or location"
-                    title="Locate asset or location"
-                  >
-                    <Waypoints className="h-5 w-5" />
-                  </button>
                   <div className="flex items-center rounded-lg border border-gray-200 bg-gray-50 p-0.5 dark:border-slate-700 dark:bg-slate-800">
                     <SatelliteScopeFilter
                       currentScope={satelliteScope}
@@ -5092,22 +5111,30 @@ const App: React.FC = () => {
                 </div>
               </div>
             ) : (
-              <div className={`flex items-start justify-between ${useCompactDesktopHeader ? 'gap-3' : 'gap-4'}`}>
+              <div className={`flex items-stretch justify-between ${useCompactDesktopHeader ? 'gap-3' : 'gap-4'}`}>
                 <div
                   className={[
                     'min-w-0 flex flex-1',
                     useCondensedHeaderSites
                       ? 'flex-col items-start gap-2'
-                      : useCompactDesktopHeader ? 'items-center gap-2.5' : 'items-center gap-3',
+                      : useCompactDesktopHeader ? 'items-stretch gap-2.5' : 'items-stretch gap-3',
                   ].join(' ')}
                 >
-                  <div className="flex shrink-0 items-center">
+                  <div className="flex shrink-0 flex-col items-center justify-center gap-1.5">
                     {renderAppTitle('desktop')}
+                    {renderExploreLauncher(useCompactDesktopHeader)}
                   </div>
 
                   <div className={useCondensedHeaderSites ? 'min-w-0 w-full max-w-[34rem]' : 'min-w-0 flex-1'}>
-                    <div className={`flex w-full items-start gap-2 ${useCondensedHeaderSites ? '' : useCompactDesktopHeader ? 'max-w-[940px]' : 'max-w-[1080px]'}`}>
-                  <div className="min-w-0 flex-1">
+                    <div className={`flex w-full items-stretch gap-2 ${useCondensedHeaderSites ? '' : useCompactDesktopHeader ? 'max-w-[940px]' : 'max-w-[1080px]'}`}>
+                  <div
+                    className={[
+                      'flex min-w-0 flex-1 self-stretch',
+                      (headerRouteStatus?.items.length ?? 0) > 0
+                        ? 'min-h-[10.125rem]'
+                        : '',
+                    ].join(' ')}
+                  >
                     <HeaderScenarioBuilder
                       siteA={{
                         endpoint: routeSelectorRoute.origin,
@@ -5164,30 +5191,18 @@ const App: React.FC = () => {
                     />
                   </div>
                   <div className="contents" ref={targetSourcesMenuRef}>
-                    <button
-                      type="button"
-                      onClick={handleToggleTargetSourcesMenu}
-                      className={`hidden items-center justify-center rounded-xl border text-sm font-semibold shadow-sm transition-colors ${
-                        isTargetSourcesMenuOpen
-                          ? 'border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-500/30 dark:bg-blue-500/15 dark:text-blue-200'
-                          : 'border-gray-200 bg-gray-50 text-slate-600 hover:bg-white hover:text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700 dark:hover:text-slate-100'
-                      } ${useCompactDesktopHeader ? 'h-9 w-9' : 'h-10 w-10'}`}
-                      aria-expanded={isTargetSourcesMenuOpen}
-                      aria-label="Locate asset or location"
-                      title="Locate asset or location"
-                    >
-                      <Waypoints className={useCompactDesktopHeader ? 'h-[18px] w-[18px]' : 'h-5 w-5'} />
-                    </button>
-
                       {isTargetSourcesMenuOpen && (
-                        <div className="fixed right-6 top-[5.25rem] z-[90] w-[760px] max-w-[calc(100vw-6rem)] overflow-hidden rounded-[28px] border border-slate-200/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,250,252,0.95))] shadow-[0_36px_90px_-42px_rgba(15,23,42,0.55)] backdrop-blur-xl dark:border-slate-700 dark:bg-[linear-gradient(180deg,rgba(15,23,42,0.98),rgba(2,6,23,0.96))]">
+                        <div
+                          className="fixed left-4 z-[90] w-[760px] max-w-[calc(100vw-2rem)] overflow-hidden rounded-[28px] border border-slate-200/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,250,252,0.95))] shadow-[0_36px_90px_-42px_rgba(15,23,42,0.55)] backdrop-blur-xl dark:border-slate-700 dark:bg-[linear-gradient(180deg,rgba(15,23,42,0.98),rgba(2,6,23,0.96))]"
+                          style={{ top: explorePanelTop }}
+                        >
                           <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(56,189,248,0.12),transparent_24%),radial-gradient(circle_at_top_right,rgba(16,185,129,0.10),transparent_24%)]" />
                           <div className="relative border-b border-slate-200/80 px-5 py-3.5 dark:border-slate-700">
                             <div className="text-[17px] font-semibold text-slate-950 dark:text-slate-50">
-                              Choose another entry point
+                              Explore
                             </div>
                             <div className="mt-0.5 text-[13px] text-slate-600 dark:text-slate-300">
-                              Jump to a satellite, the Moon, gateway, location, SNP, aircraft, or vessel.
+                              Select what to explore, then configure a scenario if needed.
                             </div>
                           </div>
 
@@ -5409,24 +5424,9 @@ const App: React.FC = () => {
                   </div>
                 </div>
 
-              <div className={`flex shrink-0 flex-col items-stretch ${useCompactDesktopHeader ? 'gap-1.5' : 'gap-2'}`}>
+              <div className={`flex shrink-0 flex-col items-stretch ${(headerRouteStatus?.items.length ?? 0) > 0 ? '' : 'justify-center'} ${useCompactDesktopHeader ? 'gap-1.5' : 'gap-2'}`}>
                 <div className={`flex items-center justify-end ${useCompactDesktopHeader ? 'gap-1.5' : 'gap-2'}`}>
                   {renderUiModeSwitch(useCompactDesktopHeader)}
-                  <button
-                    ref={targetSourcesButtonRef}
-                    type="button"
-                    onClick={handleToggleTargetSourcesMenu}
-                    className={`inline-flex shrink-0 items-center justify-center rounded-xl border text-sm font-semibold shadow-sm transition-colors ${
-                      isTargetSourcesMenuOpen
-                        ? 'border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-500/30 dark:bg-blue-500/15 dark:text-blue-200'
-                        : 'border-gray-200 bg-gray-50 text-slate-600 hover:bg-white hover:text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700 dark:hover:text-slate-100'
-                    } ${useCompactDesktopHeader ? 'h-9 w-9' : 'h-10 w-10'}`}
-                    aria-expanded={isTargetSourcesMenuOpen}
-                    aria-label="Locate asset or location"
-                    title="Locate asset or location"
-                  >
-                    <Waypoints className={useCompactDesktopHeader ? 'h-[18px] w-[18px]' : 'h-5 w-5'} />
-                  </button>
                   <div className={`flex items-center rounded-lg border border-gray-200 bg-gray-50 dark:border-slate-700 dark:bg-slate-800 ${useCompactDesktopHeader ? 'gap-1 p-0.5' : 'gap-1.5 p-0.5'}`}>
                     <SatelliteScopeFilter
                       currentScope={satelliteScope}
