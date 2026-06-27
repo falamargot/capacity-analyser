@@ -135,6 +135,7 @@ const SiteScreenLabel: React.FC<SiteScreenLabelProps> = ({
       const horizontalOffset = collisionSide === 'left' ? -30 : collisionSide === 'right' ? 30 : 0;
       const translateX = collisionSide === 'left' ? '-100%' : collisionSide === 'right' ? '0' : '-50%';
       el.style.opacity = '1';
+      el.style.visibility = 'visible';
       el.style.left    = `${x + horizontalOffset}px`;
       el.style.top     = `${y - (compact ? 22 : 28)}px`;
       el.style.transform = `translate(${translateX}, -100%)`;
@@ -144,9 +145,12 @@ const SiteScreenLabel: React.FC<SiteScreenLabelProps> = ({
         .some((occluder) => {
           if (occluder === el || occluder.getClientRects().length === 0) return false;
           return intersects(labelRect, occluder.getBoundingClientRect());
-        });
+      });
       el.dataset.siteTooltipOccluded = isOccluded ? 'true' : 'false';
-      if (isOccluded) el.style.opacity = '0';
+      if (isOccluded) {
+        el.style.opacity = '0';
+        el.style.visibility = 'hidden';
+      }
     };
 
     update();
