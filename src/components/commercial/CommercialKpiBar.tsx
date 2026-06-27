@@ -1,5 +1,5 @@
 import { memo } from 'react';
-import { AlertTriangle, CheckCircle2, CircleDashed, Sparkles } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, ChevronDown, CircleDashed, Sparkles } from 'lucide-react';
 import type { CommercialScenarioViewModel, CommercialTechnologyOption } from './commercialViewModel';
 import { formatMbps, formatMs, serviceStatusChipClassName } from './commercialDisplayUtils';
 
@@ -46,11 +46,11 @@ function decisionReason(viewModel: CommercialScenarioViewModel): string {
   const alternative = alternativeOption(viewModel);
 
   if (recommended && alternative && !alternative.available) {
-    return `${recommended.label} selected because ${alternative.label} cannot deliver service at destination.`;
+    return `${alternative.label} cannot deliver this route.`;
   }
 
   if (viewModel.recommendation.technology === 'not_available') {
-    return 'No available path can deliver the current scenario.';
+    return 'No service path is available.';
   }
 
   if (viewModel.recommendation.technology === 'insufficient_data') {
@@ -60,9 +60,31 @@ function decisionReason(viewModel: CommercialScenarioViewModel): string {
   return viewModel.recommendation.message || viewModel.recommendation.reason;
 }
 
+function compactDecisionTitle(viewModel: CommercialScenarioViewModel): string {
+  if (viewModel.recommendation.technology === 'leo' || viewModel.recommendation.technology === 'geo') {
+    return viewModel.recommendation.label;
+  }
+
+  return recommendationTitle(viewModel);
+}
+
 function consequenceText(viewModel: CommercialScenarioViewModel): string {
   if (viewModel.executiveSummary.expectedExperience) return viewModel.executiveSummary.expectedExperience;
   return viewModel.recommendation.expectedExperience;
+}
+
+function operationalServiceText(viewModel: CommercialScenarioViewModel): string {
+  if (viewModel.serviceStatus === 'blocked') return 'No customer service';
+  if (viewModel.serviceStatus === 'unknown') return 'Awaiting route evidence';
+  if (viewModel.serviceStatus === 'degraded') return 'Usable with constraints';
+
+  const rttMs = viewModel.rttMs;
+  if (typeof rttMs === 'number' && Number.isFinite(rttMs)) {
+    if (rttMs <= 90) return 'Real-time connectivity';
+    if (rttMs <= 180) return 'Suitable for interactive applications';
+  }
+
+  return consequenceText(viewModel);
 }
 
 function whyDetail(viewModel: CommercialScenarioViewModel): string {
@@ -70,7 +92,7 @@ function whyDetail(viewModel: CommercialScenarioViewModel): string {
   const alternative = alternativeOption(viewModel);
 
   if (recommended?.available && alternative && !alternative.available) {
-    return 'Availability is the deciding factor for this route.';
+    return `${alternative.label} cannot deliver this route.`;
   }
 
   return viewModel.executiveSummary.reason;
@@ -97,6 +119,13 @@ function availabilitySignal(option: CommercialTechnologyOption): { label: string
   };
 }
 
+function compactAvailabilityLabel(option: CommercialTechnologyOption, isRecommended: boolean): string {
+  if (isRecommended) return 'Chosen path';
+  if (option.available) return 'Available';
+  if (option.status === 'unknown') return 'Pending';
+  return 'Unavailable';
+}
+
 function supportEvidence(option: CommercialTechnologyOption): string {
   const evidence = [
     `Down ${formatMbps(option.downloadMbps)}`,
@@ -119,11 +148,21 @@ function availabilityIcon(tone: ReturnType<typeof availabilitySignal>['tone']) {
   return <CircleDashed className="h-4 w-4 shrink-0 text-slate-300" />;
 }
 
-interface CommercialKpiBarProps {
-  viewModel: CommercialScenarioViewModel;
+function KpiChip({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-lg border border-slate-800/70 bg-slate-950/45 px-2 py-1">
+      <div className="text-base font-semibold leading-none tabular-nums text-white">{value}</div>
+      <div className="mt-1 text-[9px] font-semibold uppercase tracking-[0.1em] text-slate-500">{label}</div>
+    </div>
+  );
 }
 
-function CommercialKpiBar({ viewModel }: CommercialKpiBarProps) {
+interface CommercialKpiBarProps {
+  viewModel: CommercialScenarioViewModel;
+  compactDecisionCard?: boolean;
+}
+
+function CommercialKpiBar({ viewModel, compactDecisionCard = false }: CommercialKpiBarProps) {
   const comparisonOptions = viewModel.comparison.options;
   const showComparison = comparisonOptions.length >= 2;
   const summary = viewModel.executiveSummary;
@@ -134,6 +173,82 @@ function CommercialKpiBar({ viewModel }: CommercialKpiBarProps) {
   const reason = decisionReason(viewModel);
   const consequence = consequenceText(viewModel);
   const why = whyDetail(viewModel);
+  const compactService = operationalServiceText(viewModel);
+
+  if (compactDecisionCard) {
+    return (
+      <section className="bg-slate-950/72 px-3 py-2.5 shadow-sm backdrop-blur">
+        <div className="rounded-xl border border-sky-300/30 bg-sky-500/10 px-3 py-2.5 shadow-[0_18px_44px_-38px_rgba(56,189,248,0.85)]">
+          <div className="flex min-w-0 items-start justify-between gap-3">
+            <div className="min-w-0">
+              <div className="text-[10px] font-bold uppercase tracking-[0.14em] text-sky-200">Decision</div>
+              <div className="mt-0.5 text-xl font-semibold leading-tight text-white" title={viewModel.recommendation.message}>
+                {compactDecisionTitle(viewModel)}
+              </div>
+            </div>
+            <span className={`shrink-0 rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.08em] ${serviceStatusChipClassName[viewModel.serviceStatus]}`}>
+              {summary.statusLabel}
+            </span>
+          </div>
+        </div>
+
+        <div className="mt-2 grid gap-2">
+          <div className="rounded-lg border border-slate-800/60 bg-slate-900/48 px-3 py-1.5">
+            <div className="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500">Why</div>
+            <div className="mt-0.5 text-sm font-semibold leading-5 text-white" title={why}>
+              {why}
+            </div>
+          </div>
+
+          <div className="rounded-lg border border-slate-800/60 bg-slate-900/36 px-3 py-1.5">
+            <div className="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500">Expected service</div>
+            <div className="mt-1.5 grid grid-cols-3 gap-1.5">
+              <KpiChip label="Down" value={formatMbps(viewModel.downloadMbps)} />
+              <KpiChip label="Up" value={formatMbps(viewModel.uploadMbps)} />
+              <KpiChip label="RTT" value={formatMs(viewModel.rttMs)} />
+            </div>
+            <div className="mt-1.5 text-xs font-medium leading-4 text-slate-300" title={compactService}>
+              {compactService}
+            </div>
+          </div>
+        </div>
+
+        {showComparison && (
+          <details className="group mt-2 rounded-lg border border-slate-800/70 bg-slate-900/55">
+            <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-3 py-2 text-sm font-semibold text-slate-100">
+              <span>Compare technologies</span>
+              <ChevronDown className="h-4 w-4 shrink-0 text-slate-400 transition-transform group-open:rotate-180" />
+            </summary>
+            <div className="grid border-t border-slate-800/70">
+              {compactComparisonOptions.map((option) => {
+                const isRecommended = recommended?.technology === option.technology;
+                const availability = availabilitySignal(option);
+                return (
+                  <div key={option.technology} className={['border-t border-slate-800/60 px-3 py-2 first:border-t-0', isRecommended ? 'bg-sky-500/10' : ''].join(' ')}>
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-[11px] font-bold uppercase tracking-[0.12em] text-slate-300">{option.label}</span>
+                      <span className={isRecommended ? 'text-[10px] font-semibold text-sky-200' : 'text-[10px] font-semibold text-slate-500'}>
+                        {isRecommended ? 'Selected' : option.statusLabel}
+                      </span>
+                    </div>
+                    <div className={`mt-1.5 flex items-center gap-2 rounded-lg border px-2.5 py-1.5 text-sm font-semibold ${availabilityClassName(availability.tone)}`}>
+                      {availabilityIcon(availability.tone)}
+                      <span className="min-w-0 leading-5" title={availability.label}>{compactAvailabilityLabel(option, isRecommended)}</span>
+                    </div>
+                    <div className="mt-1 grid grid-cols-3 gap-1.5" title={supportEvidence(option)}>
+                      <KpiChip label="Down" value={formatMbps(option.downloadMbps)} />
+                      <KpiChip label="Up" value={formatMbps(option.uploadMbps)} />
+                      <KpiChip label="RTT" value={formatMs(option.rttMs)} />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </details>
+        )}
+      </section>
+    );
+  }
 
   return (
     <div className="border-b border-slate-800/70 bg-slate-950/96 px-4 py-3 shadow-sm backdrop-blur">

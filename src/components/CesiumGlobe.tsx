@@ -431,6 +431,68 @@ function executeGeoCoverageServiceCamera(
     );
 }
 
+function executeCommercialMobileHeroCamera(
+    viewer: CesiumViewerType,
+    model: CommercialRouteModel,
+    geoCoverageFocusFrame: CommercialGeoCoverageFocusFrame | null = null,
+): void {
+    const positions: Cartesian3[] = [];
+    const surfaceTypes: CommercialRouteNodeType[] = ['ORIGIN', 'DESTINATION', 'NETWORK_PORTAL'];
+
+    for (const node of model.nodes) {
+        if (surfaceTypes.includes(node.nodeType) && node.position) {
+            positions.push(getPosition(node.position.lat, node.position.lng, GROUND_POINT_ALTITUDE_KM));
+        }
+    }
+
+    const arcApex = commercialSymbolicArcApex(model);
+    if (arcApex) positions.push(arcApex);
+
+    if (model.technology === 'LEO') {
+        for (const edge of model.edges) {
+            if (edge.edgeType !== 'SPACE_LINK') continue;
+            const fromPosition = commercialNarrativePos(edge.fromNodeId, model);
+            const toPosition = commercialNarrativePos(edge.toNodeId, model);
+            if (fromPosition) positions.push(fromPosition);
+            if (toPosition) positions.push(toPosition);
+        }
+    }
+
+    if (positions.length === 0) {
+        if (model.technology === 'GEO' && geoCoverageFocusFrame) {
+            viewer.camera.flyToBoundingSphere(
+                geoCoverageFocusFrame.sphere,
+                { duration: 1.25, offset: new HeadingPitchRange(0, geoCoverageFocusFrame.pitchRadians, 0) },
+            );
+        }
+        return;
+    }
+
+    const sphere = positions.length === 1
+        ? new BoundingSphere(positions[0], model.technology === 'GEO' ? 1_250_000 : 950_000)
+        : BoundingSphere.fromPoints(positions);
+    sphere.radius = Math.min(Math.max(sphere.radius * 1.08, 1_050_000), 4_200_000);
+    const range = Math.min(Math.max(sphere.radius * 1.65, 1_600_000), 7_200_000);
+    const composeAboveDecisionCard = () => {
+        viewer.camera.moveDown(Math.min(Math.max(range * 0.16, 260_000), 920_000));
+        viewer.camera.moveBackward(Math.min(Math.max(range * 0.08, 120_000), 520_000));
+        viewer.scene.requestRender();
+    };
+
+    viewer.camera.flyToBoundingSphere(
+        sphere,
+        {
+            duration: 1.25,
+            offset: new HeadingPitchRange(
+                commercialRouteBearingRadians(model) + (Math.PI / 2),
+                -CesiumMath.toRadians(48),
+                range,
+            ),
+            complete: composeAboveDecisionCard,
+        },
+    );
+}
+
 /**
  * Execute a camera fly to match the given CommercialRouteFocusTarget behaviour.
  *
@@ -1361,12 +1423,24 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         }
         const segmentId = commercialRouteModel.focusedSegmentId ?? 'summary';
         const routeGeometrySignature = commercialRouteGeometrySignature(commercialRouteModel);
-        const focusKey = commercialRouteModel.technology === 'GEO' && segmentId === 'satellite'
-            ? `${segmentId}:${routeGeometrySignature}:${commercialGeoCoverageFocusSignature}`
-            : `${segmentId}:${routeGeometrySignature}`;
+        const useMobileHeroFocus = isPhone || isMobileViewport;
+        const focusKey = useMobileHeroFocus
+            ? `mobile-hero:${commercialRouteModel.technology}:${routeGeometrySignature}:${commercialGeoCoverageFocusSignature}`
+            : commercialRouteModel.technology === 'GEO' && segmentId === 'satellite'
+                ? `${segmentId}:${routeGeometrySignature}:${commercialGeoCoverageFocusSignature}`
+                : `${segmentId}:${routeGeometrySignature}`;
         if (suppressCommercialCameraFocus) return;
         if (focusKey === prevCommercialSegmentFocusRef.current) return;
         prevCommercialSegmentFocusRef.current = focusKey;
+
+        if (useMobileHeroFocus) {
+            executeCommercialMobileHeroCamera(
+                viewerRef.current,
+                commercialRouteModel,
+                commercialGeoCoverageFocusFrame,
+            );
+            return;
+        }
 
         const focusTarget = commercialRouteModel.focusTargets.find(t => t.segmentId === segmentId);
         if (!focusTarget) return;
@@ -1377,7 +1451,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
             commercialRouteModel,
             commercialGeoCoverageFocusFrame,
         );
-    }, [commercialMode, commercialGeoCoverageFocusFrame, commercialGeoCoverageFocusSignature, commercialRouteModel?.focusedSegmentId, commercialRouteModel, suppressCommercialCameraFocus]);
+    }, [commercialMode, commercialGeoCoverageFocusFrame, commercialGeoCoverageFocusSignature, commercialRouteModel?.focusedSegmentId, commercialRouteModel, isMobileViewport, isPhone, suppressCommercialCameraFocus]);
 
     useEffect(() => {
         if (commercialMode || !viewerRef.current) return;
@@ -2202,8 +2276,8 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
     const commercialSatelliteFocused = commercialMode && commercialFocusedSegment === 'satellite';
     const commercialBackhaulFocused = commercialMode && commercialFocusedSegment === 'backhaul';
     const commercialGeoSatelliteFocused = commercialMode && commercialFocusedSegment === 'satellite' && commercialRouteTechnology === 'GEO';
-    const showCommercialSiteALabel = !commercialMode || commercialAccessFocused || commercialSatelliteFocused || commercialBackhaulFocused || commercialSummaryFocused;
-    const showCommercialSiteBLabel = !commercialMode || commercialDestinationFocused || commercialSummaryFocused;
+    const showCommercialSiteALabel = !commercialMode || !!commercialRouteModel;
+    const showCommercialSiteBLabel = !commercialMode || !!commercialRouteModel;
 
     const selectedRegulatoryCountryOutlineVisible =
         effectiveCountryOverlayMode === 'regulatory'
@@ -2633,6 +2707,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                             viewerRef={viewerRef}
                             cameraMetricsRef={cameraMetricsRef}
                             sizeScale={sizeScale}
+                            routeHeroMode={isPhone || isMobileViewport}
                         />
                     )}
 

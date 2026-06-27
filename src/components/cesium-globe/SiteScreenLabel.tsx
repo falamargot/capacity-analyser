@@ -49,6 +49,21 @@ const toneClass = (tone?: SiteLabelTone): string => {
   return 'text-slate-300';
 };
 
+const SITE_LABEL_OCCLUDER_SELECTOR = [
+  '[data-site-tooltip-occluder="true"]',
+  '.commercial-narrative-panel',
+  '.commercial-mobile-decision-layer > div',
+].join(',');
+
+function intersects(a: DOMRect, b: DOMRect, padding = 6): boolean {
+  return (
+    a.left < b.right + padding
+    && a.right > b.left - padding
+    && a.top < b.bottom + padding
+    && a.bottom > b.top - padding
+  );
+}
+
 /** Returns the CSS glow color for the outcome highlight border animation. */
 function outcomeGlowColor(status: 'active' | 'limited' | 'blocked'): string {
   switch (status) {
@@ -123,14 +138,31 @@ const SiteScreenLabel: React.FC<SiteScreenLabelProps> = ({
       el.style.left    = `${x + horizontalOffset}px`;
       el.style.top     = `${y - (compact ? 22 : 28)}px`;
       el.style.transform = `translate(${translateX}, -100%)`;
+
+      const labelRect = el.getBoundingClientRect();
+      const isOccluded = Array.from(document.querySelectorAll<HTMLElement>(SITE_LABEL_OCCLUDER_SELECTOR))
+        .some((occluder) => {
+          if (occluder === el || occluder.getClientRects().length === 0) return false;
+          return intersects(labelRect, occluder.getBoundingClientRect());
+        });
+      el.dataset.siteTooltipOccluded = isOccluded ? 'true' : 'false';
+      if (isOccluded) el.style.opacity = '0';
     };
 
     update();
     viewer.scene.postRender.addEventListener(update);
     window.addEventListener('resize', update);
+    const occlusionInterval = window.setInterval(update, 120);
+    const occlusionObserver = new MutationObserver(update);
+    occlusionObserver.observe(document.body, {
+      childList: true,
+      subtree: true,
+    });
     return () => {
       viewer.scene.postRender.removeEventListener(update);
       window.removeEventListener('resize', update);
+      window.clearInterval(occlusionInterval);
+      occlusionObserver.disconnect();
     };
   }, [collisionSide, compact, containerRef, position, viewerReady, viewerRef]);
 
@@ -157,7 +189,8 @@ const SiteScreenLabel: React.FC<SiteScreenLabelProps> = ({
   return (
     <div
       ref={labelRef}
-      className={['absolute z-50 pointer-events-none max-w-[18rem] opacity-0 transition-[opacity,transform] duration-150', selectionSettling ? 'endpoint-selection-label-settle' : ''].join(' ')}
+      data-site-tooltip="true"
+      className={['absolute z-30 pointer-events-none max-w-[18rem] opacity-0 transition-[opacity,transform] duration-150', selectionSettling ? 'endpoint-selection-label-settle' : ''].join(' ')}
       style={{ left: 0, top: 0, transform: 'translate(-50%, -100%)' }}
     >
       <div

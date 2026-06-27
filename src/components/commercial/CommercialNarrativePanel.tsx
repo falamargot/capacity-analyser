@@ -918,6 +918,7 @@ function CommercialNarrativePanel({
 
   return (
     <div
+      data-site-tooltip-occluder="true"
       className={[
         'commercial-narrative-panel',
         'absolute right-0 top-0 z-40 w-[380px]',

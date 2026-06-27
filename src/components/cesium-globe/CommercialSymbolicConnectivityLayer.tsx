@@ -29,6 +29,7 @@ interface CommercialSymbolicConnectivityLayerProps {
   viewerRef: React.RefObject<CesiumViewerType | null>;
   cameraMetricsRef: React.MutableRefObject<CameraMetricsSnapshot>;
   sizeScale?: number;
+  routeHeroMode?: boolean;
 }
 
 interface SymbolicEndpoint {
@@ -1075,18 +1076,21 @@ const CommercialSymbolicConnectivityLayer: React.FC<CommercialSymbolicConnectivi
   viewerRef,
   cameraMetricsRef,
   sizeScale = 1,
+  routeHeroMode = false,
 }) => {
   const { origin, destination } = useMemo(() => resolveEndpoints(routeModel), [routeModel]);
   const arcSpecs = useMemo(() => buildArcSpecs(routeModel), [routeModel]);
+  const effectiveFocusedSegmentId = routeModel.focusedSegmentId ?? (routeHeroMode ? 'summary' : null);
   const isSatelliteFocus = routeModel.focusedSegmentId === 'satellite';
+  const showGeoSatelliteFocus = routeModel.technology === 'GEO' && (isSatelliteFocus || routeHeroMode);
   const skyBridgeNodes = useMemo(() => resolveSkyBridgeNodes(routeModel), [routeModel]);
   const expectedArcEntityIds = useMemo(
     () => (
-      isSatelliteFocus && routeModel.technology === 'GEO'
+      showGeoSatelliteFocus
         ? expectedGeoSatelliteFocusEntityIds(origin, destination, skyBridgeNodes.primary)
         : expectedSymbolicArcEntityIds(origin, destination, arcSpecs)
     ),
-    [arcSpecs, destination, isSatelliteFocus, origin, routeModel.technology, skyBridgeNodes.primary],
+    [arcSpecs, destination, origin, showGeoSatelliteFocus, skyBridgeNodes.primary],
   );
 
   useEffect(() => {
@@ -1107,17 +1111,17 @@ const CommercialSymbolicConnectivityLayer: React.FC<CommercialSymbolicConnectivi
   return (
     <>
       {/* Arc — only when both endpoint positions are known */}
-      {destination && routeSignature && (!isSatelliteFocus || routeModel.technology === 'LEO') && arcSpecs.map((spec) => (
+      {destination && routeSignature && !showGeoSatelliteFocus && arcSpecs.map((spec) => (
         <SymbolicServiceArc
           key={`${spec.id}-${routeSignature}`}
           spec={spec}
           origin={origin}
           destination={destination}
-          focusedSegmentId={routeModel.focusedSegmentId}
+          focusedSegmentId={effectiveFocusedSegmentId}
           sizeScale={sizeScale}
         />
       ))}
-      {destination && routeSignature && isSatelliteFocus && routeModel.technology === 'GEO' && arcSpecs.map((spec) => (
+      {destination && routeSignature && showGeoSatelliteFocus && arcSpecs.map((spec) => (
         <GeoSatelliteServiceFocus
           key={`geo-focus-${spec.id}-${routeSignature}`}
           spec={spec}
@@ -1127,7 +1131,7 @@ const CommercialSymbolicConnectivityLayer: React.FC<CommercialSymbolicConnectivi
           sizeScale={sizeScale}
         />
       ))}
-      {routeModel.focusedSegmentId === 'access' && (
+      {effectiveFocusedSegmentId === 'access' && (
         <RadioWaveBeacon
           key={`access-signal-${originSignature}`}
           endpoint={origin}
@@ -1135,7 +1139,7 @@ const CommercialSymbolicConnectivityLayer: React.FC<CommercialSymbolicConnectivi
           sizeScale={sizeScale}
         />
       )}
-      {routeModel.focusedSegmentId === 'destination' && destination && destinationSignature && (
+      {effectiveFocusedSegmentId === 'destination' && destination && destinationSignature && (
         <>
           <DestinationArrivalMoment
             key={`destination-arrival-${routeSignature}`}
@@ -1156,7 +1160,7 @@ const CommercialSymbolicConnectivityLayer: React.FC<CommercialSymbolicConnectivi
       <SymbolicEndpointMarker
         key={`origin-${originSignature}`}
         endpoint={origin}
-        focusedSegmentId={routeModel.focusedSegmentId}
+        focusedSegmentId={effectiveFocusedSegmentId}
         cameraMetricsRef={cameraMetricsRef}
         sizeScale={sizeScale}
       />
@@ -1165,7 +1169,7 @@ const CommercialSymbolicConnectivityLayer: React.FC<CommercialSymbolicConnectivi
         <SymbolicEndpointMarker
           key={`destination-${destinationSignature}`}
           endpoint={destination}
-          focusedSegmentId={routeModel.focusedSegmentId}
+          focusedSegmentId={effectiveFocusedSegmentId}
           cameraMetricsRef={cameraMetricsRef}
           sizeScale={sizeScale}
         />

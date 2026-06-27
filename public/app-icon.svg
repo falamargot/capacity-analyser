@@ -1,0 +1,40 @@
+<svg width="96" height="96" viewBox="0 0 96 96" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="globe" x1="20" y1="52" x2="78" y2="90" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0EA5E9"/>
+      <stop offset="0.56" stop-color="#2563EB"/>
+      <stop offset="1" stop-color="#1E3A8A"/>
+    </linearGradient>
+    <linearGradient id="route" x1="24" y1="56" x2="72" y2="50" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#22D3EE"/>
+      <stop offset="0.5" stop-color="#A78BFA"/>
+      <stop offset="1" stop-color="#F472B6"/>
+    </linearGradient>
+    <linearGradient id="satellite" x1="34" y1="14" x2="64" y2="34" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F8FAFC"/>
+      <stop offset="0.45" stop-color="#BAE6FD"/>
+      <stop offset="1" stop-color="#38BDF8"/>
+    </linearGradient>
+    <linearGradient id="beam" x1="44" y1="30" x2="60" y2="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FDE68A"/>
+      <stop offset="1" stop-color="#22D3EE"/>
+    </linearGradient>
+  </defs>
+  <rect width="96" height="96" rx="22" fill="#020617"/>
+  <path d="M18 82C23 63 38 52 48 52C58 52 73 63 78 82Z" fill="url(#globe)" stroke="#E0F2FE" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M24 82C28 69.5 39 62 48 62C57 62 68 69.5 72 82" stroke="#E0F2FE" stroke-width="1.25" stroke-linecap="round" opacity="0.55"/>
+  <path d="M48 53.5V82" stroke="#E0F2FE" stroke-width="1.1" stroke-linecap="round" opacity="0.35"/>
+  <path d="M30 68C39 50.5 58 49 68 62" stroke="url(#route)" stroke-width="3.4" stroke-linecap="round"/>
+  <path d="M33 66.5C42 56 56 55 65 62.5" stroke="white" stroke-width="1.1" stroke-linecap="round" opacity="0.72"/>
+  <circle cx="30" cy="68" r="4.8" fill="#22D3EE" stroke="#020617" stroke-width="1.4"/>
+  <circle cx="68" cy="62" r="4.8" fill="#F472B6" stroke="#020617" stroke-width="1.4"/>
+  <path d="M49 34L31 64" stroke="url(#beam)" stroke-width="1.8" stroke-linecap="round" stroke-dasharray="3 4.2" opacity="0.9"/>
+  <path d="M52 34L68 59" stroke="url(#beam)" stroke-width="1.8" stroke-linecap="round" stroke-dasharray="3 4.2" opacity="0.74"/>
+  <g transform="translate(49 25) rotate(-14)">
+    <rect x="-7" y="-5" width="14" height="10" rx="2.6" fill="url(#satellite)" stroke="#F8FAFC" stroke-width="1.35"/>
+    <path d="M-7 0H-18M7 0H18" stroke="#CBD5E1" stroke-width="1.6" stroke-linecap="round"/>
+    <rect x="-27" y="-4" width="9" height="8" rx="1.4" fill="#2563EB" stroke="#BAE6FD" stroke-width="1"/>
+    <rect x="18" y="-4" width="9" height="8" rx="1.4" fill="#06B6D4" stroke="#BAE6FD" stroke-width="1"/>
+    <path d="M-2 -5V5M2 -5V5" stroke="#334155" stroke-width="0.9" opacity="0.65"/>
+  </g>
+</svg>

@@ -5692,16 +5692,27 @@ const App: React.FC = () => {
             {commercialMode && !isFullscreen && (
               <div
                 className="commercial-mobile-decision-layer pointer-events-none absolute inset-x-0 bottom-0 z-[44] px-2.5"
-                style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 0.6rem)' }}
+                style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 0.45rem)' }}
               >
-                <div className="pointer-events-auto mx-auto max-h-[58vh] max-w-3xl overflow-y-auto overscroll-contain rounded-[24px] border border-slate-700/80 bg-slate-950 shadow-[0_28px_80px_-40px_rgba(15,23,42,0.95)]">
-                  <CommercialKpiBar viewModel={commercialScenarioViewModel} />
-                  <CommercialRouteStrip
-                    segments={commercialScenarioViewModel.routeSegments}
-                    selectedSegmentId={commercialScenarioViewModel.selectedSegmentId ?? 'summary'}
-                    commercialRouteModel={commercialRouteModel}
-                    onSelectedSegmentChange={handleCommercialSegmentChange}
-                  />
+                <div
+                  data-site-tooltip-occluder="true"
+                  className="pointer-events-auto mx-auto flex max-h-[38vh] max-w-2xl flex-col overflow-hidden rounded-[18px] border border-slate-700/60 bg-slate-950/88 shadow-[0_22px_56px_-38px_rgba(15,23,42,0.9)] backdrop-blur-md"
+                >
+                  <div className="min-h-0 overflow-y-auto overscroll-contain">
+                    <CommercialKpiBar viewModel={commercialScenarioViewModel} compactDecisionCard />
+                  </div>
+                  <div className="shrink-0 border-t border-slate-800/65 bg-slate-950/78">
+                    <div className="px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.08em] text-slate-300">
+                      Journey
+                    </div>
+                    <CommercialRouteStrip
+                      segments={commercialScenarioViewModel.routeSegments}
+                      selectedSegmentId={commercialScenarioViewModel.selectedSegmentId ?? 'summary'}
+                      commercialRouteModel={commercialRouteModel}
+                      onSelectedSegmentChange={handleCommercialSegmentChange}
+                      compact
+                    />
+                  </div>
                 </div>
               </div>
             )}
