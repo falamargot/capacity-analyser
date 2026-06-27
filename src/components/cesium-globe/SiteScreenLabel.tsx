@@ -30,6 +30,7 @@ interface SiteScreenLabelProps {
   titleOverride?: string;
   presentation?: 'engineering' | 'commercial';
   collisionSide?: 'left' | 'right' | 'center';
+  selectionMotionKey?: number;
   /**
    * When provided in commercial presentation, triggers a brief outcome glow
    * animation that plays once after the route reveal completes (Part F).
@@ -86,9 +87,18 @@ const SiteScreenLabel: React.FC<SiteScreenLabelProps> = ({
   titleOverride,
   presentation = 'engineering',
   collisionSide = 'center',
+  selectionMotionKey,
   outcomeHighlight,
 }) => {
   const labelRef = useRef<HTMLDivElement | null>(null);
+  const [selectionSettling, setSelectionSettling] = React.useState(false);
+
+  useEffect(() => {
+    if (!selectionMotionKey) return;
+    setSelectionSettling(true);
+    const timeout = window.setTimeout(() => setSelectionSettling(false), 320);
+    return () => window.clearTimeout(timeout);
+  }, [selectionMotionKey]);
 
   useEffect(() => {
     const viewer    = viewerRef.current;
@@ -147,7 +157,7 @@ const SiteScreenLabel: React.FC<SiteScreenLabelProps> = ({
   return (
     <div
       ref={labelRef}
-      className="absolute z-50 pointer-events-none max-w-[18rem] opacity-0 transition-[opacity,transform] duration-150"
+      className={['absolute z-50 pointer-events-none max-w-[18rem] opacity-0 transition-[opacity,transform] duration-150', selectionSettling ? 'endpoint-selection-label-settle' : ''].join(' ')}
       style={{ left: 0, top: 0, transform: 'translate(-50%, -100%)' }}
     >
       <div

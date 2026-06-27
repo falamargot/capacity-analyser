@@ -704,6 +704,10 @@ export interface SelectionAnalysisProps {
     selectedCoverageId: string;
     visibleGeoCoverageKeys: string[] | undefined;
     selection: Selection;
+    endpointSelectionMotion?: {
+        role: 'origin' | 'destination';
+        token: number;
+    } | null;
 }
 
 export interface DisplayLayerProps {
@@ -866,6 +870,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         selectedCoverageId,
         visibleGeoCoverageKeys,
         selection,
+        endpointSelectionMotion,
     } = selectionAnalysisProps;
     const {
         displayPrefs,
@@ -2128,6 +2133,15 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
     }, [selectedPosition, sizeScale]);
 
     const siteBMarkerPosition = pointB ?? pointBLeo;
+    const [activeEndpointPulse, setActiveEndpointPulse] = useState<SelectionAnalysisProps['endpointSelectionMotion']>(null);
+
+    useEffect(() => {
+        if (!endpointSelectionMotion) return;
+        setActiveEndpointPulse(endpointSelectionMotion);
+        const timeout = window.setTimeout(() => setActiveEndpointPulse(null), 560);
+        return () => window.clearTimeout(timeout);
+    }, [endpointSelectionMotion]);
+
     const siteLabelsAreClose = useMemo(() => {
         if (!selectedPosition || !siteBMarkerPosition) return false;
         return commercialApproxDistanceKm(selectedPosition, siteBMarkerPosition) < 700;
@@ -2280,7 +2294,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                 onToggleFullscreen={onToggleFullscreen}
                 variant={commercialMode || displayPrefs.isCompactMap ? 'camera-only' : 'full'}
                 placement="right"
-                rightOffset={commercialMode && !isFullscreen ? 'calc(380px + 1rem)' : undefined}
+                rightOffset={commercialMode && !isFullscreen && !isPhone && !isMobileViewport ? 'calc(380px + 1rem)' : undefined}
                 countryOverlayMode={effectiveCountryOverlayMode}
                 onCountryOverlayModeChange={onCountryOverlayModeChange ?? (() => {})}
                 showAggregatedConnectivity={showAggregatedConnectivity}
@@ -2537,6 +2551,22 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                             markerVariant="site-b"
                         />
                     )}
+                    {!commercialMode && activeEndpointPulse && (() => {
+                        const pulsePosition = activeEndpointPulse.role === 'origin'
+                            ? selectedPosition
+                            : siteBMarkerPosition;
+                        if (!pulsePosition) return null;
+                        return (
+                            <SelectionPulseMarker
+                                key={`endpoint-selection-pulse-${activeEndpointPulse.role}-${activeEndpointPulse.token}`}
+                                position={getPosition(pulsePosition.lat, pulsePosition.lng, GROUND_POINT_ALTITUDE_KM)}
+                                baseColor={activeEndpointPulse.role === 'origin' ? Color.fromCssColorString('#22d3ee') : Color.fromCssColorString('#ec4899')}
+                                pulseSpeed={1.25}
+                                ringBaseRadius={46000}
+                                opacityMultiplier={0.72}
+                            />
+                        );
+                    })()}
                     {!commercialMode && pulsedSatellites.map((satellite) => {
                         const isLeoSatellite = satellite.type === 'ONEWEB';
                         const baseRadius = isLeoSatellite ? 20000 : 32000;
@@ -2766,6 +2796,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                         viewerReady={viewerReady}
                         compact={!!isPhone}
                         collisionSide={siteLabelsAreClose ? 'left' : 'center'}
+                        selectionMotionKey={endpointSelectionMotion?.role === 'origin' ? endpointSelectionMotion.token : undefined}
                         sections={sections}
                     />
                 );
@@ -2845,6 +2876,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                         viewerReady={viewerReady}
                         compact={!!isPhone}
                         collisionSide={siteLabelsAreClose ? 'right' : 'center'}
+                        selectionMotionKey={endpointSelectionMotion?.role === 'destination' ? endpointSelectionMotion.token : undefined}
                         sections={sections}
                     />
                 );

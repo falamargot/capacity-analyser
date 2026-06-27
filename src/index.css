@@ -299,6 +299,25 @@ h1, h2, h3, h4 {
   animation: commercial-recommendation-hero 680ms cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
+@keyframes commercial-mobile-decision-layer {
+  0% {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.commercial-mobile-globe-layer {
+  filter: saturate(0.88) contrast(0.96);
+}
+
+.commercial-mobile-decision-layer {
+  animation: commercial-mobile-decision-layer 220ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
 @keyframes access-signal-rise {
   0% {
     opacity: 0.25;
@@ -428,15 +447,72 @@ h1, h2, h3, h4 {
   animation: destination-receive-dot 2.1s ease-in-out infinite;
 }
 
+@keyframes endpoint-selection-header-settle {
+  0% {
+    opacity: 0.74;
+    transform: translateY(3px) scale(0.992);
+    box-shadow: inset 0 0 0 1px rgba(14, 165, 233, 0);
+  }
+  58% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    box-shadow: inset 0 0 0 1px rgba(14, 165, 233, 0.16);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    box-shadow: inset 0 0 0 1px rgba(14, 165, 233, 0);
+  }
+}
+
+.endpoint-selection-header-settle {
+  animation: endpoint-selection-header-settle 320ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes endpoint-selection-panel-reveal {
+  0% {
+    opacity: 0.82;
+    transform: translateY(8px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.endpoint-selection-panel-reveal {
+  animation: endpoint-selection-panel-reveal 360ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes endpoint-selection-label-settle {
+  0% {
+    filter: drop-shadow(0 0 0 rgba(34, 211, 238, 0));
+  }
+  45% {
+    filter: drop-shadow(0 12px 22px rgba(34, 211, 238, 0.24));
+  }
+  100% {
+    filter: drop-shadow(0 0 0 rgba(34, 211, 238, 0));
+  }
+}
+
+.endpoint-selection-label-settle > div {
+  animation: endpoint-selection-label-settle 340ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .commercial-access-title,
   .commercial-recommendation-hero,
+  .commercial-mobile-decision-layer,
   .access-signal-rise,
   .access-signal-ring,
   .access-signal-dot,
   .satellite-service-breathe,
   .destination-receive-pulse,
-  .destination-receive-dot {
+  .destination-receive-dot,
+  .endpoint-selection-header-settle,
+  .endpoint-selection-panel-reveal,
+  .endpoint-selection-label-settle > div {
     animation: none;
   }
 }

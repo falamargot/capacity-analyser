@@ -198,6 +198,7 @@ interface CapacityDetailsProps {
   onLeoTopologyModeChange?: (mode: 'SINGLE_SITE' | 'SITE_TO_SITE') => void;
   /** Shared LEO route evidence produced outside the Engineering UI. */
   activeLeoRouteEvidence?: ActiveLeoRouteEvidence | null;
+  selectionMotionKey?: number;
 }
 
 function detectThroughputBottleneck(leg: LeoThroughputLeg): LeoBottleneckFactor {
@@ -320,7 +321,17 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
   onArmPointBLeo,
   onLeoTopologyModeChange,
   activeLeoRouteEvidence = null,
+  selectionMotionKey,
 }) => {
+  const [selectionRevealActive, setSelectionRevealActive] = useState(false);
+
+  useEffect(() => {
+    if (!selectionMotionKey) return;
+    setSelectionRevealActive(true);
+    const timeout = window.setTimeout(() => setSelectionRevealActive(false), 360);
+    return () => window.clearTimeout(timeout);
+  }, [selectionMotionKey]);
+
   // Feature 1+3: read simulation context for failedSnps, hsBeamsSet
   const {
     coveragePolicy,
@@ -2592,7 +2603,7 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
   // ─── Main analysis view (USER_LOCATION_SELECTED) ───────────────────────────
 
   return (
-    <div className="h-full bg-white dark:bg-slate-900 rounded-lg shadow-lg overflow-hidden flex flex-col transition-colors duration-300">
+    <div className={['h-full bg-white dark:bg-slate-900 rounded-lg shadow-lg overflow-hidden flex flex-col transition-colors duration-300', selectionRevealActive ? 'endpoint-selection-panel-reveal' : ''].join(' ')}>
       <div className={`flex h-full flex-col ${satelliteScope === 'ALL' ? (compactDesktop ? 'px-1 py-3.5' : 'px-1.5 py-4') : (compactDesktop ? 'p-3.5' : 'p-4')}`}>
         {/* Section 1: Header */}
         {!externalHeader && (

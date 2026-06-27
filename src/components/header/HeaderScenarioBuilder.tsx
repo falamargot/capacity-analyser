@@ -32,6 +32,7 @@ export interface SiteWeatherConfig {
 
 export interface SiteConfig {
   endpoint?: ConnectivityEndpoint;
+  selectionMotionKey?: number;
   coordinates?: { lat: number; lng: number };
   roleLabel: string;
   fallback: string;
@@ -435,12 +436,21 @@ function SiteColumn({
   const accentClass = isOrigin
     ? 'from-sky-400 via-cyan-400 to-blue-500'
     : 'from-blue-500 via-indigo-400 to-cyan-400';
+  const [selectionSettling, setSelectionSettling] = useState(false);
+
+  useEffect(() => {
+    if (!config.selectionMotionKey) return;
+    setSelectionSettling(true);
+    const timeout = window.setTimeout(() => setSelectionSettling(false), 320);
+    return () => window.clearTimeout(timeout);
+  }, [config.selectionMotionKey]);
 
   return (
     <div
       className={[
         'relative flex min-w-0 flex-1 flex-col gap-1.5 overflow-visible rounded-lg px-2.5 py-1.5',
         'bg-slate-50/46 dark:bg-slate-900/20',
+        selectionSettling ? 'endpoint-selection-header-settle' : '',
       ].join(' ')}
     >
       <div className="flex min-w-0 flex-col gap-1.5">
@@ -638,6 +648,8 @@ function HeaderScenarioBuilder({
   siteA, siteB, onSwap, analysisSource, compact = false, collapsed = false, routeStatus,
 }: HeaderScenarioBuilderProps) {
   const [swapAnimating, setSwapAnimating] = useState(false);
+  const [collapsedOriginSettling, setCollapsedOriginSettling] = useState(false);
+  const [collapsedDestinationSettling, setCollapsedDestinationSettling] = useState(false);
   const swapAnimationTimeoutRef = useRef<number | null>(null);
   const canSwap = Boolean(
     siteA.endpoint?.label?.trim() && siteB.endpoint?.label?.trim(),
@@ -649,6 +661,20 @@ function HeaderScenarioBuilder({
       window.clearTimeout(swapAnimationTimeoutRef.current);
     }
   }, []);
+
+  useEffect(() => {
+    if (!siteA.selectionMotionKey) return;
+    setCollapsedOriginSettling(true);
+    const timeout = window.setTimeout(() => setCollapsedOriginSettling(false), 320);
+    return () => window.clearTimeout(timeout);
+  }, [siteA.selectionMotionKey]);
+
+  useEffect(() => {
+    if (!siteB.selectionMotionKey) return;
+    setCollapsedDestinationSettling(true);
+    const timeout = window.setTimeout(() => setCollapsedDestinationSettling(false), 320);
+    return () => window.clearTimeout(timeout);
+  }, [siteB.selectionMotionKey]);
 
   const handleSwapClick = useCallback(() => {
     if (!canSwap) return;
@@ -673,7 +699,7 @@ function HeaderScenarioBuilder({
           'dark:border-slate-700/80 dark:bg-[linear-gradient(135deg,rgba(10,14,26,0.97),rgba(15,23,42,0.95))]',
         ].join(' ')}
       >
-        <div className="grid min-w-0 grid-cols-[3rem_minmax(0,1fr)] items-center gap-1.5">
+        <div className={['grid min-w-0 grid-cols-[3rem_minmax(0,1fr)] items-center gap-1.5 rounded-lg', collapsedOriginSettling ? 'endpoint-selection-header-settle' : ''].join(' ')}>
           <span className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-500 dark:text-slate-400">
             From
           </span>
@@ -705,7 +731,7 @@ function HeaderScenarioBuilder({
           />
         </button>
 
-        <div className="grid min-w-0 grid-cols-[2rem_minmax(0,1fr)] items-center gap-1.5">
+        <div className={['grid min-w-0 grid-cols-[2rem_minmax(0,1fr)] items-center gap-1.5 rounded-lg', collapsedDestinationSettling ? 'endpoint-selection-header-settle' : ''].join(' ')}>
           <span className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-500 dark:text-slate-400">
             To
           </span>

@@ -17,10 +17,10 @@ import { CapacityAnalyzerSignature } from './components/brand/CapacityAnalyzerSi
 import { setMemoryMonitorViewerGetter } from './utils/memoryMonitor';
 import ExportButton, { type ExportButtonPayload } from './components/ExportButton';
 import SimulationSettings from './components/layout/SimulationSettings';
-import CommercialModeShell from './components/commercial/CommercialModeShell';
 import HeaderScenarioBuilder, { HeaderRouteStatusPanel, type HeaderRouteStatus, type HeaderRouteStatusTone } from './components/header/HeaderScenarioBuilder';
 import CommercialRouteStrip from './components/commercial/CommercialRouteStrip';
 import CommercialNarrativePanel from './components/commercial/CommercialNarrativePanel';
+import CommercialKpiBar from './components/commercial/CommercialKpiBar';
 import {
   buildCommercialScenarioViewModel,
   type CommercialScenarioViewModel,
@@ -142,6 +142,11 @@ const GatewayDetails = lazy(() => import('./components/GatewayDetails'));
 const MoonDetails = lazy(() => import('./components/MoonDetails'));
 const SNPDetails = lazy(() => import('./components/SNPDetails'));
 
+type EndpointSelectionMotion = {
+  role: 'origin' | 'destination';
+  token: number;
+};
+
 // ─── Module-level constants ───────────────────────────────────────────────────
 const COMPACT_DESKTOP_DIAG_MIN = Math.hypot(1920, 1080);
 const COMPACT_DESKTOP_DIAG_MAX = Math.hypot(2560, 1440);
@@ -157,12 +162,38 @@ const ENGINEERING_CONTEXT_GROUND_ALTITUDE_KM = 0.08;
 const ENGINEERING_CONTEXT_LEO_MIN_RADIUS_M = 1_100_000;
 const ENGINEERING_CONTEXT_GEO_MIN_RADIUS_M = 2_200_000;
 const ENGINEERING_CAMERA_ANIMATION_SECONDS = 0.34;
+const MODE_SWITCH_CAMERA_ANIMATION_SECONDS = 0.22;
 
 interface EngineeringCameraSnapshot {
   position: Cartesian3;
   direction: Cartesian3;
   up: Cartesian3;
   viewportHeight: number;
+}
+
+interface EngineeringModeSnapshot {
+  camera: EngineeringCameraSnapshot | null;
+  satelliteScope: SatelliteScope;
+  activeConnectivityTab: 'LEO' | 'GEO';
+  engineeringDisplayMode: EngineeringDisplayMode;
+  isDetailedEngineeringWorkspaceOpen: boolean;
+  showSatelliteTrajectory: boolean;
+  showAggregatedConnectivity: boolean;
+  showFillRateLayer: boolean;
+  showFootprintProjection: boolean;
+  showFlowAnimation: boolean;
+  countryOverlayMode: CountryOverlayMode;
+  linkMode: LinkMode;
+  leoTopologyMode: 'SINGLE_SITE' | 'SITE_TO_SITE';
+  activeMeshTab: 'forward' | 'reverse';
+  selectedUplinkKey: string | null;
+  selectedDownlinkKey: string | null;
+  selectedUplinkKeyB: string | null;
+  selectedDownlinkKeyB: string | null;
+  manualGeoCoverageVisibility: {
+    satelliteId: string | null;
+    keys: string[];
+  };
 }
 
 const groundPointToCartesian = (point: { lat: number; lng: number; altitude?: number } | null | undefined) => {
@@ -208,6 +239,7 @@ const captureEngineeringCameraSnapshot = (
 const flyToEngineeringCameraSnapshot = (
   viewer: CesiumViewerType,
   snapshot: EngineeringCameraSnapshot,
+  duration = ENGINEERING_CAMERA_ANIMATION_SECONDS,
 ) => {
   viewer.camera.cancelFlight();
   viewer.camera.flyTo({
@@ -216,7 +248,7 @@ const flyToEngineeringCameraSnapshot = (
       direction: snapshot.direction,
       up: snapshot.up,
     },
-    duration: ENGINEERING_CAMERA_ANIMATION_SECONDS,
+    duration,
     easingFunction: EasingFunction.CUBIC_OUT,
   });
 };
@@ -577,6 +609,13 @@ const App: React.FC = () => {
   // ── Unified Site B state (GEO Mesh/P2P and LEO Site-to-Site share one coordinate) ──
   const [siteB, setSiteB] = useState<{ lat: number; lng: number } | null>(null);
   const [isSiteBArmed, setIsSiteBArmed] = useState(false);
+  const [endpointSelectionMotion, setEndpointSelectionMotion] = useState<EndpointSelectionMotion | null>(null);
+  const triggerEndpointSelectionMotion = useCallback((role: EndpointSelectionMotion['role']) => {
+    setEndpointSelectionMotion((current) => ({
+      role,
+      token: (current?.token ?? 0) + 1,
+    }));
+  }, []);
 
   // ── LEO site-to-site state ────────────────────────────────────────────────
   const [leoTopologyMode, setLeoTopologyMode] = useState<'SINGLE_SITE' | 'SITE_TO_SITE'>('SINGLE_SITE');
@@ -786,6 +825,7 @@ const App: React.FC = () => {
   const globeContainerRef = useRef<HTMLDivElement>(null);
   const unobstructedGlobeHeightRef = useRef<number | null>(null);
   const engineeringCameraSnapshotRef = useRef<EngineeringCameraSnapshot | null>(null);
+  const engineeringModeSnapshotRef = useRef<EngineeringModeSnapshot | null>(null);
   // Stable ref — populated by useAirTrafficInterpolation (phase 2: map ref, no setState).
   // The selectedAircraft position interval reads from this without being in its deps.
   const panelFallback = <div className="p-4 text-sm text-slate-500 dark:text-slate-400">Loading analysis...</div>;
@@ -2639,6 +2679,7 @@ const App: React.FC = () => {
     if (shiftKey || isSiteBArmed) {
       if (selectedPosition) {
         syncScenarioDestination(lat, lng, 'globe-click');
+        triggerEndpointSelectionMotion('destination');
         setSiteB({ lat, lng });
         setIsSiteBArmed(false);
         handleLeoTopologyModeChange('SITE_TO_SITE');
@@ -2649,6 +2690,7 @@ const App: React.FC = () => {
 
     // Plain click → set Site A; preserve existing Site B.
     syncScenarioOrigin(lat, lng, 'globe-click');
+    triggerEndpointSelectionMotion('origin');
     setIsSiteBArmed(false);
     setSelectedMoon(false);
     setSelectedAircraft(null);
@@ -2659,7 +2701,7 @@ const App: React.FC = () => {
     setSelectedUplinkKey(null);
     setSelectedDownlinkKey(null);
     selectTarget('point', { lat, lng });
-  }, [handleLeoTopologyModeChange, handleLinkModeChange, isSiteBArmed, linkMode, selectedPosition, selectTarget, syncScenarioDestination, syncScenarioOrigin]);
+  }, [handleLeoTopologyModeChange, handleLinkModeChange, isSiteBArmed, linkMode, selectedPosition, selectTarget, syncScenarioDestination, syncScenarioOrigin, triggerEndpointSelectionMotion]);
 
   // Handle click outside the globe — clears Site B and auto-downgrades mode.
   // Shift+click outside: clear Site B only, keep Site A.
@@ -2759,6 +2801,7 @@ const App: React.FC = () => {
 
   const handleLocationSelect = useCallback((lat: number, lng: number) => {
     syncScenarioOrigin(lat, lng);
+    triggerEndpointSelectionMotion('origin');
     setCameraTarget({ lat, lng, alt: 10000 });
     setSelectedMoon(false);
     setSelectedAircraft(null);
@@ -2771,17 +2814,18 @@ const App: React.FC = () => {
     selectTarget('point', { lat, lng });
 
     setSearchQuery('');
-  }, [selectTarget, syncScenarioOrigin]);
+  }, [selectTarget, syncScenarioOrigin, triggerEndpointSelectionMotion]);
 
   const handleDestinationLocationSelect = useCallback((lat: number, lng: number) => {
     syncScenarioDestination(lat, lng);
+    triggerEndpointSelectionMotion('destination');
     setCameraTarget({ lat, lng, alt: 10000 });
     setSiteB({ lat, lng });
     setIsSiteBArmed(false);
     handleLeoTopologyModeChange('SITE_TO_SITE');
     handleLinkModeChange(LINK_MODE_REQUIRES_POINT_B.has(linkMode) ? linkMode : 'MESH');
     setSearchQuery('');
-  }, [handleLeoTopologyModeChange, handleLinkModeChange, linkMode, syncScenarioDestination]);
+  }, [handleLeoTopologyModeChange, handleLinkModeChange, linkMode, syncScenarioDestination, triggerEndpointSelectionMotion]);
 
   // Routes a coverage selection to the uplink or downlink key.
   // Enforces the same-satellite constraint: when one direction changes satellite,
@@ -3441,6 +3485,7 @@ const App: React.FC = () => {
     selectedCoverageId,
     visibleGeoCoverageKeys: selectedSelection.type === 'target' ? undefined : visibleManualGeoCoverageKeys,
     selection: selectedSelection,
+    endpointSelectionMotion,
   }), [
     activeConnectivityTab,
     activeGeoSatellite,
@@ -3461,6 +3506,7 @@ const App: React.FC = () => {
     selectedSatellite,
     selectedSelection,
     selectedPosition,
+    endpointSelectionMotion,
     visibleManualGeoCoverageKeys,
   ]);
 
@@ -4425,6 +4471,118 @@ const App: React.FC = () => {
     suppressCommercialCameraFocus: isGlobeModePeekPressed,
   }), [commercialScenarioViewModel, commercialRouteModel, globeCommercialMode, isGlobeModePeekPressed]);
 
+  const captureEngineeringModeSnapshot = useCallback((): EngineeringModeSnapshot => {
+    const viewer = viewerRef.current;
+    const viewportHeight =
+      globeContainerRef.current?.getBoundingClientRect().height ??
+      viewportSnapshot.innerHeight;
+
+    return {
+      camera: viewer && !viewer.isDestroyed?.()
+        ? captureEngineeringCameraSnapshot(viewer, viewportHeight)
+        : null,
+      satelliteScope,
+      activeConnectivityTab,
+      engineeringDisplayMode,
+      isDetailedEngineeringWorkspaceOpen,
+      showSatelliteTrajectory,
+      showAggregatedConnectivity,
+      showFillRateLayer,
+      showFootprintProjection,
+      showFlowAnimation,
+      countryOverlayMode,
+      linkMode,
+      leoTopologyMode,
+      activeMeshTab,
+      selectedUplinkKey,
+      selectedDownlinkKey,
+      selectedUplinkKeyB,
+      selectedDownlinkKeyB,
+      manualGeoCoverageVisibility: {
+        satelliteId: manualGeoCoverageVisibility.satelliteId,
+        keys: [...manualGeoCoverageVisibility.keys],
+      },
+    };
+  }, [
+    activeConnectivityTab,
+    activeMeshTab,
+    countryOverlayMode,
+    engineeringDisplayMode,
+    isDetailedEngineeringWorkspaceOpen,
+    leoTopologyMode,
+    linkMode,
+    manualGeoCoverageVisibility,
+    satelliteScope,
+    selectedDownlinkKey,
+    selectedDownlinkKeyB,
+    selectedUplinkKey,
+    selectedUplinkKeyB,
+    showAggregatedConnectivity,
+    showFillRateLayer,
+    showFlowAnimation,
+    showFootprintProjection,
+    showSatelliteTrajectory,
+    viewportSnapshot.innerHeight,
+  ]);
+
+  const restoreEngineeringModeSnapshot = useCallback((snapshot: EngineeringModeSnapshot) => {
+    const linkModeWillChange = snapshot.linkMode !== linkMode;
+    preserveSiteBCoverageKeysOnNextPointBResetRef.current = linkModeWillChange;
+    preserveMeshTabOnNextLinkModeRef.current = linkModeWillChange;
+
+    handleTechnologyScopeChange(snapshot.satelliteScope);
+    handleTechnologyChange(snapshot.activeConnectivityTab);
+    setEngineeringDisplayMode(snapshot.engineeringDisplayMode);
+    setIsDetailedEngineeringWorkspaceOpen(snapshot.isDetailedEngineeringWorkspaceOpen);
+    setShowSatelliteTrajectory(snapshot.showSatelliteTrajectory);
+    setShowAggregatedConnectivity(snapshot.showAggregatedConnectivity);
+    setShowFillRateLayer(snapshot.showFillRateLayer);
+    setShowFootprintProjection(snapshot.showFootprintProjection);
+    setShowFlowAnimation(snapshot.showFlowAnimation);
+    setCountryOverlayMode(snapshot.countryOverlayMode);
+    handleLinkModeChange(snapshot.linkMode);
+    handleLeoTopologyModeChange(snapshot.leoTopologyMode);
+    setActiveMeshTab(snapshot.activeMeshTab);
+    setSelectedUplinkKey(snapshot.selectedUplinkKey);
+    setSelectedDownlinkKey(snapshot.selectedDownlinkKey);
+    setSelectedUplinkKeyB(snapshot.selectedUplinkKeyB);
+    setSelectedDownlinkKeyB(snapshot.selectedDownlinkKeyB);
+    setManualGeoCoverageVisibility({
+      satelliteId: snapshot.manualGeoCoverageVisibility.satelliteId,
+      keys: [...snapshot.manualGeoCoverageVisibility.keys],
+    });
+
+    const cameraSnapshot = snapshot.camera;
+    if (cameraSnapshot) {
+      requestAnimationFrame(() => {
+        const viewer = viewerRef.current;
+        if (!viewer || viewer.isDestroyed?.()) return;
+        viewer.resize?.();
+        flyToEngineeringCameraSnapshot(viewer, cameraSnapshot, MODE_SWITCH_CAMERA_ANIMATION_SECONDS);
+      });
+    }
+  }, [handleLeoTopologyModeChange, handleLinkModeChange, handleTechnologyChange, handleTechnologyScopeChange, linkMode]);
+
+  const handleModeSwitch = useCallback((mode: 'engineering' | 'commercial') => {
+    if (mode === uiMode) return;
+
+    if (mode === 'commercial') {
+      engineeringModeSnapshotRef.current = captureEngineeringModeSnapshot();
+      setCommercialSelectedSegment('summary');
+      setIsMobileAnalysisPanelOpen(false);
+      handleUiModeChange(mode);
+      return;
+    }
+
+    const snapshot = engineeringModeSnapshotRef.current;
+    handleUiModeChange(mode);
+
+    if (snapshot) {
+      restoreEngineeringModeSnapshot(snapshot);
+      engineeringModeSnapshotRef.current = null;
+    }
+  }, [captureEngineeringModeSnapshot, handleUiModeChange, restoreEngineeringModeSnapshot, uiMode]);
+
   const engineeringPathStrip = useMemo(() => {
     if (!isDetailedEngineeringWorkspaceOpen) return null;
     if (activeConnectivityTab === 'GEO') {
@@ -4516,7 +4674,7 @@ const App: React.FC = () => {
         <button
           key={mode}
           type="button"
-          onClick={() => handleUiModeChange(mode)}
+          onClick={() => handleModeSwitch(mode)}
           className={[
             compact
               ? 'rounded-[16px] px-4 py-2.5 font-semibold transition-colors'
@@ -4766,11 +4924,13 @@ const App: React.FC = () => {
       isPointBLeoArmed={isSiteBArmed}
       onArmPointBLeo={() => setIsSiteBArmed(true)}
       activeLeoRouteEvidence={activeLeoRouteEvidence}
+      selectionMotionKey={endpointSelectionMotion?.token}
     />
   );
 
   const headerSiteAConfig = {
     endpoint: routeSelectorRoute.origin,
+    selectionMotionKey: endpointSelectionMotion?.role === 'origin' ? endpointSelectionMotion.token : undefined,
     coordinates: activeAnalysisPoint
       ? { lat: activeAnalysisPoint.lat, lng: activeAnalysisPoint.lng }
       : undefined,
@@ -4797,6 +4957,7 @@ const App: React.FC = () => {
 
   const headerSiteBConfig = {
     endpoint: routeSelectorRoute.destination,
+    selectionMotionKey: endpointSelectionMotion?.role === 'destination' ? endpointSelectionMotion.token : undefined,
     coordinates: siteB ?? undefined,
     roleLabel: 'Site B',
     fallback: 'Set destination',
@@ -5389,35 +5550,21 @@ const App: React.FC = () => {
         </div>
       )}
 
-      {/* Mobile commercial: use CommercialModeShell (handles its own layout).
-          Desktop commercial AND desktop engineering share the unified desktop block below
-          so CesiumGlobe stays mounted across mode switches — no Cesium reinit, no freeze. */}
-      {commercialMode && isMobile ? (
-        <CommercialModeShell
-          viewModel={commercialScenarioViewModel}
-          commercialRouteModel={commercialRouteModel}
-          onSelectedSegmentChange={handleCommercialSegmentChange}
-          onViewFullAnalysis={() => handleUiModeChange('engineering')}
-          isMobile={isMobile}
-          isFullscreen={isFullscreen}
-          globe={(
-            // Commercial props passed separately — see §4.1 comment on sharedMapProps.
-            <MapViewSwitcher
-              {...sharedMapProps}
-              commercialState={mapCommercialState}
-              onCommercialSelectedSegmentChange={handleCommercialSegmentChange}
-            />
-          )}
-        />
-      ) : isMobile ? (
+      {/* Mobile keeps one stable ENG/COMM shell so COMM behaves as a decision layer over the same scenario. */}
+      {isMobile ? (
         <main className="px-0 py-0 sm:px-0 sm:py-0 lg:px-0 lg:py-0">
           <div className={`relative ${isPhone ? 'h-[100dvh]' : 'h-[calc(100vh-7rem)]'}`}>
             <div
-              className={`absolute inset-0 bg-white overflow-hidden transition-all duration-300 ${isFullscreen ? 'fixed inset-0 z-50' : ''}`}
+              className={[
+                'absolute inset-0 overflow-hidden transition-[filter,opacity,transform] duration-[220ms]',
+                commercialMode ? 'bg-slate-950 commercial-mobile-globe-layer' : 'bg-white',
+                isFullscreen ? 'fixed inset-0 z-50' : '',
+              ].join(' ')}
             >
               <MapViewSwitcher
                 {...sharedMapProps}
                 commercialState={mapCommercialState}
+                onCommercialSelectedSegmentChange={commercialMode ? handleCommercialSegmentChange : undefined}
               />
             </div>
 
@@ -5542,7 +5689,24 @@ const App: React.FC = () => {
               </div>
             )}
 
-            {!isFullscreen && hasMobileSelection && (
+            {commercialMode && !isFullscreen && (
+              <div
+                className="commercial-mobile-decision-layer pointer-events-none absolute inset-x-0 bottom-0 z-[44] px-2.5"
+                style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 0.6rem)' }}
+              >
+                <div className="pointer-events-auto mx-auto max-h-[58vh] max-w-3xl overflow-y-auto overscroll-contain rounded-[24px] border border-slate-700/80 bg-slate-950 shadow-[0_28px_80px_-40px_rgba(15,23,42,0.95)]">
+                  <CommercialKpiBar viewModel={commercialScenarioViewModel} />
+                  <CommercialRouteStrip
+                    segments={commercialScenarioViewModel.routeSegments}
+                    selectedSegmentId={commercialScenarioViewModel.selectedSegmentId ?? 'summary'}
+                    commercialRouteModel={commercialRouteModel}
+                    onSelectedSegmentChange={handleCommercialSegmentChange}
+                  />
+                </div>
+              </div>
+            )}
+
+            {!commercialMode && !isFullscreen && hasMobileSelection && (
               <>
                 <div
                   className="pointer-events-none absolute inset-x-0 bottom-0 z-[35] px-2.5"
@@ -5757,6 +5921,7 @@ const App: React.FC = () => {
                                 isPointBLeoArmed={isSiteBArmed}
                                 onArmPointBLeo={() => setIsSiteBArmed(true)}
                                 activeLeoRouteEvidence={activeLeoRouteEvidence}
+                                selectionMotionKey={endpointSelectionMotion?.token}
                               />
                             )}
                           </Suspense>
@@ -5862,7 +6027,7 @@ const App: React.FC = () => {
                         selectedSegmentId={commercialSelectedSegment}
                         commercialRouteModel={commercialRouteModel}
                         isOpen
-                        onViewFullAnalysis={() => handleUiModeChange('engineering')}
+                        onViewFullAnalysis={() => handleModeSwitch('engineering')}
                       />
                     )}
 
@@ -6041,6 +6206,7 @@ const App: React.FC = () => {
                           isPointBLeoArmed={isSiteBArmed}
                           onArmPointBLeo={() => setIsSiteBArmed(true)}
                           activeLeoRouteEvidence={activeLeoRouteEvidence}
+                          selectionMotionKey={endpointSelectionMotion?.token}
                         />
                       )}
                     </Suspense>
