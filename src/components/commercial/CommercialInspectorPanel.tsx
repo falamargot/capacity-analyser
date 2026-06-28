@@ -1,5 +1,4 @@
 import { memo, type ReactNode } from 'react';
-import { ExternalLink } from 'lucide-react';
 import type { CommercialRouteModel, CommercialRouteSegmentId } from '../../types/commercialRouteModel';
 import type { CommercialRouteSegment, CommercialScenarioViewModel, CommercialTechnologyOption } from './commercialViewModel';
 import { customerServiceStateLabel, formatMbps, formatMs, segmentStatusChipClassName } from './commercialDisplayUtils';
@@ -9,7 +8,7 @@ const segmentOrder: CommercialRouteSegment['type'][] = ['access', 'satellite', '
 const tabLabel: Record<CommercialRouteSegment['type'], string> = {
   access: 'Access',
   satellite: 'Satellite',
-  backhaul: 'Indicative Path',
+  backhaul: 'Transit',
   destination: 'Destination',
   summary: 'Summary',
 };
@@ -44,26 +43,9 @@ function StorySection({ title, children }: { title: string; children: ReactNode 
   );
 }
 
-function DetailSection({
-  title,
-  children,
-}: {
-  title: string;
-  children: ReactNode;
-}) {
-  return (
-    <details className="rounded-lg border border-slate-800/55 bg-slate-900/35">
-      <summary className="cursor-pointer px-3 py-2 text-[9px] font-bold uppercase tracking-[0.14em] text-slate-400">
-        {title}
-      </summary>
-      <div className="border-t border-slate-800/60">{children}</div>
-    </details>
-  );
-}
-
 function comparisonRowValue(option: CommercialTechnologyOption): string {
   const strength = option.strengths[0] ?? option.limitingFactor ?? option.statusLabel;
-  return `${option.statusLabel} - ${formatMs(option.rttMs)} RTT, ${formatMbps(option.downloadMbps)} down, ${formatMbps(option.uploadMbps)} up - ${strength}`;
+  return `${option.statusLabel} - ${formatMs(option.rttMs)} response, ${formatMbps(option.downloadMbps)} down, ${formatMbps(option.uploadMbps)} up - ${strength}`;
 }
 
 function selectedConstraint(segment: CommercialRouteSegment | undefined, viewModel: CommercialScenarioViewModel): string {
@@ -130,7 +112,6 @@ function CommercialInspectorPanel({
   selectedSegmentId,
   commercialRouteModel,
   onSelectedSegmentChange,
-  onViewFullAnalysis,
 }: CommercialInspectorPanelProps) {
   const focusedSegmentId = commercialRouteModel?.focusedSegmentId
     ?? canonicalSegmentIdFromRaw(selectedSegmentId);
@@ -160,13 +141,6 @@ function CommercialInspectorPanel({
           : 'None detected',
     },
   ];
-  const technicalRows = compactRows([
-    { label: 'Technical summary', value: segment?.technicalSummary ?? segment?.summary ?? '--' },
-    { label: 'Technical limitation', value: segment?.technicalLimitation ?? 'None detected' },
-    { label: 'Route participation', value: segment?.isRouteParticipant ? 'On active route' : 'Not on confirmed route' },
-    { label: 'Step throughput', value: segment?.throughputMbps != null ? formatMbps(segment.throughputMbps) : undefined },
-    { label: 'Step latency', value: segment?.latencyMs != null ? formatMs(segment.latencyMs) : undefined },
-  ]);
   const journeySegments = viewModel.routeSegments.filter((item) => item.type !== 'summary');
   const selectedContextRows = (() => {
     switch (segment?.type) {
@@ -175,44 +149,32 @@ function CommercialInspectorPanel({
           { label: 'Site', value: viewModel.siteA?.name },
           { label: 'Terminal', value: viewModel.display.terminalLabel },
           { label: 'Access weather', value: viewModel.display.weatherA },
-          { label: 'LEO SNP A', value: viewModel.display.snpA },
-          { label: 'Link margin', value: viewModel.display.linkMargin },
-          { label: 'Regulatory state', value: viewModel.display.regulatoryState },
         ]);
       case 'satellite':
         return compactRows([
           { label: 'Satellite', value: viewModel.display.satelliteName },
           { label: 'Orbit', value: viewModel.display.satelliteOrbit },
-          { label: 'Beam', value: viewModel.display.beamName },
-          { label: 'Elevation', value: viewModel.display.elevation },
-          { label: 'RF status', value: viewModel.display.rfStatus },
           { label: 'Satellite status', value: viewModel.display.satelliteStatus },
         ]);
       case 'backhaul':
         return compactRows([
           { label: 'Service path', value: viewModel.display.routeValue },
-          { label: 'Indicative backbone distance', value: viewModel.display.backboneDistance },
           { label: 'Logical PoP', value: viewModel.display.logicalPop },
-          { label: 'LEO SNP A', value: viewModel.display.snpA },
-          { label: 'LEO SNP B', value: viewModel.display.snpB },
         ]);
       case 'destination':
         return compactRows([
           { label: 'Destination', value: viewModel.siteB?.name },
           { label: 'Destination type', value: viewModel.display.destinationType },
           { label: destinationWeatherLabel, value: viewModel.display.weatherB },
-          { label: 'LEO SNP B', value: viewModel.display.snpB },
         ]);
       case 'summary':
       default:
         return compactRows([
           { label: 'Service path', value: viewModel.display.routeValue },
-          { label: 'Availability', value: viewModel.availabilityPct != null ? `${Math.round(viewModel.availabilityPct)}%` : viewModel.display.serviceStatusLabel },
+          { label: 'Reliability', value: viewModel.availabilityPct != null ? `${Math.round(viewModel.availabilityPct)}%` : viewModel.display.serviceStatusLabel },
           { label: 'Path stability', value: viewModel.display.pathStability },
-          { label: 'Prediction confidence', value: viewModel.display.confidenceNote ?? viewModel.display.confidence },
+          { label: 'Forecast confidence', value: viewModel.display.confidenceNote ?? viewModel.display.confidence },
           { label: 'Weather availability', value: viewModel.display.availabilityContext },
-          { label: 'Assumptions', value: viewModel.display.assumptionsSummary },
-          { label: 'Raw service status', value: viewModel.display.rawServiceStatus },
         ]);
     }
   })();
@@ -220,34 +182,6 @@ function CommercialInspectorPanel({
     label: `${option.label} option`,
     value: comparisonRowValue(option),
   }));
-  const availabilityRows = [
-    { label: 'Service availability', value: viewModel.availabilityPct != null ? `${Math.round(viewModel.availabilityPct)}%` : viewModel.display.serviceStatusLabel },
-    { label: 'Access weather', value: viewModel.display.weatherA ?? '--' },
-    { label: destinationWeatherLabel, value: viewModel.display.weatherB ?? '--' },
-    { label: 'Recommendation category', value: viewModel.recommendation.reasonCategory.replaceAll('_', ' ') },
-    { label: 'Prediction confidence', value: viewModel.display.confidenceNote ?? viewModel.display.confidence ?? '--' },
-    { label: 'Weather availability', value: viewModel.display.availabilityContext ?? '--' },
-    { label: 'Assumptions', value: viewModel.display.assumptionsSummary ?? '--' },
-  ];
-  const limitingRows = [
-    { label: 'Segment constraint', value: segment?.limitation ?? 'None detected' },
-    { label: 'Main constraint', value: primaryIssueSegment?.limitation ?? viewModel.primaryWarning ?? 'None detected' },
-  ];
-  const proofRows = [
-    { label: 'Raw service status', value: viewModel.display.rawServiceStatus ?? '--' },
-    { label: 'Service path', value: viewModel.display.routeValue ?? '--' },
-    { label: 'Satellite', value: viewModel.display.satelliteName ?? '--' },
-    { label: 'Beam', value: viewModel.display.beamName ?? '--' },
-    { label: 'Orbit', value: viewModel.display.satelliteOrbit ?? viewModel.technology.toUpperCase() },
-    { label: 'Elevation', value: viewModel.display.elevation ?? '--' },
-    { label: 'Link margin', value: viewModel.display.linkMargin ?? '--' },
-    { label: 'RF status', value: viewModel.display.rfStatus ?? '--' },
-    { label: 'Bottleneck', value: viewModel.display.rawBottleneck ?? '--' },
-    { label: 'Regulatory state', value: viewModel.display.regulatoryState ?? '--' },
-    { label: 'LEO SNP A', value: viewModel.display.snpA ?? '--' },
-    { label: 'LEO SNP B', value: viewModel.display.snpB ?? '--' },
-    { label: 'Route summary', value: viewModel.display.routeSummary ?? '--' },
-  ];
 
   return (
     <aside className="flex h-full w-full flex-col overflow-hidden border-l border-slate-700/80 bg-slate-950">
@@ -255,9 +189,9 @@ function CommercialInspectorPanel({
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <div className="text-[9px] font-semibold uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400">
-              Commercial Inspector
+              Supporting Evidence
             </div>
-            <h2 className="mt-1 text-lg font-semibold leading-6 text-white">{segment?.title ?? 'Service Journey'}</h2>
+            <h2 className="mt-1 text-lg font-semibold leading-6 text-white">{segment?.title ?? 'Commercial Evidence'}</h2>
             <p className="mt-1 text-sm leading-5 text-slate-400">{segment?.role ?? viewModel.scenarioName}</p>
           </div>
           <span className={`shrink-0 rounded-full border px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.08em] ${selectedStatusChipClass}`}>
@@ -297,7 +231,7 @@ function CommercialInspectorPanel({
 
         <div className="space-y-3">
           {segment?.type === 'summary' ? (
-            <StorySection title="Journey Overview">
+            <StorySection title="Service Overview">
               <div className="divide-y divide-slate-800/60">
                 {journeySegments.map((routeSegment) => (
                   <button
@@ -321,7 +255,7 @@ function CommercialInspectorPanel({
               </div>
             </StorySection>
           ) : (
-            <StorySection title="Selected Journey Step">
+            <StorySection title="Selected Step">
               {operationalRows.map((row) => (
                 <FieldRow key={`${row.label}-${row.value}`} label={row.label} value={row.value} />
               ))}
@@ -336,34 +270,11 @@ function CommercialInspectorPanel({
             </StorySection>
           )}
 
-          {segment?.type !== 'summary' && (
-            <StorySection title="Technical Evidence">
-              {technicalRows.map((row) => (
-                <FieldRow key={`${row.label}-${row.value}`} label={row.label} value={row.value} />
-              ))}
-            </StorySection>
-          )}
-
-          <DetailSection title="LEO vs GEO Comparison">
+          <StorySection title="LEO vs GEO Comparison">
             {comparisonRows.map((row) => (
               <FieldRow key={`${row.label}-${row.value}`} label={row.label} value={row.value} />
             ))}
-          </DetailSection>
-
-          <DetailSection title="Decision Inputs">
-            {availabilityRows.map((row) => (
-              <FieldRow key={`${row.label}-${row.value}`} label={row.label} value={row.value} />
-            ))}
-            {limitingRows.map((row) => (
-              <FieldRow key={`${row.label}-${row.value}`} label={row.label} value={row.value} />
-            ))}
-          </DetailSection>
-
-          <DetailSection title="Technical Proof">
-            {proofRows.map((row) => (
-              <FieldRow key={`${row.label}-${row.value}`} label={row.label} value={row.value} />
-            ))}
-          </DetailSection>
+          </StorySection>
         </div>
       </div>
 

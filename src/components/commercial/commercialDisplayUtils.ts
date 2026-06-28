@@ -9,6 +9,14 @@ export const serviceStatusChipClassName: Record<CommercialStatus, string> = {
   unknown: 'border-slate-300 bg-slate-100 text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300',
 };
 
+// Commercial-vocabulary status labels for COMM mode (Active→Connected, Degraded→At Risk, etc.).
+export const commServiceStatusLabel: Record<CommercialStatus, string> = {
+  active: 'Connected',
+  degraded: 'At Risk',
+  blocked: 'Unavailable',
+  unknown: 'Pending',
+};
+
 // Segment-level solid badge (CommercialRouteSegmentStatus: healthy | warning | blocked | unknown).
 // Solid opaque background style for compact strip badges. Used by CommercialRouteStrip.
 export const segmentStatusBadgeClassName: Record<CommercialRouteSegmentStatus, string> = {
@@ -16,6 +24,14 @@ export const segmentStatusBadgeClassName: Record<CommercialRouteSegmentStatus, s
   warning: 'bg-amber-400 text-slate-950',
   blocked: 'bg-rose-500 text-white',
   unknown: 'bg-slate-300 text-slate-700 dark:bg-slate-700 dark:text-slate-200',
+};
+
+// Commercial-vocabulary segment status labels for COMM mode route strip badges.
+export const commSegmentStatusLabel: Record<CommercialRouteSegmentStatus, string> = {
+  healthy: 'Ready',
+  warning: 'At Risk',
+  blocked: 'Unavailable',
+  unknown: 'Pending',
 };
 
 // Segment-level border chip (CommercialRouteSegmentStatus: healthy | warning | blocked | unknown).
@@ -33,6 +49,15 @@ export const customerServiceStateLabelShort: Record<CommercialCustomerServiceSta
   available: 'Available',
   limited: 'Limited',
   degraded: 'Degraded',
+  alternative_available: 'Alternative',
+  unavailable: 'Unavailable',
+};
+
+// Commercial-vocabulary short labels for COMM mode route strip badges.
+export const commCustomerStateLabelShort: Record<CommercialCustomerServiceState, string> = {
+  available: 'Ready',
+  limited: 'At Risk',
+  degraded: 'At Risk',
   alternative_available: 'Alternative',
   unavailable: 'Unavailable',
 };

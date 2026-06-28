@@ -213,6 +213,26 @@ function coord(
   return { lat: point.lat, lng: point.lng };
 }
 
+function satelliteMeta(
+  satellite: SatelliteData | null | undefined,
+): Pick<CommercialRouteNodeMeta, 'satelliteId' | 'satelliteNoradId' | 'orbitalPosition'> {
+  if (!satellite || satellite.position.isPositionValid === false) return {};
+
+  const { lat, lng, alt } = satellite.position;
+  if (!isFinite(lat) || !isFinite(lng) || !isFinite(alt)) {
+    return {
+      satelliteId: satellite.id,
+      satelliteNoradId: satellite.noradId,
+    };
+  }
+
+  return {
+    satelliteId: satellite.id,
+    satelliteNoradId: satellite.noradId,
+    orbitalPosition: { lat, lng, altitudeKm: alt },
+  };
+}
+
 /**
  * Convert ResolvedGeoGateway to a RouteCoordinate.
  * ResolvedGeoGateway uses `latitude`/`longitude` rather than `lat`/`lng`.
@@ -569,7 +589,7 @@ function buildLeoSingleGraph(
       satLabel,
       segStatus(satelliteSeg),
       null,
-      { technology: 'LEO', isPrimaryIssue: satelliteSeg?.isPrimaryIssue }
+      { technology: 'LEO', isPrimaryIssue: satelliteSeg?.isPrimaryIssue, ...satelliteMeta(satA) }
     ),
     makeNode(portalId, 'NETWORK_PORTAL', 'destination',
       portalLabel,
@@ -660,7 +680,7 @@ function buildLeoS2sGraph(
       satALabel,
       segStatus(satelliteSeg),
       null,
-      { technology: 'LEO', isSecondary: false, isPrimaryIssue: satelliteSeg?.isPrimaryIssue }
+      { technology: 'LEO', isSecondary: false, isPrimaryIssue: satelliteSeg?.isPrimaryIssue, ...satelliteMeta(satA) }
     ),
     makeNode(hubAId, 'HUB', 'backhaul',
       snpALabel,
@@ -679,7 +699,7 @@ function buildLeoS2sGraph(
       segStatus(satelliteSeg),
       null,
       // isSecondary marks the far-end satellite for the globe renderer
-      { technology: 'LEO', isSecondary: true, isPrimaryIssue: satelliteSeg?.isPrimaryIssue }
+      { technology: 'LEO', isSecondary: true, isPrimaryIssue: satelliteSeg?.isPrimaryIssue, ...satelliteMeta(satB) }
     ),
     makeNode(destId, 'DESTINATION', 'destination',
       vm.siteB?.name ?? 'Destination',

@@ -9,6 +9,7 @@ import {
   ColorMaterialProperty,
   HorizontalOrigin,
   JulianDate,
+  PolylineDashMaterialProperty,
   PolylineGlowMaterialProperty,
   VerticalOrigin,
   Viewer as CesiumViewerType,
@@ -46,7 +47,30 @@ interface SymbolicArcSpec {
   status: CommercialRouteStatus;
 }
 
+interface LeoServingSatellite {
+  key: string;
+  node: CommercialRouteNode;
+  label: string;
+  status: CommercialRouteStatus;
+  coord: RouteCoordinate;
+  position: Cartesian3;
+}
+
+interface LeoSiteBeam {
+  id: string;
+  endpoint: SymbolicEndpoint;
+  satellite: LeoServingSatellite;
+  status: CommercialRouteStatus;
+}
+
+interface LeoServingTopology {
+  satellites: LeoServingSatellite[];
+  beams: LeoSiteBeam[];
+}
+
 const ARC_SEGMENTS = 48;
+const LEO_BEAM_SEGMENTS = 44;
+const LEO_RELAY_SEGMENTS = 40;
 const LABEL_OFFSET = new Cartesian2(0, -18);
 const FLOW_EPOCH = JulianDate.fromDate(new Date(0));
 const FLOW_PHASES = [0, 0.34, 0.68] as const;
@@ -57,9 +81,13 @@ const ARRIVAL_MOMENT_SECONDS = 1.05;
 const SYMBOLIC_ROUTE_ALTITUDE_KM = GROUND_POINT_ALTITUDE_KM + 18;
 const SYMBOLIC_ENDPOINT_MARKER_ALTITUDE_KM = SYMBOLIC_ROUTE_ALTITUDE_KM + 8;
 const SYMBOLIC_ENDPOINT_HALO_HEIGHT_M = GROUND_POINT_LAYER_HEIGHT_M + 2400;
-const SATELLITE_LABEL_OFFSET = new Cartesian2(0, -32);
-const GEO_SATELLITE_LABEL_OFFSET = new Cartesian2(0, -72);
+const SATELLITE_LABEL_OFFSET = new Cartesian2(38, 0);
+const GEO_SATELLITE_LABEL_OFFSET = new Cartesian2(78, -20);
 const GEO_SATELLITE_PIXEL_OFFSET = new Cartesian2(0, -20);
+const LEO_FOCUS_SATELLITE_FADE_SECONDS = 0.8;
+const LEO_FOCUS_BEAM_GROW_SECONDS = 1.18;
+const LEO_FOCUS_RELAY_DELAY_SECONDS = 0.86;
+const LEO_FOCUS_RELAY_FADE_SECONDS = 0.72;
 const SERVICE_OUTCOME_ARC_COLORS: Record<CommercialRouteStatus, string> = {
   active: '#34d399',
   limited: '#f59e0b',
@@ -280,6 +308,108 @@ function buildSymbolicArcApexPosition(
   return getPosition(lat, lng, SYMBOLIC_ROUTE_ALTITUDE_KM + peakKm);
 }
 
+function routeCoordPosition(coord: RouteCoordinate): Cartesian3 {
+  return getPosition(coord.lat, coord.lng, coord.altitudeKm ?? GROUND_POINT_ALTITUDE_KM);
+}
+
+function easeOutCubic(value: number): number {
+  const clamped = Math.min(1, Math.max(0, value));
+  return 1 - (1 - clamped) ** 3;
+}
+
+function animationSeconds(time: JulianDate | undefined, startSeconds: number): number {
+  const now = time ? JulianDate.toDate(time).getTime() / 1000 : Date.now() / 1000;
+  return now - startSeconds;
+}
+
+function timedProgress(
+  time: JulianDate | undefined,
+  startSeconds: number,
+  delaySeconds: number,
+  durationSeconds: number,
+): number {
+  return easeOutCubic((animationSeconds(time, startSeconds) - delaySeconds) / durationSeconds);
+}
+
+function animatedAlpha(
+  time: JulianDate | undefined,
+  startSeconds: number,
+  delaySeconds: number,
+  durationSeconds: number,
+  maxAlpha: number,
+): number {
+  return timedProgress(time, startSeconds, delaySeconds, durationSeconds) * maxAlpha;
+}
+
+function interpolateOpenPolylinePosition(
+  positions: Cartesian3[],
+  progress: number,
+  scratch: Cartesian3,
+): Cartesian3 | undefined {
+  if (positions.length === 0) return undefined;
+  if (positions.length === 1) return Cartesian3.clone(positions[0], scratch);
+  if (progress <= 0) return Cartesian3.clone(positions[0], scratch);
+  if (progress >= 1) return Cartesian3.clone(positions[positions.length - 1], scratch);
+
+  const segmentLengths: number[] = [];
+  let totalLength = 0;
+  for (let index = 0; index < positions.length - 1; index += 1) {
+    const length = Cartesian3.distance(positions[index], positions[index + 1]);
+    segmentLengths.push(length);
+    totalLength += length;
+  }
+
+  if (totalLength <= 0) return Cartesian3.clone(positions[0], scratch);
+
+  const targetLength = progress * totalLength;
+  let traversed = 0;
+  for (let index = 0; index < segmentLengths.length; index += 1) {
+    const segmentLength = segmentLengths[index];
+    if (targetLength <= traversed + segmentLength || index === segmentLengths.length - 1) {
+      const localT = segmentLength > 0 ? (targetLength - traversed) / segmentLength : 0;
+      return Cartesian3.lerp(positions[index], positions[index + 1], localT, scratch);
+    }
+    traversed += segmentLength;
+  }
+
+  return Cartesian3.clone(positions[positions.length - 1], scratch);
+}
+
+function revealPolylinePositions(
+  positions: Cartesian3[],
+  progress: number,
+  scratch: Cartesian3,
+): Cartesian3[] {
+  if (positions.length < 2) return positions;
+  if (progress >= 1) return positions;
+  if (progress <= 0) return [positions[0], positions[0]];
+
+  const tip = interpolateOpenPolylinePosition(positions, progress, scratch);
+  if (!tip) return [positions[0], positions[0]];
+
+  const segmentLengths: number[] = [];
+  let totalLength = 0;
+  for (let index = 0; index < positions.length - 1; index += 1) {
+    const length = Cartesian3.distance(positions[index], positions[index + 1]);
+    segmentLengths.push(length);
+    totalLength += length;
+  }
+
+  const targetLength = totalLength * Math.min(1, Math.max(0, progress));
+  const revealed: Cartesian3[] = [positions[0]];
+  let traversed = 0;
+
+  for (let index = 1; index < positions.length; index += 1) {
+    const segmentDistance = segmentLengths[index - 1] ?? 0;
+    if (traversed + segmentDistance >= targetLength) break;
+    revealed.push(positions[index]);
+    traversed += segmentDistance;
+  }
+
+  revealed.push(Cartesian3.clone(tip));
+  return revealed.length >= 2 ? revealed : [positions[0], tip];
+}
+
 function resolveSkyBridgeNodes(routeModel: CommercialRouteModel): {
   primary: CommercialRouteNode | null;
   secondary: CommercialRouteNode | null;
@@ -288,6 +418,184 @@ function resolveSkyBridgeNodes(routeModel: CommercialRouteModel): {
   const primary = skyBridges.find((node) => !node.meta?.isSecondary) ?? skyBridges[0] ?? null;
   const secondary = skyBridges.find((node) => node.meta?.isSecondary === true) ?? skyBridges[1] ?? null;
   return { primary, secondary };
+}
+
+function leoSatelliteKey(node: CommercialRouteNode): string {
+  const coord = node.meta?.orbitalPosition;
+  return node.meta?.satelliteId
+    ?? node.meta?.satelliteNoradId
+    ?? (coord
+      ? `${node.label}:${coord.lat.toFixed(3)}:${coord.lng.toFixed(3)}:${(coord.altitudeKm ?? 0).toFixed(0)}`
+      : node.id);
+}
+
+function createLeoServingSatellite(node: CommercialRouteNode): LeoServingSatellite | null {
+  const coord = node.meta?.orbitalPosition;
+  if (!coord) return null;
+  return {
+    key: leoSatelliteKey(node),
+    node,
+    label: node.label,
+    status: node.status,
+    coord,
+    position: routeCoordPosition(coord),
+  };
+}
+
+function sameRouteCoordinate(a: RouteCoordinate, b: RouteCoordinate): boolean {
+  return Math.abs(a.lat - b.lat) < 0.0001 && Math.abs(normalizeLngNear(a.lng, b.lng) - b.lng) < 0.0001;
+}
+
+function averageRouteCoordinate(coords: RouteCoordinate[]): RouteCoordinate | null {
+  if (coords.length === 0) return null;
+  const referenceLng = coords[0].lng;
+  const lat = coords.reduce((sum, coord) => sum + coord.lat, 0) / coords.length;
+  const lng = denormalizeLng(coords.reduce((sum, coord) => sum + normalizeLngNear(coord.lng, referenceLng), 0) / coords.length);
+  return { lat, lng };
+}
+
+function buildLeoPresentationSatelliteCoord(
+  originalCoord: RouteCoordinate,
+  servingEndpoints: SymbolicEndpoint[],
+  allEndpoints: SymbolicEndpoint[],
+): RouteCoordinate {
+  const routeCenter = averageRouteCoordinate(allEndpoints.map((endpoint) => endpoint.coord));
+  if (!routeCenter || servingEndpoints.length === 0) {
+    return {
+      ...originalCoord,
+      altitudeKm: Math.max(760, Math.min(1_300, originalCoord.altitudeKm ?? 1_050)),
+    };
+  }
+
+  const anchor = averageRouteCoordinate(servingEndpoints.map((endpoint) => endpoint.coord)) ?? servingEndpoints[0].coord;
+  const normalizedCenterLng = normalizeLngNear(routeCenter.lng, anchor.lng);
+  const endpointBlend = servingEndpoints.length > 1 ? 0.52 : 0.38;
+  const originalBlend = servingEndpoints.length > 1 ? 0.12 : 0.08;
+  const normalizedOriginalLng = normalizeLngNear(originalCoord.lng, anchor.lng);
+
+  return {
+    lat: anchor.lat
+      + (routeCenter.lat - anchor.lat) * endpointBlend
+      + (originalCoord.lat - anchor.lat) * originalBlend,
+    lng: denormalizeLng(
+      anchor.lng
+      + (normalizedCenterLng - anchor.lng) * endpointBlend
+      + (normalizedOriginalLng - anchor.lng) * originalBlend,
+    ),
+    altitudeKm: Math.max(820, Math.min(1_180, originalCoord.altitudeKm ?? 1_050)),
+  };
+}
+
+function resolveLeoServingTopology(
+  routeModel: CommercialRouteModel,
+  origin: SymbolicEndpoint | null,
+  destination: SymbolicEndpoint | null,
+): LeoServingTopology {
+  const satellitesByNodeId = new Map<string, LeoServingSatellite>();
+  const satellitesByKey = new Map<string, LeoServingSatellite>();
+  const beams: LeoSiteBeam[] = [];
+
+  for (const node of routeModel.nodes) {
+    if (node.nodeType !== 'SKY_BRIDGE' || node.meta?.technology !== 'LEO') continue;
+    const satellite = createLeoServingSatellite(node);
+    if (!satellite) continue;
+    const existing = satellitesByKey.get(satellite.key);
+    const canonical = existing ?? satellite;
+    satellitesByNodeId.set(node.id, canonical);
+    if (!existing) satellitesByKey.set(satellite.key, satellite);
+  }
+
+  const endpoints = [origin, destination].filter((endpoint): endpoint is SymbolicEndpoint => Boolean(endpoint));
+  const endpointById = new Map(endpoints.map((endpoint) => [endpoint.id, endpoint]));
+
+  for (const edge of routeModel.edges) {
+    if (edge.edgeType !== 'SPACE_LINK') continue;
+
+    const fromEndpoint = endpointById.get(edge.fromNodeId);
+    const toEndpoint = endpointById.get(edge.toNodeId);
+    const fromSatellite = satellitesByNodeId.get(edge.fromNodeId);
+    const toSatellite = satellitesByNodeId.get(edge.toNodeId);
+
+    const endpoint = fromEndpoint ?? toEndpoint;
+    const satellite = fromEndpoint ? toSatellite : toEndpoint ? fromSatellite : null;
+    if (!endpoint || !satellite) continue;
+
+    beams.push({
+      id: `${endpoint.id}-${satellite.key}`,
+      endpoint,
+      satellite,
+      status: edge.status,
+    });
+  }
+
+  const presentationSatellitesByKey = new Map<string, LeoServingSatellite>();
+  for (const satellite of satellitesByKey.values()) {
+    const servingEndpoints = beams
+      .filter((beam) => beam.satellite.key === satellite.key)
+      .map((beam) => beam.endpoint)
+      .filter((endpoint, index, array) => array.findIndex((item) => sameRouteCoordinate(item.coord, endpoint.coord)) === index);
+    const presentationCoord = buildLeoPresentationSatelliteCoord(satellite.coord, servingEndpoints, endpoints);
+    presentationSatellitesByKey.set(satellite.key, {
+      ...satellite,
+      coord: presentationCoord,
+      position: routeCoordPosition(presentationCoord),
+    });
+  }
+
+  return {
+    satellites: [...presentationSatellitesByKey.values()],
+    beams: beams.map((beam) => ({
+      ...beam,
+      satellite: presentationSatellitesByKey.get(beam.satellite.key) ?? beam.satellite,
+    })),
+  };
+}
+
+function buildLeoSiteBeamPositions(endpoint: RouteCoordinate, satellite: RouteCoordinate): Cartesian3[] {
+  const startPosition = routeCoordPosition({
+    lat: endpoint.lat,
+    lng: endpoint.lng,
+    altitudeKm: SYMBOLIC_ROUTE_ALTITUDE_KM,
+  });
+  const endPosition = routeCoordPosition({
+    lat: satellite.lat,
+    lng: satellite.lng,
+    altitudeKm: Math.max(650, Math.min(2_100, satellite.altitudeKm ?? 1_200)),
+  });
+  const satelliteAltKm = Math.max(650, Math.min(2_100, satellite.altitudeKm ?? 1_200));
+  const normalizedSatLng = normalizeLngNear(satellite.lng, endpoint.lng);
+  const distanceKm = approximateDistanceKm(endpoint, { lat: satellite.lat, lng: normalizedSatLng });
+  const curveLiftMeters = Math.min(760_000, Math.max(260_000, distanceKm * 95));
+  const satelliteLiftMeters = satelliteAltKm * 1000 * 0.12;
+  const scratch = new Cartesian3();
+  const normal = new Cartesian3();
+
+  return Array.from({ length: LEO_BEAM_SEGMENTS + 1 }, (_, index) => {
+    const t = index / LEO_BEAM_SEGMENTS;
+    const eased = 1 - (1 - t) ** 2.05;
+    const point = Cartesian3.lerp(startPosition, endPosition, eased, new Cartesian3());
+    Cartesian3.normalize(point, normal);
+    const lift = Math.sin(t * Math.PI) * curveLiftMeters + Math.sin(t * Math.PI * 0.5) * satelliteLiftMeters;
+    return Cartesian3.add(point, Cartesian3.multiplyByScalar(normal, lift, scratch), new Cartesian3());
+  });
+}
+
+function buildLeoRelayPositions(from: RouteCoordinate, to: RouteCoordinate): Cartesian3[] {
+  const normalizedToLng = normalizeLngNear(to.lng, from.lng);
+  const fromAltKm = Math.max(650, Math.min(2_100, from.altitudeKm ?? 1_200));
+  const toAltKm = Math.max(650, Math.min(2_100, to.altitudeKm ?? 1_200));
+  const relayDistanceKm = approximateDistanceKm(from, { lat: to.lat, lng: normalizedToLng });
+  const relayDropKm = Math.min(720, Math.max(260, relayDistanceKm * 0.05));
+
+  return Array.from({ length: LEO_RELAY_SEGMENTS + 1 }, (_, index) => {
+    const t = index / LEO_RELAY_SEGMENTS;
+    const ease = 0.5 - Math.cos(t * Math.PI) * 0.5;
+    const lat = from.lat + (to.lat - from.lat) * ease;
+    const lng = denormalizeLng(from.lng + (normalizedToLng - from.lng) * ease);
+    const linearAltitudeKm = fromAltKm + (toAltKm - fromAltKm) * ease;
+    const altitudeKm = Math.max(SYMBOLIC_ROUTE_ALTITUDE_KM + 160, linearAltitudeKm - Math.sin(t * Math.PI) * relayDropKm);
+    return getPosition(lat, lng, altitudeKm);
+  });
 }
 
 function buildAccessRadioRingPositions(
@@ -430,6 +738,30 @@ function expectedGeoSatelliteFocusEntityIds(
   return ids;
 }
 
+function expectedLeoSatelliteFocusEntityIds(topology: LeoServingTopology): Set<string> {
+  const ids = new Set<string>();
+
+  for (const beam of topology.beams) {
+    const entityKey = entitySafeSignature(`${beam.endpoint.id}-${beam.satellite.key}`);
+    ids.add(`commercial-route-leo-site-satellite-beam-halo-${entityKey}`);
+    ids.add(`commercial-route-leo-site-satellite-beam-${entityKey}`);
+  }
+
+  for (const satellite of topology.satellites) {
+    const entityKey = entitySafeSignature(satellite.key);
+    ids.add(`commercial-route-leo-serving-satellite-glow-${entityKey}`);
+    ids.add(`commercial-route-leo-serving-satellite-${entityKey}`);
+  }
+
+  const relayFrom = topology.satellites[0] ?? null;
+  const relayTo = topology.satellites.length > 1 ? topology.satellites[1] : null;
+  if (relayFrom && relayTo) {
+    ids.add(`commercial-route-leo-satellite-relay-${entitySafeSignature(`${relayFrom.key}-${relayTo.key}`)}`);
+  }
+
+  return ids;
+}
+
 function removeStaleSymbolicArcEntities(
   viewer: CesiumViewerType,
   expectedIds: Set<string>,
@@ -443,6 +775,9 @@ function removeStaleSymbolicArcEntities(
         id.startsWith('commercial-route-satellite-symbolic-arc-')
         || id.startsWith('commercial-route-satellite-symbolic-flow-')
         || id.startsWith('commercial-route-satellite-focus-')
+        || id.startsWith('commercial-route-leo-site-satellite-beam-')
+        || id.startsWith('commercial-route-leo-serving-satellite-')
+        || id.startsWith('commercial-route-leo-satellite-relay-')
       )
       && !expectedIds.has(id)
     ) {
@@ -767,7 +1102,7 @@ const SatelliteFocusGlyph = React.memo<{
   const glowColor = useMemo(() => accent.withAlpha(isGeo ? 0.48 : 0.24), [accent, isGeo]);
   const coreOutlineColor = useMemo(() => accent.withAlpha(isGeo ? 0.92 : 0.78), [accent, isGeo]);
   const billboardColor = useMemo(() => Color.WHITE.withAlpha(status === 'blocked' ? 0.72 : 1), [status]);
-  const labelFillColor = useMemo(() => accent.withAlpha(status === 'blocked' ? 0.78 : 0.92), [accent, status]);
+  const labelFillColor = useMemo(() => Color.WHITE.withAlpha(status === 'blocked' ? 0.78 : 0.94), [status]);
   const labelOutlineColor = useMemo(() => Color.fromCssColorString('#020617').withAlpha(0.9), []);
 
   return (
@@ -804,9 +1139,9 @@ const SatelliteFocusGlyph = React.memo<{
           fillColor={labelFillColor}
           outlineColor={labelOutlineColor}
           outlineWidth={3}
-          style={1}
-          verticalOrigin={VerticalOrigin.BOTTOM}
-          horizontalOrigin={HorizontalOrigin.CENTER}
+          style={2}
+          verticalOrigin={VerticalOrigin.CENTER}
+          horizontalOrigin={HorizontalOrigin.LEFT}
           pixelOffset={isGeo ? GEO_SATELLITE_LABEL_OFFSET : SATELLITE_LABEL_OFFSET}
           eyeOffset={LABEL_EYE_OFFSET}
           disableDepthTestDistance={Number.POSITIVE_INFINITY}
@@ -823,6 +1158,266 @@ const SatelliteFocusGlyph = React.memo<{
   prev.sizeScale === next.sizeScale
 );
 SatelliteFocusGlyph.displayName = 'SatelliteFocusGlyph';
+
+const LeoServingSatelliteGlyph = React.memo<{
+  satellite: LeoServingSatellite;
+  sizeScale: number;
+  animationStartSeconds: number;
+}>(({ satellite, sizeScale, animationStartSeconds }) => {
+  const accent = useMemo(() => satelliteFocusColor(satellite.status, 'LEO'), [satellite.status]);
+  const id = useMemo(() => entitySafeSignature(satellite.key), [satellite.key]);
+  const glyphColor = useMemo(() => new CallbackProperty((time?: JulianDate) => {
+    const alpha = animatedAlpha(time, animationStartSeconds, 0, LEO_FOCUS_SATELLITE_FADE_SECONDS, satellite.status === 'blocked' ? 0.7 : 1);
+    return Color.WHITE.withAlpha(alpha);
+  }, false), [animationStartSeconds, satellite.status]);
+  const glowColor = useMemo(() => new CallbackProperty((time?: JulianDate) => {
+    const alpha = animatedAlpha(time, animationStartSeconds, 0, LEO_FOCUS_SATELLITE_FADE_SECONDS, satellite.status === 'blocked' ? 0.18 : 0.34);
+    return accent.withAlpha(alpha);
+  }, false), [accent, animationStartSeconds, satellite.status]);
+  const glowOutlineColor = useMemo(() => new CallbackProperty((time?: JulianDate) => {
+    const alpha = animatedAlpha(time, animationStartSeconds, 0, LEO_FOCUS_SATELLITE_FADE_SECONDS, 0.18);
+    return accent.withAlpha(alpha);
+  }, false), [accent, animationStartSeconds]);
+  const labelFillColor = useMemo(() => new CallbackProperty((time?: JulianDate) => {
+    const alpha = animatedAlpha(time, animationStartSeconds, 0.12, LEO_FOCUS_SATELLITE_FADE_SECONDS, satellite.status === 'blocked' ? 0.72 : 0.9);
+    return Color.WHITE.withAlpha(alpha);
+  }, false), [animationStartSeconds, satellite.status]);
+  const labelOutlineColor = useMemo(() => new CallbackProperty((time?: JulianDate) => {
+    const alpha = animatedAlpha(time, animationStartSeconds, 0.12, LEO_FOCUS_SATELLITE_FADE_SECONDS, 0.88);
+    return Color.fromCssColorString('#020617').withAlpha(alpha);
+  }, false), [animationStartSeconds]);
+
+  return (
+    <>
+      <Entity
+        id={`commercial-route-leo-serving-satellite-glow-${id}`}
+        position={satellite.position}
+      >
+        <PointGraphics
+          pixelSize={46 * sizeScale}
+          color={glowColor}
+          outlineColor={glowOutlineColor}
+          outlineWidth={2}
+          disableDepthTestDistance={Number.POSITIVE_INFINITY}
+        />
+      </Entity>
+      <Entity
+        id={`commercial-route-leo-serving-satellite-${id}`}
+        position={satellite.position}
+        billboard={{
+          image: LEO_SMOKED_GLYPH,
+          scale: 0.82 * sizeScale,
+          color: glyphColor,
+          verticalOrigin: VerticalOrigin.CENTER,
+          horizontalOrigin: HorizontalOrigin.CENTER,
+          disableDepthTestDistance: Number.POSITIVE_INFINITY,
+        }}
+        name={satellite.label}
+      >
+        <LabelGraphics
+          text={satellite.label}
+          font="600 11px Inter, sans-serif"
+          fillColor={labelFillColor}
+          outlineColor={labelOutlineColor}
+          outlineWidth={3}
+          style={2}
+          verticalOrigin={VerticalOrigin.CENTER}
+          horizontalOrigin={HorizontalOrigin.LEFT}
+          pixelOffset={SATELLITE_LABEL_OFFSET}
+          eyeOffset={LABEL_EYE_OFFSET}
+          disableDepthTestDistance={Number.POSITIVE_INFINITY}
+        />
+      </Entity>
+    </>
+  );
+}, (prev, next) =>
+  prev.satellite.key === next.satellite.key &&
+  prev.satellite.label === next.satellite.label &&
+  prev.satellite.status === next.satellite.status &&
+  prev.satellite.position === next.satellite.position &&
+  prev.sizeScale === next.sizeScale &&
+  prev.animationStartSeconds === next.animationStartSeconds
+);
+LeoServingSatelliteGlyph.displayName = 'LeoServingSatelliteGlyph';
+
+const LeoSiteToSatelliteBeam = React.memo<{
+  beam: LeoSiteBeam;
+  sizeScale: number;
+  animationStartSeconds: number;
+}>(({ beam, sizeScale, animationStartSeconds }) => {
+  const positions = useMemo(
+    () => buildLeoSiteBeamPositions(beam.endpoint.coord, beam.satellite.coord),
+    [beam.endpoint.coord, beam.satellite.coord],
+  );
+  const entityKey = useMemo(
+    () => entitySafeSignature(`${beam.endpoint.id}-${beam.satellite.key}`),
+    [beam.endpoint.id, beam.satellite.key],
+  );
+  const color = useMemo(() => satelliteFocusColor(beam.status, 'LEO'), [beam.status]);
+  const animatedPositions = useMemo(() => {
+    const scratch = new Cartesian3();
+    return new CallbackProperty((time?: JulianDate) => {
+      const progress = timedProgress(time, animationStartSeconds, 0.1, LEO_FOCUS_BEAM_GROW_SECONDS);
+      return revealPolylinePositions(positions, progress, scratch);
+    }, false);
+  }, [animationStartSeconds, positions]);
+  const material = useMemo(() => new PolylineGlowMaterialProperty({
+    color: new CallbackProperty((time?: JulianDate) => {
+      const alpha = animatedAlpha(time, animationStartSeconds, 0.06, LEO_FOCUS_BEAM_GROW_SECONDS, beam.status === 'blocked' ? 0.68 : 0.9);
+      const pulseSeconds = animationSeconds(time, animationStartSeconds);
+      const pulse = 0.9 + 0.1 * Math.sin(pulseSeconds * Math.PI * 1.22);
+      return color.withAlpha(alpha * pulse);
+    }, false),
+    glowPower: 0.32,
+    taperPower: 0.58,
+  }), [animationStartSeconds, beam.status, color]);
+  const haloMaterial = useMemo(() => new PolylineGlowMaterialProperty({
+    color: new CallbackProperty((time?: JulianDate) => {
+      const alpha = animatedAlpha(time, animationStartSeconds, 0.02, LEO_FOCUS_BEAM_GROW_SECONDS, beam.status === 'active' || beam.status === 'limited' ? 0.28 : 0.14);
+      return Color.WHITE.withAlpha(alpha);
+    }, false),
+    glowPower: 0.36,
+    taperPower: 0.52,
+  }), [animationStartSeconds, beam.status]);
+
+  return (
+    <>
+      <Entity
+        id={`commercial-route-leo-site-satellite-beam-halo-${entityKey}`}
+        polyline={{
+          positions: animatedPositions,
+          width: 14 * sizeScale,
+          material: haloMaterial,
+          depthFailMaterial: haloMaterial,
+          arcType: ArcType.NONE,
+          clampToGround: false,
+        }}
+      />
+      <Entity
+        id={`commercial-route-leo-site-satellite-beam-${entityKey}`}
+        polyline={{
+          positions: animatedPositions,
+          width: 5.8 * sizeScale,
+          material,
+          depthFailMaterial: material,
+          arcType: ArcType.NONE,
+          clampToGround: false,
+        }}
+      />
+    </>
+  );
+}, (prev, next) =>
+  prev.beam.id === next.beam.id &&
+  prev.beam.status === next.beam.status &&
+  prev.beam.endpoint.coord.lat === next.beam.endpoint.coord.lat &&
+  prev.beam.endpoint.coord.lng === next.beam.endpoint.coord.lng &&
+  prev.beam.satellite.key === next.beam.satellite.key &&
+  prev.beam.satellite.coord.lat === next.beam.satellite.coord.lat &&
+  prev.beam.satellite.coord.lng === next.beam.satellite.coord.lng &&
+  prev.beam.satellite.coord.altitudeKm === next.beam.satellite.coord.altitudeKm &&
+  prev.sizeScale === next.sizeScale &&
+  prev.animationStartSeconds === next.animationStartSeconds
+);
+LeoSiteToSatelliteBeam.displayName = 'LeoSiteToSatelliteBeam';
+
+const LeoSatelliteRelay = React.memo<{
+  from: LeoServingSatellite;
+  to: LeoServingSatellite;
+  sizeScale: number;
+  animationStartSeconds: number;
+}>(({ from, to, sizeScale, animationStartSeconds }) => {
+  const positions = useMemo(
+    () => buildLeoRelayPositions(from.coord, to.coord),
+    [from.coord, to.coord],
+  );
+  const entityKey = useMemo(() => entitySafeSignature(`${from.key}-${to.key}`), [from.key, to.key]);
+  const material = useMemo(() => new PolylineDashMaterialProperty({
+    color: new CallbackProperty((time?: JulianDate) => {
+      const alpha = animatedAlpha(time, animationStartSeconds, LEO_FOCUS_RELAY_DELAY_SECONDS, LEO_FOCUS_RELAY_FADE_SECONDS, 0.48);
+      return Color.fromCssColorString('#c4b5fd').withAlpha(alpha);
+    }, false),
+    dashLength: 14,
+    dashPattern: 0b1111000011110000,
+  }), [animationStartSeconds]);
+
+  return (
+    <Entity
+      id={`commercial-route-leo-satellite-relay-${entityKey}`}
+      polyline={{
+        positions,
+        width: 2.8 * sizeScale,
+        material,
+        depthFailMaterial: material,
+        arcType: ArcType.NONE,
+        clampToGround: false,
+      }}
+    />
+  );
+}, (prev, next) =>
+  prev.from.key === next.from.key &&
+  prev.to.key === next.to.key &&
+  prev.from.coord.lat === next.from.coord.lat &&
+  prev.from.coord.lng === next.from.coord.lng &&
+  prev.from.coord.altitudeKm === next.from.coord.altitudeKm &&
+  prev.to.coord.lat === next.to.coord.lat &&
+  prev.to.coord.lng === next.to.coord.lng &&
+  prev.to.coord.altitudeKm === next.to.coord.altitudeKm &&
+  prev.sizeScale === next.sizeScale &&
+  prev.animationStartSeconds === next.animationStartSeconds
+);
+LeoSatelliteRelay.displayName = 'LeoSatelliteRelay';
+
+const LeoSatelliteServiceFocus = React.memo<{
+  topology: LeoServingTopology;
+  sizeScale: number;
+}>(({ topology, sizeScale }) => {
+  const animationStartSecondsRef = useRef(Date.now() / 1000);
+  const animationStartSeconds = animationStartSecondsRef.current;
+  const relayFrom = topology.satellites[0] ?? null;
+  const relayTo = topology.satellites.length > 1 ? topology.satellites[1] : null;
+
+  return (
+    <>
+      {topology.beams.map((beam) => (
+        <LeoSiteToSatelliteBeam
+          key={`beam-${beam.id}`}
+          beam={beam}
+          sizeScale={sizeScale}
+          animationStartSeconds={animationStartSeconds}
+        />
+      ))}
+      {topology.satellites.map((satellite) => (
+        <LeoServingSatelliteGlyph
+          key={`satellite-${satellite.key}`}
+          satellite={satellite}
+          sizeScale={sizeScale}
+          animationStartSeconds={animationStartSeconds}
+        />
+      ))}
+      {relayFrom && relayTo && (
+        <LeoSatelliteRelay
+          from={relayFrom}
+          to={relayTo}
+          sizeScale={sizeScale}
+          animationStartSeconds={animationStartSeconds}
+        />
+      )}
+    </>
+  );
+}, (prev, next) =>
+  prev.sizeScale === next.sizeScale &&
+  prev.topology.satellites.map((satellite) => (
+    `${satellite.key}:${satellite.coord.lat}:${satellite.coord.lng}:${satellite.coord.altitudeKm ?? 0}:${satellite.status}`
+  )).join('|') === next.topology.satellites.map((satellite) => (
+    `${satellite.key}:${satellite.coord.lat}:${satellite.coord.lng}:${satellite.coord.altitudeKm ?? 0}:${satellite.status}`
+  )).join('|') &&
+  prev.topology.beams.map((beam) => (
+    `${beam.endpoint.id}:${beam.endpoint.coord.lat}:${beam.endpoint.coord.lng}:${beam.satellite.key}:${beam.satellite.coord.lat}:${beam.satellite.coord.lng}:${beam.satellite.coord.altitudeKm ?? 0}:${beam.status}`
+  )).join('|') === next.topology.beams.map((beam) => (
+    `${beam.endpoint.id}:${beam.endpoint.coord.lat}:${beam.endpoint.coord.lng}:${beam.satellite.key}:${beam.satellite.coord.lat}:${beam.satellite.coord.lng}:${beam.satellite.coord.altitudeKm ?? 0}:${beam.status}`
+  )).join('|')
+);
+LeoSatelliteServiceFocus.displayName = 'LeoSatelliteServiceFocus';
 
 const GeoSatelliteServiceFocus = React.memo<{
   spec: SymbolicArcSpec;
@@ -1083,14 +1678,24 @@ const CommercialSymbolicConnectivityLayer: React.FC<CommercialSymbolicConnectivi
   const effectiveFocusedSegmentId = routeModel.focusedSegmentId ?? (routeHeroMode ? 'summary' : null);
   const isSatelliteFocus = routeModel.focusedSegmentId === 'satellite';
   const showGeoSatelliteFocus = routeModel.technology === 'GEO' && (isSatelliteFocus || routeHeroMode);
+  const leoServingTopology = useMemo(
+    () => resolveLeoServingTopology(routeModel, origin, destination),
+    [destination, origin, routeModel],
+  );
+  const showLeoSatelliteFocus = routeModel.technology === 'LEO'
+    && isSatelliteFocus
+    && leoServingTopology.satellites.length > 0
+    && leoServingTopology.beams.length > 0;
   const skyBridgeNodes = useMemo(() => resolveSkyBridgeNodes(routeModel), [routeModel]);
   const expectedArcEntityIds = useMemo(
     () => (
       showGeoSatelliteFocus
         ? expectedGeoSatelliteFocusEntityIds(origin, destination, skyBridgeNodes.primary)
+        : showLeoSatelliteFocus
+          ? expectedLeoSatelliteFocusEntityIds(leoServingTopology)
         : expectedSymbolicArcEntityIds(origin, destination, arcSpecs)
     ),
-    [arcSpecs, destination, origin, showGeoSatelliteFocus, skyBridgeNodes.primary],
+    [arcSpecs, destination, leoServingTopology, origin, showGeoSatelliteFocus, showLeoSatelliteFocus, skyBridgeNodes.primary],
   );
 
   useEffect(() => {
@@ -1111,7 +1716,7 @@ const CommercialSymbolicConnectivityLayer: React.FC<CommercialSymbolicConnectivi
   return (
     <>
       {/* Arc — only when both endpoint positions are known */}
-      {destination && routeSignature && !showGeoSatelliteFocus && arcSpecs.map((spec) => (
+      {destination && routeSignature && !showGeoSatelliteFocus && !showLeoSatelliteFocus && arcSpecs.map((spec) => (
         <SymbolicServiceArc
           key={`${spec.id}-${routeSignature}`}
           spec={spec}
@@ -1131,6 +1736,13 @@ const CommercialSymbolicConnectivityLayer: React.FC<CommercialSymbolicConnectivi
           sizeScale={sizeScale}
         />
       ))}
+      {showLeoSatelliteFocus && (
+        <LeoSatelliteServiceFocus
+          key={`leo-focus-${routeSignature ?? originSignature}-${leoServingTopology.satellites.map((satellite) => satellite.key).join('-')}`}
+          topology={leoServingTopology}
+          sizeScale={sizeScale}
+        />
+      )}
       {effectiveFocusedSegmentId === 'access' && (
         <RadioWaveBeacon
           key={`access-signal-${originSignature}`}

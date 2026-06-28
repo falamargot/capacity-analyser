@@ -124,7 +124,7 @@ function CommercialNarrativeCard({
             </div>
             <div className="min-w-0">
               <div className="text-[10px] font-bold uppercase tracking-[0.16em] opacity-75">
-                Business note
+                Service insight
               </div>
               <div className={`${compact ? 'mt-1 line-clamp-2 text-sm leading-5' : 'mt-1.5 line-clamp-3 text-[15px] leading-6'} font-semibold`}>
                 {card.businessNote}

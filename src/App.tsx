@@ -5703,7 +5703,7 @@ const App: React.FC = () => {
                   </div>
                   <div className="shrink-0 border-t border-slate-800/65 bg-slate-950/78">
                     <div className="px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.08em] text-slate-300">
-                      Journey
+                      Commercial Evidence
                     </div>
                     <CommercialRouteStrip
                       segments={commercialScenarioViewModel.routeSegments}
@@ -6049,7 +6049,7 @@ const App: React.FC = () => {
                         aria-hidden="true"
                       >
                         <div className="rounded-full border border-cyan-200/25 bg-slate-950/55 px-5 py-2 text-[11px] font-bold uppercase tracking-[0.24em] text-cyan-50 shadow-[0_0_34px_rgba(34,211,238,0.18)] backdrop-blur-xl">
-                          Customer Access
+                          Origin Site
                         </div>
                       </div>
                     )}

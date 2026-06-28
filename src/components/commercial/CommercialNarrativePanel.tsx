@@ -6,15 +6,14 @@ import {
   CheckCircle2,
   ChevronLeft,
   ChevronRight,
-  ExternalLink,
   Network,
   RadioTower,
   Route,
   Satellite,
   SatelliteDish,
+  Star,
   Target,
   Timer,
-  Wifi,
   X,
 } from 'lucide-react';
 import type { CommercialRouteModel, CommercialRouteSegmentId } from '../../types/commercialRouteModel';
@@ -23,7 +22,21 @@ import {
   buildCommercialNarrativeCardModel,
   type CommercialNarrativeCardModel,
 } from './commercialNarrativeModel';
-import { formatMbps, formatMs } from './commercialDisplayUtils';
+import { formatMbps, formatMs, commServiceStatusLabel } from './commercialDisplayUtils';
+import {
+  SignalQualityBar,
+  qualityFromText,
+  ForecastConfidenceGauge,
+  confidenceLevelFromPrediction,
+  EndToEndPathDiagram,
+  UseCaseFitGrid,
+  CommercialKpiTile,
+  downloadSpeedTier,
+  uploadSpeedTier,
+  responseTimeTier,
+  reliabilityTier,
+  type PathNode,
+} from './CommercialVisuals';
 
 export interface CommercialNarrativePanelProps {
   viewModel: CommercialScenarioViewModel;
@@ -90,11 +103,33 @@ function NoteIcon({ tone }: { tone: CommercialNarrativeCardModel['statusTone'] }
   return <Route className="h-3.5 w-3.5 shrink-0 text-sky-300" aria-hidden="true" />;
 }
 
-type DefinitiveRecommendationTechnology = 'geo' | 'leo';
-
-function isDefinitiveTechnology(value: string): value is DefinitiveRecommendationTechnology {
-  return value === 'geo' || value === 'leo';
+function cleanVal(value: string | undefined | null): string | undefined {
+  const t = value?.trim();
+  if (!t || t === '--') return undefined;
+  return t;
 }
+
+// ─── Shared inline fact row ───────────────────────────────────────────────────
+
+function FactRow({
+  label,
+  value,
+  tone = 'neutral',
+}: {
+  label: string;
+  value: string;
+  tone?: 'good' | 'neutral' | 'warning';
+}) {
+  const valueColor = tone === 'good' ? 'text-emerald-200' : tone === 'warning' ? 'text-amber-200' : 'text-slate-100/80';
+  return (
+    <div className="flex items-center justify-between gap-3 rounded-lg border border-slate-700/50 bg-slate-900/50 px-3 py-2.5 text-[12px] shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
+      <span className="font-semibold text-slate-200">{label}</span>
+      <span className={`max-w-[10rem] truncate text-right font-medium ${valueColor}`}>{value}</span>
+    </div>
+  );
+}
+
+// ─── Existing architecture diagrams (kept as-is) ─────────────────────────────
 
 function GeoArchitectureDiagram() {
   return (
@@ -104,40 +139,29 @@ function GeoArchitectureDiagram() {
     >
       <svg viewBox="0 0 340 180" className="w-full" style={{ display: 'block' }}>
         <ellipse cx="170" cy="48" rx="28" ry="18" fill="rgba(96,165,250,0.20)" />
-
-        {/* Uplink and downlink dashed lines */}
         <line x1="44" y1="128" x2="170" y2="48" stroke="rgba(96,165,250,0.52)" strokeWidth="1.5" strokeDasharray="5,4" />
         <line x1="170" y1="48" x2="296" y2="128" stroke="rgba(139,92,246,0.48)" strokeWidth="1.5" strokeDasharray="5,4" />
-
-        {/* Flow dots at mid-points */}
         <circle cx="107" cy="88" r="2.8" fill="rgba(147,197,253,0.90)" />
         <circle cx="107" cy="88" r="5" fill="none" stroke="rgba(147,197,253,0.28)" strokeWidth="1" />
         <circle cx="233" cy="88" r="2.8" fill="rgba(167,139,250,0.85)" />
         <circle cx="233" cy="88" r="5" fill="none" stroke="rgba(167,139,250,0.26)" strokeWidth="1" />
-
-        {/* GEO Satellite */}
         <circle cx="170" cy="48" r="24" fill="rgba(22,46,120,0.52)" stroke="rgba(96,165,250,0.48)" strokeWidth="1.2" />
         <rect x="162" y="42" width="16" height="10" rx="2" fill="none" stroke="rgba(147,197,253,0.92)" strokeWidth="1.3" />
         <line x1="157" y1="47" x2="162" y2="47" stroke="rgba(147,197,253,0.85)" strokeWidth="1.8" />
         <line x1="178" y1="47" x2="183" y2="47" stroke="rgba(147,197,253,0.85)" strokeWidth="1.8" />
         <text x="170" y="82" textAnchor="middle" fill="rgba(147,197,253,0.80)" fontSize="7.5" fontWeight="700" letterSpacing="2">GEO SAT</text>
-
-        {/* Site A */}
         <circle cx="44" cy="128" r="22" fill="rgba(8,47,73,0.52)" stroke="rgba(34,211,238,0.38)" strokeWidth="1.2" />
         <path d="M37 133 Q44 124 51 133" fill="none" stroke="rgba(34,211,238,0.88)" strokeWidth="1.5" strokeLinecap="round" />
         <line x1="44" y1="133" x2="44" y2="138" stroke="rgba(34,211,238,0.65)" strokeWidth="1.3" />
         <line x1="40" y1="138" x2="48" y2="138" stroke="rgba(34,211,238,0.48)" strokeWidth="1.1" />
         <text x="44" y="160" textAnchor="middle" fill="rgba(34,211,238,0.82)" fontSize="7.5" fontWeight="700" letterSpacing="2">SITE A</text>
         <text x="44" y="171" textAnchor="middle" fill="rgba(34,211,238,0.46)" fontSize="6.5" fontWeight="600" letterSpacing="1">Uplink</text>
-
-        {/* Site B */}
         <circle cx="296" cy="128" r="22" fill="rgba(46,16,101,0.48)" stroke="rgba(139,92,246,0.38)" strokeWidth="1.2" />
         <circle cx="296" cy="128" r="9" fill="none" stroke="rgba(167,139,250,0.82)" strokeWidth="1.3" />
         <circle cx="296" cy="128" r="4" fill="none" stroke="rgba(167,139,250,0.78)" strokeWidth="1.3" />
         <circle cx="296" cy="128" r="1.5" fill="rgba(167,139,250,0.95)" />
         <text x="296" y="160" textAnchor="middle" fill="rgba(167,139,250,0.82)" fontSize="7.5" fontWeight="700" letterSpacing="2">SITE B</text>
         <text x="296" y="171" textAnchor="middle" fill="rgba(167,139,250,0.46)" fontSize="6.5" fontWeight="600" letterSpacing="1">Downlink</text>
-
         <text x="170" y="178" textAnchor="middle" fill="rgba(96,165,250,0.30)" fontSize="6.5" fontWeight="700" letterSpacing="3">DIRECT SATELLITE RELAY</text>
       </svg>
     </div>
@@ -151,230 +175,55 @@ function LeoArchitectureDiagram() {
       aria-hidden="true"
     >
       <svg viewBox="0 0 340 196" className="w-full" style={{ display: 'block' }}>
-        {/* Satellite glows */}
         <ellipse cx="110" cy="44" rx="20" ry="14" fill="rgba(217,70,239,0.16)" />
         <ellipse cx="230" cy="44" rx="20" ry="14" fill="rgba(217,70,239,0.16)" />
-
-        {/* Site A → LEO Sat A */}
         <line x1="24" y1="55" x2="110" y2="44" stroke="rgba(34,211,238,0.52)" strokeWidth="1.5" strokeDasharray="4,3" />
-        {/* LEO Sat A → Gateway A (straight down) */}
         <line x1="110" y1="64" x2="110" y2="128" stroke="rgba(217,70,239,0.48)" strokeWidth="1.2" strokeDasharray="3,3" />
-        {/* Backbone */}
         <line x1="136" y1="139" x2="204" y2="139" stroke="rgba(99,102,241,0.65)" strokeWidth="2" strokeDasharray="5,3" />
-        {/* Gateway B → LEO Sat B (straight up) */}
         <line x1="230" y1="128" x2="230" y2="64" stroke="rgba(217,70,239,0.48)" strokeWidth="1.2" strokeDasharray="3,3" />
-        {/* LEO Sat B → Site B */}
         <line x1="230" y1="44" x2="316" y2="55" stroke="rgba(139,92,246,0.52)" strokeWidth="1.5" strokeDasharray="4,3" />
-
-        {/* LEO Sat A */}
         <circle cx="110" cy="44" r="20" fill="rgba(88,28,135,0.48)" stroke="rgba(217,70,239,0.45)" strokeWidth="1.2" />
         <rect x="103" y="38" width="14" height="9" rx="1.5" fill="none" stroke="rgba(240,171,252,0.88)" strokeWidth="1.2" />
         <line x1="99" y1="42.5" x2="103" y2="42.5" stroke="rgba(240,171,252,0.80)" strokeWidth="1.6" />
         <line x1="117" y1="42.5" x2="121" y2="42.5" stroke="rgba(240,171,252,0.80)" strokeWidth="1.6" />
         <text x="110" y="74" textAnchor="middle" fill="rgba(240,171,252,0.75)" fontSize="6.5" fontWeight="700" letterSpacing="1">LEO SAT A</text>
-
-        {/* LEO Sat B */}
         <circle cx="230" cy="44" r="20" fill="rgba(88,28,135,0.48)" stroke="rgba(217,70,239,0.45)" strokeWidth="1.2" />
         <rect x="223" y="38" width="14" height="9" rx="1.5" fill="none" stroke="rgba(240,171,252,0.88)" strokeWidth="1.2" />
         <line x1="219" y1="42.5" x2="223" y2="42.5" stroke="rgba(240,171,252,0.80)" strokeWidth="1.6" />
         <line x1="237" y1="42.5" x2="241" y2="42.5" stroke="rgba(240,171,252,0.80)" strokeWidth="1.6" />
         <text x="230" y="74" textAnchor="middle" fill="rgba(240,171,252,0.75)" fontSize="6.5" fontWeight="700" letterSpacing="1">LEO SAT B</text>
-
-        {/* Gateway A */}
         <rect x="97" y="128" width="26" height="22" rx="4" fill="rgba(49,46,129,0.52)" stroke="rgba(99,102,241,0.50)" strokeWidth="1" />
         <circle cx="110" cy="135" r="2" fill="rgba(129,140,248,0.88)" />
         <circle cx="104" cy="144" r="1.6" fill="rgba(129,140,248,0.70)" />
         <circle cx="116" cy="144" r="1.6" fill="rgba(129,140,248,0.70)" />
         <line x1="110" y1="137" x2="104" y2="142" stroke="rgba(129,140,248,0.52)" strokeWidth="1" />
         <line x1="110" y1="137" x2="116" y2="142" stroke="rgba(129,140,248,0.52)" strokeWidth="1" />
-        <text x="110" y="162" textAnchor="middle" fill="rgba(129,140,248,0.62)" fontSize="6" fontWeight="700" letterSpacing="1">GW/SNP</text>
-
-        {/* Gateway B */}
+        <text x="110" y="162" textAnchor="middle" fill="rgba(129,140,248,0.62)" fontSize="6" fontWeight="700" letterSpacing="1">NETWORK</text>
         <rect x="217" y="128" width="26" height="22" rx="4" fill="rgba(49,46,129,0.52)" stroke="rgba(99,102,241,0.50)" strokeWidth="1" />
         <circle cx="230" cy="135" r="2" fill="rgba(129,140,248,0.88)" />
         <circle cx="224" cy="144" r="1.6" fill="rgba(129,140,248,0.70)" />
         <circle cx="236" cy="144" r="1.6" fill="rgba(129,140,248,0.70)" />
         <line x1="230" y1="137" x2="224" y2="142" stroke="rgba(129,140,248,0.52)" strokeWidth="1" />
         <line x1="230" y1="137" x2="236" y2="142" stroke="rgba(129,140,248,0.52)" strokeWidth="1" />
-        <text x="230" y="162" textAnchor="middle" fill="rgba(129,140,248,0.62)" fontSize="6" fontWeight="700" letterSpacing="1">GW/SNP</text>
-
-        {/* Backbone label */}
+        <text x="230" y="162" textAnchor="middle" fill="rgba(129,140,248,0.62)" fontSize="6" fontWeight="700" letterSpacing="1">NETWORK</text>
         <text x="170" y="132" textAnchor="middle" fill="rgba(129,140,248,0.52)" fontSize="6.5" fontWeight="700" letterSpacing="2">BACKBONE</text>
-
-        {/* Site A */}
         <circle cx="24" cy="55" r="19" fill="rgba(8,47,73,0.52)" stroke="rgba(34,211,238,0.38)" strokeWidth="1.1" />
         <path d="M17 60 Q24 51 31 60" fill="none" stroke="rgba(34,211,238,0.88)" strokeWidth="1.4" strokeLinecap="round" />
         <line x1="24" y1="60" x2="24" y2="65" stroke="rgba(34,211,238,0.62)" strokeWidth="1.2" />
         <line x1="20" y1="65" x2="28" y2="65" stroke="rgba(34,211,238,0.46)" strokeWidth="1.0" />
         <text x="24" y="84" textAnchor="middle" fill="rgba(34,211,238,0.80)" fontSize="7" fontWeight="700" letterSpacing="2">SITE A</text>
-
-        {/* Site B */}
         <circle cx="316" cy="55" r="19" fill="rgba(46,16,101,0.48)" stroke="rgba(139,92,246,0.38)" strokeWidth="1.1" />
         <circle cx="316" cy="55" r="8" fill="none" stroke="rgba(167,139,250,0.82)" strokeWidth="1.2" />
         <circle cx="316" cy="55" r="3.5" fill="none" stroke="rgba(167,139,250,0.78)" strokeWidth="1.2" />
         <circle cx="316" cy="55" r="1.2" fill="rgba(167,139,250,0.96)" />
         <text x="316" y="84" textAnchor="middle" fill="rgba(167,139,250,0.80)" fontSize="7" fontWeight="700" letterSpacing="2">SITE B</text>
-
         <text x="170" y="192" textAnchor="middle" fill="rgba(217,70,239,0.28)" fontSize="6.5" fontWeight="700" letterSpacing="3">LEO RELAY CHAIN</text>
       </svg>
     </div>
   );
 }
 
-interface ArchitectureDriver {
-  label: string;
-  icon: ReactNode;
-}
-
-function ArchitectureDriverChip({ label, icon }: ArchitectureDriver) {
-  return (
-    <div className="commercial-driver-chip flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.045] px-3 py-2 text-[12px] font-semibold text-slate-200 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
-      <span className="shrink-0 text-white/52">{icon}</span>
-      <span>{label}</span>
-    </div>
-  );
-}
-
-function SummaryHeroBlock({
-  viewModel,
-  card,
-}: {
-  viewModel: CommercialScenarioViewModel;
-  card: CommercialNarrativeCardModel;
-}) {
-  const isGeo = viewModel.commercialDisplayTechnology === 'GEO';
-  const isLeo = viewModel.commercialDisplayTechnology === 'LEO';
-  const selectedOption = viewModel.comparison.options.find(
-    (opt) => isDefinitiveTechnology(opt.technology)
-      && opt.technology === viewModel.commercialDisplayTechnology.toLowerCase(),
-  );
-
-  const heroBorder = isGeo
-    ? 'border-blue-200/20 bg-[radial-gradient(circle_at_82%_14%,rgba(96,165,250,0.18),transparent_34%),linear-gradient(180deg,rgba(12,18,46,0.98),rgba(15,23,42,0.96)_66%,rgba(14,30,88,0.90))]'
-    : isLeo
-    ? 'border-fuchsia-200/18 bg-[radial-gradient(circle_at_82%_14%,rgba(217,70,239,0.18),transparent_34%),linear-gradient(180deg,rgba(18,10,40,0.98),rgba(15,23,42,0.96)_66%,rgba(50,15,90,0.90))]'
-    : 'border-slate-500/22 bg-[linear-gradient(180deg,rgba(12,16,30,0.98),rgba(15,23,42,0.96))]';
-
-  const accentTextClass = isGeo ? 'text-blue-300/68' : isLeo ? 'text-fuchsia-300/68' : 'text-slate-400/68';
-
-  const metricCardClass = isGeo
-    ? 'border-blue-200/18 bg-blue-950/25 text-blue-50'
-    : isLeo
-    ? 'border-fuchsia-200/16 bg-fuchsia-950/25 text-fuchsia-50'
-    : 'border-slate-500/18 bg-slate-900/25 text-slate-50';
-
-  const statusToneClass = card.statusTone === 'good'
-    ? 'border-emerald-400/38 bg-emerald-500/12 text-emerald-200'
-    : card.statusTone === 'warning'
-    ? 'border-amber-400/38 bg-amber-500/12 text-amber-200'
-    : card.statusTone === 'danger'
-    ? 'border-rose-400/38 bg-rose-500/12 text-rose-200'
-    : 'border-slate-500/38 bg-slate-700/22 text-slate-300';
-
-  const narrativeText = isGeo
-    ? 'This route uses a single GEO satellite to relay traffic directly between both sites through coordinated uplink and downlink coverage.'
-    : isLeo
-    ? 'This route connects both sites through two dedicated LEO access satellites and a terrestrial ground backbone.'
-    : card.narrativeStatement;
-
-  const geoDrivers: ArchitectureDriver[] = [
-    { label: 'Direct satellite relay', icon: <Satellite className="h-3.5 w-3.5" /> },
-    { label: 'Continuous coverage', icon: <CheckCircle2 className="h-3.5 w-3.5" /> },
-    { label: 'Long orbital distance', icon: <Timer className="h-3.5 w-3.5" /> },
-  ];
-
-  const leoDrivers: ArchitectureDriver[] = [
-    { label: 'Low orbit access', icon: <Satellite className="h-3.5 w-3.5" /> },
-    { label: 'Terrestrial backbone', icon: <Network className="h-3.5 w-3.5" /> },
-    { label: 'Dual satellite chain', icon: <Route className="h-3.5 w-3.5" /> },
-  ];
-
-  const drivers = isGeo ? geoDrivers : isLeo ? leoDrivers : [];
-
-  return (
-    <div className="space-y-4">
-      {/* Hero diagram card */}
-      <div className={`commercial-summary-hero-card rounded-xl border p-4 shadow-[0_0_60px_rgba(0,0,0,0.40),inset_0_1px_0_rgba(255,255,255,0.08)] ${heroBorder}`}>
-        <div className="mb-3">
-          <div className={`text-[9px] font-bold uppercase tracking-[0.24em] ${accentTextClass}`}>
-            Connectivity Architecture
-          </div>
-          <div className="mt-0.5 text-[14px] font-bold text-white/90">
-            {isGeo ? 'Direct GEO Relay' : isLeo ? 'LEO Relay Chain' : 'Connectivity Path'}
-          </div>
-        </div>
-
-        {isGeo && <GeoArchitectureDiagram />}
-        {isLeo && <LeoArchitectureDiagram />}
-
-        <p className="mt-3 text-[13px] font-semibold leading-[1.55] text-white/76">
-          {narrativeText}
-        </p>
-      </div>
-
-      {/* Performance */}
-      <section>
-        <div className="mb-2 text-[9px] font-bold uppercase tracking-[0.18em] text-slate-500">
-          Performance
-        </div>
-        <div className={`grid gap-2 ${isGeo ? 'grid-cols-2' : 'grid-cols-3'}`}>
-          <div className={`commercial-summary-metric-card rounded-lg border px-2.5 py-2.5 ${metricCardClass}`}>
-            <div className="flex items-center gap-1 text-[8px] font-bold uppercase tracking-[0.12em] text-white/46">
-              <ArrowDown className="h-2.5 w-2.5" aria-hidden="true" />
-              <span>Throughput</span>
-            </div>
-            <div className="mt-1.5 text-[15px] font-black leading-none tabular-nums text-white">
-              {formatMbps(selectedOption?.downloadMbps)}
-            </div>
-          </div>
-          <div className={`commercial-summary-metric-card rounded-lg border px-2.5 py-2.5 ${metricCardClass}`}>
-            <div className="flex items-center gap-1 text-[8px] font-bold uppercase tracking-[0.12em] text-white/46">
-              <Timer className="h-2.5 w-2.5" aria-hidden="true" />
-              <span>Latency</span>
-            </div>
-            <div className="mt-1.5 text-[15px] font-black leading-none tabular-nums text-white">
-              {formatMs(selectedOption?.rttMs)}
-            </div>
-          </div>
-          {isGeo && (
-            <div className={`commercial-summary-metric-card rounded-lg border px-2.5 py-2.5 ${metricCardClass}`}>
-              <div className="flex items-center gap-1 text-[8px] font-bold uppercase tracking-[0.12em] text-white/46">
-                <CheckCircle2 className="h-2.5 w-2.5" aria-hidden="true" />
-                <span>Coverage</span>
-              </div>
-              <div className="mt-1.5 inline-flex items-center rounded-full border border-emerald-400/38 bg-emerald-500/12 px-1.5 py-0.5 text-[8.5px] font-bold uppercase tracking-[0.06em] leading-none text-emerald-200">
-                Confirmed
-              </div>
-            </div>
-          )}
-          <div className={`commercial-summary-metric-card rounded-lg border px-2.5 py-2.5 ${metricCardClass}`}>
-            <div className="flex items-center gap-1 text-[8px] font-bold uppercase tracking-[0.12em] text-white/46">
-              <Wifi className="h-2.5 w-2.5" aria-hidden="true" />
-              <span>Service</span>
-            </div>
-            <div className={`mt-1.5 inline-flex items-center rounded-full border px-1.5 py-0.5 text-[8.5px] font-bold uppercase tracking-[0.06em] leading-none ${statusToneClass}`}>
-              {viewModel.executiveSummary.statusLabel}
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Architecture drivers */}
-      {drivers.length > 0 && (
-        <section>
-          <div className="mb-2 text-[9px] font-bold uppercase tracking-[0.18em] text-slate-500">
-            Architecture drivers
-          </div>
-          <div className="space-y-1.5">
-            {drivers.map((driver) => (
-              <ArchitectureDriverChip key={driver.label} label={driver.label} icon={driver.icon} />
-            ))}
-          </div>
-        </section>
-      )}
-    </div>
-  );
-}
+// ─── Step 1: Origin Site ──────────────────────────────────────────────────────
 
 function AccessSignalDiagram() {
   return (
@@ -384,17 +233,14 @@ function AccessSignalDiagram() {
     >
       <div className="absolute inset-x-4 top-1/2 h-px -translate-y-1/2 bg-gradient-to-r from-transparent via-cyan-100/54 to-sky-100/10" />
       <div className="absolute left-[4.7rem] top-[2.85rem] h-2 w-2 rounded-full bg-cyan-100 shadow-[0_0_14px_rgba(165,243,252,0.86)] access-signal-dot" />
-
       <div className="absolute left-7 top-5 flex h-12 w-12 items-center justify-center rounded-full border border-cyan-200/35 bg-cyan-300/12 text-cyan-50 shadow-[0_0_28px_rgba(34,211,238,0.22)] access-signal-ring">
         <SatelliteDish className="h-6 w-6" aria-hidden="true" />
       </div>
-
       <div className="absolute right-7 top-6 flex h-11 w-11 items-center justify-center rounded-full border border-sky-200/24 bg-sky-300/10 text-sky-100 shadow-[0_0_20px_rgba(56,189,248,0.15)]">
         <Satellite className="h-5 w-5" aria-hidden="true" />
       </div>
-
       <div className="absolute bottom-3 left-7 text-[9px] font-bold uppercase tracking-[0.14em] text-cyan-100/75">
-        Site A
+        Your site
       </div>
       <div className="absolute bottom-3 right-7 text-right text-[9px] font-bold uppercase tracking-[0.14em] text-sky-100/70">
         Satellite
@@ -403,7 +249,7 @@ function AccessSignalDiagram() {
   );
 }
 
-function AccessBriefingBlock({
+function OriginSiteBlock({
   card,
   viewModel,
 }: {
@@ -411,19 +257,23 @@ function AccessBriefingBlock({
   viewModel: CommercialScenarioViewModel;
 }) {
   const isGeo = viewModel.commercialDisplayTechnology === 'GEO';
-  const terminalModel = cleanPanelValue(viewModel.display.terminalLabel) ?? (isGeo ? 'GEO Terminal' : 'LEO Terminal');
   const isReady = card.statusTone === 'good';
+  const siteName = cleanVal(viewModel.siteA?.name) ?? 'Origin site';
+  const weatherA = cleanVal(viewModel.display.weatherA);
+  const weatherImpact = weatherA
+    ? (weatherA.toLowerCase().includes('clear') || weatherA.toLowerCase().includes('fair') ? 'None expected' : `${weatherA}`)
+    : 'None expected';
 
-  const profileRows = [
-    { label: 'Terminal', value: terminalModel },
-    { label: 'Role', value: 'Customer Terminal' },
-    { label: 'Technology', value: isGeo ? 'GEO Satellite' : 'LEO Satellite' },
-    { label: isGeo ? 'Uplink' : 'Visibility', value: isReady ? 'Ready' : 'Pending' },
+  const rows = [
+    { label: 'Location', value: siteName },
+    { label: 'Service type', value: isGeo ? 'GEO satellite broadband' : 'LEO satellite broadband' },
+    { label: 'Signal verified', value: isReady ? 'Confirmed' : 'Pending' },
+    { label: 'Weather impact', value: weatherImpact },
+    { label: 'Coverage confidence', value: isReady ? 'High' : 'Pending' },
   ];
 
   return (
     <div className="space-y-4">
-      {/* Hero diagram + access status */}
       <div className="rounded-lg border border-cyan-300/30 bg-[linear-gradient(180deg,rgba(8,47,73,0.34),rgba(15,23,42,0.44))] p-3.5 shadow-[0_0_48px_rgba(34,211,238,0.11),inset_0_1px_0_rgba(255,255,255,0.05)]">
         <AccessSignalDiagram />
         <div className="mt-4 h-px bg-gradient-to-r from-transparent via-cyan-100/20 to-transparent" />
@@ -437,20 +287,22 @@ function AccessBriefingBlock({
         </div>
       </div>
 
-      {/* Access Profile */}
       <section>
-        <div className="mb-2 text-[9px] font-bold uppercase tracking-[0.18em] text-cyan-200/65">
-          Access Profile
-        </div>
-        <div className="space-y-2">
-          {profileRows.map(({ label, value }) => (
-            <div
+        <div className="mb-2 text-[9px] font-bold uppercase tracking-[0.18em] text-cyan-200/65">Site Readiness</div>
+        <div className="space-y-1.5">
+          {rows.map(({ label, value }) => (
+            <FactRow
               key={label}
-              className="flex items-center justify-between gap-3 rounded-lg border border-cyan-200/18 bg-[linear-gradient(90deg,rgba(34,211,238,0.10),rgba(14,165,233,0.07))] px-3 py-2.5 text-[12px] text-slate-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]"
-            >
-              <span className="font-semibold">{label}</span>
-              <span className="font-medium text-cyan-100/80">{value}</span>
-            </div>
+              label={label}
+              value={value}
+              tone={
+                value === 'Confirmed' || value === 'High' || value === 'None expected'
+                  ? 'good'
+                  : value === 'Pending'
+                    ? 'neutral'
+                    : 'neutral'
+              }
+            />
           ))}
         </div>
       </section>
@@ -458,36 +310,7 @@ function AccessBriefingBlock({
   );
 }
 
-interface SatelliteServiceFact {
-  label: string;
-  value?: string;
-}
-
-function cleanPanelValue(value: string | undefined | null): string | undefined {
-  const trimmed = value?.trim();
-  if (!trimmed || trimmed === '--') return undefined;
-  return trimmed;
-}
-
-function SatelliteServiceFacts({ facts }: { facts: SatelliteServiceFact[] }) {
-  const visibleFacts = facts.filter((fact) => cleanPanelValue(fact.value));
-
-  if (visibleFacts.length === 0) return null;
-
-  return (
-    <div className="space-y-2">
-      {visibleFacts.slice(0, 4).map((fact) => (
-        <div
-          key={`${fact.label}:${fact.value}`}
-          className="flex items-center justify-between gap-3 rounded-lg border border-indigo-200/16 bg-[linear-gradient(90deg,rgba(99,102,241,0.13),rgba(59,130,246,0.08))] px-3 py-2.5 text-[12px] text-slate-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]"
-        >
-          <span className="min-w-0 font-semibold">{fact.label}</span>
-          <span className="max-w-[9rem] truncate text-right font-medium text-indigo-100/80">{fact.value}</span>
-        </div>
-      ))}
-    </div>
-  );
-}
+// ─── Step 2: Space Coverage ───────────────────────────────────────────────────
 
 function GeoServingDiagram() {
   return (
@@ -495,51 +318,31 @@ function GeoServingDiagram() {
       <div className="absolute left-1/2 top-4 h-16 w-16 -translate-x-1/2 rounded-full bg-blue-300/12 blur-xl satellite-service-breathe" />
       <div className="absolute left-1/2 top-7 h-11 w-11 -translate-x-1/2 rounded-full border border-blue-200/25 bg-indigo-400/10 satellite-service-breathe" />
       <div className="absolute left-1/2 top-[2.35rem] h-4 w-4 -translate-x-1/2 rounded-full bg-white shadow-[0_0_18px_rgba(255,255,255,0.85),0_0_38px_rgba(96,165,250,0.70)]" />
-      <div className="absolute left-1/2 top-[3.75rem] -translate-x-1/2 text-[9px] font-bold uppercase tracking-[0.18em] text-blue-100/70">
-        GEO
-      </div>
-
+      <div className="absolute left-1/2 top-[3.75rem] -translate-x-1/2 text-[9px] font-bold uppercase tracking-[0.18em] text-blue-100/70">GEO</div>
       <div className="absolute left-[4.25rem] top-[4.35rem] h-16 w-px -rotate-[31deg] bg-gradient-to-t from-cyan-200/70 via-blue-200/32 to-transparent shadow-[0_0_14px_rgba(96,165,250,0.18)]" />
       <div className="absolute right-[4.25rem] top-[4.35rem] h-16 w-px rotate-[31deg] bg-gradient-to-b from-blue-200/60 via-violet-200/30 to-transparent shadow-[0_0_14px_rgba(96,165,250,0.18)]" />
-
-      <div className="absolute bottom-4 left-4 flex h-10 w-10 items-center justify-center rounded-full border border-cyan-200/22 bg-cyan-300/9 text-cyan-100 shadow-[0_0_18px_rgba(34,211,238,0.14)]">
+      <div className="absolute bottom-4 left-4 flex h-10 w-10 items-center justify-center rounded-full border border-cyan-200/22 bg-cyan-300/9 text-cyan-100">
         <SatelliteDish className="h-5 w-5" aria-hidden="true" />
       </div>
-      <div className="absolute bottom-4 right-4 flex h-10 w-10 items-center justify-center rounded-full border border-violet-200/22 bg-indigo-300/10 text-violet-100 shadow-[0_0_18px_rgba(129,140,248,0.14)]">
+      <div className="absolute bottom-4 right-4 flex h-10 w-10 items-center justify-center rounded-full border border-violet-200/22 bg-indigo-300/10 text-violet-100">
         <Target className="h-4 w-4" aria-hidden="true" />
       </div>
-
-      <div className="absolute bottom-7 left-[4.25rem] text-[9px] font-bold uppercase tracking-[0.12em] text-cyan-100/70">
-        Uplink
-      </div>
-      <div className="absolute bottom-7 right-[4rem] text-[9px] font-bold uppercase tracking-[0.12em] text-violet-100/70">
-        Downlink
-      </div>
+      <div className="absolute bottom-7 left-[4.25rem] text-[9px] font-bold uppercase tracking-[0.12em] text-cyan-100/70">Uplink</div>
+      <div className="absolute bottom-7 right-[4rem] text-[9px] font-bold uppercase tracking-[0.12em] text-violet-100/70">Downlink</div>
     </div>
   );
 }
 
 function LeoEndpointDiagram({ side }: { side: 'A' | 'B' }) {
   const satelliteLeft = side === 'B';
-
   return (
     <div className="relative h-20 overflow-hidden rounded-lg border border-indigo-200/14 bg-[radial-gradient(circle_at_50%_30%,rgba(147,197,253,0.16),transparent_34%),linear-gradient(180deg,rgba(30,41,91,0.20),rgba(15,23,42,0.22))]" aria-hidden="true">
       <div className="absolute left-8 right-8 top-1/2 h-px -translate-y-1/2 bg-gradient-to-r from-transparent via-blue-100/48 to-transparent" />
-      <div
-        className={[
-          'absolute top-4 flex h-11 w-11 items-center justify-center rounded-full border border-blue-200/24 bg-indigo-400/10 text-blue-100 shadow-[0_0_26px_rgba(96,165,250,0.18)] satellite-service-breathe',
-          satelliteLeft ? 'left-7' : 'right-7',
-        ].join(' ')}
-      >
+      <div className={['absolute top-4 flex h-11 w-11 items-center justify-center rounded-full border border-blue-200/24 bg-indigo-400/10 text-blue-100 satellite-service-breathe', satelliteLeft ? 'left-7' : 'right-7'].join(' ')}>
         <div className="absolute h-14 w-14 rounded-full bg-blue-300/10 blur-xl" />
         <Satellite className="relative h-5 w-5 drop-shadow-[0_0_10px_rgba(147,197,253,0.65)]" aria-hidden="true" />
       </div>
-      <div
-        className={[
-          'absolute top-5 flex h-9 w-9 items-center justify-center rounded-full border border-cyan-200/20 bg-cyan-300/8 text-cyan-100 shadow-[0_0_16px_rgba(34,211,238,0.12)]',
-          satelliteLeft ? 'right-8' : 'left-8',
-        ].join(' ')}
-      >
+      <div className={['absolute top-5 flex h-9 w-9 items-center justify-center rounded-full border border-cyan-200/20 bg-cyan-300/8 text-cyan-100', satelliteLeft ? 'right-8' : 'left-8'].join(' ')}>
         {side === 'A' ? <SatelliteDish className="h-5 w-5" aria-hidden="true" /> : <Target className="h-4 w-4" aria-hidden="true" />}
       </div>
       <div className="absolute left-1/2 top-[2.2rem] h-2 w-2 -translate-x-1/2 rounded-full bg-blue-100 shadow-[0_0_12px_rgba(147,197,253,0.8)]" />
@@ -547,190 +350,114 @@ function LeoEndpointDiagram({ side }: { side: 'A' | 'B' }) {
   );
 }
 
-function CoverageColumn({
-  title,
-  icon,
-  facts,
-}: {
-  title: string;
-  icon: ReactNode;
-  facts: SatelliteServiceFact[];
-}) {
-  return (
-    <div className="rounded-lg border border-indigo-200/16 bg-indigo-400/8 p-3">
-      <div className="mb-2 flex items-center gap-2 text-[9px] font-bold uppercase tracking-[0.16em] text-indigo-100/70">
-        <span className="text-blue-100">{icon}</span>
-        <span>{title}</span>
-      </div>
-      <SatelliteServiceFacts facts={facts} />
-    </div>
-  );
-}
-
-function GeoServingSatelliteBlock({
+function GeoSpaceCoverageBlock({
   card,
   viewModel,
 }: {
   card: CommercialNarrativeCardModel;
   viewModel: CommercialScenarioViewModel;
 }) {
-  const satelliteName = cleanPanelValue(viewModel.display.satelliteName) ?? 'Selected GEO satellite';
-  const beamName = cleanPanelValue(viewModel.display.beamName);
-  const capacity = cleanPanelValue(formatMbps(viewModel.downloadMbps));
-  const latency = cleanPanelValue(formatMs(viewModel.rttMs));
+  const satelliteName = cleanVal(viewModel.display.satelliteName) ?? 'Selected GEO satellite';
+  const siteAName = cleanVal(viewModel.siteA?.name) ?? 'Your location';
+  const siteBName = cleanVal(viewModel.siteB?.name) ?? 'Destination';
+  const linkQuality = qualityFromText(viewModel.display.rfStatus ?? viewModel.display.linkQualityA);
 
   return (
     <div className="space-y-4">
       <div className="rounded-lg border border-indigo-300/28 bg-[radial-gradient(circle_at_50%_18%,rgba(147,197,253,0.22),transparent_34%),linear-gradient(180deg,rgba(30,41,91,0.36),rgba(15,23,42,0.48))] p-4 shadow-[0_0_46px_rgba(99,102,241,0.12),inset_0_1px_0_rgba(255,255,255,0.05)]">
         <GeoServingDiagram />
-        <div className="mt-1.5 text-center text-[9px] font-bold uppercase tracking-[0.22em] text-blue-300/45">
-          Direct GEO Relay
-        </div>
+        <div className="mt-1.5 text-center text-[9px] font-bold uppercase tracking-[0.22em] text-blue-300/45">Direct GEO Relay</div>
         <div className="mt-2 text-[10px] font-bold uppercase tracking-[0.16em] text-indigo-100/60">Serving satellite</div>
         <div className="mt-1 truncate text-[18px] font-bold text-white">{satelliteName}</div>
-        <p className="mt-3 text-[15px] font-semibold leading-[1.55] text-white">
-          {card.narrativeStatement}
-        </p>
+        <p className="mt-3 text-[14px] font-semibold leading-[1.55] text-white/80">{card.narrativeStatement}</p>
       </div>
 
-      <div className="grid grid-cols-2 gap-2">
-        <CoverageColumn
-          title="Uplink coverage"
-          icon={<ArrowUp className="h-3.5 w-3.5" aria-hidden="true" />}
-          facts={[
-            { label: 'Beam', value: beamName },
-            { label: 'Site A', value: 'Covered' },
-          ]}
-        />
-        <CoverageColumn
-          title="Downlink coverage"
-          icon={<ArrowDown className="h-3.5 w-3.5" aria-hidden="true" />}
-          facts={[
-            { label: 'Beam', value: beamName },
-            { label: 'Site B', value: 'Covered' },
-          ]}
-        />
-      </div>
-
-      <div>
-        <div className="mb-2 text-[9px] font-bold uppercase tracking-[0.16em] text-indigo-200/65">
-          Service
+      <section>
+        <div className="mb-2 text-[9px] font-bold uppercase tracking-[0.18em] text-indigo-200/65">Coverage confirmation</div>
+        <div className="space-y-1.5">
+          <FactRow label={siteAName} value={card.statusTone === 'good' ? 'Covered' : 'Pending'} tone={card.statusTone === 'good' ? 'good' : 'neutral'} />
+          <FactRow label={siteBName} value={card.statusTone === 'good' ? 'Covered' : 'Pending'} tone={card.statusTone === 'good' ? 'good' : 'neutral'} />
+          <FactRow label="Satellite capacity" value={card.statusTone === 'good' ? 'Available' : 'Pending'} tone={card.statusTone === 'good' ? 'good' : 'neutral'} />
         </div>
-        <SatelliteServiceFacts
-          facts={[
-            { label: 'Coverage', value: 'Confirmed' },
-            { label: 'Capacity contribution', value: capacity },
-            { label: 'Latency contribution', value: latency },
-          ]}
-        />
+        {linkQuality !== 'unknown' && (
+          <div className="mt-2 rounded-lg border border-indigo-200/16 bg-indigo-400/8 px-3 py-2.5">
+            <div className="mb-1.5 text-[9px] font-bold uppercase tracking-[0.14em] text-indigo-200/65">Signal quality</div>
+            <SignalQualityBar quality={linkQuality} />
+          </div>
+        )}
+      </section>
+
+      <div className="rounded-lg border border-blue-300/20 bg-blue-950/20 px-3 py-2.5 text-[12px] text-blue-100/80">
+        <div className="text-[9px] font-bold uppercase tracking-[0.14em] text-blue-200/60">Note</div>
+        <p className="mt-1 leading-5">GEO provides continuous coverage from a fixed orbital position. Higher response time than LEO — best suited for broadcast, backup and data transfer workloads.</p>
       </div>
     </div>
   );
 }
 
-function LeoAccessSatelliteCard({
-  title,
-  satelliteName,
-  narrative,
-  side,
-  elevation,
-  linkQuality,
-  capacity,
-}: {
-  title: string;
-  satelliteName: string;
-  narrative: string;
-  side: 'A' | 'B';
-  elevation?: string;
-  linkQuality?: string;
-  capacity?: string;
-}) {
-  return (
-    <div className="rounded-lg border border-indigo-300/24 bg-[radial-gradient(circle_at_50%_18%,rgba(147,197,253,0.16),transparent_32%),linear-gradient(180deg,rgba(30,41,91,0.30),rgba(15,23,42,0.42))] p-3.5 shadow-[0_0_34px_rgba(99,102,241,0.10),inset_0_1px_0_rgba(255,255,255,0.05)]">
-      <div className="mb-3 flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <div className="text-[9px] font-bold uppercase tracking-[0.16em] text-indigo-100/60">
-            {title}
-          </div>
-          <div className="mt-1 truncate text-[15px] font-bold text-white">
-            {satelliteName}
-          </div>
-        </div>
-        <Satellite className="h-4 w-4 shrink-0 text-blue-100 drop-shadow-[0_0_10px_rgba(147,197,253,0.55)]" aria-hidden="true" />
-      </div>
-
-      <LeoEndpointDiagram side={side} />
-      <p className="mt-3 text-[13px] font-semibold leading-[1.5] text-slate-50">
-        {narrative}
-      </p>
-
-      <div className="mt-3">
-        <SatelliteServiceFacts
-          facts={[
-            { label: 'Visibility', value: 'Available' },
-            { label: 'Elevation angle', value: cleanPanelValue(elevation) },
-            { label: 'Link quality', value: cleanPanelValue(linkQuality) },
-            { label: 'Capacity contribution', value: cleanPanelValue(capacity) },
-          ]}
-        />
-      </div>
-    </div>
-  );
-}
-
-function LeoServingSatellitesBlock({
+function LeoSpaceCoverageBlock({
   card,
   viewModel,
 }: {
   card: CommercialNarrativeCardModel;
   viewModel: CommercialScenarioViewModel;
 }) {
-  const siteASatellite = cleanPanelValue(viewModel.display.satelliteNameA)
-    ?? cleanPanelValue(viewModel.display.satelliteName)
-    ?? 'Site A serving satellite';
-  const siteBSatellite = cleanPanelValue(viewModel.display.satelliteNameB) ?? 'Site B serving satellite';
+  const siteASatellite = cleanVal(viewModel.display.satelliteNameA) ?? cleanVal(viewModel.display.satelliteName) ?? 'Coverage satellite';
+  const siteBSatellite = cleanVal(viewModel.display.satelliteNameB) ?? 'Coverage satellite';
+  const siteAName = cleanVal(viewModel.siteA?.name) ?? 'Your location';
+  const siteBName = cleanVal(viewModel.siteB?.name) ?? 'Destination';
+  const qualityA = qualityFromText(viewModel.display.linkQualityA);
+  const qualityB = qualityFromText(viewModel.display.linkQualityB);
+  const bandwidthA = cleanVal(viewModel.display.capacityContributionA);
+  const bandwidthB = cleanVal(viewModel.display.capacityContributionB);
 
   return (
-    <div className="space-y-4">
-      <LeoAccessSatelliteCard
-        title="Site A access satellite"
-        satelliteName={siteASatellite}
-        narrative="This satellite provides low-orbit access coverage for Site A."
-        side="A"
-        elevation={viewModel.display.elevationA}
-        linkQuality={viewModel.display.linkQualityA}
-        capacity={viewModel.display.capacityContributionA}
-      />
-      <LeoAccessSatelliteCard
-        title="Site B access satellite"
-        satelliteName={siteBSatellite}
-        narrative="This satellite provides low-orbit access coverage for Site B."
-        side="B"
-        elevation={viewModel.display.elevationB}
-        linkQuality={viewModel.display.linkQualityB}
-        capacity={viewModel.display.capacityContributionB}
-      />
+    <div className="space-y-3">
+      {/* Site A satellite card */}
+      <div className="rounded-lg border border-indigo-300/24 bg-[radial-gradient(circle_at_50%_18%,rgba(147,197,253,0.16),transparent_32%),linear-gradient(180deg,rgba(30,41,91,0.30),rgba(15,23,42,0.42))] p-3.5 shadow-[0_0_34px_rgba(99,102,241,0.10),inset_0_1px_0_rgba(255,255,255,0.05)]">
+        <div className="mb-2 text-[9px] font-bold uppercase tracking-[0.16em] text-indigo-100/60">{siteAName} coverage satellite</div>
+        <div className="truncate text-[15px] font-bold text-white">{siteASatellite}</div>
+        <LeoEndpointDiagram side="A" />
+        <div className="mt-2 space-y-1.5">
+          <FactRow label="Visibility" value={card.statusTone === 'good' ? 'Active' : 'Pending'} tone={card.statusTone === 'good' ? 'good' : 'neutral'} />
+          {bandwidthA && <FactRow label="Bandwidth contribution" value={bandwidthA} />}
+        </div>
+        {qualityA !== 'unknown' && (
+          <div className="mt-2 flex items-center gap-2">
+            <span className="text-[9px] font-bold uppercase tracking-[0.12em] text-indigo-200/60">Signal quality</span>
+            <SignalQualityBar quality={qualityA} />
+          </div>
+        )}
+      </div>
 
-      <div className="rounded-lg border border-indigo-300/24 bg-[linear-gradient(135deg,rgba(79,70,229,0.20),rgba(30,64,175,0.14))] p-3 text-indigo-50 shadow-[0_0_28px_rgba(99,102,241,0.10),inset_0_1px_0_rgba(255,255,255,0.05)]">
+      {/* Site B satellite card */}
+      <div className="rounded-lg border border-indigo-300/24 bg-[radial-gradient(circle_at_50%_18%,rgba(147,197,253,0.16),transparent_32%),linear-gradient(180deg,rgba(30,41,91,0.30),rgba(15,23,42,0.42))] p-3.5 shadow-[0_0_34px_rgba(99,102,241,0.10),inset_0_1px_0_rgba(255,255,255,0.05)]">
+        <div className="mb-2 text-[9px] font-bold uppercase tracking-[0.16em] text-indigo-100/60">{siteBName} coverage satellite</div>
+        <div className="truncate text-[15px] font-bold text-white">{siteBSatellite}</div>
+        <LeoEndpointDiagram side="B" />
+        <div className="mt-2 space-y-1.5">
+          <FactRow label="Visibility" value={card.statusTone === 'good' ? 'Active' : 'Pending'} tone={card.statusTone === 'good' ? 'good' : 'neutral'} />
+          {bandwidthB && <FactRow label="Bandwidth contribution" value={bandwidthB} />}
+        </div>
+        {qualityB !== 'unknown' && (
+          <div className="mt-2 flex items-center gap-2">
+            <span className="text-[9px] font-bold uppercase tracking-[0.12em] text-indigo-200/60">Signal quality</span>
+            <SignalQualityBar quality={qualityB} />
+          </div>
+        )}
+      </div>
+
+      <div className="rounded-lg border border-indigo-300/20 bg-[linear-gradient(135deg,rgba(79,70,229,0.16),rgba(30,64,175,0.10))] p-3 text-indigo-50">
         <div className="flex items-start gap-2">
-          <div className="mt-0.5 shrink-0">
-            <CheckCircle2 className="h-3.5 w-3.5 text-blue-200" aria-hidden="true" />
-          </div>
-          <div className="min-w-0">
-            <div className="text-[9px] font-bold uppercase tracking-[0.16em] text-indigo-100/70">
-              Serving satellites
-            </div>
-            <p className="mt-1 text-[13px] font-semibold leading-[1.5]">
-              {card.businessNote}
-            </p>
-          </div>
+          <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-blue-200" aria-hidden="true" />
+          <p className="text-[12px] font-semibold leading-[1.5]">{card.businessNote}</p>
         </div>
       </div>
     </div>
   );
 }
 
-function SatelliteCoverageBlock({
+function SpaceCoverageBlock({
   card,
   viewModel,
 }: {
@@ -738,40 +465,25 @@ function SatelliteCoverageBlock({
   viewModel: CommercialScenarioViewModel;
 }) {
   if (viewModel.commercialDisplayTechnology === 'LEO') {
-    return <LeoServingSatellitesBlock card={card} viewModel={viewModel} />;
+    return <LeoSpaceCoverageBlock card={card} viewModel={viewModel} />;
   }
-
-  return <GeoServingSatelliteBlock card={card} viewModel={viewModel} />;
+  return <GeoSpaceCoverageBlock card={card} viewModel={viewModel} />;
 }
 
-function DestinationReceiveDiagram({
-  isGateway,
-  endpointLabel,
-}: {
-  isGateway: boolean;
-  endpointLabel: string;
-}) {
+// ─── Step 3: Service Delivery ─────────────────────────────────────────────────
+
+function DestinationReceiveDiagram({ isGateway, endpointLabel }: { isGateway: boolean; endpointLabel: string }) {
   return (
-    <div
-      className="relative h-24 overflow-hidden rounded-lg border border-emerald-300/22 bg-[radial-gradient(circle_at_74%_50%,rgba(52,211,153,0.22),transparent_28%),linear-gradient(180deg,rgba(6,78,59,0.24),rgba(15,23,42,0.26))]"
-      aria-hidden="true"
-    >
+    <div className="relative h-24 overflow-hidden rounded-lg border border-emerald-300/22 bg-[radial-gradient(circle_at_74%_50%,rgba(52,211,153,0.22),transparent_28%),linear-gradient(180deg,rgba(6,78,59,0.24),rgba(15,23,42,0.26))]" aria-hidden="true">
       <div className="absolute inset-x-4 top-1/2 h-px -translate-y-1/2 bg-gradient-to-r from-teal-100/10 via-emerald-100/54 to-transparent" />
       <div className="absolute left-[4.7rem] top-[2.85rem] h-2 w-2 rounded-full bg-emerald-100 shadow-[0_0_14px_rgba(167,243,208,0.85)] destination-receive-dot" />
-
-      <div className="absolute left-7 top-6 flex h-11 w-11 items-center justify-center rounded-full border border-teal-200/24 bg-teal-300/10 text-teal-100 shadow-[0_0_20px_rgba(45,212,191,0.15)]">
+      <div className="absolute left-7 top-6 flex h-11 w-11 items-center justify-center rounded-full border border-teal-200/24 bg-teal-300/10 text-teal-100">
         <Satellite className="h-5 w-5" aria-hidden="true" />
       </div>
-
-      <div className="absolute right-7 top-5 flex h-12 w-12 items-center justify-center rounded-full border border-emerald-200/35 bg-emerald-300/12 text-emerald-50 shadow-[0_0_28px_rgba(16,185,129,0.22)] destination-receive-pulse">
-        {isGateway
-          ? <RadioTower className="h-6 w-6" aria-hidden="true" />
-          : <SatelliteDish className="h-6 w-6" aria-hidden="true" />}
+      <div className="absolute right-7 top-5 flex h-12 w-12 items-center justify-center rounded-full border border-emerald-200/35 bg-emerald-300/12 text-emerald-50 destination-receive-pulse">
+        {isGateway ? <RadioTower className="h-6 w-6" aria-hidden="true" /> : <SatelliteDish className="h-6 w-6" aria-hidden="true" />}
       </div>
-
-      <div className="absolute bottom-3 left-7 text-[9px] font-bold uppercase tracking-[0.14em] text-teal-100/70">
-        Satellite
-      </div>
+      <div className="absolute bottom-3 left-7 text-[9px] font-bold uppercase tracking-[0.14em] text-teal-100/70">Satellite</div>
       <div className="absolute bottom-3 right-7 text-right text-[9px] font-bold uppercase tracking-[0.14em] text-emerald-100/75">
         {isGateway ? 'Gateway' : endpointLabel}
       </div>
@@ -779,90 +491,47 @@ function DestinationReceiveDiagram({
   );
 }
 
-interface DestinationFact {
-  label: string;
-  value?: string;
-}
-
-function DestinationFactRows({ facts }: { facts: DestinationFact[] }) {
-  const visibleFacts = facts.filter((fact) => cleanPanelValue(fact.value));
-
-  if (visibleFacts.length === 0) return null;
-
-  return (
-    <div className="space-y-2">
-      {visibleFacts.map((fact) => (
-        <div
-          key={`${fact.label}:${fact.value}`}
-          className="flex items-center justify-between gap-3 rounded-lg border border-emerald-200/16 bg-[linear-gradient(90deg,rgba(16,185,129,0.13),rgba(20,184,166,0.08))] px-3 py-2.5 text-[12px] text-slate-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]"
-        >
-          <span className="min-w-0 font-semibold">{fact.label}</span>
-          <span className="max-w-[10.5rem] truncate text-right font-medium text-emerald-100/82">{fact.value}</span>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function DestinationTerminalCard({
-  model,
-  technology,
-}: {
-  model: string;
-  technology?: string;
-}) {
-  return (
-    <div className="mb-2.5 rounded-lg border border-emerald-200/30 bg-[radial-gradient(circle_at_85%_18%,rgba(167,243,208,0.18),transparent_30%),linear-gradient(135deg,rgba(16,185,129,0.22),rgba(20,184,166,0.12))] p-3.5 shadow-[0_0_32px_rgba(16,185,129,0.12),inset_0_1px_0_rgba(255,255,255,0.06)]">
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <div className="text-[9px] font-bold uppercase tracking-[0.18em] text-emerald-100/65">
-            Customer terminal
-          </div>
-          <div className="mt-1 truncate text-[20px] font-bold leading-none tracking-tight text-white">
-            {model}
-          </div>
-          <div className="mt-2 text-[10px] font-bold uppercase tracking-[0.14em] text-emerald-100/70">
-            {technology ? `${technology} terminal` : 'Receiving terminal'}
-          </div>
-        </div>
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-emerald-200/35 bg-emerald-300/12 text-emerald-50 shadow-[0_0_22px_rgba(16,185,129,0.20)] destination-receive-pulse">
-          <SatelliteDish className="h-5 w-5" aria-hidden="true" />
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function DestinationEndpointBlock({
+function ServiceDeliveryBlock({
   card,
   viewModel,
+  commercialRouteModel,
 }: {
   card: CommercialNarrativeCardModel;
   viewModel: CommercialScenarioViewModel;
+  commercialRouteModel?: CommercialRouteModel;
 }) {
-  const isGeo = viewModel.commercialDisplayTechnology === 'GEO';
   const isGateway = viewModel.display.destinationEndpointKind === 'geo_gateway';
-  const stationModel = cleanPanelValue(viewModel.display.destinationStationModel)
-    ?? (isGeo ? 'GEO Terminal' : 'LEO Terminal');
-  const location = cleanPanelValue(viewModel.display.destinationLocation);
-  const role = cleanPanelValue(viewModel.display.destinationEndpointRole)
-    ?? (isGateway ? 'Gateway' : 'Customer Terminal');
-  const receivingSide = cleanPanelValue(viewModel.display.destinationReceivingSide) ?? 'Destination';
-  const isAvailable = card.statusTone === 'good';
+  const siteAName = cleanVal(viewModel.siteA?.name) ?? 'Your location';
+  const siteBName = cleanVal(viewModel.siteB?.name) ?? cleanVal(viewModel.display.destinationLocation) ?? (isGateway ? 'Gateway' : 'Destination');
+  const receivingSide = cleanVal(viewModel.display.destinationReceivingSide) ?? (isGateway ? 'Gateway' : 'Destination');
+  const isReady = card.statusTone === 'good';
 
-  const profileRows: Array<{ label: string; value?: string }> = [
-    { label: 'Role', value: role },
-    { label: isGeo ? 'GEO terminal' : 'LEO terminal', value: stationModel },
-    { label: 'Location', value: location ?? 'Site B' },
-    {
-      label: isGeo ? 'Receive coverage' : 'Satellite visibility',
-      value: isAvailable ? 'Available' : 'Pending',
-    },
+  // Build end-to-end path nodes
+  const accessSegment = viewModel.routeSegments.find((s) => s.type === 'access');
+  const satelliteSegment = viewModel.routeSegments.find((s) => s.type === 'satellite');
+  const destinationSegment = viewModel.routeSegments.find((s) => s.type === 'destination');
+
+  const toNodeStatus = (segment: typeof accessSegment, fallback: typeof isReady): import('./CommercialVisuals').PathNodeStatus => {
+    if (!segment) return fallback ? 'confirmed' : 'pending';
+    if (segment.status === 'blocked') return 'unavailable';
+    if (segment.status === 'warning') return 'at_risk';
+    if (segment.isRouteParticipant) return 'confirmed';
+    if (segment.status === 'unknown') return 'pending';
+    return 'confirmed';
+  };
+
+  const satelliteName = cleanVal(viewModel.display.satelliteName)
+    ?? (viewModel.commercialDisplayTechnology === 'LEO' ? 'LEO SAT' : 'GEO SAT');
+
+  const pathNodes: PathNode[] = [
+    { label: siteAName, statusLabel: accessSegment?.isRouteParticipant ? 'Ready' : 'Pending', status: toNodeStatus(accessSegment, isReady) },
+    { label: satelliteName, statusLabel: satelliteSegment?.isRouteParticipant ? 'Active' : 'Pending', status: toNodeStatus(satelliteSegment, isReady) },
+    { label: 'Network', statusLabel: isReady ? 'Active' : 'Pending', status: isReady ? 'active' : 'pending' },
+    { label: siteBName, statusLabel: destinationSegment?.isRouteParticipant ? 'Confirmed' : 'Pending', status: toNodeStatus(destinationSegment, isReady) },
   ];
 
   return (
     <div className="space-y-4">
-      {/* Hero diagram + status */}
       <div className="rounded-lg border border-emerald-300/30 bg-[linear-gradient(180deg,rgba(6,78,59,0.34),rgba(15,23,42,0.44))] p-3.5 shadow-[0_0_46px_rgba(16,185,129,0.11),inset_0_1px_0_rgba(255,255,255,0.05)]">
         <DestinationReceiveDiagram isGateway={isGateway} endpointLabel={receivingSide} />
         <div className="mt-4 h-px bg-gradient-to-r from-transparent via-emerald-100/18 to-transparent" />
@@ -876,16 +545,197 @@ function DestinationEndpointBlock({
         </div>
       </div>
 
-      {/* Destination capability summary */}
+      {/* End-to-end path diagram */}
       <section>
-        <div className="mb-2 text-[9px] font-bold uppercase tracking-[0.18em] text-emerald-200/65">
-          Destination capability summary
+        <div className="mb-2 text-[9px] font-bold uppercase tracking-[0.18em] text-emerald-200/65">End-to-end path</div>
+        <EndToEndPathDiagram nodes={pathNodes} />
+      </section>
+
+      {/* Delivery confirmation */}
+      <section>
+        <div className="mb-2 text-[9px] font-bold uppercase tracking-[0.18em] text-emerald-200/65">Delivery confirmation</div>
+        <div className="space-y-1.5">
+          <FactRow label="Destination" value={siteBName} />
+          <FactRow label="Receive type" value={isGateway ? 'Network gateway' : 'Customer terminal'} />
+          <FactRow label="Signal" value={isReady ? 'Confirmed' : 'Pending'} tone={isReady ? 'good' : 'neutral'} />
+          <FactRow label="End-to-end path" value={isReady ? 'Verified' : 'Pending'} tone={isReady ? 'good' : 'neutral'} />
         </div>
-        <DestinationFactRows facts={profileRows} />
       </section>
     </div>
   );
 }
+
+// ─── Step 4: Recommendation ───────────────────────────────────────────────────
+
+function VerdictHeroCard({
+  viewModel,
+  card,
+}: {
+  viewModel: CommercialScenarioViewModel;
+  card: CommercialNarrativeCardModel;
+}) {
+  const isGeo = viewModel.commercialDisplayTechnology === 'GEO';
+  const isLeo = viewModel.commercialDisplayTechnology === 'LEO';
+
+  const heroBorder = isGeo
+    ? 'border-blue-200/20 bg-[radial-gradient(circle_at_82%_14%,rgba(96,165,250,0.18),transparent_34%),linear-gradient(180deg,rgba(12,18,46,0.98),rgba(15,23,42,0.96)_66%,rgba(14,30,88,0.90))]'
+    : isLeo
+    ? 'border-fuchsia-200/18 bg-[radial-gradient(circle_at_82%_14%,rgba(217,70,239,0.18),transparent_34%),linear-gradient(180deg,rgba(18,10,40,0.98),rgba(15,23,42,0.96)_66%,rgba(50,15,90,0.90))]'
+    : 'border-slate-500/22 bg-[linear-gradient(180deg,rgba(12,16,30,0.98),rgba(15,23,42,0.96))]';
+
+  const accentText = isGeo ? 'text-blue-300/68' : isLeo ? 'text-fuchsia-300/68' : 'text-slate-400/68';
+  const statusLabel = commServiceStatusLabel[viewModel.serviceStatus];
+  const statusChipClass = card.statusTone === 'good'
+    ? 'border-emerald-400/38 bg-emerald-500/12 text-emerald-200'
+    : card.statusTone === 'warning'
+    ? 'border-amber-400/38 bg-amber-500/12 text-amber-200'
+    : card.statusTone === 'danger'
+    ? 'border-rose-400/38 bg-rose-500/12 text-rose-200'
+    : 'border-slate-500/38 bg-slate-700/22 text-slate-300';
+
+  const technologyName = isGeo ? 'GEO Satellite' : isLeo ? 'LEO Satellite' : 'Satellite';
+
+  return (
+    <div className={`rounded-xl border p-4 shadow-[0_0_60px_rgba(0,0,0,0.40),inset_0_1px_0_rgba(255,255,255,0.08)] ${heroBorder}`}>
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <div className={`text-[9px] font-bold uppercase tracking-[0.24em] ${accentText}`}>
+            Recommended solution
+          </div>
+          <div className="mt-0.5 flex items-center gap-2">
+            <Star className={`h-4 w-4 shrink-0 ${isGeo ? 'text-blue-300' : isLeo ? 'text-fuchsia-300' : 'text-slate-400'}`} aria-hidden="true" />
+            <span className="text-[16px] font-bold text-white/90">{technologyName}</span>
+          </div>
+        </div>
+        <span className={`shrink-0 rounded-full border px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.08em] ${statusChipClass}`}>
+          {statusLabel}
+        </span>
+      </div>
+      <p className="mt-3 text-[13px] font-semibold leading-[1.55] text-white/76">
+        {viewModel.executiveSummary.expectedExperience || card.narrativeStatement}
+      </p>
+    </div>
+  );
+}
+
+function AlternativeCard({ viewModel }: { viewModel: CommercialScenarioViewModel }) {
+  const recommended = viewModel.recommendation.technology;
+  if (recommended !== 'leo' && recommended !== 'geo') return null;
+  const alt = viewModel.comparison.options.find((o) => o.technology !== recommended);
+  if (!alt) return null;
+
+  const differentiator = alt.technology === 'geo'
+    ? 'Suitable for broadcast, VSAT backup and data-only workloads'
+    : 'Lower response time alternative for interactive applications';
+
+  return (
+    <div className="rounded-lg border border-slate-700/60 bg-slate-900/40 p-3">
+      <div className="text-[9px] font-bold uppercase tracking-[0.14em] text-slate-500">Alternative option</div>
+      <div className="mt-1.5 flex items-start justify-between gap-2">
+        <div>
+          <div className="text-[13px] font-semibold text-slate-200">{alt.label} Satellite</div>
+          <p className="mt-0.5 text-[11px] leading-4 text-slate-400">{differentiator}</p>
+        </div>
+        <span className={`shrink-0 text-[10px] font-bold ${alt.available ? 'text-slate-400' : 'text-slate-600'}`}>
+          {alt.available ? commServiceStatusLabel[alt.status] : 'Unavailable'}
+        </span>
+      </div>
+      {alt.available && (
+        <div className="mt-2 grid grid-cols-3 gap-1.5">
+          <CommercialKpiTile value={formatMbps(alt.downloadMbps)} label="Download" />
+          <CommercialKpiTile value={formatMs(alt.rttMs)} label="Response" />
+          <CommercialKpiTile value={formatMbps(alt.uploadMbps)} label="Upload" />
+        </div>
+      )}
+    </div>
+  );
+}
+
+function RecommendationBlock({
+  viewModel,
+  card,
+}: {
+  viewModel: CommercialScenarioViewModel;
+  card: CommercialNarrativeCardModel;
+}) {
+  const isGeo = viewModel.commercialDisplayTechnology === 'GEO';
+  const isLeo = viewModel.commercialDisplayTechnology === 'LEO';
+  const selectedOption = viewModel.comparison.options.find(
+    (opt) => opt.technology === viewModel.commercialDisplayTechnology.toLowerCase(),
+  );
+  const dlTier = downloadSpeedTier(selectedOption?.downloadMbps);
+  const ulTier = uploadSpeedTier(selectedOption?.uploadMbps);
+  const rttTier = responseTimeTier(selectedOption?.rttMs);
+  const relTier = reliabilityTier(viewModel.availabilityPct);
+  const confidence = confidenceLevelFromPrediction(
+    viewModel.display.predictionConfidence?.level ?? viewModel.display.confidence,
+  );
+
+  return (
+    <div className="space-y-4">
+      <VerdictHeroCard viewModel={viewModel} card={card} />
+
+      {/* Architecture diagram — kept from original design */}
+      {isGeo && <GeoArchitectureDiagram />}
+      {isLeo && <LeoArchitectureDiagram />}
+
+      {/* 4 KPI tiles */}
+      <section>
+        <div className="mb-2 text-[9px] font-bold uppercase tracking-[0.18em] text-slate-500">Expected service</div>
+        <div className="grid grid-cols-2 gap-1.5">
+          <CommercialKpiTile
+            value={formatMbps(selectedOption?.downloadMbps ?? viewModel.downloadMbps)}
+            label="Download speed"
+            sublabel={dlTier.label !== '--' ? dlTier.label : undefined}
+            sublabelTone={dlTier.tone}
+          />
+          <CommercialKpiTile
+            value={formatMbps(selectedOption?.uploadMbps ?? viewModel.uploadMbps)}
+            label="Upload speed"
+            sublabel={ulTier.label !== '--' ? ulTier.label : undefined}
+            sublabelTone={ulTier.tone}
+          />
+          <CommercialKpiTile
+            value={formatMs(selectedOption?.rttMs ?? viewModel.rttMs)}
+            label="Response time"
+            sublabel={rttTier.label !== '--' ? rttTier.label : undefined}
+            sublabelTone={rttTier.tone}
+          />
+          <CommercialKpiTile
+            value={viewModel.availabilityPct != null ? `${viewModel.availabilityPct.toFixed(1)}%` : '--'}
+            label="Reliability"
+            sublabel={relTier.label !== '--' ? relTier.label : undefined}
+            sublabelTone={relTier.tone}
+          />
+        </div>
+      </section>
+
+      {/* Use case fit */}
+      <section>
+        <div className="mb-2 text-[9px] font-bold uppercase tracking-[0.18em] text-slate-500">Application compatibility</div>
+        <UseCaseFitGrid
+          rttMs={selectedOption?.rttMs ?? viewModel.rttMs}
+          downloadMbps={selectedOption?.downloadMbps ?? viewModel.downloadMbps}
+          uploadMbps={selectedOption?.uploadMbps ?? viewModel.uploadMbps}
+          serviceStatus={viewModel.serviceStatus}
+        />
+      </section>
+
+      {/* Alternative option */}
+      <AlternativeCard viewModel={viewModel} />
+
+      {/* Forecast confidence */}
+      <section>
+        <div className="mb-2 text-[9px] font-bold uppercase tracking-[0.18em] text-slate-500">Forecast confidence</div>
+        <div className="rounded-lg border border-slate-800/60 bg-slate-900/40 px-3 py-3">
+          <ForecastConfidenceGauge level={confidence} />
+        </div>
+      </section>
+    </div>
+  );
+}
+
+// ─── Panel shell ──────────────────────────────────────────────────────────────
 
 function CommercialNarrativePanel({
   viewModel,
@@ -934,7 +784,7 @@ function CommercialNarrativePanel({
       }}
       aria-hidden={!isOpen}
     >
-      {/* Gradient shadow cast onto globe behind the panel */}
+      {/* Shadow cast on globe behind the panel */}
       <div
         className="commercial-narrative-panel__globe-shadow pointer-events-none absolute inset-y-0 left-0 w-10 -translate-x-full"
         style={{ background: 'linear-gradient(to right, transparent, rgba(6,10,22,0.35))' }}
@@ -954,11 +804,8 @@ function CommercialNarrativePanel({
                 : 'border-[rgba(148,163,184,0.10)] bg-[rgba(6,10,22,0.96)]',
         ].join(' ')}
       >
-
-        {/* ── Header ─────────────────────────────────────────────────── */}
+        {/* Header */}
         <div className="flex-shrink-0 px-5 pb-0 pt-5">
-
-          {/* Eyebrow + close */}
           <div className="flex items-center justify-between gap-3">
             <div className="commercial-narrative-panel__eyebrow inline-flex items-center gap-3 rounded-2xl border border-white/10 bg-slate-950/70 px-3 py-2 shadow-[0_18px_60px_-45px_rgba(15,23,42,0.85)]">
               <span
@@ -991,17 +838,13 @@ function CommercialNarrativePanel({
             )}
           </div>
 
-
           {!isSummary && (
             <>
-              {/* Title */}
               {card.title !== card.eyebrow && (
                 <h2 className="commercial-narrative-panel__title mt-3 text-[20px] font-bold leading-tight tracking-tight text-white">
                   {card.title}
                 </h2>
               )}
-
-              {/* Status badge */}
               <span className={`mt-2 inline-flex rounded-full border px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.08em] ${panelStatusBadgeClass}`}>
                 {card.statusLabel}
               </span>
@@ -1009,72 +852,72 @@ function CommercialNarrativePanel({
           )}
         </div>
 
-        {/* Divider */}
         <div className={`commercial-narrative-panel__divider ${isSummary ? 'mt-3' : 'mt-4'} mx-5 flex-shrink-0 border-t border-[rgba(30,41,59,0.80)]`} />
 
-        {/* ── Scrollable content ─────────────────────────────────────── */}
+        {/* Scrollable content */}
         <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
-
           {isAccess ? (
-            <AccessBriefingBlock card={card} viewModel={viewModel} />
+            <OriginSiteBlock card={card} viewModel={viewModel} />
           ) : isSatellite ? (
-            <SatelliteCoverageBlock card={card} viewModel={viewModel} />
+            <SpaceCoverageBlock card={card} viewModel={viewModel} />
           ) : isDestination ? (
-            <DestinationEndpointBlock card={card} viewModel={viewModel} />
+            <ServiceDeliveryBlock card={card} viewModel={viewModel} commercialRouteModel={commercialRouteModel} />
           ) : isSummary ? (
-            <SummaryHeroBlock viewModel={viewModel} card={card} />
+            <RecommendationBlock viewModel={viewModel} card={card} />
           ) : (
-            /* Non-summary: storytelling structure */
             <>
-              {/* Narrative statement — visual hero */}
               <p className="text-[16px] font-medium leading-[1.65] tracking-[-0.01em] text-white">
                 {card.narrativeStatement}
               </p>
-
-              {/* Supporting details */}
               {card.facts.length > 0 && (
                 <>
                   <div className="mt-5 border-t border-[rgba(30,41,59,0.80)]" />
-                  <div className="mt-4">
-                    <div className="mb-2.5 text-[9px] font-bold uppercase tracking-[0.16em] text-slate-500">
-                      Details
-                    </div>
-                    <div className="grid grid-cols-2 gap-x-4 gap-y-3">
-                      {card.facts.map((fact) => (
-                        <div key={`${fact.label}:${fact.value}`} className="min-w-0">
-                          <div className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-600">
-                            {fact.label}
-                          </div>
-                          <div className="mt-0.5 line-clamp-2 text-[13px] font-semibold leading-snug text-slate-200">
-                            {fact.value}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
+                  <div className="mt-4 space-y-1.5">
+                    {card.facts.map((fact) => (
+                      <FactRow key={`${fact.label}:${fact.value}`} label={fact.label} value={fact.value} />
+                    ))}
                   </div>
                 </>
               )}
-
-              {/* Bottom line */}
               <div className={`mt-5 rounded-lg border p-3 ${noteClass[card.statusTone]}`}>
                 <div className="flex items-start gap-2">
-                  <div className="mt-0.5 shrink-0">
-                    <NoteIcon tone={card.statusTone} />
-                  </div>
-                  <div className="min-w-0">
-                    <div className="text-[9px] font-bold uppercase tracking-[0.16em] opacity-75">
-                      Bottom line
-                    </div>
-                    <p className="mt-1 text-[13px] font-semibold leading-[1.5]">
-                      {card.businessNote}
-                    </p>
-                  </div>
+                  <NoteIcon tone={card.statusTone} />
+                  <p className="text-[13px] font-semibold leading-[1.5]">{card.businessNote}</p>
                 </div>
               </div>
             </>
           )}
         </div>
 
+        {/* Prev / Next navigation */}
+        {(prevId || nextId) && (
+          <div className="flex-shrink-0 border-t border-slate-800/60 px-5 py-3">
+            <div className="flex items-center justify-between gap-3">
+              {prevId ? (
+                <button
+                  type="button"
+                  onClick={() => onClose?.()}
+                  className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-400 transition-colors hover:text-slate-200"
+                  aria-label="Previous step"
+                >
+                  <ChevronLeft className="h-3.5 w-3.5" aria-hidden="true" />
+                  <span className="capitalize">{prevId.replace('destination', 'Service Delivery').replace('satellite', 'Space Coverage').replace('access', 'Origin Site').replace('summary', 'Recommendation')}</span>
+                </button>
+              ) : <span />}
+              {nextId ? (
+                <button
+                  type="button"
+                  onClick={() => onClose?.()}
+                  className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-400 transition-colors hover:text-slate-200"
+                  aria-label="Next step"
+                >
+                  <span className="capitalize">{nextId.replace('destination', 'Service Delivery').replace('satellite', 'Space Coverage').replace('access', 'Origin Site').replace('summary', 'Recommendation')}</span>
+                  <ChevronRight className="h-3.5 w-3.5" aria-hidden="true" />
+                </button>
+              ) : <span />}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

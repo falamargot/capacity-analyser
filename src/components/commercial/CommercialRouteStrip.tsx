@@ -2,22 +2,22 @@ import { memo } from 'react';
 import { ChevronRight } from 'lucide-react';
 import type { CommercialRouteModel, CommercialRouteSegmentId } from '../../types/commercialRouteModel';
 import type { CommercialRouteSegment } from './commercialViewModel';
-import { customerServiceStateLabelShort, segmentStatusBadgeClassName } from './commercialDisplayUtils';
+import { commCustomerStateLabelShort, segmentStatusBadgeClassName } from './commercialDisplayUtils';
 
 const journeyLabel: Record<CommercialRouteSegment['type'], string> = {
-  access: 'Customer Access',
-  satellite: 'Serving Satellite',
-  backhaul: 'Indicative Backbone',
-  destination: 'Destination',
-  summary: 'Connectivity Architecture',
+  access: 'Origin Site',
+  satellite: 'Space Coverage',
+  backhaul: 'Transit',
+  destination: 'Service Delivery',
+  summary: 'Recommendation',
 };
 
 const compactJourneyLabel: Record<CommercialRouteSegment['type'], string> = {
-  access: 'Access',
-  satellite: 'Satellite',
-  backhaul: 'Backbone',
-  destination: 'Destination',
-  summary: 'Path',
+  access: 'Origin',
+  satellite: 'Coverage',
+  backhaul: 'Transit',
+  destination: 'Delivery',
+  summary: 'Verdict',
 };
 
 function normalizeLabel(value: string | undefined): string {
@@ -102,7 +102,7 @@ function CommercialRouteStrip({
       {!compact && (
         <div className="mb-0.5 flex items-center justify-between gap-3">
           <div>
-            <div className="commercial-route-strip__title text-[9px] font-semibold uppercase tracking-[0.14em] text-sky-300">Service Journey</div>
+            <div className="commercial-route-strip__title text-[9px] font-semibold uppercase tracking-[0.14em] text-sky-300">Commercial Evidence</div>
           </div>
         </div>
       )}
@@ -147,7 +147,7 @@ function CommercialRouteStrip({
                 <span className={`${compact ? 'text-[11px]' : isOutcome ? 'text-sm' : 'text-xs'} min-w-0 font-semibold leading-4 ${isSelected && isAccess ? 'text-cyan-50' : ''}`}>{label}</span>
                 {!compact && (
                   <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.08em] ${segmentStatusBadgeClassName[segment.status]}`}>
-                    {customerServiceStateLabelShort[segment.customerStatus]}
+                    {commCustomerStateLabelShort[segment.customerStatus]}
                   </span>
                 )}
               </div>

@@ -189,6 +189,14 @@ export interface CommercialRouteNodeMeta {
   isSecondary?: boolean;
 
   /**
+   * Serving satellite identity and orbital coordinate when this SKY_BRIDGE
+   * corresponds to a concrete computed satellite.
+   */
+  satelliteId?: string;
+  satelliteNoradId?: string;
+  orbitalPosition?: RouteCoordinate;
+
+  /**
    * Whether this node can receive click events that dispatch segment focus.
    * Defaults to true for all node types except OUTCOME.
    */

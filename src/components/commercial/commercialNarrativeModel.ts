@@ -27,50 +27,50 @@ export interface CommercialNarrativeCardModel {
 const segmentOrder: CommercialRouteSegmentId[] = ['access', 'satellite', 'destination', 'summary'];
 
 const segmentTitles: Record<CommercialRouteSegmentId, string> = {
-  access: 'Customer Access',
-  satellite: 'Serving Satellite',
-  backhaul: 'Indicative Backbone',
-  destination: 'Destination',
-  summary: 'Connectivity Architecture',
+  access: 'Origin Site',
+  satellite: 'Space Coverage',
+  backhaul: 'Network Transit',
+  destination: 'Service Delivery',
+  summary: 'Recommendation',
 };
 
 const customerStateLabel: Record<CommercialCustomerServiceState, string> = {
-  available: 'Available',
-  limited: 'Limited',
-  degraded: 'Degraded',
-  alternative_available: 'Alternative Available',
+  available: 'Connected',
+  limited: 'At Risk',
+  degraded: 'At Risk',
+  alternative_available: 'Alternative',
   unavailable: 'Unavailable',
 };
 
 const accessStateLabel: Record<CommercialCustomerServiceState, string> = {
-  available: 'Access Confirmed',
-  limited: 'Access Limited',
-  degraded: 'Access Degraded',
-  alternative_available: 'Alternate Access',
-  unavailable: 'Access Unavailable',
+  available: 'Site Ready',
+  limited: 'Site At Risk',
+  degraded: 'Site At Risk',
+  alternative_available: 'Alternative Available',
+  unavailable: 'Cannot Connect',
 };
 
 const satelliteCoverageStateLabel: Record<CommercialCustomerServiceState, string> = {
-  available: 'Coverage Confirmed',
+  available: 'Covered',
   limited: 'Coverage Limited',
-  degraded: 'Coverage Degraded',
-  alternative_available: 'Alternate Coverage',
-  unavailable: 'Coverage Unavailable',
+  degraded: 'Coverage At Risk',
+  alternative_available: 'Partial Coverage',
+  unavailable: 'Not Covered',
 };
 
 const satelliteServingStateLabel: Record<CommercialCustomerServiceState, string> = {
-  available: 'Service Confirmed',
-  limited: 'Service Limited',
-  degraded: 'Service Degraded',
-  alternative_available: 'Alternate Service',
-  unavailable: 'Service Unavailable',
+  available: 'Coverage Confirmed',
+  limited: 'Coverage Limited',
+  degraded: 'Coverage At Risk',
+  alternative_available: 'Partial Coverage',
+  unavailable: 'No Coverage',
 };
 
 const destinationStateLabel: Record<CommercialCustomerServiceState, string> = {
-  available: 'Available',
-  limited: 'Limited',
-  degraded: 'Limited',
-  alternative_available: 'Limited',
+  available: 'Delivered',
+  limited: 'Partial',
+  degraded: 'At Risk',
+  alternative_available: 'Partial',
   unavailable: 'Unavailable',
 };
 
@@ -152,6 +152,9 @@ function selectedConstraint(
   segment: CommercialRouteSegment | undefined,
   viewModel: CommercialScenarioViewModel,
 ): string | undefined {
+  if (segment?.isRouteParticipant || segment?.status === 'healthy') {
+    return clean(segment.limitation);
+  }
   return clean(segment?.limitation) ?? clean(viewModel.primaryWarning);
 }
 
@@ -310,52 +313,58 @@ export function buildCommercialNarrativeCardModel({
   const constraint = selectedConstraint(segment, viewModel);
 
   switch (focusedSegmentId) {
-    case 'access':
+    case 'access': {
+      const siteName = clean(viewModel.siteA?.name) ?? segment?.role ?? 'the origin site';
       return {
         segmentId: focusedSegmentId,
         stepNumber: 1,
         stepTotal: segmentOrder.length,
-        eyebrow: 'Customer Access',
+        eyebrow: 'Origin Site',
         title,
         statusLabel: segment ? accessStateLabel[segment.customerStatus] : statusLabel,
         statusTone: statusTone(segment),
         narrativeStatement: segment?.isRouteParticipant
-          ? 'The origin site is ready to connect to the satellite network.'
-          : 'The origin site is waiting for access confirmation.',
+          ? `${siteName} is ready to connect to the satellite network.`
+          : `${siteName} is waiting for connection confirmation.`,
         facts: compactFacts([
-          { label: 'Origin site identified', value: viewModel.siteA?.name ?? segment?.role ?? 'Confirmed' },
-          { label: 'Access path available', value: routeParticipantLabel(segment) },
-          { label: 'Signal can reach the network', value: segment?.isRouteParticipant ? 'Confirmed' : undefined },
+          { label: 'Location', value: clean(viewModel.siteA?.name) ?? segment?.role },
+          { label: 'Signal verified', value: segment?.isRouteParticipant ? 'Confirmed' : 'Pending' },
+          { label: 'Coverage confidence', value: segment?.isRouteParticipant ? 'High' : 'Pending' },
         ]),
         businessNote: businessNote(
           constraint,
           segment?.isRouteParticipant
-            ? 'Access is confirmed from the customer terminal.'
-            : 'Access will confirm once the origin path is available.',
+            ? `${siteName} is confirmed as the service origin.`
+            : 'Connection will confirm once the origin path is verified.',
         ),
       };
+    }
 
     case 'satellite': {
       const satelliteName = clean(viewModel.display.satelliteName);
       const isGeoService = viewModel.commercialDisplayTechnology === 'GEO';
+      const siteAName = clean(viewModel.siteA?.name) ?? 'your location';
+      const siteBName = clean(viewModel.siteB?.name) ?? 'the destination';
+      const satNameA = clean(viewModel.display.satelliteNameA) ?? satelliteName ?? 'Coverage satellite';
+      const satNameB = clean(viewModel.display.satelliteNameB) ?? 'Coverage satellite';
       const contextFacts = isGeoService
         ? [
             { label: 'Serving satellite', value: satelliteName ?? segment?.summary },
-            { label: 'Uplink coverage', value: segment?.isRouteParticipant ? 'Site A covered' : undefined },
-            { label: 'Downlink coverage', value: segment?.isRouteParticipant ? 'Site B covered' : undefined },
+            { label: `${siteAName} coverage`, value: segment?.isRouteParticipant ? 'Covered' : 'Pending' },
+            { label: `${siteBName} coverage`, value: segment?.isRouteParticipant ? 'Covered' : 'Pending' },
           ]
         : [
-            { label: 'Site A satellite', value: clean(viewModel.display.satelliteNameA) ?? satelliteName ?? segment?.summary },
-            { label: 'Site B satellite', value: clean(viewModel.display.satelliteNameB) ?? 'Serving LEO satellite' },
-            { label: 'Endpoint access', value: segment?.isRouteParticipant ? 'Both sites served' : undefined },
+            { label: `${siteAName} satellite`, value: satNameA },
+            { label: `${siteBName} satellite`, value: satNameB },
+            { label: 'Coverage status', value: segment?.isRouteParticipant ? 'Both sites covered' : 'Pending' },
           ];
 
       return {
         segmentId: focusedSegmentId,
         stepNumber: 2,
         stepTotal: segmentOrder.length,
-        eyebrow: isGeoService ? 'Serving Satellite' : 'Serving Satellites',
-        title: isGeoService ? 'Serving Satellite' : 'Serving Satellites',
+        eyebrow: 'Space Coverage',
+        title: 'Space Coverage',
         statusLabel: segment
           ? isGeoService
             ? satelliteCoverageStateLabel[segment.customerStatus]
@@ -364,19 +373,19 @@ export function buildCommercialNarrativeCardModel({
         statusTone: statusTone(segment),
         narrativeStatement: isGeoService
           ? segment?.isRouteParticipant
-            ? 'The serving GEO satellite provides simultaneous uplink and downlink coverage over both customer sites.'
+            ? `${satelliteName ?? 'The selected GEO satellite'} provides continuous coverage over both sites from geostationary orbit.`
             : 'Satellite coverage is not yet confirmed.'
           : segment?.isRouteParticipant
-            ? 'Two dedicated LEO access satellites provide low-orbit coverage — one for each customer site.'
-            : 'The serving satellites are not yet confirmed.',
+            ? `Two dedicated LEO satellites provide low-orbit coverage — one for ${siteAName}, one for ${siteBName}.`
+            : 'Serving satellites are not yet confirmed.',
         facts: compactFacts(contextFacts),
         businessNote: businessNote(
           constraint,
           segment?.isRouteParticipant
             ? isGeoService
-              ? 'One GEO satellite serves both customer locations.'
-              : 'Two LEO satellites provide access service to the customer endpoints.'
-            : 'Service will confirm once the serving satellite view is available.',
+              ? 'Both sites are confirmed within the satellite coverage zone.'
+              : 'Both sites have dedicated low-orbit satellite coverage.'
+            : 'Coverage will confirm once satellite visibility is established.',
         ),
       };
     }
@@ -393,36 +402,38 @@ export function buildCommercialNarrativeCardModel({
         stepNumber: 3,
         stepTotal: segmentOrder.length,
         eyebrow: 'Network Transit',
-        title,
+        title: 'Network Transit',
         statusLabel,
         statusTone: statusTone(segment),
         narrativeStatement: segment?.isRouteParticipant
-          ? 'Traffic uses the selected network path.'
-          : 'Network transit is not yet confirmed.',
+          ? 'Traffic is routing through the confirmed network path.'
+          : 'Network transit path is not yet confirmed.',
         facts: compactFacts([
-          { label: isGeoGatewayRelevant ? 'Gateway' : 'Infrastructure', value: infrastructure },
-          { label: 'Transit', value: routeParticipantLabel(segment) },
-          { label: 'Network', value: clean(viewModel.display.logicalPop) ?? segment?.role },
+          { label: isGeoGatewayRelevant ? 'Network gateway' : 'Network path', value: infrastructure },
+          { label: 'Transit status', value: segment?.isRouteParticipant ? 'Confirmed' : 'Pending' },
+          { label: 'Network node', value: clean(viewModel.display.logicalPop) ?? segment?.role },
         ]),
         businessNote: businessNote(constraint),
       };
     }
 
     case 'destination': {
-      const title = destinationTitle(viewModel);
+      const isGateway = viewModel.display.destinationEndpointKind === 'geo_gateway';
+      const destName = clean(viewModel.siteB?.name) ?? clean(viewModel.display.destinationLocation) ?? (isGateway ? 'the gateway' : 'the destination');
       return {
         segmentId: focusedSegmentId,
         stepNumber: 3,
         stepTotal: segmentOrder.length,
-        eyebrow: title,
-        title,
+        eyebrow: 'Service Delivery',
+        title: 'Service Delivery',
         statusLabel: segment ? destinationStateLabel[segment.customerStatus] : statusLabel,
         statusTone: statusTone(segment),
         narrativeStatement: destinationNarrativeStatement(viewModel, segment),
         facts: compactFacts([
-          { label: 'Reachability', value: routeParticipantLabel(segment) },
-          { label: 'Receiving side', value: viewModel.display.destinationReceivingSide },
-          { label: 'Service state', value: segment ? destinationStateLabel[segment.customerStatus] : statusLabel },
+          { label: 'Destination', value: destName },
+          { label: 'Receive type', value: isGateway ? 'Network gateway' : 'Customer terminal' },
+          { label: 'Signal', value: segment?.isRouteParticipant ? 'Confirmed' : 'Pending' },
+          { label: 'End-to-end path', value: segment?.isRouteParticipant ? 'Verified' : 'Pending' },
         ]),
         businessNote: destinationBottomLine(viewModel, segment, constraint),
       };
@@ -432,29 +443,23 @@ export function buildCommercialNarrativeCardModel({
     default: {
       const alternative = alternateOption(viewModel);
       const backhaulSegment = segmentForId(viewModel, 'backhaul');
-      const isGeoGatewayRelevant = viewModel.commercialDisplayTechnology === 'GEO'
-        && commercialRouteModel?.destinationIsPortal === true;
-      const infrastructure = isGeoGatewayRelevant
-        ? gatewayLabel(commercialRouteModel)
-        : backbonePathLabel(viewModel, commercialRouteModel);
       const backhaulConstraint = selectedConstraint(backhaulSegment, viewModel);
       const summaryConstraint = constraint ?? backhaulConstraint;
       return {
         segmentId: 'summary',
         stepNumber: 4,
         stepTotal: segmentOrder.length,
-        eyebrow: 'Connectivity Architecture',
-        title,
+        eyebrow: 'Recommendation',
+        title: 'Recommendation',
         statusLabel: viewModel.executiveSummary.statusLabel,
         statusTone: statusTone(segment),
         narrativeStatement: serviceOutcomeStatement(viewModel),
         facts: compactFacts([
-          { label: 'Preferred option', value: recommendedTechnologyLabel(viewModel) },
-          { label: isGeoGatewayRelevant ? 'Gateway' : 'Network path', value: infrastructure },
-          { label: 'Transit', value: routeParticipantLabel(backhaulSegment) },
-          { label: 'Why it matters', value: viewModel.recommendation.reason },
-          { label: 'Alternative', value: alternative ? `${alternative.label} ${alternative.available ? 'available' : alternative.statusLabel.toLowerCase()}` : undefined },
-        ], 5),
+          { label: 'Recommended technology', value: recommendedTechnologyLabel(viewModel) },
+          { label: 'Forecast confidence', value: viewModel.display.confidence ?? viewModel.display.confidenceNote },
+          { label: 'Reason', value: viewModel.recommendation.reason },
+          { label: 'Alternative', value: alternative ? `${alternative.label} — ${alternative.available ? 'available' : 'unavailable'}` : undefined },
+        ], 4),
         businessNote: businessNote(summaryConstraint, viewModel.executiveSummary.expectedExperience),
       };
     }
