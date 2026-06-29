@@ -2,7 +2,7 @@ import React, { Suspense, lazy, useState, useEffect, useMemo, useCallback, useRe
 import MapViewSwitcher from './components/MapViewSwitcher';
 import GeoS2SPathStrip from './components/cesium-globe/GeoS2SPathStrip';
 import LeoS2SPathStrip from './components/cesium-globe/LeoS2SPathStrip';
-import type { AirTrafficStateProps, CallbackProps, CameraProps, CommercialStateProps, DisplayLayerProps, DisplayPrefsProps, IssStateProps, MaritimeTrafficStateProps, SelectionAnalysisProps, TopologyProps, TrafficProps } from './components/CesiumGlobe';
+import type { AirTrafficStateProps, CallbackProps, CameraProps, CameraViewBounds, CommercialStateProps, DisplayLayerProps, DisplayPrefsProps, IssStateProps, MaritimeTrafficStateProps, SelectionAnalysisProps, TopologyProps, TrafficProps } from './components/CesiumGlobe';
 import SatelliteSelector from './components/SatelliteSelector';
 import SplashScreen from './components/SplashScreen';
 import AircraftSelector from './components/AircraftSelector';
@@ -773,6 +773,9 @@ const App: React.FC = () => {
 
   const [airTrafficEnabled, setAirTrafficEnabled] = useState(false);
   const [maritimeTrafficEnabled, setMaritimeTrafficEnabled] = useState(false);
+  // Stable ref — updated by CesiumGlobe on camera moveEnd (debounced 400 ms).
+  // Read by useAirTraffic/useMaritimeTraffic for viewport-aware filtering.
+  const cameraViewBoundsRef = useRef<CameraViewBounds | null>(null);
   const [issLiveEnabled, setIssLiveEnabled] = useState(false);
   const [selectedIss, setSelectedIss] = useState(false);
   const pendingIssAutoCenterRef = useRef(false);
@@ -876,6 +879,15 @@ const App: React.FC = () => {
   // Store globe container reference when ready
   const handleGlobeContainerReady = useCallback((ref: React.RefObject<HTMLDivElement | null>) => {
     globeContainerRef.current = ref.current;
+  }, []);
+
+  // Camera viewport bounds — updated by CesiumGlobe on camera moveEnd (debounced 400 ms).
+  // Stored in both a ref (for read-only access in callbacks) and state (to trigger
+  // useAirTraffic/useMaritimeTraffic to re-run with the new bounds on the next poll).
+  const [airTrafficCamBounds, setAirTrafficCamBounds] = useState<CameraViewBounds | null>(null);
+  const handleCameraViewChange = useCallback((bounds: CameraViewBounds) => {
+    cameraViewBoundsRef.current = bounds;
+    setAirTrafficCamBounds(bounds);
   }, []);
 
   const selectedPosition = useMemo(() => (
@@ -1278,12 +1290,9 @@ const App: React.FC = () => {
   // - Capacity-weighted scoring (serviceQualityScore penalizes partial beam operation)
   // - Connectivity enforcement (returns null if no active beam covers the user)
 
-  // Air traffic data fetching and filtering
-  const airTraffic = useAirTraffic(
-    { enabled: airTrafficEnabled },
-    null, // camera bounds - will be implemented with globe integration
-    selectedPosition // focus point for distance filtering
-  );
+  // Air traffic: fetch globally (server returns worldwide commercial flights).
+  // No bbox or focus point — Cesium handles frustum culling for off-screen aircraft.
+  const airTraffic = useAirTraffic({ enabled: airTrafficEnabled });
 
   // ISS live tracking
   const iss = useIssLiveTracking(issLiveEnabled);
@@ -3457,12 +3466,14 @@ const App: React.FC = () => {
     onGlobeContainerReady: handleGlobeContainerReady,
     onGlobeBootPhaseChange: handleGlobeBootPhaseChange,
     onInitialGlobeReady: handleInitialGlobeReady,
+    onCameraViewChange: handleCameraViewChange,
   }), [
     cameraTarget,
     handleCameraReady,
     handleGlobeBootPhaseChange,
     handleGlobeContainerReady,
     handleInitialGlobeReady,
+    handleCameraViewChange,
   ]);
 
   const selectionAnalysisProps = useMemo<SelectionAnalysisProps>(() => ({

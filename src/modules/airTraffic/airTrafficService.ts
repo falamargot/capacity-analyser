@@ -46,12 +46,7 @@ const CACHE_DURATION = 60_000;
 const AIRCRAFT_CACHE_MAX_ENTRIES = 32;
 const aircraftCache = new Map<string, CacheEntry>();
 
-const getCacheKey = (focusPoint: FocusPoint | null = null): string => {
-  if (!focusPoint) return 'default';
-  const latBucket = Math.round(focusPoint.lat * 2) / 2;
-  const lngBucket = Math.round(focusPoint.lng * 2) / 2;
-  return `${latBucket.toFixed(1)},${lngBucket.toFixed(1)}`;
-};
+const getCacheKey = (_focusPoint?: FocusPoint | null): string => 'global';
 
 const aircraftCacheGet = (key: string): CacheEntry | undefined => {
   const value = aircraftCache.get(key);
@@ -117,14 +112,10 @@ export function clearAircraftCache(): void {
   aircraftCache.clear();
 }
 
-export async function fetchAircraftData(focusPoint: FocusPoint | null = null): Promise<Aircraft[] | null> {
+export async function fetchAircraftData(_focusPoint?: FocusPoint | null): Promise<Aircraft[] | null> {
   try {
     log('🛩️ Fetching aircraft data from local OpenSky proxy...');
     const url = new URL(`${API_BASE}/api/air-traffic`);
-    if (focusPoint) {
-      url.searchParams.set('lat', String(focusPoint.lat));
-      url.searchParams.set('lng', String(focusPoint.lng));
-    }
 
     const response = await fetch(url.toString(), {
       method: 'GET',
@@ -139,17 +130,17 @@ export async function fetchAircraftData(focusPoint: FocusPoint | null = null): P
     }
 
     const data = await response.json() as AirTrafficBackendResponse;
+
+    if (data.meta?.source === 'mock') {
+      console.warn(`🛩️ Air traffic proxy is serving mock data${data.meta.note ? `: ${data.meta.note}` : ''}`);
+    }
+
     if (!Array.isArray(data.aircraft) || data.aircraft.length === 0) {
       console.warn('🛩️ Air traffic proxy returned no aircraft, using mock data');
       return getMockAircraftData();
     }
 
-    if (data.meta?.source === 'mock') {
-      console.warn(`🛩️ Air traffic proxy is serving mock data${data.meta.note ? `: ${data.meta.note}` : ''}`);
-    } else {
-      log(`🛩️ Received ${data.aircraft.length} aircraft from local OpenSky proxy`);
-    }
-
+    log(`🛩️ Received ${data.aircraft.length} aircraft from local OpenSky proxy`);
     return data.aircraft;
   } catch (error) {
     console.warn('🛩️ Failed to fetch aircraft data from local proxy, using mock data:', error);
@@ -180,45 +171,16 @@ export async function getAircraftData(focusPoint: FocusPoint | null = null): Pro
 
 export function filterAircraftByView(
   aircraft: Aircraft[],
-  cameraBounds: {
-    north: number;
-    south: number;
-    east: number;
-    west: number;
-  } | null,
-  focusPoint: { lat: number; lng: number } | null,
+  _cameraBounds: unknown,
+  _focusPoint: unknown,
   maxAircraft: number = 6000
 ): Aircraft[] {
-  let filtered = aircraft.filter(
-    (ac) => ac.latitude !== null && ac.longitude !== null
-  );
-
-  if (cameraBounds) {
-    filtered = filtered.filter((ac) =>
-      ac.latitude! >= cameraBounds.south &&
-      ac.latitude! <= cameraBounds.north &&
-      ac.longitude! >= cameraBounds.west &&
-      ac.longitude! <= cameraBounds.east
-    );
-  }
-
-  if (focusPoint) {
-    const haversineKm = (lat: number, lng: number): number => {
-      const R = 6371;
-      const dLat = (lat - focusPoint.lat) * Math.PI / 180;
-      const dLon = (lng - focusPoint.lng) * Math.PI / 180;
-      const a =
-        Math.sin(dLat / 2) ** 2 +
-        Math.cos(focusPoint.lat * Math.PI / 180) * Math.cos(lat * Math.PI / 180) *
-        Math.sin(dLon / 2) ** 2;
-      return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    };
-    filtered = [...filtered].sort((a, b) =>
-      haversineKm(a.latitude!, a.longitude!) - haversineKm(b.latitude!, b.longitude!)
-    );
-  } else {
-    filtered = [...filtered].sort((a, b) => (b.altitude_km ?? 0) - (a.altitude_km ?? 0));
-  }
-
-  return filtered.slice(0, maxAircraft);
+  // Sort highest-altitude commercial aircraft first — this provides good global
+  // geographic spread since long-haul routes cover all continents. Cesium handles
+  // frustum culling for aircraft outside the camera viewport, so no JS-level clip
+  // is needed. The cap keeps the 60fps interpolation loop bounded.
+  return aircraft
+    .filter((ac) => ac.latitude !== null && ac.longitude !== null)
+    .sort((a, b) => (b.altitude_km ?? 0) - (a.altitude_km ?? 0))
+    .slice(0, maxAircraft);
 }

@@ -33,6 +33,7 @@ import {
     createDefaultImageryProviderViewModels,
     BoundingSphere,
     HeadingPitchRange,
+    Rectangle,
     type ProviderViewModel
 } from 'cesium';
 import { Feature, Geometry, GeoJsonProperties } from 'geojson';
@@ -106,6 +107,7 @@ import type { LeoSiteToSiteResult } from '../utils/leoSiteToSiteModel';
 import type { CommercialScenarioViewModel } from './commercial/commercialViewModel';
 import type { CommercialRouteModel, CommercialRouteNodeType, CommercialRouteFocusTarget, CommercialRouteSegmentId, RouteCoordinate } from '../types/commercialRouteModel';
 import CommercialSymbolicConnectivityLayer from './cesium-globe/CommercialSymbolicConnectivityLayer';
+import FlightCoverageRibbon from './cesium-globe/FlightCoverageRibbon';
 
 // ─── Commercial vocabulary helpers ───────────────────────────────────────────
 
@@ -934,12 +936,23 @@ export interface TopologyProps {
     activeMeshTab: 'forward' | 'reverse';
 }
 
+export interface CameraViewBounds {
+    north: number;
+    south: number;
+    east: number;
+    west: number;
+    centerLat: number;
+    centerLng: number;
+}
+
 export interface CameraProps {
     cameraTarget: { lat: number; lng: number; alt: number } | null;
     onCameraReady: (viewer: CesiumViewerType) => void;
     onGlobeContainerReady: (ref: React.RefObject<HTMLDivElement | null>) => void;
     onGlobeBootPhaseChange: (phase: 'mounting' | 'viewer-ready' | 'imagery-ready') => void;
     onInitialGlobeReady: () => void;
+    /** Fired on camera moveEnd (debounced 400 ms) with the current viewport bounds in degrees. */
+    onCameraViewChange?: (bounds: CameraViewBounds) => void;
 }
 
 export interface CallbackProps {
@@ -1099,6 +1112,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         onGlobeContainerReady,
         onGlobeBootPhaseChange,
         onInitialGlobeReady,
+        onCameraViewChange,
     } = cameraProps;
     const {
         enableLighting = false,
@@ -1526,6 +1540,47 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         viewer.scene.preRender.addEventListener(updateCameraMetrics);
         return () => viewer.scene.preRender.removeEventListener(updateCameraMetrics);
     }, [viewerReady]);
+
+    // Report viewport bounds to App after the camera settles (debounced 400 ms).
+    // Used to feed air/maritime traffic fetching with the visible area.
+    useEffect(() => {
+        if (!viewerReady || !viewerRef.current || !onCameraViewChange) return;
+        const viewer = viewerRef.current;
+        const scratch = new Rectangle();
+        let timer: ReturnType<typeof setTimeout> | null = null;
+
+        const handleMoveEnd = () => {
+            if (timer) clearTimeout(timer);
+            timer = setTimeout(() => {
+                const rect = viewer.camera.computeViewRectangle(viewer.scene.globe.ellipsoid, scratch);
+                if (!rect) return;
+                // Convert from radians to degrees; clamp to valid range.
+                const toDeg = CesiumMath.toDegrees;
+                const north = Math.min(toDeg(rect.north),  90);
+                const south = Math.max(toDeg(rect.south), -90);
+                let east   = toDeg(rect.east);
+                let west   = toDeg(rect.west);
+                // Normalise to –180…180
+                if (east  >  180) east  -= 360;
+                if (east  < -180) east  += 360;
+                if (west  >  180) west  -= 360;
+                if (west  < -180) west  += 360;
+                const centerLat = (north + south) / 2;
+                const centerLng = west <= east
+                    ? (west + east) / 2
+                    : (west + east + 360) / 2;     // antimeridian-safe midpoint
+                onCameraViewChange({ north, south, east, west, centerLat, centerLng });
+            }, 400);
+        };
+
+        viewer.camera.moveEnd.addEventListener(handleMoveEnd);
+        // Fire immediately on mount so the first air-traffic fetch uses the correct area
+        handleMoveEnd();
+        return () => {
+            if (timer) clearTimeout(timer);
+            viewer.camera.moveEnd.removeEventListener(handleMoveEnd);
+        };
+    }, [viewerReady, onCameraViewChange]);
 
     // Handle camera target flyTo
     useEffect(() => {
@@ -2857,6 +2912,17 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                             cameraMetricsRef={cameraMetricsRef}
                             sizeScale={sizeScale}
                             routeHeroMode={isPhone || isMobileViewport}
+                        />
+                    )}
+
+                    {/* Flight coverage ribbon — COMM mode + aircraft selected.
+                        Coloured polyline showing 2-hour projected path with LEO
+                        coverage quality (excellent/good/marginal/gap). */}
+                    {commercialMode && (
+                        <FlightCoverageRibbon
+                            aircraft={selectedAircraft}
+                            satellites={satellites}
+                            show={!!selectedAircraft}
                         />
                     )}
 

@@ -48,38 +48,14 @@ type BoundingBox = {
 let cachedToken: string | null = null;
 let cachedTokenExpiresAt = 0;
 
-const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
+// All commercial aviation above FL164 (~5 km) worldwide — excludes polar regions
+// where traffic is sparse enough to not warrant the latency cost.
+const GLOBAL_BBOX: BoundingBox = { lamin: -80, lamax: 80, lomin: -180, lomax: 180 };
 
-const normalizeLng = (lng: number) => {
-  if (!Number.isFinite(lng)) return 0;
-  let normalized = lng;
-  while (normalized < -180) normalized += 360;
-  while (normalized > 180) normalized -= 360;
-  return normalized;
-};
-
-const getBoundingBox = (lat?: number, lng?: number): BoundingBox => {
-  if (typeof lat === 'number' && Number.isFinite(lat) && typeof lng === 'number' && Number.isFinite(lng)) {
-    const latDelta = 2;
-    const cosLat = Math.max(0.35, Math.cos((lat * Math.PI) / 180));
-    const lonDelta = Math.min(3.5, latDelta / cosLat);
-    return {
-      lamin: clamp(lat - latDelta, -90, 90),
-      lamax: clamp(lat + latDelta, -90, 90),
-      lomin: normalizeLng(lng - lonDelta),
-      lomax: normalizeLng(lng + lonDelta),
-    };
-  }
-
-  // Default to a Western/Central Europe box so the feed remains populated
-  // without paying the full-world OpenSky credit cost.
-  return {
-    lamin: 44,
-    lamax: 52,
-    lomin: -1,
-    lomax: 9,
-  };
-};
+// How many aircraft the server sends to the client. The client further caps at 500
+// (DEFAULT_CONFIG.maxAircraft). Sorting by altitude here ensures the highest-flying
+// long-haul aircraft are kept, giving good global geographic spread.
+const SERVER_MAX_AIRCRAFT = 600;
 
 const getMockAircraftData = (): ServerAircraft[] => ([
   {
@@ -194,8 +170,8 @@ const getAccessToken = async (): Promise<string | null> => {
   return cachedToken;
 };
 
-export async function fetchAirTrafficSnapshot(lat?: number, lng?: number): Promise<AirTrafficSnapshot> {
-  const bbox = getBoundingBox(lat, lng);
+export async function fetchAirTrafficSnapshot(): Promise<AirTrafficSnapshot> {
+  const bbox = GLOBAL_BBOX;
   let authenticated = false;
 
   try {
@@ -217,8 +193,8 @@ export async function fetchAirTrafficSnapshot(lat?: number, lng?: number): Promi
     }
 
     const data = await response.json() as OpenSkyResponse;
-    const aircraft = parseAircraft(data.states);
-    if (aircraft.length === 0) {
+    const allAircraft = parseAircraft(data.states);
+    if (allAircraft.length === 0) {
       return {
         aircraft: getMockAircraftData(),
         meta: {
@@ -230,13 +206,15 @@ export async function fetchAirTrafficSnapshot(lat?: number, lng?: number): Promi
       };
     }
 
+    // Sort by altitude descending so long-haul commercial flights are prioritised
+    // over lower GA traffic. The client takes the top 500 of these 600.
+    const aircraft = allAircraft
+      .sort((a, b) => (b.altitude_km ?? 0) - (a.altitude_km ?? 0))
+      .slice(0, SERVER_MAX_AIRCRAFT);
+
     return {
       aircraft,
-      meta: {
-        source: 'opensky',
-        authenticated,
-        bbox,
-      },
+      meta: { source: 'opensky', authenticated, bbox },
     };
   } catch (error) {
     return {
