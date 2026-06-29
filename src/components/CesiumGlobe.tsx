@@ -104,7 +104,7 @@ import type { CountryOverlayMode } from '../types/countryOverlays';
 import type { LinkMode } from '../types/linkMode';
 import type { LeoSiteToSiteResult } from '../utils/leoSiteToSiteModel';
 import type { CommercialScenarioViewModel } from './commercial/commercialViewModel';
-import type { CommercialRouteModel, CommercialRouteNodeType, CommercialRouteFocusTarget, CommercialRouteSegmentId } from '../types/commercialRouteModel';
+import type { CommercialRouteModel, CommercialRouteNodeType, CommercialRouteFocusTarget, CommercialRouteSegmentId, RouteCoordinate } from '../types/commercialRouteModel';
 import CommercialSymbolicConnectivityLayer from './cesium-globe/CommercialSymbolicConnectivityLayer';
 
 // ─── Commercial vocabulary helpers ───────────────────────────────────────────
@@ -155,6 +155,92 @@ const denormalizeLng = (lng: number): number => {
     while (normalized < -180) normalized += 360;
     return normalized;
 };
+
+function sameCommercialRouteCoordinate(a: RouteCoordinate, b: RouteCoordinate): boolean {
+    return Math.abs(a.lat - b.lat) < 0.0001
+        && Math.abs(normalizeLngNear(a.lng, b.lng) - b.lng) < 0.0001;
+}
+
+function averageCommercialRouteCoordinate(coords: RouteCoordinate[]): RouteCoordinate | null {
+    if (coords.length === 0) return null;
+    const referenceLng = coords[0].lng;
+    const lat = coords.reduce((sum, coord) => sum + coord.lat, 0) / coords.length;
+    const lng = denormalizeLng(
+        coords.reduce((sum, coord) => sum + normalizeLngNear(coord.lng, referenceLng), 0) / coords.length,
+    );
+    return { lat, lng };
+}
+
+function uniqueCommercialRouteCoordinates(coords: RouteCoordinate[]): RouteCoordinate[] {
+    return coords.filter((coord, index, array) => (
+        array.findIndex((item) => sameCommercialRouteCoordinate(item, coord)) === index
+    ));
+}
+
+function buildCommercialLeoPresentationSatelliteCoord(
+    originalCoord: RouteCoordinate,
+    servingEndpoints: RouteCoordinate[],
+    allEndpoints: RouteCoordinate[],
+): RouteCoordinate {
+    const routeCenter = averageCommercialRouteCoordinate(allEndpoints);
+    if (!routeCenter || servingEndpoints.length === 0) {
+        return {
+            ...originalCoord,
+            altitudeKm: Math.max(760, Math.min(1_300, originalCoord.altitudeKm ?? 1_050)),
+        };
+    }
+
+    const anchor = averageCommercialRouteCoordinate(servingEndpoints) ?? servingEndpoints[0];
+    const normalizedCenterLng = normalizeLngNear(routeCenter.lng, anchor.lng);
+    const endpointBlend = servingEndpoints.length > 1 ? 0.52 : 0.38;
+    const originalBlend = servingEndpoints.length > 1 ? 0.12 : 0.08;
+    const normalizedOriginalLng = normalizeLngNear(originalCoord.lng, anchor.lng);
+
+    return {
+        lat: anchor.lat
+            + (routeCenter.lat - anchor.lat) * endpointBlend
+            + (originalCoord.lat - anchor.lat) * originalBlend,
+        lng: denormalizeLng(
+            anchor.lng
+            + (normalizedCenterLng - anchor.lng) * endpointBlend
+            + (normalizedOriginalLng - anchor.lng) * originalBlend,
+        ),
+        altitudeKm: Math.max(820, Math.min(1_180, originalCoord.altitudeKm ?? 1_050)),
+    };
+}
+
+function getCommercialLeoProjectionOrigin(
+    routeModel: CommercialRouteModel | null | undefined,
+    satellite: SatelliteData,
+): RouteCoordinate | null {
+    if (!routeModel || routeModel.technology !== 'LEO') return null;
+
+    const skyBridgeNode = routeModel.nodes.find((node) => (
+        node.nodeType === 'SKY_BRIDGE'
+        && node.meta?.technology === 'LEO'
+        && (
+            node.meta.satelliteId === satellite.id
+            || node.meta.satelliteNoradId === satellite.noradId
+            || node.label === satellite.name
+        )
+        && node.meta.orbitalPosition
+    ));
+    const originalCoord = skyBridgeNode?.meta?.orbitalPosition;
+    if (!skyBridgeNode || !originalCoord) return null;
+
+    const endpointNodes = routeModel.nodes.filter((node) => (
+        (node.nodeType === 'ORIGIN' || node.nodeType === 'DESTINATION' || node.nodeType === 'NETWORK_PORTAL')
+        && node.position
+    ));
+    const endpointById = new Map(endpointNodes.map((node) => [node.id, node.position!]));
+    const allEndpoints = uniqueCommercialRouteCoordinates(endpointNodes.map((node) => node.position!));
+    const servingEndpoints = uniqueCommercialRouteCoordinates(routeModel.edges
+        .filter((edge) => edge.edgeType === 'SPACE_LINK' && (edge.fromNodeId === skyBridgeNode.id || edge.toNodeId === skyBridgeNode.id))
+        .map((edge) => edge.fromNodeId === skyBridgeNode.id ? endpointById.get(edge.toNodeId) : endpointById.get(edge.fromNodeId))
+        .filter((coord): coord is RouteCoordinate => Boolean(coord)));
+
+    return buildCommercialLeoPresentationSatelliteCoord(originalCoord, servingEndpoints, allEndpoints);
+}
 
 const isFiniteLngLatPair = (value: unknown): value is [number, number] => (
     Array.isArray(value)
@@ -372,10 +458,42 @@ function commercialRouteGeometrySignature(model: CommercialRouteModel): string {
                 lat.toFixed(5),
                 lng.toFixed(5),
                 (altitudeKm ?? 0).toFixed(2),
-                node.status,
             ].join('@');
         })
         .join('|');
+}
+
+function commercialCustomerEndpointGeometrySignature(model: CommercialRouteModel): string {
+    return model.nodes
+        .filter((node) => (
+            node.nodeType === 'ORIGIN'
+            || node.nodeType === 'DESTINATION'
+        ) && node.position)
+        .map((node) => {
+            const { lat, lng, altitudeKm } = node.position!;
+            return [
+                node.nodeType,
+                lat.toFixed(5),
+                lng.toFixed(5),
+                (altitudeKm ?? 0).toFixed(2),
+            ].join('@');
+        })
+        .join('|');
+}
+
+function commercialCameraFocusGeometrySignature(
+    model: CommercialRouteModel,
+    segmentId: CommercialRouteSegmentId | 'summary',
+): string {
+    if (model.technology === 'LEO' && segmentId === 'satellite') {
+        return [
+            model.technology,
+            model.destinationIsPortal ? 'portal' : 'site-to-site',
+            commercialCustomerEndpointGeometrySignature(model),
+        ].join(':');
+    }
+
+    return commercialRouteGeometrySignature(model);
 }
 
 function removeCommercialSymbolicConnectivityEntities(viewer: CesiumViewerType): void {
@@ -530,29 +648,53 @@ function executeCommercialFocusCamera(
             return;
         }
 
-        // LEO FRAME_ARC — sky bridge at 2,000 km is manageable.
-        // Include sky bridge(s) + ground nodes; the sphere stays within reason.
-        const positions: Cartesian3[] = [];
+        // LEO FRAME_ARC needs extra breathing room so the OneWeb footprint fans stay visible.
+        // Frame all route points, but bias the look-at target toward the surface footprints.
+        const skyBridgePositions: Cartesian3[] = [];
+        const groundPositions: Cartesian3[] = [];
         if (primaryNodeId) {
             const p = commercialNarrativePos(primaryNodeId, model);
-            if (p) positions.push(p);
+            if (p) skyBridgePositions.push(p);
         }
         if (secondaryNodeId) {
             const p = commercialNarrativePos(secondaryNodeId, model);
-            if (p) positions.push(p);
+            if (p) skyBridgePositions.push(p);
         }
         const groundTypes: CommercialRouteNodeType[] = ['ORIGIN', 'DESTINATION', 'NETWORK_PORTAL'];
         for (const n of model.nodes) {
             if (groundTypes.includes(n.nodeType) && n.position) {
-                positions.push(getPosition(n.position.lat, n.position.lng, GROUND_POINT_ALTITUDE_KM));
+                groundPositions.push(getPosition(n.position.lat, n.position.lng, GROUND_POINT_ALTITUDE_KM));
             }
         }
+        const positions = [...skyBridgePositions, ...groundPositions];
         if (positions.length === 0) return;
         const leoArcSphere = BoundingSphere.fromPoints(positions);
-        leoArcSphere.radius = leoArcSphere.radius * 1.2; // breathing room
+        if (skyBridgePositions.length > 0 && groundPositions.length > 0) {
+            const footprintSphere = BoundingSphere.fromPoints(groundPositions);
+            const footprintBiasedCenter = Cartesian3.lerp(
+                leoArcSphere.center,
+                footprintSphere.center,
+                0.62,
+                new Cartesian3(),
+            );
+            leoArcSphere.center = footprintBiasedCenter;
+            leoArcSphere.radius = positions.reduce(
+                (radius, position) => Math.max(radius, Cartesian3.distance(footprintBiasedCenter, position)),
+                footprintSphere.radius,
+            );
+        }
+        leoArcSphere.radius = Math.min(Math.max(leoArcSphere.radius * 1.12, 1_300_000), 4_650_000);
+        const range = Math.min(Math.max(leoArcSphere.radius * 1.74, 2_250_000), 7_900_000);
         viewer.camera.flyToBoundingSphere(
             leoArcSphere,
-            { duration: 1.8, offset: new HeadingPitchRange(0, -CesiumMath.toRadians(25), 0) },
+            {
+                duration: 1.55,
+                offset: new HeadingPitchRange(
+                    commercialRouteBearingRadians(model) + (Math.PI / 2),
+                    -CesiumMath.toRadians(42),
+                    range,
+                ),
+            },
         );
         return;
     }
@@ -1422,7 +1564,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
             return;
         }
         const segmentId = commercialRouteModel.focusedSegmentId ?? 'summary';
-        const routeGeometrySignature = commercialRouteGeometrySignature(commercialRouteModel);
+        const routeGeometrySignature = commercialCameraFocusGeometrySignature(commercialRouteModel, segmentId);
         const useMobileHeroFocus = isPhone || isMobileViewport;
         const focusKey = useMobileHeroFocus
             ? `mobile-hero:${commercialRouteModel.technology}:${routeGeometrySignature}:${commercialGeoCoverageFocusSignature}`
@@ -1629,6 +1771,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         type VisualTarget = {
             satellite: SatelliteData;
             servingPoints: ServingPoint[] | null;
+            commercialProjectionOrigin: RouteCoordinate | null;
         };
 
         const targets: VisualTarget[] = [];
@@ -1651,6 +1794,9 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
             targets.push({
                 satellite: liveSatellite,
                 servingPoints: servingPoint ? [servingPoint] : null,
+                commercialProjectionOrigin: commercialMode
+                    ? getCommercialLeoProjectionOrigin(commercialRouteModel, liveSatellite)
+                    : null,
             });
         };
 
@@ -1683,6 +1829,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
     }, [
         autoSelectedLEOSatellite,
         commercialMode,
+        commercialRouteModel,
         commercialViewModel,
         leoS2SVisualResult,
         pointBLeo,
@@ -2539,6 +2686,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                             selectedPosition={target.servingPoints ? null : selectedPosition}
                             selectedAircraft={target.servingPoints ? null : selectedAircraft}
                             servingPoints={target.servingPoints ?? undefined}
+                            commercialProjectionOrigin={target.commercialProjectionOrigin}
                             highlightServingFootprint={(!selectedSatellite || commercialMode) && (!commercialMode || (commercialSatelliteFocused && commercialDominantTechnology === 'LEO')) && (
                                 target.servingPoints ? target.servingPoints.length > 0 : !!autoSelectedLEOSatellite
                             )}
@@ -2546,6 +2694,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                             leoServiceViewModel={leoServiceViewModel}
                             commercialTone={commercialMode && (!commercialSatelliteFocused || commercialDominantTechnology !== 'LEO') ? 'secondary' : 'primary'}
                             commercialEnvelopeOnly={commercialMode}
+                            commercialOpacityScale={commercialMode && commercialSatelliteFocused && commercialDominantTechnology === 'LEO' ? 0.72 : 1}
                         />
                     ))}
 

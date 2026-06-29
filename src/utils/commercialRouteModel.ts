@@ -216,7 +216,10 @@ function coord(
 function satelliteMeta(
   satellite: SatelliteData | null | undefined,
 ): Pick<CommercialRouteNodeMeta, 'satelliteId' | 'satelliteNoradId' | 'orbitalPosition'> {
-  if (!satellite || satellite.position.isPositionValid === false) return {};
+  if (!satellite) return {};
+  if (satellite.position.isPositionValid === false) {
+    return { satelliteId: satellite.id, satelliteNoradId: satellite.noradId };
+  }
 
   const { lat, lng, alt } = satellite.position;
   if (!isFinite(lat) || !isFinite(lng) || !isFinite(alt)) {

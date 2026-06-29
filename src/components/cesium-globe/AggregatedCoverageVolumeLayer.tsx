@@ -306,14 +306,17 @@ function resolveRenderableCoverageSatellite(
 ): SatelliteData | null {
     if (selectedSatellite) {
         if (!isOperationalSatellite(selectedSatellite)) return null;
-        return satellites.find((sat) => sat.id === selectedSatellite.id) ?? selectedSatellite;
+        const liveSatellite = satellites.find((sat) => sat.id === selectedSatellite.id) ?? selectedSatellite;
+        return liveSatellite.orbitType === 'GEO' ? null : liveSatellite;
     }
 
     if (beamSatellite && (selectedBeamFeature || hasBeamCoverageData)) {
-        return isOperationalSatellite(beamSatellite) ? beamSatellite : null;
+        return isOperationalSatellite(beamSatellite) && beamSatellite.orbitType !== 'GEO' ? beamSatellite : null;
     }
 
-    return isOperationalSatellite(autoSelectedSatellite) ? autoSelectedSatellite : null;
+    return isOperationalSatellite(autoSelectedSatellite) && autoSelectedSatellite.orbitType !== 'GEO'
+        ? autoSelectedSatellite
+        : null;
 }
 
 function getProjectionAlpha(satellite: SatelliteData): number {

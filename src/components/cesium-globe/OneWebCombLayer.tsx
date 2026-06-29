@@ -85,11 +85,13 @@ interface OneWebCombLayerProps {
         position: { lat: number; lng: number };
         label?: string;
     }>;
+    commercialProjectionOrigin?: { lat: number; lng: number; altitudeKm?: number } | null;
     highlightServingFootprint?: boolean;
     regulatoryOverlayActive?: boolean;
     leoServiceViewModel?: LeoConnectivityViewModel | null;
     commercialTone?: 'primary' | 'secondary';
     commercialEnvelopeOnly?: boolean;
+    commercialOpacityScale?: number;
 }
 
 const BLOCKED_BEAM_TINT = Color.fromCssColorString('#ef4444');
@@ -115,6 +117,7 @@ const _COMMERCIAL_LEO_ENVELOPE_FILL = Color.fromCssColorString('#ec4899').withAl
 const _COMMERCIAL_LEO_ENVELOPE_FILL_SECONDARY = Color.fromCssColorString('#ec4899').withAlpha(0.10);
 const _COMMERCIAL_LEO_ENVELOPE_OUTLINE = Color.fromCssColorString('#f9a8d4').withAlpha(0.92);
 const _COMMERCIAL_LEO_ENVELOPE_OUTLINE_SECONDARY = Color.fromCssColorString('#f9a8d4').withAlpha(0.36);
+const COMMERCIAL_LEO_ENVELOPE_PROJECTION_PANEL_COUNT = 4;
 
 // Dummy PolygonHierarchy returned from hierarchy callbacks when geometry is not
 // yet available — allocated once instead of new PolygonHierarchy() every frame.
@@ -261,13 +264,34 @@ const CommercialServingBeamEnvelope = React.memo<{
         label?: string;
     }>;
     commercialTone: 'primary' | 'secondary';
-}>(({ targetSat, getCombGeometriesRef, viewerRef, selectedPosition, selectedAircraft, servingPoints, commercialTone }) => {
+    commercialOpacityScale: number;
+    commercialProjectionOrigin?: { lat: number; lng: number; altitudeKm?: number } | null;
+}>(({
+    targetSat,
+    getCombGeometriesRef,
+    viewerRef,
+    selectedPosition,
+    selectedAircraft,
+    servingPoints,
+    commercialTone,
+    commercialOpacityScale,
+    commercialProjectionOrigin,
+}) => {
     const cacheRef = useRef<{
         sourceGeometries: Cartesian3[][] | null;
+        targetSignature: string;
+        footprintPositions: Cartesian3[];
         positions: Cartesian3[];
         hierarchy: PolygonHierarchy;
         show: boolean;
-    }>({ sourceGeometries: null, positions: DUMMY_POLYGON, hierarchy: _dummyHierarchy, show: false });
+    }>({
+        sourceGeometries: null,
+        targetSignature: '',
+        footprintPositions: DUMMY_POLYGON,
+        positions: DUMMY_POLYGON,
+        hierarchy: _dummyHierarchy,
+        show: false,
+    });
 
     const getEnvelope = useMemo(() => {
         const resolveTargetPoints = (time: JulianDate): Array<{ lat: number; lng: number }> => {
@@ -288,11 +312,17 @@ const CommercialServingBeamEnvelope = React.memo<{
         return (time?: JulianDate) => {
             if (!time || !viewerRef.current) return cacheRef.current;
             const geometries = getCombGeometriesRef.current(targetSat, time);
-            if (geometries === cacheRef.current.sourceGeometries) {
+            const targets = resolveTargetPoints(time);
+            const targetSignature = targets
+                .map((target) => `${target.lat.toFixed(5)}:${target.lng.toFixed(5)}`)
+                .join('|');
+            if (
+                geometries === cacheRef.current.sourceGeometries
+                && targetSignature === cacheRef.current.targetSignature
+            ) {
                 return cacheRef.current;
             }
 
-            const targets = resolveTargetPoints(time);
             const activePolygons: Cartesian3[][] = [];
             let coversAnyTarget = false;
 
@@ -318,6 +348,8 @@ const CommercialServingBeamEnvelope = React.memo<{
             const sanitized = sanitizeCartesianRing(positions);
             cacheRef.current = {
                 sourceGeometries: geometries,
+                targetSignature,
+                footprintPositions: sanitized.length >= 3 ? sanitized : DUMMY_POLYGON,
                 positions: sanitized.length >= 3 ? [...sanitized, sanitized[0]] : DUMMY_POLYGON,
                 hierarchy: sanitized.length >= 3 ? new PolygonHierarchy(sanitized) : _dummyHierarchy,
                 show: sanitized.length >= 3,
@@ -335,25 +367,71 @@ const CommercialServingBeamEnvelope = React.memo<{
     ]);
 
     const fillMaterial = useMemo(() => (
-        new ColorMaterialProperty(
-            commercialTone === 'primary' ? _COMMERCIAL_LEO_ENVELOPE_FILL : _COMMERCIAL_LEO_ENVELOPE_FILL_SECONDARY
-        )
-    ), [commercialTone]);
+        new ColorMaterialProperty((commercialTone === 'primary' ? _COMMERCIAL_LEO_ENVELOPE_FILL : _COMMERCIAL_LEO_ENVELOPE_FILL_SECONDARY).withAlpha(
+            (commercialTone === 'primary' ? _COMMERCIAL_LEO_ENVELOPE_FILL : _COMMERCIAL_LEO_ENVELOPE_FILL_SECONDARY).alpha * commercialOpacityScale
+        ))
+    ), [commercialOpacityScale, commercialTone]);
     const contourMaterial = useMemo(() => (
-        new ColorMaterialProperty(
-            commercialTone === 'primary' ? _COMMERCIAL_LEO_ENVELOPE_OUTLINE : _COMMERCIAL_LEO_ENVELOPE_OUTLINE_SECONDARY
+        new ColorMaterialProperty((commercialTone === 'primary' ? _COMMERCIAL_LEO_ENVELOPE_OUTLINE : _COMMERCIAL_LEO_ENVELOPE_OUTLINE_SECONDARY).withAlpha(
+            (commercialTone === 'primary' ? _COMMERCIAL_LEO_ENVELOPE_OUTLINE : _COMMERCIAL_LEO_ENVELOPE_OUTLINE_SECONDARY).alpha * commercialOpacityScale
+        ))
+    ), [commercialOpacityScale, commercialTone]);
+    const projectionPanelMaterial = useMemo(() => (
+        new ColorMaterialProperty((commercialTone === 'primary' ? _COMMERCIAL_LEO_ENVELOPE_FILL : _COMMERCIAL_LEO_ENVELOPE_FILL_SECONDARY).withAlpha(
+            (commercialTone === 'primary' ? 0.18 : 0.065) * commercialOpacityScale
+        ))
+    ), [commercialOpacityScale, commercialTone]);
+    const outlineColor = useMemo(() => (
+        (commercialTone === 'primary' ? _COMMERCIAL_LEO_ENVELOPE_OUTLINE : _COMMERCIAL_LEO_ENVELOPE_OUTLINE_SECONDARY).withAlpha(
+            (commercialTone === 'primary' ? _COMMERCIAL_LEO_ENVELOPE_OUTLINE : _COMMERCIAL_LEO_ENVELOPE_OUTLINE_SECONDARY).alpha * commercialOpacityScale
         )
-    ), [commercialTone]);
-    const outlineColor = commercialTone === 'primary'
-        ? _COMMERCIAL_LEO_ENVELOPE_OUTLINE
-        : _COMMERCIAL_LEO_ENVELOPE_OUTLINE_SECONDARY;
+    ), [commercialOpacityScale, commercialTone]);
 
     const show = useMemo(() => new CallbackProperty((time?: JulianDate) => getEnvelope(time).show, false), [getEnvelope]);
     const hierarchy = useMemo(() => new CallbackProperty((time?: JulianDate) => getEnvelope(time).hierarchy, false), [getEnvelope]);
     const contourPositions = useMemo(() => new CallbackProperty((time?: JulianDate) => getEnvelope(time).positions, false), [getEnvelope]);
+    const projectionPanelHierarchies = useMemo(() => (
+        Array.from({ length: COMMERCIAL_LEO_ENVELOPE_PROJECTION_PANEL_COUNT }, (_, index) => (
+            new CallbackProperty((time?: JulianDate) => {
+                const envelope = getEnvelope(time);
+                const footprintPositions = envelope.footprintPositions;
+                if (!envelope.show || footprintPositions.length < 3 || index >= footprintPositions.length) {
+                    return _dummyHierarchy;
+                }
+
+                const next = footprintPositions[(index + 1) % footprintPositions.length];
+                const projectionOrigin = commercialProjectionOrigin ?? {
+                    lat: targetSat.position.lat,
+                    lng: targetSat.position.lng,
+                    altitudeKm: targetSat.position.alt || 1_200,
+                };
+                const satellitePosition = getPosition(
+                    projectionOrigin.lat,
+                    projectionOrigin.lng,
+                    projectionOrigin.altitudeKm ?? (targetSat.position.alt || 1_200)
+                );
+                return new PolygonHierarchy([
+                    satellitePosition,
+                    footprintPositions[index],
+                    next,
+                ]);
+            }, false)
+        ))
+    ), [commercialProjectionOrigin, getEnvelope, targetSat.position.alt, targetSat.position.lat, targetSat.position.lng]);
 
     return (
         <>
+            {projectionPanelHierarchies.map((panelHierarchy, index) => (
+                <Entity key={`commercial-leo-serving-beam-projection-${targetSat.id}-${index}`} name="Commercial LEO serving beam projection">
+                    <PolygonGraphics
+                        show={show}
+                        hierarchy={panelHierarchy}
+                        material={projectionPanelMaterial}
+                        outline={false}
+                        perPositionHeight={true}
+                    />
+                </Entity>
+            ))}
             <Entity name="Commercial LEO serving beam envelope">
                 <PolygonGraphics
                     show={show}
@@ -587,11 +665,13 @@ const OneWebCombLayer: React.FC<OneWebCombLayerProps> = ({
     selectedPosition,
     selectedAircraft,
     servingPoints,
+    commercialProjectionOrigin,
     highlightServingFootprint = false,
     regulatoryOverlayActive = false,
     leoServiceViewModel = null,
     commercialTone = 'primary',
     commercialEnvelopeOnly = false,
+    commercialOpacityScale = 1,
 }) => {
     const { getCombGeometries } = useCombGeometry();
     // Stable ref so BeamRing/highlight callbacks always call the latest getCombGeometries
@@ -617,7 +697,7 @@ const OneWebCombLayer: React.FC<OneWebCombLayerProps> = ({
         leoServiceViewModel?.renderingHints.beamVisualState ?? 'LOW'
     );
     beamVisualStateRef.current = leoServiceViewModel?.renderingHints.beamVisualState ?? 'LOW';
-    const commercialOpacityMultiplier = commercialTone === 'secondary' ? 0.28 : 1;
+    const commercialOpacityMultiplier = (commercialTone === 'secondary' ? 0.28 : 1) * commercialOpacityScale;
 
     // Generate beam indices array once - MUST be before any early return
     const beamIndices = useMemo(() => Array.from({ length: TOTAL_BEAMS }, (_, i) => i), []);
@@ -723,21 +803,21 @@ const OneWebCombLayer: React.FC<OneWebCombLayerProps> = ({
 
             const material = new ColorMaterialProperty(new CallbackProperty((time?: JulianDate) => {
                 const servingBeam = resolveServingBeam(time, targetPosition);
-                if (!servingBeam) return _HIGHLIGHT_FILL_COLOR;
+                if (!servingBeam) return _HIGHLIGHT_FILL_COLOR.withAlpha(_HIGHLIGHT_FILL_COLOR.alpha * commercialOpacityScale);
                 return getServingBeamColor(
                     getBeamBaseColor(servingBeam.beamIndex),
                     beamVisualStateRef.current,
-                    0.28
+                    0.28 * commercialOpacityScale
                 );
             }, false));
 
             const outlineColor = new CallbackProperty((time?: JulianDate) => {
                 const servingBeam = resolveServingBeam(time, targetPosition);
-                if (!servingBeam) return _HIGHLIGHT_OUTLINE_COLOR;
+                if (!servingBeam) return _HIGHLIGHT_OUTLINE_COLOR.withAlpha(_HIGHLIGHT_OUTLINE_COLOR.alpha * commercialOpacityScale);
                 return getServingBeamColor(
                     getBeamBaseColor(servingBeam.beamIndex),
                     beamVisualStateRef.current,
-                    0.95
+                    0.95 * commercialOpacityScale
                 );
             }, false);
 
@@ -745,7 +825,7 @@ const OneWebCombLayer: React.FC<OneWebCombLayerProps> = ({
 
             return { id: target.id, label: target.label, show, hierarchy, contourPositions, material, outlineColor, contourMaterial };
         });
-    }, [highlightServingFootprint, viewerRef, targetSat?.id, selectedPosition?.lat, selectedPosition?.lng, selectedAircraft?.icao24, servingPoints]);
+    }, [commercialOpacityScale, highlightServingFootprint, viewerRef, targetSat?.id, selectedPosition?.lat, selectedPosition?.lng, selectedAircraft?.icao24, servingPoints]);
 
     // These useMemo hooks MUST be before the early return to satisfy the Rules of Hooks.
     // They guard against null targetSat internally and produce no-op values in that case.
@@ -814,6 +894,8 @@ const OneWebCombLayer: React.FC<OneWebCombLayerProps> = ({
                 selectedAircraft={selectedAircraft}
                 servingPoints={servingPoints}
                 commercialTone={commercialTone}
+                commercialOpacityScale={commercialOpacityScale}
+                commercialProjectionOrigin={commercialProjectionOrigin}
             />
         );
     }
