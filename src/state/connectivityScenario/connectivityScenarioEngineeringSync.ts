@@ -16,7 +16,7 @@ export interface EngineeringEndpointTerminalSelection {
 }
 
 function categoryFromUseCase(useCase: EngineeringTerminalUseCase | undefined): TerminalCapability['category'] {
-  if (useCase === 'aviation') return 'aero';
+  if (useCase === 'aviation') return 'aviation';
   if (useCase === 'maritime') return 'maritime';
   if (useCase === 'mobile') return 'mobility';
   return 'fixed';

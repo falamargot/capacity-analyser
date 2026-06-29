@@ -108,6 +108,10 @@ export const propagateSatellite = (
  */
 export const calculateDeadReckoning = (ac: Aircraft, time: JulianDate): Cartesian3 => {
     try {
+        if (ac.latitude === null || ac.longitude === null) {
+            return Cartesian3.fromDegrees(0, 0, 0);
+        }
+
         const lat = Number(ac.latitude);
         const lng = Number(ac.longitude);
         const altKm = Number(ac.altitude_km) || 10;

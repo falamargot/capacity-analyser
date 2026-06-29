@@ -42,14 +42,14 @@ function definitionId(prefix: TerminalTechnology, sourceId: string): string {
 }
 
 function categoryFromUseCase(useCase: TerminalUseCase | undefined): TerminalCategory {
-  if (useCase === 'aviation') return 'aero';
+  if (useCase === 'aviation') return 'aviation';
   if (useCase === 'maritime') return 'maritime';
   if (useCase === 'mobile') return 'mobility';
   return 'fixed';
 }
 
 function categoryFromLeoEntry(entry: LeoTerminalCatalogEntry): TerminalCategory {
-  if (entry.uiCategory === 'aviation') return 'aero';
+  if (entry.uiCategory === 'aviation') return 'aviation';
   if (entry.uiCategory === 'maritime') return 'maritime';
   if (entry.uiCategory === 'mobile') return 'mobility';
   return 'fixed';

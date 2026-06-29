@@ -189,16 +189,16 @@ export function filterAircraftByView(
   focusPoint: { lat: number; lng: number } | null,
   maxAircraft: number = 6000
 ): Aircraft[] {
-  let filtered = aircraft;
+  let filtered = aircraft.filter(
+    (ac) => ac.latitude !== null && ac.longitude !== null
+  );
 
   if (cameraBounds) {
     filtered = filtered.filter((ac) =>
-      ac.latitude !== null &&
-      ac.longitude !== null &&
-      ac.latitude >= cameraBounds.south &&
-      ac.latitude <= cameraBounds.north &&
-      ac.longitude >= cameraBounds.west &&
-      ac.longitude <= cameraBounds.east
+      ac.latitude! >= cameraBounds.south &&
+      ac.latitude! <= cameraBounds.north &&
+      ac.longitude! >= cameraBounds.west &&
+      ac.longitude! <= cameraBounds.east
     );
   }
 

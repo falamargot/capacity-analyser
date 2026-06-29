@@ -39,6 +39,7 @@ const AircraftEntity = React.memo<{
     onAircraftClick?: (aircraft: Aircraft | null) => void;
     onAircraftHover?: (aircraft: Aircraft | null) => void;
     aircraftSizeScale?: number;
+    interpolatedAircraftMapRef?: React.RefObject<Map<string, AircraftInterpolation>>;
 }>(({
     ac,
     isSelected,
@@ -47,7 +48,8 @@ const AircraftEntity = React.memo<{
     cameraMetricsRef,
     onAircraftClick,
     onAircraftHover,
-    aircraftSizeScale = 1
+    aircraftSizeScale = 1,
+    interpolatedAircraftMapRef,
 }) => {
     // Per-frame allocation hot path: previously called positionCallback.getValue()
     // which runs full dead-reckoning + allocates a fresh Cartesian3 every frame
@@ -81,12 +83,14 @@ const AircraftEntity = React.memo<{
     const handleMouseEnter = useCallback(() => onAircraftHover?.(ac), [ac, onAircraftHover]);
     const handleMouseLeave = useCallback(() => onAircraftHover?.(null), [onAircraftHover]);
 
-    const baseBillboardColor = isSelected ? Color.RED : Color.LIGHTGOLDENRODYELLOW;
+    const billboardColor = isSelected ? Color.RED : Color.LIGHTGOLDENRODYELLOW;
 
-    const billboardColor = useMemo(() => {
-        return baseBillboardColor;
-    }, [baseBillboardColor]);
-    const rotation = -CesiumMath.toRadians(ac.heading || 0);
+    const rotationCallback = useMemo(() => new CallbackProperty(() => {
+        const heading = interpolatedAircraftMapRef?.current?.get(acRef.current.icao24)?.heading
+            ?? acRef.current.heading
+            ?? 0;
+        return -CesiumMath.toRadians(heading);
+    }, false), [interpolatedAircraftMapRef]);
 
     return (
         <>
@@ -97,7 +101,7 @@ const AircraftEntity = React.memo<{
                     image: PLANE_ICON,
                     scale: scaleCallback,
                     color: billboardColor,
-                    rotation: rotation,
+                    rotation: rotationCallback,
                     alignedAxis: Cartesian3.UNIT_Z
                 }}
                 name={ac.callsign || ac.icao24}
@@ -159,6 +163,7 @@ const AircraftLayer: React.FC<AircraftLayerProps> = ({
                     onAircraftClick={onAircraftClick}
                     onAircraftHover={onAircraftHover}
                     aircraftSizeScale={aircraftSizeScale}
+                    interpolatedAircraftMapRef={interpolatedAircraftMapRef}
                 />
             );
         });
@@ -170,7 +175,8 @@ const AircraftLayer: React.FC<AircraftLayerProps> = ({
         cameraMetricsRef,
         onAircraftClick,
         onAircraftHover,
-        aircraftSizeScale
+        aircraftSizeScale,
+        interpolatedAircraftMapRef,
     ]);
 
     return <>{aircraftEntities}</>;

@@ -695,7 +695,8 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
   useEffect(() => {
     smoothedDownlinkThroughputRef.current = null;
     smoothedUplinkThroughputRef.current = null;
-  }, [selectedLeoTerminalProfile.id]);
+    handoverStateRef.current = createHandoverState();
+  }, [selectedLeoTerminalProfile.id, aircraftCallsign, analysisSource]);
 
   // Tick counter incremented every second so every LEO detail panel field
   // (beam geometry, elevation, RF chain and network pipeline) refreshes with

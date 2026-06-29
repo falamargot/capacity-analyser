@@ -73,7 +73,7 @@ export interface TerminalCapability {
   id: string;
   technology: 'geo' | 'leo';
   terminalModel: string;
-  category: 'fixed' | 'mobility' | 'maritime' | 'aero';
+  category: 'fixed' | 'mobility' | 'maritime' | 'aviation';
 }
 
 export type ScenarioEndpointKey = 'origin' | 'destination';

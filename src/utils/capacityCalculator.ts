@@ -101,7 +101,7 @@ export interface RealTimeCapacityData {
 
 // Calculate elevation angle between ground point and satellite
 export const calculateElevationAngle = (
-  point: { lat: number; lng: number },
+  point: { lat: number; lng: number; altitude?: number },
   satellite: SatelliteData
 ): number => {
   // WGS-84 constants (km)
@@ -112,7 +112,8 @@ export const calculateElevationAngle = (
   const degToRad = Math.PI / 180;
   const radToDeg = 180 / Math.PI;
 
-  // Ground point (altitude assumed 0 km)
+  const userAltKm = point.altitude ?? 0;
+
   const lat = point.lat * degToRad;
   const lon = point.lng * degToRad;
 
@@ -123,9 +124,9 @@ export const calculateElevationAngle = (
 
   const N = A / Math.sqrt(1 - E2 * sinLat * sinLat);
 
-  const xg = N * cosLat * cosLon;
-  const yg = N * cosLat * sinLon;
-  const zg = N * (1 - E2) * sinLat;
+  const xg = (N + userAltKm) * cosLat * cosLon;
+  const yg = (N + userAltKm) * cosLat * sinLon;
+  const zg = (N * (1 - E2) + userAltKm) * sinLat;
 
   // Satellite position
   const satLat = satellite.position.lat * degToRad;
