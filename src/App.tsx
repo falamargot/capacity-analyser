@@ -20,6 +20,7 @@ import SimulationSettings from './components/layout/SimulationSettings';
 import HeaderScenarioBuilder, { HeaderRouteStatusPanel, type HeaderRouteStatus, type HeaderRouteStatusTone } from './components/header/HeaderScenarioBuilder';
 import CommercialRouteStrip from './components/commercial/CommercialRouteStrip';
 import CommercialNarrativePanel from './components/commercial/CommercialNarrativePanel';
+import IFCNarrativePanel from './components/commercial/IFCNarrativePanel';
 import CommercialKpiBar from './components/commercial/CommercialKpiBar';
 import {
   buildCommercialScenarioViewModel,
@@ -6031,8 +6032,16 @@ const App: React.FC = () => {
                       />
                     </div>
 
-                    {/* Narrative panel — slides in from right */}
-                    {!isFullscreen && (
+                    {/* Narrative panel — slides in from right.
+                        Aircraft in COMM mode → IFC-specific panel; otherwise standard narrative. */}
+                    {!isFullscreen && selectedAircraft ? (
+                      <IFCNarrativePanel
+                        aircraft={selectedAircraft}
+                        viewModel={commercialScenarioViewModel}
+                        isOpen
+                        onViewFullAnalysis={() => handleModeSwitch('engineering')}
+                      />
+                    ) : !isFullscreen && (
                       <CommercialNarrativePanel
                         viewModel={commercialScenarioViewModel}
                         selectedSegmentId={commercialSelectedSegment}
