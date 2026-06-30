@@ -913,11 +913,11 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
                     add('geo-mesh-sat-b', 'GEO_RF', meshSatToBCallback, flowMeshReceiveColor, 2.2);
                 }
             } else if (linkMode === 'STAR_RETURN') {
-                add('geo-star-return-gw-sat', 'GEO_RF', reverseGeoFeederLinkCallback, flowGeoForwardColor, 2.15);
-                add('geo-star-return-sat-user', 'GEO_RF', reverseGeoUserLinkCallback, flowGeoReturnColor, 2.15);
+                add('geo-star-return-user-sat', 'GEO_RF', geoUserLinkCallback, flowGeoReturnColor, 2.15);
+                add('geo-star-return-sat-gw', 'GEO_RF', geoFeederLinkCallback, flowGeoReturnColor, 2.15);
             } else {
-                add('geo-star-forward-user-sat', 'GEO_RF', geoUserLinkCallback, flowGeoForwardColor, 2.15);
-                add('geo-star-forward-sat-gw', 'GEO_RF', geoFeederLinkCallback, flowGeoForwardColor, 2.15);
+                add('geo-star-forward-gw-sat', 'GEO_RF', reverseGeoFeederLinkCallback, flowGeoForwardColor, 2.15);
+                add('geo-star-forward-sat-user', 'GEO_RF', reverseGeoUserLinkCallback, flowGeoForwardColor, 2.15);
             }
         }
 
