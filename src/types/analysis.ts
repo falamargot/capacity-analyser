@@ -50,7 +50,16 @@ export interface CandidateCoverageScoreBreakdown {
 export type CandidateCoverageStatus =
     | 'available'
     | 'gateway_unavailable'
-    | 'unstable';
+    | 'unstable'
+    /**
+     * STAR_FORWARD/STAR_RETURN only: the satellite's resolved SCC site has no
+     * CONFIRMED or PUBLICLY_LIKELY traffic role (GeoGatewayData.trafficStatus).
+     * Distinct from 'gateway_unavailable', which means no SCC site is
+     * geometrically visible at all — this means a site IS visible but its
+     * commercial traffic function is not verified, so no link budget should
+     * be computed against it.
+     */
+    | 'teleport_unconfirmed';
 
 export interface CandidateCoverage {
     satelliteId: string;

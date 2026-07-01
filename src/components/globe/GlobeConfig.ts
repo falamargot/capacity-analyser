@@ -55,6 +55,41 @@ export const SNPS_DATA: SNPData[] = [
   { name: 'South Tarawa', lat: 1.32, lng: 172.97, region: 'Pacific & Australia' },
 ];
 
+// ─── Ground infrastructure role taxonomy ─────────────────────────────────────
+//
+// A single physical site can cumulate multiple roles (e.g. SCC_NOMINAL and
+// TELEPORT_GATEWAY when co-located). roles[] is the authoritative list.
+
+export type GroundInfraRole =
+  | 'SCC_NOMINAL'       // primary satellite command & control for assigned fleet
+  | 'SCC_BACKUP'        // hot-standby SCC, takes over on nominal SCC failure
+  | 'TTC_STATION'       // TT&C antenna — tracking, telemetry & telecommand only
+  | 'MONITORING_CSC'    // QoS/spectrum monitoring, CSC monitoring — no command authority
+  | 'TELEPORT_GATEWAY'; // RF traffic gateway (Forward/Return user link budget applies here)
+
+// ─── Traffic / Teleport verification status ──────────────────────────────────
+//
+// Captures confidence that a site carries commercial user traffic
+// (TELEPORT_GATEWAY function). Separation from roles[] is intentional:
+//
+//   CONFIRMED        — internally verified with Ops/Infra team.
+//                      Safe to assert in engineering and commercial contexts.
+//   PUBLICLY_LIKELY  — based on public Eutelsat press/comms or WTA listings.
+//                      Used as the computation gateway for STAR link budgets
+//                      but NOT over-stated in commercial narratives.
+//   UNVERIFIED       — no public source found for a traffic function.
+//                      selectTrafficGeoGateway() returns null for these sites.
+//   NOT_APPLICABLE   — definitively not a traffic gateway (pure monitoring/TTC).
+//
+// Promotion from PUBLICLY_LIKELY → CONFIRMED is a deliberate data change,
+// not an automatic code inference. It requires explicit validation with Ops.
+
+export type GatewayTrafficStatus =
+  | 'CONFIRMED'
+  | 'PUBLICLY_LIKELY'
+  | 'UNVERIFIED'
+  | 'NOT_APPLICABLE';
+
 export interface GeoGatewayData {
   teleportCode: string;
   gateway_id: string;
@@ -65,8 +100,72 @@ export interface GeoGatewayData {
   lat: number;
   lng: number;
   region: string;
-  role: string;
+  /** Functional roles this site serves. A site may cumulate multiple roles. */
+  roles: GroundInfraRole[];
+  /**
+   * Confidence level that this site carries commercial user RF traffic.
+   * PUBLICLY_LIKELY = documented in public Eutelsat/WTA comms, NOT internally confirmed.
+   * Promotion to CONFIRMED requires explicit validation with Ops/Infra.
+   */
+  trafficStatus: GatewayTrafficStatus;
+  /** Free-text reference for the trafficStatus assessment (press, doc, date, etc.). */
+  trafficStatusSource?: string;
 }
+
+// ─── Display helpers ──────────────────────────────────────────────────────────
+
+const GROUND_INFRA_ROLE_LABELS: Record<GroundInfraRole, string> = {
+  SCC_NOMINAL:      'SCC Nominal',
+  SCC_BACKUP:       'SCC Backup',
+  TTC_STATION:      'TT&C Station',
+  MONITORING_CSC:   'CSC Monitoring',
+  TELEPORT_GATEWAY: 'Teleport / Gateway',
+};
+
+export const formatGroundRoles = (roles: GroundInfraRole[]): string =>
+  roles.map((r) => GROUND_INFRA_ROLE_LABELS[r]).join(' · ');
+
+/** Returns the primary control role label (SCC/TTC/Monitoring) for UI badge use. */
+export const getPrimaryControlRoleLabel = (roles: GroundInfraRole[]): 'Monitoring' | 'Backup SCC' | 'Nominal SCC' => {
+  if (roles.some((r) => r === 'MONITORING_CSC' || r === 'TTC_STATION')) return 'Monitoring';
+  if (roles.includes('SCC_BACKUP')) return 'Backup SCC';
+  return 'Nominal SCC';
+};
+
+/**
+ * Sober, non-alarming note explaining the confidence level behind a site's
+ * traffic gateway role — for display next to a resolved gateway, NOT a red
+ * warning. Returns null for CONFIRMED (no note needed).
+ *
+ * Exhaustive over GatewayTrafficStatus by design — extend this switch (not a
+ * default case) when the status union changes, so a missing branch fails
+ * loudly at compile time rather than silently showing no note.
+ */
+export const getGatewayTrafficStatusNote = (trafficStatus: GatewayTrafficStatus): string | null => {
+  switch (trafficStatus) {
+    case 'CONFIRMED':
+      return null;
+    case 'PUBLICLY_LIKELY':
+      return 'Traffic gateway role at this site is publicly documented but not internally confirmed.';
+    case 'UNVERIFIED':
+    case 'NOT_APPLICABLE':
+      return 'No internally or publicly confirmed traffic gateway role for this site — geometry reflects the satellite control assignment only.';
+    default: {
+      // Compile-time guard: fails tsc if GatewayTrafficStatus gains a member
+      // not handled above, even without noImplicitReturns enabled.
+      const exhaustiveCheck: never = trafficStatus;
+      return exhaustiveCheck;
+    }
+  }
+};
+
+// ─── GEO ground segment data ──────────────────────────────────────────────────
+//
+// trafficStatus notes:
+//   PUBLICLY_LIKELY — documented in public Eutelsat press / WTA listings.
+//                     NOT internally confirmed with Ops. Pass to CONFIRMED only
+//                     after explicit validation with the Infra/Ops team.
+//   UNVERIFIED      — no public source found for a traffic function on this site.
 
 export const GEO_GATEWAYS: GeoGatewayData[] = [
   {
@@ -79,7 +178,9 @@ export const GEO_GATEWAYS: GeoGatewayData[] = [
     lat: 48.5178,
     lng: 1.7617,
     region: 'EMEA',
-    role: 'Global_SCC_Nominal'
+    roles: ['SCC_NOMINAL', 'TELEPORT_GATEWAY'],
+    trafficStatus: 'PUBLICLY_LIKELY',
+    trafficStatusSource: 'Eutelsat press/comms — 200+ antennes C/Ku/Ka, teleport documenté (Tooway/KA-SAT), SCC backup confirmé en plus — non vérifié en interne',
   },
   {
     teleportCode: 'CAG',
@@ -91,7 +192,9 @@ export const GEO_GATEWAYS: GeoGatewayData[] = [
     lat: 39.2154,
     lng: 9.1093,
     region: 'EMEA',
-    role: 'EMEA_SCC_Backup'
+    roles: ['SCC_BACKUP', 'TELEPORT_GATEWAY'],
+    trafficStatus: 'PUBLICLY_LIKELY',
+    trafficStatusSource: 'Eutelsat/Skylogic Mediterraneo — teleport commercial documenté, 9 antennes — non vérifié en interne',
   },
   {
     teleportCode: 'TUR',
@@ -103,7 +206,9 @@ export const GEO_GATEWAYS: GeoGatewayData[] = [
     lat: 45.0709,
     lng: 7.6843,
     region: 'EMEA',
-    role: 'EMEA_SCC_Backup'
+    roles: ['SCC_BACKUP', 'TELEPORT_GATEWAY'],
+    trafficStatus: 'PUBLICLY_LIKELY',
+    trafficStatusSource: 'Eutelsat SkyPark — teleport commercial documenté, large bande multi-régions — non vérifié en interne',
   },
   {
     teleportCode: 'MEX',
@@ -115,7 +220,9 @@ export const GEO_GATEWAYS: GeoGatewayData[] = [
     lat: 19.3574,
     lng: -99.0671,
     region: 'AMERICAS',
-    role: 'AMERICAS_SCC_Nominal'
+    roles: ['SCC_NOMINAL', 'TELEPORT_GATEWAY'],
+    trafficStatus: 'PUBLICLY_LIKELY',
+    trafficStatusSource: 'Eutelsat Amériques — centre de contrôle décrit comme gérant aussi le trafic transmis — à confirmer en interne',
   },
   {
     teleportCode: 'HER',
@@ -127,7 +234,9 @@ export const GEO_GATEWAYS: GeoGatewayData[] = [
     lat: 29.0729,
     lng: -110.9559,
     region: 'AMERICAS',
-    role: 'AMERICAS_SCC_Backup'
+    roles: ['SCC_BACKUP', 'TELEPORT_GATEWAY'],
+    trafficStatus: 'PUBLICLY_LIKELY',
+    trafficStatusSource: "Désigné 'teleport' dans plusieurs communications Eutelsat/WTA — à confirmer en interne",
   },
   {
     teleportCode: 'MAR',
@@ -139,7 +248,8 @@ export const GEO_GATEWAYS: GeoGatewayData[] = [
     lat: 14.6000,
     lng: -61.0000,
     region: 'AMERICAS',
-    role: 'Relay_Monitoring'
+    roles: ['MONITORING_CSC'],
+    trafficStatus: 'UNVERIFIED',
   },
   {
     teleportCode: 'DUB',
@@ -151,7 +261,8 @@ export const GEO_GATEWAYS: GeoGatewayData[] = [
     lat: 25.2048,
     lng: 55.2708,
     region: 'MIDDLE_EAST',
-    role: 'CSC_Monitoring'
+    roles: ['MONITORING_CSC'],
+    trafficStatus: 'UNVERIFIED',
   },
   {
     teleportCode: 'SIN',
@@ -163,7 +274,8 @@ export const GEO_GATEWAYS: GeoGatewayData[] = [
     lat: 1.3521,
     lng: 103.8198,
     region: 'APAC',
-    role: 'CSC_Monitoring'
+    roles: ['MONITORING_CSC'],
+    trafficStatus: 'UNVERIFIED',
   },
   {
     teleportCode: 'IBA',
@@ -175,7 +287,8 @@ export const GEO_GATEWAYS: GeoGatewayData[] = [
     lat: 36.3418,
     lng: 140.4468,
     region: 'APAC',
-    role: 'TTC_Monitoring'
+    roles: ['TTC_STATION'],
+    trafficStatus: 'UNVERIFIED',
   },
   {
     teleportCode: 'PER',
@@ -187,8 +300,9 @@ export const GEO_GATEWAYS: GeoGatewayData[] = [
     lat: -31.9523,
     lng: 115.8613,
     region: 'APAC',
-    role: 'TTC_Monitoring'
-  }
+    roles: ['TTC_STATION'],
+    trafficStatus: 'UNVERIFIED',
+  },
 ];
 
 export const GLOBE_CONFIG = {

@@ -1,5 +1,5 @@
 import { memo, useMemo } from 'react';
-import { GEO_GATEWAYS, type GeoGatewayData } from './globe/GlobeConfig';
+import { GEO_GATEWAYS, formatGroundRoles, type GeoGatewayData } from './globe/GlobeConfig';
 import type { SatelliteData } from '../types/satellites';
 import { SectionTooltip } from './SectionTooltip';
 import { getGroundSegmentRoutingForSatellite } from '../utils/geoConnectivityModel';
@@ -11,7 +11,6 @@ interface GatewayDetailsProps {
   externalHeader?: boolean;
 }
 
-const formatRoleLabel = (role: string): string => role.replaceAll('_', ' ');
 
 const formatOrbitalLongitude = (lng: number): string => {
   const normalized = ((((lng + 180) % 360) + 360) % 360) - 180;
@@ -94,7 +93,7 @@ const GatewayDetails = memo<GatewayDetailsProps>(({ gateway, satellites, compact
           <div className="rounded-lg border border-cyan-100 bg-cyan-50/70 p-3 dark:border-cyan-500/20 dark:bg-cyan-500/10">
             <h3 className="flex items-center text-sm font-semibold text-cyan-800 dark:text-cyan-200">
               Gateway Identity
-              <SectionTooltip content="Operational identity and routing posture for the selected GEO teleport." />
+              <SectionTooltip content={`Operational identity and routing posture for this ground segment site (${formatGroundRoles(gateway.roles)}).`} />
             </h3>
             <div className="mt-2 grid grid-cols-1 gap-x-4 gap-y-1 text-sm text-cyan-950 dark:text-cyan-50 sm:grid-cols-2">
               <div className="flex justify-between gap-4">
@@ -103,7 +102,7 @@ const GatewayDetails = memo<GatewayDetailsProps>(({ gateway, satellites, compact
               </div>
               <div className="flex justify-between gap-4">
                 <span className="text-cyan-700 dark:text-cyan-200/80">Role</span>
-                <span className="font-semibold">{formatRoleLabel(gateway.role)}</span>
+                <span className="font-semibold">{formatGroundRoles(gateway.roles)}</span>
               </div>
               <div className="flex justify-between gap-4">
                 <span className="text-cyan-700 dark:text-cyan-200/80">Failover</span>
@@ -126,7 +125,7 @@ const GatewayDetails = memo<GatewayDetailsProps>(({ gateway, satellites, compact
             </h3>
             {groundSegmentProfile.nominalSccSatellites.length === 0 ? (
               <p className="text-sm text-gray-500 dark:text-gray-400">
-                This teleport is not the nominal SCC for any operational GEO satellite.
+                This ground segment site is not the nominal SCC for any operational GEO satellite.
               </p>
             ) : (
               <div className="flex flex-wrap gap-2">
@@ -148,7 +147,7 @@ const GatewayDetails = memo<GatewayDetailsProps>(({ gateway, satellites, compact
             </h3>
             {groundSegmentProfile.backupSccSatellites.length === 0 ? (
               <p className="text-sm text-gray-500 dark:text-gray-400">
-                This teleport is not used as backup SCC for any operational GEO satellite.
+                This ground segment site is not used as backup SCC for any operational GEO satellite.
               </p>
             ) : (
               <div className="flex flex-wrap gap-2">
@@ -170,7 +169,7 @@ const GatewayDetails = memo<GatewayDetailsProps>(({ gateway, satellites, compact
             </h3>
             {groundSegmentProfile.monitoredSatellites.length === 0 ? (
               <p className="text-sm text-gray-500 dark:text-gray-400">
-                This teleport is not currently used as the nominal monitoring point for any operational GEO satellite.
+                This ground segment site is not currently used as the nominal monitoring point for any operational GEO satellite.
               </p>
             ) : (
               <div className="flex flex-wrap gap-2">

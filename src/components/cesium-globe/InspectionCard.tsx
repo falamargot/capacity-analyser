@@ -3,7 +3,7 @@ import { Satellite, Plane, Ship, Radio } from 'lucide-react';
 import type { SatelliteData } from '../../types/satellites';
 import type { Aircraft } from '../../modules/airTraffic/airTrafficService';
 import type { Vessel } from '../../modules/maritimeTraffic/maritimeTrafficService';
-import type { GeoGatewayData, SNPData } from '../globe/GlobeConfig';
+import { formatGroundRoles, type GeoGatewayData, type SNPData } from '../globe/GlobeConfig';
 import type { FiveGSpectrumCountryInfo } from '../../services/fiveGSpectrumService';
 
 type HoveredEntity =
@@ -219,7 +219,7 @@ const InspectionCard = memo<InspectionCardProps>(({ entity, containerRef, cursor
             </div>
             <div className="grid grid-cols-2 gap-x-3 gap-y-0.5 text-[11px]">
               <span className="text-gray-500 dark:text-gray-400">Type</span>
-              <span className="text-gray-700 dark:text-gray-300">GEO teleport</span>
+              <span className="text-gray-700 dark:text-gray-300">{formatGroundRoles(gateway.roles)}</span>
               <span className="text-gray-500 dark:text-gray-400">Region</span>
               <span className="text-gray-700 dark:text-gray-300">{gateway.region}</span>
               <span className="text-gray-500 dark:text-gray-400">Lat/Lng</span>

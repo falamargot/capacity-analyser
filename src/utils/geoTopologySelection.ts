@@ -185,6 +185,9 @@ export function selectBestTopologyPath({
     let candidate: TopologySelectionCandidate | null = null;
 
     if (linkMode === 'STAR_FORWARD') {
+      // gatewaySelection is null when the satellite's SCC site has no CONFIRMED
+      // or PUBLICLY_LIKELY traffic role — the satellite is skipped rather than
+      // building a link budget against an unconfirmed/SCC-only site.
       const gatewaySelection = selectTrafficGeoGateway(satellite, gateways);
       if (!gatewaySelection || !downlinkA) continue;
 
@@ -217,6 +220,7 @@ export function selectBestTopologyPath({
         result,
       };
     } else if (linkMode === 'STAR_RETURN') {
+      // Same trafficStatus gating as STAR_FORWARD above.
       const gatewaySelection = selectTrafficGeoGateway(satellite, gateways);
       if (!gatewaySelection || !uplinkA) continue;
 

@@ -20,6 +20,7 @@ interface SatelliteScreenLabelsProps {
   }>;
   viewerReady?: boolean;
   presentation?: 'engineering' | 'commercial';
+  isMobileViewport?: boolean;
 }
 
 const getLabelBackgroundColor = (satellite: SatelliteData): string => (
@@ -44,6 +45,7 @@ const SatelliteScreenLabels: React.FC<SatelliteScreenLabelsProps> = ({
   highlightedSatellites,
   viewerReady = false,
   presentation = 'engineering',
+  isMobileViewport = false,
 }) => {
   const labelRefs = useRef(new Map<string, HTMLDivElement>());
   const smoothedPositionsRef = useRef(new Map<string, SmoothedScreenPosition>());
@@ -166,6 +168,7 @@ const SatelliteScreenLabels: React.FC<SatelliteScreenLabelsProps> = ({
         const effectiveCommercialRole = commercialRole ?? (isRouteParticipant ? 'serving' : 'candidate');
         const isGeo = satellite.type === 'EUTELSAT';
         const isCommercialSecondary = presentation === 'commercial' && effectiveCommercialRole !== 'serving';
+        const compactEngineeringLabel = isGeo ? 'GEO' : 'LEO';
 
         // Commercial role labels — technology-aware.
         // GEO: use satellite name as primary identity (commercially contractual).
@@ -199,7 +202,7 @@ const SatelliteScreenLabels: React.FC<SatelliteScreenLabelsProps> = ({
             }}
           >
             <div
-              className={`${presentation === 'commercial' ? 'rounded-md px-2.5 py-1.5 text-[11px]' : 'rounded px-2 py-1 text-[13px]'} font-semibold leading-tight text-white shadow-lg ring-1 ring-white/20 -translate-y-full ${presentation === 'commercial' ? 'opacity-75' : isCommercialSecondary ? 'opacity-60' : ''}`}
+              className={`${presentation === 'commercial' ? 'rounded-md px-2.5 py-1.5 text-[11px]' : isMobileViewport && !isManuallySelected ? 'rounded-full px-2 py-0.5 text-[10px]' : 'rounded px-2 py-1 text-[13px]'} font-semibold leading-tight text-white shadow-lg ring-1 ring-white/20 -translate-y-full ${presentation === 'commercial' ? 'opacity-75' : isCommercialSecondary ? 'opacity-60' : ''}`}
               style={{
                 backgroundColor: presentation === 'commercial'
                   ? isCommercialSecondary ? 'rgba(15, 23, 42, 0.58)' : 'rgba(15, 23, 42, 0.9)'
@@ -210,7 +213,9 @@ const SatelliteScreenLabels: React.FC<SatelliteScreenLabelsProps> = ({
                   : undefined,
               }}
             >
-              {presentation !== 'commercial' && <div>{satellite.name}</div>}
+              {presentation !== 'commercial' && (
+                <div>{isMobileViewport && !isManuallySelected ? compactEngineeringLabel : satellite.name}</div>
+              )}
 
               {presentation === 'commercial' && (
                 <>

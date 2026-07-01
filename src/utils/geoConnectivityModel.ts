@@ -1,5 +1,5 @@
 import type { SatelliteData } from '../types/satellites';
-import type { GeoGatewayData } from '../components/globe/GlobeConfig';
+import type { GatewayTrafficStatus, GeoGatewayData } from '../components/globe/GlobeConfig';
 
 const DEG_TO_RAD = Math.PI / 180;
 
@@ -47,6 +47,16 @@ export interface GeoGatewaySelection {
   satToGatewayDistanceKm: number;
 }
 
+/**
+ * Return type of selectTrafficGeoGateway(). Extends GeoGatewaySelection (additive,
+ * not breaking) with the trafficStatus of the chosen site so the UI can warn when
+ * the link budget is computed against a PUBLICLY_LIKELY (not internally CONFIRMED)
+ * teleport site.
+ */
+export interface TrafficGatewaySelection extends GeoGatewaySelection {
+  trafficStatus: GatewayTrafficStatus;
+}
+
 export type GatewayAssignmentRole = 'primary' | 'backup';
 export type ResolvedGatewayRole = 'nominal' | 'backup';
 export type GatewayResolutionPolicy = 'STATIC_NOMINAL' | 'STATIC_BACKUP';
@@ -77,7 +87,7 @@ export interface ResolvedGeoGateway {
   gatewayName: string;
   latitude: number;
   longitude: number;
-  role: ResolvedGatewayRole;
+  controlAssignmentRole: ResolvedGatewayRole;
   reason: string;
   assignmentSource: GatewayAssignmentSource;
   teleportCode: GroundSegmentTeleportCode | string;
@@ -432,7 +442,7 @@ function toResolvedGeoGateway(
     gatewayName: gateway.name,
     latitude: coords.lat,
     longitude: coords.lng,
-    role,
+    controlAssignmentRole: role,
     reason,
     assignmentSource,
     teleportCode: gateway.teleportCode,
@@ -452,6 +462,24 @@ function toGatewaySelection(resolved: ResolvedGeoGateway | null): GeoGatewaySele
   };
 }
 
+/**
+ * Resolves the SCC nominal/backup site for a satellite.
+ *
+ * Two distinct paths, with different role-awareness:
+ *   1. Reference allocation (GEO_GATEWAY_ASSIGNMENTS lookup) — as of this writing,
+ *      every nominalSccCode/backupSccCode in that table resolves to a
+ *      PUBLICLY_LIKELY or CONFIRMED traffic site (RAM/CAG/TUR/MEX/HER). Verified
+ *      by direct inspection of the table, not inferred from tests passing.
+ *   2. Fallback (selectBestGeoGateway, below) — used when the satellite has no
+ *      entry in GEO_GATEWAY_ASSIGNMENTS. It picks the geometrically nearest
+ *      *visible* site among ALL gateways passed in, with NO role or
+ *      trafficStatus filter. This CAN resolve to an UNVERIFIED site
+ *      (MAR/DUB/SIN/IBA/PER) for a satellite not yet entered in the static
+ *      table. selectTrafficGeoGateway() still correctly returns null in that
+ *      case (it filters on trafficStatus downstream of this function), but the
+ *      fallback itself is role-blind. Known and accepted as of the GEO ground
+ *      segment role refactor; not addressed by that refactor's scope.
+ */
 export function resolveGatewayForSatellite(
   satellite: SatelliteData,
   gateways: GeoGatewayData[],
@@ -479,7 +507,7 @@ export function resolveGatewayForSatellite(
       gateway,
       role,
       'reference-gateway-allocation',
-      `${gatewayPolicy}: ${role} GEO teleport ${code} from reference allocation registry.`,
+      `${gatewayPolicy}: ${role} GEO gateway ${code} from reference allocation registry.`,
     );
   }
 
@@ -490,7 +518,7 @@ export function resolveGatewayForSatellite(
     fallback.gateway,
     'nominal',
     'fallback-visible-gateway',
-    'No reference allocation entry matched; selected nearest visible fallback GEO teleport.',
+    'No reference allocation entry matched; selected nearest visible fallback GEO gateway.',
   );
 }
 
@@ -692,12 +720,36 @@ export function selectOperationalGeoGateway(
   return toGatewaySelection(resolveGatewayForSatellite(satellite, gateways, options));
 }
 
+/**
+ * Resolves the gateway eligible to carry commercial user RF traffic (Forward/Return
+ * link budget) for a satellite.
+ *
+ * Unlike selectOperationalGeoGateway (which resolves the SCC nominal/backup site
+ * regardless of whether it actually hosts a commercial teleport), this function
+ * gates on GeoGatewayData.trafficStatus:
+ *   - CONFIRMED / PUBLICLY_LIKELY → returns the site, with its trafficStatus echoed
+ *     back so callers can surface a "not internally confirmed" notice for
+ *     PUBLICLY_LIKELY sites.
+ *   - UNVERIFIED / NOT_APPLICABLE → returns null. Callers must not silently fall
+ *     back to the SCC site in this case (see CandidateCoverageStatus handling).
+ */
 export function selectTrafficGeoGateway(
   satellite: SatelliteData,
   gateways: GeoGatewayData[],
   options: GroundSegmentSelectionOptions = {}
-): GeoGatewaySelection | null {
-  return toGatewaySelection(resolveGatewayForSatellite(satellite, gateways, options));
+): TrafficGatewaySelection | null {
+  const resolved = resolveGatewayForSatellite(satellite, gateways, options);
+  if (!resolved) return null;
+
+  const { trafficStatus } = resolved.gateway;
+  if (trafficStatus !== 'CONFIRMED' && trafficStatus !== 'PUBLICLY_LIKELY') {
+    return null;
+  }
+
+  const selection = toGatewaySelection(resolved);
+  if (!selection) return null;
+
+  return { ...selection, trafficStatus };
 }
 
 export function selectBestGeoGateway(

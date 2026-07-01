@@ -309,12 +309,12 @@ export function buildCommercialScenarioViewModel(input: BuildCommercialScenarioV
     ? (destinationCustomerSide === 'B' ? input.destinationLeoTerminalLabel : input.originLeoTerminalLabel)
     : (destinationCustomerSide === 'B' ? input.destinationGeoTerminalLabel : input.originGeoTerminalLabel);
   const destinationLocation = destinationEndpointKind === 'geo_gateway'
-    ? input.geoGatewayName ?? 'GEO teleport'
+    ? input.geoGatewayName ?? 'GEO gateway'
     : destinationCustomerSide === 'B'
     ? siteBName
     : siteAName;
   const destinationReceivingSide = destinationEndpointKind === 'geo_gateway'
-    ? 'GEO teleport'
+    ? 'GEO gateway'
     : destinationCustomerSide === 'B'
     ? 'Site B'
     : input.siteB
@@ -439,7 +439,7 @@ export function buildCommercialScenarioViewModel(input: BuildCommercialScenarioV
   });
   const assumptionsSummary = isDisplayLeo
     ? 'Assumes simulated network load, beam sharing, selected LEO SNP path, public terminal profile, weather profile, and indicative backbone routing.'
-    : 'Assumes selected weather profile, public frequency data, terminal RF class, and reference GEO teleport allocation.';
+    : 'Assumes selected weather profile, public frequency data, terminal RF class, and reference GEO gateway allocation.';
 
   const routeSegments: CommercialRouteSegment[] = [
     {
@@ -486,7 +486,7 @@ export function buildCommercialScenarioViewModel(input: BuildCommercialScenarioV
       title: 'Indicative Backbone',
       status: backhaulStatus,
       customerStatus: customerStateFromSegment(backhaulStatus),
-      role: isDisplayLeo ? 'LEO SNP and backbone path' : 'GEO teleport path',
+      role: isDisplayLeo ? 'LEO SNP and backbone path' : 'GEO gateway path',
       isRouteParticipant: activeRouteAvailable && backhaulStatus !== 'blocked' && backhaulStatus !== 'unknown',
       isPrimaryIssue: primaryFailingSegment === 'backhaul',
       story: activeRouteAvailable ? 'The network backbone carries traffic between the satellite service and destination.' : 'The network backbone is not confirmed until service is available.',
@@ -494,13 +494,13 @@ export function buildCommercialScenarioViewModel(input: BuildCommercialScenarioV
         ? (input.leoTopologyMode === 'SITE_TO_SITE'
             ? [leoRoutePath?.selectedSnpA?.name, leoRoutePath?.selectedSnpB?.name].filter(Boolean).join(' / ') || 'SNP path pending'
             : input.selectedSnpName ?? 'SNP path pending')
-        : 'Reference GEO teleport path',
+        : 'Reference GEO gateway path',
       limitation: backhaulStatus === 'healthy' ? undefined : customerPrimaryWarning ?? 'Network backbone unavailable',
       technicalSummary: isDisplayLeo
         ? (input.leoTopologyMode === 'SITE_TO_SITE'
             ? [leoRoutePath?.selectedSnpA?.name, leoRoutePath?.selectedSnpB?.name].filter(Boolean).join(' / ') || 'SNP path pending'
             : input.selectedSnpName ?? 'SNP path pending')
-        : 'Reference GEO teleport path',
+        : 'Reference GEO gateway path',
       technicalLimitation: backhaulStatus === 'healthy' ? undefined : primaryWarning,
       latencyMs: rttMs,
     },
@@ -619,7 +619,7 @@ export function buildCommercialScenarioViewModel(input: BuildCommercialScenarioV
       snpA: isDisplayLeo ? (leoRoutePath?.selectedSnpA?.name ?? leoEvidence?.selectedSnpA?.name ?? input.selectedSnpName ?? '--') : '--',
       snpB: isDisplayLeo ? (leoRoutePath?.selectedSnpB?.name ?? leoEvidence?.selectedSnpB?.name ?? '--') : '--',
       destinationType: activeRoute.destinationLabel ?? 'Site B',
-      destinationEndpointRole: destinationEndpointKind === 'geo_gateway' ? 'GEO teleport' : 'Customer station',
+      destinationEndpointRole: destinationEndpointKind === 'geo_gateway' ? 'GEO gateway' : 'Customer station',
       destinationEndpointKind,
       destinationTechnology,
       destinationStationModel: destinationStationModel ?? '--',

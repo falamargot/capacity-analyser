@@ -1,5 +1,5 @@
 /**
- * GeoGatewayLayer - Renders Eutelsat Teleport Gateways for GEO scope
+ * GeoGatewayLayer - Renders GEO ground segment sites on the globe.
  */
 import React, { useMemo, useCallback } from 'react';
 import { Entity, LabelGraphics } from 'resium';
@@ -12,7 +12,7 @@ import {
     VerticalOrigin,
     Viewer as CesiumViewerType
 } from 'cesium';
-import { GEO_GATEWAYS, GeoGatewayData } from '../globe/GlobeConfig';
+import { GEO_GATEWAYS, GeoGatewayData, formatGroundRoles } from '../globe/GlobeConfig';
 import { getPosition, DPR_FACTOR, calculateDynamicScale, type CameraMetricsSnapshot } from './utils';
 import type { SatelliteScope } from '../SatelliteScopeFilter';
 import { GROUND_POINT_ALTITUDE_KM, LABEL_EYE_OFFSET } from './layerHeights';
@@ -92,7 +92,7 @@ const GeoGatewayEntity = React.memo<{
                 color: commercialTone === 'secondary' ? Color.fromCssColorString('#64748b').withAlpha(0.55) : Color.CYAN,
                 disableDepthTestDistance: 0
             }}
-            name={`${gateway.name} (Teleport)`}
+            name={`${gateway.name} (${formatGroundRoles(gateway.roles)})`}
             onClick={handleClick}
             onMouseEnter={handleMouseEnter}
             onMouseLeave={handleMouseLeave}

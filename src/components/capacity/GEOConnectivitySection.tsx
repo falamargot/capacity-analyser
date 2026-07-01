@@ -14,6 +14,7 @@ import EngineeringAnalysisWorkspace from './EngineeringAnalysisWorkspace';
 import { getDisplayedThroughput, type DualSegmentResult } from '../../utils/geoDualSegmentBudget';
 import LinkModeSelector from './LinkModeSelector';
 import type { ResolvedGeoGateway } from '../../utils/geoConnectivityModel';
+import { getGatewayTrafficStatusNote, getPrimaryControlRoleLabel } from '../globe/GlobeConfig';
 import { formatCoordinates } from '../../utils/formatters';
 import { buildGeoConfidence, type PredictionConfidence } from '../../utils/predictionConfidence';
 import { estimateGeoSatelliteCapacity } from '../../utils/geoCapacityModel';
@@ -509,7 +510,7 @@ const GeoStatusCard = memo(({
     : 'Star Forward';
   const capacityDetail = throughputMbps != null ? fmtMbps(throughputMbps) : '--';
 
-  // GEO teleport tile
+  // GEO gateway tile
   const gatewayResolved = gatewayName !== 'Gateway' && gatewayName !== '';
   const gatewayValue = isMeshOrP2P ? 'Not in path' : (gatewayResolved ? gatewayName : 'Not resolved');
   const gatewayDetail = isMeshOrP2P
@@ -740,8 +741,19 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
   const showPerformanceBeforeRadioPath = analysisSource !== 'aircraft';
   const resolvedGateway = geoGeometry?.satelliteToGateway.resolvedGateway ?? null;
   const gatewayName = resolvedGateway?.gatewayName ?? geoGeometry?.satelliteToGateway.gateway?.name ?? 'Gateway';
-  const gatewayRole = resolvedGateway?.role ?? null;
+  const gatewayRole = resolvedGateway?.controlAssignmentRole ?? null;
   const gatewayDisplayName = gatewayRole ? `${gatewayName} (${gatewayRole})` : gatewayName;
+  const gatewayTrafficStatusNote = resolvedGateway
+    ? getGatewayTrafficStatusNote(resolvedGateway.gateway.trafficStatus)
+    : null;
+  const gatewayStatusTitle = gatewayTrafficStatusNote ?? 'Resolved automatically';
+  // Ground-infra role of the specific resolved site (SCC nominal/backup/monitoring),
+  // used only where a single resolved site is actually being labeled (the gateway
+  // identity cards below) — distinct from ENGINEERING_TERMS.GEO.gateway, which is
+  // the neutral generic noun used in structural/non-site-specific copy.
+  const gatewayInfraRoleLabel = resolvedGateway
+    ? getPrimaryControlRoleLabel(resolvedGateway.gateway.roles)
+    : ENGINEERING_TERMS.GEO.gateway;
   const pointACoordinatesLabel = activePoint ? formatCoordinates(activePoint) : '--';
   const pointBCoordinatesLabel = pointB ? formatCoordinates(pointB) : 'Shift+click to place';
   const gatewayCoordinatesLabel = resolvedGateway
@@ -1020,7 +1032,7 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
     if (linkMode === 'STAR_FORWARD') {
       return {
         forward: {
-          // GEO teleport side: mirror the sidebar row exactly.
+          // GEO gateway side: mirror the sidebar row exactly.
           uplink: `${ENGINEERING_TERMS.GEO.gateway} side - reference allocation`,
           // User side: align with the downlink row visible in the sidebar.
           downlink: formatCoverageName(selectedDownlinkCoverage ?? selectedCoverage) ?? segmentFallback.forward.downlink,
@@ -1033,7 +1045,7 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
         forward: {
           // User side: align with the uplink row visible in the sidebar.
           uplink: formatCoverageName(selectedUplinkCoverage) ?? segmentFallback.forward.uplink,
-          // GEO teleport side: mirror the sidebar row exactly.
+          // GEO gateway side: mirror the sidebar row exactly.
           downlink: `${ENGINEERING_TERMS.GEO.gateway} side - reference allocation`,
         },
       };
@@ -1191,9 +1203,9 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
                   stacked
                   tone="user-defined"
                   statusLabel="Auto"
-                  statusTitle="Resolved automatically"
+                  statusTitle={gatewayStatusTitle}
 	                  readOnly
-	                  terminalDisplayLabel={ENGINEERING_TERMS.GEO.gateway}
+	                  terminalDisplayLabel={gatewayInfraRoleLabel}
 	                  terminalDisplayIcon="📡"
 	                  showMaxLabel={false}
 	                />
@@ -1263,9 +1275,9 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
                   stacked
                   tone="user-defined"
                   statusLabel="Auto"
-                  statusTitle="Resolved automatically"
+                  statusTitle={gatewayStatusTitle}
 	                  readOnly
-	                  terminalDisplayLabel={ENGINEERING_TERMS.GEO.gateway}
+	                  terminalDisplayLabel={gatewayInfraRoleLabel}
 	                  terminalDisplayIcon="📡"
 	                  showMaxLabel={false}
 	                />
@@ -1352,15 +1364,15 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
           storageKey="geo-radio-path"
           title={
             isMeshOrP2P
-              ? <> Radio Path <DirectionPill dir={meshDirectionLabel} /><SectionTooltip content="Terminal-to-terminal signal route follows the active MESH/P2P direction through the GEO satellite. No GEO teleport is in the RF path. Shows elevation, slant range and propagation delay for each hop." /></>
-              : <> Radio Path <DirectionPill dir={starDirectionLabel} /><SectionTooltip content="Active one-way STAR signal route. Forward mode is GEO teleport → GEO Satellite → User; Return mode is User → GEO Satellite → GEO teleport. Round-trip reference details are shown in the latency breakdown below." /></>
+              ? <> Radio Path <DirectionPill dir={meshDirectionLabel} /><SectionTooltip content="Terminal-to-terminal signal route follows the active MESH/P2P direction through the GEO satellite. No GEO gateway is in the RF path. Shows elevation, slant range and propagation delay for each hop." /></>
+              : <> Radio Path <DirectionPill dir={starDirectionLabel} /><SectionTooltip content="Active one-way STAR signal route. Forward mode is GEO gateway → GEO Satellite → User; Return mode is User → GEO Satellite → GEO gateway. Round-trip reference details are shown in the latency breakdown below." /></>
           }
           subtitle={radioPathSummary}
           accentColor="#2563eb"
           defaultOpen={false}
         >
           {isMeshOrP2P ? (
-            // ── MESH/P2P: A → Sat → B (no GEO teleport) ─────────────────────
+            // ── MESH/P2P: A → Sat → B (no GEO gateway) ─────────────────────
             meshGeometry ? (() => {
               const isForward = activeMeshTab === 'forward';
               const srcLabel  = isForward ? meshGeometry.pointALabel : meshGeometry.pointBLabel;
@@ -1487,12 +1499,12 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
 
         {/* Latency Breakdown */}
         {isMeshOrP2P ? (
-          // ── MESH/P2P: selected one-way terminal path, no GEO teleport overhead ─
+          // ── MESH/P2P: selected one-way terminal path, no GEO gateway overhead ─
           <LatencyBreakdownCard
             storageKey="geo-latency-breakdown"
             accentColor="#2563eb"
             title={<>Latency breakdown<DirectionPill dir={meshDirectionLabel} /></>}
-            tooltip="One-way propagation for the selected MESH/P2P direction: source terminal → satellite → destination terminal. No GEO teleport is in the RF path; overhead is source + destination modem processing."
+            tooltip="One-way propagation for the selected MESH/P2P direction: source terminal → satellite → destination terminal. No GEO gateway is in the RF path; overhead is source + destination modem processing."
             summary={meshGeometry ? `Estimated ${meshDirectionLabel} latency: ${(activeMeshTab === 'reverse' ? meshGeometry.rvTotalMs : meshGeometry.fwTotalMs).toFixed(1)} ms` : meshUnavailableMessage}
           >
             {meshGeometry ? (() => {
@@ -1513,7 +1525,7 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
                 </div>
                 <div className="pt-1 font-semibold text-gray-700 dark:text-gray-200">Network overhead</div>
                 <div className="ml-2 flex justify-between"><span>Modem processing ({src} + {dst})</span><span>{meshGeometry.modemOverheadMs.toFixed(0)} ms</span></div>
-                <div className="ml-2 text-[10px] text-gray-400 dark:text-gray-500 italic">No GEO teleport - gateway processing and routing delays do not apply.</div>
+                <div className="ml-2 text-[10px] text-gray-400 dark:text-gray-500 italic">No GEO gateway - gateway processing and routing delays do not apply.</div>
                 <div className="border-t border-gray-200 dark:border-slate-700 pt-2 flex justify-between font-semibold text-gray-800 dark:text-gray-100">
                   <span>Estimated {meshDirectionLabel} latency total</span><span>{selectedTotalMs.toFixed(1)} ms</span>
                 </div>
@@ -1526,12 +1538,12 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
             )}
           </LatencyBreakdownCard>
         ) : (
-          // ── STAR: one-way via GEO teleport ────────────────────────────────
+          // ── STAR: one-way via GEO gateway ────────────────────────────────
           <LatencyBreakdownCard
             storageKey="geo-latency-breakdown"
             accentColor="#2563eb"
             title={`Latency breakdown (${isStarReturn ? 'RETURN' : 'FORWARD'})`}
-            tooltip="Breakdown of the active one-way STAR delay. Forward mode sends GEO teleport → Satellite → User; Return mode sends User → Satellite → GEO teleport. Network overhead is added after RF propagation."
+            tooltip="Breakdown of the active one-way STAR delay. Forward mode sends GEO gateway → Satellite → User; Return mode sends User → Satellite → GEO gateway. Network overhead is added after RF propagation."
             summary={geoGeometry ? `Estimated one-way total: ${geoStarOneWayTotalMs != null ? geoStarOneWayTotalMs.toFixed(1) : '--'} ms` : 'No GEO latency breakdown available'}
           >
             {geoGeometry ? (() => {

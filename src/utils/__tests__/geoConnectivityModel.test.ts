@@ -35,15 +35,34 @@ const createGeoSatellite = (name: string, lng: number, id = name): SatelliteData
 const gatewayNameByTeleportCode = new Map(GEO_GATEWAYS.map((gateway) => [gateway.teleportCode, gateway.name]));
 
 describe('geoConnectivityModel gateway selection', () => {
-  it('resolves every reference allocation entry to its nominal GEO teleport by default', () => {
+  it('resolves every reference allocation entry to its nominal SCC site, with traffic status surfaced explicitly', () => {
     for (const assignment of GEO_GATEWAY_ASSIGNMENTS) {
       const satellite = createGeoSatellite(assignment.satelliteName, 0, assignment.satelliteId);
       const resolved = resolveGatewayForSatellite(satellite, GEO_GATEWAYS);
+      const trafficSelection = selectTrafficGeoGateway(satellite, GEO_GATEWAYS);
 
       expect(resolved, assignment.satelliteName).not.toBeNull();
       expect(resolved?.gatewayName).toBe(gatewayNameByTeleportCode.get(assignment.nominalSccCode));
-      expect(resolved?.role).toBe('nominal');
+      expect(resolved?.controlAssignmentRole).toBe('nominal');
       expect(resolved?.assignmentSource).toBe('reference-gateway-allocation');
+
+      // Every nominalSccCode in the reference table resolves to RAM or MEX, both
+      // PUBLICLY_LIKELY (public Eutelsat comms, not internally confirmed) — the
+      // status must be surfaced explicitly on the traffic selection, not masked.
+      expect(trafficSelection, assignment.satelliteName).not.toBeNull();
+      expect(trafficSelection?.trafficStatus).toBe('PUBLICLY_LIKELY');
+
+      // Backup path coverage: backupSccCode is always CAG/HER/TUR in the reference
+      // table (verified by direct inspection, never an UNVERIFIED site) — exercise
+      // selectTrafficGeoGateway via STATIC_BACKUP so these 3 sites get the same
+      // explicit trafficStatus assertion as the nominal RAM/MEX path above, rather
+      // than only being checked for controlAssignmentRole elsewhere in this file.
+      if (assignment.backupSccCode) {
+        const backupTrafficSelection = selectTrafficGeoGateway(satellite, GEO_GATEWAYS, { gatewayPolicy: 'STATIC_BACKUP' });
+        expect(backupTrafficSelection, `${assignment.satelliteName} backup`).not.toBeNull();
+        expect(backupTrafficSelection?.gateway.teleportCode).toBe(assignment.backupSccCode);
+        expect(backupTrafficSelection?.trafficStatus).toBe('PUBLICLY_LIKELY');
+      }
     }
   });
 
@@ -55,10 +74,10 @@ describe('geoConnectivityModel gateway selection', () => {
 
     expect(nominal?.gatewayId).toBe('geo-rambouillet');
     expect(nominal?.gatewayName).toBe('Rambouillet');
-    expect(nominal?.role).toBe('nominal');
+    expect(nominal?.controlAssignmentRole).toBe('nominal');
     expect(backup?.gatewayId).toBe('geo-turin');
     expect(backup?.gatewayName).toBe('Turin');
-    expect(backup?.role).toBe('backup');
+    expect(backup?.controlAssignmentRole).toBe('backup');
   });
 
   it('normalizes satellite aliases already used by the allocation table', () => {
@@ -139,7 +158,7 @@ describe('geoConnectivityModel gateway selection', () => {
     expect(thirtySixDRouting?.monitoring.map((gateway) => gateway.name)).toEqual(['Rambouillet', 'Dubai']);
   });
 
-  it('feeds link budget, traffic selection, and rendered connectivity path from the same gateway resolver', () => {
+  it('aligns SCC resolution, traffic selection, and rendered connectivity path for a PUBLICLY_LIKELY site', () => {
     const satellite = createGeoSatellite('EUTELSAT 8 WEST B', -8, '8WB');
     const resolved = resolveGatewayForSatellite(satellite, GEO_GATEWAYS);
     const trafficSelection = selectTrafficGeoGateway(satellite, GEO_GATEWAYS);
@@ -156,7 +175,30 @@ describe('geoConnectivityModel gateway selection', () => {
 
     expect(resolved?.gatewayId).toBe('geo-rambouillet');
     expect(trafficSelection?.gateway.gateway_id).toBe(resolved?.gatewayId);
+    // Rambouillet is PUBLICLY_LIKELY, not CONFIRMED — must be explicit on the
+    // traffic selection, not silently dropped or implied by a successful resolution.
+    expect(trafficSelection?.trafficStatus).toBe('PUBLICLY_LIKELY');
     expect(geometry.satelliteToGateway.resolvedGateway?.gatewayId).toBe(resolved?.gatewayId);
     expect(path.resolvedGateway?.gatewayId).toBe(resolved?.gatewayId);
+  });
+
+  it('returns null from selectTrafficGeoGateway when the resolved SCC site has an unverified traffic status, without affecting SCC resolution', () => {
+    const satellite = createGeoSatellite('EUTELSAT 8 WEST B', -8, '8WB'); // nominal SCC = Rambouillet (RAM)
+    const unverifiedGateways = GEO_GATEWAYS.map((gateway) => (
+      gateway.teleportCode === 'RAM'
+        ? { ...gateway, trafficStatus: 'UNVERIFIED' as const }
+        : gateway
+    ));
+
+    const operational = selectOperationalGeoGateway(satellite, unverifiedGateways);
+    const trafficSelection = selectTrafficGeoGateway(satellite, unverifiedGateways);
+
+    // SCC resolution must be completely unaffected by trafficStatus — this is the
+    // guarantee that selectOperationalGeoGateway behaves identically before/after
+    // the trafficStatus gating was added to selectTrafficGeoGateway.
+    expect(operational?.gateway.name).toBe('Rambouillet');
+    // Traffic selection must not silently fall back to the SCC site when its
+    // commercial traffic function is unverified.
+    expect(trafficSelection).toBeNull();
   });
 });

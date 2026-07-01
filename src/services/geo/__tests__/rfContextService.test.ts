@@ -65,7 +65,7 @@ describe('geo RF context service', () => {
       downlink,
       coverageLabels: {
         uplink: 'E8WB C Band Receive',
-        downlink: 'GEO teleport side - reference allocation',
+        downlink: 'GEO gateway side - reference allocation',
       },
     });
 
@@ -73,7 +73,7 @@ describe('geo RF context service', () => {
     expect(context.band).toBe('C');
     expect(context.uplink.frequencyMHz).toBe(5900);
     expect(context.downlink.frequencyMHz).toBe(3800);
-    expect(context.payload.selectedCoverageName).toBe('GEO teleport side - reference allocation');
+    expect(context.payload.selectedCoverageName).toBe('GEO gateway side - reference allocation');
   });
 
   it('adds inferred uplink warning from public match without changing RF values', () => {

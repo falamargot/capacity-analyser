@@ -7,7 +7,7 @@ import { SatelliteScope } from './SatelliteScopeFilter';
 import SatelliteDetails from './SatelliteDetails';
 import { SPEED_OF_LIGHT_RADIO_KM_S, RealTimeCapacityData, calculateElevationAngle, compute3DDistanceKm, computeOneWayLatencyMs } from '../utils/capacityCalculator';
 import { NOMINAL_TERMINAL_PEAK_MBPS } from '../config/oneweb';
-import { GEO_GATEWAYS, SNPS_DATA } from './globe/GlobeConfig';
+import { GEO_GATEWAYS, SNPS_DATA, getGatewayTrafficStatusNote } from './globe/GlobeConfig';
 import { findBestConnectedBeamInfo, hasRFConnectivity, estimateCurrentLeoBeamLink } from '../utils/rfConnectivity';
 import type { LeoRFDebugInfo } from './capacity/LEOConnectivitySection';
 import { selectTrafficGeoGateway } from '../utils/geoConnectivityModel';
@@ -2103,8 +2103,11 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
     const userLabel = analysisSource === 'aircraft' && aircraftCallsign ? aircraftCallsign : 'User';
     const resolvedGateway = geoGeometry.satelliteToGateway.resolvedGateway;
     const gatewayName = resolvedGateway
-      ? `${resolvedGateway.gatewayName} (${resolvedGateway.role})`
-      : geoGeometry.satelliteToGateway.gateway?.name ?? 'No eligible GEO teleport';
+      ? `${resolvedGateway.gatewayName} (${resolvedGateway.controlAssignmentRole})`
+      : geoGeometry.satelliteToGateway.gateway?.name ?? 'No eligible GEO gateway';
+    const gatewayTrafficStatusNote = resolvedGateway
+      ? getGatewayTrafficStatusNote(resolvedGateway.gateway.trafficStatus)
+      : null;
     const userToSatelliteLabel = resolvedGEOConnectivity.candidate.coverageName || resolvedGEOConnectivity.satellite.name;
     const oneWayDistanceKm = geoGeometry.satelliteToGateway.slantRangeKm != null
       ? geoGeometry.userToSatellite.slantRangeKm + geoGeometry.satelliteToGateway.slantRangeKm
@@ -2117,6 +2120,7 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
         `Elevation: ${geoGeometry.userToSatellite.elevationDeg.toFixed(1)} deg | Slant range: ${geoGeometry.userToSatellite.slantRangeKm.toFixed(0)} km (${geoGeometry.userToSatellite.latencyMs.toFixed(1)} ms)`,
         `${gatewayName} -> ${resolvedGEOConnectivity.satellite.name}`,
         `Slant range: ${geoGeometry.satelliteToGateway.slantRangeKm != null ? `${geoGeometry.satelliteToGateway.slantRangeKm.toFixed(0)} km` : 'N/A'} (${geoGeometry.satelliteToGateway.latencyMs != null ? `${geoGeometry.satelliteToGateway.latencyMs.toFixed(1)} ms` : 'N/A'})`,
+        ...(gatewayTrafficStatusNote ? [gatewayTrafficStatusNote] : []),
       ],
       oneWayPropagation: {
         distanceKm: oneWayDistanceKm,

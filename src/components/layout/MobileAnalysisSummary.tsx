@@ -21,7 +21,7 @@ import {
     type SelectedPointStatusTone,
 } from '../../utils/selectedPointStatus';
 import { BACKHAUL_RADIUS_KM } from '../../utils/leoFootprint';
-import { GEO_GATEWAYS } from '../globe/GlobeConfig';
+import { GEO_GATEWAYS, getPrimaryControlRoleLabel } from '../globe/GlobeConfig';
 import { getAssignedGeoSatellitesForGateway } from '../../utils/geoConnectivityModel';
 import type { SNPConnectedSatellite } from '../../services/coverageService';
 import { getMoonSnapshot, MOON_MEAN_RADIUS_KM } from '../../utils/moonInfo';
@@ -46,6 +46,7 @@ interface MobileAnalysisSummaryProps {
     inspectedSNP?: SNPData | null;
     selectedVessel?: Vessel | null;
     compact?: boolean;
+    showKpisInCompact?: boolean;
     metrics?: MobileAnalysisMetrics;
     leoServiceViewModel?: LeoConnectivityViewModel | null;
     satelliteScope?: SelectedPointScope;
@@ -439,6 +440,7 @@ const MobileAnalysisSummary: React.FC<MobileAnalysisSummaryProps> = ({
     inspectedSNP = null,
     selectedVessel = null,
     compact = false,
+    showKpisInCompact = true,
     metrics,
     leoServiceViewModel = null,
     satelliteScope = 'ALL',
@@ -495,7 +497,7 @@ const MobileAnalysisSummary: React.FC<MobileAnalysisSummaryProps> = ({
             return {
                 eyebrow: 'Gateway',
                 title: selectedGateway.name,
-                subtitle: `${selectedGateway.region} teleport`,
+                subtitle: `${selectedGateway.region} · ${getPrimaryControlRoleLabel(selectedGateway.roles)}`,
                 status: 'GEO routing view',
                 statusTone: 'neutral' as const,
             };
@@ -714,6 +716,8 @@ const MobileAnalysisSummary: React.FC<MobileAnalysisSummaryProps> = ({
     }, [activeMeshTab, leoSiteToSiteResult, leoTopologyMode, linkMode, metrics?.geo, metrics?.leo, metrics?.mesh, onLinkModeChange, pointB, satelliteScope, selectedAircraft, selectedPoint]);
 
     const hasMetrics = metricCards.length > 0;
+    const shouldShowMetrics = hasMetrics && (!compact || showKpisInCompact);
+    const shouldShowEmptyState = !compact || (!selectedPoint && !selectedAircraft);
     const mobileRouteSummary = useMemo(() => {
         const siteBPoint = pointB ?? pointBLeo;
         if (
@@ -1031,7 +1035,7 @@ const MobileAnalysisSummary: React.FC<MobileAnalysisSummaryProps> = ({
                         ))}
                     </div>
                 </div>
-            ) : hasMetrics ? (
+            ) : shouldShowMetrics ? (
                 <div className={compact ? 'mt-2' : 'mt-3'}>
                     <div className={`grid gap-2 ${metricCards.length === 1 ? 'grid-cols-1' : 'grid-cols-2'}`}>
                         {metricCards.map((card) => (
@@ -1052,11 +1056,11 @@ const MobileAnalysisSummary: React.FC<MobileAnalysisSummaryProps> = ({
                         ))}
                     </div>
                 </div>
-            ) : (
+            ) : shouldShowEmptyState ? (
                 <div className={`${compact ? 'mt-2 rounded-[20px] px-3 py-2 text-[13px] leading-[1.4]' : 'mt-3 rounded-2xl px-3 py-2.5 text-sm'} border border-slate-200/80 bg-white/82 text-slate-600 shadow-sm dark:border-slate-700 dark:bg-slate-900/72 dark:text-slate-300`}>
                     {emptyStateMessage}
                 </div>
-            )}
+            ) : null}
         </div>
     );
 };

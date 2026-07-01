@@ -207,7 +207,9 @@ const GlobeIntelligenceRail: React.FC<GlobeIntelligenceRailProps> = ({
     isMobileViewport = false,
 }) => {
     const [isOverflowOpen, setIsOverflowOpen] = useState(false);
+    const [isMobileLayersOpen, setIsMobileLayersOpen] = useState(false);
     const overflowRef = useRef<HTMLDivElement>(null);
+    const mobileLayersRef = useRef<HTMLDivElement>(null);
 
     const handleZoomIn = useCallback(() => zoomIn(viewerRef), [viewerRef]);
     const handleZoomOut = useCallback(() => zoomOut(viewerRef), [viewerRef]);
@@ -221,22 +223,30 @@ const GlobeIntelligenceRail: React.FC<GlobeIntelligenceRailProps> = ({
         onCountryOverlayModeChange(countryOverlayMode === '5g-spectrum' ? 'none' : '5g-spectrum');
     }, [countryOverlayMode, onCountryOverlayModeChange]);
 
-    // Close overflow on outside click or Escape
+    // Close popovers on outside click or Escape
     useEffect(() => {
-        if (!isOverflowOpen) return;
+        if (!isOverflowOpen && !isMobileLayersOpen) return;
         const onDown = (e: PointerEvent) => {
             if (overflowRef.current && e.target instanceof Node && !overflowRef.current.contains(e.target)) {
                 setIsOverflowOpen(false);
             }
+            if (mobileLayersRef.current && e.target instanceof Node && !mobileLayersRef.current.contains(e.target)) {
+                setIsMobileLayersOpen(false);
+            }
         };
-        const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setIsOverflowOpen(false); };
+        const onKey = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') {
+                setIsOverflowOpen(false);
+                setIsMobileLayersOpen(false);
+            }
+        };
         document.addEventListener('pointerdown', onDown);
         document.addEventListener('keydown', onKey);
         return () => {
             document.removeEventListener('pointerdown', onDown);
             document.removeEventListener('keydown', onKey);
         };
-    }, [isOverflowOpen]);
+    }, [isMobileLayersOpen, isOverflowOpen]);
 
     // Keyboard shortcuts — mirrors GlobeControls
     useEffect(() => {
@@ -275,7 +285,7 @@ const GlobeIntelligenceRail: React.FC<GlobeIntelligenceRailProps> = ({
     const isMobile = isPhone || isMobileViewport;
     const showCompactFullscreenControls = isMobile && isFullscreen;
     const showExtendedControls = variant === 'full' && !showCompactFullscreenControls;
-    const railTopClass = showCompactFullscreenControls ? 'top-3' : isMobile ? 'top-32' : 'top-3';
+    const railTopClass = showCompactFullscreenControls ? 'top-3' : isMobile ? 'top-24' : 'top-3';
     const usesCustomRightOffset = placement === 'right' && Boolean(rightOffset);
     const railSideClass = placement === 'left'
         ? 'left-3 items-start'
@@ -364,6 +374,132 @@ const GlobeIntelligenceRail: React.FC<GlobeIntelligenceRailProps> = ({
         </div>
     );
 
+    const markerScaleControl = onSizeScaleChange ? (
+        <div className="mt-2 rounded-[16px] border border-slate-200/80 bg-white/78 px-3 py-2 dark:border-slate-700 dark:bg-slate-900/72">
+            <div className="flex items-center justify-between gap-2">
+                <span className="text-[12px] font-semibold text-slate-900 dark:text-slate-100">Marker Scale</span>
+                <div className="flex items-center gap-1.5">
+                    {onSizeScaleReset && (
+                        <button
+                            type="button"
+                            onClick={onSizeScaleReset}
+                            className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white px-2 py-0.5 text-[10px] font-semibold text-slate-600 hover:border-slate-300 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300"
+                            title="Reset marker scale"
+                        >
+                            <RotateCcw className="h-2.5 w-2.5" />
+                            Reset
+                        </button>
+                    )}
+                    <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-700 dark:bg-slate-800 dark:text-slate-200">
+                        {formatScaleLabel(sizeScale ?? 1)}x
+                    </span>
+                </div>
+            </div>
+            <input
+                type="range"
+                min="0.25"
+                max="8"
+                step="0.25"
+                value={sizeScale ?? 1}
+                onChange={(e) => onSizeScaleChange(parseFloat(e.target.value))}
+                onDoubleClick={() => onSizeScaleReset?.()}
+                className="mt-2 h-1.5 w-full cursor-pointer appearance-none rounded-full bg-slate-200 accent-blue-600 dark:bg-slate-700"
+                aria-label="Adjust marker size"
+            />
+        </div>
+    ) : null;
+
+    const mobileLayerControl = showExtendedControls && isMobile ? (
+        <div className="relative" ref={mobileLayersRef}>
+            <div className={`${railSurface} flex w-12 flex-col items-center p-1.5`}>
+                <CameraButton
+                    icon={<Map className="h-4 w-4" />}
+                    onClick={() => setIsMobileLayersOpen((v) => !v)}
+                    title="Layers"
+                    active={isMobileLayersOpen || countryOverlayMode !== 'none' || showAggregatedConnectivity || showFillRateLayer || airTrafficEnabled || maritimeTrafficEnabled || issLiveEnabled}
+                />
+            </div>
+
+            {isMobileLayersOpen && (
+                <div
+                    className={`absolute ${popoverSideClass} top-0 z-[1310] w-[244px] max-w-[calc(100vw-5rem)] overflow-hidden rounded-[20px] border border-white/70 bg-[linear-gradient(180deg,rgba(15,23,42,0.98),rgba(2,6,23,0.96))] p-2.5 shadow-[0_24px_56px_-28px_rgba(2,6,23,0.85)] ring-1 ring-slate-700/80 backdrop-blur-xl`}
+                    role="dialog"
+                    aria-label="Layers"
+                >
+                    <div className="mb-2 border-b border-slate-700 pb-2">
+                        <div className="text-sm font-semibold text-slate-50">Layers</div>
+                    </div>
+
+                    <div className="space-y-1">
+                        <OverflowToggleRow
+                            icon={<Globe className="h-3.5 w-3.5" />}
+                            label="Regulatory"
+                            enabled={countryOverlayMode === 'regulatory'}
+                            onClick={handleToggleReg}
+                            title="Regulatory zones overlay"
+                        />
+                        <OverflowToggleRow
+                            icon={<Globe className="h-3.5 w-3.5" />}
+                            label="5G Spectrum"
+                            enabled={countryOverlayMode === '5g-spectrum'}
+                            onClick={handleToggle5G}
+                            title="5G spectrum overlay"
+                        />
+                        <OverflowToggleRow
+                            icon={<Waves className="h-3.5 w-3.5" />}
+                            label="Connectivity"
+                            enabled={showAggregatedConnectivity}
+                            onClick={onToggleAggregatedConnectivity}
+                            title="Aggregated connectivity layer"
+                        />
+                        <OverflowToggleRow
+                            icon={<BarChart2 className="h-3.5 w-3.5" />}
+                            label="Network Load"
+                            enabled={showFillRateLayer && fillRateLayerAvailable}
+                            onClick={fillRateLayerAvailable ? onToggleFillRateLayer : () => {}}
+                            title={fillRateLayerAvailable ? 'Network Load model' : 'Network Load is available in LEO or ALL scope only'}
+                            disabled={!fillRateLayerAvailable}
+                        />
+                    </div>
+
+                    <div className="mt-2 border-t border-slate-700 pt-2">
+                        <div className="mb-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-400">Objects</div>
+                        <div className="space-y-1">
+                            <OverflowToggleRow
+                                icon={<Plane className="h-3.5 w-3.5" />}
+                                label="Aircraft"
+                                enabled={airTrafficEnabled}
+                                onClick={onToggleAirTraffic}
+                                title="Aircraft traffic layer"
+                            />
+                            <OverflowToggleRow
+                                icon={<Ship className="h-3.5 w-3.5" />}
+                                label="Maritime"
+                                enabled={maritimeTrafficEnabled}
+                                onClick={onToggleMaritimeTraffic}
+                                title="Maritime traffic layer"
+                            />
+                            <OverflowToggleRow
+                                icon={<Satellite className="h-3.5 w-3.5" />}
+                                label="ISS"
+                                enabled={issLiveEnabled}
+                                onClick={onToggleIssLive}
+                                title="ISS live layer"
+                            />
+                        </div>
+                    </div>
+
+                    {markerScaleControl && (
+                        <div className="mt-2 border-t border-slate-700 pt-2">
+                            <div className="mb-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-400">Display Preferences</div>
+                            {markerScaleControl}
+                        </div>
+                    )}
+                </div>
+            )}
+        </div>
+    ) : null;
+
     return (
         <div
             className={`absolute ${railSideClass} ${railTopClass} ${railZClass} flex flex-col gap-2`}
@@ -373,13 +509,13 @@ const GlobeIntelligenceRail: React.FC<GlobeIntelligenceRailProps> = ({
             {cameraControls}
 
             {/* Layer toggles */}
-            {showExtendedControls && layerControls}
+            {isMobile ? mobileLayerControl : showExtendedControls && layerControls}
 
             {/* Object toggles */}
-            {showExtendedControls && objectControls}
+            {!isMobile && showExtendedControls && objectControls}
 
             {/* Category B — display preferences behind ⋯ */}
-            {showExtendedControls && (
+            {showExtendedControls && !isMobile && (
                 <div className="relative" ref={overflowRef}>
                     <div className={`${railSurface} flex w-12 flex-col items-center p-1.5`}>
                         <CameraButton
@@ -482,40 +618,7 @@ const GlobeIntelligenceRail: React.FC<GlobeIntelligenceRailProps> = ({
                             </div>
 
                             {/* Marker scale */}
-                            {onSizeScaleChange && (
-                                <div className="mt-2 rounded-[16px] border border-slate-200/80 bg-white/78 px-3 py-2 dark:border-slate-700 dark:bg-slate-900/72">
-                                    <div className="flex items-center justify-between gap-2">
-                                        <span className="text-[12px] font-semibold text-slate-900 dark:text-slate-100">Marker Scale</span>
-                                        <div className="flex items-center gap-1.5">
-                                            {onSizeScaleReset && (
-                                                <button
-                                                    type="button"
-                                                    onClick={onSizeScaleReset}
-                                                    className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white px-2 py-0.5 text-[10px] font-semibold text-slate-600 hover:border-slate-300 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300"
-                                                    title="Reset marker scale"
-                                                >
-                                                    <RotateCcw className="h-2.5 w-2.5" />
-                                                    Reset
-                                                </button>
-                                            )}
-                                            <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-700 dark:bg-slate-800 dark:text-slate-200">
-                                                {formatScaleLabel(sizeScale ?? 1)}x
-                                            </span>
-                                        </div>
-                                    </div>
-                                    <input
-                                        type="range"
-                                        min="0.25"
-                                        max="8"
-                                        step="0.25"
-                                        value={sizeScale ?? 1}
-                                        onChange={(e) => onSizeScaleChange(parseFloat(e.target.value))}
-                                        onDoubleClick={() => onSizeScaleReset?.()}
-                                        className="mt-2 h-1.5 w-full cursor-pointer appearance-none rounded-full bg-slate-200 accent-blue-600 dark:bg-slate-700"
-                                        aria-label="Adjust marker size"
-                                    />
-                                </div>
-                            )}
+                            {markerScaleControl}
                         </div>
                     )}
                 </div>
@@ -532,15 +635,17 @@ interface OverflowToggleRowProps {
     enabled: boolean;
     onClick: () => void;
     title?: string;
+    disabled?: boolean;
 }
 
-const OverflowToggleRow: React.FC<OverflowToggleRowProps> = ({ icon, label, enabled, onClick, title }) => (
+const OverflowToggleRow: React.FC<OverflowToggleRowProps> = ({ icon, label, enabled, onClick, title, disabled }) => (
     <button
         type="button"
         onClick={onClick}
         title={title}
         aria-pressed={enabled}
-        className="flex w-full items-center gap-2.5 rounded-xl border border-transparent px-2.5 py-1.5 transition-all hover:border-slate-200/80 hover:bg-white dark:hover:border-slate-700 dark:hover:bg-slate-900"
+        disabled={disabled}
+        className={`flex w-full items-center gap-2.5 rounded-xl border border-transparent px-2.5 py-1.5 transition-all hover:border-slate-200/80 hover:bg-white dark:hover:border-slate-700 dark:hover:bg-slate-900 ${disabled ? 'cursor-not-allowed opacity-45' : ''}`}
     >
         <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-lg ${enabled ? 'bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-300' : 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400'}`}>
             {icon}

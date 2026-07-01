@@ -28,7 +28,7 @@ if (!rootElement) {
 // React 19 : createRoot est toujours la méthode standard
 createRoot(rootElement).render(
   <React.StrictMode>
-    <ThemeProvider defaultTheme="system" storageKey="vite-ui-theme">
+    <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
       <SimulationProvider>
         <App />
       </SimulationProvider>

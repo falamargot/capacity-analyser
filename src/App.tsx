@@ -35,7 +35,7 @@ import type { Selection } from './types/analysis';
 import type { CoverageSwitcherCoverage } from './components/CoverageSwitcherVertical';
 import { useSatelliteLoader } from './hooks/useSatelliteLoader';
 import { Feature, Geometry, GeoJsonProperties } from 'geojson';
-import { GEO_GATEWAYS, SNPS_DATA, type GeoGatewayData, type SNPData } from './components/globe/GlobeConfig';
+import { GEO_GATEWAYS, SNPS_DATA, formatGroundRoles, getPrimaryControlRoleLabel, type GeoGatewayData, type SNPData } from './components/globe/GlobeConfig';
 
 import { resolveAutoSelectedSatellites } from './utils/satelliteResolution';
 import {
@@ -147,6 +147,7 @@ type EndpointSelectionMotion = {
   role: 'origin' | 'destination';
   token: number;
 };
+type MobileAnalysisDetent = 'compact' | 'medium';
 
 // ─── Module-level constants ───────────────────────────────────────────────────
 const COMPACT_DESKTOP_DIAG_MIN = Math.hypot(1920, 1080);
@@ -792,6 +793,8 @@ const App: React.FC = () => {
   const targetSourcesButtonRef = useRef<HTMLButtonElement>(null);
   const targetSourcesMenuRef = useRef<HTMLDivElement>(null);
   const [isMobileAnalysisPanelOpen, setIsMobileAnalysisPanelOpen] = useState(false);
+  const [mobileAnalysisDetent, setMobileAnalysisDetent] = useState<MobileAnalysisDetent>('compact');
+  const [isMobileAnalysisSummaryReady, setIsMobileAnalysisSummaryReady] = useState(false);
   const [isSatelliteModalOpen, setIsSatelliteModalOpen] = useState(false);
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
   const [isTargetSourcesMenuOpen, setIsTargetSourcesMenuOpen] = useState(false);
@@ -857,7 +860,7 @@ const App: React.FC = () => {
     variant: 'desktop' | 'compact' | 'mobile' | 'floating' = 'desktop',
   ) => {
     if (variant === 'mobile' || variant === 'floating') {
-      return renderAuthorshipLogo('icon', variant === 'mobile' ? 'h-7 w-7' : 'h-5 w-5');
+      return renderAuthorshipLogo('icon', variant === 'mobile' ? 'h-7 w-7' : 'h-4 w-4');
     }
 
     if (variant === 'desktop') {
@@ -1074,6 +1077,33 @@ const App: React.FC = () => {
     || selectedVessel
     || selectedIss
   );
+  const mobileSelectionChoreographyKey = useMemo(() => (
+    [
+      selectedSelection.type,
+      selectedPosition?.lat,
+      selectedPosition?.lng,
+      analyzisPosition?.aircraftCallsign,
+      selectedSatelliteId,
+      selectedMoon ? 'moon' : '',
+      selectedAircraft?.icao24,
+      selectedGateway?.name,
+      inspectedSNP?.name,
+      selectedVessel?.mmsi,
+      selectedIss ? 'iss' : '',
+    ].join('|')
+  ), [
+    analyzisPosition?.aircraftCallsign,
+    inspectedSNP?.name,
+    selectedAircraft?.icao24,
+    selectedGateway?.name,
+    selectedIss,
+    selectedMoon,
+    selectedPosition?.lat,
+    selectedPosition?.lng,
+    selectedSatelliteId,
+    selectedSelection.type,
+    selectedVessel?.mmsi,
+  ]);
 
   useEffect(() => {
     if (!isMobile) return;
@@ -1085,6 +1115,25 @@ const App: React.FC = () => {
     isMobile,
     isFullscreen,
   ]);
+
+  useEffect(() => {
+    setMobileAnalysisDetent('compact');
+
+    if (!isMobile || !hasMobileSelection) {
+      setIsMobileAnalysisSummaryReady(false);
+      return undefined;
+    }
+
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (prefersReducedMotion) {
+      setIsMobileAnalysisSummaryReady(true);
+      return undefined;
+    }
+
+    setIsMobileAnalysisSummaryReady(false);
+    const timeout = window.setTimeout(() => setIsMobileAnalysisSummaryReady(true), 220);
+    return () => window.clearTimeout(timeout);
+  }, [hasMobileSelection, isMobile, mobileSelectionChoreographyKey]);
 
   useEffect(() => {
     if (!isMobile || !isMobileAnalysisPanelOpen) return undefined;
@@ -1441,6 +1490,14 @@ const App: React.FC = () => {
     const gatewayPositionBySatelliteId = new Map<string, string>();
 
     for (const satellite of candidateSatellites) {
+      // null here means the satellite's resolved SCC site has no CONFIRMED or
+      // PUBLICLY_LIKELY traffic role (see GatewayTrafficStatus). The satellite is
+      // intentionally excluded from STAR eligibility rather than falling back to
+      // the SCC site as if it were a confirmed teleport — this corresponds to
+      // CandidateCoverageStatus 'teleport_unconfirmed' conceptually, though no
+      // satellite reaches this branch with current reference allocation data
+      // (verified: every nominalSccCode/backupSccCode resolves to a
+      // PUBLICLY_LIKELY site as of this refactor).
       const gatewaySelection = selectTrafficGeoGateway(satellite, GEO_GATEWAYS);
       if (!gatewaySelection) continue;
 
@@ -3298,6 +3355,7 @@ const App: React.FC = () => {
     showFlowAnimation,
     sizeScale,
     hideSatelliteScreenLabels: isPhone && isMobileAnalysisPanelOpen,
+    hideSiteScreenLabels: isMobile && isMobileAnalysisSummaryReady,
     isPhone,
     isMobileViewport: isMobile,
     isFullscreen,
@@ -3308,6 +3366,7 @@ const App: React.FC = () => {
     isFullscreen,
     isMobile,
     isMobileAnalysisPanelOpen,
+    isMobileAnalysisSummaryReady,
     isPhone,
     showAggregatedConnectivity,
     showFillRateLayer,
@@ -3438,6 +3497,7 @@ const App: React.FC = () => {
     handleSnpHover,
     handleToggleAggregatedConnectivity,
     handleToggleAirTraffic,
+    handleToggleFillRateLayer,
     handleToggleFlowAnimation,
     handleToggleFootprintProjection,
     handleToggleFullscreen,
@@ -3736,7 +3796,7 @@ const App: React.FC = () => {
       return {
         eyebrow: 'Ground Segment',
         title: selectedGateway.name,
-        subtitle: `${selectedGateway.teleportCode} · ${selectedGateway.role.replaceAll('_', ' ')}`,
+        subtitle: `${selectedGateway.teleportCode} · ${formatGroundRoles(selectedGateway.roles)}`,
         footer: (
           <div className="space-y-2.5">
             <div className="flex items-center gap-1.5 text-[13px] font-semibold text-slate-700 dark:text-slate-200">
@@ -3762,7 +3822,7 @@ const App: React.FC = () => {
         backgroundImageLabel: 'Representative teleport infrastructure photo',
         tone: 'gateway' as const,
         badges: [
-          { label: selectedGateway.role.includes('Monitoring') ? 'Monitoring' : selectedGateway.role.includes('Backup') ? 'Backup SCC' : 'Nominal SCC', tone: selectedGateway.role.includes('Backup') ? 'amber' as const : 'blue' as const },
+          { label: getPrimaryControlRoleLabel(selectedGateway.roles), tone: selectedGateway.roles.includes('SCC_BACKUP') ? 'amber' as const : 'blue' as const },
           { label: selectedGateway.region, tone: 'slate' as const },
           { label: selectedGateway.teleportCode, tone: 'slate' as const },
           ...(selectedGatewayHeroData?.hasKaVerification ? [{ label: 'Ka Verification', tone: 'teal' as const }] : []),
@@ -4350,7 +4410,7 @@ const App: React.FC = () => {
       ? (leoTopologyMode === 'SITE_TO_SITE'
           ? activeLeoSiteToSiteResult?.selectedSnpA?.name ?? selectedSNP?.name ?? 'SNP'
           : selectedSNP?.name ?? 'SNP')
-      : activeCommercialGeoGateway?.gatewayName ?? resolvedAutoGeoGateway?.gatewayName ?? 'GEO teleport';
+      : activeCommercialGeoGateway?.gatewayName ?? resolvedAutoGeoGateway?.gatewayName ?? 'GEO gateway';
     const routeNodes = activeTech === 'LEO'
       ? (leoTopologyMode === 'SITE_TO_SITE'
           ? [
@@ -4710,8 +4770,8 @@ const App: React.FC = () => {
     </button>
   );
 
-  const renderUiModeSwitch = (compact = false) => (
-    <div className={`inline-flex shrink-0 border border-slate-200 bg-slate-50 p-1 dark:border-slate-700 dark:bg-slate-800 ${compact ? 'rounded-[22px] text-[13px] shadow-sm' : 'rounded-xl text-sm'}`}>
+  const renderUiModeSwitch = (compact = false, hud = false) => (
+    <div className={`inline-flex shrink-0 border border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-800 ${hud ? 'rounded-[16px] p-0.5 text-[11px] shadow-sm' : compact ? 'rounded-[22px] p-1 text-[13px] shadow-sm' : 'rounded-xl p-1 text-sm'}`}>
       {([
         ['engineering', compact ? 'Eng' : 'Engineering'],
         ['commercial', compact ? 'Comm' : 'Commercial'],
@@ -4722,7 +4782,9 @@ const App: React.FC = () => {
           onClick={() => handleModeSwitch(mode)}
           className={[
             compact
-              ? 'rounded-[16px] px-4 py-2.5 font-semibold transition-colors'
+              ? hud
+                ? 'rounded-[12px] px-2.5 py-1.5 font-semibold transition-colors'
+                : 'rounded-[16px] px-4 py-2.5 font-semibold transition-colors'
               : 'rounded-lg px-4 py-2.5 font-semibold transition-colors',
             uiMode === mode
               ? 'bg-slate-950 text-white shadow-sm dark:bg-white dark:text-slate-950'
@@ -5048,9 +5110,8 @@ const App: React.FC = () => {
                       currentScope={satelliteScope}
                       onScopeChange={handleSatelliteScopeChange}
                     />
-                    <SimulationSettings satelliteScope={satelliteScope} />
                   </div>
-                  {renderUiModeSwitch(true)}
+                  {renderUiModeSwitch(true, true)}
                   <button
                     type="button"
                     onClick={() => setIsSatelliteModalOpen(true)}
@@ -5059,7 +5120,6 @@ const App: React.FC = () => {
                   >
                     <Satellite className="h-5 w-5" />
                   </button>
-                  <ThemeSelector isMobile />
                 </div>
               </div>
             ) : isDesktopHeaderCollapsed ? (
@@ -5261,11 +5321,11 @@ const App: React.FC = () => {
                                     className={entryPointDescriptionClassName}
                                     title={satelliteScope === 'LEO'
                                       ? 'Available only in ALL or GEO scope.'
-                                      : 'Assess a GEO teleport capability.'}
+                                      : 'Assess a GEO gateway site capability.'}
                                   >
                                     {satelliteScope === 'LEO'
                                       ? 'Available only in ALL or GEO scope.'
-                                      : 'Assess GEO teleport capability.'}
+                                      : 'Assess GEO gateway site capability.'}
                                   </p>
                                 </div>
                               </div>
@@ -5582,11 +5642,11 @@ const App: React.FC = () => {
 
             {showPhoneFloatingHeader && (
               <div
-                className="pointer-events-none absolute inset-x-0 top-0 z-[1320] px-3"
-                style={{ paddingTop: 'calc(env(safe-area-inset-top) + 0.75rem)' }}
+                className="pointer-events-none absolute inset-x-0 top-0 z-[1320] px-2.5"
+                style={{ paddingTop: 'calc(env(safe-area-inset-top) + 0.5rem)' }}
               >
-                <div className="pointer-events-auto rounded-[28px] border border-white/65 bg-[linear-gradient(180deg,rgba(255,255,255,0.94),rgba(241,245,249,0.88))] p-2.5 shadow-[0_24px_60px_-36px_rgba(15,23,42,0.78)] backdrop-blur-xl dark:border-slate-700/80 dark:bg-[linear-gradient(180deg,rgba(15,23,42,0.95),rgba(30,41,59,0.86))]">
-                  <div className="flex items-center gap-2">
+                <div className="pointer-events-auto rounded-[22px] border border-white/50 bg-[linear-gradient(180deg,rgba(15,23,42,0.88),rgba(15,23,42,0.72))] p-1.5 shadow-[0_18px_48px_-34px_rgba(2,6,23,0.9)] backdrop-blur-xl dark:border-slate-700/80 dark:bg-[linear-gradient(180deg,rgba(15,23,42,0.9),rgba(30,41,59,0.76))]">
+                  <div className="flex items-center gap-1.5">
                     {renderAppTitle('floating')}
                     <div className="min-w-0 flex-1">
                       <SatelliteScopeFilter
@@ -5595,18 +5655,16 @@ const App: React.FC = () => {
                         compact
                       />
                     </div>
-                    {renderUiModeSwitch(true)}
-                    <SimulationSettings satelliteScope={satelliteScope} />
+                    {renderUiModeSwitch(true, true)}
                     <button
                       type="button"
                       onClick={() => setIsSatelliteModalOpen(true)}
-                      className="inline-flex h-11 items-center gap-2 rounded-2xl border border-slate-200/80 bg-white/92 px-3 text-sm font-semibold text-slate-700 shadow-sm transition-colors hover:bg-white dark:border-slate-700 dark:bg-slate-900/82 dark:text-slate-100 dark:hover:bg-slate-900"
+                      className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-slate-700/80 bg-slate-900/82 px-2.5 text-xs font-semibold text-slate-100 shadow-sm transition-colors hover:bg-slate-900"
                       aria-label="Open targets and search"
                     >
                       <Waypoints className="h-4 w-4" />
-                      <span>Targets</span>
+                      <span className="hidden min-[430px]:inline">Targets</span>
                     </button>
-                    <ThemeSelector isMobile />
                   </div>
                 </div>
               </div>
@@ -5729,7 +5787,7 @@ const App: React.FC = () => {
               </div>
             )}
 
-            {!commercialMode && !isFullscreen && hasMobileSelection && (
+            {!commercialMode && !isFullscreen && hasMobileSelection && isMobileAnalysisSummaryReady && (
               <>
                 <div
                   className="pointer-events-none absolute inset-x-0 bottom-0 z-[35] px-2.5"
@@ -5767,6 +5825,7 @@ const App: React.FC = () => {
                           inspectedSNP={inspectedSNP}
                           selectedVessel={selectedVessel}
                           compact
+                          showKpisInCompact={mobileAnalysisDetent === 'medium'}
                           metrics={mobileMetrics}
                           leoServiceViewModel={leoServiceViewModel}
                           satelliteScope={satelliteScope}
@@ -5791,15 +5850,26 @@ const App: React.FC = () => {
                         />
                       </div>
                       <div className="border-t border-slate-200/80 px-2.5 pb-2 pt-1.5 dark:border-slate-700/80">
-                        <button
-                          type="button"
-                          onClick={() => setIsMobileAnalysisPanelOpen(true)}
-                          className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-[18px] bg-slate-950 px-4 text-[15px] font-semibold text-white shadow-sm transition-colors hover:bg-slate-800 dark:bg-white dark:text-slate-950 dark:hover:bg-slate-200"
-                          aria-label="Open detailed analysis"
-                        >
-                          <span>Detailed view</span>
-                          <ChevronUp className="h-4 w-4" />
-                        </button>
+                        <div className="grid grid-cols-[0.85fr_1fr] gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setMobileAnalysisDetent((current) => current === 'compact' ? 'medium' : 'compact')}
+                            className="inline-flex h-9 items-center justify-center gap-1.5 rounded-[16px] border border-slate-200 bg-white/86 px-3 text-[13px] font-semibold text-slate-700 shadow-sm transition-colors hover:bg-white dark:border-slate-700 dark:bg-slate-900/82 dark:text-slate-100 dark:hover:bg-slate-900"
+                            aria-label={mobileAnalysisDetent === 'medium' ? 'Show summary only' : 'Show key performance indicators'}
+                          >
+                            <span>{mobileAnalysisDetent === 'medium' ? 'Summary' : 'KPIs'}</span>
+                            {mobileAnalysisDetent === 'medium' ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronUp className="h-3.5 w-3.5" />}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setIsMobileAnalysisPanelOpen(true)}
+                            className="inline-flex h-9 items-center justify-center gap-2 rounded-[16px] bg-slate-950 px-4 text-[14px] font-semibold text-white shadow-sm transition-colors hover:bg-slate-800 dark:bg-white dark:text-slate-950 dark:hover:bg-slate-200"
+                            aria-label="Open detailed analysis"
+                          >
+                            <span>Detailed</span>
+                            <ChevronUp className="h-4 w-4" />
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </div>

@@ -13,6 +13,7 @@ import { memo, useMemo, useState, useRef, useEffect } from 'react';
 import type { CandidateCoverage } from '../types/analysis';
 import type { LinkMode } from '../types/linkMode';
 import { getCandidateCoverageKey } from '../utils/geoCoverageSelection';
+import { ENGINEERING_TERMS } from '../constants/engineeringTerminology';
 
 interface CoverageSelectorProps {
   candidateCoverages: CandidateCoverage[];
@@ -438,7 +439,7 @@ const GatewayNote = ({ direction }: { direction: 'uplink' | 'downlink' }) => {
       <span className="text-sm leading-none shrink-0">{icon}</span>
       <span className="text-[10px] font-bold uppercase tracking-wider shrink-0" style={{ color }}>{dirLabel}</span>
       <span className="text-[10px] text-gray-400 dark:text-gray-500 italic leading-snug">
-        GEO teleport side - reference allocation
+        {ENGINEERING_TERMS.GEO.gateway} side - reference allocation
       </span>
     </div>
   );

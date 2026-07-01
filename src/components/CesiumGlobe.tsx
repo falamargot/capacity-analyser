@@ -836,6 +836,7 @@ export interface DisplayPrefsProps {
     showFlowAnimation?: boolean;
     sizeScale?: number;
     hideSatelliteScreenLabels?: boolean;
+    hideSiteScreenLabels?: boolean;
     hideBottomPathStrip?: boolean;
     /** True while the map is shrunk to the Engineering Analysis split-layout strip (~22-24% height). Compacts chrome that assumes a full-height map. */
     isCompactMap?: boolean;
@@ -1123,6 +1124,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         showFlowAnimation = true,
         sizeScale,
         hideSatelliteScreenLabels = false,
+        hideSiteScreenLabels = false,
         isPhone,
         isMobileViewport = false,
         isFullscreen,
@@ -2164,10 +2166,22 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
     // Commercial mode gateway allowlist.  null = no filtering (engineering mode).
     // In commercial mode only the gateway that is active for the current GEO route
     // is visible; the full GEO_GATEWAYS list is hidden.
+    //
+    // trafficStatus gate: only CONFIRMED or PUBLICLY_LIKELY sites are shown in
+    // commercial mode. UNVERIFIED sites are deliberately excluded — showing them
+    // would present a site with no confirmed commercial traffic role to a
+    // non-engineering stakeholder as if it were the active commercial teleport.
+    // The empty Set (not null) is intentional: null = engineering mode (show all);
+    // empty Set = commercial mode with no eligible gateway to display.
     const commercialGatewayAllowlist = useMemo((): Set<string> | null => {
         if (!commercialMode) return null;
         const names = new Set<string>();
-        if (pulsedGateway) names.add(pulsedGateway.name);
+        if (pulsedGateway) {
+            const { trafficStatus } = pulsedGateway;
+            if (trafficStatus === 'CONFIRMED' || trafficStatus === 'PUBLICLY_LIKELY') {
+                names.add(pulsedGateway.name);
+            }
+        }
         return names;
     }, [commercialMode, pulsedGateway]);
 
@@ -2538,7 +2552,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                 />
             )}
 
-            {!commercialMode && (
+            {!commercialMode && (!isMobileViewport || !!selectedSatellite) && (
                 <SatelliteIndicator
                     selectedSatellite={selectedSatellite}
                     autoSelectedLEOSatellite={autoSelectedLEOSatellite}
@@ -3056,7 +3070,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                     />
                 );
             })() : (() => {
-                if (!showGroundSelectedPoint || !selectedPosition) return null;
+                if (hideSiteScreenLabels || !showGroundSelectedPoint || !selectedPosition) return null;
                 const s2sResult = leoSiteToSiteFullResult ?? leoSiteToSiteResult;
                 const isMeshP2P = linkMode === 'MESH' || linkMode === 'POINT_TO_POINT';
                 const isLeoS2S = !!pointBLeo;
@@ -3094,6 +3108,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
             {/* Unified Site B tooltip — aggregates GEO Mesh/P2P and/or LEO S2S in one bubble */}
             {commercialMode ? (() => {
                 if (!showCommercialSiteBLabel) return null;
+                if (hideSiteScreenLabels) return null;
                 const siteBPos = pointB ?? pointBLeo;
                 if (!siteBPos || !commercialViewModel) return null;
                 // Use destination-segment status so the tooltip matches the Journey Strip card.
@@ -3207,6 +3222,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                     highlightedSatellites={highlightedSatelliteLabels}
                     viewerReady={viewerReady}
                     presentation={commercialMode ? 'commercial' : 'engineering'}
+                    isMobileViewport={isMobileViewport}
                 />
             )}
             {/* Interaction hint — shown only when MESH/P2P mode is active */}
