@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { Feature, Polygon } from 'geojson';
 import type { CandidateCoverage } from '../../types/analysis';
 import type { SatelliteData } from '../../types/satellites';
+import { GEO_GATEWAYS } from '../../components/globe/GlobeConfig';
 import { findCandidateCoverages } from '../geoCoverageSelection';
 import { findBestUplinkMatch } from '../geoDualSegmentBudget';
 import { selectBestTopologyPath } from '../geoTopologySelection';
@@ -189,7 +190,108 @@ describe('geoTopologySelection', () => {
 
     expect(bestPath).not.toBeNull();
     expect(bestPath?.satellite.id).toBe('SAT-MESH');
+    expect(bestPath?.gateway).toBeNull();
     expect(bestPath?.uplinkA?.satelliteId).toBe('SAT-MESH');
     expect(bestPath?.downlinkB?.satelliteId).toBe('SAT-MESH');
+  });
+
+  it('builds STAR Forward and Return RF paths only through a traffic teleport gateway', () => {
+    const pointA = { lat: 43.06, lng: 8.6 };
+    const satellite = createSatellite(
+      '8WB',
+      'EUTELSAT 8 WEST B',
+      -8,
+      [
+        createCoverage('Traffic downlink', 70, false, [[-40, -20], [40, -20], [40, 70], [-40, 70], [-40, -20]], 'EUTELSAT 8 WEST B'),
+        createCoverage('Traffic uplink', 20, true, [[-40, -20], [40, -20], [40, 70], [-40, 70], [-40, -20]], 'EUTELSAT 8 WEST B'),
+      ],
+    );
+    const candidateCoveragesA = findCandidateCoverages(pointA, [satellite]);
+
+    const forward = selectBestTopologyPath({
+      linkMode: 'STAR_FORWARD',
+      satellites: [satellite],
+      candidateCoveragesA,
+      pointALabel: 'Terminal A',
+    });
+    const returns = selectBestTopologyPath({
+      linkMode: 'STAR_RETURN',
+      satellites: [satellite],
+      candidateCoveragesA,
+      pointALabel: 'Terminal A',
+    });
+
+    expect(forward?.gateway?.roles).toContain('TELEPORT_GATEWAY');
+    expect(forward?.gateway?.trafficStatus).toBe('PUBLICLY_LIKELY');
+    expect(forward?.result.forward.uplink.source.label).toBe(forward?.gateway?.name);
+    expect(returns?.gateway?.roles).toContain('TELEPORT_GATEWAY');
+    expect(returns?.gateway?.trafficStatus).toBe('PUBLICLY_LIKELY');
+    expect(returns?.result.forward.downlink.destination.label).toBe(returns?.gateway?.name);
+  });
+
+  it.each(['UNVERIFIED', 'NOT_APPLICABLE'] as const)(
+    'does not build a STAR RF route when the assigned traffic capability is %s',
+    (trafficStatus) => {
+      const pointA = { lat: 43.06, lng: 8.6 };
+      const satellite = createSatellite(
+        '8WB',
+        'EUTELSAT 8 WEST B',
+        -8,
+        [
+          createCoverage('Traffic downlink', 70, false, [[-40, -20], [40, -20], [40, 70], [-40, 70], [-40, -20]], 'EUTELSAT 8 WEST B'),
+          createCoverage('Traffic uplink', 20, true, [[-40, -20], [40, -20], [40, 70], [-40, 70], [-40, -20]], 'EUTELSAT 8 WEST B'),
+        ],
+      );
+      const candidateCoveragesA = findCandidateCoverages(pointA, [satellite]);
+      const gateways = GEO_GATEWAYS.map((gateway) => (
+        gateway.teleportCode === 'RAM'
+          ? { ...gateway, trafficStatus }
+          : gateway
+      ));
+
+      expect(selectBestTopologyPath({
+        linkMode: 'STAR_FORWARD',
+        satellites: [satellite],
+        candidateCoveragesA,
+        gateways,
+        pointALabel: 'Terminal A',
+      })).toBeNull();
+      expect(selectBestTopologyPath({
+        linkMode: 'STAR_RETURN',
+        satellites: [satellite],
+        candidateCoveragesA,
+        gateways,
+        pointALabel: 'Terminal A',
+      })).toBeNull();
+    }
+  );
+
+  it('keeps POINT_TO_POINT route models free of gateway nodes', () => {
+    const satP2p = createSatellite('SAT-P2P', 'SAT P2P', 10, []);
+    const candidateCoveragesA = [
+      createCandidate(satP2p, false, 150, 8),
+      createCandidate(satP2p, true, 140, 8),
+    ];
+    const candidateCoveragesB = [
+      createCandidate(satP2p, false, 145, 8),
+      createCandidate(satP2p, true, 135, 8),
+    ];
+
+    const bestPath = selectBestTopologyPath({
+      linkMode: 'POINT_TO_POINT',
+      satellites: [satP2p],
+      candidateCoveragesA,
+      candidateCoveragesB,
+      pointB: { lat: 42.39, lng: 12.57 },
+      terminalTypeA: 'fixed',
+      terminalTypeB: 'fixed',
+      pointALabel: 'A',
+      pointBLabel: 'B',
+    });
+
+    expect(bestPath).not.toBeNull();
+    expect(bestPath?.gateway).toBeNull();
+    expect(bestPath?.result.forward.uplink.source.label).toBe('A');
+    expect(bestPath?.result.forward.downlink.destination.label).toBe('B');
   });
 });

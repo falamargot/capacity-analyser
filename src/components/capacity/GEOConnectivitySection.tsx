@@ -292,6 +292,36 @@ const LinkBudgetDrawer = ({
         coverageLabels={coverageLabels}
         variant="cockpit"
       />
+      {result?.trafficTeleportEndpoint && (
+        <div className="mt-4 rounded-lg border border-cyan-100 bg-cyan-50/70 p-3 dark:border-cyan-500/20 dark:bg-cyan-500/10">
+          <LayerHeading
+            title="RF Ground Capability"
+            detail="Traffic teleport capability consumed by the active STAR RF calculation."
+          />
+          <div className="mt-3 grid grid-cols-1 gap-x-4 gap-y-1 text-xs text-cyan-950 dark:text-cyan-50 sm:grid-cols-2">
+            <div className="flex justify-between gap-3">
+              <span className="text-cyan-700 dark:text-cyan-200/80">Physical site</span>
+              <span className="font-semibold">{result.trafficTeleportEndpoint.label}</span>
+            </div>
+            <div className="flex justify-between gap-3">
+              <span className="text-cyan-700 dark:text-cyan-200/80">Capability</span>
+              <span className="font-semibold">{result.trafficTeleportEndpoint.capability.kind}</span>
+            </div>
+            <div className="flex justify-between gap-3">
+              <span className="text-cyan-700 dark:text-cyan-200/80">Capability ID</span>
+              <span className="font-semibold">{result.trafficTeleportEndpoint.capability.capabilityId}</span>
+            </div>
+            <div className="flex justify-between gap-3">
+              <span className="text-cyan-700 dark:text-cyan-200/80">Traffic confidence</span>
+              <span className="font-semibold">{result.trafficTeleportEndpoint.capability.confidence}</span>
+            </div>
+            <div className="flex justify-between gap-3">
+              <span className="text-cyan-700 dark:text-cyan-200/80">Traffic eligibility</span>
+              <span className="font-semibold">{result.trafficTeleportEndpoint.capability.trafficEligibility}</span>
+            </div>
+          </div>
+        </div>
+      )}
     </EngineeringAnalysisWorkspace>
   );
 };
@@ -510,7 +540,7 @@ const GeoStatusCard = memo(({
     : 'Star Forward';
   const capacityDetail = throughputMbps != null ? fmtMbps(throughputMbps) : '--';
 
-  // GEO gateway tile
+  // GEO traffic gateway tile
   const gatewayResolved = gatewayName !== 'Gateway' && gatewayName !== '';
   const gatewayValue = isMeshOrP2P ? 'Not in path' : (gatewayResolved ? gatewayName : 'Not resolved');
   const gatewayDetail = isMeshOrP2P
@@ -849,7 +879,7 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
   const estimatedPerformanceSection = (
     <CollapsibleSection
       storageKey="geo-performance"
-      title={<>Estimated Performance<DirectionPill dir={estimatedPerformanceDirectionLabel} aggregate={isMeshOrP2P} /><SectionTooltip content="Predicted GEO link throughput derived from the RF link budget. STAR modes show one active direction only. MESH/P2P shows the selected terminal-to-terminal direction with no gateway in the RF path." /></>}
+      title={<>Estimated Performance<DirectionPill dir={estimatedPerformanceDirectionLabel} aggregate={isMeshOrP2P} /><SectionTooltip content="Predicted GEO link throughput derived from the RF link budget. STAR modes show one active direction only. MESH/P2P shows the selected terminal-to-terminal direction with no traffic gateway in the RF path." /></>}
       accentColor="#2563eb"
       defaultOpen={true}
       collapsible={false}
@@ -1032,7 +1062,7 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
     if (linkMode === 'STAR_FORWARD') {
       return {
         forward: {
-          // GEO gateway side: mirror the sidebar row exactly.
+          // GEO traffic gateway side: mirror the sidebar row exactly.
           uplink: `${ENGINEERING_TERMS.GEO.gateway} side - reference allocation`,
           // User side: align with the downlink row visible in the sidebar.
           downlink: formatCoverageName(selectedDownlinkCoverage ?? selectedCoverage) ?? segmentFallback.forward.downlink,
@@ -1045,7 +1075,7 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
         forward: {
           // User side: align with the uplink row visible in the sidebar.
           uplink: formatCoverageName(selectedUplinkCoverage) ?? segmentFallback.forward.uplink,
-          // GEO gateway side: mirror the sidebar row exactly.
+          // GEO traffic gateway side: mirror the sidebar row exactly.
           downlink: `${ENGINEERING_TERMS.GEO.gateway} side - reference allocation`,
         },
       };
@@ -1364,15 +1394,15 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
           storageKey="geo-radio-path"
           title={
             isMeshOrP2P
-              ? <> Radio Path <DirectionPill dir={meshDirectionLabel} /><SectionTooltip content="Terminal-to-terminal signal route follows the active MESH/P2P direction through the GEO satellite. No GEO gateway is in the RF path. Shows elevation, slant range and propagation delay for each hop." /></>
-              : <> Radio Path <DirectionPill dir={starDirectionLabel} /><SectionTooltip content="Active one-way STAR signal route. Forward mode is GEO gateway → GEO Satellite → User; Return mode is User → GEO Satellite → GEO gateway. Round-trip reference details are shown in the latency breakdown below." /></>
+              ? <> Radio Path <DirectionPill dir={meshDirectionLabel} /><SectionTooltip content="Terminal-to-terminal signal route follows the active MESH/P2P direction through the GEO satellite. No traffic gateway is in the RF path. Shows elevation, slant range and propagation delay for each hop." /></>
+              : <> Radio Path <DirectionPill dir={starDirectionLabel} /><SectionTooltip content="Active one-way STAR signal route. Forward mode is Traffic Gateway → GEO Satellite → User; Return mode is User → GEO Satellite → Traffic Gateway. Round-trip reference details are shown in the latency breakdown below." /></>
           }
           subtitle={radioPathSummary}
           accentColor="#2563eb"
           defaultOpen={false}
         >
           {isMeshOrP2P ? (
-            // ── MESH/P2P: A → Sat → B (no GEO gateway) ─────────────────────
+            // ── MESH/P2P: A → Sat → B (no traffic gateway) ─────────────────
             meshGeometry ? (() => {
               const isForward = activeMeshTab === 'forward';
               const srcLabel  = isForward ? meshGeometry.pointALabel : meshGeometry.pointBLabel;
@@ -1499,12 +1529,12 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
 
         {/* Latency Breakdown */}
         {isMeshOrP2P ? (
-          // ── MESH/P2P: selected one-way terminal path, no GEO gateway overhead ─
+          // ── MESH/P2P: selected one-way terminal path, no traffic gateway overhead ─
           <LatencyBreakdownCard
             storageKey="geo-latency-breakdown"
             accentColor="#2563eb"
             title={<>Latency breakdown<DirectionPill dir={meshDirectionLabel} /></>}
-            tooltip="One-way propagation for the selected MESH/P2P direction: source terminal → satellite → destination terminal. No GEO gateway is in the RF path; overhead is source + destination modem processing."
+            tooltip="One-way propagation for the selected MESH/P2P direction: source terminal → satellite → destination terminal. No traffic gateway is in the RF path; overhead is source + destination modem processing."
             summary={meshGeometry ? `Estimated ${meshDirectionLabel} latency: ${(activeMeshTab === 'reverse' ? meshGeometry.rvTotalMs : meshGeometry.fwTotalMs).toFixed(1)} ms` : meshUnavailableMessage}
           >
             {meshGeometry ? (() => {
@@ -1525,7 +1555,7 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
                 </div>
                 <div className="pt-1 font-semibold text-gray-700 dark:text-gray-200">Network overhead</div>
                 <div className="ml-2 flex justify-between"><span>Modem processing ({src} + {dst})</span><span>{meshGeometry.modemOverheadMs.toFixed(0)} ms</span></div>
-                <div className="ml-2 text-[10px] text-gray-400 dark:text-gray-500 italic">No GEO gateway - gateway processing and routing delays do not apply.</div>
+                <div className="ml-2 text-[10px] text-gray-400 dark:text-gray-500 italic">No traffic gateway - traffic gateway processing and routing delays do not apply.</div>
                 <div className="border-t border-gray-200 dark:border-slate-700 pt-2 flex justify-between font-semibold text-gray-800 dark:text-gray-100">
                   <span>Estimated {meshDirectionLabel} latency total</span><span>{selectedTotalMs.toFixed(1)} ms</span>
                 </div>
@@ -1538,12 +1568,12 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
             )}
           </LatencyBreakdownCard>
         ) : (
-          // ── STAR: one-way via GEO gateway ────────────────────────────────
+          // ── STAR: one-way via traffic gateway ────────────────────────────
           <LatencyBreakdownCard
             storageKey="geo-latency-breakdown"
             accentColor="#2563eb"
             title={`Latency breakdown (${isStarReturn ? 'RETURN' : 'FORWARD'})`}
-            tooltip="Breakdown of the active one-way STAR delay. Forward mode sends GEO gateway → Satellite → User; Return mode sends User → Satellite → GEO gateway. Network overhead is added after RF propagation."
+            tooltip="Breakdown of the active one-way STAR delay. Forward mode sends Traffic Gateway → Satellite → User; Return mode sends User → Satellite → Traffic Gateway. Network overhead is added after RF propagation."
             summary={geoGeometry ? `Estimated one-way total: ${geoStarOneWayTotalMs != null ? geoStarOneWayTotalMs.toFixed(1) : '--'} ms` : 'No GEO latency breakdown available'}
           >
             {geoGeometry ? (() => {
@@ -1581,7 +1611,7 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
                     <span>Propagation total</span><span>{oneWayPropagationMs != null ? oneWayPropagationMs.toFixed(1) : '--'} ms</span>
                   </div>
                   <div className="pt-1 font-semibold text-gray-700 dark:text-gray-200">Network overhead</div>
-                  <div className="ml-2 flex justify-between"><span>Gateway processing delay</span><span>{geoGeometry.overheadMs.gatewayProcessing.toFixed(0)} ms</span></div>
+                  <div className="ml-2 flex justify-between"><span>Traffic gateway processing delay</span><span>{geoGeometry.overheadMs.gatewayProcessing.toFixed(0)} ms</span></div>
                   <div className="ml-2 flex justify-between"><span>Modem processing delay</span><span>{geoGeometry.overheadMs.modemProcessing.toFixed(0)} ms</span></div>
                   <div className="ml-2 flex justify-between"><span>Routing delay</span><span>{geoGeometry.overheadMs.routing.toFixed(0)} ms</span></div>
                   <div className="ml-2 flex justify-between font-semibold text-gray-700 dark:text-gray-200">

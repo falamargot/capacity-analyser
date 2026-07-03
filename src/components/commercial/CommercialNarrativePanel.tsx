@@ -485,7 +485,7 @@ function DestinationReceiveDiagram({ isGateway, endpointLabel }: { isGateway: bo
       </div>
       <div className="absolute bottom-3 left-7 text-[9px] font-bold uppercase tracking-[0.14em] text-teal-100/70">Satellite</div>
       <div className="absolute bottom-3 right-7 text-right text-[9px] font-bold uppercase tracking-[0.14em] text-emerald-100/75">
-        {isGateway ? 'Gateway' : endpointLabel}
+        {isGateway ? 'Traffic Gateway' : endpointLabel}
       </div>
     </div>
   );
@@ -502,8 +502,8 @@ function ServiceDeliveryBlock({
 }) {
   const isGateway = viewModel.display.destinationEndpointKind === 'geo_gateway';
   const siteAName = cleanVal(viewModel.siteA?.name) ?? 'Your location';
-  const siteBName = cleanVal(viewModel.siteB?.name) ?? cleanVal(viewModel.display.destinationLocation) ?? (isGateway ? 'Gateway' : 'Destination');
-  const receivingSide = cleanVal(viewModel.display.destinationReceivingSide) ?? (isGateway ? 'Gateway' : 'Destination');
+  const siteBName = cleanVal(viewModel.siteB?.name) ?? cleanVal(viewModel.display.destinationLocation) ?? (isGateway ? 'Traffic Gateway' : 'Destination');
+  const receivingSide = cleanVal(viewModel.display.destinationReceivingSide) ?? (isGateway ? 'Traffic Gateway' : 'Destination');
   const isReady = card.statusTone === 'good';
 
   // Build end-to-end path nodes
@@ -537,7 +537,7 @@ function ServiceDeliveryBlock({
         <div className="mt-4 h-px bg-gradient-to-r from-transparent via-emerald-100/18 to-transparent" />
         <div className="mt-3 flex items-center justify-between gap-2">
           <div className="text-[10px] font-bold uppercase tracking-[0.16em] text-emerald-100/60">
-            {isGateway ? 'Satellite to Gateway' : `Satellite to ${receivingSide}`}
+            {isGateway ? 'Satellite to Traffic Gateway' : `Satellite to ${receivingSide}`}
           </div>
           <span className={`inline-flex rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.08em] leading-none ${statusBadgeClass[card.statusTone]}`}>
             {card.statusLabel}
@@ -556,7 +556,7 @@ function ServiceDeliveryBlock({
         <div className="mb-2 text-[9px] font-bold uppercase tracking-[0.18em] text-emerald-200/65">Delivery confirmation</div>
         <div className="space-y-1.5">
           <FactRow label="Destination" value={siteBName} />
-          <FactRow label="Receive type" value={isGateway ? 'Network gateway' : 'Customer terminal'} />
+          <FactRow label="Receive type" value={isGateway ? 'Traffic gateway' : 'Customer terminal'} />
           <FactRow label="Signal" value={isReady ? 'Confirmed' : 'Pending'} tone={isReady ? 'good' : 'neutral'} />
           <FactRow label="End-to-end path" value={isReady ? 'Verified' : 'Pending'} tone={isReady ? 'good' : 'neutral'} />
         </div>

@@ -201,11 +201,12 @@ export function selectBestTopologyPath({
       const result = buildStarForwardResult(
         downlinkA,
         uplinkGateway,
-        gatewaySelection.gateway,
+        gatewaySelection.trafficCapability,
         pointALabel,
         undefined,
         terminalTypeA,
         customParamsA,
+        gatewaySelection.gateway.name,
       );
       if (!result) continue;
 
@@ -234,11 +235,12 @@ export function selectBestTopologyPath({
       const result = buildStarReturnResult(
         uplinkA,
         downlinkGateway,
-        gatewaySelection.gateway,
+        gatewaySelection.trafficCapability,
         pointALabel,
         undefined,
         terminalTypeA,
         customParamsA,
+        gatewaySelection.gateway.name,
       );
       if (!result) continue;
 

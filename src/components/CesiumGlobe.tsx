@@ -64,6 +64,7 @@ import AggregatedCoverageVolumeLayer, { type ProjectionCoverageGroup } from './c
 import TransmissionLinks from './cesium-globe/TransmissionLinks';
 import TrajectoryLayer from './cesium-globe/TrajectoryLayer';
 import GeoGatewayLayer from './cesium-globe/GeoGatewayLayer';
+import GeoGroundSiteLegend from './cesium-globe/GeoGroundSiteLegend';
 import AggregatedConnectivityLayer from './cesium-globe/AggregatedConnectivityLayer';
 import FillRateLayer, { FillRateLegend } from './cesium-globe/FillRateLayer';
 import RegulatoryLayer from './cesium-globe/RegulatoryLayer';
@@ -2642,6 +2643,10 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                 />
             )}
 
+            {!commercialMode && !displayPrefs.isCompactMap && !isPhone && !isMobileViewport && (satelliteScope === 'GEO' || satelliteScope === 'ALL') && (
+                <GeoGroundSiteLegend />
+            )}
+
             {/* Cesium Viewer */}
             <div ref={globeContainerRef} className="w-full h-full">
                 <Viewer
@@ -2968,6 +2973,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                                 sizeScale={sizeScale}
                                 allowedGatewayNames={commercialGatewayAllowlist}
                                 commercialTone={commercialMode ? 'secondary' : 'primary'}
+                                renderMode={commercialMode ? 'commercial' : 'engineering'}
                                 showLabels={!commercialMode}
                             />
                         </>

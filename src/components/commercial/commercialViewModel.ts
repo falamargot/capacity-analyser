@@ -21,6 +21,7 @@ import type { SatelliteData } from '../../types/satellites';
 import type { GeoPointStatus } from '../../utils/selectedPointStatus';
 import type { GeoRouteAnalysisViewModel } from '../../utils/geoRouteAnalysisViewModel';
 import type { ActiveLeoRouteEvidence } from '../../utils/activeLeoRouteEvidence';
+import type { GatewayTrafficStatus } from '../../utils/geoGroundInfrastructure';
 import {
   buildGeoConfidence,
   buildLeoSingleSiteConfidence,
@@ -94,7 +95,14 @@ interface BuildCommercialScenarioViewModelInput {
   destinationLeoTerminalLabel?: string;
   geoGatewayName?: string | null;
   geoGatewayCoverage?: string | null;
+  geoGatewayTrafficStatus?: GatewayTrafficStatus | null;
   selectedSegmentId?: string;
+}
+
+function commercialGatewayConfidenceLabel(status: GatewayTrafficStatus | null | undefined): string {
+  if (status === 'CONFIRMED') return 'Confirmed traffic gateway';
+  if (status === 'PUBLICLY_LIKELY') return 'Reference / unconfirmed traffic gateway';
+  return 'No commercial gateway resolved';
 }
 
 function primaryFailingSegmentId(
@@ -285,6 +293,12 @@ export function buildCommercialScenarioViewModel(input: BuildCommercialScenarioV
   const activeRoute = isDisplayLeo ? leoRoute : geoRoute;
   const technology: CommercialTechnology = isDisplayLeo ? 'leo' : 'geo';
   const destinationIsSnp = activeRoute.destinationLabel === 'SNP';
+  const isGeoStar = !isDisplayLeo && (input.linkMode === 'STAR_FORWARD' || input.linkMode === 'STAR_RETURN');
+  const geoTrafficGatewayResolved = isGeoStar
+    ? !!input.geoGatewayName && (input.geoGatewayTrafficStatus === 'CONFIRMED' || input.geoGatewayTrafficStatus === 'PUBLICLY_LIKELY')
+    : false;
+  const geoGatewayConfidence = commercialGatewayConfidenceLabel(input.geoGatewayTrafficStatus);
+  const geoGatewayIsReference = input.geoGatewayTrafficStatus === 'PUBLICLY_LIKELY';
   const siteBName = input.siteB
     ? locationName(input.nearestLocationB, input.siteB, 'Site B')
     : destinationIsSnp
@@ -309,12 +323,12 @@ export function buildCommercialScenarioViewModel(input: BuildCommercialScenarioV
     ? (destinationCustomerSide === 'B' ? input.destinationLeoTerminalLabel : input.originLeoTerminalLabel)
     : (destinationCustomerSide === 'B' ? input.destinationGeoTerminalLabel : input.originGeoTerminalLabel);
   const destinationLocation = destinationEndpointKind === 'geo_gateway'
-    ? input.geoGatewayName ?? 'GEO gateway'
+    ? input.geoGatewayName ?? 'No commercial gateway resolved'
     : destinationCustomerSide === 'B'
     ? siteBName
     : siteAName;
   const destinationReceivingSide = destinationEndpointKind === 'geo_gateway'
-    ? 'GEO gateway'
+    ? 'Traffic Gateway'
     : destinationCustomerSide === 'B'
     ? 'Site B'
     : input.siteB
@@ -371,7 +385,9 @@ export function buildCommercialScenarioViewModel(input: BuildCommercialScenarioV
         coverageAvailable: !!geoCoverageEvidence && geoStatusSource !== 'unstable',
         rfAvailable: geoStatusSource === 'available' || !!geoMetricsSource.geo,
         publicFrequencyEvidence: !!geoCoverageEvidence?.band || !!geoCoverageEvidence?.frequencyGhz || !!geoCoverageEvidence?.level,
-        gatewayResolved: !!input.geoGatewayName || !!input.geoRouteAnalysis?.geoSiteToSitePath || geoStatusSource === 'available',
+        gatewayResolved: isGeoStar
+          ? geoTrafficGatewayResolved
+          : !!input.geoRouteAnalysis?.geoSiteToSitePath || geoStatusSource === 'available',
         capacityClassKnown: !!geoCapacityEstimate,
         regulatoryKnown: geoStatusSource !== null,
         routePending: geoRoutePending,
@@ -417,7 +433,7 @@ export function buildCommercialScenarioViewModel(input: BuildCommercialScenarioV
     ? (input.leoTopologyMode === 'SITE_TO_SITE'
         ? (leoRoutePath?.selectedSnpA && leoRoutePath?.selectedSnpB ? 'healthy' : 'blocked')
         : (input.selectedSnpName ? 'healthy' : 'blocked'))
-    : (geoRoutePending ? 'unknown' : geoStatusSource === 'gateway_unavailable' ? 'blocked' : geoStatusSource === 'available' ? 'healthy' : 'unknown');
+    : (geoRoutePending ? 'unknown' : isGeoStar && !geoTrafficGatewayResolved ? 'blocked' : geoStatusSource === 'gateway_unavailable' ? 'blocked' : geoStatusSource === 'available' ? 'healthy' : 'unknown');
   const computedDestinationStatus: CommercialRouteSegmentStatus = input.siteB || destinationIsSnp ? 'healthy' : 'unknown';
   const segmentStatus = (id: CommercialRouteSegment['id'], computed: CommercialRouteSegmentStatus): CommercialRouteSegmentStatus => {
     if (activeRouteAvailable) return computed;
@@ -439,7 +455,9 @@ export function buildCommercialScenarioViewModel(input: BuildCommercialScenarioV
   });
   const assumptionsSummary = isDisplayLeo
     ? 'Assumes simulated network load, beam sharing, selected LEO SNP path, public terminal profile, weather profile, and indicative backbone routing.'
-    : 'Assumes selected weather profile, public frequency data, terminal RF class, and reference GEO gateway allocation.';
+    : geoGatewayIsReference
+      ? 'Assumes selected weather profile, public frequency data, terminal RF class, and a reference / unconfirmed GEO traffic gateway.'
+      : 'Assumes selected weather profile, public frequency data, terminal RF class, and reference traffic gateway allocation.';
 
   const routeSegments: CommercialRouteSegment[] = [
     {
@@ -486,21 +504,31 @@ export function buildCommercialScenarioViewModel(input: BuildCommercialScenarioV
       title: 'Indicative Backbone',
       status: backhaulStatus,
       customerStatus: customerStateFromSegment(backhaulStatus),
-      role: isDisplayLeo ? 'LEO SNP and backbone path' : 'GEO gateway path',
+      role: isDisplayLeo ? 'LEO SNP and backbone path' : geoTrafficGatewayResolved ? geoGatewayConfidence : 'No commercial gateway resolved',
       isRouteParticipant: activeRouteAvailable && backhaulStatus !== 'blocked' && backhaulStatus !== 'unknown',
       isPrimaryIssue: primaryFailingSegment === 'backhaul',
-      story: activeRouteAvailable ? 'The network backbone carries traffic between the satellite service and destination.' : 'The network backbone is not confirmed until service is available.',
+      story: activeRouteAvailable
+        ? !isDisplayLeo && geoGatewayIsReference
+          ? 'The GEO service path uses a reference traffic gateway; the traffic gateway role is not internally confirmed.'
+          : 'The network backbone carries traffic between the satellite service and destination.'
+        : !isDisplayLeo && !geoTrafficGatewayResolved
+          ? 'No commercial gateway resolved for this GEO service path.'
+          : 'The network backbone is not confirmed until service is available.',
       summary: activeRouteAvailable && isDisplayLeo
         ? (input.leoTopologyMode === 'SITE_TO_SITE'
             ? [leoRoutePath?.selectedSnpA?.name, leoRoutePath?.selectedSnpB?.name].filter(Boolean).join(' / ') || 'SNP path pending'
             : input.selectedSnpName ?? 'SNP path pending')
-        : 'Reference GEO gateway path',
+        : !isDisplayLeo && geoTrafficGatewayResolved
+          ? `${input.geoGatewayName} - ${geoGatewayConfidence}`
+          : 'No commercial gateway resolved',
       limitation: backhaulStatus === 'healthy' ? undefined : customerPrimaryWarning ?? 'Network backbone unavailable',
       technicalSummary: isDisplayLeo
         ? (input.leoTopologyMode === 'SITE_TO_SITE'
             ? [leoRoutePath?.selectedSnpA?.name, leoRoutePath?.selectedSnpB?.name].filter(Boolean).join(' / ') || 'SNP path pending'
             : input.selectedSnpName ?? 'SNP path pending')
-        : 'Reference GEO gateway path',
+        : !isDisplayLeo && geoTrafficGatewayResolved
+          ? `${input.geoGatewayName} - ${geoGatewayConfidence}`
+          : 'No commercial gateway resolved',
       technicalLimitation: backhaulStatus === 'healthy' ? undefined : primaryWarning,
       latencyMs: rttMs,
     },
@@ -618,14 +646,15 @@ export function buildCommercialScenarioViewModel(input: BuildCommercialScenarioV
       logicalPop: isDisplayLeo ? (leoRoutePath?.logicalPop?.name ?? '--') : '--',
       snpA: isDisplayLeo ? (leoRoutePath?.selectedSnpA?.name ?? leoEvidence?.selectedSnpA?.name ?? input.selectedSnpName ?? '--') : '--',
       snpB: isDisplayLeo ? (leoRoutePath?.selectedSnpB?.name ?? leoEvidence?.selectedSnpB?.name ?? '--') : '--',
-      destinationType: activeRoute.destinationLabel ?? 'Site B',
-      destinationEndpointRole: destinationEndpointKind === 'geo_gateway' ? 'GEO gateway' : 'Customer station',
+      destinationType: destinationEndpointKind === 'geo_gateway' ? 'Traffic Gateway' : activeRoute.destinationLabel ?? 'Site B',
+      destinationEndpointRole: destinationEndpointKind === 'geo_gateway' ? 'Traffic Gateway' : 'Customer station',
       destinationEndpointKind,
       destinationTechnology,
       destinationStationModel: destinationStationModel ?? '--',
       destinationLocation,
       destinationGatewayName: destinationEndpointKind === 'geo_gateway' ? input.geoGatewayName ?? '--' : '--',
       destinationGatewayCoverage: destinationEndpointKind === 'geo_gateway' ? input.geoGatewayCoverage ?? '--' : '--',
+      destinationGatewayConfidence: destinationEndpointKind === 'geo_gateway' || isGeoStar ? geoGatewayConfidence : '--',
       destinationReceivingSide,
       destinationDirection: destinationEndpointKind === 'geo_gateway' ? 'satellite_to_gateway' : 'satellite_to_site',
       rawServiceStatus: isDisplayLeo ? (leoServiceStatus ?? '--') : (geoStatusSource ?? '--'),

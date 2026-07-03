@@ -2,7 +2,7 @@ import type { CandidateCoverage, GeoSiteToSitePathSummary, MeshLinkMetrics, Mobi
 import type { LinkMode } from '../types/linkMode';
 import type { SatelliteScope } from '../components/SatelliteScopeFilter';
 import type { SatelliteData } from '../types/satellites';
-import type { GeoGatewayData } from '../components/globe/GlobeConfig';
+import { GEO_GATEWAYS, type GeoGatewayData } from '../components/globe/GlobeConfig';
 import { TERMINAL_PROFILES, WEATHER_PROFILES, getWeatherFactor, type TerminalType, type WeatherType } from '../components/capacity/TerminalConfig';
 import { computeOneWayLatencyMs } from './capacityCalculator';
 import { computeGeoConnectivity, findCandidateCoverages, getCandidateCoverageKey } from './geoCoverageSelection';
@@ -18,6 +18,7 @@ import {
 } from './geoDualSegmentBudget';
 import { RAIN_FADE_DB, type GeoBand } from './geoLinkBudget';
 import { augmentCandidatesWithSynthesizedDirections } from './geoTopologySelection';
+import { selectTrafficGeoGateway } from './geoConnectivityModel';
 import { getRFClassBand, type TerminalRFClassId, type TerminalRFCustomParams } from './geoTerminalRFModel';
 import type { GeoPointStatus } from './selectedPointStatus';
 
@@ -278,8 +279,10 @@ export function buildGeoRouteAnalysisViewModel(input: GeoRouteAnalysisInput): Ge
     geoStatus = 'available';
   }
 
+  const trafficGatewaySelection = selectedSatellite ? selectTrafficGeoGateway(selectedSatellite, GEO_GATEWAYS) : null;
   const resolvedGateway = resolvedGEOConnectivity?.geometry?.satelliteToGateway?.resolvedGateway;
   const resolvedGatewayData: GeoGatewayData | null = resolvedGateway?.gateway ?? resolvedGEOConnectivity?.geometry?.satelliteToGateway?.gateway ?? null;
+  const starTrafficGatewayData: GeoGatewayData | null = trafficGatewaySelection?.gateway ?? null;
   const refCoverage = input.selectedDownlinkCoverage ?? input.selectedUplinkCoverage ?? input.selectedCoverage;
   const downlinkAtUser = input.selectedDownlinkCoverage
     ?? getGeoCompanionCoverage(refCoverage, input.candidateCoverages, false);
@@ -287,13 +290,16 @@ export function buildGeoRouteAnalysisViewModel(input: GeoRouteAnalysisInput): Ge
     ?? getGeoCompanionCoverage(refCoverage, input.candidateCoverages, true);
 
   const candidateCoveragesAtGateway = (() => {
-    if (!resolvedGatewayData || !refCoverage) return [];
+    const gatewayForRf = (input.linkMode === 'STAR_FORWARD' || input.linkMode === 'STAR_RETURN')
+      ? starTrafficGatewayData
+      : resolvedGatewayData;
+    if (!gatewayForRf || !refCoverage) return [];
     const geoSats = input.satellites.filter(
       (satellite) => satellite.orbitType === 'GEO' && satellite.opsStatus === 'operational'
     );
     return augmentCandidatesWithSynthesizedDirections(
       findCandidateCoverages(
-        { lat: resolvedGatewayData.lat, lng: resolvedGatewayData.lng },
+        { lat: gatewayForRf.lat, lng: gatewayForRf.lng },
         geoSats,
         { compatibleBand: getRFClassBand(input.geoRFClassIdA) },
       ),
@@ -327,15 +333,33 @@ export function buildGeoRouteAnalysisViewModel(input: GeoRouteAnalysisInput): Ge
     const weatherAdjDbB = fadeTable[input.weatherTypeB as keyof typeof fadeTable] ?? 0;
 
     if (input.linkMode === 'STAR_FORWARD') {
-      if (!resolvedGatewayData || !downlinkAtUser || !uplinkAtGateway) return null;
-      return buildStarForwardResult(downlinkAtUser, uplinkAtGateway, resolvedGatewayData, 'Terminal A', weatherAdjDbA, input.geoRFClassIdA, input.geoRFCustomParamsA);
+      if (!trafficGatewaySelection || !downlinkAtUser || !uplinkAtGateway) return null;
+      return buildStarForwardResult(
+        downlinkAtUser,
+        uplinkAtGateway,
+        trafficGatewaySelection.trafficCapability,
+        'Terminal A',
+        weatherAdjDbA,
+        input.geoRFClassIdA ?? undefined,
+        input.geoRFCustomParamsA,
+        trafficGatewaySelection.gateway.name,
+      );
     }
 
     if (input.linkMode === 'STAR_RETURN') {
-      if (!resolvedGatewayData || !uplinkAtUser) return null;
+      if (!trafficGatewaySelection || !uplinkAtUser) return null;
       const downlink = downlinkAtGateway ?? (uplinkAtGateway ? synthesizeDownlinkCandidate(uplinkAtGateway) : null);
       if (!downlink) return null;
-      return buildStarReturnResult(uplinkAtUser, downlink, resolvedGatewayData, 'Terminal A', weatherAdjDbA, input.geoRFClassIdA, input.geoRFCustomParamsA);
+      return buildStarReturnResult(
+        uplinkAtUser,
+        downlink,
+        trafficGatewaySelection.trafficCapability,
+        'Terminal A',
+        weatherAdjDbA,
+        input.geoRFClassIdA ?? undefined,
+        input.geoRFCustomParamsA,
+        trafficGatewaySelection.gateway.name,
+      );
     }
 
     if (input.linkMode === 'MESH' || input.linkMode === 'POINT_TO_POINT') {

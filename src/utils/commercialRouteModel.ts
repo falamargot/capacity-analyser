@@ -39,6 +39,7 @@ import type { GeoRouteAnalysisViewModel } from './geoRouteAnalysisViewModel';
 import type { ResolvedGeoGateway } from './geoConnectivityModel';
 import type { SatelliteData } from '../types/satellites';
 import { SNPS_DATA } from '../components/globe/GlobeConfig';
+import { getTrafficTeleportCapabilityForLegacyGateway } from './geoGroundInfrastructure';
 
 // ─── Geometry inputs ──────────────────────────────────────────────────────────
 
@@ -243,6 +244,14 @@ function satelliteMeta(
 function gatewayCoord(gw: ResolvedGeoGateway | null | undefined): RouteCoordinate | null {
   if (!gw) return null;
   return { lat: gw.latitude, lng: gw.longitude };
+}
+
+function commercialGatewayLabel(gateway: ResolvedGeoGateway): string {
+  const capability = getTrafficTeleportCapabilityForLegacyGateway(gateway.gateway);
+  if (capability?.confidence === 'PUBLICLY_LIKELY') {
+    return `${gateway.gatewayName} (reference / unconfirmed)`;
+  }
+  return gateway.gatewayName;
 }
 
 // ─── Topology classification ──────────────────────────────────────────────────
@@ -465,7 +474,11 @@ function buildGeoStarGraph(
   destSeg: CommercialRouteSegment | undefined,
   summarySeg: CommercialRouteSegment | undefined,
 ): { nodes: CommercialRouteNode[]; edges: CommercialRouteEdge[] } {
-  const activeGateway = geometry.resolvedSelectedGeoGateway ?? geometry.resolvedAutoGeoGateway;
+  const resolvedGateway = geometry.resolvedSelectedGeoGateway ?? geometry.resolvedAutoGeoGateway;
+  const trafficCapability = resolvedGateway
+    ? getTrafficTeleportCapabilityForLegacyGateway(resolvedGateway.gateway)
+    : null;
+  const activeGateway = trafficCapability ? resolvedGateway : null;
   const geoSatellite  = geometry.geoRouteAnalysis?.selectedSatellite ?? geometry.activeGeoSatellite;
   const satLabel = vm.display.satelliteName && vm.display.satelliteName !== '--'
     ? vm.display.satelliteName
@@ -475,7 +488,7 @@ function buildGeoStarGraph(
   // but for GEO STAR the destination is identified by display.destinationType
   // and siteB.name (which holds the SNP name when destinationIsSnp=true).
   const portalLabel = vm.siteB?.name ?? vm.display.snpA ?? 'Network Portal';
-  const hubLabel    = activeGateway?.gatewayName ?? 'Gateway';
+  const hubLabel    = activeGateway ? commercialGatewayLabel(activeGateway) : 'No commercial gateway resolved';
 
   // Node IDs
   const originId    = 'ORIGIN_access';
@@ -497,13 +510,22 @@ function buildGeoStarGraph(
       null,
       { technology: 'GEO', isPrimaryIssue: satelliteSeg?.isPrimaryIssue }
     ),
-    makeNode(hubId, 'HUB', 'backhaul',
-      hubLabel,
-      segStatus(backhaulSeg),
-      // Gateway has explicit lat/longitude (different field names from lat/lng)
-      gatewayCoord(activeGateway),
-      { isPrimaryIssue: backhaulSeg?.isPrimaryIssue }
-    ),
+    ...(activeGateway && trafficCapability ? [
+      makeNode(hubId, 'HUB', 'backhaul',
+        hubLabel,
+        segStatus(backhaulSeg),
+        // Gateway has explicit lat/longitude (different field names from lat/lng)
+        gatewayCoord(activeGateway),
+        {
+          isPrimaryIssue: backhaulSeg?.isPrimaryIssue,
+          groundCapabilityKind: 'TRAFFIC_TELEPORT',
+          capabilityId: trafficCapability.capabilityId,
+          capabilityConfidence: trafficCapability.confidence,
+          trafficEligibility: trafficCapability.trafficEligibility,
+          isUnconfirmedReference: trafficCapability.confidence === 'PUBLICLY_LIKELY',
+        }
+      ),
+    ] : []),
     makeNode(portalId, 'NETWORK_PORTAL', 'destination',
       portalLabel,
       segStatus(destSeg),
@@ -530,12 +552,14 @@ function buildGeoStarGraph(
     // Origin → GEO Satellite (uplink / access arc)
     makeEdge('SPACE_LINK', originId, skyBridgeId, accessStatus,
       { owningSegmentId: 'access' }),
-    // GEO Satellite → Gateway (feeder downlink / satellite arc)
-    makeEdge('SPACE_LINK', skyBridgeId, hubId, satStatus,
-      { owningSegmentId: 'satellite' }),
-    // Gateway → Network Portal (backbone)
-    makeEdge('BACKBONE_LINK', hubId, portalId, backhaulStatus,
-      { owningSegmentId: 'backhaul' }),
+    ...(activeGateway ? [
+      // GEO Satellite → Gateway (feeder downlink / satellite arc)
+      makeEdge('SPACE_LINK', skyBridgeId, hubId, satStatus,
+        { owningSegmentId: 'satellite' }),
+      // Gateway → Network Portal (backbone)
+      makeEdge('BACKBONE_LINK', hubId, portalId, backhaulStatus,
+        { owningSegmentId: 'backhaul' }),
+    ] : []),
     // Optional terrestrial tail: Origin → Gateway (last mile, shown on backhaul focus)
     ...(activeGateway ? [
       makeEdge('TERRESTRIAL_TAIL', originId, hubId, accessStatus,

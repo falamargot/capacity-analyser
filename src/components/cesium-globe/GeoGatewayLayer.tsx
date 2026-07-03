@@ -12,10 +12,15 @@ import {
     VerticalOrigin,
     Viewer as CesiumViewerType
 } from 'cesium';
-import { GEO_GATEWAYS, GeoGatewayData, formatGroundRoles } from '../globe/GlobeConfig';
+import type { GeoGatewayData } from '../globe/GlobeConfig';
 import { getPosition, DPR_FACTOR, calculateDynamicScale, type CameraMetricsSnapshot } from './utils';
 import type { SatelliteScope } from '../SatelliteScopeFilter';
 import { GROUND_POINT_ALTITUDE_KM, LABEL_EYE_OFFSET } from './layerHeights';
+import {
+    buildGeoGatewayMarkerMetadata,
+    getGeoGatewaysForRendering,
+    type GeoGatewayRenderMode,
+} from './geoGatewayMarkerModel';
 
 const GATEWAY_MARKER_PIXEL_MULTIPLIER = 12;
 const SELECTED_GATEWAY_SIZE_BOOST = 1.2;
@@ -34,6 +39,7 @@ interface GeoGatewayLayerProps {
      *  Null (default) renders all gateways — engineering mode. */
     allowedGatewayNames?: Set<string> | null;
     commercialTone?: 'primary' | 'secondary';
+    renderMode?: GeoGatewayRenderMode;
     showLabels?: boolean;
 }
 
@@ -46,6 +52,7 @@ const GeoGatewayEntity = React.memo<{
     isSelected: boolean;
     sizeScale: number;
     commercialTone: 'primary' | 'secondary';
+    renderMode: GeoGatewayRenderMode;
     showLabels: boolean;
 }>(({ 
     gateway,
@@ -56,6 +63,7 @@ const GeoGatewayEntity = React.memo<{
     isSelected,
     sizeScale,
     commercialTone,
+    renderMode,
     showLabels,
 }) => {
     const position = useMemo(
@@ -82,6 +90,20 @@ const GeoGatewayEntity = React.memo<{
     const handleClick = useCallback(() => onGatewayClick(gateway.name), [gateway.name, onGatewayClick]);
     const handleMouseEnter = useCallback(() => onGatewayHover(gateway.name), [gateway.name, onGatewayHover]);
     const handleMouseLeave = useCallback(() => onGatewayHover(null), [onGatewayHover]);
+    const markerMetadata = useMemo(() => buildGeoGatewayMarkerMetadata(gateway), [gateway]);
+    const markerColor = useMemo(
+        () => renderMode === 'commercial'
+            ? Color.fromCssColorString('#22d3ee')
+            : Color.fromCssColorString(markerMetadata.markerColorCss),
+        [markerMetadata.markerColorCss, renderMode]
+    );
+    const outlineColor = useMemo(
+        () => Color.fromCssColorString(renderMode === 'commercial' ? '#0891b2' : markerMetadata.outlineColorCss),
+        [markerMetadata.outlineColorCss, renderMode]
+    );
+    const entityCapabilityLabel = markerMetadata.capabilityLabels.length > 0
+        ? markerMetadata.capabilityLabels.join(', ')
+        : 'Ground Site';
 
     return (
         <Entity
@@ -89,10 +111,12 @@ const GeoGatewayEntity = React.memo<{
             position={position}
             point={{
                 pixelSize: pixelSizeCallback,
-                color: commercialTone === 'secondary' ? Color.fromCssColorString('#64748b').withAlpha(0.55) : Color.CYAN,
+                color: commercialTone === 'secondary' ? markerColor.withAlpha(0.6) : markerColor,
+                outlineColor,
+                outlineWidth: markerMetadata.outlineWidth,
                 disableDepthTestDistance: 0
             }}
-            name={`${gateway.name} (${formatGroundRoles(gateway.roles)})`}
+            name={`${gateway.name} (${entityCapabilityLabel})`}
             onClick={handleClick}
             onMouseEnter={handleMouseEnter}
             onMouseLeave={handleMouseLeave}
@@ -130,13 +154,12 @@ const GeoGatewayLayer: React.FC<GeoGatewayLayerProps> = ({
     sizeScale = 1,
     allowedGatewayNames = null,
     commercialTone = 'primary',
+    renderMode = 'engineering',
     showLabels = true,
 }) => {
     // Memoize Gateway entities (hooks must run unconditionally)
     const gatewayEntities = useMemo(() => {
-        const gatewaysToRender = allowedGatewayNames != null
-            ? GEO_GATEWAYS.filter((gw) => allowedGatewayNames.has(gw.name))
-            : GEO_GATEWAYS;
+        const gatewaysToRender = getGeoGatewaysForRendering(allowedGatewayNames, renderMode);
         return gatewaysToRender.map((gateway) => (
             <GeoGatewayEntity
                 key={gateway.name}
@@ -148,10 +171,11 @@ const GeoGatewayLayer: React.FC<GeoGatewayLayerProps> = ({
                 isSelected={selectedGatewayName === gateway.name}
                 sizeScale={sizeScale}
                 commercialTone={commercialTone}
+                renderMode={renderMode}
                 showLabels={showLabels}
             />
         ));
-    }, [viewerRef, cameraMetricsRef, onGatewayClick, onGatewayHover, selectedGatewayName, sizeScale, allowedGatewayNames, commercialTone, showLabels]);
+    }, [viewerRef, cameraMetricsRef, onGatewayClick, onGatewayHover, selectedGatewayName, sizeScale, allowedGatewayNames, commercialTone, renderMode, showLabels]);
 
     // Only render Gateways for GEO scope or ALL scope
     if (satelliteScope !== 'GEO' && satelliteScope !== 'ALL') {

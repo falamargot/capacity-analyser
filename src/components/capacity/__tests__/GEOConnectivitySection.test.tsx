@@ -1,9 +1,9 @@
-import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 import GEOConnectivitySection from '../GEOConnectivitySection';
 import type { DualSegmentResult } from '../../../utils/geoDualSegmentBudget';
 import type { LinkMode } from '../../../types/linkMode';
+import type { TrafficTeleportCapability } from '../../../utils/geoGroundInfrastructure';
 
 // Regression tripwire for the 4 GEO link-mode topology branches
 // (STAR_FORWARD, STAR_RETURN, MESH, POINT_TO_POINT). Smoke-tests only: assert
@@ -27,6 +27,17 @@ const geoSegment = (marginDb: number, cnDb = 18) => ({
   adjustmentDb: 0,
 });
 
+const TRAFFIC_TELEPORT: TrafficTeleportCapability = {
+  capabilityId: 'geo-rambouillet-traffic-teleport',
+  siteId: 'geo-rambouillet',
+  kind: 'TRAFFIC_TELEPORT',
+  confidence: 'PUBLICLY_LIKELY',
+  supportedSatellites: ['*'],
+  trafficEligibility: 'ELIGIBLE_PUBLICLY_LIKELY',
+  rfCapabilities: [],
+  eligibleServiceClasses: ['STAR_FORWARD', 'STAR_RETURN'],
+};
+
 /** STAR_FORWARD / STAR_RETURN fixture — no reverse leg, no network layer reverse. */
 const makeStarResult = (marginDb: number): DualSegmentResult => ({
   forward: {
@@ -43,6 +54,10 @@ const makeStarResult = (marginDb: number): DualSegmentResult => ({
       endToEndLinkMarginDb: marginDb,
       bandwidthMhz: 72,
     },
+  },
+  trafficTeleportEndpoint: {
+    label: 'Rambouillet',
+    capability: TRAFFIC_TELEPORT,
   },
   networkLayer: {
     forward: {
@@ -217,6 +232,24 @@ describe('GEOConnectivitySection topology render smoke tests', () => {
       expect(detailsOpenStateBeforeText(html, 'Downlink Segment')).toBe(false);
       expect(detailsOpenStateBeforeText(html, 'Satellite / Payload')).toBe(false);
       expect(detailsOpenStateBeforeText(html, 'End-to-End Diagnostic')).toBe(false);
+    });
+
+    it('identifies the consumed TRAFFIC_TELEPORT capability in the RF panel', () => {
+      const html = renderGeoWithDrawer('STAR_FORWARD', makeStarResult(4.5));
+
+      expect(html).toContain('RF Ground Capability');
+      expect(html).toContain('Rambouillet');
+      expect(html).toContain('TRAFFIC_TELEPORT');
+      expect(html).toContain('geo-rambouillet-traffic-teleport');
+      expect(html).toContain('PUBLICLY_LIKELY');
+      expect(html).toContain('ELIGIBLE_PUBLICLY_LIKELY');
+    });
+
+    it('does not show a traffic RF capability panel for MESH routes', () => {
+      const html = renderGeoWithDrawer('MESH', makeMeshResult(3.2, 2.1));
+
+      expect(html).not.toContain('RF Ground Capability');
+      expect(html).not.toContain('TRAFFIC_TELEPORT');
     });
 
   });

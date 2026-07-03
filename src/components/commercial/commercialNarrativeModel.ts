@@ -188,6 +188,14 @@ function gatewayLabel(routeModel: CommercialRouteModel | undefined): string | un
   return hubs[0];
 }
 
+function gatewayConfidence(viewModel: CommercialScenarioViewModel): string | undefined {
+  return clean(viewModel.display.destinationGatewayConfidence);
+}
+
+function isUnconfirmedGateway(viewModel: CommercialScenarioViewModel): boolean {
+  return gatewayConfidence(viewModel)?.toLowerCase().includes('unconfirmed') ?? false;
+}
+
 function backbonePathLabel(viewModel: CommercialScenarioViewModel, routeModel: CommercialRouteModel | undefined): string | undefined {
   const hubs = nodeLabelsForSegment(routeModel, 'backhaul');
   const routedHubs = hubs.length > 0 ? hubs.join(' -> ') : undefined;
@@ -226,6 +234,9 @@ function businessNote(
   if (normalized.includes('no active service') || normalized.includes('no active connectivity') || normalized.includes('no viable')) {
     return 'No commercial service path is currently available for this scenario.';
   }
+  if (normalized.includes('no commercial gateway resolved')) {
+    return 'No commercial gateway resolved for this service path.';
+  }
   if (normalized.includes('weather')) {
     return 'Weather conditions may reduce service quality for this part of the path.';
   }
@@ -249,7 +260,7 @@ function serviceOutcomeStatement(viewModel: CommercialScenarioViewModel): string
 }
 
 function destinationTitle(viewModel: CommercialScenarioViewModel): string {
-  if (viewModel.display.destinationEndpointKind === 'geo_gateway') return 'Gateway Destination';
+  if (viewModel.display.destinationEndpointKind === 'geo_gateway') return 'Traffic Gateway Destination';
   if (viewModel.siteB) return 'Customer Destination';
   return 'Receiving Site';
 }
@@ -259,18 +270,22 @@ function destinationNarrativeStatement(
   segment: CommercialRouteSegment | undefined,
 ): string {
   const isGateway = viewModel.display.destinationEndpointKind === 'geo_gateway';
+  const gatewayIsUnconfirmed = isGateway && isUnconfirmedGateway(viewModel);
+  if (gatewayIsUnconfirmed && segment?.customerStatus === 'available') {
+    return 'Traffic gateway reception is modelled from reference data; the commercial traffic role is not internally confirmed.';
+  }
   if (segment?.customerStatus === 'available') {
     return isGateway
-      ? 'Gateway reception is confirmed for this direction.'
+      ? 'Traffic gateway reception is confirmed for this direction.'
       : 'Service reception is confirmed at the destination terminal.';
   }
   if (segment?.customerStatus === 'unavailable') {
     return isGateway
-      ? 'The GEO gateway cannot currently receive or forward this service.'
+      ? 'The traffic gateway cannot currently receive or forward this service.'
       : 'The destination terminal cannot currently receive the selected service.';
   }
   return isGateway
-    ? 'Gateway reception conditions are still being evaluated.'
+    ? 'Traffic gateway reception conditions are still being evaluated.'
     : 'Reception conditions are still being evaluated at the destination terminal.';
 }
 
@@ -280,10 +295,14 @@ function destinationBottomLine(
   constraint: string | undefined,
 ): string {
   const isGateway = viewModel.display.destinationEndpointKind === 'geo_gateway';
+  const gatewayIsUnconfirmed = isGateway && isUnconfirmedGateway(viewModel);
   if (constraint && segment?.customerStatus === 'unavailable') return businessNote(constraint);
+  if (gatewayIsUnconfirmed && segment?.customerStatus === 'available') {
+    return 'The traffic gateway is a reference / unconfirmed traffic endpoint for this service path.';
+  }
   if (segment?.customerStatus === 'available') {
     return isGateway
-      ? 'The GEO gateway is ready to receive or forward the selected service.'
+      ? 'The traffic gateway is ready to receive or forward the selected service.'
       : 'The destination terminal is receiving the selected service.';
   }
   if (segment?.customerStatus === 'unavailable') {
@@ -396,6 +415,8 @@ export function buildCommercialNarrativeCardModel({
       const infrastructure = isGeoGatewayRelevant
         ? gatewayLabel(commercialRouteModel)
         : backbonePathLabel(viewModel, commercialRouteModel);
+      const gatewayStatus = isGeoGatewayRelevant ? gatewayConfidence(viewModel) : undefined;
+      const gatewayIsUnconfirmed = isGeoGatewayRelevant && isUnconfirmedGateway(viewModel);
 
       return {
         segmentId: focusedSegmentId,
@@ -406,20 +427,27 @@ export function buildCommercialNarrativeCardModel({
         statusLabel,
         statusTone: statusTone(segment),
         narrativeStatement: segment?.isRouteParticipant
-          ? 'Traffic is routing through the confirmed network path.'
+          ? gatewayIsUnconfirmed
+            ? 'Traffic is modelled through a reference traffic gateway; the traffic role is not internally confirmed.'
+            : 'Traffic is routing through the confirmed network path.'
           : 'Network transit path is not yet confirmed.',
         facts: compactFacts([
-          { label: isGeoGatewayRelevant ? 'Network gateway' : 'Network path', value: infrastructure },
-          { label: 'Transit status', value: segment?.isRouteParticipant ? 'Confirmed' : 'Pending' },
+          { label: isGeoGatewayRelevant ? 'Traffic gateway' : 'Network path', value: infrastructure },
+          { label: 'Transit status', value: gatewayStatus ?? (segment?.isRouteParticipant ? 'Confirmed' : 'Pending') },
           { label: 'Network node', value: clean(viewModel.display.logicalPop) ?? segment?.role },
         ]),
-        businessNote: businessNote(constraint),
+        businessNote: businessNote(
+          constraint,
+          gatewayIsUnconfirmed
+            ? 'The traffic gateway is suitable for reference modelling only until internally confirmed.'
+            : 'No issue currently affects this part of the route.',
+        ),
       };
     }
 
     case 'destination': {
       const isGateway = viewModel.display.destinationEndpointKind === 'geo_gateway';
-      const destName = clean(viewModel.siteB?.name) ?? clean(viewModel.display.destinationLocation) ?? (isGateway ? 'the gateway' : 'the destination');
+      const destName = clean(viewModel.siteB?.name) ?? clean(viewModel.display.destinationLocation) ?? (isGateway ? 'the traffic gateway' : 'the destination');
       return {
         segmentId: focusedSegmentId,
         stepNumber: 3,
@@ -431,9 +459,9 @@ export function buildCommercialNarrativeCardModel({
         narrativeStatement: destinationNarrativeStatement(viewModel, segment),
         facts: compactFacts([
           { label: 'Destination', value: destName },
-          { label: 'Receive type', value: isGateway ? 'Network gateway' : 'Customer terminal' },
-          { label: 'Signal', value: segment?.isRouteParticipant ? 'Confirmed' : 'Pending' },
-          { label: 'End-to-end path', value: segment?.isRouteParticipant ? 'Verified' : 'Pending' },
+          { label: 'Receive type', value: isGateway ? 'Traffic gateway' : 'Customer terminal' },
+          { label: 'Signal', value: isGateway && isUnconfirmedGateway(viewModel) ? gatewayConfidence(viewModel) : segment?.isRouteParticipant ? 'Confirmed' : 'Pending' },
+          { label: 'End-to-end path', value: isGateway && isUnconfirmedGateway(viewModel) ? 'Modelled from reference data' : segment?.isRouteParticipant ? 'Verified' : 'Pending' },
         ]),
         businessNote: destinationBottomLine(viewModel, segment, constraint),
       };

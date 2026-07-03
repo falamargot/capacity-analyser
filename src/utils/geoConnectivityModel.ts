@@ -1,5 +1,9 @@
 import type { SatelliteData } from '../types/satellites';
 import type { GatewayTrafficStatus, GeoGatewayData } from '../components/globe/GlobeConfig';
+import {
+  getTrafficTeleportCapabilityForLegacyGateway,
+  type TrafficTeleportCapability,
+} from './geoGroundInfrastructure';
 
 const DEG_TO_RAD = Math.PI / 180;
 
@@ -26,7 +30,7 @@ const DEFAULT_RANGES = {
   suspiciousLowRttMs: 450,
 };
 
-const APAC_MONITORING_CODES = new Set(['PER', 'SIN', 'IBA'] as const);
+const APAC_MONITORING_CODES = new Set<GroundSegmentTeleportCode>(['PER', 'SIN', 'IBA']);
 const CSC_VERIFICATION_CODES = ['TUR', 'RAM'] as const;
 
 export interface PointLLA {
@@ -55,6 +59,8 @@ export interface GeoGatewaySelection {
  */
 export interface TrafficGatewaySelection extends GeoGatewaySelection {
   trafficStatus: GatewayTrafficStatus;
+  trafficCapability: TrafficTeleportCapability;
+  resolvedGateway: ResolvedGeoGateway;
 }
 
 export type GatewayAssignmentRole = 'primary' | 'backup';
@@ -462,6 +468,24 @@ function toGatewaySelection(resolved: ResolvedGeoGateway | null): GeoGatewaySele
   };
 }
 
+function toTrafficGatewaySelection(
+  satellite: SatelliteData,
+  resolved: ResolvedGeoGateway | null
+): TrafficGatewaySelection | null {
+  const selection = toGatewaySelection(resolved);
+  if (!selection || !resolved) return null;
+
+  const trafficCapability = getTrafficTeleportCapabilityForLegacyGateway(resolved.gateway, satellite);
+  if (!trafficCapability) return null;
+
+  return {
+    ...selection,
+    trafficStatus: trafficCapability.confidence,
+    trafficCapability,
+    resolvedGateway: resolved,
+  };
+}
+
 /**
  * Resolves the SCC nominal/backup site for a satellite.
  *
@@ -739,17 +763,45 @@ export function selectTrafficGeoGateway(
   options: GroundSegmentSelectionOptions = {}
 ): TrafficGatewaySelection | null {
   const resolved = resolveGatewayForSatellite(satellite, gateways, options);
-  if (!resolved) return null;
+  const resolvedTrafficSelection = toTrafficGatewaySelection(satellite, resolved);
+  if (resolvedTrafficSelection) return resolvedTrafficSelection;
 
-  const { trafficStatus } = resolved.gateway;
-  if (trafficStatus !== 'CONFIRMED' && trafficStatus !== 'PUBLICLY_LIKELY') {
+  if (!resolved || resolved.assignmentSource === 'reference-gateway-allocation') {
     return null;
   }
 
-  const selection = toGatewaySelection(resolved);
-  if (!selection) return null;
+  let best: TrafficGatewaySelection | null = null;
+  for (const gateway of gateways) {
+    const trafficCapability = getTrafficTeleportCapabilityForLegacyGateway(gateway, satellite);
+    if (!trafficCapability) continue;
 
-  return { ...selection, trafficStatus };
+    const candidate = getGatewaySelectionForCandidate(
+      satellite,
+      gateway,
+      options.minVisibilityDeg ?? DEFAULT_RANGES.minGatewayElevationDeg
+    );
+    if (!candidate) continue;
+
+    const trafficResolvedGateway = toResolvedGeoGateway(
+      satellite,
+      gateway,
+      'nominal',
+      'fallback-visible-gateway',
+      'No reference allocation entry matched; selected nearest eligible visible traffic teleport capability.',
+    );
+    const trafficSelection: TrafficGatewaySelection = {
+      ...candidate,
+      trafficStatus: trafficCapability.confidence,
+      trafficCapability,
+      resolvedGateway: trafficResolvedGateway,
+    };
+
+    if (!best || trafficSelection.satToGatewayDistanceKm < best.satToGatewayDistanceKm) {
+      best = trafficSelection;
+    }
+  }
+
+  return best;
 }
 
 export function selectBestGeoGateway(
@@ -800,7 +852,8 @@ export function analyzeGeoConnectivity({
   const userSatDistanceKm = distanceKm(userLla, satPoint);
   const userElevationDeg = elevationDeg(userLla, satPoint);
   const userSatLatencyMs = latencyMsFromDistanceKm(userSatDistanceKm);
-  const resolvedGateway = resolveGatewayForSatellite(satellite, gateways);
+  const trafficGatewaySelection = selectTrafficGeoGateway(satellite, gateways);
+  const resolvedGateway = trafficGatewaySelection?.resolvedGateway ?? null;
 
   const delays = {
     ...DEFAULT_GEO_OVERHEAD_MS,

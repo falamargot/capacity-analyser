@@ -208,6 +208,14 @@ export interface CommercialRouteNodeMeta {
    * other focus state.
    */
   isPrimaryIssue?: boolean;
+
+  /** Ground capability backing this commercial infrastructure node, when known. */
+  groundCapabilityKind?: 'TRAFFIC_TELEPORT';
+  capabilityId?: string;
+  capabilityConfidence?: 'CONFIRMED' | 'PUBLICLY_LIKELY' | 'UNVERIFIED' | 'NOT_APPLICABLE';
+  trafficEligibility?: 'ELIGIBLE_CONFIRMED' | 'ELIGIBLE_PUBLICLY_LIKELY' | 'INELIGIBLE_UNVERIFIED' | 'INELIGIBLE_NOT_APPLICABLE';
+  /** True when the node is based on public/reference evidence, not internal operational confirmation. */
+  isUnconfirmedReference?: boolean;
 }
 
 // ─── Edge metadata ────────────────────────────────────────────────────────────

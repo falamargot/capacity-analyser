@@ -1453,22 +1453,29 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
     ?? getGeoCompanionCoverage(refCoverage, candidateCoverages, false);
   const uplinkAtUser = selectedUplinkCoverage
     ?? getGeoCompanionCoverage(refCoverage, candidateCoverages, true);
+  const trafficGatewaySelection = useMemo(() => {
+    const satellite = resolvedGEOConnectivity?.satellite;
+    return satellite ? selectTrafficGeoGateway(satellite, GEO_GATEWAYS) : null;
+  }, [resolvedGEOConnectivity]);
 
   // Coverage candidates at gateway location (for STAR modes)
   const candidateCoveragesAtGateway = useMemo(() => {
-    if (!resolvedGatewayData || !refCoverage) return [];
+    const gatewayForRf = (linkMode === 'STAR_FORWARD' || linkMode === 'STAR_RETURN')
+      ? trafficGatewaySelection?.gateway ?? null
+      : resolvedGatewayData;
+    if (!gatewayForRf || !refCoverage) return [];
     const geoSats = satellites.filter(
       (s) => s.orbitType === 'GEO' && s.opsStatus === 'operational'
     );
     return augmentCandidatesWithSynthesizedDirections(
       findCandidateCoverages(
-        { lat: resolvedGatewayData.lat, lng: resolvedGatewayData.lng },
+        { lat: gatewayForRf.lat, lng: gatewayForRf.lng },
         geoSats,
         { compatibleBand: getRFClassBand(geoRFClassIdA) }
       ),
       geoSats
     );
-  }, [geoRFClassIdA, resolvedGatewayData, refCoverage, satellites]);
+  }, [geoRFClassIdA, linkMode, resolvedGatewayData, refCoverage, satellites, trafficGatewaySelection]);
 
   const uplinkAtGateway = useMemo(
     () => refCoverage ? findBestUplinkMatch(refCoverage, candidateCoveragesAtGateway) : null,
@@ -1607,22 +1614,40 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
     const weatherAdjDbB: number = fadeTable[(weatherTypeB ?? weatherType) as keyof typeof fadeTable] ?? 0;
 
     if (linkMode === 'STAR_FORWARD') {
-      if (!resolvedGatewayData) return null;
+      if (!trafficGatewaySelection) return null;
       const dl = downlinkAtUser;
       const ul = uplinkAtGateway;
       if (!dl || !ul) return null;
-      return buildStarForwardResult(dl, ul, resolvedGatewayData, pointALabel, weatherAdjDbA, geoRFClassIdA, geoRFCustomParamsA);
+      return buildStarForwardResult(
+        dl,
+        ul,
+        trafficGatewaySelection.trafficCapability,
+        pointALabel,
+        weatherAdjDbA,
+        geoRFClassIdA ?? undefined,
+        geoRFCustomParamsA,
+        trafficGatewaySelection.gateway.name,
+      );
     }
 
     if (linkMode === 'STAR_RETURN') {
-      if (!resolvedGatewayData) return null;
+      if (!trafficGatewaySelection) return null;
       const ul = uplinkAtUser;
       // Downlink at gateway: prefer explicit EIRP data, fall back to synthesis from G/T
       const dl = downlinkAtGateway ?? (uplinkAtGateway ? synthesizeDownlinkCandidate(uplinkAtGateway) : null);
       if (!ul || !dl) return null;
       // Resolve terminal key: RF class ID takes priority over legacy use-case string.
       const terminalKeyA = geoRFClassIdA ?? geoTerminalType;
-      return buildStarReturnResult(ul, dl, resolvedGatewayData, pointALabel, weatherAdjDbA, terminalKeyA, geoRFCustomParamsA);
+      return buildStarReturnResult(
+        ul,
+        dl,
+        trafficGatewaySelection.trafficCapability,
+        pointALabel,
+        weatherAdjDbA,
+        terminalKeyA,
+        geoRFCustomParamsA,
+        trafficGatewaySelection.gateway.name,
+      );
     }
 
     if (linkMode === 'MESH' || linkMode === 'POINT_TO_POINT') {
@@ -1647,6 +1672,7 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
     uplinkAtB, downlinkAtB,
     pointALabel, pointBLabel,
     resolvedGatewayData,
+    trafficGatewaySelection,
     geoTerminalType, geoTerminalTypeB,
     geoRFClassIdA, geoRFClassIdB,
     geoRFCustomParamsA, geoRFCustomParamsB,
@@ -2104,7 +2130,7 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
     const resolvedGateway = geoGeometry.satelliteToGateway.resolvedGateway;
     const gatewayName = resolvedGateway
       ? `${resolvedGateway.gatewayName} (${resolvedGateway.controlAssignmentRole})`
-      : geoGeometry.satelliteToGateway.gateway?.name ?? 'No eligible GEO gateway';
+      : geoGeometry.satelliteToGateway.gateway?.name ?? 'No eligible traffic gateway';
     const gatewayTrafficStatusNote = resolvedGateway
       ? getGatewayTrafficStatusNote(resolvedGateway.gateway.trafficStatus)
       : null;
@@ -2130,13 +2156,13 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
         summary: `Estimated RTT total: ${geoGeometry.rttTotalMs?.toFixed(1) ?? '--'} ms`,
         propagationRows: [
           { label: 'User -> Satellite', value: `${geoGeometry.propagationBreakdownMs.userToSatellite?.toFixed(1) ?? '--'} ms` },
-          { label: 'Satellite -> Gateway', value: `${geoGeometry.propagationBreakdownMs.satelliteToGateway?.toFixed(1) ?? '--'} ms` },
-          { label: 'Gateway -> Satellite', value: `${geoGeometry.propagationBreakdownMs.gatewayToSatellite?.toFixed(1) ?? '--'} ms` },
+          { label: 'Satellite -> Traffic Gateway', value: `${geoGeometry.propagationBreakdownMs.satelliteToGateway?.toFixed(1) ?? '--'} ms` },
+          { label: 'Traffic Gateway -> Satellite', value: `${geoGeometry.propagationBreakdownMs.gatewayToSatellite?.toFixed(1) ?? '--'} ms` },
           { label: 'Satellite -> User', value: `${geoGeometry.propagationBreakdownMs.satelliteToUser?.toFixed(1) ?? '--'} ms` },
         ],
         propagationTotal: geoGeometry.rttPropagationMs != null ? `${geoGeometry.rttPropagationMs.toFixed(1)} ms` : undefined,
         overheadRows: [
-          { label: 'Gateway processing delay', value: `${geoGeometry.overheadMs.gatewayProcessing.toFixed(0)} ms` },
+          { label: 'Traffic gateway processing delay', value: `${geoGeometry.overheadMs.gatewayProcessing.toFixed(0)} ms` },
           { label: 'Modem processing delay', value: `${geoGeometry.overheadMs.modemProcessing.toFixed(0)} ms` },
           { label: 'Routing delay', value: `${geoGeometry.overheadMs.routing.toFixed(0)} ms` },
         ],

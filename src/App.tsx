@@ -1920,6 +1920,16 @@ const App: React.FC = () => {
     })?.resolvedGateway ?? null;
   }, [selectedPosition, selectedSatellite]);
 
+  const resolvedAutoTrafficGeoGateway = useMemo((): ResolvedGeoGateway | null => {
+    if (!activeGeoSatellite) return null;
+    return selectTrafficGeoGateway(activeGeoSatellite, GEO_GATEWAYS)?.resolvedGateway ?? null;
+  }, [activeGeoSatellite]);
+
+  const resolvedSelectedTrafficGeoGateway = useMemo((): ResolvedGeoGateway | null => {
+    if (!selectedSatellite || selectedSatellite.type !== 'EUTELSAT') return null;
+    return selectTrafficGeoGateway(selectedSatellite, GEO_GATEWAYS)?.resolvedGateway ?? null;
+  }, [selectedSatellite]);
+
   // Resolve live satellite instance for selected satellite (real-time positions)
   const liveSelectedSatellite = useMemo(
     () => (selectedSatellite?.id ? (satelliteById.get(selectedSatellite.id) ?? null) : null),
@@ -4005,8 +4015,19 @@ const App: React.FC = () => {
     [leoTerminalModelIdB, leoTerminalTypeB],
   );
   const activeCommercialGeoGateway = resolvedSelectedGeoGateway ?? resolvedAutoGeoGateway;
-  const activeCommercialGeoGatewayCoverage = activeCommercialGeoGateway
-    ? [activeCommercialGeoGateway.teleportCode, activeCommercialGeoGateway.region].filter(Boolean).join(' / ')
+  const activeCommercialTrafficGeoGateway = (linkMode === 'STAR_FORWARD' || linkMode === 'STAR_RETURN')
+    ? (resolvedSelectedTrafficGeoGateway ?? resolvedAutoTrafficGeoGateway)
+    : null;
+  const activeCommercialTrafficGatewayCoverage = activeCommercialTrafficGeoGateway
+    ? [
+        activeCommercialTrafficGeoGateway.teleportCode,
+        activeCommercialTrafficGeoGateway.region,
+        activeCommercialTrafficGeoGateway.gateway.trafficStatus === 'PUBLICLY_LIKELY'
+          ? 'reference / unconfirmed'
+          : activeCommercialTrafficGeoGateway.gateway.trafficStatus === 'CONFIRMED'
+            ? 'confirmed'
+            : null,
+      ].filter(Boolean).join(' / ')
     : null;
 
   const engineeringContextRoutePositions = useMemo(() => {
@@ -4223,8 +4244,9 @@ const App: React.FC = () => {
     destinationGeoTerminalLabel: geoRFPresetDisplayLabelB,
     originLeoTerminalLabel: leoTerminalDisplayLabelA,
     destinationLeoTerminalLabel: leoTerminalDisplayLabelB,
-    geoGatewayName: activeCommercialGeoGateway?.gatewayName ?? null,
-    geoGatewayCoverage: activeCommercialGeoGatewayCoverage,
+    geoGatewayName: activeCommercialTrafficGeoGateway?.gatewayName ?? null,
+    geoGatewayCoverage: activeCommercialTrafficGatewayCoverage,
+    geoGatewayTrafficStatus: activeCommercialTrafficGeoGateway?.gateway.trafficStatus ?? null,
     selectedSegmentId: commercialSelectedSegment,
   }), [
     activeCommercialTechnology, activeMeshTab, activeAnalysisPoint, activeAnalysisSource,
@@ -4233,7 +4255,9 @@ const App: React.FC = () => {
     activeLeoRouteEvidence, geoPointStatus, linkMode, selectedCoverage, geoRouteAnalysis,
     weatherType, weatherTypeB, leoTerminalType, geoRFPresetDisplayLabelA,
     geoRFPresetDisplayLabelB, leoTerminalDisplayLabelA, leoTerminalDisplayLabelB,
-    activeCommercialGeoGateway?.gatewayName, activeCommercialGeoGatewayCoverage,
+    activeCommercialTrafficGeoGateway?.gatewayName,
+    activeCommercialTrafficGeoGateway?.gateway.trafficStatus,
+    activeCommercialTrafficGatewayCoverage,
     commercialSelectedSegment,
   ]);
 
@@ -4410,7 +4434,7 @@ const App: React.FC = () => {
       ? (leoTopologyMode === 'SITE_TO_SITE'
           ? activeLeoSiteToSiteResult?.selectedSnpA?.name ?? selectedSNP?.name ?? 'SNP'
           : selectedSNP?.name ?? 'SNP')
-      : activeCommercialGeoGateway?.gatewayName ?? resolvedAutoGeoGateway?.gatewayName ?? 'GEO gateway';
+      : activeCommercialTrafficGeoGateway?.gatewayName ?? 'No commercial gateway resolved';
     const routeNodes = activeTech === 'LEO'
       ? (leoTopologyMode === 'SITE_TO_SITE'
           ? [
@@ -4450,7 +4474,7 @@ const App: React.FC = () => {
       latency: activeEngineeringRouteItem?.latency ?? '--',
     };
   }, [
-    activeCommercialGeoGateway?.gatewayName,
+    activeCommercialTrafficGeoGateway?.gatewayName,
     activeConnectivityTab,
     activeEngineeringRouteItem,
     activeAnalysisPoint,
@@ -4460,7 +4484,6 @@ const App: React.FC = () => {
     commercialScenarioViewModel.siteB?.name,
     leoTopologyMode,
     linkMode,
-    resolvedAutoGeoGateway?.gatewayName,
     resolvedAutoLEO?.name,
     selectedSNP?.name,
     siteB,
@@ -4501,8 +4524,8 @@ const App: React.FC = () => {
     {
       activeAnalysisPoint,
       siteB,
-      resolvedAutoGeoGateway,
-      resolvedSelectedGeoGateway,
+      resolvedAutoGeoGateway: resolvedAutoTrafficGeoGateway,
+      resolvedSelectedGeoGateway: resolvedSelectedTrafficGeoGateway,
       activeLeoRouteEvidence,
       geoRouteAnalysis,
       activeGeoSatellite,
@@ -4511,8 +4534,8 @@ const App: React.FC = () => {
     commercialScenarioViewModel,
     activeAnalysisPoint,
     siteB,
-    resolvedAutoGeoGateway,
-    resolvedSelectedGeoGateway,
+    resolvedAutoTrafficGeoGateway,
+    resolvedSelectedTrafficGeoGateway,
     activeLeoRouteEvidence,
     geoRouteAnalysis,
     activeGeoSatellite,
@@ -5635,6 +5658,8 @@ const App: React.FC = () => {
             >
               <MapViewSwitcher
                 {...sharedMapProps}
+                resolvedAutoGeoGateway={commercialMode ? resolvedAutoTrafficGeoGateway : resolvedAutoGeoGateway}
+                resolvedSelectedGeoGateway={commercialMode ? resolvedSelectedTrafficGeoGateway : resolvedSelectedGeoGateway}
                 commercialState={mapCommercialState}
                 onCommercialSelectedSegmentChange={commercialMode ? handleCommercialSegmentChange : undefined}
               />
@@ -6081,6 +6106,8 @@ const App: React.FC = () => {
                 <MapViewSwitcher
                   {...sharedMapProps}
                   displayLayerProps={desktopDisplayLayerProps}
+                  resolvedAutoGeoGateway={uiMode === 'commercial' ? resolvedAutoTrafficGeoGateway : resolvedAutoGeoGateway}
+                  resolvedSelectedGeoGateway={uiMode === 'commercial' ? resolvedSelectedTrafficGeoGateway : resolvedSelectedGeoGateway}
                   commercialState={mapCommercialState}
                   onCommercialSelectedSegmentChange={uiMode === 'commercial' ? handleCommercialSegmentSelect : undefined}
                 />

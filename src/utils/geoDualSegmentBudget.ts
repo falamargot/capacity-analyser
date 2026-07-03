@@ -13,14 +13,13 @@
  */
 
 import type { CandidateCoverage } from '../types/analysis';
-import type { GeoGatewayData } from '../components/globe/GlobeConfig';
 import type { GeoRfContext } from '../types/geoRfContext';
 import type { GeoBand } from './geoLinkBudget';
 import type { LinkMode } from '../types/linkMode';
+import type { TrafficTeleportCapability } from './geoGroundInfrastructure';
 import { computeNetworkLayer, type NetworkLayerResult } from './geoNetworkLayer';
 import {
   DEFAULT_TERMINAL,
-  TERMINAL_GEO_RF_PARAMS_BY_BAND,
   TERMINAL_RETURN_EIRP_DBW,
   GATEWAY_EIRP_DBW,
   GATEWAY_GT_DBK,
@@ -109,6 +108,11 @@ export interface DualSegmentResult {
   transponderMode?: TransponderMode;
   /** Explanatory RF context attached by the UI/service layer; does not affect calculations. */
   rfContext?: GeoRfContext;
+  /** STAR only — traffic teleport capability consumed by the RF calculation. */
+  trafficTeleportEndpoint?: {
+    label: string;
+    capability: TrafficTeleportCapability;
+  };
   /**
    * Network layer results for each direction.
    * Applies protocol efficiency and contention ratio on top of the RF result.
@@ -384,18 +388,19 @@ const buildDownlinkSegment = (
  *
  * @param downlinkAtUser   Downlink candidate at the user location (sat EIRP at user).
  * @param uplinkAtGateway  Uplink candidate at the gateway location (sat G/T at gateway).
- * @param gateway          The resolved gateway data.
+ * @param trafficTeleportCapability  The traffic teleport capability used for the feeder RF leg.
  * @param terminalType     RF class ID or legacy use-case key — selects G/T for the user terminal.
  * @param customParams     When non-null, overrides preset RF class physical parameters.
  */
 export function buildStarForwardResult(
   downlinkAtUser: CandidateCoverage,
   uplinkAtGateway: CandidateCoverage,
-  gateway: GeoGatewayData,
+  trafficTeleportCapability: TrafficTeleportCapability,
   userLabel?: string,
   weatherAdjDb?: number,
   terminalType?: string,
   customParams?: TerminalRFCustomParams | null,
+  trafficTeleportLabel?: string,
 ): DualSegmentResult | null {
   if (!haveSameBand(downlinkAtUser, uplinkAtGateway)) return null;
   const band = downlinkAtUser.band ?? uplinkAtGateway.band ?? 'Ku';
@@ -403,6 +408,7 @@ export function buildStarForwardResult(
   if (!isTerminalCompatibleWithCandidateBand(terminalType, geoBand)) return null;
   const gatewayEirpDbw = GATEWAY_EIRP_DBW[geoBand] ?? GATEWAY_EIRP_DBW.Ku;
   const gatewayGTDbk = GATEWAY_GT_DBK[geoBand] ?? GATEWAY_GT_DBK.Ku;
+  const trafficTeleportName = trafficTeleportLabel ?? trafficTeleportCapability.siteId;
 
   const terminalGtDbk = terminalType
     ? resolveTerminalRFParams(geoBand, terminalType, customParams).gtDbk
@@ -410,7 +416,7 @@ export function buildStarForwardResult(
 
   const uplinkSeg = buildUplinkSegment(
     uplinkAtGateway,
-    { label: gateway.name, eirpDbw: gatewayEirpDbw },
+    { label: trafficTeleportName, eirpDbw: gatewayEirpDbw },
     { label: uplinkAtGateway.satelliteName },
     gatewayEirpDbw,
     weatherAdjDb,
@@ -436,6 +442,10 @@ export function buildStarForwardResult(
 
   return {
     forward: { uplink: uplinkSeg, downlink: downlinkSeg, endToEnd: e2e },
+    trafficTeleportEndpoint: {
+      label: trafficTeleportName,
+      capability: trafficTeleportCapability,
+    },
     networkLayer: {
       forward: computeNetworkLayer(e2e.endToEndThroughputMbps, 'STAR_FORWARD'),
     },
@@ -454,23 +464,25 @@ export function buildStarForwardResult(
  *
  * @param uplinkAtUser       Uplink candidate at user location (sat G/T at user).
  * @param downlinkAtGateway  Downlink candidate at gateway location (sat EIRP at gateway).
- * @param gateway            The resolved gateway data.
+ * @param trafficTeleportCapability  The traffic teleport capability used for the feeder RF leg.
  * @param terminalType       Terminal type key (e.g. 'fixed', 'mobile') — used to select EIRP.
  */
 export function buildStarReturnResult(
   uplinkAtUser: CandidateCoverage,
   downlinkAtGateway: CandidateCoverage,
-  gateway: GeoGatewayData,
+  trafficTeleportCapability: TrafficTeleportCapability,
   userLabel?: string,
   weatherAdjDb?: number,
   terminalType?: string,
   customParams?: TerminalRFCustomParams | null,
+  trafficTeleportLabel?: string,
 ): DualSegmentResult | null {
   if (!haveSameBand(uplinkAtUser, downlinkAtGateway)) return null;
   const band = uplinkAtUser.band ?? downlinkAtGateway.band ?? 'Ku';
   const geoBand = band as GeoBand;
   if (!isTerminalCompatibleWithCandidateBand(terminalType, geoBand)) return null;
   const gatewayGTDbk = GATEWAY_GT_DBK[geoBand] ?? GATEWAY_GT_DBK.Ku;
+  const trafficTeleportName = trafficTeleportLabel ?? trafficTeleportCapability.siteId;
 
   // Resolve terminal EIRP: RF class IDs take priority over legacy table lookup.
   let terminalEirpDbw: number;
@@ -493,7 +505,7 @@ export function buildStarReturnResult(
   const downlinkSeg = buildDownlinkSegment(
     downlinkAtGateway,
     { label: downlinkAtGateway.satelliteName },
-    { label: gateway.name, gtDbk: gatewayGTDbk },
+    { label: trafficTeleportName, gtDbk: gatewayGTDbk },
     gatewayGTDbk,
     weatherAdjDb,
     getTerminalDownlinkGT(geoBand),
@@ -507,6 +519,10 @@ export function buildStarReturnResult(
 
   return {
     forward: { uplink: uplinkSeg, downlink: downlinkSeg, endToEnd: e2e },
+    trafficTeleportEndpoint: {
+      label: trafficTeleportName,
+      capability: trafficTeleportCapability,
+    },
     networkLayer: {
       forward: computeNetworkLayer(e2e.endToEndThroughputMbps, 'STAR_RETURN'),
     },

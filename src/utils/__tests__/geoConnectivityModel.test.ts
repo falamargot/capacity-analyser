@@ -51,6 +51,7 @@ describe('geoConnectivityModel gateway selection', () => {
       // status must be surfaced explicitly on the traffic selection, not masked.
       expect(trafficSelection, assignment.satelliteName).not.toBeNull();
       expect(trafficSelection?.trafficStatus).toBe('PUBLICLY_LIKELY');
+      expect(trafficSelection?.trafficCapability.kind).toBe('TRAFFIC_TELEPORT');
 
       // Backup path coverage: backupSccCode is always CAG/HER/TUR in the reference
       // table (verified by direct inspection, never an UNVERIFIED site) — exercise
@@ -200,5 +201,44 @@ describe('geoConnectivityModel gateway selection', () => {
     // Traffic selection must not silently fall back to the SCC site when its
     // commercial traffic function is unverified.
     expect(trafficSelection).toBeNull();
+  });
+
+  it('returns null from selectTrafficGeoGateway when the assigned traffic capability is not applicable', () => {
+    const satellite = createGeoSatellite('EUTELSAT 8 WEST B', -8, '8WB'); // nominal SCC = Rambouillet (RAM)
+    const notApplicableGateways = GEO_GATEWAYS.map((gateway) => (
+      gateway.teleportCode === 'RAM'
+        ? { ...gateway, trafficStatus: 'NOT_APPLICABLE' as const }
+        : gateway
+    ));
+
+    expect(resolveGatewayForSatellite(satellite, notApplicableGateways)?.gateway.name).toBe('Rambouillet');
+    expect(selectTrafficGeoGateway(satellite, notApplicableGateways)).toBeNull();
+  });
+
+  it('fallback traffic selection skips nearer monitoring-only and TT&C-only sites', () => {
+    const satellite = createGeoSatellite('EUTELSAT TEST 120E', 120, 'TEST-120E');
+    const operational = selectOperationalGeoGateway(satellite, GEO_GATEWAYS, { minVisibilityDeg: -90 });
+    const trafficSelection = selectTrafficGeoGateway(satellite, GEO_GATEWAYS, { minVisibilityDeg: -90 });
+
+    expect(operational?.gateway.teleportCode).toMatch(/^(SIN|IBA|PER)$/);
+    expect(trafficSelection).not.toBeNull();
+    expect(trafficSelection?.trafficCapability.kind).toBe('TRAFFIC_TELEPORT');
+    expect(['MAR', 'DUB', 'SIN', 'IBA', 'PER']).not.toContain(trafficSelection?.gateway.teleportCode);
+  });
+
+  it('does not build a gateway leg when only monitoring or TT&C sites are available', () => {
+    const satellite = createGeoSatellite('EUTELSAT TEST 120E', 120, 'TEST-120E');
+    const nonTrafficSites = GEO_GATEWAYS.filter((gateway) => ['MAR', 'DUB', 'SIN', 'IBA', 'PER'].includes(gateway.teleportCode));
+
+    const trafficSelection = selectTrafficGeoGateway(satellite, nonTrafficSites, { minVisibilityDeg: -90 });
+    const geometry = analyzeGeoConnectivity({
+      userPoint: { lat: 1.35, lng: 103.82 },
+      satellite,
+      gateways: nonTrafficSites,
+    });
+
+    expect(trafficSelection).toBeNull();
+    expect(geometry.satelliteToGateway.gateway).toBeNull();
+    expect(geometry.satelliteToGateway.resolvedGateway).toBeNull();
   });
 });

@@ -186,6 +186,7 @@ export interface CommercialScenarioViewModel {
     destinationLocation?: string;
     destinationGatewayName?: string;
     destinationGatewayCoverage?: string;
+    destinationGatewayConfidence?: string;
     destinationReceivingSide?: string;
     destinationDirection?: 'satellite_to_gateway' | 'satellite_to_site';
     rawServiceStatus?: string;

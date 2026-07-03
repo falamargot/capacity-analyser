@@ -3,7 +3,13 @@ import { Satellite, Plane, Ship, Radio } from 'lucide-react';
 import type { SatelliteData } from '../../types/satellites';
 import type { Aircraft } from '../../modules/airTraffic/airTrafficService';
 import type { Vessel } from '../../modules/maritimeTraffic/maritimeTrafficService';
-import { formatGroundRoles, type GeoGatewayData, type SNPData } from '../globe/GlobeConfig';
+import {
+  getGroundSiteById,
+  getGroundSiteByPublicCode,
+  type GeoGatewayData,
+  type GroundCapability,
+  type SNPData,
+} from '../globe/GlobeConfig';
 import type { FiveGSpectrumCountryInfo } from '../../services/fiveGSpectrumService';
 
 type HoveredEntity =
@@ -24,6 +30,25 @@ interface InspectionCardProps {
 }
 
 const FADE_DELAY_MS = 150;
+
+const capabilityLabel = (capability: GroundCapability): string => {
+  switch (capability.kind) {
+    case 'SATELLITE_CONTROL':
+      return capability.controlRole === 'SCC_NOMINAL' ? 'SCC' : 'Backup SCC';
+    case 'TTC':
+      return 'TT&C';
+    case 'MONITORING':
+      return 'Monitoring';
+    case 'TRAFFIC_TELEPORT':
+      return 'Traffic Teleport';
+    case 'NETWORK_BACKHAUL':
+      return 'Network Backhaul';
+    default: {
+      const exhaustiveCheck: never = capability;
+      return exhaustiveCheck;
+    }
+  }
+};
 
 const InspectionCard = memo<InspectionCardProps>(({ entity, containerRef, cursorPositionRef }) => {
   const [visible, setVisible] = useState(false);
@@ -211,6 +236,12 @@ const InspectionCard = memo<InspectionCardProps>(({ entity, containerRef, cursor
       }
       case 'gateway': {
         const gateway = displayEntity.data;
+        const groundSite = getGroundSiteById(gateway.gateway_id) ?? getGroundSiteByPublicCode(gateway.teleportCode);
+        const capabilities = groundSite?.capabilities ?? [];
+        const trafficCapability = capabilities.find((capability) => capability.kind === 'TRAFFIC_TELEPORT');
+        const capabilitySummary = capabilities.length > 0
+          ? capabilities.map(capabilityLabel).join(', ')
+          : 'Capability inventory unavailable';
         return (
           <>
             <div className="flex items-center gap-2 mb-1.5">
@@ -219,7 +250,13 @@ const InspectionCard = memo<InspectionCardProps>(({ entity, containerRef, cursor
             </div>
             <div className="grid grid-cols-2 gap-x-3 gap-y-0.5 text-[11px]">
               <span className="text-gray-500 dark:text-gray-400">Type</span>
-              <span className="text-gray-700 dark:text-gray-300">{formatGroundRoles(gateway.roles)}</span>
+              <span className="text-gray-700 dark:text-gray-300">Ground Site</span>
+              <span className="text-gray-500 dark:text-gray-400">Capabilities</span>
+              <span className="text-gray-700 dark:text-gray-300">{capabilitySummary}</span>
+              <span className="text-gray-500 dark:text-gray-400">Traffic RF</span>
+              <span className="text-gray-700 dark:text-gray-300">
+                {trafficCapability ? `${trafficCapability.confidence} ${trafficCapability.trafficEligibility}` : 'Not a traffic endpoint'}
+              </span>
               <span className="text-gray-500 dark:text-gray-400">Region</span>
               <span className="text-gray-700 dark:text-gray-300">{gateway.region}</span>
               <span className="text-gray-500 dark:text-gray-400">Lat/Lng</span>

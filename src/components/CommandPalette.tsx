@@ -5,6 +5,7 @@ import type { SatelliteData } from '../types/satellites';
 import type { Aircraft } from '../modules/airTraffic/airTrafficService';
 import type { Vessel } from '../modules/maritimeTraffic/maritimeTrafficService';
 import { GEO_GATEWAYS, SNPS_DATA, getPrimaryControlRoleLabel, type GeoGatewayData, type SNPData } from './globe/GlobeConfig';
+import { buildGeoGatewayMarkerMetadata } from './cesium-globe/geoGatewayMarkerModel';
 
 type ResultItem =
   | { type: 'satellite'; data: SatelliteData }
@@ -74,13 +75,13 @@ const CommandPalette = memo<CommandPaletteProps>(({
     if (allowedTypes.size === 1 && allowedTypes.has('satellite')) return 'Search satellites...';
     if (allowedTypes.size === 1 && allowedTypes.has('moon')) return 'Search the Moon...';
     if (allowedTypes.size === 3 && allowedTypes.has('satellite') && allowedTypes.has('moon') && allowedTypes.has('location')) return 'Search satellites, the Moon, or locations...';
-    return 'Search satellites, the Moon, gateways, aircraft, vessels, SNPs, or locations...';
+    return 'Search satellites, the Moon, ground sites, aircraft, vessels, SNPs, or locations...';
   }, [allowedTypes]);
   const emptyStateMessage = useMemo(() => {
     if (allowedTypes.size === 1 && allowedTypes.has('satellite')) return 'Start typing to search satellites.';
     if (allowedTypes.size === 1 && allowedTypes.has('moon')) return 'Start typing to search the Moon.';
     if (allowedTypes.size === 3 && allowedTypes.has('satellite') && allowedTypes.has('moon') && allowedTypes.has('location')) return 'Start typing to search satellites, the Moon, or locations.';
-    return 'Start typing to search satellites, the Moon, gateways, aircraft, vessels, SNPs, or locations.';
+    return 'Start typing to search satellites, the Moon, ground sites, aircraft, vessels, SNPs, or locations.';
   }, [allowedTypes]);
 
   // Reset state when opened
@@ -289,7 +290,13 @@ const CommandPalette = memo<CommandPaletteProps>(({
       case 'aircraft': return { primary: item.data.callsign || item.data.icao24, secondary: `Aircraft · ${item.data.icao24}` };
       case 'vessel': return { primary: item.data.name || item.data.mmsi, secondary: `Vessel · ${item.data.mmsi}` };
       case 'snp': return { primary: item.data.name, secondary: `SNP · ${item.data.region}` };
-      case 'gateway': return { primary: item.data.name, secondary: `${getPrimaryControlRoleLabel(item.data.roles)} · ${item.data.region}` };
+      case 'gateway': {
+        const metadata = buildGeoGatewayMarkerMetadata(item.data);
+        const capabilities = metadata.capabilityLabels.length > 0
+          ? metadata.capabilityLabels.join(' / ')
+          : getPrimaryControlRoleLabel(item.data.roles);
+        return { primary: item.data.name, secondary: `${capabilities} · ${item.data.region}` };
+      }
       case 'moon': return { primary: item.data.name, secondary: 'Natural satellite of Earth' };
       case 'location': return { primary: item.data.name, secondary: `${item.data.lat.toFixed(4)}°, ${item.data.lng.toFixed(4)}°` };
     }

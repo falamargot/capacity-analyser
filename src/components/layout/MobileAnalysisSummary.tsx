@@ -495,7 +495,7 @@ const MobileAnalysisSummary: React.FC<MobileAnalysisSummaryProps> = ({
 
         if (selectedGateway) {
             return {
-                eyebrow: 'Gateway',
+                eyebrow: 'Ground Site',
                 title: selectedGateway.name,
                 subtitle: `${selectedGateway.region} · ${getPrimaryControlRoleLabel(selectedGateway.roles)}`,
                 status: 'GEO routing view',
@@ -905,20 +905,20 @@ const MobileAnalysisSummary: React.FC<MobileAnalysisSummaryProps> = ({
             return [
                 {
                     key: 'gw-region',
-                    label: 'Gateway',
+                    label: 'Ground Site',
                     value: selectedGateway.region,
                     hint: selectedGateway.gateway_id,
                     accentClassName: 'text-cyan-600 dark:text-cyan-300',
                 },
                 {
                     key: 'gw-primary',
-                    label: 'Primary GEO',
+                    label: 'Nominal SCC',
                     value: `${selectedGatewayAssignments.primary.length} satellites`,
                     hint: `Backup ${selectedGatewayAssignments.backup.length}`,
                 },
                 {
                     key: 'gw-total',
-                    label: 'Assigned GEO',
+                    label: 'Control GEO',
                     value: `${totalAssigned} satellites`,
                     hint: formatCoordinates({ lat: selectedGateway.lat, lng: selectedGateway.lng }),
                 },

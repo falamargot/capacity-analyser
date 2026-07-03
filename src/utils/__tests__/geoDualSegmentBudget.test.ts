@@ -12,7 +12,7 @@
  */
 import { describe, expect, it } from 'vitest';
 import type { CandidateCoverage } from '../../types/analysis';
-import type { GeoGatewayData } from '../../components/globe/GlobeConfig';
+import type { TrafficTeleportCapability } from '../geoGroundInfrastructure';
 import {
   buildStarForwardResult,
   buildStarReturnResult,
@@ -92,17 +92,15 @@ function makeUlCandidate(overrides: Partial<CandidateCoverage> = {}): CandidateC
   };
 }
 
-const GATEWAY: GeoGatewayData = {
-  teleportCode: 'TST',
-  gateway_id: 'test-01',
-  name: 'Test Gateway',
-  latitude: 51.5,
-  longitude: -0.2,
-  supported_satellites: ['SAT-1'],
-  lat: 51.5,
-  lng: -0.2,
-  region: 'Europe',
-  role: 'traffic',
+const GATEWAY: TrafficTeleportCapability = {
+  capabilityId: 'test-01-traffic-teleport',
+  siteId: 'test-01',
+  kind: 'TRAFFIC_TELEPORT',
+  confidence: 'PUBLICLY_LIKELY',
+  supportedSatellites: ['SAT-1'],
+  trafficEligibility: 'ELIGIBLE_PUBLICLY_LIKELY',
+  rfCapabilities: [],
+  eligibleServiceClasses: ['STAR_FORWARD', 'STAR_RETURN'],
 };
 
 // ─── A. STAR_FORWARD ──────────────────────────────────────────────────────────
@@ -180,6 +178,18 @@ describe('STAR_FORWARD — terminal G/T affects downlink C/N', () => {
       .toBeCloseTo(rEnterprise!.forward.uplink.effectiveCNDb, 5);
   });
 
+  it('exposes the consumed TRAFFIC_TELEPORT capability for ENG display', () => {
+    const dl = makeDlCandidate();
+    const ul = makeUlCandidate();
+
+    const result = buildStarForwardResult(dl, ul, GATEWAY, 'User', undefined, undefined, undefined, 'Rambouillet');
+
+    expect(result?.trafficTeleportEndpoint?.label).toBe('Rambouillet');
+    expect(result?.trafficTeleportEndpoint?.capability.kind).toBe('TRAFFIC_TELEPORT');
+    expect(result?.trafficTeleportEndpoint?.capability.capabilityId).toBe('test-01-traffic-teleport');
+    expect(result?.trafficTeleportEndpoint?.capability.confidence).toBe('PUBLICLY_LIKELY');
+  });
+
   it('detailed panel destination G/T reflects selected RF class, not hardcoded 17 dB/K', () => {
     const dl = makeDlCandidate();
     const ul = makeUlCandidate();
@@ -241,6 +251,18 @@ describe('STAR_RETURN — terminal EIRP affects uplink C/N', () => {
       .toBeCloseTo(rStandard!.forward.downlink.effectiveCNDb, 5);
   });
 
+  it('exposes the consumed TRAFFIC_TELEPORT capability for return-path ENG display', () => {
+    const ul = makeUlCandidate();
+    const dl = makeDlCandidate({ isUplink: false, eirpDbw: 50, cnDb: 8 });
+
+    const result = buildStarReturnResult(ul, dl, GATEWAY, 'User', undefined, undefined, undefined, 'Rambouillet');
+
+    expect(result?.trafficTeleportEndpoint?.label).toBe('Rambouillet');
+    expect(result?.trafficTeleportEndpoint?.capability.kind).toBe('TRAFFIC_TELEPORT');
+    expect(result?.trafficTeleportEndpoint?.capability.capabilityId).toBe('test-01-traffic-teleport');
+    expect(result?.trafficTeleportEndpoint?.capability.trafficEligibility).toBe('ELIGIBLE_PUBLICLY_LIKELY');
+  });
+
   it('increasing receiver noise temp does NOT change uplink C/N', () => {
     const ul = makeUlCandidate();
     const dl = makeDlCandidate({ isUplink: false, eirpDbw: 50, cnDb: 8 });
@@ -276,7 +298,7 @@ describe('MESH — directional RF sensitivity', () => {
       ulA, dlB, ulB, dlA,
       { pointA: 'Point A', pointB: 'Point B' },
       terminalTypeA, terminalTypeB,
-      undefined, customParamsA, customParamsB,
+      undefined, undefined, customParamsA, customParamsB,
     );
   }
 
