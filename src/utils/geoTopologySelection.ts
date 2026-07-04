@@ -15,7 +15,7 @@ import {
   synthesizeUplinkCandidate,
   type DualSegmentResult,
 } from './geoDualSegmentBudget';
-import { selectTrafficGeoGateway } from './geoConnectivityModel';
+import { resolveStarTrafficGatewayForCoverage, type StarTrafficGatewayDiagnostic } from './geoConnectivityModel';
 
 export interface TopologySelectionCandidate {
   satellite: SatelliteData;
@@ -26,6 +26,7 @@ export interface TopologySelectionCandidate {
   downlinkB: CandidateCoverage | null;
   result: DualSegmentResult;
   score: number;
+  gatewayResolutionDiagnostic?: StarTrafficGatewayDiagnostic;
 }
 
 interface SelectBestTopologyPathArgs {
@@ -188,7 +189,7 @@ export function selectBestTopologyPath({
       // gatewaySelection is null when the satellite's SCC site has no CONFIRMED
       // or PUBLICLY_LIKELY traffic role — the satellite is skipped rather than
       // building a link budget against an unconfirmed/SCC-only site.
-      const gatewaySelection = selectTrafficGeoGateway(satellite, gateways);
+      const gatewaySelection = resolveStarTrafficGatewayForCoverage(satellite, downlinkA, gateways);
       if (!gatewaySelection || !downlinkA) continue;
 
       const gatewayPool = buildGatewayCandidatePool(satellite, gatewaySelection.gateway, downlinkA.band ?? null);
@@ -219,10 +220,11 @@ export function selectBestTopologyPath({
         downlinkB: null,
         score: scoreTopologyResult(result),
         result,
+        gatewayResolutionDiagnostic: gatewaySelection.diagnostic,
       };
     } else if (linkMode === 'STAR_RETURN') {
       // Same trafficStatus gating as STAR_FORWARD above.
-      const gatewaySelection = selectTrafficGeoGateway(satellite, gateways);
+      const gatewaySelection = resolveStarTrafficGatewayForCoverage(satellite, uplinkA, gateways);
       if (!gatewaySelection || !uplinkA) continue;
 
       const gatewayPool = buildGatewayCandidatePool(satellite, gatewaySelection.gateway, uplinkA.band ?? null);
@@ -253,6 +255,7 @@ export function selectBestTopologyPath({
         downlinkB: null,
         score: scoreTopologyResult(result),
         result,
+        gatewayResolutionDiagnostic: gatewaySelection.diagnostic,
       };
     } else if ((linkMode === 'MESH' || linkMode === 'POINT_TO_POINT') && pointB) {
       const downlinkB = getBestDirectionCandidate(compatibleCoveragesB, satellite, false);

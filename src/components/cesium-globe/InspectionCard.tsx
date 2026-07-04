@@ -43,6 +43,8 @@ const capabilityLabel = (capability: GroundCapability): string => {
       return 'Traffic Teleport';
     case 'NETWORK_BACKHAUL':
       return 'Network Backhaul';
+    case 'NETWORK_HUB':
+      return 'Network Hub';
     default: {
       const exhaustiveCheck: never = capability;
       return exhaustiveCheck;

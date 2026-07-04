@@ -38,6 +38,7 @@ export const CAPABILITY_LABELS: Record<GroundCapabilityKind, string> = {
   MONITORING: 'Monitoring',
   TRAFFIC_TELEPORT: 'Traffic Teleport',
   NETWORK_BACKHAUL: 'Network Backhaul',
+  NETWORK_HUB: 'Network Hub',
 };
 
 export const MARKER_STYLE: Record<GeoGatewayMarkerKind, { fill: string; outline: string }> = {

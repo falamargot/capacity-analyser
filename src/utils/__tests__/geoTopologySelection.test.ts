@@ -229,6 +229,192 @@ describe('geoTopologySelection', () => {
     expect(returns?.result.forward.downlink.destination.label).toBe(returns?.gateway?.name);
   });
 
+  it('uses KVHTS beam 132 to select Rambouillet for the STAR RF path', () => {
+    const satellite = createSatellite('KONNECT_VHTS', 'EUTELSAT KONNECT VHTS', 2, []);
+    const candidateCoveragesA = [
+      createCandidate(satellite, false, 150, 8, {
+        beamId: 'KONNECT_VHTS::132',
+        beamName: '132',
+      }),
+    ];
+
+    const result = selectBestTopologyPath({
+      linkMode: 'STAR_FORWARD',
+      satellites: [satellite],
+      candidateCoveragesA,
+      pointALabel: 'Terminal A',
+    });
+
+    expect(result?.gateway?.name).toBe('Rambouillet');
+    expect(result?.gatewayResolutionDiagnostic).toEqual(expect.objectContaining({
+      source: 'beam-gateway-assignment',
+      canonicalSatelliteId: 'KVHTS',
+      beamToken: '132',
+      reason: null,
+    }));
+    expect(result?.result.forward.uplink.source.label).toBe('Rambouillet');
+    expect(result?.result.trafficTeleportEndpoint?.capability.capabilityId).toBe('geo-rambouillet-traffic-teleport');
+  });
+
+  it('uses KVHTS beam 29 to select Scanzano/Palermo for the STAR RF path', () => {
+    const satellite = createSatellite('KONNECT_VHTS', 'EUTELSAT KONNECT VHTS', 2, []);
+    const candidateCoveragesA = [
+      createCandidate(satellite, false, 150, 8, {
+        beamId: 'KONNECT_VHTS::29',
+        beamName: '29',
+      }),
+    ];
+
+    const result = selectBestTopologyPath({
+      linkMode: 'STAR_FORWARD',
+      satellites: [satellite],
+      candidateCoveragesA,
+      pointALabel: 'Terminal A',
+    });
+
+    expect(result?.gateway?.name).toBe('Scanzano / Palermo');
+    expect(result?.gatewayResolutionDiagnostic).toEqual(expect.objectContaining({
+      source: 'beam-gateway-assignment',
+      canonicalSatelliteId: 'KVHTS',
+      beamToken: '29',
+      reason: null,
+    }));
+    expect(result?.result.forward.uplink.source.label).toBe('Scanzano / Palermo');
+    expect(result?.result.trafficTeleportEndpoint?.capability.capabilityId).toBe('geo-scanzano-palermo-traffic-teleport');
+  });
+
+  it('uses E10B beam 66 to select Cagliari for the STAR RF path', () => {
+    const satellite = createSatellite('10B', 'EUTELSAT 10B', 10, []);
+    const candidateCoveragesA = [
+      createCandidate(satellite, false, 150, 8, {
+        beamId: '10B::66',
+        beamName: '66',
+      }),
+    ];
+
+    const result = selectBestTopologyPath({
+      linkMode: 'STAR_FORWARD',
+      satellites: [satellite],
+      candidateCoveragesA,
+      pointALabel: 'Terminal A',
+    });
+
+    expect(result?.gateway?.name).toBe('Cagliari');
+    expect(result?.gatewayResolutionDiagnostic).toEqual(expect.objectContaining({
+      source: 'beam-gateway-assignment',
+      canonicalSatelliteId: 'E10B',
+      beamToken: '66',
+      reason: null,
+    }));
+    expect(result?.result.forward.uplink.source.label).toBe('Cagliari');
+    expect(result?.result.trafficTeleportEndpoint?.capability.capabilityId).toBe('geo-cagliari-traffic-teleport');
+  });
+
+  it('uses E10B beam 110 to select Makarios for the STAR RF path', () => {
+    const satellite = createSatellite('10B', 'EUTELSAT 10B', 10, []);
+    const candidateCoveragesA = [
+      createCandidate(satellite, true, 150, 8, {
+        beamId: '10B::110',
+        beamName: '110',
+      }),
+    ];
+
+    const result = selectBestTopologyPath({
+      linkMode: 'STAR_RETURN',
+      satellites: [satellite],
+      candidateCoveragesA,
+      pointALabel: 'Terminal A',
+    });
+
+    expect(result?.gateway?.name).toBe('Makarios');
+    expect(result?.gatewayResolutionDiagnostic).toEqual(expect.objectContaining({
+      source: 'beam-gateway-assignment',
+      canonicalSatelliteId: 'E10B',
+      beamToken: '110',
+      reason: null,
+    }));
+    expect(result?.result.forward.downlink.destination.label).toBe('Makarios');
+    expect(result?.result.trafficTeleportEndpoint?.capability.capabilityId).toBe('geo-makarios-traffic-teleport');
+  });
+
+  it('falls back to legacy gateway selection with diagnostics for an unknown KVHTS beam', () => {
+    const satellite = createSatellite('KONNECT_VHTS', 'EUTELSAT KONNECT VHTS', 2, []);
+    const candidateCoveragesA = [
+      createCandidate(satellite, false, 150, 8, {
+        beamId: 'KONNECT_VHTS::9999',
+        beamName: '9999',
+      }),
+    ];
+
+    const result = selectBestTopologyPath({
+      linkMode: 'STAR_FORWARD',
+      satellites: [satellite],
+      candidateCoveragesA,
+      pointALabel: 'Terminal A',
+    });
+
+    expect(result?.gateway?.name).toBe('Rambouillet');
+    expect(result?.gatewayResolutionDiagnostic).toEqual(expect.objectContaining({
+      source: 'legacy-traffic-gateway',
+      canonicalSatelliteId: 'KVHTS',
+      beamToken: '9999',
+      reason: 'BEAM_ASSIGNMENT_NOT_FOUND',
+    }));
+    expect(result?.result.forward.uplink.source.label).toBe('Rambouillet');
+  });
+
+  it('falls back to legacy gateway selection with diagnostics for an unknown E10B beam', () => {
+    const satellite = createSatellite('10B', 'EUTELSAT 10B', 10, []);
+    const candidateCoveragesA = [
+      createCandidate(satellite, false, 150, 8, {
+        beamId: '10B::9999',
+        beamName: '9999',
+      }),
+    ];
+
+    const result = selectBestTopologyPath({
+      linkMode: 'STAR_FORWARD',
+      satellites: [satellite],
+      candidateCoveragesA,
+      pointALabel: 'Terminal A',
+    });
+
+    expect(result?.gateway?.name).toBe('Rambouillet');
+    expect(result?.gatewayResolutionDiagnostic).toEqual(expect.objectContaining({
+      source: 'legacy-traffic-gateway',
+      canonicalSatelliteId: 'E10B',
+      beamToken: '9999',
+      reason: 'BEAM_ASSIGNMENT_NOT_FOUND',
+    }));
+    expect(result?.result.forward.uplink.source.label).toBe('Rambouillet');
+  });
+
+
+  it('keeps non-KVHTS/E10B satellites on legacy STAR gateway selection', () => {
+    const satellite = createSatellite('8WB', 'EUTELSAT 8 WEST B', -8, []);
+    const candidateCoveragesA = [
+      createCandidate(satellite, false, 150, 8, {
+        beamId: '8WB::132',
+        beamName: '132',
+      }),
+    ];
+
+    const result = selectBestTopologyPath({
+      linkMode: 'STAR_FORWARD',
+      satellites: [satellite],
+      candidateCoveragesA,
+      pointALabel: 'Terminal A',
+    });
+
+    expect(result?.gateway?.name).toBe('Rambouillet');
+    expect(result?.gatewayResolutionDiagnostic).toEqual(expect.objectContaining({
+      source: 'legacy-traffic-gateway',
+      canonicalSatelliteId: null,
+      reason: 'UNSUPPORTED_SATELLITE',
+    }));
+    expect(result?.result.forward.uplink.source.label).toBe('Rambouillet');
+  });
+
   it.each(['UNVERIFIED', 'NOT_APPLICABLE'] as const)(
     'does not build a STAR RF route when the assigned traffic capability is %s',
     (trafficStatus) => {
@@ -291,6 +477,7 @@ describe('geoTopologySelection', () => {
 
     expect(bestPath).not.toBeNull();
     expect(bestPath?.gateway).toBeNull();
+    expect(bestPath?.gatewayResolutionDiagnostic).toBeUndefined();
     expect(bestPath?.result.forward.uplink.source.label).toBe('A');
     expect(bestPath?.result.forward.downlink.destination.label).toBe('B');
   });

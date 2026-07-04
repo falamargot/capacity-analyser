@@ -18,7 +18,7 @@ import {
 } from './geoDualSegmentBudget';
 import { RAIN_FADE_DB, type GeoBand } from './geoLinkBudget';
 import { augmentCandidatesWithSynthesizedDirections } from './geoTopologySelection';
-import { selectTrafficGeoGateway } from './geoConnectivityModel';
+import { resolveStarTrafficGatewayForCoverage, type StarTrafficGatewayDiagnostic } from './geoConnectivityModel';
 import { getRFClassBand, type TerminalRFClassId, type TerminalRFCustomParams } from './geoTerminalRFModel';
 import type { GeoPointStatus } from './selectedPointStatus';
 
@@ -52,6 +52,7 @@ export interface GeoRouteAnalysisViewModel {
   geoMetrics: MobileLinkMetrics | null;
   meshMetrics: MeshLinkMetrics | null;
   geoSiteToSitePath: GeoSiteToSitePathSummary | null;
+  starGatewayResolutionDiagnostic?: StarTrafficGatewayDiagnostic | null;
 }
 
 interface GeoRouteAnalysisInput {
@@ -279,11 +280,13 @@ export function buildGeoRouteAnalysisViewModel(input: GeoRouteAnalysisInput): Ge
     geoStatus = 'available';
   }
 
-  const trafficGatewaySelection = selectedSatellite ? selectTrafficGeoGateway(selectedSatellite, GEO_GATEWAYS) : null;
   const resolvedGateway = resolvedGEOConnectivity?.geometry?.satelliteToGateway?.resolvedGateway;
   const resolvedGatewayData: GeoGatewayData | null = resolvedGateway?.gateway ?? resolvedGEOConnectivity?.geometry?.satelliteToGateway?.gateway ?? null;
-  const starTrafficGatewayData: GeoGatewayData | null = trafficGatewaySelection?.gateway ?? null;
   const refCoverage = input.selectedDownlinkCoverage ?? input.selectedUplinkCoverage ?? input.selectedCoverage;
+  const starGatewaySelection = selectedSatellite && refCoverage && (input.linkMode === 'STAR_FORWARD' || input.linkMode === 'STAR_RETURN')
+    ? resolveStarTrafficGatewayForCoverage(selectedSatellite, refCoverage, GEO_GATEWAYS)
+    : null;
+  const starTrafficGatewayData: GeoGatewayData | null = starGatewaySelection?.gateway ?? null;
   const downlinkAtUser = input.selectedDownlinkCoverage
     ?? getGeoCompanionCoverage(refCoverage, input.candidateCoverages, false);
   const uplinkAtUser = input.selectedUplinkCoverage
@@ -333,32 +336,32 @@ export function buildGeoRouteAnalysisViewModel(input: GeoRouteAnalysisInput): Ge
     const weatherAdjDbB = fadeTable[input.weatherTypeB as keyof typeof fadeTable] ?? 0;
 
     if (input.linkMode === 'STAR_FORWARD') {
-      if (!trafficGatewaySelection || !downlinkAtUser || !uplinkAtGateway) return null;
+      if (!starGatewaySelection || !downlinkAtUser || !uplinkAtGateway) return null;
       return buildStarForwardResult(
         downlinkAtUser,
         uplinkAtGateway,
-        trafficGatewaySelection.trafficCapability,
+        starGatewaySelection.trafficCapability,
         'Terminal A',
         weatherAdjDbA,
         input.geoRFClassIdA ?? undefined,
         input.geoRFCustomParamsA,
-        trafficGatewaySelection.gateway.name,
+        starGatewaySelection.gateway.name,
       );
     }
 
     if (input.linkMode === 'STAR_RETURN') {
-      if (!trafficGatewaySelection || !uplinkAtUser) return null;
+      if (!starGatewaySelection || !uplinkAtUser) return null;
       const downlink = downlinkAtGateway ?? (uplinkAtGateway ? synthesizeDownlinkCandidate(uplinkAtGateway) : null);
       if (!downlink) return null;
       return buildStarReturnResult(
         uplinkAtUser,
         downlink,
-        trafficGatewaySelection.trafficCapability,
+        starGatewaySelection.trafficCapability,
         'Terminal A',
         weatherAdjDbA,
         input.geoRFClassIdA ?? undefined,
         input.geoRFCustomParamsA,
-        trafficGatewaySelection.gateway.name,
+        starGatewaySelection.gateway.name,
       );
     }
 
@@ -584,5 +587,6 @@ export function buildGeoRouteAnalysisViewModel(input: GeoRouteAnalysisInput): Ge
     geoMetrics,
     meshMetrics,
     geoSiteToSitePath,
+    starGatewayResolutionDiagnostic: starGatewaySelection?.diagnostic ?? null,
   };
 }

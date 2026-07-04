@@ -1,7 +1,12 @@
 import type { SatelliteData } from '../types/satellites';
+import type { CandidateCoverage } from '../types/analysis';
 import type { GatewayTrafficStatus, GeoGatewayData } from '../components/globe/GlobeConfig';
 import {
   getTrafficTeleportCapabilityForLegacyGateway,
+  projectGroundSiteToLegacyGeoGateway,
+  resolveBeamGatewayRoute,
+  type BeamGatewayResolutionFailureReason,
+  type ResolvedBeamGatewayRoute,
   type TrafficTeleportCapability,
 } from './geoGroundInfrastructure';
 
@@ -61,6 +66,27 @@ export interface TrafficGatewaySelection extends GeoGatewaySelection {
   trafficStatus: GatewayTrafficStatus;
   trafficCapability: TrafficTeleportCapability;
   resolvedGateway: ResolvedGeoGateway;
+}
+
+export type StarTrafficGatewayResolutionSource =
+  | 'beam-gateway-assignment'
+  | 'legacy-traffic-gateway';
+
+export interface StarTrafficGatewayDiagnostic {
+  source: StarTrafficGatewayResolutionSource;
+  satelliteId: string;
+  canonicalSatelliteId: string | null;
+  beamToken: string | null;
+  reason: BeamGatewayResolutionFailureReason | 'BEAM_TOKEN_NOT_FOUND' | null;
+  message: string;
+}
+
+export interface StarTrafficGatewaySelection {
+  gateway: GeoGatewayData;
+  trafficCapability: TrafficTeleportCapability;
+  diagnostic: StarTrafficGatewayDiagnostic;
+  beamRoute: ResolvedBeamGatewayRoute | null;
+  legacySelection: TrafficGatewaySelection | null;
 }
 
 export type GatewayAssignmentRole = 'primary' | 'backup';
@@ -355,6 +381,39 @@ for (const assignment of GEO_GATEWAY_ASSIGNMENTS) {
     GATEWAY_ASSIGNMENT_BY_SATELLITE.set(alias, assignment);
   }
 }
+
+const canonicalStarGatewaySatelliteId = (
+  satellite: Pick<SatelliteData, 'id' | 'name' | 'noradId' | 'coverageFileId'>
+): 'KVHTS' | 'E10B' | null => {
+  const tokens = [satellite.id, satellite.name, satellite.noradId, satellite.coverageFileId ?? null]
+    .filter((value): value is string => !!value)
+    .map(normalizeSatelliteGatewayKey);
+
+  if (tokens.some((token) => token === 'KVHTS' || token === 'KONNECTVHTS' || token === 'EUTELSATKONNECTVHTS')) {
+    return 'KVHTS';
+  }
+  if (tokens.some((token) => token === 'E10B' || token === '10B' || token === 'EUTELSAT10B')) {
+    return 'E10B';
+  }
+  return null;
+};
+
+const extractNumericBeamToken = (coverage: Pick<CandidateCoverage, 'beamId' | 'beamName'>): string | null => {
+  const candidates = [coverage.beamId, coverage.beamName];
+
+  for (const candidate of candidates) {
+    const trimmed = candidate.trim();
+    if (/^\d+$/.test(trimmed)) return trimmed;
+
+    const lastSegment = trimmed.split('::').at(-1)?.trim() ?? '';
+    if (/^\d+$/.test(lastSegment)) return lastSegment;
+
+    const beamMatch = trimmed.match(/\bbeam[_\s-]*(\d+)\b/i);
+    if (beamMatch?.[1]) return beamMatch[1];
+  }
+
+  return null;
+};
 
 export function getGatewayAssignmentForSatellite(
   satellite: Pick<SatelliteData, 'id' | 'name' | 'noradId' | 'coverageFileId'>
@@ -802,6 +861,67 @@ export function selectTrafficGeoGateway(
   }
 
   return best;
+}
+
+export function resolveStarTrafficGatewayForCoverage(
+  satellite: SatelliteData,
+  coverage: Pick<CandidateCoverage, 'beamId' | 'beamName'> | null | undefined,
+  gateways: GeoGatewayData[],
+  options: GroundSegmentSelectionOptions = {}
+): StarTrafficGatewaySelection | null {
+  const legacySelection = selectTrafficGeoGateway(satellite, gateways, options);
+  const canonicalSatelliteId = canonicalStarGatewaySatelliteId(satellite);
+  const beamToken = coverage ? extractNumericBeamToken(coverage) : null;
+  const fallback = (
+    reason: StarTrafficGatewayDiagnostic['reason'],
+    message: string
+  ): StarTrafficGatewaySelection | null => {
+    if (!legacySelection) return null;
+    return {
+      gateway: legacySelection.gateway,
+      trafficCapability: legacySelection.trafficCapability,
+      diagnostic: {
+        source: 'legacy-traffic-gateway',
+        satelliteId: satellite.id,
+        canonicalSatelliteId,
+        beamToken,
+        reason,
+        message,
+      },
+      beamRoute: null,
+      legacySelection,
+    };
+  };
+
+  if (!canonicalSatelliteId) {
+    return fallback('UNSUPPORTED_SATELLITE', `Beam-to-gateway routing is not enabled for ${satellite.name}.`);
+  }
+  if (!beamToken) {
+    return fallback('BEAM_TOKEN_NOT_FOUND', `No numeric beam token found for ${satellite.name}.`);
+  }
+
+  const beamRouteResult = resolveBeamGatewayRoute(canonicalSatelliteId, beamToken);
+  if (!beamRouteResult.route) {
+    return fallback(
+      beamRouteResult.reason,
+      `${beamRouteResult.diagnostic} Legacy traffic gateway selection used.`
+    );
+  }
+
+  return {
+    gateway: projectGroundSiteToLegacyGeoGateway(beamRouteResult.route.site),
+    trafficCapability: beamRouteResult.route.trafficCapability,
+    diagnostic: {
+      source: 'beam-gateway-assignment',
+      satelliteId: satellite.id,
+      canonicalSatelliteId,
+      beamToken,
+      reason: null,
+      message: beamRouteResult.diagnostic,
+    },
+    beamRoute: beamRouteResult.route,
+    legacySelection,
+  };
 }
 
 export function selectBestGeoGateway(

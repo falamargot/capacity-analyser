@@ -36,6 +36,8 @@ const capabilityLabel = (capability: GroundCapability): string => {
       return 'Traffic Teleport';
     case 'NETWORK_BACKHAUL':
       return 'Network Backhaul';
+    case 'NETWORK_HUB':
+      return 'Network Hub';
     default: {
       const exhaustiveCheck: never = capability;
       return exhaustiveCheck;
@@ -55,6 +57,8 @@ const capabilityDetail = (capability: GroundCapability): string => {
       return `${capability.eligibleServiceClasses.join(' / ')} RF traffic endpoint`;
     case 'NETWORK_BACKHAUL':
       return capability.backhaulType.replace(/_/g, ' ');
+    case 'NETWORK_HUB':
+      return capability.hubRole.replace(/_/g, ' ');
     default: {
       const exhaustiveCheck: never = capability;
       return exhaustiveCheck;
