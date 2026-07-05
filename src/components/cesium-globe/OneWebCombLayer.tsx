@@ -92,6 +92,7 @@ interface OneWebCombLayerProps {
     commercialTone?: 'primary' | 'secondary';
     commercialEnvelopeOnly?: boolean;
     commercialOpacityScale?: number;
+    showCommercialProjectionPanels?: boolean;
 }
 
 const BLOCKED_BEAM_TINT = Color.fromCssColorString('#ef4444');
@@ -266,6 +267,7 @@ const CommercialServingBeamEnvelope = React.memo<{
     commercialTone: 'primary' | 'secondary';
     commercialOpacityScale: number;
     commercialProjectionOrigin?: { lat: number; lng: number; altitudeKm?: number } | null;
+    showProjectionPanels: boolean;
 }>(({
     targetSat,
     getCombGeometriesRef,
@@ -276,6 +278,7 @@ const CommercialServingBeamEnvelope = React.memo<{
     commercialTone,
     commercialOpacityScale,
     commercialProjectionOrigin,
+    showProjectionPanels,
 }) => {
     const cacheRef = useRef<{
         sourceGeometries: Cartesian3[][] | null;
@@ -421,7 +424,7 @@ const CommercialServingBeamEnvelope = React.memo<{
 
     return (
         <>
-            {projectionPanelHierarchies.map((panelHierarchy, index) => (
+            {showProjectionPanels && projectionPanelHierarchies.map((panelHierarchy, index) => (
                 <Entity key={`commercial-leo-serving-beam-projection-${targetSat.id}-${index}`} name="Commercial LEO serving beam projection">
                     <PolygonGraphics
                         show={show}
@@ -672,6 +675,7 @@ const OneWebCombLayer: React.FC<OneWebCombLayerProps> = ({
     commercialTone = 'primary',
     commercialEnvelopeOnly = false,
     commercialOpacityScale = 1,
+    showCommercialProjectionPanels = true,
 }) => {
     const { getCombGeometries } = useCombGeometry();
     // Stable ref so BeamRing/highlight callbacks always call the latest getCombGeometries
@@ -896,6 +900,7 @@ const OneWebCombLayer: React.FC<OneWebCombLayerProps> = ({
                 commercialTone={commercialTone}
                 commercialOpacityScale={commercialOpacityScale}
                 commercialProjectionOrigin={commercialProjectionOrigin}
+                showProjectionPanels={showCommercialProjectionPanels}
             />
         );
     }

@@ -2768,7 +2768,8 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                             leoServiceViewModel={leoServiceViewModel}
                             commercialTone={commercialMode && (!commercialSatelliteFocused || commercialDominantTechnology !== 'LEO') ? 'secondary' : 'primary'}
                             commercialEnvelopeOnly={commercialMode}
-                            commercialOpacityScale={commercialMode && commercialSatelliteFocused && commercialDominantTechnology === 'LEO' ? 0.72 : 1}
+                            commercialOpacityScale={commercialMode && commercialSatelliteFocused && commercialDominantTechnology === 'LEO' ? 0.32 : 1}
+                            showCommercialProjectionPanels={!commercialMode || (commercialSatelliteFocused && commercialDominantTechnology === 'LEO')}
                         />
                     ))}
 

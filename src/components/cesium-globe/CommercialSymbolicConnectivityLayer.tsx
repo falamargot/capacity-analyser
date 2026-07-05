@@ -9,7 +9,6 @@ import {
   ColorMaterialProperty,
   HorizontalOrigin,
   JulianDate,
-  PolylineDashMaterialProperty,
   PolylineGlowMaterialProperty,
   PolygonHierarchy,
   VerticalOrigin,
@@ -85,11 +84,11 @@ const SYMBOLIC_ENDPOINT_HALO_HEIGHT_M = GROUND_POINT_LAYER_HEIGHT_M + 2400;
 const SATELLITE_LABEL_OFFSET = new Cartesian2(38, 0);
 const GEO_SATELLITE_LABEL_OFFSET = new Cartesian2(78, -20);
 const GEO_SATELLITE_PIXEL_OFFSET = new Cartesian2(0, -20);
-const LEO_FOCUS_SATELLITE_FADE_SECONDS = 0.8;
-const LEO_FOCUS_BEAM_DELAY_SECONDS = 0.42;
-const LEO_FOCUS_BEAM_GROW_SECONDS = 1.18;
-const LEO_FOCUS_RELAY_DELAY_SECONDS = 1.12;
-const LEO_FOCUS_RELAY_FADE_SECONDS = 0.72;
+const LEO_FOCUS_SATELLITE_FADE_SECONDS = 0.28;
+const LEO_FOCUS_BEAM_DELAY_SECONDS = 0;
+const LEO_FOCUS_BEAM_GROW_SECONDS = 0.18;
+const LEO_FOCUS_RELAY_DELAY_SECONDS = 0;
+const LEO_FOCUS_RELAY_FADE_SECONDS = 0.22;
 const SERVICE_OUTCOME_ARC_COLORS: Record<CommercialRouteStatus, string> = {
   active: '#34d399',
   limited: '#f59e0b',
@@ -797,6 +796,7 @@ function expectedLeoSatelliteFocusEntityIds(topology: LeoServingTopology): Set<s
   const relayFrom = topology.satellites[0] ?? null;
   const relayTo = topology.satellites.length > 1 ? topology.satellites[1] : null;
   if (relayFrom && relayTo) {
+    ids.add(`commercial-route-leo-satellite-relay-halo-${entitySafeSignature(`${relayFrom.key}-${relayTo.key}`)}`);
     ids.add(`commercial-route-leo-satellite-relay-${entitySafeSignature(`${relayFrom.key}-${relayTo.key}`)}`);
   }
 
@@ -1307,20 +1307,20 @@ const LeoSiteToSatelliteBeam = React.memo<{
   }, [animationStartSeconds, positions]);
   const material = useMemo(() => new PolylineGlowMaterialProperty({
     color: new CallbackProperty((time?: JulianDate) => {
-      const alpha = animatedAlpha(time, animationStartSeconds, LEO_FOCUS_BEAM_DELAY_SECONDS, LEO_FOCUS_BEAM_GROW_SECONDS, beam.status === 'blocked' ? 0.68 : 0.94);
+      const alpha = animatedAlpha(time, animationStartSeconds, LEO_FOCUS_BEAM_DELAY_SECONDS, LEO_FOCUS_BEAM_GROW_SECONDS, beam.status === 'blocked' ? 0.72 : 1);
       const pulseSeconds = animationSeconds(time, animationStartSeconds);
       const pulse = 0.9 + 0.1 * Math.sin(pulseSeconds * Math.PI * 1.22);
       return color.withAlpha(alpha * pulse);
     }, false),
-    glowPower: 0.28,
+    glowPower: 0.34,
     taperPower: 0.72,
   }), [animationStartSeconds, beam.status, color]);
   const haloMaterial = useMemo(() => new PolylineGlowMaterialProperty({
     color: new CallbackProperty((time?: JulianDate) => {
-      const alpha = animatedAlpha(time, animationStartSeconds, LEO_FOCUS_BEAM_DELAY_SECONDS - 0.08, LEO_FOCUS_BEAM_GROW_SECONDS, beam.status === 'active' || beam.status === 'limited' ? 0.24 : 0.12);
+      const alpha = animatedAlpha(time, animationStartSeconds, LEO_FOCUS_BEAM_DELAY_SECONDS, LEO_FOCUS_BEAM_GROW_SECONDS, beam.status === 'active' || beam.status === 'limited' ? 0.44 : 0.2);
       return Color.WHITE.withAlpha(alpha);
     }, false),
-    glowPower: 0.3,
+    glowPower: 0.36,
     taperPower: 0.7,
   }), [animationStartSeconds, beam.status]);
 
@@ -1330,7 +1330,7 @@ const LeoSiteToSatelliteBeam = React.memo<{
         id={`commercial-route-leo-site-satellite-beam-halo-${entityKey}`}
         polyline={{
           positions: animatedPositions,
-          width: 14 * sizeScale,
+          width: 20 * sizeScale,
           material: haloMaterial,
           depthFailMaterial: haloMaterial,
           arcType: ArcType.NONE,
@@ -1341,7 +1341,7 @@ const LeoSiteToSatelliteBeam = React.memo<{
         id={`commercial-route-leo-site-satellite-beam-${entityKey}`}
         polyline={{
           positions: animatedPositions,
-          width: 5.8 * sizeScale,
+          width: 7.4 * sizeScale,
           material,
           depthFailMaterial: material,
           arcType: ArcType.NONE,
@@ -1375,27 +1375,50 @@ const LeoSatelliteRelay = React.memo<{
     [from.coord, to.coord],
   );
   const entityKey = useMemo(() => entitySafeSignature(`${from.key}-${to.key}`), [from.key, to.key]);
-  const material = useMemo(() => new PolylineDashMaterialProperty({
+  const material = useMemo(() => new PolylineGlowMaterialProperty({
     color: new CallbackProperty((time?: JulianDate) => {
-      const alpha = animatedAlpha(time, animationStartSeconds, LEO_FOCUS_RELAY_DELAY_SECONDS, LEO_FOCUS_RELAY_FADE_SECONDS, 0.48);
-      return Color.fromCssColorString('#c4b5fd').withAlpha(alpha);
+      const alpha = animatedAlpha(time, animationStartSeconds, LEO_FOCUS_RELAY_DELAY_SECONDS, LEO_FOCUS_RELAY_FADE_SECONDS, 0.92);
+      const pulseSeconds = animationSeconds(time, animationStartSeconds);
+      const pulse = 0.86 + 0.14 * Math.sin(pulseSeconds * Math.PI * 1.05);
+      return Color.fromCssColorString('#f0abfc').withAlpha(alpha * pulse);
     }, false),
-    dashLength: 14,
-    dashPattern: 0b1111000011110000,
+    glowPower: 0.38,
+    taperPower: 0.64,
+  }), [animationStartSeconds]);
+  const haloMaterial = useMemo(() => new PolylineGlowMaterialProperty({
+    color: new CallbackProperty((time?: JulianDate) => {
+      const alpha = animatedAlpha(time, animationStartSeconds, LEO_FOCUS_RELAY_DELAY_SECONDS, LEO_FOCUS_RELAY_FADE_SECONDS, 0.36);
+      return Color.WHITE.withAlpha(alpha);
+    }, false),
+    glowPower: 0.42,
+    taperPower: 0.56,
   }), [animationStartSeconds]);
 
   return (
-    <Entity
-      id={`commercial-route-leo-satellite-relay-${entityKey}`}
-      polyline={{
-        positions,
-        width: 2.8 * sizeScale,
-        material,
-        depthFailMaterial: material,
-        arcType: ArcType.NONE,
-        clampToGround: false,
-      }}
-    />
+    <>
+      <Entity
+        id={`commercial-route-leo-satellite-relay-halo-${entityKey}`}
+        polyline={{
+          positions,
+          width: 14 * sizeScale,
+          material: haloMaterial,
+          depthFailMaterial: haloMaterial,
+          arcType: ArcType.NONE,
+          clampToGround: false,
+        }}
+      />
+      <Entity
+        id={`commercial-route-leo-satellite-relay-${entityKey}`}
+        polyline={{
+          positions,
+          width: 5 * sizeScale,
+          material,
+          depthFailMaterial: material,
+          arcType: ArcType.NONE,
+          clampToGround: false,
+        }}
+      />
+    </>
   );
 }, (prev, next) =>
   prev.from.key === next.from.key &&
@@ -1726,19 +1749,18 @@ const CommercialSymbolicConnectivityLayer: React.FC<CommercialSymbolicConnectivi
     () => resolveLeoServingTopology(routeModel, origin, destination),
     [destination, origin, routeModel],
   );
-  const showLeoSatelliteFocus = routeModel.technology === 'LEO'
-    && isSatelliteFocus
+  const showLeoTransmission = routeModel.technology === 'LEO'
     && leoServingTopology.satellites.length > 0;
   const skyBridgeNodes = useMemo(() => resolveSkyBridgeNodes(routeModel), [routeModel]);
   const expectedArcEntityIds = useMemo(
     () => (
       showGeoSatelliteFocus
         ? expectedGeoSatelliteFocusEntityIds(origin, destination, skyBridgeNodes.primary)
-        : showLeoSatelliteFocus
+        : showLeoTransmission
           ? expectedLeoSatelliteFocusEntityIds(leoServingTopology)
         : expectedSymbolicArcEntityIds(origin, destination, arcSpecs)
     ),
-    [arcSpecs, destination, leoServingTopology, origin, showGeoSatelliteFocus, showLeoSatelliteFocus, skyBridgeNodes.primary],
+    [arcSpecs, destination, leoServingTopology, origin, showGeoSatelliteFocus, showLeoTransmission, skyBridgeNodes.primary],
   );
 
   useEffect(() => {
@@ -1759,7 +1781,7 @@ const CommercialSymbolicConnectivityLayer: React.FC<CommercialSymbolicConnectivi
   return (
     <>
       {/* Arc — only when both endpoint positions are known */}
-      {destination && routeSignature && !showGeoSatelliteFocus && !showLeoSatelliteFocus && arcSpecs.map((spec) => (
+      {destination && routeSignature && !showGeoSatelliteFocus && !showLeoTransmission && arcSpecs.map((spec) => (
         <SymbolicServiceArc
           key={`${spec.id}-${routeSignature}`}
           spec={spec}
@@ -1779,7 +1801,7 @@ const CommercialSymbolicConnectivityLayer: React.FC<CommercialSymbolicConnectivi
           sizeScale={sizeScale}
         />
       ))}
-      {showLeoSatelliteFocus && (
+      {showLeoTransmission && (
         <LeoSatelliteServiceFocus
           key={`leo-focus-${routeSignature ?? originSignature}-${leoServingTopology.satellites.map((satellite) => satellite.key).join('-')}`}
           topology={leoServingTopology}
