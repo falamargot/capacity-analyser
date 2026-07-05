@@ -2,6 +2,7 @@ import type { SatelliteData } from '../types/satellites';
 import type { CandidateCoverage } from '../types/analysis';
 import type { GatewayTrafficStatus, GeoGatewayData } from '../components/globe/GlobeConfig';
 import {
+  canonicalStarTrafficTopologySatelliteId,
   getTrafficTeleportCapabilityForLegacyGateway,
   projectGroundSiteToLegacyGeoGateway,
   resolveBeamGatewayRoute,
@@ -382,7 +383,7 @@ for (const assignment of GEO_GATEWAY_ASSIGNMENTS) {
   }
 }
 
-const canonicalStarGatewaySatelliteId = (
+const canonicalBeamGatewaySatelliteId = (
   satellite: Pick<SatelliteData, 'id' | 'name' | 'noradId' | 'coverageFileId'>
 ): 'KVHTS' | 'E10B' | null => {
   const tokens = [satellite.id, satellite.name, satellite.noradId, satellite.coverageFileId ?? null]
@@ -870,7 +871,8 @@ export function resolveStarTrafficGatewayForCoverage(
   options: GroundSegmentSelectionOptions = {}
 ): StarTrafficGatewaySelection | null {
   const legacySelection = selectTrafficGeoGateway(satellite, gateways, options);
-  const canonicalSatelliteId = canonicalStarGatewaySatelliteId(satellite);
+  const canonicalSatelliteId = canonicalStarTrafficTopologySatelliteId(satellite);
+  const canonicalBeamSatelliteId = canonicalBeamGatewaySatelliteId(satellite);
   const beamToken = coverage ? extractNumericBeamToken(coverage) : null;
   const fallback = (
     reason: StarTrafficGatewayDiagnostic['reason'],
@@ -894,13 +896,16 @@ export function resolveStarTrafficGatewayForCoverage(
   };
 
   if (!canonicalSatelliteId) {
-    return fallback('UNSUPPORTED_SATELLITE', `Beam-to-gateway routing is not enabled for ${satellite.name}.`);
+    return null;
+  }
+  if (!canonicalBeamSatelliteId) {
+    return fallback('UNSUPPORTED_SATELLITE', `Beam-to-gateway routing is not modeled for ${satellite.name}; legacy traffic gateway selection used.`);
   }
   if (!beamToken) {
     return fallback('BEAM_TOKEN_NOT_FOUND', `No numeric beam token found for ${satellite.name}.`);
   }
 
-  const beamRouteResult = resolveBeamGatewayRoute(canonicalSatelliteId, beamToken);
+  const beamRouteResult = resolveBeamGatewayRoute(canonicalBeamSatelliteId, beamToken);
   if (!beamRouteResult.route) {
     return fallback(
       beamRouteResult.reason,
@@ -914,7 +919,7 @@ export function resolveStarTrafficGatewayForCoverage(
     diagnostic: {
       source: 'beam-gateway-assignment',
       satelliteId: satellite.id,
-      canonicalSatelliteId,
+      canonicalSatelliteId: canonicalBeamSatelliteId,
       beamToken,
       reason: null,
       message: beamRouteResult.diagnostic,

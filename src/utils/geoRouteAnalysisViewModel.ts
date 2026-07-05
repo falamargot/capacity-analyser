@@ -11,6 +11,8 @@ import {
   buildStarForwardResult,
   buildStarReturnResult,
   findBestDownlinkMatch,
+  findBestStarGatewayDownlinkMatch,
+  findBestStarGatewayUplinkMatch,
   findBestUplinkMatch,
   getDisplayedThroughput,
   synthesizeDownlinkCandidate,
@@ -19,7 +21,7 @@ import {
 import { RAIN_FADE_DB, type GeoBand } from './geoLinkBudget';
 import { augmentCandidatesWithSynthesizedDirections } from './geoTopologySelection';
 import { resolveStarTrafficGatewayForCoverage, type StarTrafficGatewayDiagnostic } from './geoConnectivityModel';
-import { getRFClassBand, type TerminalRFClassId, type TerminalRFCustomParams } from './geoTerminalRFModel';
+import type { TerminalRFClassId, TerminalRFCustomParams } from './geoTerminalRFModel';
 import type { GeoPointStatus } from './selectedPointStatus';
 
 const GEO_LINK_MARGIN_STABILITY = {
@@ -304,14 +306,13 @@ export function buildGeoRouteAnalysisViewModel(input: GeoRouteAnalysisInput): Ge
       findCandidateCoverages(
         { lat: gatewayForRf.lat, lng: gatewayForRf.lng },
         geoSats,
-        { compatibleBand: getRFClassBand(input.geoRFClassIdA) },
       ),
       geoSats,
     );
   })();
 
-  const uplinkAtGateway = refCoverage ? findBestUplinkMatch(refCoverage, candidateCoveragesAtGateway) : null;
-  const downlinkAtGateway = refCoverage ? findBestDownlinkMatch(refCoverage, candidateCoveragesAtGateway) : null;
+  const uplinkAtGateway = refCoverage ? findBestStarGatewayUplinkMatch(refCoverage, candidateCoveragesAtGateway) : null;
+  const downlinkAtGateway = refCoverage ? findBestStarGatewayDownlinkMatch(refCoverage, candidateCoveragesAtGateway) : null;
   const uplinkAtB = (() => {
     if (!refCoverage) return null;
     if (input.selectedUplinkCoverageB?.satelliteId === refCoverage.satelliteId) return input.selectedUplinkCoverageB;

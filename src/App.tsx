@@ -99,6 +99,7 @@ import {
   routeDirectionFromMeshTab,
 } from './utils/activeRouteViewModel';
 import {
+  augmentCandidatesWithSynthesizedDirections,
   selectBestTopologyPath,
 } from './utils/geoTopologySelection';
 import {
@@ -109,6 +110,7 @@ import {
   type TerminalRFClassId,
   type TerminalRFCustomParams,
 } from './utils/geoTerminalRFModel';
+import { supportsStarTrafficTopology } from './utils/geoGroundInfrastructure';
 import { buildGeoRouteAnalysisViewModel } from './utils/geoRouteAnalysisViewModel';
 import { getLeoTerminalProfile } from './config/leoTerminals';
 import { formatLeoSiteToSiteFailureReason, type LeoSiteToSiteFailureReason } from './utils/leoSiteToSiteModel';
@@ -1445,6 +1447,21 @@ const App: React.FC = () => {
   const eligibleCandidateCoverages = useMemo(() => {
     if (candidateCoverages.length === 0) return candidateCoverages;
 
+    const geoSatellites = satellites.filter(
+      (satellite) => satellite.orbitType === 'GEO' && satellite.opsStatus === 'operational'
+    );
+    const candidatePoolForMode = (linkMode === 'STAR_FORWARD' || linkMode === 'STAR_RETURN')
+      ? augmentCandidatesWithSynthesizedDirections(candidateCoverages, geoSatellites)
+      : candidateCoverages;
+
+    const hasRealDirection = (pool: CandidateCoverage[], satelliteId: string, isUplink: boolean) => (
+      pool.some((candidate) => (
+        candidate.satelliteId === satelliteId &&
+        candidate.isUplink === isUplink &&
+        !candidate.isSynthesized
+      ))
+    );
+
     const hasRealDirectionPair = (pool: CandidateCoverage[], satelliteId: string) => {
       const satelliteCandidates = pool.filter((candidate) => (
         candidate.satelliteId === satelliteId &&
@@ -1455,41 +1472,47 @@ const App: React.FC = () => {
         && satelliteCandidates.some((candidate) => !candidate.isUplink);
     };
 
-    const candidateSatelliteIdsWithUserPair = new Set(
-      [...new Set(candidateCoverages.map((candidate) => candidate.satelliteId))]
-        .filter((satelliteId) => hasRealDirectionPair(candidateCoverages, satelliteId))
+    const candidateSatelliteIds = [...new Set(candidateCoverages.map((candidate) => candidate.satelliteId))];
+    const candidateSatelliteIdsWithRequiredUserDirection = new Set(
+      candidateSatelliteIds.filter((satelliteId) => {
+        if (linkMode === 'STAR_FORWARD') return candidatePoolForMode.some((candidate) => (
+          candidate.satelliteId === satelliteId && !candidate.isUplink
+        ));
+        if (linkMode === 'STAR_RETURN') return candidatePoolForMode.some((candidate) => (
+          candidate.satelliteId === satelliteId && candidate.isUplink
+        ));
+        return hasRealDirectionPair(candidateCoverages, satelliteId);
+      })
     );
 
-    if (candidateSatelliteIdsWithUserPair.size === 0) return [];
+    if (candidateSatelliteIdsWithRequiredUserDirection.size === 0) return [];
 
     if (LINK_MODE_REQUIRES_POINT_B.has(linkMode)) {
       if (candidateCoveragesB.length === 0) {
-        return candidateCoverages.filter((candidate) => candidateSatelliteIdsWithUserPair.has(candidate.satelliteId));
+        return candidatePoolForMode.filter((candidate) => candidateSatelliteIdsWithRequiredUserDirection.has(candidate.satelliteId));
       }
       const pointBSatelliteIdsWithPair = new Set(
         [...new Set(candidateCoveragesB.map((candidate) => candidate.satelliteId))]
           .filter((satelliteId) => hasRealDirectionPair(candidateCoveragesB, satelliteId))
       );
-      return candidateCoverages.filter((candidate) => (
-        candidateSatelliteIdsWithUserPair.has(candidate.satelliteId) &&
+      return candidatePoolForMode.filter((candidate) => (
+        candidateSatelliteIdsWithRequiredUserDirection.has(candidate.satelliteId) &&
         pointBSatelliteIdsWithPair.has(candidate.satelliteId)
       ));
     }
 
     if (linkMode !== 'STAR_FORWARD' && linkMode !== 'STAR_RETURN') {
-      return candidateCoverages.filter((candidate) => candidateSatelliteIdsWithUserPair.has(candidate.satelliteId));
+      return candidateCoverages.filter((candidate) => candidateSatelliteIdsWithRequiredUserDirection.has(candidate.satelliteId));
     }
 
-    const geoSatellites = satellites.filter(
-      (satellite) => satellite.orbitType === 'GEO' && satellite.opsStatus === 'operational'
-    );
-    const candidateSatelliteIds = candidateSatelliteIdsWithUserPair;
-    const candidateSatellites = geoSatellites.filter((satellite) => candidateSatelliteIds.has(satellite.id));
+    const candidateSatellites = geoSatellites.filter((satellite) => candidateSatelliteIdsWithRequiredUserDirection.has(satellite.id));
 
     const gatewayByPosition = new Map<string, { lat: number; lng: number }>();
     const gatewayPositionBySatelliteId = new Map<string, string>();
 
     for (const satellite of candidateSatellites) {
+      if (!supportsStarTrafficTopology(satellite)) continue;
+
       // null here means the satellite's resolved SCC site has no CONFIRMED or
       // PUBLICLY_LIKELY traffic role (see GatewayTrafficStatus). The satellite is
       // intentionally excluded from STAR eligibility rather than falling back to
@@ -1514,14 +1537,22 @@ const App: React.FC = () => {
 
     const coveredSatelliteIdsByGatewayPosition = new Map<string, Set<string>>();
     for (const [positionKey, gatewayPosition] of gatewayByPosition) {
-      const gatewayCandidates = findCandidateCoverages(
-        gatewayPosition,
+      const gatewayCandidates = augmentCandidatesWithSynthesizedDirections(
+        findCandidateCoverages(
+          gatewayPosition,
+          geoSatellites
+        ),
         geoSatellites,
-        { compatibleBand: getRFClassBand(geoRFClassIdA) }
       );
       coveredSatelliteIdsByGatewayPosition.set(
         positionKey,
-        new Set(gatewayCandidates.map((candidate) => candidate.satelliteId))
+        new Set(gatewayCandidates
+          .filter((candidate) => (
+            linkMode === 'STAR_FORWARD'
+              ? candidate.isUplink
+              : !candidate.isUplink
+          ))
+          .map((candidate) => candidate.satelliteId))
       );
     }
 
@@ -1532,11 +1563,11 @@ const App: React.FC = () => {
       }
     }
 
-    return candidateCoverages.filter((candidate) => (
-      candidateSatelliteIdsWithUserPair.has(candidate.satelliteId) &&
+    return candidatePoolForMode.filter((candidate) => (
+      candidateSatelliteIdsWithRequiredUserDirection.has(candidate.satelliteId) &&
       eligibleSatelliteIds.has(candidate.satelliteId)
     ));
-  }, [candidateCoverages, candidateCoveragesB, geoRFClassIdA, linkMode, satellites]);
+  }, [candidateCoverages, candidateCoveragesB, linkMode, satellites]);
 
   const targetSelectionResetKey = useMemo(() => (
     selectedSelection.type === 'target'
@@ -1922,11 +1953,13 @@ const App: React.FC = () => {
 
   const resolvedAutoTrafficGeoGateway = useMemo((): ResolvedGeoGateway | null => {
     if (!activeGeoSatellite) return null;
+    if (!supportsStarTrafficTopology(activeGeoSatellite)) return null;
     return selectTrafficGeoGateway(activeGeoSatellite, GEO_GATEWAYS)?.resolvedGateway ?? null;
   }, [activeGeoSatellite]);
 
   const resolvedSelectedTrafficGeoGateway = useMemo((): ResolvedGeoGateway | null => {
     if (!selectedSatellite || selectedSatellite.type !== 'EUTELSAT') return null;
+    if (!supportsStarTrafficTopology(selectedSatellite)) return null;
     return selectTrafficGeoGateway(selectedSatellite, GEO_GATEWAYS)?.resolvedGateway ?? null;
   }, [selectedSatellite]);
 

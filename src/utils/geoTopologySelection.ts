@@ -10,6 +10,8 @@ import {
   buildStarForwardResult,
   buildStarReturnResult,
   findBestDownlinkMatch,
+  findBestStarGatewayDownlinkMatch,
+  findBestStarGatewayUplinkMatch,
   findBestUplinkMatch,
   synthesizeDownlinkCandidate,
   synthesizeUplinkCandidate,
@@ -104,6 +106,7 @@ function getBestDirectionCandidate(
   pool: CandidateCoverage[],
   satellite: SatelliteData,
   isUplink: boolean,
+  allowSynthesized = false,
 ): CandidateCoverage | null {
   const sameSatellite = pool.filter((candidate) => (
     candidate.isUplink === isUplink &&
@@ -111,7 +114,8 @@ function getBestDirectionCandidate(
   ));
   if (sameSatellite.length === 0) return null;
 
-  return sameSatellite.find((candidate) => !candidate.isSynthesized) ?? null;
+  return sameSatellite.find((candidate) => !candidate.isSynthesized)
+    ?? (allowSynthesized ? sameSatellite[0] : null);
 }
 
 function scoreTopologyResult(result: DualSegmentResult): number {
@@ -180,8 +184,9 @@ export function selectBestTopologyPath({
     const satellite = satellites.find((candidate) => candidate.id === satelliteId);
     if (!satellite) continue;
 
-    const downlinkA = getBestDirectionCandidate(compatibleCoveragesA, satellite, false);
-    const uplinkA = getBestDirectionCandidate(compatibleCoveragesA, satellite, true);
+    const allowStarSynthesizedUserDirection = linkMode === 'STAR_FORWARD' || linkMode === 'STAR_RETURN';
+    const downlinkA = getBestDirectionCandidate(compatibleCoveragesA, satellite, false, allowStarSynthesizedUserDirection);
+    const uplinkA = getBestDirectionCandidate(compatibleCoveragesA, satellite, true, allowStarSynthesizedUserDirection);
 
     let candidate: TopologySelectionCandidate | null = null;
 
@@ -192,8 +197,8 @@ export function selectBestTopologyPath({
       const gatewaySelection = resolveStarTrafficGatewayForCoverage(satellite, downlinkA, gateways);
       if (!gatewaySelection || !downlinkA) continue;
 
-      const gatewayPool = buildGatewayCandidatePool(satellite, gatewaySelection.gateway, downlinkA.band ?? null);
-      const uplinkGateway = findBestUplinkMatch(
+      const gatewayPool = buildGatewayCandidatePool(satellite, gatewaySelection.gateway);
+      const uplinkGateway = findBestStarGatewayUplinkMatch(
         downlinkA,
         gatewayPool,
       ) ?? (!satelliteHasModeledDirection(satellite, true) ? synthesizeUplinkCandidate(downlinkA) : null);
@@ -227,8 +232,8 @@ export function selectBestTopologyPath({
       const gatewaySelection = resolveStarTrafficGatewayForCoverage(satellite, uplinkA, gateways);
       if (!gatewaySelection || !uplinkA) continue;
 
-      const gatewayPool = buildGatewayCandidatePool(satellite, gatewaySelection.gateway, uplinkA.band ?? null);
-      const downlinkGateway = findBestDownlinkMatch(
+      const gatewayPool = buildGatewayCandidatePool(satellite, gatewaySelection.gateway);
+      const downlinkGateway = findBestStarGatewayDownlinkMatch(
         uplinkA,
         gatewayPool,
       ) ?? (!satelliteHasModeledDirection(satellite, false) ? synthesizeDownlinkCandidate(uplinkA) : null);

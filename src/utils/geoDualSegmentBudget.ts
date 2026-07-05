@@ -174,6 +174,17 @@ export function findBestUplinkMatch(
   );
 }
 
+export function findBestStarGatewayUplinkMatch(
+  reference: CandidateCoverage,
+  uplinkPool: CandidateCoverage[],
+): CandidateCoverage | null {
+  const sameBand = findBestUplinkMatch(reference, uplinkPool);
+  if (sameBand) return sameBand;
+  return uplinkPool
+    .filter(c => c.isUplink && c.satelliteId === reference.satelliteId)
+    .sort((a, b) => b.score - a.score)[0] ?? null;
+}
+
 /**
  * Finds the downlink candidate (sat EIRP at a given location) that best matches
  * the reference candidate in terms of satellite and band.
@@ -186,6 +197,17 @@ export function findBestDownlinkMatch(
     downlinkPool.find(c => !c.isUplink && c.satelliteId === reference.satelliteId && c.band === reference.band) ??
     null
   );
+}
+
+export function findBestStarGatewayDownlinkMatch(
+  reference: CandidateCoverage,
+  downlinkPool: CandidateCoverage[],
+): CandidateCoverage | null {
+  const sameBand = findBestDownlinkMatch(reference, downlinkPool);
+  if (sameBand) return sameBand;
+  return downlinkPool
+    .filter(c => !c.isUplink && c.satelliteId === reference.satelliteId)
+    .sort((a, b) => b.score - a.score)[0] ?? null;
 }
 
 const haveSameBand = (...candidates: CandidateCoverage[]): boolean => {
@@ -379,7 +401,7 @@ const buildDownlinkSegment = (
 /**
  * Builds a STAR Forward dual-segment result.
  *
- * Uplink:   Gateway (GATEWAY_EIRP_DBW[band]) → Satellite (sat G/T at gateway)
+ * Uplink:   Gateway (GATEWAY_EIRP_DBW[feeder band]) → Satellite (sat G/T at gateway)
  * Downlink: Satellite (sat EIRP at user) → User terminal (G/T from RF class / custom params)
  *
  * The terminal G/T adjusts the candidate C/N relative to the baseline used by
@@ -402,17 +424,16 @@ export function buildStarForwardResult(
   customParams?: TerminalRFCustomParams | null,
   trafficTeleportLabel?: string,
 ): DualSegmentResult | null {
-  if (!haveSameBand(downlinkAtUser, uplinkAtGateway)) return null;
-  const band = downlinkAtUser.band ?? uplinkAtGateway.band ?? 'Ku';
-  const geoBand = band as GeoBand;
-  if (!isTerminalCompatibleWithCandidateBand(terminalType, geoBand)) return null;
-  const gatewayEirpDbw = GATEWAY_EIRP_DBW[geoBand] ?? GATEWAY_EIRP_DBW.Ku;
-  const gatewayGTDbk = GATEWAY_GT_DBK[geoBand] ?? GATEWAY_GT_DBK.Ku;
+  const userBand = (downlinkAtUser.band ?? 'Ku') as GeoBand;
+  const feederBand = (uplinkAtGateway.band ?? userBand) as GeoBand;
+  if (!isTerminalCompatibleWithCandidateBand(terminalType, userBand)) return null;
+  const gatewayEirpDbw = GATEWAY_EIRP_DBW[feederBand] ?? GATEWAY_EIRP_DBW.Ku;
+  const gatewayGTDbk = GATEWAY_GT_DBK[feederBand] ?? GATEWAY_GT_DBK.Ku;
   const trafficTeleportName = trafficTeleportLabel ?? trafficTeleportCapability.siteId;
 
   const terminalGtDbk = terminalType
-    ? resolveTerminalRFParams(geoBand, terminalType, customParams).gtDbk
-    : getTerminalDownlinkGT(geoBand);
+    ? resolveTerminalRFParams(userBand, terminalType, customParams).gtDbk
+    : getTerminalDownlinkGT(userBand);
 
   const uplinkSeg = buildUplinkSegment(
     uplinkAtGateway,
@@ -428,13 +449,13 @@ export function buildStarForwardResult(
     { label: userLabel ?? 'User terminal', gtDbk: terminalGtDbk },
     terminalGtDbk,
     weatherAdjDb,
-    getTerminalDownlinkGT(geoBand),
+    getTerminalDownlinkGT(userBand),
   );
 
   const e2e = computeEndToEndBudget(
     uplinkSeg.effectiveCNDb,
     downlinkSeg.effectiveCNDb,
-    downlinkAtUser.bandwidthMhz ?? uplinkAtGateway.bandwidthMhz ?? 36,
+    Math.min(downlinkAtUser.bandwidthMhz ?? 36, uplinkAtGateway.bandwidthMhz ?? 36),
   );
 
   // Also compute adjusted uplink segment knowing gateway G/T (for the displayed G/T):
@@ -460,7 +481,7 @@ export function buildStarForwardResult(
  * Uplink:   User terminal → Satellite (sat G/T at user).
  *           Terminal EIRP is selected from TERMINAL_RETURN_EIRP_DBW[band][terminalType]
  *           so that C-band earth stations (larger dishes) are modelled correctly.
- * Downlink: Satellite (sat EIRP at gateway) → Gateway (GATEWAY_GT_DBK)
+ * Downlink: Satellite (sat EIRP at gateway) → Gateway (GATEWAY_GT_DBK[feeder band])
  *
  * @param uplinkAtUser       Uplink candidate at user location (sat G/T at user).
  * @param downlinkAtGateway  Downlink candidate at gateway location (sat EIRP at gateway).
@@ -477,20 +498,19 @@ export function buildStarReturnResult(
   customParams?: TerminalRFCustomParams | null,
   trafficTeleportLabel?: string,
 ): DualSegmentResult | null {
-  if (!haveSameBand(uplinkAtUser, downlinkAtGateway)) return null;
-  const band = uplinkAtUser.band ?? downlinkAtGateway.band ?? 'Ku';
-  const geoBand = band as GeoBand;
-  if (!isTerminalCompatibleWithCandidateBand(terminalType, geoBand)) return null;
-  const gatewayGTDbk = GATEWAY_GT_DBK[geoBand] ?? GATEWAY_GT_DBK.Ku;
+  const userBand = (uplinkAtUser.band ?? 'Ku') as GeoBand;
+  const feederBand = (downlinkAtGateway.band ?? userBand) as GeoBand;
+  if (!isTerminalCompatibleWithCandidateBand(terminalType, userBand)) return null;
+  const gatewayGTDbk = GATEWAY_GT_DBK[feederBand] ?? GATEWAY_GT_DBK.Ku;
   const trafficTeleportName = trafficTeleportLabel ?? trafficTeleportCapability.siteId;
 
   // Resolve terminal EIRP: RF class IDs take priority over legacy table lookup.
   let terminalEirpDbw: number;
   if (terminalType) {
-    const profile = resolveTerminalRFParams(geoBand, terminalType, customParams);
+    const profile = resolveTerminalRFParams(userBand, terminalType, customParams);
     terminalEirpDbw = profile.eirpDbw;
   } else {
-    const bandEirpTable = TERMINAL_RETURN_EIRP_DBW[geoBand] ?? TERMINAL_RETURN_EIRP_DBW.Ku;
+    const bandEirpTable = TERMINAL_RETURN_EIRP_DBW[userBand] ?? TERMINAL_RETURN_EIRP_DBW.Ku;
     terminalEirpDbw = bandEirpTable.fixed ?? DEFAULT_TERMINAL.eirpTerminalDbw;
   }
 
@@ -508,13 +528,13 @@ export function buildStarReturnResult(
     { label: trafficTeleportName, gtDbk: gatewayGTDbk },
     gatewayGTDbk,
     weatherAdjDb,
-    getTerminalDownlinkGT(geoBand),
+    getTerminalDownlinkGT(feederBand),
   );
 
   const e2e = computeEndToEndBudget(
     uplinkSeg.effectiveCNDb,
     downlinkSeg.effectiveCNDb,
-    uplinkAtUser.bandwidthMhz ?? downlinkAtGateway.bandwidthMhz ?? 36,
+    Math.min(uplinkAtUser.bandwidthMhz ?? 36, downlinkAtGateway.bandwidthMhz ?? 36),
   );
 
   return {

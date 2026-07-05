@@ -9,12 +9,14 @@ import {
   GEO_LOGICAL_GATEWAY_ASSIGNMENTS,
   GEO_LOGICAL_GATEWAYS,
   GEO_SATELLITE_GROUND_NETWORK_CONFIGURATIONS,
+  canonicalStarTrafficTopologySatelliteId,
   getGroundSiteById,
   getGroundSiteByPublicCode,
   getTrafficTeleportCapabilities,
   projectGroundSitesToLegacyGeoGateways,
   resolveBeamGatewayRoute,
   resolveRoutableLogicalGatewayAssignment,
+  supportsStarTrafficTopology,
   type BeamGatewayAssignment,
   type EarthStationRedundancy,
   type EvidenceSource,
@@ -52,6 +54,17 @@ const beamAssignment = (logicalGatewayId: string) => {
 };
 
 describe('GEO ground infrastructure canonical model', () => {
+  it('keeps STAR traffic topology support closed to the modeled satellite allowlist', () => {
+    expect(canonicalStarTrafficTopologySatelliteId('KONNECT VHTS')).toBe('KVHTS');
+    expect(canonicalStarTrafficTopologySatelliteId('EUTELSAT 10B')).toBe('E10B');
+    expect(canonicalStarTrafficTopologySatelliteId('54259')).toBe('E10B');
+    expect(canonicalStarTrafficTopologySatelliteId('EUTELSAT KONNECT')).toBe('KONNECT');
+    expect(canonicalStarTrafficTopologySatelliteId('EUTELSAT 36D')).toBe('E36D');
+    expect(canonicalStarTrafficTopologySatelliteId('EUTELSAT 172B')).toBe('E172B');
+    expect(canonicalStarTrafficTopologySatelliteId('EUTELSAT QUANTUM')).toBe('QUANTUM');
+    expect(supportsStarTrafficTopology('EUTELSAT 8 WEST B')).toBe(false);
+  });
+
   it('keeps siteId, publicCode, and capabilityId unique', () => {
     const siteIds = GEO_GROUND_SITES.map((site) => site.siteId);
     const publicCodes = GEO_GROUND_SITES.map((site) => site.publicCode);

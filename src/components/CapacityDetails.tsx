@@ -35,6 +35,8 @@ import type { LinkMode } from '../types/linkMode';
 import {
   findBestUplinkMatch,
   findBestDownlinkMatch,
+  findBestStarGatewayDownlinkMatch,
+  findBestStarGatewayUplinkMatch,
   buildStarForwardResult,
   buildStarReturnResult,
   buildMeshResult,
@@ -47,7 +49,8 @@ import {
 } from '../utils/geoTopologySelection';
 import { RAIN_FADE_DB } from '../utils/geoLinkBudget';
 import type { GeoBand } from '../utils/geoLinkBudget';
-import { getRFClassBand, type TerminalRFClassId } from '../utils/geoTerminalRFModel';
+import type { TerminalRFClassId } from '../utils/geoTerminalRFModel';
+import { supportsStarTrafficTopology } from '../utils/geoGroundInfrastructure';
 import {
   applyBeamCapacitySharing,
   smoothThroughputMbps,
@@ -1455,8 +1458,10 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
     ?? getGeoCompanionCoverage(refCoverage, candidateCoverages, true);
   const trafficGatewaySelection = useMemo(() => {
     const satellite = resolvedGEOConnectivity?.satellite;
-    return satellite ? selectTrafficGeoGateway(satellite, GEO_GATEWAYS) : null;
-  }, [resolvedGEOConnectivity]);
+    if (!satellite || (linkMode !== 'STAR_FORWARD' && linkMode !== 'STAR_RETURN')) return null;
+    if (!supportsStarTrafficTopology(satellite)) return null;
+    return selectTrafficGeoGateway(satellite, GEO_GATEWAYS);
+  }, [linkMode, resolvedGEOConnectivity]);
 
   // Coverage candidates at gateway location (for STAR modes)
   const candidateCoveragesAtGateway = useMemo(() => {
@@ -1471,18 +1476,17 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
       findCandidateCoverages(
         { lat: gatewayForRf.lat, lng: gatewayForRf.lng },
         geoSats,
-        { compatibleBand: getRFClassBand(geoRFClassIdA) }
       ),
       geoSats
     );
-  }, [geoRFClassIdA, linkMode, resolvedGatewayData, refCoverage, satellites, trafficGatewaySelection]);
+  }, [linkMode, resolvedGatewayData, refCoverage, satellites, trafficGatewaySelection]);
 
   const uplinkAtGateway = useMemo(
-    () => refCoverage ? findBestUplinkMatch(refCoverage, candidateCoveragesAtGateway) : null,
+    () => refCoverage ? findBestStarGatewayUplinkMatch(refCoverage, candidateCoveragesAtGateway) : null,
     [refCoverage, candidateCoveragesAtGateway]
   );
   const downlinkAtGateway = useMemo(
-    () => refCoverage ? findBestDownlinkMatch(refCoverage, candidateCoveragesAtGateway) : null,
+    () => refCoverage ? findBestStarGatewayDownlinkMatch(refCoverage, candidateCoveragesAtGateway) : null,
     [refCoverage, candidateCoveragesAtGateway]
   );
 
@@ -1521,6 +1525,7 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
 
       const gwPosBySatId = new Map<string, { lat: number; lng: number }>();
       for (const sat of candidateSatellites) {
+        if (!supportsStarTrafficTopology(sat)) continue;
         const gw = selectTrafficGeoGateway(sat, GEO_GATEWAYS);
         if (gw) gwPosBySatId.set(sat.id, { lat: gw.gateway.lat, lng: gw.gateway.lng });
       }
@@ -1531,10 +1536,17 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
 
       const covByGw = new Map<string, Set<string>>();
       for (const [key, pos] of uniquePos) {
-        const cands = findCandidateCoverages(pos, geoSatellites, {
-          compatibleBand: getRFClassBand(geoRFClassIdA),
-        });
-        covByGw.set(key, new Set(cands.map(c => c.satelliteId)));
+        const cands = augmentCandidatesWithSynthesizedDirections(
+          findCandidateCoverages(pos, geoSatellites),
+          geoSatellites,
+        );
+        covByGw.set(key, new Set(cands
+          .filter((candidate) => (
+            linkMode === 'STAR_FORWARD'
+              ? candidate.isUplink
+              : !candidate.isUplink
+          ))
+          .map(c => c.satelliteId)));
       }
 
       const validIds = new Set<string>();
@@ -1545,7 +1557,7 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
     }
 
     return undefined;
-  }, [linkMode, candidateCoverages, candidateCoveragesB, satellites, geoRFClassIdA]);
+  }, [linkMode, candidateCoverages, candidateCoveragesB, satellites]);
 
   const pointALabel = useMemo(() => {
     if (!activePoint) return 'Terminal A';
@@ -1671,7 +1683,6 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
     uplinkAtGateway, downlinkAtGateway,
     uplinkAtB, downlinkAtB,
     pointALabel, pointBLabel,
-    resolvedGatewayData,
     trafficGatewaySelection,
     geoTerminalType, geoTerminalTypeB,
     geoRFClassIdA, geoRFClassIdB,

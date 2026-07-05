@@ -9,6 +9,7 @@ describe('resolveCoverageFileId', () => {
     '54048',  // HB13F
     '54225',  // HB13G
     '45027',  // KONNECT
+    '54259',  // E10B
   ]);
 
   it('keeps the NORAD id when a matching coverage file exists', () => {
@@ -38,6 +39,11 @@ describe('resolveCoverageFileId', () => {
       { name: 'EUTELSAT HOTBIRD 13G', noradId: '54225' },
       manifest
     )).toBe('54225');
+
+    expect(resolveCoverageFileId(
+      { name: 'EUTELSAT 10B', noradId: '54259' },
+      manifest
+    )).toBe('54259');
   });
 
   it('rejects a direct NORAD match when the file is reserved for a different alias', () => {

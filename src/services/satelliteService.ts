@@ -54,6 +54,7 @@ const EUTELSAT_COVERAGE_FILE_BY_ALIAS: Record<string, string> = {
   E7WA: '37816',
   E8WB: '40875',
   E9B: '41310',
+  E10B: '54259',
   HB13F: '54048',
   HB13G: '54225',
   KONNECT: '45027',

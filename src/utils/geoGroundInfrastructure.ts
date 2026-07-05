@@ -320,7 +320,7 @@ export interface BeamGatewayResolutionResult {
   diagnostic: string;
 }
 
-type SatelliteLike = Pick<SatelliteData, 'id' | 'name' | 'noradId' | 'type' | 'coverageFileId'> | string;
+export type SatelliteLike = Pick<SatelliteData, 'id' | 'name' | 'noradId' | 'type' | 'coverageFileId'> | string;
 
 const GEO_SUPPORTED_SATELLITES = ['EUTELSAT', '*'];
 const TRAFFIC_SERVICE_CLASSES: GeoTrafficServiceClass[] = ['STAR_FORWARD', 'STAR_RETURN'];
@@ -713,6 +713,82 @@ export const GEO_GROUND_SITES: GroundSite[] = [
 const KVHTS_SATELLITE_ID = 'KVHTS';
 const KONNECT_SATELLITE_ID = 'KONNECT';
 const E10B_SATELLITE_ID = 'E10B';
+const E36D_SATELLITE_ID = 'E36D';
+const E172B_SATELLITE_ID = 'E172B';
+const QUANTUM_SATELLITE_ID = 'QUANTUM';
+
+export type StarTrafficTopologySatelliteId =
+  | typeof KVHTS_SATELLITE_ID
+  | typeof E10B_SATELLITE_ID
+  | typeof KONNECT_SATELLITE_ID
+  | typeof E36D_SATELLITE_ID
+  | typeof E172B_SATELLITE_ID
+  | typeof QUANTUM_SATELLITE_ID;
+
+const normalizeSatelliteTopologyKey = (value: string | null | undefined): string => (
+  (value ?? '')
+    .toUpperCase()
+    .replace(/[^A-Z0-9]+/g, '')
+);
+
+const STAR_TRAFFIC_TOPOLOGY_SATELLITE_ALIASES: Record<StarTrafficTopologySatelliteId, string[]> = {
+  [KVHTS_SATELLITE_ID]: [
+    'KVHTS',
+    'KONNECT VHTS',
+    'KONNECT_VHTS',
+    'EUTELSAT KONNECT VHTS',
+    '53765',
+  ],
+  [E10B_SATELLITE_ID]: [
+    'E10B',
+    '10B',
+    'EUTELSAT 10B',
+    '54259',
+  ],
+  [KONNECT_SATELLITE_ID]: [
+    'KONNECT',
+    'EUTELSAT KONNECT',
+    '45027',
+  ],
+  [E36D_SATELLITE_ID]: [
+    'E36D',
+    '36D',
+    'EUTELSAT 36D',
+    '59346',
+  ],
+  [E172B_SATELLITE_ID]: [
+    'E172B',
+    '172B',
+    'EUTELSAT 172B',
+    '42741',
+  ],
+  [QUANTUM_SATELLITE_ID]: [
+    'QUANTUM',
+    'EUTELSAT QUANTUM',
+    '49056',
+  ],
+};
+
+export const canonicalStarTrafficTopologySatelliteId = (
+  satellite: SatelliteLike
+): StarTrafficTopologySatelliteId | null => {
+  const tokens = typeof satellite === 'string'
+    ? [satellite]
+    : [satellite.id, satellite.name, satellite.noradId, satellite.coverageFileId ?? null];
+  const normalizedTokens = new Set(tokens.map(normalizeSatelliteTopologyKey).filter(Boolean));
+
+  for (const [canonicalId, aliases] of Object.entries(STAR_TRAFFIC_TOPOLOGY_SATELLITE_ALIASES)) {
+    if (aliases.map(normalizeSatelliteTopologyKey).some((alias) => normalizedTokens.has(alias))) {
+      return canonicalId as StarTrafficTopologySatelliteId;
+    }
+  }
+
+  return null;
+};
+
+export const supportsStarTrafficTopology = (satellite: SatelliteLike): boolean => (
+  canonicalStarTrafficTopologySatelliteId(satellite) != null
+);
 
 const KVHTS_LOGICAL_GATEWAY_IDS = [
   'kvhts-gw-mak',

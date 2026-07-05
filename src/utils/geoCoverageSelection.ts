@@ -261,9 +261,11 @@ const detectBand = (
   missionName?: string,
 ): GeoBand => {
   const explicitBand = properties.band;
+  const satelliteId = properties.satelliteId;
   const bandText = [
     coverageName,
     missionName,
+    typeof satelliteId === 'string' ? satelliteId : null,
     typeof explicitBand === 'string' ? explicitBand : null,
   ]
     .filter((value): value is string => typeof value === 'string' && value.trim().length > 0)
@@ -273,6 +275,7 @@ const detectBand = (
   if (/\bc(?:\s|-)?band\b/.test(bandText)) return 'C';
   if (/\bka(?:\s|-)?band\b|\bka\b/.test(bandText)) return 'Ka';
   if (/\bku(?:\s|-)?band\b|\bku\b/.test(bandText)) return 'Ku';
+  if (/\bkvhts\b|\bkonnect(?:\s+vhts)?\b|\beutelsat\s+konnect(?:\s+vhts)?\b/.test(bandText)) return 'Ka';
 
   return 'Ku';
 };

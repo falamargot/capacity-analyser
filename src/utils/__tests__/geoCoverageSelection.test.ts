@@ -9,6 +9,7 @@ const createCoverage = (
   isUplink = false,
   coordinates: number[][],
   mission = 'C-Band',
+  satelliteName = 'EUTELSAT 10B',
 ): { name: string; feature: Feature } => ({
   name: `${name}_${contour}`,
   feature: {
@@ -20,7 +21,7 @@ const createCoverage = (
       mission,
       type: 'EUTELSAT',
       isUplink,
-      satelliteId: 'EUTELSAT 10B',
+      satelliteId: satelliteName,
     },
     geometry: {
       type: 'Polygon',
@@ -29,15 +30,19 @@ const createCoverage = (
   },
 });
 
-const createSatellite = (coverages: Array<{ name: string; feature: Feature }>): SatelliteData => ({
-  id: '54259',
-  name: 'EUTELSAT 10B',
-  noradId: '54259',
+const createSatellite = (
+  coverages: Array<{ name: string; feature: Feature }>,
+  overrides: Partial<Pick<SatelliteData, 'id' | 'name' | 'noradId' | 'coverageFileId' | 'position'>> = {},
+): SatelliteData => ({
+  id: overrides.id ?? '54259',
+  name: overrides.name ?? 'EUTELSAT 10B',
+  noradId: overrides.noradId ?? '54259',
+  coverageFileId: overrides.coverageFileId,
   type: 'EUTELSAT',
   orbitType: 'GEO',
   opsStatus: 'operational',
   satrec: {} as any,
-  position: { lat: 0, lng: 10, alt: 35786 },
+  position: overrides.position ?? { lat: 0, lng: 10, alt: 35786 },
   referenced_coverages: { type: 'FeatureCollection', features: [] },
   coverages: coverages as any,
   capacity: {
@@ -234,6 +239,46 @@ describe('findCandidateCoverages', () => {
     expect(candidates).not.toHaveLength(0);
     expect(candidates.every((candidate) => candidate.band === 'Ka')).toBe(true);
     expect(candidates.some((candidate) => candidate.band === 'Ku')).toBe(false);
+  });
+
+  it('infers KONNECT African user footprints as Ka when the coverage names omit band metadata', () => {
+    const footprint = [
+      [-10, -5],
+      [35, -5],
+      [35, 20],
+      [-10, 20],
+      [-10, -5],
+    ];
+    const satellite = createSatellite(
+      [
+        createCoverage('Konnect all African Users Downlink Outermost', 66, false, footprint, '', 'EUTELSAT KONNECT'),
+        createCoverage('Konnect all African Users Uplink Outermost', 14, true, footprint, '', 'EUTELSAT KONNECT'),
+      ],
+      {
+        id: '45027',
+        name: 'EUTELSAT KONNECT',
+        noradId: '45027',
+        coverageFileId: '45027',
+        position: { lat: 0, lng: 7, alt: 35786 },
+      },
+    );
+
+    const kaCandidates = findCandidateCoverages(
+      { lat: 10, lng: 10 },
+      [satellite],
+      { terminalRFClassId: 'ka_consumer_terminal' },
+    );
+    const kuCandidates = findCandidateCoverages(
+      { lat: 10, lng: 10 },
+      [satellite],
+      { terminalRFClassId: 'ku_standard_vsat' },
+    );
+
+    expect(kaCandidates).toHaveLength(2);
+    expect(kaCandidates.every((candidate) => candidate.band === 'Ka')).toBe(true);
+    expect(kaCandidates.some((candidate) => candidate.isUplink)).toBe(true);
+    expect(kaCandidates.some((candidate) => !candidate.isUplink)).toBe(true);
+    expect(kuCandidates).toHaveLength(0);
   });
 
   it('updates candidates automatically when switching RF class band on a multi-band satellite', () => {

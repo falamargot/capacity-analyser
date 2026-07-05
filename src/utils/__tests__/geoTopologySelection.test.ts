@@ -5,7 +5,7 @@ import type { SatelliteData } from '../../types/satellites';
 import { GEO_GATEWAYS } from '../../components/globe/GlobeConfig';
 import { findCandidateCoverages } from '../geoCoverageSelection';
 import { findBestUplinkMatch } from '../geoDualSegmentBudget';
-import { selectBestTopologyPath } from '../geoTopologySelection';
+import { augmentCandidatesWithSynthesizedDirections, selectBestTopologyPath } from '../geoTopologySelection';
 
 const createCoverage = (
   name: string,
@@ -13,6 +13,7 @@ const createCoverage = (
   isUplink: boolean,
   coordinates: number[][],
   satelliteName: string,
+  mission = 'Ku-band',
 ): { name: string; feature: Feature } => ({
   name: `${name}_${contour}`,
   feature: {
@@ -21,7 +22,7 @@ const createCoverage = (
       name,
       contour,
       level: contour,
-      mission: 'Ku-band',
+      mission,
       type: 'EUTELSAT',
       isUplink,
       satelliteId: satelliteName,
@@ -124,6 +125,99 @@ describe('geoTopologySelection', () => {
     expect(findBestUplinkMatch(reference, [cBandUplink])).toBeNull();
   });
 
+  it('allows STAR Forward to use a cross-band gateway feeder on E10B', () => {
+    const satellite = createSatellite(
+      '10B',
+      'EUTELSAT 10B',
+      10,
+      [
+        createCoverage(
+          'E10B C gateway uplink',
+          20,
+          true,
+          [[-5, 40], [10, 40], [10, 55], [-5, 55], [-5, 40]],
+          'EUTELSAT 10B',
+          'C-band',
+        ),
+      ],
+    );
+    const terminalDownlink = createCandidate(satellite, false, 150, 8, {
+      band: 'Ku',
+      beamId: '10B::9999',
+      beamName: '9999',
+    });
+
+    const result = selectBestTopologyPath({
+      linkMode: 'STAR_FORWARD',
+      satellites: [satellite],
+      candidateCoveragesA: [terminalDownlink],
+      pointALabel: 'Terminal A',
+    });
+
+    expect(result).not.toBeNull();
+    expect(result?.gateway?.name).toBe('Rambouillet');
+    expect(result?.result.forward.downlink.candidate.band).toBe('Ku');
+    expect(result?.result.forward.uplink.candidate.band).toBe('C');
+    expect(result?.gatewayResolutionDiagnostic).toEqual(expect.objectContaining({
+      source: 'legacy-traffic-gateway',
+      canonicalSatelliteId: 'E10B',
+      beamToken: '9999',
+      reason: 'BEAM_ASSIGNMENT_NOT_FOUND',
+    }));
+  });
+
+  it('keeps downlink-only KVHTS coverage eligible for STAR Forward and Return via synthesized directions', () => {
+    const pointA = { lat: 45.61, lng: 5.11 };
+    const satellite = createSatellite(
+      '53765',
+      'EUTELSAT KONNECT VHTS',
+      2.7,
+      [
+        createCoverage(
+          'KVHTS all beams Downlink - Outermost',
+          70,
+          false,
+          [[-25, 25], [35, 25], [35, 60], [-25, 60], [-25, 25]],
+          'EUTELSAT KONNECT VHTS',
+          'Ka-band',
+        ),
+      ],
+    );
+    const downlinkOnlyCandidates = findCandidateCoverages(pointA, [satellite]);
+    const realDownlink = downlinkOnlyCandidates.find((candidate) => !candidate.isUplink);
+    expect(realDownlink).toBeDefined();
+    const candidateCoveragesA = augmentCandidatesWithSynthesizedDirections(
+      [{
+        ...realDownlink!,
+        beamId: '53765::132',
+        beamName: '132',
+      }],
+      [satellite],
+    );
+
+    const forward = selectBestTopologyPath({
+      linkMode: 'STAR_FORWARD',
+      satellites: [satellite],
+      candidateCoveragesA,
+      pointALabel: 'Terminal A',
+    });
+    const returns = selectBestTopologyPath({
+      linkMode: 'STAR_RETURN',
+      satellites: [satellite],
+      candidateCoveragesA,
+      pointALabel: 'Terminal A',
+    });
+
+    expect(candidateCoveragesA.some((candidate) => !candidate.isUplink && !candidate.isSynthesized)).toBe(true);
+    expect(candidateCoveragesA.some((candidate) => candidate.isUplink && candidate.isSynthesized)).toBe(true);
+    expect(forward?.satellite.name).toBe('EUTELSAT KONNECT VHTS');
+    expect(forward?.gateway?.name).toBe('Rambouillet');
+    expect(forward?.result.forward.uplink.candidate.isSynthesized).toBe(true);
+    expect(returns?.satellite.name).toBe('EUTELSAT KONNECT VHTS');
+    expect(returns?.gateway?.name).toBe('Rambouillet');
+    expect(returns?.result.forward.uplink.candidate.isSynthesized).toBe(true);
+  });
+
   it('prefers a STAR return path that is fully closed over a downlink-only favorite', () => {
     const pointA = { lat: 43.06, lng: 8.6 };
 
@@ -198,12 +292,12 @@ describe('geoTopologySelection', () => {
   it('builds STAR Forward and Return RF paths only through a traffic teleport gateway', () => {
     const pointA = { lat: 43.06, lng: 8.6 };
     const satellite = createSatellite(
-      '8WB',
-      'EUTELSAT 8 WEST B',
-      -8,
+      'KONNECT',
+      'EUTELSAT KONNECT',
+      7,
       [
-        createCoverage('Traffic downlink', 70, false, [[-40, -20], [40, -20], [40, 70], [-40, 70], [-40, -20]], 'EUTELSAT 8 WEST B'),
-        createCoverage('Traffic uplink', 20, true, [[-40, -20], [40, -20], [40, 70], [-40, 70], [-40, -20]], 'EUTELSAT 8 WEST B'),
+        createCoverage('Traffic downlink', 70, false, [[-40, -20], [40, -20], [40, 70], [-40, 70], [-40, -20]], 'EUTELSAT KONNECT'),
+        createCoverage('Traffic uplink', 20, true, [[-40, -20], [40, -20], [40, 70], [-40, 70], [-40, -20]], 'EUTELSAT KONNECT'),
       ],
     );
     const candidateCoveragesA = findCandidateCoverages(pointA, [satellite]);
@@ -390,11 +484,11 @@ describe('geoTopologySelection', () => {
   });
 
 
-  it('keeps non-KVHTS/E10B satellites on legacy STAR gateway selection', () => {
-    const satellite = createSatellite('8WB', 'EUTELSAT 8 WEST B', -8, []);
+  it('keeps allowed STAR satellites without beam routing on legacy traffic gateway selection', () => {
+    const satellite = createSatellite('KONNECT', 'EUTELSAT KONNECT', 7, []);
     const candidateCoveragesA = [
       createCandidate(satellite, false, 150, 8, {
-        beamId: '8WB::132',
+        beamId: 'KONNECT::132',
         beamName: '132',
       }),
     ];
@@ -409,10 +503,31 @@ describe('geoTopologySelection', () => {
     expect(result?.gateway?.name).toBe('Rambouillet');
     expect(result?.gatewayResolutionDiagnostic).toEqual(expect.objectContaining({
       source: 'legacy-traffic-gateway',
-      canonicalSatelliteId: null,
+      canonicalSatelliteId: 'KONNECT',
       reason: 'UNSUPPORTED_SATELLITE',
     }));
     expect(result?.result.forward.uplink.source.label).toBe('Rambouillet');
+  });
+
+  it('rejects satellites outside the STAR traffic topology allowlist', () => {
+    const satellite = createSatellite('8WB', 'EUTELSAT 8 WEST B', -8, []);
+    const candidateCoveragesA = [
+      createCandidate(satellite, false, 150, 8),
+      createCandidate(satellite, true, 140, 8),
+    ];
+
+    expect(selectBestTopologyPath({
+      linkMode: 'STAR_FORWARD',
+      satellites: [satellite],
+      candidateCoveragesA,
+      pointALabel: 'Terminal A',
+    })).toBeNull();
+    expect(selectBestTopologyPath({
+      linkMode: 'STAR_RETURN',
+      satellites: [satellite],
+      candidateCoveragesA,
+      pointALabel: 'Terminal A',
+    })).toBeNull();
   });
 
   it.each(['UNVERIFIED', 'NOT_APPLICABLE'] as const)(
@@ -420,12 +535,12 @@ describe('geoTopologySelection', () => {
     (trafficStatus) => {
       const pointA = { lat: 43.06, lng: 8.6 };
       const satellite = createSatellite(
-        '8WB',
-        'EUTELSAT 8 WEST B',
-        -8,
+        'KONNECT',
+        'EUTELSAT KONNECT',
+        7,
         [
-          createCoverage('Traffic downlink', 70, false, [[-40, -20], [40, -20], [40, 70], [-40, 70], [-40, -20]], 'EUTELSAT 8 WEST B'),
-          createCoverage('Traffic uplink', 20, true, [[-40, -20], [40, -20], [40, 70], [-40, 70], [-40, -20]], 'EUTELSAT 8 WEST B'),
+          createCoverage('Traffic downlink', 70, false, [[-40, -20], [40, -20], [40, 70], [-40, 70], [-40, -20]], 'EUTELSAT KONNECT'),
+          createCoverage('Traffic uplink', 20, true, [[-40, -20], [40, -20], [40, 70], [-40, 70], [-40, -20]], 'EUTELSAT KONNECT'),
         ],
       );
       const candidateCoveragesA = findCandidateCoverages(pointA, [satellite]);
