@@ -4,6 +4,10 @@ import GEOConnectivitySection from '../GEOConnectivitySection';
 import type { DualSegmentResult } from '../../../utils/geoDualSegmentBudget';
 import type { LinkMode } from '../../../types/linkMode';
 import type { TrafficTeleportCapability } from '../../../utils/geoGroundInfrastructure';
+import type { CandidateCoverage } from '../../../types/analysis';
+import type { SatelliteData } from '../../../types/satellites';
+import { GEO_GATEWAYS } from '../../globe/GlobeConfig';
+import { resolveStarTrafficGatewayForCoverage, type StarTrafficGatewaySelection } from '../../../utils/geoConnectivityModel';
 
 // Regression tripwire for the 4 GEO link-mode topology branches
 // (STAR_FORWARD, STAR_RETURN, MESH, POINT_TO_POINT). Smoke-tests only: assert
@@ -39,7 +43,11 @@ const TRAFFIC_TELEPORT: TrafficTeleportCapability = {
 };
 
 /** STAR_FORWARD / STAR_RETURN fixture — no reverse leg, no network layer reverse. */
-const makeStarResult = (marginDb: number): DualSegmentResult => ({
+const makeStarResult = (
+  marginDb: number,
+  trafficTeleportLabel = 'Rambouillet',
+  trafficTeleportCapability: TrafficTeleportCapability = TRAFFIC_TELEPORT,
+): DualSegmentResult => ({
   forward: {
     uplink: geoSegment(marginDb, marginDb < 0 ? 8 : 18),
     downlink: geoSegment(marginDb + 1, marginDb < 0 ? 14 : 20),
@@ -56,8 +64,8 @@ const makeStarResult = (marginDb: number): DualSegmentResult => ({
     },
   },
   trafficTeleportEndpoint: {
-    label: 'Rambouillet',
-    capability: TRAFFIC_TELEPORT,
+    label: trafficTeleportLabel,
+    capability: trafficTeleportCapability,
   },
   networkLayer: {
     forward: {
@@ -126,6 +134,169 @@ const makeMeshResult = (forwardMarginDb: number, reverseMarginDb: number): DualS
 
 const noop = () => undefined;
 
+const createGeoSatellite = (
+  id: string,
+  name: string,
+  lng: number,
+): SatelliteData => ({
+  id,
+  name,
+  noradId: id,
+  coverageFileId: id,
+  type: 'EUTELSAT',
+  orbitType: 'GEO',
+  opsStatus: 'operational',
+  satrec: {} as SatelliteData['satrec'],
+  position: { lat: 0, lng, alt: 35786 },
+  referenced_coverages: { type: 'FeatureCollection', features: [] },
+  coverages: [],
+  capacity: {
+    maxThroughput: 100,
+    bandwidth: { ku: 500, ka: 300, c: 200 },
+    availability: 0.99,
+  },
+});
+
+const createBeamCandidate = (
+  satellite: SatelliteData,
+  beamId: string,
+  isUplink: boolean,
+): CandidateCoverage => ({
+  satelliteId: satellite.id,
+  satelliteName: satellite.name,
+  missionName: 'Ka-band',
+  coverageKey: `${satellite.id}::${isUplink ? 'ul' : 'dl'}::${beamId}`,
+  coverageName: `${satellite.name} ${isUplink ? 'uplink' : 'downlink'}`,
+  beamId: `${satellite.id}::${beamId}`,
+  beamName: beamId,
+  elevation: 35,
+  distanceFromBeamCenter: 100,
+  throughputEstimate: 100,
+  level: isUplink ? 8 : 55,
+  isUplink,
+  isSynthesized: false,
+  eirpDbw: isUplink ? undefined : 55,
+  gtDbk: isUplink ? 8 : undefined,
+  band: 'Ka',
+  frequencyGhz: isUplink ? 29 : 19,
+  bandwidthMhz: 36,
+  atmosphericLossDb: 1.5,
+  slantRangeKm: 38000,
+  fsplDb: 200,
+  cn0Dbhz: 80,
+  cnDb: 10,
+  linkMarginDb: 8,
+  modcod: '8PSK 3/4',
+  spectralEfficiency: 2.23,
+  latencyMs: 560,
+  status: 'available',
+  scoreBreakdown: {
+    elevation: 0,
+    linkMargin: 0,
+    throughput: 0,
+    latency: 0,
+    total: 0,
+  },
+  score: 0,
+});
+
+const legacyRambouilletGateway = GEO_GATEWAYS.find((gateway) => gateway.teleportCode === 'RAM');
+if (!legacyRambouilletGateway) throw new Error('Missing Rambouillet fixture');
+
+const makeLegacyRambouilletGeoGeometry = () => ({
+  satelliteToGateway: {
+    gateway: legacyRambouilletGateway,
+    resolvedGateway: {
+      gatewayId: legacyRambouilletGateway.gateway_id,
+      gatewayName: legacyRambouilletGateway.name,
+      latitude: legacyRambouilletGateway.lat,
+      longitude: legacyRambouilletGateway.lng,
+      controlAssignmentRole: 'nominal',
+      reason: 'legacy fixture',
+      assignmentSource: 'reference-gateway-allocation',
+      teleportCode: legacyRambouilletGateway.teleportCode,
+      region: legacyRambouilletGateway.region,
+      gateway: legacyRambouilletGateway,
+      gatewayElevationDeg: 35,
+      satToGatewayDistanceKm: 38000,
+    },
+    gatewayElevationDeg: 35,
+    slantRangeKm: 38000,
+    latencyMs: 126.8,
+  },
+  userToSatellite: {
+    elevationDeg: 35,
+    slantRangeKm: 38000,
+    latencyMs: 126.8,
+  },
+  oneWayRadioMs: 253.6,
+  propagationBreakdownMs: {
+    userToSatellite: 126.8,
+    satelliteToGateway: 126.8,
+    gatewayToSatellite: 126.8,
+    satelliteToUser: 126.8,
+  },
+  overheadMs: {
+    gatewayProcessing: 8,
+    modemProcessing: 12,
+    routing: 10,
+    total: 30,
+  },
+  rttTotalMs: 537.2,
+  warnings: [],
+  isUserLinkUnstable: false,
+}) as any;
+
+const makeResolvedGeoConnectivity = (satellite: SatelliteData, selectedCoverage: CandidateCoverage) => ({
+  satellite,
+  candidate: selectedCoverage,
+  geometry: makeLegacyRambouilletGeoGeometry(),
+}) as any;
+
+const resolveSelection = (
+  satellite: SatelliteData,
+  beamId: string,
+  linkMode: 'STAR_FORWARD' | 'STAR_RETURN' = 'STAR_FORWARD',
+): {
+  selection: StarTrafficGatewaySelection;
+  selectedCoverage: CandidateCoverage;
+} => {
+  const selectedCoverage = createBeamCandidate(satellite, beamId, linkMode === 'STAR_RETURN');
+  const selection = resolveStarTrafficGatewayForCoverage(satellite, selectedCoverage, GEO_GATEWAYS);
+  if (!selection) throw new Error(`Missing STAR gateway selection for ${satellite.name} beam ${beamId}`);
+  return { selection, selectedCoverage };
+};
+
+const renderGeoWithStarGateway = ({
+  linkMode,
+  satellite,
+  beamId,
+}: {
+  linkMode: 'STAR_FORWARD' | 'STAR_RETURN';
+  satellite: SatelliteData;
+  beamId: string;
+}) => {
+  const { selection, selectedCoverage } = resolveSelection(satellite, beamId, linkMode);
+  const result = makeStarResult(4.5, selection.gateway.name, selection.trafficCapability);
+  return {
+    selection,
+    html: renderToStaticMarkup(
+      <GEOConnectivitySection
+        {...baseProps}
+        resolvedGEOConnectivity={makeResolvedGeoConnectivity(satellite, selectedCoverage)}
+        geoGeometry={makeLegacyRambouilletGeoGeometry()}
+        linkMode={linkMode}
+        dualSegmentResult={result}
+        starTrafficGatewaySelection={selection}
+        selectedCoverage={selectedCoverage}
+        selectedUplinkCoverage={linkMode === 'STAR_RETURN' ? selectedCoverage : null}
+        selectedDownlinkCoverage={linkMode === 'STAR_FORWARD' ? selectedCoverage : null}
+        isLinkBudgetDrawerOpen
+      />
+    ),
+  };
+};
+
 const baseProps = {
   resolvedGEOConnectivity: null,
   geoGeometry: null,
@@ -159,6 +330,70 @@ const renderGeo = (linkMode: LinkMode, dualSegmentResult: DualSegmentResult | nu
   );
 
 describe('GEOConnectivitySection topology render smoke tests', () => {
+  describe('beam-resolved STAR traffic gateway labels', () => {
+    const kvhts = createGeoSatellite('53765', 'EUTELSAT KONNECT VHTS', 2.7);
+    const e10b = createGeoSatellite('54259', 'EUTELSAT 10B', 10);
+
+    it.each([
+      ['STAR_FORWARD', kvhts, '29', 'Scanzano / Palermo'],
+      ['STAR_RETURN', kvhts, '29', 'Scanzano / Palermo'],
+      ['STAR_FORWARD', kvhts, '132', 'Rambouillet'],
+      ['STAR_RETURN', kvhts, '132', 'Rambouillet'],
+      ['STAR_FORWARD', e10b, '66', 'Cagliari'],
+      ['STAR_RETURN', e10b, '66', 'Cagliari'],
+      ['STAR_FORWARD', e10b, '110', 'Makarios'],
+      ['STAR_RETURN', e10b, '110', 'Makarios'],
+    ] satisfies Array<['STAR_FORWARD' | 'STAR_RETURN', SatelliteData, string, string]>)(
+      'displays %s %s beam %s as %s in ENG panels',
+      (linkMode, satellite, beamId, expectedGatewayName) => {
+        const { html, selection } = renderGeoWithStarGateway({ linkMode, satellite, beamId });
+
+        expect(selection.diagnostic.source).toBe('beam-gateway-assignment');
+        expect(html).toContain(expectedGatewayName);
+        expect(html).toContain(`Traffic Gateway side - ${expectedGatewayName}`);
+        expect(html).toContain(selection.trafficCapability.capabilityId);
+        expect(html).toContain('Beam gateway assignment');
+        if (expectedGatewayName !== 'Rambouillet') {
+          expect(html).not.toContain('Traffic Gateway side - Rambouillet');
+        }
+      }
+    );
+
+    it('falls back to legacy gateway labels with diagnostics when no beam mapping exists', () => {
+      const { html, selection } = renderGeoWithStarGateway({
+        linkMode: 'STAR_FORWARD',
+        satellite: kvhts,
+        beamId: '9999',
+      });
+
+      expect(selection.gateway.name).toBe('Rambouillet');
+      expect(selection.diagnostic).toEqual(expect.objectContaining({
+        source: 'legacy-traffic-gateway',
+        reason: 'BEAM_ASSIGNMENT_NOT_FOUND',
+      }));
+      expect(html).toContain('Traffic Gateway side - Rambouillet');
+      expect(html).toContain('Legacy gateway fallback');
+      expect(html).toContain('No beam gateway assignment found for KVHTS beam 9999.');
+    });
+
+    it('does not apply STAR gateway overrides to MESH panels', () => {
+      const { selection } = resolveSelection(kvhts, '29');
+      const html = renderToStaticMarkup(
+        <GEOConnectivitySection
+          {...baseProps}
+          linkMode="MESH"
+          dualSegmentResult={makeMeshResult(3.2, 2.1)}
+          pointB={{ lat: 10, lng: 20 }}
+          starTrafficGatewaySelection={selection}
+        />
+      );
+
+      expect(html).toContain('Not in path');
+      expect(html).not.toContain('Scanzano / Palermo');
+      expect(html).not.toContain('Traffic Gateway side - Scanzano / Palermo');
+    });
+  });
+
   it('renders STAR_FORWARD with throughput, margin and limiting segment', () => {
     const html = renderGeo('STAR_FORWARD', makeStarResult(4.5));
     expect(html).toContain('187 Mbps');

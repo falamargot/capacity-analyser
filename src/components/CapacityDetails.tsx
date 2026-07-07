@@ -51,6 +51,7 @@ import { RAIN_FADE_DB } from '../utils/geoLinkBudget';
 import type { GeoBand } from '../utils/geoLinkBudget';
 import type { TerminalRFClassId } from '../utils/geoTerminalRFModel';
 import { supportsStarTrafficTopology } from '../utils/geoGroundInfrastructure';
+import { resolveActiveStarTrafficGatewaySelection } from '../utils/geoStarGatewaySelection';
 import {
   applyBeamCapacitySharing,
   smoothThroughputMbps,
@@ -1457,11 +1458,14 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
   const uplinkAtUser = selectedUplinkCoverage
     ?? getGeoCompanionCoverage(refCoverage, candidateCoverages, true);
   const trafficGatewaySelection = useMemo(() => {
-    const satellite = resolvedGEOConnectivity?.satellite;
-    if (!satellite || (linkMode !== 'STAR_FORWARD' && linkMode !== 'STAR_RETURN')) return null;
-    if (!supportsStarTrafficTopology(satellite)) return null;
-    return selectTrafficGeoGateway(satellite, GEO_GATEWAYS);
-  }, [linkMode, resolvedGEOConnectivity]);
+    return resolveActiveStarTrafficGatewaySelection({
+      linkMode,
+      satellite: resolvedGEOConnectivity?.satellite,
+      downlinkAtUser,
+      uplinkAtUser,
+      fallbackCoverage: refCoverage,
+    });
+  }, [downlinkAtUser, linkMode, refCoverage, resolvedGEOConnectivity, uplinkAtUser]);
 
   // Coverage candidates at gateway location (for STAR modes)
   const candidateCoveragesAtGateway = useMemo(() => {
@@ -2855,6 +2859,7 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
                     linkMode={linkMode}
                     onLinkModeChange={onLinkModeChange}
                     dualSegmentResult={dualSegmentResult}
+                    starTrafficGatewaySelection={trafficGatewaySelection}
                     pointB={pointB}
                     terminalTypeB={geoTerminalTypeB}
                     onTerminalTypeBChange={onGeoTerminalTypeBChange}

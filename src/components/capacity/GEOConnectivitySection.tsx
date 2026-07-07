@@ -13,7 +13,7 @@ import DualSegmentPanel from './DualSegmentPanel';
 import EngineeringAnalysisWorkspace from './EngineeringAnalysisWorkspace';
 import { getDisplayedThroughput, type DualSegmentResult } from '../../utils/geoDualSegmentBudget';
 import LinkModeSelector from './LinkModeSelector';
-import type { ResolvedGeoGateway } from '../../utils/geoConnectivityModel';
+import type { ResolvedGeoGateway, StarTrafficGatewaySelection } from '../../utils/geoConnectivityModel';
 import { getGatewayTrafficStatusNote, getPrimaryControlRoleLabel } from '../globe/GlobeConfig';
 import { formatCoordinates } from '../../utils/formatters';
 import { buildGeoConfidence, type PredictionConfidence } from '../../utils/predictionConfidence';
@@ -621,6 +621,8 @@ interface GEOConnectivitySectionProps {
   onLinkModeChange?: (mode: LinkMode) => void;
   /** Dual-segment RF budget computed by geoDualSegmentBudget. Null when no path is found. */
   dualSegmentResult?: DualSegmentResult | null;
+  /** STAR-only traffic gateway selection resolved from the active beam when available. */
+  starTrafficGatewaySelection?: StarTrafficGatewaySelection | null;
   /** Controlled direction tab for MESH/P2P — lifted to App so the globe stays in sync. */
   activeMeshTab?: 'forward' | 'reverse';
   onActiveMeshTabChange?: (tab: 'forward' | 'reverse') => void;
@@ -692,6 +694,7 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
   linkMode = 'STAR_FORWARD',
   onLinkModeChange,
   dualSegmentResult = null,
+  starTrafficGatewaySelection = null,
   pointB = null,
   pointAIsUserDefined = false,
   pointBIsUserDefined = false,
@@ -729,7 +732,10 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
     coverageAvailable: !!(selectedCoverage ?? bestCoverage),
     rfAvailable: !!dualSegmentResult,
     publicFrequencyEvidence: !!(selectedCoverage?.band ?? bestCoverage?.band ?? selectedCoverage?.frequencyGhz ?? bestCoverage?.frequencyGhz ?? selectedCoverage?.level ?? bestCoverage?.level),
-    gatewayResolved: linkMode === 'MESH' || linkMode === 'POINT_TO_POINT' || !!geoGeometry?.satelliteToGateway.resolvedGateway,
+    gatewayResolved: linkMode === 'MESH' || linkMode === 'POINT_TO_POINT' ||
+      ((linkMode === 'STAR_FORWARD' || linkMode === 'STAR_RETURN')
+        ? !!starTrafficGatewaySelection
+        : !!geoGeometry?.satelliteToGateway.resolvedGateway),
     capacityClassKnown: !!geoCapacityEstimate,
     regulatoryKnown: true,
     routePending: false,
@@ -769,26 +775,45 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
   };
   const userLabel = analysisSource === 'aircraft' && aircraftCallsign ? aircraftCallsign : 'User';
   const showPerformanceBeforeRadioPath = analysisSource !== 'aircraft';
+  const starTrafficGateway = !isMeshOrP2P && (isStarForward || isStarReturn)
+    ? starTrafficGatewaySelection
+    : null;
   const resolvedGateway = geoGeometry?.satelliteToGateway.resolvedGateway ?? null;
-  const gatewayName = resolvedGateway?.gatewayName ?? geoGeometry?.satelliteToGateway.gateway?.name ?? 'Gateway';
-  const gatewayRole = resolvedGateway?.controlAssignmentRole ?? null;
+  const gatewayName = starTrafficGateway?.gateway.name ??
+    resolvedGateway?.gatewayName ??
+    geoGeometry?.satelliteToGateway.gateway?.name ??
+    'Gateway';
+  const gatewayRole = starTrafficGateway ? null : resolvedGateway?.controlAssignmentRole ?? null;
   const gatewayDisplayName = gatewayRole ? `${gatewayName} (${gatewayRole})` : gatewayName;
-  const gatewayTrafficStatusNote = resolvedGateway
+  const gatewayTrafficStatusNote = starTrafficGateway
+    ? getGatewayTrafficStatusNote(starTrafficGateway.gateway.trafficStatus)
+    : resolvedGateway
     ? getGatewayTrafficStatusNote(resolvedGateway.gateway.trafficStatus)
     : null;
-  const gatewayStatusTitle = gatewayTrafficStatusNote ?? 'Resolved automatically';
+  const gatewayStatusTitle = starTrafficGateway
+    ? starTrafficGateway.diagnostic.source === 'beam-gateway-assignment'
+      ? `Beam gateway assignment: ${starTrafficGateway.diagnostic.message}`
+      : `Legacy gateway fallback: ${starTrafficGateway.diagnostic.message}`
+    : gatewayTrafficStatusNote ?? 'Resolved automatically';
   // Ground-infra role of the specific resolved site (SCC nominal/backup/monitoring),
   // used only where a single resolved site is actually being labeled (the gateway
   // identity cards below) — distinct from ENGINEERING_TERMS.GEO.gateway, which is
   // the neutral generic noun used in structural/non-site-specific copy.
-  const gatewayInfraRoleLabel = resolvedGateway
+  const gatewayInfraRoleLabel = starTrafficGateway
+    ? ENGINEERING_TERMS.GEO.gateway
+    : resolvedGateway
     ? getPrimaryControlRoleLabel(resolvedGateway.gateway.roles)
     : ENGINEERING_TERMS.GEO.gateway;
   const pointACoordinatesLabel = activePoint ? formatCoordinates(activePoint) : '--';
   const pointBCoordinatesLabel = pointB ? formatCoordinates(pointB) : 'Shift+click to place';
-  const gatewayCoordinatesLabel = resolvedGateway
+  const gatewayCoordinatesLabel = starTrafficGateway
+    ? formatCoordinates({ lat: starTrafficGateway.gateway.lat, lng: starTrafficGateway.gateway.lng })
+    : resolvedGateway
     ? formatCoordinates({ lat: resolvedGateway.latitude, lng: resolvedGateway.longitude })
     : null;
+  const gatewaySideLabel = gatewayName === 'Gateway'
+    ? `${ENGINEERING_TERMS.GEO.gateway} side - reference allocation`
+    : `${ENGINEERING_TERMS.GEO.gateway} side - ${gatewayName}`;
   const geoStarOneWayTotalMs = !isMeshOrP2P && geoGeometry?.oneWayRadioMs != null
     ? geoGeometry.oneWayRadioMs + geoGeometry.overheadMs.total
     : null;
@@ -1063,7 +1088,7 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
       return {
         forward: {
           // GEO traffic gateway side: mirror the sidebar row exactly.
-          uplink: `${ENGINEERING_TERMS.GEO.gateway} side - reference allocation`,
+          uplink: gatewaySideLabel,
           // User side: align with the downlink row visible in the sidebar.
           downlink: formatCoverageName(selectedDownlinkCoverage ?? selectedCoverage) ?? segmentFallback.forward.downlink,
         },
@@ -1076,7 +1101,7 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
           // User side: align with the uplink row visible in the sidebar.
           uplink: formatCoverageName(selectedUplinkCoverage) ?? segmentFallback.forward.uplink,
           // GEO traffic gateway side: mirror the sidebar row exactly.
-          downlink: `${ENGINEERING_TERMS.GEO.gateway} side - reference allocation`,
+          downlink: gatewaySideLabel,
         },
       };
     }
@@ -1099,6 +1124,7 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
     downlinkCoverageAtB,
     dualSegmentResult,
     isMeshOrP2P,
+    gatewaySideLabel,
     linkMode,
     selectedCoverage,
     selectedDownlinkCoverage,
