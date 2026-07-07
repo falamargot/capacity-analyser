@@ -35,7 +35,16 @@ import type { Selection } from './types/analysis';
 import type { CoverageSwitcherCoverage } from './components/CoverageSwitcherVertical';
 import { useSatelliteLoader } from './hooks/useSatelliteLoader';
 import { Feature, Geometry, GeoJsonProperties } from 'geojson';
-import { GEO_GATEWAYS, SNPS_DATA, formatGroundRoles, getPrimaryControlRoleLabel, type GeoGatewayData, type SNPData } from './components/globe/GlobeConfig';
+import {
+  GEO_GATEWAYS,
+  GEO_GROUND_SITES,
+  SNPS_DATA,
+  formatGroundRoles,
+  getPrimaryControlRoleLabel,
+  projectGroundSiteToLegacyGeoGateway,
+  type GeoGatewayData,
+  type SNPData,
+} from './components/globe/GlobeConfig';
 
 import { resolveAutoSelectedSatellites } from './utils/satelliteResolution';
 import {
@@ -1557,8 +1566,12 @@ const App: React.FC = () => {
     }
 
     const eligibleSatelliteIds = new Set<string>();
+    const candidateSatelliteById = new Map(candidateSatellites.map((satellite) => [satellite.id, satellite]));
     for (const [satelliteId, positionKey] of gatewayPositionBySatelliteId) {
-      if (coveredSatelliteIdsByGatewayPosition.get(positionKey)?.has(satelliteId)) {
+      const satellite = candidateSatelliteById.get(satelliteId);
+      const hasModeledGatewayContour = coveredSatelliteIdsByGatewayPosition.get(positionKey)?.has(satelliteId) === true;
+      const canUseEstimatedStarFeeder = satellite ? supportsStarTrafficTopology(satellite) : false;
+      if (hasModeledGatewayContour || canUseEstimatedStarFeeder) {
         eligibleSatelliteIds.add(satelliteId);
       }
     }
@@ -2594,15 +2607,24 @@ const App: React.FC = () => {
     }
   }, [clearSelection]);
 
+  const canonicalGroundSiteGatewayByName = useMemo(
+    () => new Map(GEO_GROUND_SITES
+      .map(projectGroundSiteToLegacyGeoGateway)
+      .map((gateway) => [gateway.name, gateway])),
+    []
+  );
+
   const handleGatewaySelectByName = useCallback((gatewayName: string | null) => {
     if (!gatewayName) {
       setSelectedGateway(null);
       return;
     }
 
-    const gateway = GEO_GATEWAYS.find((item) => item.name === gatewayName) ?? null;
+    const gateway = canonicalGroundSiteGatewayByName.get(gatewayName) ??
+      GEO_GATEWAYS.find((item) => item.name === gatewayName) ??
+      null;
     handleGatewaySelect(gateway, false);
-  }, [handleGatewaySelect]);
+  }, [canonicalGroundSiteGatewayByName, handleGatewaySelect]);
 
   const handleIssClick = useCallback(() => {
     setSelectedIss(true);

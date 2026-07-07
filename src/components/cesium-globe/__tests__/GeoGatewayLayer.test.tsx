@@ -3,9 +3,17 @@ import { describe, expect, it } from 'vitest';
 import GeoGroundSiteLegend from '../GeoGroundSiteLegend';
 import {
   buildGeoGatewayMarkerMetadata,
+  buildGroundSiteMarkerMetadata,
   getGeoGatewaysForRendering,
+  getTrafficTeleportGatewayNameAllowlist,
 } from '../geoGatewayMarkerModel';
-import { GEO_GATEWAYS } from '../../globe/GlobeConfig';
+import {
+  GEO_GATEWAYS,
+  GEO_GROUND_SITES,
+  getGroundSiteById,
+  projectGroundSiteToLegacyGeoGateway,
+  type GroundSite,
+} from '../../globe/GlobeConfig';
 
 const gatewayByCode = (teleportCode: string) => {
   const gateway = GEO_GATEWAYS.find((entry) => entry.teleportCode === teleportCode);
@@ -14,22 +22,67 @@ const gatewayByCode = (teleportCode: string) => {
 };
 
 describe('GeoGatewayLayer role-specific rendering metadata', () => {
-  it('renders all ten physical ground sites in engineering mode', () => {
+  it('renders all canonical physical Ground Sites in engineering mode', () => {
     const rendered = getGeoGatewaysForRendering(null, 'engineering');
 
-    expect(rendered).toHaveLength(10);
+    expect(rendered).toHaveLength(GEO_GROUND_SITES.length);
     expect(rendered.map((gateway) => gateway.teleportCode).sort()).toEqual([
+      'ARG',
       'CAG',
       'DUB',
       'HER',
       'IBA',
+      'LIS',
+      'MAK',
       'MAR',
+      'MDR',
       'MEX',
+      'NEM',
+      'PAL',
       'PER',
       'RAM',
+      'SAR',
       'SIN',
       'TUR',
     ]);
+  });
+
+  it('renders the simulation-ready Ground Sites in engineering mode', () => {
+    const renderedNames = new Set(getGeoGatewaysForRendering(null, 'engineering').map((gateway) => gateway.name));
+
+    [
+      'Rambouillet',
+      'Cagliari',
+      'Makarios',
+      'Scanzano / Palermo',
+      'Nemea',
+      'Sintra',
+      'Madeira',
+      'Sarajevo',
+      'Arganda',
+    ].forEach((name) => {
+      expect(renderedNames.has(name)).toBe(true);
+    });
+  });
+
+  it('does not render logical-gateway-only inventory sites in engineering mode', () => {
+    const renderedNames = new Set(getGeoGatewaysForRendering(null, 'engineering').map((gateway) => gateway.name));
+
+    [
+      'Eik',
+      'Dublin',
+      'Mazowiecki',
+      'Stockholm',
+      'Cheia',
+      'Lario',
+      'Berlin',
+      'Ankara',
+      'Algiers',
+      'Sofia',
+      'Kashi',
+    ].forEach((name) => {
+      expect(renderedNames.has(name)).toBe(false);
+    });
   });
 
   it('marks traffic teleport-capable sites with traffic confidence and eligibility', () => {
@@ -63,6 +116,47 @@ describe('GeoGatewayLayer role-specific rendering metadata', () => {
     expect(metadata.isTrafficEligible).toBe(false);
   });
 
+  it('renders Arganda as a physical Ground Site but not as a traffic-routable endpoint', () => {
+    const arganda = getGroundSiteById('geo-arganda');
+    if (!arganda) throw new Error('Missing Arganda GroundSite fixture');
+
+    const gateway = projectGroundSiteToLegacyGeoGateway(arganda);
+    const metadata = buildGeoGatewayMarkerMetadata(gateway);
+
+    expect(gateway.name).toBe('Arganda');
+    expect(metadata.markerKind).toBe('GROUND_SITE');
+    expect(metadata.capabilityKinds).toEqual([]);
+    expect(metadata.trafficConfidence).toBeNull();
+    expect(metadata.trafficEligibility).toBeNull();
+    expect(metadata.isTrafficEligible).toBe(false);
+  });
+
+  it('keeps marker styling driven by GroundSite capabilities, including Network Hub', () => {
+    const hubSite: GroundSite = {
+      siteId: 'test-network-hub',
+      publicCode: 'HUB',
+      name: 'Test Network Hub',
+      latitude: 0,
+      longitude: 0,
+      region: 'TEST',
+      operator: 'EUTELSAT',
+      capabilities: [{
+        capabilityId: 'test-network-hub-capability',
+        siteId: 'test-network-hub',
+        kind: 'NETWORK_HUB',
+        confidence: 'CONFIRMED',
+        supportedSatellites: ['EUTELSAT'],
+        hubRole: 'DATA_CENTER',
+      }],
+    };
+
+    const metadata = buildGroundSiteMarkerMetadata(hubSite);
+
+    expect(metadata.markerKind).toBe('NETWORK_HUB');
+    expect(metadata.capabilityKinds).toEqual(['NETWORK_HUB']);
+    expect(metadata.isTrafficEligible).toBe(false);
+  });
+
   it('keeps COMM gateway rendering traffic-only even with a broader allowlist', () => {
     const allowedNames = new Set([
       gatewayByCode('RAM').name,
@@ -75,6 +169,33 @@ describe('GeoGatewayLayer role-specific rendering metadata', () => {
     expect(rendered.map((gateway) => gateway.teleportCode)).toEqual(['RAM']);
   });
 
+  it('keeps COMM rendering unchanged as legacy traffic-capable gateways only', () => {
+    const rendered = getGeoGatewaysForRendering(null, 'commercial');
+
+    expect(rendered.map((gateway) => gateway.teleportCode).sort()).toEqual([
+      'CAG',
+      'HER',
+      'MEX',
+      'RAM',
+      'TUR',
+    ]);
+  });
+
+  it('builds a commercial traffic-teleport allowlist for GEO and ALL scope rendering', () => {
+    const allowlist = getTrafficTeleportGatewayNameAllowlist();
+    const rendered = getGeoGatewaysForRendering(allowlist, 'commercial');
+
+    expect(rendered.map((gateway) => gateway.teleportCode).sort()).toEqual([
+      'CAG',
+      'HER',
+      'MEX',
+      'RAM',
+      'TUR',
+    ]);
+    expect(allowlist.has(gatewayByCode('DUB').name)).toBe(false);
+    expect(allowlist.has(gatewayByCode('PER').name)).toBe(false);
+  });
+
   it('renders an ENG legend for traffic, SCC, monitoring and TT&C capabilities', () => {
     const html = renderToStaticMarkup(<GeoGroundSiteLegend />);
 
@@ -83,5 +204,7 @@ describe('GeoGatewayLayer role-specific rendering metadata', () => {
     expect(html).toContain('SCC outline');
     expect(html).toContain('Monitoring');
     expect(html).toContain('TT&amp;C');
+    expect(html).toContain('Network Hub');
+    expect(html).toContain('Ground Site');
   });
 });

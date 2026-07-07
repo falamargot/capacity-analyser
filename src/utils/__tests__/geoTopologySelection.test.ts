@@ -5,7 +5,12 @@ import type { SatelliteData } from '../../types/satellites';
 import { GEO_GATEWAYS } from '../../components/globe/GlobeConfig';
 import { findCandidateCoverages } from '../geoCoverageSelection';
 import { findBestUplinkMatch } from '../geoDualSegmentBudget';
-import { augmentCandidatesWithSynthesizedDirections, selectBestTopologyPath } from '../geoTopologySelection';
+import {
+  ESTIMATED_STAR_FEEDER_DATA_PENALTY_DB,
+  augmentCandidatesWithSynthesizedDirections,
+  selectBestTopologyPath,
+} from '../geoTopologySelection';
+import { BAND_PARAMS } from '../geoLinkBudget';
 
 const createCoverage = (
   name: string,
@@ -508,6 +513,73 @@ describe('geoTopologySelection', () => {
     }));
     expect(result?.result.forward.uplink.source.label).toBe('Rambouillet');
   });
+
+  it.each([
+    ['Dakar', { lat: 14.7167, lng: -17.4677 }],
+    ['Accra', { lat: 5.6037, lng: -0.1870 }],
+  ])(
+    'keeps KONNECT STAR Forward available for %s when gateway feeder contours are missing',
+    (_label, pointA) => {
+      const westAfricaUserFootprint = [
+        [-20, 0],
+        [10, 0],
+        [10, 20],
+        [-20, 20],
+        [-20, 0],
+      ];
+      const satellite = createSatellite(
+        '45027',
+        'EUTELSAT KONNECT',
+        7.2,
+        [
+          createCoverage(
+            'Konnect all African Users Downlink Outermost',
+            70,
+            false,
+            westAfricaUserFootprint,
+            'EUTELSAT KONNECT',
+            'Ka-band',
+          ),
+          createCoverage(
+            'Konnect all African Users Uplink Outermost',
+            18,
+            true,
+            westAfricaUserFootprint,
+            'EUTELSAT KONNECT',
+            'Ka-band',
+          ),
+        ],
+      );
+      const candidateCoveragesA = findCandidateCoverages(
+        pointA,
+        [satellite],
+        { terminalRFClassId: 'ka_consumer_terminal' },
+      );
+
+      const result = selectBestTopologyPath({
+        linkMode: 'STAR_FORWARD',
+        satellites: [satellite],
+        candidateCoveragesA,
+        terminalTypeA: 'ka_consumer_terminal',
+        pointALabel: 'Terminal A',
+      });
+
+      const estimatedFeeder = result?.result.forward.uplink.candidate;
+      expect(result?.satellite.name).toBe('EUTELSAT KONNECT');
+      expect(result?.gateway?.name).toBe('Rambouillet');
+      expect(result?.gatewayResolutionDiagnostic).toEqual(expect.objectContaining({
+        source: 'legacy-traffic-gateway',
+        canonicalSatelliteId: 'KONNECT',
+        reason: 'UNSUPPORTED_SATELLITE',
+      }));
+      expect(estimatedFeeder?.syntheticSource).toBe('estimated-star-feeder');
+      expect(estimatedFeeder?.dataPenaltyDb).toBe(ESTIMATED_STAR_FEEDER_DATA_PENALTY_DB);
+      expect(estimatedFeeder?.atmosphericLossDb).toBeCloseTo(
+        BAND_PARAMS.Ka.atmosLossDb + ESTIMATED_STAR_FEEDER_DATA_PENALTY_DB,
+      );
+      expect(result?.result.forward.endToEnd.endToEndLinkMarginDb).toBeGreaterThan(-10);
+    }
+  );
 
   it('rejects satellites outside the STAR traffic topology allowlist', () => {
     const satellite = createSatellite('8WB', 'EUTELSAT 8 WEST B', -8, []);

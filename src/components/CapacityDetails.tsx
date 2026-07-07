@@ -40,12 +40,12 @@ import {
   buildStarForwardResult,
   buildStarReturnResult,
   buildMeshResult,
-  synthesizeDownlinkCandidate,
   getDisplayedThroughput,
   type DualSegmentResult,
 } from '../utils/geoDualSegmentBudget';
 import {
   augmentCandidatesWithSynthesizedDirections,
+  resolveStarGatewayFeederCandidate,
 } from '../utils/geoTopologySelection';
 import { RAIN_FADE_DB } from '../utils/geoLinkBudget';
 import type { GeoBand } from '../utils/geoLinkBudget';
@@ -1550,8 +1550,12 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
       }
 
       const validIds = new Set<string>();
+      const candidateSatelliteById = new Map(candidateSatellites.map((satellite) => [satellite.id, satellite]));
       for (const [satId, pos] of gwPosBySatId) {
-        if (covByGw.get(posKey(pos))?.has(satId)) validIds.add(satId);
+        const satellite = candidateSatelliteById.get(satId);
+        const hasModeledGatewayContour = covByGw.get(posKey(pos))?.has(satId) === true;
+        const canUseEstimatedStarFeeder = satellite ? supportsStarTrafficTopology(satellite) : false;
+        if (hasModeledGatewayContour || canUseEstimatedStarFeeder) validIds.add(satId);
       }
       return validIds;
     }
@@ -1628,7 +1632,16 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
     if (linkMode === 'STAR_FORWARD') {
       if (!trafficGatewaySelection) return null;
       const dl = downlinkAtUser;
-      const ul = uplinkAtGateway;
+      const satellite = satellites.find((entry) => entry.id === dl?.satelliteId) ?? null;
+      const ul = satellite
+        ? resolveStarGatewayFeederCandidate({
+            reference: dl,
+            gatewayPool: candidateCoveragesAtGateway,
+            satellite,
+            gateway: trafficGatewaySelection.gateway,
+            linkMode,
+          }).candidate
+        : uplinkAtGateway;
       if (!dl || !ul) return null;
       return buildStarForwardResult(
         dl,
@@ -1645,8 +1658,16 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
     if (linkMode === 'STAR_RETURN') {
       if (!trafficGatewaySelection) return null;
       const ul = uplinkAtUser;
-      // Downlink at gateway: prefer explicit EIRP data, fall back to synthesis from G/T
-      const dl = downlinkAtGateway ?? (uplinkAtGateway ? synthesizeDownlinkCandidate(uplinkAtGateway) : null);
+      const satellite = satellites.find((entry) => entry.id === ul?.satelliteId) ?? null;
+      const dl = satellite
+        ? resolveStarGatewayFeederCandidate({
+            reference: ul,
+            gatewayPool: candidateCoveragesAtGateway,
+            satellite,
+            gateway: trafficGatewaySelection.gateway,
+            linkMode,
+          }).candidate
+        : downlinkAtGateway;
       if (!ul || !dl) return null;
       // Resolve terminal key: RF class ID takes priority over legacy use-case string.
       const terminalKeyA = geoRFClassIdA ?? geoTerminalType;
@@ -1680,9 +1701,11 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
   }, [
     linkMode, satelliteScope,
     downlinkAtUser, uplinkAtUser,
+    candidateCoveragesAtGateway,
     uplinkAtGateway, downlinkAtGateway,
     uplinkAtB, downlinkAtB,
     pointALabel, pointBLabel,
+    satellites,
     trafficGatewaySelection,
     geoTerminalType, geoTerminalTypeB,
     geoRFClassIdA, geoRFClassIdB,

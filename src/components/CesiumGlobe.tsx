@@ -109,6 +109,7 @@ import type { CommercialScenarioViewModel } from './commercial/commercialViewMod
 import type { CommercialRouteModel, CommercialRouteNodeType, CommercialRouteFocusTarget, CommercialRouteSegmentId, RouteCoordinate } from '../types/commercialRouteModel';
 import CommercialSymbolicConnectivityLayer from './cesium-globe/CommercialSymbolicConnectivityLayer';
 import FlightCoverageRibbon from './cesium-globe/FlightCoverageRibbon';
+import { getGeoGatewaysForRendering, getTrafficTeleportGatewayNameAllowlist } from './cesium-globe/geoGatewayMarkerModel';
 
 // ─── Commercial vocabulary helpers ───────────────────────────────────────────
 
@@ -1973,7 +1974,7 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
     );
 
     const gatewayByName = useMemo(
-        () => new Map(GEO_GATEWAYS.map((item) => [item.name, item])),
+        () => new Map(getGeoGatewaysForRendering(null, 'engineering').map((item) => [item.name, item])),
         []
     );
 
@@ -2164,27 +2165,14 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
         return names;
     }, [commercialMode, leoS2SVisualResult, selectedSNP, inspectedSNP]);
 
-    // Commercial mode gateway allowlist.  null = no filtering (engineering mode).
-    // In commercial mode only the gateway that is active for the current GEO route
-    // is visible; the full GEO_GATEWAYS list is hidden.
-    //
-    // trafficStatus gate: only CONFIRMED or PUBLICLY_LIKELY sites are shown in
-    // commercial mode. UNVERIFIED sites are deliberately excluded — showing them
-    // would present a site with no confirmed commercial traffic role to a
-    // non-engineering stakeholder as if it were the active commercial teleport.
-    // The empty Set (not null) is intentional: null = engineering mode (show all);
-    // empty Set = commercial mode with no eligible gateway to display.
+    // Commercial mode gateway allowlist. null = no filtering (engineering mode).
+    // In commercial mode, whenever GEO satellites are displayed (GEO or ALL scope),
+    // all traffic teleport-capable sites remain visible for spatial context.
+    // The marker model keeps the traffic eligibility gate centralized.
     const commercialGatewayAllowlist = useMemo((): Set<string> | null => {
         if (!commercialMode) return null;
-        const names = new Set<string>();
-        if (pulsedGateway) {
-            const { trafficStatus } = pulsedGateway;
-            if (trafficStatus === 'CONFIRMED' || trafficStatus === 'PUBLICLY_LIKELY') {
-                names.add(pulsedGateway.name);
-            }
-        }
-        return names;
-    }, [commercialMode, pulsedGateway]);
+        return getTrafficTeleportGatewayNameAllowlist();
+    }, [commercialMode]);
 
     useEffect(() => {
         if (!import.meta.env.DEV || !activeResolvedGeoGateway || !pulsedGateway) return;
@@ -2947,38 +2935,35 @@ const CesiumGlobe: React.FC<CesiumGlobeProps> = ({
                     )}
 
                     {(!commercialMode || commercialBackhaulFocused) && (
-                        <>
-                            {/* SNP Layer */}
-                            <SnpLayer
-                                satelliteScope={satelliteScope}
-                                onSnpClick={onSnpClick}
-                                onSnpHover={handleSnpHover}
-                                viewerRef={viewerRef}
-                                cameraMetricsRef={cameraMetricsRef}
-                                sizeScale={sizeScale}
-                                autoSelectedSnpName={typeof selectedSNP === 'string' ? selectedSNP : (selectedSNP?.name ?? null)}
-                                inspectedSnpName={inspectedSNP?.name ?? null}
-                                allowedSnpNames={commercialSnpAllowlist}
-                                commercialTone={commercialMode ? 'secondary' : 'primary'}
-                                showLabels={!commercialMode}
-                            />
-
-                            {/* GEO Gateway Layer */}
-                            <GeoGatewayLayer
-                                satelliteScope={satelliteScope}
-                                onGatewayClick={onGatewayClick ?? (() => {})}
-                                onGatewayHover={handleGatewayHover}
-                                viewerRef={viewerRef}
-                                cameraMetricsRef={cameraMetricsRef}
-                                selectedGatewayName={selectedGeoGatewayName}
-                                sizeScale={sizeScale}
-                                allowedGatewayNames={commercialGatewayAllowlist}
-                                commercialTone={commercialMode ? 'secondary' : 'primary'}
-                                renderMode={commercialMode ? 'commercial' : 'engineering'}
-                                showLabels={!commercialMode}
-                            />
-                        </>
+                        <SnpLayer
+                            satelliteScope={satelliteScope}
+                            onSnpClick={onSnpClick}
+                            onSnpHover={handleSnpHover}
+                            viewerRef={viewerRef}
+                            cameraMetricsRef={cameraMetricsRef}
+                            sizeScale={sizeScale}
+                            autoSelectedSnpName={typeof selectedSNP === 'string' ? selectedSNP : (selectedSNP?.name ?? null)}
+                            inspectedSnpName={inspectedSNP?.name ?? null}
+                            allowedSnpNames={commercialSnpAllowlist}
+                            commercialTone={commercialMode ? 'secondary' : 'primary'}
+                            showLabels={!commercialMode}
+                        />
                     )}
+
+                    {/* GEO Gateway Layer */}
+                    <GeoGatewayLayer
+                        satelliteScope={satelliteScope}
+                        onGatewayClick={onGatewayClick ?? (() => {})}
+                        onGatewayHover={handleGatewayHover}
+                        viewerRef={viewerRef}
+                        cameraMetricsRef={cameraMetricsRef}
+                        selectedGatewayName={selectedGeoGatewayName}
+                        sizeScale={sizeScale}
+                        allowedGatewayNames={commercialGatewayAllowlist}
+                        commercialTone={commercialMode ? 'secondary' : 'primary'}
+                        renderMode={commercialMode ? 'commercial' : 'engineering'}
+                        showLabels={!commercialMode}
+                    />
 
                     {/* Trajectory Layer */}
                     <TrajectoryLayer

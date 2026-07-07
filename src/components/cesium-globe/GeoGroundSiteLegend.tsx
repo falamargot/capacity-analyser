@@ -2,10 +2,12 @@ import React from 'react';
 import { MARKER_STYLE, type GeoGatewayMarkerKind } from './geoGatewayMarkerModel';
 
 const LEGEND_ITEMS: Array<{ kind: GeoGatewayMarkerKind; label: string; detail: string }> = [
-  { kind: 'TRAFFIC_TELEPORT', label: 'Traffic Teleport', detail: 'eligible STAR RF endpoint' },
+  { kind: 'TRAFFIC_TELEPORT', label: 'Traffic Teleport', detail: 'traffic-capable GroundSite' },
   { kind: 'SATELLITE_CONTROL', label: 'SCC outline', detail: 'satellite control capability' },
-  { kind: 'MONITORING', label: 'Monitoring', detail: 'operations visibility only' },
+  { kind: 'MONITORING', label: 'Monitoring', detail: 'monitoring-only GroundSite' },
   { kind: 'TTC', label: 'TT&C', detail: 'tracking / telemetry / command' },
+  { kind: 'NETWORK_HUB', label: 'Network Hub', detail: 'hub / data center capability' },
+  { kind: 'GROUND_SITE', label: 'Ground Site', detail: 'physical site without traffic RF' },
 ];
 
 const GeoGroundSiteLegend: React.FC = () => (

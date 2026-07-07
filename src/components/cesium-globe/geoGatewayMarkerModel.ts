@@ -1,9 +1,12 @@
 import {
+  GEO_GROUND_SITES,
   GEO_GATEWAYS,
   getGroundSiteById,
   getGroundSiteByPublicCode,
+  projectGroundSiteToLegacyGeoGateway,
   type CapabilityConfidence,
   type GeoGatewayData,
+  type GroundSite,
   type GroundCapabilityKind,
   type TrafficEligibility,
 } from '../globe/GlobeConfig';
@@ -15,6 +18,7 @@ export type GeoGatewayMarkerKind =
   | 'SATELLITE_CONTROL'
   | 'MONITORING'
   | 'TTC'
+  | 'NETWORK_HUB'
   | 'GROUND_SITE';
 
 export interface GeoGatewayMarkerMetadata {
@@ -46,6 +50,7 @@ export const MARKER_STYLE: Record<GeoGatewayMarkerKind, { fill: string; outline:
   SATELLITE_CONTROL: { fill: '#a78bfa', outline: '#7c3aed' },
   MONITORING: { fill: '#f59e0b', outline: '#b45309' },
   TTC: { fill: '#34d399', outline: '#059669' },
+  NETWORK_HUB: { fill: '#60a5fa', outline: '#2563eb' },
   GROUND_SITE: { fill: '#94a3b8', outline: '#475569' },
 };
 
@@ -53,13 +58,13 @@ const markerKindFromCapabilities = (capabilityKinds: GroundCapabilityKind[]): Ge
   if (capabilityKinds.includes('TRAFFIC_TELEPORT')) return 'TRAFFIC_TELEPORT';
   if (capabilityKinds.includes('MONITORING')) return 'MONITORING';
   if (capabilityKinds.includes('TTC')) return 'TTC';
+  if (capabilityKinds.includes('NETWORK_HUB')) return 'NETWORK_HUB';
   if (capabilityKinds.includes('SATELLITE_CONTROL')) return 'SATELLITE_CONTROL';
   return 'GROUND_SITE';
 };
 
-export const buildGeoGatewayMarkerMetadata = (gateway: GeoGatewayData): GeoGatewayMarkerMetadata => {
-  const site = getGroundSiteById(gateway.gateway_id) ?? getGroundSiteByPublicCode(gateway.teleportCode);
-  const capabilities = site?.capabilities ?? [];
+export const buildGroundSiteMarkerMetadata = (site: GroundSite): GeoGatewayMarkerMetadata => {
+  const capabilities = site.capabilities;
   const capabilityKinds = capabilities.map((capability) => capability.kind);
   const markerKind = markerKindFromCapabilities(capabilityKinds);
   const trafficCapability = capabilities.find((capability) => capability.kind === 'TRAFFIC_TELEPORT');
@@ -67,8 +72,8 @@ export const buildGeoGatewayMarkerMetadata = (gateway: GeoGatewayData): GeoGatew
   const style = MARKER_STYLE[markerKind];
 
   return {
-    siteId: site?.siteId ?? gateway.gateway_id,
-    publicCode: site?.publicCode ?? gateway.teleportCode,
+    siteId: site.siteId,
+    publicCode: site.publicCode,
     capabilityKinds,
     capabilityLabels: capabilityKinds.map((kind) => CAPABILITY_LABELS[kind]),
     markerKind,
@@ -83,15 +88,44 @@ export const buildGeoGatewayMarkerMetadata = (gateway: GeoGatewayData): GeoGatew
   };
 };
 
+export const buildGeoGatewayMarkerMetadata = (gateway: GeoGatewayData): GeoGatewayMarkerMetadata => {
+  const site = getGroundSiteById(gateway.gateway_id) ?? getGroundSiteByPublicCode(gateway.teleportCode);
+  if (site) return buildGroundSiteMarkerMetadata(site);
+
+  const style = MARKER_STYLE.GROUND_SITE;
+  return {
+    siteId: gateway.gateway_id,
+    publicCode: gateway.teleportCode,
+    capabilityKinds: [],
+    capabilityLabels: [],
+    markerKind: 'GROUND_SITE',
+    markerColorCss: style.fill,
+    outlineColorCss: style.outline,
+    outlineWidth: 2,
+    trafficConfidence: null,
+    trafficEligibility: null,
+    isTrafficEligible: false,
+    hasControlCapability: false,
+  };
+};
+
 export const getGeoGatewaysForRendering = (
   allowedGatewayNames: Set<string> | null = null,
   renderMode: GeoGatewayRenderMode = 'engineering',
 ): GeoGatewayData[] => {
+  if (renderMode !== 'commercial') {
+    const groundSites = allowedGatewayNames != null
+      ? GEO_GROUND_SITES.filter((site) => allowedGatewayNames.has(site.name))
+      : GEO_GROUND_SITES;
+    return groundSites.map(projectGroundSiteToLegacyGeoGateway);
+  }
+
   const allowedGateways = allowedGatewayNames != null
     ? GEO_GATEWAYS.filter((gateway) => allowedGatewayNames.has(gateway.name))
     : GEO_GATEWAYS;
-
-  if (renderMode !== 'commercial') return allowedGateways;
-
   return allowedGateways.filter((gateway) => buildGeoGatewayMarkerMetadata(gateway).isTrafficEligible);
 };
+
+export const getTrafficTeleportGatewayNameAllowlist = (): Set<string> => (
+  new Set(getGeoGatewaysForRendering(null, 'commercial').map((gateway) => gateway.name))
+);

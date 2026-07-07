@@ -84,6 +84,10 @@ export interface CandidateCoverage {
      * not be shown as selectable beams in the coverage picker UI.
      */
     isSynthesized?: boolean;
+    /** Explains why a synthesized candidate exists so diagnostics can stay honest. */
+    syntheticSource?: 'opposite-direction' | 'estimated-star-feeder';
+    /** Conservative RF penalty applied because the source contour data is missing. */
+    dataPenaltyDb?: number;
     eirpDbw?: number;
     gtDbk?: number;
     band?: 'C' | 'Ku' | 'Ka';

@@ -270,6 +270,7 @@ export function synthesizeUplinkCandidate(from: CandidateCoverage): CandidateCov
     ...from,
     isUplink: true,
     isSynthesized: true,
+    syntheticSource: 'opposite-direction',
     // Suffix the coverageKey so the synthesized candidate has a unique selection
     // key — avoids collision with the source downlink candidate that shares the
     // same beam name and satellite.
@@ -312,6 +313,7 @@ export function synthesizeDownlinkCandidate(from: CandidateCoverage): CandidateC
     ...from,
     isUplink: false,
     isSynthesized: true,
+    syntheticSource: 'opposite-direction',
     coverageKey: `${from.coverageKey}::synth-dl`,
     eirpDbw: nominalEIRP,
     gtDbk: undefined,

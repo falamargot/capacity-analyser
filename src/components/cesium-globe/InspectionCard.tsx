@@ -243,12 +243,16 @@ const InspectionCard = memo<InspectionCardProps>(({ entity, containerRef, cursor
         const trafficCapability = capabilities.find((capability) => capability.kind === 'TRAFFIC_TELEPORT');
         const capabilitySummary = capabilities.length > 0
           ? capabilities.map(capabilityLabel).join(', ')
-          : 'Capability inventory unavailable';
+          : 'No active GroundSite capability';
+        const siteName = groundSite?.name ?? gateway.name;
+        const siteRegion = groundSite?.region ?? gateway.region;
+        const latitude = groundSite?.latitude ?? gateway.lat;
+        const longitude = groundSite?.longitude ?? gateway.lng;
         return (
           <>
             <div className="flex items-center gap-2 mb-1.5">
               <Radio className="h-3.5 w-3.5 text-cyan-500 flex-shrink-0" />
-              <span className="text-xs font-semibold text-gray-900 dark:text-gray-100 truncate">{gateway.name}</span>
+              <span className="text-xs font-semibold text-gray-900 dark:text-gray-100 truncate">{siteName}</span>
             </div>
             <div className="grid grid-cols-2 gap-x-3 gap-y-0.5 text-[11px]">
               <span className="text-gray-500 dark:text-gray-400">Type</span>
@@ -257,12 +261,12 @@ const InspectionCard = memo<InspectionCardProps>(({ entity, containerRef, cursor
               <span className="text-gray-700 dark:text-gray-300">{capabilitySummary}</span>
               <span className="text-gray-500 dark:text-gray-400">Traffic RF</span>
               <span className="text-gray-700 dark:text-gray-300">
-                {trafficCapability ? `${trafficCapability.confidence} ${trafficCapability.trafficEligibility}` : 'Not a traffic endpoint'}
+                {trafficCapability ? `${trafficCapability.confidence} ${trafficCapability.trafficEligibility}` : 'Not traffic-routable'}
               </span>
               <span className="text-gray-500 dark:text-gray-400">Region</span>
-              <span className="text-gray-700 dark:text-gray-300">{gateway.region}</span>
+              <span className="text-gray-700 dark:text-gray-300">{siteRegion}</span>
               <span className="text-gray-500 dark:text-gray-400">Lat/Lng</span>
-              <span className="text-gray-700 dark:text-gray-300">{gateway.lat.toFixed(2)}° / {gateway.lng.toFixed(2)}°</span>
+              <span className="text-gray-700 dark:text-gray-300">{latitude.toFixed(2)}° / {longitude.toFixed(2)}°</span>
             </div>
           </>
         );
