@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { CandidateCoverage } from '../../types/analysis';
 import type { SatelliteData } from '../../types/satellites';
 import type { LinkMode } from '../../types/linkMode';
-import { resolveActiveStarTrafficGatewaySelection } from '../geoStarGatewaySelection';
+import { pickStarGatewayReferenceCoverage, resolveActiveStarTrafficGatewaySelection } from '../geoStarGatewaySelection';
 
 const createSatellite = (
   id: string,
@@ -97,6 +97,10 @@ describe('resolveActiveStarTrafficGatewaySelection', () => {
       expect(selection?.diagnostic.source).toBe('beam-gateway-assignment');
       expect(selection?.gateway.name).toBe(expectedGatewayName);
       expect(selection?.trafficCapability.capabilityId).toBe(expectedCapabilityId);
+      // Display projection (globe HUB marker, commercial route) must name the same
+      // physical site as the RF selection — the E3 unification contract.
+      expect(selection?.resolvedGateway.gatewayName).toBe(expectedGatewayName);
+      expect(selection?.resolvedGateway.gateway.gateway_id).toBe(selection?.gateway.gateway_id);
     }
   );
 
@@ -115,6 +119,7 @@ describe('resolveActiveStarTrafficGatewaySelection', () => {
       reason: 'BEAM_ASSIGNMENT_NOT_FOUND',
       beamToken: '9999',
     }));
+    expect(selection?.resolvedGateway.gatewayName).toBe('Rambouillet');
   });
 
   it.each(['MESH', 'POINT_TO_POINT'] satisfies LinkMode[])('does not resolve a STAR gateway for %s', (linkMode) => {
@@ -125,5 +130,62 @@ describe('resolveActiveStarTrafficGatewaySelection', () => {
       uplinkAtUser: createCandidate(kvhts, true, '29'),
       fallbackCoverage: null,
     })).toBeNull();
+  });
+
+  // Uplink and downlink contours are independent features and can carry different
+  // beam tokens at the same user location. The gateway must follow the direction
+  // that carries the traffic: downlink beam for Forward, uplink beam for Return.
+  describe('divergent uplink/downlink beam tokens', () => {
+    const downlinkBeam29 = createCandidate(kvhts, false, '29');   // → Scanzano / Palermo
+    const uplinkBeam132 = createCandidate(kvhts, true, '132');    // → Rambouillet
+
+    it('STAR_FORWARD resolves from the downlink beam, not the uplink beam', () => {
+      const selection = resolveActiveStarTrafficGatewaySelection({
+        linkMode: 'STAR_FORWARD',
+        satellite: kvhts,
+        downlinkAtUser: downlinkBeam29,
+        uplinkAtUser: uplinkBeam132,
+        fallbackCoverage: null,
+      });
+
+      expect(selection?.diagnostic.source).toBe('beam-gateway-assignment');
+      expect(selection?.gateway.name).toBe('Scanzano / Palermo');
+    });
+
+    it('STAR_RETURN resolves from the uplink beam, not the downlink beam', () => {
+      const selection = resolveActiveStarTrafficGatewaySelection({
+        linkMode: 'STAR_RETURN',
+        satellite: kvhts,
+        downlinkAtUser: downlinkBeam29,
+        uplinkAtUser: uplinkBeam132,
+        fallbackCoverage: null,
+      });
+
+      expect(selection?.diagnostic.source).toBe('beam-gateway-assignment');
+      expect(selection?.gateway.name).toBe('Rambouillet');
+    });
+  });
+});
+
+describe('pickStarGatewayReferenceCoverage', () => {
+  const kvhts = createSatellite('53765', 'EUTELSAT KONNECT VHTS', 2.7);
+  const downlink = createCandidate(kvhts, false, '29');
+  const uplink = createCandidate(kvhts, true, '132');
+
+  it('returns the downlink coverage for STAR_FORWARD', () => {
+    expect(pickStarGatewayReferenceCoverage('STAR_FORWARD', downlink, uplink)).toBe(downlink);
+  });
+
+  it('returns the uplink coverage for STAR_RETURN', () => {
+    expect(pickStarGatewayReferenceCoverage('STAR_RETURN', downlink, uplink)).toBe(uplink);
+  });
+
+  it('returns null when the direction coverage is missing', () => {
+    expect(pickStarGatewayReferenceCoverage('STAR_FORWARD', null, uplink)).toBeNull();
+    expect(pickStarGatewayReferenceCoverage('STAR_RETURN', downlink, null)).toBeNull();
+  });
+
+  it.each(['MESH', 'POINT_TO_POINT'] satisfies LinkMode[])('returns null for %s', (linkMode) => {
+    expect(pickStarGatewayReferenceCoverage(linkMode, downlink, uplink)).toBeNull();
   });
 });

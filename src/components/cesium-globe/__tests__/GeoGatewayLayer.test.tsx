@@ -8,7 +8,6 @@ import {
   getTrafficTeleportGatewayNameAllowlist,
 } from '../geoGatewayMarkerModel';
 import {
-  GEO_GATEWAYS,
   GEO_GROUND_SITES,
   getGroundSiteById,
   projectGroundSiteToLegacyGeoGateway,
@@ -16,9 +15,9 @@ import {
 } from '../../globe/GlobeConfig';
 
 const gatewayByCode = (teleportCode: string) => {
-  const gateway = GEO_GATEWAYS.find((entry) => entry.teleportCode === teleportCode);
-  if (!gateway) throw new Error(`Missing GEO ground site fixture: ${teleportCode}`);
-  return gateway;
+  const site = GEO_GROUND_SITES.find((entry) => entry.publicCode === teleportCode);
+  if (!site) throw new Error(`Missing GEO ground site fixture: ${teleportCode}`);
+  return projectGroundSiteToLegacyGeoGateway(site);
 };
 
 describe('GeoGatewayLayer role-specific rendering metadata', () => {
@@ -169,31 +168,35 @@ describe('GeoGatewayLayer role-specific rendering metadata', () => {
     expect(rendered.map((gateway) => gateway.teleportCode)).toEqual(['RAM']);
   });
 
-  it('keeps COMM rendering unchanged as legacy traffic-capable gateways only', () => {
+  it('renders every traffic-eligible ground site in COMM mode, beam-specific sites included', () => {
     const rendered = getGeoGatewaysForRendering(null, 'commercial');
+    const codes = rendered.map((gateway) => gateway.teleportCode);
 
-    expect(rendered.map((gateway) => gateway.teleportCode).sort()).toEqual([
-      'CAG',
-      'HER',
-      'MEX',
-      'RAM',
-      'TUR',
-    ]);
+    // Traffic-only filtering must hold for every rendered marker.
+    for (const gateway of rendered) {
+      expect(buildGeoGatewayMarkerMetadata(gateway).isTrafficEligible, gateway.name).toBe(true);
+    }
+    // Legacy traffic teleports are still present…
+    expect(codes).toEqual(expect.arrayContaining(['CAG', 'HER', 'MEX', 'RAM', 'TUR']));
+    // …and the beam-specific KVHTS/E10B traffic sites are now drawable in COMM,
+    // so the beam-aware HUB selection can always be highlighted on the globe.
+    expect(codes).toEqual(expect.arrayContaining(['PAL', 'MAK', 'NEM']));
+    // Monitoring-only / TT&C-only sites must stay excluded.
+    expect(codes).not.toContain('DUB');
+    expect(codes).not.toContain('PER');
   });
 
   it('builds a commercial traffic-teleport allowlist for GEO and ALL scope rendering', () => {
     const allowlist = getTrafficTeleportGatewayNameAllowlist();
     const rendered = getGeoGatewaysForRendering(allowlist, 'commercial');
 
-    expect(rendered.map((gateway) => gateway.teleportCode).sort()).toEqual([
-      'CAG',
-      'HER',
-      'MEX',
-      'RAM',
-      'TUR',
-    ]);
+    expect(rendered.map((gateway) => gateway.teleportCode)).toEqual(
+      getGeoGatewaysForRendering(null, 'commercial').map((gateway) => gateway.teleportCode)
+    );
     expect(allowlist.has(gatewayByCode('DUB').name)).toBe(false);
     expect(allowlist.has(gatewayByCode('PER').name)).toBe(false);
+    expect(allowlist.has(gatewayByCode('PAL').name)).toBe(true);
+    expect(allowlist.has(gatewayByCode('MAK').name)).toBe(true);
   });
 
   it('renders an ENG legend for traffic, SCC, monitoring and TT&C capabilities', () => {

@@ -17,7 +17,14 @@ import {
 } from './geoDualSegmentBudget';
 import { RAIN_FADE_DB, type GeoBand } from './geoLinkBudget';
 import { augmentCandidatesWithSynthesizedDirections, resolveStarGatewayFeederCandidate } from './geoTopologySelection';
-import { resolveStarTrafficGatewayForCoverage, type StarTrafficGatewayDiagnostic } from './geoConnectivityModel';
+import {
+  distanceKm,
+  getGeoSatellitePoint,
+  latencyMsFromDistanceKm,
+  resolveStarTrafficGatewayForCoverage,
+  type StarTrafficGatewayDiagnostic,
+} from './geoConnectivityModel';
+import { logStarGatewayCanaryDev, pickStarGatewayReferenceCoverage } from './geoStarGatewaySelection';
 import type { TerminalRFClassId, TerminalRFCustomParams } from './geoTerminalRFModel';
 import type { GeoPointStatus } from './selectedPointStatus';
 
@@ -282,14 +289,28 @@ export function buildGeoRouteAnalysisViewModel(input: GeoRouteAnalysisInput): Ge
   const resolvedGateway = resolvedGEOConnectivity?.geometry?.satelliteToGateway?.resolvedGateway;
   const resolvedGatewayData: GeoGatewayData | null = resolvedGateway?.gateway ?? resolvedGEOConnectivity?.geometry?.satelliteToGateway?.gateway ?? null;
   const refCoverage = input.selectedDownlinkCoverage ?? input.selectedUplinkCoverage ?? input.selectedCoverage;
-  const starGatewaySelection = selectedSatellite && refCoverage && (input.linkMode === 'STAR_FORWARD' || input.linkMode === 'STAR_RETURN')
-    ? resolveStarTrafficGatewayForCoverage(selectedSatellite, refCoverage, GEO_GATEWAYS)
-    : null;
-  const starTrafficGatewayData: GeoGatewayData | null = starGatewaySelection?.gateway ?? null;
   const downlinkAtUser = input.selectedDownlinkCoverage
     ?? getGeoCompanionCoverage(refCoverage, input.candidateCoverages, false);
   const uplinkAtUser = input.selectedUplinkCoverage
     ?? getGeoCompanionCoverage(refCoverage, input.candidateCoverages, true);
+  const gatewayReferenceCoverage =
+    pickStarGatewayReferenceCoverage(input.linkMode, downlinkAtUser, uplinkAtUser) ?? refCoverage;
+  const starGatewaySelection = selectedSatellite && gatewayReferenceCoverage && (input.linkMode === 'STAR_FORWARD' || input.linkMode === 'STAR_RETURN')
+    ? resolveStarTrafficGatewayForCoverage(selectedSatellite, gatewayReferenceCoverage, GEO_GATEWAYS)
+    : null;
+  const starTrafficGatewayData: GeoGatewayData | null = starGatewaySelection?.gateway ?? null;
+
+  if (input.linkMode === 'STAR_FORWARD' || input.linkMode === 'STAR_RETURN') {
+    logStarGatewayCanaryDev({
+      context: 'geoRouteAnalysisViewModel',
+      satelliteName: selectedSatellite?.name,
+      linkMode: input.linkMode,
+      legacyGatewayName: resolvedGatewayData?.name,
+      beamAwareGatewayName: starTrafficGatewayData?.name,
+      downlinkBeamId: downlinkAtUser?.beamId,
+      uplinkBeamId: uplinkAtUser?.beamId,
+    });
+  }
 
   const candidateCoveragesAtGateway = (() => {
     const gatewayForRf = (input.linkMode === 'STAR_FORWARD' || input.linkMode === 'STAR_RETURN')
@@ -397,6 +418,20 @@ export function buildGeoRouteAnalysisViewModel(input: GeoRouteAnalysisInput): Ge
   })();
 
   const geoGeometry = resolvedGEOConnectivity?.geometry ?? null;
+
+  // In STAR modes the displayed latency must be computed against the same gateway
+  // as the displayed throughput (the beam-aware selection), not against the legacy
+  // per-satellite gateway embedded in resolvedGEOConnectivity's geometry — the two
+  // can be different physical sites for beam-routed satellites.
+  const starAwareOneWayRadioMs = (() => {
+    if (input.linkMode !== 'STAR_FORWARD' && input.linkMode !== 'STAR_RETURN') return null;
+    if (!starTrafficGatewayData || !selectedSatellite || !geoGeometry) return null;
+    const gatewayLegMs = latencyMsFromDistanceKm(distanceKm(
+      { lat: starTrafficGatewayData.lat, lng: starTrafficGatewayData.lng, altKm: 0 },
+      getGeoSatellitePoint(selectedSatellite),
+    ));
+    return geoGeometry.userToSatellite.latencyMs + gatewayLegMs;
+  })();
   const baseGeoPerformance = resolvedGEOConnectivity && geoGeometry
     ? calculateGeoPerformance({
         elevationDeg: geoGeometry.userToSatellite.elevationDeg,
@@ -533,7 +568,7 @@ export function buildGeoRouteAnalysisViewModel(input: GeoRouteAnalysisInput): Ge
         ? (input.activeMeshTab === 'reverse'
             ? (meshMetrics?.reverseLatencyMs ?? null)
             : (meshMetrics?.forwardLatencyMs ?? null))
-        : (geoGeometry.oneWayRadioMs ?? null),
+        : (starAwareOneWayRadioMs ?? geoGeometry.oneWayRadioMs ?? null),
       downlinkGbps: input.linkMode === 'STAR_RETURN' ? null : geoEffectivePerformance.downlinkGbps,
       uplinkGbps: input.linkMode === 'STAR_FORWARD' ? null : geoEffectivePerformance.uplinkGbps,
     };

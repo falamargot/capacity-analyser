@@ -88,6 +88,13 @@ export interface StarTrafficGatewaySelection {
   diagnostic: StarTrafficGatewayDiagnostic;
   beamRoute: ResolvedBeamGatewayRoute | null;
   legacySelection: TrafficGatewaySelection | null;
+  /**
+   * Display-ready projection of `gateway` (marker position, highlight identity,
+   * elevation/slant geometry). Always present so display surfaces (globe HUB
+   * marker, commercial route) can consume the beam-aware selection directly
+   * instead of re-resolving through the legacy per-satellite path.
+   */
+  resolvedGateway: ResolvedGeoGateway;
 }
 
 export type GatewayAssignmentRole = 'primary' | 'backup';
@@ -193,6 +200,13 @@ interface AnalyzeGeoConnectivityArgs {
   satellite: SatelliteData;
   gateways: GeoGatewayData[];
   overheadMs?: Partial<typeof DEFAULT_GEO_OVERHEAD_MS>;
+  /**
+   * Coverage whose beam token selects the traffic gateway for beam-routed
+   * satellites. Without it (or for non-beam-routed satellites) the legacy
+   * per-satellite selection applies, so geometry/latency and the RF chain
+   * would be computed against different physical sites for beam-routed beams.
+   */
+  coverage?: Pick<CandidateCoverage, 'beamId' | 'beamName'> | null;
 }
 
 function toRadians(deg: number): number {
@@ -246,7 +260,7 @@ export function elevationDeg(observer: PointLLA, target: PointLLA): number {
   return Math.atan2(up, horizontal) * (180 / Math.PI);
 }
 
-function latencyMsFromDistanceKm(distance: number): number {
+export function latencyMsFromDistanceKm(distance: number): number {
   const distanceMeters = distance * 1000;
   return (distanceMeters / SPEED_OF_LIGHT_M_S) * 1000;
 }
@@ -307,7 +321,7 @@ function gatewaySupportsSatellite(gateway: GeoGatewayData, satellite: SatelliteD
   });
 }
 
-function getGeoSatellitePoint(satellite: SatelliteData): PointLLA {
+export function getGeoSatellitePoint(satellite: SatelliteData): PointLLA {
   const satLat = Number.isFinite(satellite.position.lat) ? satellite.position.lat : 0;
   const satLng = Number.isFinite(satellite.position.lng) ? satellite.position.lng : 0;
   const satAlt = Number.isFinite(satellite.position.alt) && satellite.position.alt > 1000
@@ -383,20 +397,15 @@ for (const assignment of GEO_GATEWAY_ASSIGNMENTS) {
   }
 }
 
+// Delegates to the single canonical alias table in geoGroundInfrastructure — the
+// two previously-separate token lists could disagree (the topology table knows
+// NORAD IDs, the old local list here did not), silently downgrading a satellite
+// matched by NORAD ID alone to the legacy gateway path.
 const canonicalBeamGatewaySatelliteId = (
-  satellite: Pick<SatelliteData, 'id' | 'name' | 'noradId' | 'coverageFileId'>
+  satellite: Pick<SatelliteData, 'id' | 'name' | 'noradId' | 'type' | 'coverageFileId'>
 ): 'KVHTS' | 'E10B' | null => {
-  const tokens = [satellite.id, satellite.name, satellite.noradId, satellite.coverageFileId ?? null]
-    .filter((value): value is string => !!value)
-    .map(normalizeSatelliteGatewayKey);
-
-  if (tokens.some((token) => token === 'KVHTS' || token === 'KONNECTVHTS' || token === 'EUTELSATKONNECTVHTS')) {
-    return 'KVHTS';
-  }
-  if (tokens.some((token) => token === 'E10B' || token === '10B' || token === 'EUTELSAT10B')) {
-    return 'E10B';
-  }
-  return null;
+  const canonicalId = canonicalStarTrafficTopologySatelliteId(satellite);
+  return canonicalId === 'KVHTS' || canonicalId === 'E10B' ? canonicalId : null;
 };
 
 const extractNumericBeamToken = (coverage: Pick<CandidateCoverage, 'beamId' | 'beamName'>): string | null => {
@@ -755,60 +764,11 @@ export function getGroundSegmentRoutingForSatellite(
   };
 }
 
-export function getGroundSegmentConfirmationStatuses(
-  gateways: GeoGatewayData[]
-): Array<{ satelliteId: string; nominalScc: string | null; nominalMonitoring: string | null }> {
-  return GEO_GATEWAY_ASSIGNMENTS.map((assignment) => {
-    const nominalScc = getGatewayByCode(gateways, assignment.nominalSccCode);
-    const nominalMonitoring = getGatewayByCode(
-      gateways,
-      getMonitoringCodesForAssignment(
-        {
-          ...assignment,
-          monitoringCodes: [...assignment.monitoringCodes],
-        },
-        {
-          id: assignment.satelliteId,
-          name: assignment.satelliteName,
-          noradId: assignment.satelliteId,
-          coverageFileId: null,
-          type: 'EUTELSAT',
-          orbitType: 'GEO',
-          opsStatus: 'operational',
-          satrec: null,
-          position: { lat: 0, lng: 0, alt: GEO_ALTITUDE_KM },
-          referenced_coverages: { type: 'FeatureCollection', features: [] },
-          coverages: [],
-          capacity: {
-            maxThroughput: 0,
-            bandwidth: { ku: 0, ka: 0, c: 0 },
-            availability: 1,
-          },
-        }
-      )[0] ?? null
-    );
-
-    return {
-      satelliteId: assignment.satelliteId,
-      nominalScc: nominalScc?.name ?? null,
-      nominalMonitoring: nominalMonitoring?.name ?? null,
-    };
-  });
-}
-
-export function selectOperationalGeoGateway(
-  satellite: SatelliteData,
-  gateways: GeoGatewayData[],
-  options: GroundSegmentSelectionOptions = {}
-): GeoGatewaySelection | null {
-  return toGatewaySelection(resolveGatewayForSatellite(satellite, gateways, options));
-}
-
 /**
  * Resolves the gateway eligible to carry commercial user RF traffic (Forward/Return
  * link budget) for a satellite.
  *
- * Unlike selectOperationalGeoGateway (which resolves the SCC nominal/backup site
+ * Unlike resolveGatewayForSatellite (which resolves the SCC nominal/backup site
  * regardless of whether it actually hosts a commercial teleport), this function
  * gates on GeoGatewayData.trafficStatus:
  *   - CONFIRMED / PUBLICLY_LIKELY → returns the site, with its trafficStatus echoed
@@ -892,6 +852,7 @@ export function resolveStarTrafficGatewayForCoverage(
       },
       beamRoute: null,
       legacySelection,
+      resolvedGateway: legacySelection.resolvedGateway,
     };
   };
 
@@ -913,8 +874,9 @@ export function resolveStarTrafficGatewayForCoverage(
     );
   }
 
+  const beamGateway = projectGroundSiteToLegacyGeoGateway(beamRouteResult.route.site);
   return {
-    gateway: projectGroundSiteToLegacyGeoGateway(beamRouteResult.route.site),
+    gateway: beamGateway,
     trafficCapability: beamRouteResult.route.trafficCapability,
     diagnostic: {
       source: 'beam-gateway-assignment',
@@ -926,6 +888,15 @@ export function resolveStarTrafficGatewayForCoverage(
     },
     beamRoute: beamRouteResult.route,
     legacySelection,
+    // A curated beam plan is a reference allocation: the beam-serving site is the
+    // nominal traffic gateway for this beam, not a visibility-based fallback.
+    resolvedGateway: toResolvedGeoGateway(
+      satellite,
+      beamGateway,
+      'nominal',
+      'reference-gateway-allocation',
+      beamRouteResult.diagnostic,
+    ),
   };
 }
 
@@ -966,6 +937,7 @@ export function analyzeGeoConnectivity({
   satellite,
   gateways,
   overheadMs,
+  coverage = null,
 }: AnalyzeGeoConnectivityArgs): GeoConnectivityResult {
   const satPoint = getGeoSatellitePoint(satellite);
   const userLla: PointLLA = {
@@ -977,8 +949,12 @@ export function analyzeGeoConnectivity({
   const userSatDistanceKm = distanceKm(userLla, satPoint);
   const userElevationDeg = elevationDeg(userLla, satPoint);
   const userSatLatencyMs = latencyMsFromDistanceKm(userSatDistanceKm);
-  const trafficGatewaySelection = selectTrafficGeoGateway(satellite, gateways);
-  const resolvedGateway = trafficGatewaySelection?.resolvedGateway ?? null;
+  // Geometry/latency must use the same gateway family as the RF chain: beam-aware
+  // when the satellite is beam-routed (falls back internally for unmapped beams),
+  // legacy per-satellite selection for every other satellite.
+  const resolvedGateway = resolveStarTrafficGatewayForCoverage(satellite, coverage, gateways)?.resolvedGateway
+    ?? selectTrafficGeoGateway(satellite, gateways)?.resolvedGateway
+    ?? null;
 
   const delays = {
     ...DEFAULT_GEO_OVERHEAD_MS,

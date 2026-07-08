@@ -88,30 +88,6 @@ export type HubDataCenterRole =
   | 'TRAFFIC_MANAGEMENT'
   | 'NOC_ACCESS';
 
-export interface GroundPlatform {
-  platformId: string;
-  name: string;
-  vendor?: string;
-  description?: string;
-  sharedBySatelliteIds: string[];
-  evidence?: EvidenceSource[];
-  temporal?: TemporalValidity;
-}
-
-export interface SatelliteGroundNetworkConfiguration {
-  configurationId: string;
-  satelliteId: string;
-  satelliteName?: string;
-  name: string;
-  architecture?: string;
-  platformIds?: string[];
-  logicalGatewayIds: string[];
-  assignmentIds?: string[];
-  redundancyPolicyIds?: string[];
-  evidence?: EvidenceSource[];
-  temporal?: TemporalValidity;
-}
-
 export interface LogicalGateway {
   logicalGatewayId: string;
   satelliteId: string;
@@ -267,22 +243,6 @@ export interface RfCapability {
   antennaClass?: string;
   supportedSatellites: string[];
   confidence: CapabilityConfidence;
-}
-
-export interface SatelliteGroundAssignment {
-  satelliteId: string;
-  satelliteName: string;
-  control: {
-    nominalCapabilityId: string;
-    backupCapabilityId?: string;
-  };
-  ttcCapabilityIds: string[];
-  monitoringCapabilityIds: string[];
-  trafficPolicy?: {
-    preferredTeleportCapabilityIds: string[];
-    fallbackPolicy: 'NONE' | 'NEAREST_ELIGIBLE_VISIBLE';
-    minimumConfidence: Extract<CapabilityConfidence, 'CONFIRMED' | 'PUBLICLY_LIKELY'>;
-  };
 }
 
 export interface ResolvedRoutableLogicalGatewayAssignment {
@@ -790,27 +750,6 @@ export const supportsStarTrafficTopology = (satellite: SatelliteLike): boolean =
   canonicalStarTrafficTopologySatelliteId(satellite) != null
 );
 
-const KVHTS_LOGICAL_GATEWAY_IDS = [
-  'kvhts-gw-mak',
-  'kvhts-gw-eik',
-  'kvhts-gw-dublin',
-  'kvhts-gw-pal',
-  'kvhts-gw-maz',
-  'kvhts-gw-nem',
-  'kvhts-gw-arg',
-  'kvhts-gw-ram',
-  'kvhts-gw-cag',
-  'kvhts-gw-sto',
-  'kvhts-gw-sar',
-  'kvhts-gw-lis',
-  'kvhts-gw-che',
-  'kvhts-gw-lar',
-  'kvhts-gw-ber',
-  'kvhts-gw-ank',
-  'kvhts-gw-alg',
-  'kvhts-gw-mad',
-] as const;
-
 const KVHTS_NOMINAL_LOGICAL_GATEWAY_IDS = [
   'kvhts-gw-mak',
   'kvhts-gw-pal',
@@ -821,28 +760,7 @@ const KVHTS_NOMINAL_LOGICAL_GATEWAY_IDS = [
   'kvhts-gw-mad',
 ] as const;
 
-const E10B_LOGICAL_GATEWAY_IDS = [
-  'e10b-gw-cag',
-  'e10b-gw-ram',
-  'e10b-gw-sar',
-  'e10b-gw-arg',
-  'e10b-gw-sof',
-  'e10b-gw-kas',
-  'e10b-gw-mak',
-] as const;
-
 const BEAM_GATEWAY_ROUTING_SATELLITE_IDS = new Set([KVHTS_SATELLITE_ID, E10B_SATELLITE_ID]);
-
-export const GEO_GROUND_PLATFORMS: GroundPlatform[] = [
-  {
-    platformId: 'hns-jupiter',
-    name: 'HNS Jupiter shared ground platform',
-    vendor: 'Hughes Network Systems',
-    description: 'Shared platform placeholder for KONNECT and KVHTS gateway infrastructure.',
-    sharedBySatelliteIds: [KVHTS_SATELLITE_ID, KONNECT_SATELLITE_ID],
-    evidence: [kvhtsEngineeringEvidence],
-  },
-];
 
 export const GEO_LOGICAL_GATEWAYS: LogicalGateway[] = [
   {
@@ -1379,6 +1297,10 @@ export const GEO_BEAM_GATEWAY_ASSIGNMENTS: BeamGatewayAssignment[] = [
   },
 ];
 
+// Deliberately retained ahead of the failover capability: resolveBeamGatewayRoute's
+// routingMode:'FAILOVER' branch consumes these policies but no runtime caller passes
+// that mode yet — only tests exercise it. Wiring a fade/maintenance trigger to
+// FAILOVER is the planned next capability; do not delete as dead data.
 export const GEO_GATEWAY_REDUNDANCY_POLICIES: GatewayRedundancyPolicy[] = [
   {
     policyId: 'kvhts-sarajevo-any-nominal',
@@ -1449,32 +1371,6 @@ export const GEO_HUB_DATA_CENTER_CAPABILITIES: HubDataCenterCapability[] = [
   },
 ];
 
-export const GEO_SATELLITE_GROUND_NETWORK_CONFIGURATIONS: SatelliteGroundNetworkConfiguration[] = [
-  {
-    configurationId: 'kvhts-ground-network',
-    satelliteId: KVHTS_SATELLITE_ID,
-    satelliteName: 'Konnect VHTS',
-    name: 'KVHTS 7+1 logical gateway network',
-    architecture: '18 defined physical gateways; current supplied operating mode is 7 nominal gateways plus Sarajevo backup. The supplied note mentions a 9th gateway deployment on hold without identifying which defined site it maps to.',
-    platformIds: ['hns-jupiter'],
-    logicalGatewayIds: [...KVHTS_LOGICAL_GATEWAY_IDS],
-    assignmentIds: KVHTS_LOGICAL_GATEWAY_IDS.map((logicalGatewayId) => `${logicalGatewayId}-assignment`),
-    redundancyPolicyIds: ['kvhts-sarajevo-any-nominal'],
-    evidence: [kvhtsEngineeringEvidence],
-  },
-  {
-    configurationId: 'e10b-ground-network',
-    satelliteId: E10B_SATELLITE_ID,
-    satelliteName: 'EUTELSAT 10B',
-    name: 'E10B defined gateway network',
-    architecture: '7 defined gateways; 3 operational service/hub gateways in the supplied GIPN/OSSR-2186 data.',
-    logicalGatewayIds: [...E10B_LOGICAL_GATEWAY_IDS],
-    assignmentIds: E10B_LOGICAL_GATEWAY_IDS.map((logicalGatewayId) => `${logicalGatewayId}-assignment`),
-    redundancyPolicyIds: ['e10b-local-earth-station-backups'],
-    evidence: [e10bGipnEvidence, e10bOssrEvidence],
-  },
-];
-
 export const getGroundSiteById = (
   siteId: string,
   sites: GroundSite[] = GEO_GROUND_SITES
@@ -1484,11 +1380,6 @@ export const getGroundSiteByPublicCode = (
   publicCode: string,
   sites: GroundSite[] = GEO_GROUND_SITES
 ): GroundSite | null => sites.find((site) => site.publicCode === publicCode) ?? null;
-
-export const getCapabilitiesForSite = (
-  siteId: string,
-  sites: GroundSite[] = GEO_GROUND_SITES
-): GroundCapability[] => getGroundSiteById(siteId, sites)?.capabilities ?? [];
 
 const satelliteTokens = (satellite: SatelliteLike): Set<string> => {
   if (typeof satellite === 'string') return new Set([satellite.toUpperCase()]);
@@ -1755,54 +1646,6 @@ export const getTrafficTeleportCapabilityForLegacyGateway = (
 
   if (satellite && !capabilitySupportsSatellite(legacyAwareCapability, satellite)) return null;
   return legacyAwareCapability;
-};
-
-export const getControlCapabilitiesForSatellite = (
-  satellite: SatelliteLike,
-  sites: GroundSite[] = GEO_GROUND_SITES
-): SatelliteControlCapability[] => sites.flatMap((site) => (
-  site.capabilities.filter((capability): capability is SatelliteControlCapability => (
-    capability.kind === 'SATELLITE_CONTROL' &&
-    capabilitySupportsSatellite(capability, satellite)
-  ))
-));
-
-export const getMonitoringCapabilitiesForSatellite = (
-  satellite: SatelliteLike,
-  sites: GroundSite[] = GEO_GROUND_SITES
-): MonitoringCapability[] => sites.flatMap((site) => (
-  site.capabilities.filter((capability): capability is MonitoringCapability => (
-    capability.kind === 'MONITORING' &&
-    capabilitySupportsSatellite(capability, satellite)
-  ))
-));
-
-export const resolveTrafficGatewayForRoute = (
-  satellite: SatelliteLike,
-  options?: Parameters<typeof getTrafficTeleportCapabilitiesForSatellite>[1]
-): TrafficTeleportCapability | null => (
-  getTrafficTeleportCapabilitiesForSatellite(satellite, options)[0] ?? null
-);
-
-export const resolveSatelliteControlSite = (
-  satellite: SatelliteLike,
-  {
-    sites = GEO_GROUND_SITES,
-    controlRole = 'SCC_NOMINAL',
-  }: {
-    sites?: GroundSite[];
-    controlRole?: SatelliteControlCapability['controlRole'];
-  } = {}
-): { site: GroundSite; capability: SatelliteControlCapability } | null => {
-  for (const site of sites) {
-    const capability = site.capabilities.find((entry): entry is SatelliteControlCapability => (
-      entry.kind === 'SATELLITE_CONTROL' &&
-      entry.controlRole === controlRole &&
-      capabilitySupportsSatellite(entry, satellite)
-    ));
-    if (capability) return { site, capability };
-  }
-  return null;
 };
 
 export const getLegacyGroundRolesForSite = (site: GroundSite): GroundInfraRole[] => {

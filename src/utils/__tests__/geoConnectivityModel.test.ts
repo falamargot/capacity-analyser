@@ -9,7 +9,6 @@ import {
   getGroundSegmentRoutingForSatellite,
   resolveConnectivityPathForSatellite,
   resolveGatewayForSatellite,
-  selectOperationalGeoGateway,
   selectTrafficGeoGateway,
 } from '../geoConnectivityModel';
 
@@ -108,7 +107,7 @@ describe('geoConnectivityModel gateway selection', () => {
 
     const assignments = getGatewayAssignmentsForSatellite(satellite, GEO_GATEWAYS);
     const routing = getGroundSegmentRoutingForSatellite(satellite, GEO_GATEWAYS);
-    const gateway = selectOperationalGeoGateway(satellite, GEO_GATEWAYS);
+    const gateway = resolveGatewayForSatellite(satellite, GEO_GATEWAYS);
 
     expect(assignments.primary?.name).toBe('Rambouillet');
     expect(assignments.backup?.name).toBe('Turin');
@@ -191,11 +190,11 @@ describe('geoConnectivityModel gateway selection', () => {
         : gateway
     ));
 
-    const operational = selectOperationalGeoGateway(satellite, unverifiedGateways);
+    const operational = resolveGatewayForSatellite(satellite, unverifiedGateways);
     const trafficSelection = selectTrafficGeoGateway(satellite, unverifiedGateways);
 
     // SCC resolution must be completely unaffected by trafficStatus — this is the
-    // guarantee that selectOperationalGeoGateway behaves identically before/after
+    // guarantee that resolveGatewayForSatellite behaves identically before/after
     // the trafficStatus gating was added to selectTrafficGeoGateway.
     expect(operational?.gateway.name).toBe('Rambouillet');
     // Traffic selection must not silently fall back to the SCC site when its
@@ -217,7 +216,7 @@ describe('geoConnectivityModel gateway selection', () => {
 
   it('fallback traffic selection skips nearer monitoring-only and TT&C-only sites', () => {
     const satellite = createGeoSatellite('EUTELSAT TEST 120E', 120, 'TEST-120E');
-    const operational = selectOperationalGeoGateway(satellite, GEO_GATEWAYS, { minVisibilityDeg: -90 });
+    const operational = resolveGatewayForSatellite(satellite, GEO_GATEWAYS, { minVisibilityDeg: -90 });
     const trafficSelection = selectTrafficGeoGateway(satellite, GEO_GATEWAYS, { minVisibilityDeg: -90 });
 
     expect(operational?.gateway.teleportCode).toMatch(/^(SIN|IBA|PER)$/);

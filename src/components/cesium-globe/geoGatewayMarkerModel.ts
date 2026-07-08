@@ -1,6 +1,5 @@
 import {
   GEO_GROUND_SITES,
-  GEO_GATEWAYS,
   getGroundSiteById,
   getGroundSiteByPublicCode,
   projectGroundSiteToLegacyGeoGateway,
@@ -113,17 +112,17 @@ export const getGeoGatewaysForRendering = (
   allowedGatewayNames: Set<string> | null = null,
   renderMode: GeoGatewayRenderMode = 'engineering',
 ): GeoGatewayData[] => {
-  if (renderMode !== 'commercial') {
-    const groundSites = allowedGatewayNames != null
-      ? GEO_GROUND_SITES.filter((site) => allowedGatewayNames.has(site.name))
-      : GEO_GROUND_SITES;
-    return groundSites.map(projectGroundSiteToLegacyGeoGateway);
-  }
-
-  const allowedGateways = allowedGatewayNames != null
-    ? GEO_GATEWAYS.filter((gateway) => allowedGatewayNames.has(gateway.name))
-    : GEO_GATEWAYS;
-  return allowedGateways.filter((gateway) => buildGeoGatewayMarkerMetadata(gateway).isTrafficEligible);
+  // Single rendering source: the full GroundSite inventory. The legacy GEO_GATEWAYS
+  // projection is only a resolution pool for the legacy fallback resolver — the
+  // beam-specific traffic sites (Scanzano/Palermo, Makarios, Nemea, …) must be
+  // drawable in commercial mode too, or the beam-aware HUB selection could resolve
+  // a site the globe cannot highlight.
+  const groundSites = allowedGatewayNames != null
+    ? GEO_GROUND_SITES.filter((site) => allowedGatewayNames.has(site.name))
+    : GEO_GROUND_SITES;
+  const gateways = groundSites.map(projectGroundSiteToLegacyGeoGateway);
+  if (renderMode !== 'commercial') return gateways;
+  return gateways.filter((gateway) => buildGeoGatewayMarkerMetadata(gateway).isTrafficEligible);
 };
 
 export const getTrafficTeleportGatewayNameAllowlist = (): Set<string> => (

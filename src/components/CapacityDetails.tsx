@@ -51,7 +51,7 @@ import { RAIN_FADE_DB } from '../utils/geoLinkBudget';
 import type { GeoBand } from '../utils/geoLinkBudget';
 import type { TerminalRFClassId } from '../utils/geoTerminalRFModel';
 import { supportsStarTrafficTopology } from '../utils/geoGroundInfrastructure';
-import { resolveActiveStarTrafficGatewaySelection } from '../utils/geoStarGatewaySelection';
+import { logStarGatewayCanaryDev, resolveActiveStarTrafficGatewaySelection } from '../utils/geoStarGatewaySelection';
 import {
   applyBeamCapacitySharing,
   smoothThroughputMbps,
@@ -1433,12 +1433,30 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
   // computeGeoConnectivity uses it to resolve the satellite and gateway.
   const activeCoverageForGeo = selectedDownlinkCoverage ?? selectedUplinkCoverage ?? selectedCoverage;
 
+  // GEO satellites are geostationary: GEO-only derivations key on constellation
+  // identity instead of the satellites prop, which gets a new reference on every
+  // propagation tick and would otherwise rerun the GEO gateway/coverage chain once
+  // per second while this panel is open. LEO consumers keep the live prop.
+  const geoOperationalSatelliteSignature = useMemo(() => (
+    satellites
+      .filter((s) => s.orbitType === 'GEO' && s.opsStatus === 'operational')
+      .map((s) => s.id)
+      .sort()
+      .join('|')
+  ), [satellites]);
+
+  const geoOperationalSatellites = useMemo(
+    () => satellites.filter((s) => s.orbitType === 'GEO' && s.opsStatus === 'operational'),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [geoOperationalSatelliteSignature]
+  );
+
   // Get resolved GEO connectivity data for display
   const resolvedGEOConnectivity = useMemo(() => {
-    if (!activePoint || satellites.length === 0) return null;
+    if (!activePoint || geoOperationalSatellites.length === 0) return null;
     if (satelliteScope !== 'ALL' && satelliteScope !== 'GEO') return null;
-    return computeGeoConnectivity(activeCoverageForGeo, activePoint, satellites);
-  }, [activePoint, satellites, satelliteScope, activeCoverageForGeo]);
+    return computeGeoConnectivity(activeCoverageForGeo, activePoint, geoOperationalSatellites);
+  }, [activePoint, geoOperationalSatellites, satelliteScope, activeCoverageForGeo]);
 
   // ── Dual-segment budget ───────────────────────────────────────────────────
   // Resolve gateway from existing connectivity result
@@ -1467,23 +1485,33 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
     });
   }, [downlinkAtUser, linkMode, refCoverage, resolvedGEOConnectivity, uplinkAtUser]);
 
+  useEffect(() => {
+    if (linkMode !== 'STAR_FORWARD' && linkMode !== 'STAR_RETURN') return;
+    logStarGatewayCanaryDev({
+      context: 'CapacityDetails',
+      satelliteName: resolvedGEOConnectivity?.satellite?.name,
+      linkMode,
+      legacyGatewayName: resolvedGatewayData?.name,
+      beamAwareGatewayName: trafficGatewaySelection?.gateway?.name,
+      downlinkBeamId: downlinkAtUser?.beamId,
+      uplinkBeamId: uplinkAtUser?.beamId,
+    });
+  }, [linkMode, resolvedGEOConnectivity, resolvedGatewayData, trafficGatewaySelection, downlinkAtUser, uplinkAtUser]);
+
   // Coverage candidates at gateway location (for STAR modes)
   const candidateCoveragesAtGateway = useMemo(() => {
     const gatewayForRf = (linkMode === 'STAR_FORWARD' || linkMode === 'STAR_RETURN')
       ? trafficGatewaySelection?.gateway ?? null
       : resolvedGatewayData;
     if (!gatewayForRf || !refCoverage) return [];
-    const geoSats = satellites.filter(
-      (s) => s.orbitType === 'GEO' && s.opsStatus === 'operational'
-    );
     return augmentCandidatesWithSynthesizedDirections(
       findCandidateCoverages(
         { lat: gatewayForRf.lat, lng: gatewayForRf.lng },
-        geoSats,
+        geoOperationalSatellites,
       ),
-      geoSats
+      geoOperationalSatellites
     );
-  }, [linkMode, resolvedGatewayData, refCoverage, satellites, trafficGatewaySelection]);
+  }, [linkMode, resolvedGatewayData, refCoverage, geoOperationalSatellites, trafficGatewaySelection]);
 
   const uplinkAtGateway = useMemo(
     () => refCoverage ? findBestStarGatewayUplinkMatch(refCoverage, candidateCoveragesAtGateway) : null,
@@ -1521,11 +1549,8 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
     }
 
     if (linkMode === 'STAR_FORWARD' || linkMode === 'STAR_RETURN') {
-      const geoSatellites = satellites.filter(
-        s => s.orbitType === 'GEO' && s.opsStatus === 'operational'
-      );
       const candidateSatIds = new Set(candidateCoverages.map(c => c.satelliteId));
-      const candidateSatellites = geoSatellites.filter(s => candidateSatIds.has(s.id));
+      const candidateSatellites = geoOperationalSatellites.filter(s => candidateSatIds.has(s.id));
 
       const gwPosBySatId = new Map<string, { lat: number; lng: number }>();
       for (const sat of candidateSatellites) {
@@ -1541,8 +1566,8 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
       const covByGw = new Map<string, Set<string>>();
       for (const [key, pos] of uniquePos) {
         const cands = augmentCandidatesWithSynthesizedDirections(
-          findCandidateCoverages(pos, geoSatellites),
-          geoSatellites,
+          findCandidateCoverages(pos, geoOperationalSatellites),
+          geoOperationalSatellites,
         );
         covByGw.set(key, new Set(cands
           .filter((candidate) => (
@@ -1565,7 +1590,7 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
     }
 
     return undefined;
-  }, [linkMode, candidateCoverages, candidateCoveragesB, satellites]);
+  }, [linkMode, candidateCoverages, candidateCoveragesB, geoOperationalSatellites]);
 
   const pointALabel = useMemo(() => {
     if (!activePoint) return 'Terminal A';

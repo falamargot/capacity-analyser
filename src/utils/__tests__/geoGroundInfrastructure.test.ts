@@ -8,7 +8,6 @@ import {
   GEO_HUB_DATA_CENTER_CAPABILITIES,
   GEO_LOGICAL_GATEWAY_ASSIGNMENTS,
   GEO_LOGICAL_GATEWAYS,
-  GEO_SATELLITE_GROUND_NETWORK_CONFIGURATIONS,
   canonicalStarTrafficTopologySatelliteId,
   getGroundSiteById,
   getGroundSiteByPublicCode,
@@ -21,12 +20,10 @@ import {
   type EarthStationRedundancy,
   type EvidenceSource,
   type GatewayRedundancyPolicy,
-  type GroundPlatform,
   type HubDataCenterCapability,
   type LogicalGateway,
   type LogicalGatewayAssignment,
   type GroundCapabilityKind,
-  type SatelliteGroundNetworkConfiguration,
 } from '../geoGroundInfrastructure';
 
 const siteByCode = (code: string) => {
@@ -359,37 +356,20 @@ describe('GEO ground infrastructure canonical model', () => {
       temporal: { assertedAt: '2026-07-04' },
     };
 
-    const platform: GroundPlatform = {
-      platformId: 'shape-test-platform',
-      name: 'Shared platform',
-      sharedBySatelliteIds: ['SHAPE-SAT'],
-      evidence: [evidence],
-    };
-
-    const configuration: SatelliteGroundNetworkConfiguration = {
-      configurationId: 'shape-test-config',
-      satelliteId: 'SHAPE-SAT',
-      name: 'Shape test ground network',
-      platformIds: [platform.platformId],
-      logicalGatewayIds: ['shape-test-gw'],
-      redundancyPolicyIds: ['shape-test-redundancy-policy'],
-      evidence: [evidence],
-    };
-
     const logicalGateway: LogicalGateway = {
       logicalGatewayId: 'shape-test-gw',
-      satelliteId: configuration.satelliteId,
+      satelliteId: 'SHAPE-SAT',
       displayName: 'Shape Test Gateway',
       gatewayCode: 'GW-SHAPE',
       group: 'GW1',
-      platformId: platform.platformId,
+      platformId: 'shape-test-platform',
       evidence: [evidence],
     };
 
     const assignment: LogicalGatewayAssignment = {
       assignmentId: 'shape-test-gw-assignment',
       logicalGatewayId: logicalGateway.logicalGatewayId,
-      satelliteId: configuration.satelliteId,
+      satelliteId: 'SHAPE-SAT',
       siteId: 'geo-rambouillet',
       trafficTeleportCapabilityId: 'geo-rambouillet-traffic-teleport',
       role: 'NOMINAL',
@@ -399,7 +379,7 @@ describe('GEO ground infrastructure canonical model', () => {
 
     const beamAssignment: BeamGatewayAssignment = {
       assignmentId: 'shape-test-gw-beams',
-      satelliteId: configuration.satelliteId,
+      satelliteId: 'SHAPE-SAT',
       logicalGatewayId: logicalGateway.logicalGatewayId,
       beamIds: ['1', '2'],
       direction: 'BIDIRECTIONAL',
@@ -409,7 +389,7 @@ describe('GEO ground infrastructure canonical model', () => {
 
     const redundancyPolicy: GatewayRedundancyPolicy = {
       policyId: 'shape-test-redundancy-policy',
-      satelliteId: configuration.satelliteId,
+      satelliteId: 'SHAPE-SAT',
       mode: 'ANY_NOMINAL_REPLACEMENT',
       primaryLogicalGatewayIds: [logicalGateway.logicalGatewayId],
       backupLogicalGatewayIds: ['shape-test-backup'],
@@ -421,7 +401,7 @@ describe('GEO ground infrastructure canonical model', () => {
       redundancyId: 'shape-test-earth-station-backup',
       siteId: 'geo-rambouillet',
       logicalGatewayId: logicalGateway.logicalGatewayId,
-      satelliteId: configuration.satelliteId,
+      satelliteId: 'SHAPE-SAT',
       backupResourceName: 'Shape backup antenna',
       redundancyType: 'LOCAL_ANTENNA',
       status: 'BACKUP_READY',
@@ -433,14 +413,13 @@ describe('GEO ground infrastructure canonical model', () => {
       siteId: 'geo-rambouillet',
       kind: 'NETWORK_HUB',
       confidence: 'CONFIRMED',
-      supportedSatellites: [configuration.satelliteId],
+      supportedSatellites: ['SHAPE-SAT'],
       hubRole: 'TRAFFIC_MANAGEMENT',
       equipment: ['Shape traffic manager'],
-      platformId: platform.platformId,
+      platformId: 'shape-test-platform',
       evidence: [evidence],
     };
 
-    expect(configuration.logicalGatewayIds).toContain(logicalGateway.logicalGatewayId);
     expect(assignment.deploymentStatus).toBe('OPERATIONAL');
     expect(beamAssignment.beamIds).toEqual(['1', '2']);
     expect(redundancyPolicy.backupLogicalGatewayIds).toEqual(['shape-test-backup']);
@@ -450,12 +429,6 @@ describe('GEO ground infrastructure canonical model', () => {
   });
 
   it('models KVHTS with 18 defined logical gateways', () => {
-    const kvhtsConfig = GEO_SATELLITE_GROUND_NETWORK_CONFIGURATIONS.find((configuration) => configuration.satelliteId === 'KVHTS');
-    expect(kvhtsConfig).toEqual(expect.objectContaining({
-      configurationId: 'kvhts-ground-network',
-      platformIds: ['hns-jupiter'],
-    }));
-    expect(kvhtsConfig?.logicalGatewayIds).toHaveLength(18);
     expect(logicalGatewaysForSatellite('KVHTS')).toHaveLength(18);
   });
 
@@ -534,11 +507,6 @@ describe('GEO ground infrastructure canonical model', () => {
   });
 
   it('models E10B with seven defined logical gateways', () => {
-    const e10bConfig = GEO_SATELLITE_GROUND_NETWORK_CONFIGURATIONS.find((configuration) => configuration.satelliteId === 'E10B');
-    expect(e10bConfig).toEqual(expect.objectContaining({
-      configurationId: 'e10b-ground-network',
-    }));
-    expect(e10bConfig?.logicalGatewayIds).toHaveLength(7);
     expect(logicalGatewaysForSatellite('E10B')).toHaveLength(7);
   });
 

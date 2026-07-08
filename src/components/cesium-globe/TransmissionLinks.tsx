@@ -289,6 +289,10 @@ interface HighlightedRouteSegmentProps {
     clampToGround?: boolean;
     arcType?: ArcType;
     subdued?: boolean;
+    /** When false, the entities stay mounted (avoiding Resium mount/unmount churn
+     *  for data that flips availability routinely) but are hidden via Cesium's
+     *  native `show`, not removed from the JSX tree. Defaults to true. */
+    show?: boolean;
 }
 
 const getRouteHaloWidth = (width: number) => Math.max(width + 4.8, width * 2.25);
@@ -302,12 +306,13 @@ const HighlightedRouteSegment = React.memo<HighlightedRouteSegmentProps>(({
     clampToGround = false,
     arcType = ArcType.NONE,
     subdued = false,
+    show = true,
 }) => {
     const haloMaterial = subdued ? leoRouteHaloSecondaryMaterial : leoRouteHaloMaterial;
 
     return (
         <>
-            <Entity key={`${entityIdBase}-halo`} id={`${entityIdBase}-halo`} name={`${name} halo`}>
+            <Entity key={`${entityIdBase}-halo`} id={`${entityIdBase}-halo`} name={`${name} halo`} show={show}>
                 <PolylineGraphics
                     positions={positions}
                     width={getRouteHaloWidth(width)}
@@ -317,7 +322,7 @@ const HighlightedRouteSegment = React.memo<HighlightedRouteSegmentProps>(({
                     arcType={arcType}
                 />
             </Entity>
-            <Entity key={`${entityIdBase}-main`} id={`${entityIdBase}-main`} name={name}>
+            <Entity key={`${entityIdBase}-main`} id={`${entityIdBase}-main`} name={name} show={show}>
                 <PolylineGraphics
                     positions={positions}
                     width={width}
@@ -338,6 +343,8 @@ interface S2SBackboneSegmentProps {
     widthBoost?: number;
     entityIdBase: string;
     subdued?: boolean;
+    /** See HighlightedRouteSegmentProps.show. */
+    show?: boolean;
 }
 
 const S2SBackboneSegment = React.memo<S2SBackboneSegmentProps>(({
@@ -346,10 +353,11 @@ const S2SBackboneSegment = React.memo<S2SBackboneSegmentProps>(({
     widthBoost = 0,
     entityIdBase,
     subdued = false,
+    show = true,
 }) => {
     return (
         <>
-            <Entity key={`${entityIdBase}-halo`} id={`${entityIdBase}-halo`} name={`${name} halo`}>
+            <Entity key={`${entityIdBase}-halo`} id={`${entityIdBase}-halo`} name={`${name} halo`} show={show}>
                 <PolylineGraphics
                     positions={positions}
                     width={S2S_BACKBONE_HALO_WIDTH + widthBoost}
@@ -359,7 +367,7 @@ const S2SBackboneSegment = React.memo<S2SBackboneSegmentProps>(({
                     arcType={ArcType.GEODESIC}
                 />
             </Entity>
-            <Entity key={`${entityIdBase}-glow`} id={`${entityIdBase}-glow`} name={`${name} glow`}>
+            <Entity key={`${entityIdBase}-glow`} id={`${entityIdBase}-glow`} name={`${name} glow`} show={show}>
                 <PolylineGraphics
                     positions={positions}
                     width={S2S_BACKBONE_GLOW_WIDTH + widthBoost}
@@ -369,7 +377,7 @@ const S2SBackboneSegment = React.memo<S2SBackboneSegmentProps>(({
                     arcType={ArcType.GEODESIC}
                 />
             </Entity>
-            <Entity key={`${entityIdBase}-main`} id={`${entityIdBase}-main`} name={name}>
+            <Entity key={`${entityIdBase}-main`} id={`${entityIdBase}-main`} name={name} show={show}>
                 <PolylineGraphics
                     positions={positions}
                     width={S2S_BACKBONE_MAIN_WIDTH + widthBoost}
@@ -383,6 +391,12 @@ const S2SBackboneSegment = React.memo<S2SBackboneSegmentProps>(({
     );
 });
 S2SBackboneSegment.displayName = 'S2SBackboneSegment';
+
+// Stable fallbacks for entities that stay mounted (show={false}) rather than being
+// conditionally removed from the JSX tree — see the LEO S2S rendering block below.
+// A shared singleton avoids allocating a new empty-array callback per render.
+const EMPTY_POSITIONS_CALLBACK = new CallbackProperty(() => [], true);
+const HIDDEN_ENTITY_POSITION = Cartesian3.ZERO;
 
 const createStaticPathCallback = (positions: Cartesian3[]) => (
     new CallbackProperty(() => positions, true)
@@ -507,11 +521,23 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
         leoS2SSnpAPop: routeEntityId('backhaul', 'leo', 's2s-snpa-pop'),
         leoS2SPopSnpB: routeEntityId('backhaul', 'leo', 's2s-pop-snpb'),
         leoS2SBackboneSame: routeEntityId('backhaul', 'leo', 's2s-backbone-same'),
+        // Distinct ids for the "service unavailable" backbone-only fallback (leoS2SBackbone
+        // below): it renders in a JSX branch mutually exclusive with the full route
+        // (leoS2SLinks), but the two can still transiently overlap during the mount/unmount
+        // that Resium performs when switching branches, since Entity add/remove is async
+        // (queueMicrotask-deferred). Reusing the same id let a new Entity's add() race ahead
+        // of the old one's remove(), throwing a Cesium "already exists" DeveloperError.
+        leoS2SSnpAPopFallback: routeEntityId('backhaul', 'leo', 's2s-snpa-pop-fallback'),
+        leoS2SPopSnpBFallback: routeEntityId('backhaul', 'leo', 's2s-pop-snpb-fallback'),
+        leoS2SBackboneSameFallback: routeEntityId('backhaul', 'leo', 's2s-backbone-same-fallback'),
         leoS2SSnpBSatB: routeEntityId('backhaul', 'leo', 's2s-snpb-satb'),
         leoS2SSatBB: routeEntityId('destination', 'leo', 's2s-satb-b'),
         leoS2SSnpAMarker: buildEntityId(commercialMode ? 'commercial' : 'engineering', entityScopeId, 'route-node', 'leo', 's2s', 'snp-a'),
         leoS2SSnpBMarker: buildEntityId(commercialMode ? 'commercial' : 'engineering', entityScopeId, 'route-node', 'leo', 's2s', 'snp-b'),
         leoS2SPopMarker: buildEntityId(commercialMode ? 'commercial' : 'engineering', entityScopeId, 'route-node', 'leo', 's2s', 'pop'),
+        leoS2SSnpAMarkerFallback: buildEntityId(commercialMode ? 'commercial' : 'engineering', entityScopeId, 'route-node', 'leo', 's2s', 'snp-a-fallback'),
+        leoS2SSnpBMarkerFallback: buildEntityId(commercialMode ? 'commercial' : 'engineering', entityScopeId, 'route-node', 'leo', 's2s', 'snp-b-fallback'),
+        leoS2SPopMarkerFallback: buildEntityId(commercialMode ? 'commercial' : 'engineering', entityScopeId, 'route-node', 'leo', 's2s', 'pop-fallback'),
     }), [commercialMode, entityScopeId, routeEntityId]);
     // Per-technology route gates — each technology's links are only shown when that
     // technology has an available route, regardless of which is "active". This prevents
@@ -1142,293 +1168,182 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
             {/* ── LEO site-to-site routed path ─────────────────────────────────────
                 Cyan: user access links  (UT A ↔ Sat A, UT B ↔ Sat B)
                 Orange: feeder links     (Sat A ↔ SNP A, Sat B ↔ SNP B)
-                Violet dashed: backbone  (SNP A → PoP → SNP B)            */}
-            {showLeoCommercialRoute && leoS2SLinks && (
+                Violet dashed: backbone  (SNP A → PoP → SNP B)
+
+                Mounted once, whenever Site-to-Site mode is engaged (leoSiteToSiteResult
+                present) — NOT re-mounted per render based on momentary availability.
+                leoS2SLinks/leoS2SBackbone flip between non-null and null routinely as
+                LEO satellites hand off (roughly once a second, driven by real orbital
+                mechanics), and conditionally excluding these Entities from the JSX tree
+                on every flip raced Resium's async mount/unmount lifecycle against
+                itself, throwing Cesium "entity already exists" errors. Visibility is
+                driven by the `show` prop instead (toggled in place, no remount), and
+                `positions`/`position` fall back to a stable empty/hidden singleton so
+                the prop type stays satisfied while hidden. */}
+            {showLeoCommercialRoute && !!leoSiteToSiteResult && (
                 <>
                     {/* UT A → Satellite A (user link) */}
                     <HighlightedRouteSegment
                         name="S2S: UT A → Satellite A"
-                        positions={leoS2SLinks.satACallback}
+                        positions={leoS2SLinks?.satACallback ?? EMPTY_POSITIONS_CALLBACK}
                         width={commercialWidth('access', 3.5, 'LEO')}
                         material={commercialS2SUserMaterial}
                         entityIdBase={routeEntityIds.leoS2SASat}
                         subdued={s2sIsSecondary}
+                        show={!!leoS2SLinks}
                     />
 
                     {/* Satellite A → SNP A (feeder) */}
-                    {leoS2SLinks.satAToSnpACallback && (
-                        <HighlightedRouteSegment
-                            name="S2S: Satellite A → SNP A"
-                            positions={leoS2SLinks.satAToSnpACallback}
-                            width={commercialWidth('backhaul', 3, 'LEO')}
-                            material={commercialS2SFeederMaterial}
-                            entityIdBase={routeEntityIds.leoS2SSatASnpA}
-                            clampToGround={false}
-                            subdued={s2sIsSecondary}
-                        />
-                    )}
+                    <HighlightedRouteSegment
+                        name="S2S: Satellite A → SNP A"
+                        positions={leoS2SLinks?.satAToSnpACallback ?? EMPTY_POSITIONS_CALLBACK}
+                        width={commercialWidth('backhaul', 3, 'LEO')}
+                        material={commercialS2SFeederMaterial}
+                        entityIdBase={routeEntityIds.leoS2SSatASnpA}
+                        clampToGround={false}
+                        subdued={s2sIsSecondary}
+                        show={!!leoS2SLinks?.satAToSnpACallback}
+                    />
 
                     {/* SNP A → PoP (backbone) */}
-                    {!leoS2SLinks.sameSNP && leoS2SLinks.snpAToPopCallback && (
-                        <S2SBackboneSegment
-                            name="S2S: SNP A → PoP (backbone)"
-                            positions={leoS2SLinks.snpAToPopCallback}
-                            widthBoost={commercialBackboneBoost}
-                            entityIdBase={routeEntityIds.leoS2SSnpAPop}
-                            subdued={s2sIsSecondary}
-                        />
-                    )}
+                    <S2SBackboneSegment
+                        name="S2S: SNP A → PoP (backbone)"
+                        positions={leoS2SLinks?.snpAToPopCallback ?? EMPTY_POSITIONS_CALLBACK}
+                        widthBoost={commercialBackboneBoost}
+                        entityIdBase={routeEntityIds.leoS2SSnpAPop}
+                        subdued={s2sIsSecondary}
+                        show={!!leoS2SLinks && !leoS2SLinks.sameSNP && !!leoS2SLinks.snpAToPopCallback}
+                    />
 
                     {/* PoP → SNP B (backbone) */}
-                    {!leoS2SLinks.sameSNP && leoS2SLinks.popToSnpBCallback && (
-                        <S2SBackboneSegment
-                            name="S2S: PoP → SNP B (backbone)"
-                            positions={leoS2SLinks.popToSnpBCallback}
-                            widthBoost={commercialBackboneBoost}
-                            entityIdBase={routeEntityIds.leoS2SPopSnpB}
-                            subdued={s2sIsSecondary}
-                        />
-                    )}
+                    <S2SBackboneSegment
+                        name="S2S: PoP → SNP B (backbone)"
+                        positions={leoS2SLinks?.popToSnpBCallback ?? EMPTY_POSITIONS_CALLBACK}
+                        widthBoost={commercialBackboneBoost}
+                        entityIdBase={routeEntityIds.leoS2SPopSnpB}
+                        subdued={s2sIsSecondary}
+                        show={!!leoS2SLinks && !leoS2SLinks.sameSNP && !!leoS2SLinks.popToSnpBCallback}
+                    />
 
                     {/* SNP A → SNP B direct (when same SNP or no PoP) */}
-                    {leoS2SLinks.sameSNP && leoS2SLinks.sameSnpCallback && (
-                        <S2SBackboneSegment
-                            name="S2S: Same SNP (backbone collapsed)"
-                            positions={leoS2SLinks.sameSnpCallback}
-                            widthBoost={commercialBackboneBoost}
-                            entityIdBase={routeEntityIds.leoS2SBackboneSame}
-                            subdued={s2sIsSecondary}
-                        />
-                    )}
+                    <S2SBackboneSegment
+                        name="S2S: Same SNP (backbone collapsed)"
+                        positions={leoS2SLinks?.sameSnpCallback ?? EMPTY_POSITIONS_CALLBACK}
+                        widthBoost={commercialBackboneBoost}
+                        entityIdBase={routeEntityIds.leoS2SBackboneSame}
+                        subdued={s2sIsSecondary}
+                        show={!!leoS2SLinks?.sameSNP && !!leoS2SLinks.sameSnpCallback}
+                    />
 
                     {/* SNP B → Satellite B (feeder) */}
-                    {leoS2SLinks.satBToSnpBCallback && (
-                        <HighlightedRouteSegment
-                            name="S2S: SNP B → Satellite B"
-                            positions={leoS2SLinks.satBToSnpBCallback}
-                            width={commercialWidth('backhaul', 3, 'LEO')}
-                            material={commercialS2SFeederMaterial}
-                            entityIdBase={routeEntityIds.leoS2SSnpBSatB}
-                            clampToGround={false}
-                            subdued={s2sIsSecondary}
-                        />
-                    )}
+                    <HighlightedRouteSegment
+                        name="S2S: SNP B → Satellite B"
+                        positions={leoS2SLinks?.satBToSnpBCallback ?? EMPTY_POSITIONS_CALLBACK}
+                        width={commercialWidth('backhaul', 3, 'LEO')}
+                        material={commercialS2SFeederMaterial}
+                        entityIdBase={routeEntityIds.leoS2SSnpBSatB}
+                        clampToGround={false}
+                        subdued={s2sIsSecondary}
+                        show={!!leoS2SLinks?.satBToSnpBCallback}
+                    />
 
                     {/* Satellite B → UT B (user link) */}
                     <HighlightedRouteSegment
                         name="S2S: Satellite B → UT B"
-                        positions={leoS2SLinks.satBCallback}
+                        positions={leoS2SLinks?.satBCallback ?? EMPTY_POSITIONS_CALLBACK}
                         width={commercialWidth('destination', 3.5, 'LEO')}
                         material={commercialS2SUserMaterial}
                         entityIdBase={routeEntityIds.leoS2SSatBB}
                         subdued={s2sIsSecondary}
+                        show={!!leoS2SLinks}
                     />
 
                     {/* ── Ground-node markers ─────────────────────────────────────── */}
 
                     {/* SNP A marker */}
-                    {leoS2SLinks.snpAPos && leoS2SLinks.snpAName && (
-                        <Entity
-                            key={routeEntityIds.leoS2SSnpAMarker}
-                            id={routeEntityIds.leoS2SSnpAMarker}
-                            name={`S2S: SNP ${leoS2SLinks.snpAName}`}
-                            position={leoS2SLinks.snpAPos}
-                            description={`SNP A — ${leoS2SLinks.snpAName}`}
-                        >
-                            <PointGraphics
-                                pixelSize={commercialMode ? (commercialBackboneFocused ? 9 : 6) : 10}
-                                color={Color.fromCssColorString('#f97316').withAlpha(commercialMode && !commercialBackboneFocused ? 0.52 : 1)}
-                                outlineColor={Color.fromCssColorString('#fff7ed').withAlpha(commercialMode && !commercialBackboneFocused ? 0.42 : 1)}
-                                outlineWidth={commercialMode && !commercialBackboneFocused ? 1 : 1.5}
+                    <Entity
+                        key={routeEntityIds.leoS2SSnpAMarker}
+                        id={routeEntityIds.leoS2SSnpAMarker}
+                        name={`S2S: SNP ${leoS2SLinks?.snpAName ?? ''}`}
+                        position={leoS2SLinks?.snpAPos ?? HIDDEN_ENTITY_POSITION}
+                        description={leoS2SLinks?.snpAName ? `SNP A — ${leoS2SLinks.snpAName}` : ''}
+                        show={!!(leoS2SLinks?.snpAPos && leoS2SLinks?.snpAName)}
+                    >
+                        <PointGraphics
+                            pixelSize={commercialMode ? (commercialBackboneFocused ? 9 : 6) : 10}
+                            color={Color.fromCssColorString('#f97316').withAlpha(commercialMode && !commercialBackboneFocused ? 0.52 : 1)}
+                            outlineColor={Color.fromCssColorString('#fff7ed').withAlpha(commercialMode && !commercialBackboneFocused ? 0.42 : 1)}
+                            outlineWidth={commercialMode && !commercialBackboneFocused ? 1 : 1.5}
+                        />
+                        {(!commercialMode || commercialBackboneFocused) && (
+                            <LabelGraphics
+                                text={`SNP A\n${leoS2SLinks?.snpAName ?? ''}`}
+                                font="bold 11px sans-serif"
+                                fillColor={Color.fromCssColorString('#f97316')}
+                                outlineColor={Color.BLACK}
+                                outlineWidth={2}
+                                style={LabelStyle.FILL_AND_OUTLINE}
+                                verticalOrigin={VerticalOrigin.BOTTOM}
+                                horizontalOrigin={HorizontalOrigin.CENTER}
+                                pixelOffset={new Cartesian2(0, -14)}
+                                disableDepthTestDistance={Number.POSITIVE_INFINITY}
+                                scale={commercialMode ? 0.78 : 0.9}
                             />
-                            {(!commercialMode || commercialBackboneFocused) && (
-                                <LabelGraphics
-                                    text={`SNP A\n${leoS2SLinks.snpAName}`}
-                                    font="bold 11px sans-serif"
-                                    fillColor={Color.fromCssColorString('#f97316')}
-                                    outlineColor={Color.BLACK}
-                                    outlineWidth={2}
-                                    style={LabelStyle.FILL_AND_OUTLINE}
-                                    verticalOrigin={VerticalOrigin.BOTTOM}
-                                    horizontalOrigin={HorizontalOrigin.CENTER}
-                                    pixelOffset={new Cartesian2(0, -14)}
-                                    disableDepthTestDistance={Number.POSITIVE_INFINITY}
-                                    scale={commercialMode ? 0.78 : 0.9}
-                                />
-                            )}
-                        </Entity>
-                    )}
+                        )}
+                    </Entity>
 
                     {/* SNP B marker (skip if same SNP) */}
-                    {!leoS2SLinks.sameSNP && leoS2SLinks.snpBPos && leoS2SLinks.snpBName && (
-                        <Entity
-                            key={routeEntityIds.leoS2SSnpBMarker}
-                            id={routeEntityIds.leoS2SSnpBMarker}
-                            name={`S2S: SNP ${leoS2SLinks.snpBName}`}
-                            position={leoS2SLinks.snpBPos}
-                            description={`SNP B — ${leoS2SLinks.snpBName}`}
-                        >
-                            <PointGraphics
-                                pixelSize={commercialMode ? (commercialBackboneFocused ? 9 : 6) : 10}
-                                color={Color.fromCssColorString('#f97316').withAlpha(commercialMode && !commercialBackboneFocused ? 0.52 : 1)}
-                                outlineColor={Color.fromCssColorString('#fff7ed').withAlpha(commercialMode && !commercialBackboneFocused ? 0.42 : 1)}
-                                outlineWidth={commercialMode && !commercialBackboneFocused ? 1 : 1.5}
+                    <Entity
+                        key={routeEntityIds.leoS2SSnpBMarker}
+                        id={routeEntityIds.leoS2SSnpBMarker}
+                        name={`S2S: SNP ${leoS2SLinks?.snpBName ?? ''}`}
+                        position={leoS2SLinks?.snpBPos ?? HIDDEN_ENTITY_POSITION}
+                        description={leoS2SLinks?.snpBName ? `SNP B — ${leoS2SLinks.snpBName}` : ''}
+                        show={!!(!leoS2SLinks?.sameSNP && leoS2SLinks?.snpBPos && leoS2SLinks?.snpBName)}
+                    >
+                        <PointGraphics
+                            pixelSize={commercialMode ? (commercialBackboneFocused ? 9 : 6) : 10}
+                            color={Color.fromCssColorString('#f97316').withAlpha(commercialMode && !commercialBackboneFocused ? 0.52 : 1)}
+                            outlineColor={Color.fromCssColorString('#fff7ed').withAlpha(commercialMode && !commercialBackboneFocused ? 0.42 : 1)}
+                            outlineWidth={commercialMode && !commercialBackboneFocused ? 1 : 1.5}
+                        />
+                        {(!commercialMode || commercialBackboneFocused) && (
+                            <LabelGraphics
+                                text={`SNP B\n${leoS2SLinks?.snpBName ?? ''}`}
+                                font="bold 11px sans-serif"
+                                fillColor={Color.fromCssColorString('#f97316')}
+                                outlineColor={Color.BLACK}
+                                outlineWidth={2}
+                                style={LabelStyle.FILL_AND_OUTLINE}
+                                verticalOrigin={VerticalOrigin.BOTTOM}
+                                horizontalOrigin={HorizontalOrigin.CENTER}
+                                pixelOffset={new Cartesian2(0, -14)}
+                                disableDepthTestDistance={Number.POSITIVE_INFINITY}
+                                scale={commercialMode ? 0.78 : 0.9}
                             />
-                            {(!commercialMode || commercialBackboneFocused) && (
-                                <LabelGraphics
-                                    text={`SNP B\n${leoS2SLinks.snpBName}`}
-                                    font="bold 11px sans-serif"
-                                    fillColor={Color.fromCssColorString('#f97316')}
-                                    outlineColor={Color.BLACK}
-                                    outlineWidth={2}
-                                    style={LabelStyle.FILL_AND_OUTLINE}
-                                    verticalOrigin={VerticalOrigin.BOTTOM}
-                                    horizontalOrigin={HorizontalOrigin.CENTER}
-                                    pixelOffset={new Cartesian2(0, -14)}
-                                    disableDepthTestDistance={Number.POSITIVE_INFINITY}
-                                    scale={commercialMode ? 0.78 : 0.9}
-                                />
-                            )}
-                        </Entity>
-                    )}
+                        )}
+                    </Entity>
 
                     {/* Logical PoP marker */}
-                    {!leoS2SLinks.sameSNP && leoS2SLinks.popPos && (
-                        <Entity
-                            key={routeEntityIds.leoS2SPopMarker}
-                            id={routeEntityIds.leoS2SPopMarker}
-                            name={`S2S: PoP ${leoS2SLinks.popName}`}
-                            position={leoS2SLinks.popPos}
-                            description={`Logical Point of Presence: ${leoS2SLinks.popName}. Represents OneWeb core interconnect. Actual routing is proprietary.`}
-                        >
-                            <PointGraphics
-                                pixelSize={commercialMode ? (commercialBackboneFocused ? 10 : 6) : 13}
-                                color={Color.fromCssColorString('#8b5cf6').withAlpha(commercialMode && !commercialBackboneFocused ? 0.48 : 1)}
-                                outlineColor={Color.fromCssColorString('#ede9fe').withAlpha(commercialMode && !commercialBackboneFocused ? 0.36 : 1)}
-                                outlineWidth={commercialMode && !commercialBackboneFocused ? 1 : 2}
-                            />
-                            {(!commercialMode || commercialBackboneFocused) && (
-                                <LabelGraphics
-                                    text={`PoP\n${leoS2SLinks.popName}`}
-                                    font="bold 11px sans-serif"
-                                    fillColor={Color.fromCssColorString('#a78bfa')}
-                                    outlineColor={Color.BLACK}
-                                    outlineWidth={2}
-                                    style={LabelStyle.FILL_AND_OUTLINE}
-                                    verticalOrigin={VerticalOrigin.BOTTOM}
-                                    horizontalOrigin={HorizontalOrigin.CENTER}
-                                    pixelOffset={new Cartesian2(0, -16)}
-                                    disableDepthTestDistance={Number.POSITIVE_INFINITY}
-                                    scale={commercialMode ? 0.78 : 0.9}
-                                />
-                            )}
-                        </Entity>
-                    )}
-                </>
-            )}
-
-            {/* LEO S2S backbone — shown when the full route is unavailable but SNP topology
-                is known (e.g. regulatory pending, no satellite coverage). Subdued style
-                communicates that the infrastructure exists but the service is not active. */}
-            {showLeoCommercialRoute && !leoS2SLinks && leoS2SBackbone && (
-                <>
-                    {!leoS2SBackbone.sameSNP && leoS2SBackbone.snpAToPopCallback && (
-                        <S2SBackboneSegment
-                            name="S2S: SNP A → PoP (backbone, service unavailable)"
-                            positions={leoS2SBackbone.snpAToPopCallback}
-                            entityIdBase={routeEntityIds.leoS2SSnpAPop}
-                            subdued
+                    <Entity
+                        key={routeEntityIds.leoS2SPopMarker}
+                        id={routeEntityIds.leoS2SPopMarker}
+                        name={`S2S: PoP ${leoS2SLinks?.popName ?? ''}`}
+                        position={leoS2SLinks?.popPos ?? HIDDEN_ENTITY_POSITION}
+                        description={leoS2SLinks ? `Logical Point of Presence: ${leoS2SLinks.popName}. Represents OneWeb core interconnect. Actual routing is proprietary.` : ''}
+                        show={!!(!leoS2SLinks?.sameSNP && leoS2SLinks?.popPos)}
+                    >
+                        <PointGraphics
+                            pixelSize={commercialMode ? (commercialBackboneFocused ? 10 : 6) : 13}
+                            color={Color.fromCssColorString('#8b5cf6').withAlpha(commercialMode && !commercialBackboneFocused ? 0.48 : 1)}
+                            outlineColor={Color.fromCssColorString('#ede9fe').withAlpha(commercialMode && !commercialBackboneFocused ? 0.36 : 1)}
+                            outlineWidth={commercialMode && !commercialBackboneFocused ? 1 : 2}
                         />
-                    )}
-                    {!leoS2SBackbone.sameSNP && leoS2SBackbone.popToSnpBCallback && (
-                        <S2SBackboneSegment
-                            name="S2S: PoP → SNP B (backbone, service unavailable)"
-                            positions={leoS2SBackbone.popToSnpBCallback}
-                            entityIdBase={routeEntityIds.leoS2SPopSnpB}
-                            subdued
-                        />
-                    )}
-                    {leoS2SBackbone.sameSNP && leoS2SBackbone.sameSnpCallback && (
-                        <S2SBackboneSegment
-                            name="S2S: Same SNP (backbone collapsed, service unavailable)"
-                            positions={leoS2SBackbone.sameSnpCallback}
-                            entityIdBase={routeEntityIds.leoS2SBackboneSame}
-                            subdued
-                        />
-                    )}
-                    {leoS2SBackbone.snpAPos && leoS2SBackbone.snpAName && (
-                        <Entity
-                            key={routeEntityIds.leoS2SSnpAMarker}
-                            id={routeEntityIds.leoS2SSnpAMarker}
-                            name={`S2S: SNP ${leoS2SBackbone.snpAName}`}
-                            position={leoS2SBackbone.snpAPos}
-                        >
-                            <PointGraphics
-                                pixelSize={10}
-                                color={Color.fromCssColorString('#f97316').withAlpha(0.55)}
-                                outlineColor={Color.fromCssColorString('#fff7ed').withAlpha(0.45)}
-                                outlineWidth={1.5}
-                            />
+                        {(!commercialMode || commercialBackboneFocused) && (
                             <LabelGraphics
-                                text={`SNP A\n${leoS2SBackbone.snpAName}`}
+                                text={`PoP\n${leoS2SLinks?.popName ?? ''}`}
                                 font="bold 11px sans-serif"
-                                fillColor={Color.fromCssColorString('#f97316').withAlpha(0.72)}
-                                outlineColor={Color.BLACK}
-                                outlineWidth={2}
-                                style={LabelStyle.FILL_AND_OUTLINE}
-                                verticalOrigin={VerticalOrigin.BOTTOM}
-                                horizontalOrigin={HorizontalOrigin.CENTER}
-                                pixelOffset={new Cartesian2(0, -14)}
-                                disableDepthTestDistance={Number.POSITIVE_INFINITY}
-                                scale={0.9}
-                            />
-                        </Entity>
-                    )}
-                    {!leoS2SBackbone.sameSNP && leoS2SBackbone.snpBPos && leoS2SBackbone.snpBName && (
-                        <Entity
-                            key={routeEntityIds.leoS2SSnpBMarker}
-                            id={routeEntityIds.leoS2SSnpBMarker}
-                            name={`S2S: SNP ${leoS2SBackbone.snpBName}`}
-                            position={leoS2SBackbone.snpBPos}
-                        >
-                            <PointGraphics
-                                pixelSize={10}
-                                color={Color.fromCssColorString('#f97316').withAlpha(0.55)}
-                                outlineColor={Color.fromCssColorString('#fff7ed').withAlpha(0.45)}
-                                outlineWidth={1.5}
-                            />
-                            <LabelGraphics
-                                text={`SNP B\n${leoS2SBackbone.snpBName}`}
-                                font="bold 11px sans-serif"
-                                fillColor={Color.fromCssColorString('#f97316').withAlpha(0.72)}
-                                outlineColor={Color.BLACK}
-                                outlineWidth={2}
-                                style={LabelStyle.FILL_AND_OUTLINE}
-                                verticalOrigin={VerticalOrigin.BOTTOM}
-                                horizontalOrigin={HorizontalOrigin.CENTER}
-                                pixelOffset={new Cartesian2(0, -14)}
-                                disableDepthTestDistance={Number.POSITIVE_INFINITY}
-                                scale={0.9}
-                            />
-                        </Entity>
-                    )}
-                    {!leoS2SBackbone.sameSNP && leoS2SBackbone.popPos && (
-                        <Entity
-                            key={routeEntityIds.leoS2SPopMarker}
-                            id={routeEntityIds.leoS2SPopMarker}
-                            name={`S2S: PoP ${leoS2SBackbone.popName}`}
-                            position={leoS2SBackbone.popPos}
-                        >
-                            <PointGraphics
-                                pixelSize={13}
-                                color={Color.fromCssColorString('#8b5cf6').withAlpha(0.50)}
-                                outlineColor={Color.fromCssColorString('#ede9fe').withAlpha(0.38)}
-                                outlineWidth={2}
-                            />
-                            <LabelGraphics
-                                text={`PoP\n${leoS2SBackbone.popName}`}
-                                font="bold 11px sans-serif"
-                                fillColor={Color.fromCssColorString('#a78bfa').withAlpha(0.72)}
+                                fillColor={Color.fromCssColorString('#a78bfa')}
                                 outlineColor={Color.BLACK}
                                 outlineWidth={2}
                                 style={LabelStyle.FILL_AND_OUTLINE}
@@ -1436,10 +1351,119 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
                                 horizontalOrigin={HorizontalOrigin.CENTER}
                                 pixelOffset={new Cartesian2(0, -16)}
                                 disableDepthTestDistance={Number.POSITIVE_INFINITY}
-                                scale={0.9}
+                                scale={commercialMode ? 0.78 : 0.9}
                             />
-                        </Entity>
-                    )}
+                        )}
+                    </Entity>
+
+                    {/* ── "Service unavailable" backbone-only fallback ──────────────
+                        Distinct ids from the full-route pieces above (see
+                        routeEntityIds.*Fallback) so both sets can safely stay mounted
+                        simultaneously — only one set is ever show=true at a time,
+                        since leoS2SLinks and leoS2SBackbone are mutually exclusive by
+                        construction (see their useMemo definitions above). */}
+                    <S2SBackboneSegment
+                        name="S2S: SNP A → PoP (backbone, service unavailable)"
+                        positions={leoS2SBackbone?.snpAToPopCallback ?? EMPTY_POSITIONS_CALLBACK}
+                        entityIdBase={routeEntityIds.leoS2SSnpAPopFallback}
+                        subdued
+                        show={!!leoS2SBackbone && !leoS2SBackbone.sameSNP && !!leoS2SBackbone.snpAToPopCallback}
+                    />
+                    <S2SBackboneSegment
+                        name="S2S: PoP → SNP B (backbone, service unavailable)"
+                        positions={leoS2SBackbone?.popToSnpBCallback ?? EMPTY_POSITIONS_CALLBACK}
+                        entityIdBase={routeEntityIds.leoS2SPopSnpBFallback}
+                        subdued
+                        show={!!leoS2SBackbone && !leoS2SBackbone.sameSNP && !!leoS2SBackbone.popToSnpBCallback}
+                    />
+                    <S2SBackboneSegment
+                        name="S2S: Same SNP (backbone collapsed, service unavailable)"
+                        positions={leoS2SBackbone?.sameSnpCallback ?? EMPTY_POSITIONS_CALLBACK}
+                        entityIdBase={routeEntityIds.leoS2SBackboneSameFallback}
+                        subdued
+                        show={!!leoS2SBackbone?.sameSNP && !!leoS2SBackbone.sameSnpCallback}
+                    />
+                    <Entity
+                        key={routeEntityIds.leoS2SSnpAMarkerFallback}
+                        id={routeEntityIds.leoS2SSnpAMarkerFallback}
+                        name={`S2S: SNP ${leoS2SBackbone?.snpAName ?? ''}`}
+                        position={leoS2SBackbone?.snpAPos ?? HIDDEN_ENTITY_POSITION}
+                        show={!!(leoS2SBackbone?.snpAPos && leoS2SBackbone?.snpAName)}
+                    >
+                        <PointGraphics
+                            pixelSize={10}
+                            color={Color.fromCssColorString('#f97316').withAlpha(0.55)}
+                            outlineColor={Color.fromCssColorString('#fff7ed').withAlpha(0.45)}
+                            outlineWidth={1.5}
+                        />
+                        <LabelGraphics
+                            text={`SNP A\n${leoS2SBackbone?.snpAName ?? ''}`}
+                            font="bold 11px sans-serif"
+                            fillColor={Color.fromCssColorString('#f97316').withAlpha(0.72)}
+                            outlineColor={Color.BLACK}
+                            outlineWidth={2}
+                            style={LabelStyle.FILL_AND_OUTLINE}
+                            verticalOrigin={VerticalOrigin.BOTTOM}
+                            horizontalOrigin={HorizontalOrigin.CENTER}
+                            pixelOffset={new Cartesian2(0, -14)}
+                            disableDepthTestDistance={Number.POSITIVE_INFINITY}
+                            scale={0.9}
+                        />
+                    </Entity>
+                    <Entity
+                        key={routeEntityIds.leoS2SSnpBMarkerFallback}
+                        id={routeEntityIds.leoS2SSnpBMarkerFallback}
+                        name={`S2S: SNP ${leoS2SBackbone?.snpBName ?? ''}`}
+                        position={leoS2SBackbone?.snpBPos ?? HIDDEN_ENTITY_POSITION}
+                        show={!!(!leoS2SBackbone?.sameSNP && leoS2SBackbone?.snpBPos && leoS2SBackbone?.snpBName)}
+                    >
+                        <PointGraphics
+                            pixelSize={10}
+                            color={Color.fromCssColorString('#f97316').withAlpha(0.55)}
+                            outlineColor={Color.fromCssColorString('#fff7ed').withAlpha(0.45)}
+                            outlineWidth={1.5}
+                        />
+                        <LabelGraphics
+                            text={`SNP B\n${leoS2SBackbone?.snpBName ?? ''}`}
+                            font="bold 11px sans-serif"
+                            fillColor={Color.fromCssColorString('#f97316').withAlpha(0.72)}
+                            outlineColor={Color.BLACK}
+                            outlineWidth={2}
+                            style={LabelStyle.FILL_AND_OUTLINE}
+                            verticalOrigin={VerticalOrigin.BOTTOM}
+                            horizontalOrigin={HorizontalOrigin.CENTER}
+                            pixelOffset={new Cartesian2(0, -14)}
+                            disableDepthTestDistance={Number.POSITIVE_INFINITY}
+                            scale={0.9}
+                        />
+                    </Entity>
+                    <Entity
+                        key={routeEntityIds.leoS2SPopMarkerFallback}
+                        id={routeEntityIds.leoS2SPopMarkerFallback}
+                        name={`S2S: PoP ${leoS2SBackbone?.popName ?? ''}`}
+                        position={leoS2SBackbone?.popPos ?? HIDDEN_ENTITY_POSITION}
+                        show={!!(!leoS2SBackbone?.sameSNP && leoS2SBackbone?.popPos)}
+                    >
+                        <PointGraphics
+                            pixelSize={13}
+                            color={Color.fromCssColorString('#8b5cf6').withAlpha(0.50)}
+                            outlineColor={Color.fromCssColorString('#ede9fe').withAlpha(0.38)}
+                            outlineWidth={2}
+                        />
+                        <LabelGraphics
+                            text={`PoP\n${leoS2SBackbone?.popName ?? ''}`}
+                            font="bold 11px sans-serif"
+                            fillColor={Color.fromCssColorString('#a78bfa').withAlpha(0.72)}
+                            outlineColor={Color.BLACK}
+                            outlineWidth={2}
+                            style={LabelStyle.FILL_AND_OUTLINE}
+                            verticalOrigin={VerticalOrigin.BOTTOM}
+                            horizontalOrigin={HorizontalOrigin.CENTER}
+                            pixelOffset={new Cartesian2(0, -16)}
+                            disableDepthTestDistance={Number.POSITIVE_INFINITY}
+                            scale={0.9}
+                        />
+                    </Entity>
                 </>
             )}
             <PathFlowAnimation

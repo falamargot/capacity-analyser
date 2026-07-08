@@ -772,6 +772,9 @@ export const computeGeoConnectivity = (
     userPoint.lat.toFixed(4),
     userPoint.lng.toFixed(4),
     (userPoint.altitude ?? 0).toFixed(3),
+    // Beam token participates in gateway resolution for beam-routed satellites,
+    // so cached geometry must be beam-scoped too.
+    selectedCoverage?.beamId ?? 'no-beam',
     gatewaySignature,
   ].join('::');
 
@@ -781,6 +784,7 @@ export const computeGeoConnectivity = (
       userPoint,
       satellite: resolved.satellite,
       gateways,
+      coverage: selectedCoverage,
     });
     if (geoConnectivityCache.size >= GEO_CONNECTIVITY_CACHE_MAX_ENTRIES) {
       const oldestKey = geoConnectivityCache.keys().next().value;

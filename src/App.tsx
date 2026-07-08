@@ -95,7 +95,7 @@ import {
 } from './utils/fillRateUx';
 import { getConnectivityStatus, hasRFConnectivity } from './utils/rfConnectivity';
 import { deriveLeoConnectivityViewModel, type LeoConnectivityViewModel } from './utils/leoServiceViewModel';
-import { getGroundSegmentRoutingForSatellite, resolveConnectivityPathForSatellite, selectTrafficGeoGateway, distanceKm, type ResolvedGeoGateway, type PointLLA } from './utils/geoConnectivityModel';
+import { getGroundSegmentRoutingForSatellite, resolveConnectivityPathForSatellite, resolveStarTrafficGatewayForCoverage, selectTrafficGeoGateway, distanceKm, type ResolvedGeoGateway, type PointLLA } from './utils/geoConnectivityModel';
 import type { GeoPointStatus } from './utils/selectedPointStatus';
 import type { CountryOverlayMode } from './types/countryOverlays';
 import type { LinkMode } from './types/linkMode';
@@ -1415,6 +1415,26 @@ const App: React.FC = () => {
   const selectedGeoBeamId = useMemo(() => (
     selectedSelection.type === 'contour' ? selectedSelection.contourId : null
   ), [selectedSelection]);
+
+  // GEO satellites are geostationary: their propagated positions are static for
+  // simulation purposes, so GEO-only derivations key on constellation identity
+  // instead of the propagated array reference, which churns on every
+  // SATELLITE_PROPAGATION_INTERVAL_MS tick and would otherwise rerun the full
+  // GEO coverage/gateway/RF chain once per second.
+  const geoOperationalSatelliteSignature = useMemo(() => (
+    satellites
+      .filter((satellite) => satellite.orbitType === 'GEO' && satellite.opsStatus === 'operational')
+      .map((satellite) => satellite.id)
+      .sort()
+      .join('|')
+  ), [satellites]);
+
+  const geoOperationalSatellites = useMemo(
+    () => satellites.filter((satellite) => satellite.orbitType === 'GEO' && satellite.opsStatus === 'operational'),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [geoOperationalSatelliteSignature]
+  );
+
   const candidateCoverages = useMemo(() => {
     if (selectedSelection.type !== 'target') {
       return [];
@@ -1424,43 +1444,32 @@ const App: React.FC = () => {
       return [];
     }
 
-    const geoSatellites = satellites.filter(
-      (satellite) => satellite.orbitType === 'GEO' && satellite.opsStatus === 'operational'
-    );
-
     const ranked = rankCandidateCoverages(
-      findCandidateCoverages(selectedSelection.position, geoSatellites, { terminalRFClassId: geoRFClassIdA }),
-      geoSatellites,
+      findCandidateCoverages(selectedSelection.position, geoOperationalSatellites, { terminalRFClassId: geoRFClassIdA }),
+      geoOperationalSatellites,
       selectedSelection.position
     );
     return ranked;
-  }, [geoRFClassIdA, satelliteScope, satellites, selectedSelection]);
+  }, [geoRFClassIdA, satelliteScope, geoOperationalSatellites, selectedSelection]);
 
   // Coverage candidates for Point B (MESH / Point-to-Point modes only).
   const candidateCoveragesB = useMemo(() => {
     if (!LINK_MODE_REQUIRES_POINT_B.has(linkMode) || !pointB) return [];
     if (satelliteScope !== 'ALL' && satelliteScope !== 'GEO') return [];
 
-    const geoSatellites = satellites.filter(
-      (satellite) => satellite.orbitType === 'GEO' && satellite.opsStatus === 'operational'
-    );
-
     const ranked = rankCandidateCoverages(
-      findCandidateCoverages(pointB, geoSatellites, { terminalRFClassId: geoRFClassIdB }),
-      geoSatellites,
+      findCandidateCoverages(pointB, geoOperationalSatellites, { terminalRFClassId: geoRFClassIdB }),
+      geoOperationalSatellites,
       pointB
     );
     return ranked;
-  }, [geoRFClassIdB, linkMode, pointB, satelliteScope, satellites]);
+  }, [geoRFClassIdB, linkMode, pointB, satelliteScope, geoOperationalSatellites]);
 
   const eligibleCandidateCoverages = useMemo(() => {
     if (candidateCoverages.length === 0) return candidateCoverages;
 
-    const geoSatellites = satellites.filter(
-      (satellite) => satellite.orbitType === 'GEO' && satellite.opsStatus === 'operational'
-    );
     const candidatePoolForMode = (linkMode === 'STAR_FORWARD' || linkMode === 'STAR_RETURN')
-      ? augmentCandidatesWithSynthesizedDirections(candidateCoverages, geoSatellites)
+      ? augmentCandidatesWithSynthesizedDirections(candidateCoverages, geoOperationalSatellites)
       : candidateCoverages;
 
     const hasRealDirection = (pool: CandidateCoverage[], satelliteId: string, isUplink: boolean) => (
@@ -1514,7 +1523,7 @@ const App: React.FC = () => {
       return candidateCoverages.filter((candidate) => candidateSatelliteIdsWithRequiredUserDirection.has(candidate.satelliteId));
     }
 
-    const candidateSatellites = geoSatellites.filter((satellite) => candidateSatelliteIdsWithRequiredUserDirection.has(satellite.id));
+    const candidateSatellites = geoOperationalSatellites.filter((satellite) => candidateSatelliteIdsWithRequiredUserDirection.has(satellite.id));
 
     const gatewayByPosition = new Map<string, { lat: number; lng: number }>();
     const gatewayPositionBySatelliteId = new Map<string, string>();
@@ -1549,9 +1558,9 @@ const App: React.FC = () => {
       const gatewayCandidates = augmentCandidatesWithSynthesizedDirections(
         findCandidateCoverages(
           gatewayPosition,
-          geoSatellites
+          geoOperationalSatellites
         ),
-        geoSatellites,
+        geoOperationalSatellites,
       );
       coveredSatelliteIdsByGatewayPosition.set(
         positionKey,
@@ -1580,7 +1589,7 @@ const App: React.FC = () => {
       candidateSatelliteIdsWithRequiredUserDirection.has(candidate.satelliteId) &&
       eligibleSatelliteIds.has(candidate.satelliteId)
     ));
-  }, [candidateCoverages, candidateCoveragesB, linkMode, satellites]);
+  }, [candidateCoverages, candidateCoveragesB, linkMode, geoOperationalSatellites]);
 
   const targetSelectionResetKey = useMemo(() => (
     selectedSelection.type === 'target'
@@ -1643,13 +1652,9 @@ const App: React.FC = () => {
     if (selectedSelection.type !== 'target') return null;
     if (eligibleCandidateCoverages.length === 0) return null;
 
-    const geoSatellites = satellites.filter(
-      (satellite) => satellite.orbitType === 'GEO' && satellite.opsStatus === 'operational'
-    );
-
     return selectBestTopologyPath({
       linkMode,
-      satellites: geoSatellites,
+      satellites: geoOperationalSatellites,
       candidateCoveragesA: eligibleCandidateCoverages,
       candidateCoveragesB,
       pointB,
@@ -1669,7 +1674,7 @@ const App: React.FC = () => {
     geoRFCustomParamsB,
     linkMode,
     pointB,
-    satellites,
+    geoOperationalSatellites,
     selectedSelection.type,
   ]);
 
@@ -1964,17 +1969,24 @@ const App: React.FC = () => {
     })?.resolvedGateway ?? null;
   }, [selectedPosition, selectedSatellite]);
 
+  // Traffic gateway for display (globe HUB marker, commercial route hub): resolved
+  // through the same beam-aware path as the ENG panel and the route view model, so
+  // every surface names the same physical site. selectedCoverage is already
+  // direction-aware by linkMode (STAR_RETURN → uplink beam), and the resolver
+  // internally falls back to the legacy per-satellite selection for unmapped beams
+  // or missing coverage. For satellites without STAR traffic topology it returns
+  // null, matching the previous supportsStarTrafficTopology gate.
   const resolvedAutoTrafficGeoGateway = useMemo((): ResolvedGeoGateway | null => {
     if (!activeGeoSatellite) return null;
-    if (!supportsStarTrafficTopology(activeGeoSatellite)) return null;
-    return selectTrafficGeoGateway(activeGeoSatellite, GEO_GATEWAYS)?.resolvedGateway ?? null;
-  }, [activeGeoSatellite]);
+    const referenceCoverage = selectedCoverage?.satelliteId === activeGeoSatellite.id ? selectedCoverage : null;
+    return resolveStarTrafficGatewayForCoverage(activeGeoSatellite, referenceCoverage, GEO_GATEWAYS)?.resolvedGateway ?? null;
+  }, [activeGeoSatellite, selectedCoverage]);
 
   const resolvedSelectedTrafficGeoGateway = useMemo((): ResolvedGeoGateway | null => {
     if (!selectedSatellite || selectedSatellite.type !== 'EUTELSAT') return null;
-    if (!supportsStarTrafficTopology(selectedSatellite)) return null;
-    return selectTrafficGeoGateway(selectedSatellite, GEO_GATEWAYS)?.resolvedGateway ?? null;
-  }, [selectedSatellite]);
+    const referenceCoverage = selectedCoverage?.satelliteId === selectedSatellite.id ? selectedCoverage : null;
+    return resolveStarTrafficGatewayForCoverage(selectedSatellite, referenceCoverage, GEO_GATEWAYS)?.resolvedGateway ?? null;
+  }, [selectedCoverage, selectedSatellite]);
 
   // Resolve live satellite instance for selected satellite (real-time positions)
   const liveSelectedSatellite = useMemo(
@@ -3764,9 +3776,9 @@ const App: React.FC = () => {
   const selectedGatewayHeroData = useMemo(() => {
     if (!selectedGateway) return null;
 
-    const operationalGeoSatellites = satellites.filter((satellite) => (
-      satellite.orbitType === 'GEO' && satellite.type === 'EUTELSAT' && satellite.opsStatus === 'operational'
-    ));
+    const operationalGeoSatellites = geoOperationalSatellites.filter(
+      (satellite) => satellite.type === 'EUTELSAT'
+    );
 
     const routedSatellites = operationalGeoSatellites
       .map((satellite) => ({ satellite, routing: getGroundSegmentRoutingForSatellite(satellite, GEO_GATEWAYS) }))
@@ -3781,7 +3793,7 @@ const App: React.FC = () => {
         && (satellite.name === 'EUTELSAT KONNECT' || satellite.name === 'EUTELSAT KONNECT VHTS')
       )),
     };
-  }, [selectedGateway, satellites]);
+  }, [selectedGateway, geoOperationalSatellites]);
 
   const desktopSidebarHero = useMemo(() => {
     if (selectedMoon) {
