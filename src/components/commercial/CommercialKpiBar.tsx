@@ -86,7 +86,7 @@ function commercialDifferentiator(
   if (isRecommended) {
     if (option.technology === 'leo' && otherOption?.rttMs != null && option.rttMs != null) {
       const ratio = Math.round(otherOption.rttMs / option.rttMs);
-      if (ratio >= 2) return `${ratio}× faster response time`;
+      if (ratio >= 2) return `${ratio}× lower latency`;
     }
     if (option.technology === 'geo' && otherOption?.downloadMbps != null && option.downloadMbps != null) {
       if (option.downloadMbps > otherOption.downloadMbps * 1.2) return 'Higher available bandwidth';
@@ -157,7 +157,7 @@ function CompactKpiBar({ viewModel }: { viewModel: CommercialScenarioViewModel }
         <div className="mt-1.5 grid grid-cols-4 gap-1.5">
           <CommercialKpiTile value={formatMbps(viewModel.downloadMbps)} label="Download" sublabel={dlTier.label !== '--' ? dlTier.label : undefined} sublabelTone={dlTier.tone} />
           <CommercialKpiTile value={formatMbps(viewModel.uploadMbps)} label="Upload" sublabel={ulTier.label !== '--' ? ulTier.label : undefined} sublabelTone={ulTier.tone} />
-          <CommercialKpiTile value={formatMs(viewModel.rttMs)} label="Response time" sublabel={rttTier.label !== '--' ? rttTier.label : undefined} sublabelTone={rttTier.tone} />
+          <CommercialKpiTile value={formatMs(viewModel.rttMs)} label="Latency" sublabel={rttTier.label !== '--' ? rttTier.label : undefined} sublabelTone={rttTier.tone} />
           <CommercialKpiTile value={viewModel.availabilityPct != null ? `${viewModel.availabilityPct.toFixed(1)}%` : '--'} label="Reliability" sublabel={relTier.label !== '--' ? relTier.label : undefined} sublabelTone={relTier.tone} />
         </div>
         <p className="mt-1.5 text-[11px] leading-4 text-slate-300">{interpretation}</p>
@@ -191,7 +191,7 @@ function CompactKpiBar({ viewModel }: { viewModel: CommercialScenarioViewModel }
                   </div>
                   <div className="mt-1 grid grid-cols-3 gap-1">
                     <CommercialKpiTile value={formatMbps(option.downloadMbps)} label="Download" />
-                    <CommercialKpiTile value={formatMs(option.rttMs)} label="Response" />
+                    <CommercialKpiTile value={formatMs(option.rttMs)} label="Latency" />
                     <CommercialKpiTile value={option.available ? `${formatMbps(option.uploadMbps)}` : '--'} label="Upload" />
                   </div>
                 </div>

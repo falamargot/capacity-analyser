@@ -1924,11 +1924,16 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
     const isStarReturn = linkMode === 'STAR_RETURN';
 
     return {
+      // One-way user latency for the active direction incl. network overhead —
+      // the same expression as the ENG AnswerBlock headline and the COMM route
+      // view model, so the header GEO tile never disagrees with either.
       rtt: isMeshMode
         ? (activeMeshTab === 'reverse'
           ? (meshMetrics?.reverseLatencyMs ?? null)
           : (meshMetrics?.forwardLatencyMs ?? null))
-        : (geoGeometry.oneWayRadioMs ?? null),
+        : (geoGeometry.oneWayRadioMs != null
+          ? geoGeometry.oneWayRadioMs + geoGeometry.overheadMs.total
+          : null),
       downlinkGbps: isStarReturn ? null : geoEffectivePerformance.downlinkGbps,
       uplinkGbps: isStarForward ? null : geoEffectivePerformance.uplinkGbps,
     };

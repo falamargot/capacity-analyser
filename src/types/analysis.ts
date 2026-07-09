@@ -123,6 +123,13 @@ export interface AutoSelectionState {
 }
 
 export interface MobileLinkMetrics {
+    /**
+     * Displayed latency in ms — legacy field name, NOT always a round trip.
+     * LEO publishes its round-trip estimate; GEO publishes the one-way user
+     * latency for the active direction including network overhead (same
+     * figure as the ENG headline). UI surfaces must label this "latency",
+     * never "RTT".
+     */
     rtt: number | null;
     downlinkGbps: number | null;
     uplinkGbps: number | null;

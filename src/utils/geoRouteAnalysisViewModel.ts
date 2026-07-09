@@ -45,7 +45,12 @@ export interface GeoRouteAnalysisViewModel {
   reason: string | null;
   downloadMbps?: number;
   uploadMbps?: number;
-  rttMs?: number;
+  /**
+   * One-way user-experienced latency for the active direction, including
+   * network overhead (STAR: user↔sat↔gateway propagation + gateway/modem/
+   * routing overhead; MESH: A↔sat↔B propagation + modem overhead). Matches the
+   * ENG AnswerBlock headline for the same route. Not a round-trip time.
+   */
   latencyMs?: number;
   routeSummary?: string;
   routePath?: GeoSiteToSitePathSummary | null;
@@ -453,6 +458,17 @@ export function buildGeoRouteAnalysisViewModel(input: GeoRouteAnalysisInput): Ge
     ));
     return geoGeometry.userToSatellite.latencyMs + gatewayLegMs;
   })();
+  // Published STAR latency: one-way propagation PLUS the gateway/modem/routing
+  // overhead — the exact expression the ENG AnswerBlock headline uses
+  // (GEOConnectivitySection's geoStarOneWayTotalMs), so ENG and COMM report the
+  // same figure for the same route instead of differing by the overhead total.
+  const starOneWayLatencyMs = (() => {
+    if (input.linkMode !== 'STAR_FORWARD' && input.linkMode !== 'STAR_RETURN') return null;
+    if (!geoGeometry) return null;
+    const propagationMs = starAwareOneWayRadioMs ?? geoGeometry.oneWayRadioMs;
+    if (propagationMs == null) return null;
+    return propagationMs + geoGeometry.overheadMs.total;
+  })();
   const baseGeoPerformance = resolvedGEOConnectivity && geoGeometry
     ? calculateGeoPerformance({
         elevationDeg: geoGeometry.userToSatellite.elevationDeg,
@@ -585,11 +601,15 @@ export function buildGeoRouteAnalysisViewModel(input: GeoRouteAnalysisInput): Ge
   const geoMetrics: MobileLinkMetrics | null = (() => {
     if (!resolvedGEOConnectivity || !geoGeometry || !geoEffectivePerformance) return null;
     return {
+      // MobileLinkMetrics.rtt is a legacy field name — for GEO it carries the
+      // one-way user latency for the active direction incl. network overhead
+      // (STAR: user↔sat↔gateway + gateway/modem/routing; MESH: A↔sat↔B + modem),
+      // NOT a round-trip time. Consumers label it "latency".
       rtt: isMeshMode
         ? (input.activeMeshTab === 'reverse'
             ? (meshMetrics?.reverseLatencyMs ?? null)
             : (meshMetrics?.forwardLatencyMs ?? null))
-        : (starAwareOneWayRadioMs ?? geoGeometry.oneWayRadioMs ?? null),
+        : starOneWayLatencyMs,
       downlinkGbps: input.linkMode === 'STAR_RETURN' ? null : geoEffectivePerformance.downlinkGbps,
       uplinkGbps: input.linkMode === 'STAR_FORWARD' ? null : geoEffectivePerformance.uplinkGbps,
     };
@@ -639,7 +659,6 @@ export function buildGeoRouteAnalysisViewModel(input: GeoRouteAnalysisInput): Ge
     reason: available ? null : noMetricsReason,
     downloadMbps,
     uploadMbps,
-    rttMs: latencyMs,
     latencyMs,
     routeSummary: routeSummary ?? undefined,
     routePath: geoSiteToSitePath,

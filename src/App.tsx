@@ -58,6 +58,7 @@ import {
   rankCandidateCoverages,
   resolveCoverageSelection,
 } from './utils/geoCoverageSelection';
+import { pickStarGatewayReferenceCoverage } from './utils/geoStarGatewaySelection';
 import {
   BoundingSphere,
   Cartesian3,
@@ -2258,10 +2259,25 @@ const App: React.FC = () => {
       return 'out_of_coverage';
     }
 
+    // Same resolution convention as the route view model and the ENG panel:
+    // downlink-first coverage for candidate resolution, direction-aware
+    // reference for gateway resolution, and the simulated gateway outages —
+    // so the status pill can never disagree with the analysis it summarizes.
+    // Keyed on geoOperationalSatellites (identity-keyed), not the per-second
+    // propagated satellites array.
+    const activeCoverageForGeo = selectedDownlinkCoverage ?? selectedUplinkCoverage ?? selectedCoverage;
+    const gatewayReferenceCoverage =
+      pickStarGatewayReferenceCoverage(linkMode, selectedDownlinkCoverage, selectedUplinkCoverage)
+        ?? activeCoverageForGeo;
     const geoConnectivity = computeGeoConnectivity(
-      selectedCoverage,
+      activeCoverageForGeo,
       activeAnalysisPoint,
-      satellites
+      geoOperationalSatellites,
+      GEO_GATEWAYS,
+      {
+        failedGatewaySiteIds: failedGeoGatewaySiteIds,
+        gatewayReferenceCoverage,
+      }
     );
 
     if (!geoConnectivity) {
@@ -2277,7 +2293,17 @@ const App: React.FC = () => {
     }
 
     return 'available';
-  }, [activeAnalysisPoint, activeGeoSatellite, satelliteScope, satellites, selectedCoverage]);
+  }, [
+    activeAnalysisPoint,
+    activeGeoSatellite,
+    failedGeoGatewaySiteIds,
+    geoOperationalSatellites,
+    linkMode,
+    satelliteScope,
+    selectedCoverage,
+    selectedDownlinkCoverage,
+    selectedUplinkCoverage,
+  ]);
 
   const geoRouteAnalysis = useMemo(() => {
     // Skip during the mode-switch transition render (isPending=true) so the
