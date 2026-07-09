@@ -139,11 +139,36 @@ export function buildLeoPassWindowEvidence(input: BuildLeoPassWindowInput): LeoP
   };
 }
 
+/**
+ * Threshold calibration (LEO audit L-Mo4).
+ *
+ * Above the 40° user elevation mask the longest possible single-satellite pass
+ * at 1200 km altitude is ≈ 6 min (coverage ground radius 1097 km, ground-track
+ * speed ≈ 6.1 km/s → 2×1097/6.1 ≈ 360 s for a directly-overhead pass). All
+ * thresholds below therefore live inside the 0–6 min range so the good end of
+ * each scale is physically reachable — the previous 10/12 min thresholds made
+ * 'High' stability and '0 handovers' structurally impossible.
+ */
+export const PASS_MAX_DURATION_ABOVE_MASK_MIN = 6;
+export const HANDOVER_FREE_WINDOW_MIN = 5;
+export const HANDOVER_IMMINENT_WINDOW_MIN = 1.5;
+export const STABILITY_HIGH_MIN_REMAINING_MIN = 4;
+export const STABILITY_HIGH_MIN_APEX_DEG = 60;
+export const STABILITY_MEDIUM_MIN_REMAINING_MIN = 2;
+export const STABILITY_MEDIUM_MIN_APEX_DEG = 45;
+
+/**
+ * Expected handovers over the next ~5 minutes (the handover-free window):
+ *   0 — the current pass outlasts the window (fresh, near-overhead pass)
+ *   1 — one handover expected as the current pass ends inside the window
+ *   2 — handover imminent (< 1.5 min remaining); a second may follow if the
+ *       relieving pass is itself short
+ */
 export function expectedHandoversFromPassWindow(passWindow: LeoPassWindowEvidence | null): number {
   const remaining = passWindow?.currentPassRemainingMin ?? passWindow?.nextPassDurationMin ?? null;
   if (remaining == null) return 1;
-  if (remaining >= 12) return 0;
-  if (remaining >= 6) return 1;
+  if (remaining >= HANDOVER_FREE_WINDOW_MIN) return 0;
+  if (remaining >= HANDOVER_IMMINENT_WINDOW_MIN) return 1;
   return 2;
 }
 
@@ -162,7 +187,7 @@ export function stabilityFromPassWindows(
     passB?.passApexElevationDeg ?? fallbackElevationB ?? 0,
   );
 
-  if (minRemaining >= 10 && minApex >= 40) return 'High';
-  if (minRemaining >= 5 && minApex >= 20) return 'Medium';
+  if (minRemaining >= STABILITY_HIGH_MIN_REMAINING_MIN && minApex >= STABILITY_HIGH_MIN_APEX_DEG) return 'High';
+  if (minRemaining >= STABILITY_MEDIUM_MIN_REMAINING_MIN && minApex >= STABILITY_MEDIUM_MIN_APEX_DEG) return 'Medium';
   return 'Low';
 }

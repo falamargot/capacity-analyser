@@ -20,6 +20,12 @@ import {
   stabilityFromPassWindows,
   type LeoPassWindowEvidence,
 } from './leoPassWindow';
+import {
+  evaluateLeoServiceGates,
+  leoServiceGateOrdinal,
+  statusForLeoServiceGate,
+  type LeoServiceGate,
+} from './leoServiceDecision';
 
 // ── OneWeb site-to-site backbone constants ────────────────────────────────────
 
@@ -167,7 +173,7 @@ export interface LeoSiteToSiteResult {
   /** Elevation angle at endpoint B (degrees). */
   elevationBDeg: number | null;
 
-  /** Number of expected handovers in the next ~15 minutes (estimated). */
+  /** Number of expected handovers in the next ~5 minutes (estimated). */
   expectedHandoversA: number;
   expectedHandoversB: number;
   passWindowA: LeoPassWindowEvidence | null;
@@ -294,6 +300,17 @@ function deriveConfidence(args: {
   });
 }
 
+const FAILURE_REASON_BY_GATE: Record<LeoServiceGate, { A: LeoSiteToSiteFailureReason; B: LeoSiteToSiteFailureReason }> = {
+  REGULATORY_PENDING: { A: 'REGULATORY_PENDING_A', B: 'REGULATORY_PENDING_B' },
+  REGULATORY_BLOCKED: { A: 'REGULATORY_BLOCKED_A', B: 'REGULATORY_BLOCKED_B' },
+  NO_SATELLITE: { A: 'NO_SATELLITE_A', B: 'NO_SATELLITE_B' },
+  NO_RF: { A: 'RF_UNAVAILABLE_A', B: 'RF_UNAVAILABLE_B' },
+  NO_SNP: { A: 'NO_SNP_A', B: 'NO_SNP_B' },
+  REGULATORY_RESTRICTED: { A: 'REGULATORY_RESTRICTED_A', B: 'REGULATORY_RESTRICTED_B' },
+  CAPACITY_SATURATED: { A: 'CAPACITY_SATURATED_A', B: 'CAPACITY_SATURATED_B' },
+  CAPACITY_DEGRADED: { A: 'CAPACITY_DEGRADED_A', B: 'CAPACITY_DEGRADED_B' },
+};
+
 function deriveFailureReason(args: {
   servingSatelliteA: SatelliteData | null;
   servingSatelliteB: SatelliteData | null;
@@ -306,58 +323,38 @@ function deriveFailureReason(args: {
   beamLoadA?: BeamLoadResult | null;
   beamLoadB?: BeamLoadResult | null;
 }): LeoSiteToSiteFailureReason | null {
-  const {
-    servingSatelliteA,
-    servingSatelliteB,
-    rfAvailableA,
-    rfAvailableB,
-    selectedSnpA,
-    selectedSnpB,
-    regulatoryResultA,
-    regulatoryResultB,
-    beamLoadA,
-    beamLoadB,
-  } = args;
+  // Per-endpoint gates evaluated through the canonical chain (leoServiceDecision.ts),
+  // then gate-major across endpoints: the endpoint whose gate fires earliest in the
+  // canonical order wins; on a tie, endpoint A is reported first.
+  // Note: a null regulatory result means the async lookup is still pending — the
+  // PENDING gate blocks so a BLOCKED site can never appear ALLOWED while it resolves.
+  const gateA = evaluateLeoServiceGates({
+    regulatoryStatus: args.regulatoryResultA?.status ?? null,
+    hasSatellite: !!args.servingSatelliteA,
+    hasRF: args.rfAvailableA,
+    hasSNP: !!args.selectedSnpA,
+    capacityStatus: args.beamLoadA?.capacityStatus ?? null,
+  });
+  const gateB = evaluateLeoServiceGates({
+    regulatoryStatus: args.regulatoryResultB?.status ?? null,
+    hasSatellite: !!args.servingSatelliteB,
+    hasRF: args.rfAvailableB,
+    hasSNP: !!args.selectedSnpB,
+    capacityStatus: args.beamLoadB?.capacityStatus ?? null,
+  });
 
-  // Regulatory checks must happen before RF/SNP/capacity.
-  // A null result means the async lookup is still pending — treat as blocking
-  // to prevent a window where a BLOCKED site appears ALLOWED while the fetch resolves.
-  if (regulatoryResultA === null) return 'REGULATORY_PENDING_A';
-  if (regulatoryResultB === null) return 'REGULATORY_PENDING_B';
-  if (regulatoryResultA.status === 'BLOCKED') return 'REGULATORY_BLOCKED_A';
-  if (regulatoryResultB.status === 'BLOCKED') return 'REGULATORY_BLOCKED_B';
-  if (regulatoryResultA.status === 'RESTRICTED') return 'REGULATORY_RESTRICTED_A';
-  if (regulatoryResultB.status === 'RESTRICTED') return 'REGULATORY_RESTRICTED_B';
-
-  if (!servingSatelliteA) return 'NO_SATELLITE_A';
-  if (!servingSatelliteB) return 'NO_SATELLITE_B';
-  if (!rfAvailableA) return 'RF_UNAVAILABLE_A';
-  if (!rfAvailableB) return 'RF_UNAVAILABLE_B';
-  if (!selectedSnpA) return 'NO_SNP_A';
-  if (!selectedSnpB) return 'NO_SNP_B';
-
-  // Capacity checks — consistent with single-site service layer priority chain.
-  if (beamLoadA?.capacityStatus === 'SATURATED') return 'CAPACITY_SATURATED_A';
-  if (beamLoadB?.capacityStatus === 'SATURATED') return 'CAPACITY_SATURATED_B';
-  if (beamLoadA?.capacityStatus === 'DEGRADED') return 'CAPACITY_DEGRADED_A';
-  if (beamLoadB?.capacityStatus === 'DEGRADED') return 'CAPACITY_DEGRADED_B';
-
-  return null;
+  if (gateA === null && gateB === null) return null;
+  return leoServiceGateOrdinal(gateA) <= leoServiceGateOrdinal(gateB)
+    ? FAILURE_REASON_BY_GATE[gateA as LeoServiceGate].A
+    : FAILURE_REASON_BY_GATE[gateB as LeoServiceGate].B;
 }
 
 function deriveServiceStatus(failureReason: LeoSiteToSiteFailureReason | null): ServiceStatus {
   if (!failureReason) return 'ALLOWED';
-  switch (failureReason) {
-    case 'REGULATORY_RESTRICTED_A':
-    case 'REGULATORY_RESTRICTED_B':
-    case 'CAPACITY_SATURATED_A':
-    case 'CAPACITY_SATURATED_B':
-    case 'CAPACITY_DEGRADED_A':
-    case 'CAPACITY_DEGRADED_B':
-      return 'DEGRADED';
-    default:
-      return 'BLOCKED';
-  }
+  const gate = (Object.keys(FAILURE_REASON_BY_GATE) as LeoServiceGate[]).find(
+    (key) => FAILURE_REASON_BY_GATE[key].A === failureReason || FAILURE_REASON_BY_GATE[key].B === failureReason,
+  );
+  return gate ? statusForLeoServiceGate(gate) : 'BLOCKED';
 }
 
 // ── Main computation ──────────────────────────────────────────────────────────

@@ -1948,7 +1948,7 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
                   uplinkLabel={`${s2sView?.secondaryLabel ?? 'B → A'} throughput`}
                 />
                 <div className="mt-2 flex items-center justify-between text-xs">
-                  <span className="text-slate-500 dark:text-slate-400">Path stability</span>
+                  <span className="text-slate-500 dark:text-slate-400">Path stability (~5 min)</span>
                   <StabilityBadge stability={siteToSiteResult!.pathStability} />
                 </div>
                 <div className="mt-2">{simulatedNotice}</div>

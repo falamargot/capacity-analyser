@@ -106,7 +106,9 @@ describe('computeLeoSiteToSiteResult failure reasons', () => {
     expect(result.serviceAvailable).toBe(false);
   });
 
-  it('prioritizes regulatory B before RF and SNP failures', () => {
+  it('physical blockers at B outrank a RESTRICTED market (canonical gate order, L-Mo1)', () => {
+    // A restricted country with no RF has no service at all: the failure is the
+    // physical one (BLOCKED), not the market restriction (DEGRADED).
     const result = computeLeoSiteToSiteResult({
       ...baseArgs,
       rfAvailableB: false,
@@ -114,7 +116,19 @@ describe('computeLeoSiteToSiteResult failure reasons', () => {
       regulatoryResultB: regulatory('RESTRICTED'),
     });
 
+    expect(result.failureReason).toBe('RF_UNAVAILABLE_B');
+    expect(result.serviceStatus).toBe('BLOCKED');
+  });
+
+  it('a RESTRICTED market with full physical availability outranks capacity gates', () => {
+    const result = computeLeoSiteToSiteResult({
+      ...baseArgs,
+      regulatoryResultB: regulatory('RESTRICTED'),
+      beamLoadB: beamLoad('SATURATED'),
+    });
+
     expect(result.failureReason).toBe('REGULATORY_RESTRICTED_B');
+    expect(result.serviceStatus).toBe('DEGRADED');
   });
 });
 

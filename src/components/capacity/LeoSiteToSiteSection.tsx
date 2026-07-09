@@ -405,11 +405,11 @@ const LeoSiteToSiteSection = memo<LeoSiteToSiteSectionProps>(({ result, directio
                     value={fmtDeg(elevationBDeg)}
                   />
                   <MetricRow
-                    label="Expected handovers A (~15 min)"
+                    label="Expected handovers A (~5 min)"
                     value={String(expectedHandoversA)}
                   />
                   <MetricRow
-                    label="Expected handovers B (~15 min)"
+                    label="Expected handovers B (~5 min)"
                     value={String(expectedHandoversB)}
                   />
                   <MetricRow

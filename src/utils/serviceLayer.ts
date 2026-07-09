@@ -4,11 +4,12 @@
  * Combines RF, Network, Capacity, and Regulatory layer outputs into a
  * single service decision with a priority-ordered reason chain.
  *
- * Priority (highest → lowest):
+ * The gate ordering is owned by leoServiceDecision.ts (canonical chain shared
+ * with the site-to-site model and the route evidence — LEO audit L-Mo1):
  *   1. Regulatory BLOCKED     → BLOCKED
- *   2. Regulatory RESTRICTED  → DEGRADED
- *   3. No RF connectivity     → BLOCKED
- *   4. No network (no SNP)    → BLOCKED
+ *   2. No RF connectivity     → BLOCKED
+ *   3. No network (no SNP)    → BLOCKED
+ *   4. Regulatory RESTRICTED  → DEGRADED
  *   5. Capacity SATURATED     → DEGRADED
  *   6. Capacity DEGRADED      → DEGRADED
  *   7. Otherwise              → ALLOWED
@@ -18,6 +19,7 @@
 
 import type { RegulatoryResult } from '../services/regulatoryService';
 import type { BeamLoadResult } from './capacityLayer';
+import { deriveLeoServiceDecision } from './leoServiceDecision';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -59,107 +61,112 @@ export interface ServiceLayerInput {
  */
 export function computeServiceStatus(input: ServiceLayerInput): ServiceLayerResult {
   const { hasRF, hasSNP, regulatoryResult, beamLoadResult } = input;
-  const details: string[] = [];
 
-  // ── Priority 1: Regulatory BLOCKED ──────────────────────────────────────
-  if (regulatoryResult.status === 'BLOCKED') {
-    return {
-      status: 'BLOCKED',
-      primaryReasonLayer: 'regulatory',
-      reason: `Regulatory: service denied in ${regulatoryResult.countryName ?? 'this territory'}`,
-      details: [
-        `Country: ${regulatoryResult.countryName ?? 'Unknown'} (${regulatoryResult.isoA2 ?? '—'})`,
-        `Regulatory status: BLOCKED`,
-        regulatoryResult.reason,
-        'Service cannot be provided regardless of RF or capacity conditions.',
-      ],
-    };
+  const decision = deriveLeoServiceDecision({
+    regulatoryStatus: regulatoryResult.status,
+    // The caller resolves the serving satellite before invoking this layer;
+    // its absence surfaces as hasRF=false, so the satellite gate never fires here.
+    hasSatellite: true,
+    hasRF,
+    hasSNP,
+    capacityStatus: beamLoadResult.capacityStatus,
+  });
+
+  switch (decision.gate) {
+    case 'REGULATORY_PENDING':
+      // Unreachable by contract (regulatoryResult is non-null), kept for exhaustiveness.
+      return {
+        status: 'BLOCKED',
+        primaryReasonLayer: 'regulatory',
+        reason: 'Regulatory status pending for this position',
+        details: ['Regulatory lookup has not resolved yet.'],
+      };
+
+    case 'REGULATORY_BLOCKED':
+      return {
+        status: 'BLOCKED',
+        primaryReasonLayer: 'regulatory',
+        reason: `Regulatory: service denied in ${regulatoryResult.countryName ?? 'this territory'}`,
+        details: [
+          `Country: ${regulatoryResult.countryName ?? 'Unknown'} (${regulatoryResult.isoA2 ?? '—'})`,
+          `Regulatory status: BLOCKED`,
+          regulatoryResult.reason,
+          'Service cannot be provided regardless of RF or capacity conditions.',
+        ],
+      };
+
+    case 'NO_SATELLITE':
+    case 'NO_RF':
+      return {
+        status: 'BLOCKED',
+        primaryReasonLayer: 'rf',
+        reason: 'No RF connectivity — satellite not visible from this position',
+        details: [
+          'No satellite is currently within coverage range of this location.',
+          'Service is unavailable until a satellite pass begins.',
+        ],
+      };
+
+    case 'NO_SNP':
+      return {
+        status: 'BLOCKED',
+        primaryReasonLayer: 'network',
+        reason: 'No gateway reachable — OneWeb bent-pipe service requires simultaneous SNP visibility.',
+        details: [
+          'No Satellite Network Portal (SNP) is currently visible from the serving satellite.',
+          'OneWeb Gen 1 is bent-pipe: user-satellite and satellite-SNP visibility must be simultaneous.',
+        ],
+      };
+
+    case 'REGULATORY_RESTRICTED': {
+      const details = [
+        `Regulatory: ${regulatoryResult.countryName ?? 'Territory'} is a restricted market — conditional or licensed service only.`,
+      ];
+      if (regulatoryResult.reason) details.push(regulatoryResult.reason);
+      if (beamLoadResult.capacityStatus !== 'NOMINAL') {
+        details.push(
+          `Beam load: ${beamLoadResult.beamLoadPercent}% — ${beamLoadResult.capacityStatus} (estimated ${beamLoadResult.estimatedActiveUsers} active users)`,
+        );
+      }
+      return {
+        status: 'DEGRADED',
+        primaryReasonLayer: 'regulatory',
+        reason: `Regulatory restriction — ${regulatoryResult.countryName ?? 'territory'} is a conditional market`,
+        details,
+      };
+    }
+
+    case 'CAPACITY_SATURATED':
+      return {
+        status: 'DEGRADED',
+        primaryReasonLayer: 'capacity',
+        reason: `Beam saturated — estimated ${beamLoadResult.estimatedActiveUsers} concurrent users`,
+        details: [
+          `Beam load: ${beamLoadResult.beamLoadPercent}% — SATURATED (estimated ${beamLoadResult.estimatedActiveUsers} active users)`,
+        ],
+      };
+
+    case 'CAPACITY_DEGRADED':
+      return {
+        status: 'DEGRADED',
+        primaryReasonLayer: 'capacity',
+        reason: `Beam under load — estimated ${beamLoadResult.beamLoadPercent}% capacity utilisation`,
+        details: [
+          `Beam load: ${beamLoadResult.beamLoadPercent}% — DEGRADED (estimated ${beamLoadResult.estimatedActiveUsers} active users)`,
+        ],
+      };
+
+    case null:
+      return {
+        status: 'ALLOWED',
+        primaryReasonLayer: 'none',
+        reason: 'Service available — all systems nominal',
+        details: [
+          'RF connectivity: OK',
+          'Gateway: reachable',
+          `Regulatory: ${regulatoryResult.countryName ? `${regulatoryResult.countryName} — ALLOWED` : 'No restrictions'}`,
+          `Beam load: ${beamLoadResult.beamLoadPercent}% — nominal`,
+        ],
+      };
   }
-
-  // ── Priority 2: Regulatory RESTRICTED ───────────────────────────────────
-  if (regulatoryResult.status === 'RESTRICTED') {
-    details.push(
-      `Regulatory: ${regulatoryResult.countryName ?? 'Territory'} is a restricted market — conditional or licensed service only.`,
-    );
-    if (regulatoryResult.reason) details.push(regulatoryResult.reason);
-    return {
-      status: 'DEGRADED',
-      primaryReasonLayer: 'regulatory',
-      reason: `Regulatory restriction — ${regulatoryResult.countryName ?? 'territory'} is a conditional market`,
-      details,
-    };
-  }
-
-  // ── Priority 3: No RF connectivity ──────────────────────────────────────
-  if (!hasRF) {
-    return {
-      status: 'BLOCKED',
-      primaryReasonLayer: 'rf',
-      reason: 'No RF connectivity — satellite not visible from this position',
-      details: [
-        'No satellite is currently within coverage range of this location.',
-        'Service is unavailable until a satellite pass begins.',
-      ],
-    };
-  }
-
-  // ── Priority 4: No network backhaul ─────────────────────────────────────
-  if (!hasSNP) {
-    details.push('No Satellite Network Portal (SNP) is currently visible from the serving satellite.');
-    details.push('OneWeb Gen 1 is bent-pipe: user-satellite and satellite-SNP visibility must be simultaneous.');
-    return {
-      status: 'BLOCKED',
-      primaryReasonLayer: 'network',
-      reason: 'No gateway reachable — OneWeb bent-pipe service requires simultaneous SNP visibility.',
-      details,
-    };
-  }
-
-  // ── Collect contributing factors for DEGRADED cases ─────────────────────
-
-  // Priority 4: Capacity SATURATED
-  if (beamLoadResult.capacityStatus === 'SATURATED') {
-    details.push(
-      `Beam load: ${beamLoadResult.beamLoadPercent}% — SATURATED (estimated ${beamLoadResult.estimatedActiveUsers} active users)`,
-    );
-  } else if (beamLoadResult.capacityStatus === 'DEGRADED') {
-    details.push(
-      `Beam load: ${beamLoadResult.beamLoadPercent}% — DEGRADED (estimated ${beamLoadResult.estimatedActiveUsers} active users)`,
-    );
-  }
-
-  // ── Determine final status ──────────────────────────────────────────────
-
-  if (beamLoadResult.capacityStatus === 'SATURATED') {
-    return {
-      status: 'DEGRADED',
-      primaryReasonLayer: 'capacity',
-      reason: `Beam saturated — estimated ${beamLoadResult.estimatedActiveUsers} concurrent users`,
-      details,
-    };
-  }
-
-  if (beamLoadResult.capacityStatus === 'DEGRADED') {
-    return {
-      status: 'DEGRADED',
-      primaryReasonLayer: 'capacity',
-      reason: `Beam under load — estimated ${beamLoadResult.beamLoadPercent}% capacity utilisation`,
-      details,
-    };
-  }
-
-  // ── All good ─────────────────────────────────────────────────────────────
-  const allowedDetails: string[] = [
-    'RF connectivity: OK',
-    'Gateway: reachable',
-    `Regulatory: ${regulatoryResult.countryName ? `${regulatoryResult.countryName} — ALLOWED` : 'No restrictions'}`,
-    `Beam load: ${beamLoadResult.beamLoadPercent}% — nominal`,
-  ];
-
-  return {
-    status: 'ALLOWED',
-    primaryReasonLayer: 'none',
-    reason: 'Service available — all systems nominal',
-    details: allowedDetails,
-  };
 }

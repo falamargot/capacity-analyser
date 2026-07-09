@@ -25,6 +25,7 @@ import {
   RF_KU_FREQ_GHZ,
   RF_SATELLITE_GOT_DB_PER_K,
 } from './leoLinkBudget';
+import { deriveLeoServiceDecision } from './leoServiceDecision';
 import {
   computeLeoSiteToSiteResult,
   formatLeoSiteToSiteFailureReason,
@@ -454,10 +455,18 @@ function buildEndpointDebug(args: {
   const rxGtAfterScanDbK = profile.rxGtDbK + rxScanLossDb;
   const txEirpAfterScanDbw = profile.txEirpDbw + txScanLossDb;
 
+  // L-M2: FSPL is computed against the ACTUAL user↔satellite slant range, not the
+  // beam-index cross-section range (which tops out ~1300 km while a user at the
+  // 40° mask sits ~1700 km out — ≈2.3 dB of FSPL). The beam-index range remains
+  // in use inside estimateCurrentLeoBeamLink for beam-level EIRP shaping only.
+  const userSlantRangeKm = args.connectivity.userLEODistance > 0
+    ? args.connectivity.userLEODistance
+    : beamEstimate.debugInfo.slantRangeKm;
+
   const downlinkRf = computeDirectionalRfChainThroughput({
     eirpDbw: beamEstimate.beamLink.effectiveEirpDb,
     receiverGtDbK: rxGtAfterScanDbK,
-    slantRangeKm: beamEstimate.debugInfo.slantRangeKm,
+    slantRangeKm: userSlantRangeKm,
     pathAdjustmentDb: beamEstimate.beamLink.powerAtUserDb,
     frequencyGHz: RF_KU_FREQ_GHZ,
     noiseBwHz: profile.dlReferenceBandwidthHz,
@@ -465,7 +474,7 @@ function buildEndpointDebug(args: {
   });
   const uplinkRf = computeUplinkRfChainThroughput({
     terminalEirpDbw: txEirpAfterScanDbw,
-    slantRangeKm: beamEstimate.debugInfo.slantRangeKm,
+    slantRangeKm: userSlantRangeKm,
     pathAdjustmentDb: beamEstimate.beamLink.powerAtUserDb,
     noiseBwHz: profile.ulReferenceBandwidthHz,
     throughputBwHz: profile.ulReferenceBandwidthHz,
@@ -542,7 +551,8 @@ function buildEndpointDebug(args: {
       modcodTableId: legArgs.modcodTableId,
       modcodTableLabel: legArgs.modcodTableLabel,
       modcodTableSourceNote: legArgs.modcodTableSourceNote,
-      slantRangeKm: beamEstimate.debugInfo.slantRangeKm,
+      // Displayed range matches the FSPL actually used by this leg (L-M2).
+      slantRangeKm: userSlantRangeKm,
       referenceBandwidthHz: legArgs.referenceBandwidthHz,
       usableBandwidthHz: legArgs.usableBandwidthHz,
       rfChainThroughputMbps: legArgs.rfChainThroughputMbps,
@@ -867,34 +877,33 @@ export function buildActiveLeoRouteEvidence(
     const downloadMbps = finitePositive(leoPerformance?.downlinkGbps != null ? leoPerformance.downlinkGbps * 1000 : null);
     const uploadMbps = finitePositive(leoPerformance?.uplinkGbps != null ? leoPerformance.uplinkGbps * 1000 : null);
     const rttMs = finitePositive(leoPerformance?.rtt);
-    const regulatoryBlocked = input.regulatoryResultA?.status === 'BLOCKED';
-    const serviceStatus = regulatoryBlocked || !input.servingSatelliteA || !rfAvailableA || !selectedSnpA
-      ? 'BLOCKED'
-      : input.regulatoryResultA?.status === 'RESTRICTED' || input.beamLoadA?.capacityStatus === 'DEGRADED' || input.beamLoadA?.capacityStatus === 'SATURATED'
-        ? 'DEGRADED'
-        : 'ALLOWED';
+    // Canonical gate chain shared with serviceLayer and the S2S model (L-Mo1).
+    const decision = deriveLeoServiceDecision({
+      regulatoryStatus: input.regulatoryResultA?.status ?? null,
+      hasSatellite: !!input.servingSatelliteA,
+      hasRF: rfAvailableA,
+      hasSNP: !!selectedSnpA,
+      capacityStatus: input.beamLoadA?.capacityStatus ?? null,
+    });
+    const serviceStatus = decision.status;
     const metricsComplete = downloadMbps != null && uploadMbps != null && rttMs != null;
     const pending = serviceStatus !== 'BLOCKED' && !metricsComplete;
     const bottleneck = leoPerformance?.debugInfo?.mainBottleneck.label && leoPerformance.debugInfo.mainBottleneck.label !== 'None'
       ? leoPerformance.debugInfo.mainBottleneck.label
       : null;
-    const degradationReason = serviceStatus === 'BLOCKED'
-      ? !input.servingSatelliteA
-        ? 'No LEO satellite available.'
-        : !rfAvailableA
-          ? 'RF unavailable at Site A.'
-          : !selectedSnpA
-            ? 'No SNP reachable at Site A.'
-            : regulatoryBlocked
-              ? 'Regulatory blocked at Site A.'
-              : 'LEO service unavailable.'
-      : serviceStatus === 'DEGRADED'
-        ? input.beamLoadA?.capacityStatus === 'SATURATED'
-          ? 'Capacity saturated at Site A.'
-          : input.beamLoadA?.capacityStatus === 'DEGRADED'
-            ? 'Capacity degraded at Site A.'
-            : 'LEO service degraded.'
-        : 'LEO route available.';
+    const degradationReason = (() => {
+      switch (decision.gate) {
+        case 'REGULATORY_PENDING': return 'Regulatory status pending at Site A.';
+        case 'REGULATORY_BLOCKED': return 'Regulatory blocked at Site A.';
+        case 'NO_SATELLITE': return 'No LEO satellite available.';
+        case 'NO_RF': return 'RF unavailable at Site A.';
+        case 'NO_SNP': return 'No SNP reachable at Site A.';
+        case 'REGULATORY_RESTRICTED': return 'Regulatory restricted at Site A.';
+        case 'CAPACITY_SATURATED': return 'Capacity saturated at Site A.';
+        case 'CAPACITY_DEGRADED': return 'Capacity degraded at Site A.';
+        case null: return 'LEO route available.';
+      }
+    })();
 
     if (import.meta.env.DEV) {
       _devMark('⑦ total', _t0);
@@ -975,30 +984,45 @@ export function buildActiveLeoRouteEvidence(
   const siteAUlMbps = input.servingSatelliteA && rfAvailableA && leoPerformance?.uplinkGbps != null
     ? leoPerformance.uplinkGbps * 1000
     : null;
-  const beamSharedDlMbps = leoPerformance?.debugInfo?.downlink.network.beamSharingMbps ?? (leoPerformance?.downlinkGbps ?? 0) * 1000;
-  const beamSharedUlMbps = leoPerformance?.debugInfo?.uplink.network.beamSharingMbps ?? (leoPerformance?.uplinkGbps ?? 0) * 1000;
-  const profileB = getLeoTerminalProfile(input.terminalTypeB, input.terminalModelIdB ?? undefined);
-  const siteBDlMbps = input.servingSatelliteB && rfAvailableB && leoPerformance != null
-    ? Math.min(beamSharedDlMbps, profileB.maxDlMbps)
-    : null;
-  const siteBUlMbps = input.servingSatelliteB && rfAvailableB && leoPerformance != null
-    ? Math.min(beamSharedUlMbps, profileB.maxUlMbps)
-    : null;
-  const debugB = input.pointB && connectivityB
-    ? buildEndpointDebug({
-        point: input.pointB,
+
+  // L-B1: Site B's throughput comes from Site B's OWN RF chain (its geometry,
+  // beam position, weather, load and terminal) — never from Site A's
+  // beam-sharing figure. No EMA/handover state is maintained for Site B; this
+  // is a static per-tick snapshot, so the drawer's finalUserMbps equals B's
+  // raw shared value by construction (buildEndpointDebug defaults).
+  let siteBDlMbps: number | null = null;
+  let siteBUlMbps: number | null = null;
+  let debugB: LeoThroughputResult | null = null;
+  if (input.servingSatelliteB && rfAvailableB && connectivityB && input.pointB) {
+    const endpointDebugB = buildEndpointDebug({
+      point: input.pointB,
+      connectivity: connectivityB,
+      terminalType: input.terminalTypeB,
+      terminalModelId: input.terminalModelIdB,
+      beamLoad: input.beamLoadB,
+      simulationState: input.simulationStateB,
+      now: input.now,
+      smoothingAlpha: 0,
+      handoverFactor: 1,
+    });
+    if (endpointDebugB.debugInfo && endpointDebugB.rawDownlinkMbps != null && endpointDebugB.rawUplinkMbps != null) {
+      siteBDlMbps = endpointDebugB.rawDownlinkMbps;
+      siteBUlMbps = endpointDebugB.rawUplinkMbps;
+      debugB = endpointDebugB.debugInfo;
+    } else if (connectivityB.snp) {
+      // No beam-model evidence at B (SERVICE_ZONE policy or no connected beam):
+      // fall back to the same approximate model Site A uses in that situation.
+      const approxB = calculateApproximatePerformance({
         connectivity: connectivityB,
         terminalType: input.terminalTypeB,
         terminalModelId: input.terminalModelIdB,
-        beamLoad: input.beamLoadB,
-        simulationState: input.simulationStateB,
-        now: input.now,
-        finalDownlinkMbps: siteBDlMbps,
-        finalUplinkMbps: siteBUlMbps,
-        smoothingAlpha: 0,
-        handoverFactor: 1,
-      }).debugInfo
-    : null;
+        weatherType: input.weatherTypeB,
+        estimatedRttMs: null,
+      });
+      siteBDlMbps = approxB.downlinkGbps * 1000;
+      siteBUlMbps = approxB.uplinkGbps * 1000;
+    }
+  }
 
   const _tPreS2S = import.meta.env.DEV ? performance.now() : 0;
   const routeResult = computeLeoSiteToSiteResult({

@@ -347,8 +347,11 @@ function calculate3DDistanceKm(satellitePosition: { lat: number; lng: number; al
 
 export const getNearestSNPInBackhaul = (
   satellite: SatelliteData,
-  failedSnps: ReadonlySet<string> = new Set()
-): { name: string; distance: number; latency: number } | null => {
+  failedSnps: ReadonlySet<string> = new Set(),
+  /** Evaluation time — pass the render/simulation snapshot when available so the
+   *  GSO gate is evaluated at the same instant as the rest of the frame. */
+  now: Date = new Date()
+): { name: string; distance: number; oneWayLatencyMs: number } | null => {
   // Only check for LEO satellites (ONEWEB)
   if (satellite.type !== 'ONEWEB') {
     return null;
@@ -358,7 +361,6 @@ export const getNearestSNPInBackhaul = (
   // If in blanking zone, satellite cannot be used for transmission
   if (satellite.satrec) {
     try {
-      const now = new Date();
       const time = JulianDate.fromDate(now);
       const { isBlankingZone } = calculateGSOAvoidanceAngle(satellite.satrec, time);
 
@@ -372,7 +374,7 @@ export const getNearestSNPInBackhaul = (
   }
 
   const satellitePosition = { lat: satellite.position.lat, lng: satellite.position.lng, alt: satellite.position.alt };
-  let nearestSNP: { name: string; distance: number; latency: number } | null = null;
+  let nearestSNP: { name: string; distance: number; oneWayLatencyMs: number } | null = null;
   // Use a strictly enforced max distance if backhaul radius is the hard limits
   // ONEWEB Gen 1 Backhaul radius is roughly ~2600km depending on elevation mask (15 deg)
   const MAX_BACKHAUL_DISTANCE_KM = BACKHAUL_RADIUS_KM;
@@ -407,12 +409,14 @@ export const getNearestSNPInBackhaul = (
 
     if (surfaceDistance < minDistance) {
       minDistance = surfaceDistance;
-      // Calculate RTT latency using actual 3D line-of-sight distance
-      const latency = (actualDistance3D * 2) / SPEED_OF_LIGHT_RADIO_KM_S * 1000; // actual distance * 2 (round trip) / speed of light (km/s) * 1000 = milliseconds
+      // One-way propagation latency from the actual 3D line-of-sight distance —
+      // same semantic as getSatellitesConnectedToSNP.latencyMs (L-Mi5: this
+      // field previously carried a round-trip value under a generic name).
+      const oneWayLatencyMs = (actualDistance3D / SPEED_OF_LIGHT_RADIO_KM_S) * 1000;
       nearestSNP = {
         name: snp.name,
         distance: surfaceDistance, // Keep surface distance for display
-        latency: latency
+        oneWayLatencyMs,
       };
     }
   }
@@ -420,7 +424,12 @@ export const getNearestSNPInBackhaul = (
   return nearestSNP;
 };
 
-export const hasSNPInCoverage = (satellite: SatelliteData, failedSnps: ReadonlySet<string> = new Set()): boolean => {
+export const hasSNPInCoverage = (
+  satellite: SatelliteData,
+  failedSnps: ReadonlySet<string> = new Set(),
+  /** Evaluation time — pass the render/simulation snapshot when available. */
+  now: Date = new Date()
+): boolean => {
   // Only check for LEO satellites (ONEWEB)
   if (satellite.type !== 'ONEWEB') {
     return false;
@@ -430,7 +439,6 @@ export const hasSNPInCoverage = (satellite: SatelliteData, failedSnps: ReadonlyS
   // If in blanking zone, satellite cannot provide any connectivity
   if (satellite.satrec) {
     try {
-      const now = new Date();
       const time = JulianDate.fromDate(now);
       const { isBlankingZone } = calculateGSOAvoidanceAngle(satellite.satrec, time);
 

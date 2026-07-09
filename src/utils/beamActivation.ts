@@ -6,9 +6,10 @@
  * evaluation issues that arise when this pure function was co-located in
  * oneWebComb.ts (which has heavy Cesium + SGP4 dependencies).
  *
- * OneWeb operational rules (ITU-R S.1428 / GSO Protection):
- *  - Blanking zone  (|lat| ≤ 2°) : ALL beams OFF → 0 Tx (GEO arc exclusion zone)
- *  - GSO Avoidance  (2° < |lat| < 45°): HALF beams ON — comb pitched away from GEO arc
+ * Simulated OneWeb GSO Protection rules (ITU-R S.1428 context):
+ *  - Blanking zone  (|lat| ≤ GSO_EXCLUSION_HALF_ANGLE_DEG, currently 5° — see
+ *    config/oneweb.ts): ALL beams OFF → 0 Tx (GEO arc exclusion zone)
+ *  - GSO Avoidance  (blanking < |lat| < 45°): HALF beams ON — comb pitched away from GEO arc
  *      Beam IDs are fixed in the payload frame: beam 0 is always northernmost,
  *      beam 15 always southernmost, regardless of pass direction.
  *      Northern half (beams 0-7)  active when satLat > 0 (NH, GEO arc is to the south)
@@ -21,8 +22,8 @@
  * GSO Protection state of the satellite.
  *
  * @param beamIndex       0 = northernmost beam, 15 = southernmost beam
- * @param isBlankingZone  satellite is in GSO exclusion zone (|lat| ≤ 2°)
- * @param isGSOAvoidance  satellite is pitching for GSO Protection (2° < |lat| < 45°)
+ * @param isBlankingZone  satellite is in the GSO exclusion zone (|lat| ≤ GSO_EXCLUSION_HALF_ANGLE_DEG)
+ * @param isGSOAvoidance  satellite is pitching for GSO Protection (blanking < |lat| < 45°)
  * @param satLatDeg       current geodetic latitude of the satellite (degrees)
  * @param hsBeams         optional set of beam indices marked as Hard Out of Service (HS).
  *                        When a beam is HS it is excluded from service regardless of GSO state.
@@ -37,7 +38,7 @@ export function isBeamActive(
     // Feature 3: Beam HS — hard out-of-service overrides everything
     if (hsBeams?.has(beamIndex)) return false;
 
-    // GSO exclusion zone ±2° latitude — all beams silenced
+    // GSO exclusion zone (±GSO_EXCLUSION_HALF_ANGLE_DEG latitude) — all beams silenced
     if (isBlankingZone) return false;
 
     // GSO Protection (half-comb): only 8 of the 16 beams illuminated.

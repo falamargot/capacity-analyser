@@ -678,7 +678,7 @@ const SatelliteDetails: React.FC<SatelliteDetailsProps> = ({
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm text-gray-600 dark:text-gray-300">
-                        Nearest reachable SNP: <span className="font-medium text-gray-800 dark:text-gray-100">{nearestSNP.name} ({nearestSNP.distance.toFixed(0)} km, {nearestSNP.latency.toFixed(1)} ms latency)</span>
+                        Nearest reachable SNP: <span className="font-medium text-gray-800 dark:text-gray-100">{nearestSNP.name} ({nearestSNP.distance.toFixed(0)} km, {nearestSNP.oneWayLatencyMs.toFixed(1)} ms one-way)</span>
                       </p>
                       <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
                         Satellite-centric nearest gateway, not necessarily the SNP serving the current target.

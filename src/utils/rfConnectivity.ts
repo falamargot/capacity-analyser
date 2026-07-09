@@ -60,7 +60,7 @@ export function hasRFConnectivity(
         // C-02: Single SGP4 propagation — compute gsoState once and reuse in isUserInActiveBeam.
         const gsoState = calculateGSOAvoidanceAngle(satellite.satrec, time);
 
-        // All beams blanked (GSO exclusion zone ±2° latitude): no connectivity
+        // All beams blanked (GSO exclusion zone, ±GSO_EXCLUSION_HALF_ANGLE_DEG latitude): no connectivity
         if (gsoState.isBlankingZone) {
             return false;
         }

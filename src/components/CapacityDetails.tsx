@@ -864,6 +864,12 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
         );
         handoverStateRef.current = newHandoverState;
 
+        // L-M2: FSPL uses the actual user↔satellite slant range, not the
+        // beam-index cross-section range (mirrors the evidence builder).
+        const userSlantRangeKm = resolvedLEOConnectivity.userLEODistance > 0
+          ? resolvedLEOConnectivity.userLEODistance
+          : beamEstimate.debugInfo.slantRangeKm;
+
         const buildLeg = (args: {
           direction: 'downlink' | 'uplink';
           label: string;
@@ -910,7 +916,8 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
             modcodTableId: args.modcodTableId,
             modcodTableLabel: args.modcodTableLabel,
             modcodTableSourceNote: args.modcodTableSourceNote,
-            slantRangeKm: beamEstimate.debugInfo.slantRangeKm,
+            // Displayed range matches the FSPL actually used by this leg (L-M2).
+            slantRangeKm: userSlantRangeKm,
             referenceBandwidthHz: args.referenceBandwidthHz,
             usableBandwidthHz: args.usableBandwidthHz,
             rfChainThroughputMbps: args.rfChainThroughputMbps,
@@ -952,7 +959,7 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
         const downlinkRf = computeDirectionalRfChainThroughput({
           eirpDbw: beamEstimate.beamLink.effectiveEirpDb,
           receiverGtDbK: rxGtAfterScanDbK,
-          slantRangeKm: beamEstimate.debugInfo.slantRangeKm,
+          slantRangeKm: userSlantRangeKm,
           pathAdjustmentDb: beamEstimate.beamLink.powerAtUserDb,
           frequencyGHz: RF_KU_FREQ_GHZ,
           noiseBwHz: profile.dlReferenceBandwidthHz,
@@ -982,7 +989,7 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
 
         const uplinkRf = computeUplinkRfChainThroughput({
           terminalEirpDbw: txEirpAfterScanDbw,
-          slantRangeKm: beamEstimate.debugInfo.slantRangeKm,
+          slantRangeKm: userSlantRangeKm,
           pathAdjustmentDb: beamEstimate.beamLink.powerAtUserDb,
           noiseBwHz: profile.ulReferenceBandwidthHz,
           throughputBwHz: profile.ulReferenceBandwidthHz,
@@ -1153,17 +1160,14 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
 
     const dlThroughputAMbps = servingSatelliteA && hasCurrentLEORF && leoPerformance?.downlinkGbps != null ? leoPerformance.downlinkGbps * 1000 : null;
     const ulThroughputAMbps = servingSatelliteA && hasCurrentLEORF && leoPerformance?.uplinkGbps != null ? leoPerformance.uplinkGbps * 1000 : null;
-    // Site B uses B's terminal cap applied to the beam-shared throughput from the same constellation.
-    // beamSharingMbps is the pre-terminal-cap value; fall back to A's final if debugInfo is absent.
     const leoDebugInfo = leoPerformance && 'debugInfo' in leoPerformance ? leoPerformance.debugInfo : null;
+    // Legacy A-derived approximation — used ONLY when Site B has no beam-model
+    // evidence (SERVICE_ZONE policy). The primary path derives Site B's
+    // throughput from B's own RF chain below (L-B1).
     const beamSharedDlMbps = leoDebugInfo?.downlink.network.beamSharingMbps ?? (leoPerformance?.downlinkGbps ?? 0) * 1000;
     const beamSharedUlMbps = leoDebugInfo?.uplink.network.beamSharingMbps ?? (leoPerformance?.uplinkGbps ?? 0) * 1000;
-    const dlThroughputBMbps = servingSatelliteB && hasCurrentLEORFB && leoPerformance != null
-      ? Math.min(beamSharedDlMbps, selectedLeoTerminalProfileB.maxDlMbps)
-      : null;
-    const ulThroughputBMbps = servingSatelliteB && hasCurrentLEORFB && leoPerformance != null
-      ? Math.min(beamSharedUlMbps, selectedLeoTerminalProfileB.maxUlMbps)
-      : null;
+    let siteBRawDlMbps: number | null = null;
+    let siteBRawUlMbps: number | null = null;
 
     // Filter out any SNP that has been toggled to failed — this makes the
     // site-to-site result reactive to failedSnps in the same render cycle
@@ -1175,13 +1179,12 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
       ? SNPS_DATA.find(s => s.name === selectedSNPB.name) ?? null
       : null;
 
-    // ── Site B independent RF debug chain ──────────────────────────────────────
+    // ── Site B independent RF chain ─────────────────────────────────────────────
     // Computed when Site B has a satellite, SNP, and beam-model coverage (DB_THRESHOLD).
-    // Provides an accurate per-site RF snapshot for the Detailed Link Budget drawer so
-    // Site B no longer reuses Site A geometry rows. This is a static snapshot — no EMA
-    // smoothing refs are maintained for Site B. finalUserMbps is pinned to the already-
-    // derived dlThroughputBMbps / ulThroughputBMbps so it stays consistent with the S2S
-    // throughput values computed above and does not change those values.
+    // This is the AUTHORITATIVE source of Site B's S2S throughput (L-B1): the
+    // dl/ulThroughputBMbps values below come from this chain, and the drawer's
+    // finalUserMbps equals the same numbers. Static snapshot — no EMA smoothing
+    // refs are maintained for Site B.
     let debugInfoB: LeoRFDebugInfo | null = null;
     if (
       servingSatelliteB &&
@@ -1208,11 +1211,13 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
           const txEirpB = pB.txEirpDbw + txScanLossB;
           const activeUsersB = computedBeamLoadResultB?.estimatedActiveUsers ?? 1;
           const backhaulB = beamEstimateB.backhaulFactor;
+          // L-M2: real Site B user↔satellite slant range for FSPL.
+          const userSlantRangeBKm = userToSatBKm ?? beamEstimateB.debugInfo.slantRangeKm;
 
           const dlRfB = computeDirectionalRfChainThroughput({
             eirpDbw: beamEstimateB.beamLink.effectiveEirpDb,
             receiverGtDbK: rxGtB,
-            slantRangeKm: beamEstimateB.debugInfo.slantRangeKm,
+            slantRangeKm: userSlantRangeBKm,
             pathAdjustmentDb: beamEstimateB.beamLink.powerAtUserDb,
             frequencyGHz: RF_KU_FREQ_GHZ,
             noiseBwHz: pB.dlReferenceBandwidthHz,
@@ -1220,7 +1225,7 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
           });
           const ulRfB = computeUplinkRfChainThroughput({
             terminalEirpDbw: txEirpB,
-            slantRangeKm: beamEstimateB.debugInfo.slantRangeKm,
+            slantRangeKm: userSlantRangeBKm,
             pathAdjustmentDb: beamEstimateB.beamLink.powerAtUserDb,
             noiseBwHz: pB.ulReferenceBandwidthHz,
             throughputBwHz: pB.ulReferenceBandwidthHz,
@@ -1243,6 +1248,10 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
             },
           );
 
+          // L-B1: Site B's own shared throughput drives the S2S numbers below.
+          siteBRawDlMbps = sharingDlB.sharedThroughputMbps * backhaulB;
+          siteBRawUlMbps = sharingUlB.sharedThroughputMbps * backhaulB;
+
           const dlLegB: LeoThroughputLeg = {
             direction: 'downlink',
             label: 'Downlink',
@@ -1259,7 +1268,7 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
               modcodTableId: dlRfB.modcodTable.id,
               modcodTableLabel: dlRfB.modcodTable.label,
               modcodTableSourceNote: dlRfB.modcodTable.sourceNote,
-              slantRangeKm: beamEstimateB.debugInfo.slantRangeKm,
+              slantRangeKm: userSlantRangeBKm,
               referenceBandwidthHz: pB.dlReferenceBandwidthHz,
               usableBandwidthHz: pB.dlUsableBeamBandwidthHz,
               rfChainThroughputMbps: dlRfB.rfThroughputMbps,
@@ -1274,7 +1283,9 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
               handoverFactor: 1,
               handoverMbps: sharingDlB.sharedThroughputMbps * backhaulB,
               smoothingAlpha: 0,
-              finalUserMbps: dlThroughputBMbps ?? sharingDlB.sharedThroughputMbps * backhaulB,
+              // L-B1: Site B's final equals its own chain output — never pinned to
+              // an A-derived value.
+              finalUserMbps: sharingDlB.sharedThroughputMbps * backhaulB,
               bottleneck: null,
             },
           };
@@ -1296,7 +1307,7 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
               modcodTableId: ulRfB.modcodTable.id,
               modcodTableLabel: ulRfB.modcodTable.label,
               modcodTableSourceNote: ulRfB.modcodTable.sourceNote,
-              slantRangeKm: beamEstimateB.debugInfo.slantRangeKm,
+              slantRangeKm: userSlantRangeBKm,
               referenceBandwidthHz: pB.ulReferenceBandwidthHz,
               usableBandwidthHz: pB.ulUsableBeamBandwidthHz,
               rfChainThroughputMbps: ulRfB.rfThroughputMbps,
@@ -1311,7 +1322,7 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
               handoverFactor: 1,
               handoverMbps: sharingUlB.sharedThroughputMbps * backhaulB,
               smoothingAlpha: 0,
-              finalUserMbps: ulThroughputBMbps ?? sharingUlB.sharedThroughputMbps * backhaulB,
+              finalUserMbps: sharingUlB.sharedThroughputMbps * backhaulB,
               bottleneck: null,
             },
           };
@@ -1360,6 +1371,20 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
         }
       }
     }
+
+    // L-B1 (mirror of the evidence-builder fix): Site B throughput from B's own
+    // RF chain when beam evidence exists; the legacy A-derived approximation is
+    // kept only as the non-beam-mode (SERVICE_ZONE) fallback.
+    const dlThroughputBMbps = servingSatelliteB && hasCurrentLEORFB
+      ? siteBRawDlMbps ?? (leoPerformance != null
+          ? Math.min(beamSharedDlMbps, selectedLeoTerminalProfileB.maxDlMbps)
+          : null)
+      : null;
+    const ulThroughputBMbps = servingSatelliteB && hasCurrentLEORFB
+      ? siteBRawUlMbps ?? (leoPerformance != null
+          ? Math.min(beamSharedUlMbps, selectedLeoTerminalProfileB.maxUlMbps)
+          : null)
+      : null;
 
     return computeLeoSiteToSiteResult({
       endpointA: { lat: activePoint.lat, lng: activePoint.lng },

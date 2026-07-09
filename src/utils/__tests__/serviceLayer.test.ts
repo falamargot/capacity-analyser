@@ -40,3 +40,58 @@ describe('computeServiceStatus OneWeb bent-pipe requirements', () => {
     expect(result.reason).toBe('No gateway reachable — OneWeb bent-pipe service requires simultaneous SNP visibility.');
   });
 });
+
+describe('computeServiceStatus canonical gate ordering (L-Mo1)', () => {
+  const restricted: RegulatoryResult = { ...regulatoryResult, status: 'RESTRICTED' };
+
+  it('no RF in a RESTRICTED market is BLOCKED (rf), not DEGRADED (regulatory)', () => {
+    // Pre-audit divergence: this surface returned DEGRADED/regulatory while the
+    // route evidence returned BLOCKED for the same inputs.
+    const result = computeServiceStatus({
+      hasRF: false,
+      hasSNP: false,
+      regulatoryResult: restricted,
+      beamLoadResult,
+    });
+
+    expect(result.status).toBe('BLOCKED');
+    expect(result.primaryReasonLayer).toBe('rf');
+  });
+
+  it('a RESTRICTED market with full physical availability is DEGRADED (regulatory)', () => {
+    const result = computeServiceStatus({
+      hasRF: true,
+      hasSNP: true,
+      regulatoryResult: restricted,
+      beamLoadResult,
+    });
+
+    expect(result.status).toBe('DEGRADED');
+    expect(result.primaryReasonLayer).toBe('regulatory');
+  });
+
+  it('RESTRICTED outranks capacity saturation and surfaces the load in details', () => {
+    const result = computeServiceStatus({
+      hasRF: true,
+      hasSNP: true,
+      regulatoryResult: restricted,
+      beamLoadResult: { ...beamLoadResult, capacityStatus: 'SATURATED', beamLoadPercent: 97 } as BeamLoadResult,
+    });
+
+    expect(result.status).toBe('DEGRADED');
+    expect(result.primaryReasonLayer).toBe('regulatory');
+    expect(result.details.some((line) => line.includes('SATURATED'))).toBe(true);
+  });
+
+  it('regulatory BLOCKED still outranks everything', () => {
+    const result = computeServiceStatus({
+      hasRF: false,
+      hasSNP: false,
+      regulatoryResult: { ...regulatoryResult, status: 'BLOCKED' },
+      beamLoadResult,
+    });
+
+    expect(result.status).toBe('BLOCKED');
+    expect(result.primaryReasonLayer).toBe('regulatory');
+  });
+});
