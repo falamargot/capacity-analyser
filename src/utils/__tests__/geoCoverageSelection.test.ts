@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import type { Feature, Polygon } from 'geojson';
 import type { SatelliteData } from '../../types/satellites';
-import { findCandidateCoverages, resolveCoverageSelection } from '../geoCoverageSelection';
+import { computeGeoConnectivity, findCandidateCoverages, resolveCoverageSelection } from '../geoCoverageSelection';
+import { GEO_GATEWAYS } from '../../components/globe/GlobeConfig';
 
 const createCoverage = (
   name: string,
@@ -312,5 +313,53 @@ describe('findCandidateCoverages', () => {
     expect(kuCandidates.map((candidate) => candidate.coverageName).sort()).not.toEqual(
       cCandidates.map((candidate) => candidate.coverageName).sort(),
     );
+  });
+});
+
+describe('computeGeoConnectivity gateway reference coverage (direction-aware geometry)', () => {
+  // KVHTS beam plan: beam 29 → Scanzano / Palermo, beam 132 → Rambouillet.
+  // STAR gateway resolution follows the traffic direction, so callers pass the
+  // direction-aware coverage as gatewayReferenceCoverage while the (possibly
+  // opposite-direction) selectedCoverage still drives candidate resolution.
+  const europe = [[-10, 35], [20, 35], [20, 60], [-10, 60], [-10, 35]];
+  // In this data model `contour` is the beam identifier (beam token '29' →
+  // KVHTS beam plan) while `level` is the signal level used for candidate gating.
+  const beam29Coverage = {
+    name: 'Beam 29',
+    feature: {
+      type: 'Feature',
+      properties: {
+        name: 'Beam 29',
+        contour: 29,
+        level: 55,
+        mission: 'Ka-band',
+        type: 'EUTELSAT',
+        isUplink: false,
+        satelliteId: 'EUTELSAT KONNECT VHTS',
+      },
+      geometry: { type: 'Polygon', coordinates: [europe] } as Polygon,
+    } as Feature,
+  };
+  const kvhts = createSatellite(
+    [beam29Coverage],
+    { id: '53765', name: 'EUTELSAT KONNECT VHTS', noradId: '53765', position: { lat: 0, lng: 2.7, alt: 35786 } },
+  );
+  const paris = { lat: 48.85, lng: 2.35 };
+  const downlinkBeam29 = findCandidateCoverages(paris, [kvhts])
+    .find((candidate) => !candidate.isUplink) ?? null;
+
+  it('resolves the geometry gateway from selectedCoverage by default', () => {
+    expect(downlinkBeam29).not.toBeNull();
+    const result = computeGeoConnectivity(downlinkBeam29, paris, [kvhts]);
+    expect(result?.geometry.satelliteToGateway.resolvedGateway?.gatewayName).toBe('Scanzano / Palermo');
+  });
+
+  it('resolves the geometry gateway from gatewayReferenceCoverage when it carries a different beam token', () => {
+    const result = computeGeoConnectivity(downlinkBeam29, paris, [kvhts], GEO_GATEWAYS, {
+      gatewayReferenceCoverage: { beamId: '132', beamName: '132' },
+    });
+    // Same selectedCoverage (beam 29), but the gateway follows the reference
+    // beam (132 → Rambouillet) — the STAR_RETURN uplink-beam scenario.
+    expect(result?.geometry.satelliteToGateway.resolvedGateway?.gatewayName).toBe('Rambouillet');
   });
 });

@@ -3,6 +3,8 @@ import type { CandidateCoverage } from '../types/analysis';
 import type { GatewayTrafficStatus, GeoGatewayData } from '../components/globe/GlobeConfig';
 import {
   canonicalStarTrafficTopologySatelliteId,
+  getGroundSiteById,
+  getGroundSiteByPublicCode,
   getTrafficTeleportCapabilityForLegacyGateway,
   projectGroundSiteToLegacyGeoGateway,
   resolveBeamGatewayRoute,
@@ -71,14 +73,15 @@ export interface TrafficGatewaySelection extends GeoGatewaySelection {
 
 export type StarTrafficGatewayResolutionSource =
   | 'beam-gateway-assignment'
-  | 'legacy-traffic-gateway';
+  | 'legacy-traffic-gateway'
+  | 'gateway-outage';
 
 export interface StarTrafficGatewayDiagnostic {
   source: StarTrafficGatewayResolutionSource;
   satelliteId: string;
   canonicalSatelliteId: string | null;
   beamToken: string | null;
-  reason: BeamGatewayResolutionFailureReason | 'BEAM_TOKEN_NOT_FOUND' | null;
+  reason: BeamGatewayResolutionFailureReason | 'BEAM_TOKEN_NOT_FOUND' | 'GATEWAY_OUT_OF_SERVICE' | null;
   message: string;
 }
 
@@ -96,6 +99,29 @@ export interface StarTrafficGatewaySelection {
    */
   resolvedGateway: ResolvedGeoGateway;
 }
+
+/**
+ * A beam whose curated gateway allocation cannot be honored because the nominal
+ * site (and any failover site) is simulated out of service. The beam is
+ * physically bound to those sites, so no substitute gateway exists — callers
+ * must surface "unserved" instead of silently re-resolving through the legacy
+ * per-satellite path (which would fabricate service through a site that has no
+ * assignment for this beam).
+ */
+export interface StarTrafficGatewayOutage {
+  gateway: null;
+  trafficCapability: null;
+  diagnostic: StarTrafficGatewayDiagnostic;
+  beamRoute: null;
+  legacySelection: TrafficGatewaySelection | null;
+  resolvedGateway: null;
+}
+
+export type StarTrafficGatewayResolution = StarTrafficGatewaySelection | StarTrafficGatewayOutage;
+
+export const isServedStarGatewaySelection = (
+  selection: StarTrafficGatewayResolution | null | undefined
+): selection is StarTrafficGatewaySelection => selection?.gateway != null;
 
 export type GatewayAssignmentRole = 'primary' | 'backup';
 export type ResolvedGatewayRole = 'nominal' | 'backup';
@@ -160,6 +186,19 @@ interface GroundSegmentSelectionOptions {
   criticalFailureRegions?: string[];
   minVisibilityDeg?: number;
   gatewayPolicy?: GatewayResolutionPolicy;
+  /**
+   * GroundSite.siteId values simulated as out of service.
+   * - Beam-aware path: when the nominal beam-gateway site is in this set,
+   *   resolution retries in FAILOVER routing mode against the satellite's
+   *   redundancy policy; if no failover site is available either, the beam is
+   *   reported as unserved (StarTrafficGatewayOutage) — never re-routed through
+   *   a site with no assignment for that beam.
+   * - Legacy per-satellite path (selectTrafficGeoGateway): a failed nominal
+   *   site fails over to the reference-allocation backup teleport when that
+   *   backup is traffic-eligible and not itself failed; otherwise no traffic
+   *   gateway is returned.
+   */
+  failedGatewaySiteIds?: ReadonlySet<string>;
 }
 
 export interface GeoConnectivityResult {
@@ -207,6 +246,8 @@ interface AnalyzeGeoConnectivityArgs {
    * would be computed against different physical sites for beam-routed beams.
    */
   coverage?: Pick<CandidateCoverage, 'beamId' | 'beamName'> | null;
+  /** See GroundSegmentSelectionOptions.failedGatewaySiteIds. */
+  failedGatewaySiteIds?: ReadonlySet<string>;
 }
 
 function toRadians(deg: number): number {
@@ -777,14 +818,53 @@ export function getGroundSegmentRoutingForSatellite(
  *   - UNVERIFIED / NOT_APPLICABLE → returns null. Callers must not silently fall
  *     back to the SCC site in this case (see CandidateCoverageStatus handling).
  */
+/**
+ * True when the gateway's ground site is simulated out of service. Legacy
+ * GeoGatewayData.gateway_id is the GroundSite.siteId (projection invariant),
+ * with a publicCode lookup as a defensive fallback for hand-built fixtures.
+ */
+function isGatewaySiteFailed(
+  gateway: GeoGatewayData,
+  failedGatewaySiteIds: ReadonlySet<string> | undefined
+): boolean {
+  if (!failedGatewaySiteIds?.size) return false;
+  if (failedGatewaySiteIds.has(gateway.gateway_id)) return true;
+  const site = getGroundSiteById(gateway.gateway_id) ?? getGroundSiteByPublicCode(gateway.teleportCode);
+  return site != null && failedGatewaySiteIds.has(site.siteId);
+}
+
 export function selectTrafficGeoGateway(
   satellite: SatelliteData,
   gateways: GeoGatewayData[],
   options: GroundSegmentSelectionOptions = {}
 ): TrafficGatewaySelection | null {
+  const failedGatewaySiteIds = options.failedGatewaySiteIds;
   const resolved = resolveGatewayForSatellite(satellite, gateways, options);
   const resolvedTrafficSelection = toTrafficGatewaySelection(satellite, resolved);
-  if (resolvedTrafficSelection) return resolvedTrafficSelection;
+  if (resolvedTrafficSelection && !isGatewaySiteFailed(resolvedTrafficSelection.gateway, failedGatewaySiteIds)) {
+    return resolvedTrafficSelection;
+  }
+
+  if (resolvedTrafficSelection && resolved) {
+    // Nominal traffic site is simulated out of service. The only evidence-backed
+    // site diversity at satellite level is the reference-allocation backup code —
+    // use it when it names a different, traffic-eligible, non-failed site;
+    // otherwise there is no honest traffic gateway for this satellite.
+    const backupResolved = resolveGatewayForSatellite(satellite, gateways, {
+      ...options,
+      gatewayPolicy: 'STATIC_BACKUP',
+    });
+    const backupSelection = backupResolved && backupResolved.gatewayId !== resolved.gatewayId
+      ? toTrafficGatewaySelection(satellite, {
+          ...backupResolved,
+          reason: `${resolved.gatewayName} is out of service; using reference-allocation backup ${backupResolved.gatewayName}.`,
+        })
+      : null;
+    if (backupSelection && !isGatewaySiteFailed(backupSelection.gateway, failedGatewaySiteIds)) {
+      return backupSelection;
+    }
+    return null;
+  }
 
   if (!resolved || resolved.assignmentSource === 'reference-gateway-allocation') {
     return null;
@@ -792,6 +872,7 @@ export function selectTrafficGeoGateway(
 
   let best: TrafficGatewaySelection | null = null;
   for (const gateway of gateways) {
+    if (isGatewaySiteFailed(gateway, failedGatewaySiteIds)) continue;
     const trafficCapability = getTrafficTeleportCapabilityForLegacyGateway(gateway, satellite);
     if (!trafficCapability) continue;
 
@@ -829,7 +910,7 @@ export function resolveStarTrafficGatewayForCoverage(
   coverage: Pick<CandidateCoverage, 'beamId' | 'beamName'> | null | undefined,
   gateways: GeoGatewayData[],
   options: GroundSegmentSelectionOptions = {}
-): StarTrafficGatewaySelection | null {
+): StarTrafficGatewayResolution | null {
   const legacySelection = selectTrafficGeoGateway(satellite, gateways, options);
   const canonicalSatelliteId = canonicalStarTrafficTopologySatelliteId(satellite);
   const canonicalBeamSatelliteId = canonicalBeamGatewaySatelliteId(satellite);
@@ -874,28 +955,65 @@ export function resolveStarTrafficGatewayForCoverage(
     );
   }
 
-  const beamGateway = projectGroundSiteToLegacyGeoGateway(beamRouteResult.route.site);
+  let beamRoute = beamRouteResult.route;
+  let diagnosticMessage = beamRouteResult.diagnostic;
+  const failedSiteIds = options.failedGatewaySiteIds;
+  if (failedSiteIds?.has(beamRoute.site.siteId)) {
+    const nominalSiteName = beamRoute.site.name;
+    const failoverResult = resolveBeamGatewayRoute(canonicalBeamSatelliteId, beamToken, {
+      routingMode: 'FAILOVER',
+    });
+    if (!failoverResult.route || failedSiteIds.has(failoverResult.route.site.siteId)) {
+      // A curated beam plan binds the beam to specific physical sites. With the
+      // nominal and failover sites both unavailable, no other gateway can carry
+      // this beam — report it unserved instead of fabricating continuity through
+      // the legacy per-satellite site, which has no assignment for this beam.
+      return {
+        gateway: null,
+        trafficCapability: null,
+        beamRoute: null,
+        legacySelection,
+        resolvedGateway: null,
+        diagnostic: {
+          source: 'gateway-outage',
+          satelliteId: satellite.id,
+          canonicalSatelliteId,
+          beamToken,
+          reason: 'GATEWAY_OUT_OF_SERVICE',
+          message: `${nominalSiteName} is out of service and no failover gateway is available for this beam `
+            + `(${failoverResult.route ? 'failover site is also out of service' : failoverResult.diagnostic}). `
+            + 'Beam unserved.',
+        },
+      };
+    }
+    beamRoute = failoverResult.route;
+    diagnosticMessage = `Failover routing: nominal gateway ${nominalSiteName} is out of service. ${failoverResult.diagnostic}`;
+  }
+
+  const beamGateway = projectGroundSiteToLegacyGeoGateway(beamRoute.site);
+  const isFailover = beamRoute.routingMode === 'FAILOVER';
   return {
     gateway: beamGateway,
-    trafficCapability: beamRouteResult.route.trafficCapability,
+    trafficCapability: beamRoute.trafficCapability,
     diagnostic: {
       source: 'beam-gateway-assignment',
       satelliteId: satellite.id,
       canonicalSatelliteId: canonicalBeamSatelliteId,
       beamToken,
       reason: null,
-      message: beamRouteResult.diagnostic,
+      message: diagnosticMessage,
     },
-    beamRoute: beamRouteResult.route,
+    beamRoute,
     legacySelection,
     // A curated beam plan is a reference allocation: the beam-serving site is the
-    // nominal traffic gateway for this beam, not a visibility-based fallback.
+    // nominal traffic gateway for this beam, not a visibility-based fallback. A
+    // failover gateway takes the backup role so display surfaces can flag it.
     resolvedGateway: toResolvedGeoGateway(
       satellite,
       beamGateway,
-      'nominal',
+      isFailover ? 'backup' : 'nominal',
       'reference-gateway-allocation',
-      beamRouteResult.diagnostic,
+      diagnosticMessage,
     ),
   };
 }
@@ -938,6 +1056,7 @@ export function analyzeGeoConnectivity({
   gateways,
   overheadMs,
   coverage = null,
+  failedGatewaySiteIds,
 }: AnalyzeGeoConnectivityArgs): GeoConnectivityResult {
   const satPoint = getGeoSatellitePoint(satellite);
   const userLla: PointLLA = {
@@ -951,10 +1070,14 @@ export function analyzeGeoConnectivity({
   const userSatLatencyMs = latencyMsFromDistanceKm(userSatDistanceKm);
   // Geometry/latency must use the same gateway family as the RF chain: beam-aware
   // when the satellite is beam-routed (falls back internally for unmapped beams),
-  // legacy per-satellite selection for every other satellite.
-  const resolvedGateway = resolveStarTrafficGatewayForCoverage(satellite, coverage, gateways)?.resolvedGateway
-    ?? selectTrafficGeoGateway(satellite, gateways)?.resolvedGateway
-    ?? null;
+  // legacy per-satellite selection for every other satellite. When the beam-aware
+  // resolution applies, it is authoritative — including the outage-unserved case
+  // (resolvedGateway null), which must NOT fall through to the per-satellite
+  // selection: that would resurrect a site the beam cannot physically use.
+  const starSelection = resolveStarTrafficGatewayForCoverage(satellite, coverage, gateways, { failedGatewaySiteIds });
+  const resolvedGateway = starSelection
+    ? starSelection.resolvedGateway
+    : selectTrafficGeoGateway(satellite, gateways, { failedGatewaySiteIds })?.resolvedGateway ?? null;
 
   const delays = {
     ...DEFAULT_GEO_OVERHEAD_MS,

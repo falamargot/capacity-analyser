@@ -29,6 +29,7 @@ import {
 import {
   GEO_ALTITUDE_KM,
   distanceKm,
+  isServedStarGatewaySelection,
   resolveStarTrafficGatewayForCoverage,
   type StarTrafficGatewayDiagnostic,
 } from './geoConnectivityModel';
@@ -59,6 +60,8 @@ interface SelectBestTopologyPathArgs {
   customParamsB?: import('./geoTerminalRFModel').TerminalRFCustomParams | null;
   pointALabel?: string;
   pointBLabel?: string;
+  /** GroundSite.siteId values simulated as out of service — drives FAILOVER beam-gateway routing. */
+  failedGatewaySiteIds?: ReadonlySet<string>;
 }
 
 const SYNTHETIC_SELECTION_PENALTY = 40;
@@ -392,6 +395,7 @@ export function selectBestTopologyPath({
   customParamsB,
   pointALabel,
   pointBLabel,
+  failedGatewaySiteIds,
 }: SelectBestTopologyPathArgs): TopologySelectionCandidate | null {
   const compatibleCoveragesA = filterCandidateCoveragesByRFClass(candidateCoveragesA, terminalTypeA);
   const compatibleCoveragesB = filterCandidateCoveragesByRFClass(candidateCoveragesB, terminalTypeB ?? terminalTypeA);
@@ -415,8 +419,10 @@ export function selectBestTopologyPath({
       // gatewaySelection is null when the satellite's SCC site has no CONFIRMED
       // or PUBLICLY_LIKELY traffic role — the satellite is skipped rather than
       // building a link budget against an unconfirmed/SCC-only site.
-      const gatewaySelection = resolveStarTrafficGatewayForCoverage(satellite, downlinkA, gateways);
-      if (!gatewaySelection || !downlinkA) continue;
+      const gatewaySelection = resolveStarTrafficGatewayForCoverage(satellite, downlinkA, gateways, { failedGatewaySiteIds });
+      // Outage-unserved beams (gateway: null) are skipped like unresolvable ones:
+      // no STAR path exists via this satellite while its beam gateway is down.
+      if (!isServedStarGatewaySelection(gatewaySelection) || !downlinkA) continue;
 
       const gatewayPool = buildGatewayCandidatePool(satellite, gatewaySelection.gateway);
       const uplinkGateway = resolveStarGatewayFeederCandidate({
@@ -453,8 +459,8 @@ export function selectBestTopologyPath({
       };
     } else if (linkMode === 'STAR_RETURN') {
       // Same trafficStatus gating as STAR_FORWARD above.
-      const gatewaySelection = resolveStarTrafficGatewayForCoverage(satellite, uplinkA, gateways);
-      if (!gatewaySelection || !uplinkA) continue;
+      const gatewaySelection = resolveStarTrafficGatewayForCoverage(satellite, uplinkA, gateways, { failedGatewaySiteIds });
+      if (!isServedStarGatewaySelection(gatewaySelection) || !uplinkA) continue;
 
       const gatewayPool = buildGatewayCandidatePool(satellite, gatewaySelection.gateway);
       const downlinkGateway = resolveStarGatewayFeederCandidate({

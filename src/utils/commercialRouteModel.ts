@@ -247,6 +247,12 @@ function gatewayCoord(gw: ResolvedGeoGateway | null | undefined): RouteCoordinat
 }
 
 function commercialGatewayLabel(gateway: ResolvedGeoGateway): string {
+  // On the traffic path a 'backup' role only arises from outage re-routing
+  // (beam FAILOVER or the reference-allocation backup teleport) — surface it,
+  // otherwise the hub silently relocates during a simulated outage.
+  if (gateway.controlAssignmentRole === 'backup') {
+    return `${gateway.gatewayName} (failover)`;
+  }
   const capability = getTrafficTeleportCapabilityForLegacyGateway(gateway.gateway);
   if (capability?.confidence === 'PUBLICLY_LIKELY') {
     return `${gateway.gatewayName} (reference / unconfirmed)`;

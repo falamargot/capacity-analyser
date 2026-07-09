@@ -10,7 +10,7 @@ import { NOMINAL_TERMINAL_PEAK_MBPS } from '../config/oneweb';
 import { GEO_GATEWAYS, SNPS_DATA, getGatewayTrafficStatusNote } from './globe/GlobeConfig';
 import { findBestConnectedBeamInfo, hasRFConnectivity, estimateCurrentLeoBeamLink } from '../utils/rfConnectivity';
 import type { LeoRFDebugInfo } from './capacity/LEOConnectivitySection';
-import { selectTrafficGeoGateway } from '../utils/geoConnectivityModel';
+import { isServedStarGatewaySelection, selectTrafficGeoGateway } from '../utils/geoConnectivityModel';
 import { isPointInCoverage } from '../utils/coverageCalculator';
 import { getBestConnectedGateway } from '../utils/connectivityRules';
 import { useSecondTick } from '../hooks/useSecondTick';
@@ -51,7 +51,7 @@ import { RAIN_FADE_DB } from '../utils/geoLinkBudget';
 import type { GeoBand } from '../utils/geoLinkBudget';
 import type { TerminalRFClassId } from '../utils/geoTerminalRFModel';
 import { supportsStarTrafficTopology } from '../utils/geoGroundInfrastructure';
-import { logStarGatewayCanaryDev, resolveActiveStarTrafficGatewaySelection } from '../utils/geoStarGatewaySelection';
+import { logStarGatewayCanaryDev, pickStarGatewayReferenceCoverage, resolveActiveStarTrafficGatewaySelection } from '../utils/geoStarGatewaySelection';
 import {
   applyBeamCapacitySharing,
   smoothThroughputMbps,
@@ -343,6 +343,7 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
     beamHealthFactors,
     hsBeamsSet,
     weatherCondition: ctxWeather,
+    failedGeoGatewaySiteIds,
   } = useSimulation();
   const simulationState = useMemo(() => buildSimulationStateSnapshot({
     coveragePolicy,
@@ -1430,8 +1431,22 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
   const leoServiceViewModel = leoServiceViewModelOverride ?? null;
 
   // The "active" coverage for connectivity geometry — prefer downlink (EIRP) since
-  // computeGeoConnectivity uses it to resolve the satellite and gateway.
+  // computeGeoConnectivity uses it to resolve the satellite and candidate. Gateway
+  // resolution is direction-aware and uses gatewayReferenceCoverageForGeo below.
   const activeCoverageForGeo = selectedDownlinkCoverage ?? selectedUplinkCoverage ?? selectedCoverage;
+
+  // Use explicit uplink/downlink coverages from the dual picker when available;
+  // fall back to companion lookup for backward compat.
+  const refCoverage = activeCoverageForGeo;
+  const downlinkAtUser = selectedDownlinkCoverage
+    ?? getGeoCompanionCoverage(refCoverage, candidateCoverages, false);
+  const uplinkAtUser = selectedUplinkCoverage
+    ?? getGeoCompanionCoverage(refCoverage, candidateCoverages, true);
+  // STAR gateway resolution follows the traffic direction (STAR_RETURN → uplink
+  // beam). The geometry shares this reference so the displayed latency and the
+  // displayed gateway/RF chain always name the same physical site.
+  const gatewayReferenceCoverageForGeo =
+    pickStarGatewayReferenceCoverage(linkMode, downlinkAtUser, uplinkAtUser) ?? refCoverage;
 
   // GEO satellites are geostationary: GEO-only derivations key on constellation
   // identity instead of the satellites prop, which gets a new reference on every
@@ -1455,8 +1470,11 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
   const resolvedGEOConnectivity = useMemo(() => {
     if (!activePoint || geoOperationalSatellites.length === 0) return null;
     if (satelliteScope !== 'ALL' && satelliteScope !== 'GEO') return null;
-    return computeGeoConnectivity(activeCoverageForGeo, activePoint, geoOperationalSatellites);
-  }, [activePoint, geoOperationalSatellites, satelliteScope, activeCoverageForGeo]);
+    return computeGeoConnectivity(activeCoverageForGeo, activePoint, geoOperationalSatellites, GEO_GATEWAYS, {
+      failedGatewaySiteIds: failedGeoGatewaySiteIds,
+      gatewayReferenceCoverage: gatewayReferenceCoverageForGeo,
+    });
+  }, [activePoint, geoOperationalSatellites, satelliteScope, activeCoverageForGeo, failedGeoGatewaySiteIds, gatewayReferenceCoverageForGeo]);
 
   // ── Dual-segment budget ───────────────────────────────────────────────────
   // Resolve gateway from existing connectivity result
@@ -1468,13 +1486,6 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
     return GEO_GATEWAYS.find((g) => g.name === gwName) ?? null;
   }, [resolvedGEOConnectivity]);
 
-  // Use explicit uplink/downlink coverages from the dual picker when available;
-  // fall back to companion lookup for backward compat.
-  const refCoverage = selectedDownlinkCoverage ?? selectedUplinkCoverage ?? selectedCoverage;
-  const downlinkAtUser = selectedDownlinkCoverage
-    ?? getGeoCompanionCoverage(refCoverage, candidateCoverages, false);
-  const uplinkAtUser = selectedUplinkCoverage
-    ?? getGeoCompanionCoverage(refCoverage, candidateCoverages, true);
   const trafficGatewaySelection = useMemo(() => {
     return resolveActiveStarTrafficGatewaySelection({
       linkMode,
@@ -1482,8 +1493,9 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
       downlinkAtUser,
       uplinkAtUser,
       fallbackCoverage: refCoverage,
+      failedGatewaySiteIds: failedGeoGatewaySiteIds,
     });
-  }, [downlinkAtUser, linkMode, refCoverage, resolvedGEOConnectivity, uplinkAtUser]);
+  }, [downlinkAtUser, failedGeoGatewaySiteIds, linkMode, refCoverage, resolvedGEOConnectivity, uplinkAtUser]);
 
   useEffect(() => {
     if (linkMode !== 'STAR_FORWARD' && linkMode !== 'STAR_RETURN') return;
@@ -1659,7 +1671,8 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
     const weatherAdjDbB: number = fadeTable[(weatherTypeB ?? weatherType) as keyof typeof fadeTable] ?? 0;
 
     if (linkMode === 'STAR_FORWARD') {
-      if (!trafficGatewaySelection) return null;
+      // Outage-unserved beams (gateway: null) have no RF path to budget.
+      if (!isServedStarGatewaySelection(trafficGatewaySelection)) return null;
       const dl = downlinkAtUser;
       const satellite = satellites.find((entry) => entry.id === dl?.satelliteId) ?? null;
       const ul = satellite
@@ -1685,7 +1698,7 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
     }
 
     if (linkMode === 'STAR_RETURN') {
-      if (!trafficGatewaySelection) return null;
+      if (!isServedStarGatewaySelection(trafficGatewaySelection)) return null;
       const ul = uplinkAtUser;
       const satellite = satellites.find((entry) => entry.id === ul?.satelliteId) ?? null;
       const dl = satellite

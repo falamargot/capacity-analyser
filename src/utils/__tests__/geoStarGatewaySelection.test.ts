@@ -167,6 +167,127 @@ describe('resolveActiveStarTrafficGatewaySelection', () => {
   });
 });
 
+describe('gateway outage simulation (FAILOVER routing)', () => {
+  const kvhts = createSatellite('53765', 'EUTELSAT KONNECT VHTS', 2.7);
+  const e10b = createSatellite('54259', 'EUTELSAT 10B', 10);
+
+  it('re-routes a KVHTS beam through the Sarajevo failover gateway when its nominal site is out of service', () => {
+    const selection = resolveActiveStarTrafficGatewaySelection({
+      linkMode: 'STAR_FORWARD',
+      satellite: kvhts,
+      downlinkAtUser: createCandidate(kvhts, false, '29'), // nominal → Scanzano / Palermo
+      uplinkAtUser: createCandidate(kvhts, true, '29'),
+      fallbackCoverage: null,
+      failedGatewaySiteIds: new Set(['geo-scanzano-palermo']),
+    });
+
+    expect(selection?.diagnostic.source).toBe('beam-gateway-assignment');
+    expect(selection?.beamRoute?.routingMode).toBe('FAILOVER');
+    expect(selection?.gateway.name).toBe('Sarajevo');
+    expect(selection?.resolvedGateway.gatewayName).toBe('Sarajevo');
+    expect(selection?.resolvedGateway.controlAssignmentRole).toBe('backup');
+    expect(selection?.diagnostic.message).toContain('out of service');
+  });
+
+  it('leaves beams served by other gateways on their nominal assignment during an outage', () => {
+    const selection = resolveActiveStarTrafficGatewaySelection({
+      linkMode: 'STAR_FORWARD',
+      satellite: kvhts,
+      downlinkAtUser: createCandidate(kvhts, false, '132'), // nominal → Rambouillet
+      uplinkAtUser: createCandidate(kvhts, true, '132'),
+      fallbackCoverage: null,
+      failedGatewaySiteIds: new Set(['geo-scanzano-palermo']),
+    });
+
+    expect(selection?.beamRoute?.routingMode).toBe('NOMINAL');
+    expect(selection?.gateway.name).toBe('Rambouillet');
+  });
+
+  it('reports the beam as unserved when both the nominal and failover sites are out of service', () => {
+    const selection = resolveActiveStarTrafficGatewaySelection({
+      linkMode: 'STAR_FORWARD',
+      satellite: kvhts,
+      downlinkAtUser: createCandidate(kvhts, false, '29'),
+      uplinkAtUser: createCandidate(kvhts, true, '29'),
+      fallbackCoverage: null,
+      failedGatewaySiteIds: new Set(['geo-scanzano-palermo', 'geo-sarajevo']),
+    });
+
+    // The beam is physically bound to its assigned sites — no legacy fallback:
+    // re-routing through Rambouillet would fabricate service on a gateway with
+    // no assignment for this beam.
+    expect(selection?.diagnostic.source).toBe('gateway-outage');
+    expect(selection?.diagnostic.reason).toBe('GATEWAY_OUT_OF_SERVICE');
+    expect(selection?.gateway).toBeNull();
+    expect(selection?.resolvedGateway).toBeNull();
+    expect(selection?.diagnostic.message).toContain('failover site is also out of service');
+    expect(selection?.diagnostic.message).toContain('Beam unserved');
+  });
+
+  it('reports E10B beams as unserved on site outage — local-antenna redundancy only, no site diversity', () => {
+    const selection = resolveActiveStarTrafficGatewaySelection({
+      linkMode: 'STAR_FORWARD',
+      satellite: e10b,
+      downlinkAtUser: createCandidate(e10b, false, '66'), // nominal → Cagliari
+      uplinkAtUser: createCandidate(e10b, true, '66'),
+      fallbackCoverage: null,
+      failedGatewaySiteIds: new Set(['geo-cagliari']),
+    });
+
+    expect(selection?.diagnostic.source).toBe('gateway-outage');
+    expect(selection?.diagnostic.reason).toBe('GATEWAY_OUT_OF_SERVICE');
+    expect(selection?.gateway).toBeNull();
+    expect(selection?.diagnostic.message).toContain('Beam unserved');
+  });
+});
+
+describe('gateway outage for satellites outside the beam-routing model (legacy path)', () => {
+  const konnect = createSatellite('45258', 'EUTELSAT KONNECT', 7);
+
+  it('resolves the nominal reference-allocation teleport when no outage is simulated', () => {
+    const selection = resolveActiveStarTrafficGatewaySelection({
+      linkMode: 'STAR_FORWARD',
+      satellite: konnect,
+      downlinkAtUser: createCandidate(konnect, false, '12'),
+      uplinkAtUser: createCandidate(konnect, true, '12'),
+      fallbackCoverage: null,
+    });
+
+    expect(selection?.diagnostic.source).toBe('legacy-traffic-gateway');
+    expect(selection?.gateway?.name).toBe('Rambouillet');
+    expect(selection?.resolvedGateway?.controlAssignmentRole).toBe('nominal');
+  });
+
+  it('fails over to the reference-allocation backup teleport when the nominal site is out of service', () => {
+    const selection = resolveActiveStarTrafficGatewaySelection({
+      linkMode: 'STAR_FORWARD',
+      satellite: konnect,
+      downlinkAtUser: createCandidate(konnect, false, '12'),
+      uplinkAtUser: createCandidate(konnect, true, '12'),
+      fallbackCoverage: null,
+      failedGatewaySiteIds: new Set(['geo-rambouillet']),
+    });
+
+    expect(selection?.diagnostic.source).toBe('legacy-traffic-gateway');
+    expect(selection?.gateway?.name).toBe('Turin');
+    expect(selection?.resolvedGateway?.controlAssignmentRole).toBe('backup');
+    expect(selection?.resolvedGateway?.reason).toContain('out of service');
+  });
+
+  it('returns no selection when both the nominal and backup teleports are out of service', () => {
+    const selection = resolveActiveStarTrafficGatewaySelection({
+      linkMode: 'STAR_FORWARD',
+      satellite: konnect,
+      downlinkAtUser: createCandidate(konnect, false, '12'),
+      uplinkAtUser: createCandidate(konnect, true, '12'),
+      fallbackCoverage: null,
+      failedGatewaySiteIds: new Set(['geo-rambouillet', 'geo-turin']),
+    });
+
+    expect(selection).toBeNull();
+  });
+});
+
 describe('pickStarGatewayReferenceCoverage', () => {
   const kvhts = createSatellite('53765', 'EUTELSAT KONNECT VHTS', 2.7);
   const downlink = createCandidate(kvhts, false, '29');

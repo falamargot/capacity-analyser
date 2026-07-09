@@ -1,5 +1,19 @@
 import type { SatelliteData } from '../types/satellites';
 
+/**
+ * Scope boundary between this model and the RF chain:
+ *
+ * - Per-beam / per-route capacity is RF-derived elsewhere — every candidate
+ *   carries `throughputEstimate = achievableThroughputMbps` from the link
+ *   budget (geoCoverageSelection → geoLinkBudget), and route/ENG displays
+ *   consume the DualSegmentResult chain. Nothing in this file feeds those.
+ * - This model provides only the satellite-level payload-class aggregate
+ *   (fleet/point capacity charts, confidence gating). It cannot be derived
+ *   from the RF chain: summing per-beam link budgets into a satellite
+ *   aggregate would require the full beam plan (per-beam bandwidth and reuse
+ *   factors), which is not modeled. The class figures are public payload-class
+ *   estimates with provenance, not operational capacity.
+ */
 export type GeoCapacityClassId =
   | 'LEGACY_WIDEBEAM_GEO'
   | 'REGIONAL_KU_GEO'

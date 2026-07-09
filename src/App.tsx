@@ -95,7 +95,7 @@ import {
 } from './utils/fillRateUx';
 import { getConnectivityStatus, hasRFConnectivity } from './utils/rfConnectivity';
 import { deriveLeoConnectivityViewModel, type LeoConnectivityViewModel } from './utils/leoServiceViewModel';
-import { getGroundSegmentRoutingForSatellite, resolveConnectivityPathForSatellite, resolveStarTrafficGatewayForCoverage, selectTrafficGeoGateway, distanceKm, type ResolvedGeoGateway, type PointLLA } from './utils/geoConnectivityModel';
+import { getGroundSegmentRoutingForSatellite, resolveStarTrafficGatewayForCoverage, selectTrafficGeoGateway, distanceKm, type ResolvedGeoGateway, type PointLLA } from './utils/geoConnectivityModel';
 import type { GeoPointStatus } from './utils/selectedPointStatus';
 import type { CountryOverlayMode } from './types/countryOverlays';
 import type { LinkMode } from './types/linkMode';
@@ -499,6 +499,7 @@ const App: React.FC = () => {
     weatherCondition,
     setWeatherCondition,
     showInactiveSatellites,
+    failedGeoGatewaySiteIds,
   } = useSimulation();
   const initialDisplayDefaults = getInitialDisplayDefaults();
   const {
@@ -1664,10 +1665,12 @@ const App: React.FC = () => {
       customParamsB: geoRFCustomParamsB,
       pointALabel: 'Terminal A',
       pointBLabel: 'Terminal B',
+      failedGatewaySiteIds: failedGeoGatewaySiteIds,
     });
   }, [
     eligibleCandidateCoverages,
     candidateCoveragesB,
+    failedGeoGatewaySiteIds,
     geoRFClassIdA,
     geoRFClassIdB,
     geoRFCustomParamsA,
@@ -1949,26 +1952,6 @@ const App: React.FC = () => {
     return selectedSatellite?.type === 'EUTELSAT' ? selectedSatellite : null;
   }, [satelliteById, selectedCoverage, selectedSatellite, selectedSelection]);
 
-  // GEO gateway resolution — lifted from CesiumGlobe so App.tsx can provide
-  // resolved gateway coordinates to CommercialRouteModel (Phase C3).
-  const resolvedAutoGeoGateway = useMemo((): ResolvedGeoGateway | null => {
-    if (!activeGeoSatellite) return null;
-    return resolveConnectivityPathForSatellite({
-      satellite: activeGeoSatellite,
-      userLocation: selectedPosition,
-      gateways: GEO_GATEWAYS,
-    })?.resolvedGateway ?? null;
-  }, [activeGeoSatellite, selectedPosition]);
-
-  const resolvedSelectedGeoGateway = useMemo((): ResolvedGeoGateway | null => {
-    if (!selectedSatellite || selectedSatellite.type !== 'EUTELSAT') return null;
-    return resolveConnectivityPathForSatellite({
-      satellite: selectedSatellite,
-      userLocation: selectedPosition,
-      gateways: GEO_GATEWAYS,
-    })?.resolvedGateway ?? null;
-  }, [selectedPosition, selectedSatellite]);
-
   // Traffic gateway for display (globe HUB marker, commercial route hub): resolved
   // through the same beam-aware path as the ENG panel and the route view model, so
   // every surface names the same physical site. selectedCoverage is already
@@ -1979,14 +1962,18 @@ const App: React.FC = () => {
   const resolvedAutoTrafficGeoGateway = useMemo((): ResolvedGeoGateway | null => {
     if (!activeGeoSatellite) return null;
     const referenceCoverage = selectedCoverage?.satelliteId === activeGeoSatellite.id ? selectedCoverage : null;
-    return resolveStarTrafficGatewayForCoverage(activeGeoSatellite, referenceCoverage, GEO_GATEWAYS)?.resolvedGateway ?? null;
-  }, [activeGeoSatellite, selectedCoverage]);
+    return resolveStarTrafficGatewayForCoverage(activeGeoSatellite, referenceCoverage, GEO_GATEWAYS, {
+      failedGatewaySiteIds: failedGeoGatewaySiteIds,
+    })?.resolvedGateway ?? null;
+  }, [activeGeoSatellite, failedGeoGatewaySiteIds, selectedCoverage]);
 
   const resolvedSelectedTrafficGeoGateway = useMemo((): ResolvedGeoGateway | null => {
     if (!selectedSatellite || selectedSatellite.type !== 'EUTELSAT') return null;
     const referenceCoverage = selectedCoverage?.satelliteId === selectedSatellite.id ? selectedCoverage : null;
-    return resolveStarTrafficGatewayForCoverage(selectedSatellite, referenceCoverage, GEO_GATEWAYS)?.resolvedGateway ?? null;
-  }, [selectedCoverage, selectedSatellite]);
+    return resolveStarTrafficGatewayForCoverage(selectedSatellite, referenceCoverage, GEO_GATEWAYS, {
+      failedGatewaySiteIds: failedGeoGatewaySiteIds,
+    })?.resolvedGateway ?? null;
+  }, [failedGeoGatewaySiteIds, selectedCoverage, selectedSatellite]);
 
   // Resolve live satellite instance for selected satellite (real-time positions)
   const liveSelectedSatellite = useMemo(
@@ -2331,6 +2318,7 @@ const App: React.FC = () => {
       weatherTypeB,
       nearestLocation,
       nearestLocationB,
+      failedGeoGatewaySiteIds,
     });
   // satellites / satellitesForResolutionRef intentionally omitted so this stays off
   // the visual propagation tick; routeSatellites is read at execution time above.
@@ -2340,6 +2328,7 @@ const App: React.FC = () => {
     activeMeshTab,
     candidateCoveragesB,
     eligibleCandidateCoverages,
+    failedGeoGatewaySiteIds,
     geoRFClassIdA,
     geoRFClassIdB,
     geoRFCustomParamsA,
@@ -3687,8 +3676,6 @@ const App: React.FC = () => {
     snpConnectedSatellites,
     leoSiteToSiteResult: activeLeoSiteToSiteResult,
     leoSiteToSiteFullResult: activeLeoSiteToSiteResult,
-    resolvedAutoGeoGateway,
-    resolvedSelectedGeoGateway,
   }), [
     filteredSatellites, satelliteTypeByName, coverageFeaturesMemo, selectionAnalysisProps, callbackProps,
     resolvedAutoLEO, resolvedAutoLEOB, leoServiceViewModel,
@@ -3696,8 +3683,6 @@ const App: React.FC = () => {
     snpConnectedSatellites,
     topologyProps,
     activeLeoSiteToSiteResult,
-    resolvedAutoGeoGateway,
-    resolvedSelectedGeoGateway,
   ]);
   const desktopCompactProgress = isMobile ? 0 : getCompactDesktopProgress(viewportSnapshot);
   const useCompactDesktopSidebar = desktopCompactProgress >= 0.35;
@@ -4081,7 +4066,6 @@ const App: React.FC = () => {
     () => getLeoTerminalProfile(leoTerminalTypeB, leoTerminalModelIdB).model,
     [leoTerminalModelIdB, leoTerminalTypeB],
   );
-  const activeCommercialGeoGateway = resolvedSelectedGeoGateway ?? resolvedAutoGeoGateway;
   const activeCommercialTrafficGeoGateway = (linkMode === 'STAR_FORWARD' || linkMode === 'STAR_RETURN')
     ? (resolvedSelectedTrafficGeoGateway ?? resolvedAutoTrafficGeoGateway)
     : null;
@@ -4089,6 +4073,8 @@ const App: React.FC = () => {
     ? [
         activeCommercialTrafficGeoGateway.teleportCode,
         activeCommercialTrafficGeoGateway.region,
+        // On the traffic path a 'backup' role only arises from outage re-routing.
+        activeCommercialTrafficGeoGateway.controlAssignmentRole === 'backup' ? 'failover' : null,
         activeCommercialTrafficGeoGateway.gateway.trafficStatus === 'PUBLICLY_LIKELY'
           ? 'reference / unconfirmed'
           : activeCommercialTrafficGeoGateway.gateway.trafficStatus === 'CONFIRMED'
@@ -4120,14 +4106,16 @@ const App: React.FC = () => {
       if (siteB && (linkMode === 'MESH' || linkMode === 'POINT_TO_POINT')) {
         add(groundPointToCartesian(siteB));
       } else {
-        add(geoGatewayToCartesian(activeCommercialGeoGateway));
+        // Frame the traffic gateway the route actually draws to (null in MESH,
+        // where the gateway is not in the path).
+        add(geoGatewayToCartesian(activeCommercialTrafficGeoGateway));
       }
     }
 
     return positions;
   }, [
     activeAnalysisPoint,
-    activeCommercialGeoGateway,
+    activeCommercialTrafficGeoGateway,
     activeConnectivityTab,
     activeGeoSatellite,
     activeLeoSiteToSiteResult,
@@ -5725,8 +5713,11 @@ const App: React.FC = () => {
             >
               <MapViewSwitcher
                 {...sharedMapProps}
-                resolvedAutoGeoGateway={commercialMode ? resolvedAutoTrafficGeoGateway : resolvedAutoGeoGateway}
-                resolvedSelectedGeoGateway={commercialMode ? resolvedSelectedTrafficGeoGateway : resolvedSelectedGeoGateway}
+                // The globe draws a traffic route (user→sat→gateway→Internet), so it
+                // must follow the same beam-aware traffic resolution as the panels in
+                // BOTH modes — never the SCC control-site resolver.
+                resolvedAutoGeoGateway={resolvedAutoTrafficGeoGateway}
+                resolvedSelectedGeoGateway={resolvedSelectedTrafficGeoGateway}
                 commercialState={mapCommercialState}
                 onCommercialSelectedSegmentChange={commercialMode ? handleCommercialSegmentChange : undefined}
               />
@@ -6173,8 +6164,8 @@ const App: React.FC = () => {
                 <MapViewSwitcher
                   {...sharedMapProps}
                   displayLayerProps={desktopDisplayLayerProps}
-                  resolvedAutoGeoGateway={uiMode === 'commercial' ? resolvedAutoTrafficGeoGateway : resolvedAutoGeoGateway}
-                  resolvedSelectedGeoGateway={uiMode === 'commercial' ? resolvedSelectedTrafficGeoGateway : resolvedSelectedGeoGateway}
+                  resolvedAutoGeoGateway={resolvedAutoTrafficGeoGateway}
+                  resolvedSelectedGeoGateway={resolvedSelectedTrafficGeoGateway}
                   commercialState={mapCommercialState}
                   onCommercialSelectedSegmentChange={uiMode === 'commercial' ? handleCommercialSegmentSelect : undefined}
                 />

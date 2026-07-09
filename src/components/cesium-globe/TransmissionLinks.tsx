@@ -27,7 +27,6 @@ import { useSimulation } from '../../contexts/SimulationContext';
 import { GEO_GATEWAYS, type GeoGatewayData, type SNPData } from '../globe/GlobeConfig';
 import {
     getMonitoredGeoSatellitesForGateway,
-    resolveGatewayForSatellite,
     type ResolvedGeoGateway,
 } from '../../utils/geoConnectivityModel';
 import type { SNPConnectedSatellite } from '../../services/coverageService';
@@ -248,23 +247,6 @@ const flowBackboneColor = Color.fromCssColorString('#a78bfa');
 const getRouteSurfacePosition = (lat: number, lng: number, altitudeKm = 0) => (
     getPosition(lat, lng, Math.max(altitudeKm, GROUND_POINT_ALTITUDE_KM))
 );
-
-function logGatewayDesync(
-    sourceComponent: string,
-    satellite: SatelliteData | null | undefined,
-    rfGateway: ResolvedGeoGateway | null | undefined,
-    renderedGateway: ResolvedGeoGateway | null | undefined,
-) {
-    if (!import.meta.env.DEV || !satellite || !rfGateway || !renderedGateway) return;
-    if (rfGateway.gatewayId === renderedGateway.gatewayId) return;
-
-    console.error('[GEO Gateway Desync]', {
-        satelliteName: satellite.name,
-        rfGatewayId: rfGateway.gatewayId,
-        renderedGatewayId: renderedGateway.gatewayId,
-        sourceComponent,
-    });
-}
 
 const entityIdPart = (value: string | number | null | undefined) => (
     String(value ?? 'none')
@@ -625,20 +607,11 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
         }, false);
     }, [autoSelectedGEOSatellite, hasUserSelection, resolveCurrentUser]);
 
-    // Gateway selection — depends only on the GEO satellite position, not on user position.
-    // GEO satellites barely move, so this recomputes at most when autoSelectedGEOSatellite changes.
-    // Eliminates O(gateways) ECEF work from the per-frame CallbackProperty callbacks below.
-    const bestGeoGateway = useMemo(() => {
-        if (!autoSelectedGEOSatellite) return null;
-        const locallyResolved = resolveGatewayForSatellite(autoSelectedGEOSatellite, GEO_GATEWAYS);
-        logGatewayDesync(
-            'TransmissionLinks:autoGeoFeeder',
-            autoSelectedGEOSatellite,
-            resolvedAutoGeoGateway,
-            locallyResolved,
-        );
-        return resolvedAutoGeoGateway ?? locallyResolved;
-    }, [autoSelectedGEOSatellite, resolvedAutoGeoGateway]);
+    // The feeder/backhaul entities depict the traffic path, so they draw only when
+    // App resolved a traffic gateway (beam-aware, failover-aware). No local
+    // re-resolution fallback: resolveGatewayForSatellite returns the SCC control
+    // site, which is not in the traffic path and would contradict the panels.
+    const bestGeoGateway = autoSelectedGEOSatellite ? resolvedAutoGeoGateway : null;
 
     // GEO Satellite -> Gateway feeder link
     const geoFeederLinkCallback = useMemo(() => {
@@ -671,17 +644,9 @@ const TransmissionLinks: React.FC<TransmissionLinksProps> = ({
         return new CallbackProperty((_time?: JulianDate) => staticPositions, false);
     }, [autoSelectedGEOSatellite, hasUserSelection, bestGeoGateway]);
 
-    const dedicatedGeoGateway = useMemo(() => {
-        if (!selectedSatellite || selectedSatellite.type !== 'EUTELSAT') return null;
-        const locallyResolved = resolveGatewayForSatellite(selectedSatellite, GEO_GATEWAYS);
-        logGatewayDesync(
-            'TransmissionLinks:dedicatedGeoFeeder',
-            selectedSatellite,
-            resolvedSelectedGeoGateway,
-            locallyResolved,
-        );
-        return resolvedSelectedGeoGateway ?? locallyResolved;
-    }, [selectedSatellite, resolvedSelectedGeoGateway]);
+    const dedicatedGeoGateway = selectedSatellite?.type === 'EUTELSAT'
+        ? resolvedSelectedGeoGateway
+        : null;
 
     // Dedicated SNP link for manually selected LEO satellite
     const dedicatedSnpCallback = useMemo(() => {

@@ -13,7 +13,7 @@ import DualSegmentPanel from './DualSegmentPanel';
 import EngineeringAnalysisWorkspace from './EngineeringAnalysisWorkspace';
 import { getDisplayedThroughput, type DualSegmentResult } from '../../utils/geoDualSegmentBudget';
 import LinkModeSelector from './LinkModeSelector';
-import type { ResolvedGeoGateway, StarTrafficGatewaySelection } from '../../utils/geoConnectivityModel';
+import type { ResolvedGeoGateway, StarTrafficGatewayResolution } from '../../utils/geoConnectivityModel';
 import { getGatewayTrafficStatusNote, getPrimaryControlRoleLabel } from '../globe/GlobeConfig';
 import { formatCoordinates } from '../../utils/formatters';
 import { buildGeoConfidence, type PredictionConfidence } from '../../utils/predictionConfidence';
@@ -622,7 +622,7 @@ interface GEOConnectivitySectionProps {
   /** Dual-segment RF budget computed by geoDualSegmentBudget. Null when no path is found. */
   dualSegmentResult?: DualSegmentResult | null;
   /** STAR-only traffic gateway selection resolved from the active beam when available. */
-  starTrafficGatewaySelection?: StarTrafficGatewaySelection | null;
+  starTrafficGatewaySelection?: StarTrafficGatewayResolution | null;
   /** Controlled direction tab for MESH/P2P — lifted to App so the globe stays in sync. */
   activeMeshTab?: 'forward' | 'reverse';
   onActiveMeshTabChange?: (tab: 'forward' | 'reverse') => void;
@@ -734,7 +734,7 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
     publicFrequencyEvidence: !!(selectedCoverage?.band ?? bestCoverage?.band ?? selectedCoverage?.frequencyGhz ?? bestCoverage?.frequencyGhz ?? selectedCoverage?.level ?? bestCoverage?.level),
     gatewayResolved: linkMode === 'MESH' || linkMode === 'POINT_TO_POINT' ||
       ((linkMode === 'STAR_FORWARD' || linkMode === 'STAR_RETURN')
-        ? !!starTrafficGatewaySelection
+        ? !!starTrafficGatewaySelection?.gateway
         : !!geoGeometry?.satelliteToGateway.resolvedGateway),
     capacityClassKnown: !!geoCapacityEstimate,
     regulatoryKnown: true,
@@ -779,20 +779,36 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
     ? starTrafficGatewaySelection
     : null;
   const resolvedGateway = geoGeometry?.satelliteToGateway.resolvedGateway ?? null;
-  const gatewayName = starTrafficGateway?.gateway.name ??
+  const isFailoverGateway = starTrafficGateway?.beamRoute?.routingMode === 'FAILOVER';
+  // Outage-unserved: the beam's nominal (and failover) site is out of service and
+  // no other gateway can physically carry this beam.
+  const isGatewayOutageUnserved = starTrafficGateway?.diagnostic.source === 'gateway-outage';
+  const gatewayName = starTrafficGateway?.gateway?.name ??
     resolvedGateway?.gatewayName ??
     geoGeometry?.satelliteToGateway.gateway?.name ??
     'Gateway';
   const gatewayRole = starTrafficGateway ? null : resolvedGateway?.controlAssignmentRole ?? null;
-  const gatewayDisplayName = gatewayRole ? `${gatewayName} (${gatewayRole})` : gatewayName;
+  const gatewayDisplayName = isGatewayOutageUnserved
+    ? 'Gateway out of service'
+    : isFailoverGateway
+    ? `${gatewayName} (failover)`
+    : gatewayRole
+    ? `${gatewayName} (${gatewayRole})`
+    : gatewayName;
   const gatewayTrafficStatusNote = starTrafficGateway
-    ? getGatewayTrafficStatusNote(starTrafficGateway.gateway.trafficStatus)
+    ? starTrafficGateway.gateway
+      ? getGatewayTrafficStatusNote(starTrafficGateway.gateway.trafficStatus)
+      : null
     : resolvedGateway
     ? getGatewayTrafficStatusNote(resolvedGateway.gateway.trafficStatus)
     : null;
   const gatewayStatusTitle = starTrafficGateway
-    ? starTrafficGateway.diagnostic.source === 'beam-gateway-assignment'
-      ? `Beam gateway assignment: ${starTrafficGateway.diagnostic.message}`
+    ? starTrafficGateway.diagnostic.source === 'gateway-outage'
+      ? `Gateway outage: ${starTrafficGateway.diagnostic.message}`
+      : starTrafficGateway.diagnostic.source === 'beam-gateway-assignment'
+      ? isFailoverGateway
+        ? `Failover gateway assignment: ${starTrafficGateway.diagnostic.message}`
+        : `Beam gateway assignment: ${starTrafficGateway.diagnostic.message}`
       : `Legacy gateway fallback: ${starTrafficGateway.diagnostic.message}`
     : gatewayTrafficStatusNote ?? 'Resolved automatically';
   // Ground-infra role of the specific resolved site (SCC nominal/backup/monitoring),
@@ -806,7 +822,7 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
     : ENGINEERING_TERMS.GEO.gateway;
   const pointACoordinatesLabel = activePoint ? formatCoordinates(activePoint) : '--';
   const pointBCoordinatesLabel = pointB ? formatCoordinates(pointB) : 'Shift+click to place';
-  const gatewayCoordinatesLabel = starTrafficGateway
+  const gatewayCoordinatesLabel = starTrafficGateway?.gateway
     ? formatCoordinates({ lat: starTrafficGateway.gateway.lat, lng: starTrafficGateway.gateway.lng })
     : resolvedGateway
     ? formatCoordinates({ lat: resolvedGateway.latitude, lng: resolvedGateway.longitude })

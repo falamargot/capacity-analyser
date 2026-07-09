@@ -9,6 +9,7 @@ import {
 import type { SatelliteData } from '../types/satellites';
 import { SectionTooltip } from './SectionTooltip';
 import { getGroundSegmentRoutingForSatellite } from '../utils/geoConnectivityModel';
+import { useSimulation } from '../contexts/SimulationContext';
 
 interface GatewayDetailsProps {
   gateway: GeoGatewayData;
@@ -69,6 +70,7 @@ const capabilityDetail = (capability: GroundCapability): string => {
 const formatCapabilityKind = (capability: GroundCapability): string => capability.kind;
 
 const GatewayDetails = memo<GatewayDetailsProps>(({ gateway, satellites, compactDesktop = false, externalHeader = false }) => {
+  const { failedGeoGatewaySiteIds, toggleGeoGatewayFailure } = useSimulation();
   const groundSite = useMemo(
     () => getGroundSiteById(gateway.gateway_id) ?? getGroundSiteByPublicCode(gateway.teleportCode),
     [gateway.gateway_id, gateway.teleportCode]
@@ -76,6 +78,8 @@ const GatewayDetails = memo<GatewayDetailsProps>(({ gateway, satellites, compact
 
   const capabilities = groundSite?.capabilities ?? [];
   const hasTrafficTeleport = capabilities.some((capability) => capability.kind === 'TRAFFIC_TELEPORT');
+  const outageSiteId = groundSite?.siteId ?? gateway.gateway_id;
+  const isOutOfService = failedGeoGatewaySiteIds.has(outageSiteId);
 
   const groundSegmentProfile = useMemo(() => {
     const operationalSatellites = satellites
@@ -180,6 +184,39 @@ const GatewayDetails = memo<GatewayDetailsProps>(({ gateway, satellites, compact
               </div>
             </div>
           </div>
+
+          {hasTrafficTeleport && (
+            <div className={`rounded-lg border p-3 ${
+              isOutOfService
+                ? 'border-red-300 bg-red-50 dark:border-red-500/40 dark:bg-red-500/10'
+                : 'border-gray-100 bg-gray-50 dark:border-slate-700 dark:bg-slate-800/50'
+            }`}>
+              <h3 className={`flex items-center text-sm font-semibold ${
+                isOutOfService ? 'text-red-800 dark:text-red-200' : 'text-cyan-800 dark:text-cyan-200'
+              }`}>
+                Gateway Outage Simulation
+                <SectionTooltip content="Simulates this site as out of service. Beams nominally served by this gateway re-route through the satellite's redundancy policy (FAILOVER) when a backup gateway exists; with no available failover site the affected beams are reported as unserved. Satellites outside the beam-routing model fail over to their reference-allocation backup teleport when it is traffic-eligible." />
+              </h3>
+              {isOutOfService && (
+                <p className="mt-2 text-xs font-medium text-red-700 dark:text-red-300">
+                  Site simulated as out of service — beams served by this gateway are re-routed via failover when a backup site exists, otherwise reported as unserved.
+                </p>
+              )}
+              <div className="pt-2">
+                <button
+                  type="button"
+                  onClick={() => toggleGeoGatewayFailure(outageSiteId)}
+                  className={`w-full py-2 px-4 rounded-lg text-sm font-semibold transition-colors ${
+                    isOutOfService
+                      ? 'bg-green-600 hover:bg-green-700 text-white'
+                      : 'bg-red-600 hover:bg-red-700 text-white'
+                  }`}
+                >
+                  {isOutOfService ? 'Restore site (mark operational)' : 'Mark site out of service'}
+                </button>
+              </div>
+            </div>
+          )}
 
           <div className="rounded-lg border border-cyan-100 bg-white p-3 dark:border-cyan-500/20 dark:bg-slate-900/60">
             <h3 className="flex items-center text-sm font-semibold text-cyan-800 dark:text-cyan-200">

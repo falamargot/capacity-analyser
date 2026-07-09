@@ -23,6 +23,8 @@ interface SimulationState {
   beamHealthFactors: BeamHealthData[];
   failedSnps: Set<string>;
   beamHsStatus: boolean[];
+  /** GroundSite.siteId values simulated as out of service (gateway outage / maintenance). */
+  failedGeoGatewaySiteIds: Set<string>;
 }
 
 // ── Actions ────────────────────────────────────────────────────────────────
@@ -35,6 +37,8 @@ type SimulationAction =
   | { type: 'RESET_BEAM_HEALTH' }
   | { type: 'TOGGLE_SNP'; snpName: string }
   | { type: 'RESET_SNPS' }
+  | { type: 'TOGGLE_GEO_GATEWAY'; siteId: string }
+  | { type: 'RESET_GEO_GATEWAYS' }
   | { type: 'TOGGLE_BEAM_HS'; beamIndex: number }
   | { type: 'RESET_BEAM_HS' };
 
@@ -74,6 +78,16 @@ function simulationReducer(state: SimulationState, action: SimulationAction): Si
     case 'RESET_SNPS':
       return { ...state, failedSnps: new Set() };
 
+    case 'TOGGLE_GEO_GATEWAY': {
+      const next = new Set(state.failedGeoGatewaySiteIds);
+      if (next.has(action.siteId)) next.delete(action.siteId);
+      else next.add(action.siteId);
+      return { ...state, failedGeoGatewaySiteIds: next };
+    }
+
+    case 'RESET_GEO_GATEWAYS':
+      return { ...state, failedGeoGatewaySiteIds: new Set() };
+
     case 'TOGGLE_BEAM_HS': {
       const next = [...state.beamHsStatus];
       next[action.beamIndex] = !next[action.beamIndex];
@@ -111,6 +125,7 @@ function getInitialState(): SimulationState {
     beamHealthFactors: DEFAULT_BEAM_HEALTH.map((b) => ({ ...b })),
     failedSnps: new Set(),
     beamHsStatus: Array(TOTAL_BEAMS).fill(false),
+    failedGeoGatewaySiteIds: new Set(),
   };
 }
 
@@ -140,6 +155,11 @@ interface SimulationContextType {
   toggleSnpFailure: (snpName: string) => void;
   resetFailedSnps: () => void;
 
+  // GEO gateway outage simulation — drives FAILOVER beam-gateway routing.
+  failedGeoGatewaySiteIds: ReadonlySet<string>;
+  toggleGeoGatewayFailure: (siteId: string) => void;
+  resetFailedGeoGateways: () => void;
+
   // Feature 3: Beam HS (Hard Out of Service)
   beamHsStatus: readonly boolean[];
   toggleBeamHs: (beamIndex: number) => void;
@@ -166,6 +186,10 @@ const SimulationContext = createContext<SimulationContextType>({
   toggleSnpFailure:       () => {},
   resetFailedSnps:        () => {},
 
+  failedGeoGatewaySiteIds: new Set(),
+  toggleGeoGatewayFailure: () => {},
+  resetFailedGeoGateways:  () => {},
+
   beamHsStatus:           Array(TOTAL_BEAMS).fill(false),
   toggleBeamHs:           () => {},
   resetBeamHs:            () => {},
@@ -184,6 +208,7 @@ export const SimulationProvider: React.FC<{ children: ReactNode }> = ({ children
     beamHealthFactors,
     failedSnps,
     beamHsStatus,
+    failedGeoGatewaySiteIds,
   } = state;
 
   // ── Stable action dispatchers ──────────────────────────────────────────
@@ -215,6 +240,12 @@ export const SimulationProvider: React.FC<{ children: ReactNode }> = ({ children
 
   const resetFailedSnps = useCallback(() =>
     dispatch({ type: 'RESET_SNPS' }), []);
+
+  const toggleGeoGatewayFailure = useCallback((siteId: string) =>
+    dispatch({ type: 'TOGGLE_GEO_GATEWAY', siteId }), []);
+
+  const resetFailedGeoGateways = useCallback(() =>
+    dispatch({ type: 'RESET_GEO_GATEWAYS' }), []);
 
   const toggleBeamHs = useCallback((beamIndex: number) =>
     dispatch({ type: 'TOGGLE_BEAM_HS', beamIndex }), []);
@@ -249,6 +280,9 @@ export const SimulationProvider: React.FC<{ children: ReactNode }> = ({ children
     failedSnps,
     toggleSnpFailure,
     resetFailedSnps,
+    failedGeoGatewaySiteIds,
+    toggleGeoGatewayFailure,
+    resetFailedGeoGateways,
     beamHsStatus,
     toggleBeamHs,
     resetBeamHs,
@@ -258,6 +292,7 @@ export const SimulationProvider: React.FC<{ children: ReactNode }> = ({ children
     weatherCondition, setWeatherCondition, weatherLabel, weatherAttenuationDb,
     beamHealthFactors, setBeamHealthFactor, resetBeamHealth, getBeamHealthFactor,
     failedSnps, toggleSnpFailure, resetFailedSnps,
+    failedGeoGatewaySiteIds, toggleGeoGatewayFailure, resetFailedGeoGateways,
     beamHsStatus, toggleBeamHs, resetBeamHs, hsBeamsSet,
   ]);
 

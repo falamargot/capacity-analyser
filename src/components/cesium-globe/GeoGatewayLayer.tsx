@@ -21,6 +21,10 @@ import {
     getGeoGatewaysForRendering,
     type GeoGatewayRenderMode,
 } from './geoGatewayMarkerModel';
+import { useSimulation } from '../../contexts/SimulationContext';
+
+const OUT_OF_SERVICE_MARKER_COLOR = '#ef4444';
+const OUT_OF_SERVICE_OUTLINE_COLOR = '#991b1b';
 
 const GATEWAY_MARKER_PIXEL_MULTIPLIER = 12;
 const SELECTED_GATEWAY_SIZE_BOOST = 1.2;
@@ -54,7 +58,8 @@ const GeoGatewayEntity = React.memo<{
     commercialTone: 'primary' | 'secondary';
     renderMode: GeoGatewayRenderMode;
     showLabels: boolean;
-}>(({ 
+    isOutOfService: boolean;
+}>(({
     gateway,
     viewerRef,
     cameraMetricsRef,
@@ -65,6 +70,7 @@ const GeoGatewayEntity = React.memo<{
     commercialTone,
     renderMode,
     showLabels,
+    isOutOfService,
 }) => {
     const position = useMemo(
         () => getPosition(gateway.lat, gateway.lng, GROUND_POINT_ALTITUDE_KM),
@@ -91,19 +97,28 @@ const GeoGatewayEntity = React.memo<{
     const handleMouseEnter = useCallback(() => onGatewayHover(gateway.name), [gateway.name, onGatewayHover]);
     const handleMouseLeave = useCallback(() => onGatewayHover(null), [onGatewayHover]);
     const markerMetadata = useMemo(() => buildGeoGatewayMarkerMetadata(gateway), [gateway]);
+    // A site simulated as out of service overrides the capability palette in both
+    // render modes — the globe must never present a failed site as nominal.
     const markerColor = useMemo(
-        () => renderMode === 'commercial'
+        () => isOutOfService
+            ? Color.fromCssColorString(OUT_OF_SERVICE_MARKER_COLOR)
+            : renderMode === 'commercial'
             ? Color.fromCssColorString('#22d3ee')
             : Color.fromCssColorString(markerMetadata.markerColorCss),
-        [markerMetadata.markerColorCss, renderMode]
+        [isOutOfService, markerMetadata.markerColorCss, renderMode]
     );
     const outlineColor = useMemo(
-        () => Color.fromCssColorString(renderMode === 'commercial' ? '#0891b2' : markerMetadata.outlineColorCss),
-        [markerMetadata.outlineColorCss, renderMode]
+        () => Color.fromCssColorString(
+            isOutOfService
+                ? OUT_OF_SERVICE_OUTLINE_COLOR
+                : renderMode === 'commercial' ? '#0891b2' : markerMetadata.outlineColorCss
+        ),
+        [isOutOfService, markerMetadata.outlineColorCss, renderMode]
     );
     const entityCapabilityLabel = markerMetadata.capabilityLabels.length > 0
         ? markerMetadata.capabilityLabels.join(', ')
         : 'Ground Site';
+    const entityStatusLabel = isOutOfService ? ' — OUT OF SERVICE' : '';
 
     return (
         <Entity
@@ -116,20 +131,22 @@ const GeoGatewayEntity = React.memo<{
                 outlineWidth: markerMetadata.outlineWidth,
                 disableDepthTestDistance: 0
             }}
-            name={`${gateway.name} (${entityCapabilityLabel})`}
+            name={`${gateway.name} (${entityCapabilityLabel})${entityStatusLabel}`}
             onClick={handleClick}
             onMouseEnter={handleMouseEnter}
             onMouseLeave={handleMouseLeave}
         >
-            {isSelected && showLabels && (
+            {(isSelected || isOutOfService) && showLabels && (
                 <LabelGraphics
-                    text={gateway.name}
+                    text={isOutOfService ? `${gateway.name} — out of service` : gateway.name}
                     font="600 13px Inter, sans-serif"
                     fillColor={Color.WHITE}
                     outlineWidth={3}
                     style={2}
                     showBackground={true}
-                    backgroundColor={commercialTone === 'secondary' ? Color.fromCssColorString('#475569').withAlpha(0.5) : Color.CYAN.withAlpha(0.7)}
+                    backgroundColor={isOutOfService
+                        ? Color.fromCssColorString(OUT_OF_SERVICE_OUTLINE_COLOR).withAlpha(0.8)
+                        : commercialTone === 'secondary' ? Color.fromCssColorString('#475569').withAlpha(0.5) : Color.CYAN.withAlpha(0.7)}
                     backgroundPadding={LABEL_BACKGROUND_PADDING}
                     pixelOffset={LABEL_PIXEL_OFFSET}
                     verticalOrigin={VerticalOrigin.BOTTOM}
@@ -157,6 +174,10 @@ const GeoGatewayLayer: React.FC<GeoGatewayLayerProps> = ({
     renderMode = 'engineering',
     showLabels = true,
 }) => {
+    // Gateway outage simulation state — failed sites must render as failed on the
+    // globe in both modes, matching the panels driven by the same context.
+    const { failedGeoGatewaySiteIds } = useSimulation();
+
     // Memoize Gateway entities (hooks must run unconditionally)
     const gatewayEntities = useMemo(() => {
         const gatewaysToRender = getGeoGatewaysForRendering(allowedGatewayNames, renderMode);
@@ -173,9 +194,10 @@ const GeoGatewayLayer: React.FC<GeoGatewayLayerProps> = ({
                 commercialTone={commercialTone}
                 renderMode={renderMode}
                 showLabels={showLabels}
+                isOutOfService={failedGeoGatewaySiteIds.has(gateway.gateway_id)}
             />
         ));
-    }, [viewerRef, cameraMetricsRef, onGatewayClick, onGatewayHover, selectedGatewayName, sizeScale, allowedGatewayNames, commercialTone, renderMode, showLabels]);
+    }, [viewerRef, cameraMetricsRef, onGatewayClick, onGatewayHover, selectedGatewayName, sizeScale, allowedGatewayNames, commercialTone, renderMode, showLabels, failedGeoGatewaySiteIds]);
 
     // Only render Gateways for GEO scope or ALL scope
     if (satelliteScope !== 'GEO' && satelliteScope !== 'ALL') {

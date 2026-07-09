@@ -753,7 +753,17 @@ export const computeGeoConnectivity = (
   selectedCoverage: CandidateCoverage | null,
   userPoint: { lat: number; lng: number; altitude?: number },
   satellites: SatelliteData[],
-  gateways: GeoGatewayData[] = GEO_GATEWAYS
+  gateways: GeoGatewayData[] = GEO_GATEWAYS,
+  options: {
+    failedGatewaySiteIds?: ReadonlySet<string>;
+    /**
+     * Coverage whose beam token drives gateway resolution when it differs from
+     * `selectedCoverage` (STAR gateway resolution follows the traffic direction:
+     * STAR_RETURN resolves from the uplink beam). Candidate/satellite resolution
+     * still uses `selectedCoverage`.
+     */
+    gatewayReferenceCoverage?: Pick<CandidateCoverage, 'beamId' | 'beamName'> | null;
+  } = {}
 ): GeoConnectivitySelectionResult | null => {
   const resolved = resolveCandidateCoverage(selectedCoverage, satellites);
   if (!resolved) return null;
@@ -764,6 +774,7 @@ export const computeGeoConnectivity = (
     gatewaySignatureCache.set(gateways, gatewaySignature);
   }
 
+  const gatewayCoverage = options.gatewayReferenceCoverage ?? selectedCoverage;
   const cacheKey = [
     resolved.satellite.id,
     resolved.satellite.position.lat.toFixed(3),
@@ -772,9 +783,10 @@ export const computeGeoConnectivity = (
     userPoint.lat.toFixed(4),
     userPoint.lng.toFixed(4),
     (userPoint.altitude ?? 0).toFixed(3),
-    // Beam token participates in gateway resolution for beam-routed satellites,
-    // so cached geometry must be beam-scoped too.
-    selectedCoverage?.beamId ?? 'no-beam',
+    // The gateway-resolution beam token and gateway outages both participate in
+    // gateway resolution, so cached geometry must be scoped to them too.
+    gatewayCoverage?.beamId ?? 'no-beam',
+    options.failedGatewaySiteIds?.size ? [...options.failedGatewaySiteIds].sort().join(',') : 'no-outage',
     gatewaySignature,
   ].join('::');
 
@@ -784,7 +796,8 @@ export const computeGeoConnectivity = (
       userPoint,
       satellite: resolved.satellite,
       gateways,
-      coverage: selectedCoverage,
+      coverage: gatewayCoverage,
+      failedGatewaySiteIds: options.failedGatewaySiteIds,
     });
     if (geoConnectivityCache.size >= GEO_CONNECTIVITY_CACHE_MAX_ENTRIES) {
       const oldestKey = geoConnectivityCache.keys().next().value;

@@ -3,7 +3,7 @@ import type { SatelliteData } from '../types/satellites';
 import { GEO_GATEWAYS, type GeoGatewayData } from '../components/globe/GlobeConfig';
 import {
   resolveStarTrafficGatewayForCoverage,
-  type StarTrafficGatewaySelection,
+  type StarTrafficGatewayResolution,
 } from './geoConnectivityModel';
 import { supportsStarTrafficTopology } from './geoGroundInfrastructure';
 import type { LinkMode } from '../types/linkMode';
@@ -80,6 +80,7 @@ export const resolveActiveStarTrafficGatewaySelection = ({
   uplinkAtUser,
   fallbackCoverage,
   gateways = GEO_GATEWAYS,
+  failedGatewaySiteIds,
 }: {
   linkMode: LinkMode;
   satellite: SatelliteData | null | undefined;
@@ -87,7 +88,8 @@ export const resolveActiveStarTrafficGatewaySelection = ({
   uplinkAtUser: CandidateCoverage | null | undefined;
   fallbackCoverage: CandidateCoverage | null | undefined;
   gateways?: GeoGatewayData[];
-}): StarTrafficGatewaySelection | null => {
+  failedGatewaySiteIds?: ReadonlySet<string>;
+}): StarTrafficGatewayResolution | null => {
   if (!satellite || (linkMode !== 'STAR_FORWARD' && linkMode !== 'STAR_RETURN')) return null;
   if (!supportsStarTrafficTopology(satellite)) return null;
 
@@ -96,6 +98,7 @@ export const resolveActiveStarTrafficGatewaySelection = ({
   return resolveStarTrafficGatewayForCoverage(
     satellite,
     gatewayReferenceCoverage ?? fallbackCoverage,
-    gateways
+    gateways,
+    { failedGatewaySiteIds }
   );
 };
