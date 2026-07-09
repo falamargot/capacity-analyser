@@ -280,7 +280,7 @@ function FullKpiBar({ viewModel }: { viewModel: CommercialScenarioViewModel }) {
             />
             <CommercialKpiTile
               value={formatMs(viewModel.rttMs)}
-              label="Response time"
+              label="Latency"
               sublabel={rttTier.label !== '--' ? rttTier.label : undefined}
               sublabelTone={rttTier.tone}
             />
