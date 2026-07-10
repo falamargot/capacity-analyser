@@ -150,19 +150,22 @@ export function computeFsplDb(slantRangeKm: number, frequencyGHz: number): numbe
  *
  * Uses flat-Earth Pythagorean approximation:
  *   d = sqrt(h² + x²)
- * where x is the cross-track offset of the beam center.
+ * where x is the ALONG-track offset of the beam center (the 16 beams are
+ * stacked along the direction of flight — ≈ north–south for the near-polar
+ * orbit — while each beam is elongated cross-track; see config/oneweb.ts).
  * Error is < 0.5 % for OneWeb geometry (h = 1200 km, max x ≈ 506 km).
  *
- * The along-track beam extent is not included here because the beam center
- * position drives the dominant FSPL variation across the swath.
+ * NOTE: this is beam-CENTER geometry, used for beam-level EIRP/scan shaping
+ * only. Terminal RF chains must use the actual user↔satellite slant range
+ * (LEO audit L-M2).
  *
  * @param beamIndex  Beam index 0–15 (0 = northernmost, 15 = southernmost)
  */
 export function computeBeamCenterSlantRangeKm(beamIndex: number): number {
   const middle = (TOTAL_BEAMS - 1) / 2; // 7.5
-  const crossTrackOffsetKm = (beamIndex - middle) * BEAM_SPACING_KM;
+  const alongTrackOffsetKm = (beamIndex - middle) * BEAM_SPACING_KM;
   return Math.sqrt(
-    LEO_ALTITUDE_KM * LEO_ALTITUDE_KM + crossTrackOffsetKm * crossTrackOffsetKm,
+    LEO_ALTITUDE_KM * LEO_ALTITUDE_KM + alongTrackOffsetKm * alongTrackOffsetKm,
   );
 }
 

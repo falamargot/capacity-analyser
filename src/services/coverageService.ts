@@ -2,8 +2,8 @@ import { Feature, Polygon } from 'geojson';
 import { SNPS_DATA } from '../components/globe/GlobeConfig';
 import { isPointInCoverage } from '../utils/coverageCalculator';
 import { SatelliteData } from '../types/satellites';
-import { haversineDistanceKm, BACKHAUL_RADIUS_KM } from '../utils/leoFootprint';
-import { EARTH_RADIUS_KM, SPEED_OF_LIGHT_RADIO_KM_S, calculateElevationAngle } from '../utils/capacityCalculator';
+import { haversineDistanceKm, MIN_SNP_GATEWAY_ELEVATION_DEG } from '../utils/leoFootprint';
+import { EARTH_RADIUS_KM, SPEED_OF_LIGHT_RADIO_KM_S, calculateElevationAngle, compute3DDistanceKm } from '../utils/capacityCalculator';
 import type { SNPData } from '../components/globe/GlobeConfig';
 import { calculateGSOAvoidanceAngle } from '../utils/oneWebComb';
 import { JulianDate } from 'cesium';
@@ -315,115 +315,6 @@ export const getCoverageColor = (
   return `rgba(${baseColor}, ${opacity})`;
 };
 
-// Calculate 3D line-of-sight distance between satellite and ground station
-function calculate3DDistanceKm(satellitePosition: { lat: number; lng: number; alt: number }, groundPosition: { lat: number; lng: number }): number {
-
-  // Convert satellite position to 3D Cartesian coordinates
-  const satAltitudeKm = satellitePosition.alt; // Altitude is already in km
-  const satRadius = EARTH_RADIUS_KM + satAltitudeKm;
-
-  const satLatRad = (satellitePosition.lat * Math.PI) / 180;
-  const satLngRad = (satellitePosition.lng * Math.PI) / 180;
-
-  const satX = satRadius * Math.cos(satLatRad) * Math.cos(satLngRad);
-  const satY = satRadius * Math.cos(satLatRad) * Math.sin(satLngRad);
-  const satZ = satRadius * Math.sin(satLatRad);
-
-  // Convert ground position to 3D Cartesian coordinates
-  const groundLatRad = (groundPosition.lat * Math.PI) / 180;
-  const groundLngRad = (groundPosition.lng * Math.PI) / 180;
-
-  const groundX = EARTH_RADIUS_KM * Math.cos(groundLatRad) * Math.cos(groundLngRad);
-  const groundY = EARTH_RADIUS_KM * Math.cos(groundLatRad) * Math.sin(groundLngRad);
-  const groundZ = EARTH_RADIUS_KM * Math.sin(groundLatRad);
-
-  // Calculate 3D Euclidean distance
-  const dx = satX - groundX;
-  const dy = satY - groundY;
-  const dz = satZ - groundZ;
-
-  return Math.sqrt(dx * dx + dy * dy + dz * dz);
-}
-
-export const getNearestSNPInBackhaul = (
-  satellite: SatelliteData,
-  failedSnps: ReadonlySet<string> = new Set(),
-  /** Evaluation time — pass the render/simulation snapshot when available so the
-   *  GSO gate is evaluated at the same instant as the rest of the frame. */
-  now: Date = new Date()
-): { name: string; distance: number; oneWayLatencyMs: number } | null => {
-  // Only check for LEO satellites (ONEWEB)
-  if (satellite.type !== 'ONEWEB') {
-    return null;
-  }
-
-  // Check if satellite is in GSO exclusion zone (blanking zone)
-  // If in blanking zone, satellite cannot be used for transmission
-  if (satellite.satrec) {
-    try {
-      const time = JulianDate.fromDate(now);
-      const { isBlankingZone } = calculateGSOAvoidanceAngle(satellite.satrec, time);
-
-      if (isBlankingZone) {
-        return null; // Satellite in exclusion zone, not available for connectivity
-      }
-    } catch (error) {
-      console.warn('Error checking GSO exclusion zone:', error);
-      // Continue with normal processing if error occurs
-    }
-  }
-
-  const satellitePosition = { lat: satellite.position.lat, lng: satellite.position.lng, alt: satellite.position.alt };
-  let nearestSNP: { name: string; distance: number; oneWayLatencyMs: number } | null = null;
-  // Use a strictly enforced max distance if backhaul radius is the hard limits
-  // ONEWEB Gen 1 Backhaul radius is roughly ~2600km depending on elevation mask (15 deg)
-  const MAX_BACKHAUL_DISTANCE_KM = BACKHAUL_RADIUS_KM;
-  let minDistance = Infinity;
-
-  // Find the nearest SNP (skipping SNPs marked as failed)
-  for (const snp of SNPS_DATA) {
-    // Feature 1: SNP Cascade Failure — skip failed SNPs
-    if (failedSnps.has(snp.name)) continue;
-
-    const surfaceDistance = haversineDistanceKm(satellitePosition, { lat: snp.lat, lng: snp.lng });
-
-    // First Constraint: Radio Horizon / Distance Limit
-    if (surfaceDistance > MAX_BACKHAUL_DISTANCE_KM) {
-      continue;
-    }
-
-    // Second Constraint: Coverage Rule (Must be in Backhaul Coverage)
-    // We pass the SNP location to see if it's inside the computed coverage polygon/footprint
-    const coverageClasses = isPointInCoverage(
-      { lat: snp.lat, lng: snp.lng },
-      satellite,
-      satellitePosition
-    );
-
-    if (!coverageClasses.includes('backhaul')) {
-      continue;
-    }
-
-    // Determine actual Distance for latency
-    const actualDistance3D = calculate3DDistanceKm(satellitePosition, { lat: snp.lat, lng: snp.lng });
-
-    if (surfaceDistance < minDistance) {
-      minDistance = surfaceDistance;
-      // One-way propagation latency from the actual 3D line-of-sight distance —
-      // same semantic as getSatellitesConnectedToSNP.latencyMs (L-Mi5: this
-      // field previously carried a round-trip value under a generic name).
-      const oneWayLatencyMs = (actualDistance3D / SPEED_OF_LIGHT_RADIO_KM_S) * 1000;
-      nearestSNP = {
-        name: snp.name,
-        distance: surfaceDistance, // Keep surface distance for display
-        oneWayLatencyMs,
-      };
-    }
-  }
-
-  return nearestSNP;
-};
-
 export const hasSNPInCoverage = (
   satellite: SatelliteData,
   failedSnps: ReadonlySet<string> = new Set(),
@@ -494,16 +385,16 @@ export const getSatellitesConnectedToSNP = (
     if (satellite.type !== 'ONEWEB') continue;
 
     const elevation = calculateElevationAngle({ lat: snp.lat, lng: snp.lng }, satellite);
-    if (elevation < 15) continue;
+    if (elevation < MIN_SNP_GATEWAY_ELEVATION_DEG) continue;
 
     const distanceKm = haversineDistanceKm(
       { lat: snp.lat, lng: snp.lng },
       { lat: satellite.position.lat, lng: satellite.position.lng }
     );
 
-    const distance3D = calculate3DDistanceKm(
-      { lat: satellite.position.lat, lng: satellite.position.lng, alt: satellite.position.alt },
-      { lat: snp.lat, lng: snp.lng }
+    const distance3D = compute3DDistanceKm(
+      { lat: snp.lat, lng: snp.lng },
+      { lat: satellite.position.lat, lng: satellite.position.lng, alt: satellite.position.alt }
     );
     const latencyMs = (distance3D / SPEED_OF_LIGHT_RADIO_KM_S) * 1000;
 

@@ -58,3 +58,22 @@ export function isBeamActive(
     // Normal operation: all 16 beams active
     return true;
 }
+
+/**
+ * Count of active beams for a given GSO state and HS set — single helper for
+ * the derivation that previously existed as four inline reduce/ternary copies
+ * (LEO audit L-Mi6).
+ */
+export function countActiveBeams(
+    totalBeams: number,
+    isBlankingZone: boolean,
+    isGSOAvoidance: boolean,
+    satLatDeg: number,
+    hsBeams?: ReadonlySet<number>
+): number {
+    let count = 0;
+    for (let beamIndex = 0; beamIndex < totalBeams; beamIndex++) {
+        if (isBeamActive(beamIndex, isBlankingZone, isGSOAvoidance, satLatDeg, hsBeams)) count++;
+    }
+    return count;
+}

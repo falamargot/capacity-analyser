@@ -1,4 +1,5 @@
 import { haversineDistanceKm, MIN_USER_TERMINAL_ELEVATION_DEG, STANDARD_SERVICE_ELEVATION_DEG } from './leoFootprint';
+import { DEFAULT_LEO_OVERHEAD_MS } from './leoConnectivityModel';
 import { SPEED_OF_LIGHT_RADIO_KM_S } from './capacityCalculator';
 import type { SatelliteData } from '../types/satellites';
 import type { SNPData } from '../components/globe/GlobeConfig';
@@ -35,11 +36,37 @@ export const DEFAULT_BACKBONE_ROUTE_FACTOR = 1.20;
 /** Fiber light propagation speed used to derive one-way latency from distance. */
 export const FIBER_SPEED_KM_PER_MS = 200;
 
-/** Fixed processing margin added to each one-way latency. */
-export const DEFAULT_PROCESSING_MARGIN_MS = 5;
+/**
+ * One-way S2S processing budget, derived from the SAME overhead constants the
+ * single-site model uses (DEFAULT_LEO_OVERHEAD_MS) so the two latency
+ * decompositions reconcile (LEO audit L-Mo3): a one-way site-to-site traversal
+ * crosses TWO terminals (modem each) and TWO gateways, plus one routing and
+ * one queueing stage on the backbone.
+ * = 2×(gateway 3 + modem 5) + routing 8 + queueing 4 = 28 ms.
+ */
+export const S2S_ONE_WAY_PROCESSING_MS =
+  2 * (DEFAULT_LEO_OVERHEAD_MS.gatewayProcessingDelayMs + DEFAULT_LEO_OVERHEAD_MS.modemProcessingDelayMs)
+  + DEFAULT_LEO_OVERHEAD_MS.routingDelayMs
+  + DEFAULT_LEO_OVERHEAD_MS.queueingDelayMs;
 
-/** Additional margin for handover risk when both endpoints have short RVT. */
-export const DEFAULT_HANDOVER_MARGIN_MS = 0;
+/**
+ * Floor for the SNP→PoP fiber estimate (ms one-way): last-mile + peering cost
+ * even when an SNP is co-located with a PoP city. APNIC-observed range is
+ * 5–55 ms one-way.
+ */
+export const MIN_SNP_TO_POP_FIBER_ONE_WAY_MS = 5;
+
+/**
+ * Distance-derived one-way fiber latency from an SNP to its nearest logical
+ * PoP — the same PoP catalog and route factor the S2S backbone model uses.
+ * Replaces the former global 15 ms single-site constant so single-site and
+ * site-to-site latency derive from one model (L-Mo3).
+ */
+export function estimateSnpToPopFiberOneWayMs(snp: { lat: number; lng: number }): number {
+  const pop = selectLogicalPop(snp, snp);
+  const routeKm = haversineDistanceKm(snp, pop) * DEFAULT_BACKBONE_ROUTE_FACTOR;
+  return Math.max(MIN_SNP_TO_POP_FIBER_ONE_WAY_MS, routeKm / FIBER_SPEED_KM_PER_MS);
+}
 
 // ── Logical Points of Presence (PoP) ─────────────────────────────────────────
 // Represents major internet exchange / backbone interconnect nodes.
@@ -144,8 +171,8 @@ export interface LeoSiteToSiteResult {
   backboneDistanceKm: number;
   backboneOneWayLatencyMs: number;
 
+  /** One-way processing budget (2 modems + 2 gateways + routing + queueing) — see S2S_ONE_WAY_PROCESSING_MS. */
   processingMarginMs: number;
-  handoverRiskMarginMs: number;
 
   oneWayLatencyAtoBMs: number;
   oneWayLatencyBtoAMs: number;
@@ -481,8 +508,7 @@ export function computeLeoSiteToSiteResult(args: ComputeLeoSiteToSiteArgs): LeoS
   const backboneOneWayLatencyMs = backboneDistanceKm / FIBER_SPEED_KM_PER_MS;
 
   // ── Total one-way latency ─────────────────────────────────────────────────
-  const processingMarginMs = DEFAULT_PROCESSING_MARGIN_MS;
-  const handoverRiskMarginMs = DEFAULT_HANDOVER_MARGIN_MS;
+  const processingMarginMs = S2S_ONE_WAY_PROCESSING_MS;
 
   const oneWayLatencyAtoBMs =
     userLinkLatencyAms +
@@ -490,8 +516,7 @@ export function computeLeoSiteToSiteResult(args: ComputeLeoSiteToSiteArgs): LeoS
     backboneOneWayLatencyMs +
     feederLatencyBms +
     userLinkLatencyBms +
-    processingMarginMs +
-    handoverRiskMarginMs;
+    processingMarginMs;
 
   const oneWayLatencyBtoAMs = oneWayLatencyAtoBMs; // symmetric
 
@@ -564,7 +589,6 @@ export function computeLeoSiteToSiteResult(args: ComputeLeoSiteToSiteArgs): LeoS
     backboneDistanceKm,
     backboneOneWayLatencyMs,
     processingMarginMs,
-    handoverRiskMarginMs,
     oneWayLatencyAtoBMs,
     oneWayLatencyBtoAMs,
     rttMs,

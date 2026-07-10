@@ -2,18 +2,20 @@ import { Cartesian3, Matrix3, JulianDate, Color, Math as CesiumMath, Quaternion,
 import * as satellite from 'satellite.js';
 import { EARTH_RADIUS_KM } from './capacityCalculator';
 import { getBeamBaseColor } from '../config/beamVisualization';
-import { GSO_EXCLUSION_HALF_ANGLE_DEG } from '../config/oneweb';
+import { BEAM_SPACING_KM, TOTAL_BEAMS } from '../config/oneweb';
+import { computeGsoProtectionAngles } from './gsoProtection';
 import type { SimulationStateSnapshot } from '../types/simulation';
 import { calculateCombGeometryLatLng } from './oneWebCombCore';
 export { calculateCombGeometryLatLng } from './oneWebCombCore';
 
-export const BEAM_WIDTH_KM = 67.5;
-export const TOTAL_BEAMS = 16;
-// Total cross-track swath: 16 beams × 67.5 km = 1080 km.
-// Note: the along-track length of a single beam is ~1600 km (semiMajorAxisKm in calculateCombGeometry).
-// BEAM_LENGTH_KM was a historical alias for this constant — it is misleading because 1080 km is the
-// CROSS-TRACK swath width, not the along-track beam length.
-export const TOTAL_SWATH_WIDTH_KM = BEAM_WIDTH_KM * TOTAL_BEAMS; // 1080 km
+// Canonical beam constants live in config/oneweb.ts; re-exported for existing import sites.
+export const BEAM_WIDTH_KM = BEAM_SPACING_KM;
+export { TOTAL_BEAMS } from '../config/oneweb';
+// Beam-stacking extent: 16 beams × 67.5 km = 1080 km. The beams are stacked
+// ALONG-track (≈ north–south for the near-polar orbit); each individual beam is
+// elongated CROSS-track (≈ east–west, ~1600 km — semiMajorAxisKm in
+// calculateCombGeometry).
+export const TOTAL_SWATH_WIDTH_KM = BEAM_SPACING_KM * 16; // 1080 km
 
 interface PropagatedOrbitState {
     timeMs: number;
@@ -215,49 +217,13 @@ export function calculateGSOAvoidanceAngle(
     const { satLatDeg, forward } = orbitState;
     const isMovingNorth = forward.z > 0;
 
-    let pitchAngleRad = 0;
-    // ONEWEB_GEN1_OPERATIONAL_APPROXIMATION — 45° latitude threshold is
-    // consistent with OneWeb's ITU coordination filings for GSO arc protection.
-    // The cosine-shaped pitch curve and 17° maximum are engineering estimates
-    // derived from the geometry of the GSO exclusion zone; the exact scheduling
-    // algorithm is not publicly disclosed by OneWeb/Eutelsat.
-    const PITCH_START_LAT = 45.0; // Seuil officiel (ITU coordination filings)
-    const MAX_PITCH_DEG = 17.0;   // ONEWEB_GEN1_OPERATIONAL_APPROXIMATION — angle max à l'équateur
-
-    if (Math.abs(satLatDeg) < PITCH_START_LAT) {
-        // FORMULE CORRIGÉE : Max à 0°, Zéro à 45° (Courbe de Protection GSO)
-        // Cos(0) = 1, Cos(90°) = 0
-        const progress = Math.abs(satLatDeg) / PITCH_START_LAT;
-        const currentPitchDeg = MAX_PITCH_DEG * Math.cos(progress * (Math.PI / 2));
-
-        /**
-         * RÈGLE DE DIRECTION :
-         * Si Lat > 0 (Nord) : Le satellite doit regarder vers le NORD.
-         * Si Lat < 0 (Sud)  : Le satellite doit regarder vers le SUD.
-         */
-        if (satLatDeg > 0) {
-            // Dans le Nord, si on avance vers le Nord, on pitche vers l'AVANT (positif)
-            // Si on avance vers le Sud, on pitche vers l'ARRIÈRE (négatif)
-            pitchAngleRad = isMovingNorth
-                ? CesiumMath.toRadians(-currentPitchDeg)
-                : CesiumMath.toRadians(currentPitchDeg);
-        } else {
-            // Dans le Sud, si on avance vers le Sud, on pitche vers l'AVANT (positif)
-            // Si on avance vers le Nord, on pitche vers l'ARRIÈRE (négatif)
-            pitchAngleRad = !isMovingNorth
-                ? CesiumMath.toRadians(-currentPitchDeg)
-                : CesiumMath.toRadians(currentPitchDeg);
-        }
-    }
+    // Pitch curve + blanking rule live in gsoProtection.ts — the single copy
+    // shared with the worker-safe comb core and the pitch-monitoring chart.
+    const angles = computeGsoProtectionAngles(satLatDeg, isMovingNorth);
 
     const result: GsoAvoidanceState & { timeMs: number } = {
         timeMs,
-        pitchAngleRad,
-        isGSOAvoidance: Math.abs(pitchAngleRad) > 0.01, // Seuil de détection d'activité GSO Protection
-        // GSO exclusion: angular separation between satellite geocentric position and
-        // the equatorial GEO belt = |geocentric latitude| of the satellite.
-        // Threshold = GSO_EXCLUSION_HALF_ANGLE_DEG (canonical constant from oneweb.ts).
-        isBlankingZone: Math.abs(satLatDeg) <= GSO_EXCLUSION_HALF_ANGLE_DEG,
+        ...angles,
         satLatDeg,
         isMovingNorth
     };
@@ -266,21 +232,36 @@ export function calculateGSOAvoidanceAngle(
     return result;
 }
 
+const combBeamCentersCache = new WeakMap<object, { timeMs: number; centers: CombBeamCenter[] | null }>();
+
 export function calculateCombBeamCenters(
     satrec: any,
     time: JulianDate
 ): CombBeamCenter[] | null {
     if (!satrec) return null;
 
+    const timeMs = getTimeMs(time);
+    const cached = combBeamCentersCache.get(satrec);
+    if (cached && cached.timeMs === timeMs) {
+        return cached.centers;
+    }
+    const centers = computeCombBeamCenters(satrec, time);
+    combBeamCentersCache.set(satrec, { timeMs, centers });
+    return centers;
+}
+
+function computeCombBeamCenters(
+    satrec: any,
+    time: JulianDate
+): CombBeamCenter[] | null {
     const groundCenter = calculateCombGroundCenter(satrec, time);
     if (!groundCenter) return null;
 
     const { centerLat, centerLng } = groundCenter;
-    const beamCenterStepKm = 67.5;
     const middle = (TOTAL_BEAMS - 1) / 2;
 
     return Array.from({ length: TOTAL_BEAMS }, (_, i) => {
-        const yOffsetKm = (i - middle) * beamCenterStepKm;
+        const yOffsetKm = (i - middle) * BEAM_SPACING_KM;
         const offsetBearingDeg = yOffsetKm <= 0 ? 0 : 180;
         const offsetDistKm = Math.abs(yOffsetKm);
         return destinationPointGeodesic(centerLat, centerLng, offsetBearingDeg, offsetDistKm);
@@ -304,18 +285,57 @@ export function calculateCombBeamCenters(
  * @param weather       - Current weather condition.
  * @returns An array of 16 Cartesian3 arrays (one per beam polygon).
  */
+type CombSimulationState = Pick<SimulationStateSnapshot, 'coveragePolicy' | 'thresholdDb' | 'weatherCondition' | 'beamHealthByIndex'>;
+
+interface CombGeometryCacheEntry {
+    timeMs: number;
+    simSignature: string;
+    polygons: Cartesian3[][] | null;
+}
+
+// L-M4: single-entry-per-satellite cache (same pattern as propagatedOrbitCache).
+// The comb geometry (SGP4 propagate + 16 × 33 geodesic points + Cartesian3
+// conversion) was recomputed ~10× per second for the same satellite/time by the
+// evidence builder, RF checks and App status memos; they now share one result.
+const combGeometryCache = new WeakMap<object, CombGeometryCacheEntry>();
+
+function combSimulationSignature(state?: CombSimulationState): string {
+    if (!state) return 'default';
+    const health = state.beamHealthByIndex.size > 0
+        ? Array.from(state.beamHealthByIndex.entries())
+            .sort((a, b) => a[0] - b[0])
+            .map(([index, factor]) => `${index}:${factor}`)
+            .join(',')
+        : '';
+    const threshold = state.coveragePolicy.type === 'DB_THRESHOLD'
+        ? state.coveragePolicy.thresholdDb
+        : state.thresholdDb ?? -10;
+    return `${state.coveragePolicy.type}|${threshold}|${state.weatherCondition}|${health}`;
+}
+
 export function calculateCombGeometry(
     satrec: any,
     time: JulianDate,
-    simulationState?: Pick<SimulationStateSnapshot, 'coveragePolicy' | 'thresholdDb' | 'weatherCondition' | 'beamHealthByIndex'>
+    simulationState?: CombSimulationState
 ): Cartesian3[][] | null {
     if (!satrec) return null;
     const timeMs = JulianDate.toDate(time).getTime();
+    const simSignature = combSimulationSignature(simulationState);
+
+    const cached = combGeometryCache.get(satrec);
+    if (cached && cached.timeMs === timeMs && cached.simSignature === simSignature) {
+        return cached.polygons;
+    }
+
     const latLngBeams = calculateCombGeometryLatLng(satrec, timeMs, simulationState);
-    if (!latLngBeams) return null;
-    return latLngBeams.map((beam) =>
-        sanitizePolygonPoints(beam.map(([lat, lng]) => Cartesian3.fromDegrees(lng, lat, 0)))
-    );
+    const polygons = latLngBeams
+        ? latLngBeams.map((beam) =>
+            sanitizePolygonPoints(beam.map(([lat, lng]) => Cartesian3.fromDegrees(lng, lat, 0)))
+        )
+        : null;
+
+    combGeometryCache.set(satrec, { timeMs, simSignature, polygons });
+    return polygons;
 }
 
 function destinationPointGeodesic(lat: number, lng: number, brng: number, distKm: number): { lat: number, lng: number } {

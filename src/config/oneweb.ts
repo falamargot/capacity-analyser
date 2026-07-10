@@ -14,15 +14,17 @@
 export const LEO_ALTITUDE_KM = 1200;
 
 // ── Beam geometry ──────────────────────────────────────────────────────────
-/** Total number of cross-track beams in the OneWeb comb */
+/** Total number of beams in the OneWeb comb (stacked along-track). */
 export const TOTAL_BEAMS = 16;
 
-/** Beam spacing across the swath (km) */
+/** Beam-centre spacing in the stacking (along-track, ≈ N–S) direction (km). */
 export const BEAM_SPACING_KM = 67.5;
 
 /**
- * Beam semi-minor axis (cross-track half-width) at the −10 dB coverage threshold (km).
- * Corresponds to half of the ~102 km published beam width.
+ * Beam semi-minor axis — the narrow ALONG-track half-width in which the 16
+ * beams are stacked — at the −10 dB coverage threshold (km).
+ * Corresponds to half of the ~102 km modeled beam width (public figure ~65 km
+ * at the nominal contour; the −10 dB contour is wider).
  * This is the canonical value used by ALL geometry paths:
  *   rendering (oneWebCombCore), connectivity (rfConnectivity), throughput model.
  * ONEWEB_GEN1_OPERATIONAL_APPROXIMATION
@@ -32,8 +34,10 @@ export const NOMINAL_BEAM_RADIUS_KM = 51;
 export const NOMINAL_BEAM_SEMI_MINOR_KM = NOMINAL_BEAM_RADIUS_KM; // 51 km
 
 /**
- * Beam semi-major axis (along-track half-length) at the −10 dB coverage threshold (km).
- * Total beam length ≈ 1600 km — matches the value used by rendering and connectivity.
+ * Beam semi-major axis — the long CROSS-track (≈ E–W) half-length — at the
+ * −10 dB coverage threshold (km).
+ * Total beam length ≈ 1600 km — matches the value used by rendering and
+ * connectivity, and the public FCC-filing figure.
  * ONEWEB_GEN1_OPERATIONAL_APPROXIMATION — no official OneWeb disclosure.
  *
  * This is the SINGLE SOURCE OF TRUTH for the along-track beam dimension.

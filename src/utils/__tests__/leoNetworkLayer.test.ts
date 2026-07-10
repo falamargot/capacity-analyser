@@ -1,29 +1,27 @@
 /**
  * leoNetworkLayer.test.ts — Network layer realism tests.
  *
- * Covers four areas:
- *   1. Best satellite selection — elevation → C/N → slant range priority
- *   2. Beam capacity sharing   — throughput decreases with more active users
- *   3. Throughput smoothing    — no abrupt jumps between frames
- *   4. Handover detection      — throughput temporarily drops on satellite switch
+ * Covers three areas:
+ *   1. Beam capacity sharing — throughput decreases with more active users
+ *   2. Throughput smoothing  — no abrupt jumps between frames
+ *   3. Handover detection    — throughput temporarily drops on satellite switch
+ *
+ * Serving-satellite selection is covered by satelliteResolution (the
+ * operational selector); the former leoNetworkLayer selector was dead code
+ * and was removed (LEO audit L-Mi4).
  */
 
 import { describe, expect, it } from 'vitest';
 
 import {
-  selectBestServingCandidate,
   applyBeamCapacitySharing,
   smoothThroughputMbps,
   updateHandoverState,
   applyHandoverDegradation,
   createHandoverState,
-  BEAM_BW_SCALE,
   DEFAULT_LEO_SHARED_DOWNLINK_BEAM_CAPACITY_MBPS,
-  UPLINK_BEAM_BW_SCALE,
   SMOOTHING_ALPHA,
   HANDOVER_DEGRADATION_FACTOR,
-  MIN_SERVING_ELEVATION_DEG,
-  type SatelliteServingCandidate,
 } from '../leoNetworkLayer';
 
 import {
@@ -33,95 +31,19 @@ import {
   RF_UPLINK_THROUGHPUT_BW_HZ,
 } from '../leoLinkBudget';
 
-// ─── 1. Best satellite selection ─────────────────────────────────────────────
+// Test-local bandwidth expansion factor (beam noise BW / terminal reference BW).
+const BEAM_BW_SCALE = RF_NOISE_BW_HZ / RF_THROUGHPUT_BW_HZ;
 
-describe('selectBestServingCandidate — Area 1: best satellite selection', () => {
-  const makeCandidate = (
-    id: string,
-    elevationDeg: number,
-    cnDb: number,
-    slantRangeKm: number,
-  ): SatelliteServingCandidate => ({ satelliteId: id, elevationDeg, cnDb, slantRangeKm });
+// ─── 1. Beam capacity sharing ─────────────────────────────────────────────────
 
-  it('returns null for empty candidate list', () => {
-    expect(selectBestServingCandidate([])).toBeNull();
-  });
-
-  it('returns null when all candidates are below minimum elevation', () => {
-    const below = [
-      makeCandidate('A', 10, 20, 1500),
-      makeCandidate('B', 5, 25, 1200),
-    ];
-    expect(selectBestServingCandidate(below)).toBeNull();
-  });
-
-  it('highest elevation wins when margin is clearly larger', () => {
-    const candidates = [
-      makeCandidate('LOW',  42, 25, 1800),
-      makeCandidate('HIGH', 60, 22, 1300),
-      makeCandidate('MID',  45, 24, 1500),
-    ];
-    const best = selectBestServingCandidate(candidates);
-    expect(best?.satelliteId).toBe('HIGH');
-  });
-
-  it('C/N is the tiebreak when elevations are within margin', () => {
-    const candidates = [
-      makeCandidate('WEAK_CN', 45.2, 18, 1600),
-      makeCandidate('GOOD_CN', 45.0, 25, 1800),
-    ];
-    const best = selectBestServingCandidate(candidates);
-    expect(best?.satelliteId).toBe('GOOD_CN');
-  });
-
-  it('slant range is the tiebreak when elevation and C/N are equal', () => {
-    const candidates = [
-      makeCandidate('FAR',   45.0, 22, 2000),
-      makeCandidate('NEAR',  45.0, 22, 1300),
-    ];
-    const best = selectBestServingCandidate(candidates);
-    expect(best?.satelliteId).toBe('NEAR');
-  });
-
-  it('filters out candidates below MIN_SERVING_ELEVATION_DEG', () => {
-    const candidates = [
-      makeCandidate('TOO_LOW', MIN_SERVING_ELEVATION_DEG - 0.1, 30, 1200),
-      makeCandidate('OK',      MIN_SERVING_ELEVATION_DEG + 0.1, 20, 1800),
-    ];
-    const best = selectBestServingCandidate(candidates);
-    expect(best?.satelliteId).toBe('OK');
-  });
-
-  it('single viable candidate is returned directly', () => {
-    const candidates = [makeCandidate('ONLY', MIN_SERVING_ELEVATION_DEG + 1, 20, 1500)];
-    expect(selectBestServingCandidate(candidates)?.satelliteId).toBe('ONLY');
-  });
-
-  it('generic type parameter preserves extra fields on the result', () => {
-    const candidates: Array<SatelliteServingCandidate & { custom: string }> = [
-      { satelliteId: 'A', elevationDeg: 50, cnDb: 22, slantRangeKm: 1300, custom: 'alpha' },
-      { satelliteId: 'B', elevationDeg: 42, cnDb: 25, slantRangeKm: 1200, custom: 'beta' },
-    ];
-    const best = selectBestServingCandidate(candidates);
-    expect(best?.custom).toBe('alpha'); // highest elevation
-  });
-});
-
-// ─── 2. Beam capacity sharing ─────────────────────────────────────────────────
-
-describe('applyBeamCapacitySharing — Area 2: capacity sharing', () => {
-  it('BEAM_BW_SCALE equals RF_NOISE_BW_HZ / RF_THROUGHPUT_BW_HZ', () => {
-    expect(BEAM_BW_SCALE).toBe(RF_NOISE_BW_HZ / RF_THROUGHPUT_BW_HZ);
-    expect(BEAM_BW_SCALE).toBe(5); // 250 MHz / 50 MHz
-  });
-
-  it('UPLINK_BEAM_BW_SCALE uses the independent uplink allocation', () => {
-    expect(UPLINK_BEAM_BW_SCALE).toBe(RF_UPLINK_NOISE_BW_HZ / RF_UPLINK_THROUGHPUT_BW_HZ);
-    expect(UPLINK_BEAM_BW_SCALE).toBe(5); // 100 MHz / 20 MHz
+describe('applyBeamCapacitySharing — Area 1: capacity sharing', () => {
+  it('default bandwidth expansion is 5× (250 MHz beam / 50 MHz reference)', () => {
+    expect(RF_NOISE_BW_HZ / RF_THROUGHPUT_BW_HZ).toBe(5);
+    expect(RF_UPLINK_NOISE_BW_HZ / RF_UPLINK_THROUGHPUT_BW_HZ).toBe(5); // 100 MHz / 20 MHz
   });
 
   it('accepts a direction-specific bandwidth scale', () => {
-    const result = applyBeamCapacitySharing(20, 2, 200, UPLINK_BEAM_BW_SCALE);
+    const result = applyBeamCapacitySharing(20, 2, 200, RF_UPLINK_NOISE_BW_HZ / RF_UPLINK_THROUGHPUT_BW_HZ);
     expect(result.beamTotalThroughputMbps).toBe(100);
     expect(result.sharedThroughputMbps).toBe(50);
   });
@@ -172,7 +94,7 @@ describe('applyBeamCapacitySharing — Area 2: capacity sharing', () => {
   it('beamTotalThroughputMbps is the lower of public shared capacity and RF-limited beam capacity', () => {
     const rf = 187.5;
     const r = applyBeamCapacitySharing(rf, 5, 200);
-    expect(r.rfLimitedBeamCapacityMbps).toBeCloseTo(rf * BEAM_BW_SCALE, 6);
+    expect(r.rfLimitedBeamCapacityMbps).toBeCloseTo(rf * (RF_NOISE_BW_HZ / RF_THROUGHPUT_BW_HZ), 6);
     expect(r.beamTotalThroughputMbps).toBe(DEFAULT_LEO_SHARED_DOWNLINK_BEAM_CAPACITY_MBPS);
   });
 
@@ -189,9 +111,9 @@ describe('applyBeamCapacitySharing — Area 2: capacity sharing', () => {
   });
 });
 
-// ─── 3. Throughput smoothing ──────────────────────────────────────────────────
+// ─── 2. Throughput smoothing ──────────────────────────────────────────────────
 
-describe('smoothThroughputMbps — Area 3: temporal smoothing', () => {
+describe('smoothThroughputMbps — Area 2: temporal smoothing', () => {
   it('returns current value unchanged on first call (null previous)', () => {
     expect(smoothThroughputMbps(150, null)).toBe(150);
     expect(smoothThroughputMbps(0, null)).toBe(0);
@@ -253,9 +175,9 @@ describe('smoothThroughputMbps — Area 3: temporal smoothing', () => {
   });
 });
 
-// ─── 4. Handover detection ────────────────────────────────────────────────────
+// ─── 3. Handover detection ────────────────────────────────────────────────────
 
-describe('updateHandoverState / applyHandoverDegradation — Area 4: handover', () => {
+describe('updateHandoverState / applyHandoverDegradation — Area 3: handover', () => {
   it('initial state has no previous satellite', () => {
     const state = createHandoverState();
     expect(state.previousSatelliteId).toBeNull();

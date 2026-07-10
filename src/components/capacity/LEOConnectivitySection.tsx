@@ -1866,7 +1866,6 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
                 ))}
                 <div className="font-semibold text-gray-700 dark:text-gray-200 text-xs mt-2 mb-1">Overhead</div>
                 <S2SMetricRow label="Processing margin" value={fmtMs(siteToSiteResult!.processingMarginMs, 0)} />
-                {siteToSiteResult!.handoverRiskMarginMs > 0 && <S2SMetricRow label="Handover risk margin" value={fmtMs(siteToSiteResult!.handoverRiskMarginMs, 0)} />}
                 <div className="border-t border-slate-200 dark:border-slate-700 pt-1.5 mt-1.5 space-y-0.5">
                   <S2SMetricRow label={`One-way latency (${s2sPrimaryLabel})`} value={fmtMs(s2sPrimaryLatency)} accent />
                   <S2SMetricRow label="Round-trip reference" value={fmtMs(siteToSiteResult!.rttMs)} accent />

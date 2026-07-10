@@ -74,7 +74,8 @@ import { useIssLiveTracking } from './modules/iss';
 import { useMaritimeTraffic, useMaritimeTrafficInterpolation } from './modules/maritimeTraffic';
 import { Vessel } from './modules/maritimeTraffic/maritimeTrafficService';
 import { useSimulation } from './contexts/SimulationContext';
-import { getNearestSNPInBackhaul, getSatellitesConnectedToSNP, type SNPConnectedSatellite } from './services/coverageService';
+import { getSatellitesConnectedToSNP, type SNPConnectedSatellite } from './services/coverageService';
+import { selectSnpForSatellite } from './utils/connectivityRules';
 import useKeyboardShortcuts from './hooks/useKeyboardShortcuts';
 import { useSelectionState } from './hooks/useSelectionState';
 import { useAuthorshipEasterEgg } from './hooks/useAuthorshipEasterEgg';
@@ -94,7 +95,7 @@ import {
   reconcileFillRateLayerWithCountryOverlay,
   shouldDisableFillRateLayerForScope,
 } from './utils/fillRateUx';
-import { getConnectivityStatus, hasRFConnectivity } from './utils/rfConnectivity';
+import { getConnectivityStatus } from './utils/rfConnectivity';
 import { deriveLeoConnectivityViewModel, type LeoConnectivityViewModel } from './utils/leoServiceViewModel';
 import { getGroundSegmentRoutingForSatellite, resolveStarTrafficGatewayForCoverage, selectTrafficGeoGateway, distanceKm, type ResolvedGeoGateway, type PointLLA } from './utils/geoConnectivityModel';
 import type { GeoPointStatus } from './utils/selectedPointStatus';
@@ -1987,12 +1988,9 @@ const App: React.FC = () => {
       return null;
     }
 
-    const nearestSNP = getNearestSNPInBackhaul(liveSelectedSatellite, failedSnps);
-    if (!nearestSNP) {
-      return null;
-    }
-
-    return SNPS_DATA.find((snp) => snp.name === nearestSNP.name) ?? null;
+    // L-Mo5: same max-feeder-elevation selector the route resolution uses, so
+    // the inspection card can never name a different SNP than the route.
+    return selectSnpForSatellite(liveSelectedSatellite, failedSnps)?.snp ?? null;
   }, [liveSelectedSatellite, failedSnps]);
 
   const snpConnectedSatellites = useMemo((): SNPConnectedSatellite[] => {
@@ -2072,33 +2070,10 @@ const App: React.FC = () => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeAnalysisPoint, autoSelectedLEOId, leoEvidenceTick, simulationState]);
 
-  const leoHasCurrentRF = useMemo(() => {
-    const sat = autoSelectedLEOId
-      ? (satellitesForResolutionRef.current.find((s) => s.id === autoSelectedLEOId) ?? null)
-      : null;
-    if (!activeAnalysisPoint || !sat) return false;
-    return hasRFConnectivity(
-      activeAnalysisPoint,
-      sat,
-      JulianDate.fromDate(new Date()),
-      simulationState
-    );
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeAnalysisPoint, autoSelectedLEOId, leoEvidenceTick, simulationState]);
-
-  const leoSiteBHasCurrentRF = useMemo(() => {
-    const satB = autoSelectedLEOIdB
-      ? (satellitesForResolutionRef.current.find((s) => s.id === autoSelectedLEOIdB) ?? null)
-      : null;
-    if (!pointBLeo || !satB) return false;
-    return hasRFConnectivity(
-      pointBLeo,
-      satB,
-      JulianDate.fromDate(new Date()),
-      simulationState
-    );
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [autoSelectedLEOIdB, leoEvidenceTick, pointBLeo, simulationState]);
+  // L-M4: RF availability is read from getConnectivityStatus (which already
+  // computes it) instead of a second hasRFConnectivity memo over the same
+  // inputs; Site B availability comes from the evidence route result below.
+  const leoHasCurrentRF = leoConnectivityStatus?.hasRFConnectivity ?? false;
 
   const leoHasGatewayPath = useMemo(
     () => !!selectedSNP,
@@ -2229,7 +2204,7 @@ const App: React.FC = () => {
       selectedSatelliteA: result?.servingSatelliteA?.name ?? resolvedAutoLEO?.name ?? null,
       selectedSatelliteB: result?.servingSatelliteB?.name ?? resolvedAutoLEOB?.name ?? null,
       rfAvailableA: result?.rfAvailableA ?? leoHasCurrentRF,
-      rfAvailableB: result?.rfAvailableB ?? (pointBLeo ? leoSiteBHasCurrentRF : null),
+      rfAvailableB: result?.rfAvailableB ?? null,
       selectedSnpA: result?.selectedSnpA?.name ?? selectedSNP?.name ?? null,
       selectedSnpB: result?.selectedSnpB?.name ?? selectedSNPB?.name ?? null,
       regulatoryStatusA: result?.regulatoryResultA?.status ?? leoRegulatoryResult?.status ?? null,
@@ -2242,7 +2217,6 @@ const App: React.FC = () => {
     resolvedAutoLEO,
     resolvedAutoLEOB,
     leoHasCurrentRF,
-    leoSiteBHasCurrentRF,
     pointBLeo,
     selectedSNP,
     selectedSNPB,

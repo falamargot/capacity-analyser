@@ -4,11 +4,14 @@
  * Sits ABOVE leoLinkBudget.ts and realisticSimulation.ts.
  * Does NOT modify the RF physics.
  *
- * Implements four areas:
- *   1. Best satellite/beam selection — elevation → C/N → slant range priority
- *   2. Beam capacity sharing        — per-user throughput from beam load
- *   3. Throughput smoothing         — EMA damping to suppress MODCOD jump artifacts
- *   4. Handover detection           — transient degradation on satellite switch
+ * Implements three areas:
+ *   1. Beam capacity sharing — per-user throughput from beam load
+ *   2. Throughput smoothing  — EMA damping to suppress MODCOD jump artifacts
+ *   3. Handover detection    — transient degradation on satellite switch
+ *
+ * Serving-satellite selection does NOT live here: the operational selector is
+ * resolveAutoSelectedSatellites in satelliteResolution.ts (weighted scoring of
+ * throughput, remaining visible time, hysteresis and gateway margin).
  *
  * All behavior is DETERMINISTIC. No randomness.
  *
@@ -20,75 +23,11 @@ import {
   RF_NOISE_BW_HZ,
   RF_THROUGHPUT_BW_HZ,
   RF_UPLINK_NOISE_BW_HZ,
-  RF_UPLINK_THROUGHPUT_BW_HZ,
 } from './leoLinkBudget';
-import { MIN_USER_TERMINAL_ELEVATION_DEG } from './leoFootprint';
 import { SHARED_BEAM_AGGREGATE_CAPACITY_MBPS } from '../config/oneweb';
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 1. Best satellite/beam selection
-// ─────────────────────────────────────────────────────────────────────────────
-
-export interface SatelliteServingCandidate {
-  /** Unique satellite or beam identifier */
-  satelliteId: string;
-  /** Elevation angle of the satellite from the user position (degrees) */
-  elevationDeg: number;
-  /** Carrier-to-noise ratio at the user position (dB) */
-  cnDb: number;
-  /** Slant range from satellite to beam center (km) */
-  slantRangeKm: number;
-}
-
-/** Minimum user-terminal elevation to be considered as a viable serving satellite (degrees). */
-export const MIN_SERVING_ELEVATION_DEG = MIN_USER_TERMINAL_ELEVATION_DEG;
-export const MIN_USER_SERVING_ELEVATION_DEG = MIN_USER_TERMINAL_ELEVATION_DEG;
-
-/** Elevation margin below which a candidate is not considered better (degrees).
- *  Prevents small measurement noise from triggering unnecessary switches. */
-export const ELEVATION_SWITCH_MARGIN_DEG = 0.5;
-
-/** C/N margin below which a candidate is not considered better (dB) */
-export const CN_SWITCH_MARGIN_DB = 0.5;
-
-/**
- * Select the best serving satellite/beam from a list of candidates.
- *
- * Priority (in order):
- *   1. Highest elevation angle  (most atmospheric path stability)
- *   2. Highest C/N              (best instantaneous link quality)
- *   3. Lowest slant range       (minimum FSPL)
- *
- * Candidates below MIN_USER_SERVING_ELEVATION_DEG are excluded.
- * Returns null when no viable candidate exists.
- *
- * The function is generic so callers can attach arbitrary extra fields (e.g.
- * full LinkBudgetOutput) to the candidate and get them back in the result.
- */
-export function selectBestServingCandidate<T extends SatelliteServingCandidate>(
-  candidates: T[],
-): T | null {
-  const viable = candidates.filter(
-    (c) => c.elevationDeg >= MIN_SERVING_ELEVATION_DEG,
-  );
-  if (viable.length === 0) return null;
-  if (viable.length === 1) return viable[0];
-
-  return viable.reduce((best, current) => {
-    const elevDiff = current.elevationDeg - best.elevationDeg;
-    if (elevDiff > ELEVATION_SWITCH_MARGIN_DEG) return current;
-    if (elevDiff < -ELEVATION_SWITCH_MARGIN_DEG) return best;
-
-    const cnDiff = current.cnDb - best.cnDb;
-    if (cnDiff > CN_SWITCH_MARGIN_DB) return current;
-    if (cnDiff < -CN_SWITCH_MARGIN_DB) return best;
-
-    return current.slantRangeKm < best.slantRangeKm ? current : best;
-  });
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// 2. Beam capacity sharing
+// 1. Beam capacity sharing
 // ─────────────────────────────────────────────────────────────────────────────
 
 /** Public OneWeb Gen-1 aggregate-per-beam approximation used as the shared DL capacity pool. */
@@ -102,13 +41,6 @@ export const DEFAULT_LEO_SHARED_DOWNLINK_BEAM_CAPACITY_MBPS = SHARED_BEAM_AGGREG
 export const DEFAULT_LEO_SHARED_UPLINK_BEAM_CAPACITY_MBPS = Math.round(
   SHARED_BEAM_AGGREGATE_CAPACITY_MBPS * (RF_UPLINK_NOISE_BW_HZ / RF_NOISE_BW_HZ),
 );
-
-/**
- * Bandwidth expansion from a terminal reference carrier to configured usable beam bandwidth.
- * Kept as a transparent derived diagnostic; production sharing calls pass explicit bandwidths.
- */
-export const BEAM_BW_SCALE = RF_NOISE_BW_HZ / RF_THROUGHPUT_BW_HZ;
-export const UPLINK_BEAM_BW_SCALE = RF_UPLINK_NOISE_BW_HZ / RF_UPLINK_THROUGHPUT_BW_HZ;
 
 export interface BeamCapacitySharingOptions {
   direction?: 'downlink' | 'uplink';
@@ -190,7 +122,7 @@ export function applyBeamCapacitySharing(
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 3. Throughput smoothing
+// 2. Throughput smoothing
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
@@ -222,7 +154,7 @@ export function smoothThroughputMbps(
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 4. Handover detection and transient degradation
+// 3. Handover detection and transient degradation
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**

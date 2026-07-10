@@ -25,9 +25,11 @@ import {
   RF_KU_FREQ_GHZ,
   RF_SATELLITE_GOT_DB_PER_K,
 } from './leoLinkBudget';
+import { chooseMainBottleneck, detectThroughputBottleneck } from './leoBottleneck';
 import { deriveLeoServiceDecision } from './leoServiceDecision';
 import {
   computeLeoSiteToSiteResult,
+  estimateSnpToPopFiberOneWayMs,
   formatLeoSiteToSiteFailureReason,
   type LeoSiteToSiteFailureReason,
   type LeoSiteToSiteResult,
@@ -100,7 +102,6 @@ export interface ActiveLeoRouteEvidence {
   uploadMbps?: number;
   rttMs?: number;
   bottleneck: string | null;
-  capacityLimitation: string | null;
   rfLimitation: string | null;
   routeParticipants: {
     satellites: SatelliteData[];
@@ -135,6 +136,14 @@ export interface BuildActiveLeoRouteEvidenceInput {
   terminalTypeB: TerminalType;
   terminalModelIdA?: string | null;
   terminalModelIdB?: string | null;
+  /**
+   * Per-site COMM weather selector. MUST stay in sync with the matching
+   * simulationState's weatherCondition (L-Mo9): App enforces this — Site A via
+   * handleWeatherTypeChange ↔ SimulationContext, Site B by deriving
+   * simulationStateB.weatherCondition from weatherTypeB. weatherType drives the
+   * approximate-model factor and labels; weatherCondition drives beam-model RF.
+   * A DEV canary in the builder logs any divergence.
+   */
   weatherTypeA: WeatherType;
   weatherTypeB: WeatherType;
   simulationStateA: SimulationStateSnapshot;
@@ -189,10 +198,12 @@ function signatureRegulatory(result: RegulatoryResult | null): string {
 }
 
 function signatureSimulation(state: SimulationStateSnapshot): string {
+  // beamHealthByIndex is a Map (JSON.stringify would yield {}), so serialize
+  // its entries explicitly — beam-health changes must invalidate the signature.
   return JSON.stringify({
     policy: state.coveragePolicy,
     weather: state.weatherCondition,
-    beams: state.beamHealthFactors,
+    beams: Array.from(state.beamHealthByIndex.entries()).sort((a, b) => a[0] - b[0]),
     hs: Array.from(state.hsBeams).sort(),
   });
 }
@@ -219,42 +230,6 @@ function buildInputSignature(input: BuildActiveLeoRouteEvidenceInput): string {
     `simB:${signatureSimulation(input.simulationStateB)}`,
     `failed:${Array.from(input.failedSnps).sort().join(',')}`,
   ].join('|');
-}
-
-function detectThroughputBottleneck(leg: LeoThroughputLeg): LeoBottleneckFactor {
-  if (leg.rf.rfChainThroughputMbps <= 0 || leg.rf.cnDb < 14.5) return 'rf';
-  if (leg.rf.terminalScanLossDb <= -3) return 'scan loss';
-  if (leg.rf.modcod == null || leg.rf.cnDb < 18.5) return 'modcod';
-  if (leg.network.backhaulMbps < leg.network.beamSharingMbps * 0.75) return 'backhaul';
-  if (leg.network.handoverMbps < leg.network.backhaulMbps * 0.99) return 'handover';
-  if (leg.network.beamSharingMbps < leg.network.peakRfMbps * 0.8) return 'beam sharing';
-  if (leg.network.peakRfMbps >= leg.network.terminalCapMbps * 0.97) return 'terminal';
-  return null;
-}
-
-function formatBottleneckLabel(factor: LeoBottleneckFactor, scope: LeoBottleneckScope): string {
-  if (!factor || scope === 'none') return 'None';
-  return `${scope === 'DL+UL' ? 'DL+UL' : scope} ${factor === 'beam sharing' ? 'beam sharing' : factor}`;
-}
-
-function chooseMainBottleneck(dl: LeoThroughputLeg, ul: LeoThroughputLeg): { factor: LeoBottleneckFactor; scope: LeoBottleneckScope; label: string } {
-  const dlFactor = detectThroughputBottleneck(dl);
-  const ulFactor = detectThroughputBottleneck(ul);
-  let scope: LeoBottleneckScope = 'none';
-  let factor: LeoBottleneckFactor = null;
-
-  if (dlFactor && ulFactor && dlFactor === ulFactor) {
-    scope = 'DL+UL';
-    factor = dlFactor;
-  } else if (dlFactor) {
-    scope = 'DL';
-    factor = dlFactor;
-  } else if (ulFactor) {
-    scope = 'UL';
-    factor = ulFactor;
-  }
-
-  return { factor, scope, label: formatBottleneckLabel(factor, scope) };
 }
 
 function buildResolvedConnectivity(args: {
@@ -671,6 +646,8 @@ function buildSingleSitePerformance(args: {
     satelliteToGatewayDistanceKm: args.connectivity.snpLEODistance || 0,
     userToSatelliteElevationDeg: args.connectivity.userLEOElevation,
     gatewayToSatelliteElevationDeg: args.connectivity.snpLEOElevation || 0,
+    // L-Mo3: per-SNP fiber leg from the shared PoP catalog instead of a global constant.
+    snpToPopFiberDelayMs: estimateSnpToPopFiberOneWayMs(args.connectivity.snp),
   });
   const oneWayDistanceKm = args.connectivity.userLEODistance + (args.connectivity.snpLEODistance || 0);
   const fallbackPropagationRttMs = (2 * oneWayDistanceKm / SPEED_OF_LIGHT_RADIO_KM_S) * 1000;
@@ -771,7 +748,6 @@ function buildEmptyEvidence(input: BuildActiveLeoRouteEvidenceInput, inputSignat
     selectedSnpA: input.selectedSnpA,
     selectedSnpB: input.selectedSnpB,
     bottleneck: null,
-    capacityLimitation: null,
     rfLimitation: null,
     routeParticipants: { satellites: [], snps: [] },
     debugEvidence: {},
@@ -843,6 +819,19 @@ export function buildActiveLeoRouteEvidence(
     }
     resetActiveLeoRouteEvidenceState(state);
     return buildEmptyEvidence(input, inputSignature, 'Select a location to calculate LEO service.');
+  }
+
+  if (import.meta.env.DEV) {
+    // L-Mo9 canary: the per-site weather selector and the per-site simulation
+    // snapshot must agree — App keeps them in sync; log loudly if they drift.
+    const expectA = WEATHER_PROFILES[input.weatherTypeA]?.condition;
+    const expectB = WEATHER_PROFILES[input.weatherTypeB]?.condition;
+    if (expectA && expectA !== input.simulationStateA.weatherCondition) {
+      console.warn(`[leoEvidence] weather drift at Site A: weatherType=${input.weatherTypeA} (${expectA}) vs simulationState=${input.simulationStateA.weatherCondition}`);
+    }
+    if (input.topology === 'SITE_TO_SITE' && expectB && expectB !== input.simulationStateB.weatherCondition) {
+      console.warn(`[leoEvidence] weather drift at Site B: weatherType=${input.weatherTypeB} (${expectB}) vs simulationState=${input.simulationStateB.weatherCondition}`);
+    }
   }
 
   const selectedSnpA = input.selectedSnpA && !input.failedSnps.has(input.selectedSnpA.name) ? input.selectedSnpA : null;
@@ -941,9 +930,6 @@ export function buildActiveLeoRouteEvidence(
       uploadMbps,
       rttMs,
       bottleneck,
-      capacityLimitation: input.beamLoadA?.capacityStatus && input.beamLoadA.capacityStatus !== 'AVAILABLE'
-        ? input.beamLoadA.capacityStatus
-        : null,
       rfLimitation: rfAvailableA ? null : 'RF_UNAVAILABLE_A',
       routeParticipants: {
         satellites: input.servingSatelliteA ? [input.servingSatelliteA] : [],
@@ -1097,7 +1083,6 @@ export function buildActiveLeoRouteEvidence(
     uploadMbps: throughputBtoA,
     rttMs,
     bottleneck,
-    capacityLimitation: routeResult.failureReason?.startsWith('CAPACITY') ? routeResult.failureReason : null,
     rfLimitation: routeResult.failureReason?.startsWith('RF_') ? routeResult.failureReason : null,
     routeParticipants: {
       satellites: [routeResult.servingSatelliteA, routeResult.servingSatelliteB].filter((sat): sat is SatelliteData => Boolean(sat)),

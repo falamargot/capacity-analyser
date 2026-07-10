@@ -1,6 +1,5 @@
 import { SatelliteData } from '../types/satellites';
 import { formatCoordinates } from '../utils/formatters';
-import { getNearestSNPInBackhaul } from '../services/coverageService';
 import { getActiveBeamCount } from '../utils/oneWebComb';
 import { calculateElevationAngle } from '../utils/capacityCalculator';
 import { JulianDate } from 'cesium';
@@ -15,7 +14,8 @@ import {
   getCoverageGroupId,
 } from '../utils/geoCoverageSelection';
 import { hasRFConnectivity } from '../utils/rfConnectivity';
-import { getBestConnectedGateway } from '../utils/connectivityRules';
+import { getBestConnectedGateway, selectSnpForSatellite } from '../utils/connectivityRules';
+import { gsoPitchMagnitudeDeg } from '../utils/gsoProtection';
 import { computeServiceStatus, type ServiceLayerResult } from '../utils/serviceLayer';
 import { MIN_SNP_GATEWAY_ELEVATION_DEG, MIN_USER_TERMINAL_ELEVATION_DEG, STANDARD_SERVICE_ELEVATION_DEG } from '../utils/leoFootprint';
 
@@ -37,16 +37,12 @@ const formatLeoServiceZoneLabel = (elevationDeg: number | null): string => {
 
 
 // ─── Pitch Monitoring Chart ───────────────────────────────────────────────────
-// The SVG curve depends only on two fixed constants — compute it once at module
-// load instead of inside a useMemo (which re-runs on every component mount).
-const PITCH_START_LAT = 45.0;
-const MAX_PITCH_DEG = 17.0;
-
+// The SVG curve is derived from the canonical GSO pitch model (gsoProtection.ts)
+// — compute it once at module load instead of inside a useMemo.
 const SAFETY_DOME_CURVE_POINTS = (() => {
   const points: string[] = [];
   for (let lat = -90; lat <= 90; lat += 1) {
-    const progress = Math.abs(lat) / PITCH_START_LAT;
-    const pitchMagnitude = progress <= 1 ? MAX_PITCH_DEG * Math.cos(progress * (Math.PI / 2)) : 0;
+    const pitchMagnitude = gsoPitchMagnitudeDeg(lat);
     const pitch = lat >= 0 ? pitchMagnitude : -pitchMagnitude;
     const x = 30 + ((lat + 90) / 180) * 270;
     const y = 97 - (Math.abs(pitch) / 20) * 94;
@@ -223,8 +219,9 @@ const SatelliteDetails: React.FC<SatelliteDetailsProps> = ({
 
   // Calculate nearest SNP for LEO satellites using current position (real-time)
   // Pass failedSnps so the nearest SNP lookup skips any failed ground stations
-  const nearestSNP = currentSatellite?.type === 'ONEWEB'
-    ? getNearestSNPInBackhaul(currentSatellite, failedSnps)
+  // L-Mo5: canonical max-feeder-elevation selector — same SNP the route uses.
+  const servingSnp = currentSatellite?.type === 'ONEWEB'
+    ? selectSnpForSatellite(currentSatellite, failedSnps)
     : null;
 
   const currentTargetHasRF = useMemo(() => {
@@ -674,11 +671,11 @@ const SatelliteDetails: React.FC<SatelliteDetailsProps> = ({
           {selectedSatellite.type === 'ONEWEB' && isOperational && (
             <div className="mb-4">
               <div className="bg-gray-50 dark:bg-slate-800/50 rounded-lg p-4 border border-gray-100 dark:border-slate-700">
-                {nearestSNP ? (
+                {servingSnp ? (
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm text-gray-600 dark:text-gray-300">
-                        Nearest reachable SNP: <span className="font-medium text-gray-800 dark:text-gray-100">{nearestSNP.name} ({nearestSNP.distance.toFixed(0)} km, {nearestSNP.oneWayLatencyMs.toFixed(1)} ms one-way)</span>
+                        Serving feeder SNP (highest elevation): <span className="font-medium text-gray-800 dark:text-gray-100">{servingSnp.snp.name} ({servingSnp.distanceKm.toFixed(0)} km, {servingSnp.oneWayLatencyMs.toFixed(1)} ms one-way)</span>
                       </p>
                       <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
                         Satellite-centric nearest gateway, not necessarily the SNP serving the current target.
@@ -781,7 +778,7 @@ const SatelliteDetails: React.FC<SatelliteDetailsProps> = ({
                           <p className="text-xs text-gray-500 dark:text-gray-400 italic py-1 px-1">No SNPs in backhaul range</p>
                         ) : visibleSNPs.map(({ snp, elevation }) => {
                           const isFailed = failedSnps.has(snp.name);
-                          const isNearest = nearestSNP?.name === snp.name;
+                          const isNearest = servingSnp?.snp.name === snp.name;
                           return (
                             <button
                               key={snp.name}

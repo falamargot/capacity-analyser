@@ -20,25 +20,19 @@ import {
 import {
     NOMINAL_BEAM_SEMI_MAJOR_KM,
     NOMINAL_BEAM_SEMI_MINOR_KM,
-    GSO_EXCLUSION_HALF_ANGLE_DEG,
+    TOTAL_BEAMS as CANONICAL_TOTAL_BEAMS,
+    BEAM_SPACING_KM,
 } from '../config/oneweb';
+import { computeGsoProtectionAngles } from './gsoProtection';
+import { getRadiusAtPowerLevel } from './leoBeamPattern';
 import type { SimulationStateSnapshot } from '../types/simulation';
 
 // Inlined to avoid transitive browser-API imports (capacityCalculator → satelliteService)
 const EARTH_RADIUS_KM = 6371;
 
-/** beam power threshold radius (km) — footprintRadiusKm(1200, 55) */
-const STANDARD_RADIUS_KM = 688;
-
-function getRadiusAtPowerLevel(powerLevelDb: number, cosineExponent = 8): number {
-    if (powerLevelDb >= 0) return STANDARD_RADIUS_KM;
-    const linearPower = Math.pow(10, powerLevelDb / 10);
-    const angle = Math.acos(Math.pow(linearPower, 1 / cosineExponent));
-    return STANDARD_RADIUS_KM * (angle / (Math.PI / 2));
-}
-
-export const TOTAL_BEAMS = 16;
-export const BEAM_WIDTH_KM = 67.5;
+// Re-exported from the canonical config so existing worker/import sites keep working.
+export const TOTAL_BEAMS = CANONICAL_TOTAL_BEAMS;
+export const BEAM_WIDTH_KM = BEAM_SPACING_KM;
 
 // ─── Pure vector math (no Cesium) ─────────────────────────────────────────
 
@@ -132,33 +126,10 @@ function computeGSOAvoidance(orbit: OrbitState): GSOState {
     const { satLatDeg, forward } = orbit;
     const isMovingNorth = forward.z > 0;
 
-    const PITCH_START_LAT = 45.0;
-    const MAX_PITCH_DEG = 17.0;
-
-    let pitchAngleRad = 0;
-    if (Math.abs(satLatDeg) < PITCH_START_LAT) {
-        const progress = Math.abs(satLatDeg) / PITCH_START_LAT;
-        const currentPitchDeg = MAX_PITCH_DEG * Math.cos(progress * (Math.PI / 2));
-
-        if (satLatDeg > 0) {
-            pitchAngleRad = isMovingNorth
-                ? toRad(-currentPitchDeg)
-                : toRad(currentPitchDeg);
-        } else {
-            pitchAngleRad = !isMovingNorth
-                ? toRad(-currentPitchDeg)
-                : toRad(currentPitchDeg);
-        }
-    }
-
-    // GSO exclusion: angular separation between satellite geocentric position and
-    // the equatorial GEO belt = |geocentric latitude| of the satellite.
-    // Below GSO_EXCLUSION_HALF_ANGLE_DEG all beams are blanked.
-    const geoAngularSeparationDeg = Math.abs(satLatDeg);
+    // Pitch curve + blanking rule live in gsoProtection.ts (single copy,
+    // worker-safe — shared with the Cesium-side oneWebComb implementation).
     return {
-        pitchAngleRad,
-        isGSOAvoidance: Math.abs(pitchAngleRad) > 0.01,
-        isBlankingZone: geoAngularSeparationDeg <= GSO_EXCLUSION_HALF_ANGLE_DEG,
+        ...computeGsoProtectionAngles(satLatDeg, isMovingNorth),
         satLatDeg,
         isMovingNorth,
     };

@@ -17,8 +17,8 @@ import {
 } from '../../config/oneweb';
 
 import {
-  capDeliveredToTerminal,
-} from '../realisticSimulation';
+  applyBeamCapacitySharing,
+} from '../leoNetworkLayer';
 
 import {
   calculateRealTimeCapacity,
@@ -122,43 +122,27 @@ describe('calculateRealTimeCapacity — LEO must not return satellite aggregate'
 });
 
 // ─── 3. Terminal throughput cap ───────────────────────────────────────────────
+// The terminal hardware clamp lives in the beam-sharing pipeline
+// (applyBeamCapacitySharing terminalMaxMbps); the former standalone
+// capDeliveredToTerminal helper was dead code and was removed (L-Mi4).
 
-describe('capDeliveredToTerminal', () => {
-  it('does not cap when model output is below terminal maximum', () => {
-    const result = capDeliveredToTerminal(50, 100);
-    expect(result.cappedMbps).toBe(50);
-    expect(result.wasTerminalLimited).toBe(false);
-  });
-
-  it('caps to terminal maximum when model output exceeds it', () => {
-    const result = capDeliveredToTerminal(200, 100); // mobile terminal: 100 Mbps max
-    expect(result.cappedMbps).toBe(100);
+describe('terminal hardware cap (via applyBeamCapacitySharing)', () => {
+  it('mobile-class terminal (100 Mbps) caps NOMINAL_TERMINAL_PEAK_MBPS output', () => {
+    const result = applyBeamCapacitySharing(NOMINAL_TERMINAL_PEAK_MBPS, 1, 100);
+    expect(result.sharedThroughputMbps).toBe(100);
     expect(result.wasTerminalLimited).toBe(true);
   });
 
-  it('caps to exactly the terminal maximum when equal', () => {
-    const result = capDeliveredToTerminal(200, 200); // fixed terminal: 250 Mbps max → 200 fits
-    expect(result.cappedMbps).toBe(200);
+  it('does not cap when the per-user share is below the terminal maximum', () => {
+    // 20 Mbps RF × 5 bandwidth scale = 100 Mbps beam pool / 4 users = 25 Mbps < 200 cap
+    const result = applyBeamCapacitySharing(20, 4, 200);
+    expect(result.sharedThroughputMbps).toBeLessThanOrEqual(200);
     expect(result.wasTerminalLimited).toBe(false);
   });
 
-  it('never returns a negative cappedMbps', () => {
-    const result = capDeliveredToTerminal(-10, 100);
-    expect(result.cappedMbps).toBeGreaterThanOrEqual(0);
-  });
-
-  it('mobile terminal (100 Mbps) caps NOMINAL_TERMINAL_PEAK_MBPS (200 Mbps) correctly', () => {
-    const mobileCap = 100; // TERMINAL_PROFILES.mobile.maxDlGbps * 1000
-    const result = capDeliveredToTerminal(NOMINAL_TERMINAL_PEAK_MBPS, mobileCap);
-    expect(result.cappedMbps).toBe(100);
-    expect(result.wasTerminalLimited).toBe(true);
-  });
-
-  it('fixed terminal (250 Mbps) does NOT cap NOMINAL_TERMINAL_PEAK_MBPS (200 Mbps)', () => {
-    const fixedCap = 250; // TERMINAL_PROFILES.fixed.maxDlGbps * 1000
-    const result = capDeliveredToTerminal(NOMINAL_TERMINAL_PEAK_MBPS, fixedCap);
-    expect(result.cappedMbps).toBe(NOMINAL_TERMINAL_PEAK_MBPS);
-    expect(result.wasTerminalLimited).toBe(false);
+  it('never returns a negative throughput', () => {
+    const result = applyBeamCapacitySharing(-10, 1, 100);
+    expect(result.sharedThroughputMbps).toBeGreaterThanOrEqual(0);
   });
 });
 

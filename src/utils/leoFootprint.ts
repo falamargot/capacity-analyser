@@ -1,10 +1,8 @@
 import { EARTH_RADIUS_KM } from '../utils/capacityCalculator';
-import {
-  type WeatherCondition,
-  WEATHER_ATTENUATION_DB,
-  getScanLossLinear,
-  getPowerBoostLinear,
-} from './realisticSimulation';
+import { STANDARD_RADIUS_KM as PATTERN_STANDARD_RADIUS_KM, getRadiusAtPowerLevel } from './leoBeamPattern';
+
+// Single copy of the cos^n pattern math lives in leoBeamPattern.ts (worker-safe).
+export { getRadiusAtPowerLevel } from './leoBeamPattern';
 
 /**
  * Coverage policy — controls how LEO RF connectivity radius is determined.
@@ -36,73 +34,8 @@ export const BACKHAUL_ELEVATION_DEG = MIN_SNP_GATEWAY_ELEVATION_DEG;
 
 // Pre-calculated radii for 1200km altitude
 export const TERMINAL_RF_RADIUS_KM = 1097; // 40° elevation — footprintRadiusKm(1200, 40)
-export const STANDARD_RADIUS_KM = 688;  // 55° elevation — guaranteed service zone
+export const STANDARD_RADIUS_KM = PATTERN_STANDARD_RADIUS_KM;  // 55° elevation — guaranteed service zone
 export const BACKHAUL_RADIUS_KM = 2500; // 15° elevation — SNP/gateway visibility
-
-/**
- * Returns the ground-distance radius (km) at which the beam power
- * has dropped to `powerLevelDb` relative to boresight (beam center).
- *
- * Uses the cos^n antenna model:
- *   Power(r) = cos^n(π/2 · r / R_max)
- *   → r = R_max · (2/π) · arccos( 10^(dB/10) )^(1/n)
- *
- * @param powerLevelDb  Negative value, e.g. -3, -6, -10
- * @param cosineExponent  The `n` in cos^n (default 8)
- * @returns radius in km (always ≤ STANDARD_RADIUS_KM)
- */
-export function getRadiusAtPowerLevel(
-  powerLevelDb: number,
-  cosineExponent: number = 8
-): number {
-  if (powerLevelDb >= 0) return STANDARD_RADIUS_KM; // 0 dB = full radius
-  // Convert a power ratio in dB back to linear power.
-  const linearPower = Math.pow(10, powerLevelDb / 10);
-  // Invert cos^n: angle = arccos(linearPower^(1/n))
-  const angle = Math.acos(Math.pow(linearPower, 1 / cosineExponent));
-  // Normalize: angle runs from 0 (center) to π/2 (edge of STANDARD_RADIUS_KM)
-  const radiusRatio = angle / (Math.PI / 2);
-  return STANDARD_RADIUS_KM * radiusRatio;
-}
-
-/**
- * Physics-aware beam radius incorporating scan loss, power boost, health factor,
- * and weather attenuation (Pillars 1-3 & 5).
- *
- * This is the authoritative radius used for visualization so the beam footprint
- * on the map is mathematically linked to all real-world impairments.
- *
- * @param beamIndex       Beam index 0-15 (peripheral beams get extra scan loss)
- * @param activeBeamCount Currently active beam count (8 or 16)
- * @param healthFactor    Per-beam health [0,1]
- * @param weather         Atmospheric condition
- * @param thresholdDb     Coverage threshold (default -10 dB)
- */
-export function getPhysicsAwareBeamRadius(
-  beamIndex: number,
-  activeBeamCount: number,
-  healthFactor: number,
-  weather: WeatherCondition,
-  thresholdDb: number = -10
-): number {
-  // Base radius at the given dB threshold
-  const baseRadius = getRadiusAtPowerLevel(thresholdDb);
-
-  // Scan loss scale (pillar 1) – peripheral beams are smaller
-  const scanScale = getScanLossLinear(beamIndex);
-
-  // Power boost (pillar 2) – fewer beams → larger effective coverage radius
-  const boostScale = Math.sqrt(getPowerBoostLinear(activeBeamCount, weather));
-
-  // Health factor (pillar 3) – degraded beams have smaller reach
-  const healthScale = Math.sqrt(Math.max(0, healthFactor));
-
-  // Weather attenuation (pillar 5) – rain shrinks usable beam radius
-  const weatherDb = WEATHER_ATTENUATION_DB[weather];
-  const weatherScale = Math.sqrt(Math.pow(10, weatherDb / 10));
-
-  return baseRadius * scanScale * boostScale * healthScale * weatherScale;
-}
 
 /**
  * Centralized RF connectivity decision function.

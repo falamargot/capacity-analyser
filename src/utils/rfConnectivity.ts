@@ -2,12 +2,11 @@ import { JulianDate, Cartographic } from 'cesium';
 import type { SatelliteData } from '../types/satellites';
 import { calculateElevationAngle } from './capacityCalculator';
 import { calculateGSOAvoidanceAngle, calculateCombBeamCenters, calculateCombGeometry } from './oneWebComb';
-import { isBeamActive } from './beamActivation';
+import { countActiveBeams, isBeamActive } from './beamActivation';
 import {
     MIN_USER_TERMINAL_ELEVATION_DEG,
     getRadiusAtPowerLevel,
     isRfCoverageSatisfied,
-    getPhysicsAwareBeamRadius,
     haversineDistanceKm,
 } from './leoFootprint';
 import {
@@ -17,7 +16,7 @@ import {
     WEATHER_ATTENUATION_DB,
     type WeatherCondition,
 } from './realisticSimulation';
-import { NOMINAL_BEAM_SEMI_MAJOR_KM, NOMINAL_BEAM_SEMI_MINOR_KM } from '../config/oneweb';
+import { NOMINAL_BEAM_SEMI_MAJOR_KM, NOMINAL_BEAM_SEMI_MINOR_KM, TOTAL_BEAMS } from '../config/oneweb';
 import type { SimulationStateSnapshot } from '../types/simulation';
 
 // Type alias for the GSO state returned by calculateGSOAvoidanceAngle
@@ -222,16 +221,7 @@ export function getConnectivityStatus(
         const { hsBeams } = simulationState;
 
         // Derive active beam count from pre-computed gsoState and HS beam state.
-        const activeBeamCount = Array.from({ length: 16 }, (_, beamIndex) => beamIndex).reduce(
-            (count, beamIndex) => count + (isBeamActive(
-                beamIndex,
-                isBlankingZone,
-                isGSOAvoidance,
-                satLatDeg,
-                hsBeams
-            ) ? 1 : 0),
-            0
-        );
+        const activeBeamCount = countActiveBeams(TOTAL_BEAMS, isBlankingZone, isGSOAvoidance, satLatDeg, hsBeams);
 
         // RF connectivity check — reuses gsoState (no third propagation)
         const hasRF = hasGeometricVisibility &&
@@ -311,18 +301,8 @@ export function calculateLinkQuality(
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// calculateLink – unified 5-pillar link budget for a user position + beam
+// Beam link estimate types — output of estimateCurrentLeoBeamLink
 // ─────────────────────────────────────────────────────────────────────────────
-
-export interface LinkBudgetInput {
-    userPosition: { lat: number; lng: number };
-    beamIndex: number;
-    beamCenterPosition: { lat: number; lng: number };
-    activeBeamCount: number;
-    healthFactor: number;          // Pillar 3: [0, 1]
-    weather: WeatherCondition; // Pillar 5
-    thresholdDb?: number;           // Default -10 dB
-}
 
 export interface LinkBudgetOutput {
     /** True if user is within the physics-aware beam footprint */
@@ -410,10 +390,13 @@ function getBeamEllipseGeometry(args: {
 /**
  * Elliptical normalised distance from beam centre, using great-circle arc lengths
  * for both axes. Replaces the previous flat-Earth (cos-lat) approximation that
- * produced arbitrarily large cross-track errors at high latitudes (|lat| > 60°).
+ * produced arbitrarily large errors at high latitudes (|lat| > 60°).
  *
- * Along-track axis (major): north/south great-circle arc (same longitude).
- * Cross-track axis (minor): east/west great-circle arc at the beam centre latitude.
+ * Axis mapping (matches the renderer in oneWebCombCore):
+ *  - semi-MAJOR (~800 km): east/west arc at the beam-centre latitude — the
+ *    beam's long, CROSS-track axis;
+ *  - semi-MINOR (~51 km): north/south arc along the meridian — the narrow,
+ *    ALONG-track axis in which the 16 beams are stacked.
  */
 function getEllipticalNormalizedDistance(
     userPosition: { lat: number; lng: number },
@@ -423,13 +406,13 @@ function getEllipticalNormalizedDistance(
 ): number {
     if (semiMajorAxisKm <= 0 || semiMinorAxisKm <= 0) return 1;
 
-    // Along-track: great-circle arc along the meridian through the beam centre
+    // North/south arc along the meridian through the beam centre (minor axis)
     const dyKm = haversineDistanceKm(
         { lat: userPosition.lat, lng: beamCenterPosition.lng },
         beamCenterPosition,
     ) * Math.sign(userPosition.lat - beamCenterPosition.lat);
 
-    // Cross-track: great-circle arc at constant latitude of beam centre.
+    // East/west arc at the beam-centre latitude (major axis).
     // Normalise longitude difference to (−180, +180] to handle antimeridian.
     const rawDeltaLng = userPosition.lng - beamCenterPosition.lng;
     const deltaDeltaLng = ((rawDeltaLng + 180) % 360 + 360) % 360 - 180;
@@ -444,63 +427,6 @@ function getEllipticalNormalizedDistance(
     return Math.sqrt(Math.max(0, r2));
 }
 
-/**
- * Full 5-pillar link budget calculation for a user position within a specific beam.
- *
- * This is the primary entry point for all throughput and coverage decisions:
- *  - Pillar 1: Phased array scan loss (peripheral beams smaller + lower EIRP)
- *  - Pillar 2: Dynamic power boost (GSO Protection halves beams → +3 dB/beam)
- *  - Pillar 3: Beam health factor (degrades EIRP + shrinks radius)
- *  - Pillar 4: SNR-based throughput roll-off (capacity ↓ away from boresight)
- *  - Pillar 5: Weather attenuation (rain/clouds shrink radius + reduce Mbps)
- *
- * M-03 fix: replaced second inline haversine with haversineDistanceKm from leoFootprint.
- */
-export function calculateLink(input: LinkBudgetInput): LinkBudgetOutput {
-    const { userPosition, beamIndex, beamCenterPosition, activeBeamCount, healthFactor, weather } = input;
-    const thresholdDb = input.thresholdDb ?? -10;
-
-    // M-03 fix: use canonical haversineDistanceKm from leoFootprint
-    const distanceKm = haversineDistanceKm(userPosition, beamCenterPosition);
-
-    // Physics-aware beam radius (Pillars 1, 2, 3, 5)
-    const effectiveBeamRadiusKm = getPhysicsAwareBeamRadius(
-        beamIndex, activeBeamCount, healthFactor, weather, thresholdDb
-    );
-
-    const isInBeam = distanceKm < effectiveBeamRadiusKm && effectiveBeamRadiusKm > 0;
-    const normalizedDistance = effectiveBeamRadiusKm > 0
-        ? Math.min(1, distanceKm / effectiveBeamRadiusKm)
-        : 1;
-
-    // Run the 5-pillar beam performance engine
-    const perf = getBeamPerformance({
-        beamIndex,
-        activeBeamCount,
-        healthFactor,
-        weather,
-        normalizedDistance,
-        thresholdDb,
-    });
-
-    return {
-        isInBeam,
-        normalizedDistance,
-        distanceKm,
-        effectiveBeamRadiusKm,
-        powerAtUserDb: isInBeam ? perf.powerAtUserDb : -Infinity,
-        deliveredThroughputMbps: isInBeam ? perf.deliveredThroughputMbps : 0,
-        rfThroughputMbps: isInBeam ? perf.rfThroughputMbps : 0,
-        throughputRatio: isInBeam ? perf.throughputRatio : 0,
-        effectiveEirpDb: perf.effectiveEirpDb,
-        scanLossDb: perf.scanLossDb,
-        powerBoostDb: perf.powerBoostDb,
-        weatherAttenuationDb: perf.weatherAttenuationDb,
-        healthDb: perf.healthDb,
-        linkQuality: isInBeam ? perf.linkQuality : 'NO_SIGNAL',
-    };
-}
-
 export function estimateCurrentLeoBeamLink(args: {
     userPosition: { lat: number; lng: number };
     satellite: SatelliteData;
@@ -512,7 +438,7 @@ export function estimateCurrentLeoBeamLink(args: {
     const { userPosition, satellite, beamIndex, time, simulationState, snpPosition = null } = args;
 
     if (!satellite || satellite.type !== 'ONEWEB' || !satellite.satrec) return null;
-    if (!Number.isInteger(beamIndex) || beamIndex < 0 || beamIndex >= 16) return null;
+    if (!Number.isInteger(beamIndex) || beamIndex < 0 || beamIndex >= TOTAL_BEAMS) return null;
 
     try {
         const gsoState = calculateGSOAvoidanceAngle(satellite.satrec, time);
@@ -522,16 +448,7 @@ export function estimateCurrentLeoBeamLink(args: {
             return null;
         }
 
-        const activeBeamCount = Array.from({ length: 16 }, (_, idx) => idx).reduce(
-            (count, idx) => count + (isBeamActive(
-                idx,
-                isBlankingZone,
-                isGSOAvoidance,
-                satLatDeg,
-                simulationState.hsBeams
-            ) ? 1 : 0),
-            0
-        );
+        const activeBeamCount = countActiveBeams(TOTAL_BEAMS, isBlankingZone, isGSOAvoidance, satLatDeg, simulationState.hsBeams);
         if (activeBeamCount <= 0) return null;
 
         const beamCenters = calculateCombBeamCenters(satellite.satrec, time);
@@ -626,41 +543,6 @@ export function estimateCurrentLeoBeamLink(args: {
 }
 
 /**
- * Convenience wrapper: find the best beam covering the user position and
- * return its full link budget. Returns null if no beam covers the user.
- */
-export function getBestBeamLink(
-    userPosition: { lat: number; lng: number },
-    beamCenters: Array<{ lat: number; lng: number }>,
-    activeBeamCount: number,
-    healthFactors: Map<number, number>,
-    weather: WeatherCondition
-): (LinkBudgetOutput & { beamIndex: number }) | null {
-    let best: (LinkBudgetOutput & { beamIndex: number }) | null = null;
-
-    for (let i = 0; i < beamCenters.length; i++) {
-        const hf = healthFactors.get(i) ?? 1.0;
-        const result = calculateLink({
-            userPosition,
-            beamIndex: i,
-            beamCenterPosition: beamCenters[i],
-            activeBeamCount,
-            healthFactor: hf,
-            weather,
-        });
-
-        if (result.isInBeam) {
-            // Prefer the beam where the user is closest to boresight (best SNR)
-            if (!best || result.normalizedDistance < best.normalizedDistance) {
-                best = { ...result, beamIndex: i };
-            }
-        }
-    }
-
-    return best;
-}
-
-/**
  * Finds the beam index (0-15, N to S) that covers the user position.
  * Uses the real physics-accurate Cesium beam polygons from calculateCombGeometry,
  * identical to the logic in hasRFConnectivity / isUserInActiveBeam.
@@ -682,9 +564,11 @@ export function findConnectedBeamIndex(
 /**
  * Select the best beam from a set of candidate indices that all contain the user.
  *
- * Ranking (in order, consistent with selectBestServingCandidate):
- *   1. Lowest normalized elliptical distance from beam boresight (best SNR proxy)
- *   2. Physics-aware beam radius used for normalization (scan loss + health + weather)
+ * Ranking: lowest normalized ELLIPTICAL distance from beam boresight (best SNR
+ * proxy), using the same 51 × 800 km beam ellipse as rendering and the beam-link
+ * estimator (LEO audit L-M5 — the former circular getPhysicsAwareBeamRadius
+ * normalization conflated the whole-footprint service radius with the beam
+ * pattern and biased ranking for offsets along the beam's long axis).
  *
  * Since all candidate beams belong to the same satellite, elevation is identical
  * across candidates and is not a differentiator here.
@@ -705,17 +589,22 @@ export function selectBestBeamIndexByNormalizedDistance(
     for (const beamIndex of candidateBeamIndices) {
         const center = beamCenters[beamIndex];
         if (!center) continue;
-        const distKm = haversineDistanceKm(userPosition, center);
         const healthFactor = simulationState.beamHealthByIndex.get(beamIndex) ?? 1.0;
         // activeBeamCount=16: constant across all candidates on same satellite → does not
         // affect relative ranking; power boost cancels in the normalizedDistance ratio.
-        const radiusKm = getPhysicsAwareBeamRadius(
+        const ellipse = getBeamEllipseGeometry({
             beamIndex,
-            16,
+            activeBeamCount: 16,
             healthFactor,
-            simulationState.weatherCondition,
+            weather: simulationState.weatherCondition,
+            thresholdDb: -10,
+        });
+        const normDist = getEllipticalNormalizedDistance(
+            userPosition,
+            center,
+            ellipse.semiMajorAxisKm,
+            ellipse.semiMinorAxisKm,
         );
-        const normDist = radiusKm > 0 ? distKm / radiusKm : Infinity;
         if (normDist < bestNormDist) {
             bestNormDist = normDist;
             bestIdx = beamIndex;

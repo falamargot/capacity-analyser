@@ -3,7 +3,14 @@ import type { RegulatoryResult } from '../../services/regulatoryService';
 import type { SNPData } from '../../components/globe/GlobeConfig';
 import type { SatelliteData } from '../../types/satellites';
 import type { BeamLoadResult } from '../capacityLayer';
-import { computeLeoSiteToSiteResult } from '../leoSiteToSiteModel';
+import {
+  LOGICAL_POPS,
+  MIN_SNP_TO_POP_FIBER_ONE_WAY_MS,
+  S2S_ONE_WAY_PROCESSING_MS,
+  computeLeoSiteToSiteResult,
+  estimateSnpToPopFiberOneWayMs,
+} from '../leoSiteToSiteModel';
+import { DEFAULT_LEO_OVERHEAD_MS } from '../leoConnectivityModel';
 
 const satA = { id: 'sat-a', name: 'Sat A' } as SatelliteData;
 const satB = { id: 'sat-b', name: 'Sat B' } as SatelliteData;
@@ -302,6 +309,38 @@ describe('C-02 — capacity gate is evaluated in site-to-site mode', () => {
 
     expect(result.failureReason).toBe(null);
     expect(result.serviceStatus).toBe('ALLOWED');
+  });
+});
+
+// ── L-Mo3: reconciled latency decomposition ───────────────────────────────────
+
+describe('L-Mo3 — S2S latency shares the single-site overhead constants', () => {
+  it('S2S one-way processing is derived from DEFAULT_LEO_OVERHEAD_MS (2 modems + 2 gateways + routing + queueing)', () => {
+    const expected =
+      2 * (DEFAULT_LEO_OVERHEAD_MS.gatewayProcessingDelayMs + DEFAULT_LEO_OVERHEAD_MS.modemProcessingDelayMs)
+      + DEFAULT_LEO_OVERHEAD_MS.routingDelayMs
+      + DEFAULT_LEO_OVERHEAD_MS.queueingDelayMs;
+    expect(S2S_ONE_WAY_PROCESSING_MS).toBe(expected);
+    expect(S2S_ONE_WAY_PROCESSING_MS).toBe(28);
+  });
+
+  it('computeLeoSiteToSiteResult applies the derived processing budget per one-way', () => {
+    const result = computeLeoSiteToSiteResult({ ...baseArgs });
+    expect(result.processingMarginMs).toBe(S2S_ONE_WAY_PROCESSING_MS);
+    expect(result.rttMs).toBeCloseTo(2 * result.oneWayLatencyAtoBMs, 9);
+  });
+
+  it('estimateSnpToPopFiberOneWayMs floors at the last-mile minimum for a PoP-co-located SNP', () => {
+    const london = LOGICAL_POPS.find((pop) => pop.name === 'London')!;
+    expect(estimateSnpToPopFiberOneWayMs({ lat: london.lat, lng: london.lng }))
+      .toBe(MIN_SNP_TO_POP_FIBER_ONE_WAY_MS);
+  });
+
+  it('estimateSnpToPopFiberOneWayMs grows with distance from the nearest PoP', () => {
+    // Svalbard-like SNP — ~2 400 km from London/Frankfurt PoPs.
+    const remote = estimateSnpToPopFiberOneWayMs({ lat: 78.2, lng: 15.6 });
+    expect(remote).toBeGreaterThan(MIN_SNP_TO_POP_FIBER_ONE_WAY_MS);
+    expect(remote).toBeLessThan(55); // stays inside the APNIC-observed one-way band
   });
 });
 

@@ -201,11 +201,21 @@ export function buildCommercialScenarioViewModel(input: BuildCommercialScenarioV
     : (input.geoRouteAnalysis?.uploadMbps ?? gbpsToMbps(geoMetricsSource.geo?.uplinkGbps));
   const geoRttMs = finitePositive(input.geoRouteAnalysis?.latencyMs ?? geoRoute.latencyMs ?? geoMetricsSource.geo?.rtt);
 
-  const leoMetricsComplete = leoEvidence?.available === true;
+  // COMM LEO presentation is gated only by the final App-level evidence. Route-view
+  // fallbacks may describe candidates, but cannot activate service or expose KPIs.
+  const leoFinalRouteAvailable = !leoRoutePending
+    && leoEvidence?.available === true
+    && rawLeoCommercialStatus !== 'blocked';
+  const leoMetricsComplete = leoFinalRouteAvailable
+    && leoDownloadMbps != null
+    && leoUploadMbps != null
+    && leoRttMs != null;
   const geoMetricsComplete = input.geoRouteAnalysis
     ? input.geoRouteAnalysis.available
     : hasCompleteGeoRouteMetrics(input.linkMode, geoRoute, geoDownloadMbps, geoUploadMbps, geoRttMs);
-  const leoCommercialStatus = leoRoutePending ? 'unknown' : commercialStatusFromRoute(rawLeoCommercialStatus, leoRoute.available, leoMetricsComplete);
+  const leoCommercialStatus = leoRoutePending
+    ? 'unknown'
+    : commercialStatusFromRoute(rawLeoCommercialStatus, leoFinalRouteAvailable, leoMetricsComplete);
   const geoCommercialStatus = geoRoutePending ? 'unknown' : commercialStatusFromRoute(rawGeoCommercialStatus, geoRoute.available, geoMetricsComplete);
 
   const leoLimitingFactor = leoEvidence?.degradationReason && leoEvidence.degradationReason !== 'LEO route available.' && leoEvidence.degradationReason !== 'LEO site-to-site route available.'
@@ -249,13 +259,17 @@ export function buildCommercialScenarioViewModel(input: BuildCommercialScenarioV
       status: leoCommercialStatus,
       customerStatus: customerStateFromCommercial(leoCommercialStatus),
       statusLabel: serviceStatusLabel(leoCommercialStatus),
-      available: leoRoute.available && leoCommercialStatus !== 'blocked' && leoMetricsComplete,
-      downloadMbps: leoDownloadMbps,
-      uploadMbps: leoUploadMbps,
-      rttMs: leoRttMs,
+      available: leoFinalRouteAvailable && leoCommercialStatus !== 'blocked' && leoMetricsComplete,
+      downloadMbps: leoFinalRouteAvailable ? leoDownloadMbps : undefined,
+      uploadMbps: leoFinalRouteAvailable ? leoUploadMbps : undefined,
+      rttMs: leoFinalRouteAvailable ? leoRttMs : undefined,
       routeSummary: leoRoute.summary ?? undefined,
-      limitingFactor: toCustomerLimitation(routeLimitingFactor(leoRoute.statusReason, leoLimitingFactor)),
-      technicalLimitingFactor: routeLimitingFactor(leoRoute.statusReason, leoLimitingFactor),
+      limitingFactor: leoFinalRouteAvailable && leoCommercialStatus === 'active'
+        ? undefined
+        : toCustomerLimitation(routeLimitingFactor(leoRoute.statusReason, leoLimitingFactor)),
+      technicalLimitingFactor: leoFinalRouteAvailable && leoCommercialStatus === 'active'
+        ? undefined
+        : routeLimitingFactor(leoRoute.statusReason, leoLimitingFactor),
       regulatoryConfidence: leoRegulatoryConfidence,
       strengths: [],
     },
@@ -335,15 +349,17 @@ export function buildCommercialScenarioViewModel(input: BuildCommercialScenarioV
     ? 'Site A'
     : 'Customer endpoint';
 
-  const downloadMbps = isDisplayLeo ? leoDownloadMbps : geoDownloadMbps;
-  const uploadMbps = isDisplayLeo ? leoUploadMbps : geoUploadMbps;
-  const rttMs = isDisplayLeo ? leoRttMs : geoRttMs;
+  const geoFinalRouteAvailable = geoRoute.available && geoMetricsComplete;
+  const activeRouteAvailable = isDisplayLeo ? leoFinalRouteAvailable : geoFinalRouteAvailable;
+  const downloadMbps = activeRouteAvailable ? (isDisplayLeo ? leoDownloadMbps : geoDownloadMbps) : undefined;
+  const uploadMbps = activeRouteAvailable ? (isDisplayLeo ? leoUploadMbps : geoUploadMbps) : undefined;
+  const rttMs = activeRouteAvailable ? (isDisplayLeo ? leoRttMs : geoRttMs) : undefined;
   const activeMetricsComplete = isDisplayLeo ? leoMetricsComplete : geoMetricsComplete;
-  const serviceStatus = isDisplayLeo && leoRoutePending
-    ? 'unknown'
-    : !isDisplayLeo && geoRoutePending
-    ? 'unknown'
-    : commercialStatusFromRoute(isDisplayLeo ? rawLeoCommercialStatus : rawGeoCommercialStatus, activeRoute.available, activeMetricsComplete);
+  const serviceStatus = isDisplayLeo
+    ? leoCommercialStatus
+    : geoRoutePending
+      ? 'unknown'
+      : commercialStatusFromRoute(rawGeoCommercialStatus, geoFinalRouteAvailable, activeMetricsComplete);
   const serviceLabel = serviceStatusLabel(serviceStatus);
   const satellite = isDisplayLeo
     ? (input.leoTopologyMode === 'SITE_TO_SITE'
@@ -393,13 +409,15 @@ export function buildCommercialScenarioViewModel(input: BuildCommercialScenarioV
         routePending: geoRoutePending,
       });
 
-  const routeMetricsWarning = activeRoute.available && !activeMetricsComplete
+  const routeMetricsWarning = activeRouteAvailable && !activeMetricsComplete
     ? (isDisplayLeo && leoRoutePending
         ? leoEvidence?.degradationReason ?? 'Waiting for LEO route calculation'
         : geoRoutePending && !isDisplayLeo ? input.geoRouteAnalysis?.reason ?? 'Waiting for GEO route calculation' : 'Waiting for complete route metrics')
     : undefined;
   const primaryWarning = routeMetricsWarning ?? (isDisplayLeo
-    ? (leoRoutePending
+    ? (activeRouteAvailable && serviceStatus === 'active'
+        ? undefined
+        : leoRoutePending
         ? leoEvidence?.degradationReason ?? 'Waiting for LEO route calculation'
         : input.leoTopologyMode === 'SITE_TO_SITE' && leoRoutePath?.failureReason
         ? leoRoutePath.failureReason.replaceAll('_', ' ').toLowerCase()
@@ -412,7 +430,6 @@ export function buildCommercialScenarioViewModel(input: BuildCommercialScenarioV
           ? geoStatusLabel(geoStatusSource)
           : activeRoute.statusReason ?? undefined));
   const customerPrimaryWarning = toCustomerLimitation(primaryWarning);
-  const activeRouteAvailable = activeRoute.available;
   const primaryFailingSegment = primaryFailingSegmentId(
     input,
     activeRouteAvailable,
@@ -598,7 +615,7 @@ export function buildCommercialScenarioViewModel(input: BuildCommercialScenarioV
       ? leoEvidence?.degradationReason ?? 'Waiting for LEO route calculation'
       : !isDisplayLeo && geoRoutePending
       ? input.geoRouteAnalysis?.reason ?? 'Waiting for GEO route calculation'
-      : commercialEmptyState(input, activeRoute.available && activeMetricsComplete, routeMetricsWarning ?? activeRoute.statusReason),
+      : commercialEmptyState(input, activeRouteAvailable, routeMetricsWarning ?? activeRoute.statusReason),
     recommendation,
     executiveSummary,
     comparison: {

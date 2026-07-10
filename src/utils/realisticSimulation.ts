@@ -102,8 +102,8 @@ export function weatherDbToLinear(weather: WeatherCondition): number {
 /**
  * Returns the steering angle θ (radians) for a given beam index.
  *
- * Beams are indexed 0-15 across the 1080 km swath.
- * The swath center lies between beams 7 and 8 (middle = 7.5).
+ * Beams are indexed 0-15 across the 1080 km along-track stacking extent
+ * (0 = northernmost). The comb center lies between beams 7 and 8 (middle = 7.5).
  * Beam offset from center = (i - 7.5) × 67.5 km
  * tan(θ) = offset / altitude → θ = atan(offset / 1200)
  */
@@ -237,46 +237,11 @@ export function getPowerBoostDb(
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Pillar 4 – SNR-based Throughput Roll-off
+// Realized through the RF chain: the cos^8 off-boresight term (powerAtUserDb)
+// feeds C/N → MODCOD selection in leoLinkBudget.ts. The former standalone
+// piecewise roll-off table (SNR_ROLLOFF_ZONES) was superseded by that chain
+// and has been removed (LEO audit L-Mi4).
 // ─────────────────────────────────────────────────────────────────────────────
-
-/**
- * Throughput roll-off thresholds relative to boresight:
- *
- *  Zone           | Power from boresight | Throughput ratio
- *  ─────────────────────────────────────────────────────────
- *  Center         | 0 dB                 | 1.00  (100%)
- *  -3 dB (Strict) | -3 dB                | 0.75  ( 75%)
- *  -10 dB (Std)   | -10 dB               | 0.30  ( 30%)
- *  -12 dB (Ext)   | -12 dB               | 0.15  ( 15%)
- */
-export const SNR_ROLLOFF_ZONES = [
-  { powerDb: 0, throughputRatio: 1.00 },
-  { powerDb: -3, throughputRatio: 0.75 },
-  { powerDb: -10, throughputRatio: 0.30 },
-  { powerDb: -12, throughputRatio: 0.15 },
-] as const;
-
-/**
- * Compute throughput ratio [0, 1] from a power-from-boresight value (dB).
- * Uses piecewise linear interpolation between the four defined zones.
- * Returns 0 below -12 dB (minimum viable link threshold).
- */
-export function throughputRatioFromPowerDb(powerDb: number): number {
-  if (powerDb >= 0) return 1.00;
-  if (powerDb <= -12) return 0.00; // below minimum viable link
-
-  // Interpolate between adjacent zones
-  for (let i = 0; i < SNR_ROLLOFF_ZONES.length - 1; i++) {
-    const upper = SNR_ROLLOFF_ZONES[i];
-    const lower = SNR_ROLLOFF_ZONES[i + 1];
-    if (powerDb <= upper.powerDb && powerDb >= lower.powerDb) {
-      const t = (powerDb - upper.powerDb) / (lower.powerDb - upper.powerDb);
-      return upper.throughputRatio + t * (lower.throughputRatio - upper.throughputRatio);
-    }
-  }
-
-  return SNR_ROLLOFF_ZONES[SNR_ROLLOFF_ZONES.length - 1].throughputRatio;
-}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Combined EIRP calculation
@@ -534,59 +499,4 @@ export function getBeamPerformance(input: BeamPerformanceInput): BeamPerformance
     cnDb: rfChain.cnDb,
     selectedModcod: rfChain.modcod?.name ?? null,
   };
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Utility – Beam characterization summary (for UI display)
-// ─────────────────────────────────────────────────────────────────────────────
-
-export interface BeamCharacteristics {
-  beamIndex: number;
-  isPeripheral: boolean;
-  scanAngleDeg: number;
-  scanLossDb: number;
-  nominalRadius: number;
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Terminal hardware cap — apply at the display layer, not inside the model
-// ─────────────────────────────────────────────────────────────────────────────
-
-export interface TerminalCapResult {
-  /** Throughput after clamping to the terminal hardware maximum (Mbps) */
-  cappedMbps: number;
-  /** True when the model output exceeded the terminal hardware limit */
-  wasTerminalLimited: boolean;
-}
-
-/**
- * Clamp simulated throughput to what the selected terminal hardware can receive.
- *
- * The 5-pillar model returns the beam-side delivered rate. A mobile terminal
- * capped at 100 Mbps cannot exceed that regardless of beam conditions.
- * Call this in the UI layer where the terminal profile is known.
- *
- * @param deliveredMbps  Raw model output from getBeamPerformance / calculateLink
- * @param terminalMaxMbps  Hardware ceiling from the selected terminal profile
- */
-export function capDeliveredToTerminal(
-  deliveredMbps: number,
-  terminalMaxMbps: number
-): TerminalCapResult {
-  const cappedMbps = Math.min(deliveredMbps, terminalMaxMbps);
-  return {
-    cappedMbps: Math.max(0, cappedMbps),
-    wasTerminalLimited: deliveredMbps > terminalMaxMbps,
-  };
-}
-
-/** Returns display-ready characteristics for each beam (scan angle, loss, etc.) */
-export function getAllBeamCharacteristics(): BeamCharacteristics[] {
-  return Array.from({ length: TOTAL_BEAMS }, (_, i) => ({
-    beamIndex: i,
-    isPeripheral: PERIPHERAL_BEAM_INDICES.has(i),
-    scanAngleDeg: (getScanAngleRad(i) * 180) / Math.PI,
-    scanLossDb: getScanLossDb(i),
-    nominalRadius: getEffectiveBeamRadiusKm(i, TOTAL_BEAMS, 1.0, 'CLEAR'),
-  }));
 }

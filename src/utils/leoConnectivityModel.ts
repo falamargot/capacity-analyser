@@ -11,19 +11,23 @@ export const DEFAULT_LEO_OVERHEAD_MS = {
 // OneWeb has no ISL (Inter-Satellite Links) — all traffic transits a ground SNP
 // (Satellite Network Portal) then travels via fiber to an internet PoP.
 // Source: EOPortal OneWeb profile + APNIC measurements (Dec 2024).
-// Default = 15 ms one-way (30 ms RTT contribution) — represents a well-connected SNP.
+// Fallback = 15 ms one-way (30 ms RTT contribution) — a well-connected SNP.
 // Range observed: 5–55 ms one-way depending on SNP location vs internet PoP.
+// Callers with a known SNP position should pass the per-SNP estimate from
+// estimateSnpToPopFiberOneWayMs (leoSiteToSiteModel) instead of this fallback.
 export const DEFAULT_SNP_TO_POP_FIBER_DELAY_MS = 15;
 
 const DEFAULT_RANGES = {
   minUserTerminalElevationDeg: MIN_USER_TERMINAL_ELEVATION_DEG,
   minSnpGatewayElevationDeg: MIN_SNP_GATEWAY_ELEVATION_DEG,
   /**
-   * Minimum RTT with fiber: 4-hop radio (~16 ms) + fiber RTT (~30 ms) + overhead (~20 ms) ≈ 66 ms.
-   * OneWeb publicly targets <70 ms; World Teleport Association measured 70–80 ms.
-   * APNIC measured ~50 ms minimum from eastern US (closest SNP to PoP).
+   * Minimum plausible RTT: 4-hop radio (~16 ms) + overhead (~20 ms) + fiber RTT
+   * (≥ ~10 ms with the per-SNP PoP-derived fiber leg, floor 5 ms one-way) ≈ 46 ms.
+   * OneWeb publicly targets <70 ms; APNIC measured ~50 ms minimum from eastern
+   * US (SNP closest to a PoP) — which is exactly the short-fiber case the
+   * per-SNP model now represents.
    */
-  expectedRttMinMs: 65,
+  expectedRttMinMs: 45,
   expectedRttMaxMs: 140,
   suspiciousLowRttMs: 40,
 };

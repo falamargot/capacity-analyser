@@ -14,7 +14,6 @@
 
 import { describe, expect, it } from 'vitest';
 import { JulianDate } from 'cesium';
-import * as satellite from 'satellite.js';
 
 import type { SatelliteData } from '../../types/satellites';
 import type { SNPData } from '../../components/globe/GlobeConfig';
@@ -26,71 +25,23 @@ import {
   buildActiveLeoRouteEvidence,
   createActiveLeoRouteEvidenceState,
 } from '../activeLeoRouteEvidence';
+import {
+  buildOrbitFixture,
+  makeOneWebSatellite,
+  pointEastOfSubpoint as pointEastOfOrbitSubpoint,
+} from './helpers/leoOrbitFixture';
 
-// ── Orbit fixture ─────────────────────────────────────────────────────────────
-
-const TLE1 = '1 44057U 19010A   24001.00000000  .00000000  00000-0  00000-0 0  9990';
-const TLE2 = '2 44057  87.9000   0.0000 0001000   0.0000   0.0000 13.15000000    10';
-
-interface OrbitFixture {
-  satrec: satellite.SatRec;
-  time: Date;
-  subLatDeg: number;
-  subLngDeg: number;
-  altKm: number;
-}
-
-/** Propagate forward from epoch until the sub-point sits at |lat| ∈ [50°, 65°]. */
-function buildOrbitFixture(): OrbitFixture {
-  const satrec = satellite.twoline2satrec(TLE1, TLE2);
-  const epoch = new Date(Date.UTC(2024, 0, 1, 0, 0, 0));
-  for (let offsetSec = 0; offsetSec <= 120 * 60; offsetSec += 30) {
-    const time = new Date(epoch.getTime() + offsetSec * 1000);
-    const pv = satellite.propagate(satrec, time);
-    if (!pv?.position || typeof pv.position === 'boolean') continue;
-    const gmst = satellite.gstime(time);
-    const geo = satellite.eciToGeodetic(pv.position, gmst);
-    const latDeg = satellite.degreesLat(geo.latitude);
-    if (Math.abs(latDeg) >= 50 && Math.abs(latDeg) <= 65) {
-      return {
-        satrec,
-        time,
-        subLatDeg: latDeg,
-        subLngDeg: satellite.degreesLong(geo.longitude),
-        altKm: geo.height,
-      };
-    }
-  }
-  throw new Error('No epoch offset produced a mid-latitude sub-point — TLE fixture broken');
-}
+// ── Orbit fixture (shared helper) ────────────────────────────────────────────
 
 const orbit = buildOrbitFixture();
 
 function makeSatellite(): SatelliteData {
-  return {
-    id: 'LEO-EVIDENCE-TEST',
-    name: 'LEO EVIDENCE TEST',
-    noradId: '44057',
-    coverageFileId: null,
-    type: 'ONEWEB',
-    orbitType: 'LEO',
-    opsStatus: 'operational',
-    satrec: orbit.satrec,
-    position: { lat: orbit.subLatDeg, lng: orbit.subLngDeg, alt: orbit.altKm, isPositionValid: true },
-    capacity: {
-      maxThroughput: 7.2,
-      bandwidth: { ku: 250, ka: 100 },
-      availability: 0.99,
-    },
-    referenced_coverages: { type: 'FeatureCollection', features: [] },
-    coverages: [],
-  } as SatelliteData;
+  return makeOneWebSatellite(orbit, 'LEO-EVIDENCE-TEST');
 }
 
 /** Offset a point east by a ground distance (km) at the fixture latitude. */
 function pointEastOfSubpoint(groundKm: number): { lat: number; lng: number } {
-  const degPerKm = 1 / (111.32 * Math.cos((orbit.subLatDeg * Math.PI) / 180));
-  return { lat: orbit.subLatDeg, lng: orbit.subLngDeg + groundKm * degPerKm };
+  return pointEastOfOrbitSubpoint(orbit, groundKm);
 }
 
 const regulatoryAllowed: RegulatoryResult = {

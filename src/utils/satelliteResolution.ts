@@ -5,7 +5,7 @@ import { JulianDate } from 'cesium';
 import type { SatelliteData } from '../types/satellites';
 import type { SatelliteScope } from '../components/SatelliteScopeFilter';
 import type { SNPData } from '../components/globe/GlobeConfig';
-import { SNPS_DATA } from '../components/globe/GlobeConfig';
+import { getBestConnectedGateway } from './connectivityRules';
 import { calculateElevationAngle } from './capacityCalculator';
 import {
     findCandidateCoverages,
@@ -68,28 +68,17 @@ function assessGatewayLinks(
     sat: SatelliteData,
     failedSnps: ReadonlySet<string>
 ): GatewayAssessment {
-    let bestSNP: SNPData | null = null;
-    let bestElevation = -1;
-
-    for (const snp of SNPS_DATA) {
-        if (failedSnps.has(snp.name)) continue;
-
-        const elevation = calculateElevationAngle({ lat: snp.lat, lng: snp.lng }, sat);
-        if (elevation < MIN_SNP_GATEWAY_ELEVATION_DEG) continue;
-
-        if (elevation > bestElevation) {
-            bestElevation = elevation;
-            bestSNP = snp;
-        }
-    }
+    // L-Mo5: delegate to the canonical max-feeder-elevation selector shared
+    // with the inspection card and rendering.
+    const best = getBestConnectedGateway(sat, MIN_SNP_GATEWAY_ELEVATION_DEG, failedSnps);
 
     return {
-        bestSNP,
-        bestElevation,
+        bestSNP: best?.snp ?? null,
+        bestElevation: best?.elevation ?? -1,
         // Match the backhaul-factor curve used by the beam estimator:
         // 15 deg = just reachable, 50 deg = excellent gateway margin.
-        marginScore: bestElevation >= MIN_SNP_GATEWAY_ELEVATION_DEG
-            ? clamp01((bestElevation - MIN_SNP_GATEWAY_ELEVATION_DEG) / (50 - MIN_SNP_GATEWAY_ELEVATION_DEG))
+        marginScore: best
+            ? clamp01((best.elevation - MIN_SNP_GATEWAY_ELEVATION_DEG) / (50 - MIN_SNP_GATEWAY_ELEVATION_DEG))
             : 0,
     };
 }

@@ -24,6 +24,7 @@ import type {
 } from '../../types/commercialRouteModel';
 import { getPosition, LEO_SMOKED_GLYPH, SATELLITE_GLYPH, type CameraMetricsSnapshot } from './utils';
 import { GROUND_POINT_ALTITUDE_KM, GROUND_POINT_LAYER_HEIGHT_M, LABEL_EYE_OFFSET } from './layerHeights';
+import { leoServingSatelliteEntityIds, leoSiteBeamEntityIds } from './commercialLeoEntityIds';
 
 interface CommercialSymbolicConnectivityLayerProps {
   routeModel: CommercialRouteModel;
@@ -782,15 +783,15 @@ function expectedLeoSatelliteFocusEntityIds(topology: LeoServingTopology): Set<s
   const ids = new Set<string>();
 
   for (const beam of topology.beams) {
-    const entityKey = entitySafeSignature(`${beam.endpoint.id}-${beam.satellite.key}`);
-    ids.add(`commercial-route-leo-site-satellite-beam-halo-${entityKey}`);
-    ids.add(`commercial-route-leo-site-satellite-beam-${entityKey}`);
+    const entityIds = leoSiteBeamEntityIds(beam.endpoint.id, beam.satellite.key);
+    ids.add(entityIds.halo);
+    ids.add(entityIds.beam);
   }
 
   for (const satellite of topology.satellites) {
-    const entityKey = entitySafeSignature(satellite.key);
-    ids.add(`commercial-route-leo-serving-satellite-glow-${entityKey}`);
-    ids.add(`commercial-route-leo-serving-satellite-${entityKey}`);
+    const entityIds = leoServingSatelliteEntityIds(satellite.key);
+    ids.add(entityIds.glow);
+    ids.add(entityIds.glyph);
   }
 
   const relayFrom = topology.satellites[0] ?? null;
@@ -1207,7 +1208,7 @@ const LeoServingSatelliteGlyph = React.memo<{
   animationStartSeconds: number;
 }>(({ satellite, sizeScale, animationStartSeconds }) => {
   const accent = useMemo(() => satelliteFocusColor(satellite.status, 'LEO'), [satellite.status]);
-  const id = useMemo(() => entitySafeSignature(satellite.key), [satellite.key]);
+  const entityIds = useMemo(() => leoServingSatelliteEntityIds(satellite.key), [satellite.key]);
   const glyphColor = useMemo(() => new CallbackProperty((time?: JulianDate) => {
     const alpha = animatedAlpha(time, animationStartSeconds, 0, LEO_FOCUS_SATELLITE_FADE_SECONDS, satellite.status === 'blocked' ? 0.7 : 1);
     return Color.WHITE.withAlpha(alpha);
@@ -1232,7 +1233,7 @@ const LeoServingSatelliteGlyph = React.memo<{
   return (
     <>
       <Entity
-        id={`commercial-route-leo-serving-satellite-glow-${id}`}
+        id={entityIds.glow}
         position={satellite.position}
       >
         <PointGraphics
@@ -1244,7 +1245,7 @@ const LeoServingSatelliteGlyph = React.memo<{
         />
       </Entity>
       <Entity
-        id={`commercial-route-leo-serving-satellite-${id}`}
+        id={entityIds.glyph}
         position={satellite.position}
         billboard={{
           image: LEO_SMOKED_GLYPH,
@@ -1293,8 +1294,8 @@ const LeoSiteToSatelliteBeam = React.memo<{
     () => buildLeoSiteBeamPositions(beam.endpoint.coord, beam.satellite.coord),
     [beam.endpoint.coord, beam.satellite.coord],
   );
-  const entityKey = useMemo(
-    () => entitySafeSignature(`${beam.endpoint.id}-${beam.satellite.key}`),
+  const entityIds = useMemo(
+    () => leoSiteBeamEntityIds(beam.endpoint.id, beam.satellite.key),
     [beam.endpoint.id, beam.satellite.key],
   );
   const color = useMemo(() => satelliteFocusColor(beam.status, 'LEO'), [beam.status]);
@@ -1327,7 +1328,7 @@ const LeoSiteToSatelliteBeam = React.memo<{
   return (
     <>
       <Entity
-        id={`commercial-route-leo-site-satellite-beam-halo-${entityKey}`}
+        id={entityIds.halo}
         polyline={{
           positions: animatedPositions,
           width: 20 * sizeScale,
@@ -1338,7 +1339,7 @@ const LeoSiteToSatelliteBeam = React.memo<{
         }}
       />
       <Entity
-        id={`commercial-route-leo-site-satellite-beam-${entityKey}`}
+        id={entityIds.beam}
         polyline={{
           positions: animatedPositions,
           width: 7.4 * sizeScale,
@@ -1803,7 +1804,7 @@ const CommercialSymbolicConnectivityLayer: React.FC<CommercialSymbolicConnectivi
       ))}
       {showLeoTransmission && (
         <LeoSatelliteServiceFocus
-          key={`leo-focus-${routeSignature ?? originSignature}-${leoServingTopology.satellites.map((satellite) => satellite.key).join('-')}`}
+          key="leo-focus"
           topology={leoServingTopology}
           sizeScale={sizeScale}
         />
