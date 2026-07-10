@@ -72,14 +72,16 @@ describe('L-Mo5 — canonical SNP selector', () => {
     const selected = selectSnpForSatellite(sat, new Set(), orbit.time);
 
     expect(selected).not.toBeNull();
-    expect(selected!.elevation).toBeGreaterThanOrEqual(MIN_SNP_GATEWAY_ELEVATION_DEG);
+    expect(selected!.elevationDeg).toBeGreaterThanOrEqual(MIN_SNP_GATEWAY_ELEVATION_DEG);
     // No other non-failed SNP may have a strictly higher elevation.
     for (const snp of SNPS_DATA) {
       const elevation = calculateElevationAngle({ lat: snp.lat, lng: snp.lng }, sat);
-      expect(elevation).toBeLessThanOrEqual(selected!.elevation + 1e-9);
+      expect(elevation).toBeLessThanOrEqual(selected!.elevationDeg + 1e-9);
     }
     expect(selected!.oneWayLatencyMs).toBeGreaterThan(0);
-    expect(selected!.distanceKm).toBeGreaterThanOrEqual(orbit.altKm - 50);
+    expect(selected!.slantRangeKm).toBeGreaterThanOrEqual(orbit.altKm - 50);
+    expect(selected!.band).toBe('Ka');
+    expect(selected!.satelliteId).toBe(sat.id);
   });
 
   it('skips failed SNPs', () => {
@@ -91,7 +93,7 @@ describe('L-Mo5 — canonical SNP selector', () => {
     const fallback = selectSnpForSatellite(sat, failed, orbit.time);
     if (fallback) {
       expect(fallback.snp.name).not.toBe(nominal!.snp.name);
-      expect(fallback.elevation).toBeLessThanOrEqual(nominal!.elevation + 1e-9);
+      expect(fallback.elevationDeg).toBeLessThanOrEqual(nominal!.elevationDeg + 1e-9);
     }
   });
 

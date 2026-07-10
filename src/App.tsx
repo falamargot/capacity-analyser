@@ -47,6 +47,7 @@ import {
 } from './components/globe/GlobeConfig';
 
 import { resolveAutoSelectedSatellites } from './utils/satelliteResolution';
+import type { LeoServingAssignment } from './data/leoGroundSegment';
 import {
   computeGeoConnectivity,
   findCandidateCoverages,
@@ -620,7 +621,11 @@ const App: React.FC = () => {
   }, [linkMode]);
 
   const [autoSelectedLEOId, setAutoSelectedLEOId] = useState<string | null>(null);
-  const [selectedSNP, setSelectedSNP] = useState<SelectedSNP>(null);
+  // L-O1: the resolver's LeoServingAssignment is the single source of the
+  // serving (satellite, beam, feeder) tuple; the selected SNP is DERIVED from
+  // it, so no surface can hold an SNP that disagrees with the assignment.
+  const [leoServingAssignmentA, setLeoServingAssignmentA] = useState<LeoServingAssignment | null>(null);
+  const selectedSNP: SelectedSNP = leoServingAssignmentA?.feeder?.snp ?? null;
 
   // ── Unified Site B state (GEO Mesh/P2P and LEO Site-to-Site share one coordinate) ──
   const [siteB, setSiteB] = useState<{ lat: number; lng: number } | null>(null);
@@ -636,7 +641,8 @@ const App: React.FC = () => {
   // ── LEO site-to-site state ────────────────────────────────────────────────
   const [leoTopologyMode, setLeoTopologyMode] = useState<'SINGLE_SITE' | 'SITE_TO_SITE'>('SINGLE_SITE');
   const [autoSelectedLEOIdB, setAutoSelectedLEOIdB] = useState<string | null>(null);
-  const [selectedSNPB, setSelectedSNPB] = useState<SNPData | null>(null);
+  const [leoServingAssignmentB, setLeoServingAssignmentB] = useState<LeoServingAssignment | null>(null);
+  const selectedSNPB: SNPData | null = leoServingAssignmentB?.feeder?.snp ?? null;
   const activeLeoRouteEvidenceStateRef = useRef(createActiveLeoRouteEvidenceState());
   const leoEvidenceTick = useSecondTick();
 
@@ -650,7 +656,7 @@ const App: React.FC = () => {
       setSiteB(null);
       setIsSiteBArmed(false);
       setAutoSelectedLEOIdB(null);
-      setSelectedSNPB(null);
+      setLeoServingAssignmentB(null);
       resetActiveLeoRouteEvidenceState(activeLeoRouteEvidenceStateRef.current);
     }
   }, [leoTopologyMode]);
@@ -2136,6 +2142,8 @@ const App: React.FC = () => {
       pointB: pointBLeo,
       servingSatelliteA: satA,
       servingSatelliteB: satB,
+      servingAssignmentA: leoServingAssignmentA,
+      servingAssignmentB: leoServingAssignmentB,
       selectedSnpA: selectedSNP,
       selectedSnpB: selectedSNPB,
       regulatoryResultA: leoRegulatoryResult,
@@ -2175,6 +2183,8 @@ const App: React.FC = () => {
     leoTerminalType,
     leoTerminalTypeB,
     leoTopologyMode,
+    leoServingAssignmentA,
+    leoServingAssignmentB,
     pointBLeo,
     selectedSNP,
     selectedSNPB,
@@ -2479,7 +2489,7 @@ const App: React.FC = () => {
     if (selectedSatellite && selectedSatellite.orbitType !== newScope && newScope !== 'ALL') {
       clearSelection();
       setAutoSelectedLEOId(null);
-      setSelectedSNP(null);
+      setLeoServingAssignmentA(null);
       setSelectedAircraft(null);
       setSelectedVessel(null);
     }
@@ -2504,7 +2514,7 @@ const App: React.FC = () => {
     setSelectedMoon(false);
     setSelectedAircraft(null);
     setSelectedVessel(null);
-    setSelectedSNP(null);
+    setLeoServingAssignmentA(null);
     setInspectedSNP(null);
     setSelectedGateway(null);
     setAutoSelectedLEOId(null);
@@ -2545,7 +2555,7 @@ const App: React.FC = () => {
   // Performance optimization: Memoize event handlers to prevent unnecessary re-renders
   const handleSnpClick = useCallback((snpName: string | { lat: number; lng: number; name: string } | null) => {
     if (!snpName) {
-      setSelectedSNP(null);
+      setLeoServingAssignmentA(null);
       setInspectedSNP(null);
       setSelectedGateway(null);
       setSelectedMoon(false);
@@ -2564,7 +2574,7 @@ const App: React.FC = () => {
     clearSelection();
     setSelectedMoon(false);
     setInspectedSNP(snp);
-    setSelectedSNP(null);
+    setLeoServingAssignmentA(null);
     setAutoSelectedLEOId(null);
     setSelectedAircraft(null);
     setSelectedVessel(null);
@@ -2597,7 +2607,7 @@ const App: React.FC = () => {
     setSelectedMoon(false);
     setSelectedGateway(gateway);
     setAutoSelectedLEOId(null);
-    setSelectedSNP(null);
+    setLeoServingAssignmentA(null);
     setInspectedSNP(null);
     setSelectedAircraft(null);
     setSelectedVessel(null);
@@ -2633,7 +2643,7 @@ const App: React.FC = () => {
     setSelectedMoon(false);
     setSelectedAircraft(null);
     setSelectedVessel(null);
-    setSelectedSNP(null);
+    setLeoServingAssignmentA(null);
     setInspectedSNP(null);
     setSelectedGateway(null);
     setAutoSelectedLEOId(null);
@@ -2692,7 +2702,7 @@ const App: React.FC = () => {
   useEffect(() => {
     if (!analyzisPosition) return;
     const now = JulianDate.fromDate(new Date());
-    const { autoSelectedLEOSat, selectedSNP: newSelectedSNP } = resolveAutoSelectedSatellites(
+    const { autoSelectedLEOSat, servingAssignment } = resolveAutoSelectedSatellites(
       { lat: analyzisPosition.lat, lng: analyzisPosition.lng },
       satellitesForResolutionRef.current,   // stable ref — not a dep
       satelliteScope,
@@ -2703,7 +2713,7 @@ const App: React.FC = () => {
       geoRFClassIdA
     );
     setAutoSelectedLEOId(autoSelectedLEOSat?.id || null);
-    setSelectedSNP(newSelectedSNP);
+    setLeoServingAssignmentA(servingAssignment);
   }, [analyzisPosition, autoSelectedLEOId, failedSnps, geoRFClassIdA, satelliteScope, simulationState, satellitesForResolutionRef]); // §1.1 — satellites removed
 
   // §1.3 — Periodic re-resolution for fixed positions (earth / vessel).
@@ -2734,7 +2744,7 @@ const App: React.FC = () => {
       if (!pos || pos.source === 'aircraft') return;
 
       const now = JulianDate.fromDate(new Date());
-      const { autoSelectedLEOSat, selectedSNP: newSNP } = resolveAutoSelectedSatellites(
+      const { autoSelectedLEOSat, servingAssignment } = resolveAutoSelectedSatellites(
         { lat: pos.lat, lng: pos.lng },
         satellitesForResolutionRef.current,  // always-fresh satellite positions
         satelliteScope,
@@ -2746,7 +2756,7 @@ const App: React.FC = () => {
       );
 
       setAutoSelectedLEOId(autoSelectedLEOSat?.id || null);
-      setSelectedSNP(newSNP);
+      setLeoServingAssignmentA(servingAssignment);
     };
 
     const interval = setInterval(reResolve, RESOLUTION_INTERVAL_MS);
@@ -2757,7 +2767,7 @@ const App: React.FC = () => {
   useEffect(() => {
     if (!pointBLeo || leoTopologyMode !== 'SITE_TO_SITE') {
       setAutoSelectedLEOIdB(null);
-      setSelectedSNPB(null);
+      setLeoServingAssignmentB(null);
       return;
     }
 
@@ -2765,7 +2775,7 @@ const App: React.FC = () => {
 
     const reResolve = () => {
       const now = JulianDate.fromDate(new Date());
-      const { autoSelectedLEOSat, selectedSNP: snpB } = resolveAutoSelectedSatellites(
+      const { autoSelectedLEOSat, servingAssignment } = resolveAutoSelectedSatellites(
         { lat: pointBLeo.lat, lng: pointBLeo.lng },
         satellitesForResolutionRef.current,
         'LEO',
@@ -2776,7 +2786,7 @@ const App: React.FC = () => {
         null
       );
       setAutoSelectedLEOIdB(autoSelectedLEOSat?.id ?? null);
-      setSelectedSNPB(snpB);
+      setLeoServingAssignmentB(servingAssignment);
     };
 
     reResolve();
@@ -3198,7 +3208,7 @@ const App: React.FC = () => {
     clearSelection();
     setManualGeoCoverageVisibility({ satelliteId: null, keys: [] });
     setAutoSelectedLEOId(null);
-    setSelectedSNP(null);
+    setLeoServingAssignmentA(null);
     setInspectedSNP(null);
     setSelectedGateway(null);
     setSelectedMoon(false);
@@ -3401,7 +3411,7 @@ const App: React.FC = () => {
     clearSelection();
     setSelectedMoon(true);
     setAutoSelectedLEOId(null);
-    setSelectedSNP(null);
+    setLeoServingAssignmentA(null);
     setInspectedSNP(null);
     setSelectedGateway(null);
     setSelectedAircraft(null);

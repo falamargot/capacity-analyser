@@ -675,7 +675,7 @@ const SatelliteDetails: React.FC<SatelliteDetailsProps> = ({
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm text-gray-600 dark:text-gray-300">
-                        Serving feeder SNP (highest elevation): <span className="font-medium text-gray-800 dark:text-gray-100">{servingSnp.snp.name} ({servingSnp.distanceKm.toFixed(0)} km, {servingSnp.oneWayLatencyMs.toFixed(1)} ms one-way)</span>
+                        Serving feeder SNP (highest elevation): <span className="font-medium text-gray-800 dark:text-gray-100">{servingSnp.snp.name} ({servingSnp.slantRangeKm.toFixed(0)} km, {servingSnp.oneWayLatencyMs.toFixed(1)} ms one-way)</span>
                       </p>
                       <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
                         Satellite-centric nearest gateway, not necessarily the SNP serving the current target.

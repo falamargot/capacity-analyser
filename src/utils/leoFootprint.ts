@@ -1,4 +1,7 @@
-import { EARTH_RADIUS_KM } from '../utils/capacityCalculator';
+import { EARTH_RADIUS_KM, haversineDistanceKm } from './earthGeometry';
+
+// Single copy of the great-circle math lives in earthGeometry.ts (zero-dep leaf).
+export { haversineDistanceKm } from './earthGeometry';
 import { STANDARD_RADIUS_KM as PATTERN_STANDARD_RADIUS_KM, getRadiusAtPowerLevel } from './leoBeamPattern';
 
 // Single copy of the cos^n pattern math lives in leoBeamPattern.ts (worker-safe).
@@ -76,26 +79,6 @@ function toRad(deg: number): number {
 
 function toDeg(rad: number): number {
   return (rad * 180) / Math.PI;
-}
-
-export function haversineDistanceKm(
-  a: { lat: number; lng: number },
-  b: { lat: number; lng: number }
-): number {
-  const lat1 = toRad(a.lat);
-  const lon1 = toRad(a.lng);
-  const lat2 = toRad(b.lat);
-  const lon2 = toRad(b.lng);
-
-  const dLat = lat2 - lat1;
-  const dLon = lon2 - lon1;
-
-  const sinDLat = Math.sin(dLat / 2);
-  const sinDLon = Math.sin(dLon / 2);
-
-  const h = sinDLat * sinDLat + Math.cos(lat1) * Math.cos(lat2) * sinDLon * sinDLon;
-  const c = 2 * Math.asin(Math.min(1, Math.sqrt(h)));
-  return EARTH_RADIUS_KM * c;
 }
 
 /**

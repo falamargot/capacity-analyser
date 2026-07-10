@@ -9,7 +9,10 @@ import { estimateGeoSatelliteCapacity, estimateGeoSatelliteCapacityGbps, type Ge
 const LEO_TERMINAL_PEAK_GBPS = NOMINAL_TERMINAL_PEAK_MBPS / 1000; // 0.2 Gbps
 
 // Earth radius constant
-export const EARTH_RADIUS_KM = 6371;
+// Canonical constant lives in earthGeometry.ts (zero-dep leaf); re-exported here
+// for the many existing import sites.
+import { EARTH_RADIUS_KM } from './earthGeometry';
+export { EARTH_RADIUS_KM } from './earthGeometry';
 
 // Free-space propagation speed for electromagnetic waves (km/s).
 // The 0.97 velocity factor applies to guided media (coaxial, fiber) — NOT to free-space radio.

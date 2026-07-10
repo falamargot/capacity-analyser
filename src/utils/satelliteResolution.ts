@@ -5,7 +5,8 @@ import { JulianDate } from 'cesium';
 import type { SatelliteData } from '../types/satellites';
 import type { SatelliteScope } from '../components/SatelliteScopeFilter';
 import type { SNPData } from '../components/globe/GlobeConfig';
-import { getBestConnectedGateway } from './connectivityRules';
+import { buildLeoFeederLink, getBestConnectedGateway } from './connectivityRules';
+import type { LeoServingAssignment } from '../data/leoGroundSegment';
 import { calculateElevationAngle } from './capacityCalculator';
 import {
     findCandidateCoverages,
@@ -26,7 +27,14 @@ import {
 export interface SatelliteResolutionResult {
     autoSelectedLEOSat: SatelliteData | null;
     autoSelectedGEOSat: SatelliteData | null;
+    /** Derived from servingAssignment.feeder — kept for existing call sites. */
     selectedSNP: SNPData | null;
+    /**
+     * The canonical (satellite, beam, feeder) tuple for this point (L-O1).
+     * `feeder: null` = RF-only diagnostic state; `score: null` = diagnostic
+     * fallback selection that bypassed scoring.
+     */
+    servingAssignment: LeoServingAssignment | null;
 }
 
 interface GatewayAssessment {
@@ -173,7 +181,7 @@ export const resolveAutoSelectedSatellites = (
 ): SatelliteResolutionResult => {
     let autoSelectedGEOSat: SatelliteData | null = null;
     let autoSelectedLEOSat: SatelliteData | null = null;
-    let selectedSNP: SNPData | null = null;
+    let servingAssignment: LeoServingAssignment | null = null;
 
     // GEO satellite selection logic - only run when GEO is allowed
     if (satelliteScope === 'ALL' || satelliteScope === 'GEO') {
@@ -257,8 +265,22 @@ export const resolveAutoSelectedSatellites = (
         // Select LEO satellite with highest score
         if (scoredLEO.length > 0) {
             scoredLEO.sort((a, b) => b.totalScore - a.totalScore);
-            autoSelectedLEOSat = scoredLEO[0].satellite;
-            selectedSNP = scoredLEO[0].gateway.bestSNP;
+            const winner = scoredLEO[0];
+            autoSelectedLEOSat = winner.satellite;
+            servingAssignment = {
+                satelliteId: winner.satellite.id,
+                beamIndex: winner.connectedBeamIndex,
+                feeder: winner.gateway.bestSNP
+                    ? buildLeoFeederLink(winner.gateway.bestSNP, winner.satellite, winner.gateway.bestElevation)
+                    : null,
+                score: {
+                    total: winner.totalScore,
+                    throughput: winner.throughputScore,
+                    rvt: winner.rvtScore,
+                    hysteresis: winner.hysteresisScore,
+                    gatewayMargin: winner.gateway.marginScore,
+                },
+            };
         } else {
             // Diagnostic fallback only: keep an RF-visible satellite reference for
             // status/debug display. This is not a valid OneWeb service path because
@@ -283,8 +305,13 @@ export const resolveAutoSelectedSatellites = (
 
                 satellitesWithElevation.sort((a, b) => b.elevation - a.elevation);
                 autoSelectedLEOSat = satellitesWithElevation[0].satellite;
-                // No SNP selected: downstream service logic must treat this as BLOCKED.
-                selectedSNP = null;
+                // No reachable SNP: downstream service logic must treat this as BLOCKED.
+                servingAssignment = {
+                    satelliteId: autoSelectedLEOSat.id,
+                    beamIndex: null,
+                    feeder: null,
+                    score: null,
+                };
             } else {
                 // Preserve the selected satellite reference independently from RF availability.
                 // This lets downstream status logic report "RF unavailable" instead of
@@ -300,7 +327,12 @@ export const resolveAutoSelectedSatellites = (
                 if (geometricallyVisibleLEO.length > 0) {
                     geometricallyVisibleLEO.sort((a, b) => b.elevation - a.elevation);
                     autoSelectedLEOSat = geometricallyVisibleLEO[0].satellite;
-                    selectedSNP = null;
+                    servingAssignment = {
+                        satelliteId: autoSelectedLEOSat.id,
+                        beamIndex: null,
+                        feeder: null,
+                        score: null,
+                    };
                 }
             }
         }
@@ -309,7 +341,9 @@ export const resolveAutoSelectedSatellites = (
     return {
         autoSelectedLEOSat,
         autoSelectedGEOSat,
-        selectedSNP
+        // Single source: the SNP a caller sees IS the assignment's feeder site.
+        selectedSNP: servingAssignment?.feeder?.snp ?? null,
+        servingAssignment,
     };
 };
 

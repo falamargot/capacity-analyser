@@ -7,6 +7,7 @@ import type { MobileLinkMetrics } from '../types/analysis';
 import type { SatelliteData } from '../types/satellites';
 import type { SimulationStateSnapshot } from '../types/simulation';
 import type { BeamLoadResult } from './capacityLayer';
+import type { LeoServingAssignment } from '../data/leoGroundSegment';
 import { calculateElevationAngle, compute3DDistanceKm, SPEED_OF_LIGHT_RADIO_KM_S } from './capacityCalculator';
 import { analyzeLeoConnectivity } from './leoConnectivityModel';
 import { MIN_SNP_GATEWAY_ELEVATION_DEG, MIN_USER_TERMINAL_ELEVATION_DEG, STANDARD_SERVICE_ELEVATION_DEG } from './leoFootprint';
@@ -94,6 +95,9 @@ export interface ActiveLeoRouteEvidence {
   resolvedConnectivityB: ResolvedLeoConnectivity | null;
   servingSatelliteA: SatelliteData | null;
   servingSatelliteB: SatelliteData | null;
+  /** L-O1: resolver assignments as received (identity for downstream consumers). */
+  servingAssignmentA: LeoServingAssignment | null;
+  servingAssignmentB: LeoServingAssignment | null;
   selectedSnpA: SNPData | null;
   selectedSnpB: SNPData | null;
   throughputAtoBMbps?: number;
@@ -126,6 +130,14 @@ export interface BuildActiveLeoRouteEvidenceInput {
   pointB: LeoPoint | null;
   servingSatelliteA: SatelliteData | null;
   servingSatelliteB: SatelliteData | null;
+  /**
+   * L-O1: the resolver's canonical (satellite, beam, feeder) tuple per endpoint.
+   * Optional during the transition — when present it MUST agree with
+   * servingSatelliteX/selectedSnpX (DEV canary enforces); Item 2 (Ka feeder
+   * budget) reads the feeder geometry from here.
+   */
+  servingAssignmentA?: LeoServingAssignment | null;
+  servingAssignmentB?: LeoServingAssignment | null;
   selectedSnpA: SNPData | null;
   selectedSnpB: SNPData | null;
   regulatoryResultA: RegulatoryResult | null;
@@ -745,6 +757,8 @@ function buildEmptyEvidence(input: BuildActiveLeoRouteEvidenceInput, inputSignat
     resolvedConnectivityB: null,
     servingSatelliteA: input.servingSatelliteA,
     servingSatelliteB: input.servingSatelliteB,
+    servingAssignmentA: input.servingAssignmentA ?? null,
+    servingAssignmentB: input.servingAssignmentB ?? null,
     selectedSnpA: input.selectedSnpA,
     selectedSnpB: input.selectedSnpB,
     bottleneck: null,
@@ -822,6 +836,19 @@ export function buildActiveLeoRouteEvidence(
   }
 
   if (import.meta.env.DEV) {
+    // L-O1 canary: the legacy satellite/SNP props and the resolver assignment
+    // must describe the same objects while both exist.
+    const assignA = input.servingAssignmentA;
+    if (assignA && input.servingSatelliteA && assignA.satelliteId !== input.servingSatelliteA.id) {
+      console.warn(`[leoEvidence] assignment drift at Site A: satellite prop=${input.servingSatelliteA.id} vs assignment=${assignA.satelliteId}`);
+    }
+    if (assignA && input.selectedSnpA && assignA.feeder && assignA.feeder.snp.name !== input.selectedSnpA.name) {
+      console.warn(`[leoEvidence] assignment drift at Site A: SNP prop=${input.selectedSnpA.name} vs assignment=${assignA.feeder.snp.name}`);
+    }
+    const assignB = input.servingAssignmentB;
+    if (assignB && input.servingSatelliteB && assignB.satelliteId !== input.servingSatelliteB.id) {
+      console.warn(`[leoEvidence] assignment drift at Site B: satellite prop=${input.servingSatelliteB.id} vs assignment=${assignB.satelliteId}`);
+    }
     // L-Mo9 canary: the per-site weather selector and the per-site simulation
     // snapshot must agree — App keeps them in sync; log loudly if they drift.
     const expectA = WEATHER_PROFILES[input.weatherTypeA]?.condition;
@@ -924,6 +951,8 @@ export function buildActiveLeoRouteEvidence(
       resolvedConnectivityB: null,
       servingSatelliteA: input.servingSatelliteA,
       servingSatelliteB: null,
+      servingAssignmentA: input.servingAssignmentA ?? null,
+      servingAssignmentB: null,
       selectedSnpA,
       selectedSnpB: null,
       downloadMbps,
@@ -1075,6 +1104,8 @@ export function buildActiveLeoRouteEvidence(
     resolvedConnectivityB: connectivityB,
     servingSatelliteA: routeResult.servingSatelliteA,
     servingSatelliteB: routeResult.servingSatelliteB,
+    servingAssignmentA: input.servingAssignmentA ?? null,
+    servingAssignmentB: input.servingAssignmentB ?? null,
     selectedSnpA: routeResult.selectedSnpA,
     selectedSnpB: routeResult.selectedSnpB,
     throughputAtoBMbps: throughputAtoB,

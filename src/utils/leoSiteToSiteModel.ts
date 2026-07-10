@@ -1,5 +1,11 @@
 import { haversineDistanceKm, MIN_USER_TERMINAL_ELEVATION_DEG, STANDARD_SERVICE_ELEVATION_DEG } from './leoFootprint';
 import { DEFAULT_LEO_OVERHEAD_MS } from './leoConnectivityModel';
+import {
+  DEFAULT_BACKBONE_ROUTE_FACTOR,
+  FIBER_SPEED_KM_PER_MS,
+  selectLogicalPop,
+  type LogicalPoP,
+} from '../data/leoGroundSegment';
 import { SPEED_OF_LIGHT_RADIO_KM_S } from './capacityCalculator';
 import type { SatelliteData } from '../types/satellites';
 import type { SNPData } from '../components/globe/GlobeConfig';
@@ -29,12 +35,18 @@ import {
 } from './leoServiceDecision';
 
 // ── OneWeb site-to-site backbone constants ────────────────────────────────────
-
-/** Route inflation applied to geodesic distance to estimate actual fiber route length. */
-export const DEFAULT_BACKBONE_ROUTE_FACTOR = 1.20;
-
-/** Fiber light propagation speed used to derive one-way latency from distance. */
-export const FIBER_SPEED_KM_PER_MS = 200;
+// The ground-segment catalog (SNP sites, logical PoPs) and the backbone fiber
+// model moved to the domain module src/data/leoGroundSegment.ts (L-O1).
+// Re-exported here so existing import sites and tests keep working.
+export {
+  DEFAULT_BACKBONE_ROUTE_FACTOR,
+  FIBER_SPEED_KM_PER_MS,
+  LOGICAL_POPS,
+  MIN_SNP_TO_POP_FIBER_ONE_WAY_MS,
+  estimateSnpToPopFiberOneWayMs,
+  selectLogicalPop,
+} from '../data/leoGroundSegment';
+export type { LogicalPoP } from '../data/leoGroundSegment';
 
 /**
  * One-way S2S processing budget, derived from the SAME overhead constants the
@@ -48,53 +60,6 @@ export const S2S_ONE_WAY_PROCESSING_MS =
   2 * (DEFAULT_LEO_OVERHEAD_MS.gatewayProcessingDelayMs + DEFAULT_LEO_OVERHEAD_MS.modemProcessingDelayMs)
   + DEFAULT_LEO_OVERHEAD_MS.routingDelayMs
   + DEFAULT_LEO_OVERHEAD_MS.queueingDelayMs;
-
-/**
- * Floor for the SNP→PoP fiber estimate (ms one-way): last-mile + peering cost
- * even when an SNP is co-located with a PoP city. APNIC-observed range is
- * 5–55 ms one-way.
- */
-export const MIN_SNP_TO_POP_FIBER_ONE_WAY_MS = 5;
-
-/**
- * Distance-derived one-way fiber latency from an SNP to its nearest logical
- * PoP — the same PoP catalog and route factor the S2S backbone model uses.
- * Replaces the former global 15 ms single-site constant so single-site and
- * site-to-site latency derive from one model (L-Mo3).
- */
-export function estimateSnpToPopFiberOneWayMs(snp: { lat: number; lng: number }): number {
-  const pop = selectLogicalPop(snp, snp);
-  const routeKm = haversineDistanceKm(snp, pop) * DEFAULT_BACKBONE_ROUTE_FACTOR;
-  return Math.max(MIN_SNP_TO_POP_FIBER_ONE_WAY_MS, routeKm / FIBER_SPEED_KM_PER_MS);
-}
-
-// ── Logical Points of Presence (PoP) ─────────────────────────────────────────
-// Represents major internet exchange / backbone interconnect nodes.
-// OneWeb's actual backbone topology is proprietary; these nodes are used only
-// for latency estimation and path visualization.
-
-export interface LogicalPoP {
-  name: string;
-  lat: number;
-  lng: number;
-  region: string;
-}
-
-export const LOGICAL_POPS: LogicalPoP[] = [
-  { name: 'Ashburn', lat: 39.04, lng: -77.49, region: 'Americas' },
-  { name: 'São Paulo', lat: -23.55, lng: -46.63, region: 'Americas' },
-  { name: 'London', lat: 51.51, lng: -0.13, region: 'Europe' },
-  { name: 'Frankfurt', lat: 50.11, lng: 8.68, region: 'Europe' },
-  { name: 'Dubai', lat: 25.20, lng: 55.27, region: 'Middle East' },
-  { name: 'Singapore', lat: 1.35, lng: 103.82, region: 'Asia Pacific' },
-  { name: 'Tokyo', lat: 35.69, lng: 139.69, region: 'Asia Pacific' },
-  { name: 'Sydney', lat: -33.87, lng: 151.21, region: 'Asia Pacific' },
-  // PoPs supplémentaires pour affiner la précision mondiale
-  { name: 'Mumbai', lat: 19.07, lng: 72.88, region: 'Asia Pacific' },
-  { name: 'Johannesburg', lat: -26.20, lng: 28.05, region: 'Africa' },
-  { name: 'Auckland', lat: -36.85, lng: 174.76, region: 'Asia Pacific' },
-  { name: 'Almaty', lat: 43.22, lng: 76.85, region: 'Middle East' }, // Souvent classé CIS/ME
-  { name: 'Santiago', lat: -33.45, lng: -70.66, region: 'Americas' }];
 
 // ── Result type ───────────────────────────────────────────────────────────────
 
@@ -224,33 +189,6 @@ export interface LeoSiteToSiteResult {
 
 function latencyFromRadioDistanceKm(distanceKm: number): number {
   return (distanceKm / SPEED_OF_LIGHT_RADIO_KM_S) * 1000;
-}
-
-/**
- * Select the logical PoP closest to the midpoint between SNP A and SNP B.
- * Falls back to the geographic midpoint represented as a synthetic node when
- * the catalog is empty.
- */
-export function selectLogicalPop(
-  snpA: { lat: number; lng: number },
-  snpB: { lat: number; lng: number }
-): LogicalPoP {
-  const midLat = (snpA.lat + snpB.lat) / 2;
-  const midLng = (snpA.lng + snpB.lng) / 2;
-  const midpoint = { lat: midLat, lng: midLng };
-
-  let nearest = LOGICAL_POPS[0];
-  let nearestDist = haversineDistanceKm(midpoint, nearest);
-
-  for (const pop of LOGICAL_POPS.slice(1)) {
-    const dist = haversineDistanceKm(midpoint, pop);
-    if (dist < nearestDist) {
-      nearestDist = dist;
-      nearest = pop;
-    }
-  }
-
-  return nearest;
 }
 
 function deriveConfidence(args: {

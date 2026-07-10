@@ -4,6 +4,7 @@ import { SNPData, SNPS_DATA } from '../components/globe/GlobeConfig';
 import { calculateElevationAngle, compute3DDistanceKm, SPEED_OF_LIGHT_RADIO_KM_S } from './capacityCalculator';
 import { MIN_SNP_GATEWAY_ELEVATION_DEG } from './leoFootprint';
 import { calculateGSOAvoidanceAngle } from './oneWebComb';
+import type { LeoFeederLink } from '../data/leoGroundSegment';
 
 /**
  * Checks if a satellite has a valid connection to at least one Gateway (SNP).
@@ -33,14 +34,29 @@ export function isSatelliteConnectedToGateway(
     return false;
 }
 
-export interface SelectedSnpForSatellite {
-  snp: SNPData;
-  /** Feeder elevation of the satellite as seen from the SNP (degrees). */
-  elevation: number;
-  /** 3-D line-of-sight distance SNP ↔ satellite (km). */
-  distanceKm: number;
-  /** One-way feeder propagation latency (ms). */
-  oneWayLatencyMs: number;
+/**
+ * Materialize the SNP↔satellite Ka feeder relationship (LeoFeederLink, L-O1)
+ * from a gateway choice: true 3-D slant range + one-way propagation latency.
+ * Single owner of this construction — the resolver and the inspection surfaces
+ * all obtain feeder geometry through here.
+ */
+export function buildLeoFeederLink(
+  snp: SNPData,
+  satellite: SatelliteData,
+  elevationDeg: number,
+): LeoFeederLink {
+  const slantRangeKm = compute3DDistanceKm(
+    { lat: snp.lat, lng: snp.lng },
+    { lat: satellite.position.lat, lng: satellite.position.lng, alt: satellite.position.alt },
+  );
+  return {
+    snp,
+    satelliteId: satellite.id,
+    elevationDeg,
+    slantRangeKm,
+    oneWayLatencyMs: (slantRangeKm / SPEED_OF_LIGHT_RADIO_KM_S) * 1000,
+    band: 'Ka',
+  };
 }
 
 /**
@@ -48,6 +64,8 @@ export interface SelectedSnpForSatellite {
  * non-failed SNPs at or above the 15° mask, gated by GSO blanking. Used by
  * satellite auto-resolution, the satellite inspection card and rendering so
  * every surface names the same gateway for a given satellite.
+ *
+ * Returns the full feeder relationship (LeoFeederLink, L-O1).
  *
  * (The former nearest-surface-distance selector in coverageService gave the
  * inspection card a different answer than the route used — removed.)
@@ -57,7 +75,7 @@ export function selectSnpForSatellite(
   failedSnps: ReadonlySet<string> = new Set(),
   /** Evaluation time for the GSO gate — pass the render/simulation snapshot when available. */
   now: Date = new Date(),
-): SelectedSnpForSatellite | null {
+): LeoFeederLink | null {
   if (satellite.type !== 'ONEWEB') return null;
 
   // A blanked satellite (GSO exclusion zone) serves no feeder link.
@@ -74,17 +92,7 @@ export function selectSnpForSatellite(
   const best = getBestConnectedGateway(satellite, MIN_SNP_GATEWAY_ELEVATION_DEG, failedSnps);
   if (!best) return null;
 
-  const distanceKm = compute3DDistanceKm(
-    { lat: best.snp.lat, lng: best.snp.lng },
-    { lat: satellite.position.lat, lng: satellite.position.lng, alt: satellite.position.alt },
-  );
-
-  return {
-    snp: best.snp,
-    elevation: best.elevation,
-    distanceKm,
-    oneWayLatencyMs: (distanceKm / SPEED_OF_LIGHT_RADIO_KM_S) * 1000,
-  };
+  return buildLeoFeederLink(best.snp, satellite, best.elevation);
 }
 
 /**
