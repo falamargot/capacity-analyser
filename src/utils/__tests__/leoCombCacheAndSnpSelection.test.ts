@@ -97,9 +97,14 @@ describe('L-Mo5 — canonical SNP selector', () => {
     }
   });
 
-  it('returns null while the satellite is GSO-blanked (equatorial exclusion)', () => {
+  it('feeder remains selectable at the equatorial node (blackout retired, Lot 3 Item 4)', () => {
+    // Pre-Item-4 the blanking gate returned null here; with the geometric
+    // per-beam keep-out the satellite keeps transmitting beams through the
+    // node, so its Ka feeder relationship stays valid.
     const equatorial = buildOrbitFixture(0, 4);
-    const sat = makeOneWebSatellite(equatorial, 'LEO-BLANKED');
-    expect(selectSnpForSatellite(sat, new Set(), equatorial.time)).toBeNull();
+    const sat = makeOneWebSatellite(equatorial, 'LEO-NODE');
+    const feeder = selectSnpForSatellite(sat, new Set(), equatorial.time);
+    expect(feeder).not.toBeNull();
+    expect(feeder!.elevationDeg).toBeGreaterThanOrEqual(MIN_SNP_GATEWAY_ELEVATION_DEG);
   });
 });

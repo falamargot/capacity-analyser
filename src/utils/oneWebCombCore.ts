@@ -23,7 +23,7 @@ import {
     TOTAL_BEAMS as CANONICAL_TOTAL_BEAMS,
     BEAM_SPACING_KM,
 } from '../config/oneweb';
-import { computeGsoProtectionAngles } from './gsoProtection';
+import { computeGsoProtectionAngles, computeGsoMutedBeamSet } from './gsoProtection';
 import { getRadiusAtPowerLevel } from './leoBeamPattern';
 import type { SimulationStateSnapshot } from '../types/simulation';
 
@@ -78,6 +78,8 @@ interface OrbitState {
     gmst: number;
     satPosM: Vec3;   // ECI position in metres
     satLatDeg: number;
+    satLngDeg: number;
+    satAltKm: number;
     nadir: Vec3;
     velocityDir: Vec3;
     crossTrack: Vec3;
@@ -103,13 +105,15 @@ function propagateOrbit(satrec: object, timeMs: number): OrbitState | null {
 
     const geodetic = satellite.eciToGeodetic(p, gmst);
     const satLatDeg = toDeg(geodetic.latitude);
+    const satLngDeg = toDeg(geodetic.longitude);
+    const satAltKm = geodetic.height;
 
     const nadir = normalize(neg(satPosM));
     const velocityDir = normalize(satVelM);
     const crossTrack = normalize(cross(velocityDir, nadir));
     const forward = cross(nadir, crossTrack);
 
-    return { gmst, satPosM, satLatDeg, nadir, velocityDir, crossTrack, forward };
+    return { gmst, satPosM, satLatDeg, satLngDeg, satAltKm, nadir, velocityDir, crossTrack, forward };
 }
 
 // ─── GSO avoidance geometry ────────────────────────────────────────────────
@@ -220,12 +224,22 @@ export function calculateCombGeometryLatLng(
     if (!orbit) return null;
 
     const gso = computeGSOAvoidance(orbit);
-    const activeBeams = gso.isBlankingZone ? 0 : (gso.isGSOAvoidance ? 8 : TOTAL_BEAMS);
 
     const groundCenter = computeGroundCenter(orbit, gso);
     if (!groundCenter) return null;
 
     const beamCenters = computeBeamCenters(groundCenter);
+
+    // Lot 3 Item 4: the true active count comes from the geometry-derived GSO
+    // keep-out set (replaces the former 0/8/16 blackout/half-comb ladder), so
+    // the power boost below ramps smoothly with the real number of active beams.
+    const gsoMutedBeams = computeGsoMutedBeamSet({
+        satLatDeg: orbit.satLatDeg,
+        satLngDeg: orbit.satLngDeg,
+        satAltKm: orbit.satAltKm,
+        beamCenters,
+    });
+    const activeBeams = TOTAL_BEAMS - gsoMutedBeams.size;
 
     const thresholdDb = simulationState?.coveragePolicy?.type === 'DB_THRESHOLD'
         ? simulationState.coveragePolicy.thresholdDb

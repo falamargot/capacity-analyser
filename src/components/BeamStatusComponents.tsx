@@ -41,7 +41,8 @@ interface BeamStatusGridProps {
   activeBeams: number;
   isBlankingZone: boolean;
   isGSOAvoidance: boolean;
-  latitude: number;
+  /** Geometry-derived GSO keep-out set (Lot 3 Item 4). */
+  gsoMutedBeams: ReadonlySet<number>;
   beamHealthFactors: BeamHealthData[];
   onHealthChange: (beamIndex: number, value: number) => void;
   onReset: () => void;
@@ -58,7 +59,7 @@ export const BeamStatusGrid: React.FC<BeamStatusGridProps> = ({
   activeBeams,
   isBlankingZone,
   isGSOAvoidance,
-  latitude,
+  gsoMutedBeams,
   beamHealthFactors,
   onHealthChange,
   onReset,
@@ -95,23 +96,12 @@ export const BeamStatusGrid: React.FC<BeamStatusGridProps> = ({
 
   const movementDirection = getMovementDirection();
 
-  // Determine which beams are active based on GSO Protection logic
+  // Beam activity from the geometry-derived GSO keep-out set (Lot 3 Item 4):
+  // a beam is muted only when the GSO-belt separation at its own pitched
+  // ground center violates the keep-out threshold — no hemisphere half rule.
   const getBeamStatus = (beamIndex: number): 'active' | 'inactive' | 'gso-half' => {
-    if (isBlankingZone) return 'inactive';
-
-    if (isGSOAvoidance) {
-      // In GSO avoidance, the satellite turns off the beams pointing towards the equator
-      // to avoid illuminating the geostationary arc.
-      // Therefore, in the Northern hemisphere, Northern beams remain active (pointing away from equator).
-      // In the Southern hemisphere, Southern beams remain active.
-      const shouldActivateNorthernBeams = latitude >= 0;
-      const isActive = shouldActivateNorthernBeams
-        ? beamIndex >= 0 && beamIndex <= 7
-        : beamIndex >= 8 && beamIndex <= 15;
-      return isActive ? 'gso-half' : 'inactive';
-    }
-
-    return 'active';
+    if (gsoMutedBeams.has(beamIndex)) return 'inactive';
+    return isGSOAvoidance ? 'gso-half' : 'active';
   };
 
   // Calculate total power

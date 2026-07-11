@@ -7,7 +7,7 @@
 import { useState, useEffect } from 'react';
 import { JulianDate, Math as CesiumMath } from 'cesium';
 import * as satellite from 'satellite.js';
-import { calculateGSOAvoidanceAngle, getActiveBeamCount } from '../utils/oneWebComb';
+import { calculateGSOAvoidanceAngle, getActiveBeamCount, getGsoMutedBeamSet } from '../utils/oneWebComb';
 import type { SatelliteData } from '../types/satellites';
 import { useSecondTick } from './useSecondTick';
 
@@ -17,6 +17,8 @@ export interface GSOAvoidanceData {
   latitude: number;
   isBlankingZone: boolean;
   activeBeamCount: number;
+  /** Geometry-derived GSO keep-out set (Lot 3 Item 4). */
+  gsoMutedBeams: ReadonlySet<number>;
   isMovingNorth: boolean;
 }
 
@@ -57,6 +59,7 @@ export function useGSOAvoidance(sat: SatelliteData | null): GSOAvoidanceData | n
         calculateGSOAvoidanceAngle(satrec, julianDate);
 
       const activeBeamCount = getActiveBeamCount(satrec, julianDate);
+      const gsoMutedBeams = getGsoMutedBeamSet(satrec, julianDate);
 
       setData({
         pitchAngleDeg: CesiumMath.toDegrees(pitchAngleRad),
@@ -64,6 +67,7 @@ export function useGSOAvoidance(sat: SatelliteData | null): GSOAvoidanceData | n
         latitude,
         isBlankingZone,
         activeBeamCount,
+        gsoMutedBeams,
         isMovingNorth,
       });
     } catch {

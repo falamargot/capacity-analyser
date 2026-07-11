@@ -1,9 +1,13 @@
-import { Cartesian3, Matrix3, JulianDate, Color, Math as CesiumMath, Quaternion, Cartographic } from 'cesium';
+import { Cartesian3, Matrix3, JulianDate, Color, Math as CesiumMath, Quaternion } from 'cesium';
 import * as satellite from 'satellite.js';
 import { EARTH_RADIUS_KM } from './capacityCalculator';
 import { getBeamBaseColor } from '../config/beamVisualization';
 import { BEAM_SPACING_KM, TOTAL_BEAMS } from '../config/oneweb';
-import { computeGsoProtectionAngles } from './gsoProtection';
+import {
+    EMPTY_GSO_MUTED_BEAM_SET,
+    computeGsoMutedBeamSet,
+    computeGsoProtectionAngles,
+} from './gsoProtection';
 import type { SimulationStateSnapshot } from '../types/simulation';
 import { calculateCombGeometryLatLng } from './oneWebCombCore';
 export { calculateCombGeometryLatLng } from './oneWebCombCore';
@@ -338,6 +342,45 @@ export function calculateCombGeometry(
     return polygons;
 }
 
+
+// ─── GSO keep-out mute set — cached main-thread accessor (Lot 3 Item 4) ──────
+// One geometry-derived muted-beam set per (satrec, instant), shared by every
+// beam-activation consumer (RF hit tests, rendering colors, counts, SNP
+// gating, diagnostics). Single-entry-per-satellite cache, same pattern as the
+// comb geometry cache. The set depends only on orbit geometry — not on
+// simulation state — so timeMs is the whole key.
+const gsoMutedBeamSetCache = new WeakMap<object, { timeMs: number; muted: ReadonlySet<number> }>();
+
+export function getGsoMutedBeamSet(satrec: any, time: JulianDate): ReadonlySet<number> {
+    if (!satrec) return EMPTY_GSO_MUTED_BEAM_SET;
+
+    const timeMs = getTimeMs(time);
+    const cached = gsoMutedBeamSetCache.get(satrec);
+    if (cached && cached.timeMs === timeMs) {
+        return cached.muted;
+    }
+
+    let muted: ReadonlySet<number> = EMPTY_GSO_MUTED_BEAM_SET;
+    try {
+        const orbitState = getPropagatedOrbitState(satrec, time);
+        const beamCenters = calculateCombBeamCenters(satrec, time);
+        if (orbitState && beamCenters) {
+            const geodetic = satellite.eciToGeodetic(orbitState.eciPos, orbitState.gmst);
+            muted = computeGsoMutedBeamSet({
+                satLatDeg: satellite.degreesLat(geodetic.latitude),
+                satLngDeg: satellite.degreesLong(geodetic.longitude),
+                satAltKm: geodetic.height,
+                beamCenters,
+            });
+        }
+    } catch (error) {
+        console.warn('Error computing GSO muted beam set:', error);
+    }
+
+    gsoMutedBeamSetCache.set(satrec, { timeMs, muted });
+    return muted;
+}
+
 function destinationPointGeodesic(lat: number, lng: number, brng: number, distKm: number): { lat: number, lng: number } {
     const R = EARTH_RADIUS_KM;
     const d = distKm / R;
@@ -357,25 +400,11 @@ function destinationPointGeodesic(lat: number, lng: number, brng: number, distKm
 
 export function getBeamColor(
     beamIndex: number,
-    isBlankingZone: boolean = false,
-    isGSOAvoidance: boolean = false,
-    satLatDeg: number = 0,
+    gsoMutedBeams: ReadonlySet<number> = EMPTY_GSO_MUTED_BEAM_SET,
 ): Color {
-    if (isBlankingZone) {
-        return Color.GRAY.withAlpha(0.3);
-    }
-
-    if (isGSOAvoidance) {
-        // Beam IDs fixed in payload frame (0 = north, 15 = south).
-        // Activate the half pointing away from the GEO arc.
-        const shouldActivateNorthernBeams = satLatDeg > 0;
-        const isActiveBeam = shouldActivateNorthernBeams
-            ? beamIndex >= 0 && beamIndex <= 7
-            : beamIndex >= 8 && beamIndex <= 15;
-
-        if (!isActiveBeam) {
-            return Color.GRAY.withAlpha(0.15);
-        }
+    // Geometric GSO keep-out (Lot 3 Item 4) — muted beams render gray.
+    if (gsoMutedBeams.has(beamIndex)) {
+        return Color.GRAY.withAlpha(0.15);
     }
 
     // Use centralized frequency-reuse colors
@@ -386,62 +415,16 @@ export function getBeamColor(
 }
 
 /**
- * Checks if a point is in an overlap zone (covered by more than one active beam).
- * This is used for handover visualization.
- */
-export function isPointInOverlapZone(
-    point: { lat: number; lng: number },
-    beamPolygons: Cartesian3[][],
-    isBlankingZone: boolean,
-    isGSOAvoidance: boolean,
-    satLatDeg: number,
-    isPointInPolygonFn: (point: { lat: number; lng: number }, ring: Array<[number, number]>) => boolean
-): boolean {
-    if (isBlankingZone || !beamPolygons) return false;
-
-    let coverCount = 0;
-    for (let i = 0; i < beamPolygons.length; i++) {
-        const poly = beamPolygons[i];
-        if (!poly || poly.length < 3) continue;
-
-        // Check if beam is active (beam IDs fixed: 0=north, 15=south)
-        let isActive = true;
-        if (isGSOAvoidance) {
-            const shouldActivateNorthernBeams = satLatDeg > 0;
-            isActive = shouldActivateNorthernBeams
-                ? i >= 0 && i <= 7
-                : i >= 8 && i <= 15;
-        }
-
-        if (isActive) {
-            // Need to convert Cartesian3[] to [lng, lat][] for the intersection fn
-            const ring: Array<[number, number]> = poly.map((p: any) => {
-                const c = Cartographic.fromCartesian(p);
-                return [CesiumMath.toDegrees(c.longitude), CesiumMath.toDegrees(c.latitude)];
-            });
-
-            if (isPointInPolygonFn(point, ring)) {
-                coverCount++;
-                if (coverCount > 1) return true; // Overlap detected
-            }
-        }
-    }
-    return false;
-}
-
-
-/**
- * Check if a LEO satellite is active (not all beams are turned off)
- * A LEO satellite is inactive when all 16 beams are turned off (grayed out)
- * This happens when the satellite is in exclusion zone
+ * Check if a LEO satellite is active (has at least one transmitting beam).
+ * With the geometric per-beam keep-out (Lot 3 Item 4) a total blackout no
+ * longer exists, so this is structurally true for any propagatable satellite;
+ * kept for API compatibility until the Lot 4 cleanup.
  */
 export function isLEOSatelliteActive(satrec: any, time: JulianDate): boolean {
     if (!satrec) return false;
 
     try {
-        const { isBlankingZone } = calculateGSOAvoidanceAngle(satrec, time);
-        // If satellite is in blanking zone, all beams are off (inactive)
-        return !isBlankingZone;
+        return getGsoMutedBeamSet(satrec, time).size < TOTAL_BEAMS;
     } catch (error) {
         console.warn('Error checking LEO satellite activation status:', error);
         // Default to active if we can't determine status
@@ -457,17 +440,9 @@ export function getActiveBeamCount(
     if (!satrec) return 0;
 
     try {
-        const { isBlankingZone, isGSOAvoidance } = calculateGSOAvoidanceAngle(satrec, time);
-
-        if (isBlankingZone) {
-            return 0;
-        }
-
-        if (isGSOAvoidance) {
-            return 8;
-        }
-
-        return TOTAL_BEAMS;
+        // Lot 3 Item 4: true count from the geometry-derived keep-out set
+        // (replaces the former 0/8/16 blackout/half-comb ladder).
+        return TOTAL_BEAMS - getGsoMutedBeamSet(satrec, time).size;
     } catch (error) {
         console.warn('Error calculating active beam count:', error);
         return TOTAL_BEAMS;

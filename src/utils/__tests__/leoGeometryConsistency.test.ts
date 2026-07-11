@@ -8,8 +8,8 @@
  *     a user point that is geometrically inside the beam.
  *  3. High-latitude correctness — great-circle distance replaces flat-Earth
  *     (cos-lat) approximation so polar beams are not arbitrarily mis-measured.
- *  4. GSO blanking — isBlankingZone must track the configurable
- *     GSO_EXCLUSION_HALF_ANGLE_DEG constant, not a magic literal.
+ *  4. GSO protection — the former total blackout is retired (Lot 3 Item 4);
+ *     beams are muted individually by the geometric keep-out rule.
  */
 
 import { describe, expect, it } from 'vitest';
@@ -18,8 +18,13 @@ import {
   NOMINAL_BEAM_SEMI_MAJOR_KM,
   NOMINAL_BEAM_SEMI_MINOR_KM,
   NOMINAL_BEAM_RADIUS_KM,
-  GSO_EXCLUSION_HALF_ANGLE_DEG,
 } from '../../config/oneweb';
+
+import {
+  GSO_KEEPOUT_ANGLE_DEG,
+  computeGsoProtectionAngles,
+  gsoPitchMagnitudeDeg,
+} from '../gsoProtection';
 
 import {
   getEffectiveBeamMajorAxisKm,
@@ -129,58 +134,27 @@ describe('isPointInFootprint — high latitude robustness', () => {
   });
 });
 
-// ─── 5. GSO blanking threshold — uses the configurable constant ───────────────
+// ─── 5. GSO protection — no total blackout (Lot 3 Item 4) ─────────────────────
+// The former blanking model (all 16 beams off at |lat| ≤ GSO_EXCLUSION_HALF_ANGLE_DEG)
+// is retired: beams are muted individually by the geometric keep-out rule
+// (gsoProtection.computeGsoMutedBeamSet). The full per-latitude behavior is
+// covered in gsoKeepOut.test.ts; here we pin the structural invariants.
 
-describe('GSO_EXCLUSION_HALF_ANGLE_DEG — blanking boundary', () => {
-  it('is 5.0 degrees (configurable, not a magic literal)', () => {
-    expect(GSO_EXCLUSION_HALF_ANGLE_DEG).toBe(5.0);
-  });
-
-  it('satellite at exactly the threshold latitude is in the blanking zone', () => {
-    // isBlankingZone = Math.abs(satLatDeg) <= GSO_EXCLUSION_HALF_ANGLE_DEG
-    const satLatDeg = GSO_EXCLUSION_HALF_ANGLE_DEG;
-    const geoAngularSeparation = Math.abs(satLatDeg);
-    expect(geoAngularSeparation <= GSO_EXCLUSION_HALF_ANGLE_DEG).toBe(true);
-  });
-
-  it('satellite 0.1° above the threshold is NOT in the blanking zone', () => {
-    const satLatDeg = GSO_EXCLUSION_HALF_ANGLE_DEG + 0.1;
-    const geoAngularSeparation = Math.abs(satLatDeg);
-    expect(geoAngularSeparation <= GSO_EXCLUSION_HALF_ANGLE_DEG).toBe(false);
-  });
-
-  it('equatorial satellite (0°) is in the blanking zone', () => {
-    const satLatDeg = 0;
-    expect(Math.abs(satLatDeg) <= GSO_EXCLUSION_HALF_ANGLE_DEG).toBe(true);
-  });
-
-  it('satellite at 45°N is NOT in the blanking zone', () => {
-    expect(Math.abs(45) <= GSO_EXCLUSION_HALF_ANGLE_DEG).toBe(false);
-  });
-
-  it('symmetric: southern hemisphere same as northern at same magnitude', () => {
-    const north = Math.abs(3) <= GSO_EXCLUSION_HALF_ANGLE_DEG;
-    const south = Math.abs(-3) <= GSO_EXCLUSION_HALF_ANGLE_DEG;
-    expect(north).toBe(south);
-    expect(north).toBe(true);
-  });
-});
-
-// ─── 6. Beam dimension consistency — rendering ≡ throughput ─────────────────
-
-describe('Beam geometry consistency across layers', () => {
-  it('getEffectiveBeamMajorAxisKm and getEffectiveBeamRadiusKm use the same scale factors', () => {
-    // Ratio of major to minor should equal NOMINAL_BEAM_SEMI_MAJOR_KM / NOMINAL_BEAM_SEMI_MINOR_KM
-    // for any combination of beamIndex, activeBeams, health, and weather — because both
-    // functions apply identical scale factors.
-    const expectedRatio = NOMINAL_BEAM_SEMI_MAJOR_KM / NOMINAL_BEAM_SEMI_MINOR_KM;
-
-    for (const [beam, health, weather] of [[0, 0.9, 'CLEAR'], [7, 1.0, 'RAIN'], [15, 0.88, 'CLOUDS']] as const) {
-      const major = getEffectiveBeamMajorAxisKm(beam as number, 16, health as number, weather);
-      const minor = getEffectiveBeamRadiusKm(beam as number, 16, health as number, weather);
-      if (minor > 0) {
-        expect(major / minor).toBeCloseTo(expectedRatio, 1);
-      }
+describe('GSO protection — blackout retired, keep-out configured', () => {
+  it('isBlankingZone is structurally false at every latitude (no total blackout)', () => {
+    for (const lat of [-60, -45, -10, -5, -0.1, 0, 0.1, 5, 10, 45, 60]) {
+      expect(computeGsoProtectionAngles(lat, true).isBlankingZone).toBe(false);
+      expect(computeGsoProtectionAngles(lat, false).isBlankingZone).toBe(false);
     }
+  });
+
+  it('keep-out threshold is the tagged public-literature default (11.5°)', () => {
+    expect(GSO_KEEPOUT_ANGLE_DEG).toBe(11.5);
+  });
+
+  it('pitch curve unchanged: 17° max at the equator, zero at 45°', () => {
+    expect(gsoPitchMagnitudeDeg(0)).toBeCloseTo(17, 6);
+    expect(gsoPitchMagnitudeDeg(45)).toBe(0);
+    expect(gsoPitchMagnitudeDeg(60)).toBe(0);
   });
 });

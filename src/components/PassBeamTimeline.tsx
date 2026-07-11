@@ -22,7 +22,7 @@ import * as satelliteJs from 'satellite.js';
 import { JulianDate } from 'cesium';
 import type { SatelliteData } from '../types/satellites';
 import type { WeatherCondition } from '../utils/realisticSimulation';
-import { calculateGSOAvoidanceAngle } from '../utils/oneWebComb';
+import { calculateGSOAvoidanceAngle, getGsoMutedBeamSet } from '../utils/oneWebComb';
 import { estimateCurrentLeoBeamLink, findConnectedBeamIndex } from '../utils/rfConnectivity';
 import { calculateElevationAngle } from '../utils/capacityCalculator';
 import {
@@ -36,7 +36,7 @@ import { getBeamBaseColor } from '../config/beamVisualization';
 import type { BeamHealthData } from '../utils/realisticSimulation';
 import { buildSimulationStateSnapshot } from '../types/simulation';
 import { useSimulation } from '../contexts/SimulationContext';
-import { isBeamActive } from '../utils/beamActivation';
+import { countActiveBeams } from '../utils/beamActivation';
 
 // ─────────────────────────────────────────────────────────────────
 // Types
@@ -155,18 +155,9 @@ const PassBeamTimeline: React.FC<PassBeamTimelineProps> = ({
       const mockSat = { ...satellite, position: satPos } as SatelliteData;
       const elevation = calculateElevationAngle(userPosition, mockSat);
 
-      // 3. GSO state at this time
+      // 3. GSO state at this time (geometry-derived keep-out set, cached per instant)
       const gsoState = calculateGSOAvoidanceAngle(satellite.satrec, julianDate);
-      const activeBeamCount = Array.from({ length: 16 }, (_, beamIndex) => beamIndex).reduce(
-        (count, beamIndex) => count + (isBeamActive(
-          beamIndex,
-          gsoState.isBlankingZone,
-          gsoState.isGSOAvoidance,
-          gsoState.satLatDeg,
-          hsBeams
-        ) ? 1 : 0),
-        0
-      );
+      const activeBeamCount = countActiveBeams(16, getGsoMutedBeamSet(satellite.satrec, julianDate), hsBeams);
 
       // 4. Beam index covering user (using real Cesium polygon geometry)
       let beamIndex: number | null = null;

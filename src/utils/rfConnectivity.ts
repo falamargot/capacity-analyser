@@ -1,7 +1,7 @@
 import { JulianDate, Cartographic } from 'cesium';
 import type { SatelliteData } from '../types/satellites';
 import { calculateElevationAngle } from './capacityCalculator';
-import { calculateGSOAvoidanceAngle, calculateCombBeamCenters, calculateCombGeometry } from './oneWebComb';
+import { calculateGSOAvoidanceAngle, calculateCombBeamCenters, calculateCombGeometry, getGsoMutedBeamSet } from './oneWebComb';
 import { countActiveBeams, isBeamActive } from './beamActivation';
 import {
     MIN_SNP_GATEWAY_ELEVATION_DEG,
@@ -88,7 +88,7 @@ function isUserInActiveBeam(
     gsoState: GSOState,
 ): boolean {
     try {
-        const { isBlankingZone, isGSOAvoidance, satLatDeg } = gsoState;
+        const { isBlankingZone } = gsoState;
         const { coveragePolicy, hsBeams } = simulationState;
 
         // For SERVICE_ZONE, use centralized circular coverage check instead of beam polygons
@@ -109,9 +109,10 @@ function isUserInActiveBeam(
             return false;
         }
 
-        // M-01 fix: isBeamActive imported from oneWebComb (canonical implementation)
+        // Geometry-derived GSO keep-out set — computed once per satellite/instant (cached).
+        const gsoMutedBeams = getGsoMutedBeamSet(satellite.satrec, time);
         for (let beamIndex = 0; beamIndex < beamPolygons.length; beamIndex++) {
-            if (isBeamActive(beamIndex, isBlankingZone, isGSOAvoidance, satLatDeg, hsBeams)) {
+            if (isBeamActive(beamIndex, gsoMutedBeams, hsBeams)) {
                 if (isPointInPolygon(userPosition, beamPolygons[beamIndex])) {
                     return true;
                 }
@@ -218,11 +219,11 @@ export function getConnectivityStatus(
         // C-02: Single propagation for all RF state — gsoState reused for both
         // active beam count derivation and isUserInActiveBeam call below.
         const gsoState = calculateGSOAvoidanceAngle(satellite.satrec, time);
-        const { isBlankingZone, isGSOAvoidance, satLatDeg } = gsoState;
+        const { isBlankingZone, isGSOAvoidance } = gsoState;
         const { hsBeams } = simulationState;
 
-        // Derive active beam count from pre-computed gsoState and HS beam state.
-        const activeBeamCount = countActiveBeams(TOTAL_BEAMS, isBlankingZone, isGSOAvoidance, satLatDeg, hsBeams);
+        // Derive active beam count from the shared GSO keep-out set + HS beam state.
+        const activeBeamCount = countActiveBeams(TOTAL_BEAMS, getGsoMutedBeamSet(satellite.satrec, time), hsBeams);
 
         // RF connectivity check — reuses gsoState (no third propagation)
         const hasRF = hasGeometricVisibility &&
@@ -450,13 +451,13 @@ export function estimateCurrentLeoBeamLink(args: {
 
     try {
         const gsoState = calculateGSOAvoidanceAngle(satellite.satrec, time);
-        const { isBlankingZone, isGSOAvoidance, satLatDeg } = gsoState;
-        if (isBlankingZone) return null;
-        if (!isBeamActive(beamIndex, isBlankingZone, isGSOAvoidance, satLatDeg, simulationState.hsBeams)) {
+        if (gsoState.isBlankingZone) return null;
+        const gsoMutedBeams = getGsoMutedBeamSet(satellite.satrec, time);
+        if (!isBeamActive(beamIndex, gsoMutedBeams, simulationState.hsBeams)) {
             return null;
         }
 
-        const activeBeamCount = countActiveBeams(TOTAL_BEAMS, isBlankingZone, isGSOAvoidance, satLatDeg, simulationState.hsBeams);
+        const activeBeamCount = countActiveBeams(TOTAL_BEAMS, gsoMutedBeams, simulationState.hsBeams);
         if (activeBeamCount <= 0) return null;
 
         const beamCenters = calculateCombBeamCenters(satellite.satrec, time);
@@ -640,18 +641,20 @@ export function findBestConnectedBeamInfo(
 
         // C-02: single SGP4 propagation
         const gsoState = calculateGSOAvoidanceAngle(satellite.satrec, time);
-        const { isBlankingZone, isGSOAvoidance, satLatDeg } = gsoState;
 
-        if (isBlankingZone) return null;
+        if (gsoState.isBlankingZone) return null;
         if (simulationState.coveragePolicy.type === 'SERVICE_ZONE') return null;
 
         const beamPolygons = calculateCombGeometry(satellite.satrec, time, simulationState);
         if (!beamPolygons || beamPolygons.length === 0) return null;
 
+        // Geometry-derived GSO keep-out set — computed once per satellite/instant (cached).
+        const gsoMutedBeams = getGsoMutedBeamSet(satellite.satrec, time);
+
         // Collect all active beam polygons that contain the user
         const coveringBeams: number[] = [];
         for (let beamIndex = 0; beamIndex < beamPolygons.length; beamIndex++) {
-            if (!isBeamActive(beamIndex, isBlankingZone, isGSOAvoidance, satLatDeg, simulationState.hsBeams)) continue;
+            if (!isBeamActive(beamIndex, gsoMutedBeams, simulationState.hsBeams)) continue;
             if (isPointInPolygon(userPosition, beamPolygons[beamIndex])) {
                 coveringBeams.push(beamIndex);
             }

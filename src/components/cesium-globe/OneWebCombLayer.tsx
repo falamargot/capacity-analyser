@@ -20,7 +20,7 @@ import {
 } from 'cesium';
 import type { SatelliteData } from '../../types/satellites';
 import type { Aircraft } from '../../modules/airTraffic/airTrafficService';
-import { getBeamColor, TOTAL_BEAMS, calculateGSOAvoidanceAngle } from '../../utils/oneWebComb';
+import { getBeamColor, TOTAL_BEAMS, getGsoMutedBeamSet } from '../../utils/oneWebComb';
 import { footprintRadiusKm, MIN_SNP_GATEWAY_ELEVATION_DEG, STANDARD_SERVICE_ELEVATION_DEG } from '../../utils/leoFootprint';
 import { getCoverageColor, hasSNPInCoverage } from '../../services/coverageService';
 import { useSimulation } from '../../contexts/SimulationContext';
@@ -182,14 +182,8 @@ function getRenderablePolygon(
 
 function isBeamActiveAtTime(targetSat: SatelliteData, beamIndex: number, time: JulianDate): boolean {
     if (!targetSat.satrec) return false;
-    const { isBlankingZone, isGSOAvoidance, satLatDeg } = calculateGSOAvoidanceAngle(targetSat.satrec, time);
-    if (isBlankingZone) return false;
-    if (!isGSOAvoidance) return true;
-
-    const shouldActivateNorthernBeams = satLatDeg > 0;
-    return shouldActivateNorthernBeams
-        ? beamIndex >= 0 && beamIndex <= 7
-        : beamIndex >= 8 && beamIndex <= 15;
+    // Geometry-derived GSO keep-out (Lot 3 Item 4), cached per (satrec, instant).
+    return !getGsoMutedBeamSet(targetSat.satrec, time).has(beamIndex);
 }
 
 function cartesianToLngLat(point: Cartesian3): { lng: number; lat: number } {
@@ -554,33 +548,17 @@ const BeamRing = React.memo<{
             }
 
             if (!time || !targetSat.satrec) {
-                Color.clone(getBeamColor(beamIndex, false), _scratchBeamColor);
+                Color.clone(getBeamColor(beamIndex), _scratchBeamColor);
                 _scratchBeamColor.alpha *= opacityMultiplier;
                 return _scratchBeamColor;
             }
 
-            const { isBlankingZone, isGSOAvoidance, satLatDeg } =
-                calculateGSOAvoidanceAngle(targetSat.satrec, time);
-
-            // Inactive beam → gray, no gradient
-            if (isBlankingZone) {
+            // Geometry-derived GSO keep-out (Lot 3 Item 4) — muted beams render
+            // gray. Cached per (satrec, instant), so this is a lookup per frame.
+            if (getGsoMutedBeamSet(targetSat.satrec, time).has(beamIndex)) {
                 Color.clone(Color.GRAY, _scratchBeamColor);
-                _scratchBeamColor.alpha = 0.3 * (effectiveRingOpacity / 0.75);
+                _scratchBeamColor.alpha = 0.15 * (effectiveRingOpacity / 0.75);
                 return _scratchBeamColor;
-            }
-
-            if (isGSOAvoidance) {
-                // Beam IDs fixed: 0 = northernmost, 15 = southernmost.
-                // Activate the half pointing away from the equatorial GEO arc.
-                const shouldActivateNorthernBeams = satLatDeg > 0;
-                const isActiveBeam = shouldActivateNorthernBeams
-                    ? beamIndex >= 0 && beamIndex <= 7
-                    : beamIndex >= 8 && beamIndex <= 15;
-                if (!isActiveBeam) {
-                    Color.clone(Color.GRAY, _scratchBeamColor);
-                    _scratchBeamColor.alpha = 0.15 * (effectiveRingOpacity / 0.75);
-                    return _scratchBeamColor;
-                }
             }
 
             // Active beam → frequency-reuse color with gradient opacity

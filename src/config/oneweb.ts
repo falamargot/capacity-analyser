@@ -129,4 +129,10 @@ export const GEO_ORBIT_RADIUS_KM = 42_164;
  * observed in OneWeb coordination filings.
  * ONEWEB_GEN1_OPERATIONAL_APPROXIMATION — exact OneWeb scheduling is not public.
  */
+/**
+ * HISTORICAL (retired Lot 3 Item 4): the former total-blackout half-angle.
+ * The blackout was replaced by the geometric per-beam keep-out
+ * (gsoProtection.GSO_KEEPOUT_ANGLE_DEG); this constant remains only for
+ * labels/back-compat until the Lot 4 cleanup.
+ */
 export const GSO_EXCLUSION_HALF_ANGLE_DEG = 5.0;

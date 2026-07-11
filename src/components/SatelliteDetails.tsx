@@ -742,14 +742,14 @@ const SatelliteDetails: React.FC<SatelliteDetailsProps> = ({
                     {/* NEW: Beam Status Grid */}
                     <div className="mt-4">
                       <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center">
-                        Beam Status<SectionTooltip content="Operational status of each of the 16 spot beams. Beams can be degraded by weather or manually set to HS (High-Spot) or degraded mode. All beams are blanked in the GSO exclusion zone." />
+                        Beam Status<SectionTooltip content="Operational status of each of the 16 spot beams. Beams can be degraded by weather or manually set to HS (High-Spot) or degraded mode. Beams whose pointing violates the GSO keep-out angle are muted individually (geometry-derived, Lot 3 Item 4)." />
                       </h4>
                       <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-lg p-3">
                         <BeamStatusGrid
                           activeBeams={gsoAvoidanceData.activeBeamCount}
                           isBlankingZone={gsoAvoidanceData.isBlankingZone}
                           isGSOAvoidance={gsoAvoidanceData.isGSOAvoidance}
-                          latitude={gsoAvoidanceData.latitude}
+                          gsoMutedBeams={gsoAvoidanceData.gsoMutedBeams}
                           beamHealthFactors={beamHealthFactors}
                           onHealthChange={setBeamHealthFactor}
                           onReset={resetBeamHealth}

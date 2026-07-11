@@ -165,6 +165,37 @@ export function computeFeederBudget(feeder: LeoFeederLink, weatherAtSnp: Weather
 
 ## Item 4 — L-M1: Progressive per-beam GSO shutoff (replaces blackout + half-comb)
 
+> **✅ IMPLEMENTED 2026-07-11 — design adjusted from this section's original plan.** Before coding, a read-only validation pass (`docs/LEO_Item4_GSO_Validation_2026-07-11.md`) found the `gsoOffBeamCount`/`gsoInactiveBeamSet` design specified below to be **physically wrong-sided**: it mutes beams by a hardcoded "arc-side, outermost-first" latitude table, which is exactly the kind of hardcoded hemisphere rule the validation showed does not track the real in-line geometry (the side that actually violates the GSO angle depends on satellite longitude/altitude and orbit leg, not just latitude and hemisphere). The implementation below replaces that table with a **per-beam geometric keep-out**, per explicit instruction to not implement the latitude-keyed table and not mute by a hardcoded equator-side/arc-side rule.
+>
+> **What shipped instead, single-owned in `gsoProtection.ts`:**
+> - Pitch (`computeGsoProtectionAngles`, `gsoPitchMagnitudeDeg`) is **byte-identical** to the pre-Item-4 curve — untouched, as required. `isBlankingZone` is retired as a physical state (hardcoded `false`); kept in the return shape only for API compatibility.
+> - New `GSO_KEEPOUT_ANGLE_DEG = 11.5°` (`ONEWEB_GEN1_OPERATIONAL_APPROXIMATION`, sourced from the MDPI Sensors 2022 27.1 dB EPFD-attenuation derivation — see the validation doc and the in-file citation).
+> - New `gsoBeltSeparationAngleDeg(groundLat, groundLng, satLat, satLng, satAlt)`: ECEF angular separation between the direction to the serving satellite and the nearest point on the GSO belt (`GEO_ORBIT_RADIUS_KM`, Earth-fixed equatorial ring), via a 5° coarse scan (72 points) + 0.25° local refinement around the coarse minimum (residual error ≪ 0.1°, negligible against the 11.5° threshold — separation is near-quadratic close to its minimum).
+> - New `computeGsoMutedBeamSet({satLatDeg, satLngDeg, satAltKm, beamCenters})`: for each of the 16 **pitched** beam ground centers, mutes the beam iff its belt separation < `GSO_KEEPOUT_ANGLE_DEG`. Fast exit above `GSO_PITCH_START_LAT_DEG` (45°) — validated numerically, no beam can violate the keep-out that far from the node. The muted set is therefore a pure function of orbit geometry, not a hardcoded table — it naturally selects the correct high-latitude/trailing-side beams and works identically on ascending and descending legs.
+> - **One cache, one mute set per satellite/tick:** `getGsoMutedBeamSet(satrec, time)` in `oneWebComb.ts` (`WeakMap<satrec, {timeMs, muted}>`, matching the existing `propagatedOrbitCache`/`combGeometryCache` pattern) is the single accessor every consumer calls — `beamActivation.isBeamActive`/`countActiveBeams`, `rfConnectivity.ts` (4 call sites), `PassBeamTimeline`, `gridCoverage.ts`, `OneWebCombLayer`, `useGSOAvoidance`, `BeamStatusComponents`/`SatelliteDetails`, and the worker-safe `oneWebCombCore.calculateCombGeometryLatLng` (which calls `computeGsoMutedBeamSet` directly, no Cesium). No consumer recomputes the belt test independently. `getPowerBoostLinear` now ramps on the true `TOTAL_BEAMS − mutedSet.size` instead of the old 0/8/16 ladder.
+> - `isPointInOverlapZone` (the old hardcoded half-comb overlap check) was deleted outright — superseded, not left as a second implementation.
+>
+> **Gates:** 815/815 tests (+13 net new in `gsoKeepOut.test.ts` plus regression updates in `leoCombCacheAndSnpSelection.test.ts` and `leoGeometryConsistency.test.ts`); `tsc -p tsconfig.app.json` steady at the 160-error baseline (verified both ways: stashing the Item 4 diff reproduces exactly 160, restoring it stays at 160 — zero new errors); eslint 0 errors / 29 warnings (repo baseline, unchanged); `vite build` OK; `git diff --check` clean.
+>
+> **Before/after active-beam count** (measured via a direct probe against the real production pipeline — `getGsoMutedBeamSet` on a 1200 km/87.9° synthetic-TLE fixture, both orbit legs, both hemispheres; before = old 0/8/16 blackout/half-comb ladder):
+>
+> | \|lat\| | Before (blackout/half-comb) | After (geometric keep-out) |
+> |---|---|---|
+> | 0° (node) | 0 (total blackout) | 10 |
+> | 5° | 0 (still in the ≤5° blackout band) | 9 |
+> | 10° | 8 (half-comb) | 8 |
+> | 20° | 8 (half-comb) | 8 |
+> | 30° | 8 (half-comb) | 13–14 (leg-dependent) |
+> | 45° | 16 (full comb) | 16 |
+>
+> No latitude produces a total blackout; the equatorial node keeps 10 of 16 beams active (previously 0), and 30° recovers to near-full comb (previously stuck at the fixed 8-beam half-comb). 10–20° is a legitimate geometric minimum (8 active) — not a plateau artifact of a hardcoded table, since it emerges from the same continuous per-beam rule that gives 10 at the node and 16 at 45°.
+>
+> **Playwright / live-browser smoke: not run.** This session has no browser-automation tool available (no Playwright MCP tool, and the project itself has no Playwright devDependency — confirmed via `package.json`), so the "equatorial point / ~30° point / N and S pass / live node crossing" smoke and before/after screenshots requested for this item could not be produced. In its place, the table above was generated by calling the exact function every rendering/RF/diagnostics consumer calls (`getGsoMutedBeamSet`), against real SGP4-propagated orbit states, not a mock — the strongest verification available without a browser in this environment. If browser automation becomes available, this is the one open item to re-run.
+>
+> **User-visible changes:** the beam-status grid and globe comb no longer show a fully blanked comb through the equator or a permanently fixed anti-arc half at all other latitudes — coverage/active-beam count now varies continuously with orbit geometry, with the node and ~10–20° band showing the most muting and ~30°+ recovering toward full comb. The SatelliteDetails tooltip text was updated to describe the new per-beam mechanism. Power boost, which is driven by active beam count, now ramps smoothly instead of jumping between three fixed levels.
+>
+> **Residual uncertainty:** the exact OneWeb muting schedule is not public (as before); `GSO_KEEPOUT_ANGLE_DEG = 11.5°` and the pitch constants remain `ONEWEB_GEN1_OPERATIONAL_APPROXIMATION`, not vendor data. The dormant `isBlankingZone`-driven early-returns in `hasRFConnectivity`/`selectSnpForSatellite`/`coverageService` were left in place per the explicit Lot-4-scope boundary — they never fire now that `isBlankingZone` is structurally `false`, but removing them is deferred cleanup, not a Item 4 correctness gap.
+
 **Goal.** Align the GSO-protection model with the public record: progressive pitch **plus per-beam shutoff near the nodes**, preserving seamless coverage — instead of the current full 16-beam blackout at |lat| ≤ 5° and permanent half-comb for all |lat| < 45°.
 
 ### Public anchors

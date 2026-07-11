@@ -2,7 +2,7 @@ import { SatelliteData } from '../../../types/satellites';
 import { SatelliteScope } from '../../SatelliteScopeFilter';
 import { getBestConnectedGateway } from '../../../utils/connectivityRules';
 import type { SNPData } from '../../globe/GlobeConfig';
-import { isLEOSatelliteActive, calculateCombGeometry, calculateGSOAvoidanceAngle, TOTAL_BEAMS } from '../../../utils/oneWebComb';
+import { isLEOSatelliteActive, calculateCombGeometry, getGsoMutedBeamSet, TOTAL_BEAMS } from '../../../utils/oneWebComb';
 import { isBeamActive } from '../../../utils/beamActivation';
 import { isRfCoverageSatisfied, footprintRadiusKm, MIN_SNP_GATEWAY_ELEVATION_DEG, MIN_USER_TERMINAL_ELEVATION_DEG, type CoveragePolicy } from '../../../utils/leoFootprint';
 import { isPointInPolygon } from '../../../utils/geoUtils';
@@ -233,16 +233,15 @@ function _computeCoverageGrid(
                 const beamGeometries = calculateCombGeometry(sat.satrec, time, simulationState);
                 if (!beamGeometries || beamGeometries.length === 0) return;
 
-                // 2. Determine GSO Protection status
-                const { isGSOAvoidance, isBlankingZone, satLatDeg } =
-                    calculateGSOAvoidanceAngle(sat.satrec, time);
+                // 2. Geometry-derived GSO keep-out set (cached per satellite/instant)
+                const gsoMutedBeams = getGsoMutedBeamSet(sat.satrec, time);
 
                 // 3. Iterate over the 16 beams
                 for (let beamIndex = 0; beamIndex < TOTAL_BEAMS; beamIndex++) {
                     const beamGeometry = beamGeometries[beamIndex];
 
                     // Check if this beam is active
-                    if (!isBeamActive(beamIndex, isBlankingZone, isGSOAvoidance, satLatDeg, simulationState.hsBeams)) {
+                    if (!isBeamActive(beamIndex, gsoMutedBeams, simulationState.hsBeams)) {
                         continue; // Skip inactive beams
                     }
 
