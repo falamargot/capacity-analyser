@@ -276,7 +276,7 @@ export const FillRateLegend: React.FC<FillRateLegendProps> = ({ show, isPhone })
         <div className="flex items-center justify-between gap-3">
           <div>
             <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">
-              Simulated Network Load (%)
+              Network Load (%)
             </div>
             <div className="mt-0.5 text-[11px] text-slate-500 dark:text-slate-400">
               Planning model - no telemetry
@@ -314,7 +314,7 @@ export const FillRateLegend: React.FC<FillRateLegendProps> = ({ show, isPhone })
         </div>
 
         <div className="mt-3 rounded-2xl border border-white/55 bg-white/60 px-3 py-2 text-[11px] leading-relaxed text-slate-500 shadow-[inset_0_1px_0_rgba(255,255,255,0.7)] dark:border-slate-700/80 dark:bg-slate-950/30 dark:text-slate-400">
-          Simulated load layer for feasibility analysis. Values are planning estimates, not live operational telemetry.
+          Network load layer for feasibility analysis. Values are planning estimates, not live operational telemetry.
         </div>
       </div>
     </div>

@@ -7,8 +7,8 @@
  *  2. No blackout — no latitude yields 16 muted beams; an equatorial
  *     node-crossing fixture retains RF connectivity for a placed user.
  *  3. Continuity — mute-set changes across a node pass are small bounded steps
- *     (no 8-beam side swap from a latitude table; the single pitch-sign flip at
- *     the node is the only permitted larger event and is pre-existing behavior).
+ *     (no 8-beam side swap from a latitude table; since Item 4b the pitch sign
+ *     is also continuous through the node, so no larger event is permitted).
  *  4. Hemisphere / direction — ascending & descending, north & south: the rule
  *     holds identically; the muted side emerges from geometry.
  *  5. Active counts — ~full comb near 30°; reduced but never zero at the node;
@@ -23,14 +23,17 @@ import * as satellite from 'satellite.js';
 import {
   GSO_KEEPOUT_ANGLE_DEG,
   computeGsoMutedBeamSet,
+  computeGsoProtectionAngles,
   gsoBeltSeparationAngleDeg,
   gsoPitchMagnitudeDeg,
 } from '../gsoProtection';
 import {
   calculateCombBeamCenters,
+  calculateGSOAvoidanceAngle,
   getActiveBeamCount,
   getGsoMutedBeamSet,
 } from '../oneWebComb';
+import { haversineDistanceKm } from '../earthGeometry';
 import { countActiveBeams } from '../beamActivation';
 import { hasRFConnectivity } from '../rfConnectivity';
 import { getPowerBoostLinear } from '../realisticSimulation';
@@ -149,7 +152,7 @@ describe('no total blackout at any latitude', () => {
 // ── 3. Continuity across the node ────────────────────────────────────────────
 
 describe('continuity — mute set evolves in small bounded steps', () => {
-  it('across a node crossing, per-step changes are ≤ 2 beams except the single pitch-sign flip', () => {
+  it('across a node crossing, per-step changes are ≤ 2 beams — no exceptions', () => {
     const start = findTime(orbit.satrec, epochMs, (lat, north) => lat < -6 && lat > -8 && north);
     let previous: ReadonlySet<number> | null = null;
     let largeSteps = 0;
@@ -166,10 +169,9 @@ describe('continuity — mute set evolves in small bounded steps', () => {
       }
       previous = muted;
     }
-    // The only permitted larger event is the pre-existing pitch-sign flip at
-    // the node itself (out of scope for Item 4) — never a table-driven 8-beam
-    // hemisphere swap on every crossing sample.
-    expect(largeSteps).toBeLessThanOrEqual(1);
+    // Item 4b retired the hemisphere-keyed pitch sign, so the former 12-beam
+    // set swap at the node tick is gone: every step is a small geometric slide.
+    expect(largeSteps).toBe(0);
   });
 });
 
@@ -236,7 +238,92 @@ describe('active beam counts', () => {
   });
 });
 
-// ── 6. Regression — pitch untouched ──────────────────────────────────────────
+// ── 7. Item 4b — continuous pitch through the equatorial node ────────────────
+
+describe('Item 4b — pitch continuity through the node (ascending & descending)', () => {
+  const toDegLocal = (rad: number) => (rad * 180) / Math.PI;
+
+  it('pitch sign depends only on travel direction, never on the latitude sign', () => {
+    const ascBefore = computeGsoProtectionAngles(-0.1, true).pitchAngleRad;
+    const ascAfter = computeGsoProtectionAngles(0.1, true).pitchAngleRad;
+    expect(Math.sign(ascBefore)).toBe(Math.sign(ascAfter));
+    expect(Math.abs(toDegLocal(ascAfter - ascBefore))).toBeLessThan(0.1); // was ≈ 34°
+
+    const descBefore = computeGsoProtectionAngles(0.1, false).pitchAngleRad;
+    const descAfter = computeGsoProtectionAngles(-0.1, false).pitchAngleRad;
+    expect(Math.sign(descBefore)).toBe(Math.sign(descAfter));
+    expect(Math.abs(toDegLocal(descAfter - descBefore))).toBeLessThan(0.1);
+
+    // Opposite legs still tip in opposite along-track directions ("ahead").
+    expect(Math.sign(ascAfter)).toBe(-Math.sign(descAfter));
+  });
+
+  for (const leg of ['ascending', 'descending'] as const) {
+    const wantNorth = leg === 'ascending';
+
+    it(`${leg} crossing: pitch, comb center and mute set are all step-bounded`, () => {
+      const crossing = findTime(
+        orbit.satrec, epochMs,
+        (lat, north) => Math.abs(lat) < 0.3 && north === wantNorth,
+      );
+      let prevPitchDeg: number | null = null;
+      let prevCenter: { lat: number; lng: number } | null = null;
+      let prevMuted: ReadonlySet<number> | null = null;
+
+      for (let dt = -60; dt <= 60; dt += 5) {
+        const time = new Date(crossing.getTime() + dt * 1000);
+        const jd = JulianDate.fromDate(time);
+        const pitchDeg = toDegLocal(calculateGSOAvoidanceAngle(orbit.satrec, jd).pitchAngleRad);
+        const centers = calculateCombBeamCenters(orbit.satrec, jd)!;
+        const center = centers[7];
+        const muted = getGsoMutedBeamSet(orbit.satrec, jd);
+
+        expect(muted.size).toBeLessThan(TOTAL_BEAMS); // never a blackout
+
+        if (prevPitchDeg !== null && prevCenter && prevMuted) {
+          // Pre-4b the node tick jumped ≈ 34° / ≈ 750 km / 12 beams.
+          expect(Math.abs(pitchDeg - prevPitchDeg)).toBeLessThan(2);
+          expect(haversineDistanceKm(prevCenter, center)).toBeLessThan(100);
+          let delta = 0;
+          for (let i = 0; i < TOTAL_BEAMS; i++) {
+            if (prevMuted.has(i) !== muted.has(i)) delta++;
+          }
+          expect(delta).toBeLessThanOrEqual(2);
+        }
+        prevPitchDeg = pitchDeg;
+        prevCenter = center;
+        prevMuted = muted;
+      }
+    });
+
+    it(`${leg} crossing: a user under the comb keeps RF through the node tick`, () => {
+      const crossing = findTime(
+        orbit.satrec, epochMs,
+        (lat, north) => Math.abs(lat) < 0.3 && north === wantNorth,
+      );
+      const { muted, centers } = muteStateAt(crossing);
+      const activeMid = [7, 8, 6, 9, 5, 10, 4, 11, 3, 12, 2, 13, 1, 14, 0, 15]
+        .find((i) => !muted.has(i));
+      expect(activeMid).toBeDefined();
+      const user = centers![activeMid!];
+
+      // Pre-4b the comb teleported ~750 km at the node, dropping this user's
+      // RF for the tick(s) around the crossing. With continuous pitch the
+      // serving comb slides smoothly, so RF holds across the whole window.
+      for (let dt = -10; dt <= 10; dt += 5) {
+        const time = new Date(crossing.getTime() + dt * 1000);
+        const sat = geodeticAt(orbit.satrec, time)!;
+        const oneWebSat = {
+          ...makeOneWebSatellite(orbit, `LEO-NODE-4B-${leg}`),
+          position: { lat: sat.lat, lng: sat.lng, alt: sat.alt, isPositionValid: true },
+        };
+        expect(hasRFConnectivity(user, oneWebSat, JulianDate.fromDate(time), simulationState)).toBe(true);
+      }
+    });
+  }
+});
+
+// ── 6. Regression — pitch magnitude curve untouched ──────────────────────────
 
 describe('pitch model unchanged (explicitly out of scope for Item 4)', () => {
   it('17° max at the equator, cosine decay, zero at 45°', () => {

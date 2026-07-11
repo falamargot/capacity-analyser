@@ -175,14 +175,20 @@ export const BeamStatusGrid: React.FC<BeamStatusGridProps> = ({
             <span className="text-xs text-gray-600 dark:text-gray-400">
               Total: {activeBeams} / 16 beams
             </span>
-            {/* Exclusive status messages - only one should display */}
+            {/* Exclusive status messages - only one should display.
+                Item 4b: the count comes from the canonical production active
+                count (activeBeams prop) — no hardcoded 8-beam assumption. */}
             {isBlankingZone ? (
               <span className="text-xs text-red-600 dark:text-red-400 font-medium">
                 All beams off (Exclusion zone)
               </span>
+            ) : gsoMutedBeams.size > 0 ? (
+              <span className="text-xs text-orange-600 dark:text-orange-400 font-medium">
+                {activeBeams} beams active (GSO Protection)
+              </span>
             ) : isGSOAvoidance ? (
               <span className="text-xs text-orange-600 dark:text-orange-400 font-medium">
-                8 beams active (GSO Protection)
+                GSO pitch active
               </span>
             ) : null}
           </div>

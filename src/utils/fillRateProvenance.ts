@@ -44,7 +44,7 @@ export function getFillRateProvenanceDescriptor({
   if (dataMode === 'historical_statistical_average') {
     return {
       badgeLabel: 'Simulated',
-      shortLabel: 'Simulated Network Load',
+      shortLabel: 'Network Load',
       detailLabel: `${statisticLabel ?? 'Planning baseline'} · Historical planning baseline, not live telemetry${period}`,
       statisticLabel,
     };
@@ -53,7 +53,7 @@ export function getFillRateProvenanceDescriptor({
   if (dataMode === 'calibrated_network_load_model') {
     return {
       badgeLabel: 'Simulated',
-      shortLabel: 'Simulated Network Load',
+      shortLabel: 'Network Load',
       detailLabel: `${statisticLabel ?? 'Network load'} · Calibrated planning model, not live telemetry${period}`,
       statisticLabel,
     };
@@ -62,7 +62,7 @@ export function getFillRateProvenanceDescriptor({
   if (dataMode === 'synthetic_reference_calibration') {
     return {
       badgeLabel: 'Simulated',
-      shortLabel: 'Simulated Network Load',
+      shortLabel: 'Network Load',
       detailLabel: `${statisticLabel ?? 'Reference load'} · Synthetic planning calibration${period}`,
       statisticLabel,
     };
@@ -71,7 +71,7 @@ export function getFillRateProvenanceDescriptor({
   if (dataMode === 'heuristic_estimate' || source === 'heuristic') {
     return {
       badgeLabel: 'Heuristic',
-      shortLabel: 'Simulated Network Load',
+      shortLabel: 'Network Load',
       detailLabel: 'Heuristic planning fallback · global network baseline, not telemetry',
       statisticLabel: null,
     };
@@ -80,7 +80,7 @@ export function getFillRateProvenanceDescriptor({
   if (source === 'operational') {
     return {
       badgeLabel: 'Simulated',
-      shortLabel: 'Simulated Network Load',
+      shortLabel: 'Network Load',
       detailLabel: `${statisticLabel ?? 'Imported planning layer'} · Imported load reference, not live telemetry${period}`,
       statisticLabel,
     };
@@ -89,7 +89,7 @@ export function getFillRateProvenanceDescriptor({
   if (source === 'reference') {
     return {
       badgeLabel: 'Reference',
-      shortLabel: 'Simulated Network Load',
+      shortLabel: 'Network Load',
       detailLabel: `${statisticLabel ?? 'Reference load'} · Planning reference layer${period}`,
       statisticLabel,
     };
@@ -97,7 +97,7 @@ export function getFillRateProvenanceDescriptor({
 
   return {
     badgeLabel: 'Simulated',
-    shortLabel: 'Simulated Network Load',
+    shortLabel: 'Network Load',
     detailLabel: `${statisticLabel ?? 'Reference load'} · Synthetic planning calibration${period}`,
     statisticLabel,
   };

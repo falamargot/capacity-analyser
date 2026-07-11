@@ -12,7 +12,7 @@ describe('getFillRateProvenanceDescriptor', () => {
     });
 
     expect(networkLoad.badgeLabel).toBe('Simulated');
-    expect(networkLoad.shortLabel).toBe('Simulated Network Load');
+    expect(networkLoad.shortLabel).toBe('Network Load');
     expect(networkLoad.detailLabel).toBe('High-load planning percentile · Calibrated planning model, not live telemetry · 2026-06');
   });
 
@@ -26,7 +26,7 @@ describe('getFillRateProvenanceDescriptor', () => {
     });
 
     expect(calibrated.badgeLabel).toBe('Simulated');
-    expect(calibrated.shortLabel).toBe('Simulated Network Load');
+    expect(calibrated.shortLabel).toBe('Network Load');
     expect(calibrated.detailLabel).toBe('High-load planning percentile · Synthetic planning calibration · 2026-06');
   });
 
@@ -40,7 +40,7 @@ describe('getFillRateProvenanceDescriptor', () => {
     });
 
     expect(calibrated.badgeLabel).toBe('Reference');
-    expect(calibrated.shortLabel).toBe('Simulated Network Load');
+    expect(calibrated.shortLabel).toBe('Network Load');
     expect(calibrated.detailLabel).toBe('High-load planning percentile · Planning reference layer · 2026-06');
   });
 
@@ -54,7 +54,7 @@ describe('getFillRateProvenanceDescriptor', () => {
     });
 
     expect(historical.badgeLabel).toBe('Simulated');
-    expect(historical.shortLabel).toBe('Simulated Network Load');
+    expect(historical.shortLabel).toBe('Network Load');
     expect(historical.detailLabel).toBe('Typical planning percentile · Historical planning baseline, not live telemetry · 2025-Q4');
   });
 
@@ -65,7 +65,7 @@ describe('getFillRateProvenanceDescriptor', () => {
     });
 
     expect(heuristic.badgeLabel).toBe('Heuristic');
-    expect(heuristic.shortLabel).toBe('Simulated Network Load');
+    expect(heuristic.shortLabel).toBe('Network Load');
     expect(heuristic.statisticLabel).toBeNull();
   });
 });

@@ -238,10 +238,10 @@ function deriveConfidence(args: {
           ? partialFactor('regulatory', 'Regulatory evidence', 7, 'Regulatory status estimated or restricted')
           : riskFactor('regulatory', 'Regulatory evidence', 'Regulatory status pending or blocked'),
       loads.every((item) => item && item.loadSource !== 'heuristic')
-        ? positiveFactor('network-load', 'Simulated network load', 10, 'Simulated load uses configured planning layer')
+        ? positiveFactor('network-load', 'Network Load', 10, 'Simulated load uses configured planning layer')
         : loads.some((item) => item)
-          ? partialFactor('network-load', 'Simulated network load', 5, 'Simulated load partly heuristic')
-          : missingFactor('network-load', 'Simulated network load', 'Simulated load unavailable'),
+          ? partialFactor('network-load', 'Network Load', 5, 'Simulated load partly heuristic')
+          : missingFactor('network-load', 'Network Load', 'Simulated load unavailable'),
       minElevation >= STANDARD_SERVICE_ELEVATION_DEG
         ? positiveFactor('elevation-margin', 'Elevation margin', 14, 'Both sites meet standard elevation margin')
         : minElevation >= MIN_USER_TERMINAL_ELEVATION_DEG

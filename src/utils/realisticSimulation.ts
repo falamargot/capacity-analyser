@@ -352,7 +352,7 @@ export function getEffectiveBeamMajorAxisKm(
 export interface BeamPerformanceInput {
   /** Beam index (0-15) */
   beamIndex: number;
-  /** Number of currently active beams (from GSO Protection logic: 8 or 16) */
+  /** Number of currently active beams (TOTAL_BEAMS − GSO keep-out muted set, 1–16) */
   activeBeamCount: number;
   /** Per-beam health factor (0.0 – 1.0) */
   healthFactor: number;

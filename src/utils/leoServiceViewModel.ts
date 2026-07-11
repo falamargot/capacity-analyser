@@ -238,7 +238,7 @@ export function deriveLeoConnectivityViewModel(
   const loadEstimateDetail = beamLoadResult
     ? hasFillRate
       ? [
-          'Simulated Network Load planning model',
+          'Network Load planning model',
           beamLoadResult.fillRateInfluencePct != null ? `load input: ${beamLoadResult.fillRateInfluencePct}%` : null,
           `load proxy: ${capacity.estimatedUsersLabel}`,
         ].filter(Boolean).join(' · ')
@@ -247,7 +247,7 @@ export function deriveLeoConnectivityViewModel(
 
   const estimatedLoadRow: LeoInfoRow | null = beamLoadResult
     ? {
-        label: 'Simulated Network Load',
+        label: 'Network Load',
         value: buildCapacityValue(beamLoadResult, loadCategory),
         tone: toneFromCapacityLoad(loadCategory),
         detail: loadEstimateDetail,
@@ -275,7 +275,7 @@ export function deriveLeoConnectivityViewModel(
     },
     capacity: {
       ...(estimatedLoadRow ?? {
-        label: 'Simulated Network Load',
+        label: 'Network Load',
         value: 'Unknown',
         tone: 'neutral' as const,
         detail: 'No load estimate available',
@@ -334,7 +334,7 @@ export function deriveLeoConnectivityViewModel(
       tone: toneFromStatus(serviceStatus),
     },
     {
-      label: 'Simulated Network Load',
+      label: 'Network Load',
       value: capacity.loadEstimatePercent != null ? `${capacity.loadEstimatePercent}%` : 'Unknown',
       tone: toneFromCapacityLoad(capacity.loadCategory),
       detail: hasFillRate ? 'Planning model, not telemetry' : 'Heuristic planning estimate',

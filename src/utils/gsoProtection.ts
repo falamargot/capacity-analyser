@@ -8,9 +8,11 @@
  * the comb geometry Web Worker.
  *
  * MODEL
- *  - Pitch (unchanged): the satellite tilts progressively as it approaches the
- *    equatorial node, displacing the beam comb along-track so coverage
- *    continues while pointing away from the in-line geometry.
+ *  - Pitch: the satellite tilts progressively as it approaches the equatorial
+ *    node, displacing the beam comb along-track so coverage continues while
+ *    pointing away from the in-line geometry. Magnitude curve unchanged since
+ *    Item 4; the sign is continuous along-track since Item 4b (see
+ *    computeGsoProtectionAngles).
  *  - Per-beam keep-out (replaces the former full 16-beam blackout at |lat| ≤ 5°
  *    and the fixed anti-arc half-comb for |lat| < 45°): a beam is muted only
  *    when, at its own ground center, the angular separation between the
@@ -78,21 +80,24 @@ export interface GsoProtectionAngles {
 /**
  * Pitch state from the satellite's geodetic latitude and travel direction.
  *
- * Pitch sign rule (unchanged — pitch direction is explicitly out of scope for
- * Item 4): in the northern hemisphere the comb must look NORTH when moving
- * north / SOUTH when moving south, i.e. the boresight always tips ahead along
- * the velocity vector; mirrored in the southern hemisphere.
+ * Pitch sign rule (Lot 3 Item 4b — continuous along-track convention): the
+ * boresight always tips AHEAD along the velocity vector, in BOTH hemispheres.
+ * The sign therefore depends only on the direction of motion, never on the
+ * latitude sign. Direction of motion only reverses near the poles
+ * (|lat| ≈ inclination ≈ 87.9°), where the pitch magnitude is identically
+ * zero (it is 0 for |lat| ≥ 45°) — so the pitch angle is continuous
+ * everywhere, including through the equatorial node on both legs.
+ *
+ * Retired rule (pre-4b): the sign was mirrored by hemisphere ("look poleward"),
+ * which flipped +17° → −17° in a single tick at latitude 0 — teleporting the
+ * comb ~750 km along-track and swapping the muted set wholesale at the node.
+ * The magnitude curve (gsoPitchMagnitudeDeg) is unchanged.
  */
 export function computeGsoProtectionAngles(satLatDeg: number, isMovingNorth: boolean): GsoProtectionAngles {
-  let pitchAngleRad = 0;
   const magnitudeDeg = gsoPitchMagnitudeDeg(satLatDeg);
-  if (magnitudeDeg > 0) {
-    if (satLatDeg > 0) {
-      pitchAngleRad = isMovingNorth ? toRad(-magnitudeDeg) : toRad(magnitudeDeg);
-    } else {
-      pitchAngleRad = !isMovingNorth ? toRad(-magnitudeDeg) : toRad(magnitudeDeg);
-    }
-  }
+  const pitchAngleRad = magnitudeDeg > 0
+    ? (isMovingNorth ? toRad(-magnitudeDeg) : toRad(magnitudeDeg))
+    : 0;
 
   return {
     pitchAngleRad,

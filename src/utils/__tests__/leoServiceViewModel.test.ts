@@ -74,10 +74,10 @@ describe('deriveLeoConnectivityViewModel — simulated-load source clarity', () 
     expect(vm.capacity.hasFillRate).toBe(true);
     expect(vm.capacity.fillRatePercent).toBe(76);
     expect(vm.whyRows.some((row) => row.label === 'Fill Rate')).toBe(false);
-    const estimatedLoadRow = vm.whyRows.find((row) => row.label === 'Simulated Network Load');
+    const estimatedLoadRow = vm.whyRows.find((row) => row.label === 'Network Load');
     expect(estimatedLoadRow?.value).toContain(`${beamLoadResult.beamLoadPercent}%`);
     expect(estimatedLoadRow?.detail).toBe(
-      `Simulated Network Load planning model · load input: 76% · load proxy: ~${beamLoadResult.estimatedActiveUsers} model sessions`,
+      `Network Load planning model · load input: 76% · load proxy: ~${beamLoadResult.estimatedActiveUsers} model sessions`,
     );
   });
 
@@ -97,7 +97,7 @@ describe('deriveLeoConnectivityViewModel — simulated-load source clarity', () 
     expect(vm.capacity.fillRatePercent).toBeNull();
     expect(vm.capacity.loadEstimatePercent).toBe(beamLoadResult.beamLoadPercent);
     expect(vm.whyRows.some((row) => row.label === 'Fill Rate')).toBe(false);
-    const estimatedLoadRow = vm.whyRows.find((row) => row.label === 'Simulated Network Load');
+    const estimatedLoadRow = vm.whyRows.find((row) => row.label === 'Network Load');
     expect(estimatedLoadRow?.value).toContain(`${beamLoadResult.beamLoadPercent}%`);
     expect(estimatedLoadRow?.detail).toBe(
       `Heuristic planning estimate · load proxy: ~${beamLoadResult.estimatedActiveUsers} model sessions`,

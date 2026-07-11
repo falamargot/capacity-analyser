@@ -90,7 +90,7 @@ const getReasonDetail = (vm: LeoConnectivityViewModel, row: LeoInfoRow): string 
     return 'Requires an RF link first';
   }
 
-  if (row.label === 'Simulated Network Load') {
+  if (row.label === 'Network Load') {
     if (vm.capacity.loadEstimatePercent == null) return 'No load estimate';
     return vm.capacity.hasFillRate
       ? 'Planning model, not telemetry'
@@ -172,7 +172,7 @@ export const ConnectivityStatusCard = memo(({ viewModel }: { viewModel: LeoConne
   const classes = toneClasses[tone];
   const Icon = getStatusIcon(viewModel);
   const whyRows = [...viewModel.whyRows].sort((left, right) => {
-    const order = ['RF', 'Simulated Network Load', 'SNP', 'Regulatory'];
+    const order = ['RF', 'Network Load', 'SNP', 'Regulatory'];
     return order.indexOf(left.label) - order.indexOf(right.label);
   });
 

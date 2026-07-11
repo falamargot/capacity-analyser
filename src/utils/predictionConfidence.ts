@@ -131,10 +131,10 @@ export function buildLeoSingleSiteConfidence(args: {
           ? partialFactor('regulatory', 'Regulatory evidence', 7, 'Regulatory status estimated or restricted')
           : riskFactor('regulatory', 'Regulatory evidence', 'Regulatory status pending or blocked'),
       args.loadSource && args.loadSource !== 'heuristic'
-        ? positiveFactor('network-load', 'Simulated network load', 10, 'Simulated load uses configured planning layer')
+        ? positiveFactor('network-load', 'Network Load', 10, 'Simulated load uses configured planning layer')
         : args.loadSource
-          ? partialFactor('network-load', 'Simulated network load', 5, 'Simulated load uses heuristic fallback')
-          : missingFactor('network-load', 'Simulated network load', 'Simulated load unavailable'),
+          ? partialFactor('network-load', 'Network Load', 5, 'Simulated load uses heuristic fallback')
+          : missingFactor('network-load', 'Network Load', 'Simulated load unavailable'),
       elevation >= 25
         ? positiveFactor('elevation-margin', 'Elevation margin', 14, 'Site meets standard elevation margin')
         : elevation >= 10

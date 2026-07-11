@@ -735,6 +735,41 @@ function entitySafeSignature(value: string): string {
   return value.replace(/[^a-zA-Z0-9_-]/g, '_');
 }
 
+type SymbolicEndpointRole = 'origin' | 'destination';
+
+/**
+ * Deterministic, collision-free entity ids for the two endpoint markers
+ * (Item 4b). Unique by role + node id + coordinate: when the endpoint moves,
+ * the NEW entity id differs from the OLD one, so Resium's render-phase entity
+ * creation can never collide with a not-yet-removed predecessor (the Cesium
+ * DeveloperError seen on ENG → COMM switches). Stale predecessors are removed
+ * by the removeStaleSymbolicArcEntities sweep.
+ */
+function symbolicEndpointEntityIds(
+  role: SymbolicEndpointRole,
+  endpoint: SymbolicEndpoint,
+): { halo: string; marker: string } {
+  const signature = entitySafeSignature(`${endpoint.id}-${coordinateSignature(endpoint.coord)}`);
+  return {
+    halo: `commercial-route-${role}-symbolic-endpoint-halo-${signature}`,
+    marker: `commercial-route-${role}-symbolic-endpoint-${signature}`,
+  };
+}
+
+function expectedSymbolicEndpointEntityIds(
+  origin: SymbolicEndpoint | null,
+  destination: SymbolicEndpoint | null,
+): Set<string> {
+  const ids = new Set<string>();
+  for (const [role, endpoint] of [['origin', origin], ['destination', destination]] as const) {
+    if (!endpoint) continue;
+    const entityIds = symbolicEndpointEntityIds(role, endpoint);
+    ids.add(entityIds.halo);
+    ids.add(entityIds.marker);
+  }
+  return ids;
+}
+
 function symbolicArcEntityPositionKey(origin: SymbolicEndpoint, destination: SymbolicEndpoint): string {
   const posKey = `${origin.coord.lat.toFixed(4)},${origin.coord.lng.toFixed(4)}-${destination.coord.lat.toFixed(4)},${destination.coord.lng.toFixed(4)}`;
   return entitySafeSignature(posKey);
@@ -821,6 +856,10 @@ function removeStaleSymbolicArcEntities(
         || id.startsWith('commercial-route-leo-site-satellite-beam-')
         || id.startsWith('commercial-route-leo-serving-satellite-')
         || id.startsWith('commercial-route-leo-satellite-relay-')
+        // Item 4b: endpoint markers moved to position-scoped ids — sweep any
+        // predecessor left from a coordinate change or a missed unmount
+        // (matches both the new role-based and the legacy segmentId-based ids).
+        || (id.startsWith('commercial-route-') && id.includes('-symbolic-endpoint-'))
       )
       && !expectedIds.has(id)
     ) {
@@ -831,10 +870,11 @@ function removeStaleSymbolicArcEntities(
 
 const SymbolicEndpointMarker = React.memo<{
   endpoint: SymbolicEndpoint;
+  role: SymbolicEndpointRole;
   focusedSegmentId: CommercialRouteSegmentId | null;
   cameraMetricsRef: React.MutableRefObject<CameraMetricsSnapshot>;
   sizeScale: number;
-}>(({ endpoint, focusedSegmentId, cameraMetricsRef, sizeScale }) => {
+}>(({ endpoint, role, focusedSegmentId, cameraMetricsRef, sizeScale }) => {
   const position = useMemo(
     () => getPosition(endpoint.coord.lat, endpoint.coord.lng, SYMBOLIC_ENDPOINT_MARKER_ALTITUDE_KM),
     [endpoint.coord.lat, endpoint.coord.lng],
@@ -846,6 +886,10 @@ const SymbolicEndpointMarker = React.memo<{
   const posKey = useMemo(
     () => `${endpoint.coord.lat.toFixed(4)},${endpoint.coord.lng.toFixed(4)}`,
     [endpoint.coord.lat, endpoint.coord.lng],
+  );
+  const entityIds = useMemo(
+    () => symbolicEndpointEntityIds(role, endpoint),
+    [endpoint, role],
   );
   const baseColor = useMemo(
     () => endpointAccentColor(endpoint, focusedSegmentId),
@@ -897,7 +941,7 @@ const SymbolicEndpointMarker = React.memo<{
     <>
       <Entity
         key={`halo-${endpoint.id}-${posKey}`}
-        id={`commercial-route-${endpoint.segmentId}-symbolic-endpoint-halo-${endpoint.id}`}
+        id={entityIds.halo}
         position={haloPosition}
         ellipse={{
           semiMajorAxis: haloRadius,
@@ -909,7 +953,7 @@ const SymbolicEndpointMarker = React.memo<{
       />
       <Entity
         key={`marker-${endpoint.id}-${posKey}`}
-        id={`commercial-route-${endpoint.segmentId}-symbolic-endpoint-${endpoint.id}`}
+        id={entityIds.marker}
         name={endpoint.label}
         position={position}
         point={{
@@ -941,6 +985,7 @@ const SymbolicEndpointMarker = React.memo<{
   prev.endpoint.coord.lat === next.endpoint.coord.lat &&
   prev.endpoint.coord.lng === next.endpoint.coord.lng &&
   prev.endpoint.status === next.endpoint.status &&
+  prev.role === next.role &&
   prev.focusedSegmentId === next.focusedSegmentId &&
   prev.sizeScale === next.sizeScale
 );
@@ -1754,13 +1799,17 @@ const CommercialSymbolicConnectivityLayer: React.FC<CommercialSymbolicConnectivi
     && leoServingTopology.satellites.length > 0;
   const skyBridgeNodes = useMemo(() => resolveSkyBridgeNodes(routeModel), [routeModel]);
   const expectedArcEntityIds = useMemo(
-    () => (
-      showGeoSatelliteFocus
+    () => {
+      const ids = showGeoSatelliteFocus
         ? expectedGeoSatelliteFocusEntityIds(origin, destination, skyBridgeNodes.primary)
         : showLeoTransmission
           ? expectedLeoSatelliteFocusEntityIds(leoServingTopology)
-        : expectedSymbolicArcEntityIds(origin, destination, arcSpecs)
-    ),
+          : expectedSymbolicArcEntityIds(origin, destination, arcSpecs);
+      // Endpoint markers render in every branch — their expected ids are
+      // always part of the sweep contract (Item 4b).
+      for (const id of expectedSymbolicEndpointEntityIds(origin, destination)) ids.add(id);
+      return ids;
+    },
     [arcSpecs, destination, leoServingTopology, origin, showGeoSatelliteFocus, showLeoTransmission, skyBridgeNodes.primary],
   );
 
@@ -1838,6 +1887,7 @@ const CommercialSymbolicConnectivityLayer: React.FC<CommercialSymbolicConnectivi
       <SymbolicEndpointMarker
         key={`origin-${originSignature}`}
         endpoint={origin}
+        role="origin"
         focusedSegmentId={effectiveFocusedSegmentId}
         cameraMetricsRef={cameraMetricsRef}
         sizeScale={sizeScale}
@@ -1847,6 +1897,7 @@ const CommercialSymbolicConnectivityLayer: React.FC<CommercialSymbolicConnectivi
         <SymbolicEndpointMarker
           key={`destination-${destinationSignature}`}
           endpoint={destination}
+          role="destination"
           focusedSegmentId={effectiveFocusedSegmentId}
           cameraMetricsRef={cameraMetricsRef}
           sizeScale={sizeScale}
