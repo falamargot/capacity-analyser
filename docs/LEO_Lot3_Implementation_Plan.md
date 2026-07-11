@@ -140,6 +140,8 @@ export function computeFeederBudget(feeder: LeoFeederLink, weatherAtSnp: Weather
 
 ## Item 3 — L-Mo7: Uplink-specific weather and pattern terms
 
+> **✅ IMPLEMENTED 2026-07-11.** Gates: 802/802 tests (+3 new in `activeLeoRouteEvidence.test.ts`), project typecheck steady at 160 (zero new vs 163 HEAD baseline), eslint 31-baseline, build OK, `git diff --check` clean. Implemented exactly as planned: `WEATHER_ATTENUATION_UL_DB` (CLEAR 0 / CLOUDS −2.0 / RAIN −6.5, ITU-R P.618 scaling note), `patternOnlyDb` split through `BeamPerformanceOutput` → `LinkBudgetOutput` → the evidence UL chain (`patternOnlyDb + UL weather` as `pathAdjustmentDb`), per-leg `weatherLossDb` (DL −5 / UL −6.5 in RAIN) in the drawer breakdown. The headline test isolates the physics exactly: between CLEAR and RAIN runs, (UL C/N delta − DL C/N delta) ≡ the UL−DL table difference (the shared pattern-term shift cancels). CLEAR-sky output is unchanged by construction (both tables 0), confirmed by the untouched full suite. Smoke: weather switching Clear→Heavy-Rain runs clean (zero errors, L-Mo9 sync canary silent); at the sampled instant rain honestly collapsed Paris to a coherent `RF_UNAVAILABLE_A`/NO-BUDGET state (pre-existing beam-shrink behavior, not an Item-3 effect). Test-writing note: in RAIN the beam semi-minor (~29 km) drops below the 33.75 km row offset, so a user at the sub-point latitude falls in the inter-beam gap — rain fixtures must sit on a beam center line.
+
 **Goal.** Stop reusing the downlink `powerAtUserDb` (cos⁸ pattern + Ku-DL weather at 11.5 GHz) as the 14.25 GHz uplink path adjustment.
 
 ### Current anchors

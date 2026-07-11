@@ -20,7 +20,7 @@ import type { SNPData } from '../../components/globe/GlobeConfig';
 import type { RegulatoryResult } from '../../services/regulatoryService';
 import type { BeamLoadResult } from '../capacityLayer';
 import { buildSimulationStateSnapshot } from '../../types/simulation';
-import { DEFAULT_BEAM_HEALTH } from '../realisticSimulation';
+import { DEFAULT_BEAM_HEALTH, WEATHER_ATTENUATION_DB, WEATHER_ATTENUATION_UL_DB } from '../realisticSimulation';
 import {
   buildActiveLeoRouteEvidence,
   createActiveLeoRouteEvidenceState,
@@ -130,6 +130,72 @@ describe('L-M2 — FSPL uses the actual user↔satellite slant range', () => {
     for (const leg of [throughput!.downlink, throughput!.uplink]) {
       expect(Math.abs(leg.rf.slantRangeKm - connectivity!.userLEODistance)).toBeLessThan(1);
     }
+  });
+});
+
+// ── L-Mo7 — uplink-specific weather and pattern terms (Lot 3, Item 3) ────────
+
+describe('L-Mo7 — uplink weather is 14.25 GHz-specific, not the downlink composite', () => {
+  const rainSimulationState = buildSimulationStateSnapshot({
+    coveragePolicy: { type: 'DB_THRESHOLD', thresholdDb: -10 },
+    weatherCondition: 'RAIN',
+    beamHealthFactors: DEFAULT_BEAM_HEALTH,
+    hsBeams: new Set<number>(),
+  });
+
+  it('UL rain fade is deeper than DL rain fade (frequency scaling), CLEAR is zero for both', () => {
+    expect(WEATHER_ATTENUATION_UL_DB.CLEAR).toBe(0);
+    expect(WEATHER_ATTENUATION_DB.CLEAR).toBe(0);
+    expect(WEATHER_ATTENUATION_UL_DB.RAIN).toBeLessThan(WEATHER_ATTENUATION_DB.RAIN);
+    expect(WEATHER_ATTENUATION_UL_DB.CLOUDS).toBeLessThan(WEATHER_ATTENUATION_DB.CLOUDS);
+  });
+
+  it('legs report their own weather loss; in CLEAR both are 0', () => {
+    const evidence = buildActiveLeoRouteEvidence(buildEvidenceInput(), createActiveLeoRouteEvidenceState());
+    const throughput = evidence.leoPerformance?.throughput;
+    expect(throughput).toBeTruthy();
+    expect(throughput!.downlink.rf.weatherLossDb).toBe(0);
+    expect(throughput!.uplink.rf.weatherLossDb).toBe(0);
+  });
+
+  it('in RAIN the UL leg degrades by exactly the UL−DL table delta more than the DL leg', () => {
+    // On beam 7's center line (33.75 km north of the sub-point): rain shrinks
+    // the beam semi-minor below the 33.75 km row offset, so a user AT the
+    // sub-point latitude falls into the inter-beam gap. 100 km east keeps a
+    // comfortable margin on the (rain-shrunk) semi-major axis.
+    const east = pointEastOfSubpoint(100);
+    const nearPoint = { lat: east.lat + 33.75 / 111.32, lng: east.lng };
+    const clear = buildActiveLeoRouteEvidence(
+      buildEvidenceInput({ activePoint: nearPoint }),
+      createActiveLeoRouteEvidenceState(),
+    );
+    const rain = buildActiveLeoRouteEvidence(buildEvidenceInput({
+      activePoint: nearPoint,
+      weatherTypeA: 'heavy_rain' as const,
+      simulationStateA: rainSimulationState,
+      simulationStateB: rainSimulationState,
+    }), createActiveLeoRouteEvidenceState());
+
+    const clearT = clear.leoPerformance?.throughput;
+    const rainT = rain.leoPerformance?.throughput;
+    expect(clearT).toBeTruthy();
+    expect(rainT).toBeTruthy();
+
+    // Per-leg honesty in the drawer.
+    expect(rainT!.downlink.rf.weatherLossDb).toBe(WEATHER_ATTENUATION_DB.RAIN);
+    expect(rainT!.uplink.rf.weatherLossDb).toBe(WEATHER_ATTENUATION_UL_DB.RAIN);
+
+    // The antenna-pattern term shifts identically for both legs between the
+    // runs (rain also shrinks the beam ellipse), so the DIFFERENCE of the two
+    // legs' C/N deltas isolates the weather-table difference exactly.
+    const dlDelta = clearT!.downlink.rf.cnDb - rainT!.downlink.rf.cnDb;
+    const ulDelta = clearT!.uplink.rf.cnDb - rainT!.uplink.rf.cnDb;
+    expect(ulDelta - dlDelta).toBeCloseTo(
+      WEATHER_ATTENUATION_DB.RAIN - WEATHER_ATTENUATION_UL_DB.RAIN,
+      6,
+    );
+    // Pre-fix, the UL chain inherited the DL composite → the deltas were equal.
+    expect(ulDelta).toBeGreaterThan(dlDelta);
   });
 });
 

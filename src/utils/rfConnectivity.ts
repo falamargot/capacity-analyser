@@ -314,8 +314,10 @@ export interface LinkBudgetOutput {
     distanceKm: number;
     /** Effective beam radius incorporating all impairments (km) */
     effectiveBeamRadiusKm: number;
-    /** Power at user position relative to boresight (dB) */
+    /** Power at user position relative to boresight (dB) — pattern + DL weather */
     powerAtUserDb: number;
+    /** Antenna-pattern term before weather (dB, ≤ 0) — see BeamPerformanceOutput.patternOnlyDb (L-Mo7). */
+    patternOnlyDb: number;
     /** Delivered throughput to user (Mbps) */
     deliveredThroughputMbps: number;
     /** Physical-layer throughput on the reference carrier/allocation before terminal profile caps. */
@@ -499,6 +501,7 @@ export function estimateCurrentLeoBeamLink(args: {
             distanceKm: haversineDistanceKm(userPosition, beamCenterPosition),
             effectiveBeamRadiusKm: Math.max(ellipse.semiMajorAxisKm, ellipse.semiMinorAxisKm),
             powerAtUserDb: perf.powerAtUserDb,
+            patternOnlyDb: perf.patternOnlyDb,
             deliveredThroughputMbps: perf.deliveredThroughputMbps,
             rfThroughputMbps: perf.rfThroughputMbps,
             throughputRatio: perf.throughputRatio,

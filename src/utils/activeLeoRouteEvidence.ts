@@ -28,6 +28,7 @@ import {
 } from './leoLinkBudget';
 import { chooseMainBottleneck, detectThroughputBottleneck } from './leoBottleneck';
 import { computeFeederBudget, type FeederBudgetResult } from './leoFeederLinkBudget';
+import { WEATHER_ATTENUATION_UL_DB } from './realisticSimulation';
 import { buildLeoFeederLink } from './connectivityRules';
 import { deriveLeoServiceDecision } from './leoServiceDecision';
 import {
@@ -461,10 +462,16 @@ function buildEndpointDebug(args: {
     noiseBwHz: profile.dlReferenceBandwidthHz,
     throughputBwHz: profile.dlReferenceBandwidthHz,
   });
+  // L-Mo7: the uplink path adjustment is the antenna-pattern term plus the
+  // 14.25 GHz UL weather table — not the downlink composite (which bakes in
+  // the 11.5 GHz attenuation). The satellite RECEIVE pattern is assumed
+  // identical to the transmit cos^8 pattern (documented approximation; a
+  // separate receive-pattern model would be a duplicated geometry path).
+  const ulWeatherLossDb = WEATHER_ATTENUATION_UL_DB[args.simulationState.weatherCondition];
   const uplinkRf = computeUplinkRfChainThroughput({
     terminalEirpDbw: txEirpAfterScanDbw,
     slantRangeKm: userSlantRangeKm,
-    pathAdjustmentDb: beamEstimate.beamLink.powerAtUserDb,
+    pathAdjustmentDb: beamEstimate.beamLink.patternOnlyDb + ulWeatherLossDb,
     noiseBwHz: profile.ulReferenceBandwidthHz,
     throughputBwHz: profile.ulReferenceBandwidthHz,
   });
@@ -522,6 +529,7 @@ function buildEndpointDebug(args: {
     modcodTableId: string;
     modcodTableLabel: string;
     modcodTableSourceNote: string;
+    weatherLossDb: number;
     referenceBandwidthHz: number;
     usableBandwidthHz: number;
     terminalCapMbps: number;
@@ -551,7 +559,7 @@ function buildEndpointDebug(args: {
       rawTerminalRfDb: legArgs.rawTerminalRfDb,
       terminalScanLossDb: legArgs.terminalScanLossDb,
       scanLossDb: beamEstimate.beamLink.scanLossDb,
-      weatherLossDb: beamEstimate.beamLink.weatherAttenuationDb,
+      weatherLossDb: legArgs.weatherLossDb,
       fsplDb: legArgs.fsplDb,
       cnDb: legArgs.cnDb,
       modcod: legArgs.modcod,
@@ -583,6 +591,7 @@ function buildEndpointDebug(args: {
     modcodTableId: downlinkRf.modcodTable.id,
     modcodTableLabel: downlinkRf.modcodTable.label,
     modcodTableSourceNote: downlinkRf.modcodTable.sourceNote,
+    weatherLossDb: beamEstimate.beamLink.weatherAttenuationDb,
     referenceBandwidthHz: profile.dlReferenceBandwidthHz,
     usableBandwidthHz: profile.dlUsableBeamBandwidthHz,
     terminalCapMbps: profile.maxDlMbps,
@@ -606,6 +615,7 @@ function buildEndpointDebug(args: {
     modcodTableId: uplinkRf.modcodTable.id,
     modcodTableLabel: uplinkRf.modcodTable.label,
     modcodTableSourceNote: uplinkRf.modcodTable.sourceNote,
+    weatherLossDb: ulWeatherLossDb,
     referenceBandwidthHz: profile.ulReferenceBandwidthHz,
     usableBandwidthHz: profile.ulUsableBeamBandwidthHz,
     terminalCapMbps: profile.maxUlMbps,

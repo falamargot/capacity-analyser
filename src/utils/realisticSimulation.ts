@@ -63,11 +63,24 @@ export {
 
 export type WeatherCondition = 'CLEAR' | 'CLOUDS' | 'RAIN';
 
-/** Mapping from weather condition to Ka/Ku-band rain-fade loss (dB, negative) */
+/** Mapping from weather condition to Ku-band USER-DOWNLINK (11.5 GHz) rain-fade loss (dB, negative) */
 export const WEATHER_ATTENUATION_DB: Record<WeatherCondition, number> = {
   CLEAR: 0.0,
   CLOUDS: -1.5,
   RAIN: -5.0,
+};
+
+/**
+ * Ku-band USER-UPLINK (14.25 GHz) rain-fade loss (dB, negative) — L-Mo7.
+ * Rain attenuation grows with frequency (≈ f^~2 per ITU-R P.618 in this band);
+ * these values are ~1.3× the 11.5 GHz downlink table. ESTIMATED DEFAULTS —
+ * ONEWEB_GEN1_OPERATIONAL_APPROXIMATION. Before this table the uplink chain
+ * silently reused the downlink attenuation (LEO audit L-Mo7).
+ */
+export const WEATHER_ATTENUATION_UL_DB: Record<WeatherCondition, number> = {
+  CLEAR: 0.0,
+  CLOUDS: -2.0,
+  RAIN: -6.5,
 };
 
 export const WEATHER_LABELS: Record<WeatherCondition, string> = {
@@ -360,8 +373,14 @@ export interface BeamPerformanceOutput {
   effectiveEirpDb: number;
   /** Effective beam minor radius (km) on the ground */
   effectiveBeamRadiusKm: number;
-  /** Power at user location relative to boresight (dB, always ≤ 0) */
+  /** Power at user location relative to boresight (dB, always ≤ 0) — pattern + DL weather */
   powerAtUserDb: number;
+  /**
+   * Antenna-pattern term of powerAtUserDb BEFORE weather (dB, ≤ 0) — L-Mo7.
+   * The uplink chain combines this with the UL-specific weather table instead
+   * of inheriting the downlink composite.
+   */
+  patternOnlyDb: number;
   /**
    * Simulated terminal throughput (Mbps) — already capped to NOMINAL_TERMINAL_PEAK_MBPS.
    * Derived from the RF chain: FSPL → C/N → MODCOD → spectral_eff × BW_terminal.
@@ -451,8 +470,8 @@ export function getBeamPerformance(input: BeamPerformanceInput): BeamPerformance
     Math.cos((Math.PI / 2) * patternDistance),
     8 // POWER_DECAY.COSINE_EXPONENT
   );
-  const powerAtUserDb = 10 * Math.log10(Math.max(antennaLinearPower, 1e-10))
-    + weatherAttenuationDb; // weather reduces signal at user
+  const patternOnlyDb = 10 * Math.log10(Math.max(antennaLinearPower, 1e-10));
+  const powerAtUserDb = patternOnlyDb + weatherAttenuationDb; // weather reduces signal at user
 
   // ── RF chain throughput (Steps 1–4) — replaces heuristic scaling ────────
   // Old heuristic (removed):
@@ -486,6 +505,7 @@ export function getBeamPerformance(input: BeamPerformanceInput): BeamPerformance
     effectiveEirpDb,
     effectiveBeamRadiusKm,
     powerAtUserDb,
+    patternOnlyDb,
     deliveredThroughputMbps,
     rfThroughputMbps: rfChain.rfThroughputMbps,
     throughputRatio,
