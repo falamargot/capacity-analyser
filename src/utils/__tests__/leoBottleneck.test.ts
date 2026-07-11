@@ -41,8 +41,9 @@ function makeLeg(overrides: {
       terminalCapMbps: 195,
       activeUsers: 1,
       beamSharingMbps: 195,
-      backhaulFactor: 1,
-      backhaulMbps: 195,
+      feederCapacityMbps: 930,
+      feederMarginDb: 11.5,
+      feederLimited: false,
       handoverFactor: 1,
       handoverMbps: 195,
       smoothingAlpha: 0.3,
@@ -96,9 +97,17 @@ describe('detectThroughputBottleneck attribution', () => {
   it('attributes to beam sharing under heavy load at top MODCOD', () => {
     const leg = makeLeg({
       cnDb: 20,
-      network: { peakRfMbps: 195, beamSharingMbps: 20, backhaulMbps: 20, handoverMbps: 20, finalUserMbps: 20, terminalCapMbps: 250 },
+      network: { peakRfMbps: 195, beamSharingMbps: 20, handoverMbps: 20, finalUserMbps: 20, terminalCapMbps: 250 },
     });
     expect(detectThroughputBottleneck(leg)).toBe('beam sharing');
+  });
+
+  it("attributes to feeder when the Ka feeder bounded the beam pool (L-O2, formerly 'backhaul')", () => {
+    const leg = makeLeg({
+      cnDb: 20,
+      network: { feederCapacityMbps: 375, feederMarginDb: 2.9, feederLimited: true },
+    });
+    expect(detectThroughputBottleneck(leg)).toBe('feeder');
   });
 
   it('chooseMainBottleneck merges identical factors into DL+UL scope', () => {

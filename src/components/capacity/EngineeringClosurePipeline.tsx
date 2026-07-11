@@ -75,7 +75,7 @@ const connectorLabelForStep = (step: LinkBudgetWorkspaceClosureStep | undefined)
     if (limit && limit !== 'Final user throughput') return `Apply ${limit}`;
   }
   if (step.label === 'Shared capacity') return 'Beam sharing';
-  if (step.label === 'Network load') return 'Network load';
+  if (step.label === 'Feeder (Ka)') return 'Ka feeder bound';
   if (step.label === 'Terminal cap') return 'Terminal cap';
   if (step.label === 'Protocol/handover') return 'Protocol / handover';
   return compactTransformation(step);
@@ -89,7 +89,7 @@ const nodeLabelForStep = (step: LinkBudgetWorkspaceClosureStep | undefined) => {
   if (step.label === 'RF throughput') return 'MODCOD / RF throughput';
   if (step.label === 'Protocol efficiency') return 'Protocol efficiency';
   if (step.label === 'Shared capacity') return 'Shared beam capacity';
-  if (step.label === 'Network load') return 'Simulated network load';
+  if (step.label === 'Feeder (Ka)') return 'Feeder (Ka)';
   if (step.label === 'Protocol/handover') return 'Protocol / handover';
   if (step.label === 'Delivered') return 'Delivered throughput';
   return step.label;
@@ -229,7 +229,7 @@ const LeoSinglePipeline = ({ steps }: { steps: LinkBudgetWorkspaceClosureStep[] 
   const rf = findStep(steps, 'RF throughput') ?? steps[0];
   const remaining = [
     findStep(steps, 'Shared capacity'),
-    findStep(steps, 'Network load'),
+    findStep(steps, 'Feeder (Ka)'),
     findStep(steps, 'Terminal cap'),
     findStep(steps, 'Protocol/handover'),
     findStep(steps, 'Delivered'),

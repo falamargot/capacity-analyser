@@ -27,6 +27,8 @@ import {
   RF_SATELLITE_GOT_DB_PER_K,
 } from './leoLinkBudget';
 import { chooseMainBottleneck, detectThroughputBottleneck } from './leoBottleneck';
+import { computeFeederBudget, type FeederBudgetResult } from './leoFeederLinkBudget';
+import { buildLeoFeederLink } from './connectivityRules';
 import { deriveLeoServiceDecision } from './leoServiceDecision';
 import {
   computeLeoSiteToSiteResult,
@@ -467,6 +469,18 @@ function buildEndpointDebug(args: {
     throughputBwHz: profile.ulReferenceBandwidthHz,
   });
 
+  // L-O2: Ka feeder link budget from the LIVE feeder geometry (per-tick SNP
+  // elevation/slant range — the resolver assignment's feeder identity refreshes
+  // only every 15 s). User-DOWNLINK traffic rides the feeder UP direction;
+  // user-UPLINK traffic rides the feeder DOWN direction. Gateway-site weather
+  // is CLEAR in v1 (no per-SNP weather state yet — see computeFeederBudget).
+  const feederBudget: FeederBudgetResult | null = args.connectivity.snpLEOElevation != null
+    ? computeFeederBudget(
+        buildLeoFeederLink(args.connectivity.snp, args.connectivity.satellite, args.connectivity.snpLEOElevation),
+        'CLEAR',
+      )
+    : null;
+
   const downlinkSharing = applyBeamCapacitySharing(
     downlinkRf.rfThroughputMbps,
     activeUsers,
@@ -475,6 +489,7 @@ function buildEndpointDebug(args: {
       direction: 'downlink',
       referenceBandwidthHz: profile.dlReferenceBandwidthHz,
       usableBeamBandwidthHz: profile.dlUsableBeamBandwidthHz,
+      feederCapacityMbps: feederBudget?.up.capacityMbps,
     },
   );
   const uplinkSharing = applyBeamCapacitySharing(
@@ -485,10 +500,13 @@ function buildEndpointDebug(args: {
       direction: 'uplink',
       referenceBandwidthHz: profile.ulReferenceBandwidthHz,
       usableBeamBandwidthHz: profile.ulUsableBeamBandwidthHz,
+      feederCapacityMbps: feederBudget?.down.capacityMbps,
     },
   );
-  const rawDownlinkMbps = downlinkSharing.sharedThroughputMbps * beamEstimate.backhaulFactor;
-  const rawUplinkMbps = uplinkSharing.sharedThroughputMbps * beamEstimate.backhaulFactor;
+  // The former × backhaulFactor scaling is gone (L-O2): the feeder's capacity
+  // impact is already inside the sharing result via the beam-pool bound.
+  const rawDownlinkMbps = downlinkSharing.sharedThroughputMbps;
+  const rawUplinkMbps = uplinkSharing.sharedThroughputMbps;
 
   const buildLeg = (legArgs: {
     direction: 'downlink' | 'uplink';
@@ -509,18 +527,20 @@ function buildEndpointDebug(args: {
     terminalCapMbps: number;
     sharedThroughputMbps: number;
     beamTotalThroughputMbps: number;
+    feederCapacityMbps: number | null;
+    feederLimited: boolean;
     finalUserMbps: number;
   }): LeoThroughputLeg => {
-    const backhaulMbps = legArgs.sharedThroughputMbps * beamEstimate.backhaulFactor;
     const network: LeoNetworkLayerBreakdown = {
       peakRfMbps: Math.min(legArgs.beamTotalThroughputMbps, legArgs.terminalCapMbps),
       terminalCapMbps: legArgs.terminalCapMbps,
       activeUsers,
       beamSharingMbps: legArgs.sharedThroughputMbps,
-      backhaulFactor: beamEstimate.backhaulFactor,
-      backhaulMbps,
+      feederCapacityMbps: legArgs.feederCapacityMbps,
+      feederMarginDb: feederBudget?.weakestMarginDb ?? null,
+      feederLimited: legArgs.feederLimited,
       handoverFactor: args.handoverFactor,
-      handoverMbps: backhaulMbps * args.handoverFactor,
+      handoverMbps: legArgs.sharedThroughputMbps * args.handoverFactor,
       smoothingAlpha: args.smoothingAlpha,
       finalUserMbps: legArgs.finalUserMbps,
       bottleneck: null,
@@ -568,6 +588,8 @@ function buildEndpointDebug(args: {
     terminalCapMbps: profile.maxDlMbps,
     sharedThroughputMbps: downlinkSharing.sharedThroughputMbps,
     beamTotalThroughputMbps: downlinkSharing.beamTotalThroughputMbps,
+    feederCapacityMbps: feederBudget?.up.capacityMbps ?? null,
+    feederLimited: downlinkSharing.wasFeederLimited,
     finalUserMbps: args.finalDownlinkMbps ?? rawDownlinkMbps,
   });
   const uplink = buildLeg({
@@ -589,6 +611,8 @@ function buildEndpointDebug(args: {
     terminalCapMbps: profile.maxUlMbps,
     sharedThroughputMbps: uplinkSharing.sharedThroughputMbps,
     beamTotalThroughputMbps: uplinkSharing.beamTotalThroughputMbps,
+    feederCapacityMbps: feederBudget?.down.capacityMbps ?? null,
+    feederLimited: uplinkSharing.wasFeederLimited,
     finalUserMbps: args.finalUplinkMbps ?? rawUplinkMbps,
   });
 
@@ -699,12 +723,12 @@ function buildSingleSitePerformance(args: {
       // geometry-derived and unchanged; only the post-smoothing delivery fields differ.
       const dl = endpointDebug.debugInfo.downlink;
       dl.network.handoverFactor = degradationFactor;
-      dl.network.handoverMbps = dl.network.backhaulMbps * degradationFactor;
+      dl.network.handoverMbps = dl.network.beamSharingMbps * degradationFactor;
       dl.network.finalUserMbps = finalDlMbps;
       dl.network.bottleneck = detectThroughputBottleneck(dl);
       const ul = endpointDebug.debugInfo.uplink;
       ul.network.handoverFactor = degradationFactor;
-      ul.network.handoverMbps = ul.network.backhaulMbps * degradationFactor;
+      ul.network.handoverMbps = ul.network.beamSharingMbps * degradationFactor;
       ul.network.finalUserMbps = finalUlMbps;
       ul.network.bottleneck = detectThroughputBottleneck(ul);
       endpointDebug.debugInfo.mainBottleneck = chooseMainBottleneck(dl, ul);

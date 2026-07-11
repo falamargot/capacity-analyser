@@ -87,6 +87,12 @@ export interface LeoServingAssignment {
 
 ## Item 2 — L-O2: Ka feeder link budget (retires `backhaulFactor`)
 
+> **✅ IMPLEMENTED 2026-07-10.** Gates: 799/799 tests (+5 new in `leoFeederLinkBudget.test.ts`, bottleneck/fixture updates), eslint at the 31-warning HEAD baseline, build OK, `git diff --check` clean, **project typecheck (`tsc -p tsconfig.app.json`) net −3 errors vs the clean-HEAD baseline (163 → 160, zero new)** — note: bare `npx tsc --noEmit` at repo root is a NO-OP (references-only tsconfig); always use `-p tsconfig.app.json`. Playwright smoke: Paris unchanged at 13 Mbps / 48 ms (correct — Mornac's feeder closes with margin and the route is honestly sharing-bound at 32 % load; the removed ramp only bit at LOW feeder elevations, proven by the no-ramp regression test), bottleneck reads "DL+UL beam sharing", zero canaries/errors. Deviations, all strengthening the plan:
+> - The feeder budget is computed from the **live per-tick feeder geometry** (`buildLeoFeederLink` on the evidence connectivity) rather than the resolver assignment's feeder, which refreshes only every 15 s — the assignment remains the identity source, live geometry drives physics.
+> - `KA_SATELLITE_EIRP_DBW` calibrated to **42 dBW** (not 40) to honor the ">10 dB margin at ≥30°" promise; Ka RAIN fade set to **−15 dB** (10–20 dB is routine at Ka) so the feeder genuinely binds near the 15° mask under rain.
+> - Direction mapping implemented precisely: user-DL traffic is bounded by the feeder **UP** capacity, user-UL by feeder **DOWN**.
+> - Bonus consolidation: `LEOConnectivitySection`'s local `deriveLegLimitingFactor` (a drifted duplicate of the canonical bottleneck detector with hardcoded 14.5/18.5 dB literals — an L-Mo8 leftover) was deleted; the drawer now trusts `network.bottleneck` exclusively.
+
 **Goal.** Replace the unphysical feeder-elevation throughput ramp with a real Ka feeder link budget: the feeder either closes with margin (no user impact) or genuinely bounds the beam pool.
 
 ### Why the current model is wrong (audit L-Mo2)

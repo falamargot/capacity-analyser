@@ -51,8 +51,10 @@ export function detectThroughputBottleneck(leg: LeoThroughputLeg): LeoBottleneck
   if (leg.rf.rfChainThroughputMbps <= 0 || leg.rf.cnDb < thresholds.rfLimitedBelowDb) return 'rf';
   if (leg.rf.terminalScanLossDb <= -3) return 'scan loss';
   if (leg.rf.modcod == null || leg.rf.cnDb < thresholds.topModcodThresholdDb) return 'modcod';
-  if (leg.network.backhaulMbps < leg.network.beamSharingMbps * 0.75) return 'backhaul';
-  if (leg.network.handoverMbps < leg.network.backhaulMbps * 0.99) return 'handover';
+  // L-O2: the Ka feeder budget bounded the beam pool — an honest, modeled
+  // constraint (formerly the 'backhaul' ramp artefact).
+  if (leg.network.feederLimited) return 'feeder';
+  if (leg.network.handoverMbps < leg.network.beamSharingMbps * 0.99) return 'handover';
   if (leg.network.beamSharingMbps < leg.network.peakRfMbps * 0.8) return 'beam sharing';
   if (leg.network.peakRfMbps >= leg.network.terminalCapMbps * 0.97) return 'terminal';
   return null;

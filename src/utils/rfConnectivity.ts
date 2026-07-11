@@ -4,6 +4,7 @@ import { calculateElevationAngle } from './capacityCalculator';
 import { calculateGSOAvoidanceAngle, calculateCombBeamCenters, calculateCombGeometry } from './oneWebComb';
 import { countActiveBeams, isBeamActive } from './beamActivation';
 import {
+    MIN_SNP_GATEWAY_ELEVATION_DEG,
     MIN_USER_TERMINAL_ELEVATION_DEG,
     getRadiusAtPowerLevel,
     isRfCoverageSatisfied,
@@ -358,7 +359,12 @@ export interface CurrentLeoBeamLinkEstimate {
     userElevationDeg: number;
     snpElevationDeg: number | null;
     limitingElevationDeg: number;
-    backhaulFactor: number;
+    /**
+     * User-link delivered rate, gated only by feeder EXISTENCE (SNP visible at
+     * ≥15°). The former backhaulFactor elevation ramp was removed (L-O2): the
+     * feeder's capacity impact is modeled by the Ka feeder link budget
+     * bounding the shared beam pool, not by scaling user throughput.
+     */
     deliveredDownlinkMbps: number;
     /** RF chain internals for developer diagnostics. Never shown in normal UI. */
     debugInfo: LeoBeamDebugInfo;
@@ -511,13 +517,9 @@ export function estimateCurrentLeoBeamLink(args: {
         const limitingElevationDeg = snpElevationDeg != null
             ? Math.min(userElevationDeg, snpElevationDeg)
             : userElevationDeg;
-        const backhaulFactor = snpElevationDeg == null
-            ? 0
-            : limitingElevationDeg < 15
-                ? 0
-                : limitingElevationDeg >= 50
-                    ? 1
-                    : (limitingElevationDeg - 15) / (50 - 15);
+        // L-O2: no elevation ramp — the feeder either exists (SNP ≥ 15°) or it
+        // doesn't; its capacity impact is the Ka feeder budget's job.
+        const feederAvailable = snpElevationDeg != null && snpElevationDeg >= MIN_SNP_GATEWAY_ELEVATION_DEG;
 
         return {
             beamIndex,
@@ -527,8 +529,7 @@ export function estimateCurrentLeoBeamLink(args: {
             userElevationDeg,
             snpElevationDeg,
             limitingElevationDeg,
-            backhaulFactor,
-            deliveredDownlinkMbps: beamLink.deliveredThroughputMbps * backhaulFactor,
+            deliveredDownlinkMbps: feederAvailable ? beamLink.deliveredThroughputMbps : 0,
             debugInfo: {
                 fsplDb: perf.fsplDb,
                 cnDb: perf.cnDb,

@@ -6,7 +6,7 @@ export type LeoBottleneckFactor =
   | 'modcod'
   | 'terminal'
   | 'beam sharing'
-  | 'backhaul'
+  | 'feeder'
   | 'handover'
   | 'regulatory'
   | 'service gate'
@@ -37,9 +37,17 @@ export interface LeoNetworkLayerBreakdown {
   peakRfMbps: number;
   terminalCapMbps: number;
   activeUsers: number;
+  /** Per-user share after the beam pool (public aggregate, RF-implied and Ka feeder bounds) is divided (Mbps). */
   beamSharingMbps: number;
-  backhaulFactor: number;
-  backhaulMbps: number;
+  /**
+   * Ka feeder capacity for the direction carrying this traffic (Mbps, L-O2);
+   * null when no feeder model applied (no SNP).
+   */
+  feederCapacityMbps: number | null;
+  /** Weakest-direction Ka feeder C/N margin (dB); null when no feeder model applied. */
+  feederMarginDb: number | null;
+  /** True when the feeder capacity — not RF or the public aggregate — bounded the beam pool. */
+  feederLimited: boolean;
   handoverFactor: number;
   handoverMbps: number;
   smoothingAlpha: number;

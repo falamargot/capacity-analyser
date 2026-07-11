@@ -82,7 +82,7 @@ const simulationState = buildSimulationStateSnapshot({
   hsBeams: new Set<number>(),
 });
 
-const snp: SNPData = { name: 'Test SNP', ...pointEastOfSubpoint(170), region: 'Test' };
+const snp: SNPData = { id: 'test-snp', name: 'Test SNP', ...pointEastOfSubpoint(170), region: 'Test', status: 'active' };
 
 function buildEvidenceInput(overrides: Partial<Parameters<typeof buildActiveLeoRouteEvidence>[0]> = {}) {
   const sat = makeSatellite();
@@ -171,9 +171,9 @@ describe('L-B1 — site-to-site Site B throughput derives from Site B\'s own RF 
     expect(debugB).toBeTruthy();
 
     for (const leg of [debugB!.downlink, debugB!.uplink]) {
-      // finalUserMbps must be the leg's own backhaul-adjusted shared value —
+      // finalUserMbps must be the leg's own shared (feeder-bounded) value —
       // before the fix it was pinned to a Site-A-derived number.
-      expect(leg.network.finalUserMbps).toBeCloseTo(leg.network.backhaulMbps, 6);
+      expect(leg.network.finalUserMbps).toBeCloseTo(leg.network.beamSharingMbps, 6);
     }
 
     // And B's RF legs also carry B's real slant range (L-M2 at Site B).

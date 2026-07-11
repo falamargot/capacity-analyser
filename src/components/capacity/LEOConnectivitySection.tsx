@@ -120,34 +120,9 @@ function detectLegLimitingFactor(leg: LeoThroughputLeg): LimitingFactor {
     : leg.network.bottleneck;
 }
 
-function deriveLegLimitingFactor(leg: LeoThroughputLeg): LimitingFactor {
-  // Backhaul: SNP elevation reduces throughput by >25% after sharing
-  const backhaulRatio = leg.network.beamSharingMbps > 0
-    ? leg.network.backhaulMbps / leg.network.beamSharingMbps
-    : 1;
-  if (backhaulRatio < 0.75) return 'backhaul';
-
-  // Load: many concurrent users reduce per-user share >20% below single-user peak
-  const loadRatio = leg.network.peakRfMbps > 0
-    ? leg.network.beamSharingMbps / leg.network.peakRfMbps
-    : 1;
-  if (loadRatio < 0.8) return 'beam sharing';
-
-  if (leg.rf.terminalScanLossDb <= -3) return 'scan loss';
-  if (leg.rf.modcod == null || leg.rf.cnDb < 18.5) return 'modcod';
-
-  // RF: low C/N or low MODCOD (carrier below 16APSK territory)
-  if (leg.rf.cnDb < 14.5 || leg.rf.rfChainThroughputMbps < 50) return 'rf';
-
-  // Terminal: hardware ceiling is the active constraint (sharing result is at cap)
-  if (leg.network.beamSharingMbps >= leg.network.terminalCapMbps * 0.97) return 'terminal';
-
-  return null;
-}
-
 const LIMITING_FACTOR_BADGE: Record<NonNullable<LimitingFactor>, { label: string; className: string }> = {
-  backhaul: {
-    label: 'Backhaul limited',
+  feeder: {
+    label: 'Feeder limited (Ka)',
     className: 'bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-700',
   },
   'beam sharing': {
@@ -165,6 +140,10 @@ const LIMITING_FACTOR_BADGE: Record<NonNullable<LimitingFactor>, { label: string
   modcod: {
     label: 'MODCOD limited',
     className: 'bg-rose-100 text-rose-700 border-rose-200 dark:bg-rose-900/30 dark:text-rose-300 dark:border-rose-700',
+  },
+  handover: {
+    label: 'Handover limited',
+    className: 'bg-sky-100 text-sky-700 border-sky-200 dark:bg-sky-900/30 dark:text-sky-400 dark:border-sky-700',
   },
   terminal: {
     label: 'Terminal limited',
@@ -214,7 +193,7 @@ const LeoLinkBudgetSummaryCard = ({ debugInfo, highlighted = false, onToggle }: 
                 <span className={`ml-2 rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${tone.className}`}>
                   {tone.label}
                 </span>
-                <SectionTooltip content="LEO RF and network summary. Open the detail panel to inspect beam geometry, FSPL, C/N, MODCOD, RF chain throughput, beam sharing, backhaul, handover, and smoothing." />
+                <SectionTooltip content="LEO RF and network summary. Open the detail panel to inspect beam geometry, FSPL, C/N, MODCOD, RF chain throughput, beam sharing, the Ka feeder budget, handover, and smoothing." />
               </span>
             </div>
             <h4 className="mt-1.5 truncate text-sm font-semibold text-slate-950 dark:text-slate-50">
@@ -369,11 +348,11 @@ const DirectionBudgetSection = ({
   primaryDirectionLabel?: string;
   compact?: boolean;
 }) => {
-  const limitingFactor = detectLegLimitingFactor(leg) ?? deriveLegLimitingFactor(leg);
+  const limitingFactor = detectLegLimitingFactor(leg);
   const badge = limitingFactor ? LIMITING_FACTOR_BADGE[limitingFactor] : null;
   const sharingLimiting = leg.network.beamSharingMbps < leg.network.peakRfMbps * 0.99;
-  const backhaulLimiting = leg.network.backhaulMbps < leg.network.beamSharingMbps * 0.99;
-  const handoverLimiting = leg.network.handoverMbps < leg.network.backhaulMbps * 0.99;
+  const feederLimiting = leg.network.feederLimited;
+  const handoverLimiting = leg.network.handoverMbps < leg.network.beamSharingMbps * 0.99;
   const usageLabel = usage === 'primary'
     ? `PRIMARY FOR ${primaryDirectionLabel ?? ''}`.trim()
     : usage === 'reference'
@@ -406,7 +385,6 @@ const DirectionBudgetSection = ({
   const networkRows = [
     ['Peak RF', leg.network.peakRfMbps],
     ['Beam share', leg.network.beamSharingMbps],
-    [leg.direction === 'downlink' ? 'Backhaul' : 'Feeder', leg.network.backhaulMbps],
     ['Handover', leg.network.handoverMbps],
   ];
 
@@ -447,7 +425,7 @@ const DirectionBudgetSection = ({
             <div className="flex items-center justify-between gap-2">
               <span className="text-[10px] font-semibold text-slate-300 flex items-center gap-0.5">
                 RF chain throughput
-                <SectionTooltip content="Physical-layer throughput on the reference carrier/allocation. It comes from FSPL, C/N and MODCOD before beam sharing, backhaul, handover or smoothing." />
+                <SectionTooltip content="Physical-layer throughput on the reference carrier/allocation. It comes from FSPL, C/N and MODCOD before beam sharing, the Ka feeder bound, handover or smoothing." />
               </span>
               <span className="shrink-0 font-mono text-base font-semibold tabular-nums text-slate-100">
                 {leg.rf.rfChainThroughputMbps.toFixed(1)}
@@ -462,7 +440,13 @@ const DirectionBudgetSection = ({
           <div className="grid grid-cols-2 gap-1.5">
             <CockpitTile label="Active users" value={leg.network.activeUsers} tone="violet" />
             <CockpitTile label="Terminal cap" value={`${leg.network.terminalCapMbps.toFixed(0)} Mbps`} tone="violet" />
-            <CockpitTile label={leg.direction === 'downlink' ? 'Backhaul factor' : 'Feeder factor'} value={leg.network.backhaulFactor.toFixed(2)} tone="violet" />
+            <CockpitTile
+              label="Feeder margin (Ka)"
+              value={leg.network.feederMarginDb != null
+                ? `${leg.network.feederMarginDb.toFixed(1)} dB${leg.network.feederLimited ? ' · LIMITED' : ''}`
+                : '—'}
+              tone={leg.network.feederLimited ? 'amber' : 'violet'}
+            />
             <CockpitTile label="Handover factor" value={leg.network.handoverFactor.toFixed(2)} tone="violet" />
           </div>
         </div>
@@ -518,10 +502,8 @@ const DirectionBudgetSection = ({
                       <SectionTooltip content="RF ceiling after scaling the reference allocation to usable beam bandwidth, then applying the direction-specific terminal cap." />
                     </span>
                     <span className="font-mono text-[9px] tabular-nums text-slate-300">{leg.network.peakRfMbps.toFixed(1)} Mbps</span>
-                    <PipelineArrow label="÷ beam sharing" isLimiting={sharingLimiting} />
+                    <PipelineArrow label="÷ beam sharing · Ka feeder bound" isLimiting={sharingLimiting || feederLimiting} />
                     <PipelineStep value={leg.network.beamSharingMbps} dimmed />
-                    <PipelineArrow label={leg.direction === 'downlink' ? '× backhaul factor' : '× feeder/gateway factor'} isLimiting={backhaulLimiting} />
-                    <PipelineStep value={leg.network.backhaulMbps} dimmed />
                     <PipelineArrow label="× handover" isLimiting={handoverLimiting} />
                     <PipelineStep value={leg.network.handoverMbps} dimmed />
                     <PipelineArrow label="EMA smoothing" />
@@ -535,7 +517,7 @@ const DirectionBudgetSection = ({
                 <div className="min-w-0">
                   <span className="flex items-center gap-0.5 text-[9px] font-semibold text-slate-300">
                     Final user
-                    <SectionTooltip content="Effective user throughput after all network constraints: beam sharing, gateway/backhaul factor, handover transient and EMA temporal smoothing." />
+                    <SectionTooltip content="Effective user throughput after all network constraints: beam sharing with the Ka feeder bound, handover transient and EMA temporal smoothing." />
                   </span>
                   {badge && (
                     <span className={`mt-1 inline-flex max-w-full items-center truncate rounded border px-1.5 py-0.5 text-[8px] font-semibold ${badge.className}`}>
@@ -1279,7 +1261,7 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
   const estimatedPerformanceSection = (
     <CollapsibleSection
       storageKey="leo-performance"
-      title={<>{isRegulatoryBlocked ? 'Estimated Performance (Diagnostic only)' : 'Estimated Performance (simulated)'}<SectionTooltip content="Final post-network user throughput. Downlink and uplink are computed from separate RF chains, then passed through beam sharing, gateway/backhaul factor, handover transient and EMA smoothing. NOT a measured or guaranteed value." /></>}
+      title={<>{isRegulatoryBlocked ? 'Estimated Performance (Diagnostic only)' : 'Estimated Performance (simulated)'}<SectionTooltip content="Final post-network user throughput. Downlink and uplink are computed from separate RF chains, then passed through beam sharing with the Ka feeder bound, handover transient and EMA smoothing. NOT a measured or guaranteed value." /></>}
       subtitle={isRegulatoryBlocked ? blockedDiagnosticMessage : undefined}
       accentColor="#db2777"
       defaultOpen={true}

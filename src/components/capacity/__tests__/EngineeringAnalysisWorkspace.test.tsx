@@ -109,10 +109,11 @@ const makeLeoLeg = (
     terminalCapMbps: direction === 'downlink' ? 200 : 50,
     activeUsers: 14,
     beamSharingMbps: finalUserMbps <= 0 ? 0 : 36,
-    backhaulFactor: 0.9,
-    backhaulMbps: finalUserMbps <= 0 ? 0 : 32,
+    feederCapacityMbps: 930,
+    feederMarginDb: 11.5,
+    feederLimited: false,
     handoverFactor: 1,
-    handoverMbps: finalUserMbps <= 0 ? 0 : 32,
+    handoverMbps: finalUserMbps <= 0 ? 0 : 36,
     smoothingAlpha: 0.3,
     finalUserMbps,
     bottleneck: finalUserMbps <= 0 ? 'rf' : 'beam sharing',
@@ -316,7 +317,7 @@ describe('EngineeringAnalysisWorkspace render smoke tests', () => {
     expect(html).toContain('LEO single-site closure');
     expect(html).toContain('MODCOD / RF throughput');
     expect(html).toContain('Shared beam capacity');
-    expect(html).toContain('Simulated network load');
+    expect(html).toContain('Feeder (Ka)');
     expect(html).toContain('Terminal cap');
     expect(html).toContain('Protocol / handover');
     expect(html).toContain('Delivered throughput');

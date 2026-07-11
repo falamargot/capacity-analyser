@@ -50,6 +50,12 @@ export interface BeamCapacitySharingOptions {
   usableBeamBandwidthHz?: number;
   /** Public/assumed aggregate shared beam capacity for this direction. */
   sharedBeamCapacityMbps?: number;
+  /**
+   * Ka feeder capacity for the direction carrying this traffic (Mbps, L-O2).
+   * The feeder carries the whole beam's traffic, so it bounds the BEAM POOL
+   * before per-user division. Omit when no feeder model applies.
+   */
+  feederCapacityMbps?: number;
 }
 
 export interface BeamCapacitySharingResult {
@@ -67,6 +73,8 @@ export interface BeamCapacitySharingResult {
   wasTerminalLimited: boolean;
   /** True when beam load reduced per-user throughput below the single-user RF ceiling */
   wasBeamLoadLimited: boolean;
+  /** True when the Ka feeder capacity — not RF quality or the public aggregate — bounded the beam pool (L-O2). */
+  wasFeederLimited: boolean;
 }
 
 /**
@@ -103,9 +111,11 @@ export function applyBeamCapacitySharing(
   const usableBeamBandwidthHz = Math.max(referenceBandwidthHz, normalizedOptions.usableBeamBandwidthHz ?? RF_NOISE_BW_HZ);
   const bandwidthScale = usableBeamBandwidthHz / referenceBandwidthHz;
   const rfLimitedBeamCapacityMbps = Math.max(0, rfChainThroughputMbps * bandwidthScale);
+  // L-O2: the Ka feeder bounds the whole beam pool before per-user division.
+  const feederCapacityMbps = normalizedOptions.feederCapacityMbps ?? Number.POSITIVE_INFINITY;
   const beamTotalThroughputMbps = rfChainThroughputMbps <= 0
     ? 0
-    : Math.min(sharedBeamCapacityMbps, rfLimitedBeamCapacityMbps);
+    : Math.min(sharedBeamCapacityMbps, rfLimitedBeamCapacityMbps, feederCapacityMbps);
   const users = Math.max(1, Math.round(estimatedActiveUsers));
   const rawPerUserMbps = beamTotalThroughputMbps / users;
   const sharedThroughputMbps = Math.max(0, Math.min(rawPerUserMbps, terminalMaxMbps));
@@ -118,6 +128,8 @@ export function applyBeamCapacitySharing(
     activeUsers: users,
     wasTerminalLimited: rawPerUserMbps > terminalMaxMbps,
     wasBeamLoadLimited: rawPerUserMbps < rfChainThroughputMbps,
+    wasFeederLimited: rfChainThroughputMbps > 0
+      && feederCapacityMbps < Math.min(sharedBeamCapacityMbps, rfLimitedBeamCapacityMbps),
   };
 }
 

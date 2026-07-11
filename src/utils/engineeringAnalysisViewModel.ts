@@ -358,7 +358,7 @@ export function buildLeoEngineeringAnalysisViewModel(input: BuildLeoEngineeringA
   const singleRfThroughput = input.debugInfo?.downlink.rf.rfChainThroughputMbps ?? null;
   const singleBeamShared = input.debugInfo?.downlink.network.beamSharingMbps ?? null;
   const singleAfterTerminal = input.debugInfo
-    ? Math.min(input.debugInfo.downlink.network.backhaulMbps, input.debugInfo.downlink.network.terminalCapMbps)
+    ? Math.min(input.debugInfo.downlink.network.beamSharingMbps, input.debugInfo.downlink.network.terminalCapMbps)
     : null;
   const s2sImpact = primaryThroughputMbps != null
     ? `Delivered ${s2sDirectionLabel} throughput is ${fmtMbps(primaryThroughputMbps)}.`
@@ -424,23 +424,26 @@ export function buildLeoEngineeringAnalysisViewModel(input: BuildLeoEngineeringA
         tone: input.debugInfo.downlink.network.beamSharingMbps < input.debugInfo.downlink.network.peakRfMbps * 0.8 ? 'warn' : 'good',
       },
       {
-        label: 'Network load',
+        label: 'Feeder (Ka)',
         input: fmtMbps(input.debugInfo.downlink.network.beamSharingMbps),
-        transformation: `Apply ${input.debugInfo.downlink.network.backhaulFactor.toFixed(2)} backhaul/load factor.`,
-        output: fmtMbps(input.debugInfo.downlink.network.backhaulMbps),
+        transformation: input.debugInfo.downlink.network.feederLimited
+          ? `Ka feeder capacity ${fmtMbps(input.debugInfo.downlink.network.feederCapacityMbps)} bounds the shared beam pool.`
+          : input.debugInfo.downlink.network.feederMarginDb != null
+            ? `Ka feeder closes with ${input.debugInfo.downlink.network.feederMarginDb.toFixed(1)} dB margin — not limiting.`
+            : 'No feeder budget available.',
+        output: fmtMbps(input.debugInfo.downlink.network.beamSharingMbps),
         inputMbps: input.debugInfo.downlink.network.beamSharingMbps,
-        outputMbps: input.debugInfo.downlink.network.backhaulMbps,
-        loss: fmtThroughputLoss(input.debugInfo.downlink.network.beamSharingMbps, input.debugInfo.downlink.network.backhaulMbps),
-        tone: input.debugInfo.downlink.network.backhaulFactor < 0.85 ? 'warn' : 'good',
+        outputMbps: input.debugInfo.downlink.network.beamSharingMbps,
+        tone: input.debugInfo.downlink.network.feederLimited ? 'warn' : 'good',
       },
       {
         label: 'Terminal cap',
-        input: fmtMbps(input.debugInfo.downlink.network.backhaulMbps),
+        input: fmtMbps(input.debugInfo.downlink.network.beamSharingMbps),
         transformation: `Clamp to ${input.debugInfo.terminal.label} receive capability.`,
         output: fmtMbps(singleAfterTerminal),
-        inputMbps: input.debugInfo.downlink.network.backhaulMbps,
+        inputMbps: input.debugInfo.downlink.network.beamSharingMbps,
         outputMbps: singleAfterTerminal,
-        loss: fmtThroughputLoss(input.debugInfo.downlink.network.backhaulMbps, singleAfterTerminal),
+        loss: fmtThroughputLoss(input.debugInfo.downlink.network.beamSharingMbps, singleAfterTerminal),
       },
       {
         label: 'Protocol/handover',
@@ -513,7 +516,7 @@ export function buildLeoEngineeringAnalysisViewModel(input: BuildLeoEngineeringA
       explanation: isS2S
         ? `${s2sImpact} Source uplink and destination downlink are compared before the SNP/backbone leg is added; investigate the lower access leg first.`
         : input.debugInfo
-          ? `Beam sharing changes the downlink planning rate from ${fmtMbps(singleRfThroughput)} to ${fmtMbps(singleBeamShared)} before backhaul, handover and terminal limits are applied; investigate the largest loss in the closure chain first.`
+          ? `Beam sharing changes the downlink planning rate from ${fmtMbps(singleRfThroughput)} to ${fmtMbps(singleBeamShared)} before feeder, handover and terminal limits are applied; investigate the largest loss in the closure chain first.`
           : 'The workspace will refresh when a serving satellite, beam and SNP path are available.',
       tone: status === 'blocked' ? 'danger' : status === 'marginal' ? 'warn' : status === 'available' ? 'good' : 'default',
     },

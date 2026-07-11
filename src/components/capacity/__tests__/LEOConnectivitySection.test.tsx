@@ -73,8 +73,9 @@ const makeLeoLeg = (
     terminalCapMbps: direction === 'downlink' ? 200 : 50,
     activeUsers: 14,
     beamSharingMbps: finalUserMbps <= 0 ? 0 : 36,
-    backhaulFactor: 0.9,
-    backhaulMbps: finalUserMbps <= 0 ? 0 : 32,
+    feederCapacityMbps: 930,
+    feederMarginDb: 11.5,
+    feederLimited: false,
     handoverFactor: 1,
     handoverMbps: finalUserMbps <= 0 ? 0 : 32,
     smoothingAlpha: 0.3,
@@ -142,8 +143,8 @@ const makeSiteToSiteResult = (overrides: Partial<LeoSiteToSiteResult> = {}): Leo
   servingSatelliteB: makeSatellite('ONEWEB-B'),
   rfAvailableA: true,
   rfAvailableB: true,
-  selectedSnpA: { name: 'Fairbanks', lat: 64.84, lng: -147.72, region: 'Americas' },
-  selectedSnpB: { name: 'Svalbard', lat: 78.22, lng: 15.65, region: 'Europe' },
+  selectedSnpA: { id: 'fairbanks', name: 'Fairbanks', lat: 64.84, lng: -147.72, region: 'Americas', status: 'active' },
+  selectedSnpB: { id: 'svalbard', name: 'Svalbard', lat: 78.22, lng: 15.65, region: 'Europe', status: 'active' },
   regulatoryResultA: null,
   regulatoryResultB: null,
   failureReason: null,
@@ -443,10 +444,10 @@ describe('LEOConnectivitySection topology render smoke tests', () => {
       expect(detailsOpenStateBeforeText(html, 'Backbone Investigation')).toBe(false);
     });
 
-    it('SITE_TO_SITE: keeps Backbone Investigation collapsed when backhaul is the detected bottleneck', () => {
-      const backhaulDebug = {
+    it('SITE_TO_SITE: keeps Backbone Investigation collapsed when the feeder is the detected bottleneck', () => {
+      const feederDebug = {
         ...makeLeoResult(10, 8),
-        mainBottleneck: { factor: 'backhaul' as const, scope: 'DL' as const, label: 'Backhaul' },
+        mainBottleneck: { factor: 'feeder' as const, scope: 'DL' as const, label: 'DL feeder' },
       } as LeoThroughputResult;
       const html = renderToStaticMarkup(
         <LEOConnectivitySection
@@ -456,7 +457,7 @@ describe('LEOConnectivitySection topology render smoke tests', () => {
           activeMeshTab="forward"
           isLinkBudgetDrawerOpen
           onLinkBudgetDrawerOpenChange={noop}
-          siteToSiteResult={makeSiteToSiteResult({ debugSiteA: backhaulDebug })}
+          siteToSiteResult={makeSiteToSiteResult({ debugSiteA: feederDebug })}
           leoPerformance={{
             rtt: 120,
             downlinkGbps: 0.010,

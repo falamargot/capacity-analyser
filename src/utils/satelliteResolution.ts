@@ -83,7 +83,8 @@ function assessGatewayLinks(
     return {
         bestSNP: best?.snp ?? null,
         bestElevation: best?.elevation ?? -1,
-        // Match the backhaul-factor curve used by the beam estimator:
+        // Gateway-margin score for candidate ranking only (NOT a throughput
+        // scaler — the Ka feeder budget owns capacity effects, L-O2):
         // 15 deg = just reachable, 50 deg = excellent gateway margin.
         marginScore: best
             ? clamp01((best.elevation - MIN_SNP_GATEWAY_ELEVATION_DEG) / (50 - MIN_SNP_GATEWAY_ELEVATION_DEG))
