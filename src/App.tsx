@@ -104,11 +104,8 @@ import type { CountryOverlayMode } from './types/countryOverlays';
 import type { LinkMode } from './types/linkMode';
 import { LINK_MODE_REQUIRES_POINT_B } from './types/linkMode';
 import {
-  buildGeoRouteViewModel,
-  buildLeoRouteViewModel,
   formatRouteMbps,
   formatRouteMs,
-  routeDirectionFromMeshTab,
 } from './utils/activeRouteViewModel';
 import {
   augmentCandidatesWithSynthesizedDirections,
@@ -125,7 +122,7 @@ import {
 import { supportsStarTrafficTopology } from './utils/geoGroundInfrastructure';
 import { buildGeoRouteAnalysisViewModel } from './utils/geoRouteAnalysisViewModel';
 import { getLeoTerminalProfile } from './config/leoTerminals';
-import { formatLeoSiteToSiteFailureReason, type LeoSiteToSiteFailureReason } from './utils/leoSiteToSiteModel';
+import type { LeoSiteToSiteFailureReason } from './utils/leoSiteToSiteModel';
 import {
   buildActiveLeoRouteEvidence,
   createActiveLeoRouteEvidenceState,
@@ -149,6 +146,7 @@ import {
   scenarioToConnectivityScenarioCard,
 } from './utils/connectivityScenarioCardProjection';
 import { computeEngineeringCameraCompensation } from './utils/engineeringCameraCompensation';
+import type { EngineeringTruth, EngineeringTruthSet } from './utils/engineeringAnalysisViewModel';
 
 const CapacityDetails = lazy(() => import('./components/CapacityDetails'));
 const CommandPalette = lazy(() => import('./components/CommandPalette'));
@@ -357,37 +355,6 @@ function routeToneFromCommercialStatus(status: CommercialTechnologyOption['statu
   if (status === 'degraded') return 'degraded';
   if (status === 'blocked') return 'blocked';
   return 'unknown';
-}
-
-function routeToneFromGeoStatus(status: GeoPointStatus | null): HeaderRouteStatusTone {
-  if (status === 'available') return 'ok';
-  if (status === 'unstable') return 'marginal';
-  if (status === 'gateway_unavailable') return 'degraded';
-  if (status === 'out_of_coverage') return 'blocked';
-  return 'unknown';
-}
-
-function routeToneFromLeoStatus(vm: LeoConnectivityViewModel | null): HeaderRouteStatusTone {
-  if (!vm) return 'unknown';
-  if (vm.serviceStatus === 'ALLOWED') return 'ok';
-  if (vm.serviceStatus === 'DEGRADED') return 'degraded';
-  if (vm.serviceStatus === 'BLOCKED') return 'blocked';
-  return 'unknown';
-}
-
-function geoRouteStatusLabel(status: GeoPointStatus | null): string {
-  if (status === 'available') return 'Available';
-  if (status === 'unstable') return 'Unstable';
-  if (status === 'gateway_unavailable') return 'No Gateway';
-  if (status === 'out_of_coverage') return 'No Signal';
-  return 'Pending';
-}
-
-function leoRouteStatusLabel(vm: LeoConnectivityViewModel | null): string {
-  if (!vm) return 'Pending';
-  if (vm.serviceStatus === 'ALLOWED') return 'Available';
-  if (vm.serviceStatus === 'DEGRADED') return 'Degraded';
-  return 'Blocked';
 }
 
 const compareCandidateLinkMargin = (left: CandidateCoverage, right: CandidateCoverage): number => {
@@ -815,6 +782,7 @@ const App: React.FC = () => {
   const [isMobileAnalysisPanelOpen, setIsMobileAnalysisPanelOpen] = useState(false);
   const [mobileAnalysisDetent, setMobileAnalysisDetent] = useState<MobileAnalysisDetent>('compact');
   const [isMobileAnalysisSummaryReady, setIsMobileAnalysisSummaryReady] = useState(false);
+  const [engineeringTruths, setEngineeringTruths] = useState<EngineeringTruthSet>({});
   const [isSatelliteModalOpen, setIsSatelliteModalOpen] = useState(false);
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
   const [isTargetSourcesMenuOpen, setIsTargetSourcesMenuOpen] = useState(false);
@@ -4380,88 +4348,50 @@ const App: React.FC = () => {
 
     if (!showEngineeringRouteStatus) return undefined;
 
-    const activeDirection = routeDirectionFromMeshTab(activeMeshTab);
-    const leoRoute = buildLeoRouteViewModel({
-      topologyMode: leoTopologyMode,
-      direction: activeDirection,
-      siteToSiteResult: activeLeoSiteToSiteResult,
-      metrics: mobileMetrics?.leo ?? null,
-    });
-    const geoRoute = buildGeoRouteViewModel({
-      linkMode,
-      direction: activeDirection,
-      metrics: mobileMetrics,
-      geoStatus: geoPointStatus,
-    });
-
     const showGeo = satelliteScope === 'GEO' || satelliteScope === 'ALL';
     const showLeo = satelliteScope === 'LEO' || satelliteScope === 'ALL';
-    const geoLimiting = geoPointStatus === 'available'
-      ? 'None'
-      : geoPointStatus === 'unstable'
-        ? 'Low elevation'
-        : geoPointStatus === 'gateway_unavailable'
-          ? 'Gateway unavailable'
-          : geoPointStatus === 'out_of_coverage'
-            ? 'Coverage unavailable'
-            : (geoRoute.statusReason ?? 'No active GEO route');
-    const leoLimiting = leoTopologyMode === 'SITE_TO_SITE'
-      ? (activeLeoSiteToSiteResult?.failureReason
-          ? formatLeoSiteToSiteFailureReason(activeLeoSiteToSiteResult.failureReason)
-          : leoRoute.statusReason ?? 'None')
-      : (leoServiceViewModel && leoServiceViewModel.serviceStatus !== 'ALLOWED'
-          ? leoServiceViewModel.decisionDriverLabel
-          : leoRoute.statusReason ?? 'None');
+    const statusLabel = (truth: EngineeringTruth | undefined) => {
+      if (!truth) return 'Pending';
+      if (truth.state === 'path-unavailable') return 'No path';
+      if (truth.state === 'budget-unavailable') return 'No budget';
+      return truth.state.charAt(0).toUpperCase() + truth.state.slice(1);
+    };
+    const statusTone = (truth: EngineeringTruth | undefined): HeaderRouteStatusTone => {
+      if (!truth || truth.state === 'incomplete' || truth.state === 'path-unavailable' || truth.state === 'budget-unavailable' || truth.state === 'uncertain') return 'unknown';
+      if (truth.state === 'blocked') return 'blocked';
+      if (truth.state === 'constrained' || truth.state === 'degraded') return 'degraded';
+      return 'ok';
+    };
+    const headerItem = (technology: 'GEO' | 'LEO') => {
+      const truth = engineeringTruths[technology];
+      const throughputMetrics = truth?.primaryMetrics.filter((metric) => /throughput/i.test(metric.label)) ?? [];
+      const latency = truth?.primaryMetrics.find((metric) => /latency|rtt/i.test(metric.label));
+      return {
+        technology,
+        statusLabel: statusLabel(truth),
+        statusTone: statusTone(truth),
+        throughput: throughputMetrics[0]?.display ?? '--',
+        upload: throughputMetrics[1]?.display ?? '--',
+        latency: latency?.display ?? '--',
+        limiting: truth?.decisiveFactor ?? (truth?.state === 'available' ? 'None' : truth?.headline ?? 'Pending'),
+        selected: activeConnectivityTab === technology,
+        onSelect: () => handleTechnologyChange(technology),
+      };
+    };
 
     return {
       items: [
-        ...(showGeo ? [{
-          technology: 'GEO' as const,
-          statusLabel: geoRouteStatusLabel(geoPointStatus),
-          statusTone: routeToneFromGeoStatus(geoPointStatus),
-          throughput: formatRouteMbps(geoRoute.throughputMbps),
-          upload: formatRouteMbps(geoRoute.reverseThroughputMbps),
-          latency: formatRouteMs(geoRoute.latencyMs),
-          limiting: geoLimiting,
-          selected: activeConnectivityTab === 'GEO',
-          onSelect: () => handleTechnologyChange('GEO'),
-        }] : []),
-        ...(showLeo ? [{
-          technology: 'LEO' as const,
-          statusLabel: leoTopologyMode === 'SITE_TO_SITE' && activeLeoSiteToSiteResult
-            ? (activeLeoSiteToSiteResult.serviceStatus === 'ALLOWED' ? 'Available'
-              : activeLeoSiteToSiteResult.serviceStatus === 'DEGRADED' ? 'Degraded'
-              : 'Blocked')
-            : leoRouteStatusLabel(leoServiceViewModel),
-          statusTone: leoTopologyMode === 'SITE_TO_SITE' && activeLeoSiteToSiteResult
-            ? (activeLeoSiteToSiteResult.serviceStatus === 'ALLOWED'
-                ? 'ok'
-                : activeLeoSiteToSiteResult.serviceStatus === 'DEGRADED'
-                  ? 'degraded'
-                  : 'blocked')
-            : routeToneFromLeoStatus(leoServiceViewModel),
-          throughput: formatRouteMbps(leoRoute.throughputMbps),
-          upload: formatRouteMbps(leoRoute.reverseThroughputMbps),
-          latency: formatRouteMs(leoRoute.latencyMs),
-          limiting: leoLimiting,
-          selected: activeConnectivityTab === 'LEO',
-          onSelect: () => handleTechnologyChange('LEO'),
-        }] : []),
+        ...(showGeo ? [headerItem('GEO')] : []),
+        ...(showLeo ? [headerItem('LEO')] : []),
       ],
     };
   }, [
     activeCommercialTechnology,
     activeConnectivityTab,
-    activeLeoSiteToSiteResult,
-    activeMeshTab,
     commercialScenarioViewModel,
-    geoPointStatus,
+    engineeringTruths,
     handleTechnologyChange,
     handleCommercialTechnologySelect,
-    leoServiceViewModel,
-    leoTopologyMode,
-    linkMode,
-    mobileMetrics,
     satelliteScope,
     showEngineeringRouteStatus,
     uiMode,
@@ -4472,7 +4402,6 @@ const App: React.FC = () => {
     && engineeringDisplayMode === 'analysis'
     && canUseEngineeringAnalysisView
     && !isFullscreen;
-  const activeEngineeringRouteItem = headerRouteStatus?.items.find((item) => item.selected) ?? headerRouteStatus?.items[0] ?? null;
   const engineeringRouteContext = useMemo(() => {
     const siteAName = activeAnalysisPoint
       ? (commercialScenarioViewModel.siteA?.name ?? formatCoordinates(activeAnalysisPoint))
@@ -4481,6 +4410,7 @@ const App: React.FC = () => {
       ? (commercialScenarioViewModel.siteB?.name ?? formatCoordinates(siteB))
       : null;
     const activeTech = activeConnectivityTab;
+    const activeTruth = engineeringTruths[activeTech];
     const topology = activeTech === 'LEO'
       ? (leoTopologyMode === 'SITE_TO_SITE' ? 'LEO site-to-site' : 'LEO access')
       : linkMode === 'STAR_FORWARD'
@@ -4514,14 +4444,8 @@ const App: React.FC = () => {
       : (siteBName && (linkMode === 'MESH' || linkMode === 'POINT_TO_POINT')
           ? [siteAName, satelliteName, siteBName]
           : [siteAName, satelliteName, groundNode]);
-    const statusTone = activeEngineeringRouteItem?.statusTone ?? 'unknown';
-    const confidence = statusTone === 'ok'
-      ? 'High'
-      : statusTone === 'degraded'
-        ? 'Medium'
-        : statusTone === 'blocked'
-          ? 'Low'
-          : 'Pending';
+    const throughputMetrics = activeTruth?.primaryMetrics.filter((metric) => /throughput/i.test(metric.label)) ?? [];
+    const latencyMetric = activeTruth?.primaryMetrics.find((metric) => /latency|rtt/i.test(metric.label));
 
     return {
       activeTech,
@@ -4531,22 +4455,22 @@ const App: React.FC = () => {
       satelliteName,
       groundNode,
       routeNodes,
-      confidence,
-      availability: activeEngineeringRouteItem?.statusLabel ?? 'Pending',
-      bottleneck: activeEngineeringRouteItem?.limiting ?? 'Pending route model',
-      throughput: activeEngineeringRouteItem?.throughput ?? '--',
-      upload: activeEngineeringRouteItem?.upload ?? '--',
-      latency: activeEngineeringRouteItem?.latency ?? '--',
+      confidence: activeTruth?.confidence?.display ?? activeTruth?.confidence?.label ?? 'Pending',
+      availability: activeTruth?.headline ?? 'Pending',
+      bottleneck: activeTruth?.decisiveFactor ?? (activeTruth?.state === 'available' ? 'None' : 'Pending route model'),
+      throughput: throughputMetrics[0]?.display ?? '--',
+      upload: throughputMetrics[1]?.display ?? '--',
+      latency: latencyMetric?.display ?? '--',
     };
   }, [
     activeCommercialTrafficGeoGateway?.gatewayName,
     activeConnectivityTab,
-    activeEngineeringRouteItem,
     activeAnalysisPoint,
     activeGeoSatellite?.name,
     activeLeoSiteToSiteResult,
     commercialScenarioViewModel.siteA?.name,
     commercialScenarioViewModel.siteB?.name,
+    engineeringTruths,
     leoTopologyMode,
     linkMode,
     resolvedAutoLEO?.name,
@@ -5119,6 +5043,7 @@ const App: React.FC = () => {
       isPointBLeoArmed={isSiteBArmed}
       onArmPointBLeo={() => setIsSiteBArmed(true)}
       activeLeoRouteEvidence={activeLeoRouteEvidence}
+      onEngineeringTruthChange={setEngineeringTruths}
       selectionMotionKey={endpointSelectionMotion?.token}
     />
   );
@@ -5847,6 +5772,7 @@ const App: React.FC = () => {
                     isPointBLeoArmed={isSiteBArmed}
                     onArmPointBLeo={() => setIsSiteBArmed(true)}
                     activeLeoRouteEvidence={activeLeoRouteEvidence}
+                    onEngineeringTruthChange={setEngineeringTruths}
                   />
                 </Suspense>
               </div>
@@ -5940,6 +5866,7 @@ const App: React.FC = () => {
                           onActiveMeshTabChange={handleActiveMeshTabChange}
                           leoTopologyMode={leoTopologyMode}
                           leoSiteToSiteResult={activeLeoSiteToSiteResult}
+                          engineeringTruths={engineeringTruths}
                         />
                       </div>
                       <div className="border-t border-slate-200/80 px-2.5 pb-2 pt-1.5 dark:border-slate-700/80">
@@ -6107,6 +6034,7 @@ const App: React.FC = () => {
                                 isPointBLeoArmed={isSiteBArmed}
                                 onArmPointBLeo={() => setIsSiteBArmed(true)}
                                 activeLeoRouteEvidence={activeLeoRouteEvidence}
+                                onEngineeringTruthChange={setEngineeringTruths}
                                 selectionMotionKey={endpointSelectionMotion?.token}
                               />
                             )}
@@ -6402,6 +6330,7 @@ const App: React.FC = () => {
                           isPointBLeoArmed={isSiteBArmed}
                           onArmPointBLeo={() => setIsSiteBArmed(true)}
                           activeLeoRouteEvidence={activeLeoRouteEvidence}
+                          onEngineeringTruthChange={setEngineeringTruths}
                           selectionMotionKey={endpointSelectionMotion?.token}
                         />
                       )}

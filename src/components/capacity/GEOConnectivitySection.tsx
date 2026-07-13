@@ -1,17 +1,16 @@
 import { memo, useState, useMemo, useEffect, type ReactNode } from 'react';
-import { Gauge, Maximize2, Minimize2, Route, ShieldAlert, ShieldCheck, ShieldX } from 'lucide-react';
-import { PerformancePanel } from '../MetricWidgets';
+import { Maximize2, Minimize2, Route } from 'lucide-react';
 import { SectionTooltip } from '../SectionTooltip';
 import CoverageSelector from '../CoverageSelector';
 import CollapsibleSection from '../layout/CollapsibleSection';
-import TerminalConfig, { TERMINAL_PROFILES, type WeatherType } from './TerminalConfig';
+import TerminalConfig, { type WeatherType } from './TerminalConfig';
 import type { SatelliteData } from '../../types/satellites';
 import type { CandidateCoverage } from '../../types/analysis';
 import type { TerminalType, TerminalRFClassId, TerminalRFCustomParams } from './TerminalConfig';
 import type { LinkMode } from '../../types/linkMode';
 import DualSegmentPanel from './DualSegmentPanel';
 import EngineeringAnalysisWorkspace from './EngineeringAnalysisWorkspace';
-import { getDisplayedThroughput, type DualSegmentResult } from '../../utils/geoDualSegmentBudget';
+import type { DualSegmentResult } from '../../utils/geoDualSegmentBudget';
 import LinkModeSelector from './LinkModeSelector';
 import type { ResolvedGeoGateway, StarTrafficGatewayResolution } from '../../utils/geoConnectivityModel';
 import { getGatewayTrafficStatusNote, getPrimaryControlRoleLabel } from '../globe/GlobeConfig';
@@ -19,13 +18,13 @@ import { formatCoordinates } from '../../utils/formatters';
 import { buildGeoConfidence, type PredictionConfidence } from '../../utils/predictionConfidence';
 import { estimateGeoSatelliteCapacity } from '../../utils/geoCapacityModel';
 import { buildLinkAvailabilityContext, formatLinkAvailabilityContext } from '../../utils/linkAvailabilityContext';
-import { buildGeoEngineeringAnalysisViewModel } from '../../utils/engineeringAnalysisViewModel';
+import { isEngineeringDeliveryState, type EngineeringAnalysisViewModel } from '../../utils/engineeringAnalysisViewModel';
 import { fmtDb, fmtMbps, fmtMs } from '../../utils/engineeringFormat';
 import { ENGINEERING_TERMS } from '../../constants/engineeringTerminology';
 import LatencyBreakdownCard from './shared/LatencyBreakdownCard';
 import LayerHeading from './shared/LayerHeading';
 import { geoMarginToTone } from './shared/linkBudgetTone';
-import AnswerBlock from './shared/AnswerBlock';
+import EngineeringResultSummary from './shared/EngineeringResultSummary';
 
 // ─── Sub-component: Link budget cockpit + detail drawer ──────────────────────
 
@@ -74,7 +73,6 @@ const LinkBudgetSummaryCard = ({
     : linkMode === 'STAR_RETURN'
       ? (uplink ?? downlink)
       : (uplink ?? downlink);
-  const limiting = e2e?.limitingSegment === 'uplink' ? 'Uplink' : e2e?.limitingSegment === 'downlink' ? 'Downlink' : '--';
   const margin = e2e?.endToEndLinkMarginDb;
   const tone = geoMarginToTone(margin);
   const satelliteName = displaySegment?.candidate.satelliteName ?? 'No GEO path';
@@ -92,18 +90,7 @@ const LinkBudgetSummaryCard = ({
         ? 'B→A'
         : 'A→B';
 
-  // Network layer — pick the direction matching the active tab
-  const networkLayer = result
-    ? (activeMeshTab === 'reverse' && result.networkLayer?.reverse
-        ? result.networkLayer.reverse
-        : result.networkLayer?.forward)
-    : null;
   const isMeshOrP2P = linkMode === 'MESH' || linkMode === 'POINT_TO_POINT';
-  // Use final throughput for Mesh/P2P; RF throughput for STAR
-  const displayThroughput = (isMeshOrP2P && networkLayer)
-    ? networkLayer.finalThroughputMbps
-    : e2e?.endToEndThroughputMbps;
-  const throughputLabel = (isMeshOrP2P && networkLayer) ? 'Final Thru.' : 'Throughput';
 
   return (
     <section
@@ -130,7 +117,7 @@ const LinkBudgetSummaryCard = ({
                 Link Budget
                 <DirectionPill dir={linkBudgetDirectionLabel} />
                 <span className={`rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${tone.className}`}>
-                  {tone.label}
+                  RF evidence · {tone.label}
                 </span>
                 <SectionTooltip content="RF link budget analysis showing end-to-end link margin and throughput. Status: Healthy (margin ≥ 2 dB), Marginal (0-2 dB), Blocked (negative margin), or No budget (insufficient data)." />
               </span>
@@ -184,28 +171,8 @@ const LinkBudgetSummaryCard = ({
         </div>
       </div>
 
-      <div className="grid grid-cols-3 gap-px bg-slate-100 dark:bg-slate-800">
-        {[
-          { label: throughputLabel, value: fmtMbps(displayThroughput), icon: Gauge, primary: true },
-          { label: 'Margin', value: fmtDb(margin), icon: Gauge, primary: false },
-          { label: 'Limit', value: limiting, icon: Route, primary: false },
-        ].map((item) => {
-          const Icon = item.icon;
-          return (
-            <div key={item.label} className="min-w-0 bg-white px-3 py-3 dark:bg-slate-900">
-              <div className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">
-                <Icon className="h-3.5 w-3.5" />
-                <span>{item.label}</span>
-              </div>
-              <div
-                className={`mt-1 truncate font-bold tabular-nums text-slate-950 dark:text-slate-50 ${item.primary ? 'text-lg' : 'text-sm'}`}
-                style={item.label === 'Margin' ? { color: tone.accent } : undefined}
-              >
-                {item.value}
-              </div>
-            </div>
-          );
-        })}
+      <div className="border-t border-slate-100 bg-slate-50/60 px-3.5 py-2 text-[10px] leading-4 text-slate-500 dark:border-slate-800 dark:bg-slate-900/70 dark:text-slate-400">
+        Open to inspect segment C/N, margin, MODCOD, RF potential, and network shaping evidence.
       </div>
     </section>
   );
@@ -222,6 +189,7 @@ interface LinkBudgetDrawerProps {
   onMeshTabChange?: (tab: 'forward' | 'reverse') => void;
   satelliteName?: string;
   satellite?: SatelliteData | null;
+  viewModel?: EngineeringAnalysisViewModel;
   latencyMs?: number | null;
   latencyLabel?: string;
   availabilityLabel?: string;
@@ -258,10 +226,11 @@ const LinkBudgetDrawer = ({
   confidence,
   coverageLabels,
   satellite,
+  viewModel: providedViewModel,
 }: LinkBudgetDrawerProps) => {
   if (!open) return null;
 
-  const viewModel = buildGeoEngineeringAnalysisViewModel({
+  const viewModel = providedViewModel ?? buildGeoEngineeringAnalysisViewModel({
     linkMode,
     result,
     activeMeshTab,
@@ -369,224 +338,10 @@ export interface ResolvedGEOConnectivity {
   beam: any;
 }
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-const formatGeoStabilityTooltip = (elevationDeg: number, isUserLinkUnstable: boolean): string => {
-  const currentRule = isUserLinkUnstable
-    ? 'Current status: Unstable (elevation is below 5 deg).'
-    : elevationDeg >= 40
-      ? 'Current status: High (elevation is at least 40 deg).'
-      : elevationDeg >= 25
-        ? 'Current status: Medium (elevation is between 25 deg and 40 deg).'
-        : elevationDeg >= 5
-          ? 'Current status: Low (elevation is between 5 deg and 25 deg).'
-          : 'Current status: Unstable (elevation is below 5 deg).';
-
-  return `GEO stability rule:
-  - Unstable below 5 deg elevation
-  - Low from 5 deg to below 25 deg
-  - Medium from 25 deg to below 40 deg
-  - High at 40 deg and above
-Current elevation: ${elevationDeg.toFixed(1)} deg.
-${currentRule}`;
-};
-
-
-// ─── GEO Service Status Card ─────────────────────────────────────────────────
-
-const geoToneClasses = {
-  success: {
-    border: 'border-emerald-300/90 dark:border-emerald-400/30',
-    panel: 'bg-[linear-gradient(165deg,rgba(236,253,245,0.96),rgba(255,255,255,0.94),rgba(240,253,250,0.9))] dark:bg-[linear-gradient(160deg,rgba(6,78,59,0.26),rgba(15,23,42,0.95))]',
-    halo: 'bg-[radial-gradient(circle_at_top_right,rgba(52,211,153,0.2),transparent_34%),radial-gradient(circle_at_bottom_left,rgba(45,212,191,0.12),transparent_28%)] dark:bg-[radial-gradient(circle_at_top_right,rgba(16,185,129,0.24),transparent_34%),radial-gradient(circle_at_bottom_left,rgba(45,212,191,0.14),transparent_28%)]',
-    iconShell: 'bg-emerald-100 text-emerald-700 ring-1 ring-emerald-200 dark:bg-emerald-500/14 dark:text-emerald-200 dark:ring-emerald-400/20',
-    badge: 'text-[10px] font-bold uppercase tracking-[0.18em] text-emerald-700 dark:text-emerald-300',
-    dot: 'bg-emerald-400',
-    tile: 'border-emerald-200/90 bg-white/74 dark:border-emerald-400/20 dark:bg-emerald-500/8',
-    tileText: 'text-emerald-700 dark:text-emerald-300',
-  },
-  warning: {
-    border: 'border-amber-300/90 dark:border-amber-400/30',
-    panel: 'bg-[linear-gradient(165deg,rgba(255,251,235,0.98),rgba(255,255,255,0.94),rgba(255,247,237,0.9))] dark:bg-[linear-gradient(160deg,rgba(120,53,15,0.20),rgba(15,23,42,0.95))]',
-    halo: 'bg-[radial-gradient(circle_at_top_right,rgba(251,191,36,0.2),transparent_34%),radial-gradient(circle_at_bottom_left,rgba(249,115,22,0.1),transparent_28%)] dark:bg-[radial-gradient(circle_at_top_right,rgba(251,191,36,0.24),transparent_34%),radial-gradient(circle_at_bottom_left,rgba(249,115,22,0.14),transparent_28%)]',
-    iconShell: 'bg-amber-100 text-amber-700 ring-1 ring-amber-200 dark:bg-amber-500/14 dark:text-amber-100 dark:ring-amber-400/20',
-    badge: 'text-[10px] font-bold uppercase tracking-[0.18em] text-amber-700 dark:text-amber-200',
-    dot: 'bg-amber-400',
-    tile: 'border-amber-200/90 bg-white/74 dark:border-amber-400/18 dark:bg-amber-500/8',
-    tileText: 'text-amber-700 dark:text-amber-200',
-  },
-  danger: {
-    border: 'border-rose-300/90 dark:border-rose-400/30',
-    panel: 'bg-[linear-gradient(165deg,rgba(255,241,242,0.98),rgba(255,255,255,0.94),rgba(254,242,242,0.9))] dark:bg-[linear-gradient(160deg,rgba(127,29,29,0.20),rgba(15,23,42,0.95))]',
-    halo: 'bg-[radial-gradient(circle_at_top_right,rgba(251,113,133,0.18),transparent_34%),radial-gradient(circle_at_bottom_left,rgba(244,63,94,0.1),transparent_28%)] dark:bg-[radial-gradient(circle_at_top_right,rgba(251,113,133,0.22),transparent_34%),radial-gradient(circle_at_bottom_left,rgba(244,63,94,0.14),transparent_28%)]',
-    iconShell: 'bg-rose-100 text-rose-700 ring-1 ring-rose-200 dark:bg-rose-500/14 dark:text-rose-100 dark:ring-rose-400/20',
-    badge: 'text-[10px] font-bold uppercase tracking-[0.18em] text-rose-700 dark:text-rose-200',
-    dot: 'bg-rose-400',
-    tile: 'border-rose-200/90 bg-white/74 dark:border-rose-400/18 dark:bg-rose-500/8',
-    tileText: 'text-rose-700 dark:text-rose-200',
-  },
-  neutral: {
-    border: 'border-slate-300/90 dark:border-slate-400/25',
-    panel: 'bg-[linear-gradient(165deg,rgba(248,250,252,0.98),rgba(255,255,255,0.95),rgba(241,245,249,0.92))] dark:bg-[linear-gradient(160deg,rgba(30,41,59,0.88),rgba(15,23,42,0.96))]',
-    halo: 'bg-[radial-gradient(circle_at_top_right,rgba(148,163,184,0.14),transparent_34%)] dark:bg-[radial-gradient(circle_at_top_right,rgba(148,163,184,0.16),transparent_34%)]',
-    iconShell: 'bg-slate-100 text-slate-700 ring-1 ring-slate-200 dark:bg-slate-500/14 dark:text-slate-100 dark:ring-slate-400/20',
-    badge: 'text-[10px] font-bold uppercase tracking-[0.18em] text-slate-700 dark:text-slate-200',
-    dot: 'bg-slate-400',
-    tile: 'border-slate-200/90 bg-white/78 dark:border-slate-400/18 dark:bg-slate-500/8',
-    tileText: 'text-slate-700 dark:text-slate-200',
-  },
-} as const;
-
-type GeoTone = keyof typeof geoToneClasses;
-
-interface GeoStatusTileProps {
-  label: string;
-  value: string;
-  detail?: string;
-  tone: GeoTone;
-}
-
-const GeoStatusTile = ({ label, value, detail, tone }: GeoStatusTileProps) => {
-  const c = geoToneClasses[tone];
-  return (
-    <div className={`rounded-xl border px-3 py-2 shadow-[0_18px_38px_-32px_rgba(15,23,42,0.9)] ${c.tile}`}>
-      <div className="flex w-full flex-col items-start gap-1">
-        <span className="shrink-0 text-[9px] font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
-          {label}
-        </span>
-        <span className={`max-w-full text-[12px] font-semibold leading-4 ${c.tileText} whitespace-normal break-words`}>
-          {value}
-        </span>
-      </div>
-      {detail && (
-        <p className="mt-0.5 text-[10px] leading-3.5 text-slate-600 dark:text-slate-300/80">
-          {detail}
-        </p>
-      )}
-    </div>
-  );
-};
-
-interface GeoStatusCardProps {
-  dualSegmentResult: DualSegmentResult | null;
-  resolvedGEOConnectivity: ResolvedGEOConnectivity | null;
-  geoGeometry: GEOGeometry | null;
-  linkMode: LinkMode;
-  activeMeshTab: 'forward' | 'reverse';
-  isMeshOrP2P: boolean;
-  gatewayName: string;
-}
-
-const GeoStatusCard = memo(({
-  dualSegmentResult,
-  resolvedGEOConnectivity,
-  geoGeometry,
-  linkMode,
-  activeMeshTab,
-  isMeshOrP2P,
-  gatewayName,
-}: GeoStatusCardProps) => {
-  const activeDir = dualSegmentResult
-    ? (activeMeshTab === 'reverse' && dualSegmentResult.reverse
-        ? dualSegmentResult.reverse
-        : dualSegmentResult.forward)
-    : null;
-  const e2e = activeDir?.endToEnd ?? null;
-  const margin = e2e?.endToEndLinkMarginDb ?? null;
-
-  const tone: GeoTone =
-    typeof margin !== 'number' || !isFinite(margin)
-      ? 'neutral'
-      : margin < 0 ? 'danger'
-      : margin < 2 ? 'warning'
-      : 'success';
-  const c = geoToneClasses[tone];
-
-  const StatusIcon = tone === 'success' ? ShieldCheck : tone === 'warning' ? ShieldAlert : tone === 'danger' ? ShieldX : ShieldX;
-
-  const primaryStatusLabel =
-    tone === 'success' ? 'Healthy'
-    : tone === 'warning' ? 'Marginal'
-    : tone === 'danger' ? 'Blocked'
-    : 'No coverage';
-
-  const primaryReasonLabel =
-    tone === 'success' ? 'Link margin within spec'
-    : tone === 'warning' ? 'Low margin — service degraded'
-    : tone === 'danger' ? 'Negative margin — link cannot close'
-    : resolvedGEOConnectivity ? 'No RF budget available'
-    : 'No satellite path found';
-
-  const statusSummary =
-    tone === 'success' ? 'GEO RF chain is healthy end-to-end. Service is available.'
-    : tone === 'warning' ? 'Link is feasible but margin is thin. Quality may be affected.'
-    : tone === 'danger' ? 'RF chain cannot close. Service is not available at this time.'
-    : 'No GEO beam covers this location, or no link budget has been computed.';
-
-  // RF tile
-  const rfValue = margin != null ? `${margin >= 0 ? '+' : ''}${margin.toFixed(1)} dB` : '--';
-  const rfTileTone: GeoTone = tone === 'neutral' ? 'neutral' : tone;
-
-  // Capacity tile — mode description + throughput
-  const throughputMbps = activeDir
-    ? (isMeshOrP2P && dualSegmentResult
-        ? getDisplayedThroughput(dualSegmentResult, activeMeshTab === 'reverse' ? 'reverse' : 'forward')
-        : e2e?.endToEndThroughputMbps ?? null)
-    : null;
-  const capacityModeLabel =
-    linkMode === 'POINT_TO_POINT' ? 'Dedicated (P2P)'
-    : linkMode === 'MESH' ? 'Shared (MESH)'
-    : linkMode === 'STAR_RETURN' ? 'Star Return'
-    : 'Star Forward';
-  const capacityDetail = throughputMbps != null ? fmtMbps(throughputMbps) : '--';
-
-  // GEO traffic gateway tile
-  const gatewayResolved = gatewayName !== 'Gateway' && gatewayName !== '';
-  const gatewayValue = isMeshOrP2P ? 'Not in path' : (gatewayResolved ? gatewayName : 'Not resolved');
-  const gatewayDetail = isMeshOrP2P
-    ? 'Direct terminal-to-terminal'
-    : gatewayResolved ? 'Reference allocation' : `No eligible ${ENGINEERING_TERMS.GEO.gateway} found`;
-  const gatewayTone: GeoTone = isMeshOrP2P ? 'neutral' : gatewayResolved ? 'success' : 'warning';
-
-  return (
-    <div className={`relative overflow-hidden rounded-2xl border p-3 shadow-[0_22px_54px_-38px_rgba(15,23,42,0.24)] dark:shadow-[0_22px_54px_-38px_rgba(15,23,42,0.9)] ${c.border} ${c.panel}`}>
-      <div className={`pointer-events-none absolute inset-0 ${c.halo}`} />
-      <div className="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-slate-300/80 to-transparent dark:via-white/30" />
-
-      <div className="relative">
-        <div className="flex items-center justify-between gap-2.5">
-          <div className="inline-flex items-center gap-2 rounded-full border border-slate-200/90 bg-white/76 px-2.5 py-1 shadow-[0_12px_26px_-22px_rgba(15,23,42,0.34)] dark:border-white/10 dark:bg-white/6">
-            <span className={`inline-flex h-6 w-6 items-center justify-center rounded-full ${c.iconShell}`}>
-              <StatusIcon className="h-3.5 w-3.5" />
-            </span>
-            <span className={c.badge}>{primaryStatusLabel}</span>
-          </div>
-        </div>
-
-        <div className="mt-2.5">
-          <h4 className="text-[15px] font-semibold tracking-tight text-slate-950 dark:text-white">
-            {primaryReasonLabel}
-          </h4>
-          <p className="mt-0.5 text-[12px] leading-4 text-slate-600 dark:text-slate-300/88">
-            {statusSummary}
-          </p>
-        </div>
-
-        <div className="mt-3 grid grid-cols-1 items-start gap-2 sm:grid-cols-2">
-          <GeoStatusTile label="RF" value={rfValue} detail={primaryStatusLabel} tone={rfTileTone} />
-          <GeoStatusTile label="Capacity" value={capacityModeLabel} detail={capacityDetail} tone="neutral" />
-          <GeoStatusTile label={ENGINEERING_TERMS.GEO.gateway} value={gatewayValue} detail={gatewayDetail} tone={gatewayTone} />
-        </div>
-      </div>
-    </div>
-  );
-});
-
-GeoStatusCard.displayName = 'GeoStatusCard';
-
 // ─── Main component ───────────────────────────────────────────────────────────
 
 interface GEOConnectivitySectionProps {
+  engineeringAnalysisViewModel: EngineeringAnalysisViewModel;
   resolvedGEOConnectivity: ResolvedGEOConnectivity | null;
   geoGeometry: GEOGeometry | null;
   calculateGEOPerformance: (elevationDeg: number) => {
@@ -615,7 +370,6 @@ interface GEOConnectivitySectionProps {
   analysisSource?: 'earth' | 'aircraft';
   aircraftCallsign?: string;
   onSatelliteClick?: (satellite: SatelliteData | null) => void;
-  showEstimatedPerformance?: boolean;
   /** Active link connectivity mode — drives the dual-segment display. */
   linkMode?: LinkMode;
   onLinkModeChange?: (mode: LinkMode) => void;
@@ -663,12 +417,11 @@ interface GEOConnectivitySectionProps {
   onLinkBudgetDetailExpandedChange?: (expanded: boolean) => void;
 }
 
-const ONE_WAY_VISUAL_SCALE_MAX_MS = 350;
-
 // Speed of light used for propagation delay (km/ms)
 const SPEED_OF_LIGHT_KM_PER_MS = 299.792458;
 
 const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
+  engineeringAnalysisViewModel,
   resolvedGEOConnectivity,
   geoGeometry,
   calculateGEOPerformance: _calculateGEOPerformance,
@@ -690,7 +443,6 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
   analysisSource,
   aircraftCallsign,
   onSatelliteClick,
-  showEstimatedPerformance = true,
   linkMode = 'STAR_FORWARD',
   onLinkModeChange,
   dualSegmentResult = null,
@@ -774,7 +526,6 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
     onActiveMeshTabChange?.(tab);
   };
   const userLabel = analysisSource === 'aircraft' && aircraftCallsign ? aircraftCallsign : 'User';
-  const showPerformanceBeforeRadioPath = analysisSource !== 'aircraft';
   const starTrafficGateway = !isMeshOrP2P && (isStarForward || isStarReturn)
     ? starTrafficGatewaySelection
     : null;
@@ -865,15 +616,8 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
     const rttPropagationMs = aToSatMs + satToBMs + bToSatMs + satToAMs;
     const rttTotalMs = rttPropagationMs + modemOverheadMs;
 
-    // Stability = weakest link (min elevation across both endpoints)
     const elevA = fwUl.elevation;
     const elevB = fwDl.elevation;
-    const minElev = Math.min(elevA, elevB);
-    const stability = minElev < 5 ? 'Unstable'
-      : minElev < 25 ? 'Low'
-      : minElev < 40 ? 'Medium'
-      : 'High';
-    const isUnstable = minElev < 5;
 
     // Labels and endpoint data from segment descriptors (already localised)
     const pointALabel = dualSegmentResult.forward.uplink.source.label;
@@ -902,153 +646,11 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
       rttPropagationMs,
       modemOverheadMs,
       rttTotalMs,
-      stability,
-      isUnstable,
-      // Per-direction final throughput (after network layer protocol efficiency + contention)
-      forwardThroughputMbps: getDisplayedThroughput(dualSegmentResult, 'forward'),
-      reverseThroughputMbps: dualSegmentResult.reverse ? getDisplayedThroughput(dualSegmentResult, 'reverse') : null,
     };
   }, [isMeshOrP2P, dualSegmentResult]);
   const meshUnavailableMessage = pointB
     ? `No ${meshDirectionLabel} GEO path available for the active topology.`
     : 'Place Point B to compute MESH link performance';
-
-  const estimatedPerformanceDirectionLabel = isMeshOrP2P
-    ? meshDirectionLabel
-    : starDirectionLabel;
-
-  const estimatedPerformanceSection = (
-    <CollapsibleSection
-      storageKey="geo-performance"
-      title={<>Estimated Performance<DirectionPill dir={estimatedPerformanceDirectionLabel} aggregate={isMeshOrP2P} /><SectionTooltip content="Predicted GEO link throughput derived from the RF link budget. STAR modes show one active direction only. MESH/P2P shows the selected terminal-to-terminal direction with no traffic gateway in the RF path." /></>}
-      accentColor="#2563eb"
-      defaultOpen={true}
-      collapsible={false}
-    >
-      {isMeshOrP2P ? (
-        meshGeometry ? (() => {
-          const selectedThroughputMbps = activeMeshTab === 'reverse'
-            ? meshGeometry.reverseThroughputMbps
-            : meshGeometry.forwardThroughputMbps;
-          const selectedThroughputGbps = selectedThroughputMbps != null
-            ? selectedThroughputMbps / 1000
-            : null;
-          const isReverse = activeMeshTab === 'reverse';
-          if (selectedThroughputGbps == null) {
-            return (
-              <PerformancePanel
-                rtt={null}
-                downlinkGbps={null}
-                uplinkGbps={null}
-                maxDlGbps={TERMINAL_PROFILES[terminalType].maxDlGbps}
-                maxUlGbps={TERMINAL_PROFILES[terminalType].maxUlGbps}
-                accentColor="#2563eb"
-                noDataMessage={meshUnavailableMessage}
-              />
-            );
-          }
-          return (
-            (() => {
-              const selectedLatencyMs = isReverse ? meshGeometry.rvTotalMs : meshGeometry.fwTotalMs;
-              return (
-            <PerformancePanel
-              rtt={selectedLatencyMs}
-              downlinkGbps={isReverse ? null : selectedThroughputGbps}
-              uplinkGbps={isReverse ? selectedThroughputGbps : null}
-              hideUplink={!isReverse}
-              hideDownlink={isReverse}
-              maxDlGbps={TERMINAL_PROFILES[terminalType].maxDlGbps}
-              maxUlGbps={TERMINAL_PROFILES[terminalType].maxUlGbps}
-              stability={meshGeometry.isUnstable ? 'Unstable' : meshGeometry.stability}
-              performanceFactor={1}
-              accentColor="#2563eb"
-              rttMaxMs={ONE_WAY_VISUAL_SCALE_MAX_MS}
-              rttLabel={`${linkMode === 'POINT_TO_POINT' ? 'P2P' : 'Mesh'} ${meshDirectionLabel} latency`}
-              downlinkLabel={`${meshDirectionLabel} throughput`}
-              uplinkLabel={`${meshDirectionLabel} throughput`}
-              stabilityTooltip={`MESH/P2P stability = weakest link.\nPoint A elevation: ${meshGeometry.elevA.toFixed(1)}°\nPoint B elevation: ${meshGeometry.elevB.toFixed(1)}°`}
-            />
-              );
-            })()
-          );
-        })() : (
-          <PerformancePanel
-            rtt={null} downlinkGbps={null} uplinkGbps={null}
-            maxDlGbps={TERMINAL_PROFILES[terminalType].maxDlGbps}
-            maxUlGbps={TERMINAL_PROFILES[terminalType].maxUlGbps}
-            accentColor="#2563eb"
-            noDataMessage={meshUnavailableMessage}
-          />
-        )
-      ) : resolvedGEOConnectivity && geoGeometry ? (
-        // STAR FORWARD / RETURN: only one direction is budgeted by the RF model.
-        // Show that direction's throughput (from the real link budget) + one-way latency.
-        // Round-trip details are not shown here; they belong in the Latency Breakdown section.
-        (() => {
-          const elevDeg = geoGeometry.userToSatellite.elevationDeg;
-          const stability = geoGeometry.isUserLinkUnstable ? 'Unstable'
-            : elevDeg >= 40 ? 'High'
-            : elevDeg >= 25 ? 'Medium'
-            : elevDeg >= 5  ? 'Low'
-            : 'Unstable';
-          const geoStabilityTooltip = formatGeoStabilityTooltip(elevDeg, geoGeometry.isUserLinkUnstable);
-          const throughputMbps = dualSegmentResult?.forward.endToEnd.endToEndThroughputMbps ?? null;
-          const throughputGbps = throughputMbps != null ? throughputMbps / 1000 : null;
-
-          if (isStarForward) {
-            const gwLabel = gatewayDisplayName;
-            return (
-              <PerformancePanel
-                rtt={geoGeometry.oneWayRadioMs}
-                downlinkGbps={throughputGbps}
-                uplinkGbps={null}
-                hideUplink
-                maxDlGbps={TERMINAL_PROFILES[terminalType].maxDlGbps}
-                maxUlGbps={TERMINAL_PROFILES[terminalType].maxUlGbps}
-                stability={stability}
-                performanceFactor={1}
-                accentColor="#2563eb"
-                rttMaxMs={ONE_WAY_VISUAL_SCALE_MAX_MS}
-                rttLabel={`One-way latency (${gwLabel} → ${userLabel})`}
-                downlinkLabel="Forward link throughput"
-                stabilityTooltip={geoStabilityTooltip}
-              />
-            );
-          }
-
-          // STAR_RETURN
-          const gwLabel = gatewayDisplayName;
-          return (
-            <PerformancePanel
-              rtt={geoGeometry.oneWayRadioMs}
-              downlinkGbps={null}
-              uplinkGbps={throughputGbps}
-              hideDownlink
-              maxDlGbps={TERMINAL_PROFILES[terminalType].maxDlGbps}
-              maxUlGbps={TERMINAL_PROFILES[terminalType].maxUlGbps}
-              stability={stability}
-              performanceFactor={1}
-              accentColor="#2563eb"
-              rttMaxMs={ONE_WAY_VISUAL_SCALE_MAX_MS}
-              rttLabel={`One-way latency (${userLabel} → ${gwLabel})`}
-              uplinkLabel="Return link throughput"
-              stabilityTooltip={geoStabilityTooltip}
-            />
-          );
-        })()
-      ) : (
-        <PerformancePanel
-          rtt={null}
-          downlinkGbps={null}
-          uplinkGbps={null}
-          maxDlGbps={TERMINAL_PROFILES[terminalType].maxDlGbps}
-          maxUlGbps={TERMINAL_PROFILES[terminalType].maxUlGbps}
-          accentColor="#2563eb"
-          noDataMessage="No GEO coverage available for the active target"
-        />
-      )}
-    </CollapsibleSection>
-  );
 
   const drawerSatelliteName = dualSegmentResult?.forward.uplink.candidate.satelliteName
     ?? resolvedGEOConnectivity?.satellite.name;
@@ -1148,35 +750,45 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
     uplinkCoverageAtB,
   ]);
 
-  // ── Answer Block (above-the-fold summary) ─────────────────────────────────
-  // Reuses the same derivation already used by LinkBudgetSummaryCard (margin,
-  // displayed throughput, limiting segment) and the same headline-latency
-  // expression passed to LinkBudgetDrawer below, so the compact summary never
-  // disagrees with the detailed cards further down the sidebar.
-  const answerDirection = dualSegmentResult
-    ? (activeMeshTab === 'reverse' && dualSegmentResult.reverse ? dualSegmentResult.reverse : dualSegmentResult.forward)
-    : null;
-  const answerE2E = answerDirection?.endToEnd ?? null;
-  const answerNetworkLayer = dualSegmentResult
-    ? (activeMeshTab === 'reverse' && dualSegmentResult.networkLayer?.reverse
-        ? dualSegmentResult.networkLayer.reverse
-        : dualSegmentResult.networkLayer?.forward)
-    : null;
-  const answerTone = geoMarginToTone(answerE2E?.endToEndLinkMarginDb);
-  const answerThroughputMbps = (isMeshOrP2P && answerNetworkLayer)
-    ? answerNetworkLayer.finalThroughputMbps
-    : answerE2E?.endToEndThroughputMbps;
-  const answerThroughputLabel = (isMeshOrP2P && answerNetworkLayer) ? 'Final Thru.' : 'Throughput';
-  const answerLimitingSegment = answerE2E?.limitingSegment === 'uplink'
-    ? 'Uplink'
-    : answerE2E?.limitingSegment === 'downlink'
-      ? 'Downlink'
-      : '--';
   const headlineLatencyMs = isMeshOrP2P
     ? (meshGeometry ? (activeMeshTab === 'reverse' ? meshGeometry.rvTotalMs : meshGeometry.fwTotalMs) : null)
     : geoStarOneWayTotalMs;
   const headlineLatencyLabel = isMeshOrP2P ? `${meshDirectionLabel} latency` : `${starDirectionLabel} latency`;
-
+  if (!isEngineeringDeliveryState(engineeringAnalysisViewModel.truth.state)) {
+    const showRfEvidence = engineeringAnalysisViewModel.truth.state === 'blocked'
+      || engineeringAnalysisViewModel.truth.state === 'budget-unavailable';
+    return (
+      <>
+        {onLinkModeChange && <div className="mb-4"><LinkModeSelector linkMode={linkMode} onChange={onLinkModeChange} /></div>}
+        <EngineeringResultSummary technology="GEO" truth={engineeringAnalysisViewModel.truth} />
+        {showRfEvidence && (
+          <div className="space-y-4">
+            <LinkBudgetSummaryCard
+              linkMode={linkMode}
+              result={dualSegmentResult}
+              activeMeshTab={isMeshOrP2P ? activeMeshTab : undefined}
+              highlighted={isLinkBudgetDrawerOpen}
+              onToggle={() => setIsLinkBudgetDrawerOpen((open) => !open)}
+            />
+            <LinkBudgetDrawer
+              open={isLinkBudgetDrawerOpen}
+              onClose={() => setIsLinkBudgetDrawerOpen(false)}
+              expanded={isLinkBudgetDetailExpanded}
+              onExpandedChange={onLinkBudgetDetailExpandedChange}
+              linkMode={linkMode}
+              result={dualSegmentResult}
+              activeMeshTab={isMeshOrP2P ? activeMeshTab : undefined}
+              onMeshTabChange={isMeshOrP2P ? setActiveMeshTab : undefined}
+              satelliteName={drawerSatelliteName}
+              satellite={resolvedGEOConnectivity?.satellite ?? null}
+              viewModel={engineeringAnalysisViewModel}
+              coverageLabels={linkBudgetCoverageLabels}
+            />
+          </div>
+        )}
+      </>
+    );
+  }
   return (
     <>
       {onLinkModeChange && (
@@ -1188,18 +800,7 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
         </div>
       )}
 
-      <AnswerBlock
-        accentColor="#2563eb"
-        statusLabel={answerTone.label}
-        statusClassName={answerTone.className}
-        throughputLabel={answerThroughputLabel}
-        throughputValue={fmtMbps(answerThroughputMbps)}
-        latencyLabel={headlineLatencyLabel}
-        latencyValue={fmtMs(headlineLatencyMs, 0)}
-        bottleneckLabel="Bottleneck"
-        bottleneckValue={answerLimitingSegment}
-        confidenceValue={`${geoPredictionConfidence.level} · ${geoPredictionConfidence.score}/100`}
-      />
+      <EngineeringResultSummary technology="GEO" truth={engineeringAnalysisViewModel.truth} />
 
       <LayerHeading title="Access Layer" detail="RF details, terminal characteristics, weather loss, elevation and visibility." />
 
@@ -1388,16 +989,6 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
         );
       })()}
 
-      <GeoStatusCard
-        dualSegmentResult={dualSegmentResult ?? null}
-        resolvedGEOConnectivity={resolvedGEOConnectivity}
-        geoGeometry={geoGeometry}
-        linkMode={linkMode}
-        activeMeshTab={activeMeshTab}
-        isMeshOrP2P={isMeshOrP2P}
-        gatewayName={gatewayName}
-      />
-
       <LayerHeading title="End-to-End Analysis" detail="Final throughput, latency, availability, bottleneck and limiting factor." />
 
       <div className="mt-4 space-y-4">
@@ -1420,6 +1011,7 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
           onMeshTabChange={isMeshOrP2P ? setActiveMeshTab : undefined}
           satelliteName={drawerSatelliteName}
           satellite={resolvedGEOConnectivity?.satellite ?? null}
+          viewModel={engineeringAnalysisViewModel}
           latencyMs={headlineLatencyMs}
           latencyLabel={headlineLatencyLabel}
           availabilityLabel={`${availabilityContext.indicativeAvailabilityPct.toFixed(1)}% indicative`}
@@ -1428,8 +1020,6 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
           confidence={geoPredictionConfidence}
           coverageLabels={linkBudgetCoverageLabels}
         />
-
-        {showEstimatedPerformance && showPerformanceBeforeRadioPath && estimatedPerformanceSection}
 
         {/* Radio Path */}
         <CollapsibleSection
@@ -1678,8 +1268,6 @@ const GEOConnectivitySection = memo<GEOConnectivitySectionProps>(({
             )}
           </LatencyBreakdownCard>
         )}
-        {showEstimatedPerformance && !showPerformanceBeforeRadioPath && estimatedPerformanceSection}
-
       </div>
     </>
   );

@@ -8,6 +8,7 @@ import type { CandidateCoverage } from '../../../types/analysis';
 import type { SatelliteData } from '../../../types/satellites';
 import { GEO_GATEWAYS } from '../../globe/GlobeConfig';
 import { resolveStarTrafficGatewayForCoverage, type StarTrafficGatewaySelection } from '../../../utils/geoConnectivityModel';
+import { buildGeoEngineeringAnalysisViewModel } from '../../../utils/engineeringAnalysisViewModel';
 
 // Regression tripwire for the 4 GEO link-mode topology branches
 // (STAR_FORWARD, STAR_RETURN, MESH, POINT_TO_POINT). Smoke-tests only: assert
@@ -298,6 +299,13 @@ const renderGeoWithStarGateway = ({
 };
 
 const baseProps = {
+  engineeringAnalysisViewModel: buildGeoEngineeringAnalysisViewModel({
+    linkMode: 'STAR_FORWARD',
+    result: makeStarResult(4.5),
+    confidenceLabel: 'High 90/100',
+    scenarioComplete: true,
+    pathResolved: true,
+  }),
   resolvedGEOConnectivity: null,
   geoGeometry: null,
   calculateGEOPerformance: () => ({
@@ -325,11 +333,31 @@ const renderGeo = (linkMode: LinkMode, dualSegmentResult: DualSegmentResult | nu
       {...baseProps}
       linkMode={linkMode}
       dualSegmentResult={dualSegmentResult}
+      engineeringAnalysisViewModel={buildGeoEngineeringAnalysisViewModel({
+        linkMode,
+        result: dualSegmentResult,
+        confidenceLabel: 'High 90/100',
+        latencyMs: linkMode === 'MESH' || linkMode === 'POINT_TO_POINT' ? 290 : 280,
+        scenarioComplete: true,
+        pathResolved: dualSegmentResult != null,
+      })}
       pointB={linkMode === 'MESH' || linkMode === 'POINT_TO_POINT' ? { lat: 10, lng: 20 } : null}
     />
   );
 
 describe('GEOConnectivitySection topology render smoke tests', () => {
+  it.each([
+    ['incomplete', buildGeoEngineeringAnalysisViewModel({ linkMode: 'MESH', result: null, scenarioComplete: false, scenarioIncompleteReason: 'Site B is required' })],
+    ['path-unavailable', buildGeoEngineeringAnalysisViewModel({ linkMode: 'STAR_FORWARD', result: null, scenarioComplete: true, pathResolved: false })],
+    ['budget-unavailable', buildGeoEngineeringAnalysisViewModel({ linkMode: 'STAR_FORWARD', result: null, scenarioComplete: true, pathResolved: true })],
+    ['blocked', buildGeoEngineeringAnalysisViewModel({ linkMode: 'STAR_FORWARD', result: makeStarResult(-1.4), scenarioComplete: true, pathResolved: true })],
+  ])('renders the %s boundary without downstream service sections', (_state, engineeringAnalysisViewModel) => {
+    const html = renderToStaticMarkup(<GEOConnectivitySection {...baseProps} engineeringAnalysisViewModel={engineeringAnalysisViewModel} />);
+    expect(html).toContain('GEO · Authoritative result');
+    expect(html).not.toContain('Access Layer');
+    expect(html).not.toContain('Estimated Performance');
+  });
+
   describe('beam-resolved STAR traffic gateway labels', () => {
     const kvhts = createGeoSatellite('53765', 'EUTELSAT KONNECT VHTS', 2.7);
     const e10b = createGeoSatellite('54259', 'EUTELSAT 10B', 10);
@@ -383,20 +411,31 @@ describe('GEOConnectivitySection topology render smoke tests', () => {
           {...baseProps}
           linkMode="MESH"
           dualSegmentResult={makeMeshResult(3.2, 2.1)}
+          engineeringAnalysisViewModel={buildGeoEngineeringAnalysisViewModel({
+            linkMode: 'MESH',
+            result: makeMeshResult(3.2, 2.1),
+            confidenceLabel: 'High 90/100',
+            latencyMs: 290,
+            latencyLabel: 'A → B latency',
+            scenarioComplete: true,
+            pathResolved: true,
+          })}
           pointB={{ lat: 10, lng: 20 }}
           starTrafficGatewaySelection={selection}
         />
       );
 
-      expect(html).toContain('Not in path');
+      expect(html).toContain('GEO · Authoritative result');
+      expect(html).toContain('A → B throughput');
       expect(html).not.toContain('Scanzano / Palermo');
       expect(html).not.toContain('Traffic Gateway side - Scanzano / Palermo');
     });
   });
 
-  it('renders STAR_FORWARD with throughput, margin and limiting segment', () => {
+  it('renders STAR_FORWARD with delivered throughput, RF margin and limiting segment', () => {
     const html = renderGeo('STAR_FORWARD', makeStarResult(4.5));
-    expect(html).toContain('187 Mbps');
+    expect(html).toContain('18 Mbps');
+    expect(html).toContain('Delivered');
     expect(html).toContain('4.5 dB');
     expect(html).toContain('Downlink');
   });
@@ -407,15 +446,17 @@ describe('GEOConnectivitySection topology render smoke tests', () => {
     expect(html).toContain('-1.4 dB');
   });
 
-  it('renders MESH with the Final Thru. label and forward-direction network throughput', () => {
+  it('renders MESH with the delivered label and forward-direction network throughput', () => {
     const html = renderGeo('MESH', makeMeshResult(3.2, 2.1));
-    expect(html).toContain('Final Thru.');
+    expect(html).toContain('A → B throughput');
+    expect(html).toContain('Delivered');
     expect(html).toContain('92 Mbps');
   });
 
-  it('renders POINT_TO_POINT with the Final Thru. label and forward-direction network throughput', () => {
+  it('renders POINT_TO_POINT with the delivered label and forward-direction network throughput', () => {
     const html = renderGeo('POINT_TO_POINT', makeMeshResult(3.2, 2.1));
-    expect(html).toContain('Final Thru.');
+    expect(html).toContain('A → B throughput');
+    expect(html).toContain('Delivered');
     expect(html).toContain('92 Mbps');
   });
 
@@ -489,24 +530,24 @@ describe('GEOConnectivitySection topology render smoke tests', () => {
 
   });
 
-  describe('Answer Block (above-the-fold summary)', () => {
-    it('renders before Access Layer and surfaces throughput, bottleneck and a confidence score', () => {
+  describe('authoritative result (above-the-fold summary)', () => {
+    it('renders before Access Layer and surfaces verdict, throughput, cause and confidence', () => {
       const html = renderGeo('STAR_FORWARD', makeStarResult(4.5));
 
-      expect(html).toContain('Engineering summary');
-      expect(html.indexOf('Engineering summary')).toBeLessThan(html.indexOf('Access Layer'));
-      expect(html).toContain('Healthy');
-      expect(html).toContain('Bottleneck');
+      expect(html).toContain('GEO · Authoritative result');
+      expect(html.indexOf('GEO · Authoritative result')).toBeLessThan(html.indexOf('Access Layer'));
+      expect(html).toContain('Service available — constrained by shared capacity');
+      expect(html).toContain('Why this result');
       expect(html).toContain('Downlink');
       expect(html).toMatch(/\d+\/100/);
     });
 
     it('shows a non-zero latency for MESH, derived the same way as the link budget drawer', () => {
       const html = renderGeo('MESH', makeMeshResult(3.2, 2.1));
-      const answerBlockHtml = html.slice(html.indexOf('Engineering summary'), html.indexOf('Access Layer'));
+      const resultHtml = html.slice(html.indexOf('GEO · Authoritative result'), html.indexOf('Access Layer'));
 
-      expect(answerBlockHtml).toContain('latency');
-      expect(answerBlockHtml).toMatch(/\d+(\.\d+)? ms/);
+      expect(resultHtml).toContain('latency');
+      expect(resultHtml).toMatch(/\d+(\.\d+)? ms/);
     });
   });
 });

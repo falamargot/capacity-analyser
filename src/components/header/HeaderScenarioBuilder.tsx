@@ -69,6 +69,8 @@ export interface HeaderRouteStatusItem {
 
 export interface HeaderRouteStatus {
   items: HeaderRouteStatusItem[];
+  /** Engineering uses this strip for technology focus only; the sidebar owns the authoritative KPIs. */
+  comparisonOnly?: boolean;
 }
 
 // ─── Select styling ───────────────────────────────────────────────────────────
@@ -550,7 +552,7 @@ function RouteMetric({
   );
 }
 
-function RouteStatusCard({ item }: { item: HeaderRouteStatusItem }) {
+function RouteStatusCard({ item, comparisonOnly = false }: { item: HeaderRouteStatusItem; comparisonOnly?: boolean }) {
   const technologyGradientClass = item.technology === 'GEO'
     ? item.selected
       ? 'border-sky-300/80 bg-[linear-gradient(135deg,rgba(14,165,233,0.26),rgba(8,47,73,0.20)_52%,rgba(15,23,42,0.78))] dark:border-sky-300/55 dark:bg-[linear-gradient(135deg,rgba(14,165,233,0.34),rgba(8,47,73,0.26)_52%,rgba(15,23,42,0.82))]'
@@ -581,13 +583,15 @@ function RouteStatusCard({ item }: { item: HeaderRouteStatusItem }) {
         )}
       </div>
 
-      <div className="mt-1.5 grid min-w-0 grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)] gap-1.5">
-        <RouteMetric icon={<Timer className="h-3.5 w-3.5" aria-hidden="true" />} value={item.latency} label={`${item.technology} latency`} caption="LAT" />
-        <RouteMetric icon={<ArrowDown className="h-3.5 w-3.5" aria-hidden="true" />} value={item.throughput} label={`${item.technology} downlink throughput`} caption="DL" />
-        <RouteMetric icon={<ArrowUp className="h-3.5 w-3.5" aria-hidden="true" />} value={item.upload ?? '—'} label={`${item.technology} uplink throughput`} caption="UL" />
-      </div>
+      {!comparisonOnly && (
+        <div className="mt-1.5 grid min-w-0 grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)] gap-1.5">
+          <RouteMetric icon={<Timer className="h-3.5 w-3.5" aria-hidden="true" />} value={item.latency} label={`${item.technology} latency`} caption="LAT" />
+          <RouteMetric icon={<ArrowDown className="h-3.5 w-3.5" aria-hidden="true" />} value={item.throughput} label={`${item.technology} downlink throughput`} caption="DL" />
+          <RouteMetric icon={<ArrowUp className="h-3.5 w-3.5" aria-hidden="true" />} value={item.upload ?? '—'} label={`${item.technology} uplink throughput`} caption="UL" />
+        </div>
+      )}
 
-      {item.limiting && (
+      {!comparisonOnly && item.limiting && (
         <div className="mt-1.5 min-w-0 truncate text-[10px] font-semibold text-slate-600 dark:text-slate-300" title={item.limiting}>
           {item.limiting}
         </div>
@@ -636,7 +640,7 @@ export function HeaderRouteStatusPanel({
   return (
     <div className={className}>
       {items.map(item => (
-        <RouteStatusCard key={item.technology} item={item} />
+        <RouteStatusCard key={item.technology} item={item} comparisonOnly={routeStatus?.comparisonOnly} />
       ))}
     </div>
   );

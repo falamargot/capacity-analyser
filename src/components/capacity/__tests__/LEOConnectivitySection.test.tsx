@@ -6,6 +6,7 @@ import type { LeoThroughputLeg, LeoThroughputResult } from '../../../types/leoTh
 import type { LeoSiteToSiteResult } from '../../../utils/leoSiteToSiteModel';
 import type { SatelliteData } from '../../../types/satellites';
 import { buildPredictionConfidence, positiveFactor, missingFactor } from '../../../utils/predictionConfidence';
+import { buildLeoEngineeringAnalysisViewModel } from '../../../utils/engineeringAnalysisViewModel';
 
 // Regression tripwire for the 2 LEO topology branches (SINGLE_SITE,
 // SITE_TO_SITE). Smoke-tests only: assert the component renders without
@@ -189,6 +190,15 @@ const makeSiteToSiteResult = (overrides: Partial<LeoSiteToSiteResult> = {}): Leo
 const noop = () => undefined;
 
 const baseProps = {
+  engineeringAnalysisViewModel: buildLeoEngineeringAnalysisViewModel({
+    debugInfo: makeLeoResult(18, 12),
+    topology: 'SINGLE_SITE',
+    latencyMs: 72,
+    confidenceLabel: 'High 90/100',
+    scenarioComplete: true,
+    pathResolved: true,
+    rfStatus: 'available',
+  }),
   resolvedLEOConnectivity: null,
   leoGeometry: null,
   leoPerformance: null,
@@ -216,6 +226,18 @@ const detailsOpenStateBeforeText = (html: string, text: string): boolean => {
 };
 
 describe('LEOConnectivitySection topology render smoke tests', () => {
+  it.each([
+    ['incomplete', buildLeoEngineeringAnalysisViewModel({ debugInfo: null, topology: 'SITE_TO_SITE', scenarioComplete: false, scenarioIncompleteReason: 'Site B is required' })],
+    ['path-unavailable', buildLeoEngineeringAnalysisViewModel({ debugInfo: null, scenarioComplete: true, pathResolved: false })],
+    ['budget-unavailable', buildLeoEngineeringAnalysisViewModel({ debugInfo: null, scenarioComplete: true, pathResolved: true, rfStatus: 'unavailable' })],
+    ['blocked', buildLeoEngineeringAnalysisViewModel({ debugInfo: makeLeoResult(18, 12), scenarioComplete: true, pathResolved: true, rfStatus: 'blocked', rfReason: 'No active RF beam' })],
+  ])('renders the %s boundary without downstream service sections', (_state, engineeringAnalysisViewModel) => {
+    const html = renderToStaticMarkup(<LEOConnectivitySection {...baseProps} engineeringAnalysisViewModel={engineeringAnalysisViewModel} />);
+    expect(html).toContain('LEO · Authoritative result');
+    expect(html).not.toContain('Access Layer');
+    expect(html).not.toContain('Estimated Performance');
+  });
+
   it('renders SINGLE_SITE with Final DL/UL throughput and bottleneck', () => {
     const html = renderToStaticMarkup(
       <LEOConnectivitySection
@@ -243,6 +265,14 @@ describe('LEOConnectivitySection topology render smoke tests', () => {
     const html = renderToStaticMarkup(
       <LEOConnectivitySection
         {...baseProps}
+        engineeringAnalysisViewModel={buildLeoEngineeringAnalysisViewModel({
+          debugInfo: makeLeoResult(0, 0),
+          topology: 'SINGLE_SITE',
+          scenarioComplete: true,
+          pathResolved: true,
+          rfStatus: 'blocked',
+          rfReason: 'RF closure failed',
+        })}
         leoTopologyMode="SINGLE_SITE"
         leoPerformance={{
           rtt: 72,
@@ -267,11 +297,22 @@ describe('LEOConnectivitySection topology render smoke tests', () => {
     )).not.toThrow();
   });
 
-  it('renders SITE_TO_SITE with direction-aware Access A/B throughput in the link budget summary', () => {
+  it('renders SITE_TO_SITE with only the active direction as the primary throughput', () => {
     const html = renderToStaticMarkup(
       <LEOConnectivitySection
         {...baseProps}
         leoTopologyMode="SITE_TO_SITE"
+        engineeringAnalysisViewModel={buildLeoEngineeringAnalysisViewModel({
+          debugInfo: makeLeoResult(75, 55),
+          siteToSiteResult: makeSiteToSiteResult(),
+          topology: 'SITE_TO_SITE',
+          latencyMs: 60,
+          latencyLabel: 'A → B latency',
+          confidenceLabel: 'High 90/100',
+          scenarioComplete: true,
+          pathResolved: true,
+          rfStatus: 'available',
+        })}
         pointBLeo={{ lat: 15, lng: 25 }}
         activeMeshTab="forward"
         siteToSiteResult={makeSiteToSiteResult()}
@@ -290,7 +331,8 @@ describe('LEOConnectivitySection topology render smoke tests', () => {
     );
 
     expect(html).toContain('75 Mbps');
-    expect(html).toContain('55 Mbps');
+    const resultHtml = html.slice(html.indexOf('LEO · Authoritative result'), html.indexOf('Access Layer'));
+    expect(resultHtml).not.toContain('55 Mbps');
   });
 
   it('renders SITE_TO_SITE without throwing when the route is structurally incomplete', () => {
@@ -354,6 +396,17 @@ describe('LEOConnectivitySection topology render smoke tests', () => {
         <LEOConnectivitySection
           {...baseProps}
           leoTopologyMode="SITE_TO_SITE"
+          engineeringAnalysisViewModel={buildLeoEngineeringAnalysisViewModel({
+            debugInfo: makeLeoResult(75, 55),
+            siteToSiteResult: makeSiteToSiteResult(),
+            topology: 'SITE_TO_SITE',
+            latencyMs: 60,
+            latencyLabel: 'A → B latency',
+            confidenceLabel: 'High 90/100',
+            scenarioComplete: true,
+            pathResolved: true,
+            rfStatus: 'available',
+          })}
           pointBLeo={{ lat: 15, lng: 25 }}
           activeMeshTab="forward"
           isLinkBudgetDrawerOpen
@@ -477,8 +530,8 @@ describe('LEOConnectivitySection topology render smoke tests', () => {
     });
   });
 
-  describe('Answer Block (above-the-fold summary)', () => {
-    it('SINGLE_SITE: renders before Access Layer with throughput, bottleneck and a confidence score', () => {
+  describe('authoritative result (above-the-fold summary)', () => {
+    it('SINGLE_SITE: renders before Access Layer with verdict, throughput, cause and confidence', () => {
       const html = renderToStaticMarkup(
         <LEOConnectivitySection
           {...baseProps}
@@ -497,20 +550,31 @@ describe('LEOConnectivitySection topology render smoke tests', () => {
         />
       );
 
-      expect(html).toContain('Engineering summary');
-      expect(html.indexOf('Engineering summary')).toBeLessThan(html.indexOf('Access Layer'));
-      expect(html).toContain('Healthy');
-      expect(html).toContain('Bottleneck');
+      expect(html).toContain('LEO · Authoritative result');
+      expect(html.indexOf('LEO · Authoritative result')).toBeLessThan(html.indexOf('Access Layer'));
+      expect(html).toContain('Service available');
+      expect(html).toContain('Why this result');
       expect(html).toMatch(/\d+\/100/);
 
-      const answerBlockHtml = html.slice(html.indexOf('Engineering summary'), html.indexOf('Access Layer'));
-      expect(answerBlockHtml).toContain('18 Mbps');
+      const resultHtml = html.slice(html.indexOf('LEO · Authoritative result'), html.indexOf('Access Layer'));
+      expect(resultHtml).toContain('18 Mbps');
     });
 
     it('SITE_TO_SITE: shows direction-aware latency in the Answer Block, not only in End-to-End Analysis', () => {
       const html = renderToStaticMarkup(
         <LEOConnectivitySection
           {...baseProps}
+          engineeringAnalysisViewModel={buildLeoEngineeringAnalysisViewModel({
+            debugInfo: makeLeoResult(75, 55),
+            siteToSiteResult: makeSiteToSiteResult(),
+            topology: 'SITE_TO_SITE',
+            latencyMs: 60,
+            latencyLabel: 'A → B latency',
+            confidenceLabel: 'High 90/100',
+            scenarioComplete: true,
+            pathResolved: true,
+            rfStatus: 'available',
+          })}
           leoTopologyMode="SITE_TO_SITE"
           pointBLeo={{ lat: 15, lng: 25 }}
           activeMeshTab="forward"
@@ -529,9 +593,9 @@ describe('LEOConnectivitySection topology render smoke tests', () => {
         />
       );
 
-      const answerBlockHtml = html.slice(html.indexOf('Engineering summary'), html.indexOf('Access Layer'));
-      expect(answerBlockHtml).toContain('75 Mbps');
-      expect(answerBlockHtml).toContain('60 ms');
+      const resultHtml = html.slice(html.indexOf('LEO · Authoritative result'), html.indexOf('Access Layer'));
+      expect(resultHtml).toContain('75 Mbps');
+      expect(resultHtml).toContain('60.0 ms');
     });
 
     it('Radio Path defaults to collapsed, matching GEO', () => {

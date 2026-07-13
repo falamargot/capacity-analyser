@@ -9,6 +9,67 @@ export type EngineeringAnalysisMode = 'GEO' | 'LEO';
 export type EngineeringAnalysisStatus = 'available' | 'marginal' | 'blocked' | 'no-budget';
 export type EngineeringAnalysisTone = 'default' | 'good' | 'warn' | 'danger' | 'accent';
 
+export type EngineeringServiceState =
+  | 'available'
+  | 'constrained'
+  | 'degraded'
+  | 'blocked'
+  | 'incomplete'
+  | 'path-unavailable'
+  | 'budget-unavailable'
+  | 'uncertain';
+
+export type EngineeringEvidenceState = 'passed' | 'warning' | 'blocked' | 'pending' | 'not-evaluated';
+export type EngineeringMetricProvenance = 'delivered' | 'rf-potential' | 'diagnostic' | 'unavailable';
+export type EngineeringCauseStageId = 'scenario' | 'path' | 'rf' | 'service' | 'delivery';
+
+export interface EngineeringEvidenceItem {
+  label: string;
+  value: string;
+  state: EngineeringEvidenceState;
+  detail?: string;
+}
+
+export interface EngineeringTruthMetric {
+  label: string;
+  value: number | null;
+  display: string;
+  provenance: EngineeringMetricProvenance;
+  detail?: string;
+}
+
+export interface EngineeringCauseStage {
+  id: EngineeringCauseStageId;
+  label: string;
+  state: EngineeringEvidenceState;
+  summary: string;
+  detail?: string;
+  evidence?: EngineeringEvidenceItem[];
+}
+
+/**
+ * Presentation-only contract for every Engineering result surface. It is
+ * deliberately derived from the existing calculation outputs: consumers may
+ * change hierarchy or wording, but must never use this model to calculate a
+ * route, RF budget, service decision, or delivered rate.
+ */
+export interface EngineeringTruth {
+  technology: EngineeringAnalysisMode;
+  topology: string;
+  state: EngineeringServiceState;
+  tone: 'good' | 'warn' | 'danger' | 'neutral';
+  headline: string;
+  summary: string;
+  decisiveFactor?: string;
+  primaryMetrics: EngineeringTruthMetric[];
+  diagnosticMetrics: EngineeringTruthMetric[];
+  confidence?: PredictionConfidenceSummary;
+  causeChain: EngineeringCauseStage[];
+  nextAction?: string;
+}
+
+export type EngineeringTruthSet = Partial<Record<EngineeringAnalysisMode, EngineeringTruth>>;
+
 export type { PredictionConfidenceSummary };
 
 export interface EngineeringMetric {
@@ -77,6 +138,7 @@ export interface EngineeringAnalysisViewModel {
   };
   details: EngineeringDetailPanel[];
   quickReferences: EngineeringMetric[];
+  truth: EngineeringTruth;
 }
 
 export interface BuildGeoEngineeringAnalysisInput {
@@ -90,6 +152,13 @@ export interface BuildGeoEngineeringAnalysisInput {
   confidenceLabel?: string;
   confidenceDetail?: string;
   confidence?: PredictionConfidence;
+  scenarioComplete?: boolean;
+  scenarioIncompleteReason?: string;
+  pathResolved?: boolean;
+  pathReason?: string;
+  serviceStatus?: 'ALLOWED' | 'DEGRADED' | 'BLOCKED' | 'NOT_EVALUATED';
+  serviceReason?: string;
+  serviceEvidence?: EngineeringEvidenceItem[];
 }
 
 export interface BuildLeoEngineeringAnalysisInput {
@@ -107,10 +176,61 @@ export interface BuildLeoEngineeringAnalysisInput {
   confidenceLabel?: string;
   confidenceDetail?: string;
   confidence?: PredictionConfidence;
+  topology?: 'SINGLE_SITE' | 'SITE_TO_SITE';
+  scenarioComplete?: boolean;
+  scenarioIncompleteReason?: string;
+  pathResolved?: boolean;
+  pathReason?: string;
+  serviceStatus?: 'ALLOWED' | 'DEGRADED' | 'BLOCKED';
+  serviceReason?: string;
+  serviceEvidence?: EngineeringEvidenceItem[];
+  rfStatus?: 'available' | 'marginal' | 'blocked' | 'unavailable';
+  rfReason?: string;
+  deliveryConstraint?: string | null;
 }
 
 const networkLimitLabel = (factor?: string | null) =>
   factor ? factor.replace(/_/g, ' ') : null;
+
+const sentenceCase = (value: string) => {
+  const normalized = value.replace(/_/g, ' ').trim();
+  if (!normalized) return normalized;
+  const readable = normalized === normalized.toUpperCase() ? normalized.toLowerCase() : normalized;
+  const capitalized = `${readable.charAt(0).toUpperCase()}${readable.slice(1)}`;
+  return capitalized.replace(/\b(rf|geo|leo|snp|dl|ul|rtt)\b/gi, token => token.toUpperCase());
+};
+
+const causeStage = (
+  id: EngineeringCauseStageId,
+  label: string,
+  state: EngineeringEvidenceState,
+  summary: string,
+  detail?: string,
+  evidence?: EngineeringEvidenceItem[],
+): EngineeringCauseStage => ({ id, label, state, summary, detail, evidence });
+
+export const isEngineeringDeliveryState = (state: EngineeringServiceState): boolean => (
+  state === 'available' || state === 'constrained' || state === 'degraded'
+);
+
+export const getEngineeringTruthMetric = (
+  truth: EngineeringTruth | null | undefined,
+  predicate: (metric: EngineeringTruthMetric) => boolean,
+): EngineeringTruthMetric | null => truth?.primaryMetrics.find(predicate) ?? null;
+
+const metric = (
+  label: string,
+  value: number | null | undefined,
+  display: string,
+  provenance: EngineeringMetricProvenance,
+  detail?: string,
+): EngineeringTruthMetric => ({
+  label,
+  value: typeof value === 'number' && Number.isFinite(value) ? value : null,
+  display,
+  provenance,
+  detail,
+});
 
 const geoStatusFromMargin = (marginDb: number | null | undefined): EngineeringAnalysisStatus => {
   if (typeof marginDb !== 'number' || !Number.isFinite(marginDb)) return 'no-budget';
@@ -140,6 +260,152 @@ export function buildGeoEngineeringAnalysisViewModel(input: BuildGeoEngineeringA
   const limitLabel = networkLimitLabel(activeNetworkLayer?.limitingFactor);
   const displayedThroughput = input.result ? getDisplayedThroughput(input.result, activeDirection) : null;
   const title = input.satelliteName ?? input.result?.forward.uplink.candidate.satelliteName ?? 'GEO engineering analysis';
+  const confidence = parseConfidence(input.confidenceLabel, input.confidenceDetail);
+  const scenarioComplete = input.scenarioComplete ?? true;
+  const pathResolved = input.pathResolved ?? input.result != null;
+  const budgetAvailable = e2e != null;
+  const deliveryFactor = activeNetworkLayer && limitLabel && limitLabel !== 'none'
+    ? sentenceCase(limitLabel)
+    : null;
+  const deliveryConstrained = status !== 'blocked'
+    && status !== 'no-budget'
+    && activeNetworkLayer != null
+    && deliveryFactor != null
+    && activeNetworkLayer.finalThroughputMbps < activeNetworkLayer.protocolAdjustedMbps - 0.5;
+  const serviceStatus = input.serviceStatus ?? 'NOT_EVALUATED';
+  const serviceBlocked = serviceStatus === 'BLOCKED';
+  const serviceDegraded = serviceStatus === 'DEGRADED';
+  const evidenceUncertain = input.confidence?.level === 'Low';
+
+  const truthState: EngineeringServiceState = !scenarioComplete
+    ? 'incomplete'
+    : !pathResolved
+      ? 'path-unavailable'
+      : !budgetAvailable
+        ? 'budget-unavailable'
+        : status === 'blocked'
+          ? 'blocked'
+          : serviceBlocked
+            ? 'blocked'
+          : status === 'marginal'
+            ? 'degraded'
+            : serviceDegraded
+              ? 'degraded'
+            : deliveryConstrained
+              ? 'constrained'
+              : evidenceUncertain
+                ? 'uncertain'
+              : 'available';
+
+  const decisiveFactor = truthState === 'incomplete'
+    ? (input.scenarioIncompleteReason ?? 'Required scenario input missing')
+    : truthState === 'path-unavailable'
+      ? (input.pathReason ?? 'No valid GEO path')
+      : truthState === 'budget-unavailable'
+        ? 'Complete uplink and downlink RF evidence unavailable'
+        : status === 'blocked'
+          ? `${limitingSegment} RF margin below threshold`
+          : serviceBlocked || serviceDegraded
+            ? (input.serviceReason ?? 'Service gate')
+          : status === 'marginal'
+            ? `${limitingSegment} RF margin is low`
+            : truthState === 'constrained'
+              ? deliveryFactor ?? 'Delivery constraint'
+              : truthState === 'uncertain'
+                ? 'Low evidence confidence'
+                : undefined;
+
+  const truthHeadline = truthState === 'incomplete'
+    ? `Scenario incomplete — ${input.scenarioIncompleteReason ?? 'required input missing'}`
+    : truthState === 'path-unavailable'
+      ? `No service path — ${input.pathReason ?? 'no valid GEO route'}`
+      : truthState === 'budget-unavailable'
+        ? 'RF budget unavailable — complete segment evidence missing'
+        : status === 'blocked'
+          ? `Service blocked — ${limitingSegment.toLowerCase()} RF closure failed`
+          : serviceBlocked
+            ? `Service blocked — ${(input.serviceReason ?? 'service gate').toLowerCase()}`
+          : truthState === 'degraded'
+            ? `Service degraded — low ${limitingSegment.toLowerCase()} margin`
+            : truthState === 'constrained'
+              ? `Service available — constrained by ${(deliveryFactor ?? 'delivery').toLowerCase()}`
+              : truthState === 'uncertain'
+                ? 'Result uncertain — evidence confidence is low'
+                : 'Service available';
+
+  const canDeliver = isEngineeringDeliveryState(truthState);
+  const primaryMetrics: EngineeringTruthMetric[] = canDeliver
+    ? [
+        metric(
+          activeDirection === 'reverse' ? 'B → A throughput' : input.linkMode === 'STAR_RETURN' ? 'Return throughput' : input.linkMode === 'STAR_FORWARD' ? 'Forward throughput' : 'A → B throughput',
+          displayedThroughput,
+          fmtMbps(displayedThroughput),
+          'delivered',
+          activeNetworkLayer ? 'Final rate after protocol and network constraints' : 'RF-derived end-to-end rate',
+        ),
+        metric(input.latencyLabel ?? 'Latency', input.latencyMs, fmtMs(input.latencyMs), 'delivered'),
+        metric('Availability', parsePct(input.availabilityLabel), input.availabilityLabel ?? '--', 'delivered'),
+      ].filter((item) => item.value != null)
+    : [];
+  const diagnosticMetrics: EngineeringTruthMetric[] = !canDeliver && e2e
+    ? [
+        metric('RF potential', e2e.endToEndThroughputMbps, fmtMbps(e2e.endToEndThroughputMbps), 'rf-potential', 'Not a deliverable service output'),
+        metric('RF margin', marginDb, fmtDb(marginDb), 'diagnostic', `${limitingSegment} is limiting`),
+      ]
+    : [];
+
+  const truth: EngineeringTruth = {
+    technology: 'GEO',
+    topology: input.linkMode,
+    state: truthState,
+    tone: truthState === 'available' ? 'good'
+      : truthState === 'constrained' || truthState === 'degraded' ? 'warn'
+      : truthState === 'blocked' ? 'danger'
+      : 'neutral',
+    headline: truthHeadline,
+    summary: canDeliver
+      ? `${fmtMbps(displayedThroughput)} delivered${input.latencyMs != null ? ` · ${fmtMs(input.latencyMs)} ${input.latencyLabel?.toLowerCase() ?? 'latency'}` : ''}.`
+      : truthState === 'blocked'
+        ? 'No delivered throughput is available. RF evidence remains available for diagnosis.'
+        : truthState === 'budget-unavailable'
+          ? 'The path is resolved, but no RF closure conclusion can be produced.'
+          : truthState === 'incomplete'
+            ? 'Complete the scenario before end-to-end service can be evaluated.'
+            : 'No deliverable GEO result is available for the current route.',
+    decisiveFactor,
+    primaryMetrics,
+    diagnosticMetrics,
+    confidence,
+    causeChain: [
+      causeStage('scenario', 'Scenario', scenarioComplete ? 'passed' : 'blocked', scenarioComplete ? 'Inputs ready' : 'Incomplete', input.scenarioIncompleteReason),
+      causeStage('path', 'Path', !scenarioComplete ? 'not-evaluated' : pathResolved ? 'passed' : 'blocked', !scenarioComplete ? 'Not evaluated' : pathResolved ? 'GEO route resolved' : 'Unavailable', input.pathReason),
+      causeStage('rf', 'RF closure', !scenarioComplete || !pathResolved ? 'not-evaluated' : !budgetAvailable ? 'pending' : status === 'blocked' ? 'blocked' : status === 'marginal' ? 'warning' : 'passed', !scenarioComplete || !pathResolved ? 'Not evaluated' : !budgetAvailable ? 'Budget unavailable' : status === 'blocked' ? `${fmtDb(marginDb)} · does not close` : status === 'marginal' ? `${fmtDb(marginDb)} · low margin` : `${fmtDb(marginDb)} · closes`, e2e ? `${limitingSegment} is the limiting RF segment` : undefined),
+      causeStage(
+        'service',
+        'Service gates',
+        !scenarioComplete || !pathResolved || !budgetAvailable || status === 'blocked' || serviceStatus === 'NOT_EVALUATED'
+          ? 'not-evaluated'
+          : serviceBlocked ? 'blocked' : serviceDegraded ? 'warning' : 'passed',
+        !scenarioComplete || !pathResolved || !budgetAvailable || status === 'blocked' || serviceStatus === 'NOT_EVALUATED'
+          ? 'Not evaluated'
+          : serviceBlocked ? 'Blocked' : serviceDegraded ? 'Degraded' : 'Allowed',
+        input.serviceReason,
+        input.serviceEvidence,
+      ),
+      causeStage('delivery', 'Delivery', !scenarioComplete || !pathResolved || !budgetAvailable || status === 'blocked' || serviceBlocked ? 'not-evaluated' : deliveryConstrained || serviceDegraded ? 'warning' : evidenceUncertain ? 'pending' : 'passed', !scenarioComplete || !pathResolved || !budgetAvailable || status === 'blocked' || serviceBlocked ? 'Not available' : deliveryConstrained ? `${deliveryFactor} limiting` : evidenceUncertain ? 'Evidence uncertain' : `${fmtMbps(displayedThroughput)} delivered`),
+    ],
+    nextAction: truthState === 'incomplete'
+      ? 'Complete the missing endpoint or scenario input.'
+      : truthState === 'path-unavailable'
+        ? 'Review location, topology, and eligible coverage.'
+        : truthState === 'budget-unavailable'
+          ? 'Inspect path evidence and frequency assumptions.'
+          : truthState === 'blocked'
+            ? `Investigate the ${limitingSegment.toLowerCase()} RF budget.`
+            : deliveryConstrained
+              ? `Investigate ${deliveryFactor?.toLowerCase() ?? 'the delivery constraint'}.`
+              : undefined,
+  };
 
   const whyHeadline = !e2e
     ? 'No complete GEO RF path is available.'
@@ -250,7 +516,7 @@ export function buildGeoEngineeringAnalysisViewModel(input: BuildGeoEngineeringA
       latencyLabel: input.latencyLabel,
       availabilityPct: parsePct(input.availabilityLabel),
       availabilityLabel: input.availabilityLabel,
-      confidence: parseConfidence(input.confidenceLabel, input.confidenceDetail),
+      confidence,
       confidenceBreakdown: input.confidence,
       bottleneck: activeNetworkLayer && limitLabel && limitLabel !== 'none' ? limitLabel : limitingSegment,
       marginDb,
@@ -304,11 +570,12 @@ export function buildGeoEngineeringAnalysisViewModel(input: BuildGeoEngineeringA
         tone: activeNetworkLayer && activeNetworkLayer.contentionRatio > 1 ? 'warn' : 'good',
       },
     ],
+    truth,
   };
 }
 
 export function buildLeoEngineeringAnalysisViewModel(input: BuildLeoEngineeringAnalysisInput): EngineeringAnalysisViewModel {
-  const isS2S = input.siteToSiteResult != null;
+  const isS2S = input.topology === 'SITE_TO_SITE' || input.siteToSiteResult != null;
   const s2sIsAtoB = input.siteToSiteDirection !== 'B_TO_A';
   const s2sDirectionLabel = s2sIsAtoB ? 'A → B' : 'B → A';
   const sourceSiteId = s2sIsAtoB ? 'A' : 'B';
@@ -341,12 +608,21 @@ export function buildLeoEngineeringAnalysisViewModel(input: BuildLeoEngineeringA
     : null;
   const singleFinalDl = input.debugInfo?.downlink.network.finalUserMbps ?? null;
   const singleFinalUl = input.debugInfo?.uplink.network.finalUserMbps ?? null;
-  const singleBlocked = input.debugInfo
-    ? singleFinalDl! <= 0 || singleFinalUl! <= 0 || Math.min(input.debugInfo.downlink.rf.cnDb, input.debugInfo.uplink.rf.cnDb) < 10
-    : false;
-  const singleMarginal = !!input.debugInfo && !singleBlocked && (singleMainFactor != null || (singleMinMargin ?? 99) < 2);
-  const s2sBlocked = isS2S && primaryThroughputMbps != null && primaryThroughputMbps <= 0;
-  const s2sMarginal = isS2S && !s2sBlocked && bottleneckExplanation != null;
+  const s2sFailureReason = input.siteToSiteResult?.failureReason ?? null;
+  const s2sRfBlocked = s2sFailureReason === 'RF_UNAVAILABLE_A' || s2sFailureReason === 'RF_UNAVAILABLE_B';
+  const inferredRfStatus = input.rfStatus ?? (
+    s2sRfBlocked ? 'blocked'
+      : input.debugInfo == null && input.siteToSiteResult == null ? 'unavailable'
+        : singleMainFactor === 'rf' && (singleMinMargin ?? 99) < 0 ? 'blocked'
+          : singleMainFactor === 'rf' || (singleMinMargin ?? 99) < 2 ? 'marginal'
+            : 'available'
+  );
+  const rfBlocked = inferredRfStatus === 'blocked';
+  const rfMarginal = inferredRfStatus === 'marginal';
+  const singleBlocked = !isS2S && rfBlocked;
+  const singleMarginal = !isS2S && rfMarginal;
+  const s2sBlocked = isS2S && rfBlocked;
+  const s2sMarginal = isS2S && rfMarginal;
   const status: EngineeringAnalysisStatus = !input.debugInfo && !input.siteToSiteResult
     ? 'no-budget'
     : s2sBlocked || singleBlocked
@@ -354,6 +630,160 @@ export function buildLeoEngineeringAnalysisViewModel(input: BuildLeoEngineeringA
       : s2sMarginal || singleMarginal
         ? 'marginal'
         : 'available';
+
+  const confidence = parseConfidence(input.confidenceLabel, input.confidenceDetail);
+  const scenarioComplete = input.scenarioComplete ?? true;
+  const pathResolved = input.pathResolved ?? (input.debugInfo != null || input.siteToSiteResult != null);
+  const budgetAvailable = isS2S
+    ? input.siteToSiteResult != null && (
+        primaryThroughputMbps != null
+        || sourceDebugInfo != null
+        || destDebugInfo != null
+      )
+    : input.debugInfo != null;
+  const serviceStatus = input.serviceStatus ?? 'ALLOWED';
+  const serviceBlocked = serviceStatus === 'BLOCKED';
+  const serviceDegraded = serviceStatus === 'DEGRADED';
+  const deliveryFactor = input.deliveryConstraint ?? (isS2S ? bottleneckExplanation : (
+    singleMainFactor && singleMainFactor !== 'rf' ? singleFactorLabel : null
+  ));
+  const deliveryConstrained = status !== 'blocked'
+    && !serviceBlocked
+    && (deliveryFactor != null || s2sMarginal || singleMarginal);
+  const deliveredThroughput = isS2S ? primaryThroughputMbps : singleFinalDl;
+  const deliveryUnavailable = !rfBlocked && !serviceBlocked && budgetAvailable
+    && deliveredThroughput != null && deliveredThroughput <= 0;
+
+  const evidenceUncertain = input.confidence?.level === 'Low';
+  const truthState: EngineeringServiceState = !scenarioComplete
+    ? 'incomplete'
+    : !pathResolved
+      ? 'path-unavailable'
+      : !budgetAvailable
+        ? 'budget-unavailable'
+        : status === 'blocked'
+          ? 'blocked'
+          : serviceBlocked
+            ? 'blocked'
+            : deliveryUnavailable
+              ? 'blocked'
+            : serviceDegraded
+              ? 'degraded'
+              : deliveryConstrained
+                ? 'constrained'
+                : evidenceUncertain
+                  ? 'uncertain'
+                : 'available';
+  const rfBlockReason = input.rfReason ?? (isS2S ? bottleneckLabel : 'RF closure');
+  const serviceReason = input.serviceReason ? sentenceCase(input.serviceReason) : 'Service gate';
+  const decisiveFactor = truthState === 'incomplete'
+    ? (input.scenarioIncompleteReason ?? 'Required scenario input missing')
+    : truthState === 'path-unavailable'
+      ? (input.pathReason ?? 'No complete LEO/SNP path')
+      : truthState === 'budget-unavailable'
+        ? 'RF evidence unavailable'
+        : status === 'blocked'
+          ? rfBlockReason
+          : serviceBlocked || serviceDegraded
+            ? serviceReason
+            : deliveryUnavailable
+              ? (deliveryFactor ?? 'Delivery output unavailable')
+            : deliveryConstrained
+              ? (deliveryFactor ?? bottleneckLabel)
+              : truthState === 'uncertain'
+                ? 'Low evidence confidence'
+                : undefined;
+  const truthHeadline = truthState === 'incomplete'
+    ? `Scenario incomplete — ${input.scenarioIncompleteReason ?? 'required input missing'}`
+    : truthState === 'path-unavailable'
+      ? `No service path — ${input.pathReason ?? 'no complete LEO/SNP route'}`
+      : truthState === 'budget-unavailable'
+        ? 'RF budget unavailable — path evidence is incomplete'
+        : truthState === 'blocked'
+          ? `Service blocked — ${(decisiveFactor ?? 'blocking condition').toLowerCase()}`
+          : truthState === 'degraded'
+            ? `Service degraded — ${(decisiveFactor ?? 'service constraint').toLowerCase()}`
+            : truthState === 'constrained'
+              ? `Service available — constrained by ${(decisiveFactor ?? 'delivery').toLowerCase()}`
+              : truthState === 'uncertain'
+                ? 'Result uncertain — evidence confidence is low'
+                : 'Service available';
+  const canDeliver = isEngineeringDeliveryState(truthState);
+  const displayedLatency = isS2S ? primaryLatencyMs : input.latencyMs;
+  const primaryMetrics: EngineeringTruthMetric[] = canDeliver
+    ? [
+        metric(
+          isS2S ? `${s2sDirectionLabel} throughput` : 'Downlink throughput',
+          isS2S ? primaryThroughputMbps : singleFinalDl,
+          fmtMbps(isS2S ? primaryThroughputMbps : singleFinalDl),
+          'delivered',
+          'Final rate after RF, sharing, feeder, handover, and terminal constraints',
+        ),
+        ...(!isS2S ? [metric('Uplink throughput', singleFinalUl, fmtMbps(singleFinalUl), 'delivered')] : []),
+        metric(input.latencyLabel ?? (isS2S ? `${s2sDirectionLabel} latency` : 'End-to-end RTT'), displayedLatency, fmtMs(displayedLatency), 'delivered'),
+        metric('Availability', parsePct(input.availabilityLabel), input.availabilityLabel ?? '--', 'delivered'),
+      ].filter((item) => item.value != null)
+    : [];
+  const diagnosticMetrics: EngineeringTruthMetric[] = !canDeliver && (sourceDebugInfo || input.debugInfo)
+    ? [
+        metric(
+          'RF potential',
+          sourceDebugInfo?.downlink.rf.rfChainThroughputMbps ?? input.debugInfo?.downlink.rf.rfChainThroughputMbps,
+          fmtMbps(sourceDebugInfo?.downlink.rf.rfChainThroughputMbps ?? input.debugInfo?.downlink.rf.rfChainThroughputMbps),
+          'rf-potential',
+          'Physical-layer potential before service gates',
+        ),
+        metric(
+          'Diagnostic estimate',
+          isS2S ? primaryThroughputMbps : singleFinalDl,
+          fmtMbps(isS2S ? primaryThroughputMbps : singleFinalDl),
+          'diagnostic',
+          'Not a deliverable service output',
+        ),
+      ]
+    : [];
+
+  const truth: EngineeringTruth = {
+    technology: 'LEO',
+    topology: isS2S ? 'SITE_TO_SITE' : 'SINGLE_SITE',
+    state: truthState,
+    tone: truthState === 'available' ? 'good'
+      : truthState === 'constrained' || truthState === 'degraded' ? 'warn'
+      : truthState === 'blocked' ? 'danger'
+      : 'neutral',
+    headline: truthHeadline,
+    summary: canDeliver
+      ? `${fmtMbps(isS2S ? primaryThroughputMbps : singleFinalDl)} delivered${displayedLatency != null ? ` · ${fmtMs(displayedLatency)} ${input.latencyLabel?.toLowerCase() ?? (isS2S ? 'one-way latency' : 'RTT')}` : ''}.`
+      : truthState === 'blocked'
+        ? 'No delivered throughput is available. Valid RF and geometry values are diagnostic only.'
+        : truthState === 'budget-unavailable'
+          ? 'No RF closure conclusion can be produced from the available evidence.'
+          : truthState === 'incomplete'
+            ? 'Complete the scenario before end-to-end service can be evaluated.'
+            : 'No deliverable LEO result is available for the current path.',
+    decisiveFactor,
+    primaryMetrics,
+    diagnosticMetrics,
+    confidence,
+    causeChain: [
+      causeStage('scenario', 'Scenario', scenarioComplete ? 'passed' : 'blocked', scenarioComplete ? 'Inputs ready' : 'Incomplete', input.scenarioIncompleteReason),
+      causeStage('path', 'Path', !scenarioComplete ? 'not-evaluated' : pathResolved ? 'passed' : 'blocked', !scenarioComplete ? 'Not evaluated' : pathResolved ? 'Satellite and ground path resolved' : 'Unavailable', input.pathReason),
+      causeStage('rf', 'RF closure', !scenarioComplete || !pathResolved ? 'not-evaluated' : !budgetAvailable || inferredRfStatus === 'unavailable' ? 'pending' : rfBlocked ? 'blocked' : rfMarginal ? 'warning' : 'passed', !scenarioComplete || !pathResolved ? 'Not evaluated' : !budgetAvailable || inferredRfStatus === 'unavailable' ? 'Budget unavailable' : rfBlocked ? `${rfBlockReason} does not close` : rfMarginal ? 'Closes with low margin' : 'Access link closes'),
+      causeStage('service', 'Service gates', !scenarioComplete || !pathResolved || !budgetAvailable || rfBlocked ? 'not-evaluated' : serviceBlocked ? 'blocked' : serviceDegraded ? 'warning' : 'passed', !scenarioComplete || !pathResolved || !budgetAvailable || rfBlocked ? 'Not evaluated' : serviceBlocked ? `${serviceReason} blocks service` : serviceDegraded ? `${serviceReason} degrades service` : 'Allowed', input.serviceReason, input.serviceEvidence),
+      causeStage('delivery', 'Delivery', !scenarioComplete || !pathResolved || !budgetAvailable || rfBlocked || serviceBlocked ? 'not-evaluated' : deliveryUnavailable ? 'blocked' : deliveryConstrained || serviceDegraded ? 'warning' : evidenceUncertain ? 'pending' : 'passed', !scenarioComplete || !pathResolved || !budgetAvailable || rfBlocked || serviceBlocked ? 'Not available' : deliveryUnavailable ? 'No delivered throughput' : deliveryConstrained ? `${decisiveFactor ?? 'Constraint'} limiting` : evidenceUncertain ? 'Evidence uncertain' : `${fmtMbps(deliveredThroughput)} delivered`),
+    ],
+    nextAction: truthState === 'incomplete'
+      ? 'Place the missing endpoint or complete the scenario input.'
+      : truthState === 'path-unavailable'
+        ? 'Review satellite, beam, and SNP availability.'
+        : truthState === 'budget-unavailable'
+          ? 'Inspect RF path evidence and terminal assumptions.'
+          : truthState === 'blocked'
+            ? `Investigate ${decisiveFactor?.toLowerCase() ?? 'the first blocking stage'}.`
+            : deliveryConstrained || serviceDegraded
+              ? `Investigate ${decisiveFactor?.toLowerCase() ?? 'the limiting stage'}.`
+              : undefined,
+  };
 
   const singleRfThroughput = input.debugInfo?.downlink.rf.rfChainThroughputMbps ?? null;
   const singleBeamShared = input.debugInfo?.downlink.network.beamSharingMbps ?? null;
@@ -489,7 +919,7 @@ export function buildLeoEngineeringAnalysisViewModel(input: BuildLeoEngineeringA
       latencyLabel: input.latencyLabel,
       availabilityPct: parsePct(input.availabilityLabel),
       availabilityLabel: input.availabilityLabel,
-      confidence: parseConfidence(input.confidenceLabel, input.confidenceDetail),
+      confidence,
       confidenceBreakdown: input.confidence,
       bottleneck: isS2S ? bottleneckLabel : (input.debugInfo?.mainBottleneck.label ?? '--'),
       marginLabel: isS2S
@@ -550,5 +980,6 @@ export function buildLeoEngineeringAnalysisViewModel(input: BuildLeoEngineeringA
         { label: 'Beam sharing', value: fmtMbps(input.debugInfo?.downlink.network.beamSharingMbps), detail: input.debugInfo ? `${input.debugInfo.downlink.network.activeUsers} simulated users` : undefined, tone: input.debugInfo && input.debugInfo.downlink.network.beamSharingMbps < input.debugInfo.downlink.rf.rfChainThroughputMbps ? 'warn' : 'good' },
         { label: 'Terminal cap', value: fmtMbps(input.debugInfo?.downlink.network.terminalCapMbps), detail: input.debugInfo?.terminal.label },
       ],
+    truth,
   };
 }

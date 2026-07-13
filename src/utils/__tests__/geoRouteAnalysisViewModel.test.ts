@@ -82,7 +82,7 @@ describe('buildGeoRouteAnalysisViewModel STAR latency (ENG/COMM parity)', () => 
     })?.geometry;
     expect(geometry?.oneWayRadioMs).not.toBeNull();
 
-    // ENG AnswerBlock headline (GEOConnectivitySection.geoStarOneWayTotalMs):
+    // ENG authoritative result (GEOConnectivitySection.geoStarOneWayTotalMs):
     const engHeadlineMs = geometry!.oneWayRadioMs! + geometry!.overheadMs.total;
     expect(viewModel.latencyMs).toBeCloseTo(engHeadlineMs, 6);
     // Strictly greater than propagation alone — the overhead is included.

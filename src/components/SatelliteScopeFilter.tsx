@@ -13,7 +13,7 @@ const SatelliteScopeFilter: React.FC<SatelliteScopeFilterProps> = ({
   onScopeChange,
   compact = false,
 }) => {
-  const scopes: SatelliteScope[] = ['ALL', 'LEO', 'GEO'];
+  const scopes: SatelliteScope[] = ['ALL', 'GEO', 'LEO'];
 
   const getScopeColor = (scope: SatelliteScope) => {
     switch (scope) {

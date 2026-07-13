@@ -27,9 +27,6 @@ import type { ServiceLayerResult } from '../utils/serviceLayer';
 import type { LeoConnectivityViewModel } from '../utils/leoServiceViewModel';
 import { formatCoordinates } from '../utils/formatters';
 import { MIN_SNP_GATEWAY_ELEVATION_DEG, MIN_USER_TERMINAL_ELEVATION_DEG, STANDARD_SERVICE_ELEVATION_DEG } from '../utils/leoFootprint';
-import { PerformancePanel } from './MetricWidgets';
-import { SectionTooltip } from './SectionTooltip';
-import CollapsibleSection from './layout/CollapsibleSection';
 import type { LinkMode } from '../types/linkMode';
 import {
   findBestUplinkMatch,
@@ -69,6 +66,13 @@ import {
 import type { TerminalType, WeatherType } from './capacity';
 import { estimateSnpToPopFiberOneWayMs } from '../utils/leoSiteToSiteModel';
 import type { ActiveLeoRouteEvidence } from '../utils/activeLeoRouteEvidence';
+import {
+  buildGeoEngineeringAnalysisViewModel,
+  buildLeoEngineeringAnalysisViewModel,
+  type EngineeringAnalysisViewModel,
+  type EngineeringEvidenceItem,
+  type EngineeringTruthSet,
+} from '../utils/engineeringAnalysisViewModel';
 
 interface CapacityDetailsProps {
   satellites: SatelliteData[];
@@ -113,6 +117,7 @@ interface CapacityDetailsProps {
   onDetailedEngineeringOpenChange?: (open: boolean) => void;
   detailedEngineeringCloseSignal?: number;
   onExportStateChange?: (payload: ExportButtonPayload | null) => void;
+  onEngineeringTruthChange?: (truth: EngineeringTruthSet) => void;
   regulatoryResultOverride?: RegulatoryResult | null;
   regulatoryResultBOverride?: RegulatoryResult | null;
   beamLoadResultOverride?: BeamLoadResult | null;
@@ -180,15 +185,6 @@ interface CapacityDetailsProps {
 }
 
 
-const RTT_VISUAL_SCALE_MAX_MS = 600;
-const ONE_WAY_VISUAL_SCALE_MAX_MS = 350;
-const EstimatedPerformanceDirectionPill = ({ dir, aggregate = false }: { dir: string; aggregate?: boolean }) => (
-  <span className={`ml-1.5 inline-flex shrink-0 items-center rounded-full border px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide ${
-    aggregate
-      ? 'border-slate-200 bg-slate-50 text-slate-400 dark:border-slate-700 dark:bg-slate-800/50 dark:text-slate-500'
-      : 'border-blue-200 bg-blue-50 text-blue-500 dark:border-blue-800/60 dark:bg-blue-950/40 dark:text-blue-400'
-  }`}>{dir}</span>
-);
 const GEO_LINK_MARGIN_STABILITY = {
   medium: 2,
   high: 5,
@@ -221,26 +217,6 @@ const getGeoCompanionCoverage = (
   return sameBand[0] ?? sameSatellite[0] ?? candidateCoverages.find((candidate) => candidate.isUplink === wantUplink) ?? null;
 };
 
-const formatGeoStabilityTooltip = (elevationDeg: number, isUserLinkUnstable: boolean): string => {
-  const currentRule = isUserLinkUnstable
-    ? 'Current status: Unstable (elevation is below 5 deg).'
-    : elevationDeg >= 40
-      ? 'Current status: High (elevation is at least 40 deg).'
-      : elevationDeg >= 25
-        ? 'Current status: Medium (elevation is between 25 deg and 40 deg).'
-        : elevationDeg >= 5
-          ? 'Current status: Low (elevation is between 5 deg and 25 deg).'
-          : 'Current status: Unstable (elevation is below 5 deg).';
-
-  return `GEO stability rule:
-  - Unstable below 5 deg elevation
-  - Low from 5 deg to below 25 deg
-  - Medium from 25 deg to below 40 deg
-  - High at 40 deg and above
-Current elevation: ${elevationDeg.toFixed(1)} deg.
-${currentRule}`;
-};
-
 // Performance optimization: Memoize component to prevent unnecessary re-renders
 const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint, selectedSatellite, autoSelectedLEOSatellite, satelliteScope, activeConnectionTab, onActiveConnectionTabChange, onMetricsChange, onSatelliteClick, analysisSource, aircraftCallsign, selectedSNP: propSelectedSNP, candidateCoverages = [], selectedCoverage = null, onSelectCoverage, selectedUplinkCoverage = null, selectedDownlinkCoverage = null, onSelectUplinkCoverage, onSelectDownlinkCoverage, selectedUplinkCoverageB = null, selectedDownlinkCoverageB = null, onSelectUplinkCoverageB, onSelectDownlinkCoverageB, selectedGeoMission, selectedGeoCoverageName, selectedGeoBeamId, visibleGeoCoverageKeys, onSelectGeoMission, onSelectGeoCoverage, onSelectGeoBeam, onVisibleGeoCoverageKeysChange, onSnpClick, compactDesktop = false, externalHeader = false, presentationMode = 'sidebar', globeRef, cesiumViewerRef, onDetailedEngineeringOpenChange, detailedEngineeringCloseSignal = 0, onExportStateChange, regulatoryResultOverride = null, regulatoryResultBOverride = null, beamLoadResultOverride = null, serviceLayerResultOverride = null, leoServiceViewModelOverride = null, leoTerminalType, onLeoTerminalTypeChange, leoTerminalModelId, onLeoTerminalModelIdChange, leoTerminalTypeB, onLeoTerminalTypeBChange, leoTerminalModelIdB, onLeoTerminalModelIdBChange, geoTerminalType, onGeoTerminalTypeChange, geoTerminalTypeB, onGeoTerminalTypeBChange, geoRFClassIdA, onGeoRFClassIdAChange, geoRFPresetDisplayLabelA, geoRFClassIdB, onGeoRFClassIdBChange, geoRFPresetDisplayLabelB, geoRFCustomParamsA, onGeoRFCustomParamsAChange, geoRFCustomParamsB, onGeoRFCustomParamsBChange, weatherType, onWeatherTypeChange, weatherTypeB, onWeatherTypeBChange, autoWeatherEnabled, onAutoWeatherChange, linkMode = 'STAR_FORWARD', onLinkModeChange, pointB = null, candidateCoveragesB = [], pointAIsUserDefined = false, pointBIsUserDefined = false, activeMeshTab, onActiveMeshTabChange,
   leoTopologyMode = 'SINGLE_SITE',
@@ -252,6 +228,7 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
   onLeoTopologyModeChange,
   activeLeoRouteEvidence = null,
   selectionMotionKey,
+  onEngineeringTruthChange,
 }) => {
   const [selectionRevealActive, setSelectionRevealActive] = useState(false);
 
@@ -1157,7 +1134,7 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
 
     return {
       // One-way user latency for the active direction incl. network overhead —
-      // the same expression as the ENG AnswerBlock headline and the COMM route
+      // the same expression as the ENG authoritative result and the COMM route
       // view model, so the header GEO tile never disagrees with either.
       rtt: isMeshMode
         ? (activeMeshTab === 'reverse'
@@ -1171,165 +1148,160 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
     };
   }, [resolvedGEOConnectivity, geoGeometry, geoEffectivePerformance, linkMode, meshMetrics, activeMeshTab]);
 
-  const activeEstimatedPerformanceScope = satelliteScope === 'ALL' ? activeConnTab : satelliteScope;
-  const isLeoPerformanceDiagnosticOnly = leoServiceViewModel?.decisionDriver === 'REGULATORY'
-    && leoServiceViewModel.serviceStatus === 'BLOCKED';
-  const leoDiagnosticMessage = 'Underlying RF geometry only — service blocked by regulation.';
+  const engineeringAnalysisViewModels = useMemo<Record<'GEO' | 'LEO', EngineeringAnalysisViewModel>>(() => {
+    const isGeoSiteToSite = linkMode === 'MESH' || linkMode === 'POINT_TO_POINT';
+    const geoScenarioComplete = activePoint != null && (!isGeoSiteToSite || pointB != null);
+    const geoDirectionalPathResolved = activeMeshTab === 'reverse'
+      ? uplinkAtB != null && downlinkAtUser != null
+      : uplinkAtUser != null && downlinkAtB != null;
+    const geoPathResolved = geoScenarioComplete && (
+      dualSegmentResult != null
+      || (isGeoSiteToSite
+        ? geoDirectionalPathResolved
+        : resolvedGEOConnectivity != null && geoGeometry != null && isServedStarGatewaySelection(trafficGatewaySelection))
+    );
+    const geoAvailability = buildLinkAvailabilityContext({ architecture: 'GEO', weatherType, lat: activePoint?.lat });
+    const geoCapacityEstimate = resolvedGEOConnectivity?.satellite
+      ? estimateGeoSatelliteCapacity(resolvedGEOConnectivity.satellite)
+      : null;
+    const geoConfidence = buildGeoConfidence({
+      mode: 'ENG',
+      topology: isGeoSiteToSite ? 'Site-to-Site' : 'Single Site',
+      coverageAvailable: !!activeCoverageForGeo,
+      rfAvailable: !!dualSegmentResult,
+      publicFrequencyEvidence: !!(activeCoverageForGeo?.band ?? activeCoverageForGeo?.frequencyGhz ?? activeCoverageForGeo?.level),
+      gatewayResolved: isGeoSiteToSite || isServedStarGatewaySelection(trafficGatewaySelection),
+      capacityClassKnown: !!geoCapacityEstimate,
+      regulatoryKnown: true,
+      routePending: false,
+    });
+    const geoLatencyMs = isGeoSiteToSite
+      ? (activeMeshTab === 'reverse' ? meshMetrics?.reverseLatencyMs : meshMetrics?.forwardLatencyMs)
+      : geoGeometry?.oneWayRadioMs != null ? geoGeometry.oneWayRadioMs + geoGeometry.overheadMs.total : null;
+    const geoViewModel = buildGeoEngineeringAnalysisViewModel({
+      linkMode,
+      result: dualSegmentResult,
+      activeMeshTab,
+      satelliteName: resolvedGEOConnectivity?.satellite.name,
+      latencyMs: geoLatencyMs,
+      latencyLabel: isGeoSiteToSite ? `${activeMeshTab === 'reverse' ? 'B → A' : 'A → B'} latency` : `${linkMode === 'STAR_RETURN' ? 'Return' : 'Forward'} latency`,
+      availabilityLabel: `${geoAvailability.indicativeAvailabilityPct.toFixed(1)}% indicative`,
+      confidenceLabel: `${geoConfidence.level} ${geoConfidence.score}/100`,
+      confidenceDetail: [geoConfidence.summary, geoConfidence.reasons[0] ?? geoConfidence.limitation].filter(Boolean).join('. '),
+      confidence: geoConfidence,
+      scenarioComplete: geoScenarioComplete,
+      scenarioIncompleteReason: activePoint == null ? 'Site A is required' : isGeoSiteToSite && pointB == null ? 'Site B is required' : undefined,
+      pathResolved: geoPathResolved,
+      pathReason: geoScenarioComplete && !geoPathResolved
+        ? isGeoSiteToSite ? 'No complete directional GEO path' : !resolvedGEOConnectivity ? 'No eligible GEO coverage candidate' : 'No eligible traffic gateway path'
+        : undefined,
+      serviceStatus: 'NOT_EVALUATED',
+      serviceReason: 'No independent GEO service gate is modeled',
+    });
 
-  const bottomEstimatedPerformanceSection = useMemo(() => {
-    if (!selectedPoint) return null;
+    const isLeoSiteToSite = leoTopologyMode === 'SITE_TO_SITE';
+    const leoScenarioComplete = activePoint != null && (!isLeoSiteToSite || pointBLeo != null);
+    const leoPathResolved = leoScenarioComplete && (isLeoSiteToSite
+      ? !!leoSiteToSiteResult?.servingSatelliteA && !!leoSiteToSiteResult?.servingSatelliteB
+        && !!leoSiteToSiteResult?.selectedSnpA && !!leoSiteToSiteResult?.selectedSnpB
+      : !!resolvedLEOConnectivity?.satellite && !!resolvedLEOConnectivity?.snp);
+    const leoPathReason = !leoScenarioComplete ? undefined : isLeoSiteToSite
+      ? !leoSiteToSiteResult ? 'End-to-end route is unresolved'
+        : !leoSiteToSiteResult.servingSatelliteA || !leoSiteToSiteResult.servingSatelliteB ? 'No serving satellite at one or both sites'
+          : !leoSiteToSiteResult.selectedSnpA || !leoSiteToSiteResult.selectedSnpB ? 'No reachable SNP at one or both sites' : undefined
+      : !resolvedLEOConnectivity?.satellite ? 'No serving LEO satellite path'
+        : !resolvedLEOConnectivity.snp ? 'No reachable SNP path' : undefined;
+    const leoRfAvailable = isLeoSiteToSite
+      ? !!leoSiteToSiteResult?.rfAvailableA && !!leoSiteToSiteResult?.rfAvailableB
+      : (leoServiceViewModel?.physicalState.rfAvailable ?? hasCurrentLEORF);
+    const leoRfStatus = !leoPathResolved ? 'unavailable' as const
+      : !leoRfAvailable ? 'blocked' as const
+        : leoPerformance?.debugInfo?.mainBottleneck.factor === 'rf' ? 'marginal' as const
+          : 'available' as const;
+    const leoConfidence = leoSiteToSiteResult?.predictionConfidence ?? buildLeoSingleSiteConfidence({
+      mode: 'ENG',
+      satelliteResolved: !!resolvedLEOConnectivity?.satellite,
+      snpResolved: !!resolvedLEOConnectivity?.snp,
+      rfAvailable: leoRfAvailable,
+      debugAvailable: !!leoPerformance?.debugInfo,
+      regulatoryStatus: regulatoryResult?.status ?? null,
+      loadSource: beamLoadResult?.loadSource ?? null,
+      elevationDeg: resolvedLEOConnectivity?.userLEOElevation ?? null,
+    });
+    const leoAvailability = buildLinkAvailabilityContext({ architecture: 'LEO', weatherType, lat: activePoint?.lat });
+    const serviceEvidence: EngineeringEvidenceItem[] = isLeoSiteToSite && leoSiteToSiteResult
+      ? [
+          { label: 'RF · Site A', value: leoSiteToSiteResult.rfAvailableA ? 'Available' : 'Unavailable', state: leoSiteToSiteResult.rfAvailableA ? 'passed' : 'blocked' },
+          { label: 'RF · Site B', value: leoSiteToSiteResult.rfAvailableB ? 'Available' : 'Unavailable', state: leoSiteToSiteResult.rfAvailableB ? 'passed' : 'blocked' },
+          { label: 'SNP · Site A', value: leoSiteToSiteResult.selectedSnpA?.name ?? 'Unavailable', state: leoSiteToSiteResult.selectedSnpA ? 'passed' : 'blocked' },
+          { label: 'SNP · Site B', value: leoSiteToSiteResult.selectedSnpB?.name ?? 'Unavailable', state: leoSiteToSiteResult.selectedSnpB ? 'passed' : 'blocked' },
+          {
+            label: 'Regulatory · Site A',
+            value: leoSiteToSiteResult.regulatoryResultA?.status ?? 'Not evaluated',
+            state: leoSiteToSiteResult.failureReason?.startsWith('REGULATORY_') && leoSiteToSiteResult.failureReason.endsWith('_A') ? 'blocked' : leoSiteToSiteResult.regulatoryResultA ? 'passed' : 'pending',
+          },
+          {
+            label: 'Regulatory · Site B',
+            value: leoSiteToSiteResult.regulatoryResultB?.status ?? 'Not evaluated',
+            state: leoSiteToSiteResult.failureReason?.startsWith('REGULATORY_') && leoSiteToSiteResult.failureReason.endsWith('_B') ? 'blocked' : leoSiteToSiteResult.regulatoryResultB ? 'passed' : 'pending',
+          },
+          {
+            label: 'Capacity',
+            value: leoSiteToSiteResult.failureReason?.startsWith('CAPACITY_') ? leoSiteToSiteResult.failureReason.replace(/_/g, ' ') : 'No blocking constraint',
+            state: leoSiteToSiteResult.failureReason?.startsWith('CAPACITY_SATURATED') ? 'blocked' : leoSiteToSiteResult.failureReason?.startsWith('CAPACITY_DEGRADED') ? 'warning' : 'passed',
+          },
+        ]
+      : (leoServiceViewModel?.whyRows ?? []).map((row) => ({
+          label: row.label,
+          value: row.value,
+          state: row.tone === 'danger' ? 'blocked' : row.tone === 'warning' ? 'warning' : row.tone === 'success' ? 'passed' : 'pending',
+          detail: row.detail,
+        }));
+    const singleDeliveryFactor = leoPerformance?.debugInfo?.mainBottleneck.factor;
+    const leoViewModel = buildLeoEngineeringAnalysisViewModel({
+      debugInfo: leoPerformance?.debugInfo ?? null,
+      siteToSiteResult: leoSiteToSiteResult,
+      siteToSiteDirection: activeMeshTab === 'reverse' ? 'B_TO_A' : 'A_TO_B',
+      debugInfoSiteA: leoSiteToSiteResult?.debugSiteA ?? null,
+      debugInfoSiteB: leoSiteToSiteResult?.debugSiteB ?? null,
+      snpAName: leoSiteToSiteResult?.selectedSnpA?.name,
+      snpBName: leoSiteToSiteResult?.selectedSnpB?.name,
+      popName: leoSiteToSiteResult?.logicalPop?.name,
+      latencyMs: isLeoSiteToSite
+        ? activeMeshTab === 'reverse' ? leoSiteToSiteResult?.oneWayLatencyBtoAMs : leoSiteToSiteResult?.oneWayLatencyAtoBMs
+        : mobileLeoMetrics?.rtt ?? leoGeometry?.rttTotalMs ?? null,
+      latencyLabel: isLeoSiteToSite ? `${activeMeshTab === 'reverse' ? 'B → A' : 'A → B'} latency` : 'End-to-end RTT',
+      availabilityLabel: `${leoAvailability.indicativeAvailabilityPct.toFixed(1)}% indicative`,
+      confidenceLabel: `${leoConfidence.level} ${leoConfidence.score}/100`,
+      confidenceDetail: [leoConfidence.summary, leoConfidence.reasons[0] ?? leoConfidence.limitation].filter(Boolean).join('. '),
+      confidence: leoConfidence,
+      topology: isLeoSiteToSite ? 'SITE_TO_SITE' : 'SINGLE_SITE',
+      scenarioComplete: leoScenarioComplete,
+      scenarioIncompleteReason: activePoint == null ? 'Site A is required' : isLeoSiteToSite && pointBLeo == null ? 'Site B is required' : undefined,
+      pathResolved: leoPathResolved,
+      pathReason: leoPathReason,
+      rfStatus: leoRfStatus,
+      rfReason: isLeoSiteToSite ? 'RF unavailable at one or both sites' : 'No active RF beam at Site A',
+      serviceStatus: isLeoSiteToSite ? leoSiteToSiteResult?.serviceStatus : leoServiceViewModel?.serviceStatus,
+      serviceReason: isLeoSiteToSite ? leoSiteToSiteResult?.failureReason ?? undefined : leoServiceViewModel?.decisionDriverLabel,
+      serviceEvidence,
+      deliveryConstraint: singleDeliveryFactor && !['rf', 'regulatory', 'service gate'].includes(singleDeliveryFactor)
+        ? leoPerformance?.debugInfo?.mainBottleneck.label ?? singleDeliveryFactor
+        : null,
+    });
 
-    if (activeEstimatedPerformanceScope === 'LEO') {
-      if (leoTopologyMode !== 'SINGLE_SITE') return null;
+    return { GEO: geoViewModel, LEO: leoViewModel };
+  }, [activeCoverageForGeo, activeMeshTab, activePoint, beamLoadResult?.loadSource, downlinkAtB, downlinkAtUser, dualSegmentResult, geoGeometry, hasCurrentLEORF, leoGeometry, leoPerformance, leoServiceViewModel, leoSiteToSiteResult, leoTopologyMode, linkMode, meshMetrics, mobileLeoMetrics?.rtt, pointB, pointBLeo, regulatoryResult?.status, resolvedGEOConnectivity, resolvedLEOConnectivity, trafficGatewaySelection, uplinkAtB, uplinkAtUser, weatherType]);
 
-      return (
-        <CollapsibleSection
-          storageKey="leo-performance"
-          title={<>{isLeoPerformanceDiagnosticOnly ? 'Estimated Performance (Diagnostic only)' : 'Estimated Performance'}<SectionTooltip content="Predicted downlink/uplink throughput and round-trip latency based on LEO link geometry, beam health factors, weather attenuation, and the current corridor DC level." /></>}
-          subtitle={isLeoPerformanceDiagnosticOnly ? leoDiagnosticMessage : undefined}
-          accentColor="#db2777"
-          defaultOpen={true}
-          collapsible={false}
-        >
-          {leoPerformance ? (
-            <PerformancePanel
-              rtt={mobileLeoMetrics?.rtt ?? null}
-              downlinkGbps={mobileLeoMetrics?.downlinkGbps ?? null}
-              uplinkGbps={mobileLeoMetrics?.uplinkGbps ?? null}
-              maxDlGbps={selectedLeoTerminalProfile.maxDlMbps / 1000}
-              maxUlGbps={selectedLeoTerminalProfile.maxUlMbps / 1000}
-              performanceFactor={leoPerformance.performanceFactor}
-              accentColor="#db2777"
-              rttMaxMs={RTT_VISUAL_SCALE_MAX_MS}
-              rttLabel="End-to-End LEO RTT"
-            />
-          ) : resolvedLEOConnectivity ? (
-            <PerformancePanel
-              rtt={null}
-              downlinkGbps={null}
-              uplinkGbps={null}
-              maxDlGbps={selectedLeoTerminalProfile.maxDlMbps / 1000}
-              maxUlGbps={selectedLeoTerminalProfile.maxUlMbps / 1000}
-              accentColor="#db2777"
-              noDataMessage="No performance data available without SNP connectivity"
-            />
-          ) : (
-            <PerformancePanel
-              rtt={null}
-              downlinkGbps={null}
-              uplinkGbps={null}
-              maxDlGbps={selectedLeoTerminalProfile.maxDlMbps / 1000}
-              maxUlGbps={selectedLeoTerminalProfile.maxUlMbps / 1000}
-              accentColor="#db2777"
-            />
-          )}
-        </CollapsibleSection>
-      );
-    }
+  const engineeringTruths = useMemo<EngineeringTruthSet>(() => ({
+    GEO: engineeringAnalysisViewModels.GEO.truth,
+    LEO: engineeringAnalysisViewModels.LEO.truth,
+  }), [engineeringAnalysisViewModels]);
+  const activeEngineeringTruth = engineeringTruths[satelliteScope === 'ALL' ? activeConnTab : satelliteScope];
 
-    if (activeEstimatedPerformanceScope === 'GEO') {
-      const isMeshMode = linkMode === 'MESH' || linkMode === 'POINT_TO_POINT';
-      const isStarForward = linkMode === 'STAR_FORWARD';
-      const isStarReturn = linkMode === 'STAR_RETURN';
-      const userLabel = analysisSource === 'aircraft' && aircraftCallsign ? aircraftCallsign : 'User';
-      const gwLabel = geoGeometry?.satelliteToGateway.gateway?.name ?? 'GW';
-      const meshDirectionLabel = activeMeshTab === 'reverse' ? 'B→A' : 'A→B';
-      const estimatedPerformanceDirectionLabel = isMeshMode
-        ? meshDirectionLabel
-        : isStarReturn
-          ? 'Return'
-          : 'Forward';
-
-      const geoStabilityTooltip = geoGeometry
-        ? formatGeoStabilityTooltip(
-          geoGeometry.userToSatellite.elevationDeg,
-          geoGeometry.isUserLinkUnstable,
-        )
-        : undefined;
-
-      // MESH/P2P: use the selected one-way terminal-to-terminal latency.
-      // STAR: show one-way latency (active direction only).
-      const effectiveLatencyMs = isMeshMode
-        ? (activeMeshTab === 'reverse'
-          ? (meshMetrics?.reverseLatencyMs ?? null)
-          : (meshMetrics?.forwardLatencyMs ?? null))
-        : (geoGeometry?.oneWayRadioMs ?? null);
-
-      const latencyLabel = isMeshMode
-        ? `${linkMode === 'POINT_TO_POINT' ? 'P2P' : 'Mesh'} ${meshDirectionLabel} latency`
-        : isStarForward
-          ? `One-way latency (${gwLabel} → ${userLabel})`
-          : `One-way latency (${userLabel} → ${gwLabel})`;
-
-      const latencyScaleMs = ONE_WAY_VISUAL_SCALE_MAX_MS;
-      const selectedMeshPerformanceAvailable = !isMeshMode
-        || (activeMeshTab === 'reverse'
-          ? geoEffectivePerformance?.uplinkGbps != null
-          : geoEffectivePerformance?.downlinkGbps != null);
-
-      return (
-        <CollapsibleSection
-          storageKey="geo-performance"
-          title={<>Estimated Performance<EstimatedPerformanceDirectionPill dir={estimatedPerformanceDirectionLabel} aggregate={false} /><SectionTooltip content="Predicted GEO link throughput derived from the RF link budget. STAR modes show the active direction only and one-way latency. MESH/P2P shows the selected terminal-to-terminal direction only." /></>}
-          accentColor="#2563eb"
-          defaultOpen={true}
-          collapsible={false}
-        >
-          {resolvedGEOConnectivity && geoGeometry && geoEffectivePerformance && selectedMeshPerformanceAvailable ? (
-            <PerformancePanel
-              rtt={effectiveLatencyMs}
-              downlinkGbps={isStarReturn || (isMeshMode && activeMeshTab === 'reverse') ? null : geoEffectivePerformance.downlinkGbps}
-              uplinkGbps={isStarForward || (isMeshMode && activeMeshTab !== 'reverse') ? null : geoEffectivePerformance.uplinkGbps}
-              hideUplink={isStarForward || (isMeshMode && activeMeshTab !== 'reverse')}
-              hideDownlink={isStarReturn || (isMeshMode && activeMeshTab === 'reverse')}
-              maxDlGbps={TERMINAL_PROFILES[geoTerminalType].maxDlGbps}
-              maxUlGbps={TERMINAL_PROFILES[geoTerminalType].maxUlGbps}
-              stability={geoGeometry.isUserLinkUnstable ? 'Unstable' : geoEffectivePerformance.stability}
-              performanceFactor={geoEffectivePerformance.performanceFactor}
-              accentColor="#2563eb"
-              rttMaxMs={latencyScaleMs}
-              rttLabel={latencyLabel}
-              stabilityTooltip={geoStabilityTooltip}
-              downlinkLabel={isMeshMode ? `${meshDirectionLabel} throughput` : isStarForward ? 'Forward link throughput' : 'Downlink throughput'}
-              uplinkLabel={isMeshMode ? `${meshDirectionLabel} throughput` : isStarReturn ? 'Return link throughput' : 'Uplink throughput'}
-            />
-          ) : (
-            <PerformancePanel
-              rtt={null}
-              downlinkGbps={null}
-              uplinkGbps={null}
-              maxDlGbps={TERMINAL_PROFILES[geoTerminalType].maxDlGbps}
-              maxUlGbps={TERMINAL_PROFILES[geoTerminalType].maxUlGbps}
-              accentColor="#2563eb"
-              noDataMessage={isMeshMode ? `No ${meshDirectionLabel} GEO path available for the active topology` : 'No GEO coverage available for the active target'}
-            />
-          )}
-        </CollapsibleSection>
-      );
-    }
-
-    return null;
-  }, [
-    activeEstimatedPerformanceScope,
-    activeMeshTab,
-    geoGeometry,
-    geoEffectivePerformance,
-    isLeoPerformanceDiagnosticOnly,
-    leoDiagnosticMessage,
-    leoTopologyMode,
-    linkMode,
-    leoPerformance,
-    meshMetrics,
-    mobileLeoMetrics,
-    resolvedGEOConnectivity,
-    resolvedLEOConnectivity,
-    selectedPoint,
-    geoTerminalType,
-    selectedLeoTerminalProfile.maxDlMbps,
-    selectedLeoTerminalProfile.maxUlMbps,
-    analysisSource,
-    aircraftCallsign,
-  ]);
+  useEffect(() => {
+    onEngineeringTruthChange?.(engineeringTruths);
+  }, [engineeringTruths, onEngineeringTruthChange]);
 
   const leoPdfDetails = useMemo<PDFConnectionDetails | null>(() => {
     if (!resolvedLEOConnectivity) {
@@ -1733,36 +1705,17 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
     }
 
     const userLabel = analysisSource === 'aircraft' && aircraftCallsign ? aircraftCallsign : 'User';
-    const leoConfidence = leoSiteToSiteResult?.predictionConfidence ?? buildLeoSingleSiteConfidence({
-      mode: 'ENG',
-      satelliteResolved: !!resolvedLEOConnectivity?.satellite,
-      snpResolved: !!resolvedLEOConnectivity?.snp,
-      rfAvailable: !!leoPerformance,
-      debugAvailable: !!leoPerformance?.debugInfo,
-      regulatoryStatus: regulatoryResult?.status ?? null,
-      loadSource: beamLoadResult?.loadSource ?? null,
-      elevationDeg: resolvedLEOConnectivity?.userLEOElevation ?? null,
-    });
-    const geoCapacityEstimate = resolvedGEOConnectivity?.satellite
-      ? estimateGeoSatelliteCapacity(resolvedGEOConnectivity.satellite)
-      : null;
-    const geoConfidence = buildGeoConfidence({
-      mode: 'ENG',
-      topology: linkMode === 'MESH' || linkMode === 'POINT_TO_POINT' ? 'Site-to-Site' : 'Single Site',
-      coverageAvailable: !!activeCoverageForGeo,
-      rfAvailable: !!geoPerformance,
-      publicFrequencyEvidence: !!(activeCoverageForGeo?.band ?? activeCoverageForGeo?.frequencyGhz ?? activeCoverageForGeo?.level),
-      gatewayResolved: linkMode === 'MESH' || linkMode === 'POINT_TO_POINT' || !!geoGeometry?.satelliteToGateway.resolvedGateway,
-      capacityClassKnown: !!geoCapacityEstimate,
-      regulatoryKnown: true,
-      routePending: false,
-    });
-    const preferLeo = satelliteScope === 'LEO'
-      || (satelliteScope === 'ALL' && !!resolvedLEOConnectivity?.snp && !resolvedGEOConnectivity);
-    const chosenConfidence = preferLeo ? leoConfidence : geoConfidence;
-    const chosenPerformance = preferLeo
-      ? `${Math.round((leoPerformance?.downlinkGbps ?? 0) * 1000)} Mbps down / ${Math.round((leoPerformance?.uplinkGbps ?? 0) * 1000)} Mbps up`
-      : `${Math.round((geoPerformance?.downlinkGbps ?? 0) * 1000)} Mbps down / ${Math.round((geoPerformance?.uplinkGbps ?? 0) * 1000)} Mbps up`;
+    const preferLeo = satelliteScope === 'LEO' || (satelliteScope === 'ALL' && activeConnTab === 'LEO');
+    const chosenTruth = engineeringTruths[preferLeo ? 'LEO' : 'GEO'];
+    const throughputMetrics = chosenTruth?.primaryMetrics.filter((metric) => /throughput/i.test(metric.label)) ?? [];
+    const chosenPerformance = throughputMetrics.length > 0
+      ? throughputMetrics.map((metric) => `${metric.label}: ${metric.display}`).join(' / ')
+      : chosenTruth?.headline ?? 'No deliverable performance';
+    const leoTruthThroughputs = engineeringTruths.LEO?.primaryMetrics.filter((metric) => /throughput/i.test(metric.label)) ?? [];
+    const geoTruthThroughputs = engineeringTruths.GEO?.primaryMetrics.filter((metric) => /throughput/i.test(metric.label)) ?? [];
+    const leoDownlinkMbps = leoTruthThroughputs.find((metric) => /downlink/i.test(metric.label))?.value ?? leoTruthThroughputs[0]?.value ?? null;
+    const leoUplinkMbps = leoTruthThroughputs.find((metric) => /uplink/i.test(metric.label))?.value ?? null;
+    const geoForwardMbps = geoTruthThroughputs[0]?.value ?? null;
     const availabilityContext = buildLinkAvailabilityContext({
       architecture: preferLeo ? 'LEO' : 'GEO',
       weatherType,
@@ -1770,12 +1723,10 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
     });
     const evidenceSummary: PDFEvidenceSummary = {
       architectureChoice: preferLeo ? 'LEO feasibility path' : 'GEO feasibility path',
-      limitingFactor: preferLeo
-        ? (activeLeoRouteEvidence?.bottleneck ?? activeLeoRouteEvidence?.degradationReason ?? 'No primary LEO limiter detected')
-        : (geoGeometry?.warnings?.[0] ?? (geoGeometry?.isUserLinkUnstable ? 'Low GEO elevation margin' : 'No primary GEO limiter detected')),
+      limitingFactor: chosenTruth?.decisiveFactor ?? (chosenTruth?.state === 'available' ? 'No primary limiter detected' : chosenTruth?.headline ?? 'Not evaluated'),
       expectedPerformance: chosenPerformance,
-      confidence: chosenConfidence.summary,
-      confidenceReasons: chosenConfidence.reasons,
+      confidence: chosenTruth?.confidence?.display ?? chosenTruth?.confidence?.label ?? 'Not evaluated',
+      confidenceReasons: chosenTruth?.causeChain.map((stage) => `${stage.label}: ${stage.summary}`) ?? [],
       availabilityContext: formatLinkAvailabilityContext(availabilityContext),
     };
 
@@ -1792,12 +1743,8 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
         rtt: resolvedLEOConnectivity.snp
           ? (leoGeometry?.rttTotalMs ?? (resolvedLEOConnectivity.userLEODistance + (resolvedLEOConnectivity.snpLEODistance || 0)) * 2 / SPEED_OF_LIGHT_RADIO_KM_S * 1000)
           : resolvedLEOConnectivity.userLEODistance * 2 / SPEED_OF_LIGHT_RADIO_KM_S * 1000,
-        downlinkGbps: resolvedLEOConnectivity.snp
-          ? (leoPerformance?.downlinkGbps ?? 0)
-          : 0,
-        uplinkGbps: resolvedLEOConnectivity.snp
-          ? (leoPerformance?.uplinkGbps ?? 0)
-          : 0,
+        downlinkGbps: leoDownlinkMbps != null ? leoDownlinkMbps / 1000 : 0,
+        uplinkGbps: leoUplinkMbps != null ? leoUplinkMbps / 1000 : 0,
         stability: resolvedLEOConnectivity.snp
           ? (leoPerformance?.stability ?? 'Unstable')
           : 'Unstable',
@@ -1810,12 +1757,8 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
         name: resolvedGEOConnectivity.satellite.name,
         elevation: geoGeometry?.userToSatellite.elevationDeg || 0,
         rtt: geoGeometry?.rttTotalMs || 0,
-        downlinkGbps: (() => {
-          return geoPerformance?.downlinkGbps ?? 0;
-        })(),
-        uplinkGbps: (() => {
-          return geoPerformance?.uplinkGbps ?? 0;
-        })(),
+        downlinkGbps: linkMode === 'STAR_RETURN' || activeMeshTab === 'reverse' ? 0 : (geoForwardMbps ?? 0) / 1000,
+        uplinkGbps: linkMode === 'STAR_RETURN' || activeMeshTab === 'reverse' ? (geoForwardMbps ?? 0) / 1000 : 0,
         stability: (() => {
           return geoGeometry?.isUserLinkUnstable ? 'Unstable' : geoPerformance?.stability ?? 'Unstable';
         })(),
@@ -1829,12 +1772,11 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
       cesiumViewerRef,
     };
   }, [
-    activeCoverageForGeo,
-    activeLeoRouteEvidence,
+    activeConnTab,
+    activeMeshTab,
     activePoint,
     aircraftCallsign,
     analysisSource,
-    beamLoadResult,
     cesiumViewerRef,
     geoGeometry,
     geoPerformance,
@@ -1843,13 +1785,12 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
     leoGeometry,
     leoPdfDetails,
     leoPerformance,
-    leoSiteToSiteResult,
     linkMode,
     nearestLocation,
-    regulatoryResult,
     resolvedGEOConnectivity,
     resolvedLEOConnectivity,
     satelliteScope,
+    engineeringTruths,
     weatherType,
   ]);
 
@@ -2012,6 +1953,7 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
                   {/* ── Site-to-Site mode ──────────────────────────────────── */}
                   {leoTopologyMode === 'SITE_TO_SITE' && (
                 <LEOConnectivitySection
+                  engineeringAnalysisViewModel={engineeringAnalysisViewModels.LEO}
                   resolvedLEOConnectivity={resolvedLEOConnectivity}
                   leoGeometry={leoGeometry}
                   leoPerformance={leoPerformance}
@@ -2036,7 +1978,6 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
                   beamLoadResult={beamLoadResult}
                   serviceLayerResult={serviceLayerResult}
                   leoServiceViewModel={leoServiceViewModel}
-                  showEstimatedPerformance={false}
                   leoTopologyMode={leoTopologyMode}
                   onLeoTopologyModeChange={onLeoTopologyModeChange}
                   siteToSiteResult={leoSiteToSiteResult}
@@ -2059,6 +2000,7 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
                   {/* ── Single-site mode ───────────────────────────────────── */}
                   {leoTopologyMode === 'SINGLE_SITE' && (
                 <LEOConnectivitySection
+                  engineeringAnalysisViewModel={engineeringAnalysisViewModels.LEO}
                   resolvedLEOConnectivity={resolvedLEOConnectivity}
                   leoGeometry={leoGeometry}
                   leoPerformance={leoPerformance}
@@ -2083,7 +2025,6 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
                   beamLoadResult={beamLoadResult}
                   serviceLayerResult={serviceLayerResult}
                   leoServiceViewModel={leoServiceViewModel}
-                  showEstimatedPerformance={false}
                   leoTopologyMode={leoTopologyMode}
                   onLeoTopologyModeChange={onLeoTopologyModeChange}
                   isLinkBudgetDrawerOpen={isLeoLinkBudgetDrawerOpen}
@@ -2099,6 +2040,7 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
               {showGeoConnectivity && (
                 <div className={satelliteScope === 'ALL' ? (activeConnTab === 'GEO' ? 'order-1' : 'order-2') : undefined}>
                   <GEOConnectivitySection
+                    engineeringAnalysisViewModel={engineeringAnalysisViewModels.GEO}
                     resolvedGEOConnectivity={resolvedGEOConnectivity}
                     geoGeometry={geoGeometry}
                     calculateGEOPerformance={calculateGEOPerformance}
@@ -2130,7 +2072,6 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
                     analysisSource={analysisSource}
                     aircraftCallsign={aircraftCallsign}
                     onSatelliteClick={onSatelliteClick}
-                    showEstimatedPerformance={false}
                     linkMode={linkMode}
                     onLinkModeChange={onLinkModeChange}
                     dualSegmentResult={dualSegmentResult}
@@ -2155,25 +2096,16 @@ const CapacityDetails = memo<CapacityDetailsProps>(({ satellites, selectedPoint,
                   />
                 </div>
               )}
-              {satelliteScope === 'ALL' && bottomEstimatedPerformanceSection && (
-                <div className="order-3">
-                  {bottomEstimatedPerformanceSection}
-                </div>
-              )}
                 </div>
               </div>
             </div>
           )}
 
-          {/* Section 3: Estimated Performance */}
-          {satelliteScope !== 'ALL' && bottomEstimatedPerformanceSection && (
-            <div className="mb-4">
-              {bottomEstimatedPerformanceSection}
-            </div>
-          )}
-
-          {/* Section 4: Export PDF Button */}
-          {exportButtonPayload && (
+          {/* Export the same canonical result shown above. */}
+          {exportButtonPayload && activeEngineeringTruth
+            && activeEngineeringTruth.state !== 'incomplete'
+            && activeEngineeringTruth.state !== 'path-unavailable'
+            && activeEngineeringTruth.state !== 'budget-unavailable' && (
             <div className="mb-4">
               <ExportButton {...exportButtonPayload} />
             </div>

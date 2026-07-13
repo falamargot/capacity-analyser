@@ -49,7 +49,7 @@ export interface GeoRouteAnalysisViewModel {
    * One-way user-experienced latency for the active direction, including
    * network overhead (STAR: user↔sat↔gateway propagation + gateway/modem/
    * routing overhead; MESH: A↔sat↔B propagation + modem overhead). Matches the
-   * ENG AnswerBlock headline for the same route. Not a round-trip time.
+   * ENG authoritative result for the same route. Not a round-trip time.
    */
   latencyMs?: number;
   routeSummary?: string;
@@ -459,7 +459,7 @@ export function buildGeoRouteAnalysisViewModel(input: GeoRouteAnalysisInput): Ge
     return geoGeometry.userToSatellite.latencyMs + gatewayLegMs;
   })();
   // Published STAR latency: one-way propagation PLUS the gateway/modem/routing
-  // overhead — the exact expression the ENG AnswerBlock headline uses
+  // overhead — the exact expression the ENG authoritative result uses
   // (GEOConnectivitySection's geoStarOneWayTotalMs), so ENG and COMM report the
   // same figure for the same route instead of differing by the overhead total.
   const starOneWayLatencyMs = (() => {

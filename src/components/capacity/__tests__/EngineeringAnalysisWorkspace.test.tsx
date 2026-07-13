@@ -195,7 +195,7 @@ describe('EngineeringAnalysisWorkspace render smoke tests', () => {
     expect(html).toContain('top:0');
   });
 
-  it('renders the why explanation inline instead of only as clipped tooltip text', () => {
+  it('renders the canonical truth explanation inline instead of a competing workspace summary', () => {
     const viewModel = buildGeoEngineeringAnalysisViewModel({
       linkMode: 'STAR_FORWARD',
       result: makeGeoResult(4.5),
@@ -205,10 +205,11 @@ describe('EngineeringAnalysisWorkspace render smoke tests', () => {
         <div />
       </EngineeringAnalysisWorkspace>
     );
-    const explanation = 'Downlink remains the dominant RF segment; protocol efficiency, contention and terminal caps explain the delivered user rate.';
+    const explanation = viewModel.truth.summary;
 
     expect(html).toContain(explanation);
     expect(html).not.toContain(`title="${explanation}"`);
+    expect(html).not.toContain(viewModel.why.explanation);
   });
 
   it('renders a LEO available workspace with status, throughput and bottleneck', () => {

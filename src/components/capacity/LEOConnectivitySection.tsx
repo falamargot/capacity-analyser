@@ -1,8 +1,6 @@
 import { memo, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { Gauge, Maximize2, Minimize2, Route } from 'lucide-react';
+import { Maximize2, Minimize2, Route } from 'lucide-react';
 import type { LeoSiteToSiteResult } from '../../utils/leoSiteToSiteModel';
-import { formatLeoSiteToSiteFailureReason } from '../../utils/leoSiteToSiteModel';
-import { PerformancePanel } from '../MetricWidgets';
 import { SectionTooltip } from '../SectionTooltip';
 import PassBeamTimeline from '../PassBeamTimeline';
 import CollapsibleSection from '../layout/CollapsibleSection';
@@ -17,25 +15,23 @@ import type { BeamLoadResult } from '../../utils/capacityLayer';
 import type { ServiceLayerResult } from '../../utils/serviceLayer';
 import type { TerminalType } from './TerminalConfig';
 import type { LeoConnectivityViewModel } from '../../utils/leoServiceViewModel';
-import LeoStatusCards from './LeoStatusCards';
 import EngineeringAnalysisWorkspace from './EngineeringAnalysisWorkspace';
 import type { LeoBottleneckFactor, LeoThroughputLeg, LeoThroughputResult } from '../../types/leoThroughput';
 import { buildLeoSingleSiteConfidence, type PredictionConfidence } from '../../utils/predictionConfidence';
 import { buildLinkAvailabilityContext, formatLinkAvailabilityContext } from '../../utils/linkAvailabilityContext';
-import { buildLeoEngineeringAnalysisViewModel } from '../../utils/engineeringAnalysisViewModel';
+import { isEngineeringDeliveryState, type EngineeringAnalysisViewModel } from '../../utils/engineeringAnalysisViewModel';
 import { fmtMbps, fmtMs } from '../../utils/engineeringFormat';
 import LatencyBreakdownCard from './shared/LatencyBreakdownCard';
 import LayerHeading from './shared/LayerHeading';
 import { leoBottleneckToTone } from './shared/linkBudgetTone';
-import AnswerBlock from './shared/AnswerBlock';
+import EngineeringResultSummary from './shared/EngineeringResultSummary';
 import DetailsTogglePill from './shared/DetailsTogglePill';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // TODO: DC Level / Throughput / Power synchronisation (Q2-Q3-Q4)
 //
-// The tooltip in the "Estimated Performance" section already mentions
-// "corridor DC level", but no calculation linking it to effective throughput
-// or power budget has been implemented.
+// No calculation linking corridor DC level to effective throughput or power
+// budget has been implemented.
 //
 // When the formulas are specified, implement:
 //   1. dcLevelToThroughputMbps(dcLevel: number, nominalMbps: number): number
@@ -45,7 +41,7 @@ import DetailsTogglePill from './shared/DetailsTogglePill';
 //      Maps DC level to active beam power consumption, feeding the dynamic
 //      power budget model in realisticSimulation.ts.
 //   3. Wire these functions into LeoConnectivityViewModel and expose the
-//      results in the Estimated Performance panel.
+//      result through the canonical Engineering Truth.
 //
 // Do NOT implement without a precise specification — an incorrect model would
 // silently degrade simulation fidelity.
@@ -160,7 +156,6 @@ interface LeoLinkBudgetSummaryCardProps {
 }
 
 const LeoLinkBudgetSummaryCard = ({ debugInfo, highlighted = false, onToggle }: LeoLinkBudgetSummaryCardProps) => {
-  const limitingLabel = debugInfo?.mainBottleneck.label ?? '--';
   const tone = leoBottleneckToTone(debugInfo);
   const satelliteName = debugInfo?.satelliteId ?? 'No LEO path';
   const budgetSubtitle = debugInfo
@@ -191,7 +186,7 @@ const LeoLinkBudgetSummaryCard = ({ debugInfo, highlighted = false, onToggle }: 
               <span className="inline-flex items-center text-sm font-semibold" style={{ color: '#db2777' }}>
                 Link Budget
                 <span className={`ml-2 rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${tone.className}`}>
-                  {tone.label}
+                  RF evidence · {tone.label}
                 </span>
                 <SectionTooltip content="LEO RF and network summary. Open the detail panel to inspect beam geometry, FSPL, C/N, MODCOD, RF chain throughput, beam sharing, the Ka feeder budget, handover, and smoothing." />
               </span>
@@ -221,28 +216,8 @@ const LeoLinkBudgetSummaryCard = ({ debugInfo, highlighted = false, onToggle }: 
         </div>
       </div>
 
-      <div className="grid grid-cols-3 gap-px bg-slate-100 dark:bg-slate-800">
-        {[
-          { label: 'Final DL', value: fmtMbps(debugInfo?.downlink.network.finalUserMbps), icon: Gauge, color: undefined, primary: true },
-          { label: 'Final UL', value: fmtMbps(debugInfo?.uplink.network.finalUserMbps), icon: Gauge, color: undefined, primary: false },
-          { label: 'Main bottleneck', value: limitingLabel, icon: Route, color: undefined, primary: false },
-        ].map((item) => {
-          const Icon = item.icon;
-          return (
-            <div key={item.label} className="min-w-0 bg-white px-3 py-3 dark:bg-slate-900">
-              <div className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">
-                <Icon className="h-3.5 w-3.5" />
-                <span>{item.label}</span>
-              </div>
-              <div
-                className={`mt-1 truncate font-bold tabular-nums text-slate-950 dark:text-slate-50 ${item.primary ? 'text-lg' : 'text-sm'}`}
-                style={item.color ? { color: item.color } : undefined}
-              >
-                {item.value}
-              </div>
-            </div>
-          );
-        })}
+      <div className="border-t border-slate-100 bg-slate-50/60 px-3.5 py-2 text-[10px] leading-4 text-slate-500 dark:border-slate-800 dark:bg-slate-900/70 dark:text-slate-400">
+        Open to inspect beam geometry, RF chains, feeder evidence, sharing, handover, and terminal constraints.
       </div>
     </section>
   );
@@ -789,6 +764,7 @@ interface LeoLinkBudgetDrawerProps {
   confidenceLabel?: string;
   confidenceDetail?: string;
   confidence?: PredictionConfidence;
+  viewModel?: EngineeringAnalysisViewModel;
 }
 
 const NoBudgetPlaceholder = () => (
@@ -848,6 +824,7 @@ const LeoLinkBudgetDrawer = ({
   confidenceLabel,
   confidenceDetail,
   confidence,
+  viewModel: providedViewModel,
 }: LeoLinkBudgetDrawerProps) => {
   if (!open) return null;
 
@@ -864,7 +841,7 @@ const LeoLinkBudgetDrawer = ({
     : (debugInfoSiteB ?? debugInfo);
   const hasS2SAccessBudgets = sourceDebugInfo != null && destinationDebugInfo != null;
   const siteBadgeClass = 'border border-slate-600 bg-slate-800 text-slate-100';
-  const viewModel = buildLeoEngineeringAnalysisViewModel({
+  const viewModel = providedViewModel ?? buildLeoEngineeringAnalysisViewModel({
     debugInfo,
     siteToSiteResult,
     siteToSiteDirection,
@@ -1004,6 +981,7 @@ const LeoLinkBudgetDrawer = ({
 
 
 interface LEOConnectivitySectionProps {
+  engineeringAnalysisViewModel: EngineeringAnalysisViewModel;
   resolvedLEOConnectivity: ResolvedLEOConnectivity | null;
   leoGeometry: LEOGeometry | null;
   leoPerformance: LEOPerformance | null;
@@ -1030,7 +1008,6 @@ interface LEOConnectivitySectionProps {
   beamLoadResult?: BeamLoadResult | null;
   serviceLayerResult?: ServiceLayerResult | null;
   leoServiceViewModel?: LeoConnectivityViewModel | null;
-  showEstimatedPerformance?: boolean;
   leoTopologyMode?: 'SINGLE_SITE' | 'SITE_TO_SITE';
   onLeoTopologyModeChange?: (mode: 'SINGLE_SITE' | 'SITE_TO_SITE') => void;
   // ── Site-to-site extension ──
@@ -1080,21 +1057,6 @@ const S2SMetricRow = ({ label, value, accent = false }: { label: string; value: 
   </div>
 );
 
-const StabilityBadge = ({ stability }: { stability: 'High' | 'Medium' | 'Low' }) => {
-  const cfg = {
-    High: 'bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-700',
-    Medium: 'bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-700',
-    Low: 'bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-700',
-  }[stability];
-  return (
-    <span className={`inline-flex items-center rounded border px-1.5 py-0.5 text-[10px] font-semibold ${cfg}`}>
-      {stability}
-    </span>
-  );
-};
-
-const RTT_VISUAL_SCALE_MAX_MS = 600;
-
 const formatHopDistance = (distanceKm: number | null | undefined, latencyMs: number | null | undefined): string => {
   const distance = distanceKm != null ? `${distanceKm.toFixed(0)} km` : '--';
   const latency = latencyMs != null ? `${latencyMs.toFixed(1)} ms` : '--';
@@ -1102,6 +1064,7 @@ const formatHopDistance = (distanceKm: number | null | undefined, latencyMs: num
 };
 
 const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
+  engineeringAnalysisViewModel,
   resolvedLEOConnectivity,
   leoGeometry,
   leoPerformance,
@@ -1125,7 +1088,6 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
   beamLoadResult = null,
   serviceLayerResult: _serviceLayerResult = null,
   leoServiceViewModel,
-  showEstimatedPerformance = true,
   leoTopologyMode,
   onLeoTopologyModeChange,
   siteToSiteResult = undefined,
@@ -1142,7 +1104,6 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
   onTerminalModelIdBChange,
 }) => {
   const siteALabel = 'Site A';
-  const showPerformanceBeforeRadioPath = analysisSource !== 'aircraft';
   const isLinkBudgetDrawerOpen = controlledDrawerOpen;
   const setIsLinkBudgetDrawerOpen = (value: boolean | ((prev: boolean) => boolean)) => {
     const next = typeof value === 'function' ? value(controlledDrawerOpen) : value;
@@ -1189,7 +1150,7 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
   // debug chains. Only the top-level finalUserMbps override is direction-corrected here.
   // Extending the full RF chain to be direction-aware is a follow-up engine improvement.
   const s2sView = useMemo(() => {
-    if (!s2sServiceActive || !siteToSiteResult) return null;
+    if (!s2sActive || !siteToSiteResult) return null;
     const primaryMbps = isAtoB
       ? siteToSiteResult.finalThroughputAtoBMbps
       : siteToSiteResult.finalThroughputBtoAMbps;
@@ -1209,7 +1170,7 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
       debugSiteA: siteToSiteResult.debugSiteA ?? null,
       debugSiteB: siteToSiteResult.debugSiteB ?? null,
     };
-  }, [s2sServiceActive, siteToSiteResult, isAtoB]);
+  }, [s2sActive, siteToSiteResult, isAtoB]);
 
   // Convenience aliases kept for existing consumers that predate s2sView.
   const s2sPrimaryLabel   = s2sView?.primaryLabel   ?? (isAtoB ? 'A → B' : 'B → A');
@@ -1245,68 +1206,6 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
     </div>
   );
 
-  const terminalLimitedNotice = leoPerformance?.wasTerminalLimited ? (
-    <div className="rounded-md border border-blue-200 bg-blue-50 px-3 py-2 text-xs text-blue-800 dark:border-blue-700 dark:bg-blue-900/20 dark:text-blue-300">
-      At least one direction is terminal-limited. Final DL/UL values use the direction-specific terminal cap.
-    </div>
-  ) : null;
-
-  const simulatedNotice = (
-    <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-1.5 text-[10px] text-slate-500 dark:border-slate-700 dark:bg-slate-800/40 dark:text-slate-400 space-y-0.5">
-      <div>Smoothed user throughput · shared beam capacity · EMA-smoothed · simulation model · no SLA guarantee</div>
-      <div>Downlink and uplink use separate RF chains, terminal caps, beam sharing, gateway factor, handover and EMA smoothing.</div>
-    </div>
-  );
-
-  const estimatedPerformanceSection = (
-    <CollapsibleSection
-      storageKey="leo-performance"
-      title={<>{isRegulatoryBlocked ? 'Estimated Performance (Diagnostic only)' : 'Estimated Performance (simulated)'}<SectionTooltip content="Final post-network user throughput. Downlink and uplink are computed from separate RF chains, then passed through beam sharing with the Ka feeder bound, handover transient and EMA smoothing. NOT a measured or guaranteed value." /></>}
-      subtitle={isRegulatoryBlocked ? blockedDiagnosticMessage : undefined}
-      accentColor="#db2777"
-      defaultOpen={true}
-      collapsible={false}
-    >
-      {leoPerformance ? (
-        <>
-          {isRegulatoryBlocked && <div className="mb-3">{diagnosticOnlyNotice}</div>}
-          {terminalLimitedNotice && <div className="mb-2">{terminalLimitedNotice}</div>}
-          <PerformancePanel
-            rtt={mobileLeoMetrics?.rtt ?? null}
-            downlinkGbps={mobileLeoMetrics?.downlinkGbps ?? null}
-            uplinkGbps={mobileLeoMetrics?.uplinkGbps ?? null}
-            maxDlGbps={TERMINAL_PROFILES[terminalType].maxDlGbps}
-            maxUlGbps={TERMINAL_PROFILES[terminalType].maxUlGbps}
-            performanceFactor={leoPerformance.performanceFactor}
-            accentColor="#db2777"
-            rttMaxMs={RTT_VISUAL_SCALE_MAX_MS}
-            rttLabel="End-to-End LEO RTT"
-          />
-          <div className="mt-2">{simulatedNotice}</div>
-        </>
-      ) : resolvedLEOConnectivity ? (
-        <PerformancePanel
-          rtt={null}
-          downlinkGbps={null}
-          uplinkGbps={null}
-          maxDlGbps={TERMINAL_PROFILES[terminalType].maxDlGbps}
-          maxUlGbps={TERMINAL_PROFILES[terminalType].maxUlGbps}
-          accentColor="#db2777"
-          noDataMessage="No performance data available without SNP connectivity"
-        />
-      ) : (
-        <PerformancePanel
-          rtt={null}
-          downlinkGbps={null}
-          uplinkGbps={null}
-          maxDlGbps={TERMINAL_PROFILES[terminalType].maxDlGbps}
-          maxUlGbps={TERMINAL_PROFILES[terminalType].maxUlGbps}
-          accentColor="#db2777"
-        />
-      )}
-    </CollapsibleSection>
-  );
-
   // ── S2S derived display values ────────────────────────────────────────────
   const s2sSameSNP = s2sActive && siteToSiteResult!.selectedSnpA?.name === siteToSiteResult!.selectedSnpB?.name && siteToSiteResult!.selectedSnpA != null;
   const s2sSnpAName = s2sActive ? (siteToSiteResult!.selectedSnpA?.name ?? '—') : '—';
@@ -1331,71 +1230,54 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
             { key: 'access-a', label: 'Access A (Satellite A → Site A)', value: siteToSiteResult.userLinkLatencyAms },
           ])
     : [];
-  const s2sStatusLabel = s2sActive
-    ? siteToSiteResult!.serviceStatus === 'ALLOWED'
-      ? 'End-to-end available'
-      : siteToSiteResult!.serviceStatus === 'DEGRADED'
-        ? 'End-to-end degraded'
-        : 'Service unavailable'
-    : null;
-  const s2sFailureLabel = s2sActive
-    ? formatLeoSiteToSiteFailureReason(siteToSiteResult!.failureReason)
-    : null;
   const siteACoordinatesLabel = activePoint
     ? formatCoordinates(activePoint)
     : '--';
   const siteBCoordinatesLabel = pointBLeo
     ? formatCoordinates(pointBLeo)
     : 'Shift+click to place';
-  const s2sServiceStatusBanner = isS2S && s2sActive ? (
-    <div className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-semibold ${
-      siteToSiteResult!.serviceStatus === 'ALLOWED'
-        ? 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800/60 dark:bg-emerald-950/30 dark:text-emerald-400'
-        : siteToSiteResult!.serviceStatus === 'DEGRADED'
-          ? 'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-800/60 dark:bg-amber-950/30 dark:text-amber-400'
-        : 'border-red-200 bg-red-50 text-red-700 dark:border-red-800/60 dark:bg-red-950/30 dark:text-red-400'
-    }`}>
-      <span className={`h-2 w-2 rounded-full shrink-0 ${
-        siteToSiteResult!.serviceStatus === 'ALLOWED'
-          ? 'bg-emerald-500'
-          : siteToSiteResult!.serviceStatus === 'DEGRADED'
-            ? 'bg-amber-500'
-            : 'bg-red-500'
-      }`} />
-      <span>
-        {siteToSiteResult!.serviceStatus === 'ALLOWED'
-          ? `${s2sStatusLabel} · ${s2sSatAName} ↔ ${s2sSatBName}`
-          : `${s2sStatusLabel} — ${s2sFailureLabel}`
-        }
-      </span>
-    </div>
-  ) : null;
-  const singleSiteLeoSatelliteBanner = !isS2S && resolvedLEOConnectivity?.satellite ? (
-    <div className="flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-700 dark:border-emerald-800/60 dark:bg-emerald-950/30 dark:text-emerald-400">
-      <span className="h-2 w-2 shrink-0 rounded-full bg-emerald-500" />
-      <span>
-        Connected · {resolvedLEOConnectivity.satellite.name}
-      </span>
-    </div>
-  ) : null;
-
-  // ── Answer Block (above-the-fold summary) ─────────────────────────────────
-  // Reuses the exact same debugInfo/latency expressions already used by
-  // LeoLinkBudgetSummaryCard and LeoLinkBudgetDrawer below, so the compact
-  // summary never disagrees with the detailed cards further down the
-  // sidebar. For site-to-site, throughput and latency are the direction-aware
-  // s2sView values — the same ones the path strip and workspace already use —
-  // so latency is visible here rather than only after Ground Segment.
+  // The authoritative result and the detailed workspace share this exact
+  // direction-aware evidence object; no sidebar-only throughput is derived.
   const answerDebugInfo = isS2S ? s2sLinkBudgetDebugInfo : (leoPerformance?.debugInfo ?? null);
-  const answerTone = leoBottleneckToTone(answerDebugInfo);
-  const answerThroughputMbps = isS2S
-    ? (s2sView?.primaryMbps ?? null)
-    : (answerDebugInfo?.downlink.network.finalUserMbps ?? null);
-  const answerThroughputLabel = isS2S ? `${s2sPrimaryLabel} throughput` : 'Final DL';
   const answerLatencyMs = isS2S ? s2sPrimaryLatency : (mobileLeoMetrics?.rtt ?? leoGeometry?.rttTotalMs ?? null);
   const answerLatencyLabel = isS2S ? `${s2sPrimaryLabel} latency` : 'End-to-end RTT';
-  const answerBottleneck = answerDebugInfo?.mainBottleneck.label ?? '--';
-
+  if (!isEngineeringDeliveryState(engineeringAnalysisViewModel.truth.state)) {
+    const showRfEvidence = engineeringAnalysisViewModel.truth.state === 'blocked'
+      || engineeringAnalysisViewModel.truth.state === 'budget-unavailable';
+    return (
+      <>
+        {leoTopologyMode && onLeoTopologyModeChange && (
+          <div className="mb-4 grid grid-cols-2 gap-1">
+            <button type="button" onClick={() => onLeoTopologyModeChange('SINGLE_SITE')} className={`rounded px-2 py-2 text-xs font-semibold ${leoTopologyMode === 'SINGLE_SITE' ? 'bg-pink-500 text-white' : 'bg-gray-100 text-gray-600 dark:bg-slate-700 dark:text-gray-300'}`}>Single Site</button>
+            <button type="button" onClick={() => onLeoTopologyModeChange('SITE_TO_SITE')} className={`rounded px-2 py-2 text-xs font-semibold ${leoTopologyMode === 'SITE_TO_SITE' ? 'bg-pink-500 text-white' : 'bg-gray-100 text-gray-600 dark:bg-slate-700 dark:text-gray-300'}`}>Site-to-Site</button>
+          </div>
+        )}
+        <EngineeringResultSummary technology="LEO" truth={engineeringAnalysisViewModel.truth} />
+        {showRfEvidence && (
+          <div className="space-y-4">
+            <LeoLinkBudgetSummaryCard debugInfo={answerDebugInfo} highlighted={isLinkBudgetDrawerOpen} onToggle={() => setIsLinkBudgetDrawerOpen((open) => !open)} />
+            <LeoLinkBudgetDrawer
+              open={isLinkBudgetDrawerOpen}
+              onClose={() => setIsLinkBudgetDrawerOpen(false)}
+              expanded={isLinkBudgetDetailExpanded}
+              onExpandedChange={onLinkBudgetDetailExpandedChange}
+              debugInfo={leoPerformance?.debugInfo ?? null}
+              siteToSiteResult={siteToSiteResult}
+              siteToSiteDirection={s2sDirection}
+              debugInfoSiteA={s2sView?.debugSiteA}
+              debugInfoSiteB={s2sView?.debugSiteB}
+              snpAName={s2sSnpAName !== '—' ? s2sSnpAName : undefined}
+              snpBName={s2sSnpBName !== '—' ? s2sSnpBName : undefined}
+              popName={s2sPopName}
+              latencyMs={answerLatencyMs}
+              latencyLabel={answerLatencyLabel}
+              viewModel={engineeringAnalysisViewModel}
+            />
+          </div>
+        )}
+      </>
+    );
+  }
   return (
     <>
       {leoTopologyMode && onLeoTopologyModeChange && (
@@ -1439,18 +1321,7 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
       )}
 
       <div className="space-y-4">
-        <AnswerBlock
-          accentColor="#db2777"
-          statusLabel={answerTone.label}
-          statusClassName={answerTone.className}
-          throughputLabel={answerThroughputLabel}
-          throughputValue={fmtMbps(answerThroughputMbps)}
-          latencyLabel={answerLatencyLabel}
-          latencyValue={fmtMs(answerLatencyMs, 0)}
-          bottleneckLabel="Bottleneck"
-          bottleneckValue={answerBottleneck}
-          confidenceValue={`${predictionConfidence.level} · ${predictionConfidence.score}/100`}
-        />
+        <EngineeringResultSummary technology="LEO" truth={engineeringAnalysisViewModel.truth} />
 
         <LayerHeading title="Access Layer" detail="RF details, terminal characteristics, weather loss, elevation and visibility." />
         {/* ── S2S mode: two independent terminal cards ── */}
@@ -1531,19 +1402,6 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
         )}
 
         <LayerHeading title="Space Segment" detail="Serving satellites, beam state, RF budget and capacity constraints." />
-        <div className="space-y-2">
-          {s2sServiceStatusBanner ?? (
-            singleSiteLeoSatelliteBanner ? (
-              <div className="pt-2">
-                {singleSiteLeoSatelliteBanner}
-              </div>
-            ) : null
-          )}
-          <LeoStatusCards viewModel={leoServiceViewModel ?? null} />
-        </div>
-
-        {/* Estimated Performance — single-site only; S2S version rendered after Latency Breakdown */}
-        {!isS2S && showEstimatedPerformance && showPerformanceBeforeRadioPath && estimatedPerformanceSection}
 
         {/* Link Budget */}
         <LeoLinkBudgetSummaryCard
@@ -1557,7 +1415,7 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
           expanded={isLinkBudgetDetailExpanded}
           onExpandedChange={onLinkBudgetDetailExpandedChange}
           debugInfo={leoPerformance?.debugInfo ?? null}
-          siteToSiteResult={s2sServiceActive ? siteToSiteResult : undefined}
+          siteToSiteResult={isS2S ? siteToSiteResult : undefined}
           siteToSiteDirection={s2sDirection}
           debugInfoSiteA={s2sView?.debugSiteA}
           debugInfoSiteB={s2sView?.debugSiteB}
@@ -1570,6 +1428,7 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
           confidenceLabel={`${predictionConfidence.level} ${predictionConfidence.score}/100`}
           confidenceDetail={[predictionConfidence.summary, predictionConfidence.reasons[0] ?? predictionConfidence.limitation].filter(Boolean).join('. ')}
           confidence={predictionConfidence}
+          viewModel={engineeringAnalysisViewModel}
         />
 
         <LayerHeading title="Ground Segment" detail="SNP, PoP/backbone and feeder path details." />
@@ -1904,50 +1763,6 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
           )}
         </LatencyBreakdownCard>
 
-        {/* Estimated Performance — Site-to-Site (after latency breakdown to match spec order) */}
-        {isS2S && (
-          <CollapsibleSection
-            storageKey="leo-performance"
-            title={<>Estimated Performance (Site-to-Site)<SectionTooltip content="Throughput is the access-link bottleneck (min of uplink at source, downlink at destination). Backbone capacity is assumed non-limiting. Symmetric terminal assumption." /></>}
-            accentColor="#db2777"
-            defaultOpen={true}
-            collapsible={false}
-          >
-            {s2sServiceActive ? (
-              <>
-                <PerformancePanel
-                  rtt={siteToSiteResult!.rttMs}
-                  downlinkGbps={(s2sView?.primaryMbps ?? 0) / 1000}
-                  uplinkGbps={(s2sView?.secondaryMbps ?? 0) / 1000}
-                  maxDlGbps={TERMINAL_PROFILES[terminalType].maxDlGbps}
-                  maxUlGbps={TERMINAL_PROFILES[terminalType].maxUlGbps}
-                  performanceFactor={leoPerformance?.performanceFactor ?? 1}
-                  accentColor="#db2777"
-                  rttMaxMs={RTT_VISUAL_SCALE_MAX_MS}
-                  rttLabel={`${s2sView?.primaryLabel ?? 'A → B'} latency`}
-                  downlinkLabel={`${s2sView?.primaryLabel ?? 'A → B'} throughput`}
-                  uplinkLabel={`${s2sView?.secondaryLabel ?? 'B → A'} throughput`}
-                />
-                <div className="mt-2 flex items-center justify-between text-xs">
-                  <span className="text-slate-500 dark:text-slate-400">Path stability (~5 min)</span>
-                  <StabilityBadge stability={siteToSiteResult!.pathStability} />
-                </div>
-                <div className="mt-2">{simulatedNotice}</div>
-              </>
-            ) : (
-              <PerformancePanel
-                rtt={null}
-                downlinkGbps={null}
-                uplinkGbps={null}
-                maxDlGbps={TERMINAL_PROFILES[terminalType].maxDlGbps}
-                maxUlGbps={TERMINAL_PROFILES[terminalType].maxUlGbps}
-                accentColor="#db2777"
-                noDataMessage={s2sActive ? 'No complete LEO Site-to-Site path for the current beam coverage.' : 'Place Site B on the globe to compute end-to-end performance.'}
-              />
-            )}
-          </CollapsibleSection>
-        )}
-
         {/* Pass Beam Timeline — Site A only (hide in S2S to keep sidebar compact) */}
         {!isS2S && resolvedLEOConnectivity?.satellite && activePoint && (
           <div className="space-y-2">
@@ -1963,8 +1778,6 @@ const LEOConnectivitySection = memo<LEOConnectivitySectionProps>(({
             />
           </div>
         )}
-        {!isS2S && showEstimatedPerformance && !showPerformanceBeforeRadioPath && estimatedPerformanceSection}
-
       </div>
     </>
   );

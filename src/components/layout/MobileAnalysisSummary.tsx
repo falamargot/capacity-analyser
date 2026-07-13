@@ -26,6 +26,7 @@ import { getAssignedGeoSatellitesForGateway } from '../../utils/geoConnectivityM
 import type { SNPConnectedSatellite } from '../../services/coverageService';
 import { getMoonSnapshot, MOON_MEAN_RADIUS_KM } from '../../utils/moonInfo';
 import { JulianDate } from 'cesium';
+import type { EngineeringTruthSet } from '../../utils/engineeringAnalysisViewModel';
 
 interface MobileSelectedPoint {
     lat: number;
@@ -68,6 +69,7 @@ interface MobileAnalysisSummaryProps {
     onActiveMeshTabChange?: (tab: 'forward' | 'reverse') => void;
     leoTopologyMode?: 'SINGLE_SITE' | 'SITE_TO_SITE';
     leoSiteToSiteResult?: LeoSiteToSiteResult | null;
+    engineeringTruths?: EngineeringTruthSet;
 }
 
 type SummaryTone = SelectedPointStatusTone | 'danger' | 'warning' | 'success' | 'neutral';
@@ -462,8 +464,12 @@ const MobileAnalysisSummary: React.FC<MobileAnalysisSummaryProps> = ({
     onActiveMeshTabChange,
     leoTopologyMode = 'SINGLE_SITE',
     leoSiteToSiteResult = null,
+    engineeringTruths = {},
 }) => {
     const { failedSnps } = useSimulation();
+    const activeEngineeringTruth = engineeringTruths[satelliteScope === 'GEO' || satelliteScope === 'LEO'
+        ? satelliteScope
+        : activeConnectivityTab];
     const selectedPointStatus = useMemo(
         () => deriveSelectedPointStatusPresentation({
             scope: satelliteScope,
@@ -575,7 +581,7 @@ const MobileAnalysisSummary: React.FC<MobileAnalysisSummaryProps> = ({
                     : selectedPoint.altitude
                     ? `Altitude ${selectedPoint.altitude.toFixed(1)} km`
                     : null,
-                status: siteToSiteServiceReady
+                status: activeEngineeringTruth?.headline ?? (siteToSiteServiceReady
                     ? (!leoSiteToSiteResult
                         ? 'Resolving end-to-end path'
                         : leoSiteToSiteResult.serviceStatus === 'ALLOWED'
@@ -583,8 +589,13 @@ const MobileAnalysisSummary: React.FC<MobileAnalysisSummaryProps> = ({
                         : leoSiteToSiteResult.serviceStatus === 'DEGRADED'
                             ? `End-to-end degraded · ${formatLeoSiteToSiteFailureReason(leoSiteToSiteResult.failureReason)}`
                             : `End-to-end unavailable · ${formatLeoSiteToSiteFailureReason(leoSiteToSiteResult.failureReason)}`)
-                    : selectedPointStatus.lines.map((line) => line.text).join(' · '),
-                statusTone: siteToSiteServiceReady
+                    : selectedPointStatus.lines.map((line) => line.text).join(' · ')),
+                statusTone: activeEngineeringTruth
+                    ? activeEngineeringTruth.tone === 'good' ? 'success' as const
+                        : activeEngineeringTruth.tone === 'warn' ? 'warning' as const
+                            : activeEngineeringTruth.tone === 'danger' ? 'danger' as const
+                                : 'neutral' as const
+                    : siteToSiteServiceReady
                     ? (!leoSiteToSiteResult
                         ? 'neutral' as const
                         : leoSiteToSiteResult.serviceStatus === 'ALLOWED'
@@ -605,6 +616,7 @@ const MobileAnalysisSummary: React.FC<MobileAnalysisSummaryProps> = ({
         };
     }, [
         activeConnectivityTab,
+        activeEngineeringTruth,
         autoSelectedGEOSatellite?.name,
         autoSelectedLEOSatellite?.name,
         inspectedSNP,
@@ -659,8 +671,11 @@ const MobileAnalysisSummary: React.FC<MobileAnalysisSummaryProps> = ({
             : null;
         const displayedLeoMetrics = leoTopologyMode === 'SITE_TO_SITE' ? s2sLeoMetrics : metrics?.leo;
         const selectedRouteLabel = activeMeshTab === 'reverse' ? 'B→A' : 'A→B';
+        const leoDeliveryAvailable = leoTopologyMode === 'SITE_TO_SITE'
+            ? leoSiteToSiteResult?.serviceStatus === 'ALLOWED' || leoSiteToSiteResult?.serviceStatus === 'DEGRADED'
+            : leoServiceViewModel?.isThroughputApplicable ?? true;
 
-        if (displayedLeoMetrics) {
+        if (displayedLeoMetrics && leoDeliveryAvailable) {
             cards.push({
                 key: 'leo',
                 label: 'LEO',
@@ -679,8 +694,9 @@ const MobileAnalysisSummary: React.FC<MobileAnalysisSummaryProps> = ({
         const canShowGeoTopologyControls = Boolean(onLinkModeChange)
             && satelliteScope !== 'LEO'
             && (Boolean(selectedPoint) || Boolean(selectedAircraft) || Boolean(metrics?.geo));
+        const geoDeliveryAvailable = geoPointStatus == null || geoPointStatus === 'available' || geoPointStatus === 'unstable';
 
-        if (metrics?.geo || canShowGeoTopologyControls) {
+        if ((metrics?.geo && geoDeliveryAvailable) || canShowGeoTopologyControls) {
             const isMeshMode = linkMode === 'MESH' || linkMode === 'POINT_TO_POINT';
             const isStarForward = linkMode === 'STAR_FORWARD';
             const isStarReturn = linkMode === 'STAR_RETURN';
@@ -698,7 +714,7 @@ const MobileAnalysisSummary: React.FC<MobileAnalysisSummaryProps> = ({
             cards.push({
                 key: 'geo',
                 label: 'GEO',
-                metrics: meshDisplayMetrics ?? metrics?.geo,
+                metrics: geoDeliveryAvailable ? (meshDisplayMetrics ?? metrics?.geo) : null,
                 accentClassName: 'text-blue-600 dark:text-blue-300',
                 borderClassName: 'border-blue-200/80 dark:border-blue-400/20',
                 topologyLabel: onLinkModeChange ? undefined : `Topology · ${LINK_MODE_LABELS[linkMode]}`,
@@ -713,10 +729,11 @@ const MobileAnalysisSummary: React.FC<MobileAnalysisSummaryProps> = ({
         }
 
         return cards;
-    }, [activeMeshTab, leoSiteToSiteResult, leoTopologyMode, linkMode, metrics?.geo, metrics?.leo, metrics?.mesh, onLinkModeChange, pointB, satelliteScope, selectedAircraft, selectedPoint]);
+    }, [activeMeshTab, geoPointStatus, leoServiceViewModel?.isThroughputApplicable, leoSiteToSiteResult, leoTopologyMode, linkMode, metrics?.geo, metrics?.leo, metrics?.mesh, onLinkModeChange, pointB, satelliteScope, selectedAircraft, selectedPoint]);
 
     const hasMetrics = metricCards.length > 0;
-    const shouldShowMetrics = hasMetrics && (!compact || showKpisInCompact);
+    const shouldShowCanonicalMetrics = !!selectedPoint && !!activeEngineeringTruth && activeEngineeringTruth.primaryMetrics.length > 0 && (!compact || showKpisInCompact);
+    const shouldShowMetrics = !activeEngineeringTruth && hasMetrics && (!compact || showKpisInCompact);
     const shouldShowEmptyState = !compact || (!selectedPoint && !selectedAircraft);
     const mobileRouteSummary = useMemo(() => {
         const siteBPoint = pointB ?? pointBLeo;
@@ -1030,6 +1047,21 @@ const MobileAnalysisSummary: React.FC<MobileAnalysisSummaryProps> = ({
                                 value={card.value}
                                 hint={card.hint}
                                 accentClassName={card.accentClassName}
+                                compact={compact}
+                            />
+                        ))}
+                    </div>
+                </div>
+            ) : shouldShowCanonicalMetrics ? (
+                <div className={compact ? 'mt-2' : 'mt-3'}>
+                    <div className={`grid gap-2 ${activeEngineeringTruth.primaryMetrics.length === 1 ? 'grid-cols-1' : 'grid-cols-2'}`}>
+                        {activeEngineeringTruth.primaryMetrics.map((metric) => (
+                            <SummaryStatCard
+                                key={metric.label}
+                                label={metric.label}
+                                value={metric.display}
+                                hint="Delivered"
+                                accentClassName={activeEngineeringTruth.technology === 'LEO' ? 'text-fuchsia-700 dark:text-fuchsia-200' : 'text-blue-700 dark:text-blue-200'}
                                 compact={compact}
                             />
                         ))}
